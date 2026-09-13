@@ -31,6 +31,11 @@ import 'package:open_cine_prod_tools/types/ocpt_screenplay_language.dart';
 /// a restore of a version captured before an erasure — carrying it here would let that very restore
 /// rewind the fact that the erasure ever happened. See `ocpt_local_erasures_table.dart` and
 /// `OcptProjectVersionsService`'s restore path, which reads it straight from the database instead.
+///
+/// `sync_relay_cursors` (schema version 2) is excluded on the same grounds as this class itself:
+/// it describes this replica's own delivery state against each relay it talks to, not a fact about
+/// the project, and a restore must leave it alone rather than rewinding what has already been
+/// exchanged with a relay. See `ocpt_sync_relay_cursors_table.dart`.
 class OcptProjectVersionPayload extends Equatable {
   /// The `screenplays` rows of the project.
   final List<OcptScreenplayRow> screenplays;

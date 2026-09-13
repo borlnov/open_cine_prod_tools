@@ -343,10 +343,12 @@ class OcptBudgetFiche extends StatelessWidget {
     );
     final paidCents = _paidCentsOf(poste.id);
     final committedCents = _committedCentsOf(poste.id);
+    final inKindCoveredCents = _inKindCoveredCentsOf(poste.id);
     final estimateToCompleteCents = ocptBudgetEstimateToCompleteCents(
       quotedAmountCents: quoted.amountCents,
       paidCents: paidCents,
       committedCents: committedCents,
+      inKindCoveredCents: inKindCoveredCents,
       typedEstimateToCompleteCents: poste.estimateToCompleteCents,
     );
     final finalCostCents = ocptBudgetFinalCostCents(
@@ -362,6 +364,7 @@ class OcptBudgetFiche extends StatelessWidget {
       quotedAmountCents: quoted.amountCents,
       paidCents: paidCents,
       committedCents: committedCents,
+      inKindCoveredCents: inKindCoveredCents,
     );
 
     return _OcptBudgetFicheScaffold(
@@ -413,6 +416,7 @@ class OcptBudgetFiche extends StatelessWidget {
       quotedAmountCents: quoted.amountCents,
       paidCents: paidCents,
       committedCents: committedCents,
+      inKindCoveredCents: _inKindCoveredCentsOf(poste.id),
       typedEstimateToCompleteCents: null,
     );
     final currencySymbol = NumberFormat.simpleCurrency(name: currencyCode).currencySymbol;
@@ -556,9 +560,35 @@ class OcptBudgetFiche extends StatelessWidget {
       outstandingValue = null;
     }
 
+    // A counterpart line ([OcptBudgetLine.inKindResourceId] not null) is neither paid, committed
+    // nor deleted from the quote — its whole lifecycle is the contribution's
+    // (`docs/architecture/budget.md`) — so this branch runs before, and instead of, every other
+    // one below: no primary, no secondary, only a calm note naming the contribution it is covered
+    // in kind by.
+    final isInKindCounterpart = line.inKindResourceId != null;
     _OcptBudgetFicheAction? primary;
     final secondaries = <_OcptBudgetFicheAction>[];
-    if (isReadOnly) {
+    Widget? banner;
+    if (isInKindCounterpart) {
+      // A counterpart line is edited only through the contribution it balances — its whole
+      // lifecycle is the resource's — so its own fields read read-only here (no `details`, no
+      // stepper) and its sole action opens that contribution (`docs/architecture/budget.md`).
+      final contribution = resources.firstWhereOrNull(
+        (resource) => resource.id == line.inKindResourceId,
+      );
+      final contributionLabel = contribution == null || contribution.label.isEmpty
+          ? tr.budgetPosteUnnamed
+          : contribution.label;
+      banner = _OcptBudgetFicheInfoBanner(
+        message: tr.budgetFicheInKindCounterpartHint(contributionLabel),
+      );
+      primary = (isReadOnly || contribution == null || onResourceEditRequested == null)
+          ? null
+          : _OcptBudgetFicheAction(
+              label: tr.budgetFicheEditInKindContributionAction,
+              onTap: () => onResourceEditRequested?.call(contribution),
+            );
+    } else if (isReadOnly) {
       primary = null;
     } else if (!isPromoted) {
       // Pay is the primary gesture, not commit: a production quotes then pays, the commitment made
@@ -631,20 +661,25 @@ class OcptBudgetFiche extends StatelessWidget {
       title: line.label.isEmpty ? tr.budgetLineUnnamed : line.label,
       amountText: _amount(lineTotalCents),
       hint: hintLines.join("\n"),
-      stepLabels: [
-        tr.budgetFicheStepEstimatedLabel,
-        tr.budgetInspectorFigureCommitted,
-        tr.budgetInspectorFigurePaid,
-      ],
-      reachedCount: isSettled ? 3 : (isPromoted ? 2 : 1),
-      figures: [
-        (tr.budgetFicheStepEstimatedLabel, _amount(lineTotalCents)),
-        (tr.budgetInspectorFigureCommitted, _amount(committedCents)),
-        (tr.budgetInspectorFigurePaid, _amount(paidCents)),
-      ],
-      outstandingLabel: outstandingLabel,
-      outstandingValue: outstandingValue,
-      details: _lineEditableFields(context, line),
+      stepLabels: isInKindCounterpart
+          ? const []
+          : [
+              tr.budgetFicheStepEstimatedLabel,
+              tr.budgetInspectorFigureCommitted,
+              tr.budgetInspectorFigurePaid,
+            ],
+      reachedCount: isInKindCounterpart ? 0 : (isSettled ? 3 : (isPromoted ? 2 : 1)),
+      figures: isInKindCounterpart
+          ? [(tr.budgetResourceDialogValuedAtFieldLabel, _amount(lineTotalCents))]
+          : [
+              (tr.budgetFicheStepEstimatedLabel, _amount(lineTotalCents)),
+              (tr.budgetInspectorFigureCommitted, _amount(committedCents)),
+              (tr.budgetInspectorFigurePaid, _amount(paidCents)),
+            ],
+      outstandingLabel: isInKindCounterpart ? null : outstandingLabel,
+      outstandingValue: isInKindCounterpart ? null : outstandingValue,
+      details: isInKindCounterpart ? null : _lineEditableFields(context, line),
+      banner: banner,
       paymentsSection: payments.isEmpty
           ? null
           : _OcptBudgetCommitmentPayments(
@@ -822,16 +857,19 @@ class OcptBudgetFiche extends StatelessWidget {
         );
         final postePaidCents = _paidCentsOf(poste.id);
         final posteCommittedCents = _committedCentsOf(poste.id);
+        final posteInKindCoveredCents = _inKindCoveredCentsOf(poste.id);
         final posteStrain = ocptBudgetPosteStrainOf(
           quotedAmountCents: posteQuoted.amountCents,
           paidCents: postePaidCents,
           committedCents: posteCommittedCents,
+          inKindCoveredCents: posteInKindCoveredCents,
         );
         if (posteStrain == OcptBudgetPosteStrain.over) {
           final varianceCents = ocptBudgetVarianceCents(
             quotedAmountCents: posteQuoted.amountCents,
             paidCents: postePaidCents,
             committedCents: posteCommittedCents,
+            inKindCoveredCents: posteInKindCoveredCents,
           );
           bannerMessage = tr.budgetFicheCommitmentOffLineBannerOverQuoteText(_amount(varianceCents));
         }
@@ -962,16 +1000,19 @@ class OcptBudgetFiche extends StatelessWidget {
         );
         final postePaidCents = _paidCentsOf(poste.id);
         final posteCommittedCents = _committedCentsOf(poste.id);
+        final posteInKindCoveredCents = _inKindCoveredCentsOf(poste.id);
         final posteStrain = ocptBudgetPosteStrainOf(
           quotedAmountCents: posteQuoted.amountCents,
           paidCents: postePaidCents,
           committedCents: posteCommittedCents,
+          inKindCoveredCents: posteInKindCoveredCents,
         );
         if (posteStrain == OcptBudgetPosteStrain.over) {
           final varianceCents = ocptBudgetVarianceCents(
             quotedAmountCents: posteQuoted.amountCents,
             paidCents: postePaidCents,
             committedCents: posteCommittedCents,
+            inKindCoveredCents: posteInKindCoveredCents,
           );
           bannerMessage = tr.budgetFicheEntryOffLineBannerOverQuoteText(_amount(varianceCents));
         }
@@ -1030,10 +1071,20 @@ class OcptBudgetFiche extends StatelessWidget {
   // ---------------------------------------------------------------------------------------------
 
   /// The resource variant: breadcrumb through the resources document and its own group, the
-  /// `Dossier` status badge, the `Promis — Rentré` stepper, `Promised`/`Received` figures and
-  /// `Receive`/`Edit`/`Delete` — `docs/architecture/budget.md`'s "An in-kind contribution is valued,
-  /// not collected": a valued in-kind resource no entry names yet reads the em dash for both
-  /// `Received` and `Outstanding`.
+  /// `Dossier` status badge, and — for a subsidy, a cash contribution, or an in-kind resource a
+  /// journal entry has actually named — the `Promis — Rentré` stepper with its `Promised`/`Received`
+  /// figures, plus `Receive`/`Edit`/`Delete`. **A valued in-kind resource no entry names yet
+  /// (`readsAsUncollected`) drops that money stepper entirely**, for a single `Valued at` reading —
+  /// a valuation runs through no collection lifecycle — mirroring its own counterpart quote line on
+  /// the expenses side (`docs/architecture/budget.md`, "An in-kind contribution is valued, not
+  /// collected", "A balanced in-kind contribution"). `Receive` stays withheld for in-kind, and the
+  /// app never hides a real movement: an in-kind resource an entry does name keeps the stepper and
+  /// its received figure.
+  ///
+  /// **An in-kind resource names the poste its own counterpart quote line offsets**, resolved
+  /// through [ocptBudgetInKindCounterpartLineOf] rather than a field of its own — "No new column
+  /// on `budget_resources`" (`docs/architecture/budget.md`). Nothing draws while no counterpart
+  /// line has been minted for it yet.
   Widget _buildResource(BuildContext context, String resourceId) {
     final resource = resources.firstWhereOrNull((resource) => resource.id == resourceId);
     if (resource == null) {
@@ -1053,6 +1104,21 @@ class OcptBudgetFiche extends StatelessWidget {
     final canReceive =
         !isReadOnly && !isInKind && outstandingCents > 0 && onResourceReceiptRequested != null;
 
+    Widget? offsetsPosteBanner;
+    if (isInKind) {
+      final counterpartLine = ocptBudgetInKindCounterpartLineOf(postes, resource.id);
+      final offsetPoste = counterpartLine == null
+          ? null
+          : postes.firstWhereOrNull((poste) => poste.id == counterpartLine.posteId);
+      if (offsetPoste != null) {
+        offsetsPosteBanner = _OcptBudgetFicheInfoBanner(
+          message: tr.budgetFicheInKindOffsetsPoste(
+            "${offsetPoste.code} ${ocptBudgetPosteDisplayLabel(offsetPoste, isSimplified: isSimplified)}",
+          ),
+        );
+      }
+    }
+
     return _OcptBudgetFicheScaffold(
       breadcrumb: [
         tr.budgetHeaderResourcesSegmentLabel,
@@ -1063,14 +1129,19 @@ class OcptBudgetFiche extends StatelessWidget {
       hint: resource.notes.isEmpty ? null : resource.notes,
       badge: ocptBudgetResourceStatusLabel(tr, resource.groupKind, resource.status),
       badgeColor: ocptBudgetResourceStatusAccentColor(Theme.of(context).colorScheme, resource.status),
-      stepLabels: [tr.budgetFicheStepPromisedLabel, tr.budgetFinancingColumnReceived],
-      reachedCount: hasEntry && receivedCents > 0 ? 2 : 1,
-      figures: [
-        (tr.budgetFicheStepPromisedLabel, _amount(resource.amountCents)),
-        (tr.budgetFinancingColumnReceived, readsAsUncollected ? null : _amount(receivedCents)),
-      ],
-      outstandingLabel: tr.budgetFinancingColumnOutstanding,
+      stepLabels: readsAsUncollected
+          ? const []
+          : [tr.budgetFicheStepPromisedLabel, tr.budgetFinancingColumnReceived],
+      reachedCount: readsAsUncollected ? 0 : (hasEntry && receivedCents > 0 ? 2 : 1),
+      figures: readsAsUncollected
+          ? [(tr.budgetResourceDialogValuedAtFieldLabel, _amount(resource.amountCents))]
+          : [
+              (tr.budgetFicheStepPromisedLabel, _amount(resource.amountCents)),
+              (tr.budgetFinancingColumnReceived, _amount(receivedCents)),
+            ],
+      outstandingLabel: readsAsUncollected ? null : tr.budgetFinancingColumnOutstanding,
       outstandingValue: readsAsUncollected ? null : _amount(outstandingCents),
+      banner: offsetsPosteBanner,
       primary: canReceive
           ? _OcptBudgetFicheAction(
               label: tr.budgetFicheReceiveAction(_amount(outstandingCents < 0 ? 0 : outstandingCents)),
@@ -1205,6 +1276,11 @@ class OcptBudgetFiche extends StatelessWidget {
     projectVatRateBasisPoints: defaultVatRateBasisPoints,
   )[posteId]?.amountCents ?? 0;
 
+  /// `posteId`'s own in-kind covered total, in cents — mirrors [_paidCentsOf], read off [postes]
+  /// directly since the fiche resolves its own poste rather than being handed one pre-resolved.
+  int _inKindCoveredCentsOf(String posteId) =>
+      ocptBudgetInKindCoveredCentsByPosteId(postes)[posteId] ?? 0;
+
   /// One editable text field bound to [fieldValueOf]/[onFieldChanged].
   Widget _inlineField({
     required String targetId,
@@ -1281,9 +1357,11 @@ class _OcptBudgetFicheScaffold extends StatelessWidget {
   /// null for every other variant, and for a line whose commitment has never been paid at all.
   final Widget? paymentsSection;
 
-  /// A card drawn just above the primary action button, or null for every variant but an off-line
-  /// debit entry's or an off-line commitment's own — the fiche's own `Add to the quote`/`Move
-  /// off-quote` banner (`_OcptBudgetOffLineBanner`).
+  /// A card drawn just above the primary action button, or null while this variant draws none: an
+  /// off-line debit entry's or an off-line commitment's own `Add to the quote`/`Move off-quote`
+  /// banner (`_OcptBudgetOffLineBanner`), a counterpart quote line's own calm note naming the
+  /// contribution it is covered in kind by, or an in-kind resource's own calm note naming the
+  /// poste its counterpart line offsets (both `_OcptBudgetFicheInfoBanner`).
   final Widget? banner;
 
   /// The one primary action, or null while withheld or none applies.
@@ -1569,6 +1647,34 @@ class _OcptBudgetOffLineBanner extends StatelessWidget {
               ),
             ],
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// A calm, action-less info banner — the fiche's own quiet note for a fact worth stating plainly
+/// rather than folding into [_OcptBudgetFicheScaffold]'s own `hint` line: a counterpart quote
+/// line's own covering contribution, or an in-kind resource's own offset poste. Shares
+/// [_OcptBudgetOffLineBanner]'s own visual vocabulary — a `Card`, the same padding, the same muted
+/// body text — without its promote/move actions, which neither of these two facts offers.
+class _OcptBudgetFicheInfoBanner extends StatelessWidget {
+  /// The banner's own text.
+  final String message;
+
+  /// Class constructor
+  const _OcptBudgetFicheInfoBanner({required this.message});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Text(
+          message,
+          style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
         ),
       ),
     );

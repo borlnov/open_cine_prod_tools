@@ -74,6 +74,28 @@ class OcptStyledScreenplayEditor extends StatefulWidget {
   /// this is off: the fluid surface has no sheets at all.
   final bool isPageSimulationEnabled;
 
+  /// Whether the row this editor is laid out in is narrow enough
+  /// (`ocptIsCompactWidth`/`docs/plans/tablet.md`) that the stylesheet should carry the block
+  /// hierarchy by *style* rather than by the real screenplay indents: a phone or a narrow tablet
+  /// window has no room for a character cue starting 3.7 inches from the page's left edge. Only
+  /// ever acted on while [isPageSimulationEnabled] is off (see
+  /// `OcptFountainEditorStylesheet.build`'s own doc comment) — the caller that forces this true is
+  /// the same one that forces [isPageSimulationEnabled] false, but this widget does not assume
+  /// that pairing itself.
+  final bool isCompact;
+
+  /// Whether the fluid surface is painted with the fixed paper colors (white ground, black text)
+  /// instead of following the app theme — a phone's own default.
+  ///
+  /// On a phone page simulation is forced off ([isPageSimulationEnabled]), so this fluid surface is
+  /// all a phone screenplay ever shows; on the desktop the same screenplay defaults to white paper
+  /// sheets, so a phone in dark mode would otherwise be the one place the screenplay turned dark.
+  /// Painting it as paper keeps it reading the way the desktop's simulated page does. Only ever
+  /// acted on while [isPageSimulationEnabled] is off — a simulated page already paints paper of its
+  /// own — and it changes colors alone, never the compact [isCompact] indents the fluid surface
+  /// still carries.
+  final bool usesPaperColorsWhileFluid;
+
   /// Whether every scene heading shows its scene number (explicit or computed, see
   /// `computeOcptStyledSceneNumbers`) in its left gutter.
   final bool areSceneNumbersVisible;
@@ -124,6 +146,8 @@ class OcptStyledScreenplayEditor extends StatefulWidget {
     required this.text,
     required this.pageSetup,
     required this.isPageSimulationEnabled,
+    this.isCompact = false,
+    this.usesPaperColorsWhileFluid = false,
     required this.areSceneNumbersVisible,
     required this.isSpellCheckVisible,
     required this.onTextChanged,
@@ -487,7 +511,10 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
     final theme = Theme.of(context);
     final metrics = widget.pageSetup.toMetrics();
     final layout = OcptEditorPreviewLayout(metrics: metrics);
-    final onSurface = widget.isPageSimulationEnabled ? Colors.black : theme.colorScheme.onSurface;
+    // The fluid surface opts into paper colors on a phone (see [usesPaperColorsWhileFluid]); a
+    // simulated page always paints paper regardless.
+    final usePaperColors = widget.isPageSimulationEnabled || widget.usesPaperColorsWhileFluid;
+    final onSurface = usePaperColors ? Colors.black : theme.colorScheme.onSurface;
 
     final editor = SuperEditor(
       editor: _editor,
@@ -540,6 +567,8 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
         colorScheme: theme.colorScheme,
         isPageSimulationEnabled: widget.isPageSimulationEnabled,
         trailingBottomPadding: _trailingBottomPadding,
+        isCompact: widget.isCompact,
+        usePaperColors: widget.usesPaperColorsWhileFluid,
       ),
     );
 
@@ -563,7 +592,11 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
     );
 
     final content = !widget.isPageSimulationEnabled
-        ? _buildFluidSurface(theme: theme, editorWithoutImplicitScrollbar: editorWithoutImplicitScrollbar)
+        ? _buildFluidSurface(
+            theme: theme,
+            usePaperColors: usePaperColors,
+            editorWithoutImplicitScrollbar: editorWithoutImplicitScrollbar,
+          )
         : _buildPageSimulationSurface(theme: theme, layout: layout, editorWithoutImplicitScrollbar: editorWithoutImplicitScrollbar);
 
     // Wrapped once here, rather than once per branch above: a right-click anywhere over the
@@ -614,12 +647,21 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
     );
   }
 
-  /// The fluid, theme-following editing surface [build] shows while
+  /// The fluid editing surface [build] shows while
   /// [OcptStyledScreenplayEditor.isPageSimulationEnabled] is off: no sheets, no page numbers, just
-  /// [editorWithoutImplicitScrollbar] on the themed surface colour, scrollable.
-  Widget _buildFluidSurface({required ThemeData theme, required Widget editorWithoutImplicitScrollbar}) => Scrollbar(
+  /// [editorWithoutImplicitScrollbar], scrollable. Its ground follows the app theme, except on a
+  /// phone ([usePaperColors], see [OcptStyledScreenplayEditor.usesPaperColorsWhileFluid]), where it
+  /// is white paper so the screenplay reads the way the desktop's simulated page does.
+  Widget _buildFluidSurface({
+    required ThemeData theme,
+    required bool usePaperColors,
+    required Widget editorWithoutImplicitScrollbar,
+  }) => Scrollbar(
     controller: _pageScrollController,
-    child: ColoredBox(color: theme.colorScheme.surface, child: editorWithoutImplicitScrollbar),
+    child: ColoredBox(
+      color: usePaperColors ? Colors.white : theme.colorScheme.surface,
+      child: editorWithoutImplicitScrollbar,
+    ),
   );
 
   /// The paper-simulated editing surface [build] shows while

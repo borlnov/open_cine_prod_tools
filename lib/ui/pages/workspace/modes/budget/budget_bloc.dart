@@ -43,6 +43,7 @@ import 'package:open_cine_prod_tools/models/ocpt_role.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_field.dart';
+import 'package:open_cine_prod_tools/types/ocpt_budget_resource_group_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_right_dock_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_selection.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
@@ -1114,6 +1115,33 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     }
   }
 
+  /// Whether [field] targets a quote line that is an in-kind counterpart line (its
+  /// `inKindResourceId` is set) — such a line's fields follow the contribution it balances and are
+  /// never a direct edit's to write (`docs/architecture/budget.md`, "A balanced in-kind
+  /// contribution"). Defensive only: `OcptBudgetFiche` already withholds a counterpart line's
+  /// editable fields, so this guards against a future edit path reaching one.
+  bool _isInKindCounterpartLineField(OcptBudgetField field, String targetId) {
+    const lineFields = {
+      OcptBudgetField.lineLabel,
+      OcptBudgetField.lineQuantity,
+      OcptBudgetField.lineUnit,
+      OcptBudgetField.lineUnitAmount,
+      OcptBudgetField.lineVatRateOverride,
+    };
+    if (!lineFields.contains(field)) {
+      return false;
+    }
+
+    for (final poste in state.postes) {
+      for (final line in poste.lines) {
+        if (line.id == targetId) {
+          return line.inKindResourceId != null;
+        }
+      }
+    }
+    return false;
+  }
+
   /// Writes every one of [edits] to [project]'s database, one write per entry — the shared write
   /// loop [_flushPendingFieldEdits] and [flushPendingFieldEdits] both run, so the switch over
   /// [OcptBudgetField] is written once.
@@ -1132,6 +1160,13 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     for (final entry in edits.entries) {
       final (targetId, field) = entry.key;
       final value = entry.value;
+
+      // A counterpart line's own fields follow the in-kind contribution it balances, never a direct
+      // edit's — the fiche withholds them, so reaching here would be a bug; skip rather than let a
+      // line drift away from the resource it must equal.
+      if (_isInKindCounterpartLineField(field, targetId)) {
+        continue;
+      }
 
       switch (field) {
         case OcptBudgetField.posteLabel:
@@ -1919,6 +1954,7 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     );
     if (resourceId != null) {
       await _writeResourceFields(project, resourceId, fields);
+      await _reconcileInKindCounterpartLine(project, resourceId, fields);
     }
 
     await _applyBudgetSnapshot(emitter, project);
@@ -1938,6 +1974,7 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     }
 
     await _writeResourceFields(project, event.resourceId, event.fields);
+    await _reconcileInKindCounterpartLine(project, event.resourceId, event.fields);
     await _applyBudgetSnapshot(emitter, project);
   }
 
@@ -1959,6 +1996,79 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     isReimbursable: Value(fields.isReimbursable),
     notes: Value(fields.notes),
   );
+
+  /// Keeps in-kind contribution `resourceId`'s own counterpart quote line in step with `fields`,
+  /// called right after [_writeResourceFields] writes the contribution itself, from both
+  /// [_onResourceCreationConfirmed] and [_onResourceUpdateConfirmed] — the resource and its
+  /// counterpart line are two rows kept in step by one caller, the same "one write, two rows"
+  /// shape [OcptBudgetLinePaidDirectlyEvent] already uses to create a commitment and its entry
+  /// together (`docs/architecture/budget.md`, "A quote line is paid directly, the commitment made
+  /// for it").
+  ///
+  /// **Exactly one counterpart line exists whenever `fields` describes an in-kind contribution,
+  /// and none does otherwise** — the invariant `docs/architecture/budget.md`'s "A balanced in-kind
+  /// contribution" argues for:
+  /// - not in kind any more (or never was): the existing line, if any, is tombstoned — a
+  ///   reclassification away from in-kind offsets no poste any more.
+  /// - in kind, no line yet: one is minted, quantity 1 (`quantityMilli` 1000), tax-inclusive, frozen
+  ///   at 0 % VAT (a valuation, not an invoice — "The link, and where the single truth lives"), the
+  ///   figure and label read straight off `fields`.
+  /// - in kind, a line already exists, same poste: an ordinary field update — the label and the
+  ///   amount follow the contribution; the quantity and the 0 % rate are never touched again.
+  /// - in kind, a line already exists, a **different** poste: deleted and re-minted in the new one,
+  ///   never moved in place. `budget_lines.sortKey` is fractional **within its own `posteId`**
+  ///   (`OcptBudgetPostesTable` orders flat; `budget_lines` orders "like a shot within a scene"), so
+  ///   re-poste-ing a line is really a second operation — its position among a different poste's own
+  ///   lines — wearing the name of a field write (`docs/architecture/budget.md`, "A commitment's
+  ///   poste is editable, a quote line's is not").
+  ///
+  /// `OcptBudgetResourceDialog`'s own poste picker already blocks confirming an in-kind
+  /// contribution with no poste chosen, so `fields.posteId == null` here should not occur; this
+  /// writes nothing rather than mint an orphaned line if it somehow does.
+  Future<void> _reconcileInKindCounterpartLine(
+    OcptOpenProjectModel project,
+    String resourceId,
+    OcptBudgetResourceFormFields fields,
+  ) async {
+    final existing = ocptBudgetInKindCounterpartLineOf(state.postes, resourceId);
+
+    if (fields.groupKind != OcptBudgetResourceGroupKind.inKind) {
+      if (existing != null) {
+        await _budgetQuoteService.deleteLine(database: project.database, lineId: existing.id);
+      }
+      return;
+    }
+
+    final desiredPosteId = fields.posteId;
+    if (desiredPosteId == null) {
+      return;
+    }
+
+    if (existing != null && existing.posteId == desiredPosteId) {
+      await _budgetQuoteService.updateLine(
+        database: project.database,
+        lineId: existing.id,
+        label: Value(fields.label),
+        unitAmountCents: Value(fields.amountCents),
+      );
+      return;
+    }
+
+    if (existing != null) {
+      await _budgetQuoteService.deleteLine(database: project.database, lineId: existing.id);
+    }
+
+    await _budgetQuoteService.createLine(
+      database: project.database,
+      posteId: desiredPosteId,
+      label: fields.label,
+      quantityMilli: const Value(1000),
+      unitAmountCents: Value(fields.amountCents),
+      isTaxInclusive: const Value(true),
+      vatRateBasisPoints: const Value(0),
+      inKindResourceId: Value(resourceId),
+    );
+  }
 
   /// Creates a defrayal from `event.fields`.
   ///
@@ -2059,7 +2169,9 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
   }
 
   /// Deletes financing resource `event.resourceId` for good, confirmed by the mode's own
-  /// `OcptConfirmDialog`.
+  /// `OcptConfirmDialog` — and, alongside it, its own counterpart line if it had one, found in the
+  /// live snapshot before the deletion rather than after: a resource just tombstoned names no poste
+  /// any more for [ocptBudgetInKindCounterpartLineOf] to find it by.
   Future<void> _onResourceDeletionConfirmed(
     OcptBudgetResourceDeletionConfirmedEvent event,
     Emitter<OcptBudgetState> emitter,
@@ -2069,10 +2181,15 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
       return;
     }
 
+    final counterpartLine = ocptBudgetInKindCounterpartLineOf(state.postes, event.resourceId);
+
     await _budgetFinancingService.deleteResource(
       database: project.database,
       resourceId: event.resourceId,
     );
+    if (counterpartLine != null) {
+      await _budgetQuoteService.deleteLine(database: project.database, lineId: counterpartLine.id);
+    }
     await _applyBudgetSnapshot(emitter, project);
   }
 
@@ -2311,7 +2428,7 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
 
     try {
       final options = event.options;
-      final path = await _exportManager.exportBudgetQuote(
+      final outcome = await _exportManager.exportBudgetQuote(
         snapshot: snapshot,
         elementNameById: event.elementNameById,
         pageSetup: OcptPageSetup(format: options.format, margins: options.margins),
@@ -2320,15 +2437,20 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
         projectName: state.title,
         includeTitlePage: options.includeTitlePage,
         fileTypeLabel: event.fileTypeLabel,
+        shareAnchor: event.shareAnchor,
       );
-      if (path == null) {
+      if (outcome == null) {
         // The user cancelled the save dialog.
         return;
       }
 
       emitter(
         state.copyWith(
-          ioNotice: OcptBudgetIoNotice(kind: OcptBudgetIoNoticeKind.fileExportSucceeded, path: path),
+          ioNotice: OcptBudgetIoNotice(
+            kind: OcptBudgetIoNoticeKind.fileExportSucceeded,
+            path: outcome.savedPath,
+            wasShared: outcome.wasShared,
+          ),
         ),
       );
     } catch (error) {
@@ -2354,22 +2476,27 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
 
     try {
       final options = event.options;
-      final path = await _exportManager.exportBudgetFinancingPlan(
+      final outcome = await _exportManager.exportBudgetFinancingPlan(
         snapshot: snapshot,
         pageSetup: OcptPageSetup(format: options.format, margins: options.margins),
         labels: event.labels,
         projectName: state.title,
         includeTitlePage: options.includeTitlePage,
         fileTypeLabel: event.fileTypeLabel,
+        shareAnchor: event.shareAnchor,
       );
-      if (path == null) {
+      if (outcome == null) {
         // The user cancelled the save dialog.
         return;
       }
 
       emitter(
         state.copyWith(
-          ioNotice: OcptBudgetIoNotice(kind: OcptBudgetIoNoticeKind.fileExportSucceeded, path: path),
+          ioNotice: OcptBudgetIoNotice(
+            kind: OcptBudgetIoNoticeKind.fileExportSucceeded,
+            path: outcome.savedPath,
+            wasShared: outcome.wasShared,
+          ),
         ),
       );
     } catch (error) {
@@ -2396,21 +2523,26 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     }
 
     try {
-      final path = await _exportManager.exportBudgetCashJournalXlsx(
+      final outcome = await _exportManager.exportBudgetCashJournalXlsx(
         snapshot: snapshot,
         linkLabelByEntryId: event.linkLabelByEntryId,
         labels: event.labels,
         projectName: state.title,
         fileTypeLabel: event.fileTypeLabel,
+        shareAnchor: event.shareAnchor,
       );
-      if (path == null) {
+      if (outcome == null) {
         // The user cancelled the save dialog.
         return;
       }
 
       emitter(
         state.copyWith(
-          ioNotice: OcptBudgetIoNotice(kind: OcptBudgetIoNoticeKind.fileExportSucceeded, path: path),
+          ioNotice: OcptBudgetIoNotice(
+            kind: OcptBudgetIoNoticeKind.fileExportSucceeded,
+            path: outcome.savedPath,
+            wasShared: outcome.wasShared,
+          ),
         ),
       );
     } catch (error) {
@@ -2436,22 +2568,27 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
 
     try {
       final options = event.options;
-      final path = await _exportManager.exportBudgetFinancialReport(
+      final outcome = await _exportManager.exportBudgetFinancialReport(
         snapshot: snapshot,
         pageSetup: OcptPageSetup(format: options.format, margins: options.margins),
         labels: event.labels,
         projectName: state.title,
         includeTitlePage: options.includeTitlePage,
         fileTypeLabel: event.fileTypeLabel,
+        shareAnchor: event.shareAnchor,
       );
-      if (path == null) {
+      if (outcome == null) {
         // The user cancelled the save dialog.
         return;
       }
 
       emitter(
         state.copyWith(
-          ioNotice: OcptBudgetIoNotice(kind: OcptBudgetIoNoticeKind.fileExportSucceeded, path: path),
+          ioNotice: OcptBudgetIoNotice(
+            kind: OcptBudgetIoNoticeKind.fileExportSucceeded,
+            path: outcome.savedPath,
+            wasShared: outcome.wasShared,
+          ),
         ),
       );
     } catch (error) {

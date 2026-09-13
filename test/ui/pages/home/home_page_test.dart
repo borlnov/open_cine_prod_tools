@@ -30,6 +30,7 @@ import 'package:open_cine_prod_tools/ui/pages/home/widgets/ocpt_project_card.dar
 import 'package:open_cine_prod_tools/ui/pages/home/widgets/ocpt_project_file_newer_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/home/widgets/ocpt_project_package_skipped_files_dialog.dart';
 import 'package:open_cine_prod_tools/ui/widgets/ocpt_confirm_dialog.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_responsive.dart';
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
@@ -56,15 +57,18 @@ Widget _wrapWithLocalization(Widget child, {GlobalKey<NavigatorState>? navigator
       home: child,
     );
 
-/// Pumps [child], localized, on a desktop-sized surface: the default test surface (800x600) is
-/// too narrow for the home page header's three actions side by side, which this app never runs
-/// at in practice (a resizable desktop window, not a fixed small canvas).
+/// Pumps [child], localized, on a desktop-sized surface by default: the default test surface
+/// (800x600) is narrower than [ocptCompactWidthBreakpoint] and reads as compact, which most of
+/// this suite is not about (a resizable desktop window, not a fixed small canvas). Pass [size] to
+/// pump at a specific width instead — a test asserting the compact layout wants one below the
+/// breakpoint.
 Future<void> _pumpHome(
   WidgetTester tester,
   Widget child, {
   GlobalKey<NavigatorState>? navigatorKey,
+  Size size = const Size(1400, 900),
 }) async {
-  tester.view.physicalSize = const Size(1400, 900);
+  tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1.0;
   addTearDown(tester.view.resetPhysicalSize);
   addTearDown(tester.view.resetDevicePixelRatio);
@@ -195,6 +199,44 @@ void main() {
     expect(find.text(Tr.of(context).homeEmptyStateTitle), findsOneWidget);
   });
 
+  testWidgets('shows the New project FAB at compact width', (tester) async {
+    await _pumpHome(
+      tester,
+      const HomePage(),
+      size: const Size(ocptCompactWidthBreakpoint - 100, 900),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byType(FloatingActionButton), findsOneWidget);
+  });
+
+  testWidgets('shows no New project FAB at wide width', (tester) async {
+    await _pumpHome(tester, const HomePage());
+    await tester.pumpAndSettle();
+
+    expect(find.byType(FloatingActionButton), findsNothing);
+  });
+
+  testWidgets(
+    'the empty state shows the compact hint instead of the button row at compact width',
+    (tester) async {
+      await _pumpHome(
+        tester,
+        const HomePage(),
+        size: const Size(ocptCompactWidthBreakpoint - 100, 900),
+      );
+      await tester.pumpAndSettle();
+
+      final context = tester.element(find.byType(HomePage));
+      final tr = Tr.of(context);
+
+      expect(find.text(tr.homeEmptyStateCompactHint), findsOneWidget);
+      expect(find.text(tr.homeNewProjectAction), findsNothing);
+      expect(find.text(tr.homeOpenProjectAction), findsNothing);
+      expect(find.text(tr.homeImportAction), findsNothing);
+    },
+  );
+
   testWidgets('shows a card per recent project once loaded', (tester) async {
     final existingFile = File(p.join(tempDir.path, "movie.ocpt"))..writeAsStringSync("");
     await propertiesManager.addRecentProject(
@@ -256,13 +298,34 @@ void main() {
         onNewProject: () {},
         onOpenProject: () {},
         onImport: () => tapped = true,
+        onJoinSharedProject: () {},
         onOpenSettings: () {},
       ),
     );
 
     final context = tester.element(find.byType(OcptHomeHeader));
     await tester.tap(find.text(Tr.of(context).homeImportAction));
-    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    expect(tapped, isTrue);
+  });
+
+  testWidgets('tapping the join a shared project action calls back', (tester) async {
+    var tapped = false;
+    await _pumpHome(
+      tester,
+      OcptHomeHeader(
+        onNewProject: () {},
+        onOpenProject: () {},
+        onImport: () {},
+        onJoinSharedProject: () => tapped = true,
+        onOpenSettings: () {},
+      ),
+    );
+
+    final context = tester.element(find.byType(OcptHomeHeader));
+    await tester.tap(find.text(Tr.of(context).homeJoinSharedProjectAction));
+    await tester.pump(const Duration(milliseconds: 300));
 
     expect(tapped, isTrue);
   });
@@ -281,12 +344,12 @@ void main() {
   });
 
   group("opening a project file from another build", () {
-    // The older-file case can't be exercised at schema version 1: ADR 0029 squashed the pre-stable
-    // chain, so no schema below the current one exists (currentSchemaVersion - 1 is 0, which reads
-    // as an unreadable/foreign file, not an older one). The older test skips until a stable cycle
-    // raises currentSchemaVersion to 2+, when it reactivates on its own. The same limitation is why
-    // the pre-release "at your own risk" migration wording has no test here: it only replaces the
-    // migration message, which this skip already keeps untested.
+    // The older-file case could not be exercised at schema version 1: ADR 0029 squashed the
+    // pre-stable chain, so no schema below the current one existed then (currentSchemaVersion - 1
+    // was 0, which reads as an unreadable/foreign file, not an older one). Schema version 2 is what
+    // reactivates the older test below, on its own, through this constant. The same limitation is
+    // why the pre-release "at your own risk" migration wording has no test here: it only replaces
+    // the migration message, which this skip already keeps untested.
     const olderFileFlowSkip = OcptProjectDatabase.currentSchemaVersion < 2;
 
     /// Writes a project file at [filePath] stating [userVersion], and puts it on the home page as

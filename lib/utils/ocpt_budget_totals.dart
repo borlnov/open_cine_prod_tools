@@ -59,6 +59,71 @@ int ocptBudgetPosteQuotedTotalCents(OcptBudgetPoste poste) =>
 int ocptBudgetProjectQuotedTotalCents(List<OcptBudgetPoste> postes) =>
     postes.fold(0, (sum, poste) => sum + ocptBudgetPosteQuotedTotalCents(poste));
 
+/// What each poste has settled **in kind**, keyed by `OcptBudgetPoste.id`: the sum of
+/// [ocptBudgetLineTotalCents] over its own lines whose [OcptBudgetLine.inKindResourceId] is not
+/// null — a counterpart line minted to balance an in-kind contribution
+/// (`docs/architecture/budget.md`, "A balanced in-kind contribution"). This is the settled-in-kind
+/// twin of `ocptBudgetPaidCentsByPosteId` (`lib/utils/ocpt_budget_journal.dart`): the same reading,
+/// over the quote's own counterpart lines rather than over the journal's own entries.
+///
+/// **A poste with no such line has no key in the map** — mirroring `ocptBudgetPaidCentsByPosteId`'s
+/// own "no key for nothing" discipline: a caller can tell "no in-kind line settles this poste" apart
+/// from "one does, and it happens to total zero" (which cannot actually occur here, since a
+/// counterpart line is always minted at the contribution's own non-zero valuation, but the
+/// discipline is kept anyway, for the same reason every other per-poste map in this file keeps it).
+///
+/// **A plain `int`, not an [OcptBudgetCoveredTotal], and no `projectVatRateBasisPoints`
+/// parameter** — unlike every other reading in this file that sums money moved. A counterpart line
+/// is **frozen at 0 % VAT** (`OcptBudgetLine.unitPrice.vatRateBasisPoints`), an explicit "no VAT
+/// applies" rather than a null inheriting the project's own rate, precisely so its typed total reads
+/// the same whichever tax basis the header is on — there is no rate to be missing, so there is
+/// nothing for [OcptBudgetCoveredTotal.isComplete] to ever say about it, and no basis to convert by.
+///
+/// Takes [postes] with their own lines already loaded, exactly as [ocptBudgetPosteQuotedTotalCents]
+/// does — this file does no database access of its own.
+Map<String, int> ocptBudgetInKindCoveredCentsByPosteId(List<OcptBudgetPoste> postes) {
+  final coveredCentsByPosteId = <String, int>{};
+
+  for (final poste in postes) {
+    final counterpartLines = poste.lines.where((line) => line.inKindResourceId != null);
+    if (counterpartLines.isEmpty) {
+      continue;
+    }
+
+    coveredCentsByPosteId[poste.id] = counterpartLines.fold(
+      0,
+      (sum, line) => sum + ocptBudgetLineTotalCents(line),
+    );
+  }
+
+  return coveredCentsByPosteId;
+}
+
+/// The counterpart quote line balancing in-kind contribution [resourceId] — the one line, across
+/// every poste, whose [OcptBudgetLine.inKindResourceId] names it — or null while it has none: an
+/// ordinary contribution not (or not yet) in kind, or one whose line has not been minted.
+///
+/// **There is always at most one.** `OcptBudgetBloc`'s own in-kind reconciliation
+/// (`budget_bloc.dart`) keeps exactly one counterpart line per in-kind contribution in step across
+/// every edit, so this never has more than one match to choose between — see
+/// `docs/architecture/budget.md`, "A balanced in-kind contribution", for the single-line invariant.
+///
+/// Takes [postes] with their own lines already loaded, exactly as
+/// [ocptBudgetInKindCoveredCentsByPosteId] does — this file does no database access of its own, and
+/// both the mode's own resource fiche/dialog (reading the poste a contribution offsets) and the
+/// bloc's own reconciliation (finding the line to update, re-home or drop) share this one lookup.
+OcptBudgetLine? ocptBudgetInKindCounterpartLineOf(List<OcptBudgetPoste> postes, String resourceId) {
+  for (final poste in postes) {
+    for (final line in poste.lines) {
+      if (line.inKindResourceId == resourceId) {
+        return line;
+      }
+    }
+  }
+
+  return null;
+}
+
 /// A total, paired with how many of the rows it was asked to sum actually carried a known rate —
 /// `lib/utils/ocpt_budget_vat.dart`'s "null, never zero" rule applied to a whole table: a row whose
 /// rate nobody has recorded contributes to neither [amountCents] nor [coveredLineCount], so the
@@ -183,33 +248,48 @@ enum OcptBudgetPosteStrain {
   over,
 }
 
-/// What is left of a poste quoted at [quotedAmountCents], having paid [paidCents] and committed
-/// [committedCents] against it — negative once the poste has gone over its quote.
+/// What is left of a poste quoted at [quotedAmountCents], having paid [paidCents], committed
+/// [committedCents] and settled [inKindCoveredCents] against it — negative once the poste has gone
+/// over its quote.
 ///
-/// [paidCents] and [committedCents] are **parameters, not reads of their own**: this file stays
-/// free of any database access, exactly like every other one under `lib/utils/` — reading
-/// `budget_entries` and `budget_commitments` (`lib/utils/ocpt_budget_journal.dart`,
-/// `lib/utils/ocpt_budget_projection.dart`) into the two per-poste totals a caller hands in here is
+/// [inKindCoveredCents] — [ocptBudgetInKindCoveredCentsByPosteId]'s own per-poste figure — is folded
+/// in **alongside** [paidCents] and [committedCents], not into either: a counterpart line adds
+/// equally to the poste's own quote ([ocptBudgetPosteQuotedTotalCents] already counts it, being a
+/// real quote line) and to this settled side, so it nets to no remainder rather than reading as an
+/// unspent one. It is kept a separate parameter, rather than folded into [paidCents] before this is
+/// called, precisely so it never reaches a **cash** reading — see
+/// `ocptBudgetPaidCentsByPosteId`/`OcptBudgetCashTotals.balanceCents`, which never see it.
+///
+/// [paidCents], [committedCents] and [inKindCoveredCents] are **parameters, not reads of their
+/// own**: this file stays free of any database access, exactly like every other one under
+/// `lib/utils/` — reading `budget_entries`, `budget_commitments` and the quote's own counterpart
+/// lines (`lib/utils/ocpt_budget_journal.dart`, `lib/utils/ocpt_budget_projection.dart`, this file's
+/// own [ocptBudgetInKindCoveredCentsByPosteId]) into the per-poste totals a caller hands in here is
 /// the mode's own job (`OcptBudgetSnapshot.build`).
 int ocptBudgetRemainingCents({
   required int quotedAmountCents,
   required int paidCents,
   required int committedCents,
-}) => quotedAmountCents - paidCents - committedCents;
+  required int inKindCoveredCents,
+}) => quotedAmountCents - paidCents - committedCents - inKindCoveredCents;
 
 /// How far a poste quoted at [quotedAmountCents] sits from what has actually moved against it —
-/// [paidCents] plus [committedCents], minus the quote. Positive once the poste has gone over,
-/// negative while it still has room: [ocptBudgetRemainingCents]'s own figure with the sign read the
-/// other way round, for the financial report's "quoted vs. actual" reading rather than the
-/// cost-tracking table's own `Reste` "what is left" one.
+/// [paidCents] plus [committedCents] plus [inKindCoveredCents], minus the quote. Positive once the
+/// poste has gone over, negative while it still has room: [ocptBudgetRemainingCents]'s own figure
+/// with the sign read the other way round, for the financial report's "quoted vs. actual" reading
+/// rather than the cost-tracking table's own `Reste` "what is left" one.
+///
+/// [inKindCoveredCents] is folded in for the same reason [ocptBudgetRemainingCents] folds it in —
+/// see that function's own doc comment.
 int ocptBudgetVarianceCents({
   required int quotedAmountCents,
   required int paidCents,
   required int committedCents,
-}) => paidCents + committedCents - quotedAmountCents;
+  required int inKindCoveredCents,
+}) => paidCents + committedCents + inKindCoveredCents - quotedAmountCents;
 
 /// What is still expected to be spent on a poste quoted at [quotedAmountCents] beyond what has
-/// already been [paidCents] and [committedCents] against it.
+/// already been [paidCents], [committedCents] and [inKindCoveredCents] against it.
 ///
 /// [typedEstimateToCompleteCents] **is** the answer, verbatim, whenever it is non-null: a human has
 /// adjusted the figure, and this util never second-guesses a typed one. While it is null the answer
@@ -223,11 +303,12 @@ int ocptBudgetVarianceCents({
 /// still to come. See [ocptBudgetFinalCostVarianceCents] for the two readings meeting again, this
 /// time both against a final cost rather than against the quote directly.
 ///
-/// [quotedAmountCents], [paidCents] and [committedCents] are **parameters, not reads of their
-/// own** — this file stays free of any database access, exactly as [ocptBudgetRemainingCents]
-/// already is, and the figures are assumed already resolved in whichever tax basis the caller's own
-/// header asks for ([ocptBudgetTotalOf]'s own reading of the quote): there is no basis parameter
-/// here, and no reach into `ocpt_budget_vat.dart`, for the same reason [ocptBudgetRemainingCents]
+/// [quotedAmountCents], [paidCents], [committedCents] and [inKindCoveredCents] are **parameters,
+/// not reads of their own** — this file stays free of any database access, exactly as
+/// [ocptBudgetRemainingCents] already is, and the figures are assumed already resolved in whichever
+/// tax basis the caller's own header asks for ([ocptBudgetTotalOf]'s own reading of the quote):
+/// there is no basis parameter here, and no reach into `ocpt_budget_vat.dart`, for the same reason
+/// [ocptBudgetRemainingCents]
 /// and [ocptBudgetVarianceCents] beside it take no basis either. The "null, never zero" coverage
 /// discipline lives one level up, in the [OcptBudgetCoveredTotal] that produced the figure a caller
 /// hands in here — not in this plain arithmetic, which is why this function neither takes nor
@@ -236,6 +317,7 @@ int ocptBudgetEstimateToCompleteCents({
   required int quotedAmountCents,
   required int paidCents,
   required int committedCents,
+  required int inKindCoveredCents,
   required int? typedEstimateToCompleteCents,
 }) {
   if (typedEstimateToCompleteCents != null) {
@@ -248,6 +330,7 @@ int ocptBudgetEstimateToCompleteCents({
       quotedAmountCents: quotedAmountCents,
       paidCents: paidCents,
       committedCents: committedCents,
+      inKindCoveredCents: inKindCoveredCents,
     ),
   );
 }
@@ -286,34 +369,43 @@ int ocptBudgetFinalCostVarianceCents({
 }) => finalCostCents - quotedAmountCents;
 
 /// How much of a poste quoted at [quotedAmountCents] has been consumed by [paidCents] plus
-/// [committedCents], as a ratio (`1.0` meaning exactly on quote) — or null when the poste carries no
-/// quote at all ([quotedAmountCents] zero), where a ratio would be a division by zero rather than a
-/// figure.
+/// [committedCents] plus [inKindCoveredCents], as a ratio (`1.0` meaning exactly on quote) — or null
+/// when the poste carries no quote at all ([quotedAmountCents] zero), where a ratio would be a
+/// division by zero rather than a figure.
+///
+/// [inKindCoveredCents] is folded into the consumed side for the same reason
+/// [ocptBudgetRemainingCents] folds it in — see that function's own doc comment.
 double? ocptBudgetConsumedRatioOf({
   required int quotedAmountCents,
   required int paidCents,
   required int committedCents,
+  required int inKindCoveredCents,
 }) {
   if (quotedAmountCents == 0) {
     return null;
   }
 
-  return (paidCents + committedCents) / quotedAmountCents;
+  return (paidCents + committedCents + inKindCoveredCents) / quotedAmountCents;
 }
 
-/// How stretched a poste quoted at [quotedAmountCents] is, having paid [paidCents] and committed
-/// [committedCents] against it.
+/// How stretched a poste quoted at [quotedAmountCents] is, having paid [paidCents], committed
+/// [committedCents] and settled [inKindCoveredCents] in kind against it.
 ///
 /// A poste with no quote at all ([quotedAmountCents] zero) reads [OcptBudgetPosteStrain.within]
-/// whatever has been paid or committed against it — spending zero more against nothing is not a
-/// state the header's alerts band alerts on — unless something genuinely has moved, in which case
-/// there is no quote left to be within, and it reads [OcptBudgetPosteStrain.over].
+/// whatever has been paid, committed or settled in kind against it — spending zero more against
+/// nothing is not a state the header's alerts band alerts on — unless something genuinely has moved,
+/// in which case there is no quote left to be within, and it reads [OcptBudgetPosteStrain.over].
+///
+/// [inKindCoveredCents] is folded into the consumed side for the same reason
+/// [ocptBudgetRemainingCents] folds it in — see that function's own doc comment: a counterpart line
+/// adds equally to the quote and to this settled side, so it can never push a poste over on its own.
 OcptBudgetPosteStrain ocptBudgetPosteStrainOf({
   required int quotedAmountCents,
   required int paidCents,
   required int committedCents,
+  required int inKindCoveredCents,
 }) {
-  final consumedCents = paidCents + committedCents;
+  final consumedCents = paidCents + committedCents + inKindCoveredCents;
 
   if (consumedCents > quotedAmountCents) {
     return OcptBudgetPosteStrain.over;
@@ -323,6 +415,7 @@ OcptBudgetPosteStrain ocptBudgetPosteStrainOf({
     quotedAmountCents: quotedAmountCents,
     paidCents: paidCents,
     committedCents: committedCents,
+    inKindCoveredCents: inKindCoveredCents,
   );
   if (ratio != null && ratio > _ocptBudgetNearStrainRatio) {
     return OcptBudgetPosteStrain.near;

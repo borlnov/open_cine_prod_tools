@@ -4,6 +4,7 @@
 
 import 'dart:async';
 import 'dart:io';
+import 'dart:ui';
 
 import 'package:act_dart_result/act_dart_result.dart';
 import 'package:act_file_transfer_manager/act_file_transfer_manager.dart';
@@ -25,6 +26,7 @@ import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_source_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_tracking_flag.dart';
+import 'package:open_cine_prod_tools/types/ocpt_export_outcome.dart';
 import 'package:open_cine_prod_tools/types/ocpt_location_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 import 'package:open_cine_prod_tools/types/ocpt_permit_status.dart';
@@ -126,11 +128,12 @@ class _FakeExportManager extends OcptExportManager {
   String? lastExportedFileTypeLabel;
 
   @override
-  Future<String?> exportResourcesXlsx({
+  Future<OcptExportOutcome?> exportResourcesXlsx({
     required OcptResourcesSnapshot snapshot,
     required OcptResourcesXlsxLabels labels,
     required String projectName,
     required String fileTypeLabel,
+    Rect? shareAnchor,
   }) async {
     lastExportedSnapshot = snapshot;
     lastExportedLabels = labels;
@@ -141,7 +144,8 @@ class _FakeExportManager extends OcptExportManager {
       throw StateError("resources export intentionally failed for the test");
     }
 
-    return exportResult;
+    final result = exportResult;
+    return result == null ? null : OcptExportSaved(result);
   }
 
   /// The snapshot of the last [exportContactList] call.
@@ -160,13 +164,14 @@ class _FakeExportManager extends OcptExportManager {
   String? lastExportedContactListFileTypeLabel;
 
   @override
-  Future<String?> exportContactList({
+  Future<OcptExportOutcome?> exportContactList({
     required OcptResourcesSnapshot snapshot,
     required OcptPageSetup pageSetup,
     required OcptContactListLabels labels,
     required String projectName,
     required String fileTypeLabel,
     DateTime? exportDate,
+    Rect? shareAnchor,
   }) async {
     lastExportedContactListSnapshot = snapshot;
     lastExportedContactListPageSetup = pageSetup;
@@ -178,7 +183,8 @@ class _FakeExportManager extends OcptExportManager {
       throw StateError("contact list export intentionally failed for the test");
     }
 
-    return exportResult;
+    final result = exportResult;
+    return result == null ? null : OcptExportSaved(result);
   }
 }
 

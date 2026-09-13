@@ -19,6 +19,11 @@ import 'package:equatable/equatable.dart';
 /// soft-failure convention) and the file's own name is recorded in [failedFileNames] rather than
 /// silently dropped, so [isComplete] is the one place a caller asks "did every file make it" without
 /// having to compare the two lists' lengths by hand.
+///
+/// [folderPath] is a temporary directory rather than one the user picked when [wasShared] is true:
+/// on mobile there is no "choose a folder" dialog to show at all (`file_selector`'s
+/// `getDirectoryPath` has no Android or iOS implementation), so every written file is instead
+/// handed to the OS share sheet together, in one gesture, once the run is done.
 class OcptCallSheetExportResult extends Equatable {
   /// The folder every written file sits directly under.
   final String folderPath;
@@ -30,11 +35,16 @@ class OcptCallSheetExportResult extends Equatable {
   /// everything it set out to.
   final List<String> failedFileNames;
 
+  /// Whether [writtenFileNames] were handed to the OS share sheet rather than left in [folderPath]
+  /// for the user to find — mobile's own outcome, `false` everywhere else.
+  final bool wasShared;
+
   /// Class constructor
   const OcptCallSheetExportResult({
     required this.folderPath,
     required this.writtenFileNames,
     required this.failedFileNames,
+    this.wasShared = false,
   });
 
   /// Whether every file this run attempted was written successfully.
@@ -44,9 +54,10 @@ class OcptCallSheetExportResult extends Equatable {
   @override
   String toString() =>
       "OcptCallSheetExportResult(folderPath: $folderPath, "
-      "writtenCount: ${writtenFileNames.length}, failedCount: ${failedFileNames.length})";
+      "writtenCount: ${writtenFileNames.length}, failedCount: ${failedFileNames.length}, "
+      "wasShared: $wasShared)";
 
   /// Object properties
   @override
-  List<Object?> get props => [folderPath, writtenFileNames, failedFileNames];
+  List<Object?> get props => [folderPath, writtenFileNames, failedFileNames, wasShared];
 }

@@ -31,4 +31,12 @@ enum OcptSnapshotReason {
   /// in a single write. Without a snapshot taken at that very moment, the merge base would skip the
   /// discontinuity and reconcile against text that never existed on this replica.
   restore,
+
+  /// The snapshot was taken right before an incoming three-way screenplay merge wrote its clean
+  /// result over the text as this replica held it (`OcptScreenplayMergeService`).
+  ///
+  /// Like [restore], this exists for the merge rather than for the user: it is what lets a
+  /// *further* merge, later, still find a common ancestor a step past this one, rather than only
+  /// ever having whatever snapshot preceded the very first merge this screenplay ever went through.
+  merge,
 }

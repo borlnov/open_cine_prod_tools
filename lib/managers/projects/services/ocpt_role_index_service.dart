@@ -6,6 +6,7 @@ import 'package:drift/drift.dart';
 import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_elements_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_role_candidates_service.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_row_stamp_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
@@ -67,10 +68,16 @@ class OcptRoleIndexService {
   /// candidacy that wrote it.
   final OcptRoleCandidatesService roleCandidatesService;
 
+  /// Resolves the device id every stamp this service's own writes carry — see
+  /// [OcptDeviceIdGetter]. [reconcile] and [tombstoneEpisodeLinks] never call it: they write
+  /// inside a caller's own transaction, and take that caller's own [OcptRowStampService] instead.
+  final OcptDeviceIdGetter deviceId;
+
   /// Class constructor
   const OcptRoleIndexService({
-    this.elementsService = const OcptElementsService(),
-    this.roleCandidatesService = const OcptRoleCandidatesService(),
+    required this.elementsService,
+    required this.roleCandidatesService,
+    required this.deviceId,
   });
 
   /// Reconciles the `roles` table of the project against the whole screenplay cast of [document]
@@ -128,10 +135,14 @@ class OcptRoleIndexService {
   ///
   /// This runs on every save, so it computes its plan first and **writes nothing at all when
   /// nothing changed** — the transaction below only opens once there is at least one row to touch.
+  ///
+  /// Called from inside `OcptScreenplayService.saveScreenplayText`'s own transaction, and stamps
+  /// through [stamps] — the caller's own instance — rather than resolving a device id of its own.
   Future<void> reconcile({
     required OcptProjectDatabase database,
     required String screenplayId,
     required FountainDocument document,
+    required OcptRowStampService? stamps,
   }) async {
     final screenplayCharacters = screenplayCharactersOf(document.blocks);
     final speakingSet = speakingCharactersOf(document.blocks).toSet();
@@ -173,10 +184,10 @@ class OcptRoleIndexService {
     // Rule 1 and rule 3: every cast member either matches a live, from-screenplay role of the
     // project (its link to this episode is ensured, its orphan mark lifted, and it is promoted to
     // speaking when it is cued this time) or matches none (a fresh role is due, unless rejected).
-    final linkIdsToRevive = <String>[];
+    final linksToRevive = <OcptRoleEpisodeRow>[];
     final roleIdsNeedingNewLink = <String>[];
-    final roleIdsToClearOrphan = <String>[];
-    final roleIdsToPromote = <String>[];
+    final roleIdsToClearOrphan = <String>{};
+    final roleIdsToPromote = <String>{};
     final newRoleNames = <(String name, bool isSpeaking)>[];
 
     for (final name in screenplayCharacters) {
@@ -194,7 +205,7 @@ class OcptRoleIndexService {
       if (existingLink == null) {
         roleIdsNeedingNewLink.add(role.id);
       } else if (existingLink.isDeleted) {
-        linkIdsToRevive.add(existingLink.id);
+        linksToRevive.add(existingLink);
       }
 
       if (role.orphanedName != null) {
@@ -209,12 +220,12 @@ class OcptRoleIndexService {
 
     // Rule 2: every live, from-screenplay role linked to this episode whose name this document no
     // longer names at all — cue or action — loses that link.
-    final linkIdsToDrop = <String>[];
+    final linksToDrop = <OcptRoleEpisodeRow>[];
     final droppedRoleIds = <String>[];
     for (final role in projectRoles) {
       final link = linkByRoleId[role.id];
       if (link != null && !link.isDeleted && !screenplaySet.contains(role.name)) {
-        linkIdsToDrop.add(link.id);
+        linksToDrop.add(link);
         droppedRoleIds.add(role.id);
       }
     }
@@ -239,11 +250,11 @@ class OcptRoleIndexService {
     }
 
     final hasWork =
-        linkIdsToRevive.isNotEmpty ||
+        linksToRevive.isNotEmpty ||
         roleIdsNeedingNewLink.isNotEmpty ||
         roleIdsToClearOrphan.isNotEmpty ||
         roleIdsToPromote.isNotEmpty ||
-        linkIdsToDrop.isNotEmpty ||
+        linksToDrop.isNotEmpty ||
         roleIdsToOrphan.isNotEmpty ||
         newRoleNames.isNotEmpty;
     if (!hasWork) {
@@ -251,55 +262,78 @@ class OcptRoleIndexService {
     }
 
     await database.transaction(() async {
-      if (linkIdsToRevive.isNotEmpty) {
-        await (database.update(
-          database.ocptRoleEpisodesTable,
-        )..where((table) => table.id.isIn(linkIdsToRevive))).write(
-          const OcptRoleEpisodesTableCompanion(isDeleted: Value(false)),
+      for (final link in linksToRevive) {
+        await OcptRowStampService.writeAndStamp(
+          database: database,
+          table: database.ocptRoleEpisodesTable,
+          rowId: link.id,
+          current: link,
+          next: link.copyWith(isDeleted: false),
+          stamps: stamps,
         );
       }
 
       for (final roleId in roleIdsNeedingNewLink) {
-        await database
-            .into(database.ocptRoleEpisodesTable)
-            .insert(
-              OcptRoleEpisodesTableCompanion.insert(
-                id: const Uuid().v4(),
-                roleId: roleId,
-                screenplayId: screenplayId,
-              ),
-            );
-      }
-
-      if (roleIdsToClearOrphan.isNotEmpty) {
-        await (database.update(
-          database.ocptRolesTable,
-        )..where((table) => table.id.isIn(roleIdsToClearOrphan))).write(
-          const OcptRolesTableCompanion(orphanedName: Value(null)),
+        final linkId = const Uuid().v4();
+        await OcptRowStampService.writeAndStamp(
+          database: database,
+          table: database.ocptRoleEpisodesTable,
+          rowId: linkId,
+          current: null,
+          next: OcptRoleEpisodeRow(
+            id: linkId,
+            roleId: roleId,
+            screenplayId: screenplayId,
+            isDeleted: false,
+          ),
+          stamps: stamps,
         );
       }
 
-      if (roleIdsToPromote.isNotEmpty) {
-        await (database.update(
-          database.ocptRolesTable,
-        )..where((table) => table.id.isIn(roleIdsToPromote))).write(
-          const OcptRolesTableCompanion(kind: Value(OcptRoleKind.speaking)),
+      for (final roleId in roleIdsToClearOrphan) {
+        final current = roleById[roleId]!;
+        await OcptRowStampService.writeAndStamp(
+          database: database,
+          table: database.ocptRolesTable,
+          rowId: roleId,
+          current: current,
+          next: current.copyWith(orphanedName: const Value(null)),
+          stamps: stamps,
         );
       }
 
-      if (linkIdsToDrop.isNotEmpty) {
-        await (database.update(
-          database.ocptRoleEpisodesTable,
-        )..where((table) => table.id.isIn(linkIdsToDrop))).write(
-          const OcptRoleEpisodesTableCompanion(isDeleted: Value(true)),
+      for (final roleId in roleIdsToPromote) {
+        final current = roleById[roleId]!;
+        await OcptRowStampService.writeAndStamp(
+          database: database,
+          table: database.ocptRolesTable,
+          rowId: roleId,
+          current: current,
+          next: current.copyWith(kind: OcptRoleKind.speaking),
+          stamps: stamps,
+        );
+      }
+
+      for (final link in linksToDrop) {
+        await OcptRowStampService.writeAndStamp(
+          database: database,
+          table: database.ocptRoleEpisodesTable,
+          rowId: link.id,
+          current: link,
+          next: link.copyWith(isDeleted: true),
+          stamps: stamps,
         );
       }
 
       for (final roleId in roleIdsToOrphan) {
-        await (database.update(
-          database.ocptRolesTable,
-        )..where((table) => table.id.equals(roleId))).write(
-          OcptRolesTableCompanion(orphanedName: Value(roleById[roleId]!.name)),
+        final current = roleById[roleId]!;
+        await OcptRowStampService.writeAndStamp(
+          database: database,
+          table: database.ocptRolesTable,
+          rowId: roleId,
+          current: current,
+          next: current.copyWith(orphanedName: Value(current.name)),
+          stamps: stamps,
         );
       }
 
@@ -310,26 +344,37 @@ class OcptRoleIndexService {
         for (final (name, isSpeaking) in newRoleNames) {
           previousSortKey = ocptFractionalKeyBetween(before: previousSortKey);
           final roleId = const Uuid().v4();
-          await database
-              .into(database.ocptRolesTable)
-              .insert(
-                OcptRolesTableCompanion.insert(
-                  id: roleId,
-                  name: name,
-                  kind: isSpeaking ? OcptRoleKind.speaking : OcptRoleKind.silent,
-                  isFromScreenplay: const Value(true),
-                  sortKey: Value(previousSortKey),
-                ),
-              );
-          await database
-              .into(database.ocptRoleEpisodesTable)
-              .insert(
-                OcptRoleEpisodesTableCompanion.insert(
-                  id: const Uuid().v4(),
-                  roleId: roleId,
-                  screenplayId: screenplayId,
-                ),
-              );
+          await OcptRowStampService.writeAndStamp(
+            database: database,
+            table: database.ocptRolesTable,
+            rowId: roleId,
+            current: null,
+            next: OcptRoleRow(
+              id: roleId,
+              name: name,
+              sortKey: previousSortKey,
+              isDeleted: false,
+              kind: isSpeaking ? OcptRoleKind.speaking : OcptRoleKind.silent,
+              isFromScreenplay: true,
+              castingNotes: '',
+            ),
+            stamps: stamps,
+          );
+
+          final linkId = const Uuid().v4();
+          await OcptRowStampService.writeAndStamp(
+            database: database,
+            table: database.ocptRoleEpisodesTable,
+            rowId: linkId,
+            current: null,
+            next: OcptRoleEpisodeRow(
+              id: linkId,
+              roleId: roleId,
+              screenplayId: screenplayId,
+              isDeleted: false,
+            ),
+            stamps: stamps,
+          );
         }
       }
     });
@@ -372,27 +417,41 @@ class OcptRoleIndexService {
     final id = const Uuid().v4();
 
     await database.transaction(() async {
-      await database
-          .into(database.ocptRolesTable)
-          .insert(
-            OcptRolesTableCompanion.insert(
-              id: id,
-              name: name,
-              kind: kind,
-              sortKey: Value(
-                ocptFractionalKeyBetween(before: existing.isEmpty ? null : existing.last.sortKey),
-              ),
-            ),
-          );
-      await database
-          .into(database.ocptRoleEpisodesTable)
-          .insert(
-            OcptRoleEpisodesTableCompanion.insert(
-              id: const Uuid().v4(),
-              roleId: id,
-              screenplayId: screenplayId,
-            ),
-          );
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
+
+      await OcptRowStampService.writeAndStamp(
+        database: database,
+        table: database.ocptRolesTable,
+        rowId: id,
+        current: null,
+        next: OcptRoleRow(
+          id: id,
+          name: name,
+          sortKey: ocptFractionalKeyBetween(before: existing.isEmpty ? null : existing.last.sortKey),
+          isDeleted: false,
+          kind: kind,
+          isFromScreenplay: false,
+          castingNotes: '',
+        ),
+        stamps: stamps,
+      );
+
+      final linkId = const Uuid().v4();
+      await OcptRowStampService.writeAndStamp(
+        database: database,
+        table: database.ocptRoleEpisodesTable,
+        rowId: linkId,
+        current: null,
+        next: OcptRoleEpisodeRow(
+          id: linkId,
+          roleId: id,
+          screenplayId: screenplayId,
+          isDeleted: false,
+        ),
+        stamps: stamps,
+      );
+
+      await stamps.flush(database);
     });
 
     return id;
@@ -420,11 +479,33 @@ class OcptRoleIndexService {
       return;
     }
 
-    await (database.update(
-      database.ocptRolesTable,
-    )..where((table) => table.id.equals(roleId) & table.isDeleted.not())).write(
-      OcptRolesTableCompanion(name: name, personId: personId, kind: kind, castingNotes: castingNotes),
+    final companion = OcptRolesTableCompanion(
+      name: name,
+      personId: personId,
+      kind: kind,
+      castingNotes: castingNotes,
     );
+
+    await database.transaction(() async {
+      final current = await (database.select(
+        database.ocptRolesTable,
+      )..where((table) => table.id.equals(roleId) & table.isDeleted.not())).getSingleOrNull();
+
+      if (current == null) {
+        return;
+      }
+
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
+      await OcptRowStampService.writeAndStamp(
+        database: database,
+        table: database.ocptRolesTable,
+        rowId: roleId,
+        current: current,
+        next: current.copyWithCompanion(companion),
+        stamps: stamps,
+      );
+      await stamps.flush(database);
+    });
   }
 
   /// Sets the exact episodes role [roleId] is named in to [screenplayIds]: for a hand-added role,
@@ -457,38 +538,65 @@ class OcptRoleIndexService {
       final existingLinks = await existingLinksQuery.get();
       final linkByScreenplayId = {for (final link in existingLinks) link.screenplayId: link};
 
+      final linksToDrop = [
+        for (final link in existingLinks)
+          if (!link.isDeleted && !screenplayIds.contains(link.screenplayId)) link,
+      ];
+
+      final hasWork =
+          linksToDrop.isNotEmpty ||
+          screenplayIds.any(
+            (screenplayId) =>
+                linkByScreenplayId[screenplayId] == null ||
+                linkByScreenplayId[screenplayId]!.isDeleted,
+          );
+      if (!hasWork) {
+        return;
+      }
+
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
+
       for (final screenplayId in screenplayIds) {
         final existingLink = linkByScreenplayId[screenplayId];
         if (existingLink == null) {
-          await database
-              .into(database.ocptRoleEpisodesTable)
-              .insert(
-                OcptRoleEpisodesTableCompanion.insert(
-                  id: const Uuid().v4(),
-                  roleId: roleId,
-                  screenplayId: screenplayId,
-                ),
-              );
+          final linkId = const Uuid().v4();
+          await OcptRowStampService.writeAndStamp(
+            database: database,
+            table: database.ocptRoleEpisodesTable,
+            rowId: linkId,
+            current: null,
+            next: OcptRoleEpisodeRow(
+              id: linkId,
+              roleId: roleId,
+              screenplayId: screenplayId,
+              isDeleted: false,
+            ),
+            stamps: stamps,
+          );
         } else if (existingLink.isDeleted) {
-          await (database.update(
-            database.ocptRoleEpisodesTable,
-          )..where((table) => table.id.equals(existingLink.id))).write(
-            const OcptRoleEpisodesTableCompanion(isDeleted: Value(false)),
+          await OcptRowStampService.writeAndStamp(
+            database: database,
+            table: database.ocptRoleEpisodesTable,
+            rowId: existingLink.id,
+            current: existingLink,
+            next: existingLink.copyWith(isDeleted: false),
+            stamps: stamps,
           );
         }
       }
 
-      final linkIdsToDrop = [
-        for (final link in existingLinks)
-          if (!link.isDeleted && !screenplayIds.contains(link.screenplayId)) link.id,
-      ];
-      if (linkIdsToDrop.isNotEmpty) {
-        await (database.update(
-          database.ocptRoleEpisodesTable,
-        )..where((table) => table.id.isIn(linkIdsToDrop))).write(
-          const OcptRoleEpisodesTableCompanion(isDeleted: Value(true)),
+      for (final link in linksToDrop) {
+        await OcptRowStampService.writeAndStamp(
+          database: database,
+          table: database.ocptRoleEpisodesTable,
+          rowId: link.id,
+          current: link,
+          next: link.copyWith(isDeleted: true),
+          stamps: stamps,
         );
       }
+
+      await stamps.flush(database);
     });
   }
 
@@ -513,21 +621,51 @@ class OcptRoleIndexService {
     }
 
     await database.transaction(() async {
-      await elementsService.tombstoneRoleLinksOfRole(database: database, roleId: roleId);
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
 
-      await roleCandidatesService.tombstoneCandidatesOfRole(database: database, roleId: roleId);
-
-      await (database.update(
-        database.ocptRoleEpisodesTable,
-      )..where((table) => table.roleId.equals(roleId))).write(
-        const OcptRoleEpisodesTableCompanion(isDeleted: Value(true)),
+      await elementsService.tombstoneRoleLinksOfRole(
+        database: database,
+        roleId: roleId,
+        stamps: stamps,
       );
 
-      await (database.update(
+      await roleCandidatesService.tombstoneCandidatesOfRole(
+        database: database,
+        roleId: roleId,
+        stamps: stamps,
+      );
+
+      final linkRows =
+          await (database.select(
+                database.ocptRoleEpisodesTable,
+              )..where((table) => table.roleId.equals(roleId) & table.isDeleted.not()))
+              .get();
+      for (final link in linkRows) {
+        await OcptRowStampService.writeAndStamp(
+          database: database,
+          table: database.ocptRoleEpisodesTable,
+          rowId: link.id,
+          current: link,
+          next: link.copyWith(isDeleted: true),
+          stamps: stamps,
+        );
+      }
+
+      final current = await (database.select(
         database.ocptRolesTable,
-      )..where((table) => table.id.equals(roleId))).write(
-        const OcptRolesTableCompanion(isDeleted: Value(true)),
-      );
+      )..where((table) => table.id.equals(roleId))).getSingleOrNull();
+      if (current != null) {
+        await OcptRowStampService.writeAndStamp(
+          database: database,
+          table: database.ocptRolesTable,
+          rowId: roleId,
+          current: current,
+          next: current.copyWith(isDeleted: true),
+          stamps: stamps,
+        );
+      }
+
+      await stamps.flush(database);
     });
   }
 
@@ -546,15 +684,30 @@ class OcptRoleIndexService {
       return;
     }
 
-    await (database.update(
-      database.ocptRolesTable,
-    )..where((table) => table.id.equals(roleId) & table.isDeleted.not())).write(
-      const OcptRolesTableCompanion(
-        kind: Value(OcptRoleKind.silent),
-        isFromScreenplay: Value(false),
-        orphanedName: Value(null),
-      ),
-    );
+    await database.transaction(() async {
+      final current = await (database.select(
+        database.ocptRolesTable,
+      )..where((table) => table.id.equals(roleId) & table.isDeleted.not())).getSingleOrNull();
+
+      if (current == null) {
+        return;
+      }
+
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
+      await OcptRowStampService.writeAndStamp(
+        database: database,
+        table: database.ocptRolesTable,
+        rowId: roleId,
+        current: current,
+        next: current.copyWith(
+          kind: OcptRoleKind.silent,
+          isFromScreenplay: false,
+          orphanedName: const Value(null),
+        ),
+        stamps: stamps,
+      );
+      await stamps.flush(database);
+    });
   }
 
   /// Moves role [roleId] to [newPosition] (0-based) within the **project's** whole cast, by giving
@@ -571,8 +724,13 @@ class OcptRoleIndexService {
     }
 
     await database.transaction(() async {
-      final others = (await _liveRoleRows(database: database))
-        ..removeWhere((row) => row.id == roleId);
+      final rows = await _liveRoleRows(database: database);
+      final current = rows.where((row) => row.id == roleId).firstOrNull;
+      if (current == null) {
+        return;
+      }
+
+      final others = rows.where((row) => row.id != roleId).toList(growable: false);
 
       final clampedPosition = newPosition < 0
           ? 0
@@ -583,11 +741,16 @@ class OcptRoleIndexService {
         after: clampedPosition < others.length ? others[clampedPosition].sortKey : null,
       );
 
-      await (database.update(
-        database.ocptRolesTable,
-      )..where((table) => table.id.equals(roleId))).write(
-        OcptRolesTableCompanion(sortKey: Value(sortKey)),
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
+      await OcptRowStampService.writeAndStamp(
+        database: database,
+        table: database.ocptRolesTable,
+        rowId: roleId,
+        current: current,
+        next: current.copyWith(sortKey: sortKey),
+        stamps: stamps,
       );
+      await stamps.flush(database);
     });
   }
 
@@ -606,16 +769,32 @@ class OcptRoleIndexService {
   /// **Unguarded**, exactly as [OcptElementsService.tombstoneRoleLinksOfRole] is: its only caller has
   /// already refused the write on a preview connection and is already inside the transaction
   /// removing the episode, so a second guard here would only be able to disagree with the first.
+  /// Stamps through [stamps] — that caller's own instance — rather than resolving a device id of
+  /// its own.
   ///
   /// {@macro open_cine_prod_tools.tombstones}
   Future<void> tombstoneEpisodeLinks({
     required OcptProjectDatabase database,
     required String screenplayId,
-  }) => (database.update(
-    database.ocptRoleEpisodesTable,
-  )..where((table) => table.screenplayId.equals(screenplayId))).write(
-    const OcptRoleEpisodesTableCompanion(isDeleted: Value(true)),
-  );
+    required OcptRowStampService? stamps,
+  }) async {
+    final rows =
+        await (database.select(
+              database.ocptRoleEpisodesTable,
+            )..where((table) => table.screenplayId.equals(screenplayId) & table.isDeleted.not()))
+            .get();
+
+    for (final row in rows) {
+      await OcptRowStampService.writeAndStamp(
+        database: database,
+        table: database.ocptRoleEpisodesTable,
+        rowId: row.id,
+        current: row,
+        next: row.copyWith(isDeleted: true),
+        stamps: stamps,
+      );
+    }
+  }
 
   /// Every live role row of the project, ordered by `sortKey` — the cast is one list over the
   /// project now, not one per screenplay, so no `screenplayId` filters it.

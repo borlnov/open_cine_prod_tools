@@ -1,0 +1,20 @@
+# SPDX-FileCopyrightText: 2026 Benoit Rolandeau <borlnov.obsessio@gmail.com>
+#
+# SPDX-License-Identifier: Apache-2.0
+
+# Contains the parameters read by the act_logger_manager package.
+#
+# This is the "qualification" environment's own file: ACT's Environment enum (act_config_manager)
+# resolves ENV=QUALIF to the "qualification" file name, and this is that file.
+logs:
+  level: info
+
+  console:
+    level: info
+    printInRelease: true
+
+  # Whether app logs are also written to a rotating file (crash-survivable). Read by the app, not
+  # act_logger_manager itself.
+  file:
+    enabled: true
+    level: info

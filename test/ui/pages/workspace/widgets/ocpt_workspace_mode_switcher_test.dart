@@ -81,4 +81,41 @@ void main() {
 
     expect(selected, OcptWorkspaceMode.budget);
   });
+
+  group('narrow band', () {
+    testWidgets('drops the labels for an icon-only band that still fits every mode', (
+      tester,
+    ) async {
+      // A phone-narrow row, below the labelled band's own width, so the switcher reduces to icons.
+      tester.view.physicalSize = const Size(360, 780);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      OcptWorkspaceMode? selected;
+
+      await tester.pumpWidget(
+        _wrapInApp(
+          OcptWorkspaceModeSwitcher(
+            activeMode: OcptWorkspaceMode.screenplay,
+            onModeSelected: (mode) => selected = mode,
+          ),
+        ),
+      );
+      // A silent RenderFlex overflow would fail the pump here, proving every mode still fits.
+      await tester.pumpAndSettle();
+
+      final tr = Tr.of(tester.element(find.byType(OcptWorkspaceModeSwitcher)));
+
+      // No label is drawn, but every mode is still reachable, its label carried by the tooltip.
+      expect(find.text(tr.workspaceModeScreenplay), findsNothing);
+      expect(find.text(tr.workspaceModeBudget), findsNothing);
+      expect(find.byTooltip(tr.workspaceModeBudget), findsOneWidget);
+
+      await tester.tap(find.byTooltip(tr.workspaceModeBudget));
+      await tester.pumpAndSettle();
+
+      expect(selected, OcptWorkspaceMode.budget);
+    });
+  });
 }

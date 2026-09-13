@@ -7,15 +7,21 @@ import 'package:act_global_manager/act_global_manager.dart';
 import 'package:act_intl/act_intl.dart';
 import 'package:act_licenses_manager/act_licenses_manager.dart';
 import 'package:act_logger_manager/act_logger_manager.dart';
+import 'package:act_platform_manager/act_platform_manager.dart';
 import 'package:act_themes_manager/act_themes_manager.dart';
 import 'package:flutter/widgets.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/managers/export/ocpt_export_manager.dart';
+import 'package:open_cine_prod_tools/managers/logging/ocpt_file_logging_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_config_manager.dart';
+import 'package:open_cine_prod_tools/managers/ocpt_diagnostics_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
+import 'package:open_cine_prod_tools/managers/ocpt_secrets_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_spell_check_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
+import 'package:open_cine_prod_tools/managers/sync/ocpt_relay_host_manager.dart';
+import 'package:open_cine_prod_tools/managers/sync/ocpt_sync_manager.dart';
 import 'package:open_cine_prod_tools/types/ocpt_app_theme.dart';
 import 'package:open_cine_prod_tools/ui/pages/fatal_error_page.dart';
 
@@ -37,9 +43,13 @@ class OcptGlobalManager extends AbsUiGlobalManager {
   @override
   Future<void> registerManagers() async {
     registerManagerAsync<OcptConfigManager>(const OcptConfigManagerBuilder());
+    registerManagerAsync<PlatformManager>(const PlatformBuilder());
     registerManagerAsync<LoggerManager>(ExtDefaultLoggerBuilder<OcptConfigManager>());
+    registerManagerAsync<OcptFileLoggingManager>(const OcptFileLoggingManagerBuilder());
+    registerManagerAsync<OcptDiagnosticsManager>(const OcptDiagnosticsManagerBuilder());
     registerManagerAsync<ActLicensesManager>(ActLicensesBuilder<OcptConfigManager>());
     registerManagerAsync<OcptPropertiesManager>(const OcptPropertiesManagerBuilder());
+    registerManagerAsync<OcptSecretsManager>(OcptSecretsManagerBuilder());
     registerManagerAsync<LocalesManager>(
       LocalesManagerBuilder<OcptConfigManager, OcptPropertiesManager>(
         getSupportedLocales: () => Tr.delegate.supportedLocales,
@@ -51,6 +61,8 @@ class OcptGlobalManager extends AbsUiGlobalManager {
     registerManagerAsync<FileSaverManager>(const FileSaverBuilder());
     registerManagerAsync<FileSelectorManager>(const FileSelectorBuilder());
     registerManagerAsync<OcptProjectsManager>(const OcptProjectsManagerBuilder());
+    registerManagerAsync<OcptSyncManager>(const OcptSyncManagerBuilder());
+    registerManagerAsync<OcptRelayHostManager>(const OcptRelayHostManagerBuilder());
     registerManagerAsync<OcptExportManager>(const OcptExportManagerBuilder());
     registerManagerAsync<OcptSpellCheckManager>(const OcptSpellCheckManagerBuilder());
     registerManagerAsync<OcptRouterManager>(const OcptRouterManagerBuilder());

@@ -22,9 +22,11 @@ import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_spell_check_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_assets_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_breakdown_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_elements_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_locations_service.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_role_candidates_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_role_index_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_scene_index_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_schedule_service.dart';
@@ -97,6 +99,9 @@ class _RecordingStyledEditorControllerDelegate implements OcptStyledEditorContro
   void redo() {}
 }
 
+/// The fixed device id every stamping service built in this file uses.
+Future<String> _testDeviceId() async => "test-device";
+
 /// A screenplay service that records every [saveScreenplayText] call instead of touching the
 /// database, so a test can assert a save happened (and with which text) without depending on real
 /// persistence timing.
@@ -105,14 +110,29 @@ class _RecordingScreenplayService extends OcptScreenplayService {
   const _RecordingScreenplayService({required this.savedTexts})
     : super(
         sceneIndexService: const OcptSceneIndexService(),
-        shotListService: const OcptShotListService(),
-        shotCoverageService: const OcptShotCoverageService(),
-        roleIndexService: const OcptRoleIndexService(),
-        breakdownService: const OcptBreakdownService(
-          elementsService: OcptElementsService(),
-          locationsService: OcptLocationsService(),
+        shotListService: const OcptShotListService(deviceId: _testDeviceId),
+        shotCoverageService: const OcptShotCoverageService(deviceId: _testDeviceId),
+        roleIndexService: const OcptRoleIndexService(
+          elementsService: OcptElementsService(
+            assetsService: OcptAssetsService(deviceId: _testDeviceId),
+            deviceId: _testDeviceId,
+          ),
+          roleCandidatesService: OcptRoleCandidatesService(deviceId: _testDeviceId),
+          deviceId: _testDeviceId,
         ),
-        scheduleService: const OcptScheduleService(),
+        breakdownService: const OcptBreakdownService(
+          elementsService: OcptElementsService(
+            assetsService: OcptAssetsService(deviceId: _testDeviceId),
+            deviceId: _testDeviceId,
+          ),
+          locationsService: OcptLocationsService(
+            assetsService: OcptAssetsService(deviceId: _testDeviceId),
+            deviceId: _testDeviceId,
+          ),
+          deviceId: _testDeviceId,
+        ),
+        scheduleService: const OcptScheduleService(deviceId: _testDeviceId),
+        deviceId: _testDeviceId,
       );
 
   /// Every Fountain text this service was asked to save, in call order.

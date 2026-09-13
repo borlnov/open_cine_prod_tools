@@ -15,7 +15,8 @@ void main() {
   // manager instance to be set; merely accessing it creates the (otherwise unused) singleton.
   setUpAll(() => OcptGlobalManager.instance);
 
-  const service = OcptBudgetFinancingService();
+  Future<String> testDeviceId() async => "test-device";
+  final service = OcptBudgetFinancingService(deviceId: testDeviceId);
 
   late OcptProjectDatabase database;
 
@@ -26,6 +27,13 @@ void main() {
   tearDown(() async {
     await database.close();
   });
+
+  /// Every version stamp the project currently holds, keyed by `<table>/<row>/<column>` — the same
+  /// shape `OcptShotListService`'s own stamping tests read `row_field_versions` back through.
+  Future<Map<String, OcptRowFieldVersionRow>> readStamps() async => {
+    for (final stamp in await database.select(database.ocptRowFieldVersionsTable).get())
+      "${stamp.targetTableName}/${stamp.rowId}/${stamp.columnName}": stamp,
+  };
 
   /// Every `budget_resources` row, tombstoned or not, in `sortKey` order.
   Future<List<OcptBudgetResourceRow>> readAllResources() =>
@@ -238,5 +246,100 @@ void main() {
         await preview.close();
       },
     );
+  });
+
+  group("stamping", () {
+    test("createResource stamps every column of the new row", () async {
+      final id = (await service.createResource(database: database, label: "CNC — aide"))!;
+
+      final stamps = await readStamps();
+      final row = await (database.select(
+        database.ocptBudgetResourcesTable,
+      )..where((table) => table.id.equals(id))).getSingle();
+      final ownStamps = {
+        for (final entry in stamps.entries)
+          if (entry.key.startsWith("budget_resources/$id/")) entry.key: entry.value,
+      };
+
+      expect(ownStamps.keys, hasLength(row.toJson().length));
+      for (final column in row.toJson().keys) {
+        final stamp = ownStamps["budget_resources/$id/$column"];
+        expect(stamp, isNotNull, reason: "$column should be stamped");
+        expect(stamp!.version, 1);
+      }
+    });
+
+    test("updateResource stamps only the columns that actually changed", () async {
+      final id = (await service.createResource(database: database, label: "CNC — aide"))!;
+      await database.delete(database.ocptRowFieldVersionsTable).go();
+
+      await service.updateResource(
+        database: database,
+        resourceId: id,
+        amountCents: const Value(150000),
+        status: const Value(OcptBudgetResourceStatus.confirmed),
+      );
+
+      final stamps = await readStamps();
+      final ownKeys = stamps.keys.where((key) => key.startsWith("budget_resources/$id/")).toSet();
+      expect(ownKeys, {"budget_resources/$id/amountCents", "budget_resources/$id/status"});
+    });
+
+    test("deleteResource stamps isDeleted on the resource", () async {
+      final id = (await service.createResource(database: database, label: "CNC — aide"))!;
+      await database.delete(database.ocptRowFieldVersionsTable).go();
+
+      await service.deleteResource(database: database, resourceId: id);
+
+      final stamps = await readStamps();
+      expect(stamps["budget_resources/$id/isDeleted"]!.version, 1);
+    });
+
+    test("createMileageRate stamps every column of the new row", () async {
+      final id = (await service.createMileageRate(database: database, label: "Voiture"))!;
+
+      final stamps = await readStamps();
+      final row = await (database.select(
+        database.ocptBudgetMileageRatesTable,
+      )..where((table) => table.id.equals(id))).getSingle();
+      final ownStamps = {
+        for (final entry in stamps.entries)
+          if (entry.key.startsWith("budget_mileage_rates/$id/")) entry.key: entry.value,
+      };
+
+      expect(ownStamps.keys, hasLength(row.toJson().length));
+      for (final column in row.toJson().keys) {
+        final stamp = ownStamps["budget_mileage_rates/$id/$column"];
+        expect(stamp, isNotNull, reason: "$column should be stamped");
+        expect(stamp!.version, 1);
+      }
+    });
+
+    test("updateMileageRate stamps only the columns that actually changed", () async {
+      final id = (await service.createMileageRate(database: database, label: "Voiture"))!;
+      await database.delete(database.ocptRowFieldVersionsTable).go();
+
+      await service.updateMileageRate(
+        database: database,
+        rateId: id,
+        ratePerKmMilliCents: const Value(52900),
+      );
+
+      final stamps = await readStamps();
+      final ownKeys = stamps.keys
+          .where((key) => key.startsWith("budget_mileage_rates/$id/"))
+          .toSet();
+      expect(ownKeys, {"budget_mileage_rates/$id/ratePerKmMilliCents"});
+    });
+
+    test("deleteMileageRate stamps isDeleted on the rate", () async {
+      final id = (await service.createMileageRate(database: database, label: "Voiture"))!;
+      await database.delete(database.ocptRowFieldVersionsTable).go();
+
+      await service.deleteMileageRate(database: database, rateId: id);
+
+      final stamps = await readStamps();
+      expect(stamps["budget_mileage_rates/$id/isDeleted"]!.version, 1);
+    });
   });
 }

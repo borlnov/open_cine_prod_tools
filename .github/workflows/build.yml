@@ -38,6 +38,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.version.outputs.version }}
+      env: ${{ steps.version.outputs.env }}
 
     steps:
       - name: Clone repository
@@ -58,6 +59,21 @@ jobs:
             sed 's/^v//; /^[0-9]/! s/^/0.0.0-/')
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "Building version $VERSION"
+
+          # Pick the build environment from the same stable-vs-not rule
+          # verify-stable-schema-frozen uses: a stable build is a final semver
+          # 'X.Y.Z' with no pre-release suffix (compiles in production); anything
+          # else — a pre-release tag, a commit after a tag, an untagged commit —
+          # carries a hyphenated suffix and compiles in qualification. These are
+          # the parsedString values of act_config_manager's Environment enum,
+          # read by the app through --dart-define="ENV=...".
+          if [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            ENV=PROD
+          else
+            ENV=QUALIF
+          fi
+          echo "env=$ENV" >> "$GITHUB_OUTPUT"
+          echo "Building environment $ENV"
 
   verify-stable-schema-frozen:
     name: Verify stable schema is frozen
@@ -134,11 +150,19 @@ jobs:
           dart run intl_utils:generate
           dart run build_runner build
 
+      # Linux embeds no launcher icon; only the Debian package's hicolor PNG, which the packaging
+      # step reads straight from the swapped master, so the native icons need no regeneration here.
+      - name: Apply qualification launcher icons
+        uses: ./.github/actions/qualif-icons
+        with:
+          env: ${{ needs.get-version.outputs.env }}
+          regenerate-native: "false"
+
       - name: Build for Linux
         uses: ./.github/actions/flutter-build
         with:
           target-platform: linux
-          build-args: --dart-define=APP_VERSION=${{ needs.get-version.outputs.version }}
+          build-args: --dart-define=APP_VERSION=${{ needs.get-version.outputs.version }} --dart-define=ENV=${{ needs.get-version.outputs.env }}
 
       - name: Build Debian package
         id: deb
@@ -196,11 +220,16 @@ jobs:
           dart run intl_utils:generate
           dart run build_runner build
 
+      - name: Apply qualification launcher icons
+        uses: ./.github/actions/qualif-icons
+        with:
+          env: ${{ needs.get-version.outputs.env }}
+
       - name: Build for Windows
         uses: ./.github/actions/flutter-build
         with:
           target-platform: windows
-          build-args: --dart-define=APP_VERSION=${{ needs.get-version.outputs.version }}
+          build-args: --dart-define=APP_VERSION=${{ needs.get-version.outputs.version }} --dart-define=ENV=${{ needs.get-version.outputs.env }}
 
       - name: Build Windows installer
         id: installer
@@ -261,6 +290,11 @@ jobs:
           dart run intl_utils:generate
           dart run build_runner build
 
+      - name: Apply qualification launcher icons
+        uses: ./.github/actions/qualif-icons
+        with:
+          env: ${{ needs.get-version.outputs.env }}
+
       - name: Split the version for the bundle
         id: bundle-version
         run: |
@@ -290,6 +324,7 @@ jobs:
             --build-name=${{ steps.bundle-version.outputs.build-name }}
             --build-number=${{ steps.bundle-version.outputs.build-number }}
             --dart-define=APP_VERSION=${{ needs.get-version.outputs.version }}
+            --dart-define=ENV=${{ needs.get-version.outputs.env }}
 
       - name: Sign the application bundle
         if: env.APPLE_CERTIFICATE != ''
@@ -387,6 +422,91 @@ jobs:
         with:
           name: OpenCineProdTools_${{ needs.get-version.outputs.version }}_macos_dmg
           path: ${{ steps.dmg.outputs.dmg-path }}
+          retention-days: ${{ env.ARTIFACT_RETENTION_DAYS }}
+
+  build-android:
+    name: Android build
+    runs-on: ubuntu-latest
+    # Two Android builds now run here (the AAB then the APK); 40 minutes covers a cold cache.
+    timeout-minutes: 40
+    needs: get-version
+    # Android builds follow the Windows/macOS gating: release tags, main pushes and manual
+    # dispatches only, to keep the common case cheap.
+    if: startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
+
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          submodules: recursive
+
+      - name: Set up the JDK
+        # The Android Gradle build compiles against JDK 17, matching sourceCompatibility /
+        # targetCompatibility / jvmTarget in android/app/build.gradle.kts.
+        uses: actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c # v6.0.0
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Flutter and dependencies
+        uses: ./.github/actions/flutter-setup
+
+      - name: Generate translations and database code
+        run: |
+          flutter pub get
+          dart run intl_utils:generate
+          dart run build_runner build
+
+      - name: Apply qualification launcher icons
+        uses: ./.github/actions/qualif-icons
+        with:
+          env: ${{ needs.get-version.outputs.env }}
+
+      - name: Build the Android app bundle
+        # Release is debug-signed for now (android/app/build.gradle.kts's scaffold signingConfig);
+        # a real upload key is a later, deliberate step. This job verifies the Android build in CI
+        # and is deliberately kept out of create-release's assets until then.
+        uses: ./.github/actions/flutter-build
+        with:
+          target-platform: appbundle
+          build-args: --dart-define=APP_VERSION=${{ needs.get-version.outputs.version }} --dart-define=ENV=${{ needs.get-version.outputs.env }}
+
+      - name: Name the Android app bundle after the app
+        # Flutter always writes 'app-release.aab'; rename it so the extracted file, not just the
+        # artifact, carries the app name and version.
+        shell: bash
+        run: mv build/app/outputs/bundle/release/app-release.aab
+          "build/app/outputs/bundle/release/OpenCineProdTools_${{ needs.get-version.outputs.version }}.aab"
+
+      - name: Upload the Android app bundle
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: OpenCineProdTools_${{ needs.get-version.outputs.version }}_android_aab
+          path: build/app/outputs/bundle/release/OpenCineProdTools_${{ needs.get-version.outputs.version }}.aab
+          retention-days: ${{ env.ARTIFACT_RETENTION_DAYS }}
+
+      - name: Build the Android APK
+        # The AAB above is the Play upload format and cannot be side-loaded; this APK is the
+        # directly installable counterpart for on-device testing ('adb install <the .apk>').
+        # Both are debug-signed for now (see the app bundle step) — the APK is a developer
+        # convenience, not a distributable release, and is likewise kept out of create-release.
+        uses: ./.github/actions/flutter-build
+        with:
+          target-platform: apk
+          build-args: --dart-define=APP_VERSION=${{ needs.get-version.outputs.version }} --dart-define=ENV=${{ needs.get-version.outputs.env }}
+
+      - name: Name the Android APK after the app
+        # Flutter always writes 'app-release.apk'; rename it as above so the installable file
+        # carries the app name and version.
+        shell: bash
+        run: mv build/app/outputs/flutter-apk/app-release.apk
+          "build/app/outputs/flutter-apk/OpenCineProdTools_${{ needs.get-version.outputs.version }}.apk"
+
+      - name: Upload the Android APK
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: OpenCineProdTools_${{ needs.get-version.outputs.version }}_android_apk
+          path: build/app/outputs/flutter-apk/OpenCineProdTools_${{ needs.get-version.outputs.version }}.apk
           retention-days: ${{ env.ARTIFACT_RETENTION_DAYS }}
 
   test-deb:

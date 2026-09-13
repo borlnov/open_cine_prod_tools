@@ -69,9 +69,10 @@ void main() {
     });
 
     test("the centre floor is honoured: the right dock gives up width first", () {
-      // At rowWidth 700, the left dock clamps to its 180px minimum and the right dock would
-      // naturally take 315px, leaving only 189px of centre (below the 320px floor): the right
-      // dock alone must give up the 131px deficit, the left dock must stay at its minimum.
+      // At rowWidth 700, the two 12px divider reservations leave 676px; the left dock clamps to its
+      // 180px minimum and the right dock would naturally take 315px, leaving only 181px of centre
+      // (below the 320px floor): the right dock alone must give up the 139px deficit, the left dock
+      // must stay at its minimum.
       final widths = OcptWorkspaceDock.resolveDockWidths(
         rowWidth: 700,
         leftFraction: 0.18,
@@ -81,7 +82,7 @@ void main() {
       );
 
       expect(widths.left, closeTo(OcptWorkspaceDock.leftMinWidth, 0.001));
-      expect(widths.right, closeTo(184, 0.001));
+      expect(widths.right, closeTo(176, 0.001));
 
       const dividerWidth = OcptWorkspaceDock.dividerHitWidth * 2;
       final centre = 700 - dividerWidth - widths.left - widths.right;

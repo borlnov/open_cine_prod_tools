@@ -8,6 +8,19 @@ import 'package:act_themes_manager/act_themes_manager.dart';
 import 'package:flutter/material.dart';
 import 'package:open_cine_prod_tools/models/ocpt_specific_colors.dart';
 
+/// A pure scaling function applied to one size literal (a font size, a dimension or a radius) when
+/// [buildOcptThemeModel] builds the theme.
+///
+/// `MainAppUi` passes `flutter_screenutil`'s `.sp`/`.w`/`.r` extensions here on mobile, under
+/// `ScreenUtilInit`; every other call site — including the module-level [ocptTheme] below — leaves
+/// the parameter at its default, [_identityScaler], so desktop output stays byte-identical to a
+/// theme with no scaling at all.
+typedef OcptSizeScaler = double Function(double value);
+
+/// The default [OcptSizeScaler]: returns [value] unchanged, so a theme built with no scaler
+/// argument is byte-identical to a theme with no scaling concept at all.
+double _identityScaler(double value) => value;
+
 /// The seed color used to derive the whole light and dark color schemes.
 ///
 /// This app is a "studio" tool (screenwriting/production), so the intent is to read like the
@@ -173,18 +186,21 @@ const WidgetStateMouseCursor ocptClickableCursor = WidgetStateMouseCursor.clicka
 /// `displayLarge`/`displayMedium`/`displaySmall`, `headlineLarge`/`headlineMedium` and
 /// `titleLarge` are left untouched: nothing in the app renders through them today, so there is no
 /// existing call site to keep dense and no data point in the design to place them against.
-TextTheme _buildTextTheme({required ThemeData baseThemeData}) {
+///
+/// [sp] scales every [TextStyle.fontSize] below; it defaults to [_identityScaler], so calling this
+/// with no [sp] argument reproduces today's dense scale exactly.
+TextTheme _buildTextTheme({required ThemeData baseThemeData, OcptSizeScaler sp = _identityScaler}) {
   final base = baseThemeData.textTheme;
   return base.copyWith(
-    headlineSmall: base.headlineSmall?.copyWith(fontSize: 22),
-    titleMedium: base.titleMedium?.copyWith(fontSize: 13),
-    titleSmall: base.titleSmall?.copyWith(fontSize: 12),
-    bodyLarge: base.bodyLarge?.copyWith(fontSize: 13),
-    bodyMedium: base.bodyMedium?.copyWith(fontSize: 12),
-    bodySmall: base.bodySmall?.copyWith(fontSize: 11),
-    labelLarge: base.labelLarge?.copyWith(fontSize: 11),
-    labelMedium: base.labelMedium?.copyWith(fontSize: 10),
-    labelSmall: base.labelSmall?.copyWith(fontSize: 10),
+    headlineSmall: base.headlineSmall?.copyWith(fontSize: sp(22)),
+    titleMedium: base.titleMedium?.copyWith(fontSize: sp(13)),
+    titleSmall: base.titleSmall?.copyWith(fontSize: sp(12)),
+    bodyLarge: base.bodyLarge?.copyWith(fontSize: sp(13)),
+    bodyMedium: base.bodyMedium?.copyWith(fontSize: sp(12)),
+    bodySmall: base.bodySmall?.copyWith(fontSize: sp(11)),
+    labelLarge: base.labelLarge?.copyWith(fontSize: sp(11)),
+    labelMedium: base.labelMedium?.copyWith(fontSize: sp(10)),
+    labelSmall: base.labelSmall?.copyWith(fontSize: sp(10)),
   );
 }
 
@@ -194,7 +210,16 @@ TextTheme _buildTextTheme({required ThemeData baseThemeData}) {
 ///
 /// Every color read below comes from `baseThemeData.colorScheme`, never a literal hex, so this one
 /// builder serves both [_lightColorScheme] and [_darkColorScheme] correctly.
-ThemeData _buildThemeData({required ThemeData baseThemeData}) {
+///
+/// [sp] scales every font size, [w] every other dimension (padding, spacing, stroke widths) and
+/// [r] every corner radius; all three default to [_identityScaler], so calling this with no scaler
+/// argument reproduces today's component themes exactly.
+ThemeData _buildThemeData({
+  required ThemeData baseThemeData,
+  OcptSizeScaler sp = _identityScaler,
+  OcptSizeScaler w = _identityScaler,
+  OcptSizeScaler r = _identityScaler,
+}) {
   final colorScheme = baseThemeData.colorScheme;
   final textTheme = baseThemeData.textTheme;
 
@@ -205,7 +230,7 @@ ThemeData _buildThemeData({required ThemeData baseThemeData}) {
       color: colorScheme.surfaceContainerLow,
       elevation: 0,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(ocptRadiusLarge),
+        borderRadius: BorderRadius.circular(r(ocptRadiusLarge)),
         side: BorderSide(color: colorScheme.outlineVariant),
       ),
     ),
@@ -214,9 +239,9 @@ ThemeData _buildThemeData({required ThemeData baseThemeData}) {
     // `onPrimary`), which is already colorScheme-driven.
     filledButtonTheme: FilledButtonThemeData(
       style: FilledButton.styleFrom(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ocptRadiusMedium)),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
-        textStyle: textTheme.labelLarge?.copyWith(fontSize: 12, fontWeight: FontWeight.w600),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(r(ocptRadiusMedium))),
+        padding: EdgeInsets.symmetric(horizontal: w(16), vertical: w(9)),
+        textStyle: textTheme.labelLarge?.copyWith(fontSize: sp(12), fontWeight: FontWeight.w600),
         enabledMouseCursor: SystemMouseCursors.click,
         disabledMouseCursor: SystemMouseCursors.basic,
       ),
@@ -227,7 +252,7 @@ ThemeData _buildThemeData({required ThemeData baseThemeData}) {
     // theme is the one legible place that color comes from.
     outlinedButtonTheme: OutlinedButtonThemeData(
       style: OutlinedButton.styleFrom(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ocptRadiusMedium)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(r(ocptRadiusMedium))),
         side: BorderSide(color: colorScheme.outline),
         backgroundColor: Colors.transparent,
         enabledMouseCursor: SystemMouseCursors.click,
@@ -238,7 +263,7 @@ ThemeData _buildThemeData({required ThemeData baseThemeData}) {
     // and outlined siblings: same medium radius, default colors untouched.
     textButtonTheme: TextButtonThemeData(
       style: TextButton.styleFrom(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ocptRadiusMedium)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(r(ocptRadiusMedium))),
         enabledMouseCursor: SystemMouseCursors.click,
         disabledMouseCursor: SystemMouseCursors.basic,
       ),
@@ -249,9 +274,9 @@ ThemeData _buildThemeData({required ThemeData baseThemeData}) {
     iconButtonTheme: IconButtonThemeData(
       style: ButtonStyle(
         shape: WidgetStatePropertyAll(
-          RoundedRectangleBorder(borderRadius: BorderRadius.circular(ocptRadiusSmall)),
+          RoundedRectangleBorder(borderRadius: BorderRadius.circular(r(ocptRadiusSmall))),
         ),
-        minimumSize: const WidgetStatePropertyAll(Size(28, 28)),
+        minimumSize: WidgetStatePropertyAll(Size(w(28), w(28))),
         padding: const WidgetStatePropertyAll(EdgeInsets.zero),
         // The stock 48 px touch target would otherwise silently win over the 28 px minimum above,
         // making every icon button taller than the [ocptToolbarHeight] band it sits in and a row
@@ -278,26 +303,26 @@ ThemeData _buildThemeData({required ThemeData baseThemeData}) {
       filled: true,
       fillColor: colorScheme.surfaceContainer,
       isDense: true,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      contentPadding: EdgeInsets.symmetric(horizontal: w(12), vertical: w(10)),
       border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(ocptRadiusSmall),
+        borderRadius: BorderRadius.circular(r(ocptRadiusSmall)),
         borderSide: BorderSide(color: colorScheme.outline),
       ),
       enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(ocptRadiusSmall),
+        borderRadius: BorderRadius.circular(r(ocptRadiusSmall)),
         borderSide: BorderSide(color: colorScheme.outline),
       ),
       focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(ocptRadiusSmall),
-        borderSide: BorderSide(color: colorScheme.primary, width: 2),
+        borderRadius: BorderRadius.circular(r(ocptRadiusSmall)),
+        borderSide: BorderSide(color: colorScheme.primary, width: w(2)),
       ),
       errorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(ocptRadiusSmall),
+        borderRadius: BorderRadius.circular(r(ocptRadiusSmall)),
         borderSide: BorderSide(color: colorScheme.error),
       ),
       focusedErrorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(ocptRadiusSmall),
-        borderSide: BorderSide(color: colorScheme.error, width: 2),
+        borderRadius: BorderRadius.circular(r(ocptRadiusSmall)),
+        borderSide: BorderSide(color: colorScheme.error, width: w(2)),
       ),
     ),
     // The app has no `DropdownMenu` call site yet (today's dropdowns use the older
@@ -312,14 +337,14 @@ ThemeData _buildThemeData({required ThemeData baseThemeData}) {
         fillColor: colorScheme.surfaceContainer,
         isDense: true,
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(ocptRadiusSmall),
+          borderRadius: BorderRadius.circular(r(ocptRadiusSmall)),
           borderSide: BorderSide(color: colorScheme.outline),
         ),
       ),
       menuStyle: MenuStyle(
         backgroundColor: WidgetStatePropertyAll(colorScheme.surfaceContainerHigh),
         shape: WidgetStatePropertyAll(
-          RoundedRectangleBorder(borderRadius: BorderRadius.circular(ocptRadiusMedium)),
+          RoundedRectangleBorder(borderRadius: BorderRadius.circular(r(ocptRadiusMedium))),
         ),
         mouseCursor: ocptClickableCursor,
       ),
@@ -329,9 +354,9 @@ ThemeData _buildThemeData({required ThemeData baseThemeData}) {
     // and bottom).
     popupMenuTheme: PopupMenuThemeData(
       color: colorScheme.surfaceContainerHigh,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ocptRadiusMedium)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(r(ocptRadiusMedium))),
       elevation: 3,
-      menuPadding: const EdgeInsets.symmetric(vertical: 6),
+      menuPadding: EdgeInsets.symmetric(vertical: w(6)),
       mouseCursor: ocptClickableCursor,
     ),
     // Not itemized in the design table on its own (nothing in the app builds a `MenuAnchor` yet),
@@ -340,7 +365,7 @@ ThemeData _buildThemeData({required ThemeData baseThemeData}) {
       style: MenuStyle(
         backgroundColor: WidgetStatePropertyAll(colorScheme.surfaceContainerHigh),
         shape: WidgetStatePropertyAll(
-          RoundedRectangleBorder(borderRadius: BorderRadius.circular(ocptRadiusMedium)),
+          RoundedRectangleBorder(borderRadius: BorderRadius.circular(r(ocptRadiusMedium))),
         ),
         mouseCursor: ocptClickableCursor,
       ),
@@ -358,17 +383,21 @@ ThemeData _buildThemeData({required ThemeData baseThemeData}) {
     switchTheme: const SwitchThemeData(mouseCursor: ocptClickableCursor),
     // A thin `outlineVariant` line with no surrounding space, instead of the stock 16 px of
     // vertical breathing room.
-    dividerTheme: DividerThemeData(color: colorScheme.outlineVariant, thickness: 1, space: 1),
+    dividerTheme: DividerThemeData(
+      color: colorScheme.outlineVariant,
+      thickness: w(1),
+      space: w(1),
+    ),
     // A thin, always-visible `outline` thumb over a transparent track, instead of the platform
     // default.
     scrollbarTheme: ScrollbarThemeData(
       thumbColor: WidgetStatePropertyAll(colorScheme.outline),
       trackColor: const WidgetStatePropertyAll(Colors.transparent),
       trackBorderColor: const WidgetStatePropertyAll(Colors.transparent),
-      thickness: const WidgetStatePropertyAll(10),
-      radius: const Radius.circular(ocptRadiusSmall),
-      crossAxisMargin: 2,
-      mainAxisMargin: 2,
+      thickness: WidgetStatePropertyAll(w(10)),
+      radius: Radius.circular(r(ocptRadiusSmall)),
+      crossAxisMargin: w(2),
+      mainAxisMargin: w(2),
     ),
     // Not itemized in the design table on its own; kept at Material 3's own `inverseSurface` /
     // `onInverseSurface` colors (already colorScheme-driven), only tightened to the small radius
@@ -376,7 +405,7 @@ ThemeData _buildThemeData({required ThemeData baseThemeData}) {
     tooltipTheme: TooltipThemeData(
       decoration: BoxDecoration(
         color: colorScheme.inverseSurface,
-        borderRadius: BorderRadius.circular(ocptRadiusSmall),
+        borderRadius: BorderRadius.circular(r(ocptRadiusSmall)),
       ),
       textStyle: textTheme.bodySmall?.copyWith(color: colorScheme.onInverseSurface),
     ),
@@ -400,7 +429,16 @@ ThemeData _buildThemeData({required ThemeData baseThemeData}) {
 /// `fontFamily` is bundled explicitly (`assets/fonts/roboto/`) rather than left to the platform
 /// default: Flutter's Material default already resolves to Roboto, but only Linux ships it
 /// out of the box, so leaving it unset would make Windows fall back to a different system font.
-final ocptTheme = ActThemeModel<OcptSpecificColors>(
+///
+/// [sp], [w] and [r] are forwarded to [_buildTextTheme] and [_buildThemeData]; on mobile,
+/// `MainAppUi` passes `flutter_screenutil`'s `.sp`/`.w`/`.r` extensions here, under
+/// `ScreenUtilInit`. All three default to [_identityScaler], so [ocptTheme] below — built with no
+/// argument — stays byte-identical to a theme with no scaling concept at all.
+ActThemeModel<OcptSpecificColors> buildOcptThemeModel({
+  OcptSizeScaler sp = _identityScaler,
+  OcptSizeScaler w = _identityScaler,
+  OcptSizeScaler r = _identityScaler,
+}) => ActThemeModel<OcptSpecificColors>(
   lightColors: ActThemeColors<OcptSpecificColors>(
     colorScheme: _lightColorScheme,
     colorExtensions: OcptSpecificColors(
@@ -420,6 +458,13 @@ final ocptTheme = ActThemeModel<OcptSpecificColors>(
     ),
   ),
   fontFamily: 'Roboto',
-  overrideDefaultTextTheme: _buildTextTheme,
-  overrideDefaultThemeData: _buildThemeData,
+  overrideDefaultTextTheme: ({required baseThemeData}) =>
+      _buildTextTheme(baseThemeData: baseThemeData, sp: sp),
+  overrideDefaultThemeData: ({required baseThemeData}) =>
+      _buildThemeData(baseThemeData: baseThemeData, sp: sp, w: w, r: r),
 );
+
+/// The app's default theme model, built with no scaling ([buildOcptThemeModel]'s identity
+/// defaults) — this is the theme every desktop build uses, and it is byte-identical to the theme
+/// this file defined before the mobile responsive scaling was introduced.
+final ocptTheme = buildOcptThemeModel();

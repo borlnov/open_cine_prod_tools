@@ -59,6 +59,7 @@ OcptBudgetLine _line({
     vatRateBasisPoints: null,
   ),
   elementId: null,
+  inKindResourceId: null,
   provisionKey: provisionKey,
   provisionDigest: provisionDigest,
   notes: "",

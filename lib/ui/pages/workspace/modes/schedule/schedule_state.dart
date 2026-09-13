@@ -113,16 +113,17 @@ enum OcptScheduleIoNoticeKind {
 /// Only the fields [kind] actually needs are ever set: [path] for [OcptScheduleIoNoticeKind
 /// .fileExportSucceeded], [folderPath]/[writtenCount] for [OcptScheduleIoNoticeKind
 /// .folderExportSucceeded], and all four but [path] for [OcptScheduleIoNoticeKind
-/// .folderExportPartiallySucceeded].
+/// .folderExportPartiallySucceeded]. [wasShared] can be set alongside any succeeded kind.
 class OcptScheduleIoNotice extends Equatable {
   /// The outcome this notice reports.
   final OcptScheduleIoNoticeKind kind;
 
   /// The path a single-file export was written to, only set when [kind] is [OcptScheduleIoNoticeKind
-  /// .fileExportSucceeded].
+  /// .fileExportSucceeded] and [wasShared] is false.
   final String? path;
 
-  /// The folder a folder export wrote into, only set for the two folder-export kinds.
+  /// The folder a folder export wrote into, only set for the two folder-export kinds — a temporary
+  /// one rather than one the user picked when [wasShared] is true.
   final String? folderPath;
 
   /// How many files a folder export wrote successfully, only set for the two folder-export kinds.
@@ -132,6 +133,11 @@ class OcptScheduleIoNotice extends Equatable {
   /// .folderExportPartiallySucceeded].
   final int? failedCount;
 
+  /// Whether the export was handed to the OS share sheet rather than written to [path]/[folderPath]
+  /// for the user to find — mobile's own outcome, `file_selector`'s `getSaveLocation`/
+  /// `getDirectoryPath` having no Android or iOS implementation.
+  final bool wasShared;
+
   /// Class constructor
   const OcptScheduleIoNotice({
     required this.kind,
@@ -139,11 +145,12 @@ class OcptScheduleIoNotice extends Equatable {
     this.folderPath,
     this.writtenCount,
     this.failedCount,
+    this.wasShared = false,
   });
 
   /// Object properties
   @override
-  List<Object?> get props => [kind, path, folderPath, writtenCount, failedCount];
+  List<Object?> get props => [kind, path, folderPath, writtenCount, failedCount, wasShared];
 }
 
 /// The state of `OcptScheduleBloc`.

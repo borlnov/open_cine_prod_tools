@@ -26,6 +26,7 @@ OcptBudgetLine _buildLine({
   unit: "u",
   unitPrice: OcptMoney(amountCents: amountCents, isTaxInclusive: true, vatRateBasisPoints: null),
   elementId: null,
+  inKindResourceId: null,
   provisionKey: null,
   provisionDigest: null,
   notes: "",
@@ -93,12 +94,13 @@ const _zeroCashTotals = OcptBudgetCashTotals(
   entryCount: 0,
 );
 
-/// Wraps [ocptComputeBudgetAlerts] with the neutral defaults most tests want: nothing paid or
-/// committed against any poste, no commitment at all, an empty account.
+/// Wraps [ocptComputeBudgetAlerts] with the neutral defaults most tests want: nothing paid,
+/// committed or settled in kind against any poste, no commitment at all, an empty account.
 List<OcptBudgetAlert> _computeAlerts({
   required List<OcptBudgetPoste> postes,
   int Function(String posteId)? paidCentsOf,
   int Function(String posteId)? committedCentsOf,
+  int Function(String posteId)? inKindCoveredCentsOf,
   List<OcptBudgetCommitment> commitments = const [],
   List<OcptBudgetEntry> entries = const [],
   OcptBudgetCashTotals cashTotals = _zeroCashTotals,
@@ -107,6 +109,7 @@ List<OcptBudgetAlert> _computeAlerts({
   postes: postes,
   paidCentsOf: paidCentsOf ?? (posteId) => 0,
   committedCentsOf: committedCentsOf ?? (posteId) => 0,
+  inKindCoveredCentsOf: inKindCoveredCentsOf ?? (posteId) => 0,
   commitments: commitments,
   entries: entries,
   cashTotals: cashTotals,
@@ -185,6 +188,14 @@ void main() {
       final alert = alerts.single as OcptBudgetPosteOverQuoteAlert;
       expect(alert.quotedAmountCents, 0);
       expect(alert.varianceCents, 100);
+    });
+
+    test("an in-kind-only poste raises nothing — it never reads as a strain", () {
+      final poste = _buildPoste(id: "poste-1", quotedAmountCents: 5000);
+
+      final alerts = _computeAlerts(postes: [poste], inKindCoveredCentsOf: (posteId) => 5000);
+
+      expect(alerts, isEmpty);
     });
 
     test("raises one alert per poste over its quote, in the order the postes were given", () {

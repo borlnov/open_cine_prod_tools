@@ -20,6 +20,7 @@ import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dar
 import 'package:open_cine_prod_tools/models/ocpt_breakdown_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_breakdown_xlsx_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
+import 'package:open_cine_prod_tools/types/ocpt_export_outcome.dart';
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/breakdown/breakdown_mode.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/breakdown/widgets/ocpt_breakdown_sheets_export_dialog.dart';
@@ -82,7 +83,7 @@ class _RecordingExportManager extends OcptExportManager {
   String? lastExportedEpisodeTag;
 
   @override
-  Future<String?> exportBreakdownXlsx({
+  Future<OcptExportOutcome?> exportBreakdownXlsx({
     required FountainDocument document,
     required OcptBreakdownSnapshot snapshot,
     required OcptPageSetup pageSetup,
@@ -90,9 +91,10 @@ class _RecordingExportManager extends OcptExportManager {
     required String projectName,
     required String fileTypeLabel,
     String? episodeTag,
+    Rect? shareAnchor,
   }) async {
     lastExportedEpisodeTag = episodeTag;
-    return "/tmp/$projectName.xlsx";
+    return OcptExportSaved("/tmp/$projectName.xlsx");
   }
 }
 

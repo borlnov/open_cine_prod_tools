@@ -1504,6 +1504,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
         labels: event.labels,
         projectName: state.title,
         confirmButtonText: event.confirmButtonText,
+        shareAnchor: event.shareAnchor,
       );
       if (result == null) {
         // The user cancelled the folder dialog.
@@ -1519,6 +1520,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
             folderPath: result.folderPath,
             writtenCount: result.writtenFileNames.length,
             failedCount: result.failedFileNames.length,
+            wasShared: result.wasShared,
           ),
         ),
       );
@@ -1554,6 +1556,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
         labels: event.labels,
         projectName: state.title,
         confirmButtonText: event.confirmButtonText,
+        shareAnchor: event.shareAnchor,
       );
       if (result == null) {
         // The user cancelled the folder dialog.
@@ -1569,6 +1572,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
             folderPath: result.folderPath,
             writtenCount: result.writtenFileNames.length,
             failedCount: result.failedFileNames.length,
+            wasShared: result.wasShared,
           ),
         ),
       );
@@ -1600,7 +1604,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
 
     try {
       final options = event.options;
-      final path = await _exportManager.exportShootingPlan(
+      final outcome = await _exportManager.exportShootingPlan(
         plan: plan,
         dayIds: options.dayIds,
         pageSetup: OcptPageSetup(format: options.format, margins: options.margins),
@@ -1613,15 +1617,20 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
         includeTenMinuteGrid: options.includeTenMinuteGrid,
         includeElementsGrid: options.includeElementsGrid,
         fileTypeLabel: event.fileTypeLabel,
+        shareAnchor: event.shareAnchor,
       );
-      if (path == null) {
+      if (outcome == null) {
         // The user cancelled the save dialog.
         return;
       }
 
       emitter(
         state.copyWith(
-          ioNotice: OcptScheduleIoNotice(kind: OcptScheduleIoNoticeKind.fileExportSucceeded, path: path),
+          ioNotice: OcptScheduleIoNotice(
+            kind: OcptScheduleIoNoticeKind.fileExportSucceeded,
+            path: outcome.savedPath,
+            wasShared: outcome.wasShared,
+          ),
         ),
       );
     } catch (error) {
@@ -1649,21 +1658,26 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     }
 
     try {
-      final path = await _exportManager.exportShootingPlanXlsx(
+      final outcome = await _exportManager.exportShootingPlanXlsx(
         plan: plan,
         dayIds: event.options.dayIds,
         labels: event.labels,
         projectName: state.title,
         fileTypeLabel: event.fileTypeLabel,
+        shareAnchor: event.shareAnchor,
       );
-      if (path == null) {
+      if (outcome == null) {
         // The user cancelled the save dialog.
         return;
       }
 
       emitter(
         state.copyWith(
-          ioNotice: OcptScheduleIoNotice(kind: OcptScheduleIoNoticeKind.fileExportSucceeded, path: path),
+          ioNotice: OcptScheduleIoNotice(
+            kind: OcptScheduleIoNoticeKind.fileExportSucceeded,
+            path: outcome.savedPath,
+            wasShared: outcome.wasShared,
+          ),
         ),
       );
     } catch (error) {
@@ -1691,7 +1705,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
 
     try {
       final options = event.options;
-      final path = await _exportManager.exportDayOutOfDays(
+      final outcome = await _exportManager.exportDayOutOfDays(
         plan: plan,
         dayIds: options.dayIds,
         pageSetup: OcptPageSetup(format: options.format, margins: options.margins),
@@ -1699,15 +1713,20 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
         projectName: state.title,
         includeTitlePage: options.includeTitlePage,
         fileTypeLabel: event.fileTypeLabel,
+        shareAnchor: event.shareAnchor,
       );
-      if (path == null) {
+      if (outcome == null) {
         // The user cancelled the save dialog.
         return;
       }
 
       emitter(
         state.copyWith(
-          ioNotice: OcptScheduleIoNotice(kind: OcptScheduleIoNoticeKind.fileExportSucceeded, path: path),
+          ioNotice: OcptScheduleIoNotice(
+            kind: OcptScheduleIoNoticeKind.fileExportSucceeded,
+            path: outcome.savedPath,
+            wasShared: outcome.wasShared,
+          ),
         ),
       );
     } catch (error) {
@@ -1735,7 +1754,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
 
     try {
       final options = event.options;
-      final path = await _exportManager.exportOneLineSchedule(
+      final outcome = await _exportManager.exportOneLineSchedule(
         plan: plan,
         dayIds: options.dayIds,
         pageSetup: OcptPageSetup(format: options.format, margins: options.margins),
@@ -1743,15 +1762,20 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
         projectName: state.title,
         includeTitlePage: options.includeTitlePage,
         fileTypeLabel: event.fileTypeLabel,
+        shareAnchor: event.shareAnchor,
       );
-      if (path == null) {
+      if (outcome == null) {
         // The user cancelled the save dialog.
         return;
       }
 
       emitter(
         state.copyWith(
-          ioNotice: OcptScheduleIoNotice(kind: OcptScheduleIoNoticeKind.fileExportSucceeded, path: path),
+          ioNotice: OcptScheduleIoNotice(
+            kind: OcptScheduleIoNoticeKind.fileExportSucceeded,
+            path: outcome.savedPath,
+            wasShared: outcome.wasShared,
+          ),
         ),
       );
     } catch (error) {
@@ -1795,7 +1819,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
       final options = event.options;
       final documents = await _documentsOfDay(project: project, plan: plan, dayId: options.dayId);
 
-      final path = await _exportManager.exportSides(
+      final outcome = await _exportManager.exportSides(
         plan: plan,
         dayId: options.dayId,
         documents: documents,
@@ -1805,15 +1829,20 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
         includeSceneNumbers: options.includeSceneNumbers,
         presentation: options.presentation,
         fileTypeLabel: event.fileTypeLabel,
+        shareAnchor: event.shareAnchor,
       );
-      if (path == null) {
+      if (outcome == null) {
         // The user cancelled the save dialog.
         return;
       }
 
       emitter(
         state.copyWith(
-          ioNotice: OcptScheduleIoNotice(kind: OcptScheduleIoNoticeKind.fileExportSucceeded, path: path),
+          ioNotice: OcptScheduleIoNotice(
+            kind: OcptScheduleIoNoticeKind.fileExportSucceeded,
+            path: outcome.savedPath,
+            wasShared: outcome.wasShared,
+          ),
         ),
       );
     } catch (error) {

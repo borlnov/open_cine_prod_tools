@@ -45,6 +45,25 @@ class OcptEditorPreviewLayout {
   /// pass all share this one value so their page boundaries agree pixel-for-pixel.
   static const double pageGap = 16;
 
+  /// The multiplier every element's indent and box width ([indentOf]/[widthOf]) is scaled by on a
+  /// compact fluid surface — a phone, or a narrow window — rather than laid out at the real,
+  /// screenplay-sized indents (a character cue ≈ 3.7″ from the page's left edge) such a width has
+  /// no room for.
+  ///
+  /// A uniform multiplier on *both* halves of every element's box keeps the desktop proportions
+  /// intact at half scale: every element keeps its indent relative to every other (character
+  /// further right than dialogue, further right than parenthetical, the staggered hierarchy paper
+  /// has), every full-width element's right edge still lands in the same place as every other's,
+  /// all of it just smaller. Chosen, not derived: every full-width element shares one desktop
+  /// `indent + width` (≈585px on US Letter at [fontSize], well past a phone's own content width),
+  /// and halving that lands at ≈293px — comfortable room inside a phone's content width without
+  /// shrinking the text column to the point of wrapping every other word.
+  ///
+  /// Shared by the styled editor's compact stylesheet (`OcptFountainEditorStylesheet`) and the
+  /// breakdown mode's own script view (`OcptBreakdownScriptView`), so the two read identically on a
+  /// phone.
+  static const double compactLayoutScale = 0.5;
+
   /// The measured width of a Courier Prime glyph, cached per font size: the font is fixed-pitch,
   /// so a single glyph ("0") is representative of every column.
   static final Map<double, double> _glyphWidthCache = {};

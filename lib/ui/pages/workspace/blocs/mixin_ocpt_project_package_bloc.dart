@@ -12,10 +12,12 @@ import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dar
 import 'package:open_cine_prod_tools/models/ocpt_open_project_model.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_package_manifest.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_package_notice.dart';
+import 'package:open_cine_prod_tools/models/ocpt_project_package_report.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_package_target.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_package_notice_kind.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project_package_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_project_package_events.dart';
+import 'package:path/path.dart' as p;
 
 /// Everything a bloc needs to write a project out as a portable package: the pre-flight over the
 /// files it references, the question that follows when some of them are gone, the native save
@@ -55,7 +57,10 @@ mixin MixinOcptProjectPackageBloc<S extends MixinOcptProjectPackageState<S>> on 
   OcptProjectsManager get projectsManager;
 
   /// {@template open_cine_prod_tools.MixinOcptProjectPackageBloc.exportManager}
-  /// The manager whose [OcptExportManager.saveLocationService] shows the native save dialog.
+  /// The manager whose [OcptExportManager.saveLocationService] shows the native save dialog on
+  /// desktop, and whose [OcptExportManager.shareService] hands the package to the OS share sheet on
+  /// [OcptExportManager.isMobile] instead — `file_selector`'s `getSaveLocation` has no Android or
+  /// iOS implementation.
   ///
   /// Reached through the manager rather than through [globalGetIt] for the reason
   /// [MixinOcptProjectPackageBloc.projectsManager] gives, and through the export manager rather
@@ -209,11 +214,14 @@ mixin MixinOcptProjectPackageBloc<S extends MixinOcptProjectPackageState<S>> on 
     emitter(state.copyProjectPackageState(clearProjectPackageNotice: true));
   }
 
-  /// Asks where to write the package, writes it there, and reports what travelled.
+  /// Writes the package and reports what travelled — on desktop through the native save dialog
+  /// ([_writeAndSavePackage]), on mobile through the OS share sheet ([_writeAndSharePackage]),
+  /// [OcptExportManager.isMobile] telling the two apart exactly as every other export of this app's
+  /// write funnel does: `file_selector`'s `getSaveLocation` has no Android or iOS implementation at
+  /// all.
   ///
-  /// A cancelled save dialog is a silent no-op, exactly as it is for every other export of this
-  /// app: the user closed a dialog they opened. A failure raises the transient notice, and a
-  /// success raises it too — a package is a file that lands somewhere the user then has to find.
+  /// Any exception either branch throws is caught here rather than in each of them, so both answer
+  /// a failure the very same way.
   Future<void> _writePackage(
     Emitter<S> emitter, {
     required String fileTypeLabel,
@@ -221,44 +229,11 @@ mixin MixinOcptProjectPackageBloc<S extends MixinOcptProjectPackageState<S>> on 
   }) async {
     _isWritingProjectPackage = true;
     try {
-      final packagePath = await exportManager.saveLocationService.pickSaveLocation(
-        suggestedFileName: ocptExportFileNameOf(
-          projectName: target.name,
-          extension: ocptPackageFileExtension,
-        ),
-        fileTypeLabel: fileTypeLabel,
-        extensions: const [ocptPackageFileExtension],
-      );
-      if (packagePath == null) {
-        // The user cancelled the save dialog.
-        return;
+      if (exportManager.isMobile) {
+        await _writeAndSharePackage(emitter, target: target);
+      } else {
+        await _writeAndSavePackage(emitter, fileTypeLabel: fileTypeLabel, target: target);
       }
-
-      final result = await projectsManager.exportProjectPackage(
-        projectFilePath: target.filePath,
-        projectName: target.name,
-        packageFilePath: packagePath,
-      );
-
-      final report = result.value;
-      if (!result.status.isSuccess || report == null) {
-        appLogger().e("The project at ${target.filePath} can't be packaged into $packagePath: "
-            "${result.status}");
-        _emitNotice(
-          emitter,
-          const OcptProjectPackageNotice(kind: OcptProjectPackageNoticeKind.exportFailed),
-        );
-        return;
-      }
-
-      _emitNotice(
-        emitter,
-        OcptProjectPackageNotice(
-          kind: OcptProjectPackageNoticeKind.exportSucceeded,
-          path: report.packagePath,
-          skippedAssetCount: report.skippedAssets.length,
-        ),
-      );
     } catch (error) {
       appLogger().e("A problem occurred when tried to package the project at ${target.filePath}: "
           "$error");
@@ -269,6 +244,110 @@ mixin MixinOcptProjectPackageBloc<S extends MixinOcptProjectPackageState<S>> on 
     } finally {
       _isWritingProjectPackage = false;
     }
+  }
+
+  /// Desktop: asks where to write the package through the native save dialog, writes it there, and
+  /// reports what travelled.
+  ///
+  /// A cancelled save dialog is a silent no-op, exactly as it is for every other export of this
+  /// app: the user closed a dialog they opened. A failure raises the transient notice, and a
+  /// success raises it too — a package is a file that lands somewhere the user then has to find.
+  Future<void> _writeAndSavePackage(
+    Emitter<S> emitter, {
+    required String fileTypeLabel,
+    required OcptProjectPackageTarget target,
+  }) async {
+    final packagePath = await exportManager.saveLocationService.pickSaveLocation(
+      suggestedFileName: ocptExportFileNameOf(
+        projectName: target.name,
+        extension: ocptPackageFileExtension,
+      ),
+      fileTypeLabel: fileTypeLabel,
+      extensions: const [ocptPackageFileExtension],
+    );
+    if (packagePath == null) {
+      // The user cancelled the save dialog.
+      return;
+    }
+
+    final report = await _writePackageAt(emitter, target: target, packagePath: packagePath);
+    if (report == null) {
+      return;
+    }
+
+    _emitNotice(
+      emitter,
+      OcptProjectPackageNotice(
+        kind: OcptProjectPackageNoticeKind.exportSucceeded,
+        path: report.packagePath,
+        skippedAssetCount: report.skippedAssets.length,
+      ),
+    );
+  }
+
+  /// Mobile: there is no save dialog to show at all, so this writes the package into a
+  /// `path_provider` temporary directory and hands it to [OcptExportManager.shareService]'s OS
+  /// share sheet instead — the very same door [OcptExportManager]'s own write funnel already takes
+  /// for every other export on mobile.
+  ///
+  /// No `sharePositionOrigin` is passed: Android needs none, and anchoring the popover this opens
+  /// as on an iPad is a concern this export does not resolve yet. A dismissed share sheet is a
+  /// silent no-op, exactly as a cancelled save dialog is on desktop — the user closed something
+  /// they opened themselves.
+  Future<void> _writeAndSharePackage(
+    Emitter<S> emitter, {
+    required OcptProjectPackageTarget target,
+  }) async {
+    final dir = await exportManager.shareService.temporaryDirectory();
+    final packagePath = p.join(
+      dir.path,
+      ocptExportFileNameOf(projectName: target.name, extension: ocptPackageFileExtension),
+    );
+
+    final report = await _writePackageAt(emitter, target: target, packagePath: packagePath);
+    if (report == null) {
+      return;
+    }
+
+    final wasShared = await exportManager.shareService.shareFiles(paths: [report.packagePath]);
+    if (!wasShared) {
+      // The user dismissed the share sheet.
+      return;
+    }
+
+    _emitNotice(
+      emitter,
+      const OcptProjectPackageNotice(kind: OcptProjectPackageNoticeKind.exportShared),
+    );
+  }
+
+  /// Writes the package at [packagePath] through [OcptProjectsManager.exportProjectPackage] and
+  /// returns its report, or emits [OcptProjectPackageNoticeKind.exportFailed] and returns null on
+  /// failure — the one write both [_writeAndSavePackage] and [_writeAndSharePackage] share, so a
+  /// package failing to build is reported the same sentence whichever door it was asked through.
+  Future<OcptProjectPackageExportReport?> _writePackageAt(
+    Emitter<S> emitter, {
+    required OcptProjectPackageTarget target,
+    required String packagePath,
+  }) async {
+    final result = await projectsManager.exportProjectPackage(
+      projectFilePath: target.filePath,
+      projectName: target.name,
+      packageFilePath: packagePath,
+    );
+
+    final report = result.value;
+    if (!result.status.isSuccess || report == null) {
+      appLogger().e("The project at ${target.filePath} can't be packaged into $packagePath: "
+          "${result.status}");
+      _emitNotice(
+        emitter,
+        const OcptProjectPackageNotice(kind: OcptProjectPackageNoticeKind.exportFailed),
+      );
+      return null;
+    }
+
+    return report;
   }
 
   /// Emits [notice], and clears any question left hanging along with it.

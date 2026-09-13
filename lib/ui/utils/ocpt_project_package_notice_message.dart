@@ -26,5 +26,6 @@ String ocptProjectPackageNoticeMessage(BuildContext context, OcptProjectPackageN
           )
         : tr.projectPackageExportSuccessMessage(notice.path ?? ""),
     OcptProjectPackageNoticeKind.exportFailed => tr.projectPackageExportError,
+    OcptProjectPackageNoticeKind.exportShared => tr.projectPackageExportShared,
   };
 }

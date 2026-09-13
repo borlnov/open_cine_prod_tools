@@ -17,6 +17,12 @@ logs:
     # Indicates if the console logger keeps printing logs when the app runs in release mode.
     printInRelease: false
 
+  # Whether app logs are also written to a rotating file (crash-survivable). Read by the app, not
+  # act_logger_manager itself.
+  file:
+    enabled: false
+    level: warning
+
 # Contains the parameters read by the act_licenses_manager package.
 licenses:
   # The extra elements (app, ACT packages, fonts, ...) and their licenses, on top of the

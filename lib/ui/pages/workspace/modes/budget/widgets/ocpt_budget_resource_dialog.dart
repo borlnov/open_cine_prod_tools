@@ -8,6 +8,7 @@ import 'package:intl/intl.dart' show NumberFormat;
 import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
+import 'package:open_cine_prod_tools/models/ocpt_budget_poste.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_resource.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_resource_form_fields.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
@@ -49,6 +50,21 @@ class OcptBudgetResourceDialog extends StatefulWidget {
   /// The project's currency, an ISO 4217 code, shown beside the `Amount` field.
   final String currencyCode;
 
+  /// Every live poste of the project, offered by the `Poste` picker while the resource being
+  /// created or edited is an in-kind contribution — see [OcptBudgetResourceFormBody]'s own class
+  /// doc comment.
+  final List<OcptBudgetPoste> postes;
+
+  /// The poste an existing in-kind contribution's counterpart line currently offsets, or null —
+  /// seeds the `Poste` picker while editing. Read from the linked line rather than from a field of
+  /// the resource itself, which stores no poste of its own (`OcptBudgetResourceFormFields.posteId`'s
+  /// own doc comment). Ignored while creating: a fresh resource has no counterpart line yet.
+  final String? initialPosteId;
+
+  /// Whether the mode's header currently reads simplified — switches a poste's own displayed name
+  /// exactly as every other picker of this mode does.
+  final bool isSimplified;
+
   /// Forwarded to [OcptBudgetResourceFormBody] — see its own class doc comment. Defaults to false.
   final bool offerCashOrInKindChoice;
 
@@ -59,6 +75,9 @@ class OcptBudgetResourceDialog extends StatefulWidget {
     required this.groupKind,
     required this.people,
     required this.currencyCode,
+    required this.postes,
+    this.initialPosteId,
+    required this.isSimplified,
     this.offerCashOrInKindChoice = false,
   });
 
@@ -69,6 +88,9 @@ class OcptBudgetResourceDialog extends StatefulWidget {
     required OcptBudgetResourceGroupKind groupKind,
     required List<OcptPerson> people,
     required String currencyCode,
+    required List<OcptBudgetPoste> postes,
+    String? initialPosteId,
+    required bool isSimplified,
     bool offerCashOrInKindChoice = false,
   }) => showDialog<OcptBudgetResourceFormFields>(
     context: context,
@@ -77,6 +99,9 @@ class OcptBudgetResourceDialog extends StatefulWidget {
       groupKind: groupKind,
       people: people,
       currencyCode: currencyCode,
+      postes: postes,
+      initialPosteId: initialPosteId,
+      isSimplified: isSimplified,
       offerCashOrInKindChoice: offerCashOrInKindChoice,
     ),
   );
@@ -108,6 +133,9 @@ class _OcptBudgetResourceDialogState extends State<OcptBudgetResourceDialog> {
         groupKind: widget.groupKind,
         people: widget.people,
         currencyCode: widget.currencyCode,
+        postes: widget.postes,
+        initialPosteId: widget.initialPosteId,
+        isSimplified: widget.isSimplified,
         formKey: _formKey,
         onDraftChanged: (draft) => setState(() => _draft = draft),
         offerCashOrInKindChoice: widget.offerCashOrInKindChoice,
@@ -214,6 +242,18 @@ class _OcptBudgetResourceDialogState extends State<OcptBudgetResourceDialog> {
 /// a field changes, `initState` included so a host that never touches a pre-filled edit still has a
 /// draft to submit. The host validates [formKey] and uses the last reported draft on its own
 /// `Save`; this body never pops anything itself.
+///
+/// **The `Poste` field draws only while the picked group reads [OcptBudgetResourceGroupKind.inKind]**,
+/// appearing and disappearing the moment the `Group` picker above toggles into or out of it — a
+/// subsidy or a cash contribution offsets no poste, so the field is not merely disabled for them,
+/// it is not drawn at all (`OcptBudgetResourceFormFields.posteId`'s own doc comment). It mirrors
+/// `OcptBudgetCommitmentFormBody._buildPosteField`'s own picker, but is validated the way this
+/// body's own `Label` field already is — a plain [DropdownButtonFormField] validator — rather than
+/// through a separate missing-fields hint: `Amount` is the one field here that can be technically
+/// unreadable (its figure fails to parse), which is what forces the current draft to read null and
+/// gate `Save` through the draft alone; a missing `Poste`, like a missing `Label`, is instead a
+/// plain required-field failure the [Form]'s own `validate()` already reports inline, which
+/// `Save`'s own submit handler already calls before ever reading the draft.
 class OcptBudgetResourceFormBody extends StatefulWidget {
   /// The resource being edited, or null while creating a new one.
   final OcptBudgetResource? existing;
@@ -227,6 +267,21 @@ class OcptBudgetResourceFormBody extends StatefulWidget {
 
   /// The project's currency, an ISO 4217 code, shown beside the `Amount` field.
   final String currencyCode;
+
+  /// Every live poste of the project, offered by the `Poste` picker while the picked group is
+  /// [OcptBudgetResourceGroupKind.inKind] — see the class doc comment's own paragraph on the
+  /// `Poste` field.
+  final List<OcptBudgetPoste> postes;
+
+  /// The poste an existing in-kind contribution's counterpart line currently offsets, or null —
+  /// seeds the `Poste` picker's own initial value. Read from the linked counterpart line rather
+  /// than from a field of the resource, which stores no poste of its own
+  /// (`OcptBudgetResourceFormFields.posteId`'s own doc comment).
+  final String? initialPosteId;
+
+  /// Whether the mode's header currently reads simplified — switches a poste's own displayed name
+  /// exactly as every other picker of this mode does.
+  final bool isSimplified;
 
   /// The form this body's own [Form] validates against — the host's to create and to validate.
   final GlobalKey<FormState> formKey;
@@ -247,6 +302,9 @@ class OcptBudgetResourceFormBody extends StatefulWidget {
     required this.groupKind,
     required this.people,
     required this.currencyCode,
+    required this.postes,
+    this.initialPosteId,
+    required this.isSimplified,
     required this.formKey,
     required this.onDraftChanged,
     this.offerCashOrInKindChoice = false,
@@ -281,6 +339,11 @@ class _OcptBudgetResourceFormBodyState extends State<OcptBudgetResourceFormBody>
   /// class doc comment.
   String? _personId;
 
+  /// The poste currently picked, read only while [_groupKind] is
+  /// [OcptBudgetResourceGroupKind.inKind] — see the class doc comment's own paragraph on the
+  /// `Poste` field.
+  String? _posteId;
+
   @override
   void initState() {
     super.initState();
@@ -291,6 +354,7 @@ class _OcptBudgetResourceFormBodyState extends State<OcptBudgetResourceFormBody>
     _status = existing?.status ?? OcptBudgetResourceStatus.pending;
     _isReimbursable = existing?.isReimbursable ?? false;
     _personId = existing?.personId;
+    _posteId = widget.initialPosteId;
 
     _labelController = TextEditingController(text: existing?.label ?? "")..addListener(_report);
     _amountController = TextEditingController(text: ocptCostTextOf(existing?.amountCents))
@@ -334,6 +398,7 @@ class _OcptBudgetResourceFormBodyState extends State<OcptBudgetResourceFormBody>
       status: _status,
       isReimbursable: _isReimbursable,
       notes: _notesController.text.trim(),
+      posteId: _groupKind == OcptBudgetResourceGroupKind.inKind ? _posteId : null,
     );
   }
 
@@ -408,6 +473,10 @@ class _OcptBudgetResourceFormBodyState extends State<OcptBudgetResourceFormBody>
               validator: (value) =>
                   ocptCostCentsOf(value ?? "") == null ? tr.budgetEntryDialogAmountInvalidError : null,
             ),
+            if (_groupKind == OcptBudgetResourceGroupKind.inKind) ...[
+              const SizedBox(height: 12),
+              _buildPosteField(tr),
+            ],
             const SizedBox(height: 12),
             Text(
               tr.budgetCommitmentDialogStatusFieldLabel.toUpperCase(),
@@ -461,6 +530,32 @@ class _OcptBudgetResourceFormBodyState extends State<OcptBudgetResourceFormBody>
       ),
     );
   }
+
+  /// The `Poste` field: a picker, drawn only while [_groupKind] is
+  /// [OcptBudgetResourceGroupKind.inKind] — the CNC poste this contribution offsets, required
+  /// through its own validator exactly as `Label` already is (see the class doc comment for why
+  /// this differs from `OcptBudgetCommitmentFormBody`'s own missing-fields hint). Mirrors that
+  /// body's own `_buildPosteField` otherwise, poste by poste and label by label.
+  Widget _buildPosteField(Tr tr) => DropdownButtonFormField<String>(
+    initialValue: _posteId,
+    decoration: InputDecoration(
+      labelText: tr.budgetResourceDialogPosteFieldLabel,
+      helperText: tr.budgetResourceDialogPosteFieldHelper,
+      helperMaxLines: 2,
+    ),
+    items: [
+      for (final poste in widget.postes)
+        DropdownMenuItem(
+          value: poste.id,
+          child: Text(ocptBudgetPosteDisplayLabel(poste, isSimplified: widget.isSimplified)),
+        ),
+    ],
+    onChanged: (value) {
+      setState(() => _posteId = value);
+      _report();
+    },
+    validator: (value) => value == null ? tr.budgetResourceDialogPosteRequiredError : null,
+  );
 
   /// The `Amount` field's own label, worded for [_groupKind] — see the class doc comment: an
   /// in-kind contribution's figure is what it is *valued at*, never an amount to be received.

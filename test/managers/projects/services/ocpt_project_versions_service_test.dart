@@ -9,12 +9,14 @@ import 'package:drift/drift.dart' show OrderingTerm, Value;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_assets_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_breakdown_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_elements_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_locations_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_people_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_project_version_codec.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_project_versions_service.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_role_candidates_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_role_index_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_scene_index_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_schedule_service.dart';
@@ -44,29 +46,45 @@ void main() {
   setUpAll(() => OcptGlobalManager.instance);
 
   const codec = OcptProjectVersionCodec();
-  const peopleService = OcptPeopleService();
-  const scheduleService = OcptScheduleService();
-  const roleIndexService = OcptRoleIndexService();
-  const elementsService = OcptElementsService();
-  const locationsService = OcptLocationsService();
-  const breakdownService = OcptBreakdownService(
+  const deviceId = "device-1";
+  Future<String> testDeviceId() async => deviceId;
+  final assetsService = OcptAssetsService(deviceId: testDeviceId);
+  final roleCandidatesService = OcptRoleCandidatesService(deviceId: testDeviceId);
+  final peopleService = OcptPeopleService(
+    deviceId: testDeviceId,
+    assetsService: assetsService,
+    roleCandidatesService: roleCandidatesService,
+  );
+  final scheduleService = OcptScheduleService(deviceId: testDeviceId);
+  final elementsService = OcptElementsService(assetsService: assetsService, deviceId: testDeviceId);
+  final locationsService = OcptLocationsService(
+    assetsService: assetsService,
+    deviceId: testDeviceId,
+  );
+  final roleIndexService = OcptRoleIndexService(
+    elementsService: elementsService,
+    roleCandidatesService: roleCandidatesService,
+    deviceId: testDeviceId,
+  );
+  final breakdownService = OcptBreakdownService(
     elementsService: elementsService,
     locationsService: locationsService,
+    deviceId: testDeviceId,
   );
   // Used directly by the breakdown restore tests below, to seed a real scene index and a real
   // reconciled role — separate from the one `service` builds for its own screenplay-snapshotting
   // needs, but a stateless collaborator over the same database, so the two never disagree.
-  const screenplayService = OcptScreenplayService(
-    sceneIndexService: OcptSceneIndexService(),
-    shotListService: OcptShotListService(),
-    shotCoverageService: OcptShotCoverageService(),
+  final screenplayService = OcptScreenplayService(
+    sceneIndexService: const OcptSceneIndexService(),
+    shotListService: OcptShotListService(deviceId: testDeviceId),
+    shotCoverageService: OcptShotCoverageService(deviceId: testDeviceId),
     roleIndexService: roleIndexService,
     breakdownService: breakdownService,
     scheduleService: scheduleService,
+    deviceId: testDeviceId,
   );
-  const service = OcptProjectVersionsService(codec: codec, screenplayService: screenplayService);
+  final service = OcptProjectVersionsService(codec: codec, screenplayService: screenplayService);
   const screenplayId = "screenplay-1";
-  const deviceId = "device-1";
   const appVersion = "0.1.0";
   const margins = FountainPageMargins(
     leftInches: 1.5,
@@ -686,7 +704,7 @@ void main() {
       expect(liveShots.map((shot) => shot.id), ["shot-1"]);
     });
 
-    test("stamps every column it changed, above what that column already held", () async {
+    test("stamps every column it changed with one version, above what any of them already held", () async {
       final version = await createDivergedProject();
 
       // As if the edit that rewrote the framing had been stamped by the changeset engine.
@@ -712,8 +730,9 @@ void main() {
       expect(stamps["shots/shot-1/framing"]?.deviceId, deviceId);
 
       // A row the version didn't hold is tombstoned, and the tombstone is stamped like any other
-      // write.
-      expect(stamps["shots/shot-2/isDeleted"]?.version, 1);
+      // write — sharing the very same version, since the whole restore is one transaction and this
+      // device's clock hands out exactly one tick for it.
+      expect(stamps["shots/shot-2/isDeleted"]?.version, 8);
       expect(stamps["shots/shot-2/isDeleted"]?.deviceId, deviceId);
 
       // A column whose value already matched the version is left alone: a restore must not stomp
@@ -2125,6 +2144,11 @@ void main() {
         );
 
         final versionB = await createVersion(name: "v2 — Locked");
+
+        // Cleared so the stamps read below are the restore's own: OcptBreakdownService's writes
+        // above (createTag, updateSceneBreakdown) now stamp on their own account too, and that is
+        // not what this assertion is about.
+        await database.delete(database.ocptRowFieldVersionsTable).go();
 
         // Restore A: the breakdown must read exactly as it did at that moment.
         final resultA = await restore(versionA.id);

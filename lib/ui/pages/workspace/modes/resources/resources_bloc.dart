@@ -3015,13 +3015,14 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     }
 
     try {
-      final path = await _exportManager.exportResourcesXlsx(
+      final outcome = await _exportManager.exportResourcesXlsx(
         snapshot: snapshot,
         labels: event.labels,
         projectName: state.title,
         fileTypeLabel: event.fileTypeLabel,
+        shareAnchor: event.shareAnchor,
       );
-      if (path == null) {
+      if (outcome == null) {
         // The user cancelled the save dialog.
         return;
       }
@@ -3030,7 +3031,8 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
         state.copyWith(
           ioNotice: OcptResourcesIoNotice(
             kind: OcptResourcesIoNoticeKind.xlsxExportSucceeded,
-            path: path,
+            path: outcome.savedPath,
+            wasShared: outcome.wasShared,
           ),
         ),
       );
@@ -3065,14 +3067,15 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
 
     try {
       final options = event.options;
-      final path = await _exportManager.exportContactList(
+      final outcome = await _exportManager.exportContactList(
         snapshot: snapshot,
         pageSetup: OcptPageSetup(format: options.format, margins: options.margins),
         labels: event.labels,
         projectName: state.title,
         fileTypeLabel: event.fileTypeLabel,
+        shareAnchor: event.shareAnchor,
       );
-      if (path == null) {
+      if (outcome == null) {
         // The user cancelled the save dialog.
         return;
       }
@@ -3081,7 +3084,8 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
         state.copyWith(
           ioNotice: OcptResourcesIoNotice(
             kind: OcptResourcesIoNoticeKind.contactListExportSucceeded,
-            path: path,
+            path: outcome.savedPath,
+            wasShared: outcome.wasShared,
           ),
         ),
       );

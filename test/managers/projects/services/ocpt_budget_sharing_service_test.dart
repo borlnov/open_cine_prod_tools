@@ -14,7 +14,8 @@ void main() {
   // manager instance to be set; merely accessing it creates the (otherwise unused) singleton.
   setUpAll(() => OcptGlobalManager.instance);
 
-  const service = OcptBudgetSharingService();
+  Future<String> testDeviceId() async => "test-device";
+  final service = OcptBudgetSharingService(deviceId: testDeviceId);
 
   late OcptProjectDatabase database;
 
@@ -25,6 +26,13 @@ void main() {
   tearDown(() async {
     await database.close();
   });
+
+  /// Every version stamp the project currently holds, keyed by `<table>/<row>/<column>` — the same
+  /// shape `OcptShotListService`'s own stamping tests read `row_field_versions` back through.
+  Future<Map<String, OcptRowFieldVersionRow>> readStamps() async => {
+    for (final stamp in await database.select(database.ocptRowFieldVersionsTable).get())
+      "${stamp.targetTableName}/${stamp.rowId}/${stamp.columnName}": stamp,
+  };
 
   /// Every `budget_revenues` row, tombstoned or not, in `sortKey` order.
   Future<List<OcptBudgetRevenueRow>> readAllRevenues() =>
@@ -261,6 +269,110 @@ void main() {
       expect(row.isDeleted, isFalse);
 
       await preview.close();
+    });
+  });
+
+  group("stamping", () {
+    test("createRevenue stamps every column of the new row", () async {
+      final id = (await service.createRevenue(
+        database: database,
+        date: DateTime.utc(2026, 5, 15),
+        label: "VOD",
+      ))!;
+
+      final stamps = await readStamps();
+      final row = await (database.select(
+        database.ocptBudgetRevenuesTable,
+      )..where((table) => table.id.equals(id))).getSingle();
+      final ownStamps = {
+        for (final entry in stamps.entries)
+          if (entry.key.startsWith("budget_revenues/$id/")) entry.key: entry.value,
+      };
+
+      expect(ownStamps.keys, hasLength(row.toJson().length));
+      for (final column in row.toJson().keys) {
+        final stamp = ownStamps["budget_revenues/$id/$column"];
+        expect(stamp, isNotNull, reason: "$column should be stamped");
+        expect(stamp!.version, 1);
+      }
+    });
+
+    test("updateRevenue stamps only the columns that actually changed", () async {
+      final id = (await service.createRevenue(
+        database: database,
+        date: DateTime.utc(2026, 5, 15),
+        label: "VOD",
+      ))!;
+      await database.delete(database.ocptRowFieldVersionsTable).go();
+
+      await service.updateRevenue(
+        database: database,
+        revenueId: id,
+        amountCents: const Value(80000),
+      );
+
+      final stamps = await readStamps();
+      final ownKeys = stamps.keys.where((key) => key.startsWith("budget_revenues/$id/")).toSet();
+      expect(ownKeys, {"budget_revenues/$id/amountCents"});
+    });
+
+    test("deleteRevenue stamps isDeleted on the revenue", () async {
+      final id = (await service.createRevenue(
+        database: database,
+        date: DateTime.utc(2026, 5, 15),
+        label: "VOD",
+      ))!;
+      await database.delete(database.ocptRowFieldVersionsTable).go();
+
+      await service.deleteRevenue(database: database, revenueId: id);
+
+      final stamps = await readStamps();
+      expect(stamps["budget_revenues/$id/isDeleted"]!.version, 1);
+    });
+
+    test("createShare stamps every column of the new row", () async {
+      final id = (await service.createShare(database: database, label: "Réalisatrice"))!;
+
+      final stamps = await readStamps();
+      final row = await (database.select(
+        database.ocptBudgetSharesTable,
+      )..where((table) => table.id.equals(id))).getSingle();
+      final ownStamps = {
+        for (final entry in stamps.entries)
+          if (entry.key.startsWith("budget_shares/$id/")) entry.key: entry.value,
+      };
+
+      expect(ownStamps.keys, hasLength(row.toJson().length));
+      for (final column in row.toJson().keys) {
+        final stamp = ownStamps["budget_shares/$id/$column"];
+        expect(stamp, isNotNull, reason: "$column should be stamped");
+        expect(stamp!.version, 1);
+      }
+    });
+
+    test("updateShare stamps only the columns that actually changed", () async {
+      final id = (await service.createShare(database: database, label: "Réalisatrice"))!;
+      await database.delete(database.ocptRowFieldVersionsTable).go();
+
+      await service.updateShare(
+        database: database,
+        shareId: id,
+        sharePermille: const Value(300),
+      );
+
+      final stamps = await readStamps();
+      final ownKeys = stamps.keys.where((key) => key.startsWith("budget_shares/$id/")).toSet();
+      expect(ownKeys, {"budget_shares/$id/sharePermille"});
+    });
+
+    test("deleteShare stamps isDeleted on the share", () async {
+      final id = (await service.createShare(database: database, label: "Réalisatrice"))!;
+      await database.delete(database.ocptRowFieldVersionsTable).go();
+
+      await service.deleteShare(database: database, shareId: id);
+
+      final stamps = await readStamps();
+      expect(stamps["budget_shares/$id/isDeleted"]!.version, 1);
     });
   });
 }

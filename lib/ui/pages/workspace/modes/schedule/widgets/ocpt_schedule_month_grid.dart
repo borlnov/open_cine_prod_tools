@@ -106,39 +106,49 @@ class OcptScheduleMonthGrid extends StatelessWidget {
         borderRadius: BorderRadius.circular(ocptRadiusMedium),
       ),
       clipBehavior: Clip.antiAlias,
-      child: Column(
-        children: [
-          for (var week = 0; week < _ocptMonthGridWeekCount; week++)
-            IntrinsicHeight(
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  for (var weekday = 0; weekday < 7; weekday++)
-                    Expanded(
-                      child: Builder(
-                        builder: (context) {
-                          final date = gridStart.add(Duration(days: week * 7 + weekday));
-                          final day = dayByDate[date];
-                          return _OcptScheduleMonthCell(
-                            date: date,
-                            isInMonth: date.month == anchorDate.month,
-                            day: day,
-                            slots: day == null ? const [] : slotsByDayId[day.id] ?? const [],
-                            location: day == null ? null : firstLocationByDayId[day.id],
-                            tint: day == null ? null : dayTintOf(day.id),
-                            timeline: day == null ? null : timelineOf(day.id),
-                            sunTimes: day == null ? null : sunTimesOf(day.id),
-                            isSelected: day != null && day.id == selectedDayId,
-                            alerts: day == null ? const [] : alertsOfDay(day.id),
-                            onOpenRequested: day == null ? null : () => onDayOpenRequested(day.id),
-                          );
-                        },
+      // Wrapped in a scroll view, unlike a plain `Column` of the six week rows: each row's own
+      // cells carry a `minHeight` (`_OcptScheduleMonthCell`), so the grid's own height is fixed
+      // regardless of how much room the caller actually has, and a short window would otherwise
+      // overflow past the bottom of whatever laid this out (the strip and week agendas already
+      // scroll for the very same reason). A tall window still shows every week at once, with
+      // nothing to scroll — the scroll view adds no chrome of its own when there is nothing to hide.
+      child: SingleChildScrollView(
+        child: Column(
+          children: [
+            for (var week = 0; week < _ocptMonthGridWeekCount; week++)
+              IntrinsicHeight(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    for (var weekday = 0; weekday < 7; weekday++)
+                      Expanded(
+                        child: Builder(
+                          builder: (context) {
+                            final date = gridStart.add(Duration(days: week * 7 + weekday));
+                            final day = dayByDate[date];
+                            return _OcptScheduleMonthCell(
+                              date: date,
+                              isInMonth: date.month == anchorDate.month,
+                              day: day,
+                              slots: day == null ? const [] : slotsByDayId[day.id] ?? const [],
+                              location: day == null ? null : firstLocationByDayId[day.id],
+                              tint: day == null ? null : dayTintOf(day.id),
+                              timeline: day == null ? null : timelineOf(day.id),
+                              sunTimes: day == null ? null : sunTimesOf(day.id),
+                              isSelected: day != null && day.id == selectedDayId,
+                              alerts: day == null ? const [] : alertsOfDay(day.id),
+                              onOpenRequested: day == null
+                                  ? null
+                                  : () => onDayOpenRequested(day.id),
+                            );
+                          },
+                        ),
                       ),
-                    ),
-                ],
+                  ],
+                ),
               ),
-            ),
-        ],
+          ],
+        ),
       ),
     );
   }

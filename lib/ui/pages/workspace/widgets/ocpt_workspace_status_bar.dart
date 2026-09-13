@@ -3,15 +3,23 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:flutter/material.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_sync_status_indicator.dart';
 
-/// The workspace shell's thin, discreet status bar: an ordered summary line on the left and a
-/// [trailing] widget on the right, shown under a mode's centre area.
+/// The workspace shell's thin, discreet status bar: an ordered summary line on the left, a
+/// [trailing] widget, then the sync indicator, shown under a mode's centre area.
 ///
 /// On a narrow window the summary degrades from the right: [counters] entries are dropped one at
 /// a time, starting from the end, until what remains fits or only the leading [nonDroppableCount]
 /// entries are left (those are never dropped, however narrow the bar gets). This generalises the
 /// screenplay status bar's own "sign count drops first, then word count, pages/scenes/characters
 /// always stay" behaviour to any ordered counter list.
+///
+/// [OcptSyncStatusIndicator] is built here, once, rather than by each mode's own status bar
+/// wrapper: every mode reaches this same widget (the screenplay editor included, straight off
+/// `OcptWorkspaceStatusBar` rather than through a wrapper of its own), so this is the one place
+/// that reaches every mode without any of them having to wire it in by hand. It renders nothing at
+/// all for a project with no sync session running (unpaired, or not yet started), so a mode with
+/// nothing to say about sync simply shows the same status bar it always has.
 class OcptWorkspaceStatusBar extends StatelessWidget {
   /// The at-a-glance counters to show, in the order they should be dropped from (last first).
   final List<String> counters;
@@ -66,6 +74,7 @@ class OcptWorkspaceStatusBar extends StatelessWidget {
                 ),
                 Text(" · ", style: style),
                 trailing,
+                const OcptSyncStatusIndicator(),
               ],
             );
           },

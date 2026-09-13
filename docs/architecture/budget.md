@@ -520,6 +520,18 @@ are all here, and this file is the whole record of them.
   project dictionary dialog) exist because a list of rows there has no other way of saying *which*
   row is being talked about, which is not this table's problem: every row already opens its own
   fiche on selection.
+- **At a compact width (`ocptIsCompactWidth`), the two-pane table gives way to one card per live
+  poste**, scrolling vertically above the very same `+ Poste` creation footer — the tree itself
+  (quote lines, commitments, entries, the off-quote reading) is reduced away entirely at this width,
+  a card opening straight onto the fiche's own `Inspector` tab where that detail already lives. A
+  card draws the poste's name, a proportion bar splitting its quote across paid / committed /
+  remaining (reusing the fiche's own poste-variant colour vocabulary for the same figures) and its
+  own `Engagé`/`Payé`/`Reste`/`Écart` figures, read through a small pure holder
+  (`_OcptCostTrackingPosteFigures.of`) making the very same `ocptBudgetTotalOf`/
+  `ocptBudgetRemainingCents`/`ocptBudgetVarianceCents` calls the desktop row does, so a card can
+  never disagree with the table over the same poste. Tapping a card fires the same
+  `onPosteSelected` callback tapping a row does. Above the breakpoint the two-pane table is
+  unchanged.
 
 ## The resources tree folds the takings in
 
@@ -1503,6 +1515,71 @@ are all here, and this file is the whole record of them.
   fiche is one panel for seven kinds of row" above. `OcptBudgetState.selectedResourceId` is a plain
   getter folding onto `selection`, reconciled against a freshly loaded snapshot exactly as
   `selectedPosteId` is — see "Selecting a poste and filtering by one are two different facts".
+
+## A balanced in-kind contribution
+
+- A production is often lent what it would otherwise have bought — a camera, a location, an editing
+  suite — and a commission expects that **valued in kind** in the financing plan. Recorded only
+  there, though, a 5 000 € valuation would read as 5 000 € of extra coverage on the needs/resources
+  balance, as if the film had that much more to spend, which a lent camera precisely is not: it is a
+  cost the production will not have to pay, not cash it can spend elsewhere. The CNC nomenclature's
+  answer, which this mode implements, is that an in-kind contribution is **balanced** — it appears on
+  both sides at the same figure, a `budget_resources` row of kind `inKind` on the resources side and
+  a matching **counterpart quote line** on the quote side — so its net effect on the balance is zero:
+  it covers exactly its own cost and frees no cash.
+- **The link, and where the single truth lives.** `budget_lines.inKindResourceId` (nullable, declared
+  exactly as `elementId` is) names the in-kind contribution a line is the counterpart of; null is the
+  ordinary line, nobody's counterpart. **No new column on `budget_resources`**: the poste a
+  contribution offsets lives on its counterpart line (`budget_lines.posteId`), the one place it is
+  stored — a `posteId` on the resource too would be the second copy of one truth "A poste's quoted
+  amount is not stored" already argues against, and a subsidy or a cash contribution offsets no poste
+  and mints no line anyway. The counterpart line is **app-managed, never hand-edited**: its label,
+  poste and amount follow the contribution, and it is **frozen at 0 % VAT** — an explicit "no VAT
+  applies", not a null inheriting the project's rate — so its value reads the same in either tax basis
+  and the balance stays put whichever the header shows.
+- **The wizard gains a poste, for the in-kind kind alone.** `OcptBudgetResourceDialog` draws a CNC
+  poste picker — the same one a commitment offers — only while the selected kind is `inKind`, on
+  creation and on an edit that turns a resource into one; a subsidy or a cash contribution never shows
+  it. `OcptBudgetResourceFormFields.posteId` carries the pick.
+- **One counterpart line, kept in step by one write.** `OcptBudgetBloc`'s own reconciliation
+  (`_reconcileInKindCounterpartLine`, run right after the resource's own fields are written, the
+  same "one write, two rows" shape `OcptBudgetLinePaidDirectlyEvent` already uses) keeps exactly
+  one counterpart line whenever a contribution is in kind, and none otherwise: it mints one where
+  there is none, follows the label and the amount on an ordinary edit, **re-homes** the line —
+  deleted and re-minted, never moved in place, since `budget_lines.sortKey` is fractional within
+  its own poste ("A commitment's poste is editable, a quote line's is not") — when the poste
+  changes, drops it on a reclassification away from in kind, and tombstones it with the
+  contribution when that is deleted.
+- **Covered in kind, netted out.** A counterpart line stays in its poste's quoted total like any real
+  quote line (`ocptBudgetPosteQuotedTotalCents` counts it), which is what lifts the needs side by the
+  valuation and lets the needs/resources balance net to zero against the contribution on the resources
+  side — no change to `ocptBudgetNeedsResourcesBalanceOf` or `ocptBudgetResourcesTotalCents` was
+  needed, the two sides simply both move. But it must read as neither an unspent remainder nor a
+  strain, and never as cash: `ocptBudgetInKindCoveredCentsByPosteId` sums a poste's counterpart lines
+  as a **settled bucket distinct from cash paid**, carried on the snapshot as `inKindCoveredByPosteId`
+  and folded into `ocptBudgetRemainingCents`, `ocptBudgetVarianceCents`, `ocptBudgetConsumedRatioOf`
+  and `ocptBudgetPosteStrainOf` alongside paid and committed. The counterpart line therefore nets to
+  no remainder and no strain, while the cash readings — the `Dépensé` tile, `OcptBudgetCashTotals`,
+  `ocptBudgetPaidCentsByPosteId` — never see it, since no journal entry names it.
+- **Read as covered, not owed.** In the expenses tree the counterpart line carries an **`En nature`
+  badge** and reads its own `Payé`/`Engagé` cells as the em dash and its `Reste` as zero; a poste
+  holding one shows a muted "(… couverts en nature)" note beside its own `Reste`. **Its fiche is
+  read-only**: it withholds `Pay`, `Commit this line…` and `Delete` — a valuation is none of those —
+  and drops the editable fields and the `Estimated · Committed · Paid` stepper for a single `Valued
+  at` reading and a calm banner naming the contribution it is covered by. Its sole action,
+  `Edit the contribution`, opens that contribution — the one place the figure is changed, since
+  editing the line directly would drift it away from the resource it must equal, which
+  `OcptBudgetBloc`'s own field-edit guard also refuses. An in-kind resource's own fiche mirrors it:
+  it names the poste its counterpart line offsets (read through `ocptBudgetInKindCounterpartLineOf`,
+  never a field of its own) and, while no journal entry has named it, drops its own
+  `Promised · Received` stepper for the same `Valued at` reading — a valuation runs through no
+  collection lifecycle — keeping that stepper and a real received figure the moment an entry does
+  name it.
+- **The documents.** The exported quote prints the counterpart line as the quoted line it is, flagged
+  `(en nature)` so a reader sees it is covered without a cash outlay; the financial report reads it
+  covered in kind through the very same settled bucket, so its per-poste and total variances net the
+  valuation out exactly as the screen does. The financing plan is unchanged — an in-kind contribution
+  was always kept visibly apart there, which is the whole point of the document for a commission.
 
 ## The four documents
 

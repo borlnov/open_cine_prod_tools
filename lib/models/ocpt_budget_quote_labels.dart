@@ -63,6 +63,11 @@ class OcptBudgetQuoteLabels extends Equatable {
   /// The template a total's own coverage read-out is built from — see the class doc comment.
   final String coverageReadOutTemplate;
 
+  /// The marker appended to a counterpart quote line's own label — a line whose
+  /// `OcptBudgetLine.inKindResourceId` is not null — so the exported quote flags it as an in-kind
+  /// valuation without changing the figure it prints (`docs/architecture/budget.md`).
+  final String inKindLineMarker;
+
   /// Class constructor
   const OcptBudgetQuoteLabels({
     required this.fileNameSuffix,
@@ -79,6 +84,7 @@ class OcptBudgetQuoteLabels extends Equatable {
     required this.noLinesLabel,
     required this.emptyDocumentNote,
     required this.coverageReadOutTemplate,
+    required this.inKindLineMarker,
   });
 
   /// The caption stating which of the two bases [basis] itself is — [includingTaxCaption] or
@@ -107,5 +113,6 @@ class OcptBudgetQuoteLabels extends Equatable {
     noLinesLabel,
     emptyDocumentNote,
     coverageReadOutTemplate,
+    inKindLineMarker,
   ];
 }

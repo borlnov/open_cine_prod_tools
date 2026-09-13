@@ -123,8 +123,11 @@ final class OcptBudgetCashProjectionNegativeAlert extends OcptBudgetAlert {
 /// A poste over its quote is read straight off [ocptBudgetPosteStrainOf] and
 /// [ocptBudgetVarianceCents] (`lib/utils/ocpt_budget_totals.dart`), never re-derived, over
 /// [postes] in the order they were given — one [OcptBudgetPosteOverQuoteAlert] per poste answering
-/// [OcptBudgetPosteStrain.over], [paidCentsOf] and [committedCentsOf] reading the very same
-/// per-poste totals the cost-tracking table and the poste inspector already do.
+/// [OcptBudgetPosteStrain.over], [paidCentsOf], [committedCentsOf] and [inKindCoveredCentsOf]
+/// reading the very same per-poste totals the cost-tracking table and the poste inspector already
+/// do. [inKindCoveredCentsOf] is folded into the strain and the variance for the same reason
+/// [ocptBudgetPosteStrainOf] folds it in — a counterpart quote line adds equally to the poste's own
+/// quote and to its settled side, so it never pushes a poste over on its own.
 ///
 /// The cash projection going negative is read straight off [ocptBudgetProjectionOf]
 /// (`lib/utils/ocpt_budget_projection.dart`), opened at [cashTotals]'s own
@@ -135,6 +138,7 @@ List<OcptBudgetAlert> ocptComputeBudgetAlerts({
   required List<OcptBudgetPoste> postes,
   required int Function(String posteId) paidCentsOf,
   required int Function(String posteId) committedCentsOf,
+  required int Function(String posteId) inKindCoveredCentsOf,
   required List<OcptBudgetCommitment> commitments,
   required List<OcptBudgetEntry> entries,
   required OcptBudgetCashTotals cashTotals,
@@ -146,11 +150,13 @@ List<OcptBudgetAlert> ocptComputeBudgetAlerts({
     final quotedAmountCents = ocptBudgetPosteQuotedTotalCents(poste);
     final paidCents = paidCentsOf(poste.id);
     final committedCents = committedCentsOf(poste.id);
+    final inKindCoveredCents = inKindCoveredCentsOf(poste.id);
 
     final strain = ocptBudgetPosteStrainOf(
       quotedAmountCents: quotedAmountCents,
       paidCents: paidCents,
       committedCents: committedCents,
+      inKindCoveredCents: inKindCoveredCents,
     );
     if (strain != OcptBudgetPosteStrain.over) {
       continue;
@@ -166,6 +172,7 @@ List<OcptBudgetAlert> ocptComputeBudgetAlerts({
           quotedAmountCents: quotedAmountCents,
           paidCents: paidCents,
           committedCents: committedCents,
+          inKindCoveredCents: inKindCoveredCents,
         ),
       ),
     );

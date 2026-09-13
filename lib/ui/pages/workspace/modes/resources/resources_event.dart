@@ -2,6 +2,8 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+import 'dart:ui';
+
 import 'package:act_flutter_utility/act_flutter_utility.dart';
 import 'package:open_cine_prod_tools/models/ocpt_contact_list_export_options.dart';
 import 'package:open_cine_prod_tools/models/ocpt_contact_list_labels.dart';
@@ -1764,12 +1766,21 @@ class OcptResourcesXlsxExportRequestedEvent extends OcptResourcesEvent {
   /// The localized label of the `.xlsx` file type, shown by the native save dialog.
   final String fileTypeLabel;
 
+  /// The tapped `Export` control's own screen `Rect`, anchoring the OS share sheet's popover on an
+  /// iPad/Mac when the export is handed to it rather than to the native save dialog; null on
+  /// desktop and wherever no anchor was resolved.
+  final Rect? shareAnchor;
+
   /// Class constructor
-  const OcptResourcesXlsxExportRequestedEvent({required this.labels, required this.fileTypeLabel});
+  const OcptResourcesXlsxExportRequestedEvent({
+    required this.labels,
+    required this.fileTypeLabel,
+    this.shareAnchor,
+  });
 
   /// Object properties
   @override
-  List<Object?> get props => [...super.props, labels, fileTypeLabel];
+  List<Object?> get props => [...super.props, labels, fileTypeLabel, shareAnchor];
 }
 
 /// Requests exporting the crew and the cast to a standalone contact list PDF, dispatched once the
@@ -1792,16 +1803,21 @@ class OcptResourcesContactListExportRequestedEvent extends OcptResourcesEvent {
   /// The localized label of the `.pdf` file type, shown by the native save dialog.
   final String fileTypeLabel;
 
+  /// The tapped `Export` control's own screen `Rect`, exactly as
+  /// [OcptResourcesXlsxExportRequestedEvent.shareAnchor] is — see its own doc comment.
+  final Rect? shareAnchor;
+
   /// Class constructor
   const OcptResourcesContactListExportRequestedEvent({
     required this.options,
     required this.labels,
     required this.fileTypeLabel,
+    this.shareAnchor,
   });
 
   /// Object properties
   @override
-  List<Object?> get props => [...super.props, options, labels, fileTypeLabel];
+  List<Object?> get props => [...super.props, options, labels, fileTypeLabel, shareAnchor];
 }
 
 /// Dismisses the transient export notice currently shown, if any.

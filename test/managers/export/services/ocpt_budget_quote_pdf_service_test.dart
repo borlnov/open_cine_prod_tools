@@ -34,6 +34,7 @@ const _labels = OcptBudgetQuoteLabels(
   noLinesLabel: "No line yet",
   emptyDocumentNote: "Nothing to quote yet.",
   coverageReadOutTemplate: "{amount} · over {coveredCount} of {totalCount}",
+  inKindLineMarker: "(in kind)",
 );
 
 /// Builds a quote line, every field left at a neutral value unless the test overrides it.
@@ -47,6 +48,7 @@ OcptBudgetLine _buildLine({
   bool isTaxInclusive = true,
   int? vatRateBasisPoints,
   String? elementId,
+  String? inKindResourceId,
 }) => OcptBudgetLine(
   id: id,
   posteId: posteId,
@@ -59,6 +61,7 @@ OcptBudgetLine _buildLine({
     vatRateBasisPoints: vatRateBasisPoints,
   ),
   elementId: elementId,
+  inKindResourceId: inKindResourceId,
   provisionKey: null,
   provisionDigest: null,
   notes: "",
@@ -204,6 +207,45 @@ void main() {
         expect(
           _contentStreams(await generateFor(withElement)),
           isNot(_contentStreams(await generateFor(withoutElement))),
+        );
+      },
+    );
+
+    test(
+      "a counterpart line prints differently from an otherwise identical plain line, flagged "
+      "in kind",
+      () async {
+        // Same figures throughout — only `inKindResourceId` differs — so the very fact the two
+        // documents diverge at all is the marker doing its work: nothing here asserts on the
+        // printed text itself (see this file's own top-level doc comment on `_labels`), a
+        // counterpart line is never meant to change any amount it prints.
+        final withCounterpart = buildSnapshot(
+          postes: [
+            _buildPoste(
+              id: "poste-1",
+              lines: [_buildLine(id: "line-1", posteId: "poste-1", inKindResourceId: "resource-1")],
+            ),
+          ],
+        );
+        final plain = buildSnapshot(
+          postes: [
+            _buildPoste(id: "poste-1", lines: [_buildLine(id: "line-1", posteId: "poste-1")]),
+          ],
+        );
+
+        Future<Uint8List> generateFor(OcptBudgetSnapshot snapshot) => service.generate(
+          snapshot: snapshot,
+          elementNameById: const {},
+          pageSetup: pageSetup,
+          taxBasis: OcptBudgetTaxBasis.includingTax,
+          labels: _labels,
+          projectName: "My Movie",
+          includeTitlePage: false,
+        );
+
+        expect(
+          _contentStreams(await generateFor(withCounterpart)),
+          isNot(_contentStreams(await generateFor(plain))),
         );
       },
     );

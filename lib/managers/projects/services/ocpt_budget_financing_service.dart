@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:drift/drift.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_row_stamp_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_mileage_rate.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_resource.dart';
@@ -26,8 +27,12 @@ import 'package:uuid/uuid.dart';
 /// neither a resource nor a rate belongs inside another row the way a quote line belongs inside its
 /// poste.
 class OcptBudgetFinancingService {
+  /// Resolves the device id every stamp this service's own writes carry — see
+  /// [OcptDeviceIdGetter].
+  final OcptDeviceIdGetter deviceId;
+
   /// Class constructor
-  const OcptBudgetFinancingService();
+  const OcptBudgetFinancingService({required this.deviceId});
 
   /// Loads every live resource of [database], in `sortKey` order.
   Future<List<OcptBudgetResource>> loadResources({required OcptProjectDatabase database}) async {
@@ -50,17 +55,28 @@ class OcptBudgetFinancingService {
     final existing = await _liveResourceRows(database);
     final id = const Uuid().v4();
 
-    await database
-        .into(database.ocptBudgetResourcesTable)
-        .insert(
-          OcptBudgetResourcesTableCompanion.insert(
-            id: id,
-            label: label,
-            sortKey: Value(
-              ocptFractionalKeyBetween(before: existing.isEmpty ? null : existing.last.sortKey),
-            ),
-          ),
-        );
+    await database.transaction(() async {
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
+      await OcptRowStampService.writeAndStamp(
+        database: database,
+        table: database.ocptBudgetResourcesTable,
+        rowId: id,
+        current: null,
+        next: OcptBudgetResourceRow(
+          id: id,
+          sortKey: ocptFractionalKeyBetween(before: existing.isEmpty ? null : existing.last.sortKey),
+          isDeleted: false,
+          groupKind: OcptBudgetResourceGroupKind.subsidy,
+          label: label,
+          amountCents: 0,
+          status: OcptBudgetResourceStatus.pending,
+          isReimbursable: false,
+          notes: '',
+        ),
+        stamps: stamps,
+      );
+      await stamps.flush(database);
+    });
 
     return id;
   }
@@ -85,19 +101,33 @@ class OcptBudgetFinancingService {
       return;
     }
 
-    await (database.update(
-      database.ocptBudgetResourcesTable,
-    )..where((table) => table.id.equals(resourceId) & table.isDeleted.not())).write(
-      OcptBudgetResourcesTableCompanion(
-        groupKind: groupKind,
-        personId: personId,
-        label: label,
-        amountCents: amountCents,
-        status: status,
-        isReimbursable: isReimbursable,
-        notes: notes,
-      ),
+    final companion = OcptBudgetResourcesTableCompanion(
+      groupKind: groupKind,
+      personId: personId,
+      label: label,
+      amountCents: amountCents,
+      status: status,
+      isReimbursable: isReimbursable,
+      notes: notes,
     );
+
+    await database.transaction(() async {
+      final current = await _liveResourceRowOrNull(database: database, resourceId: resourceId);
+      if (current == null) {
+        return;
+      }
+
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
+      await OcptRowStampService.writeAndStamp(
+        database: database,
+        table: database.ocptBudgetResourcesTable,
+        rowId: resourceId,
+        current: current,
+        next: current.copyWithCompanion(companion),
+        stamps: stamps,
+      );
+      await stamps.flush(database);
+    });
   }
 
   /// Moves resource [resourceId] to [newPosition] (0-based) within the financing plan's own flat
@@ -115,6 +145,11 @@ class OcptBudgetFinancingService {
     }
 
     await database.transaction(() async {
+      final current = await _liveResourceRowOrNull(database: database, resourceId: resourceId);
+      if (current == null) {
+        return;
+      }
+
       final others = (await _liveResourceRows(database))
         ..removeWhere((row) => row.id == resourceId);
 
@@ -127,11 +162,16 @@ class OcptBudgetFinancingService {
         after: clampedPosition < others.length ? others[clampedPosition].sortKey : null,
       );
 
-      await (database.update(
-        database.ocptBudgetResourcesTable,
-      )..where((table) => table.id.equals(resourceId))).write(
-        OcptBudgetResourcesTableCompanion(sortKey: Value(sortKey)),
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
+      await OcptRowStampService.writeAndStamp(
+        database: database,
+        table: database.ocptBudgetResourcesTable,
+        rowId: resourceId,
+        current: current,
+        next: current.copyWith(sortKey: sortKey),
+        stamps: stamps,
       );
+      await stamps.flush(database);
     });
   }
 
@@ -148,11 +188,23 @@ class OcptBudgetFinancingService {
       return;
     }
 
-    await (database.update(
-      database.ocptBudgetResourcesTable,
-    )..where((table) => table.id.equals(resourceId))).write(
-      const OcptBudgetResourcesTableCompanion(isDeleted: Value(true)),
-    );
+    await database.transaction(() async {
+      final current = await _liveResourceRowOrNull(database: database, resourceId: resourceId);
+      if (current == null) {
+        return;
+      }
+
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
+      await OcptRowStampService.writeAndStamp(
+        database: database,
+        table: database.ocptBudgetResourcesTable,
+        rowId: resourceId,
+        current: current,
+        next: current.copyWith(isDeleted: true),
+        stamps: stamps,
+      );
+      await stamps.flush(database);
+    });
   }
 
   /// Loads every live mileage rate of [database], in `sortKey` order.
@@ -178,17 +230,24 @@ class OcptBudgetFinancingService {
     final existing = await _liveMileageRateRows(database);
     final id = const Uuid().v4();
 
-    await database
-        .into(database.ocptBudgetMileageRatesTable)
-        .insert(
-          OcptBudgetMileageRatesTableCompanion.insert(
-            id: id,
-            label: label,
-            sortKey: Value(
-              ocptFractionalKeyBetween(before: existing.isEmpty ? null : existing.last.sortKey),
-            ),
-          ),
-        );
+    await database.transaction(() async {
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
+      await OcptRowStampService.writeAndStamp(
+        database: database,
+        table: database.ocptBudgetMileageRatesTable,
+        rowId: id,
+        current: null,
+        next: OcptBudgetMileageRateRow(
+          id: id,
+          sortKey: ocptFractionalKeyBetween(before: existing.isEmpty ? null : existing.last.sortKey),
+          isDeleted: false,
+          label: label,
+          ratePerKmMilliCents: 0,
+        ),
+        stamps: stamps,
+      );
+      await stamps.flush(database);
+    });
 
     return id;
   }
@@ -208,11 +267,28 @@ class OcptBudgetFinancingService {
       return;
     }
 
-    await (database.update(
-      database.ocptBudgetMileageRatesTable,
-    )..where((table) => table.id.equals(rateId) & table.isDeleted.not())).write(
-      OcptBudgetMileageRatesTableCompanion(label: label, ratePerKmMilliCents: ratePerKmMilliCents),
+    final companion = OcptBudgetMileageRatesTableCompanion(
+      label: label,
+      ratePerKmMilliCents: ratePerKmMilliCents,
     );
+
+    await database.transaction(() async {
+      final current = await _liveMileageRateRowOrNull(database: database, rateId: rateId);
+      if (current == null) {
+        return;
+      }
+
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
+      await OcptRowStampService.writeAndStamp(
+        database: database,
+        table: database.ocptBudgetMileageRatesTable,
+        rowId: rateId,
+        current: current,
+        next: current.copyWithCompanion(companion),
+        stamps: stamps,
+      );
+      await stamps.flush(database);
+    });
   }
 
   /// Moves mileage rate [rateId] to [newPosition] (0-based) within the list's own flat `sortKey`
@@ -230,6 +306,11 @@ class OcptBudgetFinancingService {
     }
 
     await database.transaction(() async {
+      final current = await _liveMileageRateRowOrNull(database: database, rateId: rateId);
+      if (current == null) {
+        return;
+      }
+
       final others = (await _liveMileageRateRows(database))..removeWhere((row) => row.id == rateId);
 
       final clampedPosition = newPosition < 0
@@ -241,11 +322,16 @@ class OcptBudgetFinancingService {
         after: clampedPosition < others.length ? others[clampedPosition].sortKey : null,
       );
 
-      await (database.update(
-        database.ocptBudgetMileageRatesTable,
-      )..where((table) => table.id.equals(rateId))).write(
-        OcptBudgetMileageRatesTableCompanion(sortKey: Value(sortKey)),
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
+      await OcptRowStampService.writeAndStamp(
+        database: database,
+        table: database.ocptBudgetMileageRatesTable,
+        rowId: rateId,
+        current: current,
+        next: current.copyWith(sortKey: sortKey),
+        stamps: stamps,
       );
+      await stamps.flush(database);
     });
   }
 
@@ -262,11 +348,23 @@ class OcptBudgetFinancingService {
       return;
     }
 
-    await (database.update(
-      database.ocptBudgetMileageRatesTable,
-    )..where((table) => table.id.equals(rateId))).write(
-      const OcptBudgetMileageRatesTableCompanion(isDeleted: Value(true)),
-    );
+    await database.transaction(() async {
+      final current = await _liveMileageRateRowOrNull(database: database, rateId: rateId);
+      if (current == null) {
+        return;
+      }
+
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
+      await OcptRowStampService.writeAndStamp(
+        database: database,
+        table: database.ocptBudgetMileageRatesTable,
+        rowId: rateId,
+        current: current,
+        next: current.copyWith(isDeleted: true),
+        stamps: stamps,
+      );
+      await stamps.flush(database);
+    });
   }
 
   /// Every live resource row of [database], ordered by `sortKey`.
@@ -276,10 +374,26 @@ class OcptBudgetFinancingService {
             ..orderBy([(table) => OrderingTerm.asc(table.sortKey)]))
           .get();
 
+  /// The live resource row [resourceId], or null if it doesn't exist or has been tombstoned.
+  Future<OcptBudgetResourceRow?> _liveResourceRowOrNull({
+    required OcptProjectDatabase database,
+    required String resourceId,
+  }) => (database.select(database.ocptBudgetResourcesTable)
+        ..where((table) => table.id.equals(resourceId) & table.isDeleted.not()))
+      .getSingleOrNull();
+
   /// Every live mileage rate row of [database], ordered by `sortKey`.
   Future<List<OcptBudgetMileageRateRow>> _liveMileageRateRows(OcptProjectDatabase database) =>
       (database.select(database.ocptBudgetMileageRatesTable)
             ..where((table) => table.isDeleted.not())
             ..orderBy([(table) => OrderingTerm.asc(table.sortKey)]))
           .get();
+
+  /// The live mileage rate row [rateId], or null if it doesn't exist or has been tombstoned.
+  Future<OcptBudgetMileageRateRow?> _liveMileageRateRowOrNull({
+    required OcptProjectDatabase database,
+    required String rateId,
+  }) => (database.select(database.ocptBudgetMileageRatesTable)
+        ..where((table) => table.id.equals(rateId) & table.isDeleted.not()))
+      .getSingleOrNull();
 }

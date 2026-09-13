@@ -6,7 +6,9 @@ import 'package:drift/drift.dart' show Value;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_assets_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_elements_service.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_role_candidates_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_role_index_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/ocpt_removed_role_alert.dart';
@@ -41,7 +43,14 @@ void main() {
   // manager instance to be set; merely accessing it creates the (otherwise unused) singleton.
   setUpAll(() => OcptGlobalManager.instance);
 
-  const roleIndexService = OcptRoleIndexService();
+  Future<String> testDeviceId() async => "test-device";
+  final assetsService = OcptAssetsService(deviceId: testDeviceId);
+  final elementsService = OcptElementsService(assetsService: assetsService, deviceId: testDeviceId);
+  final roleIndexService = OcptRoleIndexService(
+    elementsService: elementsService,
+    roleCandidatesService: OcptRoleCandidatesService(deviceId: testDeviceId),
+    deviceId: testDeviceId,
+  );
   const screenplayId = "screenplay-1";
 
   late OcptProjectDatabase database;
@@ -67,6 +76,7 @@ void main() {
     database: database,
     screenplayId: screenplayId,
     document: _parse(source),
+  stamps: null,
   );
 
   group("reconciliation", () {
@@ -231,6 +241,7 @@ Hello.
         database: countingDatabase,
         screenplayId: screenplayId,
         document: _parse(source),
+      stamps: null,
       );
       expect(countingDatabase.transactionCount, 1);
 
@@ -238,6 +249,7 @@ Hello.
         database: countingDatabase,
         screenplayId: screenplayId,
         document: _parse(source),
+      stamps: null,
       );
       expect(
         countingDatabase.transactionCount,
@@ -508,7 +520,6 @@ Nobody is there anymore.
         name: "CLARA",
         kind: OcptRoleKind.extra,
       ))!;
-      const elementsService = OcptElementsService();
       final elementId = (await elementsService.createElement(
         database: database,
         name: "Manteau rouge",
@@ -631,6 +642,7 @@ Back again.
       database: database,
       screenplayId: otherScreenplayId,
       document: _parse(source),
+    stamps: null,
     );
 
     test("a character speaking in two episodes stays one row, one casting, one number", () async {

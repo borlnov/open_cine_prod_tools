@@ -60,10 +60,13 @@ class OcptFountainEditorStylesheet {
   /// Builds the stylesheet for typesetting the styled editor at [metrics].
   ///
   /// When [isPageSimulationEnabled] is off, colors follow [colorScheme] (so the editing surface
-  /// follows the app's light/dark theme). When it's on, every color is a fixed paper color (black
-  /// text, greyed-out scaffolding) instead, regardless of [colorScheme]: the simulated page is
-  /// always white, so a theme-derived color (in particular dark mode's light `onSurface`) would
-  /// otherwise render invisible or near-invisible on it. A page-starting node (flagged by
+  /// follows the app's light/dark theme) — *unless* [usePaperColors] forces the fixed paper colors
+  /// on regardless (a phone, where the fluid surface stands in for the desktop's simulated page and
+  /// must read as paper, see `OcptStyledScreenplayEditor`). When page simulation is on, every color
+  /// is a fixed paper color (black text, greyed-out scaffolding) regardless of [colorScheme] for the
+  /// same reason [usePaperColors] requests it: the sheet is always white, so a theme-derived color
+  /// (in particular dark mode's light `onSurface`) would otherwise render invisible or
+  /// near-invisible on it. A page-starting node (flagged by
   /// [ocptStartsNewPageMetadataKey], set by `computeOcptStyledPagination`) also gets extra top
   /// padding — the exact pixel amount `computeOcptStyledPagination` computed for it — standing in
   /// for the page gap and the previous/next page's margins. When page simulation is on, the
@@ -72,16 +75,35 @@ class OcptFountainEditorStylesheet {
   /// page's content region genuinely fills the sheet down to its own bottom margin, exactly like
   /// every other simulated page (see [OcptStyledPagination.trailingBottomPadding]'s own doc
   /// comment for how that padding is computed).
+  ///
+  /// [isCompact] scales every element's indent and box width down by
+  /// [OcptEditorPreviewLayout.compactLayoutScale] (see [_rule]), carrying the block hierarchy by
+  /// *style* rather than by real screenplay-sized indents — a phone has no room for the real ones.
+  /// It only ever takes
+  /// effect together with [isPageSimulationEnabled] being off: a paginated page keeps the real,
+  /// print-accurate indents, since it simulates actual paper the desktop PDF exporter must agree
+  /// with pixel for pixel, and `computeOcptStyledPagination` sizes every simulated sheet from
+  /// those same real metrics — feeding it compressed ones would desync the two. This method
+  /// guards that itself rather than trusting every caller to, so a future caller passing
+  /// `isCompact: true` alongside page simulation still gets an unmodified, print-accurate
+  /// stylesheet.
   static Stylesheet build({
     required FountainLayoutMetrics metrics,
     required ColorScheme colorScheme,
     required bool isPageSimulationEnabled,
     double trailingBottomPadding = 0,
+    bool isCompact = false,
+    bool usePaperColors = false,
   }) {
     final layout = OcptEditorPreviewLayout(metrics: metrics);
-    final onSurface = isPageSimulationEnabled ? Colors.black : colorScheme.onSurface;
-    final onSurfaceVariant = isPageSimulationEnabled ? Colors.black54 : colorScheme.onSurfaceVariant;
-    final accent = isPageSimulationEnabled ? Colors.black : colorScheme.primary;
+    final isCompactFluid = isCompact && !isPageSimulationEnabled;
+    // Page simulation always paints paper; a phone's fluid surface opts into the same paper colors
+    // through [usePaperColors] without bringing back the real (unscaled) indents page simulation
+    // also implies, which is why the two flags stay separate.
+    final paperColors = isPageSimulationEnabled || usePaperColors;
+    final onSurface = paperColors ? Colors.black : colorScheme.onSurface;
+    final onSurfaceVariant = paperColors ? Colors.black54 : colorScheme.onSurfaceVariant;
+    final accent = paperColors ? Colors.black : colorScheme.primary;
     // `letterSpacing` is pinned to zero rather than left unset: the page's columns are measured at
     // the font's bare fixed pitch (see `OcptEditorPreviewLayout`), so any spacing added between
     // glyphs — by this style, or by an ambient one merged into it — makes a full-width line wrap a
@@ -119,18 +141,21 @@ class OcptFountainEditorStylesheet {
           metrics.action,
           layout,
           textStyle: _baseTextStyle(FountainLineType.blank, baseStyle),
+          isCompact: isCompactFluid,
         ),
         _rule(
           FountainLineType.action,
           metrics.action,
           layout,
           textStyle: _baseTextStyle(FountainLineType.action, baseStyle),
+          isCompact: isCompactFluid,
         ),
         _rule(
           FountainLineType.sceneHeading,
           metrics.sceneHeading,
           layout,
           textStyle: _baseTextStyle(FountainLineType.sceneHeading, baseStyle),
+          isCompact: isCompactFluid,
         ),
         _rule(
           FountainLineType.character,
@@ -143,6 +168,7 @@ class OcptFountainEditorStylesheet {
           // absent from both the raw preview and the PDF.
           textStyle: _baseTextStyle(FountainLineType.character, baseStyle)
               .copyWith(color: accent, fontWeight: FontWeight.bold),
+          isCompact: isCompactFluid,
         ),
         _rule(
           FountainLineType.parenthetical,
@@ -157,12 +183,14 @@ class OcptFountainEditorStylesheet {
             fontStyle: FontStyle.italic,
           ),
           opacity: _parentheticalOpacity,
+          isCompact: isCompactFluid,
         ),
         _rule(
           FountainLineType.dialogue,
           metrics.dialogue,
           layout,
           textStyle: _baseTextStyle(FountainLineType.dialogue, baseStyle),
+          isCompact: isCompactFluid,
         ),
         _rule(
           FountainLineType.transition,
@@ -170,6 +198,7 @@ class OcptFountainEditorStylesheet {
           layout,
           textStyle: _baseTextStyle(FountainLineType.transition, baseStyle),
           textAlign: TextAlign.right,
+          isCompact: isCompactFluid,
         ),
         _rule(
           FountainLineType.centeredText,
@@ -177,12 +206,14 @@ class OcptFountainEditorStylesheet {
           layout,
           textStyle: _baseTextStyle(FountainLineType.centeredText, baseStyle),
           textAlign: TextAlign.center,
+          isCompact: isCompactFluid,
         ),
         _rule(
           FountainLineType.lyrics,
           metrics.lyrics,
           layout,
           textStyle: _baseTextStyle(FountainLineType.lyrics, baseStyle),
+          isCompact: isCompactFluid,
         ),
         _rule(
           FountainLineType.section,
@@ -194,6 +225,7 @@ class OcptFountainEditorStylesheet {
             fontWeight: FontWeight.bold,
           ),
           opacity: _nonPrintingOpacity,
+          isCompact: isCompactFluid,
         ),
         _rule(
           FountainLineType.synopsis,
@@ -204,6 +236,7 @@ class OcptFountainEditorStylesheet {
             fontStyle: FontStyle.italic,
           ),
           opacity: _nonPrintingOpacity,
+          isCompact: isCompactFluid,
         ),
         _rule(
           FountainLineType.pageBreak,
@@ -212,6 +245,7 @@ class OcptFountainEditorStylesheet {
           textStyle: baseStyle.copyWith(color: onSurfaceVariant),
           textAlign: TextAlign.center,
           opacity: _nonPrintingOpacity,
+          isCompact: isCompactFluid,
         ),
         _titlePageFieldRule(layout, baseStyle),
       ],
@@ -275,7 +309,9 @@ class OcptFountainEditorStylesheet {
   /// `Styles.padding` *inside* that box, so the left indent eats into the box rather than
   /// starting a fresh one: `Styles.maxWidth` must therefore be the indent plus the element's own
   /// width, so the box's right edge lands where the raw preview's does and the padding-shrunk
-  /// remainder is exactly [OcptEditorPreviewLayout.widthOf].
+  /// remainder is exactly [OcptEditorPreviewLayout.widthOf] — true whether or not [isCompact]
+  /// scales both halves down first, which is why the sum is always taken *after* scaling rather
+  /// than scaling a precomputed `maxWidth` separately.
   static StyleRule _rule(
     FountainLineType type,
     FountainElementLayout element,
@@ -283,17 +319,24 @@ class OcptFountainEditorStylesheet {
     required TextStyle textStyle,
     TextAlign textAlign = TextAlign.left,
     double opacity = 1,
+    bool isCompact = false,
   }) => StyleRule(
     BlockSelector(OcptFountainLineAttributions.attributionOf(type).name),
-    (document, node) => {
-      Styles.padding: CascadingPadding.only(
-        left: layout.indentOf(element),
-        top: _blankLinesBeforeTopPadding(node, layout) + _pageBoundaryTopPadding(node),
-      ),
-      Styles.maxWidth: layout.indentOf(element) + layout.widthOf(element),
-      Styles.textAlign: textAlign,
-      Styles.textStyle: textStyle,
-      Styles.opacity: opacity,
+    (document, node) {
+      final scale = isCompact ? OcptEditorPreviewLayout.compactLayoutScale : 1.0;
+      final indent = layout.indentOf(element) * scale;
+      final width = layout.widthOf(element) * scale;
+
+      return {
+        Styles.padding: CascadingPadding.only(
+          left: indent,
+          top: _blankLinesBeforeTopPadding(node, layout) + _pageBoundaryTopPadding(node),
+        ),
+        Styles.maxWidth: indent + width,
+        Styles.textAlign: textAlign,
+        Styles.textStyle: textStyle,
+        Styles.opacity: opacity,
+      };
     },
   );
 

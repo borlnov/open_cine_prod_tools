@@ -118,6 +118,39 @@ void main() {
     expect(find.byTooltip(tr.editorUnsavedChangesTooltip), findsOneWidget);
   });
 
+  testWidgets("isCompact hides both the title and the mode label", (tester) async {
+    await tester.pumpWidget(
+      _wrapInApp(
+        OcptWorkspaceToolbar(
+          title: "My Movie",
+          isDirty: false,
+          onBack: () {},
+          modeLabel: "Screenplay editor",
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text("My Movie"), findsOneWidget);
+    expect(find.text("Screenplay editor"), findsOneWidget);
+
+    await tester.pumpWidget(
+      _wrapInApp(
+        OcptWorkspaceToolbar(
+          title: "My Movie",
+          isDirty: false,
+          isCompact: true,
+          onBack: () {},
+          modeLabel: "Screenplay editor",
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text("My Movie"), findsNothing);
+    expect(find.text("Screenplay editor"), findsNothing);
+  });
+
   testWidgets("the mode label is rendered only when one is given", (tester) async {
     await tester.pumpWidget(
       _wrapInApp(

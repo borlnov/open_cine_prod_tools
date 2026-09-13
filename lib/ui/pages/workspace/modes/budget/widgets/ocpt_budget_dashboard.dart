@@ -364,22 +364,36 @@ class _OcptDashboardBalanceBar extends StatelessWidget {
                     ),
                   ),
                 ),
+                // `Flexible` with a bounded `maxLines` — never a bare `Text` — because the
+                // no-quote-yet sentence is long enough in French to overflow horizontally and
+                // crush the title `Expanded` beside it at a narrow width; this lets it wrap or
+                // ellipsize within its own share of the row instead.
                 if (hasQuote && !balance.isBalanced)
-                  Text(
-                    tr.budgetDashboardBalanceShortfallMessage(
-                      ocptBudgetAmountLabel(-balance.differenceCents, currencyCode),
-                    ),
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: verdictColor,
-                      fontWeight: FontWeight.w700,
+                  Flexible(
+                    child: Text(
+                      tr.budgetDashboardBalanceShortfallMessage(
+                        ocptBudgetAmountLabel(-balance.differenceCents, currencyCode),
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.right,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: verdictColor,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                   )
                 else
-                  Text(
-                    hasQuote
-                        ? tr.budgetDashboardBalanceBalancedMessage
-                        : tr.budgetDashboardBalanceNoQuoteMessage,
-                    style: theme.textTheme.bodySmall?.copyWith(color: verdictColor),
+                  Flexible(
+                    child: Text(
+                      hasQuote
+                          ? tr.budgetDashboardBalanceBalancedMessage
+                          : tr.budgetDashboardBalanceNoQuoteMessage,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.right,
+                      style: theme.textTheme.bodySmall?.copyWith(color: verdictColor),
+                    ),
                   ),
               ],
             ),

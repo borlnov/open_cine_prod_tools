@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:drift/drift.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_row_stamp_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/types/ocpt_asset_kind.dart';
 import 'package:uuid/uuid.dart';
@@ -24,8 +25,14 @@ import 'package:uuid/uuid.dart';
 /// of these and write their own `…AssetId` column beside the row it mints, since which asset is
 /// *the* headshot is a fact about the person rather than about the file.
 class OcptAssetsService {
+  /// Resolves the device id every stamp this service's own writes carry — see
+  /// [OcptDeviceIdGetter]. [insertAsset], [tombstoneAsset] and [erasePersonAssets] never call it:
+  /// they write inside a caller's own transaction, and take that caller's own
+  /// [OcptRowStampService] instead.
+  final OcptDeviceIdGetter deviceId;
+
   /// Class constructor
-  const OcptAssetsService();
+  const OcptAssetsService({required this.deviceId});
 
   /// Inserts one `assets` row of [kind] pointing at [path] and returns its freshly generated id.
   ///
@@ -40,6 +47,8 @@ class OcptAssetsService {
   /// **Unguarded on purpose**: every caller is a service method that has already refused the write
   /// on a previewed database and is running inside its own transaction, so a second guard here
   /// would answer a question already answered — and answer it too late to roll the rest back.
+  /// Stamps through [stamps] — the caller's own instance — rather than resolving a device id of its
+  /// own, exactly as `OcptShotListService.detachShotsFromDeletedScenes` does.
   Future<String> insertAsset({
     required OcptProjectDatabase database,
     required OcptAssetKind kind,
@@ -52,27 +61,32 @@ class OcptAssetsService {
     String? budgetEntryId,
     DateTime? validFrom,
     DateTime? validUntil,
+    required OcptRowStampService? stamps,
   }) async {
     final id = const Uuid().v4();
 
-    await database
-        .into(database.ocptAssetsTable)
-        .insert(
-          OcptAssetsTableCompanion.insert(
-            id: id,
-            kind: kind,
-            path: path,
-            label: Value(label),
-            addedAt: DateTime.now(),
-            sortKey: Value(sortKey),
-            personId: Value(personId),
-            locationId: Value(locationId),
-            elementId: Value(elementId),
-            budgetEntryId: Value(budgetEntryId),
-            validFrom: Value(validFrom),
-            validUntil: Value(validUntil),
-          ),
-        );
+    await OcptRowStampService.writeAndStamp(
+      database: database,
+      table: database.ocptAssetsTable,
+      rowId: id,
+      current: null,
+      next: OcptAssetRow(
+        id: id,
+        kind: kind,
+        path: path,
+        label: label,
+        addedAt: DateTime.now(),
+        sortKey: sortKey,
+        isDeleted: false,
+        personId: personId,
+        locationId: locationId,
+        elementId: elementId,
+        budgetEntryId: budgetEntryId,
+        validFrom: validFrom,
+        validUntil: validUntil,
+      ),
+      stamps: stamps,
+    );
 
     return id;
   }
@@ -82,15 +96,30 @@ class OcptAssetsService {
   /// **Unguarded, for the reason [insertAsset] is**: this is the half of a replacement that runs
   /// inside a caller's transaction — a column pointing at one file has no history worth keeping,
   /// only an orphan to tombstone. [removeAsset] is the guarded entry point a user's own "remove
-  /// this file" gesture goes through.
+  /// this file" gesture goes through. Stamps through [stamps], for the same reason [insertAsset]
+  /// does.
   Future<void> tombstoneAsset({
     required OcptProjectDatabase database,
     required String assetId,
-  }) => (database.update(
-    database.ocptAssetsTable,
-  )..where((table) => table.id.equals(assetId))).write(
-    const OcptAssetsTableCompanion(isDeleted: Value(true)),
-  );
+    required OcptRowStampService? stamps,
+  }) async {
+    final current = await (database.select(
+      database.ocptAssetsTable,
+    )..where((table) => table.id.equals(assetId))).getSingleOrNull();
+
+    if (current == null) {
+      return;
+    }
+
+    await OcptRowStampService.writeAndStamp(
+      database: database,
+      table: database.ocptAssetsTable,
+      rowId: assetId,
+      current: current,
+      next: current.copyWith(isDeleted: true),
+      stamps: stamps,
+    );
+  }
 
   /// Drops the reference [assetId] holds, on a user's own gesture.
   ///
@@ -105,7 +134,11 @@ class OcptAssetsService {
       return;
     }
 
-    await tombstoneAsset(database: database, assetId: assetId);
+    await database.transaction(() async {
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
+      await tombstoneAsset(database: database, assetId: assetId, stamps: stamps);
+      await stamps.flush(database);
+    });
   }
 
   /// Updates the validity window of `assets` row [assetId] — a user typing, or clearing, the dates
@@ -124,11 +157,28 @@ class OcptAssetsService {
       return;
     }
 
-    await (database.update(
-      database.ocptAssetsTable,
-    )..where((table) => table.id.equals(assetId) & table.isDeleted.not())).write(
-      OcptAssetsTableCompanion(validFrom: validFrom, validUntil: validUntil),
-    );
+    final companion = OcptAssetsTableCompanion(validFrom: validFrom, validUntil: validUntil);
+
+    await database.transaction(() async {
+      final current = await (database.select(
+        database.ocptAssetsTable,
+      )..where((table) => table.id.equals(assetId) & table.isDeleted.not())).getSingleOrNull();
+
+      if (current == null) {
+        return;
+      }
+
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
+      await OcptRowStampService.writeAndStamp(
+        database: database,
+        table: database.ocptAssetsTable,
+        rowId: assetId,
+        current: current,
+        next: current.copyWithCompanion(companion),
+        stamps: stamps,
+      );
+      await stamps.flush(database);
+    });
   }
 
   /// Tombstones every `assets` row belonging to person [personId] **and blanks its path and its
@@ -144,13 +194,27 @@ class OcptAssetsService {
   ///
   /// **Unguarded, for the reason [insertAsset] is**: it runs inside `deletePerson`'s transaction.
   /// Its mirror on the version side is `OcptProjectVersionsService._scrubErasedPeople`, and the two
-  /// must be kept in step by hand.
+  /// must be kept in step by hand. Stamps through [stamps], for the same reason [insertAsset] does.
   Future<void> erasePersonAssets({
     required OcptProjectDatabase database,
     required String personId,
-  }) => (database.update(
-    database.ocptAssetsTable,
-  )..where((table) => table.personId.equals(personId))).write(
-    const OcptAssetsTableCompanion(isDeleted: Value(true), path: Value(''), label: Value('')),
-  );
+    required OcptRowStampService? stamps,
+  }) async {
+    final rows =
+        await (database.select(
+              database.ocptAssetsTable,
+            )..where((table) => table.personId.equals(personId)))
+            .get();
+
+    for (final row in rows) {
+      await OcptRowStampService.writeAndStamp(
+        database: database,
+        table: database.ocptAssetsTable,
+        rowId: row.id,
+        current: row,
+        next: row.copyWith(isDeleted: true, path: '', label: ''),
+        stamps: stamps,
+      );
+    }
+  }
 }

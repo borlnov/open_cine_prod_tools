@@ -5,6 +5,8 @@
 import 'package:drift/drift.dart' show OrderingTerm, Value;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_assets_service.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_elements_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_people_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_role_candidates_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_role_index_service.dart';
@@ -17,9 +19,19 @@ void main() {
   // manager instance to be set; merely accessing it creates the (otherwise unused) singleton.
   setUpAll(() => OcptGlobalManager.instance);
 
-  const candidatesService = OcptRoleCandidatesService();
-  const roleIndexService = OcptRoleIndexService();
-  const peopleService = OcptPeopleService();
+  Future<String> testDeviceId() async => "test-device";
+  final assetsService = OcptAssetsService(deviceId: testDeviceId);
+  final candidatesService = OcptRoleCandidatesService(deviceId: testDeviceId);
+  final roleIndexService = OcptRoleIndexService(
+    elementsService: OcptElementsService(assetsService: assetsService, deviceId: testDeviceId),
+    roleCandidatesService: candidatesService,
+    deviceId: testDeviceId,
+  );
+  final peopleService = OcptPeopleService(
+    deviceId: testDeviceId,
+    assetsService: assetsService,
+    roleCandidatesService: candidatesService,
+  );
 
   late OcptProjectDatabase database;
 
@@ -60,6 +72,13 @@ void main() {
   Future<OcptRoleCandidateRow> readCandidate(String id) => (database.select(
     database.ocptRoleCandidatesTable,
   )..where((row) => row.id.equals(id))).getSingle();
+
+  /// Every version stamp the project currently holds, keyed by `<table>/<row>/<column>` — the same
+  /// shape `OcptShotListService`'s own stamping tests read `row_field_versions` back through.
+  Future<Map<String, OcptRowFieldVersionRow>> readStamps() async => {
+    for (final stamp in await database.select(database.ocptRowFieldVersionsTable).get())
+      "${stamp.targetTableName}/${stamp.rowId}/${stamp.columnName}": stamp,
+  };
 
   /// Every live candidacy row of the project, in `sortKey` order.
   Future<List<OcptRoleCandidateRow>> readCandidates() =>
@@ -664,6 +683,101 @@ void main() {
       expect(role.personId, isNull);
 
       await preview.close();
+    });
+  });
+
+  group("row-field-version stamps", () {
+    test("addCandidate stamps every column of the new row", () async {
+      await createRole("role-1");
+      await createPerson("person-1");
+
+      final candidateId = (await candidatesService.addCandidate(
+        database: database,
+        roleId: "role-1",
+        personId: "person-1",
+      ))!;
+
+      final stamps = await readStamps();
+      final candidate = await readCandidate(candidateId);
+      final ownStamps = {
+        for (final entry in stamps.entries)
+          if (entry.key.startsWith("role_candidates/$candidateId/")) entry.key: entry.value,
+      };
+
+      expect(ownStamps.keys, hasLength(candidate.toJson().length));
+      for (final column in candidate.toJson().keys) {
+        final stamp = ownStamps["role_candidates/$candidateId/$column"];
+        expect(stamp, isNotNull, reason: "$column should be stamped");
+        expect(stamp!.version, 1);
+      }
+    });
+
+    test("updateCandidate stamps only the columns that actually changed", () async {
+      await createRole("role-1");
+      await createPerson("person-1");
+      final candidateId = (await candidatesService.addCandidate(
+        database: database,
+        roleId: "role-1",
+        personId: "person-1",
+      ))!;
+      await database.delete(database.ocptRowFieldVersionsTable).go();
+
+      await candidatesService.updateCandidate(
+        database: database,
+        candidateId: candidateId,
+        notes: const Value("Bonne présence"),
+      );
+
+      final stamps = await readStamps();
+      expect(
+        stamps.keys.where((key) => key.startsWith("role_candidates/$candidateId/")).toSet(),
+        {"role_candidates/$candidateId/notes"},
+      );
+
+      // Writing the same value again touches nothing: there is nothing left to stamp.
+      await candidatesService.updateCandidate(
+        database: database,
+        candidateId: candidateId,
+        notes: const Value("Bonne présence"),
+      );
+      expect(await readStamps(), stamps);
+    });
+
+    test("removeCandidate stamps isDeleted on the candidacy", () async {
+      await createRole("role-1");
+      await createPerson("person-1");
+      final candidateId = (await candidatesService.addCandidate(
+        database: database,
+        roleId: "role-1",
+        personId: "person-1",
+      ))!;
+      await database.delete(database.ocptRowFieldVersionsTable).go();
+
+      await candidatesService.removeCandidate(database: database, candidateId: candidateId);
+
+      final stamps = await readStamps();
+      expect(
+        stamps.keys.where((key) => key.startsWith("role_candidates/$candidateId/")).toSet(),
+        {"role_candidates/$candidateId/isDeleted"},
+      );
+    });
+
+    test("retainCandidate stamps the role's personId along with the candidacy's status",
+        () async {
+      await createRole("role-1");
+      await createPerson("person-1");
+      final candidateId = (await candidatesService.addCandidate(
+        database: database,
+        roleId: "role-1",
+        personId: "person-1",
+      ))!;
+      await database.delete(database.ocptRowFieldVersionsTable).go();
+
+      await candidatesService.retainCandidate(database: database, candidateId: candidateId);
+
+      final stamps = await readStamps();
+      expect(stamps["role_candidates/$candidateId/status"]!.version, 1);
+      expect(stamps["roles/role-1/personId"]!.version, 1);
     });
   });
 }

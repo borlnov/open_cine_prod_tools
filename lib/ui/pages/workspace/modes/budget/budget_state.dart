@@ -65,15 +65,20 @@ class OcptBudgetIoNotice extends Equatable {
   final OcptBudgetIoNoticeKind kind;
 
   /// The path the export was written to, only set when [kind] is [OcptBudgetIoNoticeKind
-  /// .fileExportSucceeded].
+  /// .fileExportSucceeded] and [wasShared] is false — a mobile export hands the file to the OS
+  /// share sheet instead of writing it to a path the user picked, so there is none to show.
   final String? path;
 
+  /// Whether the export was handed to the OS share sheet rather than written to [path] — mobile's
+  /// own outcome, `file_selector`'s `getSaveLocation` having no Android or iOS implementation.
+  final bool wasShared;
+
   /// Class constructor
-  const OcptBudgetIoNotice({required this.kind, this.path});
+  const OcptBudgetIoNotice({required this.kind, this.path, this.wasShared = false});
 
   /// Object properties
   @override
-  List<Object?> get props => [kind, path];
+  List<Object?> get props => [kind, path, wasShared];
 }
 
 /// The state of `OcptBudgetBloc`.
@@ -327,6 +332,10 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
   /// `posteId`'s own committed total, in cents, tax-inclusive — 0 while [snapshot] is null or
   /// carries no commitment against it. See [paidCentsOf]'s own doc comment for the same reading.
   int committedCentsOf(String posteId) => snapshot?.committedCentsOf(posteId) ?? 0;
+
+  /// `posteId`'s own in-kind covered total, in cents — 0 while [snapshot] is null or carries no
+  /// counterpart line against it. See [paidCentsOf]'s own doc comment for the same reading.
+  int inKindCoveredCentsOf(String posteId) => snapshot?.inKindCoveredCentsOf(posteId) ?? 0;
 
   /// `resourceId`'s own received total, in cents, tax-inclusive — 0 while [snapshot] is null or
   /// carries no entry against it. See [OcptBudgetSnapshot.receivedCentsOf]'s own doc comment for

@@ -180,7 +180,7 @@ class _ResourcesViewState extends State<_ResourcesView> {
         ),
         modeLabel: Tr.of(context).workspaceModeLabelResources,
         toolbarActions: _buildToolbarActions(context, state),
-        onExportRequested: () => unawaited(_requestExport(context, state)),
+        onExportRequested: (anchor) => unawaited(_requestExport(context, state, anchor)),
         overflowEntries: _buildOverflowEntries(context),
         isLeftDockOpen: state.isListPanelVisible,
         onToggleLeftDock: () => context.read<OcptResourcesBloc>().add(
@@ -272,7 +272,11 @@ class _ResourcesViewState extends State<_ResourcesView> {
   /// contact list opens its own options dialog first, through [_requestContactListExport], while
   /// the workbook goes straight from [_requestXlsxExport] to the bloc — it takes no options dialog
   /// at all.
-  Future<void> _requestExport(BuildContext context, OcptResourcesState state) async {
+  Future<void> _requestExport(
+    BuildContext context,
+    OcptResourcesState state,
+    Rect? shareAnchor,
+  ) async {
     final tr = Tr.of(context);
     final picked = await OcptWorkspaceExportDialog.show<OcptResourcesExportDocument>(
       context,
@@ -292,9 +296,9 @@ class _ResourcesViewState extends State<_ResourcesView> {
       case OcptWorkspaceExportDocumentPick<OcptResourcesExportDocument>(:final document):
         switch (document) {
           case OcptResourcesExportDocument.xlsx:
-            _requestXlsxExport(context, state);
+            _requestXlsxExport(context, state, shareAnchor);
           case OcptResourcesExportDocument.contactList:
-            await _requestContactListExport(context, state);
+            await _requestContactListExport(context, state, shareAnchor);
         }
       case OcptWorkspaceExportProjectPackagePick<OcptResourcesExportDocument>():
         _requestProjectPackageExport(context);
@@ -303,13 +307,14 @@ class _ResourcesViewState extends State<_ResourcesView> {
 
   /// Dispatches the XLSX export request, resolving here — the last place with a [BuildContext] —
   /// every localized string the four sheets and the native save dialog carry.
-  void _requestXlsxExport(BuildContext context, OcptResourcesState state) {
+  void _requestXlsxExport(BuildContext context, OcptResourcesState state, Rect? shareAnchor) {
     final tr = Tr.of(context);
 
     context.read<OcptResourcesBloc>().add(
       OcptResourcesXlsxExportRequestedEvent(
         labels: ocptResourcesXlsxLabelsOf(context, state.scenes, currencyCode: state.currencyCode),
         fileTypeLabel: tr.resourcesExportXlsxFileTypeLabel,
+        shareAnchor: shareAnchor,
       ),
     );
   }
@@ -317,7 +322,11 @@ class _ResourcesViewState extends State<_ResourcesView> {
   /// Shows the contact list export options dialog — this document's own first, offering the page
   /// format alone — then dispatches the export request if the user applied it, resolving here every
   /// localized string the exported document and the native save dialog carry.
-  Future<void> _requestContactListExport(BuildContext context, OcptResourcesState state) async {
+  Future<void> _requestContactListExport(
+    BuildContext context,
+    OcptResourcesState state,
+    Rect? shareAnchor,
+  ) async {
     final bloc = context.read<OcptResourcesBloc>();
     final options = await OcptContactListExportDialog.show(context, current: state.pageSetup);
     if (options == null) {
@@ -333,6 +342,7 @@ class _ResourcesViewState extends State<_ResourcesView> {
         options: options,
         labels: ocptContactListLabelsOf(context),
         fileTypeLabel: tr.resourcesExportContactListFileTypeLabel,
+        shareAnchor: shareAnchor,
       ),
     );
   }
@@ -1382,17 +1392,18 @@ class _ResourcesViewState extends State<_ResourcesView> {
   }
 
   /// Maps [notice] to its localized, user-facing message, mirroring
-  /// `OcptShotListMode._ioNoticeMessage`.
+  /// `OcptShotListMode._ioNoticeMessage`, [OcptResourcesIoNotice.wasShared] included.
   String _ioNoticeMessage(BuildContext context, OcptResourcesIoNotice notice) {
     final tr = Tr.of(context);
 
     return switch (notice.kind) {
-      OcptResourcesIoNoticeKind.xlsxExportSucceeded => tr.resourcesExportXlsxSuccessMessage(
-        notice.path ?? "",
-      ),
+      OcptResourcesIoNoticeKind.xlsxExportSucceeded => notice.wasShared
+          ? tr.exportSharedMessage
+          : tr.resourcesExportXlsxSuccessMessage(notice.path ?? ""),
       OcptResourcesIoNoticeKind.xlsxExportFailed => tr.resourcesExportXlsxError,
-      OcptResourcesIoNoticeKind.contactListExportSucceeded =>
-        tr.resourcesExportContactListSuccessMessage(notice.path ?? ""),
+      OcptResourcesIoNoticeKind.contactListExportSucceeded => notice.wasShared
+          ? tr.exportSharedMessage
+          : tr.resourcesExportContactListSuccessMessage(notice.path ?? ""),
       OcptResourcesIoNoticeKind.contactListExportFailed => tr.resourcesExportContactListError,
     };
   }

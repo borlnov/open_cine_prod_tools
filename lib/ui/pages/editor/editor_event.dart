@@ -2,6 +2,8 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+import 'dart:ui';
+
 import 'package:act_flutter_utility/act_flutter_utility.dart';
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/models/ocpt_pdf_export_options.dart';
@@ -397,12 +399,21 @@ class OcptEditorExportRequestedEvent extends OcptEditorEvent {
   /// one episode or none — see `ocptWorkspaceEpisodeExportTagOf`.
   final String? episodeTag;
 
+  /// The tapped `Export` control's own screen `Rect`, anchoring the OS share sheet's popover on an
+  /// iPad/Mac when the export is handed to it rather than to the native save dialog; null on
+  /// desktop and wherever no anchor was resolved.
+  final Rect? shareAnchor;
+
   /// Class constructor
-  const OcptEditorExportRequestedEvent({required this.fileTypeLabel, this.episodeTag});
+  const OcptEditorExportRequestedEvent({
+    required this.fileTypeLabel,
+    this.episodeTag,
+    this.shareAnchor,
+  });
 
   /// Object properties
   @override
-  List<Object?> get props => [...super.props, fileTypeLabel, episodeTag];
+  List<Object?> get props => [...super.props, fileTypeLabel, episodeTag, shareAnchor];
 }
 
 /// Requests exporting the current screenplay to a PDF file.
@@ -421,16 +432,21 @@ class OcptEditorExportPdfRequestedEvent extends OcptEditorEvent {
   /// see its own doc comment.
   final String? episodeTag;
 
+  /// The tapped `Export` control's own screen `Rect`, exactly as
+  /// [OcptEditorExportRequestedEvent.shareAnchor] is — see its own doc comment.
+  final Rect? shareAnchor;
+
   /// Class constructor
   const OcptEditorExportPdfRequestedEvent({
     required this.options,
     required this.fileTypeLabel,
     this.episodeTag,
+    this.shareAnchor,
   });
 
   /// Object properties
   @override
-  List<Object?> get props => [...super.props, options, fileTypeLabel, episodeTag];
+  List<Object?> get props => [...super.props, options, fileTypeLabel, episodeTag, shareAnchor];
 }
 
 /// Requests replacing the current screenplay text with the content of a picked screenplay file —

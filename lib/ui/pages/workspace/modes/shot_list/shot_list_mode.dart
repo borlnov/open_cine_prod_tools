@@ -38,16 +38,19 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_d
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock_layout_controller.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_empty_mode.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_export_dialog.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_floating_add_button.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_read_only_banner.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_shell.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/workspace_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/workspace_event.dart';
+import 'package:open_cine_prod_tools/ui/utils/ocpt_export_share_anchor.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_project_package_missing_files_confirm.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_project_package_notice_message.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_project_version_notice_message.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_shot_list_labels.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_workspace_episode_export_tag.dart';
 import 'package:open_cine_prod_tools/ui/widgets/ocpt_confirm_dialog.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_responsive.dart';
 
 /// The shot list (découpage technique) production mode: the sequence tree on the left, the
 /// selected sequence's shot table in the centre, and the tabbed shot inspector on the right.
@@ -124,43 +127,46 @@ class _ShotListViewState extends State<_ShotListView> {
 
       final workspaceState = context.watch<OcptWorkspaceBloc>().state;
 
-      return OcptWorkspaceShell(
-        title: state.title,
-        isDirty: false,
-        isReadOnly: state.isPreviewingVersion,
-        onBack: () => context.read<OcptShotListBloc>().add(const OcptShotListBackRequestedEvent()),
-        episodes: workspaceState.episodes,
-        selectedEpisodeId: workspaceState.selectedEpisodeId,
-        onEpisodeSelected: (episodeId) => context.read<OcptWorkspaceBloc>().add(
-          OcptWorkspaceEpisodeSelectedEvent(episodeId: episodeId),
-        ),
-        modeLabel: Tr.of(context).workspaceModeLabelShotList,
-        onExportRequested: () => unawaited(_requestExport(context, state)),
-        overflowEntries: _buildOverflowEntries(context),
-        isLeftDockOpen: state.isSequencePanelVisible,
-        onToggleLeftDock: () => context.read<OcptShotListBloc>().add(
-          const OcptShotListSequencePanelToggledEvent(),
-        ),
-        isRightDockOpen: state.rightDockTab != null,
-        onToggleRightDock: () => context.read<OcptShotListBloc>().add(
-          const OcptShotListRightDockToggledEvent(),
-        ),
-        onProjectSettingsRequested: state.isPreviewingVersion
-            ? null
-            : () => _requestProjectSettings(context),
-        banner: _buildReadOnlyBanner(context, state),
-        leftPanel: _buildSequencePanel(context, state),
-        rightPanel: _buildRightDock(context, state),
-        centre: _buildCentre(context, state),
-        statusBar: OcptShotListStatusBar(
-          sequenceCount: state.sequenceCount,
-          shotCount: state.totalShotCount,
-          filmedShotCount: state.filmedShotCount,
-          shotsToCheckCount: state.shotsToCheckCount,
-        ),
-        dockLayoutController: _dockLayoutController,
-        onDockFractionsChanged: (fractions) => context.read<OcptShotListBloc>().add(
-          OcptShotListDockFractionsChangedEvent(left: fractions.left, right: fractions.right),
+      return LayoutBuilder(
+        builder: (context, constraints) => OcptWorkspaceShell(
+          title: state.title,
+          isDirty: false,
+          isReadOnly: state.isPreviewingVersion,
+          onBack: () =>
+              context.read<OcptShotListBloc>().add(const OcptShotListBackRequestedEvent()),
+          episodes: workspaceState.episodes,
+          selectedEpisodeId: workspaceState.selectedEpisodeId,
+          onEpisodeSelected: (episodeId) => context.read<OcptWorkspaceBloc>().add(
+            OcptWorkspaceEpisodeSelectedEvent(episodeId: episodeId),
+          ),
+          modeLabel: Tr.of(context).workspaceModeLabelShotList,
+          onExportRequested: (anchor) => unawaited(_requestExport(context, state, anchor)),
+          overflowEntries: _buildOverflowEntries(context),
+          isLeftDockOpen: state.isSequencePanelVisible,
+          onToggleLeftDock: () => context.read<OcptShotListBloc>().add(
+            const OcptShotListSequencePanelToggledEvent(),
+          ),
+          isRightDockOpen: state.rightDockTab != null,
+          onToggleRightDock: () => context.read<OcptShotListBloc>().add(
+            const OcptShotListRightDockToggledEvent(),
+          ),
+          onProjectSettingsRequested: state.isPreviewingVersion
+              ? null
+              : () => _requestProjectSettings(context),
+          banner: _buildReadOnlyBanner(context, state),
+          leftPanel: _buildSequencePanel(context, state),
+          rightPanel: _buildRightDock(context, state),
+          centre: _buildCentre(context, state, ocptIsCompactWidth(constraints.maxWidth)),
+          statusBar: OcptShotListStatusBar(
+            sequenceCount: state.sequenceCount,
+            shotCount: state.totalShotCount,
+            filmedShotCount: state.filmedShotCount,
+            shotsToCheckCount: state.shotsToCheckCount,
+          ),
+          dockLayoutController: _dockLayoutController,
+          onDockFractionsChanged: (fractions) => context.read<OcptShotListBloc>().add(
+            OcptShotListDockFractionsChangedEvent(left: fractions.left, right: fractions.right),
+          ),
         ),
       );
     },
@@ -209,7 +215,11 @@ class _ShotListViewState extends State<_ShotListView> {
   /// event directly (it opens no options dialog of its own, mirroring the table's own
   /// `Export XLSX` button), or [_requestScenarioCoverageExport], which opens the scenario coverage
   /// export options dialog exactly as it always has.
-  Future<void> _requestExport(BuildContext context, OcptShotListState state) async {
+  Future<void> _requestExport(
+    BuildContext context,
+    OcptShotListState state,
+    Rect? shareAnchor,
+  ) async {
     final tr = Tr.of(context);
     final picked = await OcptWorkspaceExportDialog.show<OcptShotListExportDocument>(
       context,
@@ -229,9 +239,9 @@ class _ShotListViewState extends State<_ShotListView> {
       case OcptWorkspaceExportDocumentPick<OcptShotListExportDocument>(:final document):
         switch (document) {
           case OcptShotListExportDocument.xlsx:
-            _requestXlsxExport(context, state);
+            _requestXlsxExport(context, state, shareAnchor);
           case OcptShotListExportDocument.coverage:
-            await _requestScenarioCoverageExport(context, state);
+            await _requestScenarioCoverageExport(context, state, shareAnchor);
         }
       case OcptWorkspaceExportProjectPackagePick<OcptShotListExportDocument>():
         _requestProjectPackageExport(context);
@@ -240,7 +250,7 @@ class _ShotListViewState extends State<_ShotListView> {
 
   /// Dispatches the XLSX export request, resolving here — the last place with a [BuildContext] —
   /// every localized string the workbook and the native save dialog carry.
-  void _requestXlsxExport(BuildContext context, OcptShotListState state) {
+  void _requestXlsxExport(BuildContext context, OcptShotListState state, Rect? shareAnchor) {
     final tr = Tr.of(context);
 
     context.read<OcptShotListBloc>().add(
@@ -248,6 +258,7 @@ class _ShotListViewState extends State<_ShotListView> {
         labels: ocptShotListXlsxLabelsOf(tr, state.sequences),
         fileTypeLabel: tr.shotListExportXlsxFileTypeLabel,
         episodeTag: _episodeExportTag(context),
+        shareAnchor: shareAnchor,
       ),
     );
   }
@@ -258,6 +269,7 @@ class _ShotListViewState extends State<_ShotListView> {
   Future<void> _requestScenarioCoverageExport(
     BuildContext context,
     OcptShotListState state,
+    Rect? shareAnchor,
   ) async {
     final bloc = context.read<OcptShotListBloc>();
     final options = await OcptScenarioCoverageExportDialog.show(
@@ -278,6 +290,7 @@ class _ShotListViewState extends State<_ShotListView> {
         labels: ocptScenarioCoverageLabelsOf(tr, state.sequences),
         fileTypeLabel: tr.shotListExportCoverageFileTypeLabel,
         episodeTag: _episodeExportTag(context),
+        shareAnchor: shareAnchor,
       ),
     );
   }
@@ -364,25 +377,44 @@ class _ShotListViewState extends State<_ShotListView> {
   }
 
   /// Builds the shell's `centre`: the deleted-character banners, then the selected sequence's
-  /// header, the `Columns ▾` menu, and the shot table under them.
+  /// header, the `Columns ▾` menu, and the shot table under them, overlaid at a compact width
+  /// ([isCompact]) with the same floating `+ Shot` affordance the left dock's own button already
+  /// fires — see [OcptWorkspaceFloatingAddButton]'s own doc comment.
+  ///
+  /// The floating button mirrors [_buildSequencePanel]'s own `onShotCreated` gating exactly: wired
+  /// only while the selected sequence is a real scene and no version is being previewed, withheld
+  /// (a null callback, never disabled) otherwise. Creating a shot already opens the right dock on its
+  /// inspector tab ([OcptShotListBloc._onShotCreationRequested]), which the compact width shows as an
+  /// edge drawer — nothing further to wire here for that.
   ///
   /// The banners sit above everything else and stay whichever sequence is selected: they report a
   /// mismatch between the screenplay and the whole shot list, not something about the sequence
   /// currently being looked at.
-  Widget _buildCentre(BuildContext context, OcptShotListState state) {
+  Widget _buildCentre(BuildContext context, OcptShotListState state, bool isCompact) {
     final banners = _buildRemovedCharacterBanners(context, state);
     final body = _buildSequenceBody(context, state);
 
-    if (banners.isEmpty) {
-      return body;
-    }
+    final content = banners.isEmpty
+        ? body
+        : Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(24, 18, 24, 0),
+                child: Column(children: banners),
+              ),
+              Expanded(child: body),
+            ],
+          );
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Padding(padding: const EdgeInsets.fromLTRB(24, 18, 24, 0), child: Column(children: banners)),
-        Expanded(child: body),
-      ],
+    return OcptWorkspaceFloatingAddButton(
+      isVisible: isCompact,
+      label: Tr.of(context).shotListAddShotAction,
+      onPressed: state.selectedSequence is OcptSceneShotSequence && !state.isPreviewingVersion
+          ? () =>
+                context.read<OcptShotListBloc>().add(const OcptShotListShotCreationRequestedEvent())
+          : null,
+      child: content,
     );
   }
 
@@ -440,13 +472,20 @@ class _ShotListViewState extends State<_ShotListView> {
               const SizedBox(width: 8),
               // Exports the whole shot list, not the sequence this header names: the button sits
               // here because the mock-up puts it next to the columns menu, not because it is
-              // scoped to what the table below currently shows.
-              OutlinedButton.icon(
-                onPressed: state.totalShotCount > 0
-                    ? () => _requestXlsxExport(context, state)
-                    : null,
-                icon: const Icon(Icons.file_download_outlined, size: 16),
-                label: Text(tr.shotListExportXlsxAction),
+              // scoped to what the table below currently shows. Wrapped in its own Builder so the
+              // anchor handed to the export is this button's own screen Rect, not some ancestor's.
+              Builder(
+                builder: (buttonContext) => OutlinedButton.icon(
+                  onPressed: state.totalShotCount > 0
+                      ? () => _requestXlsxExport(
+                          context,
+                          state,
+                          ocptExportShareAnchorOf(buttonContext),
+                        )
+                      : null,
+                  icon: const Icon(Icons.file_download_outlined, size: 16),
+                  label: Text(tr.shotListExportXlsxAction),
+                ),
               ),
             ],
           ),
@@ -868,16 +907,21 @@ class _ShotListViewState extends State<_ShotListView> {
   }
 
   /// Maps [notice] to its localized, user-facing message.
+  ///
+  /// A succeeded kind degrades to the generic "shared" message on mobile
+  /// ([OcptShotListIoNotice.wasShared]): there is no path to name, the export having been handed to
+  /// the OS share sheet rather than written to a location the user picked.
   String _ioNoticeMessage(BuildContext context, OcptShotListIoNotice notice) {
     final tr = Tr.of(context);
 
     return switch (notice.kind) {
-      OcptShotListIoNoticeKind.xlsxExportSucceeded => tr.shotListExportXlsxSuccessMessage(
-        notice.path ?? "",
-      ),
+      OcptShotListIoNoticeKind.xlsxExportSucceeded => notice.wasShared
+          ? tr.exportSharedMessage
+          : tr.shotListExportXlsxSuccessMessage(notice.path ?? ""),
       OcptShotListIoNoticeKind.xlsxExportFailed => tr.shotListExportXlsxError,
-      OcptShotListIoNoticeKind.scenarioCoverageExportSucceeded =>
-        tr.shotListExportCoverageSuccessMessage(notice.path ?? ""),
+      OcptShotListIoNoticeKind.scenarioCoverageExportSucceeded => notice.wasShared
+          ? tr.exportSharedMessage
+          : tr.shotListExportCoverageSuccessMessage(notice.path ?? ""),
       OcptShotListIoNoticeKind.scenarioCoverageExportFailed => tr.shotListExportCoverageError,
     };
   }

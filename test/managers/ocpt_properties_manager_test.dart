@@ -8,7 +8,6 @@ import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/models/ocpt_recent_project_model.dart';
 import 'package:open_cine_prod_tools/types/ocpt_editor_mode.dart';
-import 'package:open_cine_prod_tools/types/ocpt_workspace_mode.dart';
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
 
@@ -110,18 +109,6 @@ void main() {
       await manager.editorMode.store(OcptEditorMode.raw);
 
       expect(await manager.editorMode.load(), OcptEditorMode.raw);
-    });
-  });
-
-  group('OcptPropertiesManager.workspaceMode', () {
-    test('is null by default, which means OcptWorkspaceMode.screenplay applies', () async {
-      expect(await manager.workspaceMode.load(), isNull);
-    });
-
-    test('round trips through the local storage', () async {
-      await manager.workspaceMode.store(OcptWorkspaceMode.budget);
-
-      expect(await manager.workspaceMode.load(), OcptWorkspaceMode.budget);
     });
   });
 

@@ -199,6 +199,7 @@ void main() {
         vatRateBasisPoints: vatRateBasisPoints,
       ),
       elementId: null,
+      inKindResourceId: null,
       provisionKey: null,
       provisionDigest: null,
       notes: "",

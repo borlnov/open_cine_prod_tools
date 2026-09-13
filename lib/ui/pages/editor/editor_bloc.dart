@@ -1444,20 +1444,25 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
     }
 
     try {
-      final path = await _exportManager.exportFountain(
+      final outcome = await _exportManager.exportFountain(
         fountainText: state.text,
         projectName: state.title,
         fileTypeLabel: event.fileTypeLabel,
         episodeTag: event.episodeTag,
+        shareAnchor: event.shareAnchor,
       );
-      if (path == null) {
+      if (outcome == null) {
         // The user cancelled the save dialog.
         return;
       }
 
       emitter(
         state.copyWith(
-          ioNotice: OcptEditorIoNotice(kind: OcptEditorIoNoticeKind.exportSucceeded, path: path),
+          ioNotice: OcptEditorIoNotice(
+            kind: OcptEditorIoNoticeKind.exportSucceeded,
+            path: outcome.savedPath,
+            wasShared: outcome.wasShared,
+          ),
         ),
       );
     } catch (error) {
@@ -1493,7 +1498,7 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
     try {
       final document = _fountainParser.parse(state.text);
       final pageSetup = OcptPageSetup(format: event.options.format, margins: event.options.margins);
-      final path = await _exportManager.exportPdf(
+      final outcome = await _exportManager.exportPdf(
         document: document,
         pageSetup: pageSetup,
         projectName: state.title,
@@ -1501,15 +1506,20 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
         includeTitlePage: event.options.includeTitlePage,
         fileTypeLabel: event.fileTypeLabel,
         episodeTag: event.episodeTag,
+        shareAnchor: event.shareAnchor,
       );
-      if (path == null) {
+      if (outcome == null) {
         // The user cancelled the save dialog.
         return;
       }
 
       emitter(
         state.copyWith(
-          ioNotice: OcptEditorIoNotice(kind: OcptEditorIoNoticeKind.pdfExportSucceeded, path: path),
+          ioNotice: OcptEditorIoNotice(
+            kind: OcptEditorIoNoticeKind.pdfExportSucceeded,
+            path: outcome.savedPath,
+            wasShared: outcome.wasShared,
+          ),
         ),
       );
     } catch (error) {

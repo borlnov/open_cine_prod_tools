@@ -4,14 +4,17 @@
 
 import 'dart:convert';
 import 'dart:io';
+import 'dart:ui';
 
 import 'package:act_file_transfer_manager/act_file_transfer_manager.dart';
+import 'package:act_platform_manager/act_platform_manager.dart';
 import 'package:excel_community/excel_community.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/managers/export/ocpt_export_manager.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_fountain_io_service.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_save_location_service.dart';
+import 'package:open_cine_prod_tools/managers/export/services/ocpt_share_service.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_shot_list_xlsx_export_service.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
 import 'package:open_cine_prod_tools/models/ocpt_breakdown_sheets_labels.dart';
@@ -36,6 +39,7 @@ import 'package:open_cine_prod_tools/models/ocpt_shooting_slot_crew_member.dart'
 import 'package:open_cine_prod_tools/models/ocpt_shot_list_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_list_xlsx_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_sides_labels.dart';
+import 'package:open_cine_prod_tools/types/ocpt_export_outcome.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_day_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_slot_anchor_edge.dart';
@@ -98,6 +102,45 @@ class _FakeSaveLocationService extends OcptSaveLocationService {
   }
 }
 
+/// A [PlatformManager] whose [isMobile] is stubbed, so the manager's write funnel can be exercised
+/// on either branch without a real platform underneath it.
+class _StubPlatformManager extends PlatformManager {
+  /// Class constructor
+  _StubPlatformManager({required this.isMobile});
+
+  @override
+  final bool isMobile;
+}
+
+/// A share service whose [temporaryDirectory] and [shareFiles] are stubbed and whose calls are
+/// recorded, so the manager's mobile write funnel can be exercised without any real OS share sheet.
+class _FakeShareService extends OcptShareService {
+  /// Class constructor
+  _FakeShareService({required Directory directory, this.result = true}) : _directory = directory;
+
+  /// The directory [temporaryDirectory] resolves to.
+  final Directory _directory;
+
+  /// Whether [shareFiles] reports the share sheet as shown.
+  final bool result;
+
+  /// The paths of the last [shareFiles] call.
+  List<String>? lastPaths;
+
+  /// The anchor of the last [shareFiles] call.
+  Rect? lastSharePositionOrigin;
+
+  @override
+  Future<Directory> temporaryDirectory() async => _directory;
+
+  @override
+  Future<bool> shareFiles({required List<String> paths, Rect? sharePositionOrigin}) async {
+    lastPaths = paths;
+    lastSharePositionOrigin = sharePositionOrigin;
+    return result;
+  }
+}
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -147,7 +190,7 @@ void main() {
         fileTypeLabel: "Fountain screenplay",
       );
 
-      expect(path, chosenPath);
+      expect(path, OcptExportSaved(chosenPath));
       expect(
         await File(chosenPath).readAsBytes(),
         manager.fountainIoService.encodeFountainText(fountainText),
@@ -170,6 +213,66 @@ void main() {
       expect(saveLocationService.lastSuggestedFileName, "My Movie.fountain");
       expect(saveLocationService.lastFileTypeLabel, "Fountain screenplay");
       expect(saveLocationService.lastExtensions, [OcptFountainIoService.fountainFileExtension]);
+    });
+  });
+
+  group('the write funnel on mobile', () {
+    // Exercised through exportFountain alone: every export method funnels through the very same
+    // private _writeToPickedLocation, so this is the one place the desktop/mobile branch itself
+    // needs covering — each export method's own tests above already cover its own file name and
+    // bytes on the desktop branch.
+    const fountainText = "INT. HOUSE - DAY\n\nAction.\n";
+
+    test(
+      'writes to a temporary file and shares it instead of showing the native save dialog',
+      () async {
+        final saveLocationService = _FakeSaveLocationService(result: p.join(tempDir.path, "unused"));
+        final shareService = _FakeShareService(directory: tempDir);
+        final manager = OcptExportManager(
+          fileSelectorManager: const FileSelectorManager(),
+          saveLocationService: saveLocationService,
+          platformManager: _StubPlatformManager(isMobile: true),
+          shareService: shareService,
+        );
+        const anchor = Rect.fromLTWH(1, 2, 3, 4);
+
+        final outcome = await manager.exportFountain(
+          fountainText: fountainText,
+          projectName: "My Movie",
+          fileTypeLabel: "Fountain screenplay",
+          shareAnchor: anchor,
+        );
+
+        expect(outcome, const OcptExportShared());
+        // The native save dialog is never shown on mobile.
+        expect(saveLocationService.lastSuggestedFileName, isNull);
+
+        final sharedPaths = shareService.lastPaths;
+        expect(sharedPaths, hasLength(1));
+        expect(p.basename(sharedPaths!.single), "My Movie.fountain");
+        expect(
+          await File(sharedPaths.single).readAsBytes(),
+          manager.fountainIoService.encodeFountainText(fountainText),
+        );
+        expect(shareService.lastSharePositionOrigin, anchor);
+      },
+    );
+
+    test('a share sheet that could not be shown reports null, exactly like a failed write', () async {
+      final manager = OcptExportManager(
+        fileSelectorManager: const FileSelectorManager(),
+        saveLocationService: _FakeSaveLocationService(),
+        platformManager: _StubPlatformManager(isMobile: true),
+        shareService: _FakeShareService(directory: tempDir, result: false),
+      );
+
+      final outcome = await manager.exportFountain(
+        fountainText: fountainText,
+        projectName: "My Movie",
+        fileTypeLabel: "Fountain screenplay",
+      );
+
+      expect(outcome, isNull);
     });
   });
 
@@ -213,7 +316,7 @@ void main() {
         fileTypeLabel: "PDF document",
       );
 
-      expect(path, chosenPath);
+      expect(path, OcptExportSaved(chosenPath));
       final writtenBytes = await File(chosenPath).readAsBytes();
       expect(writtenBytes, isNotEmpty);
       expect(String.fromCharCodes(writtenBytes.take(4)), "%PDF");
@@ -266,7 +369,7 @@ void main() {
       sequenceTitles: {},
     );
 
-    Future<String?> export(OcptExportManager manager) => manager.exportScenarioCoverage(
+    Future<OcptExportOutcome?> export(OcptExportManager manager) => manager.exportScenarioCoverage(
       document: document,
       screenplayText: "INT. HOUSE - DAY\n\nAction.\n",
       snapshot: snapshot,
@@ -297,7 +400,7 @@ void main() {
         saveLocationService: _FakeSaveLocationService(result: chosenPath),
       );
 
-      expect(await export(manager), chosenPath);
+      expect(await export(manager), OcptExportSaved(chosenPath));
       final writtenBytes = await File(chosenPath).readAsBytes();
       expect(writtenBytes, isNotEmpty);
       expect(String.fromCharCodes(writtenBytes.take(4)), "%PDF");
@@ -362,7 +465,7 @@ void main() {
         fileTypeLabel: "Excel workbook",
       );
 
-      expect(path, chosenPath);
+      expect(path, OcptExportSaved(chosenPath));
       final writtenBytes = await File(chosenPath).readAsBytes();
       expect(Excel.decodeBytes(writtenBytes).tables.keys, ["Shot list"]);
     });
@@ -456,7 +559,7 @@ void main() {
         fileTypeLabel: "Excel workbook",
       );
 
-      expect(path, chosenPath);
+      expect(path, OcptExportSaved(chosenPath));
       final writtenBytes = await File(chosenPath).readAsBytes();
       expect(Excel.decodeBytes(writtenBytes).tables.keys, [
         "People",
@@ -513,7 +616,7 @@ void main() {
       emptyDocumentNote: "Nothing to print.",
     );
 
-    Future<String?> export(OcptExportManager manager) => manager.exportContactList(
+    Future<OcptExportOutcome?> export(OcptExportManager manager) => manager.exportContactList(
       snapshot: snapshot,
       pageSetup: const OcptPageSetup.standard(),
       labels: labels,
@@ -538,7 +641,7 @@ void main() {
         saveLocationService: _FakeSaveLocationService(result: chosenPath),
       );
 
-      expect(await export(manager), chosenPath);
+      expect(await export(manager), OcptExportSaved(chosenPath));
       final writtenBytes = await File(chosenPath).readAsBytes();
       expect(ascii.decode(writtenBytes.sublist(0, 4)), "%PDF");
     });
@@ -591,7 +694,7 @@ void main() {
       emptyDocumentNote: "No scene to print.",
     );
 
-    Future<String?> export(OcptExportManager manager) => manager.exportBreakdownSheets(
+    Future<OcptExportOutcome?> export(OcptExportManager manager) => manager.exportBreakdownSheets(
       document: document,
       snapshot: snapshot,
       pageSetup: const OcptPageSetup.standard(),
@@ -620,7 +723,7 @@ void main() {
         saveLocationService: _FakeSaveLocationService(result: chosenPath),
       );
 
-      expect(await export(manager), chosenPath);
+      expect(await export(manager), OcptExportSaved(chosenPath));
       final writtenBytes = await File(chosenPath).readAsBytes();
       expect(ascii.decode(writtenBytes.sublist(0, 4)), "%PDF");
     });
@@ -1184,7 +1287,7 @@ void main() {
       );
     }
 
-    Future<String?> export(OcptExportManager manager) => manager.exportShootingPlan(
+    Future<OcptExportOutcome?> export(OcptExportManager manager) => manager.exportShootingPlan(
       plan: buildPlan(),
       dayIds: const ["day-1"],
       pageSetup: const OcptPageSetup.standard(),
@@ -1216,7 +1319,7 @@ void main() {
         saveLocationService: _FakeSaveLocationService(result: chosenPath),
       );
 
-      expect(await export(manager), chosenPath);
+      expect(await export(manager), OcptExportSaved(chosenPath));
       final writtenBytes = await File(chosenPath).readAsBytes();
       expect(ascii.decode(writtenBytes.sublist(0, 4)), "%PDF");
     });
@@ -1311,7 +1414,7 @@ void main() {
       );
     }
 
-    Future<String?> export(OcptExportManager manager) => manager.exportDayOutOfDays(
+    Future<OcptExportOutcome?> export(OcptExportManager manager) => manager.exportDayOutOfDays(
       plan: buildPlan(),
       dayIds: const ["day-1"],
       pageSetup: const OcptPageSetup.standard(),
@@ -1338,7 +1441,7 @@ void main() {
         saveLocationService: _FakeSaveLocationService(result: chosenPath),
       );
 
-      expect(await export(manager), chosenPath);
+      expect(await export(manager), OcptExportSaved(chosenPath));
       final writtenBytes = await File(chosenPath).readAsBytes();
       expect(ascii.decode(writtenBytes.sublist(0, 4)), "%PDF");
     });
@@ -1421,7 +1524,7 @@ void main() {
       );
     }
 
-    Future<String?> export(OcptExportManager manager) => manager.exportOneLineSchedule(
+    Future<OcptExportOutcome?> export(OcptExportManager manager) => manager.exportOneLineSchedule(
       plan: buildPlan(),
       dayIds: const ["day-1"],
       pageSetup: const OcptPageSetup.standard(),
@@ -1448,7 +1551,7 @@ void main() {
         saveLocationService: _FakeSaveLocationService(result: chosenPath),
       );
 
-      expect(await export(manager), chosenPath);
+      expect(await export(manager), OcptExportSaved(chosenPath));
       final writtenBytes = await File(chosenPath).readAsBytes();
       expect(ascii.decode(writtenBytes.sublist(0, 4)), "%PDF");
     });
@@ -1528,7 +1631,7 @@ void main() {
       );
     }
 
-    Future<String?> export(OcptExportManager manager) => manager.exportSides(
+    Future<OcptExportOutcome?> export(OcptExportManager manager) => manager.exportSides(
       plan: buildPlan(),
       dayId: "day-1",
       documents: [(screenplayId: "screenplay-1", document: document)],
@@ -1557,7 +1660,7 @@ void main() {
         saveLocationService: _FakeSaveLocationService(result: chosenPath),
       );
 
-      expect(await export(manager), chosenPath);
+      expect(await export(manager), OcptExportSaved(chosenPath));
       final writtenBytes = await File(chosenPath).readAsBytes();
       expect(ascii.decode(writtenBytes.sublist(0, 4)), "%PDF");
     });

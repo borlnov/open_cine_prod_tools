@@ -61,6 +61,7 @@ const _line = OcptBudgetLine(
   unit: "u",
   unitPrice: OcptMoney(amountCents: 1000, isTaxInclusive: true, vatRateBasisPoints: null),
   elementId: null,
+  inKindResourceId: null,
   provisionKey: null,
   provisionDigest: null,
   notes: "",
@@ -538,6 +539,70 @@ void main() {
       expect(find.widgetWithText(OutlinedButton, tr.budgetLineDeleteAction), findsOneWidget);
       expect(find.widgetWithText(OutlinedButton, tr.budgetLineUncommitAction), findsNothing);
     });
+
+    testWidgets(
+      "a counterpart line is read-only, its only action opening the contribution it balances",
+      (tester) async {
+        const inKindLine = OcptBudgetLine(
+          id: "line-1",
+          posteId: "poste-1",
+          label: "Camera loan",
+          quantityMilli: 1000,
+          unit: "u",
+          unitPrice: OcptMoney(amountCents: 1000, isTaxInclusive: true, vatRateBasisPoints: 0),
+          elementId: null,
+          inKindResourceId: "resource-1",
+          provisionKey: null,
+          provisionDigest: null,
+          notes: "",
+          sortKey: "a0",
+        );
+        const inKindPoste = OcptBudgetPoste(
+          id: "poste-1",
+          code: "5",
+          label: "Sets and costumes",
+          simpleLabel: null,
+          estimateToCompleteCents: null,
+          sortKey: "a0",
+          lines: [inKindLine],
+        );
+
+        OcptBudgetResource? edited;
+        await tester.pumpWidget(
+          _wrap(
+            _fiche(
+              selection: const OcptBudgetLineSelection("line-1"),
+              postes: const [inKindPoste],
+              resources: [_buildResource(groupKind: OcptBudgetResourceGroupKind.inKind)],
+              onLinePayDirectlyRequested: (_) {},
+              onLineCommitRequested: (_) {},
+              onLineDeletionRequested: (_) {},
+              onResourceEditRequested: (resource) => edited = resource,
+            ),
+          ),
+        );
+        final tr = Tr.of(tester.element(find.byType(OcptBudgetFiche)));
+
+        // Pay/Commit/Delete are withheld; so are the editable fields and the
+        // estimate/committed/paid stepper — a counterpart line is the contribution's to change.
+        expect(find.widgetWithText(OutlinedButton, tr.budgetLineCommitAction), findsNothing);
+        expect(find.widgetWithText(OutlinedButton, tr.budgetLineDeleteAction), findsNothing);
+        expect(find.text(tr.budgetLineUnitPriceFieldLabel), findsNothing);
+        expect(find.text(tr.budgetLineLabelFieldLabel), findsNothing);
+        expect(find.text(tr.budgetInspectorFigurePaid), findsNothing);
+        // It names the contribution it is covered by (`_buildResource`'s own default label) and
+        // shows the valuation read-only.
+        expect(find.text(tr.budgetFicheInKindCounterpartHint("Region grant")), findsOneWidget);
+        expect(find.text(tr.budgetResourceDialogValuedAtFieldLabel.toUpperCase()), findsOneWidget);
+
+        // Its sole action opens that contribution for editing.
+        await tester.tap(
+          find.widgetWithText(FilledButton, tr.budgetFicheEditInKindContributionAction),
+        );
+        await tester.pumpAndSettle();
+        expect(edited?.id, "resource-1");
+      },
+    );
   });
 
   group("the commitment variant", () {
@@ -956,8 +1021,8 @@ void main() {
     });
 
     testWidgets(
-      "an in-kind resource no entry names reads the em dash for Received and Outstanding, "
-      "and offers no Receive action",
+      "an uncollected in-kind resource drops the Promised/Received stepper for a Valued-at "
+      "reading, and offers no Receive action",
       (tester) async {
         await tester.pumpWidget(
           _wrap(
@@ -968,9 +1033,74 @@ void main() {
             ),
           ),
         );
+        final tr = Tr.of(tester.element(find.byType(OcptBudgetFiche)));
 
+        // No Receive action, and no money-collection lifecycle: the Received figure is gone,
+        // replaced by the valuation the contribution is worth. (Figure labels render uppercased.)
         expect(find.byType(FilledButton), findsNothing);
-        expect(find.text(ocptBudgetEmptyValue), findsWidgets);
+        expect(find.text(tr.budgetFinancingColumnReceived.toUpperCase()), findsNothing);
+        expect(find.text(tr.budgetResourceDialogValuedAtFieldLabel.toUpperCase()), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      "an in-kind resource with a counterpart line names the poste it offsets",
+      (tester) async {
+        const offsetLine = OcptBudgetLine(
+          id: "line-offset",
+          posteId: "poste-2",
+          label: "Camera loan",
+          quantityMilli: 1000,
+          unit: "u",
+          unitPrice: OcptMoney(amountCents: 1000, isTaxInclusive: true, vatRateBasisPoints: 0),
+          elementId: null,
+          inKindResourceId: "resource-1",
+          provisionKey: null,
+          provisionDigest: null,
+          notes: "",
+          sortKey: "a0",
+        );
+        const offsetPoste = OcptBudgetPoste(
+          id: "poste-2",
+          code: "7",
+          label: "Technical equipment",
+          simpleLabel: null,
+          estimateToCompleteCents: null,
+          sortKey: "a1",
+          lines: [offsetLine],
+        );
+
+        await tester.pumpWidget(
+          _wrap(
+            _fiche(
+              selection: const OcptBudgetResourceSelection("resource-1"),
+              postes: const [_poste, offsetPoste],
+              resources: [_buildResource(groupKind: OcptBudgetResourceGroupKind.inKind)],
+            ),
+          ),
+        );
+        final tr = Tr.of(tester.element(find.byType(OcptBudgetFiche)));
+
+        expect(find.text(tr.budgetFicheInKindOffsetsPoste("7 Technical equipment")), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      "an in-kind resource with no counterpart line yet names no poste",
+      (tester) async {
+        await tester.pumpWidget(
+          _wrap(
+            _fiche(
+              selection: const OcptBudgetResourceSelection("resource-1"),
+              resources: [_buildResource(groupKind: OcptBudgetResourceGroupKind.inKind)],
+            ),
+          ),
+        );
+
+        // No card at all: an uncollected in-kind resource draws its "Valued at" figure bare (no
+        // Promised/Received stepper card), and there is no poste-offset banner card since nothing
+        // in `postes` names this resource's own id yet.
+        expect(find.byType(Card), findsNothing);
       },
     );
 

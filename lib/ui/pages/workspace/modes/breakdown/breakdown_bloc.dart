@@ -448,7 +448,7 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
 
     try {
       final options = event.options;
-      final path = await _exportManager.exportBreakdownSheets(
+      final outcome = await _exportManager.exportBreakdownSheets(
         document: const FountainParser().parse(state.screenplayText),
         snapshot: snapshot,
         pageSetup: OcptPageSetup(format: options.format, margins: options.margins),
@@ -459,8 +459,9 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
         includeToFindList: options.includeToFindList,
         fileTypeLabel: event.fileTypeLabel,
         episodeTag: event.episodeTag,
+        shareAnchor: event.shareAnchor,
       );
-      if (path == null) {
+      if (outcome == null) {
         // The user cancelled the save dialog.
         return;
       }
@@ -469,7 +470,8 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
         state.copyWith(
           ioNotice: OcptBreakdownIoNotice(
             kind: OcptBreakdownIoNoticeKind.sheetsExportSucceeded,
-            path: path,
+            path: outcome.savedPath,
+            wasShared: outcome.wasShared,
           ),
         ),
       );
@@ -503,7 +505,7 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
     }
 
     try {
-      final path = await _exportManager.exportBreakdownXlsx(
+      final outcome = await _exportManager.exportBreakdownXlsx(
         document: const FountainParser().parse(state.screenplayText),
         snapshot: snapshot,
         pageSetup: state.pageSetup,
@@ -511,8 +513,9 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
         projectName: state.title,
         fileTypeLabel: event.fileTypeLabel,
         episodeTag: event.episodeTag,
+        shareAnchor: event.shareAnchor,
       );
-      if (path == null) {
+      if (outcome == null) {
         // The user cancelled the save dialog.
         return;
       }
@@ -521,7 +524,8 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
         state.copyWith(
           ioNotice: OcptBreakdownIoNotice(
             kind: OcptBreakdownIoNoticeKind.xlsxExportSucceeded,
-            path: path,
+            path: outcome.savedPath,
+            wasShared: outcome.wasShared,
           ),
         ),
       );

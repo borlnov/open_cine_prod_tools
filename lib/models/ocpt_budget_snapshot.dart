@@ -109,6 +109,13 @@ class OcptBudgetSnapshot extends Equatable {
   /// is what the mode reads instead of this map directly.
   final Map<String, OcptBudgetCoveredTotal> committedByPosteId;
 
+  /// What each poste has settled **in kind**, keyed by `OcptBudgetPoste.id` —
+  /// `ocptBudgetInKindCoveredCentsByPosteId`, the sum of a poste's own counterpart quote lines
+  /// (`OcptBudgetLine.inKindResourceId` not null). A poste with no such line has no key here,
+  /// mirroring [paidByPosteId]'s own "no key for nothing" discipline. [inKindCoveredCentsOf] is what
+  /// the mode reads instead of this map directly.
+  final Map<String, int> inKindCoveredByPosteId;
+
   /// The cash journal's own debit, credit and balance, over [entries].
   final OcptBudgetCashTotals cashTotals;
 
@@ -213,6 +220,7 @@ class OcptBudgetSnapshot extends Equatable {
     required this.paidByPosteId,
     required this.offQuotePaidTotal,
     required this.committedByPosteId,
+    required this.inKindCoveredByPosteId,
     required this.cashTotals,
     required this.receivedByResourceId,
     required this.alerts,
@@ -285,6 +293,7 @@ class OcptBudgetSnapshot extends Equatable {
       entries: entries,
       projectVatRateBasisPoints: defaultVatRateBasisPoints,
     );
+    final inKindCoveredByPosteId = ocptBudgetInKindCoveredCentsByPosteId(postes);
     final cashTotals = ocptBudgetCashTotalsOf(
       entries,
       projectVatRateBasisPoints: defaultVatRateBasisPoints,
@@ -360,12 +369,14 @@ class OcptBudgetSnapshot extends Equatable {
       paidByPosteId: paidByPosteId,
       offQuotePaidTotal: offQuotePaidTotal,
       committedByPosteId: committedByPosteId,
+      inKindCoveredByPosteId: inKindCoveredByPosteId,
       cashTotals: cashTotals,
       receivedByResourceId: receivedByResourceId,
       alerts: ocptComputeBudgetAlerts(
         postes: postes,
         paidCentsOf: (posteId) => paidByPosteId[posteId]?.amountCents ?? 0,
         committedCentsOf: (posteId) => committedByPosteId[posteId]?.amountCents ?? 0,
+        inKindCoveredCentsOf: (posteId) => inKindCoveredByPosteId[posteId] ?? 0,
         commitments: commitments,
         entries: entries,
         cashTotals: cashTotals,
@@ -401,6 +412,11 @@ class OcptBudgetSnapshot extends Equatable {
   /// for [posteId], or **0** while it carries none. See [paidCentsOf]'s own doc comment for why
   /// `?? 0` is the honest reading now that the journal exists.
   int committedCentsOf(String posteId) => committedByPosteId[posteId]?.amountCents ?? 0;
+
+  /// [posteId]'s own in-kind covered total, in cents — [inKindCoveredByPosteId]'s own entry for
+  /// [posteId], or **0** while it carries none. See [paidCentsOf]'s own doc comment for why `?? 0`
+  /// is the honest reading: a poste with no counterpart line genuinely has settled nothing in kind.
+  int inKindCoveredCentsOf(String posteId) => inKindCoveredByPosteId[posteId] ?? 0;
 
   /// [resourceId]'s own received total, in cents, tax-inclusive — [receivedByResourceId]'s own
   /// entry for [resourceId], or **0** while it carries none.
@@ -452,6 +468,7 @@ class OcptBudgetSnapshot extends Equatable {
     paidByPosteId,
     offQuotePaidTotal,
     committedByPosteId,
+    inKindCoveredByPosteId,
     cashTotals,
     receivedByResourceId,
     alerts,

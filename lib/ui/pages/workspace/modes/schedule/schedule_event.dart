@@ -2,6 +2,8 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+import 'dart:ui';
+
 import 'package:act_flutter_utility/act_flutter_utility.dart';
 import 'package:open_cine_prod_tools/models/ocpt_call_sheet_export_options.dart';
 import 'package:open_cine_prod_tools/models/ocpt_call_sheet_labels.dart';
@@ -843,16 +845,22 @@ class OcptScheduleCallSheetsExportRequestedEvent extends OcptScheduleEvent {
   /// The localized label of the native "choose a folder" dialog's own confirm button.
   final String confirmButtonText;
 
+  /// The tapped `Export` control's own screen `Rect`, anchoring the OS share sheet's popover on an
+  /// iPad/Mac when the run is handed to it rather than to the native folder dialog; null on desktop
+  /// and wherever no anchor was resolved.
+  final Rect? shareAnchor;
+
   /// Class constructor
   const OcptScheduleCallSheetsExportRequestedEvent({
     required this.options,
     required this.labels,
     required this.confirmButtonText,
+    this.shareAnchor,
   });
 
   /// Object properties
   @override
-  List<Object?> get props => [...super.props, options, labels, confirmButtonText];
+  List<Object?> get props => [...super.props, options, labels, confirmButtonText, shareAnchor];
 }
 
 /// Requests exporting the named call sheets of [options]' own days, one PDF per (selected
@@ -871,16 +879,21 @@ class OcptScheduleNamedCallSheetsExportRequestedEvent extends OcptScheduleEvent 
   /// The localized label of the native "choose a folder" dialog's own confirm button.
   final String confirmButtonText;
 
+  /// The tapped `Export` control's own screen `Rect`, exactly as
+  /// [OcptScheduleCallSheetsExportRequestedEvent.shareAnchor] is — see its own doc comment.
+  final Rect? shareAnchor;
+
   /// Class constructor
   const OcptScheduleNamedCallSheetsExportRequestedEvent({
     required this.options,
     required this.labels,
     required this.confirmButtonText,
+    this.shareAnchor,
   });
 
   /// Object properties
   @override
-  List<Object?> get props => [...super.props, options, labels, confirmButtonText];
+  List<Object?> get props => [...super.props, options, labels, confirmButtonText, shareAnchor];
 }
 
 /// Requests exporting the whole-shoot shooting plan of [options]' own days as a single PDF, written
@@ -897,16 +910,21 @@ class OcptScheduleShootingPlanExportRequestedEvent extends OcptScheduleEvent {
   /// The localized label passed to the native save dialog's own type filter.
   final String fileTypeLabel;
 
+  /// The tapped `Export` control's own screen `Rect`, exactly as
+  /// [OcptScheduleCallSheetsExportRequestedEvent.shareAnchor] is — see its own doc comment.
+  final Rect? shareAnchor;
+
   /// Class constructor
   const OcptScheduleShootingPlanExportRequestedEvent({
     required this.options,
     required this.labels,
     required this.fileTypeLabel,
+    this.shareAnchor,
   });
 
   /// Object properties
   @override
-  List<Object?> get props => [...super.props, options, labels, fileTypeLabel];
+  List<Object?> get props => [...super.props, options, labels, fileTypeLabel, shareAnchor];
 }
 
 /// Requests exporting the whole-shoot shooting plan's own **workbook** of [options]' own days as a
@@ -923,16 +941,21 @@ class OcptScheduleShootingPlanXlsxExportRequestedEvent extends OcptScheduleEvent
   /// The localized label passed to the native save dialog's own type filter.
   final String fileTypeLabel;
 
+  /// The tapped `Export` control's own screen `Rect`, exactly as
+  /// [OcptScheduleCallSheetsExportRequestedEvent.shareAnchor] is — see its own doc comment.
+  final Rect? shareAnchor;
+
   /// Class constructor
   const OcptScheduleShootingPlanXlsxExportRequestedEvent({
     required this.options,
     required this.labels,
     required this.fileTypeLabel,
+    this.shareAnchor,
   });
 
   /// Object properties
   @override
-  List<Object?> get props => [...super.props, options, labels, fileTypeLabel];
+  List<Object?> get props => [...super.props, options, labels, fileTypeLabel, shareAnchor];
 }
 
 /// Requests exporting the cast's own *Day Out of Days* over [options]' own days as a single PDF,
@@ -949,16 +972,21 @@ class OcptScheduleDayOutOfDaysExportRequestedEvent extends OcptScheduleEvent {
   /// The localized label passed to the native save dialog's own type filter.
   final String fileTypeLabel;
 
+  /// The tapped `Export` control's own screen `Rect`, exactly as
+  /// [OcptScheduleCallSheetsExportRequestedEvent.shareAnchor] is — see its own doc comment.
+  final Rect? shareAnchor;
+
   /// Class constructor
   const OcptScheduleDayOutOfDaysExportRequestedEvent({
     required this.options,
     required this.labels,
     required this.fileTypeLabel,
+    this.shareAnchor,
   });
 
   /// Object properties
   @override
-  List<Object?> get props => [...super.props, options, labels, fileTypeLabel];
+  List<Object?> get props => [...super.props, options, labels, fileTypeLabel, shareAnchor];
 }
 
 /// Requests exporting the one-line schedule over `options.dayIds` as a single PDF, written through
@@ -975,16 +1003,21 @@ class OcptScheduleOneLineScheduleExportRequestedEvent extends OcptScheduleEvent 
   /// The localized label passed to the native save dialog's own type filter.
   final String fileTypeLabel;
 
+  /// The tapped `Export` control's own screen `Rect`, exactly as
+  /// [OcptScheduleCallSheetsExportRequestedEvent.shareAnchor] is — see its own doc comment.
+  final Rect? shareAnchor;
+
   /// Class constructor
   const OcptScheduleOneLineScheduleExportRequestedEvent({
     required this.options,
     required this.labels,
     required this.fileTypeLabel,
+    this.shareAnchor,
   });
 
   /// Object properties
   @override
-  List<Object?> get props => [...super.props, options, labels, fileTypeLabel];
+  List<Object?> get props => [...super.props, options, labels, fileTypeLabel, shareAnchor];
 }
 
 /// Requests exporting `options.dayId`'s own sides booklet as a single PDF, written through the
@@ -1000,16 +1033,21 @@ class OcptScheduleSidesExportRequestedEvent extends OcptScheduleEvent {
   /// The localized label passed to the native save dialog's own type filter.
   final String fileTypeLabel;
 
+  /// The tapped `Export` control's own screen `Rect`, exactly as
+  /// [OcptScheduleCallSheetsExportRequestedEvent.shareAnchor] is — see its own doc comment.
+  final Rect? shareAnchor;
+
   /// Class constructor
   const OcptScheduleSidesExportRequestedEvent({
     required this.options,
     required this.labels,
     required this.fileTypeLabel,
+    this.shareAnchor,
   });
 
   /// Object properties
   @override
-  List<Object?> get props => [...super.props, options, labels, fileTypeLabel];
+  List<Object?> get props => [...super.props, options, labels, fileTypeLabel, shareAnchor];
 }
 
 /// Clears the transient export notice currently shown, if any.

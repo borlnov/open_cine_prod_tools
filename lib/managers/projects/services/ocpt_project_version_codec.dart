@@ -50,9 +50,13 @@ import 'package:open_cine_prod_tools/utils/ocpt_row_stamp_key.dart';
 ///
 /// - a payload written in an **older** format would be upgraded, in memory, step by step, up to
 ///   [currentPayloadFormat]; the stored text is never rewritten, so a version stays byte-identical
-///   to what was captured. Per `docs/adr/0029-schema-versions-frozen-at-stable-releases.md`, no
-///   stable release has shipped yet, so there is no older format to upgrade from today — [decode]
-///   reads a payload directly at [currentPayloadFormat];
+///   to what was captured. The 0.1.0 release froze the first such format at 1; the 0.2.0 release
+///   freezes format 2 in turn, added for `budget_lines.inKindResourceId`
+///   (`docs/architecture/budget.md`) — additive and nullable, so a format-1 payload, missing the
+///   key outright, already decodes through the very same [_nullableString] read a format-2 one
+///   does, with no dedicated upgrade step to write. The retired format-1 shape is pinned in
+///   `test/managers/projects/services/ocpt_project_version_codec_test.dart`, per the guidance
+///   below;
 /// - a payload written in a **newer** format — the file has been opened by a later build of the
 ///   app — is refused with [OcptProjectVersionPayloadStatus.unsupportedFutureFormat] rather than
 ///   half-restored.
@@ -79,13 +83,13 @@ class OcptProjectVersionCodec {
   /// one of those two values. Freezing a stable release sets
   /// `lastStablePayloadFormat = currentPayloadFormat`, done at release prep alongside the schema's
   /// own freeze.
-  static const currentPayloadFormat = 1;
+  static const currentPayloadFormat = 2;
 
   /// The highest payload format a stable release has frozen.
   ///
   /// See [currentPayloadFormat]'s own doc comment for the overwrite-vs-create rule these two
   /// constants drive together.
-  static const lastStablePayloadFormat = 1;
+  static const lastStablePayloadFormat = 2;
 
   /// This is the key used to stringify or parse the payload's own format from a JSON object
   static const _payloadFormatKey = "payloadFormat";
@@ -660,6 +664,11 @@ class OcptProjectVersionCodec {
   /// This is the key used to stringify or parse an `elementId` column (`scene_elements.elementId`,
   /// `role_elements.elementId` or `breakdown_tags.elementId`) from a JSON object
   static const _elementIdKey = "elementId";
+
+  /// This is the key used to stringify or parse a `budget_lines.inKindResourceId` column from a
+  /// JSON object — the in-kind `budget_resources` contribution a quote line is the counterpart of,
+  /// null for an ordinary line.
+  static const _inKindResourceIdKey = "inKindResourceId";
 
   /// The row key naming what provisioned a `budget_lines` row, null while a human typed it.
   static const _provisionKeyKey = "provisionKey";
@@ -1912,6 +1921,7 @@ class OcptProjectVersionCodec {
     _isTaxInclusiveKey: row.isTaxInclusive,
     _vatRateBasisPointsKey: row.vatRateBasisPoints,
     _elementIdKey: row.elementId,
+    _inKindResourceIdKey: row.inKindResourceId,
     _provisionKeyKey: row.provisionKey,
     _provisionDigestKey: row.provisionDigest,
     _notesKey: row.notes,
@@ -1930,6 +1940,7 @@ class OcptProjectVersionCodec {
     isTaxInclusive: _bool(json, _isTaxInclusiveKey),
     vatRateBasisPoints: _nullableInt(json, _vatRateBasisPointsKey),
     elementId: _nullableString(json, _elementIdKey),
+    inKindResourceId: _nullableString(json, _inKindResourceIdKey),
     provisionKey: _nullableString(json, _provisionKeyKey),
     provisionDigest: _nullableString(json, _provisionDigestKey),
     notes: _string(json, _notesKey),

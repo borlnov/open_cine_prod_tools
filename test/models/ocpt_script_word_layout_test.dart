@@ -4,9 +4,11 @@
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fountain_kit/fountain_kit.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_assets_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_breakdown_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_elements_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_locations_service.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_role_candidates_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_role_index_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_scene_index_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_schedule_service.dart';
@@ -477,19 +479,35 @@ void main() {
 
   test("a range built from two words of one block passes OcptShotCoverageService.addRange's "
       "own single-block rule", () async {
-    const shotListService = OcptShotListService();
-    const coverageService = OcptShotCoverageService();
+    Future<String> testDeviceId() async => "test-device";
+    final shotListService = OcptShotListService(deviceId: testDeviceId);
+    final coverageService = OcptShotCoverageService(deviceId: testDeviceId);
     const sceneIndexService = OcptSceneIndexService();
-    const screenplayService = OcptScreenplayService(
+    final assetsService = OcptAssetsService(deviceId: testDeviceId);
+    final elementsService = OcptElementsService(
+      assetsService: assetsService,
+      deviceId: testDeviceId,
+    );
+    final locationsService = OcptLocationsService(
+      assetsService: assetsService,
+      deviceId: testDeviceId,
+    );
+    final screenplayService = OcptScreenplayService(
       sceneIndexService: sceneIndexService,
       shotListService: shotListService,
       shotCoverageService: coverageService,
-      roleIndexService: OcptRoleIndexService(),
-      breakdownService: OcptBreakdownService(
-        elementsService: OcptElementsService(),
-        locationsService: OcptLocationsService(),
+      roleIndexService: OcptRoleIndexService(
+        elementsService: elementsService,
+        roleCandidatesService: OcptRoleCandidatesService(deviceId: testDeviceId),
+        deviceId: testDeviceId,
       ),
-      scheduleService: OcptScheduleService(),
+      breakdownService: OcptBreakdownService(
+        elementsService: elementsService,
+        locationsService: locationsService,
+        deviceId: testDeviceId,
+      ),
+      scheduleService: OcptScheduleService(deviceId: testDeviceId),
+      deviceId: testDeviceId,
     );
     const screenplayId = "screenplay-1";
 

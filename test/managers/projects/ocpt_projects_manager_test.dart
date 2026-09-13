@@ -91,7 +91,7 @@ void main() {
 
       // Under `flutter test` no `--dart-define=APP_VERSION=...` is passed, so this is the
       // manager's own local/dev fallback — see `OcptProjectsManager._appVersion`.
-      expect(info.migratedByAppVersion, "0.1.0");
+      expect(info.migratedByAppVersion, "0.2.0");
       expect(info.appVersionAtCreation, info.migratedByAppVersion);
     },
   );
@@ -849,16 +849,16 @@ void main() {
   });
 
   group("opening a file from another build", () {
-    // No "older" file case is exercised here any more: per
-    // `docs/adr/0029-schema-versions-frozen-at-stable-releases.md`, the squash resets
-    // `OcptProjectDatabase.currentSchemaVersion` to `1`, the very first schema, and
-    // `OcptProjectFileCompatibilityService.probe` treats any `PRAGMA user_version <= 0` as
-    // `unreadable` rather than `older` — a database
-    // states `0` until something writes a version into it, which is never a real older project.
-    // There is therefore no positive schema number below the current one for a test file to state,
-    // so `older`/`migrationRequired` cannot be exercised through the manager until a real schema
-    // version 2 exists. `OcptProjectFileCompatibilityService`'s own tests already cover that verdict
-    // in isolation, at a schema number decoupled from this constant.
+    // No "older" file case is exercised here: while `OcptProjectDatabase.currentSchemaVersion` was
+    // still `1` — the very first schema, per
+    // `docs/adr/0029-schema-versions-frozen-at-stable-releases.md`'s squash —
+    // `OcptProjectFileCompatibilityService.probe` had no positive schema number below the current
+    // one for a test file to state (`PRAGMA user_version <= 0` reads as `unreadable`, not `older`),
+    // so `older`/`migrationRequired` could not be exercised through the manager at all; now that a
+    // real schema version 2 exists, `home_bloc_test.dart`'s "a project file from another build"
+    // group is where that flow is actually driven through a bloc, and
+    // `OcptProjectFileCompatibilityService`'s own tests cover the verdict in isolation, at a schema
+    // number decoupled from this constant.
 
     /// Stamps [userVersion] onto the project file at [filePath], changing nothing else.
     void stampFormat(String filePath, int userVersion) {
@@ -936,9 +936,9 @@ void main() {
         await manager.createProject(name: "From Another Workshop", filePath: foreignPath);
         await manager.closeCurrentProject();
         // A pre-release writer, whereas the manager's own fallback under `flutter test` is the
-        // stable "0.1.0" (per `OcptProjectsManager._appVersion`): same schema, and a pre-release
+        // stable "0.2.0" (per `OcptProjectsManager._appVersion`): same schema, and a pre-release
         // is involved on the writer side, so the file is a foreign dev build.
-        stampWriter(foreignPath, "0.1.0-alpha.99");
+        stampWriter(foreignPath, "0.2.0-alpha.99");
 
         // Reopen "Current" since createProject above closed it to open "foreign.ocpt".
         await manager.openProject(filePath: openPath);
@@ -957,7 +957,7 @@ void main() {
       // The manager's own local/dev fallback under `flutter test` — see
       // `OcptProjectsManager._appVersion`. Already stamped by createProject, but stamped again
       // explicitly here to state exactly what this test is about.
-      stampWriter(filePath, "0.1.0");
+      stampWriter(filePath, "0.2.0");
 
       final result = await manager.openProject(filePath: filePath);
 

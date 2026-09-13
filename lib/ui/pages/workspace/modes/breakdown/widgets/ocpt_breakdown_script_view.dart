@@ -22,6 +22,7 @@ import 'package:open_cine_prod_tools/ui/utils/ocpt_warning_color.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_breakdown_legend.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_breakdown_scene_bars.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_breakdown_search.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_responsive.dart';
 
 /// A tagged word's target selected by the caret/list, exactly as the bloc's own state holds it:
 /// `(kind, id)`.
@@ -52,9 +53,20 @@ const double _ocptBreakdownSelectedTagRingWidth = 1.5;
 /// their two bands. Mirrors `OcptShotCoverageDialog`'s own `_ocptWordVerticalPadding`.
 const double _ocptWordVerticalPadding = 2;
 
+/// The vertical padding kept inside the white sheet on a phone, replacing the page's own (much
+/// larger) top/bottom print margins: the compact sheet fills the row and stands in for the desktop's
+/// floating page, so it wants the screenplay editor's own small fluid inset rather than a full
+/// inch of paper margin before the first scene.
+const double _ocptCompactSheetVerticalPadding = 16;
+
 /// The breakdown mode's `centre`: the whole screenplay typeset on a simulated paper sheet, centred
 /// and scrollable, in Courier Prime at its true screenplay indents — one sheet, its scenes running
 /// on continuously the way the raw mode's own preview reads, rather than one scene at a time.
+///
+/// On a phone the sheet fills the row instead of floating at its fixed page width, and every indent
+/// and box width is scaled down by [OcptEditorPreviewLayout.compactLayoutScale] — the same factor
+/// the screenplay editor's own compact fluid surface uses, so the tagging surface reads the way the
+/// writing one does there rather than wasting most of the row on the print margin.
 ///
 /// Built scene by scene from [OcptScriptWordLayout.of], sliced out of the whole screenplay text
 /// with each [OcptBreakdownScene.charStart]/`charEnd`, and rendered through
@@ -200,55 +212,67 @@ class OcptBreakdownScriptView extends StatelessWidget {
 
     final theme = Theme.of(context);
     final previewLayout = OcptEditorPreviewLayout(metrics: pageSetup.toMetrics());
+    // On a phone the real screenplay indents (a character cue ≈ 3.7″ from the page's left edge) leave
+    // far too much margin to read, and the full page is wider than the row: the sheet fills the row
+    // and every indent and box width is scaled down by the same factor the screenplay editor's own
+    // compact fluid surface uses (`OcptFountainEditorStylesheet`), so the two read identically.
+    final isPhone = ocptIsPhoneWidth(MediaQuery.sizeOf(context).width);
+    final layoutScale = isPhone ? OcptEditorPreviewLayout.compactLayoutScale : 1.0;
 
     return ColoredBox(
       color: theme.extension<OcptSpecificColors>()!.previewBackdrop,
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(vertical: 16),
-        child: Center(
-          child: Material(
-            color: Colors.white,
-            elevation: 2,
-            borderRadius: BorderRadius.circular(3),
-            clipBehavior: Clip.antiAlias,
-            child: SizedBox(
-              width: previewLayout.pageWidth,
-              child: Padding(
-                padding: EdgeInsets.only(
-                  top: previewLayout.marginTop,
-                  bottom: previewLayout.marginBottom,
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    for (final scene in scenes)
-                      _OcptBreakdownSceneSheet(
-                        scene: scene,
-                        sceneText: _sceneTextOf(scene),
-                        targetById: targetById,
-                        previewLayout: previewLayout,
-                        isSelected: scene.id == selectedSceneId,
-                        onHeadingTapped: () => onSceneSelected(scene.id),
-                        hiddenLegendKeys: hiddenLegendKeys,
-                        selectedTargetRef: selectedTargetRef,
-                        onTargetSelected: onTargetSelected,
-                        onWordClicked: onWordClicked,
-                        pendingTagAnchor: pendingTagAnchor,
-                        pendingTagRange: pendingTagRange,
-                        candidates: candidates,
-                        onPopoverCancelled: onPopoverCancelled,
-                        onPopoverTargetLinked: onPopoverTargetLinked,
-                        onPopoverElementCreationRequested: onPopoverElementCreationRequested,
-                        locations: locations,
-                        onPopoverSetCreationRequested: onPopoverSetCreationRequested,
-                        onOpenInResourcesRequested: onOpenInResourcesRequested,
-                      ),
-                  ],
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final sheetWidth = isPhone ? constraints.maxWidth : previewLayout.pageWidth;
+          return SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            child: Center(
+              child: Material(
+                color: Colors.white,
+                elevation: 2,
+                borderRadius: BorderRadius.circular(3),
+                clipBehavior: Clip.antiAlias,
+                child: SizedBox(
+                  width: sheetWidth,
+                  child: Padding(
+                    padding: EdgeInsets.only(
+                      top: isPhone ? _ocptCompactSheetVerticalPadding : previewLayout.marginTop,
+                      bottom: isPhone ? _ocptCompactSheetVerticalPadding : previewLayout.marginBottom,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        for (final scene in scenes)
+                          _OcptBreakdownSceneSheet(
+                            scene: scene,
+                            sceneText: _sceneTextOf(scene),
+                            targetById: targetById,
+                            previewLayout: previewLayout,
+                            layoutScale: layoutScale,
+                            isSelected: scene.id == selectedSceneId,
+                            onHeadingTapped: () => onSceneSelected(scene.id),
+                            hiddenLegendKeys: hiddenLegendKeys,
+                            selectedTargetRef: selectedTargetRef,
+                            onTargetSelected: onTargetSelected,
+                            onWordClicked: onWordClicked,
+                            pendingTagAnchor: pendingTagAnchor,
+                            pendingTagRange: pendingTagRange,
+                            candidates: candidates,
+                            onPopoverCancelled: onPopoverCancelled,
+                            onPopoverTargetLinked: onPopoverTargetLinked,
+                            onPopoverElementCreationRequested: onPopoverElementCreationRequested,
+                            locations: locations,
+                            onPopoverSetCreationRequested: onPopoverSetCreationRequested,
+                            onOpenInResourcesRequested: onOpenInResourcesRequested,
+                          ),
+                      ],
+                    ),
+                  ),
                 ),
               ),
             ),
-          ),
-        ),
+          );
+        },
       ),
     );
   }
@@ -277,6 +301,10 @@ class _OcptBreakdownSceneSheet extends StatelessWidget {
 
   /// The pixel geometry the sheet is typeset with.
   final OcptEditorPreviewLayout previewLayout;
+
+  /// The multiplier every indent and box width is scaled by — 1 on the desktop, the compact factor
+  /// on a phone (`OcptEditorPreviewLayout.compactLayoutScale`).
+  final double layoutScale;
 
   /// Whether [scene] is the selected one.
   final bool isSelected;
@@ -332,6 +360,7 @@ class _OcptBreakdownSceneSheet extends StatelessWidget {
     required this.sceneText,
     required this.targetById,
     required this.previewLayout,
+    required this.layoutScale,
     required this.isSelected,
     required this.onHeadingTapped,
     required this.hiddenLegendKeys,
@@ -367,6 +396,7 @@ class _OcptBreakdownSceneSheet extends StatelessWidget {
               _OcptBreakdownSceneHeadingBlock(
                 block: layout.blocks[i],
                 previewLayout: previewLayout,
+                layoutScale: layoutScale,
                 isSelected: isSelected,
                 targetCount: targetCount,
                 onTap: onHeadingTapped,
@@ -380,6 +410,7 @@ class _OcptBreakdownSceneSheet extends StatelessWidget {
                 hiddenLegendKeys: hiddenLegendKeys,
                 selectedTargetRef: selectedTargetRef,
                 previewLayout: previewLayout,
+                layoutScale: layoutScale,
                 isFollowedByBlankLine: _isFollowedByBlankLine(layout, i),
                 onTargetSelected: onTargetSelected,
                 onWordClicked: onWordClicked,
@@ -414,6 +445,10 @@ class _OcptBreakdownSceneHeadingBlock extends StatelessWidget {
   /// The pixel geometry the sheet is typeset with.
   final OcptEditorPreviewLayout previewLayout;
 
+  /// The multiplier this heading's indent is scaled by — 1 on the desktop, the compact factor on a
+  /// phone (`OcptEditorPreviewLayout.compactLayoutScale`).
+  final double layoutScale;
+
   /// Whether this heading's scene is the selected one.
   final bool isSelected;
 
@@ -430,6 +465,7 @@ class _OcptBreakdownSceneHeadingBlock extends StatelessWidget {
   const _OcptBreakdownSceneHeadingBlock({
     required this.block,
     required this.previewLayout,
+    required this.layoutScale,
     required this.isSelected,
     required this.targetCount,
     required this.onTap,
@@ -471,7 +507,7 @@ class _OcptBreakdownSceneHeadingBlock extends StatelessWidget {
               const SizedBox(width: 6),
               Expanded(
                 child: Padding(
-                  padding: EdgeInsets.only(left: previewLayout.indentOf(element)),
+                  padding: EdgeInsets.only(left: previewLayout.indentOf(element) * layoutScale),
                   child: Text.rich(
                     TextSpan(children: _spansOf(block, printStyle.isUppercase, baseStyle)),
                     style: baseStyle,
@@ -517,6 +553,10 @@ class _OcptBreakdownScriptBlock extends StatelessWidget {
 
   /// The pixel geometry the sheet is typeset with.
   final OcptEditorPreviewLayout previewLayout;
+
+  /// The multiplier this block's indent and box width are scaled by — 1 on the desktop, the compact
+  /// factor on a phone (`OcptEditorPreviewLayout.compactLayoutScale`).
+  final double layoutScale;
 
   /// Whether the source leaves a blank line right after this block.
   final bool isFollowedByBlankLine;
@@ -565,6 +605,7 @@ class _OcptBreakdownScriptBlock extends StatelessWidget {
     required this.hiddenLegendKeys,
     required this.selectedTargetRef,
     required this.previewLayout,
+    required this.layoutScale,
     required this.isFollowedByBlankLine,
     required this.onTargetSelected,
     required this.onWordClicked,
@@ -598,9 +639,9 @@ class _OcptBreakdownScriptBlock extends StatelessWidget {
       child: Align(
         alignment: Alignment.topLeft,
         child: Padding(
-          padding: EdgeInsets.only(left: previewLayout.indentOf(element)),
+          padding: EdgeInsets.only(left: previewLayout.indentOf(element) * layoutScale),
           child: SizedBox(
-            width: previewLayout.widthOf(element),
+            width: previewLayout.widthOf(element) * layoutScale,
             child: Text.rich(
               TextSpan(
                 children: [

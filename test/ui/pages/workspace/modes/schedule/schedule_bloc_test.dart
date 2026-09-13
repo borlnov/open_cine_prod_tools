@@ -4,6 +4,7 @@
 
 import 'dart:async';
 import 'dart:io';
+import 'dart:ui';
 
 import 'package:act_file_transfer_manager/act_file_transfer_manager.dart';
 import 'package:drift/drift.dart' show Value;
@@ -30,6 +31,7 @@ import 'package:open_cine_prod_tools/models/ocpt_sides_export_options.dart';
 import 'package:open_cine_prod_tools/models/ocpt_sides_labels.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_source_kind.dart';
+import 'package:open_cine_prod_tools/types/ocpt_export_outcome.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
@@ -320,6 +322,7 @@ class _FakeScheduleExportManager extends OcptExportManager {
     required OcptCallSheetLabels labels,
     required String projectName,
     required String confirmButtonText,
+    Rect? shareAnchor,
   }) async {
     lastGeneralPlan = plan;
     lastGeneralDayIds = dayIds;
@@ -340,6 +343,7 @@ class _FakeScheduleExportManager extends OcptExportManager {
     required OcptCallSheetLabels labels,
     required String projectName,
     required String confirmButtonText,
+    Rect? shareAnchor,
   }) async {
     lastNamedDayIds = dayIds;
     lastNamedConvocationKeys = convocationKeys;
@@ -351,7 +355,7 @@ class _FakeScheduleExportManager extends OcptExportManager {
   }
 
   @override
-  Future<String?> exportShootingPlan({
+  Future<OcptExportOutcome?> exportShootingPlan({
     required OcptSchedulePlanSnapshot plan,
     required List<String> dayIds,
     required OcptPageSetup pageSetup,
@@ -364,33 +368,37 @@ class _FakeScheduleExportManager extends OcptExportManager {
     required bool includeTenMinuteGrid,
     required bool includeElementsGrid,
     required String fileTypeLabel,
+    Rect? shareAnchor,
   }) async {
     lastShootingPlanDayIds = dayIds;
 
     if (shootingPlanFails) {
       throw StateError("shooting plan export intentionally failed for the test");
     }
-    return shootingPlanResult;
+    final result = shootingPlanResult;
+    return result == null ? null : OcptExportSaved(result);
   }
 
   @override
-  Future<String?> exportShootingPlanXlsx({
+  Future<OcptExportOutcome?> exportShootingPlanXlsx({
     required OcptSchedulePlanSnapshot plan,
     required List<String> dayIds,
     required OcptShootingPlanXlsxLabels labels,
     required String projectName,
     required String fileTypeLabel,
+    Rect? shareAnchor,
   }) async {
     lastShootingPlanXlsxDayIds = dayIds;
 
     if (shootingPlanXlsxFails) {
       throw StateError("shooting plan workbook export intentionally failed for the test");
     }
-    return shootingPlanXlsxResult;
+    final result = shootingPlanXlsxResult;
+    return result == null ? null : OcptExportSaved(result);
   }
 
   @override
-  Future<String?> exportDayOutOfDays({
+  Future<OcptExportOutcome?> exportDayOutOfDays({
     required OcptSchedulePlanSnapshot plan,
     required List<String> dayIds,
     required OcptPageSetup pageSetup,
@@ -398,17 +406,19 @@ class _FakeScheduleExportManager extends OcptExportManager {
     required String projectName,
     required bool includeTitlePage,
     required String fileTypeLabel,
+    Rect? shareAnchor,
   }) async {
     lastDayOutOfDaysDayIds = dayIds;
 
     if (dayOutOfDaysFails) {
       throw StateError("day out of days export intentionally failed for the test");
     }
-    return dayOutOfDaysResult;
+    final result = dayOutOfDaysResult;
+    return result == null ? null : OcptExportSaved(result);
   }
 
   @override
-  Future<String?> exportSides({
+  Future<OcptExportOutcome?> exportSides({
     required OcptSchedulePlanSnapshot plan,
     required String dayId,
     required List<({String screenplayId, FountainDocument document})> documents,
@@ -418,6 +428,7 @@ class _FakeScheduleExportManager extends OcptExportManager {
     required bool includeSceneNumbers,
     required OcptSidesPresentation presentation,
     required String fileTypeLabel,
+    Rect? shareAnchor,
   }) async {
     lastSidesDayId = dayId;
     lastSidesPresentation = presentation;
@@ -429,7 +440,8 @@ class _FakeScheduleExportManager extends OcptExportManager {
     if (sidesFails) {
       throw StateError("sides export intentionally failed for the test");
     }
-    return sidesResult;
+    final result = sidesResult;
+    return result == null ? null : OcptExportSaved(result);
   }
 }
 

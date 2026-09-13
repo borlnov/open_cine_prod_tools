@@ -21,6 +21,7 @@ import 'package:drift/drift.dart' show OrderingTerm, Value;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/constants/ocpt_budget_cnc_postes.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_assets_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_breakdown_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_budget_financing_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_budget_journal_service.dart';
@@ -29,6 +30,7 @@ import 'package:open_cine_prod_tools/managers/projects/services/ocpt_budget_shar
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_elements_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_locations_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_people_service.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_role_candidates_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_role_index_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_scene_index_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_schedule_service.dart';
@@ -151,27 +153,43 @@ void main() {
   // merely accessing it creates the (otherwise unused) singleton.
   setUpAll(() => OcptGlobalManager.instance);
 
-  const elementsService = OcptElementsService();
-  const locationsService = OcptLocationsService();
-  const roleIndexService = OcptRoleIndexService();
-  const breakdownService = OcptBreakdownService(
+  Future<String> deviceId() async => "seed-device";
+  final assetsService = OcptAssetsService(deviceId: deviceId);
+  final roleCandidatesService = OcptRoleCandidatesService(deviceId: deviceId);
+  final elementsService = OcptElementsService(assetsService: assetsService, deviceId: deviceId);
+  final locationsService = OcptLocationsService(assetsService: assetsService, deviceId: deviceId);
+  final roleIndexService = OcptRoleIndexService(
+    elementsService: elementsService,
+    roleCandidatesService: roleCandidatesService,
+    deviceId: deviceId,
+  );
+  final breakdownService = OcptBreakdownService(
     elementsService: elementsService,
     locationsService: locationsService,
+    deviceId: deviceId,
   );
-  const shotListService = OcptShotListService();
-  const peopleService = OcptPeopleService();
-  const scheduleService = OcptScheduleService();
-  const budgetQuoteService = OcptBudgetQuoteService();
-  const budgetJournalService = OcptBudgetJournalService();
-  const budgetFinancingService = OcptBudgetFinancingService();
-  const budgetSharingService = OcptBudgetSharingService();
-  const screenplayService = OcptScreenplayService(
-    sceneIndexService: OcptSceneIndexService(),
+  final shotListService = OcptShotListService(deviceId: deviceId);
+  final peopleService = OcptPeopleService(
+    deviceId: deviceId,
+    assetsService: assetsService,
+    roleCandidatesService: roleCandidatesService,
+  );
+  final scheduleService = OcptScheduleService(deviceId: deviceId);
+  final budgetQuoteService = OcptBudgetQuoteService(deviceId: deviceId);
+  final budgetJournalService = OcptBudgetJournalService(
+    assetsService: assetsService,
+    deviceId: deviceId,
+  );
+  final budgetFinancingService = OcptBudgetFinancingService(deviceId: deviceId);
+  final budgetSharingService = OcptBudgetSharingService(deviceId: deviceId);
+  final screenplayService = OcptScreenplayService(
+    sceneIndexService: const OcptSceneIndexService(),
     shotListService: shotListService,
-    shotCoverageService: OcptShotCoverageService(),
+    shotCoverageService: OcptShotCoverageService(deviceId: deviceId),
     roleIndexService: roleIndexService,
     breakdownService: breakdownService,
     scheduleService: scheduleService,
+    deviceId: deviceId,
   );
 
   test("seed the demonstration project", () async {

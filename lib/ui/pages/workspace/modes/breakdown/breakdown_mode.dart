@@ -172,7 +172,7 @@ class _BreakdownViewState extends State<_BreakdownView> {
           OcptWorkspaceEpisodeSelectedEvent(episodeId: episodeId),
         ),
         modeLabel: Tr.of(context).workspaceModeLabelBreakdown,
-        onExportRequested: () => unawaited(_requestExport(context, state)),
+        onExportRequested: (anchor) => unawaited(_requestExport(context, state, anchor)),
         overflowEntries: _buildOverflowEntries(context),
         isLeftDockOpen: state.isListPanelVisible,
         onToggleLeftDock: () =>
@@ -246,7 +246,11 @@ class _BreakdownViewState extends State<_BreakdownView> {
   /// breakdown sheets go through [_requestSheetsExport], which opens their own options dialog
   /// first, while the workbook goes straight from [_requestXlsxExport] to the bloc — it takes no
   /// options dialog at all.
-  Future<void> _requestExport(BuildContext context, OcptBreakdownState state) async {
+  Future<void> _requestExport(
+    BuildContext context,
+    OcptBreakdownState state,
+    Rect? shareAnchor,
+  ) async {
     final tr = Tr.of(context);
     final picked = await OcptWorkspaceExportDialog.show<OcptBreakdownExportDocument>(
       context,
@@ -266,9 +270,9 @@ class _BreakdownViewState extends State<_BreakdownView> {
       case OcptWorkspaceExportDocumentPick<OcptBreakdownExportDocument>(:final document):
         switch (document) {
           case OcptBreakdownExportDocument.sheets:
-            await _requestSheetsExport(context, state);
+            await _requestSheetsExport(context, state, shareAnchor);
           case OcptBreakdownExportDocument.xlsx:
-            _requestXlsxExport(context);
+            _requestXlsxExport(context, shareAnchor);
         }
       case OcptWorkspaceExportProjectPackagePick<OcptBreakdownExportDocument>():
         _requestProjectPackageExport(context);
@@ -278,7 +282,11 @@ class _BreakdownViewState extends State<_BreakdownView> {
   /// Shows the breakdown sheets export options dialog, then dispatches the export request if the
   /// user applied it, resolving here — the last place with a [BuildContext] — every localized
   /// string the exported document and the native save dialog carry.
-  Future<void> _requestSheetsExport(BuildContext context, OcptBreakdownState state) async {
+  Future<void> _requestSheetsExport(
+    BuildContext context,
+    OcptBreakdownState state,
+    Rect? shareAnchor,
+  ) async {
     final bloc = context.read<OcptBreakdownBloc>();
     final options = await OcptBreakdownSheetsExportDialog.show(context, current: state.pageSetup);
     if (options == null) {
@@ -295,6 +303,7 @@ class _BreakdownViewState extends State<_BreakdownView> {
         labels: ocptBreakdownSheetsLabelsOf(tr, state.scenes),
         fileTypeLabel: tr.breakdownExportSheetsFileTypeLabel,
         episodeTag: _episodeExportTag(context),
+        shareAnchor: shareAnchor,
       ),
     );
   }
@@ -302,7 +311,7 @@ class _BreakdownViewState extends State<_BreakdownView> {
   /// Dispatches the breakdown workbook export request straight away — resolving here every
   /// localized string the exported document and the native save dialog carry, exactly as
   /// [_requestSheetsExport] does, but with no options dialog first: the workbook takes none.
-  void _requestXlsxExport(BuildContext context) {
+  void _requestXlsxExport(BuildContext context, Rect? shareAnchor) {
     final bloc = context.read<OcptBreakdownBloc>();
     final tr = Tr.of(context);
     bloc.add(
@@ -310,6 +319,7 @@ class _BreakdownViewState extends State<_BreakdownView> {
         labels: ocptBreakdownXlsxLabelsOf(tr),
         fileTypeLabel: tr.breakdownExportXlsxFileTypeLabel,
         episodeTag: _episodeExportTag(context),
+        shareAnchor: shareAnchor,
       ),
     );
   }
@@ -928,18 +938,18 @@ class _BreakdownViewState extends State<_BreakdownView> {
   }
 
   /// Maps [notice] to its localized, user-facing message, mirroring
-  /// `OcptResourcesMode._ioNoticeMessage`.
+  /// `OcptResourcesMode._ioNoticeMessage`, [OcptBreakdownIoNotice.wasShared] included.
   String _ioNoticeMessage(BuildContext context, OcptBreakdownIoNotice notice) {
     final tr = Tr.of(context);
 
     return switch (notice.kind) {
-      OcptBreakdownIoNoticeKind.sheetsExportSucceeded => tr.breakdownExportSheetsSuccessMessage(
-        notice.path ?? "",
-      ),
+      OcptBreakdownIoNoticeKind.sheetsExportSucceeded => notice.wasShared
+          ? tr.exportSharedMessage
+          : tr.breakdownExportSheetsSuccessMessage(notice.path ?? ""),
       OcptBreakdownIoNoticeKind.sheetsExportFailed => tr.breakdownExportSheetsError,
-      OcptBreakdownIoNoticeKind.xlsxExportSucceeded => tr.breakdownExportXlsxSuccessMessage(
-        notice.path ?? "",
-      ),
+      OcptBreakdownIoNoticeKind.xlsxExportSucceeded => notice.wasShared
+          ? tr.exportSharedMessage
+          : tr.breakdownExportXlsxSuccessMessage(notice.path ?? ""),
       OcptBreakdownIoNoticeKind.xlsxExportFailed => tr.breakdownExportXlsxError,
     };
   }

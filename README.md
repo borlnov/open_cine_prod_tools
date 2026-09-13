@@ -68,6 +68,12 @@ detail:
 - Project versions: named, permanent checkpoints, restored as an edit rather than a reset.
 - A portable `.ocptz` package that bundles the project with every photo, permit and document it
   points at.
+- Collaboration and sync: share a project across devices, each keeping the whole of it offline,
+  with edits that queue locally and merge on reconnect. A self-hostable, domain-blind relay carries
+  the changes (run one on a laptop on set, or host it in-app from the app itself), with pairing by
+  QR code or invite link, live presence, and a sync status indicator.
+- Responsive layouts for tablets and phones: resizable docks and a compact workspace that follow
+  the window down to a phone, with a mobile share sheet for exports.
 - Imports from Fountain, Final Draft (`.fdx`) and Celtx (`.celtx`), and exports to PDF, Fountain
   and XLSX - including a scenario coverage export that shows what the shot list still leaves out.
 - Autosave, a system-following light/dark theme, and English (`en_GB`) and French interfaces.
@@ -177,10 +183,12 @@ lib/                   Application source
 packages/fountain_kit/ Pure-Dart Fountain parser, serializer and layout metrics
 packages/script_import_kit/ Pure-Dart Final Draft and Celtx readers, emitting Fountain
 packages/spell_kit/    Pure-Dart hunspell reader, spell checker and suggester
+packages/ocpt_sync_protocol/ Pure-Dart sync changeset engine and relay wire protocol
+packages/ocpt_sync_relay/ The self-hostable, domain-blind sync relay server
 actlibs/               ACT Flutter packages (git submodule)
 assets/                Config, fonts, branding, dictionaries and other bundled assets
 test/                  Application test suite
-tool/                  Developer scripts (branding icon generation)
+tool/                  Developer scripts (branding icons, app screenshots, markdown checks)
 docs/                  Architecture, plans and decision records
 .github/               CI workflows and release pipeline
 ```
