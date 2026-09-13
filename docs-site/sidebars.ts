@@ -47,6 +47,17 @@ const sidebars: SidebarsConfig = {
     },
     {
       type: 'category',
+      label: 'Collaboration & sync',
+      items: [
+        'collaboration/how-collaboration-works',
+        'collaboration/sharing-a-project',
+        'collaboration/joining-a-project',
+        'collaboration/on-set-server',
+        'collaboration/tablet-and-phone',
+      ],
+    },
+    {
+      type: 'category',
       label: 'Exporting your work',
       items: ['exports/exporting-your-work'],
     },

@@ -15,6 +15,10 @@
     "message": "Modes de production",
     "description": "The label for category Production modes in sidebar guideSidebar"
   },
+  "sidebar.guideSidebar.category.Collaboration & sync": {
+    "message": "Collaboration et synchronisation",
+    "description": "The label for category Collaboration & sync in sidebar guideSidebar"
+  },
   "sidebar.guideSidebar.category.Exporting your work": {
     "message": "Exporter votre travail",
     "description": "The label for category Exporting your work in sidebar guideSidebar"
