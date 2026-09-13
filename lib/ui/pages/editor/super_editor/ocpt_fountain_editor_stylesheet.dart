@@ -57,33 +57,16 @@ class OcptFountainEditorStylesheet {
   /// the fluid, theme-following editing surface, top and bottom alike).
   static const double _fluidVerticalDocumentPaddingInset = 16;
 
-  /// The multiplier every element's indent and box width (`Styles.maxWidth`, always `indent +
-  /// width`) is scaled by on the compact fluid surface (see [_rule]'s `isCompact` handling and
-  /// `docs/plans/tablet.md`).
-  ///
-  /// Every full-width element (action, scene heading, character, parenthetical, transition,
-  /// centered text) shares the same desktop `indent + width`, since it always sums to the page's
-  /// right margin — that single shared value (≈585px on US Letter at this editor's font size,
-  /// well past a phone's own content width) is the number this scale has to bring down, and a
-  /// uniform multiplier applied to *both* halves of every element's box is what keeps the
-  /// desktop's own proportions intact while doing it: every element keeps its indent relative to
-  /// every other (character further right than dialogue, further right than parenthetical, the
-  /// same staggered hierarchy paper has), dialogue and lyrics keep their own narrower box relative
-  /// to the full-width ones, and every full-width element's right edge still lands in the same
-  /// place as every other's, all of it just at half scale rather than a per-type redesign. Chosen,
-  /// not derived, from that one width: halving the ≈585px figure above lands at ≈293px, which
-  /// leaves comfortable room either side of it inside a phone's own content width (a 375px design
-  /// width minus this stylesheet's own horizontal `documentPadding` and the workspace shell's
-  /// insets) without shrinking the text column to the point of wrapping every other word.
-  static const double _compactLayoutScale = 0.5;
-
   /// Builds the stylesheet for typesetting the styled editor at [metrics].
   ///
   /// When [isPageSimulationEnabled] is off, colors follow [colorScheme] (so the editing surface
-  /// follows the app's light/dark theme). When it's on, every color is a fixed paper color (black
-  /// text, greyed-out scaffolding) instead, regardless of [colorScheme]: the simulated page is
-  /// always white, so a theme-derived color (in particular dark mode's light `onSurface`) would
-  /// otherwise render invisible or near-invisible on it. A page-starting node (flagged by
+  /// follows the app's light/dark theme) — *unless* [usePaperColors] forces the fixed paper colors
+  /// on regardless (a phone, where the fluid surface stands in for the desktop's simulated page and
+  /// must read as paper, see `OcptStyledScreenplayEditor`). When page simulation is on, every color
+  /// is a fixed paper color (black text, greyed-out scaffolding) regardless of [colorScheme] for the
+  /// same reason [usePaperColors] requests it: the sheet is always white, so a theme-derived color
+  /// (in particular dark mode's light `onSurface`) would otherwise render invisible or
+  /// near-invisible on it. A page-starting node (flagged by
   /// [ocptStartsNewPageMetadataKey], set by `computeOcptStyledPagination`) also gets extra top
   /// padding — the exact pixel amount `computeOcptStyledPagination` computed for it — standing in
   /// for the page gap and the previous/next page's margins. When page simulation is on, the
@@ -93,9 +76,10 @@ class OcptFountainEditorStylesheet {
   /// every other simulated page (see [OcptStyledPagination.trailingBottomPadding]'s own doc
   /// comment for how that padding is computed).
   ///
-  /// [isCompact] scales every element's indent and box width down by [_compactLayoutScale] (see
-  /// [_rule]), carrying the block hierarchy by *style* rather than by real screenplay-sized
-  /// indents — a phone has no room for the real ones (`docs/plans/tablet.md`). It only ever takes
+  /// [isCompact] scales every element's indent and box width down by
+  /// [OcptEditorPreviewLayout.compactLayoutScale] (see [_rule]), carrying the block hierarchy by
+  /// *style* rather than by real screenplay-sized indents — a phone has no room for the real ones.
+  /// It only ever takes
   /// effect together with [isPageSimulationEnabled] being off: a paginated page keeps the real,
   /// print-accurate indents, since it simulates actual paper the desktop PDF exporter must agree
   /// with pixel for pixel, and `computeOcptStyledPagination` sizes every simulated sheet from
@@ -109,12 +93,17 @@ class OcptFountainEditorStylesheet {
     required bool isPageSimulationEnabled,
     double trailingBottomPadding = 0,
     bool isCompact = false,
+    bool usePaperColors = false,
   }) {
     final layout = OcptEditorPreviewLayout(metrics: metrics);
     final isCompactFluid = isCompact && !isPageSimulationEnabled;
-    final onSurface = isPageSimulationEnabled ? Colors.black : colorScheme.onSurface;
-    final onSurfaceVariant = isPageSimulationEnabled ? Colors.black54 : colorScheme.onSurfaceVariant;
-    final accent = isPageSimulationEnabled ? Colors.black : colorScheme.primary;
+    // Page simulation always paints paper; a phone's fluid surface opts into the same paper colors
+    // through [usePaperColors] without bringing back the real (unscaled) indents page simulation
+    // also implies, which is why the two flags stay separate.
+    final paperColors = isPageSimulationEnabled || usePaperColors;
+    final onSurface = paperColors ? Colors.black : colorScheme.onSurface;
+    final onSurfaceVariant = paperColors ? Colors.black54 : colorScheme.onSurfaceVariant;
+    final accent = paperColors ? Colors.black : colorScheme.primary;
     // `letterSpacing` is pinned to zero rather than left unset: the page's columns are measured at
     // the font's bare fixed pitch (see `OcptEditorPreviewLayout`), so any spacing added between
     // glyphs — by this style, or by an ambient one merged into it — makes a full-width line wrap a
@@ -334,7 +323,7 @@ class OcptFountainEditorStylesheet {
   }) => StyleRule(
     BlockSelector(OcptFountainLineAttributions.attributionOf(type).name),
     (document, node) {
-      final scale = isCompact ? _compactLayoutScale : 1.0;
+      final scale = isCompact ? OcptEditorPreviewLayout.compactLayoutScale : 1.0;
       final indent = layout.indentOf(element) * scale;
       final width = layout.widthOf(element) * scale;
 

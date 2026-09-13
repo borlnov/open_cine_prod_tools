@@ -45,6 +45,10 @@ progress per scene, and the two documents it prints.
   The centre is either the **script view** — the whole screenplay typeset as a paper sheet, every
   word clickable, tagged passages highlighted in their category's colour — or the **recap**
   cross-table (one row per target, one column per scene), switched from the mode's own header band.
+  On a phone the script view drops the fixed page width and fills the row instead, scaling every
+  indent and box width down by `OcptEditorPreviewLayout.compactLayoutScale` — the same factor the
+  screenplay editor's own compact fluid surface uses (`screenplay.md`) — so the tagging surface reads
+  the way the writing one does there rather than spending most of a phone's row on the print margin.
   Tagging is a two-click range: a first click opens an anchor, a second closes it and opens
   `OcptBreakdownTagPopover`, whose search field is **pre-filled with the passage** and whose results
   are grouped by kind; clicking a result links, clicking a **category chip** creates the element in

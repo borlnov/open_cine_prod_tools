@@ -17,6 +17,7 @@ import 'package:open_cine_prod_tools/types/ocpt_breakdown_scene_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_target_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_status.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_preview_layout.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/breakdown/widgets/ocpt_breakdown_script_view.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/breakdown/widgets/ocpt_breakdown_tag_popover.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_breakdown_legend.dart';
@@ -113,6 +114,23 @@ BoxDecoration? _decorationOfWord(WidgetTester tester, String text) {
   return container.decoration as BoxDecoration?;
 }
 
+/// The width of the block box — the `SizedBox` that wraps a word's own text — the word rendered as
+/// [text] sits in: what the compact phone layout scales down.
+double _blockBoxWidthOf(WidgetTester tester, String text) => tester
+    .widget<SizedBox>(find.ancestor(of: find.text(text), matching: find.byType(SizedBox)).first)
+    .width!;
+
+/// Wraps [child] in a phone-width `MediaQuery` so `ocptIsPhoneWidth` reads a phone — without
+/// shrinking the render surface itself (which `setSurfaceSize` does, and the blown-up test glyph
+/// metrics would then overflow): the feature keys off `MediaQuery.sizeOf`, so overriding its size
+/// alone is what a phone looks like to it.
+Widget _atPhoneWidth(Widget child) => Builder(
+  builder: (context) => MediaQuery(
+    data: MediaQuery.of(context).copyWith(size: const Size(375, 800)),
+    child: child,
+  ),
+);
+
 /// Builds the view with sensible defaults, only the fields a given test cares about overridden.
 Widget _buildView({
   OcptBreakdownScene? scene,
@@ -170,6 +188,26 @@ void main() {
     expect(color.b, expected.b);
     // An untagged word of the same block stays plain.
     expect(_decorationOfWord(tester, "sits ")?.color, isNull);
+  });
+
+  testWidgets("on a phone it scales the indents and box widths down by the compact factor", (
+    tester,
+  ) async {
+    // A wide render surface both layouts share (the blown-up test glyph metrics need the room); the
+    // phone/desktop difference is the MediaQuery width alone, exactly what the feature keys off.
+    await _useLargeSurface(tester);
+
+    // Desktop: the action block is laid out at its full screenplay box width.
+    await tester.pumpWidget(_wrapInApp(_buildView()));
+    final desktopWidth = _blockBoxWidthOf(tester, "lamp ");
+
+    // Phone: the same block scales down by `OcptEditorPreviewLayout.compactLayoutScale`, leaving far
+    // less left margin (the user's own report).
+    await tester.pumpWidget(_wrapInApp(_atPhoneWidth(_buildView())));
+    final phoneWidth = _blockBoxWidthOf(tester, "lamp ");
+
+    expect(phoneWidth, lessThan(desktopWidth));
+    expect(phoneWidth, closeTo(desktopWidth * OcptEditorPreviewLayout.compactLayoutScale, 0.5));
   });
 
   testWidgets("a hidden legend key stops painting its tagged words", (tester) async {

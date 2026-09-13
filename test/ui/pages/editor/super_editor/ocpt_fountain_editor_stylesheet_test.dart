@@ -175,4 +175,48 @@ void main() {
       }
     });
   });
+
+  group("OcptFountainEditorStylesheet.build usePaperColors", () {
+    test("forces black paper text on the fluid surface instead of the themed onSurface", () {
+      final themed = OcptFountainEditorStylesheet.build(
+        metrics: metrics,
+        colorScheme: colorScheme,
+        isPageSimulationEnabled: false,
+      );
+      final paper = OcptFountainEditorStylesheet.build(
+        metrics: metrics,
+        colorScheme: colorScheme,
+        isPageSimulationEnabled: false,
+        usePaperColors: true,
+      );
+
+      final themedDialogue = (_styleOf(themed, document, dialogueNode)[Styles.textStyle] as TextStyle);
+      final paperDialogue = (_styleOf(paper, document, dialogueNode)[Styles.textStyle] as TextStyle);
+
+      expect(themedDialogue.color, colorScheme.onSurface);
+      expect(paperDialogue.color, Colors.black);
+    });
+
+    test("keeps the compact indents untouched: it changes colours alone", () {
+      final paperCompact = OcptFountainEditorStylesheet.build(
+        metrics: metrics,
+        colorScheme: colorScheme,
+        isPageSimulationEnabled: false,
+        isCompact: true,
+        usePaperColors: true,
+      );
+      final themedCompact = OcptFountainEditorStylesheet.build(
+        metrics: metrics,
+        colorScheme: colorScheme,
+        isPageSimulationEnabled: false,
+        isCompact: true,
+      );
+
+      final paperStyle = _styleOf(paperCompact, document, dialogueNode);
+      final themedStyle = _styleOf(themedCompact, document, dialogueNode);
+
+      expect(paperStyle[Styles.padding], themedStyle[Styles.padding]);
+      expect(paperStyle[Styles.maxWidth], themedStyle[Styles.maxWidth]);
+    });
+  });
 }

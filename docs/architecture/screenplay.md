@@ -225,7 +225,14 @@ model, the title page, the spell-checking, the docks and the syntax guide.
   (with its own find/replace and spell-check wiring) and a real-size simulated page are never what a
   phone shows. The user's own raw/styled toggle and page-simulation checkbox keep reading and
   writing the persisted preference untouched, so widening the window back out returns to whichever
-  was picked. Below the compact width breakpoint (`ocptIsCompactWidth`, a phone included) the
+  was picked. On a phone that forced fluid surface is additionally painted with the fixed paper
+  colours (white ground, black text) rather than following the theme
+  (`OcptStyledScreenplayEditor.usesPaperColorsWhileFluid`, passed to
+  `OcptFountainEditorStylesheet.build`'s own `usePaperColors`): the desktop default is white paper
+  sheets, so without it a phone in dark mode would be the one place the screenplay turned dark, and
+  painting it as paper keeps it reading the way the desktop's simulated page does — colours alone,
+  the compact indents below still apply. Below the compact width breakpoint (`ocptIsCompactWidth`, a
+  phone included) the
   toolbar's format controls (the block-type dropdown, the B/I/U toggles) fold into
   `OcptEditorFormatOverflowMenu`'s own single `⋮` button — the same block-type choice as a submenu
   and the same three toggles as checkable entries, reading and writing the very same
@@ -235,13 +242,16 @@ model, the title page, the spell-checking, the docks and the syntax guide.
   typing the Fountain markup.
 - Below the compact breakpoint (`ocptIsCompactWidth`), and only on the fluid (page-simulation-off)
   surface, `OcptFountainEditorStylesheet.build(isCompact: true)` scales every element's indent and
-  box width down by `_compactLayoutScale` (0.5), carrying the block hierarchy by **style** —
-  character bold/accent, parenthetical italic, dialogue slightly inset — rather than by the real,
-  screenplay-sized indents (a character cue ≈ 3.7″ in) a phone has no room for. A uniform multiplier
-  on both halves of every element's box keeps the desktop proportions intact at half scale, rather
-  than redesigning each type on its own. A paginated page never sees it: the flag only ever applies
-  while page simulation is off, since a simulated sheet is sized from the very real metrics the PDF
-  exporter agrees with pixel for pixel, and compressed ones would desync the two —
+  box width down by `OcptEditorPreviewLayout.compactLayoutScale` (0.5), carrying the block hierarchy
+  by **style** — character bold/accent, parenthetical italic, dialogue slightly inset — rather than
+  by the real, screenplay-sized indents (a character cue ≈ 3.7″ in) a phone has no room for. A
+  uniform multiplier on both halves of every element's box keeps the desktop proportions intact at
+  half scale, rather than redesigning each type on its own. That scale lives on
+  `OcptEditorPreviewLayout` rather than the stylesheet because the breakdown mode's own script view
+  reuses it for the very same purpose (`breakdown.md`). A paginated page never sees it: the flag
+  only ever applies while page simulation is off, since a simulated sheet is sized from the very
+  real metrics the PDF exporter agrees with pixel for pixel, and compressed ones would desync the
+  two —
   `OcptFountainEditorStylesheet.build` guards that itself rather than trusting every caller to.
   Desktop output is byte-identical, the flag defaulting off everywhere a desktop call site builds
   the stylesheet.

@@ -664,6 +664,7 @@ class _EditorViewState extends State<_EditorView> {
             pageSetup: state.pageSetup,
             isPageSimulationEnabled: _isPageSimulationLive(state),
             isCompact: _isCompactWidth,
+            usesPaperColorsWhileFluid: _isPhoneWidth,
             areSceneNumbersVisible: state.areStyledSceneNumbersVisible,
             isSpellCheckVisible: state.isSpellCheckVisible,
             onTextChanged: (text) => context.read<OcptEditorBloc>().add(
