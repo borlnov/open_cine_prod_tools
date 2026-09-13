@@ -1021,8 +1021,8 @@ void main() {
     });
 
     testWidgets(
-      "an in-kind resource no entry names reads the em dash for Received and Outstanding, "
-      "and offers no Receive action",
+      "an uncollected in-kind resource drops the Promised/Received stepper for a Valued-at "
+      "reading, and offers no Receive action",
       (tester) async {
         await tester.pumpWidget(
           _wrap(
@@ -1033,9 +1033,13 @@ void main() {
             ),
           ),
         );
+        final tr = Tr.of(tester.element(find.byType(OcptBudgetFiche)));
 
+        // No Receive action, and no money-collection lifecycle: the Received figure is gone,
+        // replaced by the valuation the contribution is worth. (Figure labels render uppercased.)
         expect(find.byType(FilledButton), findsNothing);
-        expect(find.text(ocptBudgetEmptyValue), findsWidgets);
+        expect(find.text(tr.budgetFinancingColumnReceived.toUpperCase()), findsNothing);
+        expect(find.text(tr.budgetResourceDialogValuedAtFieldLabel.toUpperCase()), findsOneWidget);
       },
     );
 
@@ -1093,9 +1097,10 @@ void main() {
           ),
         );
 
-        // Only the stepper/figures card draws — no second card for a poste-offset note, since
-        // nothing in `postes` names this resource's own id yet.
-        expect(find.byType(Card), findsOneWidget);
+        // No card at all: an uncollected in-kind resource draws its "Valued at" figure bare (no
+        // Promised/Received stepper card), and there is no poste-offset banner card since nothing
+        // in `postes` names this resource's own id yet.
+        expect(find.byType(Card), findsNothing);
       },
     );
 

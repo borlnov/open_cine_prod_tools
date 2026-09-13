@@ -1071,10 +1071,15 @@ class OcptBudgetFiche extends StatelessWidget {
   // ---------------------------------------------------------------------------------------------
 
   /// The resource variant: breadcrumb through the resources document and its own group, the
-  /// `Dossier` status badge, the `Promis — Rentré` stepper, `Promised`/`Received` figures and
-  /// `Receive`/`Edit`/`Delete` — `docs/architecture/budget.md`'s "An in-kind contribution is valued,
-  /// not collected": a valued in-kind resource no entry names yet reads the em dash for both
-  /// `Received` and `Outstanding`.
+  /// `Dossier` status badge, and — for a subsidy, a cash contribution, or an in-kind resource a
+  /// journal entry has actually named — the `Promis — Rentré` stepper with its `Promised`/`Received`
+  /// figures, plus `Receive`/`Edit`/`Delete`. **A valued in-kind resource no entry names yet
+  /// (`readsAsUncollected`) drops that money stepper entirely**, for a single `Valued at` reading —
+  /// a valuation runs through no collection lifecycle — mirroring its own counterpart quote line on
+  /// the expenses side (`docs/architecture/budget.md`, "An in-kind contribution is valued, not
+  /// collected", "A balanced in-kind contribution"). `Receive` stays withheld for in-kind, and the
+  /// app never hides a real movement: an in-kind resource an entry does name keeps the stepper and
+  /// its received figure.
   ///
   /// **An in-kind resource names the poste its own counterpart quote line offsets**, resolved
   /// through [ocptBudgetInKindCounterpartLineOf] rather than a field of its own — "No new column
@@ -1124,13 +1129,17 @@ class OcptBudgetFiche extends StatelessWidget {
       hint: resource.notes.isEmpty ? null : resource.notes,
       badge: ocptBudgetResourceStatusLabel(tr, resource.groupKind, resource.status),
       badgeColor: ocptBudgetResourceStatusAccentColor(Theme.of(context).colorScheme, resource.status),
-      stepLabels: [tr.budgetFicheStepPromisedLabel, tr.budgetFinancingColumnReceived],
-      reachedCount: hasEntry && receivedCents > 0 ? 2 : 1,
-      figures: [
-        (tr.budgetFicheStepPromisedLabel, _amount(resource.amountCents)),
-        (tr.budgetFinancingColumnReceived, readsAsUncollected ? null : _amount(receivedCents)),
-      ],
-      outstandingLabel: tr.budgetFinancingColumnOutstanding,
+      stepLabels: readsAsUncollected
+          ? const []
+          : [tr.budgetFicheStepPromisedLabel, tr.budgetFinancingColumnReceived],
+      reachedCount: readsAsUncollected ? 0 : (hasEntry && receivedCents > 0 ? 2 : 1),
+      figures: readsAsUncollected
+          ? [(tr.budgetResourceDialogValuedAtFieldLabel, _amount(resource.amountCents))]
+          : [
+              (tr.budgetFicheStepPromisedLabel, _amount(resource.amountCents)),
+              (tr.budgetFinancingColumnReceived, _amount(receivedCents)),
+            ],
+      outstandingLabel: readsAsUncollected ? null : tr.budgetFinancingColumnOutstanding,
       outstandingValue: readsAsUncollected ? null : _amount(outstandingCents),
       banner: offsetsPosteBanner,
       primary: canReceive
