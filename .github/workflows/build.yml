@@ -231,23 +231,44 @@ jobs:
           target-platform: windows
           build-args: --dart-define=APP_VERSION=${{ needs.get-version.outputs.version }} --dart-define=ENV=${{ needs.get-version.outputs.env }}
 
+      - name: Resolve installer identity for the environment
+        id: identity
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          # Production and qualification install side by side, each with its own identity: the AppId
+          # (its "Apps & features" entry and upgrade lineage), the display name (which the template
+          # turns into the install folder and Start-menu group), and the installer file name. A
+          # qualification build therefore never overwrites a stable one, and each app's taskbar icon
+          # is read from its own executable path instead of a shared, stale Windows icon cache.
+          # Each AppId is fixed per environment: it must stay stable across releases so Windows
+          # recognises an upgrade rather than a parallel install.
+          if [[ "${{ needs.get-version.outputs.env }}" == "QUALIF" ]]; then
+            echo 'app-name=Open Cine Prod Tools (Qualif)' >> "$GITHUB_OUTPUT"
+            echo 'app-id=C3D584ED-75A3-416E-8865-ECDAC79ED733' >> "$GITHUB_OUTPUT"
+            echo 'output-name=OpenCineProdTools-Qualif' >> "$GITHUB_OUTPUT"
+          else
+            echo 'app-name=Open Cine Prod Tools' >> "$GITHUB_OUTPUT"
+            echo 'app-id=69968E1A-654E-4AD3-B62A-0FEAEF2D7BB7' >> "$GITHUB_OUTPUT"
+            echo 'output-name=OpenCineProdTools' >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Build Windows installer
         id: installer
         uses: ./.github/actions/windows-installer
         with:
           version: ${{ needs.get-version.outputs.version }}
-          app-name: Open Cine Prod Tools
+          app-name: ${{ steps.identity.outputs.app-name }}
           executable-name: open_cine_prod_tools
           app-build-directory: build/windows/x64/runner
-          # Fixed AppId: must stay stable across releases so Windows
-          # recognises upgrades instead of installing side by side.
-          app-id: 69968E1A-654E-4AD3-B62A-0FEAEF2D7BB7
-          output-name: OpenCineProdTools
+          app-id: ${{ steps.identity.outputs.app-id }}
+          output-name: ${{ steps.identity.outputs.output-name }}
 
       - name: Upload Windows installer
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: OpenCineProdTools_${{ needs.get-version.outputs.version }}_win64_setup
+          name: ${{ steps.identity.outputs.output-name }}_${{ needs.get-version.outputs.version }}_win64_setup
           path: ${{ steps.installer.outputs.installer-path }}
           retention-days: ${{ env.ARTIFACT_RETENTION_DAYS }}
 
