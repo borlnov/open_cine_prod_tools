@@ -315,7 +315,12 @@ the persistence, the project versions, the sync-ready data model and the read-on
 - Desktop packaging: `build.yml` builds the three desktop targets and one composite action per
   format packages each — `flutter-debian` (`.deb`), `windows-installer` (Inno Setup),
   `macos-dmg` (`hdiutil create -format UDZO` over a staging directory holding the `.app` copied
-  with `ditto` and an `/Applications` symlink). The macOS bundle's `PRODUCT_NAME` is the display
+  with `ditto` and an `/Applications` symlink). The **Windows installer's identity is chosen from
+  the `get-version` env**: production and a non-production build carry different Inno `AppId`s and
+  display names (`Open Cine Prod Tools` vs `Open Cine Prod Tools (Qualif)`), and the name drives the
+  install folder and Start-menu group, so the two install side by side instead of overwriting one
+  another — and each app's taskbar icon is read from its own executable path, never a shared Windows
+  icon cache that an earlier install could leave stale. The macOS bundle's `PRODUCT_NAME` is the display
   name `Open Cine Prod Tools`, so every script path quotes it; its version is split before the
   build (`--build-name` = the dotted numeric prefix, `--build-number` = the commit distance)
   because `CFBundleShortVersionString` rejects `git describe`'s output. The app is distributed
