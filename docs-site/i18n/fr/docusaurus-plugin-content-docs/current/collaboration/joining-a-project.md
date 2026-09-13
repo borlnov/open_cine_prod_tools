@@ -17,6 +17,8 @@ l'ouverture d'un projet, rejoindre n'a pas besoin d'en avoir déjà un sur votre
 tout l'intérêt — l'action est donc accessible à tout moment depuis l'écran d'accueil, pas depuis
 l'intérieur d'un projet qu'il vous faudrait déjà avoir.
 
+![L'écran pour rejoindre un projet partagé](/img/screenshots/collab-join.png)
+
 ## Scanner ou coller l'invitation
 
 Il vous faut l'invitation que quelqu'un vous a partagée, sous quelque forme qu'elle vous soit

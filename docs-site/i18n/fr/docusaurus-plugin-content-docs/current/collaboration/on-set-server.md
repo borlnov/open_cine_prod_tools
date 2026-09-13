@@ -22,6 +22,8 @@ personne qui fait tourner cet ordinateur renvoie le travail de la journée vers 
 de la production — cette seconde partie est couverte dans le guide de l'opérateur lui-même,
 indiqué plus bas.
 
+![Le panneau « Héberger sur ce poste »](/img/screenshots/collab-host.png)
+
 ## Pointer votre appareil vers le relais de plateau
 
 Votre projet n'a pas besoin d'être rejoint à nouveau pour fonctionner avec le relais de plateau —

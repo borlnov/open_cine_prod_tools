@@ -13,11 +13,16 @@ page explique ce que « partagé » veut dire avant d'ouvrir les écrans eux-mê
 
 ## Ouvrir l'écran de partage
 
-Depuis la fiche d'un projet sur l'écran d'accueil, ouvrez son menu **⋮** et choisissez
-**Partager**. Vous pouvez aussi l'ouvrir depuis un projet déjà ouvert. Partager a besoin d'un lieu
-de rendez-vous pour chaque appareil : un **relais** — soit un déjà en service quelque part (un
-serveur auto-hébergé, ou celui qu'un collègue a mis en place), soit votre propre machine en
-faisant office, ce qui est couvert plus bas.
+L'écran de partage n'est accessible que depuis l'**écran d'accueil** : ouvrez le menu **⋮** de la
+fiche d'un projet et choisissez **Partager** (le même menu propose aussi Exporter… et Retirer de
+la liste). Il n'est pas accessible depuis l'intérieur d'un projet déjà ouvert — le partage se met
+en place avant, ou entre, les sessions de travail, depuis la fiche elle-même.
+
+![Le menu ⋮ de la fiche projet ouvert sur Partager](/img/screenshots/collab-share-menu.png)
+
+Partager a besoin d'un lieu de rendez-vous pour chaque appareil : un **relais** — soit un déjà en
+service quelque part (un serveur auto-hébergé, ou celui qu'un collègue a mis en place), soit votre
+propre machine en faisant office, ce qui est couvert plus bas.
 
 ## Se coupler à un relais
 
@@ -26,6 +31,8 @@ hébergez vous-même — choisissez l'option du relais distant et saisissez :
 
 - l'**adresse** du relais ;
 - le **secret d'inscription** que l'opérateur de ce relais vous a donné.
+
+![L'étape de configuration de l'écran de partage, relais distant](/img/screenshots/collab-share.png)
 
 Valider cela **couple** le projet à ce relais : cela génère un jeton privé pour ce projet, envoie
 le contenu actuel de votre projet au relais pour que la prochaine personne qui le rejoint puisse
@@ -54,6 +61,8 @@ appareil en relais que tous les autres viennent coupler, sans rien d'autre à in
 lancer. C'est le bon choix pour un ordinateur portable déjà ouvert sur le projet — la machine de
 video-village d'un tournage, ou l'ordinateur d'un producteur faisant office de point de rendez-vous
 durable du projet entre deux tournages.
+
+![Le panneau « Héberger sur ce poste »](/img/screenshots/collab-host.png)
 
 Ce panneau montre aussi qui est actuellement connecté à votre relais hébergé, ainsi qu'une option
 **« réhéberger au démarrage »** pour que l'hébergement reprenne de lui-même la prochaine fois que

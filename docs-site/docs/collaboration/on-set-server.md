@@ -14,11 +14,13 @@ relay for the day, and what running one involves for whoever brings the laptop.
 
 Rather than relying on an internet connection that a location may simply not have, a production
 can run its own relay for the day on a laptop already on set — through the same
-["Héberger sur ce poste"](sharing-a-project.md#hosting-the-relay-yourself) panel described in
+[Host on this machine](sharing-a-project.md#hosting-the-relay-yourself) panel described in
 sharing a project. Every device on set then syncs against that machine over the local network
 only, with no internet required at all. At the end of the day, whoever runs that laptop pushes the
 day's work back up to the production's usual relay — that half is covered in the operator's own
 runbook, linked below.
+
+![The Host on this machine panel](/img/screenshots/collab-host.png)
 
 ## Pointing your device at the set relay
 
@@ -27,7 +29,7 @@ and history. What changes is only *where* it looks for its relay:
 
 1. On the sync status indicator in your workspace's status bar (see
    [How collaboration works](how-collaboration-works.md#the-sync-status-indicator)), open the
-   panel and choose **"Changer de relais"** ("change relay").
+   panel and choose **change relay**.
 2. Scan the QR code the set relay is showing — either on the hosting laptop's own screen, or
    handed to you by whoever is running it from a terminal. You can also type in the relay's
    address and its secret by hand if scanning is not convenient.

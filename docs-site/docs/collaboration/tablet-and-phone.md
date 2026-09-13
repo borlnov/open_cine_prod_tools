@@ -30,6 +30,8 @@ whole layout down to an unreadable size. The mode switcher, the toolbar's essent
 the sync and presence indicators all stay reachable — nothing on a phone is a reduced feature set,
 only a rearranged one.
 
+![The compact phone-width workspace](/img/screenshots/collab-phone.png)
+
 ## Exporting from a phone
 
 Exporting on a phone goes through the platform's own **share sheet** rather than a save-to-disk

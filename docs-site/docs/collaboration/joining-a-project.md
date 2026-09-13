@@ -11,20 +11,28 @@ a producer's laptop, anyone the invite from [Sharing a project](sharing-a-projec
 
 ## Opening the joining screen
 
-From the home screen's toolbar, choose **Rejoindre**. Unlike opening a project, joining does not
-need one already on your device — that is the point of it — so it is reachable at all times from
-the home screen, not from inside a project you would need to have first.
+From the home screen's toolbar, choose **Join a shared project…**. Unlike opening a project,
+joining does not need one already on your device — that is the point of it — so it is reachable
+at all times from the home screen, not from inside a project you would need to have first.
+
+The screen that opens is titled "Join a shared project", with two tabs: **Scan (tablet)** and
+**Enter manually**.
+
+![The Join a shared project screen](/img/screenshots/collab-join.png)
 
 ## Scanning or pasting the invite
 
 You need the invite someone shared with you, in whichever form it reached you:
 
-- **On a tablet or phone**, the screen offers a **camera scan**: point the camera at the QR code
-  shown on the sharing screen of the device that invited you.
-- **On desktop**, paste the **invite link** you were sent instead, into the field the screen
-  offers.
+- **On a tablet or phone**, the **Scan (tablet)** tab offers a camera scan: point the camera at
+  the QR code shown on the sharing screen of the device that invited you.
+- **On desktop**, use **Enter manually** and paste the **Invite link** you were sent into that
+  field, then choose **Join**.
 
-Either way resolves to the same invite; there is nothing else to configure.
+Either way resolves to the same invite; there is nothing else to configure. A banner on the
+screen reminds you what joining does: it creates a full local copy of the project by downloading
+the relay's snapshot, then keeps syncing, and a new card appears on the home screen once it is
+done.
 
 ## What joining actually does
 

@@ -33,6 +33,8 @@ illisible. Le sélecteur de mode, les commandes essentielles de la barre d'outil
 indicateurs de synchronisation et de présence, restent tous accessibles — rien sur téléphone n'est
 une fonctionnalité amputée, seulement réorganisée.
 
+![L'espace de travail en disposition compacte, largeur téléphone](/img/screenshots/collab-phone.png)
+
 ## Exporter depuis un téléphone
 
 Exporter depuis un téléphone passe par le **menu de partage** de la plateforme plutôt que par une
