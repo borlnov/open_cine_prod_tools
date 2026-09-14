@@ -42,8 +42,8 @@ import 'package:open_cine_prod_tools/utils/ocpt_breakdown_scene_bars.dart';
 /// leaving the offsets exactly where they are — the honest answer to "the passage now occurs twice
 /// in the scene so it could not be re-anchored unambiguously, but the one this tag points at is
 /// still right") and `Remove` (tombstones that one tag). Both act **straight away, with no inline
-/// confirmation**: the alert itself is the question, exactly as `OcptRemovedRoleBanner`'s own actions
-/// do in the resources mode.
+/// confirmation**: the alert itself is the question, exactly as `OcptRoleAlertBanner`'s own
+/// `Keep as silent` action does in the resources mode.
 ///
 /// Purely presentational, like `OcptShotInspectorPanel`. [isReadOnly] withholds every control that
 /// writes — the status chips, the sets row's own picker, creation control and chip dismissals, the

@@ -270,6 +270,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     on<OcptResourcesRoleEpisodesChangedEvent>(_onRoleEpisodesChanged);
     on<OcptResourcesRoleDeletionRequestedEvent>(_onRoleDeletionRequested);
     on<OcptResourcesOrphanedRoleKeptEvent>(_onOrphanedRoleKept);
+    on<OcptResourcesRoleMergeRequestedEvent>(_onRoleMergeRequested);
     on<OcptResourcesRoleCandidateAddedEvent>(_onRoleCandidateAdded);
     on<OcptResourcesRoleCandidateStatusChangedEvent>(_onRoleCandidateStatusChanged);
     on<OcptResourcesRoleCandidateAuditionDateChangedEvent>(_onRoleCandidateAuditionDateChanged);
@@ -1802,6 +1803,22 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     logContext: "keep orphaned role ${event.roleId} as silent",
     action: (project) =>
         _roleIndexService.keepOrphanedRoleAsSilent(database: project.database, roleId: event.roleId),
+  );
+
+  /// Merges role `event.sourceRoleId` into role `event.targetRoleId`, written immediately: the
+  /// shared role alert banner's merge affordance — either variant — dispatched once the mode's own
+  /// `OcptConfirmDialog` has already confirmed it.
+  Future<void> _onRoleMergeRequested(
+    OcptResourcesRoleMergeRequestedEvent event,
+    Emitter<OcptResourcesState> emitter,
+  ) => _writeCatalogueChange(
+    emitter: emitter,
+    logContext: "merge role ${event.sourceRoleId} into ${event.targetRoleId}",
+    action: (project) => _roleIndexService.mergeRole(
+      database: project.database,
+      sourceRoleId: event.sourceRoleId,
+      targetRoleId: event.targetRoleId,
+    ),
   );
 
   /// Records that person `event.personId` was seen for role `event.roleId`, written immediately —

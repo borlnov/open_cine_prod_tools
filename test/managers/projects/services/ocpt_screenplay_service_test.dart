@@ -760,7 +760,7 @@ Action two three.
         await shotListService.attachCharacter(
           database: database,
           shotId: shotId,
-          characterName: "JOHN",
+          roleId: johnRole.id,
         );
         final screenplayText = await service.loadScreenplayText(
           database: database,

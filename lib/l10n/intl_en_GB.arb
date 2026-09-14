@@ -2384,16 +2384,19 @@
     "type": "text",
     "placeholders": {}
   },
-  "shotListCharacterRemovedLabel": "{name} (removed)",
-  "@shotListCharacterRemovedLabel": {
-    "description": "Label of a character chip for a character no longer speaking in the screenplay",
+  "shotListAddCharacterAction": "＋ Add",
+  "@shotListAddCharacterAction": {
+    "description": "Action opening the inline field adding a character to the shot, by name",
+    "context": "Displayed after the last character chip in the shot inspector's characters section",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListAddCharacterHint": "Character name",
+  "@shotListAddCharacterHint": {
+    "description": "Hint of the inline field adding a character to the shot, by name",
     "context": "Displayed in the shot inspector's characters section",
     "type": "text",
-    "placeholders": {
-      "name": {
-        "type": "String"
-      }
-    }
+    "placeholders": {}
   },
   "shotListDeleteShotAction": "Delete shot",
   "@shotListDeleteShotAction": {
@@ -2431,37 +2434,6 @@
   "@shotListDeleteConfirmDeleteAction": {
     "description": "Action confirming the shot deletion",
     "context": "Displayed in the shot deletion confirmation dialog",
-    "type": "text",
-    "placeholders": {}
-  },
-  "shotListRemovedCharacterBanner": "{count, plural, one{{name} was removed from the screenplay but still appears in {count} shot: {codes}.} other{{name} was removed from the screenplay but still appears in {count} shots: {codes}.}}",
-  "@shotListRemovedCharacterBanner": {
-    "description": "Alert naming a character no longer speaking in the screenplay but still attached to shots",
-    "context": "Displayed above the shot table of the shot list mode",
-    "type": "text",
-    "placeholders": {
-      "count": {
-        "type": "int"
-      },
-      "name": {
-        "type": "String"
-      },
-      "codes": {
-        "type": "String"
-      }
-    }
-  },
-  "shotListRemovedCharacterRemoveAllAction": "Remove from every shot",
-  "@shotListRemovedCharacterRemoveAllAction": {
-    "description": "Action detaching a removed character from every shot carrying it",
-    "context": "Displayed in the deleted-character banner of the shot list mode",
-    "type": "text",
-    "placeholders": {}
-  },
-  "shotListRemovedCharacterReplaceLabel": "Replace with:",
-  "@shotListRemovedCharacterReplaceLabel": {
-    "description": "Label introducing the chips replacing a removed character on every shot",
-    "context": "Displayed in the deleted-character banner of the shot list mode",
     "type": "text",
     "placeholders": {}
   },
@@ -4310,10 +4282,10 @@
     "type": "text",
     "placeholders": {}
   },
-  "resourcesRemovedRoleBanner": "{characterName} was removed from the screenplay, but the role and its casting are kept.",
-  "@resourcesRemovedRoleBanner": {
+  "roleAlertOrphanedMessage": "{characterName} was removed from the screenplay, but the role and its casting are kept.",
+  "@roleAlertOrphanedMessage": {
     "description": "Alert naming a role no longer speaking in the screenplay, whose casting and notes are kept",
-    "context": "Displayed in the role sheet of the resources mode",
+    "context": "Displayed in the shared role alert banner, in the resources mode's role sheet and above the shot list's table",
     "type": "text",
     "placeholders": {
       "characterName": {
@@ -4321,17 +4293,70 @@
       }
     }
   },
-  "resourcesRemovedRoleDeleteAction": "Delete this role",
-  "@resourcesRemovedRoleDeleteAction": {
+  "roleAlertOrphanedDeleteAction": "Delete the role",
+  "@roleAlertOrphanedDeleteAction": {
     "description": "Action deleting an orphaned role for good",
-    "context": "Displayed in the removed-role banner of the resources mode",
+    "context": "Displayed in the shared role alert banner's orphaned variant",
     "type": "text",
     "placeholders": {}
   },
-  "resourcesRemovedRoleKeepAction": "Keep as a silent role",
-  "@resourcesRemovedRoleKeepAction": {
+  "roleAlertOrphanedKeepAction": "Keep as silent",
+  "@roleAlertOrphanedKeepAction": {
     "description": "Action turning an orphaned role into a hand-added silent role",
-    "context": "Displayed in the removed-role banner of the resources mode",
+    "context": "Displayed in the shared role alert banner's orphaned variant",
+    "type": "text",
+    "placeholders": {}
+  },
+  "roleAlertMergeWithLabel": "Merge with:",
+  "@roleAlertMergeWithLabel": {
+    "description": "Label introducing the chips merging an orphaned role into one the screenplay still names",
+    "context": "Displayed in the shared role alert banner's orphaned variant",
+    "type": "text",
+    "placeholders": {}
+  },
+  "roleAlertCollisionMessage": "{characterName} names two roles — one from the screenplay, one added by hand. Merge them, or rename one to tell them apart.",
+  "@roleAlertCollisionMessage": {
+    "description": "Advisory alert naming a hand-added role sharing a name with a live screenplay role",
+    "context": "Displayed in the shared role alert banner's collision variant",
+    "type": "text",
+    "placeholders": {
+      "characterName": {
+        "type": "String"
+      }
+    }
+  },
+  "roleAlertMergeAction": "Merge",
+  "@roleAlertMergeAction": {
+    "description": "Action merging the hand-added role into the screenplay role it collides with",
+    "context": "Displayed in the shared role alert banner's collision variant",
+    "type": "text",
+    "placeholders": {}
+  },
+  "roleAlertMergeConfirmTitle": "Merge these roles?",
+  "@roleAlertMergeConfirmTitle": {
+    "description": "Title of the dialog confirming a role merge",
+    "context": "Displayed after clicking a role alert banner's merge action",
+    "type": "text",
+    "placeholders": {}
+  },
+  "roleAlertMergeConfirmMessage": "{sourceName}'s casting, notes and everything else it carries will move onto {targetName}. {sourceName} will be gone for good. This can't be undone.",
+  "@roleAlertMergeConfirmMessage": {
+    "description": "Message of the dialog confirming a role merge, naming both roles",
+    "context": "Displayed after clicking a role alert banner's merge action",
+    "type": "text",
+    "placeholders": {
+      "sourceName": {
+        "type": "String"
+      },
+      "targetName": {
+        "type": "String"
+      }
+    }
+  },
+  "roleAlertMergeConfirmAction": "Merge",
+  "@roleAlertMergeConfirmAction": {
+    "description": "Action confirming a role merge",
+    "context": "Displayed in the role merge confirmation dialog",
     "type": "text",
     "placeholders": {}
   },

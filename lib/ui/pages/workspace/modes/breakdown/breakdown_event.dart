@@ -612,7 +612,7 @@ class OcptBreakdownTagWriteErrorDismissedEvent extends OcptBreakdownEvent {
 ///
 /// A single pick, not typing, so it is written immediately and rides no field-edit debounce, and
 /// it acts straight away with no further confirmation: the alert itself is the question, exactly
-/// as `OcptRemovedRoleBanner`'s own actions do.
+/// as `OcptRoleAlertBanner`'s own `Keep as silent` action does.
 class OcptBreakdownTagNeedsCheckClearedEvent extends OcptBreakdownEvent {
   /// The id of the tag whose flag is cleared.
   final String tagId;

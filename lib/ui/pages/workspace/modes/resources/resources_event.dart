@@ -626,6 +626,30 @@ class OcptResourcesOrphanedRoleKeptEvent extends OcptResourcesEvent {
   List<Object?> get props => [...super.props, roleId];
 }
 
+/// Requests merging role [sourceRoleId] into role [targetRoleId], dispatched once the shared role
+/// alert banner's merge affordance — either variant — has already been confirmed through
+/// `OcptConfirmDialog`, by the mode.
+///
+/// Written immediately through `OcptRoleIndexService.mergeRole`: the banner disappears on its own
+/// once the reloaded cast no longer holds [sourceRoleId], or is no longer orphaned/collided.
+class OcptResourcesRoleMergeRequestedEvent extends OcptResourcesEvent {
+  /// The id of the role merged away.
+  final String sourceRoleId;
+
+  /// The id of the role [sourceRoleId] is merged into.
+  final String targetRoleId;
+
+  /// Class constructor
+  const OcptResourcesRoleMergeRequestedEvent({
+    required this.sourceRoleId,
+    required this.targetRoleId,
+  });
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, sourceRoleId, targetRoleId];
+}
+
 /// Records that person [personId] was seen for role [roleId], appended after that role's other
 /// candidates, written immediately: `OcptResourcesPersonPicker`'s own pick, dispatched by the
 /// candidates card's `+ Candidate` action.

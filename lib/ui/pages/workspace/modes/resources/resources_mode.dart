@@ -5,6 +5,7 @@
 import 'dart:async';
 
 import 'package:act_global_manager/act_global_manager.dart';
+import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
@@ -652,6 +653,44 @@ class _ResourcesViewState extends State<_ResourcesView> {
     bloc.add(event);
   }
 
+  /// The display name of role [roleId] among [state]'s whole cast, or [roleId] itself as a last
+  /// resort — the role merge confirmation names both roles, and a role gone from the cast between
+  /// the click and the dialog opening is the only way this fallback is ever seen.
+  String _roleNameOf(OcptResourcesState state, String roleId) =>
+      state.roles.firstWhereOrNull((role) => role.id == roleId)?.name ?? roleId;
+
+  /// Shows the merge confirmation dialog, naming both roles, then dispatches the merge if the user
+  /// confirmed it — the shared role alert banner's merge affordance, either variant.
+  Future<void> _handleRoleMergeRequested(
+    BuildContext context,
+    OcptResourcesState state,
+    String sourceRoleId,
+    String targetRoleId,
+  ) async {
+    final bloc = context.read<OcptResourcesBloc>();
+    final tr = Tr.of(context);
+    final confirmed = await OcptConfirmDialog.show(
+      context,
+      title: tr.roleAlertMergeConfirmTitle,
+      message: tr.roleAlertMergeConfirmMessage(
+        _roleNameOf(state, sourceRoleId),
+        _roleNameOf(state, targetRoleId),
+      ),
+      cancelLabel: tr.resourcesDeleteConfirmCancelAction,
+      confirmLabel: tr.roleAlertMergeConfirmAction,
+    );
+    if (confirmed != true) {
+      return;
+    }
+    if (!context.mounted) {
+      return;
+    }
+
+    bloc.add(
+      OcptResourcesRoleMergeRequestedEvent(sourceRoleId: sourceRoleId, targetRoleId: targetRoleId),
+    );
+  }
+
   /// Builds the roles tab's centre: the selected role's sheet, or the empty state — the one
   /// explaining where roles come from while the cast itself is empty, the one asking for a
   /// selection otherwise, mirroring `resourcesNoPersonSelectedHint`'s tone.
@@ -685,6 +724,12 @@ class _ResourcesViewState extends State<_ResourcesView> {
       elements: state.elements,
       episodes: episodes,
       removedRoleAlert: state.selectedRoleAlert,
+      mergeTargets: state.selectedRoleAlert == null
+          ? const []
+          : state.mergeTargetsOf(state.selectedRoleAlert!),
+      collisionAlert: state.selectedRoleCollisionAlert,
+      onMergeRequested: (sourceRoleId, targetRoleId) =>
+          _handleRoleMergeRequested(context, state, sourceRoleId, targetRoleId),
       isReadOnly: state.isPreviewingVersion,
       fieldValueOf: (field) => _roleFieldValueOf(state, selectedRole, field),
       onFieldChanged: (field, rawValue) => bloc.add(

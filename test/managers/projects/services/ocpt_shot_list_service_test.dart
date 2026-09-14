@@ -119,6 +119,19 @@ void main() {
     database.ocptShotsTable,
   )..orderBy([(row) => OrderingTerm.asc(row.sortKey)])).get();
 
+  /// Resolves [characterName] to a live role's id, or creates a hand-added silent one — exactly
+  /// what the shot list's own add-character affordance does (M3 of
+  /// `docs/adr/0030-a-shots-characters-are-the-productions-roles.md`), now that
+  /// `attachCharacter`/`detachCharacter`/`replaceCharacterEverywhere`/`removeCharacterFromEveryShot`
+  /// are roleId-native and no longer resolve a name on their own. The test suite's own stand-in for
+  /// what the bloc does before calling any of them.
+  Future<String> roleIdOf(String characterName) async =>
+      (await shotListService.resolveOrCreateRoleId(
+        database: database,
+        screenplayId: screenplayId,
+        name: characterName,
+      ))!;
+
   /// Every version stamp the project currently holds, keyed by `<table>/<row>/<column>` — the same
   /// shape `OcptProjectVersionsService`'s own tests read `row_field_versions` back through.
   Future<Map<String, OcptRowFieldVersionRow>> readStamps() async => {
@@ -295,7 +308,67 @@ Action.
     });
   });
 
+  group("resolveOrCreateRoleId", () {
+    test("resolves to a live role already named that way, normalised", () async {
+      final roleId = await roleIndexService.addRole(
+        database: database,
+        screenplayId: screenplayId,
+        name: "CLARA",
+        kind: OcptRoleKind.silent,
+      );
+
+      final resolved = await shotListService.resolveOrCreateRoleId(
+        database: database,
+        screenplayId: screenplayId,
+        name: "  clara  ",
+      );
+
+      expect(resolved, roleId);
+    });
+
+    test("creates a hand-added silent role linked to the given episode when none exists", () async {
+      final roleId = await shotListService.resolveOrCreateRoleId(
+        database: database,
+        screenplayId: screenplayId,
+        name: "Nouveau",
+      );
+
+      final role = (await roleIndexService.loadRoles(database: database)).single;
+      expect(role.id, roleId);
+      expect(role.name, "NOUVEAU");
+      expect(role.kind, OcptRoleKind.silent);
+      expect(role.isFromScreenplay, isFalse);
+      expect(role.episodeIds, [screenplayId]);
+    });
+  });
+
   group("shot characters", () {
+    test("attachCharacter does nothing when handed a role id naming no live role", () async {
+      final scenes = await reconcile('''
+INT. HOUSE - DAY
+
+Action.
+''');
+      final shotId = (await shotListService.createShot(
+        database: database,
+        screenplayId: screenplayId,
+        sceneId: scenes.single.id,
+      ))!;
+
+      await shotListService.attachCharacter(
+        database: database,
+        shotId: shotId,
+        roleId: "no-such-role",
+      );
+
+      final snapshot = await shotListService.loadShotList(
+        database: database,
+        screenplayId: screenplayId,
+        episodeNumber: null,
+      );
+      expect(snapshot.shotsById[shotId]!.characters, isEmpty);
+    });
+
     test("attachCharacter normalises the name and appends it", () async {
       final scenes = await reconcile('''
 INT. HOUSE - DAY
@@ -311,9 +384,9 @@ Action.
       await shotListService.attachCharacter(
         database: database,
         shotId: shotId,
-        characterName: "  clara  ",
+        roleId: await roleIdOf("  clara  "),
       );
-      await shotListService.attachCharacter(database: database, shotId: shotId, characterName: "Marc");
+      await shotListService.attachCharacter(database: database, shotId: shotId, roleId: await roleIdOf("Marc"));
 
       final snapshot = await shotListService.loadShotList(
         database: database,
@@ -334,11 +407,11 @@ Action.
         screenplayId: screenplayId,
         sceneId: scenes.single.id,
       ))!;
-      await shotListService.attachCharacter(database: database, shotId: shotId, characterName: "Clara");
-      await shotListService.attachCharacter(database: database, shotId: shotId, characterName: "Marc");
-      await shotListService.attachCharacter(database: database, shotId: shotId, characterName: "Théo");
+      await shotListService.attachCharacter(database: database, shotId: shotId, roleId: await roleIdOf("Clara"));
+      await shotListService.attachCharacter(database: database, shotId: shotId, roleId: await roleIdOf("Marc"));
+      await shotListService.attachCharacter(database: database, shotId: shotId, roleId: await roleIdOf("Théo"));
 
-      await shotListService.detachCharacter(database: database, shotId: shotId, characterName: "Marc");
+      await shotListService.detachCharacter(database: database, shotId: shotId, roleId: await roleIdOf("Marc"));
 
       final snapshot = await shotListService.loadShotList(
         database: database,
@@ -368,14 +441,14 @@ Action.
         screenplayId: screenplayId,
         sceneId: scenes[1].id,
       ))!;
-      await shotListService.attachCharacter(database: database, shotId: shotA, characterName: "Clara");
-      await shotListService.attachCharacter(database: database, shotId: shotB, characterName: "Clara");
-      await shotListService.attachCharacter(database: database, shotId: shotB, characterName: "Marc");
+      await shotListService.attachCharacter(database: database, shotId: shotA, roleId: await roleIdOf("Clara"));
+      await shotListService.attachCharacter(database: database, shotId: shotB, roleId: await roleIdOf("Clara"));
+      await shotListService.attachCharacter(database: database, shotId: shotB, roleId: await roleIdOf("Marc"));
 
       await shotListService.removeCharacterFromEveryShot(
         database: database,
         screenplayId: screenplayId,
-        characterName: "Clara",
+        roleId: await roleIdOf("Clara"),
       );
 
       final snapshot = await shotListService.loadShotList(
@@ -398,13 +471,13 @@ Action.
         screenplayId: screenplayId,
         sceneId: scenes.single.id,
       ))!;
-      await shotListService.attachCharacter(database: database, shotId: shotId, characterName: "Clara");
+      await shotListService.attachCharacter(database: database, shotId: shotId, roleId: await roleIdOf("Clara"));
 
       await shotListService.replaceCharacterEverywhere(
         database: database,
         screenplayId: screenplayId,
-        oldCharacterName: "Clara",
-        newCharacterName: "Julie",
+        oldRoleId: await roleIdOf("Clara"),
+        newRoleId: await roleIdOf("Julie"),
       );
 
       final snapshot = await shotListService.loadShotList(
@@ -426,14 +499,14 @@ Action.
         screenplayId: screenplayId,
         sceneId: scenes.single.id,
       ))!;
-      await shotListService.attachCharacter(database: database, shotId: shotId, characterName: "Clara");
-      await shotListService.attachCharacter(database: database, shotId: shotId, characterName: "Julie");
+      await shotListService.attachCharacter(database: database, shotId: shotId, roleId: await roleIdOf("Clara"));
+      await shotListService.attachCharacter(database: database, shotId: shotId, roleId: await roleIdOf("Julie"));
 
       await shotListService.replaceCharacterEverywhere(
         database: database,
         screenplayId: screenplayId,
-        oldCharacterName: "Clara",
-        newCharacterName: "Julie",
+        oldRoleId: await roleIdOf("Clara"),
+        newRoleId: await roleIdOf("Julie"),
       );
 
       final snapshot = await shotListService.loadShotList(
@@ -634,12 +707,12 @@ Action.
       await shotListService.attachCharacter(
         database: database,
         shotId: keptId,
-        characterName: "Clara",
+        roleId: await roleIdOf("Clara"),
       );
       await shotListService.attachCharacter(
         database: database,
         shotId: deletedId,
-        characterName: "Marc",
+        roleId: await roleIdOf("Marc"),
       );
       await shotListService.updateShot(
         database: database,
@@ -680,8 +753,8 @@ Action.
       await shotListService.replaceCharacterEverywhere(
         database: database,
         screenplayId: screenplayId,
-        oldCharacterName: "Marc",
-        newCharacterName: "Julie",
+        oldRoleId: await roleIdOf("Marc"),
+        newRoleId: await roleIdOf("Julie"),
       );
       final afterReplace = await shotListService.loadShotList(
         database: database,
@@ -707,17 +780,17 @@ Action.
       await shotListService.attachCharacter(
         database: database,
         shotId: shotId,
-        characterName: "Clara",
+        roleId: await roleIdOf("Clara"),
       );
       await shotListService.attachCharacter(
         database: database,
         shotId: shotId,
-        characterName: "Marc",
+        roleId: await roleIdOf("Marc"),
       );
       await shotListService.detachCharacter(
         database: database,
         shotId: shotId,
-        characterName: "Clara",
+        roleId: await roleIdOf("Clara"),
       );
 
       Future<List<String>> charactersOfShot() async =>
@@ -735,7 +808,7 @@ Action.
       await shotListService.attachCharacter(
         database: database,
         shotId: shotId,
-        characterName: "Clara",
+        roleId: await roleIdOf("Clara"),
       );
       expect(await charactersOfShot(), ["MARC", "CLARA"]);
     });
@@ -910,7 +983,7 @@ Action one.
     await shotListService.attachCharacter(
       database: preview,
       shotId: "shot-1",
-      characterName: "CLARA",
+      roleId: await roleIdOf("CLARA"),
     );
     await shotListService.deleteShot(database: preview, shotId: "shot-1");
 
@@ -1015,7 +1088,7 @@ Action.
       await shotListService.attachCharacter(
         database: database,
         shotId: shotId,
-        characterName: "Clara",
+        roleId: await roleIdOf("Clara"),
       );
 
       final character = (await database.select(database.ocptShotCharactersTable).get()).single;
@@ -1033,7 +1106,7 @@ Action.
       await shotListService.attachCharacter(
         database: database,
         shotId: shotId,
-        characterName: "Clara",
+        roleId: await roleIdOf("Clara"),
       );
       final roleId = (await database.select(database.ocptShotCharactersTable).get()).single.roleId;
       await database.delete(database.ocptRowFieldVersionsTable).go();
@@ -1041,7 +1114,7 @@ Action.
       await shotListService.detachCharacter(
         database: database,
         shotId: shotId,
-        characterName: "Clara",
+        roleId: await roleIdOf("Clara"),
       );
 
       final rowId = ocptCompositeRowStampKey([shotId, roleId]);

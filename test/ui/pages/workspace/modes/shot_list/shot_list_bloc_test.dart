@@ -31,6 +31,7 @@ import 'package:open_cine_prod_tools/models/ocpt_shot_list_xlsx_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
 import 'package:open_cine_prod_tools/types/ocpt_export_outcome.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
+import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_check_reason.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_difficulty_axis.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_column.dart';
@@ -813,13 +814,14 @@ void main() {
     bloc.add(const OcptShotListShotCreationRequestedEvent());
     state = await waitForState(bloc, (state) => state.totalShotCount == 1);
 
+    final elisaRoleId = state.roles.firstWhere((role) => role.name == "ELISA").id;
     bloc.add(
-      OcptShotListShotCharacterToggledEvent(shotId: state.selectedShotId!, characterName: "ELISA"),
+      OcptShotListShotCharacterToggledEvent(shotId: state.selectedShotId!, roleId: elisaRoleId),
     );
     state = await waitForState(bloc, (state) => state.selectedShot!.characters.isNotEmpty);
 
     expect(state.selectedShot!.characters, ["ELISA"]);
-    expect(state.removedCharacterAlerts, isEmpty);
+    expect(state.orphanedRoleAlerts, isEmpty);
 
     await bloc.close();
   });
@@ -1022,10 +1024,11 @@ void main() {
     );
     state = await waitForState(bloc, (state) => state.selectedShot!.difficultySound == 4);
 
-    bloc.add(OcptShotListShotCharacterToggledEvent(shotId: shotId, characterName: "LÉA"));
+    final leaRoleId = state.roles.firstWhere((role) => role.name == "LÉA").id;
+    bloc.add(OcptShotListShotCharacterToggledEvent(shotId: shotId, roleId: leaRoleId));
     state = await waitForState(bloc, (state) => state.selectedShot!.characters.contains("LÉA"));
 
-    bloc.add(OcptShotListShotCharacterToggledEvent(shotId: shotId, characterName: "LÉA"));
+    bloc.add(OcptShotListShotCharacterToggledEvent(shotId: shotId, roleId: leaRoleId));
     state = await waitForState(bloc, (state) => state.selectedShot!.characters.isEmpty);
 
     await bloc.close();
@@ -1048,9 +1051,8 @@ void main() {
     final shotId = state.selectedShotId!;
 
     for (final characterName in characterNames) {
-      bloc.add(
-        OcptShotListShotCharacterToggledEvent(shotId: shotId, characterName: characterName),
-      );
+      final roleId = state.roles.firstWhere((role) => role.name == characterName).id;
+      bloc.add(OcptShotListShotCharacterToggledEvent(shotId: shotId, roleId: roleId));
       state = await waitForState(
         bloc,
         (state) => state.selectedShot!.characters.contains(characterName),
@@ -1063,29 +1065,30 @@ void main() {
     return code;
   }
 
-  test('a character the screenplay dropped is reported, then removable everywhere', () async {
+  test('an orphaned role is reported, then deletable everywhere', () async {
     await writeScreenplay(twoCharactersText);
-    final shotCode = await createShotWithCharacters(["LÉA", "MARC"]);
+    await createShotWithCharacters(["LÉA", "MARC"]);
 
     await writeScreenplay(oneCharacterLeftText);
 
     final bloc = buildBloc();
     var state = await waitForState(bloc, (state) => !state.isLoading);
 
-    expect(state.removedCharacterAlerts, hasLength(1));
-    expect(state.removedCharacterAlerts.single.characterName, "LÉA");
-    expect(state.removedCharacterAlerts.single.shotCodes, [shotCode]);
+    expect(state.orphanedRoleAlerts, hasLength(1));
+    expect(state.orphanedRoleAlerts.single.characterName, "LÉA");
+    final leaRoleId = state.orphanedRoleAlerts.single.roleId;
 
-    bloc.add(const OcptShotListRemovedCharacterDroppedEvent(characterName: "LÉA"));
-    state = await waitForState(bloc, (state) => state.removedCharacterAlerts.isEmpty);
+    bloc.add(OcptShotListOrphanedRoleDeleteRequestedEvent(roleId: leaRoleId));
+    state = await waitForState(bloc, (state) => state.orphanedRoleAlerts.isEmpty);
 
-    // The character still spoken is left untouched by the removal.
+    // The character still spoken is left untouched by the deletion, and the role's own cascade
+    // drops it from the shot rather than leaving a dangling attachment.
     expect(state.snapshot!.shotsById.values.single.characters, ["MARC"]);
 
     await bloc.close();
   });
 
-  test('a dropped character can be replaced by a still-speaking one on every shot', () async {
+  test('an orphaned role can be merged into a still-speaking one, carrying its shots along', () async {
     await writeScreenplay(twoCharactersText);
     await createShotWithCharacters(["LÉA"]);
 
@@ -1093,17 +1096,39 @@ void main() {
 
     final bloc = buildBloc();
     var state = await waitForState(bloc, (state) => !state.isLoading);
-    expect(state.removedCharacterAlerts, hasLength(1));
+    expect(state.orphanedRoleAlerts, hasLength(1));
+    final leaRoleId = state.orphanedRoleAlerts.single.roleId;
+    final marcRoleId = state.roles.firstWhere((role) => role.name == "MARC").id;
 
     bloc.add(
-      const OcptShotListRemovedCharacterReplacedEvent(
-        characterName: "LÉA",
-        replacementName: "MARC",
-      ),
+      OcptShotListRoleMergeRequestedEvent(sourceRoleId: leaRoleId, targetRoleId: marcRoleId),
     );
-    state = await waitForState(bloc, (state) => state.removedCharacterAlerts.isEmpty);
+    state = await waitForState(bloc, (state) => state.orphanedRoleAlerts.isEmpty);
 
     expect(state.snapshot!.shotsById.values.single.characters, ["MARC"]);
+
+    await bloc.close();
+  });
+
+  test('an orphaned role can be kept as silent, its casting untouched and its shot kept', () async {
+    await writeScreenplay(twoCharactersText);
+    await createShotWithCharacters(["LÉA", "MARC"]);
+
+    await writeScreenplay(oneCharacterLeftText);
+
+    final bloc = buildBloc();
+    var state = await waitForState(bloc, (state) => !state.isLoading);
+    expect(state.orphanedRoleAlerts, hasLength(1));
+    final leaRoleId = state.orphanedRoleAlerts.single.roleId;
+
+    bloc.add(OcptShotListOrphanedRoleKeptEvent(roleId: leaRoleId));
+    state = await waitForState(bloc, (state) => state.orphanedRoleAlerts.isEmpty);
+
+    final leaRole = state.roles.firstWhere((role) => role.id == leaRoleId);
+    expect(leaRole.isFromScreenplay, isFalse);
+    expect(leaRole.kind, OcptRoleKind.silent);
+    // Kept, not dropped: the shot still carries both characters.
+    expect(state.snapshot!.shotsById.values.single.characters, ["LÉA", "MARC"]);
 
     await bloc.close();
   });

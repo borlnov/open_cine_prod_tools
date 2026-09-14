@@ -6,8 +6,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
+import 'package:open_cine_prod_tools/models/ocpt_role.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_field_suggestions.dart';
+import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_check_reason.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_difficulty_axis.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_editable_field.dart';
@@ -43,6 +45,7 @@ OcptShot _buildShot({
   String code = "1/1",
   OcptShotStatus status = OcptShotStatus.toShoot,
   List<String> characters = const ["LÉA"],
+  List<String> characterRoleIds = const ["role-LÉA"],
   int difficultySet = 1,
   int difficultyCamera = 1,
   int difficultyActing = 1,
@@ -75,6 +78,7 @@ OcptShot _buildShot({
   needsCheck: needsCheck,
   checkReason: checkReason,
   characters: characters,
+  characterRoleIds: characterRoleIds,
   coverageRanges: const [],
   code: code,
   averageDifficulty:
@@ -97,9 +101,20 @@ TextField _durationFieldOf(WidgetTester tester) => tester.widget<TextField>(
 /// about overridden.
 Widget _buildPanel({
   OcptShot? shot,
-  List<String> screenplayCharacters = const ["LÉA"],
+  List<OcptRole> roles = const [OcptRole(
+    id: "role-LÉA",
+    name: "LÉA",
+    personId: null,
+    kind: OcptRoleKind.speaking,
+    isFromScreenplay: true,
+    orphanedName: null,
+    castingNotes: "",
+    number: 1,
+    episodeIds: [],
+  )],
   void Function(OcptShotDifficultyAxis axis, int value)? onDifficultyChanged,
   ValueChanged<String>? onCharacterToggled,
+  ValueChanged<String>? onCharacterAdded,
   void Function(OcptShotListEditableField field, String rawValue)? onFieldChanged,
   String Function(OcptShotListEditableField field)? fieldValueOf,
   VoidCallback? onMarkAsChecked,
@@ -110,7 +125,7 @@ Widget _buildPanel({
   shot: shot,
   sequenceHeading: "INT. LÉA'S FLAT - NIGHT",
   sequenceDisplayNumber: "1",
-  screenplayCharacters: screenplayCharacters,
+  roles: roles,
   suggestions: const OcptShotFieldSuggestions.empty(),
   coverageLayout: null,
   otherShotsCoverageRanges: const {},
@@ -118,6 +133,7 @@ Widget _buildPanel({
   fieldValueOf: fieldValueOf ?? (field) => "",
   onDifficultyChanged: onDifficultyChanged ?? (_, __) {},
   onCharacterToggled: onCharacterToggled ?? (_) {},
+  onCharacterAdded: onCharacterAdded ?? (_) {},
   onFieldChanged: onFieldChanged ?? (_, __) {},
   onSelectCoverageRequested: onSelectCoverageRequested ?? () {},
   onCoverageClearAll: () {},
@@ -183,7 +199,7 @@ void main() {
     expect(find.text("Delete shot"), findsOneWidget);
   });
 
-  testWidgets("toggling a character chip reports its name", (tester) async {
+  testWidgets("toggling a character chip reports the role's id", (tester) async {
     final toggled = <String>[];
 
     await tester.pumpWidget(
@@ -193,7 +209,7 @@ void main() {
     await tester.tap(find.text("LÉA"));
     await tester.pump();
 
-    expect(toggled, ["LÉA"]);
+    expect(toggled, ["role-LÉA"]);
   });
 
   testWidgets("the status pill is a read-out, not a control", (tester) async {
@@ -368,17 +384,6 @@ void main() {
     await tester.pump();
 
     expect(deleteRequested, isTrue);
-  });
-
-  testWidgets("a character attached but removed from the screenplay stays listed, struck through",
-      (tester) async {
-    await tester.pumpWidget(
-      _wrapInApp(
-        _buildPanel(shot: _buildShot(characters: const ["LÉA", "CLARA"])),
-      ),
-    );
-
-    expect(find.text("CLARA (removed)"), findsOneWidget);
   });
 
   testWidgets("the Needs checking callout is absent when the shot doesn't need checking",

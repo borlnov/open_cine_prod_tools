@@ -6,6 +6,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
+import 'package:open_cine_prod_tools/models/ocpt_role.dart';
+import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_shot_character_chips.dart';
 
 /// Wraps [child] with the localization delegates so [Tr.of] lookups resolve.
@@ -20,14 +22,28 @@ Widget _wrapInApp(Widget child) => MaterialApp(
   home: Scaffold(body: Align(alignment: Alignment.topLeft, child: child)),
 );
 
+/// A minimal live role of [id] and [name], for a test that only cares about the chips.
+OcptRole _role(String id, String name) => OcptRole(
+  id: id,
+  name: name,
+  personId: null,
+  kind: OcptRoleKind.speaking,
+  isFromScreenplay: true,
+  orphanedName: null,
+  castingNotes: "",
+  number: 1,
+  episodeIds: const [],
+);
+
 void main() {
-  testWidgets("lists every speaking character, selected exactly when attached", (tester) async {
+  testWidgets("lists every role of the cast, selected exactly when attached", (tester) async {
     await tester.pumpWidget(
       _wrapInApp(
         OcptShotCharacterChips(
-          screenplayCharacters: const ["LÉA", "MARC"],
-          attachedCharacters: const ["LÉA"],
+          roles: [_role("r1", "LÉA"), _role("r2", "MARC")],
+          attachedRoleIds: const ["r1"],
           onToggled: (_) {},
+          onCharacterAdded: (_) {},
         ),
       ),
     );
@@ -40,35 +56,16 @@ void main() {
     expect(chips.singleWhere((chip) => (chip.label as Text).data == "MARC").selected, isFalse);
   });
 
-  testWidgets("a character attached but no longer speaking trails the list, struck through",
-      (tester) async {
-    await tester.pumpWidget(
-      _wrapInApp(
-        OcptShotCharacterChips(
-          screenplayCharacters: const ["LÉA"],
-          attachedCharacters: const ["LÉA", "CLARA"],
-          onToggled: (_) {},
-        ),
-      ),
-    );
-
-    expect(find.text("CLARA (removed)"), findsOneWidget);
-    final removedChip = tester.widget<FilterChip>(
-      find.ancestor(of: find.text("CLARA (removed)"), matching: find.byType(FilterChip)),
-    );
-    expect(removedChip.selected, isTrue);
-    expect(removedChip.labelStyle?.decoration, TextDecoration.lineThrough);
-  });
-
-  testWidgets("tapping a chip reports its name", (tester) async {
+  testWidgets("tapping a chip reports the role's id", (tester) async {
     final toggled = <String>[];
 
     await tester.pumpWidget(
       _wrapInApp(
         OcptShotCharacterChips(
-          screenplayCharacters: const ["LÉA", "MARC"],
-          attachedCharacters: const ["LÉA"],
+          roles: [_role("r1", "LÉA"), _role("r2", "MARC")],
+          attachedRoleIds: const ["r1"],
           onToggled: toggled.add,
+          onCharacterAdded: (_) {},
         ),
       ),
     );
@@ -76,16 +73,17 @@ void main() {
     await tester.tap(find.text("MARC"));
     await tester.pump();
 
-    expect(toggled, ["MARC"]);
+    expect(toggled, ["r2"]);
   });
 
-  testWidgets("shows the empty hint when the screenplay has no speaking character", (tester) async {
+  testWidgets("shows the empty hint when the cast is empty and read-only", (tester) async {
     await tester.pumpWidget(
       _wrapInApp(
-        OcptShotCharacterChips(
-          screenplayCharacters: const [],
-          attachedCharacters: const [],
-          onToggled: (_) {},
+        const OcptShotCharacterChips(
+          roles: [],
+          attachedRoleIds: [],
+          onToggled: null,
+          onCharacterAdded: null,
         ),
       ),
     );
@@ -99,10 +97,11 @@ void main() {
   ) async {
     await tester.pumpWidget(
       _wrapInApp(
-        const OcptShotCharacterChips(
-          screenplayCharacters: ["LÉA", "MARC"],
-          attachedCharacters: ["LÉA"],
+        OcptShotCharacterChips(
+          roles: [_role("r1", "LÉA"), _role("r2", "MARC")],
+          attachedRoleIds: const ["r1"],
           onToggled: null,
+          onCharacterAdded: (_) {},
         ),
       ),
     );
@@ -113,5 +112,82 @@ void main() {
     // Tapping is a no-op rather than an error: a disabled chip simply doesn't report anything.
     await tester.tap(find.text("MARC"));
     await tester.pump();
+  });
+
+  testWidgets("the ＋ Add affordance is withheld while read-only", (tester) async {
+    await tester.pumpWidget(
+      _wrapInApp(
+        OcptShotCharacterChips(
+          roles: [_role("r1", "LÉA")],
+          attachedRoleIds: const [],
+          onToggled: (_) {},
+          onCharacterAdded: null,
+        ),
+      ),
+    );
+
+    expect(find.byType(ActionChip), findsNothing);
+  });
+
+  testWidgets("clicking ＋ Add opens an inline field, and submitting reports the typed name", (
+    tester,
+  ) async {
+    final added = <String>[];
+
+    await tester.pumpWidget(
+      _wrapInApp(
+        OcptShotCharacterChips(
+          roles: [_role("r1", "LÉA")],
+          attachedRoleIds: const [],
+          onToggled: (_) {},
+          onCharacterAdded: added.add,
+        ),
+      ),
+    );
+
+    expect(find.byType(ActionChip), findsOneWidget);
+    expect(find.byType(TextField), findsNothing);
+
+    await tester.tap(find.byType(ActionChip));
+    await tester.pump();
+
+    expect(find.byType(TextField), findsOneWidget);
+    expect(find.byType(ActionChip), findsNothing);
+
+    await tester.enterText(find.byType(TextField), "Nouveau");
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pump();
+
+    expect(added, ["Nouveau"]);
+    // Collapses back to the chip once submitted.
+    expect(find.byType(ActionChip), findsOneWidget);
+    expect(find.byType(TextField), findsNothing);
+  });
+
+  testWidgets("submitting an empty name reports nothing and simply collapses back", (
+    tester,
+  ) async {
+    final added = <String>[];
+
+    await tester.pumpWidget(
+      _wrapInApp(
+        OcptShotCharacterChips(
+          roles: const [],
+          attachedRoleIds: const [],
+          onToggled: (_) {},
+          onCharacterAdded: added.add,
+        ),
+      ),
+    );
+
+    await tester.tap(find.byType(ActionChip));
+    await tester.pump();
+
+    await tester.enterText(find.byType(TextField), "   ");
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pump();
+
+    expect(added, isEmpty);
+    expect(find.byType(ActionChip), findsOneWidget);
   });
 }

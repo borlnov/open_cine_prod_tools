@@ -322,7 +322,7 @@ class OcptShotListShotDifficultyChangedEvent extends OcptShotListEvent {
   List<Object?> get props => [...super.props, shotId, axis, value];
 }
 
-/// Attaches [characterName] to shot [shotId] if it isn't already attached, detaches it otherwise,
+/// Attaches role [roleId] to shot [shotId] if it isn't already attached, detaches it otherwise,
 /// dispatched by the inspector's character chips.
 ///
 /// Written immediately: toggling a chip is a single discrete action, not typing, so it never goes
@@ -331,12 +331,34 @@ class OcptShotListShotCharacterToggledEvent extends OcptShotListEvent {
   /// The id of the shot whose character list changed.
   final String shotId;
 
-  /// The character toggled, not necessarily normalised yet (the bloc normalises it the same way
-  /// `OcptShotListService.attachCharacter` does before comparing or writing it).
+  /// The id of the role toggled.
+  final String roleId;
+
+  /// Class constructor
+  const OcptShotListShotCharacterToggledEvent({required this.shotId, required this.roleId});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, shotId, roleId];
+}
+
+/// Requests attaching a character typed into the inspector's `＋ Add` field to shot [shotId],
+/// dispatched once the field is submitted.
+///
+/// [characterName] resolves to a live role of that name, or **creates** a hand-added silent role
+/// linked to the shot's own episode (decision 1), through
+/// `OcptShotListService.resolveOrCreateRoleId` — the resolution the roleId-native
+/// `OcptShotListService.attachCharacter` no longer performs on its own. Written immediately, like
+/// every other character change.
+class OcptShotListCharacterAddRequestedEvent extends OcptShotListEvent {
+  /// The id of the shot the character is added to.
+  final String shotId;
+
+  /// The character's typed name, not necessarily normalised yet.
   final String characterName;
 
   /// Class constructor
-  const OcptShotListShotCharacterToggledEvent({required this.shotId, required this.characterName});
+  const OcptShotListCharacterAddRequestedEvent({required this.shotId, required this.characterName});
 
   /// Object properties
   @override
@@ -400,46 +422,61 @@ class OcptShotListCoverageClearRequestedEvent extends OcptShotListEvent {
   List<Object?> get props => [...super.props, shotId];
 }
 
-/// Requests detaching [characterName] from every shot of the screenplay it is still attached to,
-/// dispatched by the deleted-character banner's `Remove from every shot` button.
+/// Requests deleting role [roleId] for good, dispatched once the shared role alert banner's
+/// orphaned variant has already been confirmed through `OcptConfirmDialog`, by the mode.
 ///
-/// Written immediately, like every other character change: the banner disappears on its own once
-/// the reloaded snapshot no longer has any shot carrying the name.
-class OcptShotListRemovedCharacterDroppedEvent extends OcptShotListEvent {
-  /// The character to detach from every shot, normalised the same way the shots' own characters
-  /// are (the bloc hands it to `OcptShotListService.removeCharacterFromEveryShot`, which
-  /// normalises it again anyway).
-  final String characterName;
+/// Written immediately through `OcptRoleIndexService.deleteRole`, whose cascade tombstones the
+/// role's `shot_characters` and `breakdown_tags` rows alongside it: the banner disappears on its
+/// own once the reloaded cast no longer holds the role at all.
+class OcptShotListOrphanedRoleDeleteRequestedEvent extends OcptShotListEvent {
+  /// The id of the orphaned role to delete.
+  final String roleId;
 
   /// Class constructor
-  const OcptShotListRemovedCharacterDroppedEvent({required this.characterName});
+  const OcptShotListOrphanedRoleDeleteRequestedEvent({required this.roleId});
 
   /// Object properties
   @override
-  List<Object?> get props => [...super.props, characterName];
+  List<Object?> get props => [...super.props, roleId];
 }
 
-/// Requests replacing [characterName] with [replacementName] on every shot of the screenplay it is
-/// still attached to, dispatched by the deleted-character banner's replacement chips.
-///
-/// A shot that already carries [replacementName] simply drops [characterName] rather than gaining
-/// a duplicate — see `OcptShotListService.replaceCharacterEverywhere`.
-class OcptShotListRemovedCharacterReplacedEvent extends OcptShotListEvent {
-  /// The character no longer speaking anywhere in the screenplay.
-  final String characterName;
-
-  /// The still-speaking character taking its place on every shot.
-  final String replacementName;
+/// Requests keeping orphaned role [roleId] as a hand-added silent role, dispatched by the shared
+/// role alert banner's orphaned variant's `Keep as silent` action — not destructive, so reached
+/// with no confirmation dialog, exactly as the resources mode's own equivalent isn't.
+class OcptShotListOrphanedRoleKeptEvent extends OcptShotListEvent {
+  /// The id of the orphaned role to keep.
+  final String roleId;
 
   /// Class constructor
-  const OcptShotListRemovedCharacterReplacedEvent({
-    required this.characterName,
-    required this.replacementName,
+  const OcptShotListOrphanedRoleKeptEvent({required this.roleId});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, roleId];
+}
+
+/// Requests merging role [sourceRoleId] into role [targetRoleId], dispatched once the shared role
+/// alert banner's merge affordance — either variant — has already been confirmed through
+/// `OcptConfirmDialog`, by the mode.
+///
+/// Written immediately through `OcptRoleIndexService.mergeRole`: the banner disappears on its own
+/// once the reloaded cast no longer holds [sourceRoleId], or is no longer orphaned/collided.
+class OcptShotListRoleMergeRequestedEvent extends OcptShotListEvent {
+  /// The id of the role merged away.
+  final String sourceRoleId;
+
+  /// The id of the role [sourceRoleId] is merged into.
+  final String targetRoleId;
+
+  /// Class constructor
+  const OcptShotListRoleMergeRequestedEvent({
+    required this.sourceRoleId,
+    required this.targetRoleId,
   });
 
   /// Object properties
   @override
-  List<Object?> get props => [...super.props, characterName, replacementName];
+  List<Object?> get props => [...super.props, sourceRoleId, targetRoleId];
 }
 
 /// Requests clearing shot [shotId]'s `needsCheck` flag and re-stamping every one of its scenario

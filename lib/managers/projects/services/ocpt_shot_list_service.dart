@@ -40,11 +40,11 @@ import 'package:uuid/uuid.dart';
 /// `position` survives only as the legacy column ADR 0007 forbids dropping in place.
 class OcptShotListService {
   /// The service a character resolved to no live role is created through
-  /// (`OcptRoleIndexService.addRole`): a shot's characters are the production's `roles`
-  /// (`docs/adr/0030-a-shots-characters-are-the-productions-roles.md`), so [attachCharacter] and
-  /// [replaceCharacterEverywhere] never mint a `roles` row of their own — they reuse the very same
-  /// creation path the resources mode's "add a role" affordance calls, hand-added and silent, so a
-  /// character invented in the shot list shows up in Ressources at once, castable and dressable.
+  /// (`OcptRoleIndexService.addRole`), by [resolveOrCreateRoleId]: a shot's characters are the
+  /// production's `roles` (`docs/adr/0030-a-shots-characters-are-the-productions-roles.md`), so a
+  /// hand-added role minted here reuses the very same creation path the resources mode's "add a
+  /// role" affordance calls, hand-added and silent, so a character invented in the shot list shows
+  /// up in Ressources at once, castable and dressable.
   final OcptRoleIndexService roleIndexService;
 
   /// Resolves the device id every stamp this service's own writes carry — see
@@ -472,43 +472,33 @@ class OcptShotListService {
     });
   }
 
-  /// Attaches [characterName] (normalised through `fountain_kit`'s `normalizeCharacterName`) to
-  /// shot [shotId], appended after its current characters. Does nothing if the shot already has it,
-  /// or if [shotId] doesn't name a live shot.
+  /// Attaches role [roleId] to shot [shotId], appended after its current characters. Does nothing
+  /// if the shot already has it, if [shotId] doesn't name a live shot, or if [roleId] doesn't name a
+  /// live role.
   ///
   /// A shot's characters are the production's `roles`
-  /// (`docs/adr/0030-a-shots-characters-are-the-productions-roles.md`): [characterName] is resolved
-  /// to a live role of that name, or **created** as a hand-added silent role linked to the shot's
-  /// own screenplay ([_resolveOrCreateRoleId], decision 1), and `shot_characters` is keyed by
-  /// `{shotId, roleId}` underneath — this method's own signature stays name-based regardless, so the
-  /// bloc and the UI are unchanged for now (M1 of `docs/plans/shot-characters-are-roles.md`). A
-  /// character detached earlier left a tombstone behind: re-attaching it therefore lifts that
-  /// tombstone rather than inserting a second row, which the key would refuse anyway.
+  /// (`docs/adr/0030-a-shots-characters-are-the-productions-roles.md`), and `shot_characters` is
+  /// keyed by `{shotId, roleId}`: this method is purely mechanical, taking [roleId] as given rather
+  /// than resolving one out of a typed name — that resolution (or creation, decision 1) is the
+  /// caller's, through [resolveOrCreateRoleId] (M3 of
+  /// `docs/plans/shot-characters-are-roles.md` turns this roleId-native; M1/M2 kept it name-based
+  /// with the resolution inside). A character detached earlier left a tombstone behind: re-attaching
+  /// it therefore lifts that tombstone rather than inserting a second row, which the key would
+  /// refuse anyway.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
   Future<void> attachCharacter({
     required OcptProjectDatabase database,
     required String shotId,
-    required String characterName,
+    required String roleId,
   }) async {
     if (database.refusesUserWrite("attachCharacter")) {
       return;
     }
 
-    final normalized = normalizeCharacterName(characterName);
-
     await database.transaction(() async {
       final shot = await _liveShotRowOrNull(database: database, shotId: shotId);
-      if (shot == null) {
-        return;
-      }
-
-      final roleId = await _resolveOrCreateRoleId(
-        database: database,
-        screenplayId: shot.screenplayId,
-        normalizedName: normalized,
-      );
-      if (roleId == null) {
+      if (shot == null || !await _liveRoleExists(database: database, roleId: roleId)) {
         return;
       }
 
@@ -557,9 +547,9 @@ class OcptShotListService {
     });
   }
 
-  /// Detaches [characterName] (normalised the same way [attachCharacter] does) from shot [shotId].
-  /// Does nothing if no live role of that name is attached to it — this never creates a role, unlike
-  /// [attachCharacter]: there is nothing left to detach from one that doesn't exist.
+  /// Detaches role [roleId] from shot [shotId]. Does nothing if it isn't attached — this never
+  /// creates a role, unlike [attachCharacter]: there is nothing left to detach from one that doesn't
+  /// exist.
   ///
   /// {@macro open_cine_prod_tools.tombstones}
   ///
@@ -567,20 +557,13 @@ class OcptShotListService {
   Future<void> detachCharacter({
     required OcptProjectDatabase database,
     required String shotId,
-    required String characterName,
+    required String roleId,
   }) async {
     if (database.refusesUserWrite("detachCharacter")) {
       return;
     }
 
-    final normalized = normalizeCharacterName(characterName);
-
     await database.transaction(() async {
-      final roleId = await _liveRoleIdByName(database: database, normalizedName: normalized);
-      if (roleId == null) {
-        return;
-      }
-
       final current = await _characterRow(database: database, shotId: shotId, roleId: roleId);
       if (current == null || current.isDeleted) {
         return;
@@ -599,8 +582,11 @@ class OcptShotListService {
     });
   }
 
-  /// Reorders shot [shotId]'s characters to [orderedCharacterNames] (normalised the same way
-  /// [attachCharacter] does), which must be a permutation of its currently attached characters.
+  /// Reorders shot [shotId]'s characters to [orderedCharacterNames] (normalised through
+  /// `fountain_kit`'s `normalizeCharacterName`), which must be a permutation of its currently
+  /// attached characters. **Still name-based** — unlike [attachCharacter]/[detachCharacter]/
+  /// [replaceCharacterEverywhere]/[removeCharacterFromEveryShot], this one is unreachable from the
+  /// UI today and turning it roleId-native is out of M3's scope.
   ///
   /// Only the characters that actually have to move are written: `ocptFractionalKeyRekeyPlan`
   /// leaves the longest run already in ascending order alone, so moving a single character writes
@@ -668,10 +654,14 @@ class OcptShotListService {
     });
   }
 
-  /// Removes [characterName] (normalised the same way [attachCharacter] does) from every shot of
-  /// screenplay [screenplayId] it is attached to: the deleted-character banner's "remove from every
-  /// shot" action. Does nothing if no live role of that name exists — this never creates one, the
-  /// same way [detachCharacter] doesn't.
+  /// Detaches role [roleId] from every shot of screenplay [screenplayId] it is attached to. Does
+  /// nothing if [roleId] names no live shot of the screenplay — this never creates a role, the same
+  /// way [detachCharacter] doesn't.
+  ///
+  /// A generic bulk-detach primitive rather than a UI-reachable action any more: the shared
+  /// orphaned/collision banner (ADR 0030, decision 4) answers the same situation through
+  /// `OcptRoleIndexService.deleteRole`/`mergeRole` instead, which also carry off `breakdown_tags`
+  /// and `shooting_slot_cast`.
   ///
   /// {@macro open_cine_prod_tools.tombstones}
   ///
@@ -679,24 +669,18 @@ class OcptShotListService {
   Future<void> removeCharacterFromEveryShot({
     required OcptProjectDatabase database,
     required String screenplayId,
-    required String characterName,
+    required String roleId,
   }) async {
     if (database.refusesUserWrite("removeCharacterFromEveryShot")) {
       return;
     }
 
-    final normalized = normalizeCharacterName(characterName);
     final shotIds = await _shotIdsOfScreenplay(database: database, screenplayId: screenplayId);
     if (shotIds.isEmpty) {
       return;
     }
 
     await database.transaction(() async {
-      final roleId = await _liveRoleIdByName(database: database, normalizedName: normalized);
-      if (roleId == null) {
-        return;
-      }
-
       final rows =
           await (database.select(database.ocptShotCharactersTable)..where(
                 (table) =>
@@ -724,32 +708,32 @@ class OcptShotListService {
     });
   }
 
-  /// Replaces [oldCharacterName] with [newCharacterName] (both normalised the same way
-  /// [attachCharacter] does) on every shot of screenplay [screenplayId] it is attached to: the
-  /// deleted-character banner's replacement chips. Does nothing if no live role named
-  /// [oldCharacterName] exists.
+  /// Re-points every live `shot_characters` row naming role [oldRoleId], across every shot of
+  /// screenplay [screenplayId], onto role [newRoleId]. Does nothing if [oldRoleId] equals
+  /// [newRoleId], or if [oldRoleId] names no live shot of the screenplay.
   ///
-  /// [newCharacterName] is resolved to a live role of that name, or **created** as a hand-added
-  /// silent role linked to [screenplayId], exactly as [attachCharacter] does. The new role takes the
-  /// place the old one held, so a replacement never reshuffles a shot's characters. A shot that
-  /// already has [newCharacterName] attached simply drops [oldCharacterName]'s role instead of
-  /// attaching a duplicate (the table's primary key is `{shotId, roleId}`), and one that only has it
-  /// as a tombstone lifts that tombstone rather than inserting against the same key.
+  /// [newRoleId] takes the place [oldRoleId] held, so a replacement never reshuffles a shot's
+  /// characters. A shot that already has [newRoleId] attached simply drops [oldRoleId]'s row instead
+  /// of attaching a duplicate (the table's primary key is `{shotId, roleId}`), and one that only has
+  /// it as a tombstone lifts that tombstone rather than inserting against the same key.
+  ///
+  /// A generic bulk-replace primitive rather than a UI-reachable action any more: the shared
+  /// orphaned/collision banner (ADR 0030, decision 4) re-points a role's shots the same way, but
+  /// through `OcptRoleIndexService.mergeRole` instead, which also carries off `breakdown_tags` and
+  /// `shooting_slot_cast` and merges the two roles' casting.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
   Future<void> replaceCharacterEverywhere({
     required OcptProjectDatabase database,
     required String screenplayId,
-    required String oldCharacterName,
-    required String newCharacterName,
+    required String oldRoleId,
+    required String newRoleId,
   }) async {
     if (database.refusesUserWrite("replaceCharacterEverywhere")) {
       return;
     }
 
-    final normalizedOld = normalizeCharacterName(oldCharacterName);
-    final normalizedNew = normalizeCharacterName(newCharacterName);
-    if (normalizedOld == normalizedNew) {
+    if (oldRoleId == newRoleId) {
       return;
     }
 
@@ -759,11 +743,6 @@ class OcptShotListService {
     }
 
     await database.transaction(() async {
-      final oldRoleId = await _liveRoleIdByName(database: database, normalizedName: normalizedOld);
-      if (oldRoleId == null) {
-        return;
-      }
-
       final rows =
           await (database.select(database.ocptShotCharactersTable)..where(
                 (table) =>
@@ -773,15 +752,6 @@ class OcptShotListService {
               ))
               .get();
       if (rows.isEmpty) {
-        return;
-      }
-
-      final newRoleId = await _resolveOrCreateRoleId(
-        database: database,
-        screenplayId: screenplayId,
-        normalizedName: normalizedNew,
-      );
-      if (newRoleId == null) {
         return;
       }
 
@@ -1147,52 +1117,53 @@ class OcptShotListService {
       ))
       .getSingleOrNull();
 
-  /// The live role named [normalizedName] (already normalised through `fountain_kit`'s
-  /// `normalizeCharacterName`) in [database], or null if none exists — the read [detachCharacter],
-  /// [removeCharacterFromEveryShot] and [replaceCharacterEverywhere]'s old side resolve a name
-  /// through, since none of them ever creates a role.
+  /// Whether role [roleId] names a live row of [database] — the guard [attachCharacter] takes
+  /// against being handed a role id that doesn't (or no longer) exist, since a roleId-native caller
+  /// is trusted for the id's shape but not for its liveness.
+  Future<bool> _liveRoleExists({
+    required OcptProjectDatabase database,
+    required String roleId,
+  }) async {
+    final role = await (database.select(
+      database.ocptRolesTable,
+    )..where((table) => table.id.equals(roleId) & table.isDeleted.not())).getSingleOrNull();
+    return role != null;
+  }
+
+  /// Resolves [name] (normalised through `fountain_kit`'s `normalizeCharacterName`) to a live
+  /// role's id in [database], or **creates** a hand-added silent role linked to [screenplayId]
+  /// through [roleIndexService] when none exists
+  /// (`docs/adr/0030-a-shots-characters-are-the-productions-roles.md`, decision 1) — the resolve-or-
+  /// create path the shot list's own add-character affordance calls before [attachCharacter], now
+  /// that [attachCharacter] itself is roleId-native (M3 of `docs/plans/shot-characters-are-roles.md`
+  /// moved the resolution out of the service and into the caller).
   ///
   /// The first in `sortKey` order wins on the rare chance more than one live role shares a name —
   /// the same deterministic tie-break `OcptRoleIndexService.reconcile` and the schema v3 migration
   /// use.
-  Future<String?> _liveRoleIdByName({
+  ///
+  /// Opens no transaction of its own: [OcptRoleIndexService.addRole] opens one when it actually
+  /// mints a role, which simply runs as part of whichever transaction the caller is already inside
+  /// (`ConnectionUser.transaction`'s own doc comment on nested transactions) — or on its own when the
+  /// caller isn't inside one, exactly as reading is always safe to do outside a transaction.
+  ///
+  /// Returns null only if creating a fresh role is refused for having been handed a preview
+  /// connection.
+  Future<String?> resolveOrCreateRoleId({
     required OcptProjectDatabase database,
-    required String normalizedName,
+    required String screenplayId,
+    required String name,
   }) async {
-    final role =
+    final normalizedName = normalizeCharacterName(name);
+
+    final existingRole =
         await (database.select(database.ocptRolesTable)
               ..where((table) => table.name.equals(normalizedName) & table.isDeleted.not())
               ..orderBy([(table) => OrderingTerm.asc(table.sortKey)])
               ..limit(1))
             .getSingleOrNull();
-    return role?.id;
-  }
-
-  /// Resolves [normalizedName] to a live role's id in [database], or **creates** a hand-added
-  /// silent role linked to [screenplayId] through [roleIndexService] when none exists
-  /// (`docs/adr/0030-a-shots-characters-are-the-productions-roles.md`, decision 1) — what
-  /// [attachCharacter] and [replaceCharacterEverywhere]'s new side call.
-  ///
-  /// Called from inside the caller's own transaction: [OcptRoleIndexService.addRole] opens one of
-  /// its own, which simply runs as part of the already-open one rather than as a separate commit
-  /// (`ConnectionUser.transaction`'s own doc comment on nested transactions), so the role — when one
-  /// is minted — and the `shot_characters` row it backs land or roll back together.
-  ///
-  /// Returns null only if the write is refused for having been handed a preview connection — the
-  /// caller has already checked this itself before opening its transaction, so this can only differ
-  /// if that guard and [OcptRoleIndexService.addRole]'s own ever disagree, and a no-op is the safe
-  /// way to answer that disagreement rather than crashing on a force-unwrap.
-  Future<String?> _resolveOrCreateRoleId({
-    required OcptProjectDatabase database,
-    required String screenplayId,
-    required String normalizedName,
-  }) async {
-    final existingRoleId = await _liveRoleIdByName(
-      database: database,
-      normalizedName: normalizedName,
-    );
-    if (existingRoleId != null) {
-      return existingRoleId;
+    if (existingRole != null) {
+      return existingRole.id;
     }
 
     return roleIndexService.addRole(

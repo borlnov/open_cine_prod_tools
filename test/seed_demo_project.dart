@@ -547,11 +547,12 @@ void main() {
         difficultyCamera: Value(difficulty),
       );
       for (final character in characters) {
-        await shotListService.attachCharacter(
+        final roleId = (await shotListService.resolveOrCreateRoleId(
           database: database,
-          shotId: shotId,
-          characterName: character,
-        );
+          screenplayId: screenplayId,
+          name: character,
+        ))!;
+        await shotListService.attachCharacter(database: database, shotId: shotId, roleId: roleId);
       }
       return shotId;
     }
