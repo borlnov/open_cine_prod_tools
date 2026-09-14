@@ -616,9 +616,9 @@ class OcptRoleIndexService {
   /// What moves, table by table:
   /// - `shot_characters` (`{shotId, roleId}` primary key): every live row naming *source* is
   ///   tombstoned; the `{shotId, targetRoleId}` row is created, or revived if it exists only as a
-  ///   tombstone, keeping the moved row's `position`/`sortKey` — the same pattern
-  ///   `OcptShotListService.replaceCharacterEverywhere` already uses. A shot that already has
-  ///   *target* live simply drops *source*'s row instead.
+  ///   tombstone, keeping the moved row's `position`/`sortKey` — a plain tombstone-and-recreate,
+  ///   the only way to re-point a composite primary key. A shot that already has *target* live
+  ///   simply drops *source*'s row instead.
   /// - `shooting_slot_cast` (own-id primary key, `roleId` an ordinary column): a live row naming
   ///   *source* has its `roleId` updated to *target* in place, unless that slot already convokes
   ///   *target* live, in which case *source*'s row is tombstoned instead — a convocation must never
@@ -668,8 +668,8 @@ class OcptRoleIndexService {
 
       final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
 
-      // shot_characters: {shotId, roleId} primary key, so a re-point is tombstone-and-recreate,
-      // exactly as OcptShotListService.replaceCharacterEverywhere does.
+      // shot_characters: {shotId, roleId} primary key, so a re-point is tombstone-and-recreate —
+      // there is no other way to move a composite primary key's row onto a different key.
       final sourceShotCharacters =
           await (database.select(database.ocptShotCharactersTable)..where(
                 (table) => table.roleId.equals(sourceRoleId) & table.isDeleted.not(),

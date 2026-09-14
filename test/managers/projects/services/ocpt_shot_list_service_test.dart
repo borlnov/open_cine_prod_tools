@@ -122,9 +122,8 @@ void main() {
   /// Resolves [characterName] to a live role's id, or creates a hand-added silent one — exactly
   /// what the shot list's own add-character affordance does (M3 of
   /// `docs/adr/0030-a-shots-characters-are-the-productions-roles.md`), now that
-  /// `attachCharacter`/`detachCharacter`/`replaceCharacterEverywhere`/`removeCharacterFromEveryShot`
-  /// are roleId-native and no longer resolve a name on their own. The test suite's own stand-in for
-  /// what the bloc does before calling any of them.
+  /// `attachCharacter`/`detachCharacter` are roleId-native and no longer resolve a name on their
+  /// own. The test suite's own stand-in for what the bloc does before calling either of them.
   Future<String> roleIdOf(String characterName) async =>
       (await shotListService.resolveOrCreateRoleId(
         database: database,
@@ -421,101 +420,6 @@ Action.
       expect(snapshot.shotsById[shotId]!.characters, ["CLARA", "THÉO"]);
     });
 
-    test("removeCharacterFromEveryShot removes it from every shot of the screenplay", () async {
-      final scenes = await reconcile('''
-INT. HOUSE - DAY
-
-Action.
-
-EXT. STREET - NIGHT
-
-Action.
-''');
-      final shotA = (await shotListService.createShot(
-        database: database,
-        screenplayId: screenplayId,
-        sceneId: scenes[0].id,
-      ))!;
-      final shotB = (await shotListService.createShot(
-        database: database,
-        screenplayId: screenplayId,
-        sceneId: scenes[1].id,
-      ))!;
-      await shotListService.attachCharacter(database: database, shotId: shotA, roleId: await roleIdOf("Clara"));
-      await shotListService.attachCharacter(database: database, shotId: shotB, roleId: await roleIdOf("Clara"));
-      await shotListService.attachCharacter(database: database, shotId: shotB, roleId: await roleIdOf("Marc"));
-
-      await shotListService.removeCharacterFromEveryShot(
-        database: database,
-        screenplayId: screenplayId,
-        roleId: await roleIdOf("Clara"),
-      );
-
-      final snapshot = await shotListService.loadShotList(
-        database: database,
-        screenplayId: screenplayId,
-        episodeNumber: null,
-      );
-      expect(snapshot.shotsById[shotA]!.characters, isEmpty);
-      expect(snapshot.shotsById[shotB]!.characters, ["MARC"]);
-    });
-
-    test("replaceCharacterEverywhere renames the character on every shot", () async {
-      final scenes = await reconcile('''
-INT. HOUSE - DAY
-
-Action.
-''');
-      final shotId = (await shotListService.createShot(
-        database: database,
-        screenplayId: screenplayId,
-        sceneId: scenes.single.id,
-      ))!;
-      await shotListService.attachCharacter(database: database, shotId: shotId, roleId: await roleIdOf("Clara"));
-
-      await shotListService.replaceCharacterEverywhere(
-        database: database,
-        screenplayId: screenplayId,
-        oldRoleId: await roleIdOf("Clara"),
-        newRoleId: await roleIdOf("Julie"),
-      );
-
-      final snapshot = await shotListService.loadShotList(
-        database: database,
-        screenplayId: screenplayId,
-        episodeNumber: null,
-      );
-      expect(snapshot.shotsById[shotId]!.characters, ["JULIE"]);
-    });
-
-    test("replaceCharacterEverywhere drops the old name without duplicating an already-present one", () async {
-      final scenes = await reconcile('''
-INT. HOUSE - DAY
-
-Action.
-''');
-      final shotId = (await shotListService.createShot(
-        database: database,
-        screenplayId: screenplayId,
-        sceneId: scenes.single.id,
-      ))!;
-      await shotListService.attachCharacter(database: database, shotId: shotId, roleId: await roleIdOf("Clara"));
-      await shotListService.attachCharacter(database: database, shotId: shotId, roleId: await roleIdOf("Julie"));
-
-      await shotListService.replaceCharacterEverywhere(
-        database: database,
-        screenplayId: screenplayId,
-        oldRoleId: await roleIdOf("Clara"),
-        newRoleId: await roleIdOf("Julie"),
-      );
-
-      final snapshot = await shotListService.loadShotList(
-        database: database,
-        screenplayId: screenplayId,
-        episodeNumber: null,
-      );
-      expect(snapshot.shotsById[shotId]!.characters, ["JULIE"]);
-    });
   });
 
   group("derived shot code", () {
@@ -748,21 +652,6 @@ Action.
         await shotListService.distinctFramings(database: database, screenplayId: screenplayId),
         ["Low angle"],
       );
-
-      // Every other shot-wide write ignores it too: the replaced name must not come back on it.
-      await shotListService.replaceCharacterEverywhere(
-        database: database,
-        screenplayId: screenplayId,
-        oldRoleId: await roleIdOf("Marc"),
-        newRoleId: await roleIdOf("Julie"),
-      );
-      final afterReplace = await shotListService.loadShotList(
-        database: database,
-        screenplayId: screenplayId,
-        episodeNumber: null,
-      );
-      expect(afterReplace.shotsById.keys, [keptId]);
-      expect(afterReplace.shotsById[keptId]!.characters, ["CLARA"]);
     });
 
     test("a detached character is gone, and re-attaching it lifts its tombstone", () async {
