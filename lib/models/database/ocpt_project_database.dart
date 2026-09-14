@@ -289,7 +289,7 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
   ///
   /// See [currentSchemaVersion]'s own doc comment for the overwrite-vs-create rule these two
   /// constants drive together.
-  static const lastStableSchemaVersion = 2;
+  static const lastStableSchemaVersion = 3;
 
   /// {@macro drift.GeneratedDatabase.schemaVersion}
   @override
@@ -309,23 +309,24 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
   ///
   /// Per `docs/adr/0029-schema-versions-frozen-at-stable-releases.md`, no stable release had shipped
   /// before schema version 1, so that version itself carries no pre-stable migration history — no
-  /// real `.ocpt` file is ever found below it. The 0.1.0 release froze [lastStableSchemaVersion] at
-  /// 1, opening the current development cycle: schema version 2 is that cycle's first real
-  /// `onUpgrade` step, following the additive-only guidance
-  /// `docs/adr/0007-schema-migration-policy.md` gives for how a single step is written. From 1 to 2,
-  /// `onUpgrade` creates [OcptSyncRelayCursorsTable] — the changeset engine's own local,
-  /// never-synchronised delivery-cursor table (`docs/plans/collaboration-and-sync.md`, M3) — and
-  /// [OcptSyncPairingsTable] — this replica's own local, never-synchronised record of which relay a
-  /// project is paired with (`docs/plans/collaboration-and-sync.md`, M4) — and adds
+  /// real `.ocpt` file is ever found below it. Each stable release then froze the next number in
+  /// turn: 0.1.0 froze [lastStableSchemaVersion] at 1, 0.2.0 froze it at 2, and 0.2.1 froze it at 3,
+  /// so no development cycle is open and a new schema change would create version 4. Every
+  /// `onUpgrade` step below follows the additive-only guidance
+  /// `docs/adr/0007-schema-migration-policy.md` gives, except v3's, called out where it runs.
+  ///
+  /// From 1 to 2, `onUpgrade` creates [OcptSyncRelayCursorsTable] — the changeset engine's own
+  /// local, never-synchronised delivery-cursor table (`docs/plans/collaboration-and-sync.md`, M3) —
+  /// and [OcptSyncPairingsTable] — this replica's own local, never-synchronised record of which
+  /// relay a project is paired with (`docs/plans/collaboration-and-sync.md`, M4) — and adds
   /// [OcptBudgetLinesTable.inKindResourceId], naming the in-kind `budget_resources` contribution a
   /// quote line is the counterpart of (`docs/architecture/budget.md`) — and touches nothing else, so
   /// a v1 file's existing rows are untouched by the upgrade.
   ///
   /// From 2 to 3, `onUpgrade` delegates to [ocptMigrateToSchemaV3]
-  /// (`lib/models/database/migrations/ocpt_migration_v3.dart`), per this cycle's own frozen top file
-  /// convention (`docs/adr/0029-schema-versions-frozen-at-stable-releases.md`): it reshapes
-  /// `shot_characters` from its frozen v2 `{shotId, characterName}` key to `{shotId, roleId}`,
-  /// referencing `OcptRolesTable` — the first non-additive migration this project ships
+  /// (`lib/models/database/migrations/ocpt_migration_v3.dart`): it reshapes `shot_characters` from
+  /// its frozen v2 `{shotId, characterName}` key to `{shotId, roleId}`, referencing `OcptRolesTable`
+  /// — the first non-additive migration this project ships
   /// (`docs/adr/0030-a-shots-characters-are-the-productions-roles.md`). See that file's own doc
   /// comment for the full argument, including why it is safe under independent per-replica
   /// migration.

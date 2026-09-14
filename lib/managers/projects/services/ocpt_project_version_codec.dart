@@ -54,8 +54,8 @@ import 'package:open_cine_prod_tools/utils/ocpt_row_stamp_key.dart';
 ///   froze format 2 in turn, added for `budget_lines.inKindResourceId`
 ///   (`docs/architecture/budget.md`) — additive and nullable, so a format-1 payload, missing the
 ///   key outright, already decodes through the very same [_nullableString] read a format-2 one
-///   does, with no dedicated upgrade step to write. Format 3 is the first that **isn't** additive:
-///   `shot_characters` drops `characterName` for `roleId`
+///   does, with no dedicated upgrade step to write. The 0.2.1 release froze format 3, the first
+///   that **isn't** additive: `shot_characters` drops `characterName` for `roleId`
 ///   (`docs/adr/0030-a-shots-characters-are-the-productions-roles.md`), so a pre-3 payload's
 ///   `shotCharacters` rows cannot be reshaped into roles the way a project's live database is
 ///   migrated — [decode] drops them instead, a version captured before the reshape restoring with
@@ -96,7 +96,7 @@ class OcptProjectVersionCodec {
   ///
   /// See [currentPayloadFormat]'s own doc comment for the overwrite-vs-create rule these two
   /// constants drive together.
-  static const lastStablePayloadFormat = 2;
+  static const lastStablePayloadFormat = 3;
 
   /// This is the key used to stringify or parse the payload's own format from a JSON object
   static const _payloadFormatKey = "payloadFormat";
