@@ -91,7 +91,7 @@ void main() {
 
       // Under `flutter test` no `--dart-define=APP_VERSION=...` is passed, so this is the
       // manager's own local/dev fallback — see `OcptProjectsManager._appVersion`.
-      expect(info.migratedByAppVersion, "0.2.0");
+      expect(info.migratedByAppVersion, "0.2.1");
       expect(info.appVersionAtCreation, info.migratedByAppVersion);
     },
   );
@@ -936,7 +936,7 @@ void main() {
         await manager.createProject(name: "From Another Workshop", filePath: foreignPath);
         await manager.closeCurrentProject();
         // A pre-release writer, whereas the manager's own fallback under `flutter test` is the
-        // stable "0.2.0" (per `OcptProjectsManager._appVersion`): same schema, and a pre-release
+        // stable "0.2.1" (per `OcptProjectsManager._appVersion`): same schema, and a pre-release
         // is involved on the writer side, so the file is a foreign dev build.
         stampWriter(foreignPath, "0.2.0-alpha.99");
 
@@ -957,7 +957,7 @@ void main() {
       // The manager's own local/dev fallback under `flutter test` — see
       // `OcptProjectsManager._appVersion`. Already stamped by createProject, but stamped again
       // explicitly here to state exactly what this test is about.
-      stampWriter(filePath, "0.2.0");
+      stampWriter(filePath, "0.2.1");
 
       final result = await manager.openProject(filePath: filePath);
 
