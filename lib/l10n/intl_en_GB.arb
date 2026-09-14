@@ -4360,6 +4360,28 @@
     "type": "text",
     "placeholders": {}
   },
+  "roleAlertCompactOrphanedLine": "{characterName} — removed from the screenplay",
+  "@roleAlertCompactOrphanedLine": {
+    "description": "One line of the compact role alert banner, naming an orphaned role",
+    "context": "Displayed at the top of the resources mode and the breakdown mode",
+    "type": "text",
+    "placeholders": {
+      "characterName": {
+        "type": "String"
+      }
+    }
+  },
+  "roleAlertCompactCollisionLine": "{characterName} — shared by two roles",
+  "@roleAlertCompactCollisionLine": {
+    "description": "One line of the compact role alert banner, naming a role in a name collision",
+    "context": "Displayed at the top of the resources mode and the breakdown mode",
+    "type": "text",
+    "placeholders": {
+      "characterName": {
+        "type": "String"
+      }
+    }
+  },
   "resourcesRoleCandidatesCardTitle": "Candidates",
   "@resourcesRoleCandidatesCardTitle": {
     "description": "Title of the card holding the people seen for a role",

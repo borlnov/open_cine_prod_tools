@@ -15,7 +15,12 @@ import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
+import 'package:open_cine_prod_tools/types/ocpt_resources_tab.dart';
+import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/resources_bloc.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/resources_event.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/resources_mode.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_shell.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/workspace_bloc.dart';
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
@@ -211,6 +216,58 @@ void main() {
 
       expect(find.text(tr.resourcesExportPanelTitle), findsNothing);
       expect(find.text(tr.resourcesExportContactListDialogTitle), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    "the compact banner shows an orphaned role and tapping it selects it on the roles tab",
+    (tester) async {
+      tester.view.physicalSize = const Size(1400, 900);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      final project = projectsManager.currentProject!;
+      await projectsManager.screenplayService.saveScreenplayText(
+        database: project.database,
+        screenplayId: project.primaryScreenplayId,
+        fountainText: "INT. HOUSE - DAY\n\nCLARA\nHello.\n",
+        snapshotReason: OcptSnapshotReason.manual,
+      );
+
+      await tester.pumpWidget(_wrapWithLocalization(const OcptResourcesMode()));
+      await tester.pumpAndSettle();
+
+      final tr = Tr.of(tester.element(find.byType(OcptResourcesMode)));
+      // Starts on the people tab, with no trouble to report yet.
+      expect(find.text(tr.roleAlertCompactOrphanedLine("CLARA")), findsNothing);
+
+      // Orphan CLARA, then force the mode to reload — the same trigger the project settings page
+      // uses once it's closed after changing something. The bloc lives below `OcptWorkspaceShell`
+      // (`OcptResourcesMode` itself only wires the `BlocProvider` up), so that's where a test
+      // reaches it from — mirroring `editor_page_test.dart`'s own `BlocProvider.of` calls.
+      await projectsManager.screenplayService.saveScreenplayText(
+        database: project.database,
+        screenplayId: project.primaryScreenplayId,
+        fountainText: "INT. HOUSE - DAY\n\nAction, no dialogue anymore.\n",
+        snapshotReason: OcptSnapshotReason.manual,
+      );
+      final bloc = BlocProvider.of<OcptResourcesBloc>(
+        tester.element(find.byType(OcptWorkspaceShell)),
+      );
+      bloc.add(const OcptResourcesProjectSettingsChangedEvent());
+      await tester.pumpAndSettle();
+
+      // The banner shows on the people tab (the mode's own default), above the tab's own content.
+      expect(bloc.state.activeTab, OcptResourcesTab.people);
+      expect(find.text(tr.roleAlertCompactOrphanedLine("CLARA")), findsOneWidget);
+
+      await tester.tap(find.text(tr.roleAlertCompactOrphanedLine("CLARA")));
+      await tester.pumpAndSettle();
+
+      // Landed on the roles tab, CLARA selected: the full banner now lives in her own sheet.
+      expect(bloc.state.activeTab, OcptResourcesTab.roles);
+      expect(find.text(tr.roleAlertOrphanedMessage("CLARA")), findsOneWidget);
     },
   );
 }

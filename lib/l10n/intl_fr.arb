@@ -580,6 +580,8 @@
   "roleAlertMergeConfirmTitle": "Fusionner ces rôles ?",
   "roleAlertMergeConfirmMessage": "La distribution, les notes et tout ce que porte {sourceName} seront transférés vers {targetName}. {sourceName} disparaîtra définitivement. Cette action est irréversible.",
   "roleAlertMergeConfirmAction": "Fusionner",
+  "roleAlertCompactOrphanedLine": "{characterName} — retiré du scénario",
+  "roleAlertCompactCollisionLine": "{characterName} — partagé par deux rôles",
   "resourcesRoleCandidatesCardTitle": "Candidats",
   "resourcesRoleNoCandidateHint": "Personne n'a encore été enregistré.",
   "resourcesAddCandidateToRoleAction": "+ Candidat",

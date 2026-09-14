@@ -39,6 +39,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/breakdown/widgets/
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/breakdown/widgets/ocpt_breakdown_target_inspector.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_project_version_create_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_project_versions_panel.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_role_alert_compact_banner.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock_layout_controller.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_export_dialog.dart';
@@ -395,6 +396,9 @@ class _BreakdownViewState extends State<_BreakdownView> {
       selectedSceneId: state.selectedSceneId,
       onSceneSelected: (sceneId) =>
           context.read<OcptBreakdownBloc>().add(OcptBreakdownSceneSelectedEvent(sceneId: sceneId)),
+      onWarningTapped: (sceneId) => context.read<OcptBreakdownBloc>().add(
+        OcptBreakdownSceneHeadingSelectedEvent(sceneId: sceneId),
+      ),
       legendEntries: ocptBreakdownLegendEntriesOf(state.targets),
       hiddenLegendKeys: state.hiddenLegendKeys,
       onLegendEntryToggled: (key) => context.read<OcptBreakdownBloc>().add(
@@ -406,14 +410,21 @@ class _BreakdownViewState extends State<_BreakdownView> {
     );
   }
 
-  /// Builds the shell's `centre`: the header band, then whichever of the script view or the recap
-  /// table [OcptBreakdownState.centreView] currently names, filling the rest of the row.
+  /// Builds the shell's `centre`: the compact role alert banner (ADR 0030 decision 4, refined by
+  /// the M4 step of `docs/plans/shot-characters-are-roles.md`), then the header band, then whichever
+  /// of the script view or the recap table [OcptBreakdownState.centreView] currently names, filling
+  /// the rest of the row.
+  ///
+  /// The banner sits above everything else and stays whichever scene or target is selected: it
+  /// reports the whole cast, not something about the sheet currently being looked at.
   Widget _buildCentre(BuildContext context, OcptBreakdownState state) {
     final bloc = context.read<OcptBreakdownBloc>();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        if (_buildRoleAlertCompactBanner(context, state) case final banner?)
+          Padding(padding: const EdgeInsets.fromLTRB(16, 12, 16, 0), child: banner),
         OcptBreakdownHeader(
           centreView: state.centreView,
           onCentreViewSelected: (view) =>
@@ -431,6 +442,31 @@ class _BreakdownViewState extends State<_BreakdownView> {
               : _buildRecapTable(context, state),
         ),
       ],
+    );
+  }
+
+  /// Builds the compact role alert banner, or null while the whole cast is in order or a project
+  /// version is being previewed read-only.
+  ///
+  /// Having no role sheet of its own, tapping a line opens the role in the resources mode instead,
+  /// through the very same workspace reveal request `Open in Resources` already uses
+  /// ([_revealRequestOf]'s own sibling, for a role rather than the selected target).
+  Widget? _buildRoleAlertCompactBanner(BuildContext context, OcptBreakdownState state) {
+    final orphanedAlerts = state.orphanedRoleAlerts;
+    final collisionAlerts = state.roleCollisionAlerts;
+    if (state.isPreviewingVersion || (orphanedAlerts.isEmpty && collisionAlerts.isEmpty)) {
+      return null;
+    }
+
+    return OcptRoleAlertCompactBanner(
+      orphanedAlerts: orphanedAlerts,
+      collisionAlerts: collisionAlerts,
+      onRoleTapped: (roleId) => context.read<OcptWorkspaceBloc>().add(
+        OcptWorkspaceModeSelectedEvent(
+          mode: OcptWorkspaceMode.resources,
+          revealRequest: OcptResourcesRevealRequest(tab: OcptResourcesTab.roles, recordId: roleId),
+        ),
+      ),
     );
   }
 

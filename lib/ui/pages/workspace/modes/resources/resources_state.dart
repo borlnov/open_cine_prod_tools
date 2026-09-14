@@ -314,6 +314,12 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
     return OcptRemovedRoleAlert.of(selectedRole);
   }
 
+  /// Every orphaned-role alert found in the whole cast (ADR 0030, decision 4, refined by the M4
+  /// step of `docs/plans/shot-characters-are-roles.md`): what the mode-level compact banner is
+  /// built from, above [selectedRoleAlert]'s own "one at a time" reasoning — the compact banner
+  /// reports the whole cast, not just the selected role's sheet.
+  List<OcptRemovedRoleAlert> get orphanedRoleAlerts => OcptRemovedRoleAlert.buildAll(roles);
+
   /// Every name-collision alert found in the whole cast (ADR 0030, decision 2), sorted stably.
   List<OcptRoleCollisionAlert> get roleCollisionAlerts => OcptRoleCollisionAlert.buildAll(roles);
 

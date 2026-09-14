@@ -15,7 +15,9 @@ import 'package:open_cine_prod_tools/models/ocpt_project_package_notice.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_package_report.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_version.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_working_copy_state.dart';
+import 'package:open_cine_prod_tools/models/ocpt_removed_role_alert.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role.dart';
+import 'package:open_cine_prod_tools/models/ocpt_role_collision_alert.dart';
 import 'package:open_cine_prod_tools/models/ocpt_set.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_centre_view.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_pending_tag.dart';
@@ -318,6 +320,15 @@ class OcptBreakdownState extends BlocStateForMixin<OcptBreakdownState>
   /// The whole cast of [snapshot] (empty while nothing is loaded), one of the three raw catalogues
   /// [searchCandidates] flattens for the tag popover.
   List<OcptRole> get roles => snapshot?.roles ?? const [];
+
+  /// Every orphaned-role alert found in [roles] (ADR 0030, decision 4, refined by the M4 step of
+  /// `docs/plans/shot-characters-are-roles.md`) — what the mode-level compact banner is built from.
+  /// No service work of its own: [roles] is already loaded for [searchCandidates].
+  List<OcptRemovedRoleAlert> get orphanedRoleAlerts => OcptRemovedRoleAlert.buildAll(roles);
+
+  /// Every name-collision alert found in [roles] (ADR 0030, decision 2), sorted stably — the
+  /// compact banner's other half, mirroring `OcptResourcesState.roleCollisionAlerts`.
+  List<OcptRoleCollisionAlert> get roleCollisionAlerts => OcptRoleCollisionAlert.buildAll(roles);
 
   /// The whole set catalogue of [snapshot] (empty while nothing is loaded), the sibling of [roles].
   List<OcptSet> get sets => snapshot?.sets ?? const [];
