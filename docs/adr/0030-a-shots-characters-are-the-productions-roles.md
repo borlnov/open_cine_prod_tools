@@ -76,11 +76,14 @@ how.
    new rule inside the reconciliation.
 
 3. **Merge is one operation, and the speaking role wins.** Merging role *source* into role *target*
-   re-points every `shot_characters` and `breakdown_tags` row from *source* to *target*, carries
-   *source*'s casting (`personId`), notes, `role_elements`, `role_candidates` and `role_episodes`
-   onto *target* where *target* lacks them, then tombstones *source*. When one of the two is a
-   reconciled speaking role, **it is the one that survives**, so `reconcile` keeps owning it; the
-   hand-added role's casting is what is carried over.
+   re-points every row that names *source* — `shot_characters`, `breakdown_tags` and
+   `shooting_slot_cast`, the last so an actor's convocation on the schedule is not dropped by the
+   merge — onto *target*, carries *source*'s casting (`personId`), notes, `role_elements`,
+   `role_candidates` and `role_episodes` onto *target* where *target* lacks them, then tombstones
+   *source*. When one of the two is a reconciled speaking role, **it is the one that survives**, so
+   `reconcile` keeps owning it; the hand-added role's casting is what is carried over. (Deletion, by
+   contrast, keeps the narrower cascade decision 5 settles — a merge preserves the convocation, a
+   deletion is the user saying the part is gone.)
 
 4. **One banner, shown wherever the role is.** A single shared banner widget states a role that
    needs attention and offers the ways out, in **both** the resources mode and the shot list — a

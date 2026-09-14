@@ -106,11 +106,14 @@ a UI change, so the shot list keeps M1's name-based API (roleId-backed) untouche
 compiling and behaving as they do. Turning that API roleId-native, retiring the old shot-list alert,
 and every banner belong to M3, where the picker that feeds a roleId arrives with them.
 
-- **`OcptRoleIndexService.mergeRole`.** The one merge operation (decision 3): re-point every
-  `shot_characters` and `breakdown_tags` row from source to target, carry source's `personId`,
-  `castingNotes`, `role_elements`, `role_candidates` and `role_episodes` onto target where target
-  lacks them, tombstone source. When one role is a reconciled speaking role it is the survivor.
-  Guarded (`refusesUserWrite`), one transaction, sync-stamped.
+- **`OcptRoleIndexService.mergeRole`.** The one merge operation (decision 3): re-point every row
+  that names source — `shot_characters`, `breakdown_tags` and `shooting_slot_cast` (so a
+  convocation is not dropped) — onto target, deduping where target already has the same
+  `{shotId, roleId}` / `{slotId, roleId}` / tag; carry source's `personId`, `castingNotes`,
+  `role_elements`, `role_candidates` and `role_episodes` onto target where target lacks them;
+  tombstone source. When one role is a reconciled speaking role it is the survivor. Guarded
+  (`refusesUserWrite`), one transaction, sync-stamped. Investigate whether any other table names a
+  role and report it rather than silently widening the operation.
 - **`OcptRoleIndexService.deleteRole`.** Add the two missing cascades (decision 5): tombstone the
   `shot_characters` rows and the `breakdown_tags` rows naming the role, beside the links it already
   carries off. `OcptBreakdownService` owns the breakdown-tag tombstone; `deleteRole` holds it the
