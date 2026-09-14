@@ -52,10 +52,17 @@ whole cycle — there is nothing to squash at release time, only to freeze.
    `test/models/database/ocpt_project_database_migration_test.dart`, pinning that
    `onCreate` reproduces the result of migrating that fixture forward — this is what proves the
    frozen step is never silently altered later.
-2. **Run the gates** (`flutter analyze`, `flutter test`, `flutter build linux --debug`,
+2. **Cut the guide version.** Freeze a snapshot of the user guide for this release so a reader can
+   still browse the guide of an older version, and so the site's version dropdown shows this number.
+   On a machine with Node and the site dependencies installed (the devcontainer has no Node), run
+   `docs-site/tool/cut-version.sh X.Y.Z` — it freezes both languages, which Docusaurus's own command
+   does not. The guide version must equal the release tag, and the cut must sit on the release
+   commit so the frozen guide matches the app it documents. See
+   [`../docs-site/README.md`](../docs-site/README.md) for how the versioning is laid out.
+3. **Run the gates** (`flutter analyze`, `flutter test`, `flutter build linux --debug`,
    `reuse lint`, and `dart run tool/check_markdown.dart` if any `.md` changed).
-3. **Merge** the freeze to `main` through a pull request, as any change.
-4. **Tag** the merge commit `vX.Y.Z` (no suffix) and push the tag. CI derives the stable version,
+4. **Merge** the freeze to `main` through a pull request, as any change.
+5. **Tag** the merge commit `vX.Y.Z` (no suffix) and push the tag. CI derives the stable version,
    builds, and publishes the release.
 
 You only ever run `git tag`. Preparing the freeze commit is ordinary reviewed work done before the
