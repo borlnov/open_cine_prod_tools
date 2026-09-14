@@ -67,8 +67,9 @@ Then run `reuse lint` from the repository root (the generated JSON is covered by
 globs) and commit the snapshot as part of the release. This is wired into the project's release
 procedure, [`../docs/RELEASING.md`](../docs/RELEASING.md).
 
-The first frozen version is `0.2.0`. The `docs/` tree that produced it is unchanged, so the "Next"
-version and `0.2.0` are identical until the next cycle adds to `docs/`.
+The frozen versions are `0.2.0` and `0.2.1`; `0.2.1` is the newest, served at the root. The `docs/`
+tree has not changed across them, so the "Next" version and both frozen versions are identical
+until the next cycle adds to `docs/`.
 
 ## Deployment
 
