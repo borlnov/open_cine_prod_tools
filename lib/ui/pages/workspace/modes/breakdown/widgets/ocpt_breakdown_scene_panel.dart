@@ -22,11 +22,17 @@ import 'package:open_cine_prod_tools/utils/ocpt_breakdown_scene_bars.dart';
 ///
 /// Width-agnostic, like the shot list's own sequence panel: it fills whatever width its parent
 /// `OcptWorkspaceDock` gives it and owns no background of its own. Clicking a row selects that
-/// scene, which is what both `OcptBreakdownScriptView` and (once it lands) the scene inspector read
-/// off — this panel itself never scrolls the script view to it, since the two are siblings of the
-/// same shell rather than one driving the other. The legend's own callbacks pass straight through:
-/// this panel hosts it (the plan puts the legend in the left dock, under the scenes) without
-/// knowing anything about what a hidden key does to the script view.
+/// scene, which is what both `OcptBreakdownScriptView` and the scene inspector read off — this
+/// panel itself never scrolls the script view to it, since the two are siblings of the same shell
+/// rather than one driving the other. The legend's own callbacks pass straight through: this panel
+/// hosts it (the plan puts the legend in the left dock, under the scenes) without knowing anything
+/// about what a hidden key does to the script view.
+///
+/// The ⚠ mark is its own tappable region ([onWarningTapped]), separate from the row's own click
+/// ([onSceneSelected]): the row only selects the scene, exactly as `OcptBreakdownSceneSelectedEvent`
+/// always has, while the mark is the fix's own way in — the mode answers it the way a script view
+/// heading's click already is, landing the user on the inspector's own "to check" callout (ADR 0030,
+/// decision 4, refined by the M4 step of `docs/plans/shot-characters-are-roles.md`).
 class OcptBreakdownScenePanel extends StatelessWidget {
   /// The scenes to list, in source order.
   final List<OcptBreakdownScene> scenes;
@@ -40,6 +46,14 @@ class OcptBreakdownScenePanel extends StatelessWidget {
 
   /// Called with a scene's id when its row is clicked.
   final ValueChanged<String> onSceneSelected;
+
+  /// Called with a scene's id when its own ⚠ warning mark is clicked — the mark [_SceneEntry] shows
+  /// only while the scene holds a flagged tag. Unlike [onSceneSelected], which only selects the
+  /// scene, this is meant to lead straight to the fix: the mode answers it the way a script view
+  /// heading's click already is, opening the right dock on the `Inspector` tab so the scene's own
+  /// "to check" callout is what the user lands on (ADR 0030, decision 4, refined by the M4 step of
+  /// `docs/plans/shot-characters-are-roles.md`).
+  final ValueChanged<String> onWarningTapped;
 
   /// The category legend's own rows, already built by `ocptBreakdownLegendEntriesOf` from the
   /// loaded snapshot's targets.
@@ -61,6 +75,7 @@ class OcptBreakdownScenePanel extends StatelessWidget {
     required this.targetById,
     required this.selectedSceneId,
     required this.onSceneSelected,
+    required this.onWarningTapped,
     required this.legendEntries,
     required this.hiddenLegendKeys,
     required this.onLegendEntryToggled,
@@ -112,6 +127,7 @@ class OcptBreakdownScenePanel extends StatelessWidget {
                     targetById: targetById,
                     isSelected: scenes[index].id == selectedSceneId,
                     onTap: () => onSceneSelected(scenes[index].id),
+                    onWarningTap: () => onWarningTapped(scenes[index].id),
                   ),
                 ),
         ),
@@ -142,12 +158,17 @@ class _SceneEntry extends StatelessWidget {
   /// Called when this entry is clicked.
   final VoidCallback onTap;
 
+  /// Called when this entry's own ⚠ warning mark is clicked — shown only while [scene] holds a
+  /// flagged tag, and never while it doesn't.
+  final VoidCallback onWarningTap;
+
   /// Class constructor
   const _SceneEntry({
     required this.scene,
     required this.targetById,
     required this.isSelected,
     required this.onTap,
+    required this.onWarningTap,
   });
 
   @override
@@ -184,10 +205,15 @@ class _SceneEntry extends StatelessWidget {
                   padding: const EdgeInsets.only(right: 8),
                   child: Tooltip(
                     message: tr.breakdownTagNeedsCheckTooltip,
-                    child: Icon(
-                      Icons.warning_amber_rounded,
-                      size: 12,
-                      color: ocptWarningColor(context),
+                    child: InkWell(
+                      onTap: onWarningTap,
+                      mouseCursor: ocptClickableCursor,
+                      borderRadius: BorderRadius.circular(ocptRadiusSmall),
+                      child: Icon(
+                        Icons.warning_amber_rounded,
+                        size: 12,
+                        color: ocptWarningColor(context),
+                      ),
                     ),
                   ),
                 ),

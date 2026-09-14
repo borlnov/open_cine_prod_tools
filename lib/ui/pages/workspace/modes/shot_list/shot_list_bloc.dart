@@ -6,6 +6,7 @@ import 'dart:async';
 
 import 'package:act_flutter_utility/act_flutter_utility.dart';
 import 'package:act_global_manager/act_global_manager.dart';
+import 'package:collection/collection.dart';
 import 'package:drift/drift.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -14,12 +15,14 @@ import 'package:open_cine_prod_tools/managers/export/ocpt_export_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_role_index_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_schedule_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_coverage_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_list_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/ocpt_open_project_model.dart';
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
+import 'package:open_cine_prod_tools/models/ocpt_role.dart';
 import 'package:open_cine_prod_tools/models/ocpt_script_word_layout.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_field_suggestions.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_list_snapshot.dart';
@@ -119,6 +122,10 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
   /// The service used to read and write the shot list.
   final OcptShotListService _shotListService;
 
+  /// The service used to read the production's whole cast (for the character chips and the shared
+  /// role alert banner) and to merge/delete/keep an orphaned or collided role.
+  final OcptRoleIndexService _roleIndexService;
+
   /// The service used to read and write a shot's scenario coverage ranges.
   final OcptShotCoverageService _shotCoverageService;
 
@@ -154,6 +161,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     OcptRouterManager? routerManager,
     OcptExportManager? exportManager,
     OcptShotListService? shotListService,
+    OcptRoleIndexService? roleIndexService,
     OcptShotCoverageService? shotCoverageService,
     OcptScheduleService? scheduleService,
     Duration fieldEditDebounce = defaultFieldEditDebounce,
@@ -166,6 +174,9 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
        _shotListService =
            shotListService ??
            (projectsManager ?? globalGetIt().get<OcptProjectsManager>()).shotListService,
+       _roleIndexService =
+           roleIndexService ??
+           (projectsManager ?? globalGetIt().get<OcptProjectsManager>()).roleIndexService,
        _shotCoverageService =
            shotCoverageService ??
            (projectsManager ?? globalGetIt().get<OcptProjectsManager>()).shotCoverageService,
@@ -202,9 +213,11 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     on<OcptShotListFieldEditFlushRequestedEvent>(_onFieldEditFlushRequested);
     on<OcptShotListShotDifficultyChangedEvent>(_onShotDifficultyChanged);
     on<OcptShotListShotCharacterToggledEvent>(_onShotCharacterToggled);
+    on<OcptShotListCharacterAddRequestedEvent>(_onCharacterAddRequested);
     on<OcptShotListShotDeletionRequestedEvent>(_onShotDeletionRequested);
-    on<OcptShotListRemovedCharacterDroppedEvent>(_onRemovedCharacterDropped);
-    on<OcptShotListRemovedCharacterReplacedEvent>(_onRemovedCharacterReplaced);
+    on<OcptShotListOrphanedRoleDeleteRequestedEvent>(_onOrphanedRoleDeleteRequested);
+    on<OcptShotListOrphanedRoleKeptEvent>(_onOrphanedRoleKept);
+    on<OcptShotListRoleMergeRequestedEvent>(_onRoleMergeRequested);
     on<OcptShotListCoverageWordClickedEvent>(_onCoverageWordClicked);
     on<OcptShotListCoverageClearRequestedEvent>(_onCoverageClearRequested);
     on<OcptShotListShotMarkedAsCheckedEvent>(_onShotMarkedAsChecked);
@@ -287,6 +300,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     final pageSetup = await _loadPageSetup(project);
     final snapshot = await _loadSnapshot(project);
     final screenplayCharacters = _screenplayCharactersOf(screenplayText);
+    final roles = await _loadRoles(project);
     final suggestions = await _loadSuggestions(project);
 
     emitter(
@@ -298,6 +312,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
         snapshot: snapshot,
         pageSetup: pageSetup,
         screenplayText: screenplayText,
+        roles: roles,
         selectedSequenceId: snapshot.sequences.isEmpty ? null : snapshot.sequences.first.id,
         clearSelectedSequenceId: snapshot.sequences.isEmpty,
         clearSelectedShotId: true,
@@ -339,6 +354,13 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
 
     return snapshot.copyWithPlacements(placements);
   }
+
+  /// Reads the production's whole cast — every live role, in `sortKey` order — what the
+  /// inspector's character chips are built from, and what the shared role alert banner's
+  /// orphaned/collision alerts are derived from (`OcptShotListState.orphanedRoleAlerts`/
+  /// `.roleCollisionAlerts`).
+  Future<List<OcptRole>> _loadRoles(OcptOpenProjectModel project) =>
+      _roleIndexService.loadRoles(database: project.database);
 
   /// Reads the selected episode's current Fountain source text, kept in
   /// `OcptShotListState.screenplayText` for [_screenplayCharactersOf] and every scenario coverage
@@ -1099,7 +1121,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     }
   }
 
-  /// Attaches `event.characterName` to shot `event.shotId` if it isn't already, detaches it
+  /// Attaches role `event.roleId` to shot `event.shotId` if it isn't already, detaches it
   /// otherwise, written immediately.
   Future<void> _onShotCharacterToggled(
     OcptShotListShotCharacterToggledEvent event,
@@ -1111,25 +1133,63 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
       return;
     }
 
-    final isAttached = shot.characters.contains(normalizeCharacterName(event.characterName));
+    final isAttached = shot.characterRoleIds.contains(event.roleId);
 
     try {
       if (isAttached) {
         await _shotListService.detachCharacter(
           database: project.database,
           shotId: event.shotId,
-          characterName: event.characterName,
+          roleId: event.roleId,
         );
       } else {
         await _shotListService.attachCharacter(
           database: project.database,
           shotId: event.shotId,
-          characterName: event.characterName,
+          roleId: event.roleId,
         );
       }
       emitter(state.copyWith(snapshot: await _loadSnapshot(project)));
     } catch (error) {
-      appLogger().e("A problem occurred when tried to toggle character ${event.characterName} on "
+      appLogger().e("A problem occurred when tried to toggle role ${event.roleId} on "
+          "shot ${event.shotId} of the project at ${project.path}: $error");
+      emitter(state.copyWith(hasWriteError: true));
+    }
+  }
+
+  /// Resolves `event.characterName` to a live role, or **creates** a hand-added silent one linked
+  /// to the selected episode (decision 1), then attaches it to shot `event.shotId`: the inspector's
+  /// `＋ Add` field, dispatched once submitted. Written immediately, and reloads both the snapshot
+  /// and the whole cast, since this is the one shot list action that can mint a fresh role.
+  Future<void> _onCharacterAddRequested(
+    OcptShotListCharacterAddRequestedEvent event,
+    Emitter<OcptShotListState> emitter,
+  ) async {
+    final project = _projectsManager.currentProject;
+    if (project == null) {
+      return;
+    }
+
+    try {
+      final roleId = await _shotListService.resolveOrCreateRoleId(
+        database: project.database,
+        screenplayId: _screenplayIdOf(project),
+        name: event.characterName,
+      );
+      if (roleId == null) {
+        return;
+      }
+
+      await _shotListService.attachCharacter(
+        database: project.database,
+        shotId: event.shotId,
+        roleId: roleId,
+      );
+      emitter(
+        state.copyWith(snapshot: await _loadSnapshot(project), roles: await _loadRoles(project)),
+      );
+    } catch (error) {
+      appLogger().e("A problem occurred when tried to add character ${event.characterName} to "
           "shot ${event.shotId} of the project at ${project.path}: $error");
       emitter(state.copyWith(hasWriteError: true));
     }
@@ -1175,47 +1235,56 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     }
   }
 
-  /// Detaches `event.characterName` from every shot of the screenplay, written immediately: the
-  /// deleted-character banner's `Remove from every shot` button.
-  ///
-  /// The banner itself is derived from the snapshot (`OcptShotListState.removedCharacterAlerts`),
-  /// so reloading it here is what makes the banner disappear — nothing dismisses it by hand.
-  Future<void> _onRemovedCharacterDropped(
-    OcptShotListRemovedCharacterDroppedEvent event,
+  /// Deletes orphaned role `event.roleId` for good, written immediately: the shared role alert
+  /// banner's orphaned variant's `Delete the role` action, dispatched once the mode's own
+  /// `OcptConfirmDialog` has already confirmed it.
+  Future<void> _onOrphanedRoleDeleteRequested(
+    OcptShotListOrphanedRoleDeleteRequestedEvent event,
     Emitter<OcptShotListState> emitter,
-  ) => _writeCharacterChange(
+  ) => _writeRoleChange(
     emitter: emitter,
-    characterName: event.characterName,
-    action: (project) => _shotListService.removeCharacterFromEveryShot(
+    logContext: "delete role ${event.roleId}",
+    action: (project) =>
+        _roleIndexService.deleteRole(database: project.database, roleId: event.roleId),
+  );
+
+  /// Keeps orphaned role `event.roleId` as a hand-added silent role, written immediately: the
+  /// shared role alert banner's orphaned variant's `Keep as silent` action — not destructive, so
+  /// reached with no confirmation dialog.
+  Future<void> _onOrphanedRoleKept(
+    OcptShotListOrphanedRoleKeptEvent event,
+    Emitter<OcptShotListState> emitter,
+  ) => _writeRoleChange(
+    emitter: emitter,
+    logContext: "keep orphaned role ${event.roleId} as silent",
+    action: (project) =>
+        _roleIndexService.keepOrphanedRoleAsSilent(database: project.database, roleId: event.roleId),
+  );
+
+  /// Merges role `event.sourceRoleId` into role `event.targetRoleId`, written immediately: the
+  /// shared role alert banner's merge affordance — either variant — dispatched once the mode's own
+  /// `OcptConfirmDialog` has already confirmed it.
+  Future<void> _onRoleMergeRequested(
+    OcptShotListRoleMergeRequestedEvent event,
+    Emitter<OcptShotListState> emitter,
+  ) => _writeRoleChange(
+    emitter: emitter,
+    logContext: "merge role ${event.sourceRoleId} into ${event.targetRoleId}",
+    action: (project) => _roleIndexService.mergeRole(
       database: project.database,
-      screenplayId: _screenplayIdOf(project),
-      characterName: event.characterName,
+      sourceRoleId: event.sourceRoleId,
+      targetRoleId: event.targetRoleId,
     ),
   );
 
-  /// Replaces `event.characterName` with `event.replacementName` on every shot of the screenplay,
-  /// written immediately: the deleted-character banner's replacement chips.
-  Future<void> _onRemovedCharacterReplaced(
-    OcptShotListRemovedCharacterReplacedEvent event,
-    Emitter<OcptShotListState> emitter,
-  ) => _writeCharacterChange(
-    emitter: emitter,
-    characterName: event.characterName,
-    action: (project) => _shotListService.replaceCharacterEverywhere(
-      database: project.database,
-      screenplayId: _screenplayIdOf(project),
-      oldCharacterName: event.characterName,
-      newCharacterName: event.replacementName,
-    ),
-  );
-
-  /// Writes a screenplay-wide character change through [action] and reloads the snapshot, so every
-  /// view derived from it (the banners, a shot's own chips, the table's characters column) reflects
-  /// what the database now says. Mirrors [_writeCoverageChange]'s own try/catch shape, for the two
-  /// actions of the deleted-character banner.
-  Future<void> _writeCharacterChange({
+  /// Writes a cast-wide role change through [action] and reloads both the snapshot and the whole
+  /// cast, so every view derived from either (the shared role alert banner, a shot's own chips, the
+  /// table's characters column) reflects what the database now says. Mirrors
+  /// [_writeCoverageChange]'s own try/catch shape, for the three actions the shared role alert
+  /// banner offers.
+  Future<void> _writeRoleChange({
     required Emitter<OcptShotListState> emitter,
-    required String characterName,
+    required String logContext,
     required Future<void> Function(OcptOpenProjectModel project) action,
   }) async {
     final project = _projectsManager.currentProject;
@@ -1225,10 +1294,12 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
 
     try {
       await action(project);
-      emitter(state.copyWith(snapshot: await _loadSnapshot(project)));
+      emitter(
+        state.copyWith(snapshot: await _loadSnapshot(project), roles: await _loadRoles(project)),
+      );
     } catch (error) {
-      appLogger().e("A problem occurred when tried to change the character $characterName on "
-          "every shot of the project at ${project.path}: $error");
+      appLogger().e("A problem occurred when tried to $logContext of the project at "
+          "${project.path}: $error");
       emitter(state.copyWith(hasWriteError: true));
     }
   }
@@ -1332,30 +1403,31 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
   /// Deliberately additive: a range that stops covering a character (removed, or narrowed) never
   /// detaches anybody, since a shot's characters are the director's own list — a silent role, an
   /// extra, a character kept in frame through a reply they don't speak — and only the user knows
-  /// which of them the coverage happens to explain. A name already attached is skipped, and so is
-  /// one no longer among [OcptShotListState.screenplayCharacters], which would otherwise come back
-  /// as a struck-through `(removed)` chip.
+  /// which of them the coverage happens to explain. A role already attached is skipped, and so is a
+  /// covered name matching no live role of [OcptShotListState.roles] — one not reconciled yet,
+  /// which the next save resolves.
   Future<void> _attachCharactersCoveredBy({
     required OcptOpenProjectModel project,
     required String shotId,
     required OcptScriptWordLayout layout,
     required ({int startOffset, int endOffset}) range,
   }) async {
-    final attached = state.snapshot?.shotsById[shotId]?.characters ?? const <String>[];
+    final attachedRoleIds = state.snapshot?.shotsById[shotId]?.characterRoleIds ?? const <String>[];
     final covered = layout.charactersCoveredBy(
       startOffset: range.startOffset,
       endOffset: range.endOffset,
     );
 
     for (final characterName in covered) {
-      if (attached.contains(characterName) || !state.screenplayCharacters.contains(characterName)) {
+      final role = state.roles.firstWhereOrNull((role) => role.name == characterName);
+      if (role == null || attachedRoleIds.contains(role.id)) {
         continue;
       }
 
       await _shotListService.attachCharacter(
         database: project.database,
         shotId: shotId,
-        characterName: characterName,
+        roleId: role.id,
       );
     }
   }

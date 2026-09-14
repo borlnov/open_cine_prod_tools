@@ -4,71 +4,72 @@
 
 import 'package:flutter/material.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
+import 'package:open_cine_prod_tools/models/ocpt_role.dart';
 
-/// The shot inspector's "Characters in shot" chips: one toggleable chip per character of the whole
-/// screenplay — the speaking roles and the ones only introduced in capitals in an action line
-/// alike — plus any character attached to this shot the screenplay no longer names at all.
+/// The shot inspector's "Characters in shot" chips: one toggleable chip per role of the whole
+/// production's cast, plus a trailing **`＋ Add`** affordance resolving or creating one by name
+/// (`docs/adr/0030-a-shots-characters-are-the-productions-roles.md`, decision 1).
 ///
-/// [screenplayCharacters] and [attachedCharacters] are both already normalised through
-/// `fountain_kit`'s `normalizeCharacterName`, so they compare equal byte-for-byte: an attached
-/// character not found in the cast is the removed case, appended after every other one, struck
-/// through in the error colour with a `(removed)` suffix, and stays listed (and toggleable off)
-/// until it is untoggled. Toggling a chip writes immediately — there is no typing debounce for
-/// this.
+/// Every attached role is necessarily one of [roles]: a shot now points at a role that always
+/// exists (the store is roleId-keyed, decision 6), so there is no more struck-through "removed"
+/// case to report here — an orphaned role's own alert is `OcptRoleAlertBanner`'s job, shown above
+/// the table, not this chip row's.
 ///
-/// A chip can only be toggled, never authored: attaching somebody the screenplay names nowhere,
-/// not even in an action line, has no input of its own yet, and comes in a future version.
+/// Toggling a chip writes immediately — there is no typing debounce for this. The `＋ Add`
+/// affordance opens a small inline text field on click: a typed name matching a live role attaches
+/// it, one matching none creates a hand-added silent role and attaches it — the resolve-or-create
+/// itself is the bloc's job, this widget only ever hands the typed name back through
+/// [onCharacterAdded].
 class OcptShotCharacterChips extends StatelessWidget {
-  /// Every character the whole screenplay names, normalised, in first-appearance order.
-  final List<String> screenplayCharacters;
+  /// Every role of the whole production's cast, in display order.
+  final List<OcptRole> roles;
 
-  /// This shot's own attached characters, normalised, in whatever order they were attached.
-  final List<String> attachedCharacters;
+  /// The ids of [roles] currently attached to this shot.
+  final List<String> attachedRoleIds;
 
-  /// Called with a character's name when its chip is clicked, or null while the cast may not be
-  /// changed (a project version being previewed read-only): the chips then read out who is in the
-  /// shot without reacting to a click.
+  /// Called with a role's id when its chip is clicked, or null while the cast may not be changed (a
+  /// project version being previewed read-only): the chips then read out who is in the shot without
+  /// reacting to a click.
   final ValueChanged<String>? onToggled;
+
+  /// Called with a typed name when the `＋ Add` field is submitted, or null to withhold the whole
+  /// affordance (a project version being previewed read-only).
+  final ValueChanged<String>? onCharacterAdded;
 
   /// Class constructor
   const OcptShotCharacterChips({
     super.key,
-    required this.screenplayCharacters,
-    required this.attachedCharacters,
+    required this.roles,
+    required this.attachedRoleIds,
     required this.onToggled,
+    required this.onCharacterAdded,
   });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final tr = Tr.of(context);
+    final onToggled = this.onToggled;
+    final onCharacterAdded = this.onCharacterAdded;
 
-    final removed = [
-      for (final name in attachedCharacters)
-        if (!screenplayCharacters.contains(name)) name,
-    ];
-    final everyName = [...screenplayCharacters, ...removed];
-
-    if (everyName.isEmpty) {
+    if (roles.isEmpty && onCharacterAdded == null) {
       return Text(
         tr.shotListCharactersEmptyHint,
         style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
       );
     }
 
-    final onToggled = this.onToggled;
-
     return Wrap(
       spacing: 6,
       runSpacing: 6,
       children: [
-        for (final name in everyName)
+        for (final role in roles)
           _OcptCharacterChip(
-            name: name,
-            isAttached: attachedCharacters.contains(name),
-            isRemoved: removed.contains(name),
-            onTap: onToggled == null ? null : () => onToggled(name),
+            name: role.name.isEmpty ? tr.resourcesRoleUnnamed : role.name,
+            isAttached: attachedRoleIds.contains(role.id),
+            onTap: onToggled == null ? null : () => onToggled(role.id),
           ),
+        if (onCharacterAdded != null) _OcptAddCharacterChip(onSubmitted: onCharacterAdded),
       ],
     );
   }
@@ -76,41 +77,95 @@ class OcptShotCharacterChips extends StatelessWidget {
 
 /// One chip of [OcptShotCharacterChips].
 class _OcptCharacterChip extends StatelessWidget {
-  /// The character's normalised name.
+  /// The role's display name.
   final String name;
 
-  /// Whether [name] is currently attached to the shot.
+  /// Whether this role is currently attached to the shot.
   final bool isAttached;
-
-  /// Whether [name] no longer speaks anywhere in the screenplay.
-  final bool isRemoved;
 
   /// Called when this chip is clicked, or null when the chip may not be toggled at all.
   final VoidCallback? onTap;
 
   /// Class constructor
-  const _OcptCharacterChip({
-    required this.name,
-    required this.isAttached,
-    required this.isRemoved,
-    required this.onTap,
-  });
+  const _OcptCharacterChip({required this.name, required this.isAttached, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) => FilterChip(
+    label: Text(name),
+    selected: isAttached,
+    onSelected: onTap == null ? null : (_) => onTap!(),
+  );
+}
+
+/// The trailing `＋ Add` affordance of [OcptShotCharacterChips]: a chip that turns into a small
+/// inline text field on click, submitting the typed name to [onSubmitted] and collapsing back —
+/// on `Enter`, or on losing focus with something typed. Losing focus with nothing typed simply
+/// collapses back with no call at all.
+class _OcptAddCharacterChip extends StatefulWidget {
+  /// Called with the typed name once the field is submitted.
+  final ValueChanged<String> onSubmitted;
+
+  /// Class constructor
+  const _OcptAddCharacterChip({required this.onSubmitted});
+
+  @override
+  State<_OcptAddCharacterChip> createState() => _OcptAddCharacterChipState();
+}
+
+/// The state of [_OcptAddCharacterChip]: whether the inline field is currently shown, and its
+/// controller.
+class _OcptAddCharacterChipState extends State<_OcptAddCharacterChip> {
+  /// The width of the inline text field, wide enough for a first and last name.
+  static const double _fieldWidth = 160;
+
+  /// Whether the inline field is shown in place of the `＋ Add` chip.
+  bool _isEditing = false;
+
+  /// The inline field's own text.
+  final TextEditingController _controller = TextEditingController();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  /// Submits the typed name (trimmed) if it isn't empty, then collapses back to the chip either
+  /// way, clearing the field.
+  void _submit() {
+    final value = _controller.text.trim();
+    if (value.isNotEmpty) {
+      widget.onSubmitted(value);
+    }
+    setState(() {
+      _isEditing = false;
+      _controller.clear();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final tr = Tr.of(context);
+    if (!_isEditing) {
+      return ActionChip(
+        avatar: const Icon(Icons.add, size: 16),
+        label: Text(Tr.of(context).shotListAddCharacterAction),
+        onPressed: () => setState(() => _isEditing = true),
+      );
+    }
 
-    return FilterChip(
-      label: Text(isRemoved ? tr.shotListCharacterRemovedLabel(name) : name),
-      labelStyle: isRemoved
-          ? theme.textTheme.bodySmall?.copyWith(
-              color: theme.colorScheme.error,
-              decoration: TextDecoration.lineThrough,
-            )
-          : null,
-      selected: isAttached,
-      onSelected: onTap == null ? null : (_) => onTap!(),
+    return SizedBox(
+      width: _fieldWidth,
+      child: TextField(
+        controller: _controller,
+        autofocus: true,
+        decoration: InputDecoration(
+          isDense: true,
+          hintText: Tr.of(context).shotListAddCharacterHint,
+          border: const OutlineInputBorder(),
+        ),
+        onSubmitted: (_) => _submit(),
+        onTapOutside: (_) => _submit(),
+      ),
     );
   }
 }

@@ -271,7 +271,19 @@ class OcptProjectsManager extends AbsWithLifeCycle {
   }) : _propertiesManager = propertiesManager ?? globalGetIt().get<OcptPropertiesManager>(),
        _appLanguageCode = appLanguageCode ?? _localesManagerLanguageCode,
        sceneIndexService = const OcptSceneIndexService(),
-       shotListService = OcptShotListService(deviceId: _resolveDeviceId(propertiesManager)),
+       shotListService = OcptShotListService(
+         roleIndexService: OcptRoleIndexService(
+           elementsService: OcptElementsService(
+             assetsService: OcptAssetsService(deviceId: _resolveDeviceId(propertiesManager)),
+             deviceId: _resolveDeviceId(propertiesManager),
+           ),
+           roleCandidatesService: OcptRoleCandidatesService(
+             deviceId: _resolveDeviceId(propertiesManager),
+           ),
+           deviceId: _resolveDeviceId(propertiesManager),
+         ),
+         deviceId: _resolveDeviceId(propertiesManager),
+       ),
        shotCoverageService = OcptShotCoverageService(
          deviceId: _resolveDeviceId(propertiesManager),
        ),
@@ -279,7 +291,19 @@ class OcptProjectsManager extends AbsWithLifeCycle {
          codec: const OcptProjectVersionCodec(),
          screenplayService: OcptScreenplayService(
            sceneIndexService: const OcptSceneIndexService(),
-           shotListService: OcptShotListService(deviceId: _resolveDeviceId(propertiesManager)),
+           shotListService: OcptShotListService(
+             roleIndexService: OcptRoleIndexService(
+               elementsService: OcptElementsService(
+                 assetsService: OcptAssetsService(deviceId: _resolveDeviceId(propertiesManager)),
+                 deviceId: _resolveDeviceId(propertiesManager),
+               ),
+               roleCandidatesService: OcptRoleCandidatesService(
+                 deviceId: _resolveDeviceId(propertiesManager),
+               ),
+               deviceId: _resolveDeviceId(propertiesManager),
+             ),
+             deviceId: _resolveDeviceId(propertiesManager),
+           ),
            shotCoverageService: OcptShotCoverageService(
              deviceId: _resolveDeviceId(propertiesManager),
            ),
@@ -310,7 +334,19 @@ class OcptProjectsManager extends AbsWithLifeCycle {
        ),
        screenplayService = OcptScreenplayService(
          sceneIndexService: const OcptSceneIndexService(),
-         shotListService: OcptShotListService(deviceId: _resolveDeviceId(propertiesManager)),
+         shotListService: OcptShotListService(
+           roleIndexService: OcptRoleIndexService(
+             elementsService: OcptElementsService(
+               assetsService: OcptAssetsService(deviceId: _resolveDeviceId(propertiesManager)),
+               deviceId: _resolveDeviceId(propertiesManager),
+             ),
+             roleCandidatesService: OcptRoleCandidatesService(
+               deviceId: _resolveDeviceId(propertiesManager),
+             ),
+             deviceId: _resolveDeviceId(propertiesManager),
+           ),
+           deviceId: _resolveDeviceId(propertiesManager),
+         ),
          shotCoverageService: OcptShotCoverageService(
            deviceId: _resolveDeviceId(propertiesManager),
          ),

@@ -110,7 +110,17 @@ class _RecordingScreenplayService extends OcptScreenplayService {
   const _RecordingScreenplayService({required this.savedTexts})
     : super(
         sceneIndexService: const OcptSceneIndexService(),
-        shotListService: const OcptShotListService(deviceId: _testDeviceId),
+        shotListService: const OcptShotListService(
+          roleIndexService: OcptRoleIndexService(
+            elementsService: OcptElementsService(
+              assetsService: OcptAssetsService(deviceId: _testDeviceId),
+              deviceId: _testDeviceId,
+            ),
+            roleCandidatesService: OcptRoleCandidatesService(deviceId: _testDeviceId),
+            deviceId: _testDeviceId,
+          ),
+          deviceId: _testDeviceId,
+        ),
         shotCoverageService: const OcptShotCoverageService(deviceId: _testDeviceId),
         roleIndexService: const OcptRoleIndexService(
           elementsService: OcptElementsService(

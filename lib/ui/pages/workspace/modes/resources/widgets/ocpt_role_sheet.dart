@@ -10,10 +10,10 @@ import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 import 'package:open_cine_prod_tools/models/ocpt_removed_role_alert.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role_candidate.dart';
+import 'package:open_cine_prod_tools/models/ocpt_role_collision_alert.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_candidate_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
-import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_removed_role_banner.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_delete_action.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_person_picker.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_sheet_card.dart';
@@ -22,6 +22,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_role_sheet_elements_card.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_role_sheet_episodes_card.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_role_sheet_header.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_role_alert_banner.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_role_origin.dart';
 
 /// The separator joining the names of the other roles a cast member holds.
@@ -87,8 +88,21 @@ class OcptRoleSheet extends StatelessWidget {
   /// while there is more than one.
   final List<OcptEpisode> episodes;
 
-  /// The alert to report inside this sheet, or null while [role] is not orphaned.
+  /// The orphaned-role alert to report inside this sheet, or null while [role] is not orphaned.
   final OcptRemovedRoleAlert? removedRoleAlert;
+
+  /// The screenplay roles [removedRoleAlert] can be merged into, ignored while it is null. See
+  /// `OcptResourcesState.mergeTargetsOf`.
+  final List<OcptRole> mergeTargets;
+
+  /// The name-collision alert to report inside this sheet, or null while [role] collides with
+  /// nothing, or is itself [removedRoleAlert]'s own (the two variants are mutually exclusive on
+  /// screen: an orphaned role's own alert always wins).
+  final OcptRoleCollisionAlert? collisionAlert;
+
+  /// Called with `(sourceRoleId, targetRoleId)` when a merge is requested, either variant. Null
+  /// (or [isReadOnly]) withholds every merge affordance.
+  final void Function(String sourceRoleId, String targetRoleId)? onMergeRequested;
 
   /// Whether what the mode shows is a project version being previewed read-only, which no callback
   /// of this sheet may write through.
@@ -159,6 +173,9 @@ class OcptRoleSheet extends StatelessWidget {
     required this.elements,
     required this.episodes,
     required this.removedRoleAlert,
+    this.mergeTargets = const [],
+    required this.collisionAlert,
+    required this.onMergeRequested,
     this.isReadOnly = false,
     required this.fieldValueOf,
     required this.onFieldChanged,
@@ -204,16 +221,18 @@ class OcptRoleSheet extends StatelessWidget {
 
   /// Whether the sheet shows its own `Delete this role` action at the bottom.
   ///
-  /// An orphaned role is deletable but shows nothing here: `OcptRemovedRoleBanner` already offers
-  /// that very answer, paired with the other one — keeping it as a silent role — and the two belong
-  /// together. Repeating the action at the bottom of the sheet would ask the same question twice,
-  /// once with its alternative and once without.
+  /// An orphaned role is deletable but shows nothing here: the shared role alert banner's orphaned
+  /// variant already offers that very answer, paired with the other one — keeping it as a silent
+  /// role — and the two belong together. Repeating the action at the bottom of the sheet would ask
+  /// the same question twice, once with its alternative and once without. The collision variant
+  /// offers no delete of its own, so it never withholds this.
   bool get _showsDeleteAction => _canBeDeleted && removedRoleAlert == null;
 
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
     final removedRoleAlert = this.removedRoleAlert;
+    final collisionAlert = this.collisionAlert;
 
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(26, 20, 26, 26),
@@ -230,11 +249,20 @@ class OcptRoleSheet extends StatelessWidget {
           ),
           if (removedRoleAlert != null) ...[
             const SizedBox(height: 16),
-            OcptRemovedRoleBanner(
+            OcptRoleAlertBanner.orphaned(
               alert: removedRoleAlert,
+              mergeTargets: mergeTargets,
               isReadOnly: isReadOnly,
-              onDeleteRequested: onDeleteRequested,
-              onKeepRequested: onOrphanedRoleKept,
+              onDeleteRequested: (_) => onDeleteRequested(),
+              onKeepRequested: (_) => onOrphanedRoleKept(),
+              onMergeRequested: onMergeRequested,
+            ),
+          ] else if (collisionAlert != null) ...[
+            const SizedBox(height: 16),
+            OcptRoleAlertBanner.collision(
+              alert: collisionAlert,
+              isReadOnly: isReadOnly,
+              onMergeRequested: onMergeRequested,
             ),
           ],
           const SizedBox(height: 16),

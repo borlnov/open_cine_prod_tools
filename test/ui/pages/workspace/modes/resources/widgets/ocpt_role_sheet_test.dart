@@ -12,6 +12,7 @@ import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 import 'package:open_cine_prod_tools/models/ocpt_removed_role_alert.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role_candidate.dart';
+import 'package:open_cine_prod_tools/models/ocpt_role_collision_alert.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role_element_link.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_source_kind.dart';
@@ -170,6 +171,9 @@ Widget _buildSheet({
   List<OcptRoleCandidate> candidates = const [],
   List<OcptElement> elements = const [],
   List<OcptEpisode> episodes = const [],
+  List<OcptRole> mergeTargets = const [],
+  OcptRoleCollisionAlert? collisionAlert,
+  void Function(String sourceRoleId, String targetRoleId)? onMergeRequested,
   bool isReadOnly = false,
   void Function(OcptRoleField field, String rawValue)? onFieldChanged,
   ValueChanged<String?>? onCastChanged,
@@ -197,6 +201,9 @@ Widget _buildSheet({
     elements: elements,
     episodes: episodes,
     removedRoleAlert: OcptRemovedRoleAlert.of(role),
+    mergeTargets: mergeTargets,
+    collisionAlert: collisionAlert,
+    onMergeRequested: onMergeRequested ?? (sourceRoleId, targetRoleId) {},
     isReadOnly: isReadOnly,
     fieldValueOf: (field) => switch (field) {
       OcptRoleField.name => role.name,
@@ -427,19 +434,69 @@ void main() {
     await tester.pumpAndSettle();
 
     final tr = Tr.of(tester.element(find.byType(OcptRoleSheet)));
-    expect(find.text(tr.resourcesRemovedRoleBanner("LE CLIENT")), findsOneWidget);
+    expect(find.text(tr.roleAlertOrphanedMessage("LE CLIENT")), findsOneWidget);
 
     // The banner carries the deletion, so the bottom of the sheet does not ask for it again.
-    expect(find.text(tr.resourcesRemovedRoleDeleteAction), findsOneWidget);
+    expect(find.text(tr.roleAlertOrphanedDeleteAction), findsOneWidget);
 
-    await tester.tap(find.text(tr.resourcesRemovedRoleKeepAction));
+    await tester.tap(find.text(tr.roleAlertOrphanedKeepAction));
     await tester.pumpAndSettle();
     expect(kept, 1);
 
     // The banner's own delete needs no second question: the banner is that question.
-    await tester.tap(find.text(tr.resourcesRemovedRoleDeleteAction));
+    await tester.tap(find.text(tr.roleAlertOrphanedDeleteAction));
     await tester.pumpAndSettle();
     expect(deleted, 1);
+  });
+
+  testWidgets("an orphaned role's merge chips report (sourceRoleId, targetRoleId)", (
+    tester,
+  ) async {
+    final merges = <(String, String)>[];
+
+    await tester.pumpWidget(
+      _buildSheet(
+        role: _role(orphanedName: "LE CLIENT"),
+        mergeTargets: [_role(id: "r-target", name: "La Voisine", number: 2)],
+        onMergeRequested: (sourceRoleId, targetRoleId) =>
+            merges.add((sourceRoleId, targetRoleId)),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text("La Voisine"));
+    await tester.pumpAndSettle();
+
+    expect(merges, [("r1", "r-target")]);
+  });
+
+  testWidgets("a collided role reports the advisory banner, with a single merge action", (
+    tester,
+  ) async {
+    final merges = <(String, String)>[];
+
+    await tester.pumpWidget(
+      _buildSheet(
+        role: _role(),
+        collisionAlert: const OcptRoleCollisionAlert(
+          name: "LE CLIENT",
+          screenplayRoleId: "r1",
+          handAddedRoleId: "r-hand",
+        ),
+        onMergeRequested: (sourceRoleId, targetRoleId) =>
+            merges.add((sourceRoleId, targetRoleId)),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final tr = Tr.of(tester.element(find.byType(OcptRoleSheet)));
+    expect(find.text(tr.roleAlertCollisionMessage("LE CLIENT")), findsOneWidget);
+    expect(find.text(tr.roleAlertOrphanedDeleteAction), findsNothing);
+
+    await tester.tap(find.text(tr.roleAlertMergeAction));
+    await tester.pumpAndSettle();
+
+    expect(merges, [("r-hand", "r1")]);
   });
 
   testWidgets("a role still spoken in the screenplay reports no alert", (tester) async {

@@ -19,6 +19,7 @@ import 'package:open_cine_prod_tools/models/ocpt_project_version.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_version_summary.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_changeset.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_field_stamp.dart';
+import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_status.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_row_stamp_key.dart';
 
@@ -307,9 +308,32 @@ void main() {
       required String characterName,
       required String sortKey,
     }) async {
+      // A shot's character is a role now (ADR 0030): the role itself is written and stamped
+      // alongside the shot_characters row, in the same un-pushed batch, so the changeset that
+      // carries the attachment to the other replica also carries the role it references — the
+      // merge applies a whole changeset under one deferred-foreign-key transaction
+      // (`OcptMergeService.applyChangeset`), so which of the two lands first doesn't matter.
+      final roleId = 'role-${characterName.toLowerCase()}';
+      await writeAndStamp(
+        database: database,
+        deviceId: deviceId,
+        table: database.ocptRolesTable,
+        rowId: roleId,
+        current: null,
+        next: OcptRoleRow(
+          id: roleId,
+          name: characterName,
+          sortKey: '',
+          isDeleted: false,
+          kind: OcptRoleKind.silent,
+          isFromScreenplay: false,
+          castingNotes: '',
+        ),
+      );
+
       final character = OcptShotCharacterRow(
         shotId: shotId,
-        characterName: characterName,
+        roleId: roleId,
         position: 0,
         sortKey: sortKey,
         isDeleted: false,
@@ -318,7 +342,7 @@ void main() {
         database: database,
         deviceId: deviceId,
         table: database.ocptShotCharactersTable,
-        rowId: ocptCompositeRowStampKey([shotId, characterName]),
+        rowId: ocptCompositeRowStampKey([shotId, roleId]),
         current: null,
         next: character,
       );
@@ -337,7 +361,9 @@ void main() {
       final rows = await (database.select(
         database.ocptShotCharactersTable,
       )..where((table) => table.shotId.equals(shotId))).get();
-      return rows.map((row) => row.characterName).toList()..sort();
+      final roles = await database.select(database.ocptRolesTable).get();
+      final nameByRoleId = {for (final role in roles) role.id: role.name};
+      return [for (final row in rows) nameByRoleId[row.roleId]!]..sort();
     }
 
     expect(await characterNamesOn(replicaA), ['JANE', 'JOHN']);

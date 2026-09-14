@@ -4,8 +4,12 @@
 
 import 'dart:io';
 
+import 'package:drift/drift.dart' show Value;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
+import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_deterministic_role_id.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_row_stamp_key.dart';
 import 'package:path/path.dart' as p;
 import 'package:sqlite3/sqlite3.dart' show sqlite3;
 
@@ -92,11 +96,14 @@ void main() {
       // The migration from 1 to 2 is additive-only and only ever creates `sync_relay_cursors` and
       // `sync_pairings`, and adds `budget_lines.in_kind_resource_id`
       // (`OcptProjectDatabase.migration`'s own doc comment): a real v1 file is therefore exactly
-      // what `onCreate` produces here minus those two tables and that column. Seed a real database
-      // at the current schema, then undo those additions by hand — the same trick
-      // `home_bloc_test.dart`'s `createProjectAtPreviousFormat` uses — so reopening it exercises the
-      // real `onUpgrade` step rather than a fixture standing in for it. [_v1Ddl] below covers the
-      // structural side of the same claim, verbatim rather than by undoing the current schema.
+      // what `onCreate` produces here minus those two tables, that column, and — from schema
+      // version 3 on — minus `shot_characters`' reshape to `{shotId, roleId}`
+      // (`docs/adr/0030-a-shots-characters-are-the-productions-roles.md`), undone below by
+      // recreating the table in its frozen v1/v2 shape. Seed a real database at the current schema,
+      // then undo those additions by hand — the same trick `home_bloc_test.dart`'s
+      // `createProjectAtPreviousFormat` uses — so reopening it exercises the real `onUpgrade` step
+      // rather than a fixture standing in for it. [_v1Ddl] below covers the structural side of the
+      // same claim, verbatim rather than by undoing the current schema.
       final seeded = OcptProjectDatabase(File(filePath));
       await seeded
           .into(seeded.ocptScreenplaysTable)
@@ -114,6 +121,16 @@ void main() {
         ..execute('DROP TABLE sync_relay_cursors')
         ..execute('DROP TABLE sync_pairings')
         ..execute('ALTER TABLE budget_lines DROP COLUMN in_kind_resource_id')
+        // Undoes schema version 3's reshape of `shot_characters` (empty here, so a plain
+        // drop-and-recreate loses nothing): a v1/v2 file never had `role_id` at all.
+        ..execute('DROP TABLE shot_characters')
+        ..execute(
+          'CREATE TABLE "shot_characters" ("shot_id" TEXT NOT NULL REFERENCES shots (id), '
+          '"character_name" TEXT NOT NULL, "position" INTEGER NOT NULL, '
+          '"sort_key" TEXT NOT NULL DEFAULT \'\', '
+          '"is_deleted" INTEGER NOT NULL DEFAULT 0 CHECK ("is_deleted" IN (0, 1)), '
+          'PRIMARY KEY ("shot_id", "character_name"))',
+        )
         ..execute('PRAGMA user_version = 1')
         ..dispose();
 
@@ -201,6 +218,275 @@ void main() {
       expect(userVersion.data['user_version'], OcptProjectDatabase.currentSchemaVersion);
     },
   );
+
+  // Schema version 3's own step: `shot_characters` reshaped from `{shotId, characterName}` to
+  // `{shotId, roleId}` (`docs/adr/0030-a-shots-characters-are-the-productions-roles.md`), carried
+  // out by `ocptMigrateToSchemaV3`. [_seedV2FixtureAt] below is a v2-schema fixture whose shot
+  // names variously match a live role, a live-but-orphaned role, and no role at all (live and
+  // tombstoned alike) — the three cases the migration has to tell apart.
+  group('schema v3 migration: shot_characters becomes roleId-keyed', () {
+    test(
+      'every attachment survives on the right role: a matched live role, a matched orphaned '
+      'role, and a freshly minted one for an unmatched name, live or tombstoned',
+      () async {
+        final tempDir = await Directory.systemTemp.createTemp('ocpt_migration_v2_to_v3_test_');
+        addTearDown(() => tempDir.delete(recursive: true));
+        final filePath = p.join(tempDir.path, 'movie.ocpt');
+
+        await _seedV2FixtureAt(filePath);
+
+        final migrated = OcptProjectDatabase(File(filePath));
+        addTearDown(migrated.close);
+
+        final ghostRoleId = ocptDeterministicRoleId('GHOST');
+        final phantomRoleId = ocptDeterministicRoleId('PHANTOM');
+
+        final characterRows = await migrated.select(migrated.ocptShotCharactersTable).get();
+        final byShotId = <String, List<OcptShotCharacterRow>>{};
+        for (final row in characterRows) {
+          byShotId.putIfAbsent(row.shotId, () => []).add(row);
+        }
+
+        expect(byShotId['shot-a']!.single.roleId, 'role-clara');
+        expect(byShotId['shot-a']!.single.isDeleted, isFalse);
+        expect(byShotId['shot-b']!.single.roleId, 'role-marc');
+        expect(byShotId['shot-b']!.single.isDeleted, isFalse);
+
+        final shotCRows = {for (final row in byShotId['shot-c']!) row.roleId: row};
+        expect(shotCRows.keys, {ghostRoleId, phantomRoleId});
+        expect(shotCRows[ghostRoleId]!.isDeleted, isFalse);
+        expect(shotCRows[phantomRoleId]!.isDeleted, isTrue);
+
+        // Exactly one role minted per unmatched name, hand-added and silent (ADR 0030, decision
+        // 6), and the two pre-existing roles (one of them orphaned) untouched.
+        final roleRows = await migrated.select(migrated.ocptRolesTable).get();
+        final roleById = {for (final role in roleRows) role.id: role};
+        expect(roleRows, hasLength(4));
+        expect(roleById['role-clara']!.orphanedName, isNull);
+        expect(roleById['role-marc']!.orphanedName, 'MARC');
+        for (final mintedId in [ghostRoleId, phantomRoleId]) {
+          final minted = roleById[mintedId]!;
+          expect(minted.isFromScreenplay, isFalse);
+          expect(minted.isDeleted, isFalse);
+          expect(minted.castingNotes, '');
+        }
+        expect(roleById[ghostRoleId]!.kind, OcptRoleKind.silent);
+        expect(roleById[ghostRoleId]!.name, 'GHOST');
+        expect(roleById[phantomRoleId]!.kind, OcptRoleKind.silent);
+        expect(roleById[phantomRoleId]!.name, 'PHANTOM');
+
+        // Each minted role gained exactly one `role_episodes` link, to shot-c's own screenplay,
+        // at the deterministic id `ocptDeterministicRoleEpisodeId` computes — no stamp of its own
+        // (asserted below), so its identity alone is what a second replica would converge on.
+        final linkRows = await migrated.select(migrated.ocptRoleEpisodesTable).get();
+        final linksByRoleId = <String, List<OcptRoleEpisodeRow>>{};
+        for (final link in linkRows) {
+          linksByRoleId.putIfAbsent(link.roleId, () => []).add(link);
+        }
+        for (final mintedId in [ghostRoleId, phantomRoleId]) {
+          final link = linksByRoleId[mintedId]!.single;
+          expect(link.screenplayId, 's1');
+          expect(link.id, ocptDeterministicRoleEpisodeId(roleId: mintedId, screenplayId: 's1'));
+          expect(link.isDeleted, isFalse);
+        }
+
+        // The stamp rekey: every one of the fixture's 20 `shot_characters` stamps (4 rows × 5
+        // columns) survives, moved to its row's new key, `characterName` renamed to `roleId` —
+        // and nothing new is fabricated for the roles or links minted above.
+        final stampRows =
+            await (migrated.select(migrated.ocptRowFieldVersionsTable)
+                  ..where((table) => table.targetTableName.equals('shot_characters')))
+                .get();
+        expect(stampRows, hasLength(20));
+        for (final (expectedShotId, roleId) in [
+          ('shot-a', 'role-clara'),
+          ('shot-b', 'role-marc'),
+          ('shot-c', ghostRoleId),
+          ('shot-c', phantomRoleId),
+        ]) {
+          final rowId = ocptCompositeRowStampKey([expectedShotId, roleId]);
+          final ownStamps = {
+            for (final stamp in stampRows)
+              if (stamp.rowId == rowId) stamp.columnName: stamp,
+          };
+          expect(ownStamps.keys, {'shotId', 'roleId', 'position', 'sortKey', 'isDeleted'});
+          for (final stamp in ownStamps.values) {
+            expect(stamp.version, 5);
+            expect(stamp.deviceId, 'device-fixture');
+          }
+        }
+
+        final roleStamps =
+            await (migrated.select(migrated.ocptRowFieldVersionsTable)..where(
+                  (table) => table.targetTableName.isIn(['roles', 'role_episodes']),
+                ))
+                .get();
+        expect(roleStamps, isEmpty);
+      },
+    );
+
+    test(
+      'two replicas migrating the same v2 file independently converge: same minted role and '
+      'link ids, same rekeyed stamps',
+      () async {
+        final tempDir = await Directory.systemTemp.createTemp('ocpt_migration_v2_convergence_');
+        addTearDown(() => tempDir.delete(recursive: true));
+        final pathA = p.join(tempDir.path, 'replica-a.ocpt');
+        final pathB = p.join(tempDir.path, 'replica-b.ocpt');
+
+        await _seedV2FixtureAt(pathA);
+        await _seedV2FixtureAt(pathB);
+
+        final replicaA = OcptProjectDatabase(File(pathA));
+        final replicaB = OcptProjectDatabase(File(pathB));
+        addTearDown(replicaA.close);
+        addTearDown(replicaB.close);
+
+        Future<List<Map<String, Object?>>> canonicalRowsOf(
+          OcptProjectDatabase database,
+          String tableName,
+          List<String> orderColumns,
+        ) async {
+          final rows = await database
+              .customSelect(
+                'SELECT * FROM "$tableName" ORDER BY '
+                '${orderColumns.map((column) => '"$column"').join(', ')}',
+              )
+              .get();
+          return [for (final row in rows) row.data];
+        }
+
+        expect(
+          await canonicalRowsOf(replicaA, 'shot_characters', ['shot_id', 'role_id']),
+          await canonicalRowsOf(replicaB, 'shot_characters', ['shot_id', 'role_id']),
+        );
+        expect(
+          await canonicalRowsOf(replicaA, 'roles', ['id']),
+          await canonicalRowsOf(replicaB, 'roles', ['id']),
+        );
+        expect(
+          await canonicalRowsOf(replicaA, 'role_episodes', ['id']),
+          await canonicalRowsOf(replicaB, 'role_episodes', ['id']),
+        );
+        expect(
+          await canonicalRowsOf(replicaA, 'row_field_versions', [
+            'table_name',
+            'row_id',
+            'column_name',
+          ]),
+          await canonicalRowsOf(replicaB, 'row_field_versions', [
+            'table_name',
+            'row_id',
+            'column_name',
+          ]),
+        );
+      },
+    );
+  });
+}
+
+/// Builds a v2-schema `.ocpt` fixture at [filePath]: one screenplay ('s1') and three shots
+/// ('shot-a', 'shot-b', 'shot-c'), with `shot_characters` rows in the frozen v2 shape
+/// (`{shotId, characterName}`) covering the three cases the schema v3 migration has to tell apart —
+/// 'shot-a' names "CLARA", matching the live, from-screenplay role `role-clara`; 'shot-b' names
+/// "MARC", matching `role-marc`, a live role that happens to be orphaned (`orphanedName` set, but
+/// not tombstoned — still a live-role match, exactly as an ordinary one); 'shot-c' carries two
+/// names matching no role at all, one live ("GHOST") and one tombstoned ("PHANTOM"), so the
+/// migration mints a role for each regardless of liveness. Every `shot_characters` row is stamped
+/// across all five of its columns in `row_field_versions`, at a fixed version and device id, so the
+/// migration test can assert the stamp rekey as well as the row mapping.
+///
+/// Every table but `shot_characters` is seeded through the typed API, since only that one's shape
+/// differs between v2 and v3 — a real v2 file already carries `sync_relay_cursors`,
+/// `sync_pairings` and `budget_lines.in_kind_resource_id`, schema version 2's own frozen addition,
+/// which a fresh [OcptProjectDatabase] already creates. `shot_characters` itself, and its own
+/// stamps, go in through raw SQL against the v2 shape instead: the same trick
+/// `createProjectAtPreviousFormat` in `test/ui/pages/home/home_bloc_test.dart` uses.
+///
+/// Every id here is a fixed literal rather than a freshly generated UUID, which is what makes this
+/// fixture reproducible byte-for-byte between two calls at two different paths — the convergence
+/// test's whole premise.
+Future<void> _seedV2FixtureAt(String filePath) async {
+  final seeded = OcptProjectDatabase(File(filePath));
+
+  await seeded
+      .into(seeded.ocptScreenplaysTable)
+      .insert(
+        OcptScreenplaysTableCompanion.insert(id: 's1', title: 'Draft', updatedAt: DateTime.utc(2026)),
+      );
+  await seeded.batch((batch) {
+    batch.insertAll(seeded.ocptShotsTable, [
+      OcptShotsTableCompanion.insert(id: 'shot-a', screenplayId: 's1', position: 0),
+      OcptShotsTableCompanion.insert(id: 'shot-b', screenplayId: 's1', position: 1),
+      OcptShotsTableCompanion.insert(id: 'shot-c', screenplayId: 's1', position: 2),
+    ]);
+    batch.insertAll(seeded.ocptRolesTable, [
+      OcptRolesTableCompanion.insert(
+        id: 'role-clara',
+        name: 'CLARA',
+        sortKey: const Value('A'),
+        kind: OcptRoleKind.speaking,
+        isFromScreenplay: const Value(true),
+      ),
+      OcptRolesTableCompanion.insert(
+        id: 'role-marc',
+        name: 'MARC',
+        sortKey: const Value('B'),
+        kind: OcptRoleKind.speaking,
+        isFromScreenplay: const Value(true),
+        orphanedName: const Value('MARC'),
+      ),
+    ]);
+    batch.insertAll(seeded.ocptRoleEpisodesTable, [
+      OcptRoleEpisodesTableCompanion.insert(id: 'link-clara', roleId: 'role-clara', screenplayId: 's1'),
+      OcptRoleEpisodesTableCompanion.insert(id: 'link-marc', roleId: 'role-marc', screenplayId: 's1'),
+    ]);
+  });
+
+  await seeded.close();
+
+  final raw = sqlite3.open(filePath);
+  raw
+    ..execute('DROP TABLE shot_characters')
+    ..execute(
+      'CREATE TABLE "shot_characters" ("shot_id" TEXT NOT NULL REFERENCES shots (id), '
+      '"character_name" TEXT NOT NULL, "position" INTEGER NOT NULL, '
+      '"sort_key" TEXT NOT NULL DEFAULT \'\', '
+      '"is_deleted" INTEGER NOT NULL DEFAULT 0 CHECK ("is_deleted" IN (0, 1)), '
+      'PRIMARY KEY ("shot_id", "character_name"))',
+    );
+
+  void insertCharacter({
+    required String shotId,
+    required String name,
+    required int position,
+    required String sortKey,
+    required bool isDeleted,
+  }) {
+    final isDeletedFlag = isDeleted ? 1 : 0;
+    raw.execute(
+      'INSERT INTO shot_characters (shot_id, character_name, position, sort_key, is_deleted) '
+      'VALUES (?, ?, ?, ?, ?)',
+      [shotId, name, position, sortKey, isDeletedFlag],
+    );
+
+    for (final column in const ['shotId', 'characterName', 'position', 'sortKey', 'isDeleted']) {
+      raw.execute(
+        'INSERT INTO row_field_versions (table_name, row_id, column_name, version, device_id) '
+        'VALUES (?, ?, ?, ?, ?)',
+        ['shot_characters', ocptCompositeRowStampKey([shotId, name]), column, 5, 'device-fixture'],
+      );
+    }
+  }
+
+  insertCharacter(shotId: 'shot-a', name: 'CLARA', position: 0, sortKey: 'V', isDeleted: false);
+  insertCharacter(shotId: 'shot-b', name: 'MARC', position: 0, sortKey: 'V', isDeleted: false);
+  insertCharacter(shotId: 'shot-c', name: 'GHOST', position: 0, sortKey: 'V', isDeleted: false);
+  insertCharacter(shotId: 'shot-c', name: 'PHANTOM', position: 1, sortKey: 'k', isDeleted: true);
+
+  raw
+    ..execute('PRAGMA user_version = 2')
+    ..dispose();
 }
 
 /// Every table's own `CREATE TABLE` text, keyed by table name, read off [database]'s

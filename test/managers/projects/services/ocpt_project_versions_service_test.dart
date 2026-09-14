@@ -76,7 +76,7 @@ void main() {
   // needs, but a stateless collaborator over the same database, so the two never disagree.
   final screenplayService = OcptScreenplayService(
     sceneIndexService: const OcptSceneIndexService(),
-    shotListService: OcptShotListService(deviceId: testDeviceId),
+    shotListService: OcptShotListService(roleIndexService: roleIndexService, deviceId: testDeviceId),
     shotCoverageService: OcptShotCoverageService(deviceId: testDeviceId),
     roleIndexService: roleIndexService,
     breakdownService: breakdownService,
@@ -515,11 +515,20 @@ void main() {
       await insertShot(id: "shot-1", sceneId: "scene-1");
       await insertShot(id: "shot-gone", sceneId: "scene-1", isDeleted: true);
       await database
+          .into(database.ocptRolesTable)
+          .insert(
+            OcptRolesTableCompanion.insert(
+              id: "role-1",
+              name: "CLARA",
+              kind: OcptRoleKind.speaking,
+            ),
+          );
+      await database
           .into(database.ocptShotCharactersTable)
           .insert(
             OcptShotCharactersTableCompanion.insert(
               shotId: "shot-1",
-              characterName: "CLARA",
+              roleId: "role-1",
               position: 0,
               sortKey: const Value("V"),
             ),

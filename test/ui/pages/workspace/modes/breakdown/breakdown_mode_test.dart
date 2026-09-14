@@ -20,10 +20,16 @@ import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dar
 import 'package:open_cine_prod_tools/models/ocpt_breakdown_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_breakdown_xlsx_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
+import 'package:open_cine_prod_tools/models/ocpt_workspace_reveal_request.dart';
 import 'package:open_cine_prod_tools/types/ocpt_export_outcome.dart';
+import 'package:open_cine_prod_tools/types/ocpt_resources_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
+import 'package:open_cine_prod_tools/types/ocpt_workspace_mode.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/breakdown/breakdown_bloc.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/breakdown/breakdown_event.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/breakdown/breakdown_mode.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/breakdown/widgets/ocpt_breakdown_sheets_export_dialog.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_shell.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/workspace_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/workspace_event.dart';
 import 'package:path/path.dart' as p;
@@ -344,6 +350,63 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(exportManager.lastExportedEpisodeTag, tr.workspaceEpisodeTag(2));
+    },
+  );
+
+  testWidgets(
+    "the compact banner shows an orphaned role and tapping it asks to reveal it in Resources",
+    (tester) async {
+      tester.view.physicalSize = const Size(1400, 900);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      final project = projectsManager.currentProject!;
+      await projectsManager.screenplayService.saveScreenplayText(
+        database: project.database,
+        screenplayId: project.primaryScreenplayId,
+        fountainText: "INT. HOUSE - DAY\n\nCLARA\nHello.\n",
+        snapshotReason: OcptSnapshotReason.manual,
+      );
+
+      await tester.pumpWidget(_wrapWithLocalization(const OcptBreakdownMode()));
+      await tester.pumpAndSettle();
+
+      // No trouble yet: the banner is absent.
+      final tr = Tr.of(tester.element(find.byType(OcptBreakdownMode)));
+      expect(find.text(tr.roleAlertCompactOrphanedLine("CLARA")), findsNothing);
+
+      // Orphan CLARA, then force the mode to reload — the M4 compact banner is a pure read over
+      // roles already loaded, so a fresh load is all a test needs to see it change. The bloc lives
+      // below `OcptWorkspaceShell` (`OcptBreakdownMode` itself only wires the `BlocProvider` up),
+      // so that's where a test reaches it from — mirroring `editor_page_test.dart`'s own
+      // `BlocProvider.of` calls.
+      await projectsManager.screenplayService.saveScreenplayText(
+        database: project.database,
+        screenplayId: project.primaryScreenplayId,
+        fountainText: "INT. HOUSE - DAY\n\nAction, no dialogue anymore.\n",
+        snapshotReason: OcptSnapshotReason.manual,
+      );
+      final shellContext = tester.element(find.byType(OcptWorkspaceShell));
+      BlocProvider.of<OcptBreakdownBloc>(shellContext).add(
+        const OcptBreakdownLoadRequestedEvent(),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text(tr.roleAlertCompactOrphanedLine("CLARA")), findsOneWidget);
+
+      await tester.tap(find.text(tr.roleAlertCompactOrphanedLine("CLARA")));
+      await tester.pumpAndSettle();
+
+      // Having no role sheet of its own, the breakdown mode asks the workspace to reveal the
+      // role in the resources mode instead, on its roles tab.
+      final workspaceState = BlocProvider.of<OcptWorkspaceBloc>(shellContext).state;
+      expect(workspaceState.mode, OcptWorkspaceMode.resources);
+      expect(
+        workspaceState.revealRequest,
+        isA<OcptResourcesRevealRequest>()
+            .having((request) => request.tab, "tab", OcptResourcesTab.roles),
+      );
     },
   );
 }

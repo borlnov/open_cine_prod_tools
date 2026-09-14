@@ -150,14 +150,14 @@ void main() {
     shotCharacters: const [
       OcptShotCharacterRow(
         shotId: "shot-1",
-        characterName: "CLARA",
+        roleId: "role-1",
         position: 0,
         sortKey: "V",
         isDeleted: false,
       ),
       OcptShotCharacterRow(
         shotId: "shot-1",
-        characterName: "THÉO",
+        roleId: "role-2",
         position: 1,
         sortKey: "k",
         isDeleted: true,
@@ -3838,6 +3838,39 @@ void main() {
           result.value!.budgetLines.map((row) => row.inKindResourceId),
           everyElement(isNull),
         );
+      },
+    );
+
+    test(
+      'a retired payload-format-2 payload decodes with its shot_characters dropped, not '
+      'remapped to roles',
+      () {
+        // Format 2 is the shape 0.2.0 froze: `shot_characters` was still keyed by the retired
+        // `characterName` column, not `roleId`
+        // (`docs/adr/0030-a-shots-characters-are-the-productions-roles.md`) — a reshape, not an
+        // addition, so a pre-3 payload's rows cannot be read as format 3's shape at all. Remapping
+        // names to roles on restore was considered and turned down (this class's own doc comment,
+        // and the ADR's "Consequences" section): a version captured before the reshape restores
+        // with every plan except its shot list's cast, everything else untouched.
+        final rich = buildRichPayload();
+        final encoded = jsonDecode(codec.encode(rich)) as Map<String, dynamic>;
+        encoded["payloadFormat"] = 2;
+        encoded["shotCharacters"] = [
+          for (final row in rich.shotCharacters)
+            {
+              "shotId": row.shotId,
+              "characterName": "SOMEONE",
+              "position": row.position,
+              "sortKey": row.sortKey,
+              "isDeleted": row.isDeleted,
+            },
+        ];
+
+        final result = codec.decode(jsonEncode(encoded));
+
+        expect(result.status, OcptProjectVersionPayloadStatus.ok);
+        expect(result.value!.shotCharacters, isEmpty);
+        expect(result.value!.shots, rich.shots);
       },
     );
   });

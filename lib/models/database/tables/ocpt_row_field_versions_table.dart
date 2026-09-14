@@ -22,7 +22,7 @@ import 'package:drift/drift.dart';
 ///
 /// [rowId] holds the stamped row's primary key rendered as text. Every synchronised table this
 /// project has keys its rows by a single text column except `shot_characters`, whose key is
-/// `{shotId, characterName}`; a composite key is written through `ocptCompositeRowStampKey`, the
+/// `{shotId, roleId}`; a composite key is written through `ocptCompositeRowStampKey`, the
 /// single encoding of such a key in the app — and the one whoever parses it back must read it
 /// with.
 @DataClassName('OcptRowFieldVersionRow')

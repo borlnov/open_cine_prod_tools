@@ -450,8 +450,18 @@ void main() {
 
       final database = sqlite3.open(filePath);
       database
-        ..execute("DROP TABLE sync_relay_cursors")
-        ..execute("ALTER TABLE budget_lines DROP COLUMN in_kind_resource_id")
+        // Schema version 3's own addition undoes `shot_characters`' reshape from `{shotId,
+        // characterName}` to `{shotId, roleId}`
+        // (`docs/adr/0030-a-shots-characters-are-the-productions-roles.md`); the table is empty on a
+        // freshly created project, so a plain drop-and-recreate loses nothing.
+        ..execute("DROP TABLE shot_characters")
+        ..execute(
+          'CREATE TABLE "shot_characters" ("shot_id" TEXT NOT NULL REFERENCES shots (id), '
+          '"character_name" TEXT NOT NULL, "position" INTEGER NOT NULL, '
+          '"sort_key" TEXT NOT NULL DEFAULT \'\', '
+          '"is_deleted" INTEGER NOT NULL DEFAULT 0 CHECK ("is_deleted" IN (0, 1)), '
+          'PRIMARY KEY ("shot_id", "character_name"))',
+        )
         ..execute("PRAGMA user_version = $previousSchemaVersion")
         ..dispose();
     }

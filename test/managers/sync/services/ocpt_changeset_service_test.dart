@@ -12,6 +12,7 @@ import 'package:open_cine_prod_tools/managers/sync/services/ocpt_folder_remote_s
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_changeset.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_field_stamp.dart';
+import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_row_stamp_key.dart';
 
 void main() {
@@ -114,7 +115,7 @@ void main() {
 
   test(
     "the generic row id for a shot_characters row equals ocptCompositeRowStampKey "
-    "([shotId, characterName])",
+    "([shotId, roleId])",
     () async {
       await database
           .into(database.ocptScreenplaysTable)
@@ -130,15 +131,20 @@ void main() {
           .insert(
             OcptShotsTableCompanion.insert(id: 'shot-1', screenplayId: 'screenplay-1', position: 0),
           );
+      await database
+          .into(database.ocptRolesTable)
+          .insert(
+            OcptRolesTableCompanion.insert(id: 'role-1', name: 'JOHN', kind: OcptRoleKind.speaking),
+          );
 
       const shotCharacter = OcptShotCharacterRow(
         shotId: 'shot-1',
-        characterName: 'JOHN',
+        roleId: 'role-1',
         position: 0,
         sortKey: '',
         isDeleted: false,
       );
-      final expectedRowId = ocptCompositeRowStampKey([shotCharacter.shotId, shotCharacter.characterName]);
+      final expectedRowId = ocptCompositeRowStampKey([shotCharacter.shotId, shotCharacter.roleId]);
 
       final stamps = await OcptRowStampService.seed(database: database, deviceId: deviceId);
       await OcptRowStampService.writeAndStamp(
