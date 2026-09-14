@@ -134,15 +134,27 @@ and every banner belong to M3, where the picker that feeds a roleId arrives with
   picker below, and retire `OcptShotRemovedCharacterAlert` and its banner, a shot now pointing at a
   role that always exists. This lands with the picker and the shared banner, since they are what
   feed a roleId and surface orphans instead.
-- **The shot list character affordance.** Pick an existing role or create one (decision 1), through
-  the studio components; ask Benoit the design questions before building the picker (CLAUDE.md).
-- **The shared banner.** One widget with the two variants — orphaned (*delete* / *keep as a silent
-  role* / *merge with…*) and collision (*merge* / *keep separate*) — shown in **both** the resources
-  mode and the shot list (decision 4), each mode opening the merge target picker and wiring the
-  service. `OcptRemovedRoleBanner` is folded into it; the shot list's old banner is deleted.
-  `isReadOnly` withholds the actions under a project-version preview, as it does today.
-- **The merge target picker.** Choosing which role to merge into goes through `OcptConfirmDialog`'s
-  family for the irreversible half, the page or mode opening it (CLAUDE.md's confirmation rule).
+- **The shot list character affordance.** Keep today's `OcptShotCharacterChips` (one toggleable
+  `FilterChip` per role — the whole cast — attach/detach on toggle, now roleId-backed) and fill the
+  "future version" gap its own doc names: a trailing **`＋ Ajouter`** affordance opening a small
+  inline field that **resolves or creates** — a typed name that matches a live role attaches it, one
+  that matches none creates a hand-added silent role (decision 1) and attaches it. Design validated
+  with Benoit (chips as today + one add field); ask him again before deviating.
+- **The shared banner.** Modelled on the shot list's existing removed-character banner (error
+  container, `person_off` icon, a message line, a text action, then a `Wrap` of `ActionChip`s), with
+  two variants, shown in **both** the resources mode (in the role sheet, where `OcptRemovedRoleBanner`
+  lives) and the shot list (above the table, where the removed-character banner lives) — decision 4:
+  - **orphaned**: *delete the role* / *keep as a silent role*, then a `Fusionner avec :` row of
+    `ActionChip`s over the roles the screenplay still names (the merge target), reusing the old
+    banner's `Remplacer par :` chip pattern;
+  - **collision** (decision 2): advisory and persistent — the message counsels merging or renaming
+    one of the two, with a single `Fusionner` action that merges the hand-added role **into** the
+    screenplay one (the anchor). No dismissal; it clears when the collision does.
+  `OcptRemovedRoleBanner` and the shot list's `OcptShotListRemovedCharacterBanner` are folded into
+  the one widget. `isReadOnly` withholds the actions under a project-version preview, as today.
+- **Confirming a merge.** The target chip (orphaned) or the single `Fusionner` (collision) is the
+  choice; the irreversible merge itself is then confirmed through `OcptConfirmDialog`, opened by the
+  page or mode, never inline (CLAUDE.md's confirmation rule) — as the banner's *delete* already is.
 - **l10n.** New keys in `intl_en_GB.arb` and `intl_fr.arb`, regenerated with
   `dart run intl_utils:generate`; French keeps « séquence » for a scene and never reintroduces
   « scène » (CLAUDE.md). No manager or service sees a `Tr`.

@@ -69,11 +69,17 @@ how.
 
 2. **A name a hand-added role shares with a new cue is surfaced, never adopted silently.** When a
    character invented in the shot list later gets a line, `reconcile` creates the speaking role it
-   always would (the screenplay stays the source of truth), so two live roles briefly share a name.
-   That state raises a **name-collision alert** offering *merge* or *keep separate* — the app never
-   guesses that two same-named roles are one person. `reconcile`'s matching is unchanged: it still
-   touches only `isFromScreenplay` roles, and the collision is a read over the loaded cast, not a
-   new rule inside the reconciliation.
+   always would (the screenplay stays the source of truth), so two live roles share a name. That
+   state raises a **name-collision alert** — the app never guesses that two same-named roles are one
+   person. The alert is **advisory and persistent**: it offers to *merge* and otherwise counsels
+   renaming one of the two, and it clears only when the collision itself is gone (a merge, or a
+   rename) — there is deliberately **no "keep separate" dismissal**, since acknowledging a collision
+   would freeze a choice the user cannot revisit and would grow ambiguous the moment a third
+   same-named role appeared. The merge is always **anchored on the screenplay role** — the
+   hand-added role merges *into* it — so there is never a "merge with which?" question: several
+   hand-added namesakes each resolve in turn, always onto the one reconciled role. `reconcile`'s
+   matching is unchanged: it still touches only `isFromScreenplay` roles, and the collision is a
+   read over the loaded cast, not a new rule inside the reconciliation.
 
 3. **Merge is one operation, and the speaking role wins.** Merging role *source* into role *target*
    re-points every row that names *source* — `shot_characters`, `breakdown_tags` and
