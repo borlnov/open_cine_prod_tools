@@ -47,7 +47,7 @@ class OcptFieldStamp extends Equatable {
 
   /// The stamped row's primary key, rendered as text exactly as
   /// `docs/adr/0010-sync-ready-data-model-prerequisites.md` and `ocptCompositeRowStampKey` encode
-  /// it: a single-column key as is, a composite one (`shot_characters`'s `{shotId, characterName}`
+  /// it: a single-column key as is, a composite one (`shot_characters`'s `{shotId, roleId}`
   /// today) joined by that same function.
   final String rowId;
 

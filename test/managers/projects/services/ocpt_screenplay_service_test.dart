@@ -52,7 +52,10 @@ void main() {
   );
   final scheduleService = OcptScheduleService(deviceId: testDeviceId);
   const sceneIndexService = OcptSceneIndexService();
-  final shotListService = OcptShotListService(deviceId: testDeviceId);
+  final shotListService = OcptShotListService(
+    roleIndexService: roleIndexService,
+    deviceId: testDeviceId,
+  );
   final shotCoverageService = OcptShotCoverageService(deviceId: testDeviceId);
   final service = OcptScreenplayService(
     sceneIndexService: sceneIndexService,
@@ -757,7 +760,7 @@ Action two three.
         await shotListService.attachCharacter(
           database: database,
           shotId: shotId,
-          characterName: "JOHN",
+          roleId: johnRole.id,
         );
         final screenplayText = await service.loadScreenplayText(
           database: database,

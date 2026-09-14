@@ -4,6 +4,7 @@
 
 import 'package:drift/drift.dart';
 import 'package:fountain_kit/fountain_kit.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_role_index_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_row_stamp_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_shots_table.dart';
@@ -11,6 +12,7 @@ import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_coverage_range.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_list_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
+import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_check_reason.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_status.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_fractional_key.dart';
@@ -37,13 +39,21 @@ import 'package:uuid/uuid.dart';
 /// so inserting or moving one writes exactly that one row rather than renumbering the whole group.
 /// `position` survives only as the legacy column ADR 0007 forbids dropping in place.
 class OcptShotListService {
+  /// The service a character resolved to no live role is created through
+  /// (`OcptRoleIndexService.addRole`), by [resolveOrCreateRoleId]: a shot's characters are the
+  /// production's `roles` (`docs/adr/0030-a-shots-characters-are-the-productions-roles.md`), so a
+  /// hand-added role minted here reuses the very same creation path the resources mode's "add a
+  /// role" affordance calls, hand-added and silent, so a character invented in the shot list shows
+  /// up in Ressources at once, castable and dressable.
+  final OcptRoleIndexService roleIndexService;
+
   /// Resolves the device id every stamp this service's own writes carry — see
   /// [OcptDeviceIdGetter]. [detachShotsFromDeletedScenes] never calls it: it writes inside a
   /// caller's own transaction, and takes that caller's own [OcptRowStampService] instead.
   final OcptDeviceIdGetter deviceId;
 
   /// Class constructor
-  const OcptShotListService({required this.deviceId});
+  const OcptShotListService({required this.roleIndexService, required this.deviceId});
 
   /// Loads the whole shot list of [screenplayId] in [database]: every scene, in order, with its
   /// shots, followed by the orphan group if the screenplay has any orphaned shot.
@@ -99,9 +109,26 @@ class OcptShotListService {
               ))
               .get();
 
+    final roleIds = {for (final row in characterRows) row.roleId};
+    // A tombstoned role's rows don't surface here at all (ADR 0030, decision 6): the query is
+    // scoped to live roles, so `nameByRoleId` simply has no entry for one, and the loop below skips
+    // it — the same way every other read in this app lets a tombstone filter drop it.
+    final liveRoleRows = roleIds.isEmpty
+        ? const <OcptRoleRow>[]
+        : await (database.select(database.ocptRolesTable)
+                ..where((table) => table.id.isIn(roleIds.toList()) & table.isDeleted.not()))
+              .get();
+    final nameByRoleId = {for (final row in liveRoleRows) row.id: row.name};
+
     final charactersByShotId = <String, List<String>>{};
+    final characterRoleIdsByShotId = <String, List<String>>{};
     for (final row in characterRows) {
-      charactersByShotId.putIfAbsent(row.shotId, () => []).add(row.characterName);
+      final name = nameByRoleId[row.roleId];
+      if (name == null) {
+        continue;
+      }
+      charactersByShotId.putIfAbsent(row.shotId, () => []).add(name);
+      characterRoleIdsByShotId.putIfAbsent(row.shotId, () => []).add(row.roleId);
     }
 
     final coverageRowsByShotId = <String, List<OcptShotCoverageRow>>{};
@@ -131,6 +158,7 @@ class OcptShotListService {
         position: rank,
         sceneDisplayNumber: sceneDisplayNumber,
         characters: charactersByShotId[row.id] ?? const [],
+        characterRoleIds: characterRoleIdsByShotId[row.id] ?? const [],
         coverageRanges: [
           for (final coverageRow in coverageRowsByShotId[row.id] ?? const <OcptShotCoverageRow>[])
             OcptShotCoverageRange.fromRow(row: coverageRow, isStale: isCoverageStale),
@@ -373,7 +401,7 @@ class OcptShotListService {
         await OcptRowStampService.writeAndStamp(
           database: database,
           table: database.ocptShotCharactersTable,
-          rowId: ocptCompositeRowStampKey([row.shotId, row.characterName]),
+          rowId: ocptCompositeRowStampKey([row.shotId, row.roleId]),
           current: row,
           next: row.copyWith(isDeleted: true),
           stamps: stamps,
@@ -444,28 +472,38 @@ class OcptShotListService {
     });
   }
 
-  /// Attaches [characterName] (normalised through `fountain_kit`'s `normalizeCharacterName`) to
-  /// shot [shotId], appended after its current characters. Does nothing if the shot already has it.
+  /// Attaches role [roleId] to shot [shotId], appended after its current characters. Does nothing
+  /// if the shot already has it, if [shotId] doesn't name a live shot, or if [roleId] doesn't name a
+  /// live role.
   ///
-  /// A character detached earlier left a tombstone behind, and the table's primary key is
-  /// `{shotId, characterName}`: re-attaching it therefore lifts that tombstone rather than
-  /// inserting a second row, which the key would refuse anyway.
+  /// A shot's characters are the production's `roles`
+  /// (`docs/adr/0030-a-shots-characters-are-the-productions-roles.md`), and `shot_characters` is
+  /// keyed by `{shotId, roleId}`: this method is purely mechanical, taking [roleId] as given rather
+  /// than resolving one out of a typed name — that resolution (or creation, decision 1) is the
+  /// caller's, through [resolveOrCreateRoleId] (M3 of
+  /// `docs/plans/shot-characters-are-roles.md` turns this roleId-native; M1/M2 kept it name-based
+  /// with the resolution inside). A character detached earlier left a tombstone behind: re-attaching
+  /// it therefore lifts that tombstone rather than inserting a second row, which the key would
+  /// refuse anyway.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
   Future<void> attachCharacter({
     required OcptProjectDatabase database,
     required String shotId,
-    required String characterName,
+    required String roleId,
   }) async {
     if (database.refusesUserWrite("attachCharacter")) {
       return;
     }
 
-    final normalized = normalizeCharacterName(characterName);
-
     await database.transaction(() async {
+      final shot = await _liveShotRowOrNull(database: database, shotId: shotId);
+      if (shot == null || !await _liveRoleExists(database: database, roleId: roleId)) {
+        return;
+      }
+
       final existing = await _characterRowsOfShot(database: database, shotId: shotId);
-      if (existing.any((row) => row.characterName == normalized)) {
+      if (existing.any((row) => row.roleId == roleId)) {
         return;
       }
 
@@ -473,14 +511,10 @@ class OcptShotListService {
         before: existing.isEmpty ? null : existing.last.sortKey,
       );
 
-      final tombstone = await _characterRow(
-        database: database,
-        shotId: shotId,
-        characterName: normalized,
-      );
+      final tombstone = await _characterRow(database: database, shotId: shotId, roleId: roleId);
 
       final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
-      final rowId = ocptCompositeRowStampKey([shotId, normalized]);
+      final rowId = ocptCompositeRowStampKey([shotId, roleId]);
 
       if (tombstone != null) {
         await OcptRowStampService.writeAndStamp(
@@ -502,7 +536,7 @@ class OcptShotListService {
         current: null,
         next: OcptShotCharacterRow(
           shotId: shotId,
-          characterName: normalized,
+          roleId: roleId,
           position: existing.length,
           sortKey: sortKey,
           isDeleted: false,
@@ -513,7 +547,9 @@ class OcptShotListService {
     });
   }
 
-  /// Detaches [characterName] (normalised the same way [attachCharacter] does) from shot [shotId].
+  /// Detaches role [roleId] from shot [shotId]. Does nothing if it isn't attached — this never
+  /// creates a role, unlike [attachCharacter]: there is nothing left to detach from one that doesn't
+  /// exist.
   ///
   /// {@macro open_cine_prod_tools.tombstones}
   ///
@@ -521,20 +557,14 @@ class OcptShotListService {
   Future<void> detachCharacter({
     required OcptProjectDatabase database,
     required String shotId,
-    required String characterName,
+    required String roleId,
   }) async {
     if (database.refusesUserWrite("detachCharacter")) {
       return;
     }
 
-    final normalized = normalizeCharacterName(characterName);
-
     await database.transaction(() async {
-      final current = await _characterRow(
-        database: database,
-        shotId: shotId,
-        characterName: normalized,
-      );
+      final current = await _characterRow(database: database, shotId: shotId, roleId: roleId);
       if (current == null || current.isDeleted) {
         return;
       }
@@ -543,205 +573,11 @@ class OcptShotListService {
       await OcptRowStampService.writeAndStamp(
         database: database,
         table: database.ocptShotCharactersTable,
-        rowId: ocptCompositeRowStampKey([shotId, normalized]),
+        rowId: ocptCompositeRowStampKey([shotId, roleId]),
         current: current,
         next: current.copyWith(isDeleted: true),
         stamps: stamps,
       );
-      await stamps.flush(database);
-    });
-  }
-
-  /// Reorders shot [shotId]'s characters to [orderedCharacterNames] (normalised the same way
-  /// [attachCharacter] does), which must be a permutation of its currently attached characters.
-  ///
-  /// Only the characters that actually have to move are written: `ocptFractionalKeyRekeyPlan`
-  /// leaves the longest run already in ascending order alone, so moving a single character writes
-  /// a single row.
-  ///
-  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<void> reorderCharacters({
-    required OcptProjectDatabase database,
-    required String shotId,
-    required List<String> orderedCharacterNames,
-  }) async {
-    if (database.refusesUserWrite("reorderCharacters")) {
-      return;
-    }
-
-    await database.transaction(() async {
-      final rows = await _characterRowsOfShot(database: database, shotId: shotId);
-      final rowByName = {for (final row in rows) row.characterName: row};
-
-      final names = [
-        for (final name in orderedCharacterNames) normalizeCharacterName(name),
-      ]..removeWhere((name) => !rowByName.containsKey(name));
-
-      final plan = ocptFractionalKeyRekeyPlan([
-        for (final name in names) rowByName[name]!.sortKey,
-      ]);
-
-      if (plan.isEmpty) {
-        return;
-      }
-
-      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
-      for (final entry in plan.entries) {
-        final current = rowByName[names[entry.key]]!;
-        await OcptRowStampService.writeAndStamp(
-          database: database,
-          table: database.ocptShotCharactersTable,
-          rowId: ocptCompositeRowStampKey([current.shotId, current.characterName]),
-          current: current,
-          next: current.copyWith(sortKey: entry.value),
-          stamps: stamps,
-        );
-      }
-      await stamps.flush(database);
-    });
-  }
-
-  /// Removes [characterName] (normalised the same way [attachCharacter] does) from every shot of
-  /// screenplay [screenplayId] it is attached to: the deleted-character banner's "remove from every
-  /// shot" action.
-  ///
-  /// {@macro open_cine_prod_tools.tombstones}
-  ///
-  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<void> removeCharacterFromEveryShot({
-    required OcptProjectDatabase database,
-    required String screenplayId,
-    required String characterName,
-  }) async {
-    if (database.refusesUserWrite("removeCharacterFromEveryShot")) {
-      return;
-    }
-
-    final normalized = normalizeCharacterName(characterName);
-    final shotIds = await _shotIdsOfScreenplay(database: database, screenplayId: screenplayId);
-    if (shotIds.isEmpty) {
-      return;
-    }
-
-    await database.transaction(() async {
-      final rows =
-          await (database.select(database.ocptShotCharactersTable)..where(
-                (table) =>
-                    table.shotId.isIn(shotIds) &
-                    table.characterName.equals(normalized) &
-                    table.isDeleted.not(),
-              ))
-              .get();
-      if (rows.isEmpty) {
-        return;
-      }
-
-      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
-      for (final row in rows) {
-        await OcptRowStampService.writeAndStamp(
-          database: database,
-          table: database.ocptShotCharactersTable,
-          rowId: ocptCompositeRowStampKey([row.shotId, row.characterName]),
-          current: row,
-          next: row.copyWith(isDeleted: true),
-          stamps: stamps,
-        );
-      }
-      await stamps.flush(database);
-    });
-  }
-
-  /// Replaces [oldCharacterName] with [newCharacterName] (both normalised the same way
-  /// [attachCharacter] does) on every shot of screenplay [screenplayId] it is attached to: the
-  /// deleted-character banner's replacement chips.
-  ///
-  /// The new name takes the place the old one held, so a replacement never reshuffles a shot's
-  /// characters. A shot that already has [newCharacterName] attached simply drops
-  /// [oldCharacterName] instead of attaching a duplicate (the table's primary key is
-  /// `{shotId, characterName}`), and one that only has it as a tombstone lifts that tombstone
-  /// rather than inserting against the same key.
-  ///
-  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<void> replaceCharacterEverywhere({
-    required OcptProjectDatabase database,
-    required String screenplayId,
-    required String oldCharacterName,
-    required String newCharacterName,
-  }) async {
-    if (database.refusesUserWrite("replaceCharacterEverywhere")) {
-      return;
-    }
-
-    final normalizedOld = normalizeCharacterName(oldCharacterName);
-    final normalizedNew = normalizeCharacterName(newCharacterName);
-    if (normalizedOld == normalizedNew) {
-      return;
-    }
-
-    final shotIds = await _shotIdsOfScreenplay(database: database, screenplayId: screenplayId);
-    if (shotIds.isEmpty) {
-      return;
-    }
-
-    await database.transaction(() async {
-      final rows =
-          await (database.select(database.ocptShotCharactersTable)..where(
-                (table) =>
-                    table.shotId.isIn(shotIds) &
-                    table.characterName.equals(normalizedOld) &
-                    table.isDeleted.not(),
-              ))
-              .get();
-      if (rows.isEmpty) {
-        return;
-      }
-
-      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
-
-      for (final row in rows) {
-        await OcptRowStampService.writeAndStamp(
-          database: database,
-          table: database.ocptShotCharactersTable,
-          rowId: ocptCompositeRowStampKey([row.shotId, normalizedOld]),
-          current: row,
-          next: row.copyWith(isDeleted: true),
-          stamps: stamps,
-        );
-
-        final existingNew = await _characterRow(
-          database: database,
-          shotId: row.shotId,
-          characterName: normalizedNew,
-        );
-        final newRowId = ocptCompositeRowStampKey([row.shotId, normalizedNew]);
-
-        if (existingNew == null) {
-          await OcptRowStampService.writeAndStamp(
-            database: database,
-            table: database.ocptShotCharactersTable,
-            rowId: newRowId,
-            current: null,
-            next: OcptShotCharacterRow(
-              shotId: row.shotId,
-              characterName: normalizedNew,
-              position: row.position,
-              sortKey: row.sortKey,
-              isDeleted: false,
-            ),
-            stamps: stamps,
-          );
-        } else if (existingNew.isDeleted) {
-          await OcptRowStampService.writeAndStamp(
-            database: database,
-            table: database.ocptShotCharactersTable,
-            rowId: newRowId,
-            current: existingNew,
-            next: existingNew.copyWith(sortKey: row.sortKey, isDeleted: false),
-            stamps: stamps,
-          );
-        }
-      }
-
       await stamps.flush(database);
     });
   }
@@ -880,7 +716,7 @@ class OcptShotListService {
       await OcptRowStampService.writeAndStamp(
         database: database,
         table: database.ocptShotCharactersTable,
-        rowId: ocptCompositeRowStampKey([row.shotId, row.characterName]),
+        rowId: ocptCompositeRowStampKey([row.shotId, row.roleId]),
         current: row,
         next: row.copyWith(isDeleted: true),
         stamps: stamps,
@@ -1046,15 +882,72 @@ class OcptShotListService {
         ..orderBy([(table) => OrderingTerm.asc(table.sortKey)]))
       .get();
 
-  /// The `{shotId, characterName}` row, **tombstoned or not**, or null if that pair was never
-  /// attached at all: the one read that has to see through tombstones, since the primary key it
-  /// looks up is what an insertion would collide with.
+  /// The `{shotId, roleId}` row, **tombstoned or not**, or null if that pair was never attached at
+  /// all: the one read that has to see through tombstones, since the primary key it looks up is
+  /// what an insertion would collide with.
   Future<OcptShotCharacterRow?> _characterRow({
     required OcptProjectDatabase database,
     required String shotId,
-    required String characterName,
+    required String roleId,
   }) => (database.select(database.ocptShotCharactersTable)..where(
-        (table) => table.shotId.equals(shotId) & table.characterName.equals(characterName),
+        (table) => table.shotId.equals(shotId) & table.roleId.equals(roleId),
       ))
       .getSingleOrNull();
+
+  /// Whether role [roleId] names a live row of [database] — the guard [attachCharacter] takes
+  /// against being handed a role id that doesn't (or no longer) exist, since a roleId-native caller
+  /// is trusted for the id's shape but not for its liveness.
+  Future<bool> _liveRoleExists({
+    required OcptProjectDatabase database,
+    required String roleId,
+  }) async {
+    final role = await (database.select(
+      database.ocptRolesTable,
+    )..where((table) => table.id.equals(roleId) & table.isDeleted.not())).getSingleOrNull();
+    return role != null;
+  }
+
+  /// Resolves [name] (normalised through `fountain_kit`'s `normalizeCharacterName`) to a live
+  /// role's id in [database], or **creates** a hand-added silent role linked to [screenplayId]
+  /// through [roleIndexService] when none exists
+  /// (`docs/adr/0030-a-shots-characters-are-the-productions-roles.md`, decision 1) — the resolve-or-
+  /// create path the shot list's own add-character affordance calls before [attachCharacter], now
+  /// that [attachCharacter] itself is roleId-native (M3 of `docs/plans/shot-characters-are-roles.md`
+  /// moved the resolution out of the service and into the caller).
+  ///
+  /// The first in `sortKey` order wins on the rare chance more than one live role shares a name —
+  /// the same deterministic tie-break `OcptRoleIndexService.reconcile` and the schema v3 migration
+  /// use.
+  ///
+  /// Opens no transaction of its own: [OcptRoleIndexService.addRole] opens one when it actually
+  /// mints a role, which simply runs as part of whichever transaction the caller is already inside
+  /// (`ConnectionUser.transaction`'s own doc comment on nested transactions) — or on its own when the
+  /// caller isn't inside one, exactly as reading is always safe to do outside a transaction.
+  ///
+  /// Returns null only if creating a fresh role is refused for having been handed a preview
+  /// connection.
+  Future<String?> resolveOrCreateRoleId({
+    required OcptProjectDatabase database,
+    required String screenplayId,
+    required String name,
+  }) async {
+    final normalizedName = normalizeCharacterName(name);
+
+    final existingRole =
+        await (database.select(database.ocptRolesTable)
+              ..where((table) => table.name.equals(normalizedName) & table.isDeleted.not())
+              ..orderBy([(table) => OrderingTerm.asc(table.sortKey)])
+              ..limit(1))
+            .getSingleOrNull();
+    if (existingRole != null) {
+      return existingRole.id;
+    }
+
+    return roleIndexService.addRole(
+      database: database,
+      screenplayId: screenplayId,
+      name: normalizedName,
+      kind: OcptRoleKind.silent,
+    );
+  }
 }

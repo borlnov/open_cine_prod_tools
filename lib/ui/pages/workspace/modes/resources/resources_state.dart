@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:act_flutter_utility/act_flutter_utility.dart';
+import 'package:collection/collection.dart';
 import 'package:equatable/equatable.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_mileage_rate.dart';
 import 'package:open_cine_prod_tools/models/ocpt_element.dart';
@@ -17,6 +18,7 @@ import 'package:open_cine_prod_tools/models/ocpt_removed_role_alert.dart';
 import 'package:open_cine_prod_tools/models/ocpt_resources_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role_candidate.dart';
+import 'package:open_cine_prod_tools/models/ocpt_role_collision_alert.dart';
 import 'package:open_cine_prod_tools/models/ocpt_scene_ref.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_location_editable_field.dart';
@@ -311,6 +313,38 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
 
     return OcptRemovedRoleAlert.of(selectedRole);
   }
+
+  /// Every orphaned-role alert found in the whole cast (ADR 0030, decision 4, refined by the M4
+  /// step of `docs/plans/shot-characters-are-roles.md`): what the mode-level compact banner is
+  /// built from, above [selectedRoleAlert]'s own "one at a time" reasoning — the compact banner
+  /// reports the whole cast, not just the selected role's sheet.
+  List<OcptRemovedRoleAlert> get orphanedRoleAlerts => OcptRemovedRoleAlert.buildAll(roles);
+
+  /// Every name-collision alert found in the whole cast (ADR 0030, decision 2), sorted stably.
+  List<OcptRoleCollisionAlert> get roleCollisionAlerts => OcptRoleCollisionAlert.buildAll(roles);
+
+  /// The collision alert naming [selectedRole] — either side of it — or null while none is
+  /// selected or it collides with nothing. Mirrors [selectedRoleAlert]'s "one alert at a time"
+  /// reasoning: the banner reporting it lives inside the sheet of one of the two roles it names.
+  OcptRoleCollisionAlert? get selectedRoleCollisionAlert {
+    final selectedRole = this.selectedRole;
+    if (selectedRole == null) {
+      return null;
+    }
+
+    return roleCollisionAlerts.firstWhereOrNull(
+      (alert) =>
+          alert.screenplayRoleId == selectedRole.id || alert.handAddedRoleId == selectedRole.id,
+    );
+  }
+
+  /// The screenplay roles [alert]'s own orphaned role can be merged into: every live,
+  /// `isFromScreenplay` role of [roles] that isn't itself orphaned and isn't [alert]'s own — the
+  /// orphaned banner's `Merge with:` chips.
+  List<OcptRole> mergeTargetsOf(OcptRemovedRoleAlert alert) => [
+    for (final role in roles)
+      if (role.isFromScreenplay && role.orphanedName == null && role.id != alert.roleId) role,
+  ];
 
   /// Every live candidacy of role [roleId], in its own `sortKey` order — [snapshot]'s own group, or
   /// the empty list while nothing is loaded or [roleId] has none.

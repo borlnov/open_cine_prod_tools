@@ -5,6 +5,7 @@
 import 'dart:async';
 
 import 'package:act_global_manager/act_global_manager.dart';
+import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
@@ -43,6 +44,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_role_sheet.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_project_version_create_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_project_versions_panel.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_role_alert_compact_banner.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock_layout_controller.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_empty_mode.dart';
@@ -437,12 +439,59 @@ class _ResourcesViewState extends State<_ResourcesView> {
     );
   }
 
-  /// Builds the shell's `centre`: the selected record's sheet, whichever tab is active, each tab
-  /// with its own empty state while nothing is selected there.
+  /// Builds the shell's `centre`: the compact role alert banner (ADR 0030 decision 4, refined by
+  /// the M4 step of `docs/plans/shot-characters-are-roles.md`), then whichever tab is active, filling
+  /// the rest of the row.
+  ///
+  /// The banner sits above everything else and stays whichever tab is active: it reports the whole
+  /// cast, not something about the tab currently being looked at — mirroring how the shot list's own
+  /// full role alert banners sit above its sequence content.
+  Widget _buildCentre(BuildContext context, OcptResourcesState state, List<OcptEpisode> episodes) {
+    final banner = _buildRoleAlertCompactBanner(context, state);
+    final body = _buildTabCentre(context, state, episodes);
+    if (banner == null) {
+      return body;
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Padding(padding: const EdgeInsets.fromLTRB(24, 18, 24, 0), child: banner),
+        Expanded(child: body),
+      ],
+    );
+  }
+
+  /// Builds the compact role alert banner, or null while the whole cast is in order or a project
+  /// version is being previewed read-only.
+  ///
+  /// Tapping a line selects that role (`OcptResourcesRoleSelectedEvent`, which now always switches
+  /// to the roles tab too), landing on its sheet where the full `OcptRoleAlertBanner` already lives.
+  Widget? _buildRoleAlertCompactBanner(BuildContext context, OcptResourcesState state) {
+    final orphanedAlerts = state.orphanedRoleAlerts;
+    final collisionAlerts = state.roleCollisionAlerts;
+    if (state.isPreviewingVersion || (orphanedAlerts.isEmpty && collisionAlerts.isEmpty)) {
+      return null;
+    }
+
+    return OcptRoleAlertCompactBanner(
+      orphanedAlerts: orphanedAlerts,
+      collisionAlerts: collisionAlerts,
+      onRoleTapped: (roleId) =>
+          context.read<OcptResourcesBloc>().add(OcptResourcesRoleSelectedEvent(roleId: roleId)),
+    );
+  }
+
+  /// Builds whichever tab is active: the selected record's sheet, each tab with its own empty state
+  /// while nothing is selected there.
   ///
   /// [episodes] is the roles tab's own, see [_buildListPanel]'s doc comment for why it is handed
   /// down rather than reloaded.
-  Widget _buildCentre(BuildContext context, OcptResourcesState state, List<OcptEpisode> episodes) {
+  Widget _buildTabCentre(
+    BuildContext context,
+    OcptResourcesState state,
+    List<OcptEpisode> episodes,
+  ) {
     if (state.activeTab == OcptResourcesTab.roles) {
       return _buildRolesCentre(context, state, episodes);
     }
@@ -652,6 +701,44 @@ class _ResourcesViewState extends State<_ResourcesView> {
     bloc.add(event);
   }
 
+  /// The display name of role [roleId] among [state]'s whole cast, or [roleId] itself as a last
+  /// resort — the role merge confirmation names both roles, and a role gone from the cast between
+  /// the click and the dialog opening is the only way this fallback is ever seen.
+  String _roleNameOf(OcptResourcesState state, String roleId) =>
+      state.roles.firstWhereOrNull((role) => role.id == roleId)?.name ?? roleId;
+
+  /// Shows the merge confirmation dialog, naming both roles, then dispatches the merge if the user
+  /// confirmed it — the shared role alert banner's merge affordance, either variant.
+  Future<void> _handleRoleMergeRequested(
+    BuildContext context,
+    OcptResourcesState state,
+    String sourceRoleId,
+    String targetRoleId,
+  ) async {
+    final bloc = context.read<OcptResourcesBloc>();
+    final tr = Tr.of(context);
+    final confirmed = await OcptConfirmDialog.show(
+      context,
+      title: tr.roleAlertMergeConfirmTitle,
+      message: tr.roleAlertMergeConfirmMessage(
+        _roleNameOf(state, sourceRoleId),
+        _roleNameOf(state, targetRoleId),
+      ),
+      cancelLabel: tr.resourcesDeleteConfirmCancelAction,
+      confirmLabel: tr.roleAlertMergeConfirmAction,
+    );
+    if (confirmed != true) {
+      return;
+    }
+    if (!context.mounted) {
+      return;
+    }
+
+    bloc.add(
+      OcptResourcesRoleMergeRequestedEvent(sourceRoleId: sourceRoleId, targetRoleId: targetRoleId),
+    );
+  }
+
   /// Builds the roles tab's centre: the selected role's sheet, or the empty state — the one
   /// explaining where roles come from while the cast itself is empty, the one asking for a
   /// selection otherwise, mirroring `resourcesNoPersonSelectedHint`'s tone.
@@ -685,6 +772,12 @@ class _ResourcesViewState extends State<_ResourcesView> {
       elements: state.elements,
       episodes: episodes,
       removedRoleAlert: state.selectedRoleAlert,
+      mergeTargets: state.selectedRoleAlert == null
+          ? const []
+          : state.mergeTargetsOf(state.selectedRoleAlert!),
+      collisionAlert: state.selectedRoleCollisionAlert,
+      onMergeRequested: (sourceRoleId, targetRoleId) =>
+          _handleRoleMergeRequested(context, state, sourceRoleId, targetRoleId),
       isReadOnly: state.isPreviewingVersion,
       fieldValueOf: (field) => _roleFieldValueOf(state, selectedRole, field),
       onFieldChanged: (field, rawValue) => bloc.add(

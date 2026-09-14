@@ -10,12 +10,14 @@ import 'package:open_cine_prod_tools/models/ocpt_project_package_notice.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_package_report.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_version.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_working_copy_state.dart';
+import 'package:open_cine_prod_tools/models/ocpt_removed_role_alert.dart';
+import 'package:open_cine_prod_tools/models/ocpt_role.dart';
+import 'package:open_cine_prod_tools/models/ocpt_role_collision_alert.dart';
 import 'package:open_cine_prod_tools/models/ocpt_script_word_layout.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_coverage_range.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_field_suggestions.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_list_snapshot.dart';
-import 'package:open_cine_prod_tools/models/ocpt_shot_removed_character_alert.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_version_notice_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_column.dart';
@@ -158,10 +160,19 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
 
   /// The screenplay's whole cast — the speaking roles and the characters introduced in capitals in
   /// an action line alike, see `fountain_kit`'s `screenplayCharactersOf` — normalised through
-  /// `normalizeCharacterName` and in first-appearance order, as parsed once on entry. The
-  /// inspector's character chips combine these with the selected shot's own `OcptShot.characters`
-  /// (which can include a name no longer among these, see `OcptShotCharacterChips`).
+  /// `normalizeCharacterName` and in first-appearance order, as parsed once on entry.
+  ///
+  /// Kept for `OcptShotListBloc`'s own internal use resolving a scenario coverage range's covered
+  /// text onto [roles] (`_attachCharactersCoveredBy`) rather than for display any more: the
+  /// inspector's character chips are built from [roles], the production's whole cast, not from this
+  /// screenplay-only list (`OcptShotCharacterChips`).
   final List<String> screenplayCharacters;
+
+  /// The production's whole cast — every live role, in `sortKey` order — as last read by
+  /// `OcptRoleIndexService.loadRoles`: what the inspector's character chips are built from
+  /// (`OcptShotCharacterChips`), and what [orphanedRoleAlerts] and [roleCollisionAlerts] are derived
+  /// from.
+  final List<OcptRole> roles;
 
   /// The selected episode's own suggestion lists the inspector's free-text fields with suggestions
   /// read from, reloaded after every field-edit flush.
@@ -265,18 +276,27 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
   int get shotsToCheckCount =>
       snapshot?.shotsById.values.where((shot) => shot.needsCheck).length ?? 0;
 
-  /// One alert per character still attached to a shot but named nowhere in the screenplay any
-  /// more: the deleted-character banners shown above the shot table.
+  /// One alert per orphaned role of [roles] — the screenplay no longer names it, but its casting
+  /// and notes are kept — the orphaned variant of the shared role alert banner, shown above the shot
+  /// table (ADR 0030, decision 4).
   ///
-  /// Derived on demand from [snapshot] and [screenplayCharacters], like
-  /// [otherShotsCoverageOfSelectedScene] and [buildSelectedCoverageLayout] are, rather than stored:
-  /// both inputs are already in memory, and computing it here is what keeps it impossible for a
-  /// banner to survive the write that resolved it.
-  List<OcptShotRemovedCharacterAlert> get removedCharacterAlerts =>
-      OcptShotRemovedCharacterAlert.buildAll(
-        snapshot: snapshot,
-        screenplayCharacters: screenplayCharacters,
-      );
+  /// Derived on demand from [roles], like [otherShotsCoverageOfSelectedScene] and
+  /// [buildSelectedCoverageLayout] are, rather than stored: it is already in memory, and computing
+  /// it here is what keeps it impossible for a banner to survive the write that resolved it.
+  List<OcptRemovedRoleAlert> get orphanedRoleAlerts => OcptRemovedRoleAlert.buildAll(roles);
+
+  /// One alert per hand-added role sharing a name with a live screenplay role — the collision
+  /// variant of the shared role alert banner (ADR 0030, decision 2). Derived the same way
+  /// [orphanedRoleAlerts] is.
+  List<OcptRoleCollisionAlert> get roleCollisionAlerts => OcptRoleCollisionAlert.buildAll(roles);
+
+  /// The roles [alert]'s own role can be merged into: every live, `isFromScreenplay` role of
+  /// [roles] that isn't itself orphaned and isn't [alert]'s own — the orphaned banner's `Merge
+  /// with:` chips.
+  List<OcptRole> mergeTargetsOf(OcptRemovedRoleAlert alert) => [
+    for (final role in roles)
+      if (role.isFromScreenplay && role.orphanedName == null && role.id != alert.roleId) role,
+  ];
 
   /// Builds the scenario coverage layout of the selected shot's scene, or null when no shot is
   /// selected, none is (or the selected sequence is the orphan group: an orphaned shot's scene
@@ -367,6 +387,7 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
     required this.hasWriteError,
     required this.ioNotice,
     required this.screenplayCharacters,
+    required this.roles,
     required this.suggestions,
     required this.pendingFieldEdits,
     required this.pendingCoverageAnchor,
@@ -399,6 +420,7 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
       hasWriteError = false,
       ioNotice = null,
       screenplayCharacters = const [],
+      roles = const [],
       suggestions = const OcptShotFieldSuggestions.empty(),
       pendingFieldEdits = const {},
       pendingCoverageAnchor = null,
@@ -441,6 +463,7 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
     OcptShotListIoNotice? ioNotice,
     bool clearIoNotice = false,
     List<String>? screenplayCharacters,
+    List<OcptRole>? roles,
     OcptShotFieldSuggestions? suggestions,
     Map<(String, OcptShotListEditableField), String>? pendingFieldEdits,
     ({int wordStartOffset, int wordEndOffset})? pendingCoverageAnchor,
@@ -481,6 +504,7 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
     hasWriteError: hasWriteError ?? this.hasWriteError,
     ioNotice: clearIoNotice ? null : (ioNotice ?? this.ioNotice),
     screenplayCharacters: screenplayCharacters ?? this.screenplayCharacters,
+    roles: roles ?? this.roles,
     suggestions: suggestions ?? this.suggestions,
     pendingFieldEdits: pendingFieldEdits ?? this.pendingFieldEdits,
     pendingCoverageAnchor: clearPendingCoverageAnchor
@@ -577,6 +601,7 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
     hasWriteError,
     ioNotice,
     screenplayCharacters,
+    roles,
     suggestions,
     pendingFieldEdits,
     pendingCoverageAnchor,

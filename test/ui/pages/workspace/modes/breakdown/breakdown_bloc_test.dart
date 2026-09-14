@@ -29,6 +29,7 @@ import 'package:open_cine_prod_tools/types/ocpt_element_source_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_export_outcome.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
+import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_project_versions_events.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/breakdown/breakdown_bloc.dart';
@@ -645,6 +646,57 @@ void main() {
       await bloc.close();
     },
   );
+
+  group("the compact role alert banner (M4)", () {
+    test("orphanedRoleAlerts reports a role the screenplay no longer names", () async {
+      await writeScreenplay("INT. HOUSE - DAY\n\nCLARA\nHello.\n");
+
+      final bloc = buildBloc();
+      final loaded = await waitForState(bloc, (state) => state.roles.isNotEmpty);
+      expect(loaded.orphanedRoleAlerts, isEmpty);
+
+      await writeScreenplay("INT. HOUSE - DAY\n\nAction, no dialogue anymore.\n");
+      // Forces a full reload: unlike the resources mode's own handler, this event's breakdown
+      // sibling only re-reads the page setup, not the whole snapshot.
+      bloc.add(const OcptBreakdownLoadRequestedEvent());
+      final orphaned = await waitForState(
+        bloc,
+        (state) => state.orphanedRoleAlerts.isNotEmpty,
+      );
+
+      expect(orphaned.orphanedRoleAlerts, hasLength(1));
+      expect(orphaned.orphanedRoleAlerts.single.characterName, "CLARA");
+      expect(orphaned.orphanedRoleAlerts.single.roleId, orphaned.roles.single.id);
+
+      await bloc.close();
+    });
+
+    test("roleCollisionAlerts reports a hand-added role sharing a screenplay role's name", () async {
+      await writeScreenplay("INT. HOUSE - DAY\n\nCLARA\nHello.\n");
+      final project = projectsManager.currentProject!;
+
+      final bloc = buildBloc();
+      final loaded = await waitForState(bloc, (state) => state.roles.isNotEmpty);
+      expect(loaded.roleCollisionAlerts, isEmpty);
+      final screenplayRoleId = loaded.roles.single.id;
+
+      final handAddedRoleId = await projectsManager.roleIndexService.addRole(
+        database: project.database,
+        screenplayId: project.primaryScreenplayId,
+        name: "Clara",
+        kind: OcptRoleKind.extra,
+      );
+
+      bloc.add(const OcptBreakdownLoadRequestedEvent());
+      final state = await waitForState(bloc, (state) => state.roleCollisionAlerts.isNotEmpty);
+
+      expect(state.roleCollisionAlerts, hasLength(1));
+      expect(state.roleCollisionAlerts.single.screenplayRoleId, screenplayRoleId);
+      expect(state.roleCollisionAlerts.single.handAddedRoleId, handAddedRoleId);
+
+      await bloc.close();
+    });
+  });
 
   test("toggling a legend entry hides it, toggling it again reveals it", () async {
     final bloc = buildBloc();

@@ -5,6 +5,7 @@
 import 'dart:async';
 
 import 'package:act_global_manager/act_global_manager.dart';
+import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
@@ -26,7 +27,6 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_shot_coverage_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_shot_inspector_panel.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_shot_list_columns_menu.dart';
-import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_shot_list_removed_character_banner.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_shot_list_right_dock.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_shot_list_sequence_panel.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_shot_list_status_bar.dart';
@@ -34,6 +34,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_shot_metadata_panel.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_project_version_create_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_project_versions_panel.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_role_alert_banner.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock_layout_controller.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_empty_mode.dart';
@@ -376,7 +377,7 @@ class _ShotListViewState extends State<_ShotListView> {
     await _handleDeleteRequested(context, shot);
   }
 
-  /// Builds the shell's `centre`: the deleted-character banners, then the selected sequence's
+  /// Builds the shell's `centre`: the shared role alert banners, then the selected sequence's
   /// header, the `Columns ▾` menu, and the shot table under them, overlaid at a compact width
   /// ([isCompact]) with the same floating `+ Shot` affordance the left dock's own button already
   /// fires — see [OcptWorkspaceFloatingAddButton]'s own doc comment.
@@ -388,10 +389,9 @@ class _ShotListViewState extends State<_ShotListView> {
   /// edge drawer — nothing further to wire here for that.
   ///
   /// The banners sit above everything else and stay whichever sequence is selected: they report a
-  /// mismatch between the screenplay and the whole shot list, not something about the sequence
-  /// currently being looked at.
+  /// mismatch about the whole cast, not something about the sequence currently being looked at.
   Widget _buildCentre(BuildContext context, OcptShotListState state, bool isCompact) {
-    final banners = _buildRemovedCharacterBanners(context, state);
+    final banners = _buildRoleAlertBanners(context, state);
     final body = _buildSequenceBody(context, state);
 
     final content = banners.isEmpty
@@ -418,28 +418,102 @@ class _ShotListViewState extends State<_ShotListView> {
     );
   }
 
-  /// Builds one [OcptShotListRemovedCharacterBanner] per alert the state derives, or an empty list
-  /// when every character attached to a shot still speaks somewhere in the screenplay.
-  List<Widget> _buildRemovedCharacterBanners(BuildContext context, OcptShotListState state) => [
-    for (final alert in state.removedCharacterAlerts)
-      Padding(
-        padding: const EdgeInsets.only(bottom: 10),
-        child: OcptShotListRemovedCharacterBanner(
-          alert: alert,
-          replacementCandidates: state.screenplayCharacters,
-          isReadOnly: state.isPreviewingVersion,
-          onRemoveFromEveryShot: () => context.read<OcptShotListBloc>().add(
-            OcptShotListRemovedCharacterDroppedEvent(characterName: alert.characterName),
-          ),
-          onReplaced: (replacementName) => context.read<OcptShotListBloc>().add(
-            OcptShotListRemovedCharacterReplacedEvent(
-              characterName: alert.characterName,
-              replacementName: replacementName,
-            ),
+  /// Builds one [OcptRoleAlertBanner] per orphaned role and per name collision the state derives
+  /// (ADR 0030, decision 4), or an empty list when the whole cast is in order.
+  List<Widget> _buildRoleAlertBanners(BuildContext context, OcptShotListState state) {
+    final bloc = context.read<OcptShotListBloc>();
+
+    return [
+      for (final alert in state.orphanedRoleAlerts)
+        Padding(
+          padding: const EdgeInsets.only(bottom: 10),
+          child: OcptRoleAlertBanner.orphaned(
+            alert: alert,
+            mergeTargets: state.mergeTargetsOf(alert),
+            isReadOnly: state.isPreviewingVersion,
+            onDeleteRequested: (roleId) => _handleRoleDeleteRequested(context, state, roleId),
+            onKeepRequested: (roleId) =>
+                bloc.add(OcptShotListOrphanedRoleKeptEvent(roleId: roleId)),
+            onMergeRequested: (sourceRoleId, targetRoleId) =>
+                _handleRoleMergeRequested(context, state, sourceRoleId, targetRoleId),
           ),
         ),
+      for (final alert in state.roleCollisionAlerts)
+        Padding(
+          padding: const EdgeInsets.only(bottom: 10),
+          child: OcptRoleAlertBanner.collision(
+            alert: alert,
+            isReadOnly: state.isPreviewingVersion,
+            onMergeRequested: (sourceRoleId, targetRoleId) =>
+                _handleRoleMergeRequested(context, state, sourceRoleId, targetRoleId),
+          ),
+        ),
+    ];
+  }
+
+  /// The display name of role [roleId] among [state]'s whole cast, or [roleId] itself as a last
+  /// resort — the role merge confirmation names both roles, and a role gone from the cast between
+  /// the click and the dialog opening is the only way this fallback is ever seen.
+  String _roleNameOf(OcptShotListState state, String roleId) =>
+      state.roles.firstWhereOrNull((role) => role.id == roleId)?.name ?? roleId;
+
+  /// Shows the delete confirmation dialog, then dispatches the orphaned role's deletion if the user
+  /// confirmed it — the shared role alert banner's `Delete the role` action.
+  Future<void> _handleRoleDeleteRequested(
+    BuildContext context,
+    OcptShotListState state,
+    String roleId,
+  ) async {
+    final bloc = context.read<OcptShotListBloc>();
+    final tr = Tr.of(context);
+    final confirmed = await OcptConfirmDialog.show(
+      context,
+      title: tr.resourcesRoleDeleteConfirmTitle,
+      message: tr.resourcesRoleDeleteConfirmMessage,
+      cancelLabel: tr.shotListDeleteConfirmCancelAction,
+      confirmLabel: tr.shotListDeleteConfirmDeleteAction,
+    );
+    if (confirmed != true) {
+      return;
+    }
+    if (!context.mounted) {
+      return;
+    }
+
+    bloc.add(OcptShotListOrphanedRoleDeleteRequestedEvent(roleId: roleId));
+  }
+
+  /// Shows the merge confirmation dialog, naming both roles, then dispatches the merge if the user
+  /// confirmed it — the shared role alert banner's merge affordance, either variant.
+  Future<void> _handleRoleMergeRequested(
+    BuildContext context,
+    OcptShotListState state,
+    String sourceRoleId,
+    String targetRoleId,
+  ) async {
+    final bloc = context.read<OcptShotListBloc>();
+    final tr = Tr.of(context);
+    final confirmed = await OcptConfirmDialog.show(
+      context,
+      title: tr.roleAlertMergeConfirmTitle,
+      message: tr.roleAlertMergeConfirmMessage(
+        _roleNameOf(state, sourceRoleId),
+        _roleNameOf(state, targetRoleId),
       ),
-  ];
+      cancelLabel: tr.shotListDeleteConfirmCancelAction,
+      confirmLabel: tr.roleAlertMergeConfirmAction,
+    );
+    if (confirmed != true) {
+      return;
+    }
+    if (!context.mounted) {
+      return;
+    }
+
+    bloc.add(
+      OcptShotListRoleMergeRequestedEvent(sourceRoleId: sourceRoleId, targetRoleId: targetRoleId),
+    );
+  }
 
   /// Builds what the centre shows under the banners: the selected sequence's header, the
   /// `Columns ▾` menu and its shot table, or the empty state while no sequence is selected.
@@ -534,7 +608,7 @@ class _ShotListViewState extends State<_ShotListView> {
         shot: selectedShot,
         sequenceHeading: sequenceHeading,
         sequenceDisplayNumber: sequenceDisplayNumber,
-        screenplayCharacters: state.screenplayCharacters,
+        roles: state.roles,
         suggestions: state.suggestions,
         coverageLayout: coverageLayout,
         otherShotsCoverageRanges: state.otherShotsCoverageOfSelectedScene(),
@@ -545,10 +619,15 @@ class _ShotListViewState extends State<_ShotListView> {
           selectedShot,
           (id) => OcptShotListShotDifficultyChangedEvent(shotId: id, axis: axis, value: value),
         ),
-        onCharacterToggled: (name) => _dispatchIfShotSelected(
+        onCharacterToggled: (roleId) => _dispatchIfShotSelected(
           context,
           selectedShot,
-          (id) => OcptShotListShotCharacterToggledEvent(shotId: id, characterName: name),
+          (id) => OcptShotListShotCharacterToggledEvent(shotId: id, roleId: roleId),
+        ),
+        onCharacterAdded: (name) => _dispatchIfShotSelected(
+          context,
+          selectedShot,
+          (id) => OcptShotListCharacterAddRequestedEvent(shotId: id, characterName: name),
         ),
         onFieldChanged: (field, value) => _dispatchIfShotSelected(
           context,

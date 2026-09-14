@@ -830,6 +830,151 @@ void main() {
     await bloc.close();
   });
 
+  test("keeping an orphaned role turns it into a hand-added silent role", () async {
+    final bloc = buildBloc();
+    await waitForState(bloc, (state) => !state.isLoading);
+
+    bloc.add(const OcptResourcesRoleCreationRequestedEvent(kind: OcptRoleKind.silent));
+    var state = await waitForState(bloc, (state) => state.roleCount == 1);
+    final roleId = state.selectedRoleId!;
+
+    // A hand-added role is never orphaned by construction; the bloc only cares that the write
+    // reaches `OcptRoleIndexService.keepOrphanedRoleAsSilent`, so calling it here (through the
+    // event, not the service) is enough to exercise the wiring end to end.
+    bloc.add(OcptResourcesOrphanedRoleKeptEvent(roleId: roleId));
+    state = await waitForState(bloc, (state) => !state.roles.single.isFromScreenplay);
+
+    expect(state.roles.single.kind, OcptRoleKind.silent);
+    expect(state.roles.single.orphanedName, isNull);
+
+    await bloc.close();
+  });
+
+  test("merging two roles carries the source's casting onto the target and drops the source",
+      () async {
+    final bloc = buildBloc();
+    await waitForState(bloc, (state) => !state.isLoading);
+
+    bloc.add(const OcptResourcesPersonCreationRequestedEvent());
+    var state = await waitForState(bloc, (state) => state.peopleCount == 1);
+    final personId = state.selectedPersonId!;
+
+    bloc.add(const OcptResourcesRoleCreationRequestedEvent(kind: OcptRoleKind.extra));
+    state = await waitForState(bloc, (state) => state.roleCount == 1);
+    final targetId = state.selectedRoleId!;
+
+    bloc.add(const OcptResourcesRoleCreationRequestedEvent(kind: OcptRoleKind.extra));
+    state = await waitForState(bloc, (state) => state.roleCount == 2);
+    final sourceId = state.selectedRoleId!;
+
+    // Cast a person to the source role, written immediately (a discrete pick, not typing): what
+    // the merge is expected to carry onto the target, which starts out uncast.
+    bloc.add(OcptResourcesRoleCastChangedEvent(roleId: sourceId, personId: personId));
+    await waitForState(bloc, (state) => state.selectedRole!.personId == personId);
+
+    bloc.add(OcptResourcesRoleMergeRequestedEvent(sourceRoleId: sourceId, targetRoleId: targetId));
+    state = await waitForState(bloc, (state) => state.roleCount == 1);
+
+    expect(state.roles.single.id, targetId);
+    expect(state.roles.single.personId, personId);
+
+    await bloc.close();
+  });
+
+  group("the compact role alert banner (M4)", () {
+    test("selecting a role from another tab switches to the roles tab too", () async {
+      final bloc = buildBloc();
+      await waitForState(bloc, (state) => !state.isLoading);
+
+      bloc.add(const OcptResourcesRoleCreationRequestedEvent(kind: OcptRoleKind.silent));
+      final withRole = await waitForState(bloc, (state) => state.roleCount == 1);
+      final roleId = withRole.selectedRoleId!;
+
+      // Away from the roles tab, exactly as tapping a compact banner line from anywhere else
+      // would find the mode.
+      bloc.add(const OcptResourcesTabSelectedEvent(tab: OcptResourcesTab.locations));
+      await waitForState(bloc, (state) => state.activeTab == OcptResourcesTab.locations);
+
+      bloc.add(OcptResourcesRoleSelectedEvent(roleId: roleId));
+      final state = await waitForState(
+        bloc,
+        (state) => state.activeTab == OcptResourcesTab.roles,
+      );
+
+      expect(state.selectedRoleId, roleId);
+
+      await bloc.close();
+    });
+
+    test("orphanedRoleAlerts reports a role the screenplay no longer names", () async {
+      final project = projectsManager.currentProject!;
+      await projectsManager.screenplayService.saveScreenplayText(
+        database: project.database,
+        screenplayId: project.primaryScreenplayId,
+        fountainText: "INT. HOUSE - DAY\n\nCLARA\nHello.\n",
+        snapshotReason: OcptSnapshotReason.manual,
+      );
+
+      final bloc = buildBloc();
+      final loaded = await waitForState(bloc, (state) => state.roleCount == 1);
+      expect(loaded.orphanedRoleAlerts, isEmpty);
+
+      await projectsManager.screenplayService.saveScreenplayText(
+        database: project.database,
+        screenplayId: project.primaryScreenplayId,
+        fountainText: "INT. HOUSE - DAY\n\nAction, no dialogue anymore.\n",
+        snapshotReason: OcptSnapshotReason.manual,
+      );
+      bloc.add(const OcptResourcesProjectSettingsChangedEvent());
+      final orphaned = await waitForState(
+        bloc,
+        (state) => state.orphanedRoleAlerts.isNotEmpty,
+      );
+
+      expect(orphaned.orphanedRoleAlerts, hasLength(1));
+      expect(orphaned.orphanedRoleAlerts.single.characterName, "CLARA");
+      expect(orphaned.orphanedRoleAlerts.single.roleId, orphaned.roles.single.id);
+
+      await bloc.close();
+    });
+
+    test("roleCollisionAlerts reports a hand-added role sharing a screenplay role's name", () async {
+      final project = projectsManager.currentProject!;
+      await projectsManager.screenplayService.saveScreenplayText(
+        database: project.database,
+        screenplayId: project.primaryScreenplayId,
+        fountainText: "INT. HOUSE - DAY\n\nCLARA\nHello.\n",
+        snapshotReason: OcptSnapshotReason.manual,
+      );
+
+      final bloc = buildBloc();
+      final loaded = await waitForState(bloc, (state) => state.roleCount == 1);
+      expect(loaded.roleCollisionAlerts, isEmpty);
+      final screenplayRoleId = loaded.roles.single.id;
+
+      bloc.add(const OcptResourcesRoleCreationRequestedEvent(kind: OcptRoleKind.extra));
+      final withHandAdded = await waitForState(bloc, (state) => state.roleCount == 2);
+      final handAddedRoleId = withHandAdded.selectedRoleId!;
+
+      bloc.add(
+        OcptResourcesRoleFieldChangedEvent(
+          roleId: handAddedRoleId,
+          field: OcptRoleField.name,
+          rawValue: "Clara",
+        ),
+      );
+      // Flushed by leaving the roles tab, exactly as "a debounced role name edit" above does.
+      bloc.add(const OcptResourcesTabSelectedEvent(tab: OcptResourcesTab.people));
+      final state = await waitForState(bloc, (state) => state.roleCollisionAlerts.isNotEmpty);
+
+      expect(state.roleCollisionAlerts, hasLength(1));
+      expect(state.roleCollisionAlerts.single.screenplayRoleId, screenplayRoleId);
+      expect(state.roleCollisionAlerts.single.handAddedRoleId, handAddedRoleId);
+
+      await bloc.close();
+    });
+  });
+
   group("role candidates", () {
     /// Creates a hand-added role, a person, and a live candidacy pairing the two, through the
     /// bloc's own events. Returns the role's id, the person's id and the candidacy's own id.

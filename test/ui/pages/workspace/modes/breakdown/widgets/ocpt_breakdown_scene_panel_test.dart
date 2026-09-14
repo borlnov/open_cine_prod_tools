@@ -132,13 +132,15 @@ void main() {
 
   final targetById = ocptBreakdownTargetsById([propTarget, costumeTarget, roleTarget]);
 
-  /// Pumps the panel with [selectedSceneId] selected, recording every selection it reports.
-  Future<List<String>> pumpPanel(
+  /// Pumps the panel with [selectedSceneId] selected, recording every row selection into the first
+  /// list returned and every warning-mark tap into the second.
+  Future<(List<String>, List<String>)> pumpPanel(
     WidgetTester tester, {
     required String? selectedSceneId,
     List<OcptBreakdownScene>? scenes,
   }) async {
     final selections = <String>[];
+    final warningTaps = <String>[];
 
     await tester.pumpWidget(
       _wrapInApp(
@@ -147,6 +149,7 @@ void main() {
           targetById: targetById,
           selectedSceneId: selectedSceneId,
           onSceneSelected: selections.add,
+          onWarningTapped: warningTaps.add,
           legendEntries: const [],
           hiddenLegendKeys: const {},
           onLegendEntryToggled: (_) {},
@@ -156,7 +159,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    return selections;
+    return (selections, warningTaps);
   }
 
   testWidgets("lists every scene with its number, heading and done count", (tester) async {
@@ -171,7 +174,7 @@ void main() {
   });
 
   testWidgets("clicking a scene reports its id", (tester) async {
-    final selections = await pumpPanel(tester, selectedSceneId: null);
+    final (selections, _) = await pumpPanel(tester, selectedSceneId: null);
 
     await tester.tap(find.text("EXT. GARDEN - NIGHT"));
     await tester.pump();
@@ -249,5 +252,35 @@ void main() {
     final tr = Tr.of(tester.element(find.byType(OcptBreakdownScenePanel)));
     expect(find.byTooltip(tr.breakdownTagNeedsCheckTooltip), findsOneWidget);
     expect(find.byIcon(Icons.warning_amber_rounded), findsOneWidget);
+  });
+
+  testWidgets("clicking the warning mark reports the scene's id, separately from the row", (
+    tester,
+  ) async {
+    final flaggedScene = _buildScene(
+      id: "scene-4",
+      position: 3,
+      heading: "INT. ATTIC - NIGHT",
+      tags: [
+        _buildTag(
+          sceneId: "scene-4",
+          targetKind: OcptBreakdownTargetKind.element,
+          targetId: "el-1",
+          needsCheck: true,
+        ),
+      ],
+    );
+
+    final (selections, warningTaps) = await pumpPanel(
+      tester,
+      selectedSceneId: null,
+      scenes: [untaggedScene, flaggedScene],
+    );
+
+    await tester.tap(find.byIcon(Icons.warning_amber_rounded));
+    await tester.pump();
+
+    expect(warningTaps, ["scene-4"]);
+    expect(selections, isEmpty);
   });
 }

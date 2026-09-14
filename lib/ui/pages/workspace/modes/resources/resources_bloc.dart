@@ -270,6 +270,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     on<OcptResourcesRoleEpisodesChangedEvent>(_onRoleEpisodesChanged);
     on<OcptResourcesRoleDeletionRequestedEvent>(_onRoleDeletionRequested);
     on<OcptResourcesOrphanedRoleKeptEvent>(_onOrphanedRoleKept);
+    on<OcptResourcesRoleMergeRequestedEvent>(_onRoleMergeRequested);
     on<OcptResourcesRoleCandidateAddedEvent>(_onRoleCandidateAdded);
     on<OcptResourcesRoleCandidateStatusChangedEvent>(_onRoleCandidateStatusChanged);
     on<OcptResourcesRoleCandidateAuditionDateChangedEvent>(_onRoleCandidateAuditionDateChanged);
@@ -1667,7 +1668,20 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
       return;
     }
 
-    emitter(state.copyWith(selectedRoleId: event.roleId));
+    // Always lands on the roles tab, exactly like [_onTabSelected] switching to it: this event is
+    // dispatched from a row of `OcptRolesList` — already there, a no-op below — and, since the M4
+    // compact banner, from any tab at all, which is the case this actually has to answer. Clears
+    // the search query the same way a genuine tab switch does, so a query left over from another
+    // tab's list can never keep filtering the roles tab it lands on.
+    final isAlreadyOnRolesTab = state.activeTab == OcptResourcesTab.roles;
+
+    emitter(
+      state.copyWith(
+        selectedRoleId: event.roleId,
+        activeTab: OcptResourcesTab.roles,
+        searchQuery: isAlreadyOnRolesTab ? null : "",
+      ),
+    );
   }
 
   /// Adds a hand-added role of `event.kind` at the end of the cast, reloads the catalogue and
@@ -1802,6 +1816,22 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     logContext: "keep orphaned role ${event.roleId} as silent",
     action: (project) =>
         _roleIndexService.keepOrphanedRoleAsSilent(database: project.database, roleId: event.roleId),
+  );
+
+  /// Merges role `event.sourceRoleId` into role `event.targetRoleId`, written immediately: the
+  /// shared role alert banner's merge affordance — either variant — dispatched once the mode's own
+  /// `OcptConfirmDialog` has already confirmed it.
+  Future<void> _onRoleMergeRequested(
+    OcptResourcesRoleMergeRequestedEvent event,
+    Emitter<OcptResourcesState> emitter,
+  ) => _writeCatalogueChange(
+    emitter: emitter,
+    logContext: "merge role ${event.sourceRoleId} into ${event.targetRoleId}",
+    action: (project) => _roleIndexService.mergeRole(
+      database: project.database,
+      sourceRoleId: event.sourceRoleId,
+      targetRoleId: event.targetRoleId,
+    ),
   );
 
   /// Records that person `event.personId` was seen for role `event.roleId`, written immediately —

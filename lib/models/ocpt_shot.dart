@@ -102,6 +102,21 @@ class OcptShot extends Equatable {
   /// `normalizeCharacterName`.
   final List<String> characters;
 
+  /// The `roles.id` backing each entry of [characters], aligned by index: `characterRoleIds[i]` is
+  /// the role the name at `characters[i]` was resolved from.
+  ///
+  /// A shot's characters are the production's `roles`
+  /// (`docs/adr/0030-a-shots-characters-are-the-productions-roles.md`): `shot_characters` is keyed
+  /// by `{shotId, roleId}` underneath, but every read site of [characters] — the four exports, the
+  /// schedule snapshot, the shot inspector — stays untouched by resolving the id back to the role's
+  /// current name at load time (`OcptShotListService.loadShotList`) rather than turning every one of
+  /// them into a lookup. This parallel list is what a **write** needs instead, carried alongside
+  /// rather than folded into a `{roleId, name}` ref list: it keeps every existing reader of
+  /// [characters] as a plain `List<String>`, with nothing to unwrap, and defaults to empty for the
+  /// many fixtures across the test suite that build an [OcptShot] by hand with no role identity to
+  /// speak of.
+  final List<String> characterRoleIds;
+
   /// The scenario coverage ranges this shot has recorded.
   final List<OcptShotCoverageRange> coverageRanges;
 
@@ -138,16 +153,17 @@ class OcptShot extends Equatable {
     required this.needsCheck,
     required this.checkReason,
     required this.characters,
+    this.characterRoleIds = const [],
     required this.coverageRanges,
     required this.code,
     required this.averageDifficulty,
   });
 
   /// Builds an [OcptShot] from its stored [row], its 0-based [position] within its group, its
-  /// attached [characters] (already in display order) and [coverageRanges], deriving [code] from
-  /// [sceneDisplayNumber] (the sequence's explicit scene number, or its 1-based index among the
-  /// screenplay's scenes when it has none) and [position] + 1, and [averageDifficulty] from the
-  /// four difficulty columns of [row].
+  /// attached [characters] (already in display order, aligned with [characterRoleIds]) and
+  /// [coverageRanges], deriving [code] from [sceneDisplayNumber] (the sequence's explicit scene
+  /// number, or its 1-based index among the screenplay's scenes when it has none) and [position] +
+  /// 1, and [averageDifficulty] from the four difficulty columns of [row].
   ///
   /// [position] is passed in rather than read off [row]: see the class doc comment.
   factory OcptShot.fromRow({
@@ -155,6 +171,7 @@ class OcptShot extends Equatable {
     required int position,
     required String sceneDisplayNumber,
     required List<String> characters,
+    required List<String> characterRoleIds,
     required List<OcptShotCoverageRange> coverageRanges,
   }) => OcptShot(
     id: row.id,
@@ -182,6 +199,7 @@ class OcptShot extends Equatable {
     needsCheck: row.needsCheck,
     checkReason: row.checkReason,
     characters: characters,
+    characterRoleIds: characterRoleIds,
     coverageRanges: coverageRanges,
     code: "$sceneDisplayNumber/${position + 1}",
     averageDifficulty:
@@ -220,6 +238,7 @@ class OcptShot extends Equatable {
     needsCheck,
     checkReason,
     characters,
+    characterRoleIds,
     coverageRanges,
     code,
     averageDifficulty,

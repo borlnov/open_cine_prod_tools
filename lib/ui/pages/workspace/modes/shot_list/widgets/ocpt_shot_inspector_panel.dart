@@ -5,6 +5,7 @@
 import 'package:flutter/material.dart';
 import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
+import 'package:open_cine_prod_tools/models/ocpt_role.dart';
 import 'package:open_cine_prod_tools/models/ocpt_script_word_layout.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_coverage_range.dart';
@@ -61,8 +62,8 @@ class OcptShotInspectorPanel extends StatelessWidget {
   /// placeholder), shown in the Production section. Ignored while [shot] is null.
   final String sequenceDisplayNumber;
 
-  /// Every character the whole screenplay names, for the characters chips.
-  final List<String> screenplayCharacters;
+  /// Every role of the whole production's cast, for the character chips.
+  final List<OcptRole> roles;
 
   /// The project-wide suggestion lists for the fields that have one.
   final OcptShotFieldSuggestions suggestions;
@@ -87,8 +88,11 @@ class OcptShotInspectorPanel extends StatelessWidget {
   /// Called when a difficulty dot is clicked.
   final void Function(OcptShotDifficultyAxis axis, int value) onDifficultyChanged;
 
-  /// Called with a character's name when its chip is toggled.
+  /// Called with a role's id when its chip is toggled.
   final ValueChanged<String> onCharacterToggled;
+
+  /// Called with a typed name when the character chips' `＋ Add` field is submitted.
+  final ValueChanged<String> onCharacterAdded;
 
   /// Called with a field's raw text on every keystroke.
   final void Function(OcptShotListEditableField field, String rawValue) onFieldChanged;
@@ -117,7 +121,7 @@ class OcptShotInspectorPanel extends StatelessWidget {
     required this.shot,
     required this.sequenceHeading,
     required this.sequenceDisplayNumber,
-    required this.screenplayCharacters,
+    required this.roles,
     required this.suggestions,
     required this.coverageLayout,
     required this.otherShotsCoverageRanges,
@@ -125,6 +129,7 @@ class OcptShotInspectorPanel extends StatelessWidget {
     required this.fieldValueOf,
     required this.onDifficultyChanged,
     required this.onCharacterToggled,
+    required this.onCharacterAdded,
     required this.onFieldChanged,
     required this.onSelectCoverageRequested,
     required this.onCoverageClearAll,
@@ -183,9 +188,10 @@ class OcptShotInspectorPanel extends StatelessWidget {
         _sectionTitle(context, tr.shotListInspectorCharactersSectionTitle),
         const SizedBox(height: 8),
         OcptShotCharacterChips(
-          screenplayCharacters: screenplayCharacters,
-          attachedCharacters: shot.characters,
+          roles: roles,
+          attachedRoleIds: shot.characterRoleIds,
           onToggled: isReadOnly ? null : onCharacterToggled,
+          onCharacterAdded: isReadOnly ? null : onCharacterAdded,
         ),
         const SizedBox(height: 16),
 

@@ -6,14 +6,13 @@ import 'package:equatable/equatable.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role.dart';
 
 /// A role the screenplay no longer names as a speaking character, but whose casting and notes are
-/// kept: what the resources mode's removed-role banner is built from.
+/// kept: the "orphaned" variant of `OcptRoleAlertBanner`
+/// (`docs/adr/0030-a-shots-characters-are-the-productions-roles.md`, decision 4), shown wherever the
+/// role is — the resources mode's role sheet and, above the shot table, the shot list.
 ///
-/// Mirrors `OcptShotRemovedCharacterAlert` in shape (a static [buildAll] over already-loaded data,
-/// consumed by a banner offering the same two ways out), but not in how it is computed: a shot's
-/// characters are compared against the screenplay's current cast every time, because they are
-/// authored independently of it, while a role's [OcptRole.orphanedName] is already the outcome of
-/// that comparison — `OcptRoleIndexService.reconcile` sets it once, at save time — so [buildAll]
-/// here only has to read it back off the roles already loaded, not recompute it.
+/// A role's [OcptRole.orphanedName] is already the outcome of the comparison against the
+/// screenplay's current cast — `OcptRoleIndexService.reconcile` sets it once, at save time — so
+/// [buildAll] here only has to read it back off the roles already loaded, not recompute it.
 class OcptRemovedRoleAlert extends Equatable {
   /// The id of the orphaned role.
   final String roleId;

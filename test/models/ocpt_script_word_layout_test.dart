@@ -480,7 +480,6 @@ void main() {
   test("a range built from two words of one block passes OcptShotCoverageService.addRange's "
       "own single-block rule", () async {
     Future<String> testDeviceId() async => "test-device";
-    final shotListService = OcptShotListService(deviceId: testDeviceId);
     final coverageService = OcptShotCoverageService(deviceId: testDeviceId);
     const sceneIndexService = OcptSceneIndexService();
     final assetsService = OcptAssetsService(deviceId: testDeviceId);
@@ -492,15 +491,20 @@ void main() {
       assetsService: assetsService,
       deviceId: testDeviceId,
     );
+    final roleIndexService = OcptRoleIndexService(
+      elementsService: elementsService,
+      roleCandidatesService: OcptRoleCandidatesService(deviceId: testDeviceId),
+      deviceId: testDeviceId,
+    );
+    final shotListService = OcptShotListService(
+      roleIndexService: roleIndexService,
+      deviceId: testDeviceId,
+    );
     final screenplayService = OcptScreenplayService(
       sceneIndexService: sceneIndexService,
       shotListService: shotListService,
       shotCoverageService: coverageService,
-      roleIndexService: OcptRoleIndexService(
-        elementsService: elementsService,
-        roleCandidatesService: OcptRoleCandidatesService(deviceId: testDeviceId),
-        deviceId: testDeviceId,
-      ),
+      roleIndexService: roleIndexService,
       breakdownService: OcptBreakdownService(
         elementsService: elementsService,
         locationsService: locationsService,
