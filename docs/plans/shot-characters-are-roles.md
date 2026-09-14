@@ -101,16 +101,11 @@ The tactic that keeps the blast radius small:
 
 ## M2 — Services and rules
 
-The store is roleId-keyed; now the services speak roles, and the unified operations land.
+The unified operations land, **without touching the UI** — every service here is reachable without
+a UI change, so the shot list keeps M1's name-based API (roleId-backed) untouched and the modes keep
+compiling and behaving as they do. Turning that API roleId-native, retiring the old shot-list alert,
+and every banner belong to M3, where the picker that feeds a roleId arrives with them.
 
-- **`OcptShotListService`.** Turn the name-based API M1 kept into a roleId-native one:
-  `attachCharacter` / `detachCharacter` / `replaceCharacterEverywhere` /
-  `removeCharacterFromEveryShot` take a `roleId`, the name-to-role resolution moving up to the UI's
-  picker (M3). The create-and-attach path for a new hand-added silent role (decision 1) already
-  landed in M1; keep it as the explicit "create" the picker calls. The free-name removed-character
-  machinery (`OcptShotRemovedCharacterAlert` and its banner) is removed — a shot now points at a
-  role that always exists, so orphan handling is the roles-orphan flow, surfaced in the shot list by
-  the shared banner (M3).
 - **`OcptRoleIndexService.mergeRole`.** The one merge operation (decision 3): re-point every
   `shot_characters` and `breakdown_tags` row from source to target, carry source's `personId`,
   `castingNotes`, `role_elements`, `role_candidates` and `role_episodes` onto target where target
@@ -124,12 +119,18 @@ The store is roleId-keyed; now the services speak roles, and the unified operati
   role and a live reconciled role sharing a normalised name — surfaced as an alert model beside
   `OcptRemovedRoleAlert`. `reconcile` is not changed; the collision is read, not reconciled.
 - **Tests.** `mergeRole` in each direction and each carried field; the collision rule; the delete
-  cascade reaching shots and tags; the create-from-shot-list path.
+  cascade reaching shots and tags.
 
 **Checkpoint with Benoit before M3.**
 
 ## M3 — The UI
 
+- **The roleId-native switch.** Turn the shot list service's name-based API (kept through M1–M2)
+  into a roleId-native one — `attachCharacter` / `detachCharacter` / `replaceCharacterEverywhere` /
+  `removeCharacterFromEveryShot` take a `roleId` — the name-to-role resolution moving into the
+  picker below, and retire `OcptShotRemovedCharacterAlert` and its banner, a shot now pointing at a
+  role that always exists. This lands with the picker and the shared banner, since they are what
+  feed a roleId and surface orphans instead.
 - **The shot list character affordance.** Pick an existing role or create one (decision 1), through
   the studio components; ask Benoit the design questions before building the picker (CLAUDE.md).
 - **The shared banner.** One widget with the two variants — orphaned (*delete* / *keep as a silent
