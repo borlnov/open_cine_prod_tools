@@ -39,17 +39,37 @@ npm run build        # what the deploy workflow runs; output in build/
 ## Versioning: tying the guide to an application release
 
 The guide is versioned with Docusaurus so a reader on an older application can find the guide that
-matches it. The content in `docs/` is the current, unreleased version; a release snapshot is cut
-**at an application release tag**, not before:
+matches it, and so the current version number is visible in the navbar's version dropdown.
+
+- The live content in `docs/` (and its French mirror under
+  `i18n/fr/docusaurus-plugin-content-docs/current/`) is the **unreleased "Next" version**, served
+  under `/next`.
+- Each application release freezes a snapshot: the English pages go to
+  `versioned_docs/version-<X.Y.Z>/`, the sidebar to `versioned_sidebars/`, the French pages to
+  `i18n/fr/docusaurus-plugin-content-docs/version-<X.Y.Z>/`, and the number is appended to
+  `versions.json`. The **newest** frozen version is served at the site root, so the dropdown's
+  default label is the current version number.
+- Frozen versions are **not edited** to fix later issues — an old version documents the app as it
+  was. Fixes land in `docs/`, which becomes the next snapshot.
+
+### Cutting a version
+
+Cut a version **on the application release commit**, so the guide number equals the release tag.
+Docusaurus's own `docs:version` command only freezes the default locale (English); the French
+content must be mirrored too, or French readers of the pinned version silently fall back to English.
+The script does both, and refuses to run over a dirty tree or an existing version:
 
 ```bash
-cd docs-site
-npm run docusaurus docs:version <application-version>   # e.g. 0.1.0-alpha.1
+docs-site/tool/cut-version.sh <X.Y.Z>   # on a machine with Node; the devcontainer has none
 ```
 
-That freezes the current content into `versioned_docs/version-<application-version>/` and adds the
-version to the navbar's version dropdown. No version is frozen yet: the site is currently serving
-only the "next" content while the first public release is prepared.
+Then run `reuse lint` from the repository root (the generated JSON is covered by `REUSE.toml`
+globs) and commit the snapshot as part of the release. This is wired into the project's release
+procedure, [`../docs/RELEASING.md`](../docs/RELEASING.md).
+
+The frozen versions are `0.2.0` and `0.2.1`; `0.2.1` is the newest, served at the root. The `docs/`
+tree has not changed across them, so the "Next" version and both frozen versions are identical
+until the next cycle adds to `docs/`.
 
 ## Deployment
 

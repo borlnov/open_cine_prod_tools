@@ -6,6 +6,18 @@ SPDX-License-Identifier: Apache-2.0
 
 # Changelog
 
+## 0.2.1
+
+A shot's characters become the production's roles, and the user guide is
+versioned.
+
+- Shot list: a shot's characters are now the production's roles rather than free
+  text. A shot's cast is picked from the roles, a role shared across several
+  shots is flagged, and roles can be merged or deleted with their attachments
+  following along. Entering a mode surfaces a role that needs attention.
+- The online user guide is now versioned: its navigation bar shows the guide's
+  version, and a reader can browse the guide for an earlier release.
+
 ## 0.2.0
 
 Collaboration and sync, a mobile-usable app, and a balanced budget in-kind

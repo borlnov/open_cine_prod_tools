@@ -359,22 +359,23 @@ the persistence, the project versions, the sync-ready data model and the read-on
   migration history**: the 34 migration steps four alpha tags accumulated — a column added,
   renamed and dropped again while a feature was designed — were pre-release workshop churn, owed to
   nobody because none reached a user's disk, and were squashed to that one fresh schema (ADR 0029).
-  The 0.1.0 release then froze v1, and v2 is the cycle's first real `onUpgrade` step since:
-  additive only (ADR 0007), it creates the two local sync tables (`sync_relay_cursors`,
-  `sync_pairings`) and touches nothing else, so a v1 file's existing rows are untouched by it. Two
-  constants govern this: `currentSchemaVersion` (2) and `lastStableSchemaVersion` (1, frozen at
-  0.1.0). While `current == lastStable + 1` a cycle is
-  open and the pending step is rewritten in place — the state today; while `current == lastStable`
-  the top step is frozen, so the next schema change creates a new one. Freezing sets
-  `lastStableSchemaVersion` to `currentSchemaVersion` at release (`docs/RELEASING.md`), which a
-  fail-closed CI guard on a stable tag enforces — a forgotten freeze blocks the release, an
-  incorrect one fails the migration test. ADR 0007's additive-only guidance still governs how a
-  single step is written; its allocate-at-merge rule is amended — a cycle no longer takes a number
-  per merge. The migration test is the harness pinning each frozen stable's upgrade path (a
-  verbatim DDL fixture per stable, proving `onCreate` == every stable upgrade path), so a table
-  declared and forgotten fails there rather than on a user's file; it holds none yet, since v2 has
-  not itself been frozen by a stable release. `**/*.g.dart` is git-ignored (documented deviation);
-  CI regenerates with build_runner.
+  The 0.1.0 release froze v1; the 0.2.0 release froze v2 — additive (ADR 0007), it creates the two
+  local sync tables (`sync_relay_cursors`, `sync_pairings`) and adds `budget_lines.in_kind_resource_id`,
+  touching nothing else, so a v1 file's existing rows are untouched by it; the 0.2.1 release froze v3
+  — `shot_characters` reshaped from `{shotId, characterName}` to `{shotId, roleId}`, the first
+  non-additive step this project ships (ADR 0030). Two constants govern this:
+  `currentSchemaVersion` (3) and `lastStableSchemaVersion` (3, frozen at 0.2.1). While
+  `current == lastStable + 1` a cycle is open and the pending step is rewritten in place; while
+  `current == lastStable` the top step is frozen — the state today — so the next schema change
+  creates a new one. Freezing sets `lastStableSchemaVersion` to `currentSchemaVersion` at release
+  (`docs/RELEASING.md`), which a fail-closed CI guard on a stable tag enforces — a forgotten freeze
+  blocks the release, an incorrect one fails the migration test. ADR 0007's additive-only guidance
+  still governs how a single step is written; its allocate-at-merge rule is amended — a cycle no
+  longer takes a number per merge. The migration test is the harness pinning each frozen stable's
+  upgrade path (a verbatim DDL fixture for the schema each prior stable shipped, proving
+  `onCreate` == every stable upgrade path), so a table declared and forgotten fails there rather
+  than on a user's file; it holds the v1 and v2 fixtures. `**/*.g.dart` is git-ignored (documented
+  deviation); CI regenerates with build_runner.
 
 - Project versions (`project_versions` + `project_info.currentVersionId`, schema v1): the user's
   named, permanent checkpoints of the **whole** project, not to be confused with
@@ -390,11 +391,13 @@ the persistence, the project versions, the sync-ready data model and the read-on
   forty captured tables verbatim (primary keys, tombstones and `row_field_versions` stamps
   included) plus the page setup, the currency and the minimum rest, in a JSON format versioned by
   `payloadFormat`, which follows the same freeze discipline the schema does (ADR 0029):
-  `currentPayloadFormat` (1) advances only at a stable release, `lastStablePayloadFormat` (1) tracks
+  `currentPayloadFormat` (3) advances only at a stable release, `lastStablePayloadFormat` (3) tracks
   the last one frozen, and a payload written in a newer format than this build knows is **refused**,
   not half-read. Like the schema, the pre-stable format ladder was squashed away — no payload older
-  than format 1 exists, so a decode reads it directly with nothing to upgrade — and the first
-  upgrade step is written only once a stable release has frozen a format. It is **a hand-written
+  than format 1 exists. Formats 1 (0.1.0) and 2 (0.2.0) were additive, so an older payload decodes
+  directly; format 3 (0.2.1) is the first that is not — a pre-3 payload's `shotCharacters` rows are
+  dropped rather than reshaped into roles (ADR 0030) — and the retired format-1 and format-2 shapes
+  are pinned in the codec test. It is **a hand-written
   mirror of the schema**, and a new synchronised table has to be added to all three of it,
   `contentDigest` and `_applyPayload`: leave it out of the payload and a restore rewinds half the
   project, out of the digest and the working copy claims not to have drifted, out of `_applyPayload`

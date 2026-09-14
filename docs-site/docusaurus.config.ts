@@ -44,6 +44,18 @@ const config: Config = {
           // The guide is the whole site: the docs are served at the root rather than under `/docs`.
           routeBasePath: '/',
           sidebarPath: './sidebars.ts',
+          // Docs versioning follows the application's releases: every stable release freezes a
+          // snapshot of the guide under `versioned_docs/version-<X.Y.Z>/`, and the newest one is
+          // served at the site root, so the version dropdown's label is the current version number.
+          // The live, unreleased content in `docs/` becomes the "Next" version under `/next`. See
+          // `README.md` for how a version is cut. `lastVersion` stays at its default (the newest
+          // numbered version).
+          versions: {
+            current: {
+              label: 'Next (unreleased)',
+              path: 'next',
+            },
+          },
           // "Edit this page" points at the source in this repository so a reader can propose a fix.
           editUrl:
             'https://github.com/borlnov/open_cine_prod_tools/tree/main/docs-site/',
