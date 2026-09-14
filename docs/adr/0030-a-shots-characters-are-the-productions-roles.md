@@ -92,12 +92,24 @@ how.
    deletion is the user saying the part is gone.)
 
 4. **One banner, shown wherever the role is.** A single shared banner widget states a role that
-   needs attention and offers the ways out, in **both** the resources mode and the shot list — a
-   widget that only asks (nullable callbacks), each mode wiring the same service. It has two
-   variants: an **orphaned** role (the screenplay no longer names it) offering *delete* / *keep as a
-   silent role* / *merge with…*, and a **name collision** (decision 2) offering *merge* / *keep
-   separate*. The shot list's old free-name "removed character" banner is gone: a shot now points at
-   a role that still exists even when orphaned, so there is no dangling name left to report.
+   needs attention and offers the ways out — a widget that only asks (nullable callbacks), each mode
+   wiring the same service. It has two variants: an **orphaned** role (the screenplay no longer names
+   it) offering *delete* / *keep as a silent role* / *merge with…*, and a **name collision**
+   (decision 2) offering *merge*. The shot list's old free-name "removed character" banner is gone:
+   a shot now points at a role that still exists even when orphaned, so there is no dangling name
+   left to report.
+
+   The affected role must be **visible the moment a mode is entered**, not only once its record is
+   opened, so the surfacing differs by where the role can be acted on. The **shot list** carries the
+   full banner at the top of the mode, as it always did. The **resources mode** keeps the full banner
+   in the role's own sheet and adds, at the top of the mode, a **compact one-line-per-role** summary
+   of every role needing attention; clicking a line selects that role, landing on its sheet where the
+   full banner is. The **breakdown mode** shows the same compact one-line-per-role summary; having no
+   role sheet of its own, a line opens the role **in the resources mode** through the cross-mode
+   reveal the mode already offers. A rename also leaves the breakdown's own tag-anchor warnings
+   (`breakdown_tags.needsCheck`, a passage whose text moved — unrelated to the role's identity, and
+   not cleared by a merge): those stay the breakdown's existing per-scene concern, made reachable
+   from the scene list's warning mark rather than only from the inspector.
 
 5. **Deleting a role deletes it everywhere.** `OcptRoleIndexService.deleteRole` gains two cascades
    it lacks today: it tombstones the `shot_characters` rows and the `breakdown_tags` rows naming the

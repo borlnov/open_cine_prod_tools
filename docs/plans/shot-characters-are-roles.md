@@ -161,6 +161,34 @@ and every banner belong to M3, where the picker that feeds a roleId arrives with
 - **Tests.** Widget tests for the banner's variants and the picker; bloc tests for the wiring in
   both modes; set an explicit surface width past the 800px compact breakpoint.
 
+## M4 — Surface the role's trouble the moment a mode is entered
+
+M1–M3 shipped; testing showed a role's trouble is only visible once its record is opened — the shot
+list banner is prominent, but the resources banner hides in the role sheet and the breakdown shows
+nothing about the role at all (only its own tag-anchor warnings). ADR 0030 decision 4, refined:
+surface it on entry, minimally, redirecting to where it is fixed. No new service work — this is UI
+over the alerts M2 already computes (`OcptRemovedRoleAlert`, `OcptRoleCollisionAlert`).
+
+- **A — resources, a compact mode-level banner.** At the top of the mode, one line per role needing
+  attention (orphaned or collided), each naming the role and its trouble; clicking a line selects
+  that role (`OcptResourcesRoleSelectedEvent`, switching to the roles tab), landing on its sheet
+  where the full banner already lives. Clears itself when no role needs attention. The in-sheet full
+  banner stays as it is.
+- **B — breakdown, the same compact banner.** One line per role needing attention at the top of the
+  mode; having no role sheet, a line opens the role in the resources mode through the workspace
+  reveal request the breakdown already uses for `Open in Resources`. `OcptBreakdownBloc` gains the
+  role alerts (it already loads the roles); no delete/merge is offered here — the breakdown only
+  points to where it is fixed.
+- **C — breakdown, reach the tag-anchor fix from where it shows.** The scene list's warning mark
+  (`OcptBreakdownScenePanel`, set when a scene has a `needsCheck` tag) becomes the way in: selecting
+  that scene reveals the inspector's own "to check" callout (already carrying *mark checked* /
+  *remove the tag*), so the warning the left dock shows leads to the fix rather than leaving the user
+  to hunt for it. `needsCheck` is unchanged (decision 2's "advise, do not auto-re-anchor" holds): a
+  rename still flags the moved passage, and the user clears or re-tags it.
+- **Tests.** Widget tests for the compact banner (a line per role, the redirect callback) in both
+  modes; a bloc test that the breakdown builds the role alerts; the scene-warning-to-inspector path.
+  Set an explicit surface width past the 800px compact breakpoint.
+
 ## Out of scope
 
 The voice-over / off-screen presence qualifier on the shot↔role attachment (ADR 0030, decision 7).
