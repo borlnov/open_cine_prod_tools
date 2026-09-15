@@ -1118,16 +1118,17 @@ class _OcptBreakdownWord extends StatelessWidget {
     return Tooltip(message: tooltip, child: content);
   }
 
-  /// [runs] split into the leading punctuation, the word core, and the trailing punctuation the
-  /// pending-anchor highlight leaves outside its box — or null when there is no punctuation to trim,
-  /// in which case the anchor paints its whole box exactly as every other word does.
+  /// [runs] split into the leading affix, the word core, and the trailing affix the pending-anchor
+  /// highlight leaves outside its box — or null when there is nothing to trim, in which case the
+  /// anchor paints its whole box exactly as every other word does.
   ///
-  /// The trailing whitespace a word's runs carry (up to the next word) is set aside first: it never
-  /// counts as something to trim, so a plain word keeps the whole box it always had — whitespace
-  /// included, the continuous band unbroken — and only a word wearing real punctuation narrows. What
-  /// is left is split on the word's own **displayed** characters (markers already hidden), through
-  /// the very [ocptNonWordAffixLengthsOf] the recorded span narrows with, so the highlight and the
-  /// tag it would write read the same passage without this widget reasoning in source offsets.
+  /// The affix is everything that is neither a letter nor a digit at either end: the punctuation the
+  /// recorded span already drops through [ocptNonWordAffixLengthsOf] **and** the whitespace a word's
+  /// runs carry up to the next word. A selection is a single word with no neighbour to bridge, so
+  /// hugging its core alone reads truest — the box is not doing the continuous-band duty a placed
+  /// tag's own whole-word wash still does. The split is on the word's own **displayed** characters
+  /// (markers already hidden), so the highlight and the tag it would write read the same passage
+  /// without this widget reasoning in source offsets.
   ({
     List<OcptFountainDisplayRun> leading,
     List<OcptFountainDisplayRun> core,
@@ -1135,15 +1136,10 @@ class _OcptBreakdownWord extends StatelessWidget {
   })?
   _pendingAnchorRunGroups() {
     final rawText = [for (final run in runs) run.text].join();
-    // The trailing whitespace the runs carry is not part of the word the recorded span narrows (a
-    // word's offsets stop at its last non-space character), so it is held out of the affix reading
-    // and folded back into the trailing group below.
-    final word = rawText.trimRight();
-
-    final affixes = ocptNonWordAffixLengthsOf(word);
+    final affixes = ocptNonWordAffixLengthsOf(rawText);
     final coreStart = affixes.leadingLength;
-    final coreEnd = word.length - affixes.trailingLength;
-    if (coreStart == 0 && coreEnd == word.length) {
+    final coreEnd = rawText.length - affixes.trailingLength;
+    if (coreStart == 0 && coreEnd == rawText.length) {
       return null;
     }
 

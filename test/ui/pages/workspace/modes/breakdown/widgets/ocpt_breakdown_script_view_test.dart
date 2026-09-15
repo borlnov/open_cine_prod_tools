@@ -426,11 +426,15 @@ void main() {
       ),
     );
 
-    final colorScheme = Theme.of(tester.element(find.text("lamp "))).colorScheme;
-    final decoration = _decorationOfWord(tester, "lamp ");
+    // The box hugs the word core — the accent fill, distinct from any category wash, and its
+    // on-accent text — while the trailing space it carries stays outside it, so "lamp " is never one
+    // box.
+    final colorScheme = Theme.of(tester.element(find.text("lamp"))).colorScheme;
+    final decoration = _decorationOfWord(tester, "lamp");
     expect(decoration?.color, colorScheme.primary);
-    final text = tester.widget<Text>(find.text("lamp "));
+    final text = tester.widget<Text>(find.text("lamp"));
     expect(text.style?.color, colorScheme.onPrimary);
+    expect(find.text("lamp "), findsNothing);
   });
 
   testWidgets("a pending anchor trims the trailing punctuation off its own highlight", (
