@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
@@ -22,6 +23,7 @@ import 'package:open_cine_prod_tools/ui/utils/ocpt_warning_color.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_breakdown_legend.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_breakdown_scene_bars.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_breakdown_search.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_breakdown_tag_span.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_responsive.dart';
 
 /// A tagged word's target selected by the caret/list, exactly as the bloc's own state holds it:
@@ -102,7 +104,11 @@ const double _ocptCompactSheetVerticalPadding = 16;
 ///
 /// Only a scene's heading row stays row-level clickable, selecting that scene — shown with a tinted
 /// accent bar and its own tagged-target count on the right, exactly as before this milestone.
-class OcptBreakdownScriptView extends StatelessWidget {
+///
+/// While a range selection is open (a first click with no second yet), pressing `Escape` or
+/// clicking the sheet away from any word abandons it through [onSelectionCancelled]: a lone anchor
+/// used to have no way out but to close a range and cancel its popover.
+class OcptBreakdownScriptView extends StatefulWidget {
   /// The screenplay's whole Fountain text, sliced scene by scene below.
   final String screenplayText;
 
@@ -177,6 +183,12 @@ class OcptBreakdownScriptView extends StatelessWidget {
   /// search comes back with no role and no set).
   final VoidCallback onOpenInResourcesRequested;
 
+  /// Called when a pending range selection — a first click still waiting for its second — should be
+  /// abandoned: the user pressed `Escape`, or clicked the sheet away from any word. It clears the
+  /// anchor through the very same `OcptBreakdownTagRangeCancelledEvent` the popover's own
+  /// `Escape`/tap-outside uses, so cancelling a lone anchor and cancelling the popover are one path.
+  final VoidCallback onSelectionCancelled;
+
   /// Class constructor
   const OcptBreakdownScriptView({
     super.key,
@@ -199,11 +211,82 @@ class OcptBreakdownScriptView extends StatelessWidget {
     required this.locations,
     required this.onPopoverSetCreationRequested,
     required this.onOpenInResourcesRequested,
+    required this.onSelectionCancelled,
   });
 
   @override
+  State<OcptBreakdownScriptView> createState() => _OcptBreakdownScriptViewState();
+}
+
+/// [OcptBreakdownScriptView]'s state: it owns a single [FocusNode] so that, while a range selection
+/// is open (a first click with no second yet), `Escape` can abandon it. The node takes focus the
+/// moment such an anchor opens and never on its own otherwise, so it steals nothing from a field the
+/// user is typing in until they have actually started a selection on the sheet.
+class _OcptBreakdownScriptViewState extends State<OcptBreakdownScriptView> {
+  /// Focused only while a range selection is open, purely to catch its `Escape`; it takes part in no
+  /// traversal, so `Tab` never lands on it.
+  final FocusNode _keyboardFocusNode = FocusNode(
+    debugLabel: "OcptBreakdownScriptViewKeyboard",
+    skipTraversal: true,
+  );
+
+  /// Whether a first click has opened a selection that no second click has closed yet — the one
+  /// state in which `Escape` and a click away from a word abandon it (once the range is closed the
+  /// popover owns those gestures instead).
+  bool get _hasOpenSelection => widget.pendingTagAnchor != null && widget.pendingTagRange == null;
+
+  @override
+  void initState() {
+    super.initState();
+    // The view normally opens onto no selection and grabs focus only once one opens (below), but a
+    // rebuild from scratch straight onto an open selection must catch its `Escape` all the same.
+    if (_hasOpenSelection) {
+      _grabKeyboardFocusAfterFrame();
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant OcptBreakdownScriptView oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final hadOpenSelection =
+        oldWidget.pendingTagAnchor != null && oldWidget.pendingTagRange == null;
+    if (_hasOpenSelection && !hadOpenSelection) {
+      _grabKeyboardFocusAfterFrame();
+    }
+  }
+
+  @override
+  void dispose() {
+    _keyboardFocusNode.dispose();
+    super.dispose();
+  }
+
+  /// Focuses [_keyboardFocusNode] once the current frame is done, so an open selection's `Escape`
+  /// reaches it — deferred a frame because the node is not yet attached to the tree during the build
+  /// that opens the selection.
+  void _grabKeyboardFocusAfterFrame() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && _hasOpenSelection) {
+        _keyboardFocusNode.requestFocus();
+      }
+    });
+  }
+
+  /// Abandons an open selection on `Escape`, letting every other key (and every `Escape` while no
+  /// selection is open) fall through untouched.
+  KeyEventResult _onKeyEvent(FocusNode node, KeyEvent event) {
+    if (event is KeyDownEvent &&
+        event.logicalKey == LogicalKeyboardKey.escape &&
+        _hasOpenSelection) {
+      widget.onSelectionCancelled();
+      return KeyEventResult.handled;
+    }
+    return KeyEventResult.ignored;
+  }
+
+  @override
   Widget build(BuildContext context) {
-    if (scenes.isEmpty) {
+    if (widget.scenes.isEmpty) {
       return OcptWorkspaceEmptyMode(
         icon: Icons.fact_check_outlined,
         message: Tr.of(context).breakdownScenesEmptyHint,
@@ -211,7 +294,7 @@ class OcptBreakdownScriptView extends StatelessWidget {
     }
 
     final theme = Theme.of(context);
-    final previewLayout = OcptEditorPreviewLayout(metrics: pageSetup.toMetrics());
+    final previewLayout = OcptEditorPreviewLayout(metrics: widget.pageSetup.toMetrics());
     // On a phone the real screenplay indents (a character cue ≈ 3.7″ from the page's left edge) leave
     // far too much margin to read, and the full page is wider than the row: the sheet fills the row
     // and every indent and box width is scaled down by the same factor the screenplay editor's own
@@ -219,71 +302,90 @@ class OcptBreakdownScriptView extends StatelessWidget {
     final isPhone = ocptIsPhoneWidth(MediaQuery.sizeOf(context).width);
     final layoutScale = isPhone ? OcptEditorPreviewLayout.compactLayoutScale : 1.0;
 
-    return ColoredBox(
-      color: theme.extension<OcptSpecificColors>()!.previewBackdrop,
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final sheetWidth = isPhone ? constraints.maxWidth : previewLayout.pageWidth;
-          return SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(vertical: 16),
-            child: Center(
-              child: Material(
-                color: Colors.white,
-                elevation: 2,
-                borderRadius: BorderRadius.circular(3),
-                clipBehavior: Clip.antiAlias,
-                child: SizedBox(
-                  width: sheetWidth,
-                  child: Padding(
-                    padding: EdgeInsets.only(
-                      top: isPhone ? _ocptCompactSheetVerticalPadding : previewLayout.marginTop,
-                      bottom: isPhone ? _ocptCompactSheetVerticalPadding : previewLayout.marginBottom,
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        for (final scene in scenes)
-                          _OcptBreakdownSceneSheet(
-                            scene: scene,
-                            sceneText: _sceneTextOf(scene),
-                            targetById: targetById,
-                            previewLayout: previewLayout,
-                            layoutScale: layoutScale,
-                            isSelected: scene.id == selectedSceneId,
-                            onHeadingTapped: () => onSceneSelected(scene.id),
-                            hiddenLegendKeys: hiddenLegendKeys,
-                            selectedTargetRef: selectedTargetRef,
-                            onTargetSelected: onTargetSelected,
-                            onWordClicked: onWordClicked,
-                            pendingTagAnchor: pendingTagAnchor,
-                            pendingTagRange: pendingTagRange,
-                            candidates: candidates,
-                            onPopoverCancelled: onPopoverCancelled,
-                            onPopoverTargetLinked: onPopoverTargetLinked,
-                            onPopoverElementCreationRequested: onPopoverElementCreationRequested,
-                            locations: locations,
-                            onPopoverSetCreationRequested: onPopoverSetCreationRequested,
-                            onOpenInResourcesRequested: onOpenInResourcesRequested,
-                          ),
-                      ],
+    return Focus(
+      focusNode: _keyboardFocusNode,
+      onKeyEvent: _onKeyEvent,
+      child: GestureDetector(
+        // A tap that reaches here fell on the sheet away from every word — each word's own box is an
+        // opaque tap target that wins the arena first — so while a selection is open, this is the
+        // click to nowhere that abandons it. Translucent, so a tap over the blank paper or the grey
+        // backdrop around it is caught all the same.
+        behavior: HitTestBehavior.translucent,
+        onTap: () {
+          if (_hasOpenSelection) {
+            widget.onSelectionCancelled();
+          }
+        },
+        child: ColoredBox(
+          color: theme.extension<OcptSpecificColors>()!.previewBackdrop,
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final sheetWidth = isPhone ? constraints.maxWidth : previewLayout.pageWidth;
+              return SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                child: Center(
+                  child: Material(
+                    color: Colors.white,
+                    elevation: 2,
+                    borderRadius: BorderRadius.circular(3),
+                    clipBehavior: Clip.antiAlias,
+                    child: SizedBox(
+                      width: sheetWidth,
+                      child: Padding(
+                        padding: EdgeInsets.only(
+                          top: isPhone ? _ocptCompactSheetVerticalPadding : previewLayout.marginTop,
+                          bottom: isPhone
+                              ? _ocptCompactSheetVerticalPadding
+                              : previewLayout.marginBottom,
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            for (final scene in widget.scenes)
+                              _OcptBreakdownSceneSheet(
+                                scene: scene,
+                                sceneText: _sceneTextOf(scene),
+                                targetById: widget.targetById,
+                                previewLayout: previewLayout,
+                                layoutScale: layoutScale,
+                                isSelected: scene.id == widget.selectedSceneId,
+                                onHeadingTapped: () => widget.onSceneSelected(scene.id),
+                                hiddenLegendKeys: widget.hiddenLegendKeys,
+                                selectedTargetRef: widget.selectedTargetRef,
+                                onTargetSelected: widget.onTargetSelected,
+                                onWordClicked: widget.onWordClicked,
+                                pendingTagAnchor: widget.pendingTagAnchor,
+                                pendingTagRange: widget.pendingTagRange,
+                                candidates: widget.candidates,
+                                onPopoverCancelled: widget.onPopoverCancelled,
+                                onPopoverTargetLinked: widget.onPopoverTargetLinked,
+                                onPopoverElementCreationRequested:
+                                    widget.onPopoverElementCreationRequested,
+                                locations: widget.locations,
+                                onPopoverSetCreationRequested: widget.onPopoverSetCreationRequested,
+                                onOpenInResourcesRequested: widget.onOpenInResourcesRequested,
+                              ),
+                          ],
+                        ),
+                      ),
                     ),
                   ),
                 ),
-              ),
-            ),
-          );
-        },
+              );
+            },
+          ),
+        ),
       ),
     );
   }
 
-  /// [scene]'s own slice of [screenplayText], clamped to its bounds: the load that read [scenes]
-  /// and the one that read [screenplayText] are the same snapshot read, so the offsets always fit,
+  /// [scene]'s own slice of the screenplay text, clamped to its bounds: the load that read the
+  /// scenes and the one that read the text are the same snapshot read, so the offsets always fit,
   /// but a scene sliced this way is never worth a `RangeError` over.
   String _sceneTextOf(OcptBreakdownScene scene) {
-    final start = scene.charStart.clamp(0, screenplayText.length);
-    final end = scene.charEnd.clamp(start, screenplayText.length);
-    return screenplayText.substring(start, end);
+    final start = scene.charStart.clamp(0, widget.screenplayText.length);
+    final end = scene.charEnd.clamp(start, widget.screenplayText.length);
+    return widget.screenplayText.substring(start, end);
   }
 }
 
@@ -969,33 +1071,43 @@ class _OcptBreakdownWord extends StatelessWidget {
       }
     }
 
+    // A pending anchor whose word carries punctuation (or the whitespace up to the next word) at
+    // either end paints its highlight box around the word core alone, so the selection reads over
+    // exactly the passage a tag would record — never over the comma the sentence owns. Every other
+    // word, and an anchor with nothing to trim, keeps the single whole-word box.
+    final anchorGroups = paint.isPendingAnchor ? _pendingAnchorRunGroups() : null;
+
+    final wordBody = anchorGroups != null
+        ? _buildNarrowedAnchor(theme, anchorGroups)
+        : Container(
+            decoration: BoxDecoration(
+              color: background,
+              border: paint.isSelected && color != null
+                  ? Border.all(color: color, width: _ocptBreakdownSelectedTagRingWidth)
+                  : null,
+              borderRadius: BorderRadius.circular(2),
+            ),
+            padding: const EdgeInsets.symmetric(vertical: _ocptWordVerticalPadding),
+            child: Text.rich(
+              TextSpan(
+                children: [
+                  for (final run in runs)
+                    TextSpan(
+                      text: isUppercase ? run.text.toUpperCase() : run.text,
+                      style: _runStyleOf(run.style, textStyle),
+                    ),
+                ],
+              ),
+              style: textStyle,
+            ),
+          );
+
     final content = MouseRegion(
       cursor: onTap == null ? SystemMouseCursors.basic : SystemMouseCursors.click,
       child: GestureDetector(
         onTap: onTap,
         behavior: HitTestBehavior.opaque,
-        child: Container(
-          decoration: BoxDecoration(
-            color: background,
-            border: paint.isSelected && color != null
-                ? Border.all(color: color, width: _ocptBreakdownSelectedTagRingWidth)
-                : null,
-            borderRadius: BorderRadius.circular(2),
-          ),
-          padding: const EdgeInsets.symmetric(vertical: _ocptWordVerticalPadding),
-          child: Text.rich(
-            TextSpan(
-              children: [
-                for (final run in runs)
-                  TextSpan(
-                    text: isUppercase ? run.text.toUpperCase() : run.text,
-                    style: _runStyleOf(run.style, textStyle),
-                  ),
-              ],
-            ),
-            style: textStyle,
-          ),
-        ),
+        child: wordBody,
       ),
     );
 
@@ -1004,5 +1116,113 @@ class _OcptBreakdownWord extends StatelessWidget {
     }
 
     return Tooltip(message: tooltip, child: content);
+  }
+
+  /// [runs] split into the leading punctuation, the word core, and the trailing punctuation the
+  /// pending-anchor highlight leaves outside its box — or null when there is no punctuation to trim,
+  /// in which case the anchor paints its whole box exactly as every other word does.
+  ///
+  /// The trailing whitespace a word's runs carry (up to the next word) is set aside first: it never
+  /// counts as something to trim, so a plain word keeps the whole box it always had — whitespace
+  /// included, the continuous band unbroken — and only a word wearing real punctuation narrows. What
+  /// is left is split on the word's own **displayed** characters (markers already hidden), through
+  /// the very [ocptNonWordAffixLengthsOf] the recorded span narrows with, so the highlight and the
+  /// tag it would write read the same passage without this widget reasoning in source offsets.
+  ({
+    List<OcptFountainDisplayRun> leading,
+    List<OcptFountainDisplayRun> core,
+    List<OcptFountainDisplayRun> trailing,
+  })?
+  _pendingAnchorRunGroups() {
+    final rawText = [for (final run in runs) run.text].join();
+    // The trailing whitespace the runs carry is not part of the word the recorded span narrows (a
+    // word's offsets stop at its last non-space character), so it is held out of the affix reading
+    // and folded back into the trailing group below.
+    final word = rawText.trimRight();
+
+    final affixes = ocptNonWordAffixLengthsOf(word);
+    final coreStart = affixes.leadingLength;
+    final coreEnd = word.length - affixes.trailingLength;
+    if (coreStart == 0 && coreEnd == word.length) {
+      return null;
+    }
+
+    return (
+      leading: _sliceRuns(0, coreStart),
+      core: _sliceRuns(coreStart, coreEnd),
+      trailing: _sliceRuns(coreEnd, rawText.length),
+    );
+  }
+
+  /// [runs] restricted to the displayed characters in `[start, end)`, splitting any run that
+  /// straddles a boundary and keeping each surviving piece's own emphasis.
+  List<OcptFountainDisplayRun> _sliceRuns(int start, int end) {
+    final slice = <OcptFountainDisplayRun>[];
+    var position = 0;
+    for (final run in runs) {
+      final runStart = position;
+      final runEnd = position + run.text.length;
+      position = runEnd;
+
+      final from = start > runStart ? start : runStart;
+      final to = end < runEnd ? end : runEnd;
+      if (from < to) {
+        slice.add((text: run.text.substring(from - runStart, to - runStart), style: run.style));
+      }
+    }
+    return slice;
+  }
+
+  /// The pending-anchor word drawn with its highlight box hugging the word core alone: its leading
+  /// and trailing punctuation (and the whitespace the word carries) sit outside the box in the plain
+  /// paper style, while only [groups]`.core` wears the accent fill and its on-accent text.
+  Widget _buildNarrowedAnchor(
+    ThemeData theme,
+    ({
+      List<OcptFountainDisplayRun> leading,
+      List<OcptFountainDisplayRun> core,
+      List<OcptFountainDisplayRun> trailing,
+    })
+    groups,
+  ) {
+    final coreStyle = style.copyWith(color: theme.colorScheme.onPrimary);
+
+    TextSpan plainSpan(OcptFountainDisplayRun run) => TextSpan(
+      text: isUppercase ? run.text.toUpperCase() : run.text,
+      style: _runStyleOf(run.style, style),
+    );
+
+    return Text.rich(
+      TextSpan(
+        children: [
+          for (final run in groups.leading) plainSpan(run),
+          WidgetSpan(
+            alignment: PlaceholderAlignment.baseline,
+            baseline: TextBaseline.alphabetic,
+            child: Container(
+              decoration: BoxDecoration(
+                color: theme.colorScheme.primary,
+                borderRadius: BorderRadius.circular(2),
+              ),
+              padding: const EdgeInsets.symmetric(vertical: _ocptWordVerticalPadding),
+              child: Text.rich(
+                TextSpan(
+                  children: [
+                    for (final run in groups.core)
+                      TextSpan(
+                        text: isUppercase ? run.text.toUpperCase() : run.text,
+                        style: _runStyleOf(run.style, coreStyle),
+                      ),
+                  ],
+                ),
+                style: coreStyle,
+              ),
+            ),
+          ),
+          for (final run in groups.trailing) plainSpan(run),
+        ],
+      ),
+      style: style,
+    );
   }
 }

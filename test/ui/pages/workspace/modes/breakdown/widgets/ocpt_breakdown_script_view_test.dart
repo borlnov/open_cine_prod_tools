@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
@@ -144,6 +145,7 @@ Widget _buildView({
   OcptBreakdownPendingTagAnchor? pendingTagAnchor,
   OcptBreakdownPendingTagRange? pendingTagRange,
   List<OcptBreakdownSearchCandidate> candidates = const [],
+  VoidCallback? onSelectionCancelled,
 }) => OcptBreakdownScriptView(
   screenplayText: _sceneText,
   scenes: [scene ?? _buildScene()],
@@ -158,6 +160,7 @@ Widget _buildView({
   pendingTagAnchor: pendingTagAnchor,
   pendingTagRange: pendingTagRange,
   candidates: candidates,
+  onSelectionCancelled: onSelectionCancelled ?? () {},
   onPopoverCancelled: () {},
   onPopoverTargetLinked: (_, __) {},
   onPopoverElementCreationRequested: (_, __) {},
@@ -428,6 +431,85 @@ void main() {
     expect(decoration?.color, colorScheme.primary);
     final text = tester.widget<Text>(find.text("lamp "));
     expect(text.style?.color, colorScheme.onPrimary);
+  });
+
+  testWidgets("a pending anchor trims the trailing punctuation off its own highlight", (
+    tester,
+  ) async {
+    await _useLargeSurface(tester);
+    // "desk." is the action line's last word, a word wearing a full stop.
+    final anchorWord = _actionWords[5];
+
+    await tester.pumpWidget(
+      _wrapInApp(
+        _buildView(
+          pendingTagAnchor: (
+            sceneId: _sceneId,
+            wordStartOffset: anchorWord.startOffset,
+            wordEndOffset: anchorWord.endOffset,
+          ),
+        ),
+      ),
+    );
+
+    final colorScheme = Theme.of(tester.element(find.text("desk"))).colorScheme;
+    // The accent box hugs the word core alone.
+    expect(_decorationOfWord(tester, "desk")?.color, colorScheme.primary);
+    expect(tester.widget<Text>(find.text("desk")).style?.color, colorScheme.onPrimary);
+    // The whole "desk." is never one box any more: the full stop sits outside the highlight, so no
+    // single word box carries it.
+    expect(find.text("desk."), findsNothing);
+  });
+
+  testWidgets("Escape abandons an open selection", (tester) async {
+    await _useLargeSurface(tester);
+    final anchorWord = _actionWords[1];
+    var cancelled = false;
+
+    await tester.pumpWidget(
+      _wrapInApp(
+        _buildView(
+          pendingTagAnchor: (
+            sceneId: _sceneId,
+            wordStartOffset: anchorWord.startOffset,
+            wordEndOffset: anchorWord.endOffset,
+          ),
+          onSelectionCancelled: () => cancelled = true,
+        ),
+      ),
+    );
+    // The view grabs its keyboard focus one frame after an open selection appears.
+    await tester.pump();
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await tester.pump();
+
+    expect(cancelled, isTrue);
+  });
+
+  testWidgets("clicking the sheet away from any word abandons an open selection", (tester) async {
+    await _useLargeSurface(tester);
+    final anchorWord = _actionWords[1];
+    var cancelled = false;
+
+    await tester.pumpWidget(
+      _wrapInApp(
+        _buildView(
+          pendingTagAnchor: (
+            sceneId: _sceneId,
+            wordStartOffset: anchorWord.startOffset,
+            wordEndOffset: anchorWord.endOffset,
+          ),
+          onSelectionCancelled: () => cancelled = true,
+        ),
+      ),
+    );
+
+    // The top-left corner is the grey backdrop around the centred page — no word there.
+    await tester.tapAt(const Offset(5, 5));
+    await tester.pump();
+
+    expect(cancelled, isTrue);
   });
 
   testWidgets(
