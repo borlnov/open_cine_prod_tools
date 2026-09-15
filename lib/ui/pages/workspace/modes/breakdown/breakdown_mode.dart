@@ -527,6 +527,7 @@ class _BreakdownViewState extends State<_BreakdownView> {
       pendingTagAnchor: state.pendingTagAnchor,
       pendingTagRange: state.pendingTagRange,
       candidates: state.searchCandidates,
+      onSelectionCancelled: () => bloc.add(const OcptBreakdownTagRangeCancelledEvent()),
       onPopoverCancelled: () => bloc.add(const OcptBreakdownTagRangeCancelledEvent()),
       onPopoverTargetLinked: (targetKind, targetId) => bloc.add(
         OcptBreakdownPopoverTargetLinkedEvent(targetKind: targetKind, targetId: targetId),

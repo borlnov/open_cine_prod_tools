@@ -1215,6 +1215,37 @@ void main() {
     await bloc.close();
   });
 
+  test('cancelling the pending anchor clears it without recording a range', () async {
+    await writeScreenplay(twoSceneText);
+
+    final bloc = buildBloc();
+    await waitForState(bloc, (state) => !state.isLoading);
+    bloc.add(const OcptShotListShotCreationRequestedEvent());
+    var state = await waitForState(bloc, (state) => state.totalShotCount == 1);
+    final shotId = state.selectedShotId!;
+
+    final layout = state.buildSelectedCoverageLayout()!;
+    final actionBlock = layout.blocks.firstWhere((block) => block.text == "Action one.");
+    final firstWord = actionBlock.words.first;
+
+    bloc.add(
+      OcptShotListCoverageWordClickedEvent(
+        shotId: shotId,
+        wordStartOffset: firstWord.startOffset,
+        wordEndOffset: firstWord.endOffset,
+      ),
+    );
+    await waitForState(bloc, (state) => state.pendingCoverageAnchor != null);
+
+    bloc.add(const OcptShotListCoverageAnchorCancelledEvent());
+    state = await waitForState(bloc, (state) => state.pendingCoverageAnchor == null);
+
+    expect(state.pendingCoverageAnchor, isNull);
+    expect(state.selectedShot!.coverageRanges, isEmpty);
+
+    await bloc.close();
+  });
+
   test('a second click in the same block writes a range covering both words', () async {
     await writeScreenplay(twoSceneText);
 

@@ -54,6 +54,24 @@ Good to know:
 **Removing a tag** does not automatically remove the underlying scene link (things can be linked
 by hand in Resources, with no tag): the inspector asks you about that as a separate confirmation.
 
+## The scene's breakdown sheet (naming its décor)
+
+Selecting a scene — from the scene list on the left, or by clicking its heading in the script —
+shows its **breakdown sheet** in the Inspector on the right: its counts, its status, the elements
+still to find, and its tagged targets.
+
+At the top sits the **sets row**, the one part of the sheet that is not about tagging. It is where
+you say **which décor a scene is shot in**, without having to tag a passage:
+
+- **link** an existing set from the picker — the place your scene heading names is offered first,
+  as a suggestion;
+- or **create** one on the spot, minting its **location** too when the project has never heard of
+  the place. You are not asked for a name: it is read from the scene heading.
+
+A set is a **décor** that belongs to a location, so creating one here is how you add a décor and
+attach it to a place in a single gesture. The link is the same one Resources shows: a set linked
+here appears there, and one linked there appears here.
+
 ## The recap (the table)
 
 From the mode's header band, switch to the **recap**: a cross-table, **one row per element, one

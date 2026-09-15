@@ -4,6 +4,7 @@
 
 import 'package:act_global_manager/act_global_manager.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
@@ -77,6 +78,11 @@ class OcptShotCoverageDialog extends StatelessWidget {
   /// Called when the `Clear all` action is clicked.
   final VoidCallback onClearAll;
 
+  /// Called to cancel [pendingAnchor] — exactly what `OcptShotListCoverageAnchorCancelledEvent`
+  /// backs — by `Escape` while an anchor is pending, a click on empty space in the sheet below, or
+  /// either of the dialog's own close actions.
+  final VoidCallback onAnchorCancelled;
+
   /// Class constructor
   const OcptShotCoverageDialog({
     super.key,
@@ -89,7 +95,17 @@ class OcptShotCoverageDialog extends StatelessWidget {
     required this.pendingAnchor,
     required this.onWordTapped,
     required this.onClearAll,
+    required this.onAnchorCancelled,
   });
+
+  /// Cancels [pendingAnchor], if one is pending, then closes the dialog through
+  /// `OcptRouterManager` — what the × close button and the footer's own close button both do.
+  void _cancelAnchorAndClose() {
+    if (pendingAnchor != null) {
+      onAnchorCancelled();
+    }
+    globalGetIt().get<OcptRouterManager>().pop();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -98,103 +114,129 @@ class OcptShotCoverageDialog extends StatelessWidget {
     final previewLayout = OcptEditorPreviewLayout(metrics: pageSetup.toMetrics());
     final media = MediaQuery.sizeOf(context);
 
-    return Dialog(
-      child: SizedBox(
-        width: previewLayout.pageWidth + 48,
-        height: media.height * 0.85,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 16, 12, 8),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          tr.shotListCoverageDialogTitle(shotCode),
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.w700,
+    return Focus(
+      // Nothing in the dialog otherwise requests focus (there is no text field to autofocus, as
+      // the breakdown tag popover's own equivalent `Focus` relies on), so this claims it itself —
+      // with no focused descendant, a key event would never reach an `onKeyEvent` that isn't
+      // itself part of the focus chain.
+      autofocus: true,
+      // Only consumes `Escape` while an anchor is pending, cancelling it instead of letting the
+      // key reach the modal route's own `Escape`-closes-the-dialog handling; with no anchor
+      // pending it is left ignored, so that default behaviour still fires.
+      onKeyEvent: (node, event) {
+        if (pendingAnchor != null &&
+            event is KeyDownEvent &&
+            event.logicalKey == LogicalKeyboardKey.escape) {
+          onAnchorCancelled();
+          return KeyEventResult.handled;
+        }
+        return KeyEventResult.ignored;
+      },
+      child: Dialog(
+        child: SizedBox(
+          width: previewLayout.pageWidth + 48,
+          height: media.height * 0.85,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 16, 12, 8),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            tr.shotListCoverageDialogTitle(shotCode),
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.w700,
+                            ),
                           ),
-                        ),
-                        Text(
-                          sequenceHeading,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: theme.colorScheme.onSurfaceVariant,
+                          Text(
+                            sequenceHeading,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.close, size: 18),
-                    tooltip: tr.shotListCoverageDialogCloseAction,
-                    onPressed: () => globalGetIt().get<OcptRouterManager>().pop(),
-                  ),
-                ],
+                    IconButton(
+                      icon: const Icon(Icons.close, size: 18),
+                      tooltip: tr.shotListCoverageDialogCloseAction,
+                      onPressed: _cancelAnchorAndClose,
+                    ),
+                  ],
+                ),
               ),
-            ),
-            Expanded(
-              child: ColoredBox(
-                color: theme.extension<OcptSpecificColors>()!.previewBackdrop,
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  child: Center(
-                    child: _OcptShotCoverageSheet(
-                      layout: layout,
-                      previewLayout: previewLayout,
-                      ownRanges: ownRanges,
-                      otherShotsRanges: otherShotsRanges,
-                      pendingAnchor: pendingAnchor,
-                      onWordTapped: onWordTapped,
+              Expanded(
+                child: ColoredBox(
+                  color: theme.extension<OcptSpecificColors>()!.previewBackdrop,
+                  child: GestureDetector(
+                    // A tap that lands on a word is claimed by that word's own, nested
+                    // `GestureDetector` first (hit-tested, and so added to the gesture arena,
+                    // before this one): this only ever sees a tap on the sheet's empty space.
+                    onTap: pendingAnchor == null ? null : onAnchorCancelled,
+                    behavior: HitTestBehavior.opaque,
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      child: Center(
+                        child: _OcptShotCoverageSheet(
+                          layout: layout,
+                          previewLayout: previewLayout,
+                          ownRanges: ownRanges,
+                          otherShotsRanges: otherShotsRanges,
+                          pendingAnchor: pendingAnchor,
+                          onWordTapped: onWordTapped,
+                        ),
+                      ),
                     ),
                   ),
                 ),
               ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 10, 20, 14),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    pendingAnchor == null
-                        ? tr.shotListCoverageHintNoAnchor
-                        : tr.shotListCoverageHintPendingAnchor,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
-                      fontStyle: FontStyle.italic,
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 10, 20, 14),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      pendingAnchor == null
+                          ? tr.shotListCoverageHintNoAnchor
+                          : tr.shotListCoverageHintPendingAnchor,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                        fontStyle: FontStyle.italic,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 6),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          "${tr.shotListCoverageWordsCovered(layout.countCoveredWords(ownRanges), _totalWordCount)}"
-                          " · ${tr.shotListCoverageRangesCount(layout.rangesInReadingOrder(ownRanges).length)}",
-                          style: theme.textTheme.bodySmall,
+                    const SizedBox(height: 6),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            "${tr.shotListCoverageWordsCovered(layout.countCoveredWords(ownRanges), _totalWordCount)}"
+                            " · ${tr.shotListCoverageRangesCount(layout.rangesInReadingOrder(ownRanges).length)}",
+                            style: theme.textTheme.bodySmall,
+                          ),
                         ),
-                      ),
-                      TextButton(
-                        onPressed: onClearAll,
-                        child: Text(tr.shotListCoverageClearAllAction),
-                      ),
-                      const SizedBox(width: 8),
-                      FilledButton(
-                        onPressed: () => globalGetIt().get<OcptRouterManager>().pop(),
-                        child: Text(tr.shotListCoverageDialogCloseAction),
-                      ),
-                    ],
-                  ),
-                ],
+                        TextButton(
+                          onPressed: onClearAll,
+                          child: Text(tr.shotListCoverageClearAllAction),
+                        ),
+                        const SizedBox(width: 8),
+                        FilledButton(
+                          onPressed: _cancelAnchorAndClose,
+                          child: Text(tr.shotListCoverageDialogCloseAction),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

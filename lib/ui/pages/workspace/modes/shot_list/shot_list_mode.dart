@@ -861,6 +861,7 @@ class _ShotListViewState extends State<_ShotListView> {
                 ),
               ),
               onClearAll: () => bloc.add(OcptShotListCoverageClearRequestedEvent(shotId: shot.id)),
+              onAnchorCancelled: () => bloc.add(const OcptShotListCoverageAnchorCancelledEvent()),
             );
           },
         ),

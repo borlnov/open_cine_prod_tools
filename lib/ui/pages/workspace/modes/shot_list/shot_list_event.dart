@@ -422,6 +422,19 @@ class OcptShotListCoverageClearRequestedEvent extends OcptShotListEvent {
   List<Object?> get props => [...super.props, shotId];
 }
 
+/// Clears the coverage anchor currently pending, dispatched by the coverage dialog's `Escape` (only
+/// while an anchor is pending, so `Escape` still closes the dialog otherwise), a click on empty
+/// space in the dialog's script area, or the dialog closing through its × or `Close` button — the
+/// user changed their mind about the passage, not just about where it should end.
+///
+/// Only `OcptShotListState.pendingCoverageAnchor` is cleared: the shot's own coverage ranges are
+/// untouched, exactly as the breakdown mode's own equivalent,
+/// `OcptBreakdownTagRangeCancelledEvent`, leaves its target's tags untouched.
+class OcptShotListCoverageAnchorCancelledEvent extends OcptShotListEvent {
+  /// Class constructor
+  const OcptShotListCoverageAnchorCancelledEvent();
+}
+
 /// Requests deleting role [roleId] for good, dispatched once the shared role alert banner's
 /// orphaned variant has already been confirmed through `OcptConfirmDialog`, by the mode.
 ///
