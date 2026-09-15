@@ -58,6 +58,25 @@ Bon à savoir :
 lier des choses à la main dans Ressources, sans étiquette) : l'inspecteur vous pose la question
 comme une confirmation séparée.
 
+## La fiche de dépouillement de la séquence (nommer son décor)
+
+Sélectionner une séquence — dans la liste des séquences à gauche, ou en cliquant son en-tête dans
+le scénario — affiche sa **fiche de dépouillement** dans l'Inspecteur à droite : ses décomptes,
+son état, les éléments encore à trouver, et ses cibles étiquetées.
+
+En haut se trouve la **ligne des décors**, la seule partie de la fiche qui ne relève pas de
+l'étiquetage. C'est là que vous indiquez **dans quel décor la séquence est tournée**, sans avoir à
+étiqueter un passage :
+
+- **reliez** un décor existant depuis le sélecteur — le lieu que nomme l'en-tête de votre séquence
+  est proposé en premier, comme une suggestion ;
+- ou **créez-en** un sur le champ, en créant aussi son **lieu** quand le projet n'a jamais entendu
+  parler de l'endroit. Le nom ne vous est pas demandé : il est lu dans l'en-tête de la séquence.
+
+Un décor appartient à un lieu ; créer un décor ici, c'est donc ajouter un décor et le rattacher à
+un lieu en un seul geste. Le lien est le même que celui qu'affiche Ressources : un décor relié ici
+apparaît là-bas, et un décor relié là-bas apparaît ici.
+
 ## La vue récap (le tableau)
 
 Depuis la bande d'en-tête du mode, basculez vers le **récap** : un tableau croisé, **une ligne
