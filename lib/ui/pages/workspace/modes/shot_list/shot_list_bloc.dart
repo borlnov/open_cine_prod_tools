@@ -73,8 +73,11 @@ import 'package:open_cine_prod_tools/utils/ocpt_scene_display_number.dart';
 /// interaction) — a range being added also attaches the characters it covers to the shot, see
 /// [_attachCharactersCoveredBy] —, [_onCoverageClearRequested] drops every range of a shot, and
 /// [_onShotMarkedAsChecked] clears a shot's `needsCheck` flag and re-stamps its ranges' digests.
-/// All three go through [OcptShotListState.screenplayText] — the screenplay's Fountain text as
-/// last loaded, which [OcptShotListState.buildSelectedCoverageLayout] slices a scene's own text
+/// [_onCoverageAnchorCancelled] is the odd one out: it never touches a range at all, only the
+/// pending anchor a first click opened, so the coverage dialog can be backed out of without
+/// recording anything. All three of the former go through [OcptShotListState.screenplayText] — the
+/// screenplay's Fountain text as last loaded, which [OcptShotListState.buildSelectedCoverageLayout]
+/// slices a scene's own text
 /// out of — loaded once here rather than by [_screenplayCharactersOf] on its own, which used to
 /// parse the screenplay text a second time to derive the same list of speaking characters.
 ///
@@ -220,6 +223,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     on<OcptShotListRoleMergeRequestedEvent>(_onRoleMergeRequested);
     on<OcptShotListCoverageWordClickedEvent>(_onCoverageWordClicked);
     on<OcptShotListCoverageClearRequestedEvent>(_onCoverageClearRequested);
+    on<OcptShotListCoverageAnchorCancelledEvent>(_onCoverageAnchorCancelled);
     on<OcptShotListShotMarkedAsCheckedEvent>(_onShotMarkedAsChecked);
   }
 
@@ -1452,6 +1456,16 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
         shotId: event.shotId,
       ),
     );
+  }
+
+  /// Clears the pending coverage anchor, exactly as `OcptShotListCoverageAnchorCancelledEvent`
+  /// documents: dispatched by the coverage dialog's `Escape`, a click on empty space in its script
+  /// area, or the dialog closing. Leaves the selected shot's own coverage ranges untouched.
+  Future<void> _onCoverageAnchorCancelled(
+    OcptShotListCoverageAnchorCancelledEvent event,
+    Emitter<OcptShotListState> emitter,
+  ) async {
+    emitter(state.copyWith(clearPendingCoverageAnchor: true));
   }
 
   /// Clears shot `event.shotId`'s `needsCheck` flag and re-stamps every one of its scenario
