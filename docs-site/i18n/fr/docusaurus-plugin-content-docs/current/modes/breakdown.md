@@ -25,8 +25,9 @@ rien tout en ayant bel et bien été lue.
 
 Une étiquette pointe vers l'un de trois types : un **rôle** (personnage, violet doux), un
 **décor** (lieu, sarcelle), ou un **élément**. Les éléments sont répartis en quatorze
-catégories, chacune de couleur fixe (accessoire, décoration, costume, maquillage, véhicule,
-animal, matériel spécial, caméra, lumière, son, production, cantine, figuration, autre…). Une
+catégories, chacune de couleur fixe (accessoire, habillage du décor, costume, maquillage,
+véhicule, animal, matériel spécial, caméra, lumière, son, production, cantine, figuration,
+autre…). Une
 couleur de catégorie est la même dans tous les projets et tous les exports, si bien que la
 légende se lit toujours de la même façon.
 
