@@ -814,9 +814,27 @@ class _OcptBreakdownScriptBlock extends StatelessWidget {
     return scene.tags.any((tag) => startOffset < tag.endOffset && tag.startOffset < endOffset);
   }
 
+  /// Whether the highlight span starting at scene-relative [spanStart] starts inside [word] — i.e.
+  /// [word] is the first word the span covers, whose leading affix the box then trims.
+  bool _spanStartsIn(OcptScriptWord word, int spanStart) =>
+      spanStart >= word.startOffset && spanStart < word.endOffset;
+
+  /// Whether the highlight span ending at scene-relative [spanEnd] ends inside [word] — i.e. [word]
+  /// is the last word the span covers, whose trailing affix (punctuation and the whitespace up to
+  /// the next word) the box then trims.
+  bool _spanEndsIn(OcptScriptWord word, int spanEnd) =>
+      spanEnd > word.startOffset && spanEnd <= word.endOffset;
+
   /// How [word] is painted: the tagged rules `OcptBreakdownScriptView`'s own doc comment describes,
-  /// then — for a plain word — the pending anchor's own distinct mark, then the greyed-out mark of a
-  /// word blocked by it, and plain otherwise.
+  /// then — for a plain word — the pending anchor's own distinct mark, then a word of the range whose
+  /// popover is open, then the greyed-out mark of a word blocked by an anchor, and plain otherwise.
+  ///
+  /// A tag or a range only trims the affix at the end it actually reaches: the word it starts in
+  /// loses its leading affix, the word it ends in its trailing affix, so a passage of several words
+  /// still reads as one continuous band — only its two ends hug the words rather than the sentence's
+  /// punctuation. A tag's and a range's stored offsets are both already narrowed to word cores, so
+  /// [_spanStartsIn]/[_spanEndsIn] land on the boundary words, and the pending anchor (a single word)
+  /// trims both ends alike.
   _OcptBreakdownWordPaint _paintOf(OcptScriptWord word) {
     final tag = _tagCovering(word);
     if (tag != null) {
@@ -830,11 +848,29 @@ class _OcptBreakdownScriptBlock extends StatelessWidget {
         isSelected: selectedTargetRef == (target.kind, target.id),
         needsCheck: tag.needsCheck,
         tooltipTargetName: target.name,
+        trimLeadingAffix: _spanStartsIn(word, tag.startOffset),
+        trimTrailingAffix: _spanEndsIn(word, tag.endOffset),
       );
     }
 
     if (_isPendingAnchor(word)) {
-      return _OcptBreakdownWordPaint.pendingAnchor;
+      return const _OcptBreakdownWordPaint(
+        isPendingAnchor: true,
+        trimLeadingAffix: true,
+        trimTrailingAffix: true,
+      );
+    }
+
+    final range = pendingTagRange;
+    if (range != null &&
+        range.sceneId == scene.id &&
+        range.startOffset < word.endOffset &&
+        range.endOffset > word.startOffset) {
+      return _OcptBreakdownWordPaint(
+        isPendingRange: true,
+        trimLeadingAffix: _spanStartsIn(word, range.startOffset),
+        trimTrailingAffix: _spanEndsIn(word, range.endOffset),
+      );
     }
 
     if (_isBlockedByAnchor(word)) {
@@ -973,12 +1009,26 @@ class _OcptBreakdownWordPaint {
 
   /// Whether this word is the pending anchor of a range not yet closed — a distinct, obviously
   /// transient mark, never a category colour, since the anchor itself is not yet any category at
-  /// all.
+  /// all. Carries the anchor's own tooltip, which [isPendingRange] does not.
   final bool isPendingAnchor;
+
+  /// Whether this word falls inside a range that a second click has closed and whose popover is now
+  /// open: the same transient accent as [isPendingAnchor], so the passage stays lit while the user
+  /// picks what to tag it as, but wordlessly (the popover is the affordance).
+  final bool isPendingRange;
 
   /// Whether this word is not a click target because closing a range on it, from the pending
   /// anchor, would overlap a live tag — greyed out rather than merely refused on click.
   final bool isBlocked;
+
+  /// Whether the highlight box should leave this word's leading affix (its opening punctuation)
+  /// outside it — set for the word a tag or a range **starts** in, so the box hugs the core.
+  final bool trimLeadingAffix;
+
+  /// Whether the highlight box should leave this word's trailing affix (its closing punctuation and
+  /// the whitespace up to the next word) outside it — set for the word a tag or a range **ends** in.
+  /// An interior word trims neither end, so its whole-word wash still bridges to its neighbour.
+  final bool trimTrailingAffix;
 
   /// Class constructor
   const _OcptBreakdownWordPaint({
@@ -987,18 +1037,30 @@ class _OcptBreakdownWordPaint {
     this.needsCheck = false,
     this.tooltipTargetName,
     this.isPendingAnchor = false,
+    this.isPendingRange = false,
     this.isBlocked = false,
+    this.trimLeadingAffix = false,
+    this.trimTrailingAffix = false,
   });
+
+  /// Whether this word wears the transient accent — the pending anchor or a word of the pending
+  /// range — rather than a category wash or nothing.
+  bool get isAccent => isPendingAnchor || isPendingRange;
 
   /// A plain word: no tag, or one whose target does not resolve.
   static const plain = _OcptBreakdownWordPaint();
 
-  /// The first word clicked of a range not yet closed.
-  static const pendingAnchor = _OcptBreakdownWordPaint(isPendingAnchor: true);
-
   /// A word that would overlap a live tag if the pending anchor's range closed on it.
   static const blocked = _OcptBreakdownWordPaint(isBlocked: true);
 }
+
+/// A word's display runs split into the three parts a boundary highlight paints differently: the
+/// leading affix left outside the box, the word core the box hugs, and the trailing affix.
+typedef _OcptTrimmedRuns = ({
+  List<OcptFountainDisplayRun> leading,
+  List<OcptFountainDisplayRun> core,
+  List<OcptFountainDisplayRun> trailing,
+});
 
 /// One clickable word of the sheet, painted per its [paint], its whole box (the glyphs, the
 /// whitespace that follows them and [_ocptWordVerticalPadding] above and below) being the click
@@ -1041,23 +1103,37 @@ class _OcptBreakdownWord extends StatelessWidget {
     final theme = Theme.of(context);
     final color = paint.color;
 
-    Color? background;
-    var textStyle = style;
+    // The box drawn behind the word (or its core), the text style worn inside it, and the tooltip.
+    BoxDecoration? decoration;
+    var insideStyle = style;
     String? tooltip;
 
-    if (paint.isPendingAnchor) {
-      background = theme.colorScheme.primary;
-      textStyle = textStyle.copyWith(color: theme.colorScheme.onPrimary);
-      tooltip = tr.breakdownPendingAnchorTooltip;
+    if (paint.isAccent) {
+      decoration = BoxDecoration(
+        color: theme.colorScheme.primary,
+        borderRadius: BorderRadius.circular(2),
+      );
+      insideStyle = insideStyle.copyWith(color: theme.colorScheme.onPrimary);
+      // The anchor names its own gesture; a range's affordance is the popover already open over it.
+      tooltip = paint.isPendingAnchor ? tr.breakdownPendingAnchorTooltip : null;
     } else if (paint.isBlocked) {
-      textStyle = textStyle.copyWith(color: textStyle.color?.withValues(alpha: 0.35));
+      insideStyle = insideStyle.copyWith(color: insideStyle.color?.withValues(alpha: 0.35));
       tooltip = tr.breakdownBlockedWordTooltip;
     } else {
-      background = color?.withValues(
+      final background = color?.withValues(
         alpha: paint.isSelected ? _ocptBreakdownSelectedTagAlpha : _ocptBreakdownTagAlpha,
       );
+      if (background != null) {
+        decoration = BoxDecoration(
+          color: background,
+          border: paint.isSelected && color != null
+              ? Border.all(color: color, width: _ocptBreakdownSelectedTagRingWidth)
+              : null,
+          borderRadius: BorderRadius.circular(2),
+        );
+      }
       if (paint.needsCheck) {
-        textStyle = textStyle.copyWith(
+        insideStyle = insideStyle.copyWith(
           decoration: TextDecoration.underline,
           decorationStyle: TextDecorationStyle.dashed,
           decorationColor: ocptWarningColor(context),
@@ -1071,22 +1147,17 @@ class _OcptBreakdownWord extends StatelessWidget {
       }
     }
 
-    // A pending anchor whose word carries punctuation (or the whitespace up to the next word) at
-    // either end paints its highlight box around the word core alone, so the selection reads over
-    // exactly the passage a tag would record — never over the comma the sentence owns. Every other
-    // word, and an anchor with nothing to trim, keeps the single whole-word box.
-    final anchorGroups = paint.isPendingAnchor ? _pendingAnchorRunGroups() : null;
+    // When a tag or range boundary trims an affix off this word, the box hugs the word core and the
+    // affix sits outside it in the plain paper style; an interior or single-box word keeps its whole
+    // wash (the bridging whitespace of a multi-word band included). A word with no box never trims.
+    final groups = decoration == null
+        ? null
+        : _trimmedRunGroups(paint.trimLeadingAffix, paint.trimTrailingAffix);
 
-    final wordBody = anchorGroups != null
-        ? _buildNarrowedAnchor(theme, anchorGroups)
+    final wordBody = groups != null
+        ? _buildTrimmedBox(decoration: decoration!, insideStyle: insideStyle, groups: groups)
         : Container(
-            decoration: BoxDecoration(
-              color: background,
-              border: paint.isSelected && color != null
-                  ? Border.all(color: color, width: _ocptBreakdownSelectedTagRingWidth)
-                  : null,
-              borderRadius: BorderRadius.circular(2),
-            ),
+            decoration: decoration,
             padding: const EdgeInsets.symmetric(vertical: _ocptWordVerticalPadding),
             child: Text.rich(
               TextSpan(
@@ -1094,11 +1165,11 @@ class _OcptBreakdownWord extends StatelessWidget {
                   for (final run in runs)
                     TextSpan(
                       text: isUppercase ? run.text.toUpperCase() : run.text,
-                      style: _runStyleOf(run.style, textStyle),
+                      style: _runStyleOf(run.style, insideStyle),
                     ),
                 ],
               ),
-              style: textStyle,
+              style: insideStyle,
             ),
           );
 
@@ -1118,27 +1189,26 @@ class _OcptBreakdownWord extends StatelessWidget {
     return Tooltip(message: tooltip, child: content);
   }
 
-  /// [runs] split into the leading affix, the word core, and the trailing affix the pending-anchor
-  /// highlight leaves outside its box — or null when there is nothing to trim, in which case the
-  /// anchor paints its whole box exactly as every other word does.
+  /// [runs] split into the leading affix, the word core, and the trailing affix the highlight box
+  /// leaves outside itself — or null when there is nothing to trim (neither end asked for, no affix
+  /// there, or the word holds no letter or digit to trim down to), in which case the caller wraps the
+  /// whole word.
   ///
-  /// The affix is everything that is neither a letter nor a digit at either end: the punctuation the
-  /// recorded span already drops through [ocptNonWordAffixLengthsOf] **and** the whitespace a word's
-  /// runs carry up to the next word. A selection is a single word with no neighbour to bridge, so
-  /// hugging its core alone reads truest — the box is not doing the continuous-band duty a placed
-  /// tag's own whole-word wash still does. The split is on the word's own **displayed** characters
-  /// (markers already hidden), so the highlight and the tag it would write read the same passage
-  /// without this widget reasoning in source offsets.
-  ({
-    List<OcptFountainDisplayRun> leading,
-    List<OcptFountainDisplayRun> core,
-    List<OcptFountainDisplayRun> trailing,
-  })?
-  _pendingAnchorRunGroups() {
+  /// [trimLeading]/[trimTrailing] say which ends this word is a boundary of; an affix is everything
+  /// that is neither a letter nor a digit at that end — the punctuation the recorded span already
+  /// drops through [ocptNonWordAffixLengthsOf], plus, at the trailing end, the whitespace a word's
+  /// runs carry up to the next word. The split is on the word's own **displayed** characters (markers
+  /// already hidden), so the highlight and the tag it stands for read the same passage without this
+  /// widget reasoning in source offsets.
+  _OcptTrimmedRuns? _trimmedRunGroups(bool trimLeading, bool trimTrailing) {
+    if (!trimLeading && !trimTrailing) {
+      return null;
+    }
+
     final rawText = [for (final run in runs) run.text].join();
     final affixes = ocptNonWordAffixLengthsOf(rawText);
-    final coreStart = affixes.leadingLength;
-    final coreEnd = rawText.length - affixes.trailingLength;
+    final coreStart = trimLeading ? affixes.leadingLength : 0;
+    final coreEnd = trimTrailing ? rawText.length - affixes.trailingLength : rawText.length;
     if (coreStart == 0 && coreEnd == rawText.length) {
       return null;
     }
@@ -1169,20 +1239,14 @@ class _OcptBreakdownWord extends StatelessWidget {
     return slice;
   }
 
-  /// The pending-anchor word drawn with its highlight box hugging the word core alone: its leading
-  /// and trailing punctuation (and the whitespace the word carries) sit outside the box in the plain
-  /// paper style, while only [groups]`.core` wears the accent fill and its on-accent text.
-  Widget _buildNarrowedAnchor(
-    ThemeData theme,
-    ({
-      List<OcptFountainDisplayRun> leading,
-      List<OcptFountainDisplayRun> core,
-      List<OcptFountainDisplayRun> trailing,
-    })
-    groups,
-  ) {
-    final coreStyle = style.copyWith(color: theme.colorScheme.onPrimary);
-
+  /// The word drawn with its highlight box ([decoration], its text in [insideStyle]) hugging
+  /// [groups]`.core` alone: the leading and trailing affixes sit outside the box in the plain paper
+  /// [style], so a boundary word reads over exactly the passage the highlight stands for.
+  Widget _buildTrimmedBox({
+    required BoxDecoration decoration,
+    required TextStyle insideStyle,
+    required _OcptTrimmedRuns groups,
+  }) {
     TextSpan plainSpan(OcptFountainDisplayRun run) => TextSpan(
       text: isUppercase ? run.text.toUpperCase() : run.text,
       style: _runStyleOf(run.style, style),
@@ -1196,10 +1260,7 @@ class _OcptBreakdownWord extends StatelessWidget {
             alignment: PlaceholderAlignment.baseline,
             baseline: TextBaseline.alphabetic,
             child: Container(
-              decoration: BoxDecoration(
-                color: theme.colorScheme.primary,
-                borderRadius: BorderRadius.circular(2),
-              ),
+              decoration: decoration,
               padding: const EdgeInsets.symmetric(vertical: _ocptWordVerticalPadding),
               child: Text.rich(
                 TextSpan(
@@ -1207,11 +1268,11 @@ class _OcptBreakdownWord extends StatelessWidget {
                     for (final run in groups.core)
                       TextSpan(
                         text: isUppercase ? run.text.toUpperCase() : run.text,
-                        style: _runStyleOf(run.style, coreStyle),
+                        style: _runStyleOf(run.style, insideStyle),
                       ),
                   ],
                 ),
-                style: coreStyle,
+                style: insideStyle,
               ),
             ),
           ),

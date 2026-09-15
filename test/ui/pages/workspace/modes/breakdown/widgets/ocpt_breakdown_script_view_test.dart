@@ -183,7 +183,8 @@ void main() {
       ),
     );
 
-    final color = _decorationOfWord(tester, "lamp ")?.color;
+    // The placed tag hugs the word core, its trailing space left outside the wash.
+    final color = _decorationOfWord(tester, "lamp")?.color;
     final expected = Color(target.color);
     expect(color, isNotNull);
     expect(color!.r, expected.r);
@@ -191,6 +192,29 @@ void main() {
     expect(color.b, expected.b);
     // An untagged word of the same block stays plain.
     expect(_decorationOfWord(tester, "sits ")?.color, isNull);
+  });
+
+  testWidgets("a placed tag hugs the word core, dropping the punctuation it wears", (tester) async {
+    await _useLargeSurface(tester);
+    final target = _buildElementTarget(
+      id: "el-desk",
+      name: "Desk",
+      category: OcptElementCategory.setDressing,
+    );
+
+    await tester.pumpWidget(
+      _wrapInApp(
+        _buildView(
+          scene: _buildScene(tags: [_buildTag(word: _actionWords[5], targetId: "el-desk")]),
+          targets: [target],
+        ),
+      ),
+    );
+
+    // "desk." is tagged: the wash hugs "desk", the full stop left outside it, so the placed tag
+    // reads over the same passage the selection did — never one box over "desk.".
+    expect(_decorationOfWord(tester, "desk")?.color, isNotNull);
+    expect(find.text("desk."), findsNothing);
   });
 
   testWidgets("on a phone it scales the indents and box widths down by the compact factor", (
@@ -244,7 +268,7 @@ void main() {
       ),
     );
 
-    final decoration = _decorationOfWord(tester, "lamp ");
+    final decoration = _decorationOfWord(tester, "lamp");
     expect(decoration?.border, isNotNull);
   });
 
@@ -268,8 +292,8 @@ void main() {
       ),
     );
 
-    expect(_decorationOfWord(tester, "lamp ")?.border, isNotNull);
-    expect(_decorationOfWord(tester, "desk.")?.border, isNull);
+    expect(_decorationOfWord(tester, "lamp")?.border, isNotNull);
+    expect(_decorationOfWord(tester, "desk")?.border, isNull);
   });
 
   testWidgets("a tag needing a check is underlined in the warning colour", (tester) async {
@@ -285,7 +309,7 @@ void main() {
       ),
     );
 
-    final text = tester.widget<Text>(find.text("lamp "));
+    final text = tester.widget<Text>(find.text("lamp"));
     expect(text.style?.decoration, TextDecoration.underline);
     expect(text.style?.decorationStyle, TextDecorationStyle.dashed);
   });
@@ -327,7 +351,7 @@ void main() {
       ),
     );
 
-    await tester.tap(find.text("lamp "));
+    await tester.tap(find.text("lamp"));
     await tester.pump();
 
     expect(reported, (OcptBreakdownTargetKind.element, target.id, _sceneId));
@@ -402,7 +426,7 @@ void main() {
       ),
     );
 
-    await tester.tap(find.text("lamp "));
+    await tester.tap(find.text("lamp"));
     await tester.pump();
 
     expect(reported, (OcptBreakdownTargetKind.element, target.id, _sceneId));
@@ -514,6 +538,34 @@ void main() {
     await tester.pump();
 
     expect(cancelled, isTrue);
+  });
+
+  testWidgets("the range stays highlighted while its popover is open", (tester) async {
+    await _useLargeSurface(tester);
+    final firstWord = _actionWords[1]; // lamp
+    final lastWord = _actionWords[2]; // sits
+
+    await tester.pumpWidget(
+      _wrapInApp(
+        _buildView(
+          pendingTagRange: (
+            sceneId: _sceneId,
+            startOffset: firstWord.startOffset,
+            endOffset: lastWord.endOffset,
+            taggedText: "lamp sits",
+            closingWordStartOffset: lastWord.startOffset,
+            closingWordEndOffset: lastWord.endOffset,
+          ),
+        ),
+      ),
+    );
+
+    final colorScheme = Theme.of(tester.element(find.text("lamp "))).colorScheme;
+    // Both words wear the accent while the popover chooses what to tag them as: the first keeps its
+    // bridging space (the band holds), the last hugs its core.
+    expect(_decorationOfWord(tester, "lamp ")?.color, colorScheme.primary);
+    expect(_decorationOfWord(tester, "sits")?.color, colorScheme.primary);
+    expect(find.text("sits "), findsNothing);
   });
 
   testWidgets(
