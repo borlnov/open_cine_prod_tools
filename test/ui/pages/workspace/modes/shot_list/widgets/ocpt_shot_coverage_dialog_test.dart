@@ -2,15 +2,32 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+import 'package:act_global_manager/act_global_manager.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
+import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
+import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/models/ocpt_script_word_layout.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_coverage_range.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_shot_coverage_dialog.dart';
+
+/// A router manager whose [pop] only records that it was called: this dialog is pumped directly,
+/// without a real `Navigator` route for it to operate on, exactly as the scenario coverage export
+/// dialog's own tests record it.
+class _RecordingRouterManager extends OcptRouterManager {
+  /// Whether [pop] was called.
+  bool popped = false;
+
+  @override
+  void pop<Y extends Object?>([Y? result]) {
+    popped = true;
+  }
+}
 
 /// Wraps [child] in the app's own light theme — the dialog paints its backdrop from the
 /// `OcptSpecificColors` extension, which only a theme built from [ocptTheme] carries — plus the
@@ -69,6 +86,7 @@ Widget _buildDialog({
   OcptShotCoverageAnchor? pendingAnchor,
   void Function(int wordStartOffset, int wordEndOffset)? onWordTapped,
   VoidCallback? onClearAll,
+  VoidCallback? onAnchorCancelled,
 }) => OcptShotCoverageDialog(
   shotCode: "1/3",
   sequenceHeading: "INT. HOUSE - DAY",
@@ -79,7 +97,14 @@ Widget _buildDialog({
   pendingAnchor: pendingAnchor,
   onWordTapped: onWordTapped ?? (_, __) {},
   onClearAll: onClearAll ?? () {},
+  onAnchorCancelled: onAnchorCancelled ?? () {},
 );
+
+/// Finds the sheet's own white paper `Material`, scoped to the dialog's scrollable script area so
+/// it can never match the dialog chrome's or its buttons' own `Material` — so a test can tap a
+/// point inside it that lands on no word.
+Finder _findSheetPaper() =>
+    find.descendant(of: find.byType(SingleChildScrollView), matching: find.byType(Material));
 
 /// The background colour the sheet paints the word rendered as [text] with, or null when it paints
 /// none at all (an uncovered word).
@@ -94,6 +119,22 @@ Color? _backgroundOfWord(WidgetTester tester, String text) {
 }
 
 void main() {
+  late _RecordingRouterManager routerManager;
+
+  setUpAll(() {
+    OcptGlobalManager.instance;
+  });
+
+  setUp(() async {
+    final managers = globalGetIt();
+    if (managers.isRegistered<OcptRouterManager>()) {
+      await managers.unregister<OcptRouterManager>();
+    }
+
+    routerManager = _RecordingRouterManager();
+    managers.registerSingleton<OcptRouterManager>(routerManager);
+  });
+
   testWidgets("typesets the sequence on a paper sheet, one word box per word", (tester) async {
     await _useLargeSurface(tester);
     await tester.pumpWidget(_wrapInApp(_buildDialog()));
@@ -339,5 +380,154 @@ void main() {
     await tester.pump();
 
     expect(cleared, isTrue);
+  });
+
+  testWidgets("Escape cancels a pending anchor without closing the dialog", (tester) async {
+    await _useLargeSurface(tester);
+    var cancelled = false;
+
+    await tester.pumpWidget(
+      _wrapInApp(
+        _buildDialog(
+          pendingAnchor: (wordStartOffset: 0, wordEndOffset: 4),
+          onAnchorCancelled: () => cancelled = true,
+        ),
+      ),
+    );
+    await tester.pump();
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await tester.pump();
+
+    expect(cancelled, isTrue);
+    expect(routerManager.popped, isFalse);
+  });
+
+  testWidgets("Escape reports nothing while no anchor is pending, leaving it to close the dialog", (
+    tester,
+  ) async {
+    await _useLargeSurface(tester);
+    var cancelled = false;
+
+    await tester.pumpWidget(_wrapInApp(_buildDialog(onAnchorCancelled: () => cancelled = true)));
+    await tester.pump();
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await tester.pump();
+
+    expect(cancelled, isFalse);
+  });
+
+  testWidgets("tapping empty space in the sheet cancels a pending anchor", (tester) async {
+    await _useLargeSurface(tester);
+    var cancelled = false;
+
+    await tester.pumpWidget(
+      _wrapInApp(
+        _buildDialog(
+          pendingAnchor: (wordStartOffset: 0, wordEndOffset: 4),
+          onAnchorCancelled: () => cancelled = true,
+        ),
+      ),
+    );
+
+    // The grey margin beside the paper: still inside the dialog's scrollable script area, so the
+    // tap reaches its background handler, but on no word (the paper, narrower than the area, is
+    // centred with a margin either side).
+    final sheet = tester.getRect(_findSheetPaper());
+    await tester.tapAt(Offset(sheet.left - 10, sheet.center.dy));
+    await tester.pump();
+
+    expect(cancelled, isTrue);
+  });
+
+  testWidgets("tapping empty space does nothing while no anchor is pending", (tester) async {
+    await _useLargeSurface(tester);
+    var cancelled = false;
+
+    await tester.pumpWidget(_wrapInApp(_buildDialog(onAnchorCancelled: () => cancelled = true)));
+
+    final sheet = tester.getRect(_findSheetPaper());
+    await tester.tapAt(Offset(sheet.left - 10, sheet.center.dy));
+    await tester.pump();
+
+    expect(cancelled, isFalse);
+  });
+
+  testWidgets("tapping a word never cancels the pending anchor it may be closing", (tester) async {
+    await _useLargeSurface(tester);
+    final layout = _buildLayout();
+    var cancelled = false;
+    var tapped = false;
+
+    await tester.pumpWidget(
+      _wrapInApp(
+        _buildDialog(
+          layout: layout,
+          pendingAnchor: (wordStartOffset: 0, wordEndOffset: 4),
+          onWordTapped: (_, __) => tapped = true,
+          onAnchorCancelled: () => cancelled = true,
+        ),
+      ),
+    );
+
+    await tester.tap(find.text("HOUSE "));
+    await tester.pump();
+
+    expect(tapped, isTrue);
+    expect(cancelled, isFalse);
+  });
+
+  testWidgets("the × close button clears a pending anchor before popping", (tester) async {
+    await _useLargeSurface(tester);
+    var cancelled = false;
+
+    await tester.pumpWidget(
+      _wrapInApp(
+        _buildDialog(
+          pendingAnchor: (wordStartOffset: 0, wordEndOffset: 4),
+          onAnchorCancelled: () => cancelled = true,
+        ),
+      ),
+    );
+
+    await tester.tap(find.byIcon(Icons.close));
+    await tester.pump();
+
+    expect(cancelled, isTrue);
+    expect(routerManager.popped, isTrue);
+  });
+
+  testWidgets("the Close button clears a pending anchor before popping", (tester) async {
+    await _useLargeSurface(tester);
+    var cancelled = false;
+
+    await tester.pumpWidget(
+      _wrapInApp(
+        _buildDialog(
+          pendingAnchor: (wordStartOffset: 0, wordEndOffset: 4),
+          onAnchorCancelled: () => cancelled = true,
+        ),
+      ),
+    );
+
+    await tester.tap(find.widgetWithText(FilledButton, "Close"));
+    await tester.pump();
+
+    expect(cancelled, isTrue);
+    expect(routerManager.popped, isTrue);
+  });
+
+  testWidgets("closing the dialog with no anchor pending pops without cancelling", (tester) async {
+    await _useLargeSurface(tester);
+    var cancelled = false;
+
+    await tester.pumpWidget(_wrapInApp(_buildDialog(onAnchorCancelled: () => cancelled = true)));
+
+    await tester.tap(find.widgetWithText(FilledButton, "Close"));
+    await tester.pump();
+
+    expect(cancelled, isFalse);
+    expect(routerManager.popped, isTrue);
   });
 }

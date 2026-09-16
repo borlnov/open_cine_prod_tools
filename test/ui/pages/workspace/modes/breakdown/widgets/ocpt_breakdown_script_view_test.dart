@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
@@ -144,6 +145,7 @@ Widget _buildView({
   OcptBreakdownPendingTagAnchor? pendingTagAnchor,
   OcptBreakdownPendingTagRange? pendingTagRange,
   List<OcptBreakdownSearchCandidate> candidates = const [],
+  VoidCallback? onSelectionCancelled,
 }) => OcptBreakdownScriptView(
   screenplayText: _sceneText,
   scenes: [scene ?? _buildScene()],
@@ -158,6 +160,7 @@ Widget _buildView({
   pendingTagAnchor: pendingTagAnchor,
   pendingTagRange: pendingTagRange,
   candidates: candidates,
+  onSelectionCancelled: onSelectionCancelled ?? () {},
   onPopoverCancelled: () {},
   onPopoverTargetLinked: (_, __) {},
   onPopoverElementCreationRequested: (_, __) {},
@@ -180,7 +183,8 @@ void main() {
       ),
     );
 
-    final color = _decorationOfWord(tester, "lamp ")?.color;
+    // The placed tag hugs the word core, its trailing space left outside the wash.
+    final color = _decorationOfWord(tester, "lamp")?.color;
     final expected = Color(target.color);
     expect(color, isNotNull);
     expect(color!.r, expected.r);
@@ -188,6 +192,29 @@ void main() {
     expect(color.b, expected.b);
     // An untagged word of the same block stays plain.
     expect(_decorationOfWord(tester, "sits ")?.color, isNull);
+  });
+
+  testWidgets("a placed tag hugs the word core, dropping the punctuation it wears", (tester) async {
+    await _useLargeSurface(tester);
+    final target = _buildElementTarget(
+      id: "el-desk",
+      name: "Desk",
+      category: OcptElementCategory.setDressing,
+    );
+
+    await tester.pumpWidget(
+      _wrapInApp(
+        _buildView(
+          scene: _buildScene(tags: [_buildTag(word: _actionWords[5], targetId: "el-desk")]),
+          targets: [target],
+        ),
+      ),
+    );
+
+    // "desk." is tagged: the wash hugs "desk", the full stop left outside it, so the placed tag
+    // reads over the same passage the selection did — never one box over "desk.".
+    expect(_decorationOfWord(tester, "desk")?.color, isNotNull);
+    expect(find.text("desk."), findsNothing);
   });
 
   testWidgets("on a phone it scales the indents and box widths down by the compact factor", (
@@ -241,7 +268,7 @@ void main() {
       ),
     );
 
-    final decoration = _decorationOfWord(tester, "lamp ");
+    final decoration = _decorationOfWord(tester, "lamp");
     expect(decoration?.border, isNotNull);
   });
 
@@ -265,8 +292,8 @@ void main() {
       ),
     );
 
-    expect(_decorationOfWord(tester, "lamp ")?.border, isNotNull);
-    expect(_decorationOfWord(tester, "desk.")?.border, isNull);
+    expect(_decorationOfWord(tester, "lamp")?.border, isNotNull);
+    expect(_decorationOfWord(tester, "desk")?.border, isNull);
   });
 
   testWidgets("a tag needing a check is underlined in the warning colour", (tester) async {
@@ -282,7 +309,7 @@ void main() {
       ),
     );
 
-    final text = tester.widget<Text>(find.text("lamp "));
+    final text = tester.widget<Text>(find.text("lamp"));
     expect(text.style?.decoration, TextDecoration.underline);
     expect(text.style?.decorationStyle, TextDecorationStyle.dashed);
   });
@@ -324,7 +351,7 @@ void main() {
       ),
     );
 
-    await tester.tap(find.text("lamp "));
+    await tester.tap(find.text("lamp"));
     await tester.pump();
 
     expect(reported, (OcptBreakdownTargetKind.element, target.id, _sceneId));
@@ -399,7 +426,7 @@ void main() {
       ),
     );
 
-    await tester.tap(find.text("lamp "));
+    await tester.tap(find.text("lamp"));
     await tester.pump();
 
     expect(reported, (OcptBreakdownTargetKind.element, target.id, _sceneId));
@@ -423,11 +450,122 @@ void main() {
       ),
     );
 
-    final colorScheme = Theme.of(tester.element(find.text("lamp "))).colorScheme;
-    final decoration = _decorationOfWord(tester, "lamp ");
+    // The box hugs the word core — the accent fill, distinct from any category wash, and its
+    // on-accent text — while the trailing space it carries stays outside it, so "lamp " is never one
+    // box.
+    final colorScheme = Theme.of(tester.element(find.text("lamp"))).colorScheme;
+    final decoration = _decorationOfWord(tester, "lamp");
     expect(decoration?.color, colorScheme.primary);
-    final text = tester.widget<Text>(find.text("lamp "));
+    final text = tester.widget<Text>(find.text("lamp"));
     expect(text.style?.color, colorScheme.onPrimary);
+    expect(find.text("lamp "), findsNothing);
+  });
+
+  testWidgets("a pending anchor trims the trailing punctuation off its own highlight", (
+    tester,
+  ) async {
+    await _useLargeSurface(tester);
+    // "desk." is the action line's last word, a word wearing a full stop.
+    final anchorWord = _actionWords[5];
+
+    await tester.pumpWidget(
+      _wrapInApp(
+        _buildView(
+          pendingTagAnchor: (
+            sceneId: _sceneId,
+            wordStartOffset: anchorWord.startOffset,
+            wordEndOffset: anchorWord.endOffset,
+          ),
+        ),
+      ),
+    );
+
+    final colorScheme = Theme.of(tester.element(find.text("desk"))).colorScheme;
+    // The accent box hugs the word core alone.
+    expect(_decorationOfWord(tester, "desk")?.color, colorScheme.primary);
+    expect(tester.widget<Text>(find.text("desk")).style?.color, colorScheme.onPrimary);
+    // The whole "desk." is never one box any more: the full stop sits outside the highlight, so no
+    // single word box carries it.
+    expect(find.text("desk."), findsNothing);
+  });
+
+  testWidgets("Escape abandons an open selection", (tester) async {
+    await _useLargeSurface(tester);
+    final anchorWord = _actionWords[1];
+    var cancelled = false;
+
+    await tester.pumpWidget(
+      _wrapInApp(
+        _buildView(
+          pendingTagAnchor: (
+            sceneId: _sceneId,
+            wordStartOffset: anchorWord.startOffset,
+            wordEndOffset: anchorWord.endOffset,
+          ),
+          onSelectionCancelled: () => cancelled = true,
+        ),
+      ),
+    );
+    // The view grabs its keyboard focus one frame after an open selection appears.
+    await tester.pump();
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await tester.pump();
+
+    expect(cancelled, isTrue);
+  });
+
+  testWidgets("clicking the sheet away from any word abandons an open selection", (tester) async {
+    await _useLargeSurface(tester);
+    final anchorWord = _actionWords[1];
+    var cancelled = false;
+
+    await tester.pumpWidget(
+      _wrapInApp(
+        _buildView(
+          pendingTagAnchor: (
+            sceneId: _sceneId,
+            wordStartOffset: anchorWord.startOffset,
+            wordEndOffset: anchorWord.endOffset,
+          ),
+          onSelectionCancelled: () => cancelled = true,
+        ),
+      ),
+    );
+
+    // The top-left corner is the grey backdrop around the centred page — no word there.
+    await tester.tapAt(const Offset(5, 5));
+    await tester.pump();
+
+    expect(cancelled, isTrue);
+  });
+
+  testWidgets("the range stays highlighted while its popover is open", (tester) async {
+    await _useLargeSurface(tester);
+    final firstWord = _actionWords[1]; // lamp
+    final lastWord = _actionWords[2]; // sits
+
+    await tester.pumpWidget(
+      _wrapInApp(
+        _buildView(
+          pendingTagRange: (
+            sceneId: _sceneId,
+            startOffset: firstWord.startOffset,
+            endOffset: lastWord.endOffset,
+            taggedText: "lamp sits",
+            closingWordStartOffset: lastWord.startOffset,
+            closingWordEndOffset: lastWord.endOffset,
+          ),
+        ),
+      ),
+    );
+
+    final colorScheme = Theme.of(tester.element(find.text("lamp "))).colorScheme;
+    // Both words wear the accent while the popover chooses what to tag them as: the first keeps its
+    // bridging space (the band holds), the last hugs its core.
+    expect(_decorationOfWord(tester, "lamp ")?.color, colorScheme.primary);
+    expect(_decorationOfWord(tester, "sits")?.color, colorScheme.primary);
+    expect(find.text("sits "), findsNothing);
   });
 
   testWidgets(
