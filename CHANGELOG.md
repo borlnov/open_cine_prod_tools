@@ -6,6 +6,22 @@ SPDX-License-Identifier: Apache-2.0
 
 # Changelog
 
+## 0.2.2
+
+Smoother passage tagging in the breakdown and the shot list, and a clearer
+French label.
+
+- Breakdown and shot list: a passage selection can now be cancelled — press
+  Escape or click the sheet away from any word — instead of being stranded
+  after the first click.
+- Breakdown: the highlight now hugs the tagged words, leaving the sentence's
+  own punctuation out, and stays lit while the tag popover is open, so the
+  selection, the popover and a placed tag all read the same passage.
+- French: the "Décoration" element category is renamed "Habillage du décor",
+  so it no longer clashes with a set ("décor") or the art department.
+- The guide now explains creating a set — a décor — and its location from the
+  breakdown's own scene sheet.
+
 ## 0.2.1
 
 A shot's characters become the production's roles, and the user guide is
