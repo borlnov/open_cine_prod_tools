@@ -40,7 +40,7 @@ in priority order: call sheets, budget, script supervisor reports, and storyboar
   docx/xlsx equivalents later).
 - UI languages: English (`en_GB`, main) and French.
 
-### Validated UI design (do not deviate without asking Benoit)
+### Validated UI design (do not deviate without asking the maintainer)
 
 - Theme follows the system, **through the ACT themes manager** (`ActThemesManager`). Density,
   shapes and the UI type scale live once in `lib/constants/ocpt_theme.dart`'s component themes
@@ -67,8 +67,8 @@ in priority order: call sheets, budget, script supervisor reports, and storyboar
   dock panel, whose `Delete`/`Restore`/`Rename` are answered **inside the card they belong to**,
   and the project dictionary dialog's per-word removal, answered **inside the row it belongs
   to** — in both, a list of rows has no other way to say *which* one is being talked about.
-- **Before creating any new view/screen, ask Benoit design questions first** (layout, style,
-  references). He shapes the UI himself.
+- **Before creating any new view/screen, ask the maintainer design questions first** (layout,
+  style, references). The maintainer shapes the UI directly.
 
 ## Development plan & status
 
@@ -80,20 +80,21 @@ the budget mode has shipped whole (the quote against the CNC nomenclature, the c
 measured against, the financing plan and catering pass that say what pays for it, the revenue
 sharing that splits what the film earns, and its four documents, `docs/architecture/budget.md`).
 
-| Step | Content | Status |
-| --- | --- | --- |
-| 22b | Collaboration & sync: the changeset engine, the domain-blind relay, the pairing UI, live push, presence, the portable on-set server and in-app relay hosting have all shipped (`docs/architecture/sync.md`, `docs/on-set-server.md`, `docs/adr/0009`, `docs/adr/0010`) | ✅ done |
-| — | The M2–M6 end-user guide for the whole collaboration feature, in `docs-site/` (`docs/plans/collaboration-user-guide.md`) | 📝 planned |
-| — | Roadmap after that, in priority order: call sheets beyond what the schedule mode already prints, script supervisor reports, storyboard | 📝 planned |
+What is still ahead, in priority order:
 
-Step numbers are historical: they were allocated as the work was planned, are referenced by no
-file any more, and a new one simply continues the series. What used to be listed here as `0`
-through `29k` is in `git log`.
+- The M2–M6 end-user collaboration guide, in `docs-site/`
+  (`docs/plans/collaboration-user-guide.md`).
+- The storyboard mode, now under way (`docs/plans/storyboard.md`).
+- After that: call sheets beyond what the schedule mode already prints, then
+  script supervisor reports.
+
+Earlier steps, once numbered `0` through `29k`, are in `git log`; the numbers are referenced by
+no file any more.
 
 ## Ways of working
 
-- Benoit communicates in French; **all code, comments, commits, branches and GitHub content
-  are in English**.
+- The maintainer communicates in French; **all code, comments, commits, branches and GitHub
+  content are in English**.
 - Work happens on an issue-named branch (`<issue-number>-<slug>`), merged into `main` through a
   pull request.
 - A session that needs a checkout of its own puts it under `worktrees/`
@@ -103,8 +104,17 @@ through `29k` is in `git log`.
 - A plan in `docs/plans/` describes work not yet done. Once its step ships and its outcome is
   folded into `docs/architecture/`, the plan is deleted — the code, that directory and the ADRs
   are the record from then on.
-- Sizeable work: plan first, reviewed by Benoit, then implementation **delegated to Sonnet 5
-  agents** orchestrated and reviewed by the main session. User checkpoints between milestones.
+- Model tiers: the orchestrating (main) session — the one that discusses, plans, tests, debugs
+  and reviews — runs on **Opus 4.8** (not Opus 5, which is weaker here; delete this parenthesis
+  once a newer Opus supersedes 4.8). It is the **default planner**; implementation is delegated to
+  **Sonnet 5** agents; **Fable** is reserved for planning a piece of work that spans several modes
+  or crosses an architecture/ADR boundary. This matches cost to effort: Opus reasons and reviews,
+  Sonnet executes, Fable plans the heavy work.
+- Sizeable work: plan first — Opus by default, or **delegated to a Fable planning subagent**
+  (launched on Fable, its plan returning for review) when the criterion above is met; Opus
+  **proposes that escalation to the maintainer rather than taking it silently**. The maintainer
+  reviews the plan, then implementation is delegated to Sonnet as above, orchestrated and reviewed
+  by the main session. User checkpoints between milestones.
 - One commit per logical change. Never reference the plan, steps, or these instructions in
   code or commit messages (issue numbers are allowed in commits/PRs).
 - Dependencies never reference their dependents.
@@ -244,11 +254,16 @@ LicenseRef-ALLCircuits-ACT-1.1, OFL-1.1 for Courier Prime).
 
 ## Commits
 
-Conventional Commits, English, subject ≤50 characters, meaningful body when useful. Work done
-by a Sonnet 5 subagent ends the message with the trailer:
+Conventional Commits, English, subject ≤50 characters, meaningful body when useful. Every commit
+ends with a `Co-Authored-By` trailer naming the **exact model and version of the agent that
+authored it** — the orchestrating session names its Opus, a delegated worker names its Sonnet or
+Fable, and each writes its own current version, never one copied from this file. So, whichever
+applies:
 
 ```text
+Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>
 Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>
 ```
 
 ## Localization
