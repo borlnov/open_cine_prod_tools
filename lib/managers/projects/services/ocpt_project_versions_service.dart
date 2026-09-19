@@ -433,6 +433,18 @@ class OcptProjectVersionsService {
         // when a commitment named its own settling entry rather than the other way round.
         ..insertAll(database.ocptBudgetCommitmentsTable, payload.budgetCommitments)
         ..insertAll(database.ocptBudgetEntriesTable, payload.budgetEntries)
+        // The storyboard and floor plan tables, in the same dependency order [_applyPayload] restores
+        // them in: `floor_plan_cases` references only `scenes` and, optionally, `assets` (both
+        // inserted above); `storyboard_panels` references `shots` and, optionally, `assets` (both
+        // inserted above); `storyboard_annotations` references the panel it marks, just inserted;
+        // `floor_plan_symbols` references `floor_plan_cases` and, optionally, `shots` (both inserted
+        // above); `floor_plan_arrows` references `floor_plan_cases`, `shots` and the two
+        // `floor_plan_symbols` rows it connects, so it comes last.
+        ..insertAll(database.ocptFloorPlanCasesTable, payload.floorPlanCases)
+        ..insertAll(database.ocptStoryboardPanelsTable, payload.storyboardPanels)
+        ..insertAll(database.ocptStoryboardAnnotationsTable, payload.storyboardAnnotations)
+        ..insertAll(database.ocptFloorPlanSymbolsTable, payload.floorPlanSymbols)
+        ..insertAll(database.ocptFloorPlanArrowsTable, payload.floorPlanArrows)
         ..insertAll(database.ocptRowFieldVersionsTable, payload.rowFieldVersions);
     });
   });
