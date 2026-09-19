@@ -2702,6 +2702,165 @@
     "type": "text",
     "placeholders": {}
   },
+  "shotListBoardTableSegmentLabel": "Table",
+  "@shotListBoardTableSegmentLabel": {
+    "description": "Label of the centre header's own switch segment that shows the table view",
+    "context": "Displayed in the shot list mode's centre header",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListBoardBoardSegmentLabel": "Board",
+  "@shotListBoardBoardSegmentLabel": {
+    "description": "Label of the centre header's own switch segment that shows the board view",
+    "context": "Displayed in the shot list mode's centre header",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListBoardPanelsCount": "{count, plural, one{{count} panel} other{{count} panels}}",
+  "@shotListBoardPanelsCount": {
+    "description": "Panel count of the selected sequence, appended to its summary while the board is shown",
+    "context": "Displayed in the shot list mode's centre header",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "shotListBoardNoPanelYetHint": "no panel yet",
+  "@shotListBoardNoPanelYetHint": {
+    "description": "Shown in a shot's own import slot when it has no panel at all",
+    "context": "Displayed on the board, in place of a panel strip",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListBoardImportFrameAction": "+ Import frame",
+  "@shotListBoardImportFrameAction": {
+    "description": "Label of a panel strip's own trailing import slot",
+    "context": "Displayed on the board, at the end of a shot's panel strip",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListBoardReplaceImageAction": "Replace image",
+  "@shotListBoardReplaceImageAction": {
+    "description": "Tooltip of a panel frame's own action replacing its image",
+    "context": "Displayed on the board, over a panel frame",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListBoardPanelRatioLabel": "Ratio {ratio}",
+  "@shotListBoardPanelRatioLabel": {
+    "description": "The aspect ratio label shown under a panel frame",
+    "context": "Displayed on the board, under a panel frame",
+    "type": "text",
+    "placeholders": {
+      "ratio": {
+        "type": "String"
+      }
+    }
+  },
+  "shotListBoardPanelsGroupTitle": "{count, plural, one{Panels (1)} other{Panels ({count})}}",
+  "@shotListBoardPanelsGroupTitle": {
+    "description": "Title of the inspector's board-only Panels group",
+    "context": "Displayed at the top of the shot inspector's leading group, on the board",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "shotListBoardPanelCommentHint": "Comment…",
+  "@shotListBoardPanelCommentHint": {
+    "description": "Placeholder of a panel's own free comment field",
+    "context": "Displayed in the inspector's Panels group",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListBoardMovePanelUpAction": "Move earlier",
+  "@shotListBoardMovePanelUpAction": {
+    "description": "Tooltip of a panel row's own affordance moving it one position earlier",
+    "context": "Displayed in the inspector's Panels group",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListBoardMovePanelDownAction": "Move later",
+  "@shotListBoardMovePanelDownAction": {
+    "description": "Tooltip of a panel row's own affordance moving it one position later",
+    "context": "Displayed in the inspector's Panels group",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListBoardDeletePanelAction": "Delete panel",
+  "@shotListBoardDeletePanelAction": {
+    "description": "Tooltip and confirmation button label of a panel's own deletion action",
+    "context": "Displayed in the inspector's Panels group, and as the confirm dialog's own button",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListBoardDeletePanelConfirmTitle": "Delete this panel?",
+  "@shotListBoardDeletePanelConfirmTitle": {
+    "description": "Title of the confirmation dialog deleting a storyboard panel",
+    "context": "Displayed in the confirm dialog opened from the inspector's Panels group",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListBoardDeletePanelConfirmMessage": "Its image, its comment and its annotations are removed for good.",
+  "@shotListBoardDeletePanelConfirmMessage": {
+    "description": "Message of the confirmation dialog deleting a storyboard panel",
+    "context": "Displayed in the confirm dialog opened from the inspector's Panels group",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListBoardImageFileTypeLabel": "Images",
+  "@shotListBoardImageFileTypeLabel": {
+    "description": "Label of the file type filter of the native picker, when importing or replacing a storyboard panel's frame",
+    "context": "Displayed in the platform's own open dialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListBoardPanelSizeMenuAction": "Panel size",
+  "@shotListBoardPanelSizeMenuAction": {
+    "description": "Label of the board header's own panel size menu trigger",
+    "context": "Displayed in the shot list mode's centre header, while the board is shown",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListBoardPanelSizeSmall": "Small",
+  "@shotListBoardPanelSizeSmall": {
+    "description": "Label of the board's smallest panel size",
+    "context": "Displayed in the board header's own panel size menu",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListBoardPanelSizeMedium": "Medium",
+  "@shotListBoardPanelSizeMedium": {
+    "description": "Label of the board's default panel size",
+    "context": "Displayed in the board header's own panel size menu",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListBoardPanelSizeLarge": "Large",
+  "@shotListBoardPanelSizeLarge": {
+    "description": "Label of the board's largest panel size",
+    "context": "Displayed in the board header's own panel size menu",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListBoardPanelSelectedHint": "Panel {rank} of {total} selected · drag to reorder",
+  "@shotListBoardPanelSelectedHint": {
+    "description": "Status bar hint naming the selected panel, while the board is shown",
+    "context": "Displayed in the shot list mode's status bar",
+    "type": "text",
+    "placeholders": {
+      "rank": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
   "projectVersionsPanelTitle": "Project versions",
   "@projectVersionsPanelTitle": {
     "description": "Header of the project versions panel",

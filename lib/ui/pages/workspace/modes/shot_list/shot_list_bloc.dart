@@ -4,6 +4,7 @@
 
 import 'dart:async';
 
+import 'package:act_file_transfer_manager/act_file_transfer_manager.dart';
 import 'package:act_flutter_utility/act_flutter_utility.dart';
 import 'package:act_global_manager/act_global_manager.dart';
 import 'package:collection/collection.dart';
@@ -11,6 +12,7 @@ import 'package:drift/drift.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:fountain_kit/fountain_kit.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_asset_file_types.dart';
 import 'package:open_cine_prod_tools/managers/export/ocpt_export_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
@@ -19,6 +21,7 @@ import 'package:open_cine_prod_tools/managers/projects/services/ocpt_role_index_
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_schedule_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_coverage_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_list_service.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_storyboard_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/ocpt_open_project_model.dart';
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
@@ -27,10 +30,13 @@ import 'package:open_cine_prod_tools/models/ocpt_script_word_layout.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_field_suggestions.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_list_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
+import 'package:open_cine_prod_tools/models/ocpt_storyboard_snapshot.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_difficulty_axis.dart';
+import 'package:open_cine_prod_tools/types/ocpt_shot_list_centre_view.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_column.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_editable_field.dart';
+import 'package:open_cine_prod_tools/types/ocpt_shot_list_pending_edit_key.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_right_dock_tab.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project_package_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project_versions_bloc.dart';
@@ -136,6 +142,14 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
   /// see [_loadSnapshot].
   final OcptScheduleService _scheduleService;
 
+  /// The service used to read and write the board's panels: `loadStoryboard`, `addPanel`,
+  /// `replacePanelImage`, `reorderPanel`, `updatePanelComment` and `deletePanel`.
+  final OcptStoryboardService _storyboardService;
+
+  /// The manager used to pick a panel's frame through the native "open" dialog, mirroring
+  /// `OcptResourcesBloc`'s own `_pickFilePath`.
+  final FileSelectorManager? _fileSelectorManager;
+
   /// The delay between the last field edit and its autosave write.
   final Duration _fieldEditDebounce;
 
@@ -167,6 +181,8 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     OcptRoleIndexService? roleIndexService,
     OcptShotCoverageService? shotCoverageService,
     OcptScheduleService? scheduleService,
+    OcptStoryboardService? storyboardService,
+    FileSelectorManager? fileSelectorManager,
     Duration fieldEditDebounce = defaultFieldEditDebounce,
     String? selectedEpisodeId,
   }) : _selectedEpisodeId = selectedEpisodeId,
@@ -186,6 +202,10 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
        _scheduleService =
            scheduleService ??
            (projectsManager ?? globalGetIt().get<OcptProjectsManager>()).scheduleService,
+       _storyboardService =
+           storyboardService ??
+           (projectsManager ?? globalGetIt().get<OcptProjectsManager>()).storyboardService,
+       _fileSelectorManager = fileSelectorManager,
        _fieldEditDebounce = fieldEditDebounce,
        super(OcptShotListState.init()) {
     add(const OcptShotListLoadRequestedEvent());
@@ -225,6 +245,14 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     on<OcptShotListCoverageClearRequestedEvent>(_onCoverageClearRequested);
     on<OcptShotListCoverageAnchorCancelledEvent>(_onCoverageAnchorCancelled);
     on<OcptShotListShotMarkedAsCheckedEvent>(_onShotMarkedAsChecked);
+    on<OcptShotListCentreViewSelectedEvent>(_onCentreViewSelected);
+    on<OcptShotListPanelSelectedEvent>(_onPanelSelected);
+    on<OcptShotListPanelSizeChangedEvent>(_onPanelSizeChanged);
+    on<OcptShotListPanelImportRequestedEvent>(_onPanelImportRequested);
+    on<OcptShotListPanelReplaceRequestedEvent>(_onPanelReplaceRequested);
+    on<OcptShotListPanelReorderedEvent>(_onPanelReordered);
+    on<OcptShotListPanelCommentChangedEvent>(_onPanelCommentChanged);
+    on<OcptShotListPanelDeletionRequestedEvent>(_onPanelDeletionRequested);
   }
 
   /// {@macro open_cine_prod_tools.MixinOcptProjectVersionsBloc.projectsManager}
@@ -283,6 +311,8 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     final lastRightDockTab =
         await _propertiesManager.shotListLastRightDockTab.load() ??
         OcptShotListRightDockTab.inspector;
+    final centreView =
+        await _propertiesManager.shotListLastCentreView.load() ?? OcptShotListCentreView.table;
 
     final project = _projectsManager.currentProject;
     if (project == null) {
@@ -293,6 +323,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
           rightDockFraction: rightDockFraction,
           visibleColumns: visibleColumns,
           lastRightDockTab: lastRightDockTab,
+          centreView: centreView,
           clearPreviewedVersionId: true,
         ),
       );
@@ -303,6 +334,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     final screenplayText = await _loadScreenplayText(project);
     final pageSetup = await _loadPageSetup(project);
     final snapshot = await _loadSnapshot(project);
+    final storyboardSnapshot = await _loadStoryboard(project);
     final screenplayCharacters = _screenplayCharactersOf(screenplayText);
     final roles = await _loadRoles(project);
     final suggestions = await _loadSuggestions(project);
@@ -314,17 +346,20 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
         previewedVersionId: previewedVersion?.id,
         clearPreviewedVersionId: previewedVersion == null,
         snapshot: snapshot,
+        storyboardSnapshot: storyboardSnapshot,
         pageSetup: pageSetup,
         screenplayText: screenplayText,
         roles: roles,
         selectedSequenceId: snapshot.sequences.isEmpty ? null : snapshot.sequences.first.id,
         clearSelectedSequenceId: snapshot.sequences.isEmpty,
         clearSelectedShotId: true,
+        clearSelectedPanelId: true,
         clearPendingCoverageAnchor: true,
         leftDockFraction: leftDockFraction,
         rightDockFraction: rightDockFraction,
         visibleColumns: visibleColumns,
         lastRightDockTab: lastRightDockTab,
+        centreView: centreView,
         screenplayCharacters: screenplayCharacters,
         suggestions: suggestions,
       ),
@@ -358,6 +393,17 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
 
     return snapshot.copyWithPlacements(placements);
   }
+
+  /// Reads the whole storyboard of the selected episode's screenplay — every live shot's panels,
+  /// keyed by shot id — what the board reads through `OcptShotListState.panelsOfShot`.
+  ///
+  /// Read again after every board write, exactly as [_loadSnapshot] is after every shot list write:
+  /// the snapshot in state is only ever a reflection of what the database says.
+  Future<OcptStoryboardSnapshot> _loadStoryboard(OcptOpenProjectModel project) =>
+      _storyboardService.loadStoryboard(
+        database: project.database,
+        screenplayId: _screenplayIdOf(project),
+      );
 
   /// Reads the production's whole cast — every live role, in `sortKey` order — what the
   /// inspector's character chips are built from, and what the shared role alert banner's
@@ -455,6 +501,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
       state.copyWith(
         selectedSequenceId: event.sequenceId,
         clearSelectedShotId: !isSameSequence,
+        clearSelectedPanelId: !isSameSequence,
         clearPendingCoverageAnchor: true,
       ),
     );
@@ -483,6 +530,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
       state.copyWith(
         selectedSequenceId: sequence.id,
         selectedShotId: event.shotId,
+        clearSelectedPanelId: true,
         rightDockTab: OcptShotListRightDockTab.inspector,
         lastRightDockTab: OcptShotListRightDockTab.inspector,
         clearPendingCoverageAnchor: true,
@@ -830,8 +878,23 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     OcptShotListShotFieldChangedEvent event,
     Emitter<OcptShotListState> emitter,
   ) async {
-    final pending = Map<(String, OcptShotListEditableField), String>.of(state.pendingFieldEdits)
-      ..[(event.shotId, event.field)] = event.rawValue;
+    _recordPendingEdit(
+      emitter: emitter,
+      key: OcptShotListShotFieldEditKey(shotId: event.shotId, field: event.field),
+      rawValue: event.rawValue,
+    );
+  }
+
+  /// Records [rawValue] as the pending edit of [key], visible immediately, and (re)starts the
+  /// field-edit debounce that eventually writes it — the body [_onShotFieldChanged] and
+  /// [_onPanelCommentChanged] share, since both ride the very same debounce.
+  void _recordPendingEdit({
+    required Emitter<OcptShotListState> emitter,
+    required OcptShotListPendingEditKey key,
+    required String rawValue,
+  }) {
+    final pending = Map<OcptShotListPendingEditKey, String>.of(state.pendingFieldEdits)
+      ..[key] = rawValue;
     emitter(state.copyWith(pendingFieldEdits: pending));
 
     _fieldEditTimer?.cancel();
@@ -878,8 +941,14 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
       await _writeAllPendingFields(project: project, pending: pending);
       final snapshot = await _loadSnapshot(project);
       final suggestions = await _loadSuggestions(project);
+      final storyboardSnapshot = await _loadStoryboard(project);
       emitter(
-        state.copyWith(snapshot: snapshot, suggestions: suggestions, pendingFieldEdits: const {}),
+        state.copyWith(
+          snapshot: snapshot,
+          suggestions: suggestions,
+          storyboardSnapshot: storyboardSnapshot,
+          pendingFieldEdits: const {},
+        ),
       );
 
       // The other of the two moments the working-copy card needs a fresh read for (see
@@ -931,35 +1000,48 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     }
   }
 
-  /// Writes every entry of [pending] through `OcptShotListService.updateShot`, translating each
-  /// field into the matching named argument (see `OcptShotListEditableField`'s own doc comment
-  /// for the mapping), and deduces an abbreviation alongside every shot size committed here (see
-  /// [_deduceAbbreviationIfEmpty]).
+  /// Writes every entry of [pending], switching on its key's own kind: a shot field through
+  /// `OcptShotListService.updateShot` (translating it into the matching named argument, see
+  /// `OcptShotListEditableField`'s own doc comment for the mapping, and deducing an abbreviation
+  /// alongside every shot size committed here, see [_deduceAbbreviationIfEmpty]), or a panel
+  /// comment through `OcptStoryboardService.updatePanelComment`.
   ///
   /// A shot whose abbreviation is being typed in the very same flush is left out of the deduction:
   /// what the user is writing wins over what the shot size would have suggested, whichever of the
   /// two entries this loop happens to reach first.
   Future<void> _writeAllPendingFields({
     required OcptOpenProjectModel project,
-    required Map<(String, OcptShotListEditableField), String> pending,
+    required Map<OcptShotListPendingEditKey, String> pending,
   }) async {
     for (final entry in pending.entries) {
-      final (shotId, field) = entry.key;
+      switch (entry.key) {
+        case OcptShotListShotFieldEditKey(:final shotId, :final field):
+          await _writeField(
+            database: project.database,
+            shotId: shotId,
+            field: field,
+            rawValue: entry.value,
+          );
 
-      await _writeField(
-        database: project.database,
-        shotId: shotId,
-        field: field,
-        rawValue: entry.value,
-      );
-
-      if (field == OcptShotListEditableField.shotSize &&
-          !pending.containsKey((shotId, OcptShotListEditableField.abbreviation))) {
-        await _deduceAbbreviationIfEmpty(
-          database: project.database,
-          shotId: shotId,
-          shotSize: entry.value,
-        );
+          if (field == OcptShotListEditableField.shotSize &&
+              !pending.containsKey(
+                OcptShotListShotFieldEditKey(
+                  shotId: shotId,
+                  field: OcptShotListEditableField.abbreviation,
+                ),
+              )) {
+            await _deduceAbbreviationIfEmpty(
+              database: project.database,
+              shotId: shotId,
+              shotSize: entry.value,
+            );
+          }
+        case OcptShotListPanelCommentEditKey(:final panelId):
+          await _storyboardService.updatePanelComment(
+            database: project.database,
+            panelId: panelId,
+            comment: entry.value,
+          );
       }
     }
   }
@@ -1200,8 +1282,9 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
   }
 
   /// Deletes shot `event.shotId`, clearing the selection when it was the selected shot (the
-  /// sequence stays selected), and dropping any pending field edit that still targeted it (the
-  /// shot it would have written to no longer exists).
+  /// sequence stays selected), and dropping any pending field or panel comment edit that still
+  /// targeted it or one of its panels — `OcptShotListService.deleteShot`'s own cascade tombstones
+  /// the shot's panels alongside it, so there is nothing left for either to write to.
   Future<void> _onShotDeletionRequested(
     OcptShotListShotDeletionRequestedEvent event,
     Emitter<OcptShotListState> emitter,
@@ -1211,15 +1294,21 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
       return;
     }
 
-    final pendingWithoutShot = Map<(String, OcptShotListEditableField), String>.of(
-      state.pendingFieldEdits,
-    )..removeWhere((key, _) => key.$1 == event.shotId);
+    final panelIds = state.panelsOfShot(event.shotId).map((panel) => panel.id).toSet();
+    final pendingWithoutShot = Map<OcptShotListPendingEditKey, String>.of(state.pendingFieldEdits)
+      ..removeWhere(
+        (key, _) => switch (key) {
+          OcptShotListShotFieldEditKey(:final shotId) => shotId == event.shotId,
+          OcptShotListPanelCommentEditKey(:final panelId) => panelIds.contains(panelId),
+        },
+      );
     if (pendingWithoutShot.isEmpty) {
       _fieldEditTimer?.cancel();
       _fieldEditTimer = null;
     }
 
     final wasSelected = state.selectedShotId == event.shotId;
+    final wasPanelSelected = panelIds.contains(state.selectedPanelId);
 
     try {
       await _shotListService.deleteShot(database: project.database, shotId: event.shotId);
@@ -1227,8 +1316,10 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
         state.copyWith(
           snapshot: await _loadSnapshot(project),
           suggestions: await _loadSuggestions(project),
+          storyboardSnapshot: await _loadStoryboard(project),
           pendingFieldEdits: pendingWithoutShot,
           clearSelectedShotId: wasSelected,
+          clearSelectedPanelId: wasSelected || wasPanelSelected,
           clearPendingCoverageAnchor: wasSelected,
         ),
       );
@@ -1518,6 +1609,210 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
       appLogger().e("A problem occurred when tried to change the scenario coverage of shot "
           "$shotId of the project at ${project.path}: $error");
       emitter(state.copyWith(hasWriteError: true, clearPendingCoverageAnchor: true));
+    }
+  }
+
+  /// Selects centre view `event.view`, dispatched by `OcptShotListCentreHeader`'s own switch, and
+  /// persists it so reopening the mode restores it.
+  ///
+  /// Keeps [OcptShotListState.selectedShotId]/`.selectedSequenceId` untouched: the two views read
+  /// the same selection.
+  Future<void> _onCentreViewSelected(
+    OcptShotListCentreViewSelectedEvent event,
+    Emitter<OcptShotListState> emitter,
+  ) async {
+    await _propertiesManager.shotListLastCentreView.store(event.view);
+    emitter(state.copyWith(centreView: event.view));
+  }
+
+  /// Selects panel `event.panelId` on the board, dispatched by a click on one of the selected
+  /// shot's own panel frames.
+  Future<void> _onPanelSelected(
+    OcptShotListPanelSelectedEvent event,
+    Emitter<OcptShotListState> emitter,
+  ) async {
+    emitter(state.copyWith(selectedPanelId: event.panelId));
+  }
+
+  /// Sets the board's common panel height, a view preference held for the session alone.
+  Future<void> _onPanelSizeChanged(
+    OcptShotListPanelSizeChangedEvent event,
+    Emitter<OcptShotListState> emitter,
+  ) async {
+    emitter(state.copyWith(boardPanelSize: event.size));
+  }
+
+  /// Picks a frame through the native "open" dialog, filtered to JPEG and PNG
+  /// (`ocptStoryboardPanelImageFileExtensions`), appends a new panel of shot `event.shotId` and
+  /// points it at the file picked, then selects the new panel. A cancelled dialog changes nothing
+  /// at all.
+  Future<void> _onPanelImportRequested(
+    OcptShotListPanelImportRequestedEvent event,
+    Emitter<OcptShotListState> emitter,
+  ) async {
+    final path = await _pickPanelImagePath(fileTypeLabel: event.fileTypeLabel);
+    if (path == null) {
+      return;
+    }
+
+    final project = _projectsManager.currentProject;
+    if (project == null) {
+      return;
+    }
+
+    try {
+      final panelId = await _storyboardService.addPanel(
+        database: project.database,
+        shotId: event.shotId,
+      );
+      if (panelId == null) {
+        return;
+      }
+
+      await _storyboardService.replacePanelImage(
+        database: project.database,
+        panelId: panelId,
+        path: path,
+      );
+      emitter(
+        state.copyWith(
+          storyboardSnapshot: await _loadStoryboard(project),
+          selectedPanelId: panelId,
+        ),
+      );
+    } catch (error) {
+      appLogger().e("A problem occurred when tried to import a storyboard frame onto shot "
+          "${event.shotId} of the project at ${project.path}: $error");
+      emitter(state.copyWith(hasWriteError: true));
+    }
+  }
+
+  /// Picks a fresh frame the same way [_onPanelImportRequested] does and re-points panel
+  /// `event.panelId` at it, dispatched by its frame's own `Replace image` action. A cancelled
+  /// dialog leaves the panel's current image untouched.
+  Future<void> _onPanelReplaceRequested(
+    OcptShotListPanelReplaceRequestedEvent event,
+    Emitter<OcptShotListState> emitter,
+  ) async {
+    final path = await _pickPanelImagePath(fileTypeLabel: event.fileTypeLabel);
+    if (path == null) {
+      return;
+    }
+
+    final project = _projectsManager.currentProject;
+    if (project == null) {
+      return;
+    }
+
+    try {
+      await _storyboardService.replacePanelImage(
+        database: project.database,
+        panelId: event.panelId,
+        path: path,
+      );
+      emitter(state.copyWith(storyboardSnapshot: await _loadStoryboard(project)));
+    } catch (error) {
+      appLogger().e("A problem occurred when tried to replace the image of panel "
+          "${event.panelId} of the project at ${project.path}: $error");
+      emitter(state.copyWith(hasWriteError: true));
+    }
+  }
+
+  /// Shows the native "open" dialog filtered to [ocptStoryboardPanelImageFileExtensions] and
+  /// returns the path picked, or null when the user cancelled it, when it failed, or when the
+  /// platform gave a file with no path at all.
+  ///
+  /// **The file itself is never read here** (`docs/adr/0013-binary-assets-referenced-by-path.md`):
+  /// mirrors `OcptResourcesBloc._pickFilePath` exactly, a pick going to [FileSelectorManager]
+  /// directly rather than through `OcptExportManager` since there is nothing to decode, only a
+  /// path to keep.
+  Future<String?> _pickPanelImagePath({required String fileTypeLabel}) async {
+    final fileSelectorManager = _fileSelectorManager ?? globalGetIt().get<FileSelectorManager>();
+
+    final selection = await fileSelectorManager.openSelector(
+      allowedExtensions: ocptStoryboardPanelImageFileExtensions,
+      label: fileTypeLabel,
+    );
+
+    final file = selection.value;
+    if (!selection.status.isSuccess || file == null) {
+      return null;
+    }
+
+    return file.path.isEmpty ? null : file.path;
+  }
+
+  /// Moves panel `event.panelId` of shot `event.shotId` to `event.newPosition`, writing exactly one
+  /// row (`OcptStoryboardService.reorderPanel`), dispatched by the strip's own drag-to-reorder
+  /// gesture.
+  Future<void> _onPanelReordered(
+    OcptShotListPanelReorderedEvent event,
+    Emitter<OcptShotListState> emitter,
+  ) async {
+    final project = _projectsManager.currentProject;
+    if (project == null) {
+      return;
+    }
+
+    try {
+      await _storyboardService.reorderPanel(
+        database: project.database,
+        panelId: event.panelId,
+        newPosition: event.newPosition,
+      );
+      emitter(state.copyWith(storyboardSnapshot: await _loadStoryboard(project)));
+    } catch (error) {
+      appLogger().e("A problem occurred when tried to reorder panel ${event.panelId} of the "
+          "project at ${project.path}: $error");
+      emitter(state.copyWith(hasWriteError: true));
+    }
+  }
+
+  /// Records the raw text just typed into panel `event.panelId`'s comment as a pending edit, and
+  /// (re)starts the field-edit debounce shared with [_onShotFieldChanged].
+  Future<void> _onPanelCommentChanged(
+    OcptShotListPanelCommentChangedEvent event,
+    Emitter<OcptShotListState> emitter,
+  ) async {
+    _recordPendingEdit(
+      emitter: emitter,
+      key: OcptShotListPanelCommentEditKey(panelId: event.panelId),
+      rawValue: event.rawValue,
+    );
+  }
+
+  /// Deletes panel `event.panelId` for good, dispatched once the inspector's Panels group's own
+  /// `Delete panel` action has already been confirmed through `OcptConfirmDialog`, by the mode.
+  /// Clears the panel selection and drops any pending comment edit that still targeted it.
+  Future<void> _onPanelDeletionRequested(
+    OcptShotListPanelDeletionRequestedEvent event,
+    Emitter<OcptShotListState> emitter,
+  ) async {
+    final project = _projectsManager.currentProject;
+    if (project == null) {
+      return;
+    }
+
+    final wasSelected = state.selectedPanelId == event.panelId;
+    final pendingWithoutPanel = Map<OcptShotListPendingEditKey, String>.of(
+      state.pendingFieldEdits,
+    )..removeWhere(
+        (key, _) => key is OcptShotListPanelCommentEditKey && key.panelId == event.panelId,
+      );
+
+    try {
+      await _storyboardService.deletePanel(database: project.database, panelId: event.panelId);
+      emitter(
+        state.copyWith(
+          storyboardSnapshot: await _loadStoryboard(project),
+          pendingFieldEdits: pendingWithoutPanel,
+          clearSelectedPanelId: wasSelected,
+        ),
+      );
+    } catch (error) {
+      appLogger().e("A problem occurred when tried to delete panel ${event.panelId} of the "
+          "project at ${project.path}: $error");
+      emitter(state.copyWith(hasWriteError: true));
     }
   }
 

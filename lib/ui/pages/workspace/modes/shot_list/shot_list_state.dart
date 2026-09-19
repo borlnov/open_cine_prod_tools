@@ -19,11 +19,15 @@ import 'package:open_cine_prod_tools/models/ocpt_shot_coverage_range.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_field_suggestions.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_list_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
+import 'package:open_cine_prod_tools/models/ocpt_storyboard_panel.dart';
+import 'package:open_cine_prod_tools/models/ocpt_storyboard_snapshot.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_version_notice_kind.dart';
+import 'package:open_cine_prod_tools/types/ocpt_shot_list_centre_view.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_column.dart';
-import 'package:open_cine_prod_tools/types/ocpt_shot_list_editable_field.dart';
+import 'package:open_cine_prod_tools/types/ocpt_shot_list_pending_edit_key.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_right_dock_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_status.dart';
+import 'package:open_cine_prod_tools/types/ocpt_storyboard_panel_size.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project_package_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project_versions_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock.dart';
@@ -119,6 +123,33 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
   /// sequence too, and selecting another sequence clears the shot.
   final String? selectedShotId;
 
+  /// Which of the mode's centre views is currently shown, persisted through
+  /// `OcptPropertiesManager.shotListLastCentreView`. The switch offering it is
+  /// `OcptShotListCentreHeader`; a compact width shows the table regardless of this value (see
+  /// `OcptShotListState.isBoardShown` on the mode side — the mode itself decides that, this state
+  /// only ever carries what the user last picked).
+  final OcptShotListCentreView centreView;
+
+  /// The whole storyboard of the selected episode's screenplay, as last read by
+  /// `OcptStoryboardService.loadStoryboard`, or null while nothing has been loaded yet. Reloaded
+  /// after every write a board affordance makes (importing, replacing, reordering or deleting a
+  /// panel, flushing a pending comment edit).
+  final OcptStoryboardSnapshot? storyboardSnapshot;
+
+  /// The id of the panel currently selected on the board, or null while none is.
+  ///
+  /// Cleared whenever [selectedShotId] or [selectedSequenceId] changes: a panel only ever belongs
+  /// to the shot currently shown, exactly as `OcptFloorPlanState.selectedSymbolId` (M5/M6) will be
+  /// cleared the same way.
+  final String? selectedPanelId;
+
+  /// The common height every panel frame of the board's strips is drawn at, picked from the
+  /// header's own `Panel size ▾` menu.
+  ///
+  /// A **view preference** held here for the session alone, never persisted to the project or to
+  /// `OcptPropertiesManager` — see [OcptStoryboardPanelSize]'s own doc comment.
+  final OcptStoryboardPanelSize boardPanelSize;
+
   /// Whether the left (sequences) dock is shown.
   final bool isSequencePanelVisible;
 
@@ -178,14 +209,15 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
   /// read from, reloaded after every field-edit flush.
   final OcptShotFieldSuggestions suggestions;
 
-  /// Every field edit currently sitting in the field-edit autosave debounce, keyed by the shot id
-  /// and the field, holding the raw text last typed for it.
+  /// Every field edit currently sitting in the field-edit autosave debounce, keyed by
+  /// [OcptShotListPendingEditKey] (a shot's own field, or a board panel's comment), holding the raw
+  /// text last typed for it.
   ///
-  /// What a field shows takes this map's entry over the shot's own stored value whenever one is
-  /// present, so typing is never overwritten by a reload triggered by an unrelated write (another
-  /// field's own flush, a status change on a different shot). An entry is removed the moment its
-  /// write lands, whether through the debounce elapsing or an explicit flush.
-  final Map<(String, OcptShotListEditableField), String> pendingFieldEdits;
+  /// What a field or a panel comment shows takes this map's entry over its own stored value
+  /// whenever one is present, so typing is never overwritten by a reload triggered by an unrelated
+  /// write (another field's own flush, a status change on a different shot). An entry is removed
+  /// the moment its write lands, whether through the debounce elapsing or an explicit flush.
+  final Map<OcptShotListPendingEditKey, String> pendingFieldEdits;
 
   /// The first word clicked of a scenario coverage range currently being drawn in the coverage
   /// dialog, or null while none is being drawn (no click yet, or the range was just closed or
@@ -259,6 +291,42 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
   OcptShot? get selectedShot {
     final selectedShotId = this.selectedShotId;
     return selectedShotId == null ? null : snapshot?.shotsById[selectedShotId];
+  }
+
+  /// [shotId]'s own panels, in order, or an empty list while [storyboardSnapshot] hasn't loaded yet
+  /// or the shot has none.
+  List<OcptStoryboardPanel> panelsOfShot(String shotId) =>
+      storyboardSnapshot?.panelsOfShot(shotId) ?? const [];
+
+  /// The selected shot's own panels, or an empty list while no shot is selected.
+  List<OcptStoryboardPanel> get panelsOfSelectedShot {
+    final selectedShotId = this.selectedShotId;
+    return selectedShotId == null ? const [] : panelsOfShot(selectedShotId);
+  }
+
+  /// The panel [selectedPanelId] identifies, or null if none is selected (or the selected one
+  /// disappeared from a freshly loaded [storyboardSnapshot]).
+  OcptStoryboardPanel? get selectedPanel {
+    final selectedPanelId = this.selectedPanelId;
+    if (selectedPanelId == null) {
+      return null;
+    }
+    for (final panel in panelsOfSelectedShot) {
+      if (panel.id == selectedPanelId) {
+        return panel;
+      }
+    }
+    return null;
+  }
+
+  /// The total number of live panels across every shot of the selected sequence — the board
+  /// header's own `· N panels` read-out.
+  int get boardPanelCountOfSelectedSequence {
+    final sequence = selectedSequence;
+    if (sequence == null) {
+      return 0;
+    }
+    return sequence.shots.fold(0, (total, shot) => total + panelsOfShot(shot.id).length);
   }
 
   /// The total number of shots across every sequence, orphan group included.
@@ -378,6 +446,10 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
     required this.screenplayText,
     required this.selectedSequenceId,
     required this.selectedShotId,
+    required this.centreView,
+    required this.storyboardSnapshot,
+    required this.selectedPanelId,
+    required this.boardPanelSize,
     required this.isSequencePanelVisible,
     required this.rightDockTab,
     required this.lastRightDockTab,
@@ -411,6 +483,10 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
       screenplayText = "",
       selectedSequenceId = null,
       selectedShotId = null,
+      centreView = OcptShotListCentreView.table,
+      storyboardSnapshot = null,
+      selectedPanelId = null,
+      boardPanelSize = OcptStoryboardPanelSize.medium,
       isSequencePanelVisible = true,
       rightDockTab = null,
       lastRightDockTab = OcptShotListRightDockTab.inspector,
@@ -437,10 +513,10 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
   /// {@macro act_flutter_utility.BlocStateForMixin.copyWith}
   ///
   /// [snapshot] is only replaced when a new one is given: it never goes back to null once loaded,
-  /// so it needs no clear flag. [selectedSequenceId], [selectedShotId], [rightDockTab],
-  /// [pendingCoverageAnchor] and [ioNotice] all legitimately go back to null while the mode is
-  /// alive (nothing selected any more, the dock closed, no range being drawn, the export notice
-  /// dismissed), so each has its own clear flag instead.
+  /// so it needs no clear flag. [selectedSequenceId], [selectedShotId], [selectedPanelId],
+  /// [rightDockTab], [pendingCoverageAnchor] and [ioNotice] all legitimately go back to null while
+  /// the mode is alive (nothing selected any more, the dock closed, no range being drawn, the
+  /// export notice dismissed), so each has its own clear flag instead.
   @override
   OcptShotListState copyWith({
     bool? isLoading,
@@ -452,6 +528,11 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
     bool clearSelectedSequenceId = false,
     String? selectedShotId,
     bool clearSelectedShotId = false,
+    OcptShotListCentreView? centreView,
+    OcptStoryboardSnapshot? storyboardSnapshot,
+    String? selectedPanelId,
+    bool clearSelectedPanelId = false,
+    OcptStoryboardPanelSize? boardPanelSize,
     bool? isSequencePanelVisible,
     OcptShotListRightDockTab? rightDockTab,
     bool clearRightDockTab = false,
@@ -465,7 +546,7 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
     List<String>? screenplayCharacters,
     List<OcptRole>? roles,
     OcptShotFieldSuggestions? suggestions,
-    Map<(String, OcptShotListEditableField), String>? pendingFieldEdits,
+    Map<OcptShotListPendingEditKey, String>? pendingFieldEdits,
     ({int wordStartOffset, int wordEndOffset})? pendingCoverageAnchor,
     bool clearPendingCoverageAnchor = false,
     List<OcptProjectVersion>? projectVersions,
@@ -495,6 +576,10 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
         ? null
         : (selectedSequenceId ?? this.selectedSequenceId),
     selectedShotId: clearSelectedShotId ? null : (selectedShotId ?? this.selectedShotId),
+    centreView: centreView ?? this.centreView,
+    storyboardSnapshot: storyboardSnapshot ?? this.storyboardSnapshot,
+    selectedPanelId: clearSelectedPanelId ? null : (selectedPanelId ?? this.selectedPanelId),
+    boardPanelSize: boardPanelSize ?? this.boardPanelSize,
     isSequencePanelVisible: isSequencePanelVisible ?? this.isSequencePanelVisible,
     rightDockTab: clearRightDockTab ? null : (rightDockTab ?? this.rightDockTab),
     lastRightDockTab: lastRightDockTab ?? this.lastRightDockTab,
@@ -592,6 +677,10 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
     screenplayText,
     selectedSequenceId,
     selectedShotId,
+    centreView,
+    storyboardSnapshot,
+    selectedPanelId,
+    boardPanelSize,
     isSequencePanelVisible,
     rightDockTab,
     lastRightDockTab,

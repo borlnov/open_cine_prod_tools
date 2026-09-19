@@ -4,6 +4,7 @@
 
 import 'dart:io';
 
+import 'package:act_dart_result/act_dart_result.dart';
 import 'package:act_file_transfer_manager/act_file_transfer_manager.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -18,13 +19,19 @@ import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dar
 import 'package:open_cine_prod_tools/models/ocpt_shot_list_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_list_xlsx_labels.dart';
 import 'package:open_cine_prod_tools/types/ocpt_export_outcome.dart';
+import 'package:open_cine_prod_tools/types/ocpt_shot_list_centre_view.dart';
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_bloc.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_event.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_mode.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_scenario_coverage_export_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_shot_inspector_panel.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_shot_list_status_bar.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_storyboard_board.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_storyboard_shot_leader_card.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/workspace_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/workspace_event.dart';
+import 'package:open_cine_prod_tools/ui/widgets/ocpt_confirm_dialog.dart';
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
@@ -93,6 +100,25 @@ class _RecordingExportManager extends OcptExportManager {
   }
 }
 
+/// A file selector manager answering the picker with a file of its own, so a board test never
+/// opens a native dialog: [pickedPath] is what the user is pretending to pick. Mirrors
+/// `shot_list_bloc_test.dart`'s own test double of the same name.
+class _StubFileSelectorManager extends FileSelectorManager {
+  /// The path the next pick answers with.
+  final String pickedPath;
+
+  /// Class constructor
+  const _StubFileSelectorManager({required this.pickedPath});
+
+  /// Answers with [pickedPath] instead of opening the platform's own dialog.
+  @override
+  Future<ResultWithBoolStatus<XFile>> openSelector({
+    required List<String> allowedExtensions,
+    required String label,
+    bool strictOnExtensions = true,
+  }) async => ResultWithBoolStatus(status: BoolResultStatus.success, value: XFile(pickedPath));
+}
+
 void main() {
   late OcptPropertiesManager propertiesManager;
   late OcptProjectsManager projectsManager;
@@ -117,7 +143,12 @@ void main() {
       ..registerSingleton<OcptRouterManager>(_RecordingRouterManager())
       ..registerSingleton<OcptExportManager>(
         OcptExportManager(fileSelectorManager: const FileSelectorManager()),
-      );
+      )
+      // `OcptShotListBloc` resolves this itself for the board's own frame picker, with no test
+      // seam of its own (built by the mode, exactly like the export manager above) — the plain
+      // manager here never actually opens a dialog unless a board test swaps it for
+      // `_StubFileSelectorManager` through `useFileSelectorManager`.
+      ..registerSingleton<FileSelectorManager>(const FileSelectorManager());
   });
 
   setUp(() async {
@@ -167,6 +198,27 @@ void main() {
         // ignore: discarded_futures
         ..unregister<OcptExportManager>()
         ..registerSingleton<OcptExportManager>(previous);
+    });
+  }
+
+  /// Swaps the registered `FileSelectorManager` for [manager] for the rest of the current test,
+  /// restoring the plain one afterward — mirrors [useExportManager] exactly, for the board's own
+  /// frame picker.
+  void useFileSelectorManager(FileSelectorManager manager) {
+    final managers = OcptGlobalManager.instance.managers;
+    final previous = managers.get<FileSelectorManager>();
+    managers
+      // `unregister` returns `FutureOr` only because it may await a disposing function; none is
+      // registered here, so it never actually returns anything to wait for.
+      // ignore: discarded_futures
+      ..unregister<FileSelectorManager>()
+      ..registerSingleton<FileSelectorManager>(manager);
+    addTearDown(() {
+      managers
+        // See the identical `unregister` call above for why this is safe to leave un-awaited.
+        // ignore: discarded_futures
+        ..unregister<FileSelectorManager>()
+        ..registerSingleton<FileSelectorManager>(previous);
     });
   }
 
@@ -406,6 +458,149 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byType(FloatingActionButton), findsNothing);
+
+      // Leave the preview so the working copy is what the next test opens onto.
+      await projectsManager.exitPreview();
+    });
+  });
+
+  group("the board", () {
+    /// Sets the test surface past the 800 px compact breakpoint, mounts the mode, and creates and
+    /// selects a shot — the starting point every board test but the compact-width one shares.
+    Future<OcptShotListBloc> mountWithASelectedShot(WidgetTester tester) async {
+      tester.view.physicalSize = const Size(1400, 900);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      await tester.pumpWidget(_wrapWithLocalization(const OcptShotListMode()));
+      await tester.pumpAndSettle();
+
+      final bloc = tester.element(find.byType(OcptShotListStatusBar)).read<OcptShotListBloc>();
+      bloc.add(const OcptShotListShotCreationRequestedEvent());
+      await tester.pumpAndSettle();
+      expect(bloc.state.selectedShotId, isNotNull);
+
+      return bloc;
+    }
+
+    testWidgets("switching to the board keeps the selected shot", (tester) async {
+      final bloc = await mountWithASelectedShot(tester);
+      final shotId = bloc.state.selectedShotId;
+      final tr = Tr.of(tester.element(find.byType(OcptShotListMode)));
+
+      await tester.tap(find.text(tr.shotListBoardBoardSegmentLabel));
+      await tester.pumpAndSettle();
+
+      expect(bloc.state.centreView, OcptShotListCentreView.board);
+      expect(bloc.state.selectedShotId, shotId);
+      expect(find.byType(OcptStoryboardBoard), findsOneWidget);
+
+      // Switching back keeps it too.
+      await tester.tap(find.text(tr.shotListBoardTableSegmentLabel));
+      await tester.pumpAndSettle();
+
+      expect(bloc.state.centreView, OcptShotListCentreView.table);
+      expect(bloc.state.selectedShotId, shotId);
+    });
+
+    testWidgets("a compact width offers the table only, the Board segment never shown", (
+      tester,
+    ) async {
+      tester.view.physicalSize = const Size(700, 1000);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      await tester.pumpWidget(_wrapWithLocalization(const OcptShotListMode()));
+      await tester.pumpAndSettle();
+
+      final tr = Tr.of(tester.element(find.byType(OcptShotListMode)));
+      expect(find.text(tr.shotListBoardTableSegmentLabel), findsOneWidget);
+      expect(find.text(tr.shotListBoardBoardSegmentLabel), findsNothing);
+      expect(find.byType(OcptStoryboardBoard), findsNothing);
+    });
+
+    testWidgets(
+      "importing a frame appends a panel, and Delete panel asks through the confirm dialog "
+      "before removing it",
+      (tester) async {
+        useFileSelectorManager(const _StubFileSelectorManager(pickedPath: "/frames/a.png"));
+
+        final bloc = await mountWithASelectedShot(tester);
+        final shotId = bloc.state.selectedShotId!;
+        final tr = Tr.of(tester.element(find.byType(OcptShotListMode)));
+
+        await tester.tap(find.text(tr.shotListBoardBoardSegmentLabel));
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.byIcon(Icons.add_photo_alternate_outlined));
+        await tester.pumpAndSettle();
+
+        expect(bloc.state.panelsOfShot(shotId), hasLength(1));
+
+        // The inspector's Panels group own `Delete panel` action only asks.
+        await tester.tap(find.byIcon(Icons.delete_outline));
+        await tester.pumpAndSettle();
+
+        expect(find.byType(OcptConfirmDialog), findsOneWidget);
+        expect(bloc.state.panelsOfShot(shotId), hasLength(1));
+
+        await tester.tap(find.text(tr.shotListDeleteConfirmDeleteAction));
+        await tester.pumpAndSettle();
+
+        expect(bloc.state.panelsOfShot(shotId), isEmpty);
+      },
+    );
+
+    testWidgets("a previewed version withholds Import frame and Delete panel", (tester) async {
+      useFileSelectorManager(const _StubFileSelectorManager(pickedPath: "/frames/a.png"));
+
+      final bloc = await mountWithASelectedShot(tester);
+      final tr = Tr.of(tester.element(find.byType(OcptShotListMode)));
+
+      await tester.tap(find.text(tr.shotListBoardBoardSegmentLabel));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byIcon(Icons.add_photo_alternate_outlined));
+      await tester.pumpAndSettle();
+      expect(bloc.state.panelsOfShot(bloc.state.selectedShotId!), hasLength(1));
+
+      final version = await projectsManager.createProjectVersion(name: "v1", note: "");
+      expect(version, isNotNull);
+      final previewResult = await projectsManager.previewVersion(version!.id);
+      expect(previewResult.status.isSuccess, isTrue);
+
+      // Unmounts, then remounts fresh: `pumpWidget` alone would just rebuild the very same
+      // element tree in place — the same `BlocProvider`, so the same bloc, never reloaded —
+      // whereas every other previewed-version test of this file enters the preview *before* its
+      // very first mount. Tearing down first forces a genuinely new `OcptShotListBloc`, which
+      // loads from the project exactly as those do; the centre view and the panel just imported
+      // both come back from what was just persisted/written, since a preview reads the very same
+      // project.
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pumpAndSettle();
+      await tester.pumpWidget(_wrapWithLocalization(const OcptShotListMode()));
+      await tester.pumpAndSettle();
+
+      final previewedBloc = tester.element(find.byType(OcptShotListStatusBar)).read<OcptShotListBloc>();
+      expect(previewedBloc.state.isPreviewingVersion, isTrue);
+      expect(previewedBloc.state.centreView, OcptShotListCentreView.board);
+
+      // The strip's own import slot no longer reports a tap, whichever of its two labels
+      // (`+ Import frame` or `no panel yet`) is the one showing.
+      final importSlotFinder = find.byIcon(Icons.add_photo_alternate_outlined);
+      expect(importSlotFinder, findsOneWidget);
+      final importInkWell = tester.widget<InkWell>(
+        find.ancestor(of: importSlotFinder, matching: find.byType(InkWell)).first,
+      );
+      expect(importInkWell.onTap, isNull);
+
+      // Selecting the shot is never withheld (it only reads), and once selected its Panels
+      // group's `Delete panel` icon is never built at all.
+      await tester.tap(find.byType(OcptStoryboardShotLeaderCard));
+      await tester.pumpAndSettle();
+      expect(previewedBloc.state.selectedShotId, isNotNull);
+      expect(find.byIcon(Icons.delete_outline), findsNothing);
 
       // Leave the preview so the working copy is what the next test opens onto.
       await projectsManager.exitPreview();

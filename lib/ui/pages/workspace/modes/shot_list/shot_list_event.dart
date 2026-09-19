@@ -9,9 +9,11 @@ import 'package:open_cine_prod_tools/models/ocpt_scenario_coverage_export_option
 import 'package:open_cine_prod_tools/models/ocpt_scenario_coverage_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_list_xlsx_labels.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_difficulty_axis.dart';
+import 'package:open_cine_prod_tools/types/ocpt_shot_list_centre_view.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_column.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_right_dock_tab.dart';
+import 'package:open_cine_prod_tools/types/ocpt_storyboard_panel_size.dart';
 
 /// The events handled by `OcptShotListBloc`.
 sealed class OcptShotListEvent extends BlocEventForMixin {
@@ -505,4 +507,155 @@ class OcptShotListShotMarkedAsCheckedEvent extends OcptShotListEvent {
   /// Object properties
   @override
   List<Object?> get props => [...super.props, shotId];
+}
+
+/// Selects centre view [view], dispatched by `OcptShotListCentreHeader`'s own switch, and persists
+/// it through `OcptPropertiesManager.shotListLastCentreView`.
+///
+/// Keeps `OcptShotListState.selectedShotId`/`.selectedSequenceId` exactly as they were: the two
+/// views read the same selection, one just shows more of it than the other.
+class OcptShotListCentreViewSelectedEvent extends OcptShotListEvent {
+  /// The view just picked.
+  final OcptShotListCentreView view;
+
+  /// Class constructor
+  const OcptShotListCentreViewSelectedEvent({required this.view});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, view];
+}
+
+/// Selects panel [panelId] on the board, dispatched by a click on one of the selected shot's own
+/// `OcptStoryboardPanelFrame`s.
+class OcptShotListPanelSelectedEvent extends OcptShotListEvent {
+  /// The id of the panel to select.
+  final String panelId;
+
+  /// Class constructor
+  const OcptShotListPanelSelectedEvent({required this.panelId});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, panelId];
+}
+
+/// Sets the board's common panel height to [size], dispatched by the header's own `Panel size ▾`
+/// menu. A **view preference**, held in state for the session alone — never persisted.
+class OcptShotListPanelSizeChangedEvent extends OcptShotListEvent {
+  /// The panel size just picked.
+  final OcptStoryboardPanelSize size;
+
+  /// Class constructor
+  const OcptShotListPanelSizeChangedEvent({required this.size});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, size];
+}
+
+/// Requests importing a frame onto shot [shotId]'s storyboard, dispatched by its panel strip's
+/// trailing `+ Import frame` slot.
+///
+/// The bloc picks the file through `FileSelectorManager`, filtered to JPEG and PNG
+/// (`ocptStoryboardPanelImageFileExtensions`), then appends a new panel carrying it. A cancelled
+/// dialog changes nothing at all. [fileTypeLabel] is the localized label the native picker's own
+/// file type filter shows, resolved by the mode — the bloc has no `BuildContext` of its own.
+class OcptShotListPanelImportRequestedEvent extends OcptShotListEvent {
+  /// The id of the shot the new panel is appended to.
+  final String shotId;
+
+  /// The localized label of the picker's own file type filter.
+  final String fileTypeLabel;
+
+  /// Class constructor
+  const OcptShotListPanelImportRequestedEvent({required this.shotId, required this.fileTypeLabel});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, shotId, fileTypeLabel];
+}
+
+/// Requests replacing panel [panelId]'s image, dispatched by its frame's own `Replace image`
+/// action.
+///
+/// The same picker [OcptShotListPanelImportRequestedEvent] uses; a cancelled dialog leaves the
+/// panel's current image untouched. See [OcptShotListPanelImportRequestedEvent] for
+/// [fileTypeLabel].
+class OcptShotListPanelReplaceRequestedEvent extends OcptShotListEvent {
+  /// The id of the panel whose image is replaced.
+  final String panelId;
+
+  /// The localized label of the picker's own file type filter.
+  final String fileTypeLabel;
+
+  /// Class constructor
+  const OcptShotListPanelReplaceRequestedEvent({
+    required this.panelId,
+    required this.fileTypeLabel,
+  });
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, panelId, fileTypeLabel];
+}
+
+/// Moves panel [panelId] of shot [shotId] to [newPosition] (0-based) among its shot's other panels,
+/// dispatched by the strip's own drag-to-reorder gesture. Written immediately, one row
+/// (`OcptStoryboardService.reorderPanel`).
+class OcptShotListPanelReorderedEvent extends OcptShotListEvent {
+  /// The id of the shot the panel belongs to.
+  final String shotId;
+
+  /// The id of the panel being moved.
+  final String panelId;
+
+  /// The 0-based position the panel is moved to.
+  final int newPosition;
+
+  /// Class constructor
+  const OcptShotListPanelReorderedEvent({
+    required this.shotId,
+    required this.panelId,
+    required this.newPosition,
+  });
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, shotId, panelId, newPosition];
+}
+
+/// Records the raw text just typed into panel [panelId]'s free comment, dispatched by the
+/// inspector's Panels group on every keystroke.
+///
+/// Rides the mode's own field-edit autosave debounce exactly as
+/// `OcptShotListShotFieldChangedEvent` does, keyed by `OcptShotListPanelCommentEditKey` rather than
+/// `OcptShotListShotFieldEditKey`.
+class OcptShotListPanelCommentChangedEvent extends OcptShotListEvent {
+  /// The id of the panel whose comment was edited.
+  final String panelId;
+
+  /// The comment's raw text, exactly as typed.
+  final String rawValue;
+
+  /// Class constructor
+  const OcptShotListPanelCommentChangedEvent({required this.panelId, required this.rawValue});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, panelId, rawValue];
+}
+
+/// Requests deleting panel [panelId] for good, dispatched once the inspector's Panels group's own
+/// `Delete panel` action has already been confirmed through `OcptConfirmDialog`, by the mode.
+class OcptShotListPanelDeletionRequestedEvent extends OcptShotListEvent {
+  /// The id of the panel to delete.
+  final String panelId;
+
+  /// Class constructor
+  const OcptShotListPanelDeletionRequestedEvent({required this.panelId});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, panelId];
 }
