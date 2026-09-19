@@ -16,6 +16,7 @@ import 'package:open_cine_prod_tools/types/ocpt_budget_right_dock_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_editor_mode.dart';
 import 'package:open_cine_prod_tools/types/ocpt_first_weekday.dart';
 import 'package:open_cine_prod_tools/types/ocpt_schedule_right_dock_tab.dart';
+import 'package:open_cine_prod_tools/types/ocpt_shot_list_centre_view.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_column.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_right_dock_tab.dart';
 import 'package:uuid/uuid.dart';
@@ -247,6 +248,19 @@ class OcptPropertiesManager extends AbstractPropertiesManager
     castTo: (value) => value.name,
   );
 
+  /// This is the key used to store which of the shot list mode's centre views was last shown, so
+  /// reopening the mode restores it.
+  ///
+  /// Loading it returns null if nothing has been stored yet, which is equivalent to
+  /// [OcptShotListCentreView.table]. A value of [OcptShotListCentreView.floorPlans] stored by a
+  /// later build that offers that segment is a value this one's switch simply doesn't reach —
+  /// [OcptShotListCentreView]'s own doc comment.
+  final shotListLastCentreView = SharedPrefsItemWithParser<OcptShotListCentreView, String>(
+    "SHOT_LIST_LAST_CENTRE_VIEW",
+    parser: _parseShotListCentreView,
+    castTo: (value) => value.name,
+  );
+
   /// This is the key used to store the id identifying this replica of the app.
   ///
   /// Prefer [loadOrCreateDeviceId] over reading this item directly: loading it returns null until
@@ -434,6 +448,21 @@ class OcptPropertiesManager extends AbstractPropertiesManager
 
     appLogger().w("The shot list right dock tab stored in the local storage: $value, isn't a "
         "known tab, we can't convert it");
+    return null;
+  }
+
+  /// Parse the [value] stored in the local storage to the wanted [OcptShotListCentreView].
+  ///
+  /// Returns null if the [value] doesn't match any of the [OcptShotListCentreView] values.
+  static OcptShotListCentreView? _parseShotListCentreView(String value) {
+    for (final view in OcptShotListCentreView.values) {
+      if (view.name == value) {
+        return view;
+      }
+    }
+
+    appLogger().w("The shot list centre view stored in the local storage: $value, isn't a "
+        "known view, we can't convert it");
     return null;
   }
 

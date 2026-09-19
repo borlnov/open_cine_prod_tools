@@ -87,6 +87,7 @@ number is a stable identifier other documents and commits can reference.
 | [0028](0028-a-nomenclature-seeded-not-frozen.md) | A nomenclature seeded, not frozen | Accepted |
 | [0029](0029-schema-versions-frozen-at-stable-releases.md) | Schema versions frozen at stable releases | Accepted |
 | [0030](0030-a-shots-characters-are-the-productions-roles.md) | A shot's characters are the production's roles | Proposed |
+| [0031](0031-storyboard-panels-and-floor-plans-in-metres.md) | Storyboard panels and floor plans in metres | Proposed |
 
 ## Candidates
 

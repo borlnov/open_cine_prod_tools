@@ -180,6 +180,26 @@ class OcptProjectVersionPayload extends Equatable {
   /// tombstones included.
   final List<OcptBudgetAllowanceRow> budgetAllowances;
 
+  /// The `storyboard_panels` rows of the project: a shot's ordered storyboard frames, tombstones
+  /// included.
+  final List<OcptStoryboardPanelRow> storyboardPanels;
+
+  /// The `storyboard_annotations` rows of the project: the marks drawn over a panel's frame,
+  /// tombstones included.
+  final List<OcptStoryboardAnnotationRow> storyboardAnnotations;
+
+  /// The `floor_plan_cases` rows of the project: a sequence's floor plan décors, tombstones
+  /// included.
+  final List<OcptFloorPlanCaseRow> floorPlanCases;
+
+  /// The `floor_plan_symbols` rows of the project: the cameras, characters, lights, set elements
+  /// and other placed symbols of a floor plan case, tombstones included.
+  final List<OcptFloorPlanSymbolRow> floorPlanSymbols;
+
+  /// The `floor_plan_arrows` rows of the project: the movement and camera-move arrows drawn
+  /// between two floor plan symbols, tombstones included.
+  final List<OcptFloorPlanArrowRow> floorPlanArrows;
+
   /// The `row_field_versions` stamps of the rows this payload carries.
   ///
   /// A restore rewinds the data, so it has to rewind the per-column stamps a merge resolves
@@ -301,6 +321,11 @@ class OcptProjectVersionPayload extends Equatable {
     required this.budgetRevenues,
     required this.budgetShares,
     required this.budgetAllowances,
+    required this.storyboardPanels,
+    required this.storyboardAnnotations,
+    required this.floorPlanCases,
+    required this.floorPlanSymbols,
+    required this.floorPlanArrows,
     required this.rowFieldVersions,
     required this.pageSetup,
     required this.settingsJson,
@@ -341,6 +366,11 @@ class OcptProjectVersionPayload extends Equatable {
       "budgetMileageRates: ${budgetMileageRates.length}, "
       "budgetRevenues: ${budgetRevenues.length}, budgetShares: ${budgetShares.length}, "
       "budgetAllowances: ${budgetAllowances.length}, "
+      "storyboardPanels: ${storyboardPanels.length}, "
+      "storyboardAnnotations: ${storyboardAnnotations.length}, "
+      "floorPlanCases: ${floorPlanCases.length}, "
+      "floorPlanSymbols: ${floorPlanSymbols.length}, "
+      "floorPlanArrows: ${floorPlanArrows.length}, "
       "rowFieldVersions: ${rowFieldVersions.length}, "
       "pageSetup: $pageSetup, currencyCode: $currencyCode, "
       "minimumRestMinutes: $minimumRestMinutes, screenplayLanguage: $screenplayLanguage, "
@@ -391,6 +421,11 @@ class OcptProjectVersionPayload extends Equatable {
     budgetRevenues,
     budgetShares,
     budgetAllowances,
+    storyboardPanels,
+    storyboardAnnotations,
+    floorPlanCases,
+    floorPlanSymbols,
+    floorPlanArrows,
     rowFieldVersions,
     pageSetup,
     settingsJson,

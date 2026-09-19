@@ -17,16 +17,19 @@ import 'package:sqlite3/sqlite3.dart' show sqlite3;
 // (`docs/adr/0029-schema-versions-frozen-at-stable-releases.md`). The 0.1.0 release froze the
 // schema at v1; the 0.2.0 release froze v2 — `OcptSyncRelayCursorsTable` and `OcptSyncPairingsTable`,
 // both local, never-synchronised tables the changeset engine and its relay transport add, plus
-// `budget_lines.in_kind_resource_id`; the 0.2.1 release freezes v3 — `shot_characters` reshaped from
-// `{shotId, characterName}` to `{shotId, roleId}`.
+// `budget_lines.in_kind_resource_id`; the 0.2.1 release froze v3 — `shot_characters` reshaped from
+// `{shotId, characterName}` to `{shotId, roleId}`; a development cycle is open at v4, adding the
+// five storyboard and floor plan tables (`docs/plans/storyboard.md`).
 //
 // ADR 0029 ties a verbatim DDL fixture to each frozen release, one for the schema the *previous*
 // stable shipped — the shape a real file from that release was left with, migrated forward and
 // checked against `onCreate`. [_v1Ddl] is the v1 fixture (a real 0.1.0 file), added when 0.2.0
-// froze v2; [_v2Ddl] is the v2 fixture (a real 0.2.0 file), added when 0.2.1 froze v3. Each is a
-// hand-held copy of the real `CREATE TABLE` statements, never built through drift, so the test
-// proves `onCreate` still reproduces migrating that real file forward rather than merely rewriting
-// the same "undo the last upgrade" trick the schema's own `onUpgrade` doc comment already describes.
+// froze v2; [_v2Ddl] is the v2 fixture (a real 0.2.0 file), added when 0.2.1 froze v3; [_v3Ddl] is
+// the v3 fixture (a real 0.2.1 file), added while v4 is open, so the cycle's own upgrade path is
+// exercised before it ever freezes. Each is a hand-held copy of the real `CREATE TABLE` statements,
+// never built through drift, so the test proves `onCreate` still reproduces migrating that real
+// file forward rather than merely rewriting the same "undo the last upgrade" trick the schema's own
+// `onUpgrade` doc comment already describes.
 
 void main() {
   test(
@@ -252,6 +255,42 @@ void main() {
       // Compared clause by clause, table by table, as with the v1 fixture above: the v2 to v3 step
       // drops and recreates `shot_characters` (empty here, so nothing is lost), and its recreated
       // shape must match what `onCreate` builds.
+      expect(migratedShape, freshShape);
+
+      final userVersion = await migrated.customSelect('PRAGMA user_version').getSingle();
+      expect(userVersion.data['user_version'], OcptProjectDatabase.currentSchemaVersion);
+    },
+  );
+
+  test(
+    'onCreate reproduces exactly what migrating the verbatim v3 fixture forward to v4 produces',
+    () async {
+      final tempDir = await Directory.systemTemp.createTemp('ocpt_migration_v3_fixture_test_');
+      addTearDown(() => tempDir.delete(recursive: true));
+      final filePath = p.join(tempDir.path, 'movie.ocpt');
+
+      // [_v3Ddl] is created with the raw sqlite3 binding, deliberately never through drift or
+      // `OcptProjectDatabase`: that is what makes it a fixture of the frozen v3 shape a real 0.2.1
+      // file was left with, rather than just another way of asking drift to build the current one.
+      final raw = sqlite3.open(filePath);
+      for (final statement in _v3Ddl) {
+        raw.execute(statement);
+      }
+      raw
+        ..execute('PRAGMA user_version = 3')
+        ..dispose();
+
+      final migrated = OcptProjectDatabase(File(filePath));
+      addTearDown(migrated.close);
+      final migratedShape = _schemaShape(await _tableSqlByName(migrated));
+
+      final fresh = OcptProjectDatabase.memory();
+      addTearDown(fresh.close);
+      final freshShape = _schemaShape(await _tableSqlByName(fresh));
+
+      // Compared clause by clause, table by table, as with the v1 and v2 fixtures above: the v3 to
+      // v4 step is purely additive — five `createTable` calls, nothing else — and their shape must
+      // match what `onCreate` builds for the same five tables.
       expect(migratedShape, freshShape);
 
       final userVersion = await migrated.customSelect('PRAGMA user_version').getSingle();
@@ -662,3 +701,20 @@ const _v2SyncPairingsDdl =
 /// The local, never-synchronised relay-cursor table schema version 2's `onUpgrade` creates.
 const _v2SyncRelayCursorsDdl =
     'CREATE TABLE "sync_relay_cursors" ("relay_id" TEXT NOT NULL, "last_applied_sequence" INTEGER NOT NULL DEFAULT 0, "outbox_high_water_mark" INTEGER NOT NULL DEFAULT 0, PRIMARY KEY ("relay_id"))';
+
+/// The verbatim schema version 3 `CREATE TABLE` statements — the shape the 0.2.1 release froze, the
+/// one a real 0.2.1 `.ocpt` file is left with. It is [_v2Ddl] with [_v3ShotCharactersDdl] replacing
+/// v2's `shot_characters`: the only difference schema version 3's `ocptMigrateToSchemaV3` step
+/// makes, reshaping the table from its frozen v2 `{shotId, characterName}` key to `{shotId,
+/// roleId}` (`docs/adr/0030-a-shots-characters-are-the-productions-roles.md`). Assembled from
+/// [_v2Ddl] by hand rather than through drift, for the same reason [_v1Ddl] itself is: a fixture of
+/// the frozen shape, not another way of asking drift to build the current one.
+final _v3Ddl = <String>[
+  for (final statement in _v2Ddl)
+    if (statement.startsWith('CREATE TABLE "shot_characters" (')) _v3ShotCharactersDdl else statement,
+];
+
+/// v2's `shot_characters`, reshaped to `{shotId, roleId}` — the one table schema version 3's own
+/// step touches (`OcptProjectDatabase.migration`).
+const _v3ShotCharactersDdl =
+    'CREATE TABLE "shot_characters" ("shot_id" TEXT NOT NULL REFERENCES shots (id), "role_id" TEXT NOT NULL REFERENCES roles (id), "position" INTEGER NOT NULL, "sort_key" TEXT NOT NULL DEFAULT \'\', "is_deleted" INTEGER NOT NULL DEFAULT 0 CHECK ("is_deleted" IN (0, 1)), PRIMARY KEY ("shot_id", "role_id"))';

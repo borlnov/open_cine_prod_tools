@@ -2702,6 +2702,467 @@
     "type": "text",
     "placeholders": {}
   },
+  "shotListBoardTableSegmentLabel": "Table",
+  "@shotListBoardTableSegmentLabel": {
+    "description": "Label of the centre header's own switch segment that shows the table view",
+    "context": "Displayed in the shot list mode's centre header",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListBoardBoardSegmentLabel": "Board",
+  "@shotListBoardBoardSegmentLabel": {
+    "description": "Label of the centre header's own switch segment that shows the board view",
+    "context": "Displayed in the shot list mode's centre header",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListBoardPanelsCount": "{count, plural, one{{count} panel} other{{count} panels}}",
+  "@shotListBoardPanelsCount": {
+    "description": "Panel count of the selected sequence, appended to its summary while the board is shown",
+    "context": "Displayed in the shot list mode's centre header",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "shotListBoardNoPanelYetHint": "no panel yet",
+  "@shotListBoardNoPanelYetHint": {
+    "description": "Shown in a shot's own import slot when it has no panel at all",
+    "context": "Displayed on the board, in place of a panel strip",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListBoardImportFrameAction": "+ Import frame",
+  "@shotListBoardImportFrameAction": {
+    "description": "Label of a panel strip's own trailing import slot",
+    "context": "Displayed on the board, at the end of a shot's panel strip",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListBoardReplaceImageAction": "Replace image",
+  "@shotListBoardReplaceImageAction": {
+    "description": "Tooltip of a panel frame's own action replacing its image",
+    "context": "Displayed on the board, over a panel frame",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListBoardPanelRatioLabel": "Ratio {ratio}",
+  "@shotListBoardPanelRatioLabel": {
+    "description": "The aspect ratio label shown under a panel frame",
+    "context": "Displayed on the board, under a panel frame",
+    "type": "text",
+    "placeholders": {
+      "ratio": {
+        "type": "String"
+      }
+    }
+  },
+  "shotListBoardPanelsGroupTitle": "{count, plural, one{Panels (1)} other{Panels ({count})}}",
+  "@shotListBoardPanelsGroupTitle": {
+    "description": "Title of the inspector's board-only Panels group",
+    "context": "Displayed at the top of the shot inspector's leading group, on the board",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "shotListBoardPanelCommentHint": "Comment…",
+  "@shotListBoardPanelCommentHint": {
+    "description": "Placeholder of a panel's own free comment field",
+    "context": "Displayed in the inspector's Panels group",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListBoardMovePanelUpAction": "Move earlier",
+  "@shotListBoardMovePanelUpAction": {
+    "description": "Tooltip of a panel row's own affordance moving it one position earlier",
+    "context": "Displayed in the inspector's Panels group",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListBoardMovePanelDownAction": "Move later",
+  "@shotListBoardMovePanelDownAction": {
+    "description": "Tooltip of a panel row's own affordance moving it one position later",
+    "context": "Displayed in the inspector's Panels group",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListBoardDeletePanelAction": "Delete panel",
+  "@shotListBoardDeletePanelAction": {
+    "description": "Tooltip and confirmation button label of a panel's own deletion action",
+    "context": "Displayed in the inspector's Panels group, and as the confirm dialog's own button",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListBoardDeletePanelConfirmTitle": "Delete this panel?",
+  "@shotListBoardDeletePanelConfirmTitle": {
+    "description": "Title of the confirmation dialog deleting a storyboard panel",
+    "context": "Displayed in the confirm dialog opened from the inspector's Panels group",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListBoardDeletePanelConfirmMessage": "Its image, its comment and its annotations are removed for good.",
+  "@shotListBoardDeletePanelConfirmMessage": {
+    "description": "Message of the confirmation dialog deleting a storyboard panel",
+    "context": "Displayed in the confirm dialog opened from the inspector's Panels group",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListBoardImageFileTypeLabel": "Images",
+  "@shotListBoardImageFileTypeLabel": {
+    "description": "Label of the file type filter of the native picker, when importing or replacing a storyboard panel's frame",
+    "context": "Displayed in the platform's own open dialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListBoardPanelSizeMenuAction": "Panel size",
+  "@shotListBoardPanelSizeMenuAction": {
+    "description": "Label of the board header's own panel size menu trigger",
+    "context": "Displayed in the shot list mode's centre header, while the board is shown",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListBoardPanelSizeSmall": "Small",
+  "@shotListBoardPanelSizeSmall": {
+    "description": "Label of the board's smallest panel size",
+    "context": "Displayed in the board header's own panel size menu",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListBoardPanelSizeMedium": "Medium",
+  "@shotListBoardPanelSizeMedium": {
+    "description": "Label of the board's default panel size",
+    "context": "Displayed in the board header's own panel size menu",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListBoardPanelSizeLarge": "Large",
+  "@shotListBoardPanelSizeLarge": {
+    "description": "Label of the board's largest panel size",
+    "context": "Displayed in the board header's own panel size menu",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListBoardPanelSelectedHint": "Panel {rank} of {total} selected · drag to reorder",
+  "@shotListBoardPanelSelectedHint": {
+    "description": "Status bar hint naming the selected panel, while the board is shown",
+    "context": "Displayed in the shot list mode's status bar",
+    "type": "text",
+    "placeholders": {
+      "rank": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "shotListBoardAnnotationsGroupTitle": "{count, plural, one{Annotations (1)} other{Annotations ({count})}}",
+  "@shotListBoardAnnotationsGroupTitle": {
+    "description": "Title of the annotation section of the inspector's board-only Panels group",
+    "context": "Displayed in the inspector's Panels group, below the selected panel",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "shotListBoardAnnotationToolMovementArrowLabel": "Movement arrow",
+  "@shotListBoardAnnotationToolMovementArrowLabel": {
+    "description": "Label of the Annotate control's own movement arrow segment",
+    "context": "Displayed in the inspector's Panels group, in the annotation section's tool picker",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListBoardAnnotationToolCameraMoveArrowLabel": "Camera-move arrow",
+  "@shotListBoardAnnotationToolCameraMoveArrowLabel": {
+    "description": "Label of the Annotate control's own camera-move arrow segment",
+    "context": "Displayed in the inspector's Panels group, in the annotation section's tool picker",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListBoardAnnotationToolLabelSegmentLabel": "Label",
+  "@shotListBoardAnnotationToolLabelSegmentLabel": {
+    "description": "Label of the Annotate control's own text label segment",
+    "context": "Displayed in the inspector's Panels group, in the annotation section's tool picker",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListBoardNoAnnotationsHint": "no marks yet",
+  "@shotListBoardNoAnnotationsHint": {
+    "description": "Shown in the annotation section when the selected panel has no mark at all",
+    "context": "Displayed in the inspector's Panels group, in place of the marks list",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListBoardAnnotationTextHint": "Text…",
+  "@shotListBoardAnnotationTextHint": {
+    "description": "Placeholder of a mark's own text field",
+    "context": "Displayed in the inspector's Panels group, in the annotation section's marks list",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListBoardAnnotationKindMovementArrow": "Movement arrow",
+  "@shotListBoardAnnotationKindMovementArrow": {
+    "description": "Kind label of a movement arrow mark, shown in the marks list",
+    "context": "Displayed in the inspector's Panels group, in the annotation section's marks list",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListBoardAnnotationKindCameraMoveArrow": "Camera-move arrow",
+  "@shotListBoardAnnotationKindCameraMoveArrow": {
+    "description": "Kind label of a camera-move arrow mark, shown in the marks list",
+    "context": "Displayed in the inspector's Panels group, in the annotation section's marks list",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListBoardAnnotationKindLabel": "Label",
+  "@shotListBoardAnnotationKindLabel": {
+    "description": "Kind label of a text label mark, shown in the marks list",
+    "context": "Displayed in the inspector's Panels group, in the annotation section's marks list",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListBoardRemoveAnnotationAction": "Remove mark",
+  "@shotListBoardRemoveAnnotationAction": {
+    "description": "Tooltip of a mark row's own remove action",
+    "context": "Displayed in the inspector's Panels group, in the annotation section's marks list",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListBoardDeleteAnnotationConfirmTitle": "Remove this mark?",
+  "@shotListBoardDeleteAnnotationConfirmTitle": {
+    "description": "Title of the confirmation dialog removing a storyboard annotation",
+    "context": "Displayed in the confirm dialog opened from the inspector's Panels group",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListBoardDeleteAnnotationConfirmMessage": "This mark is removed for good.",
+  "@shotListBoardDeleteAnnotationConfirmMessage": {
+    "description": "Message of the confirmation dialog removing a storyboard annotation",
+    "context": "Displayed in the confirm dialog opened from the inspector's Panels group",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanSegmentLabel": "Floor plans",
+  "@shotListFloorPlanSegmentLabel": {
+    "description": "Label of the centre header's own switch segment that shows the floor plans view",
+    "context": "Displayed in the shot list mode's centre header",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanNoCaseHint": "Create a case to start placing your décor.",
+  "@shotListFloorPlanNoCaseHint": {
+    "description": "Shown on the canvas while the selected sequence has no floor plan case yet",
+    "context": "Displayed on the floor plans view's own canvas",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanAddCaseAction": "Add case",
+  "@shotListFloorPlanAddCaseAction": {
+    "description": "Tooltip of the case tabs' own trailing add action",
+    "context": "Displayed in the shot list mode's centre header",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanDeleteCaseConfirmTitle": "Delete this case?",
+  "@shotListFloorPlanDeleteCaseConfirmTitle": {
+    "description": "Title of the confirmation dialog deleting a floor plan case",
+    "context": "Displayed in the confirm dialog opened from a case tab's own close action",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanDeleteCaseConfirmMessage": "Its underlay, its set elements and everything placed on it are removed for good.",
+  "@shotListFloorPlanDeleteCaseConfirmMessage": {
+    "description": "Message of the confirmation dialog deleting a floor plan case",
+    "context": "Displayed in the confirm dialog opened from a case tab's own close action",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanToolSelectAction": "Select",
+  "@shotListFloorPlanToolSelectAction": {
+    "description": "Tooltip of the floor plans tool bar's own select tool",
+    "context": "Displayed on the floor plans view's own tool bar",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanToolSetElementAction": "Set element",
+  "@shotListFloorPlanToolSetElementAction": {
+    "description": "Tooltip of the floor plans tool bar's own set element tool",
+    "context": "Displayed on the floor plans view's own tool bar",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanImportUnderlayAction": "Import underlay",
+  "@shotListFloorPlanImportUnderlayAction": {
+    "description": "Label of the tool bar's own underlay action while the case carries none yet",
+    "context": "Displayed on the floor plans view's own tool bar",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanReplaceUnderlayAction": "Replace underlay",
+  "@shotListFloorPlanReplaceUnderlayAction": {
+    "description": "Label of the tool bar's own underlay action while the case already carries one",
+    "context": "Displayed on the floor plans view's own tool bar",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanUnderlayFileTypeLabel": "Images",
+  "@shotListFloorPlanUnderlayFileTypeLabel": {
+    "description": "Label of the native picker's own file type filter when importing a case's underlay",
+    "context": "Displayed in the native file picker dialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanClearUnderlayAction": "Clear underlay",
+  "@shotListFloorPlanClearUnderlayAction": {
+    "description": "Tooltip of the tray's own underlay row action clearing its image",
+    "context": "Displayed on the floor plans view's own tray",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanClearUnderlayConfirmTitle": "Clear this underlay?",
+  "@shotListFloorPlanClearUnderlayConfirmTitle": {
+    "description": "Title of the confirmation dialog clearing a case's underlay",
+    "context": "Displayed in the confirm dialog opened from the tray's own underlay row",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanClearUnderlayConfirmMessage": "The image and its frame are removed for good.",
+  "@shotListFloorPlanClearUnderlayConfirmMessage": {
+    "description": "Message of the confirmation dialog clearing a case's underlay",
+    "context": "Displayed in the confirm dialog opened from the tray's own underlay row",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanZoomInAction": "Zoom in",
+  "@shotListFloorPlanZoomInAction": {
+    "description": "Tooltip of the tool bar's own zoom in button",
+    "context": "Displayed on the floor plans view's own tool bar",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanZoomOutAction": "Zoom out",
+  "@shotListFloorPlanZoomOutAction": {
+    "description": "Tooltip of the tool bar's own zoom out button",
+    "context": "Displayed on the floor plans view's own tool bar",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanZoomResetAction": "Reset zoom",
+  "@shotListFloorPlanZoomResetAction": {
+    "description": "Tooltip of the tool bar's own reset-to-100% zoom button",
+    "context": "Displayed on the floor plans view's own tool bar",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanSequenceLayersGroupTitle": "Sequence layers",
+  "@shotListFloorPlanSequenceLayersGroupTitle": {
+    "description": "Title of the tray's own sequence layers group",
+    "context": "Displayed on the floor plans view's own tray",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanLayerDecorLabel": "Decor",
+  "@shotListFloorPlanLayerDecorLabel": {
+    "description": "Label of the tray's own decor layer row",
+    "context": "Displayed on the floor plans view's own tray",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanLayerFurnitureLabel": "Furniture",
+  "@shotListFloorPlanLayerFurnitureLabel": {
+    "description": "Label of the tray's own furniture layer row",
+    "context": "Displayed on the floor plans view's own tray",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanLayerFixedPropsLabel": "Fixed props",
+  "@shotListFloorPlanLayerFixedPropsLabel": {
+    "description": "Label of the tray's own fixed props layer row",
+    "context": "Displayed on the floor plans view's own tray",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanUnderlayRowLabel": "Underlay",
+  "@shotListFloorPlanUnderlayRowLabel": {
+    "description": "Label of the tray's own underlay row",
+    "context": "Displayed on the floor plans view's own tray",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanShowLayerAction": "Show",
+  "@shotListFloorPlanShowLayerAction": {
+    "description": "Tooltip of a hidden tray row's own eye, showing it again",
+    "context": "Displayed on the floor plans view's own tray",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanHideLayerAction": "Hide",
+  "@shotListFloorPlanHideLayerAction": {
+    "description": "Tooltip of a visible tray row's own eye, hiding it",
+    "context": "Displayed on the floor plans view's own tray",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanFocusSequenceChipLabel": "Sequence",
+  "@shotListFloorPlanFocusSequenceChipLabel": {
+    "description": "Label of the focus strip's own Sequence chip",
+    "context": "Displayed on the floor plans view's own focus strip",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanScaleBarLengthLabel": "{length} m",
+  "@shotListFloorPlanScaleBarLengthLabel": {
+    "description": "The scale bar's own rounded length, already formatted by ocptFloorPlanScaleBarLengthLabelOf, always drawn bottom-right of the canvas",
+    "context": "Displayed on the floor plans view's own canvas",
+    "type": "text",
+    "placeholders": {
+      "length": {
+        "type": "String"
+      }
+    }
+  },
+  "shotListFloorPlanDeleteSymbolAction": "Delete",
+  "@shotListFloorPlanDeleteSymbolAction": {
+    "description": "Tooltip of the selected symbol's own small delete handle",
+    "context": "Displayed on the floor plans view's own canvas",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanDeleteSymbolConfirmTitle": "Delete this set element?",
+  "@shotListFloorPlanDeleteSymbolConfirmTitle": {
+    "description": "Title of the confirmation dialog deleting a floor plan symbol",
+    "context": "Displayed in the confirm dialog opened from the canvas's own delete handle",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanDeleteSymbolConfirmMessage": "It is removed for good.",
+  "@shotListFloorPlanDeleteSymbolConfirmMessage": {
+    "description": "Message of the confirmation dialog deleting a floor plan symbol",
+    "context": "Displayed in the confirm dialog opened from the canvas's own delete handle",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanStatusHint": "{caseName} · {count, plural, one{1 set element} other{{count} set elements}}",
+  "@shotListFloorPlanStatusHint": {
+    "description": "The status bar's own trailing hint while the floor plans view is shown and a case is selected",
+    "context": "Displayed in the shot list mode's status bar",
+    "type": "text",
+    "placeholders": {
+      "caseName": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "projectVersionsPanelTitle": "Project versions",
   "@projectVersionsPanelTitle": {
     "description": "Header of the project versions panel",

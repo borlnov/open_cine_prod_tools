@@ -24,6 +24,7 @@ import 'package:open_cine_prod_tools/managers/projects/services/ocpt_budget_jour
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_budget_quote_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_budget_sharing_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_elements_service.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_floor_plan_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_locations_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_people_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_project_dictionary_service.dart';
@@ -39,6 +40,7 @@ import 'package:open_cine_prod_tools/managers/projects/services/ocpt_schedule_se
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_screenplay_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_coverage_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_list_service.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_storyboard_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_project_info_table.dart';
 import 'package:open_cine_prod_tools/models/ocpt_open_project_model.dart';
@@ -89,10 +91,11 @@ class OcptProjectsManagerBuilder extends AbsLifeCycleFactory<OcptProjectsManager
 /// [projectVersionsService], [peopleService], [roleIndexService], [roleCandidatesService],
 /// [locationsService],
 /// [elementsService], [breakdownService], [scheduleService], [assetsService],
+/// [storyboardService], [floorPlanService],
 /// [projectDictionaryService], [projectPackageService], [projectFileCompatibilityService],
 /// [budgetQuoteService], [budgetJournalService], [budgetFinancingService],
-/// [budgetAllowancesService] and [budgetSharingService], the twenty-one services this manager owns
-/// and wires together (RFL19):
+/// [budgetAllowancesService] and [budgetSharingService], the twenty-three services this manager
+/// owns and wires together (RFL19):
 /// this manager itself is only
 /// responsible for the lifecycle of the project file (create/open/close), for keeping the
 /// properties manager's recent-projects list in sync, and for handing those services the facts
@@ -177,6 +180,20 @@ class OcptProjectsManager extends AbsWithLifeCycle {
 
   /// The service used to reconcile the cast against the screenplay's speaking characters.
   final OcptRoleIndexService roleIndexService;
+
+  /// The service used for CRUD over a screenplay's storyboard: its shots' panels and their
+  /// annotation layer.
+  ///
+  /// Held here as well as inside [shotListService] (RFL19, the same reasoning [assetsService]'s own
+  /// doc comment gives): the board view reads and writes it directly, and [shotListService] only
+  /// needs it for its own `deleteShot`/`tombstoneShotsOfScreenplay` cascade.
+  final OcptStoryboardService storyboardService;
+
+  /// The service used for CRUD over a screenplay's floor plans: each sequence's cases, their
+  /// symbols and their arrows.
+  ///
+  /// Held for the same reason [storyboardService] is.
+  final OcptFloorPlanService floorPlanService;
 
   /// The service used for CRUD over the people seen for a part, and for the one rule saying which
   /// of them the part is cast with.
@@ -282,6 +299,8 @@ class OcptProjectsManager extends AbsWithLifeCycle {
            ),
            deviceId: _resolveDeviceId(propertiesManager),
          ),
+         storyboardService: _buildStoryboardService(propertiesManager),
+         floorPlanService: _buildFloorPlanService(propertiesManager),
          deviceId: _resolveDeviceId(propertiesManager),
        ),
        shotCoverageService = OcptShotCoverageService(
@@ -302,6 +321,8 @@ class OcptProjectsManager extends AbsWithLifeCycle {
                ),
                deviceId: _resolveDeviceId(propertiesManager),
              ),
+             storyboardService: _buildStoryboardService(propertiesManager),
+             floorPlanService: _buildFloorPlanService(propertiesManager),
              deviceId: _resolveDeviceId(propertiesManager),
            ),
            shotCoverageService: OcptShotCoverageService(
@@ -345,6 +366,8 @@ class OcptProjectsManager extends AbsWithLifeCycle {
              ),
              deviceId: _resolveDeviceId(propertiesManager),
            ),
+           storyboardService: _buildStoryboardService(propertiesManager),
+           floorPlanService: _buildFloorPlanService(propertiesManager),
            deviceId: _resolveDeviceId(propertiesManager),
          ),
          shotCoverageService: OcptShotCoverageService(
@@ -417,6 +440,8 @@ class OcptProjectsManager extends AbsWithLifeCycle {
          deviceId: _resolveDeviceId(propertiesManager),
        ),
        assetsService = OcptAssetsService(deviceId: _resolveDeviceId(propertiesManager)),
+       storyboardService = _buildStoryboardService(propertiesManager),
+       floorPlanService = _buildFloorPlanService(propertiesManager),
        projectDictionaryService = OcptProjectDictionaryService(
          deviceId: _resolveDeviceId(propertiesManager),
        ),
@@ -1484,6 +1509,24 @@ class OcptProjectsManager extends AbsWithLifeCycle {
   /// field because a constructor initializer list cannot see `this`.
   static OcptDeviceIdGetter _resolveDeviceId(OcptPropertiesManager? propertiesManager) =>
       (propertiesManager ?? globalGetIt().get<OcptPropertiesManager>()).loadOrCreateDeviceId;
+
+  /// The [OcptStoryboardService] every place this manager builds one needs, built fresh each time
+  /// for the same reason [_resolveDeviceId] is repeated rather than read off a field: a constructor
+  /// initializer list cannot see `this`, so nothing already being initialized can be shared.
+  static OcptStoryboardService _buildStoryboardService(OcptPropertiesManager? propertiesManager) =>
+      OcptStoryboardService(
+        assetsService: OcptAssetsService(deviceId: _resolveDeviceId(propertiesManager)),
+        deviceId: _resolveDeviceId(propertiesManager),
+      );
+
+  /// The [OcptFloorPlanService] every place this manager builds one needs. See
+  /// [_buildStoryboardService]'s own doc comment for why this is a static factory rather than a
+  /// shared field.
+  static OcptFloorPlanService _buildFloorPlanService(OcptPropertiesManager? propertiesManager) =>
+      OcptFloorPlanService(
+        assetsService: OcptAssetsService(deviceId: _resolveDeviceId(propertiesManager)),
+        deviceId: _resolveDeviceId(propertiesManager),
+      );
 
   /// {@macro act_life_cycle.MixinWithLifeCycleDispose.disposeLifeCycle}
   @override

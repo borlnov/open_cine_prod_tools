@@ -24,6 +24,8 @@ import 'package:open_cine_prod_tools/types/ocpt_day_part_slot.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_source_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_status.dart';
+import 'package:open_cine_prod_tools/types/ocpt_floor_plan_arrow_kind.dart';
+import 'package:open_cine_prod_tools/types/ocpt_floor_plan_layer.dart';
 import 'package:open_cine_prod_tools/types/ocpt_image_rights_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_location_availability_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
@@ -37,6 +39,7 @@ import 'package:open_cine_prod_tools/types/ocpt_shooting_day_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_slot_anchor_edge.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_check_reason.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_status.dart';
+import 'package:open_cine_prod_tools/types/ocpt_storyboard_annotation_kind.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_weekday_mask.dart';
 
 void main() {
@@ -571,6 +574,27 @@ void main() {
         isDeleted: false,
         budgetEntryId: "entry-1",
       ),
+      // The two storyboard/floor plan kinds set none of the four owner columns: the panel's own
+      // imageAssetId and the case's own underlayAssetId are the only link (`docs/plans/
+      // storyboard.md`, §2).
+      OcptAssetRow(
+        id: "asset-4",
+        kind: OcptAssetKind.storyboardPanelImage,
+        path: "/home/user/Pictures/panel-1.jpg",
+        label: "",
+        addedAt: DateTime.utc(2026, 4),
+        sortKey: "n",
+        isDeleted: false,
+      ),
+      OcptAssetRow(
+        id: "asset-5",
+        kind: OcptAssetKind.floorPlanUnderlay,
+        path: "/home/user/Pictures/kitchen-plan.jpg",
+        label: "",
+        addedAt: DateTime.utc(2026, 4, 2),
+        sortKey: "o",
+        isDeleted: false,
+      ),
     ],
     breakdownTags: const [
       OcptBreakdownTagRow(
@@ -1023,6 +1047,139 @@ void main() {
         notes: "",
       ),
     ],
+    storyboardPanels: const [
+      OcptStoryboardPanelRow(
+        id: "panel-1",
+        shotId: "shot-1",
+        sortKey: "V",
+        imageAssetId: "asset-4",
+        comment: "Wide establishing",
+        isDeleted: false,
+      ),
+      // No image imported yet, and a tombstone: a panel outlives its image, and a removed panel
+      // is a row like any other.
+      OcptStoryboardPanelRow(
+        id: "panel-2",
+        shotId: "shot-1",
+        sortKey: "k",
+        comment: "",
+        isDeleted: true,
+      ),
+    ],
+    storyboardAnnotations: const [
+      OcptStoryboardAnnotationRow(
+        id: "annotation-1",
+        panelId: "panel-1",
+        kind: OcptStoryboardAnnotationKind.movementArrow,
+        sortKey: "V",
+        x1: 0.1,
+        y1: 0.2,
+        x2: 0.8,
+        y2: 0.75,
+        labelText: "dolly in",
+        isDeleted: false,
+      ),
+      OcptStoryboardAnnotationRow(
+        id: "annotation-2",
+        panelId: "panel-1",
+        kind: OcptStoryboardAnnotationKind.label,
+        sortKey: "k",
+        x1: 0.5,
+        y1: 0.5,
+        x2: 0,
+        y2: 0,
+        labelText: "",
+        isDeleted: true,
+      ),
+    ],
+    floorPlanCases: const [
+      OcptFloorPlanCaseRow(
+        id: "case-1",
+        sceneId: "scene-1",
+        name: "Kitchen",
+        sortKey: "V",
+        underlayAssetId: "asset-5",
+        underlayXM: 1.2,
+        underlayYM: 0.8,
+        underlayWidthM: 4,
+        underlayHeightM: 3,
+        underlayRotationDeg: 15,
+        isDeleted: false,
+      ),
+      // No underlay placed yet, and a tombstone.
+      OcptFloorPlanCaseRow(
+        id: "case-2",
+        sceneId: "scene-1",
+        name: "",
+        sortKey: "k",
+        isDeleted: true,
+      ),
+    ],
+    floorPlanSymbols: const [
+      // A sequence layer: shotId null, a footprint of its own.
+      OcptFloorPlanSymbolRow(
+        id: "symbol-1",
+        caseId: "case-1",
+        layer: OcptFloorPlanLayer.decor,
+        sortKey: "V",
+        xM: 0.5,
+        yM: 0.5,
+        rotationDeg: 0,
+        widthM: 5,
+        heightM: 4,
+        label: "North wall",
+        isDeleted: false,
+      ),
+      // A shot layer: shotId set, a field-of-view wedge instead of a footprint.
+      OcptFloorPlanSymbolRow(
+        id: "symbol-2",
+        caseId: "case-1",
+        shotId: "shot-1",
+        layer: OcptFloorPlanLayer.cameras,
+        sortKey: "k",
+        xM: 1.5,
+        yM: 2,
+        rotationDeg: 45,
+        fovDeg: 84,
+        label: "85mm",
+        isDeleted: false,
+      ),
+      // A shot layer, tombstoned.
+      OcptFloorPlanSymbolRow(
+        id: "symbol-3",
+        caseId: "case-1",
+        shotId: "shot-1",
+        layer: OcptFloorPlanLayer.characters,
+        sortKey: "m",
+        xM: 2,
+        yM: 2,
+        rotationDeg: 0,
+        label: "",
+        isDeleted: true,
+      ),
+    ],
+    floorPlanArrows: const [
+      OcptFloorPlanArrowRow(
+        id: "arrow-1",
+        caseId: "case-1",
+        shotId: "shot-1",
+        kind: OcptFloorPlanArrowKind.movement,
+        fromSymbolId: "symbol-2",
+        toSymbolId: "symbol-3",
+        label: "walks in",
+        isDeleted: false,
+      ),
+      OcptFloorPlanArrowRow(
+        id: "arrow-2",
+        caseId: "case-1",
+        shotId: "shot-1",
+        kind: OcptFloorPlanArrowKind.cameraMove,
+        fromSymbolId: "symbol-2",
+        toSymbolId: "symbol-3",
+        label: "",
+        isDeleted: true,
+      ),
+    ],
     rowFieldVersions: const [
       OcptRowFieldVersionRow(
         targetTableName: "shots",
@@ -1139,12 +1296,19 @@ void main() {
       expect(roundTripped.sceneSets.map((row) => row.isDeleted), [false, true]);
       expect(roundTripped.elements.map((row) => row.isDeleted), [false, true]);
       expect(roundTripped.sceneElements.map((row) => row.isDeleted), [false, true]);
-      expect(roundTripped.assets.map((row) => row.isDeleted), [false, true, false]);
+      expect(roundTripped.assets.map((row) => row.isDeleted), [false, true, false, false, false]);
+      expect(roundTripped.storyboardPanels.map((row) => row.isDeleted), [false, true]);
+      expect(roundTripped.storyboardAnnotations.map((row) => row.isDeleted), [false, true]);
+      expect(roundTripped.floorPlanCases.map((row) => row.isDeleted), [false, true]);
+      expect(roundTripped.floorPlanSymbols.map((row) => row.isDeleted), [false, false, true]);
+      expect(roundTripped.floorPlanArrows.map((row) => row.isDeleted), [false, true]);
 
       // sortKey, not position, is what orders a group after ADR 0010.
       expect(roundTripped.shots.map((row) => row.sortKey), ["V", "k"]);
       expect(roundTripped.shotCharacters.map((row) => row.sortKey), ["V", "k"]);
       expect(roundTripped.people.map((row) => row.sortKey), ["V", "k"]);
+      expect(roundTripped.storyboardPanels.map((row) => row.sortKey), ["V", "k"]);
+      expect(roundTripped.floorPlanSymbols.map((row) => row.sortKey), ["V", "k", "m"]);
 
       // The per-column stamps travel with the rows they describe: this is the assertion that
       // catches a codec silently dropping the sidecar.
@@ -1285,7 +1449,114 @@ void main() {
       expect(asset.path, "/home/user/Documents/release-clara.pdf");
       expect(asset.addedAt, DateTime.utc(2026, 1, 10, 9));
       expect(asset.personId, "person-1");
+
+      // The two storyboard/floor plan asset kinds set none of the four owner columns: the
+      // panel's/case's own id is the only link (`docs/plans/storyboard.md`, §2).
+      final panelImageAsset = roundTripped.assets.firstWhere((row) => row.id == "asset-4");
+      expect(panelImageAsset.kind, OcptAssetKind.storyboardPanelImage);
+      expect(panelImageAsset.personId, isNull);
+      expect(panelImageAsset.locationId, isNull);
+      expect(panelImageAsset.elementId, isNull);
+      expect(panelImageAsset.budgetEntryId, isNull);
+      final underlayAsset = roundTripped.assets.firstWhere((row) => row.id == "asset-5");
+      expect(underlayAsset.kind, OcptAssetKind.floorPlanUnderlay);
     });
+
+    test(
+      'every column of the storyboard and floor plan tables round trips, enums and nulls '
+      'included',
+      () {
+        final roundTripped = roundTrip(buildRichPayload());
+
+        final panel = roundTripped.storyboardPanels.firstWhere((row) => row.id == "panel-1");
+        expect(panel.shotId, "shot-1");
+        expect(panel.imageAssetId, "asset-4");
+        expect(panel.comment, "Wide establishing");
+        expect(panel.isDeleted, isFalse);
+        // A panel outlives its image: `Replace image` tombstones the old asset and re-points this
+        // column, so it has to survive a round trip as null.
+        final panelWithNoImage = roundTripped.storyboardPanels.firstWhere(
+          (row) => row.id == "panel-2",
+        );
+        expect(panelWithNoImage.imageAssetId, isNull);
+
+        final movementArrow = roundTripped.storyboardAnnotations.firstWhere(
+          (row) => row.id == "annotation-1",
+        );
+        expect(movementArrow.panelId, "panel-1");
+        expect(movementArrow.kind, OcptStoryboardAnnotationKind.movementArrow);
+        expect(movementArrow.x1, 0.1);
+        expect(movementArrow.y1, 0.2);
+        expect(movementArrow.x2, 0.8);
+        expect(movementArrow.y2, 0.75);
+        expect(movementArrow.labelText, "dolly in");
+        final label = roundTripped.storyboardAnnotations.firstWhere(
+          (row) => row.id == "annotation-2",
+        );
+        expect(label.kind, OcptStoryboardAnnotationKind.label);
+        expect(label.isDeleted, isTrue);
+
+        final case1 = roundTripped.floorPlanCases.firstWhere((row) => row.id == "case-1");
+        expect(case1.sceneId, "scene-1");
+        expect(case1.name, "Kitchen");
+        expect(case1.underlayAssetId, "asset-5");
+        expect(case1.underlayXM, 1.2);
+        expect(case1.underlayYM, 0.8);
+        expect(case1.underlayWidthM, 4);
+        expect(case1.underlayHeightM, 3);
+        expect(case1.underlayRotationDeg, 15);
+        // No underlay placed yet on the second case: every underlay column stays null.
+        final caseWithNoUnderlay = roundTripped.floorPlanCases.firstWhere(
+          (row) => row.id == "case-2",
+        );
+        expect(caseWithNoUnderlay.underlayAssetId, isNull);
+        expect(caseWithNoUnderlay.underlayXM, isNull);
+        expect(caseWithNoUnderlay.underlayYM, isNull);
+        expect(caseWithNoUnderlay.underlayWidthM, isNull);
+        expect(caseWithNoUnderlay.underlayHeightM, isNull);
+        expect(caseWithNoUnderlay.underlayRotationDeg, isNull);
+
+        // A sequence layer: shotId null, a footprint of its own, no field of view.
+        final sequenceSymbol = roundTripped.floorPlanSymbols.firstWhere(
+          (row) => row.id == "symbol-1",
+        );
+        expect(sequenceSymbol.caseId, "case-1");
+        expect(sequenceSymbol.shotId, isNull);
+        expect(sequenceSymbol.layer, OcptFloorPlanLayer.decor);
+        expect(sequenceSymbol.xM, 0.5);
+        expect(sequenceSymbol.yM, 0.5);
+        expect(sequenceSymbol.widthM, 5);
+        expect(sequenceSymbol.heightM, 4);
+        expect(sequenceSymbol.fovDeg, isNull);
+        expect(sequenceSymbol.label, "North wall");
+        // A shot layer: shotId set, a field of view instead of a footprint.
+        final cameraSymbol = roundTripped.floorPlanSymbols.firstWhere(
+          (row) => row.id == "symbol-2",
+        );
+        expect(cameraSymbol.shotId, "shot-1");
+        expect(cameraSymbol.layer, OcptFloorPlanLayer.cameras);
+        expect(cameraSymbol.rotationDeg, 45);
+        expect(cameraSymbol.widthM, isNull);
+        expect(cameraSymbol.heightM, isNull);
+        expect(cameraSymbol.fovDeg, 84);
+        final tombstonedSymbol = roundTripped.floorPlanSymbols.firstWhere(
+          (row) => row.id == "symbol-3",
+        );
+        expect(tombstonedSymbol.layer, OcptFloorPlanLayer.characters);
+        expect(tombstonedSymbol.isDeleted, isTrue);
+
+        final movement = roundTripped.floorPlanArrows.firstWhere((row) => row.id == "arrow-1");
+        expect(movement.caseId, "case-1");
+        expect(movement.shotId, "shot-1");
+        expect(movement.kind, OcptFloorPlanArrowKind.movement);
+        expect(movement.fromSymbolId, "symbol-2");
+        expect(movement.toSymbolId, "symbol-3");
+        expect(movement.label, "walks in");
+        final cameraMove = roundTripped.floorPlanArrows.firstWhere((row) => row.id == "arrow-2");
+        expect(cameraMove.kind, OcptFloorPlanArrowKind.cameraMove);
+        expect(cameraMove.isDeleted, isTrue);
+      },
+    );
 
     test('every column of the two breakdown tables round trips, enums and nulls included', () {
       final roundTripped = roundTrip(buildRichPayload());
@@ -1586,6 +1857,11 @@ void main() {
         budgetRevenues: [],
         budgetShares: [],
         budgetAllowances: [],
+        storyboardPanels: [],
+        storyboardAnnotations: [],
+        floorPlanCases: [],
+        floorPlanSymbols: [],
+        floorPlanArrows: [],
         assets: [],
         breakdownTags: [],
         sceneBreakdowns: [],
@@ -1656,6 +1932,11 @@ void main() {
         budgetRevenues: payload.budgetRevenues,
         budgetShares: payload.budgetShares,
         budgetAllowances: payload.budgetAllowances,
+        storyboardPanels: payload.storyboardPanels,
+        storyboardAnnotations: payload.storyboardAnnotations,
+        floorPlanCases: payload.floorPlanCases,
+        floorPlanSymbols: payload.floorPlanSymbols,
+        floorPlanArrows: payload.floorPlanArrows,
         assets: payload.assets.reversed.toList(),
         breakdownTags: payload.breakdownTags.reversed.toList(),
         sceneBreakdowns: payload.sceneBreakdowns.reversed.toList(),
@@ -1714,6 +1995,11 @@ void main() {
         budgetRevenues: payload.budgetRevenues,
         budgetShares: payload.budgetShares,
         budgetAllowances: payload.budgetAllowances,
+        storyboardPanels: payload.storyboardPanels,
+        storyboardAnnotations: payload.storyboardAnnotations,
+        floorPlanCases: payload.floorPlanCases,
+        floorPlanSymbols: payload.floorPlanSymbols,
+        floorPlanArrows: payload.floorPlanArrows,
         assets: payload.assets,
         breakdownTags: payload.breakdownTags,
         sceneBreakdowns: payload.sceneBreakdowns,
@@ -1780,6 +2066,11 @@ void main() {
         budgetRevenues: payload.budgetRevenues,
         budgetShares: payload.budgetShares,
         budgetAllowances: payload.budgetAllowances,
+        storyboardPanels: payload.storyboardPanels,
+        storyboardAnnotations: payload.storyboardAnnotations,
+        floorPlanCases: payload.floorPlanCases,
+        floorPlanSymbols: payload.floorPlanSymbols,
+        floorPlanArrows: payload.floorPlanArrows,
         assets: payload.assets,
         breakdownTags: payload.breakdownTags,
         sceneBreakdowns: payload.sceneBreakdowns,
@@ -1849,6 +2140,11 @@ void main() {
         budgetRevenues: payload.budgetRevenues,
         budgetShares: payload.budgetShares,
         budgetAllowances: payload.budgetAllowances,
+        storyboardPanels: payload.storyboardPanels,
+        storyboardAnnotations: payload.storyboardAnnotations,
+        floorPlanCases: payload.floorPlanCases,
+        floorPlanSymbols: payload.floorPlanSymbols,
+        floorPlanArrows: payload.floorPlanArrows,
         assets: payload.assets,
         breakdownTags: payload.breakdownTags,
         sceneBreakdowns: payload.sceneBreakdowns,
@@ -1907,6 +2203,11 @@ void main() {
         budgetRevenues: payload.budgetRevenues,
         budgetShares: payload.budgetShares,
         budgetAllowances: payload.budgetAllowances,
+        storyboardPanels: payload.storyboardPanels,
+        storyboardAnnotations: payload.storyboardAnnotations,
+        floorPlanCases: payload.floorPlanCases,
+        floorPlanSymbols: payload.floorPlanSymbols,
+        floorPlanArrows: payload.floorPlanArrows,
         assets: payload.assets,
         breakdownTags: payload.breakdownTags,
         sceneBreakdowns: payload.sceneBreakdowns,
@@ -1965,6 +2266,11 @@ void main() {
         budgetRevenues: payload.budgetRevenues,
         budgetShares: payload.budgetShares,
         budgetAllowances: payload.budgetAllowances,
+        storyboardPanels: payload.storyboardPanels,
+        storyboardAnnotations: payload.storyboardAnnotations,
+        floorPlanCases: payload.floorPlanCases,
+        floorPlanSymbols: payload.floorPlanSymbols,
+        floorPlanArrows: payload.floorPlanArrows,
         assets: payload.assets,
         breakdownTags: payload.breakdownTags,
         sceneBreakdowns: payload.sceneBreakdowns,
@@ -2025,6 +2331,11 @@ void main() {
         budgetRevenues: payload.budgetRevenues,
         budgetShares: payload.budgetShares,
         budgetAllowances: payload.budgetAllowances,
+        storyboardPanels: payload.storyboardPanels,
+        storyboardAnnotations: payload.storyboardAnnotations,
+        floorPlanCases: payload.floorPlanCases,
+        floorPlanSymbols: payload.floorPlanSymbols,
+        floorPlanArrows: payload.floorPlanArrows,
         assets: payload.assets,
         breakdownTags: payload.breakdownTags,
         sceneBreakdowns: payload.sceneBreakdowns,
@@ -2091,6 +2402,11 @@ void main() {
         budgetRevenues: payload.budgetRevenues,
         budgetShares: payload.budgetShares,
         budgetAllowances: payload.budgetAllowances,
+        storyboardPanels: payload.storyboardPanels,
+        storyboardAnnotations: payload.storyboardAnnotations,
+        floorPlanCases: payload.floorPlanCases,
+        floorPlanSymbols: payload.floorPlanSymbols,
+        floorPlanArrows: payload.floorPlanArrows,
         assets: payload.assets,
         breakdownTags: payload.breakdownTags,
         sceneBreakdowns: payload.sceneBreakdowns,
@@ -2184,6 +2500,11 @@ void main() {
         budgetRevenues: payload.budgetRevenues,
         budgetShares: payload.budgetShares,
         budgetAllowances: payload.budgetAllowances,
+        storyboardPanels: payload.storyboardPanels,
+        storyboardAnnotations: payload.storyboardAnnotations,
+        floorPlanCases: payload.floorPlanCases,
+        floorPlanSymbols: payload.floorPlanSymbols,
+        floorPlanArrows: payload.floorPlanArrows,
         defaultVatRateBasisPoints: payload.defaultVatRateBasisPoints,
         mealPriceCents: payload.mealPriceCents,
         snackPriceCents: payload.snackPriceCents,
@@ -2248,6 +2569,11 @@ void main() {
         budgetRevenues: payload.budgetRevenues,
         budgetShares: payload.budgetShares,
         budgetAllowances: payload.budgetAllowances,
+        storyboardPanels: payload.storyboardPanels,
+        storyboardAnnotations: payload.storyboardAnnotations,
+        floorPlanCases: payload.floorPlanCases,
+        floorPlanSymbols: payload.floorPlanSymbols,
+        floorPlanArrows: payload.floorPlanArrows,
         defaultVatRateBasisPoints: payload.defaultVatRateBasisPoints,
         mealPriceCents: payload.mealPriceCents,
         snackPriceCents: payload.snackPriceCents,
@@ -2294,6 +2620,11 @@ void main() {
         budgetRevenues: payload.budgetRevenues,
         budgetShares: payload.budgetShares,
         budgetAllowances: payload.budgetAllowances,
+        storyboardPanels: payload.storyboardPanels,
+        storyboardAnnotations: payload.storyboardAnnotations,
+        floorPlanCases: payload.floorPlanCases,
+        floorPlanSymbols: payload.floorPlanSymbols,
+        floorPlanArrows: payload.floorPlanArrows,
         assets: payload.assets,
         breakdownTags: payload.breakdownTags,
         sceneBreakdowns: payload.sceneBreakdowns,
@@ -2355,6 +2686,11 @@ void main() {
         budgetRevenues: payload.budgetRevenues,
         budgetShares: payload.budgetShares,
         budgetAllowances: payload.budgetAllowances,
+        storyboardPanels: payload.storyboardPanels,
+        storyboardAnnotations: payload.storyboardAnnotations,
+        floorPlanCases: payload.floorPlanCases,
+        floorPlanSymbols: payload.floorPlanSymbols,
+        floorPlanArrows: payload.floorPlanArrows,
         assets: payload.assets,
         breakdownTags: payload.breakdownTags,
         sceneBreakdowns: payload.sceneBreakdowns,
@@ -2415,6 +2751,11 @@ void main() {
         budgetRevenues: payload.budgetRevenues,
         budgetShares: payload.budgetShares,
         budgetAllowances: payload.budgetAllowances,
+        storyboardPanels: payload.storyboardPanels,
+        storyboardAnnotations: payload.storyboardAnnotations,
+        floorPlanCases: payload.floorPlanCases,
+        floorPlanSymbols: payload.floorPlanSymbols,
+        floorPlanArrows: payload.floorPlanArrows,
         assets: payload.assets,
         breakdownTags: [
           ...payload.breakdownTags,
@@ -2488,6 +2829,11 @@ void main() {
         budgetRevenues: payload.budgetRevenues,
         budgetShares: payload.budgetShares,
         budgetAllowances: payload.budgetAllowances,
+        storyboardPanels: payload.storyboardPanels,
+        storyboardAnnotations: payload.storyboardAnnotations,
+        floorPlanCases: payload.floorPlanCases,
+        floorPlanSymbols: payload.floorPlanSymbols,
+        floorPlanArrows: payload.floorPlanArrows,
         assets: payload.assets,
         breakdownTags: [
           payload.breakdownTags.first.copyWith(
@@ -2553,6 +2899,11 @@ void main() {
         budgetRevenues: payload.budgetRevenues,
         budgetShares: payload.budgetShares,
         budgetAllowances: payload.budgetAllowances,
+        storyboardPanels: payload.storyboardPanels,
+        storyboardAnnotations: payload.storyboardAnnotations,
+        floorPlanCases: payload.floorPlanCases,
+        floorPlanSymbols: payload.floorPlanSymbols,
+        floorPlanArrows: payload.floorPlanArrows,
         assets: payload.assets,
         breakdownTags: [
           payload.breakdownTags.first.copyWith(isDeleted: true),
@@ -2614,6 +2965,11 @@ void main() {
         budgetRevenues: payload.budgetRevenues,
         budgetShares: payload.budgetShares,
         budgetAllowances: payload.budgetAllowances,
+        storyboardPanels: payload.storyboardPanels,
+        storyboardAnnotations: payload.storyboardAnnotations,
+        floorPlanCases: payload.floorPlanCases,
+        floorPlanSymbols: payload.floorPlanSymbols,
+        floorPlanArrows: payload.floorPlanArrows,
         assets: payload.assets,
         breakdownTags: payload.breakdownTags,
         sceneBreakdowns: [
@@ -2678,6 +3034,11 @@ void main() {
         budgetRevenues: payload.budgetRevenues,
         budgetShares: payload.budgetShares,
         budgetAllowances: payload.budgetAllowances,
+        storyboardPanels: payload.storyboardPanels,
+        storyboardAnnotations: payload.storyboardAnnotations,
+        floorPlanCases: payload.floorPlanCases,
+        floorPlanSymbols: payload.floorPlanSymbols,
+        floorPlanArrows: payload.floorPlanArrows,
         assets: payload.assets,
         breakdownTags: payload.breakdownTags,
         sceneBreakdowns: payload.sceneBreakdowns,
@@ -2738,6 +3099,11 @@ void main() {
         budgetRevenues: payload.budgetRevenues,
         budgetShares: payload.budgetShares,
         budgetAllowances: payload.budgetAllowances,
+        storyboardPanels: payload.storyboardPanels,
+        storyboardAnnotations: payload.storyboardAnnotations,
+        floorPlanCases: payload.floorPlanCases,
+        floorPlanSymbols: payload.floorPlanSymbols,
+        floorPlanArrows: payload.floorPlanArrows,
         assets: payload.assets,
         breakdownTags: payload.breakdownTags,
         sceneBreakdowns: payload.sceneBreakdowns,
@@ -2810,6 +3176,11 @@ void main() {
         budgetRevenues: payload.budgetRevenues,
         budgetShares: payload.budgetShares,
         budgetAllowances: payload.budgetAllowances,
+        storyboardPanels: payload.storyboardPanels,
+        storyboardAnnotations: payload.storyboardAnnotations,
+        floorPlanCases: payload.floorPlanCases,
+        floorPlanSymbols: payload.floorPlanSymbols,
+        floorPlanArrows: payload.floorPlanArrows,
         assets: payload.assets,
         breakdownTags: payload.breakdownTags,
         sceneBreakdowns: payload.sceneBreakdowns,
@@ -2871,6 +3242,11 @@ void main() {
         budgetRevenues: payload.budgetRevenues,
         budgetShares: payload.budgetShares,
         budgetAllowances: payload.budgetAllowances,
+        storyboardPanels: payload.storyboardPanels,
+        storyboardAnnotations: payload.storyboardAnnotations,
+        floorPlanCases: payload.floorPlanCases,
+        floorPlanSymbols: payload.floorPlanSymbols,
+        floorPlanArrows: payload.floorPlanArrows,
         assets: payload.assets,
         breakdownTags: payload.breakdownTags,
         sceneBreakdowns: payload.sceneBreakdowns,
@@ -2932,6 +3308,11 @@ void main() {
         budgetRevenues: payload.budgetRevenues,
         budgetShares: payload.budgetShares,
         budgetAllowances: payload.budgetAllowances,
+        storyboardPanels: payload.storyboardPanels,
+        storyboardAnnotations: payload.storyboardAnnotations,
+        floorPlanCases: payload.floorPlanCases,
+        floorPlanSymbols: payload.floorPlanSymbols,
+        floorPlanArrows: payload.floorPlanArrows,
         assets: payload.assets,
         breakdownTags: payload.breakdownTags,
         sceneBreakdowns: payload.sceneBreakdowns,
@@ -3031,6 +3412,11 @@ void main() {
         budgetRevenues: payload.budgetRevenues,
         budgetShares: payload.budgetShares,
         budgetAllowances: payload.budgetAllowances,
+        storyboardPanels: payload.storyboardPanels,
+        storyboardAnnotations: payload.storyboardAnnotations,
+        floorPlanCases: payload.floorPlanCases,
+        floorPlanSymbols: payload.floorPlanSymbols,
+        floorPlanArrows: payload.floorPlanArrows,
         defaultVatRateBasisPoints: payload.defaultVatRateBasisPoints,
         mealPriceCents: payload.mealPriceCents,
         snackPriceCents: payload.snackPriceCents,
@@ -3071,6 +3457,11 @@ void main() {
         budgetRevenues: payload.budgetRevenues,
         budgetShares: payload.budgetShares,
         budgetAllowances: payload.budgetAllowances,
+        storyboardPanels: payload.storyboardPanels,
+        storyboardAnnotations: payload.storyboardAnnotations,
+        floorPlanCases: payload.floorPlanCases,
+        floorPlanSymbols: payload.floorPlanSymbols,
+        floorPlanArrows: payload.floorPlanArrows,
         assets: payload.assets,
         breakdownTags: payload.breakdownTags,
         sceneBreakdowns: payload.sceneBreakdowns,
@@ -3132,6 +3523,11 @@ void main() {
         budgetRevenues: payload.budgetRevenues,
         budgetShares: payload.budgetShares,
         budgetAllowances: payload.budgetAllowances,
+        storyboardPanels: payload.storyboardPanels,
+        storyboardAnnotations: payload.storyboardAnnotations,
+        floorPlanCases: payload.floorPlanCases,
+        floorPlanSymbols: payload.floorPlanSymbols,
+        floorPlanArrows: payload.floorPlanArrows,
         assets: payload.assets,
         breakdownTags: payload.breakdownTags,
         sceneBreakdowns: payload.sceneBreakdowns,
@@ -3190,6 +3586,11 @@ void main() {
         budgetRevenues: payload.budgetRevenues,
         budgetShares: payload.budgetShares,
         budgetAllowances: payload.budgetAllowances,
+        storyboardPanels: payload.storyboardPanels,
+        storyboardAnnotations: payload.storyboardAnnotations,
+        floorPlanCases: payload.floorPlanCases,
+        floorPlanSymbols: payload.floorPlanSymbols,
+        floorPlanArrows: payload.floorPlanArrows,
         assets: payload.assets,
         breakdownTags: payload.breakdownTags,
         sceneBreakdowns: payload.sceneBreakdowns,
@@ -3248,6 +3649,11 @@ void main() {
         budgetRevenues: payload.budgetRevenues,
         budgetShares: payload.budgetShares,
         budgetAllowances: payload.budgetAllowances,
+        storyboardPanels: payload.storyboardPanels,
+        storyboardAnnotations: payload.storyboardAnnotations,
+        floorPlanCases: payload.floorPlanCases,
+        floorPlanSymbols: payload.floorPlanSymbols,
+        floorPlanArrows: payload.floorPlanArrows,
         assets: payload.assets,
         breakdownTags: payload.breakdownTags,
         sceneBreakdowns: payload.sceneBreakdowns,
@@ -3306,6 +3712,11 @@ void main() {
         budgetRevenues: payload.budgetRevenues,
         budgetShares: payload.budgetShares,
         budgetAllowances: payload.budgetAllowances,
+        storyboardPanels: payload.storyboardPanels,
+        storyboardAnnotations: payload.storyboardAnnotations,
+        floorPlanCases: payload.floorPlanCases,
+        floorPlanSymbols: payload.floorPlanSymbols,
+        floorPlanArrows: payload.floorPlanArrows,
         assets: payload.assets,
         breakdownTags: payload.breakdownTags,
         sceneBreakdowns: payload.sceneBreakdowns,
@@ -3372,6 +3783,11 @@ void main() {
         budgetRevenues: payload.budgetRevenues,
         budgetShares: payload.budgetShares,
         budgetAllowances: payload.budgetAllowances,
+        storyboardPanels: payload.storyboardPanels,
+        storyboardAnnotations: payload.storyboardAnnotations,
+        floorPlanCases: payload.floorPlanCases,
+        floorPlanSymbols: payload.floorPlanSymbols,
+        floorPlanArrows: payload.floorPlanArrows,
         assets: payload.assets,
         breakdownTags: payload.breakdownTags,
         sceneBreakdowns: payload.sceneBreakdowns,
@@ -3437,6 +3853,11 @@ void main() {
         budgetRevenues: payload.budgetRevenues,
         budgetShares: payload.budgetShares,
         budgetAllowances: payload.budgetAllowances,
+        storyboardPanels: payload.storyboardPanels,
+        storyboardAnnotations: payload.storyboardAnnotations,
+        floorPlanCases: payload.floorPlanCases,
+        floorPlanSymbols: payload.floorPlanSymbols,
+        floorPlanArrows: payload.floorPlanArrows,
         assets: payload.assets,
         breakdownTags: payload.breakdownTags,
         sceneBreakdowns: payload.sceneBreakdowns,
@@ -3501,6 +3922,11 @@ void main() {
         budgetRevenues: payload.budgetRevenues,
         budgetShares: payload.budgetShares,
         budgetAllowances: payload.budgetAllowances,
+        storyboardPanels: payload.storyboardPanels,
+        storyboardAnnotations: payload.storyboardAnnotations,
+        floorPlanCases: payload.floorPlanCases,
+        floorPlanSymbols: payload.floorPlanSymbols,
+        floorPlanArrows: payload.floorPlanArrows,
         assets: payload.assets,
         breakdownTags: payload.breakdownTags,
         sceneBreakdowns: payload.sceneBreakdowns,
@@ -3559,6 +3985,11 @@ void main() {
         budgetRevenues: payload.budgetRevenues,
         budgetShares: payload.budgetShares,
         budgetAllowances: payload.budgetAllowances,
+        storyboardPanels: payload.storyboardPanels,
+        storyboardAnnotations: payload.storyboardAnnotations,
+        floorPlanCases: payload.floorPlanCases,
+        floorPlanSymbols: payload.floorPlanSymbols,
+        floorPlanArrows: payload.floorPlanArrows,
         assets: payload.assets,
         breakdownTags: payload.breakdownTags,
         sceneBreakdowns: payload.sceneBreakdowns,
@@ -3632,6 +4063,11 @@ void main() {
         budgetRevenues: payload.budgetRevenues,
         budgetShares: payload.budgetShares,
         budgetAllowances: payload.budgetAllowances,
+        storyboardPanels: payload.storyboardPanels,
+        storyboardAnnotations: payload.storyboardAnnotations,
+        floorPlanCases: payload.floorPlanCases,
+        floorPlanSymbols: payload.floorPlanSymbols,
+        floorPlanArrows: payload.floorPlanArrows,
         assets: payload.assets,
         breakdownTags: payload.breakdownTags,
         sceneBreakdowns: payload.sceneBreakdowns,
@@ -3695,6 +4131,11 @@ void main() {
         budgetRevenues: payload.budgetRevenues,
         budgetShares: payload.budgetShares,
         budgetAllowances: payload.budgetAllowances,
+        storyboardPanels: payload.storyboardPanels,
+        storyboardAnnotations: payload.storyboardAnnotations,
+        floorPlanCases: payload.floorPlanCases,
+        floorPlanSymbols: payload.floorPlanSymbols,
+        floorPlanArrows: payload.floorPlanArrows,
         assets: payload.assets,
         breakdownTags: payload.breakdownTags,
         sceneBreakdowns: payload.sceneBreakdowns,
@@ -3760,6 +4201,11 @@ void main() {
         budgetRevenues: payload.budgetRevenues,
         budgetShares: payload.budgetShares,
         budgetAllowances: payload.budgetAllowances,
+        storyboardPanels: payload.storyboardPanels,
+        storyboardAnnotations: payload.storyboardAnnotations,
+        floorPlanCases: payload.floorPlanCases,
+        floorPlanSymbols: payload.floorPlanSymbols,
+        floorPlanArrows: payload.floorPlanArrows,
         assets: payload.assets,
         breakdownTags: payload.breakdownTags,
         sceneBreakdowns: payload.sceneBreakdowns,
@@ -3870,6 +4316,37 @@ void main() {
 
         expect(result.status, OcptProjectVersionPayloadStatus.ok);
         expect(result.value!.shotCharacters, isEmpty);
+        expect(result.value!.shots, rich.shots);
+      },
+    );
+
+    test(
+      'a retired payload-format-3 payload decodes with the five storyboard and floor plan lists '
+      'empty',
+      () {
+        // Format 3 is the shape 0.2.1 froze: none of the five storyboard/floor plan keys existed
+        // yet, so a real format-3 payload's JSON carries none of them at all, rather than the keys
+        // present with an empty list. This is the fixture the codec's own doc comment asks to be
+        // kept once a stable release has frozen a format the next one moves past.
+        final rich = buildRichPayload();
+        final encoded = jsonDecode(codec.encode(rich)) as Map<String, dynamic>;
+        encoded["payloadFormat"] = 3;
+        encoded
+          ..remove("storyboardPanels")
+          ..remove("storyboardAnnotations")
+          ..remove("floorPlanCases")
+          ..remove("floorPlanSymbols")
+          ..remove("floorPlanArrows");
+
+        final result = codec.decode(jsonEncode(encoded));
+
+        expect(result.status, OcptProjectVersionPayloadStatus.ok);
+        expect(result.value!.storyboardPanels, isEmpty);
+        expect(result.value!.storyboardAnnotations, isEmpty);
+        expect(result.value!.floorPlanCases, isEmpty);
+        expect(result.value!.floorPlanSymbols, isEmpty);
+        expect(result.value!.floorPlanArrows, isEmpty);
+        // Nothing else about the payload is disturbed by the missing keys.
         expect(result.value!.shots, rich.shots);
       },
     );

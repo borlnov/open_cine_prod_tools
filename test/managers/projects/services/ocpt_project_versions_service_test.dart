@@ -12,6 +12,7 @@ import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_assets_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_breakdown_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_elements_service.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_floor_plan_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_locations_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_people_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_project_version_codec.dart';
@@ -23,6 +24,7 @@ import 'package:open_cine_prod_tools/managers/projects/services/ocpt_schedule_se
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_screenplay_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_coverage_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_list_service.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_storyboard_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_version.dart';
@@ -32,6 +34,8 @@ import 'package:open_cine_prod_tools/types/ocpt_breakdown_target_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_source_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_status.dart';
+import 'package:open_cine_prod_tools/types/ocpt_floor_plan_arrow_kind.dart';
+import 'package:open_cine_prod_tools/types/ocpt_floor_plan_layer.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_restore_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_version_payload_status.dart';
@@ -39,6 +43,7 @@ import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_screenplay_language.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
+import 'package:open_cine_prod_tools/types/ocpt_storyboard_annotation_kind.dart';
 
 void main() {
   // Reading a version's stored summary logs through appLogger(), which requires a global manager
@@ -61,6 +66,12 @@ void main() {
     assetsService: assetsService,
     deviceId: testDeviceId,
   );
+  // Used directly by the `hydratePreview` storyboard/floor plan test below, so the panel, its
+  // image asset, its annotation, the case, its symbols and its arrow are all written the same
+  // way the board and the floor plans view themselves would (through the M2 services), rather
+  // than by hand-inserted rows.
+  final storyboardService = OcptStoryboardService(assetsService: assetsService, deviceId: testDeviceId);
+  final floorPlanService = OcptFloorPlanService(assetsService: assetsService, deviceId: testDeviceId);
   final roleIndexService = OcptRoleIndexService(
     elementsService: elementsService,
     roleCandidatesService: roleCandidatesService,
@@ -76,7 +87,12 @@ void main() {
   // needs, but a stateless collaborator over the same database, so the two never disagree.
   final screenplayService = OcptScreenplayService(
     sceneIndexService: const OcptSceneIndexService(),
-    shotListService: OcptShotListService(roleIndexService: roleIndexService, deviceId: testDeviceId),
+    shotListService: OcptShotListService(
+      roleIndexService: roleIndexService,
+      storyboardService: OcptStoryboardService(assetsService: assetsService, deviceId: testDeviceId),
+      floorPlanService: OcptFloorPlanService(assetsService: assetsService, deviceId: testDeviceId),
+      deviceId: testDeviceId,
+    ),
     shotCoverageService: OcptShotCoverageService(deviceId: testDeviceId),
     roleIndexService: roleIndexService,
     breakdownService: breakdownService,
@@ -605,6 +621,143 @@ void main() {
       );
     });
 
+    test(
+      "the storyboard and floor plan tables — a panel with an image asset, its annotation, a "
+      "case, a shot-scoped symbol and an arrow — all come back",
+      () async {
+        // Regression test for the M3 preview bug: `hydratePreview` held its own hand-written
+        // insert list, separate from `_applyPayload`'s, and was never updated when M1 added
+        // these five tables — so a version captured with a storyboard panel previewed as an
+        // empty board. Every row here is written through the real M2 services, exactly as the
+        // board and the floor plans view themselves would.
+        await insertScene(id: "scene-1");
+        await insertShot(id: "shot-1", sceneId: "scene-1");
+
+        final panelId = (await storyboardService.addPanel(
+          database: database,
+          shotId: "shot-1",
+        ))!;
+        await storyboardService.replacePanelImage(
+          database: database,
+          panelId: panelId,
+          path: "/frames/shot-1.png",
+        );
+        await storyboardService.updatePanelComment(
+          database: database,
+          panelId: panelId,
+          comment: "Push in on the door",
+        );
+        final annotationId = (await storyboardService.addAnnotation(
+          database: database,
+          panelId: panelId,
+          kind: OcptStoryboardAnnotationKind.movementArrow,
+          x1: 0.1,
+          y1: 0.2,
+          x2: 0.8,
+          y2: 0.6,
+          text: "walks to the door",
+        ))!;
+
+        final caseId = (await floorPlanService.addCase(
+          database: database,
+          sceneId: "scene-1",
+        ))!;
+        final cameraId = (await floorPlanService.placeSymbol(
+          database: database,
+          caseId: caseId,
+          shotId: "shot-1",
+          layer: OcptFloorPlanLayer.cameras,
+          xM: 1.2,
+          yM: 3.4,
+          label: "A",
+        ))!;
+        final characterId = (await floorPlanService.placeSymbol(
+          database: database,
+          caseId: caseId,
+          shotId: "shot-1",
+          layer: OcptFloorPlanLayer.characters,
+          xM: 2.5,
+          yM: 1.1,
+          label: "CLARA",
+        ))!;
+        final arrowId = (await floorPlanService.addArrow(
+          database: database,
+          caseId: caseId,
+          shotId: "shot-1",
+          kind: OcptFloorPlanArrowKind.movement,
+          fromSymbolId: characterId,
+          toSymbolId: cameraId,
+          label: "crosses to the camera",
+        ))!;
+
+        final payload = await readPayload((await createVersion()).id);
+
+        // The payload itself must already carry every one of the five rows just written — a
+        // gap here would mean `_capturePayload` dropped them, not `hydratePreview`.
+        expect(payload.storyboardPanels.map((row) => row.id), [panelId]);
+        expect(payload.storyboardAnnotations.map((row) => row.id), [annotationId]);
+        expect(payload.floorPlanCases.map((row) => row.id), [caseId]);
+        expect(
+          payload.floorPlanSymbols.map((row) => row.id).toSet(),
+          {cameraId, characterId},
+        );
+        expect(payload.floorPlanArrows.map((row) => row.id), [arrowId]);
+
+        final preview = OcptProjectDatabase.memory(isPreview: true);
+        addTearDown(preview.close);
+
+        await service.hydratePreview(
+          database: preview,
+          projectInfo: await database.select(database.ocptProjectInfoTable).getSingle(),
+          payload: payload,
+        );
+
+        final restoredPanel = await (preview.select(
+          preview.ocptStoryboardPanelsTable,
+        )..where((table) => table.id.equals(panelId))).getSingle();
+        expect(restoredPanel.shotId, "shot-1");
+        expect(restoredPanel.comment, "Push in on the door");
+        expect(restoredPanel.imageAssetId, isNotNull);
+
+        final restoredAsset = await (preview.select(
+          preview.ocptAssetsTable,
+        )..where((table) => table.id.equals(restoredPanel.imageAssetId!))).getSingle();
+        expect(restoredAsset.path, "/frames/shot-1.png");
+
+        final restoredAnnotation = await (preview.select(
+          preview.ocptStoryboardAnnotationsTable,
+        )..where((table) => table.id.equals(annotationId))).getSingle();
+        expect(restoredAnnotation.panelId, panelId);
+        expect(restoredAnnotation.kind, OcptStoryboardAnnotationKind.movementArrow);
+        expect(restoredAnnotation.x1, 0.1);
+        expect(restoredAnnotation.y2, 0.6);
+        expect(restoredAnnotation.labelText, "walks to the door");
+
+        final restoredCase = await (preview.select(
+          preview.ocptFloorPlanCasesTable,
+        )..where((table) => table.id.equals(caseId))).getSingle();
+        expect(restoredCase.sceneId, "scene-1");
+
+        final restoredCamera = await (preview.select(
+          preview.ocptFloorPlanSymbolsTable,
+        )..where((table) => table.id.equals(cameraId))).getSingle();
+        expect(restoredCamera.caseId, caseId);
+        expect(restoredCamera.shotId, "shot-1");
+        expect(restoredCamera.layer, OcptFloorPlanLayer.cameras);
+        expect(restoredCamera.xM, 1.2);
+        expect(restoredCamera.yM, 3.4);
+
+        final restoredArrow = await (preview.select(
+          preview.ocptFloorPlanArrowsTable,
+        )..where((table) => table.id.equals(arrowId))).getSingle();
+        expect(restoredArrow.caseId, caseId);
+        expect(restoredArrow.shotId, "shot-1");
+        expect(restoredArrow.kind, OcptFloorPlanArrowKind.movement);
+        expect(restoredArrow.fromSymbolId, characterId);
+        expect(restoredArrow.toSymbolId, cameraId);
+      },
+    );
+
     test("gives the preview a header of the project's own, pointing at no version", () async {
       final payload = await readPayload((await createVersion()).id);
 
@@ -922,6 +1075,11 @@ void main() {
                   budgetRevenues: payload.budgetRevenues,
                   budgetShares: payload.budgetShares,
                   budgetAllowances: payload.budgetAllowances,
+                  storyboardPanels: payload.storyboardPanels,
+                  storyboardAnnotations: payload.storyboardAnnotations,
+                  floorPlanCases: payload.floorPlanCases,
+                  floorPlanSymbols: payload.floorPlanSymbols,
+                  floorPlanArrows: payload.floorPlanArrows,
                   rowFieldVersions: payload.rowFieldVersions,
                   pageSetup: payload.pageSetup,
                   settingsJson: payload.settingsJson,

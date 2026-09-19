@@ -58,6 +58,12 @@ class OcptShotInspectorPanel extends StatelessWidget {
   /// while [shot] is null.
   final String sequenceHeading;
 
+  /// A group drawn under the header and before the character chips, naming what the active centre
+  /// view adds to the découpage every view shares — `OcptStoryboardPanelsGroup` on the board, null
+  /// on the table (`docs/plans/storyboard.md`, §4.1). The panel's own [isReadOnly] keeps gating
+  /// everything under this slot; the group takes its own `isReadOnly` for what it draws itself.
+  final Widget? leadingGroup;
+
   /// [shot]'s sequence display number (a real scene's `displaySceneNumber`, or the orphan
   /// placeholder), shown in the Production section. Ignored while [shot] is null.
   final String sequenceDisplayNumber;
@@ -120,6 +126,7 @@ class OcptShotInspectorPanel extends StatelessWidget {
     super.key,
     required this.shot,
     required this.sequenceHeading,
+    this.leadingGroup,
     required this.sequenceDisplayNumber,
     required this.roles,
     required this.suggestions,
@@ -184,6 +191,8 @@ class OcptShotInspectorPanel extends StatelessWidget {
           ),
           const SizedBox(height: 16),
         ],
+
+        if (leadingGroup != null) ...[leadingGroup!, const SizedBox(height: 16)],
 
         _sectionTitle(context, tr.shotListInspectorCharactersSectionTitle),
         const SizedBox(height: 8),

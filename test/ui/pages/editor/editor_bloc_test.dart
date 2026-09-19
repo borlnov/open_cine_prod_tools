@@ -20,6 +20,7 @@ import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dar
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_assets_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_breakdown_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_elements_service.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_floor_plan_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_locations_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_role_candidates_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_role_index_service.dart';
@@ -28,6 +29,7 @@ import 'package:open_cine_prod_tools/managers/projects/services/ocpt_schedule_se
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_screenplay_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_coverage_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_list_service.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_storyboard_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/ocpt_imported_fountain_model.dart';
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
@@ -71,6 +73,14 @@ class _FailingScreenplayService extends OcptScreenplayService {
               deviceId: _testDeviceId,
             ),
             roleCandidatesService: OcptRoleCandidatesService(deviceId: _testDeviceId),
+            deviceId: _testDeviceId,
+          ),
+          storyboardService: OcptStoryboardService(
+            assetsService: OcptAssetsService(deviceId: _testDeviceId),
+            deviceId: _testDeviceId,
+          ),
+          floorPlanService: OcptFloorPlanService(
+            assetsService: OcptAssetsService(deviceId: _testDeviceId),
             deviceId: _testDeviceId,
           ),
           deviceId: _testDeviceId,

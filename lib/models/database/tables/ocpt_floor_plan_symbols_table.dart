@@ -1,0 +1,92 @@
+// SPDX-FileCopyrightText: 2026 Benoit Rolandeau <borlnov.obsessio@gmail.com>
+//
+// SPDX-License-Identifier: Apache-2.0
+
+import 'package:drift/drift.dart';
+import 'package:open_cine_prod_tools/models/database/tables/ocpt_floor_plan_cases_table.dart';
+import 'package:open_cine_prod_tools/models/database/tables/ocpt_shots_table.dart';
+import 'package:open_cine_prod_tools/types/ocpt_floor_plan_layer.dart';
+
+/// Converts a [OcptFloorPlanLayer] to and from the text stored in the `floor_plan_symbols.layer`
+/// column.
+class OcptFloorPlanLayerConverter extends TypeConverter<OcptFloorPlanLayer, String> {
+  /// Class constructor
+  const OcptFloorPlanLayerConverter();
+
+  /// {@macro drift.TypeConverter.fromSql}
+  @override
+  OcptFloorPlanLayer fromSql(String fromDb) => OcptFloorPlanLayer.values.byName(fromDb);
+
+  /// {@macro drift.TypeConverter.toSql}
+  @override
+  String toSql(OcptFloorPlanLayer value) => value.name;
+}
+
+/// A camera, a character, a light, a set element or any other placed symbol of a floor plan case.
+///
+/// One table for both of the floor plan's scopes: [layer] decides the scope, and [shotId] is null
+/// **exactly when** [layer] is sequence-scoped (`OcptFloorPlanLayer.isSequenceScoped`) — the
+/// invariant `OcptFloorPlanService` enforces at every write (`docs/plans/storyboard.md`, §2).
+///
+/// A camera symbol's letter (`3A`, `3B`) and a shot layer's shot number are **never stored**: both
+/// are derived at read time, the letter from this row's rank among the same shot's live cameras on
+/// the same case in [sortKey] order, the number from the shot's own rank in its sequence — the house
+/// rule the shot code already follows.
+@DataClassName('OcptFloorPlanSymbolRow')
+class OcptFloorPlanSymbolsTable extends Table {
+  /// {@macro open_cine_prod_tools.OcptFloorPlanSymbolsTable}
+  @override
+  String get tableName => 'floor_plan_symbols';
+
+  /// The stable, unique id of this symbol (a UUID).
+  TextColumn get id => text()();
+
+  /// The case this symbol is placed on.
+  TextColumn get caseId => text().references(OcptFloorPlanCasesTable, #id)();
+
+  /// The shot this symbol belongs to — null on a sequence layer, set on a shot layer. See the class
+  /// doc comment.
+  TextColumn get shotId => text().nullable().references(OcptShotsTable, #id)();
+
+  /// Which layer this symbol is drawn on, and so which scope it belongs to.
+  TextColumn get layer => text().map(const OcptFloorPlanLayerConverter())();
+
+  /// {@macro open_cine_prod_tools.sortKey}
+  ///
+  /// The draw order, and — for a `OcptFloorPlanLayer.cameras` symbol — the rank its letter is
+  /// derived from.
+  TextColumn get sortKey => text().withDefault(const Constant(''))();
+
+  /// The symbol's centre X, in **metres**.
+  RealColumn get xM => real()();
+
+  /// The symbol's centre Y, in metres.
+  RealColumn get yM => real()();
+
+  /// The symbol's rotation, in degrees — a camera's heading, a wall's angle.
+  RealColumn get rotationDeg => real().withDefault(const Constant(0))();
+
+  /// A set element's footprint width, in metres — null on every other layer in v1. The v2
+  /// per-symbol size override reuses this column with no migration (`docs/plans/storyboard.md`,
+  /// §2).
+  RealColumn get widthM => real().nullable()();
+
+  /// A set element's footprint height, in metres. See [widthM].
+  RealColumn get heightM => real().nullable()();
+
+  /// A camera's field-of-view wedge, in degrees — null meaning the drawing's own default.
+  RealColumn get fovDeg => real().nullable()();
+
+  /// The text label this symbol carries, e.g. `key · 1.2k`, `SAM · stand-in`,
+  /// `85mm · reverse on Sam`. A character symbol's [label] is a free text pre-filled from the
+  /// shot's characters field as a convenience only — it carries no link back to a role
+  /// (`docs/plans/storyboard.md`, §2).
+  TextColumn get label => text().withDefault(const Constant(''))();
+
+  /// {@macro open_cine_prod_tools.isDeleted}
+  BoolColumn get isDeleted => boolean().withDefault(const Constant(false))();
+
+  /// {@macro drift.Table.primaryKey}
+  @override
+  Set<Column> get primaryKey => {id};
+}
