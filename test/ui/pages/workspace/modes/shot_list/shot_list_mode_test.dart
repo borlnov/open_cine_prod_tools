@@ -28,6 +28,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_lis
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_event.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_mode.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_floor_plan_canvas.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_floor_plan_focus_strip.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_scenario_coverage_export_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_shot_inspector_panel.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_shot_list_status_bar.dart';
@@ -907,16 +908,105 @@ void main() {
         );
         expect(setElementButton.onPressed, isNull);
 
+        // The shot-scoped camera tool is withheld too (dimmed under the Sequence focus AND
+        // withheld under the preview, either reason enough on its own).
+        final cameraButton = tester.widget<IconButton>(
+          find.descendant(
+            of: find.byTooltip(tr.shotListFloorPlanToolCameraAction),
+            matching: find.byType(IconButton),
+          ),
+        );
+        expect(cameraButton.onPressed, isNull);
+
         // The canvas's own write callback is withheld directly, whichever tool ends up active —
         // the null closes the whole placing gesture at its source, exactly like the board's own
-        // null callbacks.
+        // null callbacks. Reads (selecting, focusing a ghost's shot) stay available.
         final canvas = tester.widget<OcptFloorPlanCanvas>(find.byType(OcptFloorPlanCanvas));
         expect(canvas.onSymbolPlaced, isNull);
         expect(canvas.onSymbolMoved, isNull);
         expect(canvas.onSymbolDeleteRequested, isNull);
+        expect(canvas.onArrowSymbolTapped, isNull);
+        expect(canvas.onArrowAnchorCancelled, isNull);
+        expect(canvas.onSymbolLabelChanged, isNull);
+        expect(canvas.onSymbolSelected, isNotNull);
+        expect(canvas.onGhostShotFocusRequested, isNotNull);
 
         // Leave the preview so the working copy is what the next test opens onto.
         await projectsManager.exitPreview();
+      },
+    );
+
+    testWidgets(
+      "the focus strip's Sequence and shot chips select/deselect the shot",
+      (tester) async {
+        final bloc = await mountWithACase(tester);
+        final tr = Tr.of(tester.element(find.byType(OcptShotListMode)));
+
+        bloc.add(const OcptShotListShotCreationRequestedEvent());
+        await tester.pumpAndSettle();
+        final shotId = bloc.state.selectedShotId!;
+        final shotCode = bloc.state.selectedShot!.code;
+        expect(bloc.state.isFloorPlanShotFocusActive, isTrue);
+
+        // The shot's own chip is already active (the very selection the table's rows share); the
+        // `Sequence` chip flips the focus back. Scoped to the focus strip: the shot's own code is
+        // also shown by the left tree and the inspector header.
+        final shotChipFinder = find.descendant(
+          of: find.byType(OcptFloorPlanFocusStrip),
+          matching: find.text(shotCode),
+        );
+        expect(shotChipFinder, findsOneWidget);
+        await tester.tap(find.text(tr.shotListFloorPlanFocusSequenceChipLabel));
+        await tester.pumpAndSettle();
+        expect(bloc.state.selectedShotId, isNull);
+        expect(bloc.state.isFloorPlanShotFocusActive, isFalse);
+
+        // Tapping the shot's own chip again re-selects it — the mode's one selection, shared with
+        // the table.
+        await tester.tap(shotChipFinder);
+        await tester.pumpAndSettle();
+        expect(bloc.state.selectedShotId, shotId);
+      },
+    );
+
+    testWidgets(
+      "placing a camera under the shot focus, then deleting it, asks through the confirm dialog",
+      (tester) async {
+        final bloc = await mountWithACase(tester);
+        final tr = Tr.of(tester.element(find.byType(OcptShotListMode)));
+
+        bloc.add(const OcptShotListShotCreationRequestedEvent());
+        await tester.pumpAndSettle();
+        final shotId = bloc.state.selectedShotId!;
+        expect(bloc.state.isFloorPlanShotFocusActive, isTrue);
+
+        // Creating the shot opened the right dock on its own inspector tab, narrowing the centre
+        // column enough to make the tool bar's own tap targets unreliable to hit-test against in
+        // this harness; closing it again leaves the shot focus untouched (`selectedShotId` is a
+        // separate field from `rightDockTab`) and restores the same full-width toolbar every other
+        // floor plans test taps against.
+        bloc.add(const OcptShotListRightDockClosedEvent());
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.byTooltip(tr.shotListFloorPlanToolCameraAction));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byType(OcptFloorPlanCanvas));
+        await tester.pumpAndSettle();
+
+        final symbols = bloc.state.selectedCase!.symbols;
+        expect(symbols, hasLength(1));
+        expect(symbols.single.shotId, shotId);
+        expect(symbols.single.layer, OcptFloorPlanLayer.cameras);
+
+        // Deleting it, exactly as a sequence-scoped symbol's own delete does, only asks.
+        await tester.tap(find.byTooltip(tr.shotListFloorPlanDeleteSymbolAction));
+        await tester.pumpAndSettle();
+        expect(find.byType(OcptConfirmDialog), findsOneWidget);
+        expect(bloc.state.selectedCase!.symbols, hasLength(1));
+
+        await tester.tap(find.text(tr.shotListDeleteConfirmDeleteAction));
+        await tester.pumpAndSettle();
+        expect(bloc.state.selectedCase!.symbols, isEmpty);
       },
     );
   });

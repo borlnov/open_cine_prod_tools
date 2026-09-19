@@ -3135,9 +3135,9 @@
     "type": "text",
     "placeholders": {}
   },
-  "shotListFloorPlanDeleteSymbolConfirmTitle": "Delete this set element?",
+  "shotListFloorPlanDeleteSymbolConfirmTitle": "Delete this placement?",
   "@shotListFloorPlanDeleteSymbolConfirmTitle": {
-    "description": "Title of the confirmation dialog deleting a floor plan symbol",
+    "description": "Title of the confirmation dialog deleting a floor plan symbol (a set element, a camera, a character, a light or a hand prop)",
     "context": "Displayed in the confirm dialog opened from the canvas's own delete handle",
     "type": "text",
     "placeholders": {}
@@ -3149,8 +3149,176 @@
     "type": "text",
     "placeholders": {}
   },
-  "shotListFloorPlanStatusHint": "{caseName} · {count, plural, one{1 set element} other{{count} set elements}}",
-  "@shotListFloorPlanStatusHint": {
+  "shotListFloorPlanToolCameraAction": "Camera",
+  "@shotListFloorPlanToolCameraAction": {
+    "description": "Tooltip of the tool bar's own camera tool button",
+    "context": "Displayed on the floor plans view's own tool bar",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanToolCharacterAction": "Character",
+  "@shotListFloorPlanToolCharacterAction": {
+    "description": "Tooltip of the tool bar's own character tool button",
+    "context": "Displayed on the floor plans view's own tool bar",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanToolLightAction": "Light",
+  "@shotListFloorPlanToolLightAction": {
+    "description": "Tooltip of the tool bar's own light tool button",
+    "context": "Displayed on the floor plans view's own tool bar",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanToolArrowAction": "Arrow",
+  "@shotListFloorPlanToolArrowAction": {
+    "description": "Tooltip of the tool bar's own arrow tool button",
+    "context": "Displayed on the floor plans view's own tool bar",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanToolLabelAction": "Label",
+  "@shotListFloorPlanToolLabelAction": {
+    "description": "Tooltip of the tool bar's own label tool button",
+    "context": "Displayed on the floor plans view's own tool bar",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanSetElementDimmedHint": "Set elements go to a sequence layer — pick \"Sequence\" below",
+  "@shotListFloorPlanSetElementDimmedHint": {
+    "description": "The tool bar's own one-line hint next to the set-element tool while it is dimmed under a shot focus",
+    "context": "Displayed on the floor plans view's own tool bar",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanShotToolsDimmedHint": "Pick a shot below to place cameras, characters, lights and arrows",
+  "@shotListFloorPlanShotToolsDimmedHint": {
+    "description": "The tool bar's own one-line hint next to the shot-scoped tools while they are dimmed under the Sequence focus",
+    "context": "Displayed on the floor plans view's own tool bar",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanShotLayersGroupTitle": "Shot layers",
+  "@shotListFloorPlanShotLayersGroupTitle": {
+    "description": "Title of the tray's own shot layers group (cameras, characters, lights, hand props)",
+    "context": "Displayed on the floor plans view's own tray",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanLayerCamerasLabel": "Cameras",
+  "@shotListFloorPlanLayerCamerasLabel": {
+    "description": "Label of the tray's own cameras row",
+    "context": "Displayed on the floor plans view's own tray",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanLayerCharactersLabel": "Characters",
+  "@shotListFloorPlanLayerCharactersLabel": {
+    "description": "Label of the tray's own characters row",
+    "context": "Displayed on the floor plans view's own tray",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanLayerLightsLabel": "Lights",
+  "@shotListFloorPlanLayerLightsLabel": {
+    "description": "Label of the tray's own lights row",
+    "context": "Displayed on the floor plans view's own tray",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanLayerHandPropsLabel": "Hand props",
+  "@shotListFloorPlanLayerHandPropsLabel": {
+    "description": "Label of the tray's own hand props row",
+    "context": "Displayed on the floor plans view's own tray",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanNoCamerasHint": "No camera placed yet.",
+  "@shotListFloorPlanNoCamerasHint": {
+    "description": "Shown in the tray's own expanded cameras row while the sequence holds no camera yet",
+    "context": "Displayed on the floor plans view's own tray",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanOnionSkinGroupTitle": "Onion skin",
+  "@shotListFloorPlanOnionSkinGroupTitle": {
+    "description": "Title of the tray's own onion skin block",
+    "context": "Displayed on the floor plans view's own tray",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanOnionSkinPreviousLabel": "Previous shot",
+  "@shotListFloorPlanOnionSkinPreviousLabel": {
+    "description": "Label of the onion skin block's own previous-shot toggle",
+    "context": "Displayed on the floor plans view's own tray",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanOnionSkinNextLabel": "Next shot",
+  "@shotListFloorPlanOnionSkinNextLabel": {
+    "description": "Label of the onion skin block's own next-shot toggle",
+    "context": "Displayed on the floor plans view's own tray",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanOnionSkinOpacityLabel": "Opacity",
+  "@shotListFloorPlanOnionSkinOpacityLabel": {
+    "description": "Label of the onion skin block's own opacity slider",
+    "context": "Displayed on the floor plans view's own tray",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanMetricsToggleLabel": "Show metrics",
+  "@shotListFloorPlanMetricsToggleLabel": {
+    "description": "Label of the tray's own metrics overlay toggle",
+    "context": "Displayed on the floor plans view's own tray",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanFocusWalkHint": "← → to walk shots",
+  "@shotListFloorPlanFocusWalkHint": {
+    "description": "The focus strip's own trailing hint stating the keyboard shortcut walking its shot chips",
+    "context": "Displayed on the floor plans view's own focus strip",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanFocusPreviousChipTag": "prev",
+  "@shotListFloorPlanFocusPreviousChipTag": {
+    "description": "Small tag on the focus strip's own chip of the shot ghosted as the onion skin's previous neighbour",
+    "context": "Displayed on the floor plans view's own focus strip",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanFocusNextChipTag": "next",
+  "@shotListFloorPlanFocusNextChipTag": {
+    "description": "Small tag on the focus strip's own chip of the shot ghosted as the onion skin's next neighbour",
+    "context": "Displayed on the floor plans view's own focus strip",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanSymbolLabelFieldHint": "Label",
+  "@shotListFloorPlanSymbolLabelFieldHint": {
+    "description": "Placeholder of the canvas's own inline symbol label editor while it is empty",
+    "context": "Displayed on the floor plans view's own canvas",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanDeleteArrowConfirmTitle": "Delete this arrow?",
+  "@shotListFloorPlanDeleteArrowConfirmTitle": {
+    "description": "Title of the confirmation dialog deleting a floor plan arrow",
+    "context": "Displayed in the confirm dialog opened from the Placements group's own remove action",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanDeleteArrowConfirmMessage": "It is removed for good.",
+  "@shotListFloorPlanDeleteArrowConfirmMessage": {
+    "description": "Message of the confirmation dialog deleting a floor plan arrow",
+    "context": "Displayed in the confirm dialog opened from the Placements group's own remove action",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanCameraStatusHint": "{caseName} · {cameraCount, plural, one{1 camera} other{{cameraCount} cameras}} on {shotCount, plural, one{1 shot} other{{shotCount} shots}}",
+  "@shotListFloorPlanCameraStatusHint": {
     "description": "The status bar's own trailing hint while the floor plans view is shown and a case is selected",
     "context": "Displayed in the shot list mode's status bar",
     "type": "text",
@@ -3158,8 +3326,114 @@
       "caseName": {
         "type": "String"
       },
+      "cameraCount": {
+        "type": "int"
+      },
+      "shotCount": {
+        "type": "int"
+      }
+    }
+  },
+  "shotListFloorPlanCameraStatusUnplacedHint": "{shotCode} has no camera yet",
+  "@shotListFloorPlanCameraStatusUnplacedHint": {
+    "description": "Trailing segment of the floor plans status hint naming the first shot of the sequence still holding no camera on the selected case",
+    "context": "Displayed in the shot list mode's status bar",
+    "type": "text",
+    "placeholders": {
+      "shotCode": {
+        "type": "String"
+      }
+    }
+  },
+  "shotListFloorPlanPlacementsGroupTitle": "On this plan · {caseName}",
+  "@shotListFloorPlanPlacementsGroupTitle": {
+    "description": "Title of the inspector's own Placements group, shown on the floor plans view",
+    "context": "Displayed at the top of the shot inspector's own Placements group",
+    "type": "text",
+    "placeholders": {
+      "caseName": {
+        "type": "String"
+      }
+    }
+  },
+  "shotListFloorPlanPlacementsCamerasSectionTitle": "Cameras",
+  "@shotListFloorPlanPlacementsCamerasSectionTitle": {
+    "description": "Title of the Placements group's own cameras section",
+    "context": "Displayed in the shot inspector's own Placements group",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanPlacementsCharactersSectionTitle": "Characters",
+  "@shotListFloorPlanPlacementsCharactersSectionTitle": {
+    "description": "Title of the Placements group's own characters section",
+    "context": "Displayed in the shot inspector's own Placements group",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanPlacementsLightsSectionTitle": "Lights",
+  "@shotListFloorPlanPlacementsLightsSectionTitle": {
+    "description": "Title of the Placements group's own lights section",
+    "context": "Displayed in the shot inspector's own Placements group",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanPlacementsPropsSectionTitle": "Hand props",
+  "@shotListFloorPlanPlacementsPropsSectionTitle": {
+    "description": "Title of the Placements group's own hand props section",
+    "context": "Displayed in the shot inspector's own Placements group",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanPlacementsArrowsSectionTitle": "Arrows",
+  "@shotListFloorPlanPlacementsArrowsSectionTitle": {
+    "description": "Title of the Placements group's own arrows section",
+    "context": "Displayed in the shot inspector's own Placements group",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanPlacementsNoCameraHint": "No camera placed on this case yet.",
+  "@shotListFloorPlanPlacementsNoCameraHint": {
+    "description": "Shown in the Placements group's own cameras section while the shot has none on the selected case",
+    "context": "Displayed in the shot inspector's own Placements group",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanPlacementsNoneHint": "None placed on this case yet.",
+  "@shotListFloorPlanPlacementsNoneHint": {
+    "description": "Shown in a Placements group section (characters, lights, hand props, arrows) while the shot has none on the selected case",
+    "context": "Displayed in the shot inspector's own Placements group",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanPlacementsArrowRowLabel": "Movement",
+  "@shotListFloorPlanPlacementsArrowRowLabel": {
+    "description": "An arrow row's own label while the arrow carries no caption of its own",
+    "context": "Displayed in the shot inspector's own Placements group",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanPlacementsOtherCaseHasCameraHint": "{caseName} · {count, plural, one{1 camera} other{{count} cameras}}",
+  "@shotListFloorPlanPlacementsOtherCaseHasCameraHint": {
+    "description": "One line of the Placements group's own other-cases list, naming that this shot has a camera on that other case too",
+    "context": "Displayed in the shot inspector's own Placements group",
+    "type": "text",
+    "placeholders": {
+      "caseName": {
+        "type": "String"
+      },
       "count": {
         "type": "int"
+      }
+    }
+  },
+  "shotListFloorPlanPlacementsOtherCaseNoCameraHint": "{caseName} · no camera for this shot",
+  "@shotListFloorPlanPlacementsOtherCaseNoCameraHint": {
+    "description": "One line of the Placements group's own other-cases list, naming that this shot has no camera on that other case",
+    "context": "Displayed in the shot inspector's own Placements group",
+    "type": "text",
+    "placeholders": {
+      "caseName": {
+        "type": "String"
       }
     }
   },

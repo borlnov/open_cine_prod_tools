@@ -7,6 +7,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_floor_plan_case.dart';
 import 'package:open_cine_prod_tools/models/ocpt_floor_plan_sheet.dart';
@@ -16,6 +17,12 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_floor_plan_viewport_controller.dart';
 import 'package:open_cine_prod_tools/ui/widgets/ocpt_referenced_image.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_floor_plan_geometry.dart';
+
+/// The width, in logical pixels, the inline symbol label editor's own text box is drawn at.
+const double _labelEditorWidth = 130;
+
+/// The height, in logical pixels, the inline symbol label editor's own text box is drawn at.
+const double _labelEditorHeight = 30;
 
 /// The side, in logical pixels, of a selected symbol's own resize handle hit box.
 const double _handleHitSize = 18;
@@ -34,35 +41,88 @@ const Duration _wheelZoomSettleDelay = Duration(milliseconds: 300);
 /// How much one scroll-wheel notch multiplies the zoom by.
 const double _wheelZoomStep = 0.08;
 
-/// The floor plans canvas: a `CustomPaint` of the `OcptFloorPlanSheet` the sequence focus builds
+/// The floor plans canvas: a `CustomPaint` of the `OcptFloorPlanSheet` the current focus builds
 /// for [floorPlanCase], under a `GestureDetector` (`docs/plans/storyboard.md`, §4.3).
 ///
 /// Geometry is drawn from **metres → logical pixels at [OcptFloorPlanCanvas.viewportController]'s
-/// current zoom**, through `ocpt_floor_plan_geometry.dart` — never a stored pixel value. Placing a
-/// set element: pick the `setElement` tool, click → [onSymbolPlaced] into the tray's active
-/// sequence layer. Dragging a symbol moves it (one [onSymbolMoved] on drag end, in metres);
+/// current zoom**, through `ocpt_floor_plan_geometry.dart` — never a stored pixel value.
+///
+/// **The focus** is [focusShotId]: null draws the `Sequence` focus (every sequence layer, plus
+/// every live camera of every shot, numbered, each hideable through [hiddenCameraSymbolIds]); set,
+/// it draws the shot focus (every sequence layer, plus [focusShotId]'s own shot layers, plus
+/// [previousShotId]'s/[nextShotId]'s own shot layers as onion-skin ghosts, gated by
+/// [isOnionSkinPreviousShown]/[isOnionSkinNextShown]). **The scope invariant a tool respects**:
+/// [OcptFloorPlanTool.setElement] places on the tray's active *sequence* layer (never scoped to a
+/// shot); [OcptFloorPlanTool.camera]/[OcptFloorPlanTool.character]/[OcptFloorPlanTool.light] each
+/// place their own fixed shot layer on [focusShotId] and do nothing at all while it is null (the
+/// tool bar dims them under the `Sequence` focus, so this is a defensive no-op, never reached in
+/// practice). A symbol is only ever **editable** (selectable for drag, resizable, rotatable,
+/// deletable) when it belongs to the scope the current focus makes live — a sequence layer under
+/// the `Sequence` focus, [focusShotId]'s own shot layers under a shot focus — and never when it is
+/// a ghost: the frozen scope is drawn, never hidden, but locked.
+///
+/// **Arrows**: [OcptFloorPlanTool.arrow] takes two clicks on two (non-ghost) symbols —
+/// [onArrowSymbolTapped] reports each tap, the bloc holds the pending anchor and completes the
+/// arrow on the second — cancelled by `Escape` (the view's own keyboard shortcut) or a click on
+/// empty canvas ([onArrowAnchorCancelled]). **Labels**: [OcptFloorPlanTool.label] shows an inline
+/// text field over the selected symbol, its value [symbolLabelValueOf], writes through
+/// [onSymbolLabelChanged]. **Double-clicking a ghost** calls [onGhostShotFocusRequested] with its
+/// own shot's id, focusing it.
+///
+/// Placing a set element: pick the `setElement` tool, click → [onSymbolPlaced] into the tray's
+/// active sequence layer. Dragging a symbol moves it (one [onSymbolMoved] on drag end, in metres);
 /// dragging its own resize/rotate handle resizes/rotates it (one [onSymbolResized]/[onSymbolRotated]
 /// on drag end). Every write is **withheld** under [isReadOnly] (a null `onSymbolPlaced`/move/
-/// resize/rotate/delete closes the whole gesture, exactly as the board's null callbacks do); zoom,
-/// pan and the tray's own visibility toggles stay available, since they only read.
+/// resize/rotate/delete/arrow/label closes the whole gesture, exactly as the board's null callbacks
+/// do); zoom, pan, selecting, the metrics overlay and the tray's own visibility toggles stay
+/// available, since they only read.
 class OcptFloorPlanCanvas extends StatefulWidget {
   /// The case currently shown, or null while none is selected (the empty state).
   final OcptFloorPlanCase? floorPlanCase;
 
   /// Every shot of the selected sequence's own 1-based display rank, keyed by shot id — what
-  /// `OcptFloorPlanSheet.of` derives a camera's number from. Always built from the sequence even
-  /// though no shot-scoped symbol exists yet in this milestone, so the sheet builder never has to
-  /// special-case an empty map.
+  /// `OcptFloorPlanSheet.of` derives a camera's number from.
   final Map<String, int> shotRankByShotId;
 
-  /// The sequence layers currently hidden, out of the tray's own three rows.
+  /// The id of the currently focused shot, or null for the `Sequence` focus — see the class doc
+  /// comment. `OcptShotListState.isFloorPlanShotFocusActive`'s own reading of `selectedShotId`.
+  final String? focusShotId;
+
+  /// The shot immediately before [focusShotId] in the sequence, or null while there is none (or
+  /// the `Sequence` focus is showing) — the onion skin's own previous-shot ghost.
+  final String? previousShotId;
+
+  /// The shot immediately after [focusShotId]. See [previousShotId].
+  final String? nextShotId;
+
+  /// Whether the onion skin's own previous-shot ghost is drawn.
+  final bool isOnionSkinPreviousShown;
+
+  /// Whether the onion skin's own next-shot ghost is drawn.
+  final bool isOnionSkinNextShown;
+
+  /// The onion skin's own ghost opacity, 0..1.
+  final double onionSkinOpacity;
+
+  /// The sequence layers currently hidden, out of the tray's own rows.
   final Set<OcptFloorPlanLayer> hiddenLayers;
+
+  /// The ids of every camera symbol currently hidden, out of every live camera of the sequence —
+  /// only relevant under the `Sequence` focus, where every shot's cameras draw at once.
+  final Set<String> hiddenCameraSymbolIds;
 
   /// Whether the case's own underlay is currently hidden.
   final bool isUnderlayHidden;
 
   /// The id of the currently selected symbol, or null while none is.
   final String? selectedSymbolId;
+
+  /// The id of the symbol picked as the arrow tool's own pending first end, or null while none is.
+  final String? pendingArrowAnchorSymbolId;
+
+  /// Whether the metrics overlay is shown: the distance from the selected symbol to every other
+  /// visible symbol of the case.
+  final bool isMetricsShown;
 
   /// The canvas's own currently active tool.
   final OcptFloorPlanTool activeTool;
@@ -77,13 +137,19 @@ class OcptFloorPlanCanvas extends StatefulWidget {
   /// Whether the mode shows a project version being previewed read-only.
   final bool isReadOnly;
 
+  /// A symbol's current label value: a pending edit still in the mode's debounce, or the
+  /// symbol's own stored label — the inline label editor's equivalent of the inspector's own
+  /// `fieldValueOf`.
+  final String Function(String symbolId) symbolLabelValueOf;
+
   /// Called with a symbol's id when it is selected, or null when empty canvas is clicked while the
-  /// `select` tool is on (clearing the selection). Never withheld: selecting only reads.
+  /// `select` or `label` tool is on (clearing the selection). Never withheld: selecting only reads.
   final ValueChanged<String?> onSymbolSelected;
 
-  /// Called with the tray's active layer and the clicked point (metres) when empty canvas is
-  /// clicked while the `setElement` tool is on, or null while withheld.
-  final void Function(OcptFloorPlanLayer layer, double xM, double yM)? onSymbolPlaced;
+  /// Called with the layer and the shot id (null on a sequence layer, [focusShotId] on a shot
+  /// layer) a new symbol is placed on, and the clicked point (metres), or null while withheld.
+  final void Function(OcptFloorPlanLayer layer, String? shotId, double xM, double yM)?
+  onSymbolPlaced;
 
   /// Called with a symbol's id and its new centre (metres) once a drag moving it ends, or null
   /// while withheld.
@@ -101,6 +167,22 @@ class OcptFloorPlanCanvas extends StatefulWidget {
   /// withheld. Only asks — the mode opens `OcptConfirmDialog`.
   final ValueChanged<String>? onSymbolDeleteRequested;
 
+  /// Called with a (non-ghost) symbol's id when it is tapped while the `arrow` tool is on, or null
+  /// while withheld.
+  final ValueChanged<String>? onArrowSymbolTapped;
+
+  /// Called to cancel the arrow tool's own pending anchor — `Escape` or a click on empty canvas
+  /// while it is on — or null while withheld (nothing pending, or a read-only preview).
+  final VoidCallback? onArrowAnchorCancelled;
+
+  /// Called with a ghost symbol's own shot id when it is double-clicked, focusing it. Never
+  /// withheld: focusing a shot only reads.
+  final ValueChanged<String>? onGhostShotFocusRequested;
+
+  /// Called with a symbol's id and its raw label text on every keystroke of the inline label
+  /// editor, or null while withheld.
+  final void Function(String symbolId, String rawValue)? onSymbolLabelChanged;
+
   /// Called with the underlay's new frame (metres) once a drag moving or resizing it ends, or null
   /// while withheld.
   final void Function(double xM, double yM, double widthM, double heightM)?
@@ -115,19 +197,33 @@ class OcptFloorPlanCanvas extends StatefulWidget {
     super.key,
     required this.floorPlanCase,
     required this.shotRankByShotId,
+    required this.focusShotId,
+    required this.previousShotId,
+    required this.nextShotId,
+    required this.isOnionSkinPreviousShown,
+    required this.isOnionSkinNextShown,
+    required this.onionSkinOpacity,
     required this.hiddenLayers,
+    required this.hiddenCameraSymbolIds,
     required this.isUnderlayHidden,
     required this.selectedSymbolId,
+    required this.pendingArrowAnchorSymbolId,
+    required this.isMetricsShown,
     required this.activeTool,
     required this.activeLayer,
     required this.viewportController,
     required this.isReadOnly,
+    required this.symbolLabelValueOf,
     required this.onSymbolSelected,
     required this.onSymbolPlaced,
     required this.onSymbolMoved,
     required this.onSymbolResized,
     required this.onSymbolRotated,
     required this.onSymbolDeleteRequested,
+    required this.onArrowSymbolTapped,
+    required this.onArrowAnchorCancelled,
+    required this.onGhostShotFocusRequested,
+    required this.onSymbolLabelChanged,
     required this.onUnderlayTransformChanged,
     required this.onZoomSettled,
   });
@@ -187,6 +283,8 @@ class _OcptFloorPlanCanvasState extends State<OcptFloorPlanCanvas> {
             final sheet = _sheetOf(floorPlanCase);
             final barLengthM = ocptFloorPlanScaleBarLengthM(zoom: zoom);
 
+            final selectedShape = _selectedShapeOf(sheet);
+
             return ClipRect(
               child: Stack(
                 children: [
@@ -207,14 +305,20 @@ class _OcptFloorPlanCanvasState extends State<OcptFloorPlanCanvas> {
                             zoom: zoom,
                             pan: pan,
                             selectedSymbolId: widget.selectedSymbolId,
+                            arrowAnchorSymbolId: widget.pendingArrowAnchorSymbolId,
                             liveOverride: _liveOverride,
                             symbolBorderColor: theme.colorScheme.outline,
                             selectionColor: theme.colorScheme.primary,
+                            arrowAnchorColor: theme.colorScheme.secondary,
+                            arrowColor: theme.colorScheme.onSurface,
                             labelTextColor: theme.colorScheme.onSurface,
                             scaleColor: theme.colorScheme.onSurfaceVariant,
                             scaleBarLabel: tr.shotListFloorPlanScaleBarLengthLabel(
                               ocptFloorPlanScaleBarLengthLabelOf(barLengthM),
                             ),
+                            onionSkinOpacity: widget.onionSkinOpacity,
+                            metricLines: _metricLinesOf(sheet, selectedShape, tr),
+                            metricLineColor: theme.colorScheme.tertiary,
                           ),
                         ),
                       ),
@@ -227,8 +331,12 @@ class _OcptFloorPlanCanvasState extends State<OcptFloorPlanCanvas> {
                     ..._buildUnderlayHandles(floorPlanCase, canvasSize, zoom, pan),
                   for (final symbol in sheet.symbols)
                     _buildSymbolHitOverlay(symbol, canvasSize, zoom, pan),
-                  if (_selectedShapeOf(sheet) case final selected?)
-                    ..._buildSymbolHandles(selected, canvasSize, zoom, pan),
+                  if (selectedShape != null)
+                    ..._buildSymbolHandles(selectedShape, canvasSize, zoom, pan),
+                  if (widget.activeTool == OcptFloorPlanTool.label &&
+                      selectedShape != null &&
+                      !selectedShape.isGhost)
+                    _buildLabelEditor(selectedShape, canvasSize, zoom, pan),
                 ],
               ),
             );
@@ -238,25 +346,89 @@ class _OcptFloorPlanCanvasState extends State<OcptFloorPlanCanvas> {
     );
   }
 
-  /// The sheet this canvas draws: the **sequence** focus (`focusShotId: null`, M5 offers no other),
-  /// filtered to [OcptFloorPlanCanvas.hiddenLayers].
+  /// The sheet this canvas draws, under [OcptFloorPlanCanvas.focusShotId]'s own focus, filtered to
+  /// [OcptFloorPlanCanvas.hiddenLayers] and — under the `Sequence` focus only —
+  /// [OcptFloorPlanCanvas.hiddenCameraSymbolIds]. The onion skin's own ghost shots
+  /// ([OcptFloorPlanCanvas.previousShotId]/[OcptFloorPlanCanvas.nextShotId]) are passed to
+  /// `OcptFloorPlanSheet.of` only while their own tray toggle is on, so a hidden neighbour draws
+  /// nothing at all rather than a ghost this canvas then has to filter back out.
   OcptFloorPlanSheet _sheetOf(OcptFloorPlanCase floorPlanCase) {
+    final focusShotId = widget.focusShotId;
     final full = OcptFloorPlanSheet.of(
       floorPlanCase: floorPlanCase,
-      focusShotId: null,
+      focusShotId: focusShotId,
       shotRankByShotId: widget.shotRankByShotId,
+      previousShotId: widget.isOnionSkinPreviousShown ? widget.previousShotId : null,
+      nextShotId: widget.isOnionSkinNextShown ? widget.nextShotId : null,
     );
+    final isSequenceFocus = focusShotId == null;
+
     return OcptFloorPlanSheet(
       caseId: full.caseId,
       caseName: full.caseName,
       underlay: full.underlay,
       symbols: [
         for (final symbol in full.symbols)
-          if (!widget.hiddenLayers.contains(symbol.layer)) symbol,
+          if (!widget.hiddenLayers.contains(symbol.layer) &&
+              !(isSequenceFocus &&
+                  symbol.layer == OcptFloorPlanLayer.cameras &&
+                  widget.hiddenCameraSymbolIds.contains(symbol.symbolId)))
+            symbol,
       ],
       arrows: full.arrows,
     );
   }
+
+  /// Whether [symbol] may be dragged, resized, rotated or deleted under the current focus: never a
+  /// ghost, and only a symbol of the scope the current focus makes live — a sequence layer under
+  /// the `Sequence` focus, [OcptFloorPlanCanvas.focusShotId]'s own shot layers under a shot focus.
+  /// The frozen scope stays selectable (so its own Placements/metrics still read), just locked.
+  bool _isSymbolEditable(OcptFloorPlanSymbolShape symbol) {
+    if (symbol.isGhost) {
+      return false;
+    }
+    final isSequenceFocus = widget.focusShotId == null;
+    return isSequenceFocus ? symbol.layer.isSequenceScoped : !symbol.layer.isSequenceScoped;
+  }
+
+  /// The metrics overlay's own lines, from the selected symbol to every other symbol [sheet] draws
+  /// — empty while the overlay is off or nothing is selected.
+  List<OcptFloorPlanMetricLine> _metricLinesOf(
+    OcptFloorPlanSheet sheet,
+    OcptFloorPlanSymbolShape? selected,
+    Tr tr,
+  ) {
+    if (!widget.isMetricsShown || selected == null) {
+      return const [];
+    }
+
+    return [
+      for (final other in sheet.symbols)
+        if (other.symbolId != selected.symbolId)
+          OcptFloorPlanMetricLine(
+            fromXM: selected.xM,
+            fromYM: selected.yM,
+            toXM: other.xM,
+            toYM: other.yM,
+            label: tr.shotListFloorPlanScaleBarLengthLabel(
+              ocptFloorPlanScaleBarLengthLabelOf(
+                _roundToOneDecimetre(
+                  ocptFloorPlanDistanceM(
+                    x1M: selected.xM,
+                    y1M: selected.yM,
+                    x2M: other.xM,
+                    y2M: other.yM,
+                  ),
+                ),
+              ),
+            ),
+          ),
+    ];
+  }
+
+  /// [metres] rounded to the nearest tenth, for the metrics overlay's own labels — the distance
+  /// rule ([ocptFloorPlanDistanceM]) is exact, but a floor plan is never measured that precisely.
+  double _roundToOneDecimetre(double metres) => (metres * 10).round() / 10;
 
   /// The selected symbol's own shape out of [sheet], or null while none is selected or it isn't
   /// (currently) visible.
@@ -273,12 +445,18 @@ class _OcptFloorPlanCanvasState extends State<OcptFloorPlanCanvas> {
     return null;
   }
 
-  /// A click on empty canvas (no symbol, no underlay handle caught it first): places a new set
-  /// element under the `setElement` tool, or clears the selection under `select`.
+  /// A click on empty canvas (no symbol, no underlay handle caught it first): places a new symbol
+  /// under a placing tool (`setElement` on the tray's active sequence layer, or `camera`/
+  /// `character`/`light` on [OcptFloorPlanCanvas.focusShotId]'s own shot layer — a no-op while no
+  /// shot is focused, defensive only, the tool bar already dims those three under the `Sequence`
+  /// focus); cancels the arrow tool's own pending anchor under `arrow`; clears the selection
+  /// otherwise (`select`, `label`, or an arrow tool with nothing pending).
   void _handleBackgroundTap(Offset localPosition, Size canvasSize, double zoom, Offset pan) {
-    if (widget.activeTool == OcptFloorPlanTool.setElement) {
+    final shotLayer = _shotLayerOf(widget.activeTool);
+    if (widget.activeTool == OcptFloorPlanTool.setElement || shotLayer != null) {
       final onSymbolPlaced = widget.onSymbolPlaced;
-      if (onSymbolPlaced == null) {
+      final shotId = shotLayer == null ? null : widget.focusShotId;
+      if (onSymbolPlaced == null || (shotLayer != null && shotId == null)) {
         return;
       }
       final metres = ocptFloorPlanMetrePointOf(
@@ -287,12 +465,29 @@ class _OcptFloorPlanCanvasState extends State<OcptFloorPlanCanvas> {
         zoom: zoom,
         pan: pan,
       );
-      onSymbolPlaced(widget.activeLayer, metres.dx, metres.dy);
+      onSymbolPlaced(shotLayer ?? widget.activeLayer, shotId, metres.dx, metres.dy);
       return;
+    }
+
+    if (widget.activeTool == OcptFloorPlanTool.arrow) {
+      widget.onArrowAnchorCancelled?.call();
     }
 
     widget.onSymbolSelected(null);
   }
+
+  /// The fixed shot layer [tool] always places on, or null for a tool that doesn't place a
+  /// shot-scoped symbol at all ([OcptFloorPlanTool.setElement] places a sequence layer instead,
+  /// every other tool places nothing).
+  OcptFloorPlanLayer? _shotLayerOf(OcptFloorPlanTool tool) => switch (tool) {
+    OcptFloorPlanTool.camera => OcptFloorPlanLayer.cameras,
+    OcptFloorPlanTool.character => OcptFloorPlanLayer.characters,
+    OcptFloorPlanTool.light => OcptFloorPlanLayer.lights,
+    OcptFloorPlanTool.select ||
+    OcptFloorPlanTool.setElement ||
+    OcptFloorPlanTool.arrow ||
+    OcptFloorPlanTool.label => null,
+  };
 
   /// Zooms in/out one [_wheelZoomStep] per scroll-wheel notch, live on
   /// [OcptFloorPlanCanvas.viewportController] with no bloc emission, then (re)starts the debounce
@@ -466,6 +661,14 @@ class _OcptFloorPlanCanvasState extends State<OcptFloorPlanCanvas> {
   }
 
   /// One symbol's own invisible move + select overlay, rotated to match its own drawn shape.
+  ///
+  /// A tap under the `arrow` tool reports to [OcptFloorPlanCanvas.onArrowSymbolTapped] instead of
+  /// selecting (a ghost is excluded — an arrow always belongs to the focused shot, never crosses
+  /// into a neighbour's own placements); every other tool selects as before. Dragging is withheld
+  /// whenever [_isSymbolEditable] says the symbol is locked under the current focus, on top of the
+  /// existing [OcptFloorPlanCanvas.isReadOnly]/[OcptFloorPlanCanvas.onSymbolMoved] gates.
+  /// Double-clicking a ghost calls [OcptFloorPlanCanvas.onGhostShotFocusRequested] with its own
+  /// shot id, focusing it.
   Widget _buildSymbolHitOverlay(
     OcptFloorPlanSymbolShape symbol,
     Size canvasSize,
@@ -484,6 +687,8 @@ class _OcptFloorPlanCanvasState extends State<OcptFloorPlanCanvas> {
     final pixelsPerMetre = ocptFloorPlanPixelsPerMetreAt(zoom);
     final widthPx = widthM * pixelsPerMetre;
     final heightPx = heightM * pixelsPerMetre;
+    final canDrag = !widget.isReadOnly && widget.onSymbolMoved != null && _isSymbolEditable(symbol);
+    final shotId = symbol.shotId;
 
     return Positioned(
       left: centre.dx - widthPx / 2,
@@ -494,8 +699,11 @@ class _OcptFloorPlanCanvasState extends State<OcptFloorPlanCanvas> {
         angle: rotationDeg * math.pi / 180,
         child: GestureDetector(
           behavior: HitTestBehavior.opaque,
-          onTap: () => widget.onSymbolSelected(symbol.symbolId),
-          onPanStart: widget.isReadOnly || widget.onSymbolMoved == null
+          onTap: () => _handleSymbolTap(symbol),
+          onDoubleTap: symbol.isGhost && shotId != null
+              ? () => widget.onGhostShotFocusRequested?.call(shotId)
+              : null,
+          onPanStart: !canDrag
               ? null
               : (_) {
                   widget.onSymbolSelected(symbol.symbolId);
@@ -511,26 +719,37 @@ class _OcptFloorPlanCanvasState extends State<OcptFloorPlanCanvas> {
                     );
                   });
                 },
-          onPanUpdate: widget.isReadOnly || widget.onSymbolMoved == null
+          onPanUpdate: !canDrag
               ? null
               : (details) => _updateSymbolDrag(symbol.symbolId, details.delta, zoom),
-          onPanEnd: widget.isReadOnly || widget.onSymbolMoved == null
-              ? null
-              : (_) => _commitSymbolDrag(symbol),
+          onPanEnd: !canDrag ? null : (_) => _commitSymbolDrag(symbol),
         ),
       ),
     );
   }
 
+  /// A tap on [symbol]: reports it to [OcptFloorPlanCanvas.onArrowSymbolTapped] under the `arrow`
+  /// tool (ignored on a ghost, see [_buildSymbolHitOverlay]'s own doc comment), selects it
+  /// otherwise.
+  void _handleSymbolTap(OcptFloorPlanSymbolShape symbol) {
+    if (widget.activeTool == OcptFloorPlanTool.arrow) {
+      if (!symbol.isGhost) {
+        widget.onArrowSymbolTapped?.call(symbol.symbolId);
+      }
+      return;
+    }
+    widget.onSymbolSelected(symbol.symbolId);
+  }
+
   /// The selected symbol's own resize + rotate handles, or an empty list while withheld under a
-  /// read-only preview.
+  /// read-only preview or while [_isSymbolEditable] locks it under the current focus.
   List<Widget> _buildSymbolHandles(
     OcptFloorPlanSymbolShape symbol,
     Size canvasSize,
     double zoom,
     Offset pan,
   ) {
-    if (widget.isReadOnly) {
+    if (widget.isReadOnly || !_isSymbolEditable(symbol)) {
       return const [];
     }
 
@@ -713,6 +932,40 @@ class _OcptFloorPlanCanvasState extends State<OcptFloorPlanCanvas> {
         widget.onSymbolRotated?.call(symbol.symbolId, override.rotationDeg);
     }
   }
+
+  /// The `label` tool's own inline text box, centred under [symbol]'s own footprint (where its
+  /// drawn label already sits, see `OcptFloorPlanCanvasPainter._paintLabel`), editing its label in
+  /// place.
+  Widget _buildLabelEditor(
+    OcptFloorPlanSymbolShape symbol,
+    Size canvasSize,
+    double zoom,
+    Offset pan,
+  ) {
+    final centre = ocptFloorPlanScreenPointOf(
+      xM: symbol.xM,
+      yM: symbol.yM,
+      canvasSize: canvasSize,
+      zoom: zoom,
+      pan: pan,
+    );
+    final pixelsPerMetre = ocptFloorPlanPixelsPerMetreAt(zoom);
+    final heightPx = symbol.heightM * pixelsPerMetre;
+
+    return Positioned(
+      left: centre.dx - _labelEditorWidth / 2,
+      top: centre.dy + heightPx / 2 + 20,
+      width: _labelEditorWidth,
+      height: _labelEditorHeight,
+      child: _OcptFloorPlanSymbolLabelField(
+        symbolId: symbol.symbolId,
+        value: widget.symbolLabelValueOf(symbol.symbolId),
+        onChanged: widget.isReadOnly || widget.onSymbolLabelChanged == null
+            ? null
+            : (value) => widget.onSymbolLabelChanged!(symbol.symbolId, value),
+      ),
+    );
+  }
 }
 
 /// Which gesture a symbol's own drag currently means.
@@ -767,6 +1020,78 @@ class _DeleteHandle extends StatelessWidget {
           height: _handleHitSize,
           decoration: BoxDecoration(color: theme.colorScheme.error, shape: BoxShape.circle),
           child: Icon(Icons.close, size: 12, color: theme.colorScheme.onError),
+        ),
+      ),
+    );
+  }
+}
+
+/// The `label` tool's own compact inline text box, floating over the canvas at the selected
+/// symbol's own position (`OcptFloorPlanCanvas._buildLabelEditor`).
+///
+/// [onChanged] is null while withheld (a read-only preview), which is what makes the field read
+/// its value out instead of accepting one, mirroring `OcptShotInspectorField`'s own reading. The
+/// internal controller is only ever reset to [value] when [symbolId] changes (a different symbol
+/// is now selected) or [value] genuinely differs from what the controller already holds (an edit
+/// landed, or a reload changed the underlying data) — see `OcptShotInspectorField`'s own doc
+/// comment for why a rebuild for an unrelated reason must never touch the controller, or the caret
+/// jumps mid-typing.
+class _OcptFloorPlanSymbolLabelField extends StatefulWidget {
+  /// The id of the symbol this field edits, used only to detect a symbol switch.
+  final String symbolId;
+
+  /// The field's current authoritative value.
+  final String value;
+
+  /// Called with the field's raw text on every keystroke, or null while withheld.
+  final ValueChanged<String>? onChanged;
+
+  /// Class constructor
+  const _OcptFloorPlanSymbolLabelField({
+    required this.symbolId,
+    required this.value,
+    required this.onChanged,
+  });
+
+  @override
+  State<_OcptFloorPlanSymbolLabelField> createState() => _OcptFloorPlanSymbolLabelFieldState();
+}
+
+class _OcptFloorPlanSymbolLabelFieldState extends State<_OcptFloorPlanSymbolLabelField> {
+  late final TextEditingController _controller = TextEditingController(text: widget.value);
+
+  @override
+  void didUpdateWidget(covariant _OcptFloorPlanSymbolLabelField oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.symbolId != oldWidget.symbolId || widget.value != _controller.text) {
+      _controller.text = widget.value;
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Material(
+      color: theme.colorScheme.surface,
+      elevation: 3,
+      borderRadius: BorderRadius.circular(ocptRadiusSmall),
+      child: TextField(
+        controller: _controller,
+        enabled: widget.onChanged != null,
+        onChanged: widget.onChanged,
+        style: theme.textTheme.bodySmall,
+        decoration: InputDecoration(
+          isDense: true,
+          contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(ocptRadiusSmall)),
+          hintText: Tr.of(context).shotListFloorPlanSymbolLabelFieldHint,
         ),
       ),
     );

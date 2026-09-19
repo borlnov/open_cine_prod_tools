@@ -13,10 +13,8 @@ import 'package:open_cine_prod_tools/types/ocpt_shot_list_editable_field.dart';
 /// and the board's panel comment ([OcptShotListPanelCommentEditKey]) and a mark's own text
 /// ([OcptShotListAnnotationTextEditKey]) are not shot fields at all. M5 (the floor plans view's
 /// sequence half, `docs/plans/storyboard.md`) adds [OcptShotListCaseNameEditKey], typed in place
-/// into a case's own tab. M6 (the shot half) adds a `symbolLabel` case of its own here —
-/// deliberately not added by this milestone, since it has no write path yet (no tool places a
-/// label in M5) and a case with nothing to flush into would be a dead branch in every `switch`
-/// over this type.
+/// into a case's own tab. M6 (the shot half) adds [OcptShotListSymbolLabelEditKey], typed in place
+/// through the canvas's own `label` tool.
 ///
 /// [Equatable]'s structural `==`/`hashCode` (over [props]) is what lets a value of this type key a
 /// `Map` the same way the record it replaces already did.
@@ -80,4 +78,18 @@ class OcptShotListAnnotationTextEditKey extends OcptShotListPendingEditKey {
   /// Object properties
   @override
   List<Object?> get props => [annotationId];
+}
+
+/// A pending edit of floor plan symbol [symbolId]'s own free-text label, typed in place through
+/// the canvas's own `label` tool.
+class OcptShotListSymbolLabelEditKey extends OcptShotListPendingEditKey {
+  /// The id of the symbol whose label is being edited.
+  final String symbolId;
+
+  /// Class constructor
+  const OcptShotListSymbolLabelEditKey({required this.symbolId});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [symbolId];
 }

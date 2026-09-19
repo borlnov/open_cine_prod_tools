@@ -24,6 +24,7 @@ import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_covera
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_list_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_storyboard_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
+import 'package:open_cine_prod_tools/models/ocpt_floor_plan_sheet.dart';
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_working_copy_state.dart';
 import 'package:open_cine_prod_tools/models/ocpt_scenario_coverage_export_options.dart';
@@ -2613,6 +2614,7 @@ void main() {
         OcptShotListFloorPlanSymbolPlacedEvent(
           caseId: caseId,
           layer: OcptFloorPlanLayer.decor,
+          shotId: null,
           xM: 1.5,
           yM: -2,
         ),
@@ -2639,6 +2641,7 @@ void main() {
         OcptShotListFloorPlanSymbolPlacedEvent(
           caseId: caseId,
           layer: OcptFloorPlanLayer.furniture,
+          shotId: null,
           xM: 0,
           yM: 0,
         ),
@@ -2666,6 +2669,7 @@ void main() {
         OcptShotListFloorPlanSymbolPlacedEvent(
           caseId: caseId,
           layer: OcptFloorPlanLayer.fixedProps,
+          shotId: null,
           xM: 0,
           yM: 0,
         ),
@@ -2702,6 +2706,7 @@ void main() {
         OcptShotListFloorPlanSymbolPlacedEvent(
           caseId: caseId,
           layer: OcptFloorPlanLayer.decor,
+          shotId: null,
           xM: 0,
           yM: 0,
         ),
@@ -2877,6 +2882,354 @@ void main() {
       expect(backOnFirst.selectedCaseId, isNotNull);
 
       await bloc.close();
+    });
+
+    group("the shot half (M6)", () {
+      /// Creates a shot on the sole selected sequence and returns its id, waiting for the
+      /// selection the creation event always makes — mirrors "the board" group's own helper.
+      Future<String> createShot(OcptShotListBloc bloc) async {
+        bloc.add(const OcptShotListShotCreationRequestedEvent());
+        final created = await waitForState(bloc, (state) => state.selectedShotId != null);
+        return created.selectedShotId!;
+      }
+
+      test(
+        "focus is derived from selectedShotId: deselecting flips it back to the Sequence "
+        "without touching the sequence",
+        () async {
+          await writeScreenplay(twoSceneText);
+          final bloc = buildBloc();
+          final loaded = await waitForState(bloc, (state) => !state.isLoading);
+          final sequenceId = loaded.selectedSequenceId;
+          expect(loaded.isFloorPlanShotFocusActive, isFalse);
+
+          final shotId = await createShot(bloc);
+          expect(bloc.state.isFloorPlanShotFocusActive, isTrue);
+          expect(bloc.state.selectedShotId, shotId);
+
+          bloc.add(const OcptShotListShotDeselectedEvent());
+          final deselected = await waitForState(bloc, (state) => state.selectedShotId == null);
+          expect(deselected.isFloorPlanShotFocusActive, isFalse);
+          expect(deselected.selectedSequenceId, sequenceId);
+
+          await bloc.close();
+        },
+      );
+
+      test(
+        "placing a camera/character/light symbol is shot-scoped to the focused shot",
+        () async {
+          await writeScreenplay(twoSceneText);
+          final bloc = buildBloc();
+          await waitForState(bloc, (state) => !state.isLoading);
+          final caseId = await createCase(bloc);
+          final shotId = await createShot(bloc);
+
+          for (final layer in [
+            OcptFloorPlanLayer.cameras,
+            OcptFloorPlanLayer.characters,
+            OcptFloorPlanLayer.lights,
+          ]) {
+            bloc.add(
+              OcptShotListFloorPlanSymbolPlacedEvent(
+                caseId: caseId,
+                layer: layer,
+                shotId: shotId,
+                xM: 0,
+                yM: 0,
+              ),
+            );
+            final placed = await waitForState(
+              bloc,
+              (state) => state.selectedCase!.symbols.any((symbol) => symbol.layer == layer),
+            );
+            final symbol = placed.selectedCase!.symbols.firstWhere(
+              (symbol) => symbol.layer == layer,
+            );
+            expect(symbol.shotId, shotId);
+          }
+
+          await bloc.close();
+        },
+      );
+
+      test(
+        "two cameras placed on the same shot derive rank/letter labels (3, 3A style)",
+        () async {
+          await writeScreenplay(twoSceneText);
+          final bloc = buildBloc();
+          await waitForState(bloc, (state) => !state.isLoading);
+          final caseId = await createCase(bloc);
+          final shotId = await createShot(bloc);
+
+          bloc.add(
+            OcptShotListFloorPlanSymbolPlacedEvent(
+              caseId: caseId,
+              layer: OcptFloorPlanLayer.cameras,
+              shotId: shotId,
+              xM: 0,
+              yM: 0,
+            ),
+          );
+          await waitForState(bloc, (state) => state.selectedCase!.symbols.length == 1);
+          bloc.add(
+            OcptShotListFloorPlanSymbolPlacedEvent(
+              caseId: caseId,
+              layer: OcptFloorPlanLayer.cameras,
+              shotId: shotId,
+              xM: 1,
+              yM: 1,
+            ),
+          );
+          final state = await waitForState(
+            bloc,
+            (state) => state.selectedCase!.symbols.length == 2,
+          );
+
+          // The derivation itself (`ocptFloorPlanCameraLabelOf`/`OcptFloorPlanSheet.of`) is a pure
+          // rule already unit-tested on its own; this proves the production path — the bloc's own
+          // writes through `OcptFloorPlanService.placeSymbol` — feeds it the right rows.
+          final sheet = OcptFloorPlanSheet.of(
+            floorPlanCase: state.selectedCase!,
+            focusShotId: shotId,
+            shotRankByShotId: {shotId: 1},
+          );
+          final labels = sheet.symbols.map((symbol) => symbol.cameraLabel).toList()..sort();
+          expect(labels, ["1", "1A"]);
+
+          await bloc.close();
+        },
+      );
+
+      test(
+        "the arrow tool's own pending anchor completes a movement on the second tap, and "
+        "Escape/the cancel event abandons it",
+        () async {
+          await writeScreenplay(twoSceneText);
+          final bloc = buildBloc();
+          await waitForState(bloc, (state) => !state.isLoading);
+          final caseId = await createCase(bloc);
+          final shotId = await createShot(bloc);
+
+          bloc.add(
+            OcptShotListFloorPlanSymbolPlacedEvent(
+              caseId: caseId,
+              layer: OcptFloorPlanLayer.characters,
+              shotId: shotId,
+              xM: 0,
+              yM: 0,
+            ),
+          );
+          final withFirst = await waitForState(
+            bloc,
+            (state) => state.selectedCase!.symbols.length == 1,
+          );
+          final firstSymbolId = withFirst.selectedCase!.symbols.single.id;
+
+          bloc.add(
+            OcptShotListFloorPlanSymbolPlacedEvent(
+              caseId: caseId,
+              layer: OcptFloorPlanLayer.characters,
+              shotId: shotId,
+              xM: 2,
+              yM: 2,
+            ),
+          );
+          final withSecond = await waitForState(
+            bloc,
+            (state) => state.selectedCase!.symbols.length == 2,
+          );
+          final secondSymbolId = withSecond.selectedCase!.symbols
+              .firstWhere((symbol) => symbol.id != firstSymbolId)
+              .id;
+
+          // First tap: picks the pending anchor, writes nothing.
+          bloc.add(OcptShotListFloorPlanArrowSymbolTappedEvent(symbolId: firstSymbolId));
+          final anchored = await waitForState(
+            bloc,
+            (state) => state.pendingFloorPlanArrowAnchorSymbolId == firstSymbolId,
+          );
+          expect(anchored.selectedCase!.arrows, isEmpty);
+
+          // Cancelled (mirrors `Escape`): the anchor is abandoned, still nothing written.
+          bloc.add(const OcptShotListFloorPlanArrowAnchorCancelledEvent());
+          final cancelled = await waitForState(
+            bloc,
+            (state) => state.pendingFloorPlanArrowAnchorSymbolId == null,
+          );
+          expect(cancelled.selectedCase!.arrows, isEmpty);
+
+          // Re-anchor and complete on the second tap.
+          bloc.add(OcptShotListFloorPlanArrowSymbolTappedEvent(symbolId: firstSymbolId));
+          await waitForState(
+            bloc,
+            (state) => state.pendingFloorPlanArrowAnchorSymbolId == firstSymbolId,
+          );
+          bloc.add(OcptShotListFloorPlanArrowSymbolTappedEvent(symbolId: secondSymbolId));
+          final completed = await waitForState(
+            bloc,
+            (state) => state.selectedCase!.arrows.isNotEmpty,
+          );
+          expect(completed.pendingFloorPlanArrowAnchorSymbolId, isNull);
+          expect(completed.selectedCase!.arrows.single.fromSymbolId, firstSymbolId);
+          expect(completed.selectedCase!.arrows.single.toSymbolId, secondSymbolId);
+          expect(completed.selectedCase!.arrows.single.shotId, shotId);
+
+          bloc.add(
+            OcptShotListFloorPlanArrowDeletionRequestedEvent(
+              arrowId: completed.selectedCase!.arrows.single.id,
+            ),
+          );
+          final deleted = await waitForState(bloc, (state) => state.selectedCase!.arrows.isEmpty);
+          expect(deleted.selectedCase!.arrows, isEmpty);
+
+          await bloc.close();
+        },
+      );
+
+      test("editing a symbol's label debounces then writes", () async {
+        await writeScreenplay(twoSceneText);
+        final bloc = buildBloc();
+        await waitForState(bloc, (state) => !state.isLoading);
+        final caseId = await createCase(bloc);
+        final shotId = await createShot(bloc);
+
+        bloc.add(
+          OcptShotListFloorPlanSymbolPlacedEvent(
+            caseId: caseId,
+            layer: OcptFloorPlanLayer.characters,
+            shotId: shotId,
+            xM: 0,
+            yM: 0,
+          ),
+        );
+        final placed = await waitForState(
+          bloc,
+          (state) => state.selectedCase!.symbols.isNotEmpty,
+        );
+        final symbolId = placed.selectedCase!.symbols.single.id;
+
+        bloc.add(
+          OcptShotListFloorPlanSymbolLabelChangedEvent(symbolId: symbolId, rawValue: "SAM"),
+        );
+        final pending = await waitForState(
+          bloc,
+          (state) => state.pendingFieldEdits.containsKey(
+            OcptShotListSymbolLabelEditKey(symbolId: symbolId),
+          ),
+        );
+        expect(pending.selectedCase!.symbols.single.label, isEmpty);
+
+        final flushed = await waitForState(
+          bloc,
+          (state) => state.selectedCase!.symbols.single.label == "SAM",
+        );
+        expect(flushed.pendingFieldEdits, isEmpty);
+
+        await bloc.close();
+      });
+
+      test(
+        "per-camera visibility, onion skin and the metrics toggle are session view state",
+        () async {
+          await writeScreenplay(twoSceneText);
+          final bloc = buildBloc();
+          await waitForState(bloc, (state) => !state.isLoading);
+          expect(bloc.state.isFloorPlanOnionSkinPreviousShown, isTrue);
+          expect(bloc.state.isFloorPlanOnionSkinNextShown, isTrue);
+          expect(bloc.state.isFloorPlanMetricsShown, isFalse);
+
+          bloc.add(const OcptShotListFloorPlanCameraVisibilityToggledEvent(symbolId: "cam-1"));
+          final hidden = await waitForState(
+            bloc,
+            (state) => state.floorPlanHiddenCameraSymbolIds.contains("cam-1"),
+          );
+          bloc.add(const OcptShotListFloorPlanCameraVisibilityToggledEvent(symbolId: "cam-1"));
+          final shown = await waitForState(
+            bloc,
+            (state) => !state.floorPlanHiddenCameraSymbolIds.contains("cam-1"),
+          );
+          expect(hidden.floorPlanHiddenCameraSymbolIds, contains("cam-1"));
+          expect(shown.floorPlanHiddenCameraSymbolIds, isNot(contains("cam-1")));
+
+          bloc.add(const OcptShotListFloorPlanOnionSkinToggledEvent(isPrevious: true));
+          final prevOff = await waitForState(
+            bloc,
+            (state) => !state.isFloorPlanOnionSkinPreviousShown,
+          );
+          expect(prevOff.isFloorPlanOnionSkinNextShown, isTrue);
+
+          bloc.add(const OcptShotListFloorPlanOnionSkinOpacityChangedEvent(opacity: 0.7));
+          final opacityChanged = await waitForState(
+            bloc,
+            (state) => state.floorPlanOnionSkinOpacity == 0.7,
+          );
+          expect(opacityChanged.floorPlanOnionSkinOpacity, 0.7);
+
+          bloc.add(const OcptShotListFloorPlanMetricsToggledEvent());
+          final metricsOn = await waitForState(bloc, (state) => state.isFloorPlanMetricsShown);
+          expect(metricsOn.isFloorPlanMetricsShown, isTrue);
+
+          await bloc.close();
+        },
+      );
+
+      test("← / → walk the sequence's own shots, stopping at either end", () async {
+        await writeScreenplay(twoSceneText);
+        final bloc = buildBloc();
+        await waitForState(bloc, (state) => !state.isLoading);
+
+        final firstShotId = await createShot(bloc);
+        bloc.add(const OcptShotListShotDeselectedEvent());
+        await waitForState(bloc, (state) => state.selectedShotId == null);
+        final secondShotId = await createShot(bloc);
+        expect(secondShotId, isNot(firstShotId));
+
+        // No shot selected, walking forward selects the sequence's own first shot.
+        bloc.add(const OcptShotListShotDeselectedEvent());
+        await waitForState(bloc, (state) => state.selectedShotId == null);
+        bloc.add(const OcptShotListFloorPlanShotWalkRequestedEvent(delta: 1));
+        await waitForState(bloc, (state) => state.selectedShotId == firstShotId);
+
+        bloc.add(const OcptShotListFloorPlanShotWalkRequestedEvent(delta: 1));
+        await waitForState(bloc, (state) => state.selectedShotId == secondShotId);
+
+        // Already the last shot: walking further does nothing.
+        bloc.add(const OcptShotListFloorPlanShotWalkRequestedEvent(delta: 1));
+        await Future<void>.delayed(const Duration(milliseconds: 50));
+        expect(bloc.state.selectedShotId, secondShotId);
+
+        bloc.add(const OcptShotListFloorPlanShotWalkRequestedEvent(delta: -1));
+        await waitForState(bloc, (state) => state.selectedShotId == firstShotId);
+
+        await bloc.close();
+      });
+
+      test("deleting a shot tombstones its own floor plan symbols and reloads the snapshot", () async {
+        await writeScreenplay(twoSceneText);
+        final bloc = buildBloc();
+        await waitForState(bloc, (state) => !state.isLoading);
+        final caseId = await createCase(bloc);
+        final shotId = await createShot(bloc);
+
+        bloc.add(
+          OcptShotListFloorPlanSymbolPlacedEvent(
+            caseId: caseId,
+            layer: OcptFloorPlanLayer.cameras,
+            shotId: shotId,
+            xM: 0,
+            yM: 0,
+          ),
+        );
+        await waitForState(bloc, (state) => state.selectedCase!.symbols.isNotEmpty);
+
+        bloc.add(OcptShotListShotDeletionRequestedEvent(shotId: shotId));
+        final deleted = await waitForState(bloc, (state) => state.totalShotCount == 0);
+        expect(deleted.selectedCase!.symbols, isEmpty);
+        expect(deleted.selectedFloorPlanSymbolId, isNull);
+
+        await bloc.close();
+      });
     });
   });
 }

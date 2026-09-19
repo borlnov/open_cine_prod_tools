@@ -228,6 +228,42 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
   /// A **view/session state** value, like [floorPlanZoom]: never written to the project.
   final bool isFloorPlanUnderlayHidden;
 
+  /// The ids of every camera symbol currently hidden on the floor plans canvas, out of every live
+  /// camera of the selected sequence — the tray's own per-camera eyes, under the `Sequence` focus's
+  /// expanded cameras row. Empty means every camera is shown.
+  ///
+  /// A **view/session state** value, like [floorPlanZoom]: never written to the project.
+  final Set<String> floorPlanHiddenCameraSymbolIds;
+
+  /// Whether the onion skin's own previous-shot ghost is shown, under a shot focus.
+  ///
+  /// A **view/session state** value, like [floorPlanZoom]: never written to the project.
+  final bool isFloorPlanOnionSkinPreviousShown;
+
+  /// Whether the onion skin's own next-shot ghost is shown, under a shot focus.
+  ///
+  /// A **view/session state** value, like [floorPlanZoom]: never written to the project.
+  final bool isFloorPlanOnionSkinNextShown;
+
+  /// The onion skin's own ghost opacity, 0..1, the tray's own `Onion skin` block slider.
+  ///
+  /// A **view/session state** value, like [floorPlanZoom]: never written to the project.
+  final double floorPlanOnionSkinOpacity;
+
+  /// Whether the metrics overlay is shown, the tray's own metrics toggle: the distance from the
+  /// selected symbol to every other visible symbol of the case, and camera-to-subject for a
+  /// selected camera.
+  ///
+  /// A **view/session state** value, like [floorPlanZoom]: never written to the project.
+  final bool isFloorPlanMetricsShown;
+
+  /// The id of the symbol picked as the arrow tool's own first end, or null while none is pending
+  /// (no click yet, or the anchor was just completed into an arrow or cancelled) — the floor plans
+  /// canvas's own pending anchor, mirroring [pendingCoverageAnchor]'s own shape. Cleared whenever
+  /// [selectedShotId], [selectedSequenceId] or [selectedCaseId] changes, and whenever
+  /// [floorPlanActiveTool] is picked away from [OcptFloorPlanTool.arrow].
+  final String? pendingFloorPlanArrowAnchorSymbolId;
+
   /// Whether the left (sequences) dock is shown.
   final bool isSequencePanelVisible;
 
@@ -440,6 +476,41 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
     return null;
   }
 
+  /// The floor plans view's own focus — **derived, never a second field**
+  /// (`docs/plans/storyboard.md`, §4.3): `true` while a shot is selected (the shot focus), `false`
+  /// while none is (the `Sequence` focus). Every floor plans widget that needs to know which of the
+  /// two is showing reads this rather than [selectedShotId] directly, so the one rule ("no shot
+  /// selected means the sequence focus") lives in exactly one place.
+  bool get isFloorPlanShotFocusActive => selectedShotId != null;
+
+  /// The selected sequence's own shot immediately before [selectedShotId], or null while none is
+  /// selected, it is the sequence's first shot, or the selected sequence is the orphan group (no
+  /// floor plan case can ever belong to it) — the onion skin's own previous-shot ghost.
+  OcptShot? get previousShotOfSelectedShot => _neighbourShotOf(-1);
+
+  /// The selected sequence's own shot immediately after [selectedShotId]. See
+  /// [previousShotOfSelectedShot].
+  OcptShot? get nextShotOfSelectedShot => _neighbourShotOf(1);
+
+  /// [selectedShotId]'s own neighbour [offset] shots away in the selected sequence's own shot
+  /// order, or null while there is none (out of range, nothing selected, or the orphan group) — the
+  /// body [previousShotOfSelectedShot]/[nextShotOfSelectedShot] share.
+  OcptShot? _neighbourShotOf(int offset) {
+    final sequence = selectedSequence;
+    final selectedShotId = this.selectedShotId;
+    if (selectedShotId == null || sequence is! OcptSceneShotSequence) {
+      return null;
+    }
+
+    final shots = sequence.shots;
+    final index = shots.indexWhere((shot) => shot.id == selectedShotId);
+    final neighbourIndex = index + offset;
+    if (index < 0 || neighbourIndex < 0 || neighbourIndex >= shots.length) {
+      return null;
+    }
+    return shots[neighbourIndex];
+  }
+
   /// The total number of live panels across every shot of the selected sequence — the board
   /// header's own `· N panels` read-out.
   int get boardPanelCountOfSelectedSequence {
@@ -581,6 +652,12 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
     required this.floorPlanActiveLayer,
     required this.floorPlanHiddenLayers,
     required this.isFloorPlanUnderlayHidden,
+    required this.floorPlanHiddenCameraSymbolIds,
+    required this.isFloorPlanOnionSkinPreviousShown,
+    required this.isFloorPlanOnionSkinNextShown,
+    required this.floorPlanOnionSkinOpacity,
+    required this.isFloorPlanMetricsShown,
+    required this.pendingFloorPlanArrowAnchorSymbolId,
     required this.isSequencePanelVisible,
     required this.rightDockTab,
     required this.lastRightDockTab,
@@ -628,6 +705,12 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
       floorPlanActiveLayer = OcptFloorPlanLayer.furniture,
       floorPlanHiddenLayers = const {},
       isFloorPlanUnderlayHidden = false,
+      floorPlanHiddenCameraSymbolIds = const {},
+      isFloorPlanOnionSkinPreviousShown = true,
+      isFloorPlanOnionSkinNextShown = true,
+      floorPlanOnionSkinOpacity = 0.4,
+      isFloorPlanMetricsShown = false,
+      pendingFloorPlanArrowAnchorSymbolId = null,
       isSequencePanelVisible = true,
       rightDockTab = null,
       lastRightDockTab = OcptShotListRightDockTab.inspector,
@@ -688,6 +771,13 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
     OcptFloorPlanLayer? floorPlanActiveLayer,
     Set<OcptFloorPlanLayer>? floorPlanHiddenLayers,
     bool? isFloorPlanUnderlayHidden,
+    Set<String>? floorPlanHiddenCameraSymbolIds,
+    bool? isFloorPlanOnionSkinPreviousShown,
+    bool? isFloorPlanOnionSkinNextShown,
+    double? floorPlanOnionSkinOpacity,
+    bool? isFloorPlanMetricsShown,
+    String? pendingFloorPlanArrowAnchorSymbolId,
+    bool clearPendingFloorPlanArrowAnchorSymbolId = false,
     bool? isSequencePanelVisible,
     OcptShotListRightDockTab? rightDockTab,
     bool clearRightDockTab = false,
@@ -751,6 +841,17 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
     floorPlanActiveLayer: floorPlanActiveLayer ?? this.floorPlanActiveLayer,
     floorPlanHiddenLayers: floorPlanHiddenLayers ?? this.floorPlanHiddenLayers,
     isFloorPlanUnderlayHidden: isFloorPlanUnderlayHidden ?? this.isFloorPlanUnderlayHidden,
+    floorPlanHiddenCameraSymbolIds:
+        floorPlanHiddenCameraSymbolIds ?? this.floorPlanHiddenCameraSymbolIds,
+    isFloorPlanOnionSkinPreviousShown:
+        isFloorPlanOnionSkinPreviousShown ?? this.isFloorPlanOnionSkinPreviousShown,
+    isFloorPlanOnionSkinNextShown:
+        isFloorPlanOnionSkinNextShown ?? this.isFloorPlanOnionSkinNextShown,
+    floorPlanOnionSkinOpacity: floorPlanOnionSkinOpacity ?? this.floorPlanOnionSkinOpacity,
+    isFloorPlanMetricsShown: isFloorPlanMetricsShown ?? this.isFloorPlanMetricsShown,
+    pendingFloorPlanArrowAnchorSymbolId: clearPendingFloorPlanArrowAnchorSymbolId
+        ? null
+        : (pendingFloorPlanArrowAnchorSymbolId ?? this.pendingFloorPlanArrowAnchorSymbolId),
     isSequencePanelVisible: isSequencePanelVisible ?? this.isSequencePanelVisible,
     rightDockTab: clearRightDockTab ? null : (rightDockTab ?? this.rightDockTab),
     lastRightDockTab: lastRightDockTab ?? this.lastRightDockTab,
@@ -862,6 +963,12 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
     floorPlanActiveLayer,
     floorPlanHiddenLayers,
     isFloorPlanUnderlayHidden,
+    floorPlanHiddenCameraSymbolIds,
+    isFloorPlanOnionSkinPreviousShown,
+    isFloorPlanOnionSkinNextShown,
+    floorPlanOnionSkinOpacity,
+    isFloorPlanMetricsShown,
+    pendingFloorPlanArrowAnchorSymbolId,
     isSequencePanelVisible,
     rightDockTab,
     lastRightDockTab,

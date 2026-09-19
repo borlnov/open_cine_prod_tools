@@ -5,6 +5,8 @@
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 
+import 'package:collection/collection.dart';
+import 'package:equatable/equatable.dart';
 import 'package:flutter/material.dart';
 import 'package:open_cine_prod_tools/models/ocpt_floor_plan_sheet.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_floor_plan_geometry.dart';
@@ -81,6 +83,45 @@ Offset ocptFloorPlanRotateVector(Offset vector, double degrees) {
   );
 }
 
+/// The half-length, in logical pixels, of an arrowhead's own two strokes.
+const double _arrowheadLength = 8;
+
+/// The angle, in radians, each of an arrowhead's own two strokes opens from the shaft.
+const double _arrowheadAngle = 0.5;
+
+/// One line the metrics overlay draws, from the selected symbol to another visible one — a pure
+/// data record `OcptFloorPlanCanvas` builds (it alone can resolve a localized label) and this
+/// painter only ever draws from metres to pixels, exactly as it does every symbol shape.
+class OcptFloorPlanMetricLine extends Equatable {
+  /// The line's own starting point X, in metres (the selected symbol's own centre).
+  final double fromXM;
+
+  /// The line's own starting point Y, in metres.
+  final double fromYM;
+
+  /// The line's own end point X, in metres (the other symbol's own centre).
+  final double toXM;
+
+  /// The line's own end point Y, in metres.
+  final double toYM;
+
+  /// The line's own already-localized distance label (`3.2 m`).
+  final String label;
+
+  /// Class constructor
+  const OcptFloorPlanMetricLine({
+    required this.fromXM,
+    required this.fromYM,
+    required this.toXM,
+    required this.toYM,
+    required this.label,
+  });
+
+  /// Object properties
+  @override
+  List<Object?> get props => [fromXM, fromYM, toXM, toYM, label];
+}
+
 /// A live, in-progress edit of one symbol's geometry — the drag preview `OcptFloorPlanCanvas` feeds
 /// into [OcptFloorPlanCanvasPainter] so the shape being dragged redraws every frame without a
 /// database write, or a bloc emission, per frame.
@@ -141,6 +182,10 @@ class OcptFloorPlanCanvasPainter extends CustomPainter {
   /// The id of the currently selected symbol, or null while none is.
   final String? selectedSymbolId;
 
+  /// The id of the symbol currently picked as the arrow tool's own pending anchor, or null while
+  /// none is.
+  final String? arrowAnchorSymbolId;
+
   /// A drag-in-progress override of one symbol's geometry, or null while no drag is in progress.
   final OcptFloorPlanSymbolLiveOverride? liveOverride;
 
@@ -149,6 +194,13 @@ class OcptFloorPlanCanvasPainter extends CustomPainter {
 
   /// The colour the selected symbol's own border and handles are drawn with.
   final Color selectionColor;
+
+  /// The colour the arrow tool's own pending anchor is ringed with.
+  final Color arrowAnchorColor;
+
+  /// The colour an arrow's own shaft and head are drawn with, tinted by
+  /// [OcptFloorPlanArrowShape.colorArgb] — see [_paintArrow].
+  final Color arrowColor;
 
   /// The colour a symbol's own label text is painted in.
   final Color labelTextColor;
@@ -160,26 +212,139 @@ class OcptFloorPlanCanvasPainter extends CustomPainter {
   /// painter formats no number and reads no `Tr` of its own.
   final String scaleBarLabel;
 
+  /// The onion skin's own ghost opacity, 0..1 — every [OcptFloorPlanSymbolShape.isGhost] shape and
+  /// [OcptFloorPlanArrowShape.isGhost] shape draws at this opacity instead of fully opaque.
+  final double onionSkinOpacity;
+
+  /// The metrics overlay's own lines, already resolved by `OcptFloorPlanCanvas` — empty while the
+  /// overlay is off or nothing is selected.
+  final List<OcptFloorPlanMetricLine> metricLines;
+
+  /// The colour a metrics overlay line and its label are drawn with.
+  final Color metricLineColor;
+
   /// Class constructor
   const OcptFloorPlanCanvasPainter({
     required this.sheet,
     required this.zoom,
     required this.pan,
     required this.selectedSymbolId,
+    required this.arrowAnchorSymbolId,
     required this.liveOverride,
     required this.symbolBorderColor,
     required this.selectionColor,
+    required this.arrowAnchorColor,
+    required this.arrowColor,
     required this.labelTextColor,
     required this.scaleColor,
     required this.scaleBarLabel,
+    required this.onionSkinOpacity,
+    required this.metricLines,
+    required this.metricLineColor,
   });
 
   @override
   void paint(Canvas canvas, Size size) {
+    for (final line in metricLines) {
+      _paintMetricLine(canvas, size, line);
+    }
+    for (final arrow in sheet.arrows) {
+      _paintArrow(canvas, size, arrow);
+    }
     for (final symbol in sheet.symbols) {
       _paintSymbol(canvas, size, symbol);
     }
     _paintScaleAndSilhouette(canvas, size);
+  }
+
+  /// One movement or camera-move arrow, a straight shaft with a small head at its own
+  /// [OcptFloorPlanArrowShape.toXM]/[OcptFloorPlanArrowShape.toYM] end, at reduced opacity while
+  /// [OcptFloorPlanArrowShape.isGhost] (the onion skin).
+  void _paintArrow(Canvas canvas, Size size, OcptFloorPlanArrowShape arrow) {
+    final from = ocptFloorPlanScreenPointOf(
+      xM: arrow.fromXM,
+      yM: arrow.fromYM,
+      canvasSize: size,
+      zoom: zoom,
+      pan: pan,
+    );
+    final to = ocptFloorPlanScreenPointOf(
+      xM: arrow.toXM,
+      yM: arrow.toYM,
+      canvasSize: size,
+      zoom: zoom,
+      pan: pan,
+    );
+    final opacity = arrow.isGhost ? onionSkinOpacity : 1.0;
+    final paint = Paint()
+      ..color = Color(arrow.colorArgb).withValues(alpha: opacity)
+      ..strokeWidth = 2
+      ..style = PaintingStyle.stroke;
+
+    canvas.drawLine(from, to, paint);
+
+    final angle = math.atan2(to.dy - from.dy, to.dx - from.dx);
+    final fillPaint = Paint()..color = Color(arrow.colorArgb).withValues(alpha: opacity);
+    final path = Path()
+      ..moveTo(to.dx, to.dy)
+      ..lineTo(
+        to.dx - _arrowheadLength * math.cos(angle - _arrowheadAngle),
+        to.dy - _arrowheadLength * math.sin(angle - _arrowheadAngle),
+      )
+      ..lineTo(
+        to.dx - _arrowheadLength * math.cos(angle + _arrowheadAngle),
+        to.dy - _arrowheadLength * math.sin(angle + _arrowheadAngle),
+      )
+      ..close();
+    canvas.drawPath(path, fillPaint);
+
+    if (arrow.label.isNotEmpty) {
+      _paintLabel(canvas, Offset((from.dx + to.dx) / 2, (from.dy + to.dy) / 2), arrow.label);
+    }
+  }
+
+  /// One metrics overlay line: a thin dashed-looking (short, evenly spaced) segment from the
+  /// selected symbol to another visible one, its own distance label at the midpoint.
+  void _paintMetricLine(Canvas canvas, Size size, OcptFloorPlanMetricLine line) {
+    final from = ocptFloorPlanScreenPointOf(
+      xM: line.fromXM,
+      yM: line.fromYM,
+      canvasSize: size,
+      zoom: zoom,
+      pan: pan,
+    );
+    final to = ocptFloorPlanScreenPointOf(
+      xM: line.toXM,
+      yM: line.toYM,
+      canvasSize: size,
+      zoom: zoom,
+      pan: pan,
+    );
+    canvas.drawLine(
+      from,
+      to,
+      Paint()
+        ..color = metricLineColor.withValues(alpha: 0.7)
+        ..strokeWidth = 1,
+    );
+
+    final textPainter = TextPainter(
+      text: TextSpan(text: line.label, style: TextStyle(color: metricLineColor, fontSize: 9)),
+      textDirection: ui.TextDirection.ltr,
+    )..layout();
+    final midpoint = Offset((from.dx + to.dx) / 2, (from.dy + to.dy) / 2);
+    canvas.drawRect(
+      Rect.fromCenter(
+        center: midpoint,
+        width: textPainter.width + 4,
+        height: textPainter.height + 2,
+      ),
+      Paint()..color = metricLineColor.withValues(alpha: 0.12),
+    );
+    textPainter.paint(
+      canvas,
+      Offset(midpoint.dx - textPainter.width / 2, midpoint.dy - textPainter.height / 2),
+    );
   }
 
   /// Paints one symbol shape, applying [liveOverride] when it names this very symbol.
@@ -202,7 +367,8 @@ class OcptFloorPlanCanvasPainter extends CustomPainter {
     final widthPx = widthM * pixelsPerMetre;
     final heightPx = heightM * pixelsPerMetre;
     final isSelected = symbol.symbolId == selectedSymbolId;
-    final opacity = symbol.isGhost ? 0.4 : 1.0;
+    final isArrowAnchor = symbol.symbolId == arrowAnchorSymbolId;
+    final opacity = symbol.isGhost ? onionSkinOpacity : 1.0;
 
     canvas.save();
     canvas.translate(centre.dx, centre.dy);
@@ -222,6 +388,15 @@ class OcptFloorPlanCanvasPainter extends CustomPainter {
         ..style = PaintingStyle.stroke
         ..strokeWidth = isSelected ? 2.5 : 1.5,
     );
+    if (isArrowAnchor) {
+      canvas.drawRRect(
+        rrect.inflate(3),
+        Paint()
+          ..color = arrowAnchorColor
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 2,
+      );
+    }
 
     canvas.restore();
 
@@ -295,10 +470,16 @@ class OcptFloorPlanCanvasPainter extends CustomPainter {
       oldDelegate.zoom != zoom ||
       oldDelegate.pan != pan ||
       oldDelegate.selectedSymbolId != selectedSymbolId ||
+      oldDelegate.arrowAnchorSymbolId != arrowAnchorSymbolId ||
       oldDelegate.liveOverride != liveOverride ||
       oldDelegate.symbolBorderColor != symbolBorderColor ||
       oldDelegate.selectionColor != selectionColor ||
+      oldDelegate.arrowAnchorColor != arrowAnchorColor ||
+      oldDelegate.arrowColor != arrowColor ||
       oldDelegate.labelTextColor != labelTextColor ||
       oldDelegate.scaleColor != scaleColor ||
-      oldDelegate.scaleBarLabel != scaleBarLabel;
+      oldDelegate.scaleBarLabel != scaleBarLabel ||
+      oldDelegate.onionSkinOpacity != onionSkinOpacity ||
+      !const ListEquality<OcptFloorPlanMetricLine>().equals(oldDelegate.metricLines, metricLines) ||
+      oldDelegate.metricLineColor != metricLineColor;
 }
