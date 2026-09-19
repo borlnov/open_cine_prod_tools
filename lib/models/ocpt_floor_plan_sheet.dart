@@ -1,0 +1,464 @@
+// SPDX-FileCopyrightText: 2026 Benoit Rolandeau <borlnov.obsessio@gmail.com>
+//
+// SPDX-License-Identifier: Apache-2.0
+
+import 'package:equatable/equatable.dart';
+import 'package:open_cine_prod_tools/models/ocpt_floor_plan_case.dart';
+import 'package:open_cine_prod_tools/models/ocpt_floor_plan_symbol.dart';
+import 'package:open_cine_prod_tools/types/ocpt_floor_plan_arrow_kind.dart';
+import 'package:open_cine_prod_tools/types/ocpt_floor_plan_layer.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_floor_plan_camera_label.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_floor_plan_geometry.dart';
+
+/// The ARGB colour (`0xAARRGGBB`) a symbol of [layer] is drawn with — the one palette the canvas,
+/// the metrics overlay and the floor-plans PDF all read, so a colour is never picked twice.
+int ocptFloorPlanLayerColorArgb(OcptFloorPlanLayer layer) => switch (layer) {
+  OcptFloorPlanLayer.decor => 0xFF6B7280,
+  OcptFloorPlanLayer.furniture => 0xFF8D6E63,
+  OcptFloorPlanLayer.fixedProps => 0xFF556B2F,
+  OcptFloorPlanLayer.cameras => 0xFF2196F3,
+  OcptFloorPlanLayer.characters => 0xFFFF9800,
+  OcptFloorPlanLayer.lights => 0xFFFBC02D,
+  OcptFloorPlanLayer.handProps => 0xFF9C27B0,
+};
+
+/// The ARGB colour a movement arrow is drawn with.
+const int ocptFloorPlanMovementArrowColorArgb = 0xFF37474F;
+
+/// The ARGB colour a camera-move arrow is drawn with.
+const int ocptFloorPlanCameraMoveArrowColorArgb = 0xFF1565C0;
+
+/// One symbol shape a floor plan sheet draws: a frozen, ready-to-paint copy of a
+/// `floor_plan_symbols` row, carrying the colour it draws with and, for a camera, the label
+/// [ocptFloorPlanCameraLabelOf] derives.
+class OcptFloorPlanSymbolShape extends Equatable {
+  /// The id of the `floor_plan_symbols` row this shape was built from.
+  final String symbolId;
+
+  /// The shot this symbol belongs to, or null on a sequence layer.
+  final String? shotId;
+
+  /// Which layer this symbol is drawn on.
+  final OcptFloorPlanLayer layer;
+
+  /// The symbol's centre X, in metres.
+  final double xM;
+
+  /// The symbol's centre Y, in metres.
+  final double yM;
+
+  /// The symbol's rotation, in degrees.
+  final double rotationDeg;
+
+  /// The symbol's footprint width, in metres — its own `widthM`, or the layer's default footprint
+  /// when it has none of its own.
+  final double widthM;
+
+  /// The symbol's footprint height, in metres. See [widthM].
+  final double heightM;
+
+  /// A camera's field-of-view wedge, in degrees, or null for every other layer (or a camera left at
+  /// the drawing default).
+  final double? fovDeg;
+
+  /// The symbol's own free-text label.
+  final String label;
+
+  /// The colour this shape draws with ([ocptFloorPlanLayerColorArgb]).
+  final int colorArgb;
+
+  /// A camera symbol's derived letter/number label (`3`, `3A`, `3B`), or null for every other
+  /// layer, or for a camera whose shot has no known rank yet.
+  final String? cameraLabel;
+
+  /// Whether this shape belongs to the previous or next shot under a shot focus — drawn as an onion
+  /// skin the renderer draws at reduced opacity, never as a claim about the current shot.
+  final bool isGhost;
+
+  /// Class constructor
+  const OcptFloorPlanSymbolShape({
+    required this.symbolId,
+    required this.shotId,
+    required this.layer,
+    required this.xM,
+    required this.yM,
+    required this.rotationDeg,
+    required this.widthM,
+    required this.heightM,
+    required this.fovDeg,
+    required this.label,
+    required this.colorArgb,
+    required this.cameraLabel,
+    required this.isGhost,
+  });
+
+  /// Object string representation, useful for debugging and logging.
+  @override
+  String toString() =>
+      "OcptFloorPlanSymbolShape(symbolId: $symbolId, layer: $layer, isGhost: $isGhost)";
+
+  /// Object properties
+  @override
+  List<Object?> get props => [
+    symbolId,
+    shotId,
+    layer,
+    xM,
+    yM,
+    rotationDeg,
+    widthM,
+    heightM,
+    fovDeg,
+    label,
+    colorArgb,
+    cameraLabel,
+    isGhost,
+  ];
+}
+
+/// One arrow shape a floor plan sheet draws: a `floor_plan_arrows` row resolved down to the metre
+/// coordinates of the two symbols it connects.
+class OcptFloorPlanArrowShape extends Equatable {
+  /// The id of the `floor_plan_arrows` row this shape was built from.
+  final String arrowId;
+
+  /// The shot this movement belongs to.
+  final String shotId;
+
+  /// Whether this is a movement or a camera-move arrow.
+  final OcptFloorPlanArrowKind kind;
+
+  /// The starting symbol's centre X, in metres.
+  final double fromXM;
+
+  /// The starting symbol's centre Y, in metres.
+  final double fromYM;
+
+  /// The ending symbol's centre X, in metres.
+  final double toXM;
+
+  /// The ending symbol's centre Y, in metres.
+  final double toYM;
+
+  /// The arrow's own free-text label.
+  final String label;
+
+  /// The colour this shape draws with.
+  final int colorArgb;
+
+  /// Whether this shape belongs to the previous or next shot under a shot focus. See
+  /// [OcptFloorPlanSymbolShape.isGhost].
+  final bool isGhost;
+
+  /// Class constructor
+  const OcptFloorPlanArrowShape({
+    required this.arrowId,
+    required this.shotId,
+    required this.kind,
+    required this.fromXM,
+    required this.fromYM,
+    required this.toXM,
+    required this.toYM,
+    required this.label,
+    required this.colorArgb,
+    required this.isGhost,
+  });
+
+  /// Object string representation, useful for debugging and logging.
+  @override
+  String toString() => "OcptFloorPlanArrowShape(arrowId: $arrowId, kind: $kind, isGhost: $isGhost)";
+
+  /// Object properties
+  @override
+  List<Object?> get props => [
+    arrowId,
+    shotId,
+    kind,
+    fromXM,
+    fromYM,
+    toXM,
+    toYM,
+    label,
+    colorArgb,
+    isGhost,
+  ];
+}
+
+/// The underlay shape a floor plan sheet draws, or null while the case has none placed.
+class OcptFloorPlanUnderlayShape extends Equatable {
+  /// The underlay's `assets` row id.
+  final String assetId;
+
+  /// The underlay's resolved absolute path, or null — a normal state, drawn as a placeholder.
+  final String? path;
+
+  /// The underlay's centre X, in metres.
+  final double xM;
+
+  /// The underlay's centre Y, in metres.
+  final double yM;
+
+  /// The underlay's width, in metres.
+  final double widthM;
+
+  /// The underlay's height, in metres.
+  final double heightM;
+
+  /// The underlay's rotation, in degrees.
+  final double rotationDeg;
+
+  /// Class constructor
+  const OcptFloorPlanUnderlayShape({
+    required this.assetId,
+    required this.path,
+    required this.xM,
+    required this.yM,
+    required this.widthM,
+    required this.heightM,
+    required this.rotationDeg,
+  });
+
+  /// Object string representation, useful for debugging and logging.
+  @override
+  String toString() => "OcptFloorPlanUnderlayShape(assetId: $assetId)";
+
+  /// Object properties
+  @override
+  List<Object?> get props => [assetId, path, xM, yM, widthM, heightM, rotationDeg];
+}
+
+/// Everything a floor plan case draws, for one focus — the **drawing as data** the canvas, the
+/// metrics overlay and the floor-plans PDF all paint from and nothing else, the sibling of
+/// `OcptScenarioCoverageLayout`.
+///
+/// Pure Dart, no Flutter import and no `pdf` import (`docs/plans/storyboard.md`, §2;
+/// `docs/adr/0031-storyboard-panels-and-floor-plans-in-metres.md`): every shape is already in
+/// metres and every colour is already an ARGB int, so a renderer has nothing left to decide beyond
+/// where the viewport puts them.
+class OcptFloorPlanSheet extends Equatable {
+  /// The case this sheet was built from.
+  final String caseId;
+
+  /// The case's own name, for a page header or a canvas title.
+  final String caseName;
+
+  /// The case's underlay, or null while none is placed.
+  final OcptFloorPlanUnderlayShape? underlay;
+
+  /// Every symbol this sheet draws, in draw order — sequence layers first (never ghosted), then
+  /// shot layers of the focused shot, then any ghosted neighbour's.
+  final List<OcptFloorPlanSymbolShape> symbols;
+
+  /// Every arrow this sheet draws, in draw order.
+  final List<OcptFloorPlanArrowShape> arrows;
+
+  /// Class constructor
+  const OcptFloorPlanSheet({
+    required this.caseId,
+    required this.caseName,
+    required this.underlay,
+    required this.symbols,
+    required this.arrows,
+  });
+
+  /// Builds the sheet [floorPlanCase] draws under one focus.
+  ///
+  /// [focusShotId] is null for the **sequence** focus (every sequence layer, plus every live
+  /// camera of every shot on this case, numbered — `docs/plans/storyboard.md`, §4.3) or a shot's id
+  /// for the **shot** focus (every sequence layer, plus that shot's own shot layers, plus, when
+  /// given, [previousShotId]'s and [nextShotId]'s shot layers drawn as ghosts — the onion skin).
+  /// No arrow is drawn under the sequence focus: an arrow is always a shot's own movement, and the
+  /// sequence focus shows no single shot's blocking.
+  ///
+  /// [shotRankByShotId] is every shot of the sequence's own 1-based display rank
+  /// (`OcptShot.position` + 1, `docs/plans/storyboard.md`'s "the number is the shot's rank in the
+  /// sequence"), read by [ocptFloorPlanCameraLabelOf]; a shot missing from it draws its cameras
+  /// with no [OcptFloorPlanSymbolShape.cameraLabel] rather than throwing, since a floor plan can be
+  /// built before every shot of a freshly reconciled sequence has been assigned one.
+  factory OcptFloorPlanSheet.of({
+    required OcptFloorPlanCase floorPlanCase,
+    required String? focusShotId,
+    required Map<String, int> shotRankByShotId,
+    String? previousShotId,
+    String? nextShotId,
+  }) {
+    final sequenceSymbols = [
+      for (final symbol in floorPlanCase.symbols) if (symbol.shotId == null) symbol,
+    ];
+
+    final symbolShapes = <OcptFloorPlanSymbolShape>[
+      ..._shapesOf(sequenceSymbols, shotRankByShotId: shotRankByShotId, isGhost: false),
+    ];
+
+    if (focusShotId == null) {
+      final cameraSymbols = [
+        for (final symbol in floorPlanCase.symbols)
+          if (symbol.shotId != null && symbol.layer == OcptFloorPlanLayer.cameras) symbol,
+      ];
+      symbolShapes.addAll(
+        _shapesOf(cameraSymbols, shotRankByShotId: shotRankByShotId, isGhost: false),
+      );
+
+      return OcptFloorPlanSheet(
+        caseId: floorPlanCase.id,
+        caseName: floorPlanCase.name,
+        underlay: _underlayOf(floorPlanCase),
+        symbols: symbolShapes,
+        arrows: const [],
+      );
+    }
+
+    final focusSymbols = [
+      for (final symbol in floorPlanCase.symbols) if (symbol.shotId == focusShotId) symbol,
+    ];
+    symbolShapes.addAll(_shapesOf(focusSymbols, shotRankByShotId: shotRankByShotId, isGhost: false));
+
+    final ghostShotIds = [
+      if (previousShotId != null) previousShotId,
+      if (nextShotId != null) nextShotId,
+    ];
+    final ghostSymbols = [
+      for (final symbol in floorPlanCase.symbols)
+        if (ghostShotIds.contains(symbol.shotId)) symbol,
+    ];
+    symbolShapes.addAll(_shapesOf(ghostSymbols, shotRankByShotId: shotRankByShotId, isGhost: true));
+
+    final relevantShotIds = {focusShotId, ...ghostShotIds};
+    final symbolById = {for (final symbol in floorPlanCase.symbols) symbol.id: symbol};
+    final arrowShapes = <OcptFloorPlanArrowShape>[
+      for (final arrow in floorPlanCase.arrows)
+        if (relevantShotIds.contains(arrow.shotId))
+          if (symbolById[arrow.fromSymbolId] case final from?)
+            if (symbolById[arrow.toSymbolId] case final to?)
+              OcptFloorPlanArrowShape(
+                arrowId: arrow.id,
+                shotId: arrow.shotId,
+                kind: arrow.kind,
+                fromXM: from.xM,
+                fromYM: from.yM,
+                toXM: to.xM,
+                toYM: to.yM,
+                label: arrow.label,
+                colorArgb: arrow.kind == OcptFloorPlanArrowKind.cameraMove
+                    ? ocptFloorPlanCameraMoveArrowColorArgb
+                    : ocptFloorPlanMovementArrowColorArgb,
+                isGhost: arrow.shotId != focusShotId,
+              ),
+    ];
+
+    return OcptFloorPlanSheet(
+      caseId: floorPlanCase.id,
+      caseName: floorPlanCase.name,
+      underlay: _underlayOf(floorPlanCase),
+      symbols: symbolShapes,
+      arrows: arrowShapes,
+    );
+  }
+
+  /// The underlay shape of [floorPlanCase], or null while it has none placed — a case that has an
+  /// `underlayAssetId` but no frame yet (mid-import) is treated the same as having none, since
+  /// there is nothing yet to draw it at.
+  static OcptFloorPlanUnderlayShape? _underlayOf(OcptFloorPlanCase floorPlanCase) {
+    final assetId = floorPlanCase.underlayAssetId;
+    final xM = floorPlanCase.underlayXM;
+    final yM = floorPlanCase.underlayYM;
+    final widthM = floorPlanCase.underlayWidthM;
+    final heightM = floorPlanCase.underlayHeightM;
+    if (assetId == null || xM == null || yM == null || widthM == null || heightM == null) {
+      return null;
+    }
+
+    return OcptFloorPlanUnderlayShape(
+      assetId: assetId,
+      path: floorPlanCase.underlayPath,
+      xM: xM,
+      yM: yM,
+      widthM: widthM,
+      heightM: heightM,
+      rotationDeg: floorPlanCase.underlayRotationDeg ?? 0,
+    );
+  }
+
+  /// Freezes [symbols] into their drawn shapes, in `sortKey` order, deriving each camera symbol's
+  /// [OcptFloorPlanSymbolShape.cameraLabel] from its 0-based rank among the *same shot's* camera
+  /// symbols within this very list — which is always exactly the group a caller of this factory
+  /// means by "the same shot's live cameras on the same case" (`OcptFloorPlanSymbolsTable`'s own
+  /// doc comment), whether [symbols] holds one shot's placements or, under the sequence focus,
+  /// every shot's at once.
+  static List<OcptFloorPlanSymbolShape> _shapesOf(
+    List<OcptFloorPlanSymbol> symbols, {
+    required Map<String, int> shotRankByShotId,
+    required bool isGhost,
+  }) {
+    final sorted = symbols.toList()..sort((a, b) => a.sortKey.compareTo(b.sortKey));
+    final cameraRankByShotId = <String, int>{};
+
+    return [
+      for (final symbol in sorted)
+        _shapeOf(
+          symbol,
+          isGhost: isGhost,
+          cameraLabel: _cameraLabelOf(
+            symbol,
+            shotRankByShotId: shotRankByShotId,
+            cameraRankByShotId: cameraRankByShotId,
+          ),
+        ),
+    ];
+  }
+
+  /// The camera label [symbol] draws, or null when it isn't a camera symbol on a shot, or that
+  /// shot's rank isn't known. Advances [cameraRankByShotId] for [symbol]'s shot as a side effect,
+  /// which is what gives the *next* camera symbol of that same shot the following rank.
+  static String? _cameraLabelOf(
+    OcptFloorPlanSymbol symbol, {
+    required Map<String, int> shotRankByShotId,
+    required Map<String, int> cameraRankByShotId,
+  }) {
+    final shotId = symbol.shotId;
+    if (symbol.layer != OcptFloorPlanLayer.cameras || shotId == null) {
+      return null;
+    }
+
+    final cameraRank = cameraRankByShotId[shotId] ?? 0;
+    cameraRankByShotId[shotId] = cameraRank + 1;
+
+    final shotRank = shotRankByShotId[shotId];
+    if (shotRank == null) {
+      return null;
+    }
+
+    return ocptFloorPlanCameraLabelOf(shotRank: shotRank, cameraRank: cameraRank);
+  }
+
+  /// Freezes [symbol] into its drawn shape, its footprint resolved to
+  /// [ocptFloorPlanDefaultFootprintM] when it carries no `widthM`/`heightM` of its own.
+  static OcptFloorPlanSymbolShape _shapeOf(
+    OcptFloorPlanSymbol symbol, {
+    required bool isGhost,
+    required String? cameraLabel,
+  }) => OcptFloorPlanSymbolShape(
+    symbolId: symbol.id,
+    shotId: symbol.shotId,
+    layer: symbol.layer,
+    xM: symbol.xM,
+    yM: symbol.yM,
+    rotationDeg: symbol.rotationDeg,
+    widthM: symbol.widthM ?? ocptFloorPlanDefaultFootprintM(symbol.layer),
+    heightM: symbol.heightM ?? ocptFloorPlanDefaultFootprintM(symbol.layer),
+    fovDeg: symbol.fovDeg,
+    label: symbol.label,
+    colorArgb: ocptFloorPlanLayerColorArgb(symbol.layer),
+    cameraLabel: cameraLabel,
+    isGhost: isGhost,
+  );
+
+  /// Object string representation, useful for debugging and logging.
+  @override
+  String toString() =>
+      "OcptFloorPlanSheet(caseId: $caseId, symbols: ${symbols.length}, arrows: ${arrows.length})";
+
+  /// Object properties
+  @override
+  List<Object?> get props => [caseId, caseName, underlay, symbols, arrows];
+}

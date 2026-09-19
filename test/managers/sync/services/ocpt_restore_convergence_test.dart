@@ -12,6 +12,7 @@ import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_assets_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_breakdown_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_elements_service.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_floor_plan_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_locations_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_project_version_codec.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_project_versions_service.dart';
@@ -22,6 +23,7 @@ import 'package:open_cine_prod_tools/managers/projects/services/ocpt_schedule_se
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_screenplay_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_coverage_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_list_service.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_storyboard_service.dart';
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_changeset_service.dart';
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_folder_remote_storage.dart';
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_merge_service.dart';
@@ -101,7 +103,15 @@ void main() {
     );
     final screenplayService = OcptScreenplayService(
       sceneIndexService: const OcptSceneIndexService(),
-      shotListService: OcptShotListService(roleIndexService: roleIndexService, deviceId: thisDeviceId),
+      shotListService: OcptShotListService(
+        roleIndexService: roleIndexService,
+        storyboardService: OcptStoryboardService(
+          assetsService: assetsService,
+          deviceId: thisDeviceId,
+        ),
+        floorPlanService: OcptFloorPlanService(assetsService: assetsService, deviceId: thisDeviceId),
+        deviceId: thisDeviceId,
+      ),
       shotCoverageService: OcptShotCoverageService(deviceId: thisDeviceId),
       roleIndexService: roleIndexService,
       breakdownService: breakdownService,

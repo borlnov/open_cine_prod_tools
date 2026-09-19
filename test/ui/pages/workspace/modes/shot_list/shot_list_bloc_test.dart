@@ -16,10 +16,12 @@ import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_assets_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_elements_service.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_floor_plan_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_role_candidates_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_role_index_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_coverage_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_list_service.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_storyboard_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_working_copy_state.dart';
@@ -99,6 +101,14 @@ class _FailingShotListService extends OcptShotListService {
             deviceId: _testDeviceId,
           ),
           roleCandidatesService: OcptRoleCandidatesService(deviceId: _testDeviceId),
+          deviceId: _testDeviceId,
+        ),
+        storyboardService: const OcptStoryboardService(
+          assetsService: OcptAssetsService(deviceId: _testDeviceId),
+          deviceId: _testDeviceId,
+        ),
+        floorPlanService: const OcptFloorPlanService(
+          assetsService: OcptAssetsService(deviceId: _testDeviceId),
           deviceId: _testDeviceId,
         ),
         deviceId: _testDeviceId,

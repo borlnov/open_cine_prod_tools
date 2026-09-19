@@ -28,6 +28,7 @@ import 'package:open_cine_prod_tools/managers/projects/services/ocpt_budget_jour
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_budget_quote_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_budget_sharing_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_elements_service.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_floor_plan_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_locations_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_people_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_role_candidates_service.dart';
@@ -37,6 +38,7 @@ import 'package:open_cine_prod_tools/managers/projects/services/ocpt_schedule_se
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_screenplay_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_coverage_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_list_service.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_storyboard_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_poste_seed.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_scene_status.dart';
@@ -168,7 +170,12 @@ void main() {
     locationsService: locationsService,
     deviceId: deviceId,
   );
-  final shotListService = OcptShotListService(roleIndexService: roleIndexService, deviceId: deviceId);
+  final shotListService = OcptShotListService(
+    roleIndexService: roleIndexService,
+    storyboardService: OcptStoryboardService(assetsService: assetsService, deviceId: deviceId),
+    floorPlanService: OcptFloorPlanService(assetsService: assetsService, deviceId: deviceId),
+    deviceId: deviceId,
+  );
   final peopleService = OcptPeopleService(
     deviceId: deviceId,
     assetsService: assetsService,
