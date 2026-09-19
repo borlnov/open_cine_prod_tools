@@ -413,6 +413,60 @@ class OcptFloorPlanService {
     });
   }
 
+  /// Updates case [caseId]'s underlay **frame** — its centre, size and/or rotation, whichever is
+  /// passed as something other than [Value.absent] — through a single guarded write that touches
+  /// no `assets` row at all.
+  ///
+  /// This is the write a drag moving or resizing the underlay on the canvas ends on. The frame
+  /// lives entirely on this table's own `underlay*M`/`underlayRotationDeg` columns, so re-framing
+  /// it must never go through [setCaseUnderlay]: that method unconditionally tombstones the
+  /// current `assets` row and mints a fresh one, which is the right cost for actually importing or
+  /// replacing the underlay's image, but is a permanent (ADR 0010) churn of dead `assets` rows for
+  /// a gesture as frequent as dragging the underlay against the reference silhouette. A no-op
+  /// while the case carries no underlay at all (`underlayAssetId == null`): there is nothing to
+  /// re-frame.
+  ///
+  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
+  Future<void> updateUnderlayFrame({
+    required OcptProjectDatabase database,
+    required String caseId,
+    Value<double> xM = const Value.absent(),
+    Value<double> yM = const Value.absent(),
+    Value<double> widthM = const Value.absent(),
+    Value<double> heightM = const Value.absent(),
+    Value<double> rotationDeg = const Value.absent(),
+  }) async {
+    if (database.refusesUserWrite("updateUnderlayFrame")) {
+      return;
+    }
+
+    final companion = OcptFloorPlanCasesTableCompanion(
+      underlayXM: xM,
+      underlayYM: yM,
+      underlayWidthM: widthM,
+      underlayHeightM: heightM,
+      underlayRotationDeg: rotationDeg,
+    );
+
+    await database.transaction(() async {
+      final current = await _liveCaseRowOrNull(database: database, caseId: caseId);
+      if (current == null || current.underlayAssetId == null) {
+        return;
+      }
+
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
+      await OcptRowStampService.writeAndStamp(
+        database: database,
+        table: database.ocptFloorPlanCasesTable,
+        rowId: caseId,
+        current: current,
+        next: current.copyWithCompanion(companion),
+        stamps: stamps,
+      );
+      await stamps.flush(database);
+    });
+  }
+
   /// Places a new symbol of [layer] on case [caseId], appended after the case's current last symbol
   /// of that layer, and returns its freshly generated id.
   ///

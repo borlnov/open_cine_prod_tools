@@ -33,6 +33,8 @@ import 'package:open_cine_prod_tools/models/ocpt_shot_list_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_list_xlsx_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
 import 'package:open_cine_prod_tools/types/ocpt_export_outcome.dart';
+import 'package:open_cine_prod_tools/types/ocpt_floor_plan_layer.dart';
+import 'package:open_cine_prod_tools/types/ocpt_floor_plan_tool.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_check_reason.dart';
@@ -402,6 +404,7 @@ void main() {
     OcptShotListService? shotListService,
     OcptShotCoverageService? shotCoverageService,
     OcptStoryboardService? storyboardService,
+    OcptFloorPlanService? floorPlanService,
     FileSelectorManager? fileSelectorManager,
     OcptProjectsManager? overrideProjectsManager,
     Duration fieldEditDebounce = const Duration(milliseconds: 30),
@@ -414,6 +417,7 @@ void main() {
     shotListService: shotListService,
     shotCoverageService: shotCoverageService,
     storyboardService: storyboardService,
+    floorPlanService: floorPlanService,
     fileSelectorManager: fileSelectorManager,
     fieldEditDebounce: fieldEditDebounce,
     selectedEpisodeId: selectedEpisodeId,
@@ -2487,6 +2491,392 @@ void main() {
           await bloc.close();
         },
       );
+    });
+  });
+
+  group("floor plans", () {
+    /// Creates a case on the first scene of [twoSceneText] and returns its id, waiting for the
+    /// selection the creation event always makes.
+    Future<String> createCase(OcptShotListBloc bloc) async {
+      bloc.add(const OcptShotListCaseCreationRequestedEvent());
+      final created = await waitForState(bloc, (state) => state.casesOfSelectedSequence.isNotEmpty);
+      return created.selectedCaseId!;
+    }
+
+    test("a fresh case is named from the scene heading's place and selected", () async {
+      await writeScreenplay(twoSceneText);
+      final bloc = buildBloc();
+      await waitForState(bloc, (state) => !state.isLoading);
+
+      final caseId = await createCase(bloc);
+      final state = bloc.state;
+
+      expect(state.casesOfSelectedSequence, hasLength(1));
+      expect(state.selectedCaseId, caseId);
+      expect(state.selectedCase!.name, "HOUSE");
+
+      await bloc.close();
+    });
+
+    test("renaming a case debounces then writes", () async {
+      await writeScreenplay(twoSceneText);
+      final bloc = buildBloc();
+      await waitForState(bloc, (state) => !state.isLoading);
+      final caseId = await createCase(bloc);
+
+      bloc.add(OcptShotListCaseNameChangedEvent(caseId: caseId, rawValue: "Living room"));
+      final pending = await waitForState(
+        bloc,
+        (state) => state.pendingFieldEdits.containsKey(
+          OcptShotListCaseNameEditKey(caseId: caseId),
+        ),
+      );
+      expect(pending.selectedCase!.name, "HOUSE");
+
+      final flushed = await waitForState(
+        bloc,
+        (state) => state.selectedCase!.name == "Living room",
+      );
+      expect(flushed.pendingFieldEdits, isEmpty);
+
+      await bloc.close();
+    });
+
+    test("reordering two cases writes the new tab order", () async {
+      await writeScreenplay(twoSceneText);
+      final bloc = buildBloc();
+      await waitForState(bloc, (state) => !state.isLoading);
+      final firstCaseId = await createCase(bloc);
+      bloc.add(const OcptShotListCaseCreationRequestedEvent());
+      final afterSecond = await waitForState(
+        bloc,
+        (state) => state.casesOfSelectedSequence.length == 2,
+      );
+      final secondCaseId = afterSecond.selectedCaseId!;
+      expect(afterSecond.casesOfSelectedSequence.map((c) => c.id), [firstCaseId, secondCaseId]);
+
+      bloc.add(OcptShotListCaseReorderedEvent(caseId: secondCaseId, newPosition: 0));
+      final reordered = await waitForState(
+        bloc,
+        (state) => state.casesOfSelectedSequence.first.id == secondCaseId,
+      );
+      expect(reordered.casesOfSelectedSequence.map((c) => c.id), [secondCaseId, firstCaseId]);
+
+      await bloc.close();
+    });
+
+    test(
+      "deleting the selected case tombstones it and selects the sequence's next first case",
+      () async {
+        await writeScreenplay(twoSceneText);
+        final bloc = buildBloc();
+        await waitForState(bloc, (state) => !state.isLoading);
+        final firstCaseId = await createCase(bloc);
+        bloc.add(const OcptShotListCaseCreationRequestedEvent());
+        final afterSecond = await waitForState(
+          bloc,
+          (state) => state.casesOfSelectedSequence.length == 2,
+        );
+        final secondCaseId = afterSecond.selectedCaseId!;
+        expect(secondCaseId, isNot(firstCaseId));
+
+        bloc.add(OcptShotListCaseDeletionRequestedEvent(caseId: secondCaseId));
+        final afterDelete = await waitForState(
+          bloc,
+          (state) => state.casesOfSelectedSequence.length == 1,
+        );
+        expect(afterDelete.selectedCaseId, firstCaseId);
+
+        bloc.add(OcptShotListCaseDeletionRequestedEvent(caseId: firstCaseId));
+        final afterLastDelete = await waitForState(
+          bloc,
+          (state) => state.casesOfSelectedSequence.isEmpty,
+        );
+        expect(afterLastDelete.selectedCaseId, isNull);
+
+        await bloc.close();
+      },
+    );
+
+    test("placing a set element writes a sequence-scoped symbol on the active layer", () async {
+      await writeScreenplay(twoSceneText);
+      final bloc = buildBloc();
+      await waitForState(bloc, (state) => !state.isLoading);
+      final caseId = await createCase(bloc);
+
+      bloc.add(
+        const OcptShotListFloorPlanActiveLayerChangedEvent(layer: OcptFloorPlanLayer.decor),
+      );
+      await waitForState(bloc, (state) => state.floorPlanActiveLayer == OcptFloorPlanLayer.decor);
+
+      bloc.add(
+        OcptShotListFloorPlanSymbolPlacedEvent(
+          caseId: caseId,
+          layer: OcptFloorPlanLayer.decor,
+          xM: 1.5,
+          yM: -2,
+        ),
+      );
+      final state = await waitForState(bloc, (state) => state.selectedCase!.symbols.isNotEmpty);
+
+      final symbol = state.selectedCase!.symbols.single;
+      expect(symbol.shotId, isNull);
+      expect(symbol.layer, OcptFloorPlanLayer.decor);
+      expect(symbol.xM, 1.5);
+      expect(symbol.yM, -2);
+      expect(state.selectedFloorPlanSymbolId, symbol.id);
+
+      await bloc.close();
+    });
+
+    test("moving a symbol writes one row on drag end", () async {
+      await writeScreenplay(twoSceneText);
+      final bloc = buildBloc();
+      await waitForState(bloc, (state) => !state.isLoading);
+      final caseId = await createCase(bloc);
+
+      bloc.add(
+        OcptShotListFloorPlanSymbolPlacedEvent(
+          caseId: caseId,
+          layer: OcptFloorPlanLayer.furniture,
+          xM: 0,
+          yM: 0,
+        ),
+      );
+      final placed = await waitForState(bloc, (state) => state.selectedCase!.symbols.isNotEmpty);
+      final symbolId = placed.selectedCase!.symbols.single.id;
+
+      bloc.add(OcptShotListFloorPlanSymbolMovedEvent(symbolId: symbolId, xM: 3, yM: 4));
+      final moved = await waitForState(
+        bloc,
+        (state) => state.selectedCase!.symbols.single.xM == 3,
+      );
+      expect(moved.selectedCase!.symbols.single.yM, 4);
+
+      await bloc.close();
+    });
+
+    test("resizing and rotating a symbol writes one row each", () async {
+      await writeScreenplay(twoSceneText);
+      final bloc = buildBloc();
+      await waitForState(bloc, (state) => !state.isLoading);
+      final caseId = await createCase(bloc);
+
+      bloc.add(
+        OcptShotListFloorPlanSymbolPlacedEvent(
+          caseId: caseId,
+          layer: OcptFloorPlanLayer.fixedProps,
+          xM: 0,
+          yM: 0,
+        ),
+      );
+      final placed = await waitForState(bloc, (state) => state.selectedCase!.symbols.isNotEmpty);
+      final symbolId = placed.selectedCase!.symbols.single.id;
+
+      bloc.add(
+        OcptShotListFloorPlanSymbolResizedEvent(symbolId: symbolId, widthM: 1.2, heightM: 0.8),
+      );
+      final resized = await waitForState(
+        bloc,
+        (state) => state.selectedCase!.symbols.single.widthM == 1.2,
+      );
+      expect(resized.selectedCase!.symbols.single.heightM, 0.8);
+
+      bloc.add(OcptShotListFloorPlanSymbolRotatedEvent(symbolId: symbolId, rotationDeg: 45));
+      final rotated = await waitForState(
+        bloc,
+        (state) => state.selectedCase!.symbols.single.rotationDeg == 45,
+      );
+      expect(rotated.selectedCase!.symbols.single.id, symbolId);
+
+      await bloc.close();
+    });
+
+    test("deleting a symbol removes it and clears its own selection", () async {
+      await writeScreenplay(twoSceneText);
+      final bloc = buildBloc();
+      await waitForState(bloc, (state) => !state.isLoading);
+      final caseId = await createCase(bloc);
+
+      bloc.add(
+        OcptShotListFloorPlanSymbolPlacedEvent(
+          caseId: caseId,
+          layer: OcptFloorPlanLayer.decor,
+          xM: 0,
+          yM: 0,
+        ),
+      );
+      final placed = await waitForState(bloc, (state) => state.selectedCase!.symbols.isNotEmpty);
+      final symbolId = placed.selectedFloorPlanSymbolId!;
+
+      bloc.add(OcptShotListFloorPlanSymbolDeletionRequestedEvent(symbolId: symbolId));
+      final deleted = await waitForState(bloc, (state) => state.selectedCase!.symbols.isEmpty);
+      expect(deleted.selectedFloorPlanSymbolId, isNull);
+
+      await bloc.close();
+    });
+
+    test("importing an underlay frames it at the default rectangle", () async {
+      await writeScreenplay(twoSceneText);
+      final bloc = buildBloc(
+        fileSelectorManager: const _StubFileSelectorManager(pickedPath: "/plans/kitchen.png"),
+      );
+      await waitForState(bloc, (state) => !state.isLoading);
+      final caseId = await createCase(bloc);
+
+      bloc.add(
+        OcptShotListFloorPlanUnderlayImportRequestedEvent(caseId: caseId, fileTypeLabel: "Images"),
+      );
+      final state = await waitForState(
+        bloc,
+        (state) => state.selectedCase!.underlayAssetId != null,
+      );
+
+      expect(state.selectedCase!.underlayPath, "/plans/kitchen.png");
+      expect(state.selectedCase!.underlayWidthM, isNotNull);
+      expect(state.selectedCase!.underlayHeightM, isNotNull);
+
+      await bloc.close();
+    });
+
+    test(
+      "moving/resizing the underlay re-frames it through updateUnderlayFrame, minting or "
+      "tombstoning no asset",
+      () async {
+        await writeScreenplay(twoSceneText);
+        final bloc = buildBloc(
+          fileSelectorManager: const _StubFileSelectorManager(pickedPath: "/plans/kitchen.png"),
+        );
+        await waitForState(bloc, (state) => !state.isLoading);
+        final caseId = await createCase(bloc);
+
+        bloc.add(
+          OcptShotListFloorPlanUnderlayImportRequestedEvent(
+            caseId: caseId,
+            fileTypeLabel: "Images",
+          ),
+        );
+        final imported = await waitForState(
+          bloc,
+          (state) => state.selectedCase!.underlayAssetId != null,
+        );
+        final assetId = imported.selectedCase!.underlayAssetId;
+        final database = projectsManager.currentProject!.database;
+        final assetsBeforeMove = await database.select(database.ocptAssetsTable).get();
+
+        bloc.add(
+          OcptShotListFloorPlanUnderlayTransformChangedEvent(
+            caseId: caseId,
+            xM: 2,
+            yM: 1,
+            widthM: 5,
+            heightM: 3,
+          ),
+        );
+        final transformed = await waitForState(
+          bloc,
+          (state) => state.selectedCase!.underlayWidthM == 5,
+        );
+        expect(transformed.selectedCase!.underlayXM, 2);
+        expect(transformed.selectedCase!.underlayYM, 1);
+        expect(transformed.selectedCase!.underlayHeightM, 3);
+        expect(transformed.selectedCase!.underlayPath, "/plans/kitchen.png");
+        // The very defect this fixes: dragging the underlay must never mint a fresh `assets` row
+        // and tombstone the old one — it keeps writing the very same one.
+        expect(transformed.selectedCase!.underlayAssetId, assetId);
+        final assetsAfterMove = await database.select(database.ocptAssetsTable).get();
+        expect(assetsAfterMove, hasLength(assetsBeforeMove.length));
+        expect(assetsAfterMove.single.id, assetsBeforeMove.single.id);
+        expect(assetsAfterMove.single.isDeleted, isFalse);
+
+        await bloc.close();
+      },
+    );
+
+    test("clearing the underlay removes it", () async {
+      await writeScreenplay(twoSceneText);
+      final bloc = buildBloc(
+        fileSelectorManager: const _StubFileSelectorManager(pickedPath: "/plans/kitchen.png"),
+      );
+      await waitForState(bloc, (state) => !state.isLoading);
+      final caseId = await createCase(bloc);
+
+      bloc.add(
+        OcptShotListFloorPlanUnderlayImportRequestedEvent(caseId: caseId, fileTypeLabel: "Images"),
+      );
+      await waitForState(bloc, (state) => state.selectedCase!.underlayAssetId != null);
+
+      bloc.add(OcptShotListFloorPlanUnderlayClearRequestedEvent(caseId: caseId));
+      final cleared = await waitForState(
+        bloc,
+        (state) => state.selectedCase!.underlayAssetId == null,
+      );
+      expect(cleared.selectedCase!.underlayPath, isNull);
+
+      await bloc.close();
+    });
+
+    test("zoom, tool, active layer and layer visibility are session view state", () async {
+      await writeScreenplay(twoSceneText);
+      final bloc = buildBloc();
+      await waitForState(bloc, (state) => !state.isLoading);
+      expect(bloc.state.floorPlanZoom, 1);
+      expect(bloc.state.floorPlanActiveTool, OcptFloorPlanTool.select);
+
+      bloc.add(const OcptShotListFloorPlanZoomChangedEvent(zoom: 2));
+      await waitForState(bloc, (state) => state.floorPlanZoom == 2);
+
+      bloc.add(const OcptShotListFloorPlanToolSelectedEvent(tool: OcptFloorPlanTool.setElement));
+      await waitForState(
+        bloc,
+        (state) => state.floorPlanActiveTool == OcptFloorPlanTool.setElement,
+      );
+
+      bloc.add(
+        const OcptShotListFloorPlanLayerVisibilityToggledEvent(layer: OcptFloorPlanLayer.decor),
+      );
+      final hidden = await waitForState(
+        bloc,
+        (state) => state.floorPlanHiddenLayers.contains(OcptFloorPlanLayer.decor),
+      );
+
+      bloc.add(
+        const OcptShotListFloorPlanLayerVisibilityToggledEvent(layer: OcptFloorPlanLayer.decor),
+      );
+      final shown = await waitForState(
+        bloc,
+        (state) => !state.floorPlanHiddenLayers.contains(OcptFloorPlanLayer.decor),
+      );
+      expect(hidden.floorPlanHiddenLayers, contains(OcptFloorPlanLayer.decor));
+      expect(shown.floorPlanHiddenLayers, isNot(contains(OcptFloorPlanLayer.decor)));
+
+      await bloc.close();
+    });
+
+    test("switching sequences clears the case and symbol selection", () async {
+      await writeScreenplay(twoSceneText);
+      final bloc = buildBloc();
+      final loaded = await waitForState(bloc, (state) => !state.isLoading);
+      final firstSequenceId = loaded.sequences.first.id;
+      final secondSequenceId = loaded.sequences[1].id;
+      await createCase(bloc);
+
+      bloc.add(OcptShotListSequenceSelectedEvent(sequenceId: secondSequenceId));
+      final onSecond = await waitForState(
+        bloc,
+        (state) => state.selectedSequenceId == secondSequenceId,
+      );
+      expect(onSecond.selectedCaseId, isNull);
+      expect(onSecond.casesOfSelectedSequence, isEmpty);
+
+      bloc.add(OcptShotListSequenceSelectedEvent(sequenceId: firstSequenceId));
+      final backOnFirst = await waitForState(
+        bloc,
+        (state) => state.selectedSequenceId == firstSequenceId,
+      );
+      expect(backOnFirst.selectedCaseId, isNotNull);
+
+      await bloc.close();
     });
   });
 }

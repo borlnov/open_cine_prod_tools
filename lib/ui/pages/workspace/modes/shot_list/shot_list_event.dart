@@ -8,6 +8,8 @@ import 'package:act_flutter_utility/act_flutter_utility.dart';
 import 'package:open_cine_prod_tools/models/ocpt_scenario_coverage_export_options.dart';
 import 'package:open_cine_prod_tools/models/ocpt_scenario_coverage_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_list_xlsx_labels.dart';
+import 'package:open_cine_prod_tools/types/ocpt_floor_plan_layer.dart';
+import 'package:open_cine_prod_tools/types/ocpt_floor_plan_tool.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_difficulty_axis.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_centre_view.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_column.dart';
@@ -787,4 +789,343 @@ class OcptShotListAnnotationDeletionRequestedEvent extends OcptShotListEvent {
   /// Object properties
   @override
   List<Object?> get props => [...super.props, annotationId];
+}
+
+/// Selects case `event.caseId` on the floor plans view, dispatched by a click on its own tab.
+/// Clears the symbol selection: a symbol only ever belongs to the case currently shown.
+class OcptShotListCaseSelectedEvent extends OcptShotListEvent {
+  /// The id of the case to select.
+  final String caseId;
+
+  /// Class constructor
+  const OcptShotListCaseSelectedEvent({required this.caseId});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, caseId];
+}
+
+/// Requests creating a new case on the selected sequence, named after its scene heading's place
+/// (`OcptFloorPlanService.addCase`), then selects it. Does nothing while no sequence is selected,
+/// or while the selected one is the orphan group: a case only ever belongs to a real screenplay
+/// scene, exactly as a new shot only ever belongs to one.
+class OcptShotListCaseCreationRequestedEvent extends OcptShotListEvent {
+  /// Class constructor
+  const OcptShotListCaseCreationRequestedEvent();
+}
+
+/// Records the raw text just typed into case `event.caseId`'s own tab as a pending edit, and
+/// (re)starts the field-edit debounce shared with every other typed field of the mode.
+class OcptShotListCaseNameChangedEvent extends OcptShotListEvent {
+  /// The id of the case whose name was edited.
+  final String caseId;
+
+  /// The case's new name, exactly as typed.
+  final String rawValue;
+
+  /// Class constructor
+  const OcptShotListCaseNameChangedEvent({required this.caseId, required this.rawValue});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, caseId, rawValue];
+}
+
+/// Moves case `event.caseId` to `event.newPosition` among its own sequence's cases (its tab
+/// order), dispatched by the case tabs' own drag-to-reorder gesture. Written immediately, one row
+/// (`OcptFloorPlanService.reorderCase`).
+class OcptShotListCaseReorderedEvent extends OcptShotListEvent {
+  /// The id of the case being moved.
+  final String caseId;
+
+  /// The 0-based position the case is moved to.
+  final int newPosition;
+
+  /// Class constructor
+  const OcptShotListCaseReorderedEvent({required this.caseId, required this.newPosition});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, caseId, newPosition];
+}
+
+/// Requests deleting case `event.caseId` for good, dispatched once the tab's own delete action has
+/// already been confirmed through `OcptConfirmDialog`, by the mode. Clears the selection (and, with
+/// it, the symbol selection) when it was the selected case.
+class OcptShotListCaseDeletionRequestedEvent extends OcptShotListEvent {
+  /// The id of the case to delete.
+  final String caseId;
+
+  /// Class constructor
+  const OcptShotListCaseDeletionRequestedEvent({required this.caseId});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, caseId];
+}
+
+/// Records the floor plans canvas's own zoom as last **settled** by
+/// `OcptFloorPlanViewportController`, dispatched once a zoom gesture (the tool bar's `−`/`+`
+/// buttons, or the canvas's own scroll-wheel zoom, debounced) ends — never per frame. A view
+/// preference, held for the session alone; see `OcptShotListState.floorPlanZoom`'s own doc comment.
+class OcptShotListFloorPlanZoomChangedEvent extends OcptShotListEvent {
+  /// The zoom just settled on.
+  final double zoom;
+
+  /// Class constructor
+  const OcptShotListFloorPlanZoomChangedEvent({required this.zoom});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, zoom];
+}
+
+/// Picks the floor plans canvas's own active tool, dispatched by the tool bar.
+class OcptShotListFloorPlanToolSelectedEvent extends OcptShotListEvent {
+  /// The tool just picked.
+  final OcptFloorPlanTool tool;
+
+  /// Class constructor
+  const OcptShotListFloorPlanToolSelectedEvent({required this.tool});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, tool];
+}
+
+/// Picks the sequence layer a placed set element lands on, dispatched by a click on one of the
+/// tray's own sequence layer rows.
+class OcptShotListFloorPlanActiveLayerChangedEvent extends OcptShotListEvent {
+  /// The layer just picked. Always sequence-scoped: the tray only ever offers those three rows in
+  /// this milestone.
+  final OcptFloorPlanLayer layer;
+
+  /// Class constructor
+  const OcptShotListFloorPlanActiveLayerChangedEvent({required this.layer});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, layer];
+}
+
+/// Toggles the visibility of sequence layer `event.layer` on the floor plans canvas, dispatched by
+/// the tray's own eye icon. A view preference; never withheld under a read-only preview, since it
+/// only reads.
+class OcptShotListFloorPlanLayerVisibilityToggledEvent extends OcptShotListEvent {
+  /// The layer whose visibility is toggled.
+  final OcptFloorPlanLayer layer;
+
+  /// Class constructor
+  const OcptShotListFloorPlanLayerVisibilityToggledEvent({required this.layer});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, layer];
+}
+
+/// Toggles the selected case's underlay visibility on the floor plans canvas, dispatched by the
+/// tray's own underlay row eye icon. A view preference; never withheld under a read-only preview.
+class OcptShotListFloorPlanUnderlayVisibilityToggledEvent extends OcptShotListEvent {
+  /// Class constructor
+  const OcptShotListFloorPlanUnderlayVisibilityToggledEvent();
+}
+
+/// Places a new set element symbol on case `event.caseId`'s `event.layer`, at `event.xM`/`event.yM`
+/// (metres), dispatched by a click on empty canvas while the `setElement` tool is on. Written
+/// immediately (`OcptFloorPlanService.placeSymbol`), then selects the freshly minted symbol.
+class OcptShotListFloorPlanSymbolPlacedEvent extends OcptShotListEvent {
+  /// The id of the case the symbol is placed on.
+  final String caseId;
+
+  /// The sequence layer the symbol is placed on — always the tray's own current active layer.
+  final OcptFloorPlanLayer layer;
+
+  /// The symbol's centre X, in metres.
+  final double xM;
+
+  /// The symbol's centre Y, in metres.
+  final double yM;
+
+  /// Class constructor
+  const OcptShotListFloorPlanSymbolPlacedEvent({
+    required this.caseId,
+    required this.layer,
+    required this.xM,
+    required this.yM,
+  });
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, caseId, layer, xM, yM];
+}
+
+/// Selects symbol `event.symbolId` on the floor plans canvas, or clears the selection when
+/// `event.symbolId` is null (a click on empty canvas while the `select` tool is on).
+class OcptShotListFloorPlanSymbolSelectedEvent extends OcptShotListEvent {
+  /// The id of the symbol to select, or null to clear the selection.
+  final String? symbolId;
+
+  /// Class constructor
+  const OcptShotListFloorPlanSymbolSelectedEvent({required this.symbolId});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, symbolId];
+}
+
+/// Moves symbol `event.symbolId` to `event.xM`/`event.yM` (metres), dispatched once a drag on it
+/// ends. Written as a single row (`OcptFloorPlanService.updateSymbol`), never per frame: the live
+/// drag position is a purely local widget concern, exactly as the underlay's own drag is.
+class OcptShotListFloorPlanSymbolMovedEvent extends OcptShotListEvent {
+  /// The id of the symbol being moved.
+  final String symbolId;
+
+  /// The symbol's new centre X, in metres.
+  final double xM;
+
+  /// The symbol's new centre Y, in metres.
+  final double yM;
+
+  /// Class constructor
+  const OcptShotListFloorPlanSymbolMovedEvent({
+    required this.symbolId,
+    required this.xM,
+    required this.yM,
+  });
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, symbolId, xM, yM];
+}
+
+/// Resizes set element symbol `event.symbolId` to `event.widthM`/`event.heightM` (metres),
+/// dispatched once a drag on its own resize handle ends. Written as a single row, never per frame.
+class OcptShotListFloorPlanSymbolResizedEvent extends OcptShotListEvent {
+  /// The id of the symbol being resized.
+  final String symbolId;
+
+  /// The symbol's new footprint width, in metres.
+  final double widthM;
+
+  /// The symbol's new footprint height, in metres.
+  final double heightM;
+
+  /// Class constructor
+  const OcptShotListFloorPlanSymbolResizedEvent({
+    required this.symbolId,
+    required this.widthM,
+    required this.heightM,
+  });
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, symbolId, widthM, heightM];
+}
+
+/// Rotates symbol `event.symbolId` to `event.rotationDeg`, dispatched once a drag on its own
+/// rotate handle ends. Written as a single row, never per frame.
+class OcptShotListFloorPlanSymbolRotatedEvent extends OcptShotListEvent {
+  /// The id of the symbol being rotated.
+  final String symbolId;
+
+  /// The symbol's new rotation, in degrees.
+  final double rotationDeg;
+
+  /// Class constructor
+  const OcptShotListFloorPlanSymbolRotatedEvent({
+    required this.symbolId,
+    required this.rotationDeg,
+  });
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, symbolId, rotationDeg];
+}
+
+/// Requests deleting symbol `event.symbolId` for good, dispatched once the canvas's own delete
+/// action has already been confirmed through `OcptConfirmDialog`, by the mode.
+class OcptShotListFloorPlanSymbolDeletionRequestedEvent extends OcptShotListEvent {
+  /// The id of the symbol to delete.
+  final String symbolId;
+
+  /// Class constructor
+  const OcptShotListFloorPlanSymbolDeletionRequestedEvent({required this.symbolId});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, symbolId];
+}
+
+/// Requests importing case `event.caseId`'s underlay, dispatched by the tool bar's own underlay
+/// action.
+///
+/// The bloc picks the file through `FileSelectorManager`, filtered to JPEG and PNG
+/// (`ocptFloorPlanUnderlayImageFileExtensions`), then places it at a default frame centred on the
+/// canvas — the user drags and resizes it to match the reference silhouette afterwards (ADR 0031).
+/// A cancelled dialog changes nothing at all. [fileTypeLabel] is the localized label the native
+/// picker's own file type filter shows, resolved by the mode.
+class OcptShotListFloorPlanUnderlayImportRequestedEvent extends OcptShotListEvent {
+  /// The id of the case the underlay is set on.
+  final String caseId;
+
+  /// The localized label of the picker's own file type filter.
+  final String fileTypeLabel;
+
+  /// Class constructor
+  const OcptShotListFloorPlanUnderlayImportRequestedEvent({
+    required this.caseId,
+    required this.fileTypeLabel,
+  });
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, caseId, fileTypeLabel];
+}
+
+/// Sets case `event.caseId`'s underlay frame to `event.xM`/`event.yM`/`event.widthM`/
+/// `event.heightM` (metres), dispatched once a drag moving or resizing it ends. Written as a
+/// single call (`OcptFloorPlanService.setCaseUnderlay`, re-pointed at the same already-imported
+/// file), never per frame.
+class OcptShotListFloorPlanUnderlayTransformChangedEvent extends OcptShotListEvent {
+  /// The id of the case whose underlay frame changed.
+  final String caseId;
+
+  /// The underlay's new centre X, in metres.
+  final double xM;
+
+  /// The underlay's new centre Y, in metres.
+  final double yM;
+
+  /// The underlay's new width, in metres.
+  final double widthM;
+
+  /// The underlay's new height, in metres.
+  final double heightM;
+
+  /// Class constructor
+  const OcptShotListFloorPlanUnderlayTransformChangedEvent({
+    required this.caseId,
+    required this.xM,
+    required this.yM,
+    required this.widthM,
+    required this.heightM,
+  });
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, caseId, xM, yM, widthM, heightM];
+}
+
+/// Requests clearing case `event.caseId`'s underlay for good, dispatched once the tray's own
+/// `Clear underlay` action has already been confirmed through `OcptConfirmDialog`, by the mode.
+class OcptShotListFloorPlanUnderlayClearRequestedEvent extends OcptShotListEvent {
+  /// The id of the case whose underlay is cleared.
+  final String caseId;
+
+  /// Class constructor
+  const OcptShotListFloorPlanUnderlayClearRequestedEvent({required this.caseId});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, caseId];
 }

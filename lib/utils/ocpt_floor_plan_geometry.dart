@@ -119,3 +119,15 @@ double ocptFloorPlanScaleBarLengthM({required double zoom, double targetPixelLen
 
   return best;
 }
+
+/// [lengthM] (a scale bar's own [ocptFloorPlanScaleBarLengthM]) formatted as a plain number with
+/// no trailing `.0` (`2`, `0.5`) — what `shotListFloorPlanScaleBarLengthLabel` prints its `m` unit
+/// around. A pure string helper rather than an ICU `double` placeholder: every value this rule
+/// hands out is already a "nice" one- or two-digit number, so a locale-aware `NumberFormat` would
+/// be more machinery than the one decimal digit it ever has to print.
+String ocptFloorPlanScaleBarLengthLabelOf(double lengthM) {
+  if (lengthM == lengthM.roundToDouble()) {
+    return lengthM.round().toString();
+  }
+  return lengthM.toStringAsFixed(1);
+}

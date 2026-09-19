@@ -21,9 +21,8 @@ const double _summaryMaxWidth = 240;
 ///
 /// Purely presentational, like the breakdown mode's own header: every click is reported upward,
 /// nothing here reads a manager. On a **compact width** the switch offers the table only
-/// ([isBoardAvailable] false) — the board is a large-screen view in v1 (§4.3) — and the
-/// `floorPlans` segment is never offered at all, in this milestone, whatever the width
-/// (`OcptShotListCentreView`'s own doc comment).
+/// ([isBoardAvailable]/[isFloorPlansAvailable] both false) — the board and the floor plans are
+/// large-screen views in v1 (§4.3).
 class OcptShotListCentreHeader extends StatelessWidget {
   /// The sequence currently shown, whose title and summary this header prints.
   final OcptShotSequence sequence;
@@ -33,6 +32,9 @@ class OcptShotListCentreHeader extends StatelessWidget {
 
   /// Whether the board segment is offered at all — false at a compact width.
   final bool isBoardAvailable;
+
+  /// Whether the floor plans segment is offered at all — false at a compact width.
+  final bool isFloorPlansAvailable;
 
   /// The total number of panels across [sequence]'s shots, appended to the summary line while the
   /// board is shown (`Sequence 12 · 5 shots · 6 panels`); ignored while [centreView] isn't
@@ -51,6 +53,7 @@ class OcptShotListCentreHeader extends StatelessWidget {
     required this.sequence,
     required this.centreView,
     required this.isBoardAvailable,
+    required this.isFloorPlansAvailable,
     required this.boardPanelCount,
     required this.onCentreViewSelected,
     required this.trailing,
@@ -76,7 +79,9 @@ class OcptShotListCentreHeader extends StatelessWidget {
       runSpacing: 8,
       children: [
         OcptViewSwitch<OcptShotListCentreView>(
-          value: isBoardAvailable ? centreView : OcptShotListCentreView.table,
+          value: isBoardAvailable || isFloorPlansAvailable
+              ? centreView
+              : OcptShotListCentreView.table,
           onChanged: onCentreViewSelected,
           segments: [
             OcptViewSwitchSegment(
@@ -87,6 +92,11 @@ class OcptShotListCentreHeader extends StatelessWidget {
               OcptViewSwitchSegment(
                 value: OcptShotListCentreView.board,
                 label: tr.shotListBoardBoardSegmentLabel,
+              ),
+            if (isFloorPlansAvailable)
+              OcptViewSwitchSegment(
+                value: OcptShotListCentreView.floorPlans,
+                label: tr.shotListFloorPlanSegmentLabel,
               ),
           ],
         ),

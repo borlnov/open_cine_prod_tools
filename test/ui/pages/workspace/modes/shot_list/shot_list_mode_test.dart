@@ -19,6 +19,7 @@ import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dar
 import 'package:open_cine_prod_tools/models/ocpt_shot_list_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_list_xlsx_labels.dart';
 import 'package:open_cine_prod_tools/types/ocpt_export_outcome.dart';
+import 'package:open_cine_prod_tools/types/ocpt_floor_plan_layer.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_centre_view.dart';
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
 import 'package:open_cine_prod_tools/types/ocpt_storyboard_annotation_kind.dart';
@@ -26,6 +27,7 @@ import 'package:open_cine_prod_tools/types/ocpt_storyboard_annotation_tool.dart'
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_event.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_mode.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_floor_plan_canvas.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_scenario_coverage_export_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_shot_inspector_panel.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_shot_list_status_bar.dart';
@@ -749,5 +751,173 @@ void main() {
         },
       );
     });
+  });
+
+  group("the floor plans", () {
+    /// Sets the test surface past the 800 px compact breakpoint, mounts the mode, and switches to
+    /// the floor plans view — the starting point every floor plans test but the compact-width one
+    /// shares.
+    Future<OcptShotListBloc> mountOnFloorPlans(WidgetTester tester) async {
+      tester.view.physicalSize = const Size(1400, 900);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      await tester.pumpWidget(_wrapWithLocalization(const OcptShotListMode()));
+      await tester.pumpAndSettle();
+
+      final bloc = tester.element(find.byType(OcptShotListStatusBar)).read<OcptShotListBloc>();
+      final tr = Tr.of(tester.element(find.byType(OcptShotListMode)));
+
+      await tester.tap(find.text(tr.shotListFloorPlanSegmentLabel));
+      await tester.pumpAndSettle();
+      expect(bloc.state.centreView, OcptShotListCentreView.floorPlans);
+
+      return bloc;
+    }
+
+    /// [mountOnFloorPlans], with a case created (and selected) on the sole sequence.
+    Future<OcptShotListBloc> mountWithACase(WidgetTester tester) async {
+      final bloc = await mountOnFloorPlans(tester);
+      final tr = Tr.of(tester.element(find.byType(OcptShotListMode)));
+
+      await tester.tap(find.byTooltip(tr.shotListFloorPlanAddCaseAction));
+      await tester.pumpAndSettle();
+      expect(bloc.state.selectedCaseId, isNotNull);
+
+      return bloc;
+    }
+
+    testWidgets("a compact width offers the table only, the Floor plans segment never shown", (
+      tester,
+    ) async {
+      tester.view.physicalSize = const Size(700, 1000);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      await tester.pumpWidget(_wrapWithLocalization(const OcptShotListMode()));
+      await tester.pumpAndSettle();
+
+      final tr = Tr.of(tester.element(find.byType(OcptShotListMode)));
+      expect(find.text(tr.shotListBoardTableSegmentLabel), findsOneWidget);
+      expect(find.text(tr.shotListFloorPlanSegmentLabel), findsNothing);
+      expect(find.byType(OcptFloorPlanCanvas), findsNothing);
+    });
+
+    testWidgets("+ Case creates a case named from the scene heading's place and selects it", (
+      tester,
+    ) async {
+      final bloc = await mountOnFloorPlans(tester);
+      final tr = Tr.of(tester.element(find.byType(OcptShotListMode)));
+
+      await tester.tap(find.byTooltip(tr.shotListFloorPlanAddCaseAction));
+      await tester.pumpAndSettle();
+
+      expect(bloc.state.casesOfSelectedSequence, hasLength(1));
+      final createdCase = bloc.state.casesOfSelectedSequence.single;
+      expect(bloc.state.selectedCaseId, createdCase.id);
+      expect(createdCase.name, "KITCHEN");
+      expect(find.text("KITCHEN"), findsOneWidget);
+    });
+
+    testWidgets("picking the set element tool and clicking the canvas places a symbol", (
+      tester,
+    ) async {
+      final bloc = await mountWithACase(tester);
+      final tr = Tr.of(tester.element(find.byType(OcptShotListMode)));
+
+      await tester.tap(find.byTooltip(tr.shotListFloorPlanToolSetElementAction));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byType(OcptFloorPlanCanvas));
+      await tester.pumpAndSettle();
+
+      final symbols = bloc.state.selectedCase!.symbols;
+      expect(symbols, hasLength(1));
+      // Sequence-scoped: the M5 scope invariant this whole milestone stands on.
+      expect(symbols.single.shotId, isNull);
+      expect(symbols.single.layer.isSequenceScoped, isTrue);
+      expect(bloc.state.selectedFloorPlanSymbolId, symbols.single.id);
+    });
+
+    testWidgets("deleting the selected symbol asks through the confirm dialog", (tester) async {
+      final bloc = await mountWithACase(tester);
+      final tr = Tr.of(tester.element(find.byType(OcptShotListMode)));
+
+      await tester.tap(find.byTooltip(tr.shotListFloorPlanToolSetElementAction));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byType(OcptFloorPlanCanvas));
+      await tester.pumpAndSettle();
+      expect(bloc.state.selectedCase!.symbols, hasLength(1));
+
+      await tester.tap(find.byTooltip(tr.shotListFloorPlanDeleteSymbolAction));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(OcptConfirmDialog), findsOneWidget);
+      expect(bloc.state.selectedCase!.symbols, hasLength(1));
+
+      await tester.tap(find.text(tr.shotListDeleteConfirmDeleteAction));
+      await tester.pumpAndSettle();
+
+      expect(bloc.state.selectedCase!.symbols, isEmpty);
+    });
+
+    testWidgets(
+      "a previewed version withholds + Case, the set element tool and symbol placement",
+      (tester) async {
+        await mountWithACase(tester);
+
+        final version = await projectsManager.createProjectVersion(name: "v1", note: "");
+        expect(version, isNotNull);
+        final previewResult = await projectsManager.previewVersion(version!.id);
+        expect(previewResult.status.isSuccess, isTrue);
+
+        // Unmounts, then remounts fresh — see the board's own previewed-version test for why.
+        await tester.pumpWidget(const SizedBox.shrink());
+        await tester.pumpAndSettle();
+        await tester.pumpWidget(_wrapWithLocalization(const OcptShotListMode()));
+        await tester.pumpAndSettle();
+
+        final previewedBloc = tester
+            .element(find.byType(OcptShotListStatusBar))
+            .read<OcptShotListBloc>();
+        expect(previewedBloc.state.isPreviewingVersion, isTrue);
+        expect(previewedBloc.state.centreView, OcptShotListCentreView.floorPlans);
+        expect(previewedBloc.state.selectedCaseId, isNotNull);
+
+        final tr = Tr.of(tester.element(find.byType(OcptShotListMode)));
+
+        // `+ Case` no longer reports a tap.
+        final addCaseButton = tester.widget<IconButton>(
+          find.descendant(
+            of: find.byTooltip(tr.shotListFloorPlanAddCaseAction),
+            matching: find.byType(IconButton),
+          ),
+        );
+        expect(addCaseButton.onPressed, isNull);
+
+        // The `setElement` tool is withheld too (a null `onPressed`), so it can never be picked
+        // to place anything in the first place.
+        final setElementButton = tester.widget<IconButton>(
+          find.descendant(
+            of: find.byTooltip(tr.shotListFloorPlanToolSetElementAction),
+            matching: find.byType(IconButton),
+          ),
+        );
+        expect(setElementButton.onPressed, isNull);
+
+        // The canvas's own write callback is withheld directly, whichever tool ends up active —
+        // the null closes the whole placing gesture at its source, exactly like the board's own
+        // null callbacks.
+        final canvas = tester.widget<OcptFloorPlanCanvas>(find.byType(OcptFloorPlanCanvas));
+        expect(canvas.onSymbolPlaced, isNull);
+        expect(canvas.onSymbolMoved, isNull);
+        expect(canvas.onSymbolDeleteRequested, isNull);
+
+        // Leave the preview so the working copy is what the next test opens onto.
+        await projectsManager.exitPreview();
+      },
+    );
   });
 }

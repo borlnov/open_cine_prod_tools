@@ -278,6 +278,66 @@ Action.
       )..where((row) => row.id.equals(assetId))).getSingle();
       expect(asset.isDeleted, isTrue);
     });
+
+    test(
+      "updateUnderlayFrame re-frames the underlay without touching any asset row",
+      () async {
+        final sceneId = await seedScene();
+        final caseId = (await floorPlanService.addCase(database: database, sceneId: sceneId))!;
+        await floorPlanService.setCaseUnderlay(
+          database: database,
+          caseId: caseId,
+          path: "/tmp/plan.jpg",
+          xM: 0,
+          yM: 0,
+          widthM: 4,
+          heightM: 3,
+        );
+        final imported = (await readCases()).single;
+        final assetId = imported.underlayAssetId!;
+        final assetsBefore = await database.select(database.ocptAssetsTable).get();
+
+        await floorPlanService.updateUnderlayFrame(
+          database: database,
+          caseId: caseId,
+          xM: const Value(2),
+          yM: const Value(-1),
+          widthM: const Value(6),
+          heightM: const Value(5),
+        );
+
+        final reframed = (await readCases()).single;
+        expect(reframed.underlayAssetId, assetId);
+        expect(reframed.underlayXM, 2);
+        expect(reframed.underlayYM, -1);
+        expect(reframed.underlayWidthM, 6);
+        expect(reframed.underlayHeightM, 5);
+
+        // No `assets` row was minted or tombstoned by this write: the very defect this method
+        // exists to avoid (dragging the underlay must never churn the `assets` table).
+        final assetsAfter = await database.select(database.ocptAssetsTable).get();
+        expect(assetsAfter, hasLength(assetsBefore.length));
+        expect(assetsAfter.single.id, assetsBefore.single.id);
+        expect(assetsAfter.single.isDeleted, isFalse);
+      },
+    );
+
+    test("updateUnderlayFrame is a no-op while the case carries no underlay", () async {
+      final sceneId = await seedScene();
+      final caseId = (await floorPlanService.addCase(database: database, sceneId: sceneId))!;
+
+      await floorPlanService.updateUnderlayFrame(
+        database: database,
+        caseId: caseId,
+        xM: const Value(2),
+        yM: const Value(2),
+      );
+
+      final row = (await readCases()).single;
+      expect(row.underlayAssetId, isNull);
+      expect(row.underlayXM, isNull);
+      expect(await database.select(database.ocptAssetsTable).get(), isEmpty);
+    });
   });
 
   group("placeSymbol — the scope invariant", () {

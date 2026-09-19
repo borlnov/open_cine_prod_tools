@@ -5,6 +5,9 @@
 import 'package:act_flutter_utility/act_flutter_utility.dart';
 import 'package:equatable/equatable.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_coverage_service.dart';
+import 'package:open_cine_prod_tools/models/ocpt_floor_plan_case.dart';
+import 'package:open_cine_prod_tools/models/ocpt_floor_plan_snapshot.dart';
+import 'package:open_cine_prod_tools/models/ocpt_floor_plan_symbol.dart';
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_package_notice.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_package_report.dart';
@@ -21,6 +24,8 @@ import 'package:open_cine_prod_tools/models/ocpt_shot_list_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
 import 'package:open_cine_prod_tools/models/ocpt_storyboard_panel.dart';
 import 'package:open_cine_prod_tools/models/ocpt_storyboard_snapshot.dart';
+import 'package:open_cine_prod_tools/types/ocpt_floor_plan_layer.dart';
+import 'package:open_cine_prod_tools/types/ocpt_floor_plan_tool.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_version_notice_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_centre_view.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_column.dart';
@@ -165,6 +170,63 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
   /// Cleared alongside [activeAnnotationTool] — see its own doc comment — and whenever the mark
   /// itself is deleted.
   final String? selectedAnnotationId;
+
+  /// The whole floor plans of the selected episode's screenplay, as last read by
+  /// `OcptFloorPlanService.loadFloorPlans`, or null while nothing has been loaded yet. Reloaded
+  /// after every write a floor plans affordance makes (a case's own CRUD, placing/moving/resizing a
+  /// symbol, the underlay's own CRUD).
+  final OcptFloorPlanSnapshot? floorPlanSnapshot;
+
+  /// The id of the case currently shown on the floor plans view, or null while none is (no case
+  /// exists yet for the selected sequence, or the selected sequence is the orphan group, which has
+  /// no scene to hold one).
+  ///
+  /// Cleared whenever [selectedSequenceId] changes: a case only ever belongs to the sequence
+  /// currently shown.
+  final String? selectedCaseId;
+
+  /// The id of the symbol currently selected on the floor plans canvas, or null while none is.
+  ///
+  /// Cleared whenever [selectedCaseId] or [selectedSequenceId] changes: a symbol only ever belongs
+  /// to the case currently shown.
+  final String? selectedFloorPlanSymbolId;
+
+  /// The floor plans canvas's own current zoom (1.0 = neutral/100%), last **settled** by
+  /// `OcptFloorPlanViewportController` — see that class's own doc comment for why only the settled
+  /// value, not every per-frame one, ever reaches this state.
+  ///
+  /// A **view preference** held here for the session alone, never persisted to the project or to
+  /// `OcptPropertiesManager` (`docs/adr/0031-storyboard-panels-and-floor-plans-in-metres.md`: zoom
+  /// is a view concern, kept out of the synchronised model). It exists in this state at all only so
+  /// a fresh `OcptFloorPlanView` (built again after switching centre views, or after leaving and
+  /// reopening the mode) resumes at the zoom the user last settled on rather than always resetting
+  /// to 100%.
+  final double floorPlanZoom;
+
+  /// The floor plans canvas's own currently active tool, picked from the tool bar.
+  ///
+  /// A **view/session state** value, like [floorPlanZoom]: never written to the project.
+  final OcptFloorPlanTool floorPlanActiveTool;
+
+  /// The sequence layer a placed set element lands on, picked from the tray's own sequence layers
+  /// group. Always one of the three sequence-scoped layers
+  /// (`OcptFloorPlanLayerScope.isSequenceScoped`): the tray only ever offers those three rows in
+  /// this milestone (the shot layers group is M6).
+  ///
+  /// A **view/session state** value, like [floorPlanZoom]: never written to the project.
+  final OcptFloorPlanLayer floorPlanActiveLayer;
+
+  /// The sequence layers currently hidden on the floor plans canvas, out of the tray's own three
+  /// rows. Empty means every sequence layer is shown — the tray's own default.
+  ///
+  /// A **view/session state** value, like [floorPlanZoom]: never written to the project.
+  final Set<OcptFloorPlanLayer> floorPlanHiddenLayers;
+
+  /// Whether the selected case's underlay is currently hidden on the floor plans canvas, toggled
+  /// by the tray's own underlay row.
+  ///
+  /// A **view/session state** value, like [floorPlanZoom]: never written to the project.
+  final bool isFloorPlanUnderlayHidden;
 
   /// Whether the left (sequences) dock is shown.
   final bool isSequencePanelVisible;
@@ -335,6 +397,49 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
     return null;
   }
 
+  /// The selected sequence's own floor plan cases, in tab order, or an empty list while
+  /// [floorPlanSnapshot] hasn't loaded yet, no sequence is selected, or the selected sequence is
+  /// the orphan group (which has no scene, so it can never hold a case).
+  List<OcptFloorPlanCase> get casesOfSelectedSequence {
+    final sequence = selectedSequence;
+    if (floorPlanSnapshot == null || sequence is! OcptSceneShotSequence) {
+      return const [];
+    }
+    return floorPlanSnapshot!.casesOfScene(sequence.sceneId);
+  }
+
+  /// The case [selectedCaseId] identifies, or null if none is selected (or the selected one
+  /// disappeared from a freshly loaded [floorPlanSnapshot]).
+  OcptFloorPlanCase? get selectedCase {
+    final selectedCaseId = this.selectedCaseId;
+    if (selectedCaseId == null) {
+      return null;
+    }
+    for (final floorPlanCase in casesOfSelectedSequence) {
+      if (floorPlanCase.id == selectedCaseId) {
+        return floorPlanCase;
+      }
+    }
+    return null;
+  }
+
+  /// The symbol [selectedFloorPlanSymbolId] identifies among [selectedCase]'s own symbols, or null
+  /// if none is selected (or the selected one disappeared from a freshly loaded
+  /// [floorPlanSnapshot]).
+  OcptFloorPlanSymbol? get selectedFloorPlanSymbol {
+    final selectedFloorPlanSymbolId = this.selectedFloorPlanSymbolId;
+    final selectedCase = this.selectedCase;
+    if (selectedFloorPlanSymbolId == null || selectedCase == null) {
+      return null;
+    }
+    for (final symbol in selectedCase.symbols) {
+      if (symbol.id == selectedFloorPlanSymbolId) {
+        return symbol;
+      }
+    }
+    return null;
+  }
+
   /// The total number of live panels across every shot of the selected sequence — the board
   /// header's own `· N panels` read-out.
   int get boardPanelCountOfSelectedSequence {
@@ -468,6 +573,14 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
     required this.boardPanelSize,
     required this.activeAnnotationTool,
     required this.selectedAnnotationId,
+    required this.floorPlanSnapshot,
+    required this.selectedCaseId,
+    required this.selectedFloorPlanSymbolId,
+    required this.floorPlanZoom,
+    required this.floorPlanActiveTool,
+    required this.floorPlanActiveLayer,
+    required this.floorPlanHiddenLayers,
+    required this.isFloorPlanUnderlayHidden,
     required this.isSequencePanelVisible,
     required this.rightDockTab,
     required this.lastRightDockTab,
@@ -507,6 +620,14 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
       boardPanelSize = OcptStoryboardPanelSize.medium,
       activeAnnotationTool = null,
       selectedAnnotationId = null,
+      floorPlanSnapshot = null,
+      selectedCaseId = null,
+      selectedFloorPlanSymbolId = null,
+      floorPlanZoom = 1,
+      floorPlanActiveTool = OcptFloorPlanTool.select,
+      floorPlanActiveLayer = OcptFloorPlanLayer.furniture,
+      floorPlanHiddenLayers = const {},
+      isFloorPlanUnderlayHidden = false,
       isSequencePanelVisible = true,
       rightDockTab = null,
       lastRightDockTab = OcptShotListRightDockTab.inspector,
@@ -557,6 +678,16 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
     bool clearActiveAnnotationTool = false,
     String? selectedAnnotationId,
     bool clearSelectedAnnotationId = false,
+    OcptFloorPlanSnapshot? floorPlanSnapshot,
+    String? selectedCaseId,
+    bool clearSelectedCaseId = false,
+    String? selectedFloorPlanSymbolId,
+    bool clearSelectedFloorPlanSymbolId = false,
+    double? floorPlanZoom,
+    OcptFloorPlanTool? floorPlanActiveTool,
+    OcptFloorPlanLayer? floorPlanActiveLayer,
+    Set<OcptFloorPlanLayer>? floorPlanHiddenLayers,
+    bool? isFloorPlanUnderlayHidden,
     bool? isSequencePanelVisible,
     OcptShotListRightDockTab? rightDockTab,
     bool clearRightDockTab = false,
@@ -610,6 +741,16 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
     selectedAnnotationId: clearSelectedAnnotationId
         ? null
         : (selectedAnnotationId ?? this.selectedAnnotationId),
+    floorPlanSnapshot: floorPlanSnapshot ?? this.floorPlanSnapshot,
+    selectedCaseId: clearSelectedCaseId ? null : (selectedCaseId ?? this.selectedCaseId),
+    selectedFloorPlanSymbolId: clearSelectedFloorPlanSymbolId
+        ? null
+        : (selectedFloorPlanSymbolId ?? this.selectedFloorPlanSymbolId),
+    floorPlanZoom: floorPlanZoom ?? this.floorPlanZoom,
+    floorPlanActiveTool: floorPlanActiveTool ?? this.floorPlanActiveTool,
+    floorPlanActiveLayer: floorPlanActiveLayer ?? this.floorPlanActiveLayer,
+    floorPlanHiddenLayers: floorPlanHiddenLayers ?? this.floorPlanHiddenLayers,
+    isFloorPlanUnderlayHidden: isFloorPlanUnderlayHidden ?? this.isFloorPlanUnderlayHidden,
     isSequencePanelVisible: isSequencePanelVisible ?? this.isSequencePanelVisible,
     rightDockTab: clearRightDockTab ? null : (rightDockTab ?? this.rightDockTab),
     lastRightDockTab: lastRightDockTab ?? this.lastRightDockTab,
@@ -713,6 +854,14 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
     boardPanelSize,
     activeAnnotationTool,
     selectedAnnotationId,
+    floorPlanSnapshot,
+    selectedCaseId,
+    selectedFloorPlanSymbolId,
+    floorPlanZoom,
+    floorPlanActiveTool,
+    floorPlanActiveLayer,
+    floorPlanHiddenLayers,
+    isFloorPlanUnderlayHidden,
     isSequencePanelVisible,
     rightDockTab,
     lastRightDockTab,

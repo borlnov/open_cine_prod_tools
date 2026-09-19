@@ -2949,6 +2949,220 @@
     "type": "text",
     "placeholders": {}
   },
+  "shotListFloorPlanSegmentLabel": "Floor plans",
+  "@shotListFloorPlanSegmentLabel": {
+    "description": "Label of the centre header's own switch segment that shows the floor plans view",
+    "context": "Displayed in the shot list mode's centre header",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanNoCaseHint": "Create a case to start placing your décor.",
+  "@shotListFloorPlanNoCaseHint": {
+    "description": "Shown on the canvas while the selected sequence has no floor plan case yet",
+    "context": "Displayed on the floor plans view's own canvas",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanAddCaseAction": "Add case",
+  "@shotListFloorPlanAddCaseAction": {
+    "description": "Tooltip of the case tabs' own trailing add action",
+    "context": "Displayed in the shot list mode's centre header",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanDeleteCaseConfirmTitle": "Delete this case?",
+  "@shotListFloorPlanDeleteCaseConfirmTitle": {
+    "description": "Title of the confirmation dialog deleting a floor plan case",
+    "context": "Displayed in the confirm dialog opened from a case tab's own close action",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanDeleteCaseConfirmMessage": "Its underlay, its set elements and everything placed on it are removed for good.",
+  "@shotListFloorPlanDeleteCaseConfirmMessage": {
+    "description": "Message of the confirmation dialog deleting a floor plan case",
+    "context": "Displayed in the confirm dialog opened from a case tab's own close action",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanToolSelectAction": "Select",
+  "@shotListFloorPlanToolSelectAction": {
+    "description": "Tooltip of the floor plans tool bar's own select tool",
+    "context": "Displayed on the floor plans view's own tool bar",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanToolSetElementAction": "Set element",
+  "@shotListFloorPlanToolSetElementAction": {
+    "description": "Tooltip of the floor plans tool bar's own set element tool",
+    "context": "Displayed on the floor plans view's own tool bar",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanImportUnderlayAction": "Import underlay",
+  "@shotListFloorPlanImportUnderlayAction": {
+    "description": "Label of the tool bar's own underlay action while the case carries none yet",
+    "context": "Displayed on the floor plans view's own tool bar",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanReplaceUnderlayAction": "Replace underlay",
+  "@shotListFloorPlanReplaceUnderlayAction": {
+    "description": "Label of the tool bar's own underlay action while the case already carries one",
+    "context": "Displayed on the floor plans view's own tool bar",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanUnderlayFileTypeLabel": "Images",
+  "@shotListFloorPlanUnderlayFileTypeLabel": {
+    "description": "Label of the native picker's own file type filter when importing a case's underlay",
+    "context": "Displayed in the native file picker dialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanClearUnderlayAction": "Clear underlay",
+  "@shotListFloorPlanClearUnderlayAction": {
+    "description": "Tooltip of the tray's own underlay row action clearing its image",
+    "context": "Displayed on the floor plans view's own tray",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanClearUnderlayConfirmTitle": "Clear this underlay?",
+  "@shotListFloorPlanClearUnderlayConfirmTitle": {
+    "description": "Title of the confirmation dialog clearing a case's underlay",
+    "context": "Displayed in the confirm dialog opened from the tray's own underlay row",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanClearUnderlayConfirmMessage": "The image and its frame are removed for good.",
+  "@shotListFloorPlanClearUnderlayConfirmMessage": {
+    "description": "Message of the confirmation dialog clearing a case's underlay",
+    "context": "Displayed in the confirm dialog opened from the tray's own underlay row",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanZoomInAction": "Zoom in",
+  "@shotListFloorPlanZoomInAction": {
+    "description": "Tooltip of the tool bar's own zoom in button",
+    "context": "Displayed on the floor plans view's own tool bar",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanZoomOutAction": "Zoom out",
+  "@shotListFloorPlanZoomOutAction": {
+    "description": "Tooltip of the tool bar's own zoom out button",
+    "context": "Displayed on the floor plans view's own tool bar",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanZoomResetAction": "Reset zoom",
+  "@shotListFloorPlanZoomResetAction": {
+    "description": "Tooltip of the tool bar's own reset-to-100% zoom button",
+    "context": "Displayed on the floor plans view's own tool bar",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanSequenceLayersGroupTitle": "Sequence layers",
+  "@shotListFloorPlanSequenceLayersGroupTitle": {
+    "description": "Title of the tray's own sequence layers group",
+    "context": "Displayed on the floor plans view's own tray",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanLayerDecorLabel": "Decor",
+  "@shotListFloorPlanLayerDecorLabel": {
+    "description": "Label of the tray's own decor layer row",
+    "context": "Displayed on the floor plans view's own tray",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanLayerFurnitureLabel": "Furniture",
+  "@shotListFloorPlanLayerFurnitureLabel": {
+    "description": "Label of the tray's own furniture layer row",
+    "context": "Displayed on the floor plans view's own tray",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanLayerFixedPropsLabel": "Fixed props",
+  "@shotListFloorPlanLayerFixedPropsLabel": {
+    "description": "Label of the tray's own fixed props layer row",
+    "context": "Displayed on the floor plans view's own tray",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanUnderlayRowLabel": "Underlay",
+  "@shotListFloorPlanUnderlayRowLabel": {
+    "description": "Label of the tray's own underlay row",
+    "context": "Displayed on the floor plans view's own tray",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanShowLayerAction": "Show",
+  "@shotListFloorPlanShowLayerAction": {
+    "description": "Tooltip of a hidden tray row's own eye, showing it again",
+    "context": "Displayed on the floor plans view's own tray",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanHideLayerAction": "Hide",
+  "@shotListFloorPlanHideLayerAction": {
+    "description": "Tooltip of a visible tray row's own eye, hiding it",
+    "context": "Displayed on the floor plans view's own tray",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanFocusSequenceChipLabel": "Sequence",
+  "@shotListFloorPlanFocusSequenceChipLabel": {
+    "description": "Label of the focus strip's own Sequence chip",
+    "context": "Displayed on the floor plans view's own focus strip",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanScaleBarLengthLabel": "{length} m",
+  "@shotListFloorPlanScaleBarLengthLabel": {
+    "description": "The scale bar's own rounded length, already formatted by ocptFloorPlanScaleBarLengthLabelOf, always drawn bottom-right of the canvas",
+    "context": "Displayed on the floor plans view's own canvas",
+    "type": "text",
+    "placeholders": {
+      "length": {
+        "type": "String"
+      }
+    }
+  },
+  "shotListFloorPlanDeleteSymbolAction": "Delete",
+  "@shotListFloorPlanDeleteSymbolAction": {
+    "description": "Tooltip of the selected symbol's own small delete handle",
+    "context": "Displayed on the floor plans view's own canvas",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanDeleteSymbolConfirmTitle": "Delete this set element?",
+  "@shotListFloorPlanDeleteSymbolConfirmTitle": {
+    "description": "Title of the confirmation dialog deleting a floor plan symbol",
+    "context": "Displayed in the confirm dialog opened from the canvas's own delete handle",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanDeleteSymbolConfirmMessage": "It is removed for good.",
+  "@shotListFloorPlanDeleteSymbolConfirmMessage": {
+    "description": "Message of the confirmation dialog deleting a floor plan symbol",
+    "context": "Displayed in the confirm dialog opened from the canvas's own delete handle",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanStatusHint": "{caseName} · {count, plural, one{1 set element} other{{count} set elements}}",
+  "@shotListFloorPlanStatusHint": {
+    "description": "The status bar's own trailing hint while the floor plans view is shown and a case is selected",
+    "context": "Displayed in the shot list mode's status bar",
+    "type": "text",
+    "placeholders": {
+      "caseName": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "projectVersionsPanelTitle": "Project versions",
   "@projectVersionsPanelTitle": {
     "description": "Header of the project versions panel",

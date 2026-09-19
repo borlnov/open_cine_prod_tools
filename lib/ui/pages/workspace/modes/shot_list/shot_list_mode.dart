@@ -26,6 +26,8 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_project_versi
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_event.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_state.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_floor_plan_case_tabs.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_floor_plan_view.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_scenario_coverage_export_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_shot_coverage_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_shot_inspector_panel.dart';
@@ -528,12 +530,13 @@ class _ShotListViewState extends State<_ShotListView> {
   }
 
   /// Builds what the centre shows under the banners: the header (the view switch, the sequence's
-  /// own title/summary and whatever the active view needs), then the table or the board, or the
-  /// empty state while no sequence is selected.
+  /// own title/summary and whatever the active view needs), then the table, the board or the
+  /// floor plans, or the empty state while no sequence is selected.
   ///
-  /// A compact width shows the table regardless of `state.centreView`: the board is a large-screen
-  /// view in v1 (`docs/plans/storyboard.md`, §4.3), so the switch itself offers the table only and
-  /// this stays in lock-step with it rather than reading a second predicate.
+  /// A compact width shows the table regardless of `state.centreView`: the board and the floor
+  /// plans are large-screen views in v1 (`docs/plans/storyboard.md`, §4.3), so the switch itself
+  /// offers the table only and this stays in lock-step with it rather than reading a second
+  /// predicate.
   Widget _buildSequenceBody(BuildContext context, OcptShotListState state, bool isCompact) {
     final tr = Tr.of(context);
     final sequence = state.selectedSequence;
@@ -546,6 +549,7 @@ class _ShotListViewState extends State<_ShotListView> {
     }
 
     final isBoardShown = !isCompact && state.centreView == OcptShotListCentreView.board;
+    final isFloorPlansShown = !isCompact && state.centreView == OcptShotListCentreView.floorPlans;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -556,38 +560,43 @@ class _ShotListViewState extends State<_ShotListView> {
             sequence: sequence,
             centreView: state.centreView,
             isBoardAvailable: !isCompact,
+            isFloorPlansAvailable: !isCompact,
             boardPanelCount: state.boardPanelCountOfSelectedSequence,
             onCentreViewSelected: (view) => context.read<OcptShotListBloc>().add(
               OcptShotListCentreViewSelectedEvent(view: view),
             ),
-            trailing: isBoardShown
-                ? OcptStoryboardPanelSizeMenu(
-                    value: state.boardPanelSize,
-                    onChanged: (size) => context.read<OcptShotListBloc>().add(
-                      OcptShotListPanelSizeChangedEvent(size: size),
-                    ),
-                  )
-                : _buildTableTrailingControls(context, state),
+            trailing: switch ((isBoardShown, isFloorPlansShown)) {
+              (true, _) => OcptStoryboardPanelSizeMenu(
+                value: state.boardPanelSize,
+                onChanged: (size) => context.read<OcptShotListBloc>().add(
+                  OcptShotListPanelSizeChangedEvent(size: size),
+                ),
+              ),
+              (_, true) => _buildCaseTabs(context, state, sequence),
+              _ => _buildTableTrailingControls(context, state),
+            },
           ),
         ),
         Expanded(
           child: Padding(
             padding: const EdgeInsets.fromLTRB(24, 14, 24, 20),
-            child: isBoardShown
-                ? _buildBoard(context, state, sequence)
-                : OcptShotListTable(
-                    shots: sequence.shots,
-                    sequenceHeading: switch (sequence) {
-                      OcptSceneShotSequence() => sequence.heading,
-                      OcptOrphanShotSequence() => ocptShotListEmptyValue,
-                    },
-                    visibleColumns: state.visibleColumns,
-                    selectedShotId: state.selectedShotId,
-                    placementsByShotId: state.snapshot?.placementsByShotId ?? const {},
-                    onShotSelected: (shotId) => context.read<OcptShotListBloc>().add(
-                      OcptShotListShotSelectedEvent(shotId: shotId),
-                    ),
-                  ),
+            child: switch ((isBoardShown, isFloorPlansShown)) {
+              (true, _) => _buildBoard(context, state, sequence),
+              (_, true) => _buildFloorPlanView(context, state, sequence),
+              _ => OcptShotListTable(
+                shots: sequence.shots,
+                sequenceHeading: switch (sequence) {
+                  OcptSceneShotSequence() => sequence.heading,
+                  OcptOrphanShotSequence() => ocptShotListEmptyValue,
+                },
+                visibleColumns: state.visibleColumns,
+                selectedShotId: state.selectedShotId,
+                placementsByShotId: state.snapshot?.placementsByShotId ?? const {},
+                onShotSelected: (shotId) => context.read<OcptShotListBloc>().add(
+                  OcptShotListShotSelectedEvent(shotId: shotId),
+                ),
+              ),
+            },
           ),
         ),
       ],
@@ -690,6 +699,222 @@ class _ShotListViewState extends State<_ShotListView> {
       onAnnotationSelected: (annotationId) =>
           bloc.add(OcptShotListAnnotationSelectedEvent(annotationId: annotationId)),
     );
+  }
+
+  /// Builds the floor plans view's own case tabs, the header's trailing slot while it is shown:
+  /// `+ Case` is wired only when the selected sequence is a real screenplay scene (mirroring
+  /// `_buildSequencePanel`'s own `onShotCreated` gating), and every write is withheld under a
+  /// version preview.
+  Widget _buildCaseTabs(BuildContext context, OcptShotListState state, OcptShotSequence sequence) {
+    final bloc = context.read<OcptShotListBloc>();
+    final isReadOnly = state.isPreviewingVersion;
+    final canCreateCase = sequence is OcptSceneShotSequence && !isReadOnly;
+
+    return OcptFloorPlanCaseTabs(
+      cases: state.casesOfSelectedSequence,
+      selectedCaseId: state.selectedCaseId,
+      nameValueOf: (caseId) => _caseNameValueOf(state, caseId),
+      onCaseSelected: (caseId) => bloc.add(OcptShotListCaseSelectedEvent(caseId: caseId)),
+      onCaseCreationRequested: canCreateCase
+          ? () => bloc.add(const OcptShotListCaseCreationRequestedEvent())
+          : null,
+      onCaseNameChanged: isReadOnly
+          ? null
+          : (caseId, rawValue) =>
+                bloc.add(OcptShotListCaseNameChangedEvent(caseId: caseId, rawValue: rawValue)),
+      onCaseReordered: isReadOnly
+          ? null
+          : (caseId, newPosition) => bloc.add(
+              OcptShotListCaseReorderedEvent(caseId: caseId, newPosition: newPosition),
+            ),
+      onCaseDeleteRequested: isReadOnly
+          ? null
+          : (caseId) => unawaited(_handleCaseDeleteRequested(context, state, caseId)),
+    );
+  }
+
+  /// [caseId]'s current name: a pending edit still in the bloc's debounce, or the case's own
+  /// stored value — the case tabs' equivalent of [_fieldValueOf]/[_panelCommentValueOf].
+  String _caseNameValueOf(OcptShotListState state, String caseId) {
+    final pending = state.pendingFieldEdits[OcptShotListCaseNameEditKey(caseId: caseId)];
+    if (pending != null) {
+      return pending;
+    }
+    for (final floorPlanCase in state.casesOfSelectedSequence) {
+      if (floorPlanCase.id == caseId) {
+        return floorPlanCase.name;
+      }
+    }
+    return "";
+  }
+
+  /// Shows the delete confirmation dialog, then dispatches the case's deletion if the user
+  /// confirmed it — a tab's own close action, which only asks.
+  Future<void> _handleCaseDeleteRequested(
+    BuildContext context,
+    OcptShotListState state,
+    String caseId,
+  ) async {
+    final bloc = context.read<OcptShotListBloc>();
+    final tr = Tr.of(context);
+    final confirmed = await OcptConfirmDialog.show(
+      context,
+      title: tr.shotListFloorPlanDeleteCaseConfirmTitle,
+      message: tr.shotListFloorPlanDeleteCaseConfirmMessage,
+      cancelLabel: tr.shotListDeleteConfirmCancelAction,
+      confirmLabel: tr.shotListDeleteConfirmDeleteAction,
+    );
+    if (confirmed != true) {
+      return;
+    }
+    if (!context.mounted) {
+      return;
+    }
+
+    bloc.add(OcptShotListCaseDeletionRequestedEvent(caseId: caseId));
+  }
+
+  /// Builds the floor plans view: the tray, the tool bar, the canvas and the focus strip, every
+  /// write withheld (a null callback) under a version preview, reads (zoom, pan, layer visibility,
+  /// symbol selection) staying available throughout.
+  Widget _buildFloorPlanView(
+    BuildContext context,
+    OcptShotListState state,
+    OcptShotSequence sequence,
+  ) {
+    final bloc = context.read<OcptShotListBloc>();
+    final tr = Tr.of(context);
+    final isReadOnly = state.isPreviewingVersion;
+    final selectedCase = state.selectedCase;
+    final selectedCaseId = state.selectedCaseId;
+
+    final shotRankByShotId = <String, int>{
+      for (var i = 0; i < sequence.shots.length; i++) sequence.shots[i].id: i + 1,
+    };
+
+    return OcptFloorPlanView(
+      floorPlanCase: selectedCase,
+      shotRankByShotId: shotRankByShotId,
+      initialZoom: state.floorPlanZoom,
+      hiddenLayers: state.floorPlanHiddenLayers,
+      isUnderlayHidden: state.isFloorPlanUnderlayHidden,
+      selectedSymbolId: state.selectedFloorPlanSymbolId,
+      activeTool: state.floorPlanActiveTool,
+      activeLayer: state.floorPlanActiveLayer,
+      isReadOnly: isReadOnly,
+      onToolSelected: (tool) => bloc.add(OcptShotListFloorPlanToolSelectedEvent(tool: tool)),
+      onLayerVisibilityToggled: (layer) =>
+          bloc.add(OcptShotListFloorPlanLayerVisibilityToggledEvent(layer: layer)),
+      onActiveLayerChanged: (layer) =>
+          bloc.add(OcptShotListFloorPlanActiveLayerChangedEvent(layer: layer)),
+      onUnderlayVisibilityToggled: () =>
+          bloc.add(const OcptShotListFloorPlanUnderlayVisibilityToggledEvent()),
+      onUnderlayImportRequested: isReadOnly || selectedCaseId == null
+          ? null
+          : () => bloc.add(
+              OcptShotListFloorPlanUnderlayImportRequestedEvent(
+                caseId: selectedCaseId,
+                fileTypeLabel: tr.shotListFloorPlanUnderlayFileTypeLabel,
+              ),
+            ),
+      onUnderlayClearRequested:
+          isReadOnly || selectedCaseId == null || selectedCase?.underlayAssetId == null
+          ? null
+          : () => unawaited(_handleUnderlayClearRequested(context, selectedCaseId)),
+      onSymbolSelected: (symbolId) =>
+          bloc.add(OcptShotListFloorPlanSymbolSelectedEvent(symbolId: symbolId)),
+      onSymbolPlaced: isReadOnly || selectedCaseId == null
+          ? null
+          : (layer, xM, yM) => bloc.add(
+              OcptShotListFloorPlanSymbolPlacedEvent(
+                caseId: selectedCaseId,
+                layer: layer,
+                xM: xM,
+                yM: yM,
+              ),
+            ),
+      onSymbolMoved: isReadOnly
+          ? null
+          : (symbolId, xM, yM) => bloc.add(
+              OcptShotListFloorPlanSymbolMovedEvent(symbolId: symbolId, xM: xM, yM: yM),
+            ),
+      onSymbolResized: isReadOnly
+          ? null
+          : (symbolId, widthM, heightM) => bloc.add(
+              OcptShotListFloorPlanSymbolResizedEvent(
+                symbolId: symbolId,
+                widthM: widthM,
+                heightM: heightM,
+              ),
+            ),
+      onSymbolRotated: isReadOnly
+          ? null
+          : (symbolId, rotationDeg) => bloc.add(
+              OcptShotListFloorPlanSymbolRotatedEvent(
+                symbolId: symbolId,
+                rotationDeg: rotationDeg,
+              ),
+            ),
+      onSymbolDeleteRequested: isReadOnly
+          ? null
+          : (symbolId) => unawaited(_handleSymbolDeleteRequested(context, symbolId)),
+      onUnderlayTransformChanged: isReadOnly || selectedCaseId == null
+          ? null
+          : (xM, yM, widthM, heightM) => bloc.add(
+              OcptShotListFloorPlanUnderlayTransformChangedEvent(
+                caseId: selectedCaseId,
+                xM: xM,
+                yM: yM,
+                widthM: widthM,
+                heightM: heightM,
+              ),
+            ),
+      onZoomSettled: (zoom) => bloc.add(OcptShotListFloorPlanZoomChangedEvent(zoom: zoom)),
+    );
+  }
+
+  /// Shows the delete confirmation dialog, then dispatches the symbol's deletion if the user
+  /// confirmed it — the canvas's own delete handle, which only asks.
+  Future<void> _handleSymbolDeleteRequested(BuildContext context, String symbolId) async {
+    final bloc = context.read<OcptShotListBloc>();
+    final tr = Tr.of(context);
+    final confirmed = await OcptConfirmDialog.show(
+      context,
+      title: tr.shotListFloorPlanDeleteSymbolConfirmTitle,
+      message: tr.shotListFloorPlanDeleteSymbolConfirmMessage,
+      cancelLabel: tr.shotListDeleteConfirmCancelAction,
+      confirmLabel: tr.shotListDeleteConfirmDeleteAction,
+    );
+    if (confirmed != true) {
+      return;
+    }
+    if (!context.mounted) {
+      return;
+    }
+
+    bloc.add(OcptShotListFloorPlanSymbolDeletionRequestedEvent(symbolId: symbolId));
+  }
+
+  /// Shows the delete confirmation dialog, then dispatches the underlay's clearing if the user
+  /// confirmed it — the tray's own `Clear underlay` action, which only asks.
+  Future<void> _handleUnderlayClearRequested(BuildContext context, String caseId) async {
+    final bloc = context.read<OcptShotListBloc>();
+    final tr = Tr.of(context);
+    final confirmed = await OcptConfirmDialog.show(
+      context,
+      title: tr.shotListFloorPlanClearUnderlayConfirmTitle,
+      message: tr.shotListFloorPlanClearUnderlayConfirmMessage,
+      cancelLabel: tr.shotListDeleteConfirmCancelAction,
+      confirmLabel: tr.shotListDeleteConfirmDeleteAction,
+    );
+    if (confirmed != true) {
+      return;
+    }
+    if (!context.mounted) {
+      return;
+    }
+
+    bloc.add(OcptShotListFloorPlanUnderlayClearRequestedEvent(caseId: caseId));
   }
 
   /// [panelId]'s current comment value: a pending edit still in the bloc's debounce, or the
@@ -823,10 +1048,24 @@ class _ShotListViewState extends State<_ShotListView> {
   }
 
   /// The status bar's own trailing hint for the active centre view: the board's `Panel 2 of 3
-  /// selected · drag to reorder` while it is shown and a panel is selected, or null otherwise (the
-  /// table, and the board with nothing selected, have nothing of their own to add).
+  /// selected · drag to reorder` while it is shown and a panel is selected, the floor plans'
+  /// `Kitchen · 3 set elements` while a case is selected, or null otherwise (the table, and either
+  /// view with nothing of its own selected, have nothing to add).
   String? _statusBarHint(BuildContext context, OcptShotListState state, bool isCompact) {
     final isBoardShown = !isCompact && state.centreView == OcptShotListCentreView.board;
+    final isFloorPlansShown = !isCompact && state.centreView == OcptShotListCentreView.floorPlans;
+
+    if (isFloorPlansShown) {
+      final selectedCase = state.selectedCase;
+      if (selectedCase == null) {
+        return null;
+      }
+      return Tr.of(context).shotListFloorPlanStatusHint(
+        selectedCase.name,
+        selectedCase.symbols.length,
+      );
+    }
+
     if (!isBoardShown) {
       return null;
     }
