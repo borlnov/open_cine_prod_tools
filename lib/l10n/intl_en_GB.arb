@@ -2861,6 +2861,94 @@
       }
     }
   },
+  "shotListBoardAnnotationsGroupTitle": "{count, plural, one{Annotations (1)} other{Annotations ({count})}}",
+  "@shotListBoardAnnotationsGroupTitle": {
+    "description": "Title of the annotation section of the inspector's board-only Panels group",
+    "context": "Displayed in the inspector's Panels group, below the selected panel",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "shotListBoardAnnotationToolMovementArrowLabel": "Movement arrow",
+  "@shotListBoardAnnotationToolMovementArrowLabel": {
+    "description": "Label of the Annotate control's own movement arrow segment",
+    "context": "Displayed in the inspector's Panels group, in the annotation section's tool picker",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListBoardAnnotationToolCameraMoveArrowLabel": "Camera-move arrow",
+  "@shotListBoardAnnotationToolCameraMoveArrowLabel": {
+    "description": "Label of the Annotate control's own camera-move arrow segment",
+    "context": "Displayed in the inspector's Panels group, in the annotation section's tool picker",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListBoardAnnotationToolLabelSegmentLabel": "Label",
+  "@shotListBoardAnnotationToolLabelSegmentLabel": {
+    "description": "Label of the Annotate control's own text label segment",
+    "context": "Displayed in the inspector's Panels group, in the annotation section's tool picker",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListBoardNoAnnotationsHint": "no marks yet",
+  "@shotListBoardNoAnnotationsHint": {
+    "description": "Shown in the annotation section when the selected panel has no mark at all",
+    "context": "Displayed in the inspector's Panels group, in place of the marks list",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListBoardAnnotationTextHint": "Text…",
+  "@shotListBoardAnnotationTextHint": {
+    "description": "Placeholder of a mark's own text field",
+    "context": "Displayed in the inspector's Panels group, in the annotation section's marks list",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListBoardAnnotationKindMovementArrow": "Movement arrow",
+  "@shotListBoardAnnotationKindMovementArrow": {
+    "description": "Kind label of a movement arrow mark, shown in the marks list",
+    "context": "Displayed in the inspector's Panels group, in the annotation section's marks list",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListBoardAnnotationKindCameraMoveArrow": "Camera-move arrow",
+  "@shotListBoardAnnotationKindCameraMoveArrow": {
+    "description": "Kind label of a camera-move arrow mark, shown in the marks list",
+    "context": "Displayed in the inspector's Panels group, in the annotation section's marks list",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListBoardAnnotationKindLabel": "Label",
+  "@shotListBoardAnnotationKindLabel": {
+    "description": "Kind label of a text label mark, shown in the marks list",
+    "context": "Displayed in the inspector's Panels group, in the annotation section's marks list",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListBoardRemoveAnnotationAction": "Remove mark",
+  "@shotListBoardRemoveAnnotationAction": {
+    "description": "Tooltip of a mark row's own remove action",
+    "context": "Displayed in the inspector's Panels group, in the annotation section's marks list",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListBoardDeleteAnnotationConfirmTitle": "Remove this mark?",
+  "@shotListBoardDeleteAnnotationConfirmTitle": {
+    "description": "Title of the confirmation dialog removing a storyboard annotation",
+    "context": "Displayed in the confirm dialog opened from the inspector's Panels group",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListBoardDeleteAnnotationConfirmMessage": "This mark is removed for good.",
+  "@shotListBoardDeleteAnnotationConfirmMessage": {
+    "description": "Message of the confirmation dialog removing a storyboard annotation",
+    "context": "Displayed in the confirm dialog opened from the inspector's Panels group",
+    "type": "text",
+    "placeholders": {}
+  },
   "projectVersionsPanelTitle": "Project versions",
   "@projectVersionsPanelTitle": {
     "description": "Header of the project versions panel",

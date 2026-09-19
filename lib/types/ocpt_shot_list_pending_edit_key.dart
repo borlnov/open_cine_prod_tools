@@ -10,10 +10,11 @@ import 'package:open_cine_prod_tools/types/ocpt_shot_list_editable_field.dart';
 ///
 /// A sealed class rather than the `(String, OcptShotListEditableField)` record the shot list mode
 /// used before the board existed: the debounce is shared by every free-text field the mode owns,
-/// and the board's panel comment ([OcptShotListPanelCommentEditKey]) is not a shot field at all.
-/// M5/M6 (the floor plans view, `docs/plans/storyboard.md`) add `symbolLabel`/`caseName` cases of
-/// their own here — deliberately not added by this milestone, since neither has a write path yet
-/// and a case with nothing to flush into would be a dead branch in every `switch` over this type.
+/// and the board's panel comment ([OcptShotListPanelCommentEditKey]) and a mark's own text
+/// ([OcptShotListAnnotationTextEditKey]) are not shot fields at all. M5/M6 (the floor plans view,
+/// `docs/plans/storyboard.md`) add `symbolLabel`/`caseName` cases of their own here — deliberately
+/// not added by this milestone, since neither has a write path yet and a case with nothing to
+/// flush into would be a dead branch in every `switch` over this type.
 ///
 /// [Equatable]'s structural `==`/`hashCode` (over [props]) is what lets a value of this type key a
 /// `Map` the same way the record it replaces already did.
@@ -50,4 +51,18 @@ class OcptShotListPanelCommentEditKey extends OcptShotListPendingEditKey {
   /// Object properties
   @override
   List<Object?> get props => [panelId];
+}
+
+/// A pending edit of mark [annotationId]'s own text — a label's text, or an arrow's optional
+/// caption — typed into the board's inspector Panels group's own annotation section.
+class OcptShotListAnnotationTextEditKey extends OcptShotListPendingEditKey {
+  /// The id of the mark whose text is being edited.
+  final String annotationId;
+
+  /// Class constructor
+  const OcptShotListAnnotationTextEditKey({required this.annotationId});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [annotationId];
 }

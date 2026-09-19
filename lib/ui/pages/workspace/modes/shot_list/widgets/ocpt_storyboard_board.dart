@@ -8,6 +8,8 @@ import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_storyboard_panel.dart';
+import 'package:open_cine_prod_tools/types/ocpt_storyboard_annotation_kind.dart';
+import 'package:open_cine_prod_tools/types/ocpt_storyboard_annotation_tool.dart';
 import 'package:open_cine_prod_tools/types/ocpt_storyboard_panel_size.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_storyboard_panel_strip.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_storyboard_shot_leader_card.dart';
@@ -59,6 +61,33 @@ class OcptStoryboardBoard extends StatelessWidget {
   /// dragged to reorder, or null while withheld.
   final void Function(String shotId, String panelId, int newPosition)? onPanelReordered;
 
+  /// The annotation tool currently on for the selected panel, or null while none is (or the mode
+  /// is read-only). Only ever forwarded to the selected shot's own row — see
+  /// `OcptStoryboardShotRow`'s own doc comment.
+  final OcptStoryboardAnnotationTool? activeAnnotationTool;
+
+  /// The id of the currently selected mark, or null while none is.
+  final String? selectedAnnotationId;
+
+  /// Called with a panel's id, the new mark's kind and its normalised tail/head once a drag draws
+  /// an arrow, or null while withheld.
+  final void Function(
+    String panelId,
+    OcptStoryboardAnnotationKind kind,
+    double x1,
+    double y1,
+    double x2,
+    double y2,
+  )?
+  onAnnotationDrawn;
+
+  /// Called with a panel's id and a normalised point once a click places a label there, or null
+  /// while withheld.
+  final void Function(String panelId, double x, double y)? onLabelPlaced;
+
+  /// Called with a mark's id when it is clicked, selecting it. Never withheld.
+  final ValueChanged<String>? onAnnotationSelected;
+
   /// Class constructor
   const OcptStoryboardBoard({
     super.key,
@@ -74,6 +103,11 @@ class OcptStoryboardBoard extends StatelessWidget {
     required this.onImportRequested,
     required this.onReplaceRequested,
     required this.onPanelReordered,
+    required this.activeAnnotationTool,
+    required this.selectedAnnotationId,
+    required this.onAnnotationDrawn,
+    required this.onLabelPlaced,
+    required this.onAnnotationSelected,
   });
 
   @override
@@ -97,13 +131,14 @@ class OcptStoryboardBoard extends StatelessWidget {
       separatorBuilder: (context, index) => const SizedBox(height: 12),
       itemBuilder: (context, index) {
         final shot = shots[index];
+        final isSelectedShot = shot.id == selectedShotId;
         return OcptStoryboardShotRow(
           key: ValueKey(shot.id),
           shot: shot,
           attachedRoles: [for (final role in roles) if (shot.characterRoleIds.contains(role.id)) role],
           panels: panelsByShotId[shot.id] ?? const [],
           panelSize: panelSize,
-          isSelected: shot.id == selectedShotId,
+          isSelected: isSelectedShot,
           selectedPanelId: selectedPanelId,
           isReadOnly: isReadOnly,
           onTap: () => onShotSelected(shot.id),
@@ -113,6 +148,11 @@ class OcptStoryboardBoard extends StatelessWidget {
           onPanelReordered: onPanelReordered == null
               ? null
               : (panelId, newPosition) => onPanelReordered!(shot.id, panelId, newPosition),
+          activeAnnotationTool: isSelectedShot ? activeAnnotationTool : null,
+          selectedAnnotationId: isSelectedShot ? selectedAnnotationId : null,
+          onAnnotationDrawn: onAnnotationDrawn,
+          onLabelPlaced: onLabelPlaced,
+          onAnnotationSelected: onAnnotationSelected,
         );
       },
     );
@@ -161,6 +201,33 @@ class OcptStoryboardShotRow extends StatelessWidget {
   /// reorder, or null while withheld.
   final void Function(String panelId, int newPosition)? onPanelReordered;
 
+  /// The annotation tool currently on for this row's own strip, or null while none is — the board
+  /// has already narrowed this down to the selected shot only, see `OcptStoryboardBoard`'s own
+  /// doc comment.
+  final OcptStoryboardAnnotationTool? activeAnnotationTool;
+
+  /// The id of the currently selected mark, or null while none is.
+  final String? selectedAnnotationId;
+
+  /// Called with a panel's id, the new mark's kind and its normalised tail/head once a drag draws
+  /// an arrow, or null while withheld.
+  final void Function(
+    String panelId,
+    OcptStoryboardAnnotationKind kind,
+    double x1,
+    double y1,
+    double x2,
+    double y2,
+  )?
+  onAnnotationDrawn;
+
+  /// Called with a panel's id and a normalised point once a click places a label there, or null
+  /// while withheld.
+  final void Function(String panelId, double x, double y)? onLabelPlaced;
+
+  /// Called with a mark's id when it is clicked, selecting it. Never withheld.
+  final ValueChanged<String>? onAnnotationSelected;
+
   /// Class constructor
   const OcptStoryboardShotRow({
     super.key,
@@ -176,6 +243,11 @@ class OcptStoryboardShotRow extends StatelessWidget {
     required this.onImportRequested,
     required this.onReplaceRequested,
     required this.onPanelReordered,
+    required this.activeAnnotationTool,
+    required this.selectedAnnotationId,
+    required this.onAnnotationDrawn,
+    required this.onLabelPlaced,
+    required this.onAnnotationSelected,
   });
 
   @override
@@ -216,6 +288,11 @@ class OcptStoryboardShotRow extends StatelessWidget {
               onReplaceRequested: onReplaceRequested,
               onImportRequested: onImportRequested,
               onReordered: onPanelReordered,
+              activeAnnotationTool: activeAnnotationTool,
+              selectedAnnotationId: selectedAnnotationId,
+              onAnnotationDrawn: onAnnotationDrawn,
+              onLabelPlaced: onLabelPlaced,
+              onAnnotationSelected: onAnnotationSelected,
             ),
           ),
         ],

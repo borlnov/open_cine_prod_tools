@@ -43,6 +43,8 @@ import 'package:open_cine_prod_tools/types/ocpt_shot_list_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_pending_edit_key.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_right_dock_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
+import 'package:open_cine_prod_tools/types/ocpt_storyboard_annotation_kind.dart';
+import 'package:open_cine_prod_tools/types/ocpt_storyboard_annotation_tool.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_project_versions_events.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_event.dart';
@@ -2202,5 +2204,289 @@ void main() {
         await bloc.close();
       },
     );
+
+    group("annotations", () {
+      /// Creates a shot, imports one panel onto it (selecting it, per [_onPanelImportRequested]),
+      /// and returns the bloc alongside the shot's and the panel's own ids.
+      Future<({OcptShotListBloc bloc, String shotId, String panelId})>
+      mountWithASelectedPanel() async {
+        await writeScreenplay(twoSceneText);
+        final bloc = buildBloc(
+          fileSelectorManager: const _StubFileSelectorManager(pickedPath: "/frames/a.png"),
+        );
+        await waitForState(bloc, (state) => !state.isLoading);
+        final shotId = await createShot(bloc);
+        bloc.add(
+          OcptShotListPanelImportRequestedEvent(shotId: shotId, fileTypeLabel: "Images"),
+        );
+        final imported = await waitForState(
+          bloc,
+          (state) => state.panelsOfShot(shotId).length == 1,
+        );
+        return (bloc: bloc, shotId: shotId, panelId: imported.panelsOfShot(shotId).single.id);
+      }
+
+      test("picking a tool sets it, and picking null again turns it off", () async {
+        final seeded = await mountWithASelectedPanel();
+        final bloc = seeded.bloc;
+
+        bloc.add(
+          const OcptShotListAnnotationToolSelectedEvent(
+            tool: OcptStoryboardAnnotationTool.movementArrow,
+          ),
+        );
+        final withTool = await waitForState(
+          bloc,
+          (state) => state.activeAnnotationTool == OcptStoryboardAnnotationTool.movementArrow,
+        );
+        expect(withTool.activeAnnotationTool, OcptStoryboardAnnotationTool.movementArrow);
+
+        bloc.add(const OcptShotListAnnotationToolSelectedEvent(tool: null));
+        final withoutTool = await waitForState(
+          bloc,
+          (state) => state.activeAnnotationTool == null,
+        );
+        expect(withoutTool.activeAnnotationTool, isNull);
+
+        await bloc.close();
+      });
+
+      test("drawing an arrow adds a mark of that kind, normalised, and selects it", () async {
+        final seeded = await mountWithASelectedPanel();
+        final bloc = seeded.bloc;
+
+        bloc.add(
+          OcptShotListAnnotationDrawnEvent(
+            panelId: seeded.panelId,
+            kind: OcptStoryboardAnnotationKind.movementArrow,
+            x1: 0.2,
+            y1: 0.3,
+            x2: 0.8,
+            y2: 0.3,
+          ),
+        );
+        final state = await waitForState(
+          bloc,
+          (state) => state.panelsOfShot(seeded.shotId).single.annotations.isNotEmpty,
+        );
+
+        final mark = state.panelsOfShot(seeded.shotId).single.annotations.single;
+        expect(mark.kind, OcptStoryboardAnnotationKind.movementArrow);
+        expect(mark.x1, 0.2);
+        expect(mark.y1, 0.3);
+        expect(mark.x2, 0.8);
+        expect(mark.y2, 0.3);
+        expect(state.selectedAnnotationId, mark.id);
+
+        await bloc.close();
+      });
+
+      test(
+        "placing a label adds it and selects it, and its text writes once after the debounce",
+        () async {
+          final seeded = await mountWithASelectedPanel();
+          final bloc = seeded.bloc;
+
+          bloc.add(
+            OcptShotListAnnotationPlacedEvent(panelId: seeded.panelId, x1: 0.5, y1: 0.4),
+          );
+          final placed = await waitForState(
+            bloc,
+            (state) => state.panelsOfShot(seeded.shotId).single.annotations.isNotEmpty,
+          );
+          final mark = placed.panelsOfShot(seeded.shotId).single.annotations.single;
+          expect(mark.kind, OcptStoryboardAnnotationKind.label);
+          expect(mark.x1, 0.5);
+          expect(mark.y1, 0.4);
+          expect(placed.selectedAnnotationId, mark.id);
+
+          // "Opens its text inline for editing": the mark is already selected once placed, ready
+          // for the inspector's own text field to write into.
+          bloc.add(
+            OcptShotListAnnotationTextChangedEvent(annotationId: mark.id, rawValue: "Dolly in"),
+          );
+          var state = await waitForState(
+            bloc,
+            (state) =>
+                state.pendingFieldEdits[OcptShotListAnnotationTextEditKey(
+                  annotationId: mark.id,
+                )] ==
+                "Dolly in",
+          );
+          expect(state.panelsOfShot(seeded.shotId).single.annotations.single.text, isEmpty);
+
+          state = await waitForState(
+            bloc,
+            (state) =>
+                state.panelsOfShot(seeded.shotId).single.annotations.single.text == "Dolly in",
+          );
+          expect(state.pendingFieldEdits, isEmpty);
+
+          await bloc.close();
+        },
+      );
+
+      test("selecting a mark records its id", () async {
+        final seeded = await mountWithASelectedPanel();
+        final bloc = seeded.bloc;
+
+        bloc.add(
+          OcptShotListAnnotationDrawnEvent(
+            panelId: seeded.panelId,
+            kind: OcptStoryboardAnnotationKind.movementArrow,
+            x1: 0.1,
+            y1: 0.1,
+            x2: 0.3,
+            y2: 0.1,
+          ),
+        );
+        final first = await waitForState(
+          bloc,
+          (state) => state.panelsOfShot(seeded.shotId).single.annotations.length == 1,
+        );
+        final firstMarkId = first.selectedAnnotationId!;
+
+        // Drawing a second mark auto-selects it instead, moving selection away from the first.
+        bloc.add(
+          OcptShotListAnnotationDrawnEvent(
+            panelId: seeded.panelId,
+            kind: OcptStoryboardAnnotationKind.cameraMoveArrow,
+            x1: 0.5,
+            y1: 0.5,
+            x2: 0.7,
+            y2: 0.5,
+          ),
+        );
+        final second = await waitForState(
+          bloc,
+          (state) => state.panelsOfShot(seeded.shotId).single.annotations.length == 2,
+        );
+        expect(second.selectedAnnotationId, isNot(firstMarkId));
+
+        bloc.add(OcptShotListAnnotationSelectedEvent(annotationId: firstMarkId));
+        final state = await waitForState(
+          bloc,
+          (state) => state.selectedAnnotationId == firstMarkId,
+        );
+        expect(state.selectedAnnotationId, firstMarkId);
+
+        await bloc.close();
+      });
+
+      test("deleting a mark removes it and clears its own selection", () async {
+        final seeded = await mountWithASelectedPanel();
+        final bloc = seeded.bloc;
+
+        bloc.add(
+          OcptShotListAnnotationDrawnEvent(
+            panelId: seeded.panelId,
+            kind: OcptStoryboardAnnotationKind.movementArrow,
+            x1: 0.2,
+            y1: 0.2,
+            x2: 0.6,
+            y2: 0.2,
+          ),
+        );
+        final withMark = await waitForState(
+          bloc,
+          (state) => state.panelsOfShot(seeded.shotId).single.annotations.isNotEmpty,
+        );
+        final markId = withMark.selectedAnnotationId!;
+
+        bloc.add(OcptShotListAnnotationDeletionRequestedEvent(annotationId: markId));
+        final state = await waitForState(
+          bloc,
+          (state) => state.panelsOfShot(seeded.shotId).single.annotations.isEmpty,
+        );
+        expect(state.selectedAnnotationId, isNull);
+
+        await bloc.close();
+      });
+
+      test("deleting the panel cascades its marks and drops a pending mark-text edit", () async {
+        final seeded = await mountWithASelectedPanel();
+        final bloc = seeded.bloc;
+
+        bloc.add(
+          OcptShotListAnnotationPlacedEvent(panelId: seeded.panelId, x1: 0.5, y1: 0.5),
+        );
+        final placed = await waitForState(
+          bloc,
+          (state) => state.panelsOfShot(seeded.shotId).single.annotations.isNotEmpty,
+        );
+        final markId = placed.panelsOfShot(seeded.shotId).single.annotations.single.id;
+
+        bloc.add(
+          OcptShotListAnnotationTextChangedEvent(
+            annotationId: markId,
+            rawValue: "Never written",
+          ),
+        );
+        await waitForState(
+          bloc,
+          (state) =>
+              state.pendingFieldEdits[OcptShotListAnnotationTextEditKey(annotationId: markId)] ==
+              "Never written",
+        );
+
+        bloc.add(OcptShotListPanelDeletionRequestedEvent(panelId: seeded.panelId));
+        final state = await waitForState(
+          bloc,
+          (state) => state.panelsOfShot(seeded.shotId).isEmpty,
+        );
+
+        expect(state.pendingFieldEdits, isEmpty);
+
+        await bloc.close();
+      });
+
+      test(
+        "selecting a different panel clears the active tool and the mark selection",
+        () async {
+          final seeded = await mountWithASelectedPanel();
+          final bloc = seeded.bloc;
+
+          bloc.add(
+            OcptShotListAnnotationDrawnEvent(
+              panelId: seeded.panelId,
+              kind: OcptStoryboardAnnotationKind.movementArrow,
+              x1: 0.2,
+              y1: 0.2,
+              x2: 0.6,
+              y2: 0.2,
+            ),
+          );
+          await waitForState(bloc, (state) => state.selectedAnnotationId != null);
+
+          bloc.add(
+            const OcptShotListAnnotationToolSelectedEvent(
+              tool: OcptStoryboardAnnotationTool.label,
+            ),
+          );
+          await waitForState(
+            bloc,
+            (state) => state.activeAnnotationTool == OcptStoryboardAnnotationTool.label,
+          );
+
+          // Importing onto the very same shot appends and selects a second panel.
+          bloc.add(
+            OcptShotListPanelImportRequestedEvent(
+              shotId: seeded.shotId,
+              fileTypeLabel: "Images",
+            ),
+          );
+          final state = await waitForState(
+            bloc,
+            (state) => state.panelsOfShot(seeded.shotId).length == 2,
+          );
+
+          expect(state.selectedPanelId, isNot(seeded.panelId));
+          expect(state.activeAnnotationTool, isNull);
+          expect(state.selectedAnnotationId, isNull);
+
+          await bloc.close();
+        },
+      );
+    });
   });
 }

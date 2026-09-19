@@ -6,6 +6,9 @@ import 'package:flutter/material.dart';
 import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_storyboard_panel.dart';
+import 'package:open_cine_prod_tools/types/ocpt_storyboard_annotation_kind.dart';
+import 'package:open_cine_prod_tools/types/ocpt_storyboard_annotation_tool.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_storyboard_annotation_overlay.dart';
 import 'package:open_cine_prod_tools/ui/widgets/ocpt_referenced_image.dart';
 
 /// The gap left between two panel frames of a strip, and between the last frame and the trailing
@@ -20,6 +23,13 @@ const double _frameGap = 10;
 /// within the strip, built on `ReorderableListView`'s own `onReorderItem` — its `newIndex` is
 /// already adjusted for the moved item's own removal, exactly the 0-based position
 /// `OcptStoryboardService.reorderPanel` (and [onReordered]) expects.
+///
+/// **Annotation gestures suspend this strip's own reorder** while [activeAnnotationTool] is
+/// non-null: dragging out an arrow and dragging a frame to reorder it are the same gesture shape
+/// (a pan), so the two cannot coexist on the strip a tool is active over. [effectiveOnReordered]
+/// is the guard — turning the tool back off (`activeAnnotationTool` null again) restores
+/// [onReordered] exactly as it was, and every other strip on the board (a tool only ever applies
+/// to the selected panel) is never affected in the first place.
 class OcptStoryboardPanelStrip extends StatelessWidget {
   /// The shot's own panels, in order.
   final List<OcptStoryboardPanel> panels;
@@ -52,6 +62,34 @@ class OcptStoryboardPanelStrip extends StatelessWidget {
   /// while withheld.
   final void Function(String panelId, int newPosition)? onReordered;
 
+  /// The annotation tool currently on for this strip's shot, or null while none is (or the mode
+  /// is read-only): forwarded to the strip's currently *selected* panel's own frame only — see the
+  /// class doc comment.
+  final OcptStoryboardAnnotationTool? activeAnnotationTool;
+
+  /// The id of the currently selected mark, or null while none is.
+  final String? selectedAnnotationId;
+
+  /// Called with a panel's id, the new mark's kind and its normalised tail/head once a drag draws
+  /// an arrow on the panel currently carrying [activeAnnotationTool], or null while withheld.
+  final void Function(
+    String panelId,
+    OcptStoryboardAnnotationKind kind,
+    double x1,
+    double y1,
+    double x2,
+    double y2,
+  )?
+  onAnnotationDrawn;
+
+  /// Called with a panel's id and a normalised point once a click places a label there, or null
+  /// while withheld.
+  final void Function(String panelId, double x, double y)? onLabelPlaced;
+
+  /// Called with a mark's id when it is clicked, selecting it. Never withheld — see
+  /// `OcptStoryboardAnnotationOverlay`'s own doc comment.
+  final ValueChanged<String>? onAnnotationSelected;
+
   /// Class constructor
   const OcptStoryboardPanelStrip({
     super.key,
@@ -64,7 +102,16 @@ class OcptStoryboardPanelStrip extends StatelessWidget {
     required this.onReplaceRequested,
     required this.onImportRequested,
     required this.onReordered,
+    required this.activeAnnotationTool,
+    required this.selectedAnnotationId,
+    required this.onAnnotationDrawn,
+    required this.onLabelPlaced,
+    required this.onAnnotationSelected,
   });
+
+  /// [onReordered], withheld whenever [activeAnnotationTool] is on — see the class doc comment.
+  void Function(String panelId, int newPosition)? get effectiveOnReordered =>
+      activeAnnotationTool == null ? onReordered : null;
 
   @override
   Widget build(BuildContext context) {
@@ -100,11 +147,12 @@ class OcptStoryboardPanelStrip extends StatelessWidget {
               scrollDirection: Axis.horizontal,
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
-              buildDefaultDragHandles: onReordered != null,
+              buildDefaultDragHandles: effectiveOnReordered != null,
               itemCount: panels.length,
               onReorderItem: _handleReorder,
               itemBuilder: (context, index) {
                 final panel = panels[index];
+                final isSelected = panel.id == selectedPanelId;
                 return Padding(
                   key: ValueKey(panel.id),
                   padding: const EdgeInsets.only(right: _frameGap),
@@ -114,12 +162,22 @@ class OcptStoryboardPanelStrip extends StatelessWidget {
                     total: panels.length,
                     width: frameWidth,
                     height: height,
-                    isSelected: panel.id == selectedPanelId,
+                    isSelected: isSelected,
                     isReadOnly: isReadOnly,
                     onTap: () => onPanelSelected(panel.id),
                     onReplaceRequested: onReplaceRequested == null
                         ? null
                         : () => onReplaceRequested!(panel.id),
+                    activeAnnotationTool: isSelected ? activeAnnotationTool : null,
+                    selectedAnnotationId: selectedAnnotationId,
+                    onAnnotationDrawn: onAnnotationDrawn == null
+                        ? null
+                        : (kind, x1, y1, x2, y2) =>
+                              onAnnotationDrawn!(panel.id, kind, x1, y1, x2, y2),
+                    onLabelPlaced: onLabelPlaced == null
+                        ? null
+                        : (x, y) => onLabelPlaced!(panel.id, x, y),
+                    onAnnotationSelected: onAnnotationSelected,
                   ),
                 );
               },
@@ -131,12 +189,13 @@ class OcptStoryboardPanelStrip extends StatelessWidget {
     );
   }
 
-  /// Reports [onReordered] with the panel dragged from [oldIndex] and the 0-based position it
-  /// lands on: `ReorderableListView`'s own `onReorderItem` already hands back [newIndex] adjusted
-  /// for the moved item's own removal — exactly the position `OcptStoryboardService.reorderPanel`
-  /// expects — so nothing is translated here beyond reading the panel's id off [oldIndex].
+  /// Reports [effectiveOnReordered] with the panel dragged from [oldIndex] and the 0-based
+  /// position it lands on: `ReorderableListView`'s own `onReorderItem` already hands back
+  /// [newIndex] adjusted for the moved item's own removal — exactly the position
+  /// `OcptStoryboardService.reorderPanel` expects — so nothing is translated here beyond reading
+  /// the panel's id off [oldIndex].
   void _handleReorder(int oldIndex, int newIndex) {
-    final onReordered = this.onReordered;
+    final onReordered = effectiveOnReordered;
     if (onReordered == null || newIndex == oldIndex) {
       return;
     }
@@ -209,9 +268,13 @@ class _ImportSlot extends StatelessWidget {
 /// ratio, while the file is missing), the `rank/total` badge, its free comment and its ratio label
 /// underneath.
 ///
-/// No annotation overlay: annotations are a later milestone
-/// (`docs/plans/storyboard.md`, §4.2) — this frame draws the image, the badge, the comment and the
-/// ratio only.
+/// **The annotation overlay** (`OcptStoryboardAnnotationOverlay`) always draws [panel]'s own
+/// marks over the image — a read, kept even read-only — and turns into a live gesture surface
+/// only while [activeAnnotationTool] is non-null: the strip only ever sets it for the panel that
+/// is both selected and carrying a tool (`OcptStoryboardPanelStrip`'s own doc comment), so every
+/// other frame stays exactly as passive as it was before this overlay existed. While it is live,
+/// this frame's own `InkWell` (which otherwise selects the panel on tap) steps aside — the overlay
+/// already knows this panel is selected, so a tap there means something else now.
 class OcptStoryboardPanelFrame extends StatelessWidget {
   /// The panel this frame shows.
   final OcptStoryboardPanel panel;
@@ -240,6 +303,24 @@ class OcptStoryboardPanelFrame extends StatelessWidget {
   /// Called when this frame's own `Replace image` action is clicked, or null while withheld.
   final VoidCallback? onReplaceRequested;
 
+  /// The annotation tool currently on for this exact frame, or null while gestures are withheld —
+  /// see the class doc comment.
+  final OcptStoryboardAnnotationTool? activeAnnotationTool;
+
+  /// The id of the currently selected mark, or null while none is.
+  final String? selectedAnnotationId;
+
+  /// Called with the new mark's kind and its normalised tail/head once a drag draws an arrow, or
+  /// null while withheld.
+  final void Function(OcptStoryboardAnnotationKind kind, double x1, double y1, double x2, double y2)?
+  onAnnotationDrawn;
+
+  /// Called with a normalised point once a click places a label there, or null while withheld.
+  final void Function(double x, double y)? onLabelPlaced;
+
+  /// Called with a mark's id when it is clicked, selecting it. Never withheld.
+  final ValueChanged<String>? onAnnotationSelected;
+
   /// Class constructor
   const OcptStoryboardPanelFrame({
     super.key,
@@ -252,6 +333,11 @@ class OcptStoryboardPanelFrame extends StatelessWidget {
     required this.isReadOnly,
     required this.onTap,
     required this.onReplaceRequested,
+    required this.activeAnnotationTool,
+    required this.selectedAnnotationId,
+    required this.onAnnotationDrawn,
+    required this.onLabelPlaced,
+    required this.onAnnotationSelected,
   });
 
   @override
@@ -259,9 +345,10 @@ class OcptStoryboardPanelFrame extends StatelessWidget {
     final theme = Theme.of(context);
     final tr = Tr.of(context);
     final ratioLabel = tr.shotListBoardPanelRatioLabel(_formattedRatio(width / height));
+    final annotationsLive = activeAnnotationTool != null;
 
     return InkWell(
-      onTap: onTap,
+      onTap: annotationsLive ? null : onTap,
       mouseCursor: ocptClickableCursor,
       borderRadius: BorderRadius.circular(ocptRadiusMedium),
       child: Column(
@@ -291,6 +378,16 @@ class OcptStoryboardPanelFrame extends StatelessWidget {
                       Icons.image_not_supported_outlined,
                       color: theme.colorScheme.onSurfaceVariant,
                     ),
+                  ),
+                ),
+                Positioned.fill(
+                  child: OcptStoryboardAnnotationOverlay(
+                    annotations: panel.annotations,
+                    selectedAnnotationId: selectedAnnotationId,
+                    activeTool: activeAnnotationTool,
+                    onArrowDrawn: onAnnotationDrawn,
+                    onLabelPlaced: onLabelPlaced,
+                    onAnnotationSelected: onAnnotationSelected,
                   ),
                 ),
                 Positioned(

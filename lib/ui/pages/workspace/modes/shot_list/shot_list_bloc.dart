@@ -38,6 +38,7 @@ import 'package:open_cine_prod_tools/types/ocpt_shot_list_column.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_pending_edit_key.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_right_dock_tab.dart';
+import 'package:open_cine_prod_tools/types/ocpt_storyboard_annotation_kind.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project_package_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project_versions_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_project_versions_events.dart';
@@ -253,6 +254,12 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     on<OcptShotListPanelReorderedEvent>(_onPanelReordered);
     on<OcptShotListPanelCommentChangedEvent>(_onPanelCommentChanged);
     on<OcptShotListPanelDeletionRequestedEvent>(_onPanelDeletionRequested);
+    on<OcptShotListAnnotationToolSelectedEvent>(_onAnnotationToolSelected);
+    on<OcptShotListAnnotationDrawnEvent>(_onAnnotationDrawn);
+    on<OcptShotListAnnotationPlacedEvent>(_onAnnotationPlaced);
+    on<OcptShotListAnnotationSelectedEvent>(_onAnnotationSelected);
+    on<OcptShotListAnnotationTextChangedEvent>(_onAnnotationTextChanged);
+    on<OcptShotListAnnotationDeletionRequestedEvent>(_onAnnotationDeletionRequested);
   }
 
   /// {@macro open_cine_prod_tools.MixinOcptProjectVersionsBloc.projectsManager}
@@ -354,6 +361,8 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
         clearSelectedSequenceId: snapshot.sequences.isEmpty,
         clearSelectedShotId: true,
         clearSelectedPanelId: true,
+        clearActiveAnnotationTool: true,
+        clearSelectedAnnotationId: true,
         clearPendingCoverageAnchor: true,
         leftDockFraction: leftDockFraction,
         rightDockFraction: rightDockFraction,
@@ -502,6 +511,8 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
         selectedSequenceId: event.sequenceId,
         clearSelectedShotId: !isSameSequence,
         clearSelectedPanelId: !isSameSequence,
+        clearActiveAnnotationTool: !isSameSequence,
+        clearSelectedAnnotationId: !isSameSequence,
         clearPendingCoverageAnchor: true,
       ),
     );
@@ -531,6 +542,8 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
         selectedSequenceId: sequence.id,
         selectedShotId: event.shotId,
         clearSelectedPanelId: true,
+        clearActiveAnnotationTool: true,
+        clearSelectedAnnotationId: true,
         rightDockTab: OcptShotListRightDockTab.inspector,
         lastRightDockTab: OcptShotListRightDockTab.inspector,
         clearPendingCoverageAnchor: true,
@@ -1003,8 +1016,9 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
   /// Writes every entry of [pending], switching on its key's own kind: a shot field through
   /// `OcptShotListService.updateShot` (translating it into the matching named argument, see
   /// `OcptShotListEditableField`'s own doc comment for the mapping, and deducing an abbreviation
-  /// alongside every shot size committed here, see [_deduceAbbreviationIfEmpty]), or a panel
-  /// comment through `OcptStoryboardService.updatePanelComment`.
+  /// alongside every shot size committed here, see [_deduceAbbreviationIfEmpty]), a panel comment
+  /// through `OcptStoryboardService.updatePanelComment`, or a mark's own text through
+  /// `OcptStoryboardService.updateAnnotation`.
   ///
   /// A shot whose abbreviation is being typed in the very same flush is left out of the deduction:
   /// what the user is writing wins over what the shot size would have suggested, whichever of the
@@ -1041,6 +1055,12 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
             database: project.database,
             panelId: panelId,
             comment: entry.value,
+          );
+        case OcptShotListAnnotationTextEditKey(:final annotationId):
+          await _storyboardService.updateAnnotation(
+            database: project.database,
+            annotationId: annotationId,
+            text: Value(entry.value),
           );
       }
     }
@@ -1295,11 +1315,18 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     }
 
     final panelIds = state.panelsOfShot(event.shotId).map((panel) => panel.id).toSet();
+    final annotationIds = state
+        .panelsOfShot(event.shotId)
+        .expand((panel) => panel.annotations)
+        .map((annotation) => annotation.id)
+        .toSet();
     final pendingWithoutShot = Map<OcptShotListPendingEditKey, String>.of(state.pendingFieldEdits)
       ..removeWhere(
         (key, _) => switch (key) {
           OcptShotListShotFieldEditKey(:final shotId) => shotId == event.shotId,
           OcptShotListPanelCommentEditKey(:final panelId) => panelIds.contains(panelId),
+          OcptShotListAnnotationTextEditKey(:final annotationId) =>
+            annotationIds.contains(annotationId),
         },
       );
     if (pendingWithoutShot.isEmpty) {
@@ -1320,6 +1347,8 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
           pendingFieldEdits: pendingWithoutShot,
           clearSelectedShotId: wasSelected,
           clearSelectedPanelId: wasSelected || wasPanelSelected,
+          clearActiveAnnotationTool: wasSelected || wasPanelSelected,
+          clearSelectedAnnotationId: wasSelected || wasPanelSelected,
           clearPendingCoverageAnchor: wasSelected,
         ),
       );
@@ -1626,12 +1655,20 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
   }
 
   /// Selects panel `event.panelId` on the board, dispatched by a click on one of the selected
-  /// shot's own panel frames.
+  /// shot's own panel frames. Clears the annotation tool and mark selection: both are scoped to
+  /// the panel that was selected before this one (`OcptShotListState.activeAnnotationTool`'s own
+  /// doc comment).
   Future<void> _onPanelSelected(
     OcptShotListPanelSelectedEvent event,
     Emitter<OcptShotListState> emitter,
   ) async {
-    emitter(state.copyWith(selectedPanelId: event.panelId));
+    emitter(
+      state.copyWith(
+        selectedPanelId: event.panelId,
+        clearActiveAnnotationTool: true,
+        clearSelectedAnnotationId: true,
+      ),
+    );
   }
 
   /// Sets the board's common panel height, a view preference held for the session alone.
@@ -1678,6 +1715,8 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
         state.copyWith(
           storyboardSnapshot: await _loadStoryboard(project),
           selectedPanelId: panelId,
+          clearActiveAnnotationTool: true,
+          clearSelectedAnnotationId: true,
         ),
       );
     } catch (error) {
@@ -1783,7 +1822,10 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
 
   /// Deletes panel `event.panelId` for good, dispatched once the inspector's Panels group's own
   /// `Delete panel` action has already been confirmed through `OcptConfirmDialog`, by the mode.
-  /// Clears the panel selection and drops any pending comment edit that still targeted it.
+  /// Clears the panel selection (and, with it, the annotation tool and selection — see
+  /// `OcptShotListState.activeAnnotationTool`'s own doc comment) and drops any pending comment or
+  /// mark-text edit that still targeted it or one of its own marks —
+  /// `OcptStoryboardService.deletePanel`'s own cascade tombstones them alongside it.
   Future<void> _onPanelDeletionRequested(
     OcptShotListPanelDeletionRequestedEvent event,
     Emitter<OcptShotListState> emitter,
@@ -1794,10 +1836,22 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     }
 
     final wasSelected = state.selectedPanelId == event.panelId;
+    final annotationIds = (state.storyboardSnapshot?.panelsByShotId.values
+                .expand((panels) => panels)
+                .firstWhereOrNull((panel) => panel.id == event.panelId)
+                ?.annotations ??
+            const [])
+        .map((annotation) => annotation.id)
+        .toSet();
     final pendingWithoutPanel = Map<OcptShotListPendingEditKey, String>.of(
       state.pendingFieldEdits,
     )..removeWhere(
-        (key, _) => key is OcptShotListPanelCommentEditKey && key.panelId == event.panelId,
+        (key, _) => switch (key) {
+          OcptShotListPanelCommentEditKey(:final panelId) => panelId == event.panelId,
+          OcptShotListAnnotationTextEditKey(:final annotationId) =>
+            annotationIds.contains(annotationId),
+          OcptShotListShotFieldEditKey() => false,
+        },
       );
 
     try {
@@ -1807,10 +1861,166 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
           storyboardSnapshot: await _loadStoryboard(project),
           pendingFieldEdits: pendingWithoutPanel,
           clearSelectedPanelId: wasSelected,
+          clearActiveAnnotationTool: wasSelected,
+          clearSelectedAnnotationId: wasSelected,
         ),
       );
     } catch (error) {
       appLogger().e("A problem occurred when tried to delete panel ${event.panelId} of the "
+          "project at ${project.path}: $error");
+      emitter(state.copyWith(hasWriteError: true));
+    }
+  }
+
+  /// Sets the board's active annotation tool, dispatched by the inspector's own `Annotate`
+  /// control — `event.tool` is null both for "turn it off" and for the control's own toggle-off
+  /// gesture (picking the tool already on again), so this always writes through
+  /// `clearActiveAnnotationTool` rather than leaning on `copyWith`'s `??` fallback, which could
+  /// never move a nullable field back to null.
+  Future<void> _onAnnotationToolSelected(
+    OcptShotListAnnotationToolSelectedEvent event,
+    Emitter<OcptShotListState> emitter,
+  ) async {
+    final tool = event.tool;
+    emitter(
+      state.copyWith(activeAnnotationTool: tool, clearActiveAnnotationTool: tool == null),
+    );
+  }
+
+  /// Adds a mark of `event.kind` to panel `event.panelId` at the normalised tail/head just dragged
+  /// out on its own frame, then selects the freshly minted mark
+  /// (`OcptStoryboardService.addAnnotation`).
+  Future<void> _onAnnotationDrawn(
+    OcptShotListAnnotationDrawnEvent event,
+    Emitter<OcptShotListState> emitter,
+  ) async {
+    final project = _projectsManager.currentProject;
+    if (project == null) {
+      return;
+    }
+
+    try {
+      final annotationId = await _storyboardService.addAnnotation(
+        database: project.database,
+        panelId: event.panelId,
+        kind: event.kind,
+        x1: event.x1,
+        y1: event.y1,
+        x2: event.x2,
+        y2: event.y2,
+      );
+      if (annotationId == null) {
+        return;
+      }
+
+      emitter(
+        state.copyWith(
+          storyboardSnapshot: await _loadStoryboard(project),
+          selectedAnnotationId: annotationId,
+        ),
+      );
+    } catch (error) {
+      appLogger().e("A problem occurred when tried to draw a ${event.kind} mark onto panel "
+          "${event.panelId} of the project at ${project.path}: $error");
+      emitter(state.copyWith(hasWriteError: true));
+    }
+  }
+
+  /// Places a label on panel `event.panelId` at the normalised point just clicked, then selects
+  /// the freshly minted mark so its own text field opens ready for typing
+  /// (`OcptStoryboardService.addAnnotation`).
+  Future<void> _onAnnotationPlaced(
+    OcptShotListAnnotationPlacedEvent event,
+    Emitter<OcptShotListState> emitter,
+  ) async {
+    final project = _projectsManager.currentProject;
+    if (project == null) {
+      return;
+    }
+
+    try {
+      final annotationId = await _storyboardService.addAnnotation(
+        database: project.database,
+        panelId: event.panelId,
+        kind: OcptStoryboardAnnotationKind.label,
+        x1: event.x1,
+        y1: event.y1,
+      );
+      if (annotationId == null) {
+        return;
+      }
+
+      emitter(
+        state.copyWith(
+          storyboardSnapshot: await _loadStoryboard(project),
+          selectedAnnotationId: annotationId,
+        ),
+      );
+    } catch (error) {
+      appLogger().e("A problem occurred when tried to place a label onto panel "
+          "${event.panelId} of the project at ${project.path}: $error");
+      emitter(state.copyWith(hasWriteError: true));
+    }
+  }
+
+  /// Selects mark `event.annotationId`, dispatched by a click on it — on its own frame's overlay,
+  /// or on its row of the inspector Panels group's annotation section.
+  Future<void> _onAnnotationSelected(
+    OcptShotListAnnotationSelectedEvent event,
+    Emitter<OcptShotListState> emitter,
+  ) async {
+    emitter(state.copyWith(selectedAnnotationId: event.annotationId));
+  }
+
+  /// Records the raw text just typed into mark `event.annotationId`'s own text as a pending edit,
+  /// and (re)starts the field-edit debounce shared with [_onShotFieldChanged] and
+  /// [_onPanelCommentChanged].
+  Future<void> _onAnnotationTextChanged(
+    OcptShotListAnnotationTextChangedEvent event,
+    Emitter<OcptShotListState> emitter,
+  ) async {
+    _recordPendingEdit(
+      emitter: emitter,
+      key: OcptShotListAnnotationTextEditKey(annotationId: event.annotationId),
+      rawValue: event.rawValue,
+    );
+  }
+
+  /// Deletes mark `event.annotationId` for good, dispatched once the annotation section's own
+  /// remove action has already been confirmed through `OcptConfirmDialog`, by the mode. Clears the
+  /// mark's own selection and drops any pending text edit that still targeted it.
+  Future<void> _onAnnotationDeletionRequested(
+    OcptShotListAnnotationDeletionRequestedEvent event,
+    Emitter<OcptShotListState> emitter,
+  ) async {
+    final project = _projectsManager.currentProject;
+    if (project == null) {
+      return;
+    }
+
+    final wasSelected = state.selectedAnnotationId == event.annotationId;
+    final pendingWithoutAnnotation = Map<OcptShotListPendingEditKey, String>.of(
+      state.pendingFieldEdits,
+    )..removeWhere(
+        (key, _) =>
+            key is OcptShotListAnnotationTextEditKey &&
+            key.annotationId == event.annotationId,
+      );
+
+    try {
+      await _storyboardService.deleteAnnotation(
+        database: project.database,
+        annotationId: event.annotationId,
+      );
+      emitter(
+        state.copyWith(
+          storyboardSnapshot: await _loadStoryboard(project),
+          pendingFieldEdits: pendingWithoutAnnotation,
+          clearSelectedAnnotationId: wasSelected,
+        ),
+      );
+    } catch (error) {
+      appLogger().e("A problem occurred when tried to delete mark ${event.annotationId} of the "
           "project at ${project.path}: $error");
       emitter(state.copyWith(hasWriteError: true));
     }

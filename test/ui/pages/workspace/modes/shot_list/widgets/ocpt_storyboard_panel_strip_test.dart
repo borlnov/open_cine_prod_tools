@@ -7,6 +7,8 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_storyboard_panel.dart';
+import 'package:open_cine_prod_tools/types/ocpt_storyboard_annotation_kind.dart';
+import 'package:open_cine_prod_tools/types/ocpt_storyboard_annotation_tool.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_storyboard_panel_strip.dart';
 
 /// Wraps [child] with the localization delegates so [Tr.of] lookups resolve, and sets the test
@@ -60,6 +62,11 @@ void main() {
         onReplaceRequested: (_) {},
         onImportRequested: () {},
         onReordered: (_, __) {},
+        activeAnnotationTool: null,
+        selectedAnnotationId: null,
+        onAnnotationDrawn: (_, __, ___, ____, _____, ______) {},
+        onLabelPlaced: (_, __, ___) {},
+        onAnnotationSelected: (_) {},
       ),
     );
 
@@ -82,6 +89,11 @@ void main() {
         onReplaceRequested: (_) {},
         onImportRequested: () {},
         onReordered: (_, __) {},
+        activeAnnotationTool: null,
+        selectedAnnotationId: null,
+        onAnnotationDrawn: (_, __, ___, ____, _____, ______) {},
+        onLabelPlaced: (_, __, ___) {},
+        onAnnotationSelected: (_) {},
       ),
     );
 
@@ -107,6 +119,11 @@ void main() {
           onReplaceRequested: null,
           onImportRequested: null,
           onReordered: null,
+          activeAnnotationTool: null,
+          selectedAnnotationId: null,
+          onAnnotationDrawn: null,
+          onLabelPlaced: null,
+          onAnnotationSelected: null,
         ),
       );
 
@@ -139,9 +156,82 @@ void main() {
         onReplaceRequested: (_) {},
         onImportRequested: () {},
         onReordered: (_, __) {},
+        activeAnnotationTool: null,
+        selectedAnnotationId: null,
+        onAnnotationDrawn: (_, __, ___, ____, _____, ______) {},
+        onLabelPlaced: (_, __, ___) {},
+        onAnnotationSelected: (_) {},
       ),
     );
 
     expect(find.textContaining("Push in on the door"), findsOneWidget);
   });
+
+  testWidgets("a drag over the selected panel with an arrow tool draws it", (tester) async {
+    final drawn = <(OcptStoryboardAnnotationKind, double, double, double, double)>[];
+
+    await _pumpStrip(
+      tester,
+      OcptStoryboardPanelStrip(
+        panels: [_panel("p1")],
+        aspectRatio: 16 / 9,
+        height: 160,
+        selectedPanelId: "p1",
+        isReadOnly: false,
+        onPanelSelected: (_) {},
+        onReplaceRequested: (_) {},
+        onImportRequested: () {},
+        onReordered: (_, __) {},
+        activeAnnotationTool: OcptStoryboardAnnotationTool.movementArrow,
+        selectedAnnotationId: null,
+        onAnnotationDrawn: (_, kind, x1, y1, x2, y2) => drawn.add((kind, x1, y1, x2, y2)),
+        onLabelPlaced: (_, __, ___) {},
+        onAnnotationSelected: (_) {},
+      ),
+    );
+
+    final frameCenter = tester.getCenter(find.byType(OcptStoryboardPanelFrame));
+    final gesture = await tester.startGesture(frameCenter - const Offset(40, 0));
+    await gesture.moveBy(const Offset(80, 0));
+    await gesture.up();
+    await tester.pump();
+
+    expect(drawn, hasLength(1));
+    expect(drawn.single.$1, OcptStoryboardAnnotationKind.movementArrow);
+  });
+
+  testWidgets(
+    "a tool active on the selected panel suspends this strip's reorder, "
+    "and turning it off restores it",
+    (tester) async {
+      final reordered = <String>[];
+
+      Widget buildStrip(OcptStoryboardAnnotationTool? tool) => OcptStoryboardPanelStrip(
+        panels: [_panel("p1"), _panel("p2")],
+        aspectRatio: 16 / 9,
+        height: 160,
+        selectedPanelId: "p1",
+        isReadOnly: false,
+        onPanelSelected: (_) {},
+        onReplaceRequested: (_) {},
+        onImportRequested: () {},
+        onReordered: (panelId, _) => reordered.add(panelId),
+        activeAnnotationTool: tool,
+        selectedAnnotationId: null,
+        onAnnotationDrawn: (_, __, ___, ____, _____, ______) {},
+        onLabelPlaced: (_, __, ___) {},
+        onAnnotationSelected: (_) {},
+      );
+
+      await _pumpStrip(tester, buildStrip(OcptStoryboardAnnotationTool.movementArrow));
+      final strip = tester.widget<OcptStoryboardPanelStrip>(find.byType(OcptStoryboardPanelStrip));
+      expect(strip.effectiveOnReordered, isNull);
+
+      await _pumpStrip(tester, buildStrip(null));
+      final restoredStrip = tester.widget<OcptStoryboardPanelStrip>(
+        find.byType(OcptStoryboardPanelStrip),
+      );
+      expect(restoredStrip.effectiveOnReordered, isNotNull);
+    },
+  );
 }

@@ -27,6 +27,7 @@ import 'package:open_cine_prod_tools/types/ocpt_shot_list_column.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_pending_edit_key.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_right_dock_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_status.dart';
+import 'package:open_cine_prod_tools/types/ocpt_storyboard_annotation_tool.dart';
 import 'package:open_cine_prod_tools/types/ocpt_storyboard_panel_size.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project_package_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project_versions_state.dart';
@@ -149,6 +150,21 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
   /// A **view preference** held here for the session alone, never persisted to the project or to
   /// `OcptPropertiesManager` — see [OcptStoryboardPanelSize]'s own doc comment.
   final OcptStoryboardPanelSize boardPanelSize;
+
+  /// The board's active annotation editing tool, or null while none is on.
+  ///
+  /// A **view/session state** value, like [boardPanelSize]: never written to the project. Scoped
+  /// to the currently selected panel, so it is cleared — together with [selectedAnnotationId] —
+  /// whenever [selectedPanelId], [selectedShotId] or [selectedSequenceId] changes: a tool left on
+  /// while looking at a different panel would draw onto a frame the user can no longer see is the
+  /// target.
+  final OcptStoryboardAnnotationTool? activeAnnotationTool;
+
+  /// The id of the currently selected mark, or null while none is.
+  ///
+  /// Cleared alongside [activeAnnotationTool] — see its own doc comment — and whenever the mark
+  /// itself is deleted.
+  final String? selectedAnnotationId;
 
   /// Whether the left (sequences) dock is shown.
   final bool isSequencePanelVisible;
@@ -450,6 +466,8 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
     required this.storyboardSnapshot,
     required this.selectedPanelId,
     required this.boardPanelSize,
+    required this.activeAnnotationTool,
+    required this.selectedAnnotationId,
     required this.isSequencePanelVisible,
     required this.rightDockTab,
     required this.lastRightDockTab,
@@ -487,6 +505,8 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
       storyboardSnapshot = null,
       selectedPanelId = null,
       boardPanelSize = OcptStoryboardPanelSize.medium,
+      activeAnnotationTool = null,
+      selectedAnnotationId = null,
       isSequencePanelVisible = true,
       rightDockTab = null,
       lastRightDockTab = OcptShotListRightDockTab.inspector,
@@ -533,6 +553,10 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
     String? selectedPanelId,
     bool clearSelectedPanelId = false,
     OcptStoryboardPanelSize? boardPanelSize,
+    OcptStoryboardAnnotationTool? activeAnnotationTool,
+    bool clearActiveAnnotationTool = false,
+    String? selectedAnnotationId,
+    bool clearSelectedAnnotationId = false,
     bool? isSequencePanelVisible,
     OcptShotListRightDockTab? rightDockTab,
     bool clearRightDockTab = false,
@@ -580,6 +604,12 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
     storyboardSnapshot: storyboardSnapshot ?? this.storyboardSnapshot,
     selectedPanelId: clearSelectedPanelId ? null : (selectedPanelId ?? this.selectedPanelId),
     boardPanelSize: boardPanelSize ?? this.boardPanelSize,
+    activeAnnotationTool: clearActiveAnnotationTool
+        ? null
+        : (activeAnnotationTool ?? this.activeAnnotationTool),
+    selectedAnnotationId: clearSelectedAnnotationId
+        ? null
+        : (selectedAnnotationId ?? this.selectedAnnotationId),
     isSequencePanelVisible: isSequencePanelVisible ?? this.isSequencePanelVisible,
     rightDockTab: clearRightDockTab ? null : (rightDockTab ?? this.rightDockTab),
     lastRightDockTab: lastRightDockTab ?? this.lastRightDockTab,
@@ -681,6 +711,8 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
     storyboardSnapshot,
     selectedPanelId,
     boardPanelSize,
+    activeAnnotationTool,
+    selectedAnnotationId,
     isSequencePanelVisible,
     rightDockTab,
     lastRightDockTab,

@@ -21,13 +21,17 @@ import 'package:open_cine_prod_tools/models/ocpt_shot_list_xlsx_labels.dart';
 import 'package:open_cine_prod_tools/types/ocpt_export_outcome.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_centre_view.dart';
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
+import 'package:open_cine_prod_tools/types/ocpt_storyboard_annotation_kind.dart';
+import 'package:open_cine_prod_tools/types/ocpt_storyboard_annotation_tool.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_event.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_mode.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_scenario_coverage_export_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_shot_inspector_panel.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_shot_list_status_bar.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_storyboard_annotation_painter.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_storyboard_board.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_storyboard_panel_strip.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_storyboard_shot_leader_card.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/workspace_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/workspace_event.dart';
@@ -604,6 +608,146 @@ void main() {
 
       // Leave the preview so the working copy is what the next test opens onto.
       await projectsManager.exitPreview();
+    });
+
+    group("annotations", () {
+      /// [mountWithASelectedShot], switched to the board, with one panel imported onto the
+      /// selected shot and selected — the starting point every annotation test shares.
+      Future<OcptShotListBloc> mountWithASelectedPanel(WidgetTester tester) async {
+        useFileSelectorManager(const _StubFileSelectorManager(pickedPath: "/frames/a.png"));
+
+        final bloc = await mountWithASelectedShot(tester);
+        final tr = Tr.of(tester.element(find.byType(OcptShotListMode)));
+
+        await tester.tap(find.text(tr.shotListBoardBoardSegmentLabel));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byIcon(Icons.add_photo_alternate_outlined));
+        await tester.pumpAndSettle();
+        expect(bloc.state.selectedPanelId, isNotNull);
+
+        return bloc;
+      }
+
+      testWidgets(
+        "picking the label tool then clicking the frame places a mark, and Remove asks "
+        "through the confirm dialog before removing it",
+        (tester) async {
+          final bloc = await mountWithASelectedPanel(tester);
+          final tr = Tr.of(tester.element(find.byType(OcptShotListMode)));
+
+          await tester.tap(find.text(tr.shotListBoardAnnotationToolLabelSegmentLabel));
+          await tester.pumpAndSettle();
+          expect(bloc.state.activeAnnotationTool, OcptStoryboardAnnotationTool.label);
+
+          await tester.tapAt(tester.getCenter(find.byType(OcptStoryboardPanelFrame)));
+          await tester.pumpAndSettle();
+
+          final panel = bloc.state.selectedPanel!;
+          expect(panel.annotations, hasLength(1));
+          expect(bloc.state.selectedAnnotationId, panel.annotations.single.id);
+
+          await tester.tap(find.byTooltip(tr.shotListBoardRemoveAnnotationAction));
+          await tester.pumpAndSettle();
+
+          expect(find.byType(OcptConfirmDialog), findsOneWidget);
+          expect(bloc.state.selectedPanel!.annotations, hasLength(1));
+
+          await tester.tap(find.text(tr.shotListDeleteConfirmDeleteAction));
+          await tester.pumpAndSettle();
+
+          expect(bloc.state.selectedPanel!.annotations, isEmpty);
+        },
+      );
+
+      testWidgets("dragging over the frame with the movement arrow tool draws a mark", (
+        tester,
+      ) async {
+        final bloc = await mountWithASelectedPanel(tester);
+        final tr = Tr.of(tester.element(find.byType(OcptShotListMode)));
+
+        await tester.tap(find.text(tr.shotListBoardAnnotationToolMovementArrowLabel));
+        await tester.pumpAndSettle();
+        expect(bloc.state.activeAnnotationTool, OcptStoryboardAnnotationTool.movementArrow);
+
+        final frameCenter = tester.getCenter(find.byType(OcptStoryboardPanelFrame));
+        final gesture = await tester.startGesture(frameCenter - const Offset(30, 0));
+        await gesture.moveBy(const Offset(60, 0));
+        await gesture.up();
+        await tester.pumpAndSettle();
+
+        final annotations = bloc.state.selectedPanel!.annotations;
+        expect(annotations, hasLength(1));
+        expect(annotations.single.kind, OcptStoryboardAnnotationKind.movementArrow);
+      });
+
+      testWidgets(
+        "a previewed version withholds the Annotate control, the gestures and the remove "
+        "action, while still drawing the existing mark",
+        (tester) async {
+          final bloc = await mountWithASelectedPanel(tester);
+          final tr = Tr.of(tester.element(find.byType(OcptShotListMode)));
+          final panelId = bloc.state.selectedPanelId!;
+
+          bloc.add(
+            OcptShotListAnnotationPlacedEvent(panelId: panelId, x1: 0.5, y1: 0.4),
+          );
+          await tester.pumpAndSettle();
+          expect(bloc.state.selectedPanel!.annotations, hasLength(1));
+
+          final version = await projectsManager.createProjectVersion(name: "With a mark", note: "");
+          expect(version, isNotNull);
+          final previewResult = await projectsManager.previewVersion(version!.id);
+          expect(previewResult.status.isSuccess, isTrue);
+
+          // Remounts fresh, exactly as the sibling panel-level test above does, so a genuinely
+          // new, read-only `OcptShotListBloc` loads from what was just captured.
+          await tester.pumpWidget(const SizedBox.shrink());
+          await tester.pumpAndSettle();
+          await tester.pumpWidget(_wrapWithLocalization(const OcptShotListMode()));
+          await tester.pumpAndSettle();
+
+          final previewedBloc = tester
+              .element(find.byType(OcptShotListStatusBar))
+              .read<OcptShotListBloc>();
+          expect(previewedBloc.state.isPreviewingVersion, isTrue);
+          expect(previewedBloc.state.centreView, OcptShotListCentreView.board);
+
+          // Selecting the shot, then its panel, is never withheld (it only reads) — a fresh
+          // reload starts with neither selected, and `selectedPanel` needs both (it reads off
+          // `panelsOfSelectedShot`, which is empty without a selected shot).
+          await tester.tap(find.byType(OcptStoryboardShotLeaderCard));
+          await tester.pumpAndSettle();
+          expect(previewedBloc.state.selectedShotId, isNotNull);
+          await tester.tap(find.byType(OcptStoryboardPanelFrame));
+          await tester.pumpAndSettle();
+          expect(previewedBloc.state.selectedPanelId, isNotNull);
+
+          // The Annotate control and the mark's own remove action are never built at all.
+          expect(find.byType(SegmentedButton<OcptStoryboardAnnotationTool>), findsNothing);
+          expect(find.byTooltip(tr.shotListBoardRemoveAnnotationAction), findsNothing);
+
+          // The overlay still draws the mark captured in the version — a read, kept read-only.
+          final painters = tester
+              .widgetList<CustomPaint>(find.byType(CustomPaint))
+              .map((widget) => widget.painter)
+              .whereType<OcptStoryboardAnnotationOverlayPainter>()
+              .toList();
+          expect(painters, isNotEmpty);
+          expect(painters.first.annotations, hasLength(1));
+
+          // A drag over the frame draws nothing: with no tool ever pickable, the gesture layer
+          // never turns live.
+          final frameCenter = tester.getCenter(find.byType(OcptStoryboardPanelFrame));
+          final gesture = await tester.startGesture(frameCenter - const Offset(30, 0));
+          await gesture.moveBy(const Offset(60, 0));
+          await gesture.up();
+          await tester.pumpAndSettle();
+          expect(previewedBloc.state.selectedPanel!.annotations, hasLength(1));
+
+          // Leave the preview so the working copy is what the next test opens onto.
+          await projectsManager.exitPreview();
+        },
+      );
     });
   });
 }

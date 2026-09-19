@@ -13,6 +13,8 @@ import 'package:open_cine_prod_tools/types/ocpt_shot_list_centre_view.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_column.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_right_dock_tab.dart';
+import 'package:open_cine_prod_tools/types/ocpt_storyboard_annotation_kind.dart';
+import 'package:open_cine_prod_tools/types/ocpt_storyboard_annotation_tool.dart';
 import 'package:open_cine_prod_tools/types/ocpt_storyboard_panel_size.dart';
 
 /// The events handled by `OcptShotListBloc`.
@@ -658,4 +660,131 @@ class OcptShotListPanelDeletionRequestedEvent extends OcptShotListEvent {
   /// Object properties
   @override
   List<Object?> get props => [...super.props, panelId];
+}
+
+/// Sets the board's active annotation tool to [tool], dispatched by the inspector's own `Annotate`
+/// control, or clears it (null) when the tool already on is picked again. Scoped to the currently
+/// selected panel — see `OcptShotListState.activeAnnotationTool`'s own doc comment for when it is
+/// cleared on its own.
+class OcptShotListAnnotationToolSelectedEvent extends OcptShotListEvent {
+  /// The tool just picked, or null to turn annotation editing off.
+  final OcptStoryboardAnnotationTool? tool;
+
+  /// Class constructor
+  const OcptShotListAnnotationToolSelectedEvent({required this.tool});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, tool];
+}
+
+/// Adds a mark of [kind] to panel [panelId] at the normalised tail/head `(x1, y1)`-`(x2, y2)`,
+/// dispatched once a drag over the selected panel's own frame finishes drawing an arrow. Written
+/// immediately, then selects the freshly minted mark (`OcptStoryboardService.addAnnotation`).
+class OcptShotListAnnotationDrawnEvent extends OcptShotListEvent {
+  /// The id of the panel the mark is added to.
+  final String panelId;
+
+  /// The kind of mark just drawn (one of the two arrow kinds — a label is placed by
+  /// [OcptShotListAnnotationPlacedEvent] instead).
+  final OcptStoryboardAnnotationKind kind;
+
+  /// The arrow's tail X coordinate, normalised 0..1 to the frame.
+  final double x1;
+
+  /// The arrow's tail Y coordinate, normalised 0..1 to the frame.
+  final double y1;
+
+  /// The arrow's head X coordinate, normalised 0..1 to the frame.
+  final double x2;
+
+  /// The arrow's head Y coordinate, normalised 0..1 to the frame.
+  final double y2;
+
+  /// Class constructor
+  const OcptShotListAnnotationDrawnEvent({
+    required this.panelId,
+    required this.kind,
+    required this.x1,
+    required this.y1,
+    required this.x2,
+    required this.y2,
+  });
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, panelId, kind, x1, y1, x2, y2];
+}
+
+/// Places a [OcptStoryboardAnnotationKind.label] on panel [panelId] at the normalised point
+/// `(x1, y1)`, dispatched by a click over the selected panel's own frame while the label tool is
+/// on. Written immediately, then selects the freshly minted mark so its text field opens ready
+/// for typing (`OcptStoryboardService.addAnnotation`).
+class OcptShotListAnnotationPlacedEvent extends OcptShotListEvent {
+  /// The id of the panel the label is added to.
+  final String panelId;
+
+  /// The label's anchor X coordinate, normalised 0..1 to the frame.
+  final double x1;
+
+  /// The label's anchor Y coordinate, normalised 0..1 to the frame.
+  final double y1;
+
+  /// Class constructor
+  const OcptShotListAnnotationPlacedEvent({
+    required this.panelId,
+    required this.x1,
+    required this.y1,
+  });
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, panelId, x1, y1];
+}
+
+/// Selects mark [annotationId], dispatched by a click on it (either on the frame's own overlay, or
+/// on its row of the inspector Panels group's annotation section).
+class OcptShotListAnnotationSelectedEvent extends OcptShotListEvent {
+  /// The id of the mark to select.
+  final String annotationId;
+
+  /// Class constructor
+  const OcptShotListAnnotationSelectedEvent({required this.annotationId});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, annotationId];
+}
+
+/// Records the raw text just typed into mark [annotationId]'s own text — a label's text, or an
+/// arrow's optional caption — dispatched by the annotation section's own text field on every
+/// keystroke. Rides the mode's field-edit autosave debounce, keyed by
+/// `OcptShotListAnnotationTextEditKey`.
+class OcptShotListAnnotationTextChangedEvent extends OcptShotListEvent {
+  /// The id of the mark whose text was edited.
+  final String annotationId;
+
+  /// The text's raw value, exactly as typed.
+  final String rawValue;
+
+  /// Class constructor
+  const OcptShotListAnnotationTextChangedEvent({required this.annotationId, required this.rawValue});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, annotationId, rawValue];
+}
+
+/// Requests deleting mark [annotationId] for good, dispatched once the annotation section's own
+/// remove action has already been confirmed through `OcptConfirmDialog`, by the mode.
+class OcptShotListAnnotationDeletionRequestedEvent extends OcptShotListEvent {
+  /// The id of the mark to delete.
+  final String annotationId;
+
+  /// Class constructor
+  const OcptShotListAnnotationDeletionRequestedEvent({required this.annotationId});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, annotationId];
 }

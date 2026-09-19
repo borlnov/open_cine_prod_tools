@@ -13,6 +13,7 @@ import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_package_report.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
+import 'package:open_cine_prod_tools/models/ocpt_storyboard_annotation.dart';
 import 'package:open_cine_prod_tools/models/ocpt_workspace_export_entry.dart';
 import 'package:open_cine_prod_tools/models/ocpt_workspace_export_pick.dart';
 import 'package:open_cine_prod_tools/types/ocpt_route.dart';
@@ -668,6 +669,26 @@ class _ShotListViewState extends State<_ShotListView> {
                 newPosition: newPosition,
               ),
             ),
+      activeAnnotationTool: state.activeAnnotationTool,
+      selectedAnnotationId: state.selectedAnnotationId,
+      onAnnotationDrawn: isReadOnly
+          ? null
+          : (panelId, kind, x1, y1, x2, y2) => bloc.add(
+              OcptShotListAnnotationDrawnEvent(
+                panelId: panelId,
+                kind: kind,
+                x1: x1,
+                y1: y1,
+                x2: x2,
+                y2: y2,
+              ),
+            ),
+      onLabelPlaced: isReadOnly
+          ? null
+          : (panelId, x, y) =>
+                bloc.add(OcptShotListAnnotationPlacedEvent(panelId: panelId, x1: x, y1: y)),
+      onAnnotationSelected: (annotationId) =>
+          bloc.add(OcptShotListAnnotationSelectedEvent(annotationId: annotationId)),
     );
   }
 
@@ -682,6 +703,23 @@ class _ShotListViewState extends State<_ShotListView> {
     for (final panel in state.panelsOfSelectedShot) {
       if (panel.id == panelId) {
         return panel.comment;
+      }
+    }
+    return "";
+  }
+
+  /// [annotationId]'s current text value: a pending edit still in the bloc's debounce, or the
+  /// mark's own stored text — the annotation section's equivalent of [_panelCommentValueOf].
+  String _annotationTextValueOf(OcptShotListState state, String annotationId) {
+    final pending =
+        state.pendingFieldEdits[OcptShotListAnnotationTextEditKey(annotationId: annotationId)];
+    if (pending != null) {
+      return pending;
+    }
+
+    for (final annotation in state.selectedPanel?.annotations ?? const <OcptStoryboardAnnotation>[]) {
+      if (annotation.id == annotationId) {
+        return annotation.text;
       }
     }
     return "";
@@ -709,9 +747,32 @@ class _ShotListViewState extends State<_ShotListView> {
     bloc.add(OcptShotListPanelDeletionRequestedEvent(panelId: panelId));
   }
 
+  /// Shows the delete confirmation dialog, then dispatches the mark's deletion if the user
+  /// confirmed it — the annotation section's own remove action, which only asks.
+  Future<void> _handleAnnotationDeleteRequested(BuildContext context, String annotationId) async {
+    final bloc = context.read<OcptShotListBloc>();
+    final tr = Tr.of(context);
+    final confirmed = await OcptConfirmDialog.show(
+      context,
+      title: tr.shotListBoardDeleteAnnotationConfirmTitle,
+      message: tr.shotListBoardDeleteAnnotationConfirmMessage,
+      cancelLabel: tr.shotListDeleteConfirmCancelAction,
+      confirmLabel: tr.shotListDeleteConfirmDeleteAction,
+    );
+    if (confirmed != true) {
+      return;
+    }
+    if (!context.mounted) {
+      return;
+    }
+
+    bloc.add(OcptShotListAnnotationDeletionRequestedEvent(annotationId: annotationId));
+  }
+
   /// Builds the inspector's board-only `leadingGroup`: the selected shot's own panels, each with
   /// its comment field, the reorder affordance and a `Delete panel` action that only asks (see
-  /// [_handlePanelDeleteRequested]).
+  /// [_handlePanelDeleteRequested]), followed by the selected panel's own annotation section (the
+  /// `Annotate` tool picker and its marks list).
   Widget _buildPanelsGroup(BuildContext context, OcptShotListState state) {
     final bloc = context.read<OcptShotListBloc>();
     final selectedShot = state.selectedShot;
@@ -737,6 +798,27 @@ class _ShotListViewState extends State<_ShotListView> {
       onDeleteRequested: isReadOnly
           ? null
           : (panelId) => unawaited(_handlePanelDeleteRequested(context, panelId)),
+      selectedPanelId: state.selectedPanelId,
+      annotations: state.selectedPanel?.annotations ?? const <OcptStoryboardAnnotation>[],
+      selectedAnnotationId: state.selectedAnnotationId,
+      activeAnnotationTool: state.activeAnnotationTool,
+      onToolChanged: isReadOnly
+          ? null
+          : (tool) => bloc.add(OcptShotListAnnotationToolSelectedEvent(tool: tool)),
+      annotationTextValueOf: (annotationId) => _annotationTextValueOf(state, annotationId),
+      onAnnotationSelected: (annotationId) =>
+          bloc.add(OcptShotListAnnotationSelectedEvent(annotationId: annotationId)),
+      onAnnotationTextChanged: isReadOnly
+          ? null
+          : (annotationId, rawValue) => bloc.add(
+              OcptShotListAnnotationTextChangedEvent(
+                annotationId: annotationId,
+                rawValue: rawValue,
+              ),
+            ),
+      onAnnotationDeleteRequested: isReadOnly
+          ? null
+          : (annotationId) => unawaited(_handleAnnotationDeleteRequested(context, annotationId)),
     );
   }
 
