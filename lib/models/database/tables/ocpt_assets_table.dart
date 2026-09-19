@@ -39,6 +39,12 @@ class OcptAssetKindConverter extends TypeConverter<OcptAssetKind, String> {
 /// with a photo of its own, but the journal movement this document evidences — a receipt asset's
 /// "subject" is the entry it is the voucher *for*.
 ///
+/// **Two kinds set none of the four**: `OcptAssetKind.storyboardPanelImage` and
+/// `OcptAssetKind.floorPlanUnderlay` (`docs/plans/storyboard.md`, §2). Their owner points at the
+/// asset instead of the asset pointing back — `storyboard_panels.imageAssetId`,
+/// `floor_plan_cases.underlayAssetId` — so a row of either kind has nothing to list from the asset's
+/// side, and sets none of the four rather than gaining a fifth.
+///
 /// **Expect noise from `build_runner`.** The first three of those columns point back at tables that
 /// themselves point here (`people.photoAssetId`, `locations.permitAssetId`,
 /// `elements.photoAssetId`), so the schema holds a genuine foreign-key cycle. `drift_dev` logs an
