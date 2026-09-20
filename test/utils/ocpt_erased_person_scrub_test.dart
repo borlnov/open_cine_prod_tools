@@ -211,7 +211,7 @@ void main() {
     budgetAllowances: const [],
     storyboardPanels: const [],
     storyboardAnnotations: const [],
-    floorPlanCases: const [],
+    floorPlanSets: const [],
     floorPlanSymbols: const [],
     floorPlanArrows: const [],
     rowFieldVersions: const [],

@@ -7,7 +7,7 @@ import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart'
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_layer.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_set_element_shape.dart';
 
-/// A camera, a character, a light, a set element or any other placed symbol of a floor plan case,
+/// A camera, a character, a light, a set element or any other placed symbol of a floor plan set,
 /// as `OcptFloorPlanService.loadFloorPlans` builds it from its stored row.
 ///
 /// [shotId] is null exactly when [layer] is sequence-scoped
@@ -19,8 +19,8 @@ class OcptFloorPlanSymbol extends Equatable {
   /// The stable, unique id of this symbol (a UUID).
   final String id;
 
-  /// The case this symbol is placed on.
-  final String caseId;
+  /// The set this symbol is placed on.
+  final String setId;
 
   /// The shot this symbol belongs to — null on a sequence layer, set on a shot layer.
   final String? shotId;
@@ -61,7 +61,7 @@ class OcptFloorPlanSymbol extends Equatable {
   /// Class constructor
   const OcptFloorPlanSymbol({
     required this.id,
-    required this.caseId,
+    required this.setId,
     required this.shotId,
     required this.layer,
     required this.sortKey,
@@ -78,7 +78,7 @@ class OcptFloorPlanSymbol extends Equatable {
   /// Builds an [OcptFloorPlanSymbol] from its stored [row].
   factory OcptFloorPlanSymbol.fromRow(OcptFloorPlanSymbolRow row) => OcptFloorPlanSymbol(
     id: row.id,
-    caseId: row.caseId,
+    setId: row.setId,
     shotId: row.shotId,
     layer: row.layer,
     sortKey: row.sortKey,
@@ -95,13 +95,13 @@ class OcptFloorPlanSymbol extends Equatable {
   /// Object string representation, useful for debugging and logging.
   @override
   String toString() =>
-      "OcptFloorPlanSymbol(id: $id, caseId: $caseId, shotId: $shotId, layer: $layer)";
+      "OcptFloorPlanSymbol(id: $id, setId: $setId, shotId: $shotId, layer: $layer)";
 
   /// Object properties
   @override
   List<Object?> get props => [
     id,
-    caseId,
+    setId,
     shotId,
     layer,
     sortKey,

@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:drift/drift.dart';
-import 'package:open_cine_prod_tools/models/database/tables/ocpt_floor_plan_cases_table.dart';
+import 'package:open_cine_prod_tools/models/database/tables/ocpt_floor_plan_sets_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_shots_table.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_layer.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_set_element_shape.dart';
@@ -14,9 +14,23 @@ class OcptFloorPlanLayerConverter extends TypeConverter<OcptFloorPlanLayer, Stri
   /// Class constructor
   const OcptFloorPlanLayerConverter();
 
+  /// One-cycle back-compat map from the pre-merge layer names (`decor`, `furniture`, `fixedProps`,
+  /// `handProps`) a dev `.ocpt` file written before schema v4's layer merge may still hold, onto
+  /// their replacement in [OcptFloorPlanLayer] — schema version 4 is still an open development
+  /// cycle (`docs/adr/0029-schema-versions-frozen-at-stable-releases.md`), so the merge happens in
+  /// place with no migration step of its own, and this is what lets such a file still open. Safe to
+  /// drop once schema v4 ships stable, since a stable release never wrote the old names.
+  static const _legacyLayerNames = {
+    'decor': OcptFloorPlanLayer.set,
+    'furniture': OcptFloorPlanLayer.set,
+    'fixedProps': OcptFloorPlanLayer.set,
+    'handProps': OcptFloorPlanLayer.props,
+  };
+
   /// {@macro drift.TypeConverter.fromSql}
   @override
-  OcptFloorPlanLayer fromSql(String fromDb) => OcptFloorPlanLayer.values.byName(fromDb);
+  OcptFloorPlanLayer fromSql(String fromDb) =>
+      _legacyLayerNames[fromDb] ?? OcptFloorPlanLayer.values.byName(fromDb);
 
   /// {@macro drift.TypeConverter.toSql}
   @override
@@ -40,7 +54,7 @@ class OcptFloorPlanSetElementShapeConverter
   String toSql(OcptFloorPlanSetElementShape value) => value.name;
 }
 
-/// A camera, a character, a light, a set element or any other placed symbol of a floor plan case.
+/// A camera, a character, a light, a set element or any other placed symbol of a floor plan set.
 ///
 /// One table for both of the floor plan's scopes: [layer] decides the scope, and [shotId] is null
 /// **exactly when** [layer] is sequence-scoped (`OcptFloorPlanLayer.isSequenceScoped`) — the
@@ -48,7 +62,7 @@ class OcptFloorPlanSetElementShapeConverter
 ///
 /// A camera symbol's letter (`3A`, `3B`) and a shot layer's shot number are **never stored**: both
 /// are derived at read time, the letter from this row's rank among the same shot's live cameras on
-/// the same case in [sortKey] order, the number from the shot's own rank in its sequence — the house
+/// the same set in [sortKey] order, the number from the shot's own rank in its sequence — the house
 /// rule the shot code already follows.
 @DataClassName('OcptFloorPlanSymbolRow')
 class OcptFloorPlanSymbolsTable extends Table {
@@ -59,8 +73,8 @@ class OcptFloorPlanSymbolsTable extends Table {
   /// The stable, unique id of this symbol (a UUID).
   TextColumn get id => text()();
 
-  /// The case this symbol is placed on.
-  TextColumn get caseId => text().references(OcptFloorPlanCasesTable, #id)();
+  /// The set this symbol is placed on.
+  TextColumn get setId => text().references(OcptFloorPlanSetsTable, #id)();
 
   /// The shot this symbol belongs to — null on a sequence layer, set on a shot layer. See the class
   /// doc comment.
@@ -103,8 +117,7 @@ class OcptFloorPlanSymbolsTable extends Table {
 
   /// The visual primitive a set-element (sequence-layer) symbol is drawn as — a wall, a door, a
   /// piece of furniture, or a free-hand shape. **Null for every camera, character and light
-  /// symbol**, which don't use it: only a décor symbol on [OcptFloorPlanLayer.decor],
-  /// `.furniture` or `.fixedProps` carries one.
+  /// symbol**, which don't use it: only a symbol on [OcptFloorPlanLayer.set] carries one.
   TextColumn get setElementShape =>
       text().nullable().map(const OcptFloorPlanSetElementShapeConverter())();
 

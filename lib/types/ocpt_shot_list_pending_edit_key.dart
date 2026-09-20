@@ -12,7 +12,7 @@ import 'package:open_cine_prod_tools/types/ocpt_shot_list_editable_field.dart';
 /// used before the board existed: the debounce is shared by every free-text field the mode owns,
 /// and the board's panel comment ([OcptShotListPanelCommentEditKey]) and a mark's own text
 /// ([OcptShotListAnnotationTextEditKey]) are not shot fields at all. M5 (the floor plans view's
-/// sequence half, `docs/plans/storyboard.md`) adds [OcptShotListCaseNameEditKey], typed in place
+/// sequence half, `docs/plans/storyboard.md`) adds [OcptShotListSetNameEditKey], typed in place
 /// into a case's own tab. M6 (the shot half) adds [OcptShotListSymbolLabelEditKey], typed in place
 /// through the canvas's own `label` tool.
 ///
@@ -23,17 +23,17 @@ sealed class OcptShotListPendingEditKey extends Equatable {
   const OcptShotListPendingEditKey();
 }
 
-/// A pending edit of case [caseId]'s own name, typed in place into its floor plans tab.
-class OcptShotListCaseNameEditKey extends OcptShotListPendingEditKey {
+/// A pending edit of case [setId]'s own name, typed in place into its floor plans tab.
+class OcptShotListSetNameEditKey extends OcptShotListPendingEditKey {
   /// The id of the case whose name is being edited.
-  final String caseId;
+  final String setId;
 
   /// Class constructor
-  const OcptShotListCaseNameEditKey({required this.caseId});
+  const OcptShotListSetNameEditKey({required this.setId});
 
   /// Object properties
   @override
-  List<Object?> get props => [caseId];
+  List<Object?> get props => [setId];
 }
 
 /// A pending edit of shot [shotId]'s [field] — the mode's original, and still only, kind of pending

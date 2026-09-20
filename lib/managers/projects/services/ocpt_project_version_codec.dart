@@ -611,7 +611,11 @@ class OcptProjectVersionCodec {
   static const _codeKey = "code";
 
   /// This is the key used to stringify or parse a `setId` column (`scene_sets.setId`,
-  /// `breakdown_tags.setId` or `shooting_slots.setId`) from a JSON object
+  /// `breakdown_tags.setId`, `shooting_slots.setId` or, from payload format 4,
+  /// `floor_plan_symbols.setId`/`floor_plan_arrows.setId` — a different sense of "set" (a sequence's
+  /// own floor plan décor rather than the resources catalogue's), but the same key name, following
+  /// this codec's own convention of one key per column name across the whole schema) from a JSON
+  /// object
   static const _setIdKey = "setId";
 
   /// This is the key used to stringify or parse a `roleId` column
@@ -971,9 +975,9 @@ class OcptProjectVersionCodec {
   /// object, from payload format 4: the marks drawn over a panel's frame.
   static const _storyboardAnnotationsKey = "storyboardAnnotations";
 
-  /// This is the key used to stringify or parse the `floor_plan_cases` rows from a JSON object,
+  /// This is the key used to stringify or parse the `floor_plan_sets` rows from a JSON object,
   /// from payload format 4: a sequence's floor plan décors.
-  static const _floorPlanCasesKey = "floorPlanCases";
+  static const _floorPlanSetsKey = "floorPlanSets";
 
   /// This is the key used to stringify or parse the `floor_plan_symbols` rows from a JSON object,
   /// from payload format 4: the symbols placed on a floor plan case.
@@ -1016,34 +1020,31 @@ class OcptProjectVersionCodec {
   /// object, from payload format 4 — a label's own words, or an arrow's optional caption.
   static const _textKey = "text";
 
-  /// This is the key used to stringify or parse a `floor_plan_cases.underlayAssetId` column from a
-  /// JSON object, from payload format 4. `floor_plan_cases.sceneId` reuses [_sceneIdKey] directly,
+  /// This is the key used to stringify or parse a `floor_plan_sets.underlayAssetId` column from a
+  /// JSON object, from payload format 4. `floor_plan_sets.sceneId` reuses [_sceneIdKey] directly,
   /// the very same column meaning every other reader of it already carries.
   static const _underlayAssetIdKey = "underlayAssetId";
 
-  /// This is the key used to stringify or parse a `floor_plan_cases.underlayXM` column from a JSON
+  /// This is the key used to stringify or parse a `floor_plan_sets.underlayXM` column from a JSON
   /// object, from payload format 4 — the underlay's own frame, in metres.
   static const _underlayXMKey = "underlayXM";
 
-  /// This is the key used to stringify or parse a `floor_plan_cases.underlayYM` column from a JSON
+  /// This is the key used to stringify or parse a `floor_plan_sets.underlayYM` column from a JSON
   /// object, from payload format 4. See [_underlayXMKey].
   static const _underlayYMKey = "underlayYM";
 
-  /// This is the key used to stringify or parse a `floor_plan_cases.underlayWidthM` column from a
+  /// This is the key used to stringify or parse a `floor_plan_sets.underlayWidthM` column from a
   /// JSON object, from payload format 4. See [_underlayXMKey].
   static const _underlayWidthMKey = "underlayWidthM";
 
-  /// This is the key used to stringify or parse a `floor_plan_cases.underlayHeightM` column from a
+  /// This is the key used to stringify or parse a `floor_plan_sets.underlayHeightM` column from a
   /// JSON object, from payload format 4. See [_underlayXMKey].
   static const _underlayHeightMKey = "underlayHeightM";
 
-  /// This is the key used to stringify or parse a `floor_plan_cases.underlayRotationDeg` column
+  /// This is the key used to stringify or parse a `floor_plan_sets.underlayRotationDeg` column
   /// from a JSON object, from payload format 4. See [_underlayXMKey].
   static const _underlayRotationDegKey = "underlayRotationDeg";
 
-  /// This is the key used to stringify or parse a `floor_plan_symbols.caseId` or
-  /// `floor_plan_arrows.caseId` column from a JSON object, from payload format 4.
-  static const _caseIdKey = "caseId";
 
   /// This is the key used to stringify or parse a `floor_plan_symbols.layer` column from a JSON
   /// object, from payload format 4 — its own key rather than a reuse of [_kindKey], for the same
@@ -1188,7 +1189,7 @@ class OcptProjectVersionCodec {
     _storyboardAnnotationsKey: [
       for (final row in payload.storyboardAnnotations) _storyboardAnnotationToJson(row),
     ],
-    _floorPlanCasesKey: [for (final row in payload.floorPlanCases) _floorPlanCaseToJson(row)],
+    _floorPlanSetsKey: [for (final row in payload.floorPlanSets) _floorPlanSetToJson(row)],
     _floorPlanSymbolsKey: [
       for (final row in payload.floorPlanSymbols) _floorPlanSymbolToJson(row),
     ],
@@ -1351,7 +1352,7 @@ class OcptProjectVersionCodec {
   ///   disagreeing on which of the header's two views they were last left on are not the same
   ///   project. `budget_resources.personId` needs no entry of its own here: it is a column of
   ///   `budgetResources`, already in above. `storyboardPanels`, `storyboardAnnotations`,
-  ///   `floorPlanCases`, `floorPlanSymbols` and `floorPlanArrows` are the same case once more,
+  ///   `floorPlanSets`, `floorPlanSymbols` and `floorPlanArrows` are the same case once more,
   ///   from payload format 4 on: leave them out and a whole storyboard drawn, or a floor plan
   ///   placed, would hash identically to a shot list nobody has ever boarded — the working-copy
   ///   card claiming no drift and a restore over that work skipping the safety version it owes;
@@ -1567,10 +1568,10 @@ class OcptProjectVersionCodec {
         primaryKeyOf: (row) => row.id,
         toJson: _storyboardAnnotationToJson,
       ),
-      _floorPlanCasesKey: _canonicalRows(
-        payload.floorPlanCases,
+      _floorPlanSetsKey: _canonicalRows(
+        payload.floorPlanSets,
         primaryKeyOf: (row) => row.id,
-        toJson: _floorPlanCaseToJson,
+        toJson: _floorPlanSetToJson,
       ),
       _floorPlanSymbolsKey: _canonicalRows(
         payload.floorPlanSymbols,
@@ -1723,9 +1724,9 @@ class OcptProjectVersionCodec {
               for (final row in _rows(json, _storyboardAnnotationsKey))
                 _storyboardAnnotationFromJson(row),
             ],
-      floorPlanCases: payloadFormat < 4
+      floorPlanSets: payloadFormat < 4
           ? const []
-          : [for (final row in _rows(json, _floorPlanCasesKey)) _floorPlanCaseFromJson(row)],
+          : [for (final row in _rows(json, _floorPlanSetsKey)) _floorPlanSetFromJson(row)],
       floorPlanSymbols: payloadFormat < 4
           ? const []
           : [for (final row in _rows(json, _floorPlanSymbolsKey)) _floorPlanSymbolFromJson(row)],
@@ -2427,8 +2428,8 @@ class OcptProjectVersionCodec {
         isDeleted: _bool(json, _isDeletedKey),
       );
 
-  /// Serializes one `floor_plan_cases` row.
-  static Map<String, dynamic> _floorPlanCaseToJson(OcptFloorPlanCaseRow row) => {
+  /// Serializes one `floor_plan_sets` row.
+  static Map<String, dynamic> _floorPlanSetToJson(OcptFloorPlanSetRow row) => {
     _idKey: row.id,
     _sceneIdKey: row.sceneId,
     _nameKey: row.name,
@@ -2442,9 +2443,9 @@ class OcptProjectVersionCodec {
     _isDeletedKey: row.isDeleted,
   };
 
-  /// Parses one `floor_plan_cases` row.
-  static OcptFloorPlanCaseRow _floorPlanCaseFromJson(Map<String, dynamic> json) =>
-      OcptFloorPlanCaseRow(
+  /// Parses one `floor_plan_sets` row.
+  static OcptFloorPlanSetRow _floorPlanSetFromJson(Map<String, dynamic> json) =>
+      OcptFloorPlanSetRow(
         id: _string(json, _idKey),
         sceneId: _string(json, _sceneIdKey),
         name: _string(json, _nameKey),
@@ -2461,7 +2462,7 @@ class OcptProjectVersionCodec {
   /// Serializes one `floor_plan_symbols` row.
   static Map<String, dynamic> _floorPlanSymbolToJson(OcptFloorPlanSymbolRow row) => {
     _idKey: row.id,
-    _caseIdKey: row.caseId,
+    _setIdKey: row.setId,
     _shotIdKey: row.shotId,
     _layerKey: row.layer.name,
     _sortKeyKey: row.sortKey,
@@ -2480,7 +2481,7 @@ class OcptProjectVersionCodec {
   static OcptFloorPlanSymbolRow _floorPlanSymbolFromJson(Map<String, dynamic> json) =>
       OcptFloorPlanSymbolRow(
         id: _string(json, _idKey),
-        caseId: _string(json, _caseIdKey),
+        setId: _string(json, _setIdKey),
         shotId: _nullableString(json, _shotIdKey),
         layer: _enum(json, _layerKey, OcptFloorPlanLayer.values.asNameMap()),
         sortKey: _string(json, _sortKeyKey),
@@ -2502,7 +2503,7 @@ class OcptProjectVersionCodec {
   /// Serializes one `floor_plan_arrows` row.
   static Map<String, dynamic> _floorPlanArrowToJson(OcptFloorPlanArrowRow row) => {
     _idKey: row.id,
-    _caseIdKey: row.caseId,
+    _setIdKey: row.setId,
     _shotIdKey: row.shotId,
     _kindKey: row.kind.name,
     _fromSymbolIdKey: row.fromSymbolId,
@@ -2517,7 +2518,7 @@ class OcptProjectVersionCodec {
   static OcptFloorPlanArrowRow _floorPlanArrowFromJson(Map<String, dynamic> json) =>
       OcptFloorPlanArrowRow(
         id: _string(json, _idKey),
-        caseId: _string(json, _caseIdKey),
+        setId: _string(json, _setIdKey),
         shotId: _string(json, _shotIdKey),
         kind: _enum(json, _kindKey, OcptFloorPlanArrowKind.values.asNameMap()),
         fromSymbolId: _string(json, _fromSymbolIdKey),

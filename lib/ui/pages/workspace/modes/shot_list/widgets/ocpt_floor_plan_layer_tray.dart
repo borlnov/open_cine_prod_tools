@@ -28,11 +28,11 @@ class OcptFloorPlanTraySequenceCamera extends Equatable {
 }
 
 /// The floor plans canvas's own layer tray, down the left of the canvas
-/// (`docs/plans/storyboard.md`, §4.3): the **`Sequence layers`** group (décor, furniture, fixed
-/// props) with a visibility eye and an active-layer pick per row, the **`Shot layers`** group
-/// (cameras, characters, lights, hand props) with a visibility eye each, the cameras row's own
-/// expandable per-camera visibility under the `Sequence` focus, the **`Onion skin`** block
-/// (previous, next, one opacity), the metrics toggle, and the underlay's own row with its eye.
+/// (`docs/plans/storyboard.md`, §4.3): the **`Sequence layers`** group (the single, merged `set`
+/// layer) with a visibility eye per row, the **`Shot layers`** group (cameras, characters, lights,
+/// props) with a visibility eye each, the cameras row's own expandable per-camera visibility under
+/// the `Sequence` focus, the **`Onion skin`** block (previous, next, one opacity), the metrics
+/// toggle, and the underlay's own row with its eye.
 ///
 /// Visibility, [activeLayer], [hiddenCameraSymbolIds], the onion skin block, the metrics toggle
 /// and the underlay's own visibility are **view state**: every toggle reported by this widget only
@@ -71,10 +71,10 @@ class OcptFloorPlanLayerTray extends StatelessWidget {
   /// Whether the metrics overlay is shown.
   final bool isMetricsShown;
 
-  /// Whether the selected case's underlay is currently hidden.
+  /// Whether the selected set's underlay is currently hidden.
   final bool isUnderlayHidden;
 
-  /// Whether the selected case carries an underlay at all — the row still shows, greyed, while it
+  /// Whether the selected set carries an underlay at all — the row still shows, greyed, while it
   /// doesn't.
   final bool hasUnderlay;
 
@@ -128,19 +128,17 @@ class OcptFloorPlanLayerTray extends StatelessWidget {
     required this.onUnderlayClearRequested,
   });
 
-  /// The sequence layers offered, in tray order.
-  static const _sequenceLayers = [
-    OcptFloorPlanLayer.decor,
-    OcptFloorPlanLayer.furniture,
-    OcptFloorPlanLayer.fixedProps,
-  ];
+  /// The sequence layers offered, in tray order — a single entry now that `decor`/`furniture`/
+  /// `fixedProps` have merged into [OcptFloorPlanLayer.set]: interim (R0) still renders it through
+  /// [_buildLayerRow], with no radio dot, since there is nothing left to pick among.
+  static const _sequenceLayers = [OcptFloorPlanLayer.set];
 
   /// The shot layers offered, in tray order.
   static const _shotLayers = [
     OcptFloorPlanLayer.cameras,
     OcptFloorPlanLayer.characters,
     OcptFloorPlanLayer.lights,
-    OcptFloorPlanLayer.handProps,
+    OcptFloorPlanLayer.props,
   ];
 
   @override
@@ -163,7 +161,8 @@ class OcptFloorPlanLayerTray extends StatelessWidget {
               ),
             ),
           ),
-          for (final layer in _sequenceLayers) _buildLayerRow(context, layer),
+          for (final layer in _sequenceLayers)
+            _buildLayerRow(context, layer, isRadioSelectable: false),
           const Divider(height: 16),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
@@ -428,16 +427,19 @@ class OcptFloorPlanLayerTray extends StatelessWidget {
   }
 
   /// [layer]'s own localized label.
+  ///
+  /// [OcptFloorPlanLayer.set] reuses the retired `decor` layer's own label as an interim (R0):
+  /// the merged layer has no ARB string of its own yet, and picking one of the three retired
+  /// labels rather than minting a new key keeps this rename mechanical — a later milestone gives
+  /// the tray its own redesigned labels.
   String _labelOf(BuildContext context, OcptFloorPlanLayer layer) {
     final tr = Tr.of(context);
     return switch (layer) {
-      OcptFloorPlanLayer.decor => tr.shotListFloorPlanLayerDecorLabel,
-      OcptFloorPlanLayer.furniture => tr.shotListFloorPlanLayerFurnitureLabel,
-      OcptFloorPlanLayer.fixedProps => tr.shotListFloorPlanLayerFixedPropsLabel,
+      OcptFloorPlanLayer.set => tr.shotListFloorPlanLayerDecorLabel,
       OcptFloorPlanLayer.cameras => tr.shotListFloorPlanLayerCamerasLabel,
       OcptFloorPlanLayer.characters => tr.shotListFloorPlanLayerCharactersLabel,
       OcptFloorPlanLayer.lights => tr.shotListFloorPlanLayerLightsLabel,
-      OcptFloorPlanLayer.handProps => tr.shotListFloorPlanLayerHandPropsLabel,
+      OcptFloorPlanLayer.props => tr.shotListFloorPlanLayerHandPropsLabel,
     };
   }
 }

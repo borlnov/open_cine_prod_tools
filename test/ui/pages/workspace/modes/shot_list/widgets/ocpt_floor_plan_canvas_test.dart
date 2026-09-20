@@ -6,7 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
-import 'package:open_cine_prod_tools/models/ocpt_floor_plan_case.dart';
+import 'package:open_cine_prod_tools/models/ocpt_floor_plan_set.dart';
 import 'package:open_cine_prod_tools/models/ocpt_floor_plan_symbol.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_layer.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_tool.dart';
@@ -45,9 +45,9 @@ OcptFloorPlanSymbol _furnitureSymbol({
   double rotationDeg = 0,
 }) => OcptFloorPlanSymbol(
   id: "sym-1",
-  caseId: "case-1",
+  setId: "case-1",
   shotId: null,
-  layer: OcptFloorPlanLayer.furniture,
+  layer: OcptFloorPlanLayer.set,
   sortKey: "a0",
   xM: xM,
   yM: yM,
@@ -59,7 +59,7 @@ OcptFloorPlanSymbol _furnitureSymbol({
   setElementShape: null,
 );
 
-OcptFloorPlanCase _caseOf(OcptFloorPlanSymbol symbol) => OcptFloorPlanCase(
+OcptFloorPlanSet _caseOf(OcptFloorPlanSymbol symbol) => OcptFloorPlanSet(
   id: "case-1",
   sceneId: "scene-1",
   name: "Case",
@@ -84,7 +84,7 @@ void main() {
     required List<({double xM, double yM})> movedTo,
     required List<({double widthM, double heightM})> resizedTo,
   }) => OcptFloorPlanCanvas(
-    floorPlanCase: _caseOf(symbol),
+    floorPlanSet: _caseOf(symbol),
     shotRankByShotId: const {},
     focusShotId: null,
     previousShotId: null,
@@ -99,7 +99,7 @@ void main() {
     pendingArrowAnchorSymbolId: null,
     isMetricsShown: false,
     activeTool: OcptFloorPlanTool.select,
-    activeLayer: OcptFloorPlanLayer.furniture,
+    activeLayer: OcptFloorPlanLayer.set,
     viewportController: controller,
     isReadOnly: false,
     symbolLabelValueOf: (_) => "",

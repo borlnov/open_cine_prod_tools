@@ -4,8 +4,7 @@
 
 /// The visual primitive a `floor_plan_symbols` set-element (sequence-layer) symbol is drawn as —
 /// `floor_plan_symbols.setElementShape`. Null on a camera, character or light symbol, which don't
-/// use it: only a décor symbol (`OcptFloorPlanLayer.decor`, `.furniture` or `.fixedProps`) carries
-/// one.
+/// use it: only a symbol on `OcptFloorPlanLayer.set` carries one.
 enum OcptFloorPlanSetElementShape {
   /// A straight wall segment.
   wall,

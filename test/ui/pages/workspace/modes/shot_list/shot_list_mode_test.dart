@@ -830,7 +830,7 @@ void main() {
 
       await tester.tap(find.byTooltip(tr.shotListFloorPlanAddCaseAction));
       await tester.pumpAndSettle();
-      expect(bloc.state.selectedCaseId, isNotNull);
+      expect(bloc.state.selectedSetId, isNotNull);
 
       return bloc;
     }
@@ -861,9 +861,9 @@ void main() {
       await tester.tap(find.byTooltip(tr.shotListFloorPlanAddCaseAction));
       await tester.pumpAndSettle();
 
-      expect(bloc.state.casesOfSelectedSequence, hasLength(1));
-      final createdCase = bloc.state.casesOfSelectedSequence.single;
-      expect(bloc.state.selectedCaseId, createdCase.id);
+      expect(bloc.state.setsOfSelectedSequence, hasLength(1));
+      final createdCase = bloc.state.setsOfSelectedSequence.single;
+      expect(bloc.state.selectedSetId, createdCase.id);
       expect(createdCase.name, "KITCHEN");
       expect(find.text("KITCHEN"), findsOneWidget);
     });
@@ -880,7 +880,7 @@ void main() {
       await tester.tap(find.byType(OcptFloorPlanCanvas));
       await tester.pumpAndSettle();
 
-      final symbols = bloc.state.selectedCase!.symbols;
+      final symbols = bloc.state.selectedSet!.symbols;
       expect(symbols, hasLength(1));
       // Sequence-scoped: the M5 scope invariant this whole milestone stands on.
       expect(symbols.single.shotId, isNull);
@@ -896,18 +896,18 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.byType(OcptFloorPlanCanvas));
       await tester.pumpAndSettle();
-      expect(bloc.state.selectedCase!.symbols, hasLength(1));
+      expect(bloc.state.selectedSet!.symbols, hasLength(1));
 
       await tester.tap(find.byTooltip(tr.shotListFloorPlanDeleteSymbolAction));
       await tester.pumpAndSettle();
 
       expect(find.byType(OcptConfirmDialog), findsOneWidget);
-      expect(bloc.state.selectedCase!.symbols, hasLength(1));
+      expect(bloc.state.selectedSet!.symbols, hasLength(1));
 
       await tester.tap(find.text(tr.shotListDeleteConfirmDeleteAction));
       await tester.pumpAndSettle();
 
-      expect(bloc.state.selectedCase!.symbols, isEmpty);
+      expect(bloc.state.selectedSet!.symbols, isEmpty);
     });
 
     testWidgets(
@@ -931,18 +931,18 @@ void main() {
             .read<OcptShotListBloc>();
         expect(previewedBloc.state.isPreviewingVersion, isTrue);
         expect(previewedBloc.state.centreView, OcptShotListCentreView.floorPlans);
-        expect(previewedBloc.state.selectedCaseId, isNotNull);
+        expect(previewedBloc.state.selectedSetId, isNotNull);
 
         final tr = Tr.of(tester.element(find.byType(OcptShotListMode)));
 
         // `+ Case` no longer reports a tap.
-        final addCaseButton = tester.widget<IconButton>(
+        final addSetButton = tester.widget<IconButton>(
           find.descendant(
             of: find.byTooltip(tr.shotListFloorPlanAddCaseAction),
             matching: find.byType(IconButton),
           ),
         );
-        expect(addCaseButton.onPressed, isNull);
+        expect(addSetButton.onPressed, isNull);
 
         // The `setElement` tool is withheld too (a null `onPressed`), so it can never be picked
         // to place anything in the first place.
@@ -1039,7 +1039,7 @@ void main() {
         await tester.tap(find.byType(OcptFloorPlanCanvas));
         await tester.pumpAndSettle();
 
-        final symbols = bloc.state.selectedCase!.symbols;
+        final symbols = bloc.state.selectedSet!.symbols;
         expect(symbols, hasLength(1));
         expect(symbols.single.shotId, shotId);
         expect(symbols.single.layer, OcptFloorPlanLayer.cameras);
@@ -1048,11 +1048,11 @@ void main() {
         await tester.tap(find.byTooltip(tr.shotListFloorPlanDeleteSymbolAction));
         await tester.pumpAndSettle();
         expect(find.byType(OcptConfirmDialog), findsOneWidget);
-        expect(bloc.state.selectedCase!.symbols, hasLength(1));
+        expect(bloc.state.selectedSet!.symbols, hasLength(1));
 
         await tester.tap(find.text(tr.shotListDeleteConfirmDeleteAction));
         await tester.pumpAndSettle();
-        expect(bloc.state.selectedCase!.symbols, isEmpty);
+        expect(bloc.state.selectedSet!.symbols, isEmpty);
       },
     );
   });

@@ -10,8 +10,8 @@ import 'dart:ui' show Offset;
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_courier_prime_fonts.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_export_file_name.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_script_page_painter.dart';
-import 'package:open_cine_prod_tools/models/ocpt_floor_plan_case.dart';
 import 'package:open_cine_prod_tools/models/ocpt_floor_plan_labels.dart';
+import 'package:open_cine_prod_tools/models/ocpt_floor_plan_set.dart';
 import 'package:open_cine_prod_tools/models/ocpt_floor_plan_sheet.dart';
 import 'package:open_cine_prod_tools/models/ocpt_floor_plan_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
@@ -204,14 +204,14 @@ class OcptFloorPlanPdfService {
     };
 
     final pages = <pw.Page>[];
-    for (final floorPlanCase in floorPlanSnapshot.casesOfScene(sequence.sceneId)) {
-      final underlayImage = await _readImageOrNull(floorPlanCase.underlayPath);
+    for (final floorPlanSet in floorPlanSnapshot.setsOfScene(sequence.sceneId)) {
+      final underlayImage = await _readImageOrNull(floorPlanSet.underlayPath);
       pages.addAll(
-        _pagesOfCase(
+        _pagesOfSet(
           painter: painter,
           labels: labels,
           sequence: sequence,
-          floorPlanCase: floorPlanCase,
+          floorPlanSet: floorPlanSet,
           shotRankByShotId: shotRankByShotId,
           projectName: projectName,
           underlayImage: underlayImage,
@@ -221,23 +221,23 @@ class OcptFloorPlanPdfService {
     return pages;
   }
 
-  /// The pages [floorPlanCase] itself contributes: one per shot of [sequence] holding a live camera
+  /// The pages [floorPlanSet] itself contributes: one per shot of [sequence] holding a live camera
   /// on it, in the sequence's own order, or exactly one bare-décor page when none does.
   /// [underlayImage] is the case's own underlay, already resolved by [pagesOfSequence], or null
   /// while it has none placed or its file could not be read/decoded — the same image (or absence)
   /// prints on every page this case contributes.
-  List<pw.Page> _pagesOfCase({
+  List<pw.Page> _pagesOfSet({
     required OcptScriptPagePainter painter,
     required OcptFloorPlanLabels labels,
     required OcptSceneShotSequence sequence,
-    required OcptFloorPlanCase floorPlanCase,
+    required OcptFloorPlanSet floorPlanSet,
     required Map<String, int> shotRankByShotId,
     required String projectName,
     required pw.MemoryImage? underlayImage,
   }) {
     final shotsWithCamera = [
       for (final shot in sequence.shots)
-        if (floorPlanCase.symbols.any(
+        if (floorPlanSet.symbols.any(
           (symbol) => symbol.shotId == shot.id && symbol.layer == OcptFloorPlanLayer.cameras,
         ))
           shot,
@@ -245,7 +245,7 @@ class OcptFloorPlanPdfService {
 
     if (shotsWithCamera.isEmpty) {
       final sheet = OcptFloorPlanSheet.of(
-        floorPlanCase: floorPlanCase,
+        floorPlanSet: floorPlanSet,
         focusShotId: null,
         shotRankByShotId: shotRankByShotId,
       );
@@ -254,7 +254,7 @@ class OcptFloorPlanPdfService {
           painter: painter,
           labels: labels,
           sequence: sequence,
-          floorPlanCase: floorPlanCase,
+          floorPlanSet: floorPlanSet,
           sheet: sheet,
           shot: null,
           projectName: projectName,
@@ -269,9 +269,9 @@ class OcptFloorPlanPdfService {
           painter: painter,
           labels: labels,
           sequence: sequence,
-          floorPlanCase: floorPlanCase,
+          floorPlanSet: floorPlanSet,
           sheet: OcptFloorPlanSheet.of(
-            floorPlanCase: floorPlanCase,
+            floorPlanSet: floorPlanSet,
             focusShotId: shot.id,
             shotRankByShotId: shotRankByShotId,
             // Never ghosted on paper: a printed sheet shows the one shot it was built for.
@@ -316,7 +316,7 @@ class OcptFloorPlanPdfService {
     required OcptScriptPagePainter painter,
     required OcptFloorPlanLabels labels,
     required OcptSceneShotSequence sequence,
-    required OcptFloorPlanCase floorPlanCase,
+    required OcptFloorPlanSet floorPlanSet,
     required OcptFloorPlanSheet sheet,
     required OcptShot? shot,
     required String projectName,
@@ -347,7 +347,7 @@ class OcptFloorPlanPdfService {
           _runningHead(painter: painter, labels: labels, projectName: projectName),
           pw.SizedBox(height: 4),
           pw.Text(
-            "${labels.titleOfSequence(sequence.id)} — ${floorPlanCase.name}",
+            "${labels.titleOfSequence(sequence.id)} — ${floorPlanSet.name}",
             style: pw.TextStyle(font: painter.fonts.bold, fontSize: _titleFontSizePt),
           ),
           pw.SizedBox(height: 2),

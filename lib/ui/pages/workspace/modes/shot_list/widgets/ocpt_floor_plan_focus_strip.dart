@@ -15,7 +15,7 @@ import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
 /// [selectedShotId] here — so a chip dispatches the very same event the table's own rows do
 /// ([onShotChipSelected] → `OcptShotListShotSelectedEvent`); the `Sequence` chip dispatches the
 /// deselection instead ([onSequenceChipSelected] → `OcptShotListShotDeselectedEvent`). A shot chip
-/// shows a **filled dot** when [hasCameraOnCaseOf] says the shot has a camera on the case currently
+/// shows a **filled dot** when [hasCameraOnSetOf] says the shot has a camera on the set currently
 /// shown, a **hollow** one otherwise — a gap in the sequence's own numbers is a shot still to
 /// place, and this is the one place that says which. The neighbour ghosted by the onion skin under
 /// a shot focus ([previousShotId]/[nextShotId]) carries a small `prev`/`next` tag.
@@ -23,9 +23,9 @@ class OcptFloorPlanFocusStrip extends StatelessWidget {
   /// The selected sequence's own shots, in order.
   final List<OcptShot> shots;
 
-  /// Whether each of [shots] has a live camera symbol on the case currently shown, keyed by shot
+  /// Whether each of [shots] has a live camera symbol on the set currently shown, keyed by shot
   /// id — a shot missing from this map reads as having none.
-  final Map<String, bool> hasCameraOnCaseOf;
+  final Map<String, bool> hasCameraOnSetOf;
 
   /// The id of the currently selected (focused) shot, or null for the `Sequence` focus.
   final String? selectedShotId;
@@ -47,7 +47,7 @@ class OcptFloorPlanFocusStrip extends StatelessWidget {
   const OcptFloorPlanFocusStrip({
     super.key,
     required this.shots,
-    required this.hasCameraOnCaseOf,
+    required this.hasCameraOnSetOf,
     required this.selectedShotId,
     required this.previousShotId,
     required this.nextShotId,
@@ -95,13 +95,13 @@ class OcptFloorPlanFocusStrip extends StatelessWidget {
     );
   }
 
-  /// One shot's own chip: its code, a filled/hollow dot for [hasCameraOnCaseOf], and a `prev`/
+  /// One shot's own chip: its code, a filled/hollow dot for [hasCameraOnSetOf], and a `prev`/
   /// `next` tag while it is [previousShotId]/[nextShotId].
   Widget _buildShotChip(BuildContext context, OcptShot shot) {
     final theme = Theme.of(context);
     final tr = Tr.of(context);
     final isActive = shot.id == selectedShotId;
-    final hasCamera = hasCameraOnCaseOf[shot.id] ?? false;
+    final hasCamera = hasCameraOnSetOf[shot.id] ?? false;
     final tag = shot.id == previousShotId
         ? tr.shotListFloorPlanFocusPreviousChipTag
         : shot.id == nextShotId

@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:drift/drift.dart';
-import 'package:open_cine_prod_tools/models/database/tables/ocpt_floor_plan_cases_table.dart';
+import 'package:open_cine_prod_tools/models/database/tables/ocpt_floor_plan_sets_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_floor_plan_symbols_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_shots_table.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_arrow_kind.dart';
@@ -23,7 +23,7 @@ class OcptFloorPlanArrowKindConverter extends TypeConverter<OcptFloorPlanArrowKi
   String toSql(OcptFloorPlanArrowKind value) => value.name;
 }
 
-/// A movement or camera-move arrow drawn between two symbols of the same floor plan case.
+/// A movement or camera-move arrow drawn between two symbols of the same floor plan set.
 ///
 /// [shotId] is **always set**, unlike `floor_plan_symbols.shotId`: an arrow is a movement, and a
 /// movement belongs to a shot even when either end it connects — [fromSymbolId] or [toSymbolId] —
@@ -38,8 +38,8 @@ class OcptFloorPlanArrowsTable extends Table {
   /// The stable, unique id of this arrow (a UUID).
   TextColumn get id => text()();
 
-  /// The case this arrow is drawn on.
-  TextColumn get caseId => text().references(OcptFloorPlanCasesTable, #id)();
+  /// The set this arrow is drawn on.
+  TextColumn get setId => text().references(OcptFloorPlanSetsTable, #id)();
 
   /// The shot this movement belongs to. Always set — see the class doc comment.
   TextColumn get shotId => text().references(OcptShotsTable, #id)();

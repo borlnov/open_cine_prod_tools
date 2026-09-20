@@ -188,9 +188,9 @@ class OcptProjectVersionPayload extends Equatable {
   /// tombstones included.
   final List<OcptStoryboardAnnotationRow> storyboardAnnotations;
 
-  /// The `floor_plan_cases` rows of the project: a sequence's floor plan décors, tombstones
+  /// The `floor_plan_sets` rows of the project: a sequence's floor plan décors, tombstones
   /// included.
-  final List<OcptFloorPlanCaseRow> floorPlanCases;
+  final List<OcptFloorPlanSetRow> floorPlanSets;
 
   /// The `floor_plan_symbols` rows of the project: the cameras, characters, lights, set elements
   /// and other placed symbols of a floor plan case, tombstones included.
@@ -323,7 +323,7 @@ class OcptProjectVersionPayload extends Equatable {
     required this.budgetAllowances,
     required this.storyboardPanels,
     required this.storyboardAnnotations,
-    required this.floorPlanCases,
+    required this.floorPlanSets,
     required this.floorPlanSymbols,
     required this.floorPlanArrows,
     required this.rowFieldVersions,
@@ -368,7 +368,7 @@ class OcptProjectVersionPayload extends Equatable {
       "budgetAllowances: ${budgetAllowances.length}, "
       "storyboardPanels: ${storyboardPanels.length}, "
       "storyboardAnnotations: ${storyboardAnnotations.length}, "
-      "floorPlanCases: ${floorPlanCases.length}, "
+      "floorPlanSets: ${floorPlanSets.length}, "
       "floorPlanSymbols: ${floorPlanSymbols.length}, "
       "floorPlanArrows: ${floorPlanArrows.length}, "
       "rowFieldVersions: ${rowFieldVersions.length}, "
@@ -423,7 +423,7 @@ class OcptProjectVersionPayload extends Equatable {
     budgetAllowances,
     storyboardPanels,
     storyboardAnnotations,
-    floorPlanCases,
+    floorPlanSets,
     floorPlanSymbols,
     floorPlanArrows,
     rowFieldVersions,

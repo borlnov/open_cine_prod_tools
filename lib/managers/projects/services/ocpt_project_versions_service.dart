@@ -84,7 +84,7 @@ class OcptProjectVersionsService {
     'budget_shares',
     'storyboard_panels',
     'storyboard_annotations',
-    'floor_plan_cases',
+    'floor_plan_sets',
     'floor_plan_symbols',
     'floor_plan_arrows',
   ];
@@ -434,13 +434,13 @@ class OcptProjectVersionsService {
         ..insertAll(database.ocptBudgetCommitmentsTable, payload.budgetCommitments)
         ..insertAll(database.ocptBudgetEntriesTable, payload.budgetEntries)
         // The storyboard and floor plan tables, in the same dependency order [_applyPayload] restores
-        // them in: `floor_plan_cases` references only `scenes` and, optionally, `assets` (both
+        // them in: `floor_plan_sets` references only `scenes` and, optionally, `assets` (both
         // inserted above); `storyboard_panels` references `shots` and, optionally, `assets` (both
         // inserted above); `storyboard_annotations` references the panel it marks, just inserted;
-        // `floor_plan_symbols` references `floor_plan_cases` and, optionally, `shots` (both inserted
-        // above); `floor_plan_arrows` references `floor_plan_cases`, `shots` and the two
+        // `floor_plan_symbols` references `floor_plan_sets` and, optionally, `shots` (both inserted
+        // above); `floor_plan_arrows` references `floor_plan_sets`, `shots` and the two
         // `floor_plan_symbols` rows it connects, so it comes last.
-        ..insertAll(database.ocptFloorPlanCasesTable, payload.floorPlanCases)
+        ..insertAll(database.ocptFloorPlanSetsTable, payload.floorPlanSets)
         ..insertAll(database.ocptStoryboardPanelsTable, payload.storyboardPanels)
         ..insertAll(database.ocptStoryboardAnnotationsTable, payload.storyboardAnnotations)
         ..insertAll(database.ocptFloorPlanSymbolsTable, payload.floorPlanSymbols)
@@ -707,7 +707,7 @@ class OcptProjectVersionsService {
       storyboardAnnotations: await database
           .select(database.ocptStoryboardAnnotationsTable)
           .get(),
-      floorPlanCases: await database.select(database.ocptFloorPlanCasesTable).get(),
+      floorPlanSets: await database.select(database.ocptFloorPlanSetsTable).get(),
       floorPlanSymbols: await database.select(database.ocptFloorPlanSymbolsTable).get(),
       floorPlanArrows: await database.select(database.ocptFloorPlanArrowsTable).get(),
       rowFieldVersions: await _captureRowFieldVersions(database: database),
@@ -832,12 +832,12 @@ class OcptProjectVersionsService {
   /// restore running under `PRAGMA defer_foreign_keys = ON` (see [restoreVersion]).
   ///
   /// The five storyboard and floor plan tables (`docs/plans/storyboard.md`) are restored last, in
-  /// their own dependency order: `floor_plan_cases` (references only `scenes`, restored at the very
+  /// their own dependency order: `floor_plan_sets` (references only `scenes`, restored at the very
   /// top, and optionally `assets`) before `storyboard_panels` (references `shots` and optionally
   /// `assets`, both restored well above) before `storyboard_annotations` (references the panel it
-  /// marks, restored immediately above) before `floor_plan_symbols` (references `floor_plan_cases`
+  /// marks, restored immediately above) before `floor_plan_symbols` (references `floor_plan_sets`
   /// and optionally `shots`, both restored above) before `floor_plan_arrows` last (references
-  /// `floor_plan_cases`, `shots` and the two `floor_plan_symbols` rows it connects, all restored
+  /// `floor_plan_sets`, `shots` and the two `floor_plan_symbols` rows it connects, all restored
   /// above it). None of the five closes a cycle of its own.
   ///
   /// [payload] arrives already scrubbed of every erased person: [loadPayload] is what does it, once,
@@ -1231,13 +1231,13 @@ class OcptProjectVersionsService {
       stamps: stamps,
     );
 
-    // `floor_plan_cases` references only `scenes` (restored at the very top) and, optionally,
+    // `floor_plan_sets` references only `scenes` (restored at the very top) and, optionally,
     // `assets` (restored well above, inside the asset trio's own deferred-foreign-key cycle) — not a
     // forward reference either way.
     await _restoreTable(
       database: database,
-      table: database.ocptFloorPlanCasesTable,
-      payloadRows: payload.floorPlanCases,
+      table: database.ocptFloorPlanSetsTable,
+      payloadRows: payload.floorPlanSets,
       rowIdOf: (row) => row.id,
       tombstonedOf: (row) => row.copyWith(isDeleted: true),
       stamps: stamps,
@@ -1264,7 +1264,7 @@ class OcptProjectVersionsService {
       stamps: stamps,
     );
 
-    // `floor_plan_symbols` references `floor_plan_cases` (restored above) and, optionally, `shots`
+    // `floor_plan_symbols` references `floor_plan_sets` (restored above) and, optionally, `shots`
     // (restored well above) — not a forward reference either way.
     await _restoreTable(
       database: database,
@@ -1275,7 +1275,7 @@ class OcptProjectVersionsService {
       stamps: stamps,
     );
 
-    // `floor_plan_arrows` references `floor_plan_cases`, `shots` and the two `floor_plan_symbols`
+    // `floor_plan_arrows` references `floor_plan_sets`, `shots` and the two `floor_plan_symbols`
     // rows it connects — the last of them restored immediately above, so it comes last.
     await _restoreTable(
       database: database,
@@ -1452,7 +1452,7 @@ class OcptProjectVersionsService {
       // (`docs/plans/storyboard.md`, §2) — so all five travel through unchanged.
       storyboardPanels: payload.storyboardPanels,
       storyboardAnnotations: payload.storyboardAnnotations,
-      floorPlanCases: payload.floorPlanCases,
+      floorPlanSets: payload.floorPlanSets,
       floorPlanSymbols: payload.floorPlanSymbols,
       floorPlanArrows: payload.floorPlanArrows,
       rowFieldVersions: payload.rowFieldVersions,

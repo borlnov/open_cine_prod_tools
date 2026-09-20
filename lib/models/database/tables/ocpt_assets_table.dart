@@ -42,7 +42,7 @@ class OcptAssetKindConverter extends TypeConverter<OcptAssetKind, String> {
 /// **Two kinds set none of the four**: `OcptAssetKind.storyboardPanelImage` and
 /// `OcptAssetKind.floorPlanUnderlay` (`docs/plans/storyboard.md`, §2). Their owner points at the
 /// asset instead of the asset pointing back — `storyboard_panels.imageAssetId`,
-/// `floor_plan_cases.underlayAssetId` — so a row of either kind has nothing to list from the asset's
+/// `floor_plan_sets.underlayAssetId` — so a row of either kind has nothing to list from the asset's
 /// side, and sets none of the four rather than gaining a fifth.
 ///
 /// **Expect noise from `build_runner`.** The first three of those columns point back at tables that

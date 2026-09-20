@@ -4,7 +4,7 @@
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/models/ocpt_floor_plan_arrow.dart';
-import 'package:open_cine_prod_tools/models/ocpt_floor_plan_case.dart';
+import 'package:open_cine_prod_tools/models/ocpt_floor_plan_set.dart';
 import 'package:open_cine_prod_tools/models/ocpt_floor_plan_sheet.dart';
 import 'package:open_cine_prod_tools/models/ocpt_floor_plan_symbol.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_arrow_kind.dart';
@@ -29,7 +29,7 @@ OcptFloorPlanSymbol _symbol({
   OcptFloorPlanSetElementShape? setElementShape,
 }) => OcptFloorPlanSymbol(
   id: id,
-  caseId: "case-1",
+  setId: "case-1",
   shotId: shotId,
   layer: layer,
   sortKey: sortKey,
@@ -53,7 +53,7 @@ OcptFloorPlanArrow _arrow({
   double? ctrlYM,
 }) => OcptFloorPlanArrow(
   id: id,
-  caseId: "case-1",
+  setId: "case-1",
   shotId: shotId,
   kind: kind,
   fromSymbolId: fromSymbolId,
@@ -63,7 +63,7 @@ OcptFloorPlanArrow _arrow({
   ctrlYM: ctrlYM,
 );
 
-OcptFloorPlanCase _caseOf({
+OcptFloorPlanSet _caseOf({
   List<OcptFloorPlanSymbol> symbols = const [],
   List<OcptFloorPlanArrow> arrows = const [],
   String? underlayAssetId,
@@ -71,7 +71,7 @@ OcptFloorPlanCase _caseOf({
   double? underlayYM,
   double? underlayWidthM,
   double? underlayHeightM,
-}) => OcptFloorPlanCase(
+}) => OcptFloorPlanSet(
   id: "case-1",
   sceneId: "scene-1",
   name: "Kitchen",
@@ -90,11 +90,11 @@ OcptFloorPlanCase _caseOf({
 void main() {
   group("OcptFloorPlanSheet.of — sequence scope", () {
     test("always includes sequence-scoped symbols, never ghosted", () {
-      final decor = _symbol(id: "decor-1", layer: OcptFloorPlanLayer.decor);
-      final floorPlanCase = _caseOf(symbols: [decor]);
+      final decor = _symbol(id: "decor-1", layer: OcptFloorPlanLayer.set);
+      final floorPlanSet = _caseOf(symbols: [decor]);
 
       final sheet = OcptFloorPlanSheet.of(
-        floorPlanCase: floorPlanCase,
+        floorPlanSet: floorPlanSet,
         focusShotId: "shot-1",
         shotRankByShotId: const {},
       );
@@ -114,10 +114,10 @@ void main() {
         layer: OcptFloorPlanLayer.characters,
       );
       final camera2 = _symbol(id: "cam-2", shotId: "shot-2", layer: OcptFloorPlanLayer.cameras);
-      final floorPlanCase = _caseOf(symbols: [camera1, character1, camera2]);
+      final floorPlanSet = _caseOf(symbols: [camera1, character1, camera2]);
 
       final sheet = OcptFloorPlanSheet.of(
-        floorPlanCase: floorPlanCase,
+        floorPlanSet: floorPlanSet,
         focusShotId: null,
         shotRankByShotId: const {"shot-1": 1, "shot-2": 2},
       );
@@ -135,10 +135,10 @@ void main() {
         layer: OcptFloorPlanLayer.cameras,
         sortKey: "b",
       );
-      final floorPlanCase = _caseOf(symbols: [camera1, camera2]);
+      final floorPlanSet = _caseOf(symbols: [camera1, camera2]);
 
       final sheet = OcptFloorPlanSheet.of(
-        floorPlanCase: floorPlanCase,
+        floorPlanSet: floorPlanSet,
         focusShotId: null,
         shotRankByShotId: const {"shot-1": 3},
       );
@@ -152,10 +152,10 @@ void main() {
 
     test("a camera whose shot has no known rank draws with no camera label", () {
       final camera = _symbol(id: "cam-1", shotId: "shot-1", layer: OcptFloorPlanLayer.cameras);
-      final floorPlanCase = _caseOf(symbols: [camera]);
+      final floorPlanSet = _caseOf(symbols: [camera]);
 
       final sheet = OcptFloorPlanSheet.of(
-        floorPlanCase: floorPlanCase,
+        floorPlanSet: floorPlanSet,
         focusShotId: null,
         shotRankByShotId: const {},
       );
@@ -172,10 +172,10 @@ void main() {
         shotId: "shot-2",
         layer: OcptFloorPlanLayer.cameras,
       );
-      final floorPlanCase = _caseOf(symbols: [ownCamera, otherCamera]);
+      final floorPlanSet = _caseOf(symbols: [ownCamera, otherCamera]);
 
       final sheet = OcptFloorPlanSheet.of(
-        floorPlanCase: floorPlanCase,
+        floorPlanSet: floorPlanSet,
         focusShotId: "shot-1",
         shotRankByShotId: const {"shot-1": 1},
       );
@@ -197,12 +197,12 @@ void main() {
       );
       final nextCamera = _symbol(id: "cam-next", shotId: "shot-3", layer: OcptFloorPlanLayer.cameras);
       final farCamera = _symbol(id: "cam-far", shotId: "shot-9", layer: OcptFloorPlanLayer.cameras);
-      final floorPlanCase = _caseOf(
+      final floorPlanSet = _caseOf(
         symbols: [focusCamera, previousCamera, nextCamera, farCamera],
       );
 
       final sheet = OcptFloorPlanSheet.of(
-        floorPlanCase: floorPlanCase,
+        floorPlanSet: floorPlanSet,
         focusShotId: "shot-2",
         shotRankByShotId: const {"shot-1": 1, "shot-2": 2, "shot-3": 3},
         previousShotId: "shot-1",
@@ -236,10 +236,10 @@ void main() {
         fromSymbolId: "char-1",
         toSymbolId: "cam-1",
       );
-      final floorPlanCase = _caseOf(symbols: [camera, character], arrows: [arrow]);
+      final floorPlanSet = _caseOf(symbols: [camera, character], arrows: [arrow]);
 
       final sheet = OcptFloorPlanSheet.of(
-        floorPlanCase: floorPlanCase,
+        floorPlanSet: floorPlanSet,
         focusShotId: "shot-1",
         shotRankByShotId: const {"shot-1": 1},
       );
@@ -271,13 +271,13 @@ void main() {
         fromSymbolId: "char-prev",
         toSymbolId: "cam-prev",
       );
-      final floorPlanCase = _caseOf(
+      final floorPlanSet = _caseOf(
         symbols: [previousCamera, previousCharacter],
         arrows: [previousArrow],
       );
 
       final sheet = OcptFloorPlanSheet.of(
-        floorPlanCase: floorPlanCase,
+        floorPlanSet: floorPlanSet,
         focusShotId: "shot-2",
         shotRankByShotId: const {"shot-1": 1, "shot-2": 2},
         previousShotId: "shot-1",
@@ -295,10 +295,10 @@ void main() {
         fromSymbolId: "cam-a",
         toSymbolId: "cam-b",
       );
-      final floorPlanCase = _caseOf(symbols: [farCameraA, farCameraB], arrows: [farArrow]);
+      final floorPlanSet = _caseOf(symbols: [farCameraA, farCameraB], arrows: [farArrow]);
 
       final sheet = OcptFloorPlanSheet.of(
-        floorPlanCase: floorPlanCase,
+        floorPlanSet: floorPlanSet,
         focusShotId: "shot-1",
         shotRankByShotId: const {"shot-1": 1},
       );
@@ -309,10 +309,10 @@ void main() {
 
   group("OcptFloorPlanSheet.of — underlay", () {
     test("draws no underlay while the case's frame is incomplete", () {
-      final floorPlanCase = _caseOf(underlayAssetId: "asset-1");
+      final floorPlanSet = _caseOf(underlayAssetId: "asset-1");
 
       final sheet = OcptFloorPlanSheet.of(
-        floorPlanCase: floorPlanCase,
+        floorPlanSet: floorPlanSet,
         focusShotId: null,
         shotRankByShotId: const {},
       );
@@ -321,7 +321,7 @@ void main() {
     });
 
     test("draws the underlay once its frame is fully placed", () {
-      final floorPlanCase = _caseOf(
+      final floorPlanSet = _caseOf(
         underlayAssetId: "asset-1",
         underlayXM: 1,
         underlayYM: 2,
@@ -330,7 +330,7 @@ void main() {
       );
 
       final sheet = OcptFloorPlanSheet.of(
-        floorPlanCase: floorPlanCase,
+        floorPlanSet: floorPlanSet,
         focusShotId: null,
         shotRankByShotId: const {},
       );
@@ -346,10 +346,10 @@ void main() {
   group("OcptFloorPlanSheet.of — footprints", () {
     test("a symbol with no widthM/heightM of its own draws at the layer's default footprint", () {
       final light = _symbol(id: "light-1", shotId: "shot-1", layer: OcptFloorPlanLayer.lights);
-      final floorPlanCase = _caseOf(symbols: [light]);
+      final floorPlanSet = _caseOf(symbols: [light]);
 
       final sheet = OcptFloorPlanSheet.of(
-        floorPlanCase: floorPlanCase,
+        floorPlanSet: floorPlanSet,
         focusShotId: "shot-1",
         shotRankByShotId: const {"shot-1": 1},
       );
@@ -362,14 +362,14 @@ void main() {
     test("a symbol with its own footprint keeps it rather than the layer default", () {
       final furniture = _symbol(
         id: "furn-1",
-        layer: OcptFloorPlanLayer.furniture,
+        layer: OcptFloorPlanLayer.set,
         widthM: 1.2,
         heightM: 0.6,
       );
-      final floorPlanCase = _caseOf(symbols: [furniture]);
+      final floorPlanSet = _caseOf(symbols: [furniture]);
 
       final sheet = OcptFloorPlanSheet.of(
-        floorPlanCase: floorPlanCase,
+        floorPlanSet: floorPlanSet,
         focusShotId: null,
         shotRankByShotId: const {},
       );
@@ -385,11 +385,11 @@ void main() {
       final character = _symbol(id: "char-1", shotId: "shot-1", layer: OcptFloorPlanLayer.characters);
       final camera = _symbol(id: "cam-1", shotId: "shot-1", layer: OcptFloorPlanLayer.cameras);
       final light = _symbol(id: "light-1", shotId: "shot-1", layer: OcptFloorPlanLayer.lights);
-      final decor = _symbol(id: "decor-1", layer: OcptFloorPlanLayer.decor);
-      final floorPlanCase = _caseOf(symbols: [character, camera, light, decor]);
+      final decor = _symbol(id: "decor-1", layer: OcptFloorPlanLayer.set);
+      final floorPlanSet = _caseOf(symbols: [character, camera, light, decor]);
 
       final sheet = OcptFloorPlanSheet.of(
-        floorPlanCase: floorPlanCase,
+        floorPlanSet: floorPlanSet,
         focusShotId: "shot-1",
         shotRankByShotId: const {"shot-1": 1},
       );
@@ -412,10 +412,10 @@ void main() {
         layer: OcptFloorPlanLayer.characters,
         label: "Sam",
       );
-      final floorPlanCase = _caseOf(symbols: [character]);
+      final floorPlanSet = _caseOf(symbols: [character]);
 
       final sheet = OcptFloorPlanSheet.of(
-        floorPlanCase: floorPlanCase,
+        floorPlanSet: floorPlanSet,
         focusShotId: "shot-1",
         shotRankByShotId: const {"shot-1": 1},
       );
@@ -431,10 +431,10 @@ void main() {
         layer: OcptFloorPlanLayer.characters,
         label: "Alex",
       );
-      final floorPlanCase = _caseOf(symbols: [sam, alex]);
+      final floorPlanSet = _caseOf(symbols: [sam, alex]);
 
       final sheet = OcptFloorPlanSheet.of(
-        floorPlanCase: floorPlanCase,
+        floorPlanSet: floorPlanSet,
         focusShotId: "shot-1",
         shotRankByShotId: const {"shot-1": 1},
       );
@@ -455,10 +455,10 @@ void main() {
         layer: OcptFloorPlanLayer.cameras,
         fovDeg: 35,
       );
-      final floorPlanCase = _caseOf(symbols: [camera]);
+      final floorPlanSet = _caseOf(symbols: [camera]);
 
       final sheet = OcptFloorPlanSheet.of(
-        floorPlanCase: floorPlanCase,
+        floorPlanSet: floorPlanSet,
         focusShotId: "shot-1",
         shotRankByShotId: const {"shot-1": 1},
       );
@@ -468,10 +468,10 @@ void main() {
 
     test("a camera left at the drawing default falls back to the default wedge angle", () {
       final camera = _symbol(id: "cam-1", shotId: "shot-1", layer: OcptFloorPlanLayer.cameras);
-      final floorPlanCase = _caseOf(symbols: [camera]);
+      final floorPlanSet = _caseOf(symbols: [camera]);
 
       final sheet = OcptFloorPlanSheet.of(
-        floorPlanCase: floorPlanCase,
+        floorPlanSet: floorPlanSet,
         focusShotId: "shot-1",
         shotRankByShotId: const {"shot-1": 1},
       );
@@ -486,10 +486,10 @@ void main() {
         layer: OcptFloorPlanLayer.cameras,
         fovDeg: 35,
       );
-      final floorPlanCase = _caseOf(symbols: [camera]);
+      final floorPlanSet = _caseOf(symbols: [camera]);
 
       final sheet = OcptFloorPlanSheet.of(
-        floorPlanCase: floorPlanCase,
+        floorPlanSet: floorPlanSet,
         focusShotId: "shot-1",
         shotRankByShotId: const {"shot-1": 1},
         showFieldOfView: false,
@@ -500,10 +500,10 @@ void main() {
 
     test("a non-camera symbol never carries a wedge", () {
       final light = _symbol(id: "light-1", shotId: "shot-1", layer: OcptFloorPlanLayer.lights);
-      final floorPlanCase = _caseOf(symbols: [light]);
+      final floorPlanSet = _caseOf(symbols: [light]);
 
       final sheet = OcptFloorPlanSheet.of(
-        floorPlanCase: floorPlanCase,
+        floorPlanSet: floorPlanSet,
         focusShotId: "shot-1",
         shotRankByShotId: const {"shot-1": 1},
       );
@@ -516,23 +516,23 @@ void main() {
     test("each own setElementShape carries through to its shape", () {
       final wall = _symbol(
         id: "wall-1",
-        layer: OcptFloorPlanLayer.decor,
+        layer: OcptFloorPlanLayer.set,
         setElementShape: OcptFloorPlanSetElementShape.wall,
       );
       final door = _symbol(
         id: "door-1",
-        layer: OcptFloorPlanLayer.decor,
+        layer: OcptFloorPlanLayer.set,
         setElementShape: OcptFloorPlanSetElementShape.door,
       );
       final furniture = _symbol(
         id: "furn-1",
-        layer: OcptFloorPlanLayer.furniture,
+        layer: OcptFloorPlanLayer.set,
         setElementShape: OcptFloorPlanSetElementShape.furniture,
       );
-      final floorPlanCase = _caseOf(symbols: [wall, door, furniture]);
+      final floorPlanSet = _caseOf(symbols: [wall, door, furniture]);
 
       final sheet = OcptFloorPlanSheet.of(
-        floorPlanCase: floorPlanCase,
+        floorPlanSet: floorPlanSet,
         focusShotId: null,
         shotRankByShotId: const {},
       );
@@ -546,11 +546,11 @@ void main() {
     });
 
     test("a set element with no shape of its own defaults to freeform", () {
-      final decor = _symbol(id: "decor-1", layer: OcptFloorPlanLayer.decor);
-      final floorPlanCase = _caseOf(symbols: [decor]);
+      final decor = _symbol(id: "decor-1", layer: OcptFloorPlanLayer.set);
+      final floorPlanSet = _caseOf(symbols: [decor]);
 
       final sheet = OcptFloorPlanSheet.of(
-        floorPlanCase: floorPlanCase,
+        floorPlanSet: floorPlanSet,
         focusShotId: null,
         shotRankByShotId: const {},
       );
@@ -560,10 +560,10 @@ void main() {
 
     test("a camera, character or light never carries a set-element shape", () {
       final camera = _symbol(id: "cam-1", shotId: "shot-1", layer: OcptFloorPlanLayer.cameras);
-      final floorPlanCase = _caseOf(symbols: [camera]);
+      final floorPlanSet = _caseOf(symbols: [camera]);
 
       final sheet = OcptFloorPlanSheet.of(
-        floorPlanCase: floorPlanCase,
+        floorPlanSet: floorPlanSet,
         focusShotId: "shot-1",
         shotRankByShotId: const {"shot-1": 1},
       );
@@ -584,10 +584,10 @@ void main() {
         ctrlXM: 1.5,
         ctrlYM: -0.5,
       );
-      final floorPlanCase = _caseOf(symbols: [camera, character], arrows: [arrow]);
+      final floorPlanSet = _caseOf(symbols: [camera, character], arrows: [arrow]);
 
       final sheet = OcptFloorPlanSheet.of(
-        floorPlanCase: floorPlanCase,
+        floorPlanSet: floorPlanSet,
         focusShotId: "shot-1",
         shotRankByShotId: const {"shot-1": 1},
       );
@@ -606,10 +606,10 @@ void main() {
         fromSymbolId: "char-1",
         toSymbolId: "cam-1",
       );
-      final floorPlanCase = _caseOf(symbols: [camera, character], arrows: [arrow]);
+      final floorPlanSet = _caseOf(symbols: [camera, character], arrows: [arrow]);
 
       final sheet = OcptFloorPlanSheet.of(
-        floorPlanCase: floorPlanCase,
+        floorPlanSet: floorPlanSet,
         focusShotId: "shot-1",
         shotRankByShotId: const {"shot-1": 1},
       );

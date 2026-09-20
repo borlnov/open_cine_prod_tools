@@ -6,18 +6,18 @@ import 'package:flutter/material.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_floor_plan_sheet.dart';
 
-/// One other case of the sequence, for [OcptFloorPlanPlacementsGroup]'s own trailing list — whether
+/// One other set of the sequence, for [OcptFloorPlanPlacementsGroup]'s own trailing list — whether
 /// the selected shot has a camera placed there too (`docs/plans/storyboard.md`, §4.3: `Hallway ·
 /// no camera for this shot`).
-class OcptFloorPlanPlacementsOtherCase {
-  /// The other case's own name.
-  final String caseName;
+class OcptFloorPlanPlacementsOtherSet {
+  /// The other set's own name.
+  final String setName;
 
-  /// How many of the shot's own cameras are placed on that case.
+  /// How many of the shot's own cameras are placed on that set.
   final int cameraCount;
 
   /// Class constructor
-  const OcptFloorPlanPlacementsOtherCase({required this.caseName, required this.cameraCount});
+  const OcptFloorPlanPlacementsOtherSet({required this.setName, required this.cameraCount});
 }
 
 /// The shot inspector's floor-plans-only group (`OcptShotInspectorPanel.leadingGroup`): `On this
@@ -33,7 +33,7 @@ class OcptFloorPlanPlacementsOtherCase {
 /// `OcptStoryboardPanelsGroup`'s own `onDeleteRequested`.
 class OcptFloorPlanPlacementsGroup extends StatelessWidget {
   /// The selected case's own name.
-  final String caseName;
+  final String setName;
 
   /// The shot's own cameras on the selected case, each carrying its derived
   /// [OcptFloorPlanSymbolShape.cameraLabel].
@@ -51,8 +51,8 @@ class OcptFloorPlanPlacementsGroup extends StatelessWidget {
   /// The shot's own arrows on the selected case.
   final List<OcptFloorPlanArrowShape> arrows;
 
-  /// Every other case of the sequence, in tab order.
-  final List<OcptFloorPlanPlacementsOtherCase> otherCases;
+  /// Every other set of the sequence, in tab order.
+  final List<OcptFloorPlanPlacementsOtherSet> otherSets;
 
   /// Whether the mode shows a project version being previewed read-only, withholding every
   /// affordance this group offers.
@@ -69,13 +69,13 @@ class OcptFloorPlanPlacementsGroup extends StatelessWidget {
   /// Class constructor
   const OcptFloorPlanPlacementsGroup({
     super.key,
-    required this.caseName,
+    required this.setName,
     required this.cameras,
     required this.characters,
     required this.lights,
     required this.handProps,
     required this.arrows,
-    required this.otherCases,
+    required this.otherSets,
     required this.isReadOnly,
     required this.onSymbolDeleteRequested,
     required this.onArrowDeleteRequested,
@@ -90,7 +90,7 @@ class OcptFloorPlanPlacementsGroup extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          tr.shotListFloorPlanPlacementsGroupTitle(caseName),
+          tr.shotListFloorPlanPlacementsGroupTitle(setName),
           style: theme.textTheme.titleSmall?.copyWith(color: theme.colorScheme.primary),
         ),
         const SizedBox(height: 8),
@@ -149,19 +149,19 @@ class OcptFloorPlanPlacementsGroup extends StatelessWidget {
                   : () => onArrowDeleteRequested!(arrow.arrowId),
             ),
         const SizedBox(height: 8),
-        if (otherCases.isNotEmpty) ...[
+        if (otherSets.isNotEmpty) ...[
           Divider(color: theme.colorScheme.outlineVariant),
           const SizedBox(height: 4),
-          for (final otherCase in otherCases)
+          for (final otherSet in otherSets)
             Padding(
               padding: const EdgeInsets.only(bottom: 2),
               child: Text(
-                otherCase.cameraCount > 0
+                otherSet.cameraCount > 0
                     ? tr.shotListFloorPlanPlacementsOtherCaseHasCameraHint(
-                        otherCase.caseName,
-                        otherCase.cameraCount,
+                        otherSet.setName,
+                        otherSet.cameraCount,
                       )
-                    : tr.shotListFloorPlanPlacementsOtherCaseNoCameraHint(otherCase.caseName),
+                    : tr.shotListFloorPlanPlacementsOtherCaseNoCameraHint(otherSet.setName),
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: theme.colorScheme.onSurfaceVariant,
                 ),

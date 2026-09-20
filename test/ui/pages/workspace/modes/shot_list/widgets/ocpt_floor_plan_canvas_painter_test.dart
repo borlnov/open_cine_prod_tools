@@ -109,8 +109,8 @@ OcptFloorPlanSheet _sheetOf({
   List<OcptFloorPlanSymbolShape> symbols = const [],
   List<OcptFloorPlanArrowShape> arrows = const [],
 }) => OcptFloorPlanSheet(
-  caseId: "case-1",
-  caseName: "Kitchen",
+  setId: "case-1",
+  setName: "Kitchen",
   underlay: null,
   symbols: symbols,
   arrows: arrows,
@@ -141,7 +141,7 @@ void main() {
 
   group("OcptFloorPlanCanvasPainter — décor primitives", () {
     OcptFloorPlanSymbolShape decorOf(OcptFloorPlanSetElementShape shape) => _symbolShape(
-      layer: OcptFloorPlanLayer.decor,
+      layer: OcptFloorPlanLayer.set,
       glyphKind: OcptFloorPlanSymbolGlyphKind.setElement,
       widthM: 1.2,
       heightM: 0.6,

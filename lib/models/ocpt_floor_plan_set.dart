@@ -7,25 +7,25 @@ import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart'
 import 'package:open_cine_prod_tools/models/ocpt_floor_plan_arrow.dart';
 import 'package:open_cine_prod_tools/models/ocpt_floor_plan_symbol.dart';
 
-/// One décor of a sequence's floor plan, as `OcptFloorPlanService.loadFloorPlans` builds it: its
+/// One set of a sequence's floor plan, as `OcptFloorPlanService.loadFloorPlans` builds it: its
 /// stored fields, the underlay's resolved path (through the `assets` table, ADR 0013) and its live
 /// symbols and arrows.
 ///
 /// A sequence may hold several of these, in [sortKey] order (its tabs). See
-/// `OcptFloorPlanCasesTable`'s own doc comment for why a case whose scene has vanished from the
+/// `OcptFloorPlanSetsTable`'s own doc comment for why a set whose scene has vanished from the
 /// screenplay is simply unreachable rather than cascaded — nothing here handles that state
 /// specially, the loader just never surfaces it.
-class OcptFloorPlanCase extends Equatable {
-  /// The stable, unique id of this case (a UUID).
+class OcptFloorPlanSet extends Equatable {
+  /// The stable, unique id of this set (a UUID).
   final String id;
 
-  /// The sequence (scene) this case belongs to.
+  /// The sequence (scene) this set belongs to.
   final String sceneId;
 
-  /// The case's own name.
+  /// The set's own name.
   final String name;
 
-  /// The order this case's tab takes among the sequence's other cases.
+  /// The order this set's tab takes among the sequence's other sets.
   final String sortKey;
 
   /// The underlay's `assets` row id, or null until one is imported.
@@ -51,14 +51,14 @@ class OcptFloorPlanCase extends Equatable {
   /// The underlay's rotation, in degrees. See [underlayXM].
   final double? underlayRotationDeg;
 
-  /// This case's live symbols.
+  /// This set's live symbols.
   final List<OcptFloorPlanSymbol> symbols;
 
-  /// This case's live arrows.
+  /// This set's live arrows.
   final List<OcptFloorPlanArrow> arrows;
 
   /// Class constructor
-  const OcptFloorPlanCase({
+  const OcptFloorPlanSet({
     required this.id,
     required this.sceneId,
     required this.name,
@@ -74,14 +74,14 @@ class OcptFloorPlanCase extends Equatable {
     required this.arrows,
   });
 
-  /// Builds an [OcptFloorPlanCase] from its stored [row], the resolved [underlayPath] of its
+  /// Builds an [OcptFloorPlanSet] from its stored [row], the resolved [underlayPath] of its
   /// underlay asset (or null), and its live [symbols] and [arrows].
-  factory OcptFloorPlanCase.fromRow({
-    required OcptFloorPlanCaseRow row,
+  factory OcptFloorPlanSet.fromRow({
+    required OcptFloorPlanSetRow row,
     required String? underlayPath,
     required List<OcptFloorPlanSymbol> symbols,
     required List<OcptFloorPlanArrow> arrows,
-  }) => OcptFloorPlanCase(
+  }) => OcptFloorPlanSet(
     id: row.id,
     sceneId: row.sceneId,
     name: row.name,
@@ -100,7 +100,7 @@ class OcptFloorPlanCase extends Equatable {
   /// Object string representation, useful for debugging and logging.
   @override
   String toString() =>
-      "OcptFloorPlanCase(id: $id, sceneId: $sceneId, name: $name, symbols: ${symbols.length}, "
+      "OcptFloorPlanSet(id: $id, sceneId: $sceneId, name: $name, symbols: ${symbols.length}, "
       "arrows: ${arrows.length})";
 
   /// Object properties

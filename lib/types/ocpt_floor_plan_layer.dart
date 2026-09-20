@@ -9,14 +9,12 @@
 /// `floor_plan_symbols.shotId` is null exactly when a symbol's layer is sequence-scoped: the layer
 /// is what decides the scope, and the floor plan service enforces that invariant at every write.
 enum OcptFloorPlanLayer {
-  /// A sequence layer: the décor's walls and fixed geometry, drawn once for the whole sequence.
-  decor,
-
-  /// A sequence layer: the movable furniture of the décor, drawn once for the whole sequence.
-  furniture,
-
-  /// A sequence layer: a fixed prop that stays put across every shot of the sequence.
-  fixedProps,
+  /// The sequence's only sequence layer: the set's walls, furniture and every other fixed piece of
+  /// geometry, drawn once for the whole sequence. Collapses the earlier `decor`, `furniture` and
+  /// `fixedProps` layers into one — a set-element symbol's own type (a wall, a door, a piece of
+  /// furniture, a free-hand shape) is already carried by `floor_plan_symbols.setElementShape`, so
+  /// the layer itself no longer needs to distinguish them.
+  set,
 
   /// A shot layer: a camera position, one per shot (several per shot when the sequence multi-cams).
   cameras,
@@ -28,26 +26,23 @@ enum OcptFloorPlanLayer {
   /// A shot layer: a light's position for one shot.
   lights,
 
-  /// A shot layer: a hand prop's position for one shot — as opposed to [fixedProps], which never
-  /// moves between shots.
-  handProps,
+  /// A shot layer: a hand prop's position for one shot — as opposed to a [set] element, which never
+  /// moves between shots. Renamed from `handProps`.
+  props,
 }
 
-/// Whether a layer belongs to the floor plan's **sequence** scope (drawn once, per décor) or its
+/// Whether a layer belongs to the floor plan's **sequence** scope (drawn once, per set) or its
 /// **shot** scope (one position per shot) — see [OcptFloorPlanLayer]'s own doc comment.
 extension OcptFloorPlanLayerScope on OcptFloorPlanLayer {
-  /// True for [OcptFloorPlanLayer.decor], [OcptFloorPlanLayer.furniture] and
-  /// [OcptFloorPlanLayer.fixedProps]; false for every shot layer.
+  /// True for [OcptFloorPlanLayer.set]; false for every shot layer.
   ///
-  /// A `switch` with no `default`: an eighth layer must be placed on one side or the other here
+  /// A `switch` with no `default`: a sixth layer must be placed on one side or the other here
   /// rather than silently landing in whichever scope happens to be the fallback.
   bool get isSequenceScoped => switch (this) {
-    OcptFloorPlanLayer.decor => true,
-    OcptFloorPlanLayer.furniture => true,
-    OcptFloorPlanLayer.fixedProps => true,
+    OcptFloorPlanLayer.set => true,
     OcptFloorPlanLayer.cameras => false,
     OcptFloorPlanLayer.characters => false,
     OcptFloorPlanLayer.lights => false,
-    OcptFloorPlanLayer.handProps => false,
+    OcptFloorPlanLayer.props => false,
   };
 }

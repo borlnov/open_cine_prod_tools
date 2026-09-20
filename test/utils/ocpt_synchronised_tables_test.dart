@@ -64,7 +64,7 @@ void main() {
     'budget_allowances',
     'storyboard_panels',
     'storyboard_annotations',
-    'floor_plan_cases',
+    'floor_plan_sets',
     'floor_plan_symbols',
     'floor_plan_arrows',
   };

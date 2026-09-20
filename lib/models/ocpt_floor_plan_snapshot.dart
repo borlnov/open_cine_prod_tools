@@ -3,59 +3,59 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:equatable/equatable.dart';
-import 'package:open_cine_prod_tools/models/ocpt_floor_plan_case.dart';
+import 'package:open_cine_prod_tools/models/ocpt_floor_plan_set.dart';
 
-/// Every floor plan case of a screenplay's sequences, as `OcptFloorPlanService.loadFloorPlans`
+/// Every floor plan set of a screenplay's sequences, as `OcptFloorPlanService.loadFloorPlans`
 /// builds it — the floor plans view's counterpart to `OcptShotListSnapshot`.
 ///
-/// [casesBySceneId] groups every live case under the sequence (scene) it belongs to, each group
-/// already in [OcptFloorPlanCase.sortKey] order (its tab order); [casesById] is the flat lookup
+/// [setsBySceneId] groups every live set under the sequence (scene) it belongs to, each group
+/// already in [OcptFloorPlanSet.sortKey] order (its tab order); [setsById] is the flat lookup
 /// built once alongside it, mirroring `OcptShotListSnapshot.shotsById`.
 class OcptFloorPlanSnapshot extends Equatable {
   /// The screenplay this floor plan snapshot belongs to.
   final String screenplayId;
 
-  /// Every live case, keyed by [OcptFloorPlanCase.sceneId].
-  final Map<String, List<OcptFloorPlanCase>> casesBySceneId;
+  /// Every live set, keyed by [OcptFloorPlanSet.sceneId].
+  final Map<String, List<OcptFloorPlanSet>> setsBySceneId;
 
-  /// Every live case of [casesBySceneId], keyed by its own id.
-  final Map<String, OcptFloorPlanCase> casesById;
+  /// Every live set of [setsBySceneId], keyed by its own id.
+  final Map<String, OcptFloorPlanSet> setsById;
 
   /// Class constructor
   const OcptFloorPlanSnapshot({
     required this.screenplayId,
-    required this.casesBySceneId,
-    required this.casesById,
+    required this.setsBySceneId,
+    required this.setsById,
   });
 
-  /// Builds an [OcptFloorPlanSnapshot] for [screenplayId] from [casesBySceneId], deriving
-  /// [casesById] from it.
+  /// Builds an [OcptFloorPlanSnapshot] for [screenplayId] from [setsBySceneId], deriving
+  /// [setsById] from it.
   factory OcptFloorPlanSnapshot.build({
     required String screenplayId,
-    required Map<String, List<OcptFloorPlanCase>> casesBySceneId,
+    required Map<String, List<OcptFloorPlanSet>> setsBySceneId,
   }) {
-    final casesById = <String, OcptFloorPlanCase>{
-      for (final cases in casesBySceneId.values)
-        for (final floorPlanCase in cases) floorPlanCase.id: floorPlanCase,
+    final setsById = <String, OcptFloorPlanSet>{
+      for (final sets in setsBySceneId.values)
+        for (final floorPlanSet in sets) floorPlanSet.id: floorPlanSet,
     };
 
     return OcptFloorPlanSnapshot(
       screenplayId: screenplayId,
-      casesBySceneId: casesBySceneId,
-      casesById: Map.unmodifiable(casesById),
+      setsBySceneId: setsBySceneId,
+      setsById: Map.unmodifiable(setsById),
     );
   }
 
-  /// [sceneId]'s cases, in tab order, or an empty list if it has none.
-  List<OcptFloorPlanCase> casesOfScene(String sceneId) =>
-      casesBySceneId[sceneId] ?? const <OcptFloorPlanCase>[];
+  /// [sceneId]'s sets, in tab order, or an empty list if it has none.
+  List<OcptFloorPlanSet> setsOfScene(String sceneId) =>
+      setsBySceneId[sceneId] ?? const <OcptFloorPlanSet>[];
 
   /// Object string representation, useful for debugging and logging.
   @override
   String toString() =>
-      "OcptFloorPlanSnapshot(screenplayId: $screenplayId, caseCount: ${casesById.length})";
+      "OcptFloorPlanSnapshot(screenplayId: $screenplayId, setCount: ${setsById.length})";
 
   /// Object properties
   @override
-  List<Object?> get props => [screenplayId, casesBySceneId, casesById];
+  List<Object?> get props => [screenplayId, setsBySceneId, setsById];
 }

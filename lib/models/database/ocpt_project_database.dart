@@ -23,7 +23,7 @@ import 'package:open_cine_prod_tools/models/database/tables/ocpt_budget_revenues
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_budget_shares_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_elements_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_floor_plan_arrows_table.dart';
-import 'package:open_cine_prod_tools/models/database/tables/ocpt_floor_plan_cases_table.dart';
+import 'package:open_cine_prod_tools/models/database/tables/ocpt_floor_plan_sets_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_floor_plan_symbols_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_local_erasures_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_location_availabilities_table.dart';
@@ -149,8 +149,8 @@ part 'ocpt_project_database.g.dart';
 /// ([OcptSyncPairingsTable], `docs/plans/collaboration-and-sync.md`, M4); and the shot list's
 /// storyboard and floor plans (`docs/plans/storyboard.md`) — a shot's ordered panels
 /// ([OcptStoryboardPanelsTable]) and each panel's light annotation marks
-/// ([OcptStoryboardAnnotationsTable]), and a sequence's floor plan cases
-/// ([OcptFloorPlanCasesTable]), the symbols placed on them ([OcptFloorPlanSymbolsTable]) and the
+/// ([OcptStoryboardAnnotationsTable]), and a sequence's floor plan sets
+/// ([OcptFloorPlanSetsTable]), the symbols placed on them ([OcptFloorPlanSymbolsTable]) and the
 /// movement and camera-move arrows drawn between them ([OcptFloorPlanArrowsTable]).
 ///
 /// Everything up to [OcptRowFieldVersionsTable] was created by `onCreate` at schema version 1,
@@ -216,7 +216,7 @@ part 'ocpt_project_database.g.dart';
     OcptBudgetAllowancesTable,
     OcptStoryboardPanelsTable,
     OcptStoryboardAnnotationsTable,
-    OcptFloorPlanCasesTable,
+    OcptFloorPlanSetsTable,
     OcptFloorPlanSymbolsTable,
     OcptFloorPlanArrowsTable,
     OcptSyncRelayCursorsTable,

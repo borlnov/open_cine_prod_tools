@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:equatable/equatable.dart';
-import 'package:open_cine_prod_tools/models/ocpt_floor_plan_case.dart';
+import 'package:open_cine_prod_tools/models/ocpt_floor_plan_set.dart';
 import 'package:open_cine_prod_tools/models/ocpt_floor_plan_symbol.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_arrow_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_layer.dart';
@@ -15,13 +15,11 @@ import 'package:open_cine_prod_tools/utils/ocpt_floor_plan_geometry.dart';
 /// The ARGB colour (`0xAARRGGBB`) a symbol of [layer] is drawn with — the one palette the canvas,
 /// the metrics overlay and the floor-plans PDF all read, so a colour is never picked twice.
 int ocptFloorPlanLayerColorArgb(OcptFloorPlanLayer layer) => switch (layer) {
-  OcptFloorPlanLayer.decor => 0xFF6B7280,
-  OcptFloorPlanLayer.furniture => 0xFF8D6E63,
-  OcptFloorPlanLayer.fixedProps => 0xFF556B2F,
+  OcptFloorPlanLayer.set => 0xFF6B7280,
   OcptFloorPlanLayer.cameras => 0xFF2196F3,
   OcptFloorPlanLayer.characters => 0xFFFF9800,
   OcptFloorPlanLayer.lights => 0xFFFBC02D,
-  OcptFloorPlanLayer.handProps => 0xFF9C27B0,
+  OcptFloorPlanLayer.props => 0xFF9C27B0,
 };
 
 /// The ARGB colour a movement arrow is drawn with.
@@ -33,8 +31,8 @@ const int ocptFloorPlanCameraMoveArrowColorArgb = 0xFF1565C0;
 /// Which glyph a symbol shape draws as, derived from its own [OcptFloorPlanSymbolShape.layer] —
 /// the one switch [OcptFloorPlanSheet] resolves so neither renderer has to re-derive it from the
 /// layer itself: [OcptFloorPlanLayer.characters] → [character], [OcptFloorPlanLayer.cameras] →
-/// [camera], [OcptFloorPlanLayer.lights] → [light], and every décor/prop layer (
-/// [OcptFloorPlanLayer.decor], `.furniture`, `.fixedProps`, `.handProps`) → [setElement].
+/// [camera], [OcptFloorPlanLayer.lights] → [light], and [OcptFloorPlanLayer.set]/`.props` →
+/// [setElement].
 enum OcptFloorPlanSymbolGlyphKind {
   /// A character's own facing disc, drawn in [OcptFloorPlanSymbolShape.colorArgb] — the colour
   /// [ocptFloorPlanCharacterColourOf] derives from the symbol's own [OcptFloorPlanSymbolShape.label].
@@ -298,10 +296,10 @@ class OcptFloorPlanUnderlayShape extends Equatable {
 /// where the viewport puts them.
 class OcptFloorPlanSheet extends Equatable {
   /// The case this sheet was built from.
-  final String caseId;
+  final String setId;
 
   /// The case's own name, for a page header or a canvas title.
-  final String caseName;
+  final String setName;
 
   /// The case's underlay, or null while none is placed.
   final OcptFloorPlanUnderlayShape? underlay;
@@ -315,14 +313,14 @@ class OcptFloorPlanSheet extends Equatable {
 
   /// Class constructor
   const OcptFloorPlanSheet({
-    required this.caseId,
-    required this.caseName,
+    required this.setId,
+    required this.setName,
     required this.underlay,
     required this.symbols,
     required this.arrows,
   });
 
-  /// Builds the sheet [floorPlanCase] draws under one focus.
+  /// Builds the sheet [floorPlanSet] draws under one focus.
   ///
   /// [focusShotId] is null for the **sequence** focus (every sequence layer, plus every live
   /// camera of every shot on this case, numbered — `docs/plans/storyboard.md`, §4.3) or a shot's id
@@ -341,7 +339,7 @@ class OcptFloorPlanSheet extends Equatable {
   /// defaults to `true` (the wedge shows by default) so a caller that never touches the flag — every
   /// existing one, ahead of the tray toggle a later piece of work adds — still gets it.
   factory OcptFloorPlanSheet.of({
-    required OcptFloorPlanCase floorPlanCase,
+    required OcptFloorPlanSet floorPlanSet,
     required String? focusShotId,
     required Map<String, int> shotRankByShotId,
     String? previousShotId,
@@ -349,7 +347,7 @@ class OcptFloorPlanSheet extends Equatable {
     bool showFieldOfView = true,
   }) {
     final sequenceSymbols = [
-      for (final symbol in floorPlanCase.symbols) if (symbol.shotId == null) symbol,
+      for (final symbol in floorPlanSet.symbols) if (symbol.shotId == null) symbol,
     ];
 
     final symbolShapes = <OcptFloorPlanSymbolShape>[
@@ -363,7 +361,7 @@ class OcptFloorPlanSheet extends Equatable {
 
     if (focusShotId == null) {
       final cameraSymbols = [
-        for (final symbol in floorPlanCase.symbols)
+        for (final symbol in floorPlanSet.symbols)
           if (symbol.shotId != null && symbol.layer == OcptFloorPlanLayer.cameras) symbol,
       ];
       symbolShapes.addAll(
@@ -376,16 +374,16 @@ class OcptFloorPlanSheet extends Equatable {
       );
 
       return OcptFloorPlanSheet(
-        caseId: floorPlanCase.id,
-        caseName: floorPlanCase.name,
-        underlay: _underlayOf(floorPlanCase),
+        setId: floorPlanSet.id,
+        setName: floorPlanSet.name,
+        underlay: _underlayOf(floorPlanSet),
         symbols: symbolShapes,
         arrows: const [],
       );
     }
 
     final focusSymbols = [
-      for (final symbol in floorPlanCase.symbols) if (symbol.shotId == focusShotId) symbol,
+      for (final symbol in floorPlanSet.symbols) if (symbol.shotId == focusShotId) symbol,
     ];
     symbolShapes.addAll(
       _shapesOf(
@@ -401,7 +399,7 @@ class OcptFloorPlanSheet extends Equatable {
       if (nextShotId != null) nextShotId,
     ];
     final ghostSymbols = [
-      for (final symbol in floorPlanCase.symbols)
+      for (final symbol in floorPlanSet.symbols)
         if (ghostShotIds.contains(symbol.shotId)) symbol,
     ];
     symbolShapes.addAll(
@@ -414,9 +412,9 @@ class OcptFloorPlanSheet extends Equatable {
     );
 
     final relevantShotIds = {focusShotId, ...ghostShotIds};
-    final symbolById = {for (final symbol in floorPlanCase.symbols) symbol.id: symbol};
+    final symbolById = {for (final symbol in floorPlanSet.symbols) symbol.id: symbol};
     final arrowShapes = <OcptFloorPlanArrowShape>[
-      for (final arrow in floorPlanCase.arrows)
+      for (final arrow in floorPlanSet.arrows)
         if (relevantShotIds.contains(arrow.shotId))
           if (symbolById[arrow.fromSymbolId] case final from?)
             if (symbolById[arrow.toSymbolId] case final to?)
@@ -439,35 +437,35 @@ class OcptFloorPlanSheet extends Equatable {
     ];
 
     return OcptFloorPlanSheet(
-      caseId: floorPlanCase.id,
-      caseName: floorPlanCase.name,
-      underlay: _underlayOf(floorPlanCase),
+      setId: floorPlanSet.id,
+      setName: floorPlanSet.name,
+      underlay: _underlayOf(floorPlanSet),
       symbols: symbolShapes,
       arrows: arrowShapes,
     );
   }
 
-  /// The underlay shape of [floorPlanCase], or null while it has none placed — a case that has an
+  /// The underlay shape of [floorPlanSet], or null while it has none placed — a case that has an
   /// `underlayAssetId` but no frame yet (mid-import) is treated the same as having none, since
   /// there is nothing yet to draw it at.
-  static OcptFloorPlanUnderlayShape? _underlayOf(OcptFloorPlanCase floorPlanCase) {
-    final assetId = floorPlanCase.underlayAssetId;
-    final xM = floorPlanCase.underlayXM;
-    final yM = floorPlanCase.underlayYM;
-    final widthM = floorPlanCase.underlayWidthM;
-    final heightM = floorPlanCase.underlayHeightM;
+  static OcptFloorPlanUnderlayShape? _underlayOf(OcptFloorPlanSet floorPlanSet) {
+    final assetId = floorPlanSet.underlayAssetId;
+    final xM = floorPlanSet.underlayXM;
+    final yM = floorPlanSet.underlayYM;
+    final widthM = floorPlanSet.underlayWidthM;
+    final heightM = floorPlanSet.underlayHeightM;
     if (assetId == null || xM == null || yM == null || widthM == null || heightM == null) {
       return null;
     }
 
     return OcptFloorPlanUnderlayShape(
       assetId: assetId,
-      path: floorPlanCase.underlayPath,
+      path: floorPlanSet.underlayPath,
       xM: xM,
       yM: yM,
       widthM: widthM,
       heightM: heightM,
-      rotationDeg: floorPlanCase.underlayRotationDeg ?? 0,
+      rotationDeg: floorPlanSet.underlayRotationDeg ?? 0,
     );
   }
 
@@ -571,18 +569,15 @@ class OcptFloorPlanSheet extends Equatable {
     OcptFloorPlanLayer.characters => OcptFloorPlanSymbolGlyphKind.character,
     OcptFloorPlanLayer.cameras => OcptFloorPlanSymbolGlyphKind.camera,
     OcptFloorPlanLayer.lights => OcptFloorPlanSymbolGlyphKind.light,
-    OcptFloorPlanLayer.decor ||
-    OcptFloorPlanLayer.furniture ||
-    OcptFloorPlanLayer.fixedProps ||
-    OcptFloorPlanLayer.handProps => OcptFloorPlanSymbolGlyphKind.setElement,
+    OcptFloorPlanLayer.set || OcptFloorPlanLayer.props => OcptFloorPlanSymbolGlyphKind.setElement,
   };
 
   /// Object string representation, useful for debugging and logging.
   @override
   String toString() =>
-      "OcptFloorPlanSheet(caseId: $caseId, symbols: ${symbols.length}, arrows: ${arrows.length})";
+      "OcptFloorPlanSheet(setId: $setId, symbols: ${symbols.length}, arrows: ${arrows.length})";
 
   /// Object properties
   @override
-  List<Object?> get props => [caseId, caseName, underlay, symbols, arrows];
+  List<Object?> get props => [setId, setName, underlay, symbols, arrows];
 }

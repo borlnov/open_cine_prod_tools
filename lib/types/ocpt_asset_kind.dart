@@ -32,7 +32,7 @@ enum OcptAssetKind {
   /// (`docs/plans/storyboard.md`, §2) to say these two kinds set none.
   storyboardPanelImage,
 
-  /// A floor plan case's underlay photo or plan (`floor_plan_cases.underlayAssetId`).
+  /// A floor plan set's underlay photo or plan (`floor_plan_sets.underlayAssetId`).
   ///
   /// Sets none of the four owner columns either, for the same reason [storyboardPanelImage] does.
   floorPlanUnderlay,

@@ -118,8 +118,8 @@ Action.
     ))!;
   }
 
-  Future<List<OcptFloorPlanCaseRow>> readCases() => (database.select(
-    database.ocptFloorPlanCasesTable,
+  Future<List<OcptFloorPlanSetRow>> readCases() => (database.select(
+    database.ocptFloorPlanSetsTable,
   )..where((row) => row.isDeleted.equals(false))).get();
 
   Future<List<OcptFloorPlanSymbolRow>> readSymbols() => (database.select(
@@ -137,17 +137,17 @@ Action.
         screenplayId: screenplayId,
       );
 
-      expect(snapshot.casesById, isEmpty);
+      expect(snapshot.setsById, isEmpty);
     });
 
     test("groups live cases by scene, each carrying its own live symbols and arrows", () async {
       final sceneId = await seedScene();
-      final caseId = (await floorPlanService.addCase(database: database, sceneId: sceneId))!;
+      final setId = (await floorPlanService.addSet(database: database, sceneId: sceneId))!;
       final symbolId = (await floorPlanService.placeSymbol(
         database: database,
-        caseId: caseId,
+        setId: setId,
         shotId: null,
-        layer: OcptFloorPlanLayer.decor,
+        layer: OcptFloorPlanLayer.set,
         xM: 1,
         yM: 1,
       ))!;
@@ -157,76 +157,76 @@ Action.
         screenplayId: screenplayId,
       );
 
-      final cases = snapshot.casesOfScene(sceneId);
+      final cases = snapshot.setsOfScene(sceneId);
       expect(cases, hasLength(1));
-      expect(cases.single.id, caseId);
+      expect(cases.single.id, setId);
       expect(cases.single.symbols.single.id, symbolId);
-      expect(snapshot.casesById[caseId], isNotNull);
+      expect(snapshot.setsById[setId], isNotNull);
     });
 
     test("names a fresh case after the scene heading's place", () async {
       final sceneId = await seedScene();
-      final caseId = (await floorPlanService.addCase(database: database, sceneId: sceneId))!;
+      final setId = (await floorPlanService.addSet(database: database, sceneId: sceneId))!;
 
       final row = (await readCases()).single;
-      expect(row.id, caseId);
+      expect(row.id, setId);
       expect(row.name, "KITCHEN");
     });
   });
 
   group("case CRUD", () {
-    test("addCase appends after the scene's current cases", () async {
+    test("addSet appends after the scene's current sets", () async {
       final sceneId = await seedScene();
-      final firstId = (await floorPlanService.addCase(database: database, sceneId: sceneId))!;
-      final secondId = (await floorPlanService.addCase(database: database, sceneId: sceneId))!;
+      final firstId = (await floorPlanService.addSet(database: database, sceneId: sceneId))!;
+      final secondId = (await floorPlanService.addSet(database: database, sceneId: sceneId))!;
 
-      final cases = await (database.select(database.ocptFloorPlanCasesTable)
+      final cases = await (database.select(database.ocptFloorPlanSetsTable)
             ..orderBy([(row) => OrderingTerm.asc(row.sortKey)]))
           .get();
       expect(cases.map((row) => row.id), [firstId, secondId]);
     });
 
-    test("renameCase changes only the name", () async {
+    test("renameSet changes only the name", () async {
       final sceneId = await seedScene();
-      final caseId = (await floorPlanService.addCase(database: database, sceneId: sceneId))!;
+      final setId = (await floorPlanService.addSet(database: database, sceneId: sceneId))!;
 
-      await floorPlanService.renameCase(database: database, caseId: caseId, name: "Hallway");
+      await floorPlanService.renameSet(database: database, setId: setId, name: "Hallway");
 
       expect((await readCases()).single.name, "Hallway");
     });
 
-    test("reorderCase moves a case by writing exactly one row", () async {
+    test("reorderSet moves a set by writing exactly one row", () async {
       final sceneId = await seedScene();
-      final firstId = (await floorPlanService.addCase(database: database, sceneId: sceneId))!;
-      final secondId = (await floorPlanService.addCase(database: database, sceneId: sceneId))!;
+      final firstId = (await floorPlanService.addSet(database: database, sceneId: sceneId))!;
+      final secondId = (await floorPlanService.addSet(database: database, sceneId: sceneId))!;
 
       final before = {for (final row in await readCases()) row.id: row.sortKey};
-      await floorPlanService.reorderCase(database: database, caseId: secondId, newPosition: 0);
+      await floorPlanService.reorderSet(database: database, setId: secondId, newPosition: 0);
       final after = {for (final row in await readCases()) row.id: row.sortKey};
 
       expect(after[firstId], before[firstId]);
       expect(after[secondId], isNot(before[secondId]));
     });
 
-    test("deleteCase tombstones the case, its symbols and its arrows", () async {
+    test("deleteSet tombstones the set, its symbols and its arrows", () async {
       final sceneId = await seedScene();
       final shotId = await shotListService.createShot(
         database: database,
         screenplayId: screenplayId,
         sceneId: sceneId,
       );
-      final caseId = (await floorPlanService.addCase(database: database, sceneId: sceneId))!;
+      final setId = (await floorPlanService.addSet(database: database, sceneId: sceneId))!;
       final symbol1 = (await floorPlanService.placeSymbol(
         database: database,
-        caseId: caseId,
+        setId: setId,
         shotId: null,
-        layer: OcptFloorPlanLayer.decor,
+        layer: OcptFloorPlanLayer.set,
         xM: 0,
         yM: 0,
       ))!;
       final symbol2 = (await floorPlanService.placeSymbol(
         database: database,
-        caseId: caseId,
+        setId: setId,
         shotId: shotId,
         layer: OcptFloorPlanLayer.cameras,
         xM: 1,
@@ -234,27 +234,27 @@ Action.
       ))!;
       await floorPlanService.addArrow(
         database: database,
-        caseId: caseId,
+        setId: setId,
         shotId: shotId!,
         kind: OcptFloorPlanArrowKind.movement,
         fromSymbolId: symbol1,
         toSymbolId: symbol2,
       );
 
-      await floorPlanService.deleteCase(database: database, caseId: caseId);
+      await floorPlanService.deleteSet(database: database, setId: setId);
 
       expect(await readCases(), isEmpty);
       expect(await readSymbols(), isEmpty);
       expect(await readArrows(), isEmpty);
     });
 
-    test("setCaseUnderlay mints an asset and frames it, clearCaseUnderlay tombstones it", () async {
+    test("setSetUnderlay mints an asset and frames it, clearSetUnderlay tombstones it", () async {
       final sceneId = await seedScene();
-      final caseId = (await floorPlanService.addCase(database: database, sceneId: sceneId))!;
+      final setId = (await floorPlanService.addSet(database: database, sceneId: sceneId))!;
 
-      await floorPlanService.setCaseUnderlay(
+      await floorPlanService.setSetUnderlay(
         database: database,
-        caseId: caseId,
+        setId: setId,
         path: "/tmp/plan.jpg",
         xM: 1,
         yM: 2,
@@ -268,7 +268,7 @@ Action.
 
       final assetId = withUnderlay.underlayAssetId!;
 
-      await floorPlanService.clearCaseUnderlay(database: database, caseId: caseId);
+      await floorPlanService.clearSetUnderlay(database: database, setId: setId);
 
       final cleared = (await readCases()).single;
       expect(cleared.underlayAssetId, isNull);
@@ -284,10 +284,10 @@ Action.
       "updateUnderlayFrame re-frames the underlay without touching any asset row",
       () async {
         final sceneId = await seedScene();
-        final caseId = (await floorPlanService.addCase(database: database, sceneId: sceneId))!;
-        await floorPlanService.setCaseUnderlay(
+        final setId = (await floorPlanService.addSet(database: database, sceneId: sceneId))!;
+        await floorPlanService.setSetUnderlay(
           database: database,
-          caseId: caseId,
+          setId: setId,
           path: "/tmp/plan.jpg",
           xM: 0,
           yM: 0,
@@ -300,7 +300,7 @@ Action.
 
         await floorPlanService.updateUnderlayFrame(
           database: database,
-          caseId: caseId,
+          setId: setId,
           xM: const Value(2),
           yM: const Value(-1),
           widthM: const Value(6),
@@ -325,11 +325,11 @@ Action.
 
     test("updateUnderlayFrame is a no-op while the case carries no underlay", () async {
       final sceneId = await seedScene();
-      final caseId = (await floorPlanService.addCase(database: database, sceneId: sceneId))!;
+      final setId = (await floorPlanService.addSet(database: database, sceneId: sceneId))!;
 
       await floorPlanService.updateUnderlayFrame(
         database: database,
-        caseId: caseId,
+        setId: setId,
         xM: const Value(2),
         yM: const Value(2),
       );
@@ -344,13 +344,13 @@ Action.
   group("placeSymbol — the scope invariant", () {
     test("accepts a sequence layer with no shotId", () async {
       final sceneId = await seedScene();
-      final caseId = (await floorPlanService.addCase(database: database, sceneId: sceneId))!;
+      final setId = (await floorPlanService.addSet(database: database, sceneId: sceneId))!;
 
       final symbolId = await floorPlanService.placeSymbol(
         database: database,
-        caseId: caseId,
+        setId: setId,
         shotId: null,
-        layer: OcptFloorPlanLayer.furniture,
+        layer: OcptFloorPlanLayer.set,
         xM: 0,
         yM: 0,
       );
@@ -365,11 +365,11 @@ Action.
         screenplayId: screenplayId,
         sceneId: sceneId,
       ))!;
-      final caseId = (await floorPlanService.addCase(database: database, sceneId: sceneId))!;
+      final setId = (await floorPlanService.addSet(database: database, sceneId: sceneId))!;
 
       final symbolId = await floorPlanService.placeSymbol(
         database: database,
-        caseId: caseId,
+        setId: setId,
         shotId: shotId,
         layer: OcptFloorPlanLayer.characters,
         xM: 0,
@@ -386,14 +386,14 @@ Action.
         screenplayId: screenplayId,
         sceneId: sceneId,
       ))!;
-      final caseId = (await floorPlanService.addCase(database: database, sceneId: sceneId))!;
+      final setId = (await floorPlanService.addSet(database: database, sceneId: sceneId))!;
 
       expect(
         () => floorPlanService.placeSymbol(
           database: database,
-          caseId: caseId,
+          setId: setId,
           shotId: shotId,
-          layer: OcptFloorPlanLayer.decor,
+          layer: OcptFloorPlanLayer.set,
           xM: 0,
           yM: 0,
         ),
@@ -403,12 +403,12 @@ Action.
 
     test("rejects a shot layer given no shotId", () async {
       final sceneId = await seedScene();
-      final caseId = (await floorPlanService.addCase(database: database, sceneId: sceneId))!;
+      final setId = (await floorPlanService.addSet(database: database, sceneId: sceneId))!;
 
       expect(
         () => floorPlanService.placeSymbol(
           database: database,
-          caseId: caseId,
+          setId: setId,
           shotId: null,
           layer: OcptFloorPlanLayer.cameras,
           xM: 0,
@@ -420,12 +420,12 @@ Action.
 
     test("a rejected write leaves nothing behind", () async {
       final sceneId = await seedScene();
-      final caseId = (await floorPlanService.addCase(database: database, sceneId: sceneId))!;
+      final setId = (await floorPlanService.addSet(database: database, sceneId: sceneId))!;
 
       await expectLater(
         () => floorPlanService.placeSymbol(
           database: database,
-          caseId: caseId,
+          setId: setId,
           shotId: null,
           layer: OcptFloorPlanLayer.lights,
           xM: 0,
@@ -441,13 +441,13 @@ Action.
       "records a set element's shape; a camera symbol placed alongside it stays null",
       () async {
         final sceneId = await seedScene();
-        final caseId = (await floorPlanService.addCase(database: database, sceneId: sceneId))!;
+        final setId = (await floorPlanService.addSet(database: database, sceneId: sceneId))!;
 
         final wallId = (await floorPlanService.placeSymbol(
           database: database,
-          caseId: caseId,
+          setId: setId,
           shotId: null,
-          layer: OcptFloorPlanLayer.decor,
+          layer: OcptFloorPlanLayer.set,
           xM: 0,
           yM: 0,
           setElementShape: OcptFloorPlanSetElementShape.wall,
@@ -460,7 +460,7 @@ Action.
         ))!;
         final cameraId = (await floorPlanService.placeSymbol(
           database: database,
-          caseId: caseId,
+          setId: setId,
           shotId: shotId,
           layer: OcptFloorPlanLayer.cameras,
           xM: 1,
@@ -477,14 +477,14 @@ Action.
   });
 
   group("updateSymbol", () {
-    test("moves, rotates, resizes, sets fov and label without touching layer/shotId/caseId", () async {
+    test("moves, rotates, resizes, sets fov and label without touching layer/shotId/setId", () async {
       final sceneId = await seedScene();
-      final caseId = (await floorPlanService.addCase(database: database, sceneId: sceneId))!;
+      final setId = (await floorPlanService.addSet(database: database, sceneId: sceneId))!;
       final symbolId = (await floorPlanService.placeSymbol(
         database: database,
-        caseId: caseId,
+        setId: setId,
         shotId: null,
-        layer: OcptFloorPlanLayer.furniture,
+        layer: OcptFloorPlanLayer.set,
         xM: 0,
         yM: 0,
       ))!;
@@ -507,19 +507,19 @@ Action.
       expect(symbol.widthM, 1.1);
       expect(symbol.heightM, 0.6);
       expect(symbol.label, "sofa");
-      expect(symbol.caseId, caseId);
-      expect(symbol.layer, OcptFloorPlanLayer.furniture);
+      expect(symbol.setId, setId);
+      expect(symbol.layer, OcptFloorPlanLayer.set);
       expect(symbol.shotId, isNull);
     });
 
     test("changes a set element's shape", () async {
       final sceneId = await seedScene();
-      final caseId = (await floorPlanService.addCase(database: database, sceneId: sceneId))!;
+      final setId = (await floorPlanService.addSet(database: database, sceneId: sceneId))!;
       final symbolId = (await floorPlanService.placeSymbol(
         database: database,
-        caseId: caseId,
+        setId: setId,
         shotId: null,
-        layer: OcptFloorPlanLayer.decor,
+        layer: OcptFloorPlanLayer.set,
         xM: 0,
         yM: 0,
         setElementShape: OcptFloorPlanSetElementShape.wall,
@@ -541,14 +541,14 @@ Action.
       final sceneRow = await (database.select(
         database.ocptShotsTable,
       )..where((row) => row.id.equals(shotId))).getSingle();
-      final caseId = (await floorPlanService.addCase(
+      final setId = (await floorPlanService.addSet(
         database: database,
         sceneId: sceneRow.sceneId!,
       ))!;
 
       final camera = (await floorPlanService.placeSymbol(
         database: database,
-        caseId: caseId,
+        setId: setId,
         shotId: shotId,
         layer: OcptFloorPlanLayer.cameras,
         xM: 0,
@@ -556,7 +556,7 @@ Action.
       ))!;
       final character = (await floorPlanService.placeSymbol(
         database: database,
-        caseId: caseId,
+        setId: setId,
         shotId: shotId,
         layer: OcptFloorPlanLayer.characters,
         xM: 1,
@@ -564,7 +564,7 @@ Action.
       ))!;
       final untouchedA = (await floorPlanService.placeSymbol(
         database: database,
-        caseId: caseId,
+        setId: setId,
         shotId: shotId,
         layer: OcptFloorPlanLayer.lights,
         xM: 2,
@@ -572,16 +572,16 @@ Action.
       ))!;
       final untouchedB = (await floorPlanService.placeSymbol(
         database: database,
-        caseId: caseId,
+        setId: setId,
         shotId: shotId,
-        layer: OcptFloorPlanLayer.handProps,
+        layer: OcptFloorPlanLayer.props,
         xM: 3,
         yM: 3,
       ))!;
 
       final arrowFrom = (await floorPlanService.addArrow(
         database: database,
-        caseId: caseId,
+        setId: setId,
         shotId: shotId,
         kind: OcptFloorPlanArrowKind.movement,
         fromSymbolId: character,
@@ -589,7 +589,7 @@ Action.
       ))!;
       final arrowTo = (await floorPlanService.addArrow(
         database: database,
-        caseId: caseId,
+        setId: setId,
         shotId: shotId,
         kind: OcptFloorPlanArrowKind.cameraMove,
         fromSymbolId: camera,
@@ -597,7 +597,7 @@ Action.
       ))!;
       final untouchedArrow = (await floorPlanService.addArrow(
         database: database,
-        caseId: caseId,
+        setId: setId,
         shotId: shotId,
         kind: OcptFloorPlanArrowKind.movement,
         fromSymbolId: untouchedA,
@@ -623,13 +623,13 @@ Action.
       final sceneRow = await (database.select(
         database.ocptShotsTable,
       )..where((row) => row.id.equals(shotId))).getSingle();
-      final caseId = (await floorPlanService.addCase(
+      final setId = (await floorPlanService.addSet(
         database: database,
         sceneId: sceneRow.sceneId!,
       ))!;
       final a = (await floorPlanService.placeSymbol(
         database: database,
-        caseId: caseId,
+        setId: setId,
         shotId: shotId,
         layer: OcptFloorPlanLayer.cameras,
         xM: 0,
@@ -637,7 +637,7 @@ Action.
       ))!;
       final b = (await floorPlanService.placeSymbol(
         database: database,
-        caseId: caseId,
+        setId: setId,
         shotId: shotId,
         layer: OcptFloorPlanLayer.characters,
         xM: 1,
@@ -645,7 +645,7 @@ Action.
       ))!;
       final arrowId = (await floorPlanService.addArrow(
         database: database,
-        caseId: caseId,
+        setId: setId,
         shotId: shotId,
         kind: OcptFloorPlanArrowKind.movement,
         fromSymbolId: a,
@@ -666,13 +666,13 @@ Action.
       final sceneRow = await (database.select(
         database.ocptShotsTable,
       )..where((row) => row.id.equals(shotId))).getSingle();
-      final caseId = (await floorPlanService.addCase(
+      final setId = (await floorPlanService.addSet(
         database: database,
         sceneId: sceneRow.sceneId!,
       ))!;
       final a = (await floorPlanService.placeSymbol(
         database: database,
-        caseId: caseId,
+        setId: setId,
         shotId: shotId,
         layer: OcptFloorPlanLayer.cameras,
         xM: 0,
@@ -680,7 +680,7 @@ Action.
       ))!;
       final b = (await floorPlanService.placeSymbol(
         database: database,
-        caseId: caseId,
+        setId: setId,
         shotId: shotId,
         layer: OcptFloorPlanLayer.characters,
         xM: 1,
@@ -688,7 +688,7 @@ Action.
       ))!;
       final arrowId = (await floorPlanService.addArrow(
         database: database,
-        caseId: caseId,
+        setId: setId,
         shotId: shotId,
         kind: OcptFloorPlanArrowKind.movement,
         fromSymbolId: a,
@@ -724,22 +724,22 @@ Action.
       final sceneRow = await (database.select(
         database.ocptShotsTable,
       )..where((row) => row.id.equals(shotId))).getSingle();
-      final caseId = (await floorPlanService.addCase(
+      final setId = (await floorPlanService.addSet(
         database: database,
         sceneId: sceneRow.sceneId!,
       ))!;
 
       final decor = (await floorPlanService.placeSymbol(
         database: database,
-        caseId: caseId,
+        setId: setId,
         shotId: null,
-        layer: OcptFloorPlanLayer.decor,
+        layer: OcptFloorPlanLayer.set,
         xM: 0,
         yM: 0,
       ))!;
       final camera = (await floorPlanService.placeSymbol(
         database: database,
-        caseId: caseId,
+        setId: setId,
         shotId: shotId,
         layer: OcptFloorPlanLayer.cameras,
         xM: 1,
@@ -747,7 +747,7 @@ Action.
       ))!;
       await floorPlanService.addArrow(
         database: database,
-        caseId: caseId,
+        setId: setId,
         shotId: shotId,
         kind: OcptFloorPlanArrowKind.cameraMove,
         fromSymbolId: camera,

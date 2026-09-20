@@ -268,18 +268,18 @@ Action.
           text: "note",
         );
 
-        final caseId = (await floorPlanService.addCase(database: database, sceneId: sceneId))!;
+        final setId = (await floorPlanService.addSet(database: database, sceneId: sceneId))!;
         final decorSymbolId = (await floorPlanService.placeSymbol(
           database: database,
-          caseId: caseId,
+          setId: setId,
           shotId: null,
-          layer: OcptFloorPlanLayer.decor,
+          layer: OcptFloorPlanLayer.set,
           xM: 0,
           yM: 0,
         ))!;
         final deletedCameraId = (await floorPlanService.placeSymbol(
           database: database,
-          caseId: caseId,
+          setId: setId,
           shotId: deletedShotId,
           layer: OcptFloorPlanLayer.cameras,
           xM: 1,
@@ -287,7 +287,7 @@ Action.
         ))!;
         final survivingCameraId = (await floorPlanService.placeSymbol(
           database: database,
-          caseId: caseId,
+          setId: setId,
           shotId: survivingShotId,
           layer: OcptFloorPlanLayer.cameras,
           xM: 2,
@@ -295,7 +295,7 @@ Action.
         ))!;
         await floorPlanService.addArrow(
           database: database,
-          caseId: caseId,
+          setId: setId,
           shotId: deletedShotId,
           kind: OcptFloorPlanArrowKind.cameraMove,
           fromSymbolId: deletedCameraId,
@@ -1173,18 +1173,18 @@ Action.
           shotId: secondShotId,
         ))!;
 
-        final caseId = (await floorPlanService.addCase(database: database, sceneId: sceneId))!;
+        final setId = (await floorPlanService.addSet(database: database, sceneId: sceneId))!;
         final decorSymbolId = (await floorPlanService.placeSymbol(
           database: database,
-          caseId: caseId,
+          setId: setId,
           shotId: null,
-          layer: OcptFloorPlanLayer.decor,
+          layer: OcptFloorPlanLayer.set,
           xM: 0,
           yM: 0,
         ))!;
         final firstCameraId = (await floorPlanService.placeSymbol(
           database: database,
-          caseId: caseId,
+          setId: setId,
           shotId: firstShotId,
           layer: OcptFloorPlanLayer.cameras,
           xM: 1,
@@ -1192,7 +1192,7 @@ Action.
         ))!;
         final secondCameraId = (await floorPlanService.placeSymbol(
           database: database,
-          caseId: caseId,
+          setId: setId,
           shotId: secondShotId,
           layer: OcptFloorPlanLayer.cameras,
           xM: 2,

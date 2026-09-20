@@ -9,8 +9,8 @@ import 'dart:typed_data';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_floor_plan_pdf_service.dart';
 import 'package:open_cine_prod_tools/models/ocpt_floor_plan_arrow.dart';
-import 'package:open_cine_prod_tools/models/ocpt_floor_plan_case.dart';
 import 'package:open_cine_prod_tools/models/ocpt_floor_plan_labels.dart';
+import 'package:open_cine_prod_tools/models/ocpt_floor_plan_set.dart';
 import 'package:open_cine_prod_tools/models/ocpt_floor_plan_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_floor_plan_symbol.dart';
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
@@ -81,17 +81,17 @@ OcptShot _buildShot({required String id, required String code}) => OcptShot(
   averageDifficulty: 0,
 );
 
-/// Builds a camera symbol on [caseId] for [shotId].
+/// Builds a camera symbol on [setId] for [shotId].
 OcptFloorPlanSymbol _cameraSymbolOf({
   required String id,
-  required String caseId,
+  required String setId,
   required String shotId,
   double xM = 0,
   double yM = 0,
   double? fovDeg,
 }) => OcptFloorPlanSymbol(
   id: id,
-  caseId: caseId,
+  setId: setId,
   shotId: shotId,
   layer: OcptFloorPlanLayer.cameras,
   sortKey: "a",
@@ -105,16 +105,16 @@ OcptFloorPlanSymbol _cameraSymbolOf({
   setElementShape: null,
 );
 
-/// Builds a character symbol on [caseId] for [shotId].
+/// Builds a character symbol on [setId] for [shotId].
 OcptFloorPlanSymbol _characterSymbolOf({
   required String id,
-  required String caseId,
+  required String setId,
   required String shotId,
   double xM = 0,
   double yM = 0,
 }) => OcptFloorPlanSymbol(
   id: id,
-  caseId: caseId,
+  setId: setId,
   shotId: shotId,
   layer: OcptFloorPlanLayer.characters,
   sortKey: "b",
@@ -128,17 +128,17 @@ OcptFloorPlanSymbol _characterSymbolOf({
   setElementShape: null,
 );
 
-/// A sequence-scoped décor symbol on [caseId], drawn as [shape] (defaulting to freeform, today's
+/// A sequence-scoped décor symbol on [setId], drawn as [shape] (defaulting to freeform, today's
 /// generic look, when unset).
 OcptFloorPlanSymbol _decorSymbolOf({
   required String id,
-  required String caseId,
+  required String setId,
   OcptFloorPlanSetElementShape? shape,
 }) => OcptFloorPlanSymbol(
   id: id,
-  caseId: caseId,
+  setId: setId,
   shotId: null,
-  layer: OcptFloorPlanLayer.decor,
+  layer: OcptFloorPlanLayer.set,
   sortKey: "a",
   xM: 0,
   yM: 0,
@@ -150,11 +150,11 @@ OcptFloorPlanSymbol _decorSymbolOf({
   setElementShape: shape,
 );
 
-/// A movement arrow between two symbols of [caseId], curved when [ctrlXM]/[ctrlYM] are set,
+/// A movement arrow between two symbols of [setId], curved when [ctrlXM]/[ctrlYM] are set,
 /// straight otherwise.
 OcptFloorPlanArrow _movementArrowOf({
   required String id,
-  required String caseId,
+  required String setId,
   required String shotId,
   required String fromSymbolId,
   required String toSymbolId,
@@ -162,7 +162,7 @@ OcptFloorPlanArrow _movementArrowOf({
   double? ctrlYM,
 }) => OcptFloorPlanArrow(
   id: id,
-  caseId: caseId,
+  setId: setId,
   shotId: shotId,
   kind: OcptFloorPlanArrowKind.movement,
   fromSymbolId: fromSymbolId,
@@ -211,13 +211,13 @@ void main() {
     ],
   );
 
-  OcptFloorPlanCase buildCase({
+  OcptFloorPlanSet buildCase({
     required String id,
     List<OcptFloorPlanSymbol> symbols = const [],
     List<OcptFloorPlanArrow> arrows = const [],
     String? underlayPath,
     double underlayRotationDeg = 0,
-  }) => OcptFloorPlanCase(
+  }) => OcptFloorPlanSet(
     id: id,
     sceneId: "scene-1",
     name: "Kitchen",
@@ -250,8 +250,8 @@ void main() {
         snapshot: snapshotOf(1),
         floorPlanSnapshot: OcptFloorPlanSnapshot.build(
           screenplayId: "screenplay",
-          casesBySceneId: {
-            "scene-1": [buildCase(id: "case-1", symbols: [_decorSymbolOf(id: "sym-1", caseId: "case-1")])],
+          setsBySceneId: {
+            "scene-1": [buildCase(id: "case-1", symbols: [_decorSymbolOf(id: "sym-1", setId: "case-1")])],
           },
         ),
       );
@@ -265,8 +265,8 @@ void main() {
         snapshot: snapshotOf(2),
         floorPlanSnapshot: OcptFloorPlanSnapshot.build(
           screenplayId: "screenplay",
-          casesBySceneId: {
-            "scene-1": [buildCase(id: "case-1", symbols: [_decorSymbolOf(id: "sym-1", caseId: "case-1")])],
+          setsBySceneId: {
+            "scene-1": [buildCase(id: "case-1", symbols: [_decorSymbolOf(id: "sym-1", setId: "case-1")])],
           },
         ),
       );
@@ -280,13 +280,13 @@ void main() {
         snapshot: snapshotOf(3),
         floorPlanSnapshot: OcptFloorPlanSnapshot.build(
           screenplayId: "screenplay",
-          casesBySceneId: {
+          setsBySceneId: {
             "scene-1": [
               buildCase(
                 id: "case-1",
                 symbols: [
-                  _cameraSymbolOf(id: "cam-0", caseId: "case-1", shotId: "shot-0"),
-                  _cameraSymbolOf(id: "cam-2", caseId: "case-1", shotId: "shot-2"),
+                  _cameraSymbolOf(id: "cam-0", setId: "case-1", shotId: "shot-0"),
+                  _cameraSymbolOf(id: "cam-2", setId: "case-1", shotId: "shot-2"),
                 ],
               ),
             ],
@@ -302,16 +302,16 @@ void main() {
         snapshot: snapshotOf(3),
         floorPlanSnapshot: OcptFloorPlanSnapshot.build(
           screenplayId: "screenplay",
-          casesBySceneId: {
+          setsBySceneId: {
             "scene-1": [
               buildCase(
                 id: "case-1",
                 symbols: [
-                  _cameraSymbolOf(id: "cam-0", caseId: "case-1", shotId: "shot-0"),
-                  _cameraSymbolOf(id: "cam-2", caseId: "case-1", shotId: "shot-2"),
+                  _cameraSymbolOf(id: "cam-0", setId: "case-1", shotId: "shot-0"),
+                  _cameraSymbolOf(id: "cam-2", setId: "case-1", shotId: "shot-2"),
                 ],
               ),
-              buildCase(id: "case-2", symbols: [_decorSymbolOf(id: "sym-1", caseId: "case-2")]),
+              buildCase(id: "case-2", symbols: [_decorSymbolOf(id: "sym-1", setId: "case-2")]),
             ],
           },
         ),
@@ -329,7 +329,7 @@ void main() {
 
       final bytes = await generate(
         snapshot: snapshot,
-        floorPlanSnapshot: OcptFloorPlanSnapshot.build(screenplayId: "screenplay", casesBySceneId: const {}),
+        floorPlanSnapshot: OcptFloorPlanSnapshot.build(screenplayId: "screenplay", setsBySceneId: const {}),
       );
 
       expect(_pageCount(bytes), 0);
@@ -340,14 +340,14 @@ void main() {
     test("a case with a camera draws differently from the very same case with none", () async {
       OcptFloorPlanSnapshot snapshotWith(List<OcptFloorPlanSymbol> symbols) => OcptFloorPlanSnapshot.build(
         screenplayId: "screenplay",
-        casesBySceneId: {
+        setsBySceneId: {
           "scene-1": [buildCase(id: "case-1", symbols: symbols)],
         },
       );
 
       final withCamera = await generate(
         snapshot: snapshotOf(1),
-        floorPlanSnapshot: snapshotWith([_cameraSymbolOf(id: "cam-0", caseId: "case-1", shotId: "shot-0")]),
+        floorPlanSnapshot: snapshotWith([_cameraSymbolOf(id: "cam-0", setId: "case-1", shotId: "shot-0")]),
       );
       final withoutCamera = await generate(
         snapshot: snapshotOf(1),
@@ -363,13 +363,13 @@ void main() {
       // *relative to another one* can ever change what a page draws.
       OcptFloorPlanSnapshot snapshotAt(double xM) => OcptFloorPlanSnapshot.build(
         screenplayId: "screenplay",
-        casesBySceneId: {
+        setsBySceneId: {
           "scene-1": [
             buildCase(
               id: "case-1",
               symbols: [
-                _decorSymbolOf(id: "sym-1", caseId: "case-1"),
-                _cameraSymbolOf(id: "cam-0", caseId: "case-1", shotId: "shot-0", xM: xM),
+                _decorSymbolOf(id: "sym-1", setId: "case-1"),
+                _cameraSymbolOf(id: "cam-0", setId: "case-1", shotId: "shot-0", xM: xM),
               ],
             ),
           ],
@@ -385,11 +385,11 @@ void main() {
     test("a camera's own field-of-view wedge angle changes what its own page draws", () async {
       OcptFloorPlanSnapshot snapshotOfFov(double fovDeg) => OcptFloorPlanSnapshot.build(
         screenplayId: "screenplay",
-        casesBySceneId: {
+        setsBySceneId: {
           "scene-1": [
             buildCase(
               id: "case-1",
-              symbols: [_cameraSymbolOf(id: "cam-0", caseId: "case-1", shotId: "shot-0", fovDeg: fovDeg)],
+              symbols: [_cameraSymbolOf(id: "cam-0", setId: "case-1", shotId: "shot-0", fovDeg: fovDeg)],
             ),
           ],
         },
@@ -404,9 +404,9 @@ void main() {
     test("each décor primitive draws its own page", () async {
       OcptFloorPlanSnapshot snapshotOfShape(OcptFloorPlanSetElementShape shape) => OcptFloorPlanSnapshot.build(
         screenplayId: "screenplay",
-        casesBySceneId: {
+        setsBySceneId: {
           "scene-1": [
-            buildCase(id: "case-1", symbols: [_decorSymbolOf(id: "sym-1", caseId: "case-1", shape: shape)]),
+            buildCase(id: "case-1", symbols: [_decorSymbolOf(id: "sym-1", setId: "case-1", shape: shape)]),
           ],
         },
       );
@@ -431,18 +431,18 @@ void main() {
     test("a curved movement arrow draws differently from a straight one", () async {
       OcptFloorPlanSnapshot snapshotOfArrow({double? ctrlXM, double? ctrlYM}) => OcptFloorPlanSnapshot.build(
         screenplayId: "screenplay",
-        casesBySceneId: {
+        setsBySceneId: {
           "scene-1": [
             buildCase(
               id: "case-1",
               symbols: [
-                _cameraSymbolOf(id: "cam-0", caseId: "case-1", shotId: "shot-0"),
-                _characterSymbolOf(id: "char-0", caseId: "case-1", shotId: "shot-0", xM: 2, yM: 2),
+                _cameraSymbolOf(id: "cam-0", setId: "case-1", shotId: "shot-0"),
+                _characterSymbolOf(id: "char-0", setId: "case-1", shotId: "shot-0", xM: 2, yM: 2),
               ],
               arrows: [
                 _movementArrowOf(
                   id: "arrow-1",
-                  caseId: "case-1",
+                  setId: "case-1",
                   shotId: "shot-0",
                   fromSymbolId: "char-0",
                   toSymbolId: "cam-0",
@@ -469,11 +469,11 @@ void main() {
     OcptFloorPlanSnapshot snapshotWithUnderlay(String? underlayPath, {double rotationDeg = 0}) =>
         OcptFloorPlanSnapshot.build(
           screenplayId: "screenplay",
-          casesBySceneId: {
+          setsBySceneId: {
             "scene-1": [
               buildCase(
                 id: "case-1",
-                symbols: [_decorSymbolOf(id: "sym-1", caseId: "case-1")],
+                symbols: [_decorSymbolOf(id: "sym-1", setId: "case-1")],
                 underlayPath: underlayPath,
                 underlayRotationDeg: rotationDeg,
               ),

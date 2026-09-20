@@ -123,18 +123,18 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
   /// The default delay between the last field edit and its autosave write.
   static const defaultFieldEditDebounce = Duration(seconds: 2);
 
-  /// The centre X, in metres, a case's underlay is framed at the moment it is first imported —
+  /// The centre X, in metres, a set's underlay is framed at the moment it is first imported —
   /// see [_onFloorPlanUnderlayImportRequested].
   static const _defaultUnderlayXM = 0.0;
 
-  /// The centre Y, in metres, a case's underlay is framed at the moment it is first imported.
+  /// The centre Y, in metres, a set's underlay is framed at the moment it is first imported.
   static const _defaultUnderlayYM = 0.0;
 
-  /// The width, in metres, a case's underlay is framed at the moment it is first imported — a
+  /// The width, in metres, a set's underlay is framed at the moment it is first imported — a
   /// plausible room width the user drags and resizes against the reference silhouette (ADR 0031).
   static const _defaultUnderlayWidthM = 6.0;
 
-  /// The height, in metres, a case's underlay is framed at the moment it is first imported.
+  /// The height, in metres, a set's underlay is framed at the moment it is first imported.
   static const _defaultUnderlayHeightM = 4.0;
 
   /// The manager used to access the project currently open.
@@ -168,11 +168,11 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
   /// `replacePanelImage`, `reorderPanel`, `updatePanelComment` and `deletePanel`.
   final OcptStoryboardService _storyboardService;
 
-  /// The service used to read and write the floor plans: `loadFloorPlans`, a case's own CRUD, a
+  /// The service used to read and write the floor plans: `loadFloorPlans`, a set's own CRUD, a
   /// symbol's placement/move/resize/rotation/deletion and the underlay's own CRUD.
   final OcptFloorPlanService _floorPlanService;
 
-  /// The manager used to pick a panel's frame or a case's underlay through the native "open"
+  /// The manager used to pick a panel's frame or a set's underlay through the native "open"
   /// dialog, mirroring `OcptResourcesBloc`'s own `_pickFilePath`.
   final FileSelectorManager? _fileSelectorManager;
 
@@ -291,11 +291,11 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     on<OcptShotListAnnotationSelectedEvent>(_onAnnotationSelected);
     on<OcptShotListAnnotationTextChangedEvent>(_onAnnotationTextChanged);
     on<OcptShotListAnnotationDeletionRequestedEvent>(_onAnnotationDeletionRequested);
-    on<OcptShotListCaseSelectedEvent>(_onCaseSelected);
-    on<OcptShotListCaseCreationRequestedEvent>(_onCaseCreationRequested);
-    on<OcptShotListCaseNameChangedEvent>(_onCaseNameChanged);
-    on<OcptShotListCaseReorderedEvent>(_onCaseReordered);
-    on<OcptShotListCaseDeletionRequestedEvent>(_onCaseDeletionRequested);
+    on<OcptShotListSetSelectedEvent>(_onSetSelected);
+    on<OcptShotListSetCreationRequestedEvent>(_onSetCreationRequested);
+    on<OcptShotListSetNameChangedEvent>(_onSetNameChanged);
+    on<OcptShotListSetReorderedEvent>(_onSetReordered);
+    on<OcptShotListSetDeletionRequestedEvent>(_onSetDeletionRequested);
     on<OcptShotListFloorPlanZoomChangedEvent>(_onFloorPlanZoomChanged);
     on<OcptShotListFloorPlanToolSelectedEvent>(_onFloorPlanToolSelected);
     on<OcptShotListFloorPlanActiveLayerChangedEvent>(_onFloorPlanActiveLayerChanged);
@@ -411,7 +411,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     final roles = await _loadRoles(project);
     final suggestions = await _loadSuggestions(project);
     final selectedSequenceId = snapshot.sequences.isEmpty ? null : snapshot.sequences.first.id;
-    final firstCaseId = _firstCaseIdOf(
+    final firstSetId = _firstSetIdOf(
       floorPlanSnapshot: floorPlanSnapshot,
       sequenceId: selectedSequenceId,
     );
@@ -434,8 +434,8 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
         clearSelectedPanelId: true,
         clearActiveAnnotationTool: true,
         clearSelectedAnnotationId: true,
-        selectedCaseId: firstCaseId,
-        clearSelectedCaseId: firstCaseId == null,
+        selectedSetId: firstSetId,
+        clearSelectedSetId: firstSetId == null,
         clearSelectedFloorPlanSymbolId: true,
         clearPendingFloorPlanArrowAnchorSymbolId: true,
         clearPendingCoverageAnchor: true,
@@ -489,9 +489,9 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
         screenplayId: _screenplayIdOf(project),
       );
 
-  /// Reads the whole floor plans of the selected episode's screenplay — every live case of every
+  /// Reads the whole floor plans of the selected episode's screenplay — every live set of every
   /// sequence, keyed by scene id — what the floor plans view reads through
-  /// `OcptShotListState.casesOfSelectedSequence`.
+  /// `OcptShotListState.setsOfSelectedSequence`.
   ///
   /// Read again after every floor plans write, exactly as [_loadStoryboard] is after every board
   /// write: the snapshot in state is only ever a reflection of what the database says.
@@ -501,19 +501,19 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
         screenplayId: _screenplayIdOf(project),
       );
 
-  /// The id of [sequenceId]'s own first floor plan case (its first tab), or null while
+  /// The id of [sequenceId]'s own first floor plan set (its first tab), or null while
   /// [floorPlanSnapshot] holds none for it, [sequenceId] is null, or it isn't a real scene (the
-  /// orphan group can never hold a case) — what a freshly selected sequence's floor plans view
+  /// orphan group can never hold a set) — what a freshly selected sequence's floor plans view
   /// defaults to.
-  String? _firstCaseIdOf({
+  String? _firstSetIdOf({
     required OcptFloorPlanSnapshot? floorPlanSnapshot,
     required String? sequenceId,
   }) {
     if (sequenceId == null || floorPlanSnapshot == null) {
       return null;
     }
-    final cases = floorPlanSnapshot.casesOfScene(sequenceId);
-    return cases.isEmpty ? null : cases.first.id;
+    final sets = floorPlanSnapshot.setsOfScene(sequenceId);
+    return sets.isEmpty ? null : sets.first.id;
   }
 
   /// Reads the production's whole cast — every live role, in `sortKey` order — what the
@@ -607,9 +607,9 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     await _flushPendingFieldEdits(emitter);
 
     final isSameSequence = state.selectedSequenceId == event.sequenceId;
-    final firstCaseId = isSameSequence
-        ? state.selectedCaseId
-        : _firstCaseIdOf(floorPlanSnapshot: state.floorPlanSnapshot, sequenceId: event.sequenceId);
+    final firstSetId = isSameSequence
+        ? state.selectedSetId
+        : _firstSetIdOf(floorPlanSnapshot: state.floorPlanSnapshot, sequenceId: event.sequenceId);
 
     emitter(
       state.copyWith(
@@ -618,8 +618,8 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
         clearSelectedPanelId: !isSameSequence,
         clearActiveAnnotationTool: !isSameSequence,
         clearSelectedAnnotationId: !isSameSequence,
-        selectedCaseId: firstCaseId,
-        clearSelectedCaseId: firstCaseId == null,
+        selectedSetId: firstSetId,
+        clearSelectedSetId: firstSetId == null,
         clearSelectedFloorPlanSymbolId: !isSameSequence,
         clearPendingFloorPlanArrowAnchorSymbolId: true,
         clearPendingCoverageAnchor: true,
@@ -1313,10 +1313,10 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
             annotationId: annotationId,
             text: Value(entry.value),
           );
-        case OcptShotListCaseNameEditKey(:final caseId):
-          await _floorPlanService.renameCase(
+        case OcptShotListSetNameEditKey(:final setId):
+          await _floorPlanService.renameSet(
             database: project.database,
-            caseId: caseId,
+            setId: setId,
             name: entry.value,
           );
         case OcptShotListSymbolLabelEditKey(:final symbolId):
@@ -1583,11 +1583,11 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
         .expand((panel) => panel.annotations)
         .map((annotation) => annotation.id)
         .toSet();
-    final floorPlanCases = state.floorPlanSnapshot?.casesById.values;
+    final floorPlanSets = state.floorPlanSnapshot?.setsById.values;
     final floorPlanSymbolIds = <String>{
-      if (floorPlanCases != null)
-        for (final floorPlanCase in floorPlanCases)
-          for (final symbol in floorPlanCase.symbols)
+      if (floorPlanSets != null)
+        for (final floorPlanSet in floorPlanSets)
+          for (final symbol in floorPlanSet.symbols)
             if (symbol.shotId == event.shotId) symbol.id,
     };
     final pendingWithoutShot = Map<OcptShotListPendingEditKey, String>.of(state.pendingFieldEdits)
@@ -1597,7 +1597,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
           OcptShotListPanelCommentEditKey(:final panelId) => panelIds.contains(panelId),
           OcptShotListAnnotationTextEditKey(:final annotationId) =>
             annotationIds.contains(annotationId),
-          OcptShotListCaseNameEditKey() => false,
+          OcptShotListSetNameEditKey() => false,
           OcptShotListSymbolLabelEditKey(:final symbolId) => floorPlanSymbolIds.contains(symbolId),
         },
       );
@@ -2152,7 +2152,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
           OcptShotListAnnotationTextEditKey(:final annotationId) =>
             annotationIds.contains(annotationId),
           OcptShotListShotFieldEditKey() => false,
-          OcptShotListCaseNameEditKey() => false,
+          OcptShotListSetNameEditKey() => false,
           OcptShotListSymbolLabelEditKey() => false,
         },
       );
@@ -2329,26 +2329,26 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     }
   }
 
-  /// Selects case `event.caseId` on the floor plans view, clearing the symbol selection: a symbol
-  /// only ever belongs to the case currently shown.
-  Future<void> _onCaseSelected(
-    OcptShotListCaseSelectedEvent event,
+  /// Selects set `event.setId` on the floor plans view, clearing the symbol selection: a symbol
+  /// only ever belongs to the set currently shown.
+  Future<void> _onSetSelected(
+    OcptShotListSetSelectedEvent event,
     Emitter<OcptShotListState> emitter,
   ) async {
     emitter(
       state.copyWith(
-        selectedCaseId: event.caseId,
+        selectedSetId: event.setId,
         clearSelectedFloorPlanSymbolId: true,
         clearPendingFloorPlanArrowAnchorSymbolId: true,
       ),
     );
   }
 
-  /// Creates a case on the selected sequence, reloads the floor plans and selects the new case.
+  /// Creates a set on the selected sequence, reloads the floor plans and selects the new set.
   /// Deliberately a no-op when the selected sequence is the orphan group (or when nothing is
-  /// selected at all): see [OcptShotListCaseCreationRequestedEvent].
-  Future<void> _onCaseCreationRequested(
-    OcptShotListCaseCreationRequestedEvent event,
+  /// selected at all): see [OcptShotListSetCreationRequestedEvent].
+  Future<void> _onSetCreationRequested(
+    OcptShotListSetCreationRequestedEvent event,
     Emitter<OcptShotListState> emitter,
   ) async {
     final project = _projectsManager.currentProject;
@@ -2358,48 +2358,48 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     }
 
     try {
-      final caseId = await _floorPlanService.addCase(
+      final setId = await _floorPlanService.addSet(
         database: project.database,
         sceneId: sequence.sceneId,
       );
-      if (caseId == null) {
+      if (setId == null) {
         return;
       }
 
       emitter(
         state.copyWith(
           floorPlanSnapshot: await _loadFloorPlans(project),
-          selectedCaseId: caseId,
+          selectedSetId: setId,
           clearSelectedFloorPlanSymbolId: true,
           clearPendingFloorPlanArrowAnchorSymbolId: true,
         ),
       );
     } catch (error) {
-      appLogger().e("A problem occurred when tried to create a floor plan case on scene "
+      appLogger().e("A problem occurred when tried to create a floor plan set on scene "
           "${sequence.sceneId} of the project at ${project.path}: $error");
       emitter(state.copyWith(hasWriteError: true));
     }
   }
 
-  /// Records the raw text just typed into case `event.caseId`'s own tab as a pending edit, and
+  /// Records the raw text just typed into set `event.setId`'s own tab as a pending edit, and
   /// (re)starts the field-edit debounce shared with [_onShotFieldChanged] and
   /// [_onPanelCommentChanged].
-  Future<void> _onCaseNameChanged(
-    OcptShotListCaseNameChangedEvent event,
+  Future<void> _onSetNameChanged(
+    OcptShotListSetNameChangedEvent event,
     Emitter<OcptShotListState> emitter,
   ) async {
     _recordPendingEdit(
       emitter: emitter,
-      key: OcptShotListCaseNameEditKey(caseId: event.caseId),
+      key: OcptShotListSetNameEditKey(setId: event.setId),
       rawValue: event.rawValue,
     );
   }
 
-  /// Moves case `event.caseId` to `event.newPosition`, writing exactly one row
-  /// (`OcptFloorPlanService.reorderCase`), dispatched by the case tabs' own drag-to-reorder
+  /// Moves set `event.setId` to `event.newPosition`, writing exactly one row
+  /// (`OcptFloorPlanService.reorderSet`), dispatched by the set tabs' own drag-to-reorder
   /// gesture.
-  Future<void> _onCaseReordered(
-    OcptShotListCaseReorderedEvent event,
+  Future<void> _onSetReordered(
+    OcptShotListSetReorderedEvent event,
     Emitter<OcptShotListState> emitter,
   ) async {
     final project = _projectsManager.currentProject;
@@ -2408,25 +2408,25 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     }
 
     try {
-      await _floorPlanService.reorderCase(
+      await _floorPlanService.reorderSet(
         database: project.database,
-        caseId: event.caseId,
+        setId: event.setId,
         newPosition: event.newPosition,
       );
       emitter(state.copyWith(floorPlanSnapshot: await _loadFloorPlans(project)));
     } catch (error) {
-      appLogger().e("A problem occurred when tried to reorder case ${event.caseId} of the "
+      appLogger().e("A problem occurred when tried to reorder set ${event.setId} of the "
           "project at ${project.path}: $error");
       emitter(state.copyWith(hasWriteError: true));
     }
   }
 
-  /// Deletes case `event.caseId` for good, dispatched once the tab's own delete action has
+  /// Deletes set `event.setId` for good, dispatched once the tab's own delete action has
   /// already been confirmed through `OcptConfirmDialog`, by the mode. Selects the sequence's own
-  /// next first case when it was the selected one (clearing the symbol selection alongside it) —
-  /// `OcptFloorPlanService.deleteCase`'s own cascade tombstones its symbols and arrows.
-  Future<void> _onCaseDeletionRequested(
-    OcptShotListCaseDeletionRequestedEvent event,
+  /// next first set when it was the selected one (clearing the symbol selection alongside it) —
+  /// `OcptFloorPlanService.deleteSet`'s own cascade tombstones its symbols and arrows.
+  Future<void> _onSetDeletionRequested(
+    OcptShotListSetDeletionRequestedEvent event,
     Emitter<OcptShotListState> emitter,
   ) async {
     final project = _projectsManager.currentProject;
@@ -2434,32 +2434,32 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
       return;
     }
 
-    final wasSelected = state.selectedCaseId == event.caseId;
-    final pendingWithoutCase = Map<OcptShotListPendingEditKey, String>.of(state.pendingFieldEdits)
-      ..removeWhere((key, _) => key is OcptShotListCaseNameEditKey && key.caseId == event.caseId);
+    final wasSelected = state.selectedSetId == event.setId;
+    final pendingWithoutSet = Map<OcptShotListPendingEditKey, String>.of(state.pendingFieldEdits)
+      ..removeWhere((key, _) => key is OcptShotListSetNameEditKey && key.setId == event.setId);
 
     try {
-      await _floorPlanService.deleteCase(database: project.database, caseId: event.caseId);
+      await _floorPlanService.deleteSet(database: project.database, setId: event.setId);
       final floorPlanSnapshot = await _loadFloorPlans(project);
-      final nextCaseId = wasSelected
-          ? _firstCaseIdOf(
+      final nextSetId = wasSelected
+          ? _firstSetIdOf(
               floorPlanSnapshot: floorPlanSnapshot,
               sequenceId: state.selectedSequenceId,
             )
-          : state.selectedCaseId;
+          : state.selectedSetId;
 
       emitter(
         state.copyWith(
           floorPlanSnapshot: floorPlanSnapshot,
-          pendingFieldEdits: pendingWithoutCase,
-          selectedCaseId: nextCaseId,
-          clearSelectedCaseId: nextCaseId == null,
+          pendingFieldEdits: pendingWithoutSet,
+          selectedSetId: nextSetId,
+          clearSelectedSetId: nextSetId == null,
           clearSelectedFloorPlanSymbolId: wasSelected,
           clearPendingFloorPlanArrowAnchorSymbolId: wasSelected,
         ),
       );
     } catch (error) {
-      appLogger().e("A problem occurred when tried to delete case ${event.caseId} of the "
+      appLogger().e("A problem occurred when tried to delete set ${event.setId} of the "
           "project at ${project.path}: $error");
       emitter(state.copyWith(hasWriteError: true));
     }
@@ -2512,7 +2512,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     emitter(state.copyWith(floorPlanHiddenLayers: hidden));
   }
 
-  /// Toggles the selected case's underlay visibility on the floor plans canvas. A view preference;
+  /// Toggles the selected set's underlay visibility on the floor plans canvas. A view preference;
   /// never withheld under a read-only preview.
   Future<void> _onFloorPlanUnderlayVisibilityToggled(
     OcptShotListFloorPlanUnderlayVisibilityToggledEvent event,
@@ -2521,7 +2521,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     emitter(state.copyWith(isFloorPlanUnderlayHidden: !state.isFloorPlanUnderlayHidden));
   }
 
-  /// Places a new symbol on case `event.caseId`'s `event.layer`, at `event.xM`/`event.yM`, then
+  /// Places a new symbol on set `event.setId`'s `event.layer`, at `event.xM`/`event.yM`, then
   /// selects it (`OcptFloorPlanService.placeSymbol`). Written immediately.
   ///
   /// `event.shotId` is null on a sequence layer (the `setElement` tool) and the focused shot's id
@@ -2541,13 +2541,13 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
 
     final shotId = event.shotId;
     final label = event.layer == OcptFloorPlanLayer.characters && shotId != null
-        ? _defaultCharacterLabelFor(caseId: event.caseId, shotId: shotId)
+        ? _defaultCharacterLabelFor(setId: event.setId, shotId: shotId)
         : "";
 
     try {
       final symbolId = await _floorPlanService.placeSymbol(
         database: project.database,
-        caseId: event.caseId,
+        setId: event.setId,
         shotId: shotId,
         layer: event.layer,
         xM: event.xM,
@@ -2565,25 +2565,25 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
         ),
       );
     } catch (error) {
-      appLogger().e("A problem occurred when tried to place a ${event.layer} symbol on case "
-          "${event.caseId} of the project at ${project.path}: $error");
+      appLogger().e("A problem occurred when tried to place a ${event.layer} symbol on set "
+          "${event.setId} of the project at ${project.path}: $error");
       emitter(state.copyWith(hasWriteError: true));
     }
   }
 
   /// The first of shot [shotId]'s own `OcptShot.characters` not already carried by one of its live
-  /// character symbols on case [caseId], or `""` while it has none left (or none at all) — the
+  /// character symbols on set [setId], or `""` while it has none left (or none at all) — the
   /// convenience pre-fill [_onFloorPlanSymbolPlaced] gives a freshly placed character symbol's own
   /// label.
-  String _defaultCharacterLabelFor({required String caseId, required String shotId}) {
+  String _defaultCharacterLabelFor({required String setId, required String shotId}) {
     final shot = state.snapshot?.shotsById[shotId];
     if (shot == null || shot.characters.isEmpty) {
       return "";
     }
 
-    final floorPlanCase = state.floorPlanSnapshot?.casesById[caseId];
+    final floorPlanSet = state.floorPlanSnapshot?.setsById[setId];
     final alreadyLabelled = {
-      for (final symbol in floorPlanCase?.symbols ?? const <OcptFloorPlanSymbol>[])
+      for (final symbol in floorPlanSet?.symbols ?? const <OcptFloorPlanSymbol>[])
         if (symbol.shotId == shotId &&
             symbol.layer == OcptFloorPlanLayer.characters &&
             symbol.label.isNotEmpty)
@@ -2716,7 +2716,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
   }
 
   /// Picks a file through the native "open" dialog, filtered to JPEG and PNG
-  /// (`ocptFloorPlanUnderlayImageFileExtensions`), and sets case `event.caseId`'s underlay to it,
+  /// (`ocptFloorPlanUnderlayImageFileExtensions`), and sets set `event.setId`'s underlay to it,
   /// framed at a default rectangle centred on the canvas (`_defaultUnderlayXM`/…): the user drags
   /// and resizes it afterwards to match the reference silhouette (ADR 0031). A cancelled dialog
   /// changes nothing at all.
@@ -2735,9 +2735,9 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     }
 
     try {
-      await _floorPlanService.setCaseUnderlay(
+      await _floorPlanService.setSetUnderlay(
         database: project.database,
-        caseId: event.caseId,
+        setId: event.setId,
         path: path,
         xM: _defaultUnderlayXM,
         yM: _defaultUnderlayYM,
@@ -2746,18 +2746,18 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
       );
       emitter(state.copyWith(floorPlanSnapshot: await _loadFloorPlans(project)));
     } catch (error) {
-      appLogger().e("A problem occurred when tried to import the underlay of case "
-          "${event.caseId} of the project at ${project.path}: $error");
+      appLogger().e("A problem occurred when tried to import the underlay of set "
+          "${event.setId} of the project at ${project.path}: $error");
       emitter(state.copyWith(hasWriteError: true));
     }
   }
 
-  /// Re-frames case `event.caseId`'s underlay to `event.xM`/`event.yM`/`event.widthM`/
+  /// Re-frames set `event.setId`'s underlay to `event.xM`/`event.yM`/`event.widthM`/
   /// `event.heightM`, dispatched once a drag moving or resizing it ends.
-  /// `OcptFloorPlanService.updateUnderlayFrame` — never `setCaseUnderlay`, which would tombstone
+  /// `OcptFloorPlanService.updateUnderlayFrame` — never `setSetUnderlay`, which would tombstone
   /// and re-mint the underlay's own `assets` row on every drag-end — is the one write this touches;
   /// its own current rotation is left alone, since this milestone builds no underlay rotate handle.
-  /// A no-op while the case carries no underlay at all (nothing to move).
+  /// A no-op while the set carries no underlay at all (nothing to move).
   Future<void> _onFloorPlanUnderlayTransformChanged(
     OcptShotListFloorPlanUnderlayTransformChangedEvent event,
     Emitter<OcptShotListState> emitter,
@@ -2767,15 +2767,15 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
       return;
     }
 
-    final floorPlanCase = state.floorPlanSnapshot?.casesById[event.caseId];
-    if (floorPlanCase?.underlayAssetId == null) {
+    final floorPlanSet = state.floorPlanSnapshot?.setsById[event.setId];
+    if (floorPlanSet?.underlayAssetId == null) {
       return;
     }
 
     try {
       await _floorPlanService.updateUnderlayFrame(
         database: project.database,
-        caseId: event.caseId,
+        setId: event.setId,
         xM: Value(event.xM),
         yM: Value(event.yM),
         widthM: Value(event.widthM),
@@ -2783,13 +2783,13 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
       );
       emitter(state.copyWith(floorPlanSnapshot: await _loadFloorPlans(project)));
     } catch (error) {
-      appLogger().e("A problem occurred when tried to move/resize the underlay of case "
-          "${event.caseId} of the project at ${project.path}: $error");
+      appLogger().e("A problem occurred when tried to move/resize the underlay of set "
+          "${event.setId} of the project at ${project.path}: $error");
       emitter(state.copyWith(hasWriteError: true));
     }
   }
 
-  /// Clears case `event.caseId`'s underlay for good, dispatched once the tray's own `Clear
+  /// Clears set `event.setId`'s underlay for good, dispatched once the tray's own `Clear
   /// underlay` action has already been confirmed through `OcptConfirmDialog`, by the mode.
   Future<void> _onFloorPlanUnderlayClearRequested(
     OcptShotListFloorPlanUnderlayClearRequestedEvent event,
@@ -2801,11 +2801,11 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     }
 
     try {
-      await _floorPlanService.clearCaseUnderlay(database: project.database, caseId: event.caseId);
+      await _floorPlanService.clearSetUnderlay(database: project.database, setId: event.setId);
       emitter(state.copyWith(floorPlanSnapshot: await _loadFloorPlans(project)));
     } catch (error) {
-      appLogger().e("A problem occurred when tried to clear the underlay of case "
-          "${event.caseId} of the project at ${project.path}: $error");
+      appLogger().e("A problem occurred when tried to clear the underlay of set "
+          "${event.setId} of the project at ${project.path}: $error");
       emitter(state.copyWith(hasWriteError: true));
     }
   }
@@ -2891,16 +2891,16 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
   /// `OcptShotListFloorPlanArrowSymbolTappedEvent` documents: with no anchor pending, picks it as
   /// the arrow's first end; with one already pending and a different symbol tapped, completes a
   /// movement arrow from the anchor to it, on the focused shot; a tap on the anchor itself is a
-  /// no-op. Written immediately; a stale tap (no case or no shot focused any more) is silently
+  /// no-op. Written immediately; a stale tap (no set or no shot focused any more) is silently
   /// ignored, mirroring [_onCoverageWordClicked]'s own guard.
   Future<void> _onFloorPlanArrowSymbolTapped(
     OcptShotListFloorPlanArrowSymbolTappedEvent event,
     Emitter<OcptShotListState> emitter,
   ) async {
     final project = _projectsManager.currentProject;
-    final selectedCaseId = state.selectedCaseId;
+    final selectedSetId = state.selectedSetId;
     final selectedShotId = state.selectedShotId;
-    if (project == null || selectedCaseId == null || selectedShotId == null) {
+    if (project == null || selectedSetId == null || selectedShotId == null) {
       return;
     }
 
@@ -2917,7 +2917,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     try {
       await _floorPlanService.addArrow(
         database: project.database,
-        caseId: selectedCaseId,
+        setId: selectedSetId,
         shotId: selectedShotId,
         kind: OcptFloorPlanArrowKind.movement,
         fromSymbolId: anchor,

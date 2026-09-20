@@ -7,36 +7,36 @@ import 'package:open_cine_prod_tools/models/database/tables/ocpt_assets_table.da
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_scenes_table.dart';
 
 /// One décor of a sequence's floor plan — the top-down symbol-placing editor a shot list's Floor
-/// plans view opens onto (`docs/plans/storyboard.md`, §1). A sequence may hold several cases, shown
+/// plans view opens onto (`docs/plans/storyboard.md`, §1). A sequence may hold several sets, shown
 /// as tabs.
 ///
-/// A case follows its scene and nothing else: `scenes` rows are tombstoned, never dropped, and their
-/// ids are stable, so a case whose scene vanished from the screenplay is simply unreachable from the
+/// A set follows its scene and nothing else: `scenes` rows are tombstoned, never dropped, and their
+/// ids are stable, so a set whose scene vanished from the screenplay is simply unreachable from the
 /// tree until the scene index matches it again — no orphan handling, no cascade of its own
 /// (`docs/plans/storyboard.md`, §2, §8).
-@DataClassName('OcptFloorPlanCaseRow')
-class OcptFloorPlanCasesTable extends Table {
-  /// {@macro open_cine_prod_tools.OcptFloorPlanCasesTable}
+@DataClassName('OcptFloorPlanSetRow')
+class OcptFloorPlanSetsTable extends Table {
+  /// {@macro open_cine_prod_tools.OcptFloorPlanSetsTable}
   @override
-  String get tableName => 'floor_plan_cases';
+  String get tableName => 'floor_plan_sets';
 
-  /// The stable, unique id of this case (a UUID).
+  /// The stable, unique id of this set (a UUID).
   TextColumn get id => text()();
 
-  /// The sequence this case belongs to — a case is per sequence, so per episode for free
+  /// The sequence this set belongs to — a set is per sequence, so per episode for free
   /// (`docs/adr/0019-one-project-several-episodes.md`).
   TextColumn get sceneId => text().references(OcptScenesTable, #id)();
 
-  /// The case's own name, e.g. `Kitchen`, `Hallway` — free text, prefilled from the scene heading's
+  /// The set's own name, e.g. `Kitchen`, `Hallway` — free text, prefilled from the scene heading's
   /// place but editable in the tab.
   TextColumn get name => text().withDefault(const Constant(''))();
 
   /// {@macro open_cine_prod_tools.sortKey}
   ///
-  /// The order the case's tab takes among the sequence's other cases.
+  /// The order the set's tab takes among the sequence's other sets.
   TextColumn get sortKey => text().withDefault(const Constant(''))();
 
-  /// The imported photo or plan drawn under this case's symbols, an `assets` row of kind
+  /// The imported photo or plan drawn under this set's symbols, an `assets` row of kind
   /// `floorPlanUnderlay` — null until one is imported.
   TextColumn get underlayAssetId => text().nullable().references(OcptAssetsTable, #id)();
 

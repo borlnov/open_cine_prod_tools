@@ -5,7 +5,7 @@
 import 'package:act_flutter_utility/act_flutter_utility.dart';
 import 'package:equatable/equatable.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_coverage_service.dart';
-import 'package:open_cine_prod_tools/models/ocpt_floor_plan_case.dart';
+import 'package:open_cine_prod_tools/models/ocpt_floor_plan_set.dart';
 import 'package:open_cine_prod_tools/models/ocpt_floor_plan_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_floor_plan_symbol.dart';
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
@@ -185,22 +185,22 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
 
   /// The whole floor plans of the selected episode's screenplay, as last read by
   /// `OcptFloorPlanService.loadFloorPlans`, or null while nothing has been loaded yet. Reloaded
-  /// after every write a floor plans affordance makes (a case's own CRUD, placing/moving/resizing a
+  /// after every write a floor plans affordance makes (a set's own CRUD, placing/moving/resizing a
   /// symbol, the underlay's own CRUD).
   final OcptFloorPlanSnapshot? floorPlanSnapshot;
 
-  /// The id of the case currently shown on the floor plans view, or null while none is (no case
+  /// The id of the set currently shown on the floor plans view, or null while none is (no set
   /// exists yet for the selected sequence, or the selected sequence is the orphan group, which has
   /// no scene to hold one).
   ///
-  /// Cleared whenever [selectedSequenceId] changes: a case only ever belongs to the sequence
+  /// Cleared whenever [selectedSequenceId] changes: a set only ever belongs to the sequence
   /// currently shown.
-  final String? selectedCaseId;
+  final String? selectedSetId;
 
   /// The id of the symbol currently selected on the floor plans canvas, or null while none is.
   ///
-  /// Cleared whenever [selectedCaseId] or [selectedSequenceId] changes: a symbol only ever belongs
-  /// to the case currently shown.
+  /// Cleared whenever [selectedSetId] or [selectedSequenceId] changes: a symbol only ever belongs
+  /// to the set currently shown.
   final String? selectedFloorPlanSymbolId;
 
   /// The floor plans canvas's own current zoom (1.0 = neutral/100%), last **settled** by
@@ -234,7 +234,7 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
   /// A **view/session state** value, like [floorPlanZoom]: never written to the project.
   final Set<OcptFloorPlanLayer> floorPlanHiddenLayers;
 
-  /// Whether the selected case's underlay is currently hidden on the floor plans canvas, toggled
+  /// Whether the selected set's underlay is currently hidden on the floor plans canvas, toggled
   /// by the tray's own underlay row.
   ///
   /// A **view/session state** value, like [floorPlanZoom]: never written to the project.
@@ -263,7 +263,7 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
   final double floorPlanOnionSkinOpacity;
 
   /// Whether the metrics overlay is shown, the tray's own metrics toggle: the distance from the
-  /// selected symbol to every other visible symbol of the case, and camera-to-subject for a
+  /// selected symbol to every other visible symbol of the set, and camera-to-subject for a
   /// selected camera.
   ///
   /// A **view/session state** value, like [floorPlanZoom]: never written to the project.
@@ -272,7 +272,7 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
   /// The id of the symbol picked as the arrow tool's own first end, or null while none is pending
   /// (no click yet, or the anchor was just completed into an arrow or cancelled) — the floor plans
   /// canvas's own pending anchor, mirroring [pendingCoverageAnchor]'s own shape. Cleared whenever
-  /// [selectedShotId], [selectedSequenceId] or [selectedCaseId] changes, and whenever
+  /// [selectedShotId], [selectedSequenceId] or [selectedSetId] changes, and whenever
   /// [floorPlanActiveTool] is picked away from [OcptFloorPlanTool.arrow].
   final String? pendingFloorPlanArrowAnchorSymbolId;
 
@@ -452,52 +452,52 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
   bool get hasAnyStoryboardPanel =>
       storyboardSnapshot?.panelsByShotId.values.any((panels) => panels.isNotEmpty) ?? false;
 
-  /// The selected sequence's own floor plan cases, in tab order, or an empty list while
+  /// The selected sequence's own floor plan sets, in tab order, or an empty list while
   /// [floorPlanSnapshot] hasn't loaded yet, no sequence is selected, or the selected sequence is
-  /// the orphan group (which has no scene, so it can never hold a case).
-  List<OcptFloorPlanCase> get casesOfSelectedSequence {
+  /// the orphan group (which has no scene, so it can never hold a set).
+  List<OcptFloorPlanSet> get setsOfSelectedSequence {
     final sequence = selectedSequence;
     if (floorPlanSnapshot == null || sequence is! OcptSceneShotSequence) {
       return const [];
     }
-    return floorPlanSnapshot!.casesOfScene(sequence.sceneId);
+    return floorPlanSnapshot!.setsOfScene(sequence.sceneId);
   }
 
-  /// Whether any live floor plan case of the screenplay holds at least one camera symbol, on any
+  /// Whether any live floor plan set of the screenplay holds at least one camera symbol, on any
   /// shot — what the export panel's floor plans card checks to decide whether it has anything to
   /// print (`docs/plans/storyboard.md`, §5).
   bool get hasAnyFloorPlanCamera =>
-      floorPlanSnapshot?.casesById.values.any(
-        (floorPlanCase) =>
-            floorPlanCase.symbols.any((symbol) => symbol.layer == OcptFloorPlanLayer.cameras),
+      floorPlanSnapshot?.setsById.values.any(
+        (floorPlanSet) =>
+            floorPlanSet.symbols.any((symbol) => symbol.layer == OcptFloorPlanLayer.cameras),
       ) ??
       false;
 
-  /// The case [selectedCaseId] identifies, or null if none is selected (or the selected one
+  /// The set [selectedSetId] identifies, or null if none is selected (or the selected one
   /// disappeared from a freshly loaded [floorPlanSnapshot]).
-  OcptFloorPlanCase? get selectedCase {
-    final selectedCaseId = this.selectedCaseId;
-    if (selectedCaseId == null) {
+  OcptFloorPlanSet? get selectedSet {
+    final selectedSetId = this.selectedSetId;
+    if (selectedSetId == null) {
       return null;
     }
-    for (final floorPlanCase in casesOfSelectedSequence) {
-      if (floorPlanCase.id == selectedCaseId) {
-        return floorPlanCase;
+    for (final floorPlanSet in setsOfSelectedSequence) {
+      if (floorPlanSet.id == selectedSetId) {
+        return floorPlanSet;
       }
     }
     return null;
   }
 
-  /// The symbol [selectedFloorPlanSymbolId] identifies among [selectedCase]'s own symbols, or null
+  /// The symbol [selectedFloorPlanSymbolId] identifies among [selectedSet]'s own symbols, or null
   /// if none is selected (or the selected one disappeared from a freshly loaded
   /// [floorPlanSnapshot]).
   OcptFloorPlanSymbol? get selectedFloorPlanSymbol {
     final selectedFloorPlanSymbolId = this.selectedFloorPlanSymbolId;
-    final selectedCase = this.selectedCase;
-    if (selectedFloorPlanSymbolId == null || selectedCase == null) {
+    final selectedSet = this.selectedSet;
+    if (selectedFloorPlanSymbolId == null || selectedSet == null) {
       return null;
     }
-    for (final symbol in selectedCase.symbols) {
+    for (final symbol in selectedSet.symbols) {
       if (symbol.id == selectedFloorPlanSymbolId) {
         return symbol;
       }
@@ -514,7 +514,7 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
 
   /// The selected sequence's own shot immediately before [selectedShotId], or null while none is
   /// selected, it is the sequence's first shot, or the selected sequence is the orphan group (no
-  /// floor plan case can ever belong to it) — the onion skin's own previous-shot ghost.
+  /// floor plan set can ever belong to it) — the onion skin's own previous-shot ghost.
   OcptShot? get previousShotOfSelectedShot => _neighbourShotOf(-1);
 
   /// The selected sequence's own shot immediately after [selectedShotId]. See
@@ -674,7 +674,7 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
     required this.activeAnnotationTool,
     required this.selectedAnnotationId,
     required this.floorPlanSnapshot,
-    required this.selectedCaseId,
+    required this.selectedSetId,
     required this.selectedFloorPlanSymbolId,
     required this.floorPlanZoom,
     required this.floorPlanActiveTool,
@@ -727,11 +727,11 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
       activeAnnotationTool = null,
       selectedAnnotationId = null,
       floorPlanSnapshot = null,
-      selectedCaseId = null,
+      selectedSetId = null,
       selectedFloorPlanSymbolId = null,
       floorPlanZoom = 1,
       floorPlanActiveTool = OcptFloorPlanTool.select,
-      floorPlanActiveLayer = OcptFloorPlanLayer.furniture,
+      floorPlanActiveLayer = OcptFloorPlanLayer.set,
       floorPlanHiddenLayers = const {},
       isFloorPlanUnderlayHidden = false,
       floorPlanHiddenCameraSymbolIds = const {},
@@ -791,8 +791,8 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
     String? selectedAnnotationId,
     bool clearSelectedAnnotationId = false,
     OcptFloorPlanSnapshot? floorPlanSnapshot,
-    String? selectedCaseId,
-    bool clearSelectedCaseId = false,
+    String? selectedSetId,
+    bool clearSelectedSetId = false,
     String? selectedFloorPlanSymbolId,
     bool clearSelectedFloorPlanSymbolId = false,
     double? floorPlanZoom,
@@ -861,7 +861,7 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
         ? null
         : (selectedAnnotationId ?? this.selectedAnnotationId),
     floorPlanSnapshot: floorPlanSnapshot ?? this.floorPlanSnapshot,
-    selectedCaseId: clearSelectedCaseId ? null : (selectedCaseId ?? this.selectedCaseId),
+    selectedSetId: clearSelectedSetId ? null : (selectedSetId ?? this.selectedSetId),
     selectedFloorPlanSymbolId: clearSelectedFloorPlanSymbolId
         ? null
         : (selectedFloorPlanSymbolId ?? this.selectedFloorPlanSymbolId),
@@ -985,7 +985,7 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
     activeAnnotationTool,
     selectedAnnotationId,
     floorPlanSnapshot,
-    selectedCaseId,
+    selectedSetId,
     selectedFloorPlanSymbolId,
     floorPlanZoom,
     floorPlanActiveTool,

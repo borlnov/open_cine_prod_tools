@@ -6,7 +6,7 @@ import 'package:equatable/equatable.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_arrow_kind.dart';
 
-/// A movement or camera-move arrow drawn between two symbols of the same floor plan case, as
+/// A movement or camera-move arrow drawn between two symbols of the same floor plan set, as
 /// `OcptFloorPlanService.loadFloorPlans` builds it from its stored row.
 ///
 /// [shotId] is always set — see `OcptFloorPlanArrowsTable`'s own doc comment: an arrow is a
@@ -16,8 +16,8 @@ class OcptFloorPlanArrow extends Equatable {
   /// The stable, unique id of this arrow (a UUID).
   final String id;
 
-  /// The case this arrow is drawn on.
-  final String caseId;
+  /// The set this arrow is drawn on.
+  final String setId;
 
   /// The shot this movement belongs to.
   final String shotId;
@@ -44,7 +44,7 @@ class OcptFloorPlanArrow extends Equatable {
   /// Class constructor
   const OcptFloorPlanArrow({
     required this.id,
-    required this.caseId,
+    required this.setId,
     required this.shotId,
     required this.kind,
     required this.fromSymbolId,
@@ -57,7 +57,7 @@ class OcptFloorPlanArrow extends Equatable {
   /// Builds an [OcptFloorPlanArrow] from its stored [row].
   factory OcptFloorPlanArrow.fromRow(OcptFloorPlanArrowRow row) => OcptFloorPlanArrow(
     id: row.id,
-    caseId: row.caseId,
+    setId: row.setId,
     shotId: row.shotId,
     kind: row.kind,
     fromSymbolId: row.fromSymbolId,
@@ -69,13 +69,13 @@ class OcptFloorPlanArrow extends Equatable {
 
   /// Object string representation, useful for debugging and logging.
   @override
-  String toString() => "OcptFloorPlanArrow(id: $id, caseId: $caseId, shotId: $shotId, kind: $kind)";
+  String toString() => "OcptFloorPlanArrow(id: $id, setId: $setId, shotId: $shotId, kind: $kind)";
 
   /// Object properties
   @override
   List<Object?> get props => [
     id,
-    caseId,
+    setId,
     shotId,
     kind,
     fromSymbolId,

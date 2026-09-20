@@ -9,7 +9,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
-import 'package:open_cine_prod_tools/models/ocpt_floor_plan_case.dart';
+import 'package:open_cine_prod_tools/models/ocpt_floor_plan_set.dart';
 import 'package:open_cine_prod_tools/models/ocpt_floor_plan_sheet.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_layer.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_tool.dart';
@@ -42,7 +42,7 @@ const Duration _wheelZoomSettleDelay = Duration(milliseconds: 300);
 const double _wheelZoomStep = 0.08;
 
 /// The floor plans canvas: a `CustomPaint` of the `OcptFloorPlanSheet` the current focus builds
-/// for [floorPlanCase], under a `GestureDetector` (`docs/plans/storyboard.md`, §4.3).
+/// for [floorPlanSet], under a `GestureDetector` (`docs/plans/storyboard.md`, §4.3).
 ///
 /// Geometry is drawn from **metres → logical pixels at [OcptFloorPlanCanvas.viewportController]'s
 /// current zoom**, through `ocpt_floor_plan_geometry.dart` — never a stored pixel value.
@@ -77,8 +77,8 @@ const double _wheelZoomStep = 0.08;
 /// do); zoom, pan, selecting, the metrics overlay and the tray's own visibility toggles stay
 /// available, since they only read.
 class OcptFloorPlanCanvas extends StatefulWidget {
-  /// The case currently shown, or null while none is selected (the empty state).
-  final OcptFloorPlanCase? floorPlanCase;
+  /// The set currently shown, or null while none is selected (the empty state).
+  final OcptFloorPlanSet? floorPlanSet;
 
   /// Every shot of the selected sequence's own 1-based display rank, keyed by shot id — what
   /// `OcptFloorPlanSheet.of` derives a camera's number from.
@@ -111,7 +111,7 @@ class OcptFloorPlanCanvas extends StatefulWidget {
   /// only relevant under the `Sequence` focus, where every shot's cameras draw at once.
   final Set<String> hiddenCameraSymbolIds;
 
-  /// Whether the case's own underlay is currently hidden.
+  /// Whether the set's own underlay is currently hidden.
   final bool isUnderlayHidden;
 
   /// The id of the currently selected symbol, or null while none is.
@@ -121,7 +121,7 @@ class OcptFloorPlanCanvas extends StatefulWidget {
   final String? pendingArrowAnchorSymbolId;
 
   /// Whether the metrics overlay is shown: the distance from the selected symbol to every other
-  /// visible symbol of the case.
+  /// visible symbol of the set.
   final bool isMetricsShown;
 
   /// The canvas's own currently active tool.
@@ -195,7 +195,7 @@ class OcptFloorPlanCanvas extends StatefulWidget {
   /// Class constructor
   const OcptFloorPlanCanvas({
     super.key,
-    required this.floorPlanCase,
+    required this.floorPlanSet,
     required this.shotRankByShotId,
     required this.focusShotId,
     required this.previousShotId,
@@ -260,9 +260,9 @@ class _OcptFloorPlanCanvasState extends State<OcptFloorPlanCanvas> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final tr = Tr.of(context);
-    final floorPlanCase = widget.floorPlanCase;
+    final floorPlanSet = widget.floorPlanSet;
 
-    if (floorPlanCase == null) {
+    if (floorPlanSet == null) {
       return Center(
         child: Text(
           tr.shotListFloorPlanNoCaseHint,
@@ -280,7 +280,7 @@ class _OcptFloorPlanCanvasState extends State<OcptFloorPlanCanvas> {
           builder: (context, _) {
             final zoom = widget.viewportController.zoom;
             final pan = widget.viewportController.pan;
-            final sheet = _sheetOf(floorPlanCase);
+            final sheet = _sheetOf(floorPlanSet);
             final barLengthM = ocptFloorPlanScaleBarLengthM(zoom: zoom);
 
             final selectedShape = _selectedShapeOf(sheet);
@@ -288,8 +288,8 @@ class _OcptFloorPlanCanvasState extends State<OcptFloorPlanCanvas> {
             return ClipRect(
               child: Stack(
                 children: [
-                  if (!widget.isUnderlayHidden && floorPlanCase.underlayAssetId != null)
-                    _buildUnderlayVisual(floorPlanCase, canvasSize, zoom, pan),
+                  if (!widget.isUnderlayHidden && floorPlanSet.underlayAssetId != null)
+                    _buildUnderlayVisual(floorPlanSet, canvasSize, zoom, pan),
                   Positioned.fill(
                     child: Listener(
                       onPointerSignal: _handlePointerSignal,
@@ -325,10 +325,10 @@ class _OcptFloorPlanCanvasState extends State<OcptFloorPlanCanvas> {
                     ),
                   ),
                   if (!widget.isUnderlayHidden &&
-                      floorPlanCase.underlayAssetId != null &&
+                      floorPlanSet.underlayAssetId != null &&
                       !widget.isReadOnly &&
                       widget.onUnderlayTransformChanged != null)
-                    ..._buildUnderlayHandles(floorPlanCase, canvasSize, zoom, pan),
+                    ..._buildUnderlayHandles(floorPlanSet, canvasSize, zoom, pan),
                   for (final symbol in sheet.symbols)
                     _buildSymbolHitOverlay(symbol, canvasSize, zoom, pan),
                   if (selectedShape != null)
@@ -352,10 +352,10 @@ class _OcptFloorPlanCanvasState extends State<OcptFloorPlanCanvas> {
   /// ([OcptFloorPlanCanvas.previousShotId]/[OcptFloorPlanCanvas.nextShotId]) are passed to
   /// `OcptFloorPlanSheet.of` only while their own tray toggle is on, so a hidden neighbour draws
   /// nothing at all rather than a ghost this canvas then has to filter back out.
-  OcptFloorPlanSheet _sheetOf(OcptFloorPlanCase floorPlanCase) {
+  OcptFloorPlanSheet _sheetOf(OcptFloorPlanSet floorPlanSet) {
     final focusShotId = widget.focusShotId;
     final full = OcptFloorPlanSheet.of(
-      floorPlanCase: floorPlanCase,
+      floorPlanSet: floorPlanSet,
       focusShotId: focusShotId,
       shotRankByShotId: widget.shotRankByShotId,
       previousShotId: widget.isOnionSkinPreviousShown ? widget.previousShotId : null,
@@ -365,8 +365,8 @@ class _OcptFloorPlanCanvasState extends State<OcptFloorPlanCanvas> {
     final isSequenceFocus = focusShotId == null;
 
     return OcptFloorPlanSheet(
-      caseId: full.caseId,
-      caseName: full.caseName,
+      setId: full.setId,
+      setName: full.setName,
       underlay: full.underlay,
       symbols: [
         for (final symbol in full.symbols)
@@ -516,12 +516,12 @@ class _OcptFloorPlanCanvasState extends State<OcptFloorPlanCanvas> {
 
   /// The underlay's own screen rect, un-rotated (its rotation is applied by a `Transform.rotate`
   /// wrapping whichever widget this sizes).
-  Rect _underlayScreenRect(OcptFloorPlanCase floorPlanCase, Size canvasSize, double zoom, Offset pan) {
+  Rect _underlayScreenRect(OcptFloorPlanSet floorPlanSet, Size canvasSize, double zoom, Offset pan) {
     final frame = _liveUnderlayFrame;
-    final xM = frame?.xM ?? floorPlanCase.underlayXM ?? 0;
-    final yM = frame?.yM ?? floorPlanCase.underlayYM ?? 0;
-    final widthM = frame?.widthM ?? floorPlanCase.underlayWidthM ?? 0;
-    final heightM = frame?.heightM ?? floorPlanCase.underlayHeightM ?? 0;
+    final xM = frame?.xM ?? floorPlanSet.underlayXM ?? 0;
+    final yM = frame?.yM ?? floorPlanSet.underlayYM ?? 0;
+    final widthM = frame?.widthM ?? floorPlanSet.underlayWidthM ?? 0;
+    final heightM = frame?.heightM ?? floorPlanSet.underlayHeightM ?? 0;
     final centre = ocptFloorPlanScreenPointOf(xM: xM, yM: yM, canvasSize: canvasSize, zoom: zoom, pan: pan);
     final pixelsPerMetre = ocptFloorPlanPixelsPerMetreAt(zoom);
     final widthPx = widthM * pixelsPerMetre;
@@ -533,9 +533,9 @@ class _OcptFloorPlanCanvasState extends State<OcptFloorPlanCanvas> {
   /// frame, drawn behind the `CustomPaint` (so symbols draw over it) and taking no pointer of its
   /// own — a separate invisible overlay ([_buildUnderlayHandles]) handles its interaction, decoupling
   /// visual draw order from hit-test order.
-  Widget _buildUnderlayVisual(OcptFloorPlanCase floorPlanCase, Size canvasSize, double zoom, Offset pan) {
-    final rect = _underlayScreenRect(floorPlanCase, canvasSize, zoom, pan);
-    final rotationDeg = floorPlanCase.underlayRotationDeg ?? 0;
+  Widget _buildUnderlayVisual(OcptFloorPlanSet floorPlanSet, Size canvasSize, double zoom, Offset pan) {
+    final rect = _underlayScreenRect(floorPlanSet, canvasSize, zoom, pan);
+    final rotationDeg = floorPlanSet.underlayRotationDeg ?? 0;
 
     return IgnorePointer(
       child: Positioned(
@@ -546,7 +546,7 @@ class _OcptFloorPlanCanvasState extends State<OcptFloorPlanCanvas> {
         child: Transform.rotate(
           angle: rotationDeg * math.pi / 180,
           child: OcptReferencedImage(
-            path: floorPlanCase.underlayPath,
+            path: floorPlanSet.underlayPath,
             fit: BoxFit.fill,
             fallbackBuilder: (context) => ColoredBox(
               color: Theme.of(context).colorScheme.surfaceContainerHighest,
@@ -561,13 +561,13 @@ class _OcptFloorPlanCanvasState extends State<OcptFloorPlanCanvas> {
   /// out but positioned first in this build's own return list (see [build]) so a click landing on
   /// a symbol drawn over the underlay hits that symbol first.
   List<Widget> _buildUnderlayHandles(
-    OcptFloorPlanCase floorPlanCase,
+    OcptFloorPlanSet floorPlanSet,
     Size canvasSize,
     double zoom,
     Offset pan,
   ) {
-    final rect = _underlayScreenRect(floorPlanCase, canvasSize, zoom, pan);
-    final rotationDeg = floorPlanCase.underlayRotationDeg ?? 0;
+    final rect = _underlayScreenRect(floorPlanSet, canvasSize, zoom, pan);
+    final rotationDeg = floorPlanSet.underlayRotationDeg ?? 0;
 
     return [
       Positioned(
@@ -583,14 +583,14 @@ class _OcptFloorPlanCanvasState extends State<OcptFloorPlanCanvas> {
             onPanStart: (_) => setState(() {
               _underlayDragKind = _UnderlayDragKind.move;
               _liveUnderlayFrame = (
-                xM: floorPlanCase.underlayXM ?? 0,
-                yM: floorPlanCase.underlayYM ?? 0,
-                widthM: floorPlanCase.underlayWidthM ?? 0,
-                heightM: floorPlanCase.underlayHeightM ?? 0,
+                xM: floorPlanSet.underlayXM ?? 0,
+                yM: floorPlanSet.underlayYM ?? 0,
+                widthM: floorPlanSet.underlayWidthM ?? 0,
+                heightM: floorPlanSet.underlayHeightM ?? 0,
               );
             }),
             onPanUpdate: (details) => _updateUnderlayDrag(details.delta, zoom, rotationDeg),
-            onPanEnd: (_) => _commitUnderlayDrag(floorPlanCase),
+            onPanEnd: (_) => _commitUnderlayDrag(floorPlanSet),
           ),
         ),
       ),
@@ -605,14 +605,14 @@ class _OcptFloorPlanCanvasState extends State<OcptFloorPlanCanvas> {
           onPanStart: (_) => setState(() {
             _underlayDragKind = _UnderlayDragKind.resize;
             _liveUnderlayFrame = (
-              xM: floorPlanCase.underlayXM ?? 0,
-              yM: floorPlanCase.underlayYM ?? 0,
-              widthM: floorPlanCase.underlayWidthM ?? 0,
-              heightM: floorPlanCase.underlayHeightM ?? 0,
+              xM: floorPlanSet.underlayXM ?? 0,
+              yM: floorPlanSet.underlayYM ?? 0,
+              widthM: floorPlanSet.underlayWidthM ?? 0,
+              heightM: floorPlanSet.underlayHeightM ?? 0,
             );
           }),
           onPanUpdate: (details) => _updateUnderlayDrag(details.delta, zoom, rotationDeg),
-          onPanEnd: (_) => _commitUnderlayDrag(floorPlanCase),
+          onPanEnd: (_) => _commitUnderlayDrag(floorPlanSet),
           child: _HandleDot(color: Theme.of(context).colorScheme.primary),
         ),
       ),
@@ -655,7 +655,7 @@ class _OcptFloorPlanCanvasState extends State<OcptFloorPlanCanvas> {
   }
 
   /// Reports the underlay's own settled frame and clears the live drag state.
-  void _commitUnderlayDrag(OcptFloorPlanCase floorPlanCase) {
+  void _commitUnderlayDrag(OcptFloorPlanSet floorPlanSet) {
     final frame = _liveUnderlayFrame;
     setState(() {
       _liveUnderlayFrame = null;

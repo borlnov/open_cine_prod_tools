@@ -5,58 +5,58 @@
 import 'package:flutter/material.dart';
 import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
-import 'package:open_cine_prod_tools/models/ocpt_floor_plan_case.dart';
+import 'package:open_cine_prod_tools/models/ocpt_floor_plan_set.dart';
 
 /// The floor plans view's own case tabs, sitting in `OcptShotListCentreHeader`'s trailing slot
 /// (`docs/plans/storyboard.md`, §4.1, §4.3): a tab per case of the selected sequence, `+ Case`
 /// appended after them, its name **edited in place** on whichever tab is currently selected, and
 /// removed through a small close action every tab carries.
 ///
-/// A tab is reported selected through [onCaseSelected]; deleting one only asks
-/// ([onCaseDeleteRequested]) — the mode opens `OcptConfirmDialog`. Every write ([onCaseCreationRequested],
-/// [onCaseNameChanged], [onCaseReordered], [onCaseDeleteRequested]) is a **nullable** callback,
+/// A tab is reported selected through [onSetSelected]; deleting one only asks
+/// ([onSetDeleteRequested]) — the mode opens `OcptConfirmDialog`. Every write ([onSetCreationRequested],
+/// [onSetNameChanged], [onSetReordered], [onSetDeleteRequested]) is a **nullable** callback,
 /// withheld by the mode under a read-only preview; selecting a tab is never withheld, since it only
 /// reads.
-class OcptFloorPlanCaseTabs extends StatelessWidget {
+class OcptFloorPlanSetTabs extends StatelessWidget {
   /// The selected sequence's own cases, in tab order.
-  final List<OcptFloorPlanCase> cases;
+  final List<OcptFloorPlanSet> sets;
 
   /// The id of the currently selected case, or null while none is.
-  final String? selectedCaseId;
+  final String? selectedSetId;
 
   /// The selected case's own current name: a pending edit still in the bloc's debounce, or its own
   /// stored value — resolved by the mode, the tabs' equivalent of the inspector's `fieldValueOf`.
-  final String Function(String caseId) nameValueOf;
+  final String Function(String setId) nameValueOf;
 
   /// Called with a case's id when its tab is clicked. Never withheld: selecting only reads.
-  final ValueChanged<String> onCaseSelected;
+  final ValueChanged<String> onSetSelected;
 
   /// Called when `+ Case` is clicked, or null while withheld.
-  final VoidCallback? onCaseCreationRequested;
+  final VoidCallback? onSetCreationRequested;
 
   /// Called with a case's id and its new name on every keystroke of the selected tab's own name
   /// field, or null while withheld.
-  final void Function(String caseId, String rawValue)? onCaseNameChanged;
+  final void Function(String setId, String rawValue)? onSetNameChanged;
 
   /// Called with a case's id and its new 0-based tab position once a drag reordering the tabs
   /// ends, or null while withheld.
-  final void Function(String caseId, int newPosition)? onCaseReordered;
+  final void Function(String setId, int newPosition)? onSetReordered;
 
   /// Called with a case's id when its own close action is clicked, or null while withheld. Only
   /// asks — the mode opens `OcptConfirmDialog`.
-  final ValueChanged<String>? onCaseDeleteRequested;
+  final ValueChanged<String>? onSetDeleteRequested;
 
   /// Class constructor
-  const OcptFloorPlanCaseTabs({
+  const OcptFloorPlanSetTabs({
     super.key,
-    required this.cases,
-    required this.selectedCaseId,
+    required this.sets,
+    required this.selectedSetId,
     required this.nameValueOf,
-    required this.onCaseSelected,
-    required this.onCaseCreationRequested,
-    required this.onCaseNameChanged,
-    required this.onCaseReordered,
-    required this.onCaseDeleteRequested,
+    required this.onSetSelected,
+    required this.onSetCreationRequested,
+    required this.onSetNameChanged,
+    required this.onSetReordered,
+    required this.onSetDeleteRequested,
   });
 
   @override
@@ -64,12 +64,12 @@ class OcptFloorPlanCaseTabs extends StatelessWidget {
     final addButton = Tooltip(
       message: Tr.of(context).shotListFloorPlanAddCaseAction,
       child: IconButton(
-        onPressed: onCaseCreationRequested,
+        onPressed: onSetCreationRequested,
         icon: const Icon(Icons.add, size: 18),
       ),
     );
 
-    if (cases.isEmpty) {
+    if (sets.isEmpty) {
       return addButton;
     }
 
@@ -82,7 +82,7 @@ class OcptFloorPlanCaseTabs extends StatelessWidget {
             scrollDirection: Axis.horizontal,
             child: Row(
               mainAxisSize: MainAxisSize.min,
-              children: [for (final floorPlanCase in cases) _buildTab(context, floorPlanCase)],
+              children: [for (final floorPlanSet in sets) _buildTab(context, floorPlanSet)],
             ),
           ),
         ),
@@ -97,14 +97,14 @@ class OcptFloorPlanCaseTabs extends StatelessWidget {
   /// inside the centre header's own `Wrap` (unbounded cross-axis space), which
   /// `ReorderableListView`'s heavier scrolling/semantics machinery does not tolerate reliably —
   /// this simpler pair needs nothing from its ancestor beyond ordinary hit testing.
-  Widget _buildTab(BuildContext context, OcptFloorPlanCase floorPlanCase) {
+  Widget _buildTab(BuildContext context, OcptFloorPlanSet floorPlanSet) {
     final theme = Theme.of(context);
-    final isSelected = floorPlanCase.id == selectedCaseId;
+    final isSelected = floorPlanSet.id == selectedSetId;
 
     final tab = Padding(
       padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 4),
       child: InkWell(
-        onTap: () => onCaseSelected(floorPlanCase.id),
+        onTap: () => onSetSelected(floorPlanSet.id),
         mouseCursor: ocptClickableCursor,
         borderRadius: BorderRadius.circular(ocptRadiusSmall),
         child: Container(
@@ -121,16 +121,16 @@ class OcptFloorPlanCaseTabs extends StatelessWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              if (isSelected && onCaseNameChanged != null)
+              if (isSelected && onSetNameChanged != null)
                 _EditableTabName(
-                  key: ValueKey("${floorPlanCase.id}-editable"),
-                  value: nameValueOf(floorPlanCase.id),
+                  key: ValueKey("${floorPlanSet.id}-editable"),
+                  value: nameValueOf(floorPlanSet.id),
                   color: theme.colorScheme.primary,
-                  onChanged: (value) => onCaseNameChanged!(floorPlanCase.id, value),
+                  onChanged: (value) => onSetNameChanged!(floorPlanSet.id, value),
                 )
               else
                 Text(
-                  nameValueOf(floorPlanCase.id),
+                  nameValueOf(floorPlanSet.id),
                   style: theme.textTheme.labelMedium?.copyWith(
                     color: isSelected
                         ? theme.colorScheme.primary
@@ -138,10 +138,10 @@ class OcptFloorPlanCaseTabs extends StatelessWidget {
                     fontWeight: isSelected ? FontWeight.w700 : FontWeight.normal,
                   ),
                 ),
-              if (onCaseDeleteRequested != null) ...[
+              if (onSetDeleteRequested != null) ...[
                 const SizedBox(width: 4),
                 InkWell(
-                  onTap: () => onCaseDeleteRequested!(floorPlanCase.id),
+                  onTap: () => onSetDeleteRequested!(floorPlanSet.id),
                   mouseCursor: ocptClickableCursor,
                   child: Icon(Icons.close, size: 14, color: theme.colorScheme.onSurfaceVariant),
                 ),
@@ -152,21 +152,21 @@ class OcptFloorPlanCaseTabs extends StatelessWidget {
       ),
     );
 
-    final onCaseReordered = this.onCaseReordered;
-    if (onCaseReordered == null) {
+    final onSetReordered = this.onSetReordered;
+    if (onSetReordered == null) {
       return tab;
     }
 
     return DragTarget<String>(
-      onWillAcceptWithDetails: (details) => details.data != floorPlanCase.id,
+      onWillAcceptWithDetails: (details) => details.data != floorPlanSet.id,
       onAcceptWithDetails: (details) {
-        final targetIndex = cases.indexOf(floorPlanCase);
+        final targetIndex = sets.indexOf(floorPlanSet);
         if (targetIndex >= 0) {
-          onCaseReordered(details.data, targetIndex);
+          onSetReordered(details.data, targetIndex);
         }
       },
       builder: (context, candidateData, rejectedData) => LongPressDraggable<String>(
-        data: floorPlanCase.id,
+        data: floorPlanSet.id,
         feedback: Material(color: Colors.transparent, child: tab),
         childWhenDragging: Opacity(opacity: 0.4, child: tab),
         child: tab,
@@ -176,10 +176,10 @@ class OcptFloorPlanCaseTabs extends StatelessWidget {
 }
 
 /// The selected tab's own editable name field, kept as a small stateful widget so it holds its own
-/// [TextEditingController] without turning [OcptFloorPlanCaseTabs] itself into a
+/// [TextEditingController] without turning [OcptFloorPlanSetTabs] itself into a
 /// [StatefulWidget] — mirrors the version card's own rename form in spirit, but writes through the
 /// mode's field-edit debounce on every keystroke rather than through an explicit `Save` button
-/// (`OcptShotListCaseNameEditKey`).
+/// (`OcptShotListSetNameEditKey`).
 class _EditableTabName extends StatefulWidget {
   /// The field's current value.
   final String value;

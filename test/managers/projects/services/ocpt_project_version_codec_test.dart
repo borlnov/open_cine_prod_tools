@@ -1093,8 +1093,8 @@ void main() {
         isDeleted: true,
       ),
     ],
-    floorPlanCases: const [
-      OcptFloorPlanCaseRow(
+    floorPlanSets: const [
+      OcptFloorPlanSetRow(
         id: "case-1",
         sceneId: "scene-1",
         name: "Kitchen",
@@ -1108,7 +1108,7 @@ void main() {
         isDeleted: false,
       ),
       // No underlay placed yet, and a tombstone.
-      OcptFloorPlanCaseRow(
+      OcptFloorPlanSetRow(
         id: "case-2",
         sceneId: "scene-1",
         name: "",
@@ -1120,8 +1120,8 @@ void main() {
       // A sequence layer: shotId null, a footprint of its own, a set-element shape.
       OcptFloorPlanSymbolRow(
         id: "symbol-1",
-        caseId: "case-1",
-        layer: OcptFloorPlanLayer.decor,
+        setId: "case-1",
+        layer: OcptFloorPlanLayer.set,
         sortKey: "V",
         xM: 0.5,
         yM: 0.5,
@@ -1136,7 +1136,7 @@ void main() {
       // shape — a camera symbol doesn't use it.
       OcptFloorPlanSymbolRow(
         id: "symbol-2",
-        caseId: "case-1",
+        setId: "case-1",
         shotId: "shot-1",
         layer: OcptFloorPlanLayer.cameras,
         sortKey: "k",
@@ -1150,7 +1150,7 @@ void main() {
       // A shot layer, tombstoned.
       OcptFloorPlanSymbolRow(
         id: "symbol-3",
-        caseId: "case-1",
+        setId: "case-1",
         shotId: "shot-1",
         layer: OcptFloorPlanLayer.characters,
         sortKey: "m",
@@ -1165,7 +1165,7 @@ void main() {
       // A curved arrow: a bezier control point of its own.
       OcptFloorPlanArrowRow(
         id: "arrow-1",
-        caseId: "case-1",
+        setId: "case-1",
         shotId: "shot-1",
         kind: OcptFloorPlanArrowKind.movement,
         fromSymbolId: "symbol-2",
@@ -1178,7 +1178,7 @@ void main() {
       // A straight arrow: no control point, tombstoned.
       OcptFloorPlanArrowRow(
         id: "arrow-2",
-        caseId: "case-1",
+        setId: "case-1",
         shotId: "shot-1",
         kind: OcptFloorPlanArrowKind.cameraMove,
         fromSymbolId: "symbol-2",
@@ -1306,7 +1306,7 @@ void main() {
       expect(roundTripped.assets.map((row) => row.isDeleted), [false, true, false, false, false]);
       expect(roundTripped.storyboardPanels.map((row) => row.isDeleted), [false, true]);
       expect(roundTripped.storyboardAnnotations.map((row) => row.isDeleted), [false, true]);
-      expect(roundTripped.floorPlanCases.map((row) => row.isDeleted), [false, true]);
+      expect(roundTripped.floorPlanSets.map((row) => row.isDeleted), [false, true]);
       expect(roundTripped.floorPlanSymbols.map((row) => row.isDeleted), [false, false, true]);
       expect(roundTripped.floorPlanArrows.map((row) => row.isDeleted), [false, true]);
 
@@ -1503,7 +1503,7 @@ void main() {
         expect(label.kind, OcptStoryboardAnnotationKind.label);
         expect(label.isDeleted, isTrue);
 
-        final case1 = roundTripped.floorPlanCases.firstWhere((row) => row.id == "case-1");
+        final case1 = roundTripped.floorPlanSets.firstWhere((row) => row.id == "case-1");
         expect(case1.sceneId, "scene-1");
         expect(case1.name, "Kitchen");
         expect(case1.underlayAssetId, "asset-5");
@@ -1513,7 +1513,7 @@ void main() {
         expect(case1.underlayHeightM, 3);
         expect(case1.underlayRotationDeg, 15);
         // No underlay placed yet on the second case: every underlay column stays null.
-        final caseWithNoUnderlay = roundTripped.floorPlanCases.firstWhere(
+        final caseWithNoUnderlay = roundTripped.floorPlanSets.firstWhere(
           (row) => row.id == "case-2",
         );
         expect(caseWithNoUnderlay.underlayAssetId, isNull);
@@ -1527,9 +1527,9 @@ void main() {
         final sequenceSymbol = roundTripped.floorPlanSymbols.firstWhere(
           (row) => row.id == "symbol-1",
         );
-        expect(sequenceSymbol.caseId, "case-1");
+        expect(sequenceSymbol.setId, "case-1");
         expect(sequenceSymbol.shotId, isNull);
-        expect(sequenceSymbol.layer, OcptFloorPlanLayer.decor);
+        expect(sequenceSymbol.layer, OcptFloorPlanLayer.set);
         expect(sequenceSymbol.xM, 0.5);
         expect(sequenceSymbol.yM, 0.5);
         expect(sequenceSymbol.widthM, 5);
@@ -1555,7 +1555,7 @@ void main() {
         expect(tombstonedSymbol.isDeleted, isTrue);
 
         final movement = roundTripped.floorPlanArrows.firstWhere((row) => row.id == "arrow-1");
-        expect(movement.caseId, "case-1");
+        expect(movement.setId, "case-1");
         expect(movement.shotId, "shot-1");
         expect(movement.kind, OcptFloorPlanArrowKind.movement);
         expect(movement.fromSymbolId, "symbol-2");
@@ -1872,7 +1872,7 @@ void main() {
         budgetAllowances: [],
         storyboardPanels: [],
         storyboardAnnotations: [],
-        floorPlanCases: [],
+        floorPlanSets: [],
         floorPlanSymbols: [],
         floorPlanArrows: [],
         assets: [],
@@ -1947,7 +1947,7 @@ void main() {
         budgetAllowances: payload.budgetAllowances,
         storyboardPanels: payload.storyboardPanels,
         storyboardAnnotations: payload.storyboardAnnotations,
-        floorPlanCases: payload.floorPlanCases,
+        floorPlanSets: payload.floorPlanSets,
         floorPlanSymbols: payload.floorPlanSymbols,
         floorPlanArrows: payload.floorPlanArrows,
         assets: payload.assets.reversed.toList(),
@@ -2010,7 +2010,7 @@ void main() {
         budgetAllowances: payload.budgetAllowances,
         storyboardPanels: payload.storyboardPanels,
         storyboardAnnotations: payload.storyboardAnnotations,
-        floorPlanCases: payload.floorPlanCases,
+        floorPlanSets: payload.floorPlanSets,
         floorPlanSymbols: payload.floorPlanSymbols,
         floorPlanArrows: payload.floorPlanArrows,
         assets: payload.assets,
@@ -2081,7 +2081,7 @@ void main() {
         budgetAllowances: payload.budgetAllowances,
         storyboardPanels: payload.storyboardPanels,
         storyboardAnnotations: payload.storyboardAnnotations,
-        floorPlanCases: payload.floorPlanCases,
+        floorPlanSets: payload.floorPlanSets,
         floorPlanSymbols: payload.floorPlanSymbols,
         floorPlanArrows: payload.floorPlanArrows,
         assets: payload.assets,
@@ -2155,7 +2155,7 @@ void main() {
         budgetAllowances: payload.budgetAllowances,
         storyboardPanels: payload.storyboardPanels,
         storyboardAnnotations: payload.storyboardAnnotations,
-        floorPlanCases: payload.floorPlanCases,
+        floorPlanSets: payload.floorPlanSets,
         floorPlanSymbols: payload.floorPlanSymbols,
         floorPlanArrows: payload.floorPlanArrows,
         assets: payload.assets,
@@ -2218,7 +2218,7 @@ void main() {
         budgetAllowances: payload.budgetAllowances,
         storyboardPanels: payload.storyboardPanels,
         storyboardAnnotations: payload.storyboardAnnotations,
-        floorPlanCases: payload.floorPlanCases,
+        floorPlanSets: payload.floorPlanSets,
         floorPlanSymbols: payload.floorPlanSymbols,
         floorPlanArrows: payload.floorPlanArrows,
         assets: payload.assets,
@@ -2281,7 +2281,7 @@ void main() {
         budgetAllowances: payload.budgetAllowances,
         storyboardPanels: payload.storyboardPanels,
         storyboardAnnotations: payload.storyboardAnnotations,
-        floorPlanCases: payload.floorPlanCases,
+        floorPlanSets: payload.floorPlanSets,
         floorPlanSymbols: payload.floorPlanSymbols,
         floorPlanArrows: payload.floorPlanArrows,
         assets: payload.assets,
@@ -2346,7 +2346,7 @@ void main() {
         budgetAllowances: payload.budgetAllowances,
         storyboardPanels: payload.storyboardPanels,
         storyboardAnnotations: payload.storyboardAnnotations,
-        floorPlanCases: payload.floorPlanCases,
+        floorPlanSets: payload.floorPlanSets,
         floorPlanSymbols: payload.floorPlanSymbols,
         floorPlanArrows: payload.floorPlanArrows,
         assets: payload.assets,
@@ -2417,7 +2417,7 @@ void main() {
         budgetAllowances: payload.budgetAllowances,
         storyboardPanels: payload.storyboardPanels,
         storyboardAnnotations: payload.storyboardAnnotations,
-        floorPlanCases: payload.floorPlanCases,
+        floorPlanSets: payload.floorPlanSets,
         floorPlanSymbols: payload.floorPlanSymbols,
         floorPlanArrows: payload.floorPlanArrows,
         assets: payload.assets,
@@ -2515,7 +2515,7 @@ void main() {
         budgetAllowances: payload.budgetAllowances,
         storyboardPanels: payload.storyboardPanels,
         storyboardAnnotations: payload.storyboardAnnotations,
-        floorPlanCases: payload.floorPlanCases,
+        floorPlanSets: payload.floorPlanSets,
         floorPlanSymbols: payload.floorPlanSymbols,
         floorPlanArrows: payload.floorPlanArrows,
         defaultVatRateBasisPoints: payload.defaultVatRateBasisPoints,
@@ -2584,7 +2584,7 @@ void main() {
         budgetAllowances: payload.budgetAllowances,
         storyboardPanels: payload.storyboardPanels,
         storyboardAnnotations: payload.storyboardAnnotations,
-        floorPlanCases: payload.floorPlanCases,
+        floorPlanSets: payload.floorPlanSets,
         floorPlanSymbols: payload.floorPlanSymbols,
         floorPlanArrows: payload.floorPlanArrows,
         defaultVatRateBasisPoints: payload.defaultVatRateBasisPoints,
@@ -2635,7 +2635,7 @@ void main() {
         budgetAllowances: payload.budgetAllowances,
         storyboardPanels: payload.storyboardPanels,
         storyboardAnnotations: payload.storyboardAnnotations,
-        floorPlanCases: payload.floorPlanCases,
+        floorPlanSets: payload.floorPlanSets,
         floorPlanSymbols: payload.floorPlanSymbols,
         floorPlanArrows: payload.floorPlanArrows,
         assets: payload.assets,
@@ -2701,7 +2701,7 @@ void main() {
         budgetAllowances: payload.budgetAllowances,
         storyboardPanels: payload.storyboardPanels,
         storyboardAnnotations: payload.storyboardAnnotations,
-        floorPlanCases: payload.floorPlanCases,
+        floorPlanSets: payload.floorPlanSets,
         floorPlanSymbols: payload.floorPlanSymbols,
         floorPlanArrows: payload.floorPlanArrows,
         assets: payload.assets,
@@ -2766,7 +2766,7 @@ void main() {
         budgetAllowances: payload.budgetAllowances,
         storyboardPanels: payload.storyboardPanels,
         storyboardAnnotations: payload.storyboardAnnotations,
-        floorPlanCases: payload.floorPlanCases,
+        floorPlanSets: payload.floorPlanSets,
         floorPlanSymbols: payload.floorPlanSymbols,
         floorPlanArrows: payload.floorPlanArrows,
         assets: payload.assets,
@@ -2844,7 +2844,7 @@ void main() {
         budgetAllowances: payload.budgetAllowances,
         storyboardPanels: payload.storyboardPanels,
         storyboardAnnotations: payload.storyboardAnnotations,
-        floorPlanCases: payload.floorPlanCases,
+        floorPlanSets: payload.floorPlanSets,
         floorPlanSymbols: payload.floorPlanSymbols,
         floorPlanArrows: payload.floorPlanArrows,
         assets: payload.assets,
@@ -2914,7 +2914,7 @@ void main() {
         budgetAllowances: payload.budgetAllowances,
         storyboardPanels: payload.storyboardPanels,
         storyboardAnnotations: payload.storyboardAnnotations,
-        floorPlanCases: payload.floorPlanCases,
+        floorPlanSets: payload.floorPlanSets,
         floorPlanSymbols: payload.floorPlanSymbols,
         floorPlanArrows: payload.floorPlanArrows,
         assets: payload.assets,
@@ -2980,7 +2980,7 @@ void main() {
         budgetAllowances: payload.budgetAllowances,
         storyboardPanels: payload.storyboardPanels,
         storyboardAnnotations: payload.storyboardAnnotations,
-        floorPlanCases: payload.floorPlanCases,
+        floorPlanSets: payload.floorPlanSets,
         floorPlanSymbols: payload.floorPlanSymbols,
         floorPlanArrows: payload.floorPlanArrows,
         assets: payload.assets,
@@ -3049,7 +3049,7 @@ void main() {
         budgetAllowances: payload.budgetAllowances,
         storyboardPanels: payload.storyboardPanels,
         storyboardAnnotations: payload.storyboardAnnotations,
-        floorPlanCases: payload.floorPlanCases,
+        floorPlanSets: payload.floorPlanSets,
         floorPlanSymbols: payload.floorPlanSymbols,
         floorPlanArrows: payload.floorPlanArrows,
         assets: payload.assets,
@@ -3114,7 +3114,7 @@ void main() {
         budgetAllowances: payload.budgetAllowances,
         storyboardPanels: payload.storyboardPanels,
         storyboardAnnotations: payload.storyboardAnnotations,
-        floorPlanCases: payload.floorPlanCases,
+        floorPlanSets: payload.floorPlanSets,
         floorPlanSymbols: payload.floorPlanSymbols,
         floorPlanArrows: payload.floorPlanArrows,
         assets: payload.assets,
@@ -3191,7 +3191,7 @@ void main() {
         budgetAllowances: payload.budgetAllowances,
         storyboardPanels: payload.storyboardPanels,
         storyboardAnnotations: payload.storyboardAnnotations,
-        floorPlanCases: payload.floorPlanCases,
+        floorPlanSets: payload.floorPlanSets,
         floorPlanSymbols: payload.floorPlanSymbols,
         floorPlanArrows: payload.floorPlanArrows,
         assets: payload.assets,
@@ -3257,7 +3257,7 @@ void main() {
         budgetAllowances: payload.budgetAllowances,
         storyboardPanels: payload.storyboardPanels,
         storyboardAnnotations: payload.storyboardAnnotations,
-        floorPlanCases: payload.floorPlanCases,
+        floorPlanSets: payload.floorPlanSets,
         floorPlanSymbols: payload.floorPlanSymbols,
         floorPlanArrows: payload.floorPlanArrows,
         assets: payload.assets,
@@ -3323,7 +3323,7 @@ void main() {
         budgetAllowances: payload.budgetAllowances,
         storyboardPanels: payload.storyboardPanels,
         storyboardAnnotations: payload.storyboardAnnotations,
-        floorPlanCases: payload.floorPlanCases,
+        floorPlanSets: payload.floorPlanSets,
         floorPlanSymbols: payload.floorPlanSymbols,
         floorPlanArrows: payload.floorPlanArrows,
         assets: payload.assets,
@@ -3427,7 +3427,7 @@ void main() {
         budgetAllowances: payload.budgetAllowances,
         storyboardPanels: payload.storyboardPanels,
         storyboardAnnotations: payload.storyboardAnnotations,
-        floorPlanCases: payload.floorPlanCases,
+        floorPlanSets: payload.floorPlanSets,
         floorPlanSymbols: payload.floorPlanSymbols,
         floorPlanArrows: payload.floorPlanArrows,
         defaultVatRateBasisPoints: payload.defaultVatRateBasisPoints,
@@ -3472,7 +3472,7 @@ void main() {
         budgetAllowances: payload.budgetAllowances,
         storyboardPanels: payload.storyboardPanels,
         storyboardAnnotations: payload.storyboardAnnotations,
-        floorPlanCases: payload.floorPlanCases,
+        floorPlanSets: payload.floorPlanSets,
         floorPlanSymbols: payload.floorPlanSymbols,
         floorPlanArrows: payload.floorPlanArrows,
         assets: payload.assets,
@@ -3538,7 +3538,7 @@ void main() {
         budgetAllowances: payload.budgetAllowances,
         storyboardPanels: payload.storyboardPanels,
         storyboardAnnotations: payload.storyboardAnnotations,
-        floorPlanCases: payload.floorPlanCases,
+        floorPlanSets: payload.floorPlanSets,
         floorPlanSymbols: payload.floorPlanSymbols,
         floorPlanArrows: payload.floorPlanArrows,
         assets: payload.assets,
@@ -3601,7 +3601,7 @@ void main() {
         budgetAllowances: payload.budgetAllowances,
         storyboardPanels: payload.storyboardPanels,
         storyboardAnnotations: payload.storyboardAnnotations,
-        floorPlanCases: payload.floorPlanCases,
+        floorPlanSets: payload.floorPlanSets,
         floorPlanSymbols: payload.floorPlanSymbols,
         floorPlanArrows: payload.floorPlanArrows,
         assets: payload.assets,
@@ -3664,7 +3664,7 @@ void main() {
         budgetAllowances: payload.budgetAllowances,
         storyboardPanels: payload.storyboardPanels,
         storyboardAnnotations: payload.storyboardAnnotations,
-        floorPlanCases: payload.floorPlanCases,
+        floorPlanSets: payload.floorPlanSets,
         floorPlanSymbols: payload.floorPlanSymbols,
         floorPlanArrows: payload.floorPlanArrows,
         assets: payload.assets,
@@ -3727,7 +3727,7 @@ void main() {
         budgetAllowances: payload.budgetAllowances,
         storyboardPanels: payload.storyboardPanels,
         storyboardAnnotations: payload.storyboardAnnotations,
-        floorPlanCases: payload.floorPlanCases,
+        floorPlanSets: payload.floorPlanSets,
         floorPlanSymbols: payload.floorPlanSymbols,
         floorPlanArrows: payload.floorPlanArrows,
         assets: payload.assets,
@@ -3798,7 +3798,7 @@ void main() {
         budgetAllowances: payload.budgetAllowances,
         storyboardPanels: payload.storyboardPanels,
         storyboardAnnotations: payload.storyboardAnnotations,
-        floorPlanCases: payload.floorPlanCases,
+        floorPlanSets: payload.floorPlanSets,
         floorPlanSymbols: payload.floorPlanSymbols,
         floorPlanArrows: payload.floorPlanArrows,
         assets: payload.assets,
@@ -3868,7 +3868,7 @@ void main() {
         budgetAllowances: payload.budgetAllowances,
         storyboardPanels: payload.storyboardPanels,
         storyboardAnnotations: payload.storyboardAnnotations,
-        floorPlanCases: payload.floorPlanCases,
+        floorPlanSets: payload.floorPlanSets,
         floorPlanSymbols: payload.floorPlanSymbols,
         floorPlanArrows: payload.floorPlanArrows,
         assets: payload.assets,
@@ -3937,7 +3937,7 @@ void main() {
         budgetAllowances: payload.budgetAllowances,
         storyboardPanels: payload.storyboardPanels,
         storyboardAnnotations: payload.storyboardAnnotations,
-        floorPlanCases: payload.floorPlanCases,
+        floorPlanSets: payload.floorPlanSets,
         floorPlanSymbols: payload.floorPlanSymbols,
         floorPlanArrows: payload.floorPlanArrows,
         assets: payload.assets,
@@ -4000,7 +4000,7 @@ void main() {
         budgetAllowances: payload.budgetAllowances,
         storyboardPanels: payload.storyboardPanels,
         storyboardAnnotations: payload.storyboardAnnotations,
-        floorPlanCases: payload.floorPlanCases,
+        floorPlanSets: payload.floorPlanSets,
         floorPlanSymbols: payload.floorPlanSymbols,
         floorPlanArrows: payload.floorPlanArrows,
         assets: payload.assets,
@@ -4078,7 +4078,7 @@ void main() {
         budgetAllowances: payload.budgetAllowances,
         storyboardPanels: payload.storyboardPanels,
         storyboardAnnotations: payload.storyboardAnnotations,
-        floorPlanCases: payload.floorPlanCases,
+        floorPlanSets: payload.floorPlanSets,
         floorPlanSymbols: payload.floorPlanSymbols,
         floorPlanArrows: payload.floorPlanArrows,
         assets: payload.assets,
@@ -4146,7 +4146,7 @@ void main() {
         budgetAllowances: payload.budgetAllowances,
         storyboardPanels: payload.storyboardPanels,
         storyboardAnnotations: payload.storyboardAnnotations,
-        floorPlanCases: payload.floorPlanCases,
+        floorPlanSets: payload.floorPlanSets,
         floorPlanSymbols: payload.floorPlanSymbols,
         floorPlanArrows: payload.floorPlanArrows,
         assets: payload.assets,
@@ -4216,7 +4216,7 @@ void main() {
         budgetAllowances: payload.budgetAllowances,
         storyboardPanels: payload.storyboardPanels,
         storyboardAnnotations: payload.storyboardAnnotations,
-        floorPlanCases: payload.floorPlanCases,
+        floorPlanSets: payload.floorPlanSets,
         floorPlanSymbols: payload.floorPlanSymbols,
         floorPlanArrows: payload.floorPlanArrows,
         assets: payload.assets,
@@ -4347,7 +4347,7 @@ void main() {
         encoded
           ..remove("storyboardPanels")
           ..remove("storyboardAnnotations")
-          ..remove("floorPlanCases")
+          ..remove("floorPlanSets")
           ..remove("floorPlanSymbols")
           ..remove("floorPlanArrows");
 
@@ -4356,7 +4356,7 @@ void main() {
         expect(result.status, OcptProjectVersionPayloadStatus.ok);
         expect(result.value!.storyboardPanels, isEmpty);
         expect(result.value!.storyboardAnnotations, isEmpty);
-        expect(result.value!.floorPlanCases, isEmpty);
+        expect(result.value!.floorPlanSets, isEmpty);
         expect(result.value!.floorPlanSymbols, isEmpty);
         expect(result.value!.floorPlanArrows, isEmpty);
         // Nothing else about the payload is disturbed by the missing keys.

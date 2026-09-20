@@ -39,7 +39,7 @@ class OcptFloorPlanToolBar extends StatelessWidget {
   /// Whether the mode shows a project version being previewed read-only.
   final bool isReadOnly;
 
-  /// Whether the selected case already carries an underlay — swaps the action's own label between
+  /// Whether the selected set already carries an underlay — swaps the action's own label between
   /// `Import underlay` and `Replace underlay`.
   final bool hasUnderlay;
 

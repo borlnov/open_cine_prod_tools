@@ -658,13 +658,13 @@ void main() {
           text: "walks to the door",
         ))!;
 
-        final caseId = (await floorPlanService.addCase(
+        final setId = (await floorPlanService.addSet(
           database: database,
           sceneId: "scene-1",
         ))!;
         final cameraId = (await floorPlanService.placeSymbol(
           database: database,
-          caseId: caseId,
+          setId: setId,
           shotId: "shot-1",
           layer: OcptFloorPlanLayer.cameras,
           xM: 1.2,
@@ -673,7 +673,7 @@ void main() {
         ))!;
         final characterId = (await floorPlanService.placeSymbol(
           database: database,
-          caseId: caseId,
+          setId: setId,
           shotId: "shot-1",
           layer: OcptFloorPlanLayer.characters,
           xM: 2.5,
@@ -682,7 +682,7 @@ void main() {
         ))!;
         final arrowId = (await floorPlanService.addArrow(
           database: database,
-          caseId: caseId,
+          setId: setId,
           shotId: "shot-1",
           kind: OcptFloorPlanArrowKind.movement,
           fromSymbolId: characterId,
@@ -696,7 +696,7 @@ void main() {
         // gap here would mean `_capturePayload` dropped them, not `hydratePreview`.
         expect(payload.storyboardPanels.map((row) => row.id), [panelId]);
         expect(payload.storyboardAnnotations.map((row) => row.id), [annotationId]);
-        expect(payload.floorPlanCases.map((row) => row.id), [caseId]);
+        expect(payload.floorPlanSets.map((row) => row.id), [setId]);
         expect(
           payload.floorPlanSymbols.map((row) => row.id).toSet(),
           {cameraId, characterId},
@@ -734,14 +734,14 @@ void main() {
         expect(restoredAnnotation.labelText, "walks to the door");
 
         final restoredCase = await (preview.select(
-          preview.ocptFloorPlanCasesTable,
-        )..where((table) => table.id.equals(caseId))).getSingle();
+          preview.ocptFloorPlanSetsTable,
+        )..where((table) => table.id.equals(setId))).getSingle();
         expect(restoredCase.sceneId, "scene-1");
 
         final restoredCamera = await (preview.select(
           preview.ocptFloorPlanSymbolsTable,
         )..where((table) => table.id.equals(cameraId))).getSingle();
-        expect(restoredCamera.caseId, caseId);
+        expect(restoredCamera.setId, setId);
         expect(restoredCamera.shotId, "shot-1");
         expect(restoredCamera.layer, OcptFloorPlanLayer.cameras);
         expect(restoredCamera.xM, 1.2);
@@ -750,7 +750,7 @@ void main() {
         final restoredArrow = await (preview.select(
           preview.ocptFloorPlanArrowsTable,
         )..where((table) => table.id.equals(arrowId))).getSingle();
-        expect(restoredArrow.caseId, caseId);
+        expect(restoredArrow.setId, setId);
         expect(restoredArrow.shotId, "shot-1");
         expect(restoredArrow.kind, OcptFloorPlanArrowKind.movement);
         expect(restoredArrow.fromSymbolId, characterId);
@@ -1077,7 +1077,7 @@ void main() {
                   budgetAllowances: payload.budgetAllowances,
                   storyboardPanels: payload.storyboardPanels,
                   storyboardAnnotations: payload.storyboardAnnotations,
-                  floorPlanCases: payload.floorPlanCases,
+                  floorPlanSets: payload.floorPlanSets,
                   floorPlanSymbols: payload.floorPlanSymbols,
                   floorPlanArrows: payload.floorPlanArrows,
                   rowFieldVersions: payload.rowFieldVersions,

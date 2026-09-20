@@ -4,7 +4,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:open_cine_prod_tools/models/ocpt_floor_plan_case.dart';
+import 'package:open_cine_prod_tools/models/ocpt_floor_plan_set.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_layer.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_tool.dart';
@@ -23,7 +23,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/
 /// and pan are mutated per frame during a gesture with no bloc emission — see that controller's own
 /// doc comment. It is created once, seeded from [initialZoom] (`OcptShotListState.floorPlanZoom`,
 /// the last value the bloc saw settled), and disposed when this view unmounts (switching away from
-/// the floor plans centre view, or leaving the mode): a case tab switch keeps it, since only the
+/// the floor plans centre view, or leaving the mode): a set tab switch keeps it, since only the
 /// centre view switch remounts this widget.
 ///
 /// **`←`/`→` walk the sequence's shots** ([onShotWalkRequested]) and `Escape` cancels the arrow
@@ -32,8 +32,8 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/
 /// strip, the canvas, the tray — except while a descendant text field (the inline label editor)
 /// has its own focus and consumes the key first.
 class OcptFloorPlanView extends StatefulWidget {
-  /// The selected sequence's own cases, for the sheet the canvas builds.
-  final OcptFloorPlanCase? floorPlanCase;
+  /// The selected sequence's own sets, for the sheet the canvas builds.
+  final OcptFloorPlanSet? floorPlanSet;
 
   /// The selected sequence's own shots, in order — the focus strip's own chips.
   final List<OcptShot> shots;
@@ -52,9 +52,9 @@ class OcptFloorPlanView extends StatefulWidget {
   /// The shot immediately after [focusShotId]. See [previousShotId].
   final String? nextShotId;
 
-  /// Whether each of [shots] has a live camera symbol on [floorPlanCase], keyed by shot id — the
+  /// Whether each of [shots] has a live camera symbol on [floorPlanSet], keyed by shot id — the
   /// focus strip's own filled/hollow dots.
-  final Map<String, bool> hasCameraOnCaseOf;
+  final Map<String, bool> hasCameraOnSetOf;
 
   /// Every live camera symbol of the sequence, for the tray's own expandable cameras row.
   final List<OcptFloorPlanTraySequenceCamera> sequenceCameras;
@@ -68,7 +68,7 @@ class OcptFloorPlanView extends StatefulWidget {
   /// The ids of every camera symbol currently hidden.
   final Set<String> hiddenCameraSymbolIds;
 
-  /// Whether the selected case's underlay is currently hidden.
+  /// Whether the selected set's underlay is currently hidden.
   final bool isUnderlayHidden;
 
   /// Whether the onion skin's own previous-shot ghost is shown.
@@ -183,13 +183,13 @@ class OcptFloorPlanView extends StatefulWidget {
   /// Class constructor
   const OcptFloorPlanView({
     super.key,
-    required this.floorPlanCase,
+    required this.floorPlanSet,
     required this.shots,
     required this.shotRankByShotId,
     required this.focusShotId,
     required this.previousShotId,
     required this.nextShotId,
-    required this.hasCameraOnCaseOf,
+    required this.hasCameraOnSetOf,
     required this.sequenceCameras,
     required this.initialZoom,
     required this.hiddenLayers,
@@ -280,7 +280,7 @@ class _OcptFloorPlanViewState extends State<OcptFloorPlanView> {
             isShotFocusActive: widget.focusShotId != null,
             viewportController: _viewportController,
             isReadOnly: widget.isReadOnly,
-            hasUnderlay: widget.floorPlanCase?.underlayAssetId != null,
+            hasUnderlay: widget.floorPlanSet?.underlayAssetId != null,
             onToolSelected: widget.onToolSelected,
             onUnderlayImportRequested: widget.onUnderlayImportRequested,
             onZoomSettled: widget.onZoomSettled,
@@ -303,7 +303,7 @@ class _OcptFloorPlanViewState extends State<OcptFloorPlanView> {
                     onionSkinOpacity: widget.onionSkinOpacity,
                     isMetricsShown: widget.isMetricsShown,
                     isUnderlayHidden: widget.isUnderlayHidden,
-                    hasUnderlay: widget.floorPlanCase?.underlayAssetId != null,
+                    hasUnderlay: widget.floorPlanSet?.underlayAssetId != null,
                     onLayerVisibilityToggled: widget.onLayerVisibilityToggled,
                     onActiveLayerChanged: widget.onActiveLayerChanged,
                     onCameraVisibilityToggled: widget.onCameraVisibilityToggled,
@@ -317,7 +317,7 @@ class _OcptFloorPlanViewState extends State<OcptFloorPlanView> {
                 VerticalDivider(width: 1, color: theme.colorScheme.outlineVariant),
                 Expanded(
                   child: OcptFloorPlanCanvas(
-                    floorPlanCase: widget.floorPlanCase,
+                    floorPlanSet: widget.floorPlanSet,
                     shotRankByShotId: widget.shotRankByShotId,
                     focusShotId: widget.focusShotId,
                     previousShotId: widget.previousShotId,
@@ -355,7 +355,7 @@ class _OcptFloorPlanViewState extends State<OcptFloorPlanView> {
           ),
           OcptFloorPlanFocusStrip(
             shots: widget.shots,
-            hasCameraOnCaseOf: widget.hasCameraOnCaseOf,
+            hasCameraOnSetOf: widget.hasCameraOnSetOf,
             selectedShotId: widget.focusShotId,
             previousShotId: widget.previousShotId,
             nextShotId: widget.nextShotId,

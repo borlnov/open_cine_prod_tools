@@ -7,7 +7,7 @@ import 'package:open_cine_prod_tools/managers/projects/services/ocpt_assets_serv
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_row_stamp_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/ocpt_floor_plan_arrow.dart';
-import 'package:open_cine_prod_tools/models/ocpt_floor_plan_case.dart';
+import 'package:open_cine_prod_tools/models/ocpt_floor_plan_set.dart';
 import 'package:open_cine_prod_tools/models/ocpt_floor_plan_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_floor_plan_symbol.dart';
 import 'package:open_cine_prod_tools/types/ocpt_asset_kind.dart';
@@ -18,11 +18,11 @@ import 'package:open_cine_prod_tools/utils/ocpt_fractional_key.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_scene_set_suggestion.dart';
 import 'package:uuid/uuid.dart';
 
-/// CRUD over a screenplay's floor plans: each sequence's cases, the symbols placed on them (the
+/// CRUD over a screenplay's floor plans: each sequence's sets, the symbols placed on them (the
 /// décor's sequence layers and each shot's own shot layers) and the arrows drawn between symbols
 /// (`docs/plans/storyboard.md`, §1, §2).
 ///
-/// [assetsService] is the one place a case's underlay `assets` row is minted or tombstoned
+/// [assetsService] is the one place a set's underlay `assets` row is minted or tombstoned
 /// (`OcptAssetKind.floorPlanUnderlay`) — this service never reads or writes `assets.path` itself.
 ///
 /// **The scope invariant.** `floor_plan_symbols.shotId` is null exactly when the symbol's
@@ -36,7 +36,7 @@ import 'package:uuid/uuid.dart';
 /// **Order is `sortKey`, never `position`** — none of the three tables this service owns carries a
 /// `position` column: all three are new in a schema version that never needed one.
 class OcptFloorPlanService {
-  /// The service used to mint and tombstone a case's underlay `assets` row.
+  /// The service used to mint and tombstone a set's underlay `assets` row.
   final OcptAssetsService assetsService;
 
   /// Resolves the device id every stamp this service's own writes carry — see
@@ -47,10 +47,10 @@ class OcptFloorPlanService {
   /// Class constructor
   const OcptFloorPlanService({required this.assetsService, required this.deviceId});
 
-  /// Loads every live case of screenplay [screenplayId]'s sequences, each carrying its resolved
+  /// Loads every live set of screenplay [screenplayId]'s sequences, each carrying its resolved
   /// underlay path and its live symbols and arrows, keyed by scene id.
   ///
-  /// Runs one query per table (`floor_plan_cases`, `floor_plan_symbols`, `floor_plan_arrows`,
+  /// Runs one query per table (`floor_plan_sets`, `floor_plan_symbols`, `floor_plan_arrows`,
   /// `assets`, plus the screenplay's own live `scenes`), joined in memory — the same shape
   /// `OcptShotListService.loadShotList` keeps its own reads to.
   Future<OcptFloorPlanSnapshot> loadFloorPlans({
@@ -62,43 +62,43 @@ class OcptFloorPlanService {
       screenplayId: screenplayId,
     );
     if (sceneIds.isEmpty) {
-      return OcptFloorPlanSnapshot.build(screenplayId: screenplayId, casesBySceneId: const {});
+      return OcptFloorPlanSnapshot.build(screenplayId: screenplayId, setsBySceneId: const {});
     }
 
-    final caseRows =
-        await (database.select(database.ocptFloorPlanCasesTable)
+    final setRows =
+        await (database.select(database.ocptFloorPlanSetsTable)
               ..where((table) => table.sceneId.isIn(sceneIds) & table.isDeleted.not())
               ..orderBy([(table) => OrderingTerm.asc(table.sortKey)]))
             .get();
 
-    final caseIds = caseRows.map((row) => row.id).toList(growable: false);
+    final setIds = setRows.map((row) => row.id).toList(growable: false);
 
-    final symbolRows = caseIds.isEmpty
+    final symbolRows = setIds.isEmpty
         ? const <OcptFloorPlanSymbolRow>[]
         : await (database.select(
                 database.ocptFloorPlanSymbolsTable,
-              )..where((table) => table.caseId.isIn(caseIds) & table.isDeleted.not()))
+              )..where((table) => table.setId.isIn(setIds) & table.isDeleted.not()))
               .get();
 
-    final arrowRows = caseIds.isEmpty
+    final arrowRows = setIds.isEmpty
         ? const <OcptFloorPlanArrowRow>[]
         : await (database.select(
                 database.ocptFloorPlanArrowsTable,
-              )..where((table) => table.caseId.isIn(caseIds) & table.isDeleted.not()))
+              )..where((table) => table.setId.isIn(setIds) & table.isDeleted.not()))
               .get();
 
-    final symbolsByCaseId = <String, List<OcptFloorPlanSymbol>>{};
+    final symbolsBySetId = <String, List<OcptFloorPlanSymbol>>{};
     for (final row in symbolRows) {
-      symbolsByCaseId.putIfAbsent(row.caseId, () => []).add(OcptFloorPlanSymbol.fromRow(row));
+      symbolsBySetId.putIfAbsent(row.setId, () => []).add(OcptFloorPlanSymbol.fromRow(row));
     }
 
-    final arrowsByCaseId = <String, List<OcptFloorPlanArrow>>{};
+    final arrowsBySetId = <String, List<OcptFloorPlanArrow>>{};
     for (final row in arrowRows) {
-      arrowsByCaseId.putIfAbsent(row.caseId, () => []).add(OcptFloorPlanArrow.fromRow(row));
+      arrowsBySetId.putIfAbsent(row.setId, () => []).add(OcptFloorPlanArrow.fromRow(row));
     }
 
     final underlayAssetIds = {
-      for (final row in caseRows)
+      for (final row in setRows)
         if (row.underlayAssetId != null) row.underlayAssetId!,
     };
     final pathByAssetId = await _liveAssetPathsById(
@@ -106,34 +106,34 @@ class OcptFloorPlanService {
       assetIds: underlayAssetIds,
     );
 
-    final casesBySceneId = <String, List<OcptFloorPlanCase>>{};
-    for (final row in caseRows) {
-      casesBySceneId
+    final setsBySceneId = <String, List<OcptFloorPlanSet>>{};
+    for (final row in setRows) {
+      setsBySceneId
           .putIfAbsent(row.sceneId, () => [])
           .add(
-            OcptFloorPlanCase.fromRow(
+            OcptFloorPlanSet.fromRow(
               row: row,
               underlayPath: row.underlayAssetId == null ? null : pathByAssetId[row.underlayAssetId],
-              symbols: symbolsByCaseId[row.id] ?? const [],
-              arrows: arrowsByCaseId[row.id] ?? const [],
+              symbols: symbolsBySetId[row.id] ?? const [],
+              arrows: arrowsBySetId[row.id] ?? const [],
             ),
           );
     }
 
-    return OcptFloorPlanSnapshot.build(screenplayId: screenplayId, casesBySceneId: casesBySceneId);
+    return OcptFloorPlanSnapshot.build(screenplayId: screenplayId, setsBySceneId: setsBySceneId);
   }
 
-  /// Creates a new case on scene [sceneId], named from its heading's place
+  /// Creates a new set on scene [sceneId], named from its heading's place
   /// (`ocptSceneHeadingPlaceOf`, the breakdown's own rule), appended after the scene's current
-  /// cases, and returns its freshly generated id. Does nothing (returns null) if [sceneId] doesn't
+  /// sets, and returns its freshly generated id. Does nothing (returns null) if [sceneId] doesn't
   /// name a live scene.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<String?> addCase({
+  Future<String?> addSet({
     required OcptProjectDatabase database,
     required String sceneId,
   }) async {
-    if (database.refusesUserWrite("addCase")) {
+    if (database.refusesUserWrite("addSet")) {
       return null;
     }
 
@@ -148,9 +148,9 @@ class OcptFloorPlanService {
         return;
       }
 
-      final existing = await _caseRowsOfScene(database: database, sceneId: sceneId);
+      final existing = await _setRowsOfScene(database: database, sceneId: sceneId);
 
-      final row = OcptFloorPlanCaseRow(
+      final row = OcptFloorPlanSetRow(
         id: id,
         sceneId: sceneId,
         name: ocptSceneHeadingPlaceOf(scene.heading),
@@ -161,7 +161,7 @@ class OcptFloorPlanService {
       final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
       await OcptRowStampService.writeAndStamp(
         database: database,
-        table: database.ocptFloorPlanCasesTable,
+        table: database.ocptFloorPlanSetsTable,
         rowId: id,
         current: null,
         next: row,
@@ -174,20 +174,20 @@ class OcptFloorPlanService {
     return created ? id : null;
   }
 
-  /// Renames case [caseId] to [name] — a user editing the tab in place.
+  /// Renames set [setId] to [name] — a user editing the tab in place.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<void> renameCase({
+  Future<void> renameSet({
     required OcptProjectDatabase database,
-    required String caseId,
+    required String setId,
     required String name,
   }) async {
-    if (database.refusesUserWrite("renameCase")) {
+    if (database.refusesUserWrite("renameSet")) {
       return;
     }
 
     await database.transaction(() async {
-      final current = await _liveCaseRowOrNull(database: database, caseId: caseId);
+      final current = await _liveSetRowOrNull(database: database, setId: setId);
       if (current == null) {
         return;
       }
@@ -195,8 +195,8 @@ class OcptFloorPlanService {
       final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
       await OcptRowStampService.writeAndStamp(
         database: database,
-        table: database.ocptFloorPlanCasesTable,
-        rowId: caseId,
+        table: database.ocptFloorPlanSetsTable,
+        rowId: setId,
         current: current,
         next: current.copyWith(name: name),
         stamps: stamps,
@@ -205,28 +205,28 @@ class OcptFloorPlanService {
     });
   }
 
-  /// Moves case [caseId] to [newPosition] (0-based) among its own scene's cases (its tab order), by
-  /// giving it a `sortKey` sitting between the two cases it lands between. Writes **exactly one
+  /// Moves set [setId] to [newPosition] (0-based) among its own scene's sets (its tab order), by
+  /// giving it a `sortKey` sitting between the two sets it lands between. Writes **exactly one
   /// row**.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<void> reorderCase({
+  Future<void> reorderSet({
     required OcptProjectDatabase database,
-    required String caseId,
+    required String setId,
     required int newPosition,
   }) async {
-    if (database.refusesUserWrite("reorderCase")) {
+    if (database.refusesUserWrite("reorderSet")) {
       return;
     }
 
     await database.transaction(() async {
-      final current = await _liveCaseRowOrNull(database: database, caseId: caseId);
+      final current = await _liveSetRowOrNull(database: database, setId: setId);
       if (current == null) {
         return;
       }
 
-      final others = (await _caseRowsOfScene(database: database, sceneId: current.sceneId))
-        ..removeWhere((row) => row.id == caseId);
+      final others = (await _setRowsOfScene(database: database, sceneId: current.sceneId))
+        ..removeWhere((row) => row.id == setId);
 
       final clampedPosition = newPosition < 0
           ? 0
@@ -240,8 +240,8 @@ class OcptFloorPlanService {
       final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
       await OcptRowStampService.writeAndStamp(
         database: database,
-        table: database.ocptFloorPlanCasesTable,
-        rowId: caseId,
+        table: database.ocptFloorPlanSetsTable,
+        rowId: setId,
         current: current,
         next: current.copyWith(sortKey: sortKey),
         stamps: stamps,
@@ -250,26 +250,26 @@ class OcptFloorPlanService {
     });
   }
 
-  /// Tombstones case [caseId], its symbols and its arrows, in one transaction. **Not** cascaded to
+  /// Tombstones set [setId], its symbols and its arrows, in one transaction. **Not** cascaded to
   /// its underlay's `assets` row on purpose — an underlay is cleared explicitly through
-  /// [clearCaseUnderlay] and otherwise left referenced, the same "no orphan handling" choice the
-  /// case-of-a-vanished-scene state already makes (`docs/plans/storyboard.md`, §2, §8): nothing
-  /// currently reads a tombstoned case's own asset back, so leaving the reference in place costs
+  /// [clearSetUnderlay] and otherwise left referenced, the same "no orphan handling" choice the
+  /// set-of-a-vanished-scene state already makes (`docs/plans/storyboard.md`, §2, §8): nothing
+  /// currently reads a tombstoned set's own asset back, so leaving the reference in place costs
   /// nothing and keeps this cascade mirroring exactly what [tombstoneFloorPlanRowsOfShot] tombstones
   /// for a shot — symbols and arrows, never an asset row it doesn't own the minting of.
   ///
   /// {@macro open_cine_prod_tools.tombstones}
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<void> deleteCase({required OcptProjectDatabase database, required String caseId}) async {
-    if (database.refusesUserWrite("deleteCase")) {
+  Future<void> deleteSet({required OcptProjectDatabase database, required String setId}) async {
+    if (database.refusesUserWrite("deleteSet")) {
       return;
     }
 
     await database.transaction(() async {
       final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
 
-      final arrowRows = await _arrowRowsOfCase(database: database, caseId: caseId);
+      final arrowRows = await _arrowRowsOfSet(database: database, setId: setId);
       for (final row in arrowRows) {
         await OcptRowStampService.writeAndStamp(
           database: database,
@@ -281,7 +281,7 @@ class OcptFloorPlanService {
         );
       }
 
-      final symbolRows = await _symbolRowsOfCase(database: database, caseId: caseId);
+      final symbolRows = await _symbolRowsOfSet(database: database, setId: setId);
       for (final row in symbolRows) {
         await OcptRowStampService.writeAndStamp(
           database: database,
@@ -293,12 +293,12 @@ class OcptFloorPlanService {
         );
       }
 
-      final current = await _liveCaseRowOrNull(database: database, caseId: caseId);
+      final current = await _liveSetRowOrNull(database: database, setId: setId);
       if (current != null) {
         await OcptRowStampService.writeAndStamp(
           database: database,
-          table: database.ocptFloorPlanCasesTable,
-          rowId: caseId,
+          table: database.ocptFloorPlanSetsTable,
+          rowId: setId,
           current: current,
           next: current.copyWith(isDeleted: true),
           stamps: stamps,
@@ -309,14 +309,14 @@ class OcptFloorPlanService {
     });
   }
 
-  /// Sets case [caseId]'s underlay to the file at [path], framed at
+  /// Sets set [setId]'s underlay to the file at [path], framed at
   /// `(xM, yM, widthM, heightM, rotationDeg)`: tombstones its previous underlay `assets` row (if
   /// any) and mints a fresh one.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<void> setCaseUnderlay({
+  Future<void> setSetUnderlay({
     required OcptProjectDatabase database,
-    required String caseId,
+    required String setId,
     required String path,
     required double xM,
     required double yM,
@@ -324,12 +324,12 @@ class OcptFloorPlanService {
     required double heightM,
     double rotationDeg = 0,
   }) async {
-    if (database.refusesUserWrite("setCaseUnderlay")) {
+    if (database.refusesUserWrite("setSetUnderlay")) {
       return;
     }
 
     await database.transaction(() async {
-      final current = await _liveCaseRowOrNull(database: database, caseId: caseId);
+      final current = await _liveSetRowOrNull(database: database, setId: setId);
       if (current == null) {
         return;
       }
@@ -353,8 +353,8 @@ class OcptFloorPlanService {
 
       await OcptRowStampService.writeAndStamp(
         database: database,
-        table: database.ocptFloorPlanCasesTable,
-        rowId: caseId,
+        table: database.ocptFloorPlanSetsTable,
+        rowId: setId,
         current: current,
         next: current.copyWith(
           underlayAssetId: Value(newAssetId),
@@ -370,19 +370,19 @@ class OcptFloorPlanService {
     });
   }
 
-  /// Clears case [caseId]'s underlay: tombstones its `assets` row (if any) and blanks its frame.
+  /// Clears set [setId]'s underlay: tombstones its `assets` row (if any) and blanks its frame.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<void> clearCaseUnderlay({
+  Future<void> clearSetUnderlay({
     required OcptProjectDatabase database,
-    required String caseId,
+    required String setId,
   }) async {
-    if (database.refusesUserWrite("clearCaseUnderlay")) {
+    if (database.refusesUserWrite("clearSetUnderlay")) {
       return;
     }
 
     await database.transaction(() async {
-      final current = await _liveCaseRowOrNull(database: database, caseId: caseId);
+      final current = await _liveSetRowOrNull(database: database, setId: setId);
       if (current == null || current.underlayAssetId == null) {
         return;
       }
@@ -397,8 +397,8 @@ class OcptFloorPlanService {
 
       await OcptRowStampService.writeAndStamp(
         database: database,
-        table: database.ocptFloorPlanCasesTable,
-        rowId: caseId,
+        table: database.ocptFloorPlanSetsTable,
+        rowId: setId,
         current: current,
         next: current.copyWith(
           underlayAssetId: const Value(null),
@@ -414,23 +414,23 @@ class OcptFloorPlanService {
     });
   }
 
-  /// Updates case [caseId]'s underlay **frame** — its centre, size and/or rotation, whichever is
+  /// Updates set [setId]'s underlay **frame** — its centre, size and/or rotation, whichever is
   /// passed as something other than [Value.absent] — through a single guarded write that touches
   /// no `assets` row at all.
   ///
   /// This is the write a drag moving or resizing the underlay on the canvas ends on. The frame
   /// lives entirely on this table's own `underlay*M`/`underlayRotationDeg` columns, so re-framing
-  /// it must never go through [setCaseUnderlay]: that method unconditionally tombstones the
+  /// it must never go through [setSetUnderlay]: that method unconditionally tombstones the
   /// current `assets` row and mints a fresh one, which is the right cost for actually importing or
   /// replacing the underlay's image, but is a permanent (ADR 0010) churn of dead `assets` rows for
   /// a gesture as frequent as dragging the underlay against the reference silhouette. A no-op
-  /// while the case carries no underlay at all (`underlayAssetId == null`): there is nothing to
+  /// while the set carries no underlay at all (`underlayAssetId == null`): there is nothing to
   /// re-frame.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
   Future<void> updateUnderlayFrame({
     required OcptProjectDatabase database,
-    required String caseId,
+    required String setId,
     Value<double> xM = const Value.absent(),
     Value<double> yM = const Value.absent(),
     Value<double> widthM = const Value.absent(),
@@ -441,7 +441,7 @@ class OcptFloorPlanService {
       return;
     }
 
-    final companion = OcptFloorPlanCasesTableCompanion(
+    final companion = OcptFloorPlanSetsTableCompanion(
       underlayXM: xM,
       underlayYM: yM,
       underlayWidthM: widthM,
@@ -450,7 +450,7 @@ class OcptFloorPlanService {
     );
 
     await database.transaction(() async {
-      final current = await _liveCaseRowOrNull(database: database, caseId: caseId);
+      final current = await _liveSetRowOrNull(database: database, setId: setId);
       if (current == null || current.underlayAssetId == null) {
         return;
       }
@@ -458,8 +458,8 @@ class OcptFloorPlanService {
       final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
       await OcptRowStampService.writeAndStamp(
         database: database,
-        table: database.ocptFloorPlanCasesTable,
-        rowId: caseId,
+        table: database.ocptFloorPlanSetsTable,
+        rowId: setId,
         current: current,
         next: current.copyWithCompanion(companion),
         stamps: stamps,
@@ -468,7 +468,7 @@ class OcptFloorPlanService {
     });
   }
 
-  /// Places a new symbol of [layer] on case [caseId], appended after the case's current last symbol
+  /// Places a new symbol of [layer] on set [setId], appended after the set's current last symbol
   /// of that layer, and returns its freshly generated id.
   ///
   /// **Enforces the scope invariant**: [shotId] must be non-null exactly when [layer] is a shot
@@ -484,7 +484,7 @@ class OcptFloorPlanService {
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
   Future<String?> placeSymbol({
     required OcptProjectDatabase database,
-    required String caseId,
+    required String setId,
     required String? shotId,
     required OcptFloorPlanLayer layer,
     required double xM,
@@ -505,15 +505,15 @@ class OcptFloorPlanService {
     final id = const Uuid().v4();
 
     await database.transaction(() async {
-      final existing = await _symbolRowsOfCaseAndLayer(
+      final existing = await _symbolRowsOfSetAndLayer(
         database: database,
-        caseId: caseId,
+        setId: setId,
         layer: layer,
       );
 
       final row = OcptFloorPlanSymbolRow(
         id: id,
-        caseId: caseId,
+        setId: setId,
         shotId: shotId,
         layer: layer,
         sortKey: ocptFractionalKeyBetween(before: existing.isEmpty ? null : existing.last.sortKey),
@@ -547,7 +547,7 @@ class OcptFloorPlanService {
   /// set-element shape, whichever is passed as something other than [Value.absent] — a move writes
   /// `xM`/`yM`, a rotate writes `rotationDeg`, a resize writes `widthM`/`heightM`,
   /// [setElementShape] switches a décor primitive's own type (a wall turned into a door, say), and
-  /// so on, all through this one guarded write. Never touches `caseId`, `shotId` or `layer`: those
+  /// so on, all through this one guarded write. Never touches `setId`, `shotId` or `layer`: those
   /// are fixed at [placeSymbol] and nothing here can put the scope invariant out of step.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
@@ -631,14 +631,14 @@ class OcptFloorPlanService {
     });
   }
 
-  /// Adds a new [kind] arrow on case [caseId], belonging to shot [shotId] (always set — an arrow is
+  /// Adds a new [kind] arrow on set [setId], belonging to shot [shotId] (always set — an arrow is
   /// always one shot's own movement, `OcptFloorPlanArrowsTable`'s own doc comment), from
   /// [fromSymbolId] to [toSymbolId], and returns its freshly generated id.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
   Future<String?> addArrow({
     required OcptProjectDatabase database,
-    required String caseId,
+    required String setId,
     required String shotId,
     required OcptFloorPlanArrowKind kind,
     required String fromSymbolId,
@@ -654,7 +654,7 @@ class OcptFloorPlanService {
     await database.transaction(() async {
       final row = OcptFloorPlanArrowRow(
         id: id,
-        caseId: caseId,
+        setId: setId,
         shotId: shotId,
         kind: kind,
         fromSymbolId: fromSymbolId,
@@ -903,42 +903,42 @@ class OcptFloorPlanService {
     return {for (final row in rows) row.id: row.path};
   }
 
-  /// Every live case row of scene [sceneId], ordered by `sortKey`.
-  Future<List<OcptFloorPlanCaseRow>> _caseRowsOfScene({
+  /// Every live set row of scene [sceneId], ordered by `sortKey`.
+  Future<List<OcptFloorPlanSetRow>> _setRowsOfScene({
     required OcptProjectDatabase database,
     required String sceneId,
-  }) => (database.select(database.ocptFloorPlanCasesTable)
+  }) => (database.select(database.ocptFloorPlanSetsTable)
         ..where((table) => table.sceneId.equals(sceneId) & table.isDeleted.not())
         ..orderBy([(table) => OrderingTerm.asc(table.sortKey)]))
       .get();
 
-  /// Reads back the live case row [caseId], or null if it doesn't exist or has been tombstoned.
-  Future<OcptFloorPlanCaseRow?> _liveCaseRowOrNull({
+  /// Reads back the live set row [setId], or null if it doesn't exist or has been tombstoned.
+  Future<OcptFloorPlanSetRow?> _liveSetRowOrNull({
     required OcptProjectDatabase database,
-    required String caseId,
-  }) => (database.select(database.ocptFloorPlanCasesTable)
-        ..where((table) => table.id.equals(caseId) & table.isDeleted.not()))
+    required String setId,
+  }) => (database.select(database.ocptFloorPlanSetsTable)
+        ..where((table) => table.id.equals(setId) & table.isDeleted.not()))
       .getSingleOrNull();
 
-  /// Every live symbol row of case [caseId].
-  Future<List<OcptFloorPlanSymbolRow>> _symbolRowsOfCase({
+  /// Every live symbol row of set [setId].
+  Future<List<OcptFloorPlanSymbolRow>> _symbolRowsOfSet({
     required OcptProjectDatabase database,
-    required String caseId,
+    required String setId,
   }) => (database.select(
         database.ocptFloorPlanSymbolsTable,
-      )..where((table) => table.caseId.equals(caseId) & table.isDeleted.not()))
+      )..where((table) => table.setId.equals(setId) & table.isDeleted.not()))
       .get();
 
-  /// Every live symbol row of case [caseId] on layer [layer], ordered by `sortKey` — what a new
+  /// Every live symbol row of set [setId] on layer [layer], ordered by `sortKey` — what a new
   /// symbol of that layer is appended after.
-  Future<List<OcptFloorPlanSymbolRow>> _symbolRowsOfCaseAndLayer({
+  Future<List<OcptFloorPlanSymbolRow>> _symbolRowsOfSetAndLayer({
     required OcptProjectDatabase database,
-    required String caseId,
+    required String setId,
     required OcptFloorPlanLayer layer,
   }) => (database.select(database.ocptFloorPlanSymbolsTable)
         ..where(
           (table) =>
-              table.caseId.equals(caseId) &
+              table.setId.equals(setId) &
               table.layer.equalsValue(layer) &
               table.isDeleted.not(),
         )
@@ -953,13 +953,13 @@ class OcptFloorPlanService {
         ..where((table) => table.id.equals(symbolId) & table.isDeleted.not()))
       .getSingleOrNull();
 
-  /// Every live arrow row of case [caseId].
-  Future<List<OcptFloorPlanArrowRow>> _arrowRowsOfCase({
+  /// Every live arrow row of set [setId].
+  Future<List<OcptFloorPlanArrowRow>> _arrowRowsOfSet({
     required OcptProjectDatabase database,
-    required String caseId,
+    required String setId,
   }) => (database.select(
         database.ocptFloorPlanArrowsTable,
-      )..where((table) => table.caseId.equals(caseId) & table.isDeleted.not()))
+      )..where((table) => table.setId.equals(setId) & table.isDeleted.not()))
       .get();
 
   /// Reads back the live arrow row [arrowId], or null if it doesn't exist or has been tombstoned.

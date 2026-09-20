@@ -55,10 +55,8 @@ double ocptFloorPlanDefaultFootprintM(OcptFloorPlanLayer layer) => switch (layer
   OcptFloorPlanLayer.characters => ocptFloorPlanCharacterFootprintM,
   OcptFloorPlanLayer.cameras => ocptFloorPlanCameraFootprintM,
   OcptFloorPlanLayer.lights => ocptFloorPlanLightFootprintM,
-  OcptFloorPlanLayer.handProps => ocptFloorPlanHandPropFootprintM,
-  OcptFloorPlanLayer.decor => ocptFloorPlanDefaultElementFootprintM,
-  OcptFloorPlanLayer.furniture => ocptFloorPlanDefaultElementFootprintM,
-  OcptFloorPlanLayer.fixedProps => ocptFloorPlanDefaultElementFootprintM,
+  OcptFloorPlanLayer.props => ocptFloorPlanHandPropFootprintM,
+  OcptFloorPlanLayer.set => ocptFloorPlanDefaultElementFootprintM,
 };
 
 /// How many logical pixels one metre draws at when the canvas is at [zoom] (1.0 = neutral/100%).
