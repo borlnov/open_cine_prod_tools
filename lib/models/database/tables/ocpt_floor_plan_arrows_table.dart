@@ -56,6 +56,13 @@ class OcptFloorPlanArrowsTable extends Table {
   /// The arrow's own text label, free text.
   TextColumn get label => text().withDefault(const Constant(''))();
 
+  /// A curved arrow's bezier control point X, in **metres** — **null meaning a straight arrow**.
+  /// Set alongside [ctrlYM] by bending an otherwise straight movement or camera-move arrow.
+  RealColumn get ctrlXM => real().nullable()();
+
+  /// A curved arrow's bezier control point Y, in metres. See [ctrlXM].
+  RealColumn get ctrlYM => real().nullable()();
+
   /// {@macro open_cine_prod_tools.isDeleted}
   BoolColumn get isDeleted => boolean().withDefault(const Constant(false))();
 

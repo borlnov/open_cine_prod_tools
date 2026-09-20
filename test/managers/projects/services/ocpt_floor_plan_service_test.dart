@@ -22,6 +22,7 @@ import 'package:open_cine_prod_tools/managers/projects/services/ocpt_storyboard_
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_arrow_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_layer.dart';
+import 'package:open_cine_prod_tools/types/ocpt_floor_plan_set_element_shape.dart';
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
 
 /// The fixed device id every stamp this file's writes carry.
@@ -435,6 +436,44 @@ Action.
 
       expect(await readSymbols(), isEmpty);
     });
+
+    test(
+      "records a set element's shape; a camera symbol placed alongside it stays null",
+      () async {
+        final sceneId = await seedScene();
+        final caseId = (await floorPlanService.addCase(database: database, sceneId: sceneId))!;
+
+        final wallId = (await floorPlanService.placeSymbol(
+          database: database,
+          caseId: caseId,
+          shotId: null,
+          layer: OcptFloorPlanLayer.decor,
+          xM: 0,
+          yM: 0,
+          setElementShape: OcptFloorPlanSetElementShape.wall,
+        ))!;
+
+        final shotId = (await shotListService.createShot(
+          database: database,
+          screenplayId: screenplayId,
+          sceneId: sceneId,
+        ))!;
+        final cameraId = (await floorPlanService.placeSymbol(
+          database: database,
+          caseId: caseId,
+          shotId: shotId,
+          layer: OcptFloorPlanLayer.cameras,
+          xM: 1,
+          yM: 1,
+        ))!;
+
+        final symbolsById = {for (final row in await readSymbols()) row.id: row};
+        expect(symbolsById[wallId]!.setElementShape, OcptFloorPlanSetElementShape.wall);
+        expect(symbolsById[wallId]!.shotId, isNull);
+        expect(symbolsById[cameraId]!.setElementShape, isNull);
+        expect(symbolsById[cameraId]!.shotId, shotId);
+      },
+    );
   });
 
   group("updateSymbol", () {
@@ -471,6 +510,28 @@ Action.
       expect(symbol.caseId, caseId);
       expect(symbol.layer, OcptFloorPlanLayer.furniture);
       expect(symbol.shotId, isNull);
+    });
+
+    test("changes a set element's shape", () async {
+      final sceneId = await seedScene();
+      final caseId = (await floorPlanService.addCase(database: database, sceneId: sceneId))!;
+      final symbolId = (await floorPlanService.placeSymbol(
+        database: database,
+        caseId: caseId,
+        shotId: null,
+        layer: OcptFloorPlanLayer.decor,
+        xM: 0,
+        yM: 0,
+        setElementShape: OcptFloorPlanSetElementShape.wall,
+      ))!;
+
+      await floorPlanService.updateSymbol(
+        database: database,
+        symbolId: symbolId,
+        setElementShape: const Value(OcptFloorPlanSetElementShape.door),
+      );
+
+      expect((await readSymbols()).single.setElementShape, OcptFloorPlanSetElementShape.door);
     });
   });
 
@@ -596,6 +657,64 @@ Action.
 
       await floorPlanService.deleteArrow(database: database, arrowId: arrowId);
       expect(await readArrows(), isEmpty);
+    });
+  });
+
+  group("updateArrowCurve", () {
+    test("sets and clears the control point, each through a single row write", () async {
+      final shotId = await seedShot();
+      final sceneRow = await (database.select(
+        database.ocptShotsTable,
+      )..where((row) => row.id.equals(shotId))).getSingle();
+      final caseId = (await floorPlanService.addCase(
+        database: database,
+        sceneId: sceneRow.sceneId!,
+      ))!;
+      final a = (await floorPlanService.placeSymbol(
+        database: database,
+        caseId: caseId,
+        shotId: shotId,
+        layer: OcptFloorPlanLayer.cameras,
+        xM: 0,
+        yM: 0,
+      ))!;
+      final b = (await floorPlanService.placeSymbol(
+        database: database,
+        caseId: caseId,
+        shotId: shotId,
+        layer: OcptFloorPlanLayer.characters,
+        xM: 1,
+        yM: 1,
+      ))!;
+      final arrowId = (await floorPlanService.addArrow(
+        database: database,
+        caseId: caseId,
+        shotId: shotId,
+        kind: OcptFloorPlanArrowKind.movement,
+        fromSymbolId: a,
+        toSymbolId: b,
+      ))!;
+
+      await floorPlanService.updateArrowCurve(
+        database: database,
+        arrowId: arrowId,
+        ctrlXM: const Value(0.5),
+        ctrlYM: const Value(0.75),
+      );
+      final curved = (await readArrows()).single;
+      expect(curved.ctrlXM, 0.5);
+      expect(curved.ctrlYM, 0.75);
+      expect(curved.label, ""); // untouched
+
+      await floorPlanService.updateArrowCurve(
+        database: database,
+        arrowId: arrowId,
+        ctrlXM: const Value(null),
+        ctrlYM: const Value(null),
+      );
+      final straightened = (await readArrows()).single;
+      expect(straightened.ctrlXM, isNull);
+      expect(straightened.ctrlYM, isNull);
     });
   });
 

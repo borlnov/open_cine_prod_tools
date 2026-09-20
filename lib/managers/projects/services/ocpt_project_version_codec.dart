@@ -26,6 +26,7 @@ import 'package:open_cine_prod_tools/types/ocpt_element_source_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_arrow_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_layer.dart';
+import 'package:open_cine_prod_tools/types/ocpt_floor_plan_set_element_shape.dart';
 import 'package:open_cine_prod_tools/types/ocpt_image_rights_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_location_availability_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
@@ -1075,6 +1076,14 @@ class OcptProjectVersionCodec {
   /// default.
   static const _fovDegKey = "fovDeg";
 
+  /// This is the key used to stringify or parse a `floor_plan_symbols.setElementShape` column from
+  /// a JSON object, from payload format 4 — a set element's visual primitive; null on every
+  /// camera, character and light symbol. Added while schema version 4 is still an open development
+  /// cycle, so a payload written before this column existed carries no such key at all: read back
+  /// through [_nullableEnum], which already tolerates that as null, the same as every other
+  /// nullable field this codec reads.
+  static const _setElementShapeKey = "setElementShape";
+
   /// This is the key used to stringify or parse a `floor_plan_arrows.fromSymbolId` column from a
   /// JSON object, from payload format 4.
   static const _fromSymbolIdKey = "fromSymbolId";
@@ -1082,6 +1091,16 @@ class OcptProjectVersionCodec {
   /// This is the key used to stringify or parse a `floor_plan_arrows.toSymbolId` column from a JSON
   /// object, from payload format 4.
   static const _toSymbolIdKey = "toSymbolId";
+
+  /// This is the key used to stringify or parse a `floor_plan_arrows.ctrlXM` column from a JSON
+  /// object, from payload format 4 — a curved arrow's bezier control point X, in metres; null
+  /// meaning a straight arrow. Added while schema version 4 is still an open development cycle: see
+  /// [_setElementShapeKey]'s own doc comment for what that means for an older format-4 payload.
+  static const _ctrlXMKey = "ctrlXM";
+
+  /// This is the key used to stringify or parse a `floor_plan_arrows.ctrlYM` column from a JSON
+  /// object, from payload format 4. See [_ctrlXMKey].
+  static const _ctrlYMKey = "ctrlYM";
 
   /// This is the key used to stringify or parse the left page margin from a JSON object
   static const _marginLeftKey = "leftInches";
@@ -2453,6 +2472,7 @@ class OcptProjectVersionCodec {
     _heightMKey: row.heightM,
     _fovDegKey: row.fovDeg,
     _labelKey: row.label,
+    _setElementShapeKey: row.setElementShape?.name,
     _isDeletedKey: row.isDeleted,
   };
 
@@ -2471,6 +2491,11 @@ class OcptProjectVersionCodec {
         heightM: _nullableDouble(json, _heightMKey),
         fovDeg: _nullableDouble(json, _fovDegKey),
         label: _string(json, _labelKey),
+        setElementShape: _nullableEnum(
+          json,
+          _setElementShapeKey,
+          OcptFloorPlanSetElementShape.values.asNameMap(),
+        ),
         isDeleted: _bool(json, _isDeletedKey),
       );
 
@@ -2483,6 +2508,8 @@ class OcptProjectVersionCodec {
     _fromSymbolIdKey: row.fromSymbolId,
     _toSymbolIdKey: row.toSymbolId,
     _labelKey: row.label,
+    _ctrlXMKey: row.ctrlXM,
+    _ctrlYMKey: row.ctrlYM,
     _isDeletedKey: row.isDeleted,
   };
 
@@ -2496,6 +2523,8 @@ class OcptProjectVersionCodec {
         fromSymbolId: _string(json, _fromSymbolIdKey),
         toSymbolId: _string(json, _toSymbolIdKey),
         label: _string(json, _labelKey),
+        ctrlXM: _nullableDouble(json, _ctrlXMKey),
+        ctrlYM: _nullableDouble(json, _ctrlYMKey),
         isDeleted: _bool(json, _isDeletedKey),
       );
 

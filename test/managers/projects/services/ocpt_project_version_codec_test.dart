@@ -26,6 +26,7 @@ import 'package:open_cine_prod_tools/types/ocpt_element_source_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_arrow_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_layer.dart';
+import 'package:open_cine_prod_tools/types/ocpt_floor_plan_set_element_shape.dart';
 import 'package:open_cine_prod_tools/types/ocpt_image_rights_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_location_availability_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
@@ -1116,7 +1117,7 @@ void main() {
       ),
     ],
     floorPlanSymbols: const [
-      // A sequence layer: shotId null, a footprint of its own.
+      // A sequence layer: shotId null, a footprint of its own, a set-element shape.
       OcptFloorPlanSymbolRow(
         id: "symbol-1",
         caseId: "case-1",
@@ -1128,9 +1129,11 @@ void main() {
         widthM: 5,
         heightM: 4,
         label: "North wall",
+        setElementShape: OcptFloorPlanSetElementShape.wall,
         isDeleted: false,
       ),
-      // A shot layer: shotId set, a field-of-view wedge instead of a footprint.
+      // A shot layer: shotId set, a field-of-view wedge instead of a footprint, no set-element
+      // shape — a camera symbol doesn't use it.
       OcptFloorPlanSymbolRow(
         id: "symbol-2",
         caseId: "case-1",
@@ -1159,6 +1162,7 @@ void main() {
       ),
     ],
     floorPlanArrows: const [
+      // A curved arrow: a bezier control point of its own.
       OcptFloorPlanArrowRow(
         id: "arrow-1",
         caseId: "case-1",
@@ -1167,8 +1171,11 @@ void main() {
         fromSymbolId: "symbol-2",
         toSymbolId: "symbol-3",
         label: "walks in",
+        ctrlXM: 1.1,
+        ctrlYM: 1.6,
         isDeleted: false,
       ),
+      // A straight arrow: no control point, tombstoned.
       OcptFloorPlanArrowRow(
         id: "arrow-2",
         caseId: "case-1",
@@ -1529,7 +1536,8 @@ void main() {
         expect(sequenceSymbol.heightM, 4);
         expect(sequenceSymbol.fovDeg, isNull);
         expect(sequenceSymbol.label, "North wall");
-        // A shot layer: shotId set, a field of view instead of a footprint.
+        expect(sequenceSymbol.setElementShape, OcptFloorPlanSetElementShape.wall);
+        // A shot layer: shotId set, a field of view instead of a footprint, no set-element shape.
         final cameraSymbol = roundTripped.floorPlanSymbols.firstWhere(
           (row) => row.id == "symbol-2",
         );
@@ -1539,6 +1547,7 @@ void main() {
         expect(cameraSymbol.widthM, isNull);
         expect(cameraSymbol.heightM, isNull);
         expect(cameraSymbol.fovDeg, 84);
+        expect(cameraSymbol.setElementShape, isNull);
         final tombstonedSymbol = roundTripped.floorPlanSymbols.firstWhere(
           (row) => row.id == "symbol-3",
         );
@@ -1552,9 +1561,13 @@ void main() {
         expect(movement.fromSymbolId, "symbol-2");
         expect(movement.toSymbolId, "symbol-3");
         expect(movement.label, "walks in");
+        expect(movement.ctrlXM, 1.1);
+        expect(movement.ctrlYM, 1.6);
         final cameraMove = roundTripped.floorPlanArrows.firstWhere((row) => row.id == "arrow-2");
         expect(cameraMove.kind, OcptFloorPlanArrowKind.cameraMove);
         expect(cameraMove.isDeleted, isTrue);
+        expect(cameraMove.ctrlXM, isNull);
+        expect(cameraMove.ctrlYM, isNull);
       },
     );
 
@@ -4346,6 +4359,42 @@ void main() {
         expect(result.value!.floorPlanCases, isEmpty);
         expect(result.value!.floorPlanSymbols, isEmpty);
         expect(result.value!.floorPlanArrows, isEmpty);
+        // Nothing else about the payload is disturbed by the missing keys.
+        expect(result.value!.shots, rich.shots);
+      },
+    );
+
+    test(
+      'a format-4 payload written before setElementShape/ctrlXM/ctrlYM existed decodes with '
+      'those columns null',
+      () {
+        // Schema version 4 is still an open development cycle: `setElementShape`, `ctrlXM` and
+        // `ctrlYM` were added straight onto the v4 tables rather than through a v5 migration
+        // (`OcptFloorPlanSymbolsTable`/`OcptFloorPlanArrowsTable`'s own doc comments), so an
+        // already-written format-4 payload's row JSON carries none of the three keys at all,
+        // unlike the whole-table-missing case format 3 exercises above.
+        final rich = buildRichPayload();
+        final encoded = jsonDecode(codec.encode(rich)) as Map<String, dynamic>;
+        encoded["floorPlanSymbols"] = [
+          for (final row in encoded["floorPlanSymbols"] as List)
+            (row as Map<String, dynamic>)..remove("setElementShape"),
+        ];
+        encoded["floorPlanArrows"] = [
+          for (final row in encoded["floorPlanArrows"] as List)
+            (row as Map<String, dynamic>)
+              ..remove("ctrlXM")
+              ..remove("ctrlYM"),
+        ];
+
+        final result = codec.decode(jsonEncode(encoded));
+
+        expect(result.status, OcptProjectVersionPayloadStatus.ok);
+        expect(
+          result.value!.floorPlanSymbols.map((row) => row.setElementShape),
+          everyElement(isNull),
+        );
+        expect(result.value!.floorPlanArrows.map((row) => row.ctrlXM), everyElement(isNull));
+        expect(result.value!.floorPlanArrows.map((row) => row.ctrlYM), everyElement(isNull));
         // Nothing else about the payload is disturbed by the missing keys.
         expect(result.value!.shots, rich.shots);
       },

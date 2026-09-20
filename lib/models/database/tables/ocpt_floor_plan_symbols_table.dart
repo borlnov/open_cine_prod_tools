@@ -6,6 +6,7 @@ import 'package:drift/drift.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_floor_plan_cases_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_shots_table.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_layer.dart';
+import 'package:open_cine_prod_tools/types/ocpt_floor_plan_set_element_shape.dart';
 
 /// Converts a [OcptFloorPlanLayer] to and from the text stored in the `floor_plan_symbols.layer`
 /// column.
@@ -20,6 +21,23 @@ class OcptFloorPlanLayerConverter extends TypeConverter<OcptFloorPlanLayer, Stri
   /// {@macro drift.TypeConverter.toSql}
   @override
   String toSql(OcptFloorPlanLayer value) => value.name;
+}
+
+/// Converts a [OcptFloorPlanSetElementShape] to and from the text stored in the
+/// `floor_plan_symbols.setElementShape` column.
+class OcptFloorPlanSetElementShapeConverter
+    extends TypeConverter<OcptFloorPlanSetElementShape, String> {
+  /// Class constructor
+  const OcptFloorPlanSetElementShapeConverter();
+
+  /// {@macro drift.TypeConverter.fromSql}
+  @override
+  OcptFloorPlanSetElementShape fromSql(String fromDb) =>
+      OcptFloorPlanSetElementShape.values.byName(fromDb);
+
+  /// {@macro drift.TypeConverter.toSql}
+  @override
+  String toSql(OcptFloorPlanSetElementShape value) => value.name;
 }
 
 /// A camera, a character, a light, a set element or any other placed symbol of a floor plan case.
@@ -82,6 +100,13 @@ class OcptFloorPlanSymbolsTable extends Table {
   /// shot's characters field as a convenience only — it carries no link back to a role
   /// (`docs/plans/storyboard.md`, §2).
   TextColumn get label => text().withDefault(const Constant(''))();
+
+  /// The visual primitive a set-element (sequence-layer) symbol is drawn as — a wall, a door, a
+  /// piece of furniture, or a free-hand shape. **Null for every camera, character and light
+  /// symbol**, which don't use it: only a décor symbol on [OcptFloorPlanLayer.decor],
+  /// `.furniture` or `.fixedProps` carries one.
+  TextColumn get setElementShape =>
+      text().nullable().map(const OcptFloorPlanSetElementShapeConverter())();
 
   /// {@macro open_cine_prod_tools.isDeleted}
   BoolColumn get isDeleted => boolean().withDefault(const Constant(false))();

@@ -13,6 +13,7 @@ import 'package:open_cine_prod_tools/models/ocpt_floor_plan_symbol.dart';
 import 'package:open_cine_prod_tools/types/ocpt_asset_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_arrow_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_layer.dart';
+import 'package:open_cine_prod_tools/types/ocpt_floor_plan_set_element_shape.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_fractional_key.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_scene_set_suggestion.dart';
 import 'package:uuid/uuid.dart';
@@ -475,6 +476,11 @@ class OcptFloorPlanService {
   /// violates it throws an [ArgumentError] rather than writing a row the rest of this service could
   /// never make sense of again.
   ///
+  /// [setElementShape] records a set-element symbol's visual primitive (a wall, a door, a piece of
+  /// furniture, a free-hand shape). Passed null for a camera, character or light symbol — every
+  /// caller placing one of those simply omits it — and, ordinarily, for whichever of the two this
+  /// call isn't (a set element never carries a field of view, a camera never carries a shape).
+  ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
   Future<String?> placeSymbol({
     required OcptProjectDatabase database,
@@ -488,6 +494,7 @@ class OcptFloorPlanService {
     double? heightM,
     double? fovDeg,
     String label = '',
+    OcptFloorPlanSetElementShape? setElementShape,
   }) async {
     if (database.refusesUserWrite("placeSymbol")) {
       return null;
@@ -517,6 +524,7 @@ class OcptFloorPlanService {
         heightM: heightM,
         fovDeg: fovDeg,
         label: label,
+        setElementShape: setElementShape,
         isDeleted: false,
       );
 
@@ -535,11 +543,12 @@ class OcptFloorPlanService {
     return id;
   }
 
-  /// Updates symbol [symbolId]'s position, rotation, footprint, field of view and/or label,
-  /// whichever is passed as something other than [Value.absent] — a move writes `xM`/`yM`, a rotate
-  /// writes `rotationDeg`, a resize writes `widthM`/`heightM`, and so on, all through this one
-  /// guarded write. Never touches `caseId`, `shotId` or `layer`: those are fixed at [placeSymbol]
-  /// and nothing here can put the scope invariant out of step.
+  /// Updates symbol [symbolId]'s position, rotation, footprint, field of view, label and/or
+  /// set-element shape, whichever is passed as something other than [Value.absent] — a move writes
+  /// `xM`/`yM`, a rotate writes `rotationDeg`, a resize writes `widthM`/`heightM`,
+  /// [setElementShape] switches a décor primitive's own type (a wall turned into a door, say), and
+  /// so on, all through this one guarded write. Never touches `caseId`, `shotId` or `layer`: those
+  /// are fixed at [placeSymbol] and nothing here can put the scope invariant out of step.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
   Future<void> updateSymbol({
@@ -552,6 +561,7 @@ class OcptFloorPlanService {
     Value<double?> heightM = const Value.absent(),
     Value<double?> fovDeg = const Value.absent(),
     Value<String> label = const Value.absent(),
+    Value<OcptFloorPlanSetElementShape?> setElementShape = const Value.absent(),
   }) async {
     if (database.refusesUserWrite("updateSymbol")) {
       return;
@@ -565,6 +575,7 @@ class OcptFloorPlanService {
       heightM: heightM,
       fovDeg: fovDeg,
       label: label,
+      setElementShape: setElementShape,
     );
 
     await database.transaction(() async {
@@ -692,6 +703,42 @@ class OcptFloorPlanService {
         rowId: arrowId,
         current: current,
         next: current.copyWith(label: label),
+        stamps: stamps,
+      );
+      await stamps.flush(database);
+    });
+  }
+
+  /// Updates arrow [arrowId]'s bezier control point — `(ctrlXM, ctrlYM)`, in metres — bending it
+  /// into a curve, or straightening it back out by writing both `const Value(null)`. Writes only
+  /// these two columns.
+  ///
+  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
+  Future<void> updateArrowCurve({
+    required OcptProjectDatabase database,
+    required String arrowId,
+    required Value<double?> ctrlXM,
+    required Value<double?> ctrlYM,
+  }) async {
+    if (database.refusesUserWrite("updateArrowCurve")) {
+      return;
+    }
+
+    final companion = OcptFloorPlanArrowsTableCompanion(ctrlXM: ctrlXM, ctrlYM: ctrlYM);
+
+    await database.transaction(() async {
+      final current = await _liveArrowRowOrNull(database: database, arrowId: arrowId);
+      if (current == null) {
+        return;
+      }
+
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
+      await OcptRowStampService.writeAndStamp(
+        database: database,
+        table: database.ocptFloorPlanArrowsTable,
+        rowId: arrowId,
+        current: current,
+        next: current.copyWithCompanion(companion),
         stamps: stamps,
       );
       await stamps.flush(database);

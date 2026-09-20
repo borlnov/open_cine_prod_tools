@@ -74,7 +74,8 @@ import 'package:open_cine_prod_tools/models/database/tables/ocpt_sync_relay_curs
 // OcptBudgetCommitmentStatusConverter, OcptBudgetResourceGroupKindConverter,
 // OcptBudgetResourceStatusConverter, OcptBudgetRevenueStatusConverter,
 // OcptBudgetAllowanceKindConverter, OcptStoryboardAnnotationKindConverter,
-// OcptFloorPlanLayerConverter, OcptFloorPlanArrowKindConverter), but
+// OcptFloorPlanLayerConverter, OcptFloorPlanArrowKindConverter,
+// OcptFloorPlanSetElementShapeConverter), but
 // the generated ocpt_project_database.g.dart
 // part file below references them directly: since a part file shares its main library's imports
 // rather than having its own, they must be imported here too for that generated code to resolve.
@@ -92,6 +93,7 @@ import 'package:open_cine_prod_tools/types/ocpt_element_source_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_arrow_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_layer.dart';
+import 'package:open_cine_prod_tools/types/ocpt_floor_plan_set_element_shape.dart';
 import 'package:open_cine_prod_tools/types/ocpt_image_rights_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_location_availability_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
