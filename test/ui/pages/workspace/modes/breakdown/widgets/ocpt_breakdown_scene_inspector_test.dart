@@ -539,7 +539,7 @@ void main() {
           onSetUnlinked: unlinkedSetIds.add,
           locations: const [],
           newSetName: "",
-          onSetCreationRequested: null,
+          onSetCreationRequested: (_, __) {},
           notesValue: "",
           onTargetSelected: _noop3,
           onStatusChanged: (_) {},
@@ -551,7 +551,7 @@ void main() {
     );
 
     // The set the scene is shot in is a chip, named with the location holding it; the other one is
-    // only in the picker, marked there as this heading's own suggestion.
+    // only in the popover, marked there as this heading's own suggestion.
     expect(find.text("Cuisine · Maison des Martin"), findsOneWidget);
     expect(find.text("Jardin · Maison des Martin"), findsNothing);
 
@@ -593,11 +593,10 @@ void main() {
 
     expect(find.text("Cuisine · Maison des Martin"), findsOneWidget);
     expect(find.text("Set"), findsNothing);
-    expect(find.text("Create a set…"), findsNothing);
   });
 
-  testWidgets("creates a set named after the heading, in the location picked", (tester) async {
-    final creationLocationIds = <String?>[];
+  testWidgets("creates a set with the typed name, in the location picked", (tester) async {
+    final created = <(String, String?)>[];
 
     await tester.pumpWidget(
       _wrapInApp(
@@ -611,7 +610,7 @@ void main() {
           onSetUnlinked: (_) {},
           locations: const [("location-1", "Maison des Martin")],
           newSetName: "CUISINE",
-          onSetCreationRequested: creationLocationIds.add,
+          onSetCreationRequested: (name, locationId) => created.add((name, locationId)),
           notesValue: "",
           onTargetSelected: _noop3,
           onStatusChanged: (_) {},
@@ -622,27 +621,38 @@ void main() {
       ),
     );
 
-    // The project holds no set at all, so there is nothing to pick — only something to create.
-    expect(find.text("Set"), findsNothing);
-
-    await tester.tap(find.text("Create a set…"));
+    // The project holds no set at all, so the popover only ever offers something to create.
+    await tester.tap(find.text("Set"));
     await tester.pumpAndSettle();
 
-    // The menu says what it is about to create before it asks where.
+    // The field is pre-filled with the heading-derived name, which the create section echoes.
+    expect(find.text("CUISINE"), findsOneWidget);
     expect(find.text('Create "CUISINE" in…'), findsOneWidget);
 
     await tester.tap(find.text("In Maison des Martin"));
     await tester.pumpAndSettle();
 
-    expect(creationLocationIds, ["location-1"]);
+    expect(created, [("CUISINE", "location-1")]);
 
-    // And the entry minting a location to hold it reports null rather than an id.
-    await tester.tap(find.text("Create a set…"));
+    // The entry minting a location to hold it reports null rather than an id.
+    await tester.tap(find.text("Set"));
     await tester.pumpAndSettle();
     await tester.tap(find.text("In a new location"));
     await tester.pumpAndSettle();
 
-    expect(creationLocationIds, ["location-1", null]);
+    expect(created, [("CUISINE", "location-1"), ("CUISINE", null)]);
+
+    // Editing the field before creating carries the typed name through instead.
+    await tester.tap(find.text("Set"));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.text("CUISINE"), "SALON");
+    await tester.pumpAndSettle();
+    expect(find.text('Create "SALON" in…'), findsOneWidget);
+
+    await tester.tap(find.text("In a new location"));
+    await tester.pumpAndSettle();
+
+    expect(created, [("CUISINE", "location-1"), ("CUISINE", null), ("SALON", null)]);
   });
 }
 

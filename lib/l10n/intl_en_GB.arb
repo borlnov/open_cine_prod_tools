@@ -6974,14 +6974,21 @@
   },
   "breakdownSceneInspectorAddSetAction": "Set",
   "@breakdownSceneInspectorAddSetAction": {
-    "description": "Label of the chip opening the picker adding a set to the scene",
+    "description": "Label of the chip opening the popover linking or creating a set for the scene",
     "context": "Displayed in the breakdown mode's scene inspector",
     "type": "text",
     "placeholders": {}
   },
-  "breakdownSceneInspectorCreateSetAction": "Create a set…",
-  "@breakdownSceneInspectorCreateSetAction": {
-    "description": "Label of the chip opening the menu creating a set named after the scene's heading",
+  "breakdownSceneInspectorSetPickerNameLabel": "Set name",
+  "@breakdownSceneInspectorSetPickerNameLabel": {
+    "description": "Label above the set picker popover's own name field",
+    "context": "Displayed in the breakdown mode's scene inspector",
+    "type": "text",
+    "placeholders": {}
+  },
+  "breakdownSceneInspectorSetPickerExistingLabel": "Existing sets",
+  "@breakdownSceneInspectorSetPickerExistingLabel": {
+    "description": "Header of the set picker popover's list of existing, not yet linked sets",
     "context": "Displayed in the breakdown mode's scene inspector",
     "type": "text",
     "placeholders": {}
