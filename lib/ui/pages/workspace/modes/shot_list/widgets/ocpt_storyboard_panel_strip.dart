@@ -12,11 +12,11 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/
 import 'package:open_cine_prod_tools/ui/widgets/ocpt_referenced_image.dart';
 
 /// The gap left between two panel frames of a strip, and between the last frame and the trailing
-/// `+ Import frame` slot.
+/// `Import frame` slot.
 const double _frameGap = 10;
 
 /// One shot's ordered panels, laid out left to right at their shared [height] — the right half of
-/// an `OcptStoryboardShotRow` — followed by a trailing dashed `+ Import frame` slot
+/// an `OcptStoryboardShotRow` — followed by a trailing dashed `Import frame` slot
 /// (`docs/plans/storyboard.md`, §4.2).
 ///
 /// A shot with no panel shows the slot alone, labelled `no panel yet`. Reordering drags a frame
@@ -61,7 +61,7 @@ class OcptStoryboardPanelStrip extends StatelessWidget {
   /// withheld.
   final ValueChanged<String>? onDeleteRequested;
 
-  /// Called when the trailing `+ Import frame` slot is clicked, or null while withheld.
+  /// Called when the trailing `Import frame` slot is clicked, or null while withheld.
   final VoidCallback? onImportRequested;
 
   /// Called with a panel's id and its new 0-based position when it is dragged to reorder, or null
@@ -214,12 +214,12 @@ class OcptStoryboardPanelStrip extends StatelessWidget {
   }
 }
 
-/// The strip's trailing `+ Import frame` slot: a dashed placeholder-shaped button.
+/// The strip's trailing `Import frame` slot: a dashed placeholder-shaped button.
 class _ImportSlot extends StatelessWidget {
   /// The slot's own width, matching a frame's.
   final double width;
 
-  /// The slot's own label, or null for the default `+ Import frame` wording (the empty-strip case
+  /// The slot's own label, or null for the default `Import frame` wording (the empty-strip case
   /// uses [label] for `no panel yet` instead).
   final String? label;
 
@@ -425,18 +425,16 @@ class OcptStoryboardPanelFrame extends StatelessWidget {
                       children: [
                         if (onReplaceRequested != null)
                           IconButton(
-                            icon: const Icon(Icons.swap_horiz, size: 16),
+                            icon: const Icon(Icons.swap_horiz, size: 18),
                             tooltip: tr.shotListBoardReplaceImageAction,
                             color: Colors.white,
-                            visualDensity: VisualDensity.compact,
                             onPressed: onReplaceRequested,
                           ),
                         if (onDeleteRequested != null)
                           IconButton(
-                            icon: const Icon(Icons.delete_outline, size: 16),
+                            icon: const Icon(Icons.delete_outline, size: 18),
                             tooltip: tr.shotListBoardDeletePanelAction,
                             color: Colors.white,
-                            visualDensity: VisualDensity.compact,
                             onPressed: onDeleteRequested,
                           ),
                       ],
