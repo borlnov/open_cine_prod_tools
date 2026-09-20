@@ -97,7 +97,7 @@ class OcptElementSheetScenesCard extends StatelessWidget {
     );
   }
 
-  /// The `+ Scene` picker: every scene this element is not already needed in, in the screenplay's
+  /// The `Scene` picker: every scene this element is not already needed in, in the screenplay's
   /// own order. Renders nothing at all once there is none left to offer.
   Widget _buildScenePicker(BuildContext context, Tr tr) {
     final onSceneAssigned = this.onSceneAssigned!;

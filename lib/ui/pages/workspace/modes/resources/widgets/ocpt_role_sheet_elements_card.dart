@@ -162,7 +162,7 @@ class OcptRoleSheetElementsCard extends StatelessWidget {
     );
   }
 
-  /// The `+ Element` picker: every element this role is not already linked to, grouped by category
+  /// The `Element` picker: every element this role is not already linked to, grouped by category
   /// the way the left dock's own list heads it. Renders nothing at all once there is none left to
   /// offer.
   Widget _buildElementPicker(

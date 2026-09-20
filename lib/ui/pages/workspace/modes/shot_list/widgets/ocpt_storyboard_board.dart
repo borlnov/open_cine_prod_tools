@@ -49,7 +49,7 @@ class OcptStoryboardBoard extends StatelessWidget {
   /// Called with a panel's id when its frame is clicked.
   final ValueChanged<String> onPanelSelected;
 
-  /// Called with a shot's id when its strip's own `+ Import frame` slot is clicked, or null while
+  /// Called with a shot's id when its strip's own `Import frame` slot is clicked, or null while
   /// withheld.
   final ValueChanged<String>? onImportRequested;
 
@@ -196,7 +196,7 @@ class OcptStoryboardShotRow extends StatelessWidget {
   /// Called with a panel's id when one of this row's frames is clicked.
   final ValueChanged<String> onPanelSelected;
 
-  /// Called when this row's own `+ Import frame` slot is clicked, or null while withheld.
+  /// Called when this row's own `Import frame` slot is clicked, or null while withheld.
   final VoidCallback? onImportRequested;
 
   /// Called with a panel's id when its own `Replace image` action is clicked, or null while

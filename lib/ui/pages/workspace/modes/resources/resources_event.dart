@@ -652,7 +652,7 @@ class OcptResourcesRoleMergeRequestedEvent extends OcptResourcesEvent {
 
 /// Records that person [personId] was seen for role [roleId], appended after that role's other
 /// candidates, written immediately: `OcptResourcesPersonPicker`'s own pick, dispatched by the
-/// candidates card's `+ Candidate` action.
+/// candidates card's `Candidate` action.
 class OcptResourcesRoleCandidateAddedEvent extends OcptResourcesEvent {
   /// The id of the role the candidate is seen for.
   final String roleId;

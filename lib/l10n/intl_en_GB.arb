@@ -2868,7 +2868,7 @@
     "type": "text",
     "placeholders": {}
   },
-  "shotListBoardImportFrameAction": "+ Import frame",
+  "shotListBoardImportFrameAction": "Import frame",
   "@shotListBoardImportFrameAction": {
     "description": "Label of a panel strip's own trailing import slot",
     "context": "Displayed on the board, at the end of a shot's panel strip",
@@ -5265,7 +5265,7 @@
     "type": "text",
     "placeholders": {}
   },
-  "resourcesAddCandidateToRoleAction": "+ Candidate",
+  "resourcesAddCandidateToRoleAction": "Candidate",
   "@resourcesAddCandidateToRoleAction": {
     "description": "Action opening the person picker adding a candidate to a role",
     "context": "Displayed in the resources mode's role sheet, on the candidates card",
@@ -6230,7 +6230,7 @@
     "type": "text",
     "placeholders": {}
   },
-  "resourcesAddSceneToElementAction": "+ Scene",
+  "resourcesAddSceneToElementAction": "Scene",
   "@resourcesAddSceneToElementAction": {
     "description": "Label of the element sheet's picker adding a scene needing the element",
     "context": "Displayed in the resources mode's element sheet",
@@ -6272,7 +6272,7 @@
     "type": "text",
     "placeholders": {}
   },
-  "resourcesAddElementToRoleAction": "+ Element",
+  "resourcesAddElementToRoleAction": "Element",
   "@resourcesAddElementToRoleAction": {
     "description": "Label of the role sheet's picker adding an element the role needs",
     "context": "Displayed in the resources mode's role sheet",

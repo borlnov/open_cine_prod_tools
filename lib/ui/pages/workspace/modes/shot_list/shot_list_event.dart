@@ -657,7 +657,7 @@ class OcptShotListPanelSizeChangedEvent extends OcptShotListEvent {
 }
 
 /// Requests importing a frame onto shot [shotId]'s storyboard, dispatched by its panel strip's
-/// trailing `+ Import frame` slot.
+/// trailing `Import frame` slot.
 ///
 /// The bloc picks the file through `FileSelectorManager`, filtered to JPEG and PNG
 /// (`ocptStoryboardPanelImageFileExtensions`), then appends a new panel carrying it. A cancelled
