@@ -34,6 +34,13 @@ class OcptFloorPlanArrow extends Equatable {
   /// The arrow's own text label, free text.
   final String label;
 
+  /// A curved arrow's bezier control point X, in metres — null meaning a straight arrow. See
+  /// `OcptFloorPlanArrowsTable.ctrlXM`'s own doc comment.
+  final double? ctrlXM;
+
+  /// A curved arrow's bezier control point Y, in metres. See [ctrlXM].
+  final double? ctrlYM;
+
   /// Class constructor
   const OcptFloorPlanArrow({
     required this.id,
@@ -43,6 +50,8 @@ class OcptFloorPlanArrow extends Equatable {
     required this.fromSymbolId,
     required this.toSymbolId,
     required this.label,
+    required this.ctrlXM,
+    required this.ctrlYM,
   });
 
   /// Builds an [OcptFloorPlanArrow] from its stored [row].
@@ -54,6 +63,8 @@ class OcptFloorPlanArrow extends Equatable {
     fromSymbolId: row.fromSymbolId,
     toSymbolId: row.toSymbolId,
     label: row.label,
+    ctrlXM: row.ctrlXM,
+    ctrlYM: row.ctrlYM,
   );
 
   /// Object string representation, useful for debugging and logging.
@@ -62,5 +73,15 @@ class OcptFloorPlanArrow extends Equatable {
 
   /// Object properties
   @override
-  List<Object?> get props => [id, caseId, shotId, kind, fromSymbolId, toSymbolId, label];
+  List<Object?> get props => [
+    id,
+    caseId,
+    shotId,
+    kind,
+    fromSymbolId,
+    toSymbolId,
+    label,
+    ctrlXM,
+    ctrlYM,
+  ];
 }

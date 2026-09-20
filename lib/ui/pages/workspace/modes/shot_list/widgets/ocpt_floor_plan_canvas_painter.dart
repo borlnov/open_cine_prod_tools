@@ -9,6 +9,8 @@ import 'package:collection/collection.dart';
 import 'package:equatable/equatable.dart';
 import 'package:flutter/material.dart';
 import 'package:open_cine_prod_tools/models/ocpt_floor_plan_sheet.dart';
+import 'package:open_cine_prod_tools/types/ocpt_floor_plan_arrow_kind.dart';
+import 'package:open_cine_prod_tools/types/ocpt_floor_plan_set_element_shape.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_floor_plan_geometry.dart';
 
 /// The margin, in logical pixels, the scale bar and the reference silhouette are drawn from the
@@ -88,6 +90,18 @@ const double _arrowheadLength = 8;
 
 /// The angle, in radians, each of an arrowhead's own two strokes opens from the shaft.
 const double _arrowheadAngle = 0.5;
+
+/// The length of one dash and of the gap following it, in logical pixels — the same technique
+/// `OcptStoryboardAnnotationOverlayPainter._drawDashedLine` uses for its own camera-move arrows,
+/// generalised here to any path (a straight or curved shaft, a décor freeform's own rect outline)
+/// through `_dashedPathOf`, since `Paint` carries no dash pattern of its own in Flutter.
+const double _dashLength = 6;
+
+/// How far, in metres, a camera's own field-of-view wedge reaches from its lens.
+const double _cameraFovWedgeLengthM = 2;
+
+/// How far, in metres, a light's own beam reaches from its body.
+const double _lightBeamLengthM = 1;
 
 /// One line the metrics overlay draws, from the selected symbol to another visible one — a pure
 /// data record `OcptFloorPlanCanvas` builds (it alone can resolve a localized label) and this
@@ -257,9 +271,13 @@ class OcptFloorPlanCanvasPainter extends CustomPainter {
     _paintScaleAndSilhouette(canvas, size);
   }
 
-  /// One movement or camera-move arrow, a straight shaft with a small head at its own
-  /// [OcptFloorPlanArrowShape.toXM]/[OcptFloorPlanArrowShape.toYM] end, at reduced opacity while
-  /// [OcptFloorPlanArrowShape.isGhost] (the onion skin).
+  /// One movement or camera-move arrow: a quadratic bezier shaft through
+  /// [OcptFloorPlanArrowShape.ctrlXM]/[OcptFloorPlanArrowShape.ctrlYM] when set, a straight shaft
+  /// otherwise, with a small head at its own [OcptFloorPlanArrowShape.toXM]/
+  /// [OcptFloorPlanArrowShape.toYM] end, at reduced opacity while [OcptFloorPlanArrowShape.isGhost]
+  /// (the onion skin). A [OcptFloorPlanArrowKind.cameraMove] arrow's own shaft is drawn dashed
+  /// ([_dashedPathOf]), keeping it visually distinct from a movement arrow's solid one, straight or
+  /// curved alike.
   void _paintArrow(Canvas canvas, Size size, OcptFloorPlanArrowShape arrow) {
     final from = ocptFloorPlanScreenPointOf(
       xM: arrow.fromXM,
@@ -275,17 +293,33 @@ class OcptFloorPlanCanvasPainter extends CustomPainter {
       zoom: zoom,
       pan: pan,
     );
+    final ctrlXM = arrow.ctrlXM;
+    final ctrlYM = arrow.ctrlYM;
+    final ctrl = ctrlXM != null && ctrlYM != null
+        ? ocptFloorPlanScreenPointOf(xM: ctrlXM, yM: ctrlYM, canvasSize: size, zoom: zoom, pan: pan)
+        : null;
     final opacity = arrow.isGhost ? onionSkinOpacity : 1.0;
-    final paint = Paint()
+
+    final shaftPath = Path()..moveTo(from.dx, from.dy);
+    if (ctrl != null) {
+      shaftPath.quadraticBezierTo(ctrl.dx, ctrl.dy, to.dx, to.dy);
+    } else {
+      shaftPath.lineTo(to.dx, to.dy);
+    }
+
+    final strokePaint = Paint()
       ..color = Color(arrow.colorArgb).withValues(alpha: opacity)
       ..strokeWidth = 2
       ..style = PaintingStyle.stroke;
+    final isDashed = arrow.kind == OcptFloorPlanArrowKind.cameraMove;
+    canvas.drawPath(isDashed ? _dashedPathOf(shaftPath) : shaftPath, strokePaint);
 
-    canvas.drawLine(from, to, paint);
-
-    final angle = math.atan2(to.dy - from.dy, to.dx - from.dx);
+    // The arrowhead's own direction: the shaft's tangent at its own `to` end — `to - ctrl` for a
+    // curved shaft (a quadratic bezier's own tangent at t=1), `to - from` for a straight one.
+    final headDirection = ctrl != null ? (to - ctrl) : (to - from);
+    final angle = math.atan2(headDirection.dy, headDirection.dx);
     final fillPaint = Paint()..color = Color(arrow.colorArgb).withValues(alpha: opacity);
-    final path = Path()
+    final headPath = Path()
       ..moveTo(to.dx, to.dy)
       ..lineTo(
         to.dx - _arrowheadLength * math.cos(angle - _arrowheadAngle),
@@ -296,11 +330,37 @@ class OcptFloorPlanCanvasPainter extends CustomPainter {
         to.dy - _arrowheadLength * math.sin(angle + _arrowheadAngle),
       )
       ..close();
-    canvas.drawPath(path, fillPaint);
+    canvas.drawPath(headPath, fillPaint);
 
     if (arrow.label.isNotEmpty) {
-      _paintLabel(canvas, Offset((from.dx + to.dx) / 2, (from.dy + to.dy) / 2), arrow.label);
+      final midpoint = ctrl != null
+          ? Offset(
+              0.25 * from.dx + 0.5 * ctrl.dx + 0.25 * to.dx,
+              0.25 * from.dy + 0.5 * ctrl.dy + 0.25 * to.dy,
+            )
+          : Offset((from.dx + to.dx) / 2, (from.dy + to.dy) / 2);
+      _paintLabel(canvas, midpoint, arrow.label);
     }
+  }
+
+  /// [source] split into short dashes and gaps ([_dashLength] each), along whatever shape it draws
+  /// — straight, curved, or a closed rect outline — since `Paint` carries no dash pattern of its
+  /// own in Flutter.
+  Path _dashedPathOf(Path source) {
+    final dashed = Path();
+    for (final metric in source.computeMetrics()) {
+      var distance = 0.0;
+      var isDash = true;
+      while (distance < metric.length) {
+        final next = math.min(distance + _dashLength, metric.length);
+        if (isDash) {
+          dashed.addPath(metric.extractPath(distance, next), Offset.zero);
+        }
+        distance = next;
+        isDash = !isDash;
+      }
+    }
+    return dashed;
   }
 
   /// One metrics overlay line: a thin dashed-looking (short, evenly spaced) segment from the
@@ -347,7 +407,10 @@ class OcptFloorPlanCanvasPainter extends CustomPainter {
     );
   }
 
-  /// Paints one symbol shape, applying [liveOverride] when it names this very symbol.
+  /// Paints one symbol shape, applying [liveOverride] when it names this very symbol — the glyph
+  /// [OcptFloorPlanSymbolShape.glyphKind] names (a character's own disc, a camera's own body/lens/
+  /// wedge, a light's own body/beam, or a décor primitive), the selected/arrow-anchor ring on top,
+  /// unchanged for every glyph.
   void _paintSymbol(Canvas canvas, Size size, OcptFloorPlanSymbolShape symbol) {
     final override = liveOverride;
     final xM = override != null && override.symbolId == symbol.symbolId ? override.xM : symbol.xM;
@@ -369,28 +432,47 @@ class OcptFloorPlanCanvasPainter extends CustomPainter {
     final isSelected = symbol.symbolId == selectedSymbolId;
     final isArrowAnchor = symbol.symbolId == arrowAnchorSymbolId;
     final opacity = symbol.isGhost ? onionSkinOpacity : 1.0;
+    final color = Color(symbol.colorArgb);
+    final borderColor = (isSelected ? selectionColor : symbolBorderColor).withValues(alpha: opacity);
+    final borderWidth = isSelected ? 2.5 : 1.5;
 
     canvas.save();
     canvas.translate(centre.dx, centre.dy);
     canvas.rotate(rotationDeg * math.pi / 180);
 
     final rect = Rect.fromCenter(center: Offset.zero, width: widthPx, height: heightPx);
-    final rrect = RRect.fromRectAndRadius(rect, const Radius.circular(3));
 
-    canvas.drawRRect(
-      rrect,
-      Paint()..color = Color(symbol.colorArgb).withValues(alpha: 0.35 * opacity),
-    );
-    canvas.drawRRect(
-      rrect,
-      Paint()
-        ..color = (isSelected ? selectionColor : symbolBorderColor).withValues(alpha: opacity)
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = isSelected ? 2.5 : 1.5,
-    );
+    switch (symbol.glyphKind) {
+      case OcptFloorPlanSymbolGlyphKind.character:
+        _paintCharacterGlyph(canvas, rect, color, opacity, borderColor, borderWidth);
+      case OcptFloorPlanSymbolGlyphKind.camera:
+        _paintCameraGlyph(
+          canvas,
+          rect,
+          color,
+          opacity,
+          borderColor,
+          borderWidth,
+          symbol.cameraFovWedgeDeg,
+          pixelsPerMetre,
+        );
+      case OcptFloorPlanSymbolGlyphKind.light:
+        _paintLightGlyph(canvas, rect, color, opacity, borderColor, borderWidth, pixelsPerMetre);
+      case OcptFloorPlanSymbolGlyphKind.setElement:
+        _paintSetElementGlyph(
+          canvas,
+          rect,
+          color,
+          opacity,
+          borderColor,
+          borderWidth,
+          symbol.setElementShape ?? OcptFloorPlanSetElementShape.freeform,
+        );
+    }
+
     if (isArrowAnchor) {
       canvas.drawRRect(
-        rrect.inflate(3),
+        RRect.fromRectAndRadius(rect.inflate(3), const Radius.circular(3)),
         Paint()
           ..color = arrowAnchorColor
           ..style = PaintingStyle.stroke
@@ -402,6 +484,221 @@ class OcptFloorPlanCanvasPainter extends CustomPainter {
 
     if (symbol.label.isNotEmpty) {
       _paintLabel(canvas, Offset(centre.dx, centre.dy + heightPx / 2 + 4), symbol.label);
+    }
+  }
+
+  /// A character's own filled disc, in its own derived [color] (`ocptFloorPlanCharacterColourOf`
+  /// — resolved once, into [OcptFloorPlanSymbolShape.colorArgb], by `OcptFloorPlanSheet`), with a
+  /// facing indicator (a small nose plus two short arms) drawn pointing local "up" — 0° rotation
+  /// means facing up, clockwise positive, the same bearing convention
+  /// `OcptFloorPlanCanvas._updateRotateDrag` already reads a rotate-handle drag through — so the
+  /// canvas's own `rotate` call (already applied by [_paintSymbol]) turns it to the symbol's own
+  /// heading for free.
+  void _paintCharacterGlyph(
+    Canvas canvas,
+    Rect rect,
+    Color color,
+    double opacity,
+    Color borderColor,
+    double borderWidth,
+  ) {
+    final radius = math.min(rect.width, rect.height) / 2;
+    canvas.drawCircle(Offset.zero, radius, Paint()..color = color.withValues(alpha: opacity));
+    canvas.drawCircle(
+      Offset.zero,
+      radius,
+      Paint()
+        ..color = borderColor
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = borderWidth,
+    );
+
+    final indicatorColor = Colors.white.withValues(alpha: opacity);
+    final nosePath = Path()
+      ..moveTo(-radius * 0.22, -radius * 0.15)
+      ..lineTo(0, -radius * 1.6)
+      ..lineTo(radius * 0.22, -radius * 0.15)
+      ..close();
+    canvas.drawPath(nosePath, Paint()..color = indicatorColor);
+
+    final armPaint = Paint()
+      ..color = indicatorColor
+      ..strokeWidth = math.max(1.5, radius * 0.18)
+      ..strokeCap = StrokeCap.round;
+    canvas.drawLine(
+      Offset(-radius * 0.3, -radius * 0.05),
+      Offset(-radius * 1.15, radius * 0.5),
+      armPaint,
+    );
+    canvas.drawLine(
+      Offset(radius * 0.3, -radius * 0.05),
+      Offset(radius * 1.15, radius * 0.5),
+      armPaint,
+    );
+  }
+
+  /// A camera's own body, lens and, while [fovWedgeDeg] is set, its field-of-view wedge — a cone
+  /// [_cameraFovWedgeLengthM] long, spanning [fovWedgeDeg], pointing local "up" (the camera's own
+  /// heading, see [_paintCharacterGlyph]'s own doc comment for the shared bearing convention).
+  void _paintCameraGlyph(
+    Canvas canvas,
+    Rect rect,
+    Color color,
+    double opacity,
+    Color borderColor,
+    double borderWidth,
+    double? fovWedgeDeg,
+    double pixelsPerMetre,
+  ) {
+    if (fovWedgeDeg != null) {
+      final halfAngle = fovWedgeDeg * math.pi / 180 / 2;
+      final wedgeLength = _cameraFovWedgeLengthM * pixelsPerMetre;
+      final tip = Offset(0, -rect.height / 2);
+      final left = tip + Offset(-math.sin(halfAngle), -math.cos(halfAngle)) * wedgeLength;
+      final right = tip + Offset(math.sin(halfAngle), -math.cos(halfAngle)) * wedgeLength;
+      final wedgePath = Path()
+        ..moveTo(tip.dx, tip.dy)
+        ..lineTo(left.dx, left.dy)
+        ..lineTo(right.dx, right.dy)
+        ..close();
+      canvas.drawPath(wedgePath, Paint()..color = color.withValues(alpha: opacity * 0.16));
+      canvas.drawPath(
+        wedgePath,
+        Paint()
+          ..color = color.withValues(alpha: opacity * 0.55)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1,
+      );
+    }
+
+    final rrect = RRect.fromRectAndRadius(rect, const Radius.circular(2));
+    canvas.drawRRect(rrect, Paint()..color = color.withValues(alpha: 0.55 * opacity));
+    canvas.drawRRect(
+      rrect,
+      Paint()
+        ..color = borderColor
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = borderWidth,
+    );
+
+    final lensRadius = math.min(rect.width, rect.height) * 0.24;
+    final lensCentre = Offset(0, -rect.height / 2 - lensRadius * 0.5);
+    canvas.drawCircle(lensCentre, lensRadius, Paint()..color = color.withValues(alpha: opacity));
+    canvas.drawCircle(
+      lensCentre,
+      lensRadius,
+      Paint()
+        ..color = borderColor
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1,
+    );
+  }
+
+  /// A light/projector's own body, barn doors and a warm beam [_lightBeamLengthM] long, pointing
+  /// local "up" (see [_paintCharacterGlyph]'s own doc comment for the shared bearing convention).
+  void _paintLightGlyph(
+    Canvas canvas,
+    Rect rect,
+    Color color,
+    double opacity,
+    Color borderColor,
+    double borderWidth,
+    double pixelsPerMetre,
+  ) {
+    final beamLength = _lightBeamLengthM * pixelsPerMetre;
+    final tip = Offset(0, -rect.height / 2);
+    final beamPath = Path()
+      ..moveTo(tip.dx, tip.dy)
+      ..lineTo(tip.dx - rect.width * 0.9, tip.dy - beamLength)
+      ..lineTo(tip.dx + rect.width * 0.9, tip.dy - beamLength)
+      ..close();
+    canvas.drawPath(beamPath, Paint()..color = color.withValues(alpha: opacity * 0.22));
+
+    final rrect = RRect.fromRectAndRadius(rect, const Radius.circular(2));
+    canvas.drawRRect(rrect, Paint()..color = color.withValues(alpha: 0.65 * opacity));
+    canvas.drawRRect(
+      rrect,
+      Paint()
+        ..color = borderColor
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = borderWidth,
+    );
+
+    final doorPaint = Paint()
+      ..color = borderColor
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.5;
+    canvas.drawLine(rect.topLeft, rect.topLeft + Offset(-rect.width * 0.3, -rect.height * 0.4), doorPaint);
+    canvas.drawLine(rect.topRight, rect.topRight + Offset(rect.width * 0.3, -rect.height * 0.4), doorPaint);
+  }
+
+  /// A décor symbol's own typed primitive: [OcptFloorPlanSetElementShape.wall] a thick filled
+  /// segment, [OcptFloorPlanSetElementShape.door] an open-sided frame plus its swing arc,
+  /// [OcptFloorPlanSetElementShape.furniture] a filled rounded rect (today's generic look, kept for
+  /// this one shape), [OcptFloorPlanSetElementShape.freeform] the same rect with a dashed outline
+  /// instead of a solid one, telling it apart from furniture.
+  void _paintSetElementGlyph(
+    Canvas canvas,
+    Rect rect,
+    Color color,
+    double opacity,
+    Color borderColor,
+    double borderWidth,
+    OcptFloorPlanSetElementShape shape,
+  ) {
+    switch (shape) {
+      case OcptFloorPlanSetElementShape.wall:
+        canvas.drawRect(rect, Paint()..color = color.withValues(alpha: 0.9 * opacity));
+        canvas.drawRect(
+          rect,
+          Paint()
+            ..color = borderColor
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = borderWidth + 0.5,
+        );
+      case OcptFloorPlanSetElementShape.door:
+        canvas.drawRect(rect, Paint()..color = color.withValues(alpha: 0.15 * opacity));
+        final framePath = Path()
+          ..moveTo(rect.left, rect.top)
+          ..lineTo(rect.left, rect.bottom)
+          ..lineTo(rect.right, rect.bottom)
+          ..lineTo(rect.right, rect.top);
+        canvas.drawPath(
+          framePath,
+          Paint()
+            ..color = borderColor
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = borderWidth,
+        );
+        canvas.drawArc(
+          Rect.fromCircle(center: rect.bottomLeft, radius: rect.width),
+          -math.pi / 2,
+          math.pi / 2,
+          false,
+          Paint()
+            ..color = borderColor.withValues(alpha: borderColor.a * 0.7)
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 1,
+        );
+      case OcptFloorPlanSetElementShape.furniture:
+        final rrect = RRect.fromRectAndRadius(rect, const Radius.circular(3));
+        canvas.drawRRect(rrect, Paint()..color = color.withValues(alpha: 0.35 * opacity));
+        canvas.drawRRect(
+          rrect,
+          Paint()
+            ..color = borderColor
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = borderWidth,
+        );
+      case OcptFloorPlanSetElementShape.freeform:
+        canvas.drawRect(rect, Paint()..color = color.withValues(alpha: 0.2 * opacity));
+        canvas.drawPath(
+          _dashedPathOf(Path()..addRect(rect)),
+          Paint()
+            ..color = borderColor
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = borderWidth,
+        );
     }
   }
 

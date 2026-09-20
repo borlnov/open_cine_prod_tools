@@ -7,7 +7,9 @@ import 'package:open_cine_prod_tools/models/ocpt_floor_plan_case.dart';
 import 'package:open_cine_prod_tools/models/ocpt_floor_plan_symbol.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_arrow_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_layer.dart';
+import 'package:open_cine_prod_tools/types/ocpt_floor_plan_set_element_shape.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_floor_plan_camera_label.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_floor_plan_character_colour.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_floor_plan_geometry.dart';
 
 /// The ARGB colour (`0xAARRGGBB`) a symbol of [layer] is drawn with — the one palette the canvas,
@@ -27,6 +29,28 @@ const int ocptFloorPlanMovementArrowColorArgb = 0xFF37474F;
 
 /// The ARGB colour a camera-move arrow is drawn with.
 const int ocptFloorPlanCameraMoveArrowColorArgb = 0xFF1565C0;
+
+/// Which glyph a symbol shape draws as, derived from its own [OcptFloorPlanSymbolShape.layer] —
+/// the one switch [OcptFloorPlanSheet] resolves so neither renderer has to re-derive it from the
+/// layer itself: [OcptFloorPlanLayer.characters] → [character], [OcptFloorPlanLayer.cameras] →
+/// [camera], [OcptFloorPlanLayer.lights] → [light], and every décor/prop layer (
+/// [OcptFloorPlanLayer.decor], `.furniture`, `.fixedProps`, `.handProps`) → [setElement].
+enum OcptFloorPlanSymbolGlyphKind {
+  /// A character's own facing disc, drawn in [OcptFloorPlanSymbolShape.colorArgb] — the colour
+  /// [ocptFloorPlanCharacterColourOf] derives from the symbol's own [OcptFloorPlanSymbolShape.label].
+  character,
+
+  /// A camera's own body, lens and, while [OcptFloorPlanSymbolShape.cameraFovWedgeDeg] is set, its
+  /// field-of-view wedge.
+  camera,
+
+  /// A light/projector's own body and beam.
+  light,
+
+  /// A décor primitive — see [OcptFloorPlanSymbolShape.setElementShape] and
+  /// [OcptFloorPlanSetElementShape].
+  setElement,
+}
 
 /// One symbol shape a floor plan sheet draws: a frozen, ready-to-paint copy of a
 /// `floor_plan_symbols` row, carrying the colour it draws with and, for a camera, the label
@@ -58,13 +82,16 @@ class OcptFloorPlanSymbolShape extends Equatable {
   final double heightM;
 
   /// A camera's field-of-view wedge, in degrees, or null for every other layer (or a camera left at
-  /// the drawing default).
+  /// the drawing default). The symbol's own raw stored value — see [cameraFovWedgeDeg] for the
+  /// resolved angle a painter actually draws the wedge at.
   final double? fovDeg;
 
   /// The symbol's own free-text label.
   final String label;
 
-  /// The colour this shape draws with ([ocptFloorPlanLayerColorArgb]).
+  /// The colour this shape draws with: [ocptFloorPlanLayerColorArgb] for every layer but
+  /// [OcptFloorPlanLayer.characters], whose own colour [ocptFloorPlanCharacterColourOf] derives
+  /// from [label] instead — the one colour both renderers read rather than re-deriving.
   final int colorArgb;
 
   /// A camera symbol's derived letter/number label (`3`, `3A`, `3B`), or null for every other
@@ -74,6 +101,21 @@ class OcptFloorPlanSymbolShape extends Equatable {
   /// Whether this shape belongs to the previous or next shot under a shot focus — drawn as an onion
   /// skin the renderer draws at reduced opacity, never as a claim about the current shot.
   final bool isGhost;
+
+  /// Which glyph this shape draws as — see [OcptFloorPlanSymbolGlyphKind].
+  final OcptFloorPlanSymbolGlyphKind glyphKind;
+
+  /// A camera symbol's own field-of-view wedge angle, in degrees, already resolved to
+  /// [ocptFloorPlanDefaultCameraFovDeg] when the symbol carries no [fovDeg] of its own — null
+  /// whenever no wedge should be drawn at all: every non-camera symbol, and a camera symbol while
+  /// the sheet was built with `showFieldOfView: false` (`OcptFloorPlanSheet.of`'s own parameter). A
+  /// painter draws the wedge exactly when this is non-null, with no default of its own to apply.
+  final double? cameraFovWedgeDeg;
+
+  /// A set-element symbol's own drawn primitive, resolved to [OcptFloorPlanSetElementShape.freeform]
+  /// when the symbol carries none of its own — null for every symbol whose [glyphKind] isn't
+  /// [OcptFloorPlanSymbolGlyphKind.setElement].
+  final OcptFloorPlanSetElementShape? setElementShape;
 
   /// Class constructor
   const OcptFloorPlanSymbolShape({
@@ -90,6 +132,9 @@ class OcptFloorPlanSymbolShape extends Equatable {
     required this.colorArgb,
     required this.cameraLabel,
     required this.isGhost,
+    required this.glyphKind,
+    required this.cameraFovWedgeDeg,
+    required this.setElementShape,
   });
 
   /// Object string representation, useful for debugging and logging.
@@ -113,6 +158,9 @@ class OcptFloorPlanSymbolShape extends Equatable {
     colorArgb,
     cameraLabel,
     isGhost,
+    glyphKind,
+    cameraFovWedgeDeg,
+    setElementShape,
   ];
 }
 
@@ -150,6 +198,15 @@ class OcptFloorPlanArrowShape extends Equatable {
   /// [OcptFloorPlanSymbolShape.isGhost].
   final bool isGhost;
 
+  /// A curved arrow's bezier control point X, in metres — null meaning a straight arrow. See
+  /// `OcptFloorPlanArrow.ctrlXM`'s own doc comment; a painter draws a quadratic bezier through
+  /// `(ctrlXM, ctrlYM)` when set, a straight line from `(fromXM, fromYM)` to `(toXM, toYM)`
+  /// otherwise.
+  final double? ctrlXM;
+
+  /// A curved arrow's bezier control point Y, in metres. See [ctrlXM].
+  final double? ctrlYM;
+
   /// Class constructor
   const OcptFloorPlanArrowShape({
     required this.arrowId,
@@ -162,6 +219,8 @@ class OcptFloorPlanArrowShape extends Equatable {
     required this.label,
     required this.colorArgb,
     required this.isGhost,
+    required this.ctrlXM,
+    required this.ctrlYM,
   });
 
   /// Object string representation, useful for debugging and logging.
@@ -181,6 +240,8 @@ class OcptFloorPlanArrowShape extends Equatable {
     label,
     colorArgb,
     isGhost,
+    ctrlXM,
+    ctrlYM,
   ];
 }
 
@@ -275,19 +336,29 @@ class OcptFloorPlanSheet extends Equatable {
   /// sequence"), read by [ocptFloorPlanCameraLabelOf]; a shot missing from it draws its cameras
   /// with no [OcptFloorPlanSymbolShape.cameraLabel] rather than throwing, since a floor plan can be
   /// built before every shot of a freshly reconciled sequence has been assigned one.
+  ///
+  /// [showFieldOfView] gates every camera's own [OcptFloorPlanSymbolShape.cameraFovWedgeDeg]:
+  /// defaults to `true` (the wedge shows by default) so a caller that never touches the flag — every
+  /// existing one, ahead of the tray toggle a later piece of work adds — still gets it.
   factory OcptFloorPlanSheet.of({
     required OcptFloorPlanCase floorPlanCase,
     required String? focusShotId,
     required Map<String, int> shotRankByShotId,
     String? previousShotId,
     String? nextShotId,
+    bool showFieldOfView = true,
   }) {
     final sequenceSymbols = [
       for (final symbol in floorPlanCase.symbols) if (symbol.shotId == null) symbol,
     ];
 
     final symbolShapes = <OcptFloorPlanSymbolShape>[
-      ..._shapesOf(sequenceSymbols, shotRankByShotId: shotRankByShotId, isGhost: false),
+      ..._shapesOf(
+        sequenceSymbols,
+        shotRankByShotId: shotRankByShotId,
+        isGhost: false,
+        showFieldOfView: showFieldOfView,
+      ),
     ];
 
     if (focusShotId == null) {
@@ -296,7 +367,12 @@ class OcptFloorPlanSheet extends Equatable {
           if (symbol.shotId != null && symbol.layer == OcptFloorPlanLayer.cameras) symbol,
       ];
       symbolShapes.addAll(
-        _shapesOf(cameraSymbols, shotRankByShotId: shotRankByShotId, isGhost: false),
+        _shapesOf(
+          cameraSymbols,
+          shotRankByShotId: shotRankByShotId,
+          isGhost: false,
+          showFieldOfView: showFieldOfView,
+        ),
       );
 
       return OcptFloorPlanSheet(
@@ -311,7 +387,14 @@ class OcptFloorPlanSheet extends Equatable {
     final focusSymbols = [
       for (final symbol in floorPlanCase.symbols) if (symbol.shotId == focusShotId) symbol,
     ];
-    symbolShapes.addAll(_shapesOf(focusSymbols, shotRankByShotId: shotRankByShotId, isGhost: false));
+    symbolShapes.addAll(
+      _shapesOf(
+        focusSymbols,
+        shotRankByShotId: shotRankByShotId,
+        isGhost: false,
+        showFieldOfView: showFieldOfView,
+      ),
+    );
 
     final ghostShotIds = [
       if (previousShotId != null) previousShotId,
@@ -321,7 +404,14 @@ class OcptFloorPlanSheet extends Equatable {
       for (final symbol in floorPlanCase.symbols)
         if (ghostShotIds.contains(symbol.shotId)) symbol,
     ];
-    symbolShapes.addAll(_shapesOf(ghostSymbols, shotRankByShotId: shotRankByShotId, isGhost: true));
+    symbolShapes.addAll(
+      _shapesOf(
+        ghostSymbols,
+        shotRankByShotId: shotRankByShotId,
+        isGhost: true,
+        showFieldOfView: showFieldOfView,
+      ),
+    );
 
     final relevantShotIds = {focusShotId, ...ghostShotIds};
     final symbolById = {for (final symbol in floorPlanCase.symbols) symbol.id: symbol};
@@ -343,6 +433,8 @@ class OcptFloorPlanSheet extends Equatable {
                     ? ocptFloorPlanCameraMoveArrowColorArgb
                     : ocptFloorPlanMovementArrowColorArgb,
                 isGhost: arrow.shotId != focusShotId,
+                ctrlXM: arrow.ctrlXM,
+                ctrlYM: arrow.ctrlYM,
               ),
     ];
 
@@ -389,6 +481,7 @@ class OcptFloorPlanSheet extends Equatable {
     List<OcptFloorPlanSymbol> symbols, {
     required Map<String, int> shotRankByShotId,
     required bool isGhost,
+    required bool showFieldOfView,
   }) {
     final sorted = symbols.toList()..sort((a, b) => a.sortKey.compareTo(b.sortKey));
     final cameraRankByShotId = <String, int>{};
@@ -398,6 +491,7 @@ class OcptFloorPlanSheet extends Equatable {
         _shapeOf(
           symbol,
           isGhost: isGhost,
+          showFieldOfView: showFieldOfView,
           cameraLabel: _cameraLabelOf(
             symbol,
             shotRankByShotId: shotRankByShotId,
@@ -432,26 +526,56 @@ class OcptFloorPlanSheet extends Equatable {
   }
 
   /// Freezes [symbol] into its drawn shape, its footprint resolved to
-  /// [ocptFloorPlanDefaultFootprintM] when it carries no `widthM`/`heightM` of its own.
+  /// [ocptFloorPlanDefaultFootprintM] when it carries no `widthM`/`heightM` of its own, its
+  /// [OcptFloorPlanSymbolShape.glyphKind] derived from [OcptFloorPlanSymbol.layer]
+  /// ([_glyphKindOf]), and, from that glyph kind, its own colour, wedge and décor primitive.
   static OcptFloorPlanSymbolShape _shapeOf(
     OcptFloorPlanSymbol symbol, {
     required bool isGhost,
+    required bool showFieldOfView,
     required String? cameraLabel,
-  }) => OcptFloorPlanSymbolShape(
-    symbolId: symbol.id,
-    shotId: symbol.shotId,
-    layer: symbol.layer,
-    xM: symbol.xM,
-    yM: symbol.yM,
-    rotationDeg: symbol.rotationDeg,
-    widthM: symbol.widthM ?? ocptFloorPlanDefaultFootprintM(symbol.layer),
-    heightM: symbol.heightM ?? ocptFloorPlanDefaultFootprintM(symbol.layer),
-    fovDeg: symbol.fovDeg,
-    label: symbol.label,
-    colorArgb: ocptFloorPlanLayerColorArgb(symbol.layer),
-    cameraLabel: cameraLabel,
-    isGhost: isGhost,
-  );
+  }) {
+    final glyphKind = _glyphKindOf(symbol.layer);
+
+    return OcptFloorPlanSymbolShape(
+      symbolId: symbol.id,
+      shotId: symbol.shotId,
+      layer: symbol.layer,
+      xM: symbol.xM,
+      yM: symbol.yM,
+      rotationDeg: symbol.rotationDeg,
+      widthM: symbol.widthM ?? ocptFloorPlanDefaultFootprintM(symbol.layer),
+      heightM: symbol.heightM ?? ocptFloorPlanDefaultFootprintM(symbol.layer),
+      fovDeg: symbol.fovDeg,
+      label: symbol.label,
+      colorArgb: glyphKind == OcptFloorPlanSymbolGlyphKind.character
+          ? ocptFloorPlanCharacterColourOf(symbol.label)
+          : ocptFloorPlanLayerColorArgb(symbol.layer),
+      cameraLabel: cameraLabel,
+      isGhost: isGhost,
+      glyphKind: glyphKind,
+      cameraFovWedgeDeg: glyphKind == OcptFloorPlanSymbolGlyphKind.camera && showFieldOfView
+          ? (symbol.fovDeg ?? ocptFloorPlanDefaultCameraFovDeg)
+          : null,
+      setElementShape: glyphKind == OcptFloorPlanSymbolGlyphKind.setElement
+          ? (symbol.setElementShape ?? OcptFloorPlanSetElementShape.freeform)
+          : null,
+    );
+  }
+
+  /// The glyph [layer] draws as — see [OcptFloorPlanSymbolGlyphKind]'s own doc comment for the
+  /// mapping. A `switch` with no `default`, mirroring [OcptFloorPlanLayerScope.isSequenceScoped]'s
+  /// own doc comment: an eighth layer must be placed on one glyph or another here rather than
+  /// silently falling back to whichever branch happens to be listed last.
+  static OcptFloorPlanSymbolGlyphKind _glyphKindOf(OcptFloorPlanLayer layer) => switch (layer) {
+    OcptFloorPlanLayer.characters => OcptFloorPlanSymbolGlyphKind.character,
+    OcptFloorPlanLayer.cameras => OcptFloorPlanSymbolGlyphKind.camera,
+    OcptFloorPlanLayer.lights => OcptFloorPlanSymbolGlyphKind.light,
+    OcptFloorPlanLayer.decor ||
+    OcptFloorPlanLayer.furniture ||
+    OcptFloorPlanLayer.fixedProps ||
+    OcptFloorPlanLayer.handProps => OcptFloorPlanSymbolGlyphKind.setElement,
+  };
 
   /// Object string representation, useful for debugging and logging.
   @override

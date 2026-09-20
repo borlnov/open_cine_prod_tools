@@ -9,6 +9,9 @@ import 'package:open_cine_prod_tools/models/ocpt_floor_plan_sheet.dart';
 import 'package:open_cine_prod_tools/models/ocpt_floor_plan_symbol.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_arrow_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_layer.dart';
+import 'package:open_cine_prod_tools/types/ocpt_floor_plan_set_element_shape.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_floor_plan_character_colour.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_floor_plan_geometry.dart';
 
 /// A symbol with everything but the fields under test defaulted, so each test only spells out
 /// what it actually varies.
@@ -21,7 +24,9 @@ OcptFloorPlanSymbol _symbol({
   double yM = 0,
   double? widthM,
   double? heightM,
+  double? fovDeg,
   String label = "",
+  OcptFloorPlanSetElementShape? setElementShape,
 }) => OcptFloorPlanSymbol(
   id: id,
   caseId: "case-1",
@@ -33,8 +38,9 @@ OcptFloorPlanSymbol _symbol({
   rotationDeg: 0,
   widthM: widthM,
   heightM: heightM,
-  fovDeg: null,
+  fovDeg: fovDeg,
   label: label,
+  setElementShape: setElementShape,
 );
 
 OcptFloorPlanArrow _arrow({
@@ -43,6 +49,8 @@ OcptFloorPlanArrow _arrow({
   required String fromSymbolId,
   required String toSymbolId,
   OcptFloorPlanArrowKind kind = OcptFloorPlanArrowKind.movement,
+  double? ctrlXM,
+  double? ctrlYM,
 }) => OcptFloorPlanArrow(
   id: id,
   caseId: "case-1",
@@ -51,6 +59,8 @@ OcptFloorPlanArrow _arrow({
   fromSymbolId: fromSymbolId,
   toSymbolId: toSymbolId,
   label: "",
+  ctrlXM: ctrlXM,
+  ctrlYM: ctrlYM,
 );
 
 OcptFloorPlanCase _caseOf({
@@ -367,6 +377,246 @@ void main() {
       final shape = sheet.symbols.single;
       expect(shape.widthM, 1.2);
       expect(shape.heightM, 0.6);
+    });
+  });
+
+  group("OcptFloorPlanSheet.of — glyph kind", () {
+    test("derives each layer's own glyph kind", () {
+      final character = _symbol(id: "char-1", shotId: "shot-1", layer: OcptFloorPlanLayer.characters);
+      final camera = _symbol(id: "cam-1", shotId: "shot-1", layer: OcptFloorPlanLayer.cameras);
+      final light = _symbol(id: "light-1", shotId: "shot-1", layer: OcptFloorPlanLayer.lights);
+      final decor = _symbol(id: "decor-1", layer: OcptFloorPlanLayer.decor);
+      final floorPlanCase = _caseOf(symbols: [character, camera, light, decor]);
+
+      final sheet = OcptFloorPlanSheet.of(
+        floorPlanCase: floorPlanCase,
+        focusShotId: "shot-1",
+        shotRankByShotId: const {"shot-1": 1},
+      );
+
+      final kindBySymbolId = {
+        for (final shape in sheet.symbols) shape.symbolId: shape.glyphKind,
+      };
+      expect(kindBySymbolId["char-1"], OcptFloorPlanSymbolGlyphKind.character);
+      expect(kindBySymbolId["cam-1"], OcptFloorPlanSymbolGlyphKind.camera);
+      expect(kindBySymbolId["light-1"], OcptFloorPlanSymbolGlyphKind.light);
+      expect(kindBySymbolId["decor-1"], OcptFloorPlanSymbolGlyphKind.setElement);
+    });
+  });
+
+  group("OcptFloorPlanSheet.of — character colour", () {
+    test("a character shape's own colour is derived from its label, not the layer palette", () {
+      final character = _symbol(
+        id: "char-1",
+        shotId: "shot-1",
+        layer: OcptFloorPlanLayer.characters,
+        label: "Sam",
+      );
+      final floorPlanCase = _caseOf(symbols: [character]);
+
+      final sheet = OcptFloorPlanSheet.of(
+        floorPlanCase: floorPlanCase,
+        focusShotId: "shot-1",
+        shotRankByShotId: const {"shot-1": 1},
+      );
+
+      expect(sheet.symbols.single.colorArgb, ocptFloorPlanCharacterColourOf("Sam"));
+    });
+
+    test("two character shapes of different names draw with the very colour the rule derives", () {
+      final sam = _symbol(id: "char-sam", shotId: "shot-1", layer: OcptFloorPlanLayer.characters, label: "Sam");
+      final alex = _symbol(
+        id: "char-alex",
+        shotId: "shot-1",
+        layer: OcptFloorPlanLayer.characters,
+        label: "Alex",
+      );
+      final floorPlanCase = _caseOf(symbols: [sam, alex]);
+
+      final sheet = OcptFloorPlanSheet.of(
+        floorPlanCase: floorPlanCase,
+        focusShotId: "shot-1",
+        shotRankByShotId: const {"shot-1": 1},
+      );
+
+      final colorBySymbolId = {
+        for (final shape in sheet.symbols) shape.symbolId: shape.colorArgb,
+      };
+      expect(colorBySymbolId["char-sam"], ocptFloorPlanCharacterColourOf("Sam"));
+      expect(colorBySymbolId["char-alex"], ocptFloorPlanCharacterColourOf("Alex"));
+    });
+  });
+
+  group("OcptFloorPlanSheet.of — camera field-of-view wedge", () {
+    test("a camera emits a wedge at its own fovDeg while showFieldOfView is on", () {
+      final camera = _symbol(
+        id: "cam-1",
+        shotId: "shot-1",
+        layer: OcptFloorPlanLayer.cameras,
+        fovDeg: 35,
+      );
+      final floorPlanCase = _caseOf(symbols: [camera]);
+
+      final sheet = OcptFloorPlanSheet.of(
+        floorPlanCase: floorPlanCase,
+        focusShotId: "shot-1",
+        shotRankByShotId: const {"shot-1": 1},
+      );
+
+      expect(sheet.symbols.single.cameraFovWedgeDeg, 35);
+    });
+
+    test("a camera left at the drawing default falls back to the default wedge angle", () {
+      final camera = _symbol(id: "cam-1", shotId: "shot-1", layer: OcptFloorPlanLayer.cameras);
+      final floorPlanCase = _caseOf(symbols: [camera]);
+
+      final sheet = OcptFloorPlanSheet.of(
+        floorPlanCase: floorPlanCase,
+        focusShotId: "shot-1",
+        shotRankByShotId: const {"shot-1": 1},
+      );
+
+      expect(sheet.symbols.single.cameraFovWedgeDeg, ocptFloorPlanDefaultCameraFovDeg);
+    });
+
+    test("no wedge is emitted while showFieldOfView is off", () {
+      final camera = _symbol(
+        id: "cam-1",
+        shotId: "shot-1",
+        layer: OcptFloorPlanLayer.cameras,
+        fovDeg: 35,
+      );
+      final floorPlanCase = _caseOf(symbols: [camera]);
+
+      final sheet = OcptFloorPlanSheet.of(
+        floorPlanCase: floorPlanCase,
+        focusShotId: "shot-1",
+        shotRankByShotId: const {"shot-1": 1},
+        showFieldOfView: false,
+      );
+
+      expect(sheet.symbols.single.cameraFovWedgeDeg, isNull);
+    });
+
+    test("a non-camera symbol never carries a wedge", () {
+      final light = _symbol(id: "light-1", shotId: "shot-1", layer: OcptFloorPlanLayer.lights);
+      final floorPlanCase = _caseOf(symbols: [light]);
+
+      final sheet = OcptFloorPlanSheet.of(
+        floorPlanCase: floorPlanCase,
+        focusShotId: "shot-1",
+        shotRankByShotId: const {"shot-1": 1},
+      );
+
+      expect(sheet.symbols.single.cameraFovWedgeDeg, isNull);
+    });
+  });
+
+  group("OcptFloorPlanSheet.of — décor primitive", () {
+    test("each own setElementShape carries through to its shape", () {
+      final wall = _symbol(
+        id: "wall-1",
+        layer: OcptFloorPlanLayer.decor,
+        setElementShape: OcptFloorPlanSetElementShape.wall,
+      );
+      final door = _symbol(
+        id: "door-1",
+        layer: OcptFloorPlanLayer.decor,
+        setElementShape: OcptFloorPlanSetElementShape.door,
+      );
+      final furniture = _symbol(
+        id: "furn-1",
+        layer: OcptFloorPlanLayer.furniture,
+        setElementShape: OcptFloorPlanSetElementShape.furniture,
+      );
+      final floorPlanCase = _caseOf(symbols: [wall, door, furniture]);
+
+      final sheet = OcptFloorPlanSheet.of(
+        floorPlanCase: floorPlanCase,
+        focusShotId: null,
+        shotRankByShotId: const {},
+      );
+
+      final shapeBySymbolId = {
+        for (final shape in sheet.symbols) shape.symbolId: shape.setElementShape,
+      };
+      expect(shapeBySymbolId["wall-1"], OcptFloorPlanSetElementShape.wall);
+      expect(shapeBySymbolId["door-1"], OcptFloorPlanSetElementShape.door);
+      expect(shapeBySymbolId["furn-1"], OcptFloorPlanSetElementShape.furniture);
+    });
+
+    test("a set element with no shape of its own defaults to freeform", () {
+      final decor = _symbol(id: "decor-1", layer: OcptFloorPlanLayer.decor);
+      final floorPlanCase = _caseOf(symbols: [decor]);
+
+      final sheet = OcptFloorPlanSheet.of(
+        floorPlanCase: floorPlanCase,
+        focusShotId: null,
+        shotRankByShotId: const {},
+      );
+
+      expect(sheet.symbols.single.setElementShape, OcptFloorPlanSetElementShape.freeform);
+    });
+
+    test("a camera, character or light never carries a set-element shape", () {
+      final camera = _symbol(id: "cam-1", shotId: "shot-1", layer: OcptFloorPlanLayer.cameras);
+      final floorPlanCase = _caseOf(symbols: [camera]);
+
+      final sheet = OcptFloorPlanSheet.of(
+        floorPlanCase: floorPlanCase,
+        focusShotId: "shot-1",
+        shotRankByShotId: const {"shot-1": 1},
+      );
+
+      expect(sheet.symbols.single.setElementShape, isNull);
+    });
+  });
+
+  group("OcptFloorPlanSheet.of — arrow control point", () {
+    test("an arrow with a control point carries it into its own shape", () {
+      final camera = _symbol(id: "cam-1", shotId: "shot-1", layer: OcptFloorPlanLayer.cameras);
+      final character = _symbol(id: "char-1", shotId: "shot-1", layer: OcptFloorPlanLayer.characters);
+      final arrow = _arrow(
+        id: "arrow-1",
+        shotId: "shot-1",
+        fromSymbolId: "char-1",
+        toSymbolId: "cam-1",
+        ctrlXM: 1.5,
+        ctrlYM: -0.5,
+      );
+      final floorPlanCase = _caseOf(symbols: [camera, character], arrows: [arrow]);
+
+      final sheet = OcptFloorPlanSheet.of(
+        floorPlanCase: floorPlanCase,
+        focusShotId: "shot-1",
+        shotRankByShotId: const {"shot-1": 1},
+      );
+
+      final shape = sheet.arrows.single;
+      expect(shape.ctrlXM, 1.5);
+      expect(shape.ctrlYM, -0.5);
+    });
+
+    test("an arrow with no control point draws straight", () {
+      final camera = _symbol(id: "cam-1", shotId: "shot-1", layer: OcptFloorPlanLayer.cameras);
+      final character = _symbol(id: "char-1", shotId: "shot-1", layer: OcptFloorPlanLayer.characters);
+      final arrow = _arrow(
+        id: "arrow-1",
+        shotId: "shot-1",
+        fromSymbolId: "char-1",
+        toSymbolId: "cam-1",
+      );
+      final floorPlanCase = _caseOf(symbols: [camera, character], arrows: [arrow]);
+
+      final sheet = OcptFloorPlanSheet.of(
+        floorPlanCase: floorPlanCase,
+        focusShotId: "shot-1",
+        shotRankByShotId: const {"shot-1": 1},
+      );
+
+      final shape = sheet.arrows.single;
+      expect(shape.ctrlXM, isNull);
+      expect(shape.ctrlYM, isNull);
     });
   });
 }

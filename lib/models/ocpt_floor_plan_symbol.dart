@@ -5,6 +5,7 @@
 import 'package:equatable/equatable.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_layer.dart';
+import 'package:open_cine_prod_tools/types/ocpt_floor_plan_set_element_shape.dart';
 
 /// A camera, a character, a light, a set element or any other placed symbol of a floor plan case,
 /// as `OcptFloorPlanService.loadFloorPlans` builds it from its stored row.
@@ -52,6 +53,11 @@ class OcptFloorPlanSymbol extends Equatable {
   /// The text label this symbol carries.
   final String label;
 
+  /// The visual primitive a set-element (sequence-layer) symbol is drawn as — null for every
+  /// camera, character and light symbol, which don't use it. See `OcptFloorPlanSymbolsTable`'s own
+  /// doc comment and [OcptFloorPlanSetElementShape].
+  final OcptFloorPlanSetElementShape? setElementShape;
+
   /// Class constructor
   const OcptFloorPlanSymbol({
     required this.id,
@@ -66,6 +72,7 @@ class OcptFloorPlanSymbol extends Equatable {
     required this.heightM,
     required this.fovDeg,
     required this.label,
+    required this.setElementShape,
   });
 
   /// Builds an [OcptFloorPlanSymbol] from its stored [row].
@@ -82,6 +89,7 @@ class OcptFloorPlanSymbol extends Equatable {
     heightM: row.heightM,
     fovDeg: row.fovDeg,
     label: row.label,
+    setElementShape: row.setElementShape,
   );
 
   /// Object string representation, useful for debugging and logging.
@@ -104,5 +112,6 @@ class OcptFloorPlanSymbol extends Equatable {
     heightM,
     fovDeg,
     label,
+    setElementShape,
   ];
 }

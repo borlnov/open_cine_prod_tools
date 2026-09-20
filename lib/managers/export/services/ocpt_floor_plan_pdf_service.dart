@@ -18,7 +18,9 @@ import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_list_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
+import 'package:open_cine_prod_tools/types/ocpt_floor_plan_arrow_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_layer.dart';
+import 'package:open_cine_prod_tools/types/ocpt_floor_plan_set_element_shape.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_floor_plan_geometry.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
@@ -63,6 +65,18 @@ const double _arrowHeadLengthPt = 8;
 
 /// The angle, in radians, an arrow head's two strokes open at.
 const double _arrowHeadAnglePt = 0.5;
+
+/// The dash pattern (`[dash, gap]`, in points) a [OcptFloorPlanArrowKind.cameraMove] arrow's own
+/// shaft, and a [OcptFloorPlanSetElementShape.freeform] décor primitive's own outline, are drawn
+/// with — `PdfGraphics.setLineDashPattern`'s own units, the printed equivalent of the canvas
+/// painter's manually dashed path.
+const List<num> _dashPattern = [3, 2];
+
+/// How far, in metres, a camera's own field-of-view wedge reaches from its lens.
+const double _cameraFovWedgeLengthM = 2;
+
+/// How far, in metres, a light's own beam reaches from its body.
+const double _lightBeamLengthM = 1;
 
 /// The colour every rule, band and running head is drawn with.
 const PdfColor _mutedColor = PdfColor.fromInt(0xFF6E6E6E);
@@ -518,9 +532,223 @@ class OcptFloorPlanPdfService {
     );
   }
 
-  /// One symbol's own footprint: a filled, stroked, rotated rectangle in its own colour. Its
-  /// caption is a separate [pw.Text] overlay (see [_buildPage]'s own doc comment for why).
+  /// One symbol's own glyph — [OcptFloorPlanSymbolShape.glyphKind] names which
+  /// (a character's own disc, a camera's own body/lens/wedge, a light's own body/beam, or a décor
+  /// primitive), drawn from the very same shape data `OcptFloorPlanCanvasPainter` reads, so the
+  /// printed page and the screen agree. Its caption is a separate [pw.Text] overlay (see
+  /// [_buildPage]'s own doc comment for why).
   void _paintSymbolShape({
+    required PdfGraphics canvas,
+    required _FloorPlanPageLayout layout,
+    required OcptFloorPlanSymbolShape symbol,
+  }) {
+    switch (symbol.glyphKind) {
+      case OcptFloorPlanSymbolGlyphKind.character:
+        _paintCharacterGlyph(canvas: canvas, layout: layout, symbol: symbol);
+      case OcptFloorPlanSymbolGlyphKind.camera:
+        _paintCameraGlyph(canvas: canvas, layout: layout, symbol: symbol);
+      case OcptFloorPlanSymbolGlyphKind.light:
+        _paintLightGlyph(canvas: canvas, layout: layout, symbol: symbol);
+      case OcptFloorPlanSymbolGlyphKind.setElement:
+        _paintSetElementGlyph(canvas: canvas, layout: layout, symbol: symbol);
+    }
+  }
+
+  /// `(localXM, localYM)` — metres in [symbol]'s own local frame, `(0, 0)` its own centre,
+  /// unrotated, the sign convention [_rotatedRectCorners] already uses (negative Y is the symbol's
+  /// own "front"/"up", matching `OcptFloorPlanCanvasPainter`'s own `canvas.rotate` convention) —
+  /// rotated by [symbol]'s own [OcptFloorPlanSymbolShape.rotationDeg], translated to its own centre,
+  /// then mapped into [layout]'s own graphics space. The single-point sibling of
+  /// [_rotatedRectCorners], for every glyph feature beyond its own four corners: a camera's lens, a
+  /// light's beam tip, a character's facing notch.
+  Offset _localPointGraphics({
+    required _FloorPlanPageLayout layout,
+    required OcptFloorPlanSymbolShape symbol,
+    required double localXM,
+    required double localYM,
+  }) {
+    final radians = symbol.rotationDeg * math.pi / 180;
+    final cosA = math.cos(radians);
+    final sinA = math.sin(radians);
+    final worldXM = symbol.xM + localXM * cosA - localYM * sinA;
+    final worldYM = symbol.yM + localXM * sinA + localYM * cosA;
+    return layout.graphicsOf(layout.topDownPointOf(worldXM, worldYM));
+  }
+
+  /// A character's own filled disc, in its own derived colour (`ocptFloorPlanCharacterColourOf` —
+  /// resolved once, into [OcptFloorPlanSymbolShape.colorArgb], by `OcptFloorPlanSheet`), with a
+  /// facing indicator (a small nose plus two short arms) pointing the symbol's own "up" — see
+  /// [_localPointGraphics]'s own doc comment for the shared bearing convention.
+  void _paintCharacterGlyph({
+    required PdfGraphics canvas,
+    required _FloorPlanPageLayout layout,
+    required OcptFloorPlanSymbolShape symbol,
+  }) {
+    final color = PdfColor.fromInt(symbol.colorArgb);
+    final centre = layout.graphicsOf(layout.topDownPointOf(symbol.xM, symbol.yM));
+    final radiusM = math.min(symbol.widthM, symbol.heightM) / 2;
+    final radiusPt = radiusM * layout.pixelsPerMetre;
+
+    canvas
+      ..setColor(color)
+      ..drawEllipse(centre.dx, centre.dy, radiusPt, radiusPt)
+      ..fillPath();
+    canvas
+      ..setColor(color)
+      ..setLineWidth(_symbolStrokeWidthPt)
+      ..drawEllipse(centre.dx, centre.dy, radiusPt, radiusPt)
+      ..strokePath();
+
+    Offset local(double xM, double yM) =>
+        _localPointGraphics(layout: layout, symbol: symbol, localXM: xM, localYM: yM);
+
+    final noseLeft = local(-radiusM * 0.22, -radiusM * 0.15);
+    final noseTip = local(0, -radiusM * 1.6);
+    final noseRight = local(radiusM * 0.22, -radiusM * 0.15);
+    canvas
+      ..setFillColor(PdfColors.white)
+      ..moveTo(noseLeft.dx, noseLeft.dy)
+      ..lineTo(noseTip.dx, noseTip.dy)
+      ..lineTo(noseRight.dx, noseRight.dy)
+      ..fillPath();
+
+    final armLeftStart = local(-radiusM * 0.3, -radiusM * 0.05);
+    final armLeftEnd = local(-radiusM * 1.15, radiusM * 0.5);
+    final armRightStart = local(radiusM * 0.3, -radiusM * 0.05);
+    final armRightEnd = local(radiusM * 1.15, radiusM * 0.5);
+    canvas
+      ..setColor(PdfColors.white)
+      ..setLineWidth(1)
+      ..drawLine(armLeftStart.dx, armLeftStart.dy, armLeftEnd.dx, armLeftEnd.dy)
+      ..drawLine(armRightStart.dx, armRightStart.dy, armRightEnd.dx, armRightEnd.dy)
+      ..strokePath();
+  }
+
+  /// A camera's own body, lens and, while [OcptFloorPlanSymbolShape.cameraFovWedgeDeg] is set, its
+  /// field-of-view wedge — a cone [_cameraFovWedgeLengthM] long, spanning that angle, pointing the
+  /// symbol's own "up" (see [_localPointGraphics]'s own doc comment).
+  void _paintCameraGlyph({
+    required PdfGraphics canvas,
+    required _FloorPlanPageLayout layout,
+    required OcptFloorPlanSymbolShape symbol,
+  }) {
+    final color = PdfColor.fromInt(symbol.colorArgb);
+    Offset local(double xM, double yM) =>
+        _localPointGraphics(layout: layout, symbol: symbol, localXM: xM, localYM: yM);
+
+    final fovWedgeDeg = symbol.cameraFovWedgeDeg;
+    if (fovWedgeDeg != null) {
+      final halfAngle = fovWedgeDeg * math.pi / 180 / 2;
+      final tipYM = -symbol.heightM / 2;
+      final reachXM = _cameraFovWedgeLengthM * math.sin(halfAngle);
+      final reachYM = tipYM - _cameraFovWedgeLengthM * math.cos(halfAngle);
+      final tip = local(0, tipYM);
+      final left = local(-reachXM, reachYM);
+      final right = local(reachXM, reachYM);
+      canvas
+        ..setFillColor(PdfColor(color.red, color.green, color.blue, 0.16).flatten())
+        ..moveTo(tip.dx, tip.dy)
+        ..lineTo(left.dx, left.dy)
+        ..lineTo(right.dx, right.dy)
+        ..fillPath();
+      canvas
+        ..setColor(color)
+        ..setLineWidth(0.5)
+        ..moveTo(tip.dx, tip.dy)
+        ..lineTo(left.dx, left.dy)
+        ..lineTo(right.dx, right.dy)
+        ..lineTo(tip.dx, tip.dy)
+        ..strokePath();
+    }
+
+    final corners = _rotatedRectCorners(
+      centreXM: symbol.xM,
+      centreYM: symbol.yM,
+      widthM: symbol.widthM,
+      heightM: symbol.heightM,
+      rotationDeg: symbol.rotationDeg,
+    );
+    _fillAndStrokePolygon(
+      canvas: canvas,
+      points: [for (final corner in corners) layout.graphicsOf(layout.topDownPointOf(corner.dx, corner.dy))],
+      fillColor: PdfColor(color.red, color.green, color.blue, _symbolFillOpacity).flatten(),
+      strokeColor: color,
+      strokeWidthPt: _symbolStrokeWidthPt,
+    );
+
+    final lensRadiusM = math.min(symbol.widthM, symbol.heightM) * 0.24;
+    final lensRadiusPt = lensRadiusM * layout.pixelsPerMetre;
+    final lensCentre = local(0, -symbol.heightM / 2 - lensRadiusM * 0.5);
+    canvas
+      ..setColor(color)
+      ..drawEllipse(lensCentre.dx, lensCentre.dy, lensRadiusPt, lensRadiusPt)
+      ..fillPath();
+    canvas
+      ..setColor(color)
+      ..setLineWidth(0.5)
+      ..drawEllipse(lensCentre.dx, lensCentre.dy, lensRadiusPt, lensRadiusPt)
+      ..strokePath();
+  }
+
+  /// A light/projector's own body, barn doors and a warm beam [_lightBeamLengthM] long, pointing
+  /// the symbol's own "up" (see [_localPointGraphics]'s own doc comment).
+  void _paintLightGlyph({
+    required PdfGraphics canvas,
+    required _FloorPlanPageLayout layout,
+    required OcptFloorPlanSymbolShape symbol,
+  }) {
+    final color = PdfColor.fromInt(symbol.colorArgb);
+    Offset local(double xM, double yM) =>
+        _localPointGraphics(layout: layout, symbol: symbol, localXM: xM, localYM: yM);
+
+    final tipYM = -symbol.heightM / 2;
+    final beamYM = tipYM - _lightBeamLengthM;
+    final beamHalfWidthM = symbol.widthM * 0.9;
+    final tip = local(0, tipYM);
+    final beamLeft = local(-beamHalfWidthM, beamYM);
+    final beamRight = local(beamHalfWidthM, beamYM);
+    canvas
+      ..setFillColor(PdfColor(color.red, color.green, color.blue, 0.22).flatten())
+      ..moveTo(tip.dx, tip.dy)
+      ..lineTo(beamLeft.dx, beamLeft.dy)
+      ..lineTo(beamRight.dx, beamRight.dy)
+      ..fillPath();
+
+    final corners = _rotatedRectCorners(
+      centreXM: symbol.xM,
+      centreYM: symbol.yM,
+      widthM: symbol.widthM,
+      heightM: symbol.heightM,
+      rotationDeg: symbol.rotationDeg,
+    );
+    _fillAndStrokePolygon(
+      canvas: canvas,
+      points: [for (final corner in corners) layout.graphicsOf(layout.topDownPointOf(corner.dx, corner.dy))],
+      fillColor: PdfColor(color.red, color.green, color.blue, 0.5).flatten(),
+      strokeColor: color,
+      strokeWidthPt: _symbolStrokeWidthPt,
+    );
+
+    final doorLeftStart = local(-symbol.widthM / 2, tipYM);
+    final doorLeftEnd = local(-symbol.widthM / 2 - symbol.widthM * 0.3, tipYM - symbol.heightM * 0.4);
+    final doorRightStart = local(symbol.widthM / 2, tipYM);
+    final doorRightEnd = local(symbol.widthM / 2 + symbol.widthM * 0.3, tipYM - symbol.heightM * 0.4);
+    canvas
+      ..setColor(color)
+      ..setLineWidth(0.75)
+      ..drawLine(doorLeftStart.dx, doorLeftStart.dy, doorLeftEnd.dx, doorLeftEnd.dy)
+      ..drawLine(doorRightStart.dx, doorRightStart.dy, doorRightEnd.dx, doorRightEnd.dy)
+      ..strokePath();
+  }
+
+  /// A décor symbol's own typed primitive: [OcptFloorPlanSetElementShape.wall] a thick filled
+  /// segment, [OcptFloorPlanSetElementShape.door] an open-sided frame plus its own swing arc,
+  /// [OcptFloorPlanSetElementShape.furniture] a filled, stroked rectangle in its own colour (today's
+  /// generic look, kept for this one shape — the previous, undifferentiated footprint this method
+  /// itself used to draw for every symbol), [OcptFloorPlanSetElementShape.freeform] the same
+  /// rectangle with a dashed outline ([_dashPattern]) instead of a solid one, telling it apart from
+  /// furniture.
+  void _paintSetElementGlyph({
     required PdfGraphics canvas,
     required _FloorPlanPageLayout layout,
     required OcptFloorPlanSymbolShape symbol,
@@ -533,19 +761,119 @@ class OcptFloorPlanPdfService {
       heightM: symbol.heightM,
       rotationDeg: symbol.rotationDeg,
     );
-    _fillAndStrokePolygon(
-      canvas: canvas,
-      points: [for (final corner in corners) layout.graphicsOf(layout.topDownPointOf(corner.dx, corner.dy))],
-      // PDF fill has no alpha of its own here, so the tint is baked into an opaque colour by
-      // mixing the symbol's own colour with white at [_symbolFillOpacity] — the printed
-      // equivalent of the canvas painter's `withValues(alpha: 0.35)` fill.
-      fillColor: PdfColor(color.red, color.green, color.blue, _symbolFillOpacity).flatten(),
-      strokeColor: color,
-      strokeWidthPt: _symbolStrokeWidthPt,
-    );
+    final points = [
+      for (final corner in corners) layout.graphicsOf(layout.topDownPointOf(corner.dx, corner.dy)),
+    ];
+
+    switch (symbol.setElementShape ?? OcptFloorPlanSetElementShape.freeform) {
+      case OcptFloorPlanSetElementShape.wall:
+        _fillAndStrokePolygon(
+          canvas: canvas,
+          points: points,
+          fillColor: PdfColor(color.red, color.green, color.blue, 0.9).flatten(),
+          strokeColor: color,
+          strokeWidthPt: _symbolStrokeWidthPt + 0.5,
+        );
+      case OcptFloorPlanSetElementShape.door:
+        _paintDoorGlyph(canvas: canvas, layout: layout, symbol: symbol, color: color, points: points);
+      case OcptFloorPlanSetElementShape.furniture:
+        _fillAndStrokePolygon(
+          canvas: canvas,
+          points: points,
+          fillColor: PdfColor(color.red, color.green, color.blue, _symbolFillOpacity).flatten(),
+          strokeColor: color,
+          strokeWidthPt: _symbolStrokeWidthPt,
+        );
+      case OcptFloorPlanSetElementShape.freeform:
+        canvas
+          ..setFillColor(PdfColor(color.red, color.green, color.blue, 0.2).flatten())
+          ..moveTo(points.first.dx, points.first.dy);
+        for (final point in points.skip(1)) {
+          canvas.lineTo(point.dx, point.dy);
+        }
+        canvas
+          ..lineTo(points.first.dx, points.first.dy)
+          ..fillPath();
+
+        canvas
+          ..setColor(color)
+          ..setLineWidth(_symbolStrokeWidthPt)
+          ..setLineDashPattern(_dashPattern)
+          ..moveTo(points.first.dx, points.first.dy);
+        for (final point in points.skip(1)) {
+          canvas.lineTo(point.dx, point.dy);
+        }
+        canvas
+          ..lineTo(points.first.dx, points.first.dy)
+          ..strokePath(close: true);
+        canvas.setLineDashPattern();
+    }
   }
 
-  /// One arrow: a straight shaft with a small filled arrowhead at its own end, in its own colour.
+  /// A door's own frame — its opening rect, tinted; three of its own four sides (the fourth is the
+  /// opening); and its swing arc, a quarter circle traced from its own hinge (the rect's own
+  /// bottom-left corner pre-rotation, [points]`[3]`) with a short polyline rather than
+  /// `PdfGraphics.bezierArc` (an SVG-style arc whose parameters this simple quarter-turn does not
+  /// need).
+  void _paintDoorGlyph({
+    required PdfGraphics canvas,
+    required _FloorPlanPageLayout layout,
+    required OcptFloorPlanSymbolShape symbol,
+    required PdfColor color,
+    required List<Offset> points,
+  }) {
+    canvas
+      ..setFillColor(PdfColor(color.red, color.green, color.blue, 0.15).flatten())
+      ..moveTo(points[0].dx, points[0].dy);
+    for (final point in points.skip(1)) {
+      canvas.lineTo(point.dx, point.dy);
+    }
+    canvas
+      ..lineTo(points[0].dx, points[0].dy)
+      ..fillPath();
+
+    // The frame's own three sides: top-left → bottom-left → bottom-right → top-right, leaving the
+    // top-left → top-right edge (`points[0]` to `points[1]`) open as the opening.
+    canvas
+      ..setColor(color)
+      ..setLineWidth(_symbolStrokeWidthPt)
+      ..moveTo(points[0].dx, points[0].dy)
+      ..lineTo(points[3].dx, points[3].dy)
+      ..lineTo(points[2].dx, points[2].dy)
+      ..lineTo(points[1].dx, points[1].dy)
+      ..strokePath();
+
+    const arcSteps = 8;
+    final halfWidthM = symbol.widthM / 2;
+    final halfHeightM = symbol.heightM / 2;
+    final swingRadiusM = symbol.heightM;
+    final arcPoints = [
+      for (var i = 0; i <= arcSteps; i++)
+        _localPointGraphics(
+          layout: layout,
+          symbol: symbol,
+          localXM: -halfWidthM + swingRadiusM * math.sin(math.pi / 2 * i / arcSteps),
+          localYM: halfHeightM - swingRadiusM * math.cos(math.pi / 2 * i / arcSteps),
+        ),
+    ];
+    canvas
+      ..setColor(color)
+      ..setLineWidth(0.5)
+      ..moveTo(arcPoints.first.dx, arcPoints.first.dy);
+    for (final point in arcPoints.skip(1)) {
+      canvas.lineTo(point.dx, point.dy);
+    }
+    canvas.strokePath();
+  }
+
+  /// One arrow: a quadratic bezier shaft through [OcptFloorPlanArrowShape.ctrlXM]/
+  /// [OcptFloorPlanArrowShape.ctrlYM] when set (converted to the cubic bezier `PdfGraphics.curveTo`
+  /// draws, through the standard quadratic-to-cubic control-point formula
+  /// `cp = end + 2/3 * (quadraticControl - end)`), a straight shaft otherwise, with a small filled
+  /// arrowhead at its own end, in its own colour. A [OcptFloorPlanArrowKind.cameraMove] arrow's own
+  /// shaft is drawn dashed ([_dashPattern]), the printed equivalent of the canvas painter's own
+  /// dashing, keeping it visually distinct from a movement arrow's solid one, straight or curved
+  /// alike.
   void _paintArrow({
     required PdfGraphics canvas,
     required _FloorPlanPageLayout layout,
@@ -553,15 +881,37 @@ class OcptFloorPlanPdfService {
   }) {
     final from = layout.graphicsOf(layout.topDownPointOf(arrow.fromXM, arrow.fromYM));
     final to = layout.graphicsOf(layout.topDownPointOf(arrow.toXM, arrow.toYM));
+    final ctrlXM = arrow.ctrlXM;
+    final ctrlYM = arrow.ctrlYM;
+    final ctrl = ctrlXM != null && ctrlYM != null
+        ? layout.graphicsOf(layout.topDownPointOf(ctrlXM, ctrlYM))
+        : null;
     final color = PdfColor.fromInt(arrow.colorArgb);
+    final isDashed = arrow.kind == OcptFloorPlanArrowKind.cameraMove;
 
     canvas
       ..setColor(color)
-      ..setLineWidth(_arrowStrokeWidthPt)
-      ..drawLine(from.dx, from.dy, to.dx, to.dy)
-      ..strokePath();
+      ..setLineWidth(_arrowStrokeWidthPt);
+    if (isDashed) {
+      canvas.setLineDashPattern(_dashPattern);
+    }
+    canvas.moveTo(from.dx, from.dy);
+    if (ctrl != null) {
+      final cp1 = Offset(from.dx + 2 / 3 * (ctrl.dx - from.dx), from.dy + 2 / 3 * (ctrl.dy - from.dy));
+      final cp2 = Offset(to.dx + 2 / 3 * (ctrl.dx - to.dx), to.dy + 2 / 3 * (ctrl.dy - to.dy));
+      canvas.curveTo(cp1.dx, cp1.dy, cp2.dx, cp2.dy, to.dx, to.dy);
+    } else {
+      canvas.lineTo(to.dx, to.dy);
+    }
+    canvas.strokePath();
+    if (isDashed) {
+      canvas.setLineDashPattern();
+    }
 
-    final angle = math.atan2(to.dy - from.dy, to.dx - from.dx);
+    // The arrowhead's own direction: the shaft's tangent at its own `to` end — `to - ctrl` for a
+    // curved shaft (a quadratic bezier's own tangent at t=1), `to - from` for a straight one.
+    final headDirection = ctrl != null ? (to - ctrl) : (to - from);
+    final angle = math.atan2(headDirection.dy, headDirection.dx);
     final left = Offset(
       to.dx - _arrowHeadLengthPt * math.cos(angle - _arrowHeadAnglePt),
       to.dy - _arrowHeadLengthPt * math.sin(angle - _arrowHeadAnglePt),

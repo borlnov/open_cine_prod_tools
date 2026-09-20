@@ -8,6 +8,7 @@ import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_floor_plan_pdf_service.dart';
+import 'package:open_cine_prod_tools/models/ocpt_floor_plan_arrow.dart';
 import 'package:open_cine_prod_tools/models/ocpt_floor_plan_case.dart';
 import 'package:open_cine_prod_tools/models/ocpt_floor_plan_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_floor_plan_snapshot.dart';
@@ -16,7 +17,9 @@ import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_list_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
+import 'package:open_cine_prod_tools/types/ocpt_floor_plan_arrow_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_layer.dart';
+import 'package:open_cine_prod_tools/types/ocpt_floor_plan_set_element_shape.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_status.dart';
 
 /// A minimal, valid 1×1 white PNG — small enough to embed in a test, real enough for the `pdf`
@@ -85,6 +88,7 @@ OcptFloorPlanSymbol _cameraSymbolOf({
   required String shotId,
   double xM = 0,
   double yM = 0,
+  double? fovDeg,
 }) => OcptFloorPlanSymbol(
   id: id,
   caseId: caseId,
@@ -96,12 +100,41 @@ OcptFloorPlanSymbol _cameraSymbolOf({
   rotationDeg: 0,
   widthM: null,
   heightM: null,
-  fovDeg: null,
+  fovDeg: fovDeg,
   label: "",
+  setElementShape: null,
 );
 
-/// A sequence-scoped décor symbol on [caseId].
-OcptFloorPlanSymbol _decorSymbolOf({required String id, required String caseId}) => OcptFloorPlanSymbol(
+/// Builds a character symbol on [caseId] for [shotId].
+OcptFloorPlanSymbol _characterSymbolOf({
+  required String id,
+  required String caseId,
+  required String shotId,
+  double xM = 0,
+  double yM = 0,
+}) => OcptFloorPlanSymbol(
+  id: id,
+  caseId: caseId,
+  shotId: shotId,
+  layer: OcptFloorPlanLayer.characters,
+  sortKey: "b",
+  xM: xM,
+  yM: yM,
+  rotationDeg: 0,
+  widthM: null,
+  heightM: null,
+  fovDeg: null,
+  label: "Sam",
+  setElementShape: null,
+);
+
+/// A sequence-scoped décor symbol on [caseId], drawn as [shape] (defaulting to freeform, today's
+/// generic look, when unset).
+OcptFloorPlanSymbol _decorSymbolOf({
+  required String id,
+  required String caseId,
+  OcptFloorPlanSetElementShape? shape,
+}) => OcptFloorPlanSymbol(
   id: id,
   caseId: caseId,
   shotId: null,
@@ -114,6 +147,29 @@ OcptFloorPlanSymbol _decorSymbolOf({required String id, required String caseId})
   heightM: 1,
   fovDeg: null,
   label: "wall",
+  setElementShape: shape,
+);
+
+/// A movement arrow between two symbols of [caseId], curved when [ctrlXM]/[ctrlYM] are set,
+/// straight otherwise.
+OcptFloorPlanArrow _movementArrowOf({
+  required String id,
+  required String caseId,
+  required String shotId,
+  required String fromSymbolId,
+  required String toSymbolId,
+  double? ctrlXM,
+  double? ctrlYM,
+}) => OcptFloorPlanArrow(
+  id: id,
+  caseId: caseId,
+  shotId: shotId,
+  kind: OcptFloorPlanArrowKind.movement,
+  fromSymbolId: fromSymbolId,
+  toSymbolId: toSymbolId,
+  label: "",
+  ctrlXM: ctrlXM,
+  ctrlYM: ctrlYM,
 );
 
 void main() {
@@ -158,6 +214,7 @@ void main() {
   OcptFloorPlanCase buildCase({
     required String id,
     List<OcptFloorPlanSymbol> symbols = const [],
+    List<OcptFloorPlanArrow> arrows = const [],
     String? underlayPath,
     double underlayRotationDeg = 0,
   }) => OcptFloorPlanCase(
@@ -173,7 +230,7 @@ void main() {
     underlayHeightM: underlayPath == null ? null : 2,
     underlayRotationDeg: underlayPath == null ? null : underlayRotationDeg,
     symbols: symbols,
-    arrows: const [],
+    arrows: arrows,
   );
 
   Future<Uint8List> generate({
@@ -323,6 +380,88 @@ void main() {
       final second = await generate(snapshot: snapshotOf(1), floorPlanSnapshot: snapshotAt(4));
 
       expect(_contentStreams(first), isNot(_contentStreams(second)));
+    });
+
+    test("a camera's own field-of-view wedge angle changes what its own page draws", () async {
+      OcptFloorPlanSnapshot snapshotOfFov(double fovDeg) => OcptFloorPlanSnapshot.build(
+        screenplayId: "screenplay",
+        casesBySceneId: {
+          "scene-1": [
+            buildCase(
+              id: "case-1",
+              symbols: [_cameraSymbolOf(id: "cam-0", caseId: "case-1", shotId: "shot-0", fovDeg: fovDeg)],
+            ),
+          ],
+        },
+      );
+
+      final narrow = await generate(snapshot: snapshotOf(1), floorPlanSnapshot: snapshotOfFov(20));
+      final wide = await generate(snapshot: snapshotOf(1), floorPlanSnapshot: snapshotOfFov(160));
+
+      expect(_contentStreams(narrow), isNot(_contentStreams(wide)));
+    });
+
+    test("each décor primitive draws its own page", () async {
+      OcptFloorPlanSnapshot snapshotOfShape(OcptFloorPlanSetElementShape shape) => OcptFloorPlanSnapshot.build(
+        screenplayId: "screenplay",
+        casesBySceneId: {
+          "scene-1": [
+            buildCase(id: "case-1", symbols: [_decorSymbolOf(id: "sym-1", caseId: "case-1", shape: shape)]),
+          ],
+        },
+      );
+
+      final wall = await generate(snapshot: snapshotOf(1), floorPlanSnapshot: snapshotOfShape(OcptFloorPlanSetElementShape.wall));
+      final door = await generate(snapshot: snapshotOf(1), floorPlanSnapshot: snapshotOfShape(OcptFloorPlanSetElementShape.door));
+      final furniture = await generate(
+        snapshot: snapshotOf(1),
+        floorPlanSnapshot: snapshotOfShape(OcptFloorPlanSetElementShape.furniture),
+      );
+      final freeform = await generate(
+        snapshot: snapshotOf(1),
+        floorPlanSnapshot: snapshotOfShape(OcptFloorPlanSetElementShape.freeform),
+      );
+
+      expect(_contentStreams(wall), isNot(_contentStreams(door)));
+      expect(_contentStreams(door), isNot(_contentStreams(furniture)));
+      expect(_contentStreams(furniture), isNot(_contentStreams(freeform)));
+      expect(_contentStreams(freeform), isNot(_contentStreams(wall)));
+    });
+
+    test("a curved movement arrow draws differently from a straight one", () async {
+      OcptFloorPlanSnapshot snapshotOfArrow({double? ctrlXM, double? ctrlYM}) => OcptFloorPlanSnapshot.build(
+        screenplayId: "screenplay",
+        casesBySceneId: {
+          "scene-1": [
+            buildCase(
+              id: "case-1",
+              symbols: [
+                _cameraSymbolOf(id: "cam-0", caseId: "case-1", shotId: "shot-0"),
+                _characterSymbolOf(id: "char-0", caseId: "case-1", shotId: "shot-0", xM: 2, yM: 2),
+              ],
+              arrows: [
+                _movementArrowOf(
+                  id: "arrow-1",
+                  caseId: "case-1",
+                  shotId: "shot-0",
+                  fromSymbolId: "char-0",
+                  toSymbolId: "cam-0",
+                  ctrlXM: ctrlXM,
+                  ctrlYM: ctrlYM,
+                ),
+              ],
+            ),
+          ],
+        },
+      );
+
+      final straight = await generate(snapshot: snapshotOf(1), floorPlanSnapshot: snapshotOfArrow());
+      final curved = await generate(
+        snapshot: snapshotOf(1),
+        floorPlanSnapshot: snapshotOfArrow(ctrlXM: 3, ctrlYM: -1),
+      );
+
+      expect(_contentStreams(straight), isNot(_contentStreams(curved)));
     });
   });
 

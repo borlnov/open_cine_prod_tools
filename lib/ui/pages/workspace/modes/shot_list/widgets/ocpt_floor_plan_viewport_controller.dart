@@ -39,16 +39,30 @@ class OcptFloorPlanViewportController extends ChangeNotifier {
   /// drawn — see `ocpt_floor_plan_geometry.dart`.
   Offset _pan;
 
+  /// Whether a camera's own field-of-view wedge is drawn — a session view concern exactly like
+  /// [_zoom]/[_pan], never synchronised, defaulted **on** so the wedge shows the moment a camera is
+  /// placed, with no toggle to find first. `OcptFloorPlanSheet.of`'s own `showFieldOfView` parameter
+  /// reads this. A tray toggle wiring [setShowFieldOfView] to a checkbox is a later piece of work;
+  /// this controller only carries the flag.
+  bool _showFieldOfView;
+
   /// Class constructor
-  OcptFloorPlanViewportController({required double zoom, Offset pan = Offset.zero})
-    : _zoom = zoom.clamp(ocptFloorPlanMinZoom, ocptFloorPlanMaxZoom),
-      _pan = pan;
+  OcptFloorPlanViewportController({
+    required double zoom,
+    Offset pan = Offset.zero,
+    bool showFieldOfView = true,
+  }) : _zoom = zoom.clamp(ocptFloorPlanMinZoom, ocptFloorPlanMaxZoom),
+       _pan = pan,
+       _showFieldOfView = showFieldOfView;
 
   /// The canvas's current zoom.
   double get zoom => _zoom;
 
   /// The canvas's current pan offset, in logical pixels.
   Offset get pan => _pan;
+
+  /// Whether a camera's own field-of-view wedge is currently drawn. See [_showFieldOfView].
+  bool get showFieldOfView => _showFieldOfView;
 
   /// Sets the live zoom to [value] (clamped), notifying listeners if it actually changed.
   void setZoom(double value) {
@@ -71,6 +85,16 @@ class OcptFloorPlanViewportController extends ChangeNotifier {
 
   /// Adds [delta] to the live pan offset — a canvas drag's own `onPanUpdate`.
   void panBy(Offset delta) => setPan(_pan + delta);
+
+  /// Sets whether a camera's own field-of-view wedge is drawn, notifying listeners if it actually
+  /// changed. Not called anywhere yet — a future tray toggle's own handler.
+  void setShowFieldOfView({required bool value}) {
+    if (_showFieldOfView == value) {
+      return;
+    }
+    _showFieldOfView = value;
+    notifyListeners();
+  }
 
   /// Pushes the bloc's persisted [zoom] onto this controller — e.g. once this controller is first
   /// created from `OcptShotListState.floorPlanZoom`, or should the bloc's own value change for a

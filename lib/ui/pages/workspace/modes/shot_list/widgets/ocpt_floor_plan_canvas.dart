@@ -360,6 +360,7 @@ class _OcptFloorPlanCanvasState extends State<OcptFloorPlanCanvas> {
       shotRankByShotId: widget.shotRankByShotId,
       previousShotId: widget.isOnionSkinPreviousShown ? widget.previousShotId : null,
       nextShotId: widget.isOnionSkinNextShown ? widget.nextShotId : null,
+      showFieldOfView: widget.viewportController.showFieldOfView,
     );
     final isSequenceFocus = focusShotId == null;
 

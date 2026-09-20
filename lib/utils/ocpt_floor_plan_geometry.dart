@@ -18,6 +18,12 @@ const double ocptFloorPlanCameraFootprintM = 0.3;
 /// The default footprint, in metres, a light is drawn at.
 const double ocptFloorPlanLightFootprintM = 0.3;
 
+/// The camera field-of-view wedge's own default angle, in degrees, drawn when a camera symbol
+/// carries no `OcptFloorPlanSymbol.fovDeg` of its own — a generic lens's rough field, not tied to
+/// any real focal length or sensor size; the maintainer may retune this once the wedge is seen in
+/// practice.
+const double ocptFloorPlanDefaultCameraFovDeg = 50;
+
 /// The default footprint, in metres, a hand prop is drawn at — small enough to read as "held",
 /// never mistaken for a piece of furniture.
 const double ocptFloorPlanHandPropFootprintM = 0.2;
