@@ -579,6 +579,7 @@ class _OcptFloorPlanCanvasState extends State<OcptFloorPlanCanvas> {
           angle: rotationDeg * math.pi / 180,
           child: GestureDetector(
             behavior: HitTestBehavior.translucent,
+            dragStartBehavior: DragStartBehavior.down,
             onPanStart: (_) => setState(() {
               _underlayDragKind = _UnderlayDragKind.move;
               _liveUnderlayFrame = (
@@ -600,6 +601,7 @@ class _OcptFloorPlanCanvasState extends State<OcptFloorPlanCanvas> {
         height: _handleHitSize,
         child: GestureDetector(
           behavior: HitTestBehavior.opaque,
+          dragStartBehavior: DragStartBehavior.down,
           onPanStart: (_) => setState(() {
             _underlayDragKind = _UnderlayDragKind.resize;
             _liveUnderlayFrame = (
@@ -618,7 +620,10 @@ class _OcptFloorPlanCanvasState extends State<OcptFloorPlanCanvas> {
   }
 
   /// Updates [_liveUnderlayFrame] every frame of an underlay move/resize drag, no database write
-  /// and no bloc emission until [_commitUnderlayDrag].
+  /// and no bloc emission until [_commitUnderlayDrag]. See [_updateSymbolDrag]'s own doc comment
+  /// for why the move branch turns [screenDelta] back into the world frame with `+rotationDeg`
+  /// before adding it — the move handle is wrapped in the same `Transform.rotate` (see
+  /// [_buildUnderlayHandles]), so Flutter's own delta arrives already in that rotated local frame.
   void _updateUnderlayDrag(Offset screenDelta, double zoom, double rotationDeg) {
     final frame = _liveUnderlayFrame;
     if (frame == null) {
@@ -629,9 +634,10 @@ class _OcptFloorPlanCanvasState extends State<OcptFloorPlanCanvas> {
 
     setState(() {
       if (_underlayDragKind == _UnderlayDragKind.move) {
+        final worldDelta = ocptFloorPlanRotateVector(metresDelta, rotationDeg);
         _liveUnderlayFrame = (
-          xM: frame.xM + metresDelta.dx,
-          yM: frame.yM + metresDelta.dy,
+          xM: frame.xM + worldDelta.dx,
+          yM: frame.yM + worldDelta.dy,
           widthM: frame.widthM,
           heightM: frame.heightM,
         );
@@ -700,6 +706,7 @@ class _OcptFloorPlanCanvasState extends State<OcptFloorPlanCanvas> {
         angle: rotationDeg * math.pi / 180,
         child: GestureDetector(
           behavior: HitTestBehavior.opaque,
+          dragStartBehavior: DragStartBehavior.down,
           onTap: () => _handleSymbolTap(symbol),
           onDoubleTap: symbol.isGhost && shotId != null
               ? () => widget.onGhostShotFocusRequested?.call(shotId)
@@ -783,6 +790,7 @@ class _OcptFloorPlanCanvasState extends State<OcptFloorPlanCanvas> {
           height: _handleHitSize,
           child: GestureDetector(
             behavior: HitTestBehavior.opaque,
+            dragStartBehavior: DragStartBehavior.down,
             onPanStart: (_) => setState(() {
               _dragKind = _SymbolDragKind.resize;
               _liveOverride = OcptFloorPlanSymbolLiveOverride(
@@ -838,6 +846,21 @@ class _OcptFloorPlanCanvasState extends State<OcptFloorPlanCanvas> {
 
   /// Updates [_liveOverride]'s own move/resize geometry every frame of a symbol drag, no database
   /// write and no bloc emission until [_commitSymbolDrag].
+  ///
+  /// The move handle's own `GestureDetector` is wrapped in a `Transform.rotate` (see
+  /// [_buildSymbolHitOverlay]), so Flutter hands [screenDelta] already expressed in that rotated
+  /// **local** frame (the hit-test transform a drag's own `onPanUpdate` reads is the one captured
+  /// at `onPanStart`, and stays the rotated one for the whole gesture) — it has to be turned back
+  /// into the **world** frame [OcptFloorPlanCanvas.onSymbolMoved] stores `xM`/`yM` in before it is
+  /// added, by [ocptFloorPlanRotateVector]'s own forward convention (`+rotationDeg`, local → world;
+  /// the resize branch below instead turns a genuinely world-frame delta *into* the symbol's own
+  /// local width/height axes, hence its own `-rotationDeg`). At `rotationDeg == 0` the two frames
+  /// coincide, which is why an unrotated symbol never showed the drift. See every drag handle's own
+  /// `dragStartBehavior: DragStartBehavior.down` for the other half of the fix: left at its default
+  /// (`.start`), the pointer movement spent recognising the gesture as a drag at all (crossing the
+  /// touch slop) is silently dropped from ever reaching an `onPanUpdate`, so the dragged point
+  /// permanently trails the pointer by that amount — the "slight offset" on every drag alike,
+  /// unrelated to rotation.
   void _updateSymbolDrag(String symbolId, Offset screenDelta, double zoom) {
     final override = _liveOverride;
     if (override == null || override.symbolId != symbolId) {
@@ -848,10 +871,11 @@ class _OcptFloorPlanCanvasState extends State<OcptFloorPlanCanvas> {
 
     setState(() {
       if (_dragKind == _SymbolDragKind.move) {
+        final worldDelta = ocptFloorPlanRotateVector(metresDelta, override.rotationDeg);
         _liveOverride = OcptFloorPlanSymbolLiveOverride(
           symbolId: symbolId,
-          xM: override.xM + metresDelta.dx,
-          yM: override.yM + metresDelta.dy,
+          xM: override.xM + worldDelta.dx,
+          yM: override.yM + worldDelta.dy,
           widthM: override.widthM,
           heightM: override.heightM,
           rotationDeg: override.rotationDeg,
