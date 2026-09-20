@@ -44,6 +44,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_shot_list_table.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_shot_metadata_panel.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_storyboard_board.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_storyboard_export_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_storyboard_panel_size_menu.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_storyboard_panels_group.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_project_version_create_dialog.dart';
@@ -203,9 +204,12 @@ class _ShotListViewState extends State<_ShotListView> {
     ),
   ];
 
-  /// Builds the two entries the toolbar's `Export` button offers: the shot list workbook and the
-  /// scenario coverage PDF, both unavailable while the shot list holds no shot at all — there would
-  /// be nothing in the workbook but its header row, and nothing to annotate the screenplay with.
+  /// Builds the four entries the toolbar's `Export` button offers: the shot list workbook and the
+  /// scenario coverage PDF, unavailable while the shot list holds no shot at all — there would be
+  /// nothing in the workbook but its header row, and nothing to annotate the screenplay with — and
+  /// the storyboard PDF and the floor plans PDF, each unavailable for its own, narrower reason
+  /// (`docs/plans/storyboard.md`, §5): a shot list can hold shots without holding a single panel,
+  /// or without a single camera placed on any of its floor plans.
   List<OcptWorkspaceExportEntry<OcptShotListExportDocument>> _buildExportEntries(
     BuildContext context,
     OcptShotListState state,
@@ -228,13 +232,32 @@ class _ShotListViewState extends State<_ShotListView> {
         formatLabel: "PDF",
         unavailableReason: unavailableReason,
       ),
+      OcptWorkspaceExportEntry<OcptShotListExportDocument>(
+        value: OcptShotListExportDocument.storyboard,
+        title: tr.shotListExportStoryboardTitle,
+        description: tr.shotListExportStoryboardDescription,
+        formatLabel: "PDF",
+        unavailableReason: state.hasAnyStoryboardPanel
+            ? null
+            : tr.shotListExportStoryboardUnavailableReason,
+      ),
+      OcptWorkspaceExportEntry<OcptShotListExportDocument>(
+        value: OcptShotListExportDocument.floorPlans,
+        title: tr.shotListExportFloorPlansTitle,
+        description: tr.shotListExportFloorPlansDescription,
+        formatLabel: "PDF",
+        unavailableReason: state.hasAnyFloorPlanCamera
+            ? null
+            : tr.shotListExportFloorPlansUnavailableReason,
+      ),
     ];
   }
 
   /// Opens the export panel, then dispatches the picked document's own request: the XLSX export
-  /// event directly (it opens no options dialog of its own, mirroring the table's own
-  /// `Export XLSX` button), or [_requestScenarioCoverageExport], which opens the scenario coverage
-  /// export options dialog exactly as it always has.
+  /// event and the floor plans export event directly (neither opens an options dialog of its own —
+  /// the table's own `Export XLSX` button mirrors the first, the workbook mirrors the second), or
+  /// [_requestScenarioCoverageExport]/[_requestStoryboardExport], which each open their own export
+  /// options dialog first.
   Future<void> _requestExport(
     BuildContext context,
     OcptShotListState state,
@@ -262,6 +285,10 @@ class _ShotListViewState extends State<_ShotListView> {
             _requestXlsxExport(context, state, shareAnchor);
           case OcptShotListExportDocument.coverage:
             await _requestScenarioCoverageExport(context, state, shareAnchor);
+          case OcptShotListExportDocument.storyboard:
+            await _requestStoryboardExport(context, state, shareAnchor);
+          case OcptShotListExportDocument.floorPlans:
+            _requestFloorPlansExport(context, state, shareAnchor);
         }
       case OcptWorkspaceExportProjectPackagePick<OcptShotListExportDocument>():
         _requestProjectPackageExport(context);
@@ -309,6 +336,53 @@ class _ShotListViewState extends State<_ShotListView> {
         options: options,
         labels: ocptScenarioCoverageLabelsOf(tr, state.sequences),
         fileTypeLabel: tr.shotListExportCoverageFileTypeLabel,
+        episodeTag: _episodeExportTag(context),
+        shareAnchor: shareAnchor,
+      ),
+    );
+  }
+
+  /// Shows the storyboard export options dialog, then dispatches the export request if the user
+  /// applied it, resolving here — the last place with a [BuildContext] — every localized string
+  /// the exported document (and, when its toggle is on, the appended floor plan sheets) and the
+  /// native save dialog carry.
+  Future<void> _requestStoryboardExport(
+    BuildContext context,
+    OcptShotListState state,
+    Rect? shareAnchor,
+  ) async {
+    final bloc = context.read<OcptShotListBloc>();
+    final options = await OcptStoryboardExportDialog.show(context, current: state.pageSetup);
+    if (options == null) {
+      return;
+    }
+    if (!context.mounted) {
+      return;
+    }
+
+    final tr = Tr.of(context);
+    bloc.add(
+      OcptShotListStoryboardExportRequestedEvent(
+        options: options,
+        labels: ocptStoryboardLabelsOf(tr, state.sequences),
+        floorPlanLabels: ocptFloorPlanLabelsOf(tr, state.sequences),
+        fileTypeLabel: tr.shotListExportStoryboardFileTypeLabel,
+        episodeTag: _episodeExportTag(context),
+        shareAnchor: shareAnchor,
+      ),
+    );
+  }
+
+  /// Dispatches the floor plans export request, resolving here — the last place with a
+  /// [BuildContext] — every localized string the exported document and the native save dialog
+  /// carry. Opens no options dialog of its own, mirroring the table's own `Export XLSX` button.
+  void _requestFloorPlansExport(BuildContext context, OcptShotListState state, Rect? shareAnchor) {
+    final tr = Tr.of(context);
+
+    context.read<OcptShotListBloc>().add(
+      OcptShotListFloorPlansExportRequestedEvent(
+        labels: ocptFloorPlanLabelsOf(tr, state.sequences),
+        fileTypeLabel: tr.shotListExportFloorPlansFileTypeLabel,
         episodeTag: _episodeExportTag(context),
         shareAnchor: shareAnchor,
       ),
@@ -1728,6 +1802,14 @@ class _ShotListViewState extends State<_ShotListView> {
           ? tr.exportSharedMessage
           : tr.shotListExportCoverageSuccessMessage(notice.path ?? ""),
       OcptShotListIoNoticeKind.scenarioCoverageExportFailed => tr.shotListExportCoverageError,
+      OcptShotListIoNoticeKind.storyboardExportSucceeded => notice.wasShared
+          ? tr.exportSharedMessage
+          : tr.shotListExportStoryboardSuccessMessage(notice.path ?? ""),
+      OcptShotListIoNoticeKind.storyboardExportFailed => tr.shotListExportStoryboardError,
+      OcptShotListIoNoticeKind.floorPlansExportSucceeded => notice.wasShared
+          ? tr.exportSharedMessage
+          : tr.shotListExportFloorPlansSuccessMessage(notice.path ?? ""),
+      OcptShotListIoNoticeKind.floorPlansExportFailed => tr.shotListExportFloorPlansError,
     };
   }
 }

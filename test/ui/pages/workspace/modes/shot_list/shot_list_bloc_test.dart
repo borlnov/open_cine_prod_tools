@@ -24,7 +24,9 @@ import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_covera
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_list_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_storyboard_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
+import 'package:open_cine_prod_tools/models/ocpt_floor_plan_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_floor_plan_sheet.dart';
+import 'package:open_cine_prod_tools/models/ocpt_floor_plan_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_working_copy_state.dart';
 import 'package:open_cine_prod_tools/models/ocpt_scenario_coverage_export_options.dart';
@@ -33,6 +35,9 @@ import 'package:open_cine_prod_tools/models/ocpt_script_word_layout.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_list_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_list_xlsx_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
+import 'package:open_cine_prod_tools/models/ocpt_storyboard_export_options.dart';
+import 'package:open_cine_prod_tools/models/ocpt_storyboard_labels.dart';
+import 'package:open_cine_prod_tools/models/ocpt_storyboard_snapshot.dart';
 import 'package:open_cine_prod_tools/types/ocpt_export_outcome.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_layer.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_tool.dart';
@@ -218,6 +223,26 @@ class _FakeExportManager extends OcptExportManager {
   /// The four content toggles of the last [exportScenarioCoverage] call.
   ({bool sceneNumbers, bool titlePage, bool legendPage, bool summaryPage})? lastCoverageToggles;
 
+  /// The storyboard snapshot of the last [exportStoryboard] call.
+  OcptStoryboardSnapshot? lastStoryboardSnapshot;
+
+  /// The labels of the last [exportStoryboard] call.
+  OcptStoryboardLabels? lastStoryboardLabels;
+
+  /// The `shotsPerPage`/`includeFloorPlansAfterEachSequence` options of the last
+  /// [exportStoryboard] call.
+  ({int shotsPerPage, bool includeFloorPlans})? lastStoryboardOptions;
+
+  /// The floor plan snapshot handed to the last [exportStoryboard] call (may be null even when
+  /// [lastStoryboardOptions]' `includeFloorPlans` is false).
+  OcptFloorPlanSnapshot? lastStoryboardFloorPlanSnapshot;
+
+  /// The floor plan snapshot of the last [exportFloorPlans] call.
+  OcptFloorPlanSnapshot? lastFloorPlanSnapshot;
+
+  /// The labels of the last [exportFloorPlans] call.
+  OcptFloorPlanLabels? lastFloorPlanLabels;
+
   @override
   Future<OcptExportOutcome?> exportShotListXlsx({
     required OcptShotListSnapshot snapshot,
@@ -279,6 +304,67 @@ class _FakeExportManager extends OcptExportManager {
     final result = exportResult;
     return result == null ? null : OcptExportSaved(result);
   }
+
+  @override
+  Future<OcptExportOutcome?> exportStoryboard({
+    required OcptShotListSnapshot snapshot,
+    required OcptStoryboardSnapshot storyboardSnapshot,
+    required OcptPageSetup pageSetup,
+    required OcptStoryboardLabels labels,
+    required String projectName,
+    required int shotsPerPage,
+    required bool includeFloorPlansAfterEachSequence,
+    OcptFloorPlanSnapshot? floorPlanSnapshot,
+    OcptFloorPlanLabels? floorPlanLabels,
+    required String fileTypeLabel,
+    String? episodeTag,
+    Rect? shareAnchor,
+  }) async {
+    lastExportedSnapshot = snapshot;
+    lastExportedProjectName = projectName;
+    lastExportedFileTypeLabel = fileTypeLabel;
+    lastExportedEpisodeTag = episodeTag;
+    lastStoryboardSnapshot = storyboardSnapshot;
+    lastStoryboardLabels = labels;
+    lastStoryboardOptions = (
+      shotsPerPage: shotsPerPage,
+      includeFloorPlans: includeFloorPlansAfterEachSequence,
+    );
+    lastStoryboardFloorPlanSnapshot = floorPlanSnapshot;
+
+    if (fails) {
+      throw StateError("storyboard export intentionally failed for the test");
+    }
+
+    final result = exportResult;
+    return result == null ? null : OcptExportSaved(result);
+  }
+
+  @override
+  Future<OcptExportOutcome?> exportFloorPlans({
+    required OcptShotListSnapshot snapshot,
+    required OcptFloorPlanSnapshot floorPlanSnapshot,
+    required OcptPageSetup pageSetup,
+    required OcptFloorPlanLabels labels,
+    required String projectName,
+    required String fileTypeLabel,
+    String? episodeTag,
+    Rect? shareAnchor,
+  }) async {
+    lastExportedSnapshot = snapshot;
+    lastExportedProjectName = projectName;
+    lastExportedFileTypeLabel = fileTypeLabel;
+    lastExportedEpisodeTag = episodeTag;
+    lastFloorPlanSnapshot = floorPlanSnapshot;
+    lastFloorPlanLabels = labels;
+
+    if (fails) {
+      throw StateError("floor plans export intentionally failed for the test");
+    }
+
+    final result = exportResult;
+    return result == null ? null : OcptExportSaved(result);
+  }
 }
 
 /// The labels the export tests dispatch, standing in for what `ocptShotListXlsxLabelsOf` builds
@@ -320,6 +406,50 @@ const _coverageOptions = OcptScenarioCoverageExportOptions(
   includeTitlePage: false,
   includeLegendPage: true,
   includeSummaryPage: false,
+);
+
+/// The labels the storyboard export tests dispatch, standing in for what
+/// `ocptStoryboardLabelsOf` builds from a real `Tr`: the bloc only carries them through to the
+/// manager.
+const _storyboardLabels = OcptStoryboardLabels(
+  fileNameSuffix: "storyboard",
+  documentTitle: "Storyboard",
+  shotSizeLabel: "Shot size",
+  framingLabel: "Framing",
+  cameraMoveLabel: "Camera move",
+  lensLabel: "Lens",
+  recordingFormatLabel: "Format",
+  castLabel: "Cast",
+  statusLabels: {},
+  noPanelNote: "no panel yet",
+  fileNotFoundNote: "File not found",
+  sequenceTitles: {},
+);
+
+/// The labels the floor plans export tests dispatch, standing in for what `ocptFloorPlanLabelsOf`
+/// builds from a real `Tr`: the bloc only carries them through to the manager.
+const _floorPlanLabels = OcptFloorPlanLabels(
+  fileNameSuffix: "floor plans",
+  documentTitle: "Floor plans",
+  shotSizeLabel: "Shot size",
+  framingLabel: "Framing",
+  cameraMoveLabel: "Camera move",
+  lensLabel: "Lens",
+  recordingFormatLabel: "Format",
+  castLabel: "Cast",
+  statusLabels: {},
+  sequenceTitles: {},
+  noCameraNote: "No camera placed on this case yet.",
+  scaleBarUnitLabel: "m",
+);
+
+/// The options the storyboard export tests dispatch, standing in for what the mode's own options
+/// dialog returns.
+const _storyboardOptions = OcptStoryboardExportOptions(
+  format: OcptPageFormat.a4,
+  margins: FountainPageMargins.standard(),
+  shotsPerPage: 2,
+  includeFloorPlansAfterEachSequence: false,
 );
 
 void main() {
@@ -1876,6 +2006,222 @@ void main() {
     final state = await waitForState(bloc, (state) => state.ioNotice != null);
 
     expect(state.ioNotice!.kind, OcptShotListIoNoticeKind.scenarioCoverageExportFailed);
+    expect(state.ioNotice!.path, isNull);
+
+    await bloc.close();
+  });
+
+  test('exporting the storyboard hands the loaded snapshots and options to the export manager',
+      () async {
+    await writeScreenplay(twoSceneText);
+
+    final exportManager = _FakeExportManager(exportResult: "/tmp/My Movie - storyboard.pdf");
+    final bloc = buildBloc(exportManager: exportManager);
+    await waitForState(bloc, (state) => !state.isLoading);
+
+    bloc.add(const OcptShotListShotCreationRequestedEvent());
+    await waitForState(bloc, (state) => state.totalShotCount == 1);
+
+    bloc.add(
+      const OcptShotListStoryboardExportRequestedEvent(
+        options: _storyboardOptions,
+        labels: _storyboardLabels,
+        floorPlanLabels: _floorPlanLabels,
+        fileTypeLabel: "PDF document",
+        episodeTag: "ep. 2",
+      ),
+    );
+    final state = await waitForState(bloc, (state) => state.ioNotice != null);
+
+    expect(state.ioNotice!.kind, OcptShotListIoNoticeKind.storyboardExportSucceeded);
+    expect(state.ioNotice!.path, "/tmp/My Movie - storyboard.pdf");
+    expect(exportManager.lastExportedProjectName, "My Movie");
+    expect(exportManager.lastExportedFileTypeLabel, "PDF document");
+    expect(exportManager.lastExportedEpisodeTag, "ep. 2");
+    expect(exportManager.lastStoryboardLabels, _storyboardLabels);
+    expect(exportManager.lastStoryboardOptions, (shotsPerPage: 2, includeFloorPlans: false));
+    expect(exportManager.lastStoryboardSnapshot, isNotNull);
+    expect(exportManager.lastExportedSnapshot!.totalShotCount, 1);
+    // The toggle is off, but the loaded floor plan snapshot still rides along on every call —
+    // whether it is used is the service's own decision, not something withheld at the bloc.
+    expect(exportManager.lastStoryboardFloorPlanSnapshot, isNotNull);
+
+    await bloc.close();
+  });
+
+  test('exporting the storyboard flushes a pending field edit first, so the document holds it',
+      () async {
+    await writeScreenplay(twoSceneText);
+
+    final exportManager = _FakeExportManager(exportResult: "/tmp/My Movie - storyboard.pdf");
+    final bloc = buildBloc(exportManager: exportManager, fieldEditDebounce: const Duration(days: 1));
+    await waitForState(bloc, (state) => !state.isLoading);
+
+    bloc.add(const OcptShotListShotCreationRequestedEvent());
+    var state = await waitForState(bloc, (state) => state.totalShotCount == 1);
+    final shotId = state.selectedShotId!;
+
+    bloc.add(
+      OcptShotListShotFieldChangedEvent(
+        shotId: shotId,
+        field: OcptShotListEditableField.shotSize,
+        rawValue: "Close-up",
+      ),
+    );
+    await waitForState(bloc, (state) => state.pendingFieldEdits.isNotEmpty);
+
+    bloc.add(
+      const OcptShotListStoryboardExportRequestedEvent(
+        options: _storyboardOptions,
+        labels: _storyboardLabels,
+        floorPlanLabels: _floorPlanLabels,
+        fileTypeLabel: "PDF document",
+      ),
+    );
+    state = await waitForState(bloc, (state) => state.ioNotice != null);
+
+    expect(state.pendingFieldEdits, isEmpty);
+    expect(exportManager.lastExportedSnapshot!.shotsById[shotId]!.shotSize, "Close-up");
+
+    await bloc.close();
+  });
+
+  test('a cancelled storyboard save dialog leaves no export notice at all', () async {
+    await writeScreenplay(twoSceneText);
+
+    final bloc = buildBloc(exportManager: _FakeExportManager());
+    await waitForState(bloc, (state) => !state.isLoading);
+
+    bloc.add(
+      const OcptShotListStoryboardExportRequestedEvent(
+        options: _storyboardOptions,
+        labels: _storyboardLabels,
+        floorPlanLabels: _floorPlanLabels,
+        fileTypeLabel: "PDF document",
+      ),
+    );
+    await Future<void>.delayed(const Duration(milliseconds: 50));
+
+    expect(bloc.state.ioNotice, isNull);
+
+    await bloc.close();
+  });
+
+  test('a failing storyboard export raises its own transient failure notice', () async {
+    await writeScreenplay(twoSceneText);
+
+    final bloc = buildBloc(exportManager: _FakeExportManager(fails: true));
+    await waitForState(bloc, (state) => !state.isLoading);
+
+    bloc.add(
+      const OcptShotListStoryboardExportRequestedEvent(
+        options: _storyboardOptions,
+        labels: _storyboardLabels,
+        floorPlanLabels: _floorPlanLabels,
+        fileTypeLabel: "PDF document",
+      ),
+    );
+    final state = await waitForState(bloc, (state) => state.ioNotice != null);
+
+    expect(state.ioNotice!.kind, OcptShotListIoNoticeKind.storyboardExportFailed);
+    expect(state.ioNotice!.path, isNull);
+
+    await bloc.close();
+  });
+
+  test('exporting the floor plans hands the loaded snapshot to the export manager', () async {
+    await writeScreenplay(twoSceneText);
+
+    final exportManager = _FakeExportManager(exportResult: "/tmp/My Movie - floor plans.pdf");
+    final bloc = buildBloc(exportManager: exportManager);
+    await waitForState(bloc, (state) => !state.isLoading);
+
+    bloc.add(const OcptShotListShotCreationRequestedEvent());
+    await waitForState(bloc, (state) => state.totalShotCount == 1);
+
+    bloc.add(
+      const OcptShotListFloorPlansExportRequestedEvent(
+        labels: _floorPlanLabels,
+        fileTypeLabel: "PDF document",
+        episodeTag: "ep. 2",
+      ),
+    );
+    final state = await waitForState(bloc, (state) => state.ioNotice != null);
+
+    expect(state.ioNotice!.kind, OcptShotListIoNoticeKind.floorPlansExportSucceeded);
+    expect(state.ioNotice!.path, "/tmp/My Movie - floor plans.pdf");
+    expect(exportManager.lastExportedProjectName, "My Movie");
+    expect(exportManager.lastExportedFileTypeLabel, "PDF document");
+    expect(exportManager.lastExportedEpisodeTag, "ep. 2");
+    expect(exportManager.lastFloorPlanLabels, _floorPlanLabels);
+    expect(exportManager.lastFloorPlanSnapshot, isNotNull);
+    expect(exportManager.lastExportedSnapshot!.totalShotCount, 1);
+
+    await bloc.close();
+  });
+
+  test('exporting the floor plans flushes a pending field edit first', () async {
+    await writeScreenplay(twoSceneText);
+
+    final exportManager = _FakeExportManager(exportResult: "/tmp/My Movie - floor plans.pdf");
+    final bloc = buildBloc(exportManager: exportManager, fieldEditDebounce: const Duration(days: 1));
+    await waitForState(bloc, (state) => !state.isLoading);
+
+    bloc.add(const OcptShotListShotCreationRequestedEvent());
+    var state = await waitForState(bloc, (state) => state.totalShotCount == 1);
+    final shotId = state.selectedShotId!;
+
+    bloc.add(
+      OcptShotListShotFieldChangedEvent(
+        shotId: shotId,
+        field: OcptShotListEditableField.shotSize,
+        rawValue: "Wide shot",
+      ),
+    );
+    await waitForState(bloc, (state) => state.pendingFieldEdits.isNotEmpty);
+
+    bloc.add(
+      const OcptShotListFloorPlansExportRequestedEvent(
+        labels: _floorPlanLabels,
+        fileTypeLabel: "PDF document",
+      ),
+    );
+    state = await waitForState(bloc, (state) => state.ioNotice != null);
+
+    expect(state.pendingFieldEdits, isEmpty);
+    expect(exportManager.lastExportedSnapshot!.shotsById[shotId]!.shotSize, "Wide shot");
+
+    await bloc.close();
+  });
+
+  test('a cancelled floor plans save dialog leaves no export notice at all', () async {
+    await writeScreenplay(twoSceneText);
+
+    final bloc = buildBloc(exportManager: _FakeExportManager());
+    await waitForState(bloc, (state) => !state.isLoading);
+
+    bloc.add(
+      const OcptShotListFloorPlansExportRequestedEvent(labels: _floorPlanLabels, fileTypeLabel: "PDF document"),
+    );
+    await Future<void>.delayed(const Duration(milliseconds: 50));
+
+    expect(bloc.state.ioNotice, isNull);
+
+    await bloc.close();
+  });
+
+  test('a failing floor plans export raises its own transient failure notice', () async {
+    await writeScreenplay(twoSceneText);
+
+    final bloc = buildBloc(exportManager: _FakeExportManager(fails: true));
+    await waitForState(bloc, (state) => !state.isLoading);
+
+    bloc.add(
+      const OcptShotListFloorPlansExportRequestedEvent(labels: _floorPlanLabels, fileTypeLabel: "PDF document"),
+    );
+    final state = await waitForState(bloc, (state) => state.ioNotice != null);
+
+    expect(state.ioNotice!.kind, OcptShotListIoNoticeKind.floorPlansExportFailed);
     expect(state.ioNotice!.path, isNull);
 
     await bloc.close();

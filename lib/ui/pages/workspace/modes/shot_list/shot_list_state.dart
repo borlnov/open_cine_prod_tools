@@ -51,6 +51,18 @@ enum OcptShotListIoNoticeKind {
 
   /// Exporting the scenario coverage to an annotated screenplay PDF failed.
   scenarioCoverageExportFailed,
+
+  /// The storyboard was successfully exported to a PDF.
+  storyboardExportSucceeded,
+
+  /// Exporting the storyboard to a PDF failed.
+  storyboardExportFailed,
+
+  /// The floor plans were successfully exported to a PDF.
+  floorPlansExportSucceeded,
+
+  /// Exporting the floor plans to a PDF failed.
+  floorPlansExportFailed,
 }
 
 /// A transient notice, produced by `OcptShotListBloc`, reporting the outcome of an export, shown
@@ -433,6 +445,13 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
     return null;
   }
 
+  /// Whether any live shot of the screenplay holds at least one storyboard panel — what the
+  /// export panel's storyboard card checks to decide whether it has anything to print
+  /// (`docs/plans/storyboard.md`, §5): a shot list can hold shots without holding a single panel,
+  /// which is a state of its own, not the same as holding no shot at all.
+  bool get hasAnyStoryboardPanel =>
+      storyboardSnapshot?.panelsByShotId.values.any((panels) => panels.isNotEmpty) ?? false;
+
   /// The selected sequence's own floor plan cases, in tab order, or an empty list while
   /// [floorPlanSnapshot] hasn't loaded yet, no sequence is selected, or the selected sequence is
   /// the orphan group (which has no scene, so it can never hold a case).
@@ -443,6 +462,16 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
     }
     return floorPlanSnapshot!.casesOfScene(sequence.sceneId);
   }
+
+  /// Whether any live floor plan case of the screenplay holds at least one camera symbol, on any
+  /// shot — what the export panel's floor plans card checks to decide whether it has anything to
+  /// print (`docs/plans/storyboard.md`, §5).
+  bool get hasAnyFloorPlanCamera =>
+      floorPlanSnapshot?.casesById.values.any(
+        (floorPlanCase) =>
+            floorPlanCase.symbols.any((symbol) => symbol.layer == OcptFloorPlanLayer.cameras),
+      ) ??
+      false;
 
   /// The case [selectedCaseId] identifies, or null if none is selected (or the selected one
   /// disappeared from a freshly loaded [floorPlanSnapshot]).

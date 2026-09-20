@@ -104,11 +104,12 @@ import 'package:open_cine_prod_tools/utils/ocpt_scene_display_number.dart';
 /// field edit landing while it is already open — the two moments the mixin's working-copy card is
 /// worth a fresh, throttled read.
 ///
-/// The two actions that read the shot list rather than writing to it are its exports — the XLSX
-/// workbook ([_onXlsxExportRequested]) and the scenario coverage PDF
-/// ([_onScenarioCoverageExportRequested]): both flush whatever is still pending, then hand the
-/// loaded snapshot to [OcptExportManager], which owns both the document building and the native
-/// save dialog.
+/// The actions that read the shot list rather than writing to it are its exports — the XLSX
+/// workbook ([_onXlsxExportRequested]), the scenario coverage PDF
+/// ([_onScenarioCoverageExportRequested]), the storyboard PDF ([_onStoryboardExportRequested]) and
+/// the floor plans PDF ([_onFloorPlansExportRequested]): all four flush whatever is still pending,
+/// then hand the loaded snapshot(s) to [OcptExportManager], which owns both the document building
+/// and the native save dialog.
 ///
 /// It mixes in [MixinOcptProjectPackageBloc] too, which writes the whole project out as a portable
 /// package from the `Export` panel's own standing card. That mixin reuses
@@ -258,6 +259,8 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     on<OcptShotListWriteErrorDismissedEvent>(_onWriteErrorDismissed);
     on<OcptShotListXlsxExportRequestedEvent>(_onXlsxExportRequested);
     on<OcptShotListScenarioCoverageExportRequestedEvent>(_onScenarioCoverageExportRequested);
+    on<OcptShotListStoryboardExportRequestedEvent>(_onStoryboardExportRequested);
+    on<OcptShotListFloorPlansExportRequestedEvent>(_onFloorPlansExportRequested);
     on<OcptShotListIoNoticeDismissedEvent>(_onIoNoticeDismissed);
     on<OcptShotListBackRequestedEvent>(_onBackRequested);
     on<OcptShotListProjectSettingsChangedEvent>(_onProjectSettingsChanged);
@@ -976,6 +979,123 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
           ioNotice: const OcptShotListIoNotice(
             kind: OcptShotListIoNoticeKind.scenarioCoverageExportFailed,
           ),
+        ),
+      );
+    }
+  }
+
+  /// Exports the storyboard — every shot's imported frames, annotated, with its key information —
+  /// as a PDF.
+  ///
+  /// Built the same way as [_onXlsxExportRequested] and [_onScenarioCoverageExportRequested]:
+  /// flush whatever field or panel comment edit is still pending — so the export holds it — then
+  /// hand what the state now carries to [OcptExportManager.exportStoryboard]. When
+  /// [OcptShotListStoryboardExportRequestedEvent.options] asks for the floor plans to be appended,
+  /// [OcptShotListState.floorPlanSnapshot] rides along too; a cancelled save dialog is a silent
+  /// no-op, a failure raises the transient export-failed notice.
+  Future<void> _onStoryboardExportRequested(
+    OcptShotListStoryboardExportRequestedEvent event,
+    Emitter<OcptShotListState> emitter,
+  ) async {
+    await _flushPendingFieldEdits(emitter);
+
+    final snapshot = state.snapshot;
+    final storyboardSnapshot = state.storyboardSnapshot;
+    if (snapshot == null || storyboardSnapshot == null) {
+      return;
+    }
+
+    try {
+      final options = event.options;
+      final outcome = await _exportManager.exportStoryboard(
+        snapshot: snapshot,
+        storyboardSnapshot: storyboardSnapshot,
+        pageSetup: OcptPageSetup(format: options.format, margins: options.margins),
+        labels: event.labels,
+        projectName: state.title,
+        shotsPerPage: options.shotsPerPage,
+        includeFloorPlansAfterEachSequence: options.includeFloorPlansAfterEachSequence,
+        floorPlanSnapshot: state.floorPlanSnapshot,
+        floorPlanLabels: event.floorPlanLabels,
+        fileTypeLabel: event.fileTypeLabel,
+        episodeTag: event.episodeTag,
+        shareAnchor: event.shareAnchor,
+      );
+      if (outcome == null) {
+        // The user cancelled the save dialog.
+        return;
+      }
+
+      emitter(
+        state.copyWith(
+          ioNotice: OcptShotListIoNotice(
+            kind: OcptShotListIoNoticeKind.storyboardExportSucceeded,
+            path: outcome.savedPath,
+            wasShared: outcome.wasShared,
+          ),
+        ),
+      );
+    } catch (error) {
+      appLogger().e("A problem occurred when tried to export the storyboard of the project at "
+          "${_projectsManager.currentProject?.path}: $error");
+      emitter(
+        state.copyWith(
+          ioNotice: const OcptShotListIoNotice(kind: OcptShotListIoNoticeKind.storyboardExportFailed),
+        ),
+      );
+    }
+  }
+
+  /// Exports the floor plans — one plan per shot that has a camera placed on it — as a PDF.
+  ///
+  /// The read-only sibling of [_onStoryboardExportRequested], opening no options dialog of its own
+  /// (its page format is [OcptShotListState.pageSetup], exactly as the shot list workbook's own
+  /// export is): flush whatever is still pending — so a symbol label typed seconds ago is on the
+  /// plan — then hand what the state now carries to [OcptExportManager.exportFloorPlans]. A
+  /// cancelled save dialog is a silent no-op; a failure raises the transient export-failed notice.
+  Future<void> _onFloorPlansExportRequested(
+    OcptShotListFloorPlansExportRequestedEvent event,
+    Emitter<OcptShotListState> emitter,
+  ) async {
+    await _flushPendingFieldEdits(emitter);
+
+    final snapshot = state.snapshot;
+    final floorPlanSnapshot = state.floorPlanSnapshot;
+    if (snapshot == null || floorPlanSnapshot == null) {
+      return;
+    }
+
+    try {
+      final outcome = await _exportManager.exportFloorPlans(
+        snapshot: snapshot,
+        floorPlanSnapshot: floorPlanSnapshot,
+        pageSetup: state.pageSetup,
+        labels: event.labels,
+        projectName: state.title,
+        fileTypeLabel: event.fileTypeLabel,
+        episodeTag: event.episodeTag,
+        shareAnchor: event.shareAnchor,
+      );
+      if (outcome == null) {
+        // The user cancelled the save dialog.
+        return;
+      }
+
+      emitter(
+        state.copyWith(
+          ioNotice: OcptShotListIoNotice(
+            kind: OcptShotListIoNoticeKind.floorPlansExportSucceeded,
+            path: outcome.savedPath,
+            wasShared: outcome.wasShared,
+          ),
+        ),
+      );
+    } catch (error) {
+      appLogger().e("A problem occurred when tried to export the floor plans of the project at "
+          "${_projectsManager.currentProject?.path}: $error");
+      emitter(
+        state.copyWith(
+          ioNotice: const OcptShotListIoNotice(kind: OcptShotListIoNoticeKind.floorPlansExportFailed),
         ),
       );
     }
