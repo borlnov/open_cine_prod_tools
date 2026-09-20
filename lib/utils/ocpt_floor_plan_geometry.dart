@@ -28,6 +28,29 @@ const double ocptFloorPlanDefaultCameraFovDeg = 50;
 /// never mistaken for a piece of furniture.
 const double ocptFloorPlanHandPropFootprintM = 0.2;
 
+/// A character disc's own fill opacity, over its `OcptFloorPlanSymbolShape.colorArgb` — the
+/// validated glyph's low, name-derived tint (never a solid block, never white), read by the canvas
+/// painter and the PDF service alike.
+const double ocptFloorPlanCharacterDiscFillAlpha = 0.22;
+
+/// The width, in logical pixels on the canvas and in points on the PDF, a character disc's own
+/// stroke is drawn at — always in the character's own colour.
+const double ocptFloorPlanCharacterStrokeWidth = 2.5;
+
+/// How far past its own disc's rim a character's facing notch reaches, in logical pixels on the
+/// canvas and points on the PDF — a short tick, not a long nose.
+const double ocptFloorPlanCharacterNoseRimOffset = 6;
+
+/// The angle, in radians, each of a character's own two arms opens from the facing direction —
+/// the validated glyph's own ±66°, both arms pointing forward rather than back.
+const double ocptFloorPlanCharacterArmAngleRad = 1.15;
+
+/// Where a character's own arm starts, as a fraction of the disc's own radius, from its centre.
+const double ocptFloorPlanCharacterArmStartFactor = 0.55;
+
+/// Where a character's own arm ends, as a fraction of the disc's own radius, from its centre.
+const double ocptFloorPlanCharacterArmEndFactor = 1.35;
+
 /// The default footprint, in metres, a sequence-scoped symbol with no [OcptFloorPlanLayer]-specific
 /// default of its own (furniture, a fixed prop, a décor mark) is drawn at, before a per-symbol
 /// [OcptFloorPlanLayer]-null `widthM`/`heightM` override (v1: never set, see

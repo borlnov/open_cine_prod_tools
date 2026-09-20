@@ -128,6 +128,25 @@ OcptFloorPlanSymbol _characterSymbolOf({
   setElementShape: null,
 );
 
+/// A sequence-scoped character symbol on [setId] — never ghosted, always drawn (on the bare-décor
+/// page too, since it carries no `shotId`), unlike [_characterSymbolOf]'s own shot-scoped one.
+OcptFloorPlanSymbol _sequenceCharacterSymbolOf({required String id, required String setId}) =>
+    OcptFloorPlanSymbol(
+      id: id,
+      setId: setId,
+      shotId: null,
+      layer: OcptFloorPlanLayer.characters,
+      sortKey: "a",
+      xM: 0,
+      yM: 0,
+      rotationDeg: 0,
+      widthM: null,
+      heightM: null,
+      fovDeg: null,
+      label: "Sam",
+      setElementShape: null,
+    );
+
 /// A sequence-scoped décor symbol on [setId], drawn as [shape] (defaulting to freeform, today's
 /// generic look, when unset).
 OcptFloorPlanSymbol _decorSymbolOf({
@@ -465,6 +484,57 @@ void main() {
     });
   });
 
+  group("the character glyph and the camera label pill", () {
+    test("a character's own facing indicator (rim notch and arms) never draws in plain white", () async {
+      // Sequence-scoped, so it draws on the bare-décor page even with no camera anywhere on this
+      // case — the one page this case's set of symbols can ever draw with no camera label pill
+      // (see the sibling test below) to also contribute a white fill/stroke of its own.
+      final bytes = await generate(
+        snapshot: snapshotOf(1),
+        floorPlanSnapshot: OcptFloorPlanSnapshot.build(
+          screenplayId: "screenplay",
+          setsBySceneId: {
+            "scene-1": [
+              buildCase(id: "case-1", symbols: [_sequenceCharacterSymbolOf(id: "char-0", setId: "case-1")]),
+            ],
+          },
+        ),
+      );
+
+      final inflated = _inflatedContentOf(bytes);
+
+      expect(inflated, isNot(contains("1 1 1 rg")));
+      expect(inflated, isNot(contains("1 1 1 RG")));
+    });
+
+    test("a camera's own derived label draws white text on a filled pill; a page with no camera "
+        "never draws that white at all", () async {
+      final withCamera = await generate(
+        snapshot: snapshotOf(1),
+        floorPlanSnapshot: OcptFloorPlanSnapshot.build(
+          screenplayId: "screenplay",
+          setsBySceneId: {
+            "scene-1": [
+              buildCase(id: "case-1", symbols: [_cameraSymbolOf(id: "cam-0", setId: "case-1", shotId: "shot-0")]),
+            ],
+          },
+        ),
+      );
+      final decorOnly = await generate(
+        snapshot: snapshotOf(1),
+        floorPlanSnapshot: OcptFloorPlanSnapshot.build(
+          screenplayId: "screenplay",
+          setsBySceneId: {
+            "scene-1": [buildCase(id: "case-1", symbols: [_decorSymbolOf(id: "sym-1", setId: "case-1")])],
+          },
+        ),
+      );
+
+      expect(_inflatedContentOf(withCamera), contains("1 1 1 rg"));
+      expect(_inflatedContentOf(decorOnly), isNot(contains("1 1 1 rg")));
+    });
+  });
+
   group("the underlay", () {
     OcptFloorPlanSnapshot snapshotWithUnderlay(String? underlayPath, {double rotationDeg = 0}) =>
         OcptFloorPlanSnapshot.build(
@@ -547,4 +617,20 @@ List<String> _contentStreams(Uint8List bytes) {
   final text = latin1.decode(bytes, allowInvalid: true);
   final pattern = RegExp(r"stream\r?\n(.*?)endstream", dotAll: true);
   return [for (final match in pattern.allMatches(text)) match.group(1)!];
+}
+
+/// Every content stream of [bytes], inflated and joined — what a test greps a literal PDF
+/// operator sequence (a colour's own `r g b rg`/`RG`) out of, since `Document` compresses every
+/// stream by default. See `ocpt_scenario_coverage_pdf_service_test.dart`'s own copy of this
+/// helper.
+String _inflatedContentOf(Uint8List bytes) =>
+    [for (final stream in _contentStreams(bytes)) _inflated(stream) ?? ""].join("\n");
+
+/// [stream] inflated, or null when it is not a deflated stream at all.
+String? _inflated(String stream) {
+  try {
+    return latin1.decode(ZLibDecoder().convert(latin1.encode(stream)));
+  } on FormatException {
+    return null;
+  }
 }

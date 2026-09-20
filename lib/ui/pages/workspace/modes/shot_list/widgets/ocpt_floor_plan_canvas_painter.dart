@@ -444,7 +444,7 @@ class OcptFloorPlanCanvasPainter extends CustomPainter {
 
     switch (symbol.glyphKind) {
       case OcptFloorPlanSymbolGlyphKind.character:
-        _paintCharacterGlyph(canvas, rect, color, opacity, borderColor, borderWidth);
+        _paintCharacterGlyph(canvas, rect, color, opacity, borderColor, borderWidth, isSelected);
       case OcptFloorPlanSymbolGlyphKind.camera:
         _paintCameraGlyph(
           canvas,
@@ -455,6 +455,7 @@ class OcptFloorPlanCanvasPainter extends CustomPainter {
           borderWidth,
           symbol.cameraFovWedgeDeg,
           pixelsPerMetre,
+          symbol.cameraLabel,
         );
       case OcptFloorPlanSymbolGlyphKind.light:
         _paintLightGlyph(canvas, rect, color, opacity, borderColor, borderWidth, pixelsPerMetre);
@@ -482,18 +483,29 @@ class OcptFloorPlanCanvasPainter extends CustomPainter {
 
     canvas.restore();
 
-    if (symbol.label.isNotEmpty) {
+    // A camera with its own derived label draws it as a filled pill attached to its body (inside
+    // `_paintCameraGlyph`, still under the rotate transform above) instead of the generic
+    // below-symbol caption every other glyph — and a camera with no derived label yet (its shot's
+    // rank not known) falls back to that generic caption, same as before.
+    final isCameraWithDerivedLabel =
+        symbol.glyphKind == OcptFloorPlanSymbolGlyphKind.camera &&
+        (symbol.cameraLabel ?? "").isNotEmpty;
+    if (!isCameraWithDerivedLabel && symbol.label.isNotEmpty) {
       _paintLabel(canvas, Offset(centre.dx, centre.dy + heightPx / 2 + 4), symbol.label);
     }
   }
 
   /// A character's own filled disc, in its own derived [color] (`ocptFloorPlanCharacterColourOf`
-  /// — resolved once, into [OcptFloorPlanSymbolShape.colorArgb], by `OcptFloorPlanSheet`), with a
-  /// facing indicator (a small nose plus two short arms) drawn pointing local "up" — 0° rotation
-  /// means facing up, clockwise positive, the same bearing convention
+  /// — resolved once, into [OcptFloorPlanSymbolShape.colorArgb], by `OcptFloorPlanSheet`), never
+  /// white: a ~22% fill of [color] ([ocptFloorPlanCharacterDiscFillAlpha]) with a
+  /// [ocptFloorPlanCharacterStrokeWidth] stroke in that same colour, plus a facing indicator (a
+  /// short rim notch and two forward arms, both in [color] too) drawn pointing local "up" — 0°
+  /// rotation means facing up, clockwise positive, the same bearing convention
   /// `OcptFloorPlanCanvas._updateRotateDrag` already reads a rotate-handle drag through — so the
   /// canvas's own `rotate` call (already applied by [_paintSymbol]) turns it to the symbol's own
-  /// heading for free.
+  /// heading for free. [isSelected] draws an extra ring, in [borderColor]/[borderWidth], around the
+  /// disc — the disc's own stroke no longer doubles as the selection indicator now that it is
+  /// always [color], never [borderColor].
   void _paintCharacterGlyph(
     Canvas canvas,
     Rect rect,
@@ -501,23 +513,46 @@ class OcptFloorPlanCanvasPainter extends CustomPainter {
     double opacity,
     Color borderColor,
     double borderWidth,
+    bool isSelected,
   ) {
     final radius = math.min(rect.width, rect.height) / 2;
-    canvas.drawCircle(Offset.zero, radius, Paint()..color = color.withValues(alpha: opacity));
+
+    canvas.drawCircle(
+      Offset.zero,
+      radius,
+      Paint()..color = color.withValues(alpha: ocptFloorPlanCharacterDiscFillAlpha * opacity),
+    );
     canvas.drawCircle(
       Offset.zero,
       radius,
       Paint()
-        ..color = borderColor
+        ..color = color.withValues(alpha: opacity)
         ..style = PaintingStyle.stroke
-        ..strokeWidth = borderWidth,
+        ..strokeWidth = ocptFloorPlanCharacterStrokeWidth,
     );
 
-    final indicatorColor = Colors.white.withValues(alpha: opacity);
+    if (isSelected) {
+      canvas.drawCircle(
+        Offset.zero,
+        radius + 3,
+        Paint()
+          ..color = borderColor
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = borderWidth,
+      );
+    }
+
+    // 0° = local "up", clockwise positive — the same convention `_paintCameraGlyph`'s own wedge
+    // reads its `left`/`right` reach through.
+    Offset directionAt(double angleRad) => Offset(math.sin(angleRad), -math.cos(angleRad));
+
+    final indicatorColor = color.withValues(alpha: opacity);
+    final noseHalfWidth = math.max(2, radius * 0.22).toDouble();
+    final noseTip = directionAt(0) * (radius + ocptFloorPlanCharacterNoseRimOffset);
     final nosePath = Path()
-      ..moveTo(-radius * 0.22, -radius * 0.15)
-      ..lineTo(0, -radius * 1.6)
-      ..lineTo(radius * 0.22, -radius * 0.15)
+      ..moveTo(-noseHalfWidth, -radius)
+      ..lineTo(noseTip.dx, noseTip.dy)
+      ..lineTo(noseHalfWidth, -radius)
       ..close();
     canvas.drawPath(nosePath, Paint()..color = indicatorColor);
 
@@ -525,21 +560,21 @@ class OcptFloorPlanCanvasPainter extends CustomPainter {
       ..color = indicatorColor
       ..strokeWidth = math.max(1.5, radius * 0.18)
       ..strokeCap = StrokeCap.round;
-    canvas.drawLine(
-      Offset(-radius * 0.3, -radius * 0.05),
-      Offset(-radius * 1.15, radius * 0.5),
-      armPaint,
-    );
-    canvas.drawLine(
-      Offset(radius * 0.3, -radius * 0.05),
-      Offset(radius * 1.15, radius * 0.5),
-      armPaint,
-    );
+    for (final sign in [-1, 1]) {
+      final direction = directionAt(sign * ocptFloorPlanCharacterArmAngleRad);
+      canvas.drawLine(
+        direction * (radius * ocptFloorPlanCharacterArmStartFactor),
+        direction * (radius * ocptFloorPlanCharacterArmEndFactor),
+        armPaint,
+      );
+    }
   }
 
-  /// A camera's own body, lens and, while [fovWedgeDeg] is set, its field-of-view wedge — a cone
-  /// [_cameraFovWedgeLengthM] long, spanning [fovWedgeDeg], pointing local "up" (the camera's own
-  /// heading, see [_paintCharacterGlyph]'s own doc comment for the shared bearing convention).
+  /// A camera's own body, lens, its own derived [cameraLabel] as a filled pill attached to its
+  /// back edge (drawn after the body/lens, opposite the lens' own "forward" direction) and, while
+  /// [fovWedgeDeg] is set, its field-of-view wedge — a cone [_cameraFovWedgeLengthM] long, spanning
+  /// [fovWedgeDeg], pointing local "up" (the camera's own heading, see [_paintCharacterGlyph]'s own
+  /// doc comment for the shared bearing convention).
   void _paintCameraGlyph(
     Canvas canvas,
     Rect rect,
@@ -549,6 +584,7 @@ class OcptFloorPlanCanvasPainter extends CustomPainter {
     double borderWidth,
     double? fovWedgeDeg,
     double pixelsPerMetre,
+    String? cameraLabel,
   ) {
     if (fovWedgeDeg != null) {
       final halfAngle = fovWedgeDeg * math.pi / 180 / 2;
@@ -591,6 +627,42 @@ class OcptFloorPlanCanvasPainter extends CustomPainter {
         ..color = borderColor
         ..style = PaintingStyle.stroke
         ..strokeWidth = 1,
+    );
+
+    if (cameraLabel != null && cameraLabel.isNotEmpty) {
+      _paintCameraLabelPill(canvas, rect, color, opacity, cameraLabel);
+    }
+  }
+
+  /// The camera's own derived [cameraLabel] (`3A`), as a filled pill near/behind its body — anchored
+  /// on the back edge (the "down"/local `+y` side, opposite the lens), drawn wider than the body so
+  /// it reads as a badge the camera sits on rather than a caption competing with `_paintLabel`'s own
+  /// below-symbol placement (skipped for a camera whose label this pill already draws).
+  void _paintCameraLabelPill(Canvas canvas, Rect rect, Color color, double opacity, String cameraLabel) {
+    final textPainter = TextPainter(
+      text: TextSpan(
+        text: cameraLabel,
+        style: TextStyle(
+          color: Colors.white.withValues(alpha: opacity),
+          fontSize: 10,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+      textDirection: ui.TextDirection.ltr,
+    )..layout();
+
+    final pillWidth = math.max(rect.width, textPainter.width + 10);
+    final pillHeight = textPainter.height + 4;
+    final pillCentre = Offset(0, rect.height / 2);
+    final pillRect = Rect.fromCenter(center: pillCentre, width: pillWidth, height: pillHeight);
+
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(pillRect, Radius.circular(pillHeight / 2)),
+      Paint()..color = color.withValues(alpha: opacity),
+    );
+    textPainter.paint(
+      canvas,
+      Offset(pillCentre.dx - textPainter.width / 2, pillCentre.dy - textPainter.height / 2),
     );
   }
 

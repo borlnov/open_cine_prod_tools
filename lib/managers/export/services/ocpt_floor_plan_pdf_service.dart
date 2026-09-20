@@ -471,8 +471,11 @@ class OcptFloorPlanPdfService {
     _paintScaleAndSilhouette(canvas: canvas, layout: layout);
   }
 
-  /// One [pw.Positioned] [pw.Text] per symbol carrying a caption (its own free label, or a
-  /// camera's derived number/letter), placed at the symbol's own mapped centre.
+  /// One [pw.Positioned] caption per symbol that carries one, placed near the symbol's own mapped
+  /// centre: a camera's own derived number/letter ([OcptFloorPlanSymbolShape.cameraLabel], when
+  /// set) as a filled pill in the camera's own colour — the printed equivalent of
+  /// `OcptFloorPlanCanvasPainter._paintCameraLabelPill` — every other symbol's own free
+  /// [OcptFloorPlanSymbolShape.label] as plain text, as before.
   List<pw.Widget> _captionOverlays({
     required OcptFloorPlanSheet sheet,
     required _FloorPlanPageLayout layout,
@@ -482,12 +485,32 @@ class OcptFloorPlanPdfService {
       if ((symbol.cameraLabel ?? symbol.label).isNotEmpty)
         _positionedTopDown(
           layout.topDownPointOf(symbol.xM, symbol.yM) + const Offset(4, 4),
-          pw.Text(
-            symbol.cameraLabel ?? symbol.label,
-            style: pw.TextStyle(font: painter.fonts.bold, fontSize: _symbolLabelFontSizePt),
-          ),
+          symbol.cameraLabel != null && symbol.cameraLabel!.isNotEmpty
+              ? _cameraLabelPill(cameraLabel: symbol.cameraLabel!, colorArgb: symbol.colorArgb, painter: painter)
+              : pw.Text(
+                  symbol.label,
+                  style: pw.TextStyle(font: painter.fonts.bold, fontSize: _symbolLabelFontSizePt),
+                ),
         ),
   ];
+
+  /// A camera's own derived [cameraLabel] (`3A`), as a filled pill in [colorArgb] — the mockup's
+  /// own filled-pill style, white bold text on the camera's own colour.
+  pw.Widget _cameraLabelPill({
+    required String cameraLabel,
+    required int colorArgb,
+    required OcptScriptPagePainter painter,
+  }) => pw.Container(
+    padding: const pw.EdgeInsets.symmetric(horizontal: 4, vertical: 1.5),
+    decoration: pw.BoxDecoration(
+      color: PdfColor.fromInt(colorArgb),
+      borderRadius: pw.BorderRadius.circular(_symbolLabelFontSizePt),
+    ),
+    child: pw.Text(
+      cameraLabel,
+      style: pw.TextStyle(font: painter.fonts.bold, fontSize: _symbolLabelFontSizePt, color: PdfColors.white),
+    ),
+  );
 
   /// The scale bar's own printed length, positioned just above the bar [layout] placed.
   pw.Widget _scaleBarLabelOverlay({
@@ -576,9 +599,12 @@ class OcptFloorPlanPdfService {
   }
 
   /// A character's own filled disc, in its own derived colour (`ocptFloorPlanCharacterColourOf` —
-  /// resolved once, into [OcptFloorPlanSymbolShape.colorArgb], by `OcptFloorPlanSheet`), with a
-  /// facing indicator (a small nose plus two short arms) pointing the symbol's own "up" — see
-  /// [_localPointGraphics]'s own doc comment for the shared bearing convention.
+  /// resolved once, into [OcptFloorPlanSymbolShape.colorArgb], by `OcptFloorPlanSheet`), never
+  /// white: a [ocptFloorPlanCharacterDiscFillAlpha] fill with a [ocptFloorPlanCharacterStrokeWidth]
+  /// stroke, both in that same colour, plus a facing indicator (a short rim notch and two forward
+  /// arms, both in that colour too) pointing the symbol's own "up" — see [_localPointGraphics]'s own
+  /// doc comment for the shared bearing convention. Mirrors `OcptFloorPlanCanvasPainter
+  /// ._paintCharacterGlyph`'s own geometry exactly, so paper and screen agree.
   void _paintCharacterGlyph({
     required PdfGraphics canvas,
     required _FloorPlanPageLayout layout,
@@ -590,38 +616,47 @@ class OcptFloorPlanPdfService {
     final radiusPt = radiusM * layout.pixelsPerMetre;
 
     canvas
-      ..setColor(color)
+      ..setFillColor(PdfColor(color.red, color.green, color.blue, ocptFloorPlanCharacterDiscFillAlpha).flatten())
       ..drawEllipse(centre.dx, centre.dy, radiusPt, radiusPt)
       ..fillPath();
     canvas
       ..setColor(color)
-      ..setLineWidth(_symbolStrokeWidthPt)
+      ..setLineWidth(ocptFloorPlanCharacterStrokeWidth)
       ..drawEllipse(centre.dx, centre.dy, radiusPt, radiusPt)
       ..strokePath();
 
     Offset local(double xM, double yM) =>
         _localPointGraphics(layout: layout, symbol: symbol, localXM: xM, localYM: yM);
 
-    final noseLeft = local(-radiusM * 0.22, -radiusM * 0.15);
-    final noseTip = local(0, -radiusM * 1.6);
-    final noseRight = local(radiusM * 0.22, -radiusM * 0.15);
+    // The unit direction at [angleRad] from local "up" (0° = up, clockwise positive) — the same
+    // convention `_paintCameraGlyph`'s own wedge reads its `left`/`right` reach through.
+    Offset unitDirectionAt(double angleRad) => Offset(math.sin(angleRad), -math.cos(angleRad));
+
+    final noseRimOffsetM = ocptFloorPlanCharacterNoseRimOffset / layout.pixelsPerMetre;
+    final noseTipVector = unitDirectionAt(0) * (radiusM + noseRimOffsetM);
+    final noseHalfWidthM = math.max(2 / layout.pixelsPerMetre, radiusM * 0.22);
+    final noseLeft = local(-noseHalfWidthM, -radiusM);
+    final noseTip = local(noseTipVector.dx, noseTipVector.dy);
+    final noseRight = local(noseHalfWidthM, -radiusM);
     canvas
-      ..setFillColor(PdfColors.white)
+      ..setFillColor(color)
       ..moveTo(noseLeft.dx, noseLeft.dy)
       ..lineTo(noseTip.dx, noseTip.dy)
       ..lineTo(noseRight.dx, noseRight.dy)
       ..fillPath();
 
-    final armLeftStart = local(-radiusM * 0.3, -radiusM * 0.05);
-    final armLeftEnd = local(-radiusM * 1.15, radiusM * 0.5);
-    final armRightStart = local(radiusM * 0.3, -radiusM * 0.05);
-    final armRightEnd = local(radiusM * 1.15, radiusM * 0.5);
     canvas
-      ..setColor(PdfColors.white)
-      ..setLineWidth(1)
-      ..drawLine(armLeftStart.dx, armLeftStart.dy, armLeftEnd.dx, armLeftEnd.dy)
-      ..drawLine(armRightStart.dx, armRightStart.dy, armRightEnd.dx, armRightEnd.dy)
-      ..strokePath();
+      ..setColor(color)
+      ..setLineWidth(1);
+    for (final sign in [-1, 1]) {
+      final direction = unitDirectionAt(sign * ocptFloorPlanCharacterArmAngleRad);
+      final armStartVector = direction * (radiusM * ocptFloorPlanCharacterArmStartFactor);
+      final armEndVector = direction * (radiusM * ocptFloorPlanCharacterArmEndFactor);
+      final armStart = local(armStartVector.dx, armStartVector.dy);
+      final armEnd = local(armEndVector.dx, armEndVector.dy);
+      canvas.drawLine(armStart.dx, armStart.dy, armEnd.dx, armEnd.dy);
+    }
+    canvas.strokePath();
   }
 
   /// A camera's own body, lens and, while [OcptFloorPlanSymbolShape.cameraFovWedgeDeg] is set, its
