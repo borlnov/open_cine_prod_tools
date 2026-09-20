@@ -60,6 +60,7 @@ void main() {
         isReadOnly: false,
         onPanelSelected: (_) {},
         onReplaceRequested: (_) {},
+        onDeleteRequested: (_) {},
         onImportRequested: () {},
         onReordered: (_, __) {},
         activeAnnotationTool: null,
@@ -87,6 +88,7 @@ void main() {
         isReadOnly: false,
         onPanelSelected: selected.add,
         onReplaceRequested: (_) {},
+        onDeleteRequested: (_) {},
         onImportRequested: () {},
         onReordered: (_, __) {},
         activeAnnotationTool: null,
@@ -103,8 +105,43 @@ void main() {
     expect(selected, ["p2"]);
   });
 
+  testWidgets("the frame's own delete affordance reports its panel's id, asking only", (
+    tester,
+  ) async {
+    final deleteRequested = <String>[];
+
+    await _pumpStrip(
+      tester,
+      OcptStoryboardPanelStrip(
+        panels: [_panel("p1"), _panel("p2")],
+        aspectRatio: 16 / 9,
+        height: 160,
+        selectedPanelId: null,
+        isReadOnly: false,
+        onPanelSelected: (_) {},
+        onReplaceRequested: (_) {},
+        onDeleteRequested: deleteRequested.add,
+        onImportRequested: () {},
+        onReordered: (_, __) {},
+        activeAnnotationTool: null,
+        selectedAnnotationId: null,
+        onAnnotationDrawn: (_, __, ___, ____, _____, ______) {},
+        onLabelPlaced: (_, __, ___) {},
+        onAnnotationSelected: (_) {},
+      ),
+    );
+
+    // The frame itself only ever asks: the widget under test reports the panel's id and does
+    // nothing else — no confirm dialog of its own, that is the mode's own job (see the class doc
+    // comment).
+    await tester.tap(find.byIcon(Icons.delete_outline).last);
+    await tester.pump();
+
+    expect(deleteRequested, ["p2"]);
+  });
+
   testWidgets(
-    "read-only withholds the import slot, the replace action and reordering, "
+    "read-only withholds the import slot, the replace/delete actions and reordering, "
     "while selecting still reports",
     (tester) async {
       await _pumpStrip(
@@ -117,6 +154,7 @@ void main() {
           isReadOnly: true,
           onPanelSelected: (_) {},
           onReplaceRequested: null,
+          onDeleteRequested: null,
           onImportRequested: null,
           onReordered: null,
           activeAnnotationTool: null,
@@ -138,8 +176,10 @@ void main() {
       );
       expect(inkWell.onTap, isNull);
 
-      // The frame's own `Replace image` icon button is never built at all while withheld.
+      // The frame's own `Replace image` and `Delete panel` icon buttons are never built at all
+      // while withheld.
       expect(find.byIcon(Icons.swap_horiz), findsNothing);
+      expect(find.byIcon(Icons.delete_outline), findsNothing);
     },
   );
 
@@ -154,6 +194,7 @@ void main() {
         isReadOnly: false,
         onPanelSelected: (_) {},
         onReplaceRequested: (_) {},
+        onDeleteRequested: (_) {},
         onImportRequested: () {},
         onReordered: (_, __) {},
         activeAnnotationTool: null,
@@ -180,6 +221,7 @@ void main() {
         isReadOnly: false,
         onPanelSelected: (_) {},
         onReplaceRequested: (_) {},
+        onDeleteRequested: (_) {},
         onImportRequested: () {},
         onReordered: (_, __) {},
         activeAnnotationTool: OcptStoryboardAnnotationTool.movementArrow,
@@ -214,6 +256,7 @@ void main() {
         isReadOnly: false,
         onPanelSelected: (_) {},
         onReplaceRequested: (_) {},
+        onDeleteRequested: (_) {},
         onImportRequested: () {},
         onReordered: (panelId, _) => reordered.add(panelId),
         activeAnnotationTool: tool,

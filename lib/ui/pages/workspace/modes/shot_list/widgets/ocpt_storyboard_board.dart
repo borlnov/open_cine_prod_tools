@@ -57,6 +57,10 @@ class OcptStoryboardBoard extends StatelessWidget {
   /// withheld.
   final ValueChanged<String>? onReplaceRequested;
 
+  /// Called with a panel's id when its own `Delete panel` action is clicked — only asks, see
+  /// `OcptStoryboardPanelFrame`'s own doc comment — or null while withheld.
+  final ValueChanged<String>? onDeleteRequested;
+
   /// Called with a shot's id, a panel's id and its new 0-based position when a strip's own frame is
   /// dragged to reorder, or null while withheld.
   final void Function(String shotId, String panelId, int newPosition)? onPanelReordered;
@@ -102,6 +106,7 @@ class OcptStoryboardBoard extends StatelessWidget {
     required this.onPanelSelected,
     required this.onImportRequested,
     required this.onReplaceRequested,
+    required this.onDeleteRequested,
     required this.onPanelReordered,
     required this.activeAnnotationTool,
     required this.selectedAnnotationId,
@@ -145,6 +150,7 @@ class OcptStoryboardBoard extends StatelessWidget {
           onPanelSelected: onPanelSelected,
           onImportRequested: onImportRequested == null ? null : () => onImportRequested!(shot.id),
           onReplaceRequested: onReplaceRequested,
+          onDeleteRequested: onDeleteRequested,
           onPanelReordered: onPanelReordered == null
               ? null
               : (panelId, newPosition) => onPanelReordered!(shot.id, panelId, newPosition),
@@ -197,6 +203,10 @@ class OcptStoryboardShotRow extends StatelessWidget {
   /// withheld.
   final ValueChanged<String>? onReplaceRequested;
 
+  /// Called with a panel's id when its own `Delete panel` action is clicked — only asks, see
+  /// `OcptStoryboardPanelFrame`'s own doc comment — or null while withheld.
+  final ValueChanged<String>? onDeleteRequested;
+
   /// Called with a panel's id and its new 0-based position when a frame of this row is dragged to
   /// reorder, or null while withheld.
   final void Function(String panelId, int newPosition)? onPanelReordered;
@@ -242,6 +252,7 @@ class OcptStoryboardShotRow extends StatelessWidget {
     required this.onPanelSelected,
     required this.onImportRequested,
     required this.onReplaceRequested,
+    required this.onDeleteRequested,
     required this.onPanelReordered,
     required this.activeAnnotationTool,
     required this.selectedAnnotationId,
@@ -286,6 +297,7 @@ class OcptStoryboardShotRow extends StatelessWidget {
               isReadOnly: isReadOnly,
               onPanelSelected: onPanelSelected,
               onReplaceRequested: onReplaceRequested,
+              onDeleteRequested: onDeleteRequested,
               onImportRequested: onImportRequested,
               onReordered: onPanelReordered,
               activeAnnotationTool: activeAnnotationTool,

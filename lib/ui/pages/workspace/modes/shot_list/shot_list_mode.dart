@@ -748,6 +748,9 @@ class _ShotListViewState extends State<_ShotListView> {
                 fileTypeLabel: tr.shotListBoardImageFileTypeLabel,
               ),
             ),
+      onDeleteRequested: isReadOnly
+          ? null
+          : (panelId) => unawaited(_handlePanelDeleteRequested(context, panelId)),
       onPanelReordered: isReadOnly
           ? null
           : (shotId, panelId, newPosition) => bloc.add(

@@ -35,6 +35,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_storyboard_annotation_painter.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_storyboard_board.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_storyboard_panel_strip.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_storyboard_panels_group.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_storyboard_shot_leader_card.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/workspace_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/workspace_event.dart';
@@ -547,7 +548,51 @@ void main() {
         expect(bloc.state.panelsOfShot(shotId), hasLength(1));
 
         // The inspector's Panels group own `Delete panel` action only asks.
-        await tester.tap(find.byIcon(Icons.delete_outline));
+        await tester.tap(
+          find.descendant(
+            of: find.byType(OcptStoryboardPanelsGroup),
+            matching: find.byIcon(Icons.delete_outline),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.byType(OcptConfirmDialog), findsOneWidget);
+        expect(bloc.state.panelsOfShot(shotId), hasLength(1));
+
+        await tester.tap(find.text(tr.shotListDeleteConfirmDeleteAction));
+        await tester.pumpAndSettle();
+
+        expect(bloc.state.panelsOfShot(shotId), isEmpty);
+      },
+    );
+
+    testWidgets(
+      "the board's own frame shows a Delete panel action too, asking through the same "
+      "confirm dialog before removing it",
+      (tester) async {
+        useFileSelectorManager(const _StubFileSelectorManager(pickedPath: "/frames/a.png"));
+
+        final bloc = await mountWithASelectedShot(tester);
+        final shotId = bloc.state.selectedShotId!;
+        final tr = Tr.of(tester.element(find.byType(OcptShotListMode)));
+
+        await tester.tap(find.text(tr.shotListBoardBoardSegmentLabel));
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.byIcon(Icons.add_photo_alternate_outlined));
+        await tester.pumpAndSettle();
+
+        expect(bloc.state.panelsOfShot(shotId), hasLength(1));
+
+        // The frame's own `Delete panel` action, drawn on the panel itself — not the inspector's —
+        // only asks, exactly like the inspector's Panels group action above.
+        final boardDeleteFinder = find.descendant(
+          of: find.byType(OcptStoryboardPanelFrame),
+          matching: find.byIcon(Icons.delete_outline),
+        );
+        await tester.ensureVisible(boardDeleteFinder);
+        await tester.pumpAndSettle();
+        await tester.tap(boardDeleteFinder);
         await tester.pumpAndSettle();
 
         expect(find.byType(OcptConfirmDialog), findsOneWidget);
@@ -602,8 +647,9 @@ void main() {
       );
       expect(importInkWell.onTap, isNull);
 
-      // Selecting the shot is never withheld (it only reads), and once selected its Panels
-      // group's `Delete panel` icon is never built at all.
+      // Selecting the shot is never withheld (it only reads), and once selected neither the
+      // Panels group's own `Delete panel` icon nor the board frame's own copy of it is built at
+      // all.
       await tester.tap(find.byType(OcptStoryboardShotLeaderCard));
       await tester.pumpAndSettle();
       expect(previewedBloc.state.selectedShotId, isNotNull);

@@ -55,6 +55,12 @@ class OcptStoryboardPanelStrip extends StatelessWidget {
   /// withheld.
   final ValueChanged<String>? onReplaceRequested;
 
+  /// Called with a panel's id when its own `Delete panel` action is clicked — only asks, the mode
+  /// opens `OcptConfirmDialog` and dispatches the same deletion `OcptStoryboardPanelsGroup`'s own
+  /// `Delete panel` action does, see `OcptStoryboardPanelFrame`'s own doc comment — or null while
+  /// withheld.
+  final ValueChanged<String>? onDeleteRequested;
+
   /// Called when the trailing `+ Import frame` slot is clicked, or null while withheld.
   final VoidCallback? onImportRequested;
 
@@ -100,6 +106,7 @@ class OcptStoryboardPanelStrip extends StatelessWidget {
     required this.isReadOnly,
     required this.onPanelSelected,
     required this.onReplaceRequested,
+    required this.onDeleteRequested,
     required this.onImportRequested,
     required this.onReordered,
     required this.activeAnnotationTool,
@@ -168,6 +175,9 @@ class OcptStoryboardPanelStrip extends StatelessWidget {
                     onReplaceRequested: onReplaceRequested == null
                         ? null
                         : () => onReplaceRequested!(panel.id),
+                    onDeleteRequested: onDeleteRequested == null
+                        ? null
+                        : () => onDeleteRequested!(panel.id),
                     activeAnnotationTool: isSelected ? activeAnnotationTool : null,
                     selectedAnnotationId: selectedAnnotationId,
                     onAnnotationDrawn: onAnnotationDrawn == null
@@ -275,6 +285,12 @@ class _ImportSlot extends StatelessWidget {
 /// other frame stays exactly as passive as it was before this overlay existed. While it is live,
 /// this frame's own `InkWell` (which otherwise selects the panel on tap) steps aside — the overlay
 /// already knows this panel is selected, so a tap there means something else now.
+///
+/// **Deleting the panel from the board** ([onDeleteRequested]) is the same two-step gesture as the
+/// inspector's own `OcptStoryboardPanelsGroup` `Delete panel` action: this frame only **asks**, the
+/// mode opens `OcptConfirmDialog` and dispatches `OcptShotListPanelDeletionRequestedEvent` itself —
+/// the very same handler the inspector's own action already calls, so a panel is never deleted
+/// through two different paths.
 class OcptStoryboardPanelFrame extends StatelessWidget {
   /// The panel this frame shows.
   final OcptStoryboardPanel panel;
@@ -302,6 +318,10 @@ class OcptStoryboardPanelFrame extends StatelessWidget {
 
   /// Called when this frame's own `Replace image` action is clicked, or null while withheld.
   final VoidCallback? onReplaceRequested;
+
+  /// Called when this frame's own `Delete panel` action is clicked — only asks, see the class doc
+  /// comment — or null while withheld.
+  final VoidCallback? onDeleteRequested;
 
   /// The annotation tool currently on for this exact frame, or null while gestures are withheld —
   /// see the class doc comment.
@@ -333,6 +353,7 @@ class OcptStoryboardPanelFrame extends StatelessWidget {
     required this.isReadOnly,
     required this.onTap,
     required this.onReplaceRequested,
+    required this.onDeleteRequested,
     required this.activeAnnotationTool,
     required this.selectedAnnotationId,
     required this.onAnnotationDrawn,
@@ -395,16 +416,30 @@ class OcptStoryboardPanelFrame extends StatelessWidget {
                   left: 4,
                   child: _RankBadge(rank: rank, total: total),
                 ),
-                if (onReplaceRequested != null)
+                if (onReplaceRequested != null || onDeleteRequested != null)
                   Positioned(
                     top: 2,
                     right: 2,
-                    child: IconButton(
-                      icon: const Icon(Icons.swap_horiz, size: 16),
-                      tooltip: tr.shotListBoardReplaceImageAction,
-                      color: Colors.white,
-                      visualDensity: VisualDensity.compact,
-                      onPressed: onReplaceRequested,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (onReplaceRequested != null)
+                          IconButton(
+                            icon: const Icon(Icons.swap_horiz, size: 16),
+                            tooltip: tr.shotListBoardReplaceImageAction,
+                            color: Colors.white,
+                            visualDensity: VisualDensity.compact,
+                            onPressed: onReplaceRequested,
+                          ),
+                        if (onDeleteRequested != null)
+                          IconButton(
+                            icon: const Icon(Icons.delete_outline, size: 16),
+                            tooltip: tr.shotListBoardDeletePanelAction,
+                            color: Colors.white,
+                            visualDensity: VisualDensity.compact,
+                            onPressed: onDeleteRequested,
+                          ),
+                      ],
                     ),
                   ),
               ],
