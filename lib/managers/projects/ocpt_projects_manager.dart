@@ -138,7 +138,7 @@ class OcptProjectsManager extends AbsWithLifeCycle {
   // ignore: do_not_use_environment
   static const _appVersion = String.fromEnvironment(
     "APP_VERSION",
-    defaultValue: "0.2.2",
+    defaultValue: "0.2.3",
   );
 
   /// The running build's own app version — see [_appVersion]'s own doc comment for where it comes

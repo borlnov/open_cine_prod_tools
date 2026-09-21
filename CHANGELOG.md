@@ -6,6 +6,20 @@ SPDX-License-Identifier: Apache-2.0
 
 # Changelog
 
+## 0.2.3
+
+A single, editable set control in the breakdown, and a delete action that
+stands out across the resources.
+
+- Breakdown: the scene sheet's two set controls — one to link an existing set,
+  one to create a new one under an automatic name — are now a single "+ Set"
+  popover that links an existing set or creates one under a name you can type,
+  pre-filled with the scene heading's place but editable before you save. A
+  just-created set is no longer stranded in the catalogue under a name you
+  could not change.
+- Resources: each sheet's delete action is now a solid red button rather than a
+  plain text one, so the sheet's one irreversible action stands out at a glance.
+
 ## 0.2.2
 
 Smoother passage tagging in the breakdown and the shot list, and a clearer
