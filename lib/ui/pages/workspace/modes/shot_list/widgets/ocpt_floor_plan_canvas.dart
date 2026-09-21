@@ -7,6 +7,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_floor_plan_set.dart';
@@ -41,6 +42,22 @@ const Duration _wheelZoomSettleDelay = Duration(milliseconds: 300);
 /// How much one scroll-wheel notch multiplies the zoom by.
 const double _wheelZoomStep = 0.08;
 
+/// How close, in logical pixels, a click has to land to an arrow's own shaft (straight or curved)
+/// to select it under the `select` tool.
+const double _arrowHitTolerancePx = 10;
+
+/// How close, in metres, a bent arrow's own control point has to end up to the straight from-to
+/// line for a drag on its midpoint handle to straighten it back out instead of writing a curve.
+const double _arrowStraightenToleranceM = 0.08;
+
+/// How many segments a curved arrow's own quadratic bezier is subdivided into for
+/// [_OcptFloorPlanCanvasState._distanceToArrowM]'s own hit test — coarse enough to stay cheap on
+/// every tap, fine enough that the sampled polyline never visibly diverges from the drawn curve.
+const int _arrowCurveHitTestSamples = 12;
+
+/// The angle, in degrees, a rotate-handle drag snaps to while `Shift` is held.
+const double _rotateSnapStepDeg = 15;
+
 /// The floor plans canvas: a `CustomPaint` of the `OcptFloorPlanSheet` the current focus builds
 /// for [floorPlanSet], under a `GestureDetector` (`docs/plans/storyboard.md`, §4.3).
 ///
@@ -71,11 +88,29 @@ const double _wheelZoomStep = 0.08;
 ///
 /// Placing a set element: pick the `setElement` tool, click → [onSymbolPlaced] into the tray's
 /// active sequence layer. Dragging a symbol moves it (one [onSymbolMoved] on drag end, in metres);
-/// dragging its own resize/rotate handle resizes/rotates it (one [onSymbolResized]/[onSymbolRotated]
-/// on drag end). Every write is **withheld** under [isReadOnly] (a null `onSymbolPlaced`/move/
-/// resize/rotate/delete/arrow/label closes the whole gesture, exactly as the board's null callbacks
-/// do); zoom, pan, selecting, the metrics overlay and the tray's own visibility toggles stay
-/// available, since they only read.
+/// dragging its own resize handle resizes it (one [onSymbolResized] on drag end); dragging its own
+/// **aim handle** points it (one [onSymbolRotated] on drag end, the pointer's own bearing around
+/// the symbol's centre computed in **canvas space** through `RenderBox.globalToLocal` — never the
+/// handle's own local position, which reads it relative to the handle's tiny hit box instead —
+/// holding `Shift` snaps it to [_rotateSnapStepDeg]° steps). A selected camera also draws two edge
+/// handles on its own field-of-view wedge; dragging either narrows or widens it (one
+/// [onSymbolFovChanged] on drag end, in degrees). `Ctrl+D` on the selected symbol, or an `Alt`-drag
+/// of any symbol (the drag preview follows the pointer exactly like a plain move, but on release the
+/// *source* symbol is left untouched and a new, independent copy is placed at the release point
+/// instead — [onSymbolDuplicateDragged]), duplicates it: never a link.
+///
+/// Every write is **withheld** under [isReadOnly] (a null `onSymbolPlaced`/move/resize/rotate/fov/
+/// delete/arrow/label/duplicate closes the whole gesture, exactly as the board's null callbacks do);
+/// zoom, pan, selecting, the metrics overlay and the tray's own visibility toggles stay available,
+/// since they only read.
+///
+/// **Arrow selection**: a click under `select` that lands within `_arrowHitTolerancePx` of a
+/// (non-ghost) arrow's own shaft (straight or curved, `_arrowHitAt`) selects it
+/// ([onArrowSelected]) instead of clearing the selection — mutually exclusive with a symbol's own
+/// selection. The selected arrow draws its own midpoint handle: dragging it bends the arrow through
+/// a live bezier control point (one [onArrowCurveChanged] on drag end), dropping it back onto the
+/// straight from-to line straightens it out again, and so does its own neighbouring straighten
+/// button once it already carries a curve.
 class OcptFloorPlanCanvas extends StatefulWidget {
   /// The set currently shown, or null while none is selected (the empty state).
   final OcptFloorPlanSet? floorPlanSet;
@@ -116,6 +151,10 @@ class OcptFloorPlanCanvas extends StatefulWidget {
 
   /// The id of the currently selected symbol, or null while none is.
   final String? selectedSymbolId;
+
+  /// The id of the currently selected arrow, or null while none is — its own midpoint handle only
+  /// draws while this names a live, non-ghost arrow of the sheet currently shown.
+  final String? selectedArrowId;
 
   /// The id of the symbol picked as the arrow tool's own pending first end, or null while none is.
   final String? pendingArrowAnchorSymbolId;
@@ -159,9 +198,13 @@ class OcptFloorPlanCanvas extends StatefulWidget {
   /// ends, or null while withheld.
   final void Function(String symbolId, double widthM, double heightM)? onSymbolResized;
 
-  /// Called with a symbol's id and its new rotation (degrees) once a drag on its own rotate handle
-  /// ends, or null while withheld.
+  /// Called with a symbol's id and its new rotation (degrees, bearing, 0° = up) once a drag on its
+  /// own aim handle ends, or null while withheld.
   final void Function(String symbolId, double rotationDeg)? onSymbolRotated;
+
+  /// Called with a camera symbol's id and its new field-of-view wedge angle (degrees) once a drag
+  /// on one of its own edge handles ends, or null while withheld.
+  final void Function(String symbolId, double fovDeg)? onSymbolFovChanged;
 
   /// Called with the selected symbol's id when its own delete action is clicked, or null while
   /// withheld. Only asks — the mode opens `OcptConfirmDialog`.
@@ -174,6 +217,26 @@ class OcptFloorPlanCanvas extends StatefulWidget {
   /// Called to cancel the arrow tool's own pending anchor — `Escape` or a click on empty canvas
   /// while it is on — or null while withheld (nothing pending, or a read-only preview).
   final VoidCallback? onArrowAnchorCancelled;
+
+  /// Called with an arrow's id when it is selected (a click near its own shaft under the `select`
+  /// tool), or null to clear the selection (a click on empty canvas, or on a symbol). Never
+  /// withheld: selecting only reads.
+  final ValueChanged<String?> onArrowSelected;
+
+  /// Called with an arrow's id and its new bezier control point (metres), or both null to
+  /// straighten it back out, once a drag on its own midpoint handle ends (or its own straighten
+  /// button is tapped) — or null while withheld.
+  final void Function(String arrowId, double? ctrlXM, double? ctrlYM)? onArrowCurveChanged;
+
+  /// Called with the selected symbol's id when `Ctrl+D` is pressed, duplicating it at a default
+  /// offset from its own source — or null while withheld. See [onSymbolDuplicateDragged] for the
+  /// `Alt`-drag variant, which reports an explicit position instead.
+  final ValueChanged<String>? onSymbolDuplicateRequested;
+
+  /// Called with a symbol's id and the release point (metres) of an `Alt`-drag on it, placing an
+  /// independent copy there and leaving the source symbol untouched at its own original position —
+  /// or null while withheld.
+  final void Function(String symbolId, double xM, double yM)? onSymbolDuplicateDragged;
 
   /// Called with a ghost symbol's own shot id when it is double-clicked, focusing it. Never
   /// withheld: focusing a shot only reads.
@@ -207,6 +270,7 @@ class OcptFloorPlanCanvas extends StatefulWidget {
     required this.hiddenCameraSymbolIds,
     required this.isUnderlayHidden,
     required this.selectedSymbolId,
+    required this.selectedArrowId,
     required this.pendingArrowAnchorSymbolId,
     required this.isMetricsShown,
     required this.activeTool,
@@ -219,9 +283,14 @@ class OcptFloorPlanCanvas extends StatefulWidget {
     required this.onSymbolMoved,
     required this.onSymbolResized,
     required this.onSymbolRotated,
+    required this.onSymbolFovChanged,
     required this.onSymbolDeleteRequested,
     required this.onArrowSymbolTapped,
     required this.onArrowAnchorCancelled,
+    required this.onArrowSelected,
+    required this.onArrowCurveChanged,
+    required this.onSymbolDuplicateRequested,
+    required this.onSymbolDuplicateDragged,
     required this.onGhostShotFocusRequested,
     required this.onSymbolLabelChanged,
     required this.onUnderlayTransformChanged,
@@ -233,9 +302,15 @@ class OcptFloorPlanCanvas extends StatefulWidget {
 }
 
 class _OcptFloorPlanCanvasState extends State<OcptFloorPlanCanvas> {
-  /// Which gesture the symbol drag currently in progress means (move, resize or rotate), or null
-  /// while none is — alongside [_liveOverride], which names *which* symbol.
+  /// Which gesture the symbol drag currently in progress means (move, resize, aim or field of
+  /// view), or null while none is — alongside [_liveOverride], which names *which* symbol.
   _SymbolDragKind? _dragKind;
+
+  /// Whether the drag currently in progress (always a [_SymbolDragKind.move] one) is an `Alt`-drag
+  /// duplicate: the live preview tracks the pointer exactly like a plain move, but
+  /// [_commitSymbolDrag] reports it through [OcptFloorPlanCanvas.onSymbolDuplicateDragged] instead
+  /// of [OcptFloorPlanCanvas.onSymbolMoved], leaving the source symbol at its own original position.
+  bool _isDuplicatingDrag = false;
 
   /// The dragged symbol's live geometry, updated every frame of the drag. See
   /// [OcptFloorPlanSymbolLiveOverride].
@@ -247,13 +322,39 @@ class _OcptFloorPlanCanvasState extends State<OcptFloorPlanCanvas> {
   /// Which gesture the current underlay drag means, or null alongside [_liveUnderlayFrame].
   _UnderlayDragKind? _underlayDragKind;
 
+  /// The id of the arrow whose own midpoint handle is currently being dragged, or null while none
+  /// is — alongside [_liveArrowCtrl], which carries its live control point.
+  String? _draggedArrowId;
+
+  /// The dragged arrow's own live bezier control point (metres), updated every frame of the drag.
+  ({double xM, double yM})? _liveArrowCtrl;
+
   /// The debounce timer settling a scroll-wheel zoom into [OcptFloorPlanCanvas.onZoomSettled].
   Timer? _wheelZoomSettleTimer;
+
+  /// The key of the `Stack` filling this canvas's own local coordinate space (the same origin
+  /// [ocptFloorPlanScreenPointOf]/[ocptFloorPlanMetrePointOf] already agree on) — what
+  /// [_resolveLocalPosition] converts a gesture's own **global** position through, since a handle's
+  /// own `details.localPosition` is relative to that tiny handle's own hit box, not to the canvas
+  /// (the rotation bug this milestone fixes).
+  final GlobalKey _canvasStackKey = GlobalKey();
 
   @override
   void dispose() {
     _wheelZoomSettleTimer?.cancel();
     super.dispose();
+  }
+
+  /// [globalPosition] converted into this canvas's own local coordinate space, through
+  /// [_canvasStackKey]'s `RenderBox` — the fix for a handle drag's own `onPanUpdate`, whose
+  /// `details.localPosition` is relative to the handle's own tiny hit box rather than to the
+  /// canvas. Falls back to [globalPosition] unchanged on the one frame the render object isn't
+  /// resolvable yet (defensive only).
+  Offset _resolveLocalPosition(Offset globalPosition) {
+    final renderObject = _canvasStackKey.currentContext?.findRenderObject();
+    return renderObject is RenderBox
+        ? renderObject.globalToLocal(globalPosition)
+        : globalPosition;
   }
 
   @override
@@ -284,9 +385,11 @@ class _OcptFloorPlanCanvasState extends State<OcptFloorPlanCanvas> {
             final barLengthM = ocptFloorPlanScaleBarLengthM(zoom: zoom);
 
             final selectedShape = _selectedShapeOf(sheet);
+            final selectedArrow = _selectedArrowShapeOf(sheet);
 
             return ClipRect(
               child: Stack(
+                key: _canvasStackKey,
                 children: [
                   if (!widget.isUnderlayHidden && floorPlanSet.underlayAssetId != null)
                     _buildUnderlayVisual(floorPlanSet, canvasSize, zoom, pan),
@@ -295,8 +398,13 @@ class _OcptFloorPlanCanvasState extends State<OcptFloorPlanCanvas> {
                       onPointerSignal: _handlePointerSignal,
                       child: GestureDetector(
                         behavior: HitTestBehavior.opaque,
-                        onTapUp: (details) =>
-                            _handleBackgroundTap(details.localPosition, canvasSize, zoom, pan),
+                        onTapUp: (details) => _handleBackgroundTap(
+                          details.localPosition,
+                          canvasSize,
+                          zoom,
+                          pan,
+                          sheet,
+                        ),
                         onPanUpdate: (details) => widget.viewportController.panBy(details.delta),
                         child: CustomPaint(
                           size: canvasSize,
@@ -333,6 +441,8 @@ class _OcptFloorPlanCanvasState extends State<OcptFloorPlanCanvas> {
                     _buildSymbolHitOverlay(symbol, canvasSize, zoom, pan),
                   if (selectedShape != null)
                     ..._buildSymbolHandles(selectedShape, canvasSize, zoom, pan),
+                  if (selectedArrow != null)
+                    ..._buildArrowHandle(selectedArrow, canvasSize, zoom, pan),
                   if (widget.activeTool == OcptFloorPlanTool.label &&
                       selectedShape != null &&
                       !selectedShape.isGhost)
@@ -380,16 +490,16 @@ class _OcptFloorPlanCanvasState extends State<OcptFloorPlanCanvas> {
     );
   }
 
-  /// Whether [symbol] may be dragged, resized, rotated or deleted under the current focus: never a
-  /// ghost, and only a symbol of the scope the current focus makes live — a sequence layer under
-  /// the `Sequence` focus, [OcptFloorPlanCanvas.focusShotId]'s own shot layers under a shot focus.
-  /// The frozen scope stays selectable (so its own Placements/metrics still read), just locked.
+  /// Whether [symbol] may be dragged, resized, rotated, given a field of view or deleted: never a
+  /// ghost; the **set layer is always editable** (R2, "the set is always editable"); a shot layer
+  /// symbol is editable only while it belongs to [OcptFloorPlanCanvas.focusShotId], the one shot
+  /// everything "live" lands on. A ghosted neighbour's own placements stay selectable (so their
+  /// own Placements/metrics still read), just locked.
   bool _isSymbolEditable(OcptFloorPlanSymbolShape symbol) {
     if (symbol.isGhost) {
       return false;
     }
-    final isSequenceFocus = widget.focusShotId == null;
-    return isSequenceFocus ? symbol.layer.isSequenceScoped : !symbol.layer.isSequenceScoped;
+    return symbol.layer.isSequenceScoped || symbol.shotId == widget.focusShotId;
   }
 
   /// The metrics overlay's own lines, from the selected symbol to every other symbol [sheet] draws
@@ -446,13 +556,36 @@ class _OcptFloorPlanCanvasState extends State<OcptFloorPlanCanvas> {
     return null;
   }
 
+  /// The selected arrow's own shape out of [sheet], or null while none is selected or it isn't
+  /// (currently) visible — [OcptFloorPlanCanvas.selectedArrowId]'s own equivalent of
+  /// [_selectedShapeOf].
+  OcptFloorPlanArrowShape? _selectedArrowShapeOf(OcptFloorPlanSheet sheet) {
+    final selectedArrowId = widget.selectedArrowId;
+    if (selectedArrowId == null) {
+      return null;
+    }
+    for (final arrow in sheet.arrows) {
+      if (arrow.arrowId == selectedArrowId) {
+        return arrow;
+      }
+    }
+    return null;
+  }
+
   /// A click on empty canvas (no symbol, no underlay handle caught it first): places a new symbol
   /// under a placing tool (`setElement` on the tray's active sequence layer, or `camera`/
   /// `character`/`light` on [OcptFloorPlanCanvas.focusShotId]'s own shot layer — a no-op while no
-  /// shot is focused, defensive only, the tool bar already dims those three under the `Sequence`
-  /// focus); cancels the arrow tool's own pending anchor under `arrow`; clears the selection
-  /// otherwise (`select`, `label`, or an arrow tool with nothing pending).
-  void _handleBackgroundTap(Offset localPosition, Size canvasSize, double zoom, Offset pan) {
+  /// shot is focused, defensive only); under `select`, selects the arrow it lands near
+  /// ([_arrowHitAt]) instead of clearing, when one is close enough; cancels the arrow tool's own
+  /// pending anchor under `arrow`; clears both selections otherwise (`label`, an arrow tool with
+  /// nothing pending, or `select` finding no arrow close enough).
+  void _handleBackgroundTap(
+    Offset localPosition,
+    Size canvasSize,
+    double zoom,
+    Offset pan,
+    OcptFloorPlanSheet sheet,
+  ) {
     final shotLayer = _shotLayerOf(widget.activeTool);
     if (widget.activeTool == OcptFloorPlanTool.setElement || shotLayer != null) {
       final onSymbolPlaced = widget.onSymbolPlaced;
@@ -470,11 +603,100 @@ class _OcptFloorPlanCanvasState extends State<OcptFloorPlanCanvas> {
       return;
     }
 
+    if (widget.activeTool == OcptFloorPlanTool.select) {
+      final metres = ocptFloorPlanMetrePointOf(
+        screenPoint: localPosition,
+        canvasSize: canvasSize,
+        zoom: zoom,
+        pan: pan,
+      );
+      final arrowId = _arrowHitAt(sheet, metres.dx, metres.dy, zoom);
+      if (arrowId != null) {
+        widget.onSymbolSelected(null);
+        widget.onArrowSelected(arrowId);
+        return;
+      }
+    }
+
     if (widget.activeTool == OcptFloorPlanTool.arrow) {
       widget.onArrowAnchorCancelled?.call();
     }
 
+    widget.onArrowSelected(null);
     widget.onSymbolSelected(null);
+  }
+
+  /// The id of the closest editable (non-ghost) arrow of [sheet] whose own shaft (straight or
+  /// curved) comes within [_arrowHitTolerancePx] of the point [xM]/[yM] (case metres), or null
+  /// while none does.
+  String? _arrowHitAt(OcptFloorPlanSheet sheet, double xM, double yM, double zoom) {
+    final thresholdM = ocptFloorPlanPixelsToMetres(pixels: _arrowHitTolerancePx, zoom: zoom);
+    String? bestId;
+    var bestDistanceM = thresholdM;
+
+    for (final arrow in sheet.arrows) {
+      if (arrow.isGhost) {
+        continue;
+      }
+      final distanceM = _distanceToArrowM(arrow, xM, yM);
+      if (distanceM <= bestDistanceM) {
+        bestDistanceM = distanceM;
+        bestId = arrow.arrowId;
+      }
+    }
+
+    return bestId;
+  }
+
+  /// The shortest distance, in metres, from point [xM]/[yM] to [arrow]'s own shaft: a straight
+  /// point-to-segment distance while it carries no control point, otherwise the smallest
+  /// point-to-segment distance over [_arrowCurveHitTestSamples] chords approximating its own
+  /// quadratic bezier — the same curve `OcptFloorPlanCanvasPainter._paintArrow` draws.
+  double _distanceToArrowM(OcptFloorPlanArrowShape arrow, double xM, double yM) {
+    if (arrow.ctrlXM == null || arrow.ctrlYM == null) {
+      return _distanceToSegmentM(xM, yM, arrow.fromXM, arrow.fromYM, arrow.toXM, arrow.toYM);
+    }
+
+    var previous = Offset(arrow.fromXM, arrow.fromYM);
+    var minDistanceM = double.infinity;
+    for (var i = 1; i <= _arrowCurveHitTestSamples; i++) {
+      final point = _quadraticBezierPointM(arrow, i / _arrowCurveHitTestSamples);
+      final distanceM = _distanceToSegmentM(xM, yM, previous.dx, previous.dy, point.dx, point.dy);
+      if (distanceM < minDistanceM) {
+        minDistanceM = distanceM;
+      }
+      previous = point;
+    }
+    return minDistanceM;
+  }
+
+  /// [arrow]'s own quadratic bezier point at parameter [t] (0 = [OcptFloorPlanArrowShape.fromXM]/
+  /// `.fromYM`, 1 = `.toXM`/`.toYM`), through its own control point — requires
+  /// [OcptFloorPlanArrowShape.ctrlXM]/`.ctrlYM` to be set.
+  Offset _quadraticBezierPointM(OcptFloorPlanArrowShape arrow, double t) {
+    final oneMinusT = 1 - t;
+    final ctrlXM = arrow.ctrlXM!;
+    final ctrlYM = arrow.ctrlYM!;
+    return Offset(
+      oneMinusT * oneMinusT * arrow.fromXM + 2 * oneMinusT * t * ctrlXM + t * t * arrow.toXM,
+      oneMinusT * oneMinusT * arrow.fromYM + 2 * oneMinusT * t * ctrlYM + t * t * arrow.toYM,
+    );
+  }
+
+  /// The shortest distance from point [px]/[py] to the segment `(x1, y1)`–`(x2, y2)`, all in the
+  /// same unit (metres throughout this file).
+  double _distanceToSegmentM(double px, double py, double x1, double y1, double x2, double y2) {
+    final dx = x2 - x1;
+    final dy = y2 - y1;
+    final lengthSquared = dx * dx + dy * dy;
+    if (lengthSquared == 0) {
+      return math.sqrt(math.pow(px - x1, 2) + math.pow(py - y1, 2));
+    }
+
+    final t = (((px - x1) * dx + (py - y1) * dy) / lengthSquared).clamp(0.0, 1.0);
+    final projectedX = x1 + t * dx;
+    final projectedY = y1 + t * dy;
+    return math.sqrt(math.pow(px - projectedX, 2) + math.pow(py - projectedY, 2));
   }
 
   /// The fixed shot layer [tool] always places on, or null for a tool that doesn't place a
@@ -675,7 +897,10 @@ class _OcptFloorPlanCanvasState extends State<OcptFloorPlanCanvas> {
   /// whenever [_isSymbolEditable] says the symbol is locked under the current focus, on top of the
   /// existing [OcptFloorPlanCanvas.isReadOnly]/[OcptFloorPlanCanvas.onSymbolMoved] gates.
   /// Double-clicking a ghost calls [OcptFloorPlanCanvas.onGhostShotFocusRequested] with its own
-  /// shot id, focusing it.
+  /// shot id, focusing it. Starting the drag with `Alt` held (and
+  /// [OcptFloorPlanCanvas.onSymbolDuplicateDragged] not withheld) arms [_isDuplicatingDrag]: the
+  /// live preview still tracks the pointer exactly like a plain move, but [_commitSymbolDrag]
+  /// reports it as a duplicate instead, leaving this very symbol at its own original position.
   Widget _buildSymbolHitOverlay(
     OcptFloorPlanSymbolShape symbol,
     Size canvasSize,
@@ -714,9 +939,13 @@ class _OcptFloorPlanCanvasState extends State<OcptFloorPlanCanvas> {
           onPanStart: !canDrag
               ? null
               : (_) {
+                  widget.onArrowSelected(null);
                   widget.onSymbolSelected(symbol.symbolId);
                   setState(() {
                     _dragKind = _SymbolDragKind.move;
+                    _isDuplicatingDrag =
+                        HardwareKeyboard.instance.isAltPressed &&
+                        widget.onSymbolDuplicateDragged != null;
                     _liveOverride = OcptFloorPlanSymbolLiveOverride(
                       symbolId: symbol.symbolId,
                       xM: symbol.xM,
@@ -738,7 +967,7 @@ class _OcptFloorPlanCanvasState extends State<OcptFloorPlanCanvas> {
 
   /// A tap on [symbol]: reports it to [OcptFloorPlanCanvas.onArrowSymbolTapped] under the `arrow`
   /// tool (ignored on a ghost, see [_buildSymbolHitOverlay]'s own doc comment), selects it
-  /// otherwise.
+  /// otherwise (clearing any arrow selection, the two being mutually exclusive).
   void _handleSymbolTap(OcptFloorPlanSymbolShape symbol) {
     if (widget.activeTool == OcptFloorPlanTool.arrow) {
       if (!symbol.isGhost) {
@@ -746,11 +975,13 @@ class _OcptFloorPlanCanvasState extends State<OcptFloorPlanCanvas> {
       }
       return;
     }
+    widget.onArrowSelected(null);
     widget.onSymbolSelected(symbol.symbolId);
   }
 
-  /// The selected symbol's own resize + rotate handles, or an empty list while withheld under a
-  /// read-only preview or while [_isSymbolEditable] locks it under the current focus.
+  /// The selected symbol's own resize, aim (rotate) and — for a camera whose own field-of-view
+  /// wedge is drawn — edge handles, or an empty list while withheld under a read-only preview or
+  /// while [_isSymbolEditable] locks it under the current focus.
   List<Widget> _buildSymbolHandles(
     OcptFloorPlanSymbolShape symbol,
     Size canvasSize,
@@ -826,12 +1057,19 @@ class _OcptFloorPlanCanvasState extends State<OcptFloorPlanCanvas> {
                 rotationDeg: symbol.rotationDeg,
               );
             }),
-            onPanUpdate: (details) =>
-                _updateRotateDrag(symbol.symbolId, details.localPosition, canvasSize, zoom, pan),
+            onPanUpdate: (details) => _updateRotateDrag(
+              symbol.symbolId,
+              _resolveLocalPosition(details.globalPosition),
+              canvasSize,
+              zoom,
+              pan,
+            ),
             onPanEnd: (_) => _commitSymbolDrag(symbol),
             child: _HandleDot(color: theme.colorScheme.secondary),
           ),
         ),
+      if (widget.onSymbolFovChanged != null && symbol.cameraFovWedgeDeg != null)
+        ..._buildFovHandles(symbol, centre, rotationDeg, pixelsPerMetre, canvasSize, zoom, pan),
       if (widget.onSymbolDeleteRequested != null)
         Positioned(
           left: resizeScreen.dx + _handleHitSize,
@@ -842,6 +1080,116 @@ class _OcptFloorPlanCanvasState extends State<OcptFloorPlanCanvas> {
           ),
         ),
     ];
+  }
+
+  /// A camera symbol's own two field-of-view edge handles, one on each side of its wedge (drawn by
+  /// `OcptFloorPlanCanvasPainter._paintCameraGlyph`, `ocptFloorPlanCameraFovWedgeLengthM` from the
+  /// lens): dragging either narrows or widens [OcptFloorPlanSymbolShape.cameraFovWedgeDeg] — the
+  /// wedge stays symmetric around the symbol's own heading, so both handles always sit the same
+  /// distance from it.
+  List<Widget> _buildFovHandles(
+    OcptFloorPlanSymbolShape symbol,
+    Offset centre,
+    double rotationDeg,
+    double pixelsPerMetre,
+    Size canvasSize,
+    double zoom,
+    Offset pan,
+  ) {
+    final override = _liveOverride;
+    final fovDeg =
+        (override != null && override.symbolId == symbol.symbolId ? override.fovDeg : null) ??
+        symbol.cameraFovWedgeDeg!;
+    final halfAngleRad = fovDeg * math.pi / 180 / 2;
+    final wedgeLengthPx = ocptFloorPlanCameraFovWedgeLengthM * pixelsPerMetre;
+    final tipLocalPx = Offset(0, -symbol.heightM / 2 * pixelsPerMetre);
+
+    Widget buildHandle(double sign) {
+      final localPx =
+          tipLocalPx + Offset(sign * math.sin(halfAngleRad), -math.cos(halfAngleRad)) * wedgeLengthPx;
+      final screen = centre + ocptFloorPlanRotateVector(localPx, rotationDeg);
+
+      return Positioned(
+        left: screen.dx - _handleHitSize / 2,
+        top: screen.dy - _handleHitSize / 2,
+        width: _handleHitSize,
+        height: _handleHitSize,
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          dragStartBehavior: DragStartBehavior.down,
+          onPanStart: (_) => setState(() {
+            _dragKind = _SymbolDragKind.fov;
+            _liveOverride = OcptFloorPlanSymbolLiveOverride(
+              symbolId: symbol.symbolId,
+              xM: symbol.xM,
+              yM: symbol.yM,
+              widthM: symbol.widthM,
+              heightM: symbol.heightM,
+              rotationDeg: symbol.rotationDeg,
+              fovDeg: fovDeg,
+            );
+          }),
+          onPanUpdate: (details) => _updateFovDrag(
+            symbol.symbolId,
+            _resolveLocalPosition(details.globalPosition),
+            canvasSize,
+            zoom,
+            pan,
+          ),
+          onPanEnd: (_) => _commitSymbolDrag(symbol),
+          child: _HandleDot(color: Theme.of(context).colorScheme.tertiary),
+        ),
+      );
+    }
+
+    return [buildHandle(-1), buildHandle(1)];
+  }
+
+  /// Updates [_liveOverride]'s own field-of-view angle every frame of an edge-handle drag: the
+  /// pointer's own bearing around the symbol's centre, in **canvas space** (through
+  /// [_resolveLocalPosition], the same fix [_updateRotateDrag] needs), turned into the symbol's own
+  /// **local** frame (`-rotationDeg`, undoing its own heading) so `0°` always means "straight
+  /// ahead" whichever way the camera itself is aimed — the wedge's own half-angle is simply that
+  /// local bearing's absolute value, doubled and clamped.
+  void _updateFovDrag(
+    String symbolId,
+    Offset localPosition,
+    Size canvasSize,
+    double zoom,
+    Offset pan,
+  ) {
+    final override = _liveOverride;
+    if (override == null || override.symbolId != symbolId) {
+      return;
+    }
+
+    final centreScreen = ocptFloorPlanScreenPointOf(
+      xM: override.xM,
+      yM: override.yM,
+      canvasSize: canvasSize,
+      zoom: zoom,
+      pan: pan,
+    );
+    final pointerVector = localPosition - centreScreen;
+    final worldBearingRad = math.atan2(pointerVector.dx, -pointerVector.dy);
+    final localBearingRad = worldBearingRad - override.rotationDeg * math.pi / 180;
+    final halfAngleDeg = (localBearingRad * 180 / math.pi).abs() % 360;
+    final fovDeg = (2 * halfAngleDeg).clamp(
+      ocptFloorPlanMinCameraFovDeg,
+      ocptFloorPlanMaxCameraFovDeg,
+    );
+
+    setState(() {
+      _liveOverride = OcptFloorPlanSymbolLiveOverride(
+        symbolId: symbolId,
+        xM: override.xM,
+        yM: override.yM,
+        widthM: override.widthM,
+        heightM: override.heightM,
+        rotationDeg: override.rotationDeg,
+        fovDeg: fovDeg,
+      );
+    });
   }
 
   /// Updates [_liveOverride]'s own move/resize geometry every frame of a symbol drag, no database
@@ -897,10 +1245,14 @@ class _OcptFloorPlanCanvasState extends State<OcptFloorPlanCanvas> {
     });
   }
 
-  /// Updates [_liveOverride]'s own rotation every frame of a rotate-handle drag, from the pointer's
-  /// own bearing around the symbol's centre (0° pointing up, clockwise positive — see
+  /// Updates [_liveOverride]'s own rotation (bearing) every frame of an aim-handle drag, from the
+  /// pointer's own bearing around the symbol's centre (0° pointing up, clockwise positive — see
   /// `ocptFloorPlanRotateVector`'s own doc comment for the same screen convention read the other
-  /// way).
+  /// way), **[localPosition] already converted to canvas space** by [_resolveLocalPosition] — the
+  /// rotation bug this milestone fixes was reading the handle's own local position instead, which
+  /// is relative to that tiny hit box rather than to the canvas the symbol's own centre is placed
+  /// in, so the computed bearing bore no relation to where the pointer actually was. Holding `Shift`
+  /// snaps the result to [_rotateSnapStepDeg]° steps.
   void _updateRotateDrag(
     String symbolId,
     Offset localPosition,
@@ -921,7 +1273,11 @@ class _OcptFloorPlanCanvasState extends State<OcptFloorPlanCanvas> {
       pan: pan,
     );
     final pointerVector = localPosition - centreScreen;
-    final bearingDeg = math.atan2(pointerVector.dx, -pointerVector.dy) * 180 / math.pi;
+    var bearingDeg = math.atan2(pointerVector.dx, -pointerVector.dy) * 180 / math.pi;
+    bearingDeg = bearingDeg < 0 ? bearingDeg + 360 : bearingDeg;
+    if (HardwareKeyboard.instance.isShiftPressed) {
+      bearingDeg = (bearingDeg / _rotateSnapStepDeg).round() * _rotateSnapStepDeg % 360;
+    }
 
     setState(() {
       _liveOverride = OcptFloorPlanSymbolLiveOverride(
@@ -930,19 +1286,25 @@ class _OcptFloorPlanCanvasState extends State<OcptFloorPlanCanvas> {
         yM: override.yM,
         widthM: override.widthM,
         heightM: override.heightM,
-        rotationDeg: bearingDeg < 0 ? bearingDeg + 360 : bearingDeg,
+        rotationDeg: bearingDeg,
       );
     });
   }
 
-  /// Reports the dragged symbol's own settled geometry (move, resize or rotate, whichever
-  /// [_dragKind] names) and clears the live drag state.
+  /// Reports the dragged symbol's own settled geometry (move, resize, aim or field of view,
+  /// whichever [_dragKind] names) and clears the live drag state. A move drag armed as
+  /// [_isDuplicatingDrag] (`Alt` held at its own `onPanStart`) reports through
+  /// [OcptFloorPlanCanvas.onSymbolDuplicateDragged] instead of [OcptFloorPlanCanvas.onSymbolMoved]:
+  /// [symbol] itself is left untouched at its own original position, a new, independent copy placed
+  /// at the drag's own settled point instead.
   void _commitSymbolDrag(OcptFloorPlanSymbolShape symbol) {
     final override = _liveOverride;
     final kind = _dragKind;
+    final wasDuplicating = _isDuplicatingDrag;
     setState(() {
       _dragKind = null;
       _liveOverride = null;
+      _isDuplicatingDrag = false;
     });
     if (override == null || kind == null) {
       return;
@@ -950,11 +1312,20 @@ class _OcptFloorPlanCanvasState extends State<OcptFloorPlanCanvas> {
 
     switch (kind) {
       case _SymbolDragKind.move:
-        widget.onSymbolMoved?.call(symbol.symbolId, override.xM, override.yM);
+        if (wasDuplicating) {
+          widget.onSymbolDuplicateDragged?.call(symbol.symbolId, override.xM, override.yM);
+        } else {
+          widget.onSymbolMoved?.call(symbol.symbolId, override.xM, override.yM);
+        }
       case _SymbolDragKind.resize:
         widget.onSymbolResized?.call(symbol.symbolId, override.widthM, override.heightM);
       case _SymbolDragKind.rotate:
         widget.onSymbolRotated?.call(symbol.symbolId, override.rotationDeg);
+      case _SymbolDragKind.fov:
+        final fovDeg = override.fovDeg;
+        if (fovDeg != null) {
+          widget.onSymbolFovChanged?.call(symbol.symbolId, fovDeg);
+        }
     }
   }
 
@@ -991,10 +1362,120 @@ class _OcptFloorPlanCanvasState extends State<OcptFloorPlanCanvas> {
       ),
     );
   }
+
+  /// The selected arrow's own midpoint handle (drag to bend, drop to write one row) and, while it
+  /// already carries a curve, its neighbouring straighten button — an empty list while withheld
+  /// under a read-only preview, a ghost or [OcptFloorPlanCanvas.onArrowCurveChanged] being null.
+  List<Widget> _buildArrowHandle(
+    OcptFloorPlanArrowShape arrow,
+    Size canvasSize,
+    double zoom,
+    Offset pan,
+  ) {
+    final onArrowCurveChanged = widget.onArrowCurveChanged;
+    if (widget.isReadOnly || arrow.isGhost || onArrowCurveChanged == null) {
+      return const [];
+    }
+
+    final live = _liveArrowCtrl;
+    final isDragged = live != null && _draggedArrowId == arrow.arrowId;
+    final ctrlXM = isDragged ? live.xM : (arrow.ctrlXM ?? (arrow.fromXM + arrow.toXM) / 2);
+    final ctrlYM = isDragged ? live.yM : (arrow.ctrlYM ?? (arrow.fromYM + arrow.toYM) / 2);
+    final handleScreen = ocptFloorPlanScreenPointOf(
+      xM: ctrlXM,
+      yM: ctrlYM,
+      canvasSize: canvasSize,
+      zoom: zoom,
+      pan: pan,
+    );
+    final theme = Theme.of(context);
+
+    final widgets = <Widget>[
+      Positioned(
+        left: handleScreen.dx - _handleHitSize / 2,
+        top: handleScreen.dy - _handleHitSize / 2,
+        width: _handleHitSize,
+        height: _handleHitSize,
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          dragStartBehavior: DragStartBehavior.down,
+          onPanStart: (_) => setState(() {
+            _draggedArrowId = arrow.arrowId;
+            _liveArrowCtrl = (xM: ctrlXM, yM: ctrlYM);
+          }),
+          onPanUpdate: (details) => _updateArrowCurveDrag(arrow.arrowId, details.delta, zoom),
+          onPanEnd: (_) => _commitArrowCurveDrag(arrow),
+          child: _HandleDot(color: theme.colorScheme.tertiary),
+        ),
+      ),
+    ];
+
+    if (arrow.ctrlXM != null && !isDragged) {
+      widgets.add(
+        Positioned(
+          left: handleScreen.dx + _handleHitSize,
+          top: handleScreen.dy - _handleHitSize,
+          child: _StraightenHandle(
+            tooltip: Tr.of(context).shotListFloorPlanStraightenArrowAction,
+            onTap: () => onArrowCurveChanged(arrow.arrowId, null, null),
+          ),
+        ),
+      );
+    }
+
+    return widgets;
+  }
+
+  /// Updates [_liveArrowCtrl] every frame of an arrow midpoint drag, no database write and no bloc
+  /// emission until [_commitArrowCurveDrag] — mirrors [_updateSymbolDrag]'s own live-override
+  /// pattern, with no rotation to undo since an arrow's own control point is a plain world-frame
+  /// point.
+  void _updateArrowCurveDrag(String arrowId, Offset screenDelta, double zoom) {
+    final live = _liveArrowCtrl;
+    if (live == null || _draggedArrowId != arrowId) {
+      return;
+    }
+
+    final metresDelta = ocptFloorPlanScreenVectorToMetres(screenDelta: screenDelta, zoom: zoom);
+    setState(() {
+      _liveArrowCtrl = (xM: live.xM + metresDelta.dx, yM: live.yM + metresDelta.dy);
+    });
+  }
+
+  /// Reports the dragged arrow's own settled control point and clears the live drag state — unless
+  /// it landed close enough to the straight from-to line ([_arrowStraightenToleranceM]), in which
+  /// case it straightens the arrow back out instead.
+  void _commitArrowCurveDrag(OcptFloorPlanArrowShape arrow) {
+    final live = _liveArrowCtrl;
+    setState(() {
+      _liveArrowCtrl = null;
+      _draggedArrowId = null;
+    });
+
+    final onArrowCurveChanged = widget.onArrowCurveChanged;
+    if (live == null || onArrowCurveChanged == null) {
+      return;
+    }
+
+    final distanceToStraightM = _distanceToSegmentM(
+      live.xM,
+      live.yM,
+      arrow.fromXM,
+      arrow.fromYM,
+      arrow.toXM,
+      arrow.toYM,
+    );
+    if (distanceToStraightM <= _arrowStraightenToleranceM) {
+      onArrowCurveChanged(arrow.arrowId, null, null);
+      return;
+    }
+
+    onArrowCurveChanged(arrow.arrowId, live.xM, live.yM);
+  }
 }
 
 /// Which gesture a symbol's own drag currently means.
-enum _SymbolDragKind { move, resize, rotate }
+enum _SymbolDragKind { move, resize, rotate, fov }
 
 /// Which gesture the underlay's own drag currently means.
 enum _UnderlayDragKind { move, resize }
@@ -1045,6 +1526,37 @@ class _DeleteHandle extends StatelessWidget {
           height: _handleHitSize,
           decoration: BoxDecoration(color: theme.colorScheme.error, shape: BoxShape.circle),
           child: Icon(Icons.close, size: 12, color: theme.colorScheme.onError),
+        ),
+      ),
+    );
+  }
+}
+
+/// The selected arrow's own small straighten button, drawn next to its midpoint handle while it
+/// already carries a curve — alongside dragging the handle back onto the straight line.
+class _StraightenHandle extends StatelessWidget {
+  /// The button's own tooltip.
+  final String tooltip;
+
+  /// Called when tapped.
+  final VoidCallback onTap;
+
+  /// Class constructor
+  const _StraightenHandle({required this.tooltip, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Tooltip(
+      message: tooltip,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onTap,
+        child: Container(
+          width: _handleHitSize,
+          height: _handleHitSize,
+          decoration: BoxDecoration(color: theme.colorScheme.secondary, shape: BoxShape.circle),
+          child: Icon(Icons.straighten, size: 12, color: theme.colorScheme.onSecondary),
         ),
       ),
     );

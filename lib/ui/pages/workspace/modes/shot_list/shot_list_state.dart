@@ -200,8 +200,22 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
   /// The id of the symbol currently selected on the floor plans canvas, or null while none is.
   ///
   /// Cleared whenever [selectedSetId] or [selectedSequenceId] changes: a symbol only ever belongs
-  /// to the set currently shown.
+  /// to the set currently shown. Mutually exclusive with [selectedFloorPlanArrowId]: selecting one
+  /// clears the other.
   final String? selectedFloorPlanSymbolId;
+
+  /// The id of the arrow currently selected on the floor plans canvas, or null while none is —
+  /// what draws its own bendable midpoint handle (R2). Mutually exclusive with
+  /// [selectedFloorPlanSymbolId] and cleared on every occasion that field is: a different set or
+  /// sequence shown, the shot deleted, the arrow itself deleted.
+  final String? selectedFloorPlanArrowId;
+
+  /// The id of a character symbol just placed by [OcptFloorPlanTool.character], asking
+  /// `OcptFloorPlanCharacterNamePickerDialog` to open for it, or null while none is pending — a
+  /// one-shot trigger read by the mode's own `BlocConsumer` listener exactly like
+  /// [projectPackagePendingExport] is, and cleared the moment that listener opens the dialog so a
+  /// later emission never stacks a second one behind it.
+  final String? pendingCharacterNamePromptSymbolId;
 
   /// The floor plans canvas's own current zoom (1.0 = neutral/100%), last **settled** by
   /// `OcptFloorPlanViewportController` — see that class's own doc comment for why only the settled
@@ -676,6 +690,8 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
     required this.floorPlanSnapshot,
     required this.selectedSetId,
     required this.selectedFloorPlanSymbolId,
+    required this.selectedFloorPlanArrowId,
+    required this.pendingCharacterNamePromptSymbolId,
     required this.floorPlanZoom,
     required this.floorPlanActiveTool,
     required this.floorPlanActiveLayer,
@@ -729,6 +745,8 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
       floorPlanSnapshot = null,
       selectedSetId = null,
       selectedFloorPlanSymbolId = null,
+      selectedFloorPlanArrowId = null,
+      pendingCharacterNamePromptSymbolId = null,
       floorPlanZoom = 1,
       floorPlanActiveTool = OcptFloorPlanTool.select,
       floorPlanActiveLayer = OcptFloorPlanLayer.set,
@@ -795,6 +813,10 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
     bool clearSelectedSetId = false,
     String? selectedFloorPlanSymbolId,
     bool clearSelectedFloorPlanSymbolId = false,
+    String? selectedFloorPlanArrowId,
+    bool clearSelectedFloorPlanArrowId = false,
+    String? pendingCharacterNamePromptSymbolId,
+    bool clearPendingCharacterNamePromptSymbolId = false,
     double? floorPlanZoom,
     OcptFloorPlanTool? floorPlanActiveTool,
     OcptFloorPlanLayer? floorPlanActiveLayer,
@@ -865,6 +887,12 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
     selectedFloorPlanSymbolId: clearSelectedFloorPlanSymbolId
         ? null
         : (selectedFloorPlanSymbolId ?? this.selectedFloorPlanSymbolId),
+    selectedFloorPlanArrowId: clearSelectedFloorPlanArrowId
+        ? null
+        : (selectedFloorPlanArrowId ?? this.selectedFloorPlanArrowId),
+    pendingCharacterNamePromptSymbolId: clearPendingCharacterNamePromptSymbolId
+        ? null
+        : (pendingCharacterNamePromptSymbolId ?? this.pendingCharacterNamePromptSymbolId),
     floorPlanZoom: floorPlanZoom ?? this.floorPlanZoom,
     floorPlanActiveTool: floorPlanActiveTool ?? this.floorPlanActiveTool,
     floorPlanActiveLayer: floorPlanActiveLayer ?? this.floorPlanActiveLayer,
@@ -987,6 +1015,8 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
     floorPlanSnapshot,
     selectedSetId,
     selectedFloorPlanSymbolId,
+    selectedFloorPlanArrowId,
+    pendingCharacterNamePromptSymbolId,
     floorPlanZoom,
     floorPlanActiveTool,
     floorPlanActiveLayer,

@@ -24,6 +24,22 @@ const double ocptFloorPlanLightFootprintM = 0.3;
 /// practice.
 const double ocptFloorPlanDefaultCameraFovDeg = 50;
 
+/// How far, in metres, a camera's own field-of-view wedge reaches from its lens — the one constant
+/// both the canvas painter (drawing the wedge) and the canvas's own edge handles (dragging it wider
+/// or narrower) place the wedge's tip at, so a handle always sits exactly on the wedge it edits.
+const double ocptFloorPlanCameraFovWedgeLengthM = 2;
+
+/// The narrowest field of view a camera's own edge handles or `−`/`+` stepper allow.
+const double ocptFloorPlanMinCameraFovDeg = 10;
+
+/// The widest field of view a camera's own edge handles or `−`/`+` stepper allow.
+const double ocptFloorPlanMaxCameraFovDeg = 170;
+
+/// The offset, in metres, both X and Y, a duplicated symbol is placed at from its source — far
+/// enough that the copy is never drawn exactly on top of the original (`Ctrl+D`, or the default
+/// `OcptShotListFloorPlanSymbolDuplicatedEvent` with no explicit position).
+const double ocptFloorPlanDuplicateOffsetM = 0.3;
+
 /// The default footprint, in metres, a hand prop is drawn at — small enough to read as "held",
 /// never mistaken for a piece of furniture.
 const double ocptFloorPlanHandPropFootprintM = 0.2;

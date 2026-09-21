@@ -24,6 +24,7 @@ import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_covera
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_list_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_storyboard_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
+import 'package:open_cine_prod_tools/models/ocpt_floor_plan_set.dart';
 import 'package:open_cine_prod_tools/models/ocpt_floor_plan_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_floor_plan_symbol.dart';
 import 'package:open_cine_prod_tools/models/ocpt_open_project_model.dart';
@@ -52,6 +53,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_lis
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_shot_list_labels.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_floor_plan_geometry.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_scene_display_number.dart';
 
 /// This is the bloc class for the shot list (découpage technique) production mode.
@@ -314,7 +316,6 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
       _onFloorPlanUnderlayTransformChanged,
     );
     on<OcptShotListFloorPlanUnderlayClearRequestedEvent>(_onFloorPlanUnderlayClearRequested);
-    on<OcptShotListShotDeselectedEvent>(_onShotDeselected);
     on<OcptShotListFloorPlanShotWalkRequestedEvent>(_onFloorPlanShotWalkRequested);
     on<OcptShotListFloorPlanCameraVisibilityToggledEvent>(_onFloorPlanCameraVisibilityToggled);
     on<OcptShotListFloorPlanOnionSkinToggledEvent>(_onFloorPlanOnionSkinToggled);
@@ -324,6 +325,13 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     on<OcptShotListFloorPlanArrowAnchorCancelledEvent>(_onFloorPlanArrowAnchorCancelled);
     on<OcptShotListFloorPlanArrowDeletionRequestedEvent>(_onFloorPlanArrowDeletionRequested);
     on<OcptShotListFloorPlanSymbolLabelChangedEvent>(_onFloorPlanSymbolLabelChanged);
+    on<OcptShotListFloorPlanSymbolFovChangedEvent>(_onFloorPlanSymbolFovChanged);
+    on<OcptShotListFloorPlanArrowSelectedEvent>(_onFloorPlanArrowSelected);
+    on<OcptShotListFloorPlanArrowCurveChangedEvent>(_onFloorPlanArrowCurveChanged);
+    on<OcptShotListFloorPlanSymbolDuplicatedEvent>(_onFloorPlanSymbolDuplicated);
+    on<OcptShotListFloorPlanCharacterNamePromptDismissedEvent>(
+      _onFloorPlanCharacterNamePromptDismissed,
+    );
   }
 
   /// {@macro open_cine_prod_tools.MixinOcptProjectVersionsBloc.projectsManager}
@@ -415,6 +423,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
       floorPlanSnapshot: floorPlanSnapshot,
       sequenceId: selectedSequenceId,
     );
+    final firstShotId = _firstShotIdOf(snapshot: snapshot, sequenceId: selectedSequenceId);
 
     emitter(
       state.copyWith(
@@ -430,13 +439,15 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
         roles: roles,
         selectedSequenceId: selectedSequenceId,
         clearSelectedSequenceId: snapshot.sequences.isEmpty,
-        clearSelectedShotId: true,
+        selectedShotId: firstShotId,
+        clearSelectedShotId: firstShotId == null,
         clearSelectedPanelId: true,
         clearActiveAnnotationTool: true,
         clearSelectedAnnotationId: true,
         selectedSetId: firstSetId,
         clearSelectedSetId: firstSetId == null,
         clearSelectedFloorPlanSymbolId: true,
+        clearSelectedFloorPlanArrowId: true,
         clearPendingFloorPlanArrowAnchorSymbolId: true,
         clearPendingCoverageAnchor: true,
         leftDockFraction: leftDockFraction,
@@ -514,6 +525,25 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     }
     final sets = floorPlanSnapshot.setsOfScene(sequenceId);
     return sets.isEmpty ? null : sets.first.id;
+  }
+
+  /// The id of [sequenceId]'s own first shot, or null while [sequenceId] is null, doesn't name a
+  /// real scene (the orphan group holds no floor plan set, but it does hold shots — this still
+  /// returns null for it, since a floor plan focus only ever makes sense on a real scene) or holds
+  /// none in [snapshot] — what a freshly loaded snapshot, or a freshly selected sequence, defaults
+  /// [OcptShotListState.selectedShotId] to, guaranteeing it is never null while the sequence holds
+  /// at least one shot (R2, "always a current shot": every camera, character, light, prop and arrow
+  /// placed on the floor plans view lands on this very shot).
+  String? _firstShotIdOf({required OcptShotListSnapshot? snapshot, required String? sequenceId}) {
+    if (snapshot == null || sequenceId == null) {
+      return null;
+    }
+    for (final sequence in snapshot.sequences) {
+      if (sequence.id == sequenceId && sequence is OcptSceneShotSequence) {
+        return sequence.shots.isEmpty ? null : sequence.shots.first.id;
+      }
+    }
+    return null;
   }
 
   /// Reads the production's whole cast — every live role, in `sortKey` order — what the
@@ -610,17 +640,22 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     final firstSetId = isSameSequence
         ? state.selectedSetId
         : _firstSetIdOf(floorPlanSnapshot: state.floorPlanSnapshot, sequenceId: event.sequenceId);
+    final selectedShotId = isSameSequence
+        ? state.selectedShotId
+        : _firstShotIdOf(snapshot: state.snapshot, sequenceId: event.sequenceId);
 
     emitter(
       state.copyWith(
         selectedSequenceId: event.sequenceId,
-        clearSelectedShotId: !isSameSequence,
+        selectedShotId: selectedShotId,
+        clearSelectedShotId: selectedShotId == null,
         clearSelectedPanelId: !isSameSequence,
         clearActiveAnnotationTool: !isSameSequence,
         clearSelectedAnnotationId: !isSameSequence,
         selectedSetId: firstSetId,
         clearSelectedSetId: firstSetId == null,
         clearSelectedFloorPlanSymbolId: !isSameSequence,
+        clearSelectedFloorPlanArrowId: !isSameSequence,
         clearPendingFloorPlanArrowAnchorSymbolId: true,
         clearPendingCoverageAnchor: true,
       ),
@@ -657,28 +692,8 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
         lastRightDockTab: OcptShotListRightDockTab.inspector,
         clearPendingCoverageAnchor: true,
         clearSelectedFloorPlanSymbolId: true,
+        clearSelectedFloorPlanArrowId: true,
         clearPendingFloorPlanArrowAnchorSymbolId: true,
-      ),
-    );
-  }
-
-  /// Deselects the currently selected shot, dispatched by the floor plans focus strip's own
-  /// `Sequence` chip: flips `OcptShotListState.isFloorPlanShotFocusActive` back to the `Sequence`
-  /// focus without touching the selected sequence.
-  ///
-  /// Flushes any pending field edit first, exactly as [_onShotSelected] does.
-  Future<void> _onShotDeselected(
-    OcptShotListShotDeselectedEvent event,
-    Emitter<OcptShotListState> emitter,
-  ) async {
-    await _flushPendingFieldEdits(emitter);
-
-    emitter(
-      state.copyWith(
-        clearSelectedShotId: true,
-        clearSelectedFloorPlanSymbolId: true,
-        clearPendingFloorPlanArrowAnchorSymbolId: true,
-        clearPendingCoverageAnchor: true,
       ),
     );
   }
@@ -1564,10 +1579,12 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     }
   }
 
-  /// Deletes shot `event.shotId`, clearing the selection when it was the selected shot (the
-  /// sequence stays selected), and dropping any pending field or panel comment edit that still
-  /// targeted it or one of its panels — `OcptShotListService.deleteShot`'s own cascade tombstones
-  /// the shot's panels alongside it, so there is nothing left for either to write to.
+  /// Deletes shot `event.shotId`, reselecting the sequence's own next first shot when it was the
+  /// selected one (the sequence stays selected; null only while the sequence now holds none at all
+  /// — the "always a current shot" invariant, R2), and dropping any pending field or panel comment
+  /// edit that still targeted it or one of its panels — `OcptShotListService.deleteShot`'s own
+  /// cascade tombstones the shot's panels alongside it, so there is nothing left for either to
+  /// write to.
   Future<void> _onShotDeletionRequested(
     OcptShotListShotDeletionRequestedEvent event,
     Emitter<OcptShotListState> emitter,
@@ -1614,9 +1631,14 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
 
     try {
       await _shotListService.deleteShot(database: project.database, shotId: event.shotId);
+      final snapshot = await _loadSnapshot(project);
+      final reselectedShotId = wasSelected
+          ? _firstShotIdOf(snapshot: snapshot, sequenceId: state.selectedSequenceId)
+          : state.selectedShotId;
+
       emitter(
         state.copyWith(
-          snapshot: await _loadSnapshot(project),
+          snapshot: snapshot,
           suggestions: await _loadSuggestions(project),
           storyboardSnapshot: await _loadStoryboard(project),
           // `OcptShotListService.deleteShot`'s own cascade tombstones the shot's floor plan
@@ -1624,12 +1646,14 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
           // so the floor plans view must re-read too, exactly as the board does above.
           floorPlanSnapshot: await _loadFloorPlans(project),
           pendingFieldEdits: pendingWithoutShot,
-          clearSelectedShotId: wasSelected,
+          selectedShotId: reselectedShotId,
+          clearSelectedShotId: reselectedShotId == null,
           clearSelectedPanelId: wasSelected || wasPanelSelected,
           clearActiveAnnotationTool: wasSelected || wasPanelSelected,
           clearSelectedAnnotationId: wasSelected || wasPanelSelected,
           clearPendingCoverageAnchor: wasSelected,
           clearSelectedFloorPlanSymbolId: wasSelected || wasFloorPlanSymbolSelected,
+          clearSelectedFloorPlanArrowId: wasSelected || wasFloorPlanSymbolSelected,
           clearPendingFloorPlanArrowAnchorSymbolId: wasSelected,
         ),
       );
@@ -2339,6 +2363,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
       state.copyWith(
         selectedSetId: event.setId,
         clearSelectedFloorPlanSymbolId: true,
+        clearSelectedFloorPlanArrowId: true,
         clearPendingFloorPlanArrowAnchorSymbolId: true,
       ),
     );
@@ -2371,6 +2396,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
           floorPlanSnapshot: await _loadFloorPlans(project),
           selectedSetId: setId,
           clearSelectedFloorPlanSymbolId: true,
+          clearSelectedFloorPlanArrowId: true,
           clearPendingFloorPlanArrowAnchorSymbolId: true,
         ),
       );
@@ -2455,6 +2481,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
           selectedSetId: nextSetId,
           clearSelectedSetId: nextSetId == null,
           clearSelectedFloorPlanSymbolId: wasSelected,
+          clearSelectedFloorPlanArrowId: wasSelected,
           clearPendingFloorPlanArrowAnchorSymbolId: wasSelected,
         ),
       );
@@ -2529,7 +2556,11 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
   /// from its own active tool before dispatching this — see `OcptFloorPlanCanvas`'s own doc
   /// comment. A freshly placed character symbol's own [_defaultCharacterLabelFor] pre-fills its
   /// label from the shot's own characters field, the mock-up's "offered first as a convenience"
-  /// (`docs/plans/storyboard.md`, §4.3) — never a link, the placed symbol still carries no `roleId`.
+  /// (`docs/plans/storyboard.md`, §4.3) — never a link, the placed symbol still carries no `roleId`
+  /// — and also arms [OcptShotListState.pendingCharacterNamePromptSymbolId] (R2), so the mode opens
+  /// `OcptFloorPlanCharacterNamePickerDialog` for it the moment placement lands, pre-filled with
+  /// that very default and offering the shot's other characters too, letting the user confirm or
+  /// change it on the spot rather than only through the inline label editor later.
   Future<void> _onFloorPlanSymbolPlaced(
     OcptShotListFloorPlanSymbolPlacedEvent event,
     Emitter<OcptShotListState> emitter,
@@ -2558,10 +2589,14 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
         return;
       }
 
+      final isCharacter = event.layer == OcptFloorPlanLayer.characters && shotId != null;
       emitter(
         state.copyWith(
           floorPlanSnapshot: await _loadFloorPlans(project),
           selectedFloorPlanSymbolId: symbolId,
+          clearSelectedFloorPlanArrowId: true,
+          pendingCharacterNamePromptSymbolId: isCharacter ? symbolId : null,
+          clearPendingCharacterNamePromptSymbolId: !isCharacter,
         ),
       );
     } catch (error) {
@@ -2598,14 +2633,20 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     return "";
   }
 
-  /// Selects symbol `event.symbolId`, or clears the selection when it is null.
+  /// Selects symbol `event.symbolId`, or clears the selection when it is null. Also clears the
+  /// arrow selection when a symbol actually gets selected: the two are mutually exclusive on the
+  /// canvas.
   Future<void> _onFloorPlanSymbolSelected(
     OcptShotListFloorPlanSymbolSelectedEvent event,
     Emitter<OcptShotListState> emitter,
   ) async {
     final symbolId = event.symbolId;
     emitter(
-      state.copyWith(selectedFloorPlanSymbolId: symbolId, clearSelectedFloorPlanSymbolId: symbolId == null),
+      state.copyWith(
+        selectedFloorPlanSymbolId: symbolId,
+        clearSelectedFloorPlanSymbolId: symbolId == null,
+        clearSelectedFloorPlanArrowId: symbolId != null,
+      ),
     );
   }
 
@@ -2706,6 +2747,9 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
         state.copyWith(
           floorPlanSnapshot: await _loadFloorPlans(project),
           clearSelectedFloorPlanSymbolId: wasSelected,
+          // `OcptFloorPlanService.deleteSymbol`'s own cascade tombstones every arrow touching this
+          // symbol, so the selected arrow (if any) may no longer exist.
+          clearSelectedFloorPlanArrowId: true,
         ),
       );
     } catch (error) {
@@ -2949,7 +2993,8 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
   }
 
   /// Deletes arrow `event.arrowId` for good, dispatched once the Placements group's own remove
-  /// action has already been confirmed through `OcptConfirmDialog`, by the mode.
+  /// action has already been confirmed through `OcptConfirmDialog`, by the mode. Clears the arrow's
+  /// own selection when it was the selected one.
   Future<void> _onFloorPlanArrowDeletionRequested(
     OcptShotListFloorPlanArrowDeletionRequestedEvent event,
     Emitter<OcptShotListState> emitter,
@@ -2959,9 +3004,16 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
       return;
     }
 
+    final wasSelected = state.selectedFloorPlanArrowId == event.arrowId;
+
     try {
       await _floorPlanService.deleteArrow(database: project.database, arrowId: event.arrowId);
-      emitter(state.copyWith(floorPlanSnapshot: await _loadFloorPlans(project)));
+      emitter(
+        state.copyWith(
+          floorPlanSnapshot: await _loadFloorPlans(project),
+          clearSelectedFloorPlanArrowId: wasSelected,
+        ),
+      );
     } catch (error) {
       appLogger().e("A problem occurred when tried to delete arrow ${event.arrowId} of the "
           "project at ${project.path}: $error");
@@ -2981,6 +3033,151 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
       key: OcptShotListSymbolLabelEditKey(symbolId: event.symbolId),
       rawValue: event.rawValue,
     );
+  }
+
+  /// Sets camera symbol `event.symbolId`'s own field-of-view wedge to `event.fovDeg`, dispatched by
+  /// a drag on one of its own edge handles ending, or by the inspector's own Placements group
+  /// `−`/`+` stepper. Written immediately, one row (`OcptFloorPlanService.updateSymbol(fovDeg:)`).
+  Future<void> _onFloorPlanSymbolFovChanged(
+    OcptShotListFloorPlanSymbolFovChangedEvent event,
+    Emitter<OcptShotListState> emitter,
+  ) async {
+    final project = _projectsManager.currentProject;
+    if (project == null) {
+      return;
+    }
+
+    try {
+      await _floorPlanService.updateSymbol(
+        database: project.database,
+        symbolId: event.symbolId,
+        fovDeg: Value(event.fovDeg),
+      );
+      emitter(state.copyWith(floorPlanSnapshot: await _loadFloorPlans(project)));
+    } catch (error) {
+      appLogger().e("A problem occurred when tried to change the field of view of symbol "
+          "${event.symbolId} of the project at ${project.path}: $error");
+      emitter(state.copyWith(hasWriteError: true));
+    }
+  }
+
+  /// Selects arrow `event.arrowId`, or clears the selection when it is null. A view preference;
+  /// also clears the symbol selection, the two being mutually exclusive on the canvas.
+  Future<void> _onFloorPlanArrowSelected(
+    OcptShotListFloorPlanArrowSelectedEvent event,
+    Emitter<OcptShotListState> emitter,
+  ) async {
+    final arrowId = event.arrowId;
+    emitter(
+      state.copyWith(
+        selectedFloorPlanArrowId: arrowId,
+        clearSelectedFloorPlanArrowId: arrowId == null,
+        clearSelectedFloorPlanSymbolId: arrowId != null,
+      ),
+    );
+  }
+
+  /// Bends arrow `event.arrowId` through `event.ctrlXM`/`event.ctrlYM`, or straightens it back out
+  /// when both are null, writing exactly one row (`OcptFloorPlanService.updateArrowCurve`),
+  /// dispatched once a drag on its own midpoint handle ends, or by its own straighten button.
+  Future<void> _onFloorPlanArrowCurveChanged(
+    OcptShotListFloorPlanArrowCurveChangedEvent event,
+    Emitter<OcptShotListState> emitter,
+  ) async {
+    final project = _projectsManager.currentProject;
+    if (project == null) {
+      return;
+    }
+
+    try {
+      await _floorPlanService.updateArrowCurve(
+        database: project.database,
+        arrowId: event.arrowId,
+        ctrlXM: event.ctrlXM == null ? const Value(null) : Value(event.ctrlXM),
+        ctrlYM: event.ctrlYM == null ? const Value(null) : Value(event.ctrlYM),
+      );
+      emitter(state.copyWith(floorPlanSnapshot: await _loadFloorPlans(project)));
+    } catch (error) {
+      appLogger().e("A problem occurred when tried to bend arrow ${event.arrowId} of the "
+          "project at ${project.path}: $error");
+      emitter(state.copyWith(hasWriteError: true));
+    }
+  }
+
+  /// Duplicates symbol `event.symbolId` into an independent copy — never a link — on the very same
+  /// set/shot/layer, at `event.xM`/`event.yM` when given or offset from the source by
+  /// `ocptFloorPlanDuplicateOffsetM` otherwise (`Ctrl+D`, which reports no position of its own),
+  /// then selects the copy. A no-op while the source symbol can no longer be found (a stale
+  /// shortcut on a canvas rebuilt underneath).
+  Future<void> _onFloorPlanSymbolDuplicated(
+    OcptShotListFloorPlanSymbolDuplicatedEvent event,
+    Emitter<OcptShotListState> emitter,
+  ) async {
+    final project = _projectsManager.currentProject;
+    if (project == null) {
+      return;
+    }
+
+    final source = _findFloorPlanSymbol(event.symbolId);
+    if (source == null) {
+      return;
+    }
+
+    try {
+      final symbolId = await _floorPlanService.placeSymbol(
+        database: project.database,
+        setId: source.setId,
+        shotId: source.shotId,
+        layer: source.layer,
+        xM: event.xM ?? source.xM + ocptFloorPlanDuplicateOffsetM,
+        yM: event.yM ?? source.yM + ocptFloorPlanDuplicateOffsetM,
+        rotationDeg: source.rotationDeg,
+        widthM: source.widthM,
+        heightM: source.heightM,
+        fovDeg: source.fovDeg,
+        label: source.label,
+        setElementShape: source.setElementShape,
+      );
+      if (symbolId == null) {
+        return;
+      }
+
+      emitter(
+        state.copyWith(
+          floorPlanSnapshot: await _loadFloorPlans(project),
+          selectedFloorPlanSymbolId: symbolId,
+          clearSelectedFloorPlanArrowId: true,
+        ),
+      );
+    } catch (error) {
+      appLogger().e("A problem occurred when tried to duplicate symbol ${event.symbolId} of the "
+          "project at ${project.path}: $error");
+      emitter(state.copyWith(hasWriteError: true));
+    }
+  }
+
+  /// The live `floor_plan_symbols` row [symbolId] names, searched across every set of
+  /// [OcptShotListState.floorPlanSnapshot] — [_onFloorPlanSymbolDuplicated]'s own source lookup, the
+  /// duplicate's every field but its position copied from here.
+  OcptFloorPlanSymbol? _findFloorPlanSymbol(String symbolId) {
+    for (final floorPlanSet in state.floorPlanSnapshot?.setsById.values ??
+        const <OcptFloorPlanSet>[]) {
+      for (final symbol in floorPlanSet.symbols) {
+        if (symbol.id == symbolId) {
+          return symbol;
+        }
+      }
+    }
+    return null;
+  }
+
+  /// Clears [OcptShotListState.pendingCharacterNamePromptSymbolId], dispatched by the mode's own
+  /// listener the moment it opens `OcptFloorPlanCharacterNamePickerDialog` for it.
+  Future<void> _onFloorPlanCharacterNamePromptDismissed(
+    OcptShotListFloorPlanCharacterNamePromptDismissedEvent event,
+    Emitter<OcptShotListState> emitter,
+  ) async {
+    emitter(state.copyWith(clearPendingCharacterNamePromptSymbolId: true));
   }
 
   /// {@macro act_life_cycle.MixinWithLifeCycleDispose.disposeLifeCycle}

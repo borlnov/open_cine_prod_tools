@@ -32,14 +32,14 @@ class OcptFloorPlanTraySequenceCamera extends Equatable {
 /// layer) with a visibility eye per row, the **`Shot layers`** group (cameras, characters, lights,
 /// props) with a visibility eye each, the cameras row's own expandable per-camera visibility under
 /// the `Sequence` focus, the **`Onion skin`** block (previous, next, one opacity), the metrics
-/// toggle, and the underlay's own row with its eye.
+/// toggle, the field-of-view wedge toggle, and the underlay's own row with its eye.
 ///
-/// Visibility, [activeLayer], [hiddenCameraSymbolIds], the onion skin block, the metrics toggle
-/// and the underlay's own visibility are **view state**: every toggle reported by this widget only
-/// ever reads, so this widget takes no `isReadOnly` flag of its own at all — the tray keeps
-/// working under a read-only preview exactly as the deliverable requires. [onUnderlayClearRequested]
-/// is the one exception, a real project write: the mode passes it null under a read-only preview,
-/// exactly like every other withheld callback in this milestone.
+/// Visibility, [activeLayer], [hiddenCameraSymbolIds], the onion skin block, the metrics toggle,
+/// [isShowFieldOfViewShown] and the underlay's own visibility are **view state**: every toggle
+/// reported by this widget only ever reads, so this widget takes no `isReadOnly` flag of its own
+/// at all — the tray keeps working under a read-only preview exactly as the deliverable requires.
+/// [onUnderlayClearRequested] is the one exception, a real project write: the mode passes it null
+/// under a read-only preview, exactly like every other withheld callback in this milestone.
 class OcptFloorPlanLayerTray extends StatelessWidget {
   /// Every layer currently hidden, sequence and shot layers alike.
   final Set<OcptFloorPlanLayer> hiddenLayers;
@@ -71,6 +71,11 @@ class OcptFloorPlanLayerTray extends StatelessWidget {
   /// Whether the metrics overlay is shown.
   final bool isMetricsShown;
 
+  /// Whether a camera's own field-of-view wedge is drawn — `OcptFloorPlanViewportController
+  /// .showFieldOfView`, read and written directly on that controller by the view (a session view
+  /// concern, exactly like [isMetricsShown]'s own `OcptFloorPlanCanvas` reads, never synchronised).
+  final bool isShowFieldOfViewShown;
+
   /// Whether the selected set's underlay is currently hidden.
   final bool isUnderlayHidden;
 
@@ -96,6 +101,10 @@ class OcptFloorPlanLayerTray extends StatelessWidget {
   /// Called when the metrics toggle is clicked.
   final VoidCallback onMetricsToggled;
 
+  /// Called when the field-of-view toggle is clicked. Never withheld: it only flips a drawing
+  /// preference on `OcptFloorPlanViewportController`.
+  final VoidCallback onShowFieldOfViewToggled;
+
   /// Called when the underlay row's own eye is clicked.
   final VoidCallback onUnderlayVisibilityToggled;
 
@@ -116,6 +125,7 @@ class OcptFloorPlanLayerTray extends StatelessWidget {
     required this.isOnionSkinNextShown,
     required this.onionSkinOpacity,
     required this.isMetricsShown,
+    required this.isShowFieldOfViewShown,
     required this.isUnderlayHidden,
     required this.hasUnderlay,
     required this.onLayerVisibilityToggled,
@@ -124,6 +134,7 @@ class OcptFloorPlanLayerTray extends StatelessWidget {
     required this.onOnionSkinToggled,
     required this.onOnionSkinOpacityChanged,
     required this.onMetricsToggled,
+    required this.onShowFieldOfViewToggled,
     required this.onUnderlayVisibilityToggled,
     required this.onUnderlayClearRequested,
   });
@@ -182,6 +193,7 @@ class OcptFloorPlanLayerTray extends StatelessWidget {
           _buildOnionSkinBlock(context),
           const Divider(height: 16),
           _buildMetricsToggle(context),
+          _buildShowFieldOfViewToggle(context),
           const Divider(height: 16),
           _buildUnderlayRow(context),
         ],
@@ -325,6 +337,19 @@ class OcptFloorPlanLayerTray extends StatelessWidget {
     onChanged: (_) => onMetricsToggled(),
     title: Text(
       Tr.of(context).shotListFloorPlanMetricsToggleLabel,
+      style: Theme.of(context).textTheme.bodySmall,
+    ),
+  );
+
+  /// The field-of-view overlay's own toggle row: every camera's own wedge, on by default.
+  Widget _buildShowFieldOfViewToggle(BuildContext context) => CheckboxListTile(
+    dense: true,
+    contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+    controlAffinity: ListTileControlAffinity.leading,
+    value: isShowFieldOfViewShown,
+    onChanged: (_) => onShowFieldOfViewToggled(),
+    title: Text(
+      Tr.of(context).shotListFloorPlanFieldOfViewToggleLabel,
       style: Theme.of(context).textTheme.bodySmall,
     ),
   );

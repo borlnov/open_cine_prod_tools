@@ -86,6 +86,9 @@ class OcptFloorPlanView extends StatefulWidget {
   /// The id of the currently selected symbol, or null while none is.
   final String? selectedSymbolId;
 
+  /// The id of the currently selected arrow, or null while none is.
+  final String? selectedArrowId;
+
   /// The id of the symbol picked as the arrow tool's own pending first end, or null while none is.
   final String? pendingArrowAnchorSymbolId;
 
@@ -147,6 +150,10 @@ class OcptFloorPlanView extends StatefulWidget {
   /// Called with a symbol's id and its new rotation (degrees), or null while withheld.
   final void Function(String symbolId, double rotationDeg)? onSymbolRotated;
 
+  /// Called with a camera symbol's id and its new field-of-view wedge angle (degrees), or null
+  /// while withheld.
+  final void Function(String symbolId, double fovDeg)? onSymbolFovChanged;
+
   /// Called with the selected symbol's id when its own delete action is clicked, or null while
   /// withheld.
   final ValueChanged<String>? onSymbolDeleteRequested;
@@ -157,6 +164,21 @@ class OcptFloorPlanView extends StatefulWidget {
 
   /// Called to cancel the arrow tool's own pending anchor, or null while withheld.
   final VoidCallback? onArrowAnchorCancelled;
+
+  /// Called with an arrow's id when it is selected, or null to clear the selection. Never withheld.
+  final ValueChanged<String?> onArrowSelected;
+
+  /// Called with an arrow's id and its new bezier control point (metres), or both null to
+  /// straighten it, or null while withheld.
+  final void Function(String arrowId, double? ctrlXM, double? ctrlYM)? onArrowCurveChanged;
+
+  /// Called with the selected symbol's id when `Ctrl+D` is pressed, or null while withheld. See
+  /// [onSymbolDuplicateDragged] for the `Alt`-drag variant.
+  final ValueChanged<String>? onSymbolDuplicateRequested;
+
+  /// Called with a symbol's id and the release point (metres) of an `Alt`-drag on it, or null while
+  /// withheld.
+  final void Function(String symbolId, double xM, double yM)? onSymbolDuplicateDragged;
 
   /// Called with a ghost symbol's own shot id when it is double-clicked. Never withheld.
   final ValueChanged<String>? onGhostShotFocusRequested;
@@ -170,9 +192,6 @@ class OcptFloorPlanView extends StatefulWidget {
 
   /// Called with the zoom just settled on, whichever gesture settled it.
   final ValueChanged<double> onZoomSettled;
-
-  /// Called when the `Sequence` chip is clicked.
-  final VoidCallback onSequenceChipSelected;
 
   /// Called with a shot's id when its own chip is clicked, or `←`/`→` walks to it.
   final ValueChanged<String> onShotChipSelected;
@@ -200,6 +219,7 @@ class OcptFloorPlanView extends StatefulWidget {
     required this.onionSkinOpacity,
     required this.isMetricsShown,
     required this.selectedSymbolId,
+    required this.selectedArrowId,
     required this.pendingArrowAnchorSymbolId,
     required this.activeTool,
     required this.activeLayer,
@@ -220,14 +240,18 @@ class OcptFloorPlanView extends StatefulWidget {
     required this.onSymbolMoved,
     required this.onSymbolResized,
     required this.onSymbolRotated,
+    required this.onSymbolFovChanged,
     required this.onSymbolDeleteRequested,
     required this.onArrowSymbolTapped,
     required this.onArrowAnchorCancelled,
+    required this.onArrowSelected,
+    required this.onArrowCurveChanged,
+    required this.onSymbolDuplicateRequested,
+    required this.onSymbolDuplicateDragged,
     required this.onGhostShotFocusRequested,
     required this.onSymbolLabelChanged,
     required this.onUnderlayTransformChanged,
     required this.onZoomSettled,
-    required this.onSequenceChipSelected,
     required this.onShotChipSelected,
     required this.onShotWalkRequested,
   });
@@ -277,7 +301,6 @@ class _OcptFloorPlanViewState extends State<OcptFloorPlanView> {
         children: [
           OcptFloorPlanToolBar(
             activeTool: widget.activeTool,
-            isShotFocusActive: widget.focusShotId != null,
             viewportController: _viewportController,
             isReadOnly: widget.isReadOnly,
             hasUnderlay: widget.floorPlanSet?.underlayAssetId != null,
@@ -292,26 +315,36 @@ class _OcptFloorPlanViewState extends State<OcptFloorPlanView> {
               children: [
                 SizedBox(
                   width: 220,
-                  child: OcptFloorPlanLayerTray(
-                    hiddenLayers: widget.hiddenLayers,
-                    activeLayer: widget.activeLayer,
-                    isShotFocusActive: widget.focusShotId != null,
-                    sequenceCameras: widget.sequenceCameras,
-                    hiddenCameraSymbolIds: widget.hiddenCameraSymbolIds,
-                    isOnionSkinPreviousShown: widget.isOnionSkinPreviousShown,
-                    isOnionSkinNextShown: widget.isOnionSkinNextShown,
-                    onionSkinOpacity: widget.onionSkinOpacity,
-                    isMetricsShown: widget.isMetricsShown,
-                    isUnderlayHidden: widget.isUnderlayHidden,
-                    hasUnderlay: widget.floorPlanSet?.underlayAssetId != null,
-                    onLayerVisibilityToggled: widget.onLayerVisibilityToggled,
-                    onActiveLayerChanged: widget.onActiveLayerChanged,
-                    onCameraVisibilityToggled: widget.onCameraVisibilityToggled,
-                    onOnionSkinToggled: widget.onOnionSkinToggled,
-                    onOnionSkinOpacityChanged: widget.onOnionSkinOpacityChanged,
-                    onMetricsToggled: widget.onMetricsToggled,
-                    onUnderlayVisibilityToggled: widget.onUnderlayVisibilityToggled,
-                    onUnderlayClearRequested: widget.onUnderlayClearRequested,
+                  // Listens to `_viewportController` for the sole row this session concern
+                  // (`showFieldOfView`) drives — every other row in this tray reads a plain widget
+                  // field instead.
+                  child: ListenableBuilder(
+                    listenable: _viewportController,
+                    builder: (context, _) => OcptFloorPlanLayerTray(
+                      hiddenLayers: widget.hiddenLayers,
+                      activeLayer: widget.activeLayer,
+                      isShotFocusActive: widget.focusShotId != null,
+                      sequenceCameras: widget.sequenceCameras,
+                      hiddenCameraSymbolIds: widget.hiddenCameraSymbolIds,
+                      isOnionSkinPreviousShown: widget.isOnionSkinPreviousShown,
+                      isOnionSkinNextShown: widget.isOnionSkinNextShown,
+                      onionSkinOpacity: widget.onionSkinOpacity,
+                      isMetricsShown: widget.isMetricsShown,
+                      isShowFieldOfViewShown: _viewportController.showFieldOfView,
+                      isUnderlayHidden: widget.isUnderlayHidden,
+                      hasUnderlay: widget.floorPlanSet?.underlayAssetId != null,
+                      onLayerVisibilityToggled: widget.onLayerVisibilityToggled,
+                      onActiveLayerChanged: widget.onActiveLayerChanged,
+                      onCameraVisibilityToggled: widget.onCameraVisibilityToggled,
+                      onOnionSkinToggled: widget.onOnionSkinToggled,
+                      onOnionSkinOpacityChanged: widget.onOnionSkinOpacityChanged,
+                      onMetricsToggled: widget.onMetricsToggled,
+                      onShowFieldOfViewToggled: () => _viewportController.setShowFieldOfView(
+                        value: !_viewportController.showFieldOfView,
+                      ),
+                      onUnderlayVisibilityToggled: widget.onUnderlayVisibilityToggled,
+                      onUnderlayClearRequested: widget.onUnderlayClearRequested,
+                    ),
                   ),
                 ),
                 VerticalDivider(width: 1, color: theme.colorScheme.outlineVariant),
@@ -329,6 +362,7 @@ class _OcptFloorPlanViewState extends State<OcptFloorPlanView> {
                     hiddenCameraSymbolIds: widget.hiddenCameraSymbolIds,
                     isUnderlayHidden: widget.isUnderlayHidden,
                     selectedSymbolId: widget.selectedSymbolId,
+                    selectedArrowId: widget.selectedArrowId,
                     pendingArrowAnchorSymbolId: widget.pendingArrowAnchorSymbolId,
                     isMetricsShown: widget.isMetricsShown,
                     activeTool: widget.activeTool,
@@ -341,9 +375,14 @@ class _OcptFloorPlanViewState extends State<OcptFloorPlanView> {
                     onSymbolMoved: widget.onSymbolMoved,
                     onSymbolResized: widget.onSymbolResized,
                     onSymbolRotated: widget.onSymbolRotated,
+                    onSymbolFovChanged: widget.onSymbolFovChanged,
                     onSymbolDeleteRequested: widget.onSymbolDeleteRequested,
                     onArrowSymbolTapped: widget.onArrowSymbolTapped,
                     onArrowAnchorCancelled: widget.onArrowAnchorCancelled,
+                    onArrowSelected: widget.onArrowSelected,
+                    onArrowCurveChanged: widget.onArrowCurveChanged,
+                    onSymbolDuplicateRequested: widget.onSymbolDuplicateRequested,
+                    onSymbolDuplicateDragged: widget.onSymbolDuplicateDragged,
                     onGhostShotFocusRequested: widget.onGhostShotFocusRequested,
                     onSymbolLabelChanged: widget.onSymbolLabelChanged,
                     onUnderlayTransformChanged: widget.onUnderlayTransformChanged,
@@ -359,7 +398,6 @@ class _OcptFloorPlanViewState extends State<OcptFloorPlanView> {
             selectedShotId: widget.focusShotId,
             previousShotId: widget.previousShotId,
             nextShotId: widget.nextShotId,
-            onSequenceChipSelected: widget.onSequenceChipSelected,
             onShotChipSelected: widget.onShotChipSelected,
           ),
         ],
@@ -368,7 +406,7 @@ class _OcptFloorPlanViewState extends State<OcptFloorPlanView> {
   }
 
   /// `←`/`→` walk the sequence's shots; `Escape` cancels the arrow tool's own pending anchor while
-  /// one is pending — see the class doc comment.
+  /// one is pending; `Ctrl+D` duplicates the selected symbol (R2) — see the class doc comment.
   KeyEventResult _onKeyEvent(FocusNode node, KeyEvent event) {
     if (event is! KeyDownEvent) {
       return KeyEventResult.ignored;
@@ -386,6 +424,14 @@ class _OcptFloorPlanViewState extends State<OcptFloorPlanView> {
         widget.pendingArrowAnchorSymbolId != null) {
       widget.onArrowAnchorCancelled?.call();
       return KeyEventResult.handled;
+    }
+    if (event.logicalKey == LogicalKeyboardKey.keyD &&
+        (HardwareKeyboard.instance.isControlPressed || HardwareKeyboard.instance.isMetaPressed)) {
+      final selectedSymbolId = widget.selectedSymbolId;
+      if (selectedSymbolId != null) {
+        widget.onSymbolDuplicateRequested?.call(selectedSymbolId);
+        return KeyEventResult.handled;
+      }
     }
 
     return KeyEventResult.ignored;

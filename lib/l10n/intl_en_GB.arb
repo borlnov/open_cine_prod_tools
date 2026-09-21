@@ -3244,13 +3244,6 @@
     "type": "text",
     "placeholders": {}
   },
-  "shotListFloorPlanFocusSequenceChipLabel": "Sequence",
-  "@shotListFloorPlanFocusSequenceChipLabel": {
-    "description": "Label of the focus strip's own Sequence chip",
-    "context": "Displayed on the floor plans view's own focus strip",
-    "type": "text",
-    "placeholders": {}
-  },
   "shotListFloorPlanScaleBarLengthLabel": "{length} m",
   "@shotListFloorPlanScaleBarLengthLabel": {
     "description": "The scale bar's own rounded length, already formatted by ocptFloorPlanScaleBarLengthLabelOf, always drawn bottom-right of the canvas",
@@ -3314,20 +3307,6 @@
   "shotListFloorPlanToolLabelAction": "Label",
   "@shotListFloorPlanToolLabelAction": {
     "description": "Tooltip of the tool bar's own label tool button",
-    "context": "Displayed on the floor plans view's own tool bar",
-    "type": "text",
-    "placeholders": {}
-  },
-  "shotListFloorPlanSetElementDimmedHint": "Set elements go to a sequence layer — pick \"Sequence\" below",
-  "@shotListFloorPlanSetElementDimmedHint": {
-    "description": "The tool bar's own one-line hint next to the set-element tool while it is dimmed under a shot focus",
-    "context": "Displayed on the floor plans view's own tool bar",
-    "type": "text",
-    "placeholders": {}
-  },
-  "shotListFloorPlanShotToolsDimmedHint": "Pick a shot below to place cameras, characters, lights and arrows",
-  "@shotListFloorPlanShotToolsDimmedHint": {
-    "description": "The tool bar's own one-line hint next to the shot-scoped tools while they are dimmed under the Sequence focus",
     "context": "Displayed on the floor plans view's own tool bar",
     "type": "text",
     "placeholders": {}
@@ -3570,6 +3549,80 @@
         "type": "String"
       }
     }
+  },
+  "shotListFloorPlanFieldOfViewToggleLabel": "Show field of view",
+  "@shotListFloorPlanFieldOfViewToggleLabel": {
+    "description": "Label of the tray's own field-of-view wedge toggle",
+    "context": "Displayed on the floor plans view's own tray",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanDecreaseFovAction": "Narrower field of view",
+  "@shotListFloorPlanDecreaseFovAction": {
+    "description": "Tooltip of a camera row's own field-of-view stepper decrease button",
+    "context": "Displayed in the shot inspector's own Placements group",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanIncreaseFovAction": "Wider field of view",
+  "@shotListFloorPlanIncreaseFovAction": {
+    "description": "Tooltip of a camera row's own field-of-view stepper increase button",
+    "context": "Displayed in the shot inspector's own Placements group",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanCameraFovValueLabel": "{degrees}°",
+  "@shotListFloorPlanCameraFovValueLabel": {
+    "description": "A camera row's own current field-of-view angle, between its stepper's two buttons",
+    "context": "Displayed in the shot inspector's own Placements group",
+    "type": "text",
+    "placeholders": {
+      "degrees": {
+        "type": "int"
+      }
+    }
+  },
+  "shotListFloorPlanStraightenArrowAction": "Straighten arrow",
+  "@shotListFloorPlanStraightenArrowAction": {
+    "description": "Tooltip of a bent arrow's own small straighten button, next to its midpoint handle",
+    "context": "Displayed on the floor plans view's own canvas",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanCharacterNamePickerTitle": "Name this character",
+  "@shotListFloorPlanCharacterNamePickerTitle": {
+    "description": "Title of the dialog opened the moment a character symbol is placed, setting or changing its own name",
+    "context": "Displayed in the character name picker dialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanCharacterNamePickerFieldHint": "Character name",
+  "@shotListFloorPlanCharacterNamePickerFieldHint": {
+    "description": "Placeholder of the character name picker's own free-text field",
+    "context": "Displayed in the character name picker dialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanCharacterNamePickerSuggestionsTitle": "From this shot",
+  "@shotListFloorPlanCharacterNamePickerSuggestionsTitle": {
+    "description": "Title of the character name picker's own list of the selected shot's characters, offered as one-click picks",
+    "context": "Displayed in the character name picker dialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanCharacterNamePickerCancelAction": "Cancel",
+  "@shotListFloorPlanCharacterNamePickerCancelAction": {
+    "description": "Label of the character name picker's own cancel action",
+    "context": "Displayed in the character name picker dialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanCharacterNamePickerSetAction": "Set",
+  "@shotListFloorPlanCharacterNamePickerSetAction": {
+    "description": "Label of the character name picker's own confirm action, setting the free-text field's own value",
+    "context": "Displayed in the character name picker dialog",
+    "type": "text",
+    "placeholders": {}
   },
   "projectVersionsPanelTitle": "Project versions",
   "@projectVersionsPanelTitle": {

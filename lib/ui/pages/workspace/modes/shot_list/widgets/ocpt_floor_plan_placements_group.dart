@@ -5,6 +5,11 @@
 import 'package:flutter/material.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_floor_plan_sheet.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_floor_plan_geometry.dart';
+
+/// The step, in degrees, one click of the cameras section's own `−`/`+` field-of-view stepper
+/// changes a camera's angle by.
+const double _fovStepDeg = 5;
 
 /// One other set of the sequence, for [OcptFloorPlanPlacementsGroup]'s own trailing list — whether
 /// the selected shot has a camera placed there too (`docs/plans/storyboard.md`, §4.3: `Hallway ·
@@ -30,7 +35,10 @@ class OcptFloorPlanPlacementsOtherSet {
 /// what `OcptFloorPlanCanvas` draws editable under this very shot's focus. Deleting a placement is
 /// irreversible: this group only **asks** ([onSymbolDeleteRequested]/[onArrowDeleteRequested]), the
 /// mode opens `OcptConfirmDialog` and dispatches the deletion itself, mirroring
-/// `OcptStoryboardPanelsGroup`'s own `onDeleteRequested`.
+/// `OcptStoryboardPanelsGroup`'s own `onDeleteRequested`. Each camera row also carries a `−`/`+`
+/// field-of-view stepper ([onCameraFovChanged]) — the one control here that writes directly, with
+/// no confirmation: a lens angle is a value to dial in, not an irreversible act, and the same write
+/// the canvas's own edge handles make (`OcptFloorPlanService.updateSymbol(fovDeg:)`).
 class OcptFloorPlanPlacementsGroup extends StatelessWidget {
   /// The selected case's own name.
   final String setName;
@@ -66,6 +74,10 @@ class OcptFloorPlanPlacementsGroup extends StatelessWidget {
   /// withheld.
   final ValueChanged<String>? onArrowDeleteRequested;
 
+  /// Called with a camera symbol's id and its new field-of-view angle (degrees) when the cameras
+  /// section's own `−`/`+` stepper is clicked, or null while withheld.
+  final void Function(String symbolId, double fovDeg)? onCameraFovChanged;
+
   /// Class constructor
   const OcptFloorPlanPlacementsGroup({
     super.key,
@@ -79,6 +91,7 @@ class OcptFloorPlanPlacementsGroup extends StatelessWidget {
     required this.isReadOnly,
     required this.onSymbolDeleteRequested,
     required this.onArrowDeleteRequested,
+    required this.onCameraFovChanged,
   });
 
   @override
@@ -94,13 +107,7 @@ class OcptFloorPlanPlacementsGroup extends StatelessWidget {
           style: theme.textTheme.titleSmall?.copyWith(color: theme.colorScheme.primary),
         ),
         const SizedBox(height: 8),
-        _buildSection(
-          context,
-          title: tr.shotListFloorPlanPlacementsCamerasSectionTitle,
-          symbols: cameras,
-          emptyHint: tr.shotListFloorPlanPlacementsNoCameraHint,
-          labelOf: (symbol) => symbol.cameraLabel ?? symbol.label,
-        ),
+        _buildCamerasSection(context, tr),
         _buildSection(
           context,
           title: tr.shotListFloorPlanPlacementsCharactersSectionTitle,
@@ -169,6 +176,111 @@ class OcptFloorPlanPlacementsGroup extends StatelessWidget {
             ),
         ],
       ],
+    );
+  }
+
+  /// The cameras section: its title, then one row per camera carrying its own field-of-view stepper
+  /// next to its label and its remove action — the control the field-of-view feature adds
+  /// alongside the generic [_buildSection] every other placement kind still uses.
+  Widget _buildCamerasSection(BuildContext context, Tr tr) {
+    final theme = Theme.of(context);
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            tr.shotListFloorPlanPlacementsCamerasSectionTitle,
+            style: theme.textTheme.labelSmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          if (cameras.isEmpty)
+            Text(
+              tr.shotListFloorPlanPlacementsNoCameraHint,
+              style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+            )
+          else
+            for (final camera in cameras) _buildCameraRow(context, tr, camera),
+        ],
+      ),
+    );
+  }
+
+  /// One camera's own row: its colour swatch and derived label, the `−`/`+` field-of-view stepper
+  /// (withheld under [isReadOnly] or while [onCameraFovChanged] is null), and its remove action.
+  Widget _buildCameraRow(BuildContext context, Tr tr, OcptFloorPlanSymbolShape camera) {
+    final theme = Theme.of(context);
+    final onCameraFovChanged = this.onCameraFovChanged;
+    final fovDeg = camera.fovDeg ?? ocptFloorPlanDefaultCameraFovDeg;
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 2),
+      child: Row(
+        children: [
+          Container(
+            width: 8,
+            height: 8,
+            decoration: BoxDecoration(color: Color(camera.colorArgb), shape: BoxShape.circle),
+          ),
+          const SizedBox(width: 6),
+          Expanded(
+            child: Text(camera.cameraLabel ?? camera.label, style: theme.textTheme.bodySmall),
+          ),
+          if (onCameraFovChanged != null) ...[
+            IconButton(
+              iconSize: 14,
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(minWidth: 22, minHeight: 22),
+              tooltip: tr.shotListFloorPlanDecreaseFovAction,
+              onPressed: fovDeg <= ocptFloorPlanMinCameraFovDeg
+                  ? null
+                  : () => onCameraFovChanged(
+                      camera.symbolId,
+                      (fovDeg - _fovStepDeg).clamp(
+                        ocptFloorPlanMinCameraFovDeg,
+                        ocptFloorPlanMaxCameraFovDeg,
+                      ),
+                    ),
+              icon: const Icon(Icons.remove),
+            ),
+            SizedBox(
+              width: 34,
+              child: Text(
+                tr.shotListFloorPlanCameraFovValueLabel(fovDeg.round()),
+                textAlign: TextAlign.center,
+                style: theme.textTheme.bodySmall,
+              ),
+            ),
+            IconButton(
+              iconSize: 14,
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(minWidth: 22, minHeight: 22),
+              tooltip: tr.shotListFloorPlanIncreaseFovAction,
+              onPressed: fovDeg >= ocptFloorPlanMaxCameraFovDeg
+                  ? null
+                  : () => onCameraFovChanged(
+                      camera.symbolId,
+                      (fovDeg + _fovStepDeg).clamp(
+                        ocptFloorPlanMinCameraFovDeg,
+                        ocptFloorPlanMaxCameraFovDeg,
+                      ),
+                    ),
+              icon: const Icon(Icons.add),
+            ),
+          ],
+          if (onSymbolDeleteRequested != null)
+            IconButton(
+              iconSize: 14,
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(minWidth: 24, minHeight: 24),
+              onPressed: () => onSymbolDeleteRequested!(camera.symbolId),
+              icon: const Icon(Icons.close),
+            ),
+        ],
+      ),
     );
   }
 

@@ -29,6 +29,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_project_versi
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_event.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_state.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_floor_plan_character_name_picker_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_floor_plan_layer_tray.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_floor_plan_placements_group.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_floor_plan_set_tabs.dart';
@@ -860,9 +861,10 @@ class _ShotListViewState extends State<_ShotListView> {
   /// write withheld (a null callback) under a version preview, reads (zoom, pan, layer visibility,
   /// symbol selection, focusing a shot) staying available throughout.
   ///
-  /// **The focus is derived, never stored**: [OcptShotListState.isFloorPlanShotFocusActive] reads
-  /// `selectedShotId == null ? sequence : that shot`, and `focusShotId` handed to the view below is
-  /// simply `state.selectedShotId` — the very field the table's rows and the board already share.
+  /// **Always a current shot** (R2): the bloc guarantees `state.selectedShotId` is never null while
+  /// the selected sequence holds at least one shot, so `focusShotId` handed to the view below —
+  /// simply `state.selectedShotId`, the very field the table's rows and the board already share —
+  /// is only ever null for a sequence with none to focus on yet.
   Widget _buildFloorPlanView(
     BuildContext context,
     OcptShotListState state,
@@ -897,6 +899,7 @@ class _ShotListViewState extends State<_ShotListView> {
       onionSkinOpacity: state.floorPlanOnionSkinOpacity,
       isMetricsShown: state.isFloorPlanMetricsShown,
       selectedSymbolId: state.selectedFloorPlanSymbolId,
+      selectedArrowId: state.selectedFloorPlanArrowId,
       pendingArrowAnchorSymbolId: state.pendingFloorPlanArrowAnchorSymbolId,
       activeTool: state.floorPlanActiveTool,
       activeLayer: state.floorPlanActiveLayer,
@@ -963,6 +966,11 @@ class _ShotListViewState extends State<_ShotListView> {
                 rotationDeg: rotationDeg,
               ),
             ),
+      onSymbolFovChanged: isReadOnly
+          ? null
+          : (symbolId, fovDeg) => bloc.add(
+              OcptShotListFloorPlanSymbolFovChangedEvent(symbolId: symbolId, fovDeg: fovDeg),
+            ),
       onSymbolDeleteRequested: isReadOnly
           ? null
           : (symbolId) => unawaited(_handleSymbolDeleteRequested(context, symbolId)),
@@ -972,6 +980,26 @@ class _ShotListViewState extends State<_ShotListView> {
       onArrowAnchorCancelled: isReadOnly
           ? null
           : () => bloc.add(const OcptShotListFloorPlanArrowAnchorCancelledEvent()),
+      onArrowSelected: (arrowId) =>
+          bloc.add(OcptShotListFloorPlanArrowSelectedEvent(arrowId: arrowId)),
+      onArrowCurveChanged: isReadOnly
+          ? null
+          : (arrowId, ctrlXM, ctrlYM) => bloc.add(
+              OcptShotListFloorPlanArrowCurveChangedEvent(
+                arrowId: arrowId,
+                ctrlXM: ctrlXM,
+                ctrlYM: ctrlYM,
+              ),
+            ),
+      onSymbolDuplicateRequested: isReadOnly
+          ? null
+          : (symbolId) =>
+                bloc.add(OcptShotListFloorPlanSymbolDuplicatedEvent(symbolId: symbolId)),
+      onSymbolDuplicateDragged: isReadOnly
+          ? null
+          : (symbolId, xM, yM) => bloc.add(
+              OcptShotListFloorPlanSymbolDuplicatedEvent(symbolId: symbolId, xM: xM, yM: yM),
+            ),
       onGhostShotFocusRequested: (shotId) =>
           bloc.add(OcptShotListShotSelectedEvent(shotId: shotId)),
       onSymbolLabelChanged: isReadOnly
@@ -991,7 +1019,6 @@ class _ShotListViewState extends State<_ShotListView> {
               ),
             ),
       onZoomSettled: (zoom) => bloc.add(OcptShotListFloorPlanZoomChangedEvent(zoom: zoom)),
-      onSequenceChipSelected: () => bloc.add(const OcptShotListShotDeselectedEvent()),
       onShotChipSelected: (shotId) => bloc.add(OcptShotListShotSelectedEvent(shotId: shotId)),
       onShotWalkRequested: (delta) =>
           bloc.add(OcptShotListFloorPlanShotWalkRequestedEvent(delta: delta)),
@@ -1054,6 +1081,42 @@ class _ShotListViewState extends State<_ShotListView> {
       }
     }
     return "";
+  }
+
+  /// Opens `OcptFloorPlanCharacterNamePickerDialog` for the character symbol [symbolId] the bloc
+  /// just placed (R2, "the name popover on placement"), pre-filled with its own already-assigned
+  /// default label ([_symbolLabelValueOf]) and offering the selected shot's own characters as
+  /// one-click picks. Writes the name picked through the very same pending-edit path the inline
+  /// label editor rides — but flushed immediately (`OcptShotListFieldEditFlushRequestedEvent`)
+  /// rather than left to the 2 s debounce, since picking a name from a dialog is already a
+  /// deliberate, discrete action. Dismissing the dialog leaves the placement's own default label
+  /// untouched.
+  Future<void> _askCharacterName(
+    BuildContext context,
+    OcptShotListState state,
+    String symbolId,
+  ) async {
+    final currentLabel = _symbolLabelValueOf(state, symbolId);
+    final suggestedNames = [
+      for (final name in state.selectedShot?.characters ?? const <String>[])
+        if (name.isNotEmpty) name,
+    ];
+
+    final picked = await OcptFloorPlanCharacterNamePickerDialog.show(
+      context,
+      initialValue: currentLabel,
+      suggestedNames: suggestedNames,
+    );
+    if (picked == null) {
+      return;
+    }
+    if (!context.mounted) {
+      return;
+    }
+
+    final bloc = context.read<OcptShotListBloc>();
+    bloc.add(OcptShotListFloorPlanSymbolLabelChangedEvent(symbolId: symbolId, rawValue: picked));
+    bloc.add(const OcptShotListFieldEditFlushRequestedEvent());
   }
 
   /// Shows the delete confirmation dialog, then dispatches the symbol's deletion if the user
@@ -1165,6 +1228,11 @@ class _ShotListViewState extends State<_ShotListView> {
       onArrowDeleteRequested: isReadOnly
           ? null
           : (arrowId) => unawaited(_handleArrowDeleteRequested(context, arrowId)),
+      onCameraFovChanged: isReadOnly
+          ? null
+          : (symbolId, fovDeg) => context.read<OcptShotListBloc>().add(
+              OcptShotListFloorPlanSymbolFovChangedEvent(symbolId: symbolId, fovDeg: fovDeg),
+            ),
     );
   }
 
@@ -1709,6 +1777,14 @@ class _ShotListViewState extends State<_ShotListView> {
         ..hideCurrentSnackBar()
         ..showSnackBar(SnackBar(content: Text(Tr.of(context).shotListWriteError)));
       context.read<OcptShotListBloc>().add(const OcptShotListWriteErrorDismissedEvent());
+    }
+
+    final pendingCharacterNamePromptSymbolId = state.pendingCharacterNamePromptSymbolId;
+    if (pendingCharacterNamePromptSymbolId != null) {
+      context.read<OcptShotListBloc>().add(
+        const OcptShotListFloorPlanCharacterNamePromptDismissedEvent(),
+      );
+      unawaited(_askCharacterName(context, state, pendingCharacterNamePromptSymbolId));
     }
 
     final ioNotice = state.ioNotice;

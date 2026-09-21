@@ -97,9 +97,6 @@ const double _arrowheadAngle = 0.5;
 /// through `_dashedPathOf`, since `Paint` carries no dash pattern of its own in Flutter.
 const double _dashLength = 6;
 
-/// How far, in metres, a camera's own field-of-view wedge reaches from its lens.
-const double _cameraFovWedgeLengthM = 2;
-
 /// How far, in metres, a light's own beam reaches from its body.
 const double _lightBeamLengthM = 1;
 
@@ -158,6 +155,11 @@ class OcptFloorPlanSymbolLiveOverride {
   /// The symbol's live rotation, in degrees.
   final double rotationDeg;
 
+  /// The symbol's live field-of-view wedge angle, in degrees, while its own edge handle is being
+  /// dragged — null for every other kind of drag (move, resize, rotate), in which case the painter
+  /// keeps reading the symbol's own already-resolved `cameraFovWedgeDeg`.
+  final double? fovDeg;
+
   /// Class constructor
   const OcptFloorPlanSymbolLiveOverride({
     required this.symbolId,
@@ -166,6 +168,7 @@ class OcptFloorPlanSymbolLiveOverride {
     required this.widthM,
     required this.heightM,
     required this.rotationDeg,
+    this.fovDeg,
   });
 }
 
@@ -424,6 +427,12 @@ class OcptFloorPlanCanvasPainter extends CustomPainter {
     final rotationDeg = override != null && override.symbolId == symbol.symbolId
         ? override.rotationDeg
         : symbol.rotationDeg;
+    // The edge handles' own live drag only ever overrides a camera's wedge angle — every other
+    // symbol, and a camera outside that one drag, keeps reading its own already-resolved
+    // `cameraFovWedgeDeg` (null while the wedge is off, or this isn't a camera at all).
+    final fovWedgeDeg = override != null && override.symbolId == symbol.symbolId
+        ? (override.fovDeg ?? symbol.cameraFovWedgeDeg)
+        : symbol.cameraFovWedgeDeg;
 
     final centre = ocptFloorPlanScreenPointOf(xM: xM, yM: yM, canvasSize: size, zoom: zoom, pan: pan);
     final pixelsPerMetre = ocptFloorPlanPixelsPerMetreAt(zoom);
@@ -453,7 +462,7 @@ class OcptFloorPlanCanvasPainter extends CustomPainter {
           opacity,
           borderColor,
           borderWidth,
-          symbol.cameraFovWedgeDeg,
+          fovWedgeDeg,
           pixelsPerMetre,
           symbol.cameraLabel,
         );
@@ -572,7 +581,7 @@ class OcptFloorPlanCanvasPainter extends CustomPainter {
 
   /// A camera's own body, lens, its own derived [cameraLabel] as a filled pill attached to its
   /// back edge (drawn after the body/lens, opposite the lens' own "forward" direction) and, while
-  /// [fovWedgeDeg] is set, its field-of-view wedge — a cone [_cameraFovWedgeLengthM] long, spanning
+  /// [fovWedgeDeg] is set, its field-of-view wedge — a cone [ocptFloorPlanCameraFovWedgeLengthM] long, spanning
   /// [fovWedgeDeg], pointing local "up" (the camera's own heading, see [_paintCharacterGlyph]'s own
   /// doc comment for the shared bearing convention).
   void _paintCameraGlyph(
@@ -588,7 +597,7 @@ class OcptFloorPlanCanvasPainter extends CustomPainter {
   ) {
     if (fovWedgeDeg != null) {
       final halfAngle = fovWedgeDeg * math.pi / 180 / 2;
-      final wedgeLength = _cameraFovWedgeLengthM * pixelsPerMetre;
+      final wedgeLength = ocptFloorPlanCameraFovWedgeLengthM * pixelsPerMetre;
       final tip = Offset(0, -rect.height / 2);
       final left = tip + Offset(-math.sin(halfAngle), -math.cos(halfAngle)) * wedgeLength;
       final right = tip + Offset(math.sin(halfAngle), -math.cos(halfAngle)) * wedgeLength;

@@ -3233,30 +3233,105 @@ void main() {
     group("the shot half (M6)", () {
       /// Creates a shot on the sole selected sequence and returns its id, waiting for the
       /// selection the creation event always makes — mirrors "the board" group's own helper.
+      ///
+      /// Waits for `selectedShotId` to actually **change** from whatever it already was, not
+      /// merely to be non-null: since R2 guarantees a current shot whenever the sequence already
+      /// holds one, a second call in the same test would otherwise resolve against the still-
+      /// current previous shot before the new one's own creation event is even processed.
       Future<String> createShot(OcptShotListBloc bloc) async {
+        final previousShotId = bloc.state.selectedShotId;
         bloc.add(const OcptShotListShotCreationRequestedEvent());
-        final created = await waitForState(bloc, (state) => state.selectedShotId != null);
+        final created = await waitForState(
+          bloc,
+          (state) => state.selectedShotId != null && state.selectedShotId != previousShotId,
+        );
         return created.selectedShotId!;
       }
 
       test(
-        "focus is derived from selectedShotId: deselecting flips it back to the Sequence "
-        "without touching the sequence",
+        "always a current shot (R2): creating the sequence's first shot focuses it, deleting "
+        "it reselects the sequence's own next first shot rather than clearing to null",
         () async {
           await writeScreenplay(twoSceneText);
           final bloc = buildBloc();
           final loaded = await waitForState(bloc, (state) => !state.isLoading);
           final sequenceId = loaded.selectedSequenceId;
+          // No shot exists yet: the invariant only ever guarantees a current shot while the
+          // sequence holds at least one.
+          expect(loaded.selectedShotId, isNull);
           expect(loaded.isFloorPlanShotFocusActive, isFalse);
 
-          final shotId = await createShot(bloc);
+          final firstShotId = await createShot(bloc);
           expect(bloc.state.isFloorPlanShotFocusActive, isTrue);
-          expect(bloc.state.selectedShotId, shotId);
+          expect(bloc.state.selectedShotId, firstShotId);
 
-          bloc.add(const OcptShotListShotDeselectedEvent());
-          final deselected = await waitForState(bloc, (state) => state.selectedShotId == null);
-          expect(deselected.isFloorPlanShotFocusActive, isFalse);
-          expect(deselected.selectedSequenceId, sequenceId);
+          final secondShotId = await createShot(bloc);
+          expect(secondShotId, isNot(firstShotId));
+          expect(bloc.state.selectedShotId, secondShotId);
+
+          // Deleting the currently focused shot reselects the sequence's own remaining shot
+          // rather than clearing the selection to null.
+          bloc.add(OcptShotListShotDeletionRequestedEvent(shotId: secondShotId));
+          final afterDelete = await waitForState(
+            bloc,
+            (state) => state.selectedShotId == firstShotId,
+          );
+          expect(afterDelete.selectedSequenceId, sequenceId);
+          expect(afterDelete.isFloorPlanShotFocusActive, isTrue);
+
+          // Deleting the sequence's own last shot finally clears the selection: there is no shot
+          // left to be the current one.
+          bloc.add(OcptShotListShotDeletionRequestedEvent(shotId: firstShotId));
+          final afterLastDelete = await waitForState(
+            bloc,
+            (state) => state.totalShotCount == 0,
+          );
+          expect(afterLastDelete.selectedShotId, isNull);
+          expect(afterLastDelete.selectedSequenceId, sequenceId);
+
+          await bloc.close();
+        },
+      );
+
+      test(
+        "always a current shot (R2): switching to a sequence holding shots selects its own "
+        "first one",
+        () async {
+          await writeScreenplay(twoSceneText);
+          final bloc = buildBloc();
+          final loaded = await waitForState(bloc, (state) => !state.isLoading);
+          final firstSequenceId = loaded.sequences.first.id;
+          final secondSequenceId = loaded.sequences[1].id;
+
+          final firstSequenceShotId = await createShot(bloc);
+
+          bloc.add(OcptShotListSequenceSelectedEvent(sequenceId: secondSequenceId));
+          final onSecond = await waitForState(
+            bloc,
+            (state) => state.selectedSequenceId == secondSequenceId,
+          );
+          // The second sequence holds no shot of its own yet.
+          expect(onSecond.selectedShotId, isNull);
+
+          bloc.add(const OcptShotListShotCreationRequestedEvent());
+          final secondSequenceShotId = await waitForState(
+            bloc,
+            (state) => state.selectedShotId != null,
+          ).then((state) => state.selectedShotId!);
+
+          bloc.add(OcptShotListSequenceSelectedEvent(sequenceId: firstSequenceId));
+          final backOnFirst = await waitForState(
+            bloc,
+            (state) => state.selectedShotId == firstSequenceShotId,
+          );
+          expect(backOnFirst.selectedSequenceId, firstSequenceId);
+
+          bloc.add(OcptShotListSequenceSelectedEvent(sequenceId: secondSequenceId));
+          final backOnSecond = await waitForState(
+            bloc,
+            (state) => state.selectedShotId == secondSequenceShotId,
+          );
+          expect(backOnSecond.selectedSequenceId, secondSequenceId);
 
           await bloc.close();
         },
@@ -3526,19 +3601,9 @@ void main() {
         await waitForState(bloc, (state) => !state.isLoading);
 
         final firstShotId = await createShot(bloc);
-        bloc.add(const OcptShotListShotDeselectedEvent());
-        await waitForState(bloc, (state) => state.selectedShotId == null);
         final secondShotId = await createShot(bloc);
         expect(secondShotId, isNot(firstShotId));
-
-        // No shot selected, walking forward selects the sequence's own first shot.
-        bloc.add(const OcptShotListShotDeselectedEvent());
-        await waitForState(bloc, (state) => state.selectedShotId == null);
-        bloc.add(const OcptShotListFloorPlanShotWalkRequestedEvent(delta: 1));
-        await waitForState(bloc, (state) => state.selectedShotId == firstShotId);
-
-        bloc.add(const OcptShotListFloorPlanShotWalkRequestedEvent(delta: 1));
-        await waitForState(bloc, (state) => state.selectedShotId == secondShotId);
+        expect(bloc.state.selectedShotId, secondShotId);
 
         // Already the last shot: walking further does nothing.
         bloc.add(const OcptShotListFloorPlanShotWalkRequestedEvent(delta: 1));
@@ -3547,6 +3612,14 @@ void main() {
 
         bloc.add(const OcptShotListFloorPlanShotWalkRequestedEvent(delta: -1));
         await waitForState(bloc, (state) => state.selectedShotId == firstShotId);
+
+        // Already the first shot: walking backward does nothing.
+        bloc.add(const OcptShotListFloorPlanShotWalkRequestedEvent(delta: -1));
+        await Future<void>.delayed(const Duration(milliseconds: 50));
+        expect(bloc.state.selectedShotId, firstShotId);
+
+        bloc.add(const OcptShotListFloorPlanShotWalkRequestedEvent(delta: 1));
+        await waitForState(bloc, (state) => state.selectedShotId == secondShotId);
 
         await bloc.close();
       });
@@ -3576,6 +3649,257 @@ void main() {
 
         await bloc.close();
       });
+
+      test(
+        "placing a character symbol arms the name prompt, dismissed clears it (R2)",
+        () async {
+          await writeScreenplay(twoSceneText);
+          final bloc = buildBloc();
+          await waitForState(bloc, (state) => !state.isLoading);
+          final setId = await createCase(bloc);
+          final shotId = await createShot(bloc);
+
+          bloc.add(
+            OcptShotListFloorPlanSymbolPlacedEvent(
+              setId: setId,
+              layer: OcptFloorPlanLayer.characters,
+              shotId: shotId,
+              xM: 0,
+              yM: 0,
+            ),
+          );
+          final placed = await waitForState(
+            bloc,
+            (state) => state.selectedSet!.symbols.isNotEmpty,
+          );
+          final symbolId = placed.selectedSet!.symbols.single.id;
+          expect(placed.pendingCharacterNamePromptSymbolId, symbolId);
+
+          bloc.add(const OcptShotListFloorPlanCharacterNamePromptDismissedEvent());
+          final dismissed = await waitForState(
+            bloc,
+            (state) => state.pendingCharacterNamePromptSymbolId == null,
+          );
+          expect(dismissed.selectedSet!.symbols.single.id, symbolId);
+
+          // A camera, a light or a set element never arms the prompt at all.
+          bloc.add(
+            OcptShotListFloorPlanSymbolPlacedEvent(
+              setId: setId,
+              layer: OcptFloorPlanLayer.cameras,
+              shotId: shotId,
+              xM: 1,
+              yM: 1,
+            ),
+          );
+          final cameraPlaced = await waitForState(
+            bloc,
+            (state) => state.selectedSet!.symbols.length == 2,
+          );
+          expect(cameraPlaced.pendingCharacterNamePromptSymbolId, isNull);
+
+          await bloc.close();
+        },
+      );
+
+      test(
+        "changing a camera's field of view writes it (OcptShotListFloorPlanSymbolFovChangedEvent)",
+        () async {
+          await writeScreenplay(twoSceneText);
+          final bloc = buildBloc();
+          await waitForState(bloc, (state) => !state.isLoading);
+          final setId = await createCase(bloc);
+          final shotId = await createShot(bloc);
+
+          bloc.add(
+            OcptShotListFloorPlanSymbolPlacedEvent(
+              setId: setId,
+              layer: OcptFloorPlanLayer.cameras,
+              shotId: shotId,
+              xM: 0,
+              yM: 0,
+            ),
+          );
+          final placed = await waitForState(
+            bloc,
+            (state) => state.selectedSet!.symbols.isNotEmpty,
+          );
+          final symbolId = placed.selectedSet!.symbols.single.id;
+          expect(placed.selectedSet!.symbols.single.fovDeg, isNull);
+
+          bloc.add(
+            OcptShotListFloorPlanSymbolFovChangedEvent(symbolId: symbolId, fovDeg: 35),
+          );
+          final changed = await waitForState(
+            bloc,
+            (state) => state.selectedSet!.symbols.single.fovDeg == 35,
+          );
+          expect(changed.selectedSet!.symbols.single.fovDeg, 35);
+
+          await bloc.close();
+        },
+      );
+
+      test(
+        "selecting an arrow, bending it and straightening it back out writes the control "
+        "point (R2)",
+        () async {
+          await writeScreenplay(twoSceneText);
+          final bloc = buildBloc();
+          await waitForState(bloc, (state) => !state.isLoading);
+          final setId = await createCase(bloc);
+          final shotId = await createShot(bloc);
+
+          bloc.add(
+            OcptShotListFloorPlanSymbolPlacedEvent(
+              setId: setId,
+              layer: OcptFloorPlanLayer.characters,
+              shotId: shotId,
+              xM: 0,
+              yM: 0,
+            ),
+          );
+          final withFirst = await waitForState(
+            bloc,
+            (state) => state.selectedSet!.symbols.length == 1,
+          );
+          final firstSymbolId = withFirst.selectedSet!.symbols.single.id;
+
+          bloc.add(
+            OcptShotListFloorPlanSymbolPlacedEvent(
+              setId: setId,
+              layer: OcptFloorPlanLayer.characters,
+              shotId: shotId,
+              xM: 2,
+              yM: 2,
+            ),
+          );
+          await waitForState(bloc, (state) => state.selectedSet!.symbols.length == 2);
+
+          bloc.add(OcptShotListFloorPlanArrowSymbolTappedEvent(symbolId: firstSymbolId));
+          await waitForState(
+            bloc,
+            (state) => state.pendingFloorPlanArrowAnchorSymbolId == firstSymbolId,
+          );
+          final secondSymbolId = bloc.state.selectedSet!.symbols
+              .firstWhere((symbol) => symbol.id != firstSymbolId)
+              .id;
+          bloc.add(OcptShotListFloorPlanArrowSymbolTappedEvent(symbolId: secondSymbolId));
+          final withArrow = await waitForState(
+            bloc,
+            (state) => state.selectedSet!.arrows.isNotEmpty,
+          );
+          final arrowId = withArrow.selectedSet!.arrows.single.id;
+
+          // Selecting the arrow is mutually exclusive with a symbol's own selection.
+          bloc.add(OcptShotListFloorPlanSymbolSelectedEvent(symbolId: firstSymbolId));
+          await waitForState(bloc, (state) => state.selectedFloorPlanSymbolId == firstSymbolId);
+          bloc.add(OcptShotListFloorPlanArrowSelectedEvent(arrowId: arrowId));
+          final selected = await waitForState(
+            bloc,
+            (state) => state.selectedFloorPlanArrowId == arrowId,
+          );
+          expect(selected.selectedFloorPlanSymbolId, isNull);
+
+          bloc.add(
+            OcptShotListFloorPlanArrowCurveChangedEvent(arrowId: arrowId, ctrlXM: 1.5, ctrlYM: 0.2),
+          );
+          final bent = await waitForState(
+            bloc,
+            (state) => state.selectedSet!.arrows.single.ctrlXM == 1.5,
+          );
+          expect(bent.selectedSet!.arrows.single.ctrlYM, 0.2);
+
+          bloc.add(
+            OcptShotListFloorPlanArrowCurveChangedEvent(
+              arrowId: arrowId,
+              ctrlXM: null,
+              ctrlYM: null,
+            ),
+          );
+          final straightened = await waitForState(
+            bloc,
+            (state) => state.selectedSet!.arrows.single.ctrlXM == null,
+          );
+          expect(straightened.selectedSet!.arrows.single.ctrlYM, isNull);
+
+          bloc.add(OcptShotListFloorPlanArrowDeletionRequestedEvent(arrowId: arrowId));
+          final deletedArrow = await waitForState(
+            bloc,
+            (state) => state.selectedSet!.arrows.isEmpty,
+          );
+          expect(deletedArrow.selectedFloorPlanArrowId, isNull);
+
+          await bloc.close();
+        },
+      );
+
+      test(
+        "Ctrl+D duplicates a symbol offset from its source, an Alt-drag duplicates at the "
+        "drag's own position, neither touching the source (R2)",
+        () async {
+          await writeScreenplay(twoSceneText);
+          final bloc = buildBloc();
+          await waitForState(bloc, (state) => !state.isLoading);
+          final setId = await createCase(bloc);
+          final shotId = await createShot(bloc);
+
+          bloc.add(
+            OcptShotListFloorPlanSymbolPlacedEvent(
+              setId: setId,
+              layer: OcptFloorPlanLayer.lights,
+              shotId: shotId,
+              xM: 1,
+              yM: 1,
+            ),
+          );
+          final placed = await waitForState(
+            bloc,
+            (state) => state.selectedSet!.symbols.isNotEmpty,
+          );
+          final sourceId = placed.selectedSet!.symbols.single.id;
+
+          // No explicit position (the `Ctrl+D` shortcut): offsets from the source.
+          bloc.add(OcptShotListFloorPlanSymbolDuplicatedEvent(symbolId: sourceId));
+          final duplicated = await waitForState(
+            bloc,
+            (state) => state.selectedSet!.symbols.length == 2,
+          );
+          expect(duplicated.selectedSet!.symbols.map((symbol) => symbol.id), contains(sourceId));
+          final firstCopy = duplicated.selectedSet!.symbols.firstWhere(
+            (symbol) => symbol.id != sourceId,
+          );
+          expect(firstCopy.xM, isNot(1));
+          expect(firstCopy.layer, OcptFloorPlanLayer.lights);
+          expect(duplicated.selectedFloorPlanSymbolId, firstCopy.id);
+          // The source itself is untouched.
+          expect(
+            duplicated.selectedSet!.symbols.firstWhere((symbol) => symbol.id == sourceId).xM,
+            1,
+          );
+
+          // An explicit position (an `Alt`-drag's own settled point) places the copy exactly
+          // there instead of at the default offset.
+          bloc.add(
+            OcptShotListFloorPlanSymbolDuplicatedEvent(symbolId: sourceId, xM: 9, yM: -4),
+          );
+          final secondDuplicate = await waitForState(
+            bloc,
+            (state) => state.selectedSet!.symbols.length == 3,
+          );
+          final secondCopy = secondDuplicate.selectedSet!.symbols.firstWhere(
+            (symbol) => symbol.id != sourceId && symbol.id != firstCopy.id,
+          );
+          expect(secondCopy.xM, 9);
+          expect(secondCopy.yM, -4);
+          expect(
+            secondDuplicate.selectedSet!.symbols.firstWhere((symbol) => symbol.id == sourceId).xM,
+            1,
+          );
+
+          await bloc.close();
+        },
+      );
     });
   });
 }

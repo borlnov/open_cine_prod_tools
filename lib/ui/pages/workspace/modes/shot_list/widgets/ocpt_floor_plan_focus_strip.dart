@@ -8,17 +8,17 @@ import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
 
 /// The floor plans view's own focus strip, along the bottom of the canvas
-/// (`docs/plans/storyboard.md`, §4.3): the `Sequence` chip, then one chip per shot of the
-/// sequence.
+/// (`docs/plans/storyboard.md`, §4.3): one chip per shot of the sequence — always at least one
+/// active once the sequence holds a shot at all (R2, "always a current shot"; a sequence holding
+/// none shows an empty strip, since there is no current shot to name a chip for).
 ///
 /// **The chip selection is the mode's shot selection** — `OcptShotListState.selectedShotId`,
 /// [selectedShotId] here — so a chip dispatches the very same event the table's own rows do
-/// ([onShotChipSelected] → `OcptShotListShotSelectedEvent`); the `Sequence` chip dispatches the
-/// deselection instead ([onSequenceChipSelected] → `OcptShotListShotDeselectedEvent`). A shot chip
-/// shows a **filled dot** when [hasCameraOnSetOf] says the shot has a camera on the set currently
-/// shown, a **hollow** one otherwise — a gap in the sequence's own numbers is a shot still to
-/// place, and this is the one place that says which. The neighbour ghosted by the onion skin under
-/// a shot focus ([previousShotId]/[nextShotId]) carries a small `prev`/`next` tag.
+/// ([onShotChipSelected] → `OcptShotListShotSelectedEvent`). A shot chip shows a **filled dot**
+/// when [hasCameraOnSetOf] says the shot has a camera on the set currently shown, a **hollow** one
+/// otherwise — a gap in the sequence's own numbers is a shot still to place, and this is the one
+/// place that says which. The neighbour ghosted by the onion skin ([previousShotId]/[nextShotId])
+/// carries a small `prev`/`next` tag.
 class OcptFloorPlanFocusStrip extends StatelessWidget {
   /// The selected sequence's own shots, in order.
   final List<OcptShot> shots;
@@ -27,7 +27,7 @@ class OcptFloorPlanFocusStrip extends StatelessWidget {
   /// id — a shot missing from this map reads as having none.
   final Map<String, bool> hasCameraOnSetOf;
 
-  /// The id of the currently selected (focused) shot, or null for the `Sequence` focus.
+  /// The id of the currently selected (focused) shot, or null while the sequence holds none.
   final String? selectedShotId;
 
   /// The shot immediately before [selectedShotId], or null while there is none — ghosted by the
@@ -36,9 +36,6 @@ class OcptFloorPlanFocusStrip extends StatelessWidget {
 
   /// The shot immediately after [selectedShotId]. See [previousShotId].
   final String? nextShotId;
-
-  /// Called when the `Sequence` chip is clicked.
-  final VoidCallback onSequenceChipSelected;
 
   /// Called with a shot's id when its own chip is clicked.
   final ValueChanged<String> onShotChipSelected;
@@ -51,7 +48,6 @@ class OcptFloorPlanFocusStrip extends StatelessWidget {
     required this.selectedShotId,
     required this.previousShotId,
     required this.nextShotId,
-    required this.onSequenceChipSelected,
     required this.onShotChipSelected,
   });
 
@@ -70,14 +66,8 @@ class OcptFloorPlanFocusStrip extends StatelessWidget {
         scrollDirection: Axis.horizontal,
         child: Row(
           children: [
-            _buildChip(
-              context,
-              label: tr.shotListFloorPlanFocusSequenceChipLabel,
-              isActive: selectedShotId == null,
-              onTap: onSequenceChipSelected,
-            ),
             for (final shot in shots) ...[
-              const SizedBox(width: 6),
+              if (shot != shots.first) const SizedBox(width: 6),
               _buildShotChip(context, shot),
             ],
             if (shots.isNotEmpty) ...[

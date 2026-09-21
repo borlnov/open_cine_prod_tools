@@ -28,6 +28,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_lis
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_event.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_mode.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_floor_plan_canvas.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_floor_plan_character_name_picker_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_floor_plan_focus_strip.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_scenario_coverage_export_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_shot_inspector_panel.dart';
@@ -954,8 +955,8 @@ void main() {
         );
         expect(setElementButton.onPressed, isNull);
 
-        // The shot-scoped camera tool is withheld too (dimmed under the Sequence focus AND
-        // withheld under the preview, either reason enough on its own).
+        // The shot-scoped camera tool is withheld too, under the preview (no tool is ever dimmed
+        // any more, R2 — only `isReadOnly` withholds a tool bar button now).
         final cameraButton = tester.widget<IconButton>(
           find.descendant(
             of: find.byTooltip(tr.shotListFloorPlanToolCameraAction),
@@ -983,35 +984,37 @@ void main() {
     );
 
     testWidgets(
-      "the focus strip's Sequence and shot chips select/deselect the shot",
+      "creating a second shot's own chip selects it, always one active (R2)",
       (tester) async {
         final bloc = await mountWithACase(tester);
-        final tr = Tr.of(tester.element(find.byType(OcptShotListMode)));
 
         bloc.add(const OcptShotListShotCreationRequestedEvent());
         await tester.pumpAndSettle();
-        final shotId = bloc.state.selectedShotId!;
-        final shotCode = bloc.state.selectedShot!.code;
+        final firstShotId = bloc.state.selectedShotId!;
+        final firstShotCode = bloc.state.selectedShot!.code;
         expect(bloc.state.isFloorPlanShotFocusActive, isTrue);
 
-        // The shot's own chip is already active (the very selection the table's rows share); the
-        // `Sequence` chip flips the focus back. Scoped to the focus strip: the shot's own code is
-        // also shown by the left tree and the inspector header.
-        final shotChipFinder = find.descendant(
+        // The shot's own chip is already active (the very selection the table's rows share) —
+        // scoped to the focus strip: the shot's own code is also shown by the left tree and the
+        // inspector header.
+        final firstShotChipFinder = find.descendant(
           of: find.byType(OcptFloorPlanFocusStrip),
-          matching: find.text(shotCode),
+          matching: find.text(firstShotCode),
         );
-        expect(shotChipFinder, findsOneWidget);
-        await tester.tap(find.text(tr.shotListFloorPlanFocusSequenceChipLabel));
-        await tester.pumpAndSettle();
-        expect(bloc.state.selectedShotId, isNull);
-        expect(bloc.state.isFloorPlanShotFocusActive, isFalse);
+        expect(firstShotChipFinder, findsOneWidget);
 
-        // Tapping the shot's own chip again re-selects it — the mode's one selection, shared with
-        // the table.
-        await tester.tap(shotChipFinder);
+        // A second shot's own creation selects it in turn — there is no `Sequence` chip to flip
+        // back to any more: the current shot is never null while the sequence holds one.
+        bloc.add(const OcptShotListShotCreationRequestedEvent());
         await tester.pumpAndSettle();
-        expect(bloc.state.selectedShotId, shotId);
+        final secondShotId = bloc.state.selectedShotId!;
+        expect(secondShotId, isNot(firstShotId));
+
+        // Tapping the first shot's own chip again re-selects it — the mode's one selection,
+        // shared with the table.
+        await tester.tap(firstShotChipFinder);
+        await tester.pumpAndSettle();
+        expect(bloc.state.selectedShotId, firstShotId);
       },
     );
 
@@ -1053,6 +1056,45 @@ void main() {
         await tester.tap(find.text(tr.shotListDeleteConfirmDeleteAction));
         await tester.pumpAndSettle();
         expect(bloc.state.selectedSet!.symbols, isEmpty);
+      },
+    );
+
+    testWidgets(
+      "placing a character symbol opens the name popover at once, picking a name writes it "
+      "(R2)",
+      (tester) async {
+        final bloc = await mountWithACase(tester);
+        final tr = Tr.of(tester.element(find.byType(OcptShotListMode)));
+
+        bloc.add(const OcptShotListShotCreationRequestedEvent());
+        await tester.pumpAndSettle();
+        bloc.add(const OcptShotListRightDockClosedEvent());
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.byTooltip(tr.shotListFloorPlanToolCharacterAction));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byType(OcptFloorPlanCanvas));
+        await tester.pumpAndSettle();
+
+        // The placed symbol is selected at once, and the name popover opens for it immediately —
+        // no further click needed.
+        final symbolId = bloc.state.selectedSet!.symbols.single.id;
+        expect(bloc.state.selectedFloorPlanSymbolId, symbolId);
+        expect(find.byType(OcptFloorPlanCharacterNamePickerDialog), findsOneWidget);
+        expect(find.text(tr.shotListFloorPlanCharacterNamePickerTitle), findsOneWidget);
+
+        await tester.enterText(
+          find.descendant(
+            of: find.byType(OcptFloorPlanCharacterNamePickerDialog),
+            matching: find.byType(TextField),
+          ),
+          "SAM",
+        );
+        await tester.tap(find.text(tr.shotListFloorPlanCharacterNamePickerSetAction));
+        await tester.pumpAndSettle();
+
+        expect(find.byType(OcptFloorPlanCharacterNamePickerDialog), findsNothing);
+        expect(bloc.state.selectedSet!.symbols.single.label, "SAM");
       },
     );
   });

@@ -1237,14 +1237,6 @@ class OcptShotListFloorPlanUnderlayClearRequestedEvent extends OcptShotListEvent
   List<Object?> get props => [...super.props, setId];
 }
 
-/// Deselects the currently selected shot, dispatched by the floor plans view's own focus strip
-/// `Sequence` chip. Flips the mode's derived focus (`selectedShotId == null` reads as the
-/// `Sequence` focus, `docs/plans/storyboard.md`, §4.3) without touching what sequence is selected.
-class OcptShotListShotDeselectedEvent extends OcptShotListEvent {
-  /// Class constructor
-  const OcptShotListShotDeselectedEvent();
-}
-
 /// Walks the selected sequence's own shots by `event.delta` (`-1` for `←`, `1` for `→`),
 /// dispatched by the floor plans focus strip's own keyboard shortcut. Selects the sequence's first
 /// shot when nothing is selected yet and `event.delta` is positive, does nothing at either end of
@@ -1373,4 +1365,99 @@ class OcptShotListFloorPlanSymbolLabelChangedEvent extends OcptShotListEvent {
   /// Object properties
   @override
   List<Object?> get props => [...super.props, symbolId, rawValue];
+}
+
+/// Sets camera symbol `event.symbolId`'s own field-of-view wedge angle to `event.fovDeg`, dispatched
+/// by a drag on one of its own edge handles ending, or by the inspector's Placements group `−`/`+`
+/// stepper. Written immediately (`OcptFloorPlanService.updateSymbol(fovDeg:)`); a drag reports once
+/// on end, never per frame — the live wedge shown while dragging is a purely local canvas concern,
+/// exactly as a symbol's own move/resize/rotate is.
+class OcptShotListFloorPlanSymbolFovChangedEvent extends OcptShotListEvent {
+  /// The id of the camera symbol whose field of view is changed.
+  final String symbolId;
+
+  /// The camera's new field-of-view angle, in degrees.
+  final double fovDeg;
+
+  /// Class constructor
+  const OcptShotListFloorPlanSymbolFovChangedEvent({required this.symbolId, required this.fovDeg});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, symbolId, fovDeg];
+}
+
+/// Selects arrow `event.arrowId` on the floor plans canvas, or clears the selection when it is
+/// null — a click near the arrow's own shaft under the `select` tool, or a click on empty canvas or
+/// on a symbol (the two selections are mutually exclusive). Never withheld: selecting only reads.
+class OcptShotListFloorPlanArrowSelectedEvent extends OcptShotListEvent {
+  /// The id of the arrow to select, or null to clear the selection.
+  final String? arrowId;
+
+  /// Class constructor
+  const OcptShotListFloorPlanArrowSelectedEvent({required this.arrowId});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, arrowId];
+}
+
+/// Bends arrow `event.arrowId` through control point `event.ctrlXM`/`event.ctrlYM` (metres), or
+/// straightens it back out when both are null, dispatched once a drag on its own midpoint handle
+/// ends (`OcptFloorPlanService.updateArrowCurve`), or by the handle's own neighbouring straighten
+/// button. Written as a single row, never per frame: the live drag position is a purely local
+/// canvas concern, exactly as a symbol's own move/resize/rotate is.
+class OcptShotListFloorPlanArrowCurveChangedEvent extends OcptShotListEvent {
+  /// The id of the arrow being bent or straightened.
+  final String arrowId;
+
+  /// The bezier control point's new X, in metres, or null to straighten the arrow.
+  final double? ctrlXM;
+
+  /// The bezier control point's new Y, in metres. See [ctrlXM].
+  final double? ctrlYM;
+
+  /// Class constructor
+  const OcptShotListFloorPlanArrowCurveChangedEvent({
+    required this.arrowId,
+    required this.ctrlXM,
+    required this.ctrlYM,
+  });
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, arrowId, ctrlXM, ctrlYM];
+}
+
+/// Duplicates symbol `event.symbolId` into an independent copy on the very same set/shot/layer —
+/// never a link, the copy carries no reference back to its source — dispatched by `Ctrl+D` (no
+/// explicit position: the bloc offsets the copy from its source by
+/// `ocptFloorPlanDuplicateOffsetM`) or by an `Alt`-drag ending (`event.xM`/`event.yM` the drag's own
+/// settled position, the source symbol itself left untouched at its own original position). Written
+/// immediately (`OcptFloorPlanService.placeSymbol`), then selects the new copy.
+class OcptShotListFloorPlanSymbolDuplicatedEvent extends OcptShotListEvent {
+  /// The id of the symbol duplicated.
+  final String symbolId;
+
+  /// The copy's own centre X, in metres, or null to offset it from the source by
+  /// `ocptFloorPlanDuplicateOffsetM`.
+  final double? xM;
+
+  /// The copy's own centre Y, in metres. See [xM].
+  final double? yM;
+
+  /// Class constructor
+  const OcptShotListFloorPlanSymbolDuplicatedEvent({required this.symbolId, this.xM, this.yM});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, symbolId, xM, yM];
+}
+
+/// Clears `OcptShotListState.pendingCharacterNamePromptSymbolId`, dispatched by the mode's own
+/// `BlocConsumer` listener the moment it opens `OcptFloorPlanCharacterNamePickerDialog` for it — see
+/// that field's own doc comment for why the clear happens before the dialog's own result is known.
+class OcptShotListFloorPlanCharacterNamePromptDismissedEvent extends OcptShotListEvent {
+  /// Class constructor
+  const OcptShotListFloorPlanCharacterNamePromptDismissedEvent();
 }
