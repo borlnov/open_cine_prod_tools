@@ -1,0 +1,149 @@
+{
+  "guideSidebar": [
+    {
+      "type": "doc",
+      "id": "index"
+    },
+    {
+      "type": "category",
+      "label": "Getting started",
+      "collapsed": false,
+      "items": [
+        {
+          "type": "doc",
+          "id": "getting-started/installation"
+        },
+        {
+          "type": "doc",
+          "id": "getting-started/first-steps"
+        },
+        {
+          "type": "doc",
+          "id": "getting-started/workspace-tour"
+        }
+      ]
+    },
+    {
+      "type": "category",
+      "label": "Core concepts",
+      "items": [
+        {
+          "type": "doc",
+          "id": "concepts/projects-and-episodes"
+        },
+        {
+          "type": "doc",
+          "id": "concepts/fountain-source-of-truth"
+        },
+        {
+          "type": "doc",
+          "id": "concepts/project-versions"
+        },
+        {
+          "type": "doc",
+          "id": "concepts/read-only-preview"
+        },
+        {
+          "type": "doc",
+          "id": "concepts/spell-check-and-dictionary"
+        },
+        {
+          "type": "doc",
+          "id": "concepts/exporting-overview"
+        }
+      ]
+    },
+    {
+      "type": "category",
+      "label": "Production modes",
+      "items": [
+        {
+          "type": "doc",
+          "id": "modes/screenplay"
+        },
+        {
+          "type": "doc",
+          "id": "modes/breakdown"
+        },
+        {
+          "type": "doc",
+          "id": "modes/shot-list"
+        },
+        {
+          "type": "doc",
+          "id": "modes/resources"
+        },
+        {
+          "type": "doc",
+          "id": "modes/schedule"
+        },
+        {
+          "type": "doc",
+          "id": "modes/budget"
+        }
+      ]
+    },
+    {
+      "type": "category",
+      "label": "Collaboration & sync",
+      "items": [
+        {
+          "type": "doc",
+          "id": "collaboration/how-collaboration-works"
+        },
+        {
+          "type": "doc",
+          "id": "collaboration/sharing-a-project"
+        },
+        {
+          "type": "doc",
+          "id": "collaboration/joining-a-project"
+        },
+        {
+          "type": "doc",
+          "id": "collaboration/on-set-server"
+        },
+        {
+          "type": "doc",
+          "id": "collaboration/tablet-and-phone"
+        }
+      ]
+    },
+    {
+      "type": "category",
+      "label": "Exporting your work",
+      "items": [
+        {
+          "type": "doc",
+          "id": "exports/exporting-your-work"
+        }
+      ]
+    },
+    {
+      "type": "category",
+      "label": "Reference",
+      "items": [
+        {
+          "type": "doc",
+          "id": "reference/fountain-cheatsheet"
+        },
+        {
+          "type": "doc",
+          "id": "reference/keyboard-shortcuts"
+        },
+        {
+          "type": "doc",
+          "id": "reference/troubleshooting"
+        },
+        {
+          "type": "doc",
+          "id": "reference/faq"
+        },
+        {
+          "type": "doc",
+          "id": "reference/glossary"
+        }
+      ]
+    }
+  ]
+}
