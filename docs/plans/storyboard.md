@@ -529,3 +529,84 @@ Remaining notes (no decision needed, recorded so M1's agent does not rediscover 
 - **The v4 cycle.** If another schema change merges first, this branch overwrites the v4 step in
   place rather than creating v5 (ADR 0029); the M1 agent reads `currentSchemaVersion` /
   `currentPayloadFormat` against their stable twins at rebase time.
+
+## 9. Floor-plan redesign (validated 2026-09-20)
+
+M0–M8 shipped the whole feature, then a refinement wave (A store columns `setElementShape` +
+`ctrlXM/ctrlYM`, B the glyph rendering, C1 the drag-offset fix + board image delete) landed. After
+using the app the maintainer found the floor-plan **interaction model** confusing and asked for a
+Fable pass against market tools (Shot Designer, Celtx, StudioBinder, Sweet Home 3D, Figma). The
+resulting redesign is **validated** (mockup `https://claude.ai/artifact/ScomXNRpiY1ZVLPrMYRG4H`). It
+**supersedes the floor-plan model of §2 (`floor_plan_cases`, the seven-value layer enum) and §4.3**;
+the storyboard/board half is untouched.
+
+### 9.1 The new model — three nouns, no "case"
+
+- **Set** (FR « Décor ») — the room. What does not move between shots: walls, doors, furniture,
+  placed props, the imported underlay. One or more per sequence = the tabs. Name = the scene
+  heading's place. Replaces "case" in the UI **and** the code (`floor_plan_cases → floor_plan_sets`,
+  `OcptFloorPlanSet…`).
+- **Current shot** — there is **always one**. Everything "live" (cameras, characters, lights, props,
+  arrows) lands on the current shot and only it; the set is **always editable**. The old sequence
+  focus / tool-dimming is gone; "All cameras" becomes a **view toggle**, never a state that gates a
+  tool.
+- **Palette** — a left column whose group headers say **where things land** (`Set · Kitchen —
+  shared` and `Shot 12/3 — this shot only`) plus a `View` group (the old tray). **No tool is ever
+  dimmed.** Placement is drag-from-palette or click-to-arm (one shot, then back to select; `Shift`
+  keeps it armed); a placed element is **selected at once**; a character **asks its name on the
+  spot**.
+- **One set layer.** `decor/furniture/fixedProps` merge into one `set`; `handProps → props`. The
+  enum is `{set, cameras, characters, lights, props}`, `isSequenceScoped == layer == set`; the
+  **shape** (`setElementShape`: wall/door/furniture/freeform) carries the décor type.
+
+### 9.2 Decisions taken (with the maintainer)
+
+Rename `cases → sets` in code too (**yes**, v4 unreleased); one set layer (**yes**); always a
+current shot + "All cameras" as display only (**yes**); duplicate a set to another sequence is a
+**copy, not a link**; the character name picker opens **on placement**; the palette holds the
+`View` group (tray removed). Bugs to fix in the redesign: the character glyph (colour/arms/notch,
+screen == paper — **done in R1**), the missing camera label on the canvas (**done in R1**), the
+rotation handle reading the handle's own local position instead of the canvas (→ `globalToLocal` +
+an aim handle), and immediate selection after placement.
+
+### 9.3 Data-model delta (v4 unreleased → reshape in place, no v5, no ADR crossed)
+
+`floor_plan_cases → floor_plan_sets` (same columns); `OcptFloorPlanLayer → {set, cameras,
+characters, lights, props}` with a one-cycle back-compat name map in the converter; `setElementShape`
+and `ctrlXM/ctrlYM` kept; `fovDeg` finally written; two new `OcptFloorPlanService` methods
+`duplicateSet` and `copyShotBlocking` (+ symbol duplicate via `placeSymbol`). Both codec write paths
+(`_applyPayload` **and** `hydratePreview`) carry every rename. `OcptFloorPlanSheet`/geometry (unit B)
+and the store (unit A) are otherwise reused; the glyph fixes live in the painter and the PDF, not the
+sheet. ADR 0031 (metres, 0.5 m reference, zoom out of the model, derived letters/numbers) still holds
+— its one "case" mention is swapped at M8.
+
+### 9.4 Redesign milestones (R-series), each a delegated task with the §7.1 gates
+
+- **R0 — Store reshape** — DONE, commit `708cb6c0`: `cases → sets` rename + the layer-enum merge,
+  build/tests green, behaviour otherwise preserved.
+- **R1 — Rendering fixes** — DONE, commit `0da330ad`: the character glyph (own colour, forward arms,
+  short notch) and the camera label pill, in the canvas painter **and** the PDF, from the sheet.
+- **R2 — Canvas interaction** — always-a-current-shot in the mode/bloc; **rotation fix** via
+  `globalToLocal` + an **aim handle** (`Shift` = 15° snap); **FOV edge handles** writing `fovDeg`;
+  the **name popover on placement**; `Ctrl+D`/`Alt`-drag duplicate; **arrow selection + bend**
+  salvaged from the C2 stash. Works on a minimally-adjusted current toolbar.
+- **R3 — Chrome & duplication** — the two-tier **palette** (replaces the tray) with drag-from-palette
+  placement; **set tabs** with placed-shot counts, double-click rename, a filled `＋ Set` button + its
+  menu; the **"All cameras"** strip toggle + single-click on a ghost; **`duplicateSet` /
+  `copyShotBlocking`** menus; the inspector groups (selection / on this set / set).
+- **R4 → folds into M8** — the record.
+
+### 9.5 The C2 stash (`git stash@{0}`) — salvage vs redo
+
+Held (not committed) because its décor sub-tools and tap-to-name are superseded. **Salvage** (read
+with `git stash show -p stash@{0}`, reimplement against the renamed code — do **not** `git stash
+apply`, it predates R0): the arrow select/bend/straighten code + events/state, the FOV toggle +
+per-camera stepper, the character name-picker dialog (re-triggered from placement). **Drop**: the
+active-layer picker, the tool dimming, the tray edits, tap-to-name on a plain click.
+
+### 9.6 Naming note
+
+`OcptFloorPlanSet` (this feature) and `OcptSet` / `OcptSetsTable` (the Resources décor/location
+catalogue) now both read as "Set"; the `FloorPlan` prefix keeps the classes distinct and there is no
+functional conflict, but the vocabulary overlap is deliberate (the maintainer's chosen word) and
+worth knowing.
