@@ -341,6 +341,379 @@ Action.
     });
   });
 
+  group("duplicateSet", () {
+    test("copies the set's own symbols and arrows as independent rows", () async {
+      final sceneId = await seedScene();
+      final shotId = await shotListService.createShot(
+        database: database,
+        screenplayId: screenplayId,
+        sceneId: sceneId,
+      );
+      final sourceSetId = (await floorPlanService.addSet(database: database, sceneId: sceneId))!;
+      final decor = (await floorPlanService.placeSymbol(
+        database: database,
+        setId: sourceSetId,
+        shotId: null,
+        layer: OcptFloorPlanLayer.set,
+        xM: 0,
+        yM: 0,
+        label: "Table",
+      ))!;
+      final camera = (await floorPlanService.placeSymbol(
+        database: database,
+        setId: sourceSetId,
+        shotId: shotId,
+        layer: OcptFloorPlanLayer.cameras,
+        xM: 1,
+        yM: 1,
+      ))!;
+      final arrowId = (await floorPlanService.addArrow(
+        database: database,
+        setId: sourceSetId,
+        shotId: shotId!,
+        kind: OcptFloorPlanArrowKind.movement,
+        fromSymbolId: decor,
+        toSymbolId: camera,
+      ))!;
+
+      final newSetId = await floorPlanService.duplicateSet(database: database, setId: sourceSetId);
+
+      expect(newSetId, isNotNull);
+      expect(newSetId, isNot(sourceSetId));
+
+      final newSetRow = (await readCases()).firstWhere((row) => row.id == newSetId);
+      expect(newSetRow.sceneId, sceneId);
+      expect(newSetRow.name, (await readCases()).firstWhere((row) => row.id == sourceSetId).name);
+      expect(newSetRow.underlayAssetId, isNull);
+
+      final newSymbols = (await readSymbols()).where((row) => row.setId == newSetId).toList();
+      expect(newSymbols, hasLength(2));
+      // Fresh ids, never the source's own.
+      expect(newSymbols.map((row) => row.id), isNot(containsAll([decor, camera])));
+      final newDecor = newSymbols.singleWhere((row) => row.layer == OcptFloorPlanLayer.set);
+      final newCamera = newSymbols.singleWhere((row) => row.layer == OcptFloorPlanLayer.cameras);
+      expect(newDecor.label, "Table");
+      expect(newDecor.shotId, isNull);
+      expect(newCamera.shotId, shotId);
+
+      final newArrows = (await readArrows()).where((row) => row.setId == newSetId).toList();
+      expect(newArrows, hasLength(1));
+      expect(newArrows.single.id, isNot(arrowId));
+      expect(newArrows.single.fromSymbolId, newDecor.id);
+      expect(newArrows.single.toSymbolId, newCamera.id);
+
+      // The source set is untouched: same count of symbols/arrows, same ids.
+      final sourceSymbols = (await readSymbols()).where((row) => row.setId == sourceSetId);
+      expect(sourceSymbols.map((row) => row.id).toSet(), {decor, camera});
+      final sourceArrows = (await readArrows()).where((row) => row.setId == sourceSetId);
+      expect(sourceArrows.single.id, arrowId);
+    });
+
+    test("mutating the copy never touches the source (independent copies, not links)", () async {
+      final sceneId = await seedScene();
+      final sourceSetId = (await floorPlanService.addSet(database: database, sceneId: sceneId))!;
+      final sourceSymbolId = (await floorPlanService.placeSymbol(
+        database: database,
+        setId: sourceSetId,
+        shotId: null,
+        layer: OcptFloorPlanLayer.set,
+        xM: 0,
+        yM: 0,
+      ))!;
+
+      final newSetId = (await floorPlanService.duplicateSet(
+        database: database,
+        setId: sourceSetId,
+      ))!;
+      final copiedSymbolId = (await readSymbols())
+          .firstWhere((row) => row.setId == newSetId)
+          .id;
+
+      await floorPlanService.updateSymbol(
+        database: database,
+        symbolId: copiedSymbolId,
+        xM: const Value(9),
+        yM: const Value(9),
+      );
+      await floorPlanService.deleteSet(database: database, setId: newSetId);
+
+      final sourceSymbol = (await readSymbols()).singleWhere((row) => row.id == sourceSymbolId);
+      expect(sourceSymbol.xM, 0);
+      expect(sourceSymbol.yM, 0);
+      final sourceSetRow = (await readCases()).singleWhere((row) => row.id == sourceSetId);
+      expect(sourceSetRow.isDeleted, isFalse);
+    });
+
+    test("tombstones (symbols and arrows) of the source are not copied", () async {
+      final sceneId = await seedScene();
+      final sourceSetId = (await floorPlanService.addSet(database: database, sceneId: sceneId))!;
+      final liveId = (await floorPlanService.placeSymbol(
+        database: database,
+        setId: sourceSetId,
+        shotId: null,
+        layer: OcptFloorPlanLayer.set,
+        xM: 0,
+        yM: 0,
+      ))!;
+      final removedId = (await floorPlanService.placeSymbol(
+        database: database,
+        setId: sourceSetId,
+        shotId: null,
+        layer: OcptFloorPlanLayer.set,
+        xM: 1,
+        yM: 1,
+      ))!;
+      await floorPlanService.deleteSymbol(database: database, symbolId: removedId);
+
+      final newSetId = await floorPlanService.duplicateSet(database: database, setId: sourceSetId);
+
+      final newSymbols = (await readSymbols()).where((row) => row.setId == newSetId).toList();
+      expect(newSymbols, hasLength(1));
+      expect(newSymbols.single.xM, 0);
+      expect(liveId, isNotEmpty); // sanity: the surviving source symbol id is still meaningful
+    });
+
+    test("returns null for a set that doesn't exist", () async {
+      final result = await floorPlanService.duplicateSet(database: database, setId: "nope");
+      expect(result, isNull);
+    });
+  });
+
+  group("copyShotBlocking", () {
+    test(
+      "copies shot-scoped symbols and same-shot arrows onto the destination shot, as independent "
+      "copies",
+      () async {
+        final sceneId = await seedScene();
+        final sourceShotId = (await shotListService.createShot(
+          database: database,
+          screenplayId: screenplayId,
+          sceneId: sceneId,
+        ))!;
+        final destinationShotId = (await shotListService.createShot(
+          database: database,
+          screenplayId: screenplayId,
+          sceneId: sceneId,
+        ))!;
+        final setId = (await floorPlanService.addSet(database: database, sceneId: sceneId))!;
+        final sourceCamera = (await floorPlanService.placeSymbol(
+          database: database,
+          setId: setId,
+          shotId: sourceShotId,
+          layer: OcptFloorPlanLayer.cameras,
+          xM: 0,
+          yM: 0,
+          label: "wide",
+        ))!;
+        final sourceCharacter = (await floorPlanService.placeSymbol(
+          database: database,
+          setId: setId,
+          shotId: sourceShotId,
+          layer: OcptFloorPlanLayer.characters,
+          xM: 2,
+          yM: 2,
+          label: "SAM",
+        ))!;
+        final sourceArrowId = (await floorPlanService.addArrow(
+          database: database,
+          setId: setId,
+          shotId: sourceShotId,
+          kind: OcptFloorPlanArrowKind.movement,
+          fromSymbolId: sourceCharacter,
+          toSymbolId: sourceCamera,
+        ))!;
+        // A camera already on the destination shot, so the copy is proven to append after it
+        // rather than colliding with (or replacing) it.
+        final existingDestinationCamera = (await floorPlanService.placeSymbol(
+          database: database,
+          setId: setId,
+          shotId: destinationShotId,
+          layer: OcptFloorPlanLayer.cameras,
+          xM: 5,
+          yM: 5,
+        ))!;
+
+        await floorPlanService.copyShotBlocking(
+          database: database,
+          sourceSetId: setId,
+          sourceShotId: sourceShotId,
+          destinationSetId: setId,
+          destinationShotId: destinationShotId,
+        );
+
+        final destinationSymbols = (await readSymbols())
+            .where((row) => row.shotId == destinationShotId)
+            .toList();
+        // The pre-existing camera plus the two freshly copied symbols.
+        expect(destinationSymbols, hasLength(3));
+        final copiedCamera = destinationSymbols.singleWhere(
+          (row) => row.layer == OcptFloorPlanLayer.cameras && row.id != existingDestinationCamera,
+        );
+        expect(copiedCamera.label, "wide");
+        expect(copiedCamera.id, isNot(sourceCamera));
+        final copiedCharacter = (await readSymbols()).singleWhere(
+          (row) => row.shotId == destinationShotId && row.layer == OcptFloorPlanLayer.characters,
+        );
+        expect(copiedCharacter.label, "SAM");
+        expect(copiedCharacter.id, isNot(sourceCharacter));
+        // Distinct sortKeys: the copied camera is appended after the destination's own existing
+        // one, not colliding with it.
+        final existingRow = (await readSymbols()).singleWhere(
+          (row) => row.id == existingDestinationCamera,
+        );
+        expect(copiedCamera.sortKey, isNot(existingRow.sortKey));
+
+        final destinationArrows = (await readArrows())
+            .where((row) => row.shotId == destinationShotId)
+            .toList();
+        expect(destinationArrows, hasLength(1));
+        expect(destinationArrows.single.id, isNot(sourceArrowId));
+        expect(destinationArrows.single.fromSymbolId, copiedCharacter.id);
+        expect(destinationArrows.single.toSymbolId, copiedCamera.id);
+
+        // The source shot's own rows are untouched.
+        final sourceSymbolsAfter = (await readSymbols())
+            .where((row) => row.shotId == sourceShotId)
+            .toList();
+        expect(sourceSymbolsAfter.map((row) => row.id).toSet(), {sourceCamera, sourceCharacter});
+        final sourceArrowsAfter = (await readArrows())
+            .where((row) => row.shotId == sourceShotId)
+            .toList();
+        expect(sourceArrowsAfter.single.id, sourceArrowId);
+      },
+    );
+
+    test("mutating a copied symbol never touches the source symbol", () async {
+      final sceneId = await seedScene();
+      final sourceShotId = (await shotListService.createShot(
+        database: database,
+        screenplayId: screenplayId,
+        sceneId: sceneId,
+      ))!;
+      final destinationShotId = (await shotListService.createShot(
+        database: database,
+        screenplayId: screenplayId,
+        sceneId: sceneId,
+      ))!;
+      final setId = (await floorPlanService.addSet(database: database, sceneId: sceneId))!;
+      final sourceLightId = (await floorPlanService.placeSymbol(
+        database: database,
+        setId: setId,
+        shotId: sourceShotId,
+        layer: OcptFloorPlanLayer.lights,
+        xM: 0,
+        yM: 0,
+      ))!;
+
+      await floorPlanService.copyShotBlocking(
+        database: database,
+        sourceSetId: setId,
+        sourceShotId: sourceShotId,
+        destinationSetId: setId,
+        destinationShotId: destinationShotId,
+      );
+      final copiedLightId = (await readSymbols())
+          .singleWhere((row) => row.shotId == destinationShotId)
+          .id;
+
+      await floorPlanService.updateSymbol(
+        database: database,
+        symbolId: copiedLightId,
+        xM: const Value(7),
+      );
+      await floorPlanService.deleteSymbol(database: database, symbolId: copiedLightId);
+
+      final sourceLight = (await readSymbols()).singleWhere((row) => row.id == sourceLightId);
+      expect(sourceLight.xM, 0);
+      expect(sourceLight.isDeleted, isFalse);
+    });
+
+    test(
+      "an arrow touching a sequence-scoped (set) symbol is not copied",
+      () async {
+        final sceneId = await seedScene();
+        final sourceShotId = (await shotListService.createShot(
+          database: database,
+          screenplayId: screenplayId,
+          sceneId: sceneId,
+        ))!;
+        final destinationShotId = (await shotListService.createShot(
+          database: database,
+          screenplayId: screenplayId,
+          sceneId: sceneId,
+        ))!;
+        final setId = (await floorPlanService.addSet(database: database, sceneId: sceneId))!;
+        final decor = (await floorPlanService.placeSymbol(
+          database: database,
+          setId: setId,
+          shotId: null,
+          layer: OcptFloorPlanLayer.set,
+          xM: 0,
+          yM: 0,
+        ))!;
+        final character = (await floorPlanService.placeSymbol(
+          database: database,
+          setId: setId,
+          shotId: sourceShotId,
+          layer: OcptFloorPlanLayer.characters,
+          xM: 1,
+          yM: 1,
+        ))!;
+        await floorPlanService.addArrow(
+          database: database,
+          setId: setId,
+          shotId: sourceShotId,
+          kind: OcptFloorPlanArrowKind.movement,
+          fromSymbolId: character,
+          toSymbolId: decor,
+        );
+
+        await floorPlanService.copyShotBlocking(
+          database: database,
+          sourceSetId: setId,
+          sourceShotId: sourceShotId,
+          destinationSetId: setId,
+          destinationShotId: destinationShotId,
+        );
+
+        expect((await readArrows()).where((row) => row.shotId == destinationShotId), isEmpty);
+        // The character symbol was still copied on its own.
+        expect(
+          (await readSymbols()).where(
+            (row) => row.shotId == destinationShotId && row.layer == OcptFloorPlanLayer.characters,
+          ),
+          hasLength(1),
+        );
+      },
+    );
+
+    test("is a no-op while the source shot carries nothing on the set", () async {
+      final sceneId = await seedScene();
+      final sourceShotId = (await shotListService.createShot(
+        database: database,
+        screenplayId: screenplayId,
+        sceneId: sceneId,
+      ))!;
+      final destinationShotId = (await shotListService.createShot(
+        database: database,
+        screenplayId: screenplayId,
+        sceneId: sceneId,
+      ))!;
+      final setId = (await floorPlanService.addSet(database: database, sceneId: sceneId))!;
+
+      await floorPlanService.copyShotBlocking(
+        database: database,
+        sourceSetId: setId,
+        sourceShotId: sourceShotId,
+        destinationSetId: setId,
+        destinationShotId: destinationShotId,
+      );
+
+      expect(await readSymbols(), isEmpty);
+      expect(await readArrows(), isEmpty);
+    });
+  });
+
   group("placeSymbol — the scope invariant", () {
     test("accepts a sequence layer with no shotId", () async {
       final sceneId = await seedScene();

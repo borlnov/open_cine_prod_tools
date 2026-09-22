@@ -26,10 +26,12 @@ class OcptFloorPlanPlacementsOtherSet {
 }
 
 /// The shot inspector's floor-plans-only group (`OcptShotInspectorPanel.leadingGroup`): `On this
-/// plan · Kitchen` — the selected shot's own placements on the selected case (its cameras with
-/// their derived labels, the characters/lights/props placed for it, its arrows) and, under that,
-/// one line per other case of the sequence naming whether the shot has a camera there too
-/// (`docs/plans/storyboard.md`, §4.3).
+/// plan · Kitchen`, regrouped (R3, `docs/plans/storyboard.md`, §9.4) into three headed sections —
+/// **Selection** (the selected symbol or arrow's own read-out, [selectedSymbolId]/
+/// [selectedArrowId]), **On this shot** (the selected shot's own placements on the selected set:
+/// its cameras with their derived labels, the characters/lights/props placed for it, its arrows)
+/// and **Set** (one line per other set of the sequence naming whether the shot has a camera there
+/// too). Regrouping only — no field this group didn't already carry.
 ///
 /// Every symbol and arrow here is the shot's own — never a ghost, never a sequence layer, exactly
 /// what `OcptFloorPlanCanvas` draws editable under this very shot's focus. Deleting a placement is
@@ -42,6 +44,14 @@ class OcptFloorPlanPlacementsOtherSet {
 class OcptFloorPlanPlacementsGroup extends StatelessWidget {
   /// The selected case's own name.
   final String setName;
+
+  /// The id of the currently selected symbol on the canvas, or null while none is — the
+  /// **Selection** section's own subject.
+  final String? selectedSymbolId;
+
+  /// The id of the currently selected arrow on the canvas, or null while none is. See
+  /// [selectedSymbolId]; mutually exclusive with it.
+  final String? selectedArrowId;
 
   /// The shot's own cameras on the selected case, each carrying its derived
   /// [OcptFloorPlanSymbolShape.cameraLabel].
@@ -82,6 +92,8 @@ class OcptFloorPlanPlacementsGroup extends StatelessWidget {
   const OcptFloorPlanPlacementsGroup({
     super.key,
     required this.setName,
+    required this.selectedSymbolId,
+    required this.selectedArrowId,
     required this.cameras,
     required this.characters,
     required this.lights,
@@ -107,6 +119,10 @@ class OcptFloorPlanPlacementsGroup extends StatelessWidget {
           style: theme.textTheme.titleSmall?.copyWith(color: theme.colorScheme.primary),
         ),
         const SizedBox(height: 8),
+        _buildGroupHeader(context, tr.shotListFloorPlanSelectionGroupTitle),
+        _buildSelectionSection(context, tr),
+        const SizedBox(height: 8),
+        _buildGroupHeader(context, tr.shotListFloorPlanOnThisShotGroupTitle),
         _buildCamerasSection(context, tr),
         _buildSection(
           context,
@@ -159,6 +175,7 @@ class OcptFloorPlanPlacementsGroup extends StatelessWidget {
         if (otherSets.isNotEmpty) ...[
           Divider(color: theme.colorScheme.outlineVariant),
           const SizedBox(height: 4),
+          _buildGroupHeader(context, tr.shotListFloorPlanSetGroupTitle),
           for (final otherSet in otherSets)
             Padding(
               padding: const EdgeInsets.only(bottom: 2),
@@ -176,6 +193,83 @@ class OcptFloorPlanPlacementsGroup extends StatelessWidget {
             ),
         ],
       ],
+    );
+  }
+
+  /// One of the group's three headed sections — **Selection**, **On this shot**, **Set** — a
+  /// step up from the smaller subsection titles ([_buildSection]/[_buildCamerasSection]'s own
+  /// `labelSmall`) so the three read as the group's own top-level structure.
+  Widget _buildGroupHeader(BuildContext context, String title) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 4),
+      child: Text(
+        title,
+        style: theme.textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w700),
+      ),
+    );
+  }
+
+  /// The **Selection** section's own body: [selectedSymbolId]'s or [selectedArrowId]'s own read-out
+  /// among [cameras]/[characters]/[lights]/[handProps]/[arrows] — every one of them already this
+  /// shot's own live placements, so the match is a plain lookup, no new data. A camera match reuses
+  /// [_buildCameraRow] (its own field-of-view stepper included); every other match is a plain row.
+  /// The nothing-selected hint shows while neither id names a placement this shot actually carries
+  /// (nothing selected at all, or the selection belongs to another shot or a ghost).
+  Widget _buildSelectionSection(BuildContext context, Tr tr) {
+    final theme = Theme.of(context);
+    final selectedSymbolId = this.selectedSymbolId;
+    final selectedArrowId = this.selectedArrowId;
+
+    if (selectedSymbolId != null) {
+      for (final camera in cameras) {
+        if (camera.symbolId == selectedSymbolId) {
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: _buildCameraRow(context, tr, camera),
+          );
+        }
+      }
+      for (final symbol in [...characters, ...lights, ...handProps]) {
+        if (symbol.symbolId == selectedSymbolId) {
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: _buildRow(
+              context,
+              label: symbol.label,
+              color: Color(symbol.colorArgb),
+              onDeleteRequested: onSymbolDeleteRequested == null
+                  ? null
+                  : () => onSymbolDeleteRequested!(symbol.symbolId),
+            ),
+          );
+        }
+      }
+    }
+
+    if (selectedArrowId != null) {
+      for (final arrow in arrows) {
+        if (arrow.arrowId == selectedArrowId) {
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: _buildRow(
+              context,
+              label: arrow.label.isEmpty ? tr.shotListFloorPlanPlacementsArrowRowLabel : arrow.label,
+              onDeleteRequested: onArrowDeleteRequested == null
+                  ? null
+                  : () => onArrowDeleteRequested!(arrow.arrowId),
+            ),
+          );
+        }
+      }
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Text(
+        tr.shotListFloorPlanSelectionNoneHint,
+        style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+      ),
     );
   }
 

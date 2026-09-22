@@ -3624,6 +3624,130 @@
     "type": "text",
     "placeholders": {}
   },
+  "shotListFloorPlanPaletteSetGroupTitle": "Set · {setName} — shared",
+  "@shotListFloorPlanPaletteSetGroupTitle": {
+    "description": "Title of the floor plans palette's own Set group, naming the set every entry under it lands on",
+    "context": "Displayed at the top of the floor plans palette",
+    "type": "text",
+    "placeholders": {
+      "setName": {
+        "type": "String"
+      }
+    }
+  },
+  "shotListFloorPlanPaletteShotGroupTitle": "Shot {shotCode} — this shot only",
+  "@shotListFloorPlanPaletteShotGroupTitle": {
+    "description": "Title of the floor plans palette's own Shot group, naming the focused shot every entry under it lands on",
+    "context": "Displayed in the floor plans palette",
+    "type": "text",
+    "placeholders": {
+      "shotCode": {
+        "type": "String"
+      }
+    }
+  },
+  "shotListFloorPlanPaletteViewGroupTitle": "View",
+  "@shotListFloorPlanPaletteViewGroupTitle": {
+    "description": "Title of the floor plans palette's own View group, absorbing the old tray's own toggles",
+    "context": "Displayed in the floor plans palette",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanAddSetButtonLabel": "Set",
+  "@shotListFloorPlanAddSetButtonLabel": {
+    "description": "Visible text of the set tabs' own filled add-set button — its icon already carries the plus, so the text is the word alone",
+    "context": "Displayed on the set tabs' own filled add-set button",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanCreateSetMenuAction": "Create set",
+  "@shotListFloorPlanCreateSetMenuAction": {
+    "description": "Label of the add-set button's own menu entry creating a new, empty set",
+    "context": "Displayed in the set tabs' own add-set menu",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanDuplicateSetMenuAction": "Duplicate this set",
+  "@shotListFloorPlanDuplicateSetMenuAction": {
+    "description": "Label of the add-set button's own menu entry deep-copying the currently selected set",
+    "context": "Displayed in the set tabs' own add-set menu",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanCopyBlockingMenuAction": "Copy blocking from another shot",
+  "@shotListFloorPlanCopyBlockingMenuAction": {
+    "description": "Label of the add-set button's own menu entry copying another shot's own blocking onto the focused shot",
+    "context": "Displayed in the set tabs' own add-set menu",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanSetPlacedShotCountTooltip": "{count, plural, =0{No shots placed yet} one{1 shot placed} other{{count} shots placed}}",
+  "@shotListFloorPlanSetPlacedShotCountTooltip": {
+    "description": "Tooltip of a set tab's own placed-shot count badge",
+    "context": "Displayed on a set tab in the floor plans centre header",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "shotListFloorPlanCopyBlockingDialogTitle": "Copy blocking from…",
+  "@shotListFloorPlanCopyBlockingDialogTitle": {
+    "description": "Title of the dialog picking the source shot for a blocking copy",
+    "context": "Displayed as the copy blocking dialog's own title",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanCopyBlockingDialogHint": "Pick the shot to copy this set's own placements from.",
+  "@shotListFloorPlanCopyBlockingDialogHint": {
+    "description": "Hint shown above the copy blocking dialog's own list of candidate shots",
+    "context": "Displayed in the copy blocking dialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanCopyBlockingCancelAction": "Cancel",
+  "@shotListFloorPlanCopyBlockingCancelAction": {
+    "description": "Label of the copy blocking dialog's own cancel action",
+    "context": "Displayed in the copy blocking dialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanAllCamerasToggleLabel": "All cameras",
+  "@shotListFloorPlanAllCamerasToggleLabel": {
+    "description": "Label of the focus strip's own \"All cameras\" toggle chip",
+    "context": "Displayed in the floor plans focus strip",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanSelectionGroupTitle": "Selection",
+  "@shotListFloorPlanSelectionGroupTitle": {
+    "description": "Header of the Placements group's own Selection section",
+    "context": "Displayed in the shot inspector's own Placements group",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanOnThisShotGroupTitle": "On this shot",
+  "@shotListFloorPlanOnThisShotGroupTitle": {
+    "description": "Header of the Placements group's own On this shot section",
+    "context": "Displayed in the shot inspector's own Placements group",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanSetGroupTitle": "Set",
+  "@shotListFloorPlanSetGroupTitle": {
+    "description": "Header of the Placements group's own Set section, listing the sequence's other sets",
+    "context": "Displayed in the shot inspector's own Placements group",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanSelectionNoneHint": "Nothing selected.",
+  "@shotListFloorPlanSelectionNoneHint": {
+    "description": "Shown in the Placements group's own Selection section while nothing is selected",
+    "context": "Displayed in the shot inspector's own Placements group",
+    "type": "text",
+    "placeholders": {}
+  },
   "projectVersionsPanelTitle": "Project versions",
   "@projectVersionsPanelTitle": {
     "description": "Header of the project versions panel",

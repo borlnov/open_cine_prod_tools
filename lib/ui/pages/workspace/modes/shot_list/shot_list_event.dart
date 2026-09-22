@@ -962,6 +962,44 @@ class OcptShotListSetDeletionRequestedEvent extends OcptShotListEvent {
   List<Object?> get props => [...super.props, setId];
 }
 
+/// Deep-copies set `event.setId` within its own scene (`OcptFloorPlanService.duplicateSet`),
+/// dispatched by the set tabs' own `＋ Set` menu's `Duplicate this set` entry (R3,
+/// `docs/plans/storyboard.md`, §9.4). Selects the freshly minted copy once written.
+class OcptShotListSetDuplicationRequestedEvent extends OcptShotListEvent {
+  /// The id of the set to duplicate.
+  final String setId;
+
+  /// Class constructor
+  const OcptShotListSetDuplicationRequestedEvent({required this.setId});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, setId];
+}
+
+/// Copies shot `event.sourceShotId`'s own live blocking on set `event.setId` onto the currently
+/// focused shot (`OcptFloorPlanService.copyShotBlocking`), dispatched by the set tabs' own
+/// `＋ Set` menu's `Copy blocking from another shot` entry, once the mode's own source-shot picker
+/// has returned a pick (R3, `docs/plans/storyboard.md`, §9.4).
+class OcptShotListFloorPlanBlockingCopyRequestedEvent extends OcptShotListEvent {
+  /// The id of the set the blocking is copied on (both the source and the destination — the menu
+  /// only offers a same-set copy).
+  final String setId;
+
+  /// The id of the shot the blocking is copied from.
+  final String sourceShotId;
+
+  /// Class constructor
+  const OcptShotListFloorPlanBlockingCopyRequestedEvent({
+    required this.setId,
+    required this.sourceShotId,
+  });
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, setId, sourceShotId];
+}
+
 /// Records the floor plans canvas's own zoom as last **settled** by
 /// `OcptFloorPlanViewportController`, dispatched once a zoom gesture (the tool bar's `−`/`+`
 /// buttons, or the canvas's own scroll-wheel zoom, debounced) ends — never per frame. A view
@@ -1301,6 +1339,14 @@ class OcptShotListFloorPlanOnionSkinOpacityChangedEvent extends OcptShotListEven
 class OcptShotListFloorPlanMetricsToggledEvent extends OcptShotListEvent {
   /// Class constructor
   const OcptShotListFloorPlanMetricsToggledEvent();
+}
+
+/// Toggles the focus strip's own "All cameras" toggle, dispatched by its own chip (R3,
+/// `docs/plans/storyboard.md`, §9.4). A view preference, a display toggle only — never a state
+/// that gates a tool.
+class OcptShotListFloorPlanAllCamerasToggledEvent extends OcptShotListEvent {
+  /// Class constructor
+  const OcptShotListFloorPlanAllCamerasToggledEvent();
 }
 
 /// Records a tap on symbol `event.symbolId` while the canvas's own `arrow` tool is active,

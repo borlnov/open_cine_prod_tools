@@ -307,6 +307,100 @@ void main() {
     });
   });
 
+  group("OcptFloorPlanSheet.of — showAllCameras (R3)", () {
+    test("off by default: only the focused shot's own camera draws, not another shot's", () {
+      final ownCamera = _symbol(id: "cam-own", shotId: "shot-1", layer: OcptFloorPlanLayer.cameras);
+      final otherCamera = _symbol(
+        id: "cam-other",
+        shotId: "shot-9",
+        layer: OcptFloorPlanLayer.cameras,
+      );
+      final floorPlanSet = _caseOf(symbols: [ownCamera, otherCamera]);
+
+      final sheet = OcptFloorPlanSheet.of(
+        floorPlanSet: floorPlanSet,
+        focusShotId: "shot-1",
+        shotRankByShotId: const {"shot-1": 1, "shot-9": 9},
+      );
+
+      expect(sheet.symbols.map((symbol) => symbol.symbolId), ["cam-own"]);
+    });
+
+    test("on: every other shot's own camera draws too, as a ghost", () {
+      final ownCamera = _symbol(id: "cam-own", shotId: "shot-1", layer: OcptFloorPlanLayer.cameras);
+      final otherCamera = _symbol(
+        id: "cam-other",
+        shotId: "shot-9",
+        layer: OcptFloorPlanLayer.cameras,
+      );
+      final floorPlanSet = _caseOf(symbols: [ownCamera, otherCamera]);
+
+      final sheet = OcptFloorPlanSheet.of(
+        floorPlanSet: floorPlanSet,
+        focusShotId: "shot-1",
+        shotRankByShotId: const {"shot-1": 1, "shot-9": 9},
+        showAllCameras: true,
+      );
+
+      expect(sheet.symbols, hasLength(2));
+      final own = sheet.symbols.singleWhere((symbol) => symbol.symbolId == "cam-own");
+      final other = sheet.symbols.singleWhere((symbol) => symbol.symbolId == "cam-other");
+      expect(own.isGhost, isFalse);
+      expect(other.isGhost, isTrue);
+    });
+
+    test("on: never duplicates a camera already drawn by the focus or the onion skin", () {
+      final ownCamera = _symbol(id: "cam-own", shotId: "shot-1", layer: OcptFloorPlanLayer.cameras);
+      final prevCamera = _symbol(id: "cam-prev", shotId: "shot-0", layer: OcptFloorPlanLayer.cameras);
+      final floorPlanSet = _caseOf(symbols: [ownCamera, prevCamera]);
+
+      final sheet = OcptFloorPlanSheet.of(
+        floorPlanSet: floorPlanSet,
+        focusShotId: "shot-1",
+        shotRankByShotId: const {"shot-0": 1, "shot-1": 2},
+        previousShotId: "shot-0",
+        showAllCameras: true,
+      );
+
+      expect(sheet.symbols, hasLength(2));
+      expect(sheet.symbols.map((symbol) => symbol.symbolId).toSet(), {"cam-own", "cam-prev"});
+    });
+
+    test("on: a non-camera symbol of another shot is never added", () {
+      final ownCamera = _symbol(id: "cam-own", shotId: "shot-1", layer: OcptFloorPlanLayer.cameras);
+      final otherCharacter = _symbol(
+        id: "char-other",
+        shotId: "shot-9",
+        layer: OcptFloorPlanLayer.characters,
+      );
+      final floorPlanSet = _caseOf(symbols: [ownCamera, otherCharacter]);
+
+      final sheet = OcptFloorPlanSheet.of(
+        floorPlanSet: floorPlanSet,
+        focusShotId: "shot-1",
+        shotRankByShotId: const {"shot-1": 1, "shot-9": 9},
+        showAllCameras: true,
+      );
+
+      expect(sheet.symbols.map((symbol) => symbol.symbolId), ["cam-own"]);
+    });
+
+    test("ignored under the sequence focus (no focused shot): already drawing every camera", () {
+      final cameraA = _symbol(id: "cam-a", shotId: "shot-1", layer: OcptFloorPlanLayer.cameras);
+      final cameraB = _symbol(id: "cam-b", shotId: "shot-2", layer: OcptFloorPlanLayer.cameras);
+      final floorPlanSet = _caseOf(symbols: [cameraA, cameraB]);
+
+      final sheet = OcptFloorPlanSheet.of(
+        floorPlanSet: floorPlanSet,
+        focusShotId: null,
+        shotRankByShotId: const {"shot-1": 1, "shot-2": 2},
+        showAllCameras: true,
+      );
+
+      expect(sheet.symbols, hasLength(2));
+    });
+  });
+
   group("OcptFloorPlanSheet.of — underlay", () {
     test("draws no underlay while the case's frame is incomplete", () {
       final floorPlanSet = _caseOf(underlayAssetId: "asset-1");

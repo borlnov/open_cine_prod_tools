@@ -338,6 +338,13 @@ class OcptFloorPlanSheet extends Equatable {
   /// [showFieldOfView] gates every camera's own [OcptFloorPlanSymbolShape.cameraFovWedgeDeg]:
   /// defaults to `true` (the wedge shows by default) so a caller that never touches the flag — every
   /// existing one, ahead of the tray toggle a later piece of work adds — still gets it.
+  ///
+  /// [showAllCameras] (R3, the "All cameras" strip toggle — `docs/plans/storyboard.md`, §9.4) adds
+  /// every *other* shot's own camera symbols to the sheet, as ghosts, alongside [focusShotId]'s own
+  /// (never ghosted) and the onion skin's — a display toggle only, never a state that gates a tool:
+  /// a shot already drawn by [focusShotId] or the onion skin is never duplicated. Ignored under the
+  /// **sequence** focus ([focusShotId] null), which already draws every shot's camera of its own
+  /// accord.
   factory OcptFloorPlanSheet.of({
     required OcptFloorPlanSet floorPlanSet,
     required String? focusShotId,
@@ -345,6 +352,7 @@ class OcptFloorPlanSheet extends Equatable {
     String? previousShotId,
     String? nextShotId,
     bool showFieldOfView = true,
+    bool showAllCameras = false,
   }) {
     final sequenceSymbols = [
       for (final symbol in floorPlanSet.symbols) if (symbol.shotId == null) symbol,
@@ -410,6 +418,25 @@ class OcptFloorPlanSheet extends Equatable {
         showFieldOfView: showFieldOfView,
       ),
     );
+
+    if (showAllCameras) {
+      final excludedShotIds = {focusShotId, ...ghostShotIds};
+      final extraCameraSymbols = [
+        for (final symbol in floorPlanSet.symbols)
+          if (symbol.layer == OcptFloorPlanLayer.cameras &&
+              symbol.shotId != null &&
+              !excludedShotIds.contains(symbol.shotId))
+            symbol,
+      ];
+      symbolShapes.addAll(
+        _shapesOf(
+          extraCameraSymbols,
+          shotRankByShotId: shotRankByShotId,
+          isGhost: true,
+          showFieldOfView: showFieldOfView,
+        ),
+      );
+    }
 
     final relevantShotIds = {focusShotId, ...ghostShotIds};
     final symbolById = {for (final symbol in floorPlanSet.symbols) symbol.id: symbol};

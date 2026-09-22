@@ -37,8 +37,17 @@ class OcptFloorPlanFocusStrip extends StatelessWidget {
   /// The shot immediately after [selectedShotId]. See [previousShotId].
   final String? nextShotId;
 
+  /// Whether the "All cameras" toggle is on: every shot's own camera of the set currently shown
+  /// draws as a ghost alongside the focused shot's own (R3, `docs/plans/storyboard.md`, §9.4) — a
+  /// display toggle only, never a state that gates a tool. Single-clicking one of those ghosts on
+  /// the canvas jumps straight to its own shot.
+  final bool isAllCamerasShown;
+
   /// Called with a shot's id when its own chip is clicked.
   final ValueChanged<String> onShotChipSelected;
+
+  /// Called when the "All cameras" toggle is clicked. Never withheld: it only reads.
+  final VoidCallback onAllCamerasToggled;
 
   /// Class constructor
   const OcptFloorPlanFocusStrip({
@@ -48,7 +57,9 @@ class OcptFloorPlanFocusStrip extends StatelessWidget {
     required this.selectedShotId,
     required this.previousShotId,
     required this.nextShotId,
+    required this.isAllCamerasShown,
     required this.onShotChipSelected,
+    required this.onAllCamerasToggled,
   });
 
   @override
@@ -66,6 +77,8 @@ class OcptFloorPlanFocusStrip extends StatelessWidget {
         scrollDirection: Axis.horizontal,
         child: Row(
           children: [
+            _buildAllCamerasToggleChip(context),
+            const SizedBox(width: 12),
             for (final shot in shots) ...[
               if (shot != shots.first) const SizedBox(width: 6),
               _buildShotChip(context, shot),
@@ -81,6 +94,23 @@ class OcptFloorPlanFocusStrip extends StatelessWidget {
             ],
           ],
         ),
+      ),
+    );
+  }
+
+  /// The "All cameras" toggle chip, leading the strip — see [isAllCamerasShown]'s own doc comment.
+  Widget _buildAllCamerasToggleChip(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return _buildChip(
+      context,
+      isActive: isAllCamerasShown,
+      onTap: onAllCamerasToggled,
+      label: Tr.of(context).shotListFloorPlanAllCamerasToggleLabel,
+      leading: Icon(
+        isAllCamerasShown ? Icons.videocam : Icons.videocam_outlined,
+        size: 14,
+        color: isAllCamerasShown ? theme.colorScheme.primary : theme.colorScheme.onSurfaceVariant,
       ),
     );
   }

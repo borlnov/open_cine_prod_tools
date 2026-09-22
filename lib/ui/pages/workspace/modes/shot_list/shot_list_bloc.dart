@@ -298,6 +298,8 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     on<OcptShotListSetNameChangedEvent>(_onSetNameChanged);
     on<OcptShotListSetReorderedEvent>(_onSetReordered);
     on<OcptShotListSetDeletionRequestedEvent>(_onSetDeletionRequested);
+    on<OcptShotListSetDuplicationRequestedEvent>(_onSetDuplicationRequested);
+    on<OcptShotListFloorPlanBlockingCopyRequestedEvent>(_onFloorPlanBlockingCopyRequested);
     on<OcptShotListFloorPlanZoomChangedEvent>(_onFloorPlanZoomChanged);
     on<OcptShotListFloorPlanToolSelectedEvent>(_onFloorPlanToolSelected);
     on<OcptShotListFloorPlanActiveLayerChangedEvent>(_onFloorPlanActiveLayerChanged);
@@ -321,6 +323,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     on<OcptShotListFloorPlanOnionSkinToggledEvent>(_onFloorPlanOnionSkinToggled);
     on<OcptShotListFloorPlanOnionSkinOpacityChangedEvent>(_onFloorPlanOnionSkinOpacityChanged);
     on<OcptShotListFloorPlanMetricsToggledEvent>(_onFloorPlanMetricsToggled);
+    on<OcptShotListFloorPlanAllCamerasToggledEvent>(_onFloorPlanAllCamerasToggled);
     on<OcptShotListFloorPlanArrowSymbolTappedEvent>(_onFloorPlanArrowSymbolTapped);
     on<OcptShotListFloorPlanArrowAnchorCancelledEvent>(_onFloorPlanArrowAnchorCancelled);
     on<OcptShotListFloorPlanArrowDeletionRequestedEvent>(_onFloorPlanArrowDeletionRequested);
@@ -2492,6 +2495,76 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     }
   }
 
+  /// Deep-copies set `event.setId` within its own scene (`OcptFloorPlanService.duplicateSet`),
+  /// reloads the floor plans and selects the freshly minted copy — the set tabs' own `＋ Set` menu
+  /// `Duplicate this set` entry.
+  Future<void> _onSetDuplicationRequested(
+    OcptShotListSetDuplicationRequestedEvent event,
+    Emitter<OcptShotListState> emitter,
+  ) async {
+    final project = _projectsManager.currentProject;
+    if (project == null) {
+      return;
+    }
+
+    try {
+      final newSetId = await _floorPlanService.duplicateSet(
+        database: project.database,
+        setId: event.setId,
+      );
+      if (newSetId == null) {
+        return;
+      }
+
+      emitter(
+        state.copyWith(
+          floorPlanSnapshot: await _loadFloorPlans(project),
+          selectedSetId: newSetId,
+          clearSelectedFloorPlanSymbolId: true,
+          clearSelectedFloorPlanArrowId: true,
+          clearPendingFloorPlanArrowAnchorSymbolId: true,
+        ),
+      );
+    } catch (error) {
+      appLogger().e("A problem occurred when tried to duplicate set ${event.setId} of the "
+          "project at ${project.path}: $error");
+      emitter(state.copyWith(hasWriteError: true));
+    }
+  }
+
+  /// Copies shot `event.sourceShotId`'s own live blocking on set `event.setId` onto the currently
+  /// focused shot (`OcptFloorPlanService.copyShotBlocking`), reloading the floor plans — the set
+  /// tabs' own `＋ Set` menu `Copy blocking from another shot` entry, dispatched once the mode's
+  /// own source-shot picker returns a pick. A no-op while no shot is focused (defensive only: the
+  /// mode never offers the menu entry without one).
+  Future<void> _onFloorPlanBlockingCopyRequested(
+    OcptShotListFloorPlanBlockingCopyRequestedEvent event,
+    Emitter<OcptShotListState> emitter,
+  ) async {
+    final project = _projectsManager.currentProject;
+    final destinationShotId = state.selectedShotId;
+    if (project == null || destinationShotId == null) {
+      return;
+    }
+
+    try {
+      await _floorPlanService.copyShotBlocking(
+        database: project.database,
+        sourceSetId: event.setId,
+        sourceShotId: event.sourceShotId,
+        destinationSetId: event.setId,
+        destinationShotId: destinationShotId,
+      );
+      emitter(state.copyWith(floorPlanSnapshot: await _loadFloorPlans(project)));
+    } catch (error) {
+      appLogger().e(
+        "A problem occurred when tried to copy shot ${event.sourceShotId}'s own blocking onto "
+        "shot $destinationShotId of set ${event.setId} of the project at ${project.path}: $error",
+      );
+      emitter(state.copyWith(hasWriteError: true));
+    }
+  }
+
   /// Records the floor plans canvas's own zoom as last settled by
   /// `OcptFloorPlanViewportController`. A view preference; see
   /// `OcptShotListState.floorPlanZoom`'s own doc comment.
@@ -2929,6 +3002,14 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     Emitter<OcptShotListState> emitter,
   ) async {
     emitter(state.copyWith(isFloorPlanMetricsShown: !state.isFloorPlanMetricsShown));
+  }
+
+  /// Toggles the focus strip's own "All cameras" toggle. A view preference; a display toggle only.
+  Future<void> _onFloorPlanAllCamerasToggled(
+    OcptShotListFloorPlanAllCamerasToggledEvent event,
+    Emitter<OcptShotListState> emitter,
+  ) async {
+    emitter(state.copyWith(isFloorPlanAllCamerasShown: !state.isFloorPlanAllCamerasShown));
   }
 
   /// Resolves a tap on symbol `event.symbolId` while the arrow tool is active, exactly as

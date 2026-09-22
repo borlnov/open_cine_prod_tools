@@ -163,6 +163,13 @@ class OcptFloorPlanCanvas extends StatefulWidget {
   /// visible symbol of the set.
   final bool isMetricsShown;
 
+  /// Whether the "All cameras" strip toggle is on (R3): every shot's own camera symbol of this set
+  /// draws as a ghost alongside [focusShotId]'s own — a display toggle only. A single tap on one of
+  /// these extra ghosts calls [onGhostShotFocusRequested] with its own shot id (jumping straight to
+  /// it), rather than selecting it the way every other ghost's single tap does — see the state's
+  /// own symbol-tap handler.
+  final bool isAllCamerasShown;
+
   /// The canvas's own currently active tool.
   final OcptFloorPlanTool activeTool;
 
@@ -273,6 +280,7 @@ class OcptFloorPlanCanvas extends StatefulWidget {
     required this.selectedArrowId,
     required this.pendingArrowAnchorSymbolId,
     required this.isMetricsShown,
+    required this.isAllCamerasShown,
     required this.activeTool,
     required this.activeLayer,
     required this.viewportController,
@@ -394,7 +402,12 @@ class _OcptFloorPlanCanvasState extends State<OcptFloorPlanCanvas> {
                   if (!widget.isUnderlayHidden && floorPlanSet.underlayAssetId != null)
                     _buildUnderlayVisual(floorPlanSet, canvasSize, zoom, pan),
                   Positioned.fill(
-                    child: Listener(
+                    child: DragTarget<OcptFloorPlanTool>(
+                      onWillAcceptWithDetails: (details) =>
+                          !widget.isReadOnly && widget.onSymbolPlaced != null,
+                      onAcceptWithDetails: (details) =>
+                          _handlePaletteDrop(details, canvasSize, zoom, pan),
+                      builder: (context, candidateData, rejectedData) => Listener(
                       onPointerSignal: _handlePointerSignal,
                       child: GestureDetector(
                         behavior: HitTestBehavior.opaque,
@@ -429,6 +442,7 @@ class _OcptFloorPlanCanvasState extends State<OcptFloorPlanCanvas> {
                             metricLineColor: theme.colorScheme.tertiary,
                           ),
                         ),
+                      ),
                       ),
                     ),
                   ),
@@ -471,6 +485,7 @@ class _OcptFloorPlanCanvasState extends State<OcptFloorPlanCanvas> {
       previousShotId: widget.isOnionSkinPreviousShown ? widget.previousShotId : null,
       nextShotId: widget.isOnionSkinNextShown ? widget.nextShotId : null,
       showFieldOfView: widget.viewportController.showFieldOfView,
+      showAllCameras: widget.isAllCamerasShown,
     );
     final isSequenceFocus = focusShotId == null;
 
@@ -570,6 +585,43 @@ class _OcptFloorPlanCanvasState extends State<OcptFloorPlanCanvas> {
       }
     }
     return null;
+  }
+
+  /// A palette entry dropped onto this canvas (R3, drag-from-palette placement,
+  /// `docs/plans/storyboard.md`, §9.4): places a symbol of `details.data`'s own tool exactly at the
+  /// drop point, the drag-and-drop sibling of [_handleBackgroundTap]'s own click-to-arm-then-click
+  /// path. A no-op for [OcptFloorPlanTool.select], [OcptFloorPlanTool.arrow] and
+  /// [OcptFloorPlanTool.label] — the palette never offers those as drag sources in the first
+  /// place — or for a shot-scoped tool while no shot is focused, defensive only.
+  void _handlePaletteDrop(
+    DragTargetDetails<OcptFloorPlanTool> details,
+    Size canvasSize,
+    double zoom,
+    Offset pan,
+  ) {
+    final onSymbolPlaced = widget.onSymbolPlaced;
+    if (onSymbolPlaced == null) {
+      return;
+    }
+
+    final tool = details.data;
+    final shotLayer = _shotLayerOf(tool);
+    if (tool != OcptFloorPlanTool.setElement && shotLayer == null) {
+      return;
+    }
+    final shotId = shotLayer == null ? null : widget.focusShotId;
+    if (shotLayer != null && shotId == null) {
+      return;
+    }
+
+    final localPosition = _resolveLocalPosition(details.offset);
+    final metres = ocptFloorPlanMetrePointOf(
+      screenPoint: localPosition,
+      canvasSize: canvasSize,
+      zoom: zoom,
+      pan: pan,
+    );
+    onSymbolPlaced(shotLayer ?? widget.activeLayer, shotId, metres.dx, metres.dy);
   }
 
   /// A click on empty canvas (no symbol, no underlay handle caught it first): places a new symbol
@@ -975,6 +1027,21 @@ class _OcptFloorPlanCanvasState extends State<OcptFloorPlanCanvas> {
       }
       return;
     }
+
+    // The "All cameras" strip toggle (R3): a single click on one of its own ghost cameras jumps
+    // straight to that camera's shot, rather than selecting the ghost — browsing cameras is the
+    // whole point of the toggle, and a jump reads the ghost the same way a click already reads a
+    // shot chip. The onion skin's own ghosts keep their double-click-to-jump/single-click-to-select
+    // split (see [_buildSymbolHitOverlay]'s own doc comment) whenever the toggle is off.
+    final shotId = symbol.shotId;
+    if (widget.isAllCamerasShown &&
+        symbol.isGhost &&
+        symbol.layer == OcptFloorPlanLayer.cameras &&
+        shotId != null) {
+      widget.onGhostShotFocusRequested?.call(shotId);
+      return;
+    }
+
     widget.onArrowSelected(null);
     widget.onSymbolSelected(symbol.symbolId);
   }

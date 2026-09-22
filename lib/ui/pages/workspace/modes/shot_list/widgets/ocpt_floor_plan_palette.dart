@@ -8,9 +8,10 @@ import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_floor_plan_sheet.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_layer.dart';
+import 'package:open_cine_prod_tools/types/ocpt_floor_plan_tool.dart';
 
-/// One live camera symbol of the sequence, for the tray's own expandable cameras row under the
-/// `Sequence` focus — [OcptFloorPlanLayerTray.sequenceCameras]' own entries.
+/// One live camera symbol of the set, for the palette's own `View` group cameras row — see
+/// `OcptFloorPlanLayerTray.sequenceCameras`'s own doc comment, which this replaces.
 class OcptFloorPlanTraySequenceCamera extends Equatable {
   /// The camera symbol's own id.
   final String symbolId;
@@ -27,33 +28,46 @@ class OcptFloorPlanTraySequenceCamera extends Equatable {
   List<Object?> get props => [symbolId, label];
 }
 
-/// The floor plans canvas's own layer tray, down the left of the canvas
-/// (`docs/plans/storyboard.md`, §4.3): the **`Sequence layers`** group (the single, merged `set`
-/// layer) with a visibility eye per row, the **`Shot layers`** group (cameras, characters, lights,
-/// props) with a visibility eye each, the cameras row's own expandable per-camera visibility under
-/// the `Sequence` focus, the **`Onion skin`** block (previous, next, one opacity), the metrics
-/// toggle, the field-of-view wedge toggle, and the underlay's own row with its eye.
+/// The floor plans canvas's own two-tier **palette**, down the left of the canvas, replacing
+/// `OcptFloorPlanLayerTray` (R3, the floor-plan redesign — `docs/plans/storyboard.md`, §9.1, §9.4):
+/// its group headers say **where a placed element lands** — a `Set · <name> — shared` group (the
+/// one merged [OcptFloorPlanLayer.set] layer, always editable) and a `Shot <code> — this shot only`
+/// group (camera, character, light) — plus a `View` group absorbing the old tray's own toggles
+/// (layer visibility, the underlay, onion skin, metrics, field of view).
 ///
-/// Visibility, [activeLayer], [hiddenCameraSymbolIds], the onion skin block, the metrics toggle,
-/// [isShowFieldOfViewShown] and the underlay's own visibility are **view state**: every toggle
-/// reported by this widget only ever reads, so this widget takes no `isReadOnly` flag of its own
-/// at all — the tray keeps working under a read-only preview exactly as the deliverable requires.
-/// [onUnderlayClearRequested] is the one exception, a real project write: the mode passes it null
-/// under a read-only preview, exactly like every other withheld callback in this milestone.
-class OcptFloorPlanLayerTray extends StatelessWidget {
+/// **No tool is ever dimmed** (R2 already dropped tool dimming; this palette keeps it dropped):
+/// every entry is always available, `isReadOnly` withholding the write the moment one is picked or
+/// dropped, never before. An entry is **both** a click-to-arm control ([onToolSelected], the tool
+/// bar's own mechanism, kept working) **and** a drag source (a plain [Draggable] anchored at the
+/// pointer, so a drop lands exactly under it) that `OcptFloorPlanCanvas` accepts through its own
+/// `DragTarget<OcptFloorPlanTool>` and places at the drop point.
+///
+/// Visibility, the onion skin block, the metrics toggle, the field-of-view toggle and the
+/// underlay's own visibility are **view state**: every toggle this palette reports only ever reads,
+/// so — like the tray before it — it takes no `isReadOnly` flag of its own at all.
+/// [onUnderlayClearRequested] is the one exception, a real project write, withheld (null) under a
+/// read-only preview exactly like every other write in this milestone.
+class OcptFloorPlanPalette extends StatelessWidget {
+  /// The selected set's own name, for the `Set · <name> — shared` group header.
+  final String setName;
+
+  /// The focused shot's own display code (`12/3`), for the `Shot <code> — this shot only` group
+  /// header, or null while no shot is focused yet.
+  final String? shotCode;
+
+  /// The currently active tool — which entry (if any) reads as armed.
+  final OcptFloorPlanTool activeTool;
+
+  /// Whether the mode shows a project version being previewed read-only: every entry stays visible
+  /// and clickable/draggable, but arming or dropping one is a no-op while this is true — the canvas
+  /// itself is what actually withholds the write (its own `onSymbolPlaced` null), so this palette
+  /// only skips offering a drag source that would go nowhere.
+  final bool isReadOnly;
+
   /// Every layer currently hidden, sequence and shot layers alike.
   final Set<OcptFloorPlanLayer> hiddenLayers;
 
-  /// The sequence layer a placed set element lands on.
-  final OcptFloorPlanLayer activeLayer;
-
-  /// Whether the shot focus is currently active
-  /// (`OcptShotListState.isFloorPlanShotFocusActive`) — the cameras row only expands into
-  /// [sequenceCameras] under the `Sequence` focus, where every shot's camera draws at once.
-  final bool isShotFocusActive;
-
-  /// Every live camera symbol of the sequence, for the cameras row's own expandable per-camera
-  /// visibility list — empty (and the row stays collapsed) under a shot focus.
+  /// Every live camera symbol of the sequence, for the `View` group's own expandable cameras row.
   final List<OcptFloorPlanTraySequenceCamera> sequenceCameras;
 
   /// The ids of [sequenceCameras] currently hidden.
@@ -71,9 +85,7 @@ class OcptFloorPlanLayerTray extends StatelessWidget {
   /// Whether the metrics overlay is shown.
   final bool isMetricsShown;
 
-  /// Whether a camera's own field-of-view wedge is drawn — `OcptFloorPlanViewportController
-  /// .showFieldOfView`, read and written directly on that controller by the view (a session view
-  /// concern, exactly like [isMetricsShown]'s own `OcptFloorPlanCanvas` reads, never synchronised).
+  /// Whether a camera's own field-of-view wedge is drawn.
   final bool isShowFieldOfViewShown;
 
   /// Whether the selected set's underlay is currently hidden.
@@ -83,11 +95,13 @@ class OcptFloorPlanLayerTray extends StatelessWidget {
   /// doesn't.
   final bool hasUnderlay;
 
-  /// Called with the layer whose eye was clicked, sequence or shot.
-  final ValueChanged<OcptFloorPlanLayer> onLayerVisibilityToggled;
+  /// Called with the entry's own tool when it is clicked (arming it) or successfully dropped onto
+  /// the canvas (`OcptFloorPlanCanvas`'s own `DragTarget` reports the drop itself; this callback is
+  /// only the click-to-arm path).
+  final ValueChanged<OcptFloorPlanTool> onToolSelected;
 
-  /// Called with the sequence layer just picked as the active one.
-  final ValueChanged<OcptFloorPlanLayer> onActiveLayerChanged;
+  /// Called with the layer whose eye was clicked.
+  final ValueChanged<OcptFloorPlanLayer> onLayerVisibilityToggled;
 
   /// Called with a camera symbol's id whose own eye was clicked.
   final ValueChanged<String> onCameraVisibilityToggled;
@@ -108,17 +122,18 @@ class OcptFloorPlanLayerTray extends StatelessWidget {
   /// Called when the underlay row's own eye is clicked.
   final VoidCallback onUnderlayVisibilityToggled;
 
-  /// Called when the underlay row's own `Clear underlay` action is clicked, or null while
-  /// withheld (no underlay to clear, or a read-only preview). Only asks — the mode opens
-  /// `OcptConfirmDialog`.
+  /// Called when the underlay row's own `Clear underlay` action is clicked, or null while withheld
+  /// (no underlay to clear, or a read-only preview). Only asks — the mode opens `OcptConfirmDialog`.
   final VoidCallback? onUnderlayClearRequested;
 
   /// Class constructor
-  const OcptFloorPlanLayerTray({
+  const OcptFloorPlanPalette({
     super.key,
+    required this.setName,
+    required this.shotCode,
+    required this.activeTool,
+    required this.isReadOnly,
     required this.hiddenLayers,
-    required this.activeLayer,
-    required this.isShotFocusActive,
     required this.sequenceCameras,
     required this.hiddenCameraSymbolIds,
     required this.isOnionSkinPreviousShown,
@@ -128,8 +143,8 @@ class OcptFloorPlanLayerTray extends StatelessWidget {
     required this.isShowFieldOfViewShown,
     required this.isUnderlayHidden,
     required this.hasUnderlay,
+    required this.onToolSelected,
     required this.onLayerVisibilityToggled,
-    required this.onActiveLayerChanged,
     required this.onCameraVisibilityToggled,
     required this.onOnionSkinToggled,
     required this.onOnionSkinOpacityChanged,
@@ -139,56 +154,57 @@ class OcptFloorPlanLayerTray extends StatelessWidget {
     required this.onUnderlayClearRequested,
   });
 
-  /// The sequence layers offered, in tray order — a single entry now that `decor`/`furniture`/
-  /// `fixedProps` have merged into [OcptFloorPlanLayer.set]: interim (R0) still renders it through
-  /// [_buildLayerRow], with no radio dot, since there is nothing left to pick among.
-  static const _sequenceLayers = [OcptFloorPlanLayer.set];
-
-  /// The shot layers offered, in tray order.
-  static const _shotLayers = [
-    OcptFloorPlanLayer.cameras,
-    OcptFloorPlanLayer.characters,
-    OcptFloorPlanLayer.lights,
-    OcptFloorPlanLayer.props,
-  ];
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final tr = Tr.of(context);
+    final shotCode = this.shotCode;
 
     return Material(
       color: theme.colorScheme.surfaceContainerLow,
       child: ListView(
         padding: const EdgeInsets.symmetric(vertical: 8),
         children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-            child: Text(
-              tr.shotListFloorPlanSequenceLayersGroupTitle,
-              style: theme.textTheme.labelSmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
+          _buildGroupTitle(context, tr.shotListFloorPlanPaletteSetGroupTitle(setName)),
+          _buildEntry(
+            context,
+            tool: OcptFloorPlanTool.setElement,
+            icon: Icons.chair_outlined,
+            label: tr.shotListFloorPlanToolSetElementAction,
           ),
-          for (final layer in _sequenceLayers)
-            _buildLayerRow(context, layer, isRadioSelectable: false),
+          if (shotCode != null) ...[
+            const Divider(height: 16),
+            _buildGroupTitle(context, tr.shotListFloorPlanPaletteShotGroupTitle(shotCode)),
+            _buildEntry(
+              context,
+              tool: OcptFloorPlanTool.camera,
+              icon: Icons.videocam_outlined,
+              label: tr.shotListFloorPlanToolCameraAction,
+            ),
+            _buildEntry(
+              context,
+              tool: OcptFloorPlanTool.character,
+              icon: Icons.person_outline,
+              label: tr.shotListFloorPlanToolCharacterAction,
+            ),
+            _buildEntry(
+              context,
+              tool: OcptFloorPlanTool.light,
+              icon: Icons.wb_incandescent_outlined,
+              label: tr.shotListFloorPlanToolLightAction,
+            ),
+          ],
           const Divider(height: 16),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-            child: Text(
-              tr.shotListFloorPlanShotLayersGroupTitle,
-              style: theme.textTheme.labelSmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
+          _buildGroupTitle(context, tr.shotListFloorPlanPaletteViewGroupTitle),
+          _buildLayerRow(context, OcptFloorPlanLayer.set, tr.shotListFloorPlanLayerDecorLabel),
+          _buildCamerasRow(context),
+          _buildLayerRow(
+            context,
+            OcptFloorPlanLayer.characters,
+            tr.shotListFloorPlanLayerCharactersLabel,
           ),
-          for (final layer in _shotLayers)
-            layer == OcptFloorPlanLayer.cameras && !isShotFocusActive
-                ? _buildCamerasRow(context)
-                : _buildLayerRow(context, layer, isRadioSelectable: false),
+          _buildLayerRow(context, OcptFloorPlanLayer.lights, tr.shotListFloorPlanLayerLightsLabel),
+          _buildLayerRow(context, OcptFloorPlanLayer.props, tr.shotListFloorPlanLayerHandPropsLabel),
           const Divider(height: 16),
           _buildOnionSkinBlock(context),
           const Divider(height: 16),
@@ -201,8 +217,85 @@ class OcptFloorPlanLayerTray extends StatelessWidget {
     );
   }
 
-  /// The cameras row, expanded into one sub-row per [sequenceCameras] entry with its own eye —
-  /// only reached under the `Sequence` focus, where every shot's camera draws numbered.
+  /// One group's own header text.
+  Widget _buildGroupTitle(BuildContext context, String title) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      child: Text(
+        title,
+        style: theme.textTheme.labelSmall?.copyWith(
+          color: theme.colorScheme.onSurfaceVariant,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    );
+  }
+
+  /// One placeable tool's own entry: an icon and its label, armed by a click
+  /// ([onToolSelected]) and offered as a drag source (`Draggable<OcptFloorPlanTool>`, anchored at
+  /// the pointer so `OcptFloorPlanCanvas`'s own `DragTarget` drops it exactly where released).
+  Widget _buildEntry(
+    BuildContext context, {
+    required OcptFloorPlanTool tool,
+    required IconData icon,
+    required String label,
+  }) {
+    final theme = Theme.of(context);
+    final isActive = tool == activeTool;
+
+    final row = Container(
+      margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+      decoration: BoxDecoration(
+        color: isActive ? theme.colorScheme.primary.withValues(alpha: ocptSelectedStateAlpha) : null,
+        borderRadius: BorderRadius.circular(ocptRadiusSmall),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            icon,
+            size: 18,
+            color: isActive ? theme.colorScheme.primary : theme.colorScheme.onSurfaceVariant,
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              label,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: isActive ? theme.colorScheme.primary : null,
+                fontWeight: isActive ? FontWeight.w700 : null,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    final entry = InkWell(
+      onTap: () => onToolSelected(tool),
+      mouseCursor: ocptClickableCursor,
+      borderRadius: BorderRadius.circular(ocptRadiusSmall),
+      child: row,
+    );
+
+    if (isReadOnly) {
+      return entry;
+    }
+
+    return Draggable<OcptFloorPlanTool>(
+      data: tool,
+      dragAnchorStrategy: pointerDragAnchorStrategy,
+      feedback: Material(
+        color: Colors.transparent,
+        child: SizedBox(width: 160, child: row),
+      ),
+      childWhenDragging: Opacity(opacity: 0.4, child: entry),
+      child: entry,
+    );
+  }
+
+  /// The cameras row, expanded into one sub-row per [sequenceCameras] entry with its own eye.
   Widget _buildCamerasRow(BuildContext context) {
     final theme = Theme.of(context);
     final tr = Tr.of(context);
@@ -223,10 +316,7 @@ class OcptFloorPlanLayerTray extends StatelessWidget {
           ),
           const SizedBox(width: 8),
           Expanded(
-            child: Text(
-              tr.shotListFloorPlanLayerCamerasLabel,
-              style: theme.textTheme.bodySmall,
-            ),
+            child: Text(tr.shotListFloorPlanLayerCamerasLabel, style: theme.textTheme.bodySmall),
           ),
         ],
       ),
@@ -354,31 +444,19 @@ class OcptFloorPlanLayerTray extends StatelessWidget {
     ),
   );
 
-  /// One layer's own row: a leading colour swatch (and, for a sequence layer, a radio dot naming
-  /// the active one — [isRadioSelectable] is false for a shot layer, which has no "active layer"
-  /// concept of its own, each of its four tools placing on its own fixed layer instead), the
-  /// label, and a trailing eye toggling its visibility.
-  Widget _buildLayerRow(
-    BuildContext context,
-    OcptFloorPlanLayer layer, {
-    bool isRadioSelectable = true,
-  }) {
+  /// One `View` group layer row: a leading colour swatch, the label, and a trailing eye toggling
+  /// its visibility. No radio dot: every remaining layer places through its own palette entry or
+  /// tool, not through an "active layer" pick — the set layer having merged into one
+  /// (`OcptFloorPlanLayer.set`) is the only sequence layer left, and every shot layer already has
+  /// its own dedicated entry above.
+  Widget _buildLayerRow(BuildContext context, OcptFloorPlanLayer layer, String label) {
     final theme = Theme.of(context);
-    final isActive = layer == activeLayer;
     final isHidden = hiddenLayers.contains(layer);
 
-    final row = Padding(
+    return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       child: Row(
         children: [
-          if (isRadioSelectable) ...[
-            Icon(
-              isActive ? Icons.radio_button_checked : Icons.radio_button_unchecked,
-              size: 16,
-              color: isActive ? theme.colorScheme.primary : theme.colorScheme.outline,
-            ),
-            const SizedBox(width: 8),
-          ],
           Container(
             width: 10,
             height: 10,
@@ -389,7 +467,7 @@ class OcptFloorPlanLayerTray extends StatelessWidget {
           ),
           const SizedBox(width: 8),
           Expanded(
-            child: Text(_labelOf(context, layer), style: theme.textTheme.bodySmall),
+            child: Text(label, style: theme.textTheme.bodySmall),
           ),
           IconButton(
             iconSize: 16,
@@ -404,10 +482,6 @@ class OcptFloorPlanLayerTray extends StatelessWidget {
         ],
       ),
     );
-
-    return isRadioSelectable
-        ? InkWell(onTap: () => onActiveLayerChanged(layer), mouseCursor: ocptClickableCursor, child: row)
-        : row;
   }
 
   /// The underlay's own row: its label and a trailing eye toggling its visibility.
@@ -449,22 +523,5 @@ class OcptFloorPlanLayerTray extends StatelessWidget {
         ],
       ),
     );
-  }
-
-  /// [layer]'s own localized label.
-  ///
-  /// [OcptFloorPlanLayer.set] reuses the retired `decor` layer's own label as an interim (R0):
-  /// the merged layer has no ARB string of its own yet, and picking one of the three retired
-  /// labels rather than minting a new key keeps this rename mechanical — a later milestone gives
-  /// the tray its own redesigned labels.
-  String _labelOf(BuildContext context, OcptFloorPlanLayer layer) {
-    final tr = Tr.of(context);
-    return switch (layer) {
-      OcptFloorPlanLayer.set => tr.shotListFloorPlanLayerDecorLabel,
-      OcptFloorPlanLayer.cameras => tr.shotListFloorPlanLayerCamerasLabel,
-      OcptFloorPlanLayer.characters => tr.shotListFloorPlanLayerCharactersLabel,
-      OcptFloorPlanLayer.lights => tr.shotListFloorPlanLayerLightsLabel,
-      OcptFloorPlanLayer.props => tr.shotListFloorPlanLayerHandPropsLabel,
-    };
   }
 }

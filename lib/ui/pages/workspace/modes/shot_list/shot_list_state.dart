@@ -283,6 +283,14 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
   /// A **view/session state** value, like [floorPlanZoom]: never written to the project.
   final bool isFloorPlanMetricsShown;
 
+  /// Whether the focus strip's own "All cameras" toggle is on: every shot's own camera symbol of
+  /// the selected set draws as a ghost alongside the focused shot's own (R3, the floor-plan
+  /// redesign — `docs/plans/storyboard.md`, §9.4). A display toggle only, never a state that gates
+  /// a tool.
+  ///
+  /// A **view/session state** value, like [floorPlanZoom]: never written to the project.
+  final bool isFloorPlanAllCamerasShown;
+
   /// The id of the symbol picked as the arrow tool's own first end, or null while none is pending
   /// (no click yet, or the anchor was just completed into an arrow or cancelled) — the floor plans
   /// canvas's own pending anchor, mirroring [pendingCoverageAnchor]'s own shape. Cleared whenever
@@ -702,6 +710,7 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
     required this.isFloorPlanOnionSkinNextShown,
     required this.floorPlanOnionSkinOpacity,
     required this.isFloorPlanMetricsShown,
+    required this.isFloorPlanAllCamerasShown,
     required this.pendingFloorPlanArrowAnchorSymbolId,
     required this.isSequencePanelVisible,
     required this.rightDockTab,
@@ -757,6 +766,7 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
       isFloorPlanOnionSkinNextShown = true,
       floorPlanOnionSkinOpacity = 0.4,
       isFloorPlanMetricsShown = false,
+      isFloorPlanAllCamerasShown = false,
       pendingFloorPlanArrowAnchorSymbolId = null,
       isSequencePanelVisible = true,
       rightDockTab = null,
@@ -827,6 +837,7 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
     bool? isFloorPlanOnionSkinNextShown,
     double? floorPlanOnionSkinOpacity,
     bool? isFloorPlanMetricsShown,
+    bool? isFloorPlanAllCamerasShown,
     String? pendingFloorPlanArrowAnchorSymbolId,
     bool clearPendingFloorPlanArrowAnchorSymbolId = false,
     bool? isSequencePanelVisible,
@@ -906,6 +917,7 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
         isFloorPlanOnionSkinNextShown ?? this.isFloorPlanOnionSkinNextShown,
     floorPlanOnionSkinOpacity: floorPlanOnionSkinOpacity ?? this.floorPlanOnionSkinOpacity,
     isFloorPlanMetricsShown: isFloorPlanMetricsShown ?? this.isFloorPlanMetricsShown,
+    isFloorPlanAllCamerasShown: isFloorPlanAllCamerasShown ?? this.isFloorPlanAllCamerasShown,
     pendingFloorPlanArrowAnchorSymbolId: clearPendingFloorPlanArrowAnchorSymbolId
         ? null
         : (pendingFloorPlanArrowAnchorSymbolId ?? this.pendingFloorPlanArrowAnchorSymbolId),
@@ -1027,6 +1039,7 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
     isFloorPlanOnionSkinNextShown,
     floorPlanOnionSkinOpacity,
     isFloorPlanMetricsShown,
+    isFloorPlanAllCamerasShown,
     pendingFloorPlanArrowAnchorSymbolId,
     isSequencePanelVisible,
     rightDockTab,

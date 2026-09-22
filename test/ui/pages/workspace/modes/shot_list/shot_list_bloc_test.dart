@@ -3901,5 +3901,151 @@ void main() {
         },
       );
     });
+
+    group("R3 — chrome and duplication", () {
+      /// Creates a fresh shot on the sole selected sequence and returns its id, waiting for the
+      /// selection to actually change — mirrors "the shot half (M6)" group's own helper.
+      Future<String> createFreshShot(OcptShotListBloc bloc) async {
+        final previousShotId = bloc.state.selectedShotId;
+        bloc.add(const OcptShotListShotCreationRequestedEvent());
+        final created = await waitForState(
+          bloc,
+          (state) => state.selectedShotId != null && state.selectedShotId != previousShotId,
+        );
+        return created.selectedShotId!;
+      }
+
+      test('the "All cameras" toggle is session view state', () async {
+        await writeScreenplay(twoSceneText);
+        final bloc = buildBloc();
+        await waitForState(bloc, (state) => !state.isLoading);
+        expect(bloc.state.isFloorPlanAllCamerasShown, isFalse);
+
+        bloc.add(const OcptShotListFloorPlanAllCamerasToggledEvent());
+        final on = await waitForState(bloc, (state) => state.isFloorPlanAllCamerasShown);
+        expect(on.isFloorPlanAllCamerasShown, isTrue);
+
+        bloc.add(const OcptShotListFloorPlanAllCamerasToggledEvent());
+        final off = await waitForState(bloc, (state) => !state.isFloorPlanAllCamerasShown);
+        expect(off.isFloorPlanAllCamerasShown, isFalse);
+
+        await bloc.close();
+      });
+
+      test(
+        "duplicating the selected set copies its own placements as independent rows and "
+        "selects the copy",
+        () async {
+          await writeScreenplay(twoSceneText);
+          final bloc = buildBloc();
+          await waitForState(bloc, (state) => !state.isLoading);
+          final setId = await createCase(bloc);
+          final shotId = await createFreshShot(bloc);
+
+          bloc.add(
+            OcptShotListFloorPlanSymbolPlacedEvent(
+              setId: setId,
+              layer: OcptFloorPlanLayer.cameras,
+              shotId: shotId,
+              xM: 1,
+              yM: 2,
+            ),
+          );
+          final withCamera = await waitForState(
+            bloc,
+            (state) => state.selectedSet!.symbols.isNotEmpty,
+          );
+          final sourceSymbolId = withCamera.selectedSet!.symbols.single.id;
+
+          bloc.add(OcptShotListSetDuplicationRequestedEvent(setId: setId));
+          final afterDuplicate = await waitForState(
+            bloc,
+            (state) => state.setsOfSelectedSequence.length == 2,
+          );
+          final newSetId = afterDuplicate.selectedSetId!;
+          expect(newSetId, isNot(setId));
+          expect(afterDuplicate.selectedSet!.symbols, hasLength(1));
+          final copiedSymbolId = afterDuplicate.selectedSet!.symbols.single.id;
+          expect(copiedSymbolId, isNot(sourceSymbolId));
+
+          // Independent: moving the copy leaves the source set's own symbol untouched.
+          bloc.add(
+            OcptShotListFloorPlanSymbolMovedEvent(symbolId: copiedSymbolId, xM: 9, yM: 9),
+          );
+          await waitForState(bloc, (state) => state.selectedSet!.symbols.single.xM == 9);
+          final sourceSet = bloc.state.setsOfSelectedSequence.firstWhere((s) => s.id == setId);
+          expect(sourceSet.symbols.single.xM, 1);
+
+          await bloc.close();
+        },
+      );
+
+      test(
+        "copying another shot's own blocking writes independent copies onto the focused shot",
+        () async {
+          await writeScreenplay(twoSceneText);
+          final bloc = buildBloc();
+          await waitForState(bloc, (state) => !state.isLoading);
+          final setId = await createCase(bloc);
+          final sourceShotId = await createFreshShot(bloc);
+
+          bloc.add(
+            OcptShotListFloorPlanSymbolPlacedEvent(
+              setId: setId,
+              layer: OcptFloorPlanLayer.cameras,
+              shotId: sourceShotId,
+              xM: 1,
+              yM: 1,
+            ),
+          );
+          await waitForState(bloc, (state) => state.selectedSet!.symbols.isNotEmpty);
+
+          final destinationShotId = await createFreshShot(bloc);
+          // The set's own symbols carry every shot's placements — only the destination shot's
+          // own slice is still empty at this point.
+          expect(
+            bloc.state.selectedSet!.symbols.where((symbol) => symbol.shotId == destinationShotId),
+            isEmpty,
+          );
+
+          bloc.add(
+            OcptShotListFloorPlanBlockingCopyRequestedEvent(
+              setId: setId,
+              sourceShotId: sourceShotId,
+            ),
+          );
+          final copied = await waitForState(
+            bloc,
+            (state) =>
+                state.selectedSet!.symbols.any((symbol) => symbol.shotId == destinationShotId),
+          );
+
+          final destinationSymbols = copied.selectedSet!.symbols
+              .where((symbol) => symbol.shotId == destinationShotId)
+              .toList();
+          expect(destinationSymbols, hasLength(1));
+          final copiedSymbol = destinationSymbols.single;
+          expect(copiedSymbol.layer, OcptFloorPlanLayer.cameras);
+
+          // Independent: moving the copy leaves the source shot's own symbol untouched.
+          bloc.add(
+            OcptShotListFloorPlanSymbolMovedEvent(symbolId: copiedSymbol.id, xM: 5, yM: 5),
+          );
+          await waitForState(
+            bloc,
+            (state) => state.selectedSet!.symbols
+                .firstWhere((symbol) => symbol.id == copiedSymbol.id)
+                .xM ==
+                5,
+          );
+          final sourceSymbol = bloc.state.selectedSet!.symbols.firstWhere(
+            (symbol) => symbol.shotId == sourceShotId,
+          );
+          expect(sourceSymbol.xM, 1);
+
+          await bloc.close();
+        },
+      );
+    });
   });
 }

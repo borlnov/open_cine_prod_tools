@@ -777,6 +777,202 @@ class OcptFloorPlanService {
     });
   }
 
+  /// Deep-copies set [setId] within its own scene: a new set row, appended after the scene's
+  /// current tabs, plus **independent copies** of every live symbol and arrow it carries — never
+  /// links (`docs/plans/storyboard.md`, §9.2) — and returns the new set's freshly generated id.
+  /// Does nothing (returns null) if [setId] doesn't name a live set.
+  ///
+  /// The copy starts with **no underlay**: an underlay is a specific photo of a specific room, and
+  /// duplicating a set is for a second room laid out the same way, not a second copy of the first
+  /// room's own photo — the same posture [deleteSet] already takes towards an underlay it doesn't
+  /// own the minting of. Every symbol and arrow gets a fresh id and a fresh `sortKey` run of its
+  /// own (appended in the source's own draw order), so mutating the copy — moving a symbol,
+  /// deleting an arrow — never touches the source's own rows.
+  ///
+  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
+  Future<String?> duplicateSet({required OcptProjectDatabase database, required String setId}) async {
+    if (database.refusesUserWrite("duplicateSet")) {
+      return null;
+    }
+
+    final newSetId = const Uuid().v4();
+    var created = false;
+
+    await database.transaction(() async {
+      final source = await _liveSetRowOrNull(database: database, setId: setId);
+      if (source == null) {
+        return;
+      }
+
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
+
+      final existingSets = await _setRowsOfScene(database: database, sceneId: source.sceneId);
+      final newSetRow = OcptFloorPlanSetRow(
+        id: newSetId,
+        sceneId: source.sceneId,
+        name: source.name,
+        sortKey: ocptFractionalKeyBetween(
+          before: existingSets.isEmpty ? null : existingSets.last.sortKey,
+        ),
+        isDeleted: false,
+      );
+      await OcptRowStampService.writeAndStamp(
+        database: database,
+        table: database.ocptFloorPlanSetsTable,
+        rowId: newSetId,
+        current: null,
+        next: newSetRow,
+        stamps: stamps,
+      );
+
+      final symbolRows = (await _symbolRowsOfSet(database: database, setId: setId))
+        ..sort((a, b) => a.sortKey.compareTo(b.sortKey));
+      final newSymbolIdBySourceId = <String, String>{};
+      for (final row in symbolRows) {
+        final newSymbolId = const Uuid().v4();
+        newSymbolIdBySourceId[row.id] = newSymbolId;
+        await OcptRowStampService.writeAndStamp(
+          database: database,
+          table: database.ocptFloorPlanSymbolsTable,
+          rowId: newSymbolId,
+          current: null,
+          next: row.copyWith(id: newSymbolId, setId: newSetId),
+          stamps: stamps,
+        );
+      }
+
+      final arrowRows = await _arrowRowsOfSet(database: database, setId: setId);
+      for (final row in arrowRows) {
+        final newFromSymbolId = newSymbolIdBySourceId[row.fromSymbolId];
+        final newToSymbolId = newSymbolIdBySourceId[row.toSymbolId];
+        // Defensive only: every arrow's own endpoints are read from this very set's own live
+        // symbols above, so both are always found.
+        if (newFromSymbolId == null || newToSymbolId == null) {
+          continue;
+        }
+        final newArrowId = const Uuid().v4();
+        await OcptRowStampService.writeAndStamp(
+          database: database,
+          table: database.ocptFloorPlanArrowsTable,
+          rowId: newArrowId,
+          current: null,
+          next: row.copyWith(
+            id: newArrowId,
+            setId: newSetId,
+            fromSymbolId: newFromSymbolId,
+            toSymbolId: newToSymbolId,
+          ),
+          stamps: stamps,
+        );
+      }
+
+      await stamps.flush(database);
+      created = true;
+    });
+
+    return created ? newSetId : null;
+  }
+
+  /// Copies shot [sourceShotId]'s own live shot-layer symbols (cameras, characters, lights, props)
+  /// and the arrows drawn between two of them, from set [sourceSetId] onto shot [destinationShotId]
+  /// of set [destinationSetId] — the same set for a same-set copy, a different one for a copy across
+  /// sets — as **independent copies**, appended after [destinationShotId]'s own current symbols of
+  /// each layer.
+  ///
+  /// An arrow whose either end is a *sequence*-scoped symbol (a set element the source shot's own
+  /// blocking points at or from) is **not copied**: that symbol belongs to [sourceSetId]'s own décor
+  /// and has no copied counterpart on [destinationSetId] in general (nor, for a same-set copy, any
+  /// reason to point the copy back at the very same décor symbol the source shot already points at)
+  /// — only a movement whose both ends are themselves being copied travels with it.
+  ///
+  /// A no-op while [sourceShotId] carries nothing on [sourceSetId].
+  ///
+  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
+  Future<void> copyShotBlocking({
+    required OcptProjectDatabase database,
+    required String sourceSetId,
+    required String sourceShotId,
+    required String destinationSetId,
+    required String destinationShotId,
+  }) async {
+    if (database.refusesUserWrite("copyShotBlocking")) {
+      return;
+    }
+
+    await database.transaction(() async {
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
+
+      final symbolRows =
+          (await (database.select(database.ocptFloorPlanSymbolsTable)..where(
+                (table) =>
+                    table.setId.equals(sourceSetId) &
+                    table.shotId.equals(sourceShotId) &
+                    table.isDeleted.not(),
+              ))
+              .get())
+            ..sort((a, b) => a.sortKey.compareTo(b.sortKey));
+
+      final newSymbolIdBySourceId = <String, String>{};
+      for (final row in symbolRows) {
+        final existingOfLayer = await _symbolRowsOfSetAndLayer(
+          database: database,
+          setId: destinationSetId,
+          layer: row.layer,
+        );
+        final newSymbolId = const Uuid().v4();
+        newSymbolIdBySourceId[row.id] = newSymbolId;
+        await OcptRowStampService.writeAndStamp(
+          database: database,
+          table: database.ocptFloorPlanSymbolsTable,
+          rowId: newSymbolId,
+          current: null,
+          next: row.copyWith(
+            id: newSymbolId,
+            setId: destinationSetId,
+            shotId: Value(destinationShotId),
+            sortKey: ocptFractionalKeyBetween(
+              before: existingOfLayer.isEmpty ? null : existingOfLayer.last.sortKey,
+            ),
+          ),
+          stamps: stamps,
+        );
+      }
+
+      final arrowRows =
+          await (database.select(database.ocptFloorPlanArrowsTable)..where(
+                (table) =>
+                    table.setId.equals(sourceSetId) &
+                    table.shotId.equals(sourceShotId) &
+                    table.isDeleted.not(),
+              ))
+              .get();
+      for (final row in arrowRows) {
+        final newFromSymbolId = newSymbolIdBySourceId[row.fromSymbolId];
+        final newToSymbolId = newSymbolIdBySourceId[row.toSymbolId];
+        if (newFromSymbolId == null || newToSymbolId == null) {
+          continue;
+        }
+        final newArrowId = const Uuid().v4();
+        await OcptRowStampService.writeAndStamp(
+          database: database,
+          table: database.ocptFloorPlanArrowsTable,
+          rowId: newArrowId,
+          current: null,
+          next: row.copyWith(
+            id: newArrowId,
+            setId: destinationSetId,
+            shotId: destinationShotId,
+            fromSymbolId: newFromSymbolId,
+            toSymbolId: newToSymbolId,
+          ),
+          stamps: stamps,
+        );
+      }
+
+      await stamps.flush(database);
+    });
+  }
+
   /// Tombstones shot [shotId]'s own shot-layer symbols and every arrow it carries — every arrow
   /// whose own `shotId` names it, and, defensively, every arrow touching one of the symbols being
   /// removed — for `OcptShotListService.deleteShot`'s and `.tombstoneShotsOfScreenplay`'s own

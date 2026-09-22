@@ -10,7 +10,7 @@ import 'package:open_cine_prod_tools/types/ocpt_floor_plan_layer.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_tool.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_floor_plan_canvas.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_floor_plan_focus_strip.dart';
-import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_floor_plan_layer_tray.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_floor_plan_palette.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_floor_plan_tool_bar.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_floor_plan_viewport_controller.dart';
 
@@ -83,6 +83,11 @@ class OcptFloorPlanView extends StatefulWidget {
   /// Whether the metrics overlay is shown.
   final bool isMetricsShown;
 
+  /// Whether the "All cameras" strip toggle is on: every shot's own camera of the selected set
+  /// draws as a ghost alongside the focused shot's own (R3, `docs/plans/storyboard.md`, §9.4) — a
+  /// display toggle only, never a state that gates a tool.
+  final bool isAllCamerasShown;
+
   /// The id of the currently selected symbol, or null while none is.
   final String? selectedSymbolId;
 
@@ -124,6 +129,9 @@ class OcptFloorPlanView extends StatefulWidget {
 
   /// Called when the metrics toggle is clicked.
   final VoidCallback onMetricsToggled;
+
+  /// Called when the "All cameras" strip toggle is clicked.
+  final VoidCallback onAllCamerasToggled;
 
   /// Called when the underlay row's own eye is clicked.
   final VoidCallback onUnderlayVisibilityToggled;
@@ -218,6 +226,7 @@ class OcptFloorPlanView extends StatefulWidget {
     required this.isOnionSkinNextShown,
     required this.onionSkinOpacity,
     required this.isMetricsShown,
+    required this.isAllCamerasShown,
     required this.selectedSymbolId,
     required this.selectedArrowId,
     required this.pendingArrowAnchorSymbolId,
@@ -232,6 +241,7 @@ class OcptFloorPlanView extends StatefulWidget {
     required this.onOnionSkinToggled,
     required this.onOnionSkinOpacityChanged,
     required this.onMetricsToggled,
+    required this.onAllCamerasToggled,
     required this.onUnderlayVisibilityToggled,
     required this.onUnderlayImportRequested,
     required this.onUnderlayClearRequested,
@@ -316,14 +326,16 @@ class _OcptFloorPlanViewState extends State<OcptFloorPlanView> {
                 SizedBox(
                   width: 220,
                   // Listens to `_viewportController` for the sole row this session concern
-                  // (`showFieldOfView`) drives — every other row in this tray reads a plain widget
-                  // field instead.
+                  // (`showFieldOfView`) drives — every other row in this palette reads a plain
+                  // widget field instead.
                   child: ListenableBuilder(
                     listenable: _viewportController,
-                    builder: (context, _) => OcptFloorPlanLayerTray(
+                    builder: (context, _) => OcptFloorPlanPalette(
+                      setName: widget.floorPlanSet?.name ?? "",
+                      shotCode: _focusShotCode,
+                      activeTool: widget.activeTool,
+                      isReadOnly: widget.isReadOnly,
                       hiddenLayers: widget.hiddenLayers,
-                      activeLayer: widget.activeLayer,
-                      isShotFocusActive: widget.focusShotId != null,
                       sequenceCameras: widget.sequenceCameras,
                       hiddenCameraSymbolIds: widget.hiddenCameraSymbolIds,
                       isOnionSkinPreviousShown: widget.isOnionSkinPreviousShown,
@@ -333,8 +345,8 @@ class _OcptFloorPlanViewState extends State<OcptFloorPlanView> {
                       isShowFieldOfViewShown: _viewportController.showFieldOfView,
                       isUnderlayHidden: widget.isUnderlayHidden,
                       hasUnderlay: widget.floorPlanSet?.underlayAssetId != null,
+                      onToolSelected: widget.onToolSelected,
                       onLayerVisibilityToggled: widget.onLayerVisibilityToggled,
-                      onActiveLayerChanged: widget.onActiveLayerChanged,
                       onCameraVisibilityToggled: widget.onCameraVisibilityToggled,
                       onOnionSkinToggled: widget.onOnionSkinToggled,
                       onOnionSkinOpacityChanged: widget.onOnionSkinOpacityChanged,
@@ -365,6 +377,7 @@ class _OcptFloorPlanViewState extends State<OcptFloorPlanView> {
                     selectedArrowId: widget.selectedArrowId,
                     pendingArrowAnchorSymbolId: widget.pendingArrowAnchorSymbolId,
                     isMetricsShown: widget.isMetricsShown,
+                    isAllCamerasShown: widget.isAllCamerasShown,
                     activeTool: widget.activeTool,
                     activeLayer: widget.activeLayer,
                     viewportController: _viewportController,
@@ -398,11 +411,29 @@ class _OcptFloorPlanViewState extends State<OcptFloorPlanView> {
             selectedShotId: widget.focusShotId,
             previousShotId: widget.previousShotId,
             nextShotId: widget.nextShotId,
+            isAllCamerasShown: widget.isAllCamerasShown,
             onShotChipSelected: widget.onShotChipSelected,
+            onAllCamerasToggled: widget.onAllCamerasToggled,
           ),
         ],
       ),
     );
+  }
+
+  /// [OcptFloorPlanView.focusShotId]'s own display code (`12/3`) among
+  /// [OcptFloorPlanView.shots], or null while no shot is focused — the palette's own `Shot <code> —
+  /// this shot only` group header.
+  String? get _focusShotCode {
+    final focusShotId = widget.focusShotId;
+    if (focusShotId == null) {
+      return null;
+    }
+    for (final shot in widget.shots) {
+      if (shot.id == focusShotId) {
+        return shot.code;
+      }
+    }
+    return null;
   }
 
   /// `←`/`→` walk the sequence's shots; `Escape` cancels the arrow tool's own pending anchor while

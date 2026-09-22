@@ -30,7 +30,8 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_lis
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_event.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_floor_plan_character_name_picker_dialog.dart';
-import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_floor_plan_layer_tray.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_floor_plan_copy_blocking_dialog.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_floor_plan_palette.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_floor_plan_placements_group.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_floor_plan_set_tabs.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_floor_plan_view.dart';
@@ -797,10 +798,17 @@ class _ShotListViewState extends State<_ShotListView> {
       sets: state.setsOfSelectedSequence,
       selectedSetId: state.selectedSetId,
       nameValueOf: (setId) => _setNameValueOf(state, setId),
+      placedShotCountOf: (setId) => _placedShotCountOf(state, setId),
       onSetSelected: (setId) => bloc.add(OcptShotListSetSelectedEvent(setId: setId)),
       onSetCreationRequested: canCreateSet
           ? () => bloc.add(const OcptShotListSetCreationRequestedEvent())
           : null,
+      onSetDuplicateRequested: isReadOnly
+          ? null
+          : (setId) => bloc.add(OcptShotListSetDuplicationRequestedEvent(setId: setId)),
+      onCopyBlockingRequested: isReadOnly || state.selectedShotId == null
+          ? null
+          : (setId) => unawaited(_handleCopyBlockingRequested(context, state, setId)),
       onSetNameChanged: isReadOnly
           ? null
           : (setId, rawValue) =>
@@ -813,6 +821,53 @@ class _ShotListViewState extends State<_ShotListView> {
       onSetDeleteRequested: isReadOnly
           ? null
           : (setId) => unawaited(_handleSetDeleteRequested(context, state, setId)),
+    );
+  }
+
+  /// How many of the selected sequence's own shots carry at least one live symbol on set [setId] —
+  /// the set tabs' own placed-shot count badge (R3, `docs/plans/storyboard.md`, §9.4).
+  int _placedShotCountOf(OcptShotListState state, String setId) {
+    for (final floorPlanSet in state.setsOfSelectedSequence) {
+      if (floorPlanSet.id == setId) {
+        return floorPlanSet.symbols.map((symbol) => symbol.shotId).whereType<String>().toSet().length;
+      }
+    }
+    return 0;
+  }
+
+  /// Opens `OcptFloorPlanCopyBlockingDialog` over the sequence's own other shots, then dispatches
+  /// the copy once one is picked — the set tabs' own `＋ Set` menu `Copy blocking from another
+  /// shot` entry, which only asks which shot to copy from.
+  Future<void> _handleCopyBlockingRequested(
+    BuildContext context,
+    OcptShotListState state,
+    String setId,
+  ) async {
+    final sequence = state.selectedSequence;
+    final destinationShotId = state.selectedShotId;
+    if (sequence is! OcptSceneShotSequence || destinationShotId == null) {
+      return;
+    }
+
+    final candidates = [
+      for (final shot in sequence.shots)
+        if (shot.id != destinationShotId)
+          OcptFloorPlanCopyBlockingCandidate(shotId: shot.id, shotCode: shot.code),
+    ];
+    if (candidates.isEmpty) {
+      return;
+    }
+
+    final sourceShotId = await OcptFloorPlanCopyBlockingDialog.show(
+      context,
+      candidates: candidates,
+    );
+    if (sourceShotId == null || !context.mounted) {
+      return;
+    }
+
+    context.read<OcptShotListBloc>().add(
+      OcptShotListFloorPlanBlockingCopyRequestedEvent(setId: setId, sourceShotId: sourceShotId),
     );
   }
 
@@ -898,6 +953,7 @@ class _ShotListViewState extends State<_ShotListView> {
       isOnionSkinNextShown: state.isFloorPlanOnionSkinNextShown,
       onionSkinOpacity: state.floorPlanOnionSkinOpacity,
       isMetricsShown: state.isFloorPlanMetricsShown,
+      isAllCamerasShown: state.isFloorPlanAllCamerasShown,
       selectedSymbolId: state.selectedFloorPlanSymbolId,
       selectedArrowId: state.selectedFloorPlanArrowId,
       pendingArrowAnchorSymbolId: state.pendingFloorPlanArrowAnchorSymbolId,
@@ -917,6 +973,7 @@ class _ShotListViewState extends State<_ShotListView> {
       onOnionSkinOpacityChanged: (opacity) =>
           bloc.add(OcptShotListFloorPlanOnionSkinOpacityChangedEvent(opacity: opacity)),
       onMetricsToggled: () => bloc.add(const OcptShotListFloorPlanMetricsToggledEvent()),
+      onAllCamerasToggled: () => bloc.add(const OcptShotListFloorPlanAllCamerasToggledEvent()),
       onUnderlayVisibilityToggled: () =>
           bloc.add(const OcptShotListFloorPlanUnderlayVisibilityToggledEvent()),
       onUnderlayImportRequested: isReadOnly || selectedSetId == null
@@ -1211,6 +1268,8 @@ class _ShotListViewState extends State<_ShotListView> {
 
     return OcptFloorPlanPlacementsGroup(
       setName: selectedSet.name,
+      selectedSymbolId: state.selectedFloorPlanSymbolId,
+      selectedArrowId: state.selectedFloorPlanArrowId,
       cameras: ownSymbols.where((symbol) => symbol.layer == OcptFloorPlanLayer.cameras).toList(),
       characters: ownSymbols
           .where((symbol) => symbol.layer == OcptFloorPlanLayer.characters)

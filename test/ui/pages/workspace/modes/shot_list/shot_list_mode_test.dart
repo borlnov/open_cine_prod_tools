@@ -824,12 +824,15 @@ void main() {
       return bloc;
     }
 
-    /// [mountOnFloorPlans], with a case created (and selected) on the sole sequence.
+    /// [mountOnFloorPlans], with a case created (and selected) on the sole sequence — the `＋ Set`
+    /// button's own menu opened, then its own `Create set` entry picked (R3).
     Future<OcptShotListBloc> mountWithACase(WidgetTester tester) async {
       final bloc = await mountOnFloorPlans(tester);
       final tr = Tr.of(tester.element(find.byType(OcptShotListMode)));
 
-      await tester.tap(find.byTooltip(tr.shotListFloorPlanAddCaseAction));
+      await tester.tap(find.widgetWithText(FilledButton, tr.shotListFloorPlanAddSetButtonLabel));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(tr.shotListFloorPlanCreateSetMenuAction));
       await tester.pumpAndSettle();
       expect(bloc.state.selectedSetId, isNotNull);
 
@@ -853,13 +856,16 @@ void main() {
       expect(find.byType(OcptFloorPlanCanvas), findsNothing);
     });
 
-    testWidgets("+ Case creates a case named from the scene heading's place and selects it", (
+    testWidgets("＋ Set's own Create set entry names a case from the scene heading's place and "
+        "selects it", (
       tester,
     ) async {
       final bloc = await mountOnFloorPlans(tester);
       final tr = Tr.of(tester.element(find.byType(OcptShotListMode)));
 
-      await tester.tap(find.byTooltip(tr.shotListFloorPlanAddCaseAction));
+      await tester.tap(find.widgetWithText(FilledButton, tr.shotListFloorPlanAddSetButtonLabel));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(tr.shotListFloorPlanCreateSetMenuAction));
       await tester.pumpAndSettle();
 
       expect(bloc.state.setsOfSelectedSequence, hasLength(1));
@@ -912,7 +918,7 @@ void main() {
     });
 
     testWidgets(
-      "a previewed version withholds + Case, the set element tool and symbol placement",
+      "a previewed version withholds ＋ Set, the set element tool and symbol placement",
       (tester) async {
         await mountWithACase(tester);
 
@@ -936,12 +942,9 @@ void main() {
 
         final tr = Tr.of(tester.element(find.byType(OcptShotListMode)));
 
-        // `+ Case` no longer reports a tap.
-        final addSetButton = tester.widget<IconButton>(
-          find.descendant(
-            of: find.byTooltip(tr.shotListFloorPlanAddCaseAction),
-            matching: find.byType(IconButton),
-          ),
+        // `＋ Set` no longer offers a menu at all (every entry withheld): a plain disabled button.
+        final addSetButton = tester.widget<FilledButton>(
+          find.widgetWithText(FilledButton, tr.shotListFloorPlanAddSetButtonLabel),
         );
         expect(addSetButton.onPressed, isNull);
 
@@ -1090,7 +1093,14 @@ void main() {
           ),
           "SAM",
         );
-        await tester.tap(find.text(tr.shotListFloorPlanCharacterNamePickerSetAction));
+        // Scoped to the dialog: its own confirm action shares its visible text ("Set") with the
+        // set tabs' own filled add-set button, always in the tree behind it.
+        await tester.tap(
+          find.descendant(
+            of: find.byType(OcptFloorPlanCharacterNamePickerDialog),
+            matching: find.text(tr.shotListFloorPlanCharacterNamePickerSetAction),
+          ),
+        );
         await tester.pumpAndSettle();
 
         expect(find.byType(OcptFloorPlanCharacterNamePickerDialog), findsNothing);
