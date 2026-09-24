@@ -440,7 +440,7 @@ const _floorPlanLabels = OcptFloorPlanLabels(
   castLabel: "Cast",
   statusLabels: {},
   sequenceTitles: {},
-  noCameraNote: "No camera placed on this case yet.",
+  noCameraNote: "No camera placed on this set yet.",
   scaleBarUnitLabel: "m",
 );
 

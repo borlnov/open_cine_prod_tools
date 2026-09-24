@@ -337,7 +337,7 @@ class OcptFloorPlanSheet extends Equatable {
   /// Builds the sheet [floorPlanSet] draws under one focus.
   ///
   /// [focusShotId] is null for the **sequence** focus (every sequence layer, plus every live
-  /// camera of every shot on this case, numbered — `docs/plans/storyboard.md`, §4.3) or a shot's id
+  /// camera of every shot on this set, numbered — `docs/plans/storyboard.md`, §4.3) or a shot's id
   /// for the **shot** focus (every sequence layer, plus that shot's own shot layers, plus, when
   /// given, [previousShotId]'s and [nextShotId]'s shot layers drawn as ghosts — the onion skin).
   /// No arrow is drawn under the sequence focus: an arrow is always a shot's own movement, and the

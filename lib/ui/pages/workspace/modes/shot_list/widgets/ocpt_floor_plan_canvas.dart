@@ -399,7 +399,7 @@ class _OcptFloorPlanCanvasState extends State<OcptFloorPlanCanvas> {
     if (floorPlanSet == null) {
       return Center(
         child: Text(
-          tr.shotListFloorPlanNoCaseHint,
+          tr.shotListFloorPlanNoSetHint,
           style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
         ),
       );

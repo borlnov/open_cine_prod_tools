@@ -223,9 +223,9 @@ class OcptFloorPlanPdfService {
 
   /// The pages [floorPlanSet] itself contributes: one per shot of [sequence] holding a live camera
   /// on it, in the sequence's own order, or exactly one bare-décor page when none does.
-  /// [underlayImage] is the case's own underlay, already resolved by [pagesOfSequence], or null
+  /// [underlayImage] is the set's own underlay, already resolved by [pagesOfSequence], or null
   /// while it has none placed or its file could not be read/decoded — the same image (or absence)
-  /// prints on every page this case contributes.
+  /// prints on every page this set contributes.
   List<pw.Page> _pagesOfSet({
     required OcptScriptPagePainter painter,
     required OcptFloorPlanLabels labels,

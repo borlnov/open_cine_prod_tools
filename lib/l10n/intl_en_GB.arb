@@ -2725,7 +2725,7 @@
   },
   "shotListExportFloorPlansUnavailableReason": "No camera has been placed on any floor plan yet.",
   "@shotListExportFloorPlansUnavailableReason": {
-    "description": "Reason shown in place of the floor plans card's description while no case holds a camera anywhere",
+    "description": "Reason shown in place of the floor plans card's description while no set holds a camera anywhere",
     "context": "Displayed on the floor plans card of the shot list mode's export panel while unavailable",
     "type": "text",
     "placeholders": {}
@@ -3090,31 +3090,24 @@
     "type": "text",
     "placeholders": {}
   },
-  "shotListFloorPlanNoCaseHint": "Create a case to start placing your décor.",
-  "@shotListFloorPlanNoCaseHint": {
-    "description": "Shown on the canvas while the selected sequence has no floor plan case yet",
+  "shotListFloorPlanNoSetHint": "Create a set to start placing your décor.",
+  "@shotListFloorPlanNoSetHint": {
+    "description": "Shown on the canvas while the selected sequence has no floor plan set yet",
     "context": "Displayed on the floor plans view's own canvas",
     "type": "text",
     "placeholders": {}
   },
-  "shotListFloorPlanAddCaseAction": "Add case",
-  "@shotListFloorPlanAddCaseAction": {
-    "description": "Tooltip of the case tabs' own trailing add action",
-    "context": "Displayed in the shot list mode's centre header",
+  "shotListFloorPlanDeleteSetConfirmTitle": "Delete this set?",
+  "@shotListFloorPlanDeleteSetConfirmTitle": {
+    "description": "Title of the confirmation dialog deleting a floor plan set",
+    "context": "Displayed in the confirm dialog opened from a set tab's own close action",
     "type": "text",
     "placeholders": {}
   },
-  "shotListFloorPlanDeleteCaseConfirmTitle": "Delete this case?",
-  "@shotListFloorPlanDeleteCaseConfirmTitle": {
-    "description": "Title of the confirmation dialog deleting a floor plan case",
-    "context": "Displayed in the confirm dialog opened from a case tab's own close action",
-    "type": "text",
-    "placeholders": {}
-  },
-  "shotListFloorPlanDeleteCaseConfirmMessage": "Its underlay, its set elements and everything placed on it are removed for good.",
-  "@shotListFloorPlanDeleteCaseConfirmMessage": {
-    "description": "Message of the confirmation dialog deleting a floor plan case",
-    "context": "Displayed in the confirm dialog opened from a case tab's own close action",
+  "shotListFloorPlanDeleteSetConfirmMessage": "Its underlay, its set elements and everything placed on it are removed for good.",
+  "@shotListFloorPlanDeleteSetConfirmMessage": {
+    "description": "Message of the confirmation dialog deleting a floor plan set",
+    "context": "Displayed in the confirm dialog opened from a set tab's own close action",
     "type": "text",
     "placeholders": {}
   },
@@ -3162,21 +3155,21 @@
   },
   "shotListFloorPlanImportUnderlayAction": "Import underlay",
   "@shotListFloorPlanImportUnderlayAction": {
-    "description": "Label of the tool bar's own underlay action while the case carries none yet",
+    "description": "Label of the tool bar's own underlay action while the set carries none yet",
     "context": "Displayed on the floor plans view's own tool bar",
     "type": "text",
     "placeholders": {}
   },
   "shotListFloorPlanReplaceUnderlayAction": "Replace underlay",
   "@shotListFloorPlanReplaceUnderlayAction": {
-    "description": "Label of the tool bar's own underlay action while the case already carries one",
+    "description": "Label of the tool bar's own underlay action while the set already carries one",
     "context": "Displayed on the floor plans view's own tool bar",
     "type": "text",
     "placeholders": {}
   },
   "shotListFloorPlanUnderlayFileTypeLabel": "Images",
   "@shotListFloorPlanUnderlayFileTypeLabel": {
-    "description": "Label of the native picker's own file type filter when importing a case's underlay",
+    "description": "Label of the native picker's own file type filter when importing a set's underlay",
     "context": "Displayed in the native file picker dialog",
     "type": "text",
     "placeholders": {}
@@ -3190,14 +3183,14 @@
   },
   "shotListFloorPlanClearUnderlayConfirmTitle": "Clear this underlay?",
   "@shotListFloorPlanClearUnderlayConfirmTitle": {
-    "description": "Title of the confirmation dialog clearing a case's underlay",
+    "description": "Title of the confirmation dialog clearing a set's underlay",
     "context": "Displayed in the confirm dialog opened from the tray's own underlay row",
     "type": "text",
     "placeholders": {}
   },
   "shotListFloorPlanClearUnderlayConfirmMessage": "The image and its frame are removed for good.",
   "@shotListFloorPlanClearUnderlayConfirmMessage": {
-    "description": "Message of the confirmation dialog clearing a case's underlay",
+    "description": "Message of the confirmation dialog clearing a set's underlay",
     "context": "Displayed in the confirm dialog opened from the tray's own underlay row",
     "type": "text",
     "placeholders": {}
@@ -3367,10 +3360,10 @@
     "type": "text",
     "placeholders": {}
   },
-  "shotListFloorPlanLayerHandPropsLabel": "Hand props",
-  "@shotListFloorPlanLayerHandPropsLabel": {
-    "description": "Label of the tray's own hand props row",
-    "context": "Displayed on the floor plans view's own tray",
+  "shotListFloorPlanLayerPropsLabel": "Props",
+  "@shotListFloorPlanLayerPropsLabel": {
+    "description": "Label of the palette's own props row",
+    "context": "Displayed on the floor plans view's own palette",
     "type": "text",
     "placeholders": {}
   },
@@ -3472,13 +3465,13 @@
     "type": "text",
     "placeholders": {}
   },
-  "shotListFloorPlanCameraStatusHint": "{caseName} · {cameraCount, plural, one{1 camera} other{{cameraCount} cameras}} on {shotCount, plural, one{1 shot} other{{shotCount} shots}}",
+  "shotListFloorPlanCameraStatusHint": "{setName} · {cameraCount, plural, one{1 camera} other{{cameraCount} cameras}} on {shotCount, plural, one{1 shot} other{{shotCount} shots}}",
   "@shotListFloorPlanCameraStatusHint": {
-    "description": "The status bar's own trailing hint while the floor plans view is shown and a case is selected",
+    "description": "The status bar's own trailing hint while the floor plans view is shown and a set is selected",
     "context": "Displayed in the shot list mode's status bar",
     "type": "text",
     "placeholders": {
-      "caseName": {
+      "setName": {
         "type": "String"
       },
       "cameraCount": {
@@ -3491,7 +3484,7 @@
   },
   "shotListFloorPlanCameraStatusUnplacedHint": "{shotCode} has no camera yet",
   "@shotListFloorPlanCameraStatusUnplacedHint": {
-    "description": "Trailing segment of the floor plans status hint naming the first shot of the sequence still holding no camera on the selected case",
+    "description": "Trailing segment of the floor plans status hint naming the first shot of the sequence still holding no camera on the selected set",
     "context": "Displayed in the shot list mode's status bar",
     "type": "text",
     "placeholders": {
@@ -3500,13 +3493,13 @@
       }
     }
   },
-  "shotListFloorPlanPlacementsGroupTitle": "On this plan · {caseName}",
+  "shotListFloorPlanPlacementsGroupTitle": "On this plan · {setName}",
   "@shotListFloorPlanPlacementsGroupTitle": {
     "description": "Title of the inspector's own Placements group, shown on the floor plans view",
     "context": "Displayed at the top of the shot inspector's own Placements group",
     "type": "text",
     "placeholders": {
-      "caseName": {
+      "setName": {
         "type": "String"
       }
     }
@@ -3532,9 +3525,9 @@
     "type": "text",
     "placeholders": {}
   },
-  "shotListFloorPlanPlacementsPropsSectionTitle": "Hand props",
+  "shotListFloorPlanPlacementsPropsSectionTitle": "Props",
   "@shotListFloorPlanPlacementsPropsSectionTitle": {
-    "description": "Title of the Placements group's own hand props section",
+    "description": "Title of the Placements group's own props section",
     "context": "Displayed in the shot inspector's own Placements group",
     "type": "text",
     "placeholders": {}
@@ -3546,16 +3539,16 @@
     "type": "text",
     "placeholders": {}
   },
-  "shotListFloorPlanPlacementsNoCameraHint": "No camera placed on this case yet.",
+  "shotListFloorPlanPlacementsNoCameraHint": "No camera placed on this set yet.",
   "@shotListFloorPlanPlacementsNoCameraHint": {
-    "description": "Shown in the Placements group's own cameras section while the shot has none on the selected case",
+    "description": "Shown in the Placements group's own cameras section while the shot has none on the selected set",
     "context": "Displayed in the shot inspector's own Placements group",
     "type": "text",
     "placeholders": {}
   },
-  "shotListFloorPlanPlacementsNoneHint": "None placed on this case yet.",
+  "shotListFloorPlanPlacementsNoneHint": "None placed on this set yet.",
   "@shotListFloorPlanPlacementsNoneHint": {
-    "description": "Shown in a Placements group section (characters, lights, hand props, arrows) while the shot has none on the selected case",
+    "description": "Shown in a Placements group section (characters, lights, props, arrows) while the shot has none on the selected set",
     "context": "Displayed in the shot inspector's own Placements group",
     "type": "text",
     "placeholders": {}
@@ -3567,13 +3560,13 @@
     "type": "text",
     "placeholders": {}
   },
-  "shotListFloorPlanPlacementsOtherCaseHasCameraHint": "{caseName} · {count, plural, one{1 camera} other{{count} cameras}}",
-  "@shotListFloorPlanPlacementsOtherCaseHasCameraHint": {
-    "description": "One line of the Placements group's own other-cases list, naming that this shot has a camera on that other case too",
+  "shotListFloorPlanPlacementsOtherSetHasCameraHint": "{setName} · {count, plural, one{1 camera} other{{count} cameras}}",
+  "@shotListFloorPlanPlacementsOtherSetHasCameraHint": {
+    "description": "One line of the Placements group's own other-sets list, naming that this shot has a camera on that other set too",
     "context": "Displayed in the shot inspector's own Placements group",
     "type": "text",
     "placeholders": {
-      "caseName": {
+      "setName": {
         "type": "String"
       },
       "count": {
@@ -3581,13 +3574,13 @@
       }
     }
   },
-  "shotListFloorPlanPlacementsOtherCaseNoCameraHint": "{caseName} · no camera for this shot",
-  "@shotListFloorPlanPlacementsOtherCaseNoCameraHint": {
-    "description": "One line of the Placements group's own other-cases list, naming that this shot has no camera on that other case",
+  "shotListFloorPlanPlacementsOtherSetNoCameraHint": "{setName} · no camera for this shot",
+  "@shotListFloorPlanPlacementsOtherSetNoCameraHint": {
+    "description": "One line of the Placements group's own other-sets list, naming that this shot has no camera on that other set",
     "context": "Displayed in the shot inspector's own Placements group",
     "type": "text",
     "placeholders": {
-      "caseName": {
+      "setName": {
         "type": "String"
       }
     }

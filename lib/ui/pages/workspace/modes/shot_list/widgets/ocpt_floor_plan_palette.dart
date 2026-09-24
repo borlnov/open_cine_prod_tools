@@ -241,7 +241,7 @@ class OcptFloorPlanPalette extends StatelessWidget {
             tr.shotListFloorPlanLayerCharactersLabel,
           ),
           _buildLayerRow(context, OcptFloorPlanLayer.lights, tr.shotListFloorPlanLayerLightsLabel),
-          _buildLayerRow(context, OcptFloorPlanLayer.props, tr.shotListFloorPlanLayerHandPropsLabel),
+          _buildLayerRow(context, OcptFloorPlanLayer.props, tr.shotListFloorPlanLayerPropsLabel),
           const Divider(height: 16),
           _buildOnionSkinBlock(context),
           const Divider(height: 16),

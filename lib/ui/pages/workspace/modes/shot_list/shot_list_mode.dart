@@ -897,8 +897,8 @@ class _ShotListViewState extends State<_ShotListView> {
     final tr = Tr.of(context);
     final confirmed = await OcptConfirmDialog.show(
       context,
-      title: tr.shotListFloorPlanDeleteCaseConfirmTitle,
-      message: tr.shotListFloorPlanDeleteCaseConfirmMessage,
+      title: tr.shotListFloorPlanDeleteSetConfirmTitle,
+      message: tr.shotListFloorPlanDeleteSetConfirmMessage,
       cancelLabel: tr.shotListDeleteConfirmCancelAction,
       confirmLabel: tr.shotListDeleteConfirmDeleteAction,
     );

@@ -44,7 +44,7 @@ const _labels = OcptFloorPlanLabels(
     OcptShotStatus.retake: "Retake",
   },
   sequenceTitles: {"scene-1": "Sequence 1"},
-  noCameraNote: "No camera placed on this case yet.",
+  noCameraNote: "No camera placed on this set yet.",
   scaleBarUnitLabel: "m",
 );
 
@@ -297,7 +297,7 @@ void main() {
       expect(_pageCount(bytes), 1);
     });
 
-    test("one page per shot that has a camera placed on this case, not per shot of the sequence", () async {
+    test("one page per shot that has a camera placed on this set, not per shot of the sequence", () async {
       // 3 shots, only shot-0 and shot-2 have a camera on case-1: exactly 2 pages, never 3 or 1.
       final bytes = await generate(
         snapshot: snapshotOf(3),
@@ -491,7 +491,7 @@ void main() {
   group("the character glyph and the camera label pill", () {
     test("a character's own facing indicator (rim notch and arms) never draws in plain white", () async {
       // Sequence-scoped, so it draws on the bare-décor page even with no camera anywhere on this
-      // case — the one page this case's set of symbols can ever draw with no camera label pill
+      // set — the one page this set's own symbols can ever draw with no camera label pill
       // (see the sibling test below) to also contribute a white fill/stroke of its own.
       final bytes = await generate(
         snapshot: snapshotOf(1),

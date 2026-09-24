@@ -297,6 +297,6 @@ void main() {
     expect(find.text(tr.shotListFloorPlanLayerDecorLabel), findsOneWidget);
     expect(find.text(tr.shotListFloorPlanLayerCharactersLabel), findsOneWidget);
     expect(find.text(tr.shotListFloorPlanLayerLightsLabel), findsOneWidget);
-    expect(find.text(tr.shotListFloorPlanLayerHandPropsLabel), findsOneWidget);
+    expect(find.text(tr.shotListFloorPlanLayerPropsLabel), findsOneWidget);
   });
 }

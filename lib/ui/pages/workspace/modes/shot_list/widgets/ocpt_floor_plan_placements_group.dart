@@ -181,11 +181,11 @@ class OcptFloorPlanPlacementsGroup extends StatelessWidget {
               padding: const EdgeInsets.only(bottom: 2),
               child: Text(
                 otherSet.cameraCount > 0
-                    ? tr.shotListFloorPlanPlacementsOtherCaseHasCameraHint(
+                    ? tr.shotListFloorPlanPlacementsOtherSetHasCameraHint(
                         otherSet.setName,
                         otherSet.cameraCount,
                       )
-                    : tr.shotListFloorPlanPlacementsOtherCaseNoCameraHint(otherSet.setName),
+                    : tr.shotListFloorPlanPlacementsOtherSetNoCameraHint(otherSet.setName),
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: theme.colorScheme.onSurfaceVariant,
                 ),
