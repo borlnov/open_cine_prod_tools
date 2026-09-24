@@ -3375,7 +3375,7 @@ void main() {
       );
 
       test(
-        "two cameras placed on the same shot derive rank/letter labels (3, 3A style)",
+        "two cameras placed on the same shot derive rank/letter labels (1A, 1B style)",
         () async {
           await writeScreenplay(twoSceneText);
           final bloc = buildBloc();
@@ -3416,7 +3416,7 @@ void main() {
             shotRankByShotId: {shotId: 1},
           );
           final labels = sheet.symbols.map((symbol) => symbol.cameraLabel).toList()..sort();
-          expect(labels, ["1", "1A"]);
+          expect(labels, ["1A", "1B"]);
 
           await bloc.close();
         },

@@ -497,11 +497,14 @@ class OcptFloorPlanSheet extends Equatable {
   }
 
   /// Freezes [symbols] into their drawn shapes, in `sortKey` order, deriving each camera symbol's
-  /// [OcptFloorPlanSymbolShape.cameraLabel] from its 0-based rank among the *same shot's* camera
-  /// symbols within this very list — which is always exactly the group a caller of this factory
-  /// means by "the same shot's live cameras on the same case" (`OcptFloorPlanSymbolsTable`'s own
-  /// doc comment), whether [symbols] holds one shot's placements or, under the sequence focus,
-  /// every shot's at once.
+  /// [OcptFloorPlanSymbolShape.cameraLabel] from its 0-based rank among, and the total count of,
+  /// the *same shot's* camera symbols within this very list — which is always exactly the group a
+  /// caller of this factory means by "the same shot's live cameras on the same set"
+  /// (`OcptFloorPlanSymbolsTable`'s own doc comment), whether [symbols] holds one shot's placements
+  /// or, under the sequence focus, every shot's at once. A first pass counts every shot's own
+  /// cameras ([_cameraCountByShotIdOf]) before the second assigns labels, since
+  /// [ocptFloorPlanCameraLabelOf] needs a camera's own shot's *total* count to know whether that
+  /// shot's cameras are lettered at all.
   static List<OcptFloorPlanSymbolShape> _shapesOf(
     List<OcptFloorPlanSymbol> symbols, {
     required Map<String, int> shotRankByShotId,
@@ -509,6 +512,7 @@ class OcptFloorPlanSheet extends Equatable {
     required bool showFieldOfView,
   }) {
     final sorted = symbols.toList()..sort((a, b) => a.sortKey.compareTo(b.sortKey));
+    final cameraCountByShotId = _cameraCountByShotIdOf(sorted);
     final cameraRankByShotId = <String, int>{};
 
     return [
@@ -520,10 +524,25 @@ class OcptFloorPlanSheet extends Equatable {
           cameraLabel: _cameraLabelOf(
             symbol,
             shotRankByShotId: shotRankByShotId,
+            cameraCountByShotId: cameraCountByShotId,
             cameraRankByShotId: cameraRankByShotId,
           ),
         ),
     ];
+  }
+
+  /// The live camera symbol count of every shot found in [symbols], keyed by shot id — the first
+  /// pass [_shapesOf] needs before it can tell whether a shot's cameras are lettered at all.
+  static Map<String, int> _cameraCountByShotIdOf(List<OcptFloorPlanSymbol> symbols) {
+    final counts = <String, int>{};
+    for (final symbol in symbols) {
+      final shotId = symbol.shotId;
+      if (symbol.layer != OcptFloorPlanLayer.cameras || shotId == null) {
+        continue;
+      }
+      counts[shotId] = (counts[shotId] ?? 0) + 1;
+    }
+    return counts;
   }
 
   /// The camera label [symbol] draws, or null when it isn't a camera symbol on a shot, or that
@@ -532,6 +551,7 @@ class OcptFloorPlanSheet extends Equatable {
   static String? _cameraLabelOf(
     OcptFloorPlanSymbol symbol, {
     required Map<String, int> shotRankByShotId,
+    required Map<String, int> cameraCountByShotId,
     required Map<String, int> cameraRankByShotId,
   }) {
     final shotId = symbol.shotId;
@@ -547,7 +567,11 @@ class OcptFloorPlanSheet extends Equatable {
       return null;
     }
 
-    return ocptFloorPlanCameraLabelOf(shotRank: shotRank, cameraRank: cameraRank);
+    return ocptFloorPlanCameraLabelOf(
+      shotRank: shotRank,
+      cameraRank: cameraRank,
+      cameraCount: cameraCountByShotId[shotId] ?? 0,
+    );
   }
 
   /// Freezes [symbol] into its drawn shape, its footprint resolved to

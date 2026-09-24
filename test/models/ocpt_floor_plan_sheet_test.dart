@@ -127,7 +127,20 @@ void main() {
       expect(sheet.arrows, isEmpty);
     });
 
-    test("numbers several cameras of one shot as rank/letter pairs", () {
+    test("a shot's single camera carries no letter", () {
+      final camera = _symbol(id: "cam-1", shotId: "shot-1", layer: OcptFloorPlanLayer.cameras);
+      final floorPlanSet = _caseOf(symbols: [camera]);
+
+      final sheet = OcptFloorPlanSheet.of(
+        floorPlanSet: floorPlanSet,
+        focusShotId: null,
+        shotRankByShotId: const {"shot-1": 3},
+      );
+
+      expect(sheet.symbols.single.cameraLabel, "3");
+    });
+
+    test("two or more cameras of one shot are lettered from the first", () {
       final camera1 = _symbol(id: "cam-1", shotId: "shot-1", layer: OcptFloorPlanLayer.cameras);
       final camera2 = _symbol(
         id: "cam-2",
@@ -146,8 +159,8 @@ void main() {
       final labelBySymbolId = {
         for (final shape in sheet.symbols) shape.symbolId: shape.cameraLabel,
       };
-      expect(labelBySymbolId["cam-1"], "3");
-      expect(labelBySymbolId["cam-2"], "3A");
+      expect(labelBySymbolId["cam-1"], "3A");
+      expect(labelBySymbolId["cam-2"], "3B");
     });
 
     test("a camera whose shot has no known rank draws with no camera label", () {
