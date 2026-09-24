@@ -13,6 +13,7 @@ import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_floor_plan_set.dart';
 import 'package:open_cine_prod_tools/models/ocpt_floor_plan_sheet.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_layer.dart';
+import 'package:open_cine_prod_tools/types/ocpt_floor_plan_set_element_shape.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_tool.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_floor_plan_canvas_painter.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_floor_plan_viewport_controller.dart';
@@ -86,8 +87,10 @@ const double _rotateSnapStepDeg = 15;
 /// [onSymbolLabelChanged]. **Double-clicking a ghost** calls [onGhostShotFocusRequested] with its
 /// own shot's id, focusing it.
 ///
-/// Placing a set element: pick the `setElement` tool, click → [onSymbolPlaced] into the tray's
-/// active sequence layer. Dragging a symbol moves it (one [onSymbolMoved] on drag end, in metres);
+/// Placing a set element: pick the `setElement` tool (one of the palette's own four typed entries
+/// — wall/door/furniture/freeform — arms both [activeTool] and [activeSetElementShape]), click →
+/// [onSymbolPlaced] onto the set layer, carrying that shape. Dragging a symbol moves it (one
+/// [onSymbolMoved] on drag end, in metres);
 /// dragging its own resize handle resizes it (one [onSymbolResized] on drag end); dragging its own
 /// **aim handle** points it (one [onSymbolRotated] on drag end, the pointer's own bearing around
 /// the symbol's centre computed in **canvas space** through `RenderBox.globalToLocal` — never the
@@ -176,6 +179,13 @@ class OcptFloorPlanCanvas extends StatefulWidget {
   /// The sequence layer a placed set element lands on.
   final OcptFloorPlanLayer activeLayer;
 
+  /// The décor primitive a `setElement` tool click-to-arm placement carries — which of the
+  /// palette's own four typed entries (wall/door/furniture/freeform) was armed last. A drag-and-
+  /// drop placement instead carries its own shape on the drag itself
+  /// (`OcptFloorPlanPaletteDragPayload.setElementShape`), never reading this field, since a drag
+  /// never taps its source first.
+  final OcptFloorPlanSetElementShape activeSetElementShape;
+
   /// The live zoom/pan controller this canvas draws and drags against — see that class's own doc
   /// comment for why it lives outside the bloc.
   final OcptFloorPlanViewportController viewportController;
@@ -194,7 +204,16 @@ class OcptFloorPlanCanvas extends StatefulWidget {
 
   /// Called with the layer and the shot id (null on a sequence layer, [focusShotId] on a shot
   /// layer) a new symbol is placed on, and the clicked point (metres), or null while withheld.
-  final void Function(OcptFloorPlanLayer layer, String? shotId, double xM, double yM)?
+  /// `setElementShape` carries the décor primitive when the layer is
+  /// [OcptFloorPlanLayer.set] and the placing tool was one of the four typed set-element entries —
+  /// null otherwise (every other layer, and a generic `setElement` placement with none armed).
+  final void Function(
+    OcptFloorPlanLayer layer,
+    String? shotId,
+    double xM,
+    double yM, {
+    OcptFloorPlanSetElementShape? setElementShape,
+  })?
   onSymbolPlaced;
 
   /// Called with a symbol's id and its new centre (metres) once a drag moving it ends, or null
@@ -287,6 +306,7 @@ class OcptFloorPlanCanvas extends StatefulWidget {
     required this.isAllCamerasShown,
     required this.activeTool,
     required this.activeLayer,
+    required this.activeSetElementShape,
     required this.viewportController,
     required this.isReadOnly,
     required this.symbolLabelValueOf,
@@ -407,7 +427,7 @@ class _OcptFloorPlanCanvasState extends State<OcptFloorPlanCanvas> {
                   if (!widget.isUnderlayHidden && floorPlanSet.underlayAssetId != null)
                     _buildUnderlayVisual(floorPlanSet, canvasSize, zoom, pan),
                   Positioned.fill(
-                    child: DragTarget<OcptFloorPlanTool>(
+                    child: DragTarget<OcptFloorPlanPaletteDragPayload>(
                       onWillAcceptWithDetails: (details) =>
                           !widget.isReadOnly && widget.onSymbolPlaced != null,
                       onAcceptWithDetails: (details) =>
@@ -599,7 +619,7 @@ class _OcptFloorPlanCanvasState extends State<OcptFloorPlanCanvas> {
   /// [OcptFloorPlanTool.label] — the palette never offers those as drag sources in the first
   /// place — or for a shot-scoped tool while no shot is focused, defensive only.
   void _handlePaletteDrop(
-    DragTargetDetails<OcptFloorPlanTool> details,
+    DragTargetDetails<OcptFloorPlanPaletteDragPayload> details,
     Size canvasSize,
     double zoom,
     Offset pan,
@@ -609,7 +629,7 @@ class _OcptFloorPlanCanvasState extends State<OcptFloorPlanCanvas> {
       return;
     }
 
-    final tool = details.data;
+    final tool = details.data.tool;
     final shotLayer = _shotLayerOf(tool);
     if (tool != OcptFloorPlanTool.setElement && shotLayer == null) {
       return;
@@ -626,7 +646,13 @@ class _OcptFloorPlanCanvasState extends State<OcptFloorPlanCanvas> {
       zoom: zoom,
       pan: pan,
     );
-    onSymbolPlaced(shotLayer ?? widget.activeLayer, shotId, metres.dx, metres.dy);
+    onSymbolPlaced(
+      shotLayer ?? widget.activeLayer,
+      shotId,
+      metres.dx,
+      metres.dy,
+      setElementShape: tool == OcptFloorPlanTool.setElement ? details.data.setElementShape : null,
+    );
   }
 
   /// A click on empty canvas (no symbol, no underlay handle caught it first): places a new symbol
@@ -656,7 +682,15 @@ class _OcptFloorPlanCanvasState extends State<OcptFloorPlanCanvas> {
         zoom: zoom,
         pan: pan,
       );
-      onSymbolPlaced(shotLayer ?? widget.activeLayer, shotId, metres.dx, metres.dy);
+      onSymbolPlaced(
+        shotLayer ?? widget.activeLayer,
+        shotId,
+        metres.dx,
+        metres.dy,
+        setElementShape: widget.activeTool == OcptFloorPlanTool.setElement
+            ? widget.activeSetElementShape
+            : null,
+      );
       return;
     }
 

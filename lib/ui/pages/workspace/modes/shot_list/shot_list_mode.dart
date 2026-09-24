@@ -959,6 +959,7 @@ class _ShotListViewState extends State<_ShotListView> {
       pendingArrowAnchorSymbolId: state.pendingFloorPlanArrowAnchorSymbolId,
       activeTool: state.floorPlanActiveTool,
       activeLayer: state.floorPlanActiveLayer,
+      activeSetElementShape: state.floorPlanActiveSetElementShape,
       isReadOnly: isReadOnly,
       symbolLabelValueOf: (symbolId) => _symbolLabelValueOf(state, symbolId),
       onToolSelected: (tool) => bloc.add(OcptShotListFloorPlanToolSelectedEvent(tool: tool)),
@@ -966,6 +967,9 @@ class _ShotListViewState extends State<_ShotListView> {
           bloc.add(OcptShotListFloorPlanLayerVisibilityToggledEvent(layer: layer)),
       onActiveLayerChanged: (layer) =>
           bloc.add(OcptShotListFloorPlanActiveLayerChangedEvent(layer: layer)),
+      onSetElementShapeSelected: (shape) => bloc.add(
+        OcptShotListFloorPlanActiveSetElementShapeChangedEvent(shape: shape),
+      ),
       onCameraVisibilityToggled: (symbolId) =>
           bloc.add(OcptShotListFloorPlanCameraVisibilityToggledEvent(symbolId: symbolId)),
       onOnionSkinToggled: (isPrevious) =>
@@ -992,13 +996,14 @@ class _ShotListViewState extends State<_ShotListView> {
           bloc.add(OcptShotListFloorPlanSymbolSelectedEvent(symbolId: symbolId)),
       onSymbolPlaced: isReadOnly || selectedSetId == null
           ? null
-          : (layer, shotId, xM, yM) => bloc.add(
+          : (layer, shotId, xM, yM, {setElementShape}) => bloc.add(
               OcptShotListFloorPlanSymbolPlacedEvent(
                 setId: selectedSetId,
                 layer: layer,
                 shotId: shotId,
                 xM: xM,
                 yM: yM,
+                setElementShape: setElementShape,
               ),
             ),
       onSymbolMoved: isReadOnly

@@ -303,6 +303,9 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     on<OcptShotListFloorPlanZoomChangedEvent>(_onFloorPlanZoomChanged);
     on<OcptShotListFloorPlanToolSelectedEvent>(_onFloorPlanToolSelected);
     on<OcptShotListFloorPlanActiveLayerChangedEvent>(_onFloorPlanActiveLayerChanged);
+    on<OcptShotListFloorPlanActiveSetElementShapeChangedEvent>(
+      _onFloorPlanActiveSetElementShapeChanged,
+    );
     on<OcptShotListFloorPlanLayerVisibilityToggledEvent>(_onFloorPlanLayerVisibilityToggled);
     on<OcptShotListFloorPlanUnderlayVisibilityToggledEvent>(
       _onFloorPlanUnderlayVisibilityToggled,
@@ -2600,6 +2603,14 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     emitter(state.copyWith(floorPlanActiveLayer: event.layer));
   }
 
+  /// Picks the décor primitive a `setElement` placement carries. A view preference.
+  Future<void> _onFloorPlanActiveSetElementShapeChanged(
+    OcptShotListFloorPlanActiveSetElementShapeChangedEvent event,
+    Emitter<OcptShotListState> emitter,
+  ) async {
+    emitter(state.copyWith(floorPlanActiveSetElementShape: event.shape));
+  }
+
   /// Toggles the visibility of sequence layer `event.layer` on the floor plans canvas. A view
   /// preference; never withheld under a read-only preview, since it only reads.
   Future<void> _onFloorPlanLayerVisibilityToggled(
@@ -2622,8 +2633,9 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     emitter(state.copyWith(isFloorPlanUnderlayHidden: !state.isFloorPlanUnderlayHidden));
   }
 
-  /// Places a new symbol on set `event.setId`'s `event.layer`, at `event.xM`/`event.yM`, then
-  /// selects it (`OcptFloorPlanService.placeSymbol`). Written immediately.
+  /// Places a new symbol on set `event.setId`'s `event.layer`, at `event.xM`/`event.yM`, carrying
+  /// `event.setElementShape` on a décor placement, then selects it
+  /// (`OcptFloorPlanService.placeSymbol`). Written immediately.
   ///
   /// `event.shotId` is null on a sequence layer (the `setElement` tool) and the focused shot's id
   /// on a shot layer (the `camera`/`character`/`light` tools), exactly what the canvas resolves
@@ -2658,6 +2670,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
         xM: event.xM,
         yM: event.yM,
         label: label,
+        setElementShape: event.setElementShape,
       );
       if (symbolId == null) {
         return;

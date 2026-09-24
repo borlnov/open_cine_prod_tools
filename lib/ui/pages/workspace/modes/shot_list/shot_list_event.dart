@@ -12,6 +12,7 @@ import 'package:open_cine_prod_tools/models/ocpt_shot_list_xlsx_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_storyboard_export_options.dart';
 import 'package:open_cine_prod_tools/models/ocpt_storyboard_labels.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_layer.dart';
+import 'package:open_cine_prod_tools/types/ocpt_floor_plan_set_element_shape.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_tool.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_difficulty_axis.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_centre_view.dart';
@@ -1044,6 +1045,20 @@ class OcptShotListFloorPlanActiveLayerChangedEvent extends OcptShotListEvent {
   List<Object?> get props => [...super.props, layer];
 }
 
+/// Picks the décor primitive a `setElement` placement carries, dispatched by a click on one of the
+/// palette's own four typed set-element entries (wall/door/furniture/freeform).
+class OcptShotListFloorPlanActiveSetElementShapeChangedEvent extends OcptShotListEvent {
+  /// The shape just picked.
+  final OcptFloorPlanSetElementShape shape;
+
+  /// Class constructor
+  const OcptShotListFloorPlanActiveSetElementShapeChangedEvent({required this.shape});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, shape];
+}
+
 /// Toggles the visibility of sequence layer `event.layer` on the floor plans canvas, dispatched by
 /// the tray's own eye icon. A view preference; never withheld under a read-only preview, since it
 /// only reads.
@@ -1090,6 +1105,11 @@ class OcptShotListFloorPlanSymbolPlacedEvent extends OcptShotListEvent {
   /// The symbol's centre Y, in metres.
   final double yM;
 
+  /// The décor primitive a `setElement` placement carries — from the placing entry's own
+  /// (`OcptFloorPlanPaletteDragPayload`) or the click-to-armed
+  /// `OcptShotListState.floorPlanActiveSetElementShape`. Null on every other layer.
+  final OcptFloorPlanSetElementShape? setElementShape;
+
   /// Class constructor
   const OcptShotListFloorPlanSymbolPlacedEvent({
     required this.setId,
@@ -1097,11 +1117,12 @@ class OcptShotListFloorPlanSymbolPlacedEvent extends OcptShotListEvent {
     required this.shotId,
     required this.xM,
     required this.yM,
+    this.setElementShape,
   });
 
   /// Object properties
   @override
-  List<Object?> get props => [...super.props, setId, layer, shotId, xM, yM];
+  List<Object?> get props => [...super.props, setId, layer, shotId, xM, yM, setElementShape];
 }
 
 /// Selects symbol `event.symbolId` on the floor plans canvas, or clears the selection when

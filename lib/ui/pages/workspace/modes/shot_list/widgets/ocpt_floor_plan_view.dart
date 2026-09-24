@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 import 'package:open_cine_prod_tools/models/ocpt_floor_plan_set.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_layer.dart';
+import 'package:open_cine_prod_tools/types/ocpt_floor_plan_set_element_shape.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_tool.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_floor_plan_canvas.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_floor_plan_focus_strip.dart';
@@ -103,6 +104,10 @@ class OcptFloorPlanView extends StatefulWidget {
   /// The sequence layer a placed set element lands on.
   final OcptFloorPlanLayer activeLayer;
 
+  /// The décor primitive a `setElement` click-to-arm placement carries — see
+  /// `OcptFloorPlanCanvas.activeSetElementShape`'s own doc comment.
+  final OcptFloorPlanSetElementShape activeSetElementShape;
+
   /// Whether the mode shows a project version being previewed read-only.
   final bool isReadOnly;
 
@@ -117,6 +122,11 @@ class OcptFloorPlanView extends StatefulWidget {
 
   /// Called with the sequence layer just picked as the active one.
   final ValueChanged<OcptFloorPlanLayer> onActiveLayerChanged;
+
+  /// Called with the décor primitive just picked among the palette's own four typed set-element
+  /// entries — click-to-arms [activeSetElementShape] alongside [OcptFloorPlanTool.setElement]
+  /// itself.
+  final ValueChanged<OcptFloorPlanSetElementShape> onSetElementShapeSelected;
 
   /// Called with a camera symbol's id whose own eye was clicked.
   final ValueChanged<String> onCameraVisibilityToggled;
@@ -146,7 +156,14 @@ class OcptFloorPlanView extends StatefulWidget {
   final ValueChanged<String?> onSymbolSelected;
 
   /// Called with the layer, the shot id and the clicked point (metres), or null while withheld.
-  final void Function(OcptFloorPlanLayer layer, String? shotId, double xM, double yM)?
+  /// See `OcptFloorPlanCanvas.onSymbolPlaced`'s own doc comment for `setElementShape`.
+  final void Function(
+    OcptFloorPlanLayer layer,
+    String? shotId,
+    double xM,
+    double yM, {
+    OcptFloorPlanSetElementShape? setElementShape,
+  })?
   onSymbolPlaced;
 
   /// Called with a symbol's id and its new centre (metres), or null while withheld.
@@ -236,11 +253,13 @@ class OcptFloorPlanView extends StatefulWidget {
     required this.pendingArrowAnchorSymbolId,
     required this.activeTool,
     required this.activeLayer,
+    required this.activeSetElementShape,
     required this.isReadOnly,
     required this.symbolLabelValueOf,
     required this.onToolSelected,
     required this.onLayerVisibilityToggled,
     required this.onActiveLayerChanged,
+    required this.onSetElementShapeSelected,
     required this.onCameraVisibilityToggled,
     required this.onOnionSkinToggled,
     required this.onOnionSkinOpacityChanged,
@@ -339,6 +358,7 @@ class _OcptFloorPlanViewState extends State<OcptFloorPlanView> {
                       setName: widget.floorPlanSet?.name ?? "",
                       shotCode: _focusShotCode,
                       activeTool: widget.activeTool,
+                      activeSetElementShape: widget.activeSetElementShape,
                       isReadOnly: widget.isReadOnly,
                       hiddenLayers: widget.hiddenLayers,
                       sequenceCameras: widget.sequenceCameras,
@@ -351,6 +371,7 @@ class _OcptFloorPlanViewState extends State<OcptFloorPlanView> {
                       isUnderlayHidden: widget.isUnderlayHidden,
                       hasUnderlay: widget.floorPlanSet?.underlayAssetId != null,
                       onToolSelected: widget.onToolSelected,
+                      onSetElementShapeSelected: widget.onSetElementShapeSelected,
                       onLayerVisibilityToggled: widget.onLayerVisibilityToggled,
                       onCameraVisibilityToggled: widget.onCameraVisibilityToggled,
                       onOnionSkinToggled: widget.onOnionSkinToggled,
@@ -385,6 +406,7 @@ class _OcptFloorPlanViewState extends State<OcptFloorPlanView> {
                     isAllCamerasShown: widget.isAllCamerasShown,
                     activeTool: widget.activeTool,
                     activeLayer: widget.activeLayer,
+                    activeSetElementShape: widget.activeSetElementShape,
                     viewportController: _viewportController,
                     isReadOnly: widget.isReadOnly,
                     symbolLabelValueOf: widget.symbolLabelValueOf,

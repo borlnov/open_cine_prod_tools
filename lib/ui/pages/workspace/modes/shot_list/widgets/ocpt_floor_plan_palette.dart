@@ -8,6 +8,7 @@ import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_floor_plan_sheet.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_layer.dart';
+import 'package:open_cine_prod_tools/types/ocpt_floor_plan_set_element_shape.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_tool.dart';
 
 /// One live camera symbol of the set, for the palette's own `View` group cameras row — see
@@ -40,7 +41,7 @@ class OcptFloorPlanTraySequenceCamera extends Equatable {
 /// dropped, never before. An entry is **both** a click-to-arm control ([onToolSelected], the tool
 /// bar's own mechanism, kept working) **and** a drag source (a plain [Draggable] anchored at the
 /// pointer, so a drop lands exactly under it) that `OcptFloorPlanCanvas` accepts through its own
-/// `DragTarget<OcptFloorPlanTool>` and places at the drop point.
+/// `DragTarget<OcptFloorPlanPaletteDragPayload>` and places at the drop point.
 ///
 /// Visibility, the onion skin block, the metrics toggle, the field-of-view toggle and the
 /// underlay's own visibility are **view state**: every toggle this palette reports only ever reads,
@@ -57,6 +58,11 @@ class OcptFloorPlanPalette extends StatelessWidget {
 
   /// The currently active tool — which entry (if any) reads as armed.
   final OcptFloorPlanTool activeTool;
+
+  /// The décor primitive a `setElement` click-to-arm placement carries — which of the four typed
+  /// entries below (wall/door/furniture/freeform) reads as armed while [activeTool] is
+  /// [OcptFloorPlanTool.setElement].
+  final OcptFloorPlanSetElementShape activeSetElementShape;
 
   /// Whether the mode shows a project version being previewed read-only: every entry stays visible
   /// and clickable/draggable, but arming or dropping one is a no-op while this is true — the canvas
@@ -100,6 +106,13 @@ class OcptFloorPlanPalette extends StatelessWidget {
   /// only the click-to-arm path).
   final ValueChanged<OcptFloorPlanTool> onToolSelected;
 
+  /// Called with the décor primitive just clicked or dropped among the four typed set-element
+  /// entries — click-to-arms [activeSetElementShape] alongside [OcptFloorPlanTool.setElement]
+  /// itself ([onToolSelected], called first). A drop reports through the drag payload instead
+  /// (`OcptFloorPlanCanvas`'s own `DragTarget<OcptFloorPlanPaletteDragPayload>`), so this callback
+  /// is, like [onToolSelected], only the click-to-arm path.
+  final ValueChanged<OcptFloorPlanSetElementShape> onSetElementShapeSelected;
+
   /// Called with the layer whose eye was clicked.
   final ValueChanged<OcptFloorPlanLayer> onLayerVisibilityToggled;
 
@@ -132,6 +145,7 @@ class OcptFloorPlanPalette extends StatelessWidget {
     required this.setName,
     required this.shotCode,
     required this.activeTool,
+    required this.activeSetElementShape,
     required this.isReadOnly,
     required this.hiddenLayers,
     required this.sequenceCameras,
@@ -144,6 +158,7 @@ class OcptFloorPlanPalette extends StatelessWidget {
     required this.isUnderlayHidden,
     required this.hasUnderlay,
     required this.onToolSelected,
+    required this.onSetElementShapeSelected,
     required this.onLayerVisibilityToggled,
     required this.onCameraVisibilityToggled,
     required this.onOnionSkinToggled,
@@ -169,8 +184,30 @@ class OcptFloorPlanPalette extends StatelessWidget {
           _buildEntry(
             context,
             tool: OcptFloorPlanTool.setElement,
+            icon: Icons.horizontal_rule,
+            label: tr.shotListFloorPlanToolWallAction,
+            setElementShape: OcptFloorPlanSetElementShape.wall,
+          ),
+          _buildEntry(
+            context,
+            tool: OcptFloorPlanTool.setElement,
+            icon: Icons.door_front_door_outlined,
+            label: tr.shotListFloorPlanToolDoorAction,
+            setElementShape: OcptFloorPlanSetElementShape.door,
+          ),
+          _buildEntry(
+            context,
+            tool: OcptFloorPlanTool.setElement,
             icon: Icons.chair_outlined,
-            label: tr.shotListFloorPlanToolSetElementAction,
+            label: tr.shotListFloorPlanToolFurnitureAction,
+            setElementShape: OcptFloorPlanSetElementShape.furniture,
+          ),
+          _buildEntry(
+            context,
+            tool: OcptFloorPlanTool.setElement,
+            icon: Icons.gesture,
+            label: tr.shotListFloorPlanToolFreeformAction,
+            setElementShape: OcptFloorPlanSetElementShape.freeform,
           ),
           if (shotCode != null) ...[
             const Divider(height: 16),
@@ -232,17 +269,26 @@ class OcptFloorPlanPalette extends StatelessWidget {
     );
   }
 
-  /// One placeable tool's own entry: an icon and its label, armed by a click
-  /// ([onToolSelected]) and offered as a drag source (`Draggable<OcptFloorPlanTool>`, anchored at
-  /// the pointer so `OcptFloorPlanCanvas`'s own `DragTarget` drops it exactly where released).
+  /// One placeable tool's own entry: an icon and its label, armed by a click ([onToolSelected],
+  /// and, for a typed set-element entry, [onSetElementShapeSelected] too) and offered as a drag
+  /// source (`Draggable<OcptFloorPlanPaletteDragPayload>`, anchored at the pointer so
+  /// `OcptFloorPlanCanvas`'s own `DragTarget` drops it exactly where released, carrying
+  /// [setElementShape] on the drag itself).
+  ///
+  /// [setElementShape] is set for one of the palette's own four typed set-element entries (wall,
+  /// door, furniture, freeform) and null for every other entry (camera, character, light): it is
+  /// what tells the four typed entries apart from one another, since they all share
+  /// [OcptFloorPlanTool.setElement].
   Widget _buildEntry(
     BuildContext context, {
     required OcptFloorPlanTool tool,
     required IconData icon,
     required String label,
+    OcptFloorPlanSetElementShape? setElementShape,
   }) {
     final theme = Theme.of(context);
-    final isActive = tool == activeTool;
+    final isActive =
+        tool == activeTool && (setElementShape == null || setElementShape == activeSetElementShape);
 
     final row = Container(
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
@@ -273,7 +319,12 @@ class OcptFloorPlanPalette extends StatelessWidget {
     );
 
     final entry = InkWell(
-      onTap: () => onToolSelected(tool),
+      onTap: () {
+        onToolSelected(tool);
+        if (setElementShape != null) {
+          onSetElementShapeSelected(setElementShape);
+        }
+      },
       mouseCursor: ocptClickableCursor,
       borderRadius: BorderRadius.circular(ocptRadiusSmall),
       child: row,
@@ -283,8 +334,8 @@ class OcptFloorPlanPalette extends StatelessWidget {
       return entry;
     }
 
-    return Draggable<OcptFloorPlanTool>(
-      data: tool,
+    return Draggable<OcptFloorPlanPaletteDragPayload>(
+      data: OcptFloorPlanPaletteDragPayload(tool: tool, setElementShape: setElementShape),
       dragAnchorStrategy: pointerDragAnchorStrategy,
       feedback: Material(
         color: Colors.transparent,

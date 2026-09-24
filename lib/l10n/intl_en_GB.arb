@@ -3132,6 +3132,34 @@
     "type": "text",
     "placeholders": {}
   },
+  "shotListFloorPlanToolWallAction": "Wall",
+  "@shotListFloorPlanToolWallAction": {
+    "description": "Label of the floor plans palette's own wall set-element entry",
+    "context": "Displayed in the floor plans view's own palette, Set group",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanToolDoorAction": "Door",
+  "@shotListFloorPlanToolDoorAction": {
+    "description": "Label of the floor plans palette's own door set-element entry",
+    "context": "Displayed in the floor plans view's own palette, Set group",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanToolFurnitureAction": "Furniture",
+  "@shotListFloorPlanToolFurnitureAction": {
+    "description": "Label of the floor plans palette's own furniture set-element entry",
+    "context": "Displayed in the floor plans view's own palette, Set group",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanToolFreeformAction": "Freeform",
+  "@shotListFloorPlanToolFreeformAction": {
+    "description": "Label of the floor plans palette's own freeform set-element entry",
+    "context": "Displayed in the floor plans view's own palette, Set group",
+    "type": "text",
+    "placeholders": {}
+  },
   "shotListFloorPlanImportUnderlayAction": "Import underlay",
   "@shotListFloorPlanImportUnderlayAction": {
     "description": "Label of the tool bar's own underlay action while the case carries none yet",

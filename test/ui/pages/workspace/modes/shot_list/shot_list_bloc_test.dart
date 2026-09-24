@@ -40,6 +40,7 @@ import 'package:open_cine_prod_tools/models/ocpt_storyboard_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_storyboard_snapshot.dart';
 import 'package:open_cine_prod_tools/types/ocpt_export_outcome.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_layer.dart';
+import 'package:open_cine_prod_tools/types/ocpt_floor_plan_set_element_shape.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_tool.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
@@ -2977,6 +2978,64 @@ void main() {
       await bloc.close();
     });
 
+    test(
+      "the palette's own typed set-element entries each write their own setElementShape, and "
+      "arming one becomes the click-to-arm default",
+      () async {
+        await writeScreenplay(twoSceneText);
+        final bloc = buildBloc();
+        await waitForState(bloc, (state) => !state.isLoading);
+        final setId = await createCase(bloc);
+
+        // A drop from the palette carries its own shape on the event itself.
+        bloc.add(
+          OcptShotListFloorPlanSymbolPlacedEvent(
+            setId: setId,
+            layer: OcptFloorPlanLayer.set,
+            shotId: null,
+            xM: 0,
+            yM: 0,
+            setElementShape: OcptFloorPlanSetElementShape.wall,
+          ),
+        );
+        final withWall = await waitForState(
+          bloc,
+          (state) => state.selectedSet!.symbols.isNotEmpty,
+        );
+        expect(withWall.selectedSet!.symbols.single.setElementShape, OcptFloorPlanSetElementShape.wall);
+
+        // Arming the door entry (click-to-arm) becomes the state's own default shape.
+        bloc.add(
+          const OcptShotListFloorPlanActiveSetElementShapeChangedEvent(
+            shape: OcptFloorPlanSetElementShape.door,
+          ),
+        );
+        await waitForState(
+          bloc,
+          (state) => state.floorPlanActiveSetElementShape == OcptFloorPlanSetElementShape.door,
+        );
+
+        bloc.add(
+          OcptShotListFloorPlanSymbolPlacedEvent(
+            setId: setId,
+            layer: OcptFloorPlanLayer.set,
+            shotId: null,
+            xM: 1,
+            yM: 1,
+            setElementShape: OcptFloorPlanSetElementShape.door,
+          ),
+        );
+        final withDoor = await waitForState(
+          bloc,
+          (state) => state.selectedSet!.symbols.length == 2,
+        );
+        final door = withDoor.selectedSet!.symbols.firstWhere((symbol) => symbol.xM == 1);
+        expect(door.setElementShape, OcptFloorPlanSetElementShape.door);
+
+        await bloc.close();
+      },
+    );
+
     test("moving a symbol writes one row on drag end", () async {
       await writeScreenplay(twoSceneText);
       final bloc = buildBloc();
@@ -3181,6 +3240,17 @@ void main() {
       await waitForState(
         bloc,
         (state) => state.floorPlanActiveTool == OcptFloorPlanTool.setElement,
+      );
+
+      bloc.add(
+        const OcptShotListFloorPlanActiveSetElementShapeChangedEvent(
+          shape: OcptFloorPlanSetElementShape.freeform,
+        ),
+      );
+      await waitForState(
+        bloc,
+        (state) =>
+            state.floorPlanActiveSetElementShape == OcptFloorPlanSetElementShape.freeform,
       );
 
       bloc.add(

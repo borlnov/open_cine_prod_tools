@@ -25,6 +25,7 @@ import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
 import 'package:open_cine_prod_tools/models/ocpt_storyboard_panel.dart';
 import 'package:open_cine_prod_tools/models/ocpt_storyboard_snapshot.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_layer.dart';
+import 'package:open_cine_prod_tools/types/ocpt_floor_plan_set_element_shape.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_tool.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_version_notice_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_centre_view.dart';
@@ -241,6 +242,12 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
   ///
   /// A **view/session state** value, like [floorPlanZoom]: never written to the project.
   final OcptFloorPlanLayer floorPlanActiveLayer;
+
+  /// The décor primitive a `setElement` click-to-arm placement carries — which of the palette's
+  /// own four typed set-element entries (wall/door/furniture/freeform) was armed last.
+  ///
+  /// A **view/session state** value, like [floorPlanZoom]: never written to the project.
+  final OcptFloorPlanSetElementShape floorPlanActiveSetElementShape;
 
   /// The sequence layers currently hidden on the floor plans canvas, out of the tray's own three
   /// rows. Empty means every sequence layer is shown — the tray's own default.
@@ -703,6 +710,7 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
     required this.floorPlanZoom,
     required this.floorPlanActiveTool,
     required this.floorPlanActiveLayer,
+    required this.floorPlanActiveSetElementShape,
     required this.floorPlanHiddenLayers,
     required this.isFloorPlanUnderlayHidden,
     required this.floorPlanHiddenCameraSymbolIds,
@@ -759,6 +767,7 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
       floorPlanZoom = 1,
       floorPlanActiveTool = OcptFloorPlanTool.select,
       floorPlanActiveLayer = OcptFloorPlanLayer.set,
+      floorPlanActiveSetElementShape = OcptFloorPlanSetElementShape.wall,
       floorPlanHiddenLayers = const {},
       isFloorPlanUnderlayHidden = false,
       floorPlanHiddenCameraSymbolIds = const {},
@@ -830,6 +839,7 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
     double? floorPlanZoom,
     OcptFloorPlanTool? floorPlanActiveTool,
     OcptFloorPlanLayer? floorPlanActiveLayer,
+    OcptFloorPlanSetElementShape? floorPlanActiveSetElementShape,
     Set<OcptFloorPlanLayer>? floorPlanHiddenLayers,
     bool? isFloorPlanUnderlayHidden,
     Set<String>? floorPlanHiddenCameraSymbolIds,
@@ -907,6 +917,8 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
     floorPlanZoom: floorPlanZoom ?? this.floorPlanZoom,
     floorPlanActiveTool: floorPlanActiveTool ?? this.floorPlanActiveTool,
     floorPlanActiveLayer: floorPlanActiveLayer ?? this.floorPlanActiveLayer,
+    floorPlanActiveSetElementShape:
+        floorPlanActiveSetElementShape ?? this.floorPlanActiveSetElementShape,
     floorPlanHiddenLayers: floorPlanHiddenLayers ?? this.floorPlanHiddenLayers,
     isFloorPlanUnderlayHidden: isFloorPlanUnderlayHidden ?? this.isFloorPlanUnderlayHidden,
     floorPlanHiddenCameraSymbolIds:
@@ -1032,6 +1044,7 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
     floorPlanZoom,
     floorPlanActiveTool,
     floorPlanActiveLayer,
+    floorPlanActiveSetElementShape,
     floorPlanHiddenLayers,
     isFloorPlanUnderlayHidden,
     floorPlanHiddenCameraSymbolIds,

@@ -14,6 +14,7 @@ import 'package:open_cine_prod_tools/models/ocpt_floor_plan_set.dart';
 import 'package:open_cine_prod_tools/models/ocpt_floor_plan_symbol.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_arrow_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_layer.dart';
+import 'package:open_cine_prod_tools/types/ocpt_floor_plan_set_element_shape.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_tool.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_floor_plan_canvas.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_floor_plan_canvas_painter.dart';
@@ -200,11 +201,12 @@ void main() {
     isAllCamerasShown: false,
     activeTool: OcptFloorPlanTool.select,
     activeLayer: OcptFloorPlanLayer.set,
+    activeSetElementShape: OcptFloorPlanSetElementShape.wall,
     viewportController: controller,
     isReadOnly: false,
     symbolLabelValueOf: (_) => "",
     onSymbolSelected: (_) {},
-    onSymbolPlaced: (_, __, ___, ____) {},
+    onSymbolPlaced: (_, __, ___, ____, {setElementShape}) {},
     onSymbolMoved: (_, xM, yM) => movedTo.add((xM: xM, yM: yM)),
     onSymbolResized: (_, widthM, heightM) => resizedTo.add((widthM: widthM, heightM: heightM)),
     onSymbolRotated: (_, rotationDeg) => rotatedTo?.add(rotationDeg),
@@ -512,11 +514,12 @@ void main() {
           isAllCamerasShown: false,
           activeTool: OcptFloorPlanTool.select,
           activeLayer: OcptFloorPlanLayer.set,
+          activeSetElementShape: OcptFloorPlanSetElementShape.wall,
           viewportController: controller,
           isReadOnly: false,
           symbolLabelValueOf: (_) => "",
           onSymbolSelected: (_) {},
-          onSymbolPlaced: (_, __, ___, ____) {},
+          onSymbolPlaced: (_, __, ___, ____, {setElementShape}) {},
           onSymbolMoved: (_, __, ___) {},
           onSymbolResized: (_, __, ___) {},
           onSymbolRotated: (_, __) {},
@@ -614,11 +617,12 @@ void main() {
           isAllCamerasShown: false,
           activeTool: OcptFloorPlanTool.select,
           activeLayer: OcptFloorPlanLayer.set,
+          activeSetElementShape: OcptFloorPlanSetElementShape.wall,
           viewportController: controller,
           isReadOnly: false,
           symbolLabelValueOf: (_) => "",
           onSymbolSelected: (_) {},
-          onSymbolPlaced: (_, __, ___, ____) {},
+          onSymbolPlaced: (_, __, ___, ____, {setElementShape}) {},
           onSymbolMoved: (_, __, ___) {},
           onSymbolResized: (_, __, ___) {},
           onSymbolRotated: (_, __) {},
@@ -695,11 +699,12 @@ void main() {
         isAllCamerasShown: false,
         activeTool: OcptFloorPlanTool.select,
         activeLayer: OcptFloorPlanLayer.set,
+        activeSetElementShape: OcptFloorPlanSetElementShape.wall,
         viewportController: controller,
         isReadOnly: false,
         symbolLabelValueOf: (_) => "",
         onSymbolSelected: (_) {},
-        onSymbolPlaced: (_, __, ___, ____) {},
+        onSymbolPlaced: (_, __, ___, ____, {setElementShape}) {},
         onSymbolMoved: (_, __, ___) {},
         onSymbolResized: (_, __, ___) {},
         onSymbolRotated: (_, __) {},

@@ -2,6 +2,9 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+import 'package:equatable/equatable.dart';
+import 'package:open_cine_prod_tools/types/ocpt_floor_plan_set_element_shape.dart';
+
 /// The floor plan canvas's own tool bar picker: which gesture a click or a drag on the canvas
 /// currently means (`docs/plans/storyboard.md`, §4.3).
 ///
@@ -58,4 +61,27 @@ extension OcptFloorPlanToolScope on OcptFloorPlanTool {
     OcptFloorPlanTool.arrow => true,
     OcptFloorPlanTool.label => false,
   };
+}
+
+/// One palette entry's own drag-and-drop payload (R3b, the typed set tools —
+/// `docs/plans/storyboard.md`, §10.3): which [tool] a drop places, and — for one of the four typed
+/// [OcptFloorPlanTool.setElement] entries (wall/door/furniture/freeform) — which [setElementShape]
+/// it places. Carried on the drag itself rather than read back from
+/// `OcptFloorPlanCanvas.activeSetElementShape`'s own click-to-arm state, since a drag never taps
+/// its source first: `OcptFloorPlanPalette`'s `Draggable<OcptFloorPlanPaletteDragPayload>` and
+/// `OcptFloorPlanCanvas`'s own `DragTarget` of the same type are what carry it end to end.
+class OcptFloorPlanPaletteDragPayload extends Equatable {
+  /// The tool a drop of this payload places.
+  final OcptFloorPlanTool tool;
+
+  /// The set-element shape a drop of this payload places, or null for every entry but the four
+  /// typed set-element ones.
+  final OcptFloorPlanSetElementShape? setElementShape;
+
+  /// Class constructor
+  const OcptFloorPlanPaletteDragPayload({required this.tool, this.setElementShape});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [tool, setElementShape];
 }
