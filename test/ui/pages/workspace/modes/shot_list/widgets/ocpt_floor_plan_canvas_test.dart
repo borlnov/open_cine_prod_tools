@@ -61,6 +61,7 @@ OcptFloorPlanSymbol _furnitureSymbol({
   widthM: null,
   heightM: null,
   fovDeg: null,
+  fovReachM: null,
   label: "",
   setElementShape: null,
 );
@@ -96,6 +97,7 @@ OcptFloorPlanSymbol _cameraSymbol({required double xM, required double yM}) => O
   widthM: null,
   heightM: null,
   fovDeg: null,
+  fovReachM: null,
   label: "",
   setElementShape: null,
 );
@@ -116,6 +118,7 @@ OcptFloorPlanSet _caseWithArrow({double? ctrlXM, double? ctrlYM}) {
     widthM: null,
     heightM: null,
     fovDeg: null,
+    fovReachM: null,
     label: "SAM",
     setElementShape: null,
   );
@@ -131,6 +134,7 @@ OcptFloorPlanSet _caseWithArrow({double? ctrlXM, double? ctrlYM}) {
     widthM: null,
     heightM: null,
     fovDeg: null,
+    fovReachM: null,
     label: "LEA",
     setElementShape: null,
   );
@@ -173,6 +177,7 @@ void main() {
     required List<({double widthM, double heightM})> resizedTo,
     List<double>? rotatedTo,
     List<double>? fovChangedTo,
+    List<double>? fovReachChangedTo,
     String? selectedArrowId,
     List<String?>? arrowSelectedTo,
     List<({double? ctrlXM, double? ctrlYM})>? arrowCurveChangedTo,
@@ -204,6 +209,7 @@ void main() {
     onSymbolResized: (_, widthM, heightM) => resizedTo.add((widthM: widthM, heightM: heightM)),
     onSymbolRotated: (_, rotationDeg) => rotatedTo?.add(rotationDeg),
     onSymbolFovChanged: (_, fovDeg) => fovChangedTo?.add(fovDeg),
+    onSymbolFovReachChanged: (_, fovReachM) => fovReachChangedTo?.add(fovReachM),
     onSymbolDeleteRequested: (_) {},
     onArrowSymbolTapped: (_) {},
     onArrowAnchorCancelled: () {},
@@ -469,6 +475,7 @@ void main() {
       final controller = OcptFloorPlanViewportController(zoom: 1);
       final symbol = _cameraSymbol(xM: 0, yM: 0);
       final fovChangedTo = <double>[];
+      final fovReachChangedTo = <double>[];
 
       await _pumpCanvas(
         tester,
@@ -514,6 +521,7 @@ void main() {
           onSymbolResized: (_, __, ___) {},
           onSymbolRotated: (_, __) {},
           onSymbolFovChanged: (_, fovDeg) => fovChangedTo.add(fovDeg),
+          onSymbolFovReachChanged: (_, fovReachM) => fovReachChangedTo.add(fovReachM),
           onSymbolDeleteRequested: (_) {},
           onArrowSymbolTapped: (_) {},
           onArrowAnchorCancelled: () {},
@@ -565,6 +573,102 @@ void main() {
   );
 
   testWidgets(
+    "dragging a camera's own field-of-view tip handle changes its reach",
+    (tester) async {
+      final controller = OcptFloorPlanViewportController(zoom: 1);
+      final symbol = _cameraSymbol(xM: 0, yM: 0);
+      final fovReachChangedTo = <double>[];
+
+      await _pumpCanvas(
+        tester,
+        OcptFloorPlanCanvas(
+          floorPlanSet: OcptFloorPlanSet(
+            id: "case-1",
+            sceneId: "scene-1",
+            name: "Case",
+            sortKey: "a0",
+            underlayAssetId: null,
+            underlayPath: null,
+            underlayXM: null,
+            underlayYM: null,
+            underlayWidthM: null,
+            underlayHeightM: null,
+            underlayRotationDeg: null,
+            symbols: [symbol],
+            arrows: const [],
+          ),
+          shotRankByShotId: const {"shot-1": 1},
+          focusShotId: "shot-1",
+          previousShotId: null,
+          nextShotId: null,
+          isOnionSkinPreviousShown: false,
+          isOnionSkinNextShown: false,
+          onionSkinOpacity: 0.3,
+          hiddenLayers: const {},
+          hiddenCameraSymbolIds: const {},
+          isUnderlayHidden: false,
+          selectedSymbolId: symbol.id,
+          selectedArrowId: null,
+          pendingArrowAnchorSymbolId: null,
+          isMetricsShown: false,
+          isAllCamerasShown: false,
+          activeTool: OcptFloorPlanTool.select,
+          activeLayer: OcptFloorPlanLayer.set,
+          viewportController: controller,
+          isReadOnly: false,
+          symbolLabelValueOf: (_) => "",
+          onSymbolSelected: (_) {},
+          onSymbolPlaced: (_, __, ___, ____) {},
+          onSymbolMoved: (_, __, ___) {},
+          onSymbolResized: (_, __, ___) {},
+          onSymbolRotated: (_, __) {},
+          onSymbolFovChanged: (_, __) {},
+          onSymbolFovReachChanged: (_, fovReachM) => fovReachChangedTo.add(fovReachM),
+          onSymbolDeleteRequested: (_) {},
+          onArrowSymbolTapped: (_) {},
+          onArrowAnchorCancelled: () {},
+          onArrowSelected: (_) {},
+          onArrowCurveChanged: (_, __, ___) {},
+          onSymbolDuplicateRequested: (_) {},
+          onSymbolDuplicateDragged: (_, __, ___) {},
+          onGhostShotFocusRequested: (_) {},
+          onSymbolLabelChanged: (_, __) {},
+          onUnderlayTransformChanged: (_, __, ___, ____) {},
+          onZoomSettled: (_) {},
+        ),
+      );
+
+      final canvasSize = tester.getSize(find.byType(OcptFloorPlanCanvas));
+      final canvasTopLeft = tester.getTopLeft(find.byType(OcptFloorPlanCanvas));
+      final pixelsPerMetre = controller.zoom * 48;
+      final centreScreen = ocptFloorPlanScreenPointOf(
+        xM: symbol.xM,
+        yM: symbol.yM,
+        canvasSize: canvasSize,
+        zoom: controller.zoom,
+        pan: controller.pan,
+      );
+
+      // The tip handle sits straight ahead (0° = up), at the drawing default reach
+      // (`ocptFloorPlanCameraFovWedgeLengthM`, 2 m) from the lens.
+      final tipHandleScreen =
+          centreScreen +
+          Offset(0, -(ocptFloorPlanCameraFootprintM / 2 + ocptFloorPlanCameraFovWedgeLengthM) * pixelsPerMetre);
+
+      // Drag it further out, to a 3 m reach.
+      final target = centreScreen + Offset(0, -(ocptFloorPlanCameraFootprintM / 2 + 3) * pixelsPerMetre);
+
+      final gesture = await tester.startGesture(canvasTopLeft + tipHandleScreen);
+      await gesture.moveTo(canvasTopLeft + target);
+      await gesture.up();
+      await tester.pump();
+
+      expect(fovReachChangedTo, hasLength(1));
+      expect(fovReachChangedTo.single, closeTo(3, 1e-6));
+    },
+  );
+
+  testWidgets(
     "selecting an arrow near its shaft, bending it, then straightening it back out",
     (tester) async {
       final controller = OcptFloorPlanViewportController(zoom: 1);
@@ -600,6 +704,7 @@ void main() {
         onSymbolResized: (_, __, ___) {},
         onSymbolRotated: (_, __) {},
         onSymbolFovChanged: (_, __) {},
+        onSymbolFovReachChanged: (_, __) {},
         onSymbolDeleteRequested: (_) {},
         onArrowSymbolTapped: (_) {},
         onArrowAnchorCancelled: () {},

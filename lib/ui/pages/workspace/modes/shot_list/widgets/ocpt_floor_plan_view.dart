@@ -162,6 +162,10 @@ class OcptFloorPlanView extends StatefulWidget {
   /// while withheld.
   final void Function(String symbolId, double fovDeg)? onSymbolFovChanged;
 
+  /// Called with a camera symbol's id and its new field-of-view wedge reach (metres), or null
+  /// while withheld.
+  final void Function(String symbolId, double fovReachM)? onSymbolFovReachChanged;
+
   /// Called with the selected symbol's id when its own delete action is clicked, or null while
   /// withheld.
   final ValueChanged<String>? onSymbolDeleteRequested;
@@ -251,6 +255,7 @@ class OcptFloorPlanView extends StatefulWidget {
     required this.onSymbolResized,
     required this.onSymbolRotated,
     required this.onSymbolFovChanged,
+    required this.onSymbolFovReachChanged,
     required this.onSymbolDeleteRequested,
     required this.onArrowSymbolTapped,
     required this.onArrowAnchorCancelled,
@@ -389,6 +394,7 @@ class _OcptFloorPlanViewState extends State<OcptFloorPlanView> {
                     onSymbolResized: widget.onSymbolResized,
                     onSymbolRotated: widget.onSymbolRotated,
                     onSymbolFovChanged: widget.onSymbolFovChanged,
+                    onSymbolFovReachChanged: widget.onSymbolFovReachChanged,
                     onSymbolDeleteRequested: widget.onSymbolDeleteRequested,
                     onArrowSymbolTapped: widget.onArrowSymbolTapped,
                     onArrowAnchorCancelled: widget.onArrowAnchorCancelled,

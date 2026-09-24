@@ -41,6 +41,7 @@ OcptFloorPlanSymbolShape _symbol({
   widthM: 0.5,
   heightM: 0.5,
   fovDeg: null,
+  fovReachM: null,
   label: label,
   colorArgb: 0xFFFF9800,
   cameraLabel: layer == OcptFloorPlanLayer.cameras ? "1" : null,
@@ -49,6 +50,7 @@ OcptFloorPlanSymbolShape _symbol({
       ? OcptFloorPlanSymbolGlyphKind.camera
       : OcptFloorPlanSymbolGlyphKind.character,
   cameraFovWedgeDeg: null,
+  cameraFovWedgeReachM: null,
   setElementShape: null,
 );
 

@@ -5,6 +5,7 @@
 import 'dart:math' as math;
 
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_layer.dart';
+import 'package:open_cine_prod_tools/types/ocpt_floor_plan_set_element_shape.dart';
 
 /// The default footprint, in metres, a character silhouette is drawn at — the implicit ruler every
 /// other measurement on a floor plan case is read against (`docs/adr/0031-storyboard-panels-and-
@@ -34,6 +35,12 @@ const double ocptFloorPlanMinCameraFovDeg = 10;
 
 /// The widest field of view a camera's own edge handles or `−`/`+` stepper allow.
 const double ocptFloorPlanMaxCameraFovDeg = 170;
+
+/// The shortest field-of-view reach a camera's own tip handle allows.
+const double ocptFloorPlanMinCameraFovReachM = 0.5;
+
+/// The longest field-of-view reach a camera's own tip handle allows.
+const double ocptFloorPlanMaxCameraFovReachM = 30;
 
 /// The offset, in metres, both X and Y, a duplicated symbol is placed at from its source — far
 /// enough that the copy is never drawn exactly on top of the original (`Ctrl+D`, or the default
@@ -72,6 +79,37 @@ const double ocptFloorPlanCharacterArmEndFactor = 1.35;
 /// [OcptFloorPlanLayer]-null `widthM`/`heightM` override (v1: never set, see
 /// `OcptFloorPlanSymbolsTable`'s own doc comment) replaces it.
 const double ocptFloorPlanDefaultElementFootprintM = 0.6;
+
+/// A wall's own default footprint, in metres (`widthM` × `heightM`) — long and thin, a plausible
+/// segment rather than the generic furniture square.
+const ({double widthM, double heightM}) ocptFloorPlanWallDefaultFootprintM = (
+  widthM: 1.2,
+  heightM: 0.12,
+);
+
+/// A door's own default footprint, in metres — roughly a standard door's own width, no thicker
+/// than a wall's.
+const ({double widthM, double heightM}) ocptFloorPlanDoorDefaultFootprintM = (
+  widthM: 0.9,
+  heightM: 0.12,
+);
+
+/// The default footprint, in metres, a set-element symbol of [shape] is drawn at absent a
+/// per-symbol `widthM`/`heightM` override — [OcptFloorPlanSetElementShape.wall] long and thin,
+/// [OcptFloorPlanSetElementShape.door] a standard door's own width, and
+/// [OcptFloorPlanSetElementShape.furniture]/[OcptFloorPlanSetElementShape.freeform] the generic
+/// [ocptFloorPlanDefaultElementFootprintM] square, unchanged from before typed shapes existed.
+({double widthM, double heightM}) ocptFloorPlanSetElementDefaultFootprintM(
+  OcptFloorPlanSetElementShape shape,
+) => switch (shape) {
+  OcptFloorPlanSetElementShape.wall => ocptFloorPlanWallDefaultFootprintM,
+  OcptFloorPlanSetElementShape.door => ocptFloorPlanDoorDefaultFootprintM,
+  OcptFloorPlanSetElementShape.furniture ||
+  OcptFloorPlanSetElementShape.freeform => (
+    widthM: ocptFloorPlanDefaultElementFootprintM,
+    heightM: ocptFloorPlanDefaultElementFootprintM,
+  ),
+};
 
 /// How many logical pixels one metre draws at when the floor plan canvas is at its neutral, 100%
 /// zoom (`zoom == 1.0`). Every other zoom scales linearly from this baseline

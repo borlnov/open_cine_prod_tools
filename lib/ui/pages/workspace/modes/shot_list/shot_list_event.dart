@@ -1433,6 +1433,29 @@ class OcptShotListFloorPlanSymbolFovChangedEvent extends OcptShotListEvent {
   List<Object?> get props => [...super.props, symbolId, fovDeg];
 }
 
+/// Sets camera symbol `event.symbolId`'s own field-of-view wedge reach to `event.fovReachM`,
+/// dispatched by a drag on its own tip handle ending. Written immediately
+/// (`OcptFloorPlanService.updateSymbol(fovReachM:)`); a drag reports once on end, never per frame
+/// — the live wedge shown while dragging is a purely local canvas concern, exactly as
+/// [OcptShotListFloorPlanSymbolFovChangedEvent] is for the angle.
+class OcptShotListFloorPlanSymbolFovReachChangedEvent extends OcptShotListEvent {
+  /// The id of the camera symbol whose field-of-view reach is changed.
+  final String symbolId;
+
+  /// The camera's new field-of-view wedge reach, in metres.
+  final double fovReachM;
+
+  /// Class constructor
+  const OcptShotListFloorPlanSymbolFovReachChangedEvent({
+    required this.symbolId,
+    required this.fovReachM,
+  });
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, symbolId, fovReachM];
+}
+
 /// Selects arrow `event.arrowId` on the floor plans canvas, or clears the selection when it is
 /// null — a click near the arrow's own shaft under the `select` tool, or a click on empty canvas or
 /// on a symbol (the two selections are mutually exclusive). Never withheld: selecting only reads.

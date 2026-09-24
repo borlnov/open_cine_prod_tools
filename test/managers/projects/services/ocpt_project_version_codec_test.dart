@@ -1144,6 +1144,7 @@ void main() {
         yM: 2,
         rotationDeg: 45,
         fovDeg: 84,
+        fovReachM: 6,
         label: "85mm",
         isDeleted: false,
       ),
@@ -1316,6 +1317,8 @@ void main() {
       expect(roundTripped.people.map((row) => row.sortKey), ["V", "k"]);
       expect(roundTripped.storyboardPanels.map((row) => row.sortKey), ["V", "k"]);
       expect(roundTripped.floorPlanSymbols.map((row) => row.sortKey), ["V", "k", "m"]);
+      // fovReachM (R3b): only the camera symbol carries one, every other row stays null.
+      expect(roundTripped.floorPlanSymbols.map((row) => row.fovReachM), [null, 6, null]);
 
       // The per-column stamps travel with the rows they describe: this is the assertion that
       // catches a codec silently dropping the sidecar.

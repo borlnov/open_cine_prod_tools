@@ -101,6 +101,7 @@ OcptFloorPlanSymbol _cameraSymbolOf({
   widthM: null,
   heightM: null,
   fovDeg: fovDeg,
+  fovReachM: null,
   label: "",
   setElementShape: null,
 );
@@ -124,6 +125,7 @@ OcptFloorPlanSymbol _characterSymbolOf({
   widthM: null,
   heightM: null,
   fovDeg: null,
+  fovReachM: null,
   label: "Sam",
   setElementShape: null,
 );
@@ -143,6 +145,7 @@ OcptFloorPlanSymbol _sequenceCharacterSymbolOf({required String id, required Str
       widthM: null,
       heightM: null,
       fovDeg: null,
+      fovReachM: null,
       label: "Sam",
       setElementShape: null,
     );
@@ -165,6 +168,7 @@ OcptFloorPlanSymbol _decorSymbolOf({
   widthM: 2,
   heightM: 1,
   fovDeg: null,
+  fovReachM: null,
   label: "wall",
   setElementShape: shape,
 );

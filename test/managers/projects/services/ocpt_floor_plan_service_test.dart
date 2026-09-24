@@ -366,6 +366,7 @@ Action.
         layer: OcptFloorPlanLayer.cameras,
         xM: 1,
         yM: 1,
+        fovReachM: 4,
       ))!;
       final arrowId = (await floorPlanService.addArrow(
         database: database,
@@ -395,6 +396,7 @@ Action.
       expect(newDecor.label, "Table");
       expect(newDecor.shotId, isNull);
       expect(newCamera.shotId, shotId);
+      expect(newCamera.fovReachM, 4);
 
       final newArrows = (await readArrows()).where((row) => row.setId == newSetId).toList();
       expect(newArrows, hasLength(1));
@@ -504,6 +506,7 @@ Action.
           xM: 0,
           yM: 0,
           label: "wide",
+          fovReachM: 6,
         ))!;
         final sourceCharacter = (await floorPlanService.placeSymbol(
           database: database,
@@ -551,6 +554,7 @@ Action.
         );
         expect(copiedCamera.label, "wide");
         expect(copiedCamera.id, isNot(sourceCamera));
+        expect(copiedCamera.fovReachM, 6);
         final copiedCharacter = (await readSymbols()).singleWhere(
           (row) => row.shotId == destinationShotId && row.layer == OcptFloorPlanLayer.characters,
         );
@@ -905,6 +909,36 @@ Action.
       );
 
       expect((await readSymbols()).single.setElementShape, OcptFloorPlanSetElementShape.door);
+    });
+
+    test("sets and changes a camera's own field-of-view reach", () async {
+      final shotId = await seedShot();
+      final sceneRow = await (database.select(
+        database.ocptShotsTable,
+      )..where((row) => row.id.equals(shotId))).getSingle();
+      final setId = (await floorPlanService.addSet(
+        database: database,
+        sceneId: sceneRow.sceneId!,
+      ))!;
+      final symbolId = (await floorPlanService.placeSymbol(
+        database: database,
+        setId: setId,
+        shotId: shotId,
+        layer: OcptFloorPlanLayer.cameras,
+        xM: 0,
+        yM: 0,
+        fovReachM: 3.5,
+      ))!;
+
+      expect((await readSymbols()).single.fovReachM, 3.5);
+
+      await floorPlanService.updateSymbol(
+        database: database,
+        symbolId: symbolId,
+        fovReachM: const Value(5),
+      );
+
+      expect((await readSymbols()).single.fovReachM, 5);
     });
   });
 

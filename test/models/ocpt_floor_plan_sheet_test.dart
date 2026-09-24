@@ -25,6 +25,7 @@ OcptFloorPlanSymbol _symbol({
   double? widthM,
   double? heightM,
   double? fovDeg,
+  double? fovReachM,
   String label = "",
   OcptFloorPlanSetElementShape? setElementShape,
 }) => OcptFloorPlanSymbol(
@@ -39,6 +40,7 @@ OcptFloorPlanSymbol _symbol({
   widthM: widthM,
   heightM: heightM,
   fovDeg: fovDeg,
+  fovReachM: fovReachM,
   label: label,
   setElementShape: setElementShape,
 );
@@ -485,6 +487,77 @@ void main() {
       expect(shape.widthM, 1.2);
       expect(shape.heightM, 0.6);
     });
+
+    test("a wall with no footprint of its own draws long and thin", () {
+      final wall = _symbol(
+        id: "wall-1",
+        layer: OcptFloorPlanLayer.set,
+        setElementShape: OcptFloorPlanSetElementShape.wall,
+      );
+      final sheet = OcptFloorPlanSheet.of(
+        floorPlanSet: _caseOf(symbols: [wall]),
+        focusShotId: null,
+        shotRankByShotId: const {},
+      );
+
+      final shape = sheet.symbols.single;
+      expect(shape.widthM, ocptFloorPlanWallDefaultFootprintM.widthM);
+      expect(shape.heightM, ocptFloorPlanWallDefaultFootprintM.heightM);
+    });
+
+    test("a door with no footprint of its own draws at a standard door's own width", () {
+      final door = _symbol(
+        id: "door-1",
+        layer: OcptFloorPlanLayer.set,
+        setElementShape: OcptFloorPlanSetElementShape.door,
+      );
+      final sheet = OcptFloorPlanSheet.of(
+        floorPlanSet: _caseOf(symbols: [door]),
+        focusShotId: null,
+        shotRankByShotId: const {},
+      );
+
+      final shape = sheet.symbols.single;
+      expect(shape.widthM, ocptFloorPlanDoorDefaultFootprintM.widthM);
+      expect(shape.heightM, ocptFloorPlanDoorDefaultFootprintM.heightM);
+    });
+
+    test("furniture and freeform with no footprint of their own keep the generic square", () {
+      final furniture = _symbol(
+        id: "furn-1",
+        layer: OcptFloorPlanLayer.set,
+        setElementShape: OcptFloorPlanSetElementShape.furniture,
+      );
+      final freeform = _symbol(
+        id: "free-1",
+        layer: OcptFloorPlanLayer.set,
+        setElementShape: OcptFloorPlanSetElementShape.freeform,
+        sortKey: "b",
+      );
+      final sheet = OcptFloorPlanSheet.of(
+        floorPlanSet: _caseOf(symbols: [furniture, freeform]),
+        focusShotId: null,
+        shotRankByShotId: const {},
+      );
+
+      for (final shape in sheet.symbols) {
+        expect(shape.widthM, ocptFloorPlanDefaultElementFootprintM);
+        expect(shape.heightM, ocptFloorPlanDefaultElementFootprintM);
+      }
+    });
+
+    test("a hand prop keeps its own layer default footprint, unaffected by décor shapes", () {
+      final prop = _symbol(id: "prop-1", shotId: "shot-1", layer: OcptFloorPlanLayer.props);
+      final sheet = OcptFloorPlanSheet.of(
+        floorPlanSet: _caseOf(symbols: [prop]),
+        focusShotId: "shot-1",
+        shotRankByShotId: const {"shot-1": 1},
+      );
+
+      final shape = sheet.symbols.single;
+      expect(shape.widthM, ocptFloorPlanHandPropFootprintM);
+      expect(shape.heightM, ocptFloorPlanHandPropFootprintM);
+    });
   });
 
   group("OcptFloorPlanSheet.of — glyph kind", () {
@@ -616,6 +689,56 @@ void main() {
       );
 
       expect(sheet.symbols.single.cameraFovWedgeDeg, isNull);
+    });
+
+    test("a camera emits a wedge at its own fovReachM while showFieldOfView is on", () {
+      final camera = _symbol(
+        id: "cam-1",
+        shotId: "shot-1",
+        layer: OcptFloorPlanLayer.cameras,
+        fovReachM: 5,
+      );
+      final floorPlanSet = _caseOf(symbols: [camera]);
+
+      final sheet = OcptFloorPlanSheet.of(
+        floorPlanSet: floorPlanSet,
+        focusShotId: "shot-1",
+        shotRankByShotId: const {"shot-1": 1},
+      );
+
+      expect(sheet.symbols.single.cameraFovWedgeReachM, 5);
+    });
+
+    test("a camera left at the drawing default falls back to the default wedge reach", () {
+      final camera = _symbol(id: "cam-1", shotId: "shot-1", layer: OcptFloorPlanLayer.cameras);
+      final floorPlanSet = _caseOf(symbols: [camera]);
+
+      final sheet = OcptFloorPlanSheet.of(
+        floorPlanSet: floorPlanSet,
+        focusShotId: "shot-1",
+        shotRankByShotId: const {"shot-1": 1},
+      );
+
+      expect(sheet.symbols.single.cameraFovWedgeReachM, ocptFloorPlanCameraFovWedgeLengthM);
+    });
+
+    test("no wedge reach is resolved while showFieldOfView is off", () {
+      final camera = _symbol(
+        id: "cam-1",
+        shotId: "shot-1",
+        layer: OcptFloorPlanLayer.cameras,
+        fovReachM: 5,
+      );
+      final floorPlanSet = _caseOf(symbols: [camera]);
+
+      final sheet = OcptFloorPlanSheet.of(
+        floorPlanSet: floorPlanSet,
+        focusShotId: "shot-1",
+        shotRankByShotId: const {"shot-1": 1},
+        showFieldOfView: false,
+      );
+
+      expect(sheet.symbols.single.cameraFovWedgeReachM, isNull);
     });
   });
 

@@ -156,9 +156,14 @@ class OcptFloorPlanSymbolLiveOverride {
   final double rotationDeg;
 
   /// The symbol's live field-of-view wedge angle, in degrees, while its own edge handle is being
-  /// dragged — null for every other kind of drag (move, resize, rotate), in which case the painter
-  /// keeps reading the symbol's own already-resolved `cameraFovWedgeDeg`.
+  /// dragged — null for every other kind of drag (move, resize, rotate, tip), in which case the
+  /// painter keeps reading the symbol's own already-resolved `cameraFovWedgeDeg`.
   final double? fovDeg;
+
+  /// The symbol's live field-of-view wedge reach, in metres, while its own tip handle is being
+  /// dragged — null for every other kind of drag, in which case the painter keeps reading the
+  /// symbol's own already-resolved `cameraFovWedgeReachM`.
+  final double? fovReachM;
 
   /// Class constructor
   const OcptFloorPlanSymbolLiveOverride({
@@ -169,6 +174,7 @@ class OcptFloorPlanSymbolLiveOverride {
     required this.heightM,
     required this.rotationDeg,
     this.fovDeg,
+    this.fovReachM,
   });
 }
 
@@ -433,6 +439,9 @@ class OcptFloorPlanCanvasPainter extends CustomPainter {
     final fovWedgeDeg = override != null && override.symbolId == symbol.symbolId
         ? (override.fovDeg ?? symbol.cameraFovWedgeDeg)
         : symbol.cameraFovWedgeDeg;
+    final fovWedgeReachM = override != null && override.symbolId == symbol.symbolId
+        ? (override.fovReachM ?? symbol.cameraFovWedgeReachM)
+        : symbol.cameraFovWedgeReachM;
 
     final centre = ocptFloorPlanScreenPointOf(xM: xM, yM: yM, canvasSize: size, zoom: zoom, pan: pan);
     final pixelsPerMetre = ocptFloorPlanPixelsPerMetreAt(zoom);
@@ -463,6 +472,7 @@ class OcptFloorPlanCanvasPainter extends CustomPainter {
           borderColor,
           borderWidth,
           fovWedgeDeg,
+          fovWedgeReachM,
           pixelsPerMetre,
           symbol.cameraLabel,
         );
@@ -581,9 +591,10 @@ class OcptFloorPlanCanvasPainter extends CustomPainter {
 
   /// A camera's own body, lens, its own derived [cameraLabel] as a filled pill attached to its
   /// back edge (drawn after the body/lens, opposite the lens' own "forward" direction) and, while
-  /// [fovWedgeDeg] is set, its field-of-view wedge — a cone [ocptFloorPlanCameraFovWedgeLengthM] long, spanning
-  /// [fovWedgeDeg], pointing local "up" (the camera's own heading, see [_paintCharacterGlyph]'s own
-  /// doc comment for the shared bearing convention).
+  /// [fovWedgeDeg] is set, its field-of-view wedge — a cone [fovWedgeReachM] long (falling back to
+  /// [ocptFloorPlanCameraFovWedgeLengthM] when null), spanning [fovWedgeDeg], pointing local "up"
+  /// (the camera's own heading, see [_paintCharacterGlyph]'s own doc comment for the shared bearing
+  /// convention).
   void _paintCameraGlyph(
     Canvas canvas,
     Rect rect,
@@ -592,12 +603,13 @@ class OcptFloorPlanCanvasPainter extends CustomPainter {
     Color borderColor,
     double borderWidth,
     double? fovWedgeDeg,
+    double? fovWedgeReachM,
     double pixelsPerMetre,
     String? cameraLabel,
   ) {
     if (fovWedgeDeg != null) {
       final halfAngle = fovWedgeDeg * math.pi / 180 / 2;
-      final wedgeLength = ocptFloorPlanCameraFovWedgeLengthM * pixelsPerMetre;
+      final wedgeLength = (fovWedgeReachM ?? ocptFloorPlanCameraFovWedgeLengthM) * pixelsPerMetre;
       final tip = Offset(0, -rect.height / 2);
       final left = tip + Offset(-math.sin(halfAngle), -math.cos(halfAngle)) * wedgeLength;
       final right = tip + Offset(math.sin(halfAngle), -math.cos(halfAngle)) * wedgeLength;

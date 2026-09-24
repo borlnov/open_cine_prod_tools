@@ -50,6 +50,10 @@ class OcptFloorPlanSymbol extends Equatable {
   /// A camera's field-of-view wedge, in degrees — null meaning the drawing's own default.
   final double? fovDeg;
 
+  /// How far, in metres, a camera's own field-of-view wedge reaches from its lens — null meaning
+  /// the drawing's own default. Null for every other symbol.
+  final double? fovReachM;
+
   /// The text label this symbol carries.
   final String label;
 
@@ -71,6 +75,7 @@ class OcptFloorPlanSymbol extends Equatable {
     required this.widthM,
     required this.heightM,
     required this.fovDeg,
+    required this.fovReachM,
     required this.label,
     required this.setElementShape,
   });
@@ -88,6 +93,7 @@ class OcptFloorPlanSymbol extends Equatable {
     widthM: row.widthM,
     heightM: row.heightM,
     fovDeg: row.fovDeg,
+    fovReachM: row.fovReachM,
     label: row.label,
     setElementShape: row.setElementShape,
   );
@@ -111,6 +117,7 @@ class OcptFloorPlanSymbol extends Equatable {
     widthM,
     heightM,
     fovDeg,
+    fovReachM,
     label,
     setElementShape,
   ];

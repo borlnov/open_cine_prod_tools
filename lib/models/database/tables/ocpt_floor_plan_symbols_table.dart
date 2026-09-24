@@ -109,6 +109,11 @@ class OcptFloorPlanSymbolsTable extends Table {
   /// A camera's field-of-view wedge, in degrees — null meaning the drawing's own default.
   RealColumn get fovDeg => real().nullable()();
 
+  /// How far, in metres, a camera's own field-of-view wedge reaches from its lens — null meaning
+  /// the drawing's own default (`ocptFloorPlanCameraFovWedgeLengthM`, 2 m). Null for every other
+  /// symbol, which doesn't draw a wedge.
+  RealColumn get fovReachM => real().nullable()();
+
   /// The text label this symbol carries, e.g. `key · 1.2k`, `SAM · stand-in`,
   /// `85mm · reverse on Sam`. A character symbol's [label] is a free text pre-filled from the
   /// shot's characters field as a convenience only — it carries no link back to a role

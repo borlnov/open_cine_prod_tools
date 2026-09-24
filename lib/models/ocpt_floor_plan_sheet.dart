@@ -84,6 +84,11 @@ class OcptFloorPlanSymbolShape extends Equatable {
   /// resolved angle a painter actually draws the wedge at.
   final double? fovDeg;
 
+  /// A camera's field-of-view wedge reach, in metres, or null for every other layer (or a camera
+  /// left at the drawing default). The symbol's own raw stored value — see [cameraFovWedgeReachM]
+  /// for the resolved reach a painter actually draws the wedge at.
+  final double? fovReachM;
+
   /// The symbol's own free-text label.
   final String label;
 
@@ -110,6 +115,11 @@ class OcptFloorPlanSymbolShape extends Equatable {
   /// painter draws the wedge exactly when this is non-null, with no default of its own to apply.
   final double? cameraFovWedgeDeg;
 
+  /// A camera symbol's own field-of-view wedge reach, in metres, already resolved to
+  /// [ocptFloorPlanCameraFovWedgeLengthM] when the symbol carries no [fovReachM] of its own — null
+  /// under the very same condition as [cameraFovWedgeDeg], which it always accompanies.
+  final double? cameraFovWedgeReachM;
+
   /// A set-element symbol's own drawn primitive, resolved to [OcptFloorPlanSetElementShape.freeform]
   /// when the symbol carries none of its own — null for every symbol whose [glyphKind] isn't
   /// [OcptFloorPlanSymbolGlyphKind.setElement].
@@ -126,12 +136,14 @@ class OcptFloorPlanSymbolShape extends Equatable {
     required this.widthM,
     required this.heightM,
     required this.fovDeg,
+    required this.fovReachM,
     required this.label,
     required this.colorArgb,
     required this.cameraLabel,
     required this.isGhost,
     required this.glyphKind,
     required this.cameraFovWedgeDeg,
+    required this.cameraFovWedgeReachM,
     required this.setElementShape,
   });
 
@@ -152,12 +164,14 @@ class OcptFloorPlanSymbolShape extends Equatable {
     widthM,
     heightM,
     fovDeg,
+    fovReachM,
     label,
     colorArgb,
     cameraLabel,
     isGhost,
     glyphKind,
     cameraFovWedgeDeg,
+    cameraFovWedgeReachM,
     setElementShape,
   ];
 }
@@ -575,8 +589,9 @@ class OcptFloorPlanSheet extends Equatable {
   }
 
   /// Freezes [symbol] into its drawn shape, its footprint resolved to
-  /// [ocptFloorPlanDefaultFootprintM] when it carries no `widthM`/`heightM` of its own, its
-  /// [OcptFloorPlanSymbolShape.glyphKind] derived from [OcptFloorPlanSymbol.layer]
+  /// [ocptFloorPlanSetElementDefaultFootprintM] for a set-element symbol (own typed shape) or
+  /// [ocptFloorPlanDefaultFootprintM] for every other layer when it carries no `widthM`/`heightM`
+  /// of its own, its [OcptFloorPlanSymbolShape.glyphKind] derived from [OcptFloorPlanSymbol.layer]
   /// ([_glyphKindOf]), and, from that glyph kind, its own colour, wedge and décor primitive.
   static OcptFloorPlanSymbolShape _shapeOf(
     OcptFloorPlanSymbol symbol, {
@@ -585,6 +600,13 @@ class OcptFloorPlanSheet extends Equatable {
     required String? cameraLabel,
   }) {
     final glyphKind = _glyphKindOf(symbol.layer);
+    // Only a set-element symbol (never a hand prop, which shares the same glyph kind) carries a
+    // typed shape of its own — the other layers keep their plain per-layer default footprint.
+    final setElementDefault = symbol.layer == OcptFloorPlanLayer.set
+        ? ocptFloorPlanSetElementDefaultFootprintM(
+            symbol.setElementShape ?? OcptFloorPlanSetElementShape.freeform,
+          )
+        : null;
 
     return OcptFloorPlanSymbolShape(
       symbolId: symbol.id,
@@ -593,9 +615,11 @@ class OcptFloorPlanSheet extends Equatable {
       xM: symbol.xM,
       yM: symbol.yM,
       rotationDeg: symbol.rotationDeg,
-      widthM: symbol.widthM ?? ocptFloorPlanDefaultFootprintM(symbol.layer),
-      heightM: symbol.heightM ?? ocptFloorPlanDefaultFootprintM(symbol.layer),
+      widthM: symbol.widthM ?? setElementDefault?.widthM ?? ocptFloorPlanDefaultFootprintM(symbol.layer),
+      heightM:
+          symbol.heightM ?? setElementDefault?.heightM ?? ocptFloorPlanDefaultFootprintM(symbol.layer),
       fovDeg: symbol.fovDeg,
+      fovReachM: symbol.fovReachM,
       label: symbol.label,
       colorArgb: glyphKind == OcptFloorPlanSymbolGlyphKind.character
           ? ocptFloorPlanCharacterColourOf(symbol.label)
@@ -605,6 +629,9 @@ class OcptFloorPlanSheet extends Equatable {
       glyphKind: glyphKind,
       cameraFovWedgeDeg: glyphKind == OcptFloorPlanSymbolGlyphKind.camera && showFieldOfView
           ? (symbol.fovDeg ?? ocptFloorPlanDefaultCameraFovDeg)
+          : null,
+      cameraFovWedgeReachM: glyphKind == OcptFloorPlanSymbolGlyphKind.camera && showFieldOfView
+          ? (symbol.fovReachM ?? ocptFloorPlanCameraFovWedgeLengthM)
           : null,
       setElementShape: glyphKind == OcptFloorPlanSymbolGlyphKind.setElement
           ? (symbol.setElementShape ?? OcptFloorPlanSetElementShape.freeform)

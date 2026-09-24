@@ -329,6 +329,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     on<OcptShotListFloorPlanArrowDeletionRequestedEvent>(_onFloorPlanArrowDeletionRequested);
     on<OcptShotListFloorPlanSymbolLabelChangedEvent>(_onFloorPlanSymbolLabelChanged);
     on<OcptShotListFloorPlanSymbolFovChangedEvent>(_onFloorPlanSymbolFovChanged);
+    on<OcptShotListFloorPlanSymbolFovReachChangedEvent>(_onFloorPlanSymbolFovReachChanged);
     on<OcptShotListFloorPlanArrowSelectedEvent>(_onFloorPlanArrowSelected);
     on<OcptShotListFloorPlanArrowCurveChangedEvent>(_onFloorPlanArrowCurveChanged);
     on<OcptShotListFloorPlanSymbolDuplicatedEvent>(_onFloorPlanSymbolDuplicated);
@@ -3142,6 +3143,34 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     }
   }
 
+  /// Sets camera symbol `event.symbolId`'s own field-of-view wedge reach to `event.fovReachM`,
+  /// dispatched by a drag on its own tip handle ending. Written immediately
+  /// (`OcptFloorPlanService.updateSymbol(fovReachM:)`), one row.
+  Future<void> _onFloorPlanSymbolFovReachChanged(
+    OcptShotListFloorPlanSymbolFovReachChangedEvent event,
+    Emitter<OcptShotListState> emitter,
+  ) async {
+    final project = _projectsManager.currentProject;
+    if (project == null) {
+      return;
+    }
+
+    try {
+      await _floorPlanService.updateSymbol(
+        database: project.database,
+        symbolId: event.symbolId,
+        fovReachM: Value(event.fovReachM),
+      );
+      emitter(state.copyWith(floorPlanSnapshot: await _loadFloorPlans(project)));
+    } catch (error) {
+      appLogger().e(
+        "A problem occurred when tried to change the field-of-view reach of symbol "
+        "${event.symbolId} of the project at ${project.path}: $error",
+      );
+      emitter(state.copyWith(hasWriteError: true));
+    }
+  }
+
   /// Selects arrow `event.arrowId`, or clears the selection when it is null. A view preference;
   /// also clears the symbol selection, the two being mutually exclusive on the canvas.
   Future<void> _onFloorPlanArrowSelected(
@@ -3216,6 +3245,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
         widthM: source.widthM,
         heightM: source.heightM,
         fovDeg: source.fovDeg,
+        fovReachM: source.fovReachM,
         label: source.label,
         setElementShape: source.setElementShape,
       );

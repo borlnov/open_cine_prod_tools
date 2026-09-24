@@ -1028,6 +1028,14 @@ class _ShotListViewState extends State<_ShotListView> {
           : (symbolId, fovDeg) => bloc.add(
               OcptShotListFloorPlanSymbolFovChangedEvent(symbolId: symbolId, fovDeg: fovDeg),
             ),
+      onSymbolFovReachChanged: isReadOnly
+          ? null
+          : (symbolId, fovReachM) => bloc.add(
+              OcptShotListFloorPlanSymbolFovReachChangedEvent(
+                symbolId: symbolId,
+                fovReachM: fovReachM,
+              ),
+            ),
       onSymbolDeleteRequested: isReadOnly
           ? null
           : (symbolId) => unawaited(_handleSymbolDeleteRequested(context, symbolId)),

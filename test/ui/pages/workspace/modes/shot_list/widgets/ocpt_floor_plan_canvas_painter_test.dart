@@ -28,6 +28,7 @@ OcptFloorPlanSymbolShape _symbolShape({
   double widthM = 0.3,
   double heightM = 0.3,
   double? cameraFovWedgeDeg,
+  double? cameraFovWedgeReachM,
   OcptFloorPlanSetElementShape? setElementShape,
   int colorArgb = 0xFF2196F3,
   String? cameraLabel,
@@ -42,12 +43,14 @@ OcptFloorPlanSymbolShape _symbolShape({
   widthM: widthM,
   heightM: heightM,
   fovDeg: null,
+  fovReachM: null,
   label: label,
   colorArgb: colorArgb,
   cameraLabel: cameraLabel,
   isGhost: false,
   glyphKind: glyphKind,
   cameraFovWedgeDeg: cameraFovWedgeDeg,
+  cameraFovWedgeReachM: cameraFovWedgeReachM,
   setElementShape: setElementShape,
 );
 

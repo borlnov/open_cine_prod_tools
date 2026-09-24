@@ -213,6 +213,10 @@ class OcptFloorPlanCanvas extends StatefulWidget {
   /// on one of its own edge handles ends, or null while withheld.
   final void Function(String symbolId, double fovDeg)? onSymbolFovChanged;
 
+  /// Called with a camera symbol's id and its new field-of-view wedge reach (metres) once a drag
+  /// on its own tip handle ends, or null while withheld.
+  final void Function(String symbolId, double fovReachM)? onSymbolFovReachChanged;
+
   /// Called with the selected symbol's id when its own delete action is clicked, or null while
   /// withheld. Only asks — the mode opens `OcptConfirmDialog`.
   final ValueChanged<String>? onSymbolDeleteRequested;
@@ -292,6 +296,7 @@ class OcptFloorPlanCanvas extends StatefulWidget {
     required this.onSymbolResized,
     required this.onSymbolRotated,
     required this.onSymbolFovChanged,
+    required this.onSymbolFovReachChanged,
     required this.onSymbolDeleteRequested,
     required this.onArrowSymbolTapped,
     required this.onArrowAnchorCancelled,
@@ -1137,6 +1142,8 @@ class _OcptFloorPlanCanvasState extends State<OcptFloorPlanCanvas> {
         ),
       if (widget.onSymbolFovChanged != null && symbol.cameraFovWedgeDeg != null)
         ..._buildFovHandles(symbol, centre, rotationDeg, pixelsPerMetre, canvasSize, zoom, pan),
+      if (widget.onSymbolFovReachChanged != null && symbol.cameraFovWedgeDeg != null)
+        _buildFovReachHandle(symbol, centre, rotationDeg, pixelsPerMetre, canvasSize, zoom, pan),
       if (widget.onSymbolDeleteRequested != null)
         Positioned(
           left: resizeScreen.dx + _handleHitSize,
@@ -1210,6 +1217,107 @@ class _OcptFloorPlanCanvasState extends State<OcptFloorPlanCanvas> {
     }
 
     return [buildHandle(-1), buildHandle(1)];
+  }
+
+  /// A camera symbol's own field-of-view **tip** handle, straight ahead of its lens at the wedge's
+  /// own reach (`OcptFloorPlanSymbolShape.cameraFovWedgeReachM`) — dragging it changes how far the
+  /// wedge reaches, never its angle (the two edge handles' own job, [_buildFovHandles]).
+  Widget _buildFovReachHandle(
+    OcptFloorPlanSymbolShape symbol,
+    Offset centre,
+    double rotationDeg,
+    double pixelsPerMetre,
+    Size canvasSize,
+    double zoom,
+    Offset pan,
+  ) {
+    final override = _liveOverride;
+    final fovReachM =
+        (override != null && override.symbolId == symbol.symbolId ? override.fovReachM : null) ??
+        symbol.cameraFovWedgeReachM!;
+    final tipLocalPx = Offset(0, -symbol.heightM / 2 * pixelsPerMetre);
+    final localPx = tipLocalPx + Offset(0, -fovReachM * pixelsPerMetre);
+    final screen = centre + ocptFloorPlanRotateVector(localPx, rotationDeg);
+
+    return Positioned(
+      left: screen.dx - _handleHitSize / 2,
+      top: screen.dy - _handleHitSize / 2,
+      width: _handleHitSize,
+      height: _handleHitSize,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        dragStartBehavior: DragStartBehavior.down,
+        onPanStart: (_) => setState(() {
+          _dragKind = _SymbolDragKind.fovReach;
+          _liveOverride = OcptFloorPlanSymbolLiveOverride(
+            symbolId: symbol.symbolId,
+            xM: symbol.xM,
+            yM: symbol.yM,
+            widthM: symbol.widthM,
+            heightM: symbol.heightM,
+            rotationDeg: symbol.rotationDeg,
+            fovReachM: fovReachM,
+          );
+        }),
+        onPanUpdate: (details) => _updateFovReachDrag(
+          symbol.symbolId,
+          _resolveLocalPosition(details.globalPosition),
+          canvasSize,
+          zoom,
+          pan,
+        ),
+        onPanEnd: (_) => _commitSymbolDrag(symbol),
+        child: _HandleDot(color: Theme.of(context).colorScheme.tertiary),
+      ),
+    );
+  }
+
+  /// Updates [_liveOverride]'s own field-of-view reach every frame of a tip-handle drag: the
+  /// pointer's own distance from the symbol's centre, projected onto its own heading vector (so a
+  /// pointer straying sideways still reads as a forward/backward reach rather than snapping), in
+  /// **canvas space** (through [_resolveLocalPosition], the same fix [_updateRotateDrag] needs),
+  /// minus the half-footprint already between the centre and the lens — clamped to
+  /// [ocptFloorPlanMinCameraFovReachM]..[ocptFloorPlanMaxCameraFovReachM].
+  void _updateFovReachDrag(
+    String symbolId,
+    Offset localPosition,
+    Size canvasSize,
+    double zoom,
+    Offset pan,
+  ) {
+    final override = _liveOverride;
+    if (override == null || override.symbolId != symbolId) {
+      return;
+    }
+
+    final centreScreen = ocptFloorPlanScreenPointOf(
+      xM: override.xM,
+      yM: override.yM,
+      canvasSize: canvasSize,
+      zoom: zoom,
+      pan: pan,
+    );
+    final pointerVector = localPosition - centreScreen;
+    final headingRad = override.rotationDeg * math.pi / 180;
+    final headingVector = Offset(math.sin(headingRad), -math.cos(headingRad));
+    final forwardPx = pointerVector.dx * headingVector.dx + pointerVector.dy * headingVector.dy;
+    final pixelsPerMetre = ocptFloorPlanPixelsPerMetreAt(zoom);
+    final fovReachM = (forwardPx / pixelsPerMetre - override.heightM / 2).clamp(
+      ocptFloorPlanMinCameraFovReachM,
+      ocptFloorPlanMaxCameraFovReachM,
+    );
+
+    setState(() {
+      _liveOverride = OcptFloorPlanSymbolLiveOverride(
+        symbolId: symbolId,
+        xM: override.xM,
+        yM: override.yM,
+        widthM: override.widthM,
+        heightM: override.heightM,
+        rotationDeg: override.rotationDeg,
+        fovReachM: fovReachM,
+      );
+    });
   }
 
   /// Updates [_liveOverride]'s own field-of-view angle every frame of an edge-handle drag: the
@@ -1393,6 +1501,11 @@ class _OcptFloorPlanCanvasState extends State<OcptFloorPlanCanvas> {
         if (fovDeg != null) {
           widget.onSymbolFovChanged?.call(symbol.symbolId, fovDeg);
         }
+      case _SymbolDragKind.fovReach:
+        final fovReachM = override.fovReachM;
+        if (fovReachM != null) {
+          widget.onSymbolFovReachChanged?.call(symbol.symbolId, fovReachM);
+        }
     }
   }
 
@@ -1542,7 +1655,7 @@ class _OcptFloorPlanCanvasState extends State<OcptFloorPlanCanvas> {
 }
 
 /// Which gesture a symbol's own drag currently means.
-enum _SymbolDragKind { move, resize, rotate, fov }
+enum _SymbolDragKind { move, resize, rotate, fov, fovReach }
 
 /// Which gesture the underlay's own drag currently means.
 enum _UnderlayDragKind { move, resize }

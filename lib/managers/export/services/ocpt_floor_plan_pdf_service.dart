@@ -660,8 +660,9 @@ class OcptFloorPlanPdfService {
   }
 
   /// A camera's own body, lens and, while [OcptFloorPlanSymbolShape.cameraFovWedgeDeg] is set, its
-  /// field-of-view wedge — a cone [_cameraFovWedgeLengthM] long, spanning that angle, pointing the
-  /// symbol's own "up" (see [_localPointGraphics]'s own doc comment).
+  /// field-of-view wedge — a cone [OcptFloorPlanSymbolShape.cameraFovWedgeReachM] long (falling back
+  /// to [_cameraFovWedgeLengthM] when null), spanning that angle, pointing the symbol's own "up"
+  /// (see [_localPointGraphics]'s own doc comment).
   void _paintCameraGlyph({
     required PdfGraphics canvas,
     required _FloorPlanPageLayout layout,
@@ -675,8 +676,9 @@ class OcptFloorPlanPdfService {
     if (fovWedgeDeg != null) {
       final halfAngle = fovWedgeDeg * math.pi / 180 / 2;
       final tipYM = -symbol.heightM / 2;
-      final reachXM = _cameraFovWedgeLengthM * math.sin(halfAngle);
-      final reachYM = tipYM - _cameraFovWedgeLengthM * math.cos(halfAngle);
+      final wedgeLengthM = symbol.cameraFovWedgeReachM ?? _cameraFovWedgeLengthM;
+      final reachXM = wedgeLengthM * math.sin(halfAngle);
+      final reachYM = tipYM - wedgeLengthM * math.cos(halfAngle);
       final tip = local(0, tipYM);
       final left = local(-reachXM, reachYM);
       final right = local(reachXM, reachYM);

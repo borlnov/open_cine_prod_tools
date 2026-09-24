@@ -669,6 +669,7 @@ void main() {
           layer: OcptFloorPlanLayer.cameras,
           xM: 1.2,
           yM: 3.4,
+          fovReachM: 5.5,
           label: "A",
         ))!;
         final characterId = (await floorPlanService.placeSymbol(
@@ -746,6 +747,7 @@ void main() {
         expect(restoredCamera.layer, OcptFloorPlanLayer.cameras);
         expect(restoredCamera.xM, 1.2);
         expect(restoredCamera.yM, 3.4);
+        expect(restoredCamera.fovReachM, 5.5);
 
         final restoredArrow = await (preview.select(
           preview.ocptFloorPlanArrowsTable,

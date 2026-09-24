@@ -3900,6 +3900,52 @@ void main() {
           await bloc.close();
         },
       );
+
+      test(
+        "duplicating a camera carries its own field-of-view reach to the copy",
+        () async {
+          await writeScreenplay(twoSceneText);
+          final bloc = buildBloc();
+          await waitForState(bloc, (state) => !state.isLoading);
+          final setId = await createCase(bloc);
+          final shotId = await createShot(bloc);
+
+          bloc.add(
+            OcptShotListFloorPlanSymbolPlacedEvent(
+              setId: setId,
+              layer: OcptFloorPlanLayer.cameras,
+              shotId: shotId,
+              xM: 0,
+              yM: 0,
+            ),
+          );
+          final placed = await waitForState(
+            bloc,
+            (state) => state.selectedSet!.symbols.isNotEmpty,
+          );
+          final sourceId = placed.selectedSet!.symbols.single.id;
+
+          bloc.add(
+            OcptShotListFloorPlanSymbolFovReachChangedEvent(symbolId: sourceId, fovReachM: 4.5),
+          );
+          await waitForState(
+            bloc,
+            (state) => state.selectedSet!.symbols.single.fovReachM == 4.5,
+          );
+
+          bloc.add(OcptShotListFloorPlanSymbolDuplicatedEvent(symbolId: sourceId));
+          final duplicated = await waitForState(
+            bloc,
+            (state) => state.selectedSet!.symbols.length == 2,
+          );
+          final copy = duplicated.selectedSet!.symbols.firstWhere(
+            (symbol) => symbol.id != sourceId,
+          );
+          expect(copy.fovReachM, 4.5);
+
+          await bloc.close();
+        },
+      );
     });
 
     group("R3 — chrome and duplication", () {

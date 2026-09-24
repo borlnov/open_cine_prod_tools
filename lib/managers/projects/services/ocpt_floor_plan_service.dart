@@ -481,6 +481,10 @@ class OcptFloorPlanService {
   /// caller placing one of those simply omits it — and, ordinarily, for whichever of the two this
   /// call isn't (a set element never carries a field of view, a camera never carries a shape).
   ///
+  /// [fovReachM] records a camera symbol's own field-of-view wedge reach, in metres — null meaning
+  /// the drawing's own default (`ocptFloorPlanCameraFovWedgeLengthM`). Null for every other symbol,
+  /// the same as [fovDeg].
+  ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
   Future<String?> placeSymbol({
     required OcptProjectDatabase database,
@@ -493,6 +497,7 @@ class OcptFloorPlanService {
     double? widthM,
     double? heightM,
     double? fovDeg,
+    double? fovReachM,
     String label = '',
     OcptFloorPlanSetElementShape? setElementShape,
   }) async {
@@ -523,6 +528,7 @@ class OcptFloorPlanService {
         widthM: widthM,
         heightM: heightM,
         fovDeg: fovDeg,
+        fovReachM: fovReachM,
         label: label,
         setElementShape: setElementShape,
         isDeleted: false,
@@ -543,12 +549,13 @@ class OcptFloorPlanService {
     return id;
   }
 
-  /// Updates symbol [symbolId]'s position, rotation, footprint, field of view, label and/or
-  /// set-element shape, whichever is passed as something other than [Value.absent] — a move writes
-  /// `xM`/`yM`, a rotate writes `rotationDeg`, a resize writes `widthM`/`heightM`,
-  /// [setElementShape] switches a décor primitive's own type (a wall turned into a door, say), and
-  /// so on, all through this one guarded write. Never touches `setId`, `shotId` or `layer`: those
-  /// are fixed at [placeSymbol] and nothing here can put the scope invariant out of step.
+  /// Updates symbol [symbolId]'s position, rotation, footprint, field of view (angle and reach),
+  /// label and/or set-element shape, whichever is passed as something other than [Value.absent] —
+  /// a move writes `xM`/`yM`, a rotate writes `rotationDeg`, a resize writes `widthM`/`heightM`,
+  /// [fovReachM] writes a camera's own wedge reach (its tip handle), [setElementShape] switches a
+  /// décor primitive's own type (a wall turned into a door, say), and so on, all through this one
+  /// guarded write. Never touches `setId`, `shotId` or `layer`: those are fixed at [placeSymbol]
+  /// and nothing here can put the scope invariant out of step.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
   Future<void> updateSymbol({
@@ -560,6 +567,7 @@ class OcptFloorPlanService {
     Value<double?> widthM = const Value.absent(),
     Value<double?> heightM = const Value.absent(),
     Value<double?> fovDeg = const Value.absent(),
+    Value<double?> fovReachM = const Value.absent(),
     Value<String> label = const Value.absent(),
     Value<OcptFloorPlanSetElementShape?> setElementShape = const Value.absent(),
   }) async {
@@ -574,6 +582,7 @@ class OcptFloorPlanService {
       widthM: widthM,
       heightM: heightM,
       fovDeg: fovDeg,
+      fovReachM: fovReachM,
       label: label,
       setElementShape: setElementShape,
     );

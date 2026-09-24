@@ -1085,6 +1085,13 @@ class OcptProjectVersionCodec {
   /// nullable field this codec reads.
   static const _setElementShapeKey = "setElementShape";
 
+  /// This is the key used to stringify or parse a `floor_plan_symbols.fovReachM` column from a
+  /// JSON object, from payload format 4 — a camera's field-of-view wedge reach, in metres; null
+  /// meaning the drawing's own default. Added while schema version 4 is still an open development
+  /// cycle: see [_setElementShapeKey]'s own doc comment for what that means for an older format-4
+  /// payload.
+  static const _fovReachMKey = "fovReachM";
+
   /// This is the key used to stringify or parse a `floor_plan_arrows.fromSymbolId` column from a
   /// JSON object, from payload format 4.
   static const _fromSymbolIdKey = "fromSymbolId";
@@ -2472,6 +2479,7 @@ class OcptProjectVersionCodec {
     _widthMKey: row.widthM,
     _heightMKey: row.heightM,
     _fovDegKey: row.fovDeg,
+    _fovReachMKey: row.fovReachM,
     _labelKey: row.label,
     _setElementShapeKey: row.setElementShape?.name,
     _isDeletedKey: row.isDeleted,
@@ -2491,6 +2499,7 @@ class OcptProjectVersionCodec {
         widthM: _nullableDouble(json, _widthMKey),
         heightM: _nullableDouble(json, _heightMKey),
         fovDeg: _nullableDouble(json, _fovDegKey),
+        fovReachM: _nullableDouble(json, _fovReachMKey),
         label: _string(json, _labelKey),
         setElementShape: _nullableEnum(
           json,

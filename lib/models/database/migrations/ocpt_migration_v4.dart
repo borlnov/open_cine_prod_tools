@@ -15,7 +15,7 @@ import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart'
 /// five empty tables and keeps every row it already held.
 ///
 /// Because schema version 4 is still an open development cycle (`OcptProjectDatabase
-/// .currentSchemaVersion`'s own doc comment), `floor_plan_symbols.setElementShape` and
+/// .currentSchemaVersion`'s own doc comment), `floor_plan_symbols.setElementShape`/`.fovReachM` and
 /// `floor_plan_arrows.ctrlXM`/`.ctrlYM` were added straight onto `OcptFloorPlanSymbolsTable` and
 /// `OcptFloorPlanArrowsTable` rather than through a v5 migration: this step's `createTable` calls
 /// already produce them, with no `addColumn` needed.
