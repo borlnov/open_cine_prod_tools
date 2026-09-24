@@ -610,3 +610,62 @@ active-layer picker, the tool dimming, the tray edits, tap-to-name on a plain cl
 catalogue) now both read as "Set"; the `FloorPlan` prefix keeps the classes distinct and there is no
 functional conflict, but the vocabulary overlap is deliberate (the maintainer's chosen word) and
 worth knowing.
+
+## 10. Floor plans belong to the Resources set (validated 2026-09-24)
+
+After R3 the maintainer found that a floor-plan "Set" per sequence collides with the Resources
+sets and asked for a second Fable pass. It **supersedes the ownership part of §9** (a plan hanging
+off a scene); the rendering, interaction and chrome of R1–R3 stay.
+
+### 10.1 The model — three scopes
+
+```text
+Set · Kitchen — shared by every sequence   (walls, doors, furniture, underlay)
+Sequence 7 — this sequence only            (breakdown props, re-dressed furniture)
+Shot 7/3 — this shot only                  (cameras, characters, lights, arrows)
+```
+
+- A floor plan **is the plan of a Resources set** (`sets`), one per set, created on the first
+  write. A sequence's tabs are **its `scene_sets` links**, nothing else, so the breakdown and the
+  shot list always say the same thing. A Resources set is one drawable, single-level space; the
+  maintainer picks the granularity per project (kitchen + hallway as one set if they are always
+  played as one space).
+- Link where it is **the same room**, copy where it is **another room laid out the same**:
+  duplicating a set creates a new Resources set in the same location, copying its set scope only.
+  `copyShotBlocking` is unchanged.
+
+### 10.2 Decisions (with the maintainer)
+
+Plan owned by the Resources set (**yes**); a **Sequence** scope between set and shot, holding the
+props and the re-dressed furniture (**yes**); moving a set element inside a sequence asks
+**"every sequence / only this one"**, the second answer writing a sequence-scope override that
+replaces the original there while later set corrections still flow (**yes**); editing stays in the
+shot list, the Resources set card shows an indicator and an "Open in shot list" reveal, a
+Resources-side editor is a later optional step (**yes**). Defaults taken unless the maintainer
+objects: props are labels prefilled from the sequence's `scene_elements` (no `elementId` yet); the
+sequence ↔ set link stays manual with the heading suggestion one click away (never auto-applied);
+unlinking a set from a sequence is allowed and the dialog says how many placements it carries;
+deleting a Resources set tombstones its plan, and the dialog says so; dev `.ocpt` files at the
+current v4 shape are recreated.
+
+Small points: a lone camera reads `3`, and as soon as a shot has two every camera is lettered
+(`3A`, `3B`); the field-of-view reach is per camera and persisted (`fovReachM`, a tip handle); the
+props layer reads "Props" (not "hand props"); every leftover "case" string goes; the metrics mode
+gets a small help button (not only a tooltip, which needs a long press on touch).
+
+### 10.3 Milestones
+
+- **R3b — Quick fixes**, independent of the reshape: the typed set tools (wall, door, furniture,
+  freeform) back in the palette (salvaged from the C2 stash by reading it, never applying it), the
+  camera letters, `fovReachM` + its handle, the metrics help, the strings.
+- **R4 — Store reshape** (v4 in place): `floor_plan_sets.sceneId → setId` (drop `name`/`sortKey`),
+  `floor_plan_symbols` gains `sceneId`, `overridesSymbolId`; the scope matrix in
+  `_checkScopeInvariant`; load through `scene_sets`; `OcptLocationsService.deleteSet` cascades;
+  codec, digest, `_applyPayload` **and** `hydratePreview`; the seed script.
+- **R5 — Shot-list chrome**: tabs = linked sets, `＋ Set` reusing the breakdown picker and
+  `createSetLinkedToScene`, the empty state with the suggestion, the three-group palette with the
+  props chips, the "every sequence / only this one" move, the unlink dialog, the Resources set card
+  indicator and reveal.
+- **R6 (optional)** — a set-only editor in the Resources location sheet (design questions first).
+- **M8** — the record, with a new **ADR 0032** (a plan belongs to the Resources set, three scopes,
+  link vs copy); ADR 0031 still holds.
