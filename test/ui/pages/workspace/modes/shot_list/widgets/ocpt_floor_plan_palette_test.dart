@@ -257,6 +257,39 @@ void main() {
     },
   );
 
+  testWidgets(
+    "the metrics toggle's own help icon shows its explanation on a plain tap (touch-reachable)",
+    (tester) async {
+      tester.view.physicalSize = const Size(1400, 2200);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: const [
+            Tr.delegate,
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          supportedLocales: Tr.delegate.supportedLocales,
+          home: Scaffold(
+            body: SizedBox(width: 220, height: 2000, child: _buildPalette(setName: "Kitchen")),
+          ),
+        ),
+      );
+      final tr = Tr.of(tester.element(find.byType(OcptFloorPlanPalette)));
+
+      expect(find.text(tr.shotListFloorPlanMetricsHelpText), findsNothing);
+
+      await tester.tap(find.byIcon(Icons.help_outline));
+      await tester.pump();
+
+      expect(find.text(tr.shotListFloorPlanMetricsHelpText), findsWidgets);
+    },
+  );
+
   testWidgets("the View group's own set layer row shows the shared décor label", (tester) async {
     await _pump(tester, _buildPalette(setName: "Kitchen"));
     final tr = Tr.of(tester.element(find.byType(OcptFloorPlanPalette)));

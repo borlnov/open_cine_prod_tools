@@ -452,6 +452,8 @@
   "shotListFloorPlanOnionSkinNextLabel": "Plan suivant",
   "shotListFloorPlanOnionSkinOpacityLabel": "Opacité",
   "shotListFloorPlanMetricsToggleLabel": "Afficher les mesures",
+  "shotListFloorPlanMetricsHelpAction": "Aide sur les mesures",
+  "shotListFloorPlanMetricsHelpText": "Affiche la distance entre l'objet sélectionné et chaque autre objet visible. Avec une caméra sélectionnée, elle indique la distance jusqu'au sujet.",
   "shotListFloorPlanFocusWalkHint": "← → pour parcourir les plans",
   "shotListFloorPlanFocusPreviousChipTag": "préc.",
   "shotListFloorPlanFocusNextChipTag": "suiv.",

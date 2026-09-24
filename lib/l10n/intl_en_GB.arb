@@ -3416,6 +3416,20 @@
     "type": "text",
     "placeholders": {}
   },
+  "shotListFloorPlanMetricsHelpAction": "About metrics",
+  "@shotListFloorPlanMetricsHelpAction": {
+    "description": "Tooltip/semantics label of the small help button next to the metrics toggle",
+    "context": "Displayed on the floor plans view's own palette, next to the metrics toggle",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanMetricsHelpText": "Shows the distance from the selected object to every other visible object. With a camera selected, it gives the distance to the subject.",
+  "@shotListFloorPlanMetricsHelpText": {
+    "description": "Explanation shown by the metrics toggle's own help button, opened by a tap so it also works on touch",
+    "context": "Displayed on the floor plans view's own palette, next to the metrics toggle",
+    "type": "text",
+    "placeholders": {}
+  },
   "shotListFloorPlanFocusWalkHint": "← → to walk shots",
   "@shotListFloorPlanFocusWalkHint": {
     "description": "The focus strip's own trailing hint stating the keyboard shortcut walking its shot chips",

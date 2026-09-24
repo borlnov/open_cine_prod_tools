@@ -469,7 +469,10 @@ class OcptFloorPlanPalette extends StatelessWidget {
     );
   }
 
-  /// The metrics overlay's own toggle row.
+  /// The metrics overlay's own toggle row, plus a small help affordance explaining what the
+  /// overlay shows ([_buildMetricsHelp]) — a tap-triggered [Tooltip], never hover- or
+  /// long-press-only, since a long press is the only way a touch device would otherwise reach a
+  /// plain [Tooltip]'s own message.
   Widget _buildMetricsToggle(BuildContext context) => CheckboxListTile(
     dense: true,
     contentPadding: const EdgeInsets.symmetric(horizontal: 12),
@@ -480,7 +483,30 @@ class OcptFloorPlanPalette extends StatelessWidget {
       Tr.of(context).shotListFloorPlanMetricsToggleLabel,
       style: Theme.of(context).textTheme.bodySmall,
     ),
+    secondary: _buildMetricsHelp(context),
   );
+
+  /// The metrics toggle's own help affordance: a small `?` icon whose [Tooltip] opens on a plain
+  /// tap ([TooltipTriggerMode.tap]) rather than the default long press, so it reaches a touch
+  /// device (Android) exactly as easily as a mouse hover reaches an ordinary tooltip elsewhere in
+  /// this app. Explains what the metrics overlay draws: the distance from the selected object to
+  /// every other visible one, or, with a camera selected, the distance to the subject.
+  Widget _buildMetricsHelp(BuildContext context) {
+    final theme = Theme.of(context);
+    return Tooltip(
+      triggerMode: TooltipTriggerMode.tap,
+      message: Tr.of(context).shotListFloorPlanMetricsHelpText,
+      child: Padding(
+        padding: const EdgeInsets.all(4),
+        child: Icon(
+          Icons.help_outline,
+          size: 16,
+          color: theme.colorScheme.onSurfaceVariant,
+          semanticLabel: Tr.of(context).shotListFloorPlanMetricsHelpAction,
+        ),
+      ),
+    );
+  }
 
   /// The field-of-view overlay's own toggle row: every camera's own wedge, on by default.
   Widget _buildShowFieldOfViewToggle(BuildContext context) => CheckboxListTile(
