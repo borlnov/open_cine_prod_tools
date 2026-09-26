@@ -1563,7 +1563,7 @@ class OcptProjectsManager extends AbsWithLifeCycle {
       final escapedPath = newFilePath.replaceAll("'", "''");
       await project.fileDatabase.customStatement("VACUUM INTO '$escapedPath'");
 
-      newDatabase = OcptProjectDatabase(File(newFilePath));
+      newDatabase = OcptProjectDatabase.alongsideAnother(File(newFilePath));
       final info = await newDatabase.select(newDatabase.ocptProjectInfoTable).getSingleOrNull();
       if (info == null) {
         throw StateError("the copy at $newFilePath has no project_info row");
