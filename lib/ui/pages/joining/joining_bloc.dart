@@ -5,6 +5,7 @@
 import 'package:act_flutter_utility/act_flutter_utility.dart';
 import 'package:act_global_manager/act_global_manager.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:open_cine_prod_tools/managers/export/ocpt_export_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_diagnostics_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
@@ -27,7 +28,9 @@ import 'package:open_cine_prod_tools/ui/pages/joining/joining_state.dart';
 ///
 /// A submission — manual or scanned — resolves to an [OcptRelayInvite], then, in order: picks
 /// where the new `.ocpt` lands ([_resolveParentDirectoryPath], reported as
-/// [OcptJoinStep.connecting]), fetches the relay's latest snapshot and materialises it there
+/// [OcptJoinStep.connecting] — the native folder-picker dialog on desktop, cancelling which cancels
+/// the join with no further state change; [OcptProjectsManager.newProjectsDirectory] with no dialog
+/// at all on mobile), fetches the relay's latest snapshot and materialises it there
 /// ([OcptSyncManager.joinFromRelay], reported as [OcptJoinStep.downloading]), and opens the
 /// freshly written project ([OcptProjectsManager.openProject], reported as
 /// [OcptJoinStep.opening]). Any failure along that path — a malformed submission, an unreachable
@@ -52,14 +55,22 @@ class OcptJoiningBloc extends BlocForMixin<OcptJoiningState> {
   /// The router manager used to navigate to the workspace once the joined project is open.
   final OcptRouterManager _routerManager;
 
+  /// The manager used to show the native folder picker [_resolveParentDirectoryPath] picks the
+  /// joined project's own parent folder through on desktop, and to tell desktop from mobile
+  /// ([OcptExportManager.isMobile]) — the same manager `OcptHomeBloc` reaches for the very same
+  /// reason.
+  final OcptExportManager _exportManager;
+
   /// Class constructor
   OcptJoiningBloc({
     OcptSyncManager? syncManager,
     OcptProjectsManager? projectsManager,
     OcptRouterManager? routerManager,
+    OcptExportManager? exportManager,
   }) : _syncManager = syncManager ?? globalGetIt().get<OcptSyncManager>(),
        _projectsManager = projectsManager ?? globalGetIt().get<OcptProjectsManager>(),
        _routerManager = routerManager ?? globalGetIt().get<OcptRouterManager>(),
+       _exportManager = exportManager ?? globalGetIt().get<OcptExportManager>(),
        super(const OcptJoiningState.init());
 
   /// Set by [_onCancelled] and checked by [_join] after every `await` along the join path, to bail
@@ -94,7 +105,7 @@ class OcptJoiningBloc extends BlocForMixin<OcptJoiningState> {
   Future<void> _onManualSubmitted(
     OcptJoiningManualSubmittedEvent event,
     Emitter<OcptJoiningState> emitter,
-  ) => _joinFromRawText(event.inviteLinkText, emitter);
+  ) => _joinFromRawText(event.inviteLinkText, event.destinationConfirmButtonText, emitter);
 
   /// Parses the scanned QR text into an [OcptRelayInvite], then joins — or surfaces
   /// [OcptJoiningState.joinFailed] straight away when it isn't one at all (a QR aimed at some
@@ -102,12 +113,16 @@ class OcptJoiningBloc extends BlocForMixin<OcptJoiningState> {
   Future<void> _onInviteScanned(
     OcptJoiningInviteScannedEvent event,
     Emitter<OcptJoiningState> emitter,
-  ) => _joinFromRawText(event.scannedText, emitter);
+  ) => _joinFromRawText(event.scannedText, event.destinationConfirmButtonText, emitter);
 
   /// Parses [rawText] — a pasted invite link or a scanned QR code's own decoded text, the manual
   /// and scan paths' shared destination — into an [OcptRelayInvite], then joins, or surfaces
   /// [OcptJoiningState.joinFailed] when it isn't one at all.
-  Future<void> _joinFromRawText(String rawText, Emitter<OcptJoiningState> emitter) async {
+  Future<void> _joinFromRawText(
+    String rawText,
+    String destinationConfirmButtonText,
+    Emitter<OcptJoiningState> emitter,
+  ) async {
     final invite = OcptRelayInvite.tryParse(rawText.trim());
     if (invite == null) {
       OcptDiagnosticsManager.log(
@@ -119,7 +134,7 @@ class OcptJoiningBloc extends BlocForMixin<OcptJoiningState> {
       return;
     }
 
-    await _join(invite, emitter);
+    await _join(invite, destinationConfirmButtonText, emitter);
   }
 
   /// A token-free description of what a rejected scan/paste actually held, for the diagnostics log:
@@ -155,7 +170,11 @@ class OcptJoiningBloc extends BlocForMixin<OcptJoiningState> {
   /// this app treats one; any other failure — the relay unreachable, an invalid token, a corrupted
   /// snapshot, the freshly written project failing to open — surfaces as
   /// [OcptJoiningState.joinFailed].
-  Future<void> _join(OcptRelayInvite invite, Emitter<OcptJoiningState> emitter) async {
+  Future<void> _join(
+    OcptRelayInvite invite,
+    String destinationConfirmButtonText,
+    Emitter<OcptJoiningState> emitter,
+  ) async {
     _cancelled = false;
     emitter(
       state.copyWith(
@@ -171,8 +190,13 @@ class OcptJoiningBloc extends BlocForMixin<OcptJoiningState> {
     );
 
     try {
-      final parentDirectoryPath = await _resolveParentDirectoryPath();
+      final parentDirectoryPath = await _resolveParentDirectoryPath(destinationConfirmButtonText);
       if (_cancelled) {
+        return;
+      }
+      if (parentDirectoryPath == null) {
+        // The user cancelled the desktop folder picker.
+        emitter(state.copyWith(isJoining: false, clearJoinStep: true));
         return;
       }
 
@@ -220,6 +244,10 @@ class OcptJoiningBloc extends BlocForMixin<OcptJoiningState> {
         return;
       }
 
+      if (!_exportManager.isMobile) {
+        await _projectsManager.rememberProjectsDirectory(parentDirectoryPath);
+      }
+
       OcptDiagnosticsManager.log(
         category: OcptDiagnosticsCategory.join,
         message: 'succeeded: project=${invite.projectId}',
@@ -238,16 +266,27 @@ class OcptJoiningBloc extends BlocForMixin<OcptJoiningState> {
     }
   }
 
-  /// Where the joined project's `.ocpt` lands: [OcptProjectsManager.newProjectsDirectory], the same
-  /// folder the Home page's own "New project" flow resolves a fresh project's file into
-  /// (`OcptHomeBloc._onCreateProjectRequested`): the platform's Downloads folder on desktop, the
-  /// application's own documents directory on Android/iOS, with no dialog on any platform.
+  /// Where the joined project's `.ocpt` lands: the folder picked in the native folder-picker
+  /// dialog on desktop (mirroring `OcptHomeBloc`'s own save-file dialog, suggested inside
+  /// [OcptProjectsManager.suggestedProjectsDirectory] and labelled [confirmButtonText]'s own confirm
+  /// button), or [OcptProjectsManager.newProjectsDirectory] with no dialog at all on mobile, where
+  /// `file_selector`'s `getDirectoryPath` has no Android/iOS implementation (ADR 0009) — the
+  /// application's own documents directory then.
   ///
   /// Nothing is written here: the joined project's own folder is created by the package import,
-  /// which refuses to replace one already there.
-  Future<String> _resolveParentDirectoryPath() async {
-    final directory = await _projectsManager.newProjectsDirectory();
-    return directory.path;
+  /// which refuses to replace one already there. Returns null when the user cancelled the desktop
+  /// dialog.
+  Future<String?> _resolveParentDirectoryPath(String confirmButtonText) async {
+    if (_exportManager.isMobile) {
+      final directory = await _projectsManager.newProjectsDirectory();
+      return directory.path;
+    }
+
+    final suggestedDirectory = await _projectsManager.suggestedProjectsDirectory();
+    return _exportManager.saveLocationService.pickDirectory(
+      confirmButtonText: confirmButtonText,
+      initialDirectory: suggestedDirectory,
+    );
   }
 
   /// Clears [OcptJoiningState.joinFailed] once the page has shown its own snack bar for it.

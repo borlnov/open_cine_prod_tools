@@ -19,18 +19,28 @@ class OcptHomeRefreshRequestedEvent extends OcptHomeEvent {
 
 /// Requests the creation of a new project named [name].
 ///
-/// A free file path is resolved for the new project, with no dialog, then the project is created
-/// there and the app navigates to the editor.
+/// On desktop this shows the native save-file dialog first, suggesting `<name>.ocpt` inside
+/// `OcptProjectsManager.suggestedProjectsDirectory` — the last folder a save dialog landed in, or
+/// the default projects folder the very first time — and the project is only ever created at the
+/// path the user actually picked; cancelling the dialog creates nothing. On mobile, where there is
+/// no such dialog (`file_selector`'s `getSaveLocation` has no Android/iOS implementation), a free
+/// file path is resolved with no dialog at all, exactly as before. Either way, the project is
+/// created and the app navigates to the editor once it is.
 class OcptHomeCreateProjectRequestedEvent extends OcptHomeEvent {
-  /// The name entered by the user for the new project.
+  /// The name entered by the user for the new project — kept as the project's own name whichever
+  /// file name the desktop save dialog is actually given (the dialog only ever renames the file, not
+  /// the project).
   final String name;
 
+  /// The label of the project file type shown in the desktop save-file dialog.
+  final String fileTypeLabel;
+
   /// Class constructor
-  const OcptHomeCreateProjectRequestedEvent({required this.name});
+  const OcptHomeCreateProjectRequestedEvent({required this.name, required this.fileTypeLabel});
 
   /// Object properties
   @override
-  List<Object?> get props => [...super.props, name];
+  List<Object?> get props => [...super.props, name, fileTypeLabel];
 }
 
 /// Requests opening a project, then navigating to the editor.
@@ -129,9 +139,14 @@ class OcptHomeErrorDismissedEvent extends OcptHomeEvent {
 /// Requests creating a new project seeded with the content of a picked screenplay file.
 ///
 /// This shows an open-file dialog to pick the screenplay — a `.fountain`, an `.fdx` or a
-/// `.celtx`, the last two being converted to Fountain as they are read —, then resolves the new
-/// project's free file path with no dialog, creates it, imports the
-/// picked file's text into it, and navigates to the editor.
+/// `.celtx`, the last two being converted to Fountain as they are read. On desktop, a save-file
+/// dialog then lets the user pick where the new project itself lands (mirroring
+/// [OcptHomeCreateProjectRequestedEvent]'s own dialog, suggested inside
+/// `OcptProjectsManager.suggestedProjectsDirectory`), and the project's own name is taken from
+/// whichever file name the user actually saved it under; cancelling either dialog creates nothing.
+/// On mobile, where there is no save dialog, a free file path is resolved with no dialog at all and
+/// the project is named after the picked screenplay, exactly as before. Either way, the picked
+/// file's text is imported into the fresh project, and the app navigates to the editor.
 ///
 /// A picked file that cannot be read as a screenplay creates nothing at all: it lands in
 /// `OcptHomeState.screenplayImportError` for the page to word, no project ever being created for
@@ -140,12 +155,18 @@ class OcptHomeImportScreenplayRequestedEvent extends OcptHomeEvent {
   /// The label of the screenplay file types shown in the native open-file dialog.
   final String screenplayFileTypeLabel;
 
+  /// The label of the project file type shown in the desktop save-file dialog.
+  final String projectFileTypeLabel;
+
   /// Class constructor
-  const OcptHomeImportScreenplayRequestedEvent({required this.screenplayFileTypeLabel});
+  const OcptHomeImportScreenplayRequestedEvent({
+    required this.screenplayFileTypeLabel,
+    required this.projectFileTypeLabel,
+  });
 
   /// Object properties
   @override
-  List<Object?> get props => [...super.props, screenplayFileTypeLabel];
+  List<Object?> get props => [...super.props, screenplayFileTypeLabel, projectFileTypeLabel];
 }
 
 /// Dismisses the transient screenplay import error currently shown, if any.

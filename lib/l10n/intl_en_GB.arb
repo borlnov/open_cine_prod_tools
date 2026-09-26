@@ -6227,6 +6227,34 @@
     "type": "text",
     "placeholders": {}
   },
+  "projectSettingsFileSectionTitle": "Project file",
+  "@projectSettingsFileSectionTitle": {
+    "description": "Title of the project settings page's project file section",
+    "context": "Displayed at the top of the project file section card on the project settings page",
+    "type": "text",
+    "placeholders": {}
+  },
+  "projectSettingsShowInFolderAction": "Show in folder",
+  "@projectSettingsShowInFolderAction": {
+    "description": "Label of the button opening the project's own folder in the platform's file manager",
+    "context": "Displayed in the project file section card on the project settings page",
+    "type": "text",
+    "placeholders": {}
+  },
+  "projectSettingsMoveAction": "Move…",
+  "@projectSettingsMoveAction": {
+    "description": "Label of the button moving the project's file to a different location",
+    "context": "Displayed in the project file section card on the project settings page",
+    "type": "text",
+    "placeholders": {}
+  },
+  "projectSettingsMoveWithheldByHostingHint": "Stop hosting this project to move it.",
+  "@projectSettingsMoveWithheldByHostingHint": {
+    "description": "Explains why the Move action is withheld while an in-app-hosted relay is online for this project",
+    "context": "Displayed under the project's file path in the project file section card, in place of the Move button",
+    "type": "text",
+    "placeholders": {}
+  },
   "projectSettingsCurrencySectionTitle": "Currency",
   "@projectSettingsCurrencySectionTitle": {
     "description": "Title of the project settings page's currency section",
@@ -15220,6 +15248,10 @@
   "joiningJoinAction": "Join",
   "@joiningJoinAction": {
     "description": "Primary button of the Rejoindre page's own manual entry form"
+  },
+  "joiningDestinationConfirmAction": "Join here",
+  "@joiningDestinationConfirmAction": {
+    "description": "Label of the native folder picker's own confirm button, when picking the joined project's own destination folder, on desktop"
   },
   "joiningNoteText": "Joining creates a full local copy of this project: it downloads the relay's snapshot, then keeps syncing. A new card will appear on the home screen.",
   "@joiningNoteText": {

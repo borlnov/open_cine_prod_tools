@@ -5,8 +5,12 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:act_file_transfer_manager/act_file_transfer_manager.dart';
+import 'package:act_platform_manager/act_platform_manager.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:open_cine_prod_tools/managers/export/ocpt_export_manager.dart';
+import 'package:open_cine_prod_tools/managers/export/services/ocpt_save_location_service.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_config_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
@@ -70,11 +74,19 @@ void _mockSecureStorage(Map<String, String> store) {
 class _TestProjectsManager extends OcptProjectsManager {
   _TestProjectsManager({required this.directory, super.propertiesManager, super.appLanguageCode});
 
-  /// The directory [newProjectsDirectory] always resolves to.
+  /// The directory [newProjectsDirectory] and [suggestedProjectsDirectory] always resolve to.
   final Directory directory;
 
   @override
   Future<Directory> newProjectsDirectory() async => directory;
+
+  /// Overridden for the very same reason [newProjectsDirectory] is: the real
+  /// [OcptProjectsManager.suggestedProjectsDirectory] falls back to
+  /// [OcptProjectsManager.getDefaultProjectsDirectory], which asks `path_provider` for the
+  /// platform's real documents directory the moment nothing has been remembered yet — exactly what
+  /// a plain `flutter test` run cannot answer.
+  @override
+  Future<String> suggestedProjectsDirectory() async => directory.path;
 }
 
 /// An [OcptSyncManager] whose [joinFromRelay] is entirely stubbed: it never touches the filesystem
@@ -121,6 +133,60 @@ class _FakeSyncManager extends OcptSyncManager {
     await whileJoining?.call();
     return joinResultPath;
   }
+}
+
+/// A [PlatformManager] whose [isMobile] is stubbed, so a test can exercise either of
+/// `OcptJoiningBloc._resolveParentDirectoryPath`'s branches without a real platform underneath it —
+/// the same double `ocpt_export_manager_test.dart`'s own `_StubPlatformManager` already is.
+class _StubPlatformManager extends PlatformManager {
+  _StubPlatformManager({required this.isMobile});
+
+  @override
+  final bool isMobile;
+}
+
+/// A save location service answering [directoryAnswer] without ever showing a native folder
+/// picker, and recording that it was asked — a null answer is the user cancelling the dialog.
+class _RecordingSaveLocationService extends OcptSaveLocationService {
+  /// The path [pickDirectory] hands back, or null to answer as a cancelled dialog.
+  final String? directoryAnswer;
+
+  /// How many times a directory was asked for.
+  int askCount = 0;
+
+  /// The confirm-button label of the last [pickDirectory] call, or null if it was never called.
+  String? lastConfirmButtonText;
+
+  /// The `initialDirectory` of the last [pickDirectory] call, or null if it was never called or
+  /// none was passed.
+  String? lastInitialDirectory;
+
+  /// Class constructor
+  _RecordingSaveLocationService({this.directoryAnswer});
+
+  @override
+  Future<String?> pickDirectory({
+    required String confirmButtonText,
+    String? initialDirectory,
+  }) async {
+    askCount++;
+    lastConfirmButtonText = confirmButtonText;
+    lastInitialDirectory = initialDirectory;
+    return directoryAnswer;
+  }
+}
+
+/// An export manager used only to tell `OcptJoiningBloc` desktop from mobile
+/// ([OcptExportManager.isMobile]) and, on desktop, to answer its folder picker through
+/// [saveLocationService] — [isMobile] defaults to true so a test not exercising the desktop
+/// dialog keeps taking the very same no-dialog branch it always has
+/// (`OcptProjectsManager.newProjectsDirectory`).
+class _FakeExportManager extends OcptExportManager {
+  _FakeExportManager({bool isMobile = true, super.saveLocationService})
+    : super(
+        fileSelectorManager: const FileSelectorManager(),
+        platformManager: _StubPlatformManager(isMobile: isMobile),
+      );
 }
 
 /// A router manager whose [push]/[replace] only record the route they were called with — this
@@ -227,11 +293,13 @@ void main() {
   OcptJoiningBloc buildBloc({
     required _FakeSyncManager manager,
     required _RecordingRouterManager routerManager,
+    OcptExportManager? exportManager,
   }) {
     final bloc = OcptJoiningBloc(
       syncManager: manager,
       projectsManager: projectsManager,
       routerManager: routerManager,
+      exportManager: exportManager ?? _FakeExportManager(),
     );
     addTearDown(bloc.close);
     return bloc;
@@ -254,21 +322,32 @@ void main() {
     final steps = <OcptJoinStep?>[];
     final subscription = bloc.stream.listen((state) => steps.add(state.joinStep));
 
-    bloc.add(OcptJoiningManualSubmittedEvent(inviteLinkText: validInviteLink));
-    await pumpEventQueue();
-    await subscription.cancel();
+      bloc.add(
+        OcptJoiningManualSubmittedEvent(
+          inviteLinkText: validInviteLink,
+          destinationConfirmButtonText: "Join here",
+        ),
+      );
+      await pumpEventQueue();
+      await subscription.cancel();
 
-    expect(steps, [OcptJoinStep.connecting, OcptJoinStep.downloading, OcptJoinStep.opening, null]);
-    expect(manager.joinCallCount, 1);
-    expect(bloc.state.isJoining, isFalse);
-    expect(bloc.state.joinFailed, isFalse);
-    expect(bloc.state.joinSucceeded, isTrue);
-    // The bloc never navigates on its own once a join succeeds: only
-    // `OcptJoiningOpenRequestedEvent` does, on the user's own explicit "Ouvrir".
-    expect(routerManager.pushedRoute, isNull);
-    expect(routerManager.replacedRoute, isNull);
-    expect(projectsManager.currentProject?.path, joinedProjectPath);
-  });
+      expect(steps, [
+        OcptJoinStep.connecting,
+        OcptJoinStep.downloading,
+        OcptJoinStep.opening,
+        null,
+      ]);
+      expect(manager.joinCallCount, 1);
+      expect(bloc.state.isJoining, isFalse);
+      expect(bloc.state.joinFailed, isFalse);
+      expect(bloc.state.joinSucceeded, isTrue);
+      // The bloc never navigates on its own once a join succeeds: only
+      // `OcptJoiningOpenRequestedEvent` does, on the user's own explicit "Ouvrir".
+      expect(routerManager.pushedRoute, isNull);
+      expect(routerManager.replacedRoute, isNull);
+      expect(projectsManager.currentProject?.path, joinedProjectPath);
+    },
+  );
 
   test("a valid scanned invite joins the project just like a manual submission", () async {
     final manager = _FakeSyncManager(pairingService: pairingService, joinResultPath: joinedProjectPath);
@@ -280,7 +359,12 @@ void main() {
       projectId: "project-abc",
       token: "token-1",
     );
-    bloc.add(OcptJoiningInviteScannedEvent(invite.toInviteString()));
+    bloc.add(
+      OcptJoiningInviteScannedEvent(
+        invite.toInviteString(),
+        destinationConfirmButtonText: "Join here",
+      ),
+    );
     await pumpEventQueue();
 
     expect(manager.joinCallCount, 1);
@@ -295,7 +379,12 @@ void main() {
     final routerManager = _RecordingRouterManager();
     final bloc = buildBloc(manager: manager, routerManager: routerManager);
 
-    bloc.add(OcptJoiningManualSubmittedEvent(inviteLinkText: validInviteLink));
+    bloc.add(
+      OcptJoiningManualSubmittedEvent(
+        inviteLinkText: validInviteLink,
+        destinationConfirmButtonText: "Join here",
+      ),
+    );
     await pumpEventQueue();
     expect(bloc.state.joinSucceeded, isTrue);
     expect(routerManager.replacedRoute, isNull);
@@ -317,7 +406,12 @@ void main() {
     final routerManager = _RecordingRouterManager();
     final bloc = buildBloc(manager: manager, routerManager: routerManager);
 
-    bloc.add(OcptJoiningManualSubmittedEvent(inviteLinkText: validInviteLink));
+    bloc.add(
+      OcptJoiningManualSubmittedEvent(
+        inviteLinkText: validInviteLink,
+        destinationConfirmButtonText: "Join here",
+      ),
+    );
     await pumpEventQueue();
 
     expect(bloc.state.isJoining, isTrue);
@@ -348,7 +442,12 @@ void main() {
     final routerManager = _RecordingRouterManager();
     final bloc = buildBloc(manager: manager, routerManager: routerManager);
 
-    bloc.add(const OcptJoiningManualSubmittedEvent(inviteLinkText: "not an invite link at all"));
+    bloc.add(
+      const OcptJoiningManualSubmittedEvent(
+        inviteLinkText: "not an invite link at all",
+        destinationConfirmButtonText: "Join here",
+      ),
+    );
     await pumpEventQueue();
 
     expect(manager.joinCallCount, 0);
@@ -363,7 +462,12 @@ void main() {
     final routerManager = _RecordingRouterManager();
     final bloc = buildBloc(manager: manager, routerManager: routerManager);
 
-    bloc.add(const OcptJoiningManualSubmittedEvent(inviteLinkText: ""));
+    bloc.add(
+      const OcptJoiningManualSubmittedEvent(
+        inviteLinkText: "",
+        destinationConfirmButtonText: "Join here",
+      ),
+    );
     await pumpEventQueue();
 
     expect(manager.joinCallCount, 0);
@@ -375,7 +479,12 @@ void main() {
     final routerManager = _RecordingRouterManager();
     final bloc = buildBloc(manager: manager, routerManager: routerManager);
 
-    bloc.add(const OcptJoiningInviteScannedEvent("this is not a QR code this app understands"));
+    bloc.add(
+      const OcptJoiningInviteScannedEvent(
+        "this is not a QR code this app understands",
+        destinationConfirmButtonText: "Join here",
+      ),
+    );
     await pumpEventQueue();
 
     expect(manager.joinCallCount, 0);
@@ -389,7 +498,9 @@ void main() {
     final routerManager = _RecordingRouterManager();
     final bloc = buildBloc(manager: manager, routerManager: routerManager);
 
-    bloc.add(const OcptJoiningInviteScannedEvent("garbage"));
+    bloc.add(
+      const OcptJoiningInviteScannedEvent("garbage", destinationConfirmButtonText: "Join here"),
+    );
     await pumpEventQueue();
     expect(bloc.state.joinFailed, isTrue);
 
@@ -408,7 +519,12 @@ void main() {
     final routerManager = _RecordingRouterManager();
     final bloc = buildBloc(manager: manager, routerManager: routerManager);
 
-    bloc.add(OcptJoiningManualSubmittedEvent(inviteLinkText: validInviteLink));
+    bloc.add(
+      OcptJoiningManualSubmittedEvent(
+        inviteLinkText: validInviteLink,
+        destinationConfirmButtonText: "Join here",
+      ),
+    );
     await pumpEventQueue();
 
     expect(bloc.state.isJoining, isTrue);
@@ -427,14 +543,22 @@ void main() {
   });
 
   test(
-    "resolves the destination through the projects manager's own new-projects folder, with no "
-    "dialog to cancel",
+    "on mobile, resolves the destination through the projects manager's own new-projects folder, "
+    "with no dialog to cancel",
     () async {
-      final manager = _FakeSyncManager(pairingService: pairingService, joinResultPath: joinedProjectPath);
+      final manager = _FakeSyncManager(
+        pairingService: pairingService,
+        joinResultPath: joinedProjectPath,
+      );
       final routerManager = _RecordingRouterManager();
       final bloc = buildBloc(manager: manager, routerManager: routerManager);
 
-      bloc.add(OcptJoiningManualSubmittedEvent(inviteLinkText: validInviteLink));
+      bloc.add(
+        OcptJoiningManualSubmittedEvent(
+          inviteLinkText: validInviteLink,
+          destinationConfirmButtonText: "Join here",
+        ),
+      );
       await pumpEventQueue();
 
       // Nothing asks where to put the project: the join runs straight through to the fake relay,
@@ -444,4 +568,68 @@ void main() {
       expect(bloc.state.joinSucceeded, isTrue);
     },
   );
+
+  test(
+    "on desktop, the picked folder is used and labelled with the given confirm button text",
+    () async {
+      final manager = _FakeSyncManager(
+        pairingService: pairingService,
+        joinResultPath: joinedProjectPath,
+      );
+      final routerManager = _RecordingRouterManager();
+      final saveLocationService = _RecordingSaveLocationService(directoryAnswer: tempDir.path);
+      final bloc = buildBloc(
+        manager: manager,
+        routerManager: routerManager,
+        exportManager: _FakeExportManager(
+          isMobile: false,
+          saveLocationService: saveLocationService,
+        ),
+      );
+
+      bloc.add(
+        OcptJoiningManualSubmittedEvent(
+          inviteLinkText: validInviteLink,
+          destinationConfirmButtonText: "Join here",
+        ),
+      );
+      await pumpEventQueue();
+
+      expect(saveLocationService.askCount, 1);
+      expect(saveLocationService.lastConfirmButtonText, "Join here");
+      expect(manager.joinCallCount, 1);
+      expect(manager.lastParentDirectoryPath, tempDir.path);
+      expect(bloc.state.joinSucceeded, isTrue);
+    },
+  );
+
+  test("on desktop, cancelling the folder picker cancels the join with no error", () async {
+    final manager = _FakeSyncManager(
+      pairingService: pairingService,
+      joinResultPath: joinedProjectPath,
+    );
+    final routerManager = _RecordingRouterManager();
+    final saveLocationService = _RecordingSaveLocationService();
+    final bloc = buildBloc(
+      manager: manager,
+      routerManager: routerManager,
+      exportManager: _FakeExportManager(isMobile: false, saveLocationService: saveLocationService),
+    );
+
+    bloc.add(
+      OcptJoiningManualSubmittedEvent(
+        inviteLinkText: validInviteLink,
+        destinationConfirmButtonText: "Join here",
+      ),
+    );
+    await pumpEventQueue();
+
+    expect(saveLocationService.askCount, 1);
+    expect(manager.joinCallCount, 0);
+    expect(bloc.state.isJoining, isFalse);
+    expect(bloc.state.joinFailed, isFalse);
+    expect(bloc.state.joinSucceeded, isFalse);
+    expect(routerManager.pushedRoute, isNull);
+    expect(routerManager.replacedRoute, isNull);
+  });
 }

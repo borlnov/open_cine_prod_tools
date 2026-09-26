@@ -2,6 +2,9 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+import 'dart:io';
+
+import 'package:act_file_transfer_manager/act_file_transfer_manager.dart';
 import 'package:act_global_manager/act_global_manager.dart';
 import 'package:act_platform_manager/act_platform_manager.dart';
 import 'package:flutter/material.dart';
@@ -10,6 +13,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
+import 'package:open_cine_prod_tools/managers/export/ocpt_export_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
@@ -60,6 +64,34 @@ class _FailFastSyncManager extends OcptSyncManager {
   }) async => throw Exception("no relay reachable in this test");
 }
 
+/// A [PlatformManager] whose [isMobile] is stubbed to true, so [_joiningExportManager] never
+/// actually reaches a real native dialog — none of this page's own tests exercise the desktop
+/// save/folder dialogs themselves, that being `joining_bloc_test.dart`'s own job.
+class _StubPlatformManager extends PlatformManager {
+  _StubPlatformManager({required this.isMobile});
+
+  @override
+  final bool isMobile;
+}
+
+/// The export manager every [OcptJoiningBloc] built below is given: real, but reporting
+/// [OcptExportManager.isMobile] true, so a test that submits a join never touches a real native
+/// folder-picker dialog `flutter test` cannot show.
+OcptExportManager _joiningExportManager() => OcptExportManager(
+  fileSelectorManager: const FileSelectorManager(),
+  platformManager: _StubPlatformManager(isMobile: true),
+);
+
+/// A projects manager whose [newProjectsDirectory] answers the system temporary directory without
+/// asking `path_provider`, which never answers under a plain `flutter test` run: the join a test
+/// submits resolves its folder through it before reaching [_FailFastSyncManager].
+class _TestProjectsManager extends OcptProjectsManager {
+  _TestProjectsManager({super.propertiesManager}) : super(appLanguageCode: () => "en");
+
+  @override
+  Future<Directory> newProjectsDirectory() async => Directory.systemTemp;
+}
+
 /// An [OcptJoiningBloc] whose own protected `emit` is exposed as [pushTestState] — used to drive
 /// `OcptJoiningView` straight to a chosen [OcptJoiningState] with no real join (and no camera)
 /// involved at all, exactly what the blocking overlay's own tests need to reach the busy and
@@ -67,10 +99,15 @@ class _FailFastSyncManager extends OcptSyncManager {
 /// already covers on its own.
 class _TestableJoiningBloc extends OcptJoiningBloc {
   _TestableJoiningBloc({
-    required super.syncManager,
-    required super.projectsManager,
-    required super.routerManager,
-  });
+    required OcptSyncManager syncManager,
+    required OcptProjectsManager projectsManager,
+    required OcptRouterManager routerManager,
+  }) : super(
+         syncManager: syncManager,
+         projectsManager: projectsManager,
+         routerManager: routerManager,
+         exportManager: _joiningExportManager(),
+       );
 
   /// Pushes [state] directly onto the bloc's own stream, bypassing every event handler.
   void pushTestState(OcptJoiningState state) => emit(state);
@@ -137,8 +174,9 @@ void main() {
 
     final bloc = OcptJoiningBloc(
       syncManager: _FailFastSyncManager(),
-      projectsManager: OcptProjectsManager(propertiesManager: propertiesManager, appLanguageCode: () => "en"),
+      projectsManager: _TestProjectsManager(propertiesManager: propertiesManager),
       routerManager: OcptRouterManager(),
+      exportManager: _joiningExportManager(),
     );
     addTearDown(bloc.close);
 
@@ -219,7 +257,7 @@ void main() {
 
     final bloc = _TestableJoiningBloc(
       syncManager: OcptSyncManager(changesetService: const OcptChangesetService()),
-      projectsManager: OcptProjectsManager(propertiesManager: propertiesManager, appLanguageCode: () => "en"),
+      projectsManager: _TestProjectsManager(propertiesManager: propertiesManager),
       routerManager: OcptRouterManager(),
     );
     addTearDown(bloc.close);
@@ -262,7 +300,7 @@ void main() {
     final routerManager = _RecordingRouterManager();
     final bloc = _TestableJoiningBloc(
       syncManager: OcptSyncManager(changesetService: const OcptChangesetService()),
-      projectsManager: OcptProjectsManager(propertiesManager: propertiesManager, appLanguageCode: () => "en"),
+      projectsManager: _TestProjectsManager(propertiesManager: propertiesManager),
       routerManager: routerManager,
     );
     addTearDown(bloc.close);

@@ -17,12 +17,19 @@ class OcptJoiningManualSubmittedEvent extends OcptJoiningEvent {
   /// The invite link the user pasted, as free text.
   final String inviteLinkText;
 
+  /// The label of the native folder picker's own confirm button, shown on desktop when picking the
+  /// joined project's own destination folder.
+  final String destinationConfirmButtonText;
+
   /// Class constructor
-  const OcptJoiningManualSubmittedEvent({required this.inviteLinkText});
+  const OcptJoiningManualSubmittedEvent({
+    required this.inviteLinkText,
+    required this.destinationConfirmButtonText,
+  });
 
   /// Object properties
   @override
-  List<Object?> get props => [...super.props, inviteLinkText];
+  List<Object?> get props => [...super.props, inviteLinkText, destinationConfirmButtonText];
 }
 
 /// Reports that the camera scanner found a QR code, carrying its raw decoded text — not
@@ -32,12 +39,21 @@ class OcptJoiningInviteScannedEvent extends OcptJoiningEvent {
   /// The raw text the camera decoded from the scanned code.
   final String scannedText;
 
+  /// The label of the native folder picker's own confirm button — see
+  /// [OcptJoiningManualSubmittedEvent.destinationConfirmButtonText]. Scanning only ever happens on
+  /// mobile, where no such dialog exists, but the field travels with every join attempt regardless,
+  /// exactly as [OcptJoiningManualSubmittedEvent]'s own does.
+  final String destinationConfirmButtonText;
+
   /// Class constructor
-  const OcptJoiningInviteScannedEvent(this.scannedText);
+  const OcptJoiningInviteScannedEvent(
+    this.scannedText, {
+    required this.destinationConfirmButtonText,
+  });
 
   /// Object properties
   @override
-  List<Object?> get props => [...super.props, scannedText];
+  List<Object?> get props => [...super.props, scannedText, destinationConfirmButtonText];
 }
 
 /// Reports that the page has shown `OcptJoiningState.joinFailed`'s own snack bar, so the bloc

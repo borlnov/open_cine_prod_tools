@@ -12,6 +12,7 @@ import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_mileage_rate.dart';
 import 'package:open_cine_prod_tools/models/ocpt_episode.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
+import 'package:open_cine_prod_tools/types/ocpt_project_move_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_settings_reveal.dart';
 import 'package:open_cine_prod_tools/types/ocpt_screenplay_language.dart';
 import 'package:open_cine_prod_tools/ui/pages/project_settings/project_settings_bloc.dart';
@@ -22,6 +23,7 @@ import 'package:open_cine_prod_tools/ui/pages/project_settings/widgets/ocpt_proj
 import 'package:open_cine_prod_tools/ui/pages/project_settings/widgets/ocpt_project_settings_currency_section.dart';
 import 'package:open_cine_prod_tools/ui/pages/project_settings/widgets/ocpt_project_settings_dictionary_section.dart';
 import 'package:open_cine_prod_tools/ui/pages/project_settings/widgets/ocpt_project_settings_episodes_section.dart';
+import 'package:open_cine_prod_tools/ui/pages/project_settings/widgets/ocpt_project_settings_file_section.dart';
 import 'package:open_cine_prod_tools/ui/pages/project_settings/widgets/ocpt_project_settings_mileage_rates_section.dart';
 import 'package:open_cine_prod_tools/ui/pages/project_settings/widgets/ocpt_project_settings_minimum_rest_section.dart';
 import 'package:open_cine_prod_tools/ui/pages/project_settings/widgets/ocpt_project_settings_page_format_section.dart';
@@ -100,7 +102,8 @@ class _OcptProjectSettingsViewState extends State<OcptProjectSettingsView> {
 
   @override
   Widget build(BuildContext context) =>
-      BlocBuilder<OcptProjectSettingsBloc, OcptProjectSettingsState>(
+      BlocConsumer<OcptProjectSettingsBloc, OcptProjectSettingsState>(
+        listener: _onStateChanged,
         builder: (context, state) {
           if (state.isLoading) {
             return const Scaffold(body: Center(child: CircularProgressIndicator()));
@@ -121,6 +124,19 @@ class _OcptProjectSettingsViewState extends State<OcptProjectSettingsView> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
+                      OcptProjectSettingsFileSection(
+                        filePath: state.projectFilePath,
+                        onShowInFolderRequested: state.isShowInFolderAvailable
+                            ? () => _onShowInFolderRequested(context)
+                            : null,
+                        onMoveRequested: state.isMoveAvailable
+                            ? () => _onMoveRequested(context)
+                            : null,
+                        moveWithheldHint: state.isMoveWithheldByHosting
+                            ? Tr.of(context).projectSettingsMoveWithheldByHostingHint
+                            : null,
+                      ),
+                      const SizedBox(height: 16),
                       OcptProjectSettingsCurrencySection(
                         currencyCode: state.currencyCode,
                         onCurrencyCodeChanged: (code) => _onCurrencyChanged(context, code),
@@ -234,6 +250,56 @@ class _OcptProjectSettingsViewState extends State<OcptProjectSettingsView> {
   /// it.
   void _pop(OcptProjectSettingsState state) =>
       globalGetIt().get<OcptRouterManager>().pop<bool>(state.hasChanged);
+
+  /// States [OcptProjectSettingsState.moveError] the moment it appears, then dismisses it from the
+  /// state — the same one-shot-notice shape the home page's own transient errors already follow.
+  void _onStateChanged(BuildContext context, OcptProjectSettingsState state) {
+    final moveError = state.moveError;
+    if (moveError != null) {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(SnackBar(content: Text(_moveErrorMessage(context, moveError))));
+
+      context.read<OcptProjectSettingsBloc>().add(
+        const OcptProjectSettingsMoveErrorDismissedEvent(),
+      );
+    }
+  }
+
+  /// Maps [status] to its localized, user-facing message, reusing the home page's own wording for
+  /// the two outcomes a project's own creation can already fail with — an existing file at the
+  /// destination, or a filesystem/database problem — since moving one can fail exactly the same
+  /// two ways.
+  ///
+  /// [OcptProjectMoveStatus.ok] and [OcptProjectMoveStatus.noProjectOpen] are never actually shown:
+  /// the former is success, not an error, and the latter can't happen here — this page is reachable
+  /// only while a project is open and never while one is being previewed — but the switch still
+  /// needs a branch for both to stay exhaustive, so [OcptProjectMoveStatus.noProjectOpen] falls
+  /// back to the very same generic wording [OcptProjectMoveStatus.ioError] gets.
+  String _moveErrorMessage(BuildContext context, OcptProjectMoveStatus status) {
+    final tr = Tr.of(context);
+
+    return switch (status) {
+      OcptProjectMoveStatus.ok => "",
+      OcptProjectMoveStatus.noProjectOpen || OcptProjectMoveStatus.ioError => tr.homeErrorIoError,
+      OcptProjectMoveStatus.fileAlreadyExists => tr.homeErrorFileAlreadyExists,
+    };
+  }
+
+  /// Dispatches the event that opens the project's own folder in the platform's file manager.
+  void _onShowInFolderRequested(BuildContext context) {
+    context.read<OcptProjectSettingsBloc>().add(
+      const OcptProjectSettingsShowInFolderRequestedEvent(),
+    );
+  }
+
+  /// Dispatches the event that shows the native save-file dialog and moves the project's file
+  /// there once the user picks a destination.
+  void _onMoveRequested(BuildContext context) {
+    context.read<OcptProjectSettingsBloc>().add(
+      OcptProjectSettingsMoveRequestedEvent(fileTypeLabel: Tr.of(context).homeOpenFileTypeLabel),
+    );
+  }
 
   /// Dispatches the event that writes the newly picked currency to the project.
   void _onCurrencyChanged(BuildContext context, String currencyCode) {

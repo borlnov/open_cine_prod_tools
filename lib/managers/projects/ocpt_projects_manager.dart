@@ -50,6 +50,7 @@ import 'package:open_cine_prod_tools/models/ocpt_project_working_copy_state.dart
 import 'package:open_cine_prod_tools/models/ocpt_recent_project_model.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_file_verdict.dart';
+import 'package:open_cine_prod_tools/types/ocpt_project_move_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_package_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_preview_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_restore_status.dart';
@@ -96,7 +97,7 @@ class OcptProjectsManagerBuilder extends AbsLifeCycleFactory<OcptProjectsManager
 /// [budgetAllowancesService] and [budgetSharingService], the twenty-one services this manager owns
 /// and wires together (RFL19):
 /// this manager itself is only
-/// responsible for the lifecycle of the project file (create/open/close), for keeping the
+/// responsible for the lifecycle of the project file (create/open/move/close), for keeping the
 /// properties manager's recent-projects list in sync, and for handing those services the facts
 /// only it holds — the open project's database, the app version, this replica's device id and the
 /// app-wide page margins.
@@ -461,9 +462,9 @@ class OcptProjectsManager extends AbsWithLifeCycle {
     _currentProject = ValueKeeperWithStream<OcptOpenProjectModel?>(value: null);
   }
 
-  /// The directory a new project lands in on desktop when the platform's own Downloads folder
-  /// cannot be resolved — [newProjectsDirectory]'s own fallback — creating it if it doesn't already
-  /// exist.
+  /// The app's own projects folder, Documents/OpenCineProdTools, creating it if it doesn't already
+  /// exist: what [suggestedProjectsDirectory] proposes until a dialog has landed a project
+  /// elsewhere, and where [newProjectsDirectory] puts one on desktop.
   Future<Directory> getDefaultProjectsDirectory() async {
     final documentsDirectory = await getApplicationDocumentsDirectory();
     final projectsDirectory = Directory(
@@ -477,21 +478,19 @@ class OcptProjectsManager extends AbsWithLifeCycle {
     return projectsDirectory;
   }
 
-  /// Where a new project's `.ocpt` lands without the user choosing a location — [createProject]'s
+  /// Where a new project's `.ocpt` lands when no dialog lets the user choose — [createProject]'s
   /// callers turn it into an actual file path through [freeNewProjectFilePath], which never names
   /// a file already there.
   ///
-  /// On desktop ([PlatformManager.isMobile] false), this is `path_provider`'s Downloads folder,
-  /// falling back to [getDefaultProjectsDirectory] when the platform reports none. On Android/iOS, it is the app's
-  /// own documents directory instead, where there is no user-visible "Downloads" folder and no
-  /// dialog to show at all — the same branch `OcptJoiningBloc._resolveParentDirectoryPath` takes for
-  /// the very same reason.
+  /// That is Android/iOS, where `file_selector` has no save-file or folder dialog: the app's own
+  /// documents directory. Desktop always shows a dialog instead; it gets
+  /// [getDefaultProjectsDirectory] here only so this never answers with nothing.
   Future<Directory> newProjectsDirectory() async {
     if (_platformManager.isMobile) {
       return getApplicationDocumentsDirectory();
     }
 
-    return await getDownloadsDirectory() ?? await getDefaultProjectsDirectory();
+    return getDefaultProjectsDirectory();
   }
 
   /// The first free `.ocpt` path for a project named [name] inside [newProjectsDirectory] — see
@@ -506,6 +505,24 @@ class OcptProjectsManager extends AbsWithLifeCycle {
       exists: (path) => File(path).existsSync(),
     );
   }
+
+  /// The folder a native save-file or folder-picker dialog opens in when creating, importing,
+  /// joining or moving a project on desktop: [OcptPropertiesManager.lastProjectsDirectory]'s own
+  /// folder, when it is still there, or [getDefaultProjectsDirectory] the very first time, or again
+  /// once a remembered folder has since been deleted from under the app.
+  Future<String> suggestedProjectsDirectory() async {
+    final remembered = await _propertiesManager.lastProjectsDirectory.load();
+    if (remembered != null && Directory(remembered).existsSync()) {
+      return remembered;
+    }
+
+    return (await getDefaultProjectsDirectory()).path;
+  }
+
+  /// Remembers [directoryPath] as the folder [suggestedProjectsDirectory] proposes next time —
+  /// called after every create, import, join and move that actually lands a project there.
+  Future<void> rememberProjectsDirectory(String directoryPath) =>
+      _propertiesManager.lastProjectsDirectory.store(directoryPath);
 
   /// Creates a new project named [name] at [filePath], seeds it with a single empty screenplay —
   /// episode 1 (`number: 1`), given a real first `sortKey` rather than left at the column
@@ -590,6 +607,7 @@ class OcptProjectsManager extends AbsWithLifeCycle {
         // A fresh project holds exactly one episode — no need to read it back.
         OcptRecentProjectModel(path: filePath, name: name, lastOpenedAt: now, episodeCount: 1),
       );
+      await rememberProjectsDirectory(p.dirname(filePath));
 
       return ResultWithStatus(status: OcptProjectStatus.ok, value: project);
     } catch (error) {
@@ -1475,6 +1493,173 @@ class OcptProjectsManager extends AbsWithLifeCycle {
     final updated = [...recents];
     updated[index] = updated[index].copyWith(episodeCount: episodeCount);
     await _propertiesManager.recentProjects.store(updated);
+  }
+
+  /// Moves the [currentProject]'s file to [newFilePath] — the project settings page's own `Move…`
+  /// action — and keeps it the [currentProject] there.
+  ///
+  /// Refused with [OcptProjectMoveStatus.noProjectOpen] when no project is open or the open one
+  /// sits under a read-only version preview, and with [OcptProjectMoveStatus.fileAlreadyExists]
+  /// when a file already sits at [newFilePath] — neither ever touches anything. Asking to move a
+  /// project to the path it is already at is a silent no-op returning [OcptProjectMoveStatus.ok].
+  ///
+  /// The move is a copy-then-swap, never an in-place rename: `VACUUM INTO` runs on the still-open
+  /// [OcptOpenProjectModel.fileDatabase], which needs no connection to close first and yields a
+  /// single, consistent file — including the schema's own `user_version` — even though the source
+  /// is being written to right up to the moment it runs. The copy is opened and read back (its
+  /// `project_info` row) to make sure it is a real project before anything else happens; only once
+  /// that has succeeded is [_currentProject] swapped to point at it, the old connection closed, and
+  /// the old file (with its `-wal`/`-shm` companions, if SQLite left any) deleted. Any failure
+  /// before the swap deletes the half-written copy and returns [OcptProjectMoveStatus.ioError],
+  /// leaving the original file exactly as it was; a failure deleting the *old* file after the swap
+  /// has already happened is only ever logged — the move itself has already succeeded by then.
+  ///
+  /// The `<path>.relay.sqlite` sidecar an in-app-hosted relay stores beside the project file, if one
+  /// exists, travels with it (with its own `-wal`/`-shm`), renamed first and copied-then-deleted as
+  /// a fallback across filesystems. **This never checks whether in-app hosting is currently online**
+  /// for the project being moved: this manager is a dependency of `OcptSyncManager`, which
+  /// `OcptRelayHostManager` itself depends on, so it may never import either — the dependency rules
+  /// this whole app follows forbid it (`AGENTS.md`, "Dependencies never reference their
+  /// dependents"). A hosted relay keeps the sidecar file open, so moving it out from under a live
+  /// server would leave that server writing to a file at a path nothing else still expects; it is
+  /// therefore the caller's own responsibility to withhold `Move…` while hosting is online for this
+  /// project (`OcptProjectSettingsBloc` reads `OcptRelayHostManager.state` for exactly that), and
+  /// this method trusts that it did.
+  ///
+  /// For the very same reason, **this never touches a running sync session**: `OcptSyncSession` is
+  /// owned by `OcptSyncManager`, which this manager may not import either. A session reading or
+  /// writing through the very [OcptOpenProjectModel.fileDatabase] connection this closes on a
+  /// successful move would find it closed under it; the caller stops the session first and restarts
+  /// it against the freshly moved database afterwards, mirroring
+  /// `OcptWorkspaceBloc._startSyncSessionIfPaired`'s own start path.
+  ///
+  /// The recent-projects entry the old path named is updated to the new one in place
+  /// ([OcptPropertiesManager.updateRecentProjectPath]), and [newFilePath]'s own parent folder is
+  /// remembered as the next dialog's suggested one ([rememberProjectsDirectory]), exactly as
+  /// [createProject] already does for a freshly created project.
+  Future<ResultWithStatus<OcptProjectMoveStatus, OcptOpenProjectModel>> moveCurrentProject({
+    required String newFilePath,
+  }) async {
+    final project = currentProject;
+    if (project == null || project.isReadOnly) {
+      return const ResultWithStatus(status: OcptProjectMoveStatus.noProjectOpen);
+    }
+
+    if (p.equals(newFilePath, project.path)) {
+      return ResultWithStatus(status: OcptProjectMoveStatus.ok, value: project);
+    }
+
+    if (File(newFilePath).existsSync()) {
+      return const ResultWithStatus(status: OcptProjectMoveStatus.fileAlreadyExists);
+    }
+
+    OcptProjectDatabase? newDatabase;
+    try {
+      await File(newFilePath).parent.create(recursive: true);
+
+      // VACUUM INTO takes its target as a plain SQL string expression, not a bindable parameter —
+      // the single quotes a path could legitimately contain are doubled, exactly how SQLite's own
+      // string-literal escaping works.
+      final escapedPath = newFilePath.replaceAll("'", "''");
+      await project.fileDatabase.customStatement("VACUUM INTO '$escapedPath'");
+
+      newDatabase = OcptProjectDatabase(File(newFilePath));
+      final info = await newDatabase.select(newDatabase.ocptProjectInfoTable).getSingleOrNull();
+      if (info == null) {
+        throw StateError("the copy at $newFilePath has no project_info row");
+      }
+    } catch (error) {
+      appLogger().e(
+        "A problem occurred when tried to move the project at ${project.path} to $newFilePath: "
+        "$error",
+      );
+      await newDatabase?.close();
+      await _deleteFileIfExists(newFilePath);
+      return const ResultWithStatus(status: OcptProjectMoveStatus.ioError);
+    }
+
+    final oldPath = project.path;
+    final oldFileDatabase = project.fileDatabase;
+
+    final movedProject = OcptOpenProjectModel(
+      path: newFilePath,
+      name: project.name,
+      primaryScreenplayId: project.primaryScreenplayId,
+      database: newDatabase,
+    );
+    _currentProject.value = movedProject;
+
+    await oldFileDatabase.close();
+    await _deleteFileAndWalCompanions(oldPath);
+    await _moveRelaySidecarIfPresent(oldPath: oldPath, newPath: newFilePath);
+
+    await _propertiesManager.updateRecentProjectPath(oldPath: oldPath, newPath: newFilePath);
+    await rememberProjectsDirectory(p.dirname(newFilePath));
+
+    return ResultWithStatus(status: OcptProjectMoveStatus.ok, value: movedProject);
+  }
+
+  /// Moves the `<oldPath minus its extension>.relay.sqlite` sidecar an in-app-hosted relay leaves
+  /// beside a project file, along with its own `-wal`/`-shm` companions, to sit beside [newPath]
+  /// instead — a no-op when [oldPath] has no such sidecar at all.
+  ///
+  /// Renamed first, which is instant on the same filesystem; a rename across two different
+  /// filesystems fails, so each file falls back to a copy followed by deleting the source. A
+  /// failure moving one of the three files is only ever logged: the sidecar is a cache a hosted
+  /// relay rebuilds if it has to, not project data, and [moveCurrentProject] has already succeeded
+  /// by the time this runs.
+  Future<void> _moveRelaySidecarIfPresent({
+    required String oldPath,
+    required String newPath,
+  }) async {
+    final oldSidecarPath = p.setExtension(oldPath, ".relay.sqlite");
+    if (!File(oldSidecarPath).existsSync()) {
+      return;
+    }
+    final newSidecarPath = p.setExtension(newPath, ".relay.sqlite");
+
+    for (final suffix in ["", "-wal", "-shm"]) {
+      final source = File("$oldSidecarPath$suffix");
+      if (!source.existsSync()) {
+        continue;
+      }
+
+      final destinationPath = "$newSidecarPath$suffix";
+      try {
+        await source.rename(destinationPath);
+      } catch (_) {
+        try {
+          await source.copy(destinationPath);
+          await source.delete();
+        } catch (error) {
+          appLogger().w(
+            "Could not move the relay sidecar file ${source.path} to $destinationPath: $error",
+          );
+        }
+      }
+    }
+  }
+
+  /// Deletes [path] and its SQLite `-wal`/`-shm` companions, if any of the three exist. A failure
+  /// deleting any of them is only ever logged, never thrown: by the time this runs the project has
+  /// already been moved to its new file, and a leftover fragment of the old one is a cosmetic
+  /// annoyance, not a reason to report the move itself as failed.
+  Future<void> _deleteFileAndWalCompanions(String path) async {
+    for (final candidate in [path, "$path-wal", "$path-shm"]) {
+      await _deleteFileIfExists(candidate);
+    }
+  }
+
+  /// Deletes [path] if it exists, logging rather than throwing on failure.
+  Future<void> _deleteFileIfExists(String path) async {
+    try {
+      final file = File(path);
+      if (file.existsSync()) {
+        await file.delete();
+      }
+    } catch (error) {
+      appLogger().w("Could not delete $path: $error");
+    }
   }
 
   /// Returns the default [OcptPageFormat] for a newly created project, based on the platform's

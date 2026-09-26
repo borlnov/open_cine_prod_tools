@@ -23,14 +23,17 @@ import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
 import 'package:open_cine_prod_tools/ui/pages/home/home_event.dart';
 import 'package:open_cine_prod_tools/ui/pages/home/home_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project_package_bloc.dart';
+import 'package:path/path.dart' as p;
 
 /// This is the bloc class for the home page.
 ///
 /// It refreshes the recent projects list from [OcptPropertiesManager] (flagging every entry
 /// whose file has gone missing since), and orchestrates the "New project"/"Open…"/card-tap/
-/// remove-from-list actions: "New project" and importing a screenplay each resolve their new
-/// project's file path through [OcptProjectsManager.freeNewProjectFilePath], with no dialog, while
-/// "Open…" shows the native open-file dialog through
+/// remove-from-list actions: "New project" and importing a screenplay each show the native
+/// save-file dialog on desktop ([OcptExportManager.saveLocationService]) so the user picks where
+/// the new project itself lands, and resolve a free file path with no dialog at all on mobile
+/// ([OcptProjectsManager.freeNewProjectFilePath] — `file_selector`'s `getSaveLocation` has no
+/// Android/iOS implementation); "Open…" shows the native open-file dialog through
 /// [FileSelectorManager], and every one of them delegates the actual create/open work to
 /// [OcptProjectsManager] and navigates to the workspace through [OcptRouterManager] (RFL31:
 /// navigation only via the router manager) once it succeeds.
@@ -194,15 +197,25 @@ class OcptHomeBloc extends BlocForMixin<OcptHomeState>
     await _onRefreshRequested(const OcptHomeRefreshRequestedEvent(), emitter);
   }
 
-  /// Resolves a free file path for the new project, with no dialog, creates the project there, then
-  /// navigates to the editor.
+  /// Shows the native save-file dialog on desktop (or resolves a free file path with no dialog on
+  /// mobile — see this class's own doc comment), creates the project there, then navigates to the
+  /// editor. A cancelled desktop dialog is a silent no-op: nothing is created.
   Future<void> _onCreateProjectRequested(
     OcptHomeCreateProjectRequestedEvent event,
     Emitter<OcptHomeState> emitter,
   ) async {
     emitter(state.copyWith(isBusy: true, clearError: true));
 
-    final filePath = await _projectsManager.freeNewProjectFilePath(event.name);
+    final filePath = await _resolveNewProjectFilePath(
+      name: event.name,
+      fileTypeLabel: event.fileTypeLabel,
+    );
+    if (filePath == null) {
+      // The user cancelled the desktop save-file dialog.
+      emitter(state.copyWith(isBusy: false));
+      return;
+    }
+
     final result = await _projectsManager.createProject(name: event.name, filePath: filePath);
     if (!result.status.isSuccess) {
       emitter(state.copyWith(isBusy: false, error: result.status));
@@ -212,6 +225,28 @@ class OcptHomeBloc extends BlocForMixin<OcptHomeState>
     await _onRefreshRequested(const OcptHomeRefreshRequestedEvent(), emitter);
     emitter(state.copyWith(isBusy: false));
     await _pushRouteAndRefreshOnReturn(OcptRoute.workspace, emitter);
+  }
+
+  /// Resolves the file path a fresh project named [name] is created at: the native save-file
+  /// dialog's own pick on desktop, suggested `<name>.ocpt` inside
+  /// [OcptProjectsManager.suggestedProjectsDirectory] and labelled [fileTypeLabel] — or null when
+  /// the user cancelled it — or [OcptProjectsManager.freeNewProjectFilePath], with no dialog at
+  /// all, on mobile.
+  Future<String?> _resolveNewProjectFilePath({
+    required String name,
+    required String fileTypeLabel,
+  }) async {
+    if (_exportManager.isMobile) {
+      return _projectsManager.freeNewProjectFilePath(name);
+    }
+
+    final suggestedDirectory = await _projectsManager.suggestedProjectsDirectory();
+    return _exportManager.saveLocationService.pickSaveLocation(
+      suggestedFileName: "$name.${OcptProjectsManager.projectFileExtension}",
+      fileTypeLabel: fileTypeLabel,
+      extensions: [OcptProjectsManager.projectFileExtension],
+      initialDirectory: suggestedDirectory,
+    );
   }
 
   /// Opens [OcptHomeOpenProjectRequestedEvent.filePath], or shows an open-file dialog first if
@@ -358,6 +393,11 @@ class OcptHomeBloc extends BlocForMixin<OcptHomeState>
   /// `.fountain`, an `.fdx` or a `.celtx`; the conversion happens as it is read, so what is seeded is
   /// Fountain either way.
   ///
+  /// On desktop, the project's own name is taken from whichever file name the save-file dialog was
+  /// actually given — `p.basenameWithoutExtension`, since the user may have renamed it there —
+  /// rather than the screenplay's own suggested name; on mobile, where there is no such dialog, that
+  /// suggested name is used directly.
+  ///
   /// A file that cannot be read as a screenplay stops the flow right there — no project is
   /// created — and lands in [OcptHomeState.screenplayImportError] for the page to word.
   Future<void> _onImportScreenplayRequested(
@@ -389,8 +429,30 @@ class OcptHomeBloc extends BlocForMixin<OcptHomeState>
       fountainText: imported.fountainText,
       sourceFileName: imported.sourceFileName,
     );
-    final filePath = await _projectsManager.freeNewProjectFilePath(suggestedName);
-    final result = await _projectsManager.createProject(name: suggestedName, filePath: filePath);
+
+    final String filePath;
+    final String projectName;
+    if (_exportManager.isMobile) {
+      filePath = await _projectsManager.freeNewProjectFilePath(suggestedName);
+      projectName = suggestedName;
+    } else {
+      final suggestedDirectory = await _projectsManager.suggestedProjectsDirectory();
+      final pickedPath = await _exportManager.saveLocationService.pickSaveLocation(
+        suggestedFileName: "$suggestedName.${OcptProjectsManager.projectFileExtension}",
+        fileTypeLabel: event.projectFileTypeLabel,
+        extensions: [OcptProjectsManager.projectFileExtension],
+        initialDirectory: suggestedDirectory,
+      );
+      if (pickedPath == null) {
+        // The user cancelled the desktop save-file dialog.
+        emitter(state.copyWith(isBusy: false));
+        return;
+      }
+      filePath = pickedPath;
+      projectName = p.basenameWithoutExtension(filePath);
+    }
+
+    final result = await _projectsManager.createProject(name: projectName, filePath: filePath);
     if (!result.status.isSuccess) {
       emitter(state.copyWith(isBusy: false, error: result.status));
       return;

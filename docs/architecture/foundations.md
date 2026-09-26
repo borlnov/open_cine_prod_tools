@@ -575,6 +575,43 @@ the persistence, the project versions, the sync-ready data model and the read-on
   the migration. The version *preview* and the *restore* are untouched too, hydrating an in-memory
   database from a payload the codec already version-checks.
 
+- Where a project's file lands, and moving it: a new `.ocpt` is **never written silently**.
+  `OcptProjectsManager.createProject` refuses outright with `OcptProjectStatus.fileAlreadyExists`
+  when `filePath` already names a file — nothing created, nothing touched, not even the project
+  already open — so every caller resolves a path through one of two doors first. On desktop, `New
+  project` and importing a screenplay each show the native save-file dialog
+  (`OcptSaveLocationService.pickSaveLocation`, `lib/managers/export/services/`), suggested
+  `<name>.ocpt` inside `OcptProjectsManager.suggestedProjectsDirectory` — the folder
+  `OcptPropertiesManager.lastProjectsDirectory` remembers from the last dialog that actually landed
+  a project there, or `getDefaultProjectsDirectory` (Documents/OpenCineProdTools) the very first
+  time, or again once a remembered folder has been deleted from under the app; cancelling either
+  dialog creates nothing. On Android/iOS, where `file_selector`'s `getSaveLocation` has no
+  implementation at all (ADR 0009), `OcptProjectsManager.freeNewProjectFilePath` resolves a free
+  name with no dialog instead — `Name.ocpt`, `Name (2).ocpt`, … (`ocptFreeFilePath`,
+  `lib/utils/`) inside `newProjectsDirectory`, the application's own documents directory. Joining
+  a shared project mirrors the same split: a native folder picker on desktop,
+  `newProjectsDirectory` with no dialog on mobile — the joined project creates its own sub-folder
+  inside whichever parent that names, which is what actually refuses an existing one,
+  `OcptProjectsManager` itself writing nothing there.
+  Moving the current project (`OcptProjectsManager.moveCurrentProject`, the project settings page's
+  own `Project file` card) is a copy-then-swap, never an in-place rename: `VACUUM INTO` runs on the
+  still-open `fileDatabase` straight onto the new path (needing no connection closed first, and
+  folding the WAL in exactly as the portable package's own export does), the copy is opened and its
+  `project_info` row read back to prove it is a real project, only *then* does `currentProject` swap
+  to point at it, and only after that does the old connection close and the old file (with any
+  `-wal`/`-shm` companions) get deleted — a failure before the swap deletes the half-written copy and
+  leaves the original untouched, and a failure deleting the old file afterwards is logged, not
+  reported, the move itself having already succeeded. A `<name>.relay.sqlite` sidecar an in-app-hosted
+  relay left beside the project (`sync.md`) travels along the same way, renamed first and
+  copied-then-deleted as a fallback across filesystems. **The manager itself never checks whether
+  in-app hosting is currently online for the project being moved, nor touches a running sync
+  session** — it is a dependency of both `OcptSyncManager` and, through it, `OcptRelayHostManager`,
+  and may never import either (`AGENTS.md`, "Dependencies never reference their dependents"); those
+  two checks, and stopping/restarting the sync session around the swap, are `OcptProjectSettingsBloc`'s
+  own job, mirroring `OcptWorkspaceBloc._startSyncSessionIfPaired`'s start path. Every one of
+  create/import/join/move remembers its own parent folder as the next dialog's suggestion, and a
+  move updates the project's recent-list entry to the new path in place, keeping its position.
+
 - The `Versions` dock tab (`OcptProjectVersionsPanel`/`OcptProjectWorkingCopyCard`/
   `OcptProjectVersionCard`/`OcptProjectVersionCreateDialog`, `lib/ui/pages/workspace/widgets/`) is
   the one panel of the dock that is about the **project** rather than the mode showing it, so it is
