@@ -2,10 +2,13 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+import 'package:act_global_manager/act_global_manager.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
+import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
+import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/models/ocpt_asset_ref.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_mileage_rate.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
@@ -19,6 +22,8 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_sheet_card.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_sheet_field.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_budget_labels.dart';
+import 'package:open_cine_prod_tools/ui/utils/ocpt_resources_labels.dart';
+import 'package:open_cine_prod_tools/ui/widgets/ocpt_crew_position_picker_dialog.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_max_daily_presence.dart';
 
 /// Builds a minimal [OcptPerson] for these tests, every free-text field left blank except the ones
@@ -152,8 +157,28 @@ String _fieldValueOf(OcptPerson person, OcptPersonField field) => switch (field)
   OcptPersonField.notes => person.notes,
 };
 
+/// The navigator [_wrapInApp] mounts, so [_RecordingRouterManager.pop] can close a dialog opened
+/// through `showDialog` (the crew position picker) exactly as the real `GoRouter.pop` would —
+/// both push onto the very same root `Navigator`. Mirrors `ocpt_schedule_slot_card_test.dart`'s
+/// own instance of the same pattern.
+final _navigatorKey = GlobalKey<NavigatorState>();
+
+/// A router manager whose [pop] pops [_navigatorKey]'s own navigator, so a dialog opened through
+/// `showDialog` genuinely closes: the positions card resolves its router manager from
+/// `globalGetIt()`, with no real GoRouter for `pop` to delegate to.
+class _RecordingRouterManager extends OcptRouterManager {
+  @override
+  void pop<Y extends Object?>([Y? result]) {
+    final navigator = _navigatorKey.currentState;
+    if (navigator != null && navigator.canPop()) {
+      navigator.pop(result);
+    }
+  }
+}
+
 /// Wraps [child] with the localization delegates so [Tr.of] lookups resolve.
 Widget _wrapInApp(Widget child) => MaterialApp(
+  navigatorKey: _navigatorKey,
   localizationsDelegates: const [
     Tr.delegate,
     GlobalMaterialLocalizations.delegate,
@@ -268,6 +293,18 @@ Widget _buildSheet({
 );
 
 void main() {
+  setUpAll(() {
+    OcptGlobalManager.instance;
+  });
+
+  setUp(() async {
+    final managers = globalGetIt();
+    if (managers.isRegistered<OcptRouterManager>()) {
+      await managers.unregister<OcptRouterManager>();
+    }
+    managers.registerSingleton<OcptRouterManager>(_RecordingRouterManager());
+  });
+
   testWidgets("renders the selected person's fields", (tester) async {
     await _useTallSurface(tester);
     await tester.pumpWidget(
@@ -742,6 +779,99 @@ void main() {
 
     expect(removedId, "pos1");
   });
+
+  testWidgets("a position row's picker button opens OcptCrewPositionPickerDialog, and picking a "
+      "catalogue entry reports it", (tester) async {
+    await _useTallSurface(tester);
+    String? updatedId;
+    String? updatedPositionId;
+    String? updatedCustomLabel;
+
+    await tester.pumpWidget(
+      _buildSheet(
+        person: _person(
+          positions: const [
+            OcptPersonPosition(id: "pos1", personId: "p1", positionId: "director", customLabel: ""),
+          ],
+        ),
+        onPositionUpdated: (id, {required positionId, required customLabel}) {
+          updatedId = id;
+          updatedPositionId = positionId;
+          updatedCustomLabel = customLabel;
+        },
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final tr = Tr.of(tester.element(find.byType(OcptPersonSheet)));
+    await tester.tap(
+      find.byWidgetPredicate(
+        (widget) =>
+            widget is IconButton &&
+            widget.icon is Icon &&
+            (widget.icon as Icon).icon == Icons.arrow_drop_down &&
+            (widget.icon as Icon).size == 18,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byType(OcptCrewPositionPickerDialog), findsOneWidget);
+    await tester.ensureVisible(find.text(ocptCrewPositionLabel(tr, "gaffer")));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(ocptCrewPositionLabel(tr, "gaffer")));
+    await tester.pumpAndSettle();
+
+    expect(updatedId, "pos1");
+    expect(updatedPositionId, "gaffer");
+    expect(updatedCustomLabel, "");
+  });
+
+  testWidgets(
+    "picking the picker's custom label entry keeps the row's own typed text, whatever it is",
+    (tester) async {
+      await _useTallSurface(tester);
+      String? updatedPositionId;
+      String? updatedCustomLabel;
+
+      await tester.pumpWidget(
+        _buildSheet(
+          person: _person(
+            positions: const [
+              OcptPersonPosition(id: "pos1", personId: "p1", positionId: "director", customLabel: ""),
+            ],
+          ),
+          onPositionUpdated: (id, {required positionId, required customLabel}) {
+            updatedPositionId = positionId;
+            updatedCustomLabel = customLabel;
+          },
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final tr = Tr.of(tester.element(find.byType(OcptPersonSheet)));
+      final positionLabelField = find.byWidgetPredicate(
+        (widget) => widget is TextField && widget.decoration?.hintText == tr.resourcesPositionLabelHint,
+      );
+      await tester.enterText(positionLabelField, "Runner");
+      await tester.tap(
+        find.byWidgetPredicate(
+          (widget) =>
+              widget is IconButton &&
+              widget.icon is Icon &&
+              (widget.icon as Icon).icon == Icons.arrow_drop_down &&
+              (widget.icon as Icon).size == 18,
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.text(tr.resourcesPositionCustomOptionLabel));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(tr.resourcesPositionCustomOptionLabel));
+      await tester.pumpAndSettle();
+
+      expect(updatedPositionId, "");
+      expect(updatedCustomLabel, "Runner");
+    },
+  );
 
   testWidgets("adding a skill through the inline field reports its label", (tester) async {
     await _useTallSurface(tester);

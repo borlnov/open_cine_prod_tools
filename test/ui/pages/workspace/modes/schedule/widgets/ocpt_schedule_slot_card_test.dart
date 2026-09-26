@@ -2,10 +2,13 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+import 'package:act_global_manager/act_global_manager.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
+import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
+import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person_position.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role.dart';
@@ -25,12 +28,34 @@ import 'package:open_cine_prod_tools/types/ocpt_shooting_slot_anchor_edge.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_minute_field.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_slot_card.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_resources_labels.dart';
+import 'package:open_cine_prod_tools/ui/widgets/ocpt_crew_position_picker_dialog.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_crew_position_prefill.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_shooting_day_timeline.dart';
 
-/// Wraps [child] with the localization delegates so [Tr.of] lookups resolve, inside a sized box
-/// standing in for the day view's own scroll area.
+/// The navigator [_wrapInApp] mounts, so [_RecordingRouterManager.pop] can close a dialog opened
+/// through `showDialog` (the crew position picker) exactly as the real `GoRouter.pop` would —
+/// both push onto the very same root `Navigator`. Mirrors `schedule_mode_test.dart`'s own
+/// instance of the same pattern.
+final _navigatorKey = GlobalKey<NavigatorState>();
+
+/// A router manager whose [pop] pops [_navigatorKey]'s own navigator, so a dialog opened through
+/// `showDialog` genuinely closes: this card resolves its router manager from `globalGetIt()`,
+/// with no real GoRouter for `pop` to delegate to.
+class _RecordingRouterManager extends OcptRouterManager {
+  @override
+  void pop<Y extends Object?>([Y? result]) {
+    final navigator = _navigatorKey.currentState;
+    if (navigator != null && navigator.canPop()) {
+      navigator.pop(result);
+    }
+  }
+}
+
+/// Wraps [child] with the localization delegates so [Tr.of] lookups resolve, [_navigatorKey] so
+/// [_RecordingRouterManager.pop] can close a dialog opened through `showDialog`, inside a sized
+/// box standing in for the day view's own scroll area.
 Widget _wrapInApp(Widget child) => MaterialApp(
+  navigatorKey: _navigatorKey,
   localizationsDelegates: const [
     Tr.delegate,
     GlobalMaterialLocalizations.delegate,
@@ -186,6 +211,18 @@ OcptShootingSlotGuest _buildGuest({
 void main() {
   final person = _buildPerson(id: "person-1", firstName: "Léa");
   final role = _buildRole(id: "role-1", name: "Marie");
+
+  setUpAll(() {
+    OcptGlobalManager.instance;
+  });
+
+  setUp(() async {
+    final managers = globalGetIt();
+    if (managers.isRegistered<OcptRouterManager>()) {
+      await managers.unregister<OcptRouterManager>();
+    }
+    managers.registerSingleton<OcptRouterManager>(_RecordingRouterManager());
+  });
 
   Widget buildCard({
     required bool isReadOnly,
@@ -483,6 +520,13 @@ void main() {
   testWidgets(
     "the crew row's position picker promotes the person's declared positions above the catalogue",
     (tester) async {
+      // The crew position picker dialog needs more room than the default test surface for its
+      // own thirteen departments, same as `ocpt_crew_position_picker_dialog_test.dart`.
+      tester.view.physicalSize = const Size(900, 1000);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
       final crewPerson = _buildPerson(
         id: "person-1",
         firstName: "Léa",
@@ -515,22 +559,26 @@ void main() {
       await tester.tap(find.text(tr.scheduleSlotCrewPositionPlaceholder));
       await tester.pumpAndSettle();
 
-      final menuItems = tester.widgetList<PopupMenuItem<OcptCrewPositionRef>>(
-        find.byType(PopupMenuItem<OcptCrewPositionRef>),
-      );
       // The person's own declared position, promoted ahead of every catalogue entry, including
-      // the catalogue's own "director" one.
-      expect(
-        menuItems.first.value,
-        const OcptCrewPositionRef(positionId: "director", customLabel: ""),
-      );
-      expect(find.byType(PopupMenuDivider), findsOneWidget);
+      // the catalogue's own "director" one — printed twice, once under the promoted heading and
+      // once under the catalogue's own "Direction" department.
+      expect(find.byType(OcptCrewPositionPickerDialog), findsOneWidget);
+      expect(find.text(tr.resourcesCrewPositionPickerPromotedHeading), findsOneWidget);
+      expect(find.text(ocptCrewPositionLabel(tr, "director")), findsNWidgets(2));
+      final promotedHeadingY = tester.getTopLeft(find.text(tr.resourcesCrewPositionPickerPromotedHeading)).dy;
+      final firstDirectorY = tester.getTopLeft(find.text(ocptCrewPositionLabel(tr, "director")).first).dy;
+      expect(promotedHeadingY, lessThan(firstDirectorY));
     },
   );
 
   testWidgets(
     "the picker never offers a position that person already holds on that slot",
     (tester) async {
+      tester.view.physicalSize = const Size(900, 1000);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
       final crewPerson = _buildPerson(
         id: "person-1",
         firstName: "Léa",
@@ -579,25 +627,30 @@ void main() {
       await tester.tap(find.text(tr.scheduleSlotCrewPositionPlaceholder));
       await tester.pumpAndSettle();
 
-      final menuItems = tester.widgetList<PopupMenuItem<OcptCrewPositionRef>>(
-        find.byType(PopupMenuItem<OcptCrewPositionRef>),
-      );
-      // "Director" is already held on this slot — absent everywhere, promoted block and
-      // catalogue alike — while "boomOperator", still free, is promoted.
+      final dialog = find.byType(OcptCrewPositionPickerDialog);
+      expect(dialog, findsOneWidget);
+      // "Director" is already held on this slot — left out everywhere the dialog offers,
+      // promoted block and catalogue alike.
       expect(
-        menuItems.map((item) => item.value),
-        isNot(contains(const OcptCrewPositionRef(positionId: "director", customLabel: ""))),
+        find.descendant(of: dialog, matching: find.text(ocptCrewPositionLabel(tr, "director"))),
+        findsNothing,
       );
-      expect(
-        menuItems.first.value,
-        const OcptCrewPositionRef(positionId: "boomOperator", customLabel: ""),
-      );
+      // "boomOperator", still free, is promoted ahead of the catalogue.
+      expect(find.text(tr.resourcesCrewPositionPickerPromotedHeading), findsOneWidget);
+      final promotedHeadingY = tester.getTopLeft(find.text(tr.resourcesCrewPositionPickerPromotedHeading)).dy;
+      final firstBoomOperatorY = tester.getTopLeft(find.text(ocptCrewPositionLabel(tr, "boomOperator")).first).dy;
+      expect(promotedHeadingY, lessThan(firstBoomOperatorY));
     },
   );
 
   testWidgets(
     "picking a declared free-label entry reports a ref carrying that label",
     (tester) async {
+      tester.view.physicalSize = const Size(900, 1000);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
       final crewPerson = _buildPerson(
         id: "person-1",
         firstName: "Léa",
@@ -659,7 +712,9 @@ void main() {
 
       final tr = Tr.of(tester.element(find.byType(OcptScheduleSlotCard)));
       expect(find.text(ocptCrewPositionLabel(tr, "director")), findsOneWidget);
-      expect(find.byType(PopupMenuButton<OcptCrewPositionRef>), findsNothing);
+      await tester.tap(find.text(ocptCrewPositionLabel(tr, "director")));
+      await tester.pumpAndSettle();
+      expect(find.byType(OcptCrewPositionPickerDialog), findsNothing);
     },
   );
 
