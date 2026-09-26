@@ -11,7 +11,9 @@ import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_version.dart';
+import 'package:open_cine_prod_tools/models/ocpt_recent_project_model.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
+import 'package:open_cine_prod_tools/types/ocpt_project_move_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_preview_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_restore_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_status.dart';
@@ -21,6 +23,22 @@ import 'package:path/path.dart' as p;
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
 import 'package:sqlite3/sqlite3.dart';
+
+/// A projects manager whose [newProjectsDirectory] resolves to a fixed [directory] instead of
+/// asking `path_provider` for the platform's real Downloads folder — `path_provider`'s desktop
+/// implementations need the plugin-registrant plumbing a plain `flutter test` run doesn't reliably
+/// provide, exactly the kind of pitfall `AGENTS.md`'s own "flutter test runs on the plain Dart VM"
+/// note already flags elsewhere.
+class _TestProjectsManager extends OcptProjectsManager {
+  /// Class constructor
+  _TestProjectsManager({required this.directory, super.propertiesManager});
+
+  /// The directory [newProjectsDirectory] always resolves to.
+  final Directory directory;
+
+  @override
+  Future<Directory> newProjectsDirectory() async => directory;
+}
 
 void main() {
   // OcptPropertiesManager wraps a process-wide singleton (see the properties manager test), so we
@@ -106,6 +124,32 @@ void main() {
 
     expect(result.status, OcptProjectStatus.ok);
     expect(manager.currentProject?.name, "Second");
+  });
+
+  group("createProject never overwrites an existing file", () {
+    test("returns fileAlreadyExists and leaves the file's own bytes untouched", () async {
+      final filePath = p.join(tempDir.path, "existing.ocpt");
+      await File(filePath).writeAsString("not a project");
+
+      final result = await manager.createProject(name: "My Movie", filePath: filePath);
+
+      expect(result.status, OcptProjectStatus.fileAlreadyExists);
+      expect(result.status.isSuccess, isFalse);
+      expect(await File(filePath).readAsString(), "not a project");
+      expect(manager.currentProject, isNull);
+    });
+
+    test("leaves a currently open project open rather than closing it first", () async {
+      await manager.createProject(name: "First", filePath: p.join(tempDir.path, "first.ocpt"));
+
+      final blockedPath = p.join(tempDir.path, "blocked.ocpt");
+      await File(blockedPath).writeAsString("not a project");
+
+      final result = await manager.createProject(name: "Second", filePath: blockedPath);
+
+      expect(result.status, OcptProjectStatus.fileAlreadyExists);
+      expect(manager.currentProject?.name, "First");
+    });
   });
 
   test('openProject opens a previously created project and makes it current', () async {
@@ -963,6 +1007,159 @@ void main() {
 
       expect(result.status, OcptProjectStatus.ok);
       expect(manager.currentProject?.path, filePath);
+    });
+  });
+
+  group("freeNewProjectFilePath", () {
+    test("returns the plain name when nothing is taken in newProjectsDirectory", () async {
+      final testManager = _TestProjectsManager(
+        directory: tempDir,
+        propertiesManager: propertiesManager,
+      );
+
+      final path = await testManager.freeNewProjectFilePath("Movie");
+
+      expect(path, p.join(tempDir.path, "Movie.ocpt"));
+    });
+
+    test("numbers up when the plain name is already taken", () async {
+      await File(p.join(tempDir.path, "Movie.ocpt")).create();
+      final testManager = _TestProjectsManager(
+        directory: tempDir,
+        propertiesManager: propertiesManager,
+      );
+
+      final path = await testManager.freeNewProjectFilePath("Movie");
+
+      expect(path, p.join(tempDir.path, "Movie (2).ocpt"));
+    });
+  });
+
+  group("moveCurrentProject", () {
+    test(
+      "moves the project's file, opening the new one with the same data, and deletes the old one",
+      () async {
+        final oldPath = p.join(tempDir.path, "movie.ocpt");
+        final newPath = p.join(tempDir.path, "moved", "movie.ocpt");
+        await manager.createProject(name: "My Movie", filePath: oldPath);
+        await manager.screenplayService.saveScreenplayText(
+          database: manager.currentProject!.database,
+          screenplayId: manager.currentProject!.primaryScreenplayId,
+          fountainText: "INT. HOUSE - DAY\n\nAction.\n",
+          snapshotReason: OcptSnapshotReason.timer,
+        );
+
+        final result = await manager.moveCurrentProject(newFilePath: newPath);
+
+        expect(result.status, OcptProjectMoveStatus.ok);
+        expect(result.value?.path, newPath);
+        expect(manager.currentProject?.path, newPath);
+        expect(File(oldPath).existsSync(), isFalse);
+        expect(File(newPath).existsSync(), isTrue);
+
+        final screenplayText = await manager.screenplayService.loadScreenplayText(
+          database: manager.currentProject!.database,
+          screenplayId: manager.currentProject!.primaryScreenplayId,
+        );
+        expect(screenplayText, "INT. HOUSE - DAY\n\nAction.\n");
+      },
+    );
+
+    test("updates the recent-projects entry to the new path, keeping its position", () async {
+      final currentPath = p.join(tempDir.path, "movie.ocpt");
+      final newPath = p.join(tempDir.path, "moved.ocpt");
+      await manager.createProject(name: "My Movie", filePath: currentPath);
+
+      // A later entry added straight through the properties manager, standing in for another
+      // project opened more recently than the one under test — this is what puts the moved
+      // project second in the list rather than at the front, so "keeps its position" actually
+      // means something (a plain re-add through `addRecentProject` would put it back in front).
+      await propertiesManager.addRecentProject(
+        OcptRecentProjectModel(
+          path: p.join(tempDir.path, "ghost.ocpt"),
+          name: "Ghost",
+          lastOpenedAt: DateTime.now(),
+        ),
+      );
+
+      await manager.moveCurrentProject(newFilePath: newPath);
+
+      final recents = await propertiesManager.recentProjects.load();
+      expect(recents?.map((entry) => entry.path).toList(), [
+        p.join(tempDir.path, "ghost.ocpt"),
+        newPath,
+      ]);
+      expect(recents?.last.name, "My Movie");
+    });
+
+    test("refuses when the target already exists, leaving both files intact", () async {
+      final firstPath = p.join(tempDir.path, "first.ocpt");
+      final secondPath = p.join(tempDir.path, "second.ocpt");
+      await manager.createProject(name: "First", filePath: firstPath);
+      await manager.closeCurrentProject();
+      await manager.createProject(name: "Second", filePath: secondPath);
+
+      final result = await manager.moveCurrentProject(newFilePath: firstPath);
+
+      expect(result.status, OcptProjectMoveStatus.fileAlreadyExists);
+      expect(manager.currentProject?.path, secondPath);
+      expect(File(firstPath).existsSync(), isTrue);
+      expect(File(secondPath).existsSync(), isTrue);
+    });
+
+    test("moving a project to its own current path is a no-op reporting ok", () async {
+      final filePath = p.join(tempDir.path, "movie.ocpt");
+      await manager.createProject(name: "My Movie", filePath: filePath);
+
+      final result = await manager.moveCurrentProject(newFilePath: filePath);
+
+      expect(result.status, OcptProjectMoveStatus.ok);
+      expect(manager.currentProject?.path, filePath);
+      expect(File(filePath).existsSync(), isTrue);
+      // The database connection is still the very same one, still readable.
+      final info = await manager.currentProject!.database
+          .select(manager.currentProject!.database.ocptProjectInfoTable)
+          .getSingle();
+      expect(info.name, "My Movie");
+    });
+
+    test("refuses when no project is open", () async {
+      final result = await manager.moveCurrentProject(
+        newFilePath: p.join(tempDir.path, "movie.ocpt"),
+      );
+
+      expect(result.status, OcptProjectMoveStatus.noProjectOpen);
+    });
+
+    test("a relay sidecar beside the project file travels along with it", () async {
+      final oldPath = p.join(tempDir.path, "movie.ocpt");
+      final newPath = p.join(tempDir.path, "moved.ocpt");
+      await manager.createProject(name: "My Movie", filePath: oldPath);
+
+      final oldSidecarPath = p.join(tempDir.path, "movie.relay.sqlite");
+      await File(oldSidecarPath).writeAsString("relay bytes");
+      await File("$oldSidecarPath-wal").writeAsString("wal bytes");
+
+      await manager.moveCurrentProject(newFilePath: newPath);
+
+      final newSidecarPath = p.join(tempDir.path, "moved.relay.sqlite");
+      expect(File(oldSidecarPath).existsSync(), isFalse);
+      expect(File("$oldSidecarPath-wal").existsSync(), isFalse);
+      expect(File(newSidecarPath).existsSync(), isTrue);
+      expect(await File(newSidecarPath).readAsString(), "relay bytes");
+      expect(File("$newSidecarPath-wal").existsSync(), isTrue);
+      expect(await File("$newSidecarPath-wal").readAsString(), "wal bytes");
+    });
+
+    test("remembers the new folder as the next dialog's suggested one", () async {
+      final oldPath = p.join(tempDir.path, "movie.ocpt");
+      final movedDir = Directory(p.join(tempDir.path, "elsewhere"));
+      final newPath = p.join(movedDir.path, "movie.ocpt");
+      await manager.createProject(name: "My Movie", filePath: oldPath);
+
+      await manager.moveCurrentProject(newFilePath: newPath);
+
+      expect(await manager.suggestedProjectsDirectory(), movedDir.path);
     });
   });
 }

@@ -157,7 +157,10 @@ class _OcptJoiningViewState extends State<OcptJoiningView> {
         onJoinRequested: (inviteLinkText) {
           _lastSubmissionFromScanner = false;
           context.read<OcptJoiningBloc>().add(
-            OcptJoiningManualSubmittedEvent(inviteLinkText: inviteLinkText),
+            OcptJoiningManualSubmittedEvent(
+              inviteLinkText: inviteLinkText,
+              destinationConfirmButtonText: Tr.of(context).joiningDestinationConfirmAction,
+            ),
           );
         },
       );
@@ -174,7 +177,12 @@ class _OcptJoiningViewState extends State<OcptJoiningView> {
             _lastSubmissionFromScanner = true;
             _scanStatus = OcptJoiningScanStatus.success;
           });
-          context.read<OcptJoiningBloc>().add(OcptJoiningInviteScannedEvent(scannedText));
+          context.read<OcptJoiningBloc>().add(
+            OcptJoiningInviteScannedEvent(
+              scannedText,
+              destinationConfirmButtonText: Tr.of(context).joiningDestinationConfirmAction,
+            ),
+          );
         },
       );
     }

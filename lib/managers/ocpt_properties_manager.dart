@@ -253,6 +253,15 @@ class OcptPropertiesManager extends AbstractPropertiesManager
   /// something has asked for the id once, and every caller wants the id, not the absence of one.
   final deviceId = SharedPreferencesItem<String>("DEVICE_ID");
 
+  /// This is the key used to store the folder the native save dialog for a new project (or a moved
+  /// one) last used, so it opens there again next time instead of
+  /// `OcptProjectsManager.getDefaultProjectsDirectory` every time.
+  ///
+  /// Loading it returns null if nothing has been stored yet, or if the folder it names has since
+  /// been deleted — `OcptProjectsManager.suggestedProjectsDirectory` is what falls back to the
+  /// default directory in either case.
+  final lastProjectsDirectory = SharedPreferencesItem<String>("LAST_PROJECTS_DIRECTORY");
+
   /// The separator joining the [OcptShotListColumn] names stored for [shotListVisibleColumns].
   static const _shotListColumnsSeparator = ",";
 
@@ -338,6 +347,21 @@ class OcptPropertiesManager extends AbstractPropertiesManager
     final current = await recentProjects.load() ?? const [];
     final updated = current.where((element) => element.path != path).toList();
 
+    await recentProjects.store(updated);
+  }
+
+  /// Updates the entry at [oldPath] to [newPath], keeping its name, `lastOpenedAt` and episode
+  /// count, and its position in the list — a move is a change of address, not a fresh open. Does
+  /// nothing if [oldPath] isn't in [recentProjects] at all.
+  Future<void> updateRecentProjectPath({required String oldPath, required String newPath}) async {
+    final current = await recentProjects.load() ?? const [];
+    final index = current.indexWhere((entry) => entry.path == oldPath);
+    if (index == -1) {
+      return;
+    }
+
+    final updated = [...current];
+    updated[index] = updated[index].copyWith(path: newPath);
     await recentProjects.store(updated);
   }
 

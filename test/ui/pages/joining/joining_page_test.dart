@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-import 'dart:typed_data';
+import 'dart:io';
 
 import 'package:act_file_transfer_manager/act_file_transfer_manager.dart';
 import 'package:act_global_manager/act_global_manager.dart';
@@ -13,12 +13,15 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
+import 'package:open_cine_prod_tools/managers/export/ocpt_export_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
 import 'package:open_cine_prod_tools/managers/sync/ocpt_sync_manager.dart';
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_changeset_service.dart';
+import 'package:open_cine_prod_tools/managers/sync/services/ocpt_pairing_service.dart';
+import 'package:open_cine_prod_tools/managers/sync/services/ocpt_remote_storage.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_relay_invite.dart';
 import 'package:open_cine_prod_tools/types/ocpt_route.dart';
 import 'package:open_cine_prod_tools/ui/pages/joining/joining_bloc.dart';
@@ -44,14 +47,49 @@ Widget _wrapWithLocalization(Widget child) => MaterialApp(
   home: child,
 );
 
-/// A file saver manager that never actually shows a dialog — nothing in these tests presses the
-/// "Rejoindre" button, but building an [OcptJoiningBloc] still needs one handed in explicitly
-/// (`home_bloc_test.dart`'s own `_FakeFileSaverManager`), sidestepping the real one's
-/// `globalGetIt()` lookup.
-class _FakeFileSaverManager extends FileSaverManager {
+/// An [OcptSyncManager] whose [joinFromRelay] fails immediately rather than reaching the real
+/// network — this page's own tests only care that pressing "Rejoindre" doesn't crash the widget
+/// tree, exactly what `joining_bloc_test.dart`'s own `_FakeSyncManager` exists to cover more
+/// thoroughly (its stub instead returns a real path, which none of these tests need).
+class _FailFastSyncManager extends OcptSyncManager {
+  _FailFastSyncManager() : super(changesetService: const OcptChangesetService());
+
   @override
-  Future<String?> saveFileFromBytes({required String fileName, required Uint8List bytes}) async =>
-      null;
+  Future<String> joinFromRelay({
+    required OcptRemoteStorage storage,
+    required String parentDirectoryPath,
+    required OcptPairingService pairingService,
+    required Uri relayBaseUri,
+    required String token,
+  }) async => throw Exception("no relay reachable in this test");
+}
+
+/// A [PlatformManager] whose [isMobile] is stubbed to true, so [_joiningExportManager] never
+/// actually reaches a real native dialog — none of this page's own tests exercise the desktop
+/// save/folder dialogs themselves, that being `joining_bloc_test.dart`'s own job.
+class _StubPlatformManager extends PlatformManager {
+  _StubPlatformManager({required this.isMobile});
+
+  @override
+  final bool isMobile;
+}
+
+/// The export manager every [OcptJoiningBloc] built below is given: real, but reporting
+/// [OcptExportManager.isMobile] true, so a test that submits a join never touches a real native
+/// folder-picker dialog `flutter test` cannot show.
+OcptExportManager _joiningExportManager() => OcptExportManager(
+  fileSelectorManager: const FileSelectorManager(),
+  platformManager: _StubPlatformManager(isMobile: true),
+);
+
+/// A projects manager whose [newProjectsDirectory] answers the system temporary directory without
+/// asking `path_provider`, which never answers under a plain `flutter test` run: the join a test
+/// submits resolves its folder through it before reaching [_FailFastSyncManager].
+class _TestProjectsManager extends OcptProjectsManager {
+  _TestProjectsManager({super.propertiesManager}) : super(appLanguageCode: () => "en");
+
+  @override
+  Future<Directory> newProjectsDirectory() async => Directory.systemTemp;
 }
 
 /// An [OcptJoiningBloc] whose own protected `emit` is exposed as [pushTestState] — used to drive
@@ -61,11 +99,15 @@ class _FakeFileSaverManager extends FileSaverManager {
 /// already covers on its own.
 class _TestableJoiningBloc extends OcptJoiningBloc {
   _TestableJoiningBloc({
-    required super.syncManager,
-    required super.projectsManager,
-    required super.routerManager,
-    required super.fileSaverManager,
-  });
+    required OcptSyncManager syncManager,
+    required OcptProjectsManager projectsManager,
+    required OcptRouterManager routerManager,
+  }) : super(
+         syncManager: syncManager,
+         projectsManager: projectsManager,
+         routerManager: routerManager,
+         exportManager: _joiningExportManager(),
+       );
 
   /// Pushes [state] directly onto the bloc's own stream, bypassing every event handler.
   void pushTestState(OcptJoiningState state) => emit(state);
@@ -122,19 +164,19 @@ void main() {
     managers.registerSingleton<PlatformManager>(PlatformManager());
   });
 
-  /// Pumps [OcptJoiningView] backed by a bare [OcptJoiningBloc] — nothing here ever dispatches an
-  /// event that would reach [OcptSyncManager]/[OcptProjectsManager], so both are built with the
-  /// lightest possible wiring, exactly like their own "no `globalGetIt()` needed at all" test
-  /// constructions.
+  /// Pumps [OcptJoiningView] backed by a bare [OcptJoiningBloc] — one of these tests does submit a
+  /// manual entry, so [_FailFastSyncManager] is what keeps that off the real network, and
+  /// [OcptProjectsManager] is built with the lightest possible wiring, exactly like its own "no
+  /// `globalGetIt()` needed at all" test constructions.
   Future<void> pumpView(WidgetTester tester) async {
     await tester.binding.setSurfaceSize(const Size(1200, 900));
     addTearDown(() => tester.binding.setSurfaceSize(null));
 
     final bloc = OcptJoiningBloc(
-      syncManager: OcptSyncManager(changesetService: const OcptChangesetService()),
-      projectsManager: OcptProjectsManager(propertiesManager: propertiesManager, appLanguageCode: () => "en"),
+      syncManager: _FailFastSyncManager(),
+      projectsManager: _TestProjectsManager(propertiesManager: propertiesManager),
       routerManager: OcptRouterManager(),
-      fileSaverManager: _FakeFileSaverManager(),
+      exportManager: _joiningExportManager(),
     );
     addTearDown(bloc.close);
 
@@ -183,10 +225,10 @@ void main() {
 
     await tester.enterText(find.byType(TextField), inviteLink);
     await tester.tap(find.text(tr.joiningJoinAction));
-    // A bounded pump only: `_FakeFileSaverManager.saveFileFromBytes` resolves to null (a
-    // cancelled destination picker), which `OcptJoiningBloc._join` treats as a silent no-op —
-    // exactly `joining_bloc_test.dart`'s own "a cancelled desktop destination picker" case — so
-    // there is no busy state or snack bar left to settle here.
+    // A bounded pump only: `_FailFastSyncManager.joinFromRelay` throws straight away, which
+    // `OcptJoiningBloc._join` catches and reports as `OcptJoiningState.joinFailed` — this test only
+    // cares that submitting doesn't overflow or crash the widget tree, not about that failure
+    // itself.
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 50));
 
@@ -215,9 +257,8 @@ void main() {
 
     final bloc = _TestableJoiningBloc(
       syncManager: OcptSyncManager(changesetService: const OcptChangesetService()),
-      projectsManager: OcptProjectsManager(propertiesManager: propertiesManager, appLanguageCode: () => "en"),
+      projectsManager: _TestProjectsManager(propertiesManager: propertiesManager),
       routerManager: OcptRouterManager(),
-      fileSaverManager: _FakeFileSaverManager(),
     );
     addTearDown(bloc.close);
 
@@ -259,9 +300,8 @@ void main() {
     final routerManager = _RecordingRouterManager();
     final bloc = _TestableJoiningBloc(
       syncManager: OcptSyncManager(changesetService: const OcptChangesetService()),
-      projectsManager: OcptProjectsManager(propertiesManager: propertiesManager, appLanguageCode: () => "en"),
+      projectsManager: _TestProjectsManager(propertiesManager: propertiesManager),
       routerManager: routerManager,
-      fileSaverManager: _FakeFileSaverManager(),
     );
     addTearDown(bloc.close);
 

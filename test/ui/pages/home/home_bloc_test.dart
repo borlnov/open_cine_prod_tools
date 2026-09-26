@@ -8,6 +8,7 @@ import 'dart:typed_data';
 
 import 'package:act_dart_result/act_dart_result.dart';
 import 'package:act_file_transfer_manager/act_file_transfer_manager.dart';
+import 'package:act_platform_manager/act_platform_manager.dart';
 import 'package:archive/archive_io.dart';
 import 'package:drift/drift.dart' show OrderingTerm, Value;
 import 'package:flutter_test/flutter_test.dart';
@@ -38,14 +39,34 @@ import 'package:shared_preferences_platform_interface/in_memory_shared_preferenc
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
 import 'package:sqlite3/sqlite3.dart';
 
+/// A [PlatformManager] whose [isMobile] is stubbed, so a test can exercise either of
+/// [OcptHomeBloc]'s "New project"/import branches without a real platform underneath it — the same
+/// double `ocpt_export_manager_test.dart`'s own `_StubPlatformManager` already is.
+class _StubPlatformManager extends PlatformManager {
+  /// Class constructor
+  _StubPlatformManager({required this.isMobile});
+
+  @override
+  final bool isMobile;
+}
+
 /// An export manager whose [pickAndReadScreenplay] is stubbed, to exercise the bloc's import flow
 /// without any real file dialog. [fountainIoService] is left as the real, pure implementation.
+///
+/// [isMobile] defaults to true so a test not exercising the desktop save-file dialog keeps taking
+/// the very same no-dialog branch it always has ([OcptProjectsManager.freeNewProjectFilePath]);
+/// [saveLocationService] is only reached at all once a test sets [isMobile] to false.
 class _FakeExportManager extends OcptExportManager {
   /// Class constructor
   _FakeExportManager({
     this.importResult,
     this.importStatus = OcptScreenplayImportStatus.cancelled,
-  }) : super(fileSelectorManager: const FileSelectorManager());
+    bool isMobile = true,
+    super.saveLocationService,
+  }) : super(
+         fileSelectorManager: const FileSelectorManager(),
+         platformManager: _StubPlatformManager(isMobile: isMobile),
+       );
 
   /// The model [pickAndReadScreenplay] returns, or null to return no value at all.
   final OcptImportedFountainModel? importResult;
@@ -71,23 +92,29 @@ class _FakeExportManager extends OcptExportManager {
   }
 }
 
-/// A file saver manager whose [saveFileFromBytes] is stubbed, to exercise the bloc's save-as
-/// step without any real save dialog.
-class _FakeFileSaverManager extends FileSaverManager {
+/// A projects manager whose [newProjectsDirectory] resolves to a fixed [directory] instead of
+/// asking `path_provider` for the platform's real Downloads folder — `path_provider`'s desktop
+/// implementations need the plugin-registrant plumbing a plain `flutter test` run doesn't reliably
+/// provide, exactly the kind of pitfall `AGENTS.md`'s own "flutter test runs on the plain Dart VM"
+/// note already flags elsewhere. This is what lets `OcptHomeBloc._onCreateProjectRequested`'s own
+/// [OcptProjectsManager.freeNewProjectFilePath] call be exercised for real in these tests.
+class _TestProjectsManager extends OcptProjectsManager {
   /// Class constructor
-  _FakeFileSaverManager({this.result});
+  _TestProjectsManager({required this.directory, super.propertiesManager, super.appLanguageCode});
 
-  /// The path [saveFileFromBytes] returns, or null to simulate a cancelled save dialog.
-  final String? result;
-
-  /// The file name of the last [saveFileFromBytes] call.
-  String? lastFileName;
+  /// The directory [newProjectsDirectory] and [suggestedProjectsDirectory] always resolve to.
+  final Directory directory;
 
   @override
-  Future<String?> saveFileFromBytes({required String fileName, required Uint8List bytes}) async {
-    lastFileName = fileName;
-    return result;
-  }
+  Future<Directory> newProjectsDirectory() async => directory;
+
+  /// Overridden for the very same reason [newProjectsDirectory] is: the real
+  /// [OcptProjectsManager.suggestedProjectsDirectory] falls back to
+  /// [OcptProjectsManager.getDefaultProjectsDirectory], which asks `path_provider` for the
+  /// platform's real documents directory the moment nothing has been remembered yet — exactly what
+  /// a plain `flutter test` run cannot answer.
+  @override
+  Future<String> suggestedProjectsDirectory() async => directory.path;
 }
 
 /// A save location service answering [saveLocationAnswer]/[directoryAnswer] without ever showing a
@@ -109,6 +136,13 @@ class _RecordingSaveLocationService extends OcptSaveLocationService {
   /// The [pickDirectory] confirm button text of the last call, or null if it was never called.
   String? lastDirectoryConfirmButtonText;
 
+  /// The suggested file name of the last [pickSaveLocation] call, or null if it was never called.
+  String? lastSuggestedFileName;
+
+  /// The `initialDirectory` of the last [pickSaveLocation] call, or null if it was never called or
+  /// none was passed.
+  String? lastInitialDirectory;
+
   /// Class constructor
   _RecordingSaveLocationService({this.saveLocationAnswer, this.directoryAnswer});
 
@@ -117,13 +151,19 @@ class _RecordingSaveLocationService extends OcptSaveLocationService {
     required String suggestedFileName,
     required String fileTypeLabel,
     required List<String> extensions,
+    String? initialDirectory,
   }) async {
     askCount++;
+    lastSuggestedFileName = suggestedFileName;
+    lastInitialDirectory = initialDirectory;
     return saveLocationAnswer;
   }
 
   @override
-  Future<String?> pickDirectory({required String confirmButtonText}) async {
+  Future<String?> pickDirectory({
+    required String confirmButtonText,
+    String? initialDirectory,
+  }) async {
     lastDirectoryConfirmButtonText = confirmButtonText;
     return directoryAnswer;
   }
@@ -198,7 +238,8 @@ void main() {
   setUp(() async {
     await propertiesManager.deleteAll();
     tempDir = await Directory.systemTemp.createTemp("ocpt_home_bloc_test_");
-    projectsManager = OcptProjectsManager(
+    projectsManager = _TestProjectsManager(
+      directory: tempDir,
       propertiesManager: propertiesManager,
       appLanguageCode: () => "en",
     );
@@ -215,14 +256,12 @@ void main() {
   /// touches a real file dialog.
   OcptHomeBloc buildBloc({
     OcptExportManager? exportManager,
-    FileSaverManager? fileSaverManager,
     FileSelectorManager? fileSelectorManager,
     OcptRouterManager? routerManager,
   }) => OcptHomeBloc(
     propertiesManager: propertiesManager,
     projectsManager: projectsManager,
     routerManager: routerManager ?? _RecordingRouterManager(),
-    fileSaverManager: fileSaverManager ?? _FakeFileSaverManager(),
     fileSelectorManager: fileSelectorManager ?? const FileSelectorManager(),
     exportManager: exportManager ?? _FakeExportManager(),
   );
@@ -254,12 +293,9 @@ void main() {
       },
     );
 
-    final bloc = buildBloc(
-      fileSaverManager: _FakeFileSaverManager(result: filePath),
-      routerManager: routerManager,
-    );
+    final bloc = buildBloc(routerManager: routerManager);
 
-    bloc.add(const OcptHomeCreateProjectRequestedEvent(name: "Series"));
+    bloc.add(const OcptHomeCreateProjectRequestedEvent(name: "Series", fileTypeLabel: "Project"));
     final state = await waitForState(
       bloc,
       (state) =>
@@ -315,28 +351,26 @@ void main() {
         ),
       );
       final savedPath = p.join(tempDir.path, "My Movie.ocpt");
-      final fileSaverManager = _FakeFileSaverManager(result: savedPath);
       final routerManager = _RecordingRouterManager();
 
-      final bloc = buildBloc(
-        exportManager: exportManager,
-        fileSaverManager: fileSaverManager,
-        routerManager: routerManager,
-      );
+      final bloc = buildBloc(exportManager: exportManager, routerManager: routerManager);
 
-      bloc.add(
-        const OcptHomeImportScreenplayRequestedEvent(screenplayFileTypeLabel: "Screenplay"),
-      );
-      await waitForState(bloc, (state) => state.isBusy);
-      final state = await waitForState(bloc, (state) => !state.isBusy);
+    bloc.add(
+      const OcptHomeImportScreenplayRequestedEvent(
+        screenplayFileTypeLabel: "Screenplay",
+        projectFileTypeLabel: "Project",
+      ),
+    );
+    await waitForState(bloc, (state) => state.isBusy);
+    final state = await waitForState(bloc, (state) => !state.isBusy);
 
       expect(state.error, isNull);
       expect(exportManager.lastFileTypeLabel, "Screenplay");
-      // The suggested file name comes from the imported file's title page.
-      expect(fileSaverManager.lastFileName, "My Movie.ocpt");
       expect(routerManager.pushedRoute, OcptRoute.workspace);
 
       final project = projectsManager.currentProject!;
+      // The project's name — and, through freeNewProjectFilePath, its file's own name — comes
+      // from the imported file's title page.
       expect(project.name, "My Movie");
       expect(project.path, savedPath);
 
@@ -358,17 +392,18 @@ void main() {
 
   test('a cancelled screenplay file picker leaves the bloc idle and creates no project', () async {
     final exportManager = _FakeExportManager();
-    final fileSaverManager = _FakeFileSaverManager();
-    final bloc = buildBloc(exportManager: exportManager, fileSaverManager: fileSaverManager);
+    final bloc = buildBloc(exportManager: exportManager);
 
     bloc.add(
-      const OcptHomeImportScreenplayRequestedEvent(screenplayFileTypeLabel: "Screenplay"),
+      const OcptHomeImportScreenplayRequestedEvent(
+        screenplayFileTypeLabel: "Screenplay",
+        projectFileTypeLabel: "Project",
+      ),
     );
     await waitForState(bloc, (state) => state.isBusy);
     final state = await waitForState(bloc, (state) => !state.isBusy);
 
     expect(state.error, isNull);
-    expect(fileSaverManager.lastFileName, isNull);
     expect(projectsManager.currentProject, isNull);
 
     await bloc.close();
@@ -378,19 +413,20 @@ void main() {
     final exportManager = _FakeExportManager(
       importStatus: OcptScreenplayImportStatus.unreadableFile,
     );
-    final fileSaverManager = _FakeFileSaverManager();
-    final bloc = buildBloc(exportManager: exportManager, fileSaverManager: fileSaverManager);
+    final bloc = buildBloc(exportManager: exportManager);
 
     bloc.add(
-      const OcptHomeImportScreenplayRequestedEvent(screenplayFileTypeLabel: "Screenplay"),
+      const OcptHomeImportScreenplayRequestedEvent(
+        screenplayFileTypeLabel: "Screenplay",
+        projectFileTypeLabel: "Project",
+      ),
     );
     await waitForState(bloc, (state) => state.isBusy);
     final state = await waitForState(bloc, (state) => !state.isBusy);
 
     expect(state.screenplayImportError, OcptScreenplayImportStatus.unreadableFile);
     expect(state.error, isNull);
-    // The save dialog is never reached: nothing was read to seed a project with.
-    expect(fileSaverManager.lastFileName, isNull);
+    // Nothing was read to seed a project with, so no project was ever created.
     expect(projectsManager.currentProject, isNull);
 
     bloc.add(const OcptHomeScreenplayImportErrorDismissedEvent());
@@ -400,27 +436,146 @@ void main() {
     await bloc.close();
   });
 
-  test('a cancelled save-as dialog leaves the bloc idle and creates no project', () async {
-    const importedText = "INT. HOUSE - DAY\n\nAction.\n";
-    final exportManager = _FakeExportManager(
-      importResult: const OcptImportedFountainModel(
-        fountainText: importedText,
-        sourceFileName: "draft.fountain",
-      ),
-    );
-    final fileSaverManager = _FakeFileSaverManager();
-    final bloc = buildBloc(exportManager: exportManager, fileSaverManager: fileSaverManager);
+  test('on mobile, a project named after a file that already exists gets "(2)" appended, and the '
+      'existing file is left untouched', () async {
+    final existingPath = p.join(tempDir.path, "Movie.ocpt");
+    await File(existingPath).writeAsString("not a project");
 
-    bloc.add(
-      const OcptHomeImportScreenplayRequestedEvent(screenplayFileTypeLabel: "Screenplay"),
-    );
+      final bloc = buildBloc();
+
+    bloc.add(const OcptHomeCreateProjectRequestedEvent(name: "Movie", fileTypeLabel: "Project"));
     await waitForState(bloc, (state) => state.isBusy);
     final state = await waitForState(bloc, (state) => !state.isBusy);
 
-    expect(state.error, isNull);
-    expect(projectsManager.currentProject, isNull);
+      expect(state.error, isNull);
+      expect(await File(existingPath).readAsString(), "not a project");
 
-    await bloc.close();
+      final project = projectsManager.currentProject!;
+      expect(project.path, p.join(tempDir.path, "Movie (2).ocpt"));
+
+      await bloc.close();
+    },
+  );
+
+  group("on desktop", () {
+    test(
+      "New project shows the save dialog and creates the project where the user picked",
+      () async {
+        final pickedPath = p.join(tempDir.path, "Wherever I Want.ocpt");
+        final saveLocationService = _RecordingSaveLocationService(saveLocationAnswer: pickedPath);
+        final bloc = buildBloc(
+          exportManager: _FakeExportManager(
+            isMobile: false,
+            saveLocationService: saveLocationService,
+          ),
+        );
+
+        bloc.add(
+          const OcptHomeCreateProjectRequestedEvent(name: "Movie", fileTypeLabel: "Project"),
+        );
+        await waitForState(bloc, (state) => state.isBusy);
+        final state = await waitForState(bloc, (state) => !state.isBusy);
+
+        expect(state.error, isNull);
+        expect(saveLocationService.askCount, 1);
+        expect(saveLocationService.lastSuggestedFileName, "Movie.ocpt");
+        expect(saveLocationService.lastInitialDirectory, isNotNull);
+        final project = projectsManager.currentProject!;
+        // The project's own name is what the user typed, not whichever file name they saved it
+        // under.
+        expect(project.name, "Movie");
+        expect(project.path, pickedPath);
+
+        await bloc.close();
+      },
+    );
+
+    test("cancelling the New project save dialog creates nothing", () async {
+      final saveLocationService = _RecordingSaveLocationService();
+      final bloc = buildBloc(
+        exportManager: _FakeExportManager(
+          isMobile: false,
+          saveLocationService: saveLocationService,
+        ),
+      );
+
+      bloc.add(const OcptHomeCreateProjectRequestedEvent(name: "Movie", fileTypeLabel: "Project"));
+      await waitForState(bloc, (state) => state.isBusy);
+      final state = await waitForState(bloc, (state) => !state.isBusy);
+
+      expect(state.error, isNull);
+      expect(saveLocationService.askCount, 1);
+      expect(projectsManager.currentProject, isNull);
+
+      await bloc.close();
+    });
+
+    test(
+      "importing a screenplay names the project after the file name saved in the dialog, not the "
+      "screenplay's own suggested name",
+      () async {
+        const importedText = "Title: My Movie\n\nINT. HOUSE - DAY\n\nAction.\n";
+        final pickedPath = p.join(tempDir.path, "Renamed On The Way Out.ocpt");
+        final saveLocationService = _RecordingSaveLocationService(saveLocationAnswer: pickedPath);
+        final exportManager = _FakeExportManager(
+          importResult: const OcptImportedFountainModel(
+            fountainText: importedText,
+            sourceFileName: "draft.fountain",
+          ),
+          isMobile: false,
+          saveLocationService: saveLocationService,
+        );
+        final bloc = buildBloc(exportManager: exportManager);
+
+        bloc.add(
+          const OcptHomeImportScreenplayRequestedEvent(
+            screenplayFileTypeLabel: "Screenplay",
+            projectFileTypeLabel: "Project",
+          ),
+        );
+        await waitForState(bloc, (state) => state.isBusy);
+        final state = await waitForState(bloc, (state) => !state.isBusy);
+
+        expect(state.error, isNull);
+        // Suggested from the title page ("My Movie"), but the save dialog's own picked file name
+        // ("Renamed On The Way Out") is what the user actually chose to call it.
+        expect(saveLocationService.lastSuggestedFileName, "My Movie.ocpt");
+        final project = projectsManager.currentProject!;
+        expect(project.name, "Renamed On The Way Out");
+        expect(project.path, pickedPath);
+
+        await bloc.close();
+      },
+    );
+
+    test("cancelling the import's save dialog creates nothing", () async {
+      const importedText = "Title: My Movie\n\nINT. HOUSE - DAY\n\nAction.\n";
+      final saveLocationService = _RecordingSaveLocationService();
+      final exportManager = _FakeExportManager(
+        importResult: const OcptImportedFountainModel(
+          fountainText: importedText,
+          sourceFileName: "draft.fountain",
+        ),
+        isMobile: false,
+        saveLocationService: saveLocationService,
+      );
+      final bloc = buildBloc(exportManager: exportManager);
+
+      bloc.add(
+        const OcptHomeImportScreenplayRequestedEvent(
+          screenplayFileTypeLabel: "Screenplay",
+          projectFileTypeLabel: "Project",
+        ),
+      );
+      await waitForState(bloc, (state) => state.isBusy);
+      final state = await waitForState(bloc, (state) => !state.isBusy);
+
+      expect(state.error, isNull);
+      expect(saveLocationService.askCount, 1);
+      expect(projectsManager.currentProject, isNull);
+
+      await bloc.close();
+    });
   });
 
   group("a project file from another build", () {

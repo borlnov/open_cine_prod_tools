@@ -213,6 +213,18 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
   /// Opens (creating it if needed) the project database stored at [file].
   OcptProjectDatabase(File file) : isPreview = false, super(NativeDatabase(file));
 
+  /// Opens the project database stored at [file] while another [OcptProjectDatabase] is still
+  /// open on a different file: the destination of `OcptProjectsManager.moveCurrentProject`, which
+  /// holds both for the instant between verifying the copy and closing the original.
+  ///
+  /// That overlap is what drift's "database class created multiple times" warning looks for, and
+  /// it is a false alarm here for the same reason as the version preview's
+  /// ([OcptProjectDatabase.memory]): the warning is about two databases sharing a [QueryExecutor],
+  /// and these two each own their own [NativeDatabase] on their own file.
+  OcptProjectDatabase.alongsideAnother(File file)
+    : isPreview = false,
+      super(_alongsideExecutor(file));
+
   /// Opens a project database backed by an in-memory SQLite instance: the connection a version
   /// preview is hydrated into ([isPreview] true), and the one the tests run against.
   ///
@@ -221,6 +233,14 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
   OcptProjectDatabase.memory({bool isPreview = false})
     : isPreview = isPreview,
       super(_memoryExecutor(isPreview: isPreview));
+
+  /// The file executor [OcptProjectDatabase.alongsideAnother] runs on, silencing drift's
+  /// multiple-instances warning first (see that constructor's own doc comment).
+  static QueryExecutor _alongsideExecutor(File file) {
+    driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
+
+    return NativeDatabase(file);
+  }
 
   /// The in-memory executor [OcptProjectDatabase.memory] runs on.
   ///

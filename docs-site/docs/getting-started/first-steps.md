@@ -19,8 +19,8 @@ keeps the **same colour** from one launch to the next and from one machine to an
 
 At the top of the home screen, two actions:
 
-- **New** — create a project. The application then writes an `.ocpt` file to the location you
-  choose.
+- **New** — create a project. On a computer, a save dialog lets you pick where the `.ocpt` file
+  goes; on a tablet or phone it is placed alongside your other projects automatically.
 - **Open…** — select an existing `.ocpt` file on disk.
 
 Clicking a card reopens the matching project. A card's **⋮** menu also lets you **export** the
@@ -29,7 +29,11 @@ project as a portable package without even opening it.
 ## Create your first project
 
 1. Click **New**.
-2. Choose where to save the `.ocpt` file and give it a name.
+2. Give it a name. On a computer, a save dialog opens next — it suggests the folder you last saved
+   a project in (your Documents folder the very first time) and the name you just typed, and you
+   can change either. On a tablet or phone, where there is no such dialog, the `.ocpt` file is
+   placed alongside your other projects automatically, a colliding name numbered as `Name (2).ocpt`.
+   Either way, an existing file is never replaced.
 3. The application opens the **workspace** on the Screenplay mode.
 
 You are ready to write. A new project starts with a single episode; you can turn it into a series

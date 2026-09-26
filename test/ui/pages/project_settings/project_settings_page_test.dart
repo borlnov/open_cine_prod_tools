@@ -4,13 +4,17 @@
 
 import 'dart:io';
 
+import 'package:act_file_transfer_manager/act_file_transfer_manager.dart';
 import 'package:act_global_manager/act_global_manager.dart';
+import 'package:act_platform_manager/act_platform_manager.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/intl.dart' show NumberFormat;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
+import 'package:open_cine_prod_tools/managers/export/ocpt_export_manager.dart';
+import 'package:open_cine_prod_tools/managers/export/services/ocpt_save_location_service.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
@@ -61,6 +65,49 @@ class _RecordingRouterManager extends OcptRouterManager {
     if (navigator != null && navigator.canPop()) {
       navigator.pop(result);
     }
+  }
+}
+
+/// A [PlatformManager] whose [isMobile] is stubbed, so a test can exercise either of the `Project
+/// file` card's own branches without a real platform underneath it — the same double
+/// `ocpt_export_manager_test.dart`'s own `_StubPlatformManager` already is.
+class _StubPlatformManager extends PlatformManager {
+  _StubPlatformManager({required this.isMobile});
+
+  @override
+  final bool isMobile;
+}
+
+/// A save location service answering [saveLocationAnswer] without ever showing a native dialog,
+/// and recording that it was asked — a null answer is the user cancelling the dialog.
+class _RecordingSaveLocationService extends OcptSaveLocationService {
+  /// The path [pickSaveLocation] hands back, or null to answer as a cancelled dialog.
+  final String? saveLocationAnswer;
+
+  /// How many times a save location was asked for.
+  int askCount = 0;
+
+  /// The suggested file name of the last [pickSaveLocation] call, or null if it was never called.
+  String? lastSuggestedFileName;
+
+  /// The `initialDirectory` of the last [pickSaveLocation] call, or null if it was never called or
+  /// none was passed.
+  String? lastInitialDirectory;
+
+  /// Class constructor
+  _RecordingSaveLocationService({this.saveLocationAnswer});
+
+  @override
+  Future<String?> pickSaveLocation({
+    required String suggestedFileName,
+    required String fileTypeLabel,
+    required List<String> extensions,
+    String? initialDirectory,
+  }) async {
+    askCount++;
+    lastSuggestedFileName = suggestedFileName;
+    lastInitialDirectory = initialDirectory;
+    return saveLocationAnswer;
   }
 }
 
@@ -128,13 +175,21 @@ void main() {
   /// (the default 800×600 clips them below the fold, `OcptPersonSheet`'s own test fixture facing
   /// the same thing): every affordance below has to actually be tappable, not merely present in
   /// the tree.
-  Future<OcptProjectSettingsBloc> pumpView(WidgetTester tester) async {
+  Future<OcptProjectSettingsBloc> pumpView(
+    WidgetTester tester, {
+    OcptExportManager? exportManager,
+    OcptFolderLauncher? launchFolder,
+  }) async {
     // Tall enough for the episodes card's own rows to sit fully on screen, even with the budget
-    // defaults card now sharing the page above it.
-    await tester.binding.setSurfaceSize(const Size(800, 1750));
+    // defaults card and the project file card now sharing the page above it.
+    await tester.binding.setSurfaceSize(const Size(800, 1950));
     addTearDown(() => tester.binding.setSurfaceSize(null));
 
-    final bloc = OcptProjectSettingsBloc(projectsManager: projectsManager);
+    final bloc = OcptProjectSettingsBloc(
+      projectsManager: projectsManager,
+      exportManager: exportManager,
+      launchFolder: launchFolder,
+    );
     addTearDown(bloc.close);
 
     await tester.pumpWidget(
@@ -722,5 +777,136 @@ void main() {
       tester.getTopLeft(find.byType(OcptProjectSettingsEpisodesSection)).dy,
       greaterThan(500),
     );
+  });
+
+  group("the Project file card", () {
+    testWidgets("shows the currently open project's own file path", (tester) async {
+      await pumpView(tester);
+
+      expect(find.text(projectsManager.currentProject!.path), findsOneWidget);
+    });
+
+    testWidgets("Move… shows the save dialog and moves the project's file there", (tester) async {
+      final oldPath = projectsManager.currentProject!.path;
+      final newPath = p.join(tempDir.path, "moved.ocpt");
+      final saveLocationService = _RecordingSaveLocationService(saveLocationAnswer: newPath);
+      final exportManager = OcptExportManager(
+        fileSelectorManager: const FileSelectorManager(),
+        platformManager: _StubPlatformManager(isMobile: false),
+        saveLocationService: saveLocationService,
+      );
+
+      final bloc = await pumpView(tester, exportManager: exportManager);
+      final tr = Tr.of(tester.element(find.byType(OcptProjectSettingsView)));
+
+      await tester.tap(find.text(tr.projectSettingsMoveAction));
+      await tester.pumpAndSettle();
+
+      // The move itself is real file/database I/O (`VACUUM INTO`, opening the copy), which only
+      // progresses while `runAsync` hands control back to the real event loop — the faked clock
+      // `pumpAndSettle` otherwise drives never advances it (`AGENTS.md`'s own "real I/O and
+      // runAsync" pitfall), exactly what `home_page_test.dart`'s own `importTheProject` works
+      // around the same way.
+      for (var round = 0; round < 4; round++) {
+        await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 200)));
+        await tester.pumpAndSettle();
+      }
+
+      expect(saveLocationService.askCount, 1);
+      expect(saveLocationService.lastSuggestedFileName, p.basename(oldPath));
+      expect(saveLocationService.lastInitialDirectory, p.dirname(oldPath));
+      expect(bloc.state.projectFilePath, newPath);
+      expect(find.text(newPath), findsOneWidget);
+      expect(File(oldPath).existsSync(), isFalse);
+      expect(File(newPath).existsSync(), isTrue);
+      expect(projectsManager.currentProject?.path, newPath);
+    });
+
+    testWidgets("cancelling the save dialog leaves the project exactly where it was", (
+      tester,
+    ) async {
+      final oldPath = projectsManager.currentProject!.path;
+      final saveLocationService = _RecordingSaveLocationService();
+      final exportManager = OcptExportManager(
+        fileSelectorManager: const FileSelectorManager(),
+        platformManager: _StubPlatformManager(isMobile: false),
+        saveLocationService: saveLocationService,
+      );
+
+      final bloc = await pumpView(tester, exportManager: exportManager);
+      final tr = Tr.of(tester.element(find.byType(OcptProjectSettingsView)));
+
+      await tester.tap(find.text(tr.projectSettingsMoveAction));
+      await tester.pumpAndSettle();
+
+      expect(saveLocationService.askCount, 1);
+      expect(bloc.state.projectFilePath, oldPath);
+      expect(File(oldPath).existsSync(), isTrue);
+    });
+
+    testWidgets("moving onto an existing file shows the existing error and touches nothing", (
+      tester,
+    ) async {
+      final oldPath = projectsManager.currentProject!.path;
+      final existingPath = p.join(tempDir.path, "existing.ocpt");
+      File(existingPath).writeAsStringSync("not a project");
+      final saveLocationService = _RecordingSaveLocationService(saveLocationAnswer: existingPath);
+      final exportManager = OcptExportManager(
+        fileSelectorManager: const FileSelectorManager(),
+        platformManager: _StubPlatformManager(isMobile: false),
+        saveLocationService: saveLocationService,
+      );
+
+      final bloc = await pumpView(tester, exportManager: exportManager);
+      final tr = Tr.of(tester.element(find.byType(OcptProjectSettingsView)));
+
+      await tester.tap(find.text(tr.projectSettingsMoveAction));
+      await tester.pumpAndSettle();
+
+      expect(find.text(tr.homeErrorFileAlreadyExists), findsOneWidget);
+      expect(bloc.state.projectFilePath, oldPath);
+      expect(File(oldPath).existsSync(), isTrue);
+      expect(File(existingPath).readAsStringSync(), "not a project");
+    });
+
+    testWidgets("Show in folder says so when no application can open the folder", (tester) async {
+      final exportManager = OcptExportManager(
+        fileSelectorManager: const FileSelectorManager(),
+        platformManager: _StubPlatformManager(isMobile: false),
+      );
+
+      Uri? launchedFolder;
+      await pumpView(
+        tester,
+        exportManager: exportManager,
+        // What a desktop with no file manager installed answers.
+        launchFolder: (folder) async {
+          launchedFolder = folder;
+          return false;
+        },
+      );
+      final tr = Tr.of(tester.element(find.byType(OcptProjectSettingsView)));
+
+      await tester.tap(find.text(tr.projectSettingsShowInFolderAction));
+      await tester.pumpAndSettle();
+
+      expect(launchedFolder, Uri.directory(p.dirname(projectsManager.currentProject!.path)));
+      expect(find.text(tr.projectSettingsShowInFolderFailedMessage), findsOneWidget);
+    });
+
+    testWidgets("on mobile, Move… and Show in folder are both withheld", (tester) async {
+      final exportManager = OcptExportManager(
+        fileSelectorManager: const FileSelectorManager(),
+        platformManager: _StubPlatformManager(isMobile: true),
+      );
+
+      await pumpView(tester, exportManager: exportManager);
+      final tr = Tr.of(tester.element(find.byType(OcptProjectSettingsView)));
+
+      expect(find.text(tr.projectSettingsMoveAction), findsNothing);
+      expect(find.text(tr.projectSettingsShowInFolderAction), findsNothing);
+      // The path itself is still shown.
+      expect(find.text(projectsManager.currentProject!.path), findsOneWidget);
+    });
   });
 }

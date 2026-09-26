@@ -261,6 +261,39 @@ class OcptProjectSettingsMileageRateAmountChangedEvent extends OcptProjectSettin
   List<Object?> get props => [...super.props, rateId, ratePerKmMilliCents];
 }
 
+/// Reports that the `Project file` card's own `Show in folder` action was tapped.
+class OcptProjectSettingsShowInFolderRequestedEvent extends OcptProjectSettingsEvent {
+  /// Class constructor
+  const OcptProjectSettingsShowInFolderRequestedEvent();
+}
+
+/// Reports that the `Project file` card's own `Move…` action was tapped: shows the native
+/// save-file dialog, suggesting the project's current file name inside its current folder, and
+/// moves the project's file there once the user picks a destination.
+class OcptProjectSettingsMoveRequestedEvent extends OcptProjectSettingsEvent {
+  /// The label of the project file type shown in the native save-file dialog.
+  final String fileTypeLabel;
+
+  /// Class constructor
+  const OcptProjectSettingsMoveRequestedEvent({required this.fileTypeLabel});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, fileTypeLabel];
+}
+
+/// Dismisses the `Show in folder` failure once the page has shown it.
+class OcptProjectSettingsShowInFolderFailureDismissedEvent extends OcptProjectSettingsEvent {
+  /// Class constructor
+  const OcptProjectSettingsShowInFolderFailureDismissedEvent();
+}
+
+/// Dismisses the transient move error currently shown, if any.
+class OcptProjectSettingsMoveErrorDismissedEvent extends OcptProjectSettingsEvent {
+  /// Class constructor
+  const OcptProjectSettingsMoveErrorDismissedEvent();
+}
+
 /// Reports that the user confirmed, through `OcptConfirmDialog` (opened by the page, never by the
 /// card), deleting mileage rate [rateId].
 ///

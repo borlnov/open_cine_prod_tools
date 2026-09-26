@@ -6,12 +6,22 @@ import 'package:act_flutter_utility/act_flutter_utility.dart';
 import 'package:act_global_manager/act_global_manager.dart';
 import 'package:drift/drift.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:open_cine_prod_tools/managers/export/ocpt_export_manager.dart';
+import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
+import 'package:open_cine_prod_tools/managers/sync/ocpt_relay_host_manager.dart';
+import 'package:open_cine_prod_tools/managers/sync/ocpt_sync_manager.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_project_info_table.dart';
+import 'package:open_cine_prod_tools/models/sync/ocpt_relay_host_state.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 import 'package:open_cine_prod_tools/ui/pages/project_settings/project_settings_event.dart';
 import 'package:open_cine_prod_tools/ui/pages/project_settings/project_settings_state.dart';
+import 'package:path/path.dart' as p;
+import 'package:url_launcher/url_launcher.dart';
+
+/// Opens [folder] in the platform's own file manager, answering whether it did.
+typedef OcptFolderLauncher = Future<bool> Function(Uri folder);
 
 /// This is the bloc class for the project settings page.
 ///
@@ -33,14 +43,61 @@ import 'package:open_cine_prod_tools/ui/pages/project_settings/project_settings_
 /// through `OcptProjectsManager.budgetFinancingService`, the very service the budget mode's own
 /// financing plan will read from later — this page is simply where a production types the rates
 /// into it.
+///
+/// The `Project file` card is the one exception to "writes the moment it changes": `Show in
+/// folder` only ever reads the current path, and `Move…` ([_onMoveRequested]) goes through a
+/// native save-file dialog first, exactly like a project's own creation
+/// (`OcptHomeBloc._onCreateProjectRequested`) — dialogs are a page/bloc concern throughout this
+/// app, never a manager's. `Move…` is withheld on mobile (no such dialog there) and while an
+/// in-app-hosted relay is online for this very project
+/// ([_isHostingOnlineForCurrentProject]) — the second check has to live here rather than inside
+/// `OcptProjectsManager.moveCurrentProject` itself: that manager is a dependency of both
+/// `OcptSyncManager` and, through it, `OcptRelayHostManager`, and may never import either
+/// (`AGENTS.md`, "Dependencies never reference their dependents"). This bloc also stops and
+/// restarts the sync session around the move for the very same reason
+/// (`OcptProjectsManager.moveCurrentProject`'s own doc comment).
 class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState> {
   /// The manager used to read and write the current project's settings.
   final OcptProjectsManager _projectsManager;
 
+  /// The manager used to show the `Move…` action's native save-file dialog, and to tell desktop
+  /// from mobile ([OcptExportManager.isMobile]) — resolved lazily and tolerant of its absence, see
+  /// [_exportManager]'s own doc comment.
+  final OcptExportManager? _exportManagerOverride;
+
+  /// The manager owning the sync session [_onMoveRequested] stops before the swap and
+  /// [_restartSyncSessionIfPaired] restarts afterwards, and that [_isHostingOnlineForCurrentProject]
+  /// reads the currently open project's own relay-side id through — resolved lazily and tolerant of
+  /// its absence, see [_syncManager]'s own doc comment.
+  final OcptSyncManager? _syncManagerOverride;
+
+  /// The manager [_isHostingOnlineForCurrentProject] reads to decide whether `Move…` is withheld —
+  /// resolved lazily and tolerant of its absence, see [_hostManager]'s own doc comment.
+  final OcptRelayHostManager? _hostManagerOverride;
+
+  /// The manager [_restartSyncSessionIfPaired] reads this replica's own device id through —
+  /// resolved lazily and tolerant of its absence, see [_propertiesManager]'s own doc comment.
+  final OcptPropertiesManager? _propertiesManagerOverride;
+
+  /// What `Show in folder` opens the project's folder through: `url_launcher`'s [launchUrl] unless a
+  /// test hands in its own, since no url_launcher implementation answers under `flutter test`.
+  final OcptFolderLauncher _launchFolder;
+
   /// Class constructor
-  OcptProjectSettingsBloc({OcptProjectsManager? projectsManager})
-    : _projectsManager = projectsManager ?? globalGetIt().get<OcptProjectsManager>(),
-      super(const OcptProjectSettingsState.init()) {
+  OcptProjectSettingsBloc({
+    OcptProjectsManager? projectsManager,
+    OcptExportManager? exportManager,
+    OcptSyncManager? syncManager,
+    OcptRelayHostManager? hostManager,
+    OcptPropertiesManager? propertiesManager,
+    OcptFolderLauncher? launchFolder,
+  }) : _projectsManager = projectsManager ?? globalGetIt().get<OcptProjectsManager>(),
+       _exportManagerOverride = exportManager,
+       _syncManagerOverride = syncManager,
+       _hostManagerOverride = hostManager,
+       _propertiesManagerOverride = propertiesManager,
+       _launchFolder = launchFolder ?? launchUrl,
+       super(const OcptProjectSettingsState.init()) {
     add(const OcptProjectSettingsLoadRequestedEvent());
   }
 
@@ -48,11 +105,86 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState> {
   /// workspace's own, so a project is always open by the time an episode mutation runs.
   OcptProjectDatabase get _database => _projectsManager.currentProject!.database;
 
+  /// [_exportManagerOverride], or the one `globalGetIt()` holds when an app-wide manager
+  /// environment actually registered one, or null otherwise — resolved lazily on every access
+  /// rather than eagerly in the constructor, exactly as `OcptWorkspaceBloc._syncManager` is and for
+  /// the same reason: this page's own widget tests build a bare `OcptProjectSettingsBloc()` with no
+  /// reason to ever register an export manager, and [_onLoadRequested]/[_onMoveRequested] simply
+  /// treat its absence as "desktop, nothing hosted" rather than crash.
+  OcptExportManager? get _exportManager {
+    final override = _exportManagerOverride;
+    if (override != null) {
+      return override;
+    }
+    if (AbsGlobalManager.instance == null) {
+      return null;
+    }
+
+    final managers = globalGetIt();
+    return managers.isRegistered<OcptExportManager>() ? managers.get<OcptExportManager>() : null;
+  }
+
+  /// [_syncManagerOverride], or the one `globalGetIt()` holds when an app-wide manager environment
+  /// actually registered one, or null otherwise — resolved lazily for the very same reason
+  /// [_exportManager] is.
+  OcptSyncManager? get _syncManager {
+    final override = _syncManagerOverride;
+    if (override != null) {
+      return override;
+    }
+    if (AbsGlobalManager.instance == null) {
+      return null;
+    }
+
+    final managers = globalGetIt();
+    return managers.isRegistered<OcptSyncManager>() ? managers.get<OcptSyncManager>() : null;
+  }
+
+  /// [_hostManagerOverride], or the one `globalGetIt()` holds when an app-wide manager environment
+  /// actually registered one, or null otherwise — resolved lazily for the very same reason
+  /// [_exportManager] is.
+  OcptRelayHostManager? get _hostManager {
+    final override = _hostManagerOverride;
+    if (override != null) {
+      return override;
+    }
+    if (AbsGlobalManager.instance == null) {
+      return null;
+    }
+
+    final managers = globalGetIt();
+    return managers.isRegistered<OcptRelayHostManager>()
+        ? managers.get<OcptRelayHostManager>()
+        : null;
+  }
+
+  /// [_propertiesManagerOverride], or the one `globalGetIt()` holds when an app-wide manager
+  /// environment actually registered one, or null otherwise — resolved lazily for the very same
+  /// reason [_exportManager] is.
+  OcptPropertiesManager? get _propertiesManager {
+    final override = _propertiesManagerOverride;
+    if (override != null) {
+      return override;
+    }
+    if (AbsGlobalManager.instance == null) {
+      return null;
+    }
+
+    final managers = globalGetIt();
+    return managers.isRegistered<OcptPropertiesManager>()
+        ? managers.get<OcptPropertiesManager>()
+        : null;
+  }
+
   /// {@macro act_flutter_utility.BlocForMixin.registerMixinEvents}
   @override
   void registerMixinEvents() {
     super.registerMixinEvents();
     on<OcptProjectSettingsLoadRequestedEvent>(_onLoadRequested);
+    on<OcptProjectSettingsShowInFolderRequestedEvent>(_onShowInFolderRequested);
+    on<OcptProjectSettingsShowInFolderFailureDismissedEvent>(_onShowInFolderFailureDismissed);
+    on<OcptProjectSettingsMoveRequestedEvent>(_onMoveRequested);
+    on<OcptProjectSettingsMoveErrorDismissedEvent>(_onMoveErrorDismissed);
     on<OcptProjectSettingsCurrencyChangedEvent>(_onCurrencyChanged);
     on<OcptProjectSettingsPageFormatChangedEvent>(_onPageFormatChanged);
     on<OcptProjectSettingsMinimumRestMinutesChangedEvent>(_onMinimumRestMinutesChanged);
@@ -84,6 +216,10 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState> {
     OcptProjectSettingsLoadRequestedEvent event,
     Emitter<OcptProjectSettingsState> emitter,
   ) async {
+    final projectFilePath = _projectsManager.currentProject!.path;
+    final isMobile = _exportManager?.isMobile ?? false;
+    final isMoveWithheldByHosting = await _isHostingOnlineForCurrentProject();
+
     final currencyCode = await _projectsManager.loadCurrentProjectCurrencyCode();
     final pageFormat = await _projectsManager.loadCurrentProjectPageFormat();
     final minimumRestMinutes = await _projectsManager.loadCurrentProjectMinimumRestMinutes();
@@ -105,6 +241,10 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState> {
     emitter(
       state.copyWith(
         isLoading: false,
+        projectFilePath: projectFilePath,
+        isShowInFolderAvailable: !isMobile,
+        isMoveAvailable: !isMobile && !isMoveWithheldByHosting,
+        isMoveWithheldByHosting: isMoveWithheldByHosting,
         currencyCode: currencyCode ?? ocptDefaultCurrencyCode,
         pageFormat: pageFormat ?? OcptPageFormat.usLetter,
         minimumRestMinutes: minimumRestMinutes,
@@ -122,6 +262,172 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState> {
         dictionaryWords: dictionaryWords,
       ),
     );
+  }
+
+  /// Whether an in-app-hosted relay is currently online for the very project this page is open on
+  /// — what [_onLoadRequested] withholds `Move…` for, since a hosted relay keeps this project's
+  /// `.relay.sqlite` sidecar open (`OcptProjectsManager.moveCurrentProject`'s own doc comment
+  /// explains why the manager itself cannot check this).
+  ///
+  /// False whenever [_hostManager] or [_syncManager] isn't registered (every widget test that
+  /// doesn't exercise this), whenever nothing is hosted at all, and whenever something is hosted
+  /// but it is a *different* project than this one — the hosted relay-side id
+  /// ([OcptRelayHostManager.hostedProjectId]) is compared against this project's own
+  /// ([OcptSyncManager.loadPairedProjectId]), since hosting outlives the workspace bloc across a
+  /// navigation to a different project (`docs/architecture/sync.md`).
+  Future<bool> _isHostingOnlineForCurrentProject() async {
+    final hostManager = _hostManager;
+    final syncManager = _syncManager;
+    final project = _projectsManager.currentProject;
+    if (hostManager == null || syncManager == null || project == null) {
+      return false;
+    }
+    if (hostManager.state is! OcptRelayHostOnline) {
+      return false;
+    }
+
+    final projectId = await syncManager.loadPairedProjectId(project.fileDatabase);
+    return projectId != null && projectId == hostManager.hostedProjectId;
+  }
+
+  /// Opens the current project's folder in the platform's own file manager — the `Project file`
+  /// card's own `Show in folder` action.
+  ///
+  /// A failure — most likely no application registered to open a folder, which is what a desktop
+  /// without a file manager answers — is logged and raised as
+  /// [OcptProjectSettingsState.isShowInFolderFailed] for the page to say so: a button that does
+  /// nothing at all when clicked reads as broken.
+  Future<void> _onShowInFolderRequested(
+    OcptProjectSettingsShowInFolderRequestedEvent event,
+    Emitter<OcptProjectSettingsState> emitter,
+  ) async {
+    final projectFilePath = _projectsManager.currentProject?.path;
+    if (projectFilePath == null) {
+      return;
+    }
+
+    var isOpened = false;
+    try {
+      isOpened = await _launchFolder(Uri.directory(p.dirname(projectFilePath)));
+    } catch (error) {
+      appLogger().w("Could not open the project's own folder: $error");
+    }
+
+    if (!isOpened) {
+      emitter(state.copyWith(isShowInFolderFailed: true));
+    }
+  }
+
+  /// Clears [OcptProjectSettingsState.isShowInFolderFailed] once the page has shown it.
+  Future<void> _onShowInFolderFailureDismissed(
+    OcptProjectSettingsShowInFolderFailureDismissedEvent event,
+    Emitter<OcptProjectSettingsState> emitter,
+  ) async {
+    emitter(state.copyWith(isShowInFolderFailed: false));
+  }
+
+  /// Shows the native save-file dialog, suggesting the project's current file name inside its
+  /// current folder, and moves the project's file there once the user picks a destination — the
+  /// `Project file` card's own `Move…` action. A cancelled dialog is a silent no-op.
+  ///
+  /// A sync session running against the project is stopped before the move and restarted against
+  /// the moved database afterwards ([_restartSyncSessionIfPaired]) — `OcptProjectsManager` cannot
+  /// do this itself (see [OcptProjectsManager.moveCurrentProject]'s own doc comment), and a session
+  /// left running across the swap would find its database connection closed under it.
+  ///
+  /// A failure is left in [OcptProjectSettingsState.moveError] for the page to word; on success the
+  /// state's own [OcptProjectSettingsState.projectFilePath] reflects the new location.
+  Future<void> _onMoveRequested(
+    OcptProjectSettingsMoveRequestedEvent event,
+    Emitter<OcptProjectSettingsState> emitter,
+  ) async {
+    final exportManager = _exportManager;
+    final currentPath = _projectsManager.currentProject?.path;
+    if (exportManager == null || currentPath == null) {
+      return;
+    }
+
+    final newFilePath = await exportManager.saveLocationService.pickSaveLocation(
+      suggestedFileName: p.basename(currentPath),
+      fileTypeLabel: event.fileTypeLabel,
+      extensions: [OcptProjectsManager.projectFileExtension],
+      initialDirectory: p.dirname(currentPath),
+    );
+    if (newFilePath == null) {
+      // The user cancelled the save-file dialog.
+      return;
+    }
+
+    final syncManager = _syncManager;
+    final hadSyncSession = syncManager?.syncSession != null;
+    if (hadSyncSession) {
+      await syncManager!.stopSyncSession();
+    }
+
+    final result = await _projectsManager.moveCurrentProject(newFilePath: newFilePath);
+
+    if (hadSyncSession) {
+      await _restartSyncSessionIfPaired();
+    }
+
+    if (!result.status.isSuccess) {
+      emitter(state.copyWith(moveError: result.status));
+      return;
+    }
+
+    emitter(state.copyWith(projectFilePath: result.value!.path, clearMoveError: true));
+  }
+
+  /// Restarts the sync session [_onMoveRequested] stopped before the move, now against the moved
+  /// project's own (freshly opened) database — mirrors `OcptWorkspaceBloc._startSyncSessionIfPaired`
+  /// step for step, reading the very same `sync_pairings` row and starting the very same way, since
+  /// the move touched nothing about the pairing itself, only which file and connection it lives on.
+  ///
+  /// A project counts as paired only when both halves of its pairing are still there, exactly as
+  /// `OcptWorkspaceBloc._startSyncSessionIfPaired`'s own doc comment explains; any failure along the
+  /// way is swallowed rather than left to escape as an unhandled error, for the very same reason.
+  Future<void> _restartSyncSessionIfPaired() async {
+    final syncManager = _syncManager;
+    final propertiesManager = _propertiesManager;
+    final project = _projectsManager.currentProject;
+    if (syncManager == null || propertiesManager == null || project == null) {
+      return;
+    }
+
+    try {
+      final database = project.fileDatabase;
+      final row = await database.select(database.ocptSyncPairingsTable).getSingleOrNull();
+      if (row == null) {
+        return;
+      }
+
+      final pairing = await syncManager.pairingService.loadPairing(
+        database: database,
+        projectId: row.projectId,
+      );
+      if (pairing == null) {
+        return;
+      }
+
+      final deviceId = await propertiesManager.loadOrCreateDeviceId();
+      await syncManager.startSyncSession(
+        projectId: row.projectId,
+        database: database,
+        deviceId: deviceId,
+        relayId: OcptSyncManager.relayIdFor(pairing),
+        storage: syncManager.openRelayRemoteStorage(pairing, row.projectId),
+      );
+    } catch (error) {
+      appLogger().w("Could not restart the sync session after moving the project: $error");
+    }
+  }
+
+  /// Clears the transient move error currently shown, if any.
+  Future<void> _onMoveErrorDismissed(
+    OcptProjectSettingsMoveErrorDismissedEvent event,
+    Emitter<OcptProjectSettingsState> emitter,
+  ) async {
+    emitter(state.copyWith(clearMoveError: true));
   }
 
   /// Writes the newly picked currency to the project, then reflects it in the state.
