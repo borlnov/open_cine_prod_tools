@@ -52,9 +52,11 @@ location.
 A call time **is the slot** you link the person to. You never type a call time. Link a person, a
 role or a guest to a slot, and their hours are read from it: **arrival** is the earliest slot
 start, the **PAT** band (*prêt à tourner* — costumed, made up, ready to shoot) runs from the
-first to the last shooting block, and **departure** is the last slot end. To bring an actor in
-early for make-up, you create a 06:00 slot (labelled `HMC`) and link them to it — the file then
-says exactly what is happening. Guests get an arrival and a departure, but never a band.
+first to the last *Shot* or *Hold* block, and **departure** is the last slot end. Auditions and
+rehearsals never stretch a PAT band: they fall between the arrival and the departure. A person
+whose day holds only auditions or rehearsals gets a **PRESENCE** band over them instead. To bring
+an actor in early for make-up, you create a 06:00 slot (labelled `HMC`) and link them to it — the
+file then says exactly what is happening. Guests get an arrival and a departure, but never a band.
 
 ## The alerts
 

@@ -105,10 +105,11 @@ seven documents a production runs on.
   offset from anything**. A person is convoked by being **linked to a slot** — by person, by role or
   by either half of a guest row, all three kinds counting — and every figure about them is read off
   the slots they are linked to and the blocks in them, joined across the **whole day**: their
-  **arrival** is the earliest start over those slots, their **PAT band** runs from the earliest
-  shooting block to the latest, and their **departure** is the latest slot end. A production that
-  wants somebody there at 06:00 for make-up creates a 06:00 slot and links them to it — its label
-  (`HMC`, `Installation`) is what says why, its blocks are what say how long. That is the trade ADR
+  **arrival** is the earliest start over those slots, their **band** runs from the earliest
+  shooting block to the latest — the earliest *filming* block to the latest when there is one, see
+  below — and their **departure** is the latest slot end. A production that wants somebody there
+  at 06:00 for make-up creates a 06:00 slot and links them to it — its label (`HMC`,
+  `Installation`) is what says why, its blocks are what say how long. That is the trade ADR
   0018 accepts: convoking one actor earlier costs a **slot** rather than a number typed in place,
   and the resulting file says what is actually happening, and prints.
   **A candidate is the one exception, and it is ADR 0018 applied rather than bent** (ADR 0024): you
@@ -133,12 +134,18 @@ seven documents a production runs on.
   by `OcptShootingBlockKind.isFilming` (`shot` and `hold` alone): *prêt à tourner* is the hour a
   performer must be costumed, made up and on set, ready for a take, and a day of auditions or of
   rehearsals has none — so a band read off those alone is a **presence** band and says so
-  (`OcptDayConvocation.isPatBand`, `OcptCallSheetLabels.bandLabelOf`). The label follows the **band,
-  per convocation**, never the day: a day that auditions in the morning and shoots in the afternoon
-  prints `PAT` for its cast and `PRÉSENCE` for its candidates on the one sheet, and the two places
-  that head a **column** of many bands — the cast table and the day's own time band — read `PAT` when
-  any band under them is one, computed over those bands alone so a `PAT` line never opens at the hour
-  a candidate turned up. **A slot with no shooting block gives no band at all**: somebody convoked
+  (`OcptDayConvocation.isPatBand`, `OcptCallSheetLabels.bandLabelOf`). **A PAT band covers the
+  filming blocks alone** (`OcptConvocationSlot.filmingStartMinute`/`filmingEndMinute`): as soon as
+  one slot of a person films, their band runs from its first take to its last, and an audition or a
+  rehearsal — on the same slot, on another one, or a candidacy of their own — never stretches it,
+  being left to the arrival and the departure. A slot that auditions at 09:00 and shoots from 13:00
+  therefore calls its unit for `PAT 13:00`, not `PAT 09:00`, which would claim the camera ready four
+  hours before it is. The label follows the **band, per convocation**, never the day: a day that
+  auditions in the morning and shoots in the afternoon prints `PAT` for its cast and `PRÉSENCE` for
+  its candidates on the one sheet, and the two places that head a **column** of many bands — the
+  cast table and the day's own time band — read `PAT` when any band under them is one, computed
+  over those bands alone so a `PAT` line never opens at the hour a candidate turned up. **A slot
+  with no shooting block gives no band at all**: somebody convoked
   only on preparation slots has an arrival and a departure and no band, which is the truthful reading
   — they are there, they are not waiting to shoot — and a slot carrying no block whatsoever ends at
   its own start, a convocation with no content yet rather than a zero-length error. The band is **not

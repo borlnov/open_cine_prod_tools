@@ -56,10 +56,13 @@ l'absence de sélecteur d'épisode. Une même journée couvre couramment des sé
 Une convocation **est le créneau** auquel vous reliez la personne. Vous ne tapez jamais d'heure
 de convocation. Reliez une personne, un rôle ou un invité à un créneau, et ses horaires en sont
 lus : l'**arrivée** est le début de créneau le plus tôt, la bande **PAT** (*prêt à tourner*) va
-du premier au dernier bloc de tournage, le **départ** est la dernière fin de créneau. Pour faire
-venir un acteur tôt au maquillage, on crée un créneau à 06:00 (nommé `HMC`) et on l'y relie — le
-fichier dit alors exactement ce qui se passe. Les invités reçoivent une arrivée et un départ,
-mais jamais de bande.
+du premier au dernier bloc *Plan* ou *Créneau libre*, le **départ** est la dernière fin de
+créneau. Les auditions et les répétitions n'étirent jamais une bande PAT : elles tiennent entre
+l'arrivée et le départ. Une personne dont la journée ne compte que des auditions ou des
+répétitions reçoit à la place une bande **PRÉSENCE** qui les couvre. Pour faire venir un acteur
+tôt au maquillage, on crée un créneau à 06:00 (nommé `HMC`) et on l'y relie — le fichier dit
+alors exactement ce qui se passe. Les invités reçoivent une arrivée et un départ, mais jamais de
+bande.
 
 ## Les alertes
 
