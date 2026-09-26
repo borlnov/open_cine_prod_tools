@@ -29,7 +29,9 @@ project as a portable package without even opening it.
 ## Create your first project
 
 1. Click **New**.
-2. Choose where to save the `.ocpt` file and give it a name.
+2. Give it a name. The `.ocpt` file is created in your **Downloads** folder on a computer, and
+   alongside your other projects on a tablet or phone. An existing file is never replaced: a
+   second project with the same name is saved as `Name (2).ocpt`.
 3. The application opens the **workspace** on the Screenplay mode.
 
 You are ready to write. A new project starts with a single episode; you can turn it into a series
