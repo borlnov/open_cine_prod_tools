@@ -6248,6 +6248,13 @@
     "type": "text",
     "placeholders": {}
   },
+  "projectSettingsShowInFolderFailedMessage": "No application on this computer can open the folder.",
+  "@projectSettingsShowInFolderFailedMessage": {
+    "description": "Shown when Show in folder could not open the project's folder, typically because no file manager is installed",
+    "context": "Displayed in a SnackBar on the project settings page",
+    "type": "text",
+    "placeholders": {}
+  },
   "projectSettingsMoveWithheldByHostingHint": "Stop hosting this project to move it.",
   "@projectSettingsMoveWithheldByHostingHint": {
     "description": "Explains why the Move action is withheld while an in-app-hosted relay is online for this project",

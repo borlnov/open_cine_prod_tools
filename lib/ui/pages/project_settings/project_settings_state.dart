@@ -34,6 +34,10 @@ class OcptProjectSettingsState extends BlocStateForMixin<OcptProjectSettingsStat
   /// affordance-withheld shape the rest of the app already uses with no explanation at all.
   final bool isMoveWithheldByHosting;
 
+  /// Whether the last `Show in folder` could not open the folder, until the page has said so — see
+  /// `OcptProjectSettingsShowInFolderFailureDismissedEvent`.
+  final bool isShowInFolderFailed;
+
   /// The status of the last `Move…` attempt that failed, or null once the page has shown it — see
   /// `OcptProjectSettingsMoveErrorDismissedEvent`.
   final OcptProjectMoveStatus? moveError;
@@ -100,6 +104,7 @@ class OcptProjectSettingsState extends BlocStateForMixin<OcptProjectSettingsStat
     required this.isShowInFolderAvailable,
     required this.isMoveAvailable,
     required this.isMoveWithheldByHosting,
+    this.isShowInFolderFailed = false,
     this.moveError,
     required this.currencyCode,
     required this.pageFormat,
@@ -123,6 +128,7 @@ class OcptProjectSettingsState extends BlocStateForMixin<OcptProjectSettingsStat
       isShowInFolderAvailable = false,
       isMoveAvailable = false,
       isMoveWithheldByHosting = false,
+      isShowInFolderFailed = false,
       moveError = null,
       currencyCode = "",
       pageFormat = OcptPageFormat.usLetter,
@@ -152,6 +158,7 @@ class OcptProjectSettingsState extends BlocStateForMixin<OcptProjectSettingsStat
     bool? isShowInFolderAvailable,
     bool? isMoveAvailable,
     bool? isMoveWithheldByHosting,
+    bool? isShowInFolderFailed,
     OcptProjectMoveStatus? moveError,
     bool clearMoveError = false,
     String? currencyCode,
@@ -176,6 +183,7 @@ class OcptProjectSettingsState extends BlocStateForMixin<OcptProjectSettingsStat
     isShowInFolderAvailable: isShowInFolderAvailable ?? this.isShowInFolderAvailable,
     isMoveAvailable: isMoveAvailable ?? this.isMoveAvailable,
     isMoveWithheldByHosting: isMoveWithheldByHosting ?? this.isMoveWithheldByHosting,
+    isShowInFolderFailed: isShowInFolderFailed ?? this.isShowInFolderFailed,
     moveError: clearMoveError ? null : (moveError ?? this.moveError),
     currencyCode: currencyCode ?? this.currencyCode,
     pageFormat: pageFormat ?? this.pageFormat,
@@ -205,6 +213,7 @@ class OcptProjectSettingsState extends BlocStateForMixin<OcptProjectSettingsStat
     isShowInFolderAvailable,
     isMoveAvailable,
     isMoveWithheldByHosting,
+    isShowInFolderFailed,
     moveError,
     currencyCode,
     pageFormat,

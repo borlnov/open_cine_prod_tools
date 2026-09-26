@@ -20,6 +20,9 @@ import 'package:open_cine_prod_tools/ui/pages/project_settings/project_settings_
 import 'package:path/path.dart' as p;
 import 'package:url_launcher/url_launcher.dart';
 
+/// Opens [folder] in the platform's own file manager, answering whether it did.
+typedef OcptFolderLauncher = Future<bool> Function(Uri folder);
+
 /// This is the bloc class for the project settings page.
 ///
 /// It loads the current project's currency, page format, minimum rest, default VAT rate, meal and
@@ -76,6 +79,10 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState> {
   /// resolved lazily and tolerant of its absence, see [_propertiesManager]'s own doc comment.
   final OcptPropertiesManager? _propertiesManagerOverride;
 
+  /// What `Show in folder` opens the project's folder through: `url_launcher`'s [launchUrl] unless a
+  /// test hands in its own, since no url_launcher implementation answers under `flutter test`.
+  final OcptFolderLauncher _launchFolder;
+
   /// Class constructor
   OcptProjectSettingsBloc({
     OcptProjectsManager? projectsManager,
@@ -83,11 +90,13 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState> {
     OcptSyncManager? syncManager,
     OcptRelayHostManager? hostManager,
     OcptPropertiesManager? propertiesManager,
+    OcptFolderLauncher? launchFolder,
   }) : _projectsManager = projectsManager ?? globalGetIt().get<OcptProjectsManager>(),
        _exportManagerOverride = exportManager,
        _syncManagerOverride = syncManager,
        _hostManagerOverride = hostManager,
        _propertiesManagerOverride = propertiesManager,
+       _launchFolder = launchFolder ?? launchUrl,
        super(const OcptProjectSettingsState.init()) {
     add(const OcptProjectSettingsLoadRequestedEvent());
   }
@@ -173,6 +182,7 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState> {
     super.registerMixinEvents();
     on<OcptProjectSettingsLoadRequestedEvent>(_onLoadRequested);
     on<OcptProjectSettingsShowInFolderRequestedEvent>(_onShowInFolderRequested);
+    on<OcptProjectSettingsShowInFolderFailureDismissedEvent>(_onShowInFolderFailureDismissed);
     on<OcptProjectSettingsMoveRequestedEvent>(_onMoveRequested);
     on<OcptProjectSettingsMoveErrorDismissedEvent>(_onMoveErrorDismissed);
     on<OcptProjectSettingsCurrencyChangedEvent>(_onCurrencyChanged);
@@ -280,10 +290,13 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState> {
     return projectId != null && projectId == hostManager.hostedProjectId;
   }
 
-  /// Opens the current project's file in the platform's own file manager — the `Project file`
-  /// card's own `Show in folder` action. A failure (no file manager registered to handle a
-  /// `file://` URI, most likely) is only ever logged: there is nothing here worth interrupting the
-  /// user for.
+  /// Opens the current project's folder in the platform's own file manager — the `Project file`
+  /// card's own `Show in folder` action.
+  ///
+  /// A failure — most likely no application registered to open a folder, which is what a desktop
+  /// without a file manager answers — is logged and raised as
+  /// [OcptProjectSettingsState.isShowInFolderFailed] for the page to say so: a button that does
+  /// nothing at all when clicked reads as broken.
   Future<void> _onShowInFolderRequested(
     OcptProjectSettingsShowInFolderRequestedEvent event,
     Emitter<OcptProjectSettingsState> emitter,
@@ -293,11 +306,24 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState> {
       return;
     }
 
+    var isOpened = false;
     try {
-      await launchUrl(Uri.directory(p.dirname(projectFilePath)));
+      isOpened = await _launchFolder(Uri.directory(p.dirname(projectFilePath)));
     } catch (error) {
       appLogger().w("Could not open the project's own folder: $error");
     }
+
+    if (!isOpened) {
+      emitter(state.copyWith(isShowInFolderFailed: true));
+    }
+  }
+
+  /// Clears [OcptProjectSettingsState.isShowInFolderFailed] once the page has shown it.
+  Future<void> _onShowInFolderFailureDismissed(
+    OcptProjectSettingsShowInFolderFailureDismissedEvent event,
+    Emitter<OcptProjectSettingsState> emitter,
+  ) async {
+    emitter(state.copyWith(isShowInFolderFailed: false));
   }
 
   /// Shows the native save-file dialog, suggesting the project's current file name inside its

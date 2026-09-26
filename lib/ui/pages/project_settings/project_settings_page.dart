@@ -251,9 +251,22 @@ class _OcptProjectSettingsViewState extends State<OcptProjectSettingsView> {
   void _pop(OcptProjectSettingsState state) =>
       globalGetIt().get<OcptRouterManager>().pop<bool>(state.hasChanged);
 
-  /// States [OcptProjectSettingsState.moveError] the moment it appears, then dismisses it from the
+  /// States [OcptProjectSettingsState.isShowInFolderFailed] and
+  /// [OcptProjectSettingsState.moveError] the moment either appears, then dismisses it from the
   /// state — the same one-shot-notice shape the home page's own transient errors already follow.
   void _onStateChanged(BuildContext context, OcptProjectSettingsState state) {
+    if (state.isShowInFolderFailed) {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(content: Text(Tr.of(context).projectSettingsShowInFolderFailedMessage)),
+        );
+
+      context.read<OcptProjectSettingsBloc>().add(
+        const OcptProjectSettingsShowInFolderFailureDismissedEvent(),
+      );
+    }
+
     final moveError = state.moveError;
     if (moveError != null) {
       ScaffoldMessenger.of(context)

@@ -844,6 +844,7 @@
   "projectSettingsFileSectionTitle": "Fichier du projet",
   "projectSettingsShowInFolderAction": "Afficher dans le dossier",
   "projectSettingsMoveAction": "D\u00e9placer\u2026",
+  "projectSettingsShowInFolderFailedMessage": "Aucune application de cet ordinateur ne peut ouvrir le dossier.",
   "projectSettingsMoveWithheldByHostingHint": "Arr\u00eatez l'h\u00e9bergement de ce projet pour le d\u00e9placer.",
   "projectSettingsCurrencySectionTitle": "Devise",
   "projectSettingsCurrencyLabel": "Devise",

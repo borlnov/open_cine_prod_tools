@@ -282,6 +282,12 @@ class OcptProjectSettingsMoveRequestedEvent extends OcptProjectSettingsEvent {
   List<Object?> get props => [...super.props, fileTypeLabel];
 }
 
+/// Dismisses the `Show in folder` failure once the page has shown it.
+class OcptProjectSettingsShowInFolderFailureDismissedEvent extends OcptProjectSettingsEvent {
+  /// Class constructor
+  const OcptProjectSettingsShowInFolderFailureDismissedEvent();
+}
+
 /// Dismisses the transient move error currently shown, if any.
 class OcptProjectSettingsMoveErrorDismissedEvent extends OcptProjectSettingsEvent {
   /// Class constructor

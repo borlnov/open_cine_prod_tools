@@ -178,6 +178,7 @@ void main() {
   Future<OcptProjectSettingsBloc> pumpView(
     WidgetTester tester, {
     OcptExportManager? exportManager,
+    OcptFolderLauncher? launchFolder,
   }) async {
     // Tall enough for the episodes card's own rows to sit fully on screen, even with the budget
     // defaults card and the project file card now sharing the page above it.
@@ -187,6 +188,7 @@ void main() {
     final bloc = OcptProjectSettingsBloc(
       projectsManager: projectsManager,
       exportManager: exportManager,
+      launchFolder: launchFolder,
     );
     addTearDown(bloc.close);
 
@@ -865,6 +867,31 @@ void main() {
       expect(bloc.state.projectFilePath, oldPath);
       expect(File(oldPath).existsSync(), isTrue);
       expect(File(existingPath).readAsStringSync(), "not a project");
+    });
+
+    testWidgets("Show in folder says so when no application can open the folder", (tester) async {
+      final exportManager = OcptExportManager(
+        fileSelectorManager: const FileSelectorManager(),
+        platformManager: _StubPlatformManager(isMobile: false),
+      );
+
+      Uri? launchedFolder;
+      await pumpView(
+        tester,
+        exportManager: exportManager,
+        // What a desktop with no file manager installed answers.
+        launchFolder: (folder) async {
+          launchedFolder = folder;
+          return false;
+        },
+      );
+      final tr = Tr.of(tester.element(find.byType(OcptProjectSettingsView)));
+
+      await tester.tap(find.text(tr.projectSettingsShowInFolderAction));
+      await tester.pumpAndSettle();
+
+      expect(launchedFolder, Uri.directory(p.dirname(projectsManager.currentProject!.path)));
+      expect(find.text(tr.projectSettingsShowInFolderFailedMessage), findsOneWidget);
     });
 
     testWidgets("on mobile, Move… and Show in folder are both withheld", (tester) async {
