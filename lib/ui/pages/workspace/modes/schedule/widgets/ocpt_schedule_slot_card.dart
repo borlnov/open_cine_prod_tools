@@ -5,7 +5,6 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_crew_positions.dart';
 import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_location.dart';
@@ -29,6 +28,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/o
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_timetable.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_resources_labels.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_schedule_labels.dart';
+import 'package:open_cine_prod_tools/ui/widgets/ocpt_crew_position_picker_dialog.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_crew_position_prefill.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_day_minute.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_shooting_day_timeline.dart';
@@ -1424,10 +1424,10 @@ class _OcptScheduleCrewMemberRow extends StatelessWidget {
               Expanded(
                 child: onPositionChanged == null
                     ? Text(positionLabel, style: theme.textTheme.bodySmall)
-                    : PopupMenuButton<OcptCrewPositionRef>(
-                        tooltip: "",
-                        onSelected: onPositionChanged,
-                        itemBuilder: (context) => _buildPositionMenuItems(context, tr),
+                    : InkWell(
+                        onTap: () => _openPicker(context),
+                        mouseCursor: ocptClickableCursor,
+                        borderRadius: BorderRadius.circular(ocptRadiusSmall),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
@@ -1464,59 +1464,20 @@ class _OcptScheduleCrewMemberRow extends StatelessWidget {
     );
   }
 
-  /// Builds the position picker menu: [promotedPositions] first, then a divider (omitted when
-  /// that list is empty), then the `ocptCrewPositions` catalogue grouped under a disabled
-  /// department header each time the department changes — mirroring
-  /// `_OcptPersonPositionRow._buildMenuItems` — with [takenPositions] filtered out of both blocks.
-  List<PopupMenuEntry<OcptCrewPositionRef>> _buildPositionMenuItems(BuildContext context, Tr tr) {
-    final theme = Theme.of(context);
-    final items = <PopupMenuEntry<OcptCrewPositionRef>>[];
-
-    for (final position in promotedPositions) {
-      items.add(
-        PopupMenuItem<OcptCrewPositionRef>(
-          value: position,
-          child: Text(_labelOf(tr, position)),
-        ),
-      );
+  /// Opens the shared `OcptCrewPositionPickerDialog`, promoting [promotedPositions] and excluding
+  /// [takenPositions] — no "Custom label…" entry: a crew row picks off the catalogue or off what
+  /// the person already declared, never types a fresh free label here. Reports whatever was
+  /// picked through [onPositionChanged]; a dismissed dialog leaves the assignment untouched.
+  Future<void> _openPicker(BuildContext context) async {
+    final result = await OcptCrewPositionPickerDialog.show(
+      context,
+      promoted: promotedPositions,
+      excluded: takenPositions,
+    );
+    if (result?.position case final position?) {
+      onPositionChanged?.call(position);
     }
-    if (items.isNotEmpty) {
-      items.add(const PopupMenuDivider());
-    }
-
-    OcptCrewDepartment? lastDepartment;
-    for (final position in ocptCrewPositions) {
-      final ref = OcptCrewPositionRef(positionId: position.id, customLabel: "");
-      if (takenPositions.contains(ref)) {
-        continue;
-      }
-      if (position.department != lastDepartment) {
-        items.add(
-          PopupMenuItem<OcptCrewPositionRef>(
-            enabled: false,
-            height: 28,
-            child: Text(
-              ocptCrewDepartmentLabel(tr, position.department).toUpperCase(),
-              style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
-            ),
-          ),
-        );
-        lastDepartment = position.department;
-      }
-      items.add(
-        PopupMenuItem<OcptCrewPositionRef>(
-          value: ref,
-          child: Text(ocptCrewPositionLabel(tr, position.id)),
-        ),
-      );
-    }
-
-    return items;
   }
-
-  /// [position]'s own label: the catalogue's when it names one, [position].customLabel otherwise.
-  String _labelOf(Tr tr, OcptCrewPositionRef position) =>
-      position.positionId.isEmpty ? position.customLabel : ocptCrewPositionLabel(tr, position.positionId);
 }
 
 /// One cast card of [OcptScheduleSlotCard]'s own `Comédiens` column, its layout shared with

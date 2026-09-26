@@ -5,13 +5,13 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_crew_positions.dart';
 import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person_position.dart';
 import 'package:open_cine_prod_tools/types/ocpt_crew_department.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_sheet_card.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_resources_labels.dart';
+import 'package:open_cine_prod_tools/ui/widgets/ocpt_crew_position_picker_dialog.dart';
 
 /// How long a position row waits after the last keystroke in its label field before dispatching
 /// the update — this card's own local debounce, distinct from
@@ -22,10 +22,6 @@ const Duration _localFieldDebounce = Duration(milliseconds: 500);
 /// The width of a position row's department column: the mock-up's own figure, kept as a literal
 /// since no component theme states it.
 const double _departmentColumnWidth = 132;
-
-/// The sentinel value the position picker menu uses for its "free label" entry, never a real
-/// `ocptCrewPositions` id.
-const String _customPositionOption = "__custom__";
 
 /// "Functions on the film": one row per [OcptPersonPosition] — a position picked from
 /// `ocptCrewPositions` (grouped by [OcptCrewDepartment]) or a free label, editable in place — plus
@@ -117,8 +113,8 @@ class OcptPersonSheetPositionsCard extends StatelessWidget {
 }
 
 /// One row of [OcptPersonSheetPositionsCard]: the department (derived, read-only) and the position
-/// label (free text, with a picker menu shortcut into `ocptCrewPositions`), a local label edit
-/// debounced by [_localFieldDebounce] before being reported.
+/// label (free text, with an `OcptCrewPositionPickerDialog` shortcut into `ocptCrewPositions`), a
+/// local label edit debounced by [_localFieldDebounce] before being reported.
 class _OcptPersonPositionRow extends StatefulWidget {
   /// The position assignment this row shows.
   final OcptPersonPosition position;
@@ -276,13 +272,10 @@ class _OcptPersonPositionRowState extends State<_OcptPersonPositionRow> {
                   ),
                 ),
                 if (!isReadOnly)
-                  PopupMenuButton<String>(
+                  IconButton(
                     tooltip: "",
                     icon: const Icon(Icons.arrow_drop_down, size: 18),
-                    onSelected: (value) => value == _customPositionOption
-                        ? _pickCustomLabel()
-                        : _pickCatalogPosition(value),
-                    itemBuilder: (context) => _buildMenuItems(context, tr),
+                    onPressed: () => _openPicker(context),
                   ),
               ],
             ),
@@ -298,34 +291,19 @@ class _OcptPersonPositionRowState extends State<_OcptPersonPositionRow> {
     );
   }
 
-  /// Builds the position picker menu: every `ocptCrewPositions` entry, grouped under a disabled
-  /// department header each time the department changes, then a divider and the "Custom label…"
-  /// entry.
-  List<PopupMenuEntry<String>> _buildMenuItems(BuildContext context, Tr tr) {
-    final theme = Theme.of(context);
-    final items = <PopupMenuEntry<String>>[];
-    OcptCrewDepartment? lastDepartment;
-
-    for (final position in ocptCrewPositions) {
-      if (position.department != lastDepartment) {
-        items.add(
-          PopupMenuItem<String>(
-            enabled: false,
-            height: 28,
-            child: Text(
-              ocptCrewDepartmentLabel(tr, position.department).toUpperCase(),
-              style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
-            ),
-          ),
-        );
-        lastDepartment = position.department;
-      }
-      items.add(PopupMenuItem<String>(value: position.id, child: Text(ocptCrewPositionLabel(tr, position.id))));
+  /// Opens the shared [OcptCrewPositionPickerDialog] over the whole catalogue, with its "Custom
+  /// label…" entry offered: a catalogue pick calls [_pickCatalogPosition], the custom entry calls
+  /// [_pickCustomLabel]. A dismissed dialog (or one closed once this state no longer `mounted`
+  /// holds) leaves the row untouched.
+  Future<void> _openPicker(BuildContext context) async {
+    final result = await OcptCrewPositionPickerDialog.show(context, allowCustomLabel: true);
+    if (!mounted || result == null) {
+      return;
     }
-
-    items.add(const PopupMenuDivider());
-    items.add(PopupMenuItem<String>(value: _customPositionOption, child: Text(tr.resourcesPositionCustomOptionLabel)));
-
-    return items;
+    if (result.isCustom) {
+      _pickCustomLabel();
+    } else {
+      _pickCatalogPosition(result.position!.positionId);
+    }
   }
 }

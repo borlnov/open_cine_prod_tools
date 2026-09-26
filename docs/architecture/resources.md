@@ -23,6 +23,30 @@ their sets, the elements catalogue, and the two documents the mode prints.
   per-slot fact the schedule mode owns, which is why no scope column exists here and why the sheet
   shows none — the two tables are joined the one way that says something
   (`ocptCrewPositionPrefillOf`, below), never by a second copy of one truth.
+  **`ocptCrewPositions`** (`lib/constants/`) is the crew functions of a French production, modelled
+  on the *Convention collective nationale de la production cinématographique* (IDCC 3097, titre
+  II), grouped into `OcptCrewDepartment`'s thirteen values, in the enum's own declaration order:
+  direction, production, unit & locations, casting & extras, image, electric & grip, sound, the art
+  department, construction, costume, hair & make-up, special effects, editing & post-production.
+  The construction sub-trades (carpentry, plastering, painting, locksmithing… and their
+  chief/sub-chief variants) are deliberately **not** individually named — the department is
+  summarised by a construction manager and a generic construction crew position, since this app
+  tracks who is on set, not the convention's full classification. **A position's id is never
+  renamed or reused** once shipped, a label may be reworded, and entries stay grouped by department
+  since every reader of the list (the picker below, a printed catalogue) walks it in that order — a
+  new entry is inserted into its own department's run, not merely appended. **French labels use
+  inclusive writing** (the point médian, `réalisateur·rice`); English labels are plain.
+  **`OcptCrewPositionPickerDialog`** (`lib/ui/widgets/`, shared with the schedule mode) is the one
+  searchable dialog every position picker of the app opens, replacing the popup menus the catalogue
+  outgrew: a search field, case- and accent-insensitive and blind to the inclusive-writing dot
+  (`ocptCrewPositionSearchNormalized`, `lib/utils/`), which also matches each label's masculine and
+  feminine readings (`ocptInclusiveReadingsOf`: `directrice` finds `Directeur·rice`, from the few
+  ending patterns every label of the catalogue follows, a test holding each word to its expected
+  feminine), filters an optional `promoted` list (shown
+  first, under its own heading — the person sheet's own picker offers none, the schedule's own
+  offers the crew member's declared positions) over the catalogue, grouped by department; an
+  `excluded` set is left out everywhere; an optional "Custom label…" entry, reused from the person
+  sheet's own free-label option, sits last and unfiltered.
   **An element is anything that must be present on a day and is not a person** — one `elements`
   table with a category and a free sub-category rather than one table per department, because the
   tracking columns (owner, who brings it, secured, ready, returned, where) are the same whatever

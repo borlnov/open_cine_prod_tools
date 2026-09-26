@@ -3296,9 +3296,163 @@
     "type": "text",
     "placeholders": {}
   },
+  "resourcesCrewPositionSecondAssistantDirector": "Second assistant director",
+  "@resourcesCrewPositionSecondAssistantDirector": {
+    "description": "Label of the second assistant director crew position",
+    "context": "Displayed wherever a person's crew positions are listed",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesCrewPositionAssistantDirectorTrainee": "Assistant director trainee",
+  "@resourcesCrewPositionAssistantDirectorTrainee": {
+    "description": "Label of the assistant director trainee crew position",
+    "context": "Displayed wherever a person's crew positions are listed",
+    "type": "text",
+    "placeholders": {}
+  },
   "resourcesCrewPositionScriptSupervisor": "Script supervisor",
   "@resourcesCrewPositionScriptSupervisor": {
     "description": "Label of the script supervisor crew position",
+    "context": "Displayed wherever a person's crew positions are listed",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesCrewPositionAssistantScriptSupervisor": "Assistant script supervisor",
+  "@resourcesCrewPositionAssistantScriptSupervisor": {
+    "description": "Label of the assistant script supervisor crew position",
+    "context": "Displayed wherever a person's crew positions are listed",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesCrewPositionDialogueCoach": "Dialogue coach",
+  "@resourcesCrewPositionDialogueCoach": {
+    "description": "Label of the dialogue coach crew position",
+    "context": "Displayed wherever a person's crew positions are listed",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesCrewPositionTechnicalAdvisor": "Technical advisor to the director",
+  "@resourcesCrewPositionTechnicalAdvisor": {
+    "description": "Label of the technical advisor to the director crew position",
+    "context": "Displayed wherever a person's crew positions are listed",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesCrewPositionSecondUnitDirector": "Second unit director",
+  "@resourcesCrewPositionSecondUnitDirector": {
+    "description": "Label of the second unit director crew position",
+    "context": "Displayed wherever a person's crew positions are listed",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesCrewPositionProductionManager": "Production manager",
+  "@resourcesCrewPositionProductionManager": {
+    "description": "Label of the production manager crew position",
+    "context": "Displayed wherever a person's crew positions are listed",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesCrewPositionLineProducer": "Line producer",
+  "@resourcesCrewPositionLineProducer": {
+    "description": "Label of the line producer crew position",
+    "context": "Displayed wherever a person's crew positions are listed",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesCrewPositionProductionAdministrator": "Production administrator",
+  "@resourcesCrewPositionProductionAdministrator": {
+    "description": "Label of the production administrator crew position",
+    "context": "Displayed wherever a person's crew positions are listed",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesCrewPositionProductionAccountant": "Production accountant",
+  "@resourcesCrewPositionProductionAccountant": {
+    "description": "Label of the production accountant crew position",
+    "context": "Displayed wherever a person's crew positions are listed",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesCrewPositionAssistantProductionAccountant": "Assistant production accountant",
+  "@resourcesCrewPositionAssistantProductionAccountant": {
+    "description": "Label of the assistant production accountant crew position",
+    "context": "Displayed wherever a person's crew positions are listed",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesCrewPositionProductionSecretary": "Production secretary",
+  "@resourcesCrewPositionProductionSecretary": {
+    "description": "Label of the production secretary crew position",
+    "context": "Displayed wherever a person's crew positions are listed",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesCrewPositionProductionAssistant": "Production assistant",
+  "@resourcesCrewPositionProductionAssistant": {
+    "description": "Label of the production assistant crew position",
+    "context": "Displayed wherever a person's crew positions are listed",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesCrewPositionUnitManager": "Unit manager",
+  "@resourcesCrewPositionUnitManager": {
+    "description": "Label of the unit manager crew position",
+    "context": "Displayed wherever a person's crew positions are listed",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesCrewPositionAssistantUnitManager": "Assistant unit manager",
+  "@resourcesCrewPositionAssistantUnitManager": {
+    "description": "Label of the assistant unit manager crew position",
+    "context": "Displayed wherever a person's crew positions are listed",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesCrewPositionLocationManager": "Location manager",
+  "@resourcesCrewPositionLocationManager": {
+    "description": "Label of the location manager crew position",
+    "context": "Displayed wherever a person's crew positions are listed",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesCrewPositionUnitAssistant": "Unit assistant",
+  "@resourcesCrewPositionUnitAssistant": {
+    "description": "Label of the unit assistant crew position",
+    "context": "Displayed wherever a person's crew positions are listed",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesCrewPositionCastingDirector": "Casting director",
+  "@resourcesCrewPositionCastingDirector": {
+    "description": "Label of the casting director crew position",
+    "context": "Displayed wherever a person's crew positions are listed",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesCrewPositionFirstCastingAssistant": "First casting assistant",
+  "@resourcesCrewPositionFirstCastingAssistant": {
+    "description": "Label of the first casting assistant crew position",
+    "context": "Displayed wherever a person's crew positions are listed",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesCrewPositionExtrasCoordinator": "Extras coordinator",
+  "@resourcesCrewPositionExtrasCoordinator": {
+    "description": "Label of the extras coordinator crew position",
+    "context": "Displayed wherever a person's crew positions are listed",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesCrewPositionExtrasCoordinatorAssistant": "Extras coordinator assistant",
+  "@resourcesCrewPositionExtrasCoordinatorAssistant": {
+    "description": "Label of the extras coordinator assistant crew position",
+    "context": "Displayed wherever a person's crew positions are listed",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesCrewPositionChildWrangler": "Child wrangler",
+  "@resourcesCrewPositionChildWrangler": {
+    "description": "Label of the child wrangler crew position",
     "context": "Displayed wherever a person's crew positions are listed",
     "type": "text",
     "placeholders": {}
@@ -3317,9 +3471,44 @@
     "type": "text",
     "placeholders": {}
   },
+  "resourcesCrewPositionSpecialisedCameraOperator": "Specialised camera operator",
+  "@resourcesCrewPositionSpecialisedCameraOperator": {
+    "description": "Label of the specialised camera operator crew position",
+    "context": "Displayed wherever a person's crew positions are listed",
+    "type": "text",
+    "placeholders": {}
+  },
   "resourcesCrewPositionFirstAssistantCamera": "First assistant camera",
   "@resourcesCrewPositionFirstAssistantCamera": {
     "description": "Label of the first assistant camera crew position",
+    "context": "Displayed wherever a person's crew positions are listed",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesCrewPositionSecondAssistantCamera": "Second assistant camera",
+  "@resourcesCrewPositionSecondAssistantCamera": {
+    "description": "Label of the second assistant camera crew position",
+    "context": "Displayed wherever a person's crew positions are listed",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesCrewPositionVideoAssistTechnician": "Video assist technician",
+  "@resourcesCrewPositionVideoAssistTechnician": {
+    "description": "Label of the video assist technician crew position",
+    "context": "Displayed wherever a person's crew positions are listed",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesCrewPositionRemoteCameraTechnician": "Remote camera technician",
+  "@resourcesCrewPositionRemoteCameraTechnician": {
+    "description": "Label of the remote camera technician crew position",
+    "context": "Displayed wherever a person's crew positions are listed",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesCrewPositionStillsPhotographer": "Stills photographer",
+  "@resourcesCrewPositionStillsPhotographer": {
+    "description": "Label of the stills photographer crew position",
     "context": "Displayed wherever a person's crew positions are listed",
     "type": "text",
     "placeholders": {}
@@ -3331,9 +3520,37 @@
     "type": "text",
     "placeholders": {}
   },
+  "resourcesCrewPositionBestBoyElectric": "Best boy electric",
+  "@resourcesCrewPositionBestBoyElectric": {
+    "description": "Label of the best boy electric crew position",
+    "context": "Displayed wherever a person's crew positions are listed",
+    "type": "text",
+    "placeholders": {}
+  },
   "resourcesCrewPositionElectrician": "Electrician",
   "@resourcesCrewPositionElectrician": {
     "description": "Label of the electrician crew position",
+    "context": "Displayed wherever a person's crew positions are listed",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesCrewPositionGeneratorOperator": "Generator operator",
+  "@resourcesCrewPositionGeneratorOperator": {
+    "description": "Label of the generator operator crew position",
+    "context": "Displayed wherever a person's crew positions are listed",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesCrewPositionKeyGrip": "Key grip",
+  "@resourcesCrewPositionKeyGrip": {
+    "description": "Label of the key grip crew position",
+    "context": "Displayed wherever a person's crew positions are listed",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesCrewPositionBestBoyGrip": "Best boy grip",
+  "@resourcesCrewPositionBestBoyGrip": {
+    "description": "Label of the best boy grip crew position",
     "context": "Displayed wherever a person's crew positions are listed",
     "type": "text",
     "placeholders": {}
@@ -3359,6 +3576,34 @@
     "type": "text",
     "placeholders": {}
   },
+  "resourcesCrewPositionProductionDesigner": "Production designer",
+  "@resourcesCrewPositionProductionDesigner": {
+    "description": "Label of the production designer crew position",
+    "context": "Displayed wherever a person's crew positions are listed",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesCrewPositionFirstAssistantArtDirector": "First assistant art director",
+  "@resourcesCrewPositionFirstAssistantArtDirector": {
+    "description": "Label of the first assistant art director crew position",
+    "context": "Displayed wherever a person's crew positions are listed",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesCrewPositionSecondAssistantArtDirector": "Second assistant art director",
+  "@resourcesCrewPositionSecondAssistantArtDirector": {
+    "description": "Label of the second assistant art director crew position",
+    "context": "Displayed wherever a person's crew positions are listed",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesCrewPositionThirdAssistantArtDirector": "Third assistant art director",
+  "@resourcesCrewPositionThirdAssistantArtDirector": {
+    "description": "Label of the third assistant art director crew position",
+    "context": "Displayed wherever a person's crew positions are listed",
+    "type": "text",
+    "placeholders": {}
+  },
   "resourcesCrewPositionSetDecorator": "Set decorator",
   "@resourcesCrewPositionSetDecorator": {
     "description": "Label of the set decorator crew position",
@@ -3366,9 +3611,9 @@
     "type": "text",
     "placeholders": {}
   },
-  "resourcesCrewPositionPropsMaster": "Props master",
-  "@resourcesCrewPositionPropsMaster": {
-    "description": "Label of the props master crew position",
+  "resourcesCrewPositionLeadSetDresser": "Lead set dresser",
+  "@resourcesCrewPositionLeadSetDresser": {
+    "description": "Label of the lead set dresser crew position",
     "context": "Displayed wherever a person's crew positions are listed",
     "type": "text",
     "placeholders": {}
@@ -3380,9 +3625,142 @@
     "type": "text",
     "placeholders": {}
   },
+  "resourcesCrewPositionPropsMaster": "Props master",
+  "@resourcesCrewPositionPropsMaster": {
+    "description": "Label of the props master crew position",
+    "context": "Displayed wherever a person's crew positions are listed",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesCrewPositionOnSetProps": "On-set props",
+  "@resourcesCrewPositionOnSetProps": {
+    "description": "Label of the on-set props crew position",
+    "context": "Displayed wherever a person's crew positions are listed",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesCrewPositionSetDressingProps": "Set dressing props",
+  "@resourcesCrewPositionSetDressingProps": {
+    "description": "Label of the set dressing props crew position",
+    "context": "Displayed wherever a person's crew positions are listed",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesCrewPositionSetIllustrator": "Set illustrator",
+  "@resourcesCrewPositionSetIllustrator": {
+    "description": "Label of the set illustrator crew position",
+    "context": "Displayed wherever a person's crew positions are listed",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesCrewPositionSetGraphicDesigner": "Set graphic designer",
+  "@resourcesCrewPositionSetGraphicDesigner": {
+    "description": "Label of the set graphic designer crew position",
+    "context": "Displayed wherever a person's crew positions are listed",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesCrewPositionModelMaker": "Model maker",
+  "@resourcesCrewPositionModelMaker": {
+    "description": "Label of the model maker crew position",
+    "context": "Displayed wherever a person's crew positions are listed",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesCrewPositionConstructionManager": "Construction manager",
+  "@resourcesCrewPositionConstructionManager": {
+    "description": "Label of the construction manager crew position",
+    "context": "Displayed wherever a person's crew positions are listed",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesCrewPositionConstructionCrew": "Construction crew",
+  "@resourcesCrewPositionConstructionCrew": {
+    "description": "Label of the construction crew crew position",
+    "context": "Displayed wherever a person's crew positions are listed",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesCrewPositionCostumeCreator": "Costume designer",
+  "@resourcesCrewPositionCostumeCreator": {
+    "description": "Label of the costume designer crew position",
+    "context": "Displayed wherever a person's crew positions are listed",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesCrewPositionKeyCostumer": "Key costumer",
+  "@resourcesCrewPositionKeyCostumer": {
+    "description": "Label of the key costumer crew position",
+    "context": "Displayed wherever a person's crew positions are listed",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesCrewPositionCostumeDesigner": "Costumer",
+  "@resourcesCrewPositionCostumeDesigner": {
+    "description": "Label of the costumer crew position",
+    "context": "Displayed wherever a person's crew positions are listed",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesCrewPositionCostumeWorkshopSupervisor": "Costume workshop supervisor",
+  "@resourcesCrewPositionCostumeWorkshopSupervisor": {
+    "description": "Label of the costume workshop supervisor crew position",
+    "context": "Displayed wherever a person's crew positions are listed",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesCrewPositionFirstCostumeAssistant": "First costume assistant",
+  "@resourcesCrewPositionFirstCostumeAssistant": {
+    "description": "Label of the first costume assistant crew position",
+    "context": "Displayed wherever a person's crew positions are listed",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesCrewPositionDresser": "Dresser",
+  "@resourcesCrewPositionDresser": {
+    "description": "Label of the dresser crew position",
+    "context": "Displayed wherever a person's crew positions are listed",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesCrewPositionCostumeMaker": "Costume maker",
+  "@resourcesCrewPositionCostumeMaker": {
+    "description": "Label of the costume maker crew position",
+    "context": "Displayed wherever a person's crew positions are listed",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesCrewPositionCostumeDyer": "Costume dyer and ager",
+  "@resourcesCrewPositionCostumeDyer": {
+    "description": "Label of the costume dyer and ager crew position",
+    "context": "Displayed wherever a person's crew positions are listed",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesCrewPositionKeyMakeupArtist": "Key make-up artist",
+  "@resourcesCrewPositionKeyMakeupArtist": {
+    "description": "Label of the key make-up artist crew position",
+    "context": "Displayed wherever a person's crew positions are listed",
+    "type": "text",
+    "placeholders": {}
+  },
   "resourcesCrewPositionMakeupArtist": "Make-up artist",
   "@resourcesCrewPositionMakeupArtist": {
     "description": "Label of the make-up artist crew position",
+    "context": "Displayed wherever a person's crew positions are listed",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesCrewPositionAssistantMakeupArtist": "Assistant make-up artist",
+  "@resourcesCrewPositionAssistantMakeupArtist": {
+    "description": "Label of the assistant make-up artist crew position",
+    "context": "Displayed wherever a person's crew positions are listed",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesCrewPositionKeyHairStylist": "Key hair stylist",
+  "@resourcesCrewPositionKeyHairStylist": {
+    "description": "Label of the key hair stylist crew position",
     "context": "Displayed wherever a person's crew positions are listed",
     "type": "text",
     "placeholders": {}
@@ -3394,30 +3772,93 @@
     "type": "text",
     "placeholders": {}
   },
-  "resourcesCrewPositionCostumeDesigner": "Costume designer",
-  "@resourcesCrewPositionCostumeDesigner": {
-    "description": "Label of the costume designer crew position",
+  "resourcesCrewPositionSpecialEffectsSupervisor": "Special effects supervisor",
+  "@resourcesCrewPositionSpecialEffectsSupervisor": {
+    "description": "Label of the special effects supervisor crew position",
     "context": "Displayed wherever a person's crew positions are listed",
     "type": "text",
     "placeholders": {}
   },
-  "resourcesCrewPositionProductionManager": "Production manager",
-  "@resourcesCrewPositionProductionManager": {
-    "description": "Label of the production manager crew position",
+  "resourcesCrewPositionSpecialEffectsAssistant": "Special effects assistant",
+  "@resourcesCrewPositionSpecialEffectsAssistant": {
+    "description": "Label of the special effects assistant crew position",
     "context": "Displayed wherever a person's crew positions are listed",
     "type": "text",
     "placeholders": {}
   },
-  "resourcesCrewPositionProductionAssistant": "Production assistant",
-  "@resourcesCrewPositionProductionAssistant": {
-    "description": "Label of the production assistant crew position",
+  "resourcesCrewPositionAnimatronicsTechnician": "Animatronics technician",
+  "@resourcesCrewPositionAnimatronicsTechnician": {
+    "description": "Label of the animatronics technician crew position",
     "context": "Displayed wherever a person's crew positions are listed",
     "type": "text",
     "placeholders": {}
   },
-  "resourcesCrewPositionLineProducer": "Line producer",
-  "@resourcesCrewPositionLineProducer": {
-    "description": "Label of the line producer crew position",
+  "resourcesCrewPositionEditor": "Editor",
+  "@resourcesCrewPositionEditor": {
+    "description": "Label of the editor crew position",
+    "context": "Displayed wherever a person's crew positions are listed",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesCrewPositionFirstAssistantEditor": "First assistant editor",
+  "@resourcesCrewPositionFirstAssistantEditor": {
+    "description": "Label of the first assistant editor crew position",
+    "context": "Displayed wherever a person's crew positions are listed",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesCrewPositionSecondAssistantEditor": "Second assistant editor",
+  "@resourcesCrewPositionSecondAssistantEditor": {
+    "description": "Label of the second assistant editor crew position",
+    "context": "Displayed wherever a person's crew positions are listed",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesCrewPositionPostProductionCoordinator": "Post-production coordinator",
+  "@resourcesCrewPositionPostProductionCoordinator": {
+    "description": "Label of the post-production coordinator crew position",
+    "context": "Displayed wherever a person's crew positions are listed",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesCrewPositionSupervisingSoundEditor": "Supervising sound editor",
+  "@resourcesCrewPositionSupervisingSoundEditor": {
+    "description": "Label of the supervising sound editor crew position",
+    "context": "Displayed wherever a person's crew positions are listed",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesCrewPositionAssistantSoundEditor": "Assistant sound editor",
+  "@resourcesCrewPositionAssistantSoundEditor": {
+    "description": "Label of the assistant sound editor crew position",
+    "context": "Displayed wherever a person's crew positions are listed",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesCrewPositionRerecordingMixer": "Re-recording mixer",
+  "@resourcesCrewPositionRerecordingMixer": {
+    "description": "Label of the re-recording mixer crew position",
+    "context": "Displayed wherever a person's crew positions are listed",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesCrewPositionAssistantMixer": "Assistant mixer",
+  "@resourcesCrewPositionAssistantMixer": {
+    "description": "Label of the assistant mixer crew position",
+    "context": "Displayed wherever a person's crew positions are listed",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesCrewPositionFoleyArtist": "Foley artist",
+  "@resourcesCrewPositionFoleyArtist": {
+    "description": "Label of the foley artist crew position",
+    "context": "Displayed wherever a person's crew positions are listed",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesCrewPositionAssistantFoleyArtist": "Assistant Foley artist",
+  "@resourcesCrewPositionAssistantFoleyArtist": {
+    "description": "Label of the assistant foley artist crew position",
     "context": "Displayed wherever a person's crew positions are listed",
     "type": "text",
     "placeholders": {}
@@ -3429,9 +3870,37 @@
     "type": "text",
     "placeholders": {}
   },
+  "resourcesCrewDepartmentProduction": "Production",
+  "@resourcesCrewDepartmentProduction": {
+    "description": "Label of the production crew department",
+    "context": "Displayed wherever crew positions are grouped by department",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesCrewDepartmentUnit": "Unit & locations",
+  "@resourcesCrewDepartmentUnit": {
+    "description": "Label of the unit & locations crew department",
+    "context": "Displayed wherever crew positions are grouped by department",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesCrewDepartmentCastingAndExtras": "Casting & extras",
+  "@resourcesCrewDepartmentCastingAndExtras": {
+    "description": "Label of the casting & extras crew department",
+    "context": "Displayed wherever crew positions are grouped by department",
+    "type": "text",
+    "placeholders": {}
+  },
   "resourcesCrewDepartmentImage": "Image",
   "@resourcesCrewDepartmentImage": {
-    "description": "Label of the image (camera) crew department",
+    "description": "Label of the image crew department",
+    "context": "Displayed wherever crew positions are grouped by department",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesCrewDepartmentElectricAndGrip": "Electric & grip",
+  "@resourcesCrewDepartmentElectricAndGrip": {
+    "description": "Label of the electric & grip crew department",
     "context": "Displayed wherever crew positions are grouped by department",
     "type": "text",
     "placeholders": {}
@@ -3450,16 +3919,37 @@
     "type": "text",
     "placeholders": {}
   },
-  "resourcesCrewDepartmentHmc": "Hair, make-up & costume",
-  "@resourcesCrewDepartmentHmc": {
-    "description": "Label of the hair, make-up and costume crew department",
+  "resourcesCrewDepartmentConstruction": "Construction",
+  "@resourcesCrewDepartmentConstruction": {
+    "description": "Label of the construction crew department",
     "context": "Displayed wherever crew positions are grouped by department",
     "type": "text",
     "placeholders": {}
   },
-  "resourcesCrewDepartmentProduction": "Production",
-  "@resourcesCrewDepartmentProduction": {
-    "description": "Label of the production crew department",
+  "resourcesCrewDepartmentCostume": "Costume",
+  "@resourcesCrewDepartmentCostume": {
+    "description": "Label of the costume crew department",
+    "context": "Displayed wherever crew positions are grouped by department",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesCrewDepartmentHairAndMakeUp": "Hair & make-up",
+  "@resourcesCrewDepartmentHairAndMakeUp": {
+    "description": "Label of the hair & make-up crew department",
+    "context": "Displayed wherever crew positions are grouped by department",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesCrewDepartmentSpecialEffects": "Special effects",
+  "@resourcesCrewDepartmentSpecialEffects": {
+    "description": "Label of the special effects crew department",
+    "context": "Displayed wherever crew positions are grouped by department",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesCrewDepartmentPostProduction": "Editing & post-production",
+  "@resourcesCrewDepartmentPostProduction": {
+    "description": "Label of the editing & post-production crew department",
     "context": "Displayed wherever crew positions are grouped by department",
     "type": "text",
     "placeholders": {}
@@ -3675,6 +4165,41 @@
   "@resourcesRemovePositionTooltip": {
     "description": "Tooltip of a position row's remove button",
     "context": "Displayed on the person sheet's crew positions card",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesCrewPositionPickerTitle": "Choose a position",
+  "@resourcesCrewPositionPickerTitle": {
+    "description": "Title of the crew position picker dialog",
+    "context": "Displayed at the top of the crew position picker dialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesCrewPositionPickerSearchHint": "Search a position…",
+  "@resourcesCrewPositionPickerSearchHint": {
+    "description": "Placeholder of the crew position picker dialog's search field",
+    "context": "Displayed in the crew position picker dialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesCrewPositionPickerPromotedHeading": "This person's positions",
+  "@resourcesCrewPositionPickerPromotedHeading": {
+    "description": "Heading of the crew position picker dialog's promoted positions section",
+    "context": "Displayed above a person's own declared positions in the crew position picker dialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesCrewPositionPickerNoResultsHint": "No position matches the search.",
+  "@resourcesCrewPositionPickerNoResultsHint": {
+    "description": "Hint shown when the search matches no position",
+    "context": "Displayed in the crew position picker dialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesCrewPositionPickerCancelAction": "Cancel",
+  "@resourcesCrewPositionPickerCancelAction": {
+    "description": "Action dismissing the crew position picker dialog without picking anything",
+    "context": "Displayed in the crew position picker dialog",
     "type": "text",
     "placeholders": {}
   },
