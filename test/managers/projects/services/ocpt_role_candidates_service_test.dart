@@ -111,7 +111,7 @@ void main() {
       );
 
       expect((await readCandidates()).map((row) => row.id), [firstId, secondId]);
-      expect((await readCandidate(firstId!)).status, OcptRoleCandidateStatus.seen);
+      expect((await readCandidate(firstId!)).status, OcptRoleCandidateStatus.spotted);
       expect((await readCandidate(firstId)).auditionedOn, isNull);
     });
 
@@ -207,7 +207,7 @@ void main() {
       final candidate = await readCandidate(id);
       expect(candidate.auditionedOn, DateTime.utc(2026, 2, 12));
       expect(candidate.notes, "Fragile, exactly right");
-      expect(candidate.status, OcptRoleCandidateStatus.seen);
+      expect(candidate.status, OcptRoleCandidateStatus.spotted);
     });
 
     test("reorderCandidate writes exactly one row", () async {
@@ -445,7 +445,7 @@ void main() {
       );
 
       expect(await readCasting("role-1"), "person-1");
-      expect((await readCandidate(firstCandidateId)).status, OcptRoleCandidateStatus.seen);
+      expect((await readCandidate(firstCandidateId)).status, OcptRoleCandidateStatus.spotted);
     });
 
     test("retaining a candidate of one part leaves another part's casting alone", () async {

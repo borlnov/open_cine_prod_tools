@@ -1834,8 +1834,8 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     ),
   );
 
-  /// Records that person `event.personId` was seen for role `event.roleId`, written immediately —
-  /// the candidates card's own person picker.
+  /// Records that person `event.personId` is a candidate for role `event.roleId`, written
+  /// immediately — the candidates card's own person picker.
   Future<void> _onRoleCandidateAdded(
     OcptResourcesRoleCandidateAddedEvent event,
     Emitter<OcptResourcesState> emitter,

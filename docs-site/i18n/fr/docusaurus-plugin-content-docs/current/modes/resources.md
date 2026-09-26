@@ -39,7 +39,8 @@ faire directement depuis le sélecteur de l'en-tête du rôle, ou passer par des
 - La feuille du rôle liste qui a été vu pour le personnage. Chaque candidature porte un statut,
   une date d'audition, des notes privées, et le classement de la direction de casting.
 - Huit statuts : *repéré, à rencontrer, vu, présélectionné, retenu, non retenu, s'est désisté,
-  indisponible*. L'ordre est une commodité de lecture, pas un parcours imposé.
+  indisponible*. L'ordre est une commodité de lecture, pas un parcours imposé. Un candidat que
+  vous ajoutez démarre en *repéré*.
 - **Retenir** une candidature distribue le rôle et bascule automatiquement les autres
   candidatures encore en lice sur « non retenu ». La candidature retenue est épinglée en tête.
 

@@ -38,7 +38,8 @@ from the role header's picker, or go through **candidacies**:
 - The role sheet lists who was seen for the part. Each candidacy carries a status, an audition
   date, private notes, and the casting director's ranking.
 - Eight statuses: *spotted, to meet, seen, shortlisted, retained, not retained, declined,
-  unavailable*. The order is a reading convenience, not a workflow the app enforces.
+  unavailable*. The order is a reading convenience, not a workflow the app enforces. A candidate
+  you add starts as *spotted*.
 - **Retaining** a candidacy casts the role and automatically turns every other still-running
   candidacy to "not retained". The retained candidacy is pinned to the top.
 

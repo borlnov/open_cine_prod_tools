@@ -650,14 +650,14 @@ class OcptResourcesRoleMergeRequestedEvent extends OcptResourcesEvent {
   List<Object?> get props => [...super.props, sourceRoleId, targetRoleId];
 }
 
-/// Records that person [personId] was seen for role [roleId], appended after that role's other
-/// candidates, written immediately: `OcptResourcesPersonPicker`'s own pick, dispatched by the
+/// Records that person [personId] is a candidate for role [roleId], appended after that role's
+/// other candidates, written immediately: `OcptResourcesPersonPicker`'s own pick, dispatched by the
 /// candidates card's `+ Candidate` action.
 class OcptResourcesRoleCandidateAddedEvent extends OcptResourcesEvent {
-  /// The id of the role the candidate is seen for.
+  /// The id of the role the person is a candidate for.
   final String roleId;
 
-  /// The id of the person now seen for this role.
+  /// The id of the person now a candidate for this role.
   final String personId;
 
   /// Class constructor
