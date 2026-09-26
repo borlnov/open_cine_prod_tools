@@ -256,6 +256,17 @@ model, the title page, the spell-checking, the docks and the syntax guide.
   Desktop output is byte-identical, the flag defaulting off everywhere a desktop call site builds
   the stylesheet.
 
+- A **scene jump** (a click in the scene panel) and a **find match** both land their target a
+  third of the way down the editor's viewport, and each mode has its own trap to avoid. The styled
+  editor moves its selection with its own reason, `ocptProgrammaticNavigationSelectionReason`,
+  never `SelectionReason.userInteraction`: super_editor answers a user-interaction selection change
+  with a minimal caret reveal on the next frame, which would pull the target back to the viewport's
+  edge just as `Scrollable.ensureVisible` started placing it. The raw field **measures** where the
+  target line is (`EditableTextState.renderEditable.getLocalRectForCaret`) rather than counting
+  newlines, since every wrapped action or dialogue paragraph above the target would put a newline
+  count one visual line further short; the count remains only as the fallback for a field not laid
+  out yet.
+
 - Find and replace: one search, over **the episode the workspace has selected**, in both editing
   modes. `Ctrl+F` opens the bar on find, `Ctrl+H` on replace, `Escape` closes it — page-level
   `Shortcuts` in `editor_page.dart`, beside `Ctrl+S`/`Ctrl+Shift+M`, none of the three claimed by

@@ -1076,24 +1076,13 @@ class _EditorViewState extends State<_EditorView> {
     _styledEditorController.updateSpellCheckRanges(state.styledSpellCheckRanges);
   }
 
-  /// Places the raw controller's selection on [match] and scrolls its line into view, the same
-  /// estimate [_applyJumpRequest] uses — deliberately does not focus [_editorFocusNode]: the find
-  /// field must keep the keyboard focus while the user types a query or presses Next/Previous.
+  /// Places the raw controller's selection on [match] and scrolls it into view exactly as
+  /// [_applyJumpRequest] does ([_scrollRawEditorTo]) — deliberately does not focus
+  /// [_editorFocusNode]: the find field must keep the keyboard focus while the user types a query or
+  /// presses Next/Previous.
   void _navigateToMatch(OcptTextMatch match) {
     _textController.selection = TextSelection(baseOffset: match.start, extentOffset: match.end);
-
-    if (_editorScrollController.hasClients) {
-      final text = _textController.text;
-      final clampedOffset = match.start > text.length ? text.length : match.start;
-      final line = "\n".allMatches(text.substring(0, clampedOffset)).length;
-      final position = _editorScrollController.position;
-      const lineHeight = OcptEditorSourceField.fontSize * OcptEditorSourceField.lineHeightFactor;
-      final target = (line * lineHeight - position.viewportDimension / 3).clamp(
-        0.0,
-        position.maxScrollExtent,
-      );
-      _editorScrollController.jumpTo(target);
-    }
+    _scrollRawEditorTo(match.start);
   }
 
   /// Replaces the current match in raw mode with the replacement field's text, then selects
@@ -1693,26 +1682,65 @@ class _EditorViewState extends State<_EditorView> {
   }
 
   /// Moves the editor caret to [charOffset], focuses the editor, scrolls the caret's line into
-  /// view, and lets the controller listener report the caret move to the bloc.
-  ///
-  /// The scroll target is estimated from the caret's line number and the editor's fixed line
-  /// height, which is exact for unwrapped lines and close enough when long lines wrap.
+  /// view ([_scrollRawEditorTo]), and lets the controller listener report the caret move to the bloc.
   void _applyJumpRequest(int charOffset) {
     final text = _textController.text;
     final clampedOffset = charOffset > text.length ? text.length : charOffset;
 
     _textController.selection = TextSelection.collapsed(offset: clampedOffset);
     _editorFocusNode.requestFocus();
+    _scrollRawEditorTo(clampedOffset);
+  }
 
-    if (_editorScrollController.hasClients) {
-      final line = "\n".allMatches(text.substring(0, clampedOffset)).length;
-      final position = _editorScrollController.position;
-      const lineHeight = OcptEditorSourceField.fontSize * OcptEditorSourceField.lineHeightFactor;
-      final target = (line * lineHeight - position.viewportDimension / 3).clamp(
-        0.0,
-        position.maxScrollExtent,
-      );
-      _editorScrollController.jumpTo(target);
+  /// Scrolls the raw editor so the line holding [offset] sits a third of the way down its viewport.
+  ///
+  /// The line's position is **measured** off the field's own laid-out text
+  /// ([_rawCaretContentTop]) rather than counted in newlines: an action or dialogue paragraph wraps
+  /// over several visual lines, and a newline count drifts further from the truth with every one
+  /// of them the target sits past. Landing the caret well inside the viewport also leaves the
+  /// field's own caret-reveal scroll, which runs after a selection change, nothing to correct. The
+  /// newline estimate remains only as the fallback for a field not laid out yet.
+  void _scrollRawEditorTo(int offset) {
+    if (!_editorScrollController.hasClients) {
+      return;
     }
+
+    final position = _editorScrollController.position;
+    final lineTop = _rawCaretContentTop(offset) ?? _estimatedRawLineTop(offset);
+    final target = (lineTop - position.viewportDimension / 3).clamp(0.0, position.maxScrollExtent);
+    _editorScrollController.jumpTo(target);
+  }
+
+  /// The top of the caret at [offset] in the raw field's own scrollable content, read off the
+  /// field's `RenderEditable` — or null while the field is not built or laid out.
+  ///
+  /// [_editorFocusNode] is attached inside the field's own `EditableText`, which is how the
+  /// `EditableTextState` (and through it the render object) is reached without a key of its own.
+  /// `getLocalRectForCaret` answers in the render object's own coordinates, already shifted by the
+  /// current scroll offset, so that offset is added back.
+  double? _rawCaretContentTop(int offset) {
+    final editableText = _editorFocusNode.context?.findAncestorStateOfType<EditableTextState>();
+    if (editableText == null || !editableText.mounted) {
+      return null;
+    }
+
+    final renderEditable = editableText.renderEditable;
+    if (!renderEditable.hasSize) {
+      return null;
+    }
+
+    final caretRect = renderEditable.getLocalRectForCaret(TextPosition(offset: offset));
+    return caretRect.top + _editorScrollController.offset;
+  }
+
+  /// The top of the line holding [offset], estimated from its newline count and the field's fixed
+  /// line height: exact for unwrapped lines only — [_rawCaretContentTop]'s fallback.
+  double _estimatedRawLineTop(int offset) {
+    final text = _textController.text;
+    final clampedOffset = offset > text.length ? text.length : offset;
+    final line = "\n".allMatches(text.substring(0, clampedOffset)).length;
+    const lineHeight = OcptEditorSourceField.fontSize * OcptEditorSourceField.lineHeightFactor;
+
+    return line * lineHeight;
   }
 }
