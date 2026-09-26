@@ -4891,7 +4891,7 @@
   "resourcesReferenceDocumentAction": "Reference a document…",
   "@resourcesReferenceDocumentAction": {
     "description": "Action opening the picker referencing a document by path",
-    "context": "Displayed in the resources mode's location sheet",
+    "context": "Displayed in the resources mode's location sheet (permit) and person sheet (image rights card)",
     "type": "text",
     "placeholders": {}
   },
@@ -4994,13 +4994,6 @@
   "@resourcesPhotoSlotPhotoOnlyTooltip": {
     "description": "Tooltip of a photo slot whose record has no colour of its own",
     "context": "Displayed on hover over the element sheet's photo slot",
-    "type": "text",
-    "placeholders": {}
-  },
-  "resourcesReferenceDocumentAction": "+ Reference a document",
-  "@resourcesReferenceDocumentAction": {
-    "description": "Action opening the picker referencing a document by path",
-    "context": "Displayed in the resources mode's person sheet, image rights card",
     "type": "text",
     "placeholders": {}
   },

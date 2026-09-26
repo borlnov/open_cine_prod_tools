@@ -667,7 +667,6 @@
   "resourcesRemovePhotoAction": "Retirer la photo",
   "resourcesPhotoSlotTooltip": "Photo et couleur",
   "resourcesPhotoSlotPhotoOnlyTooltip": "Photo",
-  "resourcesReferenceDocumentAction": "+ Référencer un document",
   "resourcesAssetFileMissing": "Fichier introuvable",
   "resourcesImageFileTypeLabel": "Images",
   "resourcesDocumentFileTypeLabel": "Documents",
