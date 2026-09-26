@@ -4,8 +4,10 @@
 
 import 'package:drift/drift.dart';
 import 'package:fountain_kit/fountain_kit.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_floor_plan_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_role_index_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_row_stamp_service.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_storyboard_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_shots_table.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
@@ -47,13 +49,27 @@ class OcptShotListService {
   /// up in Ressources at once, castable and dressable.
   final OcptRoleIndexService roleIndexService;
 
+  /// The service owning a shot's storyboard panels, held so [deleteShot] and
+  /// [tombstoneShotsOfScreenplay] can carry them off with the shot (`docs/plans/storyboard.md`,
+  /// §2, §3).
+  final OcptStoryboardService storyboardService;
+
+  /// The service owning a shot's floor plan symbols and arrows, held for the same cascade
+  /// [storyboardService] is.
+  final OcptFloorPlanService floorPlanService;
+
   /// Resolves the device id every stamp this service's own writes carry — see
   /// [OcptDeviceIdGetter]. [detachShotsFromDeletedScenes] never calls it: it writes inside a
   /// caller's own transaction, and takes that caller's own [OcptRowStampService] instead.
   final OcptDeviceIdGetter deviceId;
 
   /// Class constructor
-  const OcptShotListService({required this.roleIndexService, required this.deviceId});
+  const OcptShotListService({
+    required this.roleIndexService,
+    required this.storyboardService,
+    required this.floorPlanService,
+    required this.deviceId,
+  });
 
   /// Loads the whole shot list of [screenplayId] in [database]: every scene, in order, with its
   /// shots, followed by the orphan group if the screenplay has any orphaned shot.
@@ -364,7 +380,10 @@ class OcptShotListService {
   }
 
   /// Tombstones the shot [shotId] in [database], its attached characters and coverage ranges along
-  /// with it.
+  /// with it, and, since M2 (`docs/plans/storyboard.md`, §2, §3), its storyboard panels (and their
+  /// annotations and image `assets` rows, through [storyboardService]) and its floor plan
+  /// shot-layer symbols and arrows (through [floorPlanService]) — a deleted shot drops its
+  /// placements wherever it made any.
   ///
   /// {@macro open_cine_prod_tools.tombstones}
   ///
@@ -407,6 +426,17 @@ class OcptShotListService {
           stamps: stamps,
         );
       }
+
+      await storyboardService.tombstonePanelsOfShot(
+        database: database,
+        shotId: shotId,
+        stamps: stamps,
+      );
+      await floorPlanService.tombstoneFloorPlanRowsOfShot(
+        database: database,
+        shotId: shotId,
+        stamps: stamps,
+      );
 
       final shot = await _liveShotRowOrNull(database: database, shotId: shotId);
       if (shot != null) {
@@ -670,9 +700,10 @@ class OcptShotListService {
   }
 
   /// Tombstones every live shot of [screenplayId] — across every scene and the orphan group alike —
-  /// carrying off its `shot_characters` and `shot_coverages` exactly as [deleteShot] does for one
-  /// shot, and returns the ids it tombstoned: `OcptScreenplayService.deleteEpisode`'s cascade, which
-  /// needs those ids to also tombstone whatever a schedule block placed of one of them.
+  /// carrying off its `shot_characters`, `shot_coverages`, storyboard panels and floor plan
+  /// shot-layer placements exactly as [deleteShot] does for one shot, and returns the ids it
+  /// tombstoned: `OcptScreenplayService.deleteEpisode`'s cascade, which needs those ids to also
+  /// tombstone whatever a schedule block placed of one of them.
   ///
   /// **Unguarded**, exactly as `OcptElementsService.tombstoneRoleLinksOfRole` is: its only caller has
   /// already refused the write on a preview connection and is already inside the transaction
@@ -719,6 +750,19 @@ class OcptShotListService {
         rowId: ocptCompositeRowStampKey([row.shotId, row.roleId]),
         current: row,
         next: row.copyWith(isDeleted: true),
+        stamps: stamps,
+      );
+    }
+
+    for (final shotId in shotIds) {
+      await storyboardService.tombstonePanelsOfShot(
+        database: database,
+        shotId: shotId,
+        stamps: stamps,
+      );
+      await floorPlanService.tombstoneFloorPlanRowsOfShot(
+        database: database,
+        shotId: shotId,
         stamps: stamps,
       );
     }

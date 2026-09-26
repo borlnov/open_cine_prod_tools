@@ -28,6 +28,7 @@ import 'package:open_cine_prod_tools/managers/projects/services/ocpt_budget_jour
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_budget_quote_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_budget_sharing_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_elements_service.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_floor_plan_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_locations_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_people_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_role_candidates_service.dart';
@@ -37,6 +38,7 @@ import 'package:open_cine_prod_tools/managers/projects/services/ocpt_schedule_se
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_screenplay_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_coverage_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_list_service.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_storyboard_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_poste_seed.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_scene_status.dart';
@@ -49,6 +51,8 @@ import 'package:open_cine_prod_tools/types/ocpt_day_part_slot.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_source_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_status.dart';
+import 'package:open_cine_prod_tools/types/ocpt_floor_plan_layer.dart';
+import 'package:open_cine_prod_tools/types/ocpt_floor_plan_set_element_shape.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 import 'package:open_cine_prod_tools/types/ocpt_permit_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
@@ -157,7 +161,12 @@ void main() {
   final assetsService = OcptAssetsService(deviceId: deviceId);
   final roleCandidatesService = OcptRoleCandidatesService(deviceId: deviceId);
   final elementsService = OcptElementsService(assetsService: assetsService, deviceId: deviceId);
-  final locationsService = OcptLocationsService(assetsService: assetsService, deviceId: deviceId);
+  final floorPlanService = OcptFloorPlanService(assetsService: assetsService, deviceId: deviceId);
+  final locationsService = OcptLocationsService(
+    assetsService: assetsService,
+    floorPlanService: floorPlanService,
+    deviceId: deviceId,
+  );
   final roleIndexService = OcptRoleIndexService(
     elementsService: elementsService,
     roleCandidatesService: roleCandidatesService,
@@ -168,7 +177,12 @@ void main() {
     locationsService: locationsService,
     deviceId: deviceId,
   );
-  final shotListService = OcptShotListService(roleIndexService: roleIndexService, deviceId: deviceId);
+  final shotListService = OcptShotListService(
+    roleIndexService: roleIndexService,
+    storyboardService: OcptStoryboardService(assetsService: assetsService, deviceId: deviceId),
+    floorPlanService: floorPlanService,
+    deviceId: deviceId,
+  );
   final peopleService = OcptPeopleService(
     deviceId: deviceId,
     assetsService: assetsService,
@@ -726,6 +740,137 @@ void main() {
         screenSeconds: 13,
         characters: ["MARTIN"],
       ),
+    );
+
+    // -------------------------------------------------------------------------- the floor plans
+
+    // The harbour cafe: set-scope walls and a counter, shared by both scenes shot there
+    // (`cafeSetId` is linked to sceneIds[0] and sceneIds[1] above).
+    await floorPlanService.placeSymbol(
+      database: database,
+      setId: cafeSetId,
+      sceneId: null,
+      shotId: null,
+      layer: OcptFloorPlanLayer.set,
+      xM: 0,
+      yM: 0,
+      widthM: 6,
+      heightM: 4,
+      label: "Cafe walls",
+      setElementShape: OcptFloorPlanSetElementShape.wall,
+    );
+    final counterSymbolId = (await floorPlanService.placeSymbol(
+      database: database,
+      setId: cafeSetId,
+      sceneId: null,
+      shotId: null,
+      layer: OcptFloorPlanLayer.set,
+      xM: 1.5,
+      yM: 0.5,
+      widthM: 2,
+      heightM: 0.6,
+      label: "Counter",
+      setElementShape: OcptFloorPlanSetElementShape.furniture,
+    ))!;
+
+    // The second scene shot at the cafe re-dresses the counter for that sequence only — a
+    // scene-scope override: it replaces the counter above while sceneIds[1] is being drawn, and
+    // the original keeps showing for sceneIds[0].
+    await floorPlanService.placeSymbol(
+      database: database,
+      setId: cafeSetId,
+      sceneId: sceneIds[1],
+      shotId: null,
+      layer: OcptFloorPlanLayer.set,
+      xM: 1.8,
+      yM: 0.7,
+      widthM: 2,
+      heightM: 0.6,
+      label: "Counter, cleared for the second visit",
+      setElementShape: OcptFloorPlanSetElementShape.furniture,
+      overridesSymbolId: counterSymbolId,
+    );
+
+    // A camera and Nora placed on the cafe's own opening shot.
+    await floorPlanService.placeSymbol(
+      database: database,
+      setId: cafeSetId,
+      sceneId: null,
+      shotId: shotsByScene[0]!.first,
+      layer: OcptFloorPlanLayer.cameras,
+      xM: 0.5,
+      yM: 3,
+      rotationDeg: 90,
+      fovDeg: 40,
+    );
+    await floorPlanService.placeSymbol(
+      database: database,
+      setId: cafeSetId,
+      sceneId: null,
+      shotId: shotsByScene[0]!.first,
+      layer: OcptFloorPlanLayer.characters,
+      xM: 1.5,
+      yM: 1,
+      label: "NORA",
+    );
+
+    // The pier: a railing and a camera on its own first shot.
+    await floorPlanService.placeSymbol(
+      database: database,
+      setId: pierSetId,
+      sceneId: null,
+      shotId: null,
+      layer: OcptFloorPlanLayer.set,
+      xM: 0,
+      yM: 0,
+      widthM: 10,
+      heightM: 2,
+      label: "Pier railing",
+      setElementShape: OcptFloorPlanSetElementShape.wall,
+    );
+    await floorPlanService.placeSymbol(
+      database: database,
+      setId: pierSetId,
+      sceneId: null,
+      shotId: shotsByScene[2]!.first,
+      layer: OcptFloorPlanLayer.cameras,
+      xM: 2,
+      yM: 4,
+      rotationDeg: 180,
+    );
+
+    // The fishing boat: the wheelhouse and a camera and a light on its own first shot.
+    await floorPlanService.placeSymbol(
+      database: database,
+      setId: boatSetId,
+      sceneId: null,
+      shotId: null,
+      layer: OcptFloorPlanLayer.set,
+      xM: 0,
+      yM: 0,
+      widthM: 3,
+      heightM: 2,
+      label: "Wheelhouse",
+      setElementShape: OcptFloorPlanSetElementShape.furniture,
+    );
+    await floorPlanService.placeSymbol(
+      database: database,
+      setId: boatSetId,
+      sceneId: null,
+      shotId: shotsByScene[3]!.first,
+      layer: OcptFloorPlanLayer.cameras,
+      xM: -1,
+      yM: 3,
+    );
+    await floorPlanService.placeSymbol(
+      database: database,
+      setId: boatSetId,
+      sceneId: null,
+      shotId: shotsByScene[3]!.first,
+      layer: OcptFloorPlanLayer.lights,
+      xM: 1,
+      yM: 3,
+      label: "Key",
     );
 
     // ------------------------------------------------------------------------------- the schedule

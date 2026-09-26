@@ -9,6 +9,7 @@ import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
 import 'package:open_cine_prod_tools/models/database/converters/ocpt_day_part_slot_converter.dart';
 import 'package:open_cine_prod_tools/models/database/migrations/ocpt_migration_v3.dart';
+import 'package:open_cine_prod_tools/models/database/migrations/ocpt_migration_v4.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_assets_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_breakdown_tags_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_budget_allowances_table.dart';
@@ -21,6 +22,9 @@ import 'package:open_cine_prod_tools/models/database/tables/ocpt_budget_resource
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_budget_revenues_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_budget_shares_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_elements_table.dart';
+import 'package:open_cine_prod_tools/models/database/tables/ocpt_floor_plan_arrows_table.dart';
+import 'package:open_cine_prod_tools/models/database/tables/ocpt_floor_plan_sets_table.dart';
+import 'package:open_cine_prod_tools/models/database/tables/ocpt_floor_plan_symbols_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_local_erasures_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_location_availabilities_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_locations_table.dart';
@@ -54,6 +58,8 @@ import 'package:open_cine_prod_tools/models/database/tables/ocpt_shooting_slots_
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_shot_characters_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_shot_coverages_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_shots_table.dart';
+import 'package:open_cine_prod_tools/models/database/tables/ocpt_storyboard_annotations_table.dart';
+import 'package:open_cine_prod_tools/models/database/tables/ocpt_storyboard_panels_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_sync_pairings_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_sync_relay_cursors_table.dart';
 // These are only used through the type converters declared in the table files above
@@ -67,7 +73,9 @@ import 'package:open_cine_prod_tools/models/database/tables/ocpt_sync_relay_curs
 // OcptRoleCandidateStatusConverter, OcptShootingDayKindConverter,
 // OcptBudgetCommitmentStatusConverter, OcptBudgetResourceGroupKindConverter,
 // OcptBudgetResourceStatusConverter, OcptBudgetRevenueStatusConverter,
-// OcptBudgetAllowanceKindConverter), but
+// OcptBudgetAllowanceKindConverter, OcptStoryboardAnnotationKindConverter,
+// OcptFloorPlanLayerConverter, OcptFloorPlanArrowKindConverter,
+// OcptFloorPlanSetElementShapeConverter), but
 // the generated ocpt_project_database.g.dart
 // part file below references them directly: since a part file shares its main library's imports
 // rather than having its own, they must be imported here too for that generated code to resolve.
@@ -83,6 +91,9 @@ import 'package:open_cine_prod_tools/types/ocpt_day_part_slot.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_source_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_status.dart';
+import 'package:open_cine_prod_tools/types/ocpt_floor_plan_arrow_kind.dart';
+import 'package:open_cine_prod_tools/types/ocpt_floor_plan_layer.dart';
+import 'package:open_cine_prod_tools/types/ocpt_floor_plan_set_element_shape.dart';
 import 'package:open_cine_prod_tools/types/ocpt_image_rights_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_location_availability_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
@@ -96,6 +107,7 @@ import 'package:open_cine_prod_tools/types/ocpt_shooting_slot_anchor_edge.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_check_reason.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
+import 'package:open_cine_prod_tools/types/ocpt_storyboard_annotation_kind.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_weekday_mask.dart';
 
 part 'ocpt_project_database.g.dart';
@@ -132,9 +144,14 @@ part 'ocpt_project_database.g.dart';
 /// ([OcptProjectVersionsTable]); the per-column version stamps a merge resolves conflicts with
 /// ([OcptRowFieldVersionsTable]); the changeset engine's own delivery state against each relay it
 /// talks to, local to this replica and never synchronised
-/// ([OcptSyncRelayCursorsTable], `docs/plans/collaboration-and-sync.md`, M3); and which relay this
+/// ([OcptSyncRelayCursorsTable], `docs/plans/collaboration-and-sync.md`, M3); which relay this
 /// replica's project is paired with, also local and never synchronised
-/// ([OcptSyncPairingsTable], `docs/plans/collaboration-and-sync.md`, M4).
+/// ([OcptSyncPairingsTable], `docs/plans/collaboration-and-sync.md`, M4); and the shot list's
+/// storyboard and floor plans (`docs/plans/storyboard.md`) — a shot's ordered panels
+/// ([OcptStoryboardPanelsTable]) and each panel's light annotation marks
+/// ([OcptStoryboardAnnotationsTable]), and a sequence's floor plan sets
+/// ([OcptFloorPlanSetsTable]), the symbols placed on them ([OcptFloorPlanSymbolsTable]) and the
+/// movement and camera-move arrows drawn between them ([OcptFloorPlanArrowsTable]).
 ///
 /// Everything up to [OcptRowFieldVersionsTable] was created by `onCreate` at schema version 1,
 /// which the 0.1.0 release froze per
@@ -146,7 +163,8 @@ part 'ocpt_project_database.g.dart';
 /// one. Schema version 3 reshapes [OcptShotCharactersTable] to key it by `{shotId, roleId}` instead
 /// of `{shotId, characterName}` — the first **non-additive** migration
 /// (`docs/adr/0030-a-shots-characters-are-the-productions-roles.md`), carried out by
-/// `ocptMigrateToSchemaV3`.
+/// `ocptMigrateToSchemaV3`. Schema version 4 creates the five storyboard and floor plan tables above
+/// — additive only, carried out by `ocptMigrateToSchemaV4`.
 ///
 /// `OcptProjectsManager` owns the single instance open at a time.
 @DriftDatabase(
@@ -196,6 +214,11 @@ part 'ocpt_project_database.g.dart';
     OcptBudgetRevenuesTable,
     OcptBudgetSharesTable,
     OcptBudgetAllowancesTable,
+    OcptStoryboardPanelsTable,
+    OcptStoryboardAnnotationsTable,
+    OcptFloorPlanSetsTable,
+    OcptFloorPlanSymbolsTable,
+    OcptFloorPlanArrowsTable,
     OcptSyncRelayCursorsTable,
     OcptSyncPairingsTable,
   ],
@@ -283,7 +306,7 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
   /// always one of those two values. Freezing a stable release is the one line
   /// `lastStableSchemaVersion = currentSchemaVersion`, done at release prep (see
   /// `docs/RELEASING.md`).
-  static const currentSchemaVersion = 3;
+  static const currentSchemaVersion = 4;
 
   /// The highest schema version a stable release has frozen.
   ///
@@ -310,9 +333,9 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
   /// Per `docs/adr/0029-schema-versions-frozen-at-stable-releases.md`, no stable release had shipped
   /// before schema version 1, so that version itself carries no pre-stable migration history — no
   /// real `.ocpt` file is ever found below it. Each stable release then froze the next number in
-  /// turn: 0.1.0 froze [lastStableSchemaVersion] at 1, 0.2.0 froze it at 2, and 0.2.1 froze it at 3,
-  /// so no development cycle is open and a new schema change would create version 4. Every
-  /// `onUpgrade` step below follows the additive-only guidance
+  /// turn: 0.1.0 froze [lastStableSchemaVersion] at 1, 0.2.0 froze it at 2, and 0.2.1 froze it at 3 —
+  /// the version [lastStableSchemaVersion] still holds — so a development cycle is open at
+  /// [currentSchemaVersion] 4. Every `onUpgrade` step below follows the additive-only guidance
   /// `docs/adr/0007-schema-migration-policy.md` gives, except v3's, called out where it runs.
   ///
   /// From 1 to 2, `onUpgrade` creates [OcptSyncRelayCursorsTable] — the changeset engine's own
@@ -331,6 +354,11 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
   /// comment for the full argument, including why it is safe under independent per-replica
   /// migration.
   ///
+  /// From 3 to 4, `onUpgrade` delegates to `ocptMigrateToSchemaV4`
+  /// (`lib/models/database/migrations/ocpt_migration_v4.dart`): it creates the five tables the
+  /// storyboard and floor plans mode is built on — additive only, nothing else touched
+  /// (`docs/plans/storyboard.md`).
+  ///
   /// `beforeOpen` turns SQLite's `foreign_keys` pragma on: `NativeDatabase` leaves it at SQLite's
   /// own default, which is off, so the `references()` declared on the tables above would otherwise
   /// never actually be enforced.
@@ -345,6 +373,9 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
       }
       if (from < 3) {
         await ocptMigrateToSchemaV3(migrator: m, database: this);
+      }
+      if (from < 4) {
+        await ocptMigrateToSchemaV4(migrator: m, database: this);
       }
     },
     beforeOpen: (details) async {

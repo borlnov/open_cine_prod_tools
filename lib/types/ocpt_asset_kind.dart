@@ -23,4 +23,17 @@ enum OcptAssetKind {
   /// A till receipt, an invoice PDF or a bank slip standing as the voucher of a journal entry
   /// (`budget_entries`).
   receipt,
+
+  /// A storyboard panel's imported frame (`storyboard_panels.imageAssetId`).
+  ///
+  /// Sets **none** of `assets`' four owner columns: the panel's own `imageAssetId` is the only link,
+  /// the way `people.photoAssetId` is — see `OcptAssetsTable`'s own doc comment, amended by
+  /// `docs/adr/0013-binary-assets-referenced-by-path.md`'s storyboard follow-up
+  /// (`docs/plans/storyboard.md`, §2) to say these two kinds set none.
+  storyboardPanelImage,
+
+  /// A floor plan set's underlay photo or plan (`floor_plan_sets.underlayAssetId`).
+  ///
+  /// Sets none of the four owner columns either, for the same reason [storyboardPanelImage] does.
+  floorPlanUnderlay,
 }

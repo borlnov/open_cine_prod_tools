@@ -23,6 +23,7 @@ import 'package:open_cine_prod_tools/managers/export/services/ocpt_call_sheet_pd
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_contact_list_pdf_service.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_courier_prime_fonts.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_day_out_of_days_pdf_service.dart';
+import 'package:open_cine_prod_tools/managers/export/services/ocpt_floor_plan_pdf_service.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_fountain_io_service.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_one_line_schedule_pdf_service.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_pdf_export_service.dart';
@@ -35,6 +36,7 @@ import 'package:open_cine_prod_tools/managers/export/services/ocpt_shooting_plan
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_shooting_plan_xlsx_export_service.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_shot_list_xlsx_export_service.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_sides_pdf_service.dart';
+import 'package:open_cine_prod_tools/managers/export/services/ocpt_storyboard_pdf_service.dart';
 import 'package:open_cine_prod_tools/models/ocpt_breakdown_sheets_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_breakdown_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_breakdown_xlsx_labels.dart';
@@ -47,6 +49,8 @@ import 'package:open_cine_prod_tools/models/ocpt_call_sheet_export_result.dart';
 import 'package:open_cine_prod_tools/models/ocpt_call_sheet_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_contact_list_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_day_out_of_days_labels.dart';
+import 'package:open_cine_prod_tools/models/ocpt_floor_plan_labels.dart';
+import 'package:open_cine_prod_tools/models/ocpt_floor_plan_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_imported_fountain_model.dart';
 import 'package:open_cine_prod_tools/models/ocpt_one_line_schedule_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
@@ -61,6 +65,8 @@ import 'package:open_cine_prod_tools/models/ocpt_shooting_plan_xlsx_labels.dart'
 import 'package:open_cine_prod_tools/models/ocpt_shot_list_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_list_xlsx_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_sides_labels.dart';
+import 'package:open_cine_prod_tools/models/ocpt_storyboard_labels.dart';
+import 'package:open_cine_prod_tools/models/ocpt_storyboard_snapshot.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_tax_basis.dart';
 import 'package:open_cine_prod_tools/types/ocpt_export_outcome.dart';
 import 'package:open_cine_prod_tools/types/ocpt_screenplay_import_status.dart';
@@ -79,28 +85,29 @@ class OcptExportManagerBuilder extends AbsLifeCycleFactory<OcptExportManager> {
 
 /// Owns everything about getting a screenplay in and out of the app as a plain `.fountain` file
 /// or a PDF, the project's shot list out of it as an XLSX workbook, its scenario coverage as an
-/// annotated screenplay PDF, its resources catalogue as a second, four-sheet XLSX workbook, its
-/// breakdown as one printed sheet per scene and as a third, two-sheet XLSX workbook, and its
-/// shooting schedule as call sheets — the general one and the named ones, both per day —, as one
-/// whole-shoot shooting plan (a PDF and, reading the very same
-/// [OcptShootingPlanPdfService]'s own [OcptShootingPlanGrids], a five-sheet XLSX workbook), as its
-/// cast's own *Day Out of Days*, as the compact one-line schedule, as a day's own sides booklet,
-/// its crew and cast as a standalone, whole-production contact list, and its budget as the quote (a
-/// PDF, poste by poste with its lines), the financing plan (a PDF, its in-kind contributions kept
-/// apart), the cash journal (an XLSX workbook, every entry in its own chronological order) and the
-/// financial report (a PDF, the quote read against what has actually moved).
+/// annotated screenplay PDF, its storyboard and its floor plans each as their own PDF, its
+/// resources catalogue as a second, four-sheet XLSX workbook, its breakdown as one printed sheet
+/// per scene and as a third, two-sheet XLSX workbook, and its shooting schedule as call sheets —
+/// the general one and the named ones, both per day —, as one whole-shoot shooting plan (a PDF and,
+/// reading the very same [OcptShootingPlanPdfService]'s own [OcptShootingPlanGrids], a five-sheet
+/// XLSX workbook), as its cast's own *Day Out of Days*, as the compact one-line schedule, as a
+/// day's own sides booklet, its crew and cast as a standalone, whole-production contact list, and
+/// its budget as the quote (a PDF, poste by poste with its lines), the financing plan (a PDF, its
+/// in-kind contributions kept apart), the cash journal (an XLSX workbook, every entry in its own
+/// chronological order) and the financial report (a PDF, the quote read against what has actually
+/// moved).
 ///
 /// Holds the native save/open dialogs; the actual bytes/text conversion is delegated to
 /// [fountainIoService], [scriptImportService], [pdfExportService], [shotListXlsxExportService],
-/// [scenarioCoveragePdfService], [resourcesXlsxExportService], [breakdownSheetsPdfService],
-/// [breakdownXlsxExportService], [callSheetPdfService], [shootingPlanPdfService],
-/// [shootingPlanXlsxExportService], [dayOutOfDaysPdfService], [oneLineSchedulePdfService],
-/// [sidesPdfService], [contactListPdfService], [budgetQuotePdfService],
-/// [budgetFinancingPlanPdfService], [budgetCashJournalXlsxExportService] and
-/// [budgetFinancialReportPdfService], the "save as"/"choose a folder" location picking to
-/// [saveLocationService], and — on mobile, where `file_selector`'s `getSaveLocation`/
-/// `getDirectoryPath` have no Android or iOS implementation — the OS share sheet to [shareService]
-/// — the twenty-one services this manager owns (RFL18).
+/// [scenarioCoveragePdfService], [storyboardPdfService], [floorPlanPdfService],
+/// [resourcesXlsxExportService], [breakdownSheetsPdfService], [breakdownXlsxExportService],
+/// [callSheetPdfService], [shootingPlanPdfService], [shootingPlanXlsxExportService],
+/// [dayOutOfDaysPdfService], [oneLineSchedulePdfService], [sidesPdfService],
+/// [contactListPdfService], [budgetQuotePdfService], [budgetFinancingPlanPdfService],
+/// [budgetCashJournalXlsxExportService] and [budgetFinancialReportPdfService], the "save
+/// as"/"choose a folder" location picking to [saveLocationService], and — on mobile, where
+/// `file_selector`'s `getSaveLocation`/`getDirectoryPath` have no Android or iOS implementation —
+/// the OS share sheet to [shareService] — the twenty-three services this manager owns (RFL18).
 ///
 /// Every write funnels through [_writeToPickedLocation] (a single file) or [_writeBytesInFolder]
 /// and its two callers (several files at once): on [PlatformManager.isMobile] each writes into a
@@ -176,6 +183,12 @@ class OcptExportManager extends AbsWithLifeCycle {
   /// The service rendering the budget's own financial report PDF.
   final OcptBudgetFinancialReportPdfService budgetFinancialReportPdfService;
 
+  /// The service rendering the storyboard PDF.
+  final OcptStoryboardPdfService storyboardPdfService;
+
+  /// The service rendering the floor plans PDF.
+  final OcptFloorPlanPdfService floorPlanPdfService;
+
   /// The service showing the native "save as"/"choose a folder" dialog and resolving the chosen
   /// path.
   final OcptSaveLocationService saveLocationService;
@@ -241,6 +254,11 @@ class OcptExportManager extends AbsWithLifeCycle {
        budgetQuotePdfService = OcptBudgetQuotePdfService(fontsLoader: fontsLoader),
        budgetFinancingPlanPdfService = OcptBudgetFinancingPlanPdfService(fontsLoader: fontsLoader),
        budgetFinancialReportPdfService = OcptBudgetFinancialReportPdfService(fontsLoader: fontsLoader),
+       floorPlanPdfService = OcptFloorPlanPdfService(fontsLoader: fontsLoader),
+       storyboardPdfService = OcptStoryboardPdfService(
+         fontsLoader: fontsLoader,
+         floorPlanPdfService: OcptFloorPlanPdfService(fontsLoader: fontsLoader),
+       ),
        budgetCashJournalXlsxExportService = const OcptBudgetCashJournalXlsxExportService(),
        shotListXlsxExportService = const OcptShotListXlsxExportService(),
        resourcesXlsxExportService = const OcptResourcesXlsxExportService();
@@ -380,6 +398,98 @@ class OcptExportManager extends AbsWithLifeCycle {
 
     return _writeToPickedLocation(
       suggestedFileName: scenarioCoveragePdfService.coverageFileName(
+        projectName: projectName,
+        suffix: labels.fileNameSuffix,
+        episodeTag: episodeTag,
+      ),
+      fileTypeLabel: fileTypeLabel,
+      extensions: const ["pdf"],
+      bytes: bytes,
+      shareAnchor: shareAnchor,
+    );
+  }
+
+  /// Renders the storyboard of [snapshot]/[storyboardSnapshot] via [storyboardPdfService] and
+  /// shows the native save dialog to write it out.
+  ///
+  /// [shotsPerPage] and [includeFloorPlansAfterEachSequence] are the dialog's own options;
+  /// [floorPlanSnapshot] and [floorPlanLabels] are required exactly when the toggle is on, so the
+  /// appended sheets can be drawn. [labels] carries every localized string the document itself
+  /// holds and [fileTypeLabel] the one the native dialog needs — this manager has no `Tr` of its
+  /// own. [episodeTag] is the selected episode's own tag, present only while the open project
+  /// holds more than one episode — see [exportFountain]'s own doc comment for why. Returns the
+  /// write funnel's own outcome, or null if the user cancelled or the save failed (failures are
+  /// logged; the OS dialog already reported a cancellation to the user).
+  Future<OcptExportOutcome?> exportStoryboard({
+    required OcptShotListSnapshot snapshot,
+    required OcptStoryboardSnapshot storyboardSnapshot,
+    required OcptPageSetup pageSetup,
+    required OcptStoryboardLabels labels,
+    required String projectName,
+    required int shotsPerPage,
+    required bool includeFloorPlansAfterEachSequence,
+    OcptFloorPlanSnapshot? floorPlanSnapshot,
+    OcptFloorPlanLabels? floorPlanLabels,
+    required String fileTypeLabel,
+    String? episodeTag,
+    Rect? shareAnchor,
+  }) async {
+    final bytes = await storyboardPdfService.generate(
+      snapshot: snapshot,
+      storyboardSnapshot: storyboardSnapshot,
+      pageSetup: pageSetup,
+      labels: labels,
+      projectName: projectName,
+      shotsPerPage: shotsPerPage,
+      includeFloorPlansAfterEachSequence: includeFloorPlansAfterEachSequence,
+      floorPlanSnapshot: floorPlanSnapshot,
+      floorPlanLabels: floorPlanLabels,
+    );
+
+    return _writeToPickedLocation(
+      suggestedFileName: storyboardPdfService.storyboardFileName(
+        projectName: projectName,
+        suffix: labels.fileNameSuffix,
+        episodeTag: episodeTag,
+      ),
+      fileTypeLabel: fileTypeLabel,
+      extensions: const ["pdf"],
+      bytes: bytes,
+      shareAnchor: shareAnchor,
+    );
+  }
+
+  /// Renders the floor plans of [snapshot]/[floorPlanSnapshot] via [floorPlanPdfService] and shows
+  /// the native save dialog to write it out — no options dialog of its own, the page format coming
+  /// from [pageSetup] (`OcptShotListState.pageSetup`), mirroring the shot list workbook's own
+  /// `Export XLSX` button.
+  ///
+  /// [labels] carries every localized string the document itself holds and [fileTypeLabel] the one
+  /// the native dialog needs — this manager has no `Tr` of its own. [episodeTag] is the selected
+  /// episode's own tag, present only while the open project holds more than one episode — see
+  /// [exportFountain]'s own doc comment for why. Returns the write funnel's own outcome, or null if
+  /// the user cancelled or the save failed (failures are logged; the OS dialog already reported a
+  /// cancellation to the user).
+  Future<OcptExportOutcome?> exportFloorPlans({
+    required OcptShotListSnapshot snapshot,
+    required OcptFloorPlanSnapshot floorPlanSnapshot,
+    required OcptPageSetup pageSetup,
+    required OcptFloorPlanLabels labels,
+    required String projectName,
+    required String fileTypeLabel,
+    String? episodeTag,
+    Rect? shareAnchor,
+  }) async {
+    final bytes = await floorPlanPdfService.generate(
+      snapshot: snapshot,
+      floorPlanSnapshot: floorPlanSnapshot,
+      pageSetup: pageSetup,
+      labels: labels,
+      projectName: projectName,
+    );
+
+    return _writeToPickedLocation(
+      suggestedFileName: floorPlanPdfService.floorPlansFileName(
         projectName: projectName,
         suffix: labels.fileNameSuffix,
         episodeTag: episodeTag,

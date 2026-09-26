@@ -2505,7 +2505,7 @@
     "type": "text",
     "placeholders": {}
   },
-  "shotListExportPanelMessage": "The shot list as a spreadsheet, or the screenplay annotated with what each shot covers.",
+  "shotListExportPanelMessage": "The shot list as a spreadsheet, the screenplay annotated with what each shot covers, or the storyboard and the floor plans as PDFs.",
   "@shotListExportPanelMessage": {
     "description": "Sentence under the title of the shot list mode's export panel, saying what it offers",
     "context": "Displayed under the export panel's title",
@@ -2688,6 +2688,140 @@
     "type": "text",
     "placeholders": {}
   },
+  "shotListExportStoryboardTitle": "Storyboard",
+  "@shotListExportStoryboardTitle": {
+    "description": "Name of the storyboard PDF document, shown as an export panel card title and as the document's own running head",
+    "context": "Displayed as a card title in the shot list mode's export panel, and written into the exported PDF file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListExportStoryboardDescription": "The imported frames of every shot, annotated, with each shot's key information.",
+  "@shotListExportStoryboardDescription": {
+    "description": "Sentence saying what the storyboard document is, shown on its export panel card",
+    "context": "Displayed under the card title in the shot list mode's export panel",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListExportFloorPlansTitle": "Floor plans",
+  "@shotListExportFloorPlansTitle": {
+    "description": "Name of the floor plans PDF document, shown as an export panel card title and as the document's own running head",
+    "context": "Displayed as a card title in the shot list mode's export panel, and written into the exported PDF file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListExportFloorPlansDescription": "One floor plan per shot that has a camera placed on it.",
+  "@shotListExportFloorPlansDescription": {
+    "description": "Sentence saying what the floor plans document is, shown on its export panel card",
+    "context": "Displayed under the card title in the shot list mode's export panel",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListExportStoryboardUnavailableReason": "No panel has been imported yet.",
+  "@shotListExportStoryboardUnavailableReason": {
+    "description": "Reason shown in place of the storyboard card's description while the shot list holds no panel at all",
+    "context": "Displayed on the storyboard card of the shot list mode's export panel while unavailable",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListExportFloorPlansUnavailableReason": "No camera has been placed on any floor plan yet.",
+  "@shotListExportFloorPlansUnavailableReason": {
+    "description": "Reason shown in place of the floor plans card's description while no set holds a camera anywhere",
+    "context": "Displayed on the floor plans card of the shot list mode's export panel while unavailable",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListExportStoryboardDialogTitle": "Export the storyboard",
+  "@shotListExportStoryboardDialogTitle": {
+    "description": "Title of the dialog picking the options the storyboard export runs with",
+    "context": "Displayed as a dialog over the shot list mode",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListExportStoryboardShotsPerPageLabel": "Shots per page",
+  "@shotListExportStoryboardShotsPerPageLabel": {
+    "description": "Dropdown picking how many shots print on one page before the document breaks onto a fresh one",
+    "context": "Displayed in the storyboard export options dialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListExportStoryboardIncludeFloorPlansLabel": "Include the floor plans after each sequence",
+  "@shotListExportStoryboardIncludeFloorPlansLabel": {
+    "description": "Checkbox appending the floor plan sheets after each sequence's own shot rows",
+    "context": "Displayed in the storyboard export options dialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListExportStoryboardFileTypeLabel": "PDF document",
+  "@shotListExportStoryboardFileTypeLabel": {
+    "description": "Label of the .pdf file type shown in the native save-file dialog",
+    "context": "Passed to the OS file picker when the user exports the storyboard",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListExportStoryboardFileNameSuffix": "storyboard",
+  "@shotListExportStoryboardFileNameSuffix": {
+    "description": "Suffix appended to the project name to build the exported file name",
+    "context": "Suggested as «My Movie - storyboard.pdf» by the native save-file dialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListExportFloorPlansFileTypeLabel": "PDF document",
+  "@shotListExportFloorPlansFileTypeLabel": {
+    "description": "Label of the .pdf file type shown in the native save-file dialog",
+    "context": "Passed to the OS file picker when the user exports the floor plans",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListExportFloorPlansFileNameSuffix": "floor plans",
+  "@shotListExportFloorPlansFileNameSuffix": {
+    "description": "Suffix appended to the project name to build the exported file name",
+    "context": "Suggested as «My Movie - floor plans.pdf» by the native save-file dialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListExportFloorPlansScaleBarUnitLabel": "m",
+  "@shotListExportFloorPlansScaleBarUnitLabel": {
+    "description": "Unit suffix appended to a floor plans page's own scale bar length (printed as '<number> m')",
+    "context": "Written into the exported PDF file",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListExportStoryboardSuccessMessage": "Exported to {path}",
+  "@shotListExportStoryboardSuccessMessage": {
+    "description": "Message shown when the storyboard was successfully exported to a PDF file",
+    "context": "Displayed as a SnackBar over the shot list mode",
+    "type": "text",
+    "placeholders": {
+      "path": {
+        "type": "String"
+      }
+    }
+  },
+  "shotListExportStoryboardError": "The storyboard could not be exported.",
+  "@shotListExportStoryboardError": {
+    "description": "Error shown when exporting the storyboard to a PDF file failed",
+    "context": "Displayed as a SnackBar over the shot list mode",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListExportFloorPlansSuccessMessage": "Exported to {path}",
+  "@shotListExportFloorPlansSuccessMessage": {
+    "description": "Message shown when the floor plans were successfully exported to a PDF file",
+    "context": "Displayed as a SnackBar over the shot list mode",
+    "type": "text",
+    "placeholders": {
+      "path": {
+        "type": "String"
+      }
+    }
+  },
+  "shotListExportFloorPlansError": "The floor plans could not be exported.",
+  "@shotListExportFloorPlansError": {
+    "description": "Error shown when exporting the floor plans to a PDF file failed",
+    "context": "Displayed as a SnackBar over the shot list mode",
+    "type": "text",
+    "placeholders": {}
+  },
   "editorRightDockVersionsTabLabel": "Versions",
   "@editorRightDockVersionsTabLabel": {
     "description": "Label of the project versions tab in the editor's right dock",
@@ -2699,6 +2833,972 @@
   "@shotListRightDockVersionsTabLabel": {
     "description": "Name of the project versions tab of the shot list's right dock",
     "context": "Displayed in the tab row of the right dock",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListBoardTableSegmentLabel": "Table",
+  "@shotListBoardTableSegmentLabel": {
+    "description": "Label of the centre header's own switch segment that shows the table view",
+    "context": "Displayed in the shot list mode's centre header",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListBoardBoardSegmentLabel": "Board",
+  "@shotListBoardBoardSegmentLabel": {
+    "description": "Label of the centre header's own switch segment that shows the board view",
+    "context": "Displayed in the shot list mode's centre header",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListBoardPanelsCount": "{count, plural, one{{count} panel} other{{count} panels}}",
+  "@shotListBoardPanelsCount": {
+    "description": "Panel count of the selected sequence, appended to its summary while the board is shown",
+    "context": "Displayed in the shot list mode's centre header",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "shotListBoardNoPanelYetHint": "no panel yet",
+  "@shotListBoardNoPanelYetHint": {
+    "description": "Shown in a shot's own import slot when it has no panel at all",
+    "context": "Displayed on the board, in place of a panel strip",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListBoardImportFrameAction": "Import frame",
+  "@shotListBoardImportFrameAction": {
+    "description": "Label of a panel strip's own trailing import slot",
+    "context": "Displayed on the board, at the end of a shot's panel strip",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListBoardReplaceImageAction": "Replace image",
+  "@shotListBoardReplaceImageAction": {
+    "description": "Tooltip of a panel frame's own action replacing its image",
+    "context": "Displayed on the board, over a panel frame",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListBoardPanelRatioLabel": "Ratio {ratio}",
+  "@shotListBoardPanelRatioLabel": {
+    "description": "The aspect ratio label shown under a panel frame",
+    "context": "Displayed on the board, under a panel frame",
+    "type": "text",
+    "placeholders": {
+      "ratio": {
+        "type": "String"
+      }
+    }
+  },
+  "shotListBoardPanelsGroupTitle": "{count, plural, one{Panels (1)} other{Panels ({count})}}",
+  "@shotListBoardPanelsGroupTitle": {
+    "description": "Title of the inspector's board-only Panels group",
+    "context": "Displayed at the top of the shot inspector's leading group, on the board",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "shotListBoardPanelCommentHint": "Comment…",
+  "@shotListBoardPanelCommentHint": {
+    "description": "Placeholder of a panel's own free comment field",
+    "context": "Displayed in the inspector's Panels group",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListBoardMovePanelUpAction": "Move earlier",
+  "@shotListBoardMovePanelUpAction": {
+    "description": "Tooltip of a panel row's own affordance moving it one position earlier",
+    "context": "Displayed in the inspector's Panels group",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListBoardMovePanelDownAction": "Move later",
+  "@shotListBoardMovePanelDownAction": {
+    "description": "Tooltip of a panel row's own affordance moving it one position later",
+    "context": "Displayed in the inspector's Panels group",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListBoardDeletePanelAction": "Delete panel",
+  "@shotListBoardDeletePanelAction": {
+    "description": "Tooltip and confirmation button label of a panel's own deletion action",
+    "context": "Displayed in the inspector's Panels group, and as the confirm dialog's own button",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListBoardDeletePanelConfirmTitle": "Delete this panel?",
+  "@shotListBoardDeletePanelConfirmTitle": {
+    "description": "Title of the confirmation dialog deleting a storyboard panel",
+    "context": "Displayed in the confirm dialog opened from the inspector's Panels group",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListBoardDeletePanelConfirmMessage": "Its image, its comment and its annotations are removed for good.",
+  "@shotListBoardDeletePanelConfirmMessage": {
+    "description": "Message of the confirmation dialog deleting a storyboard panel",
+    "context": "Displayed in the confirm dialog opened from the inspector's Panels group",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListBoardImageFileTypeLabel": "Images",
+  "@shotListBoardImageFileTypeLabel": {
+    "description": "Label of the file type filter of the native picker, when importing or replacing a storyboard panel's frame",
+    "context": "Displayed in the platform's own open dialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListBoardPanelSizeMenuAction": "Panel size",
+  "@shotListBoardPanelSizeMenuAction": {
+    "description": "Label of the board header's own panel size menu trigger",
+    "context": "Displayed in the shot list mode's centre header, while the board is shown",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListBoardPanelSizeSmall": "Small",
+  "@shotListBoardPanelSizeSmall": {
+    "description": "Label of the board's smallest panel size",
+    "context": "Displayed in the board header's own panel size menu",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListBoardPanelSizeMedium": "Medium",
+  "@shotListBoardPanelSizeMedium": {
+    "description": "Label of the board's default panel size",
+    "context": "Displayed in the board header's own panel size menu",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListBoardPanelSizeLarge": "Large",
+  "@shotListBoardPanelSizeLarge": {
+    "description": "Label of the board's largest panel size",
+    "context": "Displayed in the board header's own panel size menu",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListBoardPanelSelectedHint": "Panel {rank} of {total} selected · drag to reorder",
+  "@shotListBoardPanelSelectedHint": {
+    "description": "Status bar hint naming the selected panel, while the board is shown",
+    "context": "Displayed in the shot list mode's status bar",
+    "type": "text",
+    "placeholders": {
+      "rank": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "shotListBoardAnnotationsGroupTitle": "{count, plural, one{Annotations (1)} other{Annotations ({count})}}",
+  "@shotListBoardAnnotationsGroupTitle": {
+    "description": "Title of the annotation section of the inspector's board-only Panels group",
+    "context": "Displayed in the inspector's Panels group, below the selected panel",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "shotListBoardAnnotationToolMovementArrowLabel": "Movement arrow",
+  "@shotListBoardAnnotationToolMovementArrowLabel": {
+    "description": "Label of the Annotate control's own movement arrow segment",
+    "context": "Displayed in the inspector's Panels group, in the annotation section's tool picker",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListBoardAnnotationToolCameraMoveArrowLabel": "Camera-move arrow",
+  "@shotListBoardAnnotationToolCameraMoveArrowLabel": {
+    "description": "Label of the Annotate control's own camera-move arrow segment",
+    "context": "Displayed in the inspector's Panels group, in the annotation section's tool picker",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListBoardAnnotationToolLabelSegmentLabel": "Label",
+  "@shotListBoardAnnotationToolLabelSegmentLabel": {
+    "description": "Label of the Annotate control's own text label segment",
+    "context": "Displayed in the inspector's Panels group, in the annotation section's tool picker",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListBoardNoAnnotationsHint": "no marks yet",
+  "@shotListBoardNoAnnotationsHint": {
+    "description": "Shown in the annotation section when the selected panel has no mark at all",
+    "context": "Displayed in the inspector's Panels group, in place of the marks list",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListBoardAnnotationTextHint": "Text…",
+  "@shotListBoardAnnotationTextHint": {
+    "description": "Placeholder of a mark's own text field",
+    "context": "Displayed in the inspector's Panels group, in the annotation section's marks list",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListBoardAnnotationKindMovementArrow": "Movement arrow",
+  "@shotListBoardAnnotationKindMovementArrow": {
+    "description": "Kind label of a movement arrow mark, shown in the marks list",
+    "context": "Displayed in the inspector's Panels group, in the annotation section's marks list",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListBoardAnnotationKindCameraMoveArrow": "Camera-move arrow",
+  "@shotListBoardAnnotationKindCameraMoveArrow": {
+    "description": "Kind label of a camera-move arrow mark, shown in the marks list",
+    "context": "Displayed in the inspector's Panels group, in the annotation section's marks list",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListBoardAnnotationKindLabel": "Label",
+  "@shotListBoardAnnotationKindLabel": {
+    "description": "Kind label of a text label mark, shown in the marks list",
+    "context": "Displayed in the inspector's Panels group, in the annotation section's marks list",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListBoardRemoveAnnotationAction": "Remove mark",
+  "@shotListBoardRemoveAnnotationAction": {
+    "description": "Tooltip of a mark row's own remove action",
+    "context": "Displayed in the inspector's Panels group, in the annotation section's marks list",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListBoardDeleteAnnotationConfirmTitle": "Remove this mark?",
+  "@shotListBoardDeleteAnnotationConfirmTitle": {
+    "description": "Title of the confirmation dialog removing a storyboard annotation",
+    "context": "Displayed in the confirm dialog opened from the inspector's Panels group",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListBoardDeleteAnnotationConfirmMessage": "This mark is removed for good.",
+  "@shotListBoardDeleteAnnotationConfirmMessage": {
+    "description": "Message of the confirmation dialog removing a storyboard annotation",
+    "context": "Displayed in the confirm dialog opened from the inspector's Panels group",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanSegmentLabel": "Floor plans",
+  "@shotListFloorPlanSegmentLabel": {
+    "description": "Label of the centre header's own switch segment that shows the floor plans view",
+    "context": "Displayed in the shot list mode's centre header",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanNoSetHint": "Create a set to start placing your décor.",
+  "@shotListFloorPlanNoSetHint": {
+    "description": "Shown on the canvas while the selected sequence has no floor plan set yet",
+    "context": "Displayed on the floor plans view's own canvas",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanDeleteSetConfirmTitle": "Remove this set from the sequence?",
+  "@shotListFloorPlanDeleteSetConfirmTitle": {
+    "description": "Title of the confirmation dialog unlinking a set from the selected sequence",
+    "context": "Displayed in the confirm dialog opened from a set tab's own close action",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanDeleteSetConfirmMessage": "The set's own plan is kept — relinking it brings every placement back.",
+  "@shotListFloorPlanDeleteSetConfirmMessage": {
+    "description": "Message of the confirmation dialog unlinking a set from the selected sequence",
+    "context": "Displayed in the confirm dialog opened from a set tab's own close action",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanUnlinkSetConfirmAction": "Remove",
+  "@shotListFloorPlanUnlinkSetConfirmAction": {
+    "description": "Confirm action of the dialog unlinking a set from the selected sequence",
+    "context": "Displayed in the confirm dialog opened from a set tab's own close action",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanDuplicateSetDefaultName": "{sourceName} copy",
+  "@shotListFloorPlanDuplicateSetDefaultName": {
+    "description": "The new set's default name when duplicating one from the set tabs' own menu",
+    "context": "Passed to OcptLocationsService.createSiblingSet as the new set's own name",
+    "type": "text",
+    "placeholders": {
+      "sourceName": {
+        "type": "String",
+        "example": "Kitchen"
+      }
+    }
+  },
+  "shotListFloorPlanToolSelectAction": "Select",
+  "@shotListFloorPlanToolSelectAction": {
+    "description": "Tooltip of the floor plans tool bar's own select tool",
+    "context": "Displayed on the floor plans view's own tool bar",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanToolSetElementAction": "Set element",
+  "@shotListFloorPlanToolSetElementAction": {
+    "description": "Tooltip of the floor plans tool bar's own set element tool",
+    "context": "Displayed on the floor plans view's own tool bar",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanToolWallAction": "Wall",
+  "@shotListFloorPlanToolWallAction": {
+    "description": "Label of the floor plans palette's own wall set-element entry",
+    "context": "Displayed in the floor plans view's own palette, Set group",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanToolDoorAction": "Door",
+  "@shotListFloorPlanToolDoorAction": {
+    "description": "Label of the floor plans palette's own door set-element entry",
+    "context": "Displayed in the floor plans view's own palette, Set group",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanToolFurnitureAction": "Furniture",
+  "@shotListFloorPlanToolFurnitureAction": {
+    "description": "Label of the floor plans palette's own furniture set-element entry",
+    "context": "Displayed in the floor plans view's own palette, Set group",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanToolFreeformAction": "Freeform",
+  "@shotListFloorPlanToolFreeformAction": {
+    "description": "Label of the floor plans palette's own freeform set-element entry",
+    "context": "Displayed in the floor plans view's own palette, Set group",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanImportUnderlayAction": "Import underlay",
+  "@shotListFloorPlanImportUnderlayAction": {
+    "description": "Label of the tool bar's own underlay action while the set carries none yet",
+    "context": "Displayed on the floor plans view's own tool bar",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanReplaceUnderlayAction": "Replace underlay",
+  "@shotListFloorPlanReplaceUnderlayAction": {
+    "description": "Label of the tool bar's own underlay action while the set already carries one",
+    "context": "Displayed on the floor plans view's own tool bar",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanUnderlayFileTypeLabel": "Images",
+  "@shotListFloorPlanUnderlayFileTypeLabel": {
+    "description": "Label of the native picker's own file type filter when importing a set's underlay",
+    "context": "Displayed in the native file picker dialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanClearUnderlayAction": "Clear underlay",
+  "@shotListFloorPlanClearUnderlayAction": {
+    "description": "Tooltip of the tray's own underlay row action clearing its image",
+    "context": "Displayed on the floor plans view's own tray",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanClearUnderlayConfirmTitle": "Clear this underlay?",
+  "@shotListFloorPlanClearUnderlayConfirmTitle": {
+    "description": "Title of the confirmation dialog clearing a set's underlay",
+    "context": "Displayed in the confirm dialog opened from the tray's own underlay row",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanClearUnderlayConfirmMessage": "The image and its frame are removed for good.",
+  "@shotListFloorPlanClearUnderlayConfirmMessage": {
+    "description": "Message of the confirmation dialog clearing a set's underlay",
+    "context": "Displayed in the confirm dialog opened from the tray's own underlay row",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanZoomInAction": "Zoom in",
+  "@shotListFloorPlanZoomInAction": {
+    "description": "Tooltip of the tool bar's own zoom in button",
+    "context": "Displayed on the floor plans view's own tool bar",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanZoomOutAction": "Zoom out",
+  "@shotListFloorPlanZoomOutAction": {
+    "description": "Tooltip of the tool bar's own zoom out button",
+    "context": "Displayed on the floor plans view's own tool bar",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanZoomResetAction": "Reset zoom",
+  "@shotListFloorPlanZoomResetAction": {
+    "description": "Tooltip of the tool bar's own reset-to-100% zoom button",
+    "context": "Displayed on the floor plans view's own tool bar",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanSequenceLayersGroupTitle": "Sequence layers",
+  "@shotListFloorPlanSequenceLayersGroupTitle": {
+    "description": "Title of the tray's own sequence layers group",
+    "context": "Displayed on the floor plans view's own tray",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanLayerDecorLabel": "Decor",
+  "@shotListFloorPlanLayerDecorLabel": {
+    "description": "Label of the tray's own decor layer row",
+    "context": "Displayed on the floor plans view's own tray",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanLayerFurnitureLabel": "Furniture",
+  "@shotListFloorPlanLayerFurnitureLabel": {
+    "description": "Label of the tray's own furniture layer row",
+    "context": "Displayed on the floor plans view's own tray",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanLayerFixedPropsLabel": "Fixed props",
+  "@shotListFloorPlanLayerFixedPropsLabel": {
+    "description": "Label of the tray's own fixed props layer row",
+    "context": "Displayed on the floor plans view's own tray",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanUnderlayRowLabel": "Underlay",
+  "@shotListFloorPlanUnderlayRowLabel": {
+    "description": "Label of the tray's own underlay row",
+    "context": "Displayed on the floor plans view's own tray",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanShowLayerAction": "Show",
+  "@shotListFloorPlanShowLayerAction": {
+    "description": "Tooltip of a hidden tray row's own eye, showing it again",
+    "context": "Displayed on the floor plans view's own tray",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanHideLayerAction": "Hide",
+  "@shotListFloorPlanHideLayerAction": {
+    "description": "Tooltip of a visible tray row's own eye, hiding it",
+    "context": "Displayed on the floor plans view's own tray",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanScaleBarLengthLabel": "{length} m",
+  "@shotListFloorPlanScaleBarLengthLabel": {
+    "description": "The scale bar's own rounded length, already formatted by ocptFloorPlanScaleBarLengthLabelOf, always drawn bottom-right of the canvas",
+    "context": "Displayed on the floor plans view's own canvas",
+    "type": "text",
+    "placeholders": {
+      "length": {
+        "type": "String"
+      }
+    }
+  },
+  "shotListFloorPlanDeleteSymbolAction": "Delete",
+  "@shotListFloorPlanDeleteSymbolAction": {
+    "description": "Tooltip of the selected symbol's own small delete handle",
+    "context": "Displayed on the floor plans view's own canvas",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanDeleteSymbolConfirmTitle": "Delete this placement?",
+  "@shotListFloorPlanDeleteSymbolConfirmTitle": {
+    "description": "Title of the confirmation dialog deleting a floor plan symbol (a set element, a camera, a character, a light or a hand prop)",
+    "context": "Displayed in the confirm dialog opened from the canvas's own delete handle",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanDeleteSymbolConfirmMessage": "It is removed for good.",
+  "@shotListFloorPlanDeleteSymbolConfirmMessage": {
+    "description": "Message of the confirmation dialog deleting a floor plan symbol",
+    "context": "Displayed in the confirm dialog opened from the canvas's own delete handle",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanToolCameraAction": "Camera",
+  "@shotListFloorPlanToolCameraAction": {
+    "description": "Tooltip of the tool bar's own camera tool button",
+    "context": "Displayed on the floor plans view's own tool bar",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanToolCharacterAction": "Character",
+  "@shotListFloorPlanToolCharacterAction": {
+    "description": "Tooltip of the tool bar's own character tool button",
+    "context": "Displayed on the floor plans view's own tool bar",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanToolLightAction": "Light",
+  "@shotListFloorPlanToolLightAction": {
+    "description": "Tooltip of the tool bar's own light tool button",
+    "context": "Displayed on the floor plans view's own tool bar",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanToolArrowAction": "Arrow",
+  "@shotListFloorPlanToolArrowAction": {
+    "description": "Tooltip of the tool bar's own arrow tool button",
+    "context": "Displayed on the floor plans view's own tool bar",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanToolLabelAction": "Label",
+  "@shotListFloorPlanToolLabelAction": {
+    "description": "Tooltip of the tool bar's own label tool button",
+    "context": "Displayed on the floor plans view's own tool bar",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanShotLayersGroupTitle": "Shot layers",
+  "@shotListFloorPlanShotLayersGroupTitle": {
+    "description": "Title of the tray's own shot layers group (cameras, characters, lights, hand props)",
+    "context": "Displayed on the floor plans view's own tray",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanLayerCamerasLabel": "Cameras",
+  "@shotListFloorPlanLayerCamerasLabel": {
+    "description": "Label of the tray's own cameras row",
+    "context": "Displayed on the floor plans view's own tray",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanLayerCharactersLabel": "Characters",
+  "@shotListFloorPlanLayerCharactersLabel": {
+    "description": "Label of the tray's own characters row",
+    "context": "Displayed on the floor plans view's own tray",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanLayerLightsLabel": "Lights",
+  "@shotListFloorPlanLayerLightsLabel": {
+    "description": "Label of the tray's own lights row",
+    "context": "Displayed on the floor plans view's own tray",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanLayerPropsLabel": "Props",
+  "@shotListFloorPlanLayerPropsLabel": {
+    "description": "Label of the palette's own props row",
+    "context": "Displayed on the floor plans view's own palette",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanNoCamerasHint": "No camera placed yet.",
+  "@shotListFloorPlanNoCamerasHint": {
+    "description": "Shown in the tray's own expanded cameras row while the sequence holds no camera yet",
+    "context": "Displayed on the floor plans view's own tray",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanOnionSkinGroupTitle": "Onion skin",
+  "@shotListFloorPlanOnionSkinGroupTitle": {
+    "description": "Title of the tray's own onion skin block",
+    "context": "Displayed on the floor plans view's own tray",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanOnionSkinPreviousLabel": "Previous shot",
+  "@shotListFloorPlanOnionSkinPreviousLabel": {
+    "description": "Label of the onion skin block's own previous-shot toggle",
+    "context": "Displayed on the floor plans view's own tray",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanOnionSkinNextLabel": "Next shot",
+  "@shotListFloorPlanOnionSkinNextLabel": {
+    "description": "Label of the onion skin block's own next-shot toggle",
+    "context": "Displayed on the floor plans view's own tray",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanOnionSkinOpacityLabel": "Opacity",
+  "@shotListFloorPlanOnionSkinOpacityLabel": {
+    "description": "Label of the onion skin block's own opacity slider",
+    "context": "Displayed on the floor plans view's own tray",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanMetricsToggleLabel": "Show metrics",
+  "@shotListFloorPlanMetricsToggleLabel": {
+    "description": "Label of the tray's own metrics overlay toggle",
+    "context": "Displayed on the floor plans view's own tray",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanMetricsHelpAction": "About metrics",
+  "@shotListFloorPlanMetricsHelpAction": {
+    "description": "Tooltip/semantics label of the small help button next to the metrics toggle",
+    "context": "Displayed on the floor plans view's own palette, next to the metrics toggle",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanMetricsHelpText": "Shows the distance from the selected object to every other visible object. With a camera selected, it gives the distance to the subject.",
+  "@shotListFloorPlanMetricsHelpText": {
+    "description": "Explanation shown by the metrics toggle's own help button, opened by a tap so it also works on touch",
+    "context": "Displayed on the floor plans view's own palette, next to the metrics toggle",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanFocusWalkHint": "← → to walk shots",
+  "@shotListFloorPlanFocusWalkHint": {
+    "description": "The focus strip's own trailing hint stating the keyboard shortcut walking its shot chips",
+    "context": "Displayed on the floor plans view's own focus strip",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanFocusPreviousChipTag": "prev",
+  "@shotListFloorPlanFocusPreviousChipTag": {
+    "description": "Small tag on the focus strip's own chip of the shot ghosted as the onion skin's previous neighbour",
+    "context": "Displayed on the floor plans view's own focus strip",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanFocusNextChipTag": "next",
+  "@shotListFloorPlanFocusNextChipTag": {
+    "description": "Small tag on the focus strip's own chip of the shot ghosted as the onion skin's next neighbour",
+    "context": "Displayed on the floor plans view's own focus strip",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanSymbolLabelFieldHint": "Label",
+  "@shotListFloorPlanSymbolLabelFieldHint": {
+    "description": "Placeholder of the canvas's own inline symbol label editor while it is empty",
+    "context": "Displayed on the floor plans view's own canvas",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanDeleteArrowConfirmTitle": "Delete this arrow?",
+  "@shotListFloorPlanDeleteArrowConfirmTitle": {
+    "description": "Title of the confirmation dialog deleting a floor plan arrow",
+    "context": "Displayed in the confirm dialog opened from the Placements group's own remove action",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanDeleteArrowConfirmMessage": "It is removed for good.",
+  "@shotListFloorPlanDeleteArrowConfirmMessage": {
+    "description": "Message of the confirmation dialog deleting a floor plan arrow",
+    "context": "Displayed in the confirm dialog opened from the Placements group's own remove action",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanCameraStatusHint": "{setName} · {cameraCount, plural, one{1 camera} other{{cameraCount} cameras}} on {shotCount, plural, one{1 shot} other{{shotCount} shots}}",
+  "@shotListFloorPlanCameraStatusHint": {
+    "description": "The status bar's own trailing hint while the floor plans view is shown and a set is selected",
+    "context": "Displayed in the shot list mode's status bar",
+    "type": "text",
+    "placeholders": {
+      "setName": {
+        "type": "String"
+      },
+      "cameraCount": {
+        "type": "int"
+      },
+      "shotCount": {
+        "type": "int"
+      }
+    }
+  },
+  "shotListFloorPlanCameraStatusUnplacedHint": "{shotCode} has no camera yet",
+  "@shotListFloorPlanCameraStatusUnplacedHint": {
+    "description": "Trailing segment of the floor plans status hint naming the first shot of the sequence still holding no camera on the selected set",
+    "context": "Displayed in the shot list mode's status bar",
+    "type": "text",
+    "placeholders": {
+      "shotCode": {
+        "type": "String"
+      }
+    }
+  },
+  "shotListFloorPlanPlacementsGroupTitle": "On this plan · {setName}",
+  "@shotListFloorPlanPlacementsGroupTitle": {
+    "description": "Title of the inspector's own Placements group, shown on the floor plans view",
+    "context": "Displayed at the top of the shot inspector's own Placements group",
+    "type": "text",
+    "placeholders": {
+      "setName": {
+        "type": "String"
+      }
+    }
+  },
+  "shotListFloorPlanPlacementsCamerasSectionTitle": "Cameras",
+  "@shotListFloorPlanPlacementsCamerasSectionTitle": {
+    "description": "Title of the Placements group's own cameras section",
+    "context": "Displayed in the shot inspector's own Placements group",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanPlacementsCharactersSectionTitle": "Characters",
+  "@shotListFloorPlanPlacementsCharactersSectionTitle": {
+    "description": "Title of the Placements group's own characters section",
+    "context": "Displayed in the shot inspector's own Placements group",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanPlacementsLightsSectionTitle": "Lights",
+  "@shotListFloorPlanPlacementsLightsSectionTitle": {
+    "description": "Title of the Placements group's own lights section",
+    "context": "Displayed in the shot inspector's own Placements group",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanPlacementsPropsSectionTitle": "Props",
+  "@shotListFloorPlanPlacementsPropsSectionTitle": {
+    "description": "Title of the Placements group's own props section",
+    "context": "Displayed in the shot inspector's own Placements group",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanPlacementsArrowsSectionTitle": "Arrows",
+  "@shotListFloorPlanPlacementsArrowsSectionTitle": {
+    "description": "Title of the Placements group's own arrows section",
+    "context": "Displayed in the shot inspector's own Placements group",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanPlacementsNoCameraHint": "No camera placed on this set yet.",
+  "@shotListFloorPlanPlacementsNoCameraHint": {
+    "description": "Shown in the Placements group's own cameras section while the shot has none on the selected set",
+    "context": "Displayed in the shot inspector's own Placements group",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanPlacementsNoneHint": "None placed on this set yet.",
+  "@shotListFloorPlanPlacementsNoneHint": {
+    "description": "Shown in a Placements group section (characters, lights, props, arrows) while the shot has none on the selected set",
+    "context": "Displayed in the shot inspector's own Placements group",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanPlacementsArrowRowLabel": "Movement",
+  "@shotListFloorPlanPlacementsArrowRowLabel": {
+    "description": "An arrow row's own label while the arrow carries no caption of its own",
+    "context": "Displayed in the shot inspector's own Placements group",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanPlacementsOtherSetHasCameraHint": "{setName} · {count, plural, one{1 camera} other{{count} cameras}}",
+  "@shotListFloorPlanPlacementsOtherSetHasCameraHint": {
+    "description": "One line of the Placements group's own other-sets list, naming that this shot has a camera on that other set too",
+    "context": "Displayed in the shot inspector's own Placements group",
+    "type": "text",
+    "placeholders": {
+      "setName": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "shotListFloorPlanPlacementsOtherSetNoCameraHint": "{setName} · no camera for this shot",
+  "@shotListFloorPlanPlacementsOtherSetNoCameraHint": {
+    "description": "One line of the Placements group's own other-sets list, naming that this shot has no camera on that other set",
+    "context": "Displayed in the shot inspector's own Placements group",
+    "type": "text",
+    "placeholders": {
+      "setName": {
+        "type": "String"
+      }
+    }
+  },
+  "shotListFloorPlanFieldOfViewToggleLabel": "Show field of view",
+  "@shotListFloorPlanFieldOfViewToggleLabel": {
+    "description": "Label of the tray's own field-of-view wedge toggle",
+    "context": "Displayed on the floor plans view's own tray",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanDecreaseFovAction": "Narrower field of view",
+  "@shotListFloorPlanDecreaseFovAction": {
+    "description": "Tooltip of a camera row's own field-of-view stepper decrease button",
+    "context": "Displayed in the shot inspector's own Placements group",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanIncreaseFovAction": "Wider field of view",
+  "@shotListFloorPlanIncreaseFovAction": {
+    "description": "Tooltip of a camera row's own field-of-view stepper increase button",
+    "context": "Displayed in the shot inspector's own Placements group",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanCameraFovValueLabel": "{degrees}°",
+  "@shotListFloorPlanCameraFovValueLabel": {
+    "description": "A camera row's own current field-of-view angle, between its stepper's two buttons",
+    "context": "Displayed in the shot inspector's own Placements group",
+    "type": "text",
+    "placeholders": {
+      "degrees": {
+        "type": "int"
+      }
+    }
+  },
+  "shotListFloorPlanStraightenArrowAction": "Straighten arrow",
+  "@shotListFloorPlanStraightenArrowAction": {
+    "description": "Tooltip of a bent arrow's own small straighten button, next to its midpoint handle",
+    "context": "Displayed on the floor plans view's own canvas",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanCharacterNamePickerTitle": "Name this character",
+  "@shotListFloorPlanCharacterNamePickerTitle": {
+    "description": "Title of the dialog opened the moment a character symbol is placed, setting or changing its own name",
+    "context": "Displayed in the character name picker dialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanCharacterNamePickerFieldHint": "Character name",
+  "@shotListFloorPlanCharacterNamePickerFieldHint": {
+    "description": "Placeholder of the character name picker's own free-text field",
+    "context": "Displayed in the character name picker dialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanCharacterNamePickerSuggestionsTitle": "From this shot",
+  "@shotListFloorPlanCharacterNamePickerSuggestionsTitle": {
+    "description": "Title of the character name picker's own list of the selected shot's characters, offered as one-click picks",
+    "context": "Displayed in the character name picker dialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanCharacterNamePickerCancelAction": "Cancel",
+  "@shotListFloorPlanCharacterNamePickerCancelAction": {
+    "description": "Label of the character name picker's own cancel action",
+    "context": "Displayed in the character name picker dialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanCharacterNamePickerSetAction": "Set",
+  "@shotListFloorPlanCharacterNamePickerSetAction": {
+    "description": "Label of the character name picker's own confirm action, setting the free-text field's own value",
+    "context": "Displayed in the character name picker dialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanPaletteSetGroupTitle": "Set · {setName} — shared",
+  "@shotListFloorPlanPaletteSetGroupTitle": {
+    "description": "Title of the floor plans palette's own Set group, naming the set every entry under it lands on",
+    "context": "Displayed at the top of the floor plans palette",
+    "type": "text",
+    "placeholders": {
+      "setName": {
+        "type": "String"
+      }
+    }
+  },
+  "shotListFloorPlanPaletteShotGroupTitle": "Shot {shotCode} — this shot only",
+  "@shotListFloorPlanPaletteShotGroupTitle": {
+    "description": "Title of the floor plans palette's own Shot group, naming the focused shot every entry under it lands on",
+    "context": "Displayed in the floor plans palette",
+    "type": "text",
+    "placeholders": {
+      "shotCode": {
+        "type": "String"
+      }
+    }
+  },
+  "shotListFloorPlanPaletteViewGroupTitle": "View",
+  "@shotListFloorPlanPaletteViewGroupTitle": {
+    "description": "Title of the floor plans palette's own View group, absorbing the old tray's own toggles",
+    "context": "Displayed in the floor plans palette",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanAddSetButtonLabel": "Set",
+  "@shotListFloorPlanAddSetButtonLabel": {
+    "description": "Visible text of the set tabs' own filled add-set button — its icon already carries the plus, so the text is the word alone",
+    "context": "Displayed on the set tabs' own filled add-set button",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanCreateSetMenuAction": "Create set",
+  "@shotListFloorPlanCreateSetMenuAction": {
+    "description": "Label of the add-set button's own menu entry creating a new, empty set",
+    "context": "Displayed in the set tabs' own add-set menu",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanDuplicateSetMenuAction": "Duplicate this set",
+  "@shotListFloorPlanDuplicateSetMenuAction": {
+    "description": "Label of the add-set button's own menu entry deep-copying the currently selected set",
+    "context": "Displayed in the set tabs' own add-set menu",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanCopyBlockingMenuAction": "Copy blocking from another shot",
+  "@shotListFloorPlanCopyBlockingMenuAction": {
+    "description": "Label of the add-set button's own menu entry copying another shot's own blocking onto the focused shot",
+    "context": "Displayed in the set tabs' own add-set menu",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanSetPlacedShotCountTooltip": "{count, plural, =0{No shots placed yet} one{1 shot placed} other{{count} shots placed}}",
+  "@shotListFloorPlanSetPlacedShotCountTooltip": {
+    "description": "Tooltip of a set tab's own placed-shot count badge",
+    "context": "Displayed on a set tab in the floor plans centre header",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "shotListFloorPlanCopyBlockingDialogTitle": "Copy blocking from…",
+  "@shotListFloorPlanCopyBlockingDialogTitle": {
+    "description": "Title of the dialog picking the source shot for a blocking copy",
+    "context": "Displayed as the copy blocking dialog's own title",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanCopyBlockingDialogHint": "Pick the shot to copy this set's own placements from.",
+  "@shotListFloorPlanCopyBlockingDialogHint": {
+    "description": "Hint shown above the copy blocking dialog's own list of candidate shots",
+    "context": "Displayed in the copy blocking dialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanCopyBlockingCancelAction": "Cancel",
+  "@shotListFloorPlanCopyBlockingCancelAction": {
+    "description": "Label of the copy blocking dialog's own cancel action",
+    "context": "Displayed in the copy blocking dialog",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanAllCamerasToggleLabel": "All cameras",
+  "@shotListFloorPlanAllCamerasToggleLabel": {
+    "description": "Label of the focus strip's own \"All cameras\" toggle chip",
+    "context": "Displayed in the floor plans focus strip",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanSelectionGroupTitle": "Selection",
+  "@shotListFloorPlanSelectionGroupTitle": {
+    "description": "Header of the Placements group's own Selection section",
+    "context": "Displayed in the shot inspector's own Placements group",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanOnThisShotGroupTitle": "On this shot",
+  "@shotListFloorPlanOnThisShotGroupTitle": {
+    "description": "Header of the Placements group's own On this shot section",
+    "context": "Displayed in the shot inspector's own Placements group",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanSetGroupTitle": "Set",
+  "@shotListFloorPlanSetGroupTitle": {
+    "description": "Header of the Placements group's own Set section, listing the sequence's other sets",
+    "context": "Displayed in the shot inspector's own Placements group",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanSelectionNoneHint": "Nothing selected.",
+  "@shotListFloorPlanSelectionNoneHint": {
+    "description": "Shown in the Placements group's own Selection section while nothing is selected",
+    "context": "Displayed in the shot inspector's own Placements group",
     "type": "text",
     "placeholders": {}
   },
@@ -4396,7 +5496,7 @@
     "type": "text",
     "placeholders": {}
   },
-  "resourcesAddCandidateToRoleAction": "+ Candidate",
+  "resourcesAddCandidateToRoleAction": "Candidate",
   "@resourcesAddCandidateToRoleAction": {
     "description": "Action opening the person picker adding a candidate to a role",
     "context": "Displayed in the resources mode's role sheet, on the candidates card",
@@ -5361,7 +6461,7 @@
     "type": "text",
     "placeholders": {}
   },
-  "resourcesAddSceneToElementAction": "+ Scene",
+  "resourcesAddSceneToElementAction": "Scene",
   "@resourcesAddSceneToElementAction": {
     "description": "Label of the element sheet's picker adding a scene needing the element",
     "context": "Displayed in the resources mode's element sheet",
@@ -5403,7 +6503,7 @@
     "type": "text",
     "placeholders": {}
   },
-  "resourcesAddElementToRoleAction": "+ Element",
+  "resourcesAddElementToRoleAction": "Element",
   "@resourcesAddElementToRoleAction": {
     "description": "Label of the role sheet's picker adding an element the role needs",
     "context": "Displayed in the resources mode's role sheet",

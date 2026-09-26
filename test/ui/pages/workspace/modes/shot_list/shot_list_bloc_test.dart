@@ -6,6 +6,7 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:ui';
 
+import 'package:act_dart_result/act_dart_result.dart';
 import 'package:act_file_transfer_manager/act_file_transfer_manager.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fountain_kit/fountain_kit.dart';
@@ -16,11 +17,16 @@ import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_assets_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_elements_service.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_floor_plan_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_role_candidates_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_role_index_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_coverage_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_list_service.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_storyboard_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
+import 'package:open_cine_prod_tools/models/ocpt_floor_plan_labels.dart';
+import 'package:open_cine_prod_tools/models/ocpt_floor_plan_sheet.dart';
+import 'package:open_cine_prod_tools/models/ocpt_floor_plan_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_working_copy_state.dart';
 import 'package:open_cine_prod_tools/models/ocpt_scenario_coverage_export_options.dart';
@@ -29,15 +35,26 @@ import 'package:open_cine_prod_tools/models/ocpt_script_word_layout.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_list_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_list_xlsx_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
+import 'package:open_cine_prod_tools/models/ocpt_storyboard_export_options.dart';
+import 'package:open_cine_prod_tools/models/ocpt_storyboard_labels.dart';
+import 'package:open_cine_prod_tools/models/ocpt_storyboard_snapshot.dart';
 import 'package:open_cine_prod_tools/types/ocpt_export_outcome.dart';
+import 'package:open_cine_prod_tools/types/ocpt_floor_plan_layer.dart';
+import 'package:open_cine_prod_tools/types/ocpt_floor_plan_set_element_shape.dart';
+import 'package:open_cine_prod_tools/types/ocpt_floor_plan_tool.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_check_reason.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_difficulty_axis.dart';
+import 'package:open_cine_prod_tools/types/ocpt_shot_list_centre_view.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_column.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_editable_field.dart';
+import 'package:open_cine_prod_tools/types/ocpt_shot_list_pending_edit_key.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_right_dock_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
+import 'package:open_cine_prod_tools/types/ocpt_storyboard_annotation_kind.dart';
+import 'package:open_cine_prod_tools/types/ocpt_storyboard_annotation_tool.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_project_versions_events.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_event.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_state.dart';
@@ -101,6 +118,14 @@ class _FailingShotListService extends OcptShotListService {
           roleCandidatesService: OcptRoleCandidatesService(deviceId: _testDeviceId),
           deviceId: _testDeviceId,
         ),
+        storyboardService: const OcptStoryboardService(
+          assetsService: OcptAssetsService(deviceId: _testDeviceId),
+          deviceId: _testDeviceId,
+        ),
+        floorPlanService: const OcptFloorPlanService(
+          assetsService: OcptAssetsService(deviceId: _testDeviceId),
+          deviceId: _testDeviceId,
+        ),
         deviceId: _testDeviceId,
       );
 
@@ -127,6 +152,33 @@ class _FailingShotCoverageService extends OcptShotCoverageService {
     required int endOffset,
     required String sceneText,
   }) async => throw StateError("coverage write intentionally failed for the test");
+}
+
+/// A file selector manager answering the picker with a file of its own, so a test never opens a
+/// native dialog: [pickedPath] is what the user is pretending to pick, and null is a
+/// cancellation. Mirrors `OcptResourcesBloc`'s own test double,
+/// `resources_bloc_test.dart`'s `_StubFileSelectorManager`.
+class _StubFileSelectorManager extends FileSelectorManager {
+  /// The path the next pick answers with, or null to answer as a cancelled dialog does.
+  final String? pickedPath;
+
+  /// Class constructor
+  const _StubFileSelectorManager({required this.pickedPath});
+
+  /// Answers with [pickedPath] instead of opening the platform's own dialog.
+  @override
+  Future<ResultWithBoolStatus<XFile>> openSelector({
+    required List<String> allowedExtensions,
+    required String label,
+    bool strictOnExtensions = true,
+  }) async {
+    final pickedPath = this.pickedPath;
+    if (pickedPath == null) {
+      return const ResultWithBoolStatus(status: BoolResultStatus.error);
+    }
+
+    return ResultWithBoolStatus(status: BoolResultStatus.success, value: XFile(pickedPath));
+  }
 }
 
 /// An export manager whose two exports are stubbed and whose calls are recorded, so the bloc's
@@ -171,6 +223,26 @@ class _FakeExportManager extends OcptExportManager {
 
   /// The four content toggles of the last [exportScenarioCoverage] call.
   ({bool sceneNumbers, bool titlePage, bool legendPage, bool summaryPage})? lastCoverageToggles;
+
+  /// The storyboard snapshot of the last [exportStoryboard] call.
+  OcptStoryboardSnapshot? lastStoryboardSnapshot;
+
+  /// The labels of the last [exportStoryboard] call.
+  OcptStoryboardLabels? lastStoryboardLabels;
+
+  /// The `shotsPerPage`/`includeFloorPlansAfterEachSequence` options of the last
+  /// [exportStoryboard] call.
+  ({int shotsPerPage, bool includeFloorPlans})? lastStoryboardOptions;
+
+  /// The floor plan snapshot handed to the last [exportStoryboard] call (may be null even when
+  /// [lastStoryboardOptions]' `includeFloorPlans` is false).
+  OcptFloorPlanSnapshot? lastStoryboardFloorPlanSnapshot;
+
+  /// The floor plan snapshot of the last [exportFloorPlans] call.
+  OcptFloorPlanSnapshot? lastFloorPlanSnapshot;
+
+  /// The labels of the last [exportFloorPlans] call.
+  OcptFloorPlanLabels? lastFloorPlanLabels;
 
   @override
   Future<OcptExportOutcome?> exportShotListXlsx({
@@ -233,6 +305,67 @@ class _FakeExportManager extends OcptExportManager {
     final result = exportResult;
     return result == null ? null : OcptExportSaved(result);
   }
+
+  @override
+  Future<OcptExportOutcome?> exportStoryboard({
+    required OcptShotListSnapshot snapshot,
+    required OcptStoryboardSnapshot storyboardSnapshot,
+    required OcptPageSetup pageSetup,
+    required OcptStoryboardLabels labels,
+    required String projectName,
+    required int shotsPerPage,
+    required bool includeFloorPlansAfterEachSequence,
+    OcptFloorPlanSnapshot? floorPlanSnapshot,
+    OcptFloorPlanLabels? floorPlanLabels,
+    required String fileTypeLabel,
+    String? episodeTag,
+    Rect? shareAnchor,
+  }) async {
+    lastExportedSnapshot = snapshot;
+    lastExportedProjectName = projectName;
+    lastExportedFileTypeLabel = fileTypeLabel;
+    lastExportedEpisodeTag = episodeTag;
+    lastStoryboardSnapshot = storyboardSnapshot;
+    lastStoryboardLabels = labels;
+    lastStoryboardOptions = (
+      shotsPerPage: shotsPerPage,
+      includeFloorPlans: includeFloorPlansAfterEachSequence,
+    );
+    lastStoryboardFloorPlanSnapshot = floorPlanSnapshot;
+
+    if (fails) {
+      throw StateError("storyboard export intentionally failed for the test");
+    }
+
+    final result = exportResult;
+    return result == null ? null : OcptExportSaved(result);
+  }
+
+  @override
+  Future<OcptExportOutcome?> exportFloorPlans({
+    required OcptShotListSnapshot snapshot,
+    required OcptFloorPlanSnapshot floorPlanSnapshot,
+    required OcptPageSetup pageSetup,
+    required OcptFloorPlanLabels labels,
+    required String projectName,
+    required String fileTypeLabel,
+    String? episodeTag,
+    Rect? shareAnchor,
+  }) async {
+    lastExportedSnapshot = snapshot;
+    lastExportedProjectName = projectName;
+    lastExportedFileTypeLabel = fileTypeLabel;
+    lastExportedEpisodeTag = episodeTag;
+    lastFloorPlanSnapshot = floorPlanSnapshot;
+    lastFloorPlanLabels = labels;
+
+    if (fails) {
+      throw StateError("floor plans export intentionally failed for the test");
+    }
+
+    final result = exportResult;
+    return result == null ? null : OcptExportSaved(result);
+  }
 }
 
 /// The labels the export tests dispatch, standing in for what `ocptShotListXlsxLabelsOf` builds
@@ -274,6 +407,50 @@ const _coverageOptions = OcptScenarioCoverageExportOptions(
   includeTitlePage: false,
   includeLegendPage: true,
   includeSummaryPage: false,
+);
+
+/// The labels the storyboard export tests dispatch, standing in for what
+/// `ocptStoryboardLabelsOf` builds from a real `Tr`: the bloc only carries them through to the
+/// manager.
+const _storyboardLabels = OcptStoryboardLabels(
+  fileNameSuffix: "storyboard",
+  documentTitle: "Storyboard",
+  shotSizeLabel: "Shot size",
+  framingLabel: "Framing",
+  cameraMoveLabel: "Camera move",
+  lensLabel: "Lens",
+  recordingFormatLabel: "Format",
+  castLabel: "Cast",
+  statusLabels: {},
+  noPanelNote: "no panel yet",
+  fileNotFoundNote: "File not found",
+  sequenceTitles: {},
+);
+
+/// The labels the floor plans export tests dispatch, standing in for what `ocptFloorPlanLabelsOf`
+/// builds from a real `Tr`: the bloc only carries them through to the manager.
+const _floorPlanLabels = OcptFloorPlanLabels(
+  fileNameSuffix: "floor plans",
+  documentTitle: "Floor plans",
+  shotSizeLabel: "Shot size",
+  framingLabel: "Framing",
+  cameraMoveLabel: "Camera move",
+  lensLabel: "Lens",
+  recordingFormatLabel: "Format",
+  castLabel: "Cast",
+  statusLabels: {},
+  sequenceTitles: {},
+  noCameraNote: "No camera placed on this set yet.",
+  scaleBarUnitLabel: "m",
+);
+
+/// The options the storyboard export tests dispatch, standing in for what the mode's own options
+/// dialog returns.
+const _storyboardOptions = OcptStoryboardExportOptions(
+  format: OcptPageFormat.a4,
+  margins: FountainPageMargins.standard(),
+  shotsPerPage: 2,
+  includeFloorPlansAfterEachSequence: false,
 );
 
 void main() {
@@ -358,6 +535,9 @@ void main() {
     OcptExportManager? exportManager,
     OcptShotListService? shotListService,
     OcptShotCoverageService? shotCoverageService,
+    OcptStoryboardService? storyboardService,
+    OcptFloorPlanService? floorPlanService,
+    FileSelectorManager? fileSelectorManager,
     OcptProjectsManager? overrideProjectsManager,
     Duration fieldEditDebounce = const Duration(milliseconds: 30),
     String? selectedEpisodeId,
@@ -368,6 +548,9 @@ void main() {
     exportManager: exportManager ?? _FakeExportManager(),
     shotListService: shotListService,
     shotCoverageService: shotCoverageService,
+    storyboardService: storyboardService,
+    floorPlanService: floorPlanService,
+    fileSelectorManager: fileSelectorManager,
     fieldEditDebounce: fieldEditDebounce,
     selectedEpisodeId: selectedEpisodeId,
   );
@@ -845,7 +1028,7 @@ void main() {
     );
     var state = await waitForState(
       bloc,
-      (state) => state.pendingFieldEdits[(shotId, OcptShotListEditableField.shotSize)] == "W",
+      (state) => state.pendingFieldEdits[OcptShotListShotFieldEditKey(shotId: shotId, field: OcptShotListEditableField.shotSize)] == "W",
     );
     // Not written yet: still the field's default empty value.
     expect(state.selectedShot!.shotSize, isEmpty);
@@ -861,7 +1044,7 @@ void main() {
     );
     state = await waitForState(
       bloc,
-      (state) => state.pendingFieldEdits[(shotId, OcptShotListEditableField.shotSize)] == "Wide",
+      (state) => state.pendingFieldEdits[OcptShotListShotFieldEditKey(shotId: shotId, field: OcptShotListEditableField.shotSize)] == "Wide",
     );
     expect(state.selectedShot!.shotSize, isEmpty);
 
@@ -956,7 +1139,7 @@ void main() {
     await waitForState(
       bloc,
       (state) =>
-          state.pendingFieldEdits[(firstShotId, OcptShotListEditableField.notes)] == "Handheld",
+          state.pendingFieldEdits[OcptShotListShotFieldEditKey(shotId: firstShotId, field: OcptShotListEditableField.notes)] == "Handheld",
     );
 
     bloc.add(const OcptShotListShotCreationRequestedEvent());
@@ -987,7 +1170,7 @@ void main() {
     );
     await waitForState(
       bloc,
-      (state) => state.pendingFieldEdits[(shotId, OcptShotListEditableField.sound)] == "Wind noise",
+      (state) => state.pendingFieldEdits[OcptShotListShotFieldEditKey(shotId: shotId, field: OcptShotListEditableField.sound)] == "Wind noise",
     );
 
     await bloc.flushPendingFieldEdits();
@@ -1827,5 +2010,2138 @@ void main() {
     expect(state.ioNotice!.path, isNull);
 
     await bloc.close();
+  });
+
+  test('exporting the storyboard hands the loaded snapshots and options to the export manager',
+      () async {
+    await writeScreenplay(twoSceneText);
+
+    final exportManager = _FakeExportManager(exportResult: "/tmp/My Movie - storyboard.pdf");
+    final bloc = buildBloc(exportManager: exportManager);
+    await waitForState(bloc, (state) => !state.isLoading);
+
+    bloc.add(const OcptShotListShotCreationRequestedEvent());
+    await waitForState(bloc, (state) => state.totalShotCount == 1);
+
+    bloc.add(
+      const OcptShotListStoryboardExportRequestedEvent(
+        options: _storyboardOptions,
+        labels: _storyboardLabels,
+        floorPlanLabels: _floorPlanLabels,
+        fileTypeLabel: "PDF document",
+        episodeTag: "ep. 2",
+      ),
+    );
+    final state = await waitForState(bloc, (state) => state.ioNotice != null);
+
+    expect(state.ioNotice!.kind, OcptShotListIoNoticeKind.storyboardExportSucceeded);
+    expect(state.ioNotice!.path, "/tmp/My Movie - storyboard.pdf");
+    expect(exportManager.lastExportedProjectName, "My Movie");
+    expect(exportManager.lastExportedFileTypeLabel, "PDF document");
+    expect(exportManager.lastExportedEpisodeTag, "ep. 2");
+    expect(exportManager.lastStoryboardLabels, _storyboardLabels);
+    expect(exportManager.lastStoryboardOptions, (shotsPerPage: 2, includeFloorPlans: false));
+    expect(exportManager.lastStoryboardSnapshot, isNotNull);
+    expect(exportManager.lastExportedSnapshot!.totalShotCount, 1);
+    // The toggle is off, but the loaded floor plan snapshot still rides along on every call —
+    // whether it is used is the service's own decision, not something withheld at the bloc.
+    expect(exportManager.lastStoryboardFloorPlanSnapshot, isNotNull);
+
+    await bloc.close();
+  });
+
+  test('exporting the storyboard flushes a pending field edit first, so the document holds it',
+      () async {
+    await writeScreenplay(twoSceneText);
+
+    final exportManager = _FakeExportManager(exportResult: "/tmp/My Movie - storyboard.pdf");
+    final bloc = buildBloc(exportManager: exportManager, fieldEditDebounce: const Duration(days: 1));
+    await waitForState(bloc, (state) => !state.isLoading);
+
+    bloc.add(const OcptShotListShotCreationRequestedEvent());
+    var state = await waitForState(bloc, (state) => state.totalShotCount == 1);
+    final shotId = state.selectedShotId!;
+
+    bloc.add(
+      OcptShotListShotFieldChangedEvent(
+        shotId: shotId,
+        field: OcptShotListEditableField.shotSize,
+        rawValue: "Close-up",
+      ),
+    );
+    await waitForState(bloc, (state) => state.pendingFieldEdits.isNotEmpty);
+
+    bloc.add(
+      const OcptShotListStoryboardExportRequestedEvent(
+        options: _storyboardOptions,
+        labels: _storyboardLabels,
+        floorPlanLabels: _floorPlanLabels,
+        fileTypeLabel: "PDF document",
+      ),
+    );
+    state = await waitForState(bloc, (state) => state.ioNotice != null);
+
+    expect(state.pendingFieldEdits, isEmpty);
+    expect(exportManager.lastExportedSnapshot!.shotsById[shotId]!.shotSize, "Close-up");
+
+    await bloc.close();
+  });
+
+  test('a cancelled storyboard save dialog leaves no export notice at all', () async {
+    await writeScreenplay(twoSceneText);
+
+    final bloc = buildBloc(exportManager: _FakeExportManager());
+    await waitForState(bloc, (state) => !state.isLoading);
+
+    bloc.add(
+      const OcptShotListStoryboardExportRequestedEvent(
+        options: _storyboardOptions,
+        labels: _storyboardLabels,
+        floorPlanLabels: _floorPlanLabels,
+        fileTypeLabel: "PDF document",
+      ),
+    );
+    await Future<void>.delayed(const Duration(milliseconds: 50));
+
+    expect(bloc.state.ioNotice, isNull);
+
+    await bloc.close();
+  });
+
+  test('a failing storyboard export raises its own transient failure notice', () async {
+    await writeScreenplay(twoSceneText);
+
+    final bloc = buildBloc(exportManager: _FakeExportManager(fails: true));
+    await waitForState(bloc, (state) => !state.isLoading);
+
+    bloc.add(
+      const OcptShotListStoryboardExportRequestedEvent(
+        options: _storyboardOptions,
+        labels: _storyboardLabels,
+        floorPlanLabels: _floorPlanLabels,
+        fileTypeLabel: "PDF document",
+      ),
+    );
+    final state = await waitForState(bloc, (state) => state.ioNotice != null);
+
+    expect(state.ioNotice!.kind, OcptShotListIoNoticeKind.storyboardExportFailed);
+    expect(state.ioNotice!.path, isNull);
+
+    await bloc.close();
+  });
+
+  test('exporting the floor plans hands the loaded snapshot to the export manager', () async {
+    await writeScreenplay(twoSceneText);
+
+    final exportManager = _FakeExportManager(exportResult: "/tmp/My Movie - floor plans.pdf");
+    final bloc = buildBloc(exportManager: exportManager);
+    await waitForState(bloc, (state) => !state.isLoading);
+
+    bloc.add(const OcptShotListShotCreationRequestedEvent());
+    await waitForState(bloc, (state) => state.totalShotCount == 1);
+
+    bloc.add(
+      const OcptShotListFloorPlansExportRequestedEvent(
+        labels: _floorPlanLabels,
+        fileTypeLabel: "PDF document",
+        episodeTag: "ep. 2",
+      ),
+    );
+    final state = await waitForState(bloc, (state) => state.ioNotice != null);
+
+    expect(state.ioNotice!.kind, OcptShotListIoNoticeKind.floorPlansExportSucceeded);
+    expect(state.ioNotice!.path, "/tmp/My Movie - floor plans.pdf");
+    expect(exportManager.lastExportedProjectName, "My Movie");
+    expect(exportManager.lastExportedFileTypeLabel, "PDF document");
+    expect(exportManager.lastExportedEpisodeTag, "ep. 2");
+    expect(exportManager.lastFloorPlanLabels, _floorPlanLabels);
+    expect(exportManager.lastFloorPlanSnapshot, isNotNull);
+    expect(exportManager.lastExportedSnapshot!.totalShotCount, 1);
+
+    await bloc.close();
+  });
+
+  test('exporting the floor plans flushes a pending field edit first', () async {
+    await writeScreenplay(twoSceneText);
+
+    final exportManager = _FakeExportManager(exportResult: "/tmp/My Movie - floor plans.pdf");
+    final bloc = buildBloc(exportManager: exportManager, fieldEditDebounce: const Duration(days: 1));
+    await waitForState(bloc, (state) => !state.isLoading);
+
+    bloc.add(const OcptShotListShotCreationRequestedEvent());
+    var state = await waitForState(bloc, (state) => state.totalShotCount == 1);
+    final shotId = state.selectedShotId!;
+
+    bloc.add(
+      OcptShotListShotFieldChangedEvent(
+        shotId: shotId,
+        field: OcptShotListEditableField.shotSize,
+        rawValue: "Wide shot",
+      ),
+    );
+    await waitForState(bloc, (state) => state.pendingFieldEdits.isNotEmpty);
+
+    bloc.add(
+      const OcptShotListFloorPlansExportRequestedEvent(
+        labels: _floorPlanLabels,
+        fileTypeLabel: "PDF document",
+      ),
+    );
+    state = await waitForState(bloc, (state) => state.ioNotice != null);
+
+    expect(state.pendingFieldEdits, isEmpty);
+    expect(exportManager.lastExportedSnapshot!.shotsById[shotId]!.shotSize, "Wide shot");
+
+    await bloc.close();
+  });
+
+  test('a cancelled floor plans save dialog leaves no export notice at all', () async {
+    await writeScreenplay(twoSceneText);
+
+    final bloc = buildBloc(exportManager: _FakeExportManager());
+    await waitForState(bloc, (state) => !state.isLoading);
+
+    bloc.add(
+      const OcptShotListFloorPlansExportRequestedEvent(labels: _floorPlanLabels, fileTypeLabel: "PDF document"),
+    );
+    await Future<void>.delayed(const Duration(milliseconds: 50));
+
+    expect(bloc.state.ioNotice, isNull);
+
+    await bloc.close();
+  });
+
+  test('a failing floor plans export raises its own transient failure notice', () async {
+    await writeScreenplay(twoSceneText);
+
+    final bloc = buildBloc(exportManager: _FakeExportManager(fails: true));
+    await waitForState(bloc, (state) => !state.isLoading);
+
+    bloc.add(
+      const OcptShotListFloorPlansExportRequestedEvent(labels: _floorPlanLabels, fileTypeLabel: "PDF document"),
+    );
+    final state = await waitForState(bloc, (state) => state.ioNotice != null);
+
+    expect(state.ioNotice!.kind, OcptShotListIoNoticeKind.floorPlansExportFailed);
+    expect(state.ioNotice!.path, isNull);
+
+    await bloc.close();
+  });
+
+  group("the board", () {
+    /// Creates a shot in the first scene of [twoSceneText] and returns its id, waiting for the
+    /// selection the creation event always makes.
+    Future<String> createShot(OcptShotListBloc bloc) async {
+      bloc.add(const OcptShotListShotCreationRequestedEvent());
+      final created = await waitForState(bloc, (state) => state.totalShotCount == 1);
+      return created.selectedShotId!;
+    }
+
+    test("switching to the board keeps the selected shot and persists the choice", () async {
+      await writeScreenplay(twoSceneText);
+      final bloc = buildBloc();
+      await waitForState(bloc, (state) => !state.isLoading);
+      final shotId = await createShot(bloc);
+
+      bloc.add(const OcptShotListCentreViewSelectedEvent(view: OcptShotListCentreView.board));
+      final state = await waitForState(
+        bloc,
+        (state) => state.centreView == OcptShotListCentreView.board,
+      );
+
+      expect(state.selectedShotId, shotId);
+      expect(
+        await propertiesManager.shotListLastCentreView.load(),
+        OcptShotListCentreView.board,
+      );
+
+      await bloc.close();
+    });
+
+    test("importing a frame appends a panel to the shot and selects it", () async {
+      await writeScreenplay(twoSceneText);
+      final bloc = buildBloc(
+        fileSelectorManager: const _StubFileSelectorManager(pickedPath: "/frames/shot.png"),
+      );
+      await waitForState(bloc, (state) => !state.isLoading);
+      final shotId = await createShot(bloc);
+
+      bloc.add(
+        OcptShotListPanelImportRequestedEvent(shotId: shotId, fileTypeLabel: "Images"),
+      );
+      final state = await waitForState(bloc, (state) => state.panelsOfShot(shotId).length == 1);
+
+      final panel = state.panelsOfShot(shotId).single;
+      expect(panel.imagePath, "/frames/shot.png");
+      expect(panel.comment, isEmpty);
+      expect(state.selectedPanelId, panel.id);
+
+      await bloc.close();
+    });
+
+    test("a cancelled import leaves the shot with no panel", () async {
+      await writeScreenplay(twoSceneText);
+      final bloc = buildBloc(
+        fileSelectorManager: const _StubFileSelectorManager(pickedPath: null),
+      );
+      await waitForState(bloc, (state) => !state.isLoading);
+      final shotId = await createShot(bloc);
+
+      bloc.add(
+        OcptShotListPanelImportRequestedEvent(shotId: shotId, fileTypeLabel: "Images"),
+      );
+      // Nothing to wait for: a cancellation emits no state of its own.
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+
+      expect(bloc.state.panelsOfShot(shotId), isEmpty);
+
+      await bloc.close();
+    });
+
+    test("replacing a panel's image re-points it without changing its id", () async {
+      await writeScreenplay(twoSceneText);
+      final bloc = buildBloc(
+        fileSelectorManager: const _StubFileSelectorManager(pickedPath: "/frames/first.png"),
+      );
+      await waitForState(bloc, (state) => !state.isLoading);
+      final shotId = await createShot(bloc);
+
+      bloc.add(
+        OcptShotListPanelImportRequestedEvent(shotId: shotId, fileTypeLabel: "Images"),
+      );
+      final imported = await waitForState(
+        bloc,
+        (state) => state.panelsOfShot(shotId).length == 1,
+      );
+      final panelId = imported.panelsOfShot(shotId).single.id;
+
+      bloc.add(
+        OcptShotListPanelReplaceRequestedEvent(panelId: panelId, fileTypeLabel: "Images"),
+      );
+      // The stub always answers the very same path, so wait past the moment `addPanel`'s own
+      // event lands and assert the panel count never grows: only its image is re-pointed.
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+
+      expect(bloc.state.panelsOfShot(shotId).single.id, panelId);
+      expect(bloc.state.panelsOfShot(shotId), hasLength(1));
+
+      await bloc.close();
+    });
+
+    test("reordering a panel moves it to the requested position, writing one row", () async {
+      await writeScreenplay(twoSceneText);
+      final bloc = buildBloc(
+        fileSelectorManager: const _StubFileSelectorManager(pickedPath: "/frames/a.png"),
+      );
+      await waitForState(bloc, (state) => !state.isLoading);
+      final shotId = await createShot(bloc);
+
+      for (var i = 0; i < 3; i++) {
+        bloc.add(
+          OcptShotListPanelImportRequestedEvent(shotId: shotId, fileTypeLabel: "Images"),
+        );
+        await waitForState(bloc, (state) => state.panelsOfShot(shotId).length == i + 1);
+      }
+
+      final panelIds = bloc.state.panelsOfShot(shotId).map((panel) => panel.id).toList();
+
+      // Moves the first panel (index 0) to the last position (index 2).
+      bloc.add(
+        OcptShotListPanelReorderedEvent(shotId: shotId, panelId: panelIds[0], newPosition: 2),
+      );
+      final reordered = await waitForState(
+        bloc,
+        (state) => state.panelsOfShot(shotId).first.id != panelIds[0],
+      );
+
+      expect(
+        reordered.panelsOfShot(shotId).map((panel) => panel.id).toList(),
+        [panelIds[1], panelIds[2], panelIds[0]],
+      );
+
+      await bloc.close();
+    });
+
+    test(
+      "a panel comment is visible as a pending value and writes once after the debounce",
+      () async {
+        await writeScreenplay(twoSceneText);
+        final bloc = buildBloc(
+          fileSelectorManager: const _StubFileSelectorManager(pickedPath: "/frames/a.png"),
+        );
+        await waitForState(bloc, (state) => !state.isLoading);
+        final shotId = await createShot(bloc);
+        bloc.add(
+          OcptShotListPanelImportRequestedEvent(shotId: shotId, fileTypeLabel: "Images"),
+        );
+        final imported = await waitForState(
+          bloc,
+          (state) => state.panelsOfShot(shotId).length == 1,
+        );
+        final panelId = imported.panelsOfShot(shotId).single.id;
+
+        bloc.add(
+          OcptShotListPanelCommentChangedEvent(panelId: panelId, rawValue: "Push in"),
+        );
+        var state = await waitForState(
+          bloc,
+          (state) =>
+              state.pendingFieldEdits[OcptShotListPanelCommentEditKey(panelId: panelId)] ==
+              "Push in",
+        );
+        expect(state.panelsOfShot(shotId).single.comment, isEmpty);
+
+        state = await waitForState(
+          bloc,
+          (state) => state.panelsOfShot(shotId).single.comment == "Push in",
+        );
+        expect(state.pendingFieldEdits, isEmpty);
+
+        await bloc.close();
+      },
+    );
+
+    test("selecting another shot flushes a pending panel comment edit immediately", () async {
+      await writeScreenplay(twoSceneText);
+      final bloc = buildBloc(
+        fileSelectorManager: const _StubFileSelectorManager(pickedPath: "/frames/a.png"),
+        fieldEditDebounce: const Duration(seconds: 30),
+      );
+      await waitForState(bloc, (state) => !state.isLoading);
+      final firstShotId = await createShot(bloc);
+      bloc.add(
+        OcptShotListPanelImportRequestedEvent(shotId: firstShotId, fileTypeLabel: "Images"),
+      );
+      final imported = await waitForState(
+        bloc,
+        (state) => state.panelsOfShot(firstShotId).length == 1,
+      );
+      final panelId = imported.panelsOfShot(firstShotId).single.id;
+
+      bloc.add(const OcptShotListShotCreationRequestedEvent());
+      await waitForState(bloc, (state) => state.totalShotCount == 2);
+
+      bloc.add(
+        OcptShotListPanelCommentChangedEvent(panelId: panelId, rawValue: "Handheld"),
+      );
+      // Switches back to the shot that owns the panel just typed into — a genuine change of
+      // selection, unlike reselecting [secondShotId].
+      bloc.add(OcptShotListShotSelectedEvent(shotId: firstShotId));
+
+      final state = await waitForState(
+        bloc,
+        (state) => state.panelsOfShot(firstShotId).single.comment == "Handheld",
+      );
+      expect(state.pendingFieldEdits, isEmpty);
+
+      await bloc.close();
+    });
+
+    test("deleting a panel removes it and clears the selection", () async {
+      await writeScreenplay(twoSceneText);
+      final bloc = buildBloc(
+        fileSelectorManager: const _StubFileSelectorManager(pickedPath: "/frames/a.png"),
+      );
+      await waitForState(bloc, (state) => !state.isLoading);
+      final shotId = await createShot(bloc);
+      bloc.add(
+        OcptShotListPanelImportRequestedEvent(shotId: shotId, fileTypeLabel: "Images"),
+      );
+      final imported = await waitForState(
+        bloc,
+        (state) => state.panelsOfShot(shotId).length == 1,
+      );
+      final panelId = imported.panelsOfShot(shotId).single.id;
+
+      bloc.add(OcptShotListPanelSelectedEvent(panelId: panelId));
+      await waitForState(bloc, (state) => state.selectedPanelId == panelId);
+
+      bloc.add(OcptShotListPanelDeletionRequestedEvent(panelId: panelId));
+      final state = await waitForState(bloc, (state) => state.panelsOfShot(shotId).isEmpty);
+
+      expect(state.selectedPanelId, isNull);
+
+      await bloc.close();
+    });
+
+    test("deleting the shot cascades its panels and drops its pending comment edit", () async {
+      await writeScreenplay(twoSceneText);
+      final bloc = buildBloc(
+        fileSelectorManager: const _StubFileSelectorManager(pickedPath: "/frames/a.png"),
+        fieldEditDebounce: const Duration(seconds: 30),
+      );
+      await waitForState(bloc, (state) => !state.isLoading);
+      final shotId = await createShot(bloc);
+      bloc.add(
+        OcptShotListPanelImportRequestedEvent(shotId: shotId, fileTypeLabel: "Images"),
+      );
+      final imported = await waitForState(
+        bloc,
+        (state) => state.panelsOfShot(shotId).length == 1,
+      );
+      final panelId = imported.panelsOfShot(shotId).single.id;
+
+      bloc.add(
+        OcptShotListPanelCommentChangedEvent(panelId: panelId, rawValue: "Never written"),
+      );
+      await waitForState(
+        bloc,
+        (state) =>
+            state.pendingFieldEdits[OcptShotListPanelCommentEditKey(panelId: panelId)] ==
+            "Never written",
+      );
+
+      bloc.add(OcptShotListShotDeletionRequestedEvent(shotId: shotId));
+      final state = await waitForState(bloc, (state) => state.totalShotCount == 0);
+
+      expect(state.pendingFieldEdits, isEmpty);
+      expect(state.storyboardSnapshot?.panelsOfShot(shotId), isEmpty);
+
+      await bloc.close();
+    });
+
+    test(
+      "a captured panel is still there once its version is previewed, and once the preview "
+      "is left",
+      () async {
+        // Dispatched to the very same, already-mounted bloc throughout — the path
+        // `MixinOcptProjectVersionsBloc` actually uses (the Versions panel's own card),
+        // mirroring `OcptResourcesBloc`'s own "a person created before the version is
+        // captured, so it belongs to it" test. `OcptShotListBloc.reloadFromProjectDatabase`
+        // is `_onLoadRequested`, which reads `_loadStoryboard` unconditionally, exactly as it
+        // reads `_loadSnapshot` for the shots themselves — the board follows the identical
+        // reload path a previewed version's shots already do.
+        await writeScreenplay(twoSceneText);
+        final bloc = buildBloc(
+          fileSelectorManager: const _StubFileSelectorManager(pickedPath: "/frames/a.png"),
+        );
+        await waitForState(bloc, (state) => !state.isLoading);
+        final shotId = await createShot(bloc);
+
+        bloc.add(const OcptShotListCentreViewSelectedEvent(view: OcptShotListCentreView.board));
+        bloc.add(
+          OcptShotListPanelImportRequestedEvent(shotId: shotId, fileTypeLabel: "Images"),
+        );
+        await waitForState(bloc, (state) => state.panelsOfShot(shotId).length == 1);
+
+        bloc.add(
+          const OcptProjectVersionCreationRequestedEvent(name: "With a panel", note: ""),
+        );
+        final withVersion = await waitForState(
+          bloc,
+          (state) => state.projectVersions.isNotEmpty,
+        );
+        final versionId = withVersion.projectVersions.single.id;
+
+        bloc.add(OcptProjectVersionPreviewRequestedEvent(versionId: versionId));
+        final previewing = await waitForState(
+          bloc,
+          (state) => state.previewedVersionId != null,
+        );
+
+        expect(previewing.isPreviewingVersion, isTrue);
+        expect(previewing.centreView, OcptShotListCentreView.board);
+        final previewedPanels = previewing.panelsOfShot(shotId);
+        expect(previewedPanels, hasLength(1));
+        expect(previewedPanels.single.imagePath, "/frames/a.png");
+
+        bloc.add(const OcptProjectVersionPreviewExitRequestedEvent());
+        final backToWorkingCopy = await waitForState(
+          bloc,
+          (state) => state.previewedVersionId == null,
+        );
+
+        expect(backToWorkingCopy.panelsOfShot(shotId), hasLength(1));
+
+        await bloc.close();
+      },
+    );
+
+    group("annotations", () {
+      /// Creates a shot, imports one panel onto it (selecting it, per [_onPanelImportRequested]),
+      /// and returns the bloc alongside the shot's and the panel's own ids.
+      Future<({OcptShotListBloc bloc, String shotId, String panelId})>
+      mountWithASelectedPanel() async {
+        await writeScreenplay(twoSceneText);
+        final bloc = buildBloc(
+          fileSelectorManager: const _StubFileSelectorManager(pickedPath: "/frames/a.png"),
+        );
+        await waitForState(bloc, (state) => !state.isLoading);
+        final shotId = await createShot(bloc);
+        bloc.add(
+          OcptShotListPanelImportRequestedEvent(shotId: shotId, fileTypeLabel: "Images"),
+        );
+        final imported = await waitForState(
+          bloc,
+          (state) => state.panelsOfShot(shotId).length == 1,
+        );
+        return (bloc: bloc, shotId: shotId, panelId: imported.panelsOfShot(shotId).single.id);
+      }
+
+      test("picking a tool sets it, and picking null again turns it off", () async {
+        final seeded = await mountWithASelectedPanel();
+        final bloc = seeded.bloc;
+
+        bloc.add(
+          const OcptShotListAnnotationToolSelectedEvent(
+            tool: OcptStoryboardAnnotationTool.movementArrow,
+          ),
+        );
+        final withTool = await waitForState(
+          bloc,
+          (state) => state.activeAnnotationTool == OcptStoryboardAnnotationTool.movementArrow,
+        );
+        expect(withTool.activeAnnotationTool, OcptStoryboardAnnotationTool.movementArrow);
+
+        bloc.add(const OcptShotListAnnotationToolSelectedEvent(tool: null));
+        final withoutTool = await waitForState(
+          bloc,
+          (state) => state.activeAnnotationTool == null,
+        );
+        expect(withoutTool.activeAnnotationTool, isNull);
+
+        await bloc.close();
+      });
+
+      test("drawing an arrow adds a mark of that kind, normalised, and selects it", () async {
+        final seeded = await mountWithASelectedPanel();
+        final bloc = seeded.bloc;
+
+        bloc.add(
+          OcptShotListAnnotationDrawnEvent(
+            panelId: seeded.panelId,
+            kind: OcptStoryboardAnnotationKind.movementArrow,
+            x1: 0.2,
+            y1: 0.3,
+            x2: 0.8,
+            y2: 0.3,
+          ),
+        );
+        final state = await waitForState(
+          bloc,
+          (state) => state.panelsOfShot(seeded.shotId).single.annotations.isNotEmpty,
+        );
+
+        final mark = state.panelsOfShot(seeded.shotId).single.annotations.single;
+        expect(mark.kind, OcptStoryboardAnnotationKind.movementArrow);
+        expect(mark.x1, 0.2);
+        expect(mark.y1, 0.3);
+        expect(mark.x2, 0.8);
+        expect(mark.y2, 0.3);
+        expect(state.selectedAnnotationId, mark.id);
+
+        await bloc.close();
+      });
+
+      test(
+        "placing a label adds it and selects it, and its text writes once after the debounce",
+        () async {
+          final seeded = await mountWithASelectedPanel();
+          final bloc = seeded.bloc;
+
+          bloc.add(
+            OcptShotListAnnotationPlacedEvent(panelId: seeded.panelId, x1: 0.5, y1: 0.4),
+          );
+          final placed = await waitForState(
+            bloc,
+            (state) => state.panelsOfShot(seeded.shotId).single.annotations.isNotEmpty,
+          );
+          final mark = placed.panelsOfShot(seeded.shotId).single.annotations.single;
+          expect(mark.kind, OcptStoryboardAnnotationKind.label);
+          expect(mark.x1, 0.5);
+          expect(mark.y1, 0.4);
+          expect(placed.selectedAnnotationId, mark.id);
+
+          // "Opens its text inline for editing": the mark is already selected once placed, ready
+          // for the inspector's own text field to write into.
+          bloc.add(
+            OcptShotListAnnotationTextChangedEvent(annotationId: mark.id, rawValue: "Dolly in"),
+          );
+          var state = await waitForState(
+            bloc,
+            (state) =>
+                state.pendingFieldEdits[OcptShotListAnnotationTextEditKey(
+                  annotationId: mark.id,
+                )] ==
+                "Dolly in",
+          );
+          expect(state.panelsOfShot(seeded.shotId).single.annotations.single.text, isEmpty);
+
+          state = await waitForState(
+            bloc,
+            (state) =>
+                state.panelsOfShot(seeded.shotId).single.annotations.single.text == "Dolly in",
+          );
+          expect(state.pendingFieldEdits, isEmpty);
+
+          await bloc.close();
+        },
+      );
+
+      test("selecting a mark records its id", () async {
+        final seeded = await mountWithASelectedPanel();
+        final bloc = seeded.bloc;
+
+        bloc.add(
+          OcptShotListAnnotationDrawnEvent(
+            panelId: seeded.panelId,
+            kind: OcptStoryboardAnnotationKind.movementArrow,
+            x1: 0.1,
+            y1: 0.1,
+            x2: 0.3,
+            y2: 0.1,
+          ),
+        );
+        final first = await waitForState(
+          bloc,
+          (state) => state.panelsOfShot(seeded.shotId).single.annotations.length == 1,
+        );
+        final firstMarkId = first.selectedAnnotationId!;
+
+        // Drawing a second mark auto-selects it instead, moving selection away from the first.
+        bloc.add(
+          OcptShotListAnnotationDrawnEvent(
+            panelId: seeded.panelId,
+            kind: OcptStoryboardAnnotationKind.cameraMoveArrow,
+            x1: 0.5,
+            y1: 0.5,
+            x2: 0.7,
+            y2: 0.5,
+          ),
+        );
+        final second = await waitForState(
+          bloc,
+          (state) => state.panelsOfShot(seeded.shotId).single.annotations.length == 2,
+        );
+        expect(second.selectedAnnotationId, isNot(firstMarkId));
+
+        bloc.add(OcptShotListAnnotationSelectedEvent(annotationId: firstMarkId));
+        final state = await waitForState(
+          bloc,
+          (state) => state.selectedAnnotationId == firstMarkId,
+        );
+        expect(state.selectedAnnotationId, firstMarkId);
+
+        await bloc.close();
+      });
+
+      test("deleting a mark removes it and clears its own selection", () async {
+        final seeded = await mountWithASelectedPanel();
+        final bloc = seeded.bloc;
+
+        bloc.add(
+          OcptShotListAnnotationDrawnEvent(
+            panelId: seeded.panelId,
+            kind: OcptStoryboardAnnotationKind.movementArrow,
+            x1: 0.2,
+            y1: 0.2,
+            x2: 0.6,
+            y2: 0.2,
+          ),
+        );
+        final withMark = await waitForState(
+          bloc,
+          (state) => state.panelsOfShot(seeded.shotId).single.annotations.isNotEmpty,
+        );
+        final markId = withMark.selectedAnnotationId!;
+
+        bloc.add(OcptShotListAnnotationDeletionRequestedEvent(annotationId: markId));
+        final state = await waitForState(
+          bloc,
+          (state) => state.panelsOfShot(seeded.shotId).single.annotations.isEmpty,
+        );
+        expect(state.selectedAnnotationId, isNull);
+
+        await bloc.close();
+      });
+
+      test("deleting the panel cascades its marks and drops a pending mark-text edit", () async {
+        final seeded = await mountWithASelectedPanel();
+        final bloc = seeded.bloc;
+
+        bloc.add(
+          OcptShotListAnnotationPlacedEvent(panelId: seeded.panelId, x1: 0.5, y1: 0.5),
+        );
+        final placed = await waitForState(
+          bloc,
+          (state) => state.panelsOfShot(seeded.shotId).single.annotations.isNotEmpty,
+        );
+        final markId = placed.panelsOfShot(seeded.shotId).single.annotations.single.id;
+
+        bloc.add(
+          OcptShotListAnnotationTextChangedEvent(
+            annotationId: markId,
+            rawValue: "Never written",
+          ),
+        );
+        await waitForState(
+          bloc,
+          (state) =>
+              state.pendingFieldEdits[OcptShotListAnnotationTextEditKey(annotationId: markId)] ==
+              "Never written",
+        );
+
+        bloc.add(OcptShotListPanelDeletionRequestedEvent(panelId: seeded.panelId));
+        final state = await waitForState(
+          bloc,
+          (state) => state.panelsOfShot(seeded.shotId).isEmpty,
+        );
+
+        expect(state.pendingFieldEdits, isEmpty);
+
+        await bloc.close();
+      });
+
+      test(
+        "selecting a different panel clears the active tool and the mark selection",
+        () async {
+          final seeded = await mountWithASelectedPanel();
+          final bloc = seeded.bloc;
+
+          bloc.add(
+            OcptShotListAnnotationDrawnEvent(
+              panelId: seeded.panelId,
+              kind: OcptStoryboardAnnotationKind.movementArrow,
+              x1: 0.2,
+              y1: 0.2,
+              x2: 0.6,
+              y2: 0.2,
+            ),
+          );
+          await waitForState(bloc, (state) => state.selectedAnnotationId != null);
+
+          bloc.add(
+            const OcptShotListAnnotationToolSelectedEvent(
+              tool: OcptStoryboardAnnotationTool.label,
+            ),
+          );
+          await waitForState(
+            bloc,
+            (state) => state.activeAnnotationTool == OcptStoryboardAnnotationTool.label,
+          );
+
+          // Importing onto the very same shot appends and selects a second panel.
+          bloc.add(
+            OcptShotListPanelImportRequestedEvent(
+              shotId: seeded.shotId,
+              fileTypeLabel: "Images",
+            ),
+          );
+          final state = await waitForState(
+            bloc,
+            (state) => state.panelsOfShot(seeded.shotId).length == 2,
+          );
+
+          expect(state.selectedPanelId, isNot(seeded.panelId));
+          expect(state.activeAnnotationTool, isNull);
+          expect(state.selectedAnnotationId, isNull);
+
+          await bloc.close();
+        },
+      );
+    });
+  });
+
+  group("floor plans", () {
+    /// Creates a case on the first scene of [twoSceneText] and returns its id, waiting for the
+    /// selection the creation event always makes.
+    Future<String> createCase(OcptShotListBloc bloc) async {
+      bloc.add(const OcptShotListSetCreationRequestedEvent());
+      final created = await waitForState(bloc, (state) => state.setsOfSelectedSequence.isNotEmpty);
+      return created.selectedSetId!;
+    }
+
+    test("a fresh case is named from the scene heading's place and selected", () async {
+      await writeScreenplay(twoSceneText);
+      final bloc = buildBloc();
+      await waitForState(bloc, (state) => !state.isLoading);
+
+      final setId = await createCase(bloc);
+      final state = bloc.state;
+
+      expect(state.setsOfSelectedSequence, hasLength(1));
+      expect(state.selectedSetId, setId);
+      expect(state.selectedSet!.name, "HOUSE");
+
+      await bloc.close();
+    });
+
+    test("renaming a case debounces then writes", () async {
+      await writeScreenplay(twoSceneText);
+      final bloc = buildBloc();
+      await waitForState(bloc, (state) => !state.isLoading);
+      final setId = await createCase(bloc);
+
+      bloc.add(OcptShotListSetNameChangedEvent(setId: setId, rawValue: "Living room"));
+      final pending = await waitForState(
+        bloc,
+        (state) => state.pendingFieldEdits.containsKey(
+          OcptShotListSetNameEditKey(setId: setId),
+        ),
+      );
+      expect(pending.selectedSet!.name, "HOUSE");
+
+      final flushed = await waitForState(
+        bloc,
+        (state) => state.selectedSet!.name == "Living room",
+      );
+      expect(flushed.pendingFieldEdits, isEmpty);
+
+      await bloc.close();
+    });
+
+    test(
+      "unlinking the selected case removes its tab and selects the sequence's next first case",
+      () async {
+        await writeScreenplay(twoSceneText);
+        final bloc = buildBloc();
+        await waitForState(bloc, (state) => !state.isLoading);
+        final firstSetId = await createCase(bloc);
+        bloc.add(const OcptShotListSetCreationRequestedEvent());
+        final afterSecond = await waitForState(
+          bloc,
+          (state) => state.setsOfSelectedSequence.length == 2,
+        );
+        final secondSetId = afterSecond.selectedSetId!;
+        expect(secondSetId, isNot(firstSetId));
+
+        bloc.add(OcptShotListSetDeletionRequestedEvent(setId: secondSetId));
+        final afterDelete = await waitForState(
+          bloc,
+          (state) => state.setsOfSelectedSequence.length == 1,
+        );
+        expect(afterDelete.selectedSetId, firstSetId);
+
+        bloc.add(OcptShotListSetDeletionRequestedEvent(setId: firstSetId));
+        final afterLastDelete = await waitForState(
+          bloc,
+          (state) => state.setsOfSelectedSequence.isEmpty,
+        );
+        expect(afterLastDelete.selectedSetId, isNull);
+
+        await bloc.close();
+      },
+    );
+
+    test("placing a set element writes a sequence-scoped symbol on the active layer", () async {
+      await writeScreenplay(twoSceneText);
+      final bloc = buildBloc();
+      await waitForState(bloc, (state) => !state.isLoading);
+      final setId = await createCase(bloc);
+
+      bloc.add(
+        const OcptShotListFloorPlanActiveLayerChangedEvent(layer: OcptFloorPlanLayer.set),
+      );
+      await waitForState(bloc, (state) => state.floorPlanActiveLayer == OcptFloorPlanLayer.set);
+
+      bloc.add(
+        OcptShotListFloorPlanSymbolPlacedEvent(
+          setId: setId,
+          layer: OcptFloorPlanLayer.set,
+          shotId: null,
+          xM: 1.5,
+          yM: -2,
+        ),
+      );
+      final state = await waitForState(bloc, (state) => state.selectedSet!.symbols.isNotEmpty);
+
+      final symbol = state.selectedSet!.symbols.single;
+      expect(symbol.shotId, isNull);
+      expect(symbol.layer, OcptFloorPlanLayer.set);
+      expect(symbol.xM, 1.5);
+      expect(symbol.yM, -2);
+      expect(state.selectedFloorPlanSymbolId, symbol.id);
+
+      await bloc.close();
+    });
+
+    test(
+      "the palette's own typed set-element entries each write their own setElementShape, and "
+      "arming one becomes the click-to-arm default",
+      () async {
+        await writeScreenplay(twoSceneText);
+        final bloc = buildBloc();
+        await waitForState(bloc, (state) => !state.isLoading);
+        final setId = await createCase(bloc);
+
+        // A drop from the palette carries its own shape on the event itself.
+        bloc.add(
+          OcptShotListFloorPlanSymbolPlacedEvent(
+            setId: setId,
+            layer: OcptFloorPlanLayer.set,
+            shotId: null,
+            xM: 0,
+            yM: 0,
+            setElementShape: OcptFloorPlanSetElementShape.wall,
+          ),
+        );
+        final withWall = await waitForState(
+          bloc,
+          (state) => state.selectedSet!.symbols.isNotEmpty,
+        );
+        expect(withWall.selectedSet!.symbols.single.setElementShape, OcptFloorPlanSetElementShape.wall);
+
+        // Arming the door entry (click-to-arm) becomes the state's own default shape.
+        bloc.add(
+          const OcptShotListFloorPlanActiveSetElementShapeChangedEvent(
+            shape: OcptFloorPlanSetElementShape.door,
+          ),
+        );
+        await waitForState(
+          bloc,
+          (state) => state.floorPlanActiveSetElementShape == OcptFloorPlanSetElementShape.door,
+        );
+
+        bloc.add(
+          OcptShotListFloorPlanSymbolPlacedEvent(
+            setId: setId,
+            layer: OcptFloorPlanLayer.set,
+            shotId: null,
+            xM: 1,
+            yM: 1,
+            setElementShape: OcptFloorPlanSetElementShape.door,
+          ),
+        );
+        final withDoor = await waitForState(
+          bloc,
+          (state) => state.selectedSet!.symbols.length == 2,
+        );
+        final door = withDoor.selectedSet!.symbols.firstWhere((symbol) => symbol.xM == 1);
+        expect(door.setElementShape, OcptFloorPlanSetElementShape.door);
+
+        await bloc.close();
+      },
+    );
+
+    test("moving a symbol writes one row on drag end", () async {
+      await writeScreenplay(twoSceneText);
+      final bloc = buildBloc();
+      await waitForState(bloc, (state) => !state.isLoading);
+      final setId = await createCase(bloc);
+
+      bloc.add(
+        OcptShotListFloorPlanSymbolPlacedEvent(
+          setId: setId,
+          layer: OcptFloorPlanLayer.set,
+          shotId: null,
+          xM: 0,
+          yM: 0,
+        ),
+      );
+      final placed = await waitForState(bloc, (state) => state.selectedSet!.symbols.isNotEmpty);
+      final symbolId = placed.selectedSet!.symbols.single.id;
+
+      bloc.add(OcptShotListFloorPlanSymbolMovedEvent(symbolId: symbolId, xM: 3, yM: 4));
+      final moved = await waitForState(
+        bloc,
+        (state) => state.selectedSet!.symbols.single.xM == 3,
+      );
+      expect(moved.selectedSet!.symbols.single.yM, 4);
+
+      await bloc.close();
+    });
+
+    test("resizing and rotating a symbol writes one row each", () async {
+      await writeScreenplay(twoSceneText);
+      final bloc = buildBloc();
+      await waitForState(bloc, (state) => !state.isLoading);
+      final setId = await createCase(bloc);
+
+      bloc.add(
+        OcptShotListFloorPlanSymbolPlacedEvent(
+          setId: setId,
+          layer: OcptFloorPlanLayer.set,
+          shotId: null,
+          xM: 0,
+          yM: 0,
+        ),
+      );
+      final placed = await waitForState(bloc, (state) => state.selectedSet!.symbols.isNotEmpty);
+      final symbolId = placed.selectedSet!.symbols.single.id;
+
+      bloc.add(
+        OcptShotListFloorPlanSymbolResizedEvent(symbolId: symbolId, widthM: 1.2, heightM: 0.8),
+      );
+      final resized = await waitForState(
+        bloc,
+        (state) => state.selectedSet!.symbols.single.widthM == 1.2,
+      );
+      expect(resized.selectedSet!.symbols.single.heightM, 0.8);
+
+      bloc.add(OcptShotListFloorPlanSymbolRotatedEvent(symbolId: symbolId, rotationDeg: 45));
+      final rotated = await waitForState(
+        bloc,
+        (state) => state.selectedSet!.symbols.single.rotationDeg == 45,
+      );
+      expect(rotated.selectedSet!.symbols.single.id, symbolId);
+
+      await bloc.close();
+    });
+
+    test("deleting a symbol removes it and clears its own selection", () async {
+      await writeScreenplay(twoSceneText);
+      final bloc = buildBloc();
+      await waitForState(bloc, (state) => !state.isLoading);
+      final setId = await createCase(bloc);
+
+      bloc.add(
+        OcptShotListFloorPlanSymbolPlacedEvent(
+          setId: setId,
+          layer: OcptFloorPlanLayer.set,
+          shotId: null,
+          xM: 0,
+          yM: 0,
+        ),
+      );
+      final placed = await waitForState(bloc, (state) => state.selectedSet!.symbols.isNotEmpty);
+      final symbolId = placed.selectedFloorPlanSymbolId!;
+
+      bloc.add(OcptShotListFloorPlanSymbolDeletionRequestedEvent(symbolId: symbolId));
+      final deleted = await waitForState(bloc, (state) => state.selectedSet!.symbols.isEmpty);
+      expect(deleted.selectedFloorPlanSymbolId, isNull);
+
+      await bloc.close();
+    });
+
+    test("importing an underlay frames it at the default rectangle", () async {
+      await writeScreenplay(twoSceneText);
+      final bloc = buildBloc(
+        fileSelectorManager: const _StubFileSelectorManager(pickedPath: "/plans/kitchen.png"),
+      );
+      await waitForState(bloc, (state) => !state.isLoading);
+      final setId = await createCase(bloc);
+
+      bloc.add(
+        OcptShotListFloorPlanUnderlayImportRequestedEvent(setId: setId, fileTypeLabel: "Images"),
+      );
+      final state = await waitForState(
+        bloc,
+        (state) => state.selectedSet!.underlayAssetId != null,
+      );
+
+      expect(state.selectedSet!.underlayPath, "/plans/kitchen.png");
+      expect(state.selectedSet!.underlayWidthM, isNotNull);
+      expect(state.selectedSet!.underlayHeightM, isNotNull);
+
+      await bloc.close();
+    });
+
+    test(
+      "moving/resizing the underlay re-frames it through updateUnderlayFrame, minting or "
+      "tombstoning no asset",
+      () async {
+        await writeScreenplay(twoSceneText);
+        final bloc = buildBloc(
+          fileSelectorManager: const _StubFileSelectorManager(pickedPath: "/plans/kitchen.png"),
+        );
+        await waitForState(bloc, (state) => !state.isLoading);
+        final setId = await createCase(bloc);
+
+        bloc.add(
+          OcptShotListFloorPlanUnderlayImportRequestedEvent(
+            setId: setId,
+            fileTypeLabel: "Images",
+          ),
+        );
+        final imported = await waitForState(
+          bloc,
+          (state) => state.selectedSet!.underlayAssetId != null,
+        );
+        final assetId = imported.selectedSet!.underlayAssetId;
+        final database = projectsManager.currentProject!.database;
+        final assetsBeforeMove = await database.select(database.ocptAssetsTable).get();
+
+        bloc.add(
+          OcptShotListFloorPlanUnderlayTransformChangedEvent(
+            setId: setId,
+            xM: 2,
+            yM: 1,
+            widthM: 5,
+            heightM: 3,
+          ),
+        );
+        final transformed = await waitForState(
+          bloc,
+          (state) => state.selectedSet!.underlayWidthM == 5,
+        );
+        expect(transformed.selectedSet!.underlayXM, 2);
+        expect(transformed.selectedSet!.underlayYM, 1);
+        expect(transformed.selectedSet!.underlayHeightM, 3);
+        expect(transformed.selectedSet!.underlayPath, "/plans/kitchen.png");
+        // The very defect this fixes: dragging the underlay must never mint a fresh `assets` row
+        // and tombstone the old one — it keeps writing the very same one.
+        expect(transformed.selectedSet!.underlayAssetId, assetId);
+        final assetsAfterMove = await database.select(database.ocptAssetsTable).get();
+        expect(assetsAfterMove, hasLength(assetsBeforeMove.length));
+        expect(assetsAfterMove.single.id, assetsBeforeMove.single.id);
+        expect(assetsAfterMove.single.isDeleted, isFalse);
+
+        await bloc.close();
+      },
+    );
+
+    test("clearing the underlay removes it", () async {
+      await writeScreenplay(twoSceneText);
+      final bloc = buildBloc(
+        fileSelectorManager: const _StubFileSelectorManager(pickedPath: "/plans/kitchen.png"),
+      );
+      await waitForState(bloc, (state) => !state.isLoading);
+      final setId = await createCase(bloc);
+
+      bloc.add(
+        OcptShotListFloorPlanUnderlayImportRequestedEvent(setId: setId, fileTypeLabel: "Images"),
+      );
+      await waitForState(bloc, (state) => state.selectedSet!.underlayAssetId != null);
+
+      bloc.add(OcptShotListFloorPlanUnderlayClearRequestedEvent(setId: setId));
+      final cleared = await waitForState(
+        bloc,
+        (state) => state.selectedSet!.underlayAssetId == null,
+      );
+      expect(cleared.selectedSet!.underlayPath, isNull);
+
+      await bloc.close();
+    });
+
+    test("zoom, tool, active layer and layer visibility are session view state", () async {
+      await writeScreenplay(twoSceneText);
+      final bloc = buildBloc();
+      await waitForState(bloc, (state) => !state.isLoading);
+      expect(bloc.state.floorPlanZoom, 1);
+      expect(bloc.state.floorPlanActiveTool, OcptFloorPlanTool.select);
+
+      bloc.add(const OcptShotListFloorPlanZoomChangedEvent(zoom: 2));
+      await waitForState(bloc, (state) => state.floorPlanZoom == 2);
+
+      bloc.add(const OcptShotListFloorPlanToolSelectedEvent(tool: OcptFloorPlanTool.setElement));
+      await waitForState(
+        bloc,
+        (state) => state.floorPlanActiveTool == OcptFloorPlanTool.setElement,
+      );
+
+      bloc.add(
+        const OcptShotListFloorPlanActiveSetElementShapeChangedEvent(
+          shape: OcptFloorPlanSetElementShape.freeform,
+        ),
+      );
+      await waitForState(
+        bloc,
+        (state) =>
+            state.floorPlanActiveSetElementShape == OcptFloorPlanSetElementShape.freeform,
+      );
+
+      bloc.add(
+        const OcptShotListFloorPlanLayerVisibilityToggledEvent(layer: OcptFloorPlanLayer.set),
+      );
+      final hidden = await waitForState(
+        bloc,
+        (state) => state.floorPlanHiddenLayers.contains(OcptFloorPlanLayer.set),
+      );
+
+      bloc.add(
+        const OcptShotListFloorPlanLayerVisibilityToggledEvent(layer: OcptFloorPlanLayer.set),
+      );
+      final shown = await waitForState(
+        bloc,
+        (state) => !state.floorPlanHiddenLayers.contains(OcptFloorPlanLayer.set),
+      );
+      expect(hidden.floorPlanHiddenLayers, contains(OcptFloorPlanLayer.set));
+      expect(shown.floorPlanHiddenLayers, isNot(contains(OcptFloorPlanLayer.set)));
+
+      await bloc.close();
+    });
+
+    test("switching sequences clears the case and symbol selection", () async {
+      await writeScreenplay(twoSceneText);
+      final bloc = buildBloc();
+      final loaded = await waitForState(bloc, (state) => !state.isLoading);
+      final firstSequenceId = loaded.sequences.first.id;
+      final secondSequenceId = loaded.sequences[1].id;
+      await createCase(bloc);
+
+      bloc.add(OcptShotListSequenceSelectedEvent(sequenceId: secondSequenceId));
+      final onSecond = await waitForState(
+        bloc,
+        (state) => state.selectedSequenceId == secondSequenceId,
+      );
+      expect(onSecond.selectedSetId, isNull);
+      expect(onSecond.setsOfSelectedSequence, isEmpty);
+
+      bloc.add(OcptShotListSequenceSelectedEvent(sequenceId: firstSequenceId));
+      final backOnFirst = await waitForState(
+        bloc,
+        (state) => state.selectedSequenceId == firstSequenceId,
+      );
+      expect(backOnFirst.selectedSetId, isNotNull);
+
+      await bloc.close();
+    });
+
+    group("the shot half (M6)", () {
+      /// Creates a shot on the sole selected sequence and returns its id, waiting for the
+      /// selection the creation event always makes — mirrors "the board" group's own helper.
+      ///
+      /// Waits for `selectedShotId` to actually **change** from whatever it already was, not
+      /// merely to be non-null: since R2 guarantees a current shot whenever the sequence already
+      /// holds one, a second call in the same test would otherwise resolve against the still-
+      /// current previous shot before the new one's own creation event is even processed.
+      Future<String> createShot(OcptShotListBloc bloc) async {
+        final previousShotId = bloc.state.selectedShotId;
+        bloc.add(const OcptShotListShotCreationRequestedEvent());
+        final created = await waitForState(
+          bloc,
+          (state) => state.selectedShotId != null && state.selectedShotId != previousShotId,
+        );
+        return created.selectedShotId!;
+      }
+
+      test(
+        "always a current shot (R2): creating the sequence's first shot focuses it, deleting "
+        "it reselects the sequence's own next first shot rather than clearing to null",
+        () async {
+          await writeScreenplay(twoSceneText);
+          final bloc = buildBloc();
+          final loaded = await waitForState(bloc, (state) => !state.isLoading);
+          final sequenceId = loaded.selectedSequenceId;
+          // No shot exists yet: the invariant only ever guarantees a current shot while the
+          // sequence holds at least one.
+          expect(loaded.selectedShotId, isNull);
+          expect(loaded.isFloorPlanShotFocusActive, isFalse);
+
+          final firstShotId = await createShot(bloc);
+          expect(bloc.state.isFloorPlanShotFocusActive, isTrue);
+          expect(bloc.state.selectedShotId, firstShotId);
+
+          final secondShotId = await createShot(bloc);
+          expect(secondShotId, isNot(firstShotId));
+          expect(bloc.state.selectedShotId, secondShotId);
+
+          // Deleting the currently focused shot reselects the sequence's own remaining shot
+          // rather than clearing the selection to null.
+          bloc.add(OcptShotListShotDeletionRequestedEvent(shotId: secondShotId));
+          final afterDelete = await waitForState(
+            bloc,
+            (state) => state.selectedShotId == firstShotId,
+          );
+          expect(afterDelete.selectedSequenceId, sequenceId);
+          expect(afterDelete.isFloorPlanShotFocusActive, isTrue);
+
+          // Deleting the sequence's own last shot finally clears the selection: there is no shot
+          // left to be the current one.
+          bloc.add(OcptShotListShotDeletionRequestedEvent(shotId: firstShotId));
+          final afterLastDelete = await waitForState(
+            bloc,
+            (state) => state.totalShotCount == 0,
+          );
+          expect(afterLastDelete.selectedShotId, isNull);
+          expect(afterLastDelete.selectedSequenceId, sequenceId);
+
+          await bloc.close();
+        },
+      );
+
+      test(
+        "always a current shot (R2): switching to a sequence holding shots selects its own "
+        "first one",
+        () async {
+          await writeScreenplay(twoSceneText);
+          final bloc = buildBloc();
+          final loaded = await waitForState(bloc, (state) => !state.isLoading);
+          final firstSequenceId = loaded.sequences.first.id;
+          final secondSequenceId = loaded.sequences[1].id;
+
+          final firstSequenceShotId = await createShot(bloc);
+
+          bloc.add(OcptShotListSequenceSelectedEvent(sequenceId: secondSequenceId));
+          final onSecond = await waitForState(
+            bloc,
+            (state) => state.selectedSequenceId == secondSequenceId,
+          );
+          // The second sequence holds no shot of its own yet.
+          expect(onSecond.selectedShotId, isNull);
+
+          bloc.add(const OcptShotListShotCreationRequestedEvent());
+          final secondSequenceShotId = await waitForState(
+            bloc,
+            (state) => state.selectedShotId != null,
+          ).then((state) => state.selectedShotId!);
+
+          bloc.add(OcptShotListSequenceSelectedEvent(sequenceId: firstSequenceId));
+          final backOnFirst = await waitForState(
+            bloc,
+            (state) => state.selectedShotId == firstSequenceShotId,
+          );
+          expect(backOnFirst.selectedSequenceId, firstSequenceId);
+
+          bloc.add(OcptShotListSequenceSelectedEvent(sequenceId: secondSequenceId));
+          final backOnSecond = await waitForState(
+            bloc,
+            (state) => state.selectedShotId == secondSequenceShotId,
+          );
+          expect(backOnSecond.selectedSequenceId, secondSequenceId);
+
+          await bloc.close();
+        },
+      );
+
+      test(
+        "placing a camera/character/light symbol is shot-scoped to the focused shot",
+        () async {
+          await writeScreenplay(twoSceneText);
+          final bloc = buildBloc();
+          await waitForState(bloc, (state) => !state.isLoading);
+          final setId = await createCase(bloc);
+          final shotId = await createShot(bloc);
+
+          for (final layer in [
+            OcptFloorPlanLayer.cameras,
+            OcptFloorPlanLayer.characters,
+            OcptFloorPlanLayer.lights,
+          ]) {
+            bloc.add(
+              OcptShotListFloorPlanSymbolPlacedEvent(
+                setId: setId,
+                layer: layer,
+                shotId: shotId,
+                xM: 0,
+                yM: 0,
+              ),
+            );
+            final placed = await waitForState(
+              bloc,
+              (state) => state.selectedSet!.symbols.any((symbol) => symbol.layer == layer),
+            );
+            final symbol = placed.selectedSet!.symbols.firstWhere(
+              (symbol) => symbol.layer == layer,
+            );
+            expect(symbol.shotId, shotId);
+          }
+
+          await bloc.close();
+        },
+      );
+
+      test(
+        "two cameras placed on the same shot derive rank/letter labels (1A, 1B style)",
+        () async {
+          await writeScreenplay(twoSceneText);
+          final bloc = buildBloc();
+          await waitForState(bloc, (state) => !state.isLoading);
+          final setId = await createCase(bloc);
+          final shotId = await createShot(bloc);
+
+          bloc.add(
+            OcptShotListFloorPlanSymbolPlacedEvent(
+              setId: setId,
+              layer: OcptFloorPlanLayer.cameras,
+              shotId: shotId,
+              xM: 0,
+              yM: 0,
+            ),
+          );
+          await waitForState(bloc, (state) => state.selectedSet!.symbols.length == 1);
+          bloc.add(
+            OcptShotListFloorPlanSymbolPlacedEvent(
+              setId: setId,
+              layer: OcptFloorPlanLayer.cameras,
+              shotId: shotId,
+              xM: 1,
+              yM: 1,
+            ),
+          );
+          final state = await waitForState(
+            bloc,
+            (state) => state.selectedSet!.symbols.length == 2,
+          );
+
+          // The derivation itself (`ocptFloorPlanCameraLabelOf`/`OcptFloorPlanSheet.of`) is a pure
+          // rule already unit-tested on its own; this proves the production path — the bloc's own
+          // writes through `OcptFloorPlanService.placeSymbol` — feeds it the right rows.
+          final sheet = OcptFloorPlanSheet.of(
+            floorPlanSet: state.selectedSet!,
+            focusSceneId: state.selectedSequenceId!,
+            focusShotId: shotId,
+            shotRankByShotId: {shotId: 1},
+          );
+          final labels = sheet.symbols.map((symbol) => symbol.cameraLabel).toList()..sort();
+          expect(labels, ["1A", "1B"]);
+
+          await bloc.close();
+        },
+      );
+
+      test(
+        "the arrow tool's own pending anchor completes a movement on the second tap, and "
+        "Escape/the cancel event abandons it",
+        () async {
+          await writeScreenplay(twoSceneText);
+          final bloc = buildBloc();
+          await waitForState(bloc, (state) => !state.isLoading);
+          final setId = await createCase(bloc);
+          final shotId = await createShot(bloc);
+
+          bloc.add(
+            OcptShotListFloorPlanSymbolPlacedEvent(
+              setId: setId,
+              layer: OcptFloorPlanLayer.characters,
+              shotId: shotId,
+              xM: 0,
+              yM: 0,
+            ),
+          );
+          final withFirst = await waitForState(
+            bloc,
+            (state) => state.selectedSet!.symbols.length == 1,
+          );
+          final firstSymbolId = withFirst.selectedSet!.symbols.single.id;
+
+          bloc.add(
+            OcptShotListFloorPlanSymbolPlacedEvent(
+              setId: setId,
+              layer: OcptFloorPlanLayer.characters,
+              shotId: shotId,
+              xM: 2,
+              yM: 2,
+            ),
+          );
+          final withSecond = await waitForState(
+            bloc,
+            (state) => state.selectedSet!.symbols.length == 2,
+          );
+          final secondSymbolId = withSecond.selectedSet!.symbols
+              .firstWhere((symbol) => symbol.id != firstSymbolId)
+              .id;
+
+          // First tap: picks the pending anchor, writes nothing.
+          bloc.add(OcptShotListFloorPlanArrowSymbolTappedEvent(symbolId: firstSymbolId));
+          final anchored = await waitForState(
+            bloc,
+            (state) => state.pendingFloorPlanArrowAnchorSymbolId == firstSymbolId,
+          );
+          expect(anchored.selectedSet!.arrows, isEmpty);
+
+          // Cancelled (mirrors `Escape`): the anchor is abandoned, still nothing written.
+          bloc.add(const OcptShotListFloorPlanArrowAnchorCancelledEvent());
+          final cancelled = await waitForState(
+            bloc,
+            (state) => state.pendingFloorPlanArrowAnchorSymbolId == null,
+          );
+          expect(cancelled.selectedSet!.arrows, isEmpty);
+
+          // Re-anchor and complete on the second tap.
+          bloc.add(OcptShotListFloorPlanArrowSymbolTappedEvent(symbolId: firstSymbolId));
+          await waitForState(
+            bloc,
+            (state) => state.pendingFloorPlanArrowAnchorSymbolId == firstSymbolId,
+          );
+          bloc.add(OcptShotListFloorPlanArrowSymbolTappedEvent(symbolId: secondSymbolId));
+          final completed = await waitForState(
+            bloc,
+            (state) => state.selectedSet!.arrows.isNotEmpty,
+          );
+          expect(completed.pendingFloorPlanArrowAnchorSymbolId, isNull);
+          expect(completed.selectedSet!.arrows.single.fromSymbolId, firstSymbolId);
+          expect(completed.selectedSet!.arrows.single.toSymbolId, secondSymbolId);
+          expect(completed.selectedSet!.arrows.single.shotId, shotId);
+
+          bloc.add(
+            OcptShotListFloorPlanArrowDeletionRequestedEvent(
+              arrowId: completed.selectedSet!.arrows.single.id,
+            ),
+          );
+          final deleted = await waitForState(bloc, (state) => state.selectedSet!.arrows.isEmpty);
+          expect(deleted.selectedSet!.arrows, isEmpty);
+
+          await bloc.close();
+        },
+      );
+
+      test("editing a symbol's label debounces then writes", () async {
+        await writeScreenplay(twoSceneText);
+        final bloc = buildBloc();
+        await waitForState(bloc, (state) => !state.isLoading);
+        final setId = await createCase(bloc);
+        final shotId = await createShot(bloc);
+
+        bloc.add(
+          OcptShotListFloorPlanSymbolPlacedEvent(
+            setId: setId,
+            layer: OcptFloorPlanLayer.characters,
+            shotId: shotId,
+            xM: 0,
+            yM: 0,
+          ),
+        );
+        final placed = await waitForState(
+          bloc,
+          (state) => state.selectedSet!.symbols.isNotEmpty,
+        );
+        final symbolId = placed.selectedSet!.symbols.single.id;
+
+        bloc.add(
+          OcptShotListFloorPlanSymbolLabelChangedEvent(symbolId: symbolId, rawValue: "SAM"),
+        );
+        final pending = await waitForState(
+          bloc,
+          (state) => state.pendingFieldEdits.containsKey(
+            OcptShotListSymbolLabelEditKey(symbolId: symbolId),
+          ),
+        );
+        expect(pending.selectedSet!.symbols.single.label, isEmpty);
+
+        final flushed = await waitForState(
+          bloc,
+          (state) => state.selectedSet!.symbols.single.label == "SAM",
+        );
+        expect(flushed.pendingFieldEdits, isEmpty);
+
+        await bloc.close();
+      });
+
+      test(
+        "per-camera visibility, onion skin and the metrics toggle are session view state",
+        () async {
+          await writeScreenplay(twoSceneText);
+          final bloc = buildBloc();
+          await waitForState(bloc, (state) => !state.isLoading);
+          expect(bloc.state.isFloorPlanOnionSkinPreviousShown, isTrue);
+          expect(bloc.state.isFloorPlanOnionSkinNextShown, isTrue);
+          expect(bloc.state.isFloorPlanMetricsShown, isFalse);
+
+          bloc.add(const OcptShotListFloorPlanCameraVisibilityToggledEvent(symbolId: "cam-1"));
+          final hidden = await waitForState(
+            bloc,
+            (state) => state.floorPlanHiddenCameraSymbolIds.contains("cam-1"),
+          );
+          bloc.add(const OcptShotListFloorPlanCameraVisibilityToggledEvent(symbolId: "cam-1"));
+          final shown = await waitForState(
+            bloc,
+            (state) => !state.floorPlanHiddenCameraSymbolIds.contains("cam-1"),
+          );
+          expect(hidden.floorPlanHiddenCameraSymbolIds, contains("cam-1"));
+          expect(shown.floorPlanHiddenCameraSymbolIds, isNot(contains("cam-1")));
+
+          bloc.add(const OcptShotListFloorPlanOnionSkinToggledEvent(isPrevious: true));
+          final prevOff = await waitForState(
+            bloc,
+            (state) => !state.isFloorPlanOnionSkinPreviousShown,
+          );
+          expect(prevOff.isFloorPlanOnionSkinNextShown, isTrue);
+
+          bloc.add(const OcptShotListFloorPlanOnionSkinOpacityChangedEvent(opacity: 0.7));
+          final opacityChanged = await waitForState(
+            bloc,
+            (state) => state.floorPlanOnionSkinOpacity == 0.7,
+          );
+          expect(opacityChanged.floorPlanOnionSkinOpacity, 0.7);
+
+          bloc.add(const OcptShotListFloorPlanMetricsToggledEvent());
+          final metricsOn = await waitForState(bloc, (state) => state.isFloorPlanMetricsShown);
+          expect(metricsOn.isFloorPlanMetricsShown, isTrue);
+
+          await bloc.close();
+        },
+      );
+
+      test("← / → walk the sequence's own shots, stopping at either end", () async {
+        await writeScreenplay(twoSceneText);
+        final bloc = buildBloc();
+        await waitForState(bloc, (state) => !state.isLoading);
+
+        final firstShotId = await createShot(bloc);
+        final secondShotId = await createShot(bloc);
+        expect(secondShotId, isNot(firstShotId));
+        expect(bloc.state.selectedShotId, secondShotId);
+
+        // Already the last shot: walking further does nothing.
+        bloc.add(const OcptShotListFloorPlanShotWalkRequestedEvent(delta: 1));
+        await Future<void>.delayed(const Duration(milliseconds: 50));
+        expect(bloc.state.selectedShotId, secondShotId);
+
+        bloc.add(const OcptShotListFloorPlanShotWalkRequestedEvent(delta: -1));
+        await waitForState(bloc, (state) => state.selectedShotId == firstShotId);
+
+        // Already the first shot: walking backward does nothing.
+        bloc.add(const OcptShotListFloorPlanShotWalkRequestedEvent(delta: -1));
+        await Future<void>.delayed(const Duration(milliseconds: 50));
+        expect(bloc.state.selectedShotId, firstShotId);
+
+        bloc.add(const OcptShotListFloorPlanShotWalkRequestedEvent(delta: 1));
+        await waitForState(bloc, (state) => state.selectedShotId == secondShotId);
+
+        await bloc.close();
+      });
+
+      test("deleting a shot tombstones its own floor plan symbols and reloads the snapshot", () async {
+        await writeScreenplay(twoSceneText);
+        final bloc = buildBloc();
+        await waitForState(bloc, (state) => !state.isLoading);
+        final setId = await createCase(bloc);
+        final shotId = await createShot(bloc);
+
+        bloc.add(
+          OcptShotListFloorPlanSymbolPlacedEvent(
+            setId: setId,
+            layer: OcptFloorPlanLayer.cameras,
+            shotId: shotId,
+            xM: 0,
+            yM: 0,
+          ),
+        );
+        await waitForState(bloc, (state) => state.selectedSet!.symbols.isNotEmpty);
+
+        bloc.add(OcptShotListShotDeletionRequestedEvent(shotId: shotId));
+        final deleted = await waitForState(bloc, (state) => state.totalShotCount == 0);
+        expect(deleted.selectedSet!.symbols, isEmpty);
+        expect(deleted.selectedFloorPlanSymbolId, isNull);
+
+        await bloc.close();
+      });
+
+      test(
+        "placing a character symbol arms the name prompt, dismissed clears it (R2)",
+        () async {
+          await writeScreenplay(twoSceneText);
+          final bloc = buildBloc();
+          await waitForState(bloc, (state) => !state.isLoading);
+          final setId = await createCase(bloc);
+          final shotId = await createShot(bloc);
+
+          bloc.add(
+            OcptShotListFloorPlanSymbolPlacedEvent(
+              setId: setId,
+              layer: OcptFloorPlanLayer.characters,
+              shotId: shotId,
+              xM: 0,
+              yM: 0,
+            ),
+          );
+          final placed = await waitForState(
+            bloc,
+            (state) => state.selectedSet!.symbols.isNotEmpty,
+          );
+          final symbolId = placed.selectedSet!.symbols.single.id;
+          expect(placed.pendingCharacterNamePromptSymbolId, symbolId);
+
+          bloc.add(const OcptShotListFloorPlanCharacterNamePromptDismissedEvent());
+          final dismissed = await waitForState(
+            bloc,
+            (state) => state.pendingCharacterNamePromptSymbolId == null,
+          );
+          expect(dismissed.selectedSet!.symbols.single.id, symbolId);
+
+          // A camera, a light or a set element never arms the prompt at all.
+          bloc.add(
+            OcptShotListFloorPlanSymbolPlacedEvent(
+              setId: setId,
+              layer: OcptFloorPlanLayer.cameras,
+              shotId: shotId,
+              xM: 1,
+              yM: 1,
+            ),
+          );
+          final cameraPlaced = await waitForState(
+            bloc,
+            (state) => state.selectedSet!.symbols.length == 2,
+          );
+          expect(cameraPlaced.pendingCharacterNamePromptSymbolId, isNull);
+
+          await bloc.close();
+        },
+      );
+
+      test(
+        "changing a camera's field of view writes it (OcptShotListFloorPlanSymbolFovChangedEvent)",
+        () async {
+          await writeScreenplay(twoSceneText);
+          final bloc = buildBloc();
+          await waitForState(bloc, (state) => !state.isLoading);
+          final setId = await createCase(bloc);
+          final shotId = await createShot(bloc);
+
+          bloc.add(
+            OcptShotListFloorPlanSymbolPlacedEvent(
+              setId: setId,
+              layer: OcptFloorPlanLayer.cameras,
+              shotId: shotId,
+              xM: 0,
+              yM: 0,
+            ),
+          );
+          final placed = await waitForState(
+            bloc,
+            (state) => state.selectedSet!.symbols.isNotEmpty,
+          );
+          final symbolId = placed.selectedSet!.symbols.single.id;
+          expect(placed.selectedSet!.symbols.single.fovDeg, isNull);
+
+          bloc.add(
+            OcptShotListFloorPlanSymbolFovChangedEvent(symbolId: symbolId, fovDeg: 35),
+          );
+          final changed = await waitForState(
+            bloc,
+            (state) => state.selectedSet!.symbols.single.fovDeg == 35,
+          );
+          expect(changed.selectedSet!.symbols.single.fovDeg, 35);
+
+          await bloc.close();
+        },
+      );
+
+      test(
+        "selecting an arrow, bending it and straightening it back out writes the control "
+        "point (R2)",
+        () async {
+          await writeScreenplay(twoSceneText);
+          final bloc = buildBloc();
+          await waitForState(bloc, (state) => !state.isLoading);
+          final setId = await createCase(bloc);
+          final shotId = await createShot(bloc);
+
+          bloc.add(
+            OcptShotListFloorPlanSymbolPlacedEvent(
+              setId: setId,
+              layer: OcptFloorPlanLayer.characters,
+              shotId: shotId,
+              xM: 0,
+              yM: 0,
+            ),
+          );
+          final withFirst = await waitForState(
+            bloc,
+            (state) => state.selectedSet!.symbols.length == 1,
+          );
+          final firstSymbolId = withFirst.selectedSet!.symbols.single.id;
+
+          bloc.add(
+            OcptShotListFloorPlanSymbolPlacedEvent(
+              setId: setId,
+              layer: OcptFloorPlanLayer.characters,
+              shotId: shotId,
+              xM: 2,
+              yM: 2,
+            ),
+          );
+          await waitForState(bloc, (state) => state.selectedSet!.symbols.length == 2);
+
+          bloc.add(OcptShotListFloorPlanArrowSymbolTappedEvent(symbolId: firstSymbolId));
+          await waitForState(
+            bloc,
+            (state) => state.pendingFloorPlanArrowAnchorSymbolId == firstSymbolId,
+          );
+          final secondSymbolId = bloc.state.selectedSet!.symbols
+              .firstWhere((symbol) => symbol.id != firstSymbolId)
+              .id;
+          bloc.add(OcptShotListFloorPlanArrowSymbolTappedEvent(symbolId: secondSymbolId));
+          final withArrow = await waitForState(
+            bloc,
+            (state) => state.selectedSet!.arrows.isNotEmpty,
+          );
+          final arrowId = withArrow.selectedSet!.arrows.single.id;
+
+          // Selecting the arrow is mutually exclusive with a symbol's own selection.
+          bloc.add(OcptShotListFloorPlanSymbolSelectedEvent(symbolId: firstSymbolId));
+          await waitForState(bloc, (state) => state.selectedFloorPlanSymbolId == firstSymbolId);
+          bloc.add(OcptShotListFloorPlanArrowSelectedEvent(arrowId: arrowId));
+          final selected = await waitForState(
+            bloc,
+            (state) => state.selectedFloorPlanArrowId == arrowId,
+          );
+          expect(selected.selectedFloorPlanSymbolId, isNull);
+
+          bloc.add(
+            OcptShotListFloorPlanArrowCurveChangedEvent(arrowId: arrowId, ctrlXM: 1.5, ctrlYM: 0.2),
+          );
+          final bent = await waitForState(
+            bloc,
+            (state) => state.selectedSet!.arrows.single.ctrlXM == 1.5,
+          );
+          expect(bent.selectedSet!.arrows.single.ctrlYM, 0.2);
+
+          bloc.add(
+            OcptShotListFloorPlanArrowCurveChangedEvent(
+              arrowId: arrowId,
+              ctrlXM: null,
+              ctrlYM: null,
+            ),
+          );
+          final straightened = await waitForState(
+            bloc,
+            (state) => state.selectedSet!.arrows.single.ctrlXM == null,
+          );
+          expect(straightened.selectedSet!.arrows.single.ctrlYM, isNull);
+
+          bloc.add(OcptShotListFloorPlanArrowDeletionRequestedEvent(arrowId: arrowId));
+          final deletedArrow = await waitForState(
+            bloc,
+            (state) => state.selectedSet!.arrows.isEmpty,
+          );
+          expect(deletedArrow.selectedFloorPlanArrowId, isNull);
+
+          await bloc.close();
+        },
+      );
+
+      test(
+        "Ctrl+D duplicates a symbol offset from its source, an Alt-drag duplicates at the "
+        "drag's own position, neither touching the source (R2)",
+        () async {
+          await writeScreenplay(twoSceneText);
+          final bloc = buildBloc();
+          await waitForState(bloc, (state) => !state.isLoading);
+          final setId = await createCase(bloc);
+          final shotId = await createShot(bloc);
+
+          bloc.add(
+            OcptShotListFloorPlanSymbolPlacedEvent(
+              setId: setId,
+              layer: OcptFloorPlanLayer.lights,
+              shotId: shotId,
+              xM: 1,
+              yM: 1,
+            ),
+          );
+          final placed = await waitForState(
+            bloc,
+            (state) => state.selectedSet!.symbols.isNotEmpty,
+          );
+          final sourceId = placed.selectedSet!.symbols.single.id;
+
+          // No explicit position (the `Ctrl+D` shortcut): offsets from the source.
+          bloc.add(OcptShotListFloorPlanSymbolDuplicatedEvent(symbolId: sourceId));
+          final duplicated = await waitForState(
+            bloc,
+            (state) => state.selectedSet!.symbols.length == 2,
+          );
+          expect(duplicated.selectedSet!.symbols.map((symbol) => symbol.id), contains(sourceId));
+          final firstCopy = duplicated.selectedSet!.symbols.firstWhere(
+            (symbol) => symbol.id != sourceId,
+          );
+          expect(firstCopy.xM, isNot(1));
+          expect(firstCopy.layer, OcptFloorPlanLayer.lights);
+          expect(duplicated.selectedFloorPlanSymbolId, firstCopy.id);
+          // The source itself is untouched.
+          expect(
+            duplicated.selectedSet!.symbols.firstWhere((symbol) => symbol.id == sourceId).xM,
+            1,
+          );
+
+          // An explicit position (an `Alt`-drag's own settled point) places the copy exactly
+          // there instead of at the default offset.
+          bloc.add(
+            OcptShotListFloorPlanSymbolDuplicatedEvent(symbolId: sourceId, xM: 9, yM: -4),
+          );
+          final secondDuplicate = await waitForState(
+            bloc,
+            (state) => state.selectedSet!.symbols.length == 3,
+          );
+          final secondCopy = secondDuplicate.selectedSet!.symbols.firstWhere(
+            (symbol) => symbol.id != sourceId && symbol.id != firstCopy.id,
+          );
+          expect(secondCopy.xM, 9);
+          expect(secondCopy.yM, -4);
+          expect(
+            secondDuplicate.selectedSet!.symbols.firstWhere((symbol) => symbol.id == sourceId).xM,
+            1,
+          );
+
+          await bloc.close();
+        },
+      );
+
+      test(
+        "duplicating a camera carries its own field-of-view reach to the copy",
+        () async {
+          await writeScreenplay(twoSceneText);
+          final bloc = buildBloc();
+          await waitForState(bloc, (state) => !state.isLoading);
+          final setId = await createCase(bloc);
+          final shotId = await createShot(bloc);
+
+          bloc.add(
+            OcptShotListFloorPlanSymbolPlacedEvent(
+              setId: setId,
+              layer: OcptFloorPlanLayer.cameras,
+              shotId: shotId,
+              xM: 0,
+              yM: 0,
+            ),
+          );
+          final placed = await waitForState(
+            bloc,
+            (state) => state.selectedSet!.symbols.isNotEmpty,
+          );
+          final sourceId = placed.selectedSet!.symbols.single.id;
+
+          bloc.add(
+            OcptShotListFloorPlanSymbolFovReachChangedEvent(symbolId: sourceId, fovReachM: 4.5),
+          );
+          await waitForState(
+            bloc,
+            (state) => state.selectedSet!.symbols.single.fovReachM == 4.5,
+          );
+
+          bloc.add(OcptShotListFloorPlanSymbolDuplicatedEvent(symbolId: sourceId));
+          final duplicated = await waitForState(
+            bloc,
+            (state) => state.selectedSet!.symbols.length == 2,
+          );
+          final copy = duplicated.selectedSet!.symbols.firstWhere(
+            (symbol) => symbol.id != sourceId,
+          );
+          expect(copy.fovReachM, 4.5);
+
+          await bloc.close();
+        },
+      );
+    });
+
+    group("R3 — chrome and duplication", () {
+      /// Creates a fresh shot on the sole selected sequence and returns its id, waiting for the
+      /// selection to actually change — mirrors "the shot half (M6)" group's own helper.
+      Future<String> createFreshShot(OcptShotListBloc bloc) async {
+        final previousShotId = bloc.state.selectedShotId;
+        bloc.add(const OcptShotListShotCreationRequestedEvent());
+        final created = await waitForState(
+          bloc,
+          (state) => state.selectedShotId != null && state.selectedShotId != previousShotId,
+        );
+        return created.selectedShotId!;
+      }
+
+      test('the "All cameras" toggle is session view state', () async {
+        await writeScreenplay(twoSceneText);
+        final bloc = buildBloc();
+        await waitForState(bloc, (state) => !state.isLoading);
+        expect(bloc.state.isFloorPlanAllCamerasShown, isFalse);
+
+        bloc.add(const OcptShotListFloorPlanAllCamerasToggledEvent());
+        final on = await waitForState(bloc, (state) => state.isFloorPlanAllCamerasShown);
+        expect(on.isFloorPlanAllCamerasShown, isTrue);
+
+        bloc.add(const OcptShotListFloorPlanAllCamerasToggledEvent());
+        final off = await waitForState(bloc, (state) => !state.isFloorPlanAllCamerasShown);
+        expect(off.isFloorPlanAllCamerasShown, isFalse);
+
+        await bloc.close();
+      });
+
+      test(
+        "duplicating the selected set copies its own set-scope placements as independent rows, "
+        "into a new Resources set linked to the same sequence, and selects the copy",
+        () async {
+          await writeScreenplay(twoSceneText);
+          final bloc = buildBloc();
+          await waitForState(bloc, (state) => !state.isLoading);
+          final setId = await createCase(bloc);
+
+          bloc.add(
+            OcptShotListFloorPlanSymbolPlacedEvent(
+              setId: setId,
+              layer: OcptFloorPlanLayer.set,
+              shotId: null,
+              xM: 1,
+              yM: 2,
+            ),
+          );
+          final withDecor = await waitForState(
+            bloc,
+            (state) => state.selectedSet!.symbols.isNotEmpty,
+          );
+          final sourceSymbolId = withDecor.selectedSet!.symbols.single.id;
+
+          bloc.add(
+            OcptShotListSetDuplicationRequestedEvent(setId: setId, newSetName: "House copy"),
+          );
+          final afterDuplicate = await waitForState(
+            bloc,
+            (state) => state.setsOfSelectedSequence.length == 2,
+          );
+          final newSetId = afterDuplicate.selectedSetId!;
+          expect(newSetId, isNot(setId));
+          expect(afterDuplicate.selectedSet!.name, "House copy");
+          expect(afterDuplicate.selectedSet!.symbols, hasLength(1));
+          final copiedSymbolId = afterDuplicate.selectedSet!.symbols.single.id;
+          expect(copiedSymbolId, isNot(sourceSymbolId));
+
+          // Independent: moving the copy leaves the source set's own symbol untouched.
+          bloc.add(
+            OcptShotListFloorPlanSymbolMovedEvent(symbolId: copiedSymbolId, xM: 9, yM: 9),
+          );
+          await waitForState(bloc, (state) => state.selectedSet!.symbols.single.xM == 9);
+          final sourceSet = bloc.state.setsOfSelectedSequence.firstWhere((s) => s.id == setId);
+          expect(sourceSet.symbols.single.xM, 1);
+
+          await bloc.close();
+        },
+      );
+
+      test(
+        "copying another shot's own blocking writes independent copies onto the focused shot",
+        () async {
+          await writeScreenplay(twoSceneText);
+          final bloc = buildBloc();
+          await waitForState(bloc, (state) => !state.isLoading);
+          final setId = await createCase(bloc);
+          final sourceShotId = await createFreshShot(bloc);
+
+          bloc.add(
+            OcptShotListFloorPlanSymbolPlacedEvent(
+              setId: setId,
+              layer: OcptFloorPlanLayer.cameras,
+              shotId: sourceShotId,
+              xM: 1,
+              yM: 1,
+            ),
+          );
+          await waitForState(bloc, (state) => state.selectedSet!.symbols.isNotEmpty);
+
+          final destinationShotId = await createFreshShot(bloc);
+          // The set's own symbols carry every shot's placements — only the destination shot's
+          // own slice is still empty at this point.
+          expect(
+            bloc.state.selectedSet!.symbols.where((symbol) => symbol.shotId == destinationShotId),
+            isEmpty,
+          );
+
+          bloc.add(
+            OcptShotListFloorPlanBlockingCopyRequestedEvent(
+              setId: setId,
+              sourceShotId: sourceShotId,
+            ),
+          );
+          final copied = await waitForState(
+            bloc,
+            (state) =>
+                state.selectedSet!.symbols.any((symbol) => symbol.shotId == destinationShotId),
+          );
+
+          final destinationSymbols = copied.selectedSet!.symbols
+              .where((symbol) => symbol.shotId == destinationShotId)
+              .toList();
+          expect(destinationSymbols, hasLength(1));
+          final copiedSymbol = destinationSymbols.single;
+          expect(copiedSymbol.layer, OcptFloorPlanLayer.cameras);
+
+          // Independent: moving the copy leaves the source shot's own symbol untouched.
+          bloc.add(
+            OcptShotListFloorPlanSymbolMovedEvent(symbolId: copiedSymbol.id, xM: 5, yM: 5),
+          );
+          await waitForState(
+            bloc,
+            (state) => state.selectedSet!.symbols
+                .firstWhere((symbol) => symbol.id == copiedSymbol.id)
+                .xM ==
+                5,
+          );
+          final sourceSymbol = bloc.state.selectedSet!.symbols.firstWhere(
+            (symbol) => symbol.shotId == sourceShotId,
+          );
+          expect(sourceSymbol.xM, 1);
+
+          await bloc.close();
+        },
+      );
+    });
   });
 }

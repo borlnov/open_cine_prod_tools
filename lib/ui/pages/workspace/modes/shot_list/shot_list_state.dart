@@ -5,6 +5,9 @@
 import 'package:act_flutter_utility/act_flutter_utility.dart';
 import 'package:equatable/equatable.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_coverage_service.dart';
+import 'package:open_cine_prod_tools/models/ocpt_floor_plan_set.dart';
+import 'package:open_cine_prod_tools/models/ocpt_floor_plan_snapshot.dart';
+import 'package:open_cine_prod_tools/models/ocpt_floor_plan_symbol.dart';
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_package_notice.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_package_report.dart';
@@ -19,11 +22,19 @@ import 'package:open_cine_prod_tools/models/ocpt_shot_coverage_range.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_field_suggestions.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_list_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
+import 'package:open_cine_prod_tools/models/ocpt_storyboard_panel.dart';
+import 'package:open_cine_prod_tools/models/ocpt_storyboard_snapshot.dart';
+import 'package:open_cine_prod_tools/types/ocpt_floor_plan_layer.dart';
+import 'package:open_cine_prod_tools/types/ocpt_floor_plan_set_element_shape.dart';
+import 'package:open_cine_prod_tools/types/ocpt_floor_plan_tool.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_version_notice_kind.dart';
+import 'package:open_cine_prod_tools/types/ocpt_shot_list_centre_view.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_column.dart';
-import 'package:open_cine_prod_tools/types/ocpt_shot_list_editable_field.dart';
+import 'package:open_cine_prod_tools/types/ocpt_shot_list_pending_edit_key.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_right_dock_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_status.dart';
+import 'package:open_cine_prod_tools/types/ocpt_storyboard_annotation_tool.dart';
+import 'package:open_cine_prod_tools/types/ocpt_storyboard_panel_size.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project_package_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project_versions_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock.dart';
@@ -41,6 +52,18 @@ enum OcptShotListIoNoticeKind {
 
   /// Exporting the scenario coverage to an annotated screenplay PDF failed.
   scenarioCoverageExportFailed,
+
+  /// The storyboard was successfully exported to a PDF.
+  storyboardExportSucceeded,
+
+  /// Exporting the storyboard to a PDF failed.
+  storyboardExportFailed,
+
+  /// The floor plans were successfully exported to a PDF.
+  floorPlansExportSucceeded,
+
+  /// Exporting the floor plans to a PDF failed.
+  floorPlansExportFailed,
 }
 
 /// A transient notice, produced by `OcptShotListBloc`, reporting the outcome of an export, shown
@@ -119,6 +142,167 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
   /// sequence too, and selecting another sequence clears the shot.
   final String? selectedShotId;
 
+  /// Which of the mode's centre views is currently shown, persisted through
+  /// `OcptPropertiesManager.shotListLastCentreView`. The switch offering it is
+  /// `OcptShotListCentreHeader`; a compact width shows the table regardless of this value (see
+  /// `OcptShotListState.isBoardShown` on the mode side — the mode itself decides that, this state
+  /// only ever carries what the user last picked).
+  final OcptShotListCentreView centreView;
+
+  /// The whole storyboard of the selected episode's screenplay, as last read by
+  /// `OcptStoryboardService.loadStoryboard`, or null while nothing has been loaded yet. Reloaded
+  /// after every write a board affordance makes (importing, replacing, reordering or deleting a
+  /// panel, flushing a pending comment edit).
+  final OcptStoryboardSnapshot? storyboardSnapshot;
+
+  /// The id of the panel currently selected on the board, or null while none is.
+  ///
+  /// Cleared whenever [selectedShotId] or [selectedSequenceId] changes: a panel only ever belongs
+  /// to the shot currently shown, exactly as `OcptFloorPlanState.selectedSymbolId` (M5/M6) will be
+  /// cleared the same way.
+  final String? selectedPanelId;
+
+  /// The common height every panel frame of the board's strips is drawn at, picked from the
+  /// header's own `Panel size ▾` menu.
+  ///
+  /// A **view preference** held here for the session alone, never persisted to the project or to
+  /// `OcptPropertiesManager` — see [OcptStoryboardPanelSize]'s own doc comment.
+  final OcptStoryboardPanelSize boardPanelSize;
+
+  /// The board's active annotation editing tool, or null while none is on.
+  ///
+  /// A **view/session state** value, like [boardPanelSize]: never written to the project. Scoped
+  /// to the currently selected panel, so it is cleared — together with [selectedAnnotationId] —
+  /// whenever [selectedPanelId], [selectedShotId] or [selectedSequenceId] changes: a tool left on
+  /// while looking at a different panel would draw onto a frame the user can no longer see is the
+  /// target.
+  final OcptStoryboardAnnotationTool? activeAnnotationTool;
+
+  /// The id of the currently selected mark, or null while none is.
+  ///
+  /// Cleared alongside [activeAnnotationTool] — see its own doc comment — and whenever the mark
+  /// itself is deleted.
+  final String? selectedAnnotationId;
+
+  /// The whole floor plans of the selected episode's screenplay, as last read by
+  /// `OcptFloorPlanService.loadFloorPlans`, or null while nothing has been loaded yet. Reloaded
+  /// after every write a floor plans affordance makes (a set's own CRUD, placing/moving/resizing a
+  /// symbol, the underlay's own CRUD).
+  final OcptFloorPlanSnapshot? floorPlanSnapshot;
+
+  /// The id of the set currently shown on the floor plans view, or null while none is (no set
+  /// exists yet for the selected sequence, or the selected sequence is the orphan group, which has
+  /// no scene to hold one).
+  ///
+  /// Cleared whenever [selectedSequenceId] changes: a set only ever belongs to the sequence
+  /// currently shown.
+  final String? selectedSetId;
+
+  /// The id of the symbol currently selected on the floor plans canvas, or null while none is.
+  ///
+  /// Cleared whenever [selectedSetId] or [selectedSequenceId] changes: a symbol only ever belongs
+  /// to the set currently shown. Mutually exclusive with [selectedFloorPlanArrowId]: selecting one
+  /// clears the other.
+  final String? selectedFloorPlanSymbolId;
+
+  /// The id of the arrow currently selected on the floor plans canvas, or null while none is —
+  /// what draws its own bendable midpoint handle (R2). Mutually exclusive with
+  /// [selectedFloorPlanSymbolId] and cleared on every occasion that field is: a different set or
+  /// sequence shown, the shot deleted, the arrow itself deleted.
+  final String? selectedFloorPlanArrowId;
+
+  /// The id of a character symbol just placed by [OcptFloorPlanTool.character], asking
+  /// `OcptFloorPlanCharacterNamePickerDialog` to open for it, or null while none is pending — a
+  /// one-shot trigger read by the mode's own `BlocConsumer` listener exactly like
+  /// [projectPackagePendingExport] is, and cleared the moment that listener opens the dialog so a
+  /// later emission never stacks a second one behind it.
+  final String? pendingCharacterNamePromptSymbolId;
+
+  /// The floor plans canvas's own current zoom (1.0 = neutral/100%), last **settled** by
+  /// `OcptFloorPlanViewportController` — see that class's own doc comment for why only the settled
+  /// value, not every per-frame one, ever reaches this state.
+  ///
+  /// A **view preference** held here for the session alone, never persisted to the project or to
+  /// `OcptPropertiesManager` (`docs/adr/0031-storyboard-panels-and-floor-plans-in-metres.md`: zoom
+  /// is a view concern, kept out of the synchronised model). It exists in this state at all only so
+  /// a fresh `OcptFloorPlanView` (built again after switching centre views, or after leaving and
+  /// reopening the mode) resumes at the zoom the user last settled on rather than always resetting
+  /// to 100%.
+  final double floorPlanZoom;
+
+  /// The floor plans canvas's own currently active tool, picked from the tool bar.
+  ///
+  /// A **view/session state** value, like [floorPlanZoom]: never written to the project.
+  final OcptFloorPlanTool floorPlanActiveTool;
+
+  /// The layer a placed set element lands on, picked from the palette's own set/scene group. Always
+  /// [OcptFloorPlanLayer.set] in this milestone — the shot layers group is picked separately.
+  ///
+  /// A **view/session state** value, like [floorPlanZoom]: never written to the project.
+  final OcptFloorPlanLayer floorPlanActiveLayer;
+
+  /// The décor primitive a `setElement` click-to-arm placement carries — which of the palette's
+  /// own four typed set-element entries (wall/door/furniture/freeform) was armed last.
+  ///
+  /// A **view/session state** value, like [floorPlanZoom]: never written to the project.
+  final OcptFloorPlanSetElementShape floorPlanActiveSetElementShape;
+
+  /// The sequence layers currently hidden on the floor plans canvas, out of the tray's own three
+  /// rows. Empty means every sequence layer is shown — the tray's own default.
+  ///
+  /// A **view/session state** value, like [floorPlanZoom]: never written to the project.
+  final Set<OcptFloorPlanLayer> floorPlanHiddenLayers;
+
+  /// Whether the selected set's underlay is currently hidden on the floor plans canvas, toggled
+  /// by the tray's own underlay row.
+  ///
+  /// A **view/session state** value, like [floorPlanZoom]: never written to the project.
+  final bool isFloorPlanUnderlayHidden;
+
+  /// The ids of every camera symbol currently hidden on the floor plans canvas, out of every live
+  /// camera of the selected sequence — the tray's own per-camera eyes, under the `Sequence` focus's
+  /// expanded cameras row. Empty means every camera is shown.
+  ///
+  /// A **view/session state** value, like [floorPlanZoom]: never written to the project.
+  final Set<String> floorPlanHiddenCameraSymbolIds;
+
+  /// Whether the onion skin's own previous-shot ghost is shown, under a shot focus.
+  ///
+  /// A **view/session state** value, like [floorPlanZoom]: never written to the project.
+  final bool isFloorPlanOnionSkinPreviousShown;
+
+  /// Whether the onion skin's own next-shot ghost is shown, under a shot focus.
+  ///
+  /// A **view/session state** value, like [floorPlanZoom]: never written to the project.
+  final bool isFloorPlanOnionSkinNextShown;
+
+  /// The onion skin's own ghost opacity, 0..1, the tray's own `Onion skin` block slider.
+  ///
+  /// A **view/session state** value, like [floorPlanZoom]: never written to the project.
+  final double floorPlanOnionSkinOpacity;
+
+  /// Whether the metrics overlay is shown, the tray's own metrics toggle: the distance from the
+  /// selected symbol to every other visible symbol of the set, and camera-to-subject for a
+  /// selected camera.
+  ///
+  /// A **view/session state** value, like [floorPlanZoom]: never written to the project.
+  final bool isFloorPlanMetricsShown;
+
+  /// Whether the focus strip's own "All cameras" toggle is on: every shot's own camera symbol of
+  /// the selected set draws as a ghost alongside the focused shot's own (R3, the floor-plan
+  /// redesign — `docs/plans/storyboard.md`, §9.4). A display toggle only, never a state that gates
+  /// a tool.
+  ///
+  /// A **view/session state** value, like [floorPlanZoom]: never written to the project.
+  final bool isFloorPlanAllCamerasShown;
+
+  /// The id of the symbol picked as the arrow tool's own first end, or null while none is pending
+  /// (no click yet, or the anchor was just completed into an arrow or cancelled) — the floor plans
+  /// canvas's own pending anchor, mirroring [pendingCoverageAnchor]'s own shape. Cleared whenever
+  /// [selectedShotId], [selectedSequenceId] or [selectedSetId] changes, and whenever
+  /// [floorPlanActiveTool] is picked away from [OcptFloorPlanTool.arrow].
+  final String? pendingFloorPlanArrowAnchorSymbolId;
+
   /// Whether the left (sequences) dock is shown.
   final bool isSequencePanelVisible;
 
@@ -178,14 +362,15 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
   /// read from, reloaded after every field-edit flush.
   final OcptShotFieldSuggestions suggestions;
 
-  /// Every field edit currently sitting in the field-edit autosave debounce, keyed by the shot id
-  /// and the field, holding the raw text last typed for it.
+  /// Every field edit currently sitting in the field-edit autosave debounce, keyed by
+  /// [OcptShotListPendingEditKey] (a shot's own field, or a board panel's comment), holding the raw
+  /// text last typed for it.
   ///
-  /// What a field shows takes this map's entry over the shot's own stored value whenever one is
-  /// present, so typing is never overwritten by a reload triggered by an unrelated write (another
-  /// field's own flush, a status change on a different shot). An entry is removed the moment its
-  /// write lands, whether through the debounce elapsing or an explicit flush.
-  final Map<(String, OcptShotListEditableField), String> pendingFieldEdits;
+  /// What a field or a panel comment shows takes this map's entry over its own stored value
+  /// whenever one is present, so typing is never overwritten by a reload triggered by an unrelated
+  /// write (another field's own flush, a status change on a different shot). An entry is removed
+  /// the moment its write lands, whether through the debounce elapsing or an explicit flush.
+  final Map<OcptShotListPendingEditKey, String> pendingFieldEdits;
 
   /// The first word clicked of a scenario coverage range currently being drawn in the coverage
   /// dialog, or null while none is being drawn (no click yet, or the range was just closed or
@@ -259,6 +444,137 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
   OcptShot? get selectedShot {
     final selectedShotId = this.selectedShotId;
     return selectedShotId == null ? null : snapshot?.shotsById[selectedShotId];
+  }
+
+  /// [shotId]'s own panels, in order, or an empty list while [storyboardSnapshot] hasn't loaded yet
+  /// or the shot has none.
+  List<OcptStoryboardPanel> panelsOfShot(String shotId) =>
+      storyboardSnapshot?.panelsOfShot(shotId) ?? const [];
+
+  /// The selected shot's own panels, or an empty list while no shot is selected.
+  List<OcptStoryboardPanel> get panelsOfSelectedShot {
+    final selectedShotId = this.selectedShotId;
+    return selectedShotId == null ? const [] : panelsOfShot(selectedShotId);
+  }
+
+  /// The panel [selectedPanelId] identifies, or null if none is selected (or the selected one
+  /// disappeared from a freshly loaded [storyboardSnapshot]).
+  OcptStoryboardPanel? get selectedPanel {
+    final selectedPanelId = this.selectedPanelId;
+    if (selectedPanelId == null) {
+      return null;
+    }
+    for (final panel in panelsOfSelectedShot) {
+      if (panel.id == selectedPanelId) {
+        return panel;
+      }
+    }
+    return null;
+  }
+
+  /// Whether any live shot of the screenplay holds at least one storyboard panel — what the
+  /// export panel's storyboard card checks to decide whether it has anything to print
+  /// (`docs/plans/storyboard.md`, §5): a shot list can hold shots without holding a single panel,
+  /// which is a state of its own, not the same as holding no shot at all.
+  bool get hasAnyStoryboardPanel =>
+      storyboardSnapshot?.panelsByShotId.values.any((panels) => panels.isNotEmpty) ?? false;
+
+  /// The selected sequence's own floor plan sets, in tab order, or an empty list while
+  /// [floorPlanSnapshot] hasn't loaded yet, no sequence is selected, or the selected sequence is
+  /// the orphan group (which has no scene, so it can never hold a set).
+  List<OcptFloorPlanSet> get setsOfSelectedSequence {
+    final sequence = selectedSequence;
+    if (floorPlanSnapshot == null || sequence is! OcptSceneShotSequence) {
+      return const [];
+    }
+    return floorPlanSnapshot!.setsOfScene(sequence.sceneId);
+  }
+
+  /// Whether any live floor plan set of the screenplay holds at least one camera symbol, on any
+  /// shot — what the export panel's floor plans card checks to decide whether it has anything to
+  /// print (`docs/plans/storyboard.md`, §5).
+  bool get hasAnyFloorPlanCamera =>
+      floorPlanSnapshot?.setsById.values.any(
+        (floorPlanSet) =>
+            floorPlanSet.symbols.any((symbol) => symbol.layer == OcptFloorPlanLayer.cameras),
+      ) ??
+      false;
+
+  /// The set [selectedSetId] identifies, or null if none is selected (or the selected one
+  /// disappeared from a freshly loaded [floorPlanSnapshot]).
+  OcptFloorPlanSet? get selectedSet {
+    final selectedSetId = this.selectedSetId;
+    if (selectedSetId == null) {
+      return null;
+    }
+    for (final floorPlanSet in setsOfSelectedSequence) {
+      if (floorPlanSet.id == selectedSetId) {
+        return floorPlanSet;
+      }
+    }
+    return null;
+  }
+
+  /// The symbol [selectedFloorPlanSymbolId] identifies among [selectedSet]'s own symbols, or null
+  /// if none is selected (or the selected one disappeared from a freshly loaded
+  /// [floorPlanSnapshot]).
+  OcptFloorPlanSymbol? get selectedFloorPlanSymbol {
+    final selectedFloorPlanSymbolId = this.selectedFloorPlanSymbolId;
+    final selectedSet = this.selectedSet;
+    if (selectedFloorPlanSymbolId == null || selectedSet == null) {
+      return null;
+    }
+    for (final symbol in selectedSet.symbols) {
+      if (symbol.id == selectedFloorPlanSymbolId) {
+        return symbol;
+      }
+    }
+    return null;
+  }
+
+  /// The floor plans view's own focus — **derived, never a second field**
+  /// (`docs/plans/storyboard.md`, §4.3): `true` while a shot is selected (the shot focus), `false`
+  /// while none is (the `Sequence` focus). Every floor plans widget that needs to know which of the
+  /// two is showing reads this rather than [selectedShotId] directly, so the one rule ("no shot
+  /// selected means the sequence focus") lives in exactly one place.
+  bool get isFloorPlanShotFocusActive => selectedShotId != null;
+
+  /// The selected sequence's own shot immediately before [selectedShotId], or null while none is
+  /// selected, it is the sequence's first shot, or the selected sequence is the orphan group (no
+  /// floor plan set can ever belong to it) — the onion skin's own previous-shot ghost.
+  OcptShot? get previousShotOfSelectedShot => _neighbourShotOf(-1);
+
+  /// The selected sequence's own shot immediately after [selectedShotId]. See
+  /// [previousShotOfSelectedShot].
+  OcptShot? get nextShotOfSelectedShot => _neighbourShotOf(1);
+
+  /// [selectedShotId]'s own neighbour [offset] shots away in the selected sequence's own shot
+  /// order, or null while there is none (out of range, nothing selected, or the orphan group) — the
+  /// body [previousShotOfSelectedShot]/[nextShotOfSelectedShot] share.
+  OcptShot? _neighbourShotOf(int offset) {
+    final sequence = selectedSequence;
+    final selectedShotId = this.selectedShotId;
+    if (selectedShotId == null || sequence is! OcptSceneShotSequence) {
+      return null;
+    }
+
+    final shots = sequence.shots;
+    final index = shots.indexWhere((shot) => shot.id == selectedShotId);
+    final neighbourIndex = index + offset;
+    if (index < 0 || neighbourIndex < 0 || neighbourIndex >= shots.length) {
+      return null;
+    }
+    return shots[neighbourIndex];
+  }
+
+  /// The total number of live panels across every shot of the selected sequence — the board
+  /// header's own `· N panels` read-out.
+  int get boardPanelCountOfSelectedSequence {
+    final sequence = selectedSequence;
+    if (sequence == null) {
+      return 0;
+    }
+    return sequence.shots.fold(0, (total, shot) => total + panelsOfShot(shot.id).length);
   }
 
   /// The total number of shots across every sequence, orphan group included.
@@ -378,6 +694,30 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
     required this.screenplayText,
     required this.selectedSequenceId,
     required this.selectedShotId,
+    required this.centreView,
+    required this.storyboardSnapshot,
+    required this.selectedPanelId,
+    required this.boardPanelSize,
+    required this.activeAnnotationTool,
+    required this.selectedAnnotationId,
+    required this.floorPlanSnapshot,
+    required this.selectedSetId,
+    required this.selectedFloorPlanSymbolId,
+    required this.selectedFloorPlanArrowId,
+    required this.pendingCharacterNamePromptSymbolId,
+    required this.floorPlanZoom,
+    required this.floorPlanActiveTool,
+    required this.floorPlanActiveLayer,
+    required this.floorPlanActiveSetElementShape,
+    required this.floorPlanHiddenLayers,
+    required this.isFloorPlanUnderlayHidden,
+    required this.floorPlanHiddenCameraSymbolIds,
+    required this.isFloorPlanOnionSkinPreviousShown,
+    required this.isFloorPlanOnionSkinNextShown,
+    required this.floorPlanOnionSkinOpacity,
+    required this.isFloorPlanMetricsShown,
+    required this.isFloorPlanAllCamerasShown,
+    required this.pendingFloorPlanArrowAnchorSymbolId,
     required this.isSequencePanelVisible,
     required this.rightDockTab,
     required this.lastRightDockTab,
@@ -411,6 +751,30 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
       screenplayText = "",
       selectedSequenceId = null,
       selectedShotId = null,
+      centreView = OcptShotListCentreView.table,
+      storyboardSnapshot = null,
+      selectedPanelId = null,
+      boardPanelSize = OcptStoryboardPanelSize.medium,
+      activeAnnotationTool = null,
+      selectedAnnotationId = null,
+      floorPlanSnapshot = null,
+      selectedSetId = null,
+      selectedFloorPlanSymbolId = null,
+      selectedFloorPlanArrowId = null,
+      pendingCharacterNamePromptSymbolId = null,
+      floorPlanZoom = 1,
+      floorPlanActiveTool = OcptFloorPlanTool.select,
+      floorPlanActiveLayer = OcptFloorPlanLayer.set,
+      floorPlanActiveSetElementShape = OcptFloorPlanSetElementShape.wall,
+      floorPlanHiddenLayers = const {},
+      isFloorPlanUnderlayHidden = false,
+      floorPlanHiddenCameraSymbolIds = const {},
+      isFloorPlanOnionSkinPreviousShown = true,
+      isFloorPlanOnionSkinNextShown = true,
+      floorPlanOnionSkinOpacity = 0.4,
+      isFloorPlanMetricsShown = false,
+      isFloorPlanAllCamerasShown = false,
+      pendingFloorPlanArrowAnchorSymbolId = null,
       isSequencePanelVisible = true,
       rightDockTab = null,
       lastRightDockTab = OcptShotListRightDockTab.inspector,
@@ -437,10 +801,10 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
   /// {@macro act_flutter_utility.BlocStateForMixin.copyWith}
   ///
   /// [snapshot] is only replaced when a new one is given: it never goes back to null once loaded,
-  /// so it needs no clear flag. [selectedSequenceId], [selectedShotId], [rightDockTab],
-  /// [pendingCoverageAnchor] and [ioNotice] all legitimately go back to null while the mode is
-  /// alive (nothing selected any more, the dock closed, no range being drawn, the export notice
-  /// dismissed), so each has its own clear flag instead.
+  /// so it needs no clear flag. [selectedSequenceId], [selectedShotId], [selectedPanelId],
+  /// [rightDockTab], [pendingCoverageAnchor] and [ioNotice] all legitimately go back to null while
+  /// the mode is alive (nothing selected any more, the dock closed, no range being drawn, the
+  /// export notice dismissed), so each has its own clear flag instead.
   @override
   OcptShotListState copyWith({
     bool? isLoading,
@@ -452,6 +816,38 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
     bool clearSelectedSequenceId = false,
     String? selectedShotId,
     bool clearSelectedShotId = false,
+    OcptShotListCentreView? centreView,
+    OcptStoryboardSnapshot? storyboardSnapshot,
+    String? selectedPanelId,
+    bool clearSelectedPanelId = false,
+    OcptStoryboardPanelSize? boardPanelSize,
+    OcptStoryboardAnnotationTool? activeAnnotationTool,
+    bool clearActiveAnnotationTool = false,
+    String? selectedAnnotationId,
+    bool clearSelectedAnnotationId = false,
+    OcptFloorPlanSnapshot? floorPlanSnapshot,
+    String? selectedSetId,
+    bool clearSelectedSetId = false,
+    String? selectedFloorPlanSymbolId,
+    bool clearSelectedFloorPlanSymbolId = false,
+    String? selectedFloorPlanArrowId,
+    bool clearSelectedFloorPlanArrowId = false,
+    String? pendingCharacterNamePromptSymbolId,
+    bool clearPendingCharacterNamePromptSymbolId = false,
+    double? floorPlanZoom,
+    OcptFloorPlanTool? floorPlanActiveTool,
+    OcptFloorPlanLayer? floorPlanActiveLayer,
+    OcptFloorPlanSetElementShape? floorPlanActiveSetElementShape,
+    Set<OcptFloorPlanLayer>? floorPlanHiddenLayers,
+    bool? isFloorPlanUnderlayHidden,
+    Set<String>? floorPlanHiddenCameraSymbolIds,
+    bool? isFloorPlanOnionSkinPreviousShown,
+    bool? isFloorPlanOnionSkinNextShown,
+    double? floorPlanOnionSkinOpacity,
+    bool? isFloorPlanMetricsShown,
+    bool? isFloorPlanAllCamerasShown,
+    String? pendingFloorPlanArrowAnchorSymbolId,
+    bool clearPendingFloorPlanArrowAnchorSymbolId = false,
     bool? isSequencePanelVisible,
     OcptShotListRightDockTab? rightDockTab,
     bool clearRightDockTab = false,
@@ -465,7 +861,7 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
     List<String>? screenplayCharacters,
     List<OcptRole>? roles,
     OcptShotFieldSuggestions? suggestions,
-    Map<(String, OcptShotListEditableField), String>? pendingFieldEdits,
+    Map<OcptShotListPendingEditKey, String>? pendingFieldEdits,
     ({int wordStartOffset, int wordEndOffset})? pendingCoverageAnchor,
     bool clearPendingCoverageAnchor = false,
     List<OcptProjectVersion>? projectVersions,
@@ -495,6 +891,46 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
         ? null
         : (selectedSequenceId ?? this.selectedSequenceId),
     selectedShotId: clearSelectedShotId ? null : (selectedShotId ?? this.selectedShotId),
+    centreView: centreView ?? this.centreView,
+    storyboardSnapshot: storyboardSnapshot ?? this.storyboardSnapshot,
+    selectedPanelId: clearSelectedPanelId ? null : (selectedPanelId ?? this.selectedPanelId),
+    boardPanelSize: boardPanelSize ?? this.boardPanelSize,
+    activeAnnotationTool: clearActiveAnnotationTool
+        ? null
+        : (activeAnnotationTool ?? this.activeAnnotationTool),
+    selectedAnnotationId: clearSelectedAnnotationId
+        ? null
+        : (selectedAnnotationId ?? this.selectedAnnotationId),
+    floorPlanSnapshot: floorPlanSnapshot ?? this.floorPlanSnapshot,
+    selectedSetId: clearSelectedSetId ? null : (selectedSetId ?? this.selectedSetId),
+    selectedFloorPlanSymbolId: clearSelectedFloorPlanSymbolId
+        ? null
+        : (selectedFloorPlanSymbolId ?? this.selectedFloorPlanSymbolId),
+    selectedFloorPlanArrowId: clearSelectedFloorPlanArrowId
+        ? null
+        : (selectedFloorPlanArrowId ?? this.selectedFloorPlanArrowId),
+    pendingCharacterNamePromptSymbolId: clearPendingCharacterNamePromptSymbolId
+        ? null
+        : (pendingCharacterNamePromptSymbolId ?? this.pendingCharacterNamePromptSymbolId),
+    floorPlanZoom: floorPlanZoom ?? this.floorPlanZoom,
+    floorPlanActiveTool: floorPlanActiveTool ?? this.floorPlanActiveTool,
+    floorPlanActiveLayer: floorPlanActiveLayer ?? this.floorPlanActiveLayer,
+    floorPlanActiveSetElementShape:
+        floorPlanActiveSetElementShape ?? this.floorPlanActiveSetElementShape,
+    floorPlanHiddenLayers: floorPlanHiddenLayers ?? this.floorPlanHiddenLayers,
+    isFloorPlanUnderlayHidden: isFloorPlanUnderlayHidden ?? this.isFloorPlanUnderlayHidden,
+    floorPlanHiddenCameraSymbolIds:
+        floorPlanHiddenCameraSymbolIds ?? this.floorPlanHiddenCameraSymbolIds,
+    isFloorPlanOnionSkinPreviousShown:
+        isFloorPlanOnionSkinPreviousShown ?? this.isFloorPlanOnionSkinPreviousShown,
+    isFloorPlanOnionSkinNextShown:
+        isFloorPlanOnionSkinNextShown ?? this.isFloorPlanOnionSkinNextShown,
+    floorPlanOnionSkinOpacity: floorPlanOnionSkinOpacity ?? this.floorPlanOnionSkinOpacity,
+    isFloorPlanMetricsShown: isFloorPlanMetricsShown ?? this.isFloorPlanMetricsShown,
+    isFloorPlanAllCamerasShown: isFloorPlanAllCamerasShown ?? this.isFloorPlanAllCamerasShown,
+    pendingFloorPlanArrowAnchorSymbolId: clearPendingFloorPlanArrowAnchorSymbolId
+        ? null
+        : (pendingFloorPlanArrowAnchorSymbolId ?? this.pendingFloorPlanArrowAnchorSymbolId),
     isSequencePanelVisible: isSequencePanelVisible ?? this.isSequencePanelVisible,
     rightDockTab: clearRightDockTab ? null : (rightDockTab ?? this.rightDockTab),
     lastRightDockTab: lastRightDockTab ?? this.lastRightDockTab,
@@ -592,6 +1028,30 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
     screenplayText,
     selectedSequenceId,
     selectedShotId,
+    centreView,
+    storyboardSnapshot,
+    selectedPanelId,
+    boardPanelSize,
+    activeAnnotationTool,
+    selectedAnnotationId,
+    floorPlanSnapshot,
+    selectedSetId,
+    selectedFloorPlanSymbolId,
+    selectedFloorPlanArrowId,
+    pendingCharacterNamePromptSymbolId,
+    floorPlanZoom,
+    floorPlanActiveTool,
+    floorPlanActiveLayer,
+    floorPlanActiveSetElementShape,
+    floorPlanHiddenLayers,
+    isFloorPlanUnderlayHidden,
+    floorPlanHiddenCameraSymbolIds,
+    isFloorPlanOnionSkinPreviousShown,
+    isFloorPlanOnionSkinNextShown,
+    floorPlanOnionSkinOpacity,
+    isFloorPlanMetricsShown,
+    isFloorPlanAllCamerasShown,
+    pendingFloorPlanArrowAnchorSymbolId,
     isSequencePanelVisible,
     rightDockTab,
     lastRightDockTab,

@@ -18,3 +18,21 @@ const ocptImageFileExtensions = ["jpg", "jpeg", "png", "webp", "bmp", "gif"];
 /// Images are in the list beside `pdf`: a permit granted by email and photographed, or scanned to
 /// a JPEG, is the ordinary case on a short film.
 const ocptDocumentFileExtensions = ["pdf", ...ocptImageFileExtensions];
+
+/// The file extensions the native picker offers when a storyboard panel's frame is being imported
+/// or replaced.
+///
+/// Narrower than [ocptImageFileExtensions] on purpose (`docs/plans/storyboard.md`, §4.2, §8,
+/// decision 5): the storyboard PDF embeds a panel's image bytes at render time, and the `pdf`
+/// package only embeds JPEG and PNG, so a format this filter let through but that export couldn't
+/// draw would work on screen and fail on paper. A frame in another format is converted before
+/// import.
+const ocptStoryboardPanelImageFileExtensions = ["jpg", "jpeg", "png"];
+
+/// The file extensions the native picker offers when a floor plan case's underlay (a photo or a
+/// scanned plan) is being imported or replaced.
+///
+/// The same narrowing as [ocptStoryboardPanelImageFileExtensions], for the same reason: the M7
+/// floor-plans PDF embeds a case's underlay at render time through the `pdf` package, which only
+/// embeds JPEG and PNG. A plan in another format is converted before import.
+const ocptFloorPlanUnderlayImageFileExtensions = ["jpg", "jpeg", "png"];

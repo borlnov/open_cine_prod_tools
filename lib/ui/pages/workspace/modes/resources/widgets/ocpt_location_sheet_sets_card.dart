@@ -245,7 +245,7 @@ class OcptLocationSheetSetsCard extends StatelessWidget {
     );
   }
 
-  /// The `+ Scene` picker of [set]: the scenes with no set at all first, this set's suggested ones
+  /// The `Scene` picker of [set]: the scenes with no set at all first, this set's suggested ones
   /// at the top of them, then the scenes already shot elsewhere under their own heading — picking
   /// one of those adds this set beside the ones it already has.
   Widget _buildScenePicker(BuildContext context, Tr tr, OcptSet set) {

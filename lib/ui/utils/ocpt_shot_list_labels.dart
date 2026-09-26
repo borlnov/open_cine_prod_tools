@@ -6,11 +6,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
+import 'package:open_cine_prod_tools/models/ocpt_floor_plan_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_scenario_coverage_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_list_xlsx_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_placement.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
 import 'package:open_cine_prod_tools/models/ocpt_specific_colors.dart';
+import 'package:open_cine_prod_tools/models/ocpt_storyboard_labels.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_column.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_xlsx_column.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_status.dart';
@@ -120,6 +122,65 @@ OcptScenarioCoverageLabels ocptScenarioCoverageLabelsOf(Tr tr, List<OcptShotSequ
       summaryUncoveredHeader: tr.shotListExportCoverageSummaryUncoveredHeader,
       laneOverflowNote: tr.shotListExportCoverageLaneOverflowNote,
       sequenceTitles: ocptShotListSequenceTitlesOf(tr, sequences),
+    );
+
+/// Builds every localized string the exported storyboard document carries, for the [sequences] it
+/// is being built from.
+///
+/// The third sibling of [ocptShotListXlsxLabelsOf] and [ocptScenarioCoverageLabelsOf], and the same
+/// single bridge between the UI's `Tr` and a service running in the manager layer. Every
+/// key-information field reuses the shot table's own column labels through
+/// [ocptShotListXlsxColumnLabel]'s keys, `noPanelNote` reuses the board's own
+/// `shotListBoardNoPanelYetHint`, and `fileNotFoundNote` reuses the resources mode's own
+/// `resourcesAssetFileMissing` — the very words a reader already sees on screen for "nothing
+/// referenced here" and for "referenced but not found" (ADR 0013).
+OcptStoryboardLabels ocptStoryboardLabelsOf(Tr tr, List<OcptShotSequence> sequences) =>
+    OcptStoryboardLabels(
+      fileNameSuffix: tr.shotListExportStoryboardFileNameSuffix,
+      documentTitle: tr.shotListExportStoryboardTitle,
+      shotSizeLabel: tr.shotListColumnShotSize,
+      framingLabel: tr.shotListColumnFraming,
+      cameraMoveLabel: tr.shotListColumnCameraMove,
+      lensLabel: tr.shotListColumnLens,
+      recordingFormatLabel: tr.shotListColumnFormat,
+      castLabel: tr.shotListColumnCharacters,
+      statusLabels: {
+        for (final status in OcptShotStatus.values) status: ocptShotStatusLabel(tr, status),
+      },
+      noPanelNote: tr.shotListBoardNoPanelYetHint,
+      fileNotFoundNote: tr.resourcesAssetFileMissing,
+      sequenceTitles: ocptShotListSequenceTitlesOf(tr, sequences),
+    );
+
+/// Builds every localized string the exported floor plans document carries, for the [sequences] it
+/// is being built from.
+///
+/// The sibling of [ocptStoryboardLabelsOf] for the other document M7 adds. `noCameraNote` reuses
+/// the floor plans view's own Placements group hint
+/// (`shotListFloorPlanPlacementsNoCameraHint`), so the printed bare-décor page says the very thing
+/// the inspector already says about a case with no camera on it. `scaleBarUnitLabel` is the fixed
+/// `m` half of `shotListFloorPlanScaleBarLengthLabel`'s own `{length} m` pattern — that key itself
+/// takes a pre-formatted string built by `ocptFloorPlanScaleBarLengthLabelOf`, which is not known
+/// until the page is laid out (the printed scale depends on the case's own bounding box), so this
+/// builder resolves the fixed unit word once and `OcptFloorPlanLabels.scaleBarLabelOf` rebuilds the
+/// same pattern purely at render time — exactly how `OcptShotListXlsxLabels.dayTagPrefix` and
+/// `ocptScheduleDayTagLabel` already split a formatted string's fixed and variable halves apart.
+OcptFloorPlanLabels ocptFloorPlanLabelsOf(Tr tr, List<OcptShotSequence> sequences) =>
+    OcptFloorPlanLabels(
+      fileNameSuffix: tr.shotListExportFloorPlansFileNameSuffix,
+      documentTitle: tr.shotListExportFloorPlansTitle,
+      shotSizeLabel: tr.shotListColumnShotSize,
+      framingLabel: tr.shotListColumnFraming,
+      cameraMoveLabel: tr.shotListColumnCameraMove,
+      lensLabel: tr.shotListColumnLens,
+      recordingFormatLabel: tr.shotListColumnFormat,
+      castLabel: tr.shotListColumnCharacters,
+      statusLabels: {
+        for (final status in OcptShotStatus.values) status: ocptShotStatusLabel(tr, status),
+      },
+      sequenceTitles: ocptShotListSequenceTitlesOf(tr, sequences),
+      noCameraNote: tr.shotListFloorPlanPlacementsNoCameraHint,
+      scaleBarUnitLabel: tr.shotListExportFloorPlansScaleBarUnitLabel,
     );
 
 /// The title of each of the [sequences], keyed by `OcptShotSequence.id`, as both exports name them.

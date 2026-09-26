@@ -10,28 +10,45 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
+import 'package:open_cine_prod_tools/models/ocpt_floor_plan_set.dart';
+import 'package:open_cine_prod_tools/models/ocpt_floor_plan_sheet.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_package_report.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
+import 'package:open_cine_prod_tools/models/ocpt_storyboard_annotation.dart';
 import 'package:open_cine_prod_tools/models/ocpt_workspace_export_entry.dart';
 import 'package:open_cine_prod_tools/models/ocpt_workspace_export_pick.dart';
+import 'package:open_cine_prod_tools/types/ocpt_floor_plan_layer.dart';
 import 'package:open_cine_prod_tools/types/ocpt_route.dart';
+import 'package:open_cine_prod_tools/types/ocpt_shot_list_centre_view.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_export_document.dart';
+import 'package:open_cine_prod_tools/types/ocpt_shot_list_pending_edit_key.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_project_package_events.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_project_versions_events.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_event.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_state.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_floor_plan_character_name_picker_dialog.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_floor_plan_copy_blocking_dialog.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_floor_plan_palette.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_floor_plan_placements_group.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_floor_plan_set_tabs.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_floor_plan_view.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_scenario_coverage_export_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_shot_coverage_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_shot_inspector_panel.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_shot_list_centre_header.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_shot_list_columns_menu.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_shot_list_right_dock.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_shot_list_sequence_panel.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_shot_list_status_bar.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_shot_list_table.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_shot_metadata_panel.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_storyboard_board.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_storyboard_export_dialog.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_storyboard_panel_size_menu.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_storyboard_panels_group.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_project_version_create_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_project_versions_panel.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_role_alert_banner.dart';
@@ -129,46 +146,51 @@ class _ShotListViewState extends State<_ShotListView> {
       final workspaceState = context.watch<OcptWorkspaceBloc>().state;
 
       return LayoutBuilder(
-        builder: (context, constraints) => OcptWorkspaceShell(
-          title: state.title,
-          isDirty: false,
-          isReadOnly: state.isPreviewingVersion,
-          onBack: () =>
-              context.read<OcptShotListBloc>().add(const OcptShotListBackRequestedEvent()),
-          episodes: workspaceState.episodes,
-          selectedEpisodeId: workspaceState.selectedEpisodeId,
-          onEpisodeSelected: (episodeId) => context.read<OcptWorkspaceBloc>().add(
-            OcptWorkspaceEpisodeSelectedEvent(episodeId: episodeId),
-          ),
-          modeLabel: Tr.of(context).workspaceModeLabelShotList,
-          onExportRequested: (anchor) => unawaited(_requestExport(context, state, anchor)),
-          overflowEntries: _buildOverflowEntries(context),
-          isLeftDockOpen: state.isSequencePanelVisible,
-          onToggleLeftDock: () => context.read<OcptShotListBloc>().add(
-            const OcptShotListSequencePanelToggledEvent(),
-          ),
-          isRightDockOpen: state.rightDockTab != null,
-          onToggleRightDock: () => context.read<OcptShotListBloc>().add(
-            const OcptShotListRightDockToggledEvent(),
-          ),
-          onProjectSettingsRequested: state.isPreviewingVersion
-              ? null
-              : () => _requestProjectSettings(context),
-          banner: _buildReadOnlyBanner(context, state),
-          leftPanel: _buildSequencePanel(context, state),
-          rightPanel: _buildRightDock(context, state),
-          centre: _buildCentre(context, state, ocptIsCompactWidth(constraints.maxWidth)),
-          statusBar: OcptShotListStatusBar(
-            sequenceCount: state.sequenceCount,
-            shotCount: state.totalShotCount,
-            filmedShotCount: state.filmedShotCount,
-            shotsToCheckCount: state.shotsToCheckCount,
-          ),
-          dockLayoutController: _dockLayoutController,
-          onDockFractionsChanged: (fractions) => context.read<OcptShotListBloc>().add(
-            OcptShotListDockFractionsChangedEvent(left: fractions.left, right: fractions.right),
-          ),
-        ),
+        builder: (context, constraints) {
+          final isCompact = ocptIsCompactWidth(constraints.maxWidth);
+
+          return OcptWorkspaceShell(
+            title: state.title,
+            isDirty: false,
+            isReadOnly: state.isPreviewingVersion,
+            onBack: () =>
+                context.read<OcptShotListBloc>().add(const OcptShotListBackRequestedEvent()),
+            episodes: workspaceState.episodes,
+            selectedEpisodeId: workspaceState.selectedEpisodeId,
+            onEpisodeSelected: (episodeId) => context.read<OcptWorkspaceBloc>().add(
+              OcptWorkspaceEpisodeSelectedEvent(episodeId: episodeId),
+            ),
+            modeLabel: Tr.of(context).workspaceModeLabelShotList,
+            onExportRequested: (anchor) => unawaited(_requestExport(context, state, anchor)),
+            overflowEntries: _buildOverflowEntries(context),
+            isLeftDockOpen: state.isSequencePanelVisible,
+            onToggleLeftDock: () => context.read<OcptShotListBloc>().add(
+              const OcptShotListSequencePanelToggledEvent(),
+            ),
+            isRightDockOpen: state.rightDockTab != null,
+            onToggleRightDock: () => context.read<OcptShotListBloc>().add(
+              const OcptShotListRightDockToggledEvent(),
+            ),
+            onProjectSettingsRequested: state.isPreviewingVersion
+                ? null
+                : () => _requestProjectSettings(context),
+            banner: _buildReadOnlyBanner(context, state),
+            leftPanel: _buildSequencePanel(context, state),
+            rightPanel: _buildRightDock(context, state, isCompact),
+            centre: _buildCentre(context, state, isCompact),
+            statusBar: OcptShotListStatusBar(
+              sequenceCount: state.sequenceCount,
+              shotCount: state.totalShotCount,
+              filmedShotCount: state.filmedShotCount,
+              shotsToCheckCount: state.shotsToCheckCount,
+              hint: _statusBarHint(context, state, isCompact),
+            ),
+            dockLayoutController: _dockLayoutController,
+            onDockFractionsChanged: (fractions) => context.read<OcptShotListBloc>().add(
+              OcptShotListDockFractionsChangedEvent(left: fractions.left, right: fractions.right),
+            ),
+          );
+        },
       );
     },
   );
@@ -184,9 +206,12 @@ class _ShotListViewState extends State<_ShotListView> {
     ),
   ];
 
-  /// Builds the two entries the toolbar's `Export` button offers: the shot list workbook and the
-  /// scenario coverage PDF, both unavailable while the shot list holds no shot at all — there would
-  /// be nothing in the workbook but its header row, and nothing to annotate the screenplay with.
+  /// Builds the four entries the toolbar's `Export` button offers: the shot list workbook and the
+  /// scenario coverage PDF, unavailable while the shot list holds no shot at all — there would be
+  /// nothing in the workbook but its header row, and nothing to annotate the screenplay with — and
+  /// the storyboard PDF and the floor plans PDF, each unavailable for its own, narrower reason
+  /// (`docs/plans/storyboard.md`, §5): a shot list can hold shots without holding a single panel,
+  /// or without a single camera placed on any of its floor plans.
   List<OcptWorkspaceExportEntry<OcptShotListExportDocument>> _buildExportEntries(
     BuildContext context,
     OcptShotListState state,
@@ -209,13 +234,32 @@ class _ShotListViewState extends State<_ShotListView> {
         formatLabel: "PDF",
         unavailableReason: unavailableReason,
       ),
+      OcptWorkspaceExportEntry<OcptShotListExportDocument>(
+        value: OcptShotListExportDocument.storyboard,
+        title: tr.shotListExportStoryboardTitle,
+        description: tr.shotListExportStoryboardDescription,
+        formatLabel: "PDF",
+        unavailableReason: state.hasAnyStoryboardPanel
+            ? null
+            : tr.shotListExportStoryboardUnavailableReason,
+      ),
+      OcptWorkspaceExportEntry<OcptShotListExportDocument>(
+        value: OcptShotListExportDocument.floorPlans,
+        title: tr.shotListExportFloorPlansTitle,
+        description: tr.shotListExportFloorPlansDescription,
+        formatLabel: "PDF",
+        unavailableReason: state.hasAnyFloorPlanCamera
+            ? null
+            : tr.shotListExportFloorPlansUnavailableReason,
+      ),
     ];
   }
 
   /// Opens the export panel, then dispatches the picked document's own request: the XLSX export
-  /// event directly (it opens no options dialog of its own, mirroring the table's own
-  /// `Export XLSX` button), or [_requestScenarioCoverageExport], which opens the scenario coverage
-  /// export options dialog exactly as it always has.
+  /// event and the floor plans export event directly (neither opens an options dialog of its own —
+  /// the table's own `Export XLSX` button mirrors the first, the workbook mirrors the second), or
+  /// [_requestScenarioCoverageExport]/[_requestStoryboardExport], which each open their own export
+  /// options dialog first.
   Future<void> _requestExport(
     BuildContext context,
     OcptShotListState state,
@@ -243,6 +287,10 @@ class _ShotListViewState extends State<_ShotListView> {
             _requestXlsxExport(context, state, shareAnchor);
           case OcptShotListExportDocument.coverage:
             await _requestScenarioCoverageExport(context, state, shareAnchor);
+          case OcptShotListExportDocument.storyboard:
+            await _requestStoryboardExport(context, state, shareAnchor);
+          case OcptShotListExportDocument.floorPlans:
+            _requestFloorPlansExport(context, state, shareAnchor);
         }
       case OcptWorkspaceExportProjectPackagePick<OcptShotListExportDocument>():
         _requestProjectPackageExport(context);
@@ -290,6 +338,53 @@ class _ShotListViewState extends State<_ShotListView> {
         options: options,
         labels: ocptScenarioCoverageLabelsOf(tr, state.sequences),
         fileTypeLabel: tr.shotListExportCoverageFileTypeLabel,
+        episodeTag: _episodeExportTag(context),
+        shareAnchor: shareAnchor,
+      ),
+    );
+  }
+
+  /// Shows the storyboard export options dialog, then dispatches the export request if the user
+  /// applied it, resolving here — the last place with a [BuildContext] — every localized string
+  /// the exported document (and, when its toggle is on, the appended floor plan sheets) and the
+  /// native save dialog carry.
+  Future<void> _requestStoryboardExport(
+    BuildContext context,
+    OcptShotListState state,
+    Rect? shareAnchor,
+  ) async {
+    final bloc = context.read<OcptShotListBloc>();
+    final options = await OcptStoryboardExportDialog.show(context, current: state.pageSetup);
+    if (options == null) {
+      return;
+    }
+    if (!context.mounted) {
+      return;
+    }
+
+    final tr = Tr.of(context);
+    bloc.add(
+      OcptShotListStoryboardExportRequestedEvent(
+        options: options,
+        labels: ocptStoryboardLabelsOf(tr, state.sequences),
+        floorPlanLabels: ocptFloorPlanLabelsOf(tr, state.sequences),
+        fileTypeLabel: tr.shotListExportStoryboardFileTypeLabel,
+        episodeTag: _episodeExportTag(context),
+        shareAnchor: shareAnchor,
+      ),
+    );
+  }
+
+  /// Dispatches the floor plans export request, resolving here — the last place with a
+  /// [BuildContext] — every localized string the exported document and the native save dialog
+  /// carry. Opens no options dialog of its own, mirroring the table's own `Export XLSX` button.
+  void _requestFloorPlansExport(BuildContext context, OcptShotListState state, Rect? shareAnchor) {
+    final tr = Tr.of(context);
+
+    context.read<OcptShotListBloc>().add(
+      OcptShotListFloorPlansExportRequestedEvent(
+        labels: ocptFloorPlanLabelsOf(tr, state.sequences),
+        fileTypeLabel: tr.shotListExportFloorPlansFileTypeLabel,
         episodeTag: _episodeExportTag(context),
         shareAnchor: shareAnchor,
       ),
@@ -392,7 +487,7 @@ class _ShotListViewState extends State<_ShotListView> {
   /// mismatch about the whole cast, not something about the sequence currently being looked at.
   Widget _buildCentre(BuildContext context, OcptShotListState state, bool isCompact) {
     final banners = _buildRoleAlertBanners(context, state);
-    final body = _buildSequenceBody(context, state);
+    final body = _buildSequenceBody(context, state, isCompact);
 
     final content = banners.isEmpty
         ? body
@@ -515,9 +610,15 @@ class _ShotListViewState extends State<_ShotListView> {
     );
   }
 
-  /// Builds what the centre shows under the banners: the selected sequence's header, the
-  /// `Columns ▾` menu and its shot table, or the empty state while no sequence is selected.
-  Widget _buildSequenceBody(BuildContext context, OcptShotListState state) {
+  /// Builds what the centre shows under the banners: the header (the view switch, the sequence's
+  /// own title/summary and whatever the active view needs), then the table, the board or the
+  /// floor plans, or the empty state while no sequence is selected.
+  ///
+  /// A compact width shows the table regardless of `state.centreView`: the board and the floor
+  /// plans are large-screen views in v1 (`docs/plans/storyboard.md`, §4.3), so the switch itself
+  /// offers the table only and this stays in lock-step with it rather than reading a second
+  /// predicate.
+  Widget _buildSequenceBody(BuildContext context, OcptShotListState state, bool isCompact) {
     final tr = Tr.of(context);
     final sequence = state.selectedSequence;
 
@@ -528,66 +629,910 @@ class _ShotListViewState extends State<_ShotListView> {
       );
     }
 
+    final isBoardShown = !isCompact && state.centreView == OcptShotListCentreView.board;
+    final isFloorPlansShown = !isCompact && state.centreView == OcptShotListCentreView.floorPlans;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(24, 18, 24, 0),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Expanded(child: _SequenceHeader(sequence: sequence)),
-              OcptShotListColumnsMenu(
-                visibleColumns: state.visibleColumns,
-                onColumnToggled: (column) => context.read<OcptShotListBloc>().add(
-                  OcptShotListColumnToggledEvent(column: column),
+          child: OcptShotListCentreHeader(
+            sequence: sequence,
+            centreView: state.centreView,
+            isBoardAvailable: !isCompact,
+            isFloorPlansAvailable: !isCompact,
+            boardPanelCount: state.boardPanelCountOfSelectedSequence,
+            onCentreViewSelected: (view) => context.read<OcptShotListBloc>().add(
+              OcptShotListCentreViewSelectedEvent(view: view),
+            ),
+            trailing: switch ((isBoardShown, isFloorPlansShown)) {
+              (true, _) => OcptStoryboardPanelSizeMenu(
+                value: state.boardPanelSize,
+                onChanged: (size) => context.read<OcptShotListBloc>().add(
+                  OcptShotListPanelSizeChangedEvent(size: size),
                 ),
               ),
-              const SizedBox(width: 8),
-              // Exports the whole shot list, not the sequence this header names: the button sits
-              // here because the mock-up puts it next to the columns menu, not because it is
-              // scoped to what the table below currently shows. Wrapped in its own Builder so the
-              // anchor handed to the export is this button's own screen Rect, not some ancestor's.
-              Builder(
-                builder: (buttonContext) => OutlinedButton.icon(
-                  onPressed: state.totalShotCount > 0
-                      ? () => _requestXlsxExport(
-                          context,
-                          state,
-                          ocptExportShareAnchorOf(buttonContext),
-                        )
-                      : null,
-                  icon: const Icon(Icons.file_download_outlined, size: 16),
-                  label: Text(tr.shotListExportXlsxAction),
-                ),
-              ),
-            ],
+              (_, true) => _buildSetTabs(context, state, sequence),
+              _ => _buildTableTrailingControls(context, state),
+            },
           ),
         ),
         Expanded(
           child: Padding(
             padding: const EdgeInsets.fromLTRB(24, 14, 24, 20),
-            child: OcptShotListTable(
-              shots: sequence.shots,
-              sequenceHeading: switch (sequence) {
-                OcptSceneShotSequence() => sequence.heading,
-                OcptOrphanShotSequence() => ocptShotListEmptyValue,
-              },
-              visibleColumns: state.visibleColumns,
-              selectedShotId: state.selectedShotId,
-              placementsByShotId: state.snapshot?.placementsByShotId ?? const {},
-              onShotSelected: (shotId) => context.read<OcptShotListBloc>().add(
-                OcptShotListShotSelectedEvent(shotId: shotId),
+            child: switch ((isBoardShown, isFloorPlansShown)) {
+              (true, _) => _buildBoard(context, state, sequence),
+              (_, true) => _buildFloorPlanView(context, state, sequence),
+              _ => OcptShotListTable(
+                shots: sequence.shots,
+                sequenceHeading: switch (sequence) {
+                  OcptSceneShotSequence() => sequence.heading,
+                  OcptOrphanShotSequence() => ocptShotListEmptyValue,
+                },
+                visibleColumns: state.visibleColumns,
+                selectedShotId: state.selectedShotId,
+                placementsByShotId: state.snapshot?.placementsByShotId ?? const {},
+                onShotSelected: (shotId) => context.read<OcptShotListBloc>().add(
+                  OcptShotListShotSelectedEvent(shotId: shotId),
+                ),
               ),
-            ),
+            },
           ),
         ),
       ],
     );
   }
 
+  /// The table view's own trailing controls, unchanged from what `_SequenceHeader`'s row used to
+  /// build beside it: the `Columns ▾` menu and the `Export XLSX` button.
+  Widget _buildTableTrailingControls(BuildContext context, OcptShotListState state) {
+    final tr = Tr.of(context);
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        OcptShotListColumnsMenu(
+          visibleColumns: state.visibleColumns,
+          onColumnToggled: (column) => context.read<OcptShotListBloc>().add(
+            OcptShotListColumnToggledEvent(column: column),
+          ),
+        ),
+        const SizedBox(width: 8),
+        // Exports the whole shot list, not the sequence this header names: the button sits here
+        // because the mock-up puts it next to the columns menu, not because it is scoped to what
+        // the table below currently shows. Wrapped in its own Builder so the anchor handed to the
+        // export is this button's own screen Rect, not some ancestor's.
+        Builder(
+          builder: (buttonContext) => OutlinedButton.icon(
+            onPressed: state.totalShotCount > 0
+                ? () =>
+                      _requestXlsxExport(context, state, ocptExportShareAnchorOf(buttonContext))
+                : null,
+            icon: const Icon(Icons.file_download_outlined, size: 16),
+            label: Text(tr.shotListExportXlsxAction),
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// Builds the board view: the selected sequence's shots as `OcptStoryboardShotRow`s, wired to
+  /// every board write event, each withheld (a null callback) under a version preview.
+  Widget _buildBoard(BuildContext context, OcptShotListState state, OcptShotSequence sequence) {
+    final bloc = context.read<OcptShotListBloc>();
+    final isReadOnly = state.isPreviewingVersion;
+    final tr = Tr.of(context);
+
+    return OcptStoryboardBoard(
+      shots: sequence.shots,
+      roles: state.roles,
+      panelsByShotId: state.storyboardSnapshot?.panelsByShotId ?? const {},
+      panelSize: state.boardPanelSize,
+      selectedShotId: state.selectedShotId,
+      selectedPanelId: state.selectedPanelId,
+      isReadOnly: isReadOnly,
+      onShotSelected: (shotId) => bloc.add(OcptShotListShotSelectedEvent(shotId: shotId)),
+      onPanelSelected: (panelId) => bloc.add(OcptShotListPanelSelectedEvent(panelId: panelId)),
+      onImportRequested: isReadOnly
+          ? null
+          : (shotId) => bloc.add(
+              OcptShotListPanelImportRequestedEvent(
+                shotId: shotId,
+                fileTypeLabel: tr.shotListBoardImageFileTypeLabel,
+              ),
+            ),
+      onReplaceRequested: isReadOnly
+          ? null
+          : (panelId) => bloc.add(
+              OcptShotListPanelReplaceRequestedEvent(
+                panelId: panelId,
+                fileTypeLabel: tr.shotListBoardImageFileTypeLabel,
+              ),
+            ),
+      onDeleteRequested: isReadOnly
+          ? null
+          : (panelId) => unawaited(_handlePanelDeleteRequested(context, panelId)),
+      onPanelReordered: isReadOnly
+          ? null
+          : (shotId, panelId, newPosition) => bloc.add(
+              OcptShotListPanelReorderedEvent(
+                shotId: shotId,
+                panelId: panelId,
+                newPosition: newPosition,
+              ),
+            ),
+      activeAnnotationTool: state.activeAnnotationTool,
+      selectedAnnotationId: state.selectedAnnotationId,
+      onAnnotationDrawn: isReadOnly
+          ? null
+          : (panelId, kind, x1, y1, x2, y2) => bloc.add(
+              OcptShotListAnnotationDrawnEvent(
+                panelId: panelId,
+                kind: kind,
+                x1: x1,
+                y1: y1,
+                x2: x2,
+                y2: y2,
+              ),
+            ),
+      onLabelPlaced: isReadOnly
+          ? null
+          : (panelId, x, y) =>
+                bloc.add(OcptShotListAnnotationPlacedEvent(panelId: panelId, x1: x, y1: y)),
+      onAnnotationSelected: (annotationId) =>
+          bloc.add(OcptShotListAnnotationSelectedEvent(annotationId: annotationId)),
+    );
+  }
+
+  /// Builds the floor plans view's own set tabs, the header's trailing slot while it is shown:
+  /// `＋ Set` is wired only when the selected sequence is a real screenplay scene (mirroring
+  /// `_buildSequencePanel`'s own `onShotCreated` gating), and every write is withheld under a
+  /// version preview. Reordering is withheld unconditionally: a tab is now a `scene_sets` link,
+  /// which carries no order of its own (`docs/plans/storyboard.md`, §10).
+  Widget _buildSetTabs(BuildContext context, OcptShotListState state, OcptShotSequence sequence) {
+    final bloc = context.read<OcptShotListBloc>();
+    final tr = Tr.of(context);
+    final isReadOnly = state.isPreviewingVersion;
+    final canCreateSet = sequence is OcptSceneShotSequence && !isReadOnly;
+
+    return OcptFloorPlanSetTabs(
+      sets: state.setsOfSelectedSequence,
+      selectedSetId: state.selectedSetId,
+      nameValueOf: (setId) => _setNameValueOf(state, setId),
+      placedShotCountOf: (setId) => _placedShotCountOf(state, setId),
+      onSetSelected: (setId) => bloc.add(OcptShotListSetSelectedEvent(setId: setId)),
+      onSetCreationRequested: canCreateSet
+          ? () => bloc.add(const OcptShotListSetCreationRequestedEvent())
+          : null,
+      onSetDuplicateRequested: isReadOnly
+          ? null
+          : (setId) => bloc.add(
+              OcptShotListSetDuplicationRequestedEvent(
+                setId: setId,
+                newSetName: tr.shotListFloorPlanDuplicateSetDefaultName(
+                  _setNameValueOf(state, setId),
+                ),
+              ),
+            ),
+      onCopyBlockingRequested: isReadOnly || state.selectedShotId == null
+          ? null
+          : (setId) => unawaited(_handleCopyBlockingRequested(context, state, setId)),
+      onSetNameChanged: isReadOnly
+          ? null
+          : (setId, rawValue) =>
+                bloc.add(OcptShotListSetNameChangedEvent(setId: setId, rawValue: rawValue)),
+      onSetReordered: null,
+      onSetDeleteRequested: isReadOnly
+          ? null
+          : (setId) => unawaited(_handleSetDeleteRequested(context, state, setId)),
+    );
+  }
+
+  /// How many of the selected sequence's own shots carry at least one live symbol on set [setId] —
+  /// the set tabs' own placed-shot count badge (R3, `docs/plans/storyboard.md`, §9.4).
+  int _placedShotCountOf(OcptShotListState state, String setId) {
+    for (final floorPlanSet in state.setsOfSelectedSequence) {
+      if (floorPlanSet.id == setId) {
+        return floorPlanSet.symbols.map((symbol) => symbol.shotId).whereType<String>().toSet().length;
+      }
+    }
+    return 0;
+  }
+
+  /// Opens `OcptFloorPlanCopyBlockingDialog` over the sequence's own other shots, then dispatches
+  /// the copy once one is picked — the set tabs' own `＋ Set` menu `Copy blocking from another
+  /// shot` entry, which only asks which shot to copy from.
+  Future<void> _handleCopyBlockingRequested(
+    BuildContext context,
+    OcptShotListState state,
+    String setId,
+  ) async {
+    final sequence = state.selectedSequence;
+    final destinationShotId = state.selectedShotId;
+    if (sequence is! OcptSceneShotSequence || destinationShotId == null) {
+      return;
+    }
+
+    final candidates = [
+      for (final shot in sequence.shots)
+        if (shot.id != destinationShotId)
+          OcptFloorPlanCopyBlockingCandidate(shotId: shot.id, shotCode: shot.code),
+    ];
+    if (candidates.isEmpty) {
+      return;
+    }
+
+    final sourceShotId = await OcptFloorPlanCopyBlockingDialog.show(
+      context,
+      candidates: candidates,
+    );
+    if (sourceShotId == null || !context.mounted) {
+      return;
+    }
+
+    context.read<OcptShotListBloc>().add(
+      OcptShotListFloorPlanBlockingCopyRequestedEvent(setId: setId, sourceShotId: sourceShotId),
+    );
+  }
+
+  /// [setId]'s current name: a pending edit still in the bloc's debounce, or the set's own
+  /// stored value — the set tabs' equivalent of [_fieldValueOf]/[_panelCommentValueOf].
+  String _setNameValueOf(OcptShotListState state, String setId) {
+    final pending = state.pendingFieldEdits[OcptShotListSetNameEditKey(setId: setId)];
+    if (pending != null) {
+      return pending;
+    }
+    for (final floorPlanSet in state.setsOfSelectedSequence) {
+      if (floorPlanSet.id == setId) {
+        return floorPlanSet.name;
+      }
+    }
+    return "";
+  }
+
+  /// Shows the unlink confirmation dialog, then dispatches the set's unlinking if the user
+  /// confirmed it — a tab's own close action, which only asks. Not destructive
+  /// (`isDestructive: false`): the plan itself is kept, only the sequence link goes.
+  Future<void> _handleSetDeleteRequested(
+    BuildContext context,
+    OcptShotListState state,
+    String setId,
+  ) async {
+    final bloc = context.read<OcptShotListBloc>();
+    final tr = Tr.of(context);
+    final confirmed = await OcptConfirmDialog.show(
+      context,
+      title: tr.shotListFloorPlanDeleteSetConfirmTitle,
+      message: tr.shotListFloorPlanDeleteSetConfirmMessage,
+      cancelLabel: tr.shotListDeleteConfirmCancelAction,
+      confirmLabel: tr.shotListFloorPlanUnlinkSetConfirmAction,
+      isDestructive: false,
+    );
+    if (confirmed != true) {
+      return;
+    }
+    if (!context.mounted) {
+      return;
+    }
+
+    bloc.add(OcptShotListSetDeletionRequestedEvent(setId: setId));
+  }
+
+  /// Builds the floor plans view: the tray, the tool bar, the canvas and the focus strip, every
+  /// write withheld (a null callback) under a version preview, reads (zoom, pan, layer visibility,
+  /// symbol selection, focusing a shot) staying available throughout.
+  ///
+  /// **Always a current shot** (R2): the bloc guarantees `state.selectedShotId` is never null while
+  /// the selected sequence holds at least one shot, so `focusShotId` handed to the view below —
+  /// simply `state.selectedShotId`, the very field the table's rows and the board already share —
+  /// is only ever null for a sequence with none to focus on yet.
+  Widget _buildFloorPlanView(
+    BuildContext context,
+    OcptShotListState state,
+    OcptShotSequence sequence,
+  ) {
+    final bloc = context.read<OcptShotListBloc>();
+    final tr = Tr.of(context);
+    final isReadOnly = state.isPreviewingVersion;
+    final selectedSet = state.selectedSet;
+    final selectedSetId = state.selectedSetId;
+    final focusShotId = state.selectedShotId;
+
+    final shotRankByShotId = <String, int>{
+      for (var i = 0; i < sequence.shots.length; i++) sequence.shots[i].id: i + 1,
+    };
+
+    return OcptFloorPlanView(
+      floorPlanSet: selectedSet,
+      shots: sequence.shots,
+      shotRankByShotId: shotRankByShotId,
+      focusSceneId: state.selectedSequenceId ?? '',
+      focusShotId: focusShotId,
+      previousShotId: state.previousShotOfSelectedShot?.id,
+      nextShotId: state.nextShotOfSelectedShot?.id,
+      hasCameraOnSetOf: _hasCameraOnSetOf(sequence, selectedSet),
+      sequenceCameras: _sequenceCamerasOf(selectedSet, state.selectedSequenceId, shotRankByShotId),
+      initialZoom: state.floorPlanZoom,
+      hiddenLayers: state.floorPlanHiddenLayers,
+      hiddenCameraSymbolIds: state.floorPlanHiddenCameraSymbolIds,
+      isUnderlayHidden: state.isFloorPlanUnderlayHidden,
+      isOnionSkinPreviousShown: state.isFloorPlanOnionSkinPreviousShown,
+      isOnionSkinNextShown: state.isFloorPlanOnionSkinNextShown,
+      onionSkinOpacity: state.floorPlanOnionSkinOpacity,
+      isMetricsShown: state.isFloorPlanMetricsShown,
+      isAllCamerasShown: state.isFloorPlanAllCamerasShown,
+      selectedSymbolId: state.selectedFloorPlanSymbolId,
+      selectedArrowId: state.selectedFloorPlanArrowId,
+      pendingArrowAnchorSymbolId: state.pendingFloorPlanArrowAnchorSymbolId,
+      activeTool: state.floorPlanActiveTool,
+      activeLayer: state.floorPlanActiveLayer,
+      activeSetElementShape: state.floorPlanActiveSetElementShape,
+      isReadOnly: isReadOnly,
+      symbolLabelValueOf: (symbolId) => _symbolLabelValueOf(state, symbolId),
+      onToolSelected: (tool) => bloc.add(OcptShotListFloorPlanToolSelectedEvent(tool: tool)),
+      onLayerVisibilityToggled: (layer) =>
+          bloc.add(OcptShotListFloorPlanLayerVisibilityToggledEvent(layer: layer)),
+      onActiveLayerChanged: (layer) =>
+          bloc.add(OcptShotListFloorPlanActiveLayerChangedEvent(layer: layer)),
+      onSetElementShapeSelected: (shape) => bloc.add(
+        OcptShotListFloorPlanActiveSetElementShapeChangedEvent(shape: shape),
+      ),
+      onCameraVisibilityToggled: (symbolId) =>
+          bloc.add(OcptShotListFloorPlanCameraVisibilityToggledEvent(symbolId: symbolId)),
+      onOnionSkinToggled: (isPrevious) =>
+          bloc.add(OcptShotListFloorPlanOnionSkinToggledEvent(isPrevious: isPrevious)),
+      onOnionSkinOpacityChanged: (opacity) =>
+          bloc.add(OcptShotListFloorPlanOnionSkinOpacityChangedEvent(opacity: opacity)),
+      onMetricsToggled: () => bloc.add(const OcptShotListFloorPlanMetricsToggledEvent()),
+      onAllCamerasToggled: () => bloc.add(const OcptShotListFloorPlanAllCamerasToggledEvent()),
+      onUnderlayVisibilityToggled: () =>
+          bloc.add(const OcptShotListFloorPlanUnderlayVisibilityToggledEvent()),
+      onUnderlayImportRequested: isReadOnly || selectedSetId == null
+          ? null
+          : () => bloc.add(
+              OcptShotListFloorPlanUnderlayImportRequestedEvent(
+                setId: selectedSetId,
+                fileTypeLabel: tr.shotListFloorPlanUnderlayFileTypeLabel,
+              ),
+            ),
+      onUnderlayClearRequested:
+          isReadOnly || selectedSetId == null || selectedSet?.underlayAssetId == null
+          ? null
+          : () => unawaited(_handleUnderlayClearRequested(context, selectedSetId)),
+      onSymbolSelected: (symbolId) =>
+          bloc.add(OcptShotListFloorPlanSymbolSelectedEvent(symbolId: symbolId)),
+      onSymbolPlaced: isReadOnly || selectedSetId == null
+          ? null
+          : (layer, shotId, xM, yM, {setElementShape}) => bloc.add(
+              OcptShotListFloorPlanSymbolPlacedEvent(
+                setId: selectedSetId,
+                layer: layer,
+                shotId: shotId,
+                xM: xM,
+                yM: yM,
+                setElementShape: setElementShape,
+              ),
+            ),
+      onSymbolMoved: isReadOnly
+          ? null
+          : (symbolId, xM, yM) => bloc.add(
+              OcptShotListFloorPlanSymbolMovedEvent(symbolId: symbolId, xM: xM, yM: yM),
+            ),
+      onSymbolResized: isReadOnly
+          ? null
+          : (symbolId, widthM, heightM) => bloc.add(
+              OcptShotListFloorPlanSymbolResizedEvent(
+                symbolId: symbolId,
+                widthM: widthM,
+                heightM: heightM,
+              ),
+            ),
+      onSymbolRotated: isReadOnly
+          ? null
+          : (symbolId, rotationDeg) => bloc.add(
+              OcptShotListFloorPlanSymbolRotatedEvent(
+                symbolId: symbolId,
+                rotationDeg: rotationDeg,
+              ),
+            ),
+      onSymbolFovChanged: isReadOnly
+          ? null
+          : (symbolId, fovDeg) => bloc.add(
+              OcptShotListFloorPlanSymbolFovChangedEvent(symbolId: symbolId, fovDeg: fovDeg),
+            ),
+      onSymbolFovReachChanged: isReadOnly
+          ? null
+          : (symbolId, fovReachM) => bloc.add(
+              OcptShotListFloorPlanSymbolFovReachChangedEvent(
+                symbolId: symbolId,
+                fovReachM: fovReachM,
+              ),
+            ),
+      onSymbolDeleteRequested: isReadOnly
+          ? null
+          : (symbolId) => unawaited(_handleSymbolDeleteRequested(context, symbolId)),
+      onArrowSymbolTapped: isReadOnly || selectedSetId == null || focusShotId == null
+          ? null
+          : (symbolId) => bloc.add(OcptShotListFloorPlanArrowSymbolTappedEvent(symbolId: symbolId)),
+      onArrowAnchorCancelled: isReadOnly
+          ? null
+          : () => bloc.add(const OcptShotListFloorPlanArrowAnchorCancelledEvent()),
+      onArrowSelected: (arrowId) =>
+          bloc.add(OcptShotListFloorPlanArrowSelectedEvent(arrowId: arrowId)),
+      onArrowCurveChanged: isReadOnly
+          ? null
+          : (arrowId, ctrlXM, ctrlYM) => bloc.add(
+              OcptShotListFloorPlanArrowCurveChangedEvent(
+                arrowId: arrowId,
+                ctrlXM: ctrlXM,
+                ctrlYM: ctrlYM,
+              ),
+            ),
+      onSymbolDuplicateRequested: isReadOnly
+          ? null
+          : (symbolId) =>
+                bloc.add(OcptShotListFloorPlanSymbolDuplicatedEvent(symbolId: symbolId)),
+      onSymbolDuplicateDragged: isReadOnly
+          ? null
+          : (symbolId, xM, yM) => bloc.add(
+              OcptShotListFloorPlanSymbolDuplicatedEvent(symbolId: symbolId, xM: xM, yM: yM),
+            ),
+      onGhostShotFocusRequested: (shotId) =>
+          bloc.add(OcptShotListShotSelectedEvent(shotId: shotId)),
+      onSymbolLabelChanged: isReadOnly
+          ? null
+          : (symbolId, rawValue) => bloc.add(
+              OcptShotListFloorPlanSymbolLabelChangedEvent(symbolId: symbolId, rawValue: rawValue),
+            ),
+      onUnderlayTransformChanged: isReadOnly || selectedSetId == null
+          ? null
+          : (xM, yM, widthM, heightM) => bloc.add(
+              OcptShotListFloorPlanUnderlayTransformChangedEvent(
+                setId: selectedSetId,
+                xM: xM,
+                yM: yM,
+                widthM: widthM,
+                heightM: heightM,
+              ),
+            ),
+      onZoomSettled: (zoom) => bloc.add(OcptShotListFloorPlanZoomChangedEvent(zoom: zoom)),
+      onShotChipSelected: (shotId) => bloc.add(OcptShotListShotSelectedEvent(shotId: shotId)),
+      onShotWalkRequested: (delta) =>
+          bloc.add(OcptShotListFloorPlanShotWalkRequestedEvent(delta: delta)),
+    );
+  }
+
+  /// Whether each of [sequence]'s own shots has a live camera symbol on [selectedSet], keyed by
+  /// shot id — the focus strip's own filled/hollow dots.
+  Map<String, bool> _hasCameraOnSetOf(
+    OcptShotSequence sequence,
+    OcptFloorPlanSet? selectedSet,
+  ) {
+    if (selectedSet == null) {
+      return const {};
+    }
+    final shotIdsWithCamera = {
+      for (final symbol in selectedSet.symbols)
+        if (symbol.layer == OcptFloorPlanLayer.cameras && symbol.shotId != null) symbol.shotId!,
+    };
+    return {for (final shot in sequence.shots) shot.id: shotIdsWithCamera.contains(shot.id)};
+  }
+
+  /// Every live camera symbol of [selectedSet], numbered, for the tray's own expandable cameras
+  /// row under the `Sequence` focus — built from the very same `OcptFloorPlanSheet.of` the canvas
+  /// itself draws that focus from, so the tray's own labels can never disagree with the canvas.
+  List<OcptFloorPlanTraySequenceCamera> _sequenceCamerasOf(
+    OcptFloorPlanSet? selectedSet,
+    String? focusSceneId,
+    Map<String, int> shotRankByShotId,
+  ) {
+    if (selectedSet == null || focusSceneId == null) {
+      return const [];
+    }
+    final sheet = OcptFloorPlanSheet.of(
+      floorPlanSet: selectedSet,
+      focusSceneId: focusSceneId,
+      focusShotId: null,
+      shotRankByShotId: shotRankByShotId,
+    );
+    return [
+      for (final symbol in sheet.symbols)
+        if (symbol.layer == OcptFloorPlanLayer.cameras)
+          OcptFloorPlanTraySequenceCamera(
+            symbolId: symbol.symbolId,
+            label: symbol.cameraLabel ?? "?",
+          ),
+    ];
+  }
+
+  /// [symbolId]'s current label value: a pending edit still in the bloc's debounce, or the
+  /// symbol's own stored label — the inline label editor's equivalent of [_fieldValueOf].
+  String _symbolLabelValueOf(OcptShotListState state, String symbolId) {
+    final pending = state.pendingFieldEdits[OcptShotListSymbolLabelEditKey(symbolId: symbolId)];
+    if (pending != null) {
+      return pending;
+    }
+    for (final floorPlanSet in state.setsOfSelectedSequence) {
+      for (final symbol in floorPlanSet.symbols) {
+        if (symbol.id == symbolId) {
+          return symbol.label;
+        }
+      }
+    }
+    return "";
+  }
+
+  /// Opens `OcptFloorPlanCharacterNamePickerDialog` for the character symbol [symbolId] the bloc
+  /// just placed (R2, "the name popover on placement"), pre-filled with its own already-assigned
+  /// default label ([_symbolLabelValueOf]) and offering the selected shot's own characters as
+  /// one-click picks. Writes the name picked through the very same pending-edit path the inline
+  /// label editor rides — but flushed immediately (`OcptShotListFieldEditFlushRequestedEvent`)
+  /// rather than left to the 2 s debounce, since picking a name from a dialog is already a
+  /// deliberate, discrete action. Dismissing the dialog leaves the placement's own default label
+  /// untouched.
+  Future<void> _askCharacterName(
+    BuildContext context,
+    OcptShotListState state,
+    String symbolId,
+  ) async {
+    final currentLabel = _symbolLabelValueOf(state, symbolId);
+    final suggestedNames = [
+      for (final name in state.selectedShot?.characters ?? const <String>[])
+        if (name.isNotEmpty) name,
+    ];
+
+    final picked = await OcptFloorPlanCharacterNamePickerDialog.show(
+      context,
+      initialValue: currentLabel,
+      suggestedNames: suggestedNames,
+    );
+    if (picked == null) {
+      return;
+    }
+    if (!context.mounted) {
+      return;
+    }
+
+    final bloc = context.read<OcptShotListBloc>();
+    bloc.add(OcptShotListFloorPlanSymbolLabelChangedEvent(symbolId: symbolId, rawValue: picked));
+    bloc.add(const OcptShotListFieldEditFlushRequestedEvent());
+  }
+
+  /// Shows the delete confirmation dialog, then dispatches the symbol's deletion if the user
+  /// confirmed it — the canvas's own delete handle, which only asks.
+  Future<void> _handleSymbolDeleteRequested(BuildContext context, String symbolId) async {
+    final bloc = context.read<OcptShotListBloc>();
+    final tr = Tr.of(context);
+    final confirmed = await OcptConfirmDialog.show(
+      context,
+      title: tr.shotListFloorPlanDeleteSymbolConfirmTitle,
+      message: tr.shotListFloorPlanDeleteSymbolConfirmMessage,
+      cancelLabel: tr.shotListDeleteConfirmCancelAction,
+      confirmLabel: tr.shotListDeleteConfirmDeleteAction,
+    );
+    if (confirmed != true) {
+      return;
+    }
+    if (!context.mounted) {
+      return;
+    }
+
+    bloc.add(OcptShotListFloorPlanSymbolDeletionRequestedEvent(symbolId: symbolId));
+  }
+
+  /// Shows the delete confirmation dialog, then dispatches the arrow's deletion if the user
+  /// confirmed it — the Placements group's own remove action, which only asks.
+  Future<void> _handleArrowDeleteRequested(BuildContext context, String arrowId) async {
+    final bloc = context.read<OcptShotListBloc>();
+    final tr = Tr.of(context);
+    final confirmed = await OcptConfirmDialog.show(
+      context,
+      title: tr.shotListFloorPlanDeleteArrowConfirmTitle,
+      message: tr.shotListFloorPlanDeleteArrowConfirmMessage,
+      cancelLabel: tr.shotListDeleteConfirmCancelAction,
+      confirmLabel: tr.shotListDeleteConfirmDeleteAction,
+    );
+    if (confirmed != true) {
+      return;
+    }
+    if (!context.mounted) {
+      return;
+    }
+
+    bloc.add(OcptShotListFloorPlanArrowDeletionRequestedEvent(arrowId: arrowId));
+  }
+
+  /// Builds the inspector's floor-plans-only `leadingGroup`: the selected shot's own placements on
+  /// the selected set, and one line per other set of the sequence — null while no shot or no
+  /// set is selected (the `Sequence` focus shows no single shot's own placements at all).
+  Widget? _buildPlacementsGroup(BuildContext context, OcptShotListState state) {
+    final selectedShot = state.selectedShot;
+    final selectedSet = state.selectedSet;
+    if (selectedShot == null || selectedSet == null) {
+      return null;
+    }
+
+    final isReadOnly = state.isPreviewingVersion;
+
+    final shotRankByShotId = <String, int>{
+      for (final sequence in state.sequences)
+        if (sequence is OcptSceneShotSequence)
+          for (var i = 0; i < sequence.shots.length; i++) sequence.shots[i].id: i + 1,
+    };
+    final sheet = OcptFloorPlanSheet.of(
+      floorPlanSet: selectedSet,
+      focusSceneId: state.selectedSequenceId ?? '',
+      focusShotId: selectedShot.id,
+      shotRankByShotId: shotRankByShotId,
+    );
+    final ownSymbols = [
+      for (final symbol in sheet.symbols)
+        if (!symbol.isGhost && symbol.shotId == selectedShot.id) symbol,
+    ];
+    final ownArrows = [
+      for (final arrow in sheet.arrows)
+        if (!arrow.isGhost && arrow.shotId == selectedShot.id) arrow,
+    ];
+
+    final otherSets = [
+      for (final otherSet in state.setsOfSelectedSequence)
+        if (otherSet.id != selectedSet.id)
+          OcptFloorPlanPlacementsOtherSet(
+            setName: otherSet.name,
+            cameraCount: otherSet.symbols
+                .where(
+                  (symbol) =>
+                      symbol.layer == OcptFloorPlanLayer.cameras &&
+                      symbol.shotId == selectedShot.id,
+                )
+                .length,
+          ),
+    ];
+
+    return OcptFloorPlanPlacementsGroup(
+      setName: selectedSet.name,
+      selectedSymbolId: state.selectedFloorPlanSymbolId,
+      selectedArrowId: state.selectedFloorPlanArrowId,
+      cameras: ownSymbols.where((symbol) => symbol.layer == OcptFloorPlanLayer.cameras).toList(),
+      characters: ownSymbols
+          .where((symbol) => symbol.layer == OcptFloorPlanLayer.characters)
+          .toList(),
+      lights: ownSymbols.where((symbol) => symbol.layer == OcptFloorPlanLayer.lights).toList(),
+      handProps: ownSymbols
+          .where((symbol) => symbol.layer == OcptFloorPlanLayer.props)
+          .toList(),
+      arrows: ownArrows,
+      otherSets: otherSets,
+      isReadOnly: isReadOnly,
+      onSymbolDeleteRequested: isReadOnly
+          ? null
+          : (symbolId) => unawaited(_handleSymbolDeleteRequested(context, symbolId)),
+      onArrowDeleteRequested: isReadOnly
+          ? null
+          : (arrowId) => unawaited(_handleArrowDeleteRequested(context, arrowId)),
+      onCameraFovChanged: isReadOnly
+          ? null
+          : (symbolId, fovDeg) => context.read<OcptShotListBloc>().add(
+              OcptShotListFloorPlanSymbolFovChangedEvent(symbolId: symbolId, fovDeg: fovDeg),
+            ),
+    );
+  }
+
+  /// Shows the delete confirmation dialog, then dispatches the underlay's clearing if the user
+  /// confirmed it — the tray's own `Clear underlay` action, which only asks.
+  Future<void> _handleUnderlayClearRequested(BuildContext context, String setId) async {
+    final bloc = context.read<OcptShotListBloc>();
+    final tr = Tr.of(context);
+    final confirmed = await OcptConfirmDialog.show(
+      context,
+      title: tr.shotListFloorPlanClearUnderlayConfirmTitle,
+      message: tr.shotListFloorPlanClearUnderlayConfirmMessage,
+      cancelLabel: tr.shotListDeleteConfirmCancelAction,
+      confirmLabel: tr.shotListDeleteConfirmDeleteAction,
+    );
+    if (confirmed != true) {
+      return;
+    }
+    if (!context.mounted) {
+      return;
+    }
+
+    bloc.add(OcptShotListFloorPlanUnderlayClearRequestedEvent(setId: setId));
+  }
+
+  /// [panelId]'s current comment value: a pending edit still in the bloc's debounce, or the
+  /// panel's own stored value — the board's equivalent of [_fieldValueOf].
+  String _panelCommentValueOf(OcptShotListState state, String panelId) {
+    final pending = state.pendingFieldEdits[OcptShotListPanelCommentEditKey(panelId: panelId)];
+    if (pending != null) {
+      return pending;
+    }
+
+    for (final panel in state.panelsOfSelectedShot) {
+      if (panel.id == panelId) {
+        return panel.comment;
+      }
+    }
+    return "";
+  }
+
+  /// [annotationId]'s current text value: a pending edit still in the bloc's debounce, or the
+  /// mark's own stored text — the annotation section's equivalent of [_panelCommentValueOf].
+  String _annotationTextValueOf(OcptShotListState state, String annotationId) {
+    final pending =
+        state.pendingFieldEdits[OcptShotListAnnotationTextEditKey(annotationId: annotationId)];
+    if (pending != null) {
+      return pending;
+    }
+
+    for (final annotation in state.selectedPanel?.annotations ?? const <OcptStoryboardAnnotation>[]) {
+      if (annotation.id == annotationId) {
+        return annotation.text;
+      }
+    }
+    return "";
+  }
+
+  /// Shows the delete confirmation dialog, then dispatches the panel's deletion if the user
+  /// confirmed it — the inspector's Panels group's own `Delete panel` action, which only asks.
+  Future<void> _handlePanelDeleteRequested(BuildContext context, String panelId) async {
+    final bloc = context.read<OcptShotListBloc>();
+    final tr = Tr.of(context);
+    final confirmed = await OcptConfirmDialog.show(
+      context,
+      title: tr.shotListBoardDeletePanelConfirmTitle,
+      message: tr.shotListBoardDeletePanelConfirmMessage,
+      cancelLabel: tr.shotListDeleteConfirmCancelAction,
+      confirmLabel: tr.shotListDeleteConfirmDeleteAction,
+    );
+    if (confirmed != true) {
+      return;
+    }
+    if (!context.mounted) {
+      return;
+    }
+
+    bloc.add(OcptShotListPanelDeletionRequestedEvent(panelId: panelId));
+  }
+
+  /// Shows the delete confirmation dialog, then dispatches the mark's deletion if the user
+  /// confirmed it — the annotation section's own remove action, which only asks.
+  Future<void> _handleAnnotationDeleteRequested(BuildContext context, String annotationId) async {
+    final bloc = context.read<OcptShotListBloc>();
+    final tr = Tr.of(context);
+    final confirmed = await OcptConfirmDialog.show(
+      context,
+      title: tr.shotListBoardDeleteAnnotationConfirmTitle,
+      message: tr.shotListBoardDeleteAnnotationConfirmMessage,
+      cancelLabel: tr.shotListDeleteConfirmCancelAction,
+      confirmLabel: tr.shotListDeleteConfirmDeleteAction,
+    );
+    if (confirmed != true) {
+      return;
+    }
+    if (!context.mounted) {
+      return;
+    }
+
+    bloc.add(OcptShotListAnnotationDeletionRequestedEvent(annotationId: annotationId));
+  }
+
+  /// Builds the inspector's board-only `leadingGroup`: the selected shot's own panels, each with
+  /// its comment field, the reorder affordance and a `Delete panel` action that only asks (see
+  /// [_handlePanelDeleteRequested]), followed by the selected panel's own annotation section (the
+  /// `Annotate` tool picker and its marks list).
+  Widget _buildPanelsGroup(BuildContext context, OcptShotListState state) {
+    final bloc = context.read<OcptShotListBloc>();
+    final selectedShot = state.selectedShot;
+    final isReadOnly = state.isPreviewingVersion;
+
+    return OcptStoryboardPanelsGroup(
+      panels: state.panelsOfSelectedShot,
+      commentValueOf: (panelId) => _panelCommentValueOf(state, panelId),
+      isReadOnly: isReadOnly,
+      onCommentChanged: isReadOnly
+          ? null
+          : (panelId, rawValue) =>
+                bloc.add(OcptShotListPanelCommentChangedEvent(panelId: panelId, rawValue: rawValue)),
+      onReordered: isReadOnly || selectedShot == null
+          ? null
+          : (panelId, newPosition) => bloc.add(
+              OcptShotListPanelReorderedEvent(
+                shotId: selectedShot.id,
+                panelId: panelId,
+                newPosition: newPosition,
+              ),
+            ),
+      onDeleteRequested: isReadOnly
+          ? null
+          : (panelId) => unawaited(_handlePanelDeleteRequested(context, panelId)),
+      selectedPanelId: state.selectedPanelId,
+      annotations: state.selectedPanel?.annotations ?? const <OcptStoryboardAnnotation>[],
+      selectedAnnotationId: state.selectedAnnotationId,
+      activeAnnotationTool: state.activeAnnotationTool,
+      onToolChanged: isReadOnly
+          ? null
+          : (tool) => bloc.add(OcptShotListAnnotationToolSelectedEvent(tool: tool)),
+      annotationTextValueOf: (annotationId) => _annotationTextValueOf(state, annotationId),
+      onAnnotationSelected: (annotationId) =>
+          bloc.add(OcptShotListAnnotationSelectedEvent(annotationId: annotationId)),
+      onAnnotationTextChanged: isReadOnly
+          ? null
+          : (annotationId, rawValue) => bloc.add(
+              OcptShotListAnnotationTextChangedEvent(
+                annotationId: annotationId,
+                rawValue: rawValue,
+              ),
+            ),
+      onAnnotationDeleteRequested: isReadOnly
+          ? null
+          : (annotationId) => unawaited(_handleAnnotationDeleteRequested(context, annotationId)),
+    );
+  }
+
+  /// The status bar's own trailing hint for the active centre view: the board's `Panel 2 of 3
+  /// selected · drag to reorder` while it is shown and a panel is selected, the floor plans'
+  /// `Kitchen · 5 cameras on 4 shots · 12/5 has no camera yet` (the last segment only while a shot
+  /// of the sequence still has none) while a set is selected, or null otherwise (the table, and
+  /// either view with nothing of its own selected, have nothing to add).
+  String? _statusBarHint(BuildContext context, OcptShotListState state, bool isCompact) {
+    final isBoardShown = !isCompact && state.centreView == OcptShotListCentreView.board;
+    final isFloorPlansShown = !isCompact && state.centreView == OcptShotListCentreView.floorPlans;
+
+    if (isFloorPlansShown) {
+      final selectedSet = state.selectedSet;
+      final sequence = state.selectedSequence;
+      if (selectedSet == null || sequence == null) {
+        return null;
+      }
+
+      final cameraCount = selectedSet.symbols
+          .where((symbol) => symbol.layer == OcptFloorPlanLayer.cameras)
+          .length;
+      final shotIdsWithCamera = {
+        for (final symbol in selectedSet.symbols)
+          if (symbol.layer == OcptFloorPlanLayer.cameras && symbol.shotId != null)
+            symbol.shotId!,
+      };
+      final shotCountWithCamera = sequence.shots
+          .where((shot) => shotIdsWithCamera.contains(shot.id))
+          .length;
+      final unplacedShot = sequence.shots.firstWhereOrNull(
+        (shot) => !shotIdsWithCamera.contains(shot.id),
+      );
+
+      final base = Tr.of(context).shotListFloorPlanCameraStatusHint(
+        selectedSet.name,
+        cameraCount,
+        shotCountWithCamera,
+      );
+      return unplacedShot == null
+          ? base
+          : "$base · ${Tr.of(context).shotListFloorPlanCameraStatusUnplacedHint(unplacedShot.code)}";
+    }
+
+    if (!isBoardShown) {
+      return null;
+    }
+
+    final panels = state.panelsOfSelectedShot;
+    final selectedPanel = state.selectedPanel;
+    if (selectedPanel == null || panels.isEmpty) {
+      return null;
+    }
+
+    final rank = panels.indexWhere((panel) => panel.id == selectedPanel.id) + 1;
+    return Tr.of(context).shotListBoardPanelSelectedHint(rank, panels.length);
+  }
+
   /// Builds the tabbed right dock, the shell's `rightPanel`, or null while the dock is closed.
-  Widget? _buildRightDock(BuildContext context, OcptShotListState state) {
+  ///
+  /// The inspector's `leadingGroup` follows the active centre view exactly as the centre itself
+  /// does: `OcptStoryboardPanelsGroup` while the board is shown, null on the table — a compact
+  /// width forces the table regardless of `state.centreView`, so [isCompact] is read the same way
+  /// here as it is by `_buildSequenceBody`.
+  Widget? _buildRightDock(BuildContext context, OcptShotListState state, bool isCompact) {
     final rightDockTab = state.rightDockTab;
     if (rightDockTab == null) {
       return null;
@@ -601,12 +1546,19 @@ class _ShotListViewState extends State<_ShotListView> {
     final staleCoverageRangeIds = coverageLayout == null
         ? const <String>{}
         : state.staleCoverageRangeIdsOfSelectedShot(coverageLayout);
+    final isBoardShown = !isCompact && state.centreView == OcptShotListCentreView.board;
+    final isFloorPlansShown = !isCompact && state.centreView == OcptShotListCentreView.floorPlans;
 
     return OcptShotListRightDock(
       activeTab: rightDockTab,
       inspectorChild: OcptShotInspectorPanel(
         shot: selectedShot,
         sequenceHeading: sequenceHeading,
+        leadingGroup: isBoardShown
+            ? _buildPanelsGroup(context, state)
+            : isFloorPlansShown
+            ? _buildPlacementsGroup(context, state)
+            : null,
         sequenceDisplayNumber: sequenceDisplayNumber,
         roles: state.roles,
         suggestions: state.suggestions,
@@ -785,7 +1737,8 @@ class _ShotListViewState extends State<_ShotListView> {
       return "";
     }
 
-    final pending = state.pendingFieldEdits[(shot.id, field)];
+    final pending = state.pendingFieldEdits[
+        OcptShotListShotFieldEditKey(shotId: shot.id, field: field)];
     if (pending != null) {
       return pending;
     }
@@ -909,6 +1862,14 @@ class _ShotListViewState extends State<_ShotListView> {
       context.read<OcptShotListBloc>().add(const OcptShotListWriteErrorDismissedEvent());
     }
 
+    final pendingCharacterNamePromptSymbolId = state.pendingCharacterNamePromptSymbolId;
+    if (pendingCharacterNamePromptSymbolId != null) {
+      context.read<OcptShotListBloc>().add(
+        const OcptShotListFloorPlanCharacterNamePromptDismissedEvent(),
+      );
+      unawaited(_askCharacterName(context, state, pendingCharacterNamePromptSymbolId));
+    }
+
     final ioNotice = state.ioNotice;
     if (ioNotice != null) {
       ScaffoldMessenger.of(context)
@@ -1003,55 +1964,14 @@ class _ShotListViewState extends State<_ShotListView> {
           ? tr.exportSharedMessage
           : tr.shotListExportCoverageSuccessMessage(notice.path ?? ""),
       OcptShotListIoNoticeKind.scenarioCoverageExportFailed => tr.shotListExportCoverageError,
+      OcptShotListIoNoticeKind.storyboardExportSucceeded => notice.wasShared
+          ? tr.exportSharedMessage
+          : tr.shotListExportStoryboardSuccessMessage(notice.path ?? ""),
+      OcptShotListIoNoticeKind.storyboardExportFailed => tr.shotListExportStoryboardError,
+      OcptShotListIoNoticeKind.floorPlansExportSucceeded => notice.wasShared
+          ? tr.exportSharedMessage
+          : tr.shotListExportFloorPlansSuccessMessage(notice.path ?? ""),
+      OcptShotListIoNoticeKind.floorPlansExportFailed => tr.shotListExportFloorPlansError,
     };
-  }
-}
-
-/// The centre's sequence header: its title line, and the muted summary under it.
-class _SequenceHeader extends StatelessWidget {
-  /// The sequence being shown.
-  final OcptShotSequence sequence;
-
-  /// Class constructor
-  const _SequenceHeader({required this.sequence});
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final tr = Tr.of(context);
-    final sequence = this.sequence;
-
-    final summary = [
-      tr.shotListShotsCount(sequence.shotCount),
-      tr.shotListAverageDifficulty(
-        ocptFormatShotDifficulty(context, sequence.averageDifficulty),
-      ),
-      tr.shotListLeftToShoot(sequence.shotsLeftToShoot),
-    ].join(" · ");
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          switch (sequence) {
-            OcptSceneShotSequence() => tr.shotListSequenceHeader(
-              sequence.displaySceneNumber,
-              sequence.heading,
-            ),
-            OcptOrphanShotSequence() => tr.shotListOrphanSequenceTitle,
-          },
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
-          style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          summary,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
-        ),
-      ],
-    );
   }
 }

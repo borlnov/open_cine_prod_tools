@@ -118,6 +118,11 @@ void main() {
       budgetRevenues: const [],
       budgetShares: const [],
       budgetAllowances: const [],
+      storyboardPanels: const [],
+      storyboardAnnotations: const [],
+      floorPlanSets: const [],
+      floorPlanSymbols: const [],
+      floorPlanArrows: const [],
       rowFieldVersions: const [],
       pageSetup: const OcptPageSetup(
         format: OcptPageFormat.a4,
@@ -332,6 +337,67 @@ void main() {
         missingPath,
       );
     });
+
+    test(
+      "packages a storyboardPanelImage asset, skips one whose file is missing, and re-points "
+      "the packaged one on import",
+      () async {
+        // The service walks `assets` generically by kind/path/label/isDeleted, so a
+        // storyboardPanelImage row rides the very same path a personPhoto or a locationPhoto
+        // already does: no owner column is set (`docs/plans/storyboard.md`, §2), and none of the
+        // packaging or import code reads one.
+        await database
+            .into(database.ocptAssetsTable)
+            .insert(
+              OcptAssetsTableCompanion.insert(
+                id: "asset-panel-1",
+                kind: OcptAssetKind.storyboardPanelImage,
+                path: writeReferencedFile("panel-1.jpg", "the panel bytes"),
+                addedAt: DateTime.utc(2026, 4),
+              ),
+            );
+        await database
+            .into(database.ocptAssetsTable)
+            .insert(
+              OcptAssetsTableCompanion.insert(
+                id: "asset-panel-2",
+                kind: OcptAssetKind.storyboardPanelImage,
+                path: p.join(workspace.path, "files", "gone-panel.jpg"),
+                addedAt: DateTime.utc(2026, 4, 2),
+              ),
+            );
+
+        final exported = await export();
+
+        expect(exported.status, OcptProjectPackageStatus.ok);
+        expect(exported.value!.packagedAssetCount, 1);
+        expect(exported.value!.skippedAssets.single.assetId, "asset-panel-2");
+        expect(packagedEntries(), contains("assets/asset-panel-1/panel-1.jpg"));
+
+        final importsParent = Directory(p.join(workspace.path, "imports"))
+          ..createSync(recursive: true);
+        final imported = await service.readPackage(
+          packageFilePath: packagePath,
+          parentDirectoryPath: importsParent.path,
+        );
+
+        expect(imported.status, OcptProjectPackageStatus.ok);
+        final importedDatabase = sqlite3.open(
+          imported.value!.projectFilePath,
+          mode: OpenMode.readOnly,
+        );
+        addTearDown(importedDatabase.dispose);
+        final packagedPanel = importedDatabase
+            .select("SELECT path FROM assets WHERE id = 'asset-panel-1'")
+            .first["path"] as String;
+        expect(p.isAbsolute(packagedPanel), isTrue);
+        expect(File(packagedPanel).existsSync(), isTrue);
+        final skippedPanel = importedDatabase
+            .select("SELECT path FROM assets WHERE id = 'asset-panel-2'")
+            .first["path"];
+        expect(skippedPanel, p.join(workspace.path, "files", "gone-panel.jpg"));
+      },
+    );
 
     test("states its own format, the app version and the schema the file is in", () async {
       await export();
