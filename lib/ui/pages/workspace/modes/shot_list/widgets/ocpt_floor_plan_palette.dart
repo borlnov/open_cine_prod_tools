@@ -469,44 +469,13 @@ class OcptFloorPlanPalette extends StatelessWidget {
     );
   }
 
-  /// The metrics overlay's own toggle row, plus a small help affordance explaining what the
-  /// overlay shows ([_buildMetricsHelp]) — a tap-triggered [Tooltip], never hover- or
-  /// long-press-only, since a long press is the only way a touch device would otherwise reach a
-  /// plain [Tooltip]'s own message.
-  Widget _buildMetricsToggle(BuildContext context) => CheckboxListTile(
-    dense: true,
-    contentPadding: const EdgeInsets.symmetric(horizontal: 12),
-    controlAffinity: ListTileControlAffinity.leading,
-    value: isMetricsShown,
-    onChanged: (_) => onMetricsToggled(),
-    title: Text(
-      Tr.of(context).shotListFloorPlanMetricsToggleLabel,
-      style: Theme.of(context).textTheme.bodySmall,
-    ),
-    secondary: _buildMetricsHelp(context),
+  /// The metrics overlay's own toggle row, plus its own inline help paragraph — see
+  /// [_OcptFloorPlanMetricsToggleRow], whose own open/closed state this stateless palette cannot
+  /// hold itself.
+  Widget _buildMetricsToggle(BuildContext context) => _OcptFloorPlanMetricsToggleRow(
+    isMetricsShown: isMetricsShown,
+    onMetricsToggled: onMetricsToggled,
   );
-
-  /// The metrics toggle's own help affordance: a small `?` icon whose [Tooltip] opens on a plain
-  /// tap ([TooltipTriggerMode.tap]) rather than the default long press, so it reaches a touch
-  /// device (Android) exactly as easily as a mouse hover reaches an ordinary tooltip elsewhere in
-  /// this app. Explains what the metrics overlay draws: the distance from the selected object to
-  /// every other visible one, or, with a camera selected, the distance to the subject.
-  Widget _buildMetricsHelp(BuildContext context) {
-    final theme = Theme.of(context);
-    return Tooltip(
-      triggerMode: TooltipTriggerMode.tap,
-      message: Tr.of(context).shotListFloorPlanMetricsHelpText,
-      child: Padding(
-        padding: const EdgeInsets.all(4),
-        child: Icon(
-          Icons.help_outline,
-          size: 16,
-          color: theme.colorScheme.onSurfaceVariant,
-          semanticLabel: Tr.of(context).shotListFloorPlanMetricsHelpAction,
-        ),
-      ),
-    );
-  }
 
   /// The field-of-view overlay's own toggle row: every camera's own wedge, on by default.
   Widget _buildShowFieldOfViewToggle(BuildContext context) => CheckboxListTile(
@@ -599,6 +568,75 @@ class OcptFloorPlanPalette extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// The metrics overlay's own toggle row: a [CheckboxListTile] plus a help button whose press shows
+/// or hides an inline paragraph underneath, explaining what the overlay draws (the distance from
+/// the selected object to every other visible one, or, with a camera selected, the distance to the
+/// subject). A real [IconButton] rather than a [Tooltip] — a `Tooltip`'s tap trigger still needs a
+/// long press once it sits inside a `CheckboxListTile`'s `secondary` slot, which never reaches a
+/// touch device — and its own open/closed state is this row's own local UI state, never bloc
+/// state, mirroring the editor page's own `help`/`help_outline` toggle icon
+/// (`lib/ui/pages/editor/editor_page.dart`).
+class _OcptFloorPlanMetricsToggleRow extends StatefulWidget {
+  /// Whether the metrics overlay is shown.
+  final bool isMetricsShown;
+
+  /// Called when the metrics toggle is clicked.
+  final VoidCallback onMetricsToggled;
+
+  /// Class constructor
+  const _OcptFloorPlanMetricsToggleRow({
+    required this.isMetricsShown,
+    required this.onMetricsToggled,
+  });
+
+  @override
+  State<_OcptFloorPlanMetricsToggleRow> createState() => _OcptFloorPlanMetricsToggleRowState();
+}
+
+/// [_OcptFloorPlanMetricsToggleRow]'s own state: just whether the help paragraph is open.
+class _OcptFloorPlanMetricsToggleRowState extends State<_OcptFloorPlanMetricsToggleRow> {
+  bool _isHelpOpen = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final tr = Tr.of(context);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        CheckboxListTile(
+          dense: true,
+          contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+          controlAffinity: ListTileControlAffinity.leading,
+          value: widget.isMetricsShown,
+          onChanged: (_) => widget.onMetricsToggled(),
+          title: Text(tr.shotListFloorPlanMetricsToggleLabel, style: theme.textTheme.bodySmall),
+          secondary: IconButton(
+            iconSize: 16,
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+            tooltip: tr.shotListFloorPlanMetricsHelpAction,
+            isSelected: _isHelpOpen,
+            onPressed: () => setState(() => _isHelpOpen = !_isHelpOpen),
+            icon: Icon(_isHelpOpen ? Icons.help : Icons.help_outline),
+          ),
+        ),
+        if (_isHelpOpen)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+            child: Text(
+              tr.shotListFloorPlanMetricsHelpText,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ),
+      ],
     );
   }
 }

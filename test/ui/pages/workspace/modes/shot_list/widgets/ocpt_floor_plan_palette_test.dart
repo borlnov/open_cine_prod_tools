@@ -258,7 +258,7 @@ void main() {
   );
 
   testWidgets(
-    "the metrics toggle's own help icon shows its explanation on a plain tap (touch-reachable)",
+    "the metrics toggle's own help button shows its explanation on press, and hides it again",
     (tester) async {
       tester.view.physicalSize = const Size(1400, 2200);
       tester.view.devicePixelRatio = 1.0;
@@ -287,6 +287,13 @@ void main() {
       await tester.pump();
 
       expect(find.text(tr.shotListFloorPlanMetricsHelpText), findsWidgets);
+      expect(find.byIcon(Icons.help), findsOneWidget);
+
+      await tester.tap(find.byIcon(Icons.help));
+      await tester.pump();
+
+      expect(find.text(tr.shotListFloorPlanMetricsHelpText), findsNothing);
+      expect(find.byIcon(Icons.help_outline), findsOneWidget);
     },
   );
 
