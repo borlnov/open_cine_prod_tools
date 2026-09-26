@@ -666,6 +666,43 @@ gets a small help button (not only a tooltip, which needs a long press on touch)
   `createSetLinkedToScene`, the empty state with the suggestion, the three-group palette with the
   props chips, the "every sequence / only this one" move, the unlink dialog, the Resources set card
   indicator and reveal.
+- **R5 design (validated 2026-09-26)** — see §10.4; split into **R5a** (linking and chrome) and
+  **R5b** (the sequence scope on the canvas).
 - **R6 (optional)** — a set-only editor in the Resources location sheet (design questions first).
 - **M8** — the record, with a new **ADR 0032** (a plan belongs to the Resources set, three scopes,
   link vs copy); ADR 0031 still holds.
+
+### 10.4 R5 design (validated 2026-09-26)
+
+- **Empty state**: a sequence with no linked set shows a **gallery of the project's sets**, one card
+  each with a thumbnail of its plan (drawn from the sheet, empty when there is none), the heading's
+  suggestion first and starred; a click links the set; a `Create a set…` action under it.
+- **`＋ Set` menu**, the breakdown's own pattern: the suggestion first, `Link an existing set ▸`
+  (grouped by location), `Create a set ▸` (in an existing location, or a new one), then `Duplicate
+  this set` and `Copy blocking from a shot…`.
+- **Scope question on release**: moving, rotating or resizing a **set-scope** element of a set used
+  by **two or more** sequences asks, in a small bubble at the element, `Every sequence (3)` /
+  `Only sequence 7` / `Cancel`; a set used by one sequence moves without asking. Placement never
+  asks: the palette group decides (Set group → set scope; Sequence group → scene scope).
+- **Override marking**: an element changed for this sequence only has a dashed outline and a pin
+  badge; the set's own position stays drawn as a faint ghost; the inspector offers `Restore as in
+  the set` (tombstones the override).
+- **Deleting a set element** used by two or more sequences asks the same question through
+  `OcptConfirmDialog`, **extended with an optional alternative action** (a third button; still the
+  one confirmation widget): `Cancel` / `Remove from sequence 7` (a **hidden** override: the element
+  is masked in that sequence, drawn as a faint ghost, restorable) / `Delete everywhere`
+  (destructive). The hidden override needs a flag on the scene-scope override row (v4 in place).
+- **Props**: the palette's Sequence group lists the sequence's breakdown props (`scene_elements`)
+  as chips, dragged onto the plan with their name (a chip stays usable: two candles, two drops),
+  plus an `Other…` chip for a free label; props move to the scene scope and the scope matrix is
+  tightened (props → scene only).
+- **Unlink dialog** counts what leaves the view: "The set's plan is kept. For this sequence, 4
+  cameras, 2 characters and 3 props are placed on it: they come back if you link this set again."
+- **Resources**: each set of a location sheet shows `Floor plan · 3 sequences` (or `No floor plan
+  yet`) and `Open in shot list`, which reveals the first linked sequence on that set's tab.
+- Duplicating a set becomes **atomic** (the three steps in one transaction, or a rollback on any
+  failure, so no orphan set is left behind).
+
+R5a: empty-state gallery, `＋ Set` menu, unlink dialog counts, Resources line and reveal, atomic
+duplicate. R5b: the three-group palette with the props chips, the scope matrix tightening, the
+release bubble, override marking and restore, the hidden override and the extended confirm dialog.
