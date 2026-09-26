@@ -83,9 +83,13 @@ class OcptRoleCandidatesService {
     return candidatesByRoleId;
   }
 
-  /// Records that [personId] is seen for role [roleId], appended after that role's other
+  /// Records that [personId] is a candidate for role [roleId], appended after that role's other
   /// candidates, and returns the id of the candidacy — the one that already said so when there was
   /// one, a freshly generated one otherwise.
+  ///
+  /// A new candidacy starts at [OcptRoleCandidateStatus.spotted], the first step of the casting
+  /// chronology the status declares: adding someone to a part says they are in view, not that
+  /// anybody has met them yet.
   ///
   /// Follows `OcptElementsService.addRoleElement`'s rules to the letter: a pair the role already
   /// carries is a no-op rather than a second row, and a candidacy removed earlier is **revived**
@@ -144,7 +148,7 @@ class OcptRoleCandidatesService {
           id: id,
           roleId: roleId,
           personId: personId,
-          status: OcptRoleCandidateStatus.seen,
+          status: OcptRoleCandidateStatus.spotted,
           notes: '',
           sortKey: ocptFractionalKeyBetween(before: existing.isEmpty ? null : existing.last.sortKey),
           isDeleted: false,

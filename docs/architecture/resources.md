@@ -61,7 +61,10 @@ their sets, the elements catalogue, and the two documents the mode prints.
   `unavailable` are the person's own answer, `notRetained` is the production's, and a casting
   director re-reading a part months later needs to know which it was. Whether a status leaves a
   candidacy **in the running** is written once, on the enum (`OcptRoleCandidateStatus.isStillALead`),
-  so no second reader can decide it again.
+  so no second reader can decide it again. A new candidacy starts at `spotted`, the first step of
+  that chronology (`OcptRoleCandidatesService.addCandidate`); the column's own SQL default is still
+  `seen`, never relied on since every write carries a status, and left alone because changing a
+  default means rebuilding the table under a new schema version.
   **`OcptRoleCandidatesService`** (owned by `OcptProjectsManager` beside `OcptRoleIndexService`) is
   a service of its own rather than more methods on that one, because the **retained rule is about
   two tables agreeing**: `setStatus` is the single door every status change comes through, retaining

@@ -62,6 +62,12 @@ class OcptRoleCandidatesTable extends Table {
   TextColumn get personId => text().references(OcptPeopleTable, #id)();
 
   /// Where this person stands in the casting of this part.
+  ///
+  /// The status a new candidacy starts at is decided by `OcptRoleCandidatesService.addCandidate`,
+  /// which always writes it, as does every other write of this table (full rows, from a version
+  /// restore or a sync). The column default below is therefore never relied on, and it stays
+  /// `seen` rather than following the service to `spotted`: SQLite cannot change a column default
+  /// in place, and rebuilding the table would cost a schema version for nothing a user could see.
   // The stored literal below must match `OcptRoleCandidateStatus.seen.name` exactly, for the same
   // reason `shooting_days.status`'s default does: an enum's `.name` getter isn't a compile-time
   // constant expression, so it can't be written as `Constant(OcptRoleCandidateStatus.seen)`.
