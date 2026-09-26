@@ -53,6 +53,7 @@ OcptFloorPlanSymbol _furnitureSymbol({
 }) => OcptFloorPlanSymbol(
   id: "sym-1",
   setId: "case-1",
+  sceneId: null,
   shotId: null,
   layer: OcptFloorPlanLayer.set,
   sortKey: "a0",
@@ -65,13 +66,12 @@ OcptFloorPlanSymbol _furnitureSymbol({
   fovReachM: null,
   label: "",
   setElementShape: null,
+  overridesSymbolId: null,
 );
 
 OcptFloorPlanSet _caseOf(OcptFloorPlanSymbol symbol) => OcptFloorPlanSet(
   id: "case-1",
-  sceneId: "scene-1",
   name: "Case",
-  sortKey: "a0",
   underlayAssetId: null,
   underlayPath: null,
   underlayXM: null,
@@ -89,6 +89,7 @@ OcptFloorPlanSet _caseOf(OcptFloorPlanSymbol symbol) => OcptFloorPlanSet(
 OcptFloorPlanSymbol _cameraSymbol({required double xM, required double yM}) => OcptFloorPlanSymbol(
   id: "cam-1",
   setId: "case-1",
+  sceneId: null,
   shotId: "shot-1",
   layer: OcptFloorPlanLayer.cameras,
   sortKey: "a0",
@@ -101,6 +102,7 @@ OcptFloorPlanSymbol _cameraSymbol({required double xM, required double yM}) => O
   fovReachM: null,
   label: "",
   setElementShape: null,
+  overridesSymbolId: null,
 );
 
 /// Two shot-scoped character symbols, connected by one movement arrow (bent through [ctrlXM]/
@@ -110,6 +112,7 @@ OcptFloorPlanSet _caseWithArrow({double? ctrlXM, double? ctrlYM}) {
   const fromSymbol = OcptFloorPlanSymbol(
     id: "sym-from",
     setId: "case-1",
+    sceneId: null,
     shotId: "shot-1",
     layer: OcptFloorPlanLayer.characters,
     sortKey: "a0",
@@ -122,10 +125,12 @@ OcptFloorPlanSet _caseWithArrow({double? ctrlXM, double? ctrlYM}) {
     fovReachM: null,
     label: "SAM",
     setElementShape: null,
+    overridesSymbolId: null,
   );
   const toSymbol = OcptFloorPlanSymbol(
     id: "sym-to",
     setId: "case-1",
+    sceneId: null,
     shotId: "shot-1",
     layer: OcptFloorPlanLayer.characters,
     sortKey: "a1",
@@ -138,6 +143,7 @@ OcptFloorPlanSet _caseWithArrow({double? ctrlXM, double? ctrlYM}) {
     fovReachM: null,
     label: "LEA",
     setElementShape: null,
+    overridesSymbolId: null,
   );
   final arrow = OcptFloorPlanArrow(
     id: "arrow-1",
@@ -153,9 +159,7 @@ OcptFloorPlanSet _caseWithArrow({double? ctrlXM, double? ctrlYM}) {
 
   return OcptFloorPlanSet(
     id: "case-1",
-    sceneId: "scene-1",
     name: "Case",
-    sortKey: "a0",
     underlayAssetId: null,
     underlayPath: null,
     underlayXM: null,
@@ -185,6 +189,7 @@ void main() {
   }) => OcptFloorPlanCanvas(
     floorPlanSet: _caseOf(symbol),
     shotRankByShotId: const {},
+    focusSceneId: "scene-1",
     focusShotId: null,
     previousShotId: null,
     nextShotId: null,
@@ -484,9 +489,7 @@ void main() {
         OcptFloorPlanCanvas(
           floorPlanSet: OcptFloorPlanSet(
             id: "case-1",
-            sceneId: "scene-1",
             name: "Case",
-            sortKey: "a0",
             underlayAssetId: null,
             underlayPath: null,
             underlayXM: null,
@@ -498,6 +501,7 @@ void main() {
             arrows: const [],
           ),
           shotRankByShotId: const {"shot-1": 1},
+          focusSceneId: "scene-1",
           focusShotId: "shot-1",
           previousShotId: null,
           nextShotId: null,
@@ -587,9 +591,7 @@ void main() {
         OcptFloorPlanCanvas(
           floorPlanSet: OcptFloorPlanSet(
             id: "case-1",
-            sceneId: "scene-1",
             name: "Case",
-            sortKey: "a0",
             underlayAssetId: null,
             underlayPath: null,
             underlayXM: null,
@@ -601,6 +603,7 @@ void main() {
             arrows: const [],
           ),
           shotRankByShotId: const {"shot-1": 1},
+          focusSceneId: "scene-1",
           focusShotId: "shot-1",
           previousShotId: null,
           nextShotId: null,
@@ -683,6 +686,7 @@ void main() {
       Widget buildCanvas({required String? selectedArrowId}) => OcptFloorPlanCanvas(
         floorPlanSet: floorPlanSet,
         shotRankByShotId: const {"shot-1": 1},
+        focusSceneId: "scene-1",
         focusShotId: "shot-1",
         previousShotId: null,
         nextShotId: null,

@@ -434,12 +434,16 @@ class OcptProjectVersionsService {
         ..insertAll(database.ocptBudgetCommitmentsTable, payload.budgetCommitments)
         ..insertAll(database.ocptBudgetEntriesTable, payload.budgetEntries)
         // The storyboard and floor plan tables, in the same dependency order [_applyPayload] restores
-        // them in: `floor_plan_sets` references only `scenes` and, optionally, `assets` (both
-        // inserted above); `storyboard_panels` references `shots` and, optionally, `assets` (both
-        // inserted above); `storyboard_annotations` references the panel it marks, just inserted;
-        // `floor_plan_symbols` references `floor_plan_sets` and, optionally, `shots` (both inserted
-        // above); `floor_plan_arrows` references `floor_plan_sets`, `shots` and the two
-        // `floor_plan_symbols` rows it connects, so it comes last.
+        // them in: `floor_plan_sets` references only `sets` (`docs/plans/storyboard.md`, §10, its
+        // own id) and, optionally, `assets` (both inserted above); `storyboard_panels` references
+        // `shots` and, optionally, `assets` (both inserted above); `storyboard_annotations`
+        // references the panel it marks, just inserted; `floor_plan_symbols` references
+        // `floor_plan_sets` and, optionally, `scenes`/`shots` (all inserted above) and, optionally,
+        // another live `floor_plan_symbols` row of its own (`overridesSymbolId`) — a self-reference
+        // `insertAll`'s deferred foreign-key checking handles the same way as the genuine forward
+        // reference noted above, whichever order the two rows land in; `floor_plan_arrows`
+        // references `floor_plan_sets`, `shots` and the two `floor_plan_symbols` rows it connects,
+        // so it comes last.
         ..insertAll(database.ocptFloorPlanSetsTable, payload.floorPlanSets)
         ..insertAll(database.ocptStoryboardPanelsTable, payload.storyboardPanels)
         ..insertAll(database.ocptStoryboardAnnotationsTable, payload.storyboardAnnotations)

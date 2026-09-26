@@ -10,19 +10,24 @@ import 'package:open_cine_prod_tools/types/ocpt_floor_plan_set_element_shape.dar
 /// A camera, a character, a light, a set element or any other placed symbol of a floor plan set,
 /// as `OcptFloorPlanService.loadFloorPlans` builds it from its stored row.
 ///
-/// [shotId] is null exactly when [layer] is sequence-scoped
-/// (`OcptFloorPlanLayerScope.isSequenceScoped`) — the invariant `OcptFloorPlanService` enforces at
-/// every write; see `OcptFloorPlanSymbolsTable`'s own doc comment. A camera symbol's letter and a
-/// shot layer's shot number are never stored on this model either: both are derived at read time,
-/// by `ocptFloorPlanCameraLabelOf` and by the loaded shot's own rank.
+/// [sceneId]/[shotId] carry this symbol's scope (`OcptFloorPlanScope`, `ocptFloorPlanScopeOf`) —
+/// the scope matrix `OcptFloorPlanService` enforces per [layer] at every write; see
+/// `OcptFloorPlanSymbolsTable`'s own doc comment. A camera symbol's letter and a shot layer's shot
+/// number are never stored on this model either: both are derived at read time, by
+/// `ocptFloorPlanCameraLabelOf` and by the loaded shot's own rank.
 class OcptFloorPlanSymbol extends Equatable {
   /// The stable, unique id of this symbol (a UUID).
   final String id;
 
-  /// The set this symbol is placed on.
+  /// The Resources set this symbol is placed on.
   final String setId;
 
-  /// The shot this symbol belongs to — null on a sequence layer, set on a shot layer.
+  /// The sequence this symbol is scoped to — null on a set-scope or shot-scope symbol, set on a
+  /// scene-scope symbol.
+  final String? sceneId;
+
+  /// The shot this symbol belongs to — null on a set-scope or scene-scope symbol, set on a
+  /// shot-scope symbol.
   final String? shotId;
 
   /// Which layer this symbol is drawn on.
@@ -63,10 +68,16 @@ class OcptFloorPlanSymbol extends Equatable {
   /// doc comment and [OcptFloorPlanSetElementShape].
   final OcptFloorPlanSetElementShape? setElementShape;
 
+  /// The live set-scope symbol this scene-scope symbol replaces in its own [sceneId]'s sequence —
+  /// null for every symbol but a scene-scope override. See `OcptFloorPlanSymbolsTable`'s own doc
+  /// comment.
+  final String? overridesSymbolId;
+
   /// Class constructor
   const OcptFloorPlanSymbol({
     required this.id,
     required this.setId,
+    required this.sceneId,
     required this.shotId,
     required this.layer,
     required this.sortKey,
@@ -79,12 +90,14 @@ class OcptFloorPlanSymbol extends Equatable {
     required this.fovReachM,
     required this.label,
     required this.setElementShape,
+    required this.overridesSymbolId,
   });
 
   /// Builds an [OcptFloorPlanSymbol] from its stored [row].
   factory OcptFloorPlanSymbol.fromRow(OcptFloorPlanSymbolRow row) => OcptFloorPlanSymbol(
     id: row.id,
     setId: row.setId,
+    sceneId: row.sceneId,
     shotId: row.shotId,
     layer: row.layer,
     sortKey: row.sortKey,
@@ -97,18 +110,21 @@ class OcptFloorPlanSymbol extends Equatable {
     fovReachM: row.fovReachM,
     label: row.label,
     setElementShape: row.setElementShape,
+    overridesSymbolId: row.overridesSymbolId,
   );
 
   /// Object string representation, useful for debugging and logging.
   @override
   String toString() =>
-      "OcptFloorPlanSymbol(id: $id, setId: $setId, shotId: $shotId, layer: $layer)";
+      "OcptFloorPlanSymbol(id: $id, setId: $setId, sceneId: $sceneId, shotId: $shotId, "
+      "layer: $layer)";
 
   /// Object properties
   @override
   List<Object?> get props => [
     id,
     setId,
+    sceneId,
     shotId,
     layer,
     sortKey,
@@ -121,5 +137,6 @@ class OcptFloorPlanSymbol extends Equatable {
     fovReachM,
     label,
     setElementShape,
+    overridesSymbolId,
   ];
 }

@@ -25,12 +25,12 @@ import 'package:open_cine_prod_tools/utils/ocpt_floor_plan_geometry.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 
-/// The minimum half-span, in metres, a case's own bounding box is padded to on either axis when it
-/// holds too little (or nothing at all) to size a sensible page from — a freshly created case with
+/// The minimum half-span, in metres, a set's own bounding box is padded to on either axis when it
+/// holds too little (or nothing at all) to size a sensible page from — a freshly created set with
 /// one lone camera symbol still prints a legible sheet rather than one zoomed in on a single pixel.
 const double _minimumHalfSpanM = 1.5;
 
-/// The fraction of a case's own bounding box span added as breathing room on every side, so a
+/// The fraction of a set's own bounding box span added as breathing room on every side, so a
 /// symbol sitting exactly on the edge of what was placed is never printed flush against the page's
 /// own margin.
 const double _boundingBoxPaddingFraction = 0.15;
@@ -38,7 +38,7 @@ const double _boundingBoxPaddingFraction = 0.15;
 /// The font size, in points, of the running head naming the project and the document.
 const double _headFontSizePt = 7;
 
-/// The font size, in points, of a page's own title band (the sequence and the case).
+/// The font size, in points, of a page's own title band (the sequence and the set).
 const double _titleFontSizePt = 13;
 
 /// The font size, in points, of the shot's key-information line, or the bare-décor note.
@@ -94,8 +94,8 @@ const PdfColor _scaleColor = PdfColor.fromInt(0xFF3A3A3A);
 /// zoom — scaled by the very same pixels-per-metre the rest of the page's shapes are.
 const double _silhouetteMarginPt = 10;
 
-/// Renders the floor plans of a shot list: per sequence, per case, one page per shot that has a
-/// camera placed on it — the case drawn in that shot's own focus, no ghosts — or, for a case no
+/// Renders the floor plans of a shot list: per sequence, per linked set, one page per shot that has a
+/// camera placed on it — the set drawn in that shot's own focus, no ghosts — or, for a set no
 /// shot has a camera on, one page of its bare décor (`docs/plans/storyboard.md`, §5).
 ///
 /// This is pure rendering logic with no dialog or file-system access of its own: it's owned by
@@ -111,7 +111,7 @@ const double _silhouetteMarginPt = 10;
 /// `lib/utils/ocpt_floor_plan_geometry.dart` ([ocptFloorPlanPixelsPerMetreAt],
 /// [ocptFloorPlanMetresToPixels], [ocptFloorPlanScaleBarLengthM]): this service supplies the one
 /// thing a printed page needs that a pannable, zoomable canvas doesn't — the zoom that fits a
-/// case's own shapes onto the page — and hands every metre through the very same conversion from
+/// set's own shapes onto the page — and hands every metre through the very same conversion from
 /// there on, so the two can never disagree about what a given scale looks like.
 ///
 /// **The underlay prints as the real referenced image, read at render time, exactly like a
@@ -154,8 +154,8 @@ class OcptFloorPlanPdfService {
   /// Renders the floor plans of [snapshot]/[floorPlanSnapshot], returning the PDF's bytes.
   ///
   /// [pageSetup] supplies the page geometry (and, through it, the Courier Prime the running head
-  /// and every label print in). The orphan group contributes nothing: a floor plan case is per
-  /// scene, and the orphan group is no scene.
+  /// and every label print in). The orphan group contributes nothing: a floor plan's tabs come
+  /// from a scene's own `scene_sets` links, and the orphan group is no scene.
   Future<Uint8List> generate({
     required OcptShotListSnapshot snapshot,
     required OcptFloorPlanSnapshot floorPlanSnapshot,
@@ -186,14 +186,14 @@ class OcptFloorPlanPdfService {
     return pdfDocument.save();
   }
 
-  /// Every page [sequence]'s own cases print, in tab order — one page per shot with a camera, or
-  /// one bare-décor page for a case with none.
+  /// Every page [sequence]'s own linked sets print, in tab order — one page per shot with a camera, or
+  /// one bare-décor page for a set with none.
   ///
   /// Public so `OcptStoryboardPdfService` can append the very same pages after a sequence's own
   /// shot rows, when its `Include the floor plans after each sequence` toggle is on
-  /// (`docs/plans/storyboard.md`, §5, §8 decision 8) — the two documents must never draw a case's
-  /// plan two different ways. Async because a case's own underlay image is read here, once per
-  /// case, ahead of building its (possibly several) pages, rather than once per page.
+  /// (`docs/plans/storyboard.md`, §5, §8 decision 8) — the two documents must never draw a set's
+  /// plan two different ways. Async because a set's own underlay image is read here, once per
+  /// set, ahead of building its (possibly several) pages, rather than once per page.
   Future<List<pw.Page>> pagesOfSequence({
     required OcptScriptPagePainter painter,
     required OcptFloorPlanLabels labels,
@@ -248,6 +248,7 @@ class OcptFloorPlanPdfService {
     if (shotsWithCamera.isEmpty) {
       final sheet = OcptFloorPlanSheet.of(
         floorPlanSet: floorPlanSet,
+        focusSceneId: sequence.sceneId,
         focusShotId: null,
         shotRankByShotId: shotRankByShotId,
       );
@@ -274,6 +275,7 @@ class OcptFloorPlanPdfService {
           floorPlanSet: floorPlanSet,
           sheet: OcptFloorPlanSheet.of(
             floorPlanSet: floorPlanSet,
+            focusSceneId: sequence.sceneId,
             focusShotId: shot.id,
             shotRankByShotId: shotRankByShotId,
             // Never ghosted on paper: a printed sheet shows the one shot it was built for.
@@ -300,7 +302,7 @@ class OcptFloorPlanPdfService {
     }
   }
 
-  /// One page: the running head, the sequence/case title band, the shot's own key information (or
+  /// One page: the running head, the sequence/set title band, the shot's own key information (or
   /// the bare-décor note), then [sheet] drawn to fill the rest of the page.
   ///
   /// The canvas area is a [pw.Stack] over one shared layout ([_FloorPlanPageLayout]): the underlay
@@ -972,7 +974,7 @@ class OcptFloorPlanPdfService {
 
   /// The scale bar and the reference silhouette, bottom-right of the canvas — the printed
   /// equivalent of `ocpt_floor_plan_canvas_painter.dart`'s always-on pair, at the zoom [layout]
-  /// fitted the case's own shapes at. The scale bar's own length is a separate [pw.Text] overlay
+  /// fitted the set's own shapes at. The scale bar's own length is a separate [pw.Text] overlay
   /// (see [_buildPage]'s own doc comment for why).
   void _paintScaleAndSilhouette({required PdfGraphics canvas, required _FloorPlanPageLayout layout}) {
     canvas

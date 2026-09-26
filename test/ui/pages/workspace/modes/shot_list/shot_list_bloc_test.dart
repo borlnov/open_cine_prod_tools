@@ -2890,31 +2890,8 @@ void main() {
       await bloc.close();
     });
 
-    test("reordering two cases writes the new tab order", () async {
-      await writeScreenplay(twoSceneText);
-      final bloc = buildBloc();
-      await waitForState(bloc, (state) => !state.isLoading);
-      final firstSetId = await createCase(bloc);
-      bloc.add(const OcptShotListSetCreationRequestedEvent());
-      final afterSecond = await waitForState(
-        bloc,
-        (state) => state.setsOfSelectedSequence.length == 2,
-      );
-      final secondSetId = afterSecond.selectedSetId!;
-      expect(afterSecond.setsOfSelectedSequence.map((c) => c.id), [firstSetId, secondSetId]);
-
-      bloc.add(OcptShotListSetReorderedEvent(setId: secondSetId, newPosition: 0));
-      final reordered = await waitForState(
-        bloc,
-        (state) => state.setsOfSelectedSequence.first.id == secondSetId,
-      );
-      expect(reordered.setsOfSelectedSequence.map((c) => c.id), [secondSetId, firstSetId]);
-
-      await bloc.close();
-    });
-
     test(
-      "deleting the selected case tombstones it and selects the sequence's next first case",
+      "unlinking the selected case removes its tab and selects the sequence's next first case",
       () async {
         await writeScreenplay(twoSceneText);
         final bloc = buildBloc();
@@ -3482,6 +3459,7 @@ void main() {
           // writes through `OcptFloorPlanService.placeSymbol` — feeds it the right rows.
           final sheet = OcptFloorPlanSheet.of(
             floorPlanSet: state.selectedSet!,
+            focusSceneId: state.selectedSequenceId!,
             focusShotId: shotId,
             shotRankByShotId: {shotId: 1},
           );
@@ -4049,37 +4027,39 @@ void main() {
       });
 
       test(
-        "duplicating the selected set copies its own placements as independent rows and "
-        "selects the copy",
+        "duplicating the selected set copies its own set-scope placements as independent rows, "
+        "into a new Resources set linked to the same sequence, and selects the copy",
         () async {
           await writeScreenplay(twoSceneText);
           final bloc = buildBloc();
           await waitForState(bloc, (state) => !state.isLoading);
           final setId = await createCase(bloc);
-          final shotId = await createFreshShot(bloc);
 
           bloc.add(
             OcptShotListFloorPlanSymbolPlacedEvent(
               setId: setId,
-              layer: OcptFloorPlanLayer.cameras,
-              shotId: shotId,
+              layer: OcptFloorPlanLayer.set,
+              shotId: null,
               xM: 1,
               yM: 2,
             ),
           );
-          final withCamera = await waitForState(
+          final withDecor = await waitForState(
             bloc,
             (state) => state.selectedSet!.symbols.isNotEmpty,
           );
-          final sourceSymbolId = withCamera.selectedSet!.symbols.single.id;
+          final sourceSymbolId = withDecor.selectedSet!.symbols.single.id;
 
-          bloc.add(OcptShotListSetDuplicationRequestedEvent(setId: setId));
+          bloc.add(
+            OcptShotListSetDuplicationRequestedEvent(setId: setId, newSetName: "House copy"),
+          );
           final afterDuplicate = await waitForState(
             bloc,
             (state) => state.setsOfSelectedSequence.length == 2,
           );
           final newSetId = afterDuplicate.selectedSetId!;
           expect(newSetId, isNot(setId));
+          expect(afterDuplicate.selectedSet!.name, "House copy");
           expect(afterDuplicate.selectedSet!.symbols, hasLength(1));
           final copiedSymbolId = afterDuplicate.selectedSet!.symbols.single.id;
           expect(copiedSymbolId, isNot(sourceSymbolId));

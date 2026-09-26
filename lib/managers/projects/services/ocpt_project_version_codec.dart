@@ -1021,8 +1021,9 @@ class OcptProjectVersionCodec {
   static const _textKey = "text";
 
   /// This is the key used to stringify or parse a `floor_plan_sets.underlayAssetId` column from a
-  /// JSON object, from payload format 4. `floor_plan_sets.sceneId` reuses [_sceneIdKey] directly,
-  /// the very same column meaning every other reader of it already carries.
+  /// JSON object, from payload format 4. `floor_plan_sets.id` is `sets.id` (see
+  /// `OcptFloorPlanSetsTable`'s own doc comment) and reuses [_idKey] directly, so this row carries
+  /// no `sceneId`/`name`/`sortKey` of its own any more.
   static const _underlayAssetIdKey = "underlayAssetId";
 
   /// This is the key used to stringify or parse a `floor_plan_sets.underlayXM` column from a JSON
@@ -1091,6 +1092,13 @@ class OcptProjectVersionCodec {
   /// cycle: see [_setElementShapeKey]'s own doc comment for what that means for an older format-4
   /// payload.
   static const _fovReachMKey = "fovReachM";
+
+  /// This is the key used to stringify or parse a `floor_plan_symbols.overridesSymbolId` column
+  /// from a JSON object, from payload format 4 — the live set-scope symbol a scene-scope override
+  /// replaces; null for every other symbol. Added while schema version 4 is still an open
+  /// development cycle: see [_setElementShapeKey]'s own doc comment for what that means for an
+  /// older format-4 payload.
+  static const _overridesSymbolIdKey = "overridesSymbolId";
 
   /// This is the key used to stringify or parse a `floor_plan_arrows.fromSymbolId` column from a
   /// JSON object, from payload format 4.
@@ -2438,9 +2446,6 @@ class OcptProjectVersionCodec {
   /// Serializes one `floor_plan_sets` row.
   static Map<String, dynamic> _floorPlanSetToJson(OcptFloorPlanSetRow row) => {
     _idKey: row.id,
-    _sceneIdKey: row.sceneId,
-    _nameKey: row.name,
-    _sortKeyKey: row.sortKey,
     _underlayAssetIdKey: row.underlayAssetId,
     _underlayXMKey: row.underlayXM,
     _underlayYMKey: row.underlayYM,
@@ -2454,9 +2459,6 @@ class OcptProjectVersionCodec {
   static OcptFloorPlanSetRow _floorPlanSetFromJson(Map<String, dynamic> json) =>
       OcptFloorPlanSetRow(
         id: _string(json, _idKey),
-        sceneId: _string(json, _sceneIdKey),
-        name: _string(json, _nameKey),
-        sortKey: _string(json, _sortKeyKey),
         underlayAssetId: _nullableString(json, _underlayAssetIdKey),
         underlayXM: _nullableDouble(json, _underlayXMKey),
         underlayYM: _nullableDouble(json, _underlayYMKey),
@@ -2470,6 +2472,7 @@ class OcptProjectVersionCodec {
   static Map<String, dynamic> _floorPlanSymbolToJson(OcptFloorPlanSymbolRow row) => {
     _idKey: row.id,
     _setIdKey: row.setId,
+    _sceneIdKey: row.sceneId,
     _shotIdKey: row.shotId,
     _layerKey: row.layer.name,
     _sortKeyKey: row.sortKey,
@@ -2482,6 +2485,7 @@ class OcptProjectVersionCodec {
     _fovReachMKey: row.fovReachM,
     _labelKey: row.label,
     _setElementShapeKey: row.setElementShape?.name,
+    _overridesSymbolIdKey: row.overridesSymbolId,
     _isDeletedKey: row.isDeleted,
   };
 
@@ -2490,6 +2494,7 @@ class OcptProjectVersionCodec {
       OcptFloorPlanSymbolRow(
         id: _string(json, _idKey),
         setId: _string(json, _setIdKey),
+        sceneId: _nullableString(json, _sceneIdKey),
         shotId: _nullableString(json, _shotIdKey),
         layer: _enum(json, _layerKey, OcptFloorPlanLayer.values.asNameMap()),
         sortKey: _string(json, _sortKeyKey),
@@ -2506,6 +2511,7 @@ class OcptProjectVersionCodec {
           _setElementShapeKey,
           OcptFloorPlanSetElementShape.values.asNameMap(),
         ),
+        overridesSymbolId: _nullableString(json, _overridesSymbolIdKey),
         isDeleted: _bool(json, _isDeletedKey),
       );
 

@@ -62,8 +62,10 @@ void main() {
   );
   final scheduleService = OcptScheduleService(deviceId: testDeviceId);
   final elementsService = OcptElementsService(assetsService: assetsService, deviceId: testDeviceId);
+  final floorPlanService = OcptFloorPlanService(assetsService: assetsService, deviceId: testDeviceId);
   final locationsService = OcptLocationsService(
     assetsService: assetsService,
+    floorPlanService: floorPlanService,
     deviceId: testDeviceId,
   );
   // Used directly by the `hydratePreview` storyboard/floor plan test below, so the panel, its
@@ -71,7 +73,6 @@ void main() {
   // way the board and the floor plans view themselves would (through the M2 services), rather
   // than by hand-inserted rows.
   final storyboardService = OcptStoryboardService(assetsService: assetsService, deviceId: testDeviceId);
-  final floorPlanService = OcptFloorPlanService(assetsService: assetsService, deviceId: testDeviceId);
   final roleIndexService = OcptRoleIndexService(
     elementsService: elementsService,
     roleCandidatesService: roleCandidatesService,
@@ -623,7 +624,8 @@ void main() {
 
     test(
       "the storyboard and floor plan tables — a panel with an image asset, its annotation, a "
-      "case, a shot-scoped symbol and an arrow — all come back",
+      "linked set's plan, a shot-scoped symbol, a scene-scope override and an arrow — all come "
+      "back",
       () async {
         // Regression test for the M3 preview bug: `hydratePreview` held its own hand-written
         // insert list, separate from `_applyPayload`'s, and was never updated when M1 added
@@ -658,13 +660,15 @@ void main() {
           text: "walks to the door",
         ))!;
 
-        final setId = (await floorPlanService.addSet(
+        final setId = (await locationsService.createSetLinkedToScene(
           database: database,
           sceneId: "scene-1",
+          name: "Kitchen",
         ))!;
         final cameraId = (await floorPlanService.placeSymbol(
           database: database,
           setId: setId,
+          sceneId: null,
           shotId: "shot-1",
           layer: OcptFloorPlanLayer.cameras,
           xM: 1.2,
@@ -675,6 +679,7 @@ void main() {
         final characterId = (await floorPlanService.placeSymbol(
           database: database,
           setId: setId,
+          sceneId: null,
           shotId: "shot-1",
           layer: OcptFloorPlanLayer.characters,
           xM: 2.5,
@@ -690,17 +695,40 @@ void main() {
           toSymbolId: cameraId,
           label: "crosses to the camera",
         ))!;
+        // A set-scope décor symbol, and a scene-scope override replacing it in scene-1 — the
+        // override rule (`docs/plans/storyboard.md`, §10) must survive a preview too.
+        final originalWallId = (await floorPlanService.placeSymbol(
+          database: database,
+          setId: setId,
+          sceneId: null,
+          shotId: null,
+          layer: OcptFloorPlanLayer.set,
+          xM: 0,
+          yM: 0,
+          label: "North wall",
+        ))!;
+        final overrideWallId = (await floorPlanService.placeSymbol(
+          database: database,
+          setId: setId,
+          sceneId: "scene-1",
+          shotId: null,
+          layer: OcptFloorPlanLayer.set,
+          xM: 0.5,
+          yM: 0.5,
+          label: "North wall, re-dressed",
+          overridesSymbolId: originalWallId,
+        ))!;
 
         final payload = await readPayload((await createVersion()).id);
 
-        // The payload itself must already carry every one of the five rows just written — a
-        // gap here would mean `_capturePayload` dropped them, not `hydratePreview`.
+        // The payload itself must already carry every one of the rows just written — a gap here
+        // would mean `_capturePayload` dropped them, not `hydratePreview`.
         expect(payload.storyboardPanels.map((row) => row.id), [panelId]);
         expect(payload.storyboardAnnotations.map((row) => row.id), [annotationId]);
         expect(payload.floorPlanSets.map((row) => row.id), [setId]);
         expect(
           payload.floorPlanSymbols.map((row) => row.id).toSet(),
-          {cameraId, characterId},
+          {cameraId, characterId, originalWallId, overrideWallId},
         );
         expect(payload.floorPlanArrows.map((row) => row.id), [arrowId]);
 
@@ -734,10 +762,30 @@ void main() {
         expect(restoredAnnotation.y2, 0.6);
         expect(restoredAnnotation.labelText, "walks to the door");
 
-        final restoredCase = await (preview.select(
+        final restoredPlan = await (preview.select(
           preview.ocptFloorPlanSetsTable,
         )..where((table) => table.id.equals(setId))).getSingle();
-        expect(restoredCase.sceneId, "scene-1");
+        expect(restoredPlan.id, setId);
+
+        // The Resources set and its `scene_sets` link survived the preview too — `floor_plan_sets
+        // .id` being `sets.id` means the plan is meaningless without them.
+        final restoredSet = await (preview.select(
+          preview.ocptSetsTable,
+        )..where((table) => table.id.equals(setId))).getSingle();
+        expect(restoredSet.name, "Kitchen");
+        final restoredLink = (await (preview.select(
+          preview.ocptSceneSetsTable,
+        )..where((table) => table.setId.equals(setId))).getSingle());
+        expect(restoredLink.sceneId, "scene-1");
+        expect(restoredLink.isDeleted, isFalse);
+
+        // The scene-scope override survived, still naming its set-scope original.
+        final restoredOverride = await (preview.select(
+          preview.ocptFloorPlanSymbolsTable,
+        )..where((table) => table.id.equals(overrideWallId))).getSingle();
+        expect(restoredOverride.sceneId, "scene-1");
+        expect(restoredOverride.overridesSymbolId, originalWallId);
+        expect(restoredOverride.label, "North wall, re-dressed");
 
         final restoredCamera = await (preview.select(
           preview.ocptFloorPlanSymbolsTable,

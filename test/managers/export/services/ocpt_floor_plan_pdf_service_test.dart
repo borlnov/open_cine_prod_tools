@@ -93,6 +93,7 @@ OcptFloorPlanSymbol _cameraSymbolOf({
 }) => OcptFloorPlanSymbol(
   id: id,
   setId: setId,
+  sceneId: null,
   shotId: shotId,
   layer: OcptFloorPlanLayer.cameras,
   sortKey: "a",
@@ -105,6 +106,7 @@ OcptFloorPlanSymbol _cameraSymbolOf({
   fovReachM: fovReachM,
   label: "",
   setElementShape: null,
+  overridesSymbolId: null,
 );
 
 /// Builds a character symbol on [setId] for [shotId].
@@ -117,6 +119,7 @@ OcptFloorPlanSymbol _characterSymbolOf({
 }) => OcptFloorPlanSymbol(
   id: id,
   setId: setId,
+  sceneId: null,
   shotId: shotId,
   layer: OcptFloorPlanLayer.characters,
   sortKey: "b",
@@ -129,6 +132,7 @@ OcptFloorPlanSymbol _characterSymbolOf({
   fovReachM: null,
   label: "Sam",
   setElementShape: null,
+  overridesSymbolId: null,
 );
 
 /// A sequence-scoped character symbol on [setId] — never ghosted, always drawn (on the bare-décor
@@ -137,6 +141,7 @@ OcptFloorPlanSymbol _sequenceCharacterSymbolOf({required String id, required Str
     OcptFloorPlanSymbol(
       id: id,
       setId: setId,
+      sceneId: null,
       shotId: null,
       layer: OcptFloorPlanLayer.characters,
       sortKey: "a",
@@ -149,6 +154,7 @@ OcptFloorPlanSymbol _sequenceCharacterSymbolOf({required String id, required Str
       fovReachM: null,
       label: "Sam",
       setElementShape: null,
+      overridesSymbolId: null,
     );
 
 /// A sequence-scoped décor symbol on [setId], drawn as [shape] (defaulting to freeform, today's
@@ -160,6 +166,7 @@ OcptFloorPlanSymbol _decorSymbolOf({
 }) => OcptFloorPlanSymbol(
   id: id,
   setId: setId,
+  sceneId: null,
   shotId: null,
   layer: OcptFloorPlanLayer.set,
   sortKey: "a",
@@ -172,6 +179,7 @@ OcptFloorPlanSymbol _decorSymbolOf({
   fovReachM: null,
   label: "wall",
   setElementShape: shape,
+  overridesSymbolId: null,
 );
 
 /// A movement arrow between two symbols of [setId], curved when [ctrlXM]/[ctrlYM] are set,
@@ -243,9 +251,7 @@ void main() {
     double underlayRotationDeg = 0,
   }) => OcptFloorPlanSet(
     id: id,
-    sceneId: "scene-1",
     name: "Kitchen",
-    sortKey: "a",
     underlayAssetId: underlayPath == null ? null : "underlay-asset",
     underlayPath: underlayPath,
     underlayXM: underlayPath == null ? null : 0,

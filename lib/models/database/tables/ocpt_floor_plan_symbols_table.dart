@@ -4,8 +4,10 @@
 
 import 'package:drift/drift.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_floor_plan_sets_table.dart';
+import 'package:open_cine_prod_tools/models/database/tables/ocpt_scenes_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_shots_table.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_layer.dart';
+import 'package:open_cine_prod_tools/types/ocpt_floor_plan_scope.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_set_element_shape.dart';
 
 /// Converts a [OcptFloorPlanLayer] to and from the text stored in the `floor_plan_symbols.layer`
@@ -56,9 +58,19 @@ class OcptFloorPlanSetElementShapeConverter
 
 /// A camera, a character, a light, a set element or any other placed symbol of a floor plan set.
 ///
-/// One table for both of the floor plan's scopes: [layer] decides the scope, and [shotId] is null
-/// **exactly when** [layer] is sequence-scoped (`OcptFloorPlanLayer.isSequenceScoped`) — the
-/// invariant `OcptFloorPlanService` enforces at every write (`docs/plans/storyboard.md`, §2).
+/// **Three scopes, derived from nullness, never stored as their own column**
+/// (`docs/plans/storyboard.md`, §10; [OcptFloorPlanScope]): **set** scope ([sceneId] and [shotId]
+/// both null, shared by every sequence the set is linked to), **scene** scope ([sceneId] set,
+/// [shotId] null, this sequence only) and **shot** scope ([shotId] set, this shot only). Which
+/// scopes a given [layer] may land in is the scope matrix `OcptFloorPlanService._checkScopeInvariant`
+/// enforces at every write: `set` → set or scene scope; `cameras`/`characters`/`lights` → shot scope
+/// only; `props` → scene or shot scope (for now — a later pass moves the props UI to scene scope
+/// alone and tightens this).
+///
+/// [overridesSymbolId] is null for every symbol but a **scene-scope override**: a scene-scope
+/// symbol that replaces a live set-scope symbol of the same set when drawing its own [sceneId]'s
+/// sequence — the maintainer's "every sequence / only this one" move — while the original keeps
+/// showing in every other sequence and a later edit to it still flows through everywhere else.
 ///
 /// A camera symbol's letter (`3A`, `3B`) and a shot layer's shot number are **never stored**: both
 /// are derived at read time, the letter from this row's rank among the same shot's live cameras on
@@ -73,15 +85,25 @@ class OcptFloorPlanSymbolsTable extends Table {
   /// The stable, unique id of this symbol (a UUID).
   TextColumn get id => text()();
 
-  /// The set this symbol is placed on.
+  /// The Resources set this symbol is placed on (`floor_plan_sets.id`, itself `sets.id`).
   TextColumn get setId => text().references(OcptFloorPlanSetsTable, #id)();
 
-  /// The shot this symbol belongs to — null on a sequence layer, set on a shot layer. See the class
-  /// doc comment.
+  /// The sequence this symbol is scoped to — null on a set-scope or shot-scope symbol, set on a
+  /// scene-scope symbol. See the class doc comment.
+  TextColumn get sceneId => text().nullable().references(OcptScenesTable, #id)();
+
+  /// The shot this symbol belongs to — null on a set-scope or scene-scope symbol, set on a
+  /// shot-scope symbol. See the class doc comment.
   TextColumn get shotId => text().nullable().references(OcptShotsTable, #id)();
 
-  /// Which layer this symbol is drawn on, and so which scope it belongs to.
+  /// Which layer this symbol is drawn on.
   TextColumn get layer => text().map(const OcptFloorPlanLayerConverter())();
+
+  /// The live set-scope symbol (of the same [setId]) this scene-scope symbol replaces when drawing
+  /// its own [sceneId]'s sequence — null for every symbol but a scene-scope override. See the class
+  /// doc comment.
+  TextColumn get overridesSymbolId =>
+      text().nullable().references(OcptFloorPlanSymbolsTable, #id)();
 
   /// {@macro open_cine_prod_tools.sortKey}
   ///

@@ -7,28 +7,25 @@ import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart'
 import 'package:open_cine_prod_tools/models/ocpt_floor_plan_arrow.dart';
 import 'package:open_cine_prod_tools/models/ocpt_floor_plan_symbol.dart';
 
-/// One set of a sequence's floor plan, as `OcptFloorPlanService.loadFloorPlans` builds it: its
-/// stored fields, the underlay's resolved path (through the `assets` table, ADR 0013) and its live
-/// symbols and arrows.
+/// The floor plan of one Resources set, as `OcptFloorPlanService.loadFloorPlans` builds it: [id]
+/// is the Resources set's own id (`sets.id`, `docs/plans/storyboard.md`, §10), [name] is read off
+/// that very `sets` row, and the underlay/symbols/arrows come from its own `floor_plan_sets` row —
+/// absent while nothing has been drawn on it yet (`OcptFloorPlanService.ensurePlan`'s lazy
+/// creation), read the same as a plan with no underlay and no placements.
 ///
-/// A sequence may hold several of these, in [sortKey] order (its tabs). See
-/// `OcptFloorPlanSetsTable`'s own doc comment for why a set whose scene has vanished from the
-/// screenplay is simply unreachable rather than cascaded — nothing here handles that state
-/// specially, the loader just never surfaces it.
+/// A sequence's floor-plan tabs are its live `scene_sets` links, so the very same [OcptFloorPlanSet]
+/// (same [symbols], same [arrows]) can show up under two different sequences' tabs at once — this
+/// is what lets a set-scope symbol moved on one of them show on the other too. [symbols] holds
+/// every scope's rows at once (set, every linked sequence's own scene-scope, every shot's own
+/// shot-scope); `OcptFloorPlanSheet.of` is what narrows them down to one focus.
 class OcptFloorPlanSet extends Equatable {
-  /// The stable, unique id of this set (a UUID).
+  /// The stable, unique id of this set — the Resources set's own (`sets.id`).
   final String id;
 
-  /// The sequence (scene) this set belongs to.
-  final String sceneId;
-
-  /// The set's own name.
+  /// The set's own name, read off its Resources `sets` row.
   final String name;
 
-  /// The order this set's tab takes among the sequence's other sets.
-  final String sortKey;
-
-  /// The underlay's `assets` row id, or null until one is imported.
+  /// The underlay's `assets` row id, or null while none is placed (or the plan doesn't exist yet).
   final String? underlayAssetId;
 
   /// The underlay's resolved absolute path, or null — a non-null [underlayAssetId] whose `assets`
@@ -51,7 +48,7 @@ class OcptFloorPlanSet extends Equatable {
   /// The underlay's rotation, in degrees. See [underlayXM].
   final double? underlayRotationDeg;
 
-  /// This set's live symbols.
+  /// This set's live symbols, of every scope at once — see this class's own doc comment.
   final List<OcptFloorPlanSymbol> symbols;
 
   /// This set's live arrows.
@@ -60,9 +57,7 @@ class OcptFloorPlanSet extends Equatable {
   /// Class constructor
   const OcptFloorPlanSet({
     required this.id,
-    required this.sceneId,
     required this.name,
-    required this.sortKey,
     required this.underlayAssetId,
     required this.underlayPath,
     required this.underlayXM,
@@ -74,25 +69,25 @@ class OcptFloorPlanSet extends Equatable {
     required this.arrows,
   });
 
-  /// Builds an [OcptFloorPlanSet] from its stored [row], the resolved [underlayPath] of its
-  /// underlay asset (or null), and its live [symbols] and [arrows].
-  factory OcptFloorPlanSet.fromRow({
-    required OcptFloorPlanSetRow row,
+  /// Builds an [OcptFloorPlanSet] from its Resources [setRow] (name), its own [planRow] — null
+  /// while nothing has been drawn on it yet — the resolved [underlayPath] of its underlay asset (or
+  /// null), and its live [symbols] and [arrows].
+  factory OcptFloorPlanSet.fromRows({
+    required OcptSetRow setRow,
+    required OcptFloorPlanSetRow? planRow,
     required String? underlayPath,
     required List<OcptFloorPlanSymbol> symbols,
     required List<OcptFloorPlanArrow> arrows,
   }) => OcptFloorPlanSet(
-    id: row.id,
-    sceneId: row.sceneId,
-    name: row.name,
-    sortKey: row.sortKey,
-    underlayAssetId: row.underlayAssetId,
-    underlayPath: underlayPath,
-    underlayXM: row.underlayXM,
-    underlayYM: row.underlayYM,
-    underlayWidthM: row.underlayWidthM,
-    underlayHeightM: row.underlayHeightM,
-    underlayRotationDeg: row.underlayRotationDeg,
+    id: setRow.id,
+    name: setRow.name,
+    underlayAssetId: planRow?.underlayAssetId,
+    underlayPath: planRow?.underlayAssetId == null ? null : underlayPath,
+    underlayXM: planRow?.underlayXM,
+    underlayYM: planRow?.underlayYM,
+    underlayWidthM: planRow?.underlayWidthM,
+    underlayHeightM: planRow?.underlayHeightM,
+    underlayRotationDeg: planRow?.underlayRotationDeg,
     symbols: symbols,
     arrows: arrows,
   );
@@ -100,16 +95,13 @@ class OcptFloorPlanSet extends Equatable {
   /// Object string representation, useful for debugging and logging.
   @override
   String toString() =>
-      "OcptFloorPlanSet(id: $id, sceneId: $sceneId, name: $name, symbols: ${symbols.length}, "
-      "arrows: ${arrows.length})";
+      "OcptFloorPlanSet(id: $id, name: $name, symbols: ${symbols.length}, arrows: ${arrows.length})";
 
   /// Object properties
   @override
   List<Object?> get props => [
     id,
-    sceneId,
     name,
-    sortKey,
     underlayAssetId,
     underlayPath,
     underlayXM,

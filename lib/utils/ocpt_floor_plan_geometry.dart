@@ -5,10 +5,11 @@
 import 'dart:math' as math;
 
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_layer.dart';
+import 'package:open_cine_prod_tools/types/ocpt_floor_plan_scope.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_set_element_shape.dart';
 
 /// The default footprint, in metres, a character silhouette is drawn at — the implicit ruler every
-/// other measurement on a floor plan case is read against (`docs/adr/0031-storyboard-panels-and-
+/// other measurement on a floor plan is read against (`docs/adr/0031-storyboard-panels-and-
 /// floor-plans-in-metres.md`). Never stored: a symbol carries its own [ocptFloorPlanDefaultFootprintM]
 /// only as a drawing default, geometry is always in metres regardless of this constant's value.
 const double ocptFloorPlanCharacterFootprintM = 0.5;
@@ -132,9 +133,9 @@ const List<double> _niceScaleBarMultipliers = [1, 2, 5];
 /// The default footprint, in metres, a symbol of [layer] is drawn at absent a per-symbol
 /// `widthM`/`heightM` override.
 ///
-/// A `switch` with no `default`, mirroring [OcptFloorPlanLayerScope.isSequenceScoped]'s own doc
-/// comment: an eighth layer must be given a footprint here rather than silently falling back to
-/// whichever default happens to be listed last.
+/// A `switch` with no `default`, mirroring [OcptFloorPlanScope]'s own doc comment: an eighth layer
+/// must be given a footprint here rather than silently falling back to whichever default happens
+/// to be listed last.
 double ocptFloorPlanDefaultFootprintM(OcptFloorPlanLayer layer) => switch (layer) {
   OcptFloorPlanLayer.characters => ocptFloorPlanCharacterFootprintM,
   OcptFloorPlanLayer.cameras => ocptFloorPlanCameraFootprintM,
@@ -158,7 +159,7 @@ double ocptFloorPlanMetresToPixels({required double metres, required double zoom
 double ocptFloorPlanPixelsToMetres({required double pixels, required double zoom}) =>
     pixels / ocptFloorPlanPixelsPerMetreAt(zoom);
 
-/// The straight-line distance, in metres, between two points of a case's geometry — what the
+/// The straight-line distance, in metres, between two points of a floor plan's geometry — what the
 /// metrics toggle prints between the selected symbol and every other visible one, and between a
 /// selected camera and its subject.
 double ocptFloorPlanDistanceM({

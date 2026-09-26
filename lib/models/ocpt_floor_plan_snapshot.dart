@@ -8,14 +8,16 @@ import 'package:open_cine_prod_tools/models/ocpt_floor_plan_set.dart';
 /// Every floor plan set of a screenplay's sequences, as `OcptFloorPlanService.loadFloorPlans`
 /// builds it — the floor plans view's counterpart to `OcptShotListSnapshot`.
 ///
-/// [setsBySceneId] groups every live set under the sequence (scene) it belongs to, each group
-/// already in [OcptFloorPlanSet.sortKey] order (its tab order); [setsById] is the flat lookup
-/// built once alongside it, mirroring `OcptShotListSnapshot.shotsById`.
+/// [setsBySceneId] groups every sequence's own linked sets (its live `scene_sets`, `docs/plans/
+/// storyboard.md`, §10) under the scene id, each group already in the Resources mode's own
+/// display order (its tab order); [setsById] is the flat lookup built once alongside it, mirroring
+/// `OcptShotListSnapshot.shotsById`. The very same [OcptFloorPlanSet] can appear under two
+/// different scenes at once — a set linked to two sequences is one plan, shown twice.
 class OcptFloorPlanSnapshot extends Equatable {
   /// The screenplay this floor plan snapshot belongs to.
   final String screenplayId;
 
-  /// Every live set, keyed by [OcptFloorPlanSet.sceneId].
+  /// Every live set, keyed by the scene id of the sequence its `scene_sets` link names.
   final Map<String, List<OcptFloorPlanSet>> setsBySceneId;
 
   /// Every live set of [setsBySceneId], keyed by its own id.

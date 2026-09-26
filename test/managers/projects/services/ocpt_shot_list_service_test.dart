@@ -51,8 +51,13 @@ void main() {
     assetsService: assetsService,
     deviceId: _testDeviceId,
   );
+  const floorPlanService = OcptFloorPlanService(
+    assetsService: assetsService,
+    deviceId: _testDeviceId,
+  );
   const locationsService = OcptLocationsService(
     assetsService: assetsService,
+    floorPlanService: floorPlanService,
     deviceId: _testDeviceId,
   );
   const roleIndexService = OcptRoleIndexService(
@@ -61,10 +66,6 @@ void main() {
     deviceId: _testDeviceId,
   );
   const storyboardService = OcptStoryboardService(
-    assetsService: assetsService,
-    deviceId: _testDeviceId,
-  );
-  const floorPlanService = OcptFloorPlanService(
     assetsService: assetsService,
     deviceId: _testDeviceId,
   );
@@ -268,10 +269,15 @@ Action.
           text: "note",
         );
 
-        final setId = (await floorPlanService.addSet(database: database, sceneId: sceneId))!;
+        final setId = (await locationsService.createSetLinkedToScene(
+          database: database,
+          sceneId: sceneId,
+          name: "Kitchen",
+        ))!;
         final decorSymbolId = (await floorPlanService.placeSymbol(
           database: database,
           setId: setId,
+          sceneId: null,
           shotId: null,
           layer: OcptFloorPlanLayer.set,
           xM: 0,
@@ -280,6 +286,7 @@ Action.
         final deletedCameraId = (await floorPlanService.placeSymbol(
           database: database,
           setId: setId,
+          sceneId: null,
           shotId: deletedShotId,
           layer: OcptFloorPlanLayer.cameras,
           xM: 1,
@@ -288,6 +295,7 @@ Action.
         final survivingCameraId = (await floorPlanService.placeSymbol(
           database: database,
           setId: setId,
+          sceneId: null,
           shotId: survivingShotId,
           layer: OcptFloorPlanLayer.cameras,
           xM: 2,
@@ -1173,10 +1181,15 @@ Action.
           shotId: secondShotId,
         ))!;
 
-        final setId = (await floorPlanService.addSet(database: database, sceneId: sceneId))!;
+        final setId = (await locationsService.createSetLinkedToScene(
+          database: database,
+          sceneId: sceneId,
+          name: "Kitchen",
+        ))!;
         final decorSymbolId = (await floorPlanService.placeSymbol(
           database: database,
           setId: setId,
+          sceneId: null,
           shotId: null,
           layer: OcptFloorPlanLayer.set,
           xM: 0,
@@ -1185,6 +1198,7 @@ Action.
         final firstCameraId = (await floorPlanService.placeSymbol(
           database: database,
           setId: setId,
+          sceneId: null,
           shotId: firstShotId,
           layer: OcptFloorPlanLayer.cameras,
           xM: 1,
@@ -1193,6 +1207,7 @@ Action.
         final secondCameraId = (await floorPlanService.placeSymbol(
           database: database,
           setId: setId,
+          sceneId: null,
           shotId: secondShotId,
           layer: OcptFloorPlanLayer.cameras,
           xM: 2,

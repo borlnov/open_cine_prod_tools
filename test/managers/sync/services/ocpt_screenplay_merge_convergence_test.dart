@@ -60,7 +60,11 @@ void main() {
     final assetsService = OcptAssetsService(deviceId: thisDeviceId);
     final roleCandidatesService = OcptRoleCandidatesService(deviceId: thisDeviceId);
     final elementsService = OcptElementsService(assetsService: assetsService, deviceId: thisDeviceId);
-    final locationsService = OcptLocationsService(assetsService: assetsService, deviceId: thisDeviceId);
+    final locationsService = OcptLocationsService(
+      assetsService: assetsService,
+      floorPlanService: OcptFloorPlanService(assetsService: assetsService, deviceId: thisDeviceId),
+      deviceId: thisDeviceId,
+    );
     final roleIndexService = OcptRoleIndexService(
       elementsService: elementsService,
       roleCandidatesService: roleCandidatesService,

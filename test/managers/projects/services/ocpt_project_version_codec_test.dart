@@ -1096,9 +1096,6 @@ void main() {
     floorPlanSets: const [
       OcptFloorPlanSetRow(
         id: "case-1",
-        sceneId: "scene-1",
-        name: "Kitchen",
-        sortKey: "V",
         underlayAssetId: "asset-5",
         underlayXM: 1.2,
         underlayYM: 0.8,
@@ -1108,16 +1105,10 @@ void main() {
         isDeleted: false,
       ),
       // No underlay placed yet, and a tombstone.
-      OcptFloorPlanSetRow(
-        id: "case-2",
-        sceneId: "scene-1",
-        name: "",
-        sortKey: "k",
-        isDeleted: true,
-      ),
+      OcptFloorPlanSetRow(id: "case-2", isDeleted: true),
     ],
     floorPlanSymbols: const [
-      // A sequence layer: shotId null, a footprint of its own, a set-element shape.
+      // A set-scope symbol: sceneId/shotId both null, a footprint of its own, a set-element shape.
       OcptFloorPlanSymbolRow(
         id: "symbol-1",
         setId: "case-1",
@@ -1132,8 +1123,8 @@ void main() {
         setElementShape: OcptFloorPlanSetElementShape.wall,
         isDeleted: false,
       ),
-      // A shot layer: shotId set, a field-of-view wedge instead of a footprint, no set-element
-      // shape — a camera symbol doesn't use it.
+      // A shot-scope symbol: shotId set, a field-of-view wedge instead of a footprint, no
+      // set-element shape — a camera symbol doesn't use it.
       OcptFloorPlanSymbolRow(
         id: "symbol-2",
         setId: "case-1",
@@ -1148,7 +1139,7 @@ void main() {
         label: "85mm",
         isDeleted: false,
       ),
-      // A shot layer, tombstoned.
+      // A shot-scope symbol, tombstoned.
       OcptFloorPlanSymbolRow(
         id: "symbol-3",
         setId: "case-1",
@@ -1160,6 +1151,23 @@ void main() {
         rotationDeg: 0,
         label: "",
         isDeleted: true,
+      ),
+      // A scene-scope override symbol: sceneId set, no shotId, replacing symbol-1 in scene-1.
+      OcptFloorPlanSymbolRow(
+        id: "symbol-4",
+        setId: "case-1",
+        sceneId: "scene-1",
+        layer: OcptFloorPlanLayer.set,
+        sortKey: "w",
+        xM: 0.6,
+        yM: 0.6,
+        rotationDeg: 0,
+        widthM: 5,
+        heightM: 4,
+        label: "North wall, re-dressed",
+        setElementShape: OcptFloorPlanSetElementShape.wall,
+        overridesSymbolId: "symbol-1",
+        isDeleted: false,
       ),
     ],
     floorPlanArrows: const [
@@ -1308,7 +1316,7 @@ void main() {
       expect(roundTripped.storyboardPanels.map((row) => row.isDeleted), [false, true]);
       expect(roundTripped.storyboardAnnotations.map((row) => row.isDeleted), [false, true]);
       expect(roundTripped.floorPlanSets.map((row) => row.isDeleted), [false, true]);
-      expect(roundTripped.floorPlanSymbols.map((row) => row.isDeleted), [false, false, true]);
+      expect(roundTripped.floorPlanSymbols.map((row) => row.isDeleted), [false, false, true, false]);
       expect(roundTripped.floorPlanArrows.map((row) => row.isDeleted), [false, true]);
 
       // sortKey, not position, is what orders a group after ADR 0010.
@@ -1316,9 +1324,9 @@ void main() {
       expect(roundTripped.shotCharacters.map((row) => row.sortKey), ["V", "k"]);
       expect(roundTripped.people.map((row) => row.sortKey), ["V", "k"]);
       expect(roundTripped.storyboardPanels.map((row) => row.sortKey), ["V", "k"]);
-      expect(roundTripped.floorPlanSymbols.map((row) => row.sortKey), ["V", "k", "m"]);
+      expect(roundTripped.floorPlanSymbols.map((row) => row.sortKey), ["V", "k", "m", "w"]);
       // fovReachM (R3b): only the camera symbol carries one, every other row stays null.
-      expect(roundTripped.floorPlanSymbols.map((row) => row.fovReachM), [null, 6, null]);
+      expect(roundTripped.floorPlanSymbols.map((row) => row.fovReachM), [null, 6, null, null]);
 
       // The per-column stamps travel with the rows they describe: this is the assertion that
       // catches a codec silently dropping the sidecar.
@@ -1507,8 +1515,6 @@ void main() {
         expect(label.isDeleted, isTrue);
 
         final case1 = roundTripped.floorPlanSets.firstWhere((row) => row.id == "case-1");
-        expect(case1.sceneId, "scene-1");
-        expect(case1.name, "Kitchen");
         expect(case1.underlayAssetId, "asset-5");
         expect(case1.underlayXM, 1.2);
         expect(case1.underlayYM, 0.8);
@@ -1556,6 +1562,14 @@ void main() {
         );
         expect(tombstonedSymbol.layer, OcptFloorPlanLayer.characters);
         expect(tombstonedSymbol.isDeleted, isTrue);
+        // A scene-scope override: sceneId set, overridesSymbolId naming the set-scope original.
+        final overrideSymbol = roundTripped.floorPlanSymbols.firstWhere(
+          (row) => row.id == "symbol-4",
+        );
+        expect(overrideSymbol.sceneId, "scene-1");
+        expect(overrideSymbol.shotId, isNull);
+        expect(overrideSymbol.overridesSymbolId, "symbol-1");
+        expect(overrideSymbol.label, "North wall, re-dressed");
 
         final movement = roundTripped.floorPlanArrows.firstWhere((row) => row.id == "arrow-1");
         expect(movement.setId, "case-1");

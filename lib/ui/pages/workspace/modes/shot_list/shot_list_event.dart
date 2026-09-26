@@ -904,10 +904,11 @@ class OcptShotListSetSelectedEvent extends OcptShotListEvent {
   List<Object?> get props => [...super.props, setId];
 }
 
-/// Requests creating a new set on the selected sequence, named after its scene heading's place
-/// (`OcptFloorPlanService.addSet`), then selects it. Does nothing while no sequence is selected,
-/// or while the selected one is the orphan group: a set only ever belongs to a real screenplay
-/// scene, exactly as a new shot only ever belongs to one.
+/// Requests creating a new Resources set named after the selected sequence's scene heading's
+/// place, linked to it (`OcptLocationsService.createSetLinkedToScene`), then selects it. Does
+/// nothing while no sequence is selected, or while the selected one is the orphan group: a set
+/// tab only ever belongs to a real screenplay scene, exactly as a new shot only ever belongs to
+/// one.
 class OcptShotListSetCreationRequestedEvent extends OcptShotListEvent {
   /// Class constructor
   const OcptShotListSetCreationRequestedEvent();
@@ -930,29 +931,13 @@ class OcptShotListSetNameChangedEvent extends OcptShotListEvent {
   List<Object?> get props => [...super.props, setId, rawValue];
 }
 
-/// Moves set `event.setId` to `event.newPosition` among its own sequence's sets (its tab
-/// order), dispatched by the set tabs' own drag-to-reorder gesture. Written immediately, one row
-/// (`OcptFloorPlanService.reorderSet`).
-class OcptShotListSetReorderedEvent extends OcptShotListEvent {
-  /// The id of the set being moved.
-  final String setId;
-
-  /// The 0-based position the set is moved to.
-  final int newPosition;
-
-  /// Class constructor
-  const OcptShotListSetReorderedEvent({required this.setId, required this.newPosition});
-
-  /// Object properties
-  @override
-  List<Object?> get props => [...super.props, setId, newPosition];
-}
-
-/// Requests deleting set `event.setId` for good, dispatched once the tab's own delete action has
-/// already been confirmed through `OcptConfirmDialog`, by the mode. Clears the selection (and, with
-/// it, the symbol selection) when it was the selected set.
+/// Requests unlinking set `event.setId` from the selected sequence
+/// (`OcptLocationsService.removeSceneFromSet`), dispatched once the tab's own close action has
+/// already been confirmed through `OcptConfirmDialog`, by the mode. The plan itself is kept —
+/// relinking the set brings its placements back. Clears the selection (and, with it, the symbol
+/// selection) when it was the selected set.
 class OcptShotListSetDeletionRequestedEvent extends OcptShotListEvent {
-  /// The id of the set to delete.
+  /// The id of the set to unlink.
   final String setId;
 
   /// Class constructor
@@ -963,19 +948,25 @@ class OcptShotListSetDeletionRequestedEvent extends OcptShotListEvent {
   List<Object?> get props => [...super.props, setId];
 }
 
-/// Deep-copies set `event.setId` within its own scene (`OcptFloorPlanService.duplicateSet`),
-/// dispatched by the set tabs' own `＋ Set` menu's `Duplicate this set` entry (R3,
-/// `docs/plans/storyboard.md`, §9.4). Selects the freshly minted copy once written.
+/// Duplicates set `event.setId` into a new Resources set named `event.newSetName`, in the same
+/// location, linked to the selected sequence (`OcptFloorPlanService.duplicateSet`,
+/// `OcptLocationsService.createSiblingSet`/`.assignSceneToSet`), dispatched by the set tabs' own
+/// `＋ Set` menu's `Duplicate this set` entry (R3, `docs/plans/storyboard.md`, §9.4). Selects the
+/// freshly minted copy once written.
 class OcptShotListSetDuplicationRequestedEvent extends OcptShotListEvent {
   /// The id of the set to duplicate.
   final String setId;
 
+  /// The new set's own name — computed by the mode (which has `Tr`) from the source set's current
+  /// name, no localisation happening in a service or a bloc.
+  final String newSetName;
+
   /// Class constructor
-  const OcptShotListSetDuplicationRequestedEvent({required this.setId});
+  const OcptShotListSetDuplicationRequestedEvent({required this.setId, required this.newSetName});
 
   /// Object properties
   @override
-  List<Object?> get props => [...super.props, setId];
+  List<Object?> get props => [...super.props, setId, newSetName];
 }
 
 /// Copies shot `event.sourceShotId`'s own live blocking on set `event.setId` onto the currently

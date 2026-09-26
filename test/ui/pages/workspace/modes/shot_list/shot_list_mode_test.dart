@@ -889,9 +889,9 @@ void main() {
 
       final symbols = bloc.state.selectedSet!.symbols;
       expect(symbols, hasLength(1));
-      // Sequence-scoped: the M5 scope invariant this whole milestone stands on.
+      // Set-scoped: the R4 scope invariant this whole milestone stands on.
       expect(symbols.single.shotId, isNull);
-      expect(symbols.single.layer.isSequenceScoped, isTrue);
+      expect(symbols.single.sceneId, isNull);
       expect(bloc.state.selectedFloorPlanSymbolId, symbols.single.id);
     });
 

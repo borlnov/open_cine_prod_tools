@@ -43,6 +43,10 @@ class OcptFloorPlanView extends StatefulWidget {
   /// `OcptFloorPlanCanvas.shotRankByShotId`'s own doc comment.
   final Map<String, int> shotRankByShotId;
 
+  /// The selected sequence's own scene id — see `OcptFloorPlanCanvas.focusSceneId`'s own doc
+  /// comment.
+  final String focusSceneId;
+
   /// The id of the currently focused shot, or null for the `Sequence` focus. Derived by the mode
   /// from `OcptShotListState.selectedShotId` — see `OcptShotListState.isFloorPlanShotFocusActive`.
   final String? focusShotId;
@@ -234,6 +238,7 @@ class OcptFloorPlanView extends StatefulWidget {
     required this.floorPlanSet,
     required this.shots,
     required this.shotRankByShotId,
+    required this.focusSceneId,
     required this.focusShotId,
     required this.previousShotId,
     required this.nextShotId,
@@ -390,6 +395,7 @@ class _OcptFloorPlanViewState extends State<OcptFloorPlanView> {
                   child: OcptFloorPlanCanvas(
                     floorPlanSet: widget.floorPlanSet,
                     shotRankByShotId: widget.shotRankByShotId,
+                    focusSceneId: widget.focusSceneId,
                     focusShotId: widget.focusShotId,
                     previousShotId: widget.previousShotId,
                     nextShotId: widget.nextShotId,

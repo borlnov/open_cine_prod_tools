@@ -4,6 +4,7 @@
 
 import 'package:drift/drift.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_assets_service.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_floor_plan_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_row_stamp_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/ocpt_asset_ref.dart';
@@ -47,12 +48,23 @@ class OcptLocationsService {
   /// services it composes.
   final OcptAssetsService assetsService;
 
+  /// The service tombstoning a set's floor plan along with it ([deleteSet], [deleteLocation]).
+  /// This service depends on it — never the other way round (dependencies never reference their
+  /// dependents) — since `OcptFloorPlanService.duplicateSet` needs a Resources set already minted
+  /// by [createSiblingSet] to copy into, and a service that itself depended on this one could not
+  /// be depended on here without a cycle.
+  final OcptFloorPlanService floorPlanService;
+
   /// Resolves the device id every stamp this service's own writes carry — see
   /// [OcptDeviceIdGetter].
   final OcptDeviceIdGetter deviceId;
 
   /// Class constructor
-  const OcptLocationsService({required this.assetsService, required this.deviceId});
+  const OcptLocationsService({
+    required this.assetsService,
+    required this.floorPlanService,
+    required this.deviceId,
+  });
 
   /// Loads every live location of [database], in `sortKey` order, each joined with its live
   /// [OcptSet]s and scouting photos (both in `sortKey` order), with its availability windows (in
@@ -291,8 +303,9 @@ class OcptLocationsService {
   }
 
   /// Tombstones location [locationId] in [database], its sets, the `scene_sets` links onto those
-  /// sets, its availability windows, and the `assets` rows it owns (its scouting photos and its
-  /// permit document) along with it.
+  /// sets, each set's own floor plan (`floorPlanService.tombstoneFloorPlanRowsOfSet`), its
+  /// availability windows, and the `assets` rows it owns (its scouting photos and its permit
+  /// document) along with it.
   ///
   /// The photo files themselves are never touched: this app only ever holds their paths (see
   /// [addLocationPhoto]), so deleting a location drops its references and nothing else.
@@ -336,6 +349,12 @@ class OcptLocationsService {
         }
 
         for (final setRow in setRows) {
+          await floorPlanService.tombstoneFloorPlanRowsOfSet(
+            database: database,
+            setId: setRow.id,
+            stamps: stamps,
+          );
+
           await OcptRowStampService.writeAndStamp(
             database: database,
             table: database.ocptSetsTable,
@@ -626,7 +645,9 @@ class OcptLocationsService {
     });
   }
 
-  /// Tombstones set [setId] in [database] and the `scene_sets` links onto it along with it.
+  /// Tombstones set [setId] in [database], the `scene_sets` links onto it and its floor plan
+  /// (`floorPlanService.tombstoneFloorPlanRowsOfSet` — its own plan row, symbols and arrows) along
+  /// with it.
   ///
   /// {@macro open_cine_prod_tools.tombstones}
   ///
@@ -655,6 +676,12 @@ class OcptLocationsService {
         );
       }
 
+      await floorPlanService.tombstoneFloorPlanRowsOfSet(
+        database: database,
+        setId: setId,
+        stamps: stamps,
+      );
+
       final current = await (database.select(
         database.ocptSetsTable,
       )..where((table) => table.id.equals(setId))).getSingleOrNull();
@@ -671,6 +698,34 @@ class OcptLocationsService {
 
       await stamps.flush(database);
     });
+  }
+
+  /// Creates a new set named [name], in the same location as [sourceSetId], and returns its freshly
+  /// generated id — the "mint a Resources set" half of "duplicate this set"
+  /// (`docs/plans/storyboard.md`, §10), which `OcptShotListBloc` puts together with
+  /// `OcptFloorPlanService.duplicateSet` (copying the plan) and [assignSceneToSet] (linking it to
+  /// the calling scene): see `OcptFloorPlanService.duplicateSet`'s own doc comment for why the
+  /// three steps live on three different calls rather than one. Returns null, doing nothing, if
+  /// [sourceSetId] doesn't name a live set.
+  ///
+  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
+  Future<String?> createSiblingSet({
+    required OcptProjectDatabase database,
+    required String sourceSetId,
+    required String name,
+  }) async {
+    if (database.refusesUserWrite("createSiblingSet")) {
+      return null;
+    }
+
+    final source = await (database.select(
+      database.ocptSetsTable,
+    )..where((table) => table.id.equals(sourceSetId) & table.isDeleted.not())).getSingleOrNull();
+    if (source == null) {
+      return null;
+    }
+
+    return createSet(database: database, locationId: source.locationId, name: name);
   }
 
   /// Moves set [setId] to [newPosition] (0-based) within location [locationId]'s sets, by giving

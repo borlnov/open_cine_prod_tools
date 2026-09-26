@@ -101,6 +101,10 @@ class _FailingScreenplayService extends OcptScreenplayService {
           ),
           locationsService: OcptLocationsService(
             assetsService: OcptAssetsService(deviceId: _testDeviceId),
+            floorPlanService: OcptFloorPlanService(
+              assetsService: OcptAssetsService(deviceId: _testDeviceId),
+              deviceId: _testDeviceId,
+            ),
             deviceId: _testDeviceId,
           ),
           deviceId: _testDeviceId,

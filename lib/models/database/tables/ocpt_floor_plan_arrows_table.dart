@@ -27,8 +27,8 @@ class OcptFloorPlanArrowKindConverter extends TypeConverter<OcptFloorPlanArrowKi
 ///
 /// [shotId] is **always set**, unlike `floor_plan_symbols.shotId`: an arrow is a movement, and a
 /// movement belongs to a shot even when either end it connects — [fromSymbolId] or [toSymbolId] —
-/// is a sequence-scoped symbol (an actor walking to a door, `docs/plans/storyboard.md`, §2).
-/// Removing a symbol tombstones every arrow touching it, in the same transaction.
+/// is a set-scope or scene-scope symbol (an actor walking to a door, `docs/plans/storyboard.md`,
+/// §10). Removing a symbol tombstones every arrow touching it, in the same transaction.
 @DataClassName('OcptFloorPlanArrowRow')
 class OcptFloorPlanArrowsTable extends Table {
   /// {@macro open_cine_prod_tools.OcptFloorPlanArrowsTable}

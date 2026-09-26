@@ -4,37 +4,28 @@
 
 import 'package:drift/drift.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_assets_table.dart';
-import 'package:open_cine_prod_tools/models/database/tables/ocpt_scenes_table.dart';
+import 'package:open_cine_prod_tools/models/database/tables/ocpt_sets_table.dart';
 
-/// One décor of a sequence's floor plan — the top-down symbol-placing editor a shot list's Floor
-/// plans view opens onto (`docs/plans/storyboard.md`, §1). A sequence may hold several sets, shown
-/// as tabs.
+/// The floor plan **of a Resources set** (`sets`, `docs/plans/storyboard.md`, §10): one row per
+/// set, created lazily on its first write (`OcptFloorPlanService.ensurePlan`) rather than eagerly
+/// for every set the resources mode holds.
 ///
-/// A set follows its scene and nothing else: `scenes` rows are tombstoned, never dropped, and their
-/// ids are stable, so a set whose scene vanished from the screenplay is simply unreachable from the
-/// tree until the scene index matches it again — no orphan handling, no cascade of its own
-/// (`docs/plans/storyboard.md`, §2, §8).
+/// [id] **is `sets.id`**, not a fresh id of its own — a deliberate departure from every other
+/// table's own stable UUID. The plan is created lazily, so two replicas that each place the first
+/// symbol on the very same set while offline would otherwise mint two `floor_plan_sets` rows for
+/// one set; making the id deterministic (the set's own) means the sync merge converges them onto
+/// **one** row instead, exactly as any other row two replicas happen to write the same way. The
+/// set's own name and tab order are read off `sets` itself: a sequence's floor-plan tabs are its
+/// live `scene_sets` links, nothing stored here.
 @DataClassName('OcptFloorPlanSetRow')
 class OcptFloorPlanSetsTable extends Table {
   /// {@macro open_cine_prod_tools.OcptFloorPlanSetsTable}
   @override
   String get tableName => 'floor_plan_sets';
 
-  /// The stable, unique id of this set (a UUID).
-  TextColumn get id => text()();
-
-  /// The sequence this set belongs to — a set is per sequence, so per episode for free
-  /// (`docs/adr/0019-one-project-several-episodes.md`).
-  TextColumn get sceneId => text().references(OcptScenesTable, #id)();
-
-  /// The set's own name, e.g. `Kitchen`, `Hallway` — free text, prefilled from the scene heading's
-  /// place but editable in the tab.
-  TextColumn get name => text().withDefault(const Constant(''))();
-
-  /// {@macro open_cine_prod_tools.sortKey}
-  ///
-  /// The order the set's tab takes among the sequence's other sets.
-  TextColumn get sortKey => text().withDefault(const Constant(''))();
+  /// The Resources set this is the plan of — see this class's own doc comment for why this, and
+  /// not a fresh id, is the primary key.
+  TextColumn get id => text().references(OcptSetsTable, #id)();
 
   /// The imported photo or plan drawn under this set's symbols, an `assets` row of kind
   /// `floorPlanUnderlay` — null until one is imported.

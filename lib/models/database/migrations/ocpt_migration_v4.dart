@@ -15,10 +15,12 @@ import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart'
 /// five empty tables and keeps every row it already held.
 ///
 /// Because schema version 4 is still an open development cycle (`OcptProjectDatabase
-/// .currentSchemaVersion`'s own doc comment), `floor_plan_symbols.setElementShape`/`.fovReachM` and
-/// `floor_plan_arrows.ctrlXM`/`.ctrlYM` were added straight onto `OcptFloorPlanSymbolsTable` and
-/// `OcptFloorPlanArrowsTable` rather than through a v5 migration: this step's `createTable` calls
-/// already produce them, with no `addColumn` needed.
+/// .currentSchemaVersion`'s own doc comment), every reshape landed since — `floor_plan_symbols
+/// .setElementShape`/`.fovReachM`/`.sceneId`/`.overridesSymbolId`, `floor_plan_arrows.ctrlXM`/
+/// `.ctrlYM`, and `floor_plan_sets` losing `sceneId`/`name`/`sortKey` in favour of its own id being
+/// the Resources set's (`docs/plans/storyboard.md`, §10) — was made straight on the table classes
+/// rather than through a v5 migration: this step's `createTable` calls already produce the current
+/// shape, with no `addColumn`/reshape step of its own needed.
 Future<void> ocptMigrateToSchemaV4({
   required Migrator migrator,
   required OcptProjectDatabase database,

@@ -122,6 +122,10 @@ class OcptFloorPlanCanvas extends StatefulWidget {
   /// `OcptFloorPlanSheet.of` derives a camera's number from.
   final Map<String, int> shotRankByShotId;
 
+  /// The selected sequence's own scene id — `OcptFloorPlanSheet.of`'s own `focusSceneId`, so a
+  /// scene-scope symbol/override only ever draws under the sequence it belongs to.
+  final String focusSceneId;
+
   /// The id of the currently focused shot, or null for the `Sequence` focus — see the class doc
   /// comment. `OcptShotListState.isFloorPlanShotFocusActive`'s own reading of `selectedShotId`.
   final String? focusShotId;
@@ -290,6 +294,7 @@ class OcptFloorPlanCanvas extends StatefulWidget {
     super.key,
     required this.floorPlanSet,
     required this.shotRankByShotId,
+    required this.focusSceneId,
     required this.focusShotId,
     required this.previousShotId,
     required this.nextShotId,
@@ -505,6 +510,7 @@ class _OcptFloorPlanCanvasState extends State<OcptFloorPlanCanvas> {
     final focusShotId = widget.focusShotId;
     final full = OcptFloorPlanSheet.of(
       floorPlanSet: floorPlanSet,
+      focusSceneId: widget.focusSceneId,
       focusShotId: focusShotId,
       shotRankByShotId: widget.shotRankByShotId,
       previousShotId: widget.isOnionSkinPreviousShown ? widget.previousShotId : null,
@@ -531,15 +537,16 @@ class _OcptFloorPlanCanvasState extends State<OcptFloorPlanCanvas> {
   }
 
   /// Whether [symbol] may be dragged, resized, rotated, given a field of view or deleted: never a
-  /// ghost; the **set layer is always editable** (R2, "the set is always editable"); a shot layer
-  /// symbol is editable only while it belongs to [OcptFloorPlanCanvas.focusShotId], the one shot
-  /// everything "live" lands on. A ghosted neighbour's own placements stay selectable (so their
-  /// own Placements/metrics still read), just locked.
+  /// ghost; **the set and scene scopes are always editable** (R2, "the set is always editable" —
+  /// a scene-scope symbol this sheet draws already belongs to the sequence being shown); a
+  /// shot-scope symbol is editable only while it belongs to [OcptFloorPlanCanvas.focusShotId], the
+  /// one shot everything "live" lands on. A ghosted neighbour's own placements stay selectable (so
+  /// their own Placements/metrics still read), just locked.
   bool _isSymbolEditable(OcptFloorPlanSymbolShape symbol) {
     if (symbol.isGhost) {
       return false;
     }
-    return symbol.layer.isSequenceScoped || symbol.shotId == widget.focusShotId;
+    return symbol.shotId == null || symbol.shotId == widget.focusShotId;
   }
 
   /// The metrics overlay's own lines, from the selected symbol to every other symbol [sheet] draws
@@ -718,7 +725,7 @@ class _OcptFloorPlanCanvasState extends State<OcptFloorPlanCanvas> {
   }
 
   /// The id of the closest editable (non-ghost) arrow of [sheet] whose own shaft (straight or
-  /// curved) comes within [_arrowHitTolerancePx] of the point [xM]/[yM] (case metres), or null
+  /// curved) comes within [_arrowHitTolerancePx] of the point [xM]/[yM] (set metres), or null
   /// while none does.
   String? _arrowHitAt(OcptFloorPlanSheet sheet, double xM, double yM, double zoom) {
     final thresholdM = ocptFloorPlanPixelsToMetres(pixels: _arrowHitTolerancePx, zoom: zoom);

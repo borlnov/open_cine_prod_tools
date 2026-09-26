@@ -3097,19 +3097,38 @@
     "type": "text",
     "placeholders": {}
   },
-  "shotListFloorPlanDeleteSetConfirmTitle": "Delete this set?",
+  "shotListFloorPlanDeleteSetConfirmTitle": "Remove this set from the sequence?",
   "@shotListFloorPlanDeleteSetConfirmTitle": {
-    "description": "Title of the confirmation dialog deleting a floor plan set",
+    "description": "Title of the confirmation dialog unlinking a set from the selected sequence",
     "context": "Displayed in the confirm dialog opened from a set tab's own close action",
     "type": "text",
     "placeholders": {}
   },
-  "shotListFloorPlanDeleteSetConfirmMessage": "Its underlay, its set elements and everything placed on it are removed for good.",
+  "shotListFloorPlanDeleteSetConfirmMessage": "The set's own plan is kept — relinking it brings every placement back.",
   "@shotListFloorPlanDeleteSetConfirmMessage": {
-    "description": "Message of the confirmation dialog deleting a floor plan set",
+    "description": "Message of the confirmation dialog unlinking a set from the selected sequence",
     "context": "Displayed in the confirm dialog opened from a set tab's own close action",
     "type": "text",
     "placeholders": {}
+  },
+  "shotListFloorPlanUnlinkSetConfirmAction": "Remove",
+  "@shotListFloorPlanUnlinkSetConfirmAction": {
+    "description": "Confirm action of the dialog unlinking a set from the selected sequence",
+    "context": "Displayed in the confirm dialog opened from a set tab's own close action",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanDuplicateSetDefaultName": "{sourceName} copy",
+  "@shotListFloorPlanDuplicateSetDefaultName": {
+    "description": "The new set's default name when duplicating one from the set tabs' own menu",
+    "context": "Passed to OcptLocationsService.createSiblingSet as the new set's own name",
+    "type": "text",
+    "placeholders": {
+      "sourceName": {
+        "type": "String",
+        "example": "Kitchen"
+      }
+    }
   },
   "shotListFloorPlanToolSelectAction": "Select",
   "@shotListFloorPlanToolSelectAction": {

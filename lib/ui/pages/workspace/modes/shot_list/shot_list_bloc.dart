@@ -18,6 +18,7 @@ import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_floor_plan_service.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_locations_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_role_index_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_schedule_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_coverage_service.dart';
@@ -55,6 +56,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_d
 import 'package:open_cine_prod_tools/ui/utils/ocpt_shot_list_labels.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_floor_plan_geometry.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_scene_display_number.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_scene_set_suggestion.dart';
 
 /// This is the bloc class for the shot list (découpage technique) production mode.
 ///
@@ -170,9 +172,16 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
   /// `replacePanelImage`, `reorderPanel`, `updatePanelComment` and `deletePanel`.
   final OcptStoryboardService _storyboardService;
 
-  /// The service used to read and write the floor plans: `loadFloorPlans`, a set's own CRUD, a
-  /// symbol's placement/move/resize/rotation/deletion and the underlay's own CRUD.
+  /// The service used to read and write the floor plans: `loadFloorPlans`, a symbol's placement/
+  /// move/resize/rotation/deletion, the underlay's own CRUD and a set's own plan-copying half of
+  /// duplication.
   final OcptFloorPlanService _floorPlanService;
+
+  /// The service used to create, rename, link and unlink a Resources set — the floor plans view's
+  /// own set tabs are `scene_sets` links now (`docs/plans/storyboard.md`, §10), so every tab
+  /// operation but placing/editing what is drawn on a set goes through this service instead of
+  /// [_floorPlanService].
+  final OcptLocationsService _locationsService;
 
   /// The manager used to pick a panel's frame or a set's underlay through the native "open"
   /// dialog, mirroring `OcptResourcesBloc`'s own `_pickFilePath`.
@@ -211,6 +220,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     OcptScheduleService? scheduleService,
     OcptStoryboardService? storyboardService,
     OcptFloorPlanService? floorPlanService,
+    OcptLocationsService? locationsService,
     FileSelectorManager? fileSelectorManager,
     Duration fieldEditDebounce = defaultFieldEditDebounce,
     String? selectedEpisodeId,
@@ -237,6 +247,9 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
        _floorPlanService =
            floorPlanService ??
            (projectsManager ?? globalGetIt().get<OcptProjectsManager>()).floorPlanService,
+       _locationsService =
+           locationsService ??
+           (projectsManager ?? globalGetIt().get<OcptProjectsManager>()).locationsService,
        _fileSelectorManager = fileSelectorManager,
        _fieldEditDebounce = fieldEditDebounce,
        super(OcptShotListState.init()) {
@@ -296,7 +309,6 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     on<OcptShotListSetSelectedEvent>(_onSetSelected);
     on<OcptShotListSetCreationRequestedEvent>(_onSetCreationRequested);
     on<OcptShotListSetNameChangedEvent>(_onSetNameChanged);
-    on<OcptShotListSetReorderedEvent>(_onSetReordered);
     on<OcptShotListSetDeletionRequestedEvent>(_onSetDeletionRequested);
     on<OcptShotListSetDuplicationRequestedEvent>(_onSetDuplicationRequested);
     on<OcptShotListFloorPlanBlockingCopyRequestedEvent>(_onFloorPlanBlockingCopyRequested);
@@ -1336,10 +1348,10 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
             text: Value(entry.value),
           );
         case OcptShotListSetNameEditKey(:final setId):
-          await _floorPlanService.renameSet(
+          await _locationsService.updateSet(
             database: project.database,
             setId: setId,
-            name: entry.value,
+            name: Value(entry.value),
           );
         case OcptShotListSymbolLabelEditKey(:final symbolId):
           await _floorPlanService.updateSymbol(
@@ -2376,9 +2388,11 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     );
   }
 
-  /// Creates a set on the selected sequence, reloads the floor plans and selects the new set.
-  /// Deliberately a no-op when the selected sequence is the orphan group (or when nothing is
-  /// selected at all): see [OcptShotListSetCreationRequestedEvent].
+  /// Creates a new Resources set named after the selected sequence's own heading place, links it
+  /// to that sequence (`OcptLocationsService.createSetLinkedToScene`, the breakdown's own path),
+  /// reloads the floor plans and selects it. Deliberately a no-op when the selected sequence is the
+  /// orphan group (or when nothing is selected at all): see
+  /// [OcptShotListSetCreationRequestedEvent].
   Future<void> _onSetCreationRequested(
     OcptShotListSetCreationRequestedEvent event,
     Emitter<OcptShotListState> emitter,
@@ -2390,9 +2404,10 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     }
 
     try {
-      final setId = await _floorPlanService.addSet(
+      final setId = await _locationsService.createSetLinkedToScene(
         database: project.database,
         sceneId: sequence.sceneId,
+        name: ocptSceneHeadingPlaceOf(sequence.heading),
       );
       if (setId == null) {
         return;
@@ -2428,42 +2443,19 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     );
   }
 
-  /// Moves set `event.setId` to `event.newPosition`, writing exactly one row
-  /// (`OcptFloorPlanService.reorderSet`), dispatched by the set tabs' own drag-to-reorder
-  /// gesture.
-  Future<void> _onSetReordered(
-    OcptShotListSetReorderedEvent event,
-    Emitter<OcptShotListState> emitter,
-  ) async {
-    final project = _projectsManager.currentProject;
-    if (project == null) {
-      return;
-    }
-
-    try {
-      await _floorPlanService.reorderSet(
-        database: project.database,
-        setId: event.setId,
-        newPosition: event.newPosition,
-      );
-      emitter(state.copyWith(floorPlanSnapshot: await _loadFloorPlans(project)));
-    } catch (error) {
-      appLogger().e("A problem occurred when tried to reorder set ${event.setId} of the "
-          "project at ${project.path}: $error");
-      emitter(state.copyWith(hasWriteError: true));
-    }
-  }
-
-  /// Deletes set `event.setId` for good, dispatched once the tab's own delete action has
-  /// already been confirmed through `OcptConfirmDialog`, by the mode. Selects the sequence's own
-  /// next first set when it was the selected one (clearing the symbol selection alongside it) —
-  /// `OcptFloorPlanService.deleteSet`'s own cascade tombstones its symbols and arrows.
+  /// Unlinks set `event.setId` from the selected sequence
+  /// (`OcptLocationsService.removeSceneFromSet`), dispatched once the tab's own close action has
+  /// already been confirmed through `OcptConfirmDialog`, by the mode. The plan itself — its
+  /// underlay, its symbols, its arrows — is untouched: relinking the same set brings every
+  /// placement back. Selects the sequence's own next first set when it was the selected one
+  /// (clearing the symbol selection alongside it).
   Future<void> _onSetDeletionRequested(
     OcptShotListSetDeletionRequestedEvent event,
     Emitter<OcptShotListState> emitter,
   ) async {
     final project = _projectsManager.currentProject;
-    if (project == null) {
+    final sceneId = state.selectedSequenceId;
+    if (project == null || sceneId == null) {
       return;
     }
 
@@ -2472,7 +2464,11 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
       ..removeWhere((key, _) => key is OcptShotListSetNameEditKey && key.setId == event.setId);
 
     try {
-      await _floorPlanService.deleteSet(database: project.database, setId: event.setId);
+      await _locationsService.removeSceneFromSet(
+        database: project.database,
+        sceneId: sceneId,
+        setId: event.setId,
+      );
       final floorPlanSnapshot = await _loadFloorPlans(project);
       final nextSetId = wasSelected
           ? _firstSetIdOf(
@@ -2493,30 +2489,53 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
         ),
       );
     } catch (error) {
-      appLogger().e("A problem occurred when tried to delete set ${event.setId} of the "
+      appLogger().e("A problem occurred when tried to unlink set ${event.setId} of the "
           "project at ${project.path}: $error");
       emitter(state.copyWith(hasWriteError: true));
     }
   }
 
-  /// Deep-copies set `event.setId` within its own scene (`OcptFloorPlanService.duplicateSet`),
-  /// reloads the floor plans and selects the freshly minted copy — the set tabs' own `＋ Set` menu
-  /// `Duplicate this set` entry.
+  /// Duplicates set `event.setId` into a new Resources set in the same location, named
+  /// `event.newSetName`, copying its set-scope symbols only and linking it to the selected
+  /// sequence — the set tabs' own `＋ Set` menu `Duplicate this set` entry, put together from three
+  /// calls across the two services this bloc holds (see `OcptFloorPlanService.duplicateSet`'s own
+  /// doc comment for why): `OcptLocationsService.createSiblingSet` mints the new set,
+  /// `OcptFloorPlanService.duplicateSet` copies its plan, and `OcptLocationsService
+  /// .assignSceneToSet` links it — rolling back (tombstoning the freshly minted set) if the link
+  /// somehow fails. Reloads the floor plans and selects the freshly minted copy.
   Future<void> _onSetDuplicationRequested(
     OcptShotListSetDuplicationRequestedEvent event,
     Emitter<OcptShotListState> emitter,
   ) async {
     final project = _projectsManager.currentProject;
-    if (project == null) {
+    final sceneId = state.selectedSequenceId;
+    if (project == null || sceneId == null) {
       return;
     }
 
     try {
-      final newSetId = await _floorPlanService.duplicateSet(
+      final newSetId = await _locationsService.createSiblingSet(
         database: project.database,
-        setId: event.setId,
+        sourceSetId: event.setId,
+        name: event.newSetName,
       );
       if (newSetId == null) {
+        return;
+      }
+
+      await _floorPlanService.duplicateSet(
+        database: project.database,
+        sourceSetId: event.setId,
+        destinationSetId: newSetId,
+      );
+
+      final linkId = await _locationsService.assignSceneToSet(
+        database: project.database,
+        sceneId: sceneId,
+        setId: newSetId,
+      );
+      if (linkId == null) {
+        await _locationsService.deleteSet(database: project.database, setId: newSetId);
         return;
       }
 
@@ -2665,6 +2684,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
       final symbolId = await _floorPlanService.placeSymbol(
         database: project.database,
         setId: event.setId,
+        sceneId: null,
         shotId: shotId,
         layer: event.layer,
         xM: event.xM,
@@ -3250,6 +3270,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
       final symbolId = await _floorPlanService.placeSymbol(
         database: project.database,
         setId: source.setId,
+        sceneId: source.sceneId,
         shotId: source.shotId,
         layer: source.layer,
         xM: event.xM ?? source.xM + ocptFloorPlanDuplicateOffsetM,

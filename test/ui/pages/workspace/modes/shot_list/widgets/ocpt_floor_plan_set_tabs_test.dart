@@ -32,12 +32,9 @@ Future<void> _pump(WidgetTester tester, Widget child) async {
   );
 }
 
-OcptFloorPlanSet _set({required String id, required String name, required String sortKey}) =>
-    OcptFloorPlanSet(
+OcptFloorPlanSet _set({required String id, required String name}) => OcptFloorPlanSet(
       id: id,
-      sceneId: "scene-1",
       name: name,
-      sortKey: sortKey,
       underlayAssetId: null,
       underlayPath: null,
       underlayXM: null,
@@ -80,8 +77,8 @@ void main() {
   testWidgets("a tab shows its own placed-shot count badge, hidden when the count is zero", (
     tester,
   ) async {
-    final setA = _set(id: "set-a", name: "Kitchen", sortKey: "a0");
-    final setB = _set(id: "set-b", name: "Hallway", sortKey: "a1");
+    final setA = _set(id: "set-a", name: "Kitchen");
+    final setB = _set(id: "set-b", name: "Hallway");
 
     await _pump(
       tester,
@@ -140,7 +137,7 @@ void main() {
     (tester) async {
       String? duplicated;
       String? copiedFrom;
-      final setA = _set(id: "set-a", name: "Kitchen", sortKey: "a0");
+      final setA = _set(id: "set-a", name: "Kitchen");
 
       await _pump(
         tester,

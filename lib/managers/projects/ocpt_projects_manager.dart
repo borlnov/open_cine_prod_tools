@@ -189,8 +189,8 @@ class OcptProjectsManager extends AbsWithLifeCycle {
   /// needs it for its own `deleteShot`/`tombstoneShotsOfScreenplay` cascade.
   final OcptStoryboardService storyboardService;
 
-  /// The service used for CRUD over a screenplay's floor plans: each sequence's cases, their
-  /// symbols and their arrows.
+  /// The service used for CRUD over a screenplay's floor plans: each Resources set's symbols and
+  /// arrows.
   ///
   /// Held for the same reason [storyboardService] is.
   final OcptFloorPlanService floorPlanService;
@@ -344,6 +344,7 @@ class OcptProjectsManager extends AbsWithLifeCycle {
                deviceId: _resolveDeviceId(propertiesManager),
              ),
              locationsService: OcptLocationsService(
+               floorPlanService: _buildFloorPlanService(propertiesManager),
                assetsService: OcptAssetsService(deviceId: _resolveDeviceId(propertiesManager)),
                deviceId: _resolveDeviceId(propertiesManager),
              ),
@@ -389,6 +390,7 @@ class OcptProjectsManager extends AbsWithLifeCycle {
              deviceId: _resolveDeviceId(propertiesManager),
            ),
            locationsService: OcptLocationsService(
+             floorPlanService: _buildFloorPlanService(propertiesManager),
              assetsService: OcptAssetsService(deviceId: _resolveDeviceId(propertiesManager)),
              deviceId: _resolveDeviceId(propertiesManager),
            ),
@@ -418,6 +420,7 @@ class OcptProjectsManager extends AbsWithLifeCycle {
          deviceId: _resolveDeviceId(propertiesManager),
        ),
        locationsService = OcptLocationsService(
+         floorPlanService: _buildFloorPlanService(propertiesManager),
          assetsService: OcptAssetsService(deviceId: _resolveDeviceId(propertiesManager)),
          deviceId: _resolveDeviceId(propertiesManager),
        ),
@@ -453,6 +456,7 @@ class OcptProjectsManager extends AbsWithLifeCycle {
            deviceId: _resolveDeviceId(propertiesManager),
          ),
          locationsService: OcptLocationsService(
+           floorPlanService: _buildFloorPlanService(propertiesManager),
            assetsService: OcptAssetsService(deviceId: _resolveDeviceId(propertiesManager)),
            deviceId: _resolveDeviceId(propertiesManager),
          ),

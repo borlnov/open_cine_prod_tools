@@ -259,7 +259,7 @@ class OcptFloorPlanArrowShape extends Equatable {
   ];
 }
 
-/// The underlay shape a floor plan sheet draws, or null while the case has none placed.
+/// The underlay shape a floor plan sheet draws, or null while the set has none placed.
 class OcptFloorPlanUnderlayShape extends Equatable {
   /// The underlay's `assets` row id.
   final String assetId;
@@ -302,22 +302,22 @@ class OcptFloorPlanUnderlayShape extends Equatable {
   List<Object?> get props => [assetId, path, xM, yM, widthM, heightM, rotationDeg];
 }
 
-/// Everything a floor plan case draws, for one focus — the **drawing as data** the canvas, the
-/// metrics overlay and the floor-plans PDF all paint from and nothing else, the sibling of
-/// `OcptScenarioCoverageLayout`.
+/// Everything a Resources set's floor plan draws, for one focus — the **drawing as data** the
+/// canvas, the metrics overlay and the floor-plans PDF all paint from and nothing else, the
+/// sibling of `OcptScenarioCoverageLayout`.
 ///
 /// Pure Dart, no Flutter import and no `pdf` import (`docs/plans/storyboard.md`, §2;
 /// `docs/adr/0031-storyboard-panels-and-floor-plans-in-metres.md`): every shape is already in
 /// metres and every colour is already an ARGB int, so a renderer has nothing left to decide beyond
 /// where the viewport puts them.
 class OcptFloorPlanSheet extends Equatable {
-  /// The case this sheet was built from.
+  /// The Resources set this sheet was built from.
   final String setId;
 
-  /// The case's own name, for a page header or a canvas title.
+  /// The set's own name, for a page header or a canvas title.
   final String setName;
 
-  /// The case's underlay, or null while none is placed.
+  /// The set's underlay, or null while none is placed.
   final OcptFloorPlanUnderlayShape? underlay;
 
   /// Every symbol this sheet draws, in draw order — sequence layers first (never ghosted), then
@@ -336,14 +336,20 @@ class OcptFloorPlanSheet extends Equatable {
     required this.arrows,
   });
 
-  /// Builds the sheet [floorPlanSet] draws under one focus.
+  /// Builds the sheet [floorPlanSet] draws for sequence [focusSceneId], under one focus.
   ///
-  /// [focusShotId] is null for the **sequence** focus (every sequence layer, plus every live
-  /// camera of every shot on this set, numbered — `docs/plans/storyboard.md`, §4.3) or a shot's id
-  /// for the **shot** focus (every sequence layer, plus that shot's own shot layers, plus, when
+  /// [focusShotId] is null for the **sequence** focus (every set-scope symbol not overridden for
+  /// [focusSceneId], plus [focusSceneId]'s own scene-scope symbols, plus every live camera of every
+  /// shot on this set, numbered — `docs/plans/storyboard.md`, §4.3, §10) or a shot's id for the
+  /// **shot** focus (the same set/scene-scope symbols, plus that shot's own shot layers, plus, when
   /// given, [previousShotId]'s and [nextShotId]'s shot layers drawn as ghosts — the onion skin).
   /// No arrow is drawn under the sequence focus: an arrow is always a shot's own movement, and the
   /// sequence focus shows no single shot's blocking.
+  ///
+  /// **The override rule** (§10): a live scene-scope symbol of [focusSceneId] whose own
+  /// `overridesSymbolId` names a live set-scope symbol **replaces** it here — that set-scope
+  /// symbol is left out of [symbols] entirely, and the override is drawn in its place — while a
+  /// symbol of a *different* scene's own `overridesSymbolId` never hides anything from this sheet.
   ///
   /// [shotRankByShotId] is every shot of the sequence's own 1-based display rank
   /// (`OcptShot.position` + 1, `docs/plans/storyboard.md`'s "the number is the shot's rank in the
@@ -363,6 +369,7 @@ class OcptFloorPlanSheet extends Equatable {
   /// accord.
   factory OcptFloorPlanSheet.of({
     required OcptFloorPlanSet floorPlanSet,
+    required String focusSceneId,
     required String? focusShotId,
     required Map<String, int> shotRankByShotId,
     String? previousShotId,
@@ -370,8 +377,23 @@ class OcptFloorPlanSheet extends Equatable {
     bool showFieldOfView = true,
     bool showAllCameras = false,
   }) {
+    final setScopeSymbols = [
+      for (final symbol in floorPlanSet.symbols)
+        if (symbol.shotId == null && symbol.sceneId == null) symbol,
+    ];
+    final sceneScopeSymbols = [
+      for (final symbol in floorPlanSet.symbols)
+        if (symbol.shotId == null && symbol.sceneId == focusSceneId) symbol,
+    ];
+    final overriddenSetSymbolIds = {
+      for (final symbol in sceneScopeSymbols)
+        if (symbol.overridesSymbolId != null) symbol.overridesSymbolId!,
+    };
+
     final sequenceSymbols = [
-      for (final symbol in floorPlanSet.symbols) if (symbol.shotId == null) symbol,
+      for (final symbol in setScopeSymbols)
+        if (!overriddenSetSymbolIds.contains(symbol.id)) symbol,
+      ...sceneScopeSymbols,
     ];
 
     final symbolShapes = <OcptFloorPlanSymbolShape>[
@@ -488,7 +510,7 @@ class OcptFloorPlanSheet extends Equatable {
     );
   }
 
-  /// The underlay shape of [floorPlanSet], or null while it has none placed — a case that has an
+  /// The underlay shape of [floorPlanSet], or null while it has none placed — a set that has an
   /// `underlayAssetId` but no frame yet (mid-import) is treated the same as having none, since
   /// there is nothing yet to draw it at.
   static OcptFloorPlanUnderlayShape? _underlayOf(OcptFloorPlanSet floorPlanSet) {
@@ -642,9 +664,8 @@ class OcptFloorPlanSheet extends Equatable {
   }
 
   /// The glyph [layer] draws as — see [OcptFloorPlanSymbolGlyphKind]'s own doc comment for the
-  /// mapping. A `switch` with no `default`, mirroring [OcptFloorPlanLayerScope.isSequenceScoped]'s
-  /// own doc comment: an eighth layer must be placed on one glyph or another here rather than
-  /// silently falling back to whichever branch happens to be listed last.
+  /// mapping. A `switch` with no `default`: an eighth layer must be placed on one glyph or another
+  /// here rather than silently falling back to whichever branch happens to be listed last.
   static OcptFloorPlanSymbolGlyphKind _glyphKindOf(OcptFloorPlanLayer layer) => switch (layer) {
     OcptFloorPlanLayer.characters => OcptFloorPlanSymbolGlyphKind.character,
     OcptFloorPlanLayer.cameras => OcptFloorPlanSymbolGlyphKind.camera,

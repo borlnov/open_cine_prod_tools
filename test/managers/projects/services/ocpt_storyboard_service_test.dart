@@ -42,6 +42,7 @@ void main() {
   const elementsService = OcptElementsService(assetsService: assetsService, deviceId: _testDeviceId);
   const locationsService = OcptLocationsService(
     assetsService: assetsService,
+    floorPlanService: OcptFloorPlanService(assetsService: assetsService, deviceId: _testDeviceId),
     deviceId: _testDeviceId,
   );
   const roleIndexService = OcptRoleIndexService(

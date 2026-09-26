@@ -6,10 +6,12 @@ import 'package:drift/drift.dart' show OrderingTerm, Value;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_assets_service.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_floor_plan_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_locations_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/types/ocpt_asset_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_day_part_slot.dart';
+import 'package:open_cine_prod_tools/types/ocpt_floor_plan_layer.dart';
 import 'package:open_cine_prod_tools/types/ocpt_location_availability_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_permit_status.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_weekday_mask.dart';
@@ -21,8 +23,10 @@ void main() {
 
   Future<String> testDeviceId() async => "test-device";
   final assetsService = OcptAssetsService(deviceId: testDeviceId);
+  final floorPlanService = OcptFloorPlanService(assetsService: assetsService, deviceId: testDeviceId);
   final locationsService = OcptLocationsService(
     assetsService: assetsService,
+    floorPlanService: floorPlanService,
     deviceId: testDeviceId,
   );
 
@@ -220,6 +224,15 @@ void main() {
         locationId: locationId,
         path: "/tmp/repérage.jpg",
       ))!;
+      final symbolId = (await floorPlanService.placeSymbol(
+        database: database,
+        setId: setId,
+        sceneId: null,
+        shotId: null,
+        layer: OcptFloorPlanLayer.set,
+        xM: 0,
+        yM: 0,
+      ))!;
 
       await locationsService.deleteLocation(database: database, locationId: locationId);
 
@@ -237,6 +250,16 @@ void main() {
         database.ocptAssetsTable,
       )..where((row) => row.id.equals(photoId))).getSingle();
       expect(photoRow.isDeleted, isTrue);
+
+      final planRow = await (database.select(
+        database.ocptFloorPlanSetsTable,
+      )..where((row) => row.id.equals(setId))).getSingle();
+      expect(planRow.isDeleted, isTrue, reason: "the set's own floor plan is tombstoned too");
+
+      final symbolRow = await (database.select(
+        database.ocptFloorPlanSymbolsTable,
+      )..where((row) => row.id.equals(symbolId))).getSingle();
+      expect(symbolRow.isDeleted, isTrue);
     });
   });
 
@@ -319,6 +342,80 @@ void main() {
 
       final locations = await locationsService.loadLocations(database: database);
       expect(locations.single.sets.map((set) => set.id), [secondSetId]);
+    });
+
+    test("deleteSet tombstones its floor plan, symbols and arrows", () async {
+      final locationId = (await locationsService.createLocation(database: database, name: "A"))!;
+      final setId = (await locationsService.createSet(
+        database: database,
+        locationId: locationId,
+        name: "Hangar",
+      ))!;
+      final firstSymbolId = (await floorPlanService.placeSymbol(
+        database: database,
+        setId: setId,
+        sceneId: null,
+        shotId: null,
+        layer: OcptFloorPlanLayer.set,
+        xM: 0,
+        yM: 0,
+      ))!;
+      final secondSymbolId = (await floorPlanService.placeSymbol(
+        database: database,
+        setId: setId,
+        sceneId: null,
+        shotId: null,
+        layer: OcptFloorPlanLayer.set,
+        xM: 1,
+        yM: 1,
+      ))!;
+
+      await locationsService.deleteSet(database: database, setId: setId);
+
+      final planRow = await (database.select(
+        database.ocptFloorPlanSetsTable,
+      )..where((row) => row.id.equals(setId))).getSingle();
+      expect(planRow.isDeleted, isTrue);
+
+      final symbolRows = await database.select(database.ocptFloorPlanSymbolsTable).get();
+      expect(symbolRows.map((row) => row.isDeleted), everyElement(isTrue));
+      expect(symbolRows.map((row) => row.id), containsAll(<String>[firstSymbolId, secondSymbolId]));
+    });
+
+    test("createSiblingSet mints a new set in the same location", () async {
+      final locationId = (await locationsService.createLocation(database: database, name: "A"))!;
+      final sourceSetId = (await locationsService.createSet(
+        database: database,
+        locationId: locationId,
+        name: "Hangar",
+      ))!;
+
+      final newSetId = (await locationsService.createSiblingSet(
+        database: database,
+        sourceSetId: sourceSetId,
+        name: "Hangar copy",
+      ))!;
+
+      expect(newSetId, isNot(sourceSetId));
+      final locations = await locationsService.loadLocations(database: database);
+      expect(
+        locations.single.sets.map((set) => set.id),
+        containsAll(<String>[sourceSetId, newSetId]),
+      );
+      final newSetRow = await (database.select(
+        database.ocptSetsTable,
+      )..where((row) => row.id.equals(newSetId))).getSingle();
+      expect(newSetRow.locationId, locationId);
+      expect(newSetRow.name, "Hangar copy");
+    });
+
+    test("createSiblingSet does nothing for a set that doesn't exist", () async {
+      final newSetId = await locationsService.createSiblingSet(
+        database: database,
+        sourceSetId: "nope",
+        name: "Copy",
+      );
+      expect(newSetId, isNull);
     });
 
     test("reorderSet moves a set by writing exactly one row", () async {

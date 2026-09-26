@@ -785,12 +785,14 @@ class _ShotListViewState extends State<_ShotListView> {
     );
   }
 
-  /// Builds the floor plans view's own case tabs, the header's trailing slot while it is shown:
-  /// `+ Case` is wired only when the selected sequence is a real screenplay scene (mirroring
+  /// Builds the floor plans view's own set tabs, the header's trailing slot while it is shown:
+  /// `＋ Set` is wired only when the selected sequence is a real screenplay scene (mirroring
   /// `_buildSequencePanel`'s own `onShotCreated` gating), and every write is withheld under a
-  /// version preview.
+  /// version preview. Reordering is withheld unconditionally: a tab is now a `scene_sets` link,
+  /// which carries no order of its own (`docs/plans/storyboard.md`, §10).
   Widget _buildSetTabs(BuildContext context, OcptShotListState state, OcptShotSequence sequence) {
     final bloc = context.read<OcptShotListBloc>();
+    final tr = Tr.of(context);
     final isReadOnly = state.isPreviewingVersion;
     final canCreateSet = sequence is OcptSceneShotSequence && !isReadOnly;
 
@@ -805,7 +807,14 @@ class _ShotListViewState extends State<_ShotListView> {
           : null,
       onSetDuplicateRequested: isReadOnly
           ? null
-          : (setId) => bloc.add(OcptShotListSetDuplicationRequestedEvent(setId: setId)),
+          : (setId) => bloc.add(
+              OcptShotListSetDuplicationRequestedEvent(
+                setId: setId,
+                newSetName: tr.shotListFloorPlanDuplicateSetDefaultName(
+                  _setNameValueOf(state, setId),
+                ),
+              ),
+            ),
       onCopyBlockingRequested: isReadOnly || state.selectedShotId == null
           ? null
           : (setId) => unawaited(_handleCopyBlockingRequested(context, state, setId)),
@@ -813,11 +822,7 @@ class _ShotListViewState extends State<_ShotListView> {
           ? null
           : (setId, rawValue) =>
                 bloc.add(OcptShotListSetNameChangedEvent(setId: setId, rawValue: rawValue)),
-      onSetReordered: isReadOnly
-          ? null
-          : (setId, newPosition) => bloc.add(
-              OcptShotListSetReorderedEvent(setId: setId, newPosition: newPosition),
-            ),
+      onSetReordered: null,
       onSetDeleteRequested: isReadOnly
           ? null
           : (setId) => unawaited(_handleSetDeleteRequested(context, state, setId)),
@@ -871,8 +876,8 @@ class _ShotListViewState extends State<_ShotListView> {
     );
   }
 
-  /// [setId]'s current name: a pending edit still in the bloc's debounce, or the case's own
-  /// stored value — the case tabs' equivalent of [_fieldValueOf]/[_panelCommentValueOf].
+  /// [setId]'s current name: a pending edit still in the bloc's debounce, or the set's own
+  /// stored value — the set tabs' equivalent of [_fieldValueOf]/[_panelCommentValueOf].
   String _setNameValueOf(OcptShotListState state, String setId) {
     final pending = state.pendingFieldEdits[OcptShotListSetNameEditKey(setId: setId)];
     if (pending != null) {
@@ -886,8 +891,9 @@ class _ShotListViewState extends State<_ShotListView> {
     return "";
   }
 
-  /// Shows the delete confirmation dialog, then dispatches the case's deletion if the user
-  /// confirmed it — a tab's own close action, which only asks.
+  /// Shows the unlink confirmation dialog, then dispatches the set's unlinking if the user
+  /// confirmed it — a tab's own close action, which only asks. Not destructive
+  /// (`isDestructive: false`): the plan itself is kept, only the sequence link goes.
   Future<void> _handleSetDeleteRequested(
     BuildContext context,
     OcptShotListState state,
@@ -900,7 +906,8 @@ class _ShotListViewState extends State<_ShotListView> {
       title: tr.shotListFloorPlanDeleteSetConfirmTitle,
       message: tr.shotListFloorPlanDeleteSetConfirmMessage,
       cancelLabel: tr.shotListDeleteConfirmCancelAction,
-      confirmLabel: tr.shotListDeleteConfirmDeleteAction,
+      confirmLabel: tr.shotListFloorPlanUnlinkSetConfirmAction,
+      isDestructive: false,
     );
     if (confirmed != true) {
       return;
@@ -940,11 +947,12 @@ class _ShotListViewState extends State<_ShotListView> {
       floorPlanSet: selectedSet,
       shots: sequence.shots,
       shotRankByShotId: shotRankByShotId,
+      focusSceneId: state.selectedSequenceId ?? '',
       focusShotId: focusShotId,
       previousShotId: state.previousShotOfSelectedShot?.id,
       nextShotId: state.nextShotOfSelectedShot?.id,
       hasCameraOnSetOf: _hasCameraOnSetOf(sequence, selectedSet),
-      sequenceCameras: _sequenceCamerasOf(selectedSet, shotRankByShotId),
+      sequenceCameras: _sequenceCamerasOf(selectedSet, state.selectedSequenceId, shotRankByShotId),
       initialZoom: state.floorPlanZoom,
       hiddenLayers: state.floorPlanHiddenLayers,
       hiddenCameraSymbolIds: state.floorPlanHiddenCameraSymbolIds,
@@ -1116,13 +1124,15 @@ class _ShotListViewState extends State<_ShotListView> {
   /// itself draws that focus from, so the tray's own labels can never disagree with the canvas.
   List<OcptFloorPlanTraySequenceCamera> _sequenceCamerasOf(
     OcptFloorPlanSet? selectedSet,
+    String? focusSceneId,
     Map<String, int> shotRankByShotId,
   ) {
-    if (selectedSet == null) {
+    if (selectedSet == null || focusSceneId == null) {
       return const [];
     }
     final sheet = OcptFloorPlanSheet.of(
       floorPlanSet: selectedSet,
+      focusSceneId: focusSceneId,
       focusShotId: null,
       shotRankByShotId: shotRankByShotId,
     );
@@ -1234,8 +1244,8 @@ class _ShotListViewState extends State<_ShotListView> {
   }
 
   /// Builds the inspector's floor-plans-only `leadingGroup`: the selected shot's own placements on
-  /// the selected case, and one line per other case of the sequence — null while no shot or no
-  /// case is selected (the `Sequence` focus shows no single shot's own placements at all).
+  /// the selected set, and one line per other set of the sequence — null while no shot or no
+  /// set is selected (the `Sequence` focus shows no single shot's own placements at all).
   Widget? _buildPlacementsGroup(BuildContext context, OcptShotListState state) {
     final selectedShot = state.selectedShot;
     final selectedSet = state.selectedSet;
@@ -1252,6 +1262,7 @@ class _ShotListViewState extends State<_ShotListView> {
     };
     final sheet = OcptFloorPlanSheet.of(
       floorPlanSet: selectedSet,
+      focusSceneId: state.selectedSequenceId ?? '',
       focusShotId: selectedShot.id,
       shotRankByShotId: shotRankByShotId,
     );
@@ -1463,7 +1474,7 @@ class _ShotListViewState extends State<_ShotListView> {
   /// The status bar's own trailing hint for the active centre view: the board's `Panel 2 of 3
   /// selected · drag to reorder` while it is shown and a panel is selected, the floor plans'
   /// `Kitchen · 5 cameras on 4 shots · 12/5 has no camera yet` (the last segment only while a shot
-  /// of the sequence still has none) while a case is selected, or null otherwise (the table, and
+  /// of the sequence still has none) while a set is selected, or null otherwise (the table, and
   /// either view with nothing of its own selected, have nothing to add).
   String? _statusBarHint(BuildContext context, OcptShotListState state, bool isCompact) {
     final isBoardShown = !isCompact && state.centreView == OcptShotListCentreView.board;

@@ -17,6 +17,7 @@ import 'package:open_cine_prod_tools/utils/ocpt_floor_plan_geometry.dart';
 /// what it actually varies.
 OcptFloorPlanSymbol _symbol({
   required String id,
+  String? sceneId,
   String? shotId,
   required OcptFloorPlanLayer layer,
   String sortKey = "a",
@@ -28,9 +29,11 @@ OcptFloorPlanSymbol _symbol({
   double? fovReachM,
   String label = "",
   OcptFloorPlanSetElementShape? setElementShape,
+  String? overridesSymbolId,
 }) => OcptFloorPlanSymbol(
   id: id,
   setId: "case-1",
+  sceneId: sceneId,
   shotId: shotId,
   layer: layer,
   sortKey: sortKey,
@@ -43,6 +46,7 @@ OcptFloorPlanSymbol _symbol({
   fovReachM: fovReachM,
   label: label,
   setElementShape: setElementShape,
+  overridesSymbolId: overridesSymbolId,
 );
 
 OcptFloorPlanArrow _arrow({
@@ -75,9 +79,7 @@ OcptFloorPlanSet _caseOf({
   double? underlayHeightM,
 }) => OcptFloorPlanSet(
   id: "case-1",
-  sceneId: "scene-1",
   name: "Kitchen",
-  sortKey: "a",
   underlayAssetId: underlayAssetId,
   underlayPath: underlayAssetId == null ? null : "/tmp/underlay.jpg",
   underlayXM: underlayXM,
@@ -97,6 +99,7 @@ void main() {
 
       final sheet = OcptFloorPlanSheet.of(
         floorPlanSet: floorPlanSet,
+        focusSceneId: "scene-1",
         focusShotId: "shot-1",
         shotRankByShotId: const {},
       );
@@ -104,6 +107,136 @@ void main() {
       expect(sheet.symbols, hasLength(1));
       expect(sheet.symbols.single.symbolId, "decor-1");
       expect(sheet.symbols.single.isGhost, isFalse);
+    });
+
+    test("includes a scene-scope symbol of the focused scene", () {
+      final prop = _symbol(id: "prop-1", sceneId: "scene-1", layer: OcptFloorPlanLayer.props);
+      final floorPlanSet = _caseOf(symbols: [prop]);
+
+      final sheet = OcptFloorPlanSheet.of(
+        floorPlanSet: floorPlanSet,
+        focusSceneId: "scene-1",
+        focusShotId: null,
+        shotRankByShotId: const {},
+      );
+
+      expect(sheet.symbols.map((shape) => shape.symbolId), ["prop-1"]);
+    });
+
+    test("leaves out a scene-scope symbol of a different scene", () {
+      final prop = _symbol(id: "prop-1", sceneId: "scene-2", layer: OcptFloorPlanLayer.props);
+      final floorPlanSet = _caseOf(symbols: [prop]);
+
+      final sheet = OcptFloorPlanSheet.of(
+        floorPlanSet: floorPlanSet,
+        focusSceneId: "scene-1",
+        focusShotId: null,
+        shotRankByShotId: const {},
+      );
+
+      expect(sheet.symbols, isEmpty);
+    });
+  });
+
+  group("OcptFloorPlanSheet.of — the override rule", () {
+    test("a live scene-scope override replaces the set-scope symbol it names, in its own scene", () {
+      final original = _symbol(id: "orig-1", layer: OcptFloorPlanLayer.set, label: "Original");
+      final override = _symbol(
+        id: "override-1",
+        sceneId: "scene-1",
+        layer: OcptFloorPlanLayer.set,
+        label: "Re-dressed",
+        overridesSymbolId: "orig-1",
+      );
+      final floorPlanSet = _caseOf(symbols: [original, override]);
+
+      final sheet = OcptFloorPlanSheet.of(
+        floorPlanSet: floorPlanSet,
+        focusSceneId: "scene-1",
+        focusShotId: null,
+        shotRankByShotId: const {},
+      );
+
+      expect(sheet.symbols, hasLength(1));
+      expect(sheet.symbols.single.symbolId, "override-1");
+      expect(sheet.symbols.single.label, "Re-dressed");
+    });
+
+    test("the original still shows in every other scene", () {
+      final original = _symbol(id: "orig-1", layer: OcptFloorPlanLayer.set, label: "Original");
+      final override = _symbol(
+        id: "override-1",
+        sceneId: "scene-1",
+        layer: OcptFloorPlanLayer.set,
+        label: "Re-dressed",
+        overridesSymbolId: "orig-1",
+      );
+      final floorPlanSet = _caseOf(symbols: [original, override]);
+
+      final sheet = OcptFloorPlanSheet.of(
+        floorPlanSet: floorPlanSet,
+        focusSceneId: "scene-2",
+        focusShotId: null,
+        shotRankByShotId: const {},
+      );
+
+      expect(sheet.symbols, hasLength(1));
+      expect(sheet.symbols.single.symbolId, "orig-1");
+      expect(sheet.symbols.single.label, "Original");
+    });
+
+    test("editing the original still shows in the overriding scene's own sheet too", () {
+      // Editing the original writes the very same row `_symbol` here stands in for — this sheet
+      // only ever reads what the store hands it, so a moved original is simply a different
+      // `xM`/`yM` on the same row, still excluded from scene-1's own sheet by the override.
+      final movedOriginal = _symbol(
+        id: "orig-1",
+        layer: OcptFloorPlanLayer.set,
+        xM: 9,
+        yM: 9,
+      );
+      final override = _symbol(
+        id: "override-1",
+        sceneId: "scene-1",
+        layer: OcptFloorPlanLayer.set,
+        overridesSymbolId: "orig-1",
+      );
+      final floorPlanSet = _caseOf(symbols: [movedOriginal, override]);
+
+      final sceneOneSheet = OcptFloorPlanSheet.of(
+        floorPlanSet: floorPlanSet,
+        focusSceneId: "scene-1",
+        focusShotId: null,
+        shotRankByShotId: const {},
+      );
+      final sceneTwoSheet = OcptFloorPlanSheet.of(
+        floorPlanSet: floorPlanSet,
+        focusSceneId: "scene-2",
+        focusShotId: null,
+        shotRankByShotId: const {},
+      );
+
+      expect(sceneOneSheet.symbols.single.symbolId, "override-1");
+      expect(sceneTwoSheet.symbols.single.symbolId, "orig-1");
+      expect(sceneTwoSheet.symbols.single.xM, 9);
+    });
+
+    test("a tombstoned override is simply absent, so the original reappears in that scene", () {
+      // A tombstoned row is filtered out well before `OcptFloorPlanSheet.of` ever sees it
+      // (`OcptFloorPlanService.loadFloorPlans` only reads live rows) — so "the override is
+      // removed" is simply "the symbol list no longer carries it".
+      final original = _symbol(id: "orig-1", layer: OcptFloorPlanLayer.set, label: "Original");
+      final floorPlanSet = _caseOf(symbols: [original]);
+
+      final sheet = OcptFloorPlanSheet.of(
+        floorPlanSet: floorPlanSet,
+        focusSceneId: "scene-1",
+        focusShotId: null,
+        shotRankByShotId: const {},
+      );
+
+      expect(sheet.symbols, hasLength(1));
+      expect(sheet.symbols.single.symbolId, "orig-1");
     });
   });
 
@@ -120,6 +253,7 @@ void main() {
 
       final sheet = OcptFloorPlanSheet.of(
         floorPlanSet: floorPlanSet,
+        focusSceneId: "scene-1",
         focusShotId: null,
         shotRankByShotId: const {"shot-1": 1, "shot-2": 2},
       );
@@ -135,6 +269,7 @@ void main() {
 
       final sheet = OcptFloorPlanSheet.of(
         floorPlanSet: floorPlanSet,
+        focusSceneId: "scene-1",
         focusShotId: null,
         shotRankByShotId: const {"shot-1": 3},
       );
@@ -154,6 +289,7 @@ void main() {
 
       final sheet = OcptFloorPlanSheet.of(
         floorPlanSet: floorPlanSet,
+        focusSceneId: "scene-1",
         focusShotId: null,
         shotRankByShotId: const {"shot-1": 3},
       );
@@ -171,6 +307,7 @@ void main() {
 
       final sheet = OcptFloorPlanSheet.of(
         floorPlanSet: floorPlanSet,
+        focusSceneId: "scene-1",
         focusShotId: null,
         shotRankByShotId: const {},
       );
@@ -191,6 +328,7 @@ void main() {
 
       final sheet = OcptFloorPlanSheet.of(
         floorPlanSet: floorPlanSet,
+        focusSceneId: "scene-1",
         focusShotId: "shot-1",
         shotRankByShotId: const {"shot-1": 1},
       );
@@ -218,6 +356,7 @@ void main() {
 
       final sheet = OcptFloorPlanSheet.of(
         floorPlanSet: floorPlanSet,
+        focusSceneId: "scene-1",
         focusShotId: "shot-2",
         shotRankByShotId: const {"shot-1": 1, "shot-2": 2, "shot-3": 3},
         previousShotId: "shot-1",
@@ -255,6 +394,7 @@ void main() {
 
       final sheet = OcptFloorPlanSheet.of(
         floorPlanSet: floorPlanSet,
+        focusSceneId: "scene-1",
         focusShotId: "shot-1",
         shotRankByShotId: const {"shot-1": 1},
       );
@@ -293,6 +433,7 @@ void main() {
 
       final sheet = OcptFloorPlanSheet.of(
         floorPlanSet: floorPlanSet,
+        focusSceneId: "scene-1",
         focusShotId: "shot-2",
         shotRankByShotId: const {"shot-1": 1, "shot-2": 2},
         previousShotId: "shot-1",
@@ -314,6 +455,7 @@ void main() {
 
       final sheet = OcptFloorPlanSheet.of(
         floorPlanSet: floorPlanSet,
+        focusSceneId: "scene-1",
         focusShotId: "shot-1",
         shotRankByShotId: const {"shot-1": 1},
       );
@@ -334,6 +476,7 @@ void main() {
 
       final sheet = OcptFloorPlanSheet.of(
         floorPlanSet: floorPlanSet,
+        focusSceneId: "scene-1",
         focusShotId: "shot-1",
         shotRankByShotId: const {"shot-1": 1, "shot-9": 9},
       );
@@ -352,6 +495,7 @@ void main() {
 
       final sheet = OcptFloorPlanSheet.of(
         floorPlanSet: floorPlanSet,
+        focusSceneId: "scene-1",
         focusShotId: "shot-1",
         shotRankByShotId: const {"shot-1": 1, "shot-9": 9},
         showAllCameras: true,
@@ -371,6 +515,7 @@ void main() {
 
       final sheet = OcptFloorPlanSheet.of(
         floorPlanSet: floorPlanSet,
+        focusSceneId: "scene-1",
         focusShotId: "shot-1",
         shotRankByShotId: const {"shot-0": 1, "shot-1": 2},
         previousShotId: "shot-0",
@@ -392,6 +537,7 @@ void main() {
 
       final sheet = OcptFloorPlanSheet.of(
         floorPlanSet: floorPlanSet,
+        focusSceneId: "scene-1",
         focusShotId: "shot-1",
         shotRankByShotId: const {"shot-1": 1, "shot-9": 9},
         showAllCameras: true,
@@ -407,6 +553,7 @@ void main() {
 
       final sheet = OcptFloorPlanSheet.of(
         floorPlanSet: floorPlanSet,
+        focusSceneId: "scene-1",
         focusShotId: null,
         shotRankByShotId: const {"shot-1": 1, "shot-2": 2},
         showAllCameras: true,
@@ -422,6 +569,7 @@ void main() {
 
       final sheet = OcptFloorPlanSheet.of(
         floorPlanSet: floorPlanSet,
+        focusSceneId: "scene-1",
         focusShotId: null,
         shotRankByShotId: const {},
       );
@@ -440,6 +588,7 @@ void main() {
 
       final sheet = OcptFloorPlanSheet.of(
         floorPlanSet: floorPlanSet,
+        focusSceneId: "scene-1",
         focusShotId: null,
         shotRankByShotId: const {},
       );
@@ -459,6 +608,7 @@ void main() {
 
       final sheet = OcptFloorPlanSheet.of(
         floorPlanSet: floorPlanSet,
+        focusSceneId: "scene-1",
         focusShotId: "shot-1",
         shotRankByShotId: const {"shot-1": 1},
       );
@@ -479,6 +629,7 @@ void main() {
 
       final sheet = OcptFloorPlanSheet.of(
         floorPlanSet: floorPlanSet,
+        focusSceneId: "scene-1",
         focusShotId: null,
         shotRankByShotId: const {},
       );
@@ -496,6 +647,7 @@ void main() {
       );
       final sheet = OcptFloorPlanSheet.of(
         floorPlanSet: _caseOf(symbols: [wall]),
+        focusSceneId: "scene-1",
         focusShotId: null,
         shotRankByShotId: const {},
       );
@@ -513,6 +665,7 @@ void main() {
       );
       final sheet = OcptFloorPlanSheet.of(
         floorPlanSet: _caseOf(symbols: [door]),
+        focusSceneId: "scene-1",
         focusShotId: null,
         shotRankByShotId: const {},
       );
@@ -536,6 +689,7 @@ void main() {
       );
       final sheet = OcptFloorPlanSheet.of(
         floorPlanSet: _caseOf(symbols: [furniture, freeform]),
+        focusSceneId: "scene-1",
         focusShotId: null,
         shotRankByShotId: const {},
       );
@@ -550,6 +704,7 @@ void main() {
       final prop = _symbol(id: "prop-1", shotId: "shot-1", layer: OcptFloorPlanLayer.props);
       final sheet = OcptFloorPlanSheet.of(
         floorPlanSet: _caseOf(symbols: [prop]),
+        focusSceneId: "scene-1",
         focusShotId: "shot-1",
         shotRankByShotId: const {"shot-1": 1},
       );
@@ -570,6 +725,7 @@ void main() {
 
       final sheet = OcptFloorPlanSheet.of(
         floorPlanSet: floorPlanSet,
+        focusSceneId: "scene-1",
         focusShotId: "shot-1",
         shotRankByShotId: const {"shot-1": 1},
       );
@@ -596,6 +752,7 @@ void main() {
 
       final sheet = OcptFloorPlanSheet.of(
         floorPlanSet: floorPlanSet,
+        focusSceneId: "scene-1",
         focusShotId: "shot-1",
         shotRankByShotId: const {"shot-1": 1},
       );
@@ -615,6 +772,7 @@ void main() {
 
       final sheet = OcptFloorPlanSheet.of(
         floorPlanSet: floorPlanSet,
+        focusSceneId: "scene-1",
         focusShotId: "shot-1",
         shotRankByShotId: const {"shot-1": 1},
       );
@@ -639,6 +797,7 @@ void main() {
 
       final sheet = OcptFloorPlanSheet.of(
         floorPlanSet: floorPlanSet,
+        focusSceneId: "scene-1",
         focusShotId: "shot-1",
         shotRankByShotId: const {"shot-1": 1},
       );
@@ -652,6 +811,7 @@ void main() {
 
       final sheet = OcptFloorPlanSheet.of(
         floorPlanSet: floorPlanSet,
+        focusSceneId: "scene-1",
         focusShotId: "shot-1",
         shotRankByShotId: const {"shot-1": 1},
       );
@@ -670,6 +830,7 @@ void main() {
 
       final sheet = OcptFloorPlanSheet.of(
         floorPlanSet: floorPlanSet,
+        focusSceneId: "scene-1",
         focusShotId: "shot-1",
         shotRankByShotId: const {"shot-1": 1},
         showFieldOfView: false,
@@ -684,6 +845,7 @@ void main() {
 
       final sheet = OcptFloorPlanSheet.of(
         floorPlanSet: floorPlanSet,
+        focusSceneId: "scene-1",
         focusShotId: "shot-1",
         shotRankByShotId: const {"shot-1": 1},
       );
@@ -702,6 +864,7 @@ void main() {
 
       final sheet = OcptFloorPlanSheet.of(
         floorPlanSet: floorPlanSet,
+        focusSceneId: "scene-1",
         focusShotId: "shot-1",
         shotRankByShotId: const {"shot-1": 1},
       );
@@ -715,6 +878,7 @@ void main() {
 
       final sheet = OcptFloorPlanSheet.of(
         floorPlanSet: floorPlanSet,
+        focusSceneId: "scene-1",
         focusShotId: "shot-1",
         shotRankByShotId: const {"shot-1": 1},
       );
@@ -733,6 +897,7 @@ void main() {
 
       final sheet = OcptFloorPlanSheet.of(
         floorPlanSet: floorPlanSet,
+        focusSceneId: "scene-1",
         focusShotId: "shot-1",
         shotRankByShotId: const {"shot-1": 1},
         showFieldOfView: false,
@@ -763,6 +928,7 @@ void main() {
 
       final sheet = OcptFloorPlanSheet.of(
         floorPlanSet: floorPlanSet,
+        focusSceneId: "scene-1",
         focusShotId: null,
         shotRankByShotId: const {},
       );
@@ -781,6 +947,7 @@ void main() {
 
       final sheet = OcptFloorPlanSheet.of(
         floorPlanSet: floorPlanSet,
+        focusSceneId: "scene-1",
         focusShotId: null,
         shotRankByShotId: const {},
       );
@@ -794,6 +961,7 @@ void main() {
 
       final sheet = OcptFloorPlanSheet.of(
         floorPlanSet: floorPlanSet,
+        focusSceneId: "scene-1",
         focusShotId: "shot-1",
         shotRankByShotId: const {"shot-1": 1},
       );
@@ -818,6 +986,7 @@ void main() {
 
       final sheet = OcptFloorPlanSheet.of(
         floorPlanSet: floorPlanSet,
+        focusSceneId: "scene-1",
         focusShotId: "shot-1",
         shotRankByShotId: const {"shot-1": 1},
       );
@@ -840,6 +1009,7 @@ void main() {
 
       final sheet = OcptFloorPlanSheet.of(
         floorPlanSet: floorPlanSet,
+        focusSceneId: "scene-1",
         focusShotId: "shot-1",
         shotRankByShotId: const {"shot-1": 1},
       );
