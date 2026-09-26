@@ -19,8 +19,8 @@ class OcptHomeRefreshRequestedEvent extends OcptHomeEvent {
 
 /// Requests the creation of a new project named [name].
 ///
-/// This first shows a save-file dialog to let the user pick where to save the new project, then
-/// creates it and navigates to the editor.
+/// A free file path is resolved for the new project, with no dialog, then the project is created
+/// there and the app navigates to the editor.
 class OcptHomeCreateProjectRequestedEvent extends OcptHomeEvent {
   /// The name entered by the user for the new project.
   final String name;
@@ -129,13 +129,13 @@ class OcptHomeErrorDismissedEvent extends OcptHomeEvent {
 /// Requests creating a new project seeded with the content of a picked screenplay file.
 ///
 /// This shows an open-file dialog to pick the screenplay — a `.fountain`, an `.fdx` or a
-/// `.celtx`, the last two being converted to Fountain as they are read —, then a save-file dialog
-/// to let the user pick where to save the new project, creates it, imports the picked file's text
-/// into it, and navigates to the editor.
+/// `.celtx`, the last two being converted to Fountain as they are read —, then resolves the new
+/// project's free file path with no dialog, creates it, imports the
+/// picked file's text into it, and navigates to the editor.
 ///
 /// A picked file that cannot be read as a screenplay creates nothing at all: it lands in
-/// `OcptHomeState.screenplayImportError` for the page to word, the save dialog never being
-/// reached.
+/// `OcptHomeState.screenplayImportError` for the page to word, no project ever being created for
+/// it.
 class OcptHomeImportScreenplayRequestedEvent extends OcptHomeEvent {
   /// The label of the screenplay file types shown in the native open-file dialog.
   final String screenplayFileTypeLabel;

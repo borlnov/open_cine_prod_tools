@@ -23,16 +23,17 @@ import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
 import 'package:open_cine_prod_tools/ui/pages/home/home_event.dart';
 import 'package:open_cine_prod_tools/ui/pages/home/home_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project_package_bloc.dart';
-import 'package:path/path.dart' as p;
 
 /// This is the bloc class for the home page.
 ///
 /// It refreshes the recent projects list from [OcptPropertiesManager] (flagging every entry
 /// whose file has gone missing since), and orchestrates the "New project"/"Open…"/card-tap/
-/// remove-from-list actions: showing the relevant native dialogs through [FileSaverManager] and
-/// [FileSelectorManager], delegating the actual create/open work to [OcptProjectsManager], and
-/// navigating to the workspace through [OcptRouterManager] (RFL31: navigation only via the router
-/// manager) once it succeeds.
+/// remove-from-list actions: "New project" and importing a screenplay each resolve their new
+/// project's file path through [OcptProjectsManager.freeNewProjectFilePath], with no dialog, while
+/// "Open…" shows the native open-file dialog through
+/// [FileSelectorManager], and every one of them delegates the actual create/open work to
+/// [OcptProjectsManager] and navigates to the workspace through [OcptRouterManager] (RFL31:
+/// navigation only via the router manager) once it succeeds.
 ///
 /// It is also where the app's **compatibility gate** stands: every path that opens a project file
 /// runs through here, so every one of them is probed before it is opened, and a file from another
@@ -58,9 +59,6 @@ class OcptHomeBloc extends BlocForMixin<OcptHomeState>
 
   /// The router manager used to navigate to the editor once a project is open.
   final OcptRouterManager _routerManager;
-
-  /// The manager used to show the "New project" save-file dialog.
-  final FileSaverManager _fileSaverManager;
 
   /// The manager used to show the "Open…" open-file dialog.
   final FileSelectorManager _fileSelectorManager;
@@ -88,13 +86,11 @@ class OcptHomeBloc extends BlocForMixin<OcptHomeState>
     OcptPropertiesManager? propertiesManager,
     OcptProjectsManager? projectsManager,
     OcptRouterManager? routerManager,
-    FileSaverManager? fileSaverManager,
     FileSelectorManager? fileSelectorManager,
     OcptExportManager? exportManager,
   }) : _propertiesManager = propertiesManager ?? globalGetIt().get<OcptPropertiesManager>(),
        _projectsManager = projectsManager ?? globalGetIt().get<OcptProjectsManager>(),
        _routerManager = routerManager ?? globalGetIt().get<OcptRouterManager>(),
-       _fileSaverManager = fileSaverManager ?? globalGetIt().get<FileSaverManager>(),
        _fileSelectorManager = fileSelectorManager ?? globalGetIt().get<FileSelectorManager>(),
        _exportManager = exportManager ?? globalGetIt().get<OcptExportManager>(),
        super(const OcptHomeState.init()) {
@@ -198,25 +194,15 @@ class OcptHomeBloc extends BlocForMixin<OcptHomeState>
     await _onRefreshRequested(const OcptHomeRefreshRequestedEvent(), emitter);
   }
 
-  /// Shows the save-file dialog, creates the new project there, then navigates to the editor.
+  /// Resolves a free file path for the new project, with no dialog, creates the project there, then
+  /// navigates to the editor.
   Future<void> _onCreateProjectRequested(
     OcptHomeCreateProjectRequestedEvent event,
     Emitter<OcptHomeState> emitter,
   ) async {
     emitter(state.copyWith(isBusy: true, clearError: true));
 
-    final suggestedFileName = "${event.name}.${OcptProjectsManager.projectFileExtension}";
-    final filePath = await _fileSaverManager.saveFileFromBytes(
-      fileName: suggestedFileName,
-      bytes: Uint8List(0),
-    );
-
-    if (filePath == null) {
-      // The user cancelled the save dialog.
-      emitter(state.copyWith(isBusy: false));
-      return;
-    }
-
+    final filePath = await _projectsManager.freeNewProjectFilePath(event.name);
     final result = await _projectsManager.createProject(name: event.name, filePath: filePath);
     if (!result.status.isSuccess) {
       emitter(state.copyWith(isBusy: false, error: result.status));
@@ -365,11 +351,12 @@ class OcptHomeBloc extends BlocForMixin<OcptHomeState>
   /// Picks a screenplay file, creates a new project for it, imports its text, then navigates to
   /// the editor.
   ///
-  /// Mirrors [_onCreateProjectRequested] step for step, with two differences: the save-file
-  /// dialog is preceded by an open-file dialog picking the screenplay (its name suggesting the
-  /// new project's file name), and the new project's screenplay is seeded with the picked file's
-  /// text instead of staying empty. The picked file may be a `.fountain`, an `.fdx` or a
-  /// `.celtx`; the conversion happens as it is read, so what is seeded is Fountain either way.
+  /// Mirrors [_onCreateProjectRequested] step for step, with two differences: resolving the new
+  /// project's file path is preceded by an open-file dialog picking the screenplay (its title page,
+  /// or else its file name, suggesting the new project's own name), and the new project's screenplay
+  /// is seeded with the picked file's text instead of staying empty. The picked file may be a
+  /// `.fountain`, an `.fdx` or a `.celtx`; the conversion happens as it is read, so what is seeded is
+  /// Fountain either way.
   ///
   /// A file that cannot be read as a screenplay stops the flow right there — no project is
   /// created — and lands in [OcptHomeState.screenplayImportError] for the page to word.
@@ -402,20 +389,8 @@ class OcptHomeBloc extends BlocForMixin<OcptHomeState>
       fountainText: imported.fountainText,
       sourceFileName: imported.sourceFileName,
     );
-    final suggestedFileName = "$suggestedName.${OcptProjectsManager.projectFileExtension}";
-    final filePath = await _fileSaverManager.saveFileFromBytes(
-      fileName: suggestedFileName,
-      bytes: Uint8List(0),
-    );
-
-    if (filePath == null) {
-      // The user cancelled the save dialog.
-      emitter(state.copyWith(isBusy: false));
-      return;
-    }
-
-    final projectName = p.basenameWithoutExtension(filePath);
-    final result = await _projectsManager.createProject(name: projectName, filePath: filePath);
+    final filePath = await _projectsManager.freeNewProjectFilePath(suggestedName);
+    final result = await _projectsManager.createProject(name: suggestedName, filePath: filePath);
     if (!result.status.isSuccess) {
       emitter(state.copyWith(isBusy: false, error: result.status));
       return;

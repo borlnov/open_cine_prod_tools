@@ -5,7 +5,6 @@
 import 'dart:async';
 import 'dart:io';
 
-import 'package:act_file_transfer_manager/act_file_transfer_manager.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_config_manager.dart';
@@ -62,6 +61,22 @@ void _mockSecureStorage(Map<String, String> store) {
   );
 }
 
+/// A projects manager whose [newProjectsDirectory] resolves to a fixed [directory] instead of
+/// asking `path_provider` for the platform's real Downloads folder — `path_provider`'s desktop
+/// implementations need the plugin-registrant plumbing a plain `flutter test` run doesn't reliably
+/// provide, exactly the kind of pitfall `AGENTS.md`'s own "flutter test runs on the plain Dart VM"
+/// note already flags elsewhere. This is what lets `OcptJoiningBloc._resolveParentDirectoryPath`
+/// be exercised for real in these tests.
+class _TestProjectsManager extends OcptProjectsManager {
+  _TestProjectsManager({required this.directory, super.propertiesManager, super.appLanguageCode});
+
+  /// The directory [newProjectsDirectory] always resolves to.
+  final Directory directory;
+
+  @override
+  Future<Directory> newProjectsDirectory() async => directory;
+}
+
 /// An [OcptSyncManager] whose [joinFromRelay] is entirely stubbed: it never touches the filesystem
 /// or the network, returning [joinResultPath] (a project already sitting on disk, created directly
 /// through [OcptProjectsManager.createProject] rather than through the real snapshot machinery) —
@@ -90,6 +105,9 @@ class _FakeSyncManager extends OcptSyncManager {
   /// this bloc's own validation.
   int joinCallCount = 0;
 
+  /// The parent directory path of the last [joinFromRelay] call, or null if it never was.
+  String? lastParentDirectoryPath;
+
   @override
   Future<String> joinFromRelay({
     required OcptRemoteStorage storage,
@@ -99,27 +117,9 @@ class _FakeSyncManager extends OcptSyncManager {
     required String token,
   }) async {
     joinCallCount++;
+    lastParentDirectoryPath = parentDirectoryPath;
     await whileJoining?.call();
     return joinResultPath;
-  }
-}
-
-/// A file saver manager whose [saveFileFromBytes] is stubbed, to exercise the bloc's own desktop
-/// destination-picking step without any real save dialog — `home_bloc_test.dart`'s own
-/// `_FakeFileSaverManager`.
-class _FakeFileSaverManager extends FileSaverManager {
-  _FakeFileSaverManager({this.result});
-
-  /// The path [saveFileFromBytes] returns, or null to simulate a cancelled save dialog.
-  final String? result;
-
-  /// How many times [saveFileFromBytes] was called.
-  int callCount = 0;
-
-  @override
-  Future<String?> saveFileFromBytes({required String fileName, required Uint8List bytes}) async {
-    callCount++;
-    return result;
   }
 }
 
@@ -198,7 +198,11 @@ void main() {
     secureStore.clear();
 
     tempDir = await Directory.systemTemp.createTemp("ocpt_joining_bloc_test_");
-    projectsManager = OcptProjectsManager(propertiesManager: propertiesManager, appLanguageCode: () => "en");
+    projectsManager = _TestProjectsManager(
+      directory: tempDir,
+      propertiesManager: propertiesManager,
+      appLanguageCode: () => "en",
+    );
     await projectsManager.initLifeCycle();
 
     // Stands in for the project a relay would hand back: written directly through the real
@@ -219,17 +223,15 @@ void main() {
   });
 
   /// Builds an [OcptJoiningBloc] over [manager], recording every route [routerManager] is pushed
-  /// to, and picking [fileSaverManager]'s own answer as the desktop destination.
+  /// to.
   OcptJoiningBloc buildBloc({
     required _FakeSyncManager manager,
     required _RecordingRouterManager routerManager,
-    FileSaverManager? fileSaverManager,
   }) {
     final bloc = OcptJoiningBloc(
       syncManager: manager,
       projectsManager: projectsManager,
       routerManager: routerManager,
-      fileSaverManager: fileSaverManager ?? _FakeFileSaverManager(result: p.join(tempDir.path, "picked", "placeholder.ocpt")),
     );
     addTearDown(bloc.close);
     return bloc;
@@ -424,22 +426,22 @@ void main() {
     expect(routerManager.replacedRoute, isNull);
   });
 
-  test("a cancelled desktop destination picker is a silent no-op", () async {
-    final manager = _FakeSyncManager(pairingService: pairingService, joinResultPath: joinedProjectPath);
-    final routerManager = _RecordingRouterManager();
-    final fileSaverManager = _FakeFileSaverManager();
-    final bloc = buildBloc(manager: manager, routerManager: routerManager, fileSaverManager: fileSaverManager);
+  test(
+    "resolves the destination through the projects manager's own new-projects folder, with no "
+    "dialog to cancel",
+    () async {
+      final manager = _FakeSyncManager(pairingService: pairingService, joinResultPath: joinedProjectPath);
+      final routerManager = _RecordingRouterManager();
+      final bloc = buildBloc(manager: manager, routerManager: routerManager);
 
-    bloc.add(OcptJoiningManualSubmittedEvent(inviteLinkText: validInviteLink));
-    await pumpEventQueue();
+      bloc.add(OcptJoiningManualSubmittedEvent(inviteLinkText: validInviteLink));
+      await pumpEventQueue();
 
-    expect(fileSaverManager.callCount, 1);
-    expect(manager.joinCallCount, 0);
-    expect(bloc.state.isJoining, isFalse);
-    expect(bloc.state.joinFailed, isFalse);
-    expect(bloc.state.joinSucceeded, isFalse);
-    expect(bloc.state.joinStep, isNull);
-    expect(routerManager.pushedRoute, isNull);
-    expect(routerManager.replacedRoute, isNull);
-  });
+      // Nothing asks where to put the project: the join runs straight through to the fake relay,
+      // into the projects manager's own new-projects folder.
+      expect(manager.joinCallCount, 1);
+      expect(manager.lastParentDirectoryPath, tempDir.path);
+      expect(bloc.state.joinSucceeded, isTrue);
+    },
+  );
 }

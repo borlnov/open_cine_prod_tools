@@ -1373,6 +1373,13 @@
     "type": "text",
     "placeholders": {}
   },
+  "homeErrorFileAlreadyExists": "A file already exists at that location; it was left untouched.",
+  "@homeErrorFileAlreadyExists": {
+    "description": "Error shown when creating a project would have overwritten a file already at that path",
+    "context": "Displayed in a SnackBar on the home page",
+    "type": "text",
+    "placeholders": {}
+  },
   "homeMigrateProjectTitle": "Bring this project up to date?",
   "@homeMigrateProjectTitle": {
     "description": "Title of the dialog asking to migrate a project file saved in an older format",

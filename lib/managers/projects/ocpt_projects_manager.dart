@@ -11,6 +11,7 @@ import 'package:act_global_manager/act_global_manager.dart';
 import 'package:act_intl/act_intl.dart';
 import 'package:act_life_cycle/act_life_cycle.dart';
 import 'package:act_logger_manager/act_logger_manager.dart';
+import 'package:act_platform_manager/act_platform_manager.dart';
 import 'package:drift/drift.dart' show Value;
 import 'package:fountain_kit/fountain_kit.dart';
 import 'package:intl/intl.dart' show NumberFormat;
@@ -56,6 +57,7 @@ import 'package:open_cine_prod_tools/types/ocpt_project_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_version_payload_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_screenplay_language.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_fractional_key.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_free_file_path.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:sqlite3/sqlite3.dart' show SqliteException;
@@ -156,6 +158,9 @@ class OcptProjectsManager extends AbsWithLifeCycle {
 
   /// The seam [_defaultScreenplayLanguageForAppLocale] reads the app's UI language through.
   final OcptAppLanguageCodeGetter _appLanguageCode;
+
+  /// The manager [newProjectsDirectory] branches on to tell a desktop platform from a mobile one.
+  final PlatformManager _platformManager;
 
   /// The service used to load/save a screenplay's text and manage its snapshots.
   final OcptScreenplayService screenplayService;
@@ -265,11 +270,19 @@ class OcptProjectsManager extends AbsWithLifeCycle {
   /// to [LocalesManager]'s `currentLocale`, and read only when a project is created
   /// ([_defaultScreenplayLanguageForAppLocale]) — never when this manager is built, so a test only
   /// needs to hand one in when it creates a project.
+  ///
+  /// [platformManager] is not resolved through [globalGetIt] like the managers above:
+  /// [PlatformManager]'s own constructor is a synchronous, side-effect-free read of the real
+  /// platform, so building one directly here is exactly as correct as the registered singleton
+  /// would be, and it keeps this manager's own tests from having to register it —
+  /// `OcptExportManager`'s own constructor follows the same reasoning.
   OcptProjectsManager({
     OcptPropertiesManager? propertiesManager,
     OcptAppLanguageCodeGetter? appLanguageCode,
+    PlatformManager? platformManager,
   }) : _propertiesManager = propertiesManager ?? globalGetIt().get<OcptPropertiesManager>(),
        _appLanguageCode = appLanguageCode ?? _localesManagerLanguageCode,
+       _platformManager = platformManager ?? PlatformManager(),
        sceneIndexService = const OcptSceneIndexService(),
        shotListService = OcptShotListService(
          roleIndexService: OcptRoleIndexService(
@@ -448,8 +461,9 @@ class OcptProjectsManager extends AbsWithLifeCycle {
     _currentProject = ValueKeeperWithStream<OcptOpenProjectModel?>(value: null);
   }
 
-  /// Returns the default directory suggested to the user when creating or opening a project,
-  /// creating it if it doesn't already exist.
+  /// The directory a new project lands in on desktop when the platform's own Downloads folder
+  /// cannot be resolved — [newProjectsDirectory]'s own fallback — creating it if it doesn't already
+  /// exist.
   Future<Directory> getDefaultProjectsDirectory() async {
     final documentsDirectory = await getApplicationDocumentsDirectory();
     final projectsDirectory = Directory(
@@ -463,16 +477,52 @@ class OcptProjectsManager extends AbsWithLifeCycle {
     return projectsDirectory;
   }
 
+  /// Where a new project's `.ocpt` lands without the user choosing a location — [createProject]'s
+  /// callers turn it into an actual file path through [freeNewProjectFilePath], which never names
+  /// a file already there.
+  ///
+  /// On desktop ([PlatformManager.isMobile] false), this is `path_provider`'s Downloads folder,
+  /// falling back to [getDefaultProjectsDirectory] when the platform reports none. On Android/iOS, it is the app's
+  /// own documents directory instead, where there is no user-visible "Downloads" folder and no
+  /// dialog to show at all — the same branch `OcptJoiningBloc._resolveParentDirectoryPath` takes for
+  /// the very same reason.
+  Future<Directory> newProjectsDirectory() async {
+    if (_platformManager.isMobile) {
+      return getApplicationDocumentsDirectory();
+    }
+
+    return await getDownloadsDirectory() ?? await getDefaultProjectsDirectory();
+  }
+
+  /// The first free `.ocpt` path for a project named [name] inside [newProjectsDirectory] — see
+  /// [ocptFreeFilePath] for the numbering a name already taken there is given.
+  Future<String> freeNewProjectFilePath(String name) async {
+    final directory = await newProjectsDirectory();
+
+    return ocptFreeFilePath(
+      directoryPath: directory.path,
+      baseName: name,
+      extension: projectFileExtension,
+      exists: (path) => File(path).existsSync(),
+    );
+  }
+
   /// Creates a new project named [name] at [filePath], seeds it with a single empty screenplay —
   /// episode 1 (`number: 1`), given a real first `sortKey` rather than left at the column
   /// defaults, so a project made today looks exactly like one that came through the schema version
   /// 18 migration (`docs/adr/0019-one-project-several-episodes.md`) — registers it in the recent
   /// projects list, and makes it the [currentProject].
   ///
-  /// If a project is already open, it's closed first. The project's page format defaults to
-  /// [OcptPageFormat.a4] when the platform's locale is French, and to [OcptPageFormat.usLetter]
-  /// otherwise. Its currency defaults to whatever `intl` names for the platform's current locale
-  /// (`fr_FR` suggests EUR, `en_US` suggests USD…), falling back to
+  /// **Never overwrites an existing file.** If [filePath] is already taken, nothing is created,
+  /// nothing is touched — not even the currently open project, which stays open — and this returns
+  /// [OcptProjectStatus.fileAlreadyExists]. A caller normally avoids that outcome by resolving
+  /// [filePath] through [freeNewProjectFilePath] first; the check stands here on its own so that no
+  /// caller, present or future, can make this method destroy a file.
+  ///
+  /// If a project is already open and [filePath] is free, the open one is closed first. The
+  /// project's page format defaults to [OcptPageFormat.a4] when the platform's locale is French, and
+  /// to [OcptPageFormat.usLetter] otherwise. Its currency defaults to whatever `intl` names for the
+  /// platform's current locale (`fr_FR` suggests EUR, `en_US` suggests USD…), falling back to
   /// [ocptDefaultCurrencyCode] when it can't. Its screenplay language is seeded from the **app's**
   /// own UI language instead ([_defaultScreenplayLanguageForAppLocale]), and left unset when no
   /// dictionary is bundled for it.
@@ -487,15 +537,16 @@ class OcptProjectsManager extends AbsWithLifeCycle {
 
     OcptProjectDatabase? database;
     try {
+      final file = File(filePath);
+      if (file.existsSync()) {
+        return const ResultWithStatus(status: OcptProjectStatus.fileAlreadyExists);
+      }
+
       if (currentProject != null) {
         await closeCurrentProject();
       }
 
-      final file = File(filePath);
       await file.parent.create(recursive: true);
-      if (file.existsSync()) {
-        await file.delete();
-      }
 
       database = OcptProjectDatabase(file);
 

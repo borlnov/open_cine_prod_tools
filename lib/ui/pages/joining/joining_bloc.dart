@@ -2,13 +2,8 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-import 'dart:io';
-import 'dart:typed_data';
-
-import 'package:act_file_transfer_manager/act_file_transfer_manager.dart';
 import 'package:act_flutter_utility/act_flutter_utility.dart';
 import 'package:act_global_manager/act_global_manager.dart';
-import 'package:act_platform_manager/act_platform_manager.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_diagnostics_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
@@ -21,8 +16,6 @@ import 'package:open_cine_prod_tools/models/sync/ocpt_relay_invite.dart';
 import 'package:open_cine_prod_tools/types/ocpt_route.dart';
 import 'package:open_cine_prod_tools/ui/pages/joining/joining_event.dart';
 import 'package:open_cine_prod_tools/ui/pages/joining/joining_state.dart';
-import 'package:path/path.dart' as p;
-import 'package:path_provider/path_provider.dart';
 
 /// This is the bloc class for the Rejoindre (joining) screen: pairing this replica to a project
 /// already shared on a relay, by scanning the Partager screen's own QR code (tablet only) or by
@@ -59,31 +52,14 @@ class OcptJoiningBloc extends BlocForMixin<OcptJoiningState> {
   /// The router manager used to navigate to the workspace once the joined project is open.
   final OcptRouterManager _routerManager;
 
-  /// The manager used to show the native "save as" dialog a desktop platform picks the new
-  /// project's own parent folder through — see [_resolveParentDirectoryPath].
-  final FileSaverManager _fileSaverManager;
-
-  /// The manager telling [_resolveParentDirectoryPath] whether a native save dialog exists on this
-  /// platform at all.
-  final PlatformManager _platformManager;
-
   /// Class constructor
   OcptJoiningBloc({
     OcptSyncManager? syncManager,
     OcptProjectsManager? projectsManager,
     OcptRouterManager? routerManager,
-    FileSaverManager? fileSaverManager,
-    PlatformManager? platformManager,
   }) : _syncManager = syncManager ?? globalGetIt().get<OcptSyncManager>(),
        _projectsManager = projectsManager ?? globalGetIt().get<OcptProjectsManager>(),
        _routerManager = routerManager ?? globalGetIt().get<OcptRouterManager>(),
-       _fileSaverManager = fileSaverManager ?? globalGetIt().get<FileSaverManager>(),
-       // Not resolved through globalGetIt() like the managers above: PlatformManager's own
-       // constructor is a synchronous, side-effect-free read of the real platform, so building one
-       // directly here is exactly as correct as the registered singleton would be, and it keeps
-       // this bloc's own tests from having to register it — `OcptExportManager`'s own constructor
-       // follows the same reasoning.
-       _platformManager = platformManager ?? PlatformManager(),
        super(const OcptJoiningState.init());
 
   /// Set by [_onCancelled] and checked by [_join] after every `await` along the join path, to bail
@@ -199,10 +175,6 @@ class OcptJoiningBloc extends BlocForMixin<OcptJoiningState> {
       if (_cancelled) {
         return;
       }
-      if (parentDirectoryPath == null) {
-        emitter(state.copyWith(isJoining: false, clearJoinStep: true));
-        return;
-      }
 
       final pairing = OcptProjectPairing(relayBaseUri: invite.relayBaseUri, token: invite.token);
       final storage = _syncManager.openRelayRemoteStorage(pairing, invite.projectId);
@@ -266,40 +238,16 @@ class OcptJoiningBloc extends BlocForMixin<OcptJoiningState> {
     }
   }
 
-  /// Where the joined project's `.ocpt` lands: the parent of a native "save as" location on
-  /// desktop (`FileSaverManager`, exactly as the Home page's own "New project" flow picks one —
-  /// see `OcptHomeBloc._onCreateProjectRequested`), since `getSaveLocation` has no Android/iOS
-  /// implementation (ADR 0009) — on mobile, the application's own documents directory instead,
-  /// where there is no such dialog to show at all.
+  /// Where the joined project's `.ocpt` lands: [OcptProjectsManager.newProjectsDirectory], the same
+  /// folder the Home page's own "New project" flow resolves a fresh project's file into
+  /// (`OcptHomeBloc._onCreateProjectRequested`): the platform's Downloads folder on desktop, the
+  /// application's own documents directory on Android/iOS, with no dialog on any platform.
   ///
-  /// The desktop picker's own placeholder file is discarded once its parent directory is read off
-  /// it: only the folder was ever wanted, the joined project's actual file name coming from the
-  /// relay's own snapshot manifest instead (`OcptSnapshotService.applySnapshot`).
-  ///
-  /// Returns null when the user cancelled the desktop dialog.
-  Future<String?> _resolveParentDirectoryPath() async {
-    if (_platformManager.isMobile) {
-      final documentsDirectory = await getApplicationDocumentsDirectory();
-      return documentsDirectory.path;
-    }
-
-    final suggestedFileName = "joined-project.${OcptProjectsManager.projectFileExtension}";
-    final pickedPath = await _fileSaverManager.saveFileFromBytes(
-      fileName: suggestedFileName,
-      bytes: Uint8List(0),
-    );
-    if (pickedPath == null) {
-      return null;
-    }
-
-    try {
-      await File(pickedPath).delete();
-    } catch (_) {
-      // Best-effort cleanup only: a leftover empty placeholder file beside the real joined
-      // project is a cosmetic annoyance, not a reason to fail the join.
-    }
-
-    return p.dirname(pickedPath);
+  /// Nothing is written here: the joined project's own folder is created by the package import,
+  /// which refuses to replace one already there.
+  Future<String> _resolveParentDirectoryPath() async {
+    final directory = await _projectsManager.newProjectsDirectory();
+    return directory.path;
   }
 
   /// Clears [OcptJoiningState.joinFailed] once the page has shown its own snack bar for it.

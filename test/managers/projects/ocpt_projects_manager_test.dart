@@ -22,6 +22,22 @@ import 'package:shared_preferences_platform_interface/in_memory_shared_preferenc
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
 import 'package:sqlite3/sqlite3.dart';
 
+/// A projects manager whose [newProjectsDirectory] resolves to a fixed [directory] instead of
+/// asking `path_provider` for the platform's real Downloads folder — `path_provider`'s desktop
+/// implementations need the plugin-registrant plumbing a plain `flutter test` run doesn't reliably
+/// provide, exactly the kind of pitfall `AGENTS.md`'s own "flutter test runs on the plain Dart VM"
+/// note already flags elsewhere.
+class _TestProjectsManager extends OcptProjectsManager {
+  /// Class constructor
+  _TestProjectsManager({required this.directory, super.propertiesManager});
+
+  /// The directory [newProjectsDirectory] always resolves to.
+  final Directory directory;
+
+  @override
+  Future<Directory> newProjectsDirectory() async => directory;
+}
+
 void main() {
   // OcptPropertiesManager wraps a process-wide singleton (see the properties manager test), so we
   // create it once, backed by an in-memory store, and clear it between tests.
@@ -106,6 +122,32 @@ void main() {
 
     expect(result.status, OcptProjectStatus.ok);
     expect(manager.currentProject?.name, "Second");
+  });
+
+  group("createProject never overwrites an existing file", () {
+    test("returns fileAlreadyExists and leaves the file's own bytes untouched", () async {
+      final filePath = p.join(tempDir.path, "existing.ocpt");
+      await File(filePath).writeAsString("not a project");
+
+      final result = await manager.createProject(name: "My Movie", filePath: filePath);
+
+      expect(result.status, OcptProjectStatus.fileAlreadyExists);
+      expect(result.status.isSuccess, isFalse);
+      expect(await File(filePath).readAsString(), "not a project");
+      expect(manager.currentProject, isNull);
+    });
+
+    test("leaves a currently open project open rather than closing it first", () async {
+      await manager.createProject(name: "First", filePath: p.join(tempDir.path, "first.ocpt"));
+
+      final blockedPath = p.join(tempDir.path, "blocked.ocpt");
+      await File(blockedPath).writeAsString("not a project");
+
+      final result = await manager.createProject(name: "Second", filePath: blockedPath);
+
+      expect(result.status, OcptProjectStatus.fileAlreadyExists);
+      expect(manager.currentProject?.name, "First");
+    });
   });
 
   test('openProject opens a previously created project and makes it current', () async {
@@ -963,6 +1005,31 @@ void main() {
 
       expect(result.status, OcptProjectStatus.ok);
       expect(manager.currentProject?.path, filePath);
+    });
+  });
+
+  group("freeNewProjectFilePath", () {
+    test("returns the plain name when nothing is taken in newProjectsDirectory", () async {
+      final testManager = _TestProjectsManager(
+        directory: tempDir,
+        propertiesManager: propertiesManager,
+      );
+
+      final path = await testManager.freeNewProjectFilePath("Movie");
+
+      expect(path, p.join(tempDir.path, "Movie.ocpt"));
+    });
+
+    test("numbers up when the plain name is already taken", () async {
+      await File(p.join(tempDir.path, "Movie.ocpt")).create();
+      final testManager = _TestProjectsManager(
+        directory: tempDir,
+        propertiesManager: propertiesManager,
+      );
+
+      final path = await testManager.freeNewProjectFilePath("Movie");
+
+      expect(path, p.join(tempDir.path, "Movie (2).ocpt"));
     });
   });
 }
