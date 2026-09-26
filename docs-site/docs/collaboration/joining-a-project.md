@@ -38,10 +38,12 @@ done.
 
 Confirming the invite:
 
-1. Downloads the project's current content from the relay named in the invite, into a fresh
-   project file on your device.
-2. Places that file where a new project would go: in its own folder inside your **Downloads**
-   folder on a computer, alongside your other projects on a tablet or phone.
+1. Asks where the project lands: on a computer, a folder picker lets you choose — it suggests the
+   folder you last saved a project in — and the project creates its own folder inside whichever one
+   you pick; on a tablet or phone, where there is no such dialog, it is placed alongside your other
+   projects automatically. Cancelling the picker cancels the join.
+2. Downloads the project's current content from the relay named in the invite, into a fresh
+   project file there.
 3. Records the project's pairing, so your device is now syncing against the same relay as
    everyone else who joined it.
 4. Opens the project.
