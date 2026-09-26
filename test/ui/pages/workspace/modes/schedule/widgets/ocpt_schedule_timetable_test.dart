@@ -755,6 +755,76 @@ void main() {
     expect(pickedCandidacyId, "candidacy-1");
   });
 
+  testWidgets("an audition's picker says so, rather than not opening, when nobody is a candidate", (
+    tester,
+  ) async {
+    final audition = _buildBlock(id: "block-1", kind: OcptShootingBlockKind.audition);
+    const timeline = OcptShootingSlotTimeline(
+      entries: [
+        OcptShootingTimelineEntry(blockId: "block-1", startMinute: 540, endMinute: 560, durationMinutes: 20),
+      ],
+      overruns: [],
+      startMinute: 540,
+      endMinute: 560,
+    );
+
+    await tester.pumpWidget(
+      _wrapInApp(
+        buildTimetable(
+          blocks: [audition],
+          timeline: timeline,
+          roles: [_buildRole(id: "role-1", name: "MARIE")],
+          onCandidateAdded: (_, _) {},
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final tr = Tr.of(tester.element(find.byType(OcptScheduleTimetable)));
+    await tester.tap(find.text(tr.scheduleAddAuditionCandidateAction));
+    await tester.pumpAndSettle();
+
+    expect(find.text(tr.scheduleAuditionPickerNoCandidacyHint), findsOneWidget);
+  });
+
+  testWidgets("an audition's picker still offers a candidacy whose part the roles do not hold", (
+    tester,
+  ) async {
+    final audition = _buildBlock(id: "block-1", kind: OcptShootingBlockKind.audition);
+    const timeline = OcptShootingSlotTimeline(
+      entries: [
+        OcptShootingTimelineEntry(blockId: "block-1", startMinute: 540, endMinute: 560, durationMinutes: 20),
+      ],
+      overruns: [],
+      startMinute: 540,
+      endMinute: 560,
+    );
+    String? pickedCandidacyId;
+
+    await tester.pumpWidget(
+      _wrapInApp(
+        buildTimetable(
+          blocks: [audition],
+          timeline: timeline,
+          roleCandidateById: {
+            "candidacy-1": _buildCandidacy(id: "candidacy-1", roleId: "role-1", firstName: "Camille"),
+          },
+          onCandidateAdded: (_, roleCandidateId) => pickedCandidacyId = roleCandidateId,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final tr = Tr.of(tester.element(find.byType(OcptScheduleTimetable)));
+    await tester.tap(find.text(tr.scheduleAddAuditionCandidateAction));
+    await tester.pumpAndSettle();
+    expect(find.text(tr.resourcesRoleUnnamed), findsOneWidget);
+    await tester.tap(find.text("Camille"));
+    await tester.pumpAndSettle();
+
+    expect(pickedCandidacyId, "candidacy-1");
+  });
+
   testWidgets("an audition row draws one chip per candidacy, each with its own remove control", (
     tester,
   ) async {

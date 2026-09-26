@@ -18,6 +18,7 @@ import 'package:open_cine_prod_tools/models/ocpt_shooting_slot_guest.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
 import 'package:open_cine_prod_tools/types/ocpt_image_rights_status.dart';
+import 'package:open_cine_prod_tools/types/ocpt_role_candidate_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_slot_anchor_edge.dart';
@@ -128,12 +129,16 @@ OcptRole _buildRole({required String id, required String name}) => OcptRole(
 );
 
 /// Builds a shooting day block with the few fields these tests read, everything else neutral.
-OcptShootingDayBlock _buildBlock({required String id, required String slotId, String label = ""}) =>
-    OcptShootingDayBlock(
+OcptShootingDayBlock _buildBlock({
+  required String id,
+  required String slotId,
+  String label = "",
+  OcptShootingBlockKind kind = OcptShootingBlockKind.preparation,
+}) => OcptShootingDayBlock(
       id: id,
       shootingDayId: "day-1",
       slotId: slotId,
-      kind: OcptShootingBlockKind.preparation,
+      kind: kind,
       shotId: null,
       sceneId: null,
       candidates: const [],
@@ -143,6 +148,20 @@ OcptShootingDayBlock _buildBlock({required String id, required String slotId, St
       notes: "",
       crewNote: "",
     );
+
+/// Builds candidacy [id] of [firstName] for role [roleId], everything else neutral.
+OcptRoleCandidate _buildCandidacy({
+  required String id,
+  required String roleId,
+  required String firstName,
+}) => OcptRoleCandidate(
+  id: id,
+  roleId: roleId,
+  person: _buildPerson(id: "person-$id", firstName: firstName),
+  status: OcptRoleCandidateStatus.spotted,
+  auditionedOn: null,
+  notes: "",
+);
 
 /// A neutral `shotOf` resolving nothing, for tests that never place a shot block.
 OcptShot? _noShot(String shotId) => null;
@@ -175,6 +194,7 @@ void main() {
     List<OcptShootingSlotCrewMember> crew = const [],
     List<OcptShootingSlotCastMember> cast = const [],
     List<OcptShootingSlotGuest> guests = const [],
+    List<OcptRole>? roles,
     ValueChanged<String>? onCrewMemberAdded,
     void Function(String crewMemberId, OcptCrewPositionRef position)?
     onCrewMemberPositionChanged,
@@ -218,10 +238,10 @@ void main() {
     set: null,
     locations: const [],
     personById: {(crewPerson ?? person).id: crewPerson ?? person},
-    roleById: {role.id: role},
+    roleById: {for (final castRole in roles ?? [role]) castRole.id: castRole},
     roleCandidateById: roleCandidateById,
     people: [crewPerson ?? person],
-    roles: [role],
+    roles: roles ?? [role],
     labelValue: "Matin",
     onLabelChanged: isReadOnly ? null : (_) {},
     notesValue: notesValue,
@@ -291,6 +311,143 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(added, ["role-1"]);
+  });
+
+  testWidgets("the `+ Cast` picker leaves out the roles the slot already convokes", (tester) async {
+    final added = <String>[];
+    await tester.pumpWidget(
+      _wrapInApp(
+        buildCard(
+          isReadOnly: false,
+          roles: [role, _buildRole(id: "role-2", name: "Paul")],
+          cast: [
+            const OcptShootingSlotCastMember(
+              id: "cast-1",
+              slotId: "slot-1",
+              roleId: "role-1",
+              notes: "",
+            ),
+          ],
+          onCastRoleAdded: added.add,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final tr = Tr.of(tester.element(find.byType(OcptScheduleSlotCard)));
+    await tester.tap(find.text(tr.scheduleAddCastAction));
+    await tester.pumpAndSettle();
+
+    // "Marie" is only the convoked row's own name, not a menu entry.
+    expect(find.text("Marie"), findsOneWidget);
+    await tester.tap(find.text("Paul"));
+    await tester.pumpAndSettle();
+
+    expect(added, ["role-2"]);
+  });
+
+  testWidgets("the `+ Cast` picker says so, rather than not opening, once every role is convoked", (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _wrapInApp(
+        buildCard(
+          isReadOnly: false,
+          cast: [
+            const OcptShootingSlotCastMember(
+              id: "cast-1",
+              slotId: "slot-1",
+              roleId: "role-1",
+              notes: "",
+            ),
+          ],
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final tr = Tr.of(tester.element(find.byType(OcptScheduleSlotCard)));
+    await tester.tap(find.text(tr.scheduleAddCastAction));
+    await tester.pumpAndSettle();
+
+    expect(find.text(tr.scheduleCastPickerAllConvokedHint), findsOneWidget);
+  });
+
+  testWidgets("an audition still offers the candidates of a role the slot also convokes", (
+    tester,
+  ) async {
+    String? pickedCandidacyId;
+    await tester.pumpWidget(
+      _wrapInApp(
+        OcptScheduleSlotCard(
+          slot: _buildSlot(
+            cast: const [
+              OcptShootingSlotCastMember(id: "cast-1", slotId: "slot-1", roleId: "role-1", notes: ""),
+            ],
+          ),
+          location: null,
+          set: null,
+          locations: const [],
+          personById: {person.id: person},
+          roleById: {role.id: role},
+          roleCandidateById: {
+            "candidacy-1": _buildCandidacy(id: "candidacy-1", roleId: "role-1", firstName: "Camille"),
+          },
+          people: [person],
+          roles: [role],
+          labelValue: "Matin",
+          onLabelChanged: null,
+          notesValue: "",
+          onNotesChanged: null,
+          onPlaceChanged: null,
+          onAnchorChanged: null,
+          anchorSourceBySlotId: const {},
+          onMovedUp: null,
+          onMovedDown: null,
+          onDeletionRequested: null,
+          onCrewMemberAdded: null,
+          onCrewMemberPositionChanged: null,
+          onCrewMemberRemoved: null,
+          onCastRoleAdded: null,
+          onCastRoleRemoved: null,
+          onGuestAdded: null,
+          onGuestRemoved: null,
+          guestReasonValueOf: (_) => "",
+          onGuestReasonChanged: null,
+          guestNotesValueOf: (_) => "",
+          onGuestNotesChanged: null,
+          blocks: [
+            _buildBlock(id: "block-1", slotId: "slot-1", kind: OcptShootingBlockKind.audition),
+          ],
+          timeline: null,
+          shotOf: _noShot,
+          selectedBlockId: null,
+          sequences: const [],
+          otherSlots: const [],
+          onBlockSelected: (_) {},
+          onBlockReordered: null,
+          onBlockDurationChanged: null,
+          onBlockAnchorChanged: null,
+          onShotStatusChanged: null,
+          onBlockSequenceChanged: null,
+          onBlockCandidateAdded: (_, roleCandidateId) => pickedCandidacyId = roleCandidateId,
+          onBlockCandidateRemoved: null,
+          onBlockDeletionRequested: null,
+          onBlockAdded: null,
+          onShotBlockRequested: null,
+          onBlockMovedToSlot: null,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final tr = Tr.of(tester.element(find.byType(OcptScheduleSlotCard)));
+    await tester.tap(find.text(tr.scheduleAddAuditionCandidateAction));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text("Camille"));
+    await tester.pumpAndSettle();
+
+    expect(pickedCandidacyId, "candidacy-1");
   });
 
   testWidgets("a crew row and a cast row are both shown, with their own remove controls", (

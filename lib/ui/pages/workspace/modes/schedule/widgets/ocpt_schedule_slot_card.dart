@@ -145,8 +145,12 @@ class OcptScheduleSlotCard extends StatelessWidget {
   /// The whole address book, in display order — what the `+ Crew member` picker offers.
   final List<OcptPerson> people;
 
-  /// The whole cast, in display order — what the `+ Cast` picker offers, already excluding the
-  /// roles [slot] already convokes.
+  /// The whole cast, in display order — what the timetable's audition rows read a part's name off
+  /// and group their candidate picker by, and what the `+ Cast` picker offers once the roles [slot]
+  /// already convokes are left out of it.
+  ///
+  /// Kept whole rather than pre-filtered for the `+ Cast` picker: an audition for a part the slot
+  /// also convokes must still offer that part's candidates.
   final List<OcptRole> roles;
 
   /// [slot]'s own label, as currently held (a pending edit, or its stored value).
@@ -918,10 +922,27 @@ class OcptScheduleSlotCard extends StatelessWidget {
           PopupMenuButton<String>(
             tooltip: "",
             onSelected: onCastRoleAdded,
-            itemBuilder: (context) => [
-              for (final role in roles)
-                PopupMenuItem<String>(value: role.id, child: Text(role.name)),
-            ],
+            // Never empty: a menu with no entry does not open at all, which reads as a dead button.
+            itemBuilder: (context) {
+              final offerableRoles = [
+                for (final role in roles)
+                  if (!slot.cast.any((member) => member.roleId == role.id)) role,
+              ];
+
+              return [
+                if (offerableRoles.isEmpty)
+                  PopupMenuItem<String>(
+                    enabled: false,
+                    child: Text(
+                      roles.isEmpty
+                          ? tr.scheduleCastPickerNoRoleHint
+                          : tr.scheduleCastPickerAllConvokedHint,
+                    ),
+                  ),
+                for (final role in offerableRoles)
+                  PopupMenuItem<String>(value: role.id, child: Text(role.name)),
+              ];
+            },
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
