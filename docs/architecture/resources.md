@@ -39,7 +39,10 @@ their sets, the elements catalogue, and the two documents the mode prints.
   **`OcptCrewPositionPickerDialog`** (`lib/ui/widgets/`, shared with the schedule mode) is the one
   searchable dialog every position picker of the app opens, replacing the popup menus the catalogue
   outgrew: a search field, case- and accent-insensitive and blind to the inclusive-writing dot
-  (`ocptCrewPositionSearchNormalized`, `lib/utils/`), filters an optional `promoted` list (shown
+  (`ocptCrewPositionSearchNormalized`, `lib/utils/`), which also matches each label's masculine and
+  feminine readings (`ocptInclusiveReadingsOf`: `directrice` finds `Directeur·rice`, from the few
+  ending patterns every label of the catalogue follows, a test holding each word to its expected
+  feminine), filters an optional `promoted` list (shown
   first, under its own heading — the person sheet's own picker offers none, the schedule's own
   offers the crew member's declared positions) over the catalogue, grouped by department; an
   `excluded` set is left out everywhere; an optional "Custom label…" entry, reused from the person

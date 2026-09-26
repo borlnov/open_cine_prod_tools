@@ -42,8 +42,9 @@ class OcptCrewPositionPickResult {
 /// hundred-odd entries does not.
 ///
 /// A search field at the top, autofocused, filters every section by
-/// [ocptCrewPositionSearchMatches] — case- and accent-insensitive, and blind to the inclusive
-/// writing mark (`·`) a French label carries. Below it: [promoted] first, under its own heading,
+/// [ocptCrewPositionSearchMatches] — case- and accent-insensitive, blind to the inclusive writing
+/// mark (`·`) a French label carries, and matching its masculine and feminine readings alike
+/// (`directrice` finds `Directeur·rice`). Below it: [promoted] first, under its own heading,
 /// when the caller has any left to offer (the schedule's own crew row promotes a person's declared
 /// positions this way); then the catalogue, grouped under a muted department heading in
 /// [OcptCrewDepartment]'s own declaration order; then, when [allowCustomLabel] asks for it, the
