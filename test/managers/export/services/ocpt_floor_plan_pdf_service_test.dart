@@ -89,6 +89,7 @@ OcptFloorPlanSymbol _cameraSymbolOf({
   double xM = 0,
   double yM = 0,
   double? fovDeg,
+  double? fovReachM,
 }) => OcptFloorPlanSymbol(
   id: id,
   setId: setId,
@@ -101,7 +102,7 @@ OcptFloorPlanSymbol _cameraSymbolOf({
   widthM: null,
   heightM: null,
   fovDeg: fovDeg,
-  fovReachM: null,
+  fovReachM: fovReachM,
   label: "",
   setElementShape: null,
 );
@@ -424,6 +425,61 @@ void main() {
       expect(_contentStreams(narrow), isNot(_contentStreams(wide)));
     });
 
+    test(
+      "a camera's own field-of-view reach sets its wedge's own depth, unaffected by its angle",
+      () async {
+        OcptFloorPlanSnapshot snapshotOfFov({required double fovDeg, required double fovReachM}) =>
+            OcptFloorPlanSnapshot.build(
+              screenplayId: "screenplay",
+              setsBySceneId: {
+                "scene-1": [
+                  buildCase(
+                    id: "case-1",
+                    symbols: [
+                      _cameraSymbolOf(
+                        id: "cam-0",
+                        setId: "case-1",
+                        shotId: "shot-0",
+                        fovDeg: fovDeg,
+                        fovReachM: fovReachM,
+                      ),
+                    ],
+                  ),
+                ],
+              },
+            );
+
+        final narrow = await generate(
+          snapshot: snapshotOf(1),
+          floorPlanSnapshot: snapshotOfFov(fovDeg: 20, fovReachM: 2),
+        );
+        final wide = await generate(
+          snapshot: snapshotOf(1),
+          floorPlanSnapshot: snapshotOfFov(fovDeg: 140, fovReachM: 2),
+        );
+
+        final narrowPoints = _wedgeTrianglePoints(_inflatedContentOf(narrow));
+        final widePoints = _wedgeTrianglePoints(_inflatedContentOf(wide));
+
+        // The wedge's own depth: how far, along the page's own Y axis, its far corners sit from
+        // its own tip (the camera is unrotated, so this is the wedge's own axial height exactly).
+        double depthOf(List<(double, double)> points) =>
+            ((points[0].$2 - points[1].$2).abs() + (points[0].$2 - points[2].$2).abs()) / 2;
+
+        // Same stored reach, two very different angles: the wedge's own depth must be identical —
+        // the bug this guards against let a wide angle's own far corners sit much closer to the
+        // lens than a narrow angle's own, at the very same stored reach (an edge-length wedge
+        // rather than a fixed-height one).
+        expect(depthOf(narrowPoints), closeTo(depthOf(widePoints), 0.01));
+
+        // The angle did change something real: the corners' own spread (how far apart they sit)
+        // is far wider for the wide angle than for the narrow one, at that same depth.
+        final narrowSpread = (narrowPoints[1].$1 - narrowPoints[2].$1).abs();
+        final wideSpread = (widePoints[1].$1 - widePoints[2].$1).abs();
+        expect(wideSpread, greaterThan(narrowSpread * 2));
+      },
+    );
+
     test("each décor primitive draws its own page", () async {
       OcptFloorPlanSnapshot snapshotOfShape(OcptFloorPlanSetElementShape shape) => OcptFloorPlanSnapshot.build(
         screenplayId: "screenplay",
@@ -637,4 +693,20 @@ String? _inflated(String stream) {
   } on FormatException {
     return null;
   }
+}
+
+/// The three points — tip, left corner, right corner, in that order — of the very first
+/// `moveTo`/`lineTo`×2/`fillPath` triangle in [inflated]: the camera's own field-of-view wedge fill,
+/// drawn before its own body and lens, and the only shape this file's own drawing code fills after
+/// exactly two line segments (every other filled shape is a rect or an ellipse, drawn through curve
+/// operators, never two bare `l`s).
+List<(double, double)> _wedgeTrianglePoints(String inflated) {
+  final match = RegExp(
+    r"([-\d.]+)\s+([-\d.]+)\s+m\s+([-\d.]+)\s+([-\d.]+)\s+l\s+([-\d.]+)\s+([-\d.]+)\s+l\s+f",
+  ).firstMatch(inflated);
+  if (match == null) {
+    throw StateError("no wedge fill triangle found in: $inflated");
+  }
+  double at(int i) => double.parse(match.group(i)!);
+  return [(at(1), at(2)), (at(3), at(4)), (at(5), at(6))];
 }

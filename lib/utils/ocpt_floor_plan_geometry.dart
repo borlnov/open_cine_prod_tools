@@ -25,16 +25,23 @@ const double ocptFloorPlanLightFootprintM = 0.3;
 /// practice.
 const double ocptFloorPlanDefaultCameraFovDeg = 50;
 
-/// How far, in metres, a camera's own field-of-view wedge reaches from its lens — the one constant
-/// both the canvas painter (drawing the wedge) and the canvas's own edge handles (dragging it wider
-/// or narrower) place the wedge's tip at, so a handle always sits exactly on the wedge it edits.
+/// How deep, in metres, a camera's own field-of-view wedge reaches along its own heading — the
+/// wedge's own **axial height**, from the lens tip to its far chord, never the length of either of
+/// its two angled edges (those grow with the angle at a fixed height, they never set it). The one
+/// constant both the canvas painter (drawing the wedge) and the canvas's own tip handle (dragging
+/// it deeper or shallower) place the wedge's far chord at, so the handle always sits exactly on the
+/// wedge it edits.
 const double ocptFloorPlanCameraFovWedgeLengthM = 2;
 
 /// The narrowest field of view a camera's own edge handles or `−`/`+` stepper allow.
 const double ocptFloorPlanMinCameraFovDeg = 10;
 
-/// The widest field of view a camera's own edge handles or `−`/`+` stepper allow.
-const double ocptFloorPlanMaxCameraFovDeg = 170;
+/// The widest field of view a camera's own edge handles or `−`/`+` stepper allow — kept well short
+/// of 180° because the wedge's own half-width at a fixed height is `height * tan(halfAngleDeg)`,
+/// which grows without bound as the half angle nears 90°: 150° (a 75° half angle, `tan(75°) ≈
+/// 3.73`) already draws a very wide cone at any reasonable reach, and anything closer to 180° would
+/// draw one absurdly wide instead of narrating a lens's real field.
+const double ocptFloorPlanMaxCameraFovDeg = 150;
 
 /// The shortest field-of-view reach a camera's own tip handle allows.
 const double ocptFloorPlanMinCameraFovReachM = 0.5;

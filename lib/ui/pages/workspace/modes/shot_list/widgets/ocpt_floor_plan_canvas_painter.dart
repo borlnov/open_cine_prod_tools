@@ -591,10 +591,11 @@ class OcptFloorPlanCanvasPainter extends CustomPainter {
 
   /// A camera's own body, lens, its own derived [cameraLabel] as a filled pill attached to its
   /// back edge (drawn after the body/lens, opposite the lens' own "forward" direction) and, while
-  /// [fovWedgeDeg] is set, its field-of-view wedge — a cone [fovWedgeReachM] long (falling back to
-  /// [ocptFloorPlanCameraFovWedgeLengthM] when null), spanning [fovWedgeDeg], pointing local "up"
-  /// (the camera's own heading, see [_paintCharacterGlyph]'s own doc comment for the shared bearing
-  /// convention).
+  /// [fovWedgeDeg] is set, its field-of-view wedge — a cone [fovWedgeReachM] **deep** (its own axial
+  /// height, falling back to [ocptFloorPlanCameraFovWedgeLengthM] when null), spanning [fovWedgeDeg]
+  /// at that fixed depth (its far chord's own half-width is `depth * tan(halfAngle)`, so widening
+  /// the angle never pulls the far side closer), pointing local "up" (the camera's own heading, see
+  /// [_paintCharacterGlyph]'s own doc comment for the shared bearing convention).
   void _paintCameraGlyph(
     Canvas canvas,
     Rect rect,
@@ -609,10 +610,11 @@ class OcptFloorPlanCanvasPainter extends CustomPainter {
   ) {
     if (fovWedgeDeg != null) {
       final halfAngle = fovWedgeDeg * math.pi / 180 / 2;
-      final wedgeLength = (fovWedgeReachM ?? ocptFloorPlanCameraFovWedgeLengthM) * pixelsPerMetre;
+      final wedgeHeight = (fovWedgeReachM ?? ocptFloorPlanCameraFovWedgeLengthM) * pixelsPerMetre;
       final tip = Offset(0, -rect.height / 2);
-      final left = tip + Offset(-math.sin(halfAngle), -math.cos(halfAngle)) * wedgeLength;
-      final right = tip + Offset(math.sin(halfAngle), -math.cos(halfAngle)) * wedgeLength;
+      final halfWidth = wedgeHeight * math.tan(halfAngle);
+      final left = tip + Offset(-halfWidth, -wedgeHeight);
+      final right = tip + Offset(halfWidth, -wedgeHeight);
       final wedgePath = Path()
         ..moveTo(tip.dx, tip.dy)
         ..lineTo(left.dx, left.dy)

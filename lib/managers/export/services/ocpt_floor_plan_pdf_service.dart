@@ -72,7 +72,9 @@ const double _arrowHeadAnglePt = 0.5;
 /// painter's manually dashed path.
 const List<num> _dashPattern = [3, 2];
 
-/// How far, in metres, a camera's own field-of-view wedge reaches from its lens.
+/// How deep, in metres, a camera's own field-of-view wedge reaches along its own heading — the
+/// wedge's own axial height from the lens to its far chord, mirroring
+/// `ocptFloorPlanCameraFovWedgeLengthM`.
 const double _cameraFovWedgeLengthM = 2;
 
 /// How far, in metres, a light's own beam reaches from its body.
@@ -660,8 +662,11 @@ class OcptFloorPlanPdfService {
   }
 
   /// A camera's own body, lens and, while [OcptFloorPlanSymbolShape.cameraFovWedgeDeg] is set, its
-  /// field-of-view wedge — a cone [OcptFloorPlanSymbolShape.cameraFovWedgeReachM] long (falling back
-  /// to [_cameraFovWedgeLengthM] when null), spanning that angle, pointing the symbol's own "up"
+  /// field-of-view wedge — a cone [OcptFloorPlanSymbolShape.cameraFovWedgeReachM] **deep** (its own
+  /// axial height, falling back to [_cameraFovWedgeLengthM] when null), spanning that angle at that
+  /// fixed depth (its far chord's own half-width is `depth * tan(halfAngle)`, so widening the angle
+  /// never pulls the far side closer — identical geometry to the canvas painter's own
+  /// `_paintCameraGlyph`, screen and paper drawing the same cone), pointing the symbol's own "up"
   /// (see [_localPointGraphics]'s own doc comment).
   void _paintCameraGlyph({
     required PdfGraphics canvas,
@@ -676,9 +681,9 @@ class OcptFloorPlanPdfService {
     if (fovWedgeDeg != null) {
       final halfAngle = fovWedgeDeg * math.pi / 180 / 2;
       final tipYM = -symbol.heightM / 2;
-      final wedgeLengthM = symbol.cameraFovWedgeReachM ?? _cameraFovWedgeLengthM;
-      final reachXM = wedgeLengthM * math.sin(halfAngle);
-      final reachYM = tipYM - wedgeLengthM * math.cos(halfAngle);
+      final wedgeHeightM = symbol.cameraFovWedgeReachM ?? _cameraFovWedgeLengthM;
+      final reachXM = wedgeHeightM * math.tan(halfAngle);
+      final reachYM = tipYM - wedgeHeightM;
       final tip = local(0, tipYM);
       final left = local(-reachXM, reachYM);
       final right = local(reachXM, reachYM);

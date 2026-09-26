@@ -50,8 +50,9 @@ class OcptFloorPlanSymbol extends Equatable {
   /// A camera's field-of-view wedge, in degrees — null meaning the drawing's own default.
   final double? fovDeg;
 
-  /// How far, in metres, a camera's own field-of-view wedge reaches from its lens — null meaning
-  /// the drawing's own default. Null for every other symbol.
+  /// How deep, in metres, a camera's own field-of-view wedge reaches along its own heading — its
+  /// own axial height, from the lens to the wedge's own far chord, never the length of either
+  /// angled edge — null meaning the drawing's own default. Null for every other symbol.
   final double? fovReachM;
 
   /// The text label this symbol carries.

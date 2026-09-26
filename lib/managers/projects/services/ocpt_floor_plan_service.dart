@@ -481,9 +481,10 @@ class OcptFloorPlanService {
   /// caller placing one of those simply omits it — and, ordinarily, for whichever of the two this
   /// call isn't (a set element never carries a field of view, a camera never carries a shape).
   ///
-  /// [fovReachM] records a camera symbol's own field-of-view wedge reach, in metres — null meaning
-  /// the drawing's own default (`ocptFloorPlanCameraFovWedgeLengthM`). Null for every other symbol,
-  /// the same as [fovDeg].
+  /// [fovReachM] records a camera symbol's own field-of-view wedge reach, in metres — its own axial
+  /// height/depth, from the lens to the wedge's own far chord — null meaning the drawing's own
+  /// default (`ocptFloorPlanCameraFovWedgeLengthM`). Null for every other symbol, the same as
+  /// [fovDeg].
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
   Future<String?> placeSymbol({

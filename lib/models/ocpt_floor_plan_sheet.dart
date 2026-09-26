@@ -84,9 +84,10 @@ class OcptFloorPlanSymbolShape extends Equatable {
   /// resolved angle a painter actually draws the wedge at.
   final double? fovDeg;
 
-  /// A camera's field-of-view wedge reach, in metres, or null for every other layer (or a camera
-  /// left at the drawing default). The symbol's own raw stored value — see [cameraFovWedgeReachM]
-  /// for the resolved reach a painter actually draws the wedge at.
+  /// A camera's field-of-view wedge reach, in metres — its own axial height/depth, from the lens to
+  /// the wedge's own far chord, never the length of either angled edge — or null for every other
+  /// layer (or a camera left at the drawing default). The symbol's own raw stored value — see
+  /// [cameraFovWedgeReachM] for the resolved reach a painter actually draws the wedge at.
   final double? fovReachM;
 
   /// The symbol's own free-text label.
@@ -115,9 +116,10 @@ class OcptFloorPlanSymbolShape extends Equatable {
   /// painter draws the wedge exactly when this is non-null, with no default of its own to apply.
   final double? cameraFovWedgeDeg;
 
-  /// A camera symbol's own field-of-view wedge reach, in metres, already resolved to
-  /// [ocptFloorPlanCameraFovWedgeLengthM] when the symbol carries no [fovReachM] of its own — null
-  /// under the very same condition as [cameraFovWedgeDeg], which it always accompanies.
+  /// A camera symbol's own field-of-view wedge reach, in metres — its own axial height/depth,
+  /// already resolved to [ocptFloorPlanCameraFovWedgeLengthM] when the symbol carries no
+  /// [fovReachM] of its own — null under the very same condition as [cameraFovWedgeDeg], which it
+  /// always accompanies.
   final double? cameraFovWedgeReachM;
 
   /// A set-element symbol's own drawn primitive, resolved to [OcptFloorPlanSetElementShape.freeform]

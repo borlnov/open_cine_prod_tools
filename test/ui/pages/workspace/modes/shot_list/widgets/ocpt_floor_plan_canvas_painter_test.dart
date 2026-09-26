@@ -2,6 +2,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+import 'dart:math' as math;
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 
@@ -12,6 +13,7 @@ import 'package:open_cine_prod_tools/types/ocpt_floor_plan_arrow_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_layer.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_set_element_shape.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_floor_plan_canvas_painter.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_floor_plan_geometry.dart';
 
 /// The square canvas every render in this file paints onto.
 const _canvasSize = Size(200, 200);
@@ -148,6 +150,78 @@ void main() {
       final wide = await _renderRgba(_sheetOf(symbols: [_symbolShape(cameraFovWedgeDeg: 150)]));
 
       expect(narrow, isNot(equals(wide)));
+    });
+
+    // The wedge's own reach is its axial height, from the lens tip to its far chord — never the
+    // length of either angled edge. Widening the angle spreads the two far corners apart; it must
+    // never pull the far chord itself closer to the lens.
+    group("the reach sets the wedge's own axial height, not its edge length", () {
+      const reachM = 1.0;
+      final pixelsPerMetre = ocptFloorPlanPixelsPerMetreAt(1);
+      final tipScreenY = 100 - ocptFloorPlanCameraFootprintM / 2 * pixelsPerMetre;
+      final chordScreenY = tipScreenY - reachM * pixelsPerMetre;
+
+      test(
+        "the far chord sits at the very same depth for a narrow and for a wide angle",
+        () async {
+          final narrow = await _renderRgba(
+            _sheetOf(
+              symbols: [_symbolShape(cameraFovWedgeDeg: 20, cameraFovWedgeReachM: reachM)],
+            ),
+          );
+          final wide = await _renderRgba(
+            _sheetOf(
+              symbols: [_symbolShape(cameraFovWedgeDeg: 140, cameraFovWedgeReachM: reachM)],
+            ),
+          );
+
+          // Straight ahead of the lens (screen x = 100), at the chord's own depth: inside the
+          // wedge whatever the angle, since every angle's chord passes through the axis.
+          final narrowAtChord = _pixelAt(narrow, 100, chordScreenY.round());
+          final wideAtChord = _pixelAt(wide, 100, chordScreenY.round());
+          expect(narrowAtChord.$4, greaterThan(0));
+          expect(wideAtChord.$4, greaterThan(0));
+
+          // A few pixels past the chord (further from the lens than the reach): outside the wedge
+          // for both — the edge-length bug used to let a wide angle's far side sit short of this
+          // depth, or a narrow one overshoot it; the height is fixed regardless of the angle.
+          final narrowPastChord = _pixelAt(narrow, 100, (chordScreenY - 6).round());
+          final widePastChord = _pixelAt(wide, 100, (chordScreenY - 6).round());
+          expect(narrowPastChord.$4, 0);
+          expect(widePastChord.$4, 0);
+        },
+      );
+
+      test("the far corner sits at (height × tan(halfAngle), −height) from the lens tip", () async {
+        // A 90° wedge: half angle 45°, tan(45°) == 1, so the corner sits exactly `reachM` to the
+        // side of the axis at the chord's own depth — an angle picked so the expected geometry
+        // needs no trigonometric tolerance in the test itself.
+        final rgba = await _renderRgba(
+          _sheetOf(symbols: [_symbolShape(cameraFovWedgeDeg: 90, cameraFovWedgeReachM: reachM)]),
+        );
+
+        // A few pixels shallower than the chord (closer to the lens than the reach), so the
+        // sampled row is still inside the wedge's own depth range.
+        final sampleScreenY = chordScreenY + 6;
+        final depth = tipScreenY - sampleScreenY;
+        final halfWidthAtDepth = depth * math.tan(45 * math.pi / 180);
+
+        // Just inside the right edge at that depth (smaller half-width than the wedge's own).
+        final inside = _pixelAt(
+          rgba,
+          (100 + halfWidthAtDepth - 6).round(),
+          sampleScreenY.round(),
+        );
+        // Just outside it (larger half-width than the wedge's own), at the very same depth.
+        final outside = _pixelAt(
+          rgba,
+          (100 + halfWidthAtDepth + 6).round(),
+          sampleScreenY.round(),
+        );
+
+        expect(inside.$4, greaterThan(0));
+        expect(outside.$4, 0);
+      });
     });
   });
 

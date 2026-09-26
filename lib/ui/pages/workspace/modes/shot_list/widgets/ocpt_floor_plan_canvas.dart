@@ -1190,11 +1190,11 @@ class _OcptFloorPlanCanvasState extends State<OcptFloorPlanCanvas> {
     ];
   }
 
-  /// A camera symbol's own two field-of-view edge handles, one on each side of its wedge (drawn by
-  /// `OcptFloorPlanCanvasPainter._paintCameraGlyph`, `ocptFloorPlanCameraFovWedgeLengthM` from the
-  /// lens): dragging either narrows or widens [OcptFloorPlanSymbolShape.cameraFovWedgeDeg] — the
-  /// wedge stays symmetric around the symbol's own heading, so both handles always sit the same
-  /// distance from it.
+  /// A camera symbol's own two field-of-view edge handles, one at each far corner of its wedge
+  /// (drawn by `OcptFloorPlanCanvasPainter._paintCameraGlyph`, at the wedge's own resolved height):
+  /// dragging either narrows or widens [OcptFloorPlanSymbolShape.cameraFovWedgeDeg] — the wedge
+  /// stays symmetric around the symbol's own heading, so both handles always sit the same distance
+  /// from it, and always at the same height, since only the angle drag they carry ever changes.
   List<Widget> _buildFovHandles(
     OcptFloorPlanSymbolShape symbol,
     Offset centre,
@@ -1205,16 +1205,16 @@ class _OcptFloorPlanCanvasState extends State<OcptFloorPlanCanvas> {
     Offset pan,
   ) {
     final override = _liveOverride;
-    final fovDeg =
-        (override != null && override.symbolId == symbol.symbolId ? override.fovDeg : null) ??
-        symbol.cameraFovWedgeDeg!;
+    final isLiveOverride = override != null && override.symbolId == symbol.symbolId;
+    final fovDeg = (isLiveOverride ? override.fovDeg : null) ?? symbol.cameraFovWedgeDeg!;
+    final fovReachM = (isLiveOverride ? override.fovReachM : null) ?? symbol.cameraFovWedgeReachM!;
     final halfAngleRad = fovDeg * math.pi / 180 / 2;
-    final wedgeLengthPx = ocptFloorPlanCameraFovWedgeLengthM * pixelsPerMetre;
+    final wedgeHeightPx = fovReachM * pixelsPerMetre;
     final tipLocalPx = Offset(0, -symbol.heightM / 2 * pixelsPerMetre);
 
     Widget buildHandle(double sign) {
       final localPx =
-          tipLocalPx + Offset(sign * math.sin(halfAngleRad), -math.cos(halfAngleRad)) * wedgeLengthPx;
+          tipLocalPx + Offset(sign * wedgeHeightPx * math.tan(halfAngleRad), -wedgeHeightPx);
       final screen = centre + ocptFloorPlanRotateVector(localPx, rotationDeg);
 
       return Positioned(
@@ -1253,9 +1253,12 @@ class _OcptFloorPlanCanvasState extends State<OcptFloorPlanCanvas> {
     return [buildHandle(-1), buildHandle(1)];
   }
 
-  /// A camera symbol's own field-of-view **tip** handle, straight ahead of its lens at the wedge's
-  /// own reach (`OcptFloorPlanSymbolShape.cameraFovWedgeReachM`) — dragging it changes how far the
-  /// wedge reaches, never its angle (the two edge handles' own job, [_buildFovHandles]).
+  /// A camera symbol's own field-of-view **tip** handle, straight ahead of its lens at the middle of
+  /// the wedge's own far chord — its own axial height/depth
+  /// (`OcptFloorPlanSymbolShape.cameraFovWedgeReachM`) along the heading — dragging it changes how
+  /// deep the wedge reaches, never its angle (the two edge handles' own job, [_buildFovHandles]),
+  /// which stays exactly where it was: the two corners move together with this handle since they
+  /// share the very same height, but their own spread apart (the angle) is untouched.
   Widget _buildFovReachHandle(
     OcptFloorPlanSymbolShape symbol,
     Offset centre,
@@ -1306,11 +1309,13 @@ class _OcptFloorPlanCanvasState extends State<OcptFloorPlanCanvas> {
     );
   }
 
-  /// Updates [_liveOverride]'s own field-of-view reach every frame of a tip-handle drag: the
-  /// pointer's own distance from the symbol's centre, projected onto its own heading vector (so a
-  /// pointer straying sideways still reads as a forward/backward reach rather than snapping), in
-  /// **canvas space** (through [_resolveLocalPosition], the same fix [_updateRotateDrag] needs),
-  /// minus the half-footprint already between the centre and the lens — clamped to
+  /// Updates [_liveOverride]'s own field-of-view reach (the wedge's own axial height/depth) every
+  /// frame of a tip-handle drag: the pointer's own distance from the symbol's centre, projected onto
+  /// its own heading vector (so a pointer straying sideways still reads as a forward/backward depth
+  /// rather than snapping — the wedge's own half-width at that depth is for [_buildFovHandles]'s own
+  /// corners to derive, never this drag's concern), in **canvas space** (through
+  /// [_resolveLocalPosition], the same fix [_updateRotateDrag] needs), minus the half-footprint
+  /// already between the centre and the lens — clamped to
   /// [ocptFloorPlanMinCameraFovReachM]..[ocptFloorPlanMaxCameraFovReachM].
   void _updateFovReachDrag(
     String symbolId,

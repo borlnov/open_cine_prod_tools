@@ -551,12 +551,12 @@ void main() {
       );
 
       final halfAngleRad = ocptFloorPlanDefaultCameraFovDeg * math.pi / 180 / 2;
-      final wedgeLengthPx = ocptFloorPlanCameraFovWedgeLengthM * pixelsPerMetre;
+      // The wedge's own reach is its axial height, not the length of this edge: the handle sits
+      // at the far corner, `height × tan(halfAngle)` to the side and `height` ahead of the tip.
+      final wedgeHeightPx = ocptFloorPlanCameraFovWedgeLengthM * pixelsPerMetre;
       final tipLocalPx = Offset(0, -ocptFloorPlanCameraFootprintM / 2 * pixelsPerMetre);
       final rightHandleScreen =
-          centreScreen +
-          tipLocalPx +
-          Offset(math.sin(halfAngleRad), -math.cos(halfAngleRad)) * wedgeLengthPx;
+          centreScreen + tipLocalPx + Offset(wedgeHeightPx * math.tan(halfAngleRad), -wedgeHeightPx);
 
       // Drag the right edge handle out to a 40° bearing from the camera's own forward
       // direction (0° = up): the wedge is symmetric, so the new field of view is 2 × 40 = 80°.
