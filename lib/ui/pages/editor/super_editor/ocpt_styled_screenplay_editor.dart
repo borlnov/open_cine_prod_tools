@@ -35,6 +35,16 @@ import 'package:open_cine_prod_tools/utils/ocpt_text_search.dart';
 import 'package:spell_kit/spell_kit.dart';
 import 'package:super_editor/super_editor.dart';
 
+/// The `ChangeSelectionRequest` reason the styled editor gives a selection it moves **itself** to
+/// navigate — a scene jump from the scene list, a find match — rather than one the user placed.
+///
+/// super_editor scrolls the caret into view on the next frame after any selection change whose
+/// reason is `SelectionReason.userInteraction`, with a minimal reveal that stops at the viewport's
+/// edge. Tagged that way, a navigation would be yanked back to the edge by that reveal just as its
+/// own `Scrollable.ensureVisible` started placing the target a third of the way down. Any other
+/// string skips the reveal, and this one says what actually happened.
+const String ocptProgrammaticNavigationSelectionReason = "ocptProgrammaticNavigation";
+
 /// The styled block editing mode of the screenplay editor: the user still types raw Fountain
 /// syntax, but every line is laid out at its true screenplay position as they type (scene
 /// headings bold at the margin, character cues and dialogue indented at their column, etc.),
@@ -1704,7 +1714,7 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
           extent: DocumentPosition(nodeId: nodeId, nodePosition: TextNodePosition(offset: match.end)),
         ),
         SelectionChangeType.expandSelection,
-        SelectionReason.userInteraction,
+        ocptProgrammaticNavigationSelectionReason,
       ),
     ]);
 
@@ -1971,7 +1981,7 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
           position: DocumentPosition(nodeId: node.id, nodePosition: const TextNodePosition(offset: 0)),
         ),
         SelectionChangeType.placeCaret,
-        SelectionReason.userInteraction,
+        ocptProgrammaticNavigationSelectionReason,
       ),
     ]);
     _focusNode.requestFocus();
