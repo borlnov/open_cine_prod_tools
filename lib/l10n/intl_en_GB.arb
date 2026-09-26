@@ -8775,6 +8775,27 @@
     "type": "text",
     "placeholders": {}
   },
+  "scheduleAuditionPickerNoCandidacyHint": "No candidate recorded yet: add them on the role's sheet in Resources.",
+  "@scheduleAuditionPickerNoCandidacyHint": {
+    "description": "Shown in an audition row's candidate picker when the project holds no candidacy at all",
+    "context": "Schedule mode, a slot's timetable, an audition row",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleCastPickerAllConvokedHint": "Every role is already convoked on this slot.",
+  "@scheduleCastPickerAllConvokedHint": {
+    "description": "Shown in a slot's Cast picker when the slot already convokes every role of the project",
+    "context": "Schedule mode, a slot's card, the Cast picker",
+    "type": "text",
+    "placeholders": {}
+  },
+  "scheduleCastPickerNoRoleHint": "No role yet: create them in Resources.",
+  "@scheduleCastPickerNoRoleHint": {
+    "description": "Shown in a slot's Cast picker when the project holds no role at all",
+    "context": "Schedule mode, a slot's card, the Cast picker",
+    "type": "text",
+    "placeholders": {}
+  },
   "scheduleAuditionCandidateAlreadyNamedHint": "Every candidate of this project is already seen at this audition.",
   "@scheduleAuditionCandidateAlreadyNamedHint": {
     "description": "Shown in an audition row's candidate picker when the block already names every candidacy the project holds",

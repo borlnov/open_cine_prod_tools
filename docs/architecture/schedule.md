@@ -247,12 +247,17 @@ seven documents a production runs on.
   carries a wrapped strip of **candidacy chips** instead — one per `shooting_block_candidates` row it
   names, reading the person and the part they are being seen for, each with its own remove control —
   and a `+` picker offering every candidacy of the project grouped by role, minus the ones this block
-  already names. It **picks an existing candidacy and never creates one**: a candidate is recorded on
-  the role sheet, where the casting is decided, and a timetable that could invent one would be a
-  second place saying who is seen for a part. A chip whose candidacy the snapshot no longer holds is
-  left out rather than drawn nameless. The slot card's own people section is unchanged by any of
-  this — a candidate is expected at an hour, not at a unit, so there is no fourth band beside the
-  crew, the cast and the guests.
+  already names — **whether or not the slot also convokes that role**: an actor already cast and the
+  candidates still auditioning for the same part are two different things, so the slot card hands
+  the timetable the whole cast and filters only its own `+ Cast` picker. A picker with nothing to
+  offer says why in a disabled entry (no candidacy recorded yet, every one already named, every role
+  already convoked, no role at all) rather than opening empty, which a Material popup menu with no
+  entry does silently. It **picks an existing candidacy and never creates one**: a candidate is
+  recorded on the role sheet, where the casting is decided, and a timetable that could invent one
+  would be a second place saying who is seen for a part. A chip whose candidacy the snapshot no
+  longer holds is left out rather than drawn nameless. The slot card's own people section is
+  unchanged by any of this — a candidate is expected at an hour, not at a unit, so there is no
+  fourth band beside the crew, the cast and the guests.
   A day's **events** are drawn by **one widget shown twice** (`OcptScheduleDayEventsList`): the day
   view frames it in its own band under the slot cards, the day inspector in a section of its own,
   both editable, so the two surfaces cannot read a day's events apart. A row is its hour, its label,

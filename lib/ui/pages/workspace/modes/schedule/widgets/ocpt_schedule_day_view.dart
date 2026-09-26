@@ -359,7 +359,7 @@ class OcptScheduleDayView extends StatelessWidget {
               roleById: roleById,
               roleCandidateById: roleCandidateById,
               people: people,
-              roles: roles.where((role) => !slot.cast.any((cast) => cast.roleId == role.id)).toList(),
+              roles: roles,
               labelValue: slotLabelValueOf(slot.id),
               onLabelChanged: onSlotLabelChanged == null
                   ? null

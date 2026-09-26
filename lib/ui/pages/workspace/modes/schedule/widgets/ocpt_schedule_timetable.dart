@@ -804,8 +804,10 @@ class _OcptScheduleTimetableRow extends StatelessWidget {
   /// long list.
   ///
   /// It offers what already exists and never creates: a candidate is recorded on the role sheet,
-  /// where the casting is decided. With nothing left to offer, the menu says so
-  /// ([Tr.scheduleAuditionCandidateAlreadyNamedHint]) rather than opening empty.
+  /// where the casting is decided. With nothing left to offer, the menu says why rather than
+  /// opening empty — a menu with no entry does not open at all, which reads as a dead button: the
+  /// project holds no candidacy yet ([Tr.scheduleAuditionPickerNoCandidacyHint]), or this block already
+  /// names every one ([Tr.scheduleAuditionCandidateAlreadyNamedHint]).
   Widget _buildCandidatePicker(
     BuildContext context,
     Tr tr,
@@ -824,6 +826,16 @@ class _OcptScheduleTimetableRow extends StatelessWidget {
       group.sort((left, right) => left.person.displayName.compareTo(right.person.displayName));
     }
 
+    // The groups in [roles]' own order — the very order the roles tab lists the cast in — rather
+    // than in whatever order the candidacies happened to arrive. A group whose part [roles] does not
+    // hold comes last, under the unnamed-role heading, rather than being dropped from the menu.
+    final orderedRoleIds = [
+      for (final role in roles)
+        if (offerableByRoleId.containsKey(role.id)) role.id,
+      for (final roleId in offerableByRoleId.keys)
+        if (!roles.any((role) => role.id == roleId)) roleId,
+    ];
+
     return PopupMenuButton<String>(
       tooltip: tr.scheduleAddAuditionCandidateAction,
       padding: EdgeInsets.zero,
@@ -832,29 +844,26 @@ class _OcptScheduleTimetableRow extends StatelessWidget {
         if (offerableByRoleId.isEmpty)
           PopupMenuItem<String>(
             enabled: false,
-            child: Text(tr.scheduleAuditionCandidateAlreadyNamedHint),
-          ),
-        // Walked over [roles] rather than over the groups themselves, so the menu reads the cast in
-        // its own order — the very order the roles tab lists it in — rather than in whatever order
-        // the candidacies happened to arrive.
-        for (final role in roles)
-          if (offerableByRoleId[role.id] case final group?) ...[
-            PopupMenuItem<String>(
-              enabled: false,
-              child: Text(role.name.isEmpty ? tr.resourcesRoleUnnamed : role.name),
+            child: Text(
+              roleCandidateById.isEmpty
+                  ? tr.scheduleAuditionPickerNoCandidacyHint
+                  : tr.scheduleAuditionCandidateAlreadyNamedHint,
             ),
-            for (final candidate in group)
-              PopupMenuItem<String>(
-                value: candidate.id,
-                child: Text(
-                  candidate.person.displayName.isEmpty
-                      ? tr.resourcesUnnamedPerson
-                      : candidate.person.displayName,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
+          ),
+        for (final roleId in orderedRoleIds) ...[
+          PopupMenuItem<String>(enabled: false, child: Text(_roleNameOf(tr, roleId))),
+          for (final candidate in offerableByRoleId[roleId]!)
+            PopupMenuItem<String>(
+              value: candidate.id,
+              child: Text(
+                candidate.person.displayName.isEmpty
+                    ? tr.resourcesUnnamedPerson
+                    : candidate.person.displayName,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
-          ],
+            ),
+        ],
       ],
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -876,21 +885,21 @@ class _OcptScheduleTimetableRow extends StatelessWidget {
   ///
   /// The part is read through the candidacy's own `roleId` against [roles], defensively: a role
   /// deleted under it falls back on the cast's own "unnamed" reading rather than emptying the chip.
-  String _candidacyLabelOf(Tr tr, OcptRoleCandidate candidate) {
-    OcptRole? role;
-    for (final candidateRole in roles) {
-      if (candidateRole.id == candidate.roleId) {
-        role = candidateRole;
-        break;
+  String _candidacyLabelOf(Tr tr, OcptRoleCandidate candidate) => tr.scheduleAuditionBlockLabel(
+    candidate.person.displayName.isEmpty ? tr.resourcesUnnamedPerson : candidate.person.displayName,
+    _roleNameOf(tr, candidate.roleId),
+  );
+
+  /// The name of the part [roleId] names in [roles], or the cast's own "unnamed" reading when it
+  /// has none or [roles] does not hold it.
+  String _roleNameOf(Tr tr, String roleId) {
+    for (final role in roles) {
+      if (role.id == roleId) {
+        return role.name.isEmpty ? tr.resourcesRoleUnnamed : role.name;
       }
     }
 
-    return tr.scheduleAuditionBlockLabel(
-      candidate.person.displayName.isEmpty
-          ? tr.resourcesUnnamedPerson
-          : candidate.person.displayName,
-      role == null || role.name.isEmpty ? tr.resourcesRoleUnnamed : role.name,
-    );
+    return tr.resourcesRoleUnnamed;
   }
 
   /// This row's own `Move to…` menu — every one of [otherSlots], by label (an empty one read out as
