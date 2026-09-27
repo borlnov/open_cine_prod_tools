@@ -34,12 +34,19 @@ class OcptFloorPlanCharacterNamePickerDialog extends StatefulWidget {
   /// (`docs/plans/storyboard.md`, §10.4) with its own wording instead.
   final String? title;
 
+  /// The free-text field's own hint, or null for the default `Character name` — overridden the
+  /// same way [title] is, by the `Other…` prop chip, to `Prop name` instead (R5c,
+  /// `docs/plans/storyboard.md`, §10.5): reusing this widget must never leave a prop's own dialog
+  /// still hinting at a character.
+  final String? fieldHint;
+
   /// Class constructor
   const OcptFloorPlanCharacterNamePickerDialog({
     super.key,
     required this.initialValue,
     required this.suggestedNames,
     this.title,
+    this.fieldHint,
   });
 
   /// Shows the dialog and returns the name picked (trimmed), or null if the user dismissed it.
@@ -48,12 +55,14 @@ class OcptFloorPlanCharacterNamePickerDialog extends StatefulWidget {
     required String initialValue,
     required List<String> suggestedNames,
     String? title,
+    String? fieldHint,
   }) => showDialog<String>(
     context: context,
     builder: (context) => OcptFloorPlanCharacterNamePickerDialog(
       initialValue: initialValue,
       suggestedNames: suggestedNames,
       title: title,
+      fieldHint: fieldHint,
     ),
   );
 
@@ -92,7 +101,7 @@ class _OcptFloorPlanCharacterNamePickerDialogState
               autofocus: true,
               decoration: InputDecoration(
                 isDense: true,
-                hintText: tr.shotListFloorPlanCharacterNamePickerFieldHint,
+                hintText: widget.fieldHint ?? tr.shotListFloorPlanCharacterNamePickerFieldHint,
               ),
               onSubmitted: _submit,
             ),

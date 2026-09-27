@@ -3828,6 +3828,13 @@
     "type": "text",
     "placeholders": {}
   },
+  "shotListFloorPlanOtherPropNamePickerFieldHint": "Prop name",
+  "@shotListFloorPlanOtherPropNamePickerFieldHint": {
+    "description": "Placeholder of the Other… prop dialog's own free-text field, replacing the character name picker's own default hint",
+    "context": "Displayed in the dialog opened from the palette's own Other… chip",
+    "type": "text",
+    "placeholders": {}
+  },
   "shotListFloorPlanRestoreOverrideAction": "Restore as in the set",
   "@shotListFloorPlanRestoreOverrideAction": {
     "description": "Action tombstoning a scene-scope override, so the set-scope original shows again",

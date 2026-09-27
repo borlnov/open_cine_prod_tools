@@ -22,7 +22,6 @@ import 'package:open_cine_prod_tools/models/ocpt_workspace_reveal_request.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_layer.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_scope_choice.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_set_element_shape.dart';
-import 'package:open_cine_prod_tools/types/ocpt_floor_plan_tool.dart';
 import 'package:open_cine_prod_tools/types/ocpt_route.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_centre_view.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_editable_field.dart';
@@ -1176,7 +1175,6 @@ class _ShotListViewState extends State<_ShotListView> {
       ),
       onPropChipSelected: (label) =>
           bloc.add(OcptShotListFloorPlanActiveLabelChangedEvent(label: label)),
-      onOtherPropRequested: () => unawaited(_handleOtherPropRequested(context)),
       onCameraVisibilityToggled: (symbolId) =>
           bloc.add(OcptShotListFloorPlanCameraVisibilityToggledEvent(symbolId: symbolId)),
       onOnionSkinToggled: (isPrevious) =>
@@ -1565,29 +1563,6 @@ class _ShotListViewState extends State<_ShotListView> {
 
     final sequenceCount = state.floorPlanSnapshot?.sequenceCountOfSet(selectedSet.id) ?? 0;
     return sequenceCount >= 2 ? (setId: selectedSet.id, sequenceCount: sequenceCount) : null;
-  }
-
-  /// Opens the character name-picker dialog's own pattern for a free-typed prop label (the
-  /// palette's own `Other…` chip), then arms the `prop` tool with it — never places anything
-  /// straight away, exactly like every other palette entry's own click-to-arm path.
-  Future<void> _handleOtherPropRequested(BuildContext context) async {
-    final tr = Tr.of(context);
-    final picked = await OcptFloorPlanCharacterNamePickerDialog.show(
-      context,
-      title: tr.shotListFloorPlanOtherPropNamePickerTitle,
-      initialValue: "",
-      suggestedNames: const [],
-    );
-    if (picked == null || picked.isEmpty) {
-      return;
-    }
-    if (!context.mounted) {
-      return;
-    }
-
-    final bloc = context.read<OcptShotListBloc>();
-    bloc.add(const OcptShotListFloorPlanToolSelectedEvent(tool: OcptFloorPlanTool.prop));
-    bloc.add(OcptShotListFloorPlanActiveLabelChangedEvent(label: picked));
   }
 
   /// Shows the delete confirmation dialog, then dispatches the symbol's deletion if the user

@@ -500,6 +500,7 @@
   "shotListFloorPlanPropChipWithQuantityLabel": "{name} ×{quantity}",
   "shotListFloorPlanOtherPropChipLabel": "Autre…",
   "shotListFloorPlanOtherPropNamePickerTitle": "Nommer cet accessoire",
+  "shotListFloorPlanOtherPropNamePickerFieldHint": "Nom de l'accessoire",
   "shotListFloorPlanRestoreOverrideAction": "Rétablir comme dans le décor",
   "shotListFloorPlanOverrideChangedForSequenceLabel": "Modifié pour cette séquence",
   "shotListFloorPlanScopeBubbleEveryAction": "Toutes les séquences ({count})",

@@ -2,8 +2,11 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_floor_plan_set.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_layer.dart';
@@ -12,6 +15,7 @@ import 'package:open_cine_prod_tools/types/ocpt_floor_plan_set_element_shape.dar
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_tool.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_floor_plan_canvas.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_floor_plan_canvas_painter.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_floor_plan_character_name_picker_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_floor_plan_focus_strip.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_floor_plan_palette.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_floor_plan_tool_bar.dart';
@@ -157,10 +161,6 @@ class OcptFloorPlanView extends StatefulWidget {
   /// Called with a props chip's own label when it is clicked (click-to-arm) — arms
   /// [activeLabel] alongside [OcptFloorPlanTool.prop] itself.
   final ValueChanged<String> onPropChipSelected;
-
-  /// Called when the `Other…` chip is clicked, asking for a free-typed label before arming
-  /// [OcptFloorPlanTool.prop] with it — the mode opens the picker dialog.
-  final VoidCallback onOtherPropRequested;
 
   /// Called with a camera symbol's id whose own eye was clicked.
   final ValueChanged<String> onCameraVisibilityToggled;
@@ -330,7 +330,6 @@ class OcptFloorPlanView extends StatefulWidget {
     required this.onSetElementShapeSelected,
     required this.onSetElementScopeSelected,
     required this.onPropChipSelected,
-    required this.onOtherPropRequested,
     required this.onCameraVisibilityToggled,
     required this.onOnionSkinToggled,
     required this.onOnionSkinOpacityChanged,
@@ -383,6 +382,11 @@ class _OcptFloorPlanViewState extends State<OcptFloorPlanView> {
   /// The keyboard focus node the whole view claims once, so `←`/`→` and `Escape` work from
   /// anywhere in it — see the class doc comment.
   final FocusNode _keyboardFocusNode = FocusNode(debugLabel: "OcptFloorPlanView");
+
+  /// Wraps the canvas area, giving [_handleOtherPropRequested] (R5c) a way to read its own
+  /// rendered size — the viewport's own visible extent, in logical pixels — with no `LayoutBuilder`
+  /// of its own to thread through this view's build method.
+  final GlobalKey _canvasAreaKey = GlobalKey();
 
   @override
   void didUpdateWidget(covariant OcptFloorPlanView oldWidget) {
@@ -457,7 +461,8 @@ class _OcptFloorPlanViewState extends State<OcptFloorPlanView> {
                       onSetElementShapeSelected: widget.onSetElementShapeSelected,
                       onSetElementScopeSelected: widget.onSetElementScopeSelected,
                       onPropChipSelected: widget.onPropChipSelected,
-                      onOtherPropRequested: widget.onOtherPropRequested,
+                      onOtherPropRequested: () =>
+                          unawaited(_handleOtherPropRequested(context)),
                       onLayerVisibilityToggled: widget.onLayerVisibilityToggled,
                       onCameraVisibilityToggled: widget.onCameraVisibilityToggled,
                       onOnionSkinToggled: widget.onOnionSkinToggled,
@@ -473,58 +478,61 @@ class _OcptFloorPlanViewState extends State<OcptFloorPlanView> {
                 ),
                 VerticalDivider(width: 1, color: theme.colorScheme.outlineVariant),
                 Expanded(
-                  child: OcptFloorPlanCanvas(
-                    floorPlanSet: widget.floorPlanSet,
-                    shotRankByShotId: widget.shotRankByShotId,
-                    focusSceneId: widget.focusSceneId,
-                    focusShotId: widget.focusShotId,
-                    previousShotId: widget.previousShotId,
-                    nextShotId: widget.nextShotId,
-                    isOnionSkinPreviousShown: widget.isOnionSkinPreviousShown,
-                    isOnionSkinNextShown: widget.isOnionSkinNextShown,
-                    onionSkinOpacity: widget.onionSkinOpacity,
-                    hiddenLayers: widget.hiddenLayers,
-                    hiddenCameraSymbolIds: widget.hiddenCameraSymbolIds,
-                    isUnderlayHidden: widget.isUnderlayHidden,
-                    selectedSymbolId: widget.selectedSymbolId,
-                    selectedArrowId: widget.selectedArrowId,
-                    pendingArrowAnchorSymbolId: widget.pendingArrowAnchorSymbolId,
-                    isMetricsShown: widget.isMetricsShown,
-                    isAllCamerasShown: widget.isAllCamerasShown,
-                    activeTool: widget.activeTool,
-                    activeLayer: widget.activeLayer,
-                    activeSetElementShape: widget.activeSetElementShape,
-                    activeSetElementScope: widget.activeSetElementScope,
-                    activeLabel: widget.activeLabel,
-                    viewportController: _viewportController,
-                    isReadOnly: widget.isReadOnly,
-                    symbolLabelValueOf: widget.symbolLabelValueOf,
-                    onSymbolSelected: widget.onSymbolSelected,
-                    onSymbolPlaced: widget.onSymbolPlaced,
-                    onSymbolMoved: widget.onSymbolMoved,
-                    onSymbolResized: widget.onSymbolResized,
-                    onSymbolRotated: widget.onSymbolRotated,
-                    onSymbolFovChanged: widget.onSymbolFovChanged,
-                    onSymbolFovReachChanged: widget.onSymbolFovReachChanged,
-                    onSymbolDeleteRequested: widget.onSymbolDeleteRequested,
-                    onSymbolRestoreRequested: widget.onSymbolRestoreRequested,
-                    onArrowSymbolTapped: widget.onArrowSymbolTapped,
-                    onArrowAnchorCancelled: widget.onArrowAnchorCancelled,
-                    onArrowSelected: widget.onArrowSelected,
-                    onArrowCurveChanged: widget.onArrowCurveChanged,
-                    onSymbolDuplicateRequested: widget.onSymbolDuplicateRequested,
-                    onSymbolDuplicateDragged: widget.onSymbolDuplicateDragged,
-                    onGhostShotFocusRequested: widget.onGhostShotFocusRequested,
-                    onSymbolLabelChanged: widget.onSymbolLabelChanged,
-                    onUnderlayTransformChanged: widget.onUnderlayTransformChanged,
-                    onZoomSettled: widget.onZoomSettled,
-                    pendingScopeLiveOverride: widget.pendingScopeLiveOverride,
-                    scopeBubbleEveryLabel: widget.scopeBubbleEveryLabel,
-                    scopeBubbleOnlyLabel: widget.scopeBubbleOnlyLabel,
-                    scopeBubbleCancelLabel: widget.scopeBubbleCancelLabel,
-                    onScopeBubbleEveryRequested: widget.onScopeBubbleEveryRequested,
-                    onScopeBubbleOnlyRequested: widget.onScopeBubbleOnlyRequested,
-                    onScopeBubbleCancelRequested: widget.onScopeBubbleCancelRequested,
+                  child: KeyedSubtree(
+                    key: _canvasAreaKey,
+                    child: OcptFloorPlanCanvas(
+                      floorPlanSet: widget.floorPlanSet,
+                      shotRankByShotId: widget.shotRankByShotId,
+                      focusSceneId: widget.focusSceneId,
+                      focusShotId: widget.focusShotId,
+                      previousShotId: widget.previousShotId,
+                      nextShotId: widget.nextShotId,
+                      isOnionSkinPreviousShown: widget.isOnionSkinPreviousShown,
+                      isOnionSkinNextShown: widget.isOnionSkinNextShown,
+                      onionSkinOpacity: widget.onionSkinOpacity,
+                      hiddenLayers: widget.hiddenLayers,
+                      hiddenCameraSymbolIds: widget.hiddenCameraSymbolIds,
+                      isUnderlayHidden: widget.isUnderlayHidden,
+                      selectedSymbolId: widget.selectedSymbolId,
+                      selectedArrowId: widget.selectedArrowId,
+                      pendingArrowAnchorSymbolId: widget.pendingArrowAnchorSymbolId,
+                      isMetricsShown: widget.isMetricsShown,
+                      isAllCamerasShown: widget.isAllCamerasShown,
+                      activeTool: widget.activeTool,
+                      activeLayer: widget.activeLayer,
+                      activeSetElementShape: widget.activeSetElementShape,
+                      activeSetElementScope: widget.activeSetElementScope,
+                      activeLabel: widget.activeLabel,
+                      viewportController: _viewportController,
+                      isReadOnly: widget.isReadOnly,
+                      symbolLabelValueOf: widget.symbolLabelValueOf,
+                      onSymbolSelected: widget.onSymbolSelected,
+                      onSymbolPlaced: widget.onSymbolPlaced,
+                      onSymbolMoved: widget.onSymbolMoved,
+                      onSymbolResized: widget.onSymbolResized,
+                      onSymbolRotated: widget.onSymbolRotated,
+                      onSymbolFovChanged: widget.onSymbolFovChanged,
+                      onSymbolFovReachChanged: widget.onSymbolFovReachChanged,
+                      onSymbolDeleteRequested: widget.onSymbolDeleteRequested,
+                      onSymbolRestoreRequested: widget.onSymbolRestoreRequested,
+                      onArrowSymbolTapped: widget.onArrowSymbolTapped,
+                      onArrowAnchorCancelled: widget.onArrowAnchorCancelled,
+                      onArrowSelected: widget.onArrowSelected,
+                      onArrowCurveChanged: widget.onArrowCurveChanged,
+                      onSymbolDuplicateRequested: widget.onSymbolDuplicateRequested,
+                      onSymbolDuplicateDragged: widget.onSymbolDuplicateDragged,
+                      onGhostShotFocusRequested: widget.onGhostShotFocusRequested,
+                      onSymbolLabelChanged: widget.onSymbolLabelChanged,
+                      onUnderlayTransformChanged: widget.onUnderlayTransformChanged,
+                      onZoomSettled: widget.onZoomSettled,
+                      pendingScopeLiveOverride: widget.pendingScopeLiveOverride,
+                      scopeBubbleEveryLabel: widget.scopeBubbleEveryLabel,
+                      scopeBubbleOnlyLabel: widget.scopeBubbleOnlyLabel,
+                      scopeBubbleCancelLabel: widget.scopeBubbleCancelLabel,
+                      onScopeBubbleEveryRequested: widget.onScopeBubbleEveryRequested,
+                      onScopeBubbleOnlyRequested: widget.onScopeBubbleOnlyRequested,
+                      onScopeBubbleCancelRequested: widget.onScopeBubbleCancelRequested,
+                    ),
                   ),
                 ),
               ],
@@ -591,5 +599,56 @@ class _OcptFloorPlanViewState extends State<OcptFloorPlanView> {
     }
 
     return KeyEventResult.ignored;
+  }
+
+  /// Opens the character name-picker dialog's own pattern for a free-typed prop label (the
+  /// palette's own `Other…` chip, with its own title and field hint, R5c — the reused dialog must
+  /// never still hint at a character), then places it at once — at the centre of this view's own
+  /// currently visible canvas area, at scene scope on [OcptFloorPlanView.focusSceneId] — and
+  /// selects it, exactly like every other placement (`OcptShotListBloc._onFloorPlanSymbolPlaced`
+  /// already selects whatever it just placed). Never arms the `prop` tool the way the chips do:
+  /// a free-typed label is one-shot, unlike a chip staying usable for several placements.
+  ///
+  /// A no-op while dismissed empty, while [OcptFloorPlanView.onSymbolPlaced] is withheld (read-only
+  /// preview), or on the one frame this view's own canvas area isn't laid out yet, defensive only.
+  Future<void> _handleOtherPropRequested(BuildContext context) async {
+    final tr = Tr.of(context);
+    final picked = await OcptFloorPlanCharacterNamePickerDialog.show(
+      context,
+      title: tr.shotListFloorPlanOtherPropNamePickerTitle,
+      fieldHint: tr.shotListFloorPlanOtherPropNamePickerFieldHint,
+      initialValue: "",
+      suggestedNames: const [],
+    );
+    if (picked == null || picked.isEmpty || !mounted) {
+      return;
+    }
+
+    final onSymbolPlaced = widget.onSymbolPlaced;
+    if (onSymbolPlaced == null) {
+      return;
+    }
+
+    final renderObject = _canvasAreaKey.currentContext?.findRenderObject();
+    if (renderObject is! RenderBox || !renderObject.hasSize) {
+      return;
+    }
+    final canvasSize = renderObject.size;
+    final centreScreen = Offset(canvasSize.width / 2, canvasSize.height / 2);
+    final centreMetres = ocptFloorPlanMetrePointOf(
+      screenPoint: centreScreen,
+      canvasSize: canvasSize,
+      zoom: _viewportController.zoom,
+      pan: _viewportController.pan,
+    );
+
+    onSymbolPlaced(
+      OcptFloorPlanLayer.props,
+      null,
+      widget.focusSceneId,
+      centreMetres.dx,
+      centreMetres.dy,
+      label: picked,
+    );
   }
 }

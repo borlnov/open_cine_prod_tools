@@ -21,6 +21,7 @@ import 'package:open_cine_prod_tools/models/ocpt_shot_list_xlsx_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
 import 'package:open_cine_prod_tools/types/ocpt_export_outcome.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_layer.dart';
+import 'package:open_cine_prod_tools/types/ocpt_floor_plan_tool.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_centre_view.dart';
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
 import 'package:open_cine_prod_tools/types/ocpt_storyboard_annotation_kind.dart';
@@ -1015,6 +1016,54 @@ void main() {
         bloc.add(OcptShotListSetLinkRequestedEvent(setId: setId));
         await tester.pumpAndSettle();
         expect(bloc.state.selectedSet!.symbols, hasLength(2));
+      },
+    );
+
+    testWidgets(
+      "the Other… chip's own dialog hints at a prop name, then places it at the view's own "
+      "centre, selected, instead of arming a tool (R5c)",
+      (tester) async {
+        final bloc = await mountWithACase(tester);
+        final tr = Tr.of(tester.element(find.byType(OcptShotListMode)));
+
+        await tester.tap(find.text(tr.shotListFloorPlanOtherPropChipLabel));
+        await tester.pumpAndSettle();
+
+        expect(find.text(tr.shotListFloorPlanOtherPropNamePickerTitle), findsOneWidget);
+        // Its own hint, never the character picker's default one this widget is reused from.
+        expect(find.text(tr.shotListFloorPlanOtherPropNamePickerFieldHint), findsOneWidget);
+        expect(find.text(tr.shotListFloorPlanCharacterNamePickerFieldHint), findsNothing);
+
+        await tester.enterText(
+          find.descendant(
+            of: find.byType(OcptFloorPlanCharacterNamePickerDialog),
+            matching: find.byType(TextField),
+          ),
+          "Rope",
+        );
+        await tester.tap(
+          find.descendant(
+            of: find.byType(OcptFloorPlanCharacterNamePickerDialog),
+            matching: find.text(tr.shotListFloorPlanCharacterNamePickerSetAction),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        // Placed at once — never armed the `prop` tool the way a chip click normally does.
+        expect(bloc.state.floorPlanActiveTool, isNot(OcptFloorPlanTool.prop));
+
+        final symbols = bloc.state.selectedSet!.symbols;
+        expect(symbols, hasLength(1));
+        final placed = symbols.single;
+        expect(placed.layer, OcptFloorPlanLayer.props);
+        expect(placed.label, "Rope");
+        expect(placed.sceneId, bloc.state.selectedSequenceId);
+        expect(placed.shotId, isNull);
+        // The view's own default zoom/pan puts the visible centre at metres (0, 0).
+        expect(placed.xM, closeTo(0, 1e-6));
+        expect(placed.yM, closeTo(0, 1e-6));
+
+        expect(bloc.state.selectedFloorPlanSymbolId, placed.id);
       },
     );
 
