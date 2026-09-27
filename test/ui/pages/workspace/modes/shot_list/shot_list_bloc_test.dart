@@ -2923,6 +2923,33 @@ void main() {
       },
     );
 
+    test(
+      "linking an existing set to another sequence adds it to that sequence's own tabs and "
+      "selects it",
+      () async {
+        await writeScreenplay(twoSceneText);
+        final bloc = buildBloc();
+        await waitForState(bloc, (state) => !state.isLoading);
+        final setId = await createCase(bloc);
+        final secondSequenceId = bloc.state.sequences[1].id;
+
+        bloc.add(OcptShotListSequenceSelectedEvent(sequenceId: secondSequenceId));
+        await waitForState(bloc, (state) => state.selectedSequenceId == secondSequenceId);
+        expect(bloc.state.setsOfSelectedSequence, isEmpty);
+
+        bloc.add(OcptShotListSetLinkRequestedEvent(setId: setId));
+        final linked = await waitForState(
+          bloc,
+          (state) => state.setsOfSelectedSequence.isNotEmpty,
+        );
+
+        expect(linked.setsOfSelectedSequence.single.id, setId);
+        expect(linked.selectedSetId, setId);
+
+        await bloc.close();
+      },
+    );
+
     test("placing a set element writes a sequence-scoped symbol on the active layer", () async {
       await writeScreenplay(twoSceneText);
       final bloc = buildBloc();

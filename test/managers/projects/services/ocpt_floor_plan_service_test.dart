@@ -1527,4 +1527,88 @@ void main() {
       },
     );
   });
+
+  group("loadSetScopeSymbolsByProjectSetId (the empty-state gallery's own thumbnail read)", () {
+    test("reads only set-scope symbols, project-wide, keyed by set id", () async {
+      final (sceneId, setId) = await seedLinkedSet();
+      final shotId = (await shotListService.createShot(
+        database: database,
+        screenplayId: screenplayId,
+        sceneId: sceneId,
+      ))!;
+
+      final setScopeSymbolId = (await floorPlanService.placeSymbol(
+        database: database,
+        setId: setId,
+        sceneId: null,
+        shotId: null,
+        layer: OcptFloorPlanLayer.set,
+        xM: 0,
+        yM: 0,
+      ))!;
+      await floorPlanService.placeSymbol(
+        database: database,
+        setId: setId,
+        sceneId: sceneId,
+        shotId: null,
+        layer: OcptFloorPlanLayer.props,
+        xM: 1,
+        yM: 1,
+      );
+      await floorPlanService.placeSymbol(
+        database: database,
+        setId: setId,
+        sceneId: null,
+        shotId: shotId,
+        layer: OcptFloorPlanLayer.cameras,
+        xM: 2,
+        yM: 2,
+      );
+
+      final bySetId = await floorPlanService.loadSetScopeSymbolsByProjectSetId(database: database);
+
+      expect(bySetId.keys, [setId]);
+      expect(bySetId[setId]!.map((symbol) => symbol.id), [setScopeSymbolId]);
+    });
+
+    test("is empty while no set holds a set-scope symbol", () async {
+      await seedLinkedSet();
+
+      final bySetId = await floorPlanService.loadSetScopeSymbolsByProjectSetId(database: database);
+
+      expect(bySetId, isEmpty);
+    });
+  });
+
+  group("liveSetIdsWithPlan", () {
+    test("names only the sets that actually hold a live plan row", () async {
+      final (_, setWithPlanId) = await seedLinkedSet();
+      await floorPlanService.placeSymbol(
+        database: database,
+        setId: setWithPlanId,
+        sceneId: null,
+        shotId: null,
+        layer: OcptFloorPlanLayer.set,
+        xM: 0,
+        yM: 0,
+      );
+      final setWithNoPlanId = (await locationsService.createSet(
+        database: database,
+        locationId: (await database.select(database.ocptSetsTable).get()).first.locationId,
+        name: "Hallway",
+      ))!;
+
+      final withPlan = await floorPlanService.liveSetIdsWithPlan(
+        database: database,
+        setIds: [setWithPlanId, setWithNoPlanId],
+      );
+
+      expect(withPlan, {setWithPlanId});
+    });
+
+    test("is empty for an empty set of ids", () async {
+      final withPlan = await floorPlanService.liveSetIdsWithPlan(database: database, setIds: const []);
+      expect(withPlan, isEmpty);
+    });
+  });
 }

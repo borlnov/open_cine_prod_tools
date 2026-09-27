@@ -79,6 +79,10 @@ class OcptLocationSheet extends StatelessWidget {
   /// The id of the set each scene is suggested for, keyed by scene id.
   final Map<String, String> suggestedSetIdBySceneId;
 
+  /// The ids of [location]'s own sets that hold a live floor plan row — the sets card's own
+  /// `Floor plan · N sequences` / `No floor plan yet` line (`docs/plans/storyboard.md`, §10.4).
+  final Set<String> setIdsWithPlan;
+
   /// Whether what the mode shows is a project version being previewed read-only, which no callback
   /// of this sheet may write through.
   final bool isReadOnly;
@@ -126,6 +130,11 @@ class OcptLocationSheet extends StatelessWidget {
 
   /// Called with a scene and the set it is no longer shot in.
   final void Function(String sceneId, String setId) onSceneRemoved;
+
+  /// Called with a set's id when its own `Open in shot list` action is clicked — reveals the
+  /// shot list mode's floor plans view on that set's first linked sequence, in screenplay order
+  /// (`docs/plans/storyboard.md`, §10.4). Never withheld under a read-only preview: it only reads.
+  final ValueChanged<String> onOpenSetInShotListRequested;
 
   /// Called when a scouting photo is to be referenced.
   final VoidCallback onPhotoAddRequested;
@@ -187,6 +196,7 @@ class OcptLocationSheet extends StatelessWidget {
     required this.otherLocations,
     required this.assignedSceneIds,
     required this.suggestedSetIdBySceneId,
+    required this.setIdsWithPlan,
     this.isReadOnly = false,
     required this.fieldValueOf,
     required this.onFieldChanged,
@@ -202,6 +212,7 @@ class OcptLocationSheet extends StatelessWidget {
     required this.onSetLocationChanged,
     required this.onSceneAssigned,
     required this.onSceneRemoved,
+    required this.onOpenSetInShotListRequested,
     required this.onPhotoAddRequested,
     required this.onPhotoRemoved,
     required this.onPermitDocumentPickRequested,
@@ -275,6 +286,7 @@ class OcptLocationSheet extends StatelessWidget {
             scenes: scenes,
             assignedSceneIds: assignedSceneIds,
             suggestedSetIdBySceneId: suggestedSetIdBySceneId,
+            setIdsWithPlan: setIdsWithPlan,
             fieldValueOf: setFieldValueOf,
             onSetFieldChanged: isReadOnly ? null : onSetFieldChanged,
             onSetAdded: isReadOnly ? null : onSetAdded,
@@ -282,6 +294,7 @@ class OcptLocationSheet extends StatelessWidget {
             onSetLocationChanged: isReadOnly ? null : onSetLocationChanged,
             onSceneAssigned: isReadOnly ? null : onSceneAssigned,
             onSceneRemoved: isReadOnly ? null : onSceneRemoved,
+            onOpenInShotListRequested: onOpenSetInShotListRequested,
           ),
           const SizedBox(height: 12),
           _buildLogisticsRow(context, tr),

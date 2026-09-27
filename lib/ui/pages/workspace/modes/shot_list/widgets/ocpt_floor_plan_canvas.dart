@@ -401,13 +401,12 @@ class _OcptFloorPlanCanvasState extends State<OcptFloorPlanCanvas> {
     final tr = Tr.of(context);
     final floorPlanSet = widget.floorPlanSet;
 
+    // Defensive only: the mode never builds `OcptFloorPlanView`/this canvas at all while the
+    // selected sequence has no linked set — `OcptFloorPlanSetGallery` fills the centre instead
+    // (`docs/plans/storyboard.md`, §10.4). A blank canvas is a safer fallback here than a stale
+    // hint string this branch has no real caller left to word for.
     if (floorPlanSet == null) {
-      return Center(
-        child: Text(
-          tr.shotListFloorPlanNoSetHint,
-          style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
-        ),
-      );
+      return const SizedBox.expand();
     }
 
     return LayoutBuilder(

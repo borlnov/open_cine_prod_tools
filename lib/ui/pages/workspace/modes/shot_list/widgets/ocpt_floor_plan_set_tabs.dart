@@ -8,20 +8,23 @@ import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_floor_plan_set.dart';
 
 /// The floor plans view's own set tabs, sitting in `OcptShotListCentreHeader`'s trailing slot
-/// (`docs/plans/storyboard.md`, §4.1, §4.3; the redesign's §9.4 R3): a tab per set of the selected
-/// sequence, each carrying its own **placed-shot count** ([placedShotCountOf] — how many of the
-/// sequence's shots carry any live symbol on it), a filled `＋ Set` button appended after them
-/// (never `+ Set` as its own visible text — the `＋` is the button's icon, the label is the word
-/// alone) opening a menu of `Create set`, `Duplicate this set` and `Copy blocking from another
-/// shot`, its name **edited in place** on whichever tab is currently selected, and removed through
-/// a small close action every tab carries.
+/// (`docs/plans/storyboard.md`, §4.1, §4.3, §10.4): a tab per set of the selected sequence, each
+/// carrying its own **placed-shot count** ([placedShotCountOf] — how many of the sequence's shots
+/// carry any live symbol on it), a filled `＋ Set` button appended after them (never `+ Set` as its
+/// own visible text — the `＋` is the button's icon, the label is the word alone) opening the
+/// breakdown's own kind of menu — the suggestion first and starred
+/// ([suggestedSetId]/[suggestedSetName]), `Link an existing set ▸` grouped by location
+/// ([linkableSetsByLocation]), `Create a set ▸` (each existing location, then `New location…`),
+/// a divider, then `Duplicate this set` and `Copy blocking from a shot…` — its name **edited in
+/// place** on whichever tab is currently selected, and removed through a small close action every
+/// tab carries.
 ///
 /// A tab is reported selected through [onSetSelected]; deleting one only asks
 /// ([onSetDeleteRequested]) — the mode opens `OcptConfirmDialog`. Every write
-/// ([onSetCreationRequested], [onSetDuplicateRequested], [onCopyBlockingRequested],
-/// [onSetNameChanged], [onSetReordered], [onSetDeleteRequested]) is a **nullable** callback,
-/// withheld by the mode under a read-only preview; selecting a tab is never withheld, since it only
-/// reads.
+/// ([onSetLinkRequested], [onSetCreationRequested], [onSetDuplicateRequested],
+/// [onCopyBlockingRequested], [onSetNameChanged], [onSetReordered], [onSetDeleteRequested]) is a
+/// **nullable** callback, withheld by the mode under a read-only preview; selecting a tab is never
+/// withheld, since it only reads.
 class OcptFloorPlanSetTabs extends StatelessWidget {
   /// The selected sequence's own sets, in tab order.
   final List<OcptFloorPlanSet> sets;
@@ -37,19 +40,45 @@ class OcptFloorPlanSetTabs extends StatelessWidget {
   /// set's own id — the small badge next to a tab's own name.
   final int Function(String setId) placedShotCountOf;
 
+  /// The id of the Resources set `ocptSceneSetSuggestionOf` suggests for the selected sequence's
+  /// own heading, or null while it suggests none, the suggestion is already one of [sets], or the
+  /// caller withholds it — resolved by the mode exactly as the breakdown's own set picker resolves
+  /// its own suggestion. Shown first in the menu, starred.
+  final String? suggestedSetId;
+
+  /// [suggestedSetId]'s own display name, read by the mode from the project's whole Resources
+  /// catalogue — null whenever [suggestedSetId] is.
+  final String? suggestedSetName;
+
+  /// Every Resources set of the project **not already linked** to the selected sequence, grouped by
+  /// its own location's name — the `Link an existing set ▸` submenu's own entries, in
+  /// `(locationName, sets)` pairs, each set itself an `(id, name)` pair. Empty hides the whole
+  /// submenu rather than showing one with nothing in it.
+  final List<(String locationName, List<(String id, String name)> sets)> linkableSetsByLocation;
+
+  /// Every location of the project, `(id, name)` — the `Create a set ▸` submenu's own per-location
+  /// entries, its `New location…` entry always appended after them.
+  final List<(String id, String name)> locationsForCreation;
+
   /// Called with a set's id when its tab is clicked. Never withheld: selecting only reads.
   final ValueChanged<String> onSetSelected;
 
-  /// Called when the `＋ Set` menu's own `Create set` entry is clicked, or null while withheld.
-  final VoidCallback? onSetCreationRequested;
+  /// Called with a Resources set's id when the suggestion entry or one of the `Link an existing
+  /// set ▸` submenu's own entries is clicked, or null while withheld.
+  final ValueChanged<String>? onSetLinkRequested;
 
-  /// Called with the currently selected set's own id when the `＋ Set` menu's own `Duplicate this
-  /// set` entry is clicked, or null while withheld or while nothing is selected.
+  /// Called with the location id a `Create a set ▸` submenu entry names, or null (its own
+  /// `New location…` entry) to mint a fresh location for it too — or null itself, at the field
+  /// level, while withheld.
+  final void Function(String? locationId)? onSetCreationRequested;
+
+  /// Called with the currently selected set's own id when the menu's own `Duplicate this set`
+  /// entry is clicked, or null while withheld or while nothing is selected.
   final ValueChanged<String>? onSetDuplicateRequested;
 
-  /// Called with the currently selected set's own id when the `＋ Set` menu's own `Copy blocking
-  /// from another shot` entry is clicked, or null while withheld or while nothing is selected — the
-  /// mode opens its own source-shot picker before dispatching the copy.
+  /// Called with the currently selected set's own id when the menu's own `Copy blocking from a
+  /// shot…` entry is clicked, or null while withheld or while nothing is selected — the mode opens
+  /// its own source-shot picker before dispatching the copy.
   final ValueChanged<String>? onCopyBlockingRequested;
 
   /// Called with a set's id and its new name on every keystroke of the selected tab's own name
@@ -71,7 +100,12 @@ class OcptFloorPlanSetTabs extends StatelessWidget {
     required this.selectedSetId,
     required this.nameValueOf,
     required this.placedShotCountOf,
+    this.suggestedSetId,
+    this.suggestedSetName,
+    this.linkableSetsByLocation = const [],
+    this.locationsForCreation = const [],
     required this.onSetSelected,
+    this.onSetLinkRequested,
     required this.onSetCreationRequested,
     required this.onSetDuplicateRequested,
     required this.onCopyBlockingRequested,
@@ -227,34 +261,54 @@ class OcptFloorPlanSetTabs extends StatelessWidget {
   }
 
   /// The filled `＋ Set` button, whose own visible text is the word alone (the `＋` is the icon —
-  /// see this class's own doc comment), opening a menu of `Create set`, `Duplicate this set` and
-  /// `Copy blocking from another shot`. A tap with nothing to offer at all (every callback
-  /// withheld) still shows the button, disabled, rather than disappearing — the same posture every
-  /// other withheld write in this mode takes.
+  /// see this class's own doc comment), opening the breakdown's own kind of menu: the suggestion
+  /// first (starred), `Link an existing set ▸`, `Create a set ▸`, a divider, `Duplicate this set`
+  /// and `Copy blocking from a shot…`. A tap with nothing to offer at all (every callback withheld)
+  /// still shows the button, disabled, rather than disappearing — the same posture every other
+  /// withheld write in this mode takes.
+  ///
+  /// **A `MenuItemButton` may not go inside a `Wrap`** (a known pitfall of this mode): every entry
+  /// here, including a submenu's own `menuChildren`, stays a single column — `SubmenuButton` never
+  /// wraps its own children either — so the failure that pitfall names never applies.
   Widget _buildAddSetButton(BuildContext context) {
     final tr = Tr.of(context);
     final selectedSetId = this.selectedSetId;
+    final suggestedSetId = this.suggestedSetId;
+    final canSuggestLink = suggestedSetId != null && onSetLinkRequested != null;
+    final canLinkExisting = onSetLinkRequested != null && linkableSetsByLocation.isNotEmpty;
     final canCreate = onSetCreationRequested != null;
     final canDuplicate = selectedSetId != null && onSetDuplicateRequested != null;
     final canCopyBlocking = selectedSetId != null && onCopyBlockingRequested != null;
 
-    Widget buildLabel() => FilledButton.icon(
+    Widget buildDisabledButton() => FilledButton.icon(
       onPressed: null,
       icon: const Icon(Icons.add, size: 18),
       label: Text(tr.shotListFloorPlanAddSetButtonLabel),
     );
 
-    if (!canCreate && !canDuplicate && !canCopyBlocking) {
-      return buildLabel();
+    if (!canSuggestLink && !canLinkExisting && !canCreate && !canDuplicate && !canCopyBlocking) {
+      return buildDisabledButton();
     }
 
     return MenuAnchor(
       menuChildren: [
-        if (canCreate)
+        if (canSuggestLink)
           MenuItemButton(
-            onPressed: onSetCreationRequested,
+            leadingIcon: const Icon(Icons.star, size: 16),
+            onPressed: () => onSetLinkRequested!(suggestedSetId),
+            child: Text(tr.shotListFloorPlanSuggestedSetMenuAction(suggestedSetName ?? "")),
+          ),
+        if (canLinkExisting)
+          SubmenuButton(
+            menuChildren: _buildLinkExistingSetMenuItems(),
+            child: Text(tr.shotListFloorPlanLinkExistingSetMenuAction),
+          ),
+        if (canCreate)
+          SubmenuButton(
+            menuChildren: _buildCreateSetMenuItems(tr),
             child: Text(tr.shotListFloorPlanCreateSetMenuAction),
           ),
+        if (canDuplicate || canCopyBlocking) const Divider(height: 1),
         if (canDuplicate)
           MenuItemButton(
             onPressed: () => onSetDuplicateRequested!(selectedSetId),
@@ -273,6 +327,29 @@ class OcptFloorPlanSetTabs extends StatelessWidget {
       ),
     );
   }
+
+  /// The `Link an existing set ▸` submenu's own entries: a disabled row naming each location,
+  /// then one entry per set it holds that isn't already linked to the selected sequence.
+  List<Widget> _buildLinkExistingSetMenuItems() => [
+    for (final (locationName, groupSets) in linkableSetsByLocation) ...[
+      MenuItemButton(child: Text(locationName)),
+      for (final (id, name) in groupSets)
+        MenuItemButton(onPressed: () => onSetLinkRequested!(id), child: Text(name)),
+    ],
+  ];
+
+  /// The `Create a set ▸` submenu's own entries: one per existing location, then `New location…` —
+  /// [OcptFloorPlanSetTabs.onSetCreationRequested] itself decides what a null `locationId` means
+  /// (`OcptLocationsService.createSetLinkedToScene`'s own reading: mint a location of its own).
+  List<Widget> _buildCreateSetMenuItems(Tr tr) => [
+    for (final (id, name) in locationsForCreation)
+      MenuItemButton(onPressed: () => onSetCreationRequested!(id), child: Text(name)),
+    if (locationsForCreation.isNotEmpty) const Divider(height: 1),
+    MenuItemButton(
+      onPressed: () => onSetCreationRequested!(null),
+      child: Text(tr.shotListFloorPlanNewLocationMenuAction),
+    ),
+  ];
 }
 
 /// The selected tab's own editable name field, kept as a small stateful widget so it holds its own

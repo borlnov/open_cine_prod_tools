@@ -28,6 +28,7 @@ import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart'
 import 'package:open_cine_prod_tools/models/ocpt_floor_plan_set.dart';
 import 'package:open_cine_prod_tools/models/ocpt_floor_plan_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_floor_plan_symbol.dart';
+import 'package:open_cine_prod_tools/models/ocpt_location.dart';
 import 'package:open_cine_prod_tools/models/ocpt_open_project_model.dart';
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role.dart';
@@ -36,6 +37,7 @@ import 'package:open_cine_prod_tools/models/ocpt_shot_field_suggestions.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_list_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
 import 'package:open_cine_prod_tools/models/ocpt_storyboard_snapshot.dart';
+import 'package:open_cine_prod_tools/models/ocpt_workspace_reveal_request.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_arrow_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_layer.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_tool.dart';
@@ -204,6 +206,13 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
   /// routine path.
   final String? _selectedEpisodeId;
 
+  /// What this mode should land on once its very first load resolves, handed down by
+  /// `OcptShotListMode` from its own constructor — the Resources location sheet's own `Open in
+  /// shot list` (`docs/plans/storyboard.md`, §10.4), mirroring `OcptResourcesBloc
+  /// ._pendingRevealRequest`. Nulled the moment [_onLoadRequested] applies it, so it can never
+  /// re-apply itself on a later reload (a version preview entered or left, say).
+  OcptShotListRevealRequest? _pendingRevealRequest;
+
   /// Class constructor
   ///
   /// Every dependency can be overridden, which is what the tests do; in the app they all resolve
@@ -224,7 +233,9 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     FileSelectorManager? fileSelectorManager,
     Duration fieldEditDebounce = defaultFieldEditDebounce,
     String? selectedEpisodeId,
+    OcptShotListRevealRequest? revealRequest,
   }) : _selectedEpisodeId = selectedEpisodeId,
+       _pendingRevealRequest = revealRequest,
        _projectsManager = projectsManager ?? globalGetIt().get<OcptProjectsManager>(),
        _propertiesManager = propertiesManager ?? globalGetIt().get<OcptPropertiesManager>(),
        _routerManager = routerManager ?? globalGetIt().get<OcptRouterManager>(),
@@ -308,6 +319,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     on<OcptShotListAnnotationDeletionRequestedEvent>(_onAnnotationDeletionRequested);
     on<OcptShotListSetSelectedEvent>(_onSetSelected);
     on<OcptShotListSetCreationRequestedEvent>(_onSetCreationRequested);
+    on<OcptShotListSetLinkRequestedEvent>(_onSetLinkRequested);
     on<OcptShotListSetNameChangedEvent>(_onSetNameChanged);
     on<OcptShotListSetDeletionRequestedEvent>(_onSetDeletionRequested);
     on<OcptShotListSetDuplicationRequestedEvent>(_onSetDuplicationRequested);
@@ -434,15 +446,35 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     final snapshot = await _loadSnapshot(project);
     final storyboardSnapshot = await _loadStoryboard(project);
     final floorPlanSnapshot = await _loadFloorPlans(project);
+    final locations = await _loadLocations(project);
+    final setScopeSymbolsBySetId = await _loadSetScopeSymbolsBySetId(project);
     final screenplayCharacters = _screenplayCharactersOf(screenplayText);
     final roles = await _loadRoles(project);
     final suggestions = await _loadSuggestions(project);
-    final selectedSequenceId = snapshot.sequences.isEmpty ? null : snapshot.sequences.first.id;
+
+    final revealRequest = _pendingRevealRequest;
+    _pendingRevealRequest = null;
+    final revealedSequenceId = _revealedSequenceIdOf(
+      revealRequest: revealRequest,
+      snapshot: snapshot,
+    );
+
+    final selectedSequenceId =
+        revealedSequenceId ?? (snapshot.sequences.isEmpty ? null : snapshot.sequences.first.id);
     final firstSetId = _firstSetIdOf(
       floorPlanSnapshot: floorPlanSnapshot,
       sequenceId: selectedSequenceId,
     );
+    final revealedSetId = _revealedSetIdOf(
+      revealRequest: revealRequest,
+      floorPlanSnapshot: floorPlanSnapshot,
+      sequenceId: selectedSequenceId,
+    );
+    final selectedSetId = revealedSetId ?? firstSetId;
     final firstShotId = _firstShotIdOf(snapshot: snapshot, sequenceId: selectedSequenceId);
+    final effectiveCentreView = revealedSequenceId != null
+        ? OcptShotListCentreView.floorPlans
+        : centreView;
 
     emitter(
       state.copyWith(
@@ -453,6 +485,8 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
         snapshot: snapshot,
         storyboardSnapshot: storyboardSnapshot,
         floorPlanSnapshot: floorPlanSnapshot,
+        locations: locations,
+        setScopeSymbolsBySetId: setScopeSymbolsBySetId,
         pageSetup: pageSetup,
         screenplayText: screenplayText,
         roles: roles,
@@ -463,8 +497,8 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
         clearSelectedPanelId: true,
         clearActiveAnnotationTool: true,
         clearSelectedAnnotationId: true,
-        selectedSetId: firstSetId,
-        clearSelectedSetId: firstSetId == null,
+        selectedSetId: selectedSetId,
+        clearSelectedSetId: selectedSetId == null,
         clearSelectedFloorPlanSymbolId: true,
         clearSelectedFloorPlanArrowId: true,
         clearPendingFloorPlanArrowAnchorSymbolId: true,
@@ -473,11 +507,42 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
         rightDockFraction: rightDockFraction,
         visibleColumns: visibleColumns,
         lastRightDockTab: lastRightDockTab,
-        centreView: centreView,
+        centreView: effectiveCentreView,
         screenplayCharacters: screenplayCharacters,
         suggestions: suggestions,
       ),
     );
+  }
+
+  /// [revealRequest]'s own sequence id, when it names one still live in [snapshot], or null
+  /// otherwise (no reveal pending, or it names a sequence no longer live — a dangling reveal reads
+  /// the same as none, `OcptShotListRevealRequest`'s own doc comment) — the default sequence
+  /// selection applies instead.
+  String? _revealedSequenceIdOf({
+    required OcptShotListRevealRequest? revealRequest,
+    required OcptShotListSnapshot snapshot,
+  }) {
+    final sceneId = revealRequest?.sceneId;
+    if (sceneId == null) {
+      return null;
+    }
+    return snapshot.sequences.any((sequence) => sequence.id == sceneId) ? sceneId : null;
+  }
+
+  /// [revealRequest]'s own set id, when it still names one of [sequenceId]'s own live linked sets
+  /// in [floorPlanSnapshot], or null otherwise.
+  String? _revealedSetIdOf({
+    required OcptShotListRevealRequest? revealRequest,
+    required OcptFloorPlanSnapshot floorPlanSnapshot,
+    required String? sequenceId,
+  }) {
+    final setId = revealRequest?.setId;
+    if (setId == null || sequenceId == null) {
+      return null;
+    }
+    return floorPlanSnapshot.setsOfScene(sequenceId).any((floorPlanSet) => floorPlanSet.id == setId)
+        ? setId
+        : null;
   }
 
   /// Reads the whole shot list of the selected episode's screenplay, joined with where each of its
@@ -530,6 +595,23 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
         database: project.database,
         screenplayId: _screenplayIdOf(project),
       );
+
+  /// Reads the project's whole Resources catalogue — every location and its own sets, each
+  /// carrying the scenes it is linked to — what the set tabs' own `＋ Set` menu groups `Link an
+  /// existing set ▸`/`Create a set ▸` by, and what `ocptSceneSetSuggestionOf` reads to suggest one
+  /// for the selected sequence's own heading (`docs/plans/storyboard.md`, §10.4). Project-wide,
+  /// unlike [_loadFloorPlans]'s own per-screenplay read: a set the empty-state gallery offers to
+  /// link may already be linked to another episode's own sequence.
+  Future<List<OcptLocation>> _loadLocations(OcptOpenProjectModel project) =>
+      _locationsService.loadLocations(database: project.database);
+
+  /// Reads the set-scope symbols of every live Resources set of the project, keyed by set id — the
+  /// empty-state gallery's own thumbnail content (`docs/plans/storyboard.md`, §10.4): a thumbnail
+  /// draws a set's own décor alone, never what a sequence or a shot placed on it, so this is all it
+  /// ever needs. Project-wide, exactly like [_loadLocations] and unlike [_loadFloorPlans].
+  Future<Map<String, List<OcptFloorPlanSymbol>>> _loadSetScopeSymbolsBySetId(
+    OcptOpenProjectModel project,
+  ) => _floorPlanService.loadSetScopeSymbolsByProjectSetId(database: project.database);
 
   /// The id of [sequenceId]'s own first floor plan set (its first tab), or null while
   /// [floorPlanSnapshot] holds none for it, [sequenceId] is null, or it isn't a real scene (the
@@ -1239,12 +1321,14 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
       final suggestions = await _loadSuggestions(project);
       final storyboardSnapshot = await _loadStoryboard(project);
       final floorPlanSnapshot = await _loadFloorPlans(project);
+      final locations = await _loadLocations(project);
       emitter(
         state.copyWith(
           snapshot: snapshot,
           suggestions: suggestions,
           storyboardSnapshot: storyboardSnapshot,
           floorPlanSnapshot: floorPlanSnapshot,
+          locations: locations,
           pendingFieldEdits: const {},
         ),
       );
@@ -2388,10 +2472,11 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     );
   }
 
-  /// Creates a new Resources set named after the selected sequence's own heading place, links it
-  /// to that sequence (`OcptLocationsService.createSetLinkedToScene`, the breakdown's own path),
-  /// reloads the floor plans and selects it. Deliberately a no-op when the selected sequence is the
-  /// orphan group (or when nothing is selected at all): see
+  /// Creates a new Resources set named after the selected sequence's own heading place, in
+  /// `event.locationId` (or a fresh location of its own, when null), links it to that sequence
+  /// (`OcptLocationsService.createSetLinkedToScene`, the breakdown's own path), reloads the floor
+  /// plans and the Resources catalogue, and selects it. Deliberately a no-op when the selected
+  /// sequence is the orphan group (or when nothing is selected at all): see
   /// [OcptShotListSetCreationRequestedEvent].
   Future<void> _onSetCreationRequested(
     OcptShotListSetCreationRequestedEvent event,
@@ -2408,6 +2493,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
         database: project.database,
         sceneId: sequence.sceneId,
         name: ocptSceneHeadingPlaceOf(sequence.heading),
+        locationId: event.locationId,
       );
       if (setId == null) {
         return;
@@ -2416,6 +2502,8 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
       emitter(
         state.copyWith(
           floorPlanSnapshot: await _loadFloorPlans(project),
+          locations: await _loadLocations(project),
+          setScopeSymbolsBySetId: await _loadSetScopeSymbolsBySetId(project),
           selectedSetId: setId,
           clearSelectedFloorPlanSymbolId: true,
           clearSelectedFloorPlanArrowId: true,
@@ -2424,6 +2512,48 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
       );
     } catch (error) {
       appLogger().e("A problem occurred when tried to create a floor plan set on scene "
+          "${sequence.sceneId} of the project at ${project.path}: $error");
+      emitter(state.copyWith(hasWriteError: true));
+    }
+  }
+
+  /// Links Resources set `event.setId` to the selected sequence
+  /// (`OcptLocationsService.assignSceneToSet`), reloads the floor plans and selects it — the
+  /// empty-state gallery's own card click and the `＋ Set` menu's own suggestion/`Link an existing
+  /// set ▸` entries (`docs/plans/storyboard.md`, §10.4). Deliberately a no-op when the selected
+  /// sequence is the orphan group (or when nothing is selected at all), exactly like
+  /// [_onSetCreationRequested].
+  Future<void> _onSetLinkRequested(
+    OcptShotListSetLinkRequestedEvent event,
+    Emitter<OcptShotListState> emitter,
+  ) async {
+    final project = _projectsManager.currentProject;
+    final sequence = state.selectedSequence;
+    if (project == null || sequence is! OcptSceneShotSequence) {
+      return;
+    }
+
+    try {
+      final linkId = await _locationsService.assignSceneToSet(
+        database: project.database,
+        sceneId: sequence.sceneId,
+        setId: event.setId,
+      );
+      if (linkId == null) {
+        return;
+      }
+
+      emitter(
+        state.copyWith(
+          floorPlanSnapshot: await _loadFloorPlans(project),
+          selectedSetId: event.setId,
+          clearSelectedFloorPlanSymbolId: true,
+          clearSelectedFloorPlanArrowId: true,
+          clearPendingFloorPlanArrowAnchorSymbolId: true,
+        ),
+      );
+    } catch (error) {
+      appLogger().e("A problem occurred when tried to link set ${event.setId} to scene "
           "${sequence.sceneId} of the project at ${project.path}: $error");
       emitter(state.copyWith(hasWriteError: true));
     }
@@ -2497,12 +2627,11 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
 
   /// Duplicates set `event.setId` into a new Resources set in the same location, named
   /// `event.newSetName`, copying its set-scope symbols only and linking it to the selected
-  /// sequence — the set tabs' own `＋ Set` menu `Duplicate this set` entry, put together from three
-  /// calls across the two services this bloc holds (see `OcptFloorPlanService.duplicateSet`'s own
-  /// doc comment for why): `OcptLocationsService.createSiblingSet` mints the new set,
-  /// `OcptFloorPlanService.duplicateSet` copies its plan, and `OcptLocationsService
-  /// .assignSceneToSet` links it — rolling back (tombstoning the freshly minted set) if the link
-  /// somehow fails. Reloads the floor plans and selects the freshly minted copy.
+  /// sequence — the set tabs' own `＋ Set` menu `Duplicate this set` entry, now **one** atomic call
+  /// (`OcptLocationsService.duplicateSetForScene`, `docs/plans/storyboard.md`, §10.4): the mode used
+  /// to put its three steps together itself, which is exactly the risk of an orphan set that
+  /// service method's own transaction rules out. Reloads the floor plans and selects the freshly
+  /// minted copy.
   Future<void> _onSetDuplicationRequested(
     OcptShotListSetDuplicationRequestedEvent event,
     Emitter<OcptShotListState> emitter,
@@ -2514,34 +2643,21 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     }
 
     try {
-      final newSetId = await _locationsService.createSiblingSet(
+      final newSetId = await _locationsService.duplicateSetForScene(
         database: project.database,
         sourceSetId: event.setId,
         name: event.newSetName,
+        sceneId: sceneId,
       );
       if (newSetId == null) {
-        return;
-      }
-
-      await _floorPlanService.duplicateSet(
-        database: project.database,
-        sourceSetId: event.setId,
-        destinationSetId: newSetId,
-      );
-
-      final linkId = await _locationsService.assignSceneToSet(
-        database: project.database,
-        sceneId: sceneId,
-        setId: newSetId,
-      );
-      if (linkId == null) {
-        await _locationsService.deleteSet(database: project.database, setId: newSetId);
         return;
       }
 
       emitter(
         state.copyWith(
           floorPlanSnapshot: await _loadFloorPlans(project),
+          locations: await _loadLocations(project),
+          setScopeSymbolsBySetId: await _loadSetScopeSymbolsBySetId(project),
           selectedSetId: newSetId,
           clearSelectedFloorPlanSymbolId: true,
           clearSelectedFloorPlanArrowId: true,

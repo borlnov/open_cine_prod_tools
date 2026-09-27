@@ -56,3 +56,29 @@ final class OcptResourcesRevealRequest extends OcptWorkspaceRevealRequest {
   @override
   List<Object?> get props => [...super.props, tab, recordId];
 }
+
+/// Asks the shot list mode to open its **floor plans** centre view on sequence [sceneId], its own
+/// set tab [setId] already selected — the Resources location sheet's own `Open in shot list`
+/// (`docs/plans/storyboard.md`, §10.4): a floor plan belongs to the Resources set, so "open it"
+/// means landing on the very sequence and tab that show it, not a sheet of its own.
+///
+/// [sceneId] is the **first** sequence [setId] is linked to, in screenplay order (episode order,
+/// then scene order) — the asking mode (`OcptLocationsService.firstLinkedSceneOf`) resolves it,
+/// since a set may be linked to several sequences and even several episodes at once, and this
+/// request only ever names the one the shot list lands on. An id naming a sequence or a set no
+/// longer live reads the same as [OcptResourcesRevealRequest]'s own dangling
+/// `recordId`: the mode opens on its own default instead.
+final class OcptShotListRevealRequest extends OcptWorkspaceRevealRequest {
+  /// The id of the sequence (`scenes.id`) to select — [setId]'s own first linked one.
+  final String sceneId;
+
+  /// The id of the Resources set whose floor plan to show, already linked to [sceneId].
+  final String setId;
+
+  /// Class constructor
+  const OcptShotListRevealRequest({required this.sceneId, required this.setId});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, sceneId, setId];
+}

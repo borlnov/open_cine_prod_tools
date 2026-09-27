@@ -909,9 +909,40 @@ class OcptShotListSetSelectedEvent extends OcptShotListEvent {
 /// nothing while no sequence is selected, or while the selected one is the orphan group: a set
 /// tab only ever belongs to a real screenplay scene, exactly as a new shot only ever belongs to
 /// one.
+///
+/// [locationId] names the location the `＋ Set` menu's own `Create a set ▸` submenu entry was
+/// clicked under, or null for its own `New location…` entry — `OcptLocationsService
+/// .createSetLinkedToScene`'s own reading of a null `locationId` (mint a location of its own) is
+/// exactly what that entry asks for, so this event carries the field verbatim rather than
+/// resolving it itself.
 class OcptShotListSetCreationRequestedEvent extends OcptShotListEvent {
+  /// The location to create the new set in, or null to mint one of its own.
+  final String? locationId;
+
   /// Class constructor
-  const OcptShotListSetCreationRequestedEvent();
+  const OcptShotListSetCreationRequestedEvent({this.locationId});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, locationId];
+}
+
+/// Requests linking Resources set [setId] to the selected sequence
+/// (`OcptLocationsService.assignSceneToSet`), then selects it — the empty-state gallery's own
+/// card click and the `＋ Set` menu's own suggestion entry and `Link an existing set ▸` submenu
+/// entries (`docs/plans/storyboard.md`, §10.4). Does nothing while no sequence is selected, or
+/// while the selected one is the orphan group, exactly like
+/// [OcptShotListSetCreationRequestedEvent].
+class OcptShotListSetLinkRequestedEvent extends OcptShotListEvent {
+  /// The id of the Resources set to link.
+  final String setId;
+
+  /// Class constructor
+  const OcptShotListSetLinkRequestedEvent({required this.setId});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, setId];
 }
 
 /// Records the raw text just typed into set `event.setId`'s own tab as a pending edit, and

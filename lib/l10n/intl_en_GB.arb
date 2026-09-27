@@ -3090,10 +3090,31 @@
     "type": "text",
     "placeholders": {}
   },
-  "shotListFloorPlanNoSetHint": "Create a set to start placing your décor.",
-  "@shotListFloorPlanNoSetHint": {
-    "description": "Shown on the canvas while the selected sequence has no floor plan set yet",
-    "context": "Displayed on the floor plans view's own canvas",
+  "shotListFloorPlanGalleryTitle": "Link a set to this sequence",
+  "@shotListFloorPlanGalleryTitle": {
+    "description": "Title of the empty-state gallery shown in the floor plans centre while the selected sequence has no linked set yet (was shotListFloorPlanNoSetHint, a plain canvas hint, before the R5a gallery)",
+    "context": "Displayed above the floor plans view's own empty-state gallery",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanGalleryCreateSetAction": "Create a set…",
+  "@shotListFloorPlanGalleryCreateSetAction": {
+    "description": "Label of the action under the empty-state gallery's own grid, opening the same create-a-set menu as the ＋ Set button",
+    "context": "Displayed under the floor plans view's own empty-state gallery",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanGalleryEmptyPlanLabel": "Empty",
+  "@shotListFloorPlanGalleryEmptyPlanLabel": {
+    "description": "Placeholder shown on a gallery card's own thumbnail when the set's plan has nothing drawn on it yet",
+    "context": "Displayed on an empty-state gallery card's own thumbnail",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanGallerySuggestedTooltip": "Suggested by the heading",
+  "@shotListFloorPlanGallerySuggestedTooltip": {
+    "description": "Tooltip of the star badge on the gallery card ocptSceneSetSuggestionOf suggests for the selected sequence's own heading",
+    "context": "Displayed on an empty-state gallery card",
     "type": "text",
     "placeholders": {}
   },
@@ -3104,12 +3125,66 @@
     "type": "text",
     "placeholders": {}
   },
-  "shotListFloorPlanDeleteSetConfirmMessage": "The set's own plan is kept — relinking it brings every placement back.",
+  "shotListFloorPlanDeleteSetConfirmMessage": "The set's plan is kept.",
   "@shotListFloorPlanDeleteSetConfirmMessage": {
-    "description": "Message of the confirmation dialog unlinking a set from the selected sequence",
+    "description": "First sentence of the confirmation dialog unlinking a set from the selected sequence — followed by shotListFloorPlanUnlinkCountMessage when the sequence has anything placed on it",
     "context": "Displayed in the confirm dialog opened from a set tab's own close action",
     "type": "text",
     "placeholders": {}
+  },
+  "shotListFloorPlanUnlinkCountCamerasPart": "{count, plural, one{1 camera} other{{count} cameras}}",
+  "@shotListFloorPlanUnlinkCountCamerasPart": {
+    "description": "The camera count part of the unlink dialog's own placement count sentence",
+    "context": "Displayed in the confirm dialog opened from a set tab's own close action",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "shotListFloorPlanUnlinkCountCharactersPart": "{count, plural, one{1 character} other{{count} characters}}",
+  "@shotListFloorPlanUnlinkCountCharactersPart": {
+    "description": "The character count part of the unlink dialog's own placement count sentence",
+    "context": "Displayed in the confirm dialog opened from a set tab's own close action",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "shotListFloorPlanUnlinkCountPropsPart": "{count, plural, one{1 prop} other{{count} props}}",
+  "@shotListFloorPlanUnlinkCountPropsPart": {
+    "description": "The prop count part of the unlink dialog's own placement count sentence",
+    "context": "Displayed in the confirm dialog opened from a set tab's own close action",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "shotListFloorPlanUnlinkCountConjunction": "and",
+  "@shotListFloorPlanUnlinkCountConjunction": {
+    "description": "The word joining the last two parts of the unlink dialog's own placement count list (\"cameras, characters {conjunction} props\")",
+    "context": "Displayed in the confirm dialog opened from a set tab's own close action",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanUnlinkCountMessage": "{total, plural, one{For this sequence, {list} is placed on it: it comes back if you link this set again.} other{For this sequence, {list} are placed on it: they come back if you link this set again.}}",
+  "@shotListFloorPlanUnlinkCountMessage": {
+    "description": "Second sentence of the unlink dialog, shown only when total is non-zero; list is the already-joined, already-localized list of non-zero categories (shotListFloorPlanUnlinkCountCamerasPart etc.)",
+    "context": "Displayed in the confirm dialog opened from a set tab's own close action",
+    "type": "text",
+    "placeholders": {
+      "total": {
+        "type": "int"
+      },
+      "list": {
+        "type": "String"
+      }
+    }
   },
   "shotListFloorPlanUnlinkSetConfirmAction": "Remove",
   "@shotListFloorPlanUnlinkSetConfirmAction": {
@@ -3714,9 +3789,34 @@
     "type": "text",
     "placeholders": {}
   },
-  "shotListFloorPlanCreateSetMenuAction": "Create set",
+  "shotListFloorPlanSuggestedSetMenuAction": "{name} — suggested",
+  "@shotListFloorPlanSuggestedSetMenuAction": {
+    "description": "Label of the add-set menu's own top entry, starred, linking the set ocptSceneSetSuggestionOf suggests for the selected sequence's own heading",
+    "context": "Displayed in the set tabs' own add-set menu",
+    "type": "text",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "shotListFloorPlanLinkExistingSetMenuAction": "Link an existing set",
+  "@shotListFloorPlanLinkExistingSetMenuAction": {
+    "description": "Label of the add-set menu's own submenu linking one of the project's other Resources sets to the selected sequence",
+    "context": "Displayed in the set tabs' own add-set menu",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanCreateSetMenuAction": "Create a set",
   "@shotListFloorPlanCreateSetMenuAction": {
-    "description": "Label of the add-set button's own menu entry creating a new, empty set",
+    "description": "Label of the add-set menu's own submenu creating a new, empty set in an existing or a new location",
+    "context": "Displayed in the set tabs' own add-set menu",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanNewLocationMenuAction": "New location…",
+  "@shotListFloorPlanNewLocationMenuAction": {
+    "description": "Label of the Create a set submenu's own last entry, minting a location of its own for the new set",
     "context": "Displayed in the set tabs' own add-set menu",
     "type": "text",
     "placeholders": {}
@@ -3728,7 +3828,7 @@
     "type": "text",
     "placeholders": {}
   },
-  "shotListFloorPlanCopyBlockingMenuAction": "Copy blocking from another shot",
+  "shotListFloorPlanCopyBlockingMenuAction": "Copy blocking from a shot…",
   "@shotListFloorPlanCopyBlockingMenuAction": {
     "description": "Label of the add-set button's own menu entry copying another shot's own blocking onto the focused shot",
     "context": "Displayed in the set tabs' own add-set menu",
@@ -5970,6 +6070,31 @@
   "resourcesScenesInAnotherSetLabel": "Also shot in another set",
   "@resourcesScenesInAnotherSetLabel": {
     "description": "Heading of the scene picker's group of scenes already shot in another set",
+    "context": "Displayed in the resources mode's location sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesSetFloorPlanCountLabel": "Floor plan · {count, plural, one{1 sequence} other{{count} sequences}}",
+  "@resourcesSetFloorPlanCountLabel": {
+    "description": "A set's own floor plan indicator, shown while it holds a live plan row",
+    "context": "Displayed in the resources mode's location sheet",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "resourcesSetNoFloorPlanLabel": "No floor plan yet",
+  "@resourcesSetNoFloorPlanLabel": {
+    "description": "A set's own floor plan indicator, shown while it holds no plan row at all",
+    "context": "Displayed in the resources mode's location sheet",
+    "type": "text",
+    "placeholders": {}
+  },
+  "resourcesOpenSetInShotListAction": "Open in shot list",
+  "@resourcesOpenSetInShotListAction": {
+    "description": "Action revealing a set's own floor plan in the shot list mode, on its first linked sequence",
     "context": "Displayed in the resources mode's location sheet",
     "type": "text",
     "placeholders": {}

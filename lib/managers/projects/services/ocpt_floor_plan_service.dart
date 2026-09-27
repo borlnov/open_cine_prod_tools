@@ -175,6 +175,55 @@ class OcptFloorPlanService {
     return OcptFloorPlanSnapshot.build(screenplayId: screenplayId, setsBySceneId: setsBySceneId);
   }
 
+  /// The **set-scope** symbols (`sceneId` and `shotId` both null) of every live Resources set of
+  /// [database], keyed by set id — a project-wide read, unlike [loadFloorPlans]'s own
+  /// per-screenplay one, used only to draw a lightweight thumbnail of a set's own décor
+  /// (`docs/plans/storyboard.md`, §10.4's empty-state gallery): no scene/shot-scope symbol, no
+  /// arrow, no underlay — a thumbnail draws the room's own shape, never what a sequence or a shot
+  /// staged on it.
+  Future<Map<String, List<OcptFloorPlanSymbol>>> loadSetScopeSymbolsByProjectSetId({
+    required OcptProjectDatabase database,
+  }) async {
+    final rows =
+        await (database.select(database.ocptFloorPlanSymbolsTable)..where(
+              (table) =>
+                  table.sceneId.isNull() & table.shotId.isNull() & table.isDeleted.not(),
+            ))
+            .get();
+
+    final bySetId = <String, List<OcptFloorPlanSymbol>>{};
+    for (final row in rows) {
+      bySetId.putIfAbsent(row.setId, () => []).add(OcptFloorPlanSymbol.fromRow(row));
+    }
+    return bySetId;
+  }
+
+  /// The ids of [setIds] that hold a live `floor_plan_sets` row — a plan that "exists" in the sense
+  /// the Resources location sheet's own set line reads (`docs/plans/storyboard.md`, §10.4): a
+  /// light read of ids alone, never a whole plan's worth of symbols and arrows, since the sheet
+  /// only ever needs to know whether one is there at all.
+  Future<Set<String>> liveSetIdsWithPlan({
+    required OcptProjectDatabase database,
+    required Iterable<String> setIds,
+  }) async {
+    final ids = setIds.toSet();
+    if (ids.isEmpty) {
+      return const {};
+    }
+
+    final query = database.selectOnly(database.ocptFloorPlanSetsTable)
+      ..addColumns([database.ocptFloorPlanSetsTable.id])
+      ..where(
+        database.ocptFloorPlanSetsTable.id.isIn(ids) & database.ocptFloorPlanSetsTable.isDeleted.not(),
+      );
+    final rows = await query.get();
+
+    return {
+      for (final row in rows)
+        if (row.read(database.ocptFloorPlanSetsTable.id) case final id?) id,
+    };
+  }
+
   /// Sets Resources set [setId]'s underlay to the file at [path], framed at
   /// `(xM, yM, widthM, heightM, rotationDeg)`: creates the plan row if it doesn't exist yet
   /// ([_ensurePlan]), tombstones its previous underlay `assets` row (if any) and mints a fresh one.

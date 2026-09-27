@@ -30,6 +30,8 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_lis
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_floor_plan_canvas.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_floor_plan_character_name_picker_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_floor_plan_focus_strip.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_floor_plan_set_gallery.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_floor_plan_set_tabs.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_scenario_coverage_export_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_shot_inspector_panel.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_shot_list_status_bar.dart';
@@ -825,7 +827,9 @@ void main() {
     }
 
     /// [mountOnFloorPlans], with a case created (and selected) on the sole sequence — the `＋ Set`
-    /// button's own menu opened, then its own `Create set` entry picked (R3).
+    /// button's own menu opened, its own `Create a set` submenu opened, then its own
+    /// `New location…` entry picked (a fresh test project holds no location yet to offer instead,
+    /// R5a's own redesign of the menu, `docs/plans/storyboard.md` §10.4).
     Future<OcptShotListBloc> mountWithACase(WidgetTester tester) async {
       final bloc = await mountOnFloorPlans(tester);
       final tr = Tr.of(tester.element(find.byType(OcptShotListMode)));
@@ -833,6 +837,8 @@ void main() {
       await tester.tap(find.widgetWithText(FilledButton, tr.shotListFloorPlanAddSetButtonLabel));
       await tester.pumpAndSettle();
       await tester.tap(find.text(tr.shotListFloorPlanCreateSetMenuAction));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(tr.shotListFloorPlanNewLocationMenuAction));
       await tester.pumpAndSettle();
       expect(bloc.state.selectedSetId, isNotNull);
 
@@ -856,6 +862,40 @@ void main() {
       expect(find.byType(OcptFloorPlanCanvas), findsNothing);
     });
 
+    testWidgets(
+      "the empty-state gallery fills the centre until the sequence has a linked set",
+      (tester) async {
+        await mountOnFloorPlans(tester);
+        final tr = Tr.of(tester.element(find.byType(OcptShotListMode)));
+
+        expect(find.byType(OcptFloorPlanSetGallery), findsOneWidget);
+        expect(find.text(tr.shotListFloorPlanGalleryTitle), findsOneWidget);
+        expect(find.byType(OcptFloorPlanCanvas), findsNothing);
+
+        // The header's own ＋ Set button is still reachable (this test's own way of linking a
+        // set), even while the gallery fills the centre.
+        expect(
+          find.widgetWithText(FilledButton, tr.shotListFloorPlanAddSetButtonLabel),
+          findsOneWidget,
+        );
+      },
+    );
+
+    testWidgets("linking the gallery's own Create a set… flow selects the new set's tab, "
+        "replacing the gallery", (tester) async {
+      final bloc = await mountOnFloorPlans(tester);
+      final tr = Tr.of(tester.element(find.byType(OcptShotListMode)));
+
+      await tester.tap(find.text(tr.shotListFloorPlanGalleryCreateSetAction));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(tr.shotListFloorPlanNewLocationMenuAction));
+      await tester.pumpAndSettle();
+
+      expect(bloc.state.selectedSetId, isNotNull);
+      expect(find.byType(OcptFloorPlanSetGallery), findsNothing);
+      expect(find.byType(OcptFloorPlanCanvas), findsOneWidget);
+    });
+
     testWidgets("＋ Set's own Create set entry names a case from the scene heading's place and "
         "selects it", (
       tester,
@@ -866,6 +906,8 @@ void main() {
       await tester.tap(find.widgetWithText(FilledButton, tr.shotListFloorPlanAddSetButtonLabel));
       await tester.pumpAndSettle();
       await tester.tap(find.text(tr.shotListFloorPlanCreateSetMenuAction));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(tr.shotListFloorPlanNewLocationMenuAction));
       await tester.pumpAndSettle();
 
       expect(bloc.state.setsOfSelectedSequence, hasLength(1));
@@ -916,6 +958,64 @@ void main() {
 
       expect(bloc.state.selectedSet!.symbols, isEmpty);
     });
+
+    testWidgets(
+      "unlinking a set whose sequence has placements on it counts them in the confirm dialog",
+      (tester) async {
+        final bloc = await mountWithACase(tester);
+        final tr = Tr.of(tester.element(find.byType(OcptShotListMode)));
+        final setId = bloc.state.selectedSetId!;
+
+        bloc.add(const OcptShotListShotCreationRequestedEvent());
+        await tester.pumpAndSettle();
+        bloc.add(const OcptShotListRightDockClosedEvent());
+        await tester.pumpAndSettle();
+
+        // One camera (shot-scope) and one character (shot-scope) on the selected shot.
+        await tester.tap(find.byTooltip(tr.shotListFloorPlanToolCameraAction));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byType(OcptFloorPlanCanvas));
+        await tester.pumpAndSettle();
+        // The character tool opens a name popover at once (R2); dismiss it without typing a name.
+        await tester.tap(find.byTooltip(tr.shotListFloorPlanToolCharacterAction));
+        await tester.pumpAndSettle();
+        await tester.tapAt(
+          tester.getCenter(find.byType(OcptFloorPlanCanvas)) + const Offset(40, 0),
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(find.text(tr.shotListFloorPlanCharacterNamePickerCancelAction));
+        await tester.pumpAndSettle();
+
+        expect(bloc.state.selectedSet!.symbols, hasLength(2));
+
+        // The set tab's own close control, not the selected character's delete handle.
+        await tester.tap(
+          find.descendant(of: find.byType(OcptFloorPlanSetTabs), matching: find.byIcon(Icons.close)),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.byType(OcptConfirmDialog), findsOneWidget);
+        expect(find.text(tr.shotListFloorPlanDeleteSetConfirmTitle), findsOneWidget);
+        final expectedMessage =
+            "${tr.shotListFloorPlanDeleteSetConfirmMessage} "
+            "${tr.shotListFloorPlanUnlinkCountMessage(
+              2,
+              "${tr.shotListFloorPlanUnlinkCountCamerasPart(1)} "
+              "${tr.shotListFloorPlanUnlinkCountConjunction} "
+              "${tr.shotListFloorPlanUnlinkCountCharactersPart(1)}",
+            )}";
+        expect(find.text(expectedMessage), findsOneWidget);
+
+        await tester.tap(find.text(tr.shotListFloorPlanUnlinkSetConfirmAction));
+        await tester.pumpAndSettle();
+
+        expect(bloc.state.setsOfSelectedSequence, isEmpty);
+        // The plan itself is kept: relinking brings every placement back.
+        bloc.add(OcptShotListSetLinkRequestedEvent(setId: setId));
+        await tester.pumpAndSettle();
+        expect(bloc.state.selectedSet!.symbols, hasLength(2));
+      },
+    );
 
     testWidgets(
       "a previewed version withholds ＋ Set, the set element tool and symbol placement",

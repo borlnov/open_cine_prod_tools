@@ -8,6 +8,7 @@ import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_covera
 import 'package:open_cine_prod_tools/models/ocpt_floor_plan_set.dart';
 import 'package:open_cine_prod_tools/models/ocpt_floor_plan_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_floor_plan_symbol.dart';
+import 'package:open_cine_prod_tools/models/ocpt_location.dart';
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_package_notice.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_package_report.dart';
@@ -197,6 +198,20 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
   /// Cleared whenever [selectedSequenceId] changes: a set only ever belongs to the sequence
   /// currently shown.
   final String? selectedSetId;
+
+  /// The project's whole Resources catalogue — every location and its own live sets, each
+  /// carrying the scenes it is linked to — as last read by `OcptLocationsService.loadLocations`
+  /// (`docs/plans/storyboard.md`, §10.4): the empty-state gallery's own catalogue, the `＋ Set`
+  /// menu's own `Link an existing set ▸`/`Create a set ▸` groups, and what
+  /// `ocptSceneSetSuggestionOf` reads to suggest one for the selected sequence's own heading.
+  /// Project-wide, unlike [floorPlanSnapshot]'s own per-screenplay read.
+  final List<OcptLocation> locations;
+
+  /// The set-scope symbols of every live Resources set of the project, keyed by set id, as last
+  /// read by `OcptFloorPlanService.loadSetScopeSymbolsByProjectSetId` — the empty-state gallery's
+  /// own thumbnail content (`docs/plans/storyboard.md`, §10.4): a thumbnail draws a set's own
+  /// décor alone, never what a sequence or a shot placed on it.
+  final Map<String, List<OcptFloorPlanSymbol>> setScopeSymbolsBySetId;
 
   /// The id of the symbol currently selected on the floor plans canvas, or null while none is.
   ///
@@ -702,6 +717,8 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
     required this.selectedAnnotationId,
     required this.floorPlanSnapshot,
     required this.selectedSetId,
+    required this.locations,
+    required this.setScopeSymbolsBySetId,
     required this.selectedFloorPlanSymbolId,
     required this.selectedFloorPlanArrowId,
     required this.pendingCharacterNamePromptSymbolId,
@@ -759,6 +776,8 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
       selectedAnnotationId = null,
       floorPlanSnapshot = null,
       selectedSetId = null,
+      locations = const [],
+      setScopeSymbolsBySetId = const {},
       selectedFloorPlanSymbolId = null,
       selectedFloorPlanArrowId = null,
       pendingCharacterNamePromptSymbolId = null,
@@ -828,6 +847,8 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
     OcptFloorPlanSnapshot? floorPlanSnapshot,
     String? selectedSetId,
     bool clearSelectedSetId = false,
+    List<OcptLocation>? locations,
+    Map<String, List<OcptFloorPlanSymbol>>? setScopeSymbolsBySetId,
     String? selectedFloorPlanSymbolId,
     bool clearSelectedFloorPlanSymbolId = false,
     String? selectedFloorPlanArrowId,
@@ -903,6 +924,8 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
         : (selectedAnnotationId ?? this.selectedAnnotationId),
     floorPlanSnapshot: floorPlanSnapshot ?? this.floorPlanSnapshot,
     selectedSetId: clearSelectedSetId ? null : (selectedSetId ?? this.selectedSetId),
+    locations: locations ?? this.locations,
+    setScopeSymbolsBySetId: setScopeSymbolsBySetId ?? this.setScopeSymbolsBySetId,
     selectedFloorPlanSymbolId: clearSelectedFloorPlanSymbolId
         ? null
         : (selectedFloorPlanSymbolId ?? this.selectedFloorPlanSymbolId),
@@ -1036,6 +1059,8 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
     selectedAnnotationId,
     floorPlanSnapshot,
     selectedSetId,
+    locations,
+    setScopeSymbolsBySetId,
     selectedFloorPlanSymbolId,
     selectedFloorPlanArrowId,
     pendingCharacterNamePromptSymbolId,

@@ -93,7 +93,13 @@ class _WorkspaceView extends StatelessWidget {
       OcptWorkspaceMode.breakdown => OcptBreakdownMode(key: key),
       OcptWorkspaceMode.budget => OcptBudgetMode(key: key),
       OcptWorkspaceMode.schedule => OcptScheduleMode(key: key),
-      OcptWorkspaceMode.shotList => OcptShotListMode(key: key),
+      OcptWorkspaceMode.shotList => OcptShotListMode(
+        key: key,
+        revealRequest: switch (state.revealRequest) {
+          final OcptShotListRevealRequest request => request,
+          _ => null,
+        },
+      ),
       OcptWorkspaceMode.resources => OcptResourcesMode(
         key: key,
         revealRequest: switch (state.revealRequest) {

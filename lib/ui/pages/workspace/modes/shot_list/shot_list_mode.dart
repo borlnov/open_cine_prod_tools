@@ -18,6 +18,7 @@ import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
 import 'package:open_cine_prod_tools/models/ocpt_storyboard_annotation.dart';
 import 'package:open_cine_prod_tools/models/ocpt_workspace_export_entry.dart';
 import 'package:open_cine_prod_tools/models/ocpt_workspace_export_pick.dart';
+import 'package:open_cine_prod_tools/models/ocpt_workspace_reveal_request.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_layer.dart';
 import 'package:open_cine_prod_tools/types/ocpt_route.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_centre_view.dart';
@@ -33,6 +34,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_floor_plan_copy_blocking_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_floor_plan_palette.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_floor_plan_placements_group.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_floor_plan_set_gallery.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_floor_plan_set_tabs.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_floor_plan_view.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_scenario_coverage_export_dialog.dart';
@@ -68,7 +70,9 @@ import 'package:open_cine_prod_tools/ui/utils/ocpt_project_version_notice_messag
 import 'package:open_cine_prod_tools/ui/utils/ocpt_shot_list_labels.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_workspace_episode_export_tag.dart';
 import 'package:open_cine_prod_tools/ui/widgets/ocpt_confirm_dialog.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_floor_plan_unlink_counts.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_responsive.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_scene_set_suggestion.dart';
 
 /// The shot list (découpage technique) production mode: the sequence tree on the left, the
 /// selected sequence's shot table in the centre, and the tabbed shot inspector on the right.
@@ -79,15 +83,25 @@ import 'package:open_cine_prod_tools/utils/ocpt_responsive.dart';
 /// is withheld, and the shell carries the band naming the version. Browsing the sequences, reading
 /// a shot and exporting the workbook all stay available: none of them touches the project.
 class OcptShotListMode extends StatelessWidget {
+  /// What this mode should open on, handed over by the mode that sent the user here — today the
+  /// Resources location sheet's own `Open in shot list` — or null to open on the mode's own
+  /// default.
+  ///
+  /// It reaches [OcptShotListBloc] through its constructor rather than as an event, so the centre
+  /// view, the sequence and the set are part of the very first loaded state, exactly as
+  /// `OcptResourcesMode.revealRequest` reaches `OcptResourcesBloc`.
+  final OcptShotListRevealRequest? revealRequest;
+
   /// Creates the shot list mode.
-  const OcptShotListMode({super.key});
+  const OcptShotListMode({super.key, this.revealRequest});
 
   @override
   Widget build(BuildContext context) => BlocProvider(
     create: (context) => OcptShotListBloc(
       selectedEpisodeId: context.read<OcptWorkspaceBloc>().state.selectedEpisodeId,
+      revealRequest: revealRequest,
     ),
-    child: const _ShotListView(),
+    child: _ShotListView(hasRevealRequest: revealRequest != null),
   );
 }
 
@@ -98,8 +112,12 @@ class OcptShotListMode extends StatelessWidget {
 /// controller: the live dock fractions must survive a rebuild and be mutated imperatively while a
 /// divider is being dragged, without emitting a bloc state per frame.
 class _ShotListView extends StatefulWidget {
+  /// Whether the bloc this view was mounted with was handed a reveal request, and the workspace
+  /// therefore still holds one to clear.
+  final bool hasRevealRequest;
+
   /// Class constructor
-  const _ShotListView();
+  const _ShotListView({required this.hasRevealRequest});
 
   @override
   State<_ShotListView> createState() => _ShotListViewState();
@@ -115,6 +133,20 @@ class _ShotListViewState extends State<_ShotListView> {
     leftFraction: OcptWorkspaceDock.leftDefaultFraction,
     rightFraction: OcptWorkspaceDock.rightDefaultFraction,
   );
+
+  @override
+  void initState() {
+    super.initState();
+
+    if (widget.hasRevealRequest) {
+      // The bloc already has the request — it was handed it at construction, above — so all that
+      // is left is telling the workspace it has been taken into account, exactly as
+      // `_ResourcesViewState.initState` does for `OcptResourcesRevealRequest`. Dispatched here
+      // rather than during the build that reads it, since emitting a state while the tree is being
+      // built is not allowed.
+      context.read<OcptWorkspaceBloc>().add(const OcptWorkspaceRevealRequestConsumedEvent());
+    }
+  }
 
   @override
   void deactivate() {
@@ -631,6 +663,8 @@ class _ShotListViewState extends State<_ShotListView> {
 
     final isBoardShown = !isCompact && state.centreView == OcptShotListCentreView.board;
     final isFloorPlansShown = !isCompact && state.centreView == OcptShotListCentreView.floorPlans;
+    final hasNoLinkedSet =
+        sequence is OcptSceneShotSequence && state.setsOfSelectedSequence.isEmpty;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -663,7 +697,9 @@ class _ShotListViewState extends State<_ShotListView> {
             padding: const EdgeInsets.fromLTRB(24, 14, 24, 20),
             child: switch ((isBoardShown, isFloorPlansShown)) {
               (true, _) => _buildBoard(context, state, sequence),
-              (_, true) => _buildFloorPlanView(context, state, sequence),
+              (_, true) => hasNoLinkedSet
+                  ? _buildFloorPlanGallery(context, state, sequence)
+                  : _buildFloorPlanView(context, state, sequence),
               _ => OcptShotListTable(
                 shots: sequence.shots,
                 sequenceHeading: switch (sequence) {
@@ -795,15 +831,24 @@ class _ShotListViewState extends State<_ShotListView> {
     final tr = Tr.of(context);
     final isReadOnly = state.isPreviewingVersion;
     final canCreateSet = sequence is OcptSceneShotSequence && !isReadOnly;
+    final suggestedSetId = canCreateSet ? _suggestedSetIdOf(state, sequence) : null;
 
     return OcptFloorPlanSetTabs(
       sets: state.setsOfSelectedSequence,
       selectedSetId: state.selectedSetId,
       nameValueOf: (setId) => _setNameValueOf(state, setId),
       placedShotCountOf: (setId) => _placedShotCountOf(state, setId),
+      suggestedSetId: suggestedSetId,
+      suggestedSetName: _suggestedSetNameOf(state, suggestedSetId),
+      linkableSetsByLocation: canCreateSet ? _linkableSetsByLocationOf(state, sequence) : const [],
+      locationsForCreation: canCreateSet ? _locationsForCreationOf(state) : const [],
       onSetSelected: (setId) => bloc.add(OcptShotListSetSelectedEvent(setId: setId)),
+      onSetLinkRequested: canCreateSet
+          ? (setId) => bloc.add(OcptShotListSetLinkRequestedEvent(setId: setId))
+          : null,
       onSetCreationRequested: canCreateSet
-          ? () => bloc.add(const OcptShotListSetCreationRequestedEvent())
+          ? (locationId) =>
+                bloc.add(OcptShotListSetCreationRequestedEvent(locationId: locationId))
           : null,
       onSetDuplicateRequested: isReadOnly
           ? null
@@ -839,6 +884,92 @@ class _ShotListViewState extends State<_ShotListView> {
     }
     return 0;
   }
+
+  /// The empty-state gallery filling the centre while [sequence] has no linked Resources set yet
+  /// (`docs/plans/storyboard.md`, §10.4): one card per live set of the project, the heading's own
+  /// suggestion first and starred, a click linking it and selecting its tab, a `Create a set…`
+  /// action opening the very same menu the `＋ Set` button does. Every write is withheld under a
+  /// read-only preview.
+  Widget _buildFloorPlanGallery(
+    BuildContext context,
+    OcptShotListState state,
+    OcptSceneShotSequence sequence,
+  ) {
+    final bloc = context.read<OcptShotListBloc>();
+    final isReadOnly = state.isPreviewingVersion;
+
+    return OcptFloorPlanSetGallery(
+      locations: state.locations,
+      symbolsBySetId: state.setScopeSymbolsBySetId,
+      suggestedSetId: _suggestedSetIdOf(state, sequence),
+      onSetLinkRequested: isReadOnly
+          ? null
+          : (setId) => bloc.add(OcptShotListSetLinkRequestedEvent(setId: setId)),
+      onSetCreationRequested: isReadOnly
+          ? null
+          : (locationId) =>
+                bloc.add(OcptShotListSetCreationRequestedEvent(locationId: locationId)),
+    );
+  }
+
+  /// The id of the Resources set `ocptSceneSetSuggestionOf` suggests for [sequence]'s own heading,
+  /// or null while it suggests none, or while it already names one of [sequence]'s own linked sets
+  /// — the gallery's own starred card and the `＋ Set` menu's own top entry both read this, never
+  /// offering to link what is already linked.
+  String? _suggestedSetIdOf(OcptShotListState state, OcptSceneShotSequence sequence) {
+    final suggested = ocptSceneSetSuggestionOf(heading: sequence.heading, locations: state.locations);
+    if (suggested == null) {
+      return null;
+    }
+    final alreadyLinked = state.setsOfSelectedSequence.any(
+      (floorPlanSet) => floorPlanSet.id == suggested,
+    );
+    return alreadyLinked ? null : suggested;
+  }
+
+  /// [suggestedSetId]'s own display name, read off the project's whole Resources catalogue, or
+  /// null while [suggestedSetId] is.
+  String? _suggestedSetNameOf(OcptShotListState state, String? suggestedSetId) {
+    if (suggestedSetId == null) {
+      return null;
+    }
+    for (final location in state.locations) {
+      for (final set in location.sets) {
+        if (set.id == suggestedSetId) {
+          return set.name;
+        }
+      }
+    }
+    return null;
+  }
+
+  /// Every Resources set of the project **not already linked** to [sequence], grouped by its own
+  /// location's name — the `＋ Set` menu's own `Link an existing set ▸` submenu entries. A location
+  /// with nothing left to offer (every one of its sets already linked) is left out entirely.
+  List<(String, List<(String, String)>)> _linkableSetsByLocationOf(
+    OcptShotListState state,
+    OcptSceneShotSequence sequence,
+  ) {
+    final linkedIds = state.setsOfSelectedSequence.map((floorPlanSet) => floorPlanSet.id).toSet();
+
+    final groups = <(String, List<(String, String)>)>[];
+    for (final location in state.locations) {
+      final sets = [
+        for (final set in location.sets)
+          if (!linkedIds.contains(set.id)) (set.id, set.name),
+      ];
+      if (sets.isNotEmpty) {
+        groups.add((location.name, sets));
+      }
+    }
+    return groups;
+  }
+
+  /// Every location of the project, `(id, name)` — the `＋ Set` menu's own `Create a set ▸`
+  /// submenu's per-location entries.
+  List<(String, String)> _locationsForCreationOf(OcptShotListState state) => [
+    for (final location in state.locations) (location.id, location.name),
+  ];
 
   /// Opens `OcptFloorPlanCopyBlockingDialog` over the sequence's own other shots, then dispatches
   /// the copy once one is picked — the set tabs' own `＋ Set` menu `Copy blocking from another
@@ -891,9 +1022,11 @@ class _ShotListViewState extends State<_ShotListView> {
     return "";
   }
 
-  /// Shows the unlink confirmation dialog, then dispatches the set's unlinking if the user
-  /// confirmed it — a tab's own close action, which only asks. Not destructive
-  /// (`isDestructive: false`): the plan itself is kept, only the sequence link goes.
+  /// Shows the unlink confirmation dialog — naming what leaves the view, `docs/plans/
+  /// storyboard.md` §10.4's own unlink counts, when the sequence has anything placed on the set —
+  /// then dispatches the set's unlinking if the user confirmed it — a tab's own close action,
+  /// which only asks. Not destructive (`isDestructive: false`): the plan itself is kept, only the
+  /// sequence link goes.
   Future<void> _handleSetDeleteRequested(
     BuildContext context,
     OcptShotListState state,
@@ -904,7 +1037,7 @@ class _ShotListViewState extends State<_ShotListView> {
     final confirmed = await OcptConfirmDialog.show(
       context,
       title: tr.shotListFloorPlanDeleteSetConfirmTitle,
-      message: tr.shotListFloorPlanDeleteSetConfirmMessage,
+      message: _unlinkSetConfirmMessageOf(tr, state, setId),
       cancelLabel: tr.shotListDeleteConfirmCancelAction,
       confirmLabel: tr.shotListFloorPlanUnlinkSetConfirmAction,
       isDestructive: false,
@@ -917,6 +1050,54 @@ class _ShotListViewState extends State<_ShotListView> {
     }
 
     bloc.add(OcptShotListSetDeletionRequestedEvent(setId: setId));
+  }
+
+  /// The unlink dialog's own message: `The set's plan is kept.` alone, or followed by what leaves
+  /// the view — the cameras, characters and props this sequence placed on [setId], joined
+  /// naturally, when there is at least one (`docs/plans/storyboard.md`, §10.4).
+  String _unlinkSetConfirmMessageOf(Tr tr, OcptShotListState state, String setId) {
+    final sequence = state.selectedSequence;
+    final floorPlanSet = state.setsOfSelectedSequence
+        .where((candidate) => candidate.id == setId)
+        .firstOrNull;
+    if (sequence is! OcptSceneShotSequence || floorPlanSet == null) {
+      return tr.shotListFloorPlanDeleteSetConfirmMessage;
+    }
+
+    final counts = ocptFloorPlanUnlinkCountsOf(
+      floorPlanSet: floorPlanSet,
+      sceneId: sequence.sceneId,
+      shotIdsOfScene: sequence.shots.map((shot) => shot.id).toSet(),
+    );
+    final total = counts.cameras + counts.characters + counts.props;
+    if (total <= 0) {
+      return tr.shotListFloorPlanDeleteSetConfirmMessage;
+    }
+
+    final parts = [
+      if (counts.cameras > 0) tr.shotListFloorPlanUnlinkCountCamerasPart(counts.cameras),
+      if (counts.characters > 0) tr.shotListFloorPlanUnlinkCountCharactersPart(counts.characters),
+      if (counts.props > 0) tr.shotListFloorPlanUnlinkCountPropsPart(counts.props),
+    ];
+    final list = _naturalJoin(parts, tr.shotListFloorPlanUnlinkCountConjunction);
+
+    return "${tr.shotListFloorPlanDeleteSetConfirmMessage} "
+        "${tr.shotListFloorPlanUnlinkCountMessage(total, list)}";
+  }
+
+  /// Joins [parts] the way a natural sentence would: the word alone for one, `A {conjunction} B`
+  /// for two, `A, B {conjunction} C` for three or more (no comma before the last part — the
+  /// convention French and English share here) — a plain helper rather than an ICU message, since
+  /// ICU has no construct for joining however many non-zero parts a caller hands in.
+  String _naturalJoin(List<String> parts, String conjunction) {
+    if (parts.isEmpty) {
+      return "";
+    }
+    if (parts.length == 1) {
+      return parts.single;
+    }
+    final allButLast = parts.sublist(0, parts.length - 1).join(", ");
+    return "$allButLast $conjunction ${parts.last}";
   }
 
   /// Builds the floor plans view: the tray, the tool bar, the canvas and the focus strip, every

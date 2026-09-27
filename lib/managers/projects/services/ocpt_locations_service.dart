@@ -728,6 +728,67 @@ class OcptLocationsService {
     return createSet(database: database, locationId: source.locationId, name: name);
   }
 
+  /// Duplicates set [sourceSetId] into a fresh Resources set named [name] — in the same location,
+  /// its plan's own set-scope symbols copied, linked to scene [sceneId] — as **one atomic
+  /// operation**, run inside a single transaction (`docs/plans/storyboard.md`, §10.4): the three
+  /// steps [createSiblingSet]/`floorPlanService.duplicateSet`/[assignSceneToSet]
+  /// `OcptShotListBloc._onSetDuplicationRequested` used to call one by one now happen here, so a
+  /// failure at any step (an exception thrown by any of the three) rolls back every one of them —
+  /// no orphan set left minted with nothing copied onto it or linked to nothing.
+  ///
+  /// Drift nests a `transaction()` opened while another is already active as its own **savepoint**:
+  /// an exception aborts and rolls back that inner savepoint alone before propagating outward, so a
+  /// failure inside [createSiblingSet], `floorPlanService.duplicateSet` or [assignSceneToSet] — none
+  /// of which is caught here — keeps unwinding until it reaches *this* method's own outermost
+  /// `transaction()` call below, which is what actually discards the whole thing.
+  ///
+  /// Returns null, having written nothing durable, when [sourceSetId] doesn't name a live set
+  /// ([createSiblingSet] itself returning null) or when [assignSceneToSet] somehow refuses the link
+  /// (defensive only — `refusesUserWrite` was already checked above, before either sibling call ever
+  /// ran, so this can only trip if the connection turned read-only mid-transaction).
+  ///
+  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
+  Future<String?> duplicateSetForScene({
+    required OcptProjectDatabase database,
+    required String sourceSetId,
+    required String name,
+    required String sceneId,
+  }) async {
+    if (database.refusesUserWrite("duplicateSetForScene")) {
+      return null;
+    }
+
+    return database.transaction(() async {
+      final newSetId = await createSiblingSet(
+        database: database,
+        sourceSetId: sourceSetId,
+        name: name,
+      );
+      if (newSetId == null) {
+        return null;
+      }
+
+      await floorPlanService.duplicateSet(
+        database: database,
+        sourceSetId: sourceSetId,
+        destinationSetId: newSetId,
+      );
+
+      final linkId = await assignSceneToSet(database: database, sceneId: sceneId, setId: newSetId);
+      if (linkId == null) {
+        // Defensive: nothing observed in tests reaches this path (see this method's own doc
+        // comment), but leaving a freshly minted, freshly copied set with no link at all would be
+        // exactly the orphan this method exists to rule out — throwing is what rolls the whole
+        // transaction back rather than returning a set id the caller would have to clean up itself.
+        throw StateError(
+          "Could not link duplicated set $newSetId (from $sourceSetId) to scene $sceneId",
+        );
+      }
+
+      return newSetId;
+    });
+  }
+
   /// Moves set [setId] to [newPosition] (0-based) within location [locationId]'s sets, by giving
   /// it a `sortKey` sitting between the two sets it lands between. Writes **exactly one row**.
   ///
@@ -881,6 +942,59 @@ class OcptLocationsService {
       );
       await stamps.flush(database);
     });
+  }
+
+  /// The id of set [setId]'s own **first** live linked scene, in screenplay order — episode order
+  /// first (`screenplays.sortKey`), then that episode's own scene order (`scenes.position`) — and
+  /// the id of the episode (screenplay) it belongs to, or null while [setId] carries no live link
+  /// at all. What the Resources location sheet's own `Open in shot list`
+  /// (`OcptShotListRevealRequest`, `docs/plans/storyboard.md`, §10.4) reveals.
+  ///
+  /// Reads `screenplays`/`scenes` directly rather than through `OcptScreenplayService`
+  /// (dependencies never reference their dependents: that service already depends on this one, for
+  /// [loadScenes]'s own `episodeNumber` parameter) — the ordering this needs is a plain `sortKey`/
+  /// `position` sort, nothing an episode's own richer model would add.
+  Future<({String sceneId, String screenplayId})?> firstLinkedSceneOf({
+    required OcptProjectDatabase database,
+    required String setId,
+  }) async {
+    final linkRows =
+        await (database.select(
+              database.ocptSceneSetsTable,
+            )..where((table) => table.setId.equals(setId) & table.isDeleted.not()))
+            .get();
+    if (linkRows.isEmpty) {
+      return null;
+    }
+
+    final sceneIds = linkRows.map((row) => row.sceneId).toSet();
+    final sceneRows =
+        await (database.select(
+              database.ocptScenesTable,
+            )..where((table) => table.id.isIn(sceneIds) & table.isDeleted.not()))
+            .get();
+    if (sceneRows.isEmpty) {
+      return null;
+    }
+
+    final screenplayIds = sceneRows.map((row) => row.screenplayId).toSet();
+    final screenplayRows =
+        await (database.select(
+              database.ocptScreenplaysTable,
+            )..where((table) => table.id.isIn(screenplayIds) & table.isDeleted.not()))
+            .get();
+    final sortKeyByScreenplayId = {for (final row in screenplayRows) row.id: row.sortKey};
+
+    final sorted = sceneRows.toList()
+      ..sort((a, b) {
+        final byEpisode = (sortKeyByScreenplayId[a.screenplayId] ?? "").compareTo(
+          sortKeyByScreenplayId[b.screenplayId] ?? "",
+        );
+        return byEpisode != 0 ? byEpisode : a.position.compareTo(b.position);
+      });
+
+    final first = sorted.first;
+    return (sceneId: first.id, screenplayId: first.screenplayId);
   }
 
   /// Adds an availability window to location [locationId], and returns its freshly generated id.

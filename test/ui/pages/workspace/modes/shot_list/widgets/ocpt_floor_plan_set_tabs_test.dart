@@ -46,26 +46,46 @@ OcptFloorPlanSet _set({required String id, required String name}) => OcptFloorPl
       arrows: const [],
     );
 
+/// A bare [OcptFloorPlanSetTabs], every optional field at its own withheld/empty default — the
+/// tests below only override what they mean to exercise.
+Widget _tabs({
+  List<OcptFloorPlanSet> sets = const [],
+  String? selectedSetId,
+  String? suggestedSetId,
+  String? suggestedSetName,
+  List<(String, List<(String, String)>)> linkableSetsByLocation = const [],
+  List<(String, String)> locationsForCreation = const [],
+  ValueChanged<String>? onSetLinkRequested,
+  void Function(String?)? onSetCreationRequested,
+  ValueChanged<String>? onSetDuplicateRequested,
+  ValueChanged<String>? onCopyBlockingRequested,
+  void Function(String, String)? onSetNameChanged,
+  void Function(String, int)? onSetReordered,
+  ValueChanged<String>? onSetDeleteRequested,
+}) => OcptFloorPlanSetTabs(
+  sets: sets,
+  selectedSetId: selectedSetId,
+  nameValueOf: (setId) => sets.firstWhere((set) => set.id == setId, orElse: () => _set(id: setId, name: "")).name,
+  placedShotCountOf: (_) => 0,
+  suggestedSetId: suggestedSetId,
+  suggestedSetName: suggestedSetName,
+  linkableSetsByLocation: linkableSetsByLocation,
+  locationsForCreation: locationsForCreation,
+  onSetSelected: (_) {},
+  onSetLinkRequested: onSetLinkRequested,
+  onSetCreationRequested: onSetCreationRequested,
+  onSetDuplicateRequested: onSetDuplicateRequested,
+  onCopyBlockingRequested: onCopyBlockingRequested,
+  onSetNameChanged: onSetNameChanged,
+  onSetReordered: onSetReordered,
+  onSetDeleteRequested: onSetDeleteRequested,
+);
+
 void main() {
   testWidgets("the ＋ Set button's own visible text is the word alone, no + repeated", (
     tester,
   ) async {
-    await _pump(
-      tester,
-      OcptFloorPlanSetTabs(
-        sets: const [],
-        selectedSetId: null,
-        nameValueOf: (_) => "",
-        placedShotCountOf: (_) => 0,
-        onSetSelected: (_) {},
-        onSetCreationRequested: () {},
-        onSetDuplicateRequested: null,
-        onCopyBlockingRequested: null,
-        onSetNameChanged: null,
-        onSetReordered: null,
-        onSetDeleteRequested: null,
-      ),
-    );
+    await _pump(tester, _tabs(onSetCreationRequested: (_) {}));
     final tr = Tr.of(tester.element(find.byType(OcptFloorPlanSetTabs)));
 
     final label = tr.shotListFloorPlanAddSetButtonLabel;
@@ -88,7 +108,7 @@ void main() {
         nameValueOf: (setId) => setId == "set-a" ? "Kitchen" : "Hallway",
         placedShotCountOf: (setId) => setId == "set-a" ? 3 : 0,
         onSetSelected: (_) {},
-        onSetCreationRequested: () {},
+        onSetCreationRequested: (_) {},
         onSetDuplicateRequested: null,
         onCopyBlockingRequested: null,
         onSetNameChanged: null,
@@ -101,26 +121,39 @@ void main() {
     expect(find.text("0"), findsNothing);
   });
 
-  testWidgets("clicking ＋ Set opens a menu whose Create set entry fires the creation callback", (
+  testWidgets(
+    "clicking ＋ Set opens a menu whose Create a set submenu fires the creation callback per location",
+    (tester) async {
+      String? createdIn;
+
+      await _pump(
+        tester,
+        _tabs(
+          locationsForCreation: const [("loc-1", "Maison")],
+          onSetCreationRequested: (locationId) => createdIn = locationId ?? "new-location",
+        ),
+      );
+      final tr = Tr.of(tester.element(find.byType(OcptFloorPlanSetTabs)));
+
+      await tester.tap(find.widgetWithText(FilledButton, tr.shotListFloorPlanAddSetButtonLabel));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(tr.shotListFloorPlanCreateSetMenuAction));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text("Maison"));
+      await tester.pumpAndSettle();
+
+      expect(createdIn, "loc-1");
+    },
+  );
+
+  testWidgets("the Create a set submenu's own New location… entry fires with a null location", (
     tester,
   ) async {
-    var created = false;
+    String? createdIn = "unset";
 
     await _pump(
       tester,
-      OcptFloorPlanSetTabs(
-        sets: const [],
-        selectedSetId: null,
-        nameValueOf: (_) => "",
-        placedShotCountOf: (_) => 0,
-        onSetSelected: (_) {},
-        onSetCreationRequested: () => created = true,
-        onSetDuplicateRequested: null,
-        onCopyBlockingRequested: null,
-        onSetNameChanged: null,
-        onSetReordered: null,
-        onSetDeleteRequested: null,
-      ),
+      _tabs(onSetCreationRequested: (locationId) => createdIn = locationId),
     );
     final tr = Tr.of(tester.element(find.byType(OcptFloorPlanSetTabs)));
 
@@ -128,8 +161,74 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text(tr.shotListFloorPlanCreateSetMenuAction));
     await tester.pumpAndSettle();
+    await tester.tap(find.text(tr.shotListFloorPlanNewLocationMenuAction));
+    await tester.pumpAndSettle();
 
-    expect(created, isTrue);
+    expect(createdIn, isNull);
+  });
+
+  testWidgets("the suggestion entry, starred, links the suggested set", (tester) async {
+    String? linked;
+
+    await _pump(
+      tester,
+      _tabs(
+        suggestedSetId: "set-a",
+        suggestedSetName: "Kitchen",
+        onSetLinkRequested: (setId) => linked = setId,
+      ),
+    );
+    final tr = Tr.of(tester.element(find.byType(OcptFloorPlanSetTabs)));
+
+    await tester.tap(find.widgetWithText(FilledButton, tr.shotListFloorPlanAddSetButtonLabel));
+    await tester.pumpAndSettle();
+    expect(find.byIcon(Icons.star), findsOneWidget);
+
+    await tester.tap(find.text(tr.shotListFloorPlanSuggestedSetMenuAction("Kitchen")));
+    await tester.pumpAndSettle();
+
+    expect(linked, "set-a");
+  });
+
+  testWidgets(
+    "Link an existing set groups its own entries by location, and links the one picked",
+    (tester) async {
+      String? linked;
+
+      await _pump(
+        tester,
+        _tabs(
+          linkableSetsByLocation: const [
+            ("Maison", [("set-a", "Cuisine"), ("set-b", "Salon")]),
+          ],
+          onSetLinkRequested: (setId) => linked = setId,
+        ),
+      );
+      final tr = Tr.of(tester.element(find.byType(OcptFloorPlanSetTabs)));
+
+      await tester.tap(find.widgetWithText(FilledButton, tr.shotListFloorPlanAddSetButtonLabel));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(tr.shotListFloorPlanLinkExistingSetMenuAction));
+      await tester.pumpAndSettle();
+      expect(find.text("Maison"), findsOneWidget);
+
+      await tester.tap(find.text("Salon"));
+      await tester.pumpAndSettle();
+
+      expect(linked, "set-b");
+    },
+  );
+
+  testWidgets("Link an existing set is omitted from the menu when there is nothing to link", (
+    tester,
+  ) async {
+    await _pump(tester, _tabs(onSetLinkRequested: (_) {}, onSetCreationRequested: (_) {}));
+    final tr = Tr.of(tester.element(find.byType(OcptFloorPlanSetTabs)));
+
+    await tester.tap(find.widgetWithText(FilledButton, tr.shotListFloorPlanAddSetButtonLabel));
+    await tester.pumpAndSettle();
+
+    expect(find.text(tr.shotListFloorPlanLinkExistingSetMenuAction), findsNothing);
   });
 
   testWidgets(
@@ -141,18 +240,12 @@ void main() {
 
       await _pump(
         tester,
-        OcptFloorPlanSetTabs(
+        _tabs(
           sets: [setA],
           selectedSetId: "set-a",
-          nameValueOf: (_) => "Kitchen",
-          placedShotCountOf: (_) => 0,
-          onSetSelected: (_) {},
-          onSetCreationRequested: () {},
+          onSetCreationRequested: (_) {},
           onSetDuplicateRequested: (setId) => duplicated = setId,
           onCopyBlockingRequested: (setId) => copiedFrom = setId,
-          onSetNameChanged: null,
-          onSetReordered: null,
-          onSetDeleteRequested: null,
         ),
       );
       final tr = Tr.of(tester.element(find.byType(OcptFloorPlanSetTabs)));
@@ -174,22 +267,7 @@ void main() {
   testWidgets("no writable callback at all shows a disabled ＋ Set button, no menu", (
     tester,
   ) async {
-    await _pump(
-      tester,
-      OcptFloorPlanSetTabs(
-        sets: const [],
-        selectedSetId: null,
-        nameValueOf: (_) => "",
-        placedShotCountOf: (_) => 0,
-        onSetSelected: (_) {},
-        onSetCreationRequested: null,
-        onSetDuplicateRequested: null,
-        onCopyBlockingRequested: null,
-        onSetNameChanged: null,
-        onSetReordered: null,
-        onSetDeleteRequested: null,
-      ),
-    );
+    await _pump(tester, _tabs());
     final tr = Tr.of(tester.element(find.byType(OcptFloorPlanSetTabs)));
 
     final button = tester.widget<FilledButton>(
