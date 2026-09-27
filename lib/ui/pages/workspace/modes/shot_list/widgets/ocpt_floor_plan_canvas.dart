@@ -2015,20 +2015,22 @@ class _OcptFloorPlanScopeBubble extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return Material(
-      elevation: 4,
-      color: theme.colorScheme.surfaceContainerHigh,
-      borderRadius: BorderRadius.circular(ocptRadiusSmall),
-      child: Padding(
-        padding: const EdgeInsets.all(4),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            TextButton(onPressed: onCancelRequested, child: Text(cancelLabel)),
-            TextButton(onPressed: onOnlyRequested, child: Text(onlyLabel)),
-            FilledButton(onPressed: onEveryRequested, child: Text(everyLabel)),
-          ],
+    return IntrinsicWidth(
+      child: Material(
+        elevation: 4,
+        color: theme.colorScheme.surfaceContainerHigh,
+        borderRadius: BorderRadius.circular(ocptRadiusSmall),
+        child: Padding(
+          padding: const EdgeInsets.all(4),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              TextButton(onPressed: onCancelRequested, child: Text(cancelLabel)),
+              TextButton(onPressed: onOnlyRequested, child: Text(onlyLabel)),
+              FilledButton(onPressed: onEveryRequested, child: Text(everyLabel)),
+            ],
+          ),
         ),
       ),
     );

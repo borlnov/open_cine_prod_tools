@@ -191,6 +191,13 @@ void main() {
     String? selectedArrowId,
     List<String?>? arrowSelectedTo,
     List<({double? ctrlXM, double? ctrlYM})>? arrowCurveChangedTo,
+    OcptFloorPlanSymbolLiveOverride? pendingScopeLiveOverride,
+    String? scopeBubbleEveryLabel,
+    String? scopeBubbleOnlyLabel,
+    String? scopeBubbleCancelLabel,
+    VoidCallback? onScopeBubbleEveryRequested,
+    VoidCallback? onScopeBubbleOnlyRequested,
+    VoidCallback? onScopeBubbleCancelRequested,
   }) => OcptFloorPlanCanvas(
     floorPlanSet: _caseOf(symbol),
     shotRankByShotId: const {},
@@ -237,6 +244,13 @@ void main() {
     onSymbolLabelChanged: (_, __) {},
     onUnderlayTransformChanged: (_, __, ___, ____) {},
     onZoomSettled: (_) {},
+    pendingScopeLiveOverride: pendingScopeLiveOverride,
+    scopeBubbleEveryLabel: scopeBubbleEveryLabel,
+    scopeBubbleOnlyLabel: scopeBubbleOnlyLabel,
+    scopeBubbleCancelLabel: scopeBubbleCancelLabel,
+    onScopeBubbleEveryRequested: onScopeBubbleEveryRequested,
+    onScopeBubbleOnlyRequested: onScopeBubbleOnlyRequested,
+    onScopeBubbleCancelRequested: onScopeBubbleCancelRequested,
   );
 
   testWidgets(
@@ -810,4 +824,156 @@ void main() {
       expect(arrowCurveChangedTo.last.ctrlYM, isNull);
     },
   );
+
+  group("the scope bubble (R5b)", () {
+    testWidgets("shows nothing while no scope decision is pending", (tester) async {
+      final controller = OcptFloorPlanViewportController(zoom: 1);
+      await _pumpCanvas(
+        tester,
+        canvasOf(
+          symbol: _furnitureSymbol(xM: 0, yM: 0),
+          controller: controller,
+          movedTo: [],
+          resizedTo: [],
+        ),
+      );
+
+      expect(find.text("Every sequence (3)"), findsNothing);
+    });
+
+    testWidgets(
+      "shows the three actions once a decision is pending, each calling its own callback",
+      (tester) async {
+        final controller = OcptFloorPlanViewportController(zoom: 1);
+        var everyRequested = false;
+        var onlyRequested = false;
+        var cancelRequested = false;
+
+        await _pumpCanvas(
+          tester,
+          canvasOf(
+            symbol: _furnitureSymbol(xM: 0, yM: 0),
+            controller: controller,
+            movedTo: [],
+            resizedTo: [],
+            pendingScopeLiveOverride: const OcptFloorPlanSymbolLiveOverride(
+              symbolId: "sym-1",
+              xM: 2,
+              yM: 2,
+              widthM: 0.5,
+              heightM: 0.5,
+              rotationDeg: 0,
+            ),
+            scopeBubbleEveryLabel: "Every sequence (3)",
+            scopeBubbleOnlyLabel: "Only sequence 7",
+            scopeBubbleCancelLabel: "Cancel",
+            onScopeBubbleEveryRequested: () => everyRequested = true,
+            onScopeBubbleOnlyRequested: () => onlyRequested = true,
+            onScopeBubbleCancelRequested: () => cancelRequested = true,
+          ),
+        );
+
+        expect(find.text("Every sequence (3)"), findsOneWidget);
+        expect(find.text("Only sequence 7"), findsOneWidget);
+        expect(find.text("Cancel"), findsOneWidget);
+
+        await tester.tap(find.text("Only sequence 7"));
+        await tester.pump();
+        expect(onlyRequested, isTrue);
+        expect(everyRequested, isFalse);
+        expect(cancelRequested, isFalse);
+
+        await tester.tap(find.text("Every sequence (3)"));
+        await tester.pump();
+        expect(everyRequested, isTrue);
+
+        await tester.tap(find.text("Cancel"));
+        await tester.pump();
+        expect(cancelRequested, isTrue);
+      },
+    );
+
+    testWidgets(
+      "clicking empty canvas while the bubble is showing calls onScopeBubbleCancelRequested, "
+      "not the plain background-tap handling",
+      (tester) async {
+        final controller = OcptFloorPlanViewportController(zoom: 1);
+        var cancelRequested = false;
+        String? selected = "sym-1";
+
+        await _pumpCanvas(
+          tester,
+          OcptFloorPlanCanvas(
+            floorPlanSet: _caseOf(_furnitureSymbol(xM: 0, yM: 0)),
+            shotRankByShotId: const {},
+            focusSceneId: "scene-1",
+            focusShotId: null,
+            previousShotId: null,
+            nextShotId: null,
+            isOnionSkinPreviousShown: false,
+            isOnionSkinNextShown: false,
+            onionSkinOpacity: 0.3,
+            hiddenLayers: const {},
+            hiddenCameraSymbolIds: const {},
+            isUnderlayHidden: false,
+            selectedSymbolId: "sym-1",
+            selectedArrowId: null,
+            pendingArrowAnchorSymbolId: null,
+            isMetricsShown: false,
+            isAllCamerasShown: false,
+            activeTool: OcptFloorPlanTool.select,
+            activeLayer: OcptFloorPlanLayer.set,
+            activeSetElementShape: OcptFloorPlanSetElementShape.wall,
+            activeSetElementScope: OcptFloorPlanScope.set,
+            activeLabel: "",
+            viewportController: controller,
+            isReadOnly: false,
+            symbolLabelValueOf: (_) => "",
+            onSymbolSelected: (symbolId) => selected = symbolId,
+            onSymbolPlaced: (_, __, ___, ____, _____, {setElementShape, label = ""}) {},
+            onSymbolMoved: (_, __, ___) {},
+            onSymbolResized: (_, __, ___) {},
+            onSymbolRotated: (_, __) {},
+            onSymbolFovChanged: (_, __) {},
+            onSymbolFovReachChanged: (_, __) {},
+            onSymbolDeleteRequested: (_) {},
+            onSymbolRestoreRequested: (_) {},
+            onArrowSymbolTapped: (_) {},
+            onArrowAnchorCancelled: () {},
+            onArrowSelected: (_) {},
+            onArrowCurveChanged: (_, __, ___) {},
+            onSymbolDuplicateRequested: (_) {},
+            onSymbolDuplicateDragged: (_, __, ___) {},
+            onGhostShotFocusRequested: (_) {},
+            onSymbolLabelChanged: (_, __) {},
+            onUnderlayTransformChanged: (_, __, ___, ____) {},
+            onZoomSettled: (_) {},
+            pendingScopeLiveOverride: const OcptFloorPlanSymbolLiveOverride(
+              symbolId: "sym-1",
+              xM: 0,
+              yM: 0,
+              widthM: 0.5,
+              heightM: 0.5,
+              rotationDeg: 0,
+            ),
+            scopeBubbleEveryLabel: "Every sequence (3)",
+            scopeBubbleOnlyLabel: "Only sequence 7",
+            scopeBubbleCancelLabel: "Cancel",
+            onScopeBubbleEveryRequested: () {},
+            onScopeBubbleOnlyRequested: () {},
+            onScopeBubbleCancelRequested: () => cancelRequested = true,
+          ),
+        );
+
+        // Tap the far corner of the canvas, well away from the symbol and the bubble.
+        final canvasTopLeft = tester.getTopLeft(find.byType(OcptFloorPlanCanvas));
+        await tester.tapAt(canvasTopLeft + const Offset(5, 5));
+        await tester.pump();
+
+        expect(cancelRequested, isTrue);
+        // The plain background-tap selection-clearing never ran instead.
+        expect(selected, "sym-1");
+      },
+    );
+  });
 }

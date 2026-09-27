@@ -1768,6 +1768,17 @@ class _ShotListViewState extends State<_ShotListView> {
           ),
     ];
 
+    // A selected override (visible or a hidden one's own ghost) is one of the sheet's own
+    // sequence-scope shapes, never a shot-scope one of [ownSymbols] — checked against the whole
+    // sheet, not just this shot's own placements (R5b).
+    final selectedSymbolId = state.selectedFloorPlanSymbolId;
+    final selectedShape = selectedSymbolId == null
+        ? null
+        : sheet.symbols.firstWhereOrNull((symbol) => symbol.symbolId == selectedSymbolId);
+    final isSelectedAnOverride =
+        selectedShape != null &&
+        (selectedShape.isOverride || selectedShape.isHiddenOverrideGhost);
+
     return OcptFloorPlanPlacementsGroup(
       setName: selectedSet.name,
       selectedSymbolId: state.selectedFloorPlanSymbolId,
@@ -1793,6 +1804,12 @@ class _ShotListViewState extends State<_ShotListView> {
           ? null
           : (symbolId, fovDeg) => context.read<OcptShotListBloc>().add(
               OcptShotListFloorPlanSymbolFovChangedEvent(symbolId: symbolId, fovDeg: fovDeg),
+            ),
+      isSelectedAnOverride: isSelectedAnOverride,
+      onRestoreOverrideRequested: isReadOnly || selectedSymbolId == null
+          ? null
+          : () => context.read<OcptShotListBloc>().add(
+              OcptShotListFloorPlanSymbolRestoreRequestedEvent(symbolId: selectedSymbolId),
             ),
     );
   }

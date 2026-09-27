@@ -88,6 +88,16 @@ class OcptFloorPlanPlacementsGroup extends StatelessWidget {
   /// section's own `−`/`+` stepper is clicked, or null while withheld.
   final void Function(String symbolId, double fovDeg)? onCameraFovChanged;
 
+  /// Whether [selectedSymbolId] names a scene-scope override of a set-scope original — visible or
+  /// hidden — rather than one of [cameras]/[characters]/[lights]/[handProps] (R5b,
+  /// `docs/plans/storyboard.md`, §10.4): when true, the Selection section shows `Changed for this
+  /// sequence` and a `Restore as in the set` action instead of the shot's own placement read-out.
+  final bool isSelectedAnOverride;
+
+  /// Called with [selectedSymbolId] when the Selection section's own `Restore as in the set`
+  /// action is clicked, or null while withheld. Reversible — no confirmation.
+  final VoidCallback? onRestoreOverrideRequested;
+
   /// Class constructor
   const OcptFloorPlanPlacementsGroup({
     super.key,
@@ -104,6 +114,8 @@ class OcptFloorPlanPlacementsGroup extends StatelessWidget {
     required this.onSymbolDeleteRequested,
     required this.onArrowDeleteRequested,
     required this.onCameraFovChanged,
+    this.isSelectedAnOverride = false,
+    this.onRestoreOverrideRequested,
   });
 
   @override
@@ -220,6 +232,32 @@ class OcptFloorPlanPlacementsGroup extends StatelessWidget {
     final theme = Theme.of(context);
     final selectedSymbolId = this.selectedSymbolId;
     final selectedArrowId = this.selectedArrowId;
+
+    if (selectedSymbolId != null && isSelectedAnOverride) {
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 8),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              tr.shotListFloorPlanOverrideChangedForSequenceLabel,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.tertiary,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            if (onRestoreOverrideRequested != null)
+              Align(
+                alignment: Alignment.centerLeft,
+                child: TextButton(
+                  onPressed: onRestoreOverrideRequested,
+                  child: Text(tr.shotListFloorPlanRestoreOverrideAction),
+                ),
+              ),
+          ],
+        ),
+      );
+    }
 
     if (selectedSymbolId != null) {
       for (final camera in cameras) {

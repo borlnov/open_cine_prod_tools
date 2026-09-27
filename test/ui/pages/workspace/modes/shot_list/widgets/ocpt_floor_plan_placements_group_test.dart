@@ -58,6 +58,8 @@ Widget _buildGroup({
   String? selectedSymbolId,
   String? selectedArrowId,
   List<OcptFloorPlanSymbolShape> characters = const [],
+  bool isSelectedAnOverride = false,
+  VoidCallback? onRestoreOverrideRequested,
 }) => OcptFloorPlanPlacementsGroup(
   setName: "Kitchen",
   selectedSymbolId: selectedSymbolId,
@@ -72,6 +74,8 @@ Widget _buildGroup({
   onSymbolDeleteRequested: (_) {},
   onArrowDeleteRequested: (_) {},
   onCameraFovChanged: (_, __) {},
+  isSelectedAnOverride: isSelectedAnOverride,
+  onRestoreOverrideRequested: onRestoreOverrideRequested,
 );
 
 void main() {
@@ -143,4 +147,70 @@ void main() {
       expect(find.text(tr.shotListFloorPlanSetGroupTitle), findsOneWidget);
     },
   );
+
+  group("a selected override (R5b)", () {
+    testWidgets(
+      "shows 'Changed for this sequence' and a Restore action instead of the shot's own "
+      "placement read-out",
+      (tester) async {
+        await _pump(
+          tester,
+          _buildGroup(
+            selectedSymbolId: "override-1",
+            isSelectedAnOverride: true,
+            onRestoreOverrideRequested: () {},
+          ),
+        );
+        final tr = Tr.of(tester.element(find.byType(OcptFloorPlanPlacementsGroup)));
+
+        expect(find.text(tr.shotListFloorPlanOverrideChangedForSequenceLabel), findsOneWidget);
+        expect(find.text(tr.shotListFloorPlanRestoreOverrideAction), findsOneWidget);
+        expect(find.text(tr.shotListFloorPlanSelectionNoneHint), findsNothing);
+      },
+    );
+
+    testWidgets("the Restore action calls onRestoreOverrideRequested", (tester) async {
+      var restoreRequested = false;
+      await _pump(
+        tester,
+        _buildGroup(
+          selectedSymbolId: "override-1",
+          isSelectedAnOverride: true,
+          onRestoreOverrideRequested: () => restoreRequested = true,
+        ),
+      );
+      final tr = Tr.of(tester.element(find.byType(OcptFloorPlanPlacementsGroup)));
+
+      await tester.tap(find.text(tr.shotListFloorPlanRestoreOverrideAction));
+      await tester.pump();
+
+      expect(restoreRequested, isTrue);
+    });
+
+    testWidgets("withheld under a read-only preview: no Restore button at all", (tester) async {
+      await _pump(
+        tester,
+        const OcptFloorPlanPlacementsGroup(
+          setName: "Kitchen",
+          selectedSymbolId: "override-1",
+          selectedArrowId: null,
+          cameras: [],
+          characters: [],
+          lights: [],
+          handProps: [],
+          arrows: [],
+          otherSets: [],
+          isReadOnly: true,
+          onSymbolDeleteRequested: null,
+          onArrowDeleteRequested: null,
+          onCameraFovChanged: null,
+          isSelectedAnOverride: true,
+        ),
+      );
+      final tr = Tr.of(tester.element(find.byType(OcptFloorPlanPlacementsGroup)));
+
+      expect(find.text(tr.shotListFloorPlanOverrideChangedForSequenceLabel), findsOneWidget);
+      expect(find.text(tr.shotListFloorPlanRestoreOverrideAction), findsNothing);
+    });
+  });
 }
