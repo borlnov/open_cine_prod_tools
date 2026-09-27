@@ -1213,7 +1213,10 @@ class _OcptFloorPlanCanvasState extends State<OcptFloorPlanCanvas> {
 
   /// The selected symbol's own resize, aim (rotate) and — for a camera whose own field-of-view
   /// wedge is drawn — edge handles, or an empty list while withheld under a read-only preview or
-  /// while [_isSymbolEditable] locks it under the current focus.
+  /// while [_isSymbolEditable] locks it under the current focus. **No resize handle for a
+  /// camera**: its own footprint is a fixed drawing convention, never a real-world dimension —
+  /// only its field of view (the edge/tip handles below) says anything about it. Characters and
+  /// lights keep their own resize handle.
   List<Widget> _buildSymbolHandles(
     OcptFloorPlanSymbolShape symbol,
     Size canvasSize,
@@ -1245,7 +1248,7 @@ class _OcptFloorPlanCanvasState extends State<OcptFloorPlanCanvas> {
     final theme = Theme.of(context);
 
     return [
-      if (widget.onSymbolResized != null)
+      if (widget.onSymbolResized != null && symbol.layer != OcptFloorPlanLayer.cameras)
         Positioned(
           left: resizeScreen.dx - _handleHitSize / 2,
           top: resizeScreen.dy - _handleHitSize / 2,

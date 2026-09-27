@@ -904,6 +904,85 @@ void main() {
     },
   );
 
+  testWidgets("a camera has no resize handle (characters and lights keep theirs)", (
+    tester,
+  ) async {
+    final controller = OcptFloorPlanViewportController(zoom: 1);
+    final symbol = _cameraSymbol(xM: 0, yM: 0);
+    final resizedTo = <({double widthM, double heightM})>[];
+
+    await _pumpCanvas(
+      tester,
+      OcptFloorPlanCanvas(
+        floorPlanSet: _caseOf(symbol),
+        shotRankByShotId: const {"shot-1": 1},
+        focusSceneId: "scene-1",
+        focusShotId: "shot-1",
+        previousShotId: null,
+        nextShotId: null,
+        isOnionSkinPreviousShown: false,
+        isOnionSkinNextShown: false,
+        onionSkinOpacity: 0.3,
+        hiddenLayers: const {},
+        hiddenCameraSymbolIds: const {},
+        isUnderlayHidden: false,
+        selectedSymbolId: symbol.id,
+        selectedArrowId: null,
+        pendingArrowAnchorSymbolId: null,
+        isMetricsShown: false,
+        isAllCamerasShown: false,
+        activeTool: OcptFloorPlanTool.select,
+        activeLayer: OcptFloorPlanLayer.set,
+        activeSetElementShape: OcptFloorPlanSetElementShape.wall,
+        activeSetElementScope: OcptFloorPlanScope.set,
+        activeLabel: "",
+        viewportController: controller,
+        isReadOnly: false,
+        symbolLabelValueOf: (_) => "",
+        onSymbolSelected: (_) {},
+        onSymbolPlaced: (_, __, ___, ____, _____, {setElementShape, label = ""}) {},
+        onSymbolMoved: (_, __, ___) {},
+        onSymbolResized: (_, widthM, heightM) => resizedTo.add((widthM: widthM, heightM: heightM)),
+        onSymbolRotated: (_, __) {},
+        onSymbolFovChanged: (_, __) {},
+        onSymbolFovReachChanged: (_, __) {},
+        onSymbolDeleteRequested: (_) {},
+        onSymbolRestoreRequested: (_) {},
+        onArrowSymbolTapped: (_) {},
+        onArrowAnchorCancelled: () {},
+        onArrowSelected: (_) {},
+        onArrowCurveChanged: (_, __, ___) {},
+        onSymbolDuplicateRequested: (_) {},
+        onSymbolDuplicateDragged: (_, __, ___) {},
+        onGhostShotFocusRequested: (_) {},
+        onSymbolLabelChanged: (_, __) {},
+        onUnderlayTransformChanged: (_, __, ___, ____) {},
+        onZoomSettled: (_) {},
+      ),
+    );
+
+    final canvasSize = tester.getSize(find.byType(OcptFloorPlanCanvas));
+    final canvasTopLeft = tester.getTopLeft(find.byType(OcptFloorPlanCanvas));
+    const cameraFootprintM = 0.3; // ocptFloorPlanCameraFootprintM
+    final resizeScreen = ocptFloorPlanScreenPointOf(
+      xM: symbol.xM + cameraFootprintM / 2,
+      yM: symbol.yM + cameraFootprintM / 2,
+      canvasSize: canvasSize,
+      zoom: controller.zoom,
+      pan: controller.pan,
+    );
+
+    // Where a resize handle would sit on any other symbol: a drag started there on a camera must
+    // never report a resize — either no handle caught the gesture at all, or the field-of-view
+    // wedge's own edge handle happens to sit nearby and reports through its own callback instead.
+    final gesture = await tester.startGesture(canvasTopLeft + resizeScreen);
+    await gesture.moveBy(const Offset(20, 20));
+    await gesture.up();
+    await tester.pump();
+
+    expect(resizedTo, isEmpty);
+  });
+
   group("the scope bubble (R5b)", () {
     testWidgets("shows nothing while no scope decision is pending", (tester) async {
       final controller = OcptFloorPlanViewportController(zoom: 1);
