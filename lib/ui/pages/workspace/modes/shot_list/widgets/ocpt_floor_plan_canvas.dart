@@ -322,21 +322,25 @@ class OcptFloorPlanCanvas extends StatefulWidget {
   /// symbol.
   final OcptFloorPlanSymbolLiveOverride? pendingScopeLiveOverride;
 
-  /// The scope bubble's own `Every sequence (n)` label, shown while [pendingScopeLiveOverride] is
-  /// set — null only when withheld altogether (defensive: the mode never leaves one field null
-  /// without the other two).
+  /// The scope bubble's own broader-scope label — `Every sequence (n)` at
+  /// [OcptFloorPlanOverrideLevel.sequence], `The whole sequence` at
+  /// [OcptFloorPlanOverrideLevel.shot] (R5c) — shown while [pendingScopeLiveOverride] is set; null
+  /// only when withheld altogether (defensive: the mode never leaves one field null without the
+  /// other two). The mode already resolves which level's wording this is — the bubble itself reads
+  /// three plain strings, never a level of its own.
   final String? scopeBubbleEveryLabel;
 
-  /// The scope bubble's own `Only sequence n` label. See [scopeBubbleEveryLabel].
+  /// The scope bubble's own narrower-scope label — `Only sequence n` or `Only shot n`. See
+  /// [scopeBubbleEveryLabel].
   final String? scopeBubbleOnlyLabel;
 
   /// The scope bubble's own `Cancel` label. See [scopeBubbleEveryLabel].
   final String? scopeBubbleCancelLabel;
 
-  /// Called when the scope bubble's own `Every sequence` button is tapped.
+  /// Called when the scope bubble's own broader-scope button is tapped.
   final VoidCallback? onScopeBubbleEveryRequested;
 
-  /// Called when the scope bubble's own `Only sequence n` button is tapped.
+  /// Called when the scope bubble's own narrower-scope button is tapped.
   final VoidCallback? onScopeBubbleOnlyRequested;
 
   /// Called when the scope bubble's own `Cancel` button is tapped, or a click lands on empty
@@ -1343,11 +1347,14 @@ class _OcptFloorPlanCanvasState extends State<OcptFloorPlanCanvas> {
     final resizeScreen =
         centre + ocptFloorPlanRotateVector(resizeLocal * pixelsPerMetre, symbol.rotationDeg);
 
+    final tr = Tr.of(context);
     return Positioned(
       left: resizeScreen.dx - _handleHitSize * 2,
       top: centre.dy - symbol.heightM / 2 * pixelsPerMetre - _handleHitSize,
       child: _RestoreHandle(
-        tooltip: Tr.of(context).shotListFloorPlanRestoreOverrideAction,
+        tooltip: symbol.overrideLevel == OcptFloorPlanOverrideLevel.shot
+            ? tr.shotListFloorPlanRestoreShotOverrideAction
+            : tr.shotListFloorPlanRestoreOverrideAction,
         onTap: () => widget.onSymbolRestoreRequested!(symbol.symbolId),
       ),
     );
@@ -1745,11 +1752,13 @@ class _OcptFloorPlanCanvasState extends State<OcptFloorPlanCanvas> {
     );
   }
 
-  /// The scope bubble (R5b, `docs/plans/storyboard.md`, §10.4): anchored just below
-  /// [override]'s own footprint, offering `Every sequence (n)` / `Only sequence n` / `Cancel` —
-  /// shown the instant a move/rotate/resize ends on a set-scope symbol whose own set is linked to
-  /// two or more sequences, in place of writing straight away. Works with mouse and touch alike:
-  /// three plain tappable buttons, nothing gesture-specific.
+  /// The scope bubble (R5b, `docs/plans/storyboard.md`, §10.4; extended to a shot level by R5c,
+  /// §10.5): anchored just below [override]'s own footprint, offering `Every sequence (n)` /
+  /// `Only sequence n` / `Cancel` for a set-scope symbol whose own set is linked to two or more
+  /// sequences, or `The whole sequence` / `Only shot n` / `Cancel` for a scene-scope symbol of a
+  /// sequence with two or more shots — shown the instant a move/rotate/resize ends, in place of
+  /// writing straight away. Works with mouse and touch alike: three plain tappable buttons,
+  /// nothing gesture-specific.
   Widget _buildScopeBubble(
     OcptFloorPlanSymbolLiveOverride override,
     Size canvasSize,

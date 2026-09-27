@@ -28,6 +28,23 @@ const int ocptFloorPlanMovementArrowColorArgb = 0xFF37474F;
 /// The ARGB colour a camera-move arrow is drawn with.
 const int ocptFloorPlanCameraMoveArrowColorArgb = 0xFF1565C0;
 
+/// Which level a symbol's own override marking ([OcptFloorPlanSymbolShape.isOverride],
+/// [OcptFloorPlanSymbolShape.isOverriddenOriginalGhost], [OcptFloorPlanSymbolShape
+/// .isHiddenOverrideGhost]) belongs to (`docs/plans/storyboard.md`, §10.5) — a scene-scope
+/// override replaces a **set-scope** original for one sequence; a shot-scope override replaces a
+/// **scene-scope** symbol (a plain prop/furniture, or itself already a sequence-level override)
+/// for one shot alone. Only ever set alongside one of those three flags — null otherwise. Purely
+/// what a UI reads to word the inspector's own "Changed for this sequence"/"Changed for this
+/// shot" and `Restore` labels differently; `OcptFloorPlanSheet.of` never treats the two levels
+/// differently beyond which original each replaces.
+enum OcptFloorPlanOverrideLevel {
+  /// A scene-scope override of a set-scope original.
+  sequence,
+
+  /// A shot-scope override of a scene-scope symbol.
+  shot,
+}
+
 /// Which glyph a symbol shape draws as, derived from its own [OcptFloorPlanSymbolShape.layer] —
 /// the one switch [OcptFloorPlanSheet] resolves so neither renderer has to re-derive it from the
 /// layer itself: [OcptFloorPlanLayer.characters] → [character], [OcptFloorPlanLayer.cameras] →
@@ -127,23 +144,28 @@ class OcptFloorPlanSymbolShape extends Equatable {
   /// [OcptFloorPlanSymbolGlyphKind.setElement].
   final OcptFloorPlanSetElementShape? setElementShape;
 
-  /// Whether this shape is a **live, visible** scene-scope override of a set-scope original — drawn
-  /// with a dashed outline and a small pin badge, still fully editable within its own sequence
-  /// (`docs/plans/storyboard.md`, §10.4). Mutually exclusive with [isOverriddenOriginalGhost] and
-  /// [isHiddenOverrideGhost].
+  /// Whether this shape is a **live, visible** override of an original one level up (a scene-scope
+  /// override of a set-scope original, or a shot-scope override of a scene-scope symbol, R5c) —
+  /// drawn with a dashed outline and a small pin badge, still fully editable within its own
+  /// sequence or shot. Mutually exclusive with [isOverriddenOriginalGhost] and
+  /// [isHiddenOverrideGhost]. See [overrideLevel] for which of the two levels this is.
   final bool isOverride;
 
-  /// Whether this shape is the **faint, non-interactive** ghost of a set-scope original replaced,
-  /// for this sequence, by a live *visible* override — drawn at the original's own geometry,
+  /// Whether this shape is the **faint, non-interactive** ghost of an original replaced, for this
+  /// sequence or shot, by a live *visible* override — drawn at the original's own geometry,
   /// [symbolId] naming the **original** (never selectable: `OcptFloorPlanCanvas` excludes it from
   /// hit-testing entirely). See [isOverride].
   final bool isOverriddenOriginalGhost;
 
-  /// Whether this shape is the **faint, selectable** ghost of a set-scope original masked, for this
-  /// sequence, by a **hidden** override — drawn at the original's own geometry, but [symbolId]
-  /// naming the **override** itself (not the original), so selecting it lets the inspector offer
-  /// `Restore`. See [isOverride].
+  /// Whether this shape is the **faint, selectable** ghost of an original masked, for this
+  /// sequence or shot, by a **hidden** override — drawn at the original's own geometry, but
+  /// [symbolId] naming the **override** itself (not the original), so selecting it lets the
+  /// inspector offer `Restore`. See [isOverride].
   final bool isHiddenOverrideGhost;
+
+  /// Which level [isOverride]/[isOverriddenOriginalGhost]/[isHiddenOverrideGhost] belongs to, or
+  /// null while none of the three is set — see [OcptFloorPlanOverrideLevel]'s own doc comment.
+  final OcptFloorPlanOverrideLevel? overrideLevel;
 
   /// Class constructor
   const OcptFloorPlanSymbolShape({
@@ -168,16 +190,18 @@ class OcptFloorPlanSymbolShape extends Equatable {
     this.isOverride = false,
     this.isOverriddenOriginalGhost = false,
     this.isHiddenOverrideGhost = false,
+    this.overrideLevel,
   });
 
-  /// Returns a copy of this shape with [symbolId] and the three override-marking flags overridden —
-  /// the only fields `OcptFloorPlanSheet.of` ever needs to adjust after the fact, since every other
-  /// field is already resolved by [OcptFloorPlanSheet._shapeOf].
+  /// Returns a copy of this shape with [symbolId], the three override-marking flags and
+  /// [overrideLevel] overridden — the only fields `OcptFloorPlanSheet.of` ever needs to adjust
+  /// after the fact, since every other field is already resolved by [OcptFloorPlanSheet._shapeOf].
   OcptFloorPlanSymbolShape copyWith({
     String? symbolId,
     bool? isOverride,
     bool? isOverriddenOriginalGhost,
     bool? isHiddenOverrideGhost,
+    OcptFloorPlanOverrideLevel? overrideLevel,
   }) => OcptFloorPlanSymbolShape(
     symbolId: symbolId ?? this.symbolId,
     shotId: shotId,
@@ -200,6 +224,7 @@ class OcptFloorPlanSymbolShape extends Equatable {
     isOverride: isOverride ?? this.isOverride,
     isOverriddenOriginalGhost: isOverriddenOriginalGhost ?? this.isOverriddenOriginalGhost,
     isHiddenOverrideGhost: isHiddenOverrideGhost ?? this.isHiddenOverrideGhost,
+    overrideLevel: overrideLevel ?? this.overrideLevel,
   );
 
   /// Object string representation, useful for debugging and logging.
@@ -231,6 +256,7 @@ class OcptFloorPlanSymbolShape extends Equatable {
     isOverride,
     isOverriddenOriginalGhost,
     isHiddenOverrideGhost,
+    overrideLevel,
   ];
 }
 
@@ -402,15 +428,24 @@ class OcptFloorPlanSheet extends Equatable {
   /// No arrow is drawn under the sequence focus: an arrow is always a shot's own movement, and the
   /// sequence focus shows no single shot's blocking.
   ///
-  /// **The override rule** (§10, R5b): a live scene-scope symbol of [focusSceneId] whose own
-  /// `overridesSymbolId` names a live set-scope symbol **replaces** it here — the set-scope
-  /// original itself is left out of the *editable* shapes, and a **visible** override
-  /// ([OcptFloorPlanSymbolShape.isOverride]) draws in its place, the original still drawn as a
+  /// **The override rule** (§10, R5b, extended to a second level by R5c/§10.5): a live scene-scope
+  /// symbol of [focusSceneId] whose own `overridesSymbolId` names a live set-scope symbol
+  /// **replaces** it here — the set-scope original itself is left out of the *editable* shapes,
+  /// and a **visible** override ([OcptFloorPlanSymbolShape.isOverride],
+  /// [OcptFloorPlanOverrideLevel.sequence]) draws in its place, the original still drawn as a
   /// faint, non-interactive ghost ([OcptFloorPlanSymbolShape.isOverriddenOriginalGhost]) at its own
   /// stored geometry. A **hidden** override draws nothing of its own at all: only the original's
   /// own faint ghost shows, this time *selectable* and naming the override
   /// ([OcptFloorPlanSymbolShape.isHiddenOverrideGhost]) so the inspector can restore it. A symbol of
   /// a *different* scene's own `overridesSymbolId` never hides anything from this sheet.
+  ///
+  /// **The very same rule runs a second time, scene → shot, under a shot focus only**: a live
+  /// shot-scope symbol of [focusShotId] whose own `overridesSymbolId` names one of the
+  /// scene-effective shapes just resolved (a plain prop/furniture, or itself already a
+  /// sequence-scope override) replaces *that* — visible or hidden, marked exactly the same way but
+  /// with [OcptFloorPlanOverrideLevel.shot] — never reaching past [focusShotId]'s own placements.
+  /// Onion-skin ghosts and "all cameras" ghosts are never resolved through this second level: a
+  /// ghosted neighbour's own shot-scope overrides, if any, simply draw as its own placements do.
   ///
   /// [shotRankByShotId] is every shot of the sequence's own 1-based display rank
   /// (`OcptShot.position` + 1, `docs/plans/storyboard.md`'s "the number is the shot's rank in the
@@ -451,11 +486,11 @@ class OcptFloorPlanSheet extends Equatable {
     // original's own faint, non-interactive ghost) while a **hidden** one draws nothing of its own
     // at all (only the original's own faint, *selectable* ghost, see this factory's own doc
     // comment). A plain scene-scope symbol (a prop; `overridesSymbolId` null) is neither.
-    final visibleOverrides = [
+    final visibleSequenceOverrides = [
       for (final symbol in sceneScopeSymbols)
         if (symbol.overridesSymbolId != null && !symbol.isHidden) symbol,
     ];
-    final hiddenOverrides = [
+    final hiddenSequenceOverrides = [
       for (final symbol in sceneScopeSymbols)
         if (symbol.overridesSymbolId != null && symbol.isHidden) symbol,
     ];
@@ -463,48 +498,123 @@ class OcptFloorPlanSheet extends Equatable {
       for (final symbol in sceneScopeSymbols) if (symbol.overridesSymbolId == null) symbol,
     ];
     final overriddenSetSymbolIds = {
-      for (final symbol in [...visibleOverrides, ...hiddenOverrides]) symbol.overridesSymbolId!,
+      for (final symbol in [...visibleSequenceOverrides, ...hiddenSequenceOverrides])
+        symbol.overridesSymbolId!,
     };
     final setScopeSymbolById = {for (final symbol in setScopeSymbols) symbol.id: symbol};
 
-    final sequenceSymbols = [
+    // The sequence's own effective shapes, set → scene already resolved — every one of these is a
+    // candidate a shot-scope override may, in turn, replace one level further down (R5c).
+    final sequenceEffectiveSymbols = [
       for (final symbol in setScopeSymbols)
         if (!overriddenSetSymbolIds.contains(symbol.id)) symbol,
       ...plainSceneSymbols,
-      ...visibleOverrides,
+      ...visibleSequenceOverrides,
     ];
+    final sequenceEffectiveById = {
+      for (final symbol in sequenceEffectiveSymbols) symbol.id: symbol,
+    };
 
-    final overrideSymbolIds = {for (final symbol in visibleOverrides) symbol.id};
+    // Scene → shot (R5c, §10.5): only under a shot focus, and only a live shot-scope symbol of
+    // [focusShotId] itself — never a ghosted neighbour's own placements.
+    var liveSequenceSymbols = sequenceEffectiveSymbols;
+    var visibleShotOverrides = const <OcptFloorPlanSymbol>[];
+    var hiddenShotOverrides = const <OcptFloorPlanSymbol>[];
+    if (focusShotId != null) {
+      final shotOverrideCandidates = [
+        for (final symbol in floorPlanSet.symbols)
+          if (symbol.shotId == focusShotId &&
+              symbol.overridesSymbolId != null &&
+              sequenceEffectiveById.containsKey(symbol.overridesSymbolId))
+            symbol,
+      ];
+      visibleShotOverrides = [
+        for (final symbol in shotOverrideCandidates) if (!symbol.isHidden) symbol,
+      ];
+      hiddenShotOverrides = [
+        for (final symbol in shotOverrideCandidates) if (symbol.isHidden) symbol,
+      ];
+      final overriddenSequenceSymbolIds = {
+        for (final symbol in [...visibleShotOverrides, ...hiddenShotOverrides])
+          symbol.overridesSymbolId!,
+      };
+      liveSequenceSymbols = [
+        for (final symbol in sequenceEffectiveSymbols)
+          if (!overriddenSequenceSymbolIds.contains(symbol.id)) symbol,
+      ];
+    }
+
+    final sequenceOverrideSymbolIds = {
+      for (final symbol in visibleSequenceOverrides) symbol.id,
+    };
+    final shotOverrideSymbolIds = {for (final symbol in visibleShotOverrides) symbol.id};
     final symbolShapes = <OcptFloorPlanSymbolShape>[
       for (final shape in _shapesOf(
-        sequenceSymbols,
+        liveSequenceSymbols,
         shotRankByShotId: shotRankByShotId,
         isGhost: false,
         showFieldOfView: showFieldOfView,
       ))
-        overrideSymbolIds.contains(shape.symbolId) ? shape.copyWith(isOverride: true) : shape,
+        if (sequenceOverrideSymbolIds.contains(shape.symbolId))
+          shape.copyWith(isOverride: true, overrideLevel: OcptFloorPlanOverrideLevel.sequence)
+        else if (shotOverrideSymbolIds.contains(shape.symbolId))
+          shape.copyWith(isOverride: true, overrideLevel: OcptFloorPlanOverrideLevel.shot)
+        else
+          shape,
       // The faint, non-interactive ghost of every visibly-overridden original, at its own stored
       // geometry, `symbolId` still naming the original — `OcptFloorPlanCanvas` never builds a hit
       // overlay for one of these.
-      for (final override in visibleOverrides)
+      for (final override in visibleSequenceOverrides)
         if (setScopeSymbolById[override.overridesSymbolId] case final original?)
           _shapeOf(
             original,
             isGhost: false,
             showFieldOfView: false,
             cameraLabel: null,
-          ).copyWith(isOverriddenOriginalGhost: true),
+          ).copyWith(
+            isOverriddenOriginalGhost: true,
+            overrideLevel: OcptFloorPlanOverrideLevel.sequence,
+          ),
       // The faint, *selectable* ghost of every hidden override's own original, at the original's
       // own stored geometry, but `symbolId` naming the **override** — selecting it is how the
       // inspector reaches `Restore` for an override the sequence currently masks entirely.
-      for (final override in hiddenOverrides)
+      for (final override in hiddenSequenceOverrides)
         if (setScopeSymbolById[override.overridesSymbolId] case final original?)
           _shapeOf(
             original,
             isGhost: false,
             showFieldOfView: false,
             cameraLabel: null,
-          ).copyWith(symbolId: override.id, isHiddenOverrideGhost: true),
+          ).copyWith(
+            symbolId: override.id,
+            isHiddenOverrideGhost: true,
+            overrideLevel: OcptFloorPlanOverrideLevel.sequence,
+          ),
+      // The shot-scope equivalent of the two ghost kinds just above, one level further down: the
+      // original here is already scene-effective (a plain symbol, or itself a sequence override).
+      for (final override in visibleShotOverrides)
+        if (sequenceEffectiveById[override.overridesSymbolId] case final original?)
+          _shapeOf(
+            original,
+            isGhost: false,
+            showFieldOfView: false,
+            cameraLabel: null,
+          ).copyWith(
+            isOverriddenOriginalGhost: true,
+            overrideLevel: OcptFloorPlanOverrideLevel.shot,
+          ),
+      for (final override in hiddenShotOverrides)
+        if (sequenceEffectiveById[override.overridesSymbolId] case final original?)
+          _shapeOf(
+            original,
+            isGhost: false,
+            showFieldOfView: false,
+            cameraLabel: null,
+          ).copyWith(
+            symbolId: override.id,
+            isHiddenOverrideGhost: true,
+            overrideLevel: OcptFloorPlanOverrideLevel.shot,
+          ),
     ];
 
     if (focusShotId == null) {
@@ -530,17 +640,27 @@ class OcptFloorPlanSheet extends Equatable {
       );
     }
 
+    // A hidden shot override must draw nothing of its own (only its own ghost, already added
+    // above) — excluded here, the one place its own shape would otherwise be built, since its
+    // `shotId` is [focusShotId] exactly like every other one of the focused shot's own symbols.
+    final hiddenShotOverrideIds = {for (final symbol in hiddenShotOverrides) symbol.id};
     final focusSymbols = [
-      for (final symbol in floorPlanSet.symbols) if (symbol.shotId == focusShotId) symbol,
+      for (final symbol in floorPlanSet.symbols)
+        if (symbol.shotId == focusShotId && !hiddenShotOverrideIds.contains(symbol.id)) symbol,
     ];
-    symbolShapes.addAll(
-      _shapesOf(
+    symbolShapes.addAll([
+      // A visible shot override is itself one of `focusSymbols` (its own `shotId` is
+      // [focusShotId]) — mark it here, the one place its own shape is actually built.
+      for (final shape in _shapesOf(
         focusSymbols,
         shotRankByShotId: shotRankByShotId,
         isGhost: false,
         showFieldOfView: showFieldOfView,
-      ),
-    );
+      ))
+        shotOverrideSymbolIds.contains(shape.symbolId)
+            ? shape.copyWith(isOverride: true, overrideLevel: OcptFloorPlanOverrideLevel.shot)
+            : shape,
+    ]);
 
     final ghostShotIds = [
       if (previousShotId != null) previousShotId,

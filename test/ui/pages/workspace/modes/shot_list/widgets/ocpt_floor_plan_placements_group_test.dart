@@ -58,7 +58,7 @@ Widget _buildGroup({
   String? selectedSymbolId,
   String? selectedArrowId,
   List<OcptFloorPlanSymbolShape> characters = const [],
-  bool isSelectedAnOverride = false,
+  OcptFloorPlanOverrideLevel? selectedOverrideLevel,
   VoidCallback? onRestoreOverrideRequested,
 }) => OcptFloorPlanPlacementsGroup(
   setName: "Kitchen",
@@ -74,7 +74,7 @@ Widget _buildGroup({
   onSymbolDeleteRequested: (_) {},
   onArrowDeleteRequested: (_) {},
   onCameraFovChanged: (_, __) {},
-  isSelectedAnOverride: isSelectedAnOverride,
+  selectedOverrideLevel: selectedOverrideLevel,
   onRestoreOverrideRequested: onRestoreOverrideRequested,
 );
 
@@ -157,7 +157,7 @@ void main() {
           tester,
           _buildGroup(
             selectedSymbolId: "override-1",
-            isSelectedAnOverride: true,
+            selectedOverrideLevel: OcptFloorPlanOverrideLevel.sequence,
             onRestoreOverrideRequested: () {},
           ),
         );
@@ -175,7 +175,7 @@ void main() {
         tester,
         _buildGroup(
           selectedSymbolId: "override-1",
-          isSelectedAnOverride: true,
+          selectedOverrideLevel: OcptFloorPlanOverrideLevel.sequence,
           onRestoreOverrideRequested: () => restoreRequested = true,
         ),
       );
@@ -204,7 +204,7 @@ void main() {
           onSymbolDeleteRequested: null,
           onArrowDeleteRequested: null,
           onCameraFovChanged: null,
-          isSelectedAnOverride: true,
+          selectedOverrideLevel: OcptFloorPlanOverrideLevel.sequence,
         ),
       );
       final tr = Tr.of(tester.element(find.byType(OcptFloorPlanPlacementsGroup)));
@@ -212,5 +212,27 @@ void main() {
       expect(find.text(tr.shotListFloorPlanOverrideChangedForSequenceLabel), findsOneWidget);
       expect(find.text(tr.shotListFloorPlanRestoreOverrideAction), findsNothing);
     });
+  });
+
+  group("a selected shot-scope override (R5c)", () {
+    testWidgets(
+      "shows 'Changed for this shot' and a 'Restore as in the sequence' action",
+      (tester) async {
+        await _pump(
+          tester,
+          _buildGroup(
+            selectedSymbolId: "shot-override-1",
+            selectedOverrideLevel: OcptFloorPlanOverrideLevel.shot,
+            onRestoreOverrideRequested: () {},
+          ),
+        );
+        final tr = Tr.of(tester.element(find.byType(OcptFloorPlanPlacementsGroup)));
+
+        expect(find.text(tr.shotListFloorPlanOverrideChangedForShotLabel), findsOneWidget);
+        expect(find.text(tr.shotListFloorPlanRestoreShotOverrideAction), findsOneWidget);
+        expect(find.text(tr.shotListFloorPlanOverrideChangedForSequenceLabel), findsNothing);
+        expect(find.text(tr.shotListFloorPlanRestoreOverrideAction), findsNothing);
+      },
+    );
   });
 }

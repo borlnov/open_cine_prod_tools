@@ -16,11 +16,13 @@ import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
+import 'package:open_cine_prod_tools/models/ocpt_floor_plan_sheet.dart' show OcptFloorPlanOverrideLevel;
 import 'package:open_cine_prod_tools/models/ocpt_shot_list_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_list_xlsx_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
 import 'package:open_cine_prod_tools/types/ocpt_export_outcome.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_layer.dart';
+import 'package:open_cine_prod_tools/types/ocpt_floor_plan_scope_choice.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_tool.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_centre_view.dart';
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
@@ -1124,6 +1126,127 @@ void main() {
         expect(override.overridesSymbolId, originalId);
         expect(override.sceneId, firstSequenceId);
         expect(override.isHidden, isTrue);
+      },
+    );
+
+    testWidgets(
+      "deleting a scene-scope element of a sequence with two or more shots asks the shot-level "
+      "extended dialog; its own destructive action tombstones it and every shot override, "
+      "never reaching a set-scope original (R5c)",
+      (tester) async {
+        final bloc = await mountWithACase(tester);
+        final tr = Tr.of(tester.element(find.byType(OcptShotListMode)));
+        final setId = bloc.state.selectedSetId!;
+        final sceneId = bloc.state.selectedSequenceId!;
+
+        bloc.add(const OcptShotListShotCreationRequestedEvent());
+        await tester.pumpAndSettle();
+        final firstShotId = bloc.state.selectedShotId!;
+        bloc.add(const OcptShotListShotCreationRequestedEvent());
+        await tester.pumpAndSettle();
+
+        // A plain scene-scope furniture item — never a sequence-level override of anything.
+        bloc.add(
+          OcptShotListFloorPlanSymbolPlacedEvent(
+            setId: setId,
+            layer: OcptFloorPlanLayer.set,
+            shotId: null,
+            sceneId: sceneId,
+            xM: 0,
+            yM: 0,
+          ),
+        );
+        await tester.pumpAndSettle();
+        final sceneSymbolId = bloc.state.selectedFloorPlanSymbolId!;
+
+        bloc.add(OcptShotListShotSelectedEvent(shotId: firstShotId));
+        await tester.pumpAndSettle();
+        bloc.add(OcptShotListFloorPlanSymbolSelectedEvent(symbolId: sceneSymbolId));
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.byTooltip(tr.shotListFloorPlanDeleteSymbolAction));
+        await tester.pumpAndSettle();
+
+        expect(find.byType(OcptConfirmDialog), findsOneWidget);
+        expect(find.text(tr.shotListFloorPlanDeleteFromSequenceAction), findsOneWidget);
+        final firstShotCode = bloc.state.sequences
+            .whereType<OcptSceneShotSequence>()
+            .single
+            .shots
+            .firstWhere((shot) => shot.id == firstShotId)
+            .code;
+        expect(find.text(tr.shotListFloorPlanRemoveFromShotAction(firstShotCode)), findsOneWidget);
+        // Never the sequence-level wording: this element has no set-scope original at all.
+        expect(find.text(tr.shotListFloorPlanDeleteEverywhereAction), findsNothing);
+
+        await tester.tap(find.text(tr.shotListFloorPlanDeleteFromSequenceAction));
+        await tester.pumpAndSettle();
+
+        expect(bloc.state.selectedSet!.symbols, isEmpty);
+      },
+    );
+
+    testWidgets(
+      "deleting a selected shot-scope override resolves to its scene-scope original first, "
+      "cascading every one of its own shot overrides (R5c)",
+      (tester) async {
+        final bloc = await mountWithACase(tester);
+        final tr = Tr.of(tester.element(find.byType(OcptShotListMode)));
+        final setId = bloc.state.selectedSetId!;
+        final sceneId = bloc.state.selectedSequenceId!;
+
+        bloc.add(const OcptShotListShotCreationRequestedEvent());
+        await tester.pumpAndSettle();
+        final firstShotId = bloc.state.selectedShotId!;
+        bloc.add(const OcptShotListShotCreationRequestedEvent());
+        await tester.pumpAndSettle();
+
+        bloc.add(
+          OcptShotListFloorPlanSymbolPlacedEvent(
+            setId: setId,
+            layer: OcptFloorPlanLayer.set,
+            shotId: null,
+            sceneId: sceneId,
+            xM: 0,
+            yM: 0,
+          ),
+        );
+        await tester.pumpAndSettle();
+        final sceneSymbolId = bloc.state.selectedFloorPlanSymbolId!;
+
+        bloc.add(OcptShotListShotSelectedEvent(shotId: firstShotId));
+        await tester.pumpAndSettle();
+        bloc.add(
+          OcptShotListFloorPlanScopeDecisionRequestedEvent(
+            symbolId: sceneSymbolId,
+            setId: setId,
+            level: OcptFloorPlanOverrideLevel.shot,
+            xM: 1,
+            yM: 1,
+          ),
+        );
+        await tester.pumpAndSettle();
+        bloc.add(
+          const OcptShotListFloorPlanScopeDecisionResolvedEvent(
+            choice: OcptFloorPlanScopeChoice.only,
+          ),
+        );
+        await tester.pumpAndSettle();
+        expect(bloc.state.selectedSet!.symbols, hasLength(2));
+        final overrideId = bloc.state.selectedSet!.symbols
+            .firstWhere((symbol) => symbol.id != sceneSymbolId)
+            .id;
+
+        bloc.add(OcptShotListFloorPlanSymbolSelectedEvent(symbolId: overrideId));
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.byTooltip(tr.shotListFloorPlanDeleteSymbolAction));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text(tr.shotListFloorPlanDeleteFromSequenceAction));
+        await tester.pumpAndSettle();
+
+        // Both the scene-scope original and its own shot override are gone.
+        expect(bloc.state.selectedSet!.symbols, isEmpty);
       },
     );
 

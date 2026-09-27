@@ -28,6 +28,7 @@ import 'package:open_cine_prod_tools/managers/projects/services/ocpt_storyboard_
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/ocpt_floor_plan_scope_decision.dart';
 import 'package:open_cine_prod_tools/models/ocpt_floor_plan_set.dart';
+import 'package:open_cine_prod_tools/models/ocpt_floor_plan_sheet.dart' show OcptFloorPlanOverrideLevel;
 import 'package:open_cine_prod_tools/models/ocpt_floor_plan_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_floor_plan_symbol.dart';
 import 'package:open_cine_prod_tools/models/ocpt_location.dart';
@@ -360,6 +361,9 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
       _onFloorPlanSymbolDeleteEverywhereRequested,
     );
     on<OcptShotListFloorPlanSymbolHideRequestedEvent>(_onFloorPlanSymbolHideRequested);
+    on<OcptShotListFloorPlanSymbolHideForShotRequestedEvent>(
+      _onFloorPlanSymbolHideForShotRequested,
+    );
     on<OcptShotListFloorPlanSymbolRestoreRequestedEvent>(_onFloorPlanSymbolRestoreRequested);
     on<OcptShotListFloorPlanScopeDecisionRequestedEvent>(_onFloorPlanScopeDecisionRequested);
     on<OcptShotListFloorPlanScopeDecisionResolvedEvent>(_onFloorPlanScopeDecisionResolved);
@@ -3167,6 +3171,82 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     }
   }
 
+  /// Masks scene-scope symbol `event.symbolId` for shot `event.targetShotId` alone — a hidden
+  /// shot-scope override, mirroring [_onFloorPlanSymbolHideRequested] one level down (R5c,
+  /// `docs/plans/storyboard.md`, §10.5): setting `isHidden` on one that already exists or creating
+  /// one copied from the scene symbol's own geometry — the alternative branch ("Remove from shot
+  /// n") of the shot-level extended delete confirmation.
+  Future<void> _onFloorPlanSymbolHideForShotRequested(
+    OcptShotListFloorPlanSymbolHideForShotRequestedEvent event,
+    Emitter<OcptShotListState> emitter,
+  ) async {
+    final project = _projectsManager.currentProject;
+    if (project == null) {
+      return;
+    }
+
+    final selected = _floorPlanSymbolById(event.symbolId);
+    if (selected == null) {
+      return;
+    }
+    // Only resolve "up" through `overridesSymbolId` when `selected` is itself a shot-scope
+    // override — a scene-scope symbol's own `overridesSymbolId` (if any) names a *different*
+    // level's original (a set-scope one) and is never followed here.
+    final originalId = selected.shotId != null
+        ? (selected.overridesSymbolId ?? selected.id)
+        : selected.id;
+    final original = _floorPlanSymbolById(originalId);
+    if (original == null) {
+      return;
+    }
+
+    final existingOverride = state.floorPlanSnapshot?.setsById[selected.setId]?.symbols
+        .firstWhereOrNull(
+          (symbol) =>
+              symbol.overridesSymbolId == originalId && symbol.shotId == event.targetShotId,
+        );
+
+    final wasSelected = state.selectedFloorPlanSymbolId == event.symbolId;
+
+    try {
+      if (existingOverride != null) {
+        await _floorPlanService.updateSymbol(
+          database: project.database,
+          symbolId: existingOverride.id,
+          isHidden: const Value(true),
+        );
+      } else {
+        await _floorPlanService.placeSymbol(
+          database: project.database,
+          setId: original.setId,
+          sceneId: null,
+          shotId: event.targetShotId,
+          layer: original.layer,
+          xM: original.xM,
+          yM: original.yM,
+          rotationDeg: original.rotationDeg,
+          widthM: original.widthM,
+          heightM: original.heightM,
+          label: original.label,
+          setElementShape: original.setElementShape,
+          overridesSymbolId: originalId,
+          isHidden: true,
+        );
+      }
+      emitter(
+        state.copyWith(
+          floorPlanSnapshot: await _loadFloorPlans(project),
+          clearSelectedFloorPlanSymbolId: wasSelected,
+          clearSelectedFloorPlanArrowId: wasSelected,
+        ),
+      );
+    } catch (error) {
+      appLogger().e("A problem occurred when tried to hide symbol ${event.symbolId} for shot "
+          "${event.targetShotId} of the project at ${project.path}: $error");
+      emitter(state.copyWith(hasWriteError: true));
+    }
+  }
+
   /// Restores scene-scope override `event.symbolId` as in the set — tombstones it, so its own
   /// set-scope original reappears for that sequence. Reversible: never asks.
   Future<void> _onFloorPlanSymbolRestoreRequested(
@@ -3208,9 +3288,10 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     return null;
   }
 
-  /// Stores the pending scope decision, dispatched by the mode the instant a set-scope move,
-  /// rotate or resize ends on a symbol whose own set is linked to two or more sequences — no write
-  /// yet, [_onFloorPlanScopeDecisionResolved] is what actually writes (or drops) it.
+  /// Stores the pending scope decision, dispatched by the mode the instant a set-scope move (or,
+  /// R5c, a scene-scope one — see `event.level`) rotate or resize ends on a symbol two-or-more
+  /// sequences/shots share — no write yet, [_onFloorPlanScopeDecisionResolved] is what actually
+  /// writes (or drops) it.
   Future<void> _onFloorPlanScopeDecisionRequested(
     OcptShotListFloorPlanScopeDecisionRequestedEvent event,
     Emitter<OcptShotListState> emitter,
@@ -3220,6 +3301,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
         pendingFloorPlanScopeDecision: OcptFloorPlanScopeDecision(
           symbolId: event.symbolId,
           setId: event.setId,
+          level: event.level,
           sequenceCount: event.sequenceCount,
           xM: event.xM,
           yM: event.yM,
@@ -3231,11 +3313,12 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     );
   }
 
-  /// Resolves `state.pendingFloorPlanScopeDecision` — writes it onto the original (`every`), onto a
-  /// scene-scope override of the focused sequence (`only`, updating one that already exists or
-  /// creating one), or simply drops it (`cancel`, the element snaps back since nothing was ever
-  /// written). A no-op while nothing is pending, or the focused sequence isn't a scene-shot one
-  /// (defensive only: the bubble that dispatches `only` never shows otherwise).
+  /// Resolves `state.pendingFloorPlanScopeDecision` — writes it onto the original (`every`), onto
+  /// an override of the focused sequence or shot, per `decision.level` (`only`, updating one that
+  /// already exists or creating one), or simply drops it (`cancel`, the element snaps back since
+  /// nothing was ever written). A no-op while nothing is pending, or the focused sequence isn't a
+  /// scene-shot one, or (at shot level) no shot is focused (defensive only: the bubble that
+  /// dispatches `only` never shows otherwise).
   Future<void> _onFloorPlanScopeDecisionResolved(
     OcptShotListFloorPlanScopeDecisionResolvedEvent event,
     Emitter<OcptShotListState> emitter,
@@ -3270,17 +3353,30 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
           heightM: decision.heightM == null ? const Value.absent() : Value(decision.heightM),
         );
       } else {
-        final sequence = state.selectedSequence;
-        if (sequence is! OcptSceneShotSequence) {
-          emitter(state.copyWith(clearPendingFloorPlanScopeDecision: true));
-          return;
+        String? targetSceneId;
+        String? targetShotId;
+        if (decision.level == OcptFloorPlanOverrideLevel.sequence) {
+          final sequence = state.selectedSequence;
+          if (sequence is! OcptSceneShotSequence) {
+            emitter(state.copyWith(clearPendingFloorPlanScopeDecision: true));
+            return;
+          }
+          targetSceneId = sequence.sceneId;
+        } else {
+          final shotId = state.selectedShotId;
+          if (shotId == null) {
+            emitter(state.copyWith(clearPendingFloorPlanScopeDecision: true));
+            return;
+          }
+          targetShotId = shotId;
         }
 
         final existingOverride = state.floorPlanSnapshot?.setsById[decision.setId]?.symbols
             .firstWhereOrNull(
               (symbol) =>
                   symbol.overridesSymbolId == decision.symbolId &&
-                  symbol.sceneId == sequence.sceneId,
+                  symbol.sceneId == targetSceneId &&
+                  symbol.shotId == targetShotId,
             );
 
         if (existingOverride != null) {
@@ -3304,8 +3400,8 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
           await _floorPlanService.placeSymbol(
             database: project.database,
             setId: decision.setId,
-            sceneId: sequence.sceneId,
-            shotId: null,
+            sceneId: targetSceneId,
+            shotId: targetShotId,
             layer: original.layer,
             xM: decision.xM ?? original.xM,
             yM: decision.yM ?? original.yM,

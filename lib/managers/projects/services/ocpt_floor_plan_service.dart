@@ -391,10 +391,19 @@ class OcptFloorPlanService {
   /// **Enforces the scope invariant**: the scope [sceneId]/[shotId] derive
   /// (`ocptFloorPlanScopeOf`) must be one [_allowedScopesOf] allows for [layer], or this throws an
   /// [ArgumentError] rather than writing a row the rest of this service could never make sense of
-  /// again. [overridesSymbolId], when given, must name a **live** symbol on this very [setId], of
-  /// the very same [layer], itself set-scope (`sceneId` and `shotId` both null) — the "every
-  /// sequence / only this one" move (`docs/plans/storyboard.md`, §10): passing it on anything but a
-  /// scene-scope symbol, or naming a symbol that doesn't meet all three conditions, throws too.
+  /// again. [overridesSymbolId] is how a `set`/`props`-layer symbol is written as an **override**
+  /// two levels deep (`docs/plans/storyboard.md`, §10.5):
+  /// - A **scene-scope** override (`sceneId` set, `shotId` null) must name a live **set-scope**
+  ///   symbol of this very [setId] and [layer] — the "every sequence / only this one" move.
+  /// - A **shot-scope** override (`shotId` set, `sceneId` null — the only way a `set`/`props`
+  ///   symbol may ever be shot-scope at all, R5c) must name a live **scene-scope** symbol of this
+  ///   very [setId] and [layer], and [shotId] must belong to that scene-scope symbol's own
+  ///   sequence — the "the whole sequence / only this shot" move.
+  ///
+  /// Passing [overridesSymbolId] on a set-scope symbol, or naming a target that doesn't meet every
+  /// condition above, throws an [ArgumentError] too — and so does a shot-scope `set`/`props`
+  /// symbol with **no** [overridesSymbolId] at all: unlike a camera, character or light, that
+  /// layer is never natively shot-scope, only ever an override of a sequence's own symbol.
   ///
   /// [setElementShape] records a set-element symbol's visual primitive (a wall, a door, a piece of
   /// furniture, a free-hand shape). Passed null for a camera, character or light symbol — every
@@ -433,16 +442,21 @@ class OcptFloorPlanService {
       return null;
     }
 
-    _checkScopeInvariant(sceneId: sceneId, shotId: shotId, layer: layer);
-    if (overridesSymbolId != null &&
-        ocptFloorPlanScopeOf(sceneId: sceneId, shotId: shotId) != OcptFloorPlanScope.scene) {
+    _checkScopeInvariant(
+      sceneId: sceneId,
+      shotId: shotId,
+      layer: layer,
+      hasOverride: overridesSymbolId != null,
+    );
+    final scope = ocptFloorPlanScopeOf(sceneId: sceneId, shotId: shotId);
+    if (overridesSymbolId != null && scope == OcptFloorPlanScope.set) {
       throw ArgumentError(
-        "overridesSymbolId is only ever set on a scene-scope symbol, but this one has "
+        "overridesSymbolId is only ever set on a scene- or shot-scope symbol, but this one has "
         "sceneId: $sceneId, shotId: $shotId",
       );
     }
     if (isHidden && overridesSymbolId == null) {
-      throw ArgumentError("isHidden is only ever set on a scene-scope override");
+      throw ArgumentError("isHidden is only ever set on a scene- or shot-scope override");
     }
 
     final id = const Uuid().v4();
@@ -452,6 +466,11 @@ class OcptFloorPlanService {
       await _ensurePlan(database: database, setId: setId, stamps: stamps);
 
       if (overridesSymbolId != null) {
+        // A scene-scope override targets a set-scope original; a shot-scope override targets a
+        // scene-scope one — one level down each time (§10.5).
+        final expectedTargetScope = scope == OcptFloorPlanScope.shot
+            ? OcptFloorPlanScope.scene
+            : OcptFloorPlanScope.set;
         final target = await _liveSymbolRowOrNull(database: database, symbolId: overridesSymbolId);
         final targetScope = target == null
             ? null
@@ -459,11 +478,21 @@ class OcptFloorPlanService {
         if (target == null ||
             target.setId != setId ||
             target.layer != layer ||
-            targetScope != OcptFloorPlanScope.set) {
+            targetScope != expectedTargetScope) {
           throw ArgumentError(
-            "overridesSymbolId $overridesSymbolId must name a live set-scope symbol of the same "
-            "set and layer",
+            "overridesSymbolId $overridesSymbolId must name a live "
+            "${expectedTargetScope.name}-scope symbol of the same set and layer",
           );
+        }
+
+        if (scope == OcptFloorPlanScope.shot) {
+          final shotRow = await _liveShotRowOrNull(database: database, shotId: shotId!);
+          if (shotRow == null || shotRow.sceneId != target.sceneId) {
+            throw ArgumentError(
+              "shot $shotId must belong to the same sequence as the scene-scope symbol "
+              "$overridesSymbolId it overrides",
+            );
+          }
         }
       }
 
@@ -1155,24 +1184,36 @@ class OcptFloorPlanService {
   /// The scopes [layer] may land in — the scope matrix `OcptFloorPlanSymbolsTable`'s own doc
   /// comment describes. A `switch` with no `default`: a sixth layer must be placed on one side or
   /// another here rather than silently landing in whichever branch happens to be listed last.
+  ///
+  /// **Shot scope for `set`/`props` is allowed here only as an override** (R5c,
+  /// `docs/plans/storyboard.md`, §10.5) — [_checkScopeInvariant] is what turns that back into "a
+  /// *non*-override shot-scope `set`/`props` symbol still throws", since this set alone cannot
+  /// express "allowed, but only conditionally".
   static Set<OcptFloorPlanScope> _allowedScopesOf(OcptFloorPlanLayer layer) => switch (layer) {
-    OcptFloorPlanLayer.set => const {OcptFloorPlanScope.set, OcptFloorPlanScope.scene},
+    OcptFloorPlanLayer.set => const {
+      OcptFloorPlanScope.set,
+      OcptFloorPlanScope.scene,
+      OcptFloorPlanScope.shot,
+    },
     OcptFloorPlanLayer.cameras ||
     OcptFloorPlanLayer.characters ||
     OcptFloorPlanLayer.lights => const {OcptFloorPlanScope.shot},
     // A breakdown prop is placed for one sequence's own coverage (R5b, `docs/plans/storyboard.md`,
-    // §10.4): scene scope only, tightened from the earlier scene-or-shot matrix now that the
-    // palette's own props chips place at scene scope alone.
-    OcptFloorPlanLayer.props => const {OcptFloorPlanScope.scene},
+    // §10.4) and, R5c, may be re-dressed for one shot alone through a shot-scope override —
+    // set scope stays out of reach, a prop is never shared by the whole Resources set.
+    OcptFloorPlanLayer.props => const {OcptFloorPlanScope.scene, OcptFloorPlanScope.shot},
   };
 
   /// Throws an [ArgumentError] unless the scope [sceneId]/[shotId] derive is one [_allowedScopesOf]
-  /// allows for [layer]. See this class's own doc comment for why this is the one place the scope
-  /// invariant is checked.
+  /// allows for [layer] — and, for a `set`/`props` symbol at shot scope specifically, unless
+  /// [hasOverride] is true: that layer is never natively shot-scope, only ever a shot override of
+  /// a scene-scope symbol (R5c). See this class's own doc comment for why this is the one place the
+  /// scope invariant is checked.
   void _checkScopeInvariant({
     required String? sceneId,
     required String? shotId,
     required OcptFloorPlanLayer layer,
+    required bool hasOverride,
   }) {
     final scope = ocptFloorPlanScopeOf(sceneId: sceneId, shotId: shotId);
     final allowed = _allowedScopesOf(layer);
@@ -1180,6 +1221,16 @@ class OcptFloorPlanService {
       throw ArgumentError(
         "A floor plan symbol's scope must be one of $allowed for layer $layer, but got $scope "
         "(sceneId: $sceneId, shotId: $shotId)",
+      );
+    }
+
+    final isShotScopedSetOrProps =
+        scope == OcptFloorPlanScope.shot &&
+        (layer == OcptFloorPlanLayer.set || layer == OcptFloorPlanLayer.props);
+    if (isShotScopedSetOrProps && !hasOverride) {
+      throw ArgumentError(
+        "A shot-scope symbol of layer $layer must be a shot override (overridesSymbolId) of a "
+        "scene-scope symbol — it is never natively shot-scope",
       );
     }
   }
@@ -1284,6 +1335,16 @@ class OcptFloorPlanService {
     required String symbolId,
   }) => (database.select(database.ocptFloorPlanSymbolsTable)
         ..where((table) => table.id.equals(symbolId) & table.isDeleted.not()))
+      .getSingleOrNull();
+
+  /// Reads back the live shot row [shotId], or null if it doesn't exist or has been tombstoned —
+  /// [placeSymbol]'s own way of checking a shot-scope override's own shot belongs to the sequence
+  /// its target scene-scope symbol does (R5c).
+  Future<OcptShotRow?> _liveShotRowOrNull({
+    required OcptProjectDatabase database,
+    required String shotId,
+  }) => (database.select(database.ocptShotsTable)
+        ..where((table) => table.id.equals(shotId) & table.isDeleted.not()))
       .getSingleOrNull();
 
   /// Every live arrow row of set [setId].

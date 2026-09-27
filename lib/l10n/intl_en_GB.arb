@@ -3849,9 +3849,23 @@
     "type": "text",
     "placeholders": {}
   },
+  "shotListFloorPlanRestoreShotOverrideAction": "Restore as in the sequence",
+  "@shotListFloorPlanRestoreShotOverrideAction": {
+    "description": "Action tombstoning a shot-scope override, so the scene-scope symbol it replaced shows again for this shot (R5c)",
+    "context": "Displayed on the canvas's own Restore handle and the inspector's own Selection section",
+    "type": "text",
+    "placeholders": {}
+  },
   "shotListFloorPlanOverrideChangedForSequenceLabel": "Changed for this sequence",
   "@shotListFloorPlanOverrideChangedForSequenceLabel": {
     "description": "Label shown for a selected scene-scope override, before its own Restore action",
+    "context": "Displayed in the inspector's own Placements group, Selection section",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanOverrideChangedForShotLabel": "Changed for this shot",
+  "@shotListFloorPlanOverrideChangedForShotLabel": {
+    "description": "Label shown for a selected shot-scope override, before its own Restore action (R5c)",
     "context": "Displayed in the inspector's own Placements group, Selection section",
     "type": "text",
     "placeholders": {}
@@ -3910,6 +3924,53 @@
   "shotListFloorPlanDeleteEverywhereAction": "Delete everywhere",
   "@shotListFloorPlanDeleteEverywhereAction": {
     "description": "The extended delete confirmation's own destructive action: tombstones the original and every override of it, in every sequence",
+    "context": "Displayed in the confirm dialog opened from the canvas's own delete handle",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanScopeBubbleWholeSequenceAction": "The whole sequence",
+  "@shotListFloorPlanScopeBubbleWholeSequenceAction": {
+    "description": "The scope bubble's own action writing a scene-scope move/rotate/resize onto the original, shared by every shot of the sequence (R5c)",
+    "context": "Displayed in the scope bubble shown on releasing a scene-scope element of a sequence with two or more shots",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanScopeBubbleOnlyShotAction": "Only shot {shotCode}",
+  "@shotListFloorPlanScopeBubbleOnlyShotAction": {
+    "description": "The scope bubble's own action writing a scene-scope move/rotate/resize onto a shot-scope override of the focused shot alone (R5c)",
+    "context": "Displayed in the scope bubble shown on releasing a scene-scope element of a sequence with two or more shots",
+    "type": "text",
+    "placeholders": {
+      "shotCode": {
+        "type": "String"
+      }
+    }
+  },
+  "shotListFloorPlanDeleteSceneElementMultiShotMessage": "{count, plural, one{It is used by {count} other shot.} other{It is used by {count} other shots.}}",
+  "@shotListFloorPlanDeleteSceneElementMultiShotMessage": {
+    "description": "Message of the extended confirm dialog deleting a scene-scope element (or a shot override of one) belonging to a sequence with two or more shots (R5c)",
+    "context": "Displayed in the confirm dialog opened from the canvas's own delete handle",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "shotListFloorPlanRemoveFromShotAction": "Remove from shot {shotCode}",
+  "@shotListFloorPlanRemoveFromShotAction": {
+    "description": "The shot-level extended delete confirmation's own alternative action: masks the element for this shot alone, restorable (R5c)",
+    "context": "Displayed in the confirm dialog opened from the canvas's own delete handle",
+    "type": "text",
+    "placeholders": {
+      "shotCode": {
+        "type": "String"
+      }
+    }
+  },
+  "shotListFloorPlanDeleteFromSequenceAction": "Delete from the sequence",
+  "@shotListFloorPlanDeleteFromSequenceAction": {
+    "description": "The shot-level extended delete confirmation's own destructive action: tombstones the scene-scope symbol and every one of its own shot overrides (R5c)",
     "context": "Displayed in the confirm dialog opened from the canvas's own delete handle",
     "type": "text",
     "placeholders": {}

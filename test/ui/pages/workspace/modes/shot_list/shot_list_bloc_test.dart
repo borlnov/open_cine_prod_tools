@@ -4280,6 +4280,7 @@ void main() {
             OcptShotListFloorPlanScopeDecisionRequestedEvent(
               symbolId: symbolId,
               setId: setId,
+              level: OcptFloorPlanOverrideLevel.sequence,
               sequenceCount: 2,
               xM: 9,
               yM: 9,
@@ -4314,6 +4315,7 @@ void main() {
           OcptShotListFloorPlanScopeDecisionRequestedEvent(
             symbolId: symbolId,
             setId: setId,
+            level: OcptFloorPlanOverrideLevel.sequence,
             sequenceCount: 2,
             xM: 9,
             yM: 9,
@@ -4352,6 +4354,7 @@ void main() {
           OcptShotListFloorPlanScopeDecisionRequestedEvent(
             symbolId: symbolId,
             setId: setId,
+            level: OcptFloorPlanOverrideLevel.sequence,
             sequenceCount: 2,
             xM: 9,
             yM: 9,
@@ -4401,6 +4404,7 @@ void main() {
             OcptShotListFloorPlanScopeDecisionRequestedEvent(
               symbolId: symbolId,
               setId: setId,
+              level: OcptFloorPlanOverrideLevel.sequence,
               sequenceCount: 2,
               xM: 9,
               yM: 9,
@@ -4460,6 +4464,7 @@ void main() {
             OcptShotListFloorPlanScopeDecisionRequestedEvent(
               symbolId: symbolId,
               setId: setId,
+              level: OcptFloorPlanOverrideLevel.sequence,
               sequenceCount: 2,
               xM: 9,
               yM: 9,
@@ -4481,6 +4486,7 @@ void main() {
             OcptShotListFloorPlanScopeDecisionRequestedEvent(
               symbolId: symbolId,
               setId: setId,
+              level: OcptFloorPlanOverrideLevel.sequence,
               sequenceCount: 2,
               rotationDeg: 45,
             ),
@@ -4658,6 +4664,7 @@ void main() {
             OcptShotListFloorPlanScopeDecisionRequestedEvent(
               symbolId: originalId,
               setId: setId,
+              level: OcptFloorPlanOverrideLevel.sequence,
               sequenceCount: 2,
               xM: 3,
               yM: 3,
@@ -4809,6 +4816,242 @@ void main() {
           );
 
           expect(deleted.selectedSet!.symbols, isEmpty);
+
+          await bloc.close();
+        },
+      );
+    });
+
+    group("the scope bubble, shot level (R5c)", () {
+      /// Creates a shot on the sole selected sequence and returns its id, waiting for the
+      /// selection to actually change — mirrors "the shot half (M6)" group's own helper.
+      Future<String> createShot(OcptShotListBloc bloc) async {
+        final previousShotId = bloc.state.selectedShotId;
+        bloc.add(const OcptShotListShotCreationRequestedEvent());
+        final created = await waitForState(
+          bloc,
+          (state) => state.selectedShotId != null && state.selectedShotId != previousShotId,
+        );
+        return created.selectedShotId!;
+      }
+
+      /// Places a plain scene-scope furniture item (no `overridesSymbolId` — never a sequence
+      /// override) on [setId], for the sequence currently selected, and returns its id.
+      Future<String> placeSceneFurniture(OcptShotListBloc bloc, String setId) async {
+        final sceneId = bloc.state.selectedSequenceId!;
+        bloc.add(
+          OcptShotListFloorPlanSymbolPlacedEvent(
+            setId: setId,
+            layer: OcptFloorPlanLayer.set,
+            shotId: null,
+            sceneId: sceneId,
+            xM: 0,
+            yM: 0,
+          ),
+        );
+        final placed = await waitForState(bloc, (state) => state.selectedSet!.symbols.isNotEmpty);
+        return placed.selectedFloorPlanSymbolId!;
+      }
+
+      test(
+        "a scene-scope symbol of a sequence with two or more shots is a scope-decision "
+        "candidate at shot level",
+        () async {
+          await writeScreenplay(twoSceneText);
+          final bloc = buildBloc();
+          await waitForState(bloc, (state) => !state.isLoading);
+          final setId = await createCase(bloc);
+          final symbolId = await placeSceneFurniture(bloc, setId);
+          final firstShotId = await createShot(bloc);
+          await createShot(bloc);
+          bloc.add(OcptShotListShotSelectedEvent(shotId: firstShotId));
+          await waitForState(bloc, (state) => state.selectedShotId == firstShotId);
+
+          bloc.add(
+            OcptShotListFloorPlanScopeDecisionRequestedEvent(
+              symbolId: symbolId,
+              setId: setId,
+              level: OcptFloorPlanOverrideLevel.shot,
+              xM: 9,
+              yM: 9,
+            ),
+          );
+          final pending = await waitForState(
+            bloc,
+            (state) => state.pendingFloorPlanScopeDecision != null,
+          );
+
+          expect(pending.pendingFloorPlanScopeDecision!.symbolId, symbolId);
+          expect(pending.pendingFloorPlanScopeDecision!.level, OcptFloorPlanOverrideLevel.shot);
+          // Nothing written yet: the scene symbol still sits at its own placed position.
+          expect(pending.selectedSet!.symbols.single.xM, 0);
+
+          await bloc.close();
+        },
+      );
+
+      test("the whole sequence writes the change onto the scene-scope original itself", () async {
+        await writeScreenplay(twoSceneText);
+        final bloc = buildBloc();
+        await waitForState(bloc, (state) => !state.isLoading);
+        final setId = await createCase(bloc);
+        final symbolId = await placeSceneFurniture(bloc, setId);
+        await createShot(bloc);
+        await createShot(bloc);
+
+        bloc.add(
+          OcptShotListFloorPlanScopeDecisionRequestedEvent(
+            symbolId: symbolId,
+            setId: setId,
+            level: OcptFloorPlanOverrideLevel.shot,
+            xM: 7,
+            yM: 7,
+          ),
+        );
+        await waitForState(bloc, (state) => state.pendingFloorPlanScopeDecision != null);
+        bloc.add(
+          const OcptShotListFloorPlanScopeDecisionResolvedEvent(
+            choice: OcptFloorPlanScopeChoice.every,
+          ),
+        );
+        final resolved = await waitForState(
+          bloc,
+          (state) => state.pendingFloorPlanScopeDecision == null,
+        );
+
+        expect(resolved.selectedSet!.symbols, hasLength(1));
+        expect(resolved.selectedSet!.symbols.single.id, symbolId);
+        expect(resolved.selectedSet!.symbols.single.xM, 7);
+
+        await bloc.close();
+      });
+
+      test(
+        "only shot n creates a shot-scope override of the focused shot alone, leaving the "
+        "scene symbol untouched",
+        () async {
+          await writeScreenplay(twoSceneText);
+          final bloc = buildBloc();
+          await waitForState(bloc, (state) => !state.isLoading);
+          final setId = await createCase(bloc);
+          final symbolId = await placeSceneFurniture(bloc, setId);
+          final firstShotId = await createShot(bloc);
+          await createShot(bloc);
+          bloc.add(OcptShotListShotSelectedEvent(shotId: firstShotId));
+          await waitForState(bloc, (state) => state.selectedShotId == firstShotId);
+
+          bloc.add(
+            OcptShotListFloorPlanScopeDecisionRequestedEvent(
+              symbolId: symbolId,
+              setId: setId,
+              level: OcptFloorPlanOverrideLevel.shot,
+              xM: 5,
+              yM: 5,
+            ),
+          );
+          await waitForState(bloc, (state) => state.pendingFloorPlanScopeDecision != null);
+          bloc.add(
+            const OcptShotListFloorPlanScopeDecisionResolvedEvent(
+              choice: OcptFloorPlanScopeChoice.only,
+            ),
+          );
+          final resolved = await waitForState(
+            bloc,
+            (state) => state.selectedSet!.symbols.length == 2,
+          );
+
+          final original = resolved.selectedSet!.symbols.firstWhere(
+            (symbol) => symbol.id == symbolId,
+          );
+          final override = resolved.selectedSet!.symbols.firstWhere(
+            (symbol) => symbol.id != symbolId,
+          );
+          expect(original.xM, 0);
+          expect(override.overridesSymbolId, symbolId);
+          expect(override.shotId, firstShotId);
+          expect(override.sceneId, isNull);
+          expect(override.xM, 5);
+
+          await bloc.close();
+        },
+      );
+
+      test(
+        "only shot n updates an override that already exists instead of creating a second one",
+        () async {
+          await writeScreenplay(twoSceneText);
+          final bloc = buildBloc();
+          await waitForState(bloc, (state) => !state.isLoading);
+          final setId = await createCase(bloc);
+          final symbolId = await placeSceneFurniture(bloc, setId);
+          final firstShotId = await createShot(bloc);
+          await createShot(bloc);
+          bloc.add(OcptShotListShotSelectedEvent(shotId: firstShotId));
+          await waitForState(bloc, (state) => state.selectedShotId == firstShotId);
+
+          for (final xM in [5.0, 6.0]) {
+            bloc.add(
+              OcptShotListFloorPlanScopeDecisionRequestedEvent(
+                symbolId: symbolId,
+                setId: setId,
+                level: OcptFloorPlanOverrideLevel.shot,
+                xM: xM,
+                yM: 0,
+              ),
+            );
+            await waitForState(bloc, (state) => state.pendingFloorPlanScopeDecision != null);
+            bloc.add(
+              const OcptShotListFloorPlanScopeDecisionResolvedEvent(
+                choice: OcptFloorPlanScopeChoice.only,
+              ),
+            );
+            await waitForState(
+              bloc,
+              (state) =>
+                  state.pendingFloorPlanScopeDecision == null &&
+                  state.selectedSet!.symbols.length == 2,
+            );
+          }
+
+          final override = bloc.state.selectedSet!.symbols.firstWhere(
+            (symbol) => symbol.id != symbolId,
+          );
+          expect(override.xM, 6);
+          expect(bloc.state.selectedSet!.symbols, hasLength(2));
+
+          await bloc.close();
+        },
+      );
+
+      test(
+        "hiding a scene-scope symbol with no shot override yet creates a hidden one, masking "
+        "it for the target shot",
+        () async {
+          await writeScreenplay(twoSceneText);
+          final bloc = buildBloc();
+          await waitForState(bloc, (state) => !state.isLoading);
+          final setId = await createCase(bloc);
+          final symbolId = await placeSceneFurniture(bloc, setId);
+          final firstShotId = await createShot(bloc);
+          await createShot(bloc);
+
+          bloc.add(
+            OcptShotListFloorPlanSymbolHideForShotRequestedEvent(
+              symbolId: symbolId,
+              targetShotId: firstShotId,
+            ),
+          );
+          final hidden = await waitForState(
+            bloc,
+            (state) => state.selectedSet!.symbols.length == 2,
+          );
+
+          final override = hidden.selectedSet!.symbols.firstWhere(
+            (symbol) => symbol.id != symbolId,
+          );
+          expect(override.overridesSymbolId, symbolId);
+          expect(override.shotId, firstShotId);
+          expect(override.isHidden, isTrue);
 
           await bloc.close();
         },

@@ -1295,14 +1295,8 @@ class _ShotListViewState extends State<_ShotListView> {
       onShotWalkRequested: (delta) =>
           bloc.add(OcptShotListFloorPlanShotWalkRequestedEvent(delta: delta)),
       pendingScopeLiveOverride: _pendingScopeLiveOverrideOf(state),
-      scopeBubbleEveryLabel: state.pendingFloorPlanScopeDecision == null
-          ? null
-          : tr.shotListFloorPlanScopeBubbleEveryAction(
-              state.pendingFloorPlanScopeDecision!.sequenceCount,
-            ),
-      scopeBubbleOnlyLabel: state.pendingFloorPlanScopeDecision == null
-          ? null
-          : tr.shotListFloorPlanScopeBubbleOnlyAction(_sequenceDisplayNumberFor(sequence)),
+      scopeBubbleEveryLabel: _scopeBubbleEveryLabelOf(state, tr),
+      scopeBubbleOnlyLabel: _scopeBubbleOnlyLabelOf(state, tr, sequence),
       scopeBubbleCancelLabel: state.pendingFloorPlanScopeDecision == null
           ? null
           : tr.shotListFloorPlanScopeBubbleCancelAction,
@@ -1360,6 +1354,33 @@ class _ShotListViewState extends State<_ShotListView> {
       heightM: decision.heightM ?? original.heightM ?? setElementDefault.heightM,
       rotationDeg: decision.rotationDeg ?? original.rotationDeg,
     );
+  }
+
+  /// The scope bubble's own broader-scope label — `Every sequence (n)` at
+  /// [OcptFloorPlanOverrideLevel.sequence], `The whole sequence` at
+  /// [OcptFloorPlanOverrideLevel.shot] (R5c) — or null while nothing is pending.
+  String? _scopeBubbleEveryLabelOf(OcptShotListState state, Tr tr) {
+    final decision = state.pendingFloorPlanScopeDecision;
+    if (decision == null) {
+      return null;
+    }
+    return decision.level == OcptFloorPlanOverrideLevel.shot
+        ? tr.shotListFloorPlanScopeBubbleWholeSequenceAction
+        : tr.shotListFloorPlanScopeBubbleEveryAction(decision.sequenceCount);
+  }
+
+  /// The scope bubble's own narrower-scope label — `Only sequence n` at
+  /// [OcptFloorPlanOverrideLevel.sequence], `Only shot n` at [OcptFloorPlanOverrideLevel.shot]
+  /// (R5c) — or null while nothing is pending.
+  String? _scopeBubbleOnlyLabelOf(OcptShotListState state, Tr tr, OcptShotSequence? sequence) {
+    final decision = state.pendingFloorPlanScopeDecision;
+    if (decision == null) {
+      return null;
+    }
+    if (decision.level == OcptFloorPlanOverrideLevel.shot) {
+      return tr.shotListFloorPlanScopeBubbleOnlyShotAction(state.selectedShot?.code ?? "");
+    }
+    return tr.shotListFloorPlanScopeBubbleOnlyAction(_sequenceDisplayNumberFor(sequence));
   }
 
   /// Whether each of [sequence]'s own shots has a live camera symbol on [selectedSet], keyed by
@@ -1459,9 +1480,10 @@ class _ShotListViewState extends State<_ShotListView> {
   }
 
   /// A move's own canvas callback: dispatches the plain move straight away, unless [symbolId]
-  /// names a set-scope symbol whose own set is linked to two or more sequences, in which case it
+  /// names a **set-scope** symbol whose own set is linked to two or more sequences, or a
+  /// **scene-scope** one whose own sequence holds two or more shots (R5c), in which case it
   /// dispatches the scope decision instead — the scope bubble asks before anything is written
-  /// (`docs/plans/storyboard.md`, §10.4).
+  /// (`docs/plans/storyboard.md`, §10.4/§10.5).
   void _handleSymbolMoved(
     BuildContext context,
     OcptShotListState state,
@@ -1479,7 +1501,8 @@ class _ShotListViewState extends State<_ShotListView> {
       OcptShotListFloorPlanScopeDecisionRequestedEvent(
         symbolId: symbolId,
         setId: decision.setId,
-        sequenceCount: decision.sequenceCount,
+        level: decision.level,
+        sequenceCount: decision.count,
         xM: xM,
         yM: yM,
       ),
@@ -1510,7 +1533,8 @@ class _ShotListViewState extends State<_ShotListView> {
       OcptShotListFloorPlanScopeDecisionRequestedEvent(
         symbolId: symbolId,
         setId: decision.setId,
-        sequenceCount: decision.sequenceCount,
+        level: decision.level,
+        sequenceCount: decision.count,
         widthM: widthM,
         heightM: heightM,
       ),
@@ -1536,19 +1560,26 @@ class _ShotListViewState extends State<_ShotListView> {
       OcptShotListFloorPlanScopeDecisionRequestedEvent(
         symbolId: symbolId,
         setId: decision.setId,
-        sequenceCount: decision.sequenceCount,
+        level: decision.level,
+        sequenceCount: decision.count,
         rotationDeg: rotationDeg,
       ),
     );
   }
 
-  /// Whether [symbolId] names a **live, set-scope** symbol (never a scene- or shot-scope one, and
-  /// never an override) whose own set is linked to two or more sequences — the condition under
-  /// which a move/rotate/resize asks the scope bubble instead of writing straight away — or null
-  /// otherwise (a single-sequence set: writes straight away, exactly as before). An already
-  /// scene-scope symbol (an override, or a prop) is always edited straight away too: it already
-  /// belongs to one sequence alone, nothing to ask.
-  ({String setId, int sequenceCount})? _scopeDecisionTargetOf(
+  /// Whether [symbolId] names a symbol whose move/rotate/resize should ask the scope bubble
+  /// instead of writing straight away, and at which level (`docs/plans/storyboard.md`, §10.4,
+  /// extended by §10.5):
+  /// - A **live, set-scope** symbol (never an override) whose own set is linked to two or more
+  ///   sequences — [OcptFloorPlanOverrideLevel.sequence].
+  /// - A **live, scene-scope** symbol (a prop, the sequence's own furniture, or itself already a
+  ///   sequence-scope override — never a shot-scope one) of a sequence holding two or more shots —
+  ///   [OcptFloorPlanOverrideLevel.shot].
+  ///
+  /// Null otherwise: a single-sequence set's own set-scope symbol, a single-shot sequence's own
+  /// scene-scope symbol, or any shot-scope symbol (already an override, or a camera/character/
+  /// light) — all of which write straight away, exactly as before.
+  ({String setId, int count, OcptFloorPlanOverrideLevel level})? _scopeDecisionTargetOf(
     OcptShotListState state,
     String symbolId,
   ) {
@@ -1557,25 +1588,46 @@ class _ShotListViewState extends State<_ShotListView> {
       return null;
     }
     final symbol = selectedSet.symbols.firstWhereOrNull((candidate) => candidate.id == symbolId);
-    if (symbol == null || symbol.sceneId != null || symbol.shotId != null) {
+    if (symbol == null || symbol.shotId != null) {
       return null;
     }
 
-    final sequenceCount = state.floorPlanSnapshot?.sequenceCountOfSet(selectedSet.id) ?? 0;
-    return sequenceCount >= 2 ? (setId: selectedSet.id, sequenceCount: sequenceCount) : null;
+    if (symbol.sceneId == null) {
+      final sequenceCount = state.floorPlanSnapshot?.sequenceCountOfSet(selectedSet.id) ?? 0;
+      return sequenceCount >= 2
+          ? (setId: selectedSet.id, count: sequenceCount, level: OcptFloorPlanOverrideLevel.sequence)
+          : null;
+    }
+
+    final sequence = state.selectedSequence;
+    final shotCount = sequence is OcptSceneShotSequence ? sequence.shots.length : 0;
+    return shotCount >= 2
+        ? (setId: selectedSet.id, count: 0, level: OcptFloorPlanOverrideLevel.shot)
+        : null;
   }
 
   /// Shows the delete confirmation dialog, then dispatches the symbol's deletion if the user
   /// confirmed it — the canvas's own delete handle and the Placements group's own remove action,
   /// which only ask.
   ///
-  /// **The extended, three-button dialog** (`docs/plans/storyboard.md`, §10.4) shows instead of
-  /// the plain one while [symbolId] (or, when it is a scene-scope override, the set-scope original
-  /// it overrides) is a **set-scope** symbol whose own set is linked to two or more sequences:
-  /// `Cancel` / `Remove from sequence <n>` (masks it for [state]'s own focused sequence alone,
-  /// restorable) / `Delete everywhere` (destructive, tombstones the original and every override of
-  /// it). Every other symbol (scene- or shot-scope, or a set-scope one on a single-sequence set)
-  /// keeps the plain two-button confirmation.
+  /// **Two extended, three-button dialogs** (`docs/plans/storyboard.md`, §10.4/§10.5), checked in
+  /// order — a symbol never qualifies for both, but a plain scene-scope override of a set element
+  /// could in principle sit at the boundary, and the broader "shared with other sequences" scope
+  /// takes priority when it does:
+  /// - While [symbolId] (or, when it is a scene-scope override, the set-scope original it
+  ///   overrides) is a **set-scope** symbol whose own set is linked to two or more sequences:
+  ///   `Cancel` / `Remove from sequence <n>` (masks it for [state]'s own focused sequence alone,
+  ///   restorable) / `Delete everywhere` (destructive, tombstones the original and every override
+  ///   of it, in every sequence).
+  /// - Otherwise, while it (or, when it is a shot-scope override, the scene-scope symbol it
+  ///   overrides) is a **scene-scope** symbol of a sequence holding two or more shots: `Cancel` /
+  ///   `Remove from shot <n>` (masks it for [state]'s own focused shot alone, restorable) /
+  ///   `Delete from the sequence` (destructive, tombstones the scene-scope symbol and every shot
+  ///   override of it — `OcptFloorPlanService.deleteSymbol`'s own cascade — never reaching the
+  ///   set-scope original it may itself override).
+  ///
+  /// Every other symbol (a shot-scope camera/character/light, or either scope on a
+  /// single-sequence/single-shot one) keeps the plain two-button confirmation.
   Future<void> _handleSymbolDeleteRequested(
     BuildContext context,
     OcptShotListState state,
@@ -1585,56 +1637,96 @@ class _ShotListViewState extends State<_ShotListView> {
     final tr = Tr.of(context);
     final multiSequence = _multiSequenceDeleteTargetOf(state, symbolId);
 
-    if (multiSequence == null) {
-      final confirmed = await OcptConfirmDialog.show(
+    if (multiSequence != null) {
+      final result = await OcptConfirmDialog.showWithAlternative(
         context,
         title: tr.shotListFloorPlanDeleteSymbolConfirmTitle,
-        message: tr.shotListFloorPlanDeleteSymbolConfirmMessage,
+        message: tr.shotListFloorPlanDeleteSetElementMultiSequenceMessage(
+          multiSequence.otherSequenceCount,
+        ),
         cancelLabel: tr.shotListDeleteConfirmCancelAction,
-        confirmLabel: tr.shotListDeleteConfirmDeleteAction,
+        alternativeLabel: tr.shotListFloorPlanRemoveFromSequenceAction(
+          multiSequence.focusedSequenceCode,
+        ),
+        confirmLabel: tr.shotListFloorPlanDeleteEverywhereAction,
       );
-      if (confirmed != true || !context.mounted) {
+      if (!context.mounted) {
         return;
       }
-      bloc.add(OcptShotListFloorPlanSymbolDeletionRequestedEvent(symbolId: symbolId));
+
+      switch (result) {
+        case OcptConfirmDialogResult.cancelled:
+          return;
+        case OcptConfirmDialogResult.confirmed:
+          bloc.add(OcptShotListFloorPlanSymbolDeleteEverywhereRequestedEvent(symbolId: symbolId));
+        case OcptConfirmDialogResult.alternative:
+          bloc.add(
+            OcptShotListFloorPlanSymbolHideRequestedEvent(
+              symbolId: symbolId,
+              targetSceneId: multiSequence.targetSceneId,
+            ),
+          );
+      }
       return;
     }
 
-    final result = await OcptConfirmDialog.showWithAlternative(
+    final multiShot = _multiShotDeleteTargetOf(state, symbolId);
+    if (multiShot != null) {
+      final result = await OcptConfirmDialog.showWithAlternative(
+        context,
+        title: tr.shotListFloorPlanDeleteSymbolConfirmTitle,
+        message: tr.shotListFloorPlanDeleteSceneElementMultiShotMessage(multiShot.otherShotCount),
+        cancelLabel: tr.shotListDeleteConfirmCancelAction,
+        alternativeLabel: tr.shotListFloorPlanRemoveFromShotAction(multiShot.focusedShotCode),
+        confirmLabel: tr.shotListFloorPlanDeleteFromSequenceAction,
+      );
+      if (!context.mounted) {
+        return;
+      }
+
+      switch (result) {
+        case OcptConfirmDialogResult.cancelled:
+          return;
+        case OcptConfirmDialogResult.confirmed:
+          // A shot override resolves to its scene-scope original first (mirrors
+          // `deleteSymbolEverywhere`'s own one-level resolution) — `deleteSymbol` already
+          // cascades every shot override of whichever id ends up deleted.
+          final selected = state.selectedSet?.symbols.firstWhereOrNull(
+            (candidate) => candidate.id == symbolId,
+          );
+          final resolvedId = selected != null && selected.shotId != null
+              ? (selected.overridesSymbolId ?? symbolId)
+              : symbolId;
+          bloc.add(OcptShotListFloorPlanSymbolDeletionRequestedEvent(symbolId: resolvedId));
+        case OcptConfirmDialogResult.alternative:
+          bloc.add(
+            OcptShotListFloorPlanSymbolHideForShotRequestedEvent(
+              symbolId: symbolId,
+              targetShotId: multiShot.targetShotId,
+            ),
+          );
+      }
+      return;
+    }
+
+    final confirmed = await OcptConfirmDialog.show(
       context,
       title: tr.shotListFloorPlanDeleteSymbolConfirmTitle,
-      message: tr.shotListFloorPlanDeleteSetElementMultiSequenceMessage(
-        multiSequence.otherSequenceCount,
-      ),
+      message: tr.shotListFloorPlanDeleteSymbolConfirmMessage,
       cancelLabel: tr.shotListDeleteConfirmCancelAction,
-      alternativeLabel: tr.shotListFloorPlanRemoveFromSequenceAction(
-        multiSequence.focusedSequenceCode,
-      ),
-      confirmLabel: tr.shotListFloorPlanDeleteEverywhereAction,
+      confirmLabel: tr.shotListDeleteConfirmDeleteAction,
     );
-    if (!context.mounted) {
+    if (confirmed != true || !context.mounted) {
       return;
     }
-
-    switch (result) {
-      case OcptConfirmDialogResult.cancelled:
-        return;
-      case OcptConfirmDialogResult.confirmed:
-        bloc.add(OcptShotListFloorPlanSymbolDeleteEverywhereRequestedEvent(symbolId: symbolId));
-      case OcptConfirmDialogResult.alternative:
-        bloc.add(
-          OcptShotListFloorPlanSymbolHideRequestedEvent(
-            symbolId: symbolId,
-            targetSceneId: multiSequence.targetSceneId,
-          ),
-        );
-    }
+    bloc.add(OcptShotListFloorPlanSymbolDeletionRequestedEvent(symbolId: symbolId));
   }
 
   /// Whether [symbolId] names a **set-scope** symbol (or a scene-scope override of one) whose own
   /// set is linked to two or more sequences — the condition under which deleting it asks the
-  /// extended three-button dialog — or null while it doesn't (a scene-/shot-scope symbol, or a
-  /// set-scope one on a single-sequence set), in which case the plain two-button one applies.
+  /// sequence-level extended three-button dialog — or null while it doesn't (a scene-/shot-scope
+  /// symbol, or a set-scope one on a single-sequence set), in which case [_multiShotDeleteTargetOf]
+  /// or the plain two-button dialog applies instead.
   ({int otherSequenceCount, String focusedSequenceCode, String targetSceneId})?
   _multiSequenceDeleteTargetOf(OcptShotListState state, String symbolId) {
     final selectedSet = state.selectedSet;
@@ -1671,6 +1763,45 @@ class _ShotListViewState extends State<_ShotListView> {
       otherSequenceCount: sequenceCount - 1,
       focusedSequenceCode: _sequenceDisplayNumberFor(targetSequence),
       targetSceneId: targetSceneId,
+    );
+  }
+
+  /// Whether [symbolId] names a **scene-scope** symbol (a prop, the sequence's own furniture, or
+  /// itself a sequence-scope override — or a shot-scope override of one) of a sequence holding two
+  /// or more shots — the condition under which deleting it asks the shot-level extended
+  /// three-button dialog (R5c, `docs/plans/storyboard.md`, §10.5) — or null while it doesn't
+  /// (a set-scope symbol, already handled by [_multiSequenceDeleteTargetOf], or a single-shot
+  /// sequence's own scene-scope symbol), in which case the plain two-button dialog applies.
+  ({int otherShotCount, String focusedShotCode, String targetShotId})? _multiShotDeleteTargetOf(
+    OcptShotListState state,
+    String symbolId,
+  ) {
+    final selectedSet = state.selectedSet;
+    if (selectedSet == null) {
+      return null;
+    }
+    final symbol = selectedSet.symbols.firstWhereOrNull((candidate) => candidate.id == symbolId);
+    if (symbol == null || (symbol.sceneId == null && symbol.shotId == null)) {
+      return null; // set-scope: never a candidate here.
+    }
+
+    final sequence = state.selectedSequence;
+    if (sequence is! OcptSceneShotSequence || sequence.shots.length < 2) {
+      return null;
+    }
+
+    // The shot to mask it for: the override's own shotId when [symbolId] already names one, the
+    // focused shot's own id when it names the scene-scope symbol instead.
+    final targetShotId = symbol.shotId ?? state.selectedShotId;
+    if (targetShotId == null) {
+      return null;
+    }
+    final targetShot = sequence.shots.firstWhereOrNull((shot) => shot.id == targetShotId);
+
+    return (
+      otherShotCount: sequence.shots.length - 1,
+      focusedShotCode: targetShot?.code ?? "",
+      targetShotId: targetShotId,
     );
   }
 
@@ -1743,16 +1874,16 @@ class _ShotListViewState extends State<_ShotListView> {
           ),
     ];
 
-    // A selected override (visible or a hidden one's own ghost) is one of the sheet's own
-    // sequence-scope shapes, never a shot-scope one of [ownSymbols] — checked against the whole
-    // sheet, not just this shot's own placements (R5b).
+    // A selected override (visible or a hidden one's own ghost) may be a sequence- or a shot-scope
+    // shape (R5c) — checked against the whole sheet, not just this shot's own placements (R5b).
     final selectedSymbolId = state.selectedFloorPlanSymbolId;
     final selectedShape = selectedSymbolId == null
         ? null
         : sheet.symbols.firstWhereOrNull((symbol) => symbol.symbolId == selectedSymbolId);
-    final isSelectedAnOverride =
-        selectedShape != null &&
-        (selectedShape.isOverride || selectedShape.isHiddenOverrideGhost);
+    final selectedOverrideLevel =
+        selectedShape != null && (selectedShape.isOverride || selectedShape.isHiddenOverrideGhost)
+        ? selectedShape.overrideLevel
+        : null;
 
     return OcptFloorPlanPlacementsGroup(
       setName: selectedSet.name,
@@ -1780,7 +1911,7 @@ class _ShotListViewState extends State<_ShotListView> {
           : (symbolId, fovDeg) => context.read<OcptShotListBloc>().add(
               OcptShotListFloorPlanSymbolFovChangedEvent(symbolId: symbolId, fovDeg: fovDeg),
             ),
-      isSelectedAnOverride: isSelectedAnOverride,
+      selectedOverrideLevel: selectedOverrideLevel,
       onRestoreOverrideRequested: isReadOnly || selectedSymbolId == null
           ? null
           : () => context.read<OcptShotListBloc>().add(

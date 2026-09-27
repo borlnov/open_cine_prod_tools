@@ -6,6 +6,7 @@ import 'dart:ui';
 
 import 'package:act_flutter_utility/act_flutter_utility.dart';
 import 'package:open_cine_prod_tools/models/ocpt_floor_plan_labels.dart';
+import 'package:open_cine_prod_tools/models/ocpt_floor_plan_sheet.dart' show OcptFloorPlanOverrideLevel;
 import 'package:open_cine_prod_tools/models/ocpt_scenario_coverage_export_options.dart';
 import 'package:open_cine_prod_tools/models/ocpt_scenario_coverage_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_list_xlsx_labels.dart';
@@ -1340,11 +1341,40 @@ class OcptShotListFloorPlanSymbolHideRequestedEvent extends OcptShotListEvent {
   List<Object?> get props => [...super.props, symbolId, targetSceneId];
 }
 
-/// Restores scene-scope override `event.symbolId` as in the set — tombstones it
-/// (`OcptFloorPlanService.deleteSymbol`), so its own set-scope original reappears for that
-/// sequence — the canvas's own `Restore` handle and the inspector's own `Restore as in the set`
-/// action. Reversible (the user can redo the change), so this never asks — dispatched straight
-/// away.
+/// Masks scene-scope symbol `event.symbolId` for shot `event.targetShotId` alone — a **hidden**
+/// shot-scope override, setting `isHidden` on one that already exists or creating one, copied from
+/// the scene symbol's own geometry (R5c, `docs/plans/storyboard.md`, §10.5) — the alternative
+/// branch ("Remove from shot n") of the shot-level extended delete confirmation, dispatched once it
+/// has already been confirmed through `OcptConfirmDialog.showWithAlternative`, by the mode.
+/// Reversible: the inspector's own `Restore` undoes it. See
+/// [OcptShotListFloorPlanSymbolHideRequestedEvent]'s own doc comment for the sequence-level
+/// equivalent this mirrors one level down.
+class OcptShotListFloorPlanSymbolHideForShotRequestedEvent extends OcptShotListEvent {
+  /// The id of the symbol (the scene-scope symbol, or one of its own shot overrides) to mask.
+  final String symbolId;
+
+  /// The shot to mask it for — the override's own `shotId`, whichever shot [symbolId] itself
+  /// already belongs to when it already is one, or the focused shot's own id when it is the
+  /// scene-scope symbol instead.
+  final String targetShotId;
+
+  /// Class constructor
+  const OcptShotListFloorPlanSymbolHideForShotRequestedEvent({
+    required this.symbolId,
+    required this.targetShotId,
+  });
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, symbolId, targetShotId];
+}
+
+/// Restores override `event.symbolId` as in the level above it — tombstones it
+/// (`OcptFloorPlanService.deleteSymbol`), so the original it names reappears there: a set-scope
+/// original for a scene-scope override, or a scene-scope symbol for a shot-scope one (R5c) — the
+/// canvas's own `Restore` handle and the inspector's own `Restore as in the set`/`Restore as in
+/// the sequence` action. Reversible (the user can redo the change), so this never asks —
+/// dispatched straight away.
 class OcptShotListFloorPlanSymbolRestoreRequestedEvent extends OcptShotListEvent {
   /// The id of the override to restore.
   final String symbolId;
@@ -1357,20 +1387,26 @@ class OcptShotListFloorPlanSymbolRestoreRequestedEvent extends OcptShotListEvent
   List<Object?> get props => [...super.props, symbolId];
 }
 
-/// Reports a set-scope move, rotate or resize of symbol `event.symbolId` — belonging to a set
-/// linked to `event.sequenceCount` (two or more) sequences — awaiting the scope bubble's own
-/// answer, dispatched by the mode instead of writing anything, the instant such a gesture ends
-/// (`docs/plans/storyboard.md`, §10.4). Only stores `OcptShotListState
-/// .pendingFloorPlanScopeDecision`; [OcptShotListFloorPlanScopeDecisionResolvedEvent] is what
-/// actually writes (or drops) it.
+/// Reports a move, rotate or resize awaiting the scope bubble's own answer, dispatched by the mode
+/// instead of writing anything, the instant such a gesture ends (`docs/plans/storyboard.md`,
+/// §10.4, extended by §10.5) — a **set-scope** symbol belonging to a set linked to
+/// `event.sequenceCount` (two or more) sequences ([OcptFloorPlanOverrideLevel.sequence]), or a
+/// **scene-scope** symbol of a sequence with two or more shots ([OcptFloorPlanOverrideLevel.shot]).
+/// Only stores `OcptShotListState.pendingFloorPlanScopeDecision`;
+/// [OcptShotListFloorPlanScopeDecisionResolvedEvent] is what actually writes (or drops) it.
 class OcptShotListFloorPlanScopeDecisionRequestedEvent extends OcptShotListEvent {
-  /// The id of the set-scope symbol being moved, rotated or resized.
+  /// The id of the symbol being moved, rotated or resized.
   final String symbolId;
 
   /// The Resources set [symbolId] belongs to.
   final String setId;
 
-  /// How many live sequences the symbol's own set is linked to.
+  /// Which of the two levels this decision is at. See `OcptFloorPlanScopeDecision`'s own doc
+  /// comment.
+  final OcptFloorPlanOverrideLevel level;
+
+  /// How many live sequences the symbol's own set is linked to — meaningless (0) at
+  /// [OcptFloorPlanOverrideLevel.shot].
   final int sequenceCount;
 
   /// The symbol's own new centre X, in metres — null unless a move triggered this. See
@@ -1393,7 +1429,8 @@ class OcptShotListFloorPlanScopeDecisionRequestedEvent extends OcptShotListEvent
   const OcptShotListFloorPlanScopeDecisionRequestedEvent({
     required this.symbolId,
     required this.setId,
-    required this.sequenceCount,
+    required this.level,
+    this.sequenceCount = 0,
     this.xM,
     this.yM,
     this.widthM,
@@ -1407,6 +1444,7 @@ class OcptShotListFloorPlanScopeDecisionRequestedEvent extends OcptShotListEvent
     ...super.props,
     symbolId,
     setId,
+    level,
     sequenceCount,
     xM,
     yM,
