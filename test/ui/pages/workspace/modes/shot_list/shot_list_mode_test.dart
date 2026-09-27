@@ -18,6 +18,7 @@ import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_list_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_list_xlsx_labels.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
 import 'package:open_cine_prod_tools/types/ocpt_export_outcome.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_layer.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_centre_view.dart';
@@ -1014,6 +1015,66 @@ void main() {
         bloc.add(OcptShotListSetLinkRequestedEvent(setId: setId));
         await tester.pumpAndSettle();
         expect(bloc.state.selectedSet!.symbols, hasLength(2));
+      },
+    );
+
+    testWidgets(
+      "deleting a set-scope element used by two or more sequences asks the extended dialog; its "
+      "own alternative action masks it for the focused sequence alone (R5b)",
+      (tester) async {
+        // A second scene, so the set can be linked to two sequences.
+        final project = projectsManager.currentProject!;
+        await projectsManager.screenplayService.saveScreenplayText(
+          database: project.database,
+          screenplayId: project.primaryScreenplayId,
+          fountainText: "INT. KITCHEN - DAY\n\nAction.\n\nEXT. GARDEN - NIGHT\n\nMore action.\n",
+          snapshotReason: OcptSnapshotReason.manual,
+        );
+
+        final bloc = await mountWithACase(tester);
+        final tr = Tr.of(tester.element(find.byType(OcptShotListMode)));
+        final setId = bloc.state.selectedSetId!;
+        final firstSequenceId = bloc.state.selectedSequenceId!;
+        final secondSequenceId = bloc.state.sequences[1].id;
+
+        // Link the same set to the second sequence too.
+        bloc.add(OcptShotListSequenceSelectedEvent(sequenceId: secondSequenceId));
+        await tester.pumpAndSettle();
+        bloc.add(OcptShotListSetLinkRequestedEvent(setId: setId));
+        await tester.pumpAndSettle();
+        bloc.add(OcptShotListSequenceSelectedEvent(sequenceId: firstSequenceId));
+        await tester.pumpAndSettle();
+
+        // Place a set element on the (now multi-sequence) set.
+        await tester.tap(find.byTooltip(tr.shotListFloorPlanToolSetElementAction));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byType(OcptFloorPlanCanvas));
+        await tester.pumpAndSettle();
+        expect(bloc.state.selectedSet!.symbols, hasLength(1));
+        final originalId = bloc.state.selectedFloorPlanSymbolId!;
+
+        await tester.tap(find.byTooltip(tr.shotListFloorPlanDeleteSymbolAction));
+        await tester.pumpAndSettle();
+
+        // Still just the one confirmation widget, now with its own third action.
+        expect(find.byType(OcptConfirmDialog), findsOneWidget);
+        expect(find.text(tr.shotListDeleteConfirmCancelAction), findsOneWidget);
+        expect(find.text(tr.shotListFloorPlanDeleteEverywhereAction), findsOneWidget);
+        expect(bloc.state.selectedSet!.symbols, hasLength(1)); // nothing written yet
+
+        final firstSequenceCode =
+            (bloc.state.sequences[0] as OcptSceneShotSequence).displaySceneNumber;
+        await tester.tap(
+          find.text(tr.shotListFloorPlanRemoveFromSequenceAction(firstSequenceCode)),
+        );
+        await tester.pumpAndSettle();
+
+        final symbols = bloc.state.selectedSet!.symbols;
+        expect(symbols, hasLength(2));
+        final override = symbols.firstWhere((symbol) => symbol.id != originalId);
+        expect(override.overridesSymbolId, originalId);
+        expect(override.sceneId, firstSequenceId);
+        expect(override.isHidden, isTrue);
       },
     );
 
