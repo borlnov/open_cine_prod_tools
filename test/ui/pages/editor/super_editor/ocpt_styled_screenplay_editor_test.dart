@@ -4001,4 +4001,59 @@ void main() {
       },
     );
   });
+
+  group("scene jump", () {
+    /// Pumps the editor over [text] with [jumpRequest], keeping one [key] across calls so a second
+    /// pump delivers the request to the same live editor rather than a fresh one.
+    Future<void> pumpWithJump(WidgetTester tester, String text, OcptEditorJumpRequest? jumpRequest) async {
+      await tester.pumpWidget(
+        _wrap(
+          OcptStyledScreenplayEditor(
+            key: const ValueKey("jump-editor"),
+            text: text,
+            pageSetup: const OcptPageSetup.standard(),
+            isPageSimulationEnabled: false,
+            areSceneNumbersVisible: false,
+            isSpellCheckVisible: false,
+            onTextChanged: (_) {},
+            onCaretLineChanged: (_) {},
+            jumpRequest: jumpRequest,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets("lands a far scene heading a third of the way down, not at the viewport's edge", (
+      tester,
+    ) async {
+      // A desktop platform: the caret reveal that used to override the jump belongs to
+      // super_editor's mouse interactor, which only desktop platforms use.
+      debugDefaultTargetPlatformOverride = TargetPlatform.linux;
+      try {
+        // Already numbered, as the bloc's own text is once the editor has reported its first
+        // encode: the scene list's offsets are read off that numbered text, and the editor's own
+        // node mapping is built from it too.
+        final buffer = StringBuffer();
+        for (var scene = 1; scene <= 60; scene++) {
+          buffer.write("INT. ROOM $scene - DAY #$scene#\n\nSomething happens in room $scene.\n\n");
+        }
+        final text = buffer.toString();
+
+        await pumpWithJump(tester, text, null);
+        await pumpWithJump(
+          tester,
+          text,
+          OcptEditorJumpRequest(charOffset: text.indexOf("INT. ROOM 50 - DAY"), id: 1),
+        );
+
+        final viewport = tester.getRect(find.byType(OcptStyledScreenplayEditor));
+        final heading = tester.getRect(find.textContaining("ROOM 50 -", findRichText: true).first);
+        final relativeTop = (heading.top - viewport.top) / viewport.height;
+        expect(relativeTop, inInclusiveRange(0.1, 0.5));
+      } finally {
+        debugDefaultTargetPlatformOverride = null;
+      }
+    });
+  });
 }
