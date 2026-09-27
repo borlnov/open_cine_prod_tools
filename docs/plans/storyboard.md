@@ -706,3 +706,21 @@ gets a small help button (not only a tooltip, which needs a long press on touch)
 R5a: empty-state gallery, `＋ Set` menu, unlink dialog counts, Resources line and reveal, atomic
 duplicate. R5b: the three-group palette with the props chips, the scope matrix tightening, the
 release bubble, override marking and restore, the hidden override and the extended confirm dialog.
+
+### 10.5 After R5 testing (validated 2026-09-27)
+
+- **Per-shot changes of sequence objects**: the override mechanism reaches the shot. Moving,
+  rotating or resizing a **scene-scope** element (a prop, the sequence's own furniture, or a
+  sequence override of a set element) of a sequence with **two or more shots** asks on release
+  `The whole sequence` / `Only shot 7/3` / `Cancel`; the second answer writes a **shot-scope
+  override** (`shotId` set, `overridesSymbolId` naming the scene-scope symbol). Deleting one asks
+  `Cancel` / `Remove from shot 7/3` (a hidden shot override) / `Delete from the sequence`. The
+  sheet resolves set → sequence → shot in that order; shot overrides get the same marking and
+  `Restore`. No schema change: the columns exist, only the scope matrix and the sheet move.
+- **Resize**: a camera has no resize handle (characters and lights keep theirs).
+- **Framing**: opening a set (from Resources or by switching tab) frames the view on the plan's
+  content; a `Recenter` control does the same on demand.
+- **`Other…` prop**: its dialog has its own field hint, and naming the prop places it at once at
+  the centre of the view, selected, instead of silently arming a tool.
+- **Bug**: hiding a camera did nothing since the sequence focus was removed (the filter only ran
+  under it); the filter now always applies.
