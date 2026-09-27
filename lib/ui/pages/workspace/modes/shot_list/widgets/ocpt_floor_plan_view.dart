@@ -7,9 +7,11 @@ import 'package:flutter/services.dart';
 import 'package:open_cine_prod_tools/models/ocpt_floor_plan_set.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_layer.dart';
+import 'package:open_cine_prod_tools/types/ocpt_floor_plan_scope.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_set_element_shape.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_tool.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_floor_plan_canvas.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_floor_plan_canvas_painter.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_floor_plan_focus_strip.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_floor_plan_palette.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_floor_plan_tool_bar.dart';
@@ -46,6 +48,10 @@ class OcptFloorPlanView extends StatefulWidget {
   /// The selected sequence's own scene id — see `OcptFloorPlanCanvas.focusSceneId`'s own doc
   /// comment.
   final String focusSceneId;
+
+  /// The selected sequence's own display number (`OcptShotListMode._sequenceDisplayNumberFor`),
+  /// for the palette's own `Sequence <n> — this sequence only` group header.
+  final String sequenceCode;
 
   /// The id of the currently focused shot, or null for the `Sequence` focus. Derived by the mode
   /// from `OcptShotListState.selectedShotId` — see `OcptShotListState.isFloorPlanShotFocusActive`.
@@ -112,6 +118,17 @@ class OcptFloorPlanView extends StatefulWidget {
   /// `OcptFloorPlanCanvas.activeSetElementShape`'s own doc comment.
   final OcptFloorPlanSetElementShape activeSetElementShape;
 
+  /// The scope a `setElement` click-to-arm placement lands at — see
+  /// `OcptFloorPlanCanvas.activeSetElementScope`'s own doc comment.
+  final OcptFloorPlanScope activeSetElementScope;
+
+  /// A `prop` click-to-arm placement's own armed label — see
+  /// `OcptFloorPlanCanvas.activeLabel`'s own doc comment.
+  final String activeLabel;
+
+  /// The focused sequence's own breakdown props, for the palette's own `Sequence` group chips.
+  final List<OcptFloorPlanPropChip> propsChips;
+
   /// Whether the mode shows a project version being previewed read-only.
   final bool isReadOnly;
 
@@ -127,10 +144,23 @@ class OcptFloorPlanView extends StatefulWidget {
   /// Called with the sequence layer just picked as the active one.
   final ValueChanged<OcptFloorPlanLayer> onActiveLayerChanged;
 
-  /// Called with the décor primitive just picked among the palette's own four typed set-element
+  /// Called with the décor primitive just picked among the palette's own typed set-element
   /// entries — click-to-arms [activeSetElementShape] alongside [OcptFloorPlanTool.setElement]
   /// itself.
   final ValueChanged<OcptFloorPlanSetElementShape> onSetElementShapeSelected;
+
+  /// Called with the scope just picked alongside a typed set-element entry ([OcptFloorPlanScope.set]
+  /// for the `Set` group's own four, [OcptFloorPlanScope.scene] for the `Sequence` group's own
+  /// furniture/freeform pair) — click-to-arms [activeSetElementScope].
+  final ValueChanged<OcptFloorPlanScope> onSetElementScopeSelected;
+
+  /// Called with a props chip's own label when it is clicked (click-to-arm) — arms
+  /// [activeLabel] alongside [OcptFloorPlanTool.prop] itself.
+  final ValueChanged<String> onPropChipSelected;
+
+  /// Called when the `Other…` chip is clicked, asking for a free-typed label before arming
+  /// [OcptFloorPlanTool.prop] with it — the mode opens the picker dialog.
+  final VoidCallback onOtherPropRequested;
 
   /// Called with a camera symbol's id whose own eye was clicked.
   final ValueChanged<String> onCameraVisibilityToggled;
@@ -159,14 +189,17 @@ class OcptFloorPlanView extends StatefulWidget {
   /// Called with a symbol's id when it is selected, or null to clear the selection.
   final ValueChanged<String?> onSymbolSelected;
 
-  /// Called with the layer, the shot id and the clicked point (metres), or null while withheld.
-  /// See `OcptFloorPlanCanvas.onSymbolPlaced`'s own doc comment for `setElementShape`.
+  /// Called with the layer, the shot id, the scene id and the clicked point (metres), or null
+  /// while withheld. See `OcptFloorPlanCanvas.onSymbolPlaced`'s own doc comment for
+  /// `setElementShape`/`label`.
   final void Function(
     OcptFloorPlanLayer layer,
     String? shotId,
+    String? sceneId,
     double xM,
     double yM, {
     OcptFloorPlanSetElementShape? setElementShape,
+    String label,
   })?
   onSymbolPlaced;
 
@@ -190,6 +223,10 @@ class OcptFloorPlanView extends StatefulWidget {
   /// Called with the selected symbol's id when its own delete action is clicked, or null while
   /// withheld.
   final ValueChanged<String>? onSymbolDeleteRequested;
+
+  /// Called with the selected override's own id when its own `Restore` handle is tapped, or null
+  /// while withheld. See `OcptFloorPlanCanvas.onSymbolRestoreRequested`'s own doc comment.
+  final ValueChanged<String>? onSymbolRestoreRequested;
 
   /// Called with a symbol's id when it is tapped while the `arrow` tool is on, or null while
   /// withheld.
@@ -226,6 +263,28 @@ class OcptFloorPlanView extends StatefulWidget {
   /// Called with the zoom just settled on, whichever gesture settled it.
   final ValueChanged<double> onZoomSettled;
 
+  /// A set-scope move, rotate or resize awaiting the scope bubble's own answer — see
+  /// `OcptFloorPlanCanvas.pendingScopeLiveOverride`'s own doc comment.
+  final OcptFloorPlanSymbolLiveOverride? pendingScopeLiveOverride;
+
+  /// The scope bubble's own `Every sequence (n)` label.
+  final String? scopeBubbleEveryLabel;
+
+  /// The scope bubble's own `Only sequence n` label.
+  final String? scopeBubbleOnlyLabel;
+
+  /// The scope bubble's own `Cancel` label.
+  final String? scopeBubbleCancelLabel;
+
+  /// Called when the scope bubble's own `Every sequence` button is tapped.
+  final VoidCallback? onScopeBubbleEveryRequested;
+
+  /// Called when the scope bubble's own `Only sequence n` button is tapped.
+  final VoidCallback? onScopeBubbleOnlyRequested;
+
+  /// Called when the scope bubble's own `Cancel` button is tapped, or a click lands elsewhere.
+  final VoidCallback? onScopeBubbleCancelRequested;
+
   /// Called with a shot's id when its own chip is clicked, or `←`/`→` walks to it.
   final ValueChanged<String> onShotChipSelected;
 
@@ -239,6 +298,7 @@ class OcptFloorPlanView extends StatefulWidget {
     required this.shots,
     required this.shotRankByShotId,
     required this.focusSceneId,
+    required this.sequenceCode,
     required this.focusShotId,
     required this.previousShotId,
     required this.nextShotId,
@@ -259,12 +319,18 @@ class OcptFloorPlanView extends StatefulWidget {
     required this.activeTool,
     required this.activeLayer,
     required this.activeSetElementShape,
+    required this.activeSetElementScope,
+    required this.activeLabel,
+    required this.propsChips,
     required this.isReadOnly,
     required this.symbolLabelValueOf,
     required this.onToolSelected,
     required this.onLayerVisibilityToggled,
     required this.onActiveLayerChanged,
     required this.onSetElementShapeSelected,
+    required this.onSetElementScopeSelected,
+    required this.onPropChipSelected,
+    required this.onOtherPropRequested,
     required this.onCameraVisibilityToggled,
     required this.onOnionSkinToggled,
     required this.onOnionSkinOpacityChanged,
@@ -281,6 +347,7 @@ class OcptFloorPlanView extends StatefulWidget {
     required this.onSymbolFovChanged,
     required this.onSymbolFovReachChanged,
     required this.onSymbolDeleteRequested,
+    required this.onSymbolRestoreRequested,
     required this.onArrowSymbolTapped,
     required this.onArrowAnchorCancelled,
     required this.onArrowSelected,
@@ -293,6 +360,13 @@ class OcptFloorPlanView extends StatefulWidget {
     required this.onZoomSettled,
     required this.onShotChipSelected,
     required this.onShotWalkRequested,
+    this.pendingScopeLiveOverride,
+    this.scopeBubbleEveryLabel,
+    this.scopeBubbleOnlyLabel,
+    this.scopeBubbleCancelLabel,
+    this.onScopeBubbleEveryRequested,
+    this.onScopeBubbleOnlyRequested,
+    this.onScopeBubbleCancelRequested,
   });
 
   @override
@@ -361,9 +435,13 @@ class _OcptFloorPlanViewState extends State<OcptFloorPlanView> {
                     listenable: _viewportController,
                     builder: (context, _) => OcptFloorPlanPalette(
                       setName: widget.floorPlanSet?.name ?? "",
+                      sequenceCode: widget.sequenceCode,
                       shotCode: _focusShotCode,
                       activeTool: widget.activeTool,
                       activeSetElementShape: widget.activeSetElementShape,
+                      activeSetElementScope: widget.activeSetElementScope,
+                      activeLabel: widget.activeLabel,
+                      propsChips: widget.propsChips,
                       isReadOnly: widget.isReadOnly,
                       hiddenLayers: widget.hiddenLayers,
                       sequenceCameras: widget.sequenceCameras,
@@ -377,6 +455,9 @@ class _OcptFloorPlanViewState extends State<OcptFloorPlanView> {
                       hasUnderlay: widget.floorPlanSet?.underlayAssetId != null,
                       onToolSelected: widget.onToolSelected,
                       onSetElementShapeSelected: widget.onSetElementShapeSelected,
+                      onSetElementScopeSelected: widget.onSetElementScopeSelected,
+                      onPropChipSelected: widget.onPropChipSelected,
+                      onOtherPropRequested: widget.onOtherPropRequested,
                       onLayerVisibilityToggled: widget.onLayerVisibilityToggled,
                       onCameraVisibilityToggled: widget.onCameraVisibilityToggled,
                       onOnionSkinToggled: widget.onOnionSkinToggled,
@@ -413,6 +494,8 @@ class _OcptFloorPlanViewState extends State<OcptFloorPlanView> {
                     activeTool: widget.activeTool,
                     activeLayer: widget.activeLayer,
                     activeSetElementShape: widget.activeSetElementShape,
+                    activeSetElementScope: widget.activeSetElementScope,
+                    activeLabel: widget.activeLabel,
                     viewportController: _viewportController,
                     isReadOnly: widget.isReadOnly,
                     symbolLabelValueOf: widget.symbolLabelValueOf,
@@ -424,6 +507,7 @@ class _OcptFloorPlanViewState extends State<OcptFloorPlanView> {
                     onSymbolFovChanged: widget.onSymbolFovChanged,
                     onSymbolFovReachChanged: widget.onSymbolFovReachChanged,
                     onSymbolDeleteRequested: widget.onSymbolDeleteRequested,
+                    onSymbolRestoreRequested: widget.onSymbolRestoreRequested,
                     onArrowSymbolTapped: widget.onArrowSymbolTapped,
                     onArrowAnchorCancelled: widget.onArrowAnchorCancelled,
                     onArrowSelected: widget.onArrowSelected,
@@ -434,6 +518,13 @@ class _OcptFloorPlanViewState extends State<OcptFloorPlanView> {
                     onSymbolLabelChanged: widget.onSymbolLabelChanged,
                     onUnderlayTransformChanged: widget.onUnderlayTransformChanged,
                     onZoomSettled: widget.onZoomSettled,
+                    pendingScopeLiveOverride: widget.pendingScopeLiveOverride,
+                    scopeBubbleEveryLabel: widget.scopeBubbleEveryLabel,
+                    scopeBubbleOnlyLabel: widget.scopeBubbleOnlyLabel,
+                    scopeBubbleCancelLabel: widget.scopeBubbleCancelLabel,
+                    onScopeBubbleEveryRequested: widget.onScopeBubbleEveryRequested,
+                    onScopeBubbleOnlyRequested: widget.onScopeBubbleOnlyRequested,
+                    onScopeBubbleCancelRequested: widget.onScopeBubbleCancelRequested,
                   ),
                 ),
               ],

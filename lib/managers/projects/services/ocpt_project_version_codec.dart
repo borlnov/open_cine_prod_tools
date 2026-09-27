@@ -3180,8 +3180,12 @@ class OcptProjectVersionCodec {
   /// back at that very default instead of throwing, the same courtesy [_nullableEnum] and
   /// [_nullableDouble] already give a *nullable* mid-cycle addition (see [_setElementShapeKey]'s own
   /// doc comment). Still throws when [key] is present but isn't a boolean.
-  static bool _boolWithFalseDefault(Map<String, dynamic> json, String key) =>
-      json.containsKey(key) ? _bool(json, key) : false;
+  static bool _boolWithFalseDefault(Map<String, dynamic> json, String key) {
+    if (!json.containsKey(key)) {
+      return false;
+    }
+    return _bool(json, key);
+  }
 
   /// The boolean stored at [key] in [json], or null when the column it mirrors was null — the
   /// tri-state `people.isTransportAutonomous` is the one column of the schema that needs this.

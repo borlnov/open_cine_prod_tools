@@ -12,6 +12,8 @@ import 'package:open_cine_prod_tools/models/ocpt_shot_list_xlsx_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_storyboard_export_options.dart';
 import 'package:open_cine_prod_tools/models/ocpt_storyboard_labels.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_layer.dart';
+import 'package:open_cine_prod_tools/types/ocpt_floor_plan_scope.dart';
+import 'package:open_cine_prod_tools/types/ocpt_floor_plan_scope_choice.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_set_element_shape.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_tool.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_difficulty_axis.dart';
@@ -1081,6 +1083,35 @@ class OcptShotListFloorPlanActiveSetElementShapeChangedEvent extends OcptShotLis
   List<Object?> get props => [...super.props, shape];
 }
 
+/// Picks the scope a `setElement` placement lands at (R5b), dispatched by a click on one of the
+/// palette's own typed set-element entries — [OcptFloorPlanScope.set] for the `Set` group's own
+/// four, [OcptFloorPlanScope.scene] for the `Sequence` group's own furniture/freeform pair.
+class OcptShotListFloorPlanActiveSetElementScopeChangedEvent extends OcptShotListEvent {
+  /// The scope just picked.
+  final OcptFloorPlanScope scope;
+
+  /// Class constructor
+  const OcptShotListFloorPlanActiveSetElementScopeChangedEvent({required this.scope});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, scope];
+}
+
+/// Picks the label a `prop` placement carries (R5b), dispatched by a click on one of the palette's
+/// own breakdown-props chips, or by the `Other…` chip's own name picker resolving.
+class OcptShotListFloorPlanActiveLabelChangedEvent extends OcptShotListEvent {
+  /// The label just picked.
+  final String label;
+
+  /// Class constructor
+  const OcptShotListFloorPlanActiveLabelChangedEvent({required this.label});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, label];
+}
+
 /// Toggles the visibility of sequence layer `event.layer` on the floor plans canvas, dispatched by
 /// the tray's own eye icon. A view preference; never withheld under a read-only preview, since it
 /// only reads.
@@ -1121,6 +1152,11 @@ class OcptShotListFloorPlanSymbolPlacedEvent extends OcptShotListEvent {
   /// `OcptFloorPlanService.placeSymbol` enforces).
   final String? shotId;
 
+  /// The id of the sequence the symbol belongs to — null on a set-scope or shot-scope symbol, the
+  /// focused sequence's own scene id on a scene-scope one (a `set`-layer placement at
+  /// [OcptFloorPlanScope.scene], or any `props` placement, R5b).
+  final String? sceneId;
+
   /// The symbol's centre X, in metres.
   final double xM;
 
@@ -1132,19 +1168,35 @@ class OcptShotListFloorPlanSymbolPlacedEvent extends OcptShotListEvent {
   /// `OcptShotListState.floorPlanActiveSetElementShape`. Null on every other layer.
   final OcptFloorPlanSetElementShape? setElementShape;
 
+  /// A `prop` placement's own armed label — from the placing chip's own drag payload or the
+  /// click-to-armed `OcptShotListState.floorPlanActiveLabel`. Empty on every other layer.
+  final String label;
+
   /// Class constructor
   const OcptShotListFloorPlanSymbolPlacedEvent({
     required this.setId,
     required this.layer,
     required this.shotId,
+    required this.sceneId,
     required this.xM,
     required this.yM,
     this.setElementShape,
+    this.label = "",
   });
 
   /// Object properties
   @override
-  List<Object?> get props => [...super.props, setId, layer, shotId, xM, yM, setElementShape];
+  List<Object?> get props => [
+    ...super.props,
+    setId,
+    layer,
+    shotId,
+    sceneId,
+    xM,
+    yM,
+    setElementShape,
+    label,
+  ];
 }
 
 /// Selects symbol `event.symbolId` on the floor plans canvas, or clears the selection when
@@ -1242,6 +1294,142 @@ class OcptShotListFloorPlanSymbolDeletionRequestedEvent extends OcptShotListEven
   /// Object properties
   @override
   List<Object?> get props => [...super.props, symbolId];
+}
+
+/// Requests deleting set-scope symbol `event.symbolId` **everywhere** — itself (or, when it names
+/// a scene-scope override instead, the set-scope original it overrides) and every live override of
+/// it, in every sequence (`OcptFloorPlanService.deleteSymbolEverywhere`) — the destructive branch
+/// of the extended delete confirmation for an element used by two or more sequences
+/// (`docs/plans/storyboard.md`, §10.4), dispatched once it has already been confirmed through
+/// `OcptConfirmDialog.showWithAlternative`, by the mode.
+class OcptShotListFloorPlanSymbolDeleteEverywhereRequestedEvent extends OcptShotListEvent {
+  /// The id of the symbol (the original, or one of its overrides) to delete everywhere.
+  final String symbolId;
+
+  /// Class constructor
+  const OcptShotListFloorPlanSymbolDeleteEverywhereRequestedEvent({required this.symbolId});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, symbolId];
+}
+
+/// Masks set-scope symbol `event.symbolId` for sequence `event.targetSceneId` alone — a **hidden**
+/// override, setting `isHidden` on one that already exists or creating one, copied from the
+/// original's own geometry — the alternative branch ("Remove from sequence n") of the extended
+/// delete confirmation, dispatched once it has already been confirmed through
+/// `OcptConfirmDialog.showWithAlternative`, by the mode. Reversible: the inspector's own `Restore`
+/// undoes it.
+class OcptShotListFloorPlanSymbolHideRequestedEvent extends OcptShotListEvent {
+  /// The id of the symbol (the original, or one of its overrides) to mask.
+  final String symbolId;
+
+  /// The sequence to mask it for — the override's own `sceneId`, whichever sequence [symbolId]
+  /// itself already belongs to when it already is one, or the focused sequence's own scene id when
+  /// it is the set-scope original instead.
+  final String targetSceneId;
+
+  /// Class constructor
+  const OcptShotListFloorPlanSymbolHideRequestedEvent({
+    required this.symbolId,
+    required this.targetSceneId,
+  });
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, symbolId, targetSceneId];
+}
+
+/// Restores scene-scope override `event.symbolId` as in the set — tombstones it
+/// (`OcptFloorPlanService.deleteSymbol`), so its own set-scope original reappears for that
+/// sequence — the canvas's own `Restore` handle and the inspector's own `Restore as in the set`
+/// action. Reversible (the user can redo the change), so this never asks — dispatched straight
+/// away.
+class OcptShotListFloorPlanSymbolRestoreRequestedEvent extends OcptShotListEvent {
+  /// The id of the override to restore.
+  final String symbolId;
+
+  /// Class constructor
+  const OcptShotListFloorPlanSymbolRestoreRequestedEvent({required this.symbolId});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, symbolId];
+}
+
+/// Reports a set-scope move, rotate or resize of symbol `event.symbolId` — belonging to a set
+/// linked to `event.sequenceCount` (two or more) sequences — awaiting the scope bubble's own
+/// answer, dispatched by the mode instead of writing anything, the instant such a gesture ends
+/// (`docs/plans/storyboard.md`, §10.4). Only stores `OcptShotListState
+/// .pendingFloorPlanScopeDecision`; [OcptShotListFloorPlanScopeDecisionResolvedEvent] is what
+/// actually writes (or drops) it.
+class OcptShotListFloorPlanScopeDecisionRequestedEvent extends OcptShotListEvent {
+  /// The id of the set-scope symbol being moved, rotated or resized.
+  final String symbolId;
+
+  /// The Resources set [symbolId] belongs to.
+  final String setId;
+
+  /// How many live sequences the symbol's own set is linked to.
+  final int sequenceCount;
+
+  /// The symbol's own new centre X, in metres — null unless a move triggered this. See
+  /// `OcptFloorPlanScopeDecision`'s own doc comment.
+  final double? xM;
+
+  /// The symbol's own new centre Y, in metres. See [xM].
+  final double? yM;
+
+  /// The symbol's own new footprint width, in metres — null unless a resize triggered this.
+  final double? widthM;
+
+  /// The symbol's own new footprint height, in metres. See [widthM].
+  final double? heightM;
+
+  /// The symbol's own new rotation, in degrees — null unless a rotate triggered this.
+  final double? rotationDeg;
+
+  /// Class constructor
+  const OcptShotListFloorPlanScopeDecisionRequestedEvent({
+    required this.symbolId,
+    required this.setId,
+    required this.sequenceCount,
+    this.xM,
+    this.yM,
+    this.widthM,
+    this.heightM,
+    this.rotationDeg,
+  });
+
+  /// Object properties
+  @override
+  List<Object?> get props => [
+    ...super.props,
+    symbolId,
+    setId,
+    sequenceCount,
+    xM,
+    yM,
+    widthM,
+    heightM,
+    rotationDeg,
+  ];
+}
+
+/// Resolves `OcptShotListState.pendingFloorPlanScopeDecision` — the scope bubble's own `Every
+/// sequence`/`Only sequence n`/`Cancel` — writing it (onto the original, or onto a scene-scope
+/// override of the focused sequence, creating one if none exists yet) or simply dropping it.
+/// A no-op while nothing is pending.
+class OcptShotListFloorPlanScopeDecisionResolvedEvent extends OcptShotListEvent {
+  /// Which of the bubble's own three answers was picked.
+  final OcptFloorPlanScopeChoice choice;
+
+  /// Class constructor
+  const OcptShotListFloorPlanScopeDecisionResolvedEvent({required this.choice});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, choice];
 }
 
 /// Requests importing set `event.setId`'s underlay, dispatched by the tool bar's own underlay

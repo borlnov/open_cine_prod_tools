@@ -29,11 +29,17 @@ class OcptFloorPlanCharacterNamePickerDialog extends StatefulWidget {
   /// deduplicated.
   final List<String> suggestedNames;
 
+  /// The dialog's own title, or null for the default `Name this character` — overridden by the
+  /// palette's own `Other…` prop chip, which reuses this same widget for a free-typed prop label
+  /// (`docs/plans/storyboard.md`, §10.4) with its own wording instead.
+  final String? title;
+
   /// Class constructor
   const OcptFloorPlanCharacterNamePickerDialog({
     super.key,
     required this.initialValue,
     required this.suggestedNames,
+    this.title,
   });
 
   /// Shows the dialog and returns the name picked (trimmed), or null if the user dismissed it.
@@ -41,11 +47,13 @@ class OcptFloorPlanCharacterNamePickerDialog extends StatefulWidget {
     BuildContext context, {
     required String initialValue,
     required List<String> suggestedNames,
+    String? title,
   }) => showDialog<String>(
     context: context,
     builder: (context) => OcptFloorPlanCharacterNamePickerDialog(
       initialValue: initialValue,
       suggestedNames: suggestedNames,
+      title: title,
     ),
   );
 
@@ -72,7 +80,7 @@ class _OcptFloorPlanCharacterNamePickerDialogState
     final theme = Theme.of(context);
 
     return AlertDialog(
-      title: Text(tr.shotListFloorPlanCharacterNamePickerTitle),
+      title: Text(widget.title ?? tr.shotListFloorPlanCharacterNamePickerTitle),
       content: SizedBox(
         width: 360,
         child: Column(

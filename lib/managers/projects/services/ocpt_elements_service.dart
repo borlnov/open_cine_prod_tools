@@ -10,6 +10,7 @@ import 'package:open_cine_prod_tools/models/ocpt_asset_ref.dart';
 import 'package:open_cine_prod_tools/models/ocpt_element.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role_element_link.dart';
 import 'package:open_cine_prod_tools/models/ocpt_scene_element_link.dart';
+import 'package:open_cine_prod_tools/models/ocpt_scene_prop_summary.dart';
 import 'package:open_cine_prod_tools/types/ocpt_asset_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_source_kind.dart';
@@ -873,6 +874,48 @@ class OcptElementsService {
         (table) => table.sceneId.equals(sceneId) & table.isDeleted.not(),
       ))
       .get();
+
+  /// Scene [sceneId]'s own breakdown props (category [OcptElementCategory.prop] alone), each
+  /// carrying its own effective quantity — the floor plans palette's own `Sequence` group chips
+  /// (`docs/plans/storyboard.md`, §10.4). In the catalogue's own `sortKey` order.
+  Future<List<OcptScenePropSummary>> propsOfScene({
+    required OcptProjectDatabase database,
+    required String sceneId,
+  }) async {
+    final query = database.select(database.ocptSceneElementsTable).join([
+      innerJoin(
+        database.ocptElementsTable,
+        database.ocptElementsTable.id.equalsExp(database.ocptSceneElementsTable.elementId),
+      ),
+    ])
+      ..where(
+        database.ocptSceneElementsTable.sceneId.equals(sceneId) &
+            database.ocptSceneElementsTable.isDeleted.not() &
+            database.ocptElementsTable.isDeleted.not() &
+            database.ocptElementsTable.category.equalsValue(OcptElementCategory.prop),
+      )
+      ..orderBy([OrderingTerm.asc(database.ocptElementsTable.sortKey)]);
+
+    final rows = await query.get();
+    return [
+      for (final row in rows)
+        _scenePropSummaryOf(
+          sceneElementRow: row.readTable(database.ocptSceneElementsTable),
+          elementRow: row.readTable(database.ocptElementsTable),
+        ),
+    ];
+  }
+
+  /// One [OcptScenePropSummary], resolving its own effective quantity: [sceneElementRow]'s own
+  /// override when it isn't empty, [elementRow]'s own catalogue quantity otherwise.
+  OcptScenePropSummary _scenePropSummaryOf({
+    required OcptSceneElementRow sceneElementRow,
+    required OcptElementRow elementRow,
+  }) => OcptScenePropSummary(
+    elementId: elementRow.id,
+    name: elementRow.name,
+    quantity: sceneElementRow.quantity.isNotEmpty ? sceneElementRow.quantity : elementRow.quantity,
+  );
 
   /// The live `scene_elements` links of every element of [elementIds], keyed by element id and
   /// ordered by the screenplay's own scene order.

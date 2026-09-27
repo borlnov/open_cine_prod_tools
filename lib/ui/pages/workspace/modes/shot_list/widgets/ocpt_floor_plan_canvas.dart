@@ -13,6 +13,7 @@ import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_floor_plan_set.dart';
 import 'package:open_cine_prod_tools/models/ocpt_floor_plan_sheet.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_layer.dart';
+import 'package:open_cine_prod_tools/types/ocpt_floor_plan_scope.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_set_element_shape.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_tool.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_floor_plan_canvas_painter.dart';
@@ -190,6 +191,17 @@ class OcptFloorPlanCanvas extends StatefulWidget {
   /// never taps its source first.
   final OcptFloorPlanSetElementShape activeSetElementShape;
 
+  /// The scope a `setElement` tool click-to-arm placement lands at (R5b) — the `Set` group's own
+  /// four entries arm [OcptFloorPlanScope.set], the `Sequence` group's own furniture/freeform pair
+  /// arm [OcptFloorPlanScope.scene]. See [activeSetElementShape]'s own doc comment for why a drag
+  /// reads its own payload instead (`OcptFloorPlanPaletteDragPayload.sceneScope`).
+  final OcptFloorPlanScope activeSetElementScope;
+
+  /// A `prop` tool click-to-arm placement's own label (R5b) — which breakdown-prop chip, or the
+  /// `Other…` chip's own typed-in text, was armed last. See [activeSetElementShape]'s own doc
+  /// comment for why a drag reads its own payload instead (`OcptFloorPlanPaletteDragPayload.label`).
+  final String activeLabel;
+
   /// The live zoom/pan controller this canvas draws and drags against — see that class's own doc
   /// comment for why it lives outside the bloc.
   final OcptFloorPlanViewportController viewportController;
@@ -206,17 +218,20 @@ class OcptFloorPlanCanvas extends StatefulWidget {
   /// `select` or `label` tool is on (clearing the selection). Never withheld: selecting only reads.
   final ValueChanged<String?> onSymbolSelected;
 
-  /// Called with the layer and the shot id (null on a sequence layer, [focusShotId] on a shot
-  /// layer) a new symbol is placed on, and the clicked point (metres), or null while withheld.
-  /// `setElementShape` carries the décor primitive when the layer is
-  /// [OcptFloorPlanLayer.set] and the placing tool was one of the four typed set-element entries —
-  /// null otherwise (every other layer, and a generic `setElement` placement with none armed).
+  /// Called with the layer, the shot id (null on a sequence/set-scope symbol, [focusShotId] on a
+  /// shot layer), the scene id (null on a set-scope or shot-scope symbol, [focusSceneId] on a
+  /// scene-scope one — a `set`-layer placement at [OcptFloorPlanScope.scene], or any `props`
+  /// placement, R5b) and the clicked point (metres), or null while withheld. `setElementShape`
+  /// carries the décor primitive when the layer is [OcptFloorPlanLayer.set] — null otherwise.
+  /// `label` carries a `prop` placement's own armed label — `""` otherwise.
   final void Function(
     OcptFloorPlanLayer layer,
     String? shotId,
+    String? sceneId,
     double xM,
     double yM, {
     OcptFloorPlanSetElementShape? setElementShape,
+    String label,
   })?
   onSymbolPlaced;
 
@@ -243,6 +258,13 @@ class OcptFloorPlanCanvas extends StatefulWidget {
   /// Called with the selected symbol's id when its own delete action is clicked, or null while
   /// withheld. Only asks — the mode opens `OcptConfirmDialog`.
   final ValueChanged<String>? onSymbolDeleteRequested;
+
+  /// Called with the selected override's own id (a visible override's own shape, or a hidden
+  /// override's own ghost — both name the override, never the original) when its own `Restore`
+  /// handle is tapped, or null while withheld. Reversible (tombstones the override, the original
+  /// reappears) — never asks, unlike [onSymbolDeleteRequested] (R5b,
+  /// `docs/plans/storyboard.md`, §10.4).
+  final ValueChanged<String>? onSymbolRestoreRequested;
 
   /// Called with a (non-ghost) symbol's id when it is tapped while the `arrow` tool is on, or null
   /// while withheld.
@@ -289,6 +311,35 @@ class OcptFloorPlanCanvas extends StatefulWidget {
   /// Never gated by [isReadOnly]: zoom only reads.
   final ValueChanged<double>? onZoomSettled;
 
+  /// A set-scope move, rotate or resize awaiting the scope bubble's own answer, or null while
+  /// nothing is pending (R5b, `docs/plans/storyboard.md`, §10.4) — the symbol it names draws (and
+  /// hit-tests) at this geometry instead of its own stored one, exactly like a drag still in
+  /// progress, and is locked against further editing until it resolves. Merged with the drag
+  /// currently in progress (if any) the same way: at most one of the two is ever live for a given
+  /// symbol.
+  final OcptFloorPlanSymbolLiveOverride? pendingScopeLiveOverride;
+
+  /// The scope bubble's own `Every sequence (n)` label, shown while [pendingScopeLiveOverride] is
+  /// set — null only when withheld altogether (defensive: the mode never leaves one field null
+  /// without the other two).
+  final String? scopeBubbleEveryLabel;
+
+  /// The scope bubble's own `Only sequence n` label. See [scopeBubbleEveryLabel].
+  final String? scopeBubbleOnlyLabel;
+
+  /// The scope bubble's own `Cancel` label. See [scopeBubbleEveryLabel].
+  final String? scopeBubbleCancelLabel;
+
+  /// Called when the scope bubble's own `Every sequence` button is tapped.
+  final VoidCallback? onScopeBubbleEveryRequested;
+
+  /// Called when the scope bubble's own `Only sequence n` button is tapped.
+  final VoidCallback? onScopeBubbleOnlyRequested;
+
+  /// Called when the scope bubble's own `Cancel` button is tapped, or a click lands on empty
+  /// canvas while it is showing — dismissing it any other way means the same thing.
+  final VoidCallback? onScopeBubbleCancelRequested;
+
   /// Class constructor
   const OcptFloorPlanCanvas({
     super.key,
@@ -312,6 +363,8 @@ class OcptFloorPlanCanvas extends StatefulWidget {
     required this.activeTool,
     required this.activeLayer,
     required this.activeSetElementShape,
+    required this.activeSetElementScope,
+    required this.activeLabel,
     required this.viewportController,
     required this.isReadOnly,
     required this.symbolLabelValueOf,
@@ -323,6 +376,7 @@ class OcptFloorPlanCanvas extends StatefulWidget {
     required this.onSymbolFovChanged,
     required this.onSymbolFovReachChanged,
     required this.onSymbolDeleteRequested,
+    required this.onSymbolRestoreRequested,
     required this.onArrowSymbolTapped,
     required this.onArrowAnchorCancelled,
     required this.onArrowSelected,
@@ -333,6 +387,13 @@ class OcptFloorPlanCanvas extends StatefulWidget {
     required this.onSymbolLabelChanged,
     required this.onUnderlayTransformChanged,
     required this.onZoomSettled,
+    this.pendingScopeLiveOverride,
+    this.scopeBubbleEveryLabel,
+    this.scopeBubbleOnlyLabel,
+    this.scopeBubbleCancelLabel,
+    this.onScopeBubbleEveryRequested,
+    this.onScopeBubbleOnlyRequested,
+    this.onScopeBubbleCancelRequested,
   });
 
   @override
@@ -456,7 +517,7 @@ class _OcptFloorPlanCanvasState extends State<OcptFloorPlanCanvas> {
                             pan: pan,
                             selectedSymbolId: widget.selectedSymbolId,
                             arrowAnchorSymbolId: widget.pendingArrowAnchorSymbolId,
-                            liveOverride: _liveOverride,
+                            liveOverride: _liveOverride ?? widget.pendingScopeLiveOverride,
                             symbolBorderColor: theme.colorScheme.outline,
                             selectionColor: theme.colorScheme.primary,
                             arrowAnchorColor: theme.colorScheme.secondary,
@@ -481,15 +542,22 @@ class _OcptFloorPlanCanvasState extends State<OcptFloorPlanCanvas> {
                       widget.onUnderlayTransformChanged != null)
                     ..._buildUnderlayHandles(floorPlanSet, canvasSize, zoom, pan),
                   for (final symbol in sheet.symbols)
-                    _buildSymbolHitOverlay(symbol, canvasSize, zoom, pan),
+                    if (!symbol.isOverriddenOriginalGhost)
+                      _buildSymbolHitOverlay(symbol, canvasSize, zoom, pan),
                   if (selectedShape != null)
                     ..._buildSymbolHandles(selectedShape, canvasSize, zoom, pan),
+                  if (selectedShape != null &&
+                      (selectedShape.isOverride || selectedShape.isHiddenOverrideGhost) &&
+                      widget.onSymbolRestoreRequested != null)
+                    _buildRestoreHandle(selectedShape, canvasSize, zoom, pan),
                   if (selectedArrow != null)
                     ..._buildArrowHandle(selectedArrow, canvasSize, zoom, pan),
                   if (widget.activeTool == OcptFloorPlanTool.label &&
                       selectedShape != null &&
                       !selectedShape.isGhost)
                     _buildLabelEditor(selectedShape, canvasSize, zoom, pan),
+                  if (widget.pendingScopeLiveOverride != null)
+                    _buildScopeBubble(widget.pendingScopeLiveOverride!, canvasSize, zoom, pan),
                 ],
               ),
             );
@@ -536,14 +604,23 @@ class _OcptFloorPlanCanvasState extends State<OcptFloorPlanCanvas> {
   }
 
   /// Whether [symbol] may be dragged, resized, rotated, given a field of view or deleted: never a
-  /// ghost; **the set and scene scopes are always editable** (R2, "the set is always editable" —
-  /// a scene-scope symbol this sheet draws already belongs to the sequence being shown); a
-  /// shot-scope symbol is editable only while it belongs to [OcptFloorPlanCanvas.focusShotId], the
-  /// one shot everything "live" lands on. A ghosted neighbour's own placements stay selectable (so
-  /// their own Placements/metrics still read), just locked.
+  /// ghost — the onion-skin kind ([OcptFloorPlanSymbolShape.isGhost]) or an override-marking one
+  /// ([OcptFloorPlanSymbolShape.isOverriddenOriginalGhost]/[OcptFloorPlanSymbolShape
+  /// .isHiddenOverrideGhost], R5b) — since none of the three ever represents this sequence's own
+  /// live geometry to drag; **the set and scene scopes are always editable** (R2, "the set is
+  /// always editable" — a scene-scope symbol this sheet draws already belongs to the sequence
+  /// being shown); a shot-scope symbol is editable only while it belongs to
+  /// [OcptFloorPlanCanvas.focusShotId], the one shot everything "live" lands on. A ghosted
+  /// neighbour's own placements stay selectable (so their own Placements/metrics still read), just
+  /// locked — and so does a hidden override's own ghost, so the inspector can still offer
+  /// `Restore` on it ([_buildSymbolHitOverlay] is what excludes
+  /// [OcptFloorPlanSymbolShape.isOverriddenOriginalGhost] from selection entirely).
   bool _isSymbolEditable(OcptFloorPlanSymbolShape symbol) {
-    if (symbol.isGhost) {
+    if (symbol.isGhost || symbol.isOverriddenOriginalGhost || symbol.isHiddenOverrideGhost) {
       return false;
+    }
+    if (symbol.symbolId == widget.pendingScopeLiveOverride?.symbolId) {
+      return false; // Locked while the scope bubble is showing (R5b).
     }
     return symbol.shotId == null || symbol.shotId == widget.focusShotId;
   }
@@ -636,14 +713,24 @@ class _OcptFloorPlanCanvasState extends State<OcptFloorPlanCanvas> {
     }
 
     final tool = details.data.tool;
-    final shotLayer = _shotLayerOf(tool);
-    if (tool != OcptFloorPlanTool.setElement && shotLayer == null) {
+    if (tool != OcptFloorPlanTool.setElement && tool != OcptFloorPlanTool.prop) {
+      final fixedLayer = ocptFloorPlanFixedLayerOf(tool);
+      if (fixedLayer == null) {
+        return;
+      }
+    }
+
+    final layer = tool == OcptFloorPlanTool.setElement
+        ? OcptFloorPlanLayer.set
+        : (ocptFloorPlanFixedLayerOf(tool) ?? OcptFloorPlanLayer.props);
+    final isShotScoped = layer == OcptFloorPlanLayer.cameras ||
+        layer == OcptFloorPlanLayer.characters ||
+        layer == OcptFloorPlanLayer.lights;
+    final shotId = isShotScoped ? widget.focusShotId : null;
+    if (isShotScoped && shotId == null) {
       return;
     }
-    final shotId = shotLayer == null ? null : widget.focusShotId;
-    if (shotLayer != null && shotId == null) {
-      return;
-    }
+    final sceneId = _sceneIdFor(layer, details.data.sceneScope);
 
     final localPosition = _resolveLocalPosition(details.offset);
     final metres = ocptFloorPlanMetrePointOf(
@@ -653,18 +740,35 @@ class _OcptFloorPlanCanvasState extends State<OcptFloorPlanCanvas> {
       pan: pan,
     );
     onSymbolPlaced(
-      shotLayer ?? widget.activeLayer,
+      layer,
       shotId,
+      sceneId,
       metres.dx,
       metres.dy,
       setElementShape: tool == OcptFloorPlanTool.setElement ? details.data.setElementShape : null,
+      label: tool == OcptFloorPlanTool.prop ? (details.data.label ?? "") : "",
     );
   }
 
+  /// The scene id a symbol placed on [layer] carries — [OcptFloorPlanCanvas.focusSceneId] for a
+  /// `props` placement (always scene-scoped, R5b) or a `set`-layer placement whose own [sceneScope]
+  /// is [OcptFloorPlanScope.scene] (the palette's `Sequence` group), null otherwise (the `Set`
+  /// group, or any shot-scoped layer).
+  String? _sceneIdFor(OcptFloorPlanLayer layer, OcptFloorPlanScope? sceneScope) {
+    if (layer == OcptFloorPlanLayer.props) {
+      return widget.focusSceneId;
+    }
+    if (layer == OcptFloorPlanLayer.set && sceneScope == OcptFloorPlanScope.scene) {
+      return widget.focusSceneId;
+    }
+    return null;
+  }
+
   /// A click on empty canvas (no symbol, no underlay handle caught it first): places a new symbol
-  /// under a placing tool (`setElement` on the tray's active sequence layer, or `camera`/
-  /// `character`/`light` on [OcptFloorPlanCanvas.focusShotId]'s own shot layer — a no-op while no
-  /// shot is focused, defensive only); under `select`, selects the arrow it lands near
+  /// under a placing tool (`setElement` at [OcptFloorPlanCanvas.activeSetElementScope]'s own scope,
+  /// `prop` on [OcptFloorPlanCanvas.focusSceneId] with [OcptFloorPlanCanvas.activeLabel], or
+  /// `camera`/`character`/`light` on [OcptFloorPlanCanvas.focusShotId]'s own shot layer — a no-op
+  /// while no shot is focused, defensive only); under `select`, selects the arrow it lands near
   /// ([_arrowHitAt]) instead of clearing, when one is close enough; cancels the arrow tool's own
   /// pending anchor under `arrow`; clears both selections otherwise (`label`, an arrow tool with
   /// nothing pending, or `select` finding no arrow close enough).
@@ -675,11 +779,45 @@ class _OcptFloorPlanCanvasState extends State<OcptFloorPlanCanvas> {
     Offset pan,
     OcptFloorPlanSheet sheet,
   ) {
-    final shotLayer = _shotLayerOf(widget.activeTool);
-    if (widget.activeTool == OcptFloorPlanTool.setElement || shotLayer != null) {
+    if (widget.pendingScopeLiveOverride != null) {
+      // Dismissing the scope bubble by clicking elsewhere means Cancel (R5b).
+      widget.onScopeBubbleCancelRequested?.call();
+      return;
+    }
+
+    final tool = widget.activeTool;
+    if (tool == OcptFloorPlanTool.setElement || tool == OcptFloorPlanTool.prop) {
       final onSymbolPlaced = widget.onSymbolPlaced;
-      final shotId = shotLayer == null ? null : widget.focusShotId;
-      if (onSymbolPlaced == null || (shotLayer != null && shotId == null)) {
+      if (onSymbolPlaced == null) {
+        return;
+      }
+      final layer = tool == OcptFloorPlanTool.setElement
+          ? OcptFloorPlanLayer.set
+          : OcptFloorPlanLayer.props;
+      final sceneId = _sceneIdFor(layer, widget.activeSetElementScope);
+      final metres = ocptFloorPlanMetrePointOf(
+        screenPoint: localPosition,
+        canvasSize: canvasSize,
+        zoom: zoom,
+        pan: pan,
+      );
+      onSymbolPlaced(
+        layer,
+        null,
+        sceneId,
+        metres.dx,
+        metres.dy,
+        setElementShape: tool == OcptFloorPlanTool.setElement ? widget.activeSetElementShape : null,
+        label: tool == OcptFloorPlanTool.prop ? widget.activeLabel : "",
+      );
+      return;
+    }
+
+    final shotLayer = ocptFloorPlanFixedLayerOf(tool);
+    if (shotLayer != null) {
+      final onSymbolPlaced = widget.onSymbolPlaced;
+      final shotId = widget.focusShotId;
+      if (onSymbolPlaced == null || shotId == null) {
         return;
       }
       final metres = ocptFloorPlanMetrePointOf(
@@ -688,15 +826,7 @@ class _OcptFloorPlanCanvasState extends State<OcptFloorPlanCanvas> {
         zoom: zoom,
         pan: pan,
       );
-      onSymbolPlaced(
-        shotLayer ?? widget.activeLayer,
-        shotId,
-        metres.dx,
-        metres.dy,
-        setElementShape: widget.activeTool == OcptFloorPlanTool.setElement
-            ? widget.activeSetElementShape
-            : null,
-      );
+      onSymbolPlaced(shotLayer, shotId, null, metres.dx, metres.dy);
       return;
     }
 
@@ -795,19 +925,6 @@ class _OcptFloorPlanCanvasState extends State<OcptFloorPlanCanvas> {
     final projectedY = y1 + t * dy;
     return math.sqrt(math.pow(px - projectedX, 2) + math.pow(py - projectedY, 2));
   }
-
-  /// The fixed shot layer [tool] always places on, or null for a tool that doesn't place a
-  /// shot-scoped symbol at all ([OcptFloorPlanTool.setElement] places a sequence layer instead,
-  /// every other tool places nothing).
-  OcptFloorPlanLayer? _shotLayerOf(OcptFloorPlanTool tool) => switch (tool) {
-    OcptFloorPlanTool.camera => OcptFloorPlanLayer.cameras,
-    OcptFloorPlanTool.character => OcptFloorPlanLayer.characters,
-    OcptFloorPlanTool.light => OcptFloorPlanLayer.lights,
-    OcptFloorPlanTool.select ||
-    OcptFloorPlanTool.setElement ||
-    OcptFloorPlanTool.arrow ||
-    OcptFloorPlanTool.label => null,
-  };
 
   /// Zooms in/out one [_wheelZoomStep] per scroll-wheel notch, live on
   /// [OcptFloorPlanCanvas.viewportController] with no bloc emission, then (re)starts the debounce
@@ -1004,7 +1121,7 @@ class _OcptFloorPlanCanvasState extends State<OcptFloorPlanCanvas> {
     double zoom,
     Offset pan,
   ) {
-    final override = _liveOverride;
+    final override = _liveOverride ?? widget.pendingScopeLiveOverride;
     final isDragged = override != null && override.symbolId == symbol.symbolId;
     final xM = isDragged ? override.xM : symbol.xM;
     final yM = isDragged ? override.yM : symbol.yM;
@@ -1194,6 +1311,40 @@ class _OcptFloorPlanCanvasState extends State<OcptFloorPlanCanvas> {
           ),
         ),
     ];
+  }
+
+  /// The selected override's own `Restore` handle (R5b) — the one affordance that reaches a live
+  /// override or a hidden override's own ghost even though [_isSymbolEditable] locks both against
+  /// dragging, which is why this is built directly in [build] rather than folded into
+  /// [_buildSymbolHandles]. Drawn just outside [symbol]'s own top-left corner (mirroring the delete
+  /// handle's own top-right one), reversible — no confirmation — so it only ever calls
+  /// [OcptFloorPlanCanvas.onSymbolRestoreRequested] straight away.
+  Widget _buildRestoreHandle(
+    OcptFloorPlanSymbolShape symbol,
+    Size canvasSize,
+    double zoom,
+    Offset pan,
+  ) {
+    final centre = ocptFloorPlanScreenPointOf(
+      xM: symbol.xM,
+      yM: symbol.yM,
+      canvasSize: canvasSize,
+      zoom: zoom,
+      pan: pan,
+    );
+    final pixelsPerMetre = ocptFloorPlanPixelsPerMetreAt(zoom);
+    final resizeLocal = Offset(symbol.widthM / 2, symbol.heightM / 2);
+    final resizeScreen =
+        centre + ocptFloorPlanRotateVector(resizeLocal * pixelsPerMetre, symbol.rotationDeg);
+
+    return Positioned(
+      left: resizeScreen.dx - _handleHitSize * 2,
+      top: centre.dy - symbol.heightM / 2 * pixelsPerMetre - _handleHitSize,
+      child: _RestoreHandle(
+        tooltip: Tr.of(context).shotListFloorPlanRestoreOverrideAction,
+        onTap: () => widget.onSymbolRestoreRequested!(symbol.symbolId),
+      ),
+    );
   }
 
   /// A camera symbol's own two field-of-view edge handles, one at each far corner of its wedge
@@ -1588,6 +1739,44 @@ class _OcptFloorPlanCanvasState extends State<OcptFloorPlanCanvas> {
     );
   }
 
+  /// The scope bubble (R5b, `docs/plans/storyboard.md`, §10.4): anchored just below
+  /// [override]'s own footprint, offering `Every sequence (n)` / `Only sequence n` / `Cancel` —
+  /// shown the instant a move/rotate/resize ends on a set-scope symbol whose own set is linked to
+  /// two or more sequences, in place of writing straight away. Works with mouse and touch alike:
+  /// three plain tappable buttons, nothing gesture-specific.
+  Widget _buildScopeBubble(
+    OcptFloorPlanSymbolLiveOverride override,
+    Size canvasSize,
+    double zoom,
+    Offset pan,
+  ) {
+    final centre = ocptFloorPlanScreenPointOf(
+      xM: override.xM,
+      yM: override.yM,
+      canvasSize: canvasSize,
+      zoom: zoom,
+      pan: pan,
+    );
+    final pixelsPerMetre = ocptFloorPlanPixelsPerMetreAt(zoom);
+    final heightPx = override.heightM * pixelsPerMetre;
+
+    return Positioned(
+      left: centre.dx,
+      top: centre.dy + heightPx / 2 + 8,
+      child: FractionalTranslation(
+        translation: const Offset(-0.5, 0),
+        child: _OcptFloorPlanScopeBubble(
+          everyLabel: widget.scopeBubbleEveryLabel ?? "",
+          onlyLabel: widget.scopeBubbleOnlyLabel ?? "",
+          cancelLabel: widget.scopeBubbleCancelLabel ?? "",
+          onEveryRequested: widget.onScopeBubbleEveryRequested,
+          onOnlyRequested: widget.onScopeBubbleOnlyRequested,
+          onCancelRequested: widget.onScopeBubbleCancelRequested,
+        ),
+      ),
+    );
+  }
+
   /// The selected arrow's own midpoint handle (drag to bend, drop to write one row) and, while it
   /// already carries a curve, its neighbouring straighten button — an empty list while withheld
   /// under a read-only preview, a ghost or [OcptFloorPlanCanvas.onArrowCurveChanged] being null.
@@ -1751,6 +1940,95 @@ class _DeleteHandle extends StatelessWidget {
           height: _handleHitSize,
           decoration: BoxDecoration(color: theme.colorScheme.error, shape: BoxShape.circle),
           child: Icon(Icons.close, size: 12, color: theme.colorScheme.onError),
+        ),
+      ),
+    );
+  }
+}
+
+/// The selected override's own small `Restore as in the set` button (R5b) — mirrors [_DeleteHandle]
+/// but in the theme's primary colour (reversible, never destructive).
+class _RestoreHandle extends StatelessWidget {
+  /// The button's own tooltip.
+  final String tooltip;
+
+  /// Called when tapped.
+  final VoidCallback onTap;
+
+  /// Class constructor
+  const _RestoreHandle({required this.tooltip, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Tooltip(
+      message: tooltip,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onTap,
+        child: Container(
+          width: _handleHitSize,
+          height: _handleHitSize,
+          decoration: BoxDecoration(color: theme.colorScheme.primary, shape: BoxShape.circle),
+          child: Icon(Icons.restore, size: 12, color: theme.colorScheme.onPrimary),
+        ),
+      ),
+    );
+  }
+}
+
+/// The scope bubble itself (R5b, `docs/plans/storyboard.md`, §10.4): a small card offering three
+/// plain buttons, `Cancel` first (the least committal, and the one a dismissal already means),
+/// then `Only sequence n`, then `Every sequence (n)` (the current default, so it reads last as the
+/// "keep going" option) — laid out as a `Column` rather than a `Row` so it never has to guess how
+/// wide either localized label runs.
+class _OcptFloorPlanScopeBubble extends StatelessWidget {
+  /// The `Every sequence (n)` button's own label.
+  final String everyLabel;
+
+  /// The `Only sequence n` button's own label.
+  final String onlyLabel;
+
+  /// The `Cancel` button's own label.
+  final String cancelLabel;
+
+  /// Called when `Every sequence` is tapped, or null while withheld.
+  final VoidCallback? onEveryRequested;
+
+  /// Called when `Only sequence n` is tapped, or null while withheld.
+  final VoidCallback? onOnlyRequested;
+
+  /// Called when `Cancel` is tapped, or null while withheld.
+  final VoidCallback? onCancelRequested;
+
+  /// Class constructor
+  const _OcptFloorPlanScopeBubble({
+    required this.everyLabel,
+    required this.onlyLabel,
+    required this.cancelLabel,
+    required this.onEveryRequested,
+    required this.onOnlyRequested,
+    required this.onCancelRequested,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Material(
+      elevation: 4,
+      color: theme.colorScheme.surfaceContainerHigh,
+      borderRadius: BorderRadius.circular(ocptRadiusSmall),
+      child: Padding(
+        padding: const EdgeInsets.all(4),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            TextButton(onPressed: onCancelRequested, child: Text(cancelLabel)),
+            TextButton(onPressed: onOnlyRequested, child: Text(onlyLabel)),
+            FilledButton(onPressed: onEveryRequested, child: Text(everyLabel)),
+          ],
         ),
       ),
     );

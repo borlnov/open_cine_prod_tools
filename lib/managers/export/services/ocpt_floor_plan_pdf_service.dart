@@ -25,6 +25,15 @@ import 'package:open_cine_prod_tools/utils/ocpt_floor_plan_geometry.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 
+/// [sheet]'s own symbols, minus the two kinds of ghost the canvas alone draws
+/// ([OcptFloorPlanSymbolShape.isOverriddenOriginalGhost]/`.isHiddenOverrideGhost`) — the PDF prints
+/// the **effective** plan (`docs/plans/storyboard.md`, §10.4): an override draws normally, in its
+/// own place, a hidden element is simply omitted, and neither ghost nor pin badge ever reaches the
+/// page. [OcptFloorPlanSymbolShape.isOverride] itself needs no filtering here: nothing in this file
+/// reads it, so an override already prints exactly like any other symbol.
+Iterable<OcptFloorPlanSymbolShape> _printableSymbolsOf(OcptFloorPlanSheet sheet) => sheet.symbols
+    .where((symbol) => !symbol.isOverriddenOriginalGhost && !symbol.isHiddenOverrideGhost);
+
 /// The minimum half-span, in metres, a set's own bounding box is padded to on either axis when it
 /// holds too little (or nothing at all) to size a sensible page from — a freshly created set with
 /// one lone camera symbol still prints a legible sheet rather than one zoomed in on a single pixel.
@@ -469,11 +478,12 @@ class OcptFloorPlanPdfService {
     for (final arrow in sheet.arrows) {
       _paintArrow(canvas: canvas, layout: layout, arrow: arrow);
     }
-    for (final symbol in sheet.symbols) {
+    for (final symbol in _printableSymbolsOf(sheet)) {
       _paintSymbolShape(canvas: canvas, layout: layout, symbol: symbol);
     }
     _paintScaleAndSilhouette(canvas: canvas, layout: layout);
   }
+
 
   /// One [pw.Positioned] caption per symbol that carries one, placed near the symbol's own mapped
   /// centre: a camera's own derived number/letter ([OcptFloorPlanSymbolShape.cameraLabel], when
@@ -485,7 +495,7 @@ class OcptFloorPlanPdfService {
     required _FloorPlanPageLayout layout,
     required OcptScriptPagePainter painter,
   }) => [
-    for (final symbol in sheet.symbols)
+    for (final symbol in _printableSymbolsOf(sheet))
       if ((symbol.cameraLabel ?? symbol.label).isNotEmpty)
         _positionedTopDown(
           layout.topDownPointOf(symbol.xM, symbol.yM) + const Offset(4, 4),
@@ -1102,7 +1112,7 @@ class _FloorPlanPageLayout {
       maxY = maxY == null ? y : math.max(maxY!, y);
     }
 
-    for (final symbol in sheet.symbols) {
+    for (final symbol in _printableSymbolsOf(sheet)) {
       final halfDiagonal =
           math.sqrt(symbol.widthM * symbol.widthM + symbol.heightM * symbol.heightM) / 2;
       include(symbol.xM - halfDiagonal, symbol.yM - halfDiagonal);

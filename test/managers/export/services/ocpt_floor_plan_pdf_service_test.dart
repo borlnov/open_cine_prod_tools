@@ -656,6 +656,111 @@ void main() {
     });
   });
 
+  group("overrides and hidden overrides — the printed page shows the effective plan alone", () {
+    test(
+      "a visible override draws normally, in its own place — no dashed mark or ghost of the "
+      "original prints",
+      () async {
+        final original = _decorSymbolOf(id: "sym-original", setId: "case-1");
+        final override = OcptFloorPlanSymbol(
+          id: "sym-override",
+          setId: "case-1",
+          sceneId: "scene-1",
+          shotId: null,
+          layer: OcptFloorPlanLayer.set,
+          sortKey: "b",
+          xM: 3,
+          yM: 3,
+          rotationDeg: 0,
+          widthM: 2,
+          heightM: 1,
+          fovDeg: null,
+          fovReachM: null,
+          label: "wall",
+          setElementShape: OcptFloorPlanSetElementShape.wall,
+          overridesSymbolId: original.id,
+          isHidden: false,
+        );
+
+        // The override alone, at its own moved position — this is what a page drawing only the
+        // override (no ghost of the original) must match.
+        final overrideAlone = await generate(
+          snapshot: snapshotOf(1),
+          floorPlanSnapshot: OcptFloorPlanSnapshot.build(
+            screenplayId: "screenplay",
+            setsBySceneId: {
+              "scene-1": [buildCase(id: "case-1", symbols: [override])],
+            },
+          ),
+        );
+
+        final overrideAndOriginal = await generate(
+          snapshot: snapshotOf(1),
+          floorPlanSnapshot: OcptFloorPlanSnapshot.build(
+            screenplayId: "screenplay",
+            setsBySceneId: {
+              "scene-1": [
+                buildCase(id: "case-1", symbols: [original, override]),
+              ],
+            },
+          ),
+        );
+
+        expect(_contentStreams(overrideAndOriginal), _contentStreams(overrideAlone));
+      },
+    );
+
+    test(
+      "a hidden override prints nothing at all for that element — same page as if it were never "
+      "placed",
+      () async {
+        final original = _decorSymbolOf(id: "sym-original", setId: "case-1");
+        final hiddenOverride = OcptFloorPlanSymbol(
+          id: "sym-override",
+          setId: "case-1",
+          sceneId: "scene-1",
+          shotId: null,
+          layer: OcptFloorPlanLayer.set,
+          sortKey: "b",
+          xM: original.xM,
+          yM: original.yM,
+          rotationDeg: original.rotationDeg,
+          widthM: original.widthM,
+          heightM: original.heightM,
+          fovDeg: null,
+          fovReachM: null,
+          label: original.label,
+          setElementShape: original.setElementShape,
+          overridesSymbolId: original.id,
+          isHidden: true,
+        );
+
+        final withHiddenOverride = await generate(
+          snapshot: snapshotOf(1),
+          floorPlanSnapshot: OcptFloorPlanSnapshot.build(
+            screenplayId: "screenplay",
+            setsBySceneId: {
+              "scene-1": [
+                buildCase(id: "case-1", symbols: [original, hiddenOverride]),
+              ],
+            },
+          ),
+        );
+        final withNoDecorAtAll = await generate(
+          snapshot: snapshotOf(1),
+          floorPlanSnapshot: OcptFloorPlanSnapshot.build(
+            screenplayId: "screenplay",
+            setsBySceneId: {
+              "scene-1": [buildCase(id: "case-1")],
+            },
+          ),
+        );
+
+        expect(_contentStreams(withHiddenOverride), _contentStreams(withNoDecorAtAll));
+      },
+    );
+  });
+
   group("floorPlansFileName", () {
     test("joins the project name and the localized suffix", () {
       expect(

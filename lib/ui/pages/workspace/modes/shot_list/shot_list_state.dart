@@ -5,6 +5,7 @@
 import 'package:act_flutter_utility/act_flutter_utility.dart';
 import 'package:equatable/equatable.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_coverage_service.dart';
+import 'package:open_cine_prod_tools/models/ocpt_floor_plan_scope_decision.dart';
 import 'package:open_cine_prod_tools/models/ocpt_floor_plan_set.dart';
 import 'package:open_cine_prod_tools/models/ocpt_floor_plan_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_floor_plan_symbol.dart';
@@ -17,6 +18,7 @@ import 'package:open_cine_prod_tools/models/ocpt_project_working_copy_state.dart
 import 'package:open_cine_prod_tools/models/ocpt_removed_role_alert.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role_collision_alert.dart';
+import 'package:open_cine_prod_tools/models/ocpt_scene_prop_summary.dart';
 import 'package:open_cine_prod_tools/models/ocpt_script_word_layout.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_coverage_range.dart';
@@ -26,6 +28,7 @@ import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
 import 'package:open_cine_prod_tools/models/ocpt_storyboard_panel.dart';
 import 'package:open_cine_prod_tools/models/ocpt_storyboard_snapshot.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_layer.dart';
+import 'package:open_cine_prod_tools/types/ocpt_floor_plan_scope.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_set_element_shape.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_tool.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_version_notice_kind.dart';
@@ -261,6 +264,34 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
   ///
   /// A **view/session state** value, like [floorPlanZoom]: never written to the project.
   final OcptFloorPlanSetElementShape floorPlanActiveSetElementShape;
+
+  /// The scope a `setElement` click-to-arm placement lands at (R5b) — the palette's own `Set`
+  /// group arms [OcptFloorPlanScope.set], its `Sequence` group's own furniture/freeform pair arms
+  /// [OcptFloorPlanScope.scene].
+  ///
+  /// A **view/session state** value, like [floorPlanZoom]: never written to the project.
+  final OcptFloorPlanScope floorPlanActiveSetElementScope;
+
+  /// A `prop` click-to-arm placement's own armed label (R5b) — which breakdown-prop chip, or the
+  /// `Other…` chip's own typed-in text, was armed last.
+  ///
+  /// A **view/session state** value, like [floorPlanZoom]: never written to the project.
+  final String floorPlanActiveLabel;
+
+  /// The focused sequence's own breakdown props (R5b, `docs/plans/storyboard.md`, §10.4) — the
+  /// palette's own `Sequence` group chips. Reloaded whenever the selected sequence changes, and
+  /// project-wide, unlike... nothing else in this state — it is this narrow read's own instance.
+  final List<OcptScenePropSummary> propsOfSelectedSequence;
+
+  /// A set-scope move, rotate or resize awaiting the scope bubble's own answer (R5b) — set the
+  /// instant such a gesture ends on a symbol whose own set is linked to two or more sequences, and
+  /// cleared the moment the bubble is answered (`Every sequence`/`Only sequence n`/`Cancel`) or a
+  /// click elsewhere dismisses it as `Cancel`. Null the rest of the time — every set-scope gesture
+  /// on a set linked to one sequence alone is written straight away, exactly as before.
+  ///
+  /// A **view/session state** value, like [floorPlanZoom]: never written to the project (only what
+  /// it resolves into is).
+  final OcptFloorPlanScopeDecision? pendingFloorPlanScopeDecision;
 
   /// The sequence layers currently hidden on the floor plans canvas, out of the tray's own three
   /// rows. Empty means every sequence layer is shown — the tray's own default.
@@ -726,6 +757,10 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
     required this.floorPlanActiveTool,
     required this.floorPlanActiveLayer,
     required this.floorPlanActiveSetElementShape,
+    required this.floorPlanActiveSetElementScope,
+    required this.floorPlanActiveLabel,
+    required this.propsOfSelectedSequence,
+    required this.pendingFloorPlanScopeDecision,
     required this.floorPlanHiddenLayers,
     required this.isFloorPlanUnderlayHidden,
     required this.floorPlanHiddenCameraSymbolIds,
@@ -785,6 +820,10 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
       floorPlanActiveTool = OcptFloorPlanTool.select,
       floorPlanActiveLayer = OcptFloorPlanLayer.set,
       floorPlanActiveSetElementShape = OcptFloorPlanSetElementShape.wall,
+      floorPlanActiveSetElementScope = OcptFloorPlanScope.set,
+      floorPlanActiveLabel = "",
+      propsOfSelectedSequence = const [],
+      pendingFloorPlanScopeDecision = null,
       floorPlanHiddenLayers = const {},
       isFloorPlanUnderlayHidden = false,
       floorPlanHiddenCameraSymbolIds = const {},
@@ -859,6 +898,11 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
     OcptFloorPlanTool? floorPlanActiveTool,
     OcptFloorPlanLayer? floorPlanActiveLayer,
     OcptFloorPlanSetElementShape? floorPlanActiveSetElementShape,
+    OcptFloorPlanScope? floorPlanActiveSetElementScope,
+    String? floorPlanActiveLabel,
+    List<OcptScenePropSummary>? propsOfSelectedSequence,
+    OcptFloorPlanScopeDecision? pendingFloorPlanScopeDecision,
+    bool clearPendingFloorPlanScopeDecision = false,
     Set<OcptFloorPlanLayer>? floorPlanHiddenLayers,
     bool? isFloorPlanUnderlayHidden,
     Set<String>? floorPlanHiddenCameraSymbolIds,
@@ -940,6 +984,13 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
     floorPlanActiveLayer: floorPlanActiveLayer ?? this.floorPlanActiveLayer,
     floorPlanActiveSetElementShape:
         floorPlanActiveSetElementShape ?? this.floorPlanActiveSetElementShape,
+    floorPlanActiveSetElementScope:
+        floorPlanActiveSetElementScope ?? this.floorPlanActiveSetElementScope,
+    floorPlanActiveLabel: floorPlanActiveLabel ?? this.floorPlanActiveLabel,
+    propsOfSelectedSequence: propsOfSelectedSequence ?? this.propsOfSelectedSequence,
+    pendingFloorPlanScopeDecision: clearPendingFloorPlanScopeDecision
+        ? null
+        : (pendingFloorPlanScopeDecision ?? this.pendingFloorPlanScopeDecision),
     floorPlanHiddenLayers: floorPlanHiddenLayers ?? this.floorPlanHiddenLayers,
     isFloorPlanUnderlayHidden: isFloorPlanUnderlayHidden ?? this.isFloorPlanUnderlayHidden,
     floorPlanHiddenCameraSymbolIds:
@@ -1068,6 +1119,10 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
     floorPlanActiveTool,
     floorPlanActiveLayer,
     floorPlanActiveSetElementShape,
+    floorPlanActiveSetElementScope,
+    floorPlanActiveLabel,
+    propsOfSelectedSequence,
+    pendingFloorPlanScopeDecision,
     floorPlanHiddenLayers,
     isFloorPlanUnderlayHidden,
     floorPlanHiddenCameraSymbolIds,

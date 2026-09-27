@@ -366,6 +366,83 @@ void main() {
       );
       expect(links, isEmpty);
     });
+    test(
+      "propsOfScene reads only prop-category elements, quantity resolved from the link's own "
+      "override or the catalogue's own default",
+      () async {
+        final candlesId = await createElement("Candles");
+        await elementsService.updateElement(
+          database: database,
+          elementId: candlesId,
+          quantity: const Value("6"),
+        );
+        await elementsService.addSceneElement(
+          database: database,
+          sceneId: "scene-1",
+          elementId: candlesId,
+          quantity: "12",
+        );
+
+        final vaseId = await createElement("Vase");
+        await elementsService.addSceneElement(
+          database: database,
+          sceneId: "scene-1",
+          elementId: vaseId,
+        );
+
+        // A costume, never a prop chip.
+        final costumeId = await elementsService.createElement(
+          database: database,
+          name: "Coat",
+          category: OcptElementCategory.costume,
+          sourceKind: OcptElementSourceKind.owned,
+        ).then((id) => id!);
+        await elementsService.addSceneElement(
+          database: database,
+          sceneId: "scene-1",
+          elementId: costumeId,
+        );
+
+        // A prop of a different scene, never in scene-1's own list.
+        final elsewhereId = await createElement("Lantern");
+        await elementsService.addSceneElement(
+          database: database,
+          sceneId: "scene-2",
+          elementId: elsewhereId,
+        );
+
+        final props = await elementsService.propsOfScene(database: database, sceneId: "scene-1");
+
+        expect(props.map((prop) => prop.elementId), [candlesId, vaseId]);
+        final candles = props.firstWhere((prop) => prop.elementId == candlesId);
+        expect(candles.name, "Candles");
+        expect(candles.quantity, "12"); // the link's own override, not the catalogue's "6"
+        final vase = props.firstWhere((prop) => prop.elementId == vaseId);
+        expect(vase.quantity, ""); // neither the link nor the catalogue carries one
+      },
+    );
+
+    test("propsOfScene leaves out a tombstoned element or link", () async {
+      final elementId = await createElement("Valise");
+      final linkId = (await elementsService.addSceneElement(
+        database: database,
+        sceneId: "scene-1",
+        elementId: elementId,
+      ))!;
+
+      final beforeDelete = await elementsService.propsOfScene(
+        database: database,
+        sceneId: "scene-1",
+      );
+      expect(beforeDelete, hasLength(1));
+
+      await elementsService.removeSceneElement(database: database, id: linkId);
+      expect(
+        await elementsService.propsOfScene(database: database, sceneId: "scene-1"),
+        isEmpty,
+      );
+    });
+
     test("loadElements joins the links in the screenplay's own scene order", () async {
       final elementId = await createElement("Valise");
       await elementsService.addSceneElement(

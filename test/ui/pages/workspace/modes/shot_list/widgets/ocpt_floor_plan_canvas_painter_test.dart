@@ -381,4 +381,54 @@ void main() {
       expect(movement, isNot(equals(cameraMove)));
     });
   });
+
+  group("OcptFloorPlanCanvasPainter — override marking and ghosts", () {
+    OcptFloorPlanSymbolShape setElementShapeOf() => _symbolShape(
+      layer: OcptFloorPlanLayer.set,
+      glyphKind: OcptFloorPlanSymbolGlyphKind.setElement,
+      setElementShape: OcptFloorPlanSetElementShape.furniture,
+    );
+
+    test("a visible override's own dashed outline and pin badge paint differently from a plain "
+        "symbol at the same geometry", () async {
+      final plain = await _renderRgba(_sheetOf(symbols: [setElementShapeOf()]));
+      final override = await _renderRgba(
+        _sheetOf(symbols: [setElementShapeOf().copyWith(isOverride: true)]),
+      );
+
+      expect(override, isNot(equals(plain)));
+    });
+
+    test(
+      "the replaced original's own ghost paints at a fixed faint opacity, unrelated to the onion "
+      "skin's own opacity",
+      () async {
+        final full = await _renderRgba(_sheetOf(symbols: [setElementShapeOf()]));
+        final ghost = await _renderRgba(
+          _sheetOf(symbols: [setElementShapeOf().copyWith(isOverriddenOriginalGhost: true)]),
+        );
+
+        expect(ghost, isNot(equals(full)));
+
+        // At the symbol's own centre (screen 100,100), the ghost draws a translucent fill rather
+        // than the full-opacity one — checked at the alpha channel alone, so this stays true
+        // whatever furniture's own fill colour or alpha formula is.
+        final fullAlpha = _pixelAt(full, 100, 100).$4;
+        final ghostAlpha = _pixelAt(ghost, 100, 100).$4;
+        expect(ghostAlpha, lessThan(fullAlpha));
+      },
+    );
+
+    test("a hidden override's own ghost paints the same as a visibly-overridden original's ghost "
+        "(both faint, same fixed opacity)", () async {
+      final overriddenGhost = await _renderRgba(
+        _sheetOf(symbols: [setElementShapeOf().copyWith(isOverriddenOriginalGhost: true)]),
+      );
+      final hiddenGhost = await _renderRgba(
+        _sheetOf(symbols: [setElementShapeOf().copyWith(isHiddenOverrideGhost: true)]),
+      );
+
+      expect(hiddenGhost, equals(overriddenGhost));
+    });
+  });
 }

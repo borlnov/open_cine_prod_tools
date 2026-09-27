@@ -8,8 +8,37 @@ import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_floor_plan_sheet.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_layer.dart';
+import 'package:open_cine_prod_tools/types/ocpt_floor_plan_scope.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_set_element_shape.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_tool.dart';
+
+/// One breakdown prop of the focused sequence, for the palette's own `Sequence` group chips (R5b,
+/// `docs/plans/storyboard.md`, §10.4) — a read-only projection of the *dépouillement*'s own
+/// `scene_elements` link joined with the `elements` catalogue, loaded by the bloc (no `Tr` in
+/// services): [quantity] is already resolved to the link's own override or the element's own
+/// catalogue quantity, whichever is set, and is empty while neither carries one.
+class OcptFloorPlanPropChip extends Equatable {
+  /// The element's own catalogue id — what a placed prop symbol's label is filled from, never
+  /// stored as a link of its own (`OcptFloorPlanSymbolsTable`'s own doc comment: a label is free
+  /// text).
+  final String elementId;
+
+  /// The element's own display name — the chip's own label, and what a placed symbol's own label
+  /// is set to.
+  final String name;
+
+  /// The effective quantity (the scene's own override, or the element's own catalogue quantity), a
+  /// decimal stored as text, or empty while neither is set — the chip shows `<name> ×<quantity>`
+  /// only while this isn't empty.
+  final String quantity;
+
+  /// Class constructor
+  const OcptFloorPlanPropChip({required this.elementId, required this.name, required this.quantity});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [elementId, name, quantity];
+}
 
 /// One live camera symbol of the set, for the palette's own `View` group cameras row — see
 /// `OcptFloorPlanLayerTray.sequenceCameras`'s own doc comment, which this replaces.
@@ -49,8 +78,12 @@ class OcptFloorPlanTraySequenceCamera extends Equatable {
 /// [onUnderlayClearRequested] is the one exception, a real project write, withheld (null) under a
 /// read-only preview exactly like every other write in this milestone.
 class OcptFloorPlanPalette extends StatelessWidget {
-  /// The selected set's own name, for the `Set · <name> — shared` group header.
+  /// The selected set's own name, for the `Set · <name> — shared by every sequence` group header.
   final String setName;
+
+  /// The focused sequence's own display number, for the `Sequence <n> — this sequence only` group
+  /// header.
+  final String sequenceCode;
 
   /// The focused shot's own display code (`12/3`), for the `Shot <code> — this shot only` group
   /// header, or null while no shot is focused yet.
@@ -59,10 +92,22 @@ class OcptFloorPlanPalette extends StatelessWidget {
   /// The currently active tool — which entry (if any) reads as armed.
   final OcptFloorPlanTool activeTool;
 
-  /// The décor primitive a `setElement` click-to-arm placement carries — which of the four typed
+  /// The décor primitive a `setElement` click-to-arm placement carries — which of the typed
   /// entries below (wall/door/furniture/freeform) reads as armed while [activeTool] is
   /// [OcptFloorPlanTool.setElement].
   final OcptFloorPlanSetElementShape activeSetElementShape;
+
+  /// The scope a `setElement` click-to-arm placement lands at — which of the `Set`/`Sequence`
+  /// groups' own matching entry reads as armed alongside [activeSetElementShape].
+  final OcptFloorPlanScope activeSetElementScope;
+
+  /// A `prop` click-to-arm placement's own armed label — which chip (or the `Other…` chip's own
+  /// typed text) reads as armed while [activeTool] is [OcptFloorPlanTool.prop].
+  final String activeLabel;
+
+  /// The focused sequence's own breakdown props (category `prop` alone), for the `Sequence`
+  /// group's own chips.
+  final List<OcptFloorPlanPropChip> propsChips;
 
   /// Whether the mode shows a project version being previewed read-only: every entry stays visible
   /// and clickable/draggable, but arming or dropping one is a no-op while this is true — the canvas
@@ -106,12 +151,26 @@ class OcptFloorPlanPalette extends StatelessWidget {
   /// only the click-to-arm path).
   final ValueChanged<OcptFloorPlanTool> onToolSelected;
 
-  /// Called with the décor primitive just clicked or dropped among the four typed set-element
+  /// Called with the décor primitive just clicked or dropped among the typed set-element
   /// entries — click-to-arms [activeSetElementShape] alongside [OcptFloorPlanTool.setElement]
   /// itself ([onToolSelected], called first). A drop reports through the drag payload instead
   /// (`OcptFloorPlanCanvas`'s own `DragTarget<OcptFloorPlanPaletteDragPayload>`), so this callback
   /// is, like [onToolSelected], only the click-to-arm path.
   final ValueChanged<OcptFloorPlanSetElementShape> onSetElementShapeSelected;
+
+  /// Called with the scope just clicked alongside a typed set-element entry — click-to-arms
+  /// [activeSetElementScope]. Only the click-to-arm path; a drop's own payload carries its own
+  /// scope directly.
+  final ValueChanged<OcptFloorPlanScope> onSetElementScopeSelected;
+
+  /// Called with a props chip's own label when it is clicked — click-to-arms [activeLabel]
+  /// alongside [OcptFloorPlanTool.prop] itself ([onToolSelected], called first). Only the
+  /// click-to-arm path; a drop's own payload carries its own label directly.
+  final ValueChanged<String> onPropChipSelected;
+
+  /// Called when the `Other…` chip is clicked, asking for a free-typed label before arming
+  /// [OcptFloorPlanTool.prop] with it.
+  final VoidCallback onOtherPropRequested;
 
   /// Called with the layer whose eye was clicked.
   final ValueChanged<OcptFloorPlanLayer> onLayerVisibilityToggled;
@@ -143,9 +202,13 @@ class OcptFloorPlanPalette extends StatelessWidget {
   const OcptFloorPlanPalette({
     super.key,
     required this.setName,
+    required this.sequenceCode,
     required this.shotCode,
     required this.activeTool,
     required this.activeSetElementShape,
+    required this.activeSetElementScope,
+    required this.activeLabel,
+    required this.propsChips,
     required this.isReadOnly,
     required this.hiddenLayers,
     required this.sequenceCameras,
@@ -159,6 +222,9 @@ class OcptFloorPlanPalette extends StatelessWidget {
     required this.hasUnderlay,
     required this.onToolSelected,
     required this.onSetElementShapeSelected,
+    required this.onSetElementScopeSelected,
+    required this.onPropChipSelected,
+    required this.onOtherPropRequested,
     required this.onLayerVisibilityToggled,
     required this.onCameraVisibilityToggled,
     required this.onOnionSkinToggled,
@@ -187,6 +253,7 @@ class OcptFloorPlanPalette extends StatelessWidget {
             icon: Icons.horizontal_rule,
             label: tr.shotListFloorPlanToolWallAction,
             setElementShape: OcptFloorPlanSetElementShape.wall,
+            sceneScope: OcptFloorPlanScope.set,
           ),
           _buildEntry(
             context,
@@ -194,6 +261,7 @@ class OcptFloorPlanPalette extends StatelessWidget {
             icon: Icons.door_front_door_outlined,
             label: tr.shotListFloorPlanToolDoorAction,
             setElementShape: OcptFloorPlanSetElementShape.door,
+            sceneScope: OcptFloorPlanScope.set,
           ),
           _buildEntry(
             context,
@@ -201,6 +269,7 @@ class OcptFloorPlanPalette extends StatelessWidget {
             icon: Icons.chair_outlined,
             label: tr.shotListFloorPlanToolFurnitureAction,
             setElementShape: OcptFloorPlanSetElementShape.furniture,
+            sceneScope: OcptFloorPlanScope.set,
           ),
           _buildEntry(
             context,
@@ -208,7 +277,27 @@ class OcptFloorPlanPalette extends StatelessWidget {
             icon: Icons.gesture,
             label: tr.shotListFloorPlanToolFreeformAction,
             setElementShape: OcptFloorPlanSetElementShape.freeform,
+            sceneScope: OcptFloorPlanScope.set,
           ),
+          const Divider(height: 16),
+          _buildGroupTitle(context, tr.shotListFloorPlanPaletteSequenceGroupTitle(sequenceCode)),
+          _buildEntry(
+            context,
+            tool: OcptFloorPlanTool.setElement,
+            icon: Icons.chair_outlined,
+            label: tr.shotListFloorPlanToolFurnitureAction,
+            setElementShape: OcptFloorPlanSetElementShape.furniture,
+            sceneScope: OcptFloorPlanScope.scene,
+          ),
+          _buildEntry(
+            context,
+            tool: OcptFloorPlanTool.setElement,
+            icon: Icons.gesture,
+            label: tr.shotListFloorPlanToolFreeformAction,
+            setElementShape: OcptFloorPlanSetElementShape.freeform,
+            sceneScope: OcptFloorPlanScope.scene,
+          ),
+          _buildPropsChips(context, tr),
           if (shotCode != null) ...[
             const Divider(height: 16),
             _buildGroupTitle(context, tr.shotListFloorPlanPaletteShotGroupTitle(shotCode)),
@@ -270,25 +359,28 @@ class OcptFloorPlanPalette extends StatelessWidget {
   }
 
   /// One placeable tool's own entry: an icon and its label, armed by a click ([onToolSelected],
-  /// and, for a typed set-element entry, [onSetElementShapeSelected] too) and offered as a drag
-  /// source (`Draggable<OcptFloorPlanPaletteDragPayload>`, anchored at the pointer so
-  /// `OcptFloorPlanCanvas`'s own `DragTarget` drops it exactly where released, carrying
-  /// [setElementShape] on the drag itself).
+  /// and, for a typed set-element entry, [onSetElementShapeSelected]/[onSetElementScopeSelected]
+  /// too) and offered as a drag source (`Draggable<OcptFloorPlanPaletteDragPayload>`, anchored at
+  /// the pointer so `OcptFloorPlanCanvas`'s own `DragTarget` drops it exactly where released,
+  /// carrying [setElementShape]/[sceneScope] on the drag itself).
   ///
-  /// [setElementShape] is set for one of the palette's own four typed set-element entries (wall,
-  /// door, furniture, freeform) and null for every other entry (camera, character, light): it is
-  /// what tells the four typed entries apart from one another, since they all share
-  /// [OcptFloorPlanTool.setElement].
+  /// [setElementShape]/[sceneScope] are set for one of the palette's own typed set-element entries
+  /// (wall, door, furniture, freeform — each of the last two appearing twice, once per scope) and
+  /// null for every other entry (camera, character, light): together they tell every typed entry
+  /// apart from the others, since they all share [OcptFloorPlanTool.setElement].
   Widget _buildEntry(
     BuildContext context, {
     required OcptFloorPlanTool tool,
     required IconData icon,
     required String label,
     OcptFloorPlanSetElementShape? setElementShape,
+    OcptFloorPlanScope? sceneScope,
   }) {
     final theme = Theme.of(context);
     final isActive =
-        tool == activeTool && (setElementShape == null || setElementShape == activeSetElementShape);
+        tool == activeTool &&
+        (setElementShape == null || setElementShape == activeSetElementShape) &&
+        (sceneScope == null || sceneScope == activeSetElementScope);
 
     final row = Container(
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
@@ -324,6 +416,9 @@ class OcptFloorPlanPalette extends StatelessWidget {
         if (setElementShape != null) {
           onSetElementShapeSelected(setElementShape);
         }
+        if (sceneScope != null) {
+          onSetElementScopeSelected(sceneScope);
+        }
       },
       mouseCursor: ocptClickableCursor,
       borderRadius: BorderRadius.circular(ocptRadiusSmall),
@@ -335,7 +430,11 @@ class OcptFloorPlanPalette extends StatelessWidget {
     }
 
     return Draggable<OcptFloorPlanPaletteDragPayload>(
-      data: OcptFloorPlanPaletteDragPayload(tool: tool, setElementShape: setElementShape),
+      data: OcptFloorPlanPaletteDragPayload(
+        tool: tool,
+        setElementShape: setElementShape,
+        sceneScope: sceneScope,
+      ),
       dragAnchorStrategy: pointerDragAnchorStrategy,
       feedback: Material(
         color: Colors.transparent,
@@ -343,6 +442,93 @@ class OcptFloorPlanPalette extends StatelessWidget {
       ),
       childWhenDragging: Opacity(opacity: 0.4, child: entry),
       child: entry,
+    );
+  }
+
+  /// The `Sequence` group's own breakdown-props chips (R5b, `docs/plans/storyboard.md`, §10.4):
+  /// one chip per [propsChips] entry, plus a fixed `Other…` chip for a free-typed label.
+  Widget _buildPropsChips(BuildContext context, Tr tr) => Padding(
+    padding: const EdgeInsets.fromLTRB(12, 2, 12, 6),
+    child: Wrap(
+      spacing: 6,
+      runSpacing: 6,
+      children: [
+        for (final chip in propsChips) _buildPropChip(context, tr, chip),
+        _buildOtherPropChip(context, tr),
+      ],
+    ),
+  );
+
+  /// One breakdown prop's own chip: click-to-arms [OcptFloorPlanTool.prop] with [chip]'s own name
+  /// ([onToolSelected] then [onPropChipSelected]), and stays usable after a placement — two
+  /// candles, two drops — since arming never consumes it. Offered as a drag source too, carrying
+  /// [chip]'s own name on the drag itself. Shows `<name> ×<quantity>` while [chip] carries one.
+  Widget _buildPropChip(BuildContext context, Tr tr, OcptFloorPlanPropChip chip) {
+    final theme = Theme.of(context);
+    final isActive = activeTool == OcptFloorPlanTool.prop && activeLabel == chip.name;
+    final label = chip.quantity.isEmpty
+        ? chip.name
+        : tr.shotListFloorPlanPropChipWithQuantityLabel(chip.name, chip.quantity);
+
+    final chipWidget = Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: isActive
+            ? theme.colorScheme.primary.withValues(alpha: ocptSelectedStateAlpha)
+            : theme.colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(ocptRadiusSmall),
+        border: Border.all(color: theme.colorScheme.outlineVariant),
+      ),
+      child: Text(
+        label,
+        style: theme.textTheme.bodySmall?.copyWith(
+          color: isActive ? theme.colorScheme.primary : null,
+          fontWeight: isActive ? FontWeight.w700 : null,
+        ),
+      ),
+    );
+
+    final entry = InkWell(
+      onTap: () {
+        onToolSelected(OcptFloorPlanTool.prop);
+        onPropChipSelected(chip.name);
+      },
+      mouseCursor: ocptClickableCursor,
+      borderRadius: BorderRadius.circular(ocptRadiusSmall),
+      child: chipWidget,
+    );
+
+    if (isReadOnly) {
+      return entry;
+    }
+
+    return Draggable<OcptFloorPlanPaletteDragPayload>(
+      data: OcptFloorPlanPaletteDragPayload(tool: OcptFloorPlanTool.prop, label: chip.name),
+      dragAnchorStrategy: pointerDragAnchorStrategy,
+      feedback: Material(color: Colors.transparent, child: chipWidget),
+      childWhenDragging: Opacity(opacity: 0.4, child: entry),
+      child: entry,
+    );
+  }
+
+  /// The fixed `Other…` chip: asks for a free-typed label ([onOtherPropRequested]) before arming
+  /// [OcptFloorPlanTool.prop] with it — the mode reuses the character name-picker's own dialog
+  /// pattern for the typing itself.
+  Widget _buildOtherPropChip(BuildContext context, Tr tr) {
+    final theme = Theme.of(context);
+
+    return InkWell(
+      onTap: onOtherPropRequested,
+      mouseCursor: ocptClickableCursor,
+      borderRadius: BorderRadius.circular(ocptRadiusSmall),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(ocptRadiusSmall),
+          border: Border.all(color: theme.colorScheme.outlineVariant),
+        ),
+        child: Text(tr.shotListFloorPlanOtherPropChipLabel, style: theme.textTheme.bodySmall),
+      ),
     );
   }
 

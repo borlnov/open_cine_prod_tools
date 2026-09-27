@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
+import 'package:open_cine_prod_tools/types/ocpt_floor_plan_scope.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_set_element_shape.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_tool.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_floor_plan_palette.dart';
@@ -35,17 +36,28 @@ Future<void> _pump(WidgetTester tester, Widget child) async {
 
 OcptFloorPlanPalette _buildPalette({
   required String setName,
+  String sequenceCode = "7",
   String? shotCode,
   OcptFloorPlanTool activeTool = OcptFloorPlanTool.select,
   OcptFloorPlanSetElementShape activeSetElementShape = OcptFloorPlanSetElementShape.wall,
+  OcptFloorPlanScope activeSetElementScope = OcptFloorPlanScope.set,
+  String activeLabel = "",
+  List<OcptFloorPlanPropChip> propsChips = const [],
   bool isReadOnly = false,
   ValueChanged<OcptFloorPlanTool>? onToolSelected,
   ValueChanged<OcptFloorPlanSetElementShape>? onSetElementShapeSelected,
+  ValueChanged<OcptFloorPlanScope>? onSetElementScopeSelected,
+  ValueChanged<String>? onPropChipSelected,
+  VoidCallback? onOtherPropRequested,
 }) => OcptFloorPlanPalette(
   setName: setName,
+  sequenceCode: sequenceCode,
   shotCode: shotCode,
   activeTool: activeTool,
   activeSetElementShape: activeSetElementShape,
+  activeSetElementScope: activeSetElementScope,
+  activeLabel: activeLabel,
+  propsChips: propsChips,
   isReadOnly: isReadOnly,
   hiddenLayers: const {},
   sequenceCameras: const [],
@@ -59,6 +71,9 @@ OcptFloorPlanPalette _buildPalette({
   hasUnderlay: false,
   onToolSelected: onToolSelected ?? (_) {},
   onSetElementShapeSelected: onSetElementShapeSelected ?? (_) {},
+  onSetElementScopeSelected: onSetElementScopeSelected ?? (_) {},
+  onPropChipSelected: onPropChipSelected ?? (_) {},
+  onOtherPropRequested: onOtherPropRequested ?? () {},
   onLayerVisibilityToggled: (_) {},
   onCameraVisibilityToggled: (_) {},
   onOnionSkinToggled: (_) {},
@@ -171,15 +186,15 @@ void main() {
 
   testWidgets(
     "the Set group offers the four typed set-element entries, always available (no focused shot "
-    "needed)",
+    "needed) — Furniture/Freeform also appear a second time, in the Sequence group",
     (tester) async {
       await _pump(tester, _buildPalette(setName: "Kitchen"));
       final tr = Tr.of(tester.element(find.byType(OcptFloorPlanPalette)));
 
       expect(find.text(tr.shotListFloorPlanToolWallAction), findsOneWidget);
       expect(find.text(tr.shotListFloorPlanToolDoorAction), findsOneWidget);
-      expect(find.text(tr.shotListFloorPlanToolFurnitureAction), findsOneWidget);
-      expect(find.text(tr.shotListFloorPlanToolFreeformAction), findsOneWidget);
+      expect(find.text(tr.shotListFloorPlanToolFurnitureAction), findsNWidgets(2));
+      expect(find.text(tr.shotListFloorPlanToolFreeformAction), findsNWidgets(2));
     },
   );
 
@@ -305,5 +320,187 @@ void main() {
     expect(find.text(tr.shotListFloorPlanLayerCharactersLabel), findsOneWidget);
     expect(find.text(tr.shotListFloorPlanLayerLightsLabel), findsOneWidget);
     expect(find.text(tr.shotListFloorPlanLayerPropsLabel), findsOneWidget);
+  });
+
+  group("the Sequence group (R5b)", () {
+    testWidgets("shows its own header naming the focused sequence", (tester) async {
+      await _pump(tester, _buildPalette(setName: "Kitchen"));
+      final tr = Tr.of(tester.element(find.byType(OcptFloorPlanPalette)));
+
+      expect(find.text(tr.shotListFloorPlanPaletteSequenceGroupTitle("7")), findsOneWidget);
+    });
+
+    testWidgets(
+      "the Set group's own typed entries arm set scope, the Sequence group's own arm scene scope",
+      (tester) async {
+        final armedScopes = <OcptFloorPlanScope>[];
+        await _pump(
+          tester,
+          _buildPalette(
+            setName: "Kitchen",
+            onSetElementScopeSelected: armedScopes.add,
+          ),
+        );
+        final tr = Tr.of(tester.element(find.byType(OcptFloorPlanPalette)));
+
+        // Two Furniture entries: the Set group's own first, the Sequence group's own second.
+        final furnitureEntries = find.text(tr.shotListFloorPlanToolFurnitureAction);
+        expect(furnitureEntries, findsNWidgets(2));
+
+        await tester.tap(furnitureEntries.first);
+        await tester.pump();
+        await tester.tap(furnitureEntries.last);
+        await tester.pump();
+
+        expect(armedScopes, [OcptFloorPlanScope.set, OcptFloorPlanScope.scene]);
+      },
+    );
+
+    testWidgets("shows one chip per prop, with its own quantity when it has one", (tester) async {
+      await _pump(
+        tester,
+        _buildPalette(
+          setName: "Kitchen",
+          propsChips: const [
+            OcptFloorPlanPropChip(elementId: "el-1", name: "Candles", quantity: "12"),
+            OcptFloorPlanPropChip(elementId: "el-2", name: "Vase", quantity: ""),
+          ],
+        ),
+      );
+      final tr = Tr.of(tester.element(find.byType(OcptFloorPlanPalette)));
+
+      expect(
+        find.text(tr.shotListFloorPlanPropChipWithQuantityLabel("Candles", "12")),
+        findsOneWidget,
+      );
+      expect(find.text("Vase"), findsOneWidget);
+      expect(find.text(tr.shotListFloorPlanOtherPropChipLabel), findsOneWidget);
+    });
+
+    testWidgets(
+      "clicking a prop chip click-to-arms the prop tool with its own name, and stays usable",
+      (tester) async {
+        OcptFloorPlanTool? armedTool;
+        String? armedLabel;
+        await _pump(
+          tester,
+          _buildPalette(
+            setName: "Kitchen",
+            propsChips: const [
+              OcptFloorPlanPropChip(elementId: "el-1", name: "Candles", quantity: "12"),
+            ],
+            onToolSelected: (tool) => armedTool = tool,
+            onPropChipSelected: (label) => armedLabel = label,
+          ),
+        );
+        final tr = Tr.of(tester.element(find.byType(OcptFloorPlanPalette)));
+        final chip = find.text(
+          tr.shotListFloorPlanPropChipWithQuantityLabel("Candles", "12"),
+        );
+
+        await tester.tap(chip);
+        await tester.pump();
+        expect(armedTool, OcptFloorPlanTool.prop);
+        expect(armedLabel, "Candles");
+
+        // The chip is still there and still tappable — two candles, two drops.
+        armedTool = null;
+        armedLabel = null;
+        await tester.tap(chip);
+        await tester.pump();
+        expect(armedTool, OcptFloorPlanTool.prop);
+        expect(armedLabel, "Candles");
+      },
+    );
+
+    testWidgets("a prop chip is a drag source carrying its own name", (tester) async {
+      OcptFloorPlanPaletteDragPayload? dropped;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: const [
+            Tr.delegate,
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          supportedLocales: Tr.delegate.supportedLocales,
+          home: Scaffold(
+            body: Row(
+              children: [
+                SizedBox(
+                  width: 220,
+                  height: 700,
+                  child: _buildPalette(
+                    setName: "Kitchen",
+                    propsChips: const [
+                      OcptFloorPlanPropChip(elementId: "el-1", name: "Candles", quantity: "12"),
+                    ],
+                  ),
+                ),
+                DragTarget<OcptFloorPlanPaletteDragPayload>(
+                  onAcceptWithDetails: (details) => dropped = details.data,
+                  builder: (context, candidateData, rejectedData) =>
+                      const SizedBox(key: Key("drop-target"), width: 200, height: 200),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+      final tr = Tr.of(tester.element(find.byType(OcptFloorPlanPalette)));
+
+      final source = tester.getCenter(
+        find.text(tr.shotListFloorPlanPropChipWithQuantityLabel("Candles", "12")),
+      );
+      final target = tester.getCenter(find.byKey(const Key("drop-target")));
+
+      final gesture = await tester.startGesture(source);
+      await tester.pump(const Duration(milliseconds: 50));
+      await gesture.moveBy(const Offset(0, 20));
+      await tester.pump(const Duration(milliseconds: 50));
+      await gesture.moveTo(target);
+      await tester.pump(const Duration(milliseconds: 50));
+      await gesture.up();
+      await tester.pumpAndSettle();
+
+      expect(dropped?.tool, OcptFloorPlanTool.prop);
+      expect(dropped?.label, "Candles");
+    });
+
+    testWidgets("the Other… chip only asks — it never arms anything itself", (tester) async {
+      var otherRequested = false;
+      OcptFloorPlanTool? armedTool;
+      await _pump(
+        tester,
+        _buildPalette(
+          setName: "Kitchen",
+          onOtherPropRequested: () => otherRequested = true,
+          onToolSelected: (tool) => armedTool = tool,
+        ),
+      );
+      final tr = Tr.of(tester.element(find.byType(OcptFloorPlanPalette)));
+
+      await tester.tap(find.text(tr.shotListFloorPlanOtherPropChipLabel));
+      await tester.pump();
+
+      expect(otherRequested, isTrue);
+      expect(armedTool, isNull);
+    });
+
+    testWidgets("under a read-only preview, a prop chip is no longer a drag source", (tester) async {
+      await _pump(
+        tester,
+        _buildPalette(
+          setName: "Kitchen",
+          isReadOnly: true,
+          propsChips: const [
+            OcptFloorPlanPropChip(elementId: "el-1", name: "Candles", quantity: "12"),
+          ],
+        ),
+      );
+
+      expect(find.byType(Draggable<OcptFloorPlanPaletteDragPayload>), findsNothing);
+    });
   });
 }

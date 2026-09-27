@@ -100,6 +100,16 @@ const double _dashLength = 6;
 /// How far, in metres, a light's own beam reaches from its body.
 const double _lightBeamLengthM = 1;
 
+/// The opacity a set-scope original's own faint ghost draws at while it is replaced, for this
+/// sequence, by a scene-scope override ([OcptFloorPlanSymbolShape.isOverriddenOriginalGhost] or
+/// [OcptFloorPlanSymbolShape.isHiddenOverrideGhost]) — fixed, unlike the onion skin's own
+/// user-adjustable [OcptFloorPlanCanvasPainter.onionSkinOpacity], since the two are unrelated ideas
+/// that happen to both draw something faded.
+const double _overrideGhostOpacity = 0.35;
+
+/// The radius, in logical pixels, an override's own pin badge circle is drawn at.
+const double _overridePinBadgeRadius = 5;
+
 /// One line the metrics overlay draws, from the selected symbol to another visible one — a pure
 /// data record `OcptFloorPlanCanvas` builds (it alone can resolve a localized label) and this
 /// painter only ever draws from metres to pixels, exactly as it does every symbol shape.
@@ -449,7 +459,10 @@ class OcptFloorPlanCanvasPainter extends CustomPainter {
     final heightPx = heightM * pixelsPerMetre;
     final isSelected = symbol.symbolId == selectedSymbolId;
     final isArrowAnchor = symbol.symbolId == arrowAnchorSymbolId;
-    final opacity = symbol.isGhost ? onionSkinOpacity : 1.0;
+    final isOverrideGhost = symbol.isOverriddenOriginalGhost || symbol.isHiddenOverrideGhost;
+    final opacity = isOverrideGhost
+        ? _overrideGhostOpacity
+        : (symbol.isGhost ? onionSkinOpacity : 1.0);
     final color = Color(symbol.colorArgb);
     final borderColor = (isSelected ? selectionColor : symbolBorderColor).withValues(alpha: opacity);
     final borderWidth = isSelected ? 2.5 : 1.5;
@@ -488,6 +501,10 @@ class OcptFloorPlanCanvasPainter extends CustomPainter {
           borderWidth,
           symbol.setElementShape ?? OcptFloorPlanSetElementShape.freeform,
         );
+    }
+
+    if (symbol.isOverride) {
+      _paintOverrideMarking(canvas, rect, borderColor);
     }
 
     if (isArrowAnchor) {
@@ -795,6 +812,40 @@ class OcptFloorPlanCanvasPainter extends CustomPainter {
             ..strokeWidth = borderWidth,
         );
     }
+  }
+
+  /// A live, visible scene-scope override's own marking (`docs/plans/storyboard.md`, §10.4): a
+  /// dashed outline just outside [rect] (already in the symbol's own rotated local frame, like the
+  /// glyph itself) and a small filled pin badge at its top-right corner — the one visual cue telling
+  /// a re-dressed set element apart from the set's own original, on a set shared by two or more
+  /// sequences.
+  void _paintOverrideMarking(Canvas canvas, Rect rect, Color accentColor) {
+    canvas.drawPath(
+      _dashedPathOf(Path()..addRect(rect.inflate(3))),
+      Paint()
+        ..color = accentColor
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.5,
+    );
+
+    final badgeCentre = Offset(rect.right, rect.top);
+    final pinPath = Path()
+      ..addOval(
+        Rect.fromCircle(center: badgeCentre, radius: _overridePinBadgeRadius),
+      )
+      ..moveTo(badgeCentre.dx - _overridePinBadgeRadius * 0.5, badgeCentre.dy + _overridePinBadgeRadius * 0.4)
+      ..lineTo(badgeCentre.dx, badgeCentre.dy + _overridePinBadgeRadius * 1.6)
+      ..lineTo(badgeCentre.dx + _overridePinBadgeRadius * 0.5, badgeCentre.dy + _overridePinBadgeRadius * 0.4)
+      ..close();
+    canvas.drawPath(pinPath, Paint()..color = accentColor);
+    canvas.drawCircle(
+      badgeCentre,
+      _overridePinBadgeRadius,
+      Paint()
+        ..color = Colors.white
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1,
+    );
   }
 
   /// A symbol's own free-text label, centred under its footprint.

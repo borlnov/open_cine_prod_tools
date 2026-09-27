@@ -17,6 +17,7 @@ import 'package:open_cine_prod_tools/managers/export/ocpt_export_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_elements_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_floor_plan_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_locations_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_role_index_service.dart';
@@ -25,6 +26,7 @@ import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_covera
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_list_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_storyboard_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
+import 'package:open_cine_prod_tools/models/ocpt_floor_plan_scope_decision.dart';
 import 'package:open_cine_prod_tools/models/ocpt_floor_plan_set.dart';
 import 'package:open_cine_prod_tools/models/ocpt_floor_plan_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_floor_plan_symbol.dart';
@@ -32,6 +34,7 @@ import 'package:open_cine_prod_tools/models/ocpt_location.dart';
 import 'package:open_cine_prod_tools/models/ocpt_open_project_model.dart';
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role.dart';
+import 'package:open_cine_prod_tools/models/ocpt_scene_prop_summary.dart';
 import 'package:open_cine_prod_tools/models/ocpt_script_word_layout.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_field_suggestions.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_list_snapshot.dart';
@@ -40,6 +43,7 @@ import 'package:open_cine_prod_tools/models/ocpt_storyboard_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_workspace_reveal_request.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_arrow_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_layer.dart';
+import 'package:open_cine_prod_tools/types/ocpt_floor_plan_scope_choice.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_tool.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_difficulty_axis.dart';
@@ -185,6 +189,10 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
   /// [_floorPlanService].
   final OcptLocationsService _locationsService;
 
+  /// The service used to read the focused sequence's own breakdown props, for the floor plans
+  /// palette's own `Sequence` group chips (R5b, `docs/plans/storyboard.md`, §10.4).
+  final OcptElementsService _elementsService;
+
   /// The manager used to pick a panel's frame or a set's underlay through the native "open"
   /// dialog, mirroring `OcptResourcesBloc`'s own `_pickFilePath`.
   final FileSelectorManager? _fileSelectorManager;
@@ -230,6 +238,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     OcptStoryboardService? storyboardService,
     OcptFloorPlanService? floorPlanService,
     OcptLocationsService? locationsService,
+    OcptElementsService? elementsService,
     FileSelectorManager? fileSelectorManager,
     Duration fieldEditDebounce = defaultFieldEditDebounce,
     String? selectedEpisodeId,
@@ -261,6 +270,9 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
        _locationsService =
            locationsService ??
            (projectsManager ?? globalGetIt().get<OcptProjectsManager>()).locationsService,
+       _elementsService =
+           elementsService ??
+           (projectsManager ?? globalGetIt().get<OcptProjectsManager>()).elementsService,
        _fileSelectorManager = fileSelectorManager,
        _fieldEditDebounce = fieldEditDebounce,
        super(OcptShotListState.init()) {
@@ -330,6 +342,10 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     on<OcptShotListFloorPlanActiveSetElementShapeChangedEvent>(
       _onFloorPlanActiveSetElementShapeChanged,
     );
+    on<OcptShotListFloorPlanActiveSetElementScopeChangedEvent>(
+      _onFloorPlanActiveSetElementScopeChanged,
+    );
+    on<OcptShotListFloorPlanActiveLabelChangedEvent>(_onFloorPlanActiveLabelChanged);
     on<OcptShotListFloorPlanLayerVisibilityToggledEvent>(_onFloorPlanLayerVisibilityToggled);
     on<OcptShotListFloorPlanUnderlayVisibilityToggledEvent>(
       _onFloorPlanUnderlayVisibilityToggled,
@@ -340,6 +356,13 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     on<OcptShotListFloorPlanSymbolResizedEvent>(_onFloorPlanSymbolResized);
     on<OcptShotListFloorPlanSymbolRotatedEvent>(_onFloorPlanSymbolRotated);
     on<OcptShotListFloorPlanSymbolDeletionRequestedEvent>(_onFloorPlanSymbolDeletionRequested);
+    on<OcptShotListFloorPlanSymbolDeleteEverywhereRequestedEvent>(
+      _onFloorPlanSymbolDeleteEverywhereRequested,
+    );
+    on<OcptShotListFloorPlanSymbolHideRequestedEvent>(_onFloorPlanSymbolHideRequested);
+    on<OcptShotListFloorPlanSymbolRestoreRequestedEvent>(_onFloorPlanSymbolRestoreRequested);
+    on<OcptShotListFloorPlanScopeDecisionRequestedEvent>(_onFloorPlanScopeDecisionRequested);
+    on<OcptShotListFloorPlanScopeDecisionResolvedEvent>(_onFloorPlanScopeDecisionResolved);
     on<OcptShotListFloorPlanUnderlayImportRequestedEvent>(_onFloorPlanUnderlayImportRequested);
     on<OcptShotListFloorPlanUnderlayTransformChangedEvent>(
       _onFloorPlanUnderlayTransformChanged,
@@ -475,6 +498,11 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     final effectiveCentreView = revealedSequenceId != null
         ? OcptShotListCentreView.floorPlans
         : centreView;
+    final propsOfSelectedSequence = await _loadPropsOfSequence(
+      project: project,
+      sequences: snapshot.sequences,
+      sequenceId: selectedSequenceId,
+    );
 
     emitter(
       state.copyWith(
@@ -510,8 +538,31 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
         centreView: effectiveCentreView,
         screenplayCharacters: screenplayCharacters,
         suggestions: suggestions,
+        propsOfSelectedSequence: propsOfSelectedSequence,
       ),
     );
+  }
+
+  /// [sequenceId]'s own breakdown props (`OcptElementsService.propsOfScene`), or an empty list
+  /// while [sequenceId] is null or names the orphan group, which has no scene of its own to read —
+  /// the floor plans palette's own `Sequence` group chips (R5b).
+  Future<List<OcptScenePropSummary>> _loadPropsOfSequence({
+    required OcptOpenProjectModel project,
+    required List<OcptShotSequence> sequences,
+    required String? sequenceId,
+  }) async {
+    if (sequenceId == null) {
+      return const [];
+    }
+    for (final sequence in sequences) {
+      if (sequence.id == sequenceId && sequence is OcptSceneShotSequence) {
+        return _elementsService.propsOfScene(
+          database: project.database,
+          sceneId: sequence.sceneId,
+        );
+      }
+    }
+    return const [];
   }
 
   /// [revealRequest]'s own sequence id, when it names one still live in [snapshot], or null
@@ -744,6 +795,14 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     final selectedShotId = isSameSequence
         ? state.selectedShotId
         : _firstShotIdOf(snapshot: state.snapshot, sequenceId: event.sequenceId);
+    final project = _projectsManager.currentProject;
+    final propsOfSelectedSequence = isSameSequence || project == null
+        ? state.propsOfSelectedSequence
+        : await _loadPropsOfSequence(
+            project: project,
+            sequences: state.sequences,
+            sequenceId: event.sequenceId,
+          );
 
     emitter(
       state.copyWith(
@@ -759,6 +818,8 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
         clearSelectedFloorPlanArrowId: !isSameSequence,
         clearPendingFloorPlanArrowAnchorSymbolId: true,
         clearPendingCoverageAnchor: true,
+        clearPendingFloorPlanScopeDecision: !isSameSequence,
+        propsOfSelectedSequence: propsOfSelectedSequence,
       ),
     );
   }
@@ -2746,6 +2807,22 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     emitter(state.copyWith(floorPlanActiveSetElementShape: event.shape));
   }
 
+  /// Picks the scope a `setElement` placement lands at (R5b). A view preference.
+  Future<void> _onFloorPlanActiveSetElementScopeChanged(
+    OcptShotListFloorPlanActiveSetElementScopeChangedEvent event,
+    Emitter<OcptShotListState> emitter,
+  ) async {
+    emitter(state.copyWith(floorPlanActiveSetElementScope: event.scope));
+  }
+
+  /// Picks the label a `prop` placement carries (R5b). A view preference.
+  Future<void> _onFloorPlanActiveLabelChanged(
+    OcptShotListFloorPlanActiveLabelChangedEvent event,
+    Emitter<OcptShotListState> emitter,
+  ) async {
+    emitter(state.copyWith(floorPlanActiveLabel: event.label));
+  }
+
   /// Toggles the visibility of sequence layer `event.layer` on the floor plans canvas. A view
   /// preference; never withheld under a read-only preview, since it only reads.
   Future<void> _onFloorPlanLayerVisibilityToggled(
@@ -2794,13 +2871,13 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     final shotId = event.shotId;
     final label = event.layer == OcptFloorPlanLayer.characters && shotId != null
         ? _defaultCharacterLabelFor(setId: event.setId, shotId: shotId)
-        : "";
+        : event.label;
 
     try {
       final symbolId = await _floorPlanService.placeSymbol(
         database: project.database,
         setId: event.setId,
-        sceneId: null,
+        sceneId: event.sceneId,
         shotId: shotId,
         layer: event.layer,
         xM: event.xM,
@@ -2979,6 +3056,279 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
       appLogger().e("A problem occurred when tried to delete symbol ${event.symbolId} of the "
           "project at ${project.path}: $error");
       emitter(state.copyWith(hasWriteError: true));
+    }
+  }
+
+  /// Deletes set-scope symbol `event.symbolId` **everywhere** — itself (or, when it names a
+  /// scene-scope override, the set-scope original it overrides) and every live override of it, in
+  /// every sequence (`OcptFloorPlanService.deleteSymbolEverywhere`) — the destructive branch of the
+  /// extended delete confirmation, dispatched once it has already been confirmed through
+  /// `OcptConfirmDialog.showWithAlternative`, by the mode.
+  Future<void> _onFloorPlanSymbolDeleteEverywhereRequested(
+    OcptShotListFloorPlanSymbolDeleteEverywhereRequestedEvent event,
+    Emitter<OcptShotListState> emitter,
+  ) async {
+    final project = _projectsManager.currentProject;
+    if (project == null) {
+      return;
+    }
+
+    final wasSelected = state.selectedFloorPlanSymbolId == event.symbolId;
+
+    try {
+      await _floorPlanService.deleteSymbolEverywhere(
+        database: project.database,
+        symbolId: event.symbolId,
+      );
+      emitter(
+        state.copyWith(
+          floorPlanSnapshot: await _loadFloorPlans(project),
+          clearSelectedFloorPlanSymbolId: wasSelected,
+          clearSelectedFloorPlanArrowId: true,
+        ),
+      );
+    } catch (error) {
+      appLogger().e(
+        "A problem occurred when tried to delete symbol ${event.symbolId} everywhere, of the "
+        "project at ${project.path}: $error",
+      );
+      emitter(state.copyWith(hasWriteError: true));
+    }
+  }
+
+  /// Masks set-scope symbol `event.symbolId` for sequence `event.targetSceneId` alone — a hidden
+  /// override, setting `isHidden` on one that already exists or creating one copied from the
+  /// original's own geometry — the alternative branch ("Remove from sequence n") of the extended
+  /// delete confirmation, dispatched once it has already been confirmed through
+  /// `OcptConfirmDialog.showWithAlternative`, by the mode.
+  Future<void> _onFloorPlanSymbolHideRequested(
+    OcptShotListFloorPlanSymbolHideRequestedEvent event,
+    Emitter<OcptShotListState> emitter,
+  ) async {
+    final project = _projectsManager.currentProject;
+    if (project == null) {
+      return;
+    }
+
+    final selected = _floorPlanSymbolById(event.symbolId);
+    if (selected == null) {
+      return;
+    }
+    final originalId = selected.overridesSymbolId ?? selected.id;
+    final original = _floorPlanSymbolById(originalId);
+    if (original == null) {
+      return;
+    }
+
+    final existingOverride = state.floorPlanSnapshot?.setsById[selected.setId]?.symbols
+        .firstWhereOrNull(
+          (symbol) =>
+              symbol.overridesSymbolId == originalId && symbol.sceneId == event.targetSceneId,
+        );
+
+    final wasSelected = state.selectedFloorPlanSymbolId == event.symbolId;
+
+    try {
+      if (existingOverride != null) {
+        await _floorPlanService.updateSymbol(
+          database: project.database,
+          symbolId: existingOverride.id,
+          isHidden: const Value(true),
+        );
+      } else {
+        await _floorPlanService.placeSymbol(
+          database: project.database,
+          setId: original.setId,
+          sceneId: event.targetSceneId,
+          shotId: null,
+          layer: original.layer,
+          xM: original.xM,
+          yM: original.yM,
+          rotationDeg: original.rotationDeg,
+          widthM: original.widthM,
+          heightM: original.heightM,
+          label: original.label,
+          setElementShape: original.setElementShape,
+          overridesSymbolId: originalId,
+          isHidden: true,
+        );
+      }
+      emitter(
+        state.copyWith(
+          floorPlanSnapshot: await _loadFloorPlans(project),
+          clearSelectedFloorPlanSymbolId: wasSelected,
+          clearSelectedFloorPlanArrowId: wasSelected,
+        ),
+      );
+    } catch (error) {
+      appLogger().e("A problem occurred when tried to hide symbol ${event.symbolId} for sequence "
+          "${event.targetSceneId} of the project at ${project.path}: $error");
+      emitter(state.copyWith(hasWriteError: true));
+    }
+  }
+
+  /// Restores scene-scope override `event.symbolId` as in the set — tombstones it, so its own
+  /// set-scope original reappears for that sequence. Reversible: never asks.
+  Future<void> _onFloorPlanSymbolRestoreRequested(
+    OcptShotListFloorPlanSymbolRestoreRequestedEvent event,
+    Emitter<OcptShotListState> emitter,
+  ) async {
+    final project = _projectsManager.currentProject;
+    if (project == null) {
+      return;
+    }
+
+    final wasSelected = state.selectedFloorPlanSymbolId == event.symbolId;
+
+    try {
+      await _floorPlanService.deleteSymbol(database: project.database, symbolId: event.symbolId);
+      emitter(
+        state.copyWith(
+          floorPlanSnapshot: await _loadFloorPlans(project),
+          clearSelectedFloorPlanSymbolId: wasSelected,
+          clearSelectedFloorPlanArrowId: true,
+        ),
+      );
+    } catch (error) {
+      appLogger().e("A problem occurred when tried to restore override ${event.symbolId} of the "
+          "project at ${project.path}: $error");
+      emitter(state.copyWith(hasWriteError: true));
+    }
+  }
+
+  /// Every live symbol of the currently loaded floor plans snapshot, keyed by id.
+  OcptFloorPlanSymbol? _floorPlanSymbolById(String symbolId) {
+    for (final floorPlanSet in state.floorPlanSnapshot?.setsById.values ?? const <OcptFloorPlanSet>[]) {
+      for (final symbol in floorPlanSet.symbols) {
+        if (symbol.id == symbolId) {
+          return symbol;
+        }
+      }
+    }
+    return null;
+  }
+
+  /// Stores the pending scope decision, dispatched by the mode the instant a set-scope move,
+  /// rotate or resize ends on a symbol whose own set is linked to two or more sequences — no write
+  /// yet, [_onFloorPlanScopeDecisionResolved] is what actually writes (or drops) it.
+  Future<void> _onFloorPlanScopeDecisionRequested(
+    OcptShotListFloorPlanScopeDecisionRequestedEvent event,
+    Emitter<OcptShotListState> emitter,
+  ) async {
+    emitter(
+      state.copyWith(
+        pendingFloorPlanScopeDecision: OcptFloorPlanScopeDecision(
+          symbolId: event.symbolId,
+          setId: event.setId,
+          sequenceCount: event.sequenceCount,
+          xM: event.xM,
+          yM: event.yM,
+          widthM: event.widthM,
+          heightM: event.heightM,
+          rotationDeg: event.rotationDeg,
+        ),
+      ),
+    );
+  }
+
+  /// Resolves `state.pendingFloorPlanScopeDecision` — writes it onto the original (`every`), onto a
+  /// scene-scope override of the focused sequence (`only`, updating one that already exists or
+  /// creating one), or simply drops it (`cancel`, the element snaps back since nothing was ever
+  /// written). A no-op while nothing is pending, or the focused sequence isn't a scene-shot one
+  /// (defensive only: the bubble that dispatches `only` never shows otherwise).
+  Future<void> _onFloorPlanScopeDecisionResolved(
+    OcptShotListFloorPlanScopeDecisionResolvedEvent event,
+    Emitter<OcptShotListState> emitter,
+  ) async {
+    final decision = state.pendingFloorPlanScopeDecision;
+    if (decision == null) {
+      return;
+    }
+
+    if (event.choice == OcptFloorPlanScopeChoice.cancel) {
+      emitter(state.copyWith(clearPendingFloorPlanScopeDecision: true));
+      return;
+    }
+
+    final project = _projectsManager.currentProject;
+    if (project == null) {
+      emitter(state.copyWith(clearPendingFloorPlanScopeDecision: true));
+      return;
+    }
+
+    try {
+      if (event.choice == OcptFloorPlanScopeChoice.every) {
+        await _floorPlanService.updateSymbol(
+          database: project.database,
+          symbolId: decision.symbolId,
+          xM: decision.xM == null ? const Value.absent() : Value(decision.xM!),
+          yM: decision.yM == null ? const Value.absent() : Value(decision.yM!),
+          rotationDeg: decision.rotationDeg == null
+              ? const Value.absent()
+              : Value(decision.rotationDeg!),
+          widthM: decision.widthM == null ? const Value.absent() : Value(decision.widthM),
+          heightM: decision.heightM == null ? const Value.absent() : Value(decision.heightM),
+        );
+      } else {
+        final sequence = state.selectedSequence;
+        if (sequence is! OcptSceneShotSequence) {
+          emitter(state.copyWith(clearPendingFloorPlanScopeDecision: true));
+          return;
+        }
+
+        final existingOverride = state.floorPlanSnapshot?.setsById[decision.setId]?.symbols
+            .firstWhereOrNull(
+              (symbol) =>
+                  symbol.overridesSymbolId == decision.symbolId &&
+                  symbol.sceneId == sequence.sceneId,
+            );
+
+        if (existingOverride != null) {
+          await _floorPlanService.updateSymbol(
+            database: project.database,
+            symbolId: existingOverride.id,
+            xM: decision.xM == null ? const Value.absent() : Value(decision.xM!),
+            yM: decision.yM == null ? const Value.absent() : Value(decision.yM!),
+            rotationDeg: decision.rotationDeg == null
+                ? const Value.absent()
+                : Value(decision.rotationDeg!),
+            widthM: decision.widthM == null ? const Value.absent() : Value(decision.widthM),
+            heightM: decision.heightM == null ? const Value.absent() : Value(decision.heightM),
+          );
+        } else {
+          final original = _floorPlanSymbolById(decision.symbolId);
+          if (original == null) {
+            emitter(state.copyWith(clearPendingFloorPlanScopeDecision: true));
+            return;
+          }
+          await _floorPlanService.placeSymbol(
+            database: project.database,
+            setId: decision.setId,
+            sceneId: sequence.sceneId,
+            shotId: null,
+            layer: original.layer,
+            xM: decision.xM ?? original.xM,
+            yM: decision.yM ?? original.yM,
+            rotationDeg: decision.rotationDeg ?? original.rotationDeg,
+            widthM: decision.widthM ?? original.widthM,
+            heightM: decision.heightM ?? original.heightM,
+            label: original.label,
+            setElementShape: original.setElementShape,
+            overridesSymbolId: decision.symbolId,
+          );
+        }
+      }
+
+      emitter(
+        state.copyWith(
+          floorPlanSnapshot: await _loadFloorPlans(project),
+          clearPendingFloorPlanScopeDecision: true,
+        ),
+      );
+    } catch (error) {
+      appLogger().e("A problem occurred when tried to resolve the scope decision on symbol "
+          "${decision.symbolId} of the project at ${project.path}: $error");
+      emitter(state.copyWith(hasWriteError: true, clearPendingFloorPlanScopeDecision: true));
     }
   }
 

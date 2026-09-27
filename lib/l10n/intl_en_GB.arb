@@ -3771,6 +3771,17 @@
       }
     }
   },
+  "shotListFloorPlanPaletteSequenceGroupTitle": "Sequence {sequenceCode} — this sequence only",
+  "@shotListFloorPlanPaletteSequenceGroupTitle": {
+    "description": "Title of the floor plans palette's own Sequence group, naming the focused sequence every entry under it lands on",
+    "context": "Displayed in the floor plans palette",
+    "type": "text",
+    "placeholders": {
+      "sequenceCode": {
+        "type": "String"
+      }
+    }
+  },
   "shotListFloorPlanPaletteShotGroupTitle": "Shot {shotCode} — this shot only",
   "@shotListFloorPlanPaletteShotGroupTitle": {
     "description": "Title of the floor plans palette's own Shot group, naming the focused shot every entry under it lands on",
@@ -3786,6 +3797,106 @@
   "@shotListFloorPlanPaletteViewGroupTitle": {
     "description": "Title of the floor plans palette's own View group, absorbing the old tray's own toggles",
     "context": "Displayed in the floor plans palette",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanPropChipWithQuantityLabel": "{name} ×{quantity}",
+  "@shotListFloorPlanPropChipWithQuantityLabel": {
+    "description": "A breakdown-prop chip's own label once it carries a quantity",
+    "context": "Displayed on the floor plans palette's own Sequence group chips",
+    "type": "text",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "quantity": {
+        "type": "String"
+      }
+    }
+  },
+  "shotListFloorPlanOtherPropChipLabel": "Other…",
+  "@shotListFloorPlanOtherPropChipLabel": {
+    "description": "Label of the fixed chip placing a prop under a free-typed label",
+    "context": "Displayed on the floor plans palette's own Sequence group chips",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanOtherPropNamePickerTitle": "Name this prop",
+  "@shotListFloorPlanOtherPropNamePickerTitle": {
+    "description": "Title of the dialog asking for a free-typed prop label",
+    "context": "Displayed in the dialog opened from the palette's own Other… chip",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanRestoreOverrideAction": "Restore as in the set",
+  "@shotListFloorPlanRestoreOverrideAction": {
+    "description": "Action tombstoning a scene-scope override, so the set-scope original shows again",
+    "context": "Displayed on the canvas's own Restore handle and the inspector's own Selection section",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanOverrideChangedForSequenceLabel": "Changed for this sequence",
+  "@shotListFloorPlanOverrideChangedForSequenceLabel": {
+    "description": "Label shown for a selected scene-scope override, before its own Restore action",
+    "context": "Displayed in the inspector's own Placements group, Selection section",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanScopeBubbleEveryAction": "Every sequence ({count})",
+  "@shotListFloorPlanScopeBubbleEveryAction": {
+    "description": "The scope bubble's own action writing a set-scope move/rotate/resize onto the original, shared by every sequence the set is linked to",
+    "context": "Displayed in the scope bubble shown on releasing a set-scope element of a set linked to two or more sequences",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "shotListFloorPlanScopeBubbleOnlyAction": "Only sequence {sequenceCode}",
+  "@shotListFloorPlanScopeBubbleOnlyAction": {
+    "description": "The scope bubble's own action writing a set-scope move/rotate/resize onto a scene-scope override of the focused sequence alone",
+    "context": "Displayed in the scope bubble shown on releasing a set-scope element of a set linked to two or more sequences",
+    "type": "text",
+    "placeholders": {
+      "sequenceCode": {
+        "type": "String"
+      }
+    }
+  },
+  "shotListFloorPlanScopeBubbleCancelAction": "Cancel",
+  "@shotListFloorPlanScopeBubbleCancelAction": {
+    "description": "The scope bubble's own action snapping the element back to its position before the drag",
+    "context": "Displayed in the scope bubble shown on releasing a set-scope element of a set linked to two or more sequences",
+    "type": "text",
+    "placeholders": {}
+  },
+  "shotListFloorPlanDeleteSetElementMultiSequenceMessage": "{count, plural, one{It is used by {count} other sequence.} other{It is used by {count} other sequences.}}",
+  "@shotListFloorPlanDeleteSetElementMultiSequenceMessage": {
+    "description": "Message of the extended confirm dialog deleting a set-scope element (or an override of one) belonging to a set linked to two or more sequences",
+    "context": "Displayed in the confirm dialog opened from the canvas's own delete handle",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "shotListFloorPlanRemoveFromSequenceAction": "Remove from sequence {sequenceCode}",
+  "@shotListFloorPlanRemoveFromSequenceAction": {
+    "description": "The extended delete confirmation's own alternative action: masks the element for this sequence alone, restorable",
+    "context": "Displayed in the confirm dialog opened from the canvas's own delete handle",
+    "type": "text",
+    "placeholders": {
+      "sequenceCode": {
+        "type": "String"
+      }
+    }
+  },
+  "shotListFloorPlanDeleteEverywhereAction": "Delete everywhere",
+  "@shotListFloorPlanDeleteEverywhereAction": {
+    "description": "The extended delete confirmation's own destructive action: tombstones the original and every override of it, in every sequence",
+    "context": "Displayed in the confirm dialog opened from the canvas's own delete handle",
     "type": "text",
     "placeholders": {}
   },
