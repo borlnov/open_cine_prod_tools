@@ -6,6 +6,39 @@ SPDX-License-Identifier: Apache-2.0
 
 # Changelog
 
+## 0.2.4
+
+Projects saved where you choose and never overwritten, a complete French crew,
+and schedule and editor fixes.
+
+- Projects: a new project could silently destroy an existing one of the same
+  name — it was written straight into the Downloads folder. On desktop, New
+  project and the screenplay import now show a save dialog, opening in the last
+  folder a project went to, and joining a shared project asks for a folder.
+  Picking an existing file is refused rather than overwritten. On a tablet or
+  phone, a new project takes the first free name (`Name (2)`, …) instead.
+- Project settings: a new Project file card shows where the project lives, with
+  Show in folder and Move… actions. A move carries the project's sync data
+  along and keeps it in the recent projects.
+- Resources: the crew positions now follow the French film production
+  collective agreement — 83 positions in 13 departments instead of 20 in 6,
+  with the unit manager, casting and construction among them — picked from a
+  searchable dialog that finds a position by its feminine as well. Existing
+  positions keep their meaning. The call sheet gains the unit department and
+  lists every on-set department.
+- Resources: a candidate added to a role now starts as *spotted*, the first
+  step of the casting, rather than *seen*.
+- Schedule: an audition's "Candidate" picker offers the candidates of a role the
+  slot also convokes again, and no picker opens empty any more — each says why
+  it has nothing to offer.
+- Schedule: a PAT band now covers filming alone, so auditions or rehearsals
+  before the shots no longer bring the unit's PAT time forward, on the
+  convocations as on the call sheet.
+- Screenplay: clicking a scene in the side panel lands on its heading in both
+  the styled and the raw editor, even deep into a long screenplay; finding the
+  next match lands the same way.
+- A few labels lose a stray "+" next to an add icon.
+
 ## 0.2.3
 
 A single, editable set control in the breakdown, and a delete action that
