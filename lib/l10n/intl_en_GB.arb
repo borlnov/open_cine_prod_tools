@@ -3317,6 +3317,13 @@
     "type": "text",
     "placeholders": {}
   },
+  "shotListFloorPlanRecenterAction": "Recenter",
+  "@shotListFloorPlanRecenterAction": {
+    "description": "Tooltip of the tool bar's own button fitting the viewport back onto the plan's own content, on demand",
+    "context": "Displayed on the floor plans view's own tool bar, next to the zoom cluster",
+    "type": "text",
+    "placeholders": {}
+  },
   "shotListFloorPlanSequenceLayersGroupTitle": "Sequence layers",
   "@shotListFloorPlanSequenceLayersGroupTitle": {
     "description": "Title of the tray's own sequence layers group",

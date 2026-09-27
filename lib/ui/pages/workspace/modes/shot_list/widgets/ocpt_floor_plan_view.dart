@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_floor_plan_set.dart';
+import 'package:open_cine_prod_tools/models/ocpt_floor_plan_sheet.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_layer.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_scope.dart';
@@ -20,6 +21,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_floor_plan_palette.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_floor_plan_tool_bar.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_floor_plan_viewport_controller.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_floor_plan_fit.dart';
 
 /// The floor plans view's own frame, filling the centre while `OcptShotListCentreView.floorPlans`
 /// is shown (`docs/plans/storyboard.md`, §4.3): the tool bar across the top, the layer tray down
@@ -38,6 +40,14 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/
 /// view, auto-focused once on mount, so either shortcut works from anywhere in the view — the
 /// strip, the canvas, the tray — except while a descendant text field (the inline label editor)
 /// has its own focus and consumes the key first.
+///
+/// **Framing** (R5c, `docs/plans/storyboard.md`, §10.5): the viewport fits itself onto
+/// [floorPlanSet]'s own content (`ocptFloorPlanFitOf`) the moment a *different* set is shown —
+/// this widget's own first frame, or [floorPlanSet]'s own id changing (a set tab switch, or the
+/// shot-list reveal from Resources landing on one) — tracked by `_OcptFloorPlanViewState
+/// ._framedSetId` so it never fires again for the very same set: neither on an unrelated rebuild
+/// nor after the user's own pan/zoom within it. An empty plan (no content to fit) leaves the view
+/// at its default, and the tool bar's own `Recenter` button repeats the very same fit on demand.
 class OcptFloorPlanView extends StatefulWidget {
   /// The selected sequence's own sets, for the sheet the canvas builds.
   final OcptFloorPlanSet? floorPlanSet;
@@ -383,10 +393,22 @@ class _OcptFloorPlanViewState extends State<OcptFloorPlanView> {
   /// anywhere in it — see the class doc comment.
   final FocusNode _keyboardFocusNode = FocusNode(debugLabel: "OcptFloorPlanView");
 
-  /// Wraps the canvas area, giving [_handleOtherPropRequested] (R5c) a way to read its own
-  /// rendered size — the viewport's own visible extent, in logical pixels — with no `LayoutBuilder`
-  /// of its own to thread through this view's build method.
+  /// Wraps the canvas area, giving [_handleOtherPropRequested] and [_fitToContent] (R5c) a way to
+  /// read its own rendered size — the viewport's own visible extent, in logical pixels — with no
+  /// `LayoutBuilder` of its own to thread through this view's build method.
   final GlobalKey _canvasAreaKey = GlobalKey();
+
+  /// The id of the Resources set [_fitToContent] last fit the viewport to, or null before the
+  /// first frame — the class doc comment's own "framing" guard: a set already framed never fires
+  /// again on its own, only [OcptFloorPlanView.floorPlanSet]'s own id changing (or the `Recenter`
+  /// button, which calls [_fitToContent] directly, bypassing this guard on purpose) does.
+  String? _framedSetId;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _fitToContentIfSetChanged());
+  }
 
   @override
   void didUpdateWidget(covariant OcptFloorPlanView oldWidget) {
@@ -396,6 +418,10 @@ class _OcptFloorPlanViewState extends State<OcptFloorPlanView> {
     // `OcptWorkspaceDockLayoutController.syncFromPersisted` never bounces a drag's own committed
     // value.
     _viewportController.syncZoomFromPersisted(widget.initialZoom);
+
+    if (widget.floorPlanSet?.id != oldWidget.floorPlanSet?.id) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _fitToContentIfSetChanged());
+    }
   }
 
   @override
@@ -424,6 +450,7 @@ class _OcptFloorPlanViewState extends State<OcptFloorPlanView> {
             onToolSelected: widget.onToolSelected,
             onUnderlayImportRequested: widget.onUnderlayImportRequested,
             onZoomSettled: widget.onZoomSettled,
+            onRecenterRequested: _fitToContent,
           ),
           Divider(height: 1, color: theme.colorScheme.outlineVariant),
           Expanded(
@@ -599,6 +626,60 @@ class _OcptFloorPlanViewState extends State<OcptFloorPlanView> {
     }
 
     return KeyEventResult.ignored;
+  }
+
+  /// [_fitToContent]'s own guarded entry point (R5c): a no-op while [OcptFloorPlanView.floorPlanSet]
+  /// is null (nothing to frame) or already names [_framedSetId] (already framed — an unrelated
+  /// rebuild, or the user's own pan/zoom, never re-triggers this), otherwise records it as framed
+  /// and fits. Always called after a frame ([initState]/[didUpdateWidget]'s own post-frame
+  /// callback), so the canvas area is already laid out.
+  void _fitToContentIfSetChanged() {
+    if (!mounted) {
+      return;
+    }
+    final setId = widget.floorPlanSet?.id;
+    if (setId == null || setId == _framedSetId) {
+      return;
+    }
+    _framedSetId = setId;
+    _fitToContent();
+  }
+
+  /// Fits the viewport onto [OcptFloorPlanView.floorPlanSet]'s own drawn content
+  /// (`ocptFloorPlanFitOf`), reporting the fitted zoom through [OcptFloorPlanView.onZoomSettled] so
+  /// it becomes the bloc's own persisted value — the same path a tool bar zoom click reports
+  /// through — and never fights [OcptFloorPlanViewportController.syncZoomFromPersisted] on the next
+  /// rebuild. A no-op while there is no set, no canvas size yet (the render object isn't resolvable,
+  /// defensive only), or the sheet draws nothing at all (an empty plan keeps the default view).
+  void _fitToContent() {
+    final floorPlanSet = widget.floorPlanSet;
+    if (floorPlanSet == null) {
+      return;
+    }
+    final renderObject = _canvasAreaKey.currentContext?.findRenderObject();
+    if (renderObject is! RenderBox || !renderObject.hasSize) {
+      return;
+    }
+
+    final sheet = OcptFloorPlanSheet.of(
+      floorPlanSet: floorPlanSet,
+      focusSceneId: widget.focusSceneId,
+      focusShotId: widget.focusShotId,
+      shotRankByShotId: widget.shotRankByShotId,
+    );
+    if (ocptFloorPlanContentBoundsOf(sheet) == null) {
+      return;
+    }
+
+    final canvasSize = renderObject.size;
+    final fit = ocptFloorPlanFitOf(
+      sheet: sheet,
+      viewportWidthPx: canvasSize.width,
+      viewportHeightPx: canvasSize.height,
+    );
+    _viewportController.setZoom(fit.zoom);
+    _viewportController.setPan(Offset(fit.panXPx, fit.panYPx));
+    widget.onZoomSettled(fit.zoom);
   }
 
   /// Opens the character name-picker dialog's own pattern for a free-typed prop label (the

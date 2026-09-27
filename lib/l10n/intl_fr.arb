@@ -435,6 +435,7 @@
   "shotListFloorPlanZoomInAction": "Zoomer",
   "shotListFloorPlanZoomOutAction": "Dézoomer",
   "shotListFloorPlanZoomResetAction": "Réinitialiser le zoom",
+  "shotListFloorPlanRecenterAction": "Recentrer",
   "shotListFloorPlanSequenceLayersGroupTitle": "Calques de séquence",
   "shotListFloorPlanLayerDecorLabel": "Décor",
   "shotListFloorPlanLayerFurnitureLabel": "Mobilier",

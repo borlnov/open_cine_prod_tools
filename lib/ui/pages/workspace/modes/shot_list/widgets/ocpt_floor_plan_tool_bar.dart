@@ -23,6 +23,9 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/
 /// The zoom cluster on the trailing edge reads/writes [viewportController] directly (a discrete
 /// click is already a "settled" zoom, unlike the canvas's own scroll-wheel zoom — see that
 /// controller's own doc comment) and stays available under [isReadOnly], since zoom only reads.
+/// The trailing `Recenter` button ([onRecenterRequested]) fits the viewport back onto the plan's
+/// own content on demand (R5c) — the same fit the view applies automatically when a set opens or a
+/// set tab switches (`OcptFloorPlanView`'s own doc comment).
 class OcptFloorPlanToolBar extends StatelessWidget {
   /// The currently active tool.
   final OcptFloorPlanTool activeTool;
@@ -46,6 +49,11 @@ class OcptFloorPlanToolBar extends StatelessWidget {
   /// Called with the zoom just settled on by a tool bar button.
   final ValueChanged<double> onZoomSettled;
 
+  /// Called when the `Recenter` button is clicked — fits the viewport back onto the plan's own
+  /// content, on demand (R5c, `docs/plans/storyboard.md`, §10.5). A view action, never withheld:
+  /// it only reads, and stays available under [isReadOnly] the same way the zoom cluster does.
+  final VoidCallback onRecenterRequested;
+
   /// Class constructor
   const OcptFloorPlanToolBar({
     super.key,
@@ -56,6 +64,7 @@ class OcptFloorPlanToolBar extends StatelessWidget {
     required this.onToolSelected,
     required this.onUnderlayImportRequested,
     required this.onZoomSettled,
+    required this.onRecenterRequested,
   });
 
   @override
@@ -187,6 +196,11 @@ class OcptFloorPlanToolBar extends StatelessWidget {
     builder: (context, _) {
       final zoom = viewportController.zoom;
 
+      // A compact `IconButton` (own constraints/padding, no Material default tap target padding
+      // out to 48px) throughout this cluster: four buttons plus the percentage readout already
+      // sit at the edge of a narrow window's own available width (`ocptToolbarChromeButtonSize`
+      // mirrors this for the leading tool buttons).
+      const buttonConstraints = BoxConstraints(minWidth: 28, minHeight: 28);
       return Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -195,10 +209,13 @@ class OcptFloorPlanToolBar extends StatelessWidget {
             child: IconButton(
               onPressed: () => _applyZoom(zoom / 1.25),
               icon: const Icon(Icons.remove, size: 16),
+              padding: EdgeInsets.zero,
+              constraints: buttonConstraints,
+              visualDensity: VisualDensity.compact,
             ),
           ),
           SizedBox(
-            width: 48,
+            width: 40,
             child: Center(child: Text("${(zoom * 100).round()}%")),
           ),
           Tooltip(
@@ -206,6 +223,9 @@ class OcptFloorPlanToolBar extends StatelessWidget {
             child: IconButton(
               onPressed: () => _applyZoom(zoom * 1.25),
               icon: const Icon(Icons.add, size: 16),
+              padding: EdgeInsets.zero,
+              constraints: buttonConstraints,
+              visualDensity: VisualDensity.compact,
             ),
           ),
           Tooltip(
@@ -213,6 +233,19 @@ class OcptFloorPlanToolBar extends StatelessWidget {
             child: IconButton(
               onPressed: () => _applyZoom(1),
               icon: const Icon(Icons.center_focus_strong_outlined, size: 16),
+              padding: EdgeInsets.zero,
+              constraints: buttonConstraints,
+              visualDensity: VisualDensity.compact,
+            ),
+          ),
+          Tooltip(
+            message: Tr.of(context).shotListFloorPlanRecenterAction,
+            child: IconButton(
+              onPressed: onRecenterRequested,
+              icon: const Icon(Icons.fit_screen_outlined, size: 16),
+              padding: EdgeInsets.zero,
+              constraints: buttonConstraints,
+              visualDensity: VisualDensity.compact,
             ),
           ),
         ],
