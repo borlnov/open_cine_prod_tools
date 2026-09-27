@@ -1372,6 +1372,45 @@ void main() {
       expect(liveSymbolIds.contains(camera), isFalse);
       expect(liveSymbolIds.contains(character), isTrue);
     });
+
+    test("deleting a set-scope original also tombstones its overrides, even an unlinked scene's", () async {
+      final (sceneId, setId) = await seedLinkedSet();
+      final originalId = (await floorPlanService.placeSymbol(
+        database: database,
+        setId: setId,
+        sceneId: null,
+        shotId: null,
+        layer: OcptFloorPlanLayer.set,
+        xM: 0,
+        yM: 0,
+      ))!;
+      final overrideId = (await floorPlanService.placeSymbol(
+        database: database,
+        setId: setId,
+        sceneId: sceneId,
+        shotId: null,
+        layer: OcptFloorPlanLayer.set,
+        xM: 1,
+        yM: 1,
+        overridesSymbolId: originalId,
+      ))!;
+      final untouchedId = (await floorPlanService.placeSymbol(
+        database: database,
+        setId: setId,
+        sceneId: null,
+        shotId: null,
+        layer: OcptFloorPlanLayer.set,
+        xM: 2,
+        yM: 2,
+      ))!;
+
+      await floorPlanService.deleteSymbol(database: database, symbolId: originalId);
+
+      final liveSymbolIds = (await readSymbols()).map((row) => row.id).toSet();
+      expect(liveSymbolIds.contains(originalId), isFalse);
+      expect(liveSymbolIds.contains(overrideId), isFalse);
+      expect(liveSymbolIds.contains(untouchedId), isTrue);
+    });
   });
 
   group("arrow CRUD", () {

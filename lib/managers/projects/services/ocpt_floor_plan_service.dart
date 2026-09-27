@@ -575,8 +575,9 @@ class OcptFloorPlanService {
     });
   }
 
-  /// Tombstones symbol [symbolId] and every arrow touching it — whose [OcptFloorPlanArrow
-  /// .fromSymbolId] or [OcptFloorPlanArrow.toSymbolId] names it — in one transaction.
+  /// Tombstones symbol [symbolId], every live scene-scope override of it, and every arrow touching
+  /// any of them — whose [OcptFloorPlanArrow.fromSymbolId] or [OcptFloorPlanArrow.toSymbolId] names
+  /// it — in one transaction.
   ///
   /// {@macro open_cine_prod_tools.tombstones}
   ///
@@ -591,6 +592,31 @@ class OcptFloorPlanService {
 
     await database.transaction(() async {
       final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
+
+      // A set-scope original may still carry overrides from a sequence no longer linked to its set
+      // (unlinking keeps every placement): left live, one would come back on relinking with no
+      // original to stand for.
+      final overrides =
+          await (database.select(database.ocptFloorPlanSymbolsTable)..where(
+                (table) => table.overridesSymbolId.equals(symbolId) & table.isDeleted.not(),
+              ))
+              .get();
+      for (final override in overrides) {
+        await _tombstoneArrowsTouchingSymbol(
+          database: database,
+          symbolId: override.id,
+          stamps: stamps,
+        );
+        await OcptRowStampService.writeAndStamp(
+          database: database,
+          table: database.ocptFloorPlanSymbolsTable,
+          rowId: override.id,
+          current: override,
+          next: override.copyWith(isDeleted: true),
+          stamps: stamps,
+        );
+      }
+
       await _tombstoneArrowsTouchingSymbol(database: database, symbolId: symbolId, stamps: stamps);
 
       final current = await _liveSymbolRowOrNull(database: database, symbolId: symbolId);
