@@ -960,7 +960,7 @@ void main() {
       });
     }
 
-    test("props accepts scene scope or shot scope, but not set scope", () async {
+    test("props accepts scene scope only, never set scope nor shot scope", () async {
       final shotId = await seedShot();
       final sceneRow = await (database.select(
         database.ocptShotsTable,
@@ -980,7 +980,7 @@ void main() {
         isNotNull,
       );
       expect(
-        await floorPlanService.placeSymbol(
+        () => floorPlanService.placeSymbol(
           database: database,
           setId: setId,
           sceneId: null,
@@ -989,7 +989,7 @@ void main() {
           xM: 1,
           yM: 1,
         ),
-        isNotNull,
+        throwsArgumentError,
       );
       expect(
         () => floorPlanService.placeSymbol(
@@ -1329,8 +1329,8 @@ void main() {
       final untouchedB = (await floorPlanService.placeSymbol(
         database: database,
         setId: setId,
-        sceneId: null,
-        shotId: shotId,
+        sceneId: sceneRow.sceneId,
+        shotId: null,
         layer: OcptFloorPlanLayer.props,
         xM: 3,
         yM: 3,

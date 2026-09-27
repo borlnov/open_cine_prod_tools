@@ -1086,6 +1086,14 @@ class OcptProjectVersionCodec {
   /// nullable field this codec reads.
   static const _setElementShapeKey = "setElementShape";
 
+  /// This is the key used to stringify or parse a `floor_plan_symbols.isHidden` column from a JSON
+  /// object, from payload format 4 — meaningful only on a scene-scope override; see
+  /// `OcptFloorPlanSymbolsTable`'s own doc comment. Added while schema version 4 is still an open
+  /// development cycle: unlike [_setElementShapeKey] and its own siblings, this column is **not**
+  /// nullable (its own SQL default is `false`), so an older format-4 payload with no such key reads
+  /// back through [_boolWithFalseDefault] rather than [_bool], which would otherwise throw on it.
+  static const _isHiddenKey = "isHidden";
+
   /// This is the key used to stringify or parse a `floor_plan_symbols.fovReachM` column from a
   /// JSON object, from payload format 4 — a camera's field-of-view wedge reach, in metres; null
   /// meaning the drawing's own default. Added while schema version 4 is still an open development
@@ -2486,6 +2494,7 @@ class OcptProjectVersionCodec {
     _labelKey: row.label,
     _setElementShapeKey: row.setElementShape?.name,
     _overridesSymbolIdKey: row.overridesSymbolId,
+    _isHiddenKey: row.isHidden,
     _isDeletedKey: row.isDeleted,
   };
 
@@ -2512,6 +2521,7 @@ class OcptProjectVersionCodec {
           OcptFloorPlanSetElementShape.values.asNameMap(),
         ),
         overridesSymbolId: _nullableString(json, _overridesSymbolIdKey),
+        isHidden: _boolWithFalseDefault(json, _isHiddenKey),
         isDeleted: _bool(json, _isDeletedKey),
       );
 
@@ -3163,6 +3173,15 @@ class OcptProjectVersionCodec {
 
     return value;
   }
+
+  /// The non-null boolean stored at [key] in [json], or `false` when [key] is altogether absent —
+  /// for a non-nullable column added mid schema-version-4 development cycle whose own SQL default
+  /// is `false` ([_isHiddenKey]): an older format-4 payload written before the column existed reads
+  /// back at that very default instead of throwing, the same courtesy [_nullableEnum] and
+  /// [_nullableDouble] already give a *nullable* mid-cycle addition (see [_setElementShapeKey]'s own
+  /// doc comment). Still throws when [key] is present but isn't a boolean.
+  static bool _boolWithFalseDefault(Map<String, dynamic> json, String key) =>
+      json.containsKey(key) ? _bool(json, key) : false;
 
   /// The boolean stored at [key] in [json], or null when the column it mirrors was null — the
   /// tri-state `people.isTransportAutonomous` is the one column of the schema that needs this.

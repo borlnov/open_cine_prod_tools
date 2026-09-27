@@ -67,6 +67,7 @@ OcptFloorPlanSymbol _furnitureSymbol({
   label: "",
   setElementShape: null,
   overridesSymbolId: null,
+  isHidden: false,
 );
 
 OcptFloorPlanSet _caseOf(OcptFloorPlanSymbol symbol) => OcptFloorPlanSet(
@@ -103,6 +104,7 @@ OcptFloorPlanSymbol _cameraSymbol({required double xM, required double yM}) => O
   label: "",
   setElementShape: null,
   overridesSymbolId: null,
+  isHidden: false,
 );
 
 /// Two shot-scoped character symbols, connected by one movement arrow (bent through [ctrlXM]/
@@ -126,6 +128,7 @@ OcptFloorPlanSet _caseWithArrow({double? ctrlXM, double? ctrlYM}) {
     label: "SAM",
     setElementShape: null,
     overridesSymbolId: null,
+    isHidden: false,
   );
   const toSymbol = OcptFloorPlanSymbol(
     id: "sym-to",
@@ -144,6 +147,7 @@ OcptFloorPlanSet _caseWithArrow({double? ctrlXM, double? ctrlYM}) {
     label: "LEA",
     setElementShape: null,
     overridesSymbolId: null,
+    isHidden: false,
   );
   final arrow = OcptFloorPlanArrow(
     id: "arrow-1",

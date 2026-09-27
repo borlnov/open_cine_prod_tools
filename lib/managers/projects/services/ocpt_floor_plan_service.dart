@@ -406,6 +406,10 @@ class OcptFloorPlanService {
   /// default (`ocptFloorPlanCameraFovWedgeLengthM`). Null for every other symbol, the same as
   /// [fovDeg].
   ///
+  /// [isHidden] creates the override already masking its own [overridesSymbolId] for this sequence
+  /// ("remove from sequence n" with no override placed yet) — it is only ever true alongside a
+  /// non-null [overridesSymbolId], or this throws an [ArgumentError] too.
+  ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
   Future<String?> placeSymbol({
     required OcptProjectDatabase database,
@@ -423,6 +427,7 @@ class OcptFloorPlanService {
     String label = '',
     OcptFloorPlanSetElementShape? setElementShape,
     String? overridesSymbolId,
+    bool isHidden = false,
   }) async {
     if (database.refusesUserWrite("placeSymbol")) {
       return null;
@@ -435,6 +440,9 @@ class OcptFloorPlanService {
         "overridesSymbolId is only ever set on a scene-scope symbol, but this one has "
         "sceneId: $sceneId, shotId: $shotId",
       );
+    }
+    if (isHidden && overridesSymbolId == null) {
+      throw ArgumentError("isHidden is only ever set on a scene-scope override");
     }
 
     final id = const Uuid().v4();
@@ -482,6 +490,7 @@ class OcptFloorPlanService {
         label: label,
         setElementShape: setElementShape,
         overridesSymbolId: overridesSymbolId,
+        isHidden: isHidden,
         isDeleted: false,
       );
 
@@ -503,9 +512,14 @@ class OcptFloorPlanService {
   /// label and/or set-element shape, whichever is passed as something other than [Value.absent] —
   /// a move writes `xM`/`yM`, a rotate writes `rotationDeg`, a resize writes `widthM`/`heightM`,
   /// [fovReachM] writes a camera's own wedge reach (its tip handle), [setElementShape] switches a
-  /// décor primitive's own type (a wall turned into a door, say), and so on, all through this one
-  /// guarded write. Never touches `setId`, `sceneId`, `shotId`, `layer` or `overridesSymbolId`:
-  /// those are fixed at [placeSymbol] and nothing here can put the scope invariant out of step.
+  /// décor primitive's own type (a wall turned into a door, say), [isHidden] masks or unmasks an
+  /// already-placed override for its own sequence ("remove from sequence n" on an override that
+  /// already exists, or undoing that), and so on, all through this one guarded write. Never touches
+  /// `setId`, `sceneId`, `shotId`, `layer` or `overridesSymbolId`: those are fixed at [placeSymbol]
+  /// and nothing here can put the scope invariant out of step.
+  ///
+  /// Setting [isHidden] on a symbol that isn't a scene-scope override (`overridesSymbolId` null)
+  /// throws an [ArgumentError], the same as [placeSymbol]'s own check.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
   Future<void> updateSymbol({
@@ -520,6 +534,7 @@ class OcptFloorPlanService {
     Value<double?> fovReachM = const Value.absent(),
     Value<String> label = const Value.absent(),
     Value<OcptFloorPlanSetElementShape?> setElementShape = const Value.absent(),
+    Value<bool> isHidden = const Value.absent(),
   }) async {
     if (database.refusesUserWrite("updateSymbol")) {
       return;
@@ -535,12 +550,16 @@ class OcptFloorPlanService {
       fovReachM: fovReachM,
       label: label,
       setElementShape: setElementShape,
+      isHidden: isHidden,
     );
 
     await database.transaction(() async {
       final current = await _liveSymbolRowOrNull(database: database, symbolId: symbolId);
       if (current == null) {
         return;
+      }
+      if (isHidden.present && current.overridesSymbolId == null) {
+        throw ArgumentError("isHidden is only ever set on a scene-scope override");
       }
 
       final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
@@ -582,6 +601,76 @@ class OcptFloorPlanService {
           rowId: symbolId,
           current: current,
           next: current.copyWith(isDeleted: true),
+          stamps: stamps,
+        );
+      }
+
+      await stamps.flush(database);
+    });
+  }
+
+  /// Tombstones a set-scope symbol **everywhere**: [symbolId] itself (or, when [symbolId] names a
+  /// scene-scope override instead, the set-scope original it overrides — resolved through its own
+  /// `overridesSymbolId`) and every live scene-scope override of it, in every sequence, plus every
+  /// arrow touching any of them — the "Delete everywhere" branch of the extended delete confirmation
+  /// for a set element used by two or more sequences (`docs/plans/storyboard.md`, §10.4): the
+  /// original and every one of its own re-dressings for a particular sequence are, semantically, one
+  /// piece of furniture, and "everywhere" removes all of it at once rather than leaving an override
+  /// dangling with no original left to fall back to.
+  ///
+  /// A no-op while [symbolId] (or the original it resolves to) is already gone.
+  ///
+  /// {@macro open_cine_prod_tools.tombstones}
+  ///
+  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
+  Future<void> deleteSymbolEverywhere({
+    required OcptProjectDatabase database,
+    required String symbolId,
+  }) async {
+    if (database.refusesUserWrite("deleteSymbolEverywhere")) {
+      return;
+    }
+
+    await database.transaction(() async {
+      final selected = await _liveSymbolRowOrNull(database: database, symbolId: symbolId);
+      if (selected == null) {
+        return;
+      }
+      final originalId = selected.overridesSymbolId ?? symbolId;
+
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
+
+      final overrides =
+          await (database.select(database.ocptFloorPlanSymbolsTable)..where(
+                (table) =>
+                    table.overridesSymbolId.equals(originalId) & table.isDeleted.not(),
+              ))
+              .get();
+      for (final override in overrides) {
+        await _tombstoneArrowsTouchingSymbol(
+          database: database,
+          symbolId: override.id,
+          stamps: stamps,
+        );
+        await OcptRowStampService.writeAndStamp(
+          database: database,
+          table: database.ocptFloorPlanSymbolsTable,
+          rowId: override.id,
+          current: override,
+          next: override.copyWith(isDeleted: true),
+          stamps: stamps,
+        );
+      }
+
+      await _tombstoneArrowsTouchingSymbol(database: database, symbolId: originalId, stamps: stamps);
+      final original = await _liveSymbolRowOrNull(database: database, symbolId: originalId);
+      if (original != null) {
+        await OcptRowStampService.writeAndStamp(
+          database: database,
+          table: database.ocptFloorPlanSymbolsTable,
+          rowId: originalId,
+          current: original,
+          next: original.copyWith(isDeleted: true),
           stamps: stamps,
         );
       }
@@ -798,8 +887,9 @@ class OcptFloorPlanService {
     });
   }
 
-  /// Copies shot [sourceShotId]'s own live shot-layer symbols (cameras, characters, lights, props)
-  /// and the arrows drawn between two of them, from set [sourceSetId] onto shot [destinationShotId]
+  /// Copies shot [sourceShotId]'s own live shot-layer symbols (cameras, characters, lights — never
+  /// props any more, now that the scope matrix confines a prop to scene scope, R5b) and the arrows
+  /// drawn between two of them, from set [sourceSetId] onto shot [destinationShotId]
   /// of set [destinationSetId] — the same set for a same-set copy, a different one for a copy across
   /// sets — as **independent copies**, appended after [destinationShotId]'s own current symbols of
   /// each layer. Creates [destinationSetId]'s plan if it doesn't exist yet ([_ensurePlan]).
@@ -1044,7 +1134,10 @@ class OcptFloorPlanService {
     OcptFloorPlanLayer.cameras ||
     OcptFloorPlanLayer.characters ||
     OcptFloorPlanLayer.lights => const {OcptFloorPlanScope.shot},
-    OcptFloorPlanLayer.props => const {OcptFloorPlanScope.scene, OcptFloorPlanScope.shot},
+    // A breakdown prop is placed for one sequence's own coverage (R5b, `docs/plans/storyboard.md`,
+    // §10.4): scene scope only, tightened from the earlier scene-or-shot matrix now that the
+    // palette's own props chips place at scene scope alone.
+    OcptFloorPlanLayer.props => const {OcptFloorPlanScope.scene},
   };
 
   /// Throws an [ArgumentError] unless the scope [sceneId]/[shotId] derive is one [_allowedScopesOf]

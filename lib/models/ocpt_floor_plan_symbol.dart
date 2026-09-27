@@ -73,6 +73,10 @@ class OcptFloorPlanSymbol extends Equatable {
   /// comment.
   final String? overridesSymbolId;
 
+  /// Whether this scene-scope override masks its set-scope original for this one sequence — always
+  /// false outside a scene-scope override. See `OcptFloorPlanSymbolsTable`'s own doc comment.
+  final bool isHidden;
+
   /// Class constructor
   const OcptFloorPlanSymbol({
     required this.id,
@@ -91,6 +95,7 @@ class OcptFloorPlanSymbol extends Equatable {
     required this.label,
     required this.setElementShape,
     required this.overridesSymbolId,
+    required this.isHidden,
   });
 
   /// Builds an [OcptFloorPlanSymbol] from its stored [row].
@@ -111,6 +116,7 @@ class OcptFloorPlanSymbol extends Equatable {
     label: row.label,
     setElementShape: row.setElementShape,
     overridesSymbolId: row.overridesSymbolId,
+    isHidden: row.isHidden,
   );
 
   /// Object string representation, useful for debugging and logging.
@@ -138,5 +144,6 @@ class OcptFloorPlanSymbol extends Equatable {
     label,
     setElementShape,
     overridesSymbolId,
+    isHidden,
   ];
 }

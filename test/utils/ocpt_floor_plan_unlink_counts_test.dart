@@ -31,6 +31,7 @@ OcptFloorPlanSymbol _symbol({
   label: "",
   setElementShape: null,
   overridesSymbolId: null,
+  isHidden: false,
 );
 
 OcptFloorPlanSet _setOf(List<OcptFloorPlanSymbol> symbols) => OcptFloorPlanSet(

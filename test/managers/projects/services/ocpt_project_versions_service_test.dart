@@ -717,6 +717,7 @@ void main() {
           yM: 0.5,
           label: "North wall, re-dressed",
           overridesSymbolId: originalWallId,
+          isHidden: true,
         ))!;
 
         final payload = await readPayload((await createVersion()).id);
@@ -786,6 +787,11 @@ void main() {
         expect(restoredOverride.sceneId, "scene-1");
         expect(restoredOverride.overridesSymbolId, originalWallId);
         expect(restoredOverride.label, "North wall, re-dressed");
+        // isHidden must survive the preview too — a fresh column, and a second hand-written insert
+        // list (`hydratePreview`'s own) that a new synchronised field can just as easily be added to
+        // one of the two write paths and not the other (see `_applyPayload`'s own sibling check
+        // below).
+        expect(restoredOverride.isHidden, isTrue);
 
         final restoredCamera = await (preview.select(
           preview.ocptFloorPlanSymbolsTable,
@@ -898,6 +904,54 @@ void main() {
       // hands them back rather than writing them.
       expect(result.value?.margins, margins);
       expect(result.value?.format, OcptPageFormat.a4);
+    });
+
+    test("a hidden floor-plan override's own isHidden survives the restore too", () async {
+      // `_applyPayload`'s own write path — `hydratePreview`'s own equivalent is asserted
+      // separately, since a synchronised table (or, here, a synchronised column) has to be wired
+      // into both (see [[versions-service-two-payload-write-paths]]).
+      await insertScene(id: "scene-1");
+      final setId = (await locationsService.createSetLinkedToScene(
+        database: database,
+        sceneId: "scene-1",
+        name: "Kitchen",
+      ))!;
+      final originalId = (await floorPlanService.placeSymbol(
+        database: database,
+        setId: setId,
+        sceneId: null,
+        shotId: null,
+        layer: OcptFloorPlanLayer.set,
+        xM: 0,
+        yM: 0,
+      ))!;
+      final overrideId = (await floorPlanService.placeSymbol(
+        database: database,
+        setId: setId,
+        sceneId: "scene-1",
+        shotId: null,
+        layer: OcptFloorPlanLayer.set,
+        xM: 1,
+        yM: 1,
+        overridesSymbolId: originalId,
+        isHidden: true,
+      ))!;
+
+      final version = await createVersion();
+      // Diverge: unhide the override in the working copy, so restoring is a real change.
+      await floorPlanService.updateSymbol(
+        database: database,
+        symbolId: overrideId,
+        isHidden: const Value(false),
+      );
+
+      final result = await restore(version.id);
+
+      expect(result.status, OcptProjectRestoreStatus.ok);
+      final restored = await (database.select(
+        database.ocptFloorPlanSymbolsTable,
+      )..where((table) => table.id.equals(overrideId))).getSingle();
+      expect(restored.isHidden, isTrue);
     });
 
     test("tombstones what the version didn't hold instead of deleting it", () async {

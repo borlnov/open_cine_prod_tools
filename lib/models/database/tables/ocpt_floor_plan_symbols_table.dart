@@ -64,13 +64,18 @@ class OcptFloorPlanSetElementShapeConverter
 /// [shotId] null, this sequence only) and **shot** scope ([shotId] set, this shot only). Which
 /// scopes a given [layer] may land in is the scope matrix `OcptFloorPlanService._checkScopeInvariant`
 /// enforces at every write: `set` → set or scene scope; `cameras`/`characters`/`lights` → shot scope
-/// only; `props` → scene or shot scope (for now — a later pass moves the props UI to scene scope
-/// alone and tightens this).
+/// only; `props` → scene scope only — a breakdown prop is placed for one sequence's own coverage,
+/// never for a single shot's blocking alone.
 ///
 /// [overridesSymbolId] is null for every symbol but a **scene-scope override**: a scene-scope
 /// symbol that replaces a live set-scope symbol of the same set when drawing its own [sceneId]'s
 /// sequence — the maintainer's "every sequence / only this one" move — while the original keeps
 /// showing in every other sequence and a later edit to it still flows through everywhere else.
+///
+/// [isHidden] is meaningful only on a scene-scope override (`overridesSymbolId` set): true masks
+/// the set-scope original for that one sequence — "remove from sequence n" — without deleting
+/// anything, drawn as a faint, still-selectable ghost the inspector can `Restore`
+/// (`docs/plans/storyboard.md`, §10.4). Always false for every other symbol.
 ///
 /// A camera symbol's letter (`3A`, `3B`) and a shot layer's shot number are **never stored**: both
 /// are derived at read time, the letter from this row's rank among the same shot's live cameras on
@@ -148,6 +153,10 @@ class OcptFloorPlanSymbolsTable extends Table {
   /// symbol**, which don't use it: only a symbol on [OcptFloorPlanLayer.set] carries one.
   TextColumn get setElementShape =>
       text().nullable().map(const OcptFloorPlanSetElementShapeConverter())();
+
+  /// Whether this scene-scope override masks its set-scope original for this one sequence — see
+  /// this class's own doc comment. Always false outside a scene-scope override.
+  BoolColumn get isHidden => boolean().withDefault(const Constant(false))();
 
   /// {@macro open_cine_prod_tools.isDeleted}
   BoolColumn get isDeleted => boolean().withDefault(const Constant(false))();

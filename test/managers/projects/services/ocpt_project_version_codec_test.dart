@@ -1121,6 +1121,7 @@ void main() {
         heightM: 4,
         label: "North wall",
         setElementShape: OcptFloorPlanSetElementShape.wall,
+        isHidden: false,
         isDeleted: false,
       ),
       // A shot-scope symbol: shotId set, a field-of-view wedge instead of a footprint, no
@@ -1137,6 +1138,7 @@ void main() {
         fovDeg: 84,
         fovReachM: 6,
         label: "85mm",
+        isHidden: false,
         isDeleted: false,
       ),
       // A shot-scope symbol, tombstoned.
@@ -1150,9 +1152,12 @@ void main() {
         yM: 2,
         rotationDeg: 0,
         label: "",
+        isHidden: false,
         isDeleted: true,
       ),
-      // A scene-scope override symbol: sceneId set, no shotId, replacing symbol-1 in scene-1.
+      // A scene-scope override symbol: sceneId set, no shotId, replacing symbol-1 in scene-1,
+      // masking it for that one sequence (isHidden) — the round trip this milestone adds a
+      // column for.
       OcptFloorPlanSymbolRow(
         id: "symbol-4",
         setId: "case-1",
@@ -1167,6 +1172,7 @@ void main() {
         label: "North wall, re-dressed",
         setElementShape: OcptFloorPlanSetElementShape.wall,
         overridesSymbolId: "symbol-1",
+        isHidden: true,
         isDeleted: false,
       ),
     ],
@@ -1290,6 +1296,27 @@ void main() {
 
       expect(roundTrip(payload), payload);
     });
+
+    test(
+      'a floor_plan_symbols row with no isHidden key at all (an older format-4 payload, from '
+      'before this milestone added the column) reads back as false rather than throwing',
+      () {
+        final encoded = jsonDecode(codec.encode(buildRichPayload())) as Map<String, dynamic>;
+        final rewritten = {
+          ...encoded,
+          "floorPlanSymbols": [
+            for (final row in encoded["floorPlanSymbols"] as List)
+              {...row as Map<String, dynamic>}..remove("isHidden"),
+          ],
+        };
+
+        final result = codec.decode(jsonEncode(rewritten));
+
+        expect(result.status, OcptProjectVersionPayloadStatus.ok);
+        expect(result.value!.floorPlanSymbols, isNotEmpty);
+        expect(result.value!.floorPlanSymbols.map((row) => row.isHidden), everyElement(isFalse));
+      },
+    );
 
     test('tombstones, sort keys and version stamps all survive', () {
       final roundTripped = roundTrip(buildRichPayload());
@@ -1570,6 +1597,8 @@ void main() {
         expect(overrideSymbol.shotId, isNull);
         expect(overrideSymbol.overridesSymbolId, "symbol-1");
         expect(overrideSymbol.label, "North wall, re-dressed");
+        expect(overrideSymbol.isHidden, isTrue);
+        expect(sequenceSymbol.isHidden, isFalse);
 
         final movement = roundTripped.floorPlanArrows.firstWhere((row) => row.id == "arrow-1");
         expect(movement.setId, "case-1");

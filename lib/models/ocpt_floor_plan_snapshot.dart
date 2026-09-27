@@ -52,6 +52,13 @@ class OcptFloorPlanSnapshot extends Equatable {
   List<OcptFloorPlanSet> setsOfScene(String sceneId) =>
       setsBySceneId[sceneId] ?? const <OcptFloorPlanSet>[];
 
+  /// How many sequences (scenes) [setId] is linked to, project-wide — what tells apart a set-scope
+  /// move/delete that never asks (one sequence) from one that must ask "every sequence / only this
+  /// one" or offer "remove from sequence n" (two or more, `docs/plans/storyboard.md`, §10.4). Zero
+  /// while [setId] names no live set at all.
+  int sequenceCountOfSet(String setId) =>
+      setsBySceneId.values.where((sets) => sets.any((floorPlanSet) => floorPlanSet.id == setId)).length;
+
   /// Object string representation, useful for debugging and logging.
   @override
   String toString() =>

@@ -127,6 +127,24 @@ class OcptFloorPlanSymbolShape extends Equatable {
   /// [OcptFloorPlanSymbolGlyphKind.setElement].
   final OcptFloorPlanSetElementShape? setElementShape;
 
+  /// Whether this shape is a **live, visible** scene-scope override of a set-scope original — drawn
+  /// with a dashed outline and a small pin badge, still fully editable within its own sequence
+  /// (`docs/plans/storyboard.md`, §10.4). Mutually exclusive with [isOverriddenOriginalGhost] and
+  /// [isHiddenOverrideGhost].
+  final bool isOverride;
+
+  /// Whether this shape is the **faint, non-interactive** ghost of a set-scope original replaced,
+  /// for this sequence, by a live *visible* override — drawn at the original's own geometry,
+  /// [symbolId] naming the **original** (never selectable: `OcptFloorPlanCanvas` excludes it from
+  /// hit-testing entirely). See [isOverride].
+  final bool isOverriddenOriginalGhost;
+
+  /// Whether this shape is the **faint, selectable** ghost of a set-scope original masked, for this
+  /// sequence, by a **hidden** override — drawn at the original's own geometry, but [symbolId]
+  /// naming the **override** itself (not the original), so selecting it lets the inspector offer
+  /// `Restore`. See [isOverride].
+  final bool isHiddenOverrideGhost;
+
   /// Class constructor
   const OcptFloorPlanSymbolShape({
     required this.symbolId,
@@ -147,7 +165,42 @@ class OcptFloorPlanSymbolShape extends Equatable {
     required this.cameraFovWedgeDeg,
     required this.cameraFovWedgeReachM,
     required this.setElementShape,
+    this.isOverride = false,
+    this.isOverriddenOriginalGhost = false,
+    this.isHiddenOverrideGhost = false,
   });
+
+  /// Returns a copy of this shape with [symbolId] and the three override-marking flags overridden —
+  /// the only fields `OcptFloorPlanSheet.of` ever needs to adjust after the fact, since every other
+  /// field is already resolved by [OcptFloorPlanSheet._shapeOf].
+  OcptFloorPlanSymbolShape copyWith({
+    String? symbolId,
+    bool? isOverride,
+    bool? isOverriddenOriginalGhost,
+    bool? isHiddenOverrideGhost,
+  }) => OcptFloorPlanSymbolShape(
+    symbolId: symbolId ?? this.symbolId,
+    shotId: shotId,
+    layer: layer,
+    xM: xM,
+    yM: yM,
+    rotationDeg: rotationDeg,
+    widthM: widthM,
+    heightM: heightM,
+    fovDeg: fovDeg,
+    fovReachM: fovReachM,
+    label: label,
+    colorArgb: colorArgb,
+    cameraLabel: cameraLabel,
+    isGhost: isGhost,
+    glyphKind: glyphKind,
+    cameraFovWedgeDeg: cameraFovWedgeDeg,
+    cameraFovWedgeReachM: cameraFovWedgeReachM,
+    setElementShape: setElementShape,
+    isOverride: isOverride ?? this.isOverride,
+    isOverriddenOriginalGhost: isOverriddenOriginalGhost ?? this.isOverriddenOriginalGhost,
+    isHiddenOverrideGhost: isHiddenOverrideGhost ?? this.isHiddenOverrideGhost,
+  );
 
   /// Object string representation, useful for debugging and logging.
   @override
@@ -175,6 +228,9 @@ class OcptFloorPlanSymbolShape extends Equatable {
     cameraFovWedgeDeg,
     cameraFovWedgeReachM,
     setElementShape,
+    isOverride,
+    isOverriddenOriginalGhost,
+    isHiddenOverrideGhost,
   ];
 }
 
@@ -346,10 +402,15 @@ class OcptFloorPlanSheet extends Equatable {
   /// No arrow is drawn under the sequence focus: an arrow is always a shot's own movement, and the
   /// sequence focus shows no single shot's blocking.
   ///
-  /// **The override rule** (§10): a live scene-scope symbol of [focusSceneId] whose own
-  /// `overridesSymbolId` names a live set-scope symbol **replaces** it here — that set-scope
-  /// symbol is left out of [symbols] entirely, and the override is drawn in its place — while a
-  /// symbol of a *different* scene's own `overridesSymbolId` never hides anything from this sheet.
+  /// **The override rule** (§10, R5b): a live scene-scope symbol of [focusSceneId] whose own
+  /// `overridesSymbolId` names a live set-scope symbol **replaces** it here — the set-scope
+  /// original itself is left out of the *editable* shapes, and a **visible** override
+  /// ([OcptFloorPlanSymbolShape.isOverride]) draws in its place, the original still drawn as a
+  /// faint, non-interactive ghost ([OcptFloorPlanSymbolShape.isOverriddenOriginalGhost]) at its own
+  /// stored geometry. A **hidden** override draws nothing of its own at all: only the original's
+  /// own faint ghost shows, this time *selectable* and naming the override
+  /// ([OcptFloorPlanSymbolShape.isHiddenOverrideGhost]) so the inspector can restore it. A symbol of
+  /// a *different* scene's own `overridesSymbolId` never hides anything from this sheet.
   ///
   /// [shotRankByShotId] is every shot of the sequence's own 1-based display rank
   /// (`OcptShot.position` + 1, `docs/plans/storyboard.md`'s "the number is the shot's rank in the
@@ -385,24 +446,65 @@ class OcptFloorPlanSheet extends Equatable {
       for (final symbol in floorPlanSet.symbols)
         if (symbol.shotId == null && symbol.sceneId == focusSceneId) symbol,
     ];
-    final overriddenSetSymbolIds = {
+    // A scene-scope symbol whose own `overridesSymbolId` names a live set-scope symbol — split by
+    // its own `isHidden`, since a **visible** override draws in place of the original (plus the
+    // original's own faint, non-interactive ghost) while a **hidden** one draws nothing of its own
+    // at all (only the original's own faint, *selectable* ghost, see this factory's own doc
+    // comment). A plain scene-scope symbol (a prop; `overridesSymbolId` null) is neither.
+    final visibleOverrides = [
       for (final symbol in sceneScopeSymbols)
-        if (symbol.overridesSymbolId != null) symbol.overridesSymbolId!,
+        if (symbol.overridesSymbolId != null && !symbol.isHidden) symbol,
+    ];
+    final hiddenOverrides = [
+      for (final symbol in sceneScopeSymbols)
+        if (symbol.overridesSymbolId != null && symbol.isHidden) symbol,
+    ];
+    final plainSceneSymbols = [
+      for (final symbol in sceneScopeSymbols) if (symbol.overridesSymbolId == null) symbol,
+    ];
+    final overriddenSetSymbolIds = {
+      for (final symbol in [...visibleOverrides, ...hiddenOverrides]) symbol.overridesSymbolId!,
     };
+    final setScopeSymbolById = {for (final symbol in setScopeSymbols) symbol.id: symbol};
 
     final sequenceSymbols = [
       for (final symbol in setScopeSymbols)
         if (!overriddenSetSymbolIds.contains(symbol.id)) symbol,
-      ...sceneScopeSymbols,
+      ...plainSceneSymbols,
+      ...visibleOverrides,
     ];
 
+    final overrideSymbolIds = {for (final symbol in visibleOverrides) symbol.id};
     final symbolShapes = <OcptFloorPlanSymbolShape>[
-      ..._shapesOf(
+      for (final shape in _shapesOf(
         sequenceSymbols,
         shotRankByShotId: shotRankByShotId,
         isGhost: false,
         showFieldOfView: showFieldOfView,
-      ),
+      ))
+        overrideSymbolIds.contains(shape.symbolId) ? shape.copyWith(isOverride: true) : shape,
+      // The faint, non-interactive ghost of every visibly-overridden original, at its own stored
+      // geometry, `symbolId` still naming the original — `OcptFloorPlanCanvas` never builds a hit
+      // overlay for one of these.
+      for (final override in visibleOverrides)
+        if (setScopeSymbolById[override.overridesSymbolId] case final original?)
+          _shapeOf(
+            original,
+            isGhost: false,
+            showFieldOfView: false,
+            cameraLabel: null,
+          ).copyWith(isOverriddenOriginalGhost: true),
+      // The faint, *selectable* ghost of every hidden override's own original, at the original's
+      // own stored geometry, but `symbolId` naming the **override** — selecting it is how the
+      // inspector reaches `Restore` for an override the sequence currently masks entirely.
+      for (final override in hiddenOverrides)
+        if (setScopeSymbolById[override.overridesSymbolId] case final original?)
+          _shapeOf(
+            original,
+            isGhost: false,
+            showFieldOfView: false,
+            cameraLabel: null,
+          ).copyWith(symbolId: override.id, isHiddenOverrideGhost: true),
     ];
 
     if (focusShotId == null) {

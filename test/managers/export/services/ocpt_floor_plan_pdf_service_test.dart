@@ -107,6 +107,7 @@ OcptFloorPlanSymbol _cameraSymbolOf({
   label: "",
   setElementShape: null,
   overridesSymbolId: null,
+  isHidden: false,
 );
 
 /// Builds a character symbol on [setId] for [shotId].
@@ -133,6 +134,7 @@ OcptFloorPlanSymbol _characterSymbolOf({
   label: "Sam",
   setElementShape: null,
   overridesSymbolId: null,
+  isHidden: false,
 );
 
 /// A sequence-scoped character symbol on [setId] — never ghosted, always drawn (on the bare-décor
@@ -155,6 +157,7 @@ OcptFloorPlanSymbol _sequenceCharacterSymbolOf({required String id, required Str
       label: "Sam",
       setElementShape: null,
       overridesSymbolId: null,
+      isHidden: false,
     );
 
 /// A sequence-scoped décor symbol on [setId], drawn as [shape] (defaulting to freeform, today's
@@ -180,6 +183,7 @@ OcptFloorPlanSymbol _decorSymbolOf({
   label: "wall",
   setElementShape: shape,
   overridesSymbolId: null,
+  isHidden: false,
 );
 
 /// A movement arrow between two symbols of [setId], curved when [ctrlXM]/[ctrlYM] are set,

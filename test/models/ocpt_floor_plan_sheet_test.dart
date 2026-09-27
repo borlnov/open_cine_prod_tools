@@ -30,6 +30,7 @@ OcptFloorPlanSymbol _symbol({
   String label = "",
   OcptFloorPlanSetElementShape? setElementShape,
   String? overridesSymbolId,
+  bool isHidden = false,
 }) => OcptFloorPlanSymbol(
   id: id,
   setId: "case-1",
@@ -47,6 +48,7 @@ OcptFloorPlanSymbol _symbol({
   label: label,
   setElementShape: setElementShape,
   overridesSymbolId: overridesSymbolId,
+  isHidden: isHidden,
 );
 
 OcptFloorPlanArrow _arrow({
@@ -157,9 +159,17 @@ void main() {
         shotRankByShotId: const {},
       );
 
-      expect(sheet.symbols, hasLength(1));
-      expect(sheet.symbols.single.symbolId, "override-1");
-      expect(sheet.symbols.single.label, "Re-dressed");
+      // The visible override draws in place of the original, plus the original's own faint,
+      // non-interactive ghost (`docs/plans/storyboard.md`, §10.4).
+      expect(sheet.symbols, hasLength(2));
+      final overrideShape = sheet.symbols.singleWhere((symbol) => symbol.symbolId == "override-1");
+      expect(overrideShape.label, "Re-dressed");
+      expect(overrideShape.isOverride, isTrue);
+      expect(overrideShape.isOverriddenOriginalGhost, isFalse);
+      final ghostShape = sheet.symbols.singleWhere((symbol) => symbol.symbolId == "orig-1");
+      expect(ghostShape.label, "Original");
+      expect(ghostShape.isOverriddenOriginalGhost, isTrue);
+      expect(ghostShape.isOverride, isFalse);
     });
 
     test("the original still shows in every other scene", () {
@@ -216,7 +226,11 @@ void main() {
         shotRankByShotId: const {},
       );
 
-      expect(sceneOneSheet.symbols.single.symbolId, "override-1");
+      final sceneOneOverride = sceneOneSheet.symbols.singleWhere(
+        (symbol) => symbol.symbolId == "override-1",
+      );
+      expect(sceneOneOverride.isOverride, isTrue);
+      expect(sceneTwoSheet.symbols, hasLength(1));
       expect(sceneTwoSheet.symbols.single.symbolId, "orig-1");
       expect(sceneTwoSheet.symbols.single.xM, 9);
     });
@@ -237,6 +251,62 @@ void main() {
 
       expect(sheet.symbols, hasLength(1));
       expect(sheet.symbols.single.symbolId, "orig-1");
+    });
+
+    test(
+      "a hidden override draws no override shape of its own, only the original's own faint, "
+      "selectable ghost, naming the override",
+      () {
+        final original = _symbol(id: "orig-1", layer: OcptFloorPlanLayer.set, label: "Original");
+        final hiddenOverride = _symbol(
+          id: "override-1",
+          sceneId: "scene-1",
+          layer: OcptFloorPlanLayer.set,
+          overridesSymbolId: "orig-1",
+          isHidden: true,
+        );
+        final floorPlanSet = _caseOf(symbols: [original, hiddenOverride]);
+
+        final sheet = OcptFloorPlanSheet.of(
+          floorPlanSet: floorPlanSet,
+          focusSceneId: "scene-1",
+          focusShotId: null,
+          shotRankByShotId: const {},
+        );
+
+        expect(sheet.symbols, hasLength(1));
+        final ghost = sheet.symbols.single;
+        // Drawn at the original's own geometry/label, but naming the override — selecting it is
+        // how the inspector reaches `Restore`.
+        expect(ghost.symbolId, "override-1");
+        expect(ghost.label, "Original");
+        expect(ghost.isHiddenOverrideGhost, isTrue);
+        expect(ghost.isOverride, isFalse);
+        expect(ghost.isOverriddenOriginalGhost, isFalse);
+      },
+    );
+
+    test("the original still shows, unhidden, in every other scene", () {
+      final original = _symbol(id: "orig-1", layer: OcptFloorPlanLayer.set, label: "Original");
+      final hiddenOverride = _symbol(
+        id: "override-1",
+        sceneId: "scene-1",
+        layer: OcptFloorPlanLayer.set,
+        overridesSymbolId: "orig-1",
+        isHidden: true,
+      );
+      final floorPlanSet = _caseOf(symbols: [original, hiddenOverride]);
+
+      final sheet = OcptFloorPlanSheet.of(
+        floorPlanSet: floorPlanSet,
+        focusSceneId: "scene-2",
+        focusShotId: null,
+        shotRankByShotId: const {},
+      );
+
+      expect(sheet.symbols, hasLength(1));
+      expect(sheet.symbols.single.symbolId, "orig-1");
+      expect(sheet.symbols.single.isHiddenOverrideGhost, isFalse);
     });
   });
 

@@ -180,6 +180,7 @@ void main() {
       label: "",
       setElementShape: null,
       overridesSymbolId: null,
+      isHidden: false,
     );
 
     await _pump(
