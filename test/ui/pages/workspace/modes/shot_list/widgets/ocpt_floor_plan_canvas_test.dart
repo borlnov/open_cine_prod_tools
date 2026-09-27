@@ -825,6 +825,85 @@ void main() {
     },
   );
 
+  testWidgets(
+    "hiding a camera drops it from the sheet with a shot focused (R5c fix)",
+    (tester) async {
+      final controller = OcptFloorPlanViewportController(zoom: 1);
+      final symbol = _cameraSymbol(xM: 0, yM: 0);
+      final selectedTo = <String?>[];
+
+      Widget buildCanvas({required Set<String> hiddenCameraSymbolIds}) => OcptFloorPlanCanvas(
+        floorPlanSet: _caseOf(symbol),
+        shotRankByShotId: const {"shot-1": 1},
+        focusSceneId: "scene-1",
+        focusShotId: "shot-1",
+        previousShotId: null,
+        nextShotId: null,
+        isOnionSkinPreviousShown: false,
+        isOnionSkinNextShown: false,
+        onionSkinOpacity: 0.3,
+        hiddenLayers: const {},
+        hiddenCameraSymbolIds: hiddenCameraSymbolIds,
+        isUnderlayHidden: false,
+        selectedSymbolId: null,
+        selectedArrowId: null,
+        pendingArrowAnchorSymbolId: null,
+        isMetricsShown: false,
+        isAllCamerasShown: false,
+        activeTool: OcptFloorPlanTool.select,
+        activeLayer: OcptFloorPlanLayer.set,
+        activeSetElementShape: OcptFloorPlanSetElementShape.wall,
+        activeSetElementScope: OcptFloorPlanScope.set,
+        activeLabel: "",
+        viewportController: controller,
+        isReadOnly: false,
+        symbolLabelValueOf: (_) => "",
+        onSymbolSelected: selectedTo.add,
+        onSymbolPlaced: (_, __, ___, ____, _____, {setElementShape, label = ""}) {},
+        onSymbolMoved: (_, __, ___) {},
+        onSymbolResized: (_, __, ___) {},
+        onSymbolRotated: (_, __) {},
+        onSymbolFovChanged: (_, __) {},
+        onSymbolFovReachChanged: (_, __) {},
+        onSymbolDeleteRequested: (_) {},
+        onSymbolRestoreRequested: (_) {},
+        onArrowSymbolTapped: (_) {},
+        onArrowAnchorCancelled: () {},
+        onArrowSelected: (_) {},
+        onArrowCurveChanged: (_, __, ___) {},
+        onSymbolDuplicateRequested: (_) {},
+        onSymbolDuplicateDragged: (_, __, ___) {},
+        onGhostShotFocusRequested: (_) {},
+        onSymbolLabelChanged: (_, __) {},
+        onUnderlayTransformChanged: (_, __, ___, ____) {},
+        onZoomSettled: (_) {},
+      );
+
+      // Visible: tapping the camera's own screen position selects it.
+      await _pumpCanvas(tester, buildCanvas(hiddenCameraSymbolIds: const {}));
+      final canvasSize = tester.getSize(find.byType(OcptFloorPlanCanvas));
+      final canvasTopLeft = tester.getTopLeft(find.byType(OcptFloorPlanCanvas));
+      final centreScreen = ocptFloorPlanScreenPointOf(
+        xM: symbol.xM,
+        yM: symbol.yM,
+        canvasSize: canvasSize,
+        zoom: controller.zoom,
+        pan: controller.pan,
+      );
+      await tester.tapAt(canvasTopLeft + centreScreen);
+      await tester.pump();
+      expect(selectedTo, ["cam-1"]);
+
+      // Hidden (the toggle a shot focus used to ignore, R5c): the very same tap now hits empty
+      // canvas — no hit overlay was built for it at all — and clears the selection instead.
+      selectedTo.clear();
+      await _pumpCanvas(tester, buildCanvas(hiddenCameraSymbolIds: const {"cam-1"}));
+      await tester.tapAt(canvasTopLeft + centreScreen);
+      await tester.pump();
+      expect(selectedTo, [null]);
+    },
+  );
+
   group("the scope bubble (R5b)", () {
     testWidgets("shows nothing while no scope decision is pending", (tester) async {
       final controller = OcptFloorPlanViewportController(zoom: 1);

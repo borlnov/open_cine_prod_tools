@@ -66,19 +66,20 @@ const double _rotateSnapStepDeg = 15;
 /// Geometry is drawn from **metres → logical pixels at [OcptFloorPlanCanvas.viewportController]'s
 /// current zoom**, through `ocpt_floor_plan_geometry.dart` — never a stored pixel value.
 ///
-/// **The focus** is [focusShotId]: null draws the `Sequence` focus (every sequence layer, plus
-/// every live camera of every shot, numbered, each hideable through [hiddenCameraSymbolIds]); set,
-/// it draws the shot focus (every sequence layer, plus [focusShotId]'s own shot layers, plus
+/// **The focus** is [focusShotId] — **always a real shot in practice** (R2: the bloc guarantees a
+/// current shot the moment the sequence holds one), never null except defensively (no shot placed
+/// yet): it draws every sequence layer plus [focusShotId]'s own shot layers, plus
 /// [previousShotId]'s/[nextShotId]'s own shot layers as onion-skin ghosts, gated by
-/// [isOnionSkinPreviousShown]/[isOnionSkinNextShown]). **The scope invariant a tool respects**:
-/// [OcptFloorPlanTool.setElement] places on the tray's active *sequence* layer (never scoped to a
-/// shot); [OcptFloorPlanTool.camera]/[OcptFloorPlanTool.character]/[OcptFloorPlanTool.light] each
-/// place their own fixed shot layer on [focusShotId] and do nothing at all while it is null (the
-/// tool bar dims them under the `Sequence` focus, so this is a defensive no-op, never reached in
-/// practice). A symbol is only ever **editable** (selectable for drag, resizable, rotatable,
-/// deletable) when it belongs to the scope the current focus makes live — a sequence layer under
-/// the `Sequence` focus, [focusShotId]'s own shot layers under a shot focus — and never when it is
-/// a ghost: the frozen scope is drawn, never hidden, but locked.
+/// [isOnionSkinPreviousShown]/[isOnionSkinNextShown]. [hiddenCameraSymbolIds] hides a camera
+/// symbol regardless of which of those three groups it belongs to — the focused shot's own, an
+/// onion-skin ghost's, or (with [isAllCamerasShown]) an "All cameras" ghost's. **The scope
+/// invariant a tool respects**: [OcptFloorPlanTool.setElement] places on the tray's active
+/// *sequence* layer (never scoped to a shot); [OcptFloorPlanTool.camera]/
+/// [OcptFloorPlanTool.character]/[OcptFloorPlanTool.light] each place their own fixed shot layer on
+/// [focusShotId] and do nothing at all while it is null, defensive only. A symbol is only ever
+/// **editable** (selectable for drag, resizable, rotatable, deletable) when it belongs to the scope
+/// the current focus makes live — a sequence layer, or [focusShotId]'s own shot layers — and never
+/// when it is a ghost: the frozen scope is drawn, never hidden, but locked.
 ///
 /// **Arrows**: [OcptFloorPlanTool.arrow] takes two clicks on two (non-ghost) symbols —
 /// [onArrowSymbolTapped] reports each tap, the bloc holds the pending anchor and completes the
@@ -127,12 +128,13 @@ class OcptFloorPlanCanvas extends StatefulWidget {
   /// scene-scope symbol/override only ever draws under the sequence it belongs to.
   final String focusSceneId;
 
-  /// The id of the currently focused shot, or null for the `Sequence` focus — see the class doc
-  /// comment. `OcptShotListState.isFloorPlanShotFocusActive`'s own reading of `selectedShotId`.
+  /// The id of the currently focused shot — see the class doc comment. Null only defensively (no
+  /// shot placed yet); `OcptShotListState.isFloorPlanShotFocusActive`'s own reading of
+  /// `selectedShotId`.
   final String? focusShotId;
 
-  /// The shot immediately before [focusShotId] in the sequence, or null while there is none (or
-  /// the `Sequence` focus is showing) — the onion skin's own previous-shot ghost.
+  /// The shot immediately before [focusShotId] in the sequence, or null while there is none — the
+  /// onion skin's own previous-shot ghost.
   final String? previousShotId;
 
   /// The shot immediately after [focusShotId]. See [previousShotId].
@@ -151,7 +153,8 @@ class OcptFloorPlanCanvas extends StatefulWidget {
   final Set<OcptFloorPlanLayer> hiddenLayers;
 
   /// The ids of every camera symbol currently hidden, out of every live camera of the sequence —
-  /// only relevant under the `Sequence` focus, where every shot's cameras draw at once.
+  /// applied to every camera shape this canvas draws, whether it is [focusShotId]'s own, an
+  /// onion-skin ghost's, or (with [isAllCamerasShown]) an "All cameras" ghost's.
   final Set<String> hiddenCameraSymbolIds;
 
   /// Whether the set's own underlay is currently hidden.
@@ -568,24 +571,25 @@ class _OcptFloorPlanCanvasState extends State<OcptFloorPlanCanvas> {
   }
 
   /// The sheet this canvas draws, under [OcptFloorPlanCanvas.focusShotId]'s own focus, filtered to
-  /// [OcptFloorPlanCanvas.hiddenLayers] and — under the `Sequence` focus only —
-  /// [OcptFloorPlanCanvas.hiddenCameraSymbolIds]. The onion skin's own ghost shots
+  /// [OcptFloorPlanCanvas.hiddenLayers] and [OcptFloorPlanCanvas.hiddenCameraSymbolIds] — applied
+  /// to every camera shape alike, the focused shot's own, an onion-skin ghost's, or an "All
+  /// cameras" ghost's (the bug this once had: the filter used to run only under the old `Sequence`
+  /// focus, a focus R2 removed — there is always a current shot now, so it silently stopped
+  /// applying at all). The onion skin's own ghost shots
   /// ([OcptFloorPlanCanvas.previousShotId]/[OcptFloorPlanCanvas.nextShotId]) are passed to
   /// `OcptFloorPlanSheet.of` only while their own tray toggle is on, so a hidden neighbour draws
   /// nothing at all rather than a ghost this canvas then has to filter back out.
   OcptFloorPlanSheet _sheetOf(OcptFloorPlanSet floorPlanSet) {
-    final focusShotId = widget.focusShotId;
     final full = OcptFloorPlanSheet.of(
       floorPlanSet: floorPlanSet,
       focusSceneId: widget.focusSceneId,
-      focusShotId: focusShotId,
+      focusShotId: widget.focusShotId,
       shotRankByShotId: widget.shotRankByShotId,
       previousShotId: widget.isOnionSkinPreviousShown ? widget.previousShotId : null,
       nextShotId: widget.isOnionSkinNextShown ? widget.nextShotId : null,
       showFieldOfView: widget.viewportController.showFieldOfView,
       showAllCameras: widget.isAllCamerasShown,
     );
-    final isSequenceFocus = focusShotId == null;
 
     return OcptFloorPlanSheet(
       setId: full.setId,
@@ -594,8 +598,7 @@ class _OcptFloorPlanCanvasState extends State<OcptFloorPlanCanvas> {
       symbols: [
         for (final symbol in full.symbols)
           if (!widget.hiddenLayers.contains(symbol.layer) &&
-              !(isSequenceFocus &&
-                  symbol.layer == OcptFloorPlanLayer.cameras &&
+              !(symbol.layer == OcptFloorPlanLayer.cameras &&
                   widget.hiddenCameraSymbolIds.contains(symbol.symbolId)))
             symbol,
       ],
