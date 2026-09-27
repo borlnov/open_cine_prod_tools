@@ -363,6 +363,52 @@ void main() {
     );
   });
 
+  testWidgets("clicking a far scene in raw mode lands its heading a third of the way down, even past "
+      "wrapped paragraphs", (tester) async {
+    // Every action paragraph wraps over several visual lines of the source field: counting
+    // newlines would put the target thousands of pixels short of where the heading really is.
+    final buffer = StringBuffer();
+    for (var scene = 1; scene <= 20; scene++) {
+      buffer.write("INT. ROOM $scene - DAY\n\n${"Something happens in room $scene. " * 20}\n\n");
+    }
+    final text = buffer.toString();
+    final project = projectsManager.currentProject!;
+    await tester.runAsync(
+      () => projectsManager.screenplayService.saveScreenplayText(
+        database: project.database,
+        screenplayId: project.primaryScreenplayId,
+        fountainText: text,
+        snapshotReason: OcptSnapshotReason.manual,
+      ),
+    );
+
+    await pumpEditorPage(tester);
+    await tester.pumpAndSettle();
+
+    final heading = find.descendant(
+      of: find.byType(OcptEditorScenePanel),
+      matching: find.text("INT. ROOM 15 - DAY"),
+    );
+    await tester.scrollUntilVisible(heading, 100, scrollable: find.descendant(
+      of: find.byType(OcptEditorScenePanel),
+      matching: find.byType(Scrollable),
+    ).first);
+    await tester.tap(heading);
+    await tester.pumpAndSettle();
+
+    final editableText = find.descendant(
+      of: find.byType(OcptEditorSourceField),
+      matching: find.byType(EditableText),
+    );
+    final renderEditable = tester.state<EditableTextState>(editableText).renderEditable;
+    final caret = renderEditable.getLocalRectForCaret(
+      TextPosition(offset: text.indexOf("INT. ROOM 15 - DAY")),
+    );
+    final caretTop = renderEditable.localToGlobal(caret.topLeft).dy;
+    final field = tester.getRect(editableText);
+    expect((caretTop - field.top) / field.height, inInclusiveRange(0.2, 0.45));
+  });
+
   testWidgets('the preview and the scene panel can be hidden from the toolbar', (tester) async {
     await pumpEditorPage(tester);
     await tester.pumpAndSettle();

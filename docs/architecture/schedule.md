@@ -105,10 +105,11 @@ seven documents a production runs on.
   offset from anything**. A person is convoked by being **linked to a slot** — by person, by role or
   by either half of a guest row, all three kinds counting — and every figure about them is read off
   the slots they are linked to and the blocks in them, joined across the **whole day**: their
-  **arrival** is the earliest start over those slots, their **PAT band** runs from the earliest
-  shooting block to the latest, and their **departure** is the latest slot end. A production that
-  wants somebody there at 06:00 for make-up creates a 06:00 slot and links them to it — its label
-  (`HMC`, `Installation`) is what says why, its blocks are what say how long. That is the trade ADR
+  **arrival** is the earliest start over those slots, their **band** runs from the earliest
+  shooting block to the latest — the earliest *filming* block to the latest when there is one, see
+  below — and their **departure** is the latest slot end. A production that wants somebody there
+  at 06:00 for make-up creates a 06:00 slot and links them to it — its label (`HMC`,
+  `Installation`) is what says why, its blocks are what say how long. That is the trade ADR
   0018 accepts: convoking one actor earlier costs a **slot** rather than a number typed in place,
   and the resulting file says what is actually happening, and prints.
   **A candidate is the one exception, and it is ADR 0018 applied rather than bent** (ADR 0024): you
@@ -133,12 +134,18 @@ seven documents a production runs on.
   by `OcptShootingBlockKind.isFilming` (`shot` and `hold` alone): *prêt à tourner* is the hour a
   performer must be costumed, made up and on set, ready for a take, and a day of auditions or of
   rehearsals has none — so a band read off those alone is a **presence** band and says so
-  (`OcptDayConvocation.isPatBand`, `OcptCallSheetLabels.bandLabelOf`). The label follows the **band,
-  per convocation**, never the day: a day that auditions in the morning and shoots in the afternoon
-  prints `PAT` for its cast and `PRÉSENCE` for its candidates on the one sheet, and the two places
-  that head a **column** of many bands — the cast table and the day's own time band — read `PAT` when
-  any band under them is one, computed over those bands alone so a `PAT` line never opens at the hour
-  a candidate turned up. **A slot with no shooting block gives no band at all**: somebody convoked
+  (`OcptDayConvocation.isPatBand`, `OcptCallSheetLabels.bandLabelOf`). **A PAT band covers the
+  filming blocks alone** (`OcptConvocationSlot.filmingStartMinute`/`filmingEndMinute`): as soon as
+  one slot of a person films, their band runs from its first take to its last, and an audition or a
+  rehearsal — on the same slot, on another one, or a candidacy of their own — never stretches it,
+  being left to the arrival and the departure. A slot that auditions at 09:00 and shoots from 13:00
+  therefore calls its unit for `PAT 13:00`, not `PAT 09:00`, which would claim the camera ready four
+  hours before it is. The label follows the **band, per convocation**, never the day: a day that
+  auditions in the morning and shoots in the afternoon prints `PAT` for its cast and `PRÉSENCE` for
+  its candidates on the one sheet, and the two places that head a **column** of many bands — the
+  cast table and the day's own time band — read `PAT` when any band under them is one, computed
+  over those bands alone so a `PAT` line never opens at the hour a candidate turned up. **A slot
+  with no shooting block gives no band at all**: somebody convoked
   only on preparation slots has an arrival and a departure and no band, which is the truthful reading
   — they are there, they are not waiting to shoot — and a slot carrying no block whatsoever ends at
   its own start, a convocation with no content yet rather than a zero-length error. The band is **not
@@ -247,12 +254,17 @@ seven documents a production runs on.
   carries a wrapped strip of **candidacy chips** instead — one per `shooting_block_candidates` row it
   names, reading the person and the part they are being seen for, each with its own remove control —
   and a `+` picker offering every candidacy of the project grouped by role, minus the ones this block
-  already names. It **picks an existing candidacy and never creates one**: a candidate is recorded on
-  the role sheet, where the casting is decided, and a timetable that could invent one would be a
-  second place saying who is seen for a part. A chip whose candidacy the snapshot no longer holds is
-  left out rather than drawn nameless. The slot card's own people section is unchanged by any of
-  this — a candidate is expected at an hour, not at a unit, so there is no fourth band beside the
-  crew, the cast and the guests.
+  already names — **whether or not the slot also convokes that role**: an actor already cast and the
+  candidates still auditioning for the same part are two different things, so the slot card hands
+  the timetable the whole cast and filters only its own `+ Cast` picker. A picker with nothing to
+  offer says why in a disabled entry (no candidacy recorded yet, every one already named, every role
+  already convoked, no role at all) rather than opening empty, which a Material popup menu with no
+  entry does silently. It **picks an existing candidacy and never creates one**: a candidate is
+  recorded on the role sheet, where the casting is decided, and a timetable that could invent one
+  would be a second place saying who is seen for a part. A chip whose candidacy the snapshot no
+  longer holds is left out rather than drawn nameless. The slot card's own people section is
+  unchanged by any of this — a candidate is expected at an hour, not at a unit, so there is no
+  fourth band beside the crew, the cast and the guests.
   A day's **events** are drawn by **one widget shown twice** (`OcptScheduleDayEventsList`): the day
   view frames it in its own band under the slot cards, the day inspector in a section of its own,
   both editable, so the two surfaces cannot read a day's events apart. A row is its hour, its label,
@@ -416,7 +428,13 @@ seven documents a production runs on.
   blocks as full-width milestone rows and a block's own `crewNote` printed under its row, then the
   cast table, the two directories and a trailing `NOM / MOTIF / HORAIRES` guest table. That table
   carries **five columns, not the reference's six**: no field of this app says what happens in a
-  sequence, so `RÉSUMÉ` could only ever have printed an em dash on every row. The **cast table lists
+  sequence, so `RÉSUMÉ` could only ever have printed an em dash on every row. The **contacts block**
+  prints twice, over two different department sets, sharing one `_contactsBlock` builder: the key
+  contacts (direction, production, unit management) and the by-department crew block (casting and
+  extras, image, electric and grip, sound, art department, costume, hair and make-up, special
+  effects — construction and post-production are not on set, so neither ever reaches a call sheet),
+  both laid out in **rows of at most four columns**, the last row padded with empty ones so every
+  column keeps the same width whatever it holds. The **cast table lists
   every role the day calls for**, not only the convoked ones: a role a placed shot plays but nobody
   linked to a slot is printed too, with em dashes for its arrival and its PAT band — the `RÔLES`
   column prints role *numbers*, and a reader looking `3` up has nowhere else on the sheet to find

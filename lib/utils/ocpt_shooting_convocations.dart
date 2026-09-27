@@ -11,7 +11,7 @@
 /// and no per-block role resolution left in this file: whoever [personIds]/[uncastRoleIds]/
 /// [guestPersonIds]/[guestFreeNames] names is convoked by this slot, for the
 /// whole of it, and every clock a convocation carries is read off [startMinute]/[endMinute]/
-/// [shootingStartMinute]/[shootingEndMinute] alone.
+/// [shootingStartMinute]/[shootingEndMinute]/[filmingStartMinute]/[filmingEndMinute] alone.
 ///
 /// **A candidate is the one exception, and is not named here at all**: somebody seen for a part is
 /// linked to the audition block that sees them rather than to the unit
@@ -24,7 +24,8 @@ class OcptConvocationSlot {
     required this.endMinute,
     required this.shootingStartMinute,
     required this.shootingEndMinute,
-    required this.hasFilmingBlock,
+    required this.filmingStartMinute,
+    required this.filmingEndMinute,
     required this.personIds,
     required this.uncastRoleIds,
     required this.guestPersonIds,
@@ -53,15 +54,22 @@ class OcptConvocationSlot {
   /// The latest end over the same blocks, or null under the same condition as [shootingStartMinute].
   final int? shootingEndMinute;
 
-  /// Whether any of the blocks the two figures above were read off is **filming**
-  /// (`OcptShootingBlockKind.isFilming` — a `shot` or a `hold`), rather than an audition or a
-  /// rehearsal.
+  /// The earliest start over this slot's own **filming** blocks alone — `shot` and `hold`,
+  /// `OcptShootingBlockKind.isFilming`'s own answer — or null when it carries none. Null exactly when
+  /// [filmingEndMinute] is.
   ///
-  /// This is the whole of what says whether a band drawn over this slot may be called a PAT
-  /// (*prêt à tourner*) band: that word is the hour a performer must be ready for a take, and a slot
-  /// whose work is auditions alone has no take to be ready for. False whenever
-  /// [shootingStartMinute] is null, there being no band to name at all.
-  final bool hasFilmingBlock;
+  /// This is what a PAT (*prêt à tourner*) band is read off: that word is the hour a performer must
+  /// be ready for a take, so an audition or a rehearsal in the same slot, being no take, neither
+  /// opens nor closes it — they are still working time, and still covered by the person's arrival
+  /// and departure.
+  final int? filmingStartMinute;
+
+  /// The latest end over the same filming blocks, or null under the same condition as
+  /// [filmingStartMinute].
+  final int? filmingEndMinute;
+
+  /// Whether this slot carries any filming block at all ([filmingStartMinute] is set).
+  bool get hasFilmingBlock => filmingStartMinute != null;
 
   /// Every person linked to this slot as a human: its crew rows' own people, plus the actors of its
   /// cast roles that are cast — resolving a role's actor is the caller's job, this file knowing
@@ -248,8 +256,11 @@ class OcptDayConvocation {
   /// [OcptConvocationSlot.startMinute] over every slot they are linked to.
   final int arrivalMinute;
 
-  /// The start of this person's or role's *prêt à tourner* band — the minimum non-null
-  /// [OcptConvocationSlot.shootingStartMinute] over every slot they are linked to, or null when none
+  /// The start of this person's or role's band. When any slot they are linked to films
+  /// ([isPatBand]), it is the *prêt à tourner* band — the minimum non-null
+  /// [OcptConvocationSlot.filmingStartMinute] over those slots, their auditions and rehearsals left
+  /// to [arrivalMinute]/[departureMinute]. Otherwise it is a presence band — the minimum non-null
+  /// [OcptConvocationSlot.shootingStartMinute], widened by their own auditions — or null when none
   /// of those slots carries a shooting block at all: someone convoked only on preparation slots is
   /// there, not waiting to shoot, which is a different fact from having no band computed yet.
   /// **Always null for a guest** ([isGuest]), whatever shooting blocks the slots they are linked to
@@ -257,15 +268,21 @@ class OcptDayConvocation {
   /// [patEndMinute] is.
   final int? patStartMinute;
 
-  /// The end of the band — the maximum non-null [OcptConvocationSlot.shootingEndMinute] over the
-  /// same slots — under the same condition as [patStartMinute]. The band is **not** clipped to one
+  /// The end of the band — the maximum non-null [OcptConvocationSlot.filmingEndMinute] or
+  /// [OcptConvocationSlot.shootingEndMinute] over the same slots, whichever [patStartMinute] was
+  /// read from — under the same condition as [patStartMinute]. The band is **not** clipped to one
   /// slot: someone on a morning slot and an evening slot reads one band spanning both, gaps
   /// included.
   final int? patEndMinute;
 
   /// Whether the band above is a **PAT** (*prêt à tourner*) band, or merely a presence one: true
-  /// when any block it was read off is filming ([OcptConvocationSlot.hasFilmingBlock]), false when
-  /// the work it covers is auditions and rehearsals alone.
+  /// when any slot this convocation is linked to films ([OcptConvocationSlot.hasFilmingBlock]), in
+  /// which case the band covers the filming blocks **alone**; false when the work it covers is
+  /// auditions and rehearsals alone.
+  ///
+  /// A PAT band never stretches over an audition or a rehearsal: a slot that auditions at 09:00 and
+  /// shoots from 13:00 gives its unit `PAT 13:00`, and the morning is carried by the arrival. A PAT
+  /// reading 09:00 would claim the camera was ready four hours before it was.
   ///
   /// **The label follows the band, never the day.** A day that auditions in the morning and shoots
   /// in the afternoon owes its cast a `PAT` and its candidates a `PRÉSENCE`, on the one sheet: the
@@ -298,15 +315,17 @@ class OcptDayConvocation {
 /// of [slots] listing them — and nothing else:
 ///
 /// - [OcptDayConvocation.arrivalMinute] is the minimum `startMinute` over `S`.
-/// - [OcptDayConvocation.patStartMinute]/[OcptDayConvocation.patEndMinute] are the minimum non-null
-///   `shootingStartMinute` and the maximum non-null `shootingEndMinute` over `S`, both null together
-///   when no slot of `S` carries a shooting block at all (built from the same walk, so there is
-///   nothing to assert about the two agreeing) — **and always both null for a guest**, whatever `S`
-///   carries: a guest is never handed a shooting block to be measured against, which is what keeps
-///   [OcptDayConvocation.isGuest] from ever reading a band (see that field's own doc comment).
 /// - [OcptDayConvocation.isPatBand] is true when any slot of `S` carries a filming block
-///   (`OcptConvocationSlot.hasFilmingBlock`), which is what says whether that band may be called
+///   (`OcptConvocationSlot.hasFilmingBlock`), which is what says whether the band may be called
 ///   *prêt à tourner* at all.
+/// - [OcptDayConvocation.patStartMinute]/[OcptDayConvocation.patEndMinute] are then the minimum
+///   non-null `filmingStartMinute` and the maximum non-null `filmingEndMinute` over `S`: the filming
+///   blocks alone, so neither an audition nor a rehearsal ever stretches a PAT band. When no slot of
+///   `S` films, they are the minimum non-null `shootingStartMinute` and the maximum non-null
+///   `shootingEndMinute` instead — a presence band — both null together when no slot of `S` carries
+///   a shooting block at all — **and always both null for a guest**, whatever `S` carries: a guest
+///   is never handed a shooting block to be measured against, which is what keeps
+///   [OcptDayConvocation.isGuest] from ever reading a band (see that field's own doc comment).
 /// - [OcptDayConvocation.departureMinute] is the maximum, over `S`, of `endMinute ?? startMinute` —
 ///   a slot with no block at all yet still ends at its own start, for whoever is linked to only
 ///   that.
@@ -315,9 +334,11 @@ class OcptDayConvocation {
 ///   once.
 ///
 /// **A person's [auditions] join the same walk** (ADR 0024): `A`, the subset of [auditions] whose
-/// candidacies name them, widens all four figures rather than making a convocation of its own. An
-/// audition is one span rather than a window with work somewhere inside it, so it opens and closes
-/// the band where it opens and closes itself; it never makes that band a PAT one, filming nothing.
+/// candidacies name them, widens their arrival and departure rather than making a convocation of
+/// its own, and widens their band too while it is a presence one. An audition is one span rather
+/// than a window with work somewhere inside it, so it opens and closes a presence band where it
+/// opens and closes itself; it never makes that band a PAT one, filming nothing, and never stretches
+/// one that already is.
 /// That is what gives each candidate an hour of their own — four people seen twenty minutes each
 /// inside one slot read four different bands, where a slot-wide link could only ever have said
 /// "09:00 – 18:00" four times over — and what gives a person who crews the day **and** is seen for a
@@ -441,9 +462,10 @@ OcptDayConvocation _convocationOf({
   final isGuest = guestPersonId != null || guestFreeName != null;
 
   int? arrivalMinute;
-  int? patStartMinute;
-  int? patEndMinute;
-  var isPatBand = false;
+  int? presenceStartMinute;
+  int? presenceEndMinute;
+  int? filmingStartMinute;
+  int? filmingEndMinute;
   int? departureMinute;
   final slotIds = <String>[];
 
@@ -462,14 +484,23 @@ OcptDayConvocation _convocationOf({
 
     if (!isGuest) {
       final shootingStart = slot.shootingStartMinute;
-      if (shootingStart != null && (patStartMinute == null || shootingStart < patStartMinute)) {
-        patStartMinute = shootingStart;
+      if (shootingStart != null &&
+          (presenceStartMinute == null || shootingStart < presenceStartMinute)) {
+        presenceStartMinute = shootingStart;
       }
       final shootingEnd = slot.shootingEndMinute;
-      if (shootingEnd != null && (patEndMinute == null || shootingEnd > patEndMinute)) {
-        patEndMinute = shootingEnd;
+      if (shootingEnd != null && (presenceEndMinute == null || shootingEnd > presenceEndMinute)) {
+        presenceEndMinute = shootingEnd;
       }
-      isPatBand = isPatBand || slot.hasFilmingBlock;
+      final filmingStart = slot.filmingStartMinute;
+      if (filmingStart != null &&
+          (filmingStartMinute == null || filmingStart < filmingStartMinute)) {
+        filmingStartMinute = filmingStart;
+      }
+      final filmingEnd = slot.filmingEndMinute;
+      if (filmingEnd != null && (filmingEndMinute == null || filmingEnd > filmingEndMinute)) {
+        filmingEndMinute = filmingEnd;
+      }
     }
 
     final ownDeparture = slot.endMinute ?? slot.startMinute;
@@ -479,24 +510,28 @@ OcptDayConvocation _convocationOf({
   }
 
   // An audition is one span rather than a window with a stretch of work somewhere inside it, so it
-  // opens the band where it opens itself. It never makes the band a PAT one: an audition films
-  // nothing (see [OcptDayConvocation.isPatBand]).
+  // opens a presence band where it opens itself. It never touches the filming figures: an audition
+  // films nothing (see [OcptDayConvocation.isPatBand]).
   for (final audition in ownAuditions) {
     reachSlot(audition.slotId);
 
     if (arrivalMinute == null || audition.startMinute < arrivalMinute) {
       arrivalMinute = audition.startMinute;
     }
-    if (patStartMinute == null || audition.startMinute < patStartMinute) {
-      patStartMinute = audition.startMinute;
+    if (presenceStartMinute == null || audition.startMinute < presenceStartMinute) {
+      presenceStartMinute = audition.startMinute;
     }
-    if (patEndMinute == null || audition.endMinute > patEndMinute) {
-      patEndMinute = audition.endMinute;
+    if (presenceEndMinute == null || audition.endMinute > presenceEndMinute) {
+      presenceEndMinute = audition.endMinute;
     }
     if (departureMinute == null || audition.endMinute > departureMinute) {
       departureMinute = audition.endMinute;
     }
   }
+
+  // Filming anywhere in the day makes the band a PAT one, read off the filming blocks alone; a day of
+  // auditions and rehearsals only keeps its presence band.
+  final isPatBand = filmingStartMinute != null;
 
   return OcptDayConvocation(
     personId: personId,
@@ -506,8 +541,8 @@ OcptDayConvocation _convocationOf({
     roleCandidateIds: roleCandidateIds,
     hasSlotConvocation: ownSlots.isNotEmpty,
     arrivalMinute: arrivalMinute!,
-    patStartMinute: patStartMinute,
-    patEndMinute: patEndMinute,
+    patStartMinute: isPatBand ? filmingStartMinute : presenceStartMinute,
+    patEndMinute: isPatBand ? filmingEndMinute : presenceEndMinute,
     isPatBand: isPatBand,
     departureMinute: departureMinute!,
     slotIds: slotIds,

@@ -11,6 +11,10 @@ import 'package:flutter/material.dart';
 /// the four sheets stay unaware of how the answer is obtained and every deletion in the app is
 /// confirmed the same way. The action only ever renders when the sheet may be written to, so it
 /// takes a plain non-null callback rather than a nullable one.
+///
+/// It is a **solid, error-filled** button — the same `error`/`onError` fill `OcptConfirmDialog`
+/// gives its own destructive confirm — rather than a plain text button, so the one irreversible
+/// action on the sheet reads as such at a glance instead of hiding among the fields above it.
 class OcptResourcesDeleteAction extends StatelessWidget {
   /// The action's own label, e.g. `Delete this location`.
   final String label;
@@ -27,12 +31,19 @@ class OcptResourcesDeleteAction extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) => Align(
-    alignment: Alignment.centerRight,
-    child: TextButton(
-      onPressed: onDeleteRequested,
-      style: TextButton.styleFrom(foregroundColor: Theme.of(context).colorScheme.error),
-      child: Text(label),
-    ),
-  );
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Align(
+      alignment: Alignment.centerRight,
+      child: FilledButton(
+        onPressed: onDeleteRequested,
+        style: FilledButton.styleFrom(
+          backgroundColor: colorScheme.error,
+          foregroundColor: colorScheme.onError,
+        ),
+        child: Text(label),
+      ),
+    );
+  }
 }

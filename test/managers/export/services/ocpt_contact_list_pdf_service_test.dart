@@ -34,9 +34,11 @@ const _labels = OcptContactListLabels(
   crewDepartmentLabels: {
     OcptCrewDepartment.direction: "Direction",
     OcptCrewDepartment.image: "Image",
+    OcptCrewDepartment.electricAndGrip: "Electric & grip",
     OcptCrewDepartment.sound: "Sound",
     OcptCrewDepartment.artDepartment: "Art department",
-    OcptCrewDepartment.hmc: "HMC",
+    OcptCrewDepartment.costume: "Costume",
+    OcptCrewDepartment.hairAndMakeUp: "Hair & make-up",
     OcptCrewDepartment.production: "Production",
   },
   crewPositionLabels: {

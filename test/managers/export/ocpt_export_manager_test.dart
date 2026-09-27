@@ -88,6 +88,7 @@ class _FakeSaveLocationService extends OcptSaveLocationService {
     required String suggestedFileName,
     required String fileTypeLabel,
     required List<String> extensions,
+    String? initialDirectory,
   }) async {
     lastSuggestedFileName = suggestedFileName;
     lastFileTypeLabel = fileTypeLabel;
@@ -96,7 +97,10 @@ class _FakeSaveLocationService extends OcptSaveLocationService {
   }
 
   @override
-  Future<String?> pickDirectory({required String confirmButtonText}) async {
+  Future<String?> pickDirectory({
+    required String confirmButtonText,
+    String? initialDirectory,
+  }) async {
     lastConfirmButtonText = confirmButtonText;
     return directoryResult;
   }

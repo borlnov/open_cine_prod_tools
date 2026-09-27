@@ -357,9 +357,10 @@ class OcptSchedulePlanSnapshot extends Equatable {
   /// [OcptConvocationSlot.shootingEndMinute] are the minimum start and the maximum end, over
   /// [timeline]'s own entries whose [blocksById] row is a
   /// shooting block (`OcptShootingBlockKind.isShootingTime` — a shot, a hold, an audition or a
-  /// rehearsal), and [OcptConvocationSlot.hasFilmingBlock] says whether any of those actually films
-  /// (`OcptShootingBlockKind.isFilming`), which is what lets the band be called *prêt à tourner* —
-  /// a minimum and a maximum rather than "the first and last entry",
+  /// rehearsal), and [OcptConvocationSlot.filmingStartMinute]/[OcptConvocationSlot.filmingEndMinute]
+  /// the same over the ones that actually film (`OcptShootingBlockKind.isFilming`), which is what a
+  /// *prêt à tourner* band is read off — each a minimum and a maximum rather than "the first and last
+  /// entry",
   /// since a pinned anchor can put a block earlier than the one before it in chain order —
   /// [OcptConvocationSlot.personIds]/[OcptConvocationSlot.uncastRoleIds] come from [slot]'s own live
   /// crew and cast rows, a cast role's own actor read through [roleById]'s own `personId`,
@@ -382,7 +383,8 @@ class OcptSchedulePlanSnapshot extends Equatable {
   ) {
     int? shootingStartMinute;
     int? shootingEndMinute;
-    var hasFilmingBlock = false;
+    int? filmingStartMinute;
+    int? filmingEndMinute;
     for (final entry in timeline.entries) {
       final kind = blocksById[entry.blockId]?.kind;
       if (kind == null || !kind.isShootingTime) {
@@ -394,7 +396,15 @@ class OcptSchedulePlanSnapshot extends Equatable {
       if (shootingEndMinute == null || entry.endMinute > shootingEndMinute) {
         shootingEndMinute = entry.endMinute;
       }
-      hasFilmingBlock = hasFilmingBlock || kind.isFilming;
+      if (!kind.isFilming) {
+        continue;
+      }
+      if (filmingStartMinute == null || entry.startMinute < filmingStartMinute) {
+        filmingStartMinute = entry.startMinute;
+      }
+      if (filmingEndMinute == null || entry.endMinute > filmingEndMinute) {
+        filmingEndMinute = entry.endMinute;
+      }
     }
 
     final personIds = <String>{for (final member in slot.crew) member.personId};
@@ -425,7 +435,8 @@ class OcptSchedulePlanSnapshot extends Equatable {
       endMinute: timeline.endMinute,
       shootingStartMinute: shootingStartMinute,
       shootingEndMinute: shootingEndMinute,
-      hasFilmingBlock: hasFilmingBlock,
+      filmingStartMinute: filmingStartMinute,
+      filmingEndMinute: filmingEndMinute,
       personIds: personIds,
       uncastRoleIds: uncastRoleIds,
       guestPersonIds: guestPersonIds,

@@ -1005,7 +1005,7 @@ void main() {
       final (roleId, personId, _) = await addCandidate(bloc);
 
       expect(bloc.state.candidatesOfRole(roleId).single.person.id, personId);
-      expect(bloc.state.candidatesOfRole(roleId).single.status, OcptRoleCandidateStatus.seen);
+      expect(bloc.state.candidatesOfRole(roleId).single.status, OcptRoleCandidateStatus.spotted);
 
       await bloc.close();
     });

@@ -6,12 +6,41 @@ import 'package:act_flutter_utility/act_flutter_utility.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_mileage_rate.dart';
 import 'package:open_cine_prod_tools/models/ocpt_episode.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
+import 'package:open_cine_prod_tools/types/ocpt_project_move_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_screenplay_language.dart';
 
 /// The state of `OcptProjectSettingsBloc`.
 class OcptProjectSettingsState extends BlocStateForMixin<OcptProjectSettingsState> {
   /// Whether the project's currency and page format are still being loaded from the database.
   final bool isLoading;
+
+  /// The absolute path to the currently open project's file, shown by the `Project file` card.
+  final String projectFilePath;
+
+  /// Whether the `Project file` card's own `Show in folder` action is offered — withheld only on
+  /// mobile, where there is no such affordance (`OcptExportManager.isMobile`); the path itself is
+  /// still shown there.
+  final bool isShowInFolderAvailable;
+
+  /// Whether the `Project file` card's own `Move…` action is offered — withheld on mobile (no
+  /// native save-file dialog there) and while [isMoveWithheldByHosting] is true. Never true while
+  /// the open project sits under a read-only version preview either, though the page that reaches
+  /// this one is never shown at all in that state.
+  final bool isMoveAvailable;
+
+  /// Whether [isMoveAvailable] is false specifically because an in-app-hosted relay currently holds
+  /// this project's `.relay.sqlite` sidecar open — the one case among [isMoveAvailable]'s reasons
+  /// the card explains with a hint, since the other two (mobile, preview) are the ordinary
+  /// affordance-withheld shape the rest of the app already uses with no explanation at all.
+  final bool isMoveWithheldByHosting;
+
+  /// Whether the last `Show in folder` could not open the folder, until the page has said so — see
+  /// `OcptProjectSettingsShowInFolderFailureDismissedEvent`.
+  final bool isShowInFolderFailed;
+
+  /// The status of the last `Move…` attempt that failed, or null once the page has shown it — see
+  /// `OcptProjectSettingsMoveErrorDismissedEvent`.
+  final OcptProjectMoveStatus? moveError;
 
   /// The current project's currency, as an ISO 4217 code.
   final String currencyCode;
@@ -71,6 +100,12 @@ class OcptProjectSettingsState extends BlocStateForMixin<OcptProjectSettingsStat
   /// Class constructor
   const OcptProjectSettingsState({
     required this.isLoading,
+    required this.projectFilePath,
+    required this.isShowInFolderAvailable,
+    required this.isMoveAvailable,
+    required this.isMoveWithheldByHosting,
+    this.isShowInFolderFailed = false,
+    this.moveError,
     required this.currencyCode,
     required this.pageFormat,
     required this.minimumRestMinutes,
@@ -89,6 +124,12 @@ class OcptProjectSettingsState extends BlocStateForMixin<OcptProjectSettingsStat
   /// [isLoading].
   const OcptProjectSettingsState.init()
     : isLoading = true,
+      projectFilePath = "",
+      isShowInFolderAvailable = false,
+      isMoveAvailable = false,
+      isMoveWithheldByHosting = false,
+      isShowInFolderFailed = false,
+      moveError = null,
       currencyCode = "",
       pageFormat = OcptPageFormat.usLetter,
       minimumRestMinutes = null,
@@ -113,6 +154,13 @@ class OcptProjectSettingsState extends BlocStateForMixin<OcptProjectSettingsStat
   @override
   OcptProjectSettingsState copyWith({
     bool? isLoading,
+    String? projectFilePath,
+    bool? isShowInFolderAvailable,
+    bool? isMoveAvailable,
+    bool? isMoveWithheldByHosting,
+    bool? isShowInFolderFailed,
+    OcptProjectMoveStatus? moveError,
+    bool clearMoveError = false,
     String? currencyCode,
     OcptPageFormat? pageFormat,
     int? minimumRestMinutes,
@@ -131,6 +179,12 @@ class OcptProjectSettingsState extends BlocStateForMixin<OcptProjectSettingsStat
     bool? hasChanged,
   }) => OcptProjectSettingsState(
     isLoading: isLoading ?? this.isLoading,
+    projectFilePath: projectFilePath ?? this.projectFilePath,
+    isShowInFolderAvailable: isShowInFolderAvailable ?? this.isShowInFolderAvailable,
+    isMoveAvailable: isMoveAvailable ?? this.isMoveAvailable,
+    isMoveWithheldByHosting: isMoveWithheldByHosting ?? this.isMoveWithheldByHosting,
+    isShowInFolderFailed: isShowInFolderFailed ?? this.isShowInFolderFailed,
+    moveError: clearMoveError ? null : (moveError ?? this.moveError),
     currencyCode: currencyCode ?? this.currencyCode,
     pageFormat: pageFormat ?? this.pageFormat,
     minimumRestMinutes: clearMinimumRestMinutes
@@ -155,6 +209,12 @@ class OcptProjectSettingsState extends BlocStateForMixin<OcptProjectSettingsStat
   List<Object?> get props => [
     ...super.props,
     isLoading,
+    projectFilePath,
+    isShowInFolderAvailable,
+    isMoveAvailable,
+    isMoveWithheldByHosting,
+    isShowInFolderFailed,
+    moveError,
     currencyCode,
     pageFormat,
     minimumRestMinutes,

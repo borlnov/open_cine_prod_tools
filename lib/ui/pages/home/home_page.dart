@@ -376,6 +376,7 @@ class _HomeView extends StatelessWidget {
       OcptProjectStatus.newerFormat => tr.homeErrorNewerFormat,
       OcptProjectStatus.foreignDevBuildFormat =>
         tr.homeErrorForeignDevBuildFormat,
+      OcptProjectStatus.fileAlreadyExists => tr.homeErrorFileAlreadyExists,
       OcptProjectStatus.alreadyOpen => tr.homeErrorAlreadyOpen,
       OcptProjectStatus.ioError => tr.homeErrorIoError,
     };
@@ -438,8 +439,16 @@ class _HomeView extends StatelessWidget {
     if (name == null) {
       return;
     }
+    if (!context.mounted) {
+      return;
+    }
 
-    bloc.add(OcptHomeCreateProjectRequestedEvent(name: name));
+    bloc.add(
+      OcptHomeCreateProjectRequestedEvent(
+        name: name,
+        fileTypeLabel: Tr.of(context).homeOpenFileTypeLabel,
+      ),
+    );
   }
 
   /// Dispatches the open request that shows the open-file dialog.
@@ -473,9 +482,12 @@ class _HomeView extends StatelessWidget {
 
   /// Dispatches the import-screenplay request that shows the screenplay open-file dialog.
   void _requestImportScreenplay(BuildContext context) {
+    final tr = Tr.of(context);
+
     context.read<OcptHomeBloc>().add(
       OcptHomeImportScreenplayRequestedEvent(
-        screenplayFileTypeLabel: Tr.of(context).homeImportFileTypeLabel,
+        screenplayFileTypeLabel: tr.homeImportFileTypeLabel,
+        projectFileTypeLabel: tr.homeOpenFileTypeLabel,
       ),
     );
   }

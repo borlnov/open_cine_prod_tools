@@ -143,7 +143,10 @@ class _FakeSaveLocationService extends OcptSaveLocationService {
   const _FakeSaveLocationService({this.directoryAnswer});
 
   @override
-  Future<String?> pickDirectory({required String confirmButtonText}) async => directoryAnswer;
+  Future<String?> pickDirectory({
+    required String confirmButtonText,
+    String? initialDirectory,
+  }) async => directoryAnswer;
 }
 
 void main() {

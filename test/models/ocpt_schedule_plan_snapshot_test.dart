@@ -789,6 +789,47 @@ void main() {
       expect(convocation.patEndMinute, 630);
     });
 
+    test("an audition before a slot's shots never opens its cast's PAT band", () {
+      final slot = _buildSlot(
+        id: "slot-1",
+        anchorMinute: 540,
+        cast: [_buildCastMember(id: "cast-1", slotId: "slot-1", roleId: "role-1")],
+      );
+      final day = _buildDay(id: "day-1", dayNumber: 1);
+      final snapshot = _buildSnapshot(
+        days: [day],
+        slotsByDayId: {
+          "day-1": [slot],
+        },
+        blocksByDayId: {
+          "day-1": [
+            _buildBlock(
+              id: "block-audition",
+              slotId: "slot-1",
+              kind: OcptShootingBlockKind.audition,
+              durationMinutes: 60,
+            ),
+            _buildBlock(
+              id: "block-shot",
+              slotId: "slot-1",
+              kind: OcptShootingBlockKind.shot,
+              shotId: "shot-1",
+              durationMinutes: 60,
+            ),
+          ],
+        },
+        roles: [_buildRole(id: "role-1", name: "MARIE", personId: "person-1")],
+      );
+
+      final convocation = snapshot.convocationsOfDay("day-1").single;
+
+      // Here from the audition's start, ready to shoot only at the first take.
+      expect(convocation.arrivalMinute, 540);
+      expect(convocation.patStartMinute, 600);
+      expect(convocation.patEndMinute, 660);
+      expect(convocation.isPatBand, isTrue);
+    });
+
     test("a convocation onto a candidacy that has since been removed convokes nobody", () {
       // No cascade drops a `shooting_block_candidates` row when its candidacy is removed — the row
       // is read defensively instead, and drops out here.

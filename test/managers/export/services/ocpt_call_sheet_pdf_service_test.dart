@@ -70,11 +70,16 @@ const _labels = OcptCallSheetLabels(
   contactsSectionTitle: "Contacts",
   crewDepartmentLabels: {
     OcptCrewDepartment.direction: "DIRECTION",
+    OcptCrewDepartment.production: "PRODUCTION",
+    OcptCrewDepartment.unit: "UNIT",
+    OcptCrewDepartment.castingAndExtras: "CASTING AND EXTRAS",
     OcptCrewDepartment.image: "IMAGE",
+    OcptCrewDepartment.electricAndGrip: "ELECTRIC AND GRIP",
     OcptCrewDepartment.sound: "SOUND",
     OcptCrewDepartment.artDepartment: "ART DEPARTMENT",
-    OcptCrewDepartment.hmc: "HMC",
-    OcptCrewDepartment.production: "PRODUCTION",
+    OcptCrewDepartment.costume: "COSTUME",
+    OcptCrewDepartment.hairAndMakeUp: "HAIR AND MAKE-UP",
+    OcptCrewDepartment.specialEffects: "SPECIAL EFFECTS",
   },
   crewPositionLabels: {
     "director": "Director",
@@ -865,6 +870,89 @@ void main() {
       final afternoon = await generateAt(DateTime(2026, 1, 15, 17, 45));
 
       expect(_contentStreams(morning), isNot(_contentStreams(afternoon)));
+    });
+  });
+
+  group("the by-department contacts block wraps at four columns per row", () {
+    /// One person per crew-block department (castingAndExtras, image, electricAndGrip, sound,
+    /// artDepartment, costume, hairAndMakeUp, specialEffects — eight, one over the four-column
+    /// row `_contactsColumnsPerRow` wraps at), each convoked through a slot's own crew list.
+    ///
+    /// These tests only prove [count] departments are all still printed — not dropped, not
+    /// truncated — once there are more than fit one row: the byte comparisons below read the
+    /// still-compressed content streams (see `_contentStreams`'s own doc comment), which carries
+    /// no readable text and no page geometry, so the actual "two rows of four" grid the reference
+    /// call sheet lays out cannot be asserted from here. That grid is covered by hand, and by the
+    /// service's own doc comment.
+    OcptSchedulePlanSnapshot buildDayWithDepartments(int count) {
+      const positionsByDepartment = [
+        "castingDirector", // castingAndExtras
+        "cameraOperator", // image
+        "gaffer", // electricAndGrip
+        "soundEngineer", // sound
+        "setDecorator", // artDepartment
+        "costumeDesigner", // costume
+        "makeupArtist", // hairAndMakeUp
+        "specialEffectsSupervisor", // specialEffects
+      ];
+      final people = [
+        for (var i = 0; i < count; i++) _buildPerson(id: "person-$i", firstName: "First$i", lastName: "Last$i"),
+      ];
+      final crew = [
+        for (var i = 0; i < count; i++)
+          _buildCrewMember(id: "crew-$i", slotId: "slot-1", personId: "person-$i", positionId: positionsByDepartment[i]),
+      ];
+
+      return _buildSnapshot(
+        days: [_buildDay(id: "day-1", dayNumber: 1)],
+        slotsByDayId: {
+          "day-1": [_buildSlot(id: "slot-1", anchorMinute: 480, crew: crew)],
+        },
+        people: people,
+      );
+    }
+
+    test("eight departments print something a four-department day does not", () async {
+      final eightBytes = await service.generateGeneralCallSheet(
+        plan: buildDayWithDepartments(8),
+        dayId: "day-1",
+        pageSetup: pageSetup,
+        labels: _labels,
+        projectName: "My Movie",
+        exportDate: _pinnedExportDate,
+      );
+      final fourBytes = await service.generateGeneralCallSheet(
+        plan: buildDayWithDepartments(4),
+        dayId: "day-1",
+        pageSetup: pageSetup,
+        labels: _labels,
+        projectName: "My Movie",
+        exportDate: _pinnedExportDate,
+      );
+
+      expect(_contentStreams(eightBytes), isNot(_contentStreams(fourBytes)));
+    });
+
+    test("eight departments still fit a single page, the same as four", () async {
+      final eightBytes = await service.generateGeneralCallSheet(
+        plan: buildDayWithDepartments(8),
+        dayId: "day-1",
+        pageSetup: pageSetup,
+        labels: _labels,
+        projectName: "My Movie",
+        exportDate: _pinnedExportDate,
+      );
+      final fourBytes = await service.generateGeneralCallSheet(
+        plan: buildDayWithDepartments(4),
+        dayId: "day-1",
+        pageSetup: pageSetup,
+        labels: _labels,
+        projectName: "My Movie",
+        exportDate: _pinnedExportDate,
+      );
+
+      expect(_pageCount(eightBytes), 1);
+      expect(_pageCount(fourBytes), 1);
     });
   });
 

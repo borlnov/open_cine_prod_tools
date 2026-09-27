@@ -16,7 +16,8 @@ class OcptSaveLocationService {
   const OcptSaveLocationService();
 
   /// Shows the native save dialog, pre-filled with [suggestedFileName] and restricted to
-  /// [extensions] (labelled [fileTypeLabel] in the dialog's type filter).
+  /// [extensions] (labelled [fileTypeLabel] in the dialog's type filter), opening in
+  /// [initialDirectory] when given.
   ///
   /// Returns the path the user picked, appending the first of [extensions] when the returned
   /// path has none (the GTK dialog does not add it itself), or null if the user cancelled the
@@ -25,10 +26,12 @@ class OcptSaveLocationService {
     required String suggestedFileName,
     required String fileTypeLabel,
     required List<String> extensions,
+    String? initialDirectory,
   }) async {
     try {
       final location = await getSaveLocation(
         suggestedName: suggestedFileName,
+        initialDirectory: initialDirectory,
         acceptedTypeGroups: [XTypeGroup(label: fileTypeLabel, extensions: extensions)],
       );
 
@@ -47,7 +50,8 @@ class OcptSaveLocationService {
     }
   }
 
-  /// Shows the native "choose a folder" dialog and resolves the path the user picked.
+  /// Shows the native "choose a folder" dialog and resolves the path the user picked, opening in
+  /// [initialDirectory] when given.
   ///
   /// The named call sheets are the one export of this app that does not write a single file: there
   /// is no one path to save, so what it needs is a directory picker rather than [pickSaveLocation]'s
@@ -57,9 +61,15 @@ class OcptSaveLocationService {
   ///
   /// Returns the chosen directory's path, or null if the user cancelled the dialog or a problem
   /// occurred (logged, exactly like [pickSaveLocation]'s own soft failure).
-  Future<String?> pickDirectory({required String confirmButtonText}) async {
+  Future<String?> pickDirectory({
+    required String confirmButtonText,
+    String? initialDirectory,
+  }) async {
     try {
-      return await getDirectoryPath(confirmButtonText: confirmButtonText);
+      return await getDirectoryPath(
+        confirmButtonText: confirmButtonText,
+        initialDirectory: initialDirectory,
+      );
     } catch (error) {
       appLogger().e("A problem occurred when tried to pick a directory, error: $error");
       return null;

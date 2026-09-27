@@ -17,6 +17,14 @@ enum OcptProjectStatus with MixinResultStatus {
   /// The project file doesn't exist at the given path.
   fileNotFound(isSuccess: false, canBeRetried: false),
 
+  /// `createProject` was asked to create a project at a path a file already sits at: nothing was
+  /// created, nothing was touched, and the existing file is left exactly as it was.
+  ///
+  /// `createProject` never overwrites — see `OcptProjectsManager.freeNewProjectFilePath`, which is
+  /// what a caller reaches for first to make this outcome unlikely in the ordinary "New project"
+  /// flow.
+  fileAlreadyExists(isSuccess: false, canBeRetried: false),
+
   /// The project file exists but isn't a valid Open Cine Prod Tools project database.
   corruptedFile(isSuccess: false, canBeRetried: false),
 

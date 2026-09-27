@@ -81,16 +81,17 @@ progress per scene, and the two documents it prints.
   `OcptLocationsService`), so a link made by hand in the resources mode shows here and one made here
   shows there — no tag is created, nothing is highlighted, and unlinking leaves every tag pointing
   at that set exactly where it is. It sits at the top of the sheet because that is where a
-  breakdown sheet names its décor, and its picker offers `ocptSceneSetSuggestionOf`'s answer first,
-  marked as a suggestion and never applied. Beside that picker it **creates** one
+  breakdown sheet names its décor, and a single `+ Set` control
+  (`OcptBreakdownSetPickerPopover`) both links and creates. Its own text field opens pre-filled
+  with `ocptSceneHeadingPlaceOf`'s reading of the heading, resolved by the mode so the popover and
+  the event can never derive it differently, but is editable before either action: it doubles as
+  the filter for the existing sets not already linked (the heading's own suggestion,
+  `ocptSceneSetSuggestionOf`, listed first and marked as such) and as the name a creation
   (`OcptLocationsService.createSetLinkedToScene`, the tagless sibling of `createSetAndTag`, minting
-  the location too when the menu's own "in a new location" entry is picked): a scene whose place
-  the project has never heard of is the ordinary case at the start of a pass, and the name is not
-  asked for — it is `ocptSceneHeadingPlaceOf`'s reading of the heading, resolved by the mode so the
-  menu and the event can never derive it differently. Every entry of a set-creation menu carries a
-  **non-null** value (`ocptNewLocationMenuValue`): `PopupMenuButton` reads a null result as "the
-  menu was dismissed" and never calls `onSelected` for it, so an entry valued null silently does
-  nothing. A set is shown as `<set> · <location>` everywhere outside the location sheet holding it
+  the location too when its own "in a new location" entry is picked) gives the new set: a scene
+  whose place the project has never heard of is the ordinary case at the start of a pass, and
+  correcting a wrong guess is typing over it rather than renaming the set afterwards. A set is
+  shown as `<set> · <location>` everywhere outside the location sheet holding it
   (`ocptBreakdownSetLabel`), which is why `OcptBreakdownSnapshot` carries the whole `locations`
   catalogue and derives `locationNameById` from it.
   The target inspector's **title is its name field**: an element or a set created from the popover

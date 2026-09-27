@@ -2,6 +2,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+import 'dart:math' as math;
 import 'dart:typed_data';
 
 import 'package:fountain_kit/fountain_kit.dart';
@@ -45,6 +46,10 @@ const double _smallFontSizePt = 7;
 
 /// The padding, in points, inside one cell of a sheet's table and inside a milestone band.
 const double _cellPaddingPt = 4;
+
+/// The most department columns [OcptCallSheetPdfService._contactsBlock] ever lays out in one
+/// `pw.Row`, wrapping onto a further row rather than squeezing a ninth column onto the first.
+const int _contactsColumnsPerRow = 4;
 
 /// The colour of the rules a sheet's tables and bands are drawn with.
 const PdfColor _ruleColor = PdfColor.fromInt(0xFFB0B0B0);
@@ -324,7 +329,11 @@ class OcptCallSheetPdfService {
             orderedEntries: orderedEntries,
             rows: rows,
             crewContacts: crewContacts,
-            contactDepartments: const {OcptCrewDepartment.production, OcptCrewDepartment.direction},
+            contactDepartments: const {
+              OcptCrewDepartment.production,
+              OcptCrewDepartment.direction,
+              OcptCrewDepartment.unit,
+            },
             locations: locations,
             events: events,
             plan: plan,
@@ -335,10 +344,14 @@ class OcptCallSheetPdfService {
             labels: labels,
             crewContacts: crewContacts,
             departments: const {
+              OcptCrewDepartment.castingAndExtras,
               OcptCrewDepartment.image,
+              OcptCrewDepartment.electricAndGrip,
               OcptCrewDepartment.sound,
               OcptCrewDepartment.artDepartment,
-              OcptCrewDepartment.hmc,
+              OcptCrewDepartment.costume,
+              OcptCrewDepartment.hairAndMakeUp,
+              OcptCrewDepartment.specialEffects,
             },
           ),
           pw.SizedBox(height: 10),
@@ -526,7 +539,11 @@ class OcptCallSheetPdfService {
             painter: painter,
             labels: labels,
             crewContacts: crewContacts,
-            departments: const {OcptCrewDepartment.production, OcptCrewDepartment.direction},
+            departments: const {
+              OcptCrewDepartment.production,
+              OcptCrewDepartment.direction,
+              OcptCrewDepartment.unit,
+            },
           ),
           pw.SizedBox(height: 10),
           _mainTableSection(painter: painter, labels: labels, rows: rows, roles: plan.roles),
@@ -950,9 +967,18 @@ class OcptCallSheetPdfService {
         style: pw.TextStyle(font: painter.fonts.regular, fontSize: _bodyFontSizePt),
       );
 
-  /// The key contacts (production and direction) or the by-department contacts table (image, sound,
-  /// art department, HMC) — the same widget for both, over whichever [departments] the caller asks
-  /// for, since both are "`<position> : <first name>`, grouped by department" laid side by side.
+  /// The key contacts (production, direction and unit management) or the by-department contacts
+  /// table (casting and extras, image, electric and grip, sound, art department, costume, hair and
+  /// make-up, special effects) — the same widget for both, over whichever [departments] the caller
+  /// asks for, since both are "`<position> : <first name>`, grouped by department" laid out in
+  /// rows of at most four columns.
+  ///
+  /// **Wrapped at four columns per row, not one row however wide**: the by-department block alone
+  /// can now name up to eight departments, and a single row that wide would squeeze each one's own
+  /// contacts down to a sliver. Every row [_contactsRowsOf] builds holds exactly four
+  /// `pw.Expanded` columns, present departments first and empty ones behind them, so a row of one
+  /// department reads no wider than a row of four — the reference sheet's own contacts table never
+  /// lets a lone name stretch across the page.
   pw.Widget _contactsBlock({
     required OcptScriptPagePainter painter,
     required OcptCallSheetLabels labels,
@@ -981,49 +1007,74 @@ class OcptCallSheetPdfService {
         if (present.isEmpty)
           _noteWidget(painter: painter, text: ocptScheduleEmptyValue)
         else
-          pw.Row(
+          pw.Column(
             crossAxisAlignment: pw.CrossAxisAlignment.start,
             children: [
-              for (final department in present)
-                pw.Expanded(
-                  child: pw.Column(
-                    crossAxisAlignment: pw.CrossAxisAlignment.start,
-                    children: [
-                      pw.Text(
-                        labels.crewDepartmentLabelOf(department).toUpperCase(),
-                        style: pw.TextStyle(font: painter.fonts.bold, fontSize: _smallFontSizePt, color: _mutedColor),
-                      ),
-                      pw.SizedBox(height: 2),
-                      for (final contact in byDepartment[department]!)
-                        pw.Padding(
-                          padding: const pw.EdgeInsets.only(bottom: 4, right: 4),
-                          child: pw.Column(
-                            crossAxisAlignment: pw.CrossAxisAlignment.start,
-                            children: [
-                              _noteWidget(
-                                painter: painter,
-                                text: "${contact.positionLabel} : ${contact.person.firstName}",
-                              ),
-                              if (contact.person.phone.trim().isNotEmpty)
-                                pw.Text(
-                                  contact.person.phone,
-                                  style: pw.TextStyle(
-                                    font: painter.fonts.regular,
-                                    fontSize: _smallFontSizePt,
-                                    color: _mutedColor,
-                                  ),
-                                ),
-                            ],
-                          ),
+              for (final (index, row) in _contactsRowsOf(present).indexed) ...[
+                if (index > 0) pw.SizedBox(height: 6),
+                pw.Row(
+                  crossAxisAlignment: pw.CrossAxisAlignment.start,
+                  children: [
+                    for (final department in row)
+                      pw.Expanded(
+                        child: _departmentContactsColumn(
+                          painter: painter,
+                          labels: labels,
+                          department: department,
+                          contacts: byDepartment[department]!,
                         ),
-                    ],
-                  ),
+                      ),
+                    for (var i = row.length; i < _contactsColumnsPerRow; i++)
+                      pw.Expanded(child: pw.SizedBox()),
+                  ],
                 ),
+              ],
             ],
           ),
       ],
     );
   }
+
+  /// [present] split into rows of at most [_contactsColumnsPerRow] departments each, in
+  /// [present]'s own order — what [_contactsBlock] lays out one `pw.Row` per row of.
+  List<List<OcptCrewDepartment>> _contactsRowsOf(List<OcptCrewDepartment> present) => [
+    for (var i = 0; i < present.length; i += _contactsColumnsPerRow)
+      present.sublist(i, math.min(i + _contactsColumnsPerRow, present.length)),
+  ];
+
+  /// One [department]'s own column of [_contactsBlock]: its upper-case heading, then one
+  /// `<position> : <first name>` line per [contacts] entry, with the phone number on a muted
+  /// second line when they carry one.
+  pw.Widget _departmentContactsColumn({
+    required OcptScriptPagePainter painter,
+    required OcptCallSheetLabels labels,
+    required OcptCrewDepartment department,
+    required List<_CrewContact> contacts,
+  }) => pw.Column(
+    crossAxisAlignment: pw.CrossAxisAlignment.start,
+    children: [
+      pw.Text(
+        labels.crewDepartmentLabelOf(department).toUpperCase(),
+        style: pw.TextStyle(font: painter.fonts.bold, fontSize: _smallFontSizePt, color: _mutedColor),
+      ),
+      pw.SizedBox(height: 2),
+      for (final contact in contacts)
+        pw.Padding(
+          padding: const pw.EdgeInsets.only(bottom: 4, right: 4),
+          child: pw.Column(
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
+            children: [
+              _noteWidget(painter: painter, text: "${contact.positionLabel} : ${contact.person.firstName}"),
+              if (contact.person.phone.trim().isNotEmpty)
+                pw.Text(
+                  contact.person.phone,
+                  style: pw.TextStyle(font: painter.fonts.regular, fontSize: _smallFontSizePt, color: _mutedColor),
+                ),
+            ],
+          ),
+        ),
+    ],
+  );
 
   /// The day's own time bands — one line per slot, then the day's own PAT band (the widest span
   /// over every convocation that has one), then each `meal` block's own band.
