@@ -403,11 +403,15 @@ class _OcptFloorPlanViewState extends State<OcptFloorPlanView> {
   @override
   void didUpdateWidget(covariant OcptFloorPlanView oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // A no-op the moment this very controller's own settled-zoom report is what changed
-    // `initialZoom` (the bloc echoing back what it was just told), exactly as
+    // Only a persisted value that actually changed is synced: a rebuild arriving between a fit (or
+    // a toolbar zoom) and the bloc's echo of it still carries the *previous* zoom, and syncing that
+    // stale value would undo the new zoom while leaving the pan computed for it — the plan drawn
+    // off-centre. The echo itself is then a no-op, exactly as
     // `OcptWorkspaceDockLayoutController.syncFromPersisted` never bounces a drag's own committed
     // value.
-    _viewportController.syncZoomFromPersisted(widget.initialZoom);
+    if (widget.initialZoom != oldWidget.initialZoom) {
+      _viewportController.syncZoomFromPersisted(widget.initialZoom);
+    }
 
     if (widget.floorPlanSet?.id != oldWidget.floorPlanSet?.id) {
       WidgetsBinding.instance.addPostFrameCallback((_) => _fitToContentIfSetChanged());

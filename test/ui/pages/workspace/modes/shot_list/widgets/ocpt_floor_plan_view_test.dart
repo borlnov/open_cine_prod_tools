@@ -188,6 +188,13 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(zoomSettledTo, hasLength(1));
+
+      // That rebuild still carries the zoom persisted *before* the fit (the bloc's echo has not
+      // arrived): the fitted zoom must survive it, or the plan is drawn off-centre with a pan
+      // computed for a zoom that no longer applies.
+      final controller = tester.widget<OcptFloorPlanCanvas>(find.byType(OcptFloorPlanCanvas))
+          .viewportController;
+      expect(controller.zoom, closeTo(zoomSettledTo.single, 1e-6));
     },
   );
 
