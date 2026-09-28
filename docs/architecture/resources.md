@@ -199,6 +199,14 @@ their sets, the elements catalogue, and the two documents the mode prints.
   and changed only by moving the whole set (`OcptLocationsService.moveSetToLocation`, the sets
   card's own move control, which re-allocates the `sortKey` in the destination), so a set filed
   under the wrong house is repaired rather than deleted and retyped.
+  **A set's own floor plan is drawn in the shot list, not here** (`shot-list.md`): the sets card
+  reads it only as a `Floor plan · N sequences` / `No floor plan yet` line and, while the set is
+  linked to at least one live sequence, an `Open in shot list` action landing the shot list mode on
+  the first of them, plan already showing — the one cross-mode reveal that leaves the resources mode
+  rather than landing inside it. **Deleting a set or its whole location tombstones that set's floor
+  plan with it** (`OcptLocationsService.deleteSet`/`.deleteLocation`, cascading into
+  `OcptFloorPlanService.tombstoneFloorPlanRowsOfSet`): a plan drawn against a décor the production no
+  longer has is not a fact worth keeping either.
   A **code is the app's own**, never typed: `OcptElementsService.createElement` mints an element's
   (`ocptElementCodeOf`, `PRP-3`, numbered within its category) and `OcptLocationsService.createSet`
   mints a set's (`ocptSetCodeOf`, `A`, `B`, … `AA`, numbered across the whole project — a set has

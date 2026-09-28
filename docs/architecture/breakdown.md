@@ -80,7 +80,10 @@ progress per scene, and the two documents it prints.
   reads and writes `scene_sets` directly (`OcptBreakdownSceneSetLinkedEvent`/`…UnlinkedEvent` onto
   `OcptLocationsService`), so a link made by hand in the resources mode shows here and one made here
   shows there — no tag is created, nothing is highlighted, and unlinking leaves every tag pointing
-  at that set exactly where it is. It sits at the top of the sheet because that is where a
+  at that set exactly where it is. The very same links are the shot list's own floor-plan tabs
+  (`shot-list.md`): a set linked to a sequence here is a set the shot list can draw a plan under, and
+  unlinking it there is what the shot list's own `Unlink` offers back. It sits at the top of the sheet
+  because that is where a
   breakdown sheet names its décor, and a single `+ Set` control
   (`OcptBreakdownSetPickerPopover`) both links and creates. Its own text field opens pre-filled
   with `ocptSceneHeadingPlaceOf`'s reading of the heading, resolved by the mode so the popover and

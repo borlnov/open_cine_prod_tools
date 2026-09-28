@@ -78,13 +78,15 @@ The MVP (Fountain editor, shot list, resources, breakdown, schedule, their expor
 versions, the sync-ready data model, the portable project package, the desktop packaging) is done;
 the budget mode has shipped whole (the quote against the CNC nomenclature, the cash journal it is
 measured against, the financing plan and catering pass that say what pays for it, the revenue
-sharing that splits what the film earns, and its four documents, `docs/architecture/budget.md`).
+sharing that splits what the film earns, and its four documents, `docs/architecture/budget.md`);
+so has the shot list's board and floor plans (ordered storyboard panels with their annotations, a
+floor plan per Resources set across its three scopes, and their two documents,
+`docs/architecture/shot-list.md`).
 
 What is still ahead, in priority order:
 
 - The M2–M6 end-user collaboration guide, in `docs-site/`
   (`docs/plans/collaboration-user-guide.md`).
-- The storyboard mode, now under way (`docs/plans/storyboard.md`).
 - After that: call sheets beyond what the schedule mode already prints, then
   script supervisor reports.
 
@@ -176,6 +178,7 @@ file in `docs/architecture/` says what the code does because of it.
 | [`exports.md`](docs/architecture/exports.md) | `lib/managers/export/`, the export panel |
 | [`resources.md`](docs/architecture/resources.md) | `lib/ui/pages/workspace/modes/resources/` |
 | [`breakdown.md`](docs/architecture/breakdown.md) | `lib/ui/pages/workspace/modes/breakdown/` |
+| [`shot-list.md`](docs/architecture/shot-list.md) | `lib/ui/pages/workspace/modes/shot_list/`, `lib/utils/ocpt_floor_plan_*.dart`, `lib/utils/ocpt_storyboard_*.dart` |
 | [`schedule.md`](docs/architecture/schedule.md) | `lib/ui/pages/workspace/modes/schedule/` |
 | [`budget.md`](docs/architecture/budget.md) | `lib/ui/pages/workspace/modes/budget/`, `lib/utils/ocpt_budget_*.dart` |
 | [`sync.md`](docs/architecture/sync.md) | `packages/ocpt_sync_protocol/`, `packages/ocpt_sync_relay/`, `lib/managers/sync/`, `lib/ui/pages/sharing/`, `lib/ui/pages/joining/`, the sync status indicator |
