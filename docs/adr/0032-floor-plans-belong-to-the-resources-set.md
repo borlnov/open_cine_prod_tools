@@ -27,7 +27,8 @@ question `sets` already answers, from a second table naming its own rooms all ov
 
 **A floor plan is the plan of a Resources set** (`sets`), not of a sequence. `floor_plan_sets.id`
 **is `sets.id`** rather than a fresh id of its own: the plan is created lazily, on the first symbol
-placed or underlay imported (`OcptFloorPlanService.ensurePlan`), and making its id a pure function
+placed or underlay imported (each writing method of `OcptFloorPlanService` ensures the row
+first), and making its id a pure function
 of the set's own id is what lets two replicas that each place the first symbol on the very same set
 while offline converge onto **one** row through the sync merge, exactly as any other row two
 replicas happen to write the same way — a fresh UUID minted independently on each side would instead
@@ -84,6 +85,7 @@ against.
   where a Resources set is already the granularity the maintainer picks per project (a kitchen and a
   hallway as one set when they are always played as one space, two sets when they are not) — folding
   that choice into the floor plan would have reopened a decision `sets` already settles.
-- **A four-scope model with the sequence's own re-dressing folded into set scope** — rejected: it
-  would let a chair re-dressed for one sequence read as the room's own furniture in every other
-  sequence, the exact drift this record exists to end.
+- **Two scopes only — the set and the shot, with a sequence's props and re-dressed furniture placed
+  shot by shot** — rejected: a candle or a moved table belongs to the sequence, not to one shot, and
+  copied into every shot it would drift the first time one copy was touched. The sequence scope
+  holds it once; a shot that genuinely changes it overrides it for that shot alone.

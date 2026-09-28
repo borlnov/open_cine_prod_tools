@@ -92,11 +92,12 @@ Resources set carries across its three scopes, and the mode's two newest documen
 
 - **A floor plan is the plan of a Resources set**, not of a sequence (ADR 0032). `floor_plan_sets.id`
   **is `sets.id`** — no fresh id of its own — created lazily on the first symbol placed or underlay
-  imported (`OcptFloorPlanService.ensurePlan`): two replicas that each draw the first mark on the
-  very same set while offline converge onto **one** row through the sync merge, which is exactly why
-  the id is a pure function of the set's rather than a freshly minted UUID. The sequence's own tabs
-  — the sets shown in the centre header — are its **live `scene_sets` links**, the very fact the
-  breakdown mode's own sets row reads and writes (`breakdown.md`): the two modes can never disagree
+  imported (each writing method of `OcptFloorPlanService` ensures the row first): two replicas that
+  each draw the first mark on the very same set while offline converge onto **one** row through the
+  sync merge, which is exactly why the id is a pure function of the set's rather than a freshly
+  minted UUID. The sequence's own tabs — the sets shown in the centre header — are its **live
+  `scene_sets` links**, the very fact the breakdown mode's own sets row reads and writes
+  (`breakdown.md`): the two modes can never disagree
   about which sets a sequence is shot in, and unlinking one there is what the shot list's own tab
   close action offers back. A sequence with **no linked set** shows an empty-state gallery instead
   of a canvas (`OcptFloorPlanSetGallery`): one card per live Resources set of the whole project, its
