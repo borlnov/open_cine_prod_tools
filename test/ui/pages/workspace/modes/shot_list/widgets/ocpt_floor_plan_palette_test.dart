@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
+import 'package:open_cine_prod_tools/types/ocpt_floor_plan_layer.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_scope.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_set_element_shape.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_tool.dart';
@@ -44,11 +45,14 @@ OcptFloorPlanPalette _buildPalette({
   String activeLabel = "",
   List<OcptFloorPlanPropChip> propsChips = const [],
   bool isReadOnly = false,
+  Set<OcptFloorPlanLayer> hiddenLayers = const {},
+  Map<OcptFloorPlanLayer, int> layerElementCounts = const {},
   ValueChanged<OcptFloorPlanTool>? onToolSelected,
   ValueChanged<OcptFloorPlanSetElementShape>? onSetElementShapeSelected,
   ValueChanged<OcptFloorPlanScope>? onSetElementScopeSelected,
   ValueChanged<String>? onPropChipSelected,
   VoidCallback? onOtherPropRequested,
+  ValueChanged<OcptFloorPlanLayer>? onLayerVisibilityToggled,
 }) => OcptFloorPlanPalette(
   setName: setName,
   sequenceCode: sequenceCode,
@@ -59,7 +63,8 @@ OcptFloorPlanPalette _buildPalette({
   activeLabel: activeLabel,
   propsChips: propsChips,
   isReadOnly: isReadOnly,
-  hiddenLayers: const {},
+  hiddenLayers: hiddenLayers,
+  layerElementCounts: layerElementCounts,
   sequenceCameras: const [],
   hiddenCameraSymbolIds: const {},
   isOnionSkinPreviousShown: true,
@@ -74,7 +79,7 @@ OcptFloorPlanPalette _buildPalette({
   onSetElementScopeSelected: onSetElementScopeSelected ?? (_) {},
   onPropChipSelected: onPropChipSelected ?? (_) {},
   onOtherPropRequested: onOtherPropRequested ?? () {},
-  onLayerVisibilityToggled: (_) {},
+  onLayerVisibilityToggled: onLayerVisibilityToggled ?? (_) {},
   onCameraVisibilityToggled: (_) {},
   onOnionSkinToggled: (_) {},
   onOnionSkinOpacityChanged: (_) {},
@@ -316,10 +321,123 @@ void main() {
     await _pump(tester, _buildPalette(setName: "Kitchen"));
     final tr = Tr.of(tester.element(find.byType(OcptFloorPlanPalette)));
 
-    expect(find.text(tr.shotListFloorPlanLayerDecorLabel), findsOneWidget);
-    expect(find.text(tr.shotListFloorPlanLayerCharactersLabel), findsOneWidget);
-    expect(find.text(tr.shotListFloorPlanLayerLightsLabel), findsOneWidget);
-    expect(find.text(tr.shotListFloorPlanLayerPropsLabel), findsOneWidget);
+    expect(
+      find.text(tr.shotListFloorPlanLayerRowWithCountLabel(tr.shotListFloorPlanLayerDecorLabel, 0)),
+      findsOneWidget,
+    );
+    expect(
+      find.text(
+        tr.shotListFloorPlanLayerRowWithCountLabel(tr.shotListFloorPlanLayerCharactersLabel, 0),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.text(tr.shotListFloorPlanLayerRowWithCountLabel(tr.shotListFloorPlanLayerLightsLabel, 0)),
+      findsOneWidget,
+    );
+    expect(
+      find.text(tr.shotListFloorPlanLayerRowWithCountLabel(tr.shotListFloorPlanLayerPropsLabel, 0)),
+      findsOneWidget,
+    );
+  });
+
+  group("the View group's own layer counts", () {
+    testWidgets("shows each layer's own count next to its label", (tester) async {
+      await _pump(
+        tester,
+        _buildPalette(
+          setName: "Kitchen",
+          layerElementCounts: const {
+            OcptFloorPlanLayer.props: 3,
+            OcptFloorPlanLayer.characters: 1,
+          },
+        ),
+      );
+      final tr = Tr.of(tester.element(find.byType(OcptFloorPlanPalette)));
+
+      expect(
+        find.text(tr.shotListFloorPlanLayerRowWithCountLabel(tr.shotListFloorPlanLayerPropsLabel, 3)),
+        findsOneWidget,
+      );
+      expect(
+        find.text(
+          tr.shotListFloorPlanLayerRowWithCountLabel(tr.shotListFloorPlanLayerCharactersLabel, 1),
+        ),
+        findsOneWidget,
+      );
+      // Lights carries none of its own — reads as 0, not absent.
+      expect(
+        find.text(tr.shotListFloorPlanLayerRowWithCountLabel(tr.shotListFloorPlanLayerLightsLabel, 0)),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets("a layer's own eye is disabled while its count is 0", (tester) async {
+      await _pump(tester, _buildPalette(setName: "Kitchen"));
+      final tr = Tr.of(tester.element(find.byType(OcptFloorPlanPalette)));
+
+      final row = find.ancestor(
+        of: find.text(tr.shotListFloorPlanLayerRowWithCountLabel(tr.shotListFloorPlanLayerPropsLabel, 0)),
+        matching: find.byType(Row),
+      ).first;
+      final eye = find.descendant(of: row, matching: find.byType(IconButton));
+
+      expect(tester.widget<IconButton>(eye).onPressed, isNull);
+    });
+
+    testWidgets("a layer's own eye is enabled once it carries an element", (tester) async {
+      await _pump(
+        tester,
+        _buildPalette(
+          setName: "Kitchen",
+          layerElementCounts: const {OcptFloorPlanLayer.props: 1},
+        ),
+      );
+      final tr = Tr.of(tester.element(find.byType(OcptFloorPlanPalette)));
+
+      final row = find.ancestor(
+        of: find.text(tr.shotListFloorPlanLayerRowWithCountLabel(tr.shotListFloorPlanLayerPropsLabel, 1)),
+        matching: find.byType(Row),
+      ).first;
+      final eye = find.descendant(of: row, matching: find.byType(IconButton));
+
+      expect(tester.widget<IconButton>(eye).onPressed, isNotNull);
+    });
+
+    testWidgets(
+      "a hidden layer's own eye stays enabled even at a count of 0, so it can be shown again",
+      (tester) async {
+        OcptFloorPlanLayer? toggled;
+        await _pump(
+          tester,
+          _buildPalette(
+            setName: "Kitchen",
+            hiddenLayers: const {OcptFloorPlanLayer.props},
+            onLayerVisibilityToggled: (layer) => toggled = layer,
+          ),
+        );
+        final tr = Tr.of(tester.element(find.byType(OcptFloorPlanPalette)));
+
+        final row = find.ancestor(
+          of: find.text(
+            tr.shotListFloorPlanLayerRowWithCountLabel(tr.shotListFloorPlanLayerPropsLabel, 0),
+          ),
+          matching: find.byType(Row),
+        ).first;
+        final eye = tester.widget<IconButton>(
+          find.descendant(of: row, matching: find.byType(IconButton)),
+        );
+
+        expect(eye.onPressed, isNotNull);
+
+        // Invoked directly rather than through a simulated tap: the eye sits at the row's own
+        // trailing edge, under the `ListView`'s own interactive scrollbar hit region on this
+        // narrow a test surface, which a raw pointer tap never reaches.
+        eye.onPressed!();
+
+        expect(toggled, OcptFloorPlanLayer.props);
+      },
+    );
   });
 
   group("the Sequence group (R5b)", () {
@@ -374,7 +492,7 @@ void main() {
         findsOneWidget,
       );
       expect(find.text("Vase"), findsOneWidget);
-      expect(find.text(tr.shotListFloorPlanOtherPropChipLabel), findsOneWidget);
+      expect(find.text(tr.shotListFloorPlanAddPropAction), findsOneWidget);
     });
 
     testWidgets(
@@ -468,7 +586,7 @@ void main() {
       expect(dropped?.label, "Candles");
     });
 
-    testWidgets("the Other… chip only asks — it never arms anything itself", (tester) async {
+    testWidgets("the add-prop button only asks — it never arms anything itself", (tester) async {
       var otherRequested = false;
       OcptFloorPlanTool? armedTool;
       await _pump(
@@ -481,12 +599,24 @@ void main() {
       );
       final tr = Tr.of(tester.element(find.byType(OcptFloorPlanPalette)));
 
-      await tester.tap(find.text(tr.shotListFloorPlanOtherPropChipLabel));
+      await tester.tap(find.text(tr.shotListFloorPlanAddPropAction));
       await tester.pump();
 
       expect(otherRequested, isTrue);
       expect(armedTool, isNull);
     });
+
+    testWidgets(
+      "the add-prop button shows an add icon and the word alone, never a + in the label",
+      (tester) async {
+        await _pump(tester, _buildPalette(setName: "Kitchen"));
+        final tr = Tr.of(tester.element(find.byType(OcptFloorPlanPalette)));
+
+        expect(tr.shotListFloorPlanAddPropAction.contains("+"), isFalse);
+        expect(find.text(tr.shotListFloorPlanAddPropAction), findsOneWidget);
+        expect(find.byIcon(Icons.add), findsOneWidget);
+      },
+    );
 
     testWidgets("under a read-only preview, a prop chip is no longer a drag source", (tester) async {
       await _pump(

@@ -3475,6 +3475,20 @@
     "type": "text",
     "placeholders": {}
   },
+  "shotListFloorPlanLayerRowWithCountLabel": "{label} · {count}",
+  "@shotListFloorPlanLayerRowWithCountLabel": {
+    "description": "A View group layer row's own label, followed by its count of elements currently drawable for the focused sequence/shot",
+    "context": "Displayed on the floor plans view's own palette",
+    "type": "text",
+    "placeholders": {
+      "label": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "shotListFloorPlanNoCamerasHint": "No camera placed yet.",
   "@shotListFloorPlanNoCamerasHint": {
     "description": "Shown in the tray's own expanded cameras row while the sequence holds no camera yet",
@@ -3821,9 +3835,9 @@
       }
     }
   },
-  "shotListFloorPlanOtherPropChipLabel": "Other…",
-  "@shotListFloorPlanOtherPropChipLabel": {
-    "description": "Label of the fixed chip placing a prop under a free-typed label",
+  "shotListFloorPlanAddPropAction": "Prop",
+  "@shotListFloorPlanAddPropAction": {
+    "description": "Label of the fixed button placing a prop under a free-typed label — the word alone, since the leading add icon already carries the plus",
     "context": "Displayed on the floor plans palette's own Sequence group chips",
     "type": "text",
     "placeholders": {}
@@ -3831,14 +3845,14 @@
   "shotListFloorPlanOtherPropNamePickerTitle": "Name this prop",
   "@shotListFloorPlanOtherPropNamePickerTitle": {
     "description": "Title of the dialog asking for a free-typed prop label",
-    "context": "Displayed in the dialog opened from the palette's own Other… chip",
+    "context": "Displayed in the dialog opened from the palette's own add-prop button",
     "type": "text",
     "placeholders": {}
   },
   "shotListFloorPlanOtherPropNamePickerFieldHint": "Prop name",
   "@shotListFloorPlanOtherPropNamePickerFieldHint": {
     "description": "Placeholder of the Other… prop dialog's own free-text field, replacing the character name picker's own default hint",
-    "context": "Displayed in the dialog opened from the palette's own Other… chip",
+    "context": "Displayed in the dialog opened from the palette's own add-prop button",
     "type": "text",
     "placeholders": {}
   },

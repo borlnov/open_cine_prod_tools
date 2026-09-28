@@ -118,6 +118,13 @@ class OcptFloorPlanPalette extends StatelessWidget {
   /// Every layer currently hidden, sequence and shot layers alike.
   final Set<OcptFloorPlanLayer> hiddenLayers;
 
+  /// Each `View` group layer's own count of elements currently drawable for the focused
+  /// sequence/shot — what the mode counts from the canvas's own drawn sheet, before the
+  /// [hiddenLayers]/[hiddenCameraSymbolIds] visibility filter, so toggling a layer off never zeroes
+  /// its own count back out. A layer missing from this map (never expected, defensive only) reads
+  /// as `0`. No `Tr` and no counting logic live here: this palette only shows the int it is handed.
+  final Map<OcptFloorPlanLayer, int> layerElementCounts;
+
   /// Every live camera symbol of the sequence, for the `View` group's own expandable cameras row.
   final List<OcptFloorPlanTraySequenceCamera> sequenceCameras;
 
@@ -211,6 +218,7 @@ class OcptFloorPlanPalette extends StatelessWidget {
     required this.propsChips,
     required this.isReadOnly,
     required this.hiddenLayers,
+    required this.layerElementCounts,
     required this.sequenceCameras,
     required this.hiddenCameraSymbolIds,
     required this.isOnionSkinPreviousShown,
@@ -446,7 +454,7 @@ class OcptFloorPlanPalette extends StatelessWidget {
   }
 
   /// The `Sequence` group's own breakdown-props chips (R5b, `docs/plans/storyboard.md`, §10.4):
-  /// one chip per [propsChips] entry, plus a fixed `Other…` chip for a free-typed label.
+  /// one chip per [propsChips] entry, plus the fixed add-prop button for a free-typed label.
   Widget _buildPropsChips(BuildContext context, Tr tr) => Padding(
     padding: const EdgeInsets.fromLTRB(12, 2, 12, 6),
     child: Wrap(
@@ -454,7 +462,7 @@ class OcptFloorPlanPalette extends StatelessWidget {
       runSpacing: 6,
       children: [
         for (final chip in propsChips) _buildPropChip(context, tr, chip),
-        _buildOtherPropChip(context, tr),
+        _buildAddPropButton(context, tr),
       ],
     ),
   );
@@ -511,10 +519,13 @@ class OcptFloorPlanPalette extends StatelessWidget {
     );
   }
 
-  /// The fixed `Other…` chip: asks for a free-typed label ([onOtherPropRequested]) before arming
-  /// [OcptFloorPlanTool.prop] with it — the mode reuses the character name-picker's own dialog
-  /// pattern for the typing itself.
-  Widget _buildOtherPropChip(BuildContext context, Tr tr) {
+  /// The fixed add-prop button: asks for a free-typed label ([onOtherPropRequested]) before arming
+  /// [OcptFloorPlanTool.prop] with it and placing it at once — the mode reuses the character
+  /// name-picker's own dialog pattern for the typing itself. Reads as "add a prop to this
+  /// sequence" rather than one more prop chip: a leading [Icons.add] plus the word alone
+  /// ([Tr.shotListFloorPlanAddPropAction]) — the icon already carries the plus, so the label text
+  /// never repeats it.
+  Widget _buildAddPropButton(BuildContext context, Tr tr) {
     final theme = Theme.of(context);
 
     return InkWell(
@@ -527,12 +538,21 @@ class OcptFloorPlanPalette extends StatelessWidget {
           borderRadius: BorderRadius.circular(ocptRadiusSmall),
           border: Border.all(color: theme.colorScheme.outlineVariant),
         ),
-        child: Text(tr.shotListFloorPlanOtherPropChipLabel, style: theme.textTheme.bodySmall),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.add, size: 16, color: theme.colorScheme.onSurfaceVariant),
+            const SizedBox(width: 4),
+            Text(tr.shotListFloorPlanAddPropAction, style: theme.textTheme.bodySmall),
+          ],
+        ),
       ),
     );
   }
 
-  /// The cameras row, expanded into one sub-row per [sequenceCameras] entry with its own eye.
+  /// The cameras row, expanded into one sub-row per [sequenceCameras] entry with its own eye — its
+  /// own title carries [sequenceCameras]'s own count, exactly like a plain layer row (each entry
+  /// already carries its own individual eye, so the title itself has none to withhold).
   Widget _buildCamerasRow(BuildContext context) {
     final theme = Theme.of(context);
     final tr = Tr.of(context);
@@ -553,7 +573,13 @@ class OcptFloorPlanPalette extends StatelessWidget {
           ),
           const SizedBox(width: 8),
           Expanded(
-            child: Text(tr.shotListFloorPlanLayerCamerasLabel, style: theme.textTheme.bodySmall),
+            child: Text(
+              tr.shotListFloorPlanLayerRowWithCountLabel(
+                tr.shotListFloorPlanLayerCamerasLabel,
+                sequenceCameras.length,
+              ),
+              style: theme.textTheme.bodySmall,
+            ),
           ),
         ],
       ),
@@ -676,14 +702,20 @@ class OcptFloorPlanPalette extends StatelessWidget {
     ),
   );
 
-  /// One `View` group layer row: a leading colour swatch, the label, and a trailing eye toggling
-  /// its visibility. No radio dot: every remaining layer places through its own palette entry or
-  /// tool, not through an "active layer" pick — the set layer having merged into one
-  /// (`OcptFloorPlanLayer.set`) is the only sequence layer left, and every shot layer already has
-  /// its own dedicated entry above.
+  /// One `View` group layer row: a leading colour swatch, the label with its own
+  /// [layerElementCounts] count, and a trailing eye toggling its visibility. No radio dot: every
+  /// remaining layer places through its own palette entry or tool, not through an "active layer"
+  /// pick — the set layer having merged into one (`OcptFloorPlanLayer.set`) is the only sequence
+  /// layer left, and every shot layer already has its own dedicated entry above.
+  ///
+  /// The eye is withheld (disabled, not hidden) while the layer's own count is `0` and it isn't
+  /// already hidden — nothing to hide — but stays enabled while hidden regardless of the count, so a
+  /// layer hidden before its last element was removed can still be shown again.
   Widget _buildLayerRow(BuildContext context, OcptFloorPlanLayer layer, String label) {
     final theme = Theme.of(context);
+    final tr = Tr.of(context);
     final isHidden = hiddenLayers.contains(layer);
+    final count = layerElementCounts[layer] ?? 0;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -699,16 +731,19 @@ class OcptFloorPlanPalette extends StatelessWidget {
           ),
           const SizedBox(width: 8),
           Expanded(
-            child: Text(label, style: theme.textTheme.bodySmall),
+            child: Text(
+              tr.shotListFloorPlanLayerRowWithCountLabel(label, count),
+              style: theme.textTheme.bodySmall,
+            ),
           ),
           IconButton(
             iconSize: 16,
             padding: EdgeInsets.zero,
             constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
             tooltip: isHidden
-                ? Tr.of(context).shotListFloorPlanShowLayerAction
-                : Tr.of(context).shotListFloorPlanHideLayerAction,
-            onPressed: () => onLayerVisibilityToggled(layer),
+                ? tr.shotListFloorPlanShowLayerAction
+                : tr.shotListFloorPlanHideLayerAction,
+            onPressed: (isHidden || count > 0) ? () => onLayerVisibilityToggled(layer) : null,
             icon: Icon(isHidden ? Icons.visibility_off_outlined : Icons.visibility_outlined),
           ),
         ],

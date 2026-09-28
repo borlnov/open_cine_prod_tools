@@ -1022,13 +1022,13 @@ void main() {
     );
 
     testWidgets(
-      "the Other… chip's own dialog hints at a prop name, then places it at the view's own "
-      "centre, selected, instead of arming a tool (R5c)",
+      "the add-prop button's own dialog hints at a prop name, then places it at the view's own "
+      "centre, selected, instead of arming a tool",
       (tester) async {
         final bloc = await mountWithACase(tester);
         final tr = Tr.of(tester.element(find.byType(OcptShotListMode)));
 
-        await tester.tap(find.text(tr.shotListFloorPlanOtherPropChipLabel));
+        await tester.tap(find.text(tr.shotListFloorPlanAddPropAction));
         await tester.pumpAndSettle();
 
         expect(find.text(tr.shotListFloorPlanOtherPropNamePickerTitle), findsOneWidget);
