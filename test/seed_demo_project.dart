@@ -857,21 +857,24 @@ void main() {
       setElementShape: OcptFloorPlanSetElementShape.wall,
     );
 
-    await wall(xM: 0, yM: 0, widthM: 6, heightM: wallThicknessM, label: "Cafe wall, north");
-    await wall(xM: 0, yM: 0, widthM: wallThicknessM, heightM: 4, label: "Cafe wall, west");
-    await wall(xM: 5.88, yM: 0, widthM: wallThicknessM, heightM: 4, label: "Cafe wall, east");
+    // `xM`/`yM` are a symbol's own centre (`Rect.fromCenter` in the canvas painter), not a
+    // corner, so a wall's own centre sits on the room's own perimeter, half its thickness either
+    // side of it.
+    await wall(xM: 3, yM: 0, widthM: 6, heightM: wallThicknessM, label: "Cafe wall, north");
+    await wall(xM: 0, yM: 2, widthM: wallThicknessM, heightM: 4, label: "Cafe wall, west");
+    await wall(xM: 6, yM: 2, widthM: wallThicknessM, heightM: 4, label: "Cafe wall, east");
     // The south wall stops short twice, once on each side of the door below.
     await wall(
-      xM: 0,
-      yM: 3.88,
-      widthM: 4,
+      xM: 1.9,
+      yM: 4,
+      widthM: 3.8,
       heightM: wallThicknessM,
       label: "Cafe wall, south-west",
     );
     await wall(
-      xM: 5.4,
-      yM: 3.88,
-      widthM: 0.6,
+      xM: 5.6,
+      yM: 4,
+      widthM: 0.8,
       heightM: wallThicknessM,
       label: "Cafe wall, south-east",
     );
@@ -881,8 +884,8 @@ void main() {
       sceneId: null,
       shotId: null,
       layer: OcptFloorPlanLayer.set,
-      xM: 4,
-      yM: 3.88,
+      xM: 4.5,
+      yM: 4,
       widthM: 1.4,
       heightM: wallThicknessM,
       label: "Cafe door",
@@ -895,8 +898,8 @@ void main() {
       sceneId: null,
       shotId: null,
       layer: OcptFloorPlanLayer.set,
-      xM: 1,
-      yM: 0.3,
+      xM: 2.25,
+      yM: 0.5,
       widthM: 2.5,
       heightM: 0.5,
       label: "Counter",
@@ -912,8 +915,8 @@ void main() {
       sceneId: sceneIds[1],
       shotId: null,
       layer: OcptFloorPlanLayer.set,
-      xM: 1.3,
-      yM: 0.5,
+      xM: 2.55,
+      yM: 0.7,
       widthM: 2.5,
       heightM: 0.5,
       label: "Counter, cleared for the second visit",
@@ -928,8 +931,8 @@ void main() {
       sceneId: null,
       shotId: null,
       layer: OcptFloorPlanLayer.set,
-      xM: 4.1,
-      yM: 1.7,
+      xM: 4.6,
+      yM: 2,
       widthM: 1,
       heightM: 1,
       label: "Table",
@@ -941,7 +944,7 @@ void main() {
       sceneId: null,
       shotId: null,
       layer: OcptFloorPlanLayer.set,
-      xM: 3.6,
+      xM: 4.1,
       yM: 1.3,
       widthM: 0.4,
       heightM: 0.4,
@@ -970,11 +973,11 @@ void main() {
       sceneId: null,
       shotId: shotsByScene[0]!.first,
       layer: OcptFloorPlanLayer.cameras,
-      xM: 2,
-      yM: 3.4,
+      xM: 2.25,
+      yM: 3.2,
       // rotationDeg defaults to 0, which already points local "up" (north) — straight at Nora.
       fovDeg: 50,
-      fovReachM: 3,
+      fovReachM: 2.6,
     );
     await floorPlanService.placeSymbol(
       database: database,
@@ -982,8 +985,8 @@ void main() {
       sceneId: null,
       shotId: shotsByScene[0]!.first,
       layer: OcptFloorPlanLayer.characters,
-      xM: 2,
-      yM: 0.9,
+      xM: 2.25,
+      yM: 1,
       label: "NORA",
     );
 
