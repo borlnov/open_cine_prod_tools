@@ -8,21 +8,21 @@ import 'package:open_cine_prod_tools/types/ocpt_floor_plan_scope.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_set_element_shape.dart';
 
 /// The floor plan canvas's own tool bar picker: which gesture a click or a drag on the canvas
-/// currently means (`docs/plans/storyboard.md`, §4.3).
+/// currently means.
 ///
 /// [select], [setElement] and [prop] are the **sequence-scoped** tools: [select] the default
 /// (click a symbol to select it, drag to move it, drag a handle to rotate or resize it),
 /// [setElement] click empty canvas to place a new décor/furniture symbol, either on the set's own
 /// shared scope (the palette's `Set` group) or on the focused sequence's own scope alone (the
-/// `Sequence` group — R5b, `docs/plans/storyboard.md`, §10.4), told apart by the placement's own
-/// scope rather than by this tool value (`OcptFloorPlanPaletteDragPayload.sceneScope`/
+/// `Sequence` group), told apart by the placement's own scope rather than by this tool value
+/// (`OcptFloorPlanPaletteDragPayload.sceneScope`/
 /// `OcptShotListState.floorPlanActiveSetElementScope`); [prop] click empty canvas to place a new
 /// breakdown prop, always on the focused sequence's own scope, carrying whichever label the
 /// placing chip armed (`OcptFloorPlanPaletteDragPayload.label`/
 /// `OcptShotListState.floorPlanActiveLabel`). The underlay import is a one-shot tool bar action,
 /// not a tool of its own, so it has no case here.
 ///
-/// [camera], [character] and [light] are **shot-scoped** (M6): each places its own shot layer
+/// [camera], [character] and [light] are **shot-scoped**: each places its own shot layer
 /// symbol under the focused shot only — the tool bar dims them under the `Sequence` focus, since
 /// none has a shot to place into. [arrow] takes two clicks on two symbols (a pending anchor,
 /// cancelled by `Escape` or a click on empty canvas) and adds a movement between them, always on
@@ -91,12 +91,12 @@ extension OcptFloorPlanToolScope on OcptFloorPlanTool {
   };
 }
 
-/// One palette entry's own drag-and-drop payload (R3b, the typed set tools —
-/// `docs/plans/storyboard.md`, §10.3): which [tool] a drop places, and — for one of the typed
-/// [OcptFloorPlanTool.setElement] entries (wall/door/furniture/freeform) — which [setElementShape]
-/// it places, which [sceneScope] it places at (R5b: the `Set` group's own four entries carry
-/// [OcptFloorPlanScope.set], the `Sequence` group's own furniture/freeform pair carry
-/// [OcptFloorPlanScope.scene]), or — for a [OcptFloorPlanTool.prop] chip — which [label] it places.
+/// One palette entry's own drag-and-drop payload (the typed set tools): which [tool] a drop
+/// places, and — for one of the typed [OcptFloorPlanTool.setElement] entries
+/// (wall/door/furniture/freeform) — which [setElementShape] it places, which [sceneScope] it
+/// places at (the `Set` group's own four entries carry [OcptFloorPlanScope.set], the `Sequence`
+/// group's own furniture/freeform pair carry [OcptFloorPlanScope.scene]), or — for a
+/// [OcptFloorPlanTool.prop] chip — which [label] it places.
 /// Carried on the drag itself rather than read back from a click-to-arm state, since a drag never
 /// taps its source first: `OcptFloorPlanPalette`'s `Draggable<OcptFloorPlanPaletteDragPayload>` and
 /// `OcptFloorPlanCanvas`'s own `DragTarget` of the same type are what carry it end to end.

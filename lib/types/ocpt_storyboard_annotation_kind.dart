@@ -5,7 +5,7 @@
 /// What kind of mark a `storyboard_annotations` row draws over a storyboard panel's frame.
 ///
 /// The fixed vocabulary the storyboard's light annotation layer is limited to — no freehand drawing
-/// of any kind (`docs/plans/storyboard.md`, §1). `movementArrow` and `cameraMoveArrow` each read
+/// of any kind. `movementArrow` and `cameraMoveArrow` each read
 /// `x1`/`y1`/`x2`/`y2` (an arrow's two ends); `label` reads `x1`/`y1` only, the point it is anchored
 /// to.
 enum OcptStoryboardAnnotationKind {

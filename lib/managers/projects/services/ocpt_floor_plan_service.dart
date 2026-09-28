@@ -19,8 +19,7 @@ import 'package:open_cine_prod_tools/utils/ocpt_fractional_key.dart';
 import 'package:uuid/uuid.dart';
 
 /// CRUD over a Resources set's floor plan — the symbols placed on it (its own set/scene layers and
-/// each shot's own shot layers) and the arrows drawn between symbols (`docs/plans/storyboard.md`,
-/// §10).
+/// each shot's own shot layers) and the arrows drawn between symbols.
 ///
 /// **The plan belongs to the Resources set, not to a sequence** — `floor_plan_sets.id` **is**
 /// `sets.id` (see `OcptFloorPlanSetsTable`'s own doc comment), created lazily on the first write
@@ -177,8 +176,8 @@ class OcptFloorPlanService {
 
   /// The **set-scope** symbols (`sceneId` and `shotId` both null) of every live Resources set of
   /// [database], keyed by set id — a project-wide read, unlike [loadFloorPlans]'s own
-  /// per-screenplay one, used only to draw a lightweight thumbnail of a set's own décor
-  /// (`docs/plans/storyboard.md`, §10.4's empty-state gallery): no scene/shot-scope symbol, no
+  /// per-screenplay one, used only to draw a lightweight thumbnail of a set's own décor, for the
+  /// empty-state gallery: no scene/shot-scope symbol, no
   /// arrow, no underlay — a thumbnail draws the room's own shape, never what a sequence or a shot
   /// staged on it.
   Future<Map<String, List<OcptFloorPlanSymbol>>> loadSetScopeSymbolsByProjectSetId({
@@ -199,7 +198,7 @@ class OcptFloorPlanService {
   }
 
   /// The ids of [setIds] that hold a live `floor_plan_sets` row — a plan that "exists" in the sense
-  /// the Resources location sheet's own set line reads (`docs/plans/storyboard.md`, §10.4): a
+  /// the Resources location sheet's own set line reads: a
   /// light read of ids alone, never a whole plan's worth of symbols and arrows, since the sheet
   /// only ever needs to know whether one is there at all.
   Future<Set<String>> liveSetIdsWithPlan({
@@ -392,11 +391,11 @@ class OcptFloorPlanService {
   /// (`ocptFloorPlanScopeOf`) must be one [_allowedScopesOf] allows for [layer], or this throws an
   /// [ArgumentError] rather than writing a row the rest of this service could never make sense of
   /// again. [overridesSymbolId] is how a `set`/`props`-layer symbol is written as an **override**
-  /// two levels deep (`docs/plans/storyboard.md`, §10.5):
+  /// two levels deep:
   /// - A **scene-scope** override (`sceneId` set, `shotId` null) must name a live **set-scope**
   ///   symbol of this very [setId] and [layer] — the "every sequence / only this one" move.
   /// - A **shot-scope** override (`shotId` set, `sceneId` null — the only way a `set`/`props`
-  ///   symbol may ever be shot-scope at all, R5c) must name a live **scene-scope** symbol of this
+  ///   symbol may ever be shot-scope at all) must name a live **scene-scope** symbol of this
   ///   very [setId] and [layer], and [shotId] must belong to that scene-scope symbol's own
   ///   sequence — the "the whole sequence / only this shot" move.
   ///
@@ -467,7 +466,7 @@ class OcptFloorPlanService {
 
       if (overridesSymbolId != null) {
         // A scene-scope override targets a set-scope original; a shot-scope override targets a
-        // scene-scope one — one level down each time (§10.5).
+        // scene-scope one — one level down each time.
         final expectedTargetScope = scope == OcptFloorPlanScope.shot
             ? OcptFloorPlanScope.scene
             : OcptFloorPlanScope.set;
@@ -668,7 +667,7 @@ class OcptFloorPlanService {
   /// scene-scope override instead, the set-scope original it overrides — resolved through its own
   /// `overridesSymbolId`) and every live scene-scope override of it, in every sequence, plus every
   /// arrow touching any of them — the "Delete everywhere" branch of the extended delete confirmation
-  /// for a set element used by two or more sequences (`docs/plans/storyboard.md`, §10.4): the
+  /// for a set element used by two or more sequences: the
   /// original and every one of its own re-dressings for a particular sequence are, semantically, one
   /// piece of furniture, and "everywhere" removes all of it at once rather than leaving an override
   /// dangling with no original left to fall back to.
@@ -888,7 +887,7 @@ class OcptFloorPlanService {
   /// [destinationSetId]'s plan, as independent copies (fresh ids, never links), creating that
   /// destination plan if it doesn't exist yet ([_ensurePlan]).
   ///
-  /// **This is only the copying half of "duplicate this set"** (`docs/plans/storyboard.md`, §10):
+  /// **This is only the copying half of "duplicate this set"**:
   /// minting [destinationSetId] as a fresh Resources set in the same location
   /// (`OcptLocationsService.createSiblingSet`) and linking it to the calling scene
   /// (`OcptLocationsService.assignSceneToSet`) are the other two steps, and this service
@@ -943,7 +942,7 @@ class OcptFloorPlanService {
   }
 
   /// Copies shot [sourceShotId]'s own live shot-layer symbols (cameras, characters, lights — never
-  /// props any more, now that the scope matrix confines a prop to scene scope, R5b) and the arrows
+  /// props any more, now that the scope matrix confines a prop to scene scope) and the arrows
   /// drawn between two of them, from set [sourceSetId] onto shot [destinationShotId]
   /// of set [destinationSetId] — the same set for a same-set copy, a different one for a copy across
   /// sets — as **independent copies**, appended after [destinationShotId]'s own current symbols of
@@ -1100,8 +1099,8 @@ class OcptFloorPlanService {
 
   /// Tombstones Resources set [setId]'s own plan row (if any — a set nothing has ever been drawn
   /// on has none to tombstone), its symbols and its arrows, in one pass —
-  /// `OcptLocationsService.deleteSet`'s and `.deleteLocation`'s own cascade (`docs/plans/
-  /// storyboard.md`, §10). Removing a set's **link** to a scene (`OcptLocationsService
+  /// `OcptLocationsService.deleteSet`'s and `.deleteLocation`'s own cascade. Removing a set's
+  /// **link** to a scene (`OcptLocationsService
   /// .removeSceneFromSet`) never calls this: unlinking keeps the plan, so placements come back if
   /// the set is relinked.
   ///
@@ -1185,8 +1184,8 @@ class OcptFloorPlanService {
   /// comment describes. A `switch` with no `default`: a sixth layer must be placed on one side or
   /// another here rather than silently landing in whichever branch happens to be listed last.
   ///
-  /// **Shot scope for `set`/`props` is allowed here only as an override** (R5c,
-  /// `docs/plans/storyboard.md`, §10.5) — [_checkScopeInvariant] is what turns that back into "a
+  /// **Shot scope for `set`/`props` is allowed here only as an override** —
+  /// [_checkScopeInvariant] is what turns that back into "a
   /// *non*-override shot-scope `set`/`props` symbol still throws", since this set alone cannot
   /// express "allowed, but only conditionally".
   static Set<OcptFloorPlanScope> _allowedScopesOf(OcptFloorPlanLayer layer) => switch (layer) {
@@ -1198,8 +1197,8 @@ class OcptFloorPlanService {
     OcptFloorPlanLayer.cameras ||
     OcptFloorPlanLayer.characters ||
     OcptFloorPlanLayer.lights => const {OcptFloorPlanScope.shot},
-    // A breakdown prop is placed for one sequence's own coverage (R5b, `docs/plans/storyboard.md`,
-    // §10.4) and, R5c, may be re-dressed for one shot alone through a shot-scope override —
+    // A breakdown prop is placed for one sequence's own coverage and may be re-dressed for one
+    // shot alone through a shot-scope override —
     // set scope stays out of reach, a prop is never shared by the whole Resources set.
     OcptFloorPlanLayer.props => const {OcptFloorPlanScope.scene, OcptFloorPlanScope.shot},
   };
@@ -1207,7 +1206,7 @@ class OcptFloorPlanService {
   /// Throws an [ArgumentError] unless the scope [sceneId]/[shotId] derive is one [_allowedScopesOf]
   /// allows for [layer] — and, for a `set`/`props` symbol at shot scope specifically, unless
   /// [hasOverride] is true: that layer is never natively shot-scope, only ever a shot override of
-  /// a scene-scope symbol (R5c). See this class's own doc comment for why this is the one place the
+  /// a scene-scope symbol. See this class's own doc comment for why this is the one place the
   /// scope invariant is checked.
   void _checkScopeInvariant({
     required String? sceneId,
@@ -1339,7 +1338,7 @@ class OcptFloorPlanService {
 
   /// Reads back the live shot row [shotId], or null if it doesn't exist or has been tombstoned —
   /// [placeSymbol]'s own way of checking a shot-scope override's own shot belongs to the sequence
-  /// its target scene-scope symbol does (R5c).
+  /// its target scene-scope symbol does.
   Future<OcptShotRow?> _liveShotRowOrNull({
     required OcptProjectDatabase database,
     required String shotId,

@@ -7,8 +7,7 @@ import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
 
 /// One breakdown prop of a scene, as `OcptElementsService.propsOfScene` builds it — a scene's own
 /// `scene_elements` link (category [OcptElementCategory.prop] alone) joined with the `elements`
-/// catalogue, resolved down to what the floor plans palette's own props chips need
-/// (`docs/plans/storyboard.md`, §10.4).
+/// catalogue, resolved down to what the floor plans palette's own props chips need.
 class OcptScenePropSummary extends Equatable {
   /// The element's own catalogue id.
   final String elementId;

@@ -111,8 +111,8 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
   final List<OcptBudgetMileageRate> mileageRates;
 
   /// The ids of every live Resources set of the project that holds a live floor plan row — the
-  /// sets card's own `Floor plan · N sequences` / `No floor plan yet` line
-  /// (`docs/plans/storyboard.md`, §10.4). Read once on load alongside [mileageRates], a light query
+  /// sets card's own `Floor plan · N sequences` / `No floor plan yet` line. Read once on load
+  /// alongside [mileageRates], a light query
   /// (`OcptFloorPlanService.liveSetIdsWithPlan`) rather than a whole plan's worth of symbols.
   final Set<String> setIdsWithPlan;
 

@@ -6,8 +6,7 @@ import 'package:equatable/equatable.dart';
 import 'package:open_cine_prod_tools/models/ocpt_floor_plan_sheet.dart';
 
 /// A move, rotate or resize awaiting the scope bubble's own answer, held by
-/// `OcptShotListState.pendingFloorPlanScopeDecision` (`docs/plans/storyboard.md`, §10.4, extended
-/// to a second level by §10.5) — which of two levels [level] says:
+/// `OcptShotListState.pendingFloorPlanScopeDecision` — which of two levels [level] says:
 ///
 /// - [OcptFloorPlanOverrideLevel.sequence]: a **set-scope** symbol of a set linked to two or more
 ///   sequences. `Every sequence` writes onto [symbolId] directly; `Only sequence n` writes a

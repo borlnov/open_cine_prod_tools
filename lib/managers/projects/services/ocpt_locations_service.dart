@@ -701,8 +701,8 @@ class OcptLocationsService {
   }
 
   /// Creates a new set named [name], in the same location as [sourceSetId], and returns its freshly
-  /// generated id — the "mint a Resources set" half of "duplicate this set"
-  /// (`docs/plans/storyboard.md`, §10), which `OcptShotListBloc` puts together with
+  /// generated id — the "mint a Resources set" half of "duplicate this set", which
+  /// `OcptShotListBloc` puts together with
   /// `OcptFloorPlanService.duplicateSet` (copying the plan) and [assignSceneToSet] (linking it to
   /// the calling scene): see `OcptFloorPlanService.duplicateSet`'s own doc comment for why the
   /// three steps live on three different calls rather than one. Returns null, doing nothing, if
@@ -730,7 +730,7 @@ class OcptLocationsService {
 
   /// Duplicates set [sourceSetId] into a fresh Resources set named [name] — in the same location,
   /// its plan's own set-scope symbols copied, linked to scene [sceneId] — as **one atomic
-  /// operation**, run inside a single transaction (`docs/plans/storyboard.md`, §10.4): the three
+  /// operation**, run inside a single transaction: the three
   /// steps [createSiblingSet]/`floorPlanService.duplicateSet`/[assignSceneToSet]
   /// `OcptShotListBloc._onSetDuplicationRequested` used to call one by one now happen here, so a
   /// failure at any step (an exception thrown by any of the three) rolls back every one of them —
@@ -948,7 +948,7 @@ class OcptLocationsService {
   /// first (`screenplays.sortKey`), then that episode's own scene order (`scenes.position`) — and
   /// the id of the episode (screenplay) it belongs to, or null while [setId] carries no live link
   /// at all. What the Resources location sheet's own `Open in shot list`
-  /// (`OcptShotListRevealRequest`, `docs/plans/storyboard.md`, §10.4) reveals.
+  /// (`OcptShotListRevealRequest`) reveals.
   ///
   /// Reads `screenplays`/`scenes` directly rather than through `OcptScreenplayService`
   /// (dependencies never reference their dependents: that service already depends on this one, for

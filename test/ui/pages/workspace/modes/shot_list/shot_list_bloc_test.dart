@@ -2844,7 +2844,7 @@ void main() {
   });
 
   group("floor plans", () {
-    /// Creates a case on the first scene of [twoSceneText] and returns its id, waiting for the
+    /// Creates a set on the first scene of [twoSceneText] and returns its id, waiting for the
     /// selection the creation event always makes.
     Future<String> createCase(OcptShotListBloc bloc) async {
       bloc.add(const OcptShotListSetCreationRequestedEvent());
@@ -2852,7 +2852,7 @@ void main() {
       return created.selectedSetId!;
     }
 
-    test("a fresh case is named from the scene heading's place and selected", () async {
+    test("a fresh set is named from the scene heading's place and selected", () async {
       await writeScreenplay(twoSceneText);
       final bloc = buildBloc();
       await waitForState(bloc, (state) => !state.isLoading);
@@ -2867,7 +2867,7 @@ void main() {
       await bloc.close();
     });
 
-    test("renaming a case debounces then writes", () async {
+    test("renaming a set debounces then writes", () async {
       await writeScreenplay(twoSceneText);
       final bloc = buildBloc();
       await waitForState(bloc, (state) => !state.isLoading);
@@ -2892,7 +2892,7 @@ void main() {
     });
 
     test(
-      "unlinking the selected case removes its tab and selects the sequence's next first case",
+      "unlinking the selected set removes its tab and selects the sequence's next first set",
       () async {
         await writeScreenplay(twoSceneText);
         final bloc = buildBloc();
@@ -3285,7 +3285,7 @@ void main() {
       await bloc.close();
     });
 
-    test("switching sequences clears the case and symbol selection", () async {
+    test("switching sequences clears the set and symbol selection", () async {
       await writeScreenplay(twoSceneText);
       final bloc = buildBloc();
       final loaded = await waitForState(bloc, (state) => !state.isLoading);
@@ -3311,13 +3311,13 @@ void main() {
       await bloc.close();
     });
 
-    group("the shot half (M6)", () {
+    group("the shot half", () {
       /// Creates a shot on the sole selected sequence and returns its id, waiting for the
       /// selection the creation event always makes — mirrors "the board" group's own helper.
       ///
       /// Waits for `selectedShotId` to actually **change** from whatever it already was, not
-      /// merely to be non-null: since R2 guarantees a current shot whenever the sequence already
-      /// holds one, a second call in the same test would otherwise resolve against the still-
+      /// merely to be non-null: a current shot is always guaranteed whenever the sequence already
+      /// holds one, so a second call in the same test would otherwise resolve against the still-
       /// current previous shot before the new one's own creation event is even processed.
       Future<String> createShot(OcptShotListBloc bloc) async {
         final previousShotId = bloc.state.selectedShotId;
@@ -3330,7 +3330,7 @@ void main() {
       }
 
       test(
-        "always a current shot (R2): creating the sequence's first shot focuses it, deleting "
+        "always a current shot: creating the sequence's first shot focuses it, deleting "
         "it reselects the sequence's own next first shot rather than clearing to null",
         () async {
           await writeScreenplay(twoSceneText);
@@ -3375,7 +3375,7 @@ void main() {
       );
 
       test(
-        "always a current shot (R2): switching to a sequence holding shots selects its own "
+        "always a current shot: switching to a sequence holding shots selects its own "
         "first one",
         () async {
           await writeScreenplay(twoSceneText);
@@ -3740,7 +3740,7 @@ void main() {
       });
 
       test(
-        "placing a character symbol arms the name prompt, dismissed clears it (R2)",
+        "placing a character symbol arms the name prompt, dismissed clears it",
         () async {
           await writeScreenplay(twoSceneText);
           final bloc = buildBloc();
@@ -3834,7 +3834,7 @@ void main() {
 
       test(
         "selecting an arrow, bending it and straightening it back out writes the control "
-        "point (R2)",
+        "point",
         () async {
           await writeScreenplay(twoSceneText);
           final bloc = buildBloc();
@@ -3930,7 +3930,7 @@ void main() {
 
       test(
         "Ctrl+D duplicates a symbol offset from its source, an Alt-drag duplicates at the "
-        "drag's own position, neither touching the source (R2)",
+        "drag's own position, neither touching the source",
         () async {
           await writeScreenplay(twoSceneText);
           final bloc = buildBloc();
@@ -4044,9 +4044,9 @@ void main() {
       );
     });
 
-    group("R3 — chrome and duplication", () {
+    group("chrome and duplication", () {
       /// Creates a fresh shot on the sole selected sequence and returns its id, waiting for the
-      /// selection to actually change — mirrors "the shot half (M6)" group's own helper.
+      /// selection to actually change — mirrors "the shot half" group's own helper.
       Future<String> createFreshShot(OcptShotListBloc bloc) async {
         final previousShotId = bloc.state.selectedShotId;
         bloc.add(const OcptShotListShotCreationRequestedEvent());
@@ -4177,7 +4177,7 @@ void main() {
       );
     });
 
-    group("the scope bubble (R5b)", () {
+    group("the scope bubble", () {
       /// Links [setId] to the sequence's own second scene too, selects that second sequence, and
       /// returns its own id — building the "set linked to two sequences" fixture every test here
       /// needs, then the caller re-selects whichever sequence it actually wants focused.
@@ -4501,7 +4501,7 @@ void main() {
       );
     });
 
-    group("restore / hide / delete everywhere (R5b)", () {
+    group("restore / hide / delete everywhere", () {
       Future<String> linkSecondSequence(OcptShotListBloc bloc, String setId) async {
         final secondSequenceId = bloc.state.sequences[1].id;
         bloc.add(OcptShotListSequenceSelectedEvent(sequenceId: secondSequenceId));
@@ -4805,9 +4805,9 @@ void main() {
       );
     });
 
-    group("the scope bubble, shot level (R5c)", () {
+    group("the scope bubble, shot level", () {
       /// Creates a shot on the sole selected sequence and returns its id, waiting for the
-      /// selection to actually change — mirrors "the shot half (M6)" group's own helper.
+      /// selection to actually change — mirrors "the shot half" group's own helper.
       Future<String> createShot(OcptShotListBloc bloc) async {
         final previousShotId = bloc.state.selectedShotId;
         bloc.add(const OcptShotListShotCreationRequestedEvent());

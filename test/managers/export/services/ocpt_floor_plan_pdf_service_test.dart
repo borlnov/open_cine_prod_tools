@@ -294,7 +294,7 @@ void main() {
       expect(ascii.decode(bytes.sublist(0, 4)), "%PDF");
     });
 
-    test("a case with no camera anywhere prints exactly one bare-décor page", () async {
+    test("a set with no camera anywhere prints exactly one bare-décor page", () async {
       final bytes = await generate(
         snapshot: snapshotOf(2),
         floorPlanSnapshot: OcptFloorPlanSnapshot.build(
@@ -331,7 +331,7 @@ void main() {
       expect(_pageCount(bytes), 2);
     });
 
-    test("several cases of the same sequence each contribute their own pages", () async {
+    test("several sets of the same sequence each contribute their own pages", () async {
       final bytes = await generate(
         snapshot: snapshotOf(3),
         floorPlanSnapshot: OcptFloorPlanSnapshot.build(
@@ -371,7 +371,7 @@ void main() {
   });
 
   group("what the floor plan draws", () {
-    test("a case with a camera draws differently from the very same case with none", () async {
+    test("a set with a camera draws differently from the very same set with none", () async {
       OcptFloorPlanSnapshot snapshotWith(List<OcptFloorPlanSymbol> symbols) => OcptFloorPlanSnapshot.build(
         screenplayId: "screenplay",
         setsBySceneId: {
@@ -621,7 +621,7 @@ void main() {
           },
         );
 
-    test("a case whose underlay file resolves draws differently from one whose file is missing", () async {
+    test("a set whose underlay file resolves draws differently from one whose file is missing", () async {
       final resolved = await generate(
         snapshot: snapshotOf(1),
         floorPlanSnapshot: snapshotWithUnderlay(imagePath),
@@ -634,7 +634,7 @@ void main() {
       expect(_contentStreams(resolved), isNot(_contentStreams(missing)));
     });
 
-    test("a case with no underlay at all still exports without throwing", () async {
+    test("a set with no underlay at all still exports without throwing", () async {
       final bytes = await generate(snapshot: snapshotOf(1), floorPlanSnapshot: snapshotWithUnderlay(null));
 
       expect(ascii.decode(bytes.sublist(0, 4)), "%PDF");

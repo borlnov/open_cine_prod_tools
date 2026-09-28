@@ -344,7 +344,7 @@ void main() {
       () async {
         // The service walks `assets` generically by kind/path/label/isDeleted, so a
         // storyboardPanelImage row rides the very same path a personPhoto or a locationPhoto
-        // already does: no owner column is set (`docs/plans/storyboard.md`, §2), and none of the
+        // already does: no owner column is set, and none of the
         // packaging or import code reads one.
         await database
             .into(database.ocptAssetsTable)

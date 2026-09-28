@@ -245,8 +245,8 @@ class _ShotListViewState extends State<_ShotListView> {
   /// Builds the four entries the toolbar's `Export` button offers: the shot list workbook and the
   /// scenario coverage PDF, unavailable while the shot list holds no shot at all — there would be
   /// nothing in the workbook but its header row, and nothing to annotate the screenplay with — and
-  /// the storyboard PDF and the floor plans PDF, each unavailable for its own, narrower reason
-  /// (`docs/plans/storyboard.md`, §5): a shot list can hold shots without holding a single panel,
+  /// the storyboard PDF and the floor plans PDF, each unavailable for its own, narrower reason:
+  /// a shot list can hold shots without holding a single panel,
   /// or without a single camera placed on any of its floor plans.
   List<OcptWorkspaceExportEntry<OcptShotListExportDocument>> _buildExportEntries(
     BuildContext context,
@@ -651,7 +651,7 @@ class _ShotListViewState extends State<_ShotListView> {
   /// floor plans, or the empty state while no sequence is selected.
   ///
   /// A compact width shows the table regardless of `state.centreView`: the board and the floor
-  /// plans are large-screen views in v1 (`docs/plans/storyboard.md`, §4.3), so the switch itself
+  /// plans are large-screen views in v1, so the switch itself
   /// offers the table only and this stays in lock-step with it rather than reading a second
   /// predicate.
   Widget _buildSequenceBody(BuildContext context, OcptShotListState state, bool isCompact) {
@@ -829,7 +829,7 @@ class _ShotListViewState extends State<_ShotListView> {
   /// `＋ Set` is wired only when the selected sequence is a real screenplay scene (mirroring
   /// `_buildSequencePanel`'s own `onShotCreated` gating), and every write is withheld under a
   /// version preview. Reordering is withheld unconditionally: a tab is now a `scene_sets` link,
-  /// which carries no order of its own (`docs/plans/storyboard.md`, §10).
+  /// which carries no order of its own.
   Widget _buildSetTabs(BuildContext context, OcptShotListState state, OcptShotSequence sequence) {
     final bloc = context.read<OcptShotListBloc>();
     final tr = Tr.of(context);
@@ -879,7 +879,7 @@ class _ShotListViewState extends State<_ShotListView> {
   }
 
   /// How many of the selected sequence's own shots carry at least one live symbol on set [setId] —
-  /// the set tabs' own placed-shot count badge (R3, `docs/plans/storyboard.md`, §9.4).
+  /// the set tabs' own placed-shot count badge.
   int _placedShotCountOf(OcptShotListState state, String setId) {
     for (final floorPlanSet in state.setsOfSelectedSequence) {
       if (floorPlanSet.id == setId) {
@@ -889,8 +889,8 @@ class _ShotListViewState extends State<_ShotListView> {
     return 0;
   }
 
-  /// The empty-state gallery filling the centre while [sequence] has no linked Resources set yet
-  /// (`docs/plans/storyboard.md`, §10.4): one card per live set of the project, the heading's own
+  /// The empty-state gallery filling the centre while [sequence] has no linked Resources set yet:
+  /// one card per live set of the project, the heading's own
   /// suggestion first and starred, a click linking it and selecting its tab, a `Create a set…`
   /// action opening the very same menu the `＋ Set` button does. Every write is withheld under a
   /// read-only preview.
@@ -1026,8 +1026,8 @@ class _ShotListViewState extends State<_ShotListView> {
     return "";
   }
 
-  /// Shows the unlink confirmation dialog — naming what leaves the view, `docs/plans/
-  /// storyboard.md` §10.4's own unlink counts, when the sequence has anything placed on the set —
+  /// Shows the unlink confirmation dialog — naming what leaves the view, its own unlink counts,
+  /// when the sequence has anything placed on the set —
   /// then dispatches the set's unlinking if the user confirmed it — a tab's own close action,
   /// which only asks. Not destructive (`isDestructive: false`): the plan itself is kept, only the
   /// sequence link goes.
@@ -1058,7 +1058,7 @@ class _ShotListViewState extends State<_ShotListView> {
 
   /// The unlink dialog's own message: `The set's plan is kept.` alone, or followed by what leaves
   /// the view — the cameras, characters and props this sequence placed on [setId], joined
-  /// naturally, when there is at least one (`docs/plans/storyboard.md`, §10.4).
+  /// naturally, when there is at least one.
   String _unlinkSetConfirmMessageOf(Tr tr, OcptShotListState state, String setId) {
     final sequence = state.selectedSequence;
     final floorPlanSet = state.setsOfSelectedSequence
@@ -1108,7 +1108,7 @@ class _ShotListViewState extends State<_ShotListView> {
   /// write withheld (a null callback) under a version preview, reads (zoom, pan, layer visibility,
   /// symbol selection, focusing a shot) staying available throughout.
   ///
-  /// **Always a current shot** (R2): the bloc guarantees `state.selectedShotId` is never null while
+  /// **Always a current shot**: the bloc guarantees `state.selectedShotId` is never null while
   /// the selected sequence holds at least one shot, so `focusShotId` handed to the view below —
   /// simply `state.selectedShotId`, the very field the table's rows and the board already share —
   /// is only ever null for a sequence with none to focus on yet.
@@ -1356,7 +1356,7 @@ class _ShotListViewState extends State<_ShotListView> {
 
   /// The scope bubble's own broader-scope label — `Every sequence (n)` at
   /// [OcptFloorPlanOverrideLevel.sequence], `The whole sequence` at
-  /// [OcptFloorPlanOverrideLevel.shot] (R5c) — or null while nothing is pending.
+  /// [OcptFloorPlanOverrideLevel.shot] — or null while nothing is pending.
   String? _scopeBubbleEveryLabelOf(OcptShotListState state, Tr tr) {
     final decision = state.pendingFloorPlanScopeDecision;
     if (decision == null) {
@@ -1369,7 +1369,7 @@ class _ShotListViewState extends State<_ShotListView> {
 
   /// The scope bubble's own narrower-scope label — `Only sequence n` at
   /// [OcptFloorPlanOverrideLevel.sequence], `Only shot n` at [OcptFloorPlanOverrideLevel.shot]
-  /// (R5c) — or null while nothing is pending.
+  /// — or null while nothing is pending.
   String? _scopeBubbleOnlyLabelOf(OcptShotListState state, Tr tr, OcptShotSequence? sequence) {
     final decision = state.pendingFloorPlanScopeDecision;
     if (decision == null) {
@@ -1442,7 +1442,7 @@ class _ShotListViewState extends State<_ShotListView> {
   }
 
   /// Opens `OcptFloorPlanCharacterNamePickerDialog` for the character symbol [symbolId] the bloc
-  /// just placed (R2, "the name popover on placement"), pre-filled with its own already-assigned
+  /// just placed, pre-filled with its own already-assigned
   /// default label ([_symbolLabelValueOf]) and offering the selected shot's own characters as
   /// one-click picks. Writes the name picked through the very same pending-edit path the inline
   /// label editor rides — but flushed immediately (`OcptShotListFieldEditFlushRequestedEvent`)
@@ -1479,9 +1479,8 @@ class _ShotListViewState extends State<_ShotListView> {
 
   /// A move's own canvas callback: dispatches the plain move straight away, unless [symbolId]
   /// names a **set-scope** symbol whose own set is linked to two or more sequences, or a
-  /// **scene-scope** one whose own sequence holds two or more shots (R5c), in which case it
-  /// dispatches the scope decision instead — the scope bubble asks before anything is written
-  /// (`docs/plans/storyboard.md`, §10.4/§10.5).
+  /// **scene-scope** one whose own sequence holds two or more shots, in which case it
+  /// dispatches the scope decision instead — the scope bubble asks before anything is written.
   void _handleSymbolMoved(
     BuildContext context,
     OcptShotListState state,
@@ -1566,8 +1565,7 @@ class _ShotListViewState extends State<_ShotListView> {
   }
 
   /// Whether [symbolId] names a symbol whose move/rotate/resize should ask the scope bubble
-  /// instead of writing straight away, and at which level (`docs/plans/storyboard.md`, §10.4,
-  /// extended by §10.5):
+  /// instead of writing straight away, and at which level:
   /// - A **live, set-scope** symbol (never an override) whose own set is linked to two or more
   ///   sequences — [OcptFloorPlanOverrideLevel.sequence].
   /// - A **live, scene-scope** symbol (a prop, the sequence's own furniture, or itself already a
@@ -1608,7 +1606,7 @@ class _ShotListViewState extends State<_ShotListView> {
   /// confirmed it — the canvas's own delete handle and the Placements group's own remove action,
   /// which only ask.
   ///
-  /// **Two extended, three-button dialogs** (`docs/plans/storyboard.md`, §10.4/§10.5), checked in
+  /// **Two extended, three-button dialogs**, checked in
   /// order — a symbol never qualifies for both, but a plain scene-scope override of a set element
   /// could in principle sit at the boundary, and the broader "shared with other sequences" scope
   /// takes priority when it does:
@@ -1767,7 +1765,7 @@ class _ShotListViewState extends State<_ShotListView> {
   /// Whether [symbolId] names a **scene-scope** symbol (a prop, the sequence's own furniture, or
   /// itself a sequence-scope override — or a shot-scope override of one) of a sequence holding two
   /// or more shots — the condition under which deleting it asks the shot-level extended
-  /// three-button dialog (R5c, `docs/plans/storyboard.md`, §10.5) — or null while it doesn't
+  /// three-button dialog — or null while it doesn't
   /// (a set-scope symbol, already handled by [_multiSequenceDeleteTargetOf], or a single-shot
   /// sequence's own scene-scope symbol), in which case the plain two-button dialog applies.
   ({int otherShotCount, String focusedShotCode, String targetShotId})? _multiShotDeleteTargetOf(
@@ -1873,7 +1871,7 @@ class _ShotListViewState extends State<_ShotListView> {
     ];
 
     // A selected override (visible or a hidden one's own ghost) may be a sequence- or a shot-scope
-    // shape (R5c) — checked against the whole sheet, not just this shot's own placements (R5b).
+    // shape — checked against the whole sheet, not just this shot's own placements.
     final selectedSymbolId = state.selectedFloorPlanSymbolId;
     final selectedShape = selectedSymbolId == null
         ? null

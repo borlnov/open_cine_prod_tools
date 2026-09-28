@@ -7,8 +7,8 @@ import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_floor_plan_set.dart';
 
-/// The floor plans view's own set tabs, sitting in `OcptShotListCentreHeader`'s trailing slot
-/// (`docs/plans/storyboard.md`, §4.1, §4.3, §10.4): a tab per set of the selected sequence, each
+/// The floor plans view's own set tabs, sitting in `OcptShotListCentreHeader`'s trailing slot: a
+/// tab per set of the selected sequence, each
 /// carrying its own **placed-shot count** ([placedShotCountOf] — how many of the sequence's shots
 /// carry any live symbol on it), a filled `＋ Set` button appended after them (never `+ Set` as its
 /// own visible text — the `＋` is the button's icon, the label is the word alone) opening the
@@ -140,7 +140,7 @@ class OcptFloorPlanSetTabs extends StatelessWidget {
     );
   }
 
-  /// One case's own tab: its name (editable in place while selected), and a small close action.
+  /// One set's own tab: its name (editable in place while selected), and a small close action.
   ///
   /// Reordering is a plain `Draggable`/`DragTarget` pair, not `ReorderableListView`: this row sits
   /// inside the centre header's own `Wrap` (unbounded cross-axis space), which

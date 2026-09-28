@@ -12,8 +12,7 @@ import 'package:open_cine_prod_tools/utils/ocpt_floor_plan_geometry.dart';
 const double _fovStepDeg = 5;
 
 /// One other set of the sequence, for [OcptFloorPlanPlacementsGroup]'s own trailing list — whether
-/// the selected shot has a camera placed there too (`docs/plans/storyboard.md`, §4.3: `Hallway ·
-/// no camera for this shot`).
+/// the selected shot has a camera placed there too (`Hallway · no camera for this shot`).
 class OcptFloorPlanPlacementsOtherSet {
   /// The other set's own name.
   final String setName;
@@ -26,7 +25,7 @@ class OcptFloorPlanPlacementsOtherSet {
 }
 
 /// The shot inspector's floor-plans-only group (`OcptShotInspectorPanel.leadingGroup`): `On this
-/// plan · Kitchen`, regrouped (R3, `docs/plans/storyboard.md`, §9.4) into three headed sections —
+/// plan · Kitchen`, grouped into three headed sections —
 /// **Selection** (the selected symbol or arrow's own read-out, [selectedSymbolId]/
 /// [selectedArrowId]), **On this shot** (the selected shot's own placements on the selected set:
 /// its cameras with their derived labels, the characters/lights/props placed for it, its arrows)
@@ -42,7 +41,7 @@ class OcptFloorPlanPlacementsOtherSet {
 /// no confirmation: a lens angle is a value to dial in, not an irreversible act, and the same write
 /// the canvas's own edge handles make (`OcptFloorPlanService.updateSymbol(fovDeg:)`).
 class OcptFloorPlanPlacementsGroup extends StatelessWidget {
-  /// The selected case's own name.
+  /// The selected set's own name.
   final String setName;
 
   /// The id of the currently selected symbol on the canvas, or null while none is — the
@@ -53,20 +52,20 @@ class OcptFloorPlanPlacementsGroup extends StatelessWidget {
   /// [selectedSymbolId]; mutually exclusive with it.
   final String? selectedArrowId;
 
-  /// The shot's own cameras on the selected case, each carrying its derived
+  /// The shot's own cameras on the selected set, each carrying its derived
   /// [OcptFloorPlanSymbolShape.cameraLabel].
   final List<OcptFloorPlanSymbolShape> cameras;
 
-  /// The shot's own characters placed on the selected case.
+  /// The shot's own characters placed on the selected set.
   final List<OcptFloorPlanSymbolShape> characters;
 
-  /// The shot's own lights placed on the selected case.
+  /// The shot's own lights placed on the selected set.
   final List<OcptFloorPlanSymbolShape> lights;
 
-  /// The shot's own hand props placed on the selected case.
+  /// The shot's own hand props placed on the selected set.
   final List<OcptFloorPlanSymbolShape> handProps;
 
-  /// The shot's own arrows on the selected case.
+  /// The shot's own arrows on the selected set.
   final List<OcptFloorPlanArrowShape> arrows;
 
   /// Every other set of the sequence, in tab order.
@@ -89,9 +88,9 @@ class OcptFloorPlanPlacementsGroup extends StatelessWidget {
   final void Function(String symbolId, double fovDeg)? onCameraFovChanged;
 
   /// Which level [selectedSymbolId] is an override at — a scene-scope override of a set-scope
-  /// original, or a shot-scope override of a scene-scope symbol (R5c) — visible or hidden, rather
-  /// than one of [cameras]/[characters]/[lights]/[handProps]; null while it names none of those
-  /// (`docs/plans/storyboard.md`, §10.4/§10.5). Non-null shows the Selection section's own
+  /// original, or a shot-scope override of a scene-scope symbol — visible or hidden, rather
+  /// than one of [cameras]/[characters]/[lights]/[handProps]; null while it names none of those.
+  /// Non-null shows the Selection section's own
   /// `Changed for this sequence`/`Changed for this shot` label and its own `Restore as in the
   /// set`/`Restore as in the sequence` action instead of the shot's own placement read-out.
   final OcptFloorPlanOverrideLevel? selectedOverrideLevel;

@@ -1049,7 +1049,7 @@ class OcptResourcesSceneRemovedFromSetEvent extends OcptResourcesEvent {
 }
 
 /// Requests revealing set [setId]'s own floor plan in the shot list mode's floor plans view, on
-/// its first linked sequence in screenplay order (`docs/plans/storyboard.md`, §10.4) — the sets
+/// its first linked sequence in screenplay order — the sets
 /// card's own `Open in shot list` action.
 ///
 /// Resolving the target sequence and episode needs a database read

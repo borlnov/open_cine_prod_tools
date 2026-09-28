@@ -50,8 +50,7 @@ class OcptShotListService {
   final OcptRoleIndexService roleIndexService;
 
   /// The service owning a shot's storyboard panels, held so [deleteShot] and
-  /// [tombstoneShotsOfScreenplay] can carry them off with the shot (`docs/plans/storyboard.md`,
-  /// §2, §3).
+  /// [tombstoneShotsOfScreenplay] can carry them off with the shot.
   final OcptStoryboardService storyboardService;
 
   /// The service owning a shot's floor plan symbols and arrows, held for the same cascade
@@ -380,7 +379,7 @@ class OcptShotListService {
   }
 
   /// Tombstones the shot [shotId] in [database], its attached characters and coverage ranges along
-  /// with it, and, since M2 (`docs/plans/storyboard.md`, §2, §3), its storyboard panels (and their
+  /// with it, and its storyboard panels (and their
   /// annotations and image `assets` rows, through [storyboardService]) and its floor plan
   /// shot-layer symbols and arrows (through [floorPlanService]) — a deleted shot drops its
   /// placements wherever it made any.

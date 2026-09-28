@@ -1203,7 +1203,7 @@ void main() {
     });
   });
 
-  group("placeSymbol — shot-scope override (R5c)", () {
+  group("placeSymbol — shot-scope override", () {
     test(
       "a shot-scope set symbol may override a live scene-scope symbol of the same set/layer, "
       "its shot belonging to that symbol's own sequence",

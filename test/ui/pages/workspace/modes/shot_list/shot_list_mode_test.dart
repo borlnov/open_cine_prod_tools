@@ -830,10 +830,9 @@ void main() {
       return bloc;
     }
 
-    /// [mountOnFloorPlans], with a case created (and selected) on the sole sequence — the `＋ Set`
+    /// [mountOnFloorPlans], with a set created (and selected) on the sole sequence — the `＋ Set`
     /// button's own menu opened, its own `Create a set` submenu opened, then its own
-    /// `New location…` entry picked (a fresh test project holds no location yet to offer instead,
-    /// R5a's own redesign of the menu, `docs/plans/storyboard.md` §10.4).
+    /// `New location…` entry picked (a fresh test project holds no location yet to offer instead).
     Future<OcptShotListBloc> mountWithACase(WidgetTester tester) async {
       final bloc = await mountOnFloorPlans(tester);
       final tr = Tr.of(tester.element(find.byType(OcptShotListMode)));
@@ -900,7 +899,7 @@ void main() {
       expect(find.byType(OcptFloorPlanCanvas), findsOneWidget);
     });
 
-    testWidgets("＋ Set's own Create set entry names a case from the scene heading's place and "
+    testWidgets("＋ Set's own Create set entry names a set from the scene heading's place and "
         "selects it", (
       tester,
     ) async {
@@ -935,7 +934,7 @@ void main() {
 
       final symbols = bloc.state.selectedSet!.symbols;
       expect(symbols, hasLength(1));
-      // Set-scoped: the R4 scope invariant this whole milestone stands on.
+      // Set-scoped: the scope invariant this whole feature stands on.
       expect(symbols.single.shotId, isNull);
       expect(symbols.single.sceneId, isNull);
       expect(bloc.state.selectedFloorPlanSymbolId, symbols.single.id);
@@ -980,7 +979,7 @@ void main() {
         await tester.pumpAndSettle();
         await tester.tap(find.byType(OcptFloorPlanCanvas));
         await tester.pumpAndSettle();
-        // The character tool opens a name popover at once (R2); dismiss it without typing a name.
+        // The character tool opens a name popover at once; dismiss it without typing a name.
         await tester.tap(find.byTooltip(tr.shotListFloorPlanToolCharacterAction));
         await tester.pumpAndSettle();
         await tester.tapAt(
@@ -1071,7 +1070,7 @@ void main() {
 
     testWidgets(
       "deleting a set-scope element used by two or more sequences asks the extended dialog; its "
-      "own alternative action masks it for the focused sequence alone (R5b)",
+      "own alternative action masks it for the focused sequence alone",
       (tester) async {
         // A second scene, so the set can be linked to two sequences.
         final project = projectsManager.currentProject!;
@@ -1132,7 +1131,7 @@ void main() {
     testWidgets(
       "deleting a scene-scope element of a sequence with two or more shots asks the shot-level "
       "extended dialog; its own destructive action tombstones it and every shot override, "
-      "never reaching a set-scope original (R5c)",
+      "never reaching a set-scope original",
       (tester) async {
         final bloc = await mountWithACase(tester);
         final tr = Tr.of(tester.element(find.byType(OcptShotListMode)));
@@ -1188,7 +1187,7 @@ void main() {
 
     testWidgets(
       "deleting a selected shot-scope override resolves to its scene-scope original first, "
-      "cascading every one of its own shot overrides (R5c)",
+      "cascading every one of its own shot overrides",
       (tester) async {
         final bloc = await mountWithACase(tester);
         final tr = Tr.of(tester.element(find.byType(OcptShotListMode)));
@@ -1292,7 +1291,7 @@ void main() {
         expect(setElementButton.onPressed, isNull);
 
         // The shot-scoped camera tool is withheld too, under the preview (no tool is ever dimmed
-        // any more, R2 — only `isReadOnly` withholds a tool bar button now).
+        // — only `isReadOnly` withholds a tool bar button now).
         final cameraButton = tester.widget<IconButton>(
           find.descendant(
             of: find.byTooltip(tr.shotListFloorPlanToolCameraAction),
@@ -1320,7 +1319,7 @@ void main() {
     );
 
     testWidgets(
-      "creating a second shot's own chip selects it, always one active (R2)",
+      "creating a second shot's own chip selects it, always one active",
       (tester) async {
         final bloc = await mountWithACase(tester);
 
@@ -1396,8 +1395,7 @@ void main() {
     );
 
     testWidgets(
-      "placing a character symbol opens the name popover at once, picking a name writes it "
-      "(R2)",
+      "placing a character symbol opens the name popover at once, picking a name writes it",
       (tester) async {
         final bloc = await mountWithACase(tester);
         final tr = Tr.of(tester.element(find.byType(OcptShotListMode)));

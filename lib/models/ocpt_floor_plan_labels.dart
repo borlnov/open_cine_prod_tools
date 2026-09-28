@@ -8,7 +8,7 @@ import 'package:open_cine_prod_tools/types/ocpt_shot_status.dart';
 /// Every localized string the exported floor plans document carries, resolved by the caller.
 ///
 /// `OcptFloorPlanPdfService` runs in the manager layer, where there is no `BuildContext` and
-/// therefore no `Tr` — the sibling of `OcptStoryboardLabels` for the other document M7 adds. Every
+/// therefore no `Tr` — the sibling of `OcptStoryboardLabels` for the floor plans document. Every
 /// field reuses an existing on-screen string wherever one names the same thing
 /// (`ocptFloorPlanLabelsOf`'s own doc comment says which).
 class OcptFloorPlanLabels extends Equatable {
@@ -43,7 +43,7 @@ class OcptFloorPlanLabels extends Equatable {
   /// header — the sibling of `OcptScenarioCoverageLabels.sequenceTitles`.
   final Map<String, String> sequenceTitles;
 
-  /// The note printed on a case's own bare-décor page: no shot of the sequence has a camera
+  /// The note printed on a set's own bare-décor page: no shot of the sequence has a camera
   /// placed on it. Reused from the floor plans view's own Placements group, so the document says
   /// the very same thing the inspector already does.
   final String noCameraNote;

@@ -51,9 +51,9 @@ class OcptLocationSheetSetsCard extends StatelessWidget {
   final Map<String, String> suggestedSetIdBySceneId;
 
   /// The ids of [sets] that hold a live floor plan row — a set's own `Floor plan · N sequences` /
-  /// `No floor plan yet` line reads this alongside `set.sceneIds.length` for the count
-  /// (`docs/plans/storyboard.md`, §10.4): the plan "exists" the moment a `floor_plan_sets` row
-  /// does, whether or not the set is linked to a live sequence any more.
+  /// `No floor plan yet` line reads this alongside `set.sceneIds.length` for the count: the plan
+  /// "exists" the moment a `floor_plan_sets` row does, whether or not the set is linked to a live
+  /// sequence any more.
   final Set<String> setIdsWithPlan;
 
   /// A set's current value for `field`: a pending edit still in the bloc's debounce, or the set's
@@ -190,8 +190,8 @@ class OcptLocationSheetSetsCard extends StatelessWidget {
   }
 
   /// The set's own floor plan indicator (`Floor plan · N sequences` or `No floor plan yet`) and,
-  /// only while it is linked to at least one live sequence, the `Open in shot list` action
-  /// (`docs/plans/storyboard.md`, §10.4) — editing the plan stays in the shot list mode, so this
+  /// only while it is linked to at least one live sequence, the `Open in shot list` action —
+  /// editing the plan stays in the shot list mode, so this
   /// row only ever reads, never withheld under a read-only preview.
   Widget _buildFloorPlanRow(BuildContext context, Tr tr, OcptSet set) {
     final theme = Theme.of(context);

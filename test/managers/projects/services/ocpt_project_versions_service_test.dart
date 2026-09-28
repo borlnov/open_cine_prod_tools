@@ -70,7 +70,7 @@ void main() {
   );
   // Used directly by the `hydratePreview` storyboard/floor plan test below, so the panel, its
   // image asset, its annotation, the case, its symbols and its arrow are all written the same
-  // way the board and the floor plans view themselves would (through the M2 services), rather
+  // way the board and the floor plans view themselves would, rather
   // than by hand-inserted rows.
   final storyboardService = OcptStoryboardService(assetsService: assetsService, deviceId: testDeviceId);
   final roleIndexService = OcptRoleIndexService(
@@ -627,10 +627,10 @@ void main() {
       "linked set's plan, a shot-scoped symbol, a scene-scope override and an arrow — all come "
       "back",
       () async {
-        // Regression test for the M3 preview bug: `hydratePreview` held its own hand-written
-        // insert list, separate from `_applyPayload`'s, and was never updated when M1 added
-        // these five tables — so a version captured with a storyboard panel previewed as an
-        // empty board. Every row here is written through the real M2 services, exactly as the
+        // Regression test for a past preview bug: `hydratePreview` held its own hand-written
+        // insert list, separate from `_applyPayload`'s, and was never updated when
+        // these five tables were added — so a version captured with a storyboard panel previewed
+        // as an empty board. Every row here is written through the real services, exactly as the
         // board and the floor plans view themselves would.
         await insertScene(id: "scene-1");
         await insertShot(id: "shot-1", sceneId: "scene-1");
@@ -696,7 +696,7 @@ void main() {
           label: "crosses to the camera",
         ))!;
         // A set-scope décor symbol, and a scene-scope override replacing it in scene-1 — the
-        // override rule (`docs/plans/storyboard.md`, §10) must survive a preview too.
+        // override rule must survive a preview too.
         final originalWallId = (await floorPlanService.placeSymbol(
           database: database,
           setId: setId,

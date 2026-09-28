@@ -2266,8 +2266,8 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
 
   /// Resolves set `event.setId`'s own first linked sequence, in screenplay order
   /// (`OcptLocationsService.firstLinkedSceneOf`), and sets it as the pending cross-mode reveal the
-  /// mode's own listener reads next — the sets card's own `Open in shot list` action
-  /// (`docs/plans/storyboard.md`, §10.4). A no-op while the set carries no live link at all
+  /// mode's own listener reads next — the sets card's own `Open in shot list` action. A no-op
+  /// while the set carries no live link at all
   /// (defensive only: the card never offers the action then).
   Future<void> _onOpenSetInShotListRequested(
     OcptResourcesOpenSetInShotListRequestedEvent event,

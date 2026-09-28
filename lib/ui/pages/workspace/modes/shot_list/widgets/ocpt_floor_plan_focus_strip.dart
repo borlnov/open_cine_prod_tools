@@ -7,10 +7,9 @@ import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
 
-/// The floor plans view's own focus strip, along the bottom of the canvas
-/// (`docs/plans/storyboard.md`, §4.3): one chip per shot of the sequence — always at least one
-/// active once the sequence holds a shot at all (R2, "always a current shot"; a sequence holding
-/// none shows an empty strip, since there is no current shot to name a chip for).
+/// The floor plans view's own focus strip, along the bottom of the canvas: one chip per shot of
+/// the sequence — always at least one active once the sequence holds a shot at all; a sequence
+/// holding none shows an empty strip, since there is no current shot to name a chip for.
 ///
 /// **The chip selection is the mode's shot selection** — `OcptShotListState.selectedShotId`,
 /// [selectedShotId] here — so a chip dispatches the very same event the table's own rows do

@@ -876,8 +876,8 @@ class OcptElementsService {
       .get();
 
   /// Scene [sceneId]'s own breakdown props (category [OcptElementCategory.prop] alone), each
-  /// carrying its own effective quantity — the floor plans palette's own `Sequence` group chips
-  /// (`docs/plans/storyboard.md`, §10.4). In the catalogue's own `sortKey` order.
+  /// carrying its own effective quantity — the floor plans palette's own `Sequence` group chips. In
+  /// the catalogue's own `sortKey` order.
   Future<List<OcptScenePropSummary>> propsOfScene({
     required OcptProjectDatabase database,
     required String sceneId,

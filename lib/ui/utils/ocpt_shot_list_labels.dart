@@ -155,13 +155,13 @@ OcptStoryboardLabels ocptStoryboardLabelsOf(Tr tr, List<OcptShotSequence> sequen
 /// Builds every localized string the exported floor plans document carries, for the [sequences] it
 /// is being built from.
 ///
-/// The sibling of [ocptStoryboardLabelsOf] for the other document M7 adds. `noCameraNote` reuses
+/// The sibling of [ocptStoryboardLabelsOf] for the floor plans document. `noCameraNote` reuses
 /// the floor plans view's own Placements group hint
 /// (`shotListFloorPlanPlacementsNoCameraHint`), so the printed bare-décor page says the very thing
-/// the inspector already says about a case with no camera on it. `scaleBarUnitLabel` is the fixed
+/// the inspector already says about a set with no camera on it. `scaleBarUnitLabel` is the fixed
 /// `m` half of `shotListFloorPlanScaleBarLengthLabel`'s own `{length} m` pattern — that key itself
 /// takes a pre-formatted string built by `ocptFloorPlanScaleBarLengthLabelOf`, which is not known
-/// until the page is laid out (the printed scale depends on the case's own bounding box), so this
+/// until the page is laid out (the printed scale depends on the set's own bounding box), so this
 /// builder resolves the fixed unit word once and `OcptFloorPlanLabels.scaleBarLabelOf` rebuilds the
 /// same pattern purely at render time — exactly how `OcptShotListXlsxLabels.dayTagPrefix` and
 /// `ocptScheduleDayTagLabel` already split a formatted string's fixed and variable halves apart.

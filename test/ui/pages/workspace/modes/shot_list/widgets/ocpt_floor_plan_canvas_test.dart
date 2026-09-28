@@ -393,8 +393,8 @@ void main() {
   );
 
   testWidgets(
-    "dragging the aim handle rotates from the pointer's own bearing in canvas space (the R2 "
-    "rotation fix), not the handle's own local position",
+    "dragging the aim handle rotates from the pointer's own bearing in canvas space, "
+    "not the handle's own local position",
     (tester) async {
       final controller = OcptFloorPlanViewportController(zoom: 1, pan: const Offset(20, -10));
       final symbol = _furnitureSymbol(xM: 0, yM: 0);
@@ -822,7 +822,7 @@ void main() {
   );
 
   testWidgets(
-    "hiding a camera drops it from the sheet with a shot focused (R5c fix)",
+    "hiding a camera drops it from the sheet with a shot focused",
     (tester) async {
       final controller = OcptFloorPlanViewportController(zoom: 1);
       final symbol = _cameraSymbol(xM: 0, yM: 0);
@@ -889,7 +889,7 @@ void main() {
       await tester.pump();
       expect(selectedTo, ["cam-1"]);
 
-      // Hidden (the toggle a shot focus used to ignore, R5c): the very same tap now hits empty
+      // Hidden (the toggle a shot focus used to ignore): the very same tap now hits empty
       // canvas — no hit overlay was built for it at all — and clears the selection instead.
       selectedTo.clear();
       await _pumpCanvas(tester, buildCanvas(hiddenCameraSymbolIds: const {"cam-1"}));
@@ -977,7 +977,7 @@ void main() {
     expect(resizedTo, isEmpty);
   });
 
-  group("the scope bubble (R5b)", () {
+  group("the scope bubble", () {
     testWidgets("shows nothing while no scope decision is pending", (tester) async {
       final controller = OcptFloorPlanViewportController(zoom: 1);
       await _pumpCanvas(

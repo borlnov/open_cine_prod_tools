@@ -6,8 +6,8 @@ import 'package:open_cine_prod_tools/models/ocpt_floor_plan_set.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_layer.dart';
 
 /// How many cameras, characters and props leave sequence [sceneId]'s own view of [floorPlanSet]
-/// once it is unlinked from it — what the unlink confirmation dialog counts
-/// (`docs/plans/storyboard.md`, §10.4): "The set's plan is kept", but every one of these placements
+/// once it is unlinked from it — what the unlink confirmation dialog counts: "The set's plan is
+/// kept", but every one of these placements
 /// stops showing under this sequence until the set is linked again.
 ///
 /// The count is **live symbols on [floorPlanSet] whose `shotId` belongs to one of [shotIdsOfScene]**

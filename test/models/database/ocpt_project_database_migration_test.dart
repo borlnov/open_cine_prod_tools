@@ -19,7 +19,7 @@ import 'package:sqlite3/sqlite3.dart' show sqlite3;
 // both local, never-synchronised tables the changeset engine and its relay transport add, plus
 // `budget_lines.in_kind_resource_id`; the 0.2.1 release froze v3 — `shot_characters` reshaped from
 // `{shotId, characterName}` to `{shotId, roleId}`; a development cycle is open at v4, adding the
-// five storyboard and floor plan tables (`docs/plans/storyboard.md`).
+// five storyboard and floor plan tables.
 //
 // ADR 0029 ties a verbatim DDL fixture to each frozen release, one for the schema the *previous*
 // stable shipped — the shape a real file from that release was left with, migrated forward and

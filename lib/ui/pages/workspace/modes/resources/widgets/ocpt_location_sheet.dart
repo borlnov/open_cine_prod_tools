@@ -80,7 +80,7 @@ class OcptLocationSheet extends StatelessWidget {
   final Map<String, String> suggestedSetIdBySceneId;
 
   /// The ids of [location]'s own sets that hold a live floor plan row — the sets card's own
-  /// `Floor plan · N sequences` / `No floor plan yet` line (`docs/plans/storyboard.md`, §10.4).
+  /// `Floor plan · N sequences` / `No floor plan yet` line.
   final Set<String> setIdsWithPlan;
 
   /// Whether what the mode shows is a project version being previewed read-only, which no callback
@@ -132,8 +132,8 @@ class OcptLocationSheet extends StatelessWidget {
   final void Function(String sceneId, String setId) onSceneRemoved;
 
   /// Called with a set's id when its own `Open in shot list` action is clicked — reveals the
-  /// shot list mode's floor plans view on that set's first linked sequence, in screenplay order
-  /// (`docs/plans/storyboard.md`, §10.4). Never withheld under a read-only preview: it only reads.
+  /// shot list mode's floor plans view on that set's first linked sequence, in screenplay order.
+  /// Never withheld under a read-only preview: it only reads.
   final ValueChanged<String> onOpenSetInShotListRequested;
 
   /// Called when a scouting photo is to be referenced.

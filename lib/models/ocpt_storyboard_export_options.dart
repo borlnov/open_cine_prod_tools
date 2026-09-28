@@ -27,7 +27,7 @@ class OcptStoryboardExportOptions extends Equatable {
 
   /// Whether the floor plan sheets of each sequence — the very ones `OcptFloorPlanPdfService`
   /// prints on its own — are appended right after that sequence's own shot rows, so the two
-  /// documents can also travel as one (`docs/plans/storyboard.md`, §5, §8 decision 8).
+  /// documents can also travel as one.
   final bool includeFloorPlansAfterEachSequence;
 
   /// Class constructor

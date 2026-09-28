@@ -61,12 +61,12 @@ const int _arrowCurveHitTestSamples = 12;
 const double _rotateSnapStepDeg = 15;
 
 /// The floor plans canvas: a `CustomPaint` of the `OcptFloorPlanSheet` the current focus builds
-/// for [floorPlanSet], under a `GestureDetector` (`docs/plans/storyboard.md`, §4.3).
+/// for [floorPlanSet], under a `GestureDetector`.
 ///
 /// Geometry is drawn from **metres → logical pixels at [OcptFloorPlanCanvas.viewportController]'s
 /// current zoom**, through `ocpt_floor_plan_geometry.dart` — never a stored pixel value.
 ///
-/// **The focus** is [focusShotId] — **always a real shot in practice** (R2: the bloc guarantees a
+/// **The focus** is [focusShotId] — **always a real shot in practice** (the bloc guarantees a
 /// current shot the moment the sequence holds one), never null except defensively (no shot placed
 /// yet): it draws every sequence layer plus [focusShotId]'s own shot layers, plus
 /// [previousShotId]'s/[nextShotId]'s own shot layers as onion-skin ghosts, gated by
@@ -187,13 +187,13 @@ class OcptFloorPlanCanvas extends StatefulWidget {
   /// never taps its source first.
   final OcptFloorPlanSetElementShape activeSetElementShape;
 
-  /// The scope a `setElement` tool click-to-arm placement lands at (R5b) — the `Set` group's own
+  /// The scope a `setElement` tool click-to-arm placement lands at — the `Set` group's own
   /// four entries arm [OcptFloorPlanScope.set], the `Sequence` group's own furniture/freeform pair
   /// arm [OcptFloorPlanScope.scene]. See [activeSetElementShape]'s own doc comment for why a drag
   /// reads its own payload instead (`OcptFloorPlanPaletteDragPayload.sceneScope`).
   final OcptFloorPlanScope activeSetElementScope;
 
-  /// A `prop` tool click-to-arm placement's own label (R5b) — which breakdown-prop chip, or the
+  /// A `prop` tool click-to-arm placement's own label — which breakdown-prop chip, or the
   /// `Other…` chip's own typed-in text, was armed last. See [activeSetElementShape]'s own doc
   /// comment for why a drag reads its own payload instead (`OcptFloorPlanPaletteDragPayload.label`).
   final String activeLabel;
@@ -217,7 +217,7 @@ class OcptFloorPlanCanvas extends StatefulWidget {
   /// Called with the layer, the shot id (null on a sequence/set-scope symbol, [focusShotId] on a
   /// shot layer), the scene id (null on a set-scope or shot-scope symbol, [focusSceneId] on a
   /// scene-scope one — a `set`-layer placement at [OcptFloorPlanScope.scene], or any `props`
-  /// placement, R5b) and the clicked point (metres), or null while withheld. `setElementShape`
+  /// placement) and the clicked point (metres), or null while withheld. `setElementShape`
   /// carries the décor primitive when the layer is [OcptFloorPlanLayer.set] — null otherwise.
   /// `label` carries a `prop` placement's own armed label — `""` otherwise.
   final void Function(
@@ -258,8 +258,7 @@ class OcptFloorPlanCanvas extends StatefulWidget {
   /// Called with the selected override's own id (a visible override's own shape, or a hidden
   /// override's own ghost — both name the override, never the original) when its own `Restore`
   /// handle is tapped, or null while withheld. Reversible (tombstones the override, the original
-  /// reappears) — never asks, unlike [onSymbolDeleteRequested] (R5b,
-  /// `docs/plans/storyboard.md`, §10.4).
+  /// reappears) — never asks, unlike [onSymbolDeleteRequested].
   final ValueChanged<String>? onSymbolRestoreRequested;
 
   /// Called with a (non-ghost) symbol's id when it is tapped while the `arrow` tool is on, or null
@@ -308,7 +307,7 @@ class OcptFloorPlanCanvas extends StatefulWidget {
   final ValueChanged<double>? onZoomSettled;
 
   /// A set-scope move, rotate or resize awaiting the scope bubble's own answer, or null while
-  /// nothing is pending (R5b, `docs/plans/storyboard.md`, §10.4) — the symbol it names draws (and
+  /// nothing is pending — the symbol it names draws (and
   /// hit-tests) at this geometry instead of its own stored one, exactly like a drag still in
   /// progress, and is locked against further editing until it resolves. Merged with the drag
   /// currently in progress (if any) the same way: at most one of the two is ever live for a given
@@ -317,7 +316,7 @@ class OcptFloorPlanCanvas extends StatefulWidget {
 
   /// The scope bubble's own broader-scope label — `Every sequence (n)` at
   /// [OcptFloorPlanOverrideLevel.sequence], `The whole sequence` at
-  /// [OcptFloorPlanOverrideLevel.shot] (R5c) — shown while [pendingScopeLiveOverride] is set; null
+  /// [OcptFloorPlanOverrideLevel.shot] — shown while [pendingScopeLiveOverride] is set; null
   /// only when withheld altogether (defensive: the mode never leaves one field null without the
   /// other two). The mode already resolves which level's wording this is — the bubble itself reads
   /// three plain strings, never a level of its own.
@@ -462,8 +461,8 @@ class _OcptFloorPlanCanvasState extends State<OcptFloorPlanCanvas> {
     final floorPlanSet = widget.floorPlanSet;
 
     // Defensive only: the mode never builds `OcptFloorPlanView`/this canvas at all while the
-    // selected sequence has no linked set — `OcptFloorPlanSetGallery` fills the centre instead
-    // (`docs/plans/storyboard.md`, §10.4). A blank canvas is a safer fallback here than a stale
+    // selected sequence has no linked set — `OcptFloorPlanSetGallery` fills the centre instead.
+    // A blank canvas is a safer fallback here than a stale
     // hint string this branch has no real caller left to word for.
     if (floorPlanSet == null) {
       return const SizedBox.expand();
@@ -569,8 +568,8 @@ class _OcptFloorPlanCanvasState extends State<OcptFloorPlanCanvas> {
   /// The sheet this canvas draws, under [OcptFloorPlanCanvas.focusShotId]'s own focus, filtered to
   /// [OcptFloorPlanCanvas.hiddenLayers] and [OcptFloorPlanCanvas.hiddenCameraSymbolIds] — applied
   /// to every camera shape alike, the focused shot's own or an onion-skin ghost's (the bug this
-  /// once had: the filter used to run only under the old `Sequence` focus, a focus R2 removed —
-  /// there is always a current shot now, so it silently stopped applying at all). The onion skin's
+  /// once had: the filter used to run only under the old `Sequence` focus — there is always a
+  /// current shot now, so it silently stopped applying at all). The onion skin's
   /// own ghost shots
   /// ([OcptFloorPlanCanvas.previousShotId]/[OcptFloorPlanCanvas.nextShotId]) are passed to
   /// `OcptFloorPlanSheet.of` only while their own tray toggle is on, so a hidden neighbour draws
@@ -604,9 +603,9 @@ class _OcptFloorPlanCanvasState extends State<OcptFloorPlanCanvas> {
   /// Whether [symbol] may be dragged, resized, rotated, given a field of view or deleted: never a
   /// ghost — the onion-skin kind ([OcptFloorPlanSymbolShape.isGhost]) or an override-marking one
   /// ([OcptFloorPlanSymbolShape.isOverriddenOriginalGhost]/[OcptFloorPlanSymbolShape
-  /// .isHiddenOverrideGhost], R5b) — since none of the three ever represents this sequence's own
-  /// live geometry to drag; **the set and scene scopes are always editable** (R2, "the set is
-  /// always editable" — a scene-scope symbol this sheet draws already belongs to the sequence
+  /// .isHiddenOverrideGhost]) — since none of the three ever represents this sequence's own
+  /// live geometry to drag; **the set and scene scopes are always editable** — a scene-scope
+  /// symbol this sheet draws already belongs to the sequence
   /// being shown); a shot-scope symbol is editable only while it belongs to
   /// [OcptFloorPlanCanvas.focusShotId], the one shot everything "live" lands on. A ghosted
   /// neighbour's own placements stay selectable (so their own Placements/metrics still read), just
@@ -618,7 +617,7 @@ class _OcptFloorPlanCanvasState extends State<OcptFloorPlanCanvas> {
       return false;
     }
     if (symbol.symbolId == widget.pendingScopeLiveOverride?.symbolId) {
-      return false; // Locked while the scope bubble is showing (R5b).
+      return false; // Locked while the scope bubble is showing.
     }
     return symbol.shotId == null || symbol.shotId == widget.focusShotId;
   }
@@ -693,8 +692,8 @@ class _OcptFloorPlanCanvasState extends State<OcptFloorPlanCanvas> {
     return null;
   }
 
-  /// A palette entry dropped onto this canvas (R3, drag-from-palette placement,
-  /// `docs/plans/storyboard.md`, §9.4): places a symbol of `details.data`'s own tool exactly at the
+  /// A palette entry dropped onto this canvas (drag-from-palette placement): places a symbol of
+  /// `details.data`'s own tool exactly at the
   /// drop point, the drag-and-drop sibling of [_handleBackgroundTap]'s own click-to-arm-then-click
   /// path. A no-op for [OcptFloorPlanTool.select], [OcptFloorPlanTool.arrow] and
   /// [OcptFloorPlanTool.label] — the palette never offers those as drag sources in the first
@@ -749,7 +748,7 @@ class _OcptFloorPlanCanvasState extends State<OcptFloorPlanCanvas> {
   }
 
   /// The scene id a symbol placed on [layer] carries — [OcptFloorPlanCanvas.focusSceneId] for a
-  /// `props` placement (always scene-scoped, R5b) or a `set`-layer placement whose own [sceneScope]
+  /// `props` placement (always scene-scoped) or a `set`-layer placement whose own [sceneScope]
   /// is [OcptFloorPlanScope.scene] (the palette's `Sequence` group), null otherwise (the `Set`
   /// group, or any shot-scoped layer).
   String? _sceneIdFor(OcptFloorPlanLayer layer, OcptFloorPlanScope? sceneScope) {
@@ -778,7 +777,7 @@ class _OcptFloorPlanCanvasState extends State<OcptFloorPlanCanvas> {
     OcptFloorPlanSheet sheet,
   ) {
     if (widget.pendingScopeLiveOverride != null) {
-      // Dismissing the scope bubble by clicking elsewhere means Cancel (R5b).
+      // Dismissing the scope bubble by clicking elsewhere means Cancel.
       widget.onScopeBubbleCancelRequested?.call();
       return;
     }
@@ -1300,7 +1299,7 @@ class _OcptFloorPlanCanvasState extends State<OcptFloorPlanCanvas> {
     ];
   }
 
-  /// The selected override's own `Restore` handle (R5b) — the one affordance that reaches a live
+  /// The selected override's own `Restore` handle — the one affordance that reaches a live
   /// override or a hidden override's own ghost even though [_isSymbolEditable] locks both against
   /// dragging, which is why this is built directly in [build] rather than folded into
   /// [_buildSymbolHandles]. Drawn just outside [symbol]'s own top-left corner (mirroring the delete
@@ -1729,8 +1728,7 @@ class _OcptFloorPlanCanvasState extends State<OcptFloorPlanCanvas> {
     );
   }
 
-  /// The scope bubble (R5b, `docs/plans/storyboard.md`, §10.4; extended to a shot level by R5c,
-  /// §10.5): anchored just below [override]'s own footprint, offering `Every sequence (n)` /
+  /// The scope bubble: anchored just below [override]'s own footprint, offering `Every sequence (n)` /
   /// `Only sequence n` / `Cancel` for a set-scope symbol whose own set is linked to two or more
   /// sequences, or `The whole sequence` / `Only shot n` / `Cancel` for a scene-scope symbol of a
   /// sequence with two or more shots — shown the instant a move/rotate/resize ends, in place of
@@ -1938,7 +1936,7 @@ class _DeleteHandle extends StatelessWidget {
   }
 }
 
-/// The selected override's own small `Restore as in the set` button (R5b) — mirrors [_DeleteHandle]
+/// The selected override's own small `Restore as in the set` button — mirrors [_DeleteHandle]
 /// but in the theme's primary colour (reversible, never destructive).
 class _RestoreHandle extends StatelessWidget {
   /// The button's own tooltip.
@@ -1969,7 +1967,7 @@ class _RestoreHandle extends StatelessWidget {
   }
 }
 
-/// The scope bubble itself (R5b, `docs/plans/storyboard.md`, §10.4): a small card offering three
+/// The scope bubble itself: a small card offering three
 /// plain buttons, `Cancel` first (the least committal, and the one a dismissal already means),
 /// then `Only sequence n`, then `Every sequence (n)` (the current default, so it reads last as the
 /// "keep going" option) — laid out as a `Column` rather than a `Row` so it never has to guess how

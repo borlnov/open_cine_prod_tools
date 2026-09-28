@@ -933,7 +933,7 @@ class OcptShotListSetCreationRequestedEvent extends OcptShotListEvent {
 /// Requests linking Resources set [setId] to the selected sequence
 /// (`OcptLocationsService.assignSceneToSet`), then selects it — the empty-state gallery's own
 /// card click and the `＋ Set` menu's own suggestion entry and `Link an existing set ▸` submenu
-/// entries (`docs/plans/storyboard.md`, §10.4). Does nothing while no sequence is selected, or
+/// entries. Does nothing while no sequence is selected, or
 /// while the selected one is the orphan group, exactly like
 /// [OcptShotListSetCreationRequestedEvent].
 class OcptShotListSetLinkRequestedEvent extends OcptShotListEvent {
@@ -985,7 +985,7 @@ class OcptShotListSetDeletionRequestedEvent extends OcptShotListEvent {
 /// Duplicates set `event.setId` into a new Resources set named `event.newSetName`, in the same
 /// location, linked to the selected sequence (`OcptFloorPlanService.duplicateSet`,
 /// `OcptLocationsService.createSiblingSet`/`.assignSceneToSet`), dispatched by the set tabs' own
-/// `＋ Set` menu's `Duplicate this set` entry (R3, `docs/plans/storyboard.md`, §9.4). Selects the
+/// `＋ Set` menu's `Duplicate this set` entry. Selects the
 /// freshly minted copy once written.
 class OcptShotListSetDuplicationRequestedEvent extends OcptShotListEvent {
   /// The id of the set to duplicate.
@@ -1006,7 +1006,7 @@ class OcptShotListSetDuplicationRequestedEvent extends OcptShotListEvent {
 /// Copies shot `event.sourceShotId`'s own live blocking on set `event.setId` onto the currently
 /// focused shot (`OcptFloorPlanService.copyShotBlocking`), dispatched by the set tabs' own
 /// `＋ Set` menu's `Copy blocking from another shot` entry, once the mode's own source-shot picker
-/// has returned a pick (R3, `docs/plans/storyboard.md`, §9.4).
+/// has returned a pick.
 class OcptShotListFloorPlanBlockingCopyRequestedEvent extends OcptShotListEvent {
   /// The id of the set the blocking is copied on (both the source and the destination — the menu
   /// only offers a same-set copy).
@@ -1084,7 +1084,7 @@ class OcptShotListFloorPlanActiveSetElementShapeChangedEvent extends OcptShotLis
   List<Object?> get props => [...super.props, shape];
 }
 
-/// Picks the scope a `setElement` placement lands at (R5b), dispatched by a click on one of the
+/// Picks the scope a `setElement` placement lands at, dispatched by a click on one of the
 /// palette's own typed set-element entries — [OcptFloorPlanScope.set] for the `Set` group's own
 /// four, [OcptFloorPlanScope.scene] for the `Sequence` group's own furniture/freeform pair.
 class OcptShotListFloorPlanActiveSetElementScopeChangedEvent extends OcptShotListEvent {
@@ -1099,7 +1099,7 @@ class OcptShotListFloorPlanActiveSetElementScopeChangedEvent extends OcptShotLis
   List<Object?> get props => [...super.props, scope];
 }
 
-/// Picks the label a `prop` placement carries (R5b), dispatched by a click on one of the palette's
+/// Picks the label a `prop` placement carries, dispatched by a click on one of the palette's
 /// own breakdown-props chips, or by the `Other…` chip's own name picker resolving.
 class OcptShotListFloorPlanActiveLabelChangedEvent extends OcptShotListEvent {
   /// The label just picked.
@@ -1149,13 +1149,13 @@ class OcptShotListFloorPlanSymbolPlacedEvent extends OcptShotListEvent {
   final OcptFloorPlanLayer layer;
 
   /// The id of the shot the symbol belongs to — null on a sequence layer, the focused shot's id on
-  /// a shot layer (`docs/plans/storyboard.md`, §4.3, the scope invariant
+  /// a shot layer (the scope invariant
   /// `OcptFloorPlanService.placeSymbol` enforces).
   final String? shotId;
 
   /// The id of the sequence the symbol belongs to — null on a set-scope or shot-scope symbol, the
   /// focused sequence's own scene id on a scene-scope one (a `set`-layer placement at
-  /// [OcptFloorPlanScope.scene], or any `props` placement, R5b).
+  /// [OcptFloorPlanScope.scene], or any `props` placement).
   final String? sceneId;
 
   /// The symbol's centre X, in metres.
@@ -1300,8 +1300,8 @@ class OcptShotListFloorPlanSymbolDeletionRequestedEvent extends OcptShotListEven
 /// Requests deleting set-scope symbol `event.symbolId` **everywhere** — itself (or, when it names
 /// a scene-scope override instead, the set-scope original it overrides) and every live override of
 /// it, in every sequence (`OcptFloorPlanService.deleteSymbolEverywhere`) — the destructive branch
-/// of the extended delete confirmation for an element used by two or more sequences
-/// (`docs/plans/storyboard.md`, §10.4), dispatched once it has already been confirmed through
+/// of the extended delete confirmation for an element used by two or more sequences,
+/// dispatched once it has already been confirmed through
 /// `OcptConfirmDialog.showWithAlternative`, by the mode.
 class OcptShotListFloorPlanSymbolDeleteEverywhereRequestedEvent extends OcptShotListEvent {
   /// The id of the symbol (the original, or one of its overrides) to delete everywhere.
@@ -1343,7 +1343,7 @@ class OcptShotListFloorPlanSymbolHideRequestedEvent extends OcptShotListEvent {
 
 /// Masks scene-scope symbol `event.symbolId` for shot `event.targetShotId` alone — a **hidden**
 /// shot-scope override, setting `isHidden` on one that already exists or creating one, copied from
-/// the scene symbol's own geometry (R5c, `docs/plans/storyboard.md`, §10.5) — the alternative
+/// the scene symbol's own geometry — the alternative
 /// branch ("Remove from shot n") of the shot-level extended delete confirmation, dispatched once it
 /// has already been confirmed through `OcptConfirmDialog.showWithAlternative`, by the mode.
 /// Reversible: the inspector's own `Restore` undoes it. See
@@ -1371,7 +1371,7 @@ class OcptShotListFloorPlanSymbolHideForShotRequestedEvent extends OcptShotListE
 
 /// Restores override `event.symbolId` as in the level above it — tombstones it
 /// (`OcptFloorPlanService.deleteSymbol`), so the original it names reappears there: a set-scope
-/// original for a scene-scope override, or a scene-scope symbol for a shot-scope one (R5c) — the
+/// original for a scene-scope override, or a scene-scope symbol for a shot-scope one — the
 /// canvas's own `Restore` handle and the inspector's own `Restore as in the set`/`Restore as in
 /// the sequence` action. Reversible (the user can redo the change), so this never asks —
 /// dispatched straight away.
@@ -1388,8 +1388,8 @@ class OcptShotListFloorPlanSymbolRestoreRequestedEvent extends OcptShotListEvent
 }
 
 /// Reports a move, rotate or resize awaiting the scope bubble's own answer, dispatched by the mode
-/// instead of writing anything, the instant such a gesture ends (`docs/plans/storyboard.md`,
-/// §10.4, extended by §10.5) — a **set-scope** symbol belonging to a set linked to
+/// instead of writing anything, the instant such a gesture ends — a **set-scope** symbol
+/// belonging to a set linked to
 /// `event.sequenceCount` (two or more) sequences ([OcptFloorPlanOverrideLevel.sequence]), or a
 /// **scene-scope** symbol of a sequence with two or more shots ([OcptFloorPlanOverrideLevel.shot]).
 /// Only stores `OcptShotListState.pendingFloorPlanScopeDecision`;

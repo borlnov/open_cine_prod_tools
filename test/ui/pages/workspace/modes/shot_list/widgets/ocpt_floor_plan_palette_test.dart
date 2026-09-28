@@ -440,7 +440,7 @@ void main() {
     );
   });
 
-  group("the Sequence group (R5b)", () {
+  group("the Sequence group", () {
     testWidgets("shows its own header naming the focused sequence", (tester) async {
       await _pump(tester, _buildPalette(setName: "Kitchen"));
       final tr = Tr.of(tester.element(find.byType(OcptFloorPlanPalette)));

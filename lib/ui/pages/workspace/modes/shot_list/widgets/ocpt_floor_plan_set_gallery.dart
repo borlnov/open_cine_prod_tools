@@ -24,7 +24,7 @@ const double _thumbnailHeight = 130;
 const double _cardWidth = _thumbnailWidth + 24;
 
 /// The floor plans view's own empty-state gallery, filling the centre while the selected sequence
-/// has no linked Resources set yet (`docs/plans/storyboard.md`, §10.4): one card per live set of
+/// has no linked Resources set yet: one card per live set of
 /// the project, its own thumbnail, name, location and code, the heading's own suggestion
 /// ([suggestedSetId]) first and starred, a click linking it ([onSetLinkRequested]) — and, under
 /// the grid, a `Create a set…` action ([onSetCreationRequested]) opening the very same
@@ -243,9 +243,8 @@ class _OcptFloorPlanSetGalleryCard extends StatelessWidget {
   /// at all.
   ///
   /// **The underlay is deliberately left out**: resolving and decoding a referenced image for
-  /// every card of a project-wide gallery is not the "cheap" `docs/plans/storyboard.md` §10.4's own
-  /// wording allows for — a card's thumbnail draws the room's own shapes alone, exactly as an empty
-  /// plan draws nothing.
+  /// every card of a project-wide gallery is not "cheap" — a card's thumbnail draws the room's own
+  /// shapes alone, exactly as an empty plan draws nothing.
   Widget _buildThumbnail(BuildContext context, ThemeData theme) {
     final floorPlanSet = OcptFloorPlanSet(
       id: set.id,

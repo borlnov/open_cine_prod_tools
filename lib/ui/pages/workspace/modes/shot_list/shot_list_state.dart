@@ -162,7 +162,7 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
   /// The id of the panel currently selected on the board, or null while none is.
   ///
   /// Cleared whenever [selectedShotId] or [selectedSequenceId] changes: a panel only ever belongs
-  /// to the shot currently shown, exactly as `OcptFloorPlanState.selectedSymbolId` (M5/M6) will be
+  /// to the shot currently shown, exactly as [selectedFloorPlanSymbolId] is
   /// cleared the same way.
   final String? selectedPanelId;
 
@@ -203,8 +203,8 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
   final String? selectedSetId;
 
   /// The project's whole Resources catalogue — every location and its own live sets, each
-  /// carrying the scenes it is linked to — as last read by `OcptLocationsService.loadLocations`
-  /// (`docs/plans/storyboard.md`, §10.4): the empty-state gallery's own catalogue, the `＋ Set`
+  /// carrying the scenes it is linked to — as last read by `OcptLocationsService.loadLocations`:
+  /// the empty-state gallery's own catalogue, the `＋ Set`
   /// menu's own `Link an existing set ▸`/`Create a set ▸` groups, and what
   /// `ocptSceneSetSuggestionOf` reads to suggest one for the selected sequence's own heading.
   /// Project-wide, unlike [floorPlanSnapshot]'s own per-screenplay read.
@@ -212,7 +212,7 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
 
   /// The set-scope symbols of every live Resources set of the project, keyed by set id, as last
   /// read by `OcptFloorPlanService.loadSetScopeSymbolsByProjectSetId` — the empty-state gallery's
-  /// own thumbnail content (`docs/plans/storyboard.md`, §10.4): a thumbnail draws a set's own
+  /// own thumbnail content: a thumbnail draws a set's own
   /// décor alone, never what a sequence or a shot placed on it.
   final Map<String, List<OcptFloorPlanSymbol>> setScopeSymbolsBySetId;
 
@@ -224,7 +224,7 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
   final String? selectedFloorPlanSymbolId;
 
   /// The id of the arrow currently selected on the floor plans canvas, or null while none is —
-  /// what draws its own bendable midpoint handle (R2). Mutually exclusive with
+  /// what draws its own bendable midpoint handle. Mutually exclusive with
   /// [selectedFloorPlanSymbolId] and cleared on every occasion that field is: a different set or
   /// sequence shown, the shot deleted, the arrow itself deleted.
   final String? selectedFloorPlanArrowId;
@@ -265,25 +265,25 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
   /// A **view/session state** value, like [floorPlanZoom]: never written to the project.
   final OcptFloorPlanSetElementShape floorPlanActiveSetElementShape;
 
-  /// The scope a `setElement` click-to-arm placement lands at (R5b) — the palette's own `Set`
+  /// The scope a `setElement` click-to-arm placement lands at — the palette's own `Set`
   /// group arms [OcptFloorPlanScope.set], its `Sequence` group's own furniture/freeform pair arms
   /// [OcptFloorPlanScope.scene].
   ///
   /// A **view/session state** value, like [floorPlanZoom]: never written to the project.
   final OcptFloorPlanScope floorPlanActiveSetElementScope;
 
-  /// A `prop` click-to-arm placement's own armed label (R5b) — which breakdown-prop chip, or the
+  /// A `prop` click-to-arm placement's own armed label — which breakdown-prop chip, or the
   /// `Other…` chip's own typed-in text, was armed last.
   ///
   /// A **view/session state** value, like [floorPlanZoom]: never written to the project.
   final String floorPlanActiveLabel;
 
-  /// The focused sequence's own breakdown props (R5b, `docs/plans/storyboard.md`, §10.4) — the
+  /// The focused sequence's own breakdown props — the
   /// palette's own `Sequence` group chips. Reloaded whenever the selected sequence changes, and
   /// project-wide, unlike... nothing else in this state — it is this narrow read's own instance.
   final List<OcptScenePropSummary> propsOfSelectedSequence;
 
-  /// A set-scope move, rotate or resize awaiting the scope bubble's own answer (R5b) — set the
+  /// A set-scope move, rotate or resize awaiting the scope bubble's own answer — set the
   /// instant such a gesture ends on a symbol whose own set is linked to two or more sequences, and
   /// cleared the moment the bubble is answered (`Every sequence`/`Only sequence n`/`Cancel`) or a
   /// click elsewhere dismisses it as `Cancel`. Null the rest of the time — every set-scope gesture
@@ -511,8 +511,8 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
   }
 
   /// Whether any live shot of the screenplay holds at least one storyboard panel — what the
-  /// export panel's storyboard card checks to decide whether it has anything to print
-  /// (`docs/plans/storyboard.md`, §5): a shot list can hold shots without holding a single panel,
+  /// export panel's storyboard card checks to decide whether it has anything to print: a shot
+  /// list can hold shots without holding a single panel,
   /// which is a state of its own, not the same as holding no shot at all.
   bool get hasAnyStoryboardPanel =>
       storyboardSnapshot?.panelsByShotId.values.any((panels) => panels.isNotEmpty) ?? false;
@@ -530,7 +530,7 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
 
   /// Whether any live floor plan set of the screenplay holds at least one camera symbol, on any
   /// shot — what the export panel's floor plans card checks to decide whether it has anything to
-  /// print (`docs/plans/storyboard.md`, §5).
+  /// print.
   bool get hasAnyFloorPlanCamera =>
       floorPlanSnapshot?.setsById.values.any(
         (floorPlanSet) =>
@@ -570,8 +570,8 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
     return null;
   }
 
-  /// The floor plans view's own focus — **derived, never a second field**
-  /// (`docs/plans/storyboard.md`, §4.3): `true` while a shot is selected (the shot focus), `false`
+  /// The floor plans view's own focus — **derived, never a second field**: `true` while a shot is
+  /// selected (the shot focus), `false`
   /// while none is (the `Sequence` focus). Every floor plans widget that needs to know which of the
   /// two is showing reads this rather than [selectedShotId] directly, so the one rule ("no shot
   /// selected means the sequence focus") lives in exactly one place.

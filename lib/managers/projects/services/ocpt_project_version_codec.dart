@@ -65,7 +65,7 @@ import 'package:open_cine_prod_tools/utils/ocpt_row_stamp_key.dart';
 ///   migrated — [decode] drops them instead, a version captured before the reshape restoring with
 ///   every plan except its shot list's cast (this class's own [decode] doc comment, and the ADR's
 ///   "Consequences" section, spell out why remapping was turned down). Format 4 adds the storyboard
-///   and floor plan tables (`docs/plans/storyboard.md`) — additive, so a pre-4 payload decodes with
+///   and floor plan tables — additive, so a pre-4 payload decodes with
 ///   its five new lists empty. The retired format-1, format-2 and format-3 shapes are pinned in
 ///   `test/managers/projects/services/ocpt_project_version_codec_test.dart`, per the guidance
 ///   below;

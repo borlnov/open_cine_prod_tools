@@ -25,7 +25,7 @@ class OcptStoryboardAnnotationKindConverter
 
 /// One mark drawn over a storyboard panel's frame: a movement arrow, a camera-move arrow or a
 /// short text label — the fixed vocabulary the storyboard's light annotation layer is limited to,
-/// no freehand drawing of any kind (`docs/plans/storyboard.md`, §1).
+/// no freehand drawing of any kind.
 ///
 /// One row per mark, rather than one JSON column on the panel: ADR 0010's per-column stamps are
 /// what merge two replicas, and a JSON blob would make two people annotating one panel a

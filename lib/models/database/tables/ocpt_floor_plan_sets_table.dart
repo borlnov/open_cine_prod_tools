@@ -6,7 +6,7 @@ import 'package:drift/drift.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_assets_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_sets_table.dart';
 
-/// The floor plan **of a Resources set** (`sets`, `docs/plans/storyboard.md`, §10): one row per
+/// The floor plan **of a Resources set** (`sets`): one row per
 /// set, created lazily on its first write (`OcptFloorPlanService.ensurePlan`) rather than eagerly
 /// for every set the resources mode holds.
 ///

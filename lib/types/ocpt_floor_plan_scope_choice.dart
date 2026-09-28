@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 /// The scope bubble's own three answers to a pending set-scope move/rotate/resize
-/// (`OcptShotListState.pendingFloorPlanScopeDecision`, `docs/plans/storyboard.md`, §10.4).
+/// (`OcptShotListState.pendingFloorPlanScopeDecision`).
 enum OcptFloorPlanScopeChoice {
   /// Writes the change onto the set-scope original, shared by every sequence the set is linked to.
   every,

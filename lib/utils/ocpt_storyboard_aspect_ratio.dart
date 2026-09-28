@@ -23,7 +23,7 @@ final RegExp _bareDecimalPattern = RegExp(r'\d+\.\d+');
 /// The aspect ratio (width / height) found in [recordingFormat]'s free text, or
 /// [ocptStoryboardFallbackAspectRatio] (16:9) when none is found.
 ///
-/// A shot's `recordingFormat` is free text (`docs/plans/storyboard.md`, §1, §8/ADR 0031) — this is
+/// A shot's `recordingFormat` is free text (ADR 0031) — this is
 /// the one place that guesses a ratio out of it, read alike by the board's frames and by the
 /// storyboard PDF, so the two can never disagree. Recognises, in order:
 ///
@@ -33,7 +33,7 @@ final RegExp _bareDecimalPattern = RegExp(r'\d+\.\d+');
 ///   never mistaken for one.
 ///
 /// Anything else — `4K · 25 fps`, `anamorphic`, an empty string — falls back to 16:9, the
-/// validated choice (`docs/plans/storyboard.md`, §2, §8, decision 3).
+/// validated choice.
 double ocptAspectRatioOf(String recordingFormat) {
   final colonOrSlashMatch = _ratioPattern.firstMatch(recordingFormat);
   if (colonOrSlashMatch != null) {

@@ -7,8 +7,8 @@ import 'package:flutter/material.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 
-/// The dialog opened the moment a character symbol is placed on the floor plans canvas (R2, "the
-/// name popover on placement"), setting or changing its own free-text `label`.
+/// The dialog opened the moment a character symbol is placed on the floor plans canvas, setting or
+/// changing its own free-text `label`.
 ///
 /// [suggestedNames] — the selected shot's own `OcptShot.characters` — are offered as one-click
 /// picks, **a convenience only**: a character symbol carries no `roleId`, and **the same name may
@@ -31,13 +31,12 @@ class OcptFloorPlanCharacterNamePickerDialog extends StatefulWidget {
 
   /// The dialog's own title, or null for the default `Name this character` — overridden by the
   /// palette's own `Other…` prop chip, which reuses this same widget for a free-typed prop label
-  /// (`docs/plans/storyboard.md`, §10.4) with its own wording instead.
+  /// with its own wording instead.
   final String? title;
 
   /// The free-text field's own hint, or null for the default `Character name` — overridden the
-  /// same way [title] is, by the `Other…` prop chip, to `Prop name` instead (R5c,
-  /// `docs/plans/storyboard.md`, §10.5): reusing this widget must never leave a prop's own dialog
-  /// still hinting at a character.
+  /// same way [title] is, by the `Other…` prop chip, to `Prop name` instead: reusing this widget
+  /// must never leave a prop's own dialog still hinting at a character.
   final String? fieldHint;
 
   /// Class constructor

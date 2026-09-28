@@ -14,7 +14,7 @@ import 'package:open_cine_prod_tools/utils/ocpt_floor_plan_geometry.dart';
 /// Every symbol's own rotated bounding box is unioned in (a wall standing at 90° reaches as far
 /// sideways as it does lengthwise unrotated), together with every arrow's own two ends and its
 /// bezier control point when it is curved, and the underlay's own frame — the empty-state
-/// gallery's own thumbnail (`docs/plans/storyboard.md`, §10.4) is the one caller today
+/// gallery's own thumbnail is the one caller today
 /// ([ocptFloorPlanFitOf]), but this is the plain geometric fact a floor plan sheet draws, useful
 /// wherever a viewport needs to fit its content.
 ({double minXM, double minYM, double maxXM, double maxYM})? ocptFloorPlanContentBoundsOf(
@@ -79,7 +79,7 @@ import 'package:open_cine_prod_tools/utils/ocpt_floor_plan_geometry.dart';
 ///
 /// An empty sheet (no bounds at all) or a degenerate (zero or negative) viewport size returns the
 /// neutral `zoom: 1.0, panXPx: 0, panYPx: 0` unchanged — the caller (the empty-state gallery's own
-/// card, `docs/plans/storyboard.md`, §10.4) is the one that decides an empty sheet draws its own
+/// card) is the one that decides an empty sheet draws its own
 /// "empty" placeholder instead of a painted, pointlessly-neutral canvas.
 ({double zoom, double panXPx, double panYPx}) ocptFloorPlanFitOf({
   required OcptFloorPlanSheet sheet,

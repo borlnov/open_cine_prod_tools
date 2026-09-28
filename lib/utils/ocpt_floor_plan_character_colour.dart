@@ -14,7 +14,7 @@ const double _characterColourLightness = 0.5;
 /// The deterministic, fully-opaque ARGB colour (`0xAARRGGBB`) a character symbol's own disc is
 /// drawn in, derived from its [name] (`OcptFloorPlanSymbol.label`) — the same name always yields the
 /// same colour, on the canvas and on paper alike, with no palette stored anywhere: the "derived,
-/// never stored" rule `docs/plans/storyboard.md` already applies to a camera's own letter, applied
+/// never stored" rule already applied to a camera's own letter, applied
 /// here to a character's own colour instead.
 ///
 /// [name] is trimmed and lower-cased first, so `Sam`, `sam ` and `SAM` share one colour; an empty or

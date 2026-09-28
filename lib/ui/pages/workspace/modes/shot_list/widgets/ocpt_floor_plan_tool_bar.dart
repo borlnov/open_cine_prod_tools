@@ -8,23 +8,21 @@ import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_tool.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_floor_plan_viewport_controller.dart';
 
-/// The floor plans view's own tool bar, across the top of the canvas
-/// (`docs/plans/storyboard.md`, §4.3).
+/// The floor plans view's own tool bar, across the top of the canvas.
 ///
 /// Offers [OcptFloorPlanTool.select], [OcptFloorPlanTool.setElement], the shot-scoped foursome
 /// ([OcptFloorPlanTool.camera]/[OcptFloorPlanTool.character]/[OcptFloorPlanTool.light]/
 /// [OcptFloorPlanTool.arrow]) and [OcptFloorPlanTool.label], plus the underlay import action, never
 /// a toggled tool since picking a file is a one-shot action.
 ///
-/// **No tool is ever dimmed** (R2, the floor-plan redesign's "always a current shot" model
-/// replacing the earlier `Sequence`/shot focus split this tool bar used to gate on): every shot-
-/// scoped tool always has the current shot to place onto, so the only reason a button is withheld
+/// **No tool is ever dimmed**: every shot-scoped tool always has the current shot to place onto,
+/// so the only reason a button is withheld
 /// (a null `onPressed`, never a visually-identical disabled look grafted on top) is [isReadOnly].
 /// The zoom cluster on the trailing edge reads/writes [viewportController] directly (a discrete
 /// click is already a "settled" zoom, unlike the canvas's own scroll-wheel zoom — see that
 /// controller's own doc comment) and stays available under [isReadOnly], since zoom only reads.
 /// The trailing `Recenter` button ([onRecenterRequested]) fits the viewport back onto the plan's
-/// own content on demand (R5c) — the same fit the view applies automatically when a set opens or a
+/// own content on demand — the same fit the view applies automatically when a set opens or a
 /// set tab switches (`OcptFloorPlanView`'s own doc comment).
 class OcptFloorPlanToolBar extends StatelessWidget {
   /// The currently active tool.
@@ -50,7 +48,7 @@ class OcptFloorPlanToolBar extends StatelessWidget {
   final ValueChanged<double> onZoomSettled;
 
   /// Called when the `Recenter` button is clicked — fits the viewport back onto the plan's own
-  /// content, on demand (R5c, `docs/plans/storyboard.md`, §10.5). A view action, never withheld:
+  /// content, on demand. A view action, never withheld:
   /// it only reads, and stays available under [isReadOnly] the same way the zoom cluster does.
   final VoidCallback onRecenterRequested;
 
@@ -157,7 +155,7 @@ class OcptFloorPlanToolBar extends StatelessWidget {
     );
   }
 
-  /// One tool bar toggle button. Never dimmed (R2): the only way it is withheld is
+  /// One tool bar toggle button. Never dimmed: the only way it is withheld is
   /// [isReadOnly] on every tool but `select`, which only ever reads.
   Widget _buildToolButton(
     BuildContext context, {

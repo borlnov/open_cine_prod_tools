@@ -27,7 +27,7 @@ import 'package:pdf/widgets.dart' as pw;
 
 /// [sheet]'s own symbols, minus the two kinds of ghost the canvas alone draws
 /// ([OcptFloorPlanSymbolShape.isOverriddenOriginalGhost]/`.isHiddenOverrideGhost`) — the PDF prints
-/// the **effective** plan (`docs/plans/storyboard.md`, §10.4): an override draws normally, in its
+/// the **effective** plan: an override draws normally, in its
 /// own place, a hidden element is simply omitted, and neither ghost nor pin badge ever reaches the
 /// page. [OcptFloorPlanSymbolShape.isOverride] itself needs no filtering here: nothing in this file
 /// reads it, so an override already prints exactly like any other symbol.
@@ -105,7 +105,7 @@ const double _silhouetteMarginPt = 10;
 
 /// Renders the floor plans of a shot list: per sequence, per linked set, one page per shot that has a
 /// camera placed on it — the set drawn in that shot's own focus, no ghosts — or, for a set no
-/// shot has a camera on, one page of its bare décor (`docs/plans/storyboard.md`, §5).
+/// shot has a camera on, one page of its bare décor.
 ///
 /// This is pure rendering logic with no dialog or file-system access of its own: it's owned by
 /// `OcptExportManager` and exposed as a public final field, reached through the manager rather than
@@ -199,9 +199,9 @@ class OcptFloorPlanPdfService {
   /// one bare-décor page for a set with none.
   ///
   /// Public so `OcptStoryboardPdfService` can append the very same pages after a sequence's own
-  /// shot rows, when its `Include the floor plans after each sequence` toggle is on
-  /// (`docs/plans/storyboard.md`, §5, §8 decision 8) — the two documents must never draw a set's
-  /// plan two different ways. Async because a set's own underlay image is read here, once per
+  /// shot rows, when its `Include the floor plans after each sequence` toggle is on — the two
+  /// documents must never draw a set's plan two different ways. Async because a set's own
+  /// underlay image is read here, once per
   /// set, ahead of building its (possibly several) pages, rather than once per page.
   Future<List<pw.Page>> pagesOfSequence({
     required OcptScriptPagePainter painter,

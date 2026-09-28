@@ -8,8 +8,8 @@ import 'package:open_cine_prod_tools/models/ocpt_floor_plan_arrow.dart';
 import 'package:open_cine_prod_tools/models/ocpt_floor_plan_symbol.dart';
 
 /// The floor plan of one Resources set, as `OcptFloorPlanService.loadFloorPlans` builds it: [id]
-/// is the Resources set's own id (`sets.id`, `docs/plans/storyboard.md`, §10), [name] is read off
-/// that very `sets` row, and the underlay/symbols/arrows come from its own `floor_plan_sets` row —
+/// is the Resources set's own id (`sets.id`), [name] is read off that very `sets` row, and the
+/// underlay/symbols/arrows come from its own `floor_plan_sets` row —
 /// absent while nothing has been drawn on it yet (`OcptFloorPlanService.ensurePlan`'s lazy
 /// creation), read the same as a plan with no underlay and no placements.
 ///

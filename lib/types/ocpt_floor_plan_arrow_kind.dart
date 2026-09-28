@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-/// What a `floor_plan_arrows` row means, drawn between two symbols of the same case.
+/// What a `floor_plan_arrows` row means, drawn between two symbols of the same set.
 enum OcptFloorPlanArrowKind {
   /// A movement between two symbols — an actor walking to a door, an object being carried across
   /// the room.

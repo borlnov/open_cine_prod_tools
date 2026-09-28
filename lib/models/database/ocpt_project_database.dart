@@ -147,7 +147,7 @@ part 'ocpt_project_database.g.dart';
 /// ([OcptSyncRelayCursorsTable], `docs/plans/collaboration-and-sync.md`, M3); which relay this
 /// replica's project is paired with, also local and never synchronised
 /// ([OcptSyncPairingsTable], `docs/plans/collaboration-and-sync.md`, M4); and the shot list's
-/// storyboard and floor plans (`docs/plans/storyboard.md`) — a shot's ordered panels
+/// storyboard and floor plans — a shot's ordered panels
 /// ([OcptStoryboardPanelsTable]) and each panel's light annotation marks
 /// ([OcptStoryboardAnnotationsTable]), and a sequence's floor plan sets
 /// ([OcptFloorPlanSetsTable]), the symbols placed on them ([OcptFloorPlanSymbolsTable]) and the
@@ -376,8 +376,7 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
   ///
   /// From 3 to 4, `onUpgrade` delegates to `ocptMigrateToSchemaV4`
   /// (`lib/models/database/migrations/ocpt_migration_v4.dart`): it creates the five tables the
-  /// storyboard and floor plans mode is built on — additive only, nothing else touched
-  /// (`docs/plans/storyboard.md`).
+  /// storyboard and floor plans mode is built on — additive only, nothing else touched.
   ///
   /// `beforeOpen` turns SQLite's `foreign_keys` pragma on: `NativeDatabase` leaves it at SQLite's
   /// own default, which is off, so the `references()` declared on the tables above would otherwise

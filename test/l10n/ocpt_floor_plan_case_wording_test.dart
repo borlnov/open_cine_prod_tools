@@ -31,9 +31,9 @@ void main() {
   test(
     'no floor-plan key name or English string says "case" — the model is a Set',
     () {
-      // The floor plan's own room used to be called a "case" (R0 renamed it to "Set" in the store;
-      // this pins the same rename in the ARB, which the R3 chrome pass missed for a handful of
-      // strings — R3b's own fix).
+      // The floor plan's own room used to be called a "case", renamed to "Set" in the store; this
+      // pins the same rename in the ARB, which a later chrome pass missed for a handful of
+      // strings.
       final arb = jsonDecode(File(_englishArbPath).readAsStringSync()) as Map<String, dynamic>;
 
       final offenders = [

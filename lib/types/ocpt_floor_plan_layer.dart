@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-/// Which layer a `floor_plan_symbols` row is drawn on (`docs/plans/storyboard.md`, §1, §10).
+/// Which layer a `floor_plan_symbols` row is drawn on.
 ///
 /// A layer no longer decides a symbol's scope by itself — see `OcptFloorPlanScope` and
 /// `OcptFloorPlanSymbolsTable`'s own doc comment for the scope matrix `OcptFloorPlanService`
@@ -21,14 +21,13 @@ enum OcptFloorPlanLayer {
   cameras,
 
   /// A shot-scope layer: a character's position for one shot, independent of the shot's own
-  /// characters field (`docs/plans/storyboard.md`, §1).
+  /// characters field.
   characters,
 
   /// A shot-scope layer: a light's position for one shot.
   lights,
 
-  /// A hand prop's position — scene scope (this sequence's own coverage) or shot scope (for now,
-  /// `docs/plans/storyboard.md`, §10) — as opposed to a [set] element, which never moves between
-  /// shots. Renamed from `handProps`.
+  /// A hand prop's position — scene scope (this sequence's own coverage) or shot scope — as
+  /// opposed to a [set] element, which never moves between shots. Renamed from `handProps`.
   props,
 }

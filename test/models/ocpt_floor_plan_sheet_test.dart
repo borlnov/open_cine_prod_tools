@@ -160,7 +160,7 @@ void main() {
       );
 
       // The visible override draws in place of the original, plus the original's own faint,
-      // non-interactive ghost (`docs/plans/storyboard.md`, §10.4).
+      // non-interactive ghost.
       expect(sheet.symbols, hasLength(2));
       final overrideShape = sheet.symbols.singleWhere((symbol) => symbol.symbolId == "override-1");
       expect(overrideShape.label, "Re-dressed");
@@ -310,7 +310,7 @@ void main() {
     });
   });
 
-  group("OcptFloorPlanSheet.of — the shot override rule (R5c)", () {
+  group("OcptFloorPlanSheet.of — the shot override rule", () {
     test(
       "a live shot-scope override replaces the scene-effective symbol it names, under that "
       "shot's focus",
@@ -731,7 +731,7 @@ void main() {
   });
 
   group("OcptFloorPlanSheet.of — underlay", () {
-    test("draws no underlay while the case's frame is incomplete", () {
+    test("draws no underlay while the set's frame is incomplete", () {
       final floorPlanSet = _caseOf(underlayAssetId: "asset-1");
 
       final sheet = OcptFloorPlanSheet.of(

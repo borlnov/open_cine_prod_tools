@@ -3,9 +3,9 @@
 // SPDX-License-Identifier: Apache-2.0
 
 /// A `floor_plan_symbols` row's scope: what it is shared by. Derived from its own `sceneId`/
-/// `shotId` nullness (`ocptFloorPlanScopeOf`) rather than kept as a column of its own
-/// (`docs/plans/storyboard.md`, §10) — see `OcptFloorPlanSymbolsTable`'s own doc comment for the
-/// scope matrix `OcptFloorPlanService` enforces per `OcptFloorPlanLayer`.
+/// `shotId` nullness (`ocptFloorPlanScopeOf`) rather than kept as a column of its own — see
+/// `OcptFloorPlanSymbolsTable`'s own doc comment for the scope matrix `OcptFloorPlanService`
+/// enforces per `OcptFloorPlanLayer`.
 enum OcptFloorPlanScope {
   /// Shared by every sequence the plan's own Resources set is linked to (`scene_sets`): neither
   /// `sceneId` nor `shotId` is set.

@@ -434,7 +434,7 @@ class OcptProjectVersionsService {
         ..insertAll(database.ocptBudgetCommitmentsTable, payload.budgetCommitments)
         ..insertAll(database.ocptBudgetEntriesTable, payload.budgetEntries)
         // The storyboard and floor plan tables, in the same dependency order [_applyPayload] restores
-        // them in: `floor_plan_sets` references only `sets` (`docs/plans/storyboard.md`, §10, its
+        // them in: `floor_plan_sets` references only `sets` (its
         // own id) and, optionally, `assets` (both inserted above); `storyboard_panels` references
         // `shots` and, optionally, `assets` (both inserted above); `storyboard_annotations`
         // references the panel it marks, just inserted; `floor_plan_symbols` references
@@ -835,7 +835,7 @@ class OcptProjectVersionsService {
   /// reference, closed the same way the asset trio's own cycle is, by this whole
   /// restore running under `PRAGMA defer_foreign_keys = ON` (see [restoreVersion]).
   ///
-  /// The five storyboard and floor plan tables (`docs/plans/storyboard.md`) are restored last, in
+  /// The five storyboard and floor plan tables are restored last, in
   /// their own dependency order: `floor_plan_sets` (references only `scenes`, restored at the very
   /// top, and optionally `assets`) before `storyboard_panels` (references `shots` and optionally
   /// `assets`, both restored well above) before `storyboard_annotations` (references the panel it
@@ -1452,8 +1452,8 @@ class OcptProjectVersionsService {
       // nothing here for this scrub to rewrite.
       budgetAllowances: payload.budgetAllowances,
       // None of the five storyboard/floor plan tables holds anything about a person — a floor
-      // plan character symbol carries a free label, never a `personId`
-      // (`docs/plans/storyboard.md`, §2) — so all five travel through unchanged.
+      // plan character symbol carries a free label, never a `personId` — so all five travel
+      // through unchanged.
       storyboardPanels: payload.storyboardPanels,
       storyboardAnnotations: payload.storyboardAnnotations,
       floorPlanSets: payload.floorPlanSets,

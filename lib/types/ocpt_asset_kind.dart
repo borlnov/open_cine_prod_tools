@@ -28,8 +28,8 @@ enum OcptAssetKind {
   ///
   /// Sets **none** of `assets`' four owner columns: the panel's own `imageAssetId` is the only link,
   /// the way `people.photoAssetId` is — see `OcptAssetsTable`'s own doc comment, amended by
-  /// `docs/adr/0013-binary-assets-referenced-by-path.md`'s storyboard follow-up
-  /// (`docs/plans/storyboard.md`, §2) to say these two kinds set none.
+  /// `docs/adr/0013-binary-assets-referenced-by-path.md`'s storyboard follow-up to say these two
+  /// kinds set none.
   storyboardPanelImage,
 
   /// A floor plan set's underlay photo or plan (`floor_plan_sets.underlayAssetId`).

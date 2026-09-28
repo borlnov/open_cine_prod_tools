@@ -58,9 +58,9 @@ final class OcptResourcesRevealRequest extends OcptWorkspaceRevealRequest {
 }
 
 /// Asks the shot list mode to open its **floor plans** centre view on sequence [sceneId], its own
-/// set tab [setId] already selected — the Resources location sheet's own `Open in shot list`
-/// (`docs/plans/storyboard.md`, §10.4): a floor plan belongs to the Resources set, so "open it"
-/// means landing on the very sequence and tab that show it, not a sheet of its own.
+/// set tab [setId] already selected — the Resources location sheet's own `Open in shot list`: a
+/// floor plan belongs to the Resources set, so "open it" means landing on the very sequence and
+/// tab that show it, not a sheet of its own.
 ///
 /// [sceneId] is the **first** sequence [setId] is linked to, in screenplay order (episode order,
 /// then scene order) — the asking mode (`OcptLocationsService.firstLinkedSceneOf`) resolves it,

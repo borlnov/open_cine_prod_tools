@@ -11,10 +11,10 @@ import 'package:open_cine_prod_tools/types/ocpt_shot_list_editable_field.dart';
 /// A sealed class rather than the `(String, OcptShotListEditableField)` record the shot list mode
 /// used before the board existed: the debounce is shared by every free-text field the mode owns,
 /// and the board's panel comment ([OcptShotListPanelCommentEditKey]) and a mark's own text
-/// ([OcptShotListAnnotationTextEditKey]) are not shot fields at all. M5 (the floor plans view's
-/// sequence half, `docs/plans/storyboard.md`) adds [OcptShotListSetNameEditKey], typed in place
-/// into a case's own tab. M6 (the shot half) adds [OcptShotListSymbolLabelEditKey], typed in place
-/// through the canvas's own `label` tool.
+/// ([OcptShotListAnnotationTextEditKey]) are not shot fields at all. The floor plans view's
+/// sequence half adds [OcptShotListSetNameEditKey], typed in place into a set's own tab; its shot
+/// half adds [OcptShotListSymbolLabelEditKey], typed in place through the canvas's own `label`
+/// tool.
 ///
 /// [Equatable]'s structural `==`/`hashCode` (over [props]) is what lets a value of this type key a
 /// `Map` the same way the record it replaces already did.
@@ -23,9 +23,9 @@ sealed class OcptShotListPendingEditKey extends Equatable {
   const OcptShotListPendingEditKey();
 }
 
-/// A pending edit of case [setId]'s own name, typed in place into its floor plans tab.
+/// A pending edit of set [setId]'s own name, typed in place into its floor plans tab.
 class OcptShotListSetNameEditKey extends OcptShotListPendingEditKey {
-  /// The id of the case whose name is being edited.
+  /// The id of the set whose name is being edited.
   final String setId;
 
   /// Class constructor

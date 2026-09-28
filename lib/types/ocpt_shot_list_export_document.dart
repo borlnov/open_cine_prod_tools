@@ -8,8 +8,8 @@
 /// holding no shot leaves nothing for either document to print — an empty workbook, or a
 /// screenplay with no bar to draw. [storyboard] and [floorPlans] each carry their own reason
 /// instead, since a shot list can hold shots without holding a single panel or a single placed
-/// camera: no panel anywhere in the whole shot list for [storyboard], no case holding a camera
-/// anywhere for [floorPlans] (`docs/plans/storyboard.md`, §5).
+/// camera: no panel anywhere in the whole shot list for [storyboard], no set holding a camera
+/// anywhere for [floorPlans].
 enum OcptShotListExportDocument {
   /// The whole shot list, sequence by sequence, as an Excel workbook.
   xlsx,

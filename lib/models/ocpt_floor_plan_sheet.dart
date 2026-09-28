@@ -30,7 +30,7 @@ const int ocptFloorPlanCameraMoveArrowColorArgb = 0xFF1565C0;
 
 /// Which level a symbol's own override marking ([OcptFloorPlanSymbolShape.isOverride],
 /// [OcptFloorPlanSymbolShape.isOverriddenOriginalGhost], [OcptFloorPlanSymbolShape
-/// .isHiddenOverrideGhost]) belongs to (`docs/plans/storyboard.md`, §10.5) — a scene-scope
+/// .isHiddenOverrideGhost]) belongs to — a scene-scope
 /// override replaces a **set-scope** original for one sequence; a shot-scope override replaces a
 /// **scene-scope** symbol (a plain prop/furniture, or itself already a sequence-level override)
 /// for one shot alone. Only ever set alongside one of those three flags — null otherwise. Purely
@@ -145,7 +145,7 @@ class OcptFloorPlanSymbolShape extends Equatable {
   final OcptFloorPlanSetElementShape? setElementShape;
 
   /// Whether this shape is a **live, visible** override of an original one level up (a scene-scope
-  /// override of a set-scope original, or a shot-scope override of a scene-scope symbol, R5c) —
+  /// override of a set-scope original, or a shot-scope override of a scene-scope symbol) —
   /// drawn with a dashed outline and a small pin badge, still fully editable within its own
   /// sequence or shot. Mutually exclusive with [isOverriddenOriginalGhost] and
   /// [isHiddenOverrideGhost]. See [overrideLevel] for which of the two levels this is.
@@ -388,8 +388,8 @@ class OcptFloorPlanUnderlayShape extends Equatable {
 /// canvas, the metrics overlay and the floor-plans PDF all paint from and nothing else, the
 /// sibling of `OcptScenarioCoverageLayout`.
 ///
-/// Pure Dart, no Flutter import and no `pdf` import (`docs/plans/storyboard.md`, §2;
-/// `docs/adr/0031-storyboard-panels-and-floor-plans-in-metres.md`): every shape is already in
+/// Pure Dart, no Flutter import and no `pdf` import
+/// (`docs/adr/0031-storyboard-panels-and-floor-plans-in-metres.md`): every shape is already in
 /// metres and every colour is already an ARGB int, so a renderer has nothing left to decide beyond
 /// where the viewport puts them.
 class OcptFloorPlanSheet extends Equatable {
@@ -422,13 +422,13 @@ class OcptFloorPlanSheet extends Equatable {
   ///
   /// [focusShotId] is null for the **sequence** focus (every set-scope symbol not overridden for
   /// [focusSceneId], plus [focusSceneId]'s own scene-scope symbols, plus every live camera of every
-  /// shot on this set, numbered — `docs/plans/storyboard.md`, §4.3, §10) or a shot's id for the
+  /// shot on this set, numbered) or a shot's id for the
   /// **shot** focus (the same set/scene-scope symbols, plus that shot's own shot layers, plus, when
   /// given, [previousShotId]'s and [nextShotId]'s shot layers drawn as ghosts — the onion skin).
   /// No arrow is drawn under the sequence focus: an arrow is always a shot's own movement, and the
   /// sequence focus shows no single shot's blocking.
   ///
-  /// **The override rule** (§10, R5b, extended to a second level by R5c/§10.5): a live scene-scope
+  /// **The override rule**, applied at two levels: a live scene-scope
   /// symbol of [focusSceneId] whose own `overridesSymbolId` names a live set-scope symbol
   /// **replaces** it here — the set-scope original itself is left out of the *editable* shapes,
   /// and a **visible** override ([OcptFloorPlanSymbolShape.isOverride],
@@ -448,8 +448,8 @@ class OcptFloorPlanSheet extends Equatable {
   /// shot-scope overrides, if any, simply draw as its own placements do.
   ///
   /// [shotRankByShotId] is every shot of the sequence's own 1-based display rank
-  /// (`OcptShot.position` + 1, `docs/plans/storyboard.md`'s "the number is the shot's rank in the
-  /// sequence"), read by [ocptFloorPlanCameraLabelOf]; a shot missing from it draws its cameras
+  /// (`OcptShot.position` + 1 — the number is the shot's rank in the
+  /// sequence), read by [ocptFloorPlanCameraLabelOf]; a shot missing from it draws its cameras
   /// with no [OcptFloorPlanSymbolShape.cameraLabel] rather than throwing, since a floor plan can be
   /// built before every shot of a freshly reconciled sequence has been assigned one.
   ///
@@ -497,7 +497,7 @@ class OcptFloorPlanSheet extends Equatable {
     final setScopeSymbolById = {for (final symbol in setScopeSymbols) symbol.id: symbol};
 
     // The sequence's own effective shapes, set → scene already resolved — every one of these is a
-    // candidate a shot-scope override may, in turn, replace one level further down (R5c).
+    // candidate a shot-scope override may, in turn, replace one level further down.
     final sequenceEffectiveSymbols = [
       for (final symbol in setScopeSymbols)
         if (!overriddenSetSymbolIds.contains(symbol.id)) symbol,
@@ -508,7 +508,7 @@ class OcptFloorPlanSheet extends Equatable {
       for (final symbol in sequenceEffectiveSymbols) symbol.id: symbol,
     };
 
-    // Scene → shot (R5c, §10.5): only under a shot focus, and only a live shot-scope symbol of
+    // Scene → shot: only under a shot focus, and only a live shot-scope symbol of
     // [focusShotId] itself — never a ghosted neighbour's own placements.
     var liveSequenceSymbols = sequenceEffectiveSymbols;
     var visibleShotOverrides = const <OcptFloorPlanSymbol>[];

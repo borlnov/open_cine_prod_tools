@@ -20,11 +20,11 @@ const double _scaleCornerMargin = 16;
 /// The gap, in logical pixels, between the reference silhouette and the scale bar above it.
 const double _scaleBlockGap = 10;
 
-/// The screen point (logical pixels, this canvas's own local coordinate space) [xM]/[yM] (case
+/// The screen point (logical pixels, this canvas's own local coordinate space) [xM]/[yM] (plan
 /// metres) draws at, given the canvas's [canvasSize], current [zoom] and current [pan].
 ///
 /// The **origin convention** every renderer sharing this canvas agrees on: metres `(0, 0)` sits at
-/// the canvas's own geometric centre before any pan is applied, so a freshly opened case is
+/// the canvas's own geometric centre before any pan is applied, so a freshly opened set is
 /// centred on screen rather than pinned to a corner. [zoom]/[pan] are the very values
 /// `OcptFloorPlanViewportController` owns; see its own doc comment for why they never reach the
 /// bloc's persisted state.
@@ -42,7 +42,7 @@ Offset ocptFloorPlanScreenPointOf({
   );
 }
 
-/// The inverse of [ocptFloorPlanScreenPointOf]: the case metres [screenPoint] (this canvas's own
+/// The inverse of [ocptFloorPlanScreenPointOf]: the plan metres [screenPoint] (this canvas's own
 /// local coordinate space) names.
 Offset ocptFloorPlanMetrePointOf({
   required Offset screenPoint,
@@ -57,7 +57,7 @@ Offset ocptFloorPlanMetrePointOf({
   );
 }
 
-/// A screen-space vector, converted from case metres at [zoom] — a pure scale with no translation,
+/// A screen-space vector, converted from plan metres at [zoom] — a pure scale with no translation,
 /// what a drag's own per-frame delta is converted through (never through
 /// [ocptFloorPlanMetrePointOf], which would also subtract the canvas centre and the pan offset).
 Offset ocptFloorPlanMetresToScreenVector({required Offset metres, required double zoom}) {
@@ -65,7 +65,7 @@ Offset ocptFloorPlanMetresToScreenVector({required Offset metres, required doubl
   return metres * pixelsPerMetre;
 }
 
-/// The inverse of [ocptFloorPlanMetresToScreenVector]: a screen-space delta converted to case
+/// The inverse of [ocptFloorPlanMetresToScreenVector]: a screen-space delta converted to plan
 /// metres at [zoom].
 Offset ocptFloorPlanScreenVectorToMetres({required Offset screenDelta, required double zoom}) {
   final pixelsPerMetre = ocptFloorPlanPixelsPerMetreAt(zoom);
@@ -814,7 +814,7 @@ class OcptFloorPlanCanvasPainter extends CustomPainter {
     }
   }
 
-  /// A live, visible scene-scope override's own marking (`docs/plans/storyboard.md`, §10.4): a
+  /// A live, visible scene-scope override's own marking: a
   /// dashed outline just outside [rect] (already in the symbol's own rotated local frame, like the
   /// glyph itself) and a small filled pin badge at its top-right corner — the one visual cue telling
   /// a re-dressed set element apart from the set's own original, on a set shared by two or more

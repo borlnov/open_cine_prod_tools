@@ -28,7 +28,7 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 
 /// The common height, in points, every panel frame of a row is drawn at — the printed equivalent
-/// of the board's own common row height (`docs/plans/storyboard.md`, §1).
+/// of the board's own common row height.
 const double _frameHeightPt = 120;
 
 /// The narrowest and widest a frame's own derived aspect ratio is allowed to size its width to,
@@ -86,8 +86,7 @@ const double _annotationHeadAnglePt = 0.45;
 
 /// Renders the storyboard of a shot list: per sequence, a header band, then per shot a row — its
 /// key information beside its frames, printed at a common height and their own derived aspect
-/// ratios, each frame's annotations drawn over it, its comment underneath
-/// (`docs/plans/storyboard.md`, §1, §5).
+/// ratios, each frame's annotations drawn over it, its comment underneath.
 ///
 /// This is pure rendering logic with no dialog or file-system access of its own beyond reading a
 /// panel's own image file at render time (see below); it's owned by `OcptExportManager` and
@@ -96,8 +95,8 @@ const double _annotationHeadAnglePt = 0.45;
 ///
 /// **Image bytes are read at render time, off the asset's own resolved path**
 /// (`OcptStoryboardPanel.imagePath`, ADR 0013), as `pw.MemoryImage` — the `pdf` package decodes
-/// JPEG and PNG, which is exactly what the board's own import picker is filtered to
-/// (`docs/plans/storyboard.md`, §4.2, §8 decision 5), so what draws on screen always prints. A
+/// JPEG and PNG, which is exactly what the board's own import picker is filtered to, so what
+/// draws on screen always prints. A
 /// panel with no image reference at all, a reference whose file has moved or gone, or a file that
 /// fails to decode are all the same printed state: the placeholder frame, carrying
 /// [OcptStoryboardLabels.fileNotFoundNote] — the ADR 0013 "missing file is a normal state", on
@@ -114,7 +113,7 @@ const double _annotationHeadAnglePt = 0.45;
 /// **When `OcptStoryboardExportOptions.includeFloorPlansAfterEachSequence` is on, the floor plan
 /// sheets print right after that sequence's own rows** — through [floorPlanPdfService], the very
 /// same service (and the very same `OcptFloorPlanSheet`-drawing code) the standalone floor plans
-/// PDF uses, so the two documents can never draw one case's plan two different ways.
+/// PDF uses, so the two documents can never draw one set's plan two different ways.
 class OcptStoryboardPdfService {
   /// Creates an [OcptStoryboardPdfService].
   ///

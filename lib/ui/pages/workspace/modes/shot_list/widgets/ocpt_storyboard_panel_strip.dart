@@ -16,8 +16,7 @@ import 'package:open_cine_prod_tools/ui/widgets/ocpt_referenced_image.dart';
 const double _frameGap = 10;
 
 /// One shot's ordered panels, laid out left to right at their shared [height] — the right half of
-/// an `OcptStoryboardShotRow` — followed by a trailing dashed `Import frame` slot
-/// (`docs/plans/storyboard.md`, §4.2).
+/// an `OcptStoryboardShotRow` — followed by a trailing dashed `Import frame` slot.
 ///
 /// A shot with no panel shows the slot alone, labelled `no panel yet`. Reordering drags a frame
 /// within the strip, built on `ReorderableListView`'s own `onReorderItem` — its `newIndex` is

@@ -16,13 +16,12 @@ const double _summaryMaxWidth = 240;
 /// The shot list mode's centre header, replacing the table-only `_SequenceHeader` row it used to
 /// build alone: the `OcptViewSwitch` on the left, the selected sequence's own title and summary
 /// beside it, then [trailing] — whatever the active view needs on the right (`Columns ▾` and
-/// `Export XLSX` for the table, `Panel size ▾` for the board), built by the mode
-/// (`docs/plans/storyboard.md`, §4.1).
+/// `Export XLSX` for the table, `Panel size ▾` for the board), built by the mode.
 ///
 /// Purely presentational, like the breakdown mode's own header: every click is reported upward,
 /// nothing here reads a manager. On a **compact width** the switch offers the table only
 /// ([isBoardAvailable]/[isFloorPlansAvailable] both false) — the board and the floor plans are
-/// large-screen views in v1 (§4.3).
+/// large-screen views in v1.
 class OcptShotListCentreHeader extends StatelessWidget {
   /// The sequence currently shown, whose title and summary this header prints.
   final OcptShotSequence sequence;

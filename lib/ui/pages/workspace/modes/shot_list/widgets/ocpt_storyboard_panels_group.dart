@@ -18,7 +18,7 @@ const double _thumbnailSize = 40;
 /// The shot inspector's board-only group (`OcptShotInspectorPanel.leadingGroup`): the selected
 /// shot's own panels, each with its free comment field, a reorder affordance and a `Delete panel`
 /// action, followed — while a panel is selected — by its own annotation section (the `Annotate`
-/// tool picker and its marks list, `docs/plans/storyboard.md`, §4.1, §4.2).
+/// tool picker and its marks list).
 ///
 /// A panel's comment rides the mode's field-edit autosave debounce exactly as a shot field does
 /// ([commentValueOf] reads a pending edit over the stored value, matching `OcptShotInspectorPanel`'s

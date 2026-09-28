@@ -19,7 +19,7 @@ const double _leaderCardWidth = 240;
 /// The board's own découpage read-out, leading every `OcptStoryboardShotRow`: [shot]'s code and
 /// status, its size, framing, camera move, lens and recording format, its attached cast and its
 /// four difficulty axes — the very same pills, chips and dots the table and the inspector already
-/// render (`docs/plans/storyboard.md`, §4.2), never a rendering of its own.
+/// render, never a rendering of its own.
 ///
 /// Purely presentational and entirely read-only: the board is a reading surface over the
 /// découpage the table and the inspector already edit, so every reused widget here is handed a

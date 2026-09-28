@@ -20,8 +20,8 @@ class OcptFloorPlanCopyBlockingCandidate {
   const OcptFloorPlanCopyBlockingCandidate({required this.shotId, required this.shotCode});
 }
 
-/// The dialog opened by the set tabs' own `＋ Set` menu's `Copy blocking from another shot` entry
-/// (R3, `docs/plans/storyboard.md`, §9.4): a plain list of [candidates], each a one-click pick.
+/// The dialog opened by the set tabs' own `＋ Set` menu's `Copy blocking from another shot` entry:
+/// a plain list of [candidates], each a one-click pick.
 ///
 /// Purely presentational, modelled on `OcptFloorPlanCharacterNamePickerDialog`: [show] opens it and
 /// returns the picked shot's id, or null if the user dismissed it. The router manager

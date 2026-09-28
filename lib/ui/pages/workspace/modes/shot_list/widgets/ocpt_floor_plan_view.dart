@@ -24,7 +24,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/
 import 'package:open_cine_prod_tools/utils/ocpt_floor_plan_fit.dart';
 
 /// The floor plans view's own frame, filling the centre while `OcptShotListCentreView.floorPlans`
-/// is shown (`docs/plans/storyboard.md`, §4.3): the tool bar across the top, the layer tray down
+/// is shown: the tool bar across the top, the layer tray down
 /// the left of the canvas, the canvas itself, and the focus strip along the bottom.
 ///
 /// **A `StatefulWidget` (the documented RFL1 exception)**, the very reason `_ShotListViewState`
@@ -41,7 +41,7 @@ import 'package:open_cine_prod_tools/utils/ocpt_floor_plan_fit.dart';
 /// strip, the canvas, the tray — except while a descendant text field (the inline label editor)
 /// has its own focus and consumes the key first.
 ///
-/// **Framing** (R5c, `docs/plans/storyboard.md`, §10.5): the viewport fits itself onto
+/// **Framing**: the viewport fits itself onto
 /// [floorPlanSet]'s own content (`ocptFloorPlanFitOf`) the moment a *different* set is shown —
 /// this widget's own first frame, or [floorPlanSet]'s own id changing (a set tab switch, or the
 /// shot-list reveal from Resources landing on one) — tracked by `_OcptFloorPlanViewState
@@ -383,7 +383,7 @@ class _OcptFloorPlanViewState extends State<OcptFloorPlanView> {
   /// anywhere in it — see the class doc comment.
   final FocusNode _keyboardFocusNode = FocusNode(debugLabel: "OcptFloorPlanView");
 
-  /// Wraps the canvas area, giving [_handleOtherPropRequested] and [_fitToContent] (R5c) a way to
+  /// Wraps the canvas area, giving [_handleOtherPropRequested] and [_fitToContent] a way to
   /// read its own rendered size — the viewport's own visible extent, in logical pixels — with no
   /// `LayoutBuilder` of its own to thread through this view's build method.
   final GlobalKey _canvasAreaKey = GlobalKey();
@@ -617,7 +617,7 @@ class _OcptFloorPlanViewState extends State<OcptFloorPlanView> {
   }
 
   /// `←`/`→` walk the sequence's shots; `Escape` cancels the arrow tool's own pending anchor while
-  /// one is pending; `Ctrl+D` duplicates the selected symbol (R2) — see the class doc comment.
+  /// one is pending; `Ctrl+D` duplicates the selected symbol — see the class doc comment.
   KeyEventResult _onKeyEvent(FocusNode node, KeyEvent event) {
     if (event is! KeyDownEvent) {
       return KeyEventResult.ignored;
@@ -648,7 +648,7 @@ class _OcptFloorPlanViewState extends State<OcptFloorPlanView> {
     return KeyEventResult.ignored;
   }
 
-  /// [_fitToContent]'s own guarded entry point (R5c): a no-op while [OcptFloorPlanView.floorPlanSet]
+  /// [_fitToContent]'s own guarded entry point: a no-op while [OcptFloorPlanView.floorPlanSet]
   /// is null (nothing to frame) or already names [_framedSetId] (already framed — an unrelated
   /// rebuild, or the user's own pan/zoom, never re-triggers this), otherwise records it as framed
   /// and fits. Always called after a frame ([initState]/[didUpdateWidget]'s own post-frame
@@ -703,7 +703,7 @@ class _OcptFloorPlanViewState extends State<OcptFloorPlanView> {
   }
 
   /// Opens the character name-picker dialog's own pattern for a free-typed prop label (the
-  /// palette's own `Other…` chip, with its own title and field hint, R5c — the reused dialog must
+  /// palette's own `Other…` chip, with its own title and field hint — the reused dialog must
   /// never still hint at a character), then places it at once — at the centre of this view's own
   /// currently visible canvas area, at scene scope on [OcptFloorPlanView.focusSceneId] — and
   /// selects it, exactly like every other placement (`OcptShotListBloc._onFloorPlanSymbolPlaced`

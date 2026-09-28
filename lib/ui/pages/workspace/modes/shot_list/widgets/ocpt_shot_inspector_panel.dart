@@ -60,7 +60,7 @@ class OcptShotInspectorPanel extends StatelessWidget {
 
   /// A group drawn under the header and before the character chips, naming what the active centre
   /// view adds to the découpage every view shares — `OcptStoryboardPanelsGroup` on the board, null
-  /// on the table (`docs/plans/storyboard.md`, §4.1). The panel's own [isReadOnly] keeps gating
+  /// on the table. The panel's own [isReadOnly] keeps gating
   /// everything under this slot; the group takes its own `isReadOnly` for what it draws itself.
   final Widget? leadingGroup;
 

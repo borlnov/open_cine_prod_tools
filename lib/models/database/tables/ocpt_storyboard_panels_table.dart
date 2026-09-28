@@ -9,7 +9,7 @@ import 'package:open_cine_prod_tools/models/database/tables/ocpt_shots_table.dar
 /// One imported frame of a shot's storyboard, ordered among the shot's other panels.
 ///
 /// A shot holds **0..N** of these — a deliberate divergence from "one frame per shot"
-/// (`docs/plans/storyboard.md`, §1, §8/ADR 0031): a shot's action rarely fits one drawing, and a
+/// (ADR 0031): a shot's action rarely fits one drawing, and a
 /// pan, a push-in or an actor crossing the frame each need a key frame of their own.
 ///
 /// [imageAssetId] is nullable so a panel **outlives its image**: replacing it tombstones the old
@@ -35,8 +35,7 @@ class OcptStoryboardPanelsTable extends Table {
   /// been imported yet, or after one was removed without a replacement.
   TextColumn get imageAssetId => text().nullable().references(OcptAssetsTable, #id)();
 
-  /// The free comment shown under the frame. No start/end captions — a single comment per panel
-  /// (`docs/plans/storyboard.md`, §1).
+  /// The free comment shown under the frame. No start/end captions — a single comment per panel.
   TextColumn get comment => text().withDefault(const Constant(''))();
 
   /// {@macro open_cine_prod_tools.isDeleted}

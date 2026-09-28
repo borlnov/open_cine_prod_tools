@@ -16,7 +16,7 @@ const double ocptFloorPlanMaxZoom = 4;
 /// `OcptFloorPlanView` is mounted, owned by that view's `State` exactly like
 /// `OcptWorkspaceDockLayoutController` is owned by `_ShotListViewState` — the RFL1 exception that
 /// precedent already documents, applied here to the canvas's own viewport
-/// (`docs/plans/storyboard.md`, §4.3; `docs/adr/0031-storyboard-panels-and-floor-plans-in-metres.md`).
+/// (`docs/adr/0031-storyboard-panels-and-floor-plans-in-metres.md`).
 ///
 /// Dragging to pan, or turning the mouse wheel to zoom, must not emit a bloc state per frame or
 /// every frame would rebuild the whole floor plans view. [setZoom]/[panBy] update these live

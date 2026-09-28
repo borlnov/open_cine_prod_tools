@@ -16,8 +16,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/
 import 'package:open_cine_prod_tools/utils/ocpt_storyboard_aspect_ratio.dart';
 
 /// The shot list's board centre view: the selected sequence's shots, each as an
-/// `OcptStoryboardShotRow` — the row *is* the shot, and selecting it sets `selectedShotId`
-/// (`docs/plans/storyboard.md`, §4.2).
+/// `OcptStoryboardShotRow` — the row *is* the shot, and selecting it sets `selectedShotId`.
 ///
 /// Purely presentational: every write goes upward through a nullable callback, withheld (null)
 /// under a version preview exactly like the table.

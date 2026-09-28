@@ -59,7 +59,7 @@ class OcptFloorPlanSetElementShapeConverter
 /// A camera, a character, a light, a set element or any other placed symbol of a floor plan set.
 ///
 /// **Three scopes, derived from nullness, never stored as their own column**
-/// (`docs/plans/storyboard.md`, §10; [OcptFloorPlanScope]): **set** scope ([sceneId] and [shotId]
+/// ([OcptFloorPlanScope]): **set** scope ([sceneId] and [shotId]
 /// both null, shared by every sequence the set is linked to), **scene** scope ([sceneId] set,
 /// [shotId] null, this sequence only) and **shot** scope ([shotId] set, this shot only). Which
 /// scopes a given [layer] may land in is the scope matrix `OcptFloorPlanService._checkScopeInvariant`
@@ -74,8 +74,8 @@ class OcptFloorPlanSetElementShapeConverter
 ///
 /// [isHidden] is meaningful only on a scene-scope override (`overridesSymbolId` set): true masks
 /// the set-scope original for that one sequence — "remove from sequence n" — without deleting
-/// anything, drawn as a faint, still-selectable ghost the inspector can `Restore`
-/// (`docs/plans/storyboard.md`, §10.4). Always false for every other symbol.
+/// anything, drawn as a faint, still-selectable ghost the inspector can `Restore`. Always false for
+/// every other symbol.
 ///
 /// A camera symbol's letter (`3A`, `3B`) and a shot layer's shot number are **never stored**: both
 /// are derived at read time, the letter from this row's rank among the same shot's live cameras on
@@ -126,8 +126,7 @@ class OcptFloorPlanSymbolsTable extends Table {
   RealColumn get rotationDeg => real().withDefault(const Constant(0))();
 
   /// A set element's footprint width, in metres — null on every other layer in v1. The v2
-  /// per-symbol size override reuses this column with no migration (`docs/plans/storyboard.md`,
-  /// §2).
+  /// per-symbol size override reuses this column with no migration.
   RealColumn get widthM => real().nullable()();
 
   /// A set element's footprint height, in metres. See [widthM].
@@ -144,8 +143,7 @@ class OcptFloorPlanSymbolsTable extends Table {
 
   /// The text label this symbol carries, e.g. `key · 1.2k`, `SAM · stand-in`,
   /// `85mm · reverse on Sam`. A character symbol's [label] is a free text pre-filled from the
-  /// shot's characters field as a convenience only — it carries no link back to a role
-  /// (`docs/plans/storyboard.md`, §2).
+  /// shot's characters field as a convenience only — it carries no link back to a role.
   TextColumn get label => text().withDefault(const Constant(''))();
 
   /// The visual primitive a set-element (sequence-layer) symbol is drawn as — a wall, a door, a

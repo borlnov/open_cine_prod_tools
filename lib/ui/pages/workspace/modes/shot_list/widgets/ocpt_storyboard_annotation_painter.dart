@@ -24,14 +24,13 @@ const double _labelDotRadius = 4;
 const double _handleRadius = 4;
 
 /// Paints `OcptStoryboardPanel.annotations` (and, while a drag is in progress, one extra "draft"
-/// mark) over an `OcptStoryboardPanelFrame`'s image, in the frame's own pixel space
-/// (`docs/plans/storyboard.md`, §4.2).
+/// mark) over an `OcptStoryboardPanelFrame`'s image, in the frame's own pixel space.
 ///
 /// **Coordinate convention**: every mark's `x1`/`y1`/`x2`/`y2` is normalised 0..1 to the frame —
 /// see `OcptStoryboardAnnotationsTable`'s own doc comment — and is mapped to this painter's own
 /// [Size] through the shared pure rule `ocptStoryboardAnnotationPointOf`
 /// (`lib/utils/ocpt_storyboard_annotation_geometry.dart`), a plain product against the frame's own
-/// width/height that `OcptStoryboardPdfService` (the storyboard PDF, M7) reads the very same way,
+/// width/height that `OcptStoryboardPdfService` (the storyboard PDF) reads the very same way,
 /// so a panel's marks can never draw at two different places between screen and paper. No other
 /// transform, offset or clamp is applied by the painter itself (the gesture layer that produces
 /// these coordinates is what clamps them to 0..1 before they ever reach a stored row). An arrow's

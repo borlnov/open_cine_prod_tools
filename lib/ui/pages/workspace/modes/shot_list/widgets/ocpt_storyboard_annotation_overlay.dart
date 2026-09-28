@@ -19,16 +19,15 @@ const double _hitTestRadius = 14;
 /// The board's annotation layer, drawn over an `OcptStoryboardPanelFrame`'s image: always paints
 /// [annotations] (a read, kept even under a read-only preview), and — only while [activeTool] is
 /// non-null — turns into a live gesture surface: a drag draws an arrow of [activeTool]'s own kind,
-/// a click with the label tool places one and a click on an existing mark selects it
-/// (`docs/plans/storyboard.md`, §4.2).
+/// a click with the label tool places one and a click on an existing mark selects it.
 ///
 /// [activeTool] is null for every panel but the one the mode has already narrowed both the tool
 /// and read-only status down to (`OcptStoryboardPanelStrip`'s own doc comment): this widget itself
 /// only ever asks "is a tool on for *this* frame right now", never re-derives selection or
 /// read-only from anywhere else. While [activeTool] is null this widget mounts no gesture
 /// detector at all, so a tap on the frame falls through to `OcptStoryboardPanelFrame`'s own
-/// `InkWell` exactly as before this layer existed — M3's scroll/reorder and panel-select are
-/// untouched.
+/// `InkWell` exactly as before this layer existed — the board's own scroll/reorder and
+/// panel-select are untouched.
 class OcptStoryboardAnnotationOverlay extends StatefulWidget {
   /// The panel's own marks, in draw order.
   final List<OcptStoryboardAnnotation> annotations;

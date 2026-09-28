@@ -831,31 +831,74 @@ void main() {
 
     // -------------------------------------------------------------------------- the floor plans
 
-    // The harbour cafe: set-scope walls and a counter, shared by both scenes shot there
-    // (`cafeSetId` is linked to sceneIds[0] and sceneIds[1] above).
+    // The harbour cafe: a readable room — four thin walls (0.12 m) enclosing roughly 6 x 4 m,
+    // a gap in the south one for a door, a counter, a table with two chairs, a camera and Nora —
+    // all set-scope (shared by both scenes shot there: `cafeSetId` is linked to sceneIds[0] and
+    // sceneIds[1] above) except the camera and Nora, which belong to the opening shot alone.
+    const wallThicknessM = 0.12;
+
+    Future<void> wall({
+      required double xM,
+      required double yM,
+      required double widthM,
+      required double heightM,
+      required String label,
+    }) => floorPlanService.placeSymbol(
+      database: database,
+      setId: cafeSetId,
+      sceneId: null,
+      shotId: null,
+      layer: OcptFloorPlanLayer.set,
+      xM: xM,
+      yM: yM,
+      widthM: widthM,
+      heightM: heightM,
+      label: label,
+      setElementShape: OcptFloorPlanSetElementShape.wall,
+    );
+
+    await wall(xM: 0, yM: 0, widthM: 6, heightM: wallThicknessM, label: "Cafe wall, north");
+    await wall(xM: 0, yM: 0, widthM: wallThicknessM, heightM: 4, label: "Cafe wall, west");
+    await wall(xM: 5.88, yM: 0, widthM: wallThicknessM, heightM: 4, label: "Cafe wall, east");
+    // The south wall stops short twice, once on each side of the door below.
+    await wall(
+      xM: 0,
+      yM: 3.88,
+      widthM: 4,
+      heightM: wallThicknessM,
+      label: "Cafe wall, south-west",
+    );
+    await wall(
+      xM: 5.4,
+      yM: 3.88,
+      widthM: 0.6,
+      heightM: wallThicknessM,
+      label: "Cafe wall, south-east",
+    );
     await floorPlanService.placeSymbol(
       database: database,
       setId: cafeSetId,
       sceneId: null,
       shotId: null,
       layer: OcptFloorPlanLayer.set,
-      xM: 0,
-      yM: 0,
-      widthM: 6,
-      heightM: 4,
-      label: "Cafe walls",
-      setElementShape: OcptFloorPlanSetElementShape.wall,
+      xM: 4,
+      yM: 3.88,
+      widthM: 1.4,
+      heightM: wallThicknessM,
+      label: "Cafe door",
+      setElementShape: OcptFloorPlanSetElementShape.door,
     );
+
     final counterSymbolId = (await floorPlanService.placeSymbol(
       database: database,
       setId: cafeSetId,
       sceneId: null,
       shotId: null,
       layer: OcptFloorPlanLayer.set,
-      xM: 1.5,
-      yM: 0.5,
-      widthM: 2,
-      heightM: 0.6,
+      xM: 1,
+      yM: 0.3,
+      widthM: 2.5,
+      heightM: 0.5,
       label: "Counter",
       setElementShape: OcptFloorPlanSetElementShape.furniture,
     ))!;
@@ -869,26 +912,69 @@ void main() {
       sceneId: sceneIds[1],
       shotId: null,
       layer: OcptFloorPlanLayer.set,
-      xM: 1.8,
-      yM: 0.7,
-      widthM: 2,
-      heightM: 0.6,
+      xM: 1.3,
+      yM: 0.5,
+      widthM: 2.5,
+      heightM: 0.5,
       label: "Counter, cleared for the second visit",
       setElementShape: OcptFloorPlanSetElementShape.furniture,
       overridesSymbolId: counterSymbolId,
     );
 
-    // A camera and Nora placed on the cafe's own opening shot.
+    // A table and two chairs, well clear of the counter and of the camera's own sightline below.
+    await floorPlanService.placeSymbol(
+      database: database,
+      setId: cafeSetId,
+      sceneId: null,
+      shotId: null,
+      layer: OcptFloorPlanLayer.set,
+      xM: 4.1,
+      yM: 1.7,
+      widthM: 1,
+      heightM: 1,
+      label: "Table",
+      setElementShape: OcptFloorPlanSetElementShape.furniture,
+    );
+    await floorPlanService.placeSymbol(
+      database: database,
+      setId: cafeSetId,
+      sceneId: null,
+      shotId: null,
+      layer: OcptFloorPlanLayer.set,
+      xM: 3.6,
+      yM: 1.3,
+      widthM: 0.4,
+      heightM: 0.4,
+      label: "Chair",
+      setElementShape: OcptFloorPlanSetElementShape.furniture,
+    );
+    await floorPlanService.placeSymbol(
+      database: database,
+      setId: cafeSetId,
+      sceneId: null,
+      shotId: null,
+      layer: OcptFloorPlanLayer.set,
+      xM: 5.1,
+      yM: 1.3,
+      widthM: 0.4,
+      heightM: 0.4,
+      label: "Chair",
+      setElementShape: OcptFloorPlanSetElementShape.furniture,
+    );
+
+    // A camera on the cafe's own opening shot, inside the room and aimed north at Nora, its
+    // field-of-view cone reaching well past her own position.
     await floorPlanService.placeSymbol(
       database: database,
       setId: cafeSetId,
       sceneId: null,
       shotId: shotsByScene[0]!.first,
       layer: OcptFloorPlanLayer.cameras,
-      xM: 0.5,
-      yM: 3,
-      rotationDeg: 90,
-      fovDeg: 40,
+      xM: 2,
+      yM: 3.4,
+      // rotationDeg defaults to 0, which already points local "up" (north) — straight at Nora.
+      fovDeg: 50,
+      fovReachM: 3,
     );
     await floorPlanService.placeSymbol(
       database: database,
@@ -896,8 +982,8 @@ void main() {
       sceneId: null,
       shotId: shotsByScene[0]!.first,
       layer: OcptFloorPlanLayer.characters,
-      xM: 1.5,
-      yM: 1,
+      xM: 2,
+      yM: 0.9,
       label: "NORA",
     );
 

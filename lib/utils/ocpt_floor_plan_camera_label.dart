@@ -14,8 +14,8 @@ const String _letters = "ABCDEFGHJKLMNPQRSTUVWXYZ";
 /// ([cameraCount] `<= 1`), or [shotRank] followed by a letter for every camera of the shot,
 /// starting at the first, the moment it carries two or more.
 ///
-/// [shotRank] is the shot's own display number — its 1-based rank in its sequence, `docs/plans/
-/// storyboard.md`, §2 ("the number is the shot's rank in the sequence … derived, never stored").
+/// [shotRank] is the shot's own display number — its 1-based rank in its sequence (the number is
+/// the shot's rank in the sequence … derived, never stored).
 /// [cameraRank] is the camera symbol's **0-based** rank among the same shot's live camera symbols
 /// on the same set, in `sortKey` order: rank 0 is `A`, rank 1 is `B`, and so on, skipping `I` and
 /// `O`. [cameraCount] is that same shot's total live camera count: a solo camera (`cameraCount <=

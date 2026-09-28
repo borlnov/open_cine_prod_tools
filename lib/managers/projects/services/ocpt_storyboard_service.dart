@@ -14,8 +14,7 @@ import 'package:open_cine_prod_tools/types/ocpt_storyboard_annotation_kind.dart'
 import 'package:open_cine_prod_tools/utils/ocpt_fractional_key.dart';
 import 'package:uuid/uuid.dart';
 
-/// CRUD over a screenplay's storyboard: its shots' panels and each panel's light annotation layer
-/// (`docs/plans/storyboard.md`, §1, §2).
+/// CRUD over a screenplay's storyboard: its shots' panels and each panel's light annotation layer.
 ///
 /// [assetsService] is the one place a panel's image `assets` row is minted or tombstoned
 /// (`OcptAssetKind.storyboardPanelImage`) — this service never reads or writes `assets.path`
@@ -26,7 +25,7 @@ import 'package:uuid/uuid.dart';
 ///
 /// **Order is `sortKey`, never `position`** — neither `storyboard_panels` nor
 /// `storyboard_annotations` carries a `position` column at all: both are new in a schema version
-/// that never needed one (`docs/plans/storyboard.md`, §2).
+/// that never needed one.
 class OcptStoryboardService {
   /// The service used to mint and tombstone a panel's image `assets` row.
   final OcptAssetsService assetsService;

@@ -4,8 +4,7 @@
 
 import 'package:open_cine_prod_tools/types/ocpt_storyboard_annotation_kind.dart';
 
-/// The board's active annotation editing tool, picked from the inspector's own `Annotate` control
-/// (`docs/plans/storyboard.md`, §4.2).
+/// The board's active annotation editing tool, picked from the inspector's own `Annotate` control.
 ///
 /// A **view/session state** value, exactly like `OcptStoryboardPanelSize`: held in
 /// `OcptShotListState.activeAnnotationTool` for the session alone, never written to the project.

@@ -19,10 +19,10 @@ const int _defaultShotsPerPage = 2;
 
 /// A dialog letting the user pick the one-off options a storyboard export runs with.
 ///
-/// Modelled on `OcptScenarioCoverageExportDialog`, line for line (`docs/plans/storyboard.md`, §5):
+/// Modelled on `OcptScenarioCoverageExportDialog`, line for line:
 /// a page format dropdown (prefilled from [current], never persisted), a shots-per-page dropdown of
 /// its own, and the `Include the floor plans after each sequence` toggle — the "printed alongside"
-/// reading of the two documents (§8, decision 8). Use [show] to display it and get back the
+/// reading of the two documents. Use [show] to display it and get back the
 /// resulting [OcptStoryboardExportOptions], or null if the user cancelled.
 class OcptStoryboardExportDialog extends StatefulWidget {
   /// The page setup the screenplay is typeset with, used to pre-fill the format dropdown and to

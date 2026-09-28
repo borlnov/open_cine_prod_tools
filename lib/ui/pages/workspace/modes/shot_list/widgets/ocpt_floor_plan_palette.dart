@@ -12,8 +12,8 @@ import 'package:open_cine_prod_tools/types/ocpt_floor_plan_scope.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_set_element_shape.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_tool.dart';
 
-/// One breakdown prop of the focused sequence, for the palette's own `Sequence` group chips (R5b,
-/// `docs/plans/storyboard.md`, §10.4) — a read-only projection of the *dépouillement*'s own
+/// One breakdown prop of the focused sequence, for the palette's own `Sequence` group chips — a
+/// read-only projection of the *dépouillement*'s own
 /// `scene_elements` link joined with the `elements` catalogue, loaded by the bloc (no `Tr` in
 /// services): [quantity] is already resolved to the link's own override or the element's own
 /// catalogue quantity, whichever is set, and is empty while neither carries one.
@@ -59,14 +59,14 @@ class OcptFloorPlanTraySequenceCamera extends Equatable {
 }
 
 /// The floor plans canvas's own two-tier **palette**, down the left of the canvas, replacing
-/// `OcptFloorPlanLayerTray` (R3, the floor-plan redesign — `docs/plans/storyboard.md`, §9.1, §9.4):
-/// its group headers say **where a placed element lands** — a `Set · <name> — shared` group (the
+/// `OcptFloorPlanLayerTray`: its group headers say **where a placed element lands** — a
+/// `Set · <name> — shared` group (the
 /// one merged [OcptFloorPlanLayer.set] layer, always editable) and a `Shot <code> — this shot only`
 /// group (camera, character, light) — plus a `View` group absorbing the old tray's own toggles
 /// (layer visibility, the underlay, onion skin, metrics, field of view).
 ///
-/// **No tool is ever dimmed** (R2 already dropped tool dimming; this palette keeps it dropped):
-/// every entry is always available, `isReadOnly` withholding the write the moment one is picked or
+/// **No tool is ever dimmed**: every entry is always available, `isReadOnly` withholding the write
+/// the moment one is picked or
 /// dropped, never before. An entry is **both** a click-to-arm control ([onToolSelected], the tool
 /// bar's own mechanism, kept working) **and** a drag source (a plain [Draggable] anchored at the
 /// pointer, so a drop lands exactly under it) that `OcptFloorPlanCanvas` accepts through its own
@@ -76,7 +76,7 @@ class OcptFloorPlanTraySequenceCamera extends Equatable {
 /// underlay's own visibility are **view state**: every toggle this palette reports only ever reads,
 /// so — like the tray before it — it takes no `isReadOnly` flag of its own at all.
 /// [onUnderlayClearRequested] is the one exception, a real project write, withheld (null) under a
-/// read-only preview exactly like every other write in this milestone.
+/// read-only preview exactly like every other write here.
 class OcptFloorPlanPalette extends StatelessWidget {
   /// The selected set's own name, for the `Set · <name> — shared by every sequence` group header.
   final String setName;
@@ -453,8 +453,8 @@ class OcptFloorPlanPalette extends StatelessWidget {
     );
   }
 
-  /// The `Sequence` group's own breakdown-props chips (R5b, `docs/plans/storyboard.md`, §10.4):
-  /// one chip per [propsChips] entry, plus the fixed add-prop button for a free-typed label.
+  /// The `Sequence` group's own breakdown-props chips: one chip per [propsChips] entry, plus the
+  /// fixed add-prop button for a free-typed label.
   Widget _buildPropsChips(BuildContext context, Tr tr) => Padding(
     padding: const EdgeInsets.fromLTRB(12, 2, 12, 6),
     child: Wrap(

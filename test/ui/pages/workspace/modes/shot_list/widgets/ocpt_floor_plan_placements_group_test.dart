@@ -148,7 +148,7 @@ void main() {
     },
   );
 
-  group("a selected override (R5b)", () {
+  group("a selected override", () {
     testWidgets(
       "shows 'Changed for this sequence' and a Restore action instead of the shot's own "
       "placement read-out",
@@ -214,7 +214,7 @@ void main() {
     });
   });
 
-  group("a selected shot-scope override (R5c)", () {
+  group("a selected shot-scope override", () {
     testWidgets(
       "shows 'Changed for this shot' and a 'Restore as in the sequence' action",
       (tester) async {

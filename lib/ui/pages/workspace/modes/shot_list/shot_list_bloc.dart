@@ -185,13 +185,13 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
   final OcptFloorPlanService _floorPlanService;
 
   /// The service used to create, rename, link and unlink a Resources set — the floor plans view's
-  /// own set tabs are `scene_sets` links now (`docs/plans/storyboard.md`, §10), so every tab
+  /// own set tabs are `scene_sets` links now, so every tab
   /// operation but placing/editing what is drawn on a set goes through this service instead of
   /// [_floorPlanService].
   final OcptLocationsService _locationsService;
 
   /// The service used to read the focused sequence's own breakdown props, for the floor plans
-  /// palette's own `Sequence` group chips (R5b, `docs/plans/storyboard.md`, §10.4).
+  /// palette's own `Sequence` group chips.
   final OcptElementsService _elementsService;
 
   /// The manager used to pick a panel's frame or a set's underlay through the native "open"
@@ -217,7 +217,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
 
   /// What this mode should land on once its very first load resolves, handed down by
   /// `OcptShotListMode` from its own constructor — the Resources location sheet's own `Open in
-  /// shot list` (`docs/plans/storyboard.md`, §10.4), mirroring `OcptResourcesBloc
+  /// shot list`, mirroring `OcptResourcesBloc
   /// ._pendingRevealRequest`. Nulled the moment [_onLoadRequested] applies it, so it can never
   /// re-apply itself on a later reload (a version preview entered or left, say).
   OcptShotListRevealRequest? _pendingRevealRequest;
@@ -548,7 +548,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
 
   /// [sequenceId]'s own breakdown props (`OcptElementsService.propsOfScene`), or an empty list
   /// while [sequenceId] is null or names the orphan group, which has no scene of its own to read —
-  /// the floor plans palette's own `Sequence` group chips (R5b).
+  /// the floor plans palette's own `Sequence` group chips.
   Future<List<OcptScenePropSummary>> _loadPropsOfSequence({
     required OcptOpenProjectModel project,
     required List<OcptShotSequence> sequences,
@@ -653,14 +653,14 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
   /// Reads the project's whole Resources catalogue — every location and its own sets, each
   /// carrying the scenes it is linked to — what the set tabs' own `＋ Set` menu groups `Link an
   /// existing set ▸`/`Create a set ▸` by, and what `ocptSceneSetSuggestionOf` reads to suggest one
-  /// for the selected sequence's own heading (`docs/plans/storyboard.md`, §10.4). Project-wide,
+  /// for the selected sequence's own heading. Project-wide,
   /// unlike [_loadFloorPlans]'s own per-screenplay read: a set the empty-state gallery offers to
   /// link may already be linked to another episode's own sequence.
   Future<List<OcptLocation>> _loadLocations(OcptOpenProjectModel project) =>
       _locationsService.loadLocations(database: project.database);
 
   /// Reads the set-scope symbols of every live Resources set of the project, keyed by set id — the
-  /// empty-state gallery's own thumbnail content (`docs/plans/storyboard.md`, §10.4): a thumbnail
+  /// empty-state gallery's own thumbnail content: a thumbnail
   /// draws a set's own décor alone, never what a sequence or a shot placed on it, so this is all it
   /// ever needs. Project-wide, exactly like [_loadLocations] and unlike [_loadFloorPlans].
   Future<Map<String, List<OcptFloorPlanSymbol>>> _loadSetScopeSymbolsBySetId(
@@ -687,8 +687,8 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
   /// returns null for it, since a floor plan focus only ever makes sense on a real scene) or holds
   /// none in [snapshot] — what a freshly loaded snapshot, or a freshly selected sequence, defaults
   /// [OcptShotListState.selectedShotId] to, guaranteeing it is never null while the sequence holds
-  /// at least one shot (R2, "always a current shot": every camera, character, light, prop and arrow
-  /// placed on the floor plans view lands on this very shot).
+  /// at least one shot: every camera, character, light, prop and arrow
+  /// placed on the floor plans view lands on this very shot.
   String? _firstShotIdOf({required OcptShotListSnapshot? snapshot, required String? sequenceId}) {
     if (snapshot == null || sequenceId == null) {
       return null;
@@ -1748,7 +1748,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
 
   /// Deletes shot `event.shotId`, reselecting the sequence's own next first shot when it was the
   /// selected one (the sequence stays selected; null only while the sequence now holds none at all
-  /// — the "always a current shot" invariant, R2), and dropping any pending field or panel comment
+  /// — the "always a current shot" invariant), and dropping any pending field or panel comment
   /// edit that still targeted it or one of its panels — `OcptShotListService.deleteShot`'s own
   /// cascade tombstones the shot's panels alongside it, so there is nothing left for either to
   /// write to.
@@ -2584,7 +2584,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
   /// Links Resources set `event.setId` to the selected sequence
   /// (`OcptLocationsService.assignSceneToSet`), reloads the floor plans and selects it — the
   /// empty-state gallery's own card click and the `＋ Set` menu's own suggestion/`Link an existing
-  /// set ▸` entries (`docs/plans/storyboard.md`, §10.4). Deliberately a no-op when the selected
+  /// set ▸` entries. Deliberately a no-op when the selected
   /// sequence is the orphan group (or when nothing is selected at all), exactly like
   /// [_onSetCreationRequested].
   Future<void> _onSetLinkRequested(
@@ -2692,7 +2692,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
   /// Duplicates set `event.setId` into a new Resources set in the same location, named
   /// `event.newSetName`, copying its set-scope symbols only and linking it to the selected
   /// sequence — the set tabs' own `＋ Set` menu `Duplicate this set` entry, now **one** atomic call
-  /// (`OcptLocationsService.duplicateSetForScene`, `docs/plans/storyboard.md`, §10.4): the mode used
+  /// (`OcptLocationsService.duplicateSetForScene`): the mode used
   /// to put its three steps together itself, which is exactly the risk of an orphan set that
   /// service method's own transaction rules out. Reloads the floor plans and selects the freshly
   /// minted copy.
@@ -2810,7 +2810,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     emitter(state.copyWith(floorPlanActiveSetElementShape: event.shape));
   }
 
-  /// Picks the scope a `setElement` placement lands at (R5b). A view preference.
+  /// Picks the scope a `setElement` placement lands at. A view preference.
   Future<void> _onFloorPlanActiveSetElementScopeChanged(
     OcptShotListFloorPlanActiveSetElementScopeChangedEvent event,
     Emitter<OcptShotListState> emitter,
@@ -2818,7 +2818,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     emitter(state.copyWith(floorPlanActiveSetElementScope: event.scope));
   }
 
-  /// Picks the label a `prop` placement carries (R5b). A view preference.
+  /// Picks the label a `prop` placement carries. A view preference.
   Future<void> _onFloorPlanActiveLabelChanged(
     OcptShotListFloorPlanActiveLabelChangedEvent event,
     Emitter<OcptShotListState> emitter,
@@ -2857,8 +2857,8 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
   /// from its own active tool before dispatching this — see `OcptFloorPlanCanvas`'s own doc
   /// comment. A freshly placed character symbol's own [_defaultCharacterLabelFor] pre-fills its
   /// label from the shot's own characters field, the mock-up's "offered first as a convenience"
-  /// (`docs/plans/storyboard.md`, §4.3) — never a link, the placed symbol still carries no `roleId`
-  /// — and also arms [OcptShotListState.pendingCharacterNamePromptSymbolId] (R2), so the mode opens
+  /// — never a link, the placed symbol still carries no `roleId`
+  /// — and also arms [OcptShotListState.pendingCharacterNamePromptSymbolId], so the mode opens
   /// `OcptFloorPlanCharacterNamePickerDialog` for it the moment placement lands, pre-filled with
   /// that very default and offering the shot's other characters too, letting the user confirm or
   /// change it on the spot rather than only through the inline label editor later.
@@ -3171,8 +3171,8 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
   }
 
   /// Masks scene-scope symbol `event.symbolId` for shot `event.targetShotId` alone — a hidden
-  /// shot-scope override, mirroring [_onFloorPlanSymbolHideRequested] one level down (R5c,
-  /// `docs/plans/storyboard.md`, §10.5): setting `isHidden` on one that already exists or creating
+  /// shot-scope override, mirroring [_onFloorPlanSymbolHideRequested] one level down: setting
+  /// `isHidden` on one that already exists or creating
   /// one copied from the scene symbol's own geometry — the alternative branch ("Remove from shot
   /// n") of the shot-level extended delete confirmation.
   Future<void> _onFloorPlanSymbolHideForShotRequested(
@@ -3287,8 +3287,8 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     return null;
   }
 
-  /// Stores the pending scope decision, dispatched by the mode the instant a set-scope move (or,
-  /// R5c, a scene-scope one — see `event.level`) rotate or resize ends on a symbol two-or-more
+  /// Stores the pending scope decision, dispatched by the mode the instant a set-scope move (or a
+  /// scene-scope one — see `event.level`) rotate or resize ends on a symbol two-or-more
   /// sequences/shots share — no write yet, [_onFloorPlanScopeDecisionResolved] is what actually
   /// writes (or drops) it.
   Future<void> _onFloorPlanScopeDecisionRequested(

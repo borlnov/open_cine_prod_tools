@@ -106,8 +106,8 @@ class OcptConfirmDialog extends StatelessWidget {
   /// returns which of the three the user picked ([OcptConfirmDialogResult.cancelled] for a plain
   /// dismissal too, e.g. a click outside the dialog or `Escape`).
   ///
-  /// For deleting a floor-plan set element used by two or more sequences
-  /// (`docs/plans/storyboard.md`, §10.4): `Cancel` / `Remove from sequence <n>`
+  /// For deleting a floor-plan set element used by two or more sequences:
+  /// `Cancel` / `Remove from sequence <n>`
   /// ([OcptConfirmDialogResult.alternative]) / `Delete everywhere`
   /// ([OcptConfirmDialogResult.confirmed], destructive). A caller with only two choices keeps using
   /// [show] — this is additive, never a replacement.

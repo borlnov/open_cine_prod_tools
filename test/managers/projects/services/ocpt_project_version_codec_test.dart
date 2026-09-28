@@ -576,8 +576,7 @@ void main() {
         budgetEntryId: "entry-1",
       ),
       // The two storyboard/floor plan kinds set none of the four owner columns: the panel's own
-      // imageAssetId and the case's own underlayAssetId are the only link (`docs/plans/
-      // storyboard.md`, §2).
+      // imageAssetId and the set's own underlayAssetId are the only link.
       OcptAssetRow(
         id: "asset-4",
         kind: OcptAssetKind.storyboardPanelImage,
@@ -1352,7 +1351,7 @@ void main() {
       expect(roundTripped.people.map((row) => row.sortKey), ["V", "k"]);
       expect(roundTripped.storyboardPanels.map((row) => row.sortKey), ["V", "k"]);
       expect(roundTripped.floorPlanSymbols.map((row) => row.sortKey), ["V", "k", "m", "w"]);
-      // fovReachM (R3b): only the camera symbol carries one, every other row stays null.
+      // fovReachM: only the camera symbol carries one, every other row stays null.
       expect(roundTripped.floorPlanSymbols.map((row) => row.fovReachM), [null, 6, null, null]);
 
       // The per-column stamps travel with the rows they describe: this is the assertion that
@@ -1496,7 +1495,7 @@ void main() {
       expect(asset.personId, "person-1");
 
       // The two storyboard/floor plan asset kinds set none of the four owner columns: the
-      // panel's/case's own id is the only link (`docs/plans/storyboard.md`, §2).
+      // panel's/case's own id is the only link.
       final panelImageAsset = roundTripped.assets.firstWhere((row) => row.id == "asset-4");
       expect(panelImageAsset.kind, OcptAssetKind.storyboardPanelImage);
       expect(panelImageAsset.personId, isNull);
@@ -1548,7 +1547,7 @@ void main() {
         expect(case1.underlayWidthM, 4);
         expect(case1.underlayHeightM, 3);
         expect(case1.underlayRotationDeg, 15);
-        // No underlay placed yet on the second case: every underlay column stays null.
+        // No underlay placed yet on the second set: every underlay column stays null.
         final caseWithNoUnderlay = roundTripped.floorPlanSets.firstWhere(
           (row) => row.id == "case-2",
         );
