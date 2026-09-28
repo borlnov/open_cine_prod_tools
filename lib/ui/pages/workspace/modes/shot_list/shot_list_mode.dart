@@ -1147,7 +1147,6 @@ class _ShotListViewState extends State<_ShotListView> {
       isOnionSkinNextShown: state.isFloorPlanOnionSkinNextShown,
       onionSkinOpacity: state.floorPlanOnionSkinOpacity,
       isMetricsShown: state.isFloorPlanMetricsShown,
-      isAllCamerasShown: state.isFloorPlanAllCamerasShown,
       selectedSymbolId: state.selectedFloorPlanSymbolId,
       selectedArrowId: state.selectedFloorPlanArrowId,
       pendingArrowAnchorSymbolId: state.pendingFloorPlanArrowAnchorSymbolId,
@@ -1182,7 +1181,6 @@ class _ShotListViewState extends State<_ShotListView> {
       onOnionSkinOpacityChanged: (opacity) =>
           bloc.add(OcptShotListFloorPlanOnionSkinOpacityChangedEvent(opacity: opacity)),
       onMetricsToggled: () => bloc.add(const OcptShotListFloorPlanMetricsToggledEvent()),
-      onAllCamerasToggled: () => bloc.add(const OcptShotListFloorPlanAllCamerasToggledEvent()),
       onUnderlayVisibilityToggled: () =>
           bloc.add(const OcptShotListFloorPlanUnderlayVisibilityToggledEvent()),
       onUnderlayImportRequested: isReadOnly || selectedSetId == null

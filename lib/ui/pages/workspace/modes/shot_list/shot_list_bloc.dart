@@ -377,7 +377,6 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     on<OcptShotListFloorPlanOnionSkinToggledEvent>(_onFloorPlanOnionSkinToggled);
     on<OcptShotListFloorPlanOnionSkinOpacityChangedEvent>(_onFloorPlanOnionSkinOpacityChanged);
     on<OcptShotListFloorPlanMetricsToggledEvent>(_onFloorPlanMetricsToggled);
-    on<OcptShotListFloorPlanAllCamerasToggledEvent>(_onFloorPlanAllCamerasToggled);
     on<OcptShotListFloorPlanArrowSymbolTappedEvent>(_onFloorPlanArrowSymbolTapped);
     on<OcptShotListFloorPlanArrowAnchorCancelledEvent>(_onFloorPlanArrowAnchorCancelled);
     on<OcptShotListFloorPlanArrowDeletionRequestedEvent>(_onFloorPlanArrowDeletionRequested);
@@ -3598,14 +3597,6 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     Emitter<OcptShotListState> emitter,
   ) async {
     emitter(state.copyWith(isFloorPlanMetricsShown: !state.isFloorPlanMetricsShown));
-  }
-
-  /// Toggles the focus strip's own "All cameras" toggle. A view preference; a display toggle only.
-  Future<void> _onFloorPlanAllCamerasToggled(
-    OcptShotListFloorPlanAllCamerasToggledEvent event,
-    Emitter<OcptShotListState> emitter,
-  ) async {
-    emitter(state.copyWith(isFloorPlanAllCamerasShown: !state.isFloorPlanAllCamerasShown));
   }
 
   /// Resolves a tap on symbol `event.symbolId` while the arrow tool is active, exactly as

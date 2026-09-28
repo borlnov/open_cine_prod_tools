@@ -4057,23 +4057,6 @@ void main() {
         return created.selectedShotId!;
       }
 
-      test('the "All cameras" toggle is session view state', () async {
-        await writeScreenplay(twoSceneText);
-        final bloc = buildBloc();
-        await waitForState(bloc, (state) => !state.isLoading);
-        expect(bloc.state.isFloorPlanAllCamerasShown, isFalse);
-
-        bloc.add(const OcptShotListFloorPlanAllCamerasToggledEvent());
-        final on = await waitForState(bloc, (state) => state.isFloorPlanAllCamerasShown);
-        expect(on.isFloorPlanAllCamerasShown, isTrue);
-
-        bloc.add(const OcptShotListFloorPlanAllCamerasToggledEvent());
-        final off = await waitForState(bloc, (state) => !state.isFloorPlanAllCamerasShown);
-        expect(off.isFloorPlanAllCamerasShown, isFalse);
-
-        await bloc.close();
-      });
-
       test(
         "duplicating the selected set copies its own set-scope placements as independent rows, "
         "into a new Resources set linked to the same sequence, and selects the copy",

@@ -1610,14 +1610,6 @@ class OcptShotListFloorPlanMetricsToggledEvent extends OcptShotListEvent {
   const OcptShotListFloorPlanMetricsToggledEvent();
 }
 
-/// Toggles the focus strip's own "All cameras" toggle, dispatched by its own chip (R3,
-/// `docs/plans/storyboard.md`, §9.4). A view preference, a display toggle only — never a state
-/// that gates a tool.
-class OcptShotListFloorPlanAllCamerasToggledEvent extends OcptShotListEvent {
-  /// Class constructor
-  const OcptShotListFloorPlanAllCamerasToggledEvent();
-}
-
 /// Records a tap on symbol `event.symbolId` while the canvas's own `arrow` tool is active,
 /// dispatched by a symbol's own hit overlay.
 ///

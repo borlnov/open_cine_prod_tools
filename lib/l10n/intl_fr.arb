@@ -529,7 +529,6 @@
   "shotListFloorPlanCopyBlockingDialogTitle": "Copier le placement depuis…",
   "shotListFloorPlanCopyBlockingDialogHint": "Choisissez le plan dont copier les placements sur ce décor.",
   "shotListFloorPlanCopyBlockingCancelAction": "Annuler",
-  "shotListFloorPlanAllCamerasToggleLabel": "Toutes les caméras",
   "shotListFloorPlanSelectionGroupTitle": "Sélection",
   "shotListFloorPlanOnThisShotGroupTitle": "Sur ce plan",
   "shotListFloorPlanSetGroupTitle": "Décor",

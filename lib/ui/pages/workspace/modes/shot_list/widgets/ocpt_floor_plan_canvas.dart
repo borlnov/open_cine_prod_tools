@@ -71,8 +71,8 @@ const double _rotateSnapStepDeg = 15;
 /// yet): it draws every sequence layer plus [focusShotId]'s own shot layers, plus
 /// [previousShotId]'s/[nextShotId]'s own shot layers as onion-skin ghosts, gated by
 /// [isOnionSkinPreviousShown]/[isOnionSkinNextShown]. [hiddenCameraSymbolIds] hides a camera
-/// symbol regardless of which of those three groups it belongs to — the focused shot's own, an
-/// onion-skin ghost's, or (with [isAllCamerasShown]) an "All cameras" ghost's. **The scope
+/// symbol regardless of which of those two groups it belongs to — the focused shot's own or an
+/// onion-skin ghost's. **The scope
 /// invariant a tool respects**: [OcptFloorPlanTool.setElement] places on the tray's active
 /// *sequence* layer (never scoped to a shot); [OcptFloorPlanTool.camera]/
 /// [OcptFloorPlanTool.character]/[OcptFloorPlanTool.light] each place their own fixed shot layer on
@@ -153,8 +153,8 @@ class OcptFloorPlanCanvas extends StatefulWidget {
   final Set<OcptFloorPlanLayer> hiddenLayers;
 
   /// The ids of every camera symbol currently hidden, out of every live camera of the sequence —
-  /// applied to every camera shape this canvas draws, whether it is [focusShotId]'s own, an
-  /// onion-skin ghost's, or (with [isAllCamerasShown]) an "All cameras" ghost's.
+  /// applied to every camera shape this canvas draws, whether it is [focusShotId]'s own or an
+  /// onion-skin ghost's.
   final Set<String> hiddenCameraSymbolIds;
 
   /// Whether the set's own underlay is currently hidden.
@@ -173,13 +173,6 @@ class OcptFloorPlanCanvas extends StatefulWidget {
   /// Whether the metrics overlay is shown: the distance from the selected symbol to every other
   /// visible symbol of the set.
   final bool isMetricsShown;
-
-  /// Whether the "All cameras" strip toggle is on (R3): every shot's own camera symbol of this set
-  /// draws as a ghost alongside [focusShotId]'s own — a display toggle only. A single tap on one of
-  /// these extra ghosts calls [onGhostShotFocusRequested] with its own shot id (jumping straight to
-  /// it), rather than selecting it the way every other ghost's single tap does — see the state's
-  /// own symbol-tap handler.
-  final bool isAllCamerasShown;
 
   /// The canvas's own currently active tool.
   final OcptFloorPlanTool activeTool;
@@ -366,7 +359,6 @@ class OcptFloorPlanCanvas extends StatefulWidget {
     required this.selectedArrowId,
     required this.pendingArrowAnchorSymbolId,
     required this.isMetricsShown,
-    required this.isAllCamerasShown,
     required this.activeTool,
     required this.activeLayer,
     required this.activeSetElementShape,
@@ -576,10 +568,10 @@ class _OcptFloorPlanCanvasState extends State<OcptFloorPlanCanvas> {
 
   /// The sheet this canvas draws, under [OcptFloorPlanCanvas.focusShotId]'s own focus, filtered to
   /// [OcptFloorPlanCanvas.hiddenLayers] and [OcptFloorPlanCanvas.hiddenCameraSymbolIds] — applied
-  /// to every camera shape alike, the focused shot's own, an onion-skin ghost's, or an "All
-  /// cameras" ghost's (the bug this once had: the filter used to run only under the old `Sequence`
-  /// focus, a focus R2 removed — there is always a current shot now, so it silently stopped
-  /// applying at all). The onion skin's own ghost shots
+  /// to every camera shape alike, the focused shot's own or an onion-skin ghost's (the bug this
+  /// once had: the filter used to run only under the old `Sequence` focus, a focus R2 removed —
+  /// there is always a current shot now, so it silently stopped applying at all). The onion skin's
+  /// own ghost shots
   /// ([OcptFloorPlanCanvas.previousShotId]/[OcptFloorPlanCanvas.nextShotId]) are passed to
   /// `OcptFloorPlanSheet.of` only while their own tray toggle is on, so a hidden neighbour draws
   /// nothing at all rather than a ghost this canvas then has to filter back out.
@@ -592,7 +584,6 @@ class _OcptFloorPlanCanvasState extends State<OcptFloorPlanCanvas> {
       previousShotId: widget.isOnionSkinPreviousShown ? widget.previousShotId : null,
       nextShotId: widget.isOnionSkinNextShown ? widget.nextShotId : null,
       showFieldOfView: widget.viewportController.showFieldOfView,
-      showAllCameras: widget.isAllCamerasShown,
     );
 
     return OcptFloorPlanSheet(
@@ -1194,20 +1185,6 @@ class _OcptFloorPlanCanvasState extends State<OcptFloorPlanCanvas> {
       if (!symbol.isGhost) {
         widget.onArrowSymbolTapped?.call(symbol.symbolId);
       }
-      return;
-    }
-
-    // The "All cameras" strip toggle (R3): a single click on one of its own ghost cameras jumps
-    // straight to that camera's shot, rather than selecting the ghost — browsing cameras is the
-    // whole point of the toggle, and a jump reads the ghost the same way a click already reads a
-    // shot chip. The onion skin's own ghosts keep their double-click-to-jump/single-click-to-select
-    // split (see [_buildSymbolHitOverlay]'s own doc comment) whenever the toggle is off.
-    final shotId = symbol.shotId;
-    if (widget.isAllCamerasShown &&
-        symbol.isGhost &&
-        symbol.layer == OcptFloorPlanLayer.cameras &&
-        shotId != null) {
-      widget.onGhostShotFocusRequested?.call(shotId);
       return;
     }
 

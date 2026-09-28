@@ -108,11 +108,6 @@ class OcptFloorPlanView extends StatefulWidget {
   /// Whether the metrics overlay is shown.
   final bool isMetricsShown;
 
-  /// Whether the "All cameras" strip toggle is on: every shot's own camera of the selected set
-  /// draws as a ghost alongside the focused shot's own (R3, `docs/plans/storyboard.md`, §9.4) — a
-  /// display toggle only, never a state that gates a tool.
-  final bool isAllCamerasShown;
-
   /// The id of the currently selected symbol, or null while none is.
   final String? selectedSymbolId;
 
@@ -183,9 +178,6 @@ class OcptFloorPlanView extends StatefulWidget {
 
   /// Called when the metrics toggle is clicked.
   final VoidCallback onMetricsToggled;
-
-  /// Called when the "All cameras" strip toggle is clicked.
-  final VoidCallback onAllCamerasToggled;
 
   /// Called when the underlay row's own eye is clicked.
   final VoidCallback onUnderlayVisibilityToggled;
@@ -322,7 +314,6 @@ class OcptFloorPlanView extends StatefulWidget {
     required this.isOnionSkinNextShown,
     required this.onionSkinOpacity,
     required this.isMetricsShown,
-    required this.isAllCamerasShown,
     required this.selectedSymbolId,
     required this.selectedArrowId,
     required this.pendingArrowAnchorSymbolId,
@@ -344,7 +335,6 @@ class OcptFloorPlanView extends StatefulWidget {
     required this.onOnionSkinToggled,
     required this.onOnionSkinOpacityChanged,
     required this.onMetricsToggled,
-    required this.onAllCamerasToggled,
     required this.onUnderlayVisibilityToggled,
     required this.onUnderlayImportRequested,
     required this.onUnderlayClearRequested,
@@ -525,7 +515,6 @@ class _OcptFloorPlanViewState extends State<OcptFloorPlanView> {
                       selectedArrowId: widget.selectedArrowId,
                       pendingArrowAnchorSymbolId: widget.pendingArrowAnchorSymbolId,
                       isMetricsShown: widget.isMetricsShown,
-                      isAllCamerasShown: widget.isAllCamerasShown,
                       activeTool: widget.activeTool,
                       activeLayer: widget.activeLayer,
                       activeSetElementShape: widget.activeSetElementShape,
@@ -572,9 +561,7 @@ class _OcptFloorPlanViewState extends State<OcptFloorPlanView> {
             selectedShotId: widget.focusShotId,
             previousShotId: widget.previousShotId,
             nextShotId: widget.nextShotId,
-            isAllCamerasShown: widget.isAllCamerasShown,
             onShotChipSelected: widget.onShotChipSelected,
-            onAllCamerasToggled: widget.onAllCamerasToggled,
           ),
         ],
       ),
@@ -615,7 +602,6 @@ class _OcptFloorPlanViewState extends State<OcptFloorPlanView> {
       shotRankByShotId: widget.shotRankByShotId,
       previousShotId: widget.isOnionSkinPreviousShown ? widget.previousShotId : null,
       nextShotId: widget.isOnionSkinNextShown ? widget.nextShotId : null,
-      showAllCameras: widget.isAllCamerasShown,
     );
 
     final counts = <OcptFloorPlanLayer, int>{};

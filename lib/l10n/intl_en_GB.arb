@@ -4074,13 +4074,6 @@
     "type": "text",
     "placeholders": {}
   },
-  "shotListFloorPlanAllCamerasToggleLabel": "All cameras",
-  "@shotListFloorPlanAllCamerasToggleLabel": {
-    "description": "Label of the focus strip's own \"All cameras\" toggle chip",
-    "context": "Displayed in the floor plans focus strip",
-    "type": "text",
-    "placeholders": {}
-  },
   "shotListFloorPlanSelectionGroupTitle": "Selection",
   "@shotListFloorPlanSelectionGroupTitle": {
     "description": "Header of the Placements group's own Selection section",

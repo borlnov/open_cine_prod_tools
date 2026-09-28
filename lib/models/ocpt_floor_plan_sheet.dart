@@ -444,8 +444,8 @@ class OcptFloorPlanSheet extends Equatable {
   /// scene-effective shapes just resolved (a plain prop/furniture, or itself already a
   /// sequence-scope override) replaces *that* — visible or hidden, marked exactly the same way but
   /// with [OcptFloorPlanOverrideLevel.shot] — never reaching past [focusShotId]'s own placements.
-  /// Onion-skin ghosts and "all cameras" ghosts are never resolved through this second level: a
-  /// ghosted neighbour's own shot-scope overrides, if any, simply draw as its own placements do.
+  /// Onion-skin ghosts are never resolved through this second level: a ghosted neighbour's own
+  /// shot-scope overrides, if any, simply draw as its own placements do.
   ///
   /// [shotRankByShotId] is every shot of the sequence's own 1-based display rank
   /// (`OcptShot.position` + 1, `docs/plans/storyboard.md`'s "the number is the shot's rank in the
@@ -457,14 +457,6 @@ class OcptFloorPlanSheet extends Equatable {
   /// defaults to `true` (the wedge shows by default) so a caller that never touches the flag — every
   /// existing one, ahead of the tray toggle a later piece of work adds — still gets it.
   ///
-  /// [showAllCameras] (R3, the "All cameras" strip toggle — `docs/plans/storyboard.md`, §9.4) adds
-  /// every *other* shot's own camera symbols to the sheet, as ghosts, alongside [focusShotId]'s own
-  /// (never ghosted) and the onion skin's — a display toggle only, never a state that gates a tool:
-  /// a shot already drawn by [focusShotId] or the onion skin is never duplicated. Restricted to
-  /// **the focused sequence's own shots** — [shotRankByShotId]'s keys, since a floor plan's own set
-  /// can be shared by several sequences and a camera of a shot belonging to another one would draw
-  /// with no readable label and lead nowhere on a click. Ignored under the **sequence** focus
-  /// ([focusShotId] null), which already draws every shot's camera of its own accord.
   factory OcptFloorPlanSheet.of({
     required OcptFloorPlanSet floorPlanSet,
     required String focusSceneId,
@@ -473,7 +465,6 @@ class OcptFloorPlanSheet extends Equatable {
     String? previousShotId,
     String? nextShotId,
     bool showFieldOfView = true,
-    bool showAllCameras = false,
   }) {
     final setScopeSymbols = [
       for (final symbol in floorPlanSet.symbols)
@@ -680,26 +671,6 @@ class OcptFloorPlanSheet extends Equatable {
         showFieldOfView: showFieldOfView,
       ),
     );
-
-    if (showAllCameras) {
-      final excludedShotIds = {focusShotId, ...ghostShotIds};
-      final extraCameraSymbols = [
-        for (final symbol in floorPlanSet.symbols)
-          if (symbol.layer == OcptFloorPlanLayer.cameras &&
-              symbol.shotId != null &&
-              !excludedShotIds.contains(symbol.shotId) &&
-              shotRankByShotId.containsKey(symbol.shotId))
-            symbol,
-      ];
-      symbolShapes.addAll(
-        _shapesOf(
-          extraCameraSymbols,
-          shotRankByShotId: shotRankByShotId,
-          isGhost: true,
-          showFieldOfView: showFieldOfView,
-        ),
-      );
-    }
 
     final relevantShotIds = {focusShotId, ...ghostShotIds};
     final symbolById = {for (final symbol in floorPlanSet.symbols) symbol.id: symbol};
