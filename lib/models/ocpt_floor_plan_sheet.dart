@@ -460,9 +460,11 @@ class OcptFloorPlanSheet extends Equatable {
   /// [showAllCameras] (R3, the "All cameras" strip toggle — `docs/plans/storyboard.md`, §9.4) adds
   /// every *other* shot's own camera symbols to the sheet, as ghosts, alongside [focusShotId]'s own
   /// (never ghosted) and the onion skin's — a display toggle only, never a state that gates a tool:
-  /// a shot already drawn by [focusShotId] or the onion skin is never duplicated. Ignored under the
-  /// **sequence** focus ([focusShotId] null), which already draws every shot's camera of its own
-  /// accord.
+  /// a shot already drawn by [focusShotId] or the onion skin is never duplicated. Restricted to
+  /// **the focused sequence's own shots** — [shotRankByShotId]'s keys, since a floor plan's own set
+  /// can be shared by several sequences and a camera of a shot belonging to another one would draw
+  /// with no readable label and lead nowhere on a click. Ignored under the **sequence** focus
+  /// ([focusShotId] null), which already draws every shot's camera of its own accord.
   factory OcptFloorPlanSheet.of({
     required OcptFloorPlanSet floorPlanSet,
     required String focusSceneId,
@@ -685,7 +687,8 @@ class OcptFloorPlanSheet extends Equatable {
         for (final symbol in floorPlanSet.symbols)
           if (symbol.layer == OcptFloorPlanLayer.cameras &&
               symbol.shotId != null &&
-              !excludedShotIds.contains(symbol.shotId))
+              !excludedShotIds.contains(symbol.shotId) &&
+              shotRankByShotId.containsKey(symbol.shotId))
             symbol,
       ];
       symbolShapes.addAll(

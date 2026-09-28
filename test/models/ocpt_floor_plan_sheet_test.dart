@@ -812,6 +812,36 @@ void main() {
       expect(sheet.symbols.map((symbol) => symbol.symbolId), ["cam-own"]);
     });
 
+    test("on: a camera of another sequence's shot on the same set is never added", () {
+      final ownCamera = _symbol(id: "cam-own", shotId: "shot-1", layer: OcptFloorPlanLayer.cameras);
+      final sequenceCamera = _symbol(
+        id: "cam-sequence",
+        shotId: "shot-9",
+        layer: OcptFloorPlanLayer.cameras,
+      );
+      final otherSequenceCamera = _symbol(
+        id: "cam-other-sequence",
+        shotId: "shot-99",
+        layer: OcptFloorPlanLayer.cameras,
+      );
+      final floorPlanSet = _caseOf(symbols: [ownCamera, sequenceCamera, otherSequenceCamera]);
+
+      final sheet = OcptFloorPlanSheet.of(
+        floorPlanSet: floorPlanSet,
+        focusSceneId: "scene-1",
+        focusShotId: "shot-1",
+        // "shot-99" belongs to another sequence and is deliberately left out of this map, which
+        // holds only the focused sequence's own shots — `OcptFloorPlanSheet.of`'s own doc comment.
+        shotRankByShotId: const {"shot-1": 1, "shot-9": 9},
+        showAllCameras: true,
+      );
+
+      expect(
+        sheet.symbols.map((symbol) => symbol.symbolId).toSet(),
+        {"cam-own", "cam-sequence"},
+      );
+    });
+
     test("ignored under the sequence focus (no focused shot): already drawing every camera", () {
       final cameraA = _symbol(id: "cam-a", shotId: "shot-1", layer: OcptFloorPlanLayer.cameras);
       final cameraB = _symbol(id: "cam-b", shotId: "shot-2", layer: OcptFloorPlanLayer.cameras);
