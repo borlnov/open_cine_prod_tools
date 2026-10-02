@@ -18,18 +18,18 @@ import 'package:sqlite3/sqlite3.dart' show sqlite3;
 // schema at v1; the 0.2.0 release froze v2 — `OcptSyncRelayCursorsTable` and `OcptSyncPairingsTable`,
 // both local, never-synchronised tables the changeset engine and its relay transport add, plus
 // `budget_lines.in_kind_resource_id`; the 0.2.1 release froze v3 — `shot_characters` reshaped from
-// `{shotId, characterName}` to `{shotId, roleId}`; a development cycle is open at v4, adding the
-// five storyboard and floor plan tables.
+// `{shotId, characterName}` to `{shotId, roleId}`; the 0.3.0 release froze v4 — the five
+// storyboard and floor plan tables.
 //
 // ADR 0029 ties a verbatim DDL fixture to each frozen release, one for the schema the *previous*
 // stable shipped — the shape a real file from that release was left with, migrated forward and
 // checked against `onCreate`. [_v1Ddl] is the v1 fixture (a real 0.1.0 file), added when 0.2.0
 // froze v2; [_v2Ddl] is the v2 fixture (a real 0.2.0 file), added when 0.2.1 froze v3; [_v3Ddl] is
-// the v3 fixture (a real 0.2.1 file), added while v4 is open, so the cycle's own upgrade path is
-// exercised before it ever freezes. Each is a hand-held copy of the real `CREATE TABLE` statements,
-// never built through drift, so the test proves `onCreate` still reproduces migrating that real
-// file forward rather than merely rewriting the same "undo the last upgrade" trick the schema's own
-// `onUpgrade` doc comment already describes.
+// the v3 fixture (a real 0.2.1 file), added while v4 was still open, so that cycle's upgrade path
+// was exercised before 0.3.0 froze it. Each is a hand-held copy of the real `CREATE TABLE`
+// statements, never built through drift, so the test proves `onCreate` still reproduces migrating
+// that real file forward rather than merely rewriting the same "undo the last upgrade" trick the
+// schema's own `onUpgrade` doc comment already describes.
 
 void main() {
   test(

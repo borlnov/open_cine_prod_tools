@@ -4413,7 +4413,7 @@ void main() {
       'a format-4 payload written before setElementShape/ctrlXM/ctrlYM existed decodes with '
       'those columns null',
       () {
-        // Schema version 4 is still an open development cycle: `setElementShape`, `ctrlXM` and
+        // Schema version 4 was still an open development cycle: `setElementShape`, `ctrlXM` and
         // `ctrlYM` were added straight onto the v4 tables rather than through a v5 migration
         // (`OcptFloorPlanSymbolsTable`/`OcptFloorPlanArrowsTable`'s own doc comments), so an
         // already-written format-4 payload's row JSON carries none of the three keys at all,

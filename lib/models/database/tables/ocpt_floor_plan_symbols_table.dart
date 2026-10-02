@@ -18,10 +18,10 @@ class OcptFloorPlanLayerConverter extends TypeConverter<OcptFloorPlanLayer, Stri
 
   /// One-cycle back-compat map from the pre-merge layer names (`decor`, `furniture`, `fixedProps`,
   /// `handProps`) a dev `.ocpt` file written before schema v4's layer merge may still hold, onto
-  /// their replacement in [OcptFloorPlanLayer] — schema version 4 is still an open development
-  /// cycle (`docs/adr/0029-schema-versions-frozen-at-stable-releases.md`), so the merge happens in
+  /// their replacement in [OcptFloorPlanLayer] — schema version 4 was still an open development
+  /// cycle (`docs/adr/0029-schema-versions-frozen-at-stable-releases.md`), so the merge happened in
   /// place with no migration step of its own, and this is what lets such a file still open. Safe to
-  /// drop once schema v4 ships stable, since a stable release never wrote the old names.
+  /// drop now that 0.3.0 has frozen schema v4, since a stable release never wrote the old names.
   static const _legacyLayerNames = {
     'decor': OcptFloorPlanLayer.set,
     'furniture': OcptFloorPlanLayer.set,

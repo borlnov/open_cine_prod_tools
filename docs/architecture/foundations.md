@@ -344,7 +344,7 @@ the persistence, the project versions, the sync-ready data model and the read-on
   devcontainer carries no Android SDK, so the Android build is **CI-verified only**; the local
   verification gate stays `flutter build linux --debug`.
 
-- Persistence: drift schema v4, an open development cycle (ADR 0029). `onCreate` creates the whole
+- Persistence: drift schema v4, frozen at 0.3.0 (ADR 0029). `onCreate` creates the whole
   schema at once — `project_info`, `screenplays`, `screenplay_snapshots`, `scenes`, the three shot
   list tables, the five storyboard and floor plan tables (`storyboard_panels`,
   `storyboard_annotations`, `floor_plan_sets`, `floor_plan_symbols`, `floor_plan_arrows`,
@@ -366,21 +366,20 @@ the persistence, the project versions, the sync-ready data model and the read-on
   local sync tables (`sync_relay_cursors`, `sync_pairings`) and adds `budget_lines.in_kind_resource_id`,
   touching nothing else, so a v1 file's existing rows are untouched by it; the 0.2.1 release froze v3
   — `shot_characters` reshaped from `{shotId, characterName}` to `{shotId, roleId}`, the first
-  non-additive step this project ships (ADR 0030); v4 — the five tables above, fully additive — is
-  the shot list's storyboard and floor plans (`shot-list.md`). Two constants govern this:
-  `currentSchemaVersion` (4) and `lastStableSchemaVersion` (3, frozen at 0.2.1). While
-  `current == lastStable + 1` a cycle is open and the pending step is rewritten in place — the state
-  today, so a further v4 change overwrites `ocpt_migration_v4.dart` in place rather than creating a
-  fifth file; while `current == lastStable` the top step is frozen instead, so a schema change then
-  creates a new one. Freezing sets `lastStableSchemaVersion` to `currentSchemaVersion` at release
-  (`docs/RELEASING.md`), which a fail-closed CI guard on a stable tag enforces — a forgotten freeze
-  blocks the release, an incorrect one fails the migration test. ADR 0007's additive-only guidance
-  still governs how a single step is written; its allocate-at-merge rule is amended — a cycle no
-  longer takes a number per merge. The migration test is the harness pinning each frozen stable's
-  upgrade path (a verbatim DDL fixture for the schema each prior stable shipped, proving
-  `onCreate` == every stable upgrade path), so a table declared and forgotten fails there rather
-  than on a user's file; it holds the v1 and v2 fixtures. `**/*.g.dart` is git-ignored (documented
-  deviation); CI regenerates with build_runner.
+  non-additive step this project ships (ADR 0030); the 0.3.0 release froze v4 — the five tables
+  above, fully additive, the shot list's storyboard and floor plans (`shot-list.md`). Two constants
+  govern this: `currentSchemaVersion` (4) and `lastStableSchemaVersion` (4, frozen at 0.3.0). While
+  `current == lastStable + 1` a cycle is open and the pending step is rewritten in place; while
+  `current == lastStable` the top step is frozen — the state today — so the next schema change
+  creates a new one, `ocpt_migration_v5.dart`. Freezing sets `lastStableSchemaVersion` to
+  `currentSchemaVersion` at release (`docs/RELEASING.md`), which a fail-closed CI guard on a stable
+  tag enforces — a forgotten freeze blocks the release, an incorrect one fails the migration test.
+  ADR 0007's additive-only guidance still governs how a single step is written; its
+  allocate-at-merge rule is amended — a cycle no longer takes a number per merge. The migration test
+  is the harness pinning each frozen stable's upgrade path (a verbatim DDL fixture for the schema
+  each prior stable shipped, proving `onCreate` == every stable upgrade path), so a table declared
+  and forgotten fails there rather than on a user's file; it holds the v1, v2 and v3 fixtures.
+  `**/*.g.dart` is git-ignored (documented deviation); CI regenerates with build_runner.
 
 - Project versions (`project_versions` + `project_info.currentVersionId`, schema v1): the user's
   named, permanent checkpoints of the **whole** project, not to be confused with
@@ -396,20 +395,19 @@ the persistence, the project versions, the sync-ready data model and the read-on
   forty-four captured tables verbatim (primary keys, tombstones and `row_field_versions` stamps
   included) plus the page setup, the currency and the minimum rest, in a JSON format versioned by
   `payloadFormat`, which follows the same freeze discipline the schema does (ADR 0029):
-  `currentPayloadFormat` (4) advances only at a stable release, `lastStablePayloadFormat` (3) tracks
+  `currentPayloadFormat` (4) advances only at a stable release, `lastStablePayloadFormat` (4) tracks
   the last one frozen, and a payload written in a newer format than this build knows is **refused**,
   not half-read. Like the schema, the pre-stable format ladder was squashed away — no payload older
   than format 1 exists. Formats 1 (0.1.0) and 2 (0.2.0) were additive, so an older payload decodes
   directly; format 3 (0.2.1) is the first that is not — a pre-3 payload's `shotCharacters` rows are
-  dropped rather than reshaped into roles (ADR 0030) — and the retired format-1 and format-2 shapes
-  are pinned in the codec test. Format 4 (the storyboard and floor plan tables, `shot-list.md`) is
-  additive again, still an open development cycle, and decodes an older payload with its five lists
-  empty. It is **a hand-written
-  mirror of the schema**, and a new synchronised table has to be added to all three of it,
-  `contentDigest` and `_applyPayload`: leave it out of the payload and a restore rewinds half the
-  project, out of the digest and the working copy claims not to have drifted, out of `_applyPayload`
-  and it is never written back. Counters shown on a card (`OcptProjectVersionSummary`) are measured
-  once, at creation.
+  dropped rather than reshaped into roles (ADR 0030) — and the retired format-1, format-2 and
+  format-3 shapes are pinned in the codec test. Format 4 (0.3.0, the storyboard and floor plan
+  tables, `shot-list.md`) is additive again, and decodes an older payload with its five lists empty.
+  It is **a hand-written mirror of the schema**, and a new synchronised table has to be added to all
+  three of it, `contentDigest` and `_applyPayload`: leave it out of the payload and a restore
+  rewinds half the project, out of the digest and the working copy claims not to have drifted, out
+  of `_applyPayload` and it is never written back. Counters shown on a card
+  (`OcptProjectVersionSummary`) are measured once, at creation.
   The codec also owns `contentDigest`, the SHA-256 of a payload's canonical *content* — rows sorted
   by primary key and each row's JSON keys sorted, `row_field_versions` and the page margins left
   out, since the stamps change on every restore and the margins are an app-wide preference. It is
