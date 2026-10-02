@@ -6,9 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_centre_view.dart';
-
-/// The horizontal padding of the switch's own two segments, in logical pixels.
-const double _ocptBreakdownSegmentPadding = 14;
+import 'package:open_cine_prod_tools/ui/widgets/ocpt_view_switch.dart';
 
 /// The fixed width of the header's own search field, in logical pixels.
 const double _ocptBreakdownSearchFieldWidth = 260;
@@ -104,7 +102,20 @@ class OcptBreakdownHeader extends StatelessWidget {
 
           return Row(
             children: [
-              _OcptBreakdownViewSwitch(value: centreView, onChanged: onCentreViewSelected),
+              OcptViewSwitch<OcptBreakdownCentreView>(
+                value: centreView,
+                onChanged: onCentreViewSelected,
+                segments: [
+                  OcptViewSwitchSegment(
+                    value: OcptBreakdownCentreView.script,
+                    label: tr.breakdownHeaderScriptSegmentLabel,
+                  ),
+                  OcptViewSwitchSegment(
+                    value: OcptBreakdownCentreView.recap,
+                    label: tr.breakdownHeaderRecapSegmentLabel,
+                  ),
+                ],
+              ),
               const SizedBox(width: 12),
               // Loose, so the field keeps its full width wherever there is room for it and shrinks
               // rather than pushing the row past its constraints where there is not.
@@ -159,70 +170,6 @@ class OcptBreakdownHeader extends StatelessWidget {
             ],
           );
         },
-      ),
-    );
-  }
-}
-
-/// The `Script`/`Recap` switch: a small bordered rounded container, the active segment filled
-/// `primary` and bolder.
-class _OcptBreakdownViewSwitch extends StatelessWidget {
-  /// The switch's own current value.
-  final OcptBreakdownCentreView value;
-
-  /// Called with the segment just clicked, when it differs from [value].
-  final ValueChanged<OcptBreakdownCentreView> onChanged;
-
-  /// Class constructor
-  const _OcptBreakdownViewSwitch({required this.value, required this.onChanged});
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return Container(
-      padding: const EdgeInsets.all(2),
-      decoration: BoxDecoration(
-        border: Border.all(color: theme.colorScheme.outlineVariant),
-        borderRadius: BorderRadius.circular(ocptRadiusMedium),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          _buildSegment(context, OcptBreakdownCentreView.script, Tr.of(context).breakdownHeaderScriptSegmentLabel),
-          _buildSegment(context, OcptBreakdownCentreView.recap, Tr.of(context).breakdownHeaderRecapSegmentLabel),
-        ],
-      ),
-    );
-  }
-
-  /// One of the switch's own two segments.
-  Widget _buildSegment(BuildContext context, OcptBreakdownCentreView segment, String label) {
-    final theme = Theme.of(context);
-    final isActive = value == segment;
-
-    return InkWell(
-      onTap: isActive ? null : () => onChanged(segment),
-      mouseCursor: ocptClickableCursor,
-      borderRadius: BorderRadius.circular(ocptRadiusSmall),
-      child: Container(
-        padding: const EdgeInsets.symmetric(
-          horizontal: _ocptBreakdownSegmentPadding,
-          vertical: 6,
-        ),
-        decoration: BoxDecoration(
-          color: isActive
-              ? theme.colorScheme.primary.withValues(alpha: ocptSelectedStateAlpha)
-              : Colors.transparent,
-          borderRadius: BorderRadius.circular(ocptRadiusSmall),
-        ),
-        child: Text(
-          label,
-          style: theme.textTheme.labelMedium?.copyWith(
-            color: isActive ? theme.colorScheme.primary : theme.colorScheme.onSurfaceVariant,
-            fontWeight: isActive ? FontWeight.w700 : FontWeight.normal,
-          ),
-        ),
       ),
     );
   }

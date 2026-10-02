@@ -291,6 +291,8 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     on<OcptResourcesSetLocationChangedEvent>(_onSetLocationChanged);
     on<OcptResourcesSceneAssignedToSetEvent>(_onSceneAssignedToSet);
     on<OcptResourcesSceneRemovedFromSetEvent>(_onSceneRemovedFromSet);
+    on<OcptResourcesOpenSetInShotListRequestedEvent>(_onOpenSetInShotListRequested);
+    on<OcptResourcesShotListRevealDismissedEvent>(_onShotListRevealDismissed);
     on<OcptResourcesLocationPhotoAddRequestedEvent>(_onLocationPhotoAddRequested);
     on<OcptResourcesPersonPhotoPickRequestedEvent>(_onPersonPhotoPickRequested);
     on<OcptResourcesPersonPhotoClearedEvent>(_onPersonPhotoCleared);
@@ -409,6 +411,12 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     final mileageRates = await _projectsManager.budgetFinancingService.loadMileageRates(
       database: project.database,
     );
+    final setIdsWithPlan = await _locationsService.floorPlanService.liveSetIdsWithPlan(
+      database: project.database,
+      setIds: [
+        for (final location in snapshot.locations) for (final set in location.sets) set.id,
+      ],
+    );
 
     final revealRequest = _pendingRevealRequest;
     _pendingRevealRequest = null;
@@ -424,6 +432,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
           snapshot: snapshot,
           pageSetup: pageSetup,
           mileageRates: mileageRates,
+          setIdsWithPlan: setIdsWithPlan,
           clearSelectedPersonId: true,
           clearSelectedRoleId: true,
           clearSelectedLocationId: true,
@@ -2254,6 +2263,55 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
       setId: event.setId,
     ),
   );
+
+  /// Resolves set `event.setId`'s own first linked sequence, in screenplay order
+  /// (`OcptLocationsService.firstLinkedSceneOf`), and sets it as the pending cross-mode reveal the
+  /// mode's own listener reads next — the sets card's own `Open in shot list` action. A no-op
+  /// while the set carries no live link at all
+  /// (defensive only: the card never offers the action then).
+  Future<void> _onOpenSetInShotListRequested(
+    OcptResourcesOpenSetInShotListRequestedEvent event,
+    Emitter<OcptResourcesState> emitter,
+  ) async {
+    final project = _projectsManager.currentProject;
+    if (project == null) {
+      return;
+    }
+
+    try {
+      final firstLinkedScene = await _locationsService.firstLinkedSceneOf(
+        database: project.database,
+        setId: event.setId,
+      );
+      if (firstLinkedScene == null) {
+        return;
+      }
+
+      emitter(
+        state.copyWith(
+          pendingShotListReveal: (
+            episodeId: firstLinkedScene.screenplayId,
+            sceneId: firstLinkedScene.sceneId,
+            setId: event.setId,
+          ),
+        ),
+      );
+    } catch (error) {
+      appLogger().e(
+        "A problem occurred when tried to resolve set ${event.setId}'s own first linked "
+        "sequence of the project at ${project.path}: $error",
+      );
+    }
+  }
+
+  /// Clears [OcptResourcesState.pendingShotListReveal] once the mode has dispatched the cross-mode
+  /// switch it named.
+  Future<void> _onShotListRevealDismissed(
+    OcptResourcesShotListRevealDismissedEvent event,
+    Emitter<OcptResourcesState> emitter,
+  ) async {
+    emitter(state.copyWith(clearPendingShotListReveal: true));
+  }
 
   /// Asks for a scouting photo through the native picker and references the file picked, written
   /// immediately. A cancelled dialog changes nothing at all.

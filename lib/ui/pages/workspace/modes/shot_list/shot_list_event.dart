@@ -5,13 +5,26 @@
 import 'dart:ui';
 
 import 'package:act_flutter_utility/act_flutter_utility.dart';
+import 'package:open_cine_prod_tools/models/ocpt_floor_plan_labels.dart';
+import 'package:open_cine_prod_tools/models/ocpt_floor_plan_sheet.dart' show OcptFloorPlanOverrideLevel;
 import 'package:open_cine_prod_tools/models/ocpt_scenario_coverage_export_options.dart';
 import 'package:open_cine_prod_tools/models/ocpt_scenario_coverage_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_list_xlsx_labels.dart';
+import 'package:open_cine_prod_tools/models/ocpt_storyboard_export_options.dart';
+import 'package:open_cine_prod_tools/models/ocpt_storyboard_labels.dart';
+import 'package:open_cine_prod_tools/types/ocpt_floor_plan_layer.dart';
+import 'package:open_cine_prod_tools/types/ocpt_floor_plan_scope.dart';
+import 'package:open_cine_prod_tools/types/ocpt_floor_plan_scope_choice.dart';
+import 'package:open_cine_prod_tools/types/ocpt_floor_plan_set_element_shape.dart';
+import 'package:open_cine_prod_tools/types/ocpt_floor_plan_tool.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_difficulty_axis.dart';
+import 'package:open_cine_prod_tools/types/ocpt_shot_list_centre_view.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_column.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_right_dock_tab.dart';
+import 'package:open_cine_prod_tools/types/ocpt_storyboard_annotation_kind.dart';
+import 'package:open_cine_prod_tools/types/ocpt_storyboard_annotation_tool.dart';
+import 'package:open_cine_prod_tools/types/ocpt_storyboard_panel_size.dart';
 
 /// The events handled by `OcptShotListBloc`.
 sealed class OcptShotListEvent extends BlocEventForMixin {
@@ -232,6 +245,101 @@ class OcptShotListScenarioCoverageExportRequestedEvent extends OcptShotListEvent
   /// Object properties
   @override
   List<Object?> get props => [...super.props, options, labels, fileTypeLabel, episodeTag, shareAnchor];
+}
+
+/// Requests exporting the storyboard — every shot's imported frames, annotated, with its key
+/// information — dispatched by the mode's own `⋮` menu once its own options dialog has resolved.
+///
+/// [options] is what that dialog returned — the page format and margins, the shots-per-page count
+/// and whether the floor plan sheets are appended after each sequence. Both localized payloads are
+/// resolved by the widget dispatching this, since the bloc has no `BuildContext` of its own:
+/// [labels] is every string the document itself carries (see `ocptStoryboardLabelsOf`),
+/// [fileTypeLabel] the label the native save dialog shows for the `.pdf` type. Any pending field
+/// edit is flushed first, exactly as [OcptShotListXlsxExportRequestedEvent] does, so a panel
+/// comment typed seconds before the export is in the document rather than only on screen.
+class OcptShotListStoryboardExportRequestedEvent extends OcptShotListEvent {
+  /// The one-off options the export runs with.
+  final OcptStoryboardExportOptions options;
+
+  /// Every localized string the exported document holds.
+  final OcptStoryboardLabels labels;
+
+  /// Every localized string the appended floor plan sheets hold, when [OcptStoryboardExportOptions
+  /// .includeFloorPlansAfterEachSequence] is true — unused otherwise, but always resolved by the
+  /// caller alongside [labels] so the bloc never has to reach for a `Tr` of its own to build it on
+  /// demand.
+  final OcptFloorPlanLabels floorPlanLabels;
+
+  /// The localized label of the `.pdf` file type, shown by the native save dialog.
+  final String fileTypeLabel;
+
+  /// The selected episode's own tag, exactly as
+  /// [OcptShotListXlsxExportRequestedEvent.episodeTag] is — see its own doc comment.
+  final String? episodeTag;
+
+  /// The tapped `Export` control's own screen `Rect`, exactly as
+  /// [OcptShotListXlsxExportRequestedEvent.shareAnchor] is — see its own doc comment.
+  final Rect? shareAnchor;
+
+  /// Class constructor
+  const OcptShotListStoryboardExportRequestedEvent({
+    required this.options,
+    required this.labels,
+    required this.floorPlanLabels,
+    required this.fileTypeLabel,
+    this.episodeTag,
+    this.shareAnchor,
+  });
+
+  /// Object properties
+  @override
+  List<Object?> get props => [
+    ...super.props,
+    options,
+    labels,
+    floorPlanLabels,
+    fileTypeLabel,
+    episodeTag,
+    shareAnchor,
+  ];
+}
+
+/// Requests exporting the floor plans — one plan per shot that has a camera placed on it —
+/// dispatched by the toolbar's export panel directly: unlike the storyboard, this document opens
+/// no options dialog of its own, its page format coming from `OcptShotListState.pageSetup`
+/// (mirroring the shot list workbook's own `Export XLSX` button).
+///
+/// [labels] is every string the document itself carries (see `ocptFloorPlanLabelsOf`), resolved by
+/// the widget dispatching this since the bloc has no `BuildContext` of its own; [fileTypeLabel] the
+/// label the native save dialog shows for the `.pdf` type. Any pending field edit is flushed first,
+/// exactly as [OcptShotListXlsxExportRequestedEvent] does, so a symbol label typed seconds before
+/// the export is on the plan rather than only on screen.
+class OcptShotListFloorPlansExportRequestedEvent extends OcptShotListEvent {
+  /// Every localized string the exported document holds.
+  final OcptFloorPlanLabels labels;
+
+  /// The localized label of the `.pdf` file type, shown by the native save dialog.
+  final String fileTypeLabel;
+
+  /// The selected episode's own tag, exactly as
+  /// [OcptShotListXlsxExportRequestedEvent.episodeTag] is — see its own doc comment.
+  final String? episodeTag;
+
+  /// The tapped `Export` control's own screen `Rect`, exactly as
+  /// [OcptShotListXlsxExportRequestedEvent.shareAnchor] is — see its own doc comment.
+  final Rect? shareAnchor;
+
+  /// Class constructor
+  const OcptShotListFloorPlansExportRequestedEvent({
+    required this.labels,
+    required this.fileTypeLabel,
+    this.episodeTag,
+    this.shareAnchor,
+  });
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, labels, fileTypeLabel, episodeTag, shareAnchor];
 }
 
 /// Dismisses the transient export notice currently shown, if any.
@@ -505,4 +613,1181 @@ class OcptShotListShotMarkedAsCheckedEvent extends OcptShotListEvent {
   /// Object properties
   @override
   List<Object?> get props => [...super.props, shotId];
+}
+
+/// Selects centre view [view], dispatched by `OcptShotListCentreHeader`'s own switch, and persists
+/// it through `OcptPropertiesManager.shotListLastCentreView`.
+///
+/// Keeps `OcptShotListState.selectedShotId`/`.selectedSequenceId` exactly as they were: the two
+/// views read the same selection, one just shows more of it than the other.
+class OcptShotListCentreViewSelectedEvent extends OcptShotListEvent {
+  /// The view just picked.
+  final OcptShotListCentreView view;
+
+  /// Class constructor
+  const OcptShotListCentreViewSelectedEvent({required this.view});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, view];
+}
+
+/// Selects panel [panelId] on the board, dispatched by a click on one of the selected shot's own
+/// `OcptStoryboardPanelFrame`s.
+class OcptShotListPanelSelectedEvent extends OcptShotListEvent {
+  /// The id of the panel to select.
+  final String panelId;
+
+  /// Class constructor
+  const OcptShotListPanelSelectedEvent({required this.panelId});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, panelId];
+}
+
+/// Sets the board's common panel height to [size], dispatched by the header's own `Panel size ▾`
+/// menu. A **view preference**, held in state for the session alone — never persisted.
+class OcptShotListPanelSizeChangedEvent extends OcptShotListEvent {
+  /// The panel size just picked.
+  final OcptStoryboardPanelSize size;
+
+  /// Class constructor
+  const OcptShotListPanelSizeChangedEvent({required this.size});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, size];
+}
+
+/// Requests importing a frame onto shot [shotId]'s storyboard, dispatched by its panel strip's
+/// trailing `Import frame` slot.
+///
+/// The bloc picks the file through `FileSelectorManager`, filtered to JPEG and PNG
+/// (`ocptStoryboardPanelImageFileExtensions`), then appends a new panel carrying it. A cancelled
+/// dialog changes nothing at all. [fileTypeLabel] is the localized label the native picker's own
+/// file type filter shows, resolved by the mode — the bloc has no `BuildContext` of its own.
+class OcptShotListPanelImportRequestedEvent extends OcptShotListEvent {
+  /// The id of the shot the new panel is appended to.
+  final String shotId;
+
+  /// The localized label of the picker's own file type filter.
+  final String fileTypeLabel;
+
+  /// Class constructor
+  const OcptShotListPanelImportRequestedEvent({required this.shotId, required this.fileTypeLabel});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, shotId, fileTypeLabel];
+}
+
+/// Requests replacing panel [panelId]'s image, dispatched by its frame's own `Replace image`
+/// action.
+///
+/// The same picker [OcptShotListPanelImportRequestedEvent] uses; a cancelled dialog leaves the
+/// panel's current image untouched. See [OcptShotListPanelImportRequestedEvent] for
+/// [fileTypeLabel].
+class OcptShotListPanelReplaceRequestedEvent extends OcptShotListEvent {
+  /// The id of the panel whose image is replaced.
+  final String panelId;
+
+  /// The localized label of the picker's own file type filter.
+  final String fileTypeLabel;
+
+  /// Class constructor
+  const OcptShotListPanelReplaceRequestedEvent({
+    required this.panelId,
+    required this.fileTypeLabel,
+  });
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, panelId, fileTypeLabel];
+}
+
+/// Moves panel [panelId] of shot [shotId] to [newPosition] (0-based) among its shot's other panels,
+/// dispatched by the strip's own drag-to-reorder gesture. Written immediately, one row
+/// (`OcptStoryboardService.reorderPanel`).
+class OcptShotListPanelReorderedEvent extends OcptShotListEvent {
+  /// The id of the shot the panel belongs to.
+  final String shotId;
+
+  /// The id of the panel being moved.
+  final String panelId;
+
+  /// The 0-based position the panel is moved to.
+  final int newPosition;
+
+  /// Class constructor
+  const OcptShotListPanelReorderedEvent({
+    required this.shotId,
+    required this.panelId,
+    required this.newPosition,
+  });
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, shotId, panelId, newPosition];
+}
+
+/// Records the raw text just typed into panel [panelId]'s free comment, dispatched by the
+/// inspector's Panels group on every keystroke.
+///
+/// Rides the mode's own field-edit autosave debounce exactly as
+/// `OcptShotListShotFieldChangedEvent` does, keyed by `OcptShotListPanelCommentEditKey` rather than
+/// `OcptShotListShotFieldEditKey`.
+class OcptShotListPanelCommentChangedEvent extends OcptShotListEvent {
+  /// The id of the panel whose comment was edited.
+  final String panelId;
+
+  /// The comment's raw text, exactly as typed.
+  final String rawValue;
+
+  /// Class constructor
+  const OcptShotListPanelCommentChangedEvent({required this.panelId, required this.rawValue});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, panelId, rawValue];
+}
+
+/// Requests deleting panel [panelId] for good, dispatched once the inspector's Panels group's own
+/// `Delete panel` action has already been confirmed through `OcptConfirmDialog`, by the mode.
+class OcptShotListPanelDeletionRequestedEvent extends OcptShotListEvent {
+  /// The id of the panel to delete.
+  final String panelId;
+
+  /// Class constructor
+  const OcptShotListPanelDeletionRequestedEvent({required this.panelId});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, panelId];
+}
+
+/// Sets the board's active annotation tool to [tool], dispatched by the inspector's own `Annotate`
+/// control, or clears it (null) when the tool already on is picked again. Scoped to the currently
+/// selected panel — see `OcptShotListState.activeAnnotationTool`'s own doc comment for when it is
+/// cleared on its own.
+class OcptShotListAnnotationToolSelectedEvent extends OcptShotListEvent {
+  /// The tool just picked, or null to turn annotation editing off.
+  final OcptStoryboardAnnotationTool? tool;
+
+  /// Class constructor
+  const OcptShotListAnnotationToolSelectedEvent({required this.tool});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, tool];
+}
+
+/// Adds a mark of [kind] to panel [panelId] at the normalised tail/head `(x1, y1)`-`(x2, y2)`,
+/// dispatched once a drag over the selected panel's own frame finishes drawing an arrow. Written
+/// immediately, then selects the freshly minted mark (`OcptStoryboardService.addAnnotation`).
+class OcptShotListAnnotationDrawnEvent extends OcptShotListEvent {
+  /// The id of the panel the mark is added to.
+  final String panelId;
+
+  /// The kind of mark just drawn (one of the two arrow kinds — a label is placed by
+  /// [OcptShotListAnnotationPlacedEvent] instead).
+  final OcptStoryboardAnnotationKind kind;
+
+  /// The arrow's tail X coordinate, normalised 0..1 to the frame.
+  final double x1;
+
+  /// The arrow's tail Y coordinate, normalised 0..1 to the frame.
+  final double y1;
+
+  /// The arrow's head X coordinate, normalised 0..1 to the frame.
+  final double x2;
+
+  /// The arrow's head Y coordinate, normalised 0..1 to the frame.
+  final double y2;
+
+  /// Class constructor
+  const OcptShotListAnnotationDrawnEvent({
+    required this.panelId,
+    required this.kind,
+    required this.x1,
+    required this.y1,
+    required this.x2,
+    required this.y2,
+  });
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, panelId, kind, x1, y1, x2, y2];
+}
+
+/// Places a [OcptStoryboardAnnotationKind.label] on panel [panelId] at the normalised point
+/// `(x1, y1)`, dispatched by a click over the selected panel's own frame while the label tool is
+/// on. Written immediately, then selects the freshly minted mark so its text field opens ready
+/// for typing (`OcptStoryboardService.addAnnotation`).
+class OcptShotListAnnotationPlacedEvent extends OcptShotListEvent {
+  /// The id of the panel the label is added to.
+  final String panelId;
+
+  /// The label's anchor X coordinate, normalised 0..1 to the frame.
+  final double x1;
+
+  /// The label's anchor Y coordinate, normalised 0..1 to the frame.
+  final double y1;
+
+  /// Class constructor
+  const OcptShotListAnnotationPlacedEvent({
+    required this.panelId,
+    required this.x1,
+    required this.y1,
+  });
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, panelId, x1, y1];
+}
+
+/// Selects mark [annotationId], dispatched by a click on it (either on the frame's own overlay, or
+/// on its row of the inspector Panels group's annotation section).
+class OcptShotListAnnotationSelectedEvent extends OcptShotListEvent {
+  /// The id of the mark to select.
+  final String annotationId;
+
+  /// Class constructor
+  const OcptShotListAnnotationSelectedEvent({required this.annotationId});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, annotationId];
+}
+
+/// Records the raw text just typed into mark [annotationId]'s own text — a label's text, or an
+/// arrow's optional caption — dispatched by the annotation section's own text field on every
+/// keystroke. Rides the mode's field-edit autosave debounce, keyed by
+/// `OcptShotListAnnotationTextEditKey`.
+class OcptShotListAnnotationTextChangedEvent extends OcptShotListEvent {
+  /// The id of the mark whose text was edited.
+  final String annotationId;
+
+  /// The text's raw value, exactly as typed.
+  final String rawValue;
+
+  /// Class constructor
+  const OcptShotListAnnotationTextChangedEvent({required this.annotationId, required this.rawValue});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, annotationId, rawValue];
+}
+
+/// Requests deleting mark [annotationId] for good, dispatched once the annotation section's own
+/// remove action has already been confirmed through `OcptConfirmDialog`, by the mode.
+class OcptShotListAnnotationDeletionRequestedEvent extends OcptShotListEvent {
+  /// The id of the mark to delete.
+  final String annotationId;
+
+  /// Class constructor
+  const OcptShotListAnnotationDeletionRequestedEvent({required this.annotationId});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, annotationId];
+}
+
+/// Selects set `event.setId` on the floor plans view, dispatched by a click on its own tab.
+/// Clears the symbol selection: a symbol only ever belongs to the set currently shown.
+class OcptShotListSetSelectedEvent extends OcptShotListEvent {
+  /// The id of the set to select.
+  final String setId;
+
+  /// Class constructor
+  const OcptShotListSetSelectedEvent({required this.setId});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, setId];
+}
+
+/// Requests creating a new Resources set named after the selected sequence's scene heading's
+/// place, linked to it (`OcptLocationsService.createSetLinkedToScene`), then selects it. Does
+/// nothing while no sequence is selected, or while the selected one is the orphan group: a set
+/// tab only ever belongs to a real screenplay scene, exactly as a new shot only ever belongs to
+/// one.
+///
+/// [locationId] names the location the `＋ Set` menu's own `Create a set ▸` submenu entry was
+/// clicked under, or null for its own `New location…` entry — `OcptLocationsService
+/// .createSetLinkedToScene`'s own reading of a null `locationId` (mint a location of its own) is
+/// exactly what that entry asks for, so this event carries the field verbatim rather than
+/// resolving it itself.
+class OcptShotListSetCreationRequestedEvent extends OcptShotListEvent {
+  /// The location to create the new set in, or null to mint one of its own.
+  final String? locationId;
+
+  /// Class constructor
+  const OcptShotListSetCreationRequestedEvent({this.locationId});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, locationId];
+}
+
+/// Requests linking Resources set [setId] to the selected sequence
+/// (`OcptLocationsService.assignSceneToSet`), then selects it — the empty-state gallery's own
+/// card click and the `＋ Set` menu's own suggestion entry and `Link an existing set ▸` submenu
+/// entries. Does nothing while no sequence is selected, or
+/// while the selected one is the orphan group, exactly like
+/// [OcptShotListSetCreationRequestedEvent].
+class OcptShotListSetLinkRequestedEvent extends OcptShotListEvent {
+  /// The id of the Resources set to link.
+  final String setId;
+
+  /// Class constructor
+  const OcptShotListSetLinkRequestedEvent({required this.setId});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, setId];
+}
+
+/// Records the raw text just typed into set `event.setId`'s own tab as a pending edit, and
+/// (re)starts the field-edit debounce shared with every other typed field of the mode.
+class OcptShotListSetNameChangedEvent extends OcptShotListEvent {
+  /// The id of the set whose name was edited.
+  final String setId;
+
+  /// The set's new name, exactly as typed.
+  final String rawValue;
+
+  /// Class constructor
+  const OcptShotListSetNameChangedEvent({required this.setId, required this.rawValue});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, setId, rawValue];
+}
+
+/// Requests unlinking set `event.setId` from the selected sequence
+/// (`OcptLocationsService.removeSceneFromSet`), dispatched once the tab's own close action has
+/// already been confirmed through `OcptConfirmDialog`, by the mode. The plan itself is kept —
+/// relinking the set brings its placements back. Clears the selection (and, with it, the symbol
+/// selection) when it was the selected set.
+class OcptShotListSetDeletionRequestedEvent extends OcptShotListEvent {
+  /// The id of the set to unlink.
+  final String setId;
+
+  /// Class constructor
+  const OcptShotListSetDeletionRequestedEvent({required this.setId});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, setId];
+}
+
+/// Duplicates set `event.setId` into a new Resources set named `event.newSetName`, in the same
+/// location, linked to the selected sequence (`OcptFloorPlanService.duplicateSet`,
+/// `OcptLocationsService.createSiblingSet`/`.assignSceneToSet`), dispatched by the set tabs' own
+/// `＋ Set` menu's `Duplicate this set` entry. Selects the
+/// freshly minted copy once written.
+class OcptShotListSetDuplicationRequestedEvent extends OcptShotListEvent {
+  /// The id of the set to duplicate.
+  final String setId;
+
+  /// The new set's own name — computed by the mode (which has `Tr`) from the source set's current
+  /// name, no localisation happening in a service or a bloc.
+  final String newSetName;
+
+  /// Class constructor
+  const OcptShotListSetDuplicationRequestedEvent({required this.setId, required this.newSetName});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, setId, newSetName];
+}
+
+/// Copies shot `event.sourceShotId`'s own live blocking on set `event.setId` onto the currently
+/// focused shot (`OcptFloorPlanService.copyShotBlocking`), dispatched by the set tabs' own
+/// `＋ Set` menu's `Copy blocking from another shot` entry, once the mode's own source-shot picker
+/// has returned a pick.
+class OcptShotListFloorPlanBlockingCopyRequestedEvent extends OcptShotListEvent {
+  /// The id of the set the blocking is copied on (both the source and the destination — the menu
+  /// only offers a same-set copy).
+  final String setId;
+
+  /// The id of the shot the blocking is copied from.
+  final String sourceShotId;
+
+  /// Class constructor
+  const OcptShotListFloorPlanBlockingCopyRequestedEvent({
+    required this.setId,
+    required this.sourceShotId,
+  });
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, setId, sourceShotId];
+}
+
+/// Records the floor plans canvas's own zoom as last **settled** by
+/// `OcptFloorPlanViewportController`, dispatched once a zoom gesture (the tool bar's `−`/`+`
+/// buttons, or the canvas's own scroll-wheel zoom, debounced) ends — never per frame. A view
+/// preference, held for the session alone; see `OcptShotListState.floorPlanZoom`'s own doc comment.
+class OcptShotListFloorPlanZoomChangedEvent extends OcptShotListEvent {
+  /// The zoom just settled on.
+  final double zoom;
+
+  /// Class constructor
+  const OcptShotListFloorPlanZoomChangedEvent({required this.zoom});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, zoom];
+}
+
+/// Picks the floor plans canvas's own active tool, dispatched by the tool bar.
+class OcptShotListFloorPlanToolSelectedEvent extends OcptShotListEvent {
+  /// The tool just picked.
+  final OcptFloorPlanTool tool;
+
+  /// Class constructor
+  const OcptShotListFloorPlanToolSelectedEvent({required this.tool});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, tool];
+}
+
+/// Picks the sequence layer a placed set element lands on, dispatched by a click on one of the
+/// tray's own sequence layer rows.
+class OcptShotListFloorPlanActiveLayerChangedEvent extends OcptShotListEvent {
+  /// The layer just picked. Always sequence-scoped: the tray only ever offers those three rows in
+  /// this milestone.
+  final OcptFloorPlanLayer layer;
+
+  /// Class constructor
+  const OcptShotListFloorPlanActiveLayerChangedEvent({required this.layer});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, layer];
+}
+
+/// Picks the décor primitive a `setElement` placement carries, dispatched by a click on one of the
+/// palette's own four typed set-element entries (wall/door/furniture/freeform).
+class OcptShotListFloorPlanActiveSetElementShapeChangedEvent extends OcptShotListEvent {
+  /// The shape just picked.
+  final OcptFloorPlanSetElementShape shape;
+
+  /// Class constructor
+  const OcptShotListFloorPlanActiveSetElementShapeChangedEvent({required this.shape});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, shape];
+}
+
+/// Picks the scope a `setElement` placement lands at, dispatched by a click on one of the
+/// palette's own typed set-element entries — [OcptFloorPlanScope.set] for the `Set` group's own
+/// four, [OcptFloorPlanScope.scene] for the `Sequence` group's own furniture/freeform pair.
+class OcptShotListFloorPlanActiveSetElementScopeChangedEvent extends OcptShotListEvent {
+  /// The scope just picked.
+  final OcptFloorPlanScope scope;
+
+  /// Class constructor
+  const OcptShotListFloorPlanActiveSetElementScopeChangedEvent({required this.scope});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, scope];
+}
+
+/// Picks the label a `prop` placement carries, dispatched by a click on one of the palette's
+/// own breakdown-props chips, or by the `Other…` chip's own name picker resolving.
+class OcptShotListFloorPlanActiveLabelChangedEvent extends OcptShotListEvent {
+  /// The label just picked.
+  final String label;
+
+  /// Class constructor
+  const OcptShotListFloorPlanActiveLabelChangedEvent({required this.label});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, label];
+}
+
+/// Toggles the visibility of sequence layer `event.layer` on the floor plans canvas, dispatched by
+/// the tray's own eye icon. A view preference; never withheld under a read-only preview, since it
+/// only reads.
+class OcptShotListFloorPlanLayerVisibilityToggledEvent extends OcptShotListEvent {
+  /// The layer whose visibility is toggled.
+  final OcptFloorPlanLayer layer;
+
+  /// Class constructor
+  const OcptShotListFloorPlanLayerVisibilityToggledEvent({required this.layer});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, layer];
+}
+
+/// Toggles the selected set's underlay visibility on the floor plans canvas, dispatched by the
+/// tray's own underlay row eye icon. A view preference; never withheld under a read-only preview.
+class OcptShotListFloorPlanUnderlayVisibilityToggledEvent extends OcptShotListEvent {
+  /// Class constructor
+  const OcptShotListFloorPlanUnderlayVisibilityToggledEvent();
+}
+
+/// Places a new set element symbol on set `event.setId`'s `event.layer`, at `event.xM`/`event.yM`
+/// (metres), dispatched by a click on empty canvas while the `setElement` tool is on. Written
+/// immediately (`OcptFloorPlanService.placeSymbol`), then selects the freshly minted symbol.
+class OcptShotListFloorPlanSymbolPlacedEvent extends OcptShotListEvent {
+  /// The id of the set the symbol is placed on.
+  final String setId;
+
+  /// The layer the symbol is placed on — the tray's own current active sequence layer for
+  /// [OcptFloorPlanTool.setElement], or the fixed layer a shot-scoped tool
+  /// ([OcptFloorPlanTool.camera]/[OcptFloorPlanTool.character]/[OcptFloorPlanTool.light]) always
+  /// places on.
+  final OcptFloorPlanLayer layer;
+
+  /// The id of the shot the symbol belongs to — null on a sequence layer, the focused shot's id on
+  /// a shot layer (the scope invariant
+  /// `OcptFloorPlanService.placeSymbol` enforces).
+  final String? shotId;
+
+  /// The id of the sequence the symbol belongs to — null on a set-scope or shot-scope symbol, the
+  /// focused sequence's own scene id on a scene-scope one (a `set`-layer placement at
+  /// [OcptFloorPlanScope.scene], or any `props` placement).
+  final String? sceneId;
+
+  /// The symbol's centre X, in metres.
+  final double xM;
+
+  /// The symbol's centre Y, in metres.
+  final double yM;
+
+  /// The décor primitive a `setElement` placement carries — from the placing entry's own
+  /// (`OcptFloorPlanPaletteDragPayload`) or the click-to-armed
+  /// `OcptShotListState.floorPlanActiveSetElementShape`. Null on every other layer.
+  final OcptFloorPlanSetElementShape? setElementShape;
+
+  /// A `prop` placement's own armed label — from the placing chip's own drag payload or the
+  /// click-to-armed `OcptShotListState.floorPlanActiveLabel`. Empty on every other layer.
+  final String label;
+
+  /// Class constructor
+  const OcptShotListFloorPlanSymbolPlacedEvent({
+    required this.setId,
+    required this.layer,
+    required this.shotId,
+    required this.sceneId,
+    required this.xM,
+    required this.yM,
+    this.setElementShape,
+    this.label = "",
+  });
+
+  /// Object properties
+  @override
+  List<Object?> get props => [
+    ...super.props,
+    setId,
+    layer,
+    shotId,
+    sceneId,
+    xM,
+    yM,
+    setElementShape,
+    label,
+  ];
+}
+
+/// Selects symbol `event.symbolId` on the floor plans canvas, or clears the selection when
+/// `event.symbolId` is null (a click on empty canvas while the `select` tool is on).
+class OcptShotListFloorPlanSymbolSelectedEvent extends OcptShotListEvent {
+  /// The id of the symbol to select, or null to clear the selection.
+  final String? symbolId;
+
+  /// Class constructor
+  const OcptShotListFloorPlanSymbolSelectedEvent({required this.symbolId});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, symbolId];
+}
+
+/// Moves symbol `event.symbolId` to `event.xM`/`event.yM` (metres), dispatched once a drag on it
+/// ends. Written as a single row (`OcptFloorPlanService.updateSymbol`), never per frame: the live
+/// drag position is a purely local widget concern, exactly as the underlay's own drag is.
+class OcptShotListFloorPlanSymbolMovedEvent extends OcptShotListEvent {
+  /// The id of the symbol being moved.
+  final String symbolId;
+
+  /// The symbol's new centre X, in metres.
+  final double xM;
+
+  /// The symbol's new centre Y, in metres.
+  final double yM;
+
+  /// Class constructor
+  const OcptShotListFloorPlanSymbolMovedEvent({
+    required this.symbolId,
+    required this.xM,
+    required this.yM,
+  });
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, symbolId, xM, yM];
+}
+
+/// Resizes set element symbol `event.symbolId` to `event.widthM`/`event.heightM` (metres),
+/// dispatched once a drag on its own resize handle ends. Written as a single row, never per frame.
+class OcptShotListFloorPlanSymbolResizedEvent extends OcptShotListEvent {
+  /// The id of the symbol being resized.
+  final String symbolId;
+
+  /// The symbol's new footprint width, in metres.
+  final double widthM;
+
+  /// The symbol's new footprint height, in metres.
+  final double heightM;
+
+  /// Class constructor
+  const OcptShotListFloorPlanSymbolResizedEvent({
+    required this.symbolId,
+    required this.widthM,
+    required this.heightM,
+  });
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, symbolId, widthM, heightM];
+}
+
+/// Rotates symbol `event.symbolId` to `event.rotationDeg`, dispatched once a drag on its own
+/// rotate handle ends. Written as a single row, never per frame.
+class OcptShotListFloorPlanSymbolRotatedEvent extends OcptShotListEvent {
+  /// The id of the symbol being rotated.
+  final String symbolId;
+
+  /// The symbol's new rotation, in degrees.
+  final double rotationDeg;
+
+  /// Class constructor
+  const OcptShotListFloorPlanSymbolRotatedEvent({
+    required this.symbolId,
+    required this.rotationDeg,
+  });
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, symbolId, rotationDeg];
+}
+
+/// Requests deleting symbol `event.symbolId` for good, dispatched once the canvas's own delete
+/// action has already been confirmed through `OcptConfirmDialog`, by the mode.
+class OcptShotListFloorPlanSymbolDeletionRequestedEvent extends OcptShotListEvent {
+  /// The id of the symbol to delete.
+  final String symbolId;
+
+  /// Class constructor
+  const OcptShotListFloorPlanSymbolDeletionRequestedEvent({required this.symbolId});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, symbolId];
+}
+
+/// Requests deleting set-scope symbol `event.symbolId` **everywhere** — itself (or, when it names
+/// a scene-scope override instead, the set-scope original it overrides) and every live override of
+/// it, in every sequence (`OcptFloorPlanService.deleteSymbolEverywhere`) — the destructive branch
+/// of the extended delete confirmation for an element used by two or more sequences,
+/// dispatched once it has already been confirmed through
+/// `OcptConfirmDialog.showWithAlternative`, by the mode.
+class OcptShotListFloorPlanSymbolDeleteEverywhereRequestedEvent extends OcptShotListEvent {
+  /// The id of the symbol (the original, or one of its overrides) to delete everywhere.
+  final String symbolId;
+
+  /// Class constructor
+  const OcptShotListFloorPlanSymbolDeleteEverywhereRequestedEvent({required this.symbolId});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, symbolId];
+}
+
+/// Masks set-scope symbol `event.symbolId` for sequence `event.targetSceneId` alone — a **hidden**
+/// override, setting `isHidden` on one that already exists or creating one, copied from the
+/// original's own geometry — the alternative branch ("Remove from sequence n") of the extended
+/// delete confirmation, dispatched once it has already been confirmed through
+/// `OcptConfirmDialog.showWithAlternative`, by the mode. Reversible: the inspector's own `Restore`
+/// undoes it.
+class OcptShotListFloorPlanSymbolHideRequestedEvent extends OcptShotListEvent {
+  /// The id of the symbol (the original, or one of its overrides) to mask.
+  final String symbolId;
+
+  /// The sequence to mask it for — the override's own `sceneId`, whichever sequence [symbolId]
+  /// itself already belongs to when it already is one, or the focused sequence's own scene id when
+  /// it is the set-scope original instead.
+  final String targetSceneId;
+
+  /// Class constructor
+  const OcptShotListFloorPlanSymbolHideRequestedEvent({
+    required this.symbolId,
+    required this.targetSceneId,
+  });
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, symbolId, targetSceneId];
+}
+
+/// Masks scene-scope symbol `event.symbolId` for shot `event.targetShotId` alone — a **hidden**
+/// shot-scope override, setting `isHidden` on one that already exists or creating one, copied from
+/// the scene symbol's own geometry — the alternative
+/// branch ("Remove from shot n") of the shot-level extended delete confirmation, dispatched once it
+/// has already been confirmed through `OcptConfirmDialog.showWithAlternative`, by the mode.
+/// Reversible: the inspector's own `Restore` undoes it. See
+/// [OcptShotListFloorPlanSymbolHideRequestedEvent]'s own doc comment for the sequence-level
+/// equivalent this mirrors one level down.
+class OcptShotListFloorPlanSymbolHideForShotRequestedEvent extends OcptShotListEvent {
+  /// The id of the symbol (the scene-scope symbol, or one of its own shot overrides) to mask.
+  final String symbolId;
+
+  /// The shot to mask it for — the override's own `shotId`, whichever shot [symbolId] itself
+  /// already belongs to when it already is one, or the focused shot's own id when it is the
+  /// scene-scope symbol instead.
+  final String targetShotId;
+
+  /// Class constructor
+  const OcptShotListFloorPlanSymbolHideForShotRequestedEvent({
+    required this.symbolId,
+    required this.targetShotId,
+  });
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, symbolId, targetShotId];
+}
+
+/// Restores override `event.symbolId` as in the level above it — tombstones it
+/// (`OcptFloorPlanService.deleteSymbol`), so the original it names reappears there: a set-scope
+/// original for a scene-scope override, or a scene-scope symbol for a shot-scope one — the
+/// canvas's own `Restore` handle and the inspector's own `Restore as in the set`/`Restore as in
+/// the sequence` action. Reversible (the user can redo the change), so this never asks —
+/// dispatched straight away.
+class OcptShotListFloorPlanSymbolRestoreRequestedEvent extends OcptShotListEvent {
+  /// The id of the override to restore.
+  final String symbolId;
+
+  /// Class constructor
+  const OcptShotListFloorPlanSymbolRestoreRequestedEvent({required this.symbolId});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, symbolId];
+}
+
+/// Reports a move, rotate or resize awaiting the scope bubble's own answer, dispatched by the mode
+/// instead of writing anything, the instant such a gesture ends — a **set-scope** symbol
+/// belonging to a set linked to
+/// `event.sequenceCount` (two or more) sequences ([OcptFloorPlanOverrideLevel.sequence]), or a
+/// **scene-scope** symbol of a sequence with two or more shots ([OcptFloorPlanOverrideLevel.shot]).
+/// Only stores `OcptShotListState.pendingFloorPlanScopeDecision`;
+/// [OcptShotListFloorPlanScopeDecisionResolvedEvent] is what actually writes (or drops) it.
+class OcptShotListFloorPlanScopeDecisionRequestedEvent extends OcptShotListEvent {
+  /// The id of the symbol being moved, rotated or resized.
+  final String symbolId;
+
+  /// The Resources set [symbolId] belongs to.
+  final String setId;
+
+  /// Which of the two levels this decision is at. See `OcptFloorPlanScopeDecision`'s own doc
+  /// comment.
+  final OcptFloorPlanOverrideLevel level;
+
+  /// How many live sequences the symbol's own set is linked to — meaningless (0) at
+  /// [OcptFloorPlanOverrideLevel.shot].
+  final int sequenceCount;
+
+  /// The symbol's own new centre X, in metres — null unless a move triggered this. See
+  /// `OcptFloorPlanScopeDecision`'s own doc comment.
+  final double? xM;
+
+  /// The symbol's own new centre Y, in metres. See [xM].
+  final double? yM;
+
+  /// The symbol's own new footprint width, in metres — null unless a resize triggered this.
+  final double? widthM;
+
+  /// The symbol's own new footprint height, in metres. See [widthM].
+  final double? heightM;
+
+  /// The symbol's own new rotation, in degrees — null unless a rotate triggered this.
+  final double? rotationDeg;
+
+  /// Class constructor
+  const OcptShotListFloorPlanScopeDecisionRequestedEvent({
+    required this.symbolId,
+    required this.setId,
+    required this.level,
+    this.sequenceCount = 0,
+    this.xM,
+    this.yM,
+    this.widthM,
+    this.heightM,
+    this.rotationDeg,
+  });
+
+  /// Object properties
+  @override
+  List<Object?> get props => [
+    ...super.props,
+    symbolId,
+    setId,
+    level,
+    sequenceCount,
+    xM,
+    yM,
+    widthM,
+    heightM,
+    rotationDeg,
+  ];
+}
+
+/// Resolves `OcptShotListState.pendingFloorPlanScopeDecision` — the scope bubble's own `Every
+/// sequence`/`Only sequence n`/`Cancel` — writing it (onto the original, or onto a scene-scope
+/// override of the focused sequence, creating one if none exists yet) or simply dropping it.
+/// A no-op while nothing is pending.
+class OcptShotListFloorPlanScopeDecisionResolvedEvent extends OcptShotListEvent {
+  /// Which of the bubble's own three answers was picked.
+  final OcptFloorPlanScopeChoice choice;
+
+  /// Class constructor
+  const OcptShotListFloorPlanScopeDecisionResolvedEvent({required this.choice});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, choice];
+}
+
+/// Requests importing set `event.setId`'s underlay, dispatched by the tool bar's own underlay
+/// action.
+///
+/// The bloc picks the file through `FileSelectorManager`, filtered to JPEG and PNG
+/// (`ocptFloorPlanUnderlayImageFileExtensions`), then places it at a default frame centred on the
+/// canvas — the user drags and resizes it to match the reference silhouette afterwards (ADR 0031).
+/// A cancelled dialog changes nothing at all. [fileTypeLabel] is the localized label the native
+/// picker's own file type filter shows, resolved by the mode.
+class OcptShotListFloorPlanUnderlayImportRequestedEvent extends OcptShotListEvent {
+  /// The id of the set the underlay is set on.
+  final String setId;
+
+  /// The localized label of the picker's own file type filter.
+  final String fileTypeLabel;
+
+  /// Class constructor
+  const OcptShotListFloorPlanUnderlayImportRequestedEvent({
+    required this.setId,
+    required this.fileTypeLabel,
+  });
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, setId, fileTypeLabel];
+}
+
+/// Sets set `event.setId`'s underlay frame to `event.xM`/`event.yM`/`event.widthM`/
+/// `event.heightM` (metres), dispatched once a drag moving or resizing it ends. Written as a
+/// single call (`OcptFloorPlanService.setSetUnderlay`, re-pointed at the same already-imported
+/// file), never per frame.
+class OcptShotListFloorPlanUnderlayTransformChangedEvent extends OcptShotListEvent {
+  /// The id of the set whose underlay frame changed.
+  final String setId;
+
+  /// The underlay's new centre X, in metres.
+  final double xM;
+
+  /// The underlay's new centre Y, in metres.
+  final double yM;
+
+  /// The underlay's new width, in metres.
+  final double widthM;
+
+  /// The underlay's new height, in metres.
+  final double heightM;
+
+  /// Class constructor
+  const OcptShotListFloorPlanUnderlayTransformChangedEvent({
+    required this.setId,
+    required this.xM,
+    required this.yM,
+    required this.widthM,
+    required this.heightM,
+  });
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, setId, xM, yM, widthM, heightM];
+}
+
+/// Requests clearing set `event.setId`'s underlay for good, dispatched once the tray's own
+/// `Clear underlay` action has already been confirmed through `OcptConfirmDialog`, by the mode.
+class OcptShotListFloorPlanUnderlayClearRequestedEvent extends OcptShotListEvent {
+  /// The id of the set whose underlay is cleared.
+  final String setId;
+
+  /// Class constructor
+  const OcptShotListFloorPlanUnderlayClearRequestedEvent({required this.setId});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, setId];
+}
+
+/// Walks the selected sequence's own shots by `event.delta` (`-1` for `←`, `1` for `→`),
+/// dispatched by the floor plans focus strip's own keyboard shortcut. Selects the sequence's first
+/// shot when nothing is selected yet and `event.delta` is positive, does nothing at either end of
+/// the list, and does nothing while the selected sequence is the orphan group (its shots have no
+/// set to draw a floor plan on).
+class OcptShotListFloorPlanShotWalkRequestedEvent extends OcptShotListEvent {
+  /// `-1` to walk to the previous shot, `1` to walk to the next one.
+  final int delta;
+
+  /// Class constructor
+  const OcptShotListFloorPlanShotWalkRequestedEvent({required this.delta});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, delta];
+}
+
+/// Toggles the visibility of camera symbol `event.symbolId` on the floor plans canvas, dispatched
+/// by the tray's own per-camera eye under the `Sequence` focus's expanded cameras row. A view
+/// preference; never withheld under a read-only preview, since it only reads.
+class OcptShotListFloorPlanCameraVisibilityToggledEvent extends OcptShotListEvent {
+  /// The id of the camera symbol whose visibility is toggled.
+  final String symbolId;
+
+  /// Class constructor
+  const OcptShotListFloorPlanCameraVisibilityToggledEvent({required this.symbolId});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, symbolId];
+}
+
+/// Toggles the onion skin's own previous (`event.isPrevious`) or next neighbour, dispatched by the
+/// tray's own `Onion skin` block. A view preference.
+class OcptShotListFloorPlanOnionSkinToggledEvent extends OcptShotListEvent {
+  /// Whether the previous shot's own ghost is toggled (true) or the next shot's (false).
+  final bool isPrevious;
+
+  /// Class constructor
+  const OcptShotListFloorPlanOnionSkinToggledEvent({required this.isPrevious});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, isPrevious];
+}
+
+/// Sets the onion skin's own ghost opacity, dispatched by the tray's own `Onion skin` block slider.
+/// A view preference.
+class OcptShotListFloorPlanOnionSkinOpacityChangedEvent extends OcptShotListEvent {
+  /// The new opacity, 0..1.
+  final double opacity;
+
+  /// Class constructor
+  const OcptShotListFloorPlanOnionSkinOpacityChangedEvent({required this.opacity});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, opacity];
+}
+
+/// Toggles the metrics overlay, dispatched by the tray's own metrics toggle. A view preference.
+class OcptShotListFloorPlanMetricsToggledEvent extends OcptShotListEvent {
+  /// Class constructor
+  const OcptShotListFloorPlanMetricsToggledEvent();
+}
+
+/// Records a tap on symbol `event.symbolId` while the canvas's own `arrow` tool is active,
+/// dispatched by a symbol's own hit overlay.
+///
+/// One event backs the whole two-click interaction, the bloc rather than the widget deciding what
+/// a click means — mirroring `OcptShotListCoverageWordClickedEvent`'s own three-state shape: with
+/// no anchor pending, the tap picks `event.symbolId` as the arrow's first end; with an anchor
+/// already pending and `event.symbolId` naming a different symbol, the tap completes a movement
+/// arrow from the anchor to it (`OcptFloorPlanService.addArrow`, on the focused shot) and clears
+/// the anchor; a tap on the anchor symbol itself is a no-op.
+class OcptShotListFloorPlanArrowSymbolTappedEvent extends OcptShotListEvent {
+  /// The id of the symbol tapped.
+  final String symbolId;
+
+  /// Class constructor
+  const OcptShotListFloorPlanArrowSymbolTappedEvent({required this.symbolId});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, symbolId];
+}
+
+/// Cancels the arrow tool's own pending anchor, dispatched by `Escape` (only while an anchor is
+/// pending) or a click on empty canvas while the anchor tool is on — mirroring
+/// `OcptShotListCoverageAnchorCancelledEvent`.
+class OcptShotListFloorPlanArrowAnchorCancelledEvent extends OcptShotListEvent {
+  /// Class constructor
+  const OcptShotListFloorPlanArrowAnchorCancelledEvent();
+}
+
+/// Requests deleting arrow `event.arrowId` for good, dispatched once the Placements group's own
+/// remove action has already been confirmed through `OcptConfirmDialog`, by the mode.
+class OcptShotListFloorPlanArrowDeletionRequestedEvent extends OcptShotListEvent {
+  /// The id of the arrow to delete.
+  final String arrowId;
+
+  /// Class constructor
+  const OcptShotListFloorPlanArrowDeletionRequestedEvent({required this.arrowId});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, arrowId];
+}
+
+/// Records the raw text just typed into symbol `event.symbolId`'s own label, dispatched by the
+/// canvas's own `label` tool inline text field on every keystroke. Rides the mode's field-edit
+/// autosave debounce, keyed by `OcptShotListSymbolLabelEditKey`.
+class OcptShotListFloorPlanSymbolLabelChangedEvent extends OcptShotListEvent {
+  /// The id of the symbol whose label was edited.
+  final String symbolId;
+
+  /// The label's raw text, exactly as typed.
+  final String rawValue;
+
+  /// Class constructor
+  const OcptShotListFloorPlanSymbolLabelChangedEvent({
+    required this.symbolId,
+    required this.rawValue,
+  });
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, symbolId, rawValue];
+}
+
+/// Sets camera symbol `event.symbolId`'s own field-of-view wedge angle to `event.fovDeg`, dispatched
+/// by a drag on one of its own edge handles ending, or by the inspector's Placements group `−`/`+`
+/// stepper. Written immediately (`OcptFloorPlanService.updateSymbol(fovDeg:)`); a drag reports once
+/// on end, never per frame — the live wedge shown while dragging is a purely local canvas concern,
+/// exactly as a symbol's own move/resize/rotate is.
+class OcptShotListFloorPlanSymbolFovChangedEvent extends OcptShotListEvent {
+  /// The id of the camera symbol whose field of view is changed.
+  final String symbolId;
+
+  /// The camera's new field-of-view angle, in degrees.
+  final double fovDeg;
+
+  /// Class constructor
+  const OcptShotListFloorPlanSymbolFovChangedEvent({required this.symbolId, required this.fovDeg});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, symbolId, fovDeg];
+}
+
+/// Sets camera symbol `event.symbolId`'s own field-of-view wedge reach to `event.fovReachM`,
+/// dispatched by a drag on its own tip handle ending. Written immediately
+/// (`OcptFloorPlanService.updateSymbol(fovReachM:)`); a drag reports once on end, never per frame
+/// — the live wedge shown while dragging is a purely local canvas concern, exactly as
+/// [OcptShotListFloorPlanSymbolFovChangedEvent] is for the angle.
+class OcptShotListFloorPlanSymbolFovReachChangedEvent extends OcptShotListEvent {
+  /// The id of the camera symbol whose field-of-view reach is changed.
+  final String symbolId;
+
+  /// The camera's new field-of-view wedge reach, in metres.
+  final double fovReachM;
+
+  /// Class constructor
+  const OcptShotListFloorPlanSymbolFovReachChangedEvent({
+    required this.symbolId,
+    required this.fovReachM,
+  });
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, symbolId, fovReachM];
+}
+
+/// Selects arrow `event.arrowId` on the floor plans canvas, or clears the selection when it is
+/// null — a click near the arrow's own shaft under the `select` tool, or a click on empty canvas or
+/// on a symbol (the two selections are mutually exclusive). Never withheld: selecting only reads.
+class OcptShotListFloorPlanArrowSelectedEvent extends OcptShotListEvent {
+  /// The id of the arrow to select, or null to clear the selection.
+  final String? arrowId;
+
+  /// Class constructor
+  const OcptShotListFloorPlanArrowSelectedEvent({required this.arrowId});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, arrowId];
+}
+
+/// Bends arrow `event.arrowId` through control point `event.ctrlXM`/`event.ctrlYM` (metres), or
+/// straightens it back out when both are null, dispatched once a drag on its own midpoint handle
+/// ends (`OcptFloorPlanService.updateArrowCurve`), or by the handle's own neighbouring straighten
+/// button. Written as a single row, never per frame: the live drag position is a purely local
+/// canvas concern, exactly as a symbol's own move/resize/rotate is.
+class OcptShotListFloorPlanArrowCurveChangedEvent extends OcptShotListEvent {
+  /// The id of the arrow being bent or straightened.
+  final String arrowId;
+
+  /// The bezier control point's new X, in metres, or null to straighten the arrow.
+  final double? ctrlXM;
+
+  /// The bezier control point's new Y, in metres. See [ctrlXM].
+  final double? ctrlYM;
+
+  /// Class constructor
+  const OcptShotListFloorPlanArrowCurveChangedEvent({
+    required this.arrowId,
+    required this.ctrlXM,
+    required this.ctrlYM,
+  });
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, arrowId, ctrlXM, ctrlYM];
+}
+
+/// Duplicates symbol `event.symbolId` into an independent copy on the very same set/shot/layer —
+/// never a link, the copy carries no reference back to its source — dispatched by `Ctrl+D` (no
+/// explicit position: the bloc offsets the copy from its source by
+/// `ocptFloorPlanDuplicateOffsetM`) or by an `Alt`-drag ending (`event.xM`/`event.yM` the drag's own
+/// settled position, the source symbol itself left untouched at its own original position). Written
+/// immediately (`OcptFloorPlanService.placeSymbol`), then selects the new copy.
+class OcptShotListFloorPlanSymbolDuplicatedEvent extends OcptShotListEvent {
+  /// The id of the symbol duplicated.
+  final String symbolId;
+
+  /// The copy's own centre X, in metres, or null to offset it from the source by
+  /// `ocptFloorPlanDuplicateOffsetM`.
+  final double? xM;
+
+  /// The copy's own centre Y, in metres. See [xM].
+  final double? yM;
+
+  /// Class constructor
+  const OcptShotListFloorPlanSymbolDuplicatedEvent({required this.symbolId, this.xM, this.yM});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, symbolId, xM, yM];
+}
+
+/// Clears `OcptShotListState.pendingCharacterNamePromptSymbolId`, dispatched by the mode's own
+/// `BlocConsumer` listener the moment it opens `OcptFloorPlanCharacterNamePickerDialog` for it — see
+/// that field's own doc comment for why the clear happens before the dialog's own result is known.
+class OcptShotListFloorPlanCharacterNamePromptDismissedEvent extends OcptShotListEvent {
+  /// Class constructor
+  const OcptShotListFloorPlanCharacterNamePromptDismissedEvent();
 }

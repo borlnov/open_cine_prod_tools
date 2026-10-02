@@ -29,6 +29,7 @@ import 'package:open_cine_prod_tools/types/ocpt_role_candidate_editable_field.da
 import 'package:open_cine_prod_tools/types/ocpt_role_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_route.dart';
 import 'package:open_cine_prod_tools/types/ocpt_set_editable_field.dart';
+import 'package:open_cine_prod_tools/types/ocpt_workspace_mode.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_project_package_events.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_project_versions_events.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/resources_bloc.dart';
@@ -871,6 +872,7 @@ class _ResourcesViewState extends State<_ResourcesView> {
       otherLocations: _otherLocationsOf(state, selectedLocation.id),
       assignedSceneIds: _assignedSceneIdsOf(state),
       suggestedSetIdBySceneId: _suggestedSetIdsOf(state),
+      setIdsWithPlan: state.setIdsWithPlan,
       isReadOnly: state.isPreviewingVersion,
       fieldValueOf: (field) => _locationFieldValueOf(state, selectedLocation, field),
       onFieldChanged: (field, rawValue) => bloc.add(
@@ -915,6 +917,8 @@ class _ResourcesViewState extends State<_ResourcesView> {
           bloc.add(OcptResourcesSceneAssignedToSetEvent(sceneId: sceneId, setId: setId)),
       onSceneRemoved: (sceneId, setId) =>
           bloc.add(OcptResourcesSceneRemovedFromSetEvent(sceneId: sceneId, setId: setId)),
+      onOpenSetInShotListRequested: (setId) =>
+          bloc.add(OcptResourcesOpenSetInShotListRequestedEvent(setId: setId)),
       onPhotoAddRequested: () => bloc.add(
         OcptResourcesLocationPhotoAddRequestedEvent(
           locationId: selectedLocation.id,
@@ -1413,6 +1417,21 @@ class _ResourcesViewState extends State<_ResourcesView> {
         ..hideCurrentSnackBar()
         ..showSnackBar(SnackBar(content: Text(_ioNoticeMessage(context, ioNotice))));
       context.read<OcptResourcesBloc>().add(const OcptResourcesIoNoticeDismissedEvent());
+    }
+
+    final pendingShotListReveal = state.pendingShotListReveal;
+    if (pendingShotListReveal != null) {
+      context.read<OcptResourcesBloc>().add(const OcptResourcesShotListRevealDismissedEvent());
+      context.read<OcptWorkspaceBloc>().add(
+        OcptWorkspaceModeSelectedEvent(
+          mode: OcptWorkspaceMode.shotList,
+          episodeId: pendingShotListReveal.episodeId,
+          revealRequest: OcptShotListRevealRequest(
+            sceneId: pendingShotListReveal.sceneId,
+            setId: pendingShotListReveal.setId,
+          ),
+        ),
+      );
     }
 
     final versionNotice = state.projectVersionNotice;

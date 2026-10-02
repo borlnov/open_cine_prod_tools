@@ -209,6 +209,11 @@ void main() {
     budgetRevenues: const [],
     budgetShares: const [],
     budgetAllowances: const [],
+    storyboardPanels: const [],
+    storyboardAnnotations: const [],
+    floorPlanSets: const [],
+    floorPlanSymbols: const [],
+    floorPlanArrows: const [],
     rowFieldVersions: const [],
     pageSetup: const OcptPageSetup(
       format: OcptPageFormat.a4,

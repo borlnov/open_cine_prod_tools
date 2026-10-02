@@ -50,6 +50,12 @@ class OcptLocationSheetSetsCard extends StatelessWidget {
   /// the scenes a set is actually suggested for.
   final Map<String, String> suggestedSetIdBySceneId;
 
+  /// The ids of [sets] that hold a live floor plan row — a set's own `Floor plan · N sequences` /
+  /// `No floor plan yet` line reads this alongside `set.sceneIds.length` for the count: the plan
+  /// "exists" the moment a `floor_plan_sets` row does, whether or not the set is linked to a live
+  /// sequence any more.
+  final Set<String> setIdsWithPlan;
+
   /// A set's current value for `field`: a pending edit still in the bloc's debounce, or the set's
   /// own stored value.
   final String Function(String setId, OcptSetField field) fieldValueOf;
@@ -73,6 +79,10 @@ class OcptLocationSheetSetsCard extends StatelessWidget {
   /// Called with a scene and the set it is no longer shot in, or null while it may not be used.
   final void Function(String sceneId, String setId)? onSceneRemoved;
 
+  /// Called with a set's id when its own `Open in shot list` action is clicked — never withheld
+  /// under a read-only preview (it only reads), so it takes no nullable form.
+  final ValueChanged<String> onOpenInShotListRequested;
+
   /// Class constructor
   const OcptLocationSheetSetsCard({
     super.key,
@@ -81,6 +91,7 @@ class OcptLocationSheetSetsCard extends StatelessWidget {
     required this.scenes,
     required this.assignedSceneIds,
     required this.suggestedSetIdBySceneId,
+    required this.setIdsWithPlan,
     required this.fieldValueOf,
     required this.onSetFieldChanged,
     required this.onSetAdded,
@@ -88,6 +99,7 @@ class OcptLocationSheetSetsCard extends StatelessWidget {
     required this.onSetLocationChanged,
     required this.onSceneAssigned,
     required this.onSceneRemoved,
+    required this.onOpenInShotListRequested,
   });
 
   @override
@@ -170,8 +182,40 @@ class OcptLocationSheetSetsCard extends StatelessWidget {
           _buildSetField(set, OcptSetField.notes, tr.resourcesSetNotesLabel),
           const SizedBox(height: 8),
           _buildScenesRow(context, tr, set),
+          const SizedBox(height: 8),
+          _buildFloorPlanRow(context, tr, set),
         ],
       ),
+    );
+  }
+
+  /// The set's own floor plan indicator (`Floor plan · N sequences` or `No floor plan yet`) and,
+  /// only while it is linked to at least one live sequence, the `Open in shot list` action —
+  /// editing the plan stays in the shot list mode, so this
+  /// row only ever reads, never withheld under a read-only preview.
+  Widget _buildFloorPlanRow(BuildContext context, Tr tr, OcptSet set) {
+    final theme = Theme.of(context);
+    final hasPlan = setIdsWithPlan.contains(set.id);
+    final sequenceCount = set.sceneIds.length;
+
+    return Row(
+      children: [
+        Icon(Icons.dashboard_outlined, size: 14, color: theme.colorScheme.onSurfaceVariant),
+        const SizedBox(width: 4),
+        Text(
+          hasPlan
+              ? tr.resourcesSetFloorPlanCountLabel(sequenceCount)
+              : tr.resourcesSetNoFloorPlanLabel,
+          style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+        ),
+        if (sequenceCount > 0) ...[
+          const Spacer(),
+          TextButton(
+            onPressed: () => onOpenInShotListRequested(set.id),
+            child: Text(tr.resourcesOpenSetInShotListAction),
+          ),
+        ],
+      ],
     );
   }
 
@@ -245,7 +289,7 @@ class OcptLocationSheetSetsCard extends StatelessWidget {
     );
   }
 
-  /// The `+ Scene` picker of [set]: the scenes with no set at all first, this set's suggested ones
+  /// The `Scene` picker of [set]: the scenes with no set at all first, this set's suggested ones
   /// at the top of them, then the scenes already shot elsewhere under their own heading — picking
   /// one of those adds this set beside the ones it already has.
   Widget _buildScenePicker(BuildContext context, Tr tr, OcptSet set) {

@@ -9,19 +9,25 @@ import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_assets_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_breakdown_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_elements_service.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_floor_plan_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_locations_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_role_candidates_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_role_index_service.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_row_stamp_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_scene_index_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_schedule_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_screenplay_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_coverage_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_list_service.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_storyboard_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
+import 'package:open_cine_prod_tools/types/ocpt_floor_plan_arrow_kind.dart';
+import 'package:open_cine_prod_tools/types/ocpt_floor_plan_layer.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_check_reason.dart';
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
+import 'package:open_cine_prod_tools/types/ocpt_storyboard_annotation_kind.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_row_stamp_key.dart';
 
 /// Parses [source] with the real Fountain parser, so scene reconciliation is exercised against a
@@ -45,8 +51,13 @@ void main() {
     assetsService: assetsService,
     deviceId: _testDeviceId,
   );
+  const floorPlanService = OcptFloorPlanService(
+    assetsService: assetsService,
+    deviceId: _testDeviceId,
+  );
   const locationsService = OcptLocationsService(
     assetsService: assetsService,
+    floorPlanService: floorPlanService,
     deviceId: _testDeviceId,
   );
   const roleIndexService = OcptRoleIndexService(
@@ -54,8 +65,14 @@ void main() {
     roleCandidatesService: OcptRoleCandidatesService(deviceId: _testDeviceId),
     deviceId: _testDeviceId,
   );
+  const storyboardService = OcptStoryboardService(
+    assetsService: assetsService,
+    deviceId: _testDeviceId,
+  );
   const shotListService = OcptShotListService(
     roleIndexService: roleIndexService,
+    storyboardService: storyboardService,
+    floorPlanService: floorPlanService,
     deviceId: _testDeviceId,
   );
   const screenplayService = OcptScreenplayService(
@@ -208,6 +225,125 @@ Action.
       expect(everyRow, hasLength(3));
       expect(everyRow.singleWhere((row) => row.id == firstId).isDeleted, isTrue);
     });
+
+    test(
+      "deleteShot also tombstones the shot's storyboard panels and floor plan shot-layer "
+      "placements, leaving sequence layers and other shots alone",
+      () async {
+        final scenes = await reconcile('''
+INT. HOUSE - DAY
+
+Action.
+''');
+        final sceneId = scenes.single.id;
+
+        final deletedShotId = (await shotListService.createShot(
+          database: database,
+          screenplayId: screenplayId,
+          sceneId: sceneId,
+        ))!;
+        final survivingShotId = (await shotListService.createShot(
+          database: database,
+          screenplayId: screenplayId,
+          sceneId: sceneId,
+        ))!;
+
+        final panelId = (await storyboardService.addPanel(
+          database: database,
+          shotId: deletedShotId,
+        ))!;
+        await storyboardService.replacePanelImage(
+          database: database,
+          panelId: panelId,
+          path: "/tmp/frame.jpg",
+        );
+        final panelAssetId = (await (database.select(
+          database.ocptStoryboardPanelsTable,
+        )..where((row) => row.id.equals(panelId))).getSingle()).imageAssetId!;
+        await storyboardService.addAnnotation(
+          database: database,
+          panelId: panelId,
+          kind: OcptStoryboardAnnotationKind.label,
+          x1: 0.5,
+          y1: 0.5,
+          text: "note",
+        );
+
+        final setId = (await locationsService.createSetLinkedToScene(
+          database: database,
+          sceneId: sceneId,
+          name: "Kitchen",
+        ))!;
+        final decorSymbolId = (await floorPlanService.placeSymbol(
+          database: database,
+          setId: setId,
+          sceneId: null,
+          shotId: null,
+          layer: OcptFloorPlanLayer.set,
+          xM: 0,
+          yM: 0,
+        ))!;
+        final deletedCameraId = (await floorPlanService.placeSymbol(
+          database: database,
+          setId: setId,
+          sceneId: null,
+          shotId: deletedShotId,
+          layer: OcptFloorPlanLayer.cameras,
+          xM: 1,
+          yM: 1,
+        ))!;
+        final survivingCameraId = (await floorPlanService.placeSymbol(
+          database: database,
+          setId: setId,
+          sceneId: null,
+          shotId: survivingShotId,
+          layer: OcptFloorPlanLayer.cameras,
+          xM: 2,
+          yM: 2,
+        ))!;
+        await floorPlanService.addArrow(
+          database: database,
+          setId: setId,
+          shotId: deletedShotId,
+          kind: OcptFloorPlanArrowKind.cameraMove,
+          fromSymbolId: deletedCameraId,
+          toSymbolId: decorSymbolId,
+        );
+
+        await shotListService.deleteShot(database: database, shotId: deletedShotId);
+
+        final livePanels = await (database.select(
+          database.ocptStoryboardPanelsTable,
+        )..where((row) => row.isDeleted.equals(false))).get();
+        expect(livePanels, isEmpty);
+
+        final liveAnnotations = await (database.select(
+          database.ocptStoryboardAnnotationsTable,
+        )..where((row) => row.isDeleted.equals(false))).get();
+        expect(liveAnnotations, isEmpty);
+
+        final panelAsset = await (database.select(
+          database.ocptAssetsTable,
+        )..where((row) => row.id.equals(panelAssetId))).getSingle();
+        expect(panelAsset.isDeleted, isTrue);
+
+        final liveSymbolIds =
+            (await (database.select(
+                  database.ocptFloorPlanSymbolsTable,
+                )..where((row) => row.isDeleted.equals(false)))
+                .get())
+                .map((row) => row.id)
+                .toSet();
+        expect(liveSymbolIds.contains(deletedCameraId), isFalse);
+        expect(liveSymbolIds.contains(decorSymbolId), isTrue);
+        expect(liveSymbolIds.contains(survivingCameraId), isTrue);
+
+        final liveArrows = await (database.select(
+          database.ocptFloorPlanArrowsTable,
+        )..where((row) => row.isDeleted.equals(false))).get();
+        expect(liveArrows, isEmpty);
+      },
+    );
 
     test("reorderShot moves a shot by writing exactly one row", () async {
       final scenes = await reconcile('''
@@ -1011,5 +1147,99 @@ Action.
       expect(stamps.keys.toSet(), {"shot_characters/$rowId/isDeleted"});
       expect(stamps["shot_characters/$rowId/isDeleted"]!.version, 1);
     });
+  });
+
+  group("tombstoneShotsOfScreenplay — the storyboard/floor plan cascade", () {
+    test(
+      "tombstones every shot's storyboard panels and floor plan shot-layer placements across "
+      "the whole screenplay, leaving sequence layers alone",
+      () async {
+        final scenes = await reconcile('''
+INT. HOUSE - DAY
+
+Action.
+''');
+        final sceneId = scenes.single.id;
+
+        final firstShotId = (await shotListService.createShot(
+          database: database,
+          screenplayId: screenplayId,
+          sceneId: sceneId,
+        ))!;
+        final secondShotId = (await shotListService.createShot(
+          database: database,
+          screenplayId: screenplayId,
+          sceneId: sceneId,
+        ))!;
+
+        final firstPanelId = (await storyboardService.addPanel(
+          database: database,
+          shotId: firstShotId,
+        ))!;
+        final secondPanelId = (await storyboardService.addPanel(
+          database: database,
+          shotId: secondShotId,
+        ))!;
+
+        final setId = (await locationsService.createSetLinkedToScene(
+          database: database,
+          sceneId: sceneId,
+          name: "Kitchen",
+        ))!;
+        final decorSymbolId = (await floorPlanService.placeSymbol(
+          database: database,
+          setId: setId,
+          sceneId: null,
+          shotId: null,
+          layer: OcptFloorPlanLayer.set,
+          xM: 0,
+          yM: 0,
+        ))!;
+        final firstCameraId = (await floorPlanService.placeSymbol(
+          database: database,
+          setId: setId,
+          sceneId: null,
+          shotId: firstShotId,
+          layer: OcptFloorPlanLayer.cameras,
+          xM: 1,
+          yM: 1,
+        ))!;
+        final secondCameraId = (await floorPlanService.placeSymbol(
+          database: database,
+          setId: setId,
+          sceneId: null,
+          shotId: secondShotId,
+          layer: OcptFloorPlanLayer.cameras,
+          xM: 2,
+          yM: 2,
+        ))!;
+
+        await database.transaction(() async {
+          final stamps = await OcptRowStampService.seed(database: database, deviceId: _deviceId);
+          await shotListService.tombstoneShotsOfScreenplay(
+            database: database,
+            screenplayId: screenplayId,
+            stamps: stamps,
+          );
+          await stamps.flush(database);
+        });
+
+        final livePanels = await (database.select(
+          database.ocptStoryboardPanelsTable,
+        )..where((row) => row.isDeleted.equals(false))).get();
+        expect(livePanels, isEmpty, reason: "$firstPanelId and $secondPanelId should be gone");
+
+        final liveSymbolIds =
+            (await (database.select(
+                  database.ocptFloorPlanSymbolsTable,
+                )..where((row) => row.isDeleted.equals(false)))
+                .get())
+                .map((row) => row.id)
+                .toSet();
+        expect(liveSymbolIds.contains(firstCameraId), isFalse);
+        expect(liveSymbolIds.contains(secondCameraId), isFalse);
+        expect(liveSymbolIds.contains(decorSymbolId), isTrue);
+      },
+    );
   });
 }

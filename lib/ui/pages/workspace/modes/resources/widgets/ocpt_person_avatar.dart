@@ -5,7 +5,7 @@
 import 'package:flutter/material.dart';
 import 'package:open_cine_prod_tools/constants/ocpt_coverage_palette.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
-import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_referenced_image.dart';
+import 'package:open_cine_prod_tools/ui/widgets/ocpt_referenced_image.dart';
 
 /// The radius from which the initials are set in `titleSmall` rather than in `labelSmall`: a sheet
 /// header's own avatar is large enough to carry the bigger of the two, a list row's is not.

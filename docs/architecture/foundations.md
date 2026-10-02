@@ -344,9 +344,12 @@ the persistence, the project versions, the sync-ready data model and the read-on
   devcontainer carries no Android SDK, so the Android build is **CI-verified only**; the local
   verification gate stays `flutter build linux --debug`.
 
-- Persistence: drift schema v2 (ADR 0029). `onCreate` creates the whole schema at once —
-  `project_info`, `screenplays`, `screenplay_snapshots`, `scenes`, the three shot list tables, the
-  fifteen resources tables (`role_candidates`, `role_elements` and `role_episodes` among them),
+- Persistence: drift schema v4, an open development cycle (ADR 0029). `onCreate` creates the whole
+  schema at once — `project_info`, `screenplays`, `screenplay_snapshots`, `scenes`, the three shot
+  list tables, the five storyboard and floor plan tables (`storyboard_panels`,
+  `storyboard_annotations`, `floor_plan_sets`, `floor_plan_symbols`, `floor_plan_arrows`,
+  `shot-list.md`), the fifteen resources tables (`role_candidates`, `role_elements` and
+  `role_episodes` among them),
   `breakdown_tags`, `scene_breakdowns`, the eight schedule tables, the nine budget tables
   (`budget_postes`, `budget_lines`, `budget_entries`, `budget_commitments`, `budget_resources`,
   `budget_mileage_rates`, `budget_revenues`, `budget_shares`, `budget_allowances`),
@@ -363,10 +366,12 @@ the persistence, the project versions, the sync-ready data model and the read-on
   local sync tables (`sync_relay_cursors`, `sync_pairings`) and adds `budget_lines.in_kind_resource_id`,
   touching nothing else, so a v1 file's existing rows are untouched by it; the 0.2.1 release froze v3
   — `shot_characters` reshaped from `{shotId, characterName}` to `{shotId, roleId}`, the first
-  non-additive step this project ships (ADR 0030). Two constants govern this:
-  `currentSchemaVersion` (3) and `lastStableSchemaVersion` (3, frozen at 0.2.1). While
-  `current == lastStable + 1` a cycle is open and the pending step is rewritten in place; while
-  `current == lastStable` the top step is frozen — the state today — so the next schema change
+  non-additive step this project ships (ADR 0030); v4 — the five tables above, fully additive — is
+  the shot list's storyboard and floor plans (`shot-list.md`). Two constants govern this:
+  `currentSchemaVersion` (4) and `lastStableSchemaVersion` (3, frozen at 0.2.1). While
+  `current == lastStable + 1` a cycle is open and the pending step is rewritten in place — the state
+  today, so a further v4 change overwrites `ocpt_migration_v4.dart` in place rather than creating a
+  fifth file; while `current == lastStable` the top step is frozen instead, so a schema change then
   creates a new one. Freezing sets `lastStableSchemaVersion` to `currentSchemaVersion` at release
   (`docs/RELEASING.md`), which a fail-closed CI guard on a stable tag enforces — a forgotten freeze
   blocks the release, an incorrect one fails the migration test. ADR 0007's additive-only guidance
@@ -388,16 +393,18 @@ the persistence, the project versions, the sync-ready data model and the read-on
   pointer seen from a card, and the base's card is an ordinary one in every other respect
   (previewable, restorable, deletable).
   `OcptProjectVersionCodec` is the only thing that knows the payload's shape: every row of the
-  forty captured tables verbatim (primary keys, tombstones and `row_field_versions` stamps
+  forty-four captured tables verbatim (primary keys, tombstones and `row_field_versions` stamps
   included) plus the page setup, the currency and the minimum rest, in a JSON format versioned by
   `payloadFormat`, which follows the same freeze discipline the schema does (ADR 0029):
-  `currentPayloadFormat` (3) advances only at a stable release, `lastStablePayloadFormat` (3) tracks
+  `currentPayloadFormat` (4) advances only at a stable release, `lastStablePayloadFormat` (3) tracks
   the last one frozen, and a payload written in a newer format than this build knows is **refused**,
   not half-read. Like the schema, the pre-stable format ladder was squashed away — no payload older
   than format 1 exists. Formats 1 (0.1.0) and 2 (0.2.0) were additive, so an older payload decodes
   directly; format 3 (0.2.1) is the first that is not — a pre-3 payload's `shotCharacters` rows are
   dropped rather than reshaped into roles (ADR 0030) — and the retired format-1 and format-2 shapes
-  are pinned in the codec test. It is **a hand-written
+  are pinned in the codec test. Format 4 (the storyboard and floor plan tables, `shot-list.md`) is
+  additive again, still an open development cycle, and decodes an older payload with its five lists
+  empty. It is **a hand-written
   mirror of the schema**, and a new synchronised table has to be added to all three of it,
   `contentDigest` and `_applyPayload`: leave it out of the payload and a restore rewinds half the
   project, out of the digest and the working copy claims not to have drifted, out of `_applyPayload`
@@ -451,7 +458,12 @@ the persistence, the project versions, the sync-ready data model and the read-on
 
 - Binary assets (ADR 0013): a photo or a signed document is **referenced, never embedded**. The
   `assets` table holds a path, a kind and its subject's id; no bytes ever enter the `.ocpt`, so
-  megabytes never reach a changeset sync designed around small per-column edits. A missing file is
+  megabytes never reach a changeset sync designed around small per-column edits. Two kinds,
+  `storyboardPanelImage` and `floorPlanUnderlay` (`shot-list.md`), set **none** of the table's
+  owner columns at all: a storyboard panel's frame and a floor plan's underlay are pointed at from
+  the *owning* row instead of the other way round (`storyboard_panels.imageAssetId`,
+  `floor_plan_sets.underlayAssetId`), so there is nothing to list from either kind's own side, and a
+  new owner column would have added a fifth for no reader to use. A missing file is
   a normal state rather than an error — the UI shows the reference with a "file not found" marker —
   and it is the honest cost of the choice: a `.ocpt` sent to a colleague arrives without its
   photos, and a restored version restores a reference that may now dangle. **`OcptAssetsService`
@@ -463,9 +475,10 @@ the persistence, the project versions, the sync-ready data model and the read-on
   means "nobody has recorded dates", never "valid forever"**, which is why
   `OcptSchedulePermitNotValidAlert` stays silent rather than advancing a claim nobody entered. The
   pair is typed on the location sheet's own permit card, under the referenced document and **only
-  once one is referenced** — there being nothing to date otherwise. The four services that reference
+  once one is referenced** — there being nothing to date otherwise. The six services that reference
   a file hold it rather than each writing the table their own way, so a photo, a scouting photo, a
-  permit and a signed release are all created and dropped alike. What a reference **looks like** is
+  permit, a signed release, a storyboard frame and a floor plan underlay are all created and dropped
+  alike. What a reference **looks like** is
   decided once too, by `OcptReferencedImage` (the image draws, or the caller's fallback does, a
   missing file being a state) and by `OcptAssetFileLine` (a document, read by its name, saying so
   out loud) — a photo silently falling back to initials and a list silently one item short are not
@@ -671,9 +684,10 @@ the persistence, the project versions, the sync-ready data model and the read-on
   Flutter's own "no callback, no affordance" idiom), which is often enough to withhold a whole path
   at once — nulling the breakdown's word click closes the entire tagging gesture, no anchor being
   able to open. A composite panel (`OcptShotInspectorPanel`, `OcptShotListRemovedCharacterBanner`,
-  each of the resources mode's four sheets, the breakdown's two inspectors) takes an `isReadOnly`
-  flag instead and hands its own parts the null callbacks, so a control added later can't be gated
-  in one place and forgotten in the other. A control that would otherwise vanish into nothing is
+  each of the resources mode's four sheets, the breakdown's two inspectors, the floor plans view's
+  own `OcptFloorPlanCanvas`) takes an `isReadOnly` flag instead and hands its own parts the null
+  callbacks, so a control added later can't be gated in one place and forgotten in the other. A
+  control that would otherwise vanish into nothing is
   rendered as **plain text** instead (the schedule's minute fields and anchor menu), and a band
   whose contents are withheld keeps its title so a previewed slot with nothing in it still reads as
   the empty band it is. Entering a preview additionally clears every *pending* write state a mode

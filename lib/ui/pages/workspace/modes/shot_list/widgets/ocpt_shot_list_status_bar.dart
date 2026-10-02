@@ -29,6 +29,10 @@ class OcptShotListStatusBar extends StatelessWidget {
   /// How many shots are currently flagged as needing checking.
   final int shotsToCheckCount;
 
+  /// A trailing hint the mode words per active centre view (the board's `Panel 2 of 3 selected ·
+  /// drag to reorder`), or null while the active view has nothing of its own to add.
+  final String? hint;
+
   /// Class constructor
   const OcptShotListStatusBar({
     super.key,
@@ -36,13 +40,21 @@ class OcptShotListStatusBar extends StatelessWidget {
     required this.shotCount,
     required this.filmedShotCount,
     required this.shotsToCheckCount,
+    this.hint,
   });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final tr = Tr.of(context);
+    final hint = this.hint;
     final toCheckText = tr.shotListStatsToCheck(shotsToCheckCount);
+    final toCheckWidget = Text(
+      toCheckText,
+      style: theme.textTheme.labelSmall?.copyWith(
+        color: shotsToCheckCount == 0 ? null : ocptWarningColor(context),
+      ),
+    );
 
     return OcptWorkspaceStatusBar(
       counters: [
@@ -51,13 +63,17 @@ class OcptShotListStatusBar extends StatelessWidget {
         tr.shotListStatsFilmed(filmedShotCount),
       ],
       nonDroppableCount: 2,
-      trailingText: toCheckText,
-      trailing: Text(
-        toCheckText,
-        style: theme.textTheme.labelSmall?.copyWith(
-          color: shotsToCheckCount == 0 ? null : ocptWarningColor(context),
-        ),
-      ),
+      trailingText: hint == null ? toCheckText : "$hint · $toCheckText",
+      trailing: hint == null
+          ? toCheckWidget
+          : Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(hint, style: theme.textTheme.labelSmall),
+                Text(" · ", style: theme.textTheme.labelSmall),
+                toCheckWidget,
+              ],
+            ),
     );
   }
 }

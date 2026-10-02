@@ -1,0 +1,759 @@
+// SPDX-FileCopyrightText: 2026 Benoit Rolandeau <borlnov.obsessio@gmail.com>
+//
+// SPDX-License-Identifier: Apache-2.0
+
+import 'dart:async';
+
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:open_cine_prod_tools/generated/l10n.dart';
+import 'package:open_cine_prod_tools/models/ocpt_floor_plan_set.dart';
+import 'package:open_cine_prod_tools/models/ocpt_floor_plan_sheet.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
+import 'package:open_cine_prod_tools/types/ocpt_floor_plan_layer.dart';
+import 'package:open_cine_prod_tools/types/ocpt_floor_plan_scope.dart';
+import 'package:open_cine_prod_tools/types/ocpt_floor_plan_set_element_shape.dart';
+import 'package:open_cine_prod_tools/types/ocpt_floor_plan_tool.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_floor_plan_canvas.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_floor_plan_canvas_painter.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_floor_plan_character_name_picker_dialog.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_floor_plan_focus_strip.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_floor_plan_palette.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_floor_plan_tool_bar.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_floor_plan_viewport_controller.dart';
+import 'package:open_cine_prod_tools/utils/ocpt_floor_plan_fit.dart';
+
+/// The floor plans view's own frame, filling the centre while `OcptShotListCentreView.floorPlans`
+/// is shown: the tool bar across the top, the layer tray down
+/// the left of the canvas, the canvas itself, and the focus strip along the bottom.
+///
+/// **A `StatefulWidget` (the documented RFL1 exception)**, the very reason `_ShotListViewState`
+/// (`shot_list_mode.dart`) is one: this view owns an `OcptFloorPlanViewportController`, whose zoom
+/// and pan are mutated per frame during a gesture with no bloc emission — see that controller's own
+/// doc comment. It is created once, seeded from [initialZoom] (`OcptShotListState.floorPlanZoom`,
+/// the last value the bloc saw settled), and disposed when this view unmounts (switching away from
+/// the floor plans centre view, or leaving the mode): a set tab switch keeps it, since only the
+/// centre view switch remounts this widget.
+///
+/// **`←`/`→` walk the sequence's shots** ([onShotWalkRequested]) and `Escape` cancels the arrow
+/// tool's own pending anchor ([onArrowAnchorCancelled]): both live on a `Focus` wrapping the whole
+/// view, auto-focused once on mount, so either shortcut works from anywhere in the view — the
+/// strip, the canvas, the tray — except while a descendant text field (the inline label editor)
+/// has its own focus and consumes the key first.
+///
+/// **Framing**: the viewport fits itself onto
+/// [floorPlanSet]'s own content (`ocptFloorPlanFitOf`) the moment a *different* set is shown —
+/// this widget's own first frame, or [floorPlanSet]'s own id changing (a set tab switch, or the
+/// shot-list reveal from Resources landing on one) — tracked by `_OcptFloorPlanViewState
+/// ._framedSetId` so it never fires again for the very same set: neither on an unrelated rebuild
+/// nor after the user's own pan/zoom within it. An empty plan (no content to fit) leaves the view
+/// at its default, and the tool bar's own `Recenter` button repeats the very same fit on demand.
+class OcptFloorPlanView extends StatefulWidget {
+  /// The selected sequence's own sets, for the sheet the canvas builds.
+  final OcptFloorPlanSet? floorPlanSet;
+
+  /// The selected sequence's own shots, in order — the focus strip's own chips.
+  final List<OcptShot> shots;
+
+  /// Every shot of the selected sequence's own 1-based display rank, keyed by shot id — see
+  /// `OcptFloorPlanCanvas.shotRankByShotId`'s own doc comment.
+  final Map<String, int> shotRankByShotId;
+
+  /// The selected sequence's own scene id — see `OcptFloorPlanCanvas.focusSceneId`'s own doc
+  /// comment.
+  final String focusSceneId;
+
+  /// The selected sequence's own display number (`OcptShotListMode._sequenceDisplayNumberFor`),
+  /// for the palette's own `Sequence <n> — this sequence only` group header.
+  final String sequenceCode;
+
+  /// The id of the currently focused shot, or null for the `Sequence` focus. Derived by the mode
+  /// from `OcptShotListState.selectedShotId` — see `OcptShotListState.isFloorPlanShotFocusActive`.
+  final String? focusShotId;
+
+  /// The shot immediately before [focusShotId], or null while there is none.
+  final String? previousShotId;
+
+  /// The shot immediately after [focusShotId]. See [previousShotId].
+  final String? nextShotId;
+
+  /// Whether each of [shots] has a live camera symbol on [floorPlanSet], keyed by shot id — the
+  /// focus strip's own filled/hollow dots.
+  final Map<String, bool> hasCameraOnSetOf;
+
+  /// Every live camera symbol of the sequence, for the tray's own expandable cameras row.
+  final List<OcptFloorPlanTraySequenceCamera> sequenceCameras;
+
+  /// The last zoom the bloc saw settled — what this view's own controller is created at.
+  final double initialZoom;
+
+  /// The sequence and shot layers currently hidden.
+  final Set<OcptFloorPlanLayer> hiddenLayers;
+
+  /// The ids of every camera symbol currently hidden.
+  final Set<String> hiddenCameraSymbolIds;
+
+  /// Whether the selected set's underlay is currently hidden.
+  final bool isUnderlayHidden;
+
+  /// Whether the onion skin's own previous-shot ghost is shown.
+  final bool isOnionSkinPreviousShown;
+
+  /// Whether the onion skin's own next-shot ghost is shown.
+  final bool isOnionSkinNextShown;
+
+  /// The onion skin's own ghost opacity, 0..1.
+  final double onionSkinOpacity;
+
+  /// Whether the metrics overlay is shown.
+  final bool isMetricsShown;
+
+  /// The id of the currently selected symbol, or null while none is.
+  final String? selectedSymbolId;
+
+  /// The id of the currently selected arrow, or null while none is.
+  final String? selectedArrowId;
+
+  /// The id of the symbol picked as the arrow tool's own pending first end, or null while none is.
+  final String? pendingArrowAnchorSymbolId;
+
+  /// The canvas's own currently active tool.
+  final OcptFloorPlanTool activeTool;
+
+  /// The sequence layer a placed set element lands on.
+  final OcptFloorPlanLayer activeLayer;
+
+  /// The décor primitive a `setElement` click-to-arm placement carries — see
+  /// `OcptFloorPlanCanvas.activeSetElementShape`'s own doc comment.
+  final OcptFloorPlanSetElementShape activeSetElementShape;
+
+  /// The scope a `setElement` click-to-arm placement lands at — see
+  /// `OcptFloorPlanCanvas.activeSetElementScope`'s own doc comment.
+  final OcptFloorPlanScope activeSetElementScope;
+
+  /// A `prop` click-to-arm placement's own armed label — see
+  /// `OcptFloorPlanCanvas.activeLabel`'s own doc comment.
+  final String activeLabel;
+
+  /// The focused sequence's own breakdown props, for the palette's own `Sequence` group chips.
+  final List<OcptFloorPlanPropChip> propsChips;
+
+  /// Whether the mode shows a project version being previewed read-only.
+  final bool isReadOnly;
+
+  /// A symbol's current label value, for the inline label editor.
+  final String Function(String symbolId) symbolLabelValueOf;
+
+  /// Called with the tool just picked.
+  final ValueChanged<OcptFloorPlanTool> onToolSelected;
+
+  /// Called with the layer whose eye was clicked.
+  final ValueChanged<OcptFloorPlanLayer> onLayerVisibilityToggled;
+
+  /// Called with the sequence layer just picked as the active one.
+  final ValueChanged<OcptFloorPlanLayer> onActiveLayerChanged;
+
+  /// Called with the décor primitive just picked among the palette's own typed set-element
+  /// entries — click-to-arms [activeSetElementShape] alongside [OcptFloorPlanTool.setElement]
+  /// itself.
+  final ValueChanged<OcptFloorPlanSetElementShape> onSetElementShapeSelected;
+
+  /// Called with the scope just picked alongside a typed set-element entry ([OcptFloorPlanScope.set]
+  /// for the `Set` group's own four, [OcptFloorPlanScope.scene] for the `Sequence` group's own
+  /// furniture/freeform pair) — click-to-arms [activeSetElementScope].
+  final ValueChanged<OcptFloorPlanScope> onSetElementScopeSelected;
+
+  /// Called with a props chip's own label when it is clicked (click-to-arm) — arms
+  /// [activeLabel] alongside [OcptFloorPlanTool.prop] itself.
+  final ValueChanged<String> onPropChipSelected;
+
+  /// Called with a camera symbol's id whose own eye was clicked.
+  final ValueChanged<String> onCameraVisibilityToggled;
+
+  /// Called with `true` to toggle the previous-shot ghost, `false` for the next-shot one.
+  final ValueChanged<bool> onOnionSkinToggled;
+
+  /// Called with the slider's own new opacity.
+  final ValueChanged<double> onOnionSkinOpacityChanged;
+
+  /// Called when the metrics toggle is clicked.
+  final VoidCallback onMetricsToggled;
+
+  /// Called when the underlay row's own eye is clicked.
+  final VoidCallback onUnderlayVisibilityToggled;
+
+  /// Called when the tool bar's own underlay action is clicked, or null while withheld.
+  final VoidCallback? onUnderlayImportRequested;
+
+  /// Called when the tray's own `Clear underlay` action is clicked, or null while withheld.
+  final VoidCallback? onUnderlayClearRequested;
+
+  /// Called with a symbol's id when it is selected, or null to clear the selection.
+  final ValueChanged<String?> onSymbolSelected;
+
+  /// Called with the layer, the shot id, the scene id and the clicked point (metres), or null
+  /// while withheld. See `OcptFloorPlanCanvas.onSymbolPlaced`'s own doc comment for
+  /// `setElementShape`/`label`.
+  final void Function(
+    OcptFloorPlanLayer layer,
+    String? shotId,
+    String? sceneId,
+    double xM,
+    double yM, {
+    OcptFloorPlanSetElementShape? setElementShape,
+    String label,
+  })?
+  onSymbolPlaced;
+
+  /// Called with a symbol's id and its new centre (metres), or null while withheld.
+  final void Function(String symbolId, double xM, double yM)? onSymbolMoved;
+
+  /// Called with a symbol's id and its new footprint (metres), or null while withheld.
+  final void Function(String symbolId, double widthM, double heightM)? onSymbolResized;
+
+  /// Called with a symbol's id and its new rotation (degrees), or null while withheld.
+  final void Function(String symbolId, double rotationDeg)? onSymbolRotated;
+
+  /// Called with a camera symbol's id and its new field-of-view wedge angle (degrees), or null
+  /// while withheld.
+  final void Function(String symbolId, double fovDeg)? onSymbolFovChanged;
+
+  /// Called with a camera symbol's id and its new field-of-view wedge reach (metres), or null
+  /// while withheld.
+  final void Function(String symbolId, double fovReachM)? onSymbolFovReachChanged;
+
+  /// Called with the selected symbol's id when its own delete action is clicked, or null while
+  /// withheld.
+  final ValueChanged<String>? onSymbolDeleteRequested;
+
+  /// Called with the selected override's own id when its own `Restore` handle is tapped, or null
+  /// while withheld. See `OcptFloorPlanCanvas.onSymbolRestoreRequested`'s own doc comment.
+  final ValueChanged<String>? onSymbolRestoreRequested;
+
+  /// Called with a symbol's id when it is tapped while the `arrow` tool is on, or null while
+  /// withheld.
+  final ValueChanged<String>? onArrowSymbolTapped;
+
+  /// Called to cancel the arrow tool's own pending anchor, or null while withheld.
+  final VoidCallback? onArrowAnchorCancelled;
+
+  /// Called with an arrow's id when it is selected, or null to clear the selection. Never withheld.
+  final ValueChanged<String?> onArrowSelected;
+
+  /// Called with an arrow's id and its new bezier control point (metres), or both null to
+  /// straighten it, or null while withheld.
+  final void Function(String arrowId, double? ctrlXM, double? ctrlYM)? onArrowCurveChanged;
+
+  /// Called with the selected symbol's id when `Ctrl+D` is pressed, or null while withheld. See
+  /// [onSymbolDuplicateDragged] for the `Alt`-drag variant.
+  final ValueChanged<String>? onSymbolDuplicateRequested;
+
+  /// Called with a symbol's id and the release point (metres) of an `Alt`-drag on it, or null while
+  /// withheld.
+  final void Function(String symbolId, double xM, double yM)? onSymbolDuplicateDragged;
+
+  /// Called with a ghost symbol's own shot id when it is double-clicked. Never withheld.
+  final ValueChanged<String>? onGhostShotFocusRequested;
+
+  /// Called with a symbol's id and its raw label text on every keystroke, or null while withheld.
+  final void Function(String symbolId, String rawValue)? onSymbolLabelChanged;
+
+  /// Called with the underlay's new frame (metres), or null while withheld.
+  final void Function(double xM, double yM, double widthM, double heightM)?
+  onUnderlayTransformChanged;
+
+  /// Called with the zoom just settled on, whichever gesture settled it.
+  final ValueChanged<double> onZoomSettled;
+
+  /// A set-scope move, rotate or resize awaiting the scope bubble's own answer — see
+  /// `OcptFloorPlanCanvas.pendingScopeLiveOverride`'s own doc comment.
+  final OcptFloorPlanSymbolLiveOverride? pendingScopeLiveOverride;
+
+  /// The scope bubble's own `Every sequence (n)` label.
+  final String? scopeBubbleEveryLabel;
+
+  /// The scope bubble's own `Only sequence n` label.
+  final String? scopeBubbleOnlyLabel;
+
+  /// The scope bubble's own `Cancel` label.
+  final String? scopeBubbleCancelLabel;
+
+  /// Called when the scope bubble's own `Every sequence` button is tapped.
+  final VoidCallback? onScopeBubbleEveryRequested;
+
+  /// Called when the scope bubble's own `Only sequence n` button is tapped.
+  final VoidCallback? onScopeBubbleOnlyRequested;
+
+  /// Called when the scope bubble's own `Cancel` button is tapped, or a click lands elsewhere.
+  final VoidCallback? onScopeBubbleCancelRequested;
+
+  /// Called with a shot's id when its own chip is clicked, or `←`/`→` walks to it.
+  final ValueChanged<String> onShotChipSelected;
+
+  /// Called with `-1`/`1` when `←`/`→` is pressed.
+  final ValueChanged<int> onShotWalkRequested;
+
+  /// Class constructor
+  const OcptFloorPlanView({
+    super.key,
+    required this.floorPlanSet,
+    required this.shots,
+    required this.shotRankByShotId,
+    required this.focusSceneId,
+    required this.sequenceCode,
+    required this.focusShotId,
+    required this.previousShotId,
+    required this.nextShotId,
+    required this.hasCameraOnSetOf,
+    required this.sequenceCameras,
+    required this.initialZoom,
+    required this.hiddenLayers,
+    required this.hiddenCameraSymbolIds,
+    required this.isUnderlayHidden,
+    required this.isOnionSkinPreviousShown,
+    required this.isOnionSkinNextShown,
+    required this.onionSkinOpacity,
+    required this.isMetricsShown,
+    required this.selectedSymbolId,
+    required this.selectedArrowId,
+    required this.pendingArrowAnchorSymbolId,
+    required this.activeTool,
+    required this.activeLayer,
+    required this.activeSetElementShape,
+    required this.activeSetElementScope,
+    required this.activeLabel,
+    required this.propsChips,
+    required this.isReadOnly,
+    required this.symbolLabelValueOf,
+    required this.onToolSelected,
+    required this.onLayerVisibilityToggled,
+    required this.onActiveLayerChanged,
+    required this.onSetElementShapeSelected,
+    required this.onSetElementScopeSelected,
+    required this.onPropChipSelected,
+    required this.onCameraVisibilityToggled,
+    required this.onOnionSkinToggled,
+    required this.onOnionSkinOpacityChanged,
+    required this.onMetricsToggled,
+    required this.onUnderlayVisibilityToggled,
+    required this.onUnderlayImportRequested,
+    required this.onUnderlayClearRequested,
+    required this.onSymbolSelected,
+    required this.onSymbolPlaced,
+    required this.onSymbolMoved,
+    required this.onSymbolResized,
+    required this.onSymbolRotated,
+    required this.onSymbolFovChanged,
+    required this.onSymbolFovReachChanged,
+    required this.onSymbolDeleteRequested,
+    required this.onSymbolRestoreRequested,
+    required this.onArrowSymbolTapped,
+    required this.onArrowAnchorCancelled,
+    required this.onArrowSelected,
+    required this.onArrowCurveChanged,
+    required this.onSymbolDuplicateRequested,
+    required this.onSymbolDuplicateDragged,
+    required this.onGhostShotFocusRequested,
+    required this.onSymbolLabelChanged,
+    required this.onUnderlayTransformChanged,
+    required this.onZoomSettled,
+    required this.onShotChipSelected,
+    required this.onShotWalkRequested,
+    this.pendingScopeLiveOverride,
+    this.scopeBubbleEveryLabel,
+    this.scopeBubbleOnlyLabel,
+    this.scopeBubbleCancelLabel,
+    this.onScopeBubbleEveryRequested,
+    this.onScopeBubbleOnlyRequested,
+    this.onScopeBubbleCancelRequested,
+  });
+
+  @override
+  State<OcptFloorPlanView> createState() => _OcptFloorPlanViewState();
+}
+
+class _OcptFloorPlanViewState extends State<OcptFloorPlanView> {
+  /// The live zoom/pan source of truth for as long as this view stays mounted — see the class doc
+  /// comment.
+  late final OcptFloorPlanViewportController _viewportController = OcptFloorPlanViewportController(
+    zoom: widget.initialZoom,
+  );
+
+  /// The keyboard focus node the whole view claims once, so `←`/`→` and `Escape` work from
+  /// anywhere in it — see the class doc comment.
+  final FocusNode _keyboardFocusNode = FocusNode(debugLabel: "OcptFloorPlanView");
+
+  /// Wraps the canvas area, giving [_handleOtherPropRequested] and [_fitToContent] a way to
+  /// read its own rendered size — the viewport's own visible extent, in logical pixels — with no
+  /// `LayoutBuilder` of its own to thread through this view's build method.
+  final GlobalKey _canvasAreaKey = GlobalKey();
+
+  /// The id of the Resources set [_fitToContent] last fit the viewport to, or null before the
+  /// first frame — the class doc comment's own "framing" guard: a set already framed never fires
+  /// again on its own, only [OcptFloorPlanView.floorPlanSet]'s own id changing (or the `Recenter`
+  /// button, which calls [_fitToContent] directly, bypassing this guard on purpose) does.
+  String? _framedSetId;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _fitToContentIfSetChanged());
+  }
+
+  @override
+  void didUpdateWidget(covariant OcptFloorPlanView oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Only a persisted value that actually changed is synced: a rebuild arriving between a fit (or
+    // a toolbar zoom) and the bloc's echo of it still carries the *previous* zoom, and syncing that
+    // stale value would undo the new zoom while leaving the pan computed for it — the plan drawn
+    // off-centre. The echo itself is then a no-op, exactly as
+    // `OcptWorkspaceDockLayoutController.syncFromPersisted` never bounces a drag's own committed
+    // value.
+    if (widget.initialZoom != oldWidget.initialZoom) {
+      _viewportController.syncZoomFromPersisted(widget.initialZoom);
+    }
+
+    if (widget.floorPlanSet?.id != oldWidget.floorPlanSet?.id) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _fitToContentIfSetChanged());
+    }
+  }
+
+  @override
+  void dispose() {
+    _viewportController.dispose();
+    _keyboardFocusNode.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Focus(
+      focusNode: _keyboardFocusNode,
+      autofocus: true,
+      onKeyEvent: _onKeyEvent,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          OcptFloorPlanToolBar(
+            activeTool: widget.activeTool,
+            viewportController: _viewportController,
+            isReadOnly: widget.isReadOnly,
+            hasUnderlay: widget.floorPlanSet?.underlayAssetId != null,
+            onToolSelected: widget.onToolSelected,
+            onUnderlayImportRequested: widget.onUnderlayImportRequested,
+            onZoomSettled: widget.onZoomSettled,
+            onRecenterRequested: _fitToContent,
+          ),
+          Divider(height: 1, color: theme.colorScheme.outlineVariant),
+          Expanded(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                SizedBox(
+                  width: 220,
+                  // Listens to `_viewportController` for the sole row this session concern
+                  // (`showFieldOfView`) drives — every other row in this palette reads a plain
+                  // widget field instead.
+                  child: ListenableBuilder(
+                    listenable: _viewportController,
+                    builder: (context, _) => OcptFloorPlanPalette(
+                      setName: widget.floorPlanSet?.name ?? "",
+                      sequenceCode: widget.sequenceCode,
+                      shotCode: _focusShotCode,
+                      activeTool: widget.activeTool,
+                      activeSetElementShape: widget.activeSetElementShape,
+                      activeSetElementScope: widget.activeSetElementScope,
+                      activeLabel: widget.activeLabel,
+                      propsChips: widget.propsChips,
+                      isReadOnly: widget.isReadOnly,
+                      hiddenLayers: widget.hiddenLayers,
+                      layerElementCounts: _layerElementCounts,
+                      sequenceCameras: widget.sequenceCameras,
+                      hiddenCameraSymbolIds: widget.hiddenCameraSymbolIds,
+                      isOnionSkinPreviousShown: widget.isOnionSkinPreviousShown,
+                      isOnionSkinNextShown: widget.isOnionSkinNextShown,
+                      onionSkinOpacity: widget.onionSkinOpacity,
+                      isMetricsShown: widget.isMetricsShown,
+                      isShowFieldOfViewShown: _viewportController.showFieldOfView,
+                      isUnderlayHidden: widget.isUnderlayHidden,
+                      hasUnderlay: widget.floorPlanSet?.underlayAssetId != null,
+                      onToolSelected: widget.onToolSelected,
+                      onSetElementShapeSelected: widget.onSetElementShapeSelected,
+                      onSetElementScopeSelected: widget.onSetElementScopeSelected,
+                      onPropChipSelected: widget.onPropChipSelected,
+                      onOtherPropRequested: () =>
+                          unawaited(_handleOtherPropRequested(context)),
+                      onLayerVisibilityToggled: widget.onLayerVisibilityToggled,
+                      onCameraVisibilityToggled: widget.onCameraVisibilityToggled,
+                      onOnionSkinToggled: widget.onOnionSkinToggled,
+                      onOnionSkinOpacityChanged: widget.onOnionSkinOpacityChanged,
+                      onMetricsToggled: widget.onMetricsToggled,
+                      onShowFieldOfViewToggled: () => _viewportController.setShowFieldOfView(
+                        value: !_viewportController.showFieldOfView,
+                      ),
+                      onUnderlayVisibilityToggled: widget.onUnderlayVisibilityToggled,
+                      onUnderlayClearRequested: widget.onUnderlayClearRequested,
+                    ),
+                  ),
+                ),
+                VerticalDivider(width: 1, color: theme.colorScheme.outlineVariant),
+                Expanded(
+                  child: KeyedSubtree(
+                    key: _canvasAreaKey,
+                    child: OcptFloorPlanCanvas(
+                      floorPlanSet: widget.floorPlanSet,
+                      shotRankByShotId: widget.shotRankByShotId,
+                      focusSceneId: widget.focusSceneId,
+                      focusShotId: widget.focusShotId,
+                      previousShotId: widget.previousShotId,
+                      nextShotId: widget.nextShotId,
+                      isOnionSkinPreviousShown: widget.isOnionSkinPreviousShown,
+                      isOnionSkinNextShown: widget.isOnionSkinNextShown,
+                      onionSkinOpacity: widget.onionSkinOpacity,
+                      hiddenLayers: widget.hiddenLayers,
+                      hiddenCameraSymbolIds: widget.hiddenCameraSymbolIds,
+                      isUnderlayHidden: widget.isUnderlayHidden,
+                      selectedSymbolId: widget.selectedSymbolId,
+                      selectedArrowId: widget.selectedArrowId,
+                      pendingArrowAnchorSymbolId: widget.pendingArrowAnchorSymbolId,
+                      isMetricsShown: widget.isMetricsShown,
+                      activeTool: widget.activeTool,
+                      activeLayer: widget.activeLayer,
+                      activeSetElementShape: widget.activeSetElementShape,
+                      activeSetElementScope: widget.activeSetElementScope,
+                      activeLabel: widget.activeLabel,
+                      viewportController: _viewportController,
+                      isReadOnly: widget.isReadOnly,
+                      symbolLabelValueOf: widget.symbolLabelValueOf,
+                      onSymbolSelected: widget.onSymbolSelected,
+                      onSymbolPlaced: widget.onSymbolPlaced,
+                      onSymbolMoved: widget.onSymbolMoved,
+                      onSymbolResized: widget.onSymbolResized,
+                      onSymbolRotated: widget.onSymbolRotated,
+                      onSymbolFovChanged: widget.onSymbolFovChanged,
+                      onSymbolFovReachChanged: widget.onSymbolFovReachChanged,
+                      onSymbolDeleteRequested: widget.onSymbolDeleteRequested,
+                      onSymbolRestoreRequested: widget.onSymbolRestoreRequested,
+                      onArrowSymbolTapped: widget.onArrowSymbolTapped,
+                      onArrowAnchorCancelled: widget.onArrowAnchorCancelled,
+                      onArrowSelected: widget.onArrowSelected,
+                      onArrowCurveChanged: widget.onArrowCurveChanged,
+                      onSymbolDuplicateRequested: widget.onSymbolDuplicateRequested,
+                      onSymbolDuplicateDragged: widget.onSymbolDuplicateDragged,
+                      onGhostShotFocusRequested: widget.onGhostShotFocusRequested,
+                      onSymbolLabelChanged: widget.onSymbolLabelChanged,
+                      onUnderlayTransformChanged: widget.onUnderlayTransformChanged,
+                      onZoomSettled: widget.onZoomSettled,
+                      pendingScopeLiveOverride: widget.pendingScopeLiveOverride,
+                      scopeBubbleEveryLabel: widget.scopeBubbleEveryLabel,
+                      scopeBubbleOnlyLabel: widget.scopeBubbleOnlyLabel,
+                      scopeBubbleCancelLabel: widget.scopeBubbleCancelLabel,
+                      onScopeBubbleEveryRequested: widget.onScopeBubbleEveryRequested,
+                      onScopeBubbleOnlyRequested: widget.onScopeBubbleOnlyRequested,
+                      onScopeBubbleCancelRequested: widget.onScopeBubbleCancelRequested,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          OcptFloorPlanFocusStrip(
+            shots: widget.shots,
+            hasCameraOnSetOf: widget.hasCameraOnSetOf,
+            selectedShotId: widget.focusShotId,
+            previousShotId: widget.previousShotId,
+            nextShotId: widget.nextShotId,
+            onShotChipSelected: widget.onShotChipSelected,
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// [OcptFloorPlanView.focusShotId]'s own display code (`12/3`) among
+  /// [OcptFloorPlanView.shots], or null while no shot is focused — the palette's own `Shot <code> —
+  /// this shot only` group header.
+  String? get _focusShotCode {
+    final focusShotId = widget.focusShotId;
+    if (focusShotId == null) {
+      return null;
+    }
+    for (final shot in widget.shots) {
+      if (shot.id == focusShotId) {
+        return shot.code;
+      }
+    }
+    return null;
+  }
+
+  /// Each `View` group layer's own count of elements the canvas currently draws for the focused
+  /// sequence/shot, before `OcptFloorPlanCanvas._sheetOf`'s own hidden-layers/hidden-cameras
+  /// visibility filter — built the same way that filter's own `full` sheet is, so
+  /// `OcptFloorPlanPalette`'s own counts never depend on the very toggles they sit next to. Empty
+  /// while [OcptFloorPlanView.floorPlanSet] is null (nothing to count yet).
+  Map<OcptFloorPlanLayer, int> get _layerElementCounts {
+    final floorPlanSet = widget.floorPlanSet;
+    if (floorPlanSet == null) {
+      return const {};
+    }
+
+    final sheet = OcptFloorPlanSheet.of(
+      floorPlanSet: floorPlanSet,
+      focusSceneId: widget.focusSceneId,
+      focusShotId: widget.focusShotId,
+      shotRankByShotId: widget.shotRankByShotId,
+      previousShotId: widget.isOnionSkinPreviousShown ? widget.previousShotId : null,
+      nextShotId: widget.isOnionSkinNextShown ? widget.nextShotId : null,
+    );
+
+    final counts = <OcptFloorPlanLayer, int>{};
+    for (final symbol in sheet.symbols) {
+      // The faint ghost of an overridden original is the same element as its override, drawn
+      // again at its old place: counting it would count that element twice.
+      if (symbol.isOverriddenOriginalGhost) {
+        continue;
+      }
+      counts[symbol.layer] = (counts[symbol.layer] ?? 0) + 1;
+    }
+    return counts;
+  }
+
+  /// `←`/`→` walk the sequence's shots; `Escape` cancels the arrow tool's own pending anchor while
+  /// one is pending; `Ctrl+D` duplicates the selected symbol — see the class doc comment.
+  KeyEventResult _onKeyEvent(FocusNode node, KeyEvent event) {
+    if (event is! KeyDownEvent) {
+      return KeyEventResult.ignored;
+    }
+
+    if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
+      widget.onShotWalkRequested(-1);
+      return KeyEventResult.handled;
+    }
+    if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
+      widget.onShotWalkRequested(1);
+      return KeyEventResult.handled;
+    }
+    if (event.logicalKey == LogicalKeyboardKey.escape &&
+        widget.pendingArrowAnchorSymbolId != null) {
+      widget.onArrowAnchorCancelled?.call();
+      return KeyEventResult.handled;
+    }
+    if (event.logicalKey == LogicalKeyboardKey.keyD &&
+        (HardwareKeyboard.instance.isControlPressed || HardwareKeyboard.instance.isMetaPressed)) {
+      final selectedSymbolId = widget.selectedSymbolId;
+      if (selectedSymbolId != null) {
+        widget.onSymbolDuplicateRequested?.call(selectedSymbolId);
+        return KeyEventResult.handled;
+      }
+    }
+
+    return KeyEventResult.ignored;
+  }
+
+  /// [_fitToContent]'s own guarded entry point: a no-op while [OcptFloorPlanView.floorPlanSet]
+  /// is null (nothing to frame) or already names [_framedSetId] (already framed — an unrelated
+  /// rebuild, or the user's own pan/zoom, never re-triggers this), otherwise records it as framed
+  /// and fits. Always called after a frame ([initState]/[didUpdateWidget]'s own post-frame
+  /// callback), so the canvas area is already laid out.
+  void _fitToContentIfSetChanged() {
+    if (!mounted) {
+      return;
+    }
+    final setId = widget.floorPlanSet?.id;
+    if (setId == null || setId == _framedSetId) {
+      return;
+    }
+    _framedSetId = setId;
+    _fitToContent();
+  }
+
+  /// Fits the viewport onto [OcptFloorPlanView.floorPlanSet]'s own drawn content
+  /// (`ocptFloorPlanFitOf`), reporting the fitted zoom through [OcptFloorPlanView.onZoomSettled] so
+  /// it becomes the bloc's own persisted value — the same path a tool bar zoom click reports
+  /// through — and never fights [OcptFloorPlanViewportController.syncZoomFromPersisted] on the next
+  /// rebuild. A no-op while there is no set, no canvas size yet (the render object isn't resolvable,
+  /// defensive only), or the sheet draws nothing at all (an empty plan keeps the default view).
+  void _fitToContent() {
+    final floorPlanSet = widget.floorPlanSet;
+    if (floorPlanSet == null) {
+      return;
+    }
+    final renderObject = _canvasAreaKey.currentContext?.findRenderObject();
+    if (renderObject is! RenderBox || !renderObject.hasSize) {
+      return;
+    }
+
+    final sheet = OcptFloorPlanSheet.of(
+      floorPlanSet: floorPlanSet,
+      focusSceneId: widget.focusSceneId,
+      focusShotId: widget.focusShotId,
+      shotRankByShotId: widget.shotRankByShotId,
+    );
+    if (ocptFloorPlanContentBoundsOf(sheet) == null) {
+      return;
+    }
+
+    final canvasSize = renderObject.size;
+    final fit = ocptFloorPlanFitOf(
+      sheet: sheet,
+      viewportWidthPx: canvasSize.width,
+      viewportHeightPx: canvasSize.height,
+    );
+    _viewportController.setZoom(fit.zoom);
+    _viewportController.setPan(Offset(fit.panXPx, fit.panYPx));
+    widget.onZoomSettled(fit.zoom);
+  }
+
+  /// Opens the character name-picker dialog's own pattern for a free-typed prop label (the
+  /// palette's own `Other…` chip, with its own title and field hint — the reused dialog must
+  /// never still hint at a character), then places it at once — at the centre of this view's own
+  /// currently visible canvas area, at scene scope on [OcptFloorPlanView.focusSceneId] — and
+  /// selects it, exactly like every other placement (`OcptShotListBloc._onFloorPlanSymbolPlaced`
+  /// already selects whatever it just placed). Never arms the `prop` tool the way the chips do:
+  /// a free-typed label is one-shot, unlike a chip staying usable for several placements.
+  ///
+  /// A no-op while dismissed empty, while [OcptFloorPlanView.onSymbolPlaced] is withheld (read-only
+  /// preview), or on the one frame this view's own canvas area isn't laid out yet, defensive only.
+  Future<void> _handleOtherPropRequested(BuildContext context) async {
+    final tr = Tr.of(context);
+    final picked = await OcptFloorPlanCharacterNamePickerDialog.show(
+      context,
+      title: tr.shotListFloorPlanOtherPropNamePickerTitle,
+      fieldHint: tr.shotListFloorPlanOtherPropNamePickerFieldHint,
+      initialValue: "",
+      suggestedNames: const [],
+    );
+    if (picked == null || picked.isEmpty || !mounted) {
+      return;
+    }
+
+    final onSymbolPlaced = widget.onSymbolPlaced;
+    if (onSymbolPlaced == null) {
+      return;
+    }
+
+    final renderObject = _canvasAreaKey.currentContext?.findRenderObject();
+    if (renderObject is! RenderBox || !renderObject.hasSize) {
+      return;
+    }
+    final canvasSize = renderObject.size;
+    final centreScreen = Offset(canvasSize.width / 2, canvasSize.height / 2);
+    final centreMetres = ocptFloorPlanMetrePointOf(
+      screenPoint: centreScreen,
+      canvasSize: canvasSize,
+      zoom: _viewportController.zoom,
+      pan: _viewportController.pan,
+    );
+
+    onSymbolPlaced(
+      OcptFloorPlanLayer.props,
+      null,
+      widget.focusSceneId,
+      centreMetres.dx,
+      centreMetres.dy,
+      label: picked,
+    );
+  }
+}

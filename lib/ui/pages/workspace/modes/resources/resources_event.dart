@@ -652,7 +652,7 @@ class OcptResourcesRoleMergeRequestedEvent extends OcptResourcesEvent {
 
 /// Records that person [personId] is a candidate for role [roleId], appended after that role's
 /// other candidates, written immediately: `OcptResourcesPersonPicker`'s own pick, dispatched by the
-/// candidates card's `+ Candidate` action.
+/// candidates card's `Candidate` action.
 class OcptResourcesRoleCandidateAddedEvent extends OcptResourcesEvent {
   /// The id of the role the person is a candidate for.
   final String roleId;
@@ -1046,6 +1046,36 @@ class OcptResourcesSceneRemovedFromSetEvent extends OcptResourcesEvent {
   /// Object properties
   @override
   List<Object?> get props => [...super.props, sceneId, setId];
+}
+
+/// Requests revealing set [setId]'s own floor plan in the shot list mode's floor plans view, on
+/// its first linked sequence in screenplay order — the sets
+/// card's own `Open in shot list` action.
+///
+/// Resolving the target sequence and episode needs a database read
+/// (`OcptLocationsService.firstLinkedSceneOf`), which this event's own handler does before setting
+/// `OcptResourcesState.pendingShotListReveal` — the mode reads it, dispatches the actual
+/// cross-mode `OcptWorkspaceModeSelectedEvent` and reports it taken into account
+/// ([OcptResourcesShotListRevealDismissedEvent]), exactly as `OcptShotListState
+/// .pendingCharacterNamePromptSymbolId` is consumed.
+class OcptResourcesOpenSetInShotListRequestedEvent extends OcptResourcesEvent {
+  /// The id of the Resources set whose floor plan to reveal.
+  final String setId;
+
+  /// Class constructor
+  const OcptResourcesOpenSetInShotListRequestedEvent({required this.setId});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, setId];
+}
+
+/// Reports that the mode has taken `OcptResourcesState.pendingShotListReveal` into account (it
+/// dispatched the cross-mode switch it names), so it can be cleared and never re-dispatched on a
+/// later rebuild.
+class OcptResourcesShotListRevealDismissedEvent extends OcptResourcesEvent {
+  /// Class constructor
+  const OcptResourcesShotListRevealDismissedEvent();
 }
 
 /// Requests referencing a scouting photo for location [locationId]: opens the native file picker

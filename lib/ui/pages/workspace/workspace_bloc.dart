@@ -345,6 +345,7 @@ class OcptWorkspaceBloc extends BlocForMixin<OcptWorkspaceState> {
         mode: event.mode,
         revealRequest: event.revealRequest,
         clearRevealRequest: event.revealRequest == null,
+        selectedEpisodeId: event.episodeId,
       ),
     );
     _syncManager?.updatePresenceMode(event.mode);

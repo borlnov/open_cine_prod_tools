@@ -8,6 +8,7 @@ import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_assets_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_breakdown_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_elements_service.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_floor_plan_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_locations_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_role_candidates_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_role_index_service.dart';
@@ -16,6 +17,7 @@ import 'package:open_cine_prod_tools/managers/projects/services/ocpt_schedule_se
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_screenplay_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_coverage_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_list_service.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_storyboard_service.dart';
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_screenplay_merge_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_screenplay_merge_conflict.dart';
@@ -35,7 +37,11 @@ void main() {
   final assetsService = OcptAssetsService(deviceId: testDeviceId);
   final roleCandidatesService = OcptRoleCandidatesService(deviceId: testDeviceId);
   final elementsService = OcptElementsService(assetsService: assetsService, deviceId: testDeviceId);
-  final locationsService = OcptLocationsService(assetsService: assetsService, deviceId: testDeviceId);
+  final locationsService = OcptLocationsService(
+    assetsService: assetsService,
+    floorPlanService: OcptFloorPlanService(assetsService: assetsService, deviceId: testDeviceId),
+    deviceId: testDeviceId,
+  );
   final roleIndexService = OcptRoleIndexService(
     elementsService: elementsService,
     roleCandidatesService: roleCandidatesService,
@@ -50,6 +56,8 @@ void main() {
   const sceneIndexService = OcptSceneIndexService();
   final shotListService = OcptShotListService(
     roleIndexService: roleIndexService,
+    storyboardService: OcptStoryboardService(assetsService: assetsService, deviceId: testDeviceId),
+    floorPlanService: OcptFloorPlanService(assetsService: assetsService, deviceId: testDeviceId),
     deviceId: testDeviceId,
   );
   final shotCoverageService = OcptShotCoverageService(deviceId: testDeviceId);

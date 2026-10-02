@@ -6,10 +6,12 @@ import 'package:drift/drift.dart' show OrderingTerm, Value;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_assets_service.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_floor_plan_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_locations_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/types/ocpt_asset_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_day_part_slot.dart';
+import 'package:open_cine_prod_tools/types/ocpt_floor_plan_layer.dart';
 import 'package:open_cine_prod_tools/types/ocpt_location_availability_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_permit_status.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_weekday_mask.dart';
@@ -21,8 +23,10 @@ void main() {
 
   Future<String> testDeviceId() async => "test-device";
   final assetsService = OcptAssetsService(deviceId: testDeviceId);
+  final floorPlanService = OcptFloorPlanService(assetsService: assetsService, deviceId: testDeviceId);
   final locationsService = OcptLocationsService(
     assetsService: assetsService,
+    floorPlanService: floorPlanService,
     deviceId: testDeviceId,
   );
 
@@ -220,6 +224,15 @@ void main() {
         locationId: locationId,
         path: "/tmp/repérage.jpg",
       ))!;
+      final symbolId = (await floorPlanService.placeSymbol(
+        database: database,
+        setId: setId,
+        sceneId: null,
+        shotId: null,
+        layer: OcptFloorPlanLayer.set,
+        xM: 0,
+        yM: 0,
+      ))!;
 
       await locationsService.deleteLocation(database: database, locationId: locationId);
 
@@ -237,6 +250,16 @@ void main() {
         database.ocptAssetsTable,
       )..where((row) => row.id.equals(photoId))).getSingle();
       expect(photoRow.isDeleted, isTrue);
+
+      final planRow = await (database.select(
+        database.ocptFloorPlanSetsTable,
+      )..where((row) => row.id.equals(setId))).getSingle();
+      expect(planRow.isDeleted, isTrue, reason: "the set's own floor plan is tombstoned too");
+
+      final symbolRow = await (database.select(
+        database.ocptFloorPlanSymbolsTable,
+      )..where((row) => row.id.equals(symbolId))).getSingle();
+      expect(symbolRow.isDeleted, isTrue);
     });
   });
 
@@ -319,6 +342,184 @@ void main() {
 
       final locations = await locationsService.loadLocations(database: database);
       expect(locations.single.sets.map((set) => set.id), [secondSetId]);
+    });
+
+    test("deleteSet tombstones its floor plan, symbols and arrows", () async {
+      final locationId = (await locationsService.createLocation(database: database, name: "A"))!;
+      final setId = (await locationsService.createSet(
+        database: database,
+        locationId: locationId,
+        name: "Hangar",
+      ))!;
+      final firstSymbolId = (await floorPlanService.placeSymbol(
+        database: database,
+        setId: setId,
+        sceneId: null,
+        shotId: null,
+        layer: OcptFloorPlanLayer.set,
+        xM: 0,
+        yM: 0,
+      ))!;
+      final secondSymbolId = (await floorPlanService.placeSymbol(
+        database: database,
+        setId: setId,
+        sceneId: null,
+        shotId: null,
+        layer: OcptFloorPlanLayer.set,
+        xM: 1,
+        yM: 1,
+      ))!;
+
+      await locationsService.deleteSet(database: database, setId: setId);
+
+      final planRow = await (database.select(
+        database.ocptFloorPlanSetsTable,
+      )..where((row) => row.id.equals(setId))).getSingle();
+      expect(planRow.isDeleted, isTrue);
+
+      final symbolRows = await database.select(database.ocptFloorPlanSymbolsTable).get();
+      expect(symbolRows.map((row) => row.isDeleted), everyElement(isTrue));
+      expect(symbolRows.map((row) => row.id), containsAll(<String>[firstSymbolId, secondSymbolId]));
+    });
+
+    test("createSiblingSet mints a new set in the same location", () async {
+      final locationId = (await locationsService.createLocation(database: database, name: "A"))!;
+      final sourceSetId = (await locationsService.createSet(
+        database: database,
+        locationId: locationId,
+        name: "Hangar",
+      ))!;
+
+      final newSetId = (await locationsService.createSiblingSet(
+        database: database,
+        sourceSetId: sourceSetId,
+        name: "Hangar copy",
+      ))!;
+
+      expect(newSetId, isNot(sourceSetId));
+      final locations = await locationsService.loadLocations(database: database);
+      expect(
+        locations.single.sets.map((set) => set.id),
+        containsAll(<String>[sourceSetId, newSetId]),
+      );
+      final newSetRow = await (database.select(
+        database.ocptSetsTable,
+      )..where((row) => row.id.equals(newSetId))).getSingle();
+      expect(newSetRow.locationId, locationId);
+      expect(newSetRow.name, "Hangar copy");
+    });
+
+    test("createSiblingSet does nothing for a set that doesn't exist", () async {
+      final newSetId = await locationsService.createSiblingSet(
+        database: database,
+        sourceSetId: "nope",
+        name: "Copy",
+      );
+      expect(newSetId, isNull);
+    });
+
+    group("duplicateSetForScene (atomic duplication)", () {
+      setUp(() async {
+        await database
+            .into(database.ocptScreenplaysTable)
+            .insert(
+              OcptScreenplaysTableCompanion.insert(
+                id: "screenplay-1",
+                title: "Draft",
+                updatedAt: DateTime.now(),
+              ),
+            );
+        await insertScene(id: "scene-1", position: 0, heading: "INT. CUISINE - JOUR");
+      });
+
+      test("mints the sibling set, copies its plan and links it, in one call", () async {
+        final locationId = (await locationsService.createLocation(
+          database: database,
+          name: "Maison",
+        ))!;
+        final sourceSetId = (await locationsService.createSet(
+          database: database,
+          locationId: locationId,
+          name: "Cuisine",
+        ))!;
+        await floorPlanService.placeSymbol(
+          database: database,
+          setId: sourceSetId,
+          sceneId: null,
+          shotId: null,
+          layer: OcptFloorPlanLayer.set,
+          xM: 1,
+          yM: 2,
+        );
+
+        final newSetId = await locationsService.duplicateSetForScene(
+          database: database,
+          sourceSetId: sourceSetId,
+          name: "Cuisine copy",
+          sceneId: "scene-1",
+        );
+
+        expect(newSetId, isNotNull);
+        expect(newSetId, isNot(sourceSetId));
+
+        final locations = await locationsService.loadLocations(database: database);
+        final newSet = locations.single.sets.firstWhere((set) => set.id == newSetId);
+        expect(newSet.name, "Cuisine copy");
+        expect(newSet.sceneIds, ["scene-1"]);
+
+        final copiedSymbols =
+            await (database.select(
+                  database.ocptFloorPlanSymbolsTable,
+                )..where((row) => row.setId.equals(newSetId!)))
+                .get();
+        expect(copiedSymbols, hasLength(1));
+        expect(copiedSymbols.single.xM, 1);
+        expect(copiedSymbols.single.yM, 2);
+      });
+
+      test("a failure in the copy step leaves no new set and no link behind", () async {
+        final locationId = (await locationsService.createLocation(
+          database: database,
+          name: "Maison",
+        ))!;
+        final sourceSetId = (await locationsService.createSet(
+          database: database,
+          locationId: locationId,
+          name: "Cuisine",
+        ))!;
+
+        final setRowsBefore = await database.select(database.ocptSetsTable).get();
+
+        // A sceneId naming no live scene violates `scene_sets.sceneId`'s own foreign key the
+        // moment `assignSceneToSet` tries to insert the link — the nested transaction it runs in
+        // is a savepoint (drift's own nested-transaction support), so this rolls back everything
+        // this call already wrote (the sibling set, its copied plan) rather than only its own
+        // half, once the exception keeps propagating out to this method's own outermost
+        // `transaction()`.
+        await expectLater(
+          locationsService.duplicateSetForScene(
+            database: database,
+            sourceSetId: sourceSetId,
+            name: "Cuisine copy",
+            sceneId: "no-such-scene",
+          ),
+          throwsA(anything),
+        );
+
+        final setRowsAfter = await database.select(database.ocptSetsTable).get();
+        expect(
+          setRowsAfter.map((row) => row.id),
+          setRowsBefore.map((row) => row.id),
+          reason: "no sibling set row must survive a rolled-back transaction",
+        );
+
+        final sceneSetRows = await database.select(database.ocptSceneSetsTable).get();
+        expect(sceneSetRows, isEmpty, reason: "no link row must survive either");
+
+        final allSymbolRows = await database.select(database.ocptFloorPlanSymbolsTable).get();
+        final orphanSymbolRows = allSymbolRows.where((row) => row.setId != sourceSetId);
+        expect(orphanSymbolRows, isEmpty, reason: "no copied symbol must survive either");
+      });
     });
 
     test("reorderSet moves a set by writing exactly one row", () async {
@@ -561,6 +762,68 @@ void main() {
       );
 
       expect(scenes.map((scene) => scene.displayNumber), ["2.1", "2.2"]);
+    });
+
+    group("firstLinkedSceneOf", () {
+      test("names null while the set carries no live link at all", () async {
+        final setId = await createSetInNewLocation("Cuisine");
+
+        expect(
+          await locationsService.firstLinkedSceneOf(database: database, setId: setId),
+          isNull,
+        );
+      });
+
+      test("picks the earlier scene of the same episode when linked to two", () async {
+        final setId = await createSetInNewLocation("Cuisine");
+        await locationsService.assignSceneToSet(database: database, sceneId: "scene-2", setId: setId);
+        await locationsService.assignSceneToSet(database: database, sceneId: "scene-1", setId: setId);
+
+        final first = await locationsService.firstLinkedSceneOf(database: database, setId: setId);
+
+        expect(first, (sceneId: "scene-1", screenplayId: "screenplay-1"));
+      });
+
+      test("picks the earlier episode's own scene over a later episode's earlier one", () async {
+        await (database.update(
+          database.ocptScreenplaysTable,
+        )..where((row) => row.id.equals("screenplay-1"))).write(
+          const OcptScreenplaysTableCompanion(sortKey: Value("b")),
+        );
+        await database
+            .into(database.ocptScreenplaysTable)
+            .insert(
+              OcptScreenplaysTableCompanion.insert(
+                id: "screenplay-0",
+                title: "Episode 0",
+                updatedAt: DateTime.now(),
+                sortKey: const Value("a"),
+              ),
+            );
+        await database
+            .into(database.ocptScenesTable)
+            .insert(
+              OcptScenesTableCompanion.insert(
+                id: "scene-0",
+                screenplayId: "screenplay-0",
+                position: 5,
+                heading: "INT. GRENIER - JOUR",
+                charStart: 0,
+                charEnd: 10,
+              ),
+            );
+
+        final setId = await createSetInNewLocation("Cuisine");
+        // scene-1 (position 0 of screenplay-1, the later episode) is linked first, scene-0
+        // (position 5 of screenplay-0, the earlier episode) linked after — episode order must
+        // still win over insertion order and over the raw scene position.
+        await locationsService.assignSceneToSet(database: database, sceneId: "scene-1", setId: setId);
+        await locationsService.assignSceneToSet(database: database, sceneId: "scene-0", setId: setId);
+
+        final first = await locationsService.firstLinkedSceneOf(database: database, setId: setId);
+
+        expect(first, (sceneId: "scene-0", screenplayId: "screenplay-0"));
+      });
     });
   });
 

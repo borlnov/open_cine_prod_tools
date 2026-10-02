@@ -37,7 +37,7 @@ class OcptRoleSheetCandidatesCard extends StatelessWidget {
   /// This role's own live candidacies, in their own `sortKey` order.
   final List<OcptRoleCandidate> candidates;
 
-  /// The whole address book: what the `+ Candidate` picker offers, once the people already
+  /// The whole address book: what the `Candidate` picker offers, once the people already
   /// candidates for this role are excluded.
   final List<OcptPerson> people;
 
@@ -46,7 +46,7 @@ class OcptRoleSheetCandidatesCard extends StatelessWidget {
   /// `OcptRoleSheet.fieldValueOf` resolves a role's own fields.
   final String Function(String candidateId) notesValueOf;
 
-  /// Called with a person's id when the `+ Candidate` picker adds them, or null while it may not be
+  /// Called with a person's id when the `Candidate` picker adds them, or null while it may not be
   /// used.
   final ValueChanged<String>? onCandidateAdded;
 
@@ -130,7 +130,7 @@ class OcptRoleSheetCandidatesCard extends StatelessWidget {
     );
   }
 
-  /// The `+ Candidate` picker: every address-book entry not already a candidate for this role,
+  /// The `Candidate` picker: every address-book entry not already a candidate for this role,
   /// following `OcptRoleSheetElementsCard._buildElementPicker`'s own shape — including rendering
   /// nothing at all once there is nobody left to offer.
   Widget _buildCandidatePicker(BuildContext context, Tr tr, List<OcptRoleCandidate> ordered) {

@@ -62,6 +62,11 @@ void main() {
     'budget_revenues',
     'budget_shares',
     'budget_allowances',
+    'storyboard_panels',
+    'storyboard_annotations',
+    'floor_plan_sets',
+    'floor_plan_symbols',
+    'floor_plan_arrows',
   };
 
   test('equals the whole schema minus scenes and every local table', () {

@@ -34,12 +34,24 @@ class OcptWorkspaceModeSelectedEvent extends OcptWorkspaceEvent {
   /// should be showing on arrival.
   final OcptWorkspaceRevealRequest? revealRequest;
 
+  /// The episode [mode] should be showing once it is up, or null to leave the workspace's own
+  /// selection untouched — what the mode switcher itself always passes, and what every reveal
+  /// naming no particular episode passes too.
+  ///
+  /// Non-null only when the reveal names a record of a **specific** episode a project holds
+  /// several of: the Resources location sheet's own `Open in shot list`
+  /// (`OcptShotListRevealRequest`) names the episode its own first linked sequence belongs to, so
+  /// the shot list mode that opens is already showing it — switching mode and episode is one
+  /// gesture from the user's own point of view, and splitting it into two events would let the
+  /// shot list mode's very first load race the episode switch.
+  final String? episodeId;
+
   /// Class constructor
-  const OcptWorkspaceModeSelectedEvent({required this.mode, this.revealRequest});
+  const OcptWorkspaceModeSelectedEvent({required this.mode, this.revealRequest, this.episodeId});
 
   /// Object properties
   @override
-  List<Object?> get props => [...super.props, mode, revealRequest];
+  List<Object?> get props => [...super.props, mode, revealRequest, episodeId];
 }
 
 /// Reports that the mode which was just opened has taken

@@ -110,6 +110,12 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
   /// person's, and this mode only ever reads it.
   final List<OcptBudgetMileageRate> mileageRates;
 
+  /// The ids of every live Resources set of the project that holds a live floor plan row — the
+  /// sets card's own `Floor plan · N sequences` / `No floor plan yet` line. Read once on load
+  /// alongside [mileageRates], a light query
+  /// (`OcptFloorPlanService.liveSetIdsWithPlan`) rather than a whole plan's worth of symbols.
+  final Set<String> setIdsWithPlan;
+
   /// The left dock's currently active tab.
   ///
   /// Never persisted, unlike the shot list's visible columns or last right dock tab: it always
@@ -174,6 +180,15 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
   /// The outcome of the last resources export, or null while there is nothing to report; shown as
   /// a transient SnackBar then dismissed.
   final OcptResourcesIoNotice? ioNotice;
+
+  /// The cross-mode switch the sets card's own `Open in shot list` action just resolved
+  /// (`OcptLocationsService.firstLinkedSceneOf`), or null while none is pending — a one-shot
+  /// trigger the mode's own listener reads and reports taken into account
+  /// (`OcptResourcesShotListRevealDismissedEvent`), exactly as `OcptShotListState
+  /// .pendingCharacterNamePromptSymbolId` is consumed. `episodeId` is the screenplay
+  /// `sceneId`/`setId`'s own first linked sequence belongs to, since a project holding several
+  /// episodes must land the shot list mode on the right one.
+  final ({String episodeId, String sceneId, String setId})? pendingShotListReveal;
 
   /// Every field edit currently sitting in the field-edit autosave debounce, keyed by the person id
   /// and the field, holding the raw text last typed for it.
@@ -430,6 +445,7 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
     required this.snapshot,
     required this.pageSetup,
     required this.mileageRates,
+    required this.setIdsWithPlan,
     required this.activeTab,
     required this.isSearchVisible,
     required this.searchQuery,
@@ -443,6 +459,7 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
     required this.rightDockFraction,
     required this.hasWriteError,
     required this.ioNotice,
+    required this.pendingShotListReveal,
     required this.pendingFieldEdits,
     required this.pendingRoleFieldEdits,
     required this.pendingLocationFieldEdits,
@@ -468,6 +485,7 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
       snapshot = null,
       pageSetup = const OcptPageSetup.standard(),
       mileageRates = const [],
+      setIdsWithPlan = const {},
       activeTab = OcptResourcesTab.people,
       isSearchVisible = false,
       searchQuery = "",
@@ -481,6 +499,7 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
       rightDockFraction = OcptWorkspaceDock.rightDefaultFraction,
       hasWriteError = false,
       ioNotice = null,
+      pendingShotListReveal = null,
       pendingFieldEdits = const {},
       pendingRoleFieldEdits = const {},
       pendingLocationFieldEdits = const {},
@@ -512,6 +531,7 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
     OcptResourcesSnapshot? snapshot,
     OcptPageSetup? pageSetup,
     List<OcptBudgetMileageRate>? mileageRates,
+    Set<String>? setIdsWithPlan,
     OcptResourcesTab? activeTab,
     bool? isSearchVisible,
     String? searchQuery,
@@ -531,6 +551,8 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
     bool? hasWriteError,
     OcptResourcesIoNotice? ioNotice,
     bool clearIoNotice = false,
+    ({String episodeId, String sceneId, String setId})? pendingShotListReveal,
+    bool clearPendingShotListReveal = false,
     Map<(String, OcptPersonField), String>? pendingFieldEdits,
     Map<(String, OcptRoleField), String>? pendingRoleFieldEdits,
     Map<(String, OcptLocationField), String>? pendingLocationFieldEdits,
@@ -561,6 +583,7 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
     snapshot: snapshot ?? this.snapshot,
     pageSetup: pageSetup ?? this.pageSetup,
     mileageRates: mileageRates ?? this.mileageRates,
+    setIdsWithPlan: setIdsWithPlan ?? this.setIdsWithPlan,
     activeTab: activeTab ?? this.activeTab,
     isSearchVisible: isSearchVisible ?? this.isSearchVisible,
     searchQuery: searchQuery ?? this.searchQuery,
@@ -578,6 +601,9 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
     rightDockFraction: rightDockFraction ?? this.rightDockFraction,
     hasWriteError: hasWriteError ?? this.hasWriteError,
     ioNotice: clearIoNotice ? null : (ioNotice ?? this.ioNotice),
+    pendingShotListReveal: clearPendingShotListReveal
+        ? null
+        : (pendingShotListReveal ?? this.pendingShotListReveal),
     pendingFieldEdits: pendingFieldEdits ?? this.pendingFieldEdits,
     pendingRoleFieldEdits: pendingRoleFieldEdits ?? this.pendingRoleFieldEdits,
     pendingLocationFieldEdits: pendingLocationFieldEdits ?? this.pendingLocationFieldEdits,
@@ -665,6 +691,7 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
     snapshot,
     pageSetup,
     mileageRates,
+    setIdsWithPlan,
     activeTab,
     isSearchVisible,
     searchQuery,
@@ -678,6 +705,7 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
     rightDockFraction,
     hasWriteError,
     ioNotice,
+    pendingShotListReveal,
     pendingFieldEdits,
     pendingRoleFieldEdits,
     pendingLocationFieldEdits,

@@ -16,6 +16,7 @@
 // file it leaves behind is one the application could have written itself.
 
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:drift/drift.dart' show OrderingTerm, Value;
 import 'package:flutter_test/flutter_test.dart';
@@ -28,6 +29,7 @@ import 'package:open_cine_prod_tools/managers/projects/services/ocpt_budget_jour
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_budget_quote_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_budget_sharing_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_elements_service.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_floor_plan_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_locations_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_people_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_role_candidates_service.dart';
@@ -37,6 +39,7 @@ import 'package:open_cine_prod_tools/managers/projects/services/ocpt_schedule_se
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_screenplay_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_coverage_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_list_service.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_storyboard_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_poste_seed.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_scene_status.dart';
@@ -49,12 +52,15 @@ import 'package:open_cine_prod_tools/types/ocpt_day_part_slot.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_source_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_status.dart';
+import 'package:open_cine_prod_tools/types/ocpt_floor_plan_layer.dart';
+import 'package:open_cine_prod_tools/types/ocpt_floor_plan_set_element_shape.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 import 'package:open_cine_prod_tools/types/ocpt_permit_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_day_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_slot_anchor_edge.dart';
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
+import 'package:open_cine_prod_tools/types/ocpt_storyboard_annotation_kind.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_fractional_key.dart';
 import 'package:uuid/uuid.dart';
 
@@ -148,6 +154,90 @@ const _cast = <String, ({String firstName, String lastName})>{
   "MARTIN": (firstName: "André", lastName: "Le Gall"),
 };
 
+/// The table [_crc32] reduces one byte at a time against, built once.
+final _crc32Table = List<int>.generate(256, (n) {
+  var c = n;
+  for (var k = 0; k < 8; k++) {
+    c = (c & 1) != 0 ? (0xEDB88320 ^ (c >> 1)) : (c >> 1);
+  }
+  return c;
+});
+
+/// The CRC-32 of [bytes], as every PNG chunk trailer needs.
+int _crc32(List<int> bytes) {
+  var c = 0xFFFFFFFF;
+  for (final b in bytes) {
+    c = _crc32Table[(c ^ b) & 0xFF] ^ (c >> 8);
+  }
+  return c ^ 0xFFFFFFFF;
+}
+
+/// [value] as four big-endian bytes, the width every PNG chunk length and CRC field uses.
+List<int> _uint32(int value) => [
+  (value >> 24) & 0xFF,
+  (value >> 16) & 0xFF,
+  (value >> 8) & 0xFF,
+  value & 0xFF,
+];
+
+/// One length-prefixed, CRC-terminated PNG chunk of [type] wrapping [data].
+List<int> _pngChunk(String type, List<int> data) {
+  final typeBytes = type.codeUnits;
+  final out = BytesBuilder()
+    ..add(_uint32(data.length))
+    ..add(typeBytes)
+    ..add(data)
+    ..add(_uint32(_crc32([...typeBytes, ...data])));
+  return out.toBytes();
+}
+
+/// Writes a plain two-tone placeholder PNG at [path]: [topColor] over most of the frame,
+/// [bottomColor] along its bottom edge — legible enough as a storyboard frame or a floor-plan
+/// underlay in a screenshot, encoded here from raw pixels so the seed script needs no binary asset
+/// file of its own. Each call re-creates its file, exactly the "referenced by path, not embedded"
+/// shape (ADR 0013) every other photo and document in the project follows — this is simply the
+/// path's own source of truth instead of a file the repository carries.
+Future<void> _writePlaceholderImage({
+  required String path,
+  required int width,
+  required int height,
+  required int topColor,
+  required int bottomColor,
+}) async {
+  final raw = BytesBuilder();
+  for (var y = 0; y < height; y++) {
+    raw.addByte(0); // no per-scanline filter
+    final color = y < height * 0.85 ? topColor : bottomColor;
+    final r = (color >> 16) & 0xFF;
+    final g = (color >> 8) & 0xFF;
+    final b = color & 0xFF;
+    for (var x = 0; x < width; x++) {
+      raw.addByte(r);
+      raw.addByte(g);
+      raw.addByte(b);
+    }
+  }
+
+  final ihdr = BytesBuilder()
+    ..add(_uint32(width))
+    ..add(_uint32(height))
+    ..addByte(8) // bit depth
+    ..addByte(2) // colour type: truecolour (RGB)
+    ..addByte(0)
+    ..addByte(0)
+    ..addByte(0);
+
+  final png = BytesBuilder()
+    ..add(const [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A])
+    ..add(_pngChunk("IHDR", ihdr.toBytes()))
+    ..add(_pngChunk("IDAT", ZLibEncoder().convert(raw.toBytes())))
+    ..add(_pngChunk("IEND", const []));
+
+  final file = File(path);
+  await file.parent.create(recursive: true);
+  await file.writeAsBytes(png.toBytes());
+}
+
 void main() {
   // Every service logs through appLogger(), which needs a global manager instance to exist;
   // merely accessing it creates the (otherwise unused) singleton.
@@ -157,7 +247,12 @@ void main() {
   final assetsService = OcptAssetsService(deviceId: deviceId);
   final roleCandidatesService = OcptRoleCandidatesService(deviceId: deviceId);
   final elementsService = OcptElementsService(assetsService: assetsService, deviceId: deviceId);
-  final locationsService = OcptLocationsService(assetsService: assetsService, deviceId: deviceId);
+  final floorPlanService = OcptFloorPlanService(assetsService: assetsService, deviceId: deviceId);
+  final locationsService = OcptLocationsService(
+    assetsService: assetsService,
+    floorPlanService: floorPlanService,
+    deviceId: deviceId,
+  );
   final roleIndexService = OcptRoleIndexService(
     elementsService: elementsService,
     roleCandidatesService: roleCandidatesService,
@@ -168,7 +263,13 @@ void main() {
     locationsService: locationsService,
     deviceId: deviceId,
   );
-  final shotListService = OcptShotListService(roleIndexService: roleIndexService, deviceId: deviceId);
+  final storyboardService = OcptStoryboardService(assetsService: assetsService, deviceId: deviceId);
+  final shotListService = OcptShotListService(
+    roleIndexService: roleIndexService,
+    storyboardService: storyboardService,
+    floorPlanService: floorPlanService,
+    deviceId: deviceId,
+  );
   final peopleService = OcptPeopleService(
     deviceId: deviceId,
     assetsService: assetsService,
@@ -726,6 +827,321 @@ void main() {
         screenSeconds: 13,
         characters: ["MARTIN"],
       ),
+    );
+
+    // -------------------------------------------------------------------------- the floor plans
+
+    // The harbour cafe: a readable room — four thin walls (0.12 m) enclosing roughly 6 x 4 m,
+    // a gap in the south one for a door, a counter, a table with two chairs, a camera and Nora —
+    // all set-scope (shared by both scenes shot there: `cafeSetId` is linked to sceneIds[0] and
+    // sceneIds[1] above) except the camera and Nora, which belong to the opening shot alone.
+    const wallThicknessM = 0.12;
+
+    Future<void> wall({
+      required double xM,
+      required double yM,
+      required double widthM,
+      required double heightM,
+      required String label,
+    }) => floorPlanService.placeSymbol(
+      database: database,
+      setId: cafeSetId,
+      sceneId: null,
+      shotId: null,
+      layer: OcptFloorPlanLayer.set,
+      xM: xM,
+      yM: yM,
+      widthM: widthM,
+      heightM: heightM,
+      label: label,
+      setElementShape: OcptFloorPlanSetElementShape.wall,
+    );
+
+    // `xM`/`yM` are a symbol's own centre (`Rect.fromCenter` in the canvas painter), not a
+    // corner, so a wall's own centre sits on the room's own perimeter, half its thickness either
+    // side of it.
+    await wall(xM: 3, yM: 0, widthM: 6, heightM: wallThicknessM, label: "Cafe wall, north");
+    await wall(xM: 0, yM: 2, widthM: wallThicknessM, heightM: 4, label: "Cafe wall, west");
+    await wall(xM: 6, yM: 2, widthM: wallThicknessM, heightM: 4, label: "Cafe wall, east");
+    // The south wall stops short twice, once on each side of the door below.
+    await wall(
+      xM: 1.9,
+      yM: 4,
+      widthM: 3.8,
+      heightM: wallThicknessM,
+      label: "Cafe wall, south-west",
+    );
+    await wall(
+      xM: 5.6,
+      yM: 4,
+      widthM: 0.8,
+      heightM: wallThicknessM,
+      label: "Cafe wall, south-east",
+    );
+    await floorPlanService.placeSymbol(
+      database: database,
+      setId: cafeSetId,
+      sceneId: null,
+      shotId: null,
+      layer: OcptFloorPlanLayer.set,
+      xM: 4.5,
+      yM: 4,
+      widthM: 1.4,
+      heightM: wallThicknessM,
+      label: "Cafe door",
+      setElementShape: OcptFloorPlanSetElementShape.door,
+    );
+
+    final counterSymbolId = (await floorPlanService.placeSymbol(
+      database: database,
+      setId: cafeSetId,
+      sceneId: null,
+      shotId: null,
+      layer: OcptFloorPlanLayer.set,
+      xM: 2.25,
+      yM: 0.5,
+      widthM: 2.5,
+      heightM: 0.5,
+      label: "Counter",
+      setElementShape: OcptFloorPlanSetElementShape.furniture,
+    ))!;
+
+    // The second scene shot at the cafe re-dresses the counter for that sequence only — a
+    // scene-scope override: it replaces the counter above while sceneIds[1] is being drawn, and
+    // the original keeps showing for sceneIds[0].
+    await floorPlanService.placeSymbol(
+      database: database,
+      setId: cafeSetId,
+      sceneId: sceneIds[1],
+      shotId: null,
+      layer: OcptFloorPlanLayer.set,
+      xM: 2.55,
+      yM: 0.7,
+      widthM: 2.5,
+      heightM: 0.5,
+      label: "Counter, cleared for the second visit",
+      setElementShape: OcptFloorPlanSetElementShape.furniture,
+      overridesSymbolId: counterSymbolId,
+    );
+
+    // A table and two chairs, well clear of the counter and of the camera's own sightline below.
+    await floorPlanService.placeSymbol(
+      database: database,
+      setId: cafeSetId,
+      sceneId: null,
+      shotId: null,
+      layer: OcptFloorPlanLayer.set,
+      xM: 4.6,
+      yM: 2,
+      widthM: 1,
+      heightM: 1,
+      label: "Table",
+      setElementShape: OcptFloorPlanSetElementShape.furniture,
+    );
+    await floorPlanService.placeSymbol(
+      database: database,
+      setId: cafeSetId,
+      sceneId: null,
+      shotId: null,
+      layer: OcptFloorPlanLayer.set,
+      xM: 4.1,
+      yM: 1.3,
+      widthM: 0.4,
+      heightM: 0.4,
+      label: "Chair",
+      setElementShape: OcptFloorPlanSetElementShape.furniture,
+    );
+    await floorPlanService.placeSymbol(
+      database: database,
+      setId: cafeSetId,
+      sceneId: null,
+      shotId: null,
+      layer: OcptFloorPlanLayer.set,
+      xM: 5.1,
+      yM: 1.3,
+      widthM: 0.4,
+      heightM: 0.4,
+      label: "Chair",
+      setElementShape: OcptFloorPlanSetElementShape.furniture,
+    );
+
+    // A camera on the cafe's own opening shot, inside the room and aimed north at Nora, its
+    // field-of-view cone reaching well past her own position.
+    await floorPlanService.placeSymbol(
+      database: database,
+      setId: cafeSetId,
+      sceneId: null,
+      shotId: shotsByScene[0]!.first,
+      layer: OcptFloorPlanLayer.cameras,
+      xM: 2.25,
+      yM: 3.2,
+      // rotationDeg defaults to 0, which already points local "up" (north) — straight at Nora.
+      fovDeg: 50,
+      fovReachM: 2.6,
+    );
+    await floorPlanService.placeSymbol(
+      database: database,
+      setId: cafeSetId,
+      sceneId: null,
+      shotId: shotsByScene[0]!.first,
+      layer: OcptFloorPlanLayer.characters,
+      xM: 2.25,
+      yM: 1,
+      label: "NORA",
+    );
+
+    // The pier: a railing and a camera on its own first shot.
+    await floorPlanService.placeSymbol(
+      database: database,
+      setId: pierSetId,
+      sceneId: null,
+      shotId: null,
+      layer: OcptFloorPlanLayer.set,
+      xM: 0,
+      yM: 0,
+      widthM: 10,
+      heightM: 2,
+      label: "Pier railing",
+      setElementShape: OcptFloorPlanSetElementShape.wall,
+    );
+    await floorPlanService.placeSymbol(
+      database: database,
+      setId: pierSetId,
+      sceneId: null,
+      shotId: shotsByScene[2]!.first,
+      layer: OcptFloorPlanLayer.cameras,
+      xM: 2,
+      yM: 4,
+      rotationDeg: 180,
+    );
+
+    // The fishing boat: the wheelhouse and a camera and a light on its own first shot.
+    await floorPlanService.placeSymbol(
+      database: database,
+      setId: boatSetId,
+      sceneId: null,
+      shotId: null,
+      layer: OcptFloorPlanLayer.set,
+      xM: 0,
+      yM: 0,
+      widthM: 3,
+      heightM: 2,
+      label: "Wheelhouse",
+      setElementShape: OcptFloorPlanSetElementShape.furniture,
+    );
+    await floorPlanService.placeSymbol(
+      database: database,
+      setId: boatSetId,
+      sceneId: null,
+      shotId: shotsByScene[3]!.first,
+      layer: OcptFloorPlanLayer.cameras,
+      xM: -1,
+      yM: 3,
+    );
+    await floorPlanService.placeSymbol(
+      database: database,
+      setId: boatSetId,
+      sceneId: null,
+      shotId: shotsByScene[3]!.first,
+      layer: OcptFloorPlanLayer.lights,
+      xM: 1,
+      yM: 3,
+      label: "Key",
+    );
+
+    // ----------------------------------------------------------------------------- the storyboard
+
+    // The cafe's own opening shot gets three panels — its own leader shot, tracked through the
+    // scene — each with a placeholder frame image and a short comment, plus one movement arrow and
+    // one label, so the board shows a shot's own strip, its leader card and its annotation layer at
+    // once.
+    final frameDir = "${file.parent.path}/storyboard-frames";
+    final openingCafeShotId = shotsByScene[0]!.first;
+
+    final wideFramePath = "$frameDir/cafe-wide.png";
+    await _writePlaceholderImage(
+      path: wideFramePath,
+      width: 1600,
+      height: 900,
+      topColor: 0x1C2436,
+      bottomColor: 0x6C5CE7,
+    );
+    final widePanelId = (await storyboardService.addPanel(
+      database: database,
+      shotId: openingCafeShotId,
+    ))!;
+    await storyboardService.replacePanelImage(
+      database: database,
+      panelId: widePanelId,
+      path: wideFramePath,
+    );
+    await storyboardService.updatePanelComment(
+      database: database,
+      panelId: widePanelId,
+      comment: "Establishing — Nora alone at the counter, dawn light through the window.",
+    );
+    await storyboardService.addAnnotation(
+      database: database,
+      panelId: widePanelId,
+      kind: OcptStoryboardAnnotationKind.label,
+      x1: 0.18,
+      y1: 0.3,
+      text: "NORA",
+    );
+
+    final mediumFramePath = "$frameDir/cafe-medium.png";
+    await _writePlaceholderImage(
+      path: mediumFramePath,
+      width: 1600,
+      height: 900,
+      topColor: 0x232B1C,
+      bottomColor: 0x6C5CE7,
+    );
+    final mediumPanelId = (await storyboardService.addPanel(
+      database: database,
+      shotId: openingCafeShotId,
+    ))!;
+    await storyboardService.replacePanelImage(
+      database: database,
+      panelId: mediumPanelId,
+      path: mediumFramePath,
+    );
+    await storyboardService.updatePanelComment(
+      database: database,
+      panelId: mediumPanelId,
+      comment: "Martin enters, shaking off the rain.",
+    );
+    await storyboardService.addAnnotation(
+      database: database,
+      panelId: mediumPanelId,
+      kind: OcptStoryboardAnnotationKind.movementArrow,
+      x1: 0.85,
+      y1: 0.55,
+      x2: 0.4,
+      y2: 0.6,
+    );
+
+    final closeFramePath = "$frameDir/cafe-close.png";
+    await _writePlaceholderImage(
+      path: closeFramePath,
+      width: 1600,
+      height: 900,
+      topColor: 0x2C1C23,
+      bottomColor: 0x6C5CE7,
+    );
+    final closePanelId = (await storyboardService.addPanel(
+      database: database,
+      shotId: openingCafeShotId,
+    ))!;
+    await storyboardService.replacePanelImage(
+      database: database,
+      panelId: closePanelId,
+      path: closeFramePath,
+    );
+    await storyboardService.updatePanelComment(
+      database: database,
+      panelId: closePanelId,
+      comment: "Nora's hands around the mug.",
     );
 
     // ------------------------------------------------------------------------------- the schedule

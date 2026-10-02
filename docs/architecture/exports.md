@@ -8,7 +8,7 @@ SPDX-License-Identifier: Apache-2.0
 
 How a document leaves the app — and how the project itself does: the panel every mode reaches its
 exports from, the card grid that panel and the home page's `Import…` modal are both built on, the
-manager owning the twenty services, the door a foreign screenplay comes in through, and the
+manager owning the twenty-three services, the door a foreign screenplay comes in through, and the
 scenario coverage PDF. Each mode's own documents are described in that mode's file; the package a
 whole project travels as is `foundations.md`'s, this file covering only where the two gestures
 sit.
@@ -135,7 +135,7 @@ sit.
   same reason.
 
 - `OcptExportManager` (`lib/managers/export/`) owns getting a project's documents in and out of the
-  app: the native open dialog, and twenty services it owns (RFL18) — `OcptFountainIoService`
+  app: the native open dialog, and twenty-three services it owns (RFL18) — `OcptFountainIoService`
   (bytes ↔ text, suggested file names), `OcptScriptImportService` (the three importable formats in
   and Fountain text out, above), `OcptPdfExportService` (the screenplay PDF),
   `OcptShotListXlsxExportService`, `OcptScenarioCoveragePdfService`,
@@ -144,13 +144,14 @@ sit.
   `OcptShootingPlanXlsxExportService`, `OcptDayOutOfDaysPdfService`,
   `OcptOneLineSchedulePdfService`, `OcptSidesPdfService`, `OcptBudgetQuotePdfService`,
   `OcptBudgetFinancingPlanPdfService`, `OcptBudgetCashJournalXlsxExportService`,
-  `OcptBudgetFinancialReportPdfService` (each described under its own mode below)
+  `OcptBudgetFinancialReportPdfService`, `OcptStoryboardPdfService` and `OcptFloorPlanPdfService`
+  (each described under its own mode below)
   and `OcptSaveLocationService` (wraps `file_selector`'s `getSaveLocation`, a **direct** dependency
   kept in sync with the version `act_file_transfer_manager` already resolves transitively, for the
   native "save as" dialog every export goes through — no export ever writes to a default location
   silently; its `pickDirectory` is the same promise for the exports that write **several** files).
-  The twelve PDF services share one `OcptCourierPrimeFontsLoader` (handed to each by the manager, so
-  the 4 embedded TTFs are decoded once) and one `OcptScriptPagePainter` — the two script exports
+  The fourteen PDF services share one `OcptCourierPrimeFontsLoader` (handed to each by the manager,
+  so the 4 embedded TTFs are decoded once) and one `OcptScriptPagePainter` — the two script exports
   **and the sides** for the positioned line drawing the three of them start from, the breakdown
   sheets, the contact list and the table-shaped schedule documents for its metrics and fonts alone,
   their pages flowing rather than typeset. **A workbook takes no painter and no font loader at
@@ -201,3 +202,31 @@ sit.
   pending edits before handing the snapshot and the parsed document to the manager. Every heading
   the two extra pages print comes in as an `OcptScenarioCoverageLabels`, exactly as
   `OcptShotListXlsxLabels` does for the workbook — the manager and its services never see a `Tr`.
+
+- Storyboard export: `OcptStoryboardPdfService` prints, per sequence, a header band then one row per
+  shot — the shot's own key-information block (code, status, size, framing, camera move, lens,
+  recording format, cast, the same read-outs `shot-list.md`'s leader card shows) beside a `pw.Wrap`
+  of its panels at a shared row height and each panel's own derived aspect ratio
+  (`ocptAspectRatioOf`, `shot-list.md`), its annotations drawn over it from the very same normalised
+  geometry the on-screen overlay reads (`ocptStoryboardAnnotationPointOf`,
+  `lib/utils/ocpt_storyboard_annotation_geometry.dart`, the one function both read so a mark can
+  never draw at two different places between screen and paper), its comment under it. **A panel's
+  image is read at render time**, off its resolved path (`pw.MemoryImage`, JPEG and PNG) — a missing
+  or undecodable file prints the placeholder frame instead, carrying the label's own `file not
+  found` text, never a thrown error: the ADR 0013 state, on paper. A shot with no panel at all prints
+  a `no panel yet` note in its place. Its dialog (page format, shots per page, an `Include the floor
+  plans after each sequence` toggle) opens through `OcptRouterManager`; that toggle reuses
+  `OcptFloorPlanPdfService`'s own `pagesOfSequence` — the very pages the floor plans card below
+  writes on its own — appended after each sequence's rows rather than a second drawing of them.
+- Floor plans export: `OcptFloorPlanPdfService` draws the very same `OcptFloorPlanSheet` the canvas
+  draws (`shot-list.md`), never ghosted — a printed sheet shows the one shot it was built for, or, for
+  a set with no camera on it anywhere, its bare décor alone. Per sequence, per linked Resources set,
+  one page per shot that carries a live camera on that set, each headed by the shot's own code and
+  key information, and one bare page for a set that carries none. Every shape reads the same pure
+  geometry the canvas reads (`lib/utils/ocpt_floor_plan_geometry.dart`), and the scale bar and the
+  0.5 m reference silhouette print bottom-right on every page, exactly as they draw on screen. The
+  underlay prints as the real referenced image, the same render-time rule the storyboard's own panels
+  follow — a missing or undecodable file falls back to a schematic frame rather than the photo, the
+  fallback rather than the rule. Courier Prime throughout, as in every other document. Its card in
+  the export panel goes straight to the native save dialog, the page format coming from the project's
+  own page setup like the workbook cards do.

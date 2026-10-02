@@ -188,10 +188,12 @@ void main() {
     List<(String, String)> otherLocations = const [],
     Set<String> assignedSceneIds = const {},
     Map<String, String> suggestedSetIdBySceneId = const {},
+    Set<String> setIdsWithPlan = const {},
     bool isReadOnly = false,
     void Function(String setId, String locationId)? onSetLocationChanged,
     void Function(String sceneId, String setId)? onSceneAssigned,
     void Function(String sceneId, String setId)? onSceneRemoved,
+    ValueChanged<String>? onOpenSetInShotListRequested,
     VoidCallback? onSetAdded,
     VoidCallback? onPhotoAddRequested,
     ValueChanged<String>? onPhotoRemoved,
@@ -226,6 +228,7 @@ void main() {
               otherLocations: otherLocations,
               assignedSceneIds: assignedSceneIds,
               suggestedSetIdBySceneId: suggestedSetIdBySceneId,
+              setIdsWithPlan: setIdsWithPlan,
               isReadOnly: isReadOnly,
               fieldValueOf: (field) => fieldValues[field] ?? "",
               onFieldChanged: (field, rawValue) => fieldEdits.add((field, rawValue)),
@@ -244,6 +247,7 @@ void main() {
               onSetLocationChanged: onSetLocationChanged ?? (setId, locationId) {},
               onSceneAssigned: onSceneAssigned ?? (sceneId, setId) {},
               onSceneRemoved: onSceneRemoved ?? (sceneId, setId) {},
+              onOpenSetInShotListRequested: onOpenSetInShotListRequested ?? (setId) {},
               onPhotoAddRequested: onPhotoAddRequested ?? () {},
               onPhotoRemoved: onPhotoRemoved ?? (assetId) {},
               onPermitDocumentPickRequested: onPermitDocumentPickRequested ?? () {},
@@ -481,6 +485,66 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(assignedSceneId, "sc1");
+  });
+
+  testWidgets("a set with no plan row shows the no-floor-plan hint and no Open action", (
+    tester,
+  ) async {
+    await pumpSheet(tester, location: _location(sets: [_set()]));
+    final tr = Tr.of(tester.element(find.byType(OcptLocationSheet)));
+
+    expect(find.text(tr.resourcesSetNoFloorPlanLabel), findsOneWidget);
+    expect(find.text(tr.resourcesOpenSetInShotListAction), findsNothing);
+  });
+
+  testWidgets(
+    "a set with a plan but no linked sequence shows the count, but withholds Open in shot list",
+    (tester) async {
+      await pumpSheet(tester, location: _location(sets: [_set()]), setIdsWithPlan: const {"s1"});
+      final tr = Tr.of(tester.element(find.byType(OcptLocationSheet)));
+
+      expect(find.text(tr.resourcesSetFloorPlanCountLabel(0)), findsOneWidget);
+      expect(find.text(tr.resourcesOpenSetInShotListAction), findsNothing);
+    },
+  );
+
+  testWidgets(
+    "a set with a plan and linked sequences shows the count and Open in shot list reports it",
+    (tester) async {
+      String? opened;
+
+      await pumpSheet(
+        tester,
+        location: _location(sets: [_set(sceneIds: const ["sc1", "sc2"])]),
+        setIdsWithPlan: const {"s1"},
+        onOpenSetInShotListRequested: (setId) => opened = setId,
+      );
+      final tr = Tr.of(tester.element(find.byType(OcptLocationSheet)));
+
+      expect(find.text(tr.resourcesSetFloorPlanCountLabel(2)), findsOneWidget);
+
+      final openAction = find.text(tr.resourcesOpenSetInShotListAction);
+      await tester.ensureVisible(openAction);
+      await tester.pumpAndSettle();
+      await tester.tap(openAction);
+      await tester.pumpAndSettle();
+
+      expect(opened, "s1");
+    },
+  );
+
+  testWidgets("Open in shot list stays available under a read-only preview: it only reads", (
+    tester,
+  ) async {
+    await pumpSheet(
+      tester,
+      location: _location(sets: [_set(sceneIds: const ["sc1"])]),
+      setIdsWithPlan: const {"s1"},
+      isReadOnly: true,
+    );
+    final tr = Tr.of(tester.element(find.byType(OcptLocationSheet)));
+
+    expect(find.text(tr.resourcesOpenSetInShotListAction), findsOneWidget);
   });
 
   testWidgets("the sets card withholds every control when read-only", (tester) async {
