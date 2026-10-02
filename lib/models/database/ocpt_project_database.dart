@@ -332,7 +332,7 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
   ///
   /// See [currentSchemaVersion]'s own doc comment for the overwrite-vs-create rule these two
   /// constants drive together.
-  static const lastStableSchemaVersion = 3;
+  static const lastStableSchemaVersion = 4;
 
   /// {@macro drift.GeneratedDatabase.schemaVersion}
   @override
@@ -350,12 +350,12 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
 
   /// How an existing `.ocpt` file is brought up to the current [schemaVersion].
   ///
-  /// Per `docs/adr/0029-schema-versions-frozen-at-stable-releases.md`, no stable release had shipped
-  /// before schema version 1, so that version itself carries no pre-stable migration history — no
-  /// real `.ocpt` file is ever found below it. Each stable release then froze the next number in
-  /// turn: 0.1.0 froze [lastStableSchemaVersion] at 1, 0.2.0 froze it at 2, and 0.2.1 froze it at 3 —
-  /// the version [lastStableSchemaVersion] still holds — so a development cycle is open at
-  /// [currentSchemaVersion] 4. Every `onUpgrade` step below follows the additive-only guidance
+  /// Per `docs/adr/0029-schema-versions-frozen-at-stable-releases.md`, no stable release had
+  /// shipped before schema version 1, so that version itself carries no pre-stable migration
+  /// history — no real `.ocpt` file is ever found below it. Each stable release then froze the next
+  /// number in turn: 0.1.0 froze [lastStableSchemaVersion] at 1, 0.2.0 froze it at 2, 0.2.1 froze
+  /// it at 3, and 0.3.0 froze it at 4, so no development cycle is open and a new schema change
+  /// would create version 5. Every `onUpgrade` step below follows the additive-only guidance
   /// `docs/adr/0007-schema-migration-policy.md` gives, except v3's, called out where it runs.
   ///
   /// From 1 to 2, `onUpgrade` creates [OcptSyncRelayCursorsTable] — the changeset engine's own

@@ -64,11 +64,11 @@ import 'package:open_cine_prod_tools/utils/ocpt_row_stamp_key.dart';
 ///   `shotCharacters` rows cannot be reshaped into roles the way a project's live database is
 ///   migrated — [decode] drops them instead, a version captured before the reshape restoring with
 ///   every plan except its shot list's cast (this class's own [decode] doc comment, and the ADR's
-///   "Consequences" section, spell out why remapping was turned down). Format 4 adds the storyboard
-///   and floor plan tables — additive, so a pre-4 payload decodes with
-///   its five new lists empty. The retired format-1, format-2 and format-3 shapes are pinned in
-///   `test/managers/projects/services/ocpt_project_version_codec_test.dart`, per the guidance
-///   below;
+///   "Consequences" section, spell out why remapping was turned down). The 0.3.0 release froze
+///   format 4, which adds the storyboard and floor plan tables — additive, so a pre-4 payload
+///   decodes with its five new lists empty. The retired format-1, format-2 and format-3 shapes are
+///   pinned in `test/managers/projects/services/ocpt_project_version_codec_test.dart`, per the
+///   guidance below;
 /// - a payload written in a **newer** format — the file has been opened by a later build of the
 ///   app — is refused with [OcptProjectVersionPayloadStatus.unsupportedFutureFormat] rather than
 ///   half-restored.
@@ -101,7 +101,7 @@ class OcptProjectVersionCodec {
   ///
   /// See [currentPayloadFormat]'s own doc comment for the overwrite-vs-create rule these two
   /// constants drive together.
-  static const lastStablePayloadFormat = 3;
+  static const lastStablePayloadFormat = 4;
 
   /// This is the key used to stringify or parse the payload's own format from a JSON object
   static const _payloadFormatKey = "payloadFormat";
@@ -1080,7 +1080,7 @@ class OcptProjectVersionCodec {
 
   /// This is the key used to stringify or parse a `floor_plan_symbols.setElementShape` column from
   /// a JSON object, from payload format 4 — a set element's visual primitive; null on every
-  /// camera, character and light symbol. Added while schema version 4 is still an open development
+  /// camera, character and light symbol. Added while schema version 4 was still an open development
   /// cycle, so a payload written before this column existed carries no such key at all: read back
   /// through [_nullableEnum], which already tolerates that as null, the same as every other
   /// nullable field this codec reads.
@@ -1088,7 +1088,7 @@ class OcptProjectVersionCodec {
 
   /// This is the key used to stringify or parse a `floor_plan_symbols.isHidden` column from a JSON
   /// object, from payload format 4 — meaningful only on a scene-scope override; see
-  /// `OcptFloorPlanSymbolsTable`'s own doc comment. Added while schema version 4 is still an open
+  /// `OcptFloorPlanSymbolsTable`'s own doc comment. Added while schema version 4 was still an open
   /// development cycle: unlike [_setElementShapeKey] and its own siblings, this column is **not**
   /// nullable (its own SQL default is `false`), so an older format-4 payload with no such key reads
   /// back through [_boolWithFalseDefault] rather than [_bool], which would otherwise throw on it.
@@ -1096,14 +1096,14 @@ class OcptProjectVersionCodec {
 
   /// This is the key used to stringify or parse a `floor_plan_symbols.fovReachM` column from a
   /// JSON object, from payload format 4 — a camera's field-of-view wedge reach, in metres; null
-  /// meaning the drawing's own default. Added while schema version 4 is still an open development
+  /// meaning the drawing's own default. Added while schema version 4 was still an open development
   /// cycle: see [_setElementShapeKey]'s own doc comment for what that means for an older format-4
   /// payload.
   static const _fovReachMKey = "fovReachM";
 
   /// This is the key used to stringify or parse a `floor_plan_symbols.overridesSymbolId` column
   /// from a JSON object, from payload format 4 — the live set-scope symbol a scene-scope override
-  /// replaces; null for every other symbol. Added while schema version 4 is still an open
+  /// replaces; null for every other symbol. Added while schema version 4 was still an open
   /// development cycle: see [_setElementShapeKey]'s own doc comment for what that means for an
   /// older format-4 payload.
   static const _overridesSymbolIdKey = "overridesSymbolId";
@@ -1118,8 +1118,8 @@ class OcptProjectVersionCodec {
 
   /// This is the key used to stringify or parse a `floor_plan_arrows.ctrlXM` column from a JSON
   /// object, from payload format 4 — a curved arrow's bezier control point X, in metres; null
-  /// meaning a straight arrow. Added while schema version 4 is still an open development cycle: see
-  /// [_setElementShapeKey]'s own doc comment for what that means for an older format-4 payload.
+  /// meaning a straight arrow. Added while schema version 4 was still an open development cycle:
+  /// see [_setElementShapeKey]'s own doc comment for what that means for an older format-4 payload.
   static const _ctrlXMKey = "ctrlXM";
 
   /// This is the key used to stringify or parse a `floor_plan_arrows.ctrlYM` column from a JSON

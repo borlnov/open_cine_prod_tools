@@ -6,6 +6,33 @@ SPDX-License-Identifier: Apache-2.0
 
 # Changelog
 
+## 0.3.0
+
+The shot list gains a storyboard and floor plans, each with its own PDF.
+
+- Shot list: a `Table · Board · Floor plans` switch swaps the centre of the
+  mode between the shot table and two new views sharing the same scene tree,
+  dock and selected shot.
+- Storyboard: a shot holds several panels, each an imported JPEG or PNG
+  referenced by its path, with a comment, reordered by dragging, and shown at
+  the shot's own recording ratio beside a card recalling its size, framing and
+  camera move. Movement arrows, camera-move arrows and labels mark up a frame.
+- Floor plans: a top-down, schematic plan in metres of each Resources set,
+  shared by every sequence linked to it. Walls, doors and furniture belong to
+  the set, re-dressing and the breakdown's props to one sequence, and cameras
+  (numbered after their shot, with an adjustable field of view), characters,
+  lights and arrows to one shot. Moving or deleting a shared element asks
+  whether it applies everywhere or only here, leaving a restorable override.
+  An underlay photo, a scale bar, distances, an onion skin of the neighbouring
+  shots and per-layer visibility help stage the shot. A set's sheet in
+  Resources shows whether it has a plan and opens it in the shot list.
+- Exports: a storyboard PDF, with a choice of shots per page and each
+  sequence's floor plans appended on request, and a floor plans PDF with one
+  plan per shot that has a camera placed.
+- Project files move to a new format: opening an earlier project upgrades it
+  after a confirmation, keeping a copy of the original, and an earlier version
+  of the app can no longer open the upgraded file.
+
 ## 0.2.4
 
 Projects saved where you choose and never overwritten, a complete French crew,

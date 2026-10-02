@@ -67,11 +67,12 @@ Then run `reuse lint` from the repository root (the generated JSON is covered by
 globs) and commit the snapshot as part of the release. This is wired into the project's release
 procedure, [`../docs/RELEASING.md`](../docs/RELEASING.md).
 
-The frozen versions are `0.2.0`, `0.2.1`, `0.2.2`, `0.2.3` and `0.2.4`; `0.2.4` is the newest, served
-at the root. The `0.2.0` and `0.2.1` snapshots are identical; `0.2.2` was the first to differ (the
-breakdown guide's own décor section), `0.2.3` is identical to `0.2.2` (that cycle changed the app, not
-the guide), and `0.2.4` differs again (where a project is saved, a new candidate starting as spotted,
-the PAT band), so it matches the "Next" version until the next cycle adds to `docs/`.
+The frozen versions are `0.2.0`, `0.2.1`, `0.2.2`, `0.2.3`, `0.2.4` and `0.3.0`; `0.3.0` is the
+newest, served at the root. The `0.2.0` and `0.2.1` snapshots are identical; `0.2.2` was the first to
+differ (the breakdown guide's own décor section), `0.2.3` is identical to `0.2.2` (that cycle changed
+the app, not the guide), `0.2.4` differs again (where a project is saved, a new candidate starting as
+spotted, the PAT band), and `0.3.0` adds the shot list's storyboard and floor plans, so it matches the
+"Next" version until the next cycle adds to `docs/`.
 
 ## Deployment
 
