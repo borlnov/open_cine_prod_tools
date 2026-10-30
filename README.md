@@ -211,6 +211,9 @@ Everything on GitHub - code, comments, commits, issues, pull requests - is in En
 less. `flutter analyze` and `flutter test` must pass, and every file needs an SPDX header
 (`reuse lint` is enforced in CI).
 
+Code follows the [ACT coding standards](https://github.com/All-Circuits-Technologies/ACT-Contributing/blob/master/software/coding-standards.md).
+The rules this project overrides are listed in [`AGENTS.md`](AGENTS.md#coding-standards).
+
 ## License
 
 This project is licensed under Apache-2.0. See the [LICENSES](LICENSES/) directory for the full

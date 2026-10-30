@@ -96,8 +96,8 @@ no file any more.
 
 - The maintainer communicates in French; **all code, comments, commits, branches and GitHub
   content are in English**. A plan is the one exception (see below).
-- Work happens on an issue-named branch (`<issue-number>-<slug>`), merged into `main` through a
-  pull request.
+- Work happens on an issue-named branch (`<issue-number>-<slug>`, or `release-x.y.z` for a release),
+  merged into `main` through a pull request.
 - A session that needs a checkout of its own puts it under `worktrees/`
   (`git worktree add worktrees/<name> -b <branch>`), never in the `.claude/worktrees/` directory
   Claude Code's own worktree feature defaults to: create it with git first, then enter it by path.
@@ -242,14 +242,29 @@ Follow the public ACT coding standards (read them when in doubt), starting from
 
 A project rule overrides these. The overrides this project has made:
 
+- **RG2:** `import`, `export` and `part` lines, and a URL alone in a comment, may run past 100
+  characters, since none of them can be broken.
+- **RG8:** a `release-x.y.z` branch carries no issue number.
+- **RD3:** the app itself has no barrel file and no `src/` folder, since nothing imports it. The
+  packages under `packages/` do follow the rule.
+- **RD8, RD11:** `script_import_kit`, `ocpt_sync_protocol` and `ocpt_sync_relay` signal a malformed
+  document with a typed exception, which the app converts to a `Result` at its boundary:
+  `act_dart_result` depends on Flutter, and the relay compiles without it.
+- **RD25:** a Flutter `State` and a test double may initialize their fields at declaration.
+- **RFL2:** a test's mounting helper (`Widget _wrap(...)`) may stay a function, since it is never
+  rebuilt.
 - **RFL5:** `ScreenUtilInit` stays at the app root, but only the theme uses its extensions, and only
   on a phone (`MainAppUi`). Widgets do not use them and may state logical pixel sizes: the density of
   this desktop-first UI lives in the component themes of `lib/constants/ocpt_theme.dart`.
+- **RFL23:** a production mode is `Ocpt<X>Mode` in `<x>_mode.dart`, and a widget is named after its
+  role (`Card`, `Panel`, `Dialog`, `Sheet`) rather than ending in `Widget`.
+- **RSHELL1:** a Bash script may start with `#!/usr/bin/env bash`.
 
 House style: `Ocpt` prefix on app classes, doc comments on every declaration, match the
 existing files' idioms exactly. Tests use inline private test doubles (no shared helpers
-directory) and set `BlinkController.indeterminateAnimationsEnabled = false` when pumping
-super_editor widgets. Do not edit `actlibs/` (submodule) or `lib/generated/`.
+directory), or a `<feature>_test_doubles.dart` right beside the test files that a long test was split
+into, and set `BlinkController.indeterminateAnimationsEnabled = false` when pumping super_editor
+widgets. Do not edit `actlibs/` (submodule) or `lib/generated/`.
 
 ## Licensing / REUSE
 
