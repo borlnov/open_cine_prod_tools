@@ -127,7 +127,7 @@ class FountainScriptLine extends Equatable {
 
   @override
   String toString() =>
-      'FountainScriptLine($lineType, "${plainText}", '
+      'FountainScriptLine($lineType, "$plainText", '
       'indent: ${leftIndentInches}in)';
 }
 
@@ -717,7 +717,7 @@ class _LineRange {
 /// several times for one input group, which reads far more clearly as a
 /// small state machine than as a recursive local function.
 class _PageBuilder {
-  /// Creates a [_PageBuilder] laying out pages of [_metrics.linesPerPage]
+  /// Creates a [_PageBuilder] laying out pages of `_metrics.linesPerPage`
   /// lines.
   _PageBuilder(this._metrics);
 

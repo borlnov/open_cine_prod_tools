@@ -78,7 +78,7 @@ class FountainTitlePageWriter {
   /// source always holds: that trailing newline, then the blank separator
   /// line (the parser always consumes one, even when it coincides with the
   /// very end of the source), then the body. This walks past both of those,
-  /// then drops everything from [range.startOffset] up to wherever the body
+  /// then drops everything from `range.startOffset` up to wherever the body
   /// actually starts.
   String _dropTitlePage(String source, FountainSourceRange range) {
     var bodyStart = range.endOffset;

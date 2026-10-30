@@ -5,7 +5,7 @@
 import 'package:fountain_kit/src/models/fountain_block.dart';
 
 /// Yields the rendered text of [block] — the same text
-/// [FountainScriptComposer] would print, parentheses and scene numbers
+/// `FountainScriptComposer` would print, parentheses and scene numbers
 /// included — and (for a dialogue group) of every child it introduces, if
 /// [block] is part of the printed screenplay; yields nothing for a section,
 /// synopsis, note, boneyard comment or page break, mirroring the filter
@@ -13,7 +13,7 @@ import 'package:fountain_kit/src/models/fountain_block.dart';
 /// (replicated rather than shared, since that filter is private to its own
 /// file).
 ///
-/// Shared by [FountainScriptStatistics] and [FountainSceneStatistics], which
+/// Shared by `FountainScriptStatistics` and `FountainSceneStatistics`, which
 /// both measure a body of printable Fountain text — the whole document for
 /// one, a single scene for the other — the same way.
 Iterable<String> printableTextsOf(FountainBlock block) sync* {

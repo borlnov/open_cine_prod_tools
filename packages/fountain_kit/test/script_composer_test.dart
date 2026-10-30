@@ -315,7 +315,7 @@ void main() {
   });
 
   group('dialogue split across a page boundary', () {
-    test('(MORE) closes the page and NAME (CONT\'D) reopens it with the '
+    test("(MORE) closes the page and NAME (CONT'D) reopens it with the "
         'remaining dialogue lines', () {
       final metrics = _metrics(linesPerPage: 5, dialogueCols: 10);
       final layout = _composer.compose(
@@ -352,7 +352,7 @@ void main() {
   });
 
   group('orphan scene heading', () {
-    test('a scene heading that would land as a page\'s last line is pushed '
+    test("a scene heading that would land as a page's last line is pushed "
         'to the next page instead', () {
       final metrics = _metrics(linesPerPage: 5);
       final layout = _composer.compose(
@@ -375,7 +375,7 @@ void main() {
   });
 
   group('orphan character cue', () {
-    test('a cue that would land as a page\'s last line is pushed, with its '
+    test("a cue that would land as a page's last line is pushed, with its "
         'whole group, to the next page', () {
       final metrics = _metrics(linesPerPage: 5);
       final layout = _composer.compose(
@@ -462,7 +462,7 @@ void main() {
 
   group('inline styled runs survive wrapping', () {
     test('a bold span crossing a wrap boundary is split into two runs, each '
-        'keeping isBold, and each line\'s runs join back to its plain text', () {
+        "keeping isBold, and each line's runs join back to its plain text", () {
       final metrics = _metrics(linesPerPage: 20, actionCols: 11);
       final layout = _composer.compose(
         document: _document([
@@ -501,7 +501,7 @@ void main() {
     // underline reach a composed run at all, in either an action block or a dialogue line, which
     // is exactly what a regression here would need to catch.
     test('an action line carries independent bold, italic, bold-italic and underline flags', () {
-      final metrics = _metrics(linesPerPage: 20, actionCols: 60);
+      final metrics = _metrics(linesPerPage: 20);
       final layout = _composer.compose(
         document: _document([
           _action(['plain **bold** and *italic* and ***both*** and _under_ end']),

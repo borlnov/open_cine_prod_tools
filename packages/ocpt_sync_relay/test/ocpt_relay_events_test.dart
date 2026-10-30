@@ -178,7 +178,7 @@ void main() {
       timeout: _timeout,
     );
 
-    test('a peer frame for one project never reaches another project\'s subscribers', () async {
+    test("a peer frame for one project never reaches another project's subscribers", () async {
       store.createProject(projectId: 'project-1', tokenHash: _tokenHash('token-1'));
       store.createProject(projectId: 'project-2', tokenHash: _tokenHash('token-2'));
       final projectOneSender = connect('project-1', token: 'token-1');
@@ -227,7 +227,7 @@ void main() {
     );
 
     test(
-      'onEvent fires connected then disconnected lines around a subscriber\'s own lifetime',
+      "onEvent fires connected then disconnected lines around a subscriber's own lifetime",
       () async {
         final events = <String>[];
         final onEventStore = OcptRelayStore(':memory:');

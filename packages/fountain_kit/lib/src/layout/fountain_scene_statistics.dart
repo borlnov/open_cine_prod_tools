@@ -13,7 +13,7 @@ import 'package:fountain_kit/src/models/fountain_document.dart';
 /// The at-a-glance counters a scene-scoped inspector wants for a single
 /// scene of a screenplay: who speaks in it, how many words it holds, and
 /// how long it runs once paginated. The scene-scoped sibling of
-/// [FountainScriptStatistics].
+/// `FountainScriptStatistics`.
 class FountainSceneStatistics extends Equatable {
   /// Creates a [FountainSceneStatistics] with every counter given
   /// explicitly. Prefer [FountainSceneStatistics.of] to compute one from a
@@ -31,7 +31,7 @@ class FountainSceneStatistics extends Equatable {
   /// The number of words across the scene's printable content, from its
   /// heading (included) up to, but excluding, the next scene heading (or
   /// the end of the document for the last scene). Counted the same way
-  /// [FountainScriptStatistics.wordCount] counts the whole document.
+  /// `FountainScriptStatistics.wordCount` counts the whole document.
   final int wordCount;
 
   /// This scene's length in eighths of a page — the unit assistant

@@ -4,7 +4,7 @@
 
 import 'package:equatable/equatable.dart';
 
-import 'fountain_page_margins.dart';
+import 'package:fountain_kit/src/layout/fountain_page_margins.dart';
 
 /// The horizontal alignment of a printed screenplay element within its
 /// layout box.

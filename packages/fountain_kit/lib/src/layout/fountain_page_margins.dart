@@ -9,7 +9,7 @@ import 'package:equatable/equatable.dart';
 ///
 /// Margins are a rendering preference: they anchor the boxes that stretch to
 /// the printable area (scene heading, action, transition, centered text) and
-/// determine [FountainLayoutMetrics.linesPerPage]/`printableWidthInches`/
+/// determine `FountainLayoutMetrics.linesPerPage`/`printableWidthInches`/
 /// `printableHeightInches`, but they never move the element indents that are
 /// fixed relative to the *page's* left edge (character cues, parentheticals,
 /// dialogue) — see `FountainLayoutMetrics`'s class doc.
