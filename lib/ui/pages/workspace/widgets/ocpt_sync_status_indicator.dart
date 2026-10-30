@@ -25,8 +25,8 @@ import 'package:open_cine_prod_tools/ui/utils/ocpt_warning_color.dart';
 /// card's own menu (a later wiring commit), never this indicator.
 ///
 /// Seeds its very first frame from [OcptSyncManager.syncStatus] (the getter) and then listens to
-/// [OcptSyncManager.syncStatusChanges], **not** the per-session [OcptSyncManager.syncStatusStream]:
-/// a project's session starts only *after* the workspace has already built this indicator, so a
+/// [OcptSyncManager.syncStatusChanges], **not** the running session's own status stream: a
+/// project's session starts only *after* the workspace has already built this indicator, so a
 /// per-session stream would be null at build time and this badge would never learn the session
 /// arrived. [OcptSyncManager.syncStatusChanges] is the one stream that outlives every session — it
 /// carries the status when a session starts and a null when it stops — so the badge appears the

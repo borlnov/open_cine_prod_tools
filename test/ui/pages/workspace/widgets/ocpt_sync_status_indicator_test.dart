@@ -154,7 +154,7 @@ void main() {
     expect(find.text(tr.workspaceSyncStatusError), findsOneWidget);
   });
 
-  testWidgets("a syncStatusStream emission moves the badge to the new state", (tester) async {
+  testWidgets("a syncStatusChanges emission moves the badge to the new state", (tester) async {
     final syncManager = _FakeSyncManager(const OcptSyncStatusInSync());
     addTearDown(syncManager.disposeStream);
 

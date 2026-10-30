@@ -332,14 +332,14 @@ Sync is invisible when it works; the visible surface is deliberately small.
 - **The status indicator** (`lib/ui/pages/workspace/widgets/ocpt_sync_status_indicator.dart`) sits in
   the shared workspace status bar, so every mode gets it at once. It seeds from
   `OcptSyncManager.syncStatus` and rebuilds on `OcptSyncManager.syncStatusChanges` — **not** the
-  per-session `syncStatusStream`: the workspace builds the indicator before the paired project it
-  opens has started a session, so a per-session stream would be null at build time and the badge
-  would never learn the session arrived. `syncStatusChanges` is the one stream that outlives every
-  session (`startSyncSession` pipes the session's status onto it, `stopSyncSession` closes it with a
-  null), so the badge appears the moment syncing begins and hides when it ends. It is absent for an
-  unpaired project; a tap opens a panel to sync now, show the invite QR, re-pair, or `Changer de
-  relais…` (opening the repointing screen above, `OcptRoute.repointing`). Under a read-only version
-  preview its actions are withheld.
+  running session's own status stream: the workspace builds the indicator before the paired
+  project it opens has started a session, so a per-session stream would be null at build time and
+  the badge would never learn the session arrived. `syncStatusChanges` is the one stream that
+  outlives every session (`startSyncSession` pipes the session's status onto it,
+  `stopSyncSession` closes it with a null), so the badge appears the moment syncing begins and
+  hides when it ends. It is absent for an unpaired project; a tap opens a panel to sync now, show
+  the invite QR, re-pair, or `Changer de relais…` (opening the repointing screen above,
+  `OcptRoute.repointing`). Under a read-only version preview its actions are withheld.
 - **The presence indicator** (`lib/ui/pages/workspace/widgets/ocpt_presence_indicator.dart`) sits in
   the top toolbar instead — an overlapping avatar cluster naming every replica with the project open,
   and a `MenuAnchor` popover (the sync indicator's own mechanism) detailing each one's platform, a

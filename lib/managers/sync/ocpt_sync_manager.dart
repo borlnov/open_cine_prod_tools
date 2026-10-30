@@ -133,8 +133,8 @@ class OcptSyncManager extends AbsWithLifeCycle {
   /// Emits this manager's sync status across the whole session lifecycle — see [syncStatusChanges].
   ///
   /// A session's own [OcptSyncSession.statusStream] only exists while that session does, so a
-  /// caller reading it off [syncStatusStream] sees nothing when a session starts or stops *after*
-  /// it subscribed. This manager-level stream outlives any one session: [startSyncSession] pipes
+  /// caller reading it off the session sees nothing when a session starts or stops *after* it
+  /// subscribed. This manager-level stream outlives any one session: [startSyncSession] pipes
   /// the new session's status onto it (seeded with the current one), and [stopSyncSession] closes
   /// it out with a null.
   final StreamController<OcptSyncStatus?> _syncStatusController =
@@ -606,20 +606,18 @@ class OcptSyncManager extends AbsWithLifeCycle {
     await session.syncNow();
   }
 
-  /// The running session's current status, or null when no session is running. [syncStatusStream]
-  /// never replays this to a new listener — read this first to seed a fresh subscriber, exactly as
-  /// `OcptSyncSession.status`'s own doc comment says.
+  /// The running session's current status, or null when no session is running. The session's own
+  /// status stream never replays this to a new listener — read this first to seed a fresh
+  /// subscriber, exactly as `OcptSyncSession.status`'s own doc comment says.
   OcptSyncStatus? get syncStatus => _syncSession?.status;
 
-  /// The running session's own status stream, or null when no session is running.
-  Stream<OcptSyncStatus>? get syncStatusStream => _syncSession?.statusStream;
-
   /// The sync status across the whole session lifecycle: the running session's status, then null
-  /// once it stops. Unlike [syncStatusStream] it never goes null-*valued* to mean "no stream": it
-  /// is one stream that outlives every session, so a widget subscribing to it once (seeded with
-  /// [syncStatus]) keeps reflecting the truth as sessions start and stop underneath it. This is
-  /// what the workspace's own status indicator listens to, since its session starts only *after*
-  /// the workspace has already been built.
+  /// once it stops. Unlike the running session's own status stream, which is null when no session
+  /// runs, it never goes null-*valued* to mean "no stream": it is one stream that outlives every
+  /// session, so a widget subscribing to it once (seeded with [syncStatus]) keeps reflecting the
+  /// truth as sessions start and stop underneath it. This is what the workspace's own status
+  /// indicator listens to, since its session starts only *after* the workspace has already been
+  /// built.
   Stream<OcptSyncStatus?> get syncStatusChanges => _syncStatusController.stream;
 
   // TODO(borlnov): Read by the screen that resolves a screenplay conflict,
