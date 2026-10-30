@@ -7,6 +7,7 @@ import 'dart:async';
 import 'package:act_file_transfer_manager/act_file_transfer_manager.dart';
 import 'package:act_flutter_utility/act_flutter_utility.dart';
 import 'package:act_global_manager/act_global_manager.dart';
+import 'package:act_logger_manager/act_logger_manager.dart';
 import 'package:collection/collection.dart';
 import 'package:drift/drift.dart';
 import 'package:flutter/foundation.dart';
@@ -14,6 +15,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/constants/ocpt_asset_file_types.dart';
 import 'package:open_cine_prod_tools/managers/export/ocpt_export_manager.dart';
+import 'package:open_cine_prod_tools/managers/logging/ocpt_logs_helper_builder.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
@@ -44,6 +46,7 @@ import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
 import 'package:open_cine_prod_tools/models/ocpt_storyboard_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_workspace_reveal_request.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_floor_plan_geometry.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_log_subject.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_scene_display_number.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_scene_set_suggestion.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_arrow_kind.dart';
@@ -132,6 +135,12 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     with
         MixinOcptProjectVersionsBloc<OcptShotListState>,
         MixinOcptProjectPackageBloc<OcptShotListState> {
+  /// The logger category linked to this BLoC.
+  static const _loggerCategory = "shot_list_bloc";
+
+  /// The logger this BLoC writes to.
+  final LogsHelper _logger = buildOcptLogsHelper(_loggerCategory);
+
   /// The default delay between the last field edit and its autosave write.
   static const defaultFieldEditDebounce = Duration(seconds: 2);
 
@@ -894,10 +903,12 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
           clearPendingCoverageAnchor: true,
         ),
       );
-    } catch (error) {
-      appLogger().e(
-        "A problem occurred when tried to create a shot in the scene "
-        "${sequence.sceneId} of the project at ${project.path}: $error",
+    } catch (error, stackTrace) {
+      _logger.e(
+        "A problem occurred when tried to create a shot in the scene ${sequence.sceneId} of "
+        "project ${ocptLogFileName(project.path)}: ${error.runtimeType}",
+        null,
+        stackTrace,
       );
       emitter(state.copyWith(hasWriteError: true));
     }
@@ -1068,10 +1079,12 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
           ),
         ),
       );
-    } catch (error) {
-      appLogger().e(
-        "A problem occurred when tried to export the shot list of the project at "
-        "${_projectsManager.currentProject?.path}: $error",
+    } catch (error, stackTrace) {
+      _logger.e(
+        "A problem occurred when tried to export the shot list of project "
+        "${ocptLogFileName(_projectsManager.currentProject?.path)}: ${error.runtimeType}",
+        null,
+        stackTrace,
       );
       emitter(
         state.copyWith(
@@ -1134,10 +1147,12 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
           ),
         ),
       );
-    } catch (error) {
-      appLogger().e(
-        "A problem occurred when tried to export the scenario coverage of the project "
-        "at ${_projectsManager.currentProject?.path}: $error",
+    } catch (error, stackTrace) {
+      _logger.e(
+        "A problem occurred when tried to export the scenario coverage of project "
+        "${ocptLogFileName(_projectsManager.currentProject?.path)}: ${error.runtimeType}",
+        null,
+        stackTrace,
       );
       emitter(
         state.copyWith(
@@ -1200,10 +1215,12 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
           ),
         ),
       );
-    } catch (error) {
-      appLogger().e(
-        "A problem occurred when tried to export the storyboard of the project at "
-        "${_projectsManager.currentProject?.path}: $error",
+    } catch (error, stackTrace) {
+      _logger.e(
+        "A problem occurred when tried to export the storyboard of project "
+        "${ocptLogFileName(_projectsManager.currentProject?.path)}: ${error.runtimeType}",
+        null,
+        stackTrace,
       );
       emitter(
         state.copyWith(
@@ -1259,10 +1276,12 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
           ),
         ),
       );
-    } catch (error) {
-      appLogger().e(
-        "A problem occurred when tried to export the floor plans of the project at "
-        "${_projectsManager.currentProject?.path}: $error",
+    } catch (error, stackTrace) {
+      _logger.e(
+        "A problem occurred when tried to export the floor plans of project "
+        "${ocptLogFileName(_projectsManager.currentProject?.path)}: ${error.runtimeType}",
+        null,
+        stackTrace,
       );
       emitter(
         state.copyWith(
@@ -1395,10 +1414,12 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
       if (state.rightDockTab == OcptShotListRightDockTab.versions) {
         add(const OcptProjectWorkingCopyRefreshRequestedEvent());
       }
-    } catch (error) {
-      appLogger().e(
-        "A problem occurred when tried to flush a pending shot list field edit of "
-        "the project at ${project.path}: $error",
+    } catch (error, stackTrace) {
+      _logger.e(
+        "A problem occurred when tried to flush a pending shot list field edit of project "
+        "${ocptLogFileName(project.path)}: ${error.runtimeType}",
+        null,
+        stackTrace,
       );
       emitter(state.copyWith(hasWriteError: true, pendingFieldEdits: const {}));
     }
@@ -1435,10 +1456,12 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
 
     try {
       await _writeAllPendingFields(project: project, pending: pending);
-    } catch (error) {
-      appLogger().e(
-        "A problem occurred when tried to flush a pending shot list field edit of "
-        "the project at ${project.path}: $error",
+    } catch (error, stackTrace) {
+      _logger.e(
+        "A problem occurred when tried to flush a pending shot list field edit of project "
+        "${ocptLogFileName(project.path)}: ${error.runtimeType}",
+        null,
+        stackTrace,
       );
     }
   }
@@ -1666,10 +1689,12 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
           );
       }
       emitter(state.copyWith(snapshot: await _loadSnapshot(project)));
-    } catch (error) {
-      appLogger().e(
-        "A problem occurred when tried to change the difficulty of shot "
-        "${event.shotId} of the project at ${project.path}: $error",
+    } catch (error, stackTrace) {
+      _logger.e(
+        "A problem occurred when tried to change the difficulty of shot ${event.shotId} of "
+        "project ${ocptLogFileName(project.path)}: ${error.runtimeType}",
+        null,
+        stackTrace,
       );
       emitter(state.copyWith(hasWriteError: true));
     }
@@ -1704,10 +1729,12 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
         );
       }
       emitter(state.copyWith(snapshot: await _loadSnapshot(project)));
-    } catch (error) {
-      appLogger().e(
-        "A problem occurred when tried to toggle role ${event.roleId} on "
-        "shot ${event.shotId} of the project at ${project.path}: $error",
+    } catch (error, stackTrace) {
+      _logger.e(
+        "A problem occurred when tried to toggle role ${event.roleId} on shot ${event.shotId} "
+        "of project ${ocptLogFileName(project.path)}: ${error.runtimeType}",
+        null,
+        stackTrace,
       );
       emitter(state.copyWith(hasWriteError: true));
     }
@@ -1744,10 +1771,12 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
       emitter(
         state.copyWith(snapshot: await _loadSnapshot(project), roles: await _loadRoles(project)),
       );
-    } catch (error) {
-      appLogger().e(
-        "A problem occurred when tried to add character ${event.characterName} to "
-        "shot ${event.shotId} of the project at ${project.path}: $error",
+    } catch (error, stackTrace) {
+      _logger.e(
+        "A problem occurred when tried to add a character to shot "
+        "${event.shotId} of project ${ocptLogFileName(project.path)}: ${error.runtimeType}",
+        null,
+        stackTrace,
       );
       emitter(state.copyWith(hasWriteError: true));
     }
@@ -1830,10 +1859,12 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
           clearPendingFloorPlanArrowAnchorSymbolId: wasSelected,
         ),
       );
-    } catch (error) {
-      appLogger().e(
-        "A problem occurred when tried to delete shot ${event.shotId} of the "
-        "project at ${project.path}: $error",
+    } catch (error, stackTrace) {
+      _logger.e(
+        "A problem occurred when tried to delete shot ${event.shotId} of project "
+        "${ocptLogFileName(project.path)}: ${error.runtimeType}",
+        null,
+        stackTrace,
       );
       emitter(state.copyWith(hasWriteError: true));
     }
@@ -1903,10 +1934,12 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
       emitter(
         state.copyWith(snapshot: await _loadSnapshot(project), roles: await _loadRoles(project)),
       );
-    } catch (error) {
-      appLogger().e(
-        "A problem occurred when tried to $logContext of the project at "
-        "${project.path}: $error",
+    } catch (error, stackTrace) {
+      _logger.e(
+        "A problem occurred when tried to $logContext of project "
+        "${ocptLogFileName(project.path)}: ${error.runtimeType}",
+        null,
+        stackTrace,
       );
       emitter(state.copyWith(hasWriteError: true));
     }
@@ -2114,10 +2147,12 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
       emitter(
         state.copyWith(snapshot: await _loadSnapshot(project), clearPendingCoverageAnchor: true),
       );
-    } catch (error) {
-      appLogger().e(
-        "A problem occurred when tried to change the scenario coverage of shot "
-        "$shotId of the project at ${project.path}: $error",
+    } catch (error, stackTrace) {
+      _logger.e(
+        "A problem occurred when tried to change the scenario coverage of shot $shotId of "
+        "project ${ocptLogFileName(project.path)}: ${error.runtimeType}",
+        null,
+        stackTrace,
       );
       emitter(state.copyWith(hasWriteError: true, clearPendingCoverageAnchor: true));
     }
@@ -2201,10 +2236,12 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
           clearSelectedAnnotationId: true,
         ),
       );
-    } catch (error) {
-      appLogger().e(
-        "A problem occurred when tried to import a storyboard frame onto shot "
-        "${event.shotId} of the project at ${project.path}: $error",
+    } catch (error, stackTrace) {
+      _logger.e(
+        "A problem occurred when tried to import a storyboard frame onto shot ${event.shotId} "
+        "of project ${ocptLogFileName(project.path)}: ${error.runtimeType}",
+        null,
+        stackTrace,
       );
       emitter(state.copyWith(hasWriteError: true));
     }
@@ -2234,10 +2271,12 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
         path: path,
       );
       emitter(state.copyWith(storyboardSnapshot: await _loadStoryboard(project)));
-    } catch (error) {
-      appLogger().e(
-        "A problem occurred when tried to replace the image of panel "
-        "${event.panelId} of the project at ${project.path}: $error",
+    } catch (error, stackTrace) {
+      _logger.e(
+        "A problem occurred when tried to replace the image of panel ${event.panelId} of "
+        "project ${ocptLogFileName(project.path)}: ${error.runtimeType}",
+        null,
+        stackTrace,
       );
       emitter(state.copyWith(hasWriteError: true));
     }
@@ -2306,10 +2345,12 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
         newPosition: event.newPosition,
       );
       emitter(state.copyWith(storyboardSnapshot: await _loadStoryboard(project)));
-    } catch (error) {
-      appLogger().e(
-        "A problem occurred when tried to reorder panel ${event.panelId} of the "
-        "project at ${project.path}: $error",
+    } catch (error, stackTrace) {
+      _logger.e(
+        "A problem occurred when tried to reorder panel ${event.panelId} of project "
+        "${ocptLogFileName(project.path)}: ${error.runtimeType}",
+        null,
+        stackTrace,
       );
       emitter(state.copyWith(hasWriteError: true));
     }
@@ -2376,10 +2417,12 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
           clearSelectedAnnotationId: wasSelected,
         ),
       );
-    } catch (error) {
-      appLogger().e(
-        "A problem occurred when tried to delete panel ${event.panelId} of the "
-        "project at ${project.path}: $error",
+    } catch (error, stackTrace) {
+      _logger.e(
+        "A problem occurred when tried to delete panel ${event.panelId} of project "
+        "${ocptLogFileName(project.path)}: ${error.runtimeType}",
+        null,
+        stackTrace,
       );
       emitter(state.copyWith(hasWriteError: true));
     }
@@ -2430,10 +2473,12 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
           selectedAnnotationId: annotationId,
         ),
       );
-    } catch (error) {
-      appLogger().e(
-        "A problem occurred when tried to draw a ${event.kind} mark onto panel "
-        "${event.panelId} of the project at ${project.path}: $error",
+    } catch (error, stackTrace) {
+      _logger.e(
+        "A problem occurred when tried to draw a ${event.kind} mark onto panel ${event.panelId} "
+        "of project ${ocptLogFileName(project.path)}: ${error.runtimeType}",
+        null,
+        stackTrace,
       );
       emitter(state.copyWith(hasWriteError: true));
     }
@@ -2469,10 +2514,12 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
           selectedAnnotationId: annotationId,
         ),
       );
-    } catch (error) {
-      appLogger().e(
-        "A problem occurred when tried to place a label onto panel "
-        "${event.panelId} of the project at ${project.path}: $error",
+    } catch (error, stackTrace) {
+      _logger.e(
+        "A problem occurred when tried to place a label onto panel ${event.panelId} of project "
+        "${ocptLogFileName(project.path)}: ${error.runtimeType}",
+        null,
+        stackTrace,
       );
       emitter(state.copyWith(hasWriteError: true));
     }
@@ -2532,10 +2579,12 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
           clearSelectedAnnotationId: wasSelected,
         ),
       );
-    } catch (error) {
-      appLogger().e(
-        "A problem occurred when tried to delete mark ${event.annotationId} of the "
-        "project at ${project.path}: $error",
+    } catch (error, stackTrace) {
+      _logger.e(
+        "A problem occurred when tried to delete mark ${event.annotationId} of project "
+        "${ocptLogFileName(project.path)}: ${error.runtimeType}",
+        null,
+        stackTrace,
       );
       emitter(state.copyWith(hasWriteError: true));
     }
@@ -2595,10 +2644,12 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
           clearPendingFloorPlanArrowAnchorSymbolId: true,
         ),
       );
-    } catch (error) {
-      appLogger().e(
-        "A problem occurred when tried to create a floor plan set on scene "
-        "${sequence.sceneId} of the project at ${project.path}: $error",
+    } catch (error, stackTrace) {
+      _logger.e(
+        "A problem occurred when tried to create a floor plan set on scene ${sequence.sceneId} "
+        "of project ${ocptLogFileName(project.path)}: ${error.runtimeType}",
+        null,
+        stackTrace,
       );
       emitter(state.copyWith(hasWriteError: true));
     }
@@ -2639,10 +2690,12 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
           clearPendingFloorPlanArrowAnchorSymbolId: true,
         ),
       );
-    } catch (error) {
-      appLogger().e(
-        "A problem occurred when tried to link set ${event.setId} to scene "
-        "${sequence.sceneId} of the project at ${project.path}: $error",
+    } catch (error, stackTrace) {
+      _logger.e(
+        "A problem occurred when tried to link set ${event.setId} to scene ${sequence.sceneId} "
+        "of project ${ocptLogFileName(project.path)}: ${error.runtimeType}",
+        null,
+        stackTrace,
       );
       emitter(state.copyWith(hasWriteError: true));
     }
@@ -2707,10 +2760,12 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
           clearPendingFloorPlanArrowAnchorSymbolId: wasSelected,
         ),
       );
-    } catch (error) {
-      appLogger().e(
-        "A problem occurred when tried to unlink set ${event.setId} of the "
-        "project at ${project.path}: $error",
+    } catch (error, stackTrace) {
+      _logger.e(
+        "A problem occurred when tried to unlink set ${event.setId} of project "
+        "${ocptLogFileName(project.path)}: ${error.runtimeType}",
+        null,
+        stackTrace,
       );
       emitter(state.copyWith(hasWriteError: true));
     }
@@ -2755,10 +2810,12 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
           clearPendingFloorPlanArrowAnchorSymbolId: true,
         ),
       );
-    } catch (error) {
-      appLogger().e(
-        "A problem occurred when tried to duplicate set ${event.setId} of the "
-        "project at ${project.path}: $error",
+    } catch (error, stackTrace) {
+      _logger.e(
+        "A problem occurred when tried to duplicate set ${event.setId} of project "
+        "${ocptLogFileName(project.path)}: ${error.runtimeType}",
+        null,
+        stackTrace,
       );
       emitter(state.copyWith(hasWriteError: true));
     }
@@ -2788,10 +2845,13 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
         destinationShotId: destinationShotId,
       );
       emitter(state.copyWith(floorPlanSnapshot: await _loadFloorPlans(project)));
-    } catch (error) {
-      appLogger().e(
+    } catch (error, stackTrace) {
+      _logger.e(
         "A problem occurred when tried to copy shot ${event.sourceShotId}'s own blocking onto "
-        "shot $destinationShotId of set ${event.setId} of the project at ${project.path}: $error",
+        "shot $destinationShotId of set ${event.setId} of project "
+        "${ocptLogFileName(project.path)}: ${error.runtimeType}",
+        null,
+        stackTrace,
       );
       emitter(state.copyWith(hasWriteError: true));
     }
@@ -2931,10 +2991,12 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
           clearPendingCharacterNamePromptSymbolId: !isCharacter,
         ),
       );
-    } catch (error) {
-      appLogger().e(
-        "A problem occurred when tried to place a ${event.layer} symbol on set "
-        "${event.setId} of the project at ${project.path}: $error",
+    } catch (error, stackTrace) {
+      _logger.e(
+        "A problem occurred when tried to place a ${event.layer} symbol on set ${event.setId} "
+        "of project ${ocptLogFileName(project.path)}: ${error.runtimeType}",
+        null,
+        stackTrace,
       );
       emitter(state.copyWith(hasWriteError: true));
     }
@@ -3003,10 +3065,12 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
         yM: Value(event.yM),
       );
       emitter(state.copyWith(floorPlanSnapshot: await _loadFloorPlans(project)));
-    } catch (error) {
-      appLogger().e(
-        "A problem occurred when tried to move symbol ${event.symbolId} of the "
-        "project at ${project.path}: $error",
+    } catch (error, stackTrace) {
+      _logger.e(
+        "A problem occurred when tried to move symbol ${event.symbolId} of project "
+        "${ocptLogFileName(project.path)}: ${error.runtimeType}",
+        null,
+        stackTrace,
       );
       emitter(state.copyWith(hasWriteError: true));
     }
@@ -3031,10 +3095,12 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
         heightM: Value(event.heightM),
       );
       emitter(state.copyWith(floorPlanSnapshot: await _loadFloorPlans(project)));
-    } catch (error) {
-      appLogger().e(
-        "A problem occurred when tried to resize symbol ${event.symbolId} of the "
-        "project at ${project.path}: $error",
+    } catch (error, stackTrace) {
+      _logger.e(
+        "A problem occurred when tried to resize symbol ${event.symbolId} of project "
+        "${ocptLogFileName(project.path)}: ${error.runtimeType}",
+        null,
+        stackTrace,
       );
       emitter(state.copyWith(hasWriteError: true));
     }
@@ -3058,10 +3124,12 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
         rotationDeg: Value(event.rotationDeg),
       );
       emitter(state.copyWith(floorPlanSnapshot: await _loadFloorPlans(project)));
-    } catch (error) {
-      appLogger().e(
-        "A problem occurred when tried to rotate symbol ${event.symbolId} of the "
-        "project at ${project.path}: $error",
+    } catch (error, stackTrace) {
+      _logger.e(
+        "A problem occurred when tried to rotate symbol ${event.symbolId} of project "
+        "${ocptLogFileName(project.path)}: ${error.runtimeType}",
+        null,
+        stackTrace,
       );
       emitter(state.copyWith(hasWriteError: true));
     }
@@ -3092,10 +3160,12 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
           clearSelectedFloorPlanArrowId: true,
         ),
       );
-    } catch (error) {
-      appLogger().e(
-        "A problem occurred when tried to delete symbol ${event.symbolId} of the "
-        "project at ${project.path}: $error",
+    } catch (error, stackTrace) {
+      _logger.e(
+        "A problem occurred when tried to delete symbol ${event.symbolId} of project "
+        "${ocptLogFileName(project.path)}: ${error.runtimeType}",
+        null,
+        stackTrace,
       );
       emitter(state.copyWith(hasWriteError: true));
     }
@@ -3129,10 +3199,12 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
           clearSelectedFloorPlanArrowId: true,
         ),
       );
-    } catch (error) {
-      appLogger().e(
-        "A problem occurred when tried to delete symbol ${event.symbolId} everywhere, of the "
-        "project at ${project.path}: $error",
+    } catch (error, stackTrace) {
+      _logger.e(
+        "A problem occurred when tried to delete symbol ${event.symbolId} everywhere, of "
+        "project ${ocptLogFileName(project.path)}: ${error.runtimeType}",
+        null,
+        stackTrace,
       );
       emitter(state.copyWith(hasWriteError: true));
     }
@@ -3202,10 +3274,13 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
           clearSelectedFloorPlanArrowId: wasSelected,
         ),
       );
-    } catch (error) {
-      appLogger().e(
+    } catch (error, stackTrace) {
+      _logger.e(
         "A problem occurred when tried to hide symbol ${event.symbolId} for sequence "
-        "${event.targetSceneId} of the project at ${project.path}: $error",
+        "${event.targetSceneId} of project ${ocptLogFileName(project.path)}: "
+        "${error.runtimeType}",
+        null,
+        stackTrace,
       );
       emitter(state.copyWith(hasWriteError: true));
     }
@@ -3279,10 +3354,12 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
           clearSelectedFloorPlanArrowId: wasSelected,
         ),
       );
-    } catch (error) {
-      appLogger().e(
+    } catch (error, stackTrace) {
+      _logger.e(
         "A problem occurred when tried to hide symbol ${event.symbolId} for shot "
-        "${event.targetShotId} of the project at ${project.path}: $error",
+        "${event.targetShotId} of project ${ocptLogFileName(project.path)}: ${error.runtimeType}",
+        null,
+        stackTrace,
       );
       emitter(state.copyWith(hasWriteError: true));
     }
@@ -3310,10 +3387,12 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
           clearSelectedFloorPlanArrowId: true,
         ),
       );
-    } catch (error) {
-      appLogger().e(
-        "A problem occurred when tried to restore override ${event.symbolId} of the "
-        "project at ${project.path}: $error",
+    } catch (error, stackTrace) {
+      _logger.e(
+        "A problem occurred when tried to restore override ${event.symbolId} of project "
+        "${ocptLogFileName(project.path)}: ${error.runtimeType}",
+        null,
+        stackTrace,
       );
       emitter(state.copyWith(hasWriteError: true));
     }
@@ -3465,10 +3544,12 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
           clearPendingFloorPlanScopeDecision: true,
         ),
       );
-    } catch (error) {
-      appLogger().e(
+    } catch (error, stackTrace) {
+      _logger.e(
         "A problem occurred when tried to resolve the scope decision on symbol "
-        "${decision.symbolId} of the project at ${project.path}: $error",
+        "${decision.symbolId} of project ${ocptLogFileName(project.path)}: ${error.runtimeType}",
+        null,
+        stackTrace,
       );
       emitter(state.copyWith(hasWriteError: true, clearPendingFloorPlanScopeDecision: true));
     }
@@ -3504,10 +3585,12 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
         heightM: _defaultUnderlayHeightM,
       );
       emitter(state.copyWith(floorPlanSnapshot: await _loadFloorPlans(project)));
-    } catch (error) {
-      appLogger().e(
-        "A problem occurred when tried to import the underlay of set "
-        "${event.setId} of the project at ${project.path}: $error",
+    } catch (error, stackTrace) {
+      _logger.e(
+        "A problem occurred when tried to import the underlay of set ${event.setId} of project "
+        "${ocptLogFileName(project.path)}: ${error.runtimeType}",
+        null,
+        stackTrace,
       );
       emitter(state.copyWith(hasWriteError: true));
     }
@@ -3543,10 +3626,12 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
         heightM: Value(event.heightM),
       );
       emitter(state.copyWith(floorPlanSnapshot: await _loadFloorPlans(project)));
-    } catch (error) {
-      appLogger().e(
-        "A problem occurred when tried to move/resize the underlay of set "
-        "${event.setId} of the project at ${project.path}: $error",
+    } catch (error, stackTrace) {
+      _logger.e(
+        "A problem occurred when tried to move/resize the underlay of set ${event.setId} of "
+        "project ${ocptLogFileName(project.path)}: ${error.runtimeType}",
+        null,
+        stackTrace,
       );
       emitter(state.copyWith(hasWriteError: true));
     }
@@ -3566,10 +3651,12 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     try {
       await _floorPlanService.clearSetUnderlay(database: project.database, setId: event.setId);
       emitter(state.copyWith(floorPlanSnapshot: await _loadFloorPlans(project)));
-    } catch (error) {
-      appLogger().e(
-        "A problem occurred when tried to clear the underlay of set "
-        "${event.setId} of the project at ${project.path}: $error",
+    } catch (error, stackTrace) {
+      _logger.e(
+        "A problem occurred when tried to clear the underlay of set ${event.setId} of project "
+        "${ocptLogFileName(project.path)}: ${error.runtimeType}",
+        null,
+        stackTrace,
       );
       emitter(state.copyWith(hasWriteError: true));
     }
@@ -3694,10 +3781,12 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
           clearPendingFloorPlanArrowAnchorSymbolId: true,
         ),
       );
-    } catch (error) {
-      appLogger().e(
-        "A problem occurred when tried to add an arrow from symbol $anchor to "
-        "${event.symbolId} of the project at ${project.path}: $error",
+    } catch (error, stackTrace) {
+      _logger.e(
+        "A problem occurred when tried to add an arrow from symbol $anchor to ${event.symbolId} "
+        "of project ${ocptLogFileName(project.path)}: ${error.runtimeType}",
+        null,
+        stackTrace,
       );
       emitter(state.copyWith(hasWriteError: true, clearPendingFloorPlanArrowAnchorSymbolId: true));
     }
@@ -3735,10 +3824,12 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
           clearSelectedFloorPlanArrowId: wasSelected,
         ),
       );
-    } catch (error) {
-      appLogger().e(
-        "A problem occurred when tried to delete arrow ${event.arrowId} of the "
-        "project at ${project.path}: $error",
+    } catch (error, stackTrace) {
+      _logger.e(
+        "A problem occurred when tried to delete arrow ${event.arrowId} of project "
+        "${ocptLogFileName(project.path)}: ${error.runtimeType}",
+        null,
+        stackTrace,
       );
       emitter(state.copyWith(hasWriteError: true));
     }
@@ -3777,10 +3868,12 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
         fovDeg: Value(event.fovDeg),
       );
       emitter(state.copyWith(floorPlanSnapshot: await _loadFloorPlans(project)));
-    } catch (error) {
-      appLogger().e(
-        "A problem occurred when tried to change the field of view of symbol "
-        "${event.symbolId} of the project at ${project.path}: $error",
+    } catch (error, stackTrace) {
+      _logger.e(
+        "A problem occurred when tried to change the field of view of symbol ${event.symbolId} "
+        "of project ${ocptLogFileName(project.path)}: ${error.runtimeType}",
+        null,
+        stackTrace,
       );
       emitter(state.copyWith(hasWriteError: true));
     }
@@ -3805,10 +3898,12 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
         fovReachM: Value(event.fovReachM),
       );
       emitter(state.copyWith(floorPlanSnapshot: await _loadFloorPlans(project)));
-    } catch (error) {
-      appLogger().e(
+    } catch (error, stackTrace) {
+      _logger.e(
         "A problem occurred when tried to change the field-of-view reach of symbol "
-        "${event.symbolId} of the project at ${project.path}: $error",
+        "${event.symbolId} of project ${ocptLogFileName(project.path)}: ${error.runtimeType}",
+        null,
+        stackTrace,
       );
       emitter(state.copyWith(hasWriteError: true));
     }
@@ -3850,10 +3945,12 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
         ctrlYM: event.ctrlYM == null ? const Value(null) : Value(event.ctrlYM),
       );
       emitter(state.copyWith(floorPlanSnapshot: await _loadFloorPlans(project)));
-    } catch (error) {
-      appLogger().e(
-        "A problem occurred when tried to bend arrow ${event.arrowId} of the "
-        "project at ${project.path}: $error",
+    } catch (error, stackTrace) {
+      _logger.e(
+        "A problem occurred when tried to bend arrow ${event.arrowId} of project "
+        "${ocptLogFileName(project.path)}: ${error.runtimeType}",
+        null,
+        stackTrace,
       );
       emitter(state.copyWith(hasWriteError: true));
     }
@@ -3906,10 +4003,12 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
           clearSelectedFloorPlanArrowId: true,
         ),
       );
-    } catch (error) {
-      appLogger().e(
-        "A problem occurred when tried to duplicate symbol ${event.symbolId} of the "
-        "project at ${project.path}: $error",
+    } catch (error, stackTrace) {
+      _logger.e(
+        "A problem occurred when tried to duplicate symbol ${event.symbolId} of project "
+        "${ocptLogFileName(project.path)}: ${error.runtimeType}",
+        null,
+        stackTrace,
       );
       emitter(state.copyWith(hasWriteError: true));
     }

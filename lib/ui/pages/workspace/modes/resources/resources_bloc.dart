@@ -7,12 +7,14 @@ import 'dart:async';
 import 'package:act_file_transfer_manager/act_file_transfer_manager.dart';
 import 'package:act_flutter_utility/act_flutter_utility.dart';
 import 'package:act_global_manager/act_global_manager.dart';
+import 'package:act_logger_manager/act_logger_manager.dart';
 import 'package:drift/drift.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/constants/ocpt_asset_file_types.dart';
 import 'package:open_cine_prod_tools/managers/export/ocpt_export_manager.dart';
+import 'package:open_cine_prod_tools/managers/logging/ocpt_logs_helper_builder.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
@@ -29,6 +31,7 @@ import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/models/ocpt_resources_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_workspace_reveal_request.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_cost_amount.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_log_subject.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_max_daily_presence.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_scene_display_number.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_editable_field.dart';
@@ -104,6 +107,12 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     with
         MixinOcptProjectVersionsBloc<OcptResourcesState>,
         MixinOcptProjectPackageBloc<OcptResourcesState> {
+  /// The logger category linked to this BLoC.
+  static const _loggerCategory = "resources_bloc";
+
+  /// The logger this BLoC writes to.
+  final LogsHelper _logger = buildOcptLogsHelper(_loggerCategory);
+
   /// The default delay between the last field edit and its autosave write.
   static const defaultFieldEditDebounce = Duration(seconds: 2);
 
@@ -664,10 +673,12 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
 
       final snapshot = await _loadSnapshot(project);
       emitter(state.copyWith(snapshot: snapshot, selectedPersonId: personId));
-    } catch (error) {
-      appLogger().e(
-        "A problem occurred when tried to create a person in the project at "
-        "${project.path}: $error",
+    } catch (error, stackTrace) {
+      _logger.e(
+        "A problem occurred when tried to create a person in project "
+        "${ocptLogFileName(project.path)}: ${error.runtimeType}",
+        null,
+        stackTrace,
       );
       emitter(state.copyWith(hasWriteError: true));
     }
@@ -708,10 +719,12 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
           clearSelectedPersonId: wasSelected,
         ),
       );
-    } catch (error) {
-      appLogger().e(
-        "A problem occurred when tried to erase person ${event.personId} of the "
-        "project at ${project.path}: $error",
+    } catch (error, stackTrace) {
+      _logger.e(
+        "A problem occurred when tried to erase person ${event.personId} of project "
+        "${ocptLogFileName(project.path)}: ${error.runtimeType}",
+        null,
+        stackTrace,
       );
       emitter(state.copyWith(hasWriteError: true));
     }
@@ -866,10 +879,12 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
       if (state.rightDockTab == OcptResourcesRightDockTab.versions) {
         add(const OcptProjectWorkingCopyRefreshRequestedEvent());
       }
-    } catch (error) {
-      appLogger().e(
-        "A problem occurred when tried to flush a pending resources field edit of "
-        "the project at ${project.path}: $error",
+    } catch (error, stackTrace) {
+      _logger.e(
+        "A problem occurred when tried to flush a pending resources field edit of project "
+        "${ocptLogFileName(project.path)}: ${error.runtimeType}",
+        null,
+        stackTrace,
       );
       emitter(
         state.copyWith(
@@ -935,10 +950,12 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
         database: project.database,
         pending: pendingCandidateEdits,
       );
-    } catch (error) {
-      appLogger().e(
-        "A problem occurred when tried to flush a pending resources field edit of "
-        "the project at ${project.path}: $error",
+    } catch (error, stackTrace) {
+      _logger.e(
+        "A problem occurred when tried to flush a pending resources field edit of project "
+        "${ocptLogFileName(project.path)}: ${error.runtimeType}",
+        null,
+        stackTrace,
       );
     }
   }
@@ -1725,10 +1742,12 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
 
       final snapshot = await _loadSnapshot(project);
       emitter(state.copyWith(snapshot: snapshot, selectedRoleId: roleId));
-    } catch (error) {
-      appLogger().e(
-        "A problem occurred when tried to create a role in the project at "
-        "${project.path}: $error",
+    } catch (error, stackTrace) {
+      _logger.e(
+        "A problem occurred when tried to create a role in project "
+        "${ocptLogFileName(project.path)}: ${error.runtimeType}",
+        null,
+        stackTrace,
       );
       emitter(state.copyWith(hasWriteError: true));
     }
@@ -1814,10 +1833,12 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
           clearSelectedRoleId: wasSelected,
         ),
       );
-    } catch (error) {
-      appLogger().e(
-        "A problem occurred when tried to delete role ${event.roleId} of the "
-        "project at ${project.path}: $error",
+    } catch (error, stackTrace) {
+      _logger.e(
+        "A problem occurred when tried to delete role ${event.roleId} of project "
+        "${ocptLogFileName(project.path)}: ${error.runtimeType}",
+        null,
+        stackTrace,
       );
       emitter(state.copyWith(hasWriteError: true));
     }
@@ -1951,10 +1972,12 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
       emitter(
         state.copyWith(snapshot: snapshot, pendingCandidateFieldEdits: pendingWithoutCandidate),
       );
-    } catch (error) {
-      appLogger().e(
-        "A problem occurred when tried to remove candidacy ${event.candidateId} of "
-        "the project at ${project.path}: $error",
+    } catch (error, stackTrace) {
+      _logger.e(
+        "A problem occurred when tried to remove candidacy ${event.candidateId} of project "
+        "${ocptLogFileName(project.path)}: ${error.runtimeType}",
+        null,
+        stackTrace,
       );
       emitter(state.copyWith(hasWriteError: true));
     }
@@ -2040,10 +2063,12 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
 
       final snapshot = await _loadSnapshot(project);
       emitter(state.copyWith(snapshot: snapshot, selectedLocationId: locationId));
-    } catch (error) {
-      appLogger().e(
-        "A problem occurred when tried to create a location in the project at "
-        "${project.path}: $error",
+    } catch (error, stackTrace) {
+      _logger.e(
+        "A problem occurred when tried to create a location in project "
+        "${ocptLogFileName(project.path)}: ${error.runtimeType}",
+        null,
+        stackTrace,
       );
       emitter(state.copyWith(hasWriteError: true));
     }
@@ -2097,10 +2122,12 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
           clearSelectedLocationId: wasSelected,
         ),
       );
-    } catch (error) {
-      appLogger().e(
-        "A problem occurred when tried to delete location ${event.locationId} of the "
-        "project at ${project.path}: $error",
+    } catch (error, stackTrace) {
+      _logger.e(
+        "A problem occurred when tried to delete location ${event.locationId} of project "
+        "${ocptLogFileName(project.path)}: ${error.runtimeType}",
+        null,
+        stackTrace,
       );
       emitter(state.copyWith(hasWriteError: true));
     }
@@ -2307,10 +2334,12 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
           ),
         ),
       );
-    } catch (error) {
-      appLogger().e(
+    } catch (error, stackTrace) {
+      _logger.e(
         "A problem occurred when tried to resolve set ${event.setId}'s own first linked "
-        "sequence of the project at ${project.path}: $error",
+        "sequence of project ${ocptLogFileName(project.path)}: ${error.runtimeType}",
+        null,
+        stackTrace,
       );
     }
   }
@@ -2651,10 +2680,12 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     try {
       await action(project);
       emitter(state.copyWith(snapshot: await _loadSnapshot(project)));
-    } catch (error) {
-      appLogger().e(
-        "A problem occurred when tried to $logContext of the project at "
-        "${project.path}: $error",
+    } catch (error, stackTrace) {
+      _logger.e(
+        "A problem occurred when tried to $logContext of project "
+        "${ocptLogFileName(project.path)}: ${error.runtimeType}",
+        null,
+        stackTrace,
       );
       emitter(state.copyWith(hasWriteError: true));
     }
@@ -2711,10 +2742,12 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
 
       final snapshot = await _loadSnapshot(project);
       emitter(state.copyWith(snapshot: snapshot, selectedElementId: elementId));
-    } catch (error) {
-      appLogger().e(
-        "A problem occurred when tried to create an element in the project at "
-        "${project.path}: $error",
+    } catch (error, stackTrace) {
+      _logger.e(
+        "A problem occurred when tried to create an element in project "
+        "${ocptLogFileName(project.path)}: ${error.runtimeType}",
+        null,
+        stackTrace,
       );
       emitter(state.copyWith(hasWriteError: true));
     }
@@ -2755,10 +2788,12 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
           clearSelectedElementId: wasSelected,
         ),
       );
-    } catch (error) {
-      appLogger().e(
-        "A problem occurred when tried to delete element ${event.elementId} of the "
-        "project at ${project.path}: $error",
+    } catch (error, stackTrace) {
+      _logger.e(
+        "A problem occurred when tried to delete element ${event.elementId} of project "
+        "${ocptLogFileName(project.path)}: ${error.runtimeType}",
+        null,
+        stackTrace,
       );
       emitter(state.copyWith(hasWriteError: true));
     }
@@ -3144,10 +3179,12 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
           ),
         ),
       );
-    } catch (error) {
-      appLogger().e(
-        "A problem occurred when tried to export the resources catalogue of the "
-        "project at ${project.path}: $error",
+    } catch (error, stackTrace) {
+      _logger.e(
+        "A problem occurred when tried to export the resources catalogue of project "
+        "${ocptLogFileName(project.path)}: ${error.runtimeType}",
+        null,
+        stackTrace,
       );
       emitter(
         state.copyWith(
@@ -3199,10 +3236,12 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
           ),
         ),
       );
-    } catch (error) {
-      appLogger().e(
-        "A problem occurred when tried to export the contact list of the project at "
-        "${project.path}: $error",
+    } catch (error, stackTrace) {
+      _logger.e(
+        "A problem occurred when tried to export the contact list of project "
+        "${ocptLogFileName(project.path)}: ${error.runtimeType}",
+        null,
+        stackTrace,
       );
       emitter(
         state.copyWith(

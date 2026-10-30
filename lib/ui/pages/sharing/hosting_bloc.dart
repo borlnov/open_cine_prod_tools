@@ -6,7 +6,9 @@ import 'dart:async';
 
 import 'package:act_flutter_utility/act_flutter_utility.dart';
 import 'package:act_global_manager/act_global_manager.dart';
+import 'package:act_logger_manager/act_logger_manager.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:open_cine_prod_tools/managers/logging/ocpt_logs_helper_builder.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_diagnostics_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
@@ -31,6 +33,12 @@ import 'package:open_cine_prod_tools/ui/pages/sharing/hosting_state.dart';
 /// presence roster stream, both of which (like every ACT manager stream, `CLAUDE.md`'s own pitfalls
 /// list) never replay their current value to a new listener.
 class OcptHostingBloc extends BlocForMixin<OcptHostingState> {
+  /// The logger category linked to this BLoC.
+  static const _loggerCategory = "hosting_bloc";
+
+  /// The logger this BLoC writes to.
+  final LogsHelper _logger = buildOcptLogsHelper(_loggerCategory);
+
   /// The manager owning the in-process relay this bloc starts, stops and reconciles.
   final OcptRelayHostManager _hostManager;
 
@@ -428,7 +436,12 @@ class OcptHostingBloc extends BlocForMixin<OcptHostingState> {
             token: token,
           );
         }
-      } catch (_) {
+      } catch (error, stackTrace) {
+        _logger.w(
+          'Could not load the project token to build the join invite: ${error.runtimeType}',
+          null,
+          stackTrace,
+        );
         joinInvite = null;
       }
     }
@@ -445,6 +458,8 @@ class OcptHostingBloc extends BlocForMixin<OcptHostingState> {
       OcptDiagnosticsManager.log(
         category: OcptDiagnosticsCategory.hosting,
         message: 'join QR ready: project=$hostedProjectId relay=$advertisedUri',
+        // The relay's address is not logged.
+        logMessage: 'join QR ready: project=$hostedProjectId',
       );
     }
 

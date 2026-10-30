@@ -6,11 +6,13 @@ import 'dart:async';
 
 import 'package:act_flutter_utility/act_flutter_utility.dart';
 import 'package:act_global_manager/act_global_manager.dart';
+import 'package:act_logger_manager/act_logger_manager.dart';
 import 'package:drift/drift.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/managers/export/ocpt_export_manager.dart';
+import 'package:open_cine_prod_tools/managers/logging/ocpt_logs_helper_builder.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
@@ -27,6 +29,7 @@ import 'package:open_cine_prod_tools/models/ocpt_open_project_model.dart';
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_breakdown_legend.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_breakdown_tag_span.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_log_subject.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_scene_display_number.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_centre_view.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_right_dock_tab.dart';
@@ -91,6 +94,12 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
     with
         MixinOcptProjectVersionsBloc<OcptBreakdownState>,
         MixinOcptProjectPackageBloc<OcptBreakdownState> {
+  /// The logger category linked to this BLoC.
+  static const _loggerCategory = "breakdown_bloc";
+
+  /// The logger this BLoC writes to.
+  final LogsHelper _logger = buildOcptLogsHelper(_loggerCategory);
+
   /// The default delay between the last field edit and its autosave write.
   static const defaultFieldEditDebounce = Duration(seconds: 2);
 
@@ -475,10 +484,12 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
           ),
         ),
       );
-    } catch (error) {
-      appLogger().e(
-        "A problem occurred when tried to export the breakdown sheets of the project "
-        "at ${_projectsManager.currentProject?.path}: $error",
+    } catch (error, stackTrace) {
+      _logger.e(
+        "A problem occurred when tried to export the breakdown sheets of project "
+        "${ocptLogFileName(_projectsManager.currentProject?.path)}: ${error.runtimeType}",
+        null,
+        stackTrace,
       );
       emitter(
         state.copyWith(
@@ -529,10 +540,12 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
           ),
         ),
       );
-    } catch (error) {
-      appLogger().e(
-        "A problem occurred when tried to export the breakdown workbook of the project "
-        "at ${_projectsManager.currentProject?.path}: $error",
+    } catch (error, stackTrace) {
+      _logger.e(
+        "A problem occurred when tried to export the breakdown workbook of project "
+        "${ocptLogFileName(_projectsManager.currentProject?.path)}: ${error.runtimeType}",
+        null,
+        stackTrace,
       );
       emitter(
         state.copyWith(
@@ -1423,10 +1436,12 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
       if (state.rightDockTab == OcptBreakdownRightDockTab.versions) {
         add(const OcptProjectWorkingCopyRefreshRequestedEvent());
       }
-    } catch (error) {
-      appLogger().e(
-        "A problem occurred when tried to flush a pending breakdown field edit of the "
-        "project at ${project.path}: $error",
+    } catch (error, stackTrace) {
+      _logger.e(
+        "A problem occurred when tried to flush a pending breakdown field edit of project "
+        "${ocptLogFileName(project.path)}: ${error.runtimeType}",
+        null,
+        stackTrace,
       );
       emitter(
         state.copyWith(
@@ -1474,10 +1489,12 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
         sceneNotes: pendingSceneNotes,
         setNames: pendingSetNames,
       );
-    } catch (error) {
-      appLogger().e(
-        "A problem occurred when tried to flush a pending breakdown field edit of the "
-        "project at ${project.path}: $error",
+    } catch (error, stackTrace) {
+      _logger.e(
+        "A problem occurred when tried to flush a pending breakdown field edit of project "
+        "${ocptLogFileName(project.path)}: ${error.runtimeType}",
+        null,
+        stackTrace,
       );
     }
   }
@@ -1527,7 +1544,7 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
             OcptElementField.storageNotes ||
             OcptElementField.cost ||
             OcptElementField.purposeNotes:
-          appLogger().w(
+          _logger.w(
             "The breakdown mode's target inspector never edits OcptElementField.${field.name}; "
             "ignoring the pending edit for element $elementId",
           );

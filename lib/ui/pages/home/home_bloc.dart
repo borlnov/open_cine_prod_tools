@@ -8,13 +8,16 @@ import 'dart:io';
 import 'package:act_file_transfer_manager/act_file_transfer_manager.dart';
 import 'package:act_flutter_utility/act_flutter_utility.dart';
 import 'package:act_global_manager/act_global_manager.dart';
+import 'package:act_logger_manager/act_logger_manager.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:open_cine_prod_tools/managers/export/ocpt_export_manager.dart';
+import 'package:open_cine_prod_tools/managers/logging/ocpt_logs_helper_builder.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_package_manifest.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_log_subject.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_file_verdict.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_route.dart';
@@ -54,6 +57,12 @@ import 'package:path/path.dart' as p;
 /// file through.
 class OcptHomeBloc extends BlocForMixin<OcptHomeState>
     with MixinOcptProjectPackageBloc<OcptHomeState> {
+  /// The logger category linked to this BLoC.
+  static const _loggerCategory = "home_bloc";
+
+  /// The logger this BLoC writes to.
+  final LogsHelper _logger = buildOcptLogsHelper(_loggerCategory);
+
   /// The properties manager used to read/update the recent projects list.
   final OcptPropertiesManager _propertiesManager;
 
@@ -466,10 +475,12 @@ class OcptHomeBloc extends BlocForMixin<OcptHomeState>
         fountainText: imported.fountainText,
         snapshotReason: OcptSnapshotReason.import,
       );
-    } catch (error) {
-      appLogger().e(
-        "A problem occurred when tried to import a fountain file into the project at "
-        "$filePath: $error",
+    } catch (error, stackTrace) {
+      _logger.e(
+        "A problem occurred when tried to import a fountain file into project "
+        "${ocptLogFileName(filePath)}: ${error.runtimeType}",
+        null,
+        stackTrace,
       );
       emitter(state.copyWith(isBusy: false, error: OcptProjectStatus.ioError));
       return;

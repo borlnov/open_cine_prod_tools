@@ -6,10 +6,12 @@ import 'dart:async';
 
 import 'package:act_flutter_utility/act_flutter_utility.dart';
 import 'package:act_global_manager/act_global_manager.dart';
+import 'package:act_logger_manager/act_logger_manager.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/managers/export/ocpt_export_manager.dart';
+import 'package:open_cine_prod_tools/managers/logging/ocpt_logs_helper_builder.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_spell_check_manager.dart';
@@ -18,6 +20,7 @@ import 'package:open_cine_prod_tools/managers/projects/services/ocpt_project_dic
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_screenplay_service.dart';
 import 'package:open_cine_prod_tools/models/ocpt_open_project_model.dart';
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_log_subject.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_spell_checked_lines.dart';
 import 'package:open_cine_prod_tools/types/ocpt_editor_mode.dart';
 import 'package:open_cine_prod_tools/types/ocpt_editor_right_dock_tab.dart';
@@ -72,6 +75,12 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
     with
         MixinOcptProjectVersionsBloc<OcptEditorState>,
         MixinOcptProjectPackageBloc<OcptEditorState> {
+  /// The logger category linked to this BLoC.
+  static const _loggerCategory = "editor_bloc";
+
+  /// The logger this BLoC writes to.
+  final LogsHelper _logger = buildOcptLogsHelper(_loggerCategory);
+
   /// The default delay between the last edit and the re-parse of the source text.
   static const defaultParseDebounce = Duration(milliseconds: 150);
 
@@ -709,10 +718,12 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
       if (state.rightDockTab == OcptEditorRightDockTab.versions) {
         add(const OcptProjectWorkingCopyRefreshRequestedEvent());
       }
-    } catch (error) {
-      appLogger().e(
-        "A problem occurred when tried to save the screenplay of the project at "
-        "${project.path}: $error",
+    } catch (error, stackTrace) {
+      _logger.e(
+        "A problem occurred when tried to save the screenplay of project "
+        "${ocptLogFileName(project.path)}: ${error.runtimeType}",
+        null,
+        stackTrace,
       );
       emitter(state.copyWith(isSaving: false, hasSaveError: true));
     }
@@ -1479,10 +1490,12 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
           ),
         ),
       );
-    } catch (error) {
-      appLogger().e(
-        "A problem occurred when tried to export the screenplay of the project at "
-        "${_projectsManager.currentProject?.path}: $error",
+    } catch (error, stackTrace) {
+      _logger.e(
+        "A problem occurred when tried to export the screenplay of project "
+        "${ocptLogFileName(_projectsManager.currentProject?.path)}: ${error.runtimeType}",
+        null,
+        stackTrace,
       );
       emitter(
         state.copyWith(
@@ -1538,10 +1551,12 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
           ),
         ),
       );
-    } catch (error) {
-      appLogger().e(
-        "A problem occurred when tried to export the screenplay of the project at "
-        "${_projectsManager.currentProject?.path} to PDF: $error",
+    } catch (error, stackTrace) {
+      _logger.e(
+        "A problem occurred when tried to export the screenplay of project "
+        "${ocptLogFileName(_projectsManager.currentProject?.path)} to PDF: ${error.runtimeType}",
+        null,
+        stackTrace,
       );
       emitter(
         state.copyWith(
@@ -1617,10 +1632,12 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
         pageSetup: state.pageSetup,
         emitter: emitter,
       );
-    } catch (error) {
-      appLogger().e(
-        "A problem occurred when tried to import a fountain file into the project at "
-        "${project.path}: $error",
+    } catch (error, stackTrace) {
+      _logger.e(
+        "A problem occurred when tried to import a fountain file into project "
+        "${ocptLogFileName(project.path)}: ${error.runtimeType}",
+        null,
+        stackTrace,
       );
       emitter(
         state.copyWith(
@@ -1885,10 +1902,12 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
           fountainText: state.text,
           snapshotReason: OcptSnapshotReason.timer,
         );
-      } catch (error) {
-        appLogger().e(
-          "A problem occurred when tried to flush the screenplay of the project at "
-          "${project.path} while leaving the editor: $error",
+      } catch (error, stackTrace) {
+        _logger.e(
+          "A problem occurred when tried to flush the screenplay of project "
+          "${ocptLogFileName(project.path)} while leaving the editor: ${error.runtimeType}",
+          null,
+          stackTrace,
         );
       }
     }

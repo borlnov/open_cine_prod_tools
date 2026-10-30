@@ -6,11 +6,13 @@ import 'dart:async';
 
 import 'package:act_flutter_utility/act_flutter_utility.dart';
 import 'package:act_global_manager/act_global_manager.dart';
+import 'package:act_logger_manager/act_logger_manager.dart';
 import 'package:drift/drift.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/managers/export/ocpt_export_manager.dart';
+import 'package:open_cine_prod_tools/managers/logging/ocpt_logs_helper_builder.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
@@ -47,6 +49,7 @@ import 'package:open_cine_prod_tools/models/rules/ocpt_budget_projection.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_budget_totals.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_budget_vat.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_cost_amount.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_log_subject.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_resource_group_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_right_dock_tab.dart';
@@ -108,6 +111,12 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     with
         MixinOcptProjectVersionsBloc<OcptBudgetState>,
         MixinOcptProjectPackageBloc<OcptBudgetState> {
+  /// The logger category linked to this BLoC.
+  static const _loggerCategory = "budget_bloc";
+
+  /// The logger this BLoC writes to.
+  final LogsHelper _logger = buildOcptLogsHelper(_loggerCategory);
+
   /// The default delay between the last field edit and its autosave write.
   static const defaultFieldEditDebounce = Duration(seconds: 2);
 
@@ -1103,10 +1112,12 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
 
     try {
       await _writeAllPendingFieldEdits(project, edits);
-    } catch (error) {
-      appLogger().e(
-        "A problem occurred when tried to flush a pending budget field edit of the "
-        "project at ${project.path}: $error",
+    } catch (error, stackTrace) {
+      _logger.e(
+        "A problem occurred when tried to flush a pending budget field edit of project "
+        "${ocptLogFileName(project.path)}: ${error.runtimeType}",
+        null,
+        stackTrace,
       );
     }
   }
@@ -2461,10 +2472,12 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
           ),
         ),
       );
-    } catch (error) {
-      appLogger().e(
-        "A problem occurred when tried to export the quote of the project at "
-        "${_projectsManager.currentProject?.path}: $error",
+    } catch (error, stackTrace) {
+      _logger.e(
+        "A problem occurred when tried to export the quote of project "
+        "${ocptLogFileName(_projectsManager.currentProject?.path)}: ${error.runtimeType}",
+        null,
+        stackTrace,
       );
       emitter(
         state.copyWith(
@@ -2513,10 +2526,12 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
           ),
         ),
       );
-    } catch (error) {
-      appLogger().e(
-        "A problem occurred when tried to export the financing plan of the project at "
-        "${_projectsManager.currentProject?.path}: $error",
+    } catch (error, stackTrace) {
+      _logger.e(
+        "A problem occurred when tried to export the financing plan of project "
+        "${ocptLogFileName(_projectsManager.currentProject?.path)}: ${error.runtimeType}",
+        null,
+        stackTrace,
       );
       emitter(
         state.copyWith(
@@ -2565,10 +2580,12 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
           ),
         ),
       );
-    } catch (error) {
-      appLogger().e(
-        "A problem occurred when tried to export the cash journal of the project at "
-        "${_projectsManager.currentProject?.path}: $error",
+    } catch (error, stackTrace) {
+      _logger.e(
+        "A problem occurred when tried to export the cash journal of project "
+        "${ocptLogFileName(_projectsManager.currentProject?.path)}: ${error.runtimeType}",
+        null,
+        stackTrace,
       );
       emitter(
         state.copyWith(
@@ -2617,10 +2634,12 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
           ),
         ),
       );
-    } catch (error) {
-      appLogger().e(
-        "A problem occurred when tried to export the financial report of the project "
-        "at ${_projectsManager.currentProject?.path}: $error",
+    } catch (error, stackTrace) {
+      _logger.e(
+        "A problem occurred when tried to export the financial report of project "
+        "${ocptLogFileName(_projectsManager.currentProject?.path)}: ${error.runtimeType}",
+        null,
+        stackTrace,
       );
       emitter(
         state.copyWith(

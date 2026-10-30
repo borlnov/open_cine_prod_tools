@@ -4,7 +4,9 @@
 
 import 'package:act_flutter_utility/act_flutter_utility.dart';
 import 'package:act_global_manager/act_global_manager.dart';
+import 'package:act_logger_manager/act_logger_manager.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:open_cine_prod_tools/managers/logging/ocpt_logs_helper_builder.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
 import 'package:open_cine_prod_tools/managers/sync/ocpt_sync_manager.dart';
@@ -22,6 +24,12 @@ import 'package:open_cine_prod_tools/ui/pages/repointing/repointing_state.dart';
 /// row for the `projectId` that method needs — exactly as `OcptSharingBloc` reads that same single
 /// row for the very same reason.
 class OcptRepointingBloc extends BlocForMixin<OcptRepointingState> {
+  /// The logger category linked to this BLoC.
+  static const _loggerCategory = "repointing_bloc";
+
+  /// The logger this BLoC writes to.
+  final LogsHelper _logger = buildOcptLogsHelper(_loggerCategory);
+
   /// The manager used to read the current project and its own app version.
   final OcptProjectsManager _projectsManager;
 
@@ -112,7 +120,13 @@ class OcptRepointingBloc extends BlocForMixin<OcptRepointingState> {
           ),
         ),
       );
-    } catch (_) {
+    } catch (error, stackTrace) {
+      // The error can name the relay's address, so only its type is logged.
+      _logger.e(
+        'Switching the project to another relay failed: ${error.runtimeType}',
+        null,
+        stackTrace,
+      );
       emitter(state.copyWith(isRepointing: false, repointFailed: true));
     }
   }

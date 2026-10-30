@@ -4,8 +4,10 @@
 
 import 'package:act_flutter_utility/act_flutter_utility.dart';
 import 'package:act_global_manager/act_global_manager.dart';
+import 'package:act_logger_manager/act_logger_manager.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:open_cine_prod_tools/managers/export/ocpt_export_manager.dart';
+import 'package:open_cine_prod_tools/managers/logging/ocpt_logs_helper_builder.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_diagnostics_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
@@ -45,6 +47,12 @@ import 'package:open_cine_prod_tools/ui/pages/joining/joining_state.dart';
 /// Rejoindre screen is replaced rather than left underneath it: pushing on top of it (as this bloc
 /// used to) meant the workspace's own Home/back returned to Rejoindre instead of the real home.
 class OcptJoiningBloc extends BlocForMixin<OcptJoiningState> {
+  /// The logger category linked to this BLoC.
+  static const _loggerCategory = "joining_bloc";
+
+  /// The logger this BLoC writes to.
+  final LogsHelper _logger = buildOcptLogsHelper(_loggerCategory);
+
   /// The manager driving the actual join: opening the relay transport and fetching/materialising
   /// its latest snapshot.
   final OcptSyncManager _syncManager;
@@ -129,6 +137,8 @@ class OcptJoiningBloc extends BlocForMixin<OcptJoiningState> {
         category: OcptDiagnosticsCategory.join,
         level: OcptDiagnosticsLevel.warning,
         message: 'scanned code is not a valid join invite — ${_describeScannedText(rawText)}',
+        // The description names the host of whatever was scanned, which is not logged.
+        logMessage: 'scanned code is not a valid join invite',
       );
       emitter(state.copyWith(joinFailed: true));
       return;
@@ -187,6 +197,8 @@ class OcptJoiningBloc extends BlocForMixin<OcptJoiningState> {
     OcptDiagnosticsManager.log(
       category: OcptDiagnosticsCategory.join,
       message: 'connecting: project=${invite.projectId} relay=${invite.relayBaseUri}',
+      // The relay's address is not logged.
+      logMessage: 'connecting: project=${invite.projectId}',
     );
 
     try {
@@ -253,14 +265,17 @@ class OcptJoiningBloc extends BlocForMixin<OcptJoiningState> {
         message: 'succeeded: project=${invite.projectId}',
       );
       emitter(state.copyWith(isJoining: false, joinSucceeded: true, clearJoinStep: true));
-    } catch (error) {
+    } catch (error, stackTrace) {
       if (_cancelled) {
         return;
       }
+      // The error can name the relay's address or a folder, so only its type is logged.
+      _logger.e('Joining a project failed: ${error.runtimeType}', null, stackTrace);
       OcptDiagnosticsManager.log(
         category: OcptDiagnosticsCategory.join,
         level: OcptDiagnosticsLevel.error,
         message: 'failed: project=${invite.projectId} $error',
+        logMessage: 'failed: project=${invite.projectId} ${error.runtimeType}',
       );
       emitter(state.copyWith(isJoining: false, joinFailed: true, clearJoinStep: true));
     }

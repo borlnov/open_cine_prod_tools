@@ -6,12 +6,14 @@ import 'dart:async';
 
 import 'package:act_flutter_utility/act_flutter_utility.dart';
 import 'package:act_global_manager/act_global_manager.dart';
+import 'package:act_logger_manager/act_logger_manager.dart';
 import 'package:drift/drift.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/managers/export/ocpt_export_manager.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_sides_pdf_service.dart';
+import 'package:open_cine_prod_tools/managers/logging/ocpt_logs_helper_builder.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
@@ -32,6 +34,7 @@ import 'package:open_cine_prod_tools/models/ocpt_schedule_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day_block.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_list_snapshot.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_log_subject.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_scene_display_number.dart';
 import 'package:open_cine_prod_tools/types/ocpt_first_weekday.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
@@ -82,6 +85,12 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     with
         MixinOcptProjectVersionsBloc<OcptScheduleState>,
         MixinOcptProjectPackageBloc<OcptScheduleState> {
+  /// The logger category linked to this BLoC.
+  static const _loggerCategory = "schedule_bloc";
+
+  /// The logger this BLoC writes to.
+  final LogsHelper _logger = buildOcptLogsHelper(_loggerCategory);
+
   /// The default delay between the last field edit and its autosave write.
   static const defaultFieldEditDebounce = Duration(seconds: 2);
 
@@ -1308,10 +1317,12 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
 
     try {
       await _writeAllPendingFieldEdits(project, edits);
-    } catch (error) {
-      appLogger().e(
-        "A problem occurred when tried to flush a pending schedule field edit of the "
-        "project at ${project.path}: $error",
+    } catch (error, stackTrace) {
+      _logger.e(
+        "A problem occurred when tried to flush a pending schedule field edit of project "
+        "${ocptLogFileName(project.path)}: ${error.runtimeType}",
+        null,
+        stackTrace,
       );
     }
   }
@@ -1534,10 +1545,12 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
           ),
         ),
       );
-    } catch (error) {
-      appLogger().e(
-        "A problem occurred when tried to export the call sheets of the project at "
-        "${_projectsManager.currentProject?.path}: $error",
+    } catch (error, stackTrace) {
+      _logger.e(
+        "A problem occurred when tried to export the call sheets of project "
+        "${ocptLogFileName(_projectsManager.currentProject?.path)}: ${error.runtimeType}",
+        null,
+        stackTrace,
       );
       emitter(
         state.copyWith(
@@ -1590,10 +1603,12 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
           ),
         ),
       );
-    } catch (error) {
-      appLogger().e(
-        "A problem occurred when tried to export the named call sheets of the project at "
-        "${_projectsManager.currentProject?.path}: $error",
+    } catch (error, stackTrace) {
+      _logger.e(
+        "A problem occurred when tried to export the named call sheets of project "
+        "${ocptLogFileName(_projectsManager.currentProject?.path)}: ${error.runtimeType}",
+        null,
+        stackTrace,
       );
       emitter(
         state.copyWith(
@@ -1651,10 +1666,12 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
           ),
         ),
       );
-    } catch (error) {
-      appLogger().e(
-        "A problem occurred when tried to export the shooting plan of the project at "
-        "${_projectsManager.currentProject?.path}: $error",
+    } catch (error, stackTrace) {
+      _logger.e(
+        "A problem occurred when tried to export the shooting plan of project "
+        "${ocptLogFileName(_projectsManager.currentProject?.path)}: ${error.runtimeType}",
+        null,
+        stackTrace,
       );
       emitter(
         state.copyWith(
@@ -1702,10 +1719,12 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
           ),
         ),
       );
-    } catch (error) {
-      appLogger().e(
-        "A problem occurred when tried to export the shooting plan workbook of the project at "
-        "${_projectsManager.currentProject?.path}: $error",
+    } catch (error, stackTrace) {
+      _logger.e(
+        "A problem occurred when tried to export the shooting plan workbook of project "
+        "${ocptLogFileName(_projectsManager.currentProject?.path)}: ${error.runtimeType}",
+        null,
+        stackTrace,
       );
       emitter(
         state.copyWith(
@@ -1755,10 +1774,12 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
           ),
         ),
       );
-    } catch (error) {
-      appLogger().e(
-        "A problem occurred when tried to export the day out of days of the project at "
-        "${_projectsManager.currentProject?.path}: $error",
+    } catch (error, stackTrace) {
+      _logger.e(
+        "A problem occurred when tried to export the day out of days of project "
+        "${ocptLogFileName(_projectsManager.currentProject?.path)}: ${error.runtimeType}",
+        null,
+        stackTrace,
       );
       emitter(
         state.copyWith(
@@ -1808,10 +1829,12 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
           ),
         ),
       );
-    } catch (error) {
-      appLogger().e(
-        "A problem occurred when tried to export the one-line schedule of the project at "
-        "${_projectsManager.currentProject?.path}: $error",
+    } catch (error, stackTrace) {
+      _logger.e(
+        "A problem occurred when tried to export the one-line schedule of project "
+        "${ocptLogFileName(_projectsManager.currentProject?.path)}: ${error.runtimeType}",
+        null,
+        stackTrace,
       );
       emitter(
         state.copyWith(
@@ -1879,10 +1902,12 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
           ),
         ),
       );
-    } catch (error) {
-      appLogger().e(
-        "A problem occurred when tried to export the sides of the project at "
-        "${_projectsManager.currentProject?.path}: $error",
+    } catch (error, stackTrace) {
+      _logger.e(
+        "A problem occurred when tried to export the sides of project "
+        "${ocptLogFileName(_projectsManager.currentProject?.path)}: ${error.runtimeType}",
+        null,
+        stackTrace,
       );
       emitter(
         state.copyWith(

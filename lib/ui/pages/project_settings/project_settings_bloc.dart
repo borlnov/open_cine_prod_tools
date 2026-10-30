@@ -4,9 +4,11 @@
 
 import 'package:act_flutter_utility/act_flutter_utility.dart';
 import 'package:act_global_manager/act_global_manager.dart';
+import 'package:act_logger_manager/act_logger_manager.dart';
 import 'package:drift/drift.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:open_cine_prod_tools/managers/export/ocpt_export_manager.dart';
+import 'package:open_cine_prod_tools/managers/logging/ocpt_logs_helper_builder.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
 import 'package:open_cine_prod_tools/managers/sync/ocpt_relay_host_manager.dart';
@@ -57,6 +59,12 @@ typedef OcptFolderLauncher = Future<bool> Function(Uri folder);
 /// restarts the sync session around the move for the very same reason
 /// (`OcptProjectsManager.moveCurrentProject`'s own doc comment).
 class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState> {
+  /// The logger category linked to this BLoC.
+  static const _loggerCategory = "project_settings_bloc";
+
+  /// The logger this BLoC writes to.
+  final LogsHelper _logger = buildOcptLogsHelper(_loggerCategory);
+
   /// The manager used to read and write the current project's settings.
   final OcptProjectsManager _projectsManager;
 
@@ -309,8 +317,8 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState> {
     var isOpened = false;
     try {
       isOpened = await _launchFolder(Uri.directory(p.dirname(projectFilePath)));
-    } catch (error) {
-      appLogger().w("Could not open the project's own folder: $error");
+    } catch (error, stackTrace) {
+      _logger.w("Could not open the project's own folder: ${error.runtimeType}", null, stackTrace);
     }
 
     if (!isOpened) {
@@ -419,8 +427,12 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState> {
         relayId: OcptSyncManager.relayIdFor(pairing),
         storage: syncManager.openRelayRemoteStorage(pairing, row.projectId),
       );
-    } catch (error) {
-      appLogger().w("Could not restart the sync session after moving the project: $error");
+    } catch (error, stackTrace) {
+      _logger.w(
+        "Could not restart the sync session after moving the project: ${error.runtimeType}",
+        null,
+        stackTrace,
+      );
     }
   }
 

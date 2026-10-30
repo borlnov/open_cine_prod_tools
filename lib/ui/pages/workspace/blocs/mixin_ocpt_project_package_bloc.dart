@@ -4,16 +4,19 @@
 
 import 'package:act_flutter_utility/act_flutter_utility.dart';
 import 'package:act_global_manager/act_global_manager.dart';
+import 'package:act_logger_manager/act_logger_manager.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:open_cine_prod_tools/managers/export/ocpt_export_manager.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_export_file_name.dart';
+import 'package:open_cine_prod_tools/managers/logging/ocpt_logs_helper_builder.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
 import 'package:open_cine_prod_tools/models/ocpt_open_project_model.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_package_manifest.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_package_notice.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_package_report.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_package_target.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_log_subject.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_package_notice_kind.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project_package_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_project_package_events.dart';
@@ -46,6 +49,12 @@ import 'package:path/path.dart' as p;
 /// the same manager call serve a project open in a mode and a project card on the home page where
 /// no project is open at all.
 mixin MixinOcptProjectPackageBloc<S extends MixinOcptProjectPackageState<S>> on BlocForMixin<S> {
+  /// The logger category linked to this mixin.
+  static const _loggerCategory = "project_package_bloc";
+
+  /// The logger this mixin writes to.
+  final LogsHelper _logger = buildOcptLogsHelper(_loggerCategory);
+
   /// {@template open_cine_prod_tools.MixinOcptProjectPackageBloc.projectsManager}
   /// The manager owning the open project and the package service behind it.
   ///
@@ -142,9 +151,9 @@ mixin MixinOcptProjectPackageBloc<S extends MixinOcptProjectPackageState<S>> on 
     }
 
     if (event.target == null && openProject!.isReadOnly) {
-      appLogger().w(
-        "A project package can't be written while a version is being previewed: it "
-        "would carry the working copy rather than what is on screen",
+      _logger.w(
+        "A project package can't be written while a version is being previewed: it would carry "
+        "the working copy rather than what is on screen",
       );
       return;
     }
@@ -153,8 +162,8 @@ mixin MixinOcptProjectPackageBloc<S extends MixinOcptProjectPackageState<S>> on 
 
     final preflight = projectsManager.scanProjectPackageAssets(projectFilePath: target.filePath);
     if (preflight == null) {
-      appLogger().e(
-        "The files referenced by the project at ${target.filePath} can't be scanned, "
+      _logger.e(
+        "The files referenced by project ${ocptLogFileName(target.filePath)} can't be scanned, "
         "so no package can be written",
       );
       _emitNotice(
@@ -237,10 +246,12 @@ mixin MixinOcptProjectPackageBloc<S extends MixinOcptProjectPackageState<S>> on 
       } else {
         await _writeAndSavePackage(emitter, fileTypeLabel: fileTypeLabel, target: target);
       }
-    } catch (error) {
-      appLogger().e(
-        "A problem occurred when tried to package the project at ${target.filePath}: "
-        "$error",
+    } catch (error, stackTrace) {
+      _logger.e(
+        "A problem occurred when tried to package project ${ocptLogFileName(target.filePath)}: "
+        "${error.runtimeType}",
+        null,
+        stackTrace,
       );
       _emitNotice(
         emitter,
@@ -343,9 +354,9 @@ mixin MixinOcptProjectPackageBloc<S extends MixinOcptProjectPackageState<S>> on 
 
     final report = result.value;
     if (!result.status.isSuccess || report == null) {
-      appLogger().e(
-        "The project at ${target.filePath} can't be packaged into $packagePath: "
-        "${result.status}",
+      _logger.e(
+        "The project ${ocptLogFileName(target.filePath)} can't be packaged into "
+        "${ocptLogFileName(packagePath)}: ${result.status}",
       );
       _emitNotice(
         emitter,

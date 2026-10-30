@@ -6,7 +6,9 @@ import 'dart:async';
 
 import 'package:act_flutter_utility/act_flutter_utility.dart';
 import 'package:act_global_manager/act_global_manager.dart';
+import 'package:act_logger_manager/act_logger_manager.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:open_cine_prod_tools/managers/logging/ocpt_logs_helper_builder.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
 import 'package:open_cine_prod_tools/managers/sync/ocpt_relay_host_manager.dart';
@@ -58,6 +60,12 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/workspace_state.dart';
 /// tied to the project's database, is stopped there whether or not hosting is running (see
 /// [disposeLifeCycle]).
 class OcptWorkspaceBloc extends BlocForMixin<OcptWorkspaceState> {
+  /// The logger category linked to this BLoC.
+  static const _loggerCategory = "workspace_bloc";
+
+  /// The logger this BLoC writes to.
+  final LogsHelper _logger = buildOcptLogsHelper(_loggerCategory);
+
   /// The manager used to read this replica's own device id (see [_startSyncSessionIfPaired]) — the
   /// active workspace mode is not persisted, so this bloc no longer reaches into it for that.
   final OcptPropertiesManager _propertiesManager;
@@ -222,8 +230,12 @@ class OcptWorkspaceBloc extends BlocForMixin<OcptWorkspaceState> {
       );
 
       return !wasOnline && hostManager.state is OcptRelayHostOnline;
-    } catch (error) {
-      appLogger().w("Could not auto-start hosting for the open project: $error");
+    } catch (error, stackTrace) {
+      _logger.w(
+        "Could not auto-start hosting for the open project: ${error.runtimeType}",
+        null,
+        stackTrace,
+      );
 
       return false;
     }
@@ -268,8 +280,12 @@ class OcptWorkspaceBloc extends BlocForMixin<OcptWorkspaceState> {
         relayId: OcptSyncManager.relayIdFor(pairing),
         storage: syncManager.openRelayRemoteStorage(pairing, row.projectId),
       );
-    } catch (error) {
-      appLogger().w("Could not start the sync session for the open project: $error");
+    } catch (error, stackTrace) {
+      _logger.w(
+        "Could not start the sync session for the open project: ${error.runtimeType}",
+        null,
+        stackTrace,
+      );
     }
   }
 
@@ -300,10 +316,12 @@ class OcptWorkspaceBloc extends BlocForMixin<OcptWorkspaceState> {
           clearSelectedEpisodeId: selectedEpisodeId == null,
         ),
       );
-    } catch (error) {
-      appLogger().w(
-        "A problem occurred when tried to reload the project's episodes, most likely "
-        "because the project already closed: $error",
+    } catch (error, stackTrace) {
+      _logger.w(
+        "A problem occurred when tried to reload the project's episodes, most likely because "
+        "the project already closed: ${error.runtimeType}",
+        null,
+        stackTrace,
       );
     }
   }

@@ -4,8 +4,10 @@
 
 import 'package:act_flutter_utility/act_flutter_utility.dart';
 import 'package:act_global_manager/act_global_manager.dart';
+import 'package:act_logger_manager/act_logger_manager.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:open_cine_prod_tools/managers/logging/ocpt_logs_helper_builder.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_working_copy_state.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_preview_status.dart';
@@ -44,6 +46,12 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_project_versi
 /// later — would otherwise be free to interleave their own multi-step reads and writes against the
 /// very same database.
 mixin MixinOcptProjectVersionsBloc<S extends MixinOcptProjectVersionsState<S>> on BlocForMixin<S> {
+  /// The logger category linked to this mixin.
+  static const _loggerCategory = "project_versions_bloc";
+
+  /// The logger this mixin writes to.
+  final LogsHelper _logger = buildOcptLogsHelper(_loggerCategory);
+
   /// {@template open_cine_prod_tools.MixinOcptProjectVersionsBloc.projectsManager}
   /// The manager owning the open project, its version list and the preview state.
   ///
@@ -154,9 +162,9 @@ mixin MixinOcptProjectVersionsBloc<S extends MixinOcptProjectVersionsState<S>> o
     Emitter<S> emitter,
   ) => _serialized(() async {
     if (state.isPreviewingVersion) {
-      appLogger().w(
-        "A project version can't be created while another one is being previewed: the "
-        "capture would record the working copy rather than what is on screen",
+      _logger.w(
+        "A project version can't be created while another one is being previewed: the capture "
+        "would record the working copy rather than what is on screen",
       );
       return;
     }
@@ -165,10 +173,11 @@ mixin MixinOcptProjectVersionsBloc<S extends MixinOcptProjectVersionsState<S>> o
 
     try {
       await projectsManager.createProjectVersion(name: event.name, note: event.note);
-    } catch (error) {
-      appLogger().e(
-        "A problem occurred when tried to create the project version "
-        "'${event.name}': $error",
+    } catch (error, stackTrace) {
+      _logger.e(
+        "A problem occurred when tried to create a project version: ${error.runtimeType}",
+        null,
+        stackTrace,
       );
       await _emitVersions(emitter, notice: OcptProjectVersionNoticeKind.creationFailed);
       return;
@@ -210,10 +219,12 @@ mixin MixinOcptProjectVersionsBloc<S extends MixinOcptProjectVersionsState<S>> o
   ) => _serialized(() async {
     try {
       await projectsManager.deleteProjectVersion(event.versionId);
-    } catch (error) {
-      appLogger().e(
-        "A problem occurred when tried to delete the project version "
-        "${event.versionId}: $error",
+    } catch (error, stackTrace) {
+      _logger.e(
+        "A problem occurred when tried to delete the project version ${event.versionId}: "
+        "${error.runtimeType}",
+        null,
+        stackTrace,
       );
       await _emitVersions(emitter, notice: OcptProjectVersionNoticeKind.deletionFailed);
       return;
@@ -319,10 +330,12 @@ mixin MixinOcptProjectVersionsBloc<S extends MixinOcptProjectVersionsState<S>> o
         name: event.name,
         note: event.note,
       );
-    } catch (error) {
-      appLogger().e(
-        "A problem occurred when tried to rename the project version "
-        "${event.versionId}: $error",
+    } catch (error, stackTrace) {
+      _logger.e(
+        "A problem occurred when tried to rename the project version ${event.versionId}: "
+        "${error.runtimeType}",
+        null,
+        stackTrace,
       );
       await _emitVersions(emitter, notice: OcptProjectVersionNoticeKind.renameFailed);
       return;
@@ -448,10 +461,12 @@ mixin MixinOcptProjectVersionsBloc<S extends MixinOcptProjectVersionsState<S>> o
           clearProjectVersionNotice: notice == null,
         ),
       );
-    } catch (error) {
-      appLogger().w(
-        "A problem occurred when tried to read the project's versions, most likely "
-        "because the project already closed: $error",
+    } catch (error, stackTrace) {
+      _logger.w(
+        "A problem occurred when tried to read the project's versions, most likely because the "
+        "project already closed: ${error.runtimeType}",
+        null,
+        stackTrace,
       );
     }
   }
@@ -509,10 +524,12 @@ mixin MixinOcptProjectVersionsBloc<S extends MixinOcptProjectVersionsState<S>> o
           clearWorkingCopy: workingCopy == null,
         ),
       );
-    } catch (error) {
-      appLogger().w(
-        "A problem occurred when tried to refresh the working copy, most likely "
-        "because the project already closed: $error",
+    } catch (error, stackTrace) {
+      _logger.w(
+        "A problem occurred when tried to refresh the working copy, most likely because the "
+        "project already closed: ${error.runtimeType}",
+        null,
+        stackTrace,
       );
     }
   });
