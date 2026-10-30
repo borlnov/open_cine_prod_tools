@@ -110,10 +110,10 @@ this replica's own `OcptPresenceFrame` — its `deviceId`, platform and current 
 every five seconds through `sendPresence`, listens to `presenceStream` for peers doing the same, and
 keeps an `OcptPresenceRoster` of whoever heartbeated within a twelve-second timeout, dropping a peer
 gone silent longer on the next tick. Disconnects are handled entirely by that timeout, so the relay
-never has to learn *who* left — it only ever rebroadcasts opaque frames. `OcptSyncManager` starts and
-stops the service alongside the sync session, and `updatePresenceMode` reports a mode switch so it
-reaches peers on the next heartbeat. Nothing about presence is persisted, on the device or the relay:
-it is entirely ephemeral by construction.
+never has to learn *who* left — it only ever rebroadcasts opaque frames. `OcptSyncManager` builds,
+initialises and starts the service alongside the sync session, and stops it by disposing it, and
+`updatePresenceMode` reports a mode switch so it reaches peers on the next heartbeat. Nothing about
+presence is persisted, on the device or the relay: it is entirely ephemeral by construction.
 
 ## The data model
 

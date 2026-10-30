@@ -48,6 +48,25 @@ class OcptScriptImportService extends AbsOcptService {
   /// Class constructor
   const OcptScriptImportService({this.fountainIoService = const OcptFountainIoService()});
 
+  /// {@macro act_life_cycle.MixinWithLifeCycle.initLifeCycle}
+  ///
+  /// Initialises the services this one owns, in the order they are listed in its constructor.
+  @override
+  Future<void> initLifeCycle() async {
+    await super.initLifeCycle();
+    await fountainIoService.initLifeCycle();
+  }
+
+  /// {@macro act_life_cycle.MixinWithLifeCycleDispose.disposeLifeCycle}
+  ///
+  /// Disposes the services this one owns, in the reverse order they were initialised.
+  @override
+  Future<void> disposeLifeCycle() async {
+    await fountainIoService.disposeLifeCycle();
+
+    return super.disposeLifeCycle();
+  }
+
   /// Reads [bytes] as a screenplay, picking what to do with them from [fileName]'s extension.
   ///
   /// Returns [OcptScreenplayImportStatus.ok] with the Fountain text, or

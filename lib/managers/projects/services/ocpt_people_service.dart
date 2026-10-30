@@ -53,6 +53,27 @@ class OcptPeopleService extends AbsOcptService {
     required this.roleCandidatesService,
   });
 
+  /// {@macro act_life_cycle.MixinWithLifeCycle.initLifeCycle}
+  ///
+  /// Initialises the services this one owns, in the order they are listed in its constructor.
+  @override
+  Future<void> initLifeCycle() async {
+    await super.initLifeCycle();
+    await assetsService.initLifeCycle();
+    await roleCandidatesService.initLifeCycle();
+  }
+
+  /// {@macro act_life_cycle.MixinWithLifeCycleDispose.disposeLifeCycle}
+  ///
+  /// Disposes the services this one owns, in the reverse order they were initialised.
+  @override
+  Future<void> disposeLifeCycle() async {
+    await roleCandidatesService.disposeLifeCycle();
+    await assetsService.disposeLifeCycle();
+
+    return super.disposeLifeCycle();
+  }
+
   /// The write [deletePerson] uses to blank a person's personal columns.
   ///
   /// **Every column of `people` is blanked, except the four that are not personal data**: `id`

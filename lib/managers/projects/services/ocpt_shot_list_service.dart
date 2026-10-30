@@ -71,6 +71,29 @@ class OcptShotListService extends AbsOcptService {
     required this.deviceId,
   });
 
+  /// {@macro act_life_cycle.MixinWithLifeCycle.initLifeCycle}
+  ///
+  /// Initialises the services this one owns, in the order they are listed in its constructor.
+  @override
+  Future<void> initLifeCycle() async {
+    await super.initLifeCycle();
+    await roleIndexService.initLifeCycle();
+    await storyboardService.initLifeCycle();
+    await floorPlanService.initLifeCycle();
+  }
+
+  /// {@macro act_life_cycle.MixinWithLifeCycleDispose.disposeLifeCycle}
+  ///
+  /// Disposes the services this one owns, in the reverse order they were initialised.
+  @override
+  Future<void> disposeLifeCycle() async {
+    await floorPlanService.disposeLifeCycle();
+    await storyboardService.disposeLifeCycle();
+    await roleIndexService.disposeLifeCycle();
+
+    return super.disposeLifeCycle();
+  }
+
   /// Loads the whole shot list of [screenplayId] in [database]: every scene, in order, with its
   /// shots, followed by the orphan group if the screenplay has any orphaned shot.
   ///

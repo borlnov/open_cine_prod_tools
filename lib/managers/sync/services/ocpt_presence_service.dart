@@ -149,6 +149,17 @@ class OcptPresenceService extends AbsOcptService {
     }
   }
 
+  /// {@macro act_life_cycle.MixinWithLifeCycleDispose.disposeLifeCycle}
+  ///
+  /// Stops this service, so whoever built it releases it by disposing it rather than by calling
+  /// [stop] as well.
+  @override
+  Future<void> disposeLifeCycle() async {
+    await stop();
+
+    return super.disposeLifeCycle();
+  }
+
   /// Sets this replica's own current mode and sends a heartbeat immediately, so a mode change
   /// shows on peers at once rather than waiting for the next [heartbeatInterval] tick, then emits a
   /// fresh [roster] — this replica's own frame just changed.

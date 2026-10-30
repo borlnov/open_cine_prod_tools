@@ -30,6 +30,25 @@ class OcptChangesetService extends AbsOcptService {
   /// Class constructor
   const OcptChangesetService({this.mergeService = const OcptMergeService()});
 
+  /// {@macro act_life_cycle.MixinWithLifeCycle.initLifeCycle}
+  ///
+  /// Initialises the services this one owns, in the order they are listed in its constructor.
+  @override
+  Future<void> initLifeCycle() async {
+    await super.initLifeCycle();
+    await mergeService.initLifeCycle();
+  }
+
+  /// {@macro act_life_cycle.MixinWithLifeCycleDispose.disposeLifeCycle}
+  ///
+  /// Disposes the services this one owns, in the reverse order they were initialised.
+  @override
+  Future<void> disposeLifeCycle() async {
+    await mergeService.disposeLifeCycle();
+
+    return super.disposeLifeCycle();
+  }
+
   /// The per-column merge every incoming changeset is applied through.
   final OcptMergeService mergeService;
 

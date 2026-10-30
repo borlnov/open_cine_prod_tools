@@ -484,6 +484,29 @@ class OcptProjectsManager extends AbsWithLifeCycle {
   Future<void> initLifeCycle() async {
     await super.initLifeCycle();
     _currentProject = ValueKeeperWithStream<OcptOpenProjectModel?>(value: null);
+    await sceneIndexService.initLifeCycle();
+    await shotListService.initLifeCycle();
+    await shotCoverageService.initLifeCycle();
+    await projectVersionsService.initLifeCycle();
+    await screenplayService.initLifeCycle();
+    await peopleService.initLifeCycle();
+    await roleIndexService.initLifeCycle();
+    await roleCandidatesService.initLifeCycle();
+    await locationsService.initLifeCycle();
+    await elementsService.initLifeCycle();
+    await budgetQuoteService.initLifeCycle();
+    await budgetJournalService.initLifeCycle();
+    await budgetFinancingService.initLifeCycle();
+    await budgetAllowancesService.initLifeCycle();
+    await budgetSharingService.initLifeCycle();
+    await assetsService.initLifeCycle();
+    await storyboardService.initLifeCycle();
+    await floorPlanService.initLifeCycle();
+    await projectDictionaryService.initLifeCycle();
+    await projectPackageService.initLifeCycle();
+    await projectFileCompatibilityService.initLifeCycle();
+    await breakdownService.initLifeCycle();
+    await scheduleService.initLifeCycle();
   }
 
   /// The app's own projects folder, Documents/OpenCineProdTools, creating it if it doesn't already
@@ -1767,6 +1790,29 @@ class OcptProjectsManager extends AbsWithLifeCycle {
   Future<void> disposeLifeCycle() async {
     await closeCurrentProject();
     await _currentProject.disposeLifeCycle();
+    await scheduleService.disposeLifeCycle();
+    await breakdownService.disposeLifeCycle();
+    await projectFileCompatibilityService.disposeLifeCycle();
+    await projectPackageService.disposeLifeCycle();
+    await projectDictionaryService.disposeLifeCycle();
+    await floorPlanService.disposeLifeCycle();
+    await storyboardService.disposeLifeCycle();
+    await assetsService.disposeLifeCycle();
+    await budgetSharingService.disposeLifeCycle();
+    await budgetAllowancesService.disposeLifeCycle();
+    await budgetFinancingService.disposeLifeCycle();
+    await budgetJournalService.disposeLifeCycle();
+    await budgetQuoteService.disposeLifeCycle();
+    await elementsService.disposeLifeCycle();
+    await locationsService.disposeLifeCycle();
+    await roleCandidatesService.disposeLifeCycle();
+    await roleIndexService.disposeLifeCycle();
+    await peopleService.disposeLifeCycle();
+    await screenplayService.disposeLifeCycle();
+    await projectVersionsService.disposeLifeCycle();
+    await shotCoverageService.disposeLifeCycle();
+    await shotListService.disposeLifeCycle();
+    await sceneIndexService.disposeLifeCycle();
     return super.disposeLifeCycle();
   }
 }

@@ -82,6 +82,27 @@ class OcptRoleIndexService extends AbsOcptService {
     required this.deviceId,
   });
 
+  /// {@macro act_life_cycle.MixinWithLifeCycle.initLifeCycle}
+  ///
+  /// Initialises the services this one owns, in the order they are listed in its constructor.
+  @override
+  Future<void> initLifeCycle() async {
+    await super.initLifeCycle();
+    await elementsService.initLifeCycle();
+    await roleCandidatesService.initLifeCycle();
+  }
+
+  /// {@macro act_life_cycle.MixinWithLifeCycleDispose.disposeLifeCycle}
+  ///
+  /// Disposes the services this one owns, in the reverse order they were initialised.
+  @override
+  Future<void> disposeLifeCycle() async {
+    await roleCandidatesService.disposeLifeCycle();
+    await elementsService.disposeLifeCycle();
+
+    return super.disposeLifeCycle();
+  }
+
   /// Reconciles the `roles` table of the project against the whole screenplay cast of [document]
   /// (`screenplayCharactersOf(document.blocks)`, already normalised, deduplicated and in
   /// first-appearance order) — every character cued in dialogue, together with every one only ever

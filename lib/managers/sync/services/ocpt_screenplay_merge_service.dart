@@ -39,6 +39,9 @@ import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
 /// design — see that method's own doc comment.
 class OcptScreenplayMergeService extends AbsOcptService {
   /// The screenplay service whose extracted reconciliation core writes a clean merge back.
+  ///
+  /// Borrowed from the projects manager, which owns and disposes it: this service never initialises
+  /// or disposes it.
   final OcptScreenplayService screenplayService;
 
   /// Resolves the device id a clean merge's own write is stamped with.

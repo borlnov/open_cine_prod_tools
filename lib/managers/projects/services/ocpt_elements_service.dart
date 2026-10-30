@@ -53,6 +53,25 @@ class OcptElementsService extends AbsOcptService {
   /// Class constructor
   const OcptElementsService({required this.assetsService, required this.deviceId});
 
+  /// {@macro act_life_cycle.MixinWithLifeCycle.initLifeCycle}
+  ///
+  /// Initialises the services this one owns, in the order they are listed in its constructor.
+  @override
+  Future<void> initLifeCycle() async {
+    await super.initLifeCycle();
+    await assetsService.initLifeCycle();
+  }
+
+  /// {@macro act_life_cycle.MixinWithLifeCycleDispose.disposeLifeCycle}
+  ///
+  /// Disposes the services this one owns, in the reverse order they were initialised.
+  @override
+  Future<void> disposeLifeCycle() async {
+    await assetsService.disposeLifeCycle();
+
+    return super.disposeLifeCycle();
+  }
+
   /// Loads every live element of [database], in `sortKey` order, each joined with the live
   /// `scene_elements` links pointing at it (themselves in the screenplay's own scene order), the
   /// live `role_elements` ones (in the cast's own `sortKey` order) and with the photo it

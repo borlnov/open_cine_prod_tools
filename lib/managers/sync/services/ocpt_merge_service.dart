@@ -60,6 +60,25 @@ class OcptMergeService extends AbsOcptService {
   /// Class constructor
   const OcptMergeService({this.screenplayMergeService});
 
+  /// {@macro act_life_cycle.MixinWithLifeCycle.initLifeCycle}
+  ///
+  /// Initialises the services this one owns, in the order they are listed in its constructor.
+  @override
+  Future<void> initLifeCycle() async {
+    await super.initLifeCycle();
+    await screenplayMergeService?.initLifeCycle();
+  }
+
+  /// {@macro act_life_cycle.MixinWithLifeCycleDispose.disposeLifeCycle}
+  ///
+  /// Disposes the services this one owns, in the reverse order they were initialised.
+  @override
+  Future<void> disposeLifeCycle() async {
+    await screenplayMergeService?.disposeLifeCycle();
+
+    return super.disposeLifeCycle();
+  }
+
   /// Applies every field stamp [changeset] carries to [fileDatabase], row group by row group, in
   /// one transaction with `PRAGMA defer_foreign_keys = ON` — a changeset can legitimately arrive in
   /// an order that violates a foreign key part way through (ADR 0010), exactly the situation

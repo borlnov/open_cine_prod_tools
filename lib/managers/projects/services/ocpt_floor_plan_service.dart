@@ -58,6 +58,25 @@ class OcptFloorPlanService extends AbsOcptService {
   /// Class constructor
   const OcptFloorPlanService({required this.assetsService, required this.deviceId});
 
+  /// {@macro act_life_cycle.MixinWithLifeCycle.initLifeCycle}
+  ///
+  /// Initialises the services this one owns, in the order they are listed in its constructor.
+  @override
+  Future<void> initLifeCycle() async {
+    await super.initLifeCycle();
+    await assetsService.initLifeCycle();
+  }
+
+  /// {@macro act_life_cycle.MixinWithLifeCycleDispose.disposeLifeCycle}
+  ///
+  /// Disposes the services this one owns, in the reverse order they were initialised.
+  @override
+  Future<void> disposeLifeCycle() async {
+    await assetsService.disposeLifeCycle();
+
+    return super.disposeLifeCycle();
+  }
+
   /// Loads every live Resources set linked (`scene_sets`) to a live scene of screenplay
   /// [screenplayId], each carrying its resolved underlay path and its live symbols and arrows,
   /// keyed by scene id — a sequence's floor-plan tabs are exactly its own live links, in the

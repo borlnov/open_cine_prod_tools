@@ -265,6 +265,69 @@ class OcptExportManager extends AbsWithLifeCycle {
        shotListXlsxExportService = const OcptShotListXlsxExportService(),
        resourcesXlsxExportService = const OcptResourcesXlsxExportService();
 
+  /// {@macro act_life_cycle.MixinWithLifeCycle.initLifeCycle}
+  ///
+  /// Initialises the services this manager builds, in the order its constructor builds them.
+  @override
+  Future<void> initLifeCycle() async {
+    await super.initLifeCycle();
+    await saveLocationService.initLifeCycle();
+    await shareService.initLifeCycle();
+    await fountainIoService.initLifeCycle();
+    await scriptImportService.initLifeCycle();
+    await pdfExportService.initLifeCycle();
+    await scenarioCoveragePdfService.initLifeCycle();
+    await breakdownSheetsPdfService.initLifeCycle();
+    await breakdownXlsxExportService.initLifeCycle();
+    await callSheetPdfService.initLifeCycle();
+    await shootingPlanPdfService.initLifeCycle();
+    await shootingPlanXlsxExportService.initLifeCycle();
+    await dayOutOfDaysPdfService.initLifeCycle();
+    await oneLineSchedulePdfService.initLifeCycle();
+    await sidesPdfService.initLifeCycle();
+    await contactListPdfService.initLifeCycle();
+    await budgetQuotePdfService.initLifeCycle();
+    await budgetFinancingPlanPdfService.initLifeCycle();
+    await budgetFinancialReportPdfService.initLifeCycle();
+    await floorPlanPdfService.initLifeCycle();
+    await storyboardPdfService.initLifeCycle();
+    await budgetCashJournalXlsxExportService.initLifeCycle();
+    await shotListXlsxExportService.initLifeCycle();
+    await resourcesXlsxExportService.initLifeCycle();
+  }
+
+  /// {@macro act_life_cycle.MixinWithLifeCycleDispose.disposeLifeCycle}
+  ///
+  /// Disposes the services this manager builds, in the reverse order they were initialised.
+  @override
+  Future<void> disposeLifeCycle() async {
+    await resourcesXlsxExportService.disposeLifeCycle();
+    await shotListXlsxExportService.disposeLifeCycle();
+    await budgetCashJournalXlsxExportService.disposeLifeCycle();
+    await storyboardPdfService.disposeLifeCycle();
+    await floorPlanPdfService.disposeLifeCycle();
+    await budgetFinancialReportPdfService.disposeLifeCycle();
+    await budgetFinancingPlanPdfService.disposeLifeCycle();
+    await budgetQuotePdfService.disposeLifeCycle();
+    await contactListPdfService.disposeLifeCycle();
+    await sidesPdfService.disposeLifeCycle();
+    await oneLineSchedulePdfService.disposeLifeCycle();
+    await dayOutOfDaysPdfService.disposeLifeCycle();
+    await shootingPlanXlsxExportService.disposeLifeCycle();
+    await shootingPlanPdfService.disposeLifeCycle();
+    await callSheetPdfService.disposeLifeCycle();
+    await breakdownXlsxExportService.disposeLifeCycle();
+    await breakdownSheetsPdfService.disposeLifeCycle();
+    await scenarioCoveragePdfService.disposeLifeCycle();
+    await pdfExportService.disposeLifeCycle();
+    await scriptImportService.disposeLifeCycle();
+    await fountainIoService.disposeLifeCycle();
+    await shareService.disposeLifeCycle();
+    await saveLocationService.disposeLifeCycle();
+
+    return super.disposeLifeCycle();
+  }
+
   /// Shows the native save dialog and writes [fountainText] to the chosen `.fountain` file.
   ///
   /// [fileTypeLabel] is the localized label passed to the native dialog's type filter. [episodeTag]

@@ -104,6 +104,25 @@ class OcptProjectVersionsService extends AbsOcptService {
   }) : _codec = codec,
        _screenplayService = screenplayService;
 
+  /// {@macro act_life_cycle.MixinWithLifeCycle.initLifeCycle}
+  ///
+  /// Initialises the services this one owns, in the order they are listed in its constructor.
+  @override
+  Future<void> initLifeCycle() async {
+    await super.initLifeCycle();
+    await _screenplayService.initLifeCycle();
+  }
+
+  /// {@macro act_life_cycle.MixinWithLifeCycleDispose.disposeLifeCycle}
+  ///
+  /// Disposes the services this one owns, in the reverse order they were initialised.
+  @override
+  Future<void> disposeLifeCycle() async {
+    await _screenplayService.disposeLifeCycle();
+
+    return super.disposeLifeCycle();
+  }
+
   /// Lists every version of the project in [database], newest first.
   ///
   /// Deliberately does **not** deserialize any payload: a card renders from the counters stored

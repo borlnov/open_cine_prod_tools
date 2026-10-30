@@ -130,6 +130,25 @@ class OcptStoryboardPdfService extends AbsOcptService {
          floorPlanPdfService: floorPlanPdfService,
        );
 
+  /// {@macro act_life_cycle.MixinWithLifeCycle.initLifeCycle}
+  ///
+  /// Initialises the services this one owns, in the order they are listed in its constructor.
+  @override
+  Future<void> initLifeCycle() async {
+    await super.initLifeCycle();
+    await floorPlanPdfService.initLifeCycle();
+  }
+
+  /// {@macro act_life_cycle.MixinWithLifeCycleDispose.disposeLifeCycle}
+  ///
+  /// Disposes the services this one owns, in the reverse order they were initialised.
+  @override
+  Future<void> disposeLifeCycle() async {
+    await floorPlanPdfService.disposeLifeCycle();
+
+    return super.disposeLifeCycle();
+  }
+
   /// Class constructor, taking the resolved [fontsLoader] so [floorPlanPdfService]'s own default
   /// can share it.
   OcptStoryboardPdfService._({

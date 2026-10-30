@@ -70,6 +70,27 @@ class OcptBreakdownService extends AbsOcptService {
   }) : _elementsService = elementsService,
        _locationsService = locationsService;
 
+  /// {@macro act_life_cycle.MixinWithLifeCycle.initLifeCycle}
+  ///
+  /// Initialises the services this one owns, in the order they are listed in its constructor.
+  @override
+  Future<void> initLifeCycle() async {
+    await super.initLifeCycle();
+    await _elementsService.initLifeCycle();
+    await _locationsService.initLifeCycle();
+  }
+
+  /// {@macro act_life_cycle.MixinWithLifeCycleDispose.disposeLifeCycle}
+  ///
+  /// Disposes the services this one owns, in the reverse order they were initialised.
+  @override
+  Future<void> disposeLifeCycle() async {
+    await _locationsService.disposeLifeCycle();
+    await _elementsService.disposeLifeCycle();
+
+    return super.disposeLifeCycle();
+  }
+
   /// Loads every live breakdown tag of [database], restricted to [screenplayId]'s scenes when
   /// given, ordered by the owning scene's own `position` and then by
   /// [OcptBreakdownTagRow.startOffset] — the order the tagged passages are read in.

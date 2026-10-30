@@ -108,6 +108,35 @@ class OcptScreenplayService extends AbsOcptService {
        _breakdownService = breakdownService,
        _scheduleService = scheduleService;
 
+  /// {@macro act_life_cycle.MixinWithLifeCycle.initLifeCycle}
+  ///
+  /// Initialises the services this one owns, in the order they are listed in its constructor.
+  @override
+  Future<void> initLifeCycle() async {
+    await super.initLifeCycle();
+    await _sceneIndexService.initLifeCycle();
+    await _shotListService.initLifeCycle();
+    await _shotCoverageService.initLifeCycle();
+    await _roleIndexService.initLifeCycle();
+    await _breakdownService.initLifeCycle();
+    await _scheduleService.initLifeCycle();
+  }
+
+  /// {@macro act_life_cycle.MixinWithLifeCycleDispose.disposeLifeCycle}
+  ///
+  /// Disposes the services this one owns, in the reverse order they were initialised.
+  @override
+  Future<void> disposeLifeCycle() async {
+    await _scheduleService.disposeLifeCycle();
+    await _breakdownService.disposeLifeCycle();
+    await _roleIndexService.disposeLifeCycle();
+    await _shotCoverageService.disposeLifeCycle();
+    await _shotListService.disposeLifeCycle();
+    await _sceneIndexService.disposeLifeCycle();
+
+    return super.disposeLifeCycle();
+  }
+
   /// Loads the current Fountain text of the screenplay [screenplayId] in [database].
   Future<String> loadScreenplayText({
     required OcptProjectDatabase database,

@@ -61,6 +61,25 @@ class OcptBudgetJournalService extends AbsOcptService {
   const OcptBudgetJournalService({required OcptAssetsService assetsService, required this.deviceId})
     : _assetsService = assetsService;
 
+  /// {@macro act_life_cycle.MixinWithLifeCycle.initLifeCycle}
+  ///
+  /// Initialises the services this one owns, in the order they are listed in its constructor.
+  @override
+  Future<void> initLifeCycle() async {
+    await super.initLifeCycle();
+    await _assetsService.initLifeCycle();
+  }
+
+  /// {@macro act_life_cycle.MixinWithLifeCycleDispose.disposeLifeCycle}
+  ///
+  /// Disposes the services this one owns, in the reverse order they were initialised.
+  @override
+  Future<void> disposeLifeCycle() async {
+    await _assetsService.disposeLifeCycle();
+
+    return super.disposeLifeCycle();
+  }
+
   /// Loads every live entry of [database], in `date` order, `sortKey` breaking a tie between two
   /// entries recorded on the same day.
   Future<List<OcptBudgetEntry>> loadEntries({required OcptProjectDatabase database}) async {

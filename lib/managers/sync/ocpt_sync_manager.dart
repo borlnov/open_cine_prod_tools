@@ -84,10 +84,18 @@ class OcptSyncManager extends AbsWithLifeCycle {
   /// [OcptPropertiesManager] above. A test that does need one hands it in through the constructor
   /// instead — built over a fake secure-storage channel, exactly as
   /// `ocpt_sync_manager_snapshot_test.dart` already does for [joinFromRelay].
-  OcptPairingService get pairingService => _pairingService ??= OcptPairingService(
-    secretsManager: globalGetIt().get<OcptSecretsManager>(),
-  );
+  OcptPairingService get pairingService => _pairingService ??= _buildPairingService();
   OcptPairingService? _pairingService;
+
+  /// Builds the lazily created [pairingService] and initialises it.
+  ///
+  /// The getter cannot wait, so the initialisation is not awaited: the service's own
+  /// `initLifeCycle()` does nothing today, and one that ever does must be built eagerly instead.
+  OcptPairingService _buildPairingService() {
+    final service = OcptPairingService(secretsManager: globalGetIt().get<OcptSecretsManager>());
+    unawaited(service.initLifeCycle());
+    return service;
+  }
 
   /// Class constructor
   ///
@@ -121,6 +129,19 @@ class OcptSyncManager extends AbsWithLifeCycle {
            ),
        snapshotService = snapshotService ?? const OcptSnapshotService(),
        _pairingService = pairingService;
+
+  /// {@macro act_life_cycle.MixinWithLifeCycle.initLifeCycle}
+  ///
+  /// Initialises the services this manager owns: the changeset service (which initialises the merge
+  /// services it owns), the snapshot service, and the pairing service when one was handed in. A
+  /// pairing service built lazily is initialised when it is built.
+  @override
+  Future<void> initLifeCycle() async {
+    await super.initLifeCycle();
+    await changesetService.initLifeCycle();
+    await snapshotService.initLifeCycle();
+    await _pairingService?.initLifeCycle();
+  }
 
   /// This project's current sync session, or null when none is running — see [startSyncSession].
   OcptSyncSession? get syncSession => _syncSession;
@@ -530,6 +551,7 @@ class OcptSyncManager extends AbsWithLifeCycle {
     );
     _presenceService = presenceService;
 
+    await presenceService.initLifeCycle();
     await presenceService.start();
     _presenceRosterForwarder = presenceService.rosterStream.listen(_presenceRosterController.add);
     _presenceRosterController.add(presenceService.roster);
@@ -567,8 +589,8 @@ class OcptSyncManager extends AbsWithLifeCycle {
   }
 
   /// Stops the current sync session, if any — cancels its timer and its `newWorkStream`
-  /// subscription and closes its status stream — and the current presence service alongside it,
-  /// if any. Safe to call with no session (or presence service) running.
+  /// subscription and closes its status stream — and disposes the current presence service
+  /// alongside it, if any (which stops it). Safe to call with no session (or presence service) running.
   ///
   /// Closes the manager-level [syncStatusChanges]/[presenceRosterChanges] out with a null, so an
   /// indicator listening to them hides again when the session ends, and stops forwarding the
@@ -587,7 +609,7 @@ class OcptSyncManager extends AbsWithLifeCycle {
 
     final presenceService = _presenceService;
     _presenceService = null;
-    await presenceService?.stop();
+    await presenceService?.disposeLifeCycle();
 
     if (hadSession) {
       _syncStatusController.add(null);
@@ -650,6 +672,9 @@ class OcptSyncManager extends AbsWithLifeCycle {
     await stopSyncSession();
     await _syncStatusController.close();
     await _presenceRosterController.close();
+    await _pairingService?.disposeLifeCycle();
+    await snapshotService.disposeLifeCycle();
+    await changesetService.disposeLifeCycle();
 
     return super.disposeLifeCycle();
   }

@@ -14,6 +14,20 @@ the persistence, the project versions, the sync-ready data model and the read-on
 - `OcptGlobalManager extends AbsUiGlobalManager` owns every manager; managers are
   `AbsWithLifeCycle` classes registered with builder factories (`dependsOn` ordering) and
   resolved via `globalGetIt()`.
+- Services: every `Ocpt…Service` (`lib/managers/{projects,export,sync}/services/`) extends
+  `AbsOcptService` (`lib/managers/abs_ocpt_service.dart`), an `AbsWithLifeCycle` with a `const`
+  constructor whose `initLifeCycle()` and `disposeLifeCycle()` do nothing, so a service holding
+  nothing to set up or release stays `const` and a test building one directly never has to call
+  either. A service is built by its owner, never by the UI and never registered in `globalGetIt()`,
+  and its life cycle is its owner's, not a project's: `OcptProjectsManager` initialises its 23
+  services in `initLifeCycle()` and disposes them in reverse after closing the open project, and
+  `OcptExportManager` and `OcptSyncManager` do the same for theirs. A service that builds services
+  of its own (`OcptScreenplayService`, `OcptShotListService`, `OcptPeopleService`…) owns them and
+  drives theirs the same way; one it is only handed (the screenplay service
+  `OcptScreenplayMergeService` borrows from the projects manager) is left to its real owner. A
+  service created per session (`OcptPresenceService`) is initialised and disposed by whoever starts
+  and stops that session, and `OcptRowStampService`, created by the dozen inside one transaction
+  through `seed`, holds only an in-memory list `flush` writes out, so its life cycle is not driven.
 
 - Routes: `enum OcptRoute with MixinRoute { home, workspace, settings, licenses }` +
   `OcptRouterManager extends AbstractRouterManager<OcptRoute>` (go_router underneath).
