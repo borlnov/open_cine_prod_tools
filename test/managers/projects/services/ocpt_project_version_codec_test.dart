@@ -4497,5 +4497,27 @@ void main() {
         OcptProjectVersionPayloadStatus.malformedPayload,
       );
     });
+
+    test('a row section holding something other than objects is refused', () {
+      final encoded = jsonDecode(codec.encode(buildRichPayload())) as Map<String, dynamic>;
+      (encoded["shots"] as List).add(42);
+
+      expect(
+        codec.decode(jsonEncode(encoded)).status,
+        OcptProjectVersionPayloadStatus.malformedPayload,
+      );
+    });
+
+    test('a refusal leaves nothing behind for the next decode', () {
+      final good = codec.encode(buildRichPayload());
+      final encoded = jsonDecode(good) as Map<String, dynamic>;
+      ((encoded["shots"] as List).first as Map<String, dynamic>)["status"] = "teleported";
+
+      expect(
+        codec.decode(jsonEncode(encoded)).status,
+        OcptProjectVersionPayloadStatus.malformedPayload,
+      );
+      expect(codec.decode(good).status, OcptProjectVersionPayloadStatus.ok);
+    });
   });
 }

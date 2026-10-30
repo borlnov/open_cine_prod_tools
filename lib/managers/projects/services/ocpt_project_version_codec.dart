@@ -1251,13 +1251,17 @@ class OcptProjectVersionCodec extends AbsOcptService {
   ResultWithStatus<OcptProjectVersionPayloadStatus, OcptProjectVersionPayload> decode(
     String payloadJson,
   ) {
+    _firstReadFailure = null;
     try {
       final decoded = jsonDecode(payloadJson);
       if (decoded is! Map<String, dynamic>) {
-        throw const _OcptPayloadFormatError("the payload isn't a JSON object");
+        return _malformed("the payload isn't a JSON object");
       }
 
       final payloadFormat = _int(decoded, _payloadFormatKey);
+      if (_firstReadFailure != null) {
+        return _malformed(null);
+      }
       if (payloadFormat > currentPayloadFormat) {
         logger.w(
           "The project version payload is written in the format $payloadFormat, while this "
@@ -1269,14 +1273,16 @@ class OcptProjectVersionCodec extends AbsOcptService {
         );
       }
 
-      return ResultWithStatus(
-        status: OcptProjectVersionPayloadStatus.ok,
-        value: _payloadFromJson(decoded, payloadFormat: payloadFormat),
-      );
-    } on _OcptPayloadFormatError catch (error, stackTrace) {
-      logger.e("The project version payload can't be read: ${error.reason}", null, stackTrace);
-      return const ResultWithStatus(status: OcptProjectVersionPayloadStatus.malformedPayload);
+      final payload = _payloadFromJson(decoded, payloadFormat: payloadFormat);
+      if (_firstReadFailure != null) {
+        return _malformed(null);
+      }
+
+      return ResultWithStatus(status: OcptProjectVersionPayloadStatus.ok, value: payload);
     } on FormatException catch (error, stackTrace) {
+      if (_firstReadFailure != null) {
+        return _malformed(null);
+      }
       // A JSON error quotes the text around the fault, which is the user's own content.
       logger.e(
         "The project version payload isn't valid JSON: ${error.runtimeType}",
@@ -1284,7 +1290,25 @@ class OcptProjectVersionCodec extends AbsOcptService {
         stackTrace,
       );
       return const ResultWithStatus(status: OcptProjectVersionPayloadStatus.malformedPayload);
+    } catch (_) {
+      // Once a field read has failed, the readers hand back neutral values so the rest of the
+      // payload can be walked; anything that then trips over one is that same malformed payload.
+      if (_firstReadFailure != null) {
+        return _malformed(null);
+      }
+      rethrow;
+    } finally {
+      _firstReadFailure = null;
     }
+  }
+
+  /// The [OcptProjectVersionPayloadStatus.malformedPayload] answer, logging [reason] or, when it is
+  /// null, the first thing a field reader found wrong.
+  ResultWithStatus<OcptProjectVersionPayloadStatus, OcptProjectVersionPayload> _malformed(
+    String? reason,
+  ) {
+    logger.e("The project version payload can't be read: ${reason ?? _firstReadFailure}");
+    return const ResultWithStatus(status: OcptProjectVersionPayloadStatus.malformedPayload);
   }
 
   /// The SHA-256 hex digest of [payload]'s canonical *content* — the primitive
@@ -1633,7 +1657,7 @@ class OcptProjectVersionCodec extends AbsOcptService {
   /// all (`decode`'s own doc comment). For `payloadFormat < 4`, the five storyboard and floor plan
   /// lists are read as empty rather than through [_rows]: unlike every other field, whose absent
   /// keys already fall back to the nullable defaults [_nullableString] and its siblings return,
-  /// [_rows] itself throws on a missing key (it reads a required list, not an optional scalar), so
+  /// [_rows] itself fails on a missing key (it reads a required list, not an optional scalar), so
   /// a pre-4 payload — which never wrote these five keys at all — needs this one explicit default
   /// rather than reading through unguarded, exactly as `shotCharacters` does one format earlier.
   /// Every other field is read the same way whatever [payloadFormat] says.
@@ -3088,11 +3112,29 @@ class OcptProjectVersionCodec extends AbsOcptService {
         deviceId: _string(json, _deviceIdKey),
       );
 
+  /// The first thing a field reader found wrong while [decode] walks a payload, or null while all
+  /// is well.
+  ///
+  /// The readers below sit inside the expressions that build every row, so none of them can return
+  /// early on a bad field: each records the first failure here and answers a neutral value
+  /// (an empty string, zero, `false`, the first value of an enum…) so the walk can finish, and
+  /// [decode] reads this once it has, throwing the whole payload away if it is set. [decode] is
+  /// synchronous and resets this on entry and on exit, so one decode never sees another's.
+  static String? _firstReadFailure;
+
+  /// Records [reason] as the failure of the payload being decoded, unless one is already, and
+  /// answers [neutral].
+  static T _unreadable<T>(String reason, T neutral) {
+    _firstReadFailure ??= reason;
+
+    return neutral;
+  }
+
   /// The list of JSON objects stored at [key] in [json].
   static List<Map<String, dynamic>> _rows(Map<String, dynamic> json, String key) {
     final value = json[key];
     if (value is! List) {
-      throw _OcptPayloadFormatError("'$key' isn't a list");
+      return _unreadable("'$key' isn't a list", const []);
     }
 
     return [
@@ -3100,7 +3142,7 @@ class OcptProjectVersionCodec extends AbsOcptService {
         if (element is Map<String, dynamic>)
           element
         else
-          throw _OcptPayloadFormatError("an element of '$key' isn't a JSON object"),
+          _unreadable("an element of '$key' isn't a JSON object", const <String, dynamic>{}),
     ];
   }
 
@@ -3108,7 +3150,7 @@ class OcptProjectVersionCodec extends AbsOcptService {
   static Map<String, dynamic> _object(Map<String, dynamic> json, String key) {
     final value = json[key];
     if (value is! Map<String, dynamic>) {
-      throw _OcptPayloadFormatError("'$key' isn't a JSON object");
+      return _unreadable("'$key' isn't a JSON object", const <String, dynamic>{});
     }
 
     return value;
@@ -3116,7 +3158,7 @@ class OcptProjectVersionCodec extends AbsOcptService {
 
   /// The non-null string stored at [key] in [json].
   static String _string(Map<String, dynamic> json, String key) =>
-      _nullableString(json, key) ?? (throw _OcptPayloadFormatError("'$key' is missing"));
+      _nullableString(json, key) ?? _unreadable("'$key' is missing", "");
 
   /// The string stored at [key] in [json], or null when the column it mirrors was null.
   static String? _nullableString(Map<String, dynamic> json, String key) {
@@ -3126,7 +3168,7 @@ class OcptProjectVersionCodec extends AbsOcptService {
     }
 
     if (value is! String) {
-      throw _OcptPayloadFormatError("'$key' isn't a string");
+      return _unreadable("'$key' isn't a string", null);
     }
 
     return value;
@@ -3134,7 +3176,7 @@ class OcptProjectVersionCodec extends AbsOcptService {
 
   /// The non-null integer stored at [key] in [json].
   static int _int(Map<String, dynamic> json, String key) =>
-      _nullableInt(json, key) ?? (throw _OcptPayloadFormatError("'$key' is missing"));
+      _nullableInt(json, key) ?? _unreadable("'$key' is missing", 0);
 
   /// The integer stored at [key] in [json], or null when the column it mirrors was null.
   static int? _nullableInt(Map<String, dynamic> json, String key) {
@@ -3144,7 +3186,7 @@ class OcptProjectVersionCodec extends AbsOcptService {
     }
 
     if (value is! int) {
-      throw _OcptPayloadFormatError("'$key' isn't an integer");
+      return _unreadable("'$key' isn't an integer", null);
     }
 
     return value;
@@ -3154,7 +3196,7 @@ class OcptProjectVersionCodec extends AbsOcptService {
   static bool _bool(Map<String, dynamic> json, String key) {
     final value = json[key];
     if (value is! bool) {
-      throw _OcptPayloadFormatError("'$key' isn't a boolean");
+      return _unreadable("'$key' isn't a boolean", false);
     }
 
     return value;
@@ -3163,9 +3205,9 @@ class OcptProjectVersionCodec extends AbsOcptService {
   /// The non-null boolean stored at [key] in [json], or `false` when [key] is altogether absent —
   /// for a non-nullable column added mid schema-version-4 development cycle whose own SQL default
   /// is `false` ([_isHiddenKey]): an older format-4 payload written before the column existed reads
-  /// back at that very default instead of throwing, the same courtesy [_nullableEnum] and
+  /// back at that very default instead of failing, the same courtesy [_nullableEnum] and
   /// [_nullableDouble] already give a *nullable* mid-cycle addition (see [_setElementShapeKey]'s
-  /// own doc comment). Still throws when [key] is present but isn't a boolean.
+  /// own doc comment). Still unreadable when [key] is present but isn't a boolean.
   static bool _boolWithFalseDefault(Map<String, dynamic> json, String key) {
     if (!json.containsKey(key)) {
       return false;
@@ -3182,7 +3224,7 @@ class OcptProjectVersionCodec extends AbsOcptService {
     }
 
     if (value is! bool) {
-      throw _OcptPayloadFormatError("'$key' isn't a boolean");
+      return _unreadable("'$key' isn't a boolean", null);
     }
 
     return value;
@@ -3195,7 +3237,7 @@ class OcptProjectVersionCodec extends AbsOcptService {
   static double _double(Map<String, dynamic> json, String key) {
     final value = json[key];
     if (value is! num) {
-      throw _OcptPayloadFormatError("'$key' isn't a number");
+      return _unreadable<double>("'$key' isn't a number", 0);
     }
 
     return value.toDouble();
@@ -3210,7 +3252,7 @@ class OcptProjectVersionCodec extends AbsOcptService {
     }
 
     if (value is! num) {
-      throw _OcptPayloadFormatError("'$key' isn't a number");
+      return _unreadable("'$key' isn't a number", null);
     }
 
     return value.toDouble();
@@ -3219,7 +3261,7 @@ class OcptProjectVersionCodec extends AbsOcptService {
   /// The non-null date and time stored at [key] in [json], as an ISO 8601 string.
   static DateTime _dateTime(Map<String, dynamic> json, String key) =>
       DateTime.tryParse(_string(json, key)) ??
-      (throw _OcptPayloadFormatError("'$key' isn't an ISO 8601 date"));
+      _unreadable("'$key' isn't an ISO 8601 date", DateTime.fromMillisecondsSinceEpoch(0));
 
   /// The date and time stored at [key] in [json], as an ISO 8601 string, or null when the column
   /// it mirrors was null.
@@ -3229,8 +3271,7 @@ class OcptProjectVersionCodec extends AbsOcptService {
       return null;
     }
 
-    return DateTime.tryParse(value) ??
-        (throw _OcptPayloadFormatError("'$key' isn't an ISO 8601 date"));
+    return DateTime.tryParse(value) ?? _unreadable("'$key' isn't an ISO 8601 date", null);
   }
 
   /// The non-null enum value stored at [key] in [json], looked up by name in [valuesByName].
@@ -3240,7 +3281,7 @@ class OcptProjectVersionCodec extends AbsOcptService {
     Map<String, T> valuesByName,
   ) =>
       _nullableEnum(json, key, valuesByName) ??
-      (throw _OcptPayloadFormatError("'$key' is missing"));
+      _unreadable("'$key' is missing", valuesByName.values.first);
 
   /// The enum value stored at [key] in [json], or null when the column it mirrors was null.
   static T? _nullableEnum<T extends Enum>(
@@ -3253,28 +3294,6 @@ class OcptProjectVersionCodec extends AbsOcptService {
       return null;
     }
 
-    return valuesByName[name] ??
-        (throw _OcptPayloadFormatError(
-          "'$key' holds the unknown value "
-          "'$name'",
-        ));
+    return valuesByName[name] ?? _unreadable("'$key' holds the unknown value '$name'", null);
   }
-}
-
-/// Thrown, and caught, inside [OcptProjectVersionCodec] alone: a payload field is missing or holds
-/// something other than what the format says it holds.
-///
-/// This never escapes [OcptProjectVersionCodec.decode], which turns it into
-/// [OcptProjectVersionPayloadStatus.malformedPayload]: it exists only so the dozens of field reads
-/// building a payload can stay expressions instead of each checking a result.
-class _OcptPayloadFormatError implements Exception {
-  /// What was wrong with the payload, for the log.
-  final String reason;
-
-  /// Class constructor
-  const _OcptPayloadFormatError(this.reason);
-
-  /// Object string representation, useful for debugging and logging.
-  @override
-  String toString() => "_OcptPayloadFormatError($reason)";
 }
