@@ -18,20 +18,21 @@ set -euo pipefail
 git fetch -p
 
 # refname | upstream-track | worktreepath  (worktreepath empty unless checked out in a worktree)
-mapfile -t gone < <(git for-each-ref --format '%(refname:short)|%(upstream:track)|%(worktreepath)' refs/heads \
+mapfile -t GONE < <(git for-each-ref --format '%(refname:short)|%(upstream:track)|%(worktreepath)' refs/heads \
                     | awk -F'|' '$2=="[gone]"{print $1"|"$3}')
+readonly GONE
 
-deletable=()
-for entry in "${gone[@]}"; do
+DELETABLE=()
+for entry in "${GONE[@]}"; do
     name=${entry%%|*}
     worktree=${entry#*|}
-    if [ -n "$worktree" ]; then
-        echo "skip (worktree): $name -> $worktree"
+    if [ -n "${worktree}" ]; then
+        echo "skip (worktree): ${name} -> ${worktree}"
     else
-        deletable+=("$name")
+        DELETABLE+=("${name}")
     fi
 done
 
-[ ${#deletable[@]} -eq 0 ] && { echo "Nothing to prune."; exit 0; }
+[ ${#DELETABLE[@]} -eq 0 ] && { echo "Nothing to prune."; exit 0; }
 
-git branch -D "${deletable[@]}"
+git branch -D "${DELETABLE[@]}"

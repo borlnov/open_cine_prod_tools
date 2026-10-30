@@ -57,6 +57,8 @@ RUN apt-get update && apt-get install -y \
     xdotool \
     x11-utils \
     imagemagick \
+    # Lints the repository's shell scripts (same check as the shell_lint workflow).
+    shellcheck \
     && rm -rf /var/lib/apt/lists/*
 
 # =============================================================================

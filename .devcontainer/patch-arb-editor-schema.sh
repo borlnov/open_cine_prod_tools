@@ -29,19 +29,20 @@ set -euo pipefail
 shopt -s nullglob
 
 # The source pattern used only for the grep guard below.
-old='"^(?!@@).+$"'
+OLD_PATTERN='"^(?!@@).+$"'
+readonly OLD_PATTERN
 
 patched=0
-for schema in "$HOME"/.vscode-server*/extensions/google.arb-editor-*/schemas/arb.json; do
-  if grep -qF "$old" "$schema"; then
+for schema in "${HOME}"/.vscode-server*/extensions/google.arb-editor-*/schemas/arb.json; do
+  if grep -qF "${OLD_PATTERN}" "${schema}"; then
     # q{} keeps the strings literal: Perl does not interpolate the special "$"" variable inside them.
     # \Q..\E then quotemeta-escapes the regex characters so the match is treated as a plain string.
-    perl -i -pe 'BEGIN { $o = q{"^(?!@@).+$"}; $n = q{"^(?!@).+$"} } s/\Q$o\E/$n/g' "$schema"
-    echo "patched arb-editor schema: $schema"
+    perl -i -pe 'BEGIN { $o = q{"^(?!@@).+$"}; $n = q{"^(?!@).+$"} } s/\Q$o\E/$n/g' "${schema}"
+    echo "patched arb-editor schema: ${schema}"
     patched=1
   fi
 done
 
-if [ "$patched" -eq 0 ]; then
+if [ "${patched}" -eq 0 ]; then
   echo "arb-editor schema: nothing to patch (already fixed or extension not installed)"
 fi

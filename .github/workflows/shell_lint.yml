@@ -1,0 +1,46 @@
+# SPDX-FileCopyrightText: 2026 Benoit Rolandeau <borlnov.obsessio@gmail.com>
+#
+# SPDX-License-Identifier: Apache-2.0
+
+name: Shell Lint
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "**/*.sh"
+      - ".github/debian-templates/**"
+      - ".shellcheckrc"
+      - ".github/workflows/shell_lint.yml"
+  pull_request:
+    paths:
+      - "**/*.sh"
+      - ".github/debian-templates/**"
+      - ".shellcheckrc"
+      - ".github/workflows/shell_lint.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+    - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+    # ShellCheck is preinstalled on the GitHub-hosted Ubuntu runners.
+    # The Debian maintainer scripts and the launcher template have no `.sh` extension, so they are
+    # listed by name.
+    - name: ShellCheck
+      run: |
+        shellcheck --version
+        git ls-files -z '*.sh' ':!actlibs' \
+          .github/debian-templates/postinst \
+          .github/debian-templates/postrm \
+          .github/debian-templates/launcher.sh.template \
+          | xargs -0 shellcheck

@@ -4,9 +4,9 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-set -e
+set -euo pipefail
 
-if [ "$1" = "configure" ]; then
+if [ "${1:-}" = "configure" ]; then
     # Update shared library cache
     ldconfig
 
