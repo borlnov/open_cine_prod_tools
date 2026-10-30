@@ -131,7 +131,7 @@ class OcptJoiningBloc extends BlocForMixin<OcptJoiningState> {
     String destinationConfirmButtonText,
     Emitter<OcptJoiningState> emitter,
   ) async {
-    final invite = OcptRelayInvite.tryParse(rawText.trim());
+    final invite = OcptRelayInvite.parse(rawText.trim()).value;
     if (invite == null) {
       OcptDiagnosticsManager.log(
         category: OcptDiagnosticsCategory.join,

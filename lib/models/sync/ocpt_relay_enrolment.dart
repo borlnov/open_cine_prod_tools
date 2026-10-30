@@ -2,7 +2,9 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+import 'package:act_dart_result/act_dart_result.dart';
 import 'package:equatable/equatable.dart';
+import 'package:open_cine_prod_tools/types/ocpt_relay_enrolment_status.dart';
 
 /// The two pieces of information the on-set relay's own enrolment QR carries so a device can be
 /// pointed at it: the relay to talk to and the instance-wide enrolment secret that lets the very
@@ -22,60 +24,55 @@ import 'package:equatable/equatable.dart';
 /// ocpt://relay?r=<relayBaseUri>&e=<enrolmentSecret>
 /// ```
 ///
-/// every value percent-encoded as an ordinary URI query parameter. [OcptRelayEnrolment.parse] (or
-/// [tryParse]) reads that string back, rejecting anything that is not this exact shape — a QR code
+/// every value percent-encoded as an ordinary URI query parameter. [OcptRelayEnrolment.parse] reads that string back, rejecting anything that is not this exact shape — a QR code
 /// aimed at some unrelated app, or at the sharing screen's own `ocpt://join` invite, must fail
 /// cleanly rather than half-parse.
 class OcptRelayEnrolment extends Equatable {
   /// Class constructor
   const OcptRelayEnrolment({required this.relayBaseUri, required this.enrolmentSecret});
 
-  /// Parses [enrolmentString] back into an [OcptRelayEnrolment], throwing a [FormatException] when
-  /// it is not an `ocpt://relay` URI carrying both `r` and `e` non-empty.
-  factory OcptRelayEnrolment.parse(String enrolmentString) {
+  /// Parses [enrolmentString] back into an [OcptRelayEnrolment], answering the matching failure
+  /// status (and no value) when it is not an `ocpt://relay` URI carrying both `r` and `e`
+  /// non-empty.
+  ///
+  /// A failure is not logged: the string is, or holds, a secret.
+  static ResultWithStatus<OcptRelayEnrolmentStatus, OcptRelayEnrolment> parse(
+    String enrolmentString,
+  ) {
     final Uri uri;
     try {
       uri = Uri.parse(enrolmentString);
     } on FormatException {
-      throw const FormatException('Not a valid enrolment: malformed URI.');
+      return const ResultWithStatus(status: OcptRelayEnrolmentStatus.malformedUri);
     }
 
     if (uri.scheme != _scheme) {
-      throw FormatException('Not a valid enrolment: expected scheme "$_scheme".', enrolmentString);
+      return const ResultWithStatus(status: OcptRelayEnrolmentStatus.wrongScheme);
     }
     if (uri.host != _host) {
-      throw FormatException('Not a valid enrolment: expected host "$_host".', enrolmentString);
+      return const ResultWithStatus(status: OcptRelayEnrolmentStatus.wrongHost);
     }
 
     final relay = uri.queryParameters[_relayParam];
     final secret = uri.queryParameters[_secretParam];
     if (relay == null || relay.isEmpty) {
-      throw FormatException('Not a valid enrolment: missing "$_relayParam".', enrolmentString);
+      return const ResultWithStatus(status: OcptRelayEnrolmentStatus.missingRelay);
     }
     if (secret == null || secret.isEmpty) {
-      throw FormatException('Not a valid enrolment: missing "$_secretParam".', enrolmentString);
+      return const ResultWithStatus(status: OcptRelayEnrolmentStatus.missingSecret);
     }
 
     final Uri relayBaseUri;
     try {
       relayBaseUri = Uri.parse(relay);
     } on FormatException {
-      throw FormatException('Not a valid enrolment: malformed "$_relayParam".', enrolmentString);
+      return const ResultWithStatus(status: OcptRelayEnrolmentStatus.malformedRelay);
     }
 
-    return OcptRelayEnrolment(relayBaseUri: relayBaseUri, enrolmentSecret: secret);
-  }
-
-  /// Same as [OcptRelayEnrolment.parse], but returns null instead of throwing when
-  /// [enrolmentString] is not a valid enrolment.
-  static OcptRelayEnrolment? tryParse(String enrolmentString) {
-    try {
-      return OcptRelayEnrolment.parse(enrolmentString);
-    } on FormatException {
-      // The answer to a string that is not an enrolment, which is how a wrong paste or scan is
-      // told apart. Not logged: the string is, or holds, a secret.
-      return null;
-    }
+    return ResultWithStatus(
+      status: OcptRelayEnrolmentStatus.ok,
+      value: OcptRelayEnrolment(relayBaseUri: relayBaseUri, enrolmentSecret: secret),
+    );
   }
 
   static const String _scheme = 'ocpt';

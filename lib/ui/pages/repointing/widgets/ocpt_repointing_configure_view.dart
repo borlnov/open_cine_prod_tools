@@ -198,7 +198,7 @@ class _OcptRepointingConfigureViewState extends State<OcptRepointingConfigureVie
   /// straight away, exactly as scanning the Partager screen's own invite QR joins straight away
   /// with no extra confirmation step.
   void _onScanned(String scannedText) {
-    final enrolment = OcptRelayEnrolment.tryParse(scannedText);
+    final enrolment = OcptRelayEnrolment.parse(scannedText).value;
     if (enrolment == null) {
       setState(() => _scannerGeneration++);
       return;

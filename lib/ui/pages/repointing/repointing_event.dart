@@ -25,7 +25,7 @@ class OcptRepointingRequestedEvent extends OcptRepointingEvent {
   /// The relay address, already parsed — the page validates it is a well-formed URI before
   /// dispatching this event when it comes from the typed form, since the bloc has no `Tr` to word
   /// a validation error with. A scanned QR is always well-formed by construction
-  /// (`OcptRelayEnrolment.tryParse`).
+  /// (`OcptRelayEnrolment.parse`).
   final Uri relayBaseUri;
 
   /// The instance-wide enrolment secret, typed or scanned.

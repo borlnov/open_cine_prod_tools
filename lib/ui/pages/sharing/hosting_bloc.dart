@@ -258,7 +258,7 @@ class OcptHostingBloc extends BlocForMixin<OcptHostingState> {
     OcptHostingReconcileRequestedEvent event,
     Emitter<OcptHostingState> emitter,
   ) async {
-    final invite = OcptRelayInvite.tryParse(event.inviteText.trim());
+    final invite = OcptRelayInvite.parse(event.inviteText.trim()).value;
     if (invite == null) {
       emitter(
         state.copyWith(

@@ -4,6 +4,7 @@
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_relay_invite.dart';
+import 'package:open_cine_prod_tools/types/ocpt_relay_invite_status.dart';
 
 void main() {
   group('OcptRelayInvite', () {
@@ -15,7 +16,7 @@ void main() {
       );
 
       final encoded = invite.toInviteString();
-      final decoded = OcptRelayInvite.parse(encoded);
+      final decoded = OcptRelayInvite.parse(encoded).value!;
 
       expect(decoded, invite);
     });
@@ -27,7 +28,7 @@ void main() {
         token: 'token-value',
       );
 
-      final decoded = OcptRelayInvite.parse(invite.toInviteString());
+      final decoded = OcptRelayInvite.parse(invite.toInviteString()).value!;
 
       expect(decoded, invite);
       expect(decoded.relayBaseUri.port, 8443);
@@ -41,69 +42,79 @@ void main() {
         token: 'ab+cd/ef==with spaces',
       );
 
-      final decoded = OcptRelayInvite.parse(invite.toInviteString());
+      final decoded = OcptRelayInvite.parse(invite.toInviteString()).value!;
 
       expect(decoded, invite);
       expect(decoded.token, 'ab+cd/ef==with spaces');
     });
 
-    test('tryParse mirrors parse on a valid invite', () {
+    test('reads back a valid invite with an ok status', () {
       final invite = OcptRelayInvite(
         relayBaseUri: Uri.parse('https://relay.example.org/'),
         projectId: 'project-123',
         token: 'abcDEF123',
       );
 
-      expect(OcptRelayInvite.tryParse(invite.toInviteString()), invite);
+      final result = OcptRelayInvite.parse(invite.toInviteString());
+      expect(result.status, OcptRelayInviteStatus.ok);
+      expect(result.value, invite);
     });
 
     test('rejects a plain string', () {
-      expect(() => OcptRelayInvite.parse('not a uri at all'), throwsFormatException);
-      expect(OcptRelayInvite.tryParse('not a uri at all'), isNull);
+      final result = OcptRelayInvite.parse('not a uri at all');
+      expect(result.isSuccess, isFalse);
+      expect(result.status, OcptRelayInviteStatus.wrongScheme);
+      expect(result.value, isNull);
     });
 
     test('rejects an unrelated https:// URL', () {
-      expect(
-        () => OcptRelayInvite.parse('https://example.org/join?r=x&p=y&t=z'),
-        throwsFormatException,
-      );
-      expect(OcptRelayInvite.tryParse('https://example.org/join?r=x&p=y&t=z'), isNull);
+      final result = OcptRelayInvite.parse('https://example.org/join?r=x&p=y&t=z');
+      expect(result.isSuccess, isFalse);
+      expect(result.status, OcptRelayInviteStatus.wrongScheme);
+      expect(result.value, isNull);
     });
 
     test('rejects an ocpt:// URL with the wrong host', () {
-      expect(
-        () => OcptRelayInvite.parse('ocpt://pair?r=relay&p=proj&t=tok'),
-        throwsFormatException,
-      );
-      expect(OcptRelayInvite.tryParse('ocpt://pair?r=relay&p=proj&t=tok'), isNull);
+      final result = OcptRelayInvite.parse('ocpt://pair?r=relay&p=proj&t=tok');
+      expect(result.isSuccess, isFalse);
+      expect(result.status, OcptRelayInviteStatus.wrongHost);
+      expect(result.value, isNull);
     });
 
     test('rejects a missing relay parameter', () {
       const inviteString = 'ocpt://join?p=proj&t=tok';
 
-      expect(() => OcptRelayInvite.parse(inviteString), throwsFormatException);
-      expect(OcptRelayInvite.tryParse(inviteString), isNull);
+      final result = OcptRelayInvite.parse(inviteString);
+      expect(result.isSuccess, isFalse);
+      expect(result.status, OcptRelayInviteStatus.missingRelay);
+      expect(result.value, isNull);
     });
 
     test('rejects a missing project id parameter', () {
       const inviteString = 'ocpt://join?r=relay&t=tok';
 
-      expect(() => OcptRelayInvite.parse(inviteString), throwsFormatException);
-      expect(OcptRelayInvite.tryParse(inviteString), isNull);
+      final result = OcptRelayInvite.parse(inviteString);
+      expect(result.isSuccess, isFalse);
+      expect(result.status, OcptRelayInviteStatus.missingProjectId);
+      expect(result.value, isNull);
     });
 
     test('rejects a missing token parameter', () {
       const inviteString = 'ocpt://join?r=relay&p=proj';
 
-      expect(() => OcptRelayInvite.parse(inviteString), throwsFormatException);
-      expect(OcptRelayInvite.tryParse(inviteString), isNull);
+      final result = OcptRelayInvite.parse(inviteString);
+      expect(result.isSuccess, isFalse);
+      expect(result.status, OcptRelayInviteStatus.missingToken);
+      expect(result.value, isNull);
     });
 
     test('rejects an empty parameter value', () {
       const inviteString = 'ocpt://join?r=relay&p=proj&t=';
 
-      expect(() => OcptRelayInvite.parse(inviteString), throwsFormatException);
-      expect(OcptRelayInvite.tryParse(inviteString), isNull);
+      final result = OcptRelayInvite.parse(inviteString);
+      expect(result.isSuccess, isFalse);
+      expect(result.status, OcptRelayInviteStatus.missingToken);
+      expect(result.value, isNull);
     });
 
     test('toString does not leak the raw token', () {

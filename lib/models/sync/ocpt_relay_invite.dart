@@ -2,7 +2,9 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+import 'package:act_dart_result/act_dart_result.dart';
 import 'package:equatable/equatable.dart';
+import 'package:open_cine_prod_tools/types/ocpt_relay_invite_status.dart';
 
 /// The three pieces of information the Partager screen's QR code carries so the Rejoindre screen
 /// can pair to the same project: the relay to talk to, the project it holds, and the token that
@@ -15,63 +17,56 @@ import 'package:equatable/equatable.dart';
 /// ocpt://join?r=<relayBaseUri>&p=<projectId>&t=<token>
 /// ```
 ///
-/// every value percent-encoded as an ordinary URI query parameter. [OcptRelayInvite.parse] (or
-/// [tryParse]) reads that string back, rejecting anything that is not this exact shape — a QR code
+/// every value percent-encoded as an ordinary URI query parameter. [OcptRelayInvite.parse] reads that string back, rejecting anything that is not this exact shape — a QR code
 /// aimed at some unrelated app must fail cleanly rather than half-parse.
 class OcptRelayInvite extends Equatable {
   /// Class constructor
   const OcptRelayInvite({required this.relayBaseUri, required this.projectId, required this.token});
 
-  /// Parses [inviteString] back into an [OcptRelayInvite], throwing a [FormatException] when it is
-  /// not an `ocpt://join` URI carrying all three of `r`, `p` and `t` non-empty.
-  factory OcptRelayInvite.parse(String inviteString) {
+  /// Parses [inviteString] back into an [OcptRelayInvite], answering the matching failure status
+  /// (and no value) when it is not an `ocpt://join` URI carrying all three of `r`, `p` and `t`
+  /// non-empty.
+  ///
+  /// A failure is not logged: the string is, or holds, a token.
+  static ResultWithStatus<OcptRelayInviteStatus, OcptRelayInvite> parse(String inviteString) {
     final Uri uri;
     try {
       uri = Uri.parse(inviteString);
     } on FormatException {
-      throw const FormatException('Not a valid invite: malformed URI.');
+      return const ResultWithStatus(status: OcptRelayInviteStatus.malformedUri);
     }
 
     if (uri.scheme != _scheme) {
-      throw FormatException('Not a valid invite: expected scheme "$_scheme".', inviteString);
+      return const ResultWithStatus(status: OcptRelayInviteStatus.wrongScheme);
     }
     if (uri.host != _host) {
-      throw FormatException('Not a valid invite: expected host "$_host".', inviteString);
+      return const ResultWithStatus(status: OcptRelayInviteStatus.wrongHost);
     }
 
     final relay = uri.queryParameters[_relayParam];
     final projectId = uri.queryParameters[_projectIdParam];
     final token = uri.queryParameters[_tokenParam];
     if (relay == null || relay.isEmpty) {
-      throw FormatException('Not a valid invite: missing "$_relayParam".', inviteString);
+      return const ResultWithStatus(status: OcptRelayInviteStatus.missingRelay);
     }
     if (projectId == null || projectId.isEmpty) {
-      throw FormatException('Not a valid invite: missing "$_projectIdParam".', inviteString);
+      return const ResultWithStatus(status: OcptRelayInviteStatus.missingProjectId);
     }
     if (token == null || token.isEmpty) {
-      throw FormatException('Not a valid invite: missing "$_tokenParam".', inviteString);
+      return const ResultWithStatus(status: OcptRelayInviteStatus.missingToken);
     }
 
     final Uri relayBaseUri;
     try {
       relayBaseUri = Uri.parse(relay);
     } on FormatException {
-      throw FormatException('Not a valid invite: malformed "$_relayParam".', inviteString);
+      return const ResultWithStatus(status: OcptRelayInviteStatus.malformedRelay);
     }
 
-    return OcptRelayInvite(relayBaseUri: relayBaseUri, projectId: projectId, token: token);
-  }
-
-  /// Same as [OcptRelayInvite.parse], but returns null instead of throwing when [inviteString] is
-  /// not a valid invite.
-  static OcptRelayInvite? tryParse(String inviteString) {
-    try {
-      return OcptRelayInvite.parse(inviteString);
-    } on FormatException {
-      // The answer to a string that is not an invite, which is how a wrong paste or scan is told
-      // apart. Not logged: the string is, or holds, a token.
-      return null;
-    }
+    return ResultWithStatus(
+      status: OcptRelayInviteStatus.ok,
+      value: OcptRelayInvite(relayBaseUri: relayBaseUri, projectId: projectId, token: token),
+    );
   }
 
   static const String _scheme = 'ocpt';

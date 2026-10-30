@@ -34,7 +34,7 @@ class OcptJoiningManualSubmittedEvent extends OcptJoiningEvent {
 
 /// Reports that the camera scanner found a QR code, carrying its raw decoded text — not
 /// necessarily a valid invite, which the bloc is the one to decide
-/// (`OcptRelayInvite.tryParse`).
+/// (`OcptRelayInvite.parse`).
 class OcptJoiningInviteScannedEvent extends OcptJoiningEvent {
   /// The raw text the camera decoded from the scanned code.
   final String scannedText;
