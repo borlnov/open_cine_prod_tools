@@ -41,9 +41,9 @@ class OcptFloorPlanViewportController extends ChangeNotifier {
 
   /// Whether a camera's own field-of-view wedge is drawn — a session view concern exactly like
   /// [_zoom]/[_pan], never synchronised, defaulted **on** so the wedge shows the moment a camera is
-  /// placed, with no toggle to find first. `OcptFloorPlanSheet.of`'s own `showFieldOfView` parameter
-  /// reads this. A tray toggle wiring [setShowFieldOfView] to a checkbox is a later piece of work;
-  /// this controller only carries the flag.
+  /// placed, with no toggle to find first. `OcptFloorPlanSheet.of`'s own `showFieldOfView`
+  /// parameter reads this. A tray toggle wiring [setShowFieldOfView] to a checkbox is a later piece
+  /// of work; this controller only carries the flag.
   bool _showFieldOfView;
 
   /// Class constructor

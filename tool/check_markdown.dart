@@ -6,9 +6,10 @@
 /// workflow enforces, so a violation is caught before it is pushed rather than by a red build.
 ///
 /// The workflow runs `markdownlint-cli2`, which needs a Node runtime the devcontainer deliberately
-/// does not carry any more. Rather than reinstate one for a single linter, this script re-implements
-/// the handful of rules that need no markdown parsing — the ones a long paragraph or an editor's
-/// whitespace handling actually trips — reading their settings from `.markdownlint.yaml`:
+/// does not carry any more. Rather than reinstate one for a single linter, this script
+/// re-implements the handful of rules that need no markdown parsing — the ones a long paragraph or
+/// an editor's whitespace handling actually trips — reading their settings from
+/// `.markdownlint.yaml`:
 ///
 /// - **MD013** (line length): the rule that motivated this script. A line longer than the limit is
 ///   only reported when it *can* be wrapped, matching markdownlint's own non-strict default: a line

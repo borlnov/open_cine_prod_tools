@@ -28,8 +28,8 @@ import 'package:flutter/material.dart';
 /// produces. [Image.file]'s own `errorBuilder` is the second guard, for the file that *is* there
 /// and still cannot be decoded.
 class OcptReferencedImage extends StatefulWidget {
-  /// The absolute path of the image to draw, or null while nothing is referenced — [fallbackBuilder]
-  /// then answers without a `stat` ever running.
+  /// The absolute path of the image to draw, or null while nothing is referenced —
+  /// [fallbackBuilder] then answers without a `stat` ever running.
   final String? path;
 
   /// How the image fills the space it is given.

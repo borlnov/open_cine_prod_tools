@@ -150,7 +150,8 @@ void main() {
     expect(find.text("Scene 4"), findsOneWidget);
     expect(
       find.text(
-        "Nothing tagged for this scene yet. Click a word or a passage in the script to break it down.",
+        "Nothing tagged for this scene yet. Click a word or a passage in the script to break it "
+        "down.",
       ),
       findsOneWidget,
     );

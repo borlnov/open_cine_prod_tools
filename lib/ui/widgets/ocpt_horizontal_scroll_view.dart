@@ -5,9 +5,9 @@
 import 'package:flutter/material.dart';
 
 /// How thin the always-visible bar is drawn, in logical pixels — deliberately under the app theme's
-/// own `ScrollbarThemeData` thickness (which every *interactive*, fade-in-on-hover scrollbar keeps),
-/// because a bar that is on screen the whole time has to sit quieter than one that only appears
-/// while the reader is actually scrolling.
+/// own `ScrollbarThemeData` thickness (which every *interactive*, fade-in-on-hover scrollbar
+/// keeps), because a bar that is on screen the whole time has to sit quieter than one that only
+/// appears while the reader is actually scrolling.
 const double _ocptHorizontalScrollbarThickness = 5;
 
 /// A horizontal [SingleChildScrollView] drawn under an **always-visible** [Scrollbar], so a view

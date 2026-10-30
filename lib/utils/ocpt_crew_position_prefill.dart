@@ -57,8 +57,8 @@ class OcptCrewPositionPrefill {
 }
 
 /// The join between the address book and the schedule: `person_positions` says *that* someone holds
-/// a function on the film, a slot's own crew row says *when* and *at which post*, and nothing joined
-/// the two until this function did.
+/// a function on the film, a slot's own crew row says *when* and *at which post*, and nothing
+/// joined the two until this function did.
 ///
 /// It joins a person's [declaredPositions] (`person_positions`, in their display order) with the
 /// positions they already [heldOnSlot] (that slot's own live `shooting_slot_crew` rows for that

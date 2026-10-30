@@ -10,10 +10,10 @@
 /// tint's own per-project palette index (`ocpt_coverage_palette.dart`, picked from a location's own
 /// `colorIndex`) — an effect category is not project data, it is a fact about the words a heading
 /// uses. [ocptScheduleEffectMixedColor] is deliberately as fixed and as legible as the four: it is
-/// information (a day genuinely mixes more than one effect), not its absence. The absence itself — a
-/// day with nothing placed, or with nothing classifiable — has no entry here at all: it tints with
-/// the theme's own `outlineVariant`, `ocptScheduleDayLocationTint`'s own "no location" convention,
-/// since there is no project-independent fact to colour it with either.
+/// information (a day genuinely mixes more than one effect), not its absence. The absence itself —
+/// a day with nothing placed, or with nothing classifiable — has no entry here at all: it tints
+/// with the theme's own `outlineVariant`, `ocptScheduleDayLocationTint`'s own "no location"
+/// convention, since there is no project-independent fact to colour it with either.
 library;
 
 import 'package:open_cine_prod_tools/types/ocpt_scene_effect_category.dart';

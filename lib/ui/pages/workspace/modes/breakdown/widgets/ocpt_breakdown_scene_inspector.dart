@@ -24,37 +24,38 @@ import 'package:open_cine_prod_tools/utils/ocpt_breakdown_scene_bars.dart';
 /// elements still to find, a second alert listing the tags a save could not re-anchor, its targets
 /// grouped by category and its own breakdown notes.
 ///
-/// The sets row ([_buildSetsRow]) is the one part of this sheet that is not about tags: it reads and
-/// writes the `scene_sets` link directly, so a link made by hand in the resources mode shows here
-/// too, and one made here shows there. A single `+ Set` control
+/// The sets row ([_buildSetsRow]) is the one part of this sheet that is not about tags: it reads
+/// and writes the `scene_sets` link directly, so a link made by hand in the resources mode shows
+/// here too, and one made here shows there. A single `+ Set` control
 /// (`OcptBreakdownSetPickerPopover`) both links an existing set and **creates** one under a name
 /// the user may type, a scene whose place the project has never heard of being the ordinary case at
 /// the start of a breakdown pass rather than an edge one. It is where a breakdown sheet names its
-/// décor, which is why it sits at the top rather than among the tagged targets below. Adding a set is **not** tagging a
-/// passage: no tag is created, nothing in the script is highlighted, and removing a set here leaves
-/// every tag pointing at it exactly where it is — the tag and the link are two separate facts, as
-/// `OcptBreakdownService.deleteTag`'s own doc comment spells out from the other side.
+/// décor, which is why it sits at the top rather than among the tagged targets below. Adding a set
+/// is **not** tagging a passage: no tag is created, nothing in the script is highlighted, and
+/// removing a set here leaves every tag pointing at it exactly where it is — the tag and the link
+/// are two separate facts, as `OcptBreakdownService.deleteTag`'s own doc comment spells out from
+/// the other side.
 ///
 /// The "to check" alert ([_buildToCheckAlert]) is the same visual shape as the "to find" one right
 /// above it — the warning colour, the same callout — but lists [OcptBreakdownScene.tags] whose
 /// [OcptBreakdownTag.needsCheck] is set, one row per tag: the passage verbatim, and the target it
-/// points at when [targetById] still resolves one (a tombstoned catalogue row still keeps its tag on
-/// the scene — `OcptBreakdownSnapshot.build`'s own doc comment — so a row whose target is gone shows
-/// the passage alone rather than crashing). Each row offers `Mark as checked` (clears the flag alone,
-/// leaving the offsets exactly where they are — the honest answer to "the passage now occurs twice
-/// in the scene so it could not be re-anchored unambiguously, but the one this tag points at is
-/// still right") and `Remove` (tombstones that one tag). Both act **straight away, with no inline
-/// confirmation**: the alert itself is the question, exactly as `OcptRoleAlertBanner`'s own
-/// `Keep as silent` action does in the resources mode.
+/// points at when [targetById] still resolves one (a tombstoned catalogue row still keeps its tag
+/// on the scene — `OcptBreakdownSnapshot.build`'s own doc comment — so a row whose target is gone
+/// shows the passage alone rather than crashing). Each row offers `Mark as checked` (clears the
+/// flag alone, leaving the offsets exactly where they are — the honest answer to "the passage now
+/// occurs twice in the scene so it could not be re-anchored unambiguously, but the one this tag
+/// points at is still right") and `Remove` (tombstones that one tag). Both act **straight away,
+/// with no inline confirmation**: the alert itself is the question, exactly as
+/// `OcptRoleAlertBanner`'s own `Keep as silent` action does in the resources mode.
 ///
 /// Purely presentational, like `OcptShotInspectorPanel`. [isReadOnly] withholds every control that
 /// writes — the status chips, the sets row's own `+ Set` control and chip dismissals, the notes
-/// field and the "to check" alert's two actions — while leaving
-/// every read (the sheet itself, both alerts' own listing, and a click on one of its target rows,
-/// `onTargetSelected`) in place, mirroring `OcptBreakdownTargetInspector`'s own convention: the panel
-/// takes the real callbacks and nulls them out itself, so a control added later cannot be gated in
-/// one place and forgotten in the other. [onTargetSelected] is never withheld: selecting writes
-/// nothing whatever a previewed version's own gating says.
+/// field and the "to check" alert's two actions — while leaving every read (the sheet itself, both
+/// alerts' own listing, and a click on one of its target rows, `onTargetSelected`) in place,
+/// mirroring `OcptBreakdownTargetInspector`'s own convention: the panel takes the real callbacks
+/// and nulls them out itself, so a control added later cannot be gated in one place and forgotten
+/// in the other. [onTargetSelected] is never withheld: selecting writes nothing whatever a
+/// previewed version's own gating says.
 class OcptBreakdownSceneInspector extends StatelessWidget {
   /// The selected scene, or null while nothing at all is selected — the mode's own empty message is
   /// shown then.
@@ -407,8 +408,8 @@ class OcptBreakdownSceneInspector extends StatelessWidget {
 
   /// One row of [_buildToCheckAlert]: [tag]'s own passage, verbatim, and the name of the target it
   /// points at — [targetById] resolving to nothing (a tombstoned catalogue row, per
-  /// `OcptBreakdownSnapshot.build`'s own doc comment) shows the passage alone rather than crashing —
-  /// then, unless [isReadOnly], its two actions.
+  /// `OcptBreakdownSnapshot.build`'s own doc comment) shows the passage alone rather than crashing
+  /// — then, unless [isReadOnly], its two actions.
   Widget _buildNeedsCheckRow(BuildContext context, Tr tr, OcptBreakdownTag tag) {
     final theme = Theme.of(context);
     final color = ocptWarningColor(context);

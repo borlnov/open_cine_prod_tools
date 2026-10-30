@@ -109,8 +109,8 @@ class OcptShot extends Equatable {
   /// (`docs/adr/0030-a-shots-characters-are-the-productions-roles.md`): `shot_characters` is keyed
   /// by `{shotId, roleId}` underneath, but every read site of [characters] — the four exports, the
   /// schedule snapshot, the shot inspector — stays untouched by resolving the id back to the role's
-  /// current name at load time (`OcptShotListService.loadShotList`) rather than turning every one of
-  /// them into a lookup. This parallel list is what a **write** needs instead, carried alongside
+  /// current name at load time (`OcptShotListService.loadShotList`) rather than turning every one
+  /// of them into a lookup. This parallel list is what a **write** needs instead, carried alongside
   /// rather than folded into a `{roleId, name}` ref list: it keeps every existing reader of
   /// [characters] as a plain `List<String>`, with nothing to unwrap, and defaults to empty for the
   /// many fixtures across the test suite that build an [OcptShot] by hand with no role identity to

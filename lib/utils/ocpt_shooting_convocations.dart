@@ -32,8 +32,8 @@ class OcptConvocationSlot {
     required this.guestFreeNames,
   });
 
-  /// The slot's own id (`shooting_slots.id`), echoed back on every [OcptDayConvocation.slotIds] that
-  /// includes it.
+  /// The slot's own id (`shooting_slots.id`), echoed back on every [OcptDayConvocation.slotIds]
+  /// that includes it.
   final String id;
 
   /// The slot's own `startMinute` — where its chain of blocks starts, whether or not it carries any
@@ -51,12 +51,13 @@ class OcptConvocationSlot {
   /// walk over the same blocks.
   final int? shootingStartMinute;
 
-  /// The latest end over the same blocks, or null under the same condition as [shootingStartMinute].
+  /// The latest end over the same blocks, or null under the same condition as
+  /// [shootingStartMinute].
   final int? shootingEndMinute;
 
   /// The earliest start over this slot's own **filming** blocks alone — `shot` and `hold`,
-  /// `OcptShootingBlockKind.isFilming`'s own answer — or null when it carries none. Null exactly when
-  /// [filmingEndMinute] is.
+  /// `OcptShootingBlockKind.isFilming`'s own answer — or null when it carries none. Null exactly
+  /// when [filmingEndMinute] is.
   ///
   /// This is what a PAT (*prêt à tourner*) band is read off: that word is the hour a performer must
   /// be ready for a take, so an audition or a rehearsal in the same slot, being no take, neither
@@ -131,8 +132,9 @@ class OcptConvocationAudition {
 ///
 /// Both ids, because both are needed and neither can stand for the other. [personId] is what the
 /// day's call is joined on — a person arrives once and leaves once, whatever brings them in
-/// ([ocptComputeDayConvocations]) — while [roleCandidateId] is what says *which part* they are being
-/// seen for, which two candidacies of one person differ by and a name alone could never tell apart.
+/// ([ocptComputeDayConvocations]) — while [roleCandidateId] is what says *which part* they are
+/// being seen for, which two candidacies of one person differ by and a name alone could never tell
+/// apart.
 class OcptConvocationCandidacy {
   /// Builds a candidacy to hang off an [OcptConvocationAudition].
   const OcptConvocationCandidacy({required this.roleCandidateId, required this.personId});
@@ -146,22 +148,21 @@ class OcptConvocationCandidacy {
 
 /// One person's, one uncast role's, one guest's or one candidate's whole call for a day, joined
 /// across everything they are linked to (ADR 0018) — every slot for the first three, every audition
-/// block for a candidate (ADR 0024) — the app's one answer to "when does this human arrive, when are
-/// they ready to shoot, and when are they done" (a guest excepted from the middle question, see
+/// block for a candidate (ADR 0024) — the app's one answer to "when does this human arrive, when
+/// are they ready to shoot, and when are they done" (a guest excepted from the middle question, see
 /// [patStartMinute]).
 ///
 /// **Exactly one of [personId]/[roleId]/[guestPersonId]/[guestFreeName] is non-null**, the same
 /// discriminator `breakdown_tags` uses (ADR 0014): a cast role with nobody cast in it is still a
-/// convocation the production has to honour, named by the role rather than by nobody, and a guest is
-/// named by the address book or by a free name exactly as `shooting_slot_guests` itself
+/// convocation the production has to honour, named by the role rather than by nobody, and a guest
+/// is named by the address book or by a free name exactly as `shooting_slot_guests` itself
 /// discriminates one.
 ///
-/// **A candidate is not a fifth arm, and deliberately.** Somebody seen for a part is a *person*, and
-/// a person arrives once and leaves once whatever brings them in: crewing the day, playing a part
-/// and being seen for another are three reasons and one call. So the candidacies the day sees of
-/// them ride along on their own convocation, in [roleCandidateIds], rather than making a second
-/// convocation of their own — which is what stopped anybody receiving two call sheets for one
-/// day.
+/// **A candidate is not a fifth arm, and deliberately.** Somebody seen for a part is a *person*,
+/// and a person arrives once and leaves once whatever brings them in: crewing the day, playing a
+/// part and being seen for another are three reasons and one call. So the candidacies the day sees
+/// of them ride along on their own convocation, in [roleCandidateIds], rather than making a second
+/// convocation of their own — which is what stopped anybody receiving two call sheets for one day.
 class OcptDayConvocation {
   /// Builds a computed day convocation.
   const OcptDayConvocation({
@@ -223,16 +224,16 @@ class OcptDayConvocation {
   /// addressed to, and stable across the days of one export (somebody convoked on three days is one
   /// recipient, ticked once).
   ///
-  /// **A person is one recipient, whatever they do that day.** A sheet is addressed to somebody, not
-  /// to one of their reasons for being there: a person crewing the day and seen for a part receives
-  /// the one sheet carrying both, which is what [roleCandidateIds] riding on this convocation is
-  /// for.
+  /// **A person is one recipient, whatever they do that day.** A sheet is addressed to somebody,
+  /// not to one of their reasons for being there: a person crewing the day and seen for a part
+  /// receives the one sheet carrying both, which is what [roleCandidateIds] riding on this
+  /// convocation is for.
   ///
   /// **Null for a guest** ([isGuest]), who is never a named sheet's recipient: they are on the day
-  /// and owed an hour, and the sheet an assistant director reads down is not addressed to them — the
-  /// same reason the trailing guest table exists rather than a guest row in the crew list. A caller
-  /// building that recipient list therefore filters on this being non-null and needs no second rule
-  /// of its own.
+  /// and owed an hour, and the sheet an assistant director reads down is not addressed to them —
+  /// the same reason the trailing guest table exists rather than a guest row in the crew list. A
+  /// caller building that recipient list therefore filters on this being non-null and needs no
+  /// second rule of its own.
   String? get selectionKey => personId ?? roleId;
 
   /// Whether the day sees this person for a part at all — one candidacy is enough.
@@ -244,9 +245,9 @@ class OcptDayConvocation {
 
   /// Whether being seen for a part is the **only** reason the day has for this person.
   ///
-  /// What the convocations panel's own candidates group holds: somebody crewing the day and seen for
-  /// Marie at eleven belongs among the crew, with one band covering both, and only somebody the day
-  /// has nothing else for belongs under `Candidates`. Unlike [isGuest], neither this nor
+  /// What the convocations panel's own candidates group holds: somebody crewing the day and seen
+  /// for Marie at eleven belongs among the crew, with one band covering both, and only somebody the
+  /// day has nothing else for belongs under `Candidates`. Unlike [isGuest], neither this nor
   /// [isSeenForAPart] changes anything about the figures below — a candidate arrives, is ready and
   /// leaves exactly as everybody else does, off the audition blocks naming them (ADR 0024) joined
   /// with whatever else the day asks of them.
@@ -286,15 +287,15 @@ class OcptDayConvocation {
   ///
   /// **The label follows the band, never the day.** A day that auditions in the morning and shoots
   /// in the afternoon owes its cast a `PAT` and its candidates a `PRÉSENCE`, on the one sheet: the
-  /// actor is due ready for a take and the candidate is due to be seen, and one word cannot be both.
-  /// Always false for a guest and for a convocation with no band at all, neither having anything to
-  /// name.
+  /// actor is due ready for a take and the candidate is due to be seen, and one word cannot be
+  /// both. Always false for a guest and for a convocation with no band at all, neither having
+  /// anything to name.
   final bool isPatBand;
 
   /// The latest minute this person or role is done — the maximum, over every slot they are linked
   /// to, of that slot's own [OcptConvocationSlot.endMinute] when it has one, or its own
-  /// [OcptConvocationSlot.startMinute] otherwise: a slot carrying no block at all yet still ends the
-  /// instant it begins, for someone linked to nothing more than that.
+  /// [OcptConvocationSlot.startMinute] otherwise: a slot carrying no block at all yet still ends
+  /// the instant it begins, for someone linked to nothing more than that.
   final int departureMinute;
 
   /// The ids of every slot this person, role or candidacy is expected on, in the order
@@ -304,8 +305,8 @@ class OcptDayConvocation {
   final List<String> slotIds;
 }
 
-/// Computes every convocation of a day from its [slots] — the rule recorded as ADR 0018, implemented
-/// exactly once, here.
+/// Computes every convocation of a day from its [slots] — the rule recorded as ADR 0018,
+/// implemented exactly once, here.
 ///
 /// **Nothing is offset from anything, and nobody types a call time, a wrap time or a PAT band.** A
 /// person (or an uncast role, or a guest) is convoked by being
@@ -319,51 +320,50 @@ class OcptDayConvocation {
 ///   (`OcptConvocationSlot.hasFilmingBlock`), which is what says whether the band may be called
 ///   *prêt à tourner* at all.
 /// - [OcptDayConvocation.patStartMinute]/[OcptDayConvocation.patEndMinute] are then the minimum
-///   non-null `filmingStartMinute` and the maximum non-null `filmingEndMinute` over `S`: the filming
-///   blocks alone, so neither an audition nor a rehearsal ever stretches a PAT band. When no slot of
-///   `S` films, they are the minimum non-null `shootingStartMinute` and the maximum non-null
-///   `shootingEndMinute` instead — a presence band — both null together when no slot of `S` carries
-///   a shooting block at all — **and always both null for a guest**, whatever `S` carries: a guest
-///   is never handed a shooting block to be measured against, which is what keeps
+///   non-null `filmingStartMinute` and the maximum non-null `filmingEndMinute` over `S`: the
+///   filming blocks alone, so neither an audition nor a rehearsal ever stretches a PAT band. When
+///   no slot of `S` films, they are the minimum non-null `shootingStartMinute` and the maximum
+///   non-null `shootingEndMinute` instead — a presence band — both null together when no slot of
+///   `S` carries a shooting block at all — **and always both null for a guest**, whatever `S`
+///   carries: a guest is never handed a shooting block to be measured against, which is what keeps
 ///   [OcptDayConvocation.isGuest] from ever reading a band (see that field's own doc comment).
 /// - [OcptDayConvocation.departureMinute] is the maximum, over `S`, of `endMinute ?? startMinute` —
 ///   a slot with no block at all yet still ends at its own start, for whoever is linked to only
 ///   that.
-/// - [OcptDayConvocation.slotIds] is the ids of `S`, in the order [slots] was given, followed by the
-///   slots this person's own auditions sit in — deduplicated, so a unit reached both ways is named
-///   once.
+/// - [OcptDayConvocation.slotIds] is the ids of `S`, in the order [slots] was given, followed by
+///   the slots this person's own auditions sit in — deduplicated, so a unit reached both ways is
+///   named once.
 ///
 /// **A person's [auditions] join the same walk** (ADR 0024): `A`, the subset of [auditions] whose
 /// candidacies name them, widens their arrival and departure rather than making a convocation of
 /// its own, and widens their band too while it is a presence one. An audition is one span rather
 /// than a window with work somewhere inside it, so it opens and closes a presence band where it
-/// opens and closes itself; it never makes that band a PAT one, filming nothing, and never stretches
-/// one that already is.
-/// That is what gives each candidate an hour of their own — four people seen twenty minutes each
-/// inside one slot read four different bands, where a slot-wide link could only ever have said
-/// "09:00 – 18:00" four times over — and what gives a person who crews the day **and** is seen for a
-/// part a single call, arriving at the earlier of the two and leaving at the later. Somebody the day
-/// only sees for a part has an empty `S`, and reads their first audition as their arrival.
+/// opens and closes itself; it never makes that band a PAT one, filming nothing, and never
+/// stretches one that already is. That is what gives each candidate an hour of their own — four
+/// people seen twenty minutes each inside one slot read four different bands, where a slot-wide
+/// link could only ever have said "09:00 – 18:00" four times over — and what gives a person who
+/// crews the day **and** is seen for a part a single call, arriving at the earlier of the two and
+/// leaving at the later. Somebody the day only sees for a part has an empty `S`, and reads their
+/// first audition as their arrival.
 ///
 /// The result is one [OcptDayConvocation] per person the day asks anything of at all, per uncast
-/// role and per guest (address-book or free-named), sorted by
-/// [OcptDayConvocation.arrivalMinute], ties broken by [OcptDayConvocation.personId] `??`
-/// [OcptDayConvocation.roleId] `??` [OcptDayConvocation.guestPersonId] `??`
-/// [OcptDayConvocation.guestFreeName] — deterministic, but
+/// role and per guest (address-book or free-named), sorted by [OcptDayConvocation.arrivalMinute],
+/// ties broken by [OcptDayConvocation.personId] `??` [OcptDayConvocation.roleId] `??`
+/// [OcptDayConvocation.guestPersonId] `??` [OcptDayConvocation.guestFreeName] — deterministic, but
 /// not "arrival then **name**": nothing here knows a person's, a role's or a guest's own display
 /// name, so a caller wanting that ordering re-sorts on top of this one. A free-named guest is
-/// grouped by that name **verbatim**: nothing here normalises it, since nothing in this app says two
-/// spellings name the same visitor, and assuming so would silently merge two different guests.
+/// grouped by that name **verbatim**: nothing here normalises it, since nothing in this app says
+/// two spellings name the same visitor, and assuming so would silently merge two different guests.
 ///
 /// **A person convoked as crew or cast and attending the same day as a guest reads as two separate
 /// convocations, deliberately**: a guest link says nothing about work, and folding the two into one
 /// would put a PAT band on somebody's visit, or lose the guest's own reason and notes under a crew
 /// row that has no room for them.
 ///
-/// Minutes are offsets from the day's own midnight and **may exceed 1440** for a night shoot's small
-/// hours — nothing here ever takes anything modulo anything. Nothing here throws, either: there is
-/// no typed figure left to refuse, a lead time being gone along with the group it used to belong to
-/// (ADR 0018).
+/// Minutes are offsets from the day's own midnight and **may exceed 1440** for a night shoot's
+/// small hours — nothing here ever takes anything modulo anything. Nothing here throws, either:
+/// there is no typed figure left to refuse, a lead time being gone along with the group it used to
+/// belong to (ADR 0018).
 List<OcptDayConvocation> ocptComputeDayConvocations({
   required List<OcptConvocationSlot> slots,
   List<OcptConvocationAudition> auditions = const [],
@@ -449,10 +449,11 @@ List<OcptDayConvocation> ocptComputeDayConvocations({
 /// sees for a part arrives at their first audition, which is exactly what an empty [ownSlots]
 /// leaves.
 ///
-/// `isGuest` (computed locally, true exactly when [guestPersonId]/[guestFreeName] is the one passed)
-/// is what keeps [OcptDayConvocation.patStartMinute]/[OcptDayConvocation.patEndMinute] null whatever
-/// [ownSlots] carries: a guest does not shoot, so their band is never computed at all rather than
-/// computed and discarded. A guest is never handed auditions either — nothing names one.
+/// `isGuest` (computed locally, true exactly when [guestPersonId]/[guestFreeName] is the one
+/// passed) is what keeps [OcptDayConvocation.patStartMinute]/[OcptDayConvocation.patEndMinute] null
+/// whatever [ownSlots] carries: a guest does not shoot, so their band is never computed at all
+/// rather than computed and discarded. A guest is never handed auditions either — nothing names
+/// one.
 OcptDayConvocation _convocationOf({
   String? personId,
   String? roleId,
@@ -532,8 +533,8 @@ OcptDayConvocation _convocationOf({
     }
   }
 
-  // Filming anywhere in the day makes the band a PAT one, read off the filming blocks alone; a day of
-  // auditions and rehearsals only keeps its presence band.
+  // Filming anywhere in the day makes the band a PAT one, read off the filming blocks alone; a day
+  // of auditions and rehearsals only keeps its presence band.
   final isPatBand = filmingStartMinute != null;
 
   return OcptDayConvocation(

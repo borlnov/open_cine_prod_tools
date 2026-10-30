@@ -217,8 +217,8 @@ class OcptScriptPagePainter {
   /// their own row's exact Y coordinate alongside the line itself.
   ///
   /// [pageNumber] is this page's 1-based position among script pages (not counting the title page);
-  /// whether it is printed at all, and how it reads, is [ocptScriptPageNumberLabelOf]'s to say — the
-  /// styled editor's page-simulation sheets number the very same pages from that same rule.
+  /// whether it is printed at all, and how it reads, is [ocptScriptPageNumberLabelOf]'s to say —
+  /// the styled editor's page-simulation sheets number the very same pages from that same rule.
   ///
   /// [underlays] are drawn beneath the text and [overlays] above it, both in the page's own
   /// coordinate system (points from its top-left corner, which is what every geometry accessor of

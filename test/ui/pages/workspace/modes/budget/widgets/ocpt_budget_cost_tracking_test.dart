@@ -40,13 +40,13 @@ Widget _wrap(Widget child, {double width = 1400, double height = 600}) => Materi
   ),
 );
 
-/// A [testWidgets] that first widens the real test surface to a size comfortably past every
-/// [_wrap] call in this file's own widest use (1400×600) — `flutter_test`'s own default 800×600
-/// window would otherwise silently clamp a wider [SizedBox] back down to it, moving every column
-/// past 800 px off the real, tappable surface even though the widget tree still lays it out —
-/// exactly the gap that made the desktop-vs-compact branch this file now tests (`ocptIsCompactWidth`
-/// reading the real constraint) impossible to tell apart from a genuinely compact window. Restored
-/// through [addTearDown] so no test leaks its own surface size into the next one.
+/// A [testWidgets] that first widens the real test surface to a size comfortably past every [_wrap]
+/// call in this file's own widest use (1400×600) — `flutter_test`'s own default 800×600 window
+/// would otherwise silently clamp a wider [SizedBox] back down to it, moving every column past 800
+/// px off the real, tappable surface even though the widget tree still lays it out — exactly the
+/// gap that made the desktop-vs-compact branch this file now tests (`ocptIsCompactWidth` reading
+/// the real constraint) impossible to tell apart from a genuinely compact window. Restored through
+/// [addTearDown] so no test leaks its own surface size into the next one.
 void _testWidgets(String description, WidgetTesterCallback callback) {
   testWidgets(description, (tester) async {
     await tester.binding.setSurfaceSize(const Size(1400, 900));

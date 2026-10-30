@@ -404,12 +404,12 @@ class OcptProjectVersionsService {
         ..insertAll(database.ocptShootingDayBlocksTable, payload.shootingDayBlocks)
         ..insertAll(database.ocptShootingDayEventsTable, payload.shootingDayEvents)
         ..insertAll(database.ocptProjectDictionaryWordsTable, payload.projectDictionaryWords)
-        // `budget_postes` references nothing, and `budget_lines` references `budget_postes`
-        // (just above) and, optionally, `elements` (already inserted above): neither is a forward
+        // `budget_postes` references nothing, and `budget_lines` references `budget_postes` (just
+        // above) and, optionally, `elements` (already inserted above): neither is a forward
         // reference. `budget_commitments` references `budget_postes` too, and, optionally,
         // `budget_lines` (just above it) — and `assets.budgetEntryId`, inserted well above this,
-        // names a `budget_entries` row inserted only further below: a genuine forward reference, but
-        // `insertAll` defers foreign-key checking to the end of this batch's own transaction,
+        // names a `budget_entries` row inserted only further below: a genuine forward reference,
+        // but `insertAll` defers foreign-key checking to the end of this batch's own transaction,
         // exactly what already lets the person/location/element trio point at an `assets` row
         // inserted after them.
         ..insertAll(database.ocptBudgetPostesTable, payload.budgetPostes)
@@ -430,17 +430,16 @@ class OcptProjectVersionsService {
         // when a commitment named its own settling entry rather than the other way round.
         ..insertAll(database.ocptBudgetCommitmentsTable, payload.budgetCommitments)
         ..insertAll(database.ocptBudgetEntriesTable, payload.budgetEntries)
-        // The storyboard and floor plan tables, in the same dependency order [_applyPayload] restores
-        // them in: `floor_plan_sets` references only `sets` (its
-        // own id) and, optionally, `assets` (both inserted above); `storyboard_panels` references
-        // `shots` and, optionally, `assets` (both inserted above); `storyboard_annotations`
-        // references the panel it marks, just inserted; `floor_plan_symbols` references
-        // `floor_plan_sets` and, optionally, `scenes`/`shots` (all inserted above) and, optionally,
-        // another live `floor_plan_symbols` row of its own (`overridesSymbolId`) — a self-reference
-        // `insertAll`'s deferred foreign-key checking handles the same way as the genuine forward
-        // reference noted above, whichever order the two rows land in; `floor_plan_arrows`
-        // references `floor_plan_sets`, `shots` and the two `floor_plan_symbols` rows it connects,
-        // so it comes last.
+        // The storyboard and floor plan tables, in the same dependency order [_applyPayload]
+        // restores them in: `floor_plan_sets` references only `sets` (its own id) and, optionally,
+        // `assets` (both inserted above); `storyboard_panels` references `shots` and, optionally,
+        // `assets` (both inserted above); `storyboard_annotations` references the panel it marks,
+        // just inserted; `floor_plan_symbols` references `floor_plan_sets` and, optionally,
+        // `scenes`/`shots` (all inserted above) and, optionally, another live `floor_plan_symbols`
+        // row of its own (`overridesSymbolId`) — a self-reference `insertAll`'s deferred
+        // foreign-key checking handles the same way as the genuine forward reference noted above,
+        // whichever order the two rows land in; `floor_plan_arrows` references `floor_plan_sets`,
+        // `shots` and the two `floor_plan_symbols` rows it connects, so it comes last.
         ..insertAll(database.ocptFloorPlanSetsTable, payload.floorPlanSets)
         ..insertAll(database.ocptStoryboardPanelsTable, payload.storyboardPanels)
         ..insertAll(database.ocptStoryboardAnnotationsTable, payload.storyboardAnnotations)
@@ -496,14 +495,15 @@ class OcptProjectVersionsService {
   ///
   /// This is the one destructive operation of the app that isn't a file deletion, so everything it
   /// does happens inside a single transaction. It starts by weighing whether the working copy it is
-  /// about to overwrite needs protecting at all: [_captureWorkingCopySnapshot] reads it and compares
-  /// its digest against the version it currently descends from, and only when the two differ — or
-  /// there is no base to compare against, or that base's digest is unknown — does the transaction
-  /// also capture it as a version of its own named [safetyVersionName]. Restoring a working copy
-  /// that already matches its base would otherwise mint a byte-for-byte duplicate of a card already
-  /// in the list. Either way, **a restore can itself be undone**: when no safety version is taken,
-  /// the state it replaces is exactly the base version's, which is still there. A failure at any
-  /// point rolls the whole thing back, the safety version included when one was taken.
+  /// about to overwrite needs protecting at all: [_captureWorkingCopySnapshot] reads it and
+  /// compares its digest against the version it currently descends from, and only when the two
+  /// differ — or there is no base to compare against, or that base's digest is unknown — does the
+  /// transaction also capture it as a version of its own named [safetyVersionName]. Restoring a
+  /// working copy that already matches its base would otherwise mint a byte-for-byte duplicate of a
+  /// card already in the list. Either way, **a restore can itself be undone**: when no safety
+  /// version is taken, the state it replaces is exactly the base version's, which is still there. A
+  /// failure at any point rolls the whole thing back, the safety version included when one was
+  /// taken.
   ///
   /// The value returned on success is the page setup the version was captured with, which the
   /// caller **must** finish restoring: the format half of it has just been written to the project
@@ -811,18 +811,18 @@ class OcptProjectVersionsService {
   /// inside the asset trio's own deferred-foreign-key cycle), and `budget_entries`, restored right
   /// after both, may name either of their rows through `revenueId`/`shareId`.
   ///
-  /// `budget_commitments` and `budget_entries` are restored last, in that order: `budget_commitments`
-  /// references only `budget_postes` (restored well above) and, optionally, `budget_lines` (restored
-  /// well above too), so it closes no cycle of its own. `budget_entries` follows it — reversed from
-  /// the order these two used to restore in, back when a commitment named its own settling entry
-  /// rather than the other way round — since it may now name a commitment through `commitmentId`,
-  /// beside `budget_postes`, `budget_resources`, `budget_revenues`, `budget_shares` (all restored
-  /// above it already) and `people` (through `personId`, restored well above, inside the asset
-  /// trio's own deferred-foreign-key cycle). None of these is a forward reference either.
-  /// `assets.budgetEntryId`, restored well above this pair, names a
-  /// `budget_entries` row that only exists once this method reaches here: a genuine forward
-  /// reference, closed the same way the asset trio's own cycle is, by this whole
-  /// restore running under `PRAGMA defer_foreign_keys = ON` (see [restoreVersion]).
+  /// `budget_commitments` and `budget_entries` are restored last, in that order:
+  /// `budget_commitments` references only `budget_postes` (restored well above) and, optionally,
+  /// `budget_lines` (restored well above too), so it closes no cycle of its own. `budget_entries`
+  /// follows it — reversed from the order these two used to restore in, back when a commitment
+  /// named its own settling entry rather than the other way round — since it may now name a
+  /// commitment through `commitmentId`, beside `budget_postes`, `budget_resources`,
+  /// `budget_revenues`, `budget_shares` (all restored above it already) and `people` (through
+  /// `personId`, restored well above, inside the asset trio's own deferred-foreign-key cycle). None
+  /// of these is a forward reference either. `assets.budgetEntryId`, restored well above this pair,
+  /// names a `budget_entries` row that only exists once this method reaches here: a genuine forward
+  /// reference, closed the same way the asset trio's own cycle is, by this whole restore running
+  /// under `PRAGMA defer_foreign_keys = ON` (see [restoreVersion]).
   ///
   /// The five storyboard and floor plan tables are restored last, in
   /// their own dependency order: `floor_plan_sets` (references only `scenes`, restored at the very
@@ -833,8 +833,8 @@ class OcptProjectVersionsService {
   /// `floor_plan_sets`, `shots` and the two `floor_plan_symbols` rows it connects, all restored
   /// above it). None of the five closes a cycle of its own.
   ///
-  /// [payload] arrives already scrubbed of every erased person: [loadPayload] is what does it, once,
-  /// for every reader of a payload alike — see [_scrubErasedPeople]. None of the schedule
+  /// [payload] arrives already scrubbed of every erased person: [loadPayload] is what does it,
+  /// once, for every reader of a payload alike — see [_scrubErasedPeople]. None of the schedule
   /// tables holds a person's own data (a phone number, an address, an allergy) — only ids pointing
   /// at `people` and `roles`, `shooting_slot_guests.freeName` naming somebody the address book has
   /// never heard of — so there is nothing in them for that scrub to touch; `role_candidates`, above
@@ -1225,8 +1225,8 @@ class OcptProjectVersionsService {
     );
 
     // `floor_plan_sets` references only `scenes` (restored at the very top) and, optionally,
-    // `assets` (restored well above, inside the asset trio's own deferred-foreign-key cycle) — not a
-    // forward reference either way.
+    // `assets` (restored well above, inside the asset trio's own deferred-foreign-key cycle) — not
+    // a forward reference either way.
     await _restoreTable(
       database: database,
       table: database.ocptFloorPlanSetsTable,
@@ -1284,9 +1284,10 @@ class OcptProjectVersionsService {
 
   /// Rewrites [payload]'s `people` rows — and the `person_positions`/`person_skills`/
   /// `person_unavailabilities`/`assets` rows hanging off them — for every person `local_erasures`
-  /// names in [database], so no reader of a payload ever sees an erased person again: neither [_applyPayload]
-  /// writing one back into the working copy, nor [hydratePreview] putting one on screen. [loadPayload]
-  /// is the single door both come through, which is why the scrub lives there.
+  /// names in [database], so no reader of a payload ever sees an erased person again: neither
+  /// [_applyPayload] writing one back into the working copy, nor [hydratePreview] putting one on
+  /// screen. [loadPayload] is the single door both come through, which is why the scrub lives
+  /// there.
   ///
   /// A version is captured before knowing about an erasure made later, so its stored payload still
   /// holds that person's personal data verbatim, forever: a version is never rewritten once
@@ -1395,10 +1396,10 @@ class OcptProjectVersionsService {
       // never dropped, so a `shooting_slot_crew.personId` or a `shooting_slot_guests.personId`
       // referencing it still resolves) — so all of them travel through unchanged too.
       // `shooting_slot_guests.freeName` names somebody who was never a `people` row in the first
-      // place, so there is nothing there for this scrub to reach either, `shooting_block_candidates`
-      // names a **candidacy** rather than a person (the blanked `role_candidates` row above is what
-      // holds their name and what somebody wrote about them), and `shooting_day_events` carries
-      // nobody's data at all.
+      // place, so there is nothing there for this scrub to reach either,
+      // `shooting_block_candidates` names a **candidacy** rather than a person (the blanked
+      // `role_candidates` row above is what holds their name and what somebody wrote about them),
+      // and `shooting_day_events` carries nobody's data at all.
       shootingDays: payload.shootingDays,
       shootingSlots: payload.shootingSlots,
       shootingSlotCrew: payload.shootingSlotCrew,

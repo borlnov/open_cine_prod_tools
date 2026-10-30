@@ -1686,11 +1686,11 @@ class OcptShotListFloorPlanSymbolLabelChangedEvent extends OcptShotListEvent {
   List<Object?> get props => [...super.props, symbolId, rawValue];
 }
 
-/// Sets camera symbol `event.symbolId`'s own field-of-view wedge angle to `event.fovDeg`, dispatched
-/// by a drag on one of its own edge handles ending, or by the inspector's Placements group `−`/`+`
-/// stepper. Written immediately (`OcptFloorPlanService.updateSymbol(fovDeg:)`); a drag reports once
-/// on end, never per frame — the live wedge shown while dragging is a purely local canvas concern,
-/// exactly as a symbol's own move/resize/rotate is.
+/// Sets camera symbol `event.symbolId`'s own field-of-view wedge angle to `event.fovDeg`,
+/// dispatched by a drag on one of its own edge handles ending, or by the inspector's Placements
+/// group `−`/`+` stepper. Written immediately (`OcptFloorPlanService.updateSymbol(fovDeg:)`); a
+/// drag reports once on end, never per frame — the live wedge shown while dragging is a purely
+/// local canvas concern, exactly as a symbol's own move/resize/rotate is.
 class OcptShotListFloorPlanSymbolFovChangedEvent extends OcptShotListEvent {
   /// The id of the camera symbol whose field of view is changed.
   final String symbolId;
@@ -1773,10 +1773,10 @@ class OcptShotListFloorPlanArrowCurveChangedEvent extends OcptShotListEvent {
 
 /// Duplicates symbol `event.symbolId` into an independent copy on the very same set/shot/layer —
 /// never a link, the copy carries no reference back to its source — dispatched by `Ctrl+D` (no
-/// explicit position: the bloc offsets the copy from its source by
-/// `ocptFloorPlanDuplicateOffsetM`) or by an `Alt`-drag ending (`event.xM`/`event.yM` the drag's own
-/// settled position, the source symbol itself left untouched at its own original position). Written
-/// immediately (`OcptFloorPlanService.placeSymbol`), then selects the new copy.
+/// explicit position: the bloc offsets the copy from its source by `ocptFloorPlanDuplicateOffsetM`)
+/// or by an `Alt`-drag ending (`event.xM`/`event.yM` the drag's own settled position, the source
+/// symbol itself left untouched at its own original position). Written immediately
+/// (`OcptFloorPlanService.placeSymbol`), then selects the new copy.
 class OcptShotListFloorPlanSymbolDuplicatedEvent extends OcptShotListEvent {
   /// The id of the symbol duplicated.
   final String symbolId;
@@ -1797,8 +1797,9 @@ class OcptShotListFloorPlanSymbolDuplicatedEvent extends OcptShotListEvent {
 }
 
 /// Clears `OcptShotListState.pendingCharacterNamePromptSymbolId`, dispatched by the mode's own
-/// `BlocConsumer` listener the moment it opens `OcptFloorPlanCharacterNamePickerDialog` for it — see
-/// that field's own doc comment for why the clear happens before the dialog's own result is known.
+/// `BlocConsumer` listener the moment it opens `OcptFloorPlanCharacterNamePickerDialog` for it —
+/// see that field's own doc comment for why the clear happens before the dialog's own result is
+/// known.
 class OcptShotListFloorPlanCharacterNamePromptDismissedEvent extends OcptShotListEvent {
   /// Class constructor
   const OcptShotListFloorPlanCharacterNamePromptDismissedEvent();

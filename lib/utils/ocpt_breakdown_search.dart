@@ -22,8 +22,8 @@ class OcptBreakdownSearchCandidate extends Equatable {
   /// [ocptBreakdownSearchCatalogues].
   final String name;
 
-  /// The element's category, non-null only when [kind] is [OcptBreakdownTargetKind.element], exactly
-  /// as `OcptBreakdownTarget.category` is.
+  /// The element's category, non-null only when [kind] is [OcptBreakdownTargetKind.element],
+  /// exactly as `OcptBreakdownTarget.category` is.
   final OcptElementCategory? category;
 
   /// How many live scenes this row is already tagged in; 0 for a row the breakdown never touched.

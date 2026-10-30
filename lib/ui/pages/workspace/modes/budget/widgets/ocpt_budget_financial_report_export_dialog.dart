@@ -16,9 +16,9 @@ import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 ///
 /// Modelled on `OcptScheduleDayOutOfDaysExportDialog`, whose page-format dropdown and title-page
 /// checkbox this reuses the same strings for. **No tax basis here**, unlike
-/// `OcptBudgetQuoteExportDialog`: `OcptBudgetFinancialReportExportOptions`'s own doc comment already
-/// argues this report reads the quote against figures that are always read tax-inclusive, so a
-/// basis toggle here would let the quoted column disagree with what it is measured against.
+/// `OcptBudgetQuoteExportDialog`: `OcptBudgetFinancialReportExportOptions`'s own doc comment
+/// already argues this report reads the quote against figures that are always read tax-inclusive,
+/// so a basis toggle here would let the quoted column disagree with what it is measured against.
 /// Deliberately its own class rather than sharing one with its siblings, for the very same reason
 /// `OcptBudgetQuoteExportDialog`'s own doc comment gives.
 ///

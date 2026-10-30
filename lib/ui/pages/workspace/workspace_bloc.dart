@@ -37,25 +37,26 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/workspace_state.dart';
 /// It is also where the open project's own sync session is started, once, the very first time the
 /// workspace opens: [_startSyncSessionIfPaired] reads the project's own `sync_pairings` row (there
 /// is at most one, exactly as `OcptSharingBloc._loadCurrentInvite` already finds it with no id in
-/// hand), and — only when both halves of the pairing are still there
-/// (`OcptPairingService`'s own doc comment) — hands [OcptSyncManager.startSyncSession] the transport
+/// hand), and — only when both halves of the pairing are still there (`OcptPairingService`'s own
+/// doc comment) — hands [OcptSyncManager.startSyncSession] the transport
 /// [OcptSyncManager.openRelayRemoteStorage] builds from it. [disposeLifeCycle] stops it: the
 /// workspace closing is the one signal this bloc has for "nobody needs this session running any
-/// more", as `docs/architecture/sync.md` describes. An unpaired project
-/// starts nothing at all, and [OcptSyncManager.startSyncSession] itself is never called again after
-/// that first attempt — the workspace bloc lives exactly as long as one project stays open, so
-/// there is nothing later to react to.
+/// more", as `docs/architecture/sync.md` describes. An unpaired project starts nothing at all, and
+/// [OcptSyncManager.startSyncSession] itself is never called again after that first attempt — the
+/// workspace bloc lives exactly as long as one project stays open, so there is nothing later to
+/// react to.
 ///
 /// It is likewise where a project that asked to be re-hosted on launch has its own relay brought
 /// back up: [_maybeAutoStartHosting] runs [OcptRelayHostManager.maybeAutoStartHosting] on the same
-/// open, and — when that **freshly** starts hosting — its own self-seed has already started the sync
-/// session against this machine's hosted relay, so [_startSyncSessionIfPaired] is then skipped rather
-/// than starting a second one. Reopening a project whose relay was already up from before self-seeds
-/// nothing, so the paired start does seed a session against the local relay it stays paired to.
-/// Hosting itself is **not** torn down by [disposeLifeCycle] — it is owned by [OcptRelayHostManager]
-/// across every navigation and stops only through the hosting panel or app shutdown, since restarting
-/// it on a fresh port would strand connected peers; the sync session, tied to the project's database,
-/// is stopped there whether or not hosting is running (see [disposeLifeCycle]).
+/// open, and — when that **freshly** starts hosting — its own self-seed has already started the
+/// sync session against this machine's hosted relay, so [_startSyncSessionIfPaired] is then skipped
+/// rather than starting a second one. Reopening a project whose relay was already up from before
+/// self-seeds nothing, so the paired start does seed a session against the local relay it stays
+/// paired to. Hosting itself is **not** torn down by [disposeLifeCycle] — it is owned by
+/// [OcptRelayHostManager] across every navigation and stops only through the hosting panel or app
+/// shutdown, since restarting it on a fresh port would strand connected peers; the sync session,
+/// tied to the project's database, is stopped there whether or not hosting is running (see
+/// [disposeLifeCycle]).
 class OcptWorkspaceBloc extends BlocForMixin<OcptWorkspaceState> {
   /// The manager used to read this replica's own device id (see [_startSyncSessionIfPaired]) — the
   /// active workspace mode is not persisted, so this bloc no longer reaches into it for that.
@@ -119,8 +120,8 @@ class OcptWorkspaceBloc extends BlocForMixin<OcptWorkspaceState> {
   /// [_hostManagerOverride], or the one `globalGetIt()` holds when an app-wide manager environment
   /// actually registered one, or null otherwise — resolved lazily on every access for exactly the
   /// reasons [_syncManager]'s own doc comment gives: every other mode's widget test builds a bare
-  /// [OcptWorkspaceBloc] with no reason to register a host manager, and [_maybeAutoStartHosting] and
-  /// [disposeLifeCycle] both simply do nothing when this is null.
+  /// [OcptWorkspaceBloc] with no reason to register a host manager, and [_maybeAutoStartHosting]
+  /// and [disposeLifeCycle] both simply do nothing when this is null.
   OcptRelayHostManager? get _hostManager {
     final override = _hostManagerOverride;
     if (override != null) {
@@ -176,10 +177,10 @@ class OcptWorkspaceBloc extends BlocForMixin<OcptWorkspaceState> {
     );
 
     // Re-host first: a *fresh* host start's own self-seed has already started the sync session (and
-    // presence) against this machine's hosted relay, so the ordinary paired-project start is skipped
-    // rather than starting a second one over the same project. Re-opening a project that was
-    // *already* being hosted (its relay kept running across the trip to the home screen while its
-    // session was stopped with the closing database) does not self-seed again — there
+    // presence) against this machine's hosted relay, so the ordinary paired-project start is
+    // skipped rather than starting a second one over the same project. Re-opening a project that
+    // was *already* being hosted (its relay kept running across the trip to the home screen while
+    // its session was stopped with the closing database) does not self-seed again — there
     // [_maybeAutoStartHosting] reports "not freshly hosted", and the paired start below seeds a new
     // session against the local relay the project is paired to. After starting whichever session,
     // not before: `updatePresenceMode` does nothing while no presence service is running yet.
@@ -191,17 +192,18 @@ class OcptWorkspaceBloc extends BlocForMixin<OcptWorkspaceState> {
   }
 
   /// Re-hosts the open project when its own "host on launch" preference asks for it, returning
-  /// whether hosting was **freshly** started by this call — [OcptRelayHostManager.maybeAutoStartHosting]
-  /// itself no-ops on an unpaired project, an unset flag, or on mobile, and this additionally no-ops
-  /// when no host manager is registered (every mode's own widget test) or no project is open.
+  /// whether hosting was **freshly** started by this call —
+  /// [OcptRelayHostManager.maybeAutoStartHosting] itself no-ops on an unpaired project, an unset
+  /// flag, or on mobile, and this additionally no-ops when no host manager is registered (every
+  /// mode's own widget test) or no project is open.
   ///
   /// The return value is *fresh start*, not merely *now online*: only a fresh start's self-seed
   /// starts the sync session against the hosted relay, which is why [_onLoadRequested] then skips
-  /// [_startSyncSessionIfPaired] for it. A project reopened while its relay was still up from before
-  /// is already online on entry and self-seeds nothing, so this returns false and lets the ordinary
-  /// paired start seed a session against the local relay. Any failure is swallowed for the very
-  /// reason [_startSyncSessionIfPaired]'s is: this bloc has nothing to report it to, and hosting
-  /// simply stays off, leaving the ordinary session start to take over.
+  /// [_startSyncSessionIfPaired] for it. A project reopened while its relay was still up from
+  /// before is already online on entry and self-seeds nothing, so this returns false and lets the
+  /// ordinary paired start seed a session against the local relay. Any failure is swallowed for the
+  /// very reason [_startSyncSessionIfPaired]'s is: this bloc has nothing to report it to, and
+  /// hosting simply stays off, leaving the ordinary session start to take over.
   Future<bool> _maybeAutoStartHosting() async {
     final hostManager = _hostManager;
     final project = _projectsManager.currentProject;
@@ -372,16 +374,17 @@ class OcptWorkspaceBloc extends BlocForMixin<OcptWorkspaceState> {
     // whenever the workspace page is left for the home screen, so tying hosting to its dispose made
     // simply leaving and re-entering tear the relay down and rebind it on a fresh port — dropping
     // every connected peer. Hosting is owned by `OcptRelayHostManager` across the whole time a
-    // project is hosted, and stops through the hosting panel's own switch, a different project being
-    // hosted, or app shutdown (`OcptRelayHostManager.disposeLifeCycle`) — never on a navigation away.
+    // project is hosted, and stops through the hosting panel's own switch, a different project
+    // being hosted, or app shutdown (`OcptRelayHostManager.disposeLifeCycle`) — never on a
+    // navigation away.
     //
     // The sync session, though, is **always** stopped, even while hosting. This bloc is disposed
     // only when the open project itself is closed (the mode's back action runs
-    // `OcptProjectsManager.closeCurrentProject`, which closes the project's database), and a session
-    // reads and writes that database on every tick: one left running against it only throws "Can't
-    // re-open a database after closing it" every push interval. The relay keeps serving peers from
-    // its own store regardless, and re-opening the project seeds a fresh session against it
-    // ([_onLoadRequested]).
+    // `OcptProjectsManager.closeCurrentProject`, which closes the project's database), and a
+    // session reads and writes that database on every tick: one left running against it only throws
+    // "Can't re-open a database after closing it" every push interval. The relay keeps serving
+    // peers from its own store regardless, and re-opening the project seeds a fresh session against
+    // it ([_onLoadRequested]).
     await _syncManager?.stopSyncSession();
 
     return super.disposeLifeCycle();

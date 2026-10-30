@@ -217,7 +217,8 @@ class OcptShotCoverageDialog extends StatelessWidget {
                         Expanded(
                           child: Text(
                             "${tr.shotListCoverageWordsCovered(layout.countCoveredWords(ownRanges), _totalWordCount)}"
-                            " · ${tr.shotListCoverageRangesCount(layout.rangesInReadingOrder(ownRanges).length)}",
+                            " · "
+                            "${tr.shotListCoverageRangesCount(layout.rangesInReadingOrder(ownRanges).length)}",
                             style: theme.textTheme.bodySmall,
                           ),
                         ),

@@ -17,8 +17,8 @@ import 'package:equatable/equatable.dart';
 ///
 /// **A partial failure is never hidden as a success**: a write failure is logged (this app's usual
 /// soft-failure convention) and the file's own name is recorded in [failedFileNames] rather than
-/// silently dropped, so [isComplete] is the one place a caller asks "did every file make it" without
-/// having to compare the two lists' lengths by hand.
+/// silently dropped, so [isComplete] is the one place a caller asks "did every file make it"
+/// without having to compare the two lists' lengths by hand.
 ///
 /// [folderPath] is a temporary directory rather than one the user picked when [wasShared] is true:
 /// on mobile there is no "choose a folder" dialog to show at all (`file_selector`'s

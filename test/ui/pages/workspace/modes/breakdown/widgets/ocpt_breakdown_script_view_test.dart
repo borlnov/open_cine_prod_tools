@@ -230,8 +230,8 @@ void main() {
     await tester.pumpWidget(_wrapInApp(_buildView()));
     final desktopWidth = _blockBoxWidthOf(tester, "lamp ");
 
-    // Phone: the same block scales down by `OcptEditorPreviewLayout.compactLayoutScale`, leaving far
-    // less left margin (the user's own report).
+    // Phone: the same block scales down by `OcptEditorPreviewLayout.compactLayoutScale`, leaving
+    // far less left margin (the user's own report).
     await tester.pumpWidget(_wrapInApp(_atPhoneWidth(_buildView())));
     final phoneWidth = _blockBoxWidthOf(tester, "lamp ");
 
@@ -460,8 +460,8 @@ void main() {
     );
 
     // The box hugs the word core — the accent fill, distinct from any category wash, and its
-    // on-accent text — while the trailing space it carries stays outside it, so "lamp " is never one
-    // box.
+    // on-accent text — while the trailing space it carries stays outside it, so "lamp " is never
+    // one box.
     final colorScheme = Theme.of(tester.element(find.text("lamp"))).colorScheme;
     final decoration = _decorationOfWord(tester, "lamp");
     expect(decoration?.color, colorScheme.primary);

@@ -182,10 +182,10 @@ class OcptBreakdownService {
   /// [OcptBreakdownTargetKind.set]. A [OcptBreakdownTargetKind.role] tag creates no link row: there
   /// is no `scene_roles` table, and the tag itself is that link.
   ///
-  /// Throws [ArgumentError] for a malformed range (`startOffset < 0` or `endOffset <= startOffset`),
-  /// exactly as `OcptShotCoverageService.addRange` does: a malformed range is a caller bug, while an
-  /// overlap is a refusal a real user action can reach, and the two must not be reported the same
-  /// way.
+  /// Throws [ArgumentError] for a malformed range (`startOffset < 0` or
+  /// `endOffset <= startOffset`), exactly as `OcptShotCoverageService.addRange` does: a malformed
+  /// range is a caller bug, while an overlap is a refusal a real user action can reach, and the two
+  /// must not be reported the same way.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
   Future<String?> createTag({
@@ -322,13 +322,13 @@ class OcptBreakdownService {
   /// The element is minted through `OcptElementsService.createElement` rather than by reaching into
   /// `elements` directly, so the resources mode and this one mint an element exactly the same way,
   /// generated code included, and then tagged through [createTag] itself, so the two ways of
-  /// creating a tag never drift apart. New elements get `OcptElementStatus.toFind`, the column's own
-  /// default.
+  /// creating a tag never drift apart. New elements get `OcptElementStatus.toFind`, the column's
+  /// own default.
   ///
-  /// Returns null, and rolls **both** writes back, when either half refuses: a preview database (the
-  /// element is never even minted, since the preview guard trips before either write), or a range
-  /// that overlaps a live tag of the scene — an element minted for a tag that was refused would be
-  /// an orphan nobody asked for.
+  /// Returns null, and rolls **both** writes back, when either half refuses: a preview database
+  /// (the element is never even minted, since the preview guard trips before either write), or a
+  /// range that overlaps a live tag of the scene — an element minted for a tag that was refused
+  /// would be an orphan nobody asked for.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
   Future<({String elementId, String tagId})?> createElementAndTag({
@@ -578,9 +578,9 @@ class OcptBreakdownService {
   /// 4. a tag whose scene is gone (tombstoned, or no longer in the index) is tombstoned along with
   ///    it.
   ///
-  /// The slice in step 1 is guarded against offsets that no longer fit inside the scene at all: such
-  /// a tag is treated as though it did not match (skipping straight to step 2) rather than risking a
-  /// `RangeError` that would crash the save.
+  /// The slice in step 1 is guarded against offsets that no longer fit inside the scene at all:
+  /// such a tag is treated as though it did not match (skipping straight to step 2) rather than
+  /// risking a `RangeError` that would crash the save.
   ///
   /// Writes nothing when nothing changed: this runs on every save.
   ///
@@ -679,9 +679,10 @@ class OcptBreakdownService {
 
   /// Tombstones every live `breakdown_tags` row and every live `scene_breakdowns` row of any of
   /// [sceneIds], and — through [_elementsService] and [_locationsService] — every live
-  /// `scene_elements` and `scene_sets` row of those same scenes: `OcptScreenplayService.deleteEpisode`'s
-  /// cascade, once `OcptSceneIndexService.tombstoneScenesOfScreenplay` has handed it the ids of the
-  /// scenes going with the episode.
+  /// `scene_elements` and `scene_sets` row of those same scenes:
+  /// `OcptScreenplayService.deleteEpisode`'s cascade, once
+  /// `OcptSceneIndexService.tombstoneScenesOfScreenplay` has handed it the ids of the scenes going
+  /// with the episode.
   ///
   /// **This is not [deleteTag]'s question.** [deleteTag] deliberately leaves the `scene_elements`/
   /// `scene_sets` link a tag once ensured, because the user may have made the same link by hand and
@@ -689,8 +690,8 @@ class OcptBreakdownService {
   /// point at is **itself** going away with the episode, for good — a different fact, and the one
   /// this method exists to act on rather than defer.
   ///
-  /// **Unguarded**, exactly as `OcptElementsService.tombstoneRoleLinksOfRole` is: its only caller has
-  /// already refused the write on a preview connection and is already inside the transaction
+  /// **Unguarded**, exactly as `OcptElementsService.tombstoneRoleLinksOfRole` is: its only caller
+  /// has already refused the write on a preview connection and is already inside the transaction
   /// removing the episode, so a second guard here would only be able to disagree with the first.
   ///
   /// {@macro open_cine_prod_tools.tombstones}
@@ -834,8 +835,8 @@ class OcptBreakdownService {
   }
 
   /// Every start offset in [haystack] at which [needle] occurs, allowing overlapping matches — the
-  /// occurrence count [OcptBreakdownService.reconcileTags] re-anchors on when it is exactly one, and
-  /// flags when it is zero or more than one.
+  /// occurrence count [OcptBreakdownService.reconcileTags] re-anchors on when it is exactly one,
+  /// and flags when it is zero or more than one.
   static List<int> _occurrencesOf({required String needle, required String haystack}) {
     if (needle.isEmpty) {
       return const [];

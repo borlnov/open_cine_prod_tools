@@ -388,15 +388,15 @@ class OcptHomeBloc extends BlocForMixin<OcptHomeState>
   ///
   /// Mirrors [_onCreateProjectRequested] step for step, with two differences: resolving the new
   /// project's file path is preceded by an open-file dialog picking the screenplay (its title page,
-  /// or else its file name, suggesting the new project's own name), and the new project's screenplay
-  /// is seeded with the picked file's text instead of staying empty. The picked file may be a
-  /// `.fountain`, an `.fdx` or a `.celtx`; the conversion happens as it is read, so what is seeded is
-  /// Fountain either way.
+  /// or else its file name, suggesting the new project's own name), and the new project's
+  /// screenplay is seeded with the picked file's text instead of staying empty. The picked file may
+  /// be a `.fountain`, an `.fdx` or a `.celtx`; the conversion happens as it is read, so what is
+  /// seeded is Fountain either way.
   ///
   /// On desktop, the project's own name is taken from whichever file name the save-file dialog was
   /// actually given — `p.basenameWithoutExtension`, since the user may have renamed it there —
-  /// rather than the screenplay's own suggested name; on mobile, where there is no such dialog, that
-  /// suggested name is used directly.
+  /// rather than the screenplay's own suggested name; on mobile, where there is no such dialog,
+  /// that suggested name is used directly.
   ///
   /// A file that cannot be read as a screenplay stops the flow right there — no project is
   /// created — and lands in [OcptHomeState.screenplayImportError] for the page to word.

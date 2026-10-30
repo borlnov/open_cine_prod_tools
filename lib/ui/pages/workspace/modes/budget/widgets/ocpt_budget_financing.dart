@@ -108,18 +108,18 @@ const double _ocptResourcesCoverageBarHeight = 8;
 /// draws in*, merging cash and in-kind together the way the mock's own `Apports` card does. Neither
 /// table nor dialog ever reads the family: it is a display grouping alone.
 ///
-/// **Money.** A row's own `Promis` is its `amountCents`. `Rentré` is null for an in-kind resource no
-/// entry has ever named — "An in-kind contribution is valued, not collected"
+/// **Money.** A row's own `Promis` is its `amountCents`. `Rentré` is null for an in-kind resource
+/// no entry has ever named — "An in-kind contribution is valued, not collected"
 /// (`docs/architecture/budget.md`) — and the honest received figure for every other row, in-kind
 /// included the moment an entry does name it. `Reste à venir` is `amount − received`, null wherever
-/// `Rentré` is, drawn in the error colour when negative. A family's own three figures are the sum of
-/// its rows' own: `Promis` always known, `Rentré`/`Reste à venir` summing only the rows whose own
-/// figure is known and reading null only when **every** row's own is — never a family with one
+/// `Rentré` is, drawn in the error colour when negative. A family's own three figures are the sum
+/// of its rows' own: `Promis` always known, `Rentré`/`Reste à venir` summing only the rows whose
+/// own figure is known and reading null only when **every** row's own is — never a family with one
 /// unentered in-kind resource losing the whole family's own honest figure to it.
 ///
-/// **A composite panel** (`docs/architecture/foundations.md`'s own idiom): takes [isReadOnly] rather
-/// than a null callback per affordance, and withholds — never disables — every one of its own
-/// writing affordances: the creation footer and a resource's or a revenue's own `⋮` menu.
+/// **A composite panel** (`docs/architecture/foundations.md`'s own idiom): takes [isReadOnly]
+/// rather than a null callback per affordance, and withholds — never disables — every one of its
+/// own writing affordances: the creation footer and a resource's or a revenue's own `⋮` menu.
 class OcptBudgetFinancing extends StatelessWidget {
   /// Every live resource, in `sortKey` order.
   final List<OcptBudgetResource> resources;
@@ -160,7 +160,8 @@ class OcptBudgetFinancing extends StatelessWidget {
   final OcptBudgetSelection? selection;
 
   /// Which nodes of the resources tree are currently expanded — an `OcptBudgetResourceFamily`'s own
-  /// `name`, a resource id or a revenue id, see `OcptBudgetState.expandedNodeIds`'s own doc comment.
+  /// `name`, a resource id or a revenue id, see `OcptBudgetState.expandedNodeIds`'s own doc
+  /// comment.
   final Set<String> expandedNodeIds;
 
   /// Whether the mode shows a project version being previewed read-only — see the class doc
@@ -465,8 +466,8 @@ class OcptBudgetFinancing extends StatelessWidget {
   }
 
   /// Folds every one of [familyResources]' and [familyRevenues]' own figures into one triple — see
-  /// the class doc comment for the "known rows only" rule [Rentré]/[Reste à venir] follow. Also used
-  /// with the *whole* project's own resources and revenues for the grand total row.
+  /// the class doc comment for the "known rows only" rule [Rentré]/[Reste à venir] follow. Also
+  /// used with the *whole* project's own resources and revenues for the grand total row.
   _OcptRowFigures _familyAggregatesOf(
     List<OcptBudgetResource> familyResources,
     List<OcptBudgetRevenue> familyRevenues,

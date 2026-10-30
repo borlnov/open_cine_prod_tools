@@ -1338,7 +1338,8 @@ void main() {
     );
 
     testWidgets(
-      "the full-screen shell's close action cancels the whole wizard, exactly as Cancel already does",
+      "the full-screen shell's close action cancels the whole wizard, exactly as Cancel already "
+      "does",
       (tester) async {
         await pumpDialog(tester);
 

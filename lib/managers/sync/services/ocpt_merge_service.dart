@@ -36,17 +36,17 @@ import 'package:open_cine_prod_tools/utils/ocpt_synchronised_tables.dart';
 /// `screenplays.fountainText` is the one column that is **not** resolved this way: when
 /// [screenplayMergeService] is configured and an incoming group names the `screenplays` table with
 /// a `fountainText` stamp, that column is pulled out of the generic overlay entirely — **never
-/// gated by [ocptIncomingStampWins]** — and handed to [OcptScreenplayMergeService] instead, whatever
-/// that stamp's own `(version, deviceId)` compares as against the column's local one: merging
-/// combines two edits, it does not replace-if-newer, and two independent edits made at the very same
-/// Lamport tick from two different devices are exactly the case the three-way merge exists for — the
-/// generic win/lose comparison would arbitrarily drop one of them by device id alone. Every other
-/// column of that same row (`title`, `updatedAt`, `isDeleted`) still resolves generically, alongside
-/// it, in the very same row group. [screenplayMergeService] is nullable so this class stays cheaply
-/// testable against tables that have nothing to do with screenplays (see this class's own tests):
-/// `OcptSyncManager` is the one place that always wires a real one for the running app.
-/// `scenes` is never named by an incoming changeset in the first place ([ocptSynchronisedTables]
-/// excludes it), so nothing here ever writes to it either way.
+/// gated by [ocptIncomingStampWins]** — and handed to [OcptScreenplayMergeService] instead,
+/// whatever that stamp's own `(version, deviceId)` compares as against the column's local one:
+/// merging combines two edits, it does not replace-if-newer, and two independent edits made at the
+/// very same Lamport tick from two different devices are exactly the case the three-way merge
+/// exists for — the generic win/lose comparison would arbitrarily drop one of them by device id
+/// alone. Every other column of that same row (`title`, `updatedAt`, `isDeleted`) still resolves
+/// generically, alongside it, in the very same row group. [screenplayMergeService] is nullable so
+/// this class stays cheaply testable against tables that have nothing to do with screenplays (see
+/// this class's own tests): `OcptSyncManager` is the one place that always wires a real one for the
+/// running app. `scenes` is never named by an incoming changeset in the first place
+/// ([ocptSynchronisedTables] excludes it), so nothing here ever writes to it either way.
 class OcptMergeService {
   /// The Dart field name `screenplays.fountainText` stamps carry — see [_applyRowGroup] for why
   /// this one column is pulled out of the generic overlay.
@@ -208,7 +208,8 @@ class OcptMergeService {
         // replica's own schema have drifted apart — a bug worth failing loudly on rather than
         // silently dropping the edit.
         throw StateError(
-          "An incoming changeset stamps column '${winner.columnName}' of '${table.actualTableName}', "
+          "An incoming changeset stamps column '${winner.columnName}' of "
+          "'${table.actualTableName}', "
           "which no column of that table maps to",
         );
       }
@@ -247,21 +248,21 @@ class OcptMergeService {
   }
 
   /// Writes [merged] — a complete row of [table], keyed by its columns' own SQL names, each value
-  /// already the raw SQL cell value `OcptFieldStamp` itself carries (see its own doc comment) — back
-  /// through a raw, parametrised `INSERT ... ON CONFLICT DO UPDATE`, naming every column by its own
-  /// SQL name and its own primary key for the `ON CONFLICT` target: the generic upsert this merge
-  /// needs for a table it only knows as a bare [TableInfo].
+  /// already the raw SQL cell value `OcptFieldStamp` itself carries (see its own doc comment) —
+  /// back through a raw, parametrised `INSERT ... ON CONFLICT DO UPDATE`, naming every column by
+  /// its own SQL name and its own primary key for the `ON CONFLICT` target: the generic upsert this
+  /// merge needs for a table it only knows as a bare [TableInfo].
   ///
   /// A typed `Insertable`/`insertOnConflictUpdate` cannot do this generically: each generated table
-  /// class overrides `validateIntegrity` (and `into()`'s own dispatch) against its **own** row type,
-  /// fixed at build time, never the type this method was handed [table] as — so an `Insertable`
-  /// built against the erased `TableInfo<Table, Object?>` this merge iterates over is rejected at
-  /// runtime the moment drift's own generated code asks it for the concrete row type back.
-  /// `GeneratedDatabase.customInsert` has no such row type to satisfy: it binds [Variable]s to `?`
-  /// placeholders positionally and leaves interpreting them to SQLite itself, which is exactly the
-  /// level this merge can stay generic at — and since every value is already the exact raw SQL
-  /// primitive the column holds, a bare `Variable<Object>` is all a placeholder ever needs: drift's
-  /// own `SqlTypes.mapToSqlVariable` dispatches on the value's own runtime type, not on a
+  /// class overrides `validateIntegrity` (and `into()`'s own dispatch) against its **own** row
+  /// type, fixed at build time, never the type this method was handed [table] as — so an
+  /// `Insertable` built against the erased `TableInfo<Table, Object?>` this merge iterates over is
+  /// rejected at runtime the moment drift's own generated code asks it for the concrete row type
+  /// back. `GeneratedDatabase.customInsert` has no such row type to satisfy: it binds [Variable]s
+  /// to `?` placeholders positionally and leaves interpreting them to SQLite itself, which is
+  /// exactly the level this merge can stay generic at — and since every value is already the exact
+  /// raw SQL primitive the column holds, a bare `Variable<Object>` is all a placeholder ever needs:
+  /// drift's own `SqlTypes.mapToSqlVariable` dispatches on the value's own runtime type, not on a
   /// [Variable]'s static type argument, so an `int`, a `double`, a `String` (an enum's `toSql`
   /// output and a `storeDateTimeAsText` timestamp alike), a `Uint8List` or `null` all bind exactly
   /// as they already stand — with no per-`DriftSqlType` dispatch of this merge's own to keep in

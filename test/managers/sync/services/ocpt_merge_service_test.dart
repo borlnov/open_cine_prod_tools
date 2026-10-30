@@ -72,7 +72,8 @@ void main() {
 
   /// Stamps and writes [next] over [current] on [database], as [deviceId]'s own edit, then flushes
   /// the stamp — the shape every test below uses to make "a replica edits a row" concrete.
-  /// [current] is null for a brand-new row, exactly like `OcptRowStampService.writeAndStamp` itself.
+  /// [current] is null for a brand-new row, exactly like `OcptRowStampService.writeAndStamp`
+  /// itself.
   Future<void> writeAndStamp<D extends DataClass>({
     required OcptProjectDatabase database,
     required String deviceId,
@@ -97,7 +98,8 @@ void main() {
     database.ocptShotsTable,
   )..where((table) => table.id.equals(shotId))).getSingle();
 
-  test('two replicas editing different columns of the same shot row both survive on both', () async {
+  test('two replicas editing different columns of the same shot row both survive on '
+      'both', () async {
     final replicaA = OcptProjectDatabase.memory();
     final replicaB = OcptProjectDatabase.memory();
     addTearDown(replicaA.close);

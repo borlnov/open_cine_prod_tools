@@ -121,9 +121,10 @@ class OcptBudgetHelp extends StatelessWidget {
     (tr.budgetFinancingColumnReceived, tr.budgetHelpChainResourcesReceivedCaption),
   ];
 
-  /// `tools › sharing`'s own chain: the takings received ([Tr.budgetFinancingColumnReceived]
-  /// — read from [OcptBudgetView.resources], not typed here) become what has already been repaid
-  /// ([Tr.budgetSharingRepaidLabel]) and what is left to share ([Tr.budgetSharingLeftToShareLabel]).
+  /// `tools › sharing`'s own chain: the takings received ([Tr.budgetFinancingColumnReceived] — read
+  /// from [OcptBudgetView.resources], not typed here) become what has already been repaid
+  /// ([Tr.budgetSharingRepaidLabel]) and what is left to share
+  /// ([Tr.budgetSharingLeftToShareLabel]).
   List<(String, String)> _sharingChainSteps(Tr tr) => [
     (tr.budgetFinancingColumnReceived, tr.budgetHelpChainSharingReceivedCaption),
     (tr.budgetSharingRepaidLabel, tr.budgetHelpChainSharingRepaidCaption),
@@ -193,10 +194,11 @@ class OcptBudgetHelp extends StatelessWidget {
   /// **No route opens on a shared capture-band paragraph any more.** The band that used to sit atop
   /// three views is gone, and each route says for itself how a movement is recorded on it:
   /// `expenses`, `resources` and `tools › sharing` each name the header's own single `New` button
-  /// and the wizard behind it, differing only in which answer that page promotes; `tools › cashFlow`
-  /// says the statement itself is only read, beside the `À venir` section it now carries. Each of
-  /// those three paragraphs is handed the very same [Tr.budgetHeaderNewAction] label the band above
-  /// draws, so the help never names a control by a word the screen does not use.
+  /// and the wizard behind it, differing only in which answer that page promotes;
+  /// `tools › cashFlow` says the statement itself is only read, beside the `À venir` section it now
+  /// carries. Each of those three paragraphs is handed the very same [Tr.budgetHeaderNewAction]
+  /// label the band above draws, so the help never names a control by a word the screen does not
+  /// use.
   ///
   /// [OcptBudgetView.dashboard]'s own four paragraphs work through what the chain above already
   /// introduces — the tiles, the needs/resources balance band and the standing alerts, each in the
@@ -334,8 +336,9 @@ class _OcptBudgetHelpChain extends StatelessWidget {
 /// table is not improved by a sentence repeating what its own highlight says. [currentStepBadge] is
 /// therefore announced rather than drawn: it rides the cell's [Semantics] label, so a screen reader
 /// still hears which step the reader stands on, and the wash never has to carry the meaning alone —
-/// colour by itself would say nothing in high contrast, nothing to a colour-blind reader and nothing
-/// at all to a screen reader (`_OcptBudgetHelpMapDataCell`'s own reasoning applies here as well).
+/// colour by itself would say nothing in high contrast, nothing to a colour-blind reader and
+/// nothing at all to a screen reader (`_OcptBudgetHelpMapDataCell`'s own reasoning applies here as
+/// well).
 class _OcptBudgetHelpChainCell extends StatelessWidget {
   /// The step's own word — the very ARB key the screen itself draws for it.
   final String label;

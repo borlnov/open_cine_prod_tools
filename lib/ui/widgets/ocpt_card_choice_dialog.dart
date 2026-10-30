@@ -108,8 +108,8 @@ class OcptCardChoiceDialog<T> extends StatelessWidget {
     ];
 
     // On a phone-width screen the fixed 600px grid would overflow, and two columns leave each card
-    // too narrow to read: below the breakpoint the dialog takes the width it is given and stacks its
-    // cards in a single column instead.
+    // too narrow to read: below the breakpoint the dialog takes the width it is given and stacks
+    // its cards in a single column instead.
     final isCompact = ocptIsCompactWidth(MediaQuery.sizeOf(context).width);
     final crossAxisCount = isCompact ? 1 : 2;
 
@@ -123,10 +123,10 @@ class OcptCardChoiceDialog<T> extends StatelessWidget {
           children: [
             Text(message, style: theme.textTheme.bodyMedium),
             const SizedBox(height: 16),
-            // [_ocptCardChoiceMaxHeight] is a ceiling for a roomy dialog; wrapping it in a [Flexible]
-            // lets the scroll area shrink below that when the dialog itself is shorter than the
-            // ceiling — a single-column list on a phone, say — so the cards scroll within the space
-            // there is rather than overflowing the dialog.
+            // [_ocptCardChoiceMaxHeight] is a ceiling for a roomy dialog; wrapping it in a
+            // [Flexible] lets the scroll area shrink below that when the dialog itself is shorter
+            // than the ceiling — a single-column list on a phone, say — so the cards scroll within
+            // the space there is rather than overflowing the dialog.
             Flexible(
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxHeight: _ocptCardChoiceMaxHeight),

@@ -377,7 +377,8 @@ class OcptBudgetFinancingPlanPdfService {
     ),
   );
 
-  /// A right-aligned `<label>: <text>` line — a group's own subtotal, or the plan's own grand total.
+  /// A right-aligned `<label>: <text>` line — a group's own subtotal, or the plan's own grand
+  /// total.
   pw.Widget _totalRow({
     required OcptScriptPagePainter painter,
     required String label,

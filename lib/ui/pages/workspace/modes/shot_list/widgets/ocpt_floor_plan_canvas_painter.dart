@@ -614,13 +614,13 @@ class OcptFloorPlanCanvasPainter extends CustomPainter {
     }
   }
 
-  /// A camera's own body, lens, its own derived [cameraLabel] as a filled pill attached to its
-  /// back edge (drawn after the body/lens, opposite the lens' own "forward" direction) and, while
-  /// [fovWedgeDeg] is set, its field-of-view wedge — a cone [fovWedgeReachM] **deep** (its own axial
-  /// height, falling back to [ocptFloorPlanCameraFovWedgeLengthM] when null), spanning [fovWedgeDeg]
-  /// at that fixed depth (its far chord's own half-width is `depth * tan(halfAngle)`, so widening
-  /// the angle never pulls the far side closer), pointing local "up" (the camera's own heading, see
-  /// [_paintCharacterGlyph]'s own doc comment for the shared bearing convention).
+  /// A camera's own body, lens, its own derived [cameraLabel] as a filled pill attached to its back
+  /// edge (drawn after the body/lens, opposite the lens' own "forward" direction) and, while
+  /// [fovWedgeDeg] is set, its field-of-view wedge — a cone [fovWedgeReachM] **deep** (its own
+  /// axial height, falling back to [ocptFloorPlanCameraFovWedgeLengthM] when null), spanning
+  /// [fovWedgeDeg] at that fixed depth (its far chord's own half-width is `depth * tan(halfAngle)`,
+  /// so widening the angle never pulls the far side closer), pointing local "up" (the camera's own
+  /// heading, see [_paintCharacterGlyph]'s own doc comment for the shared bearing convention).
   void _paintCameraGlyph(
     Canvas canvas,
     Rect rect,
@@ -682,10 +682,11 @@ class OcptFloorPlanCanvasPainter extends CustomPainter {
     }
   }
 
-  /// The camera's own derived [cameraLabel] (`3A`), as a filled pill near/behind its body — anchored
-  /// on the back edge (the "down"/local `+y` side, opposite the lens), drawn wider than the body so
-  /// it reads as a badge the camera sits on rather than a caption competing with `_paintLabel`'s own
-  /// below-symbol placement (skipped for a camera whose label this pill already draws).
+  /// The camera's own derived [cameraLabel] (`3A`), as a filled pill near/behind its body —
+  /// anchored on the back edge (the "down"/local `+y` side, opposite the lens), drawn wider than
+  /// the body so it reads as a badge the camera sits on rather than a caption competing with
+  /// `_paintLabel`'s own below-symbol placement (skipped for a camera whose label this pill already
+  /// draws).
   void _paintCameraLabelPill(
     Canvas canvas,
     Rect rect,
@@ -836,11 +837,10 @@ class OcptFloorPlanCanvasPainter extends CustomPainter {
     }
   }
 
-  /// A live, visible scene-scope override's own marking: a
-  /// dashed outline just outside [rect] (already in the symbol's own rotated local frame, like the
-  /// glyph itself) and a small filled pin badge at its top-right corner — the one visual cue telling
-  /// a re-dressed set element apart from the set's own original, on a set shared by two or more
-  /// sequences.
+  /// A live, visible scene-scope override's own marking: a dashed outline just outside [rect]
+  /// (already in the symbol's own rotated local frame, like the glyph itself) and a small filled
+  /// pin badge at its top-right corner — the one visual cue telling a re-dressed set element apart
+  /// from the set's own original, on a set shared by two or more sequences.
   void _paintOverrideMarking(Canvas canvas, Rect rect, Color accentColor) {
     canvas.drawPath(
       _dashedPathOf(Path()..addRect(rect.inflate(3))),

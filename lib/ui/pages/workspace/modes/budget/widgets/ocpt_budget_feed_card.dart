@@ -12,8 +12,8 @@ import 'package:open_cine_prod_tools/generated/l10n.dart';
 ///
 /// **Each callback is nullable, and a null one withholds its own row whole** — the app's standing
 /// "withheld, not disabled" rule, applied here to a row rather than a whole control: the
-/// catering-and-travel pass draws this very card at its own top, and a click through to itself would
-/// be a link to the page the reader is already standing on, so it passes null for
+/// catering-and-travel pass draws this very card at its own top, and a click through to itself
+/// would be a link to the page the reader is already standing on, so it passes null for
 /// [onCateringFeedRequested] rather than drawing a row that does nothing.
 ///
 /// **The unpriced-elements count read by [_OcptFeedCardRow]'s own breakdown row is deliberately not
@@ -107,8 +107,8 @@ class OcptBudgetFeedCard extends StatelessWidget {
   }
 }
 
-/// One row of [OcptBudgetFeedCard]: a title, a one-line reading, and a `›` chevron hinting the whole
-/// row is a click through to wherever [readOut] was typed.
+/// One row of [OcptBudgetFeedCard]: a title, a one-line reading, and a `›` chevron hinting the
+/// whole row is a click through to wherever [readOut] was typed.
 class _OcptFeedCardRow extends StatelessWidget {
   /// The row's own title.
   final String title;

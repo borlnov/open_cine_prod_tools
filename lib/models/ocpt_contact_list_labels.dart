@@ -10,13 +10,13 @@ import 'package:open_cine_prod_tools/types/ocpt_crew_department.dart';
 /// `OcptContactListPdfService` runs in the manager layer, where there is no `BuildContext` and
 /// therefore no `Tr`: the same reason `OcptBreakdownSheetsLabels` and `OcptResourcesXlsxLabels`
 /// already exist for the two exports before it. The UI builds this once through
-/// `ocptContactListLabelsOf`, which reuses the very `ocptCrewDepartmentLabel`/`ocptCrewPositionLabel`
-/// helpers the resources mode's own person sheet calls, so a printed department or position can
-/// never read differently from the screen.
+/// `ocptContactListLabelsOf`, which reuses the very
+/// `ocptCrewDepartmentLabel`/`ocptCrewPositionLabel` helpers the resources mode's own person sheet
+/// calls, so a printed department or position can never read differently from the screen.
 ///
 /// Every accessor returns an empty string for a key it holds nothing for, exactly as
-/// `OcptResourcesXlsxLabels`'s own accessors do: a missing translation prints as a blank rather than
-/// as a crash on a document a whole crew is waiting for.
+/// `OcptResourcesXlsxLabels`'s own accessors do: a missing translation prints as a blank rather
+/// than as a crash on a document a whole crew is waiting for.
 class OcptContactListLabels extends Equatable {
   /// The suffix the suggested file name is built with (`<project> - <suffix>.pdf`).
   final String fileNameSuffix;

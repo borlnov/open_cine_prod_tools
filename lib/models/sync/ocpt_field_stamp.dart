@@ -11,24 +11,25 @@ import 'package:equatable/equatable.dart';
 /// synchronised table's row, one of its columns, the value that column held when this stamp was
 /// generated, and the `row_field_versions` version/device pair that write was recorded under.
 ///
-/// This is the app's own domain shape for what `docs/adr/0010-sync-ready-data-model-prerequisites.md`
-/// calls a per-column version stamp — deliberately kept out of `packages/ocpt_sync_protocol`, which
-/// stays domain-blind and never learns a table or column name
+/// This is the app's own domain shape for what
+/// `docs/adr/0010-sync-ready-data-model-prerequisites.md` calls a per-column version stamp —
+/// deliberately kept out of `packages/ocpt_sync_protocol`, which stays domain-blind and never
+/// learns a table or column name
 /// (`docs/adr/0009-offline-first-sync-through-a-domain-blind-relay.md`). An `OcptChangeset` made of
 /// these is what a device serialises into an `OcptChangesetEnvelope.payload`, opaque to that
 /// protocol package and meaningful only here.
 ///
 /// [value] is [tableName]'s row's own **raw SQL cell value** for [columnName] — read straight off a
 /// `QueryRow`, never through a drift data class's `toJson()` — so it is always one of `int`,
-/// `double`, `String`, `bool` (SQLite's own boolean-as-integer, already an `int` by the time it gets
-/// here), `Uint8List` (a `BLOB` column) or `null`, whatever `columnName`'s declared Dart type or
-/// `TypeConverter` says: a `TypeConverter`-backed enum column's raw value is the plain `String` its
-/// converter's own `toSql` writes, and a `DateTime` column's is the ISO-8601 text
-/// `storeDateTimeAsText` stores it as — carried opaquely, never re-interpreted as a `DateTime` or run
-/// back through a converter, by anything in the changeset engine. This is what closes the gap the
-/// Dart-side `toJson()` representation used to open: an enum instance or another non-JSON
-/// `TypeConverter` result can never reach [toJson] in the first place, because [value] is never that
-/// Dart-converted form to begin with.
+/// `double`, `String`, `bool` (SQLite's own boolean-as-integer, already an `int` by the time it
+/// gets here), `Uint8List` (a `BLOB` column) or `null`, whatever `columnName`'s declared Dart type
+/// or `TypeConverter` says: a `TypeConverter`-backed enum column's raw value is the plain `String`
+/// its converter's own `toSql` writes, and a `DateTime` column's is the ISO-8601 text
+/// `storeDateTimeAsText` stores it as — carried opaquely, never re-interpreted as a `DateTime` or
+/// run back through a converter, by anything in the changeset engine. This is what closes the gap
+/// the Dart-side `toJson()` representation used to open: an enum instance or another non-JSON
+/// `TypeConverter` result can never reach [toJson] in the first place, because [value] is never
+/// that Dart-converted form to begin with.
 class OcptFieldStamp extends Equatable {
   static const _tableNameKey = 'tableName';
   static const _rowIdKey = 'rowId';

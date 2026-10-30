@@ -11,8 +11,8 @@ import 'package:equatable/equatable.dart';
 /// *Day Out of Days* also carries, `T` (travel) and `R` (rehearsal), are deliberately absent: no
 /// field of this app says either, and the one column that could once have carried travel was the
 /// presence override schema v17 dropped. Printing a `T` nobody entered would be this app inventing
-/// a paid day; if a production ever needs one, it comes back as a **typed** fact with a table of its
-/// own, never as a code guessed here.
+/// a paid day; if a production ever needs one, it comes back as a **typed** fact with a table of
+/// its own, never as a code guessed here.
 enum OcptDayOutOfDaysCode {
   /// The role's own **first** convoked day of the printed range, and not also its last (`SW`).
   startWork,
@@ -58,8 +58,8 @@ class OcptDayOutOfDaysDay {
 /// One role's own row of the table: its code on each day it has one, and the two counts a printed
 /// row trails.
 ///
-/// [codeByDayId] holds an entry **only inside the role's own span** — from its first convoked day of
-/// the printed range to its last, inclusive. A day before the first or after the last carries no
+/// [codeByDayId] holds an entry **only inside the role's own span** — from its first convoked day
+/// of the printed range to its last, inclusive. A day before the first or after the last carries no
 /// entry at all rather than a code meaning "not working": the role is simply not on this shoot yet,
 /// or no longer is, and a mark there would be a claim about days the production has not committed.
 class OcptDayOutOfDaysRow extends Equatable {
@@ -108,8 +108,8 @@ class OcptDayOutOfDaysRow extends Equatable {
 /// reason — every rule lives here, where it is tested against exact cells, and the PDF service that
 /// consumes it is left with nothing but drawing and ordering.
 ///
-/// **The order of [dayIds] is the caller's**, and it is what the whole reading rests on: "first" and
-/// "last" mean first and last *in that order*, so a caller handing the days in anything but
+/// **The order of [dayIds] is the caller's**, and it is what the whole reading rests on: "first"
+/// and "last" mean first and last *in that order*, so a caller handing the days in anything but
 /// chronological order gets a table about that other order rather than a wrong one. The schedule
 /// mode ranks its days by date (`OcptShootingDay.dayNumber` is a read-time rank over exactly that
 /// order), so the printed document reads chronologically without this file ever learning what a
@@ -156,14 +156,14 @@ class OcptDayOutOfDaysTable extends Equatable {
 /// **A role convoked on no day of [days] gets no row at all.** Its row would be blank from end to
 /// end, indistinguishable from a role whose span simply holds no hold day, and it would push the
 /// rows a reader is actually looking for off the page — a screenplay reconciles a speaking role for
-/// every character that opens its mouth, most of which a given week never calls. That a cast role is
-/// scheduled nowhere is a real thing to notice, and it is noticed in the app, where
+/// every character that opens its mouth, most of which a given week never calls. That a cast role
+/// is scheduled nowhere is a real thing to notice, and it is noticed in the app, where
 /// `OcptScheduleRoleNotConvokedAlert` and the `Convocations` panel say it against the day it
 /// concerns; a column of blanks on a printed grid is not where anybody would find it.
 ///
 /// A [roleIds] entry repeated by the caller yields one row, the first occurrence's own position
-/// keeping its place: the rows are keyed by role, and two rows about one part would each claim to be
-/// its whole schedule.
+/// keeping its place: the rows are keyed by role, and two rows about one part would each claim to
+/// be its whole schedule.
 OcptDayOutOfDaysTable ocptComputeDayOutOfDays({
   required List<OcptDayOutOfDaysDay> days,
   required List<String> roleIds,

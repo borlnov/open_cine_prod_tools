@@ -33,11 +33,11 @@ import 'package:uuid/uuid.dart';
 ///
 /// The exactness of the name match matters beyond this service: [reconcile] matches against
 /// `screenplayCharactersOf`'s own normalisation (`fountain_kit`, trimmed/collapsed/upper-cased) —
-/// the same normalisation `speakingCharactersOf` applies to a cue and `charactersIntroducedInActionOf`
-/// to a name standing in the action, the same normalisation `OcptShotListService`'s
-/// `attachCharacter` applies to a shot's characters and `FountainScriptStatistics` applies to its
-/// speaking-character count — a role, a shot character and a statistic must never disagree about
-/// whether two cues are the same person.
+/// the same normalisation `speakingCharactersOf` applies to a cue and
+/// `charactersIntroducedInActionOf` to a name standing in the action, the same normalisation
+/// `OcptShotListService`'s `attachCharacter` applies to a shot's characters and
+/// `FountainScriptStatistics` applies to its speaking-character count — a role, a shot character
+/// and a statistic must never disagree about whether two cues are the same person.
 ///
 /// A live, `isFromScreenplay` role's two origins — cued, or only ever read out of the action — are
 /// told apart by [ocptRoleIsActionDetected] (`lib/utils/`) over its own `isFromScreenplay` and
@@ -607,8 +607,8 @@ class OcptRoleIndexService {
   /// never decides which of the two survives. "The reconciled speaking role wins" (decision 3) is
   /// the **caller's** rule — the caller picks which id is [targetRoleId] before calling this, so
   /// that when one of the two roles is a live, `isFromScreenplay` one, it is passed as
-  /// [targetRoleId] and stays owned by [reconcile]. A no-op if [sourceRoleId] equals [targetRoleId],
-  /// or if either role is missing or already tombstoned.
+  /// [targetRoleId] and stays owned by [reconcile]. A no-op if [sourceRoleId] equals
+  /// [targetRoleId], or if either role is missing or already tombstoned.
   ///
   /// What moves, table by table:
   /// - `shot_characters` (`{shotId, roleId}` primary key): every live row naming *source* is
@@ -619,11 +619,11 @@ class OcptRoleIndexService {
   /// - `shooting_slot_cast` (own-id primary key, `roleId` an ordinary column): a live row naming
   ///   *source* has its `roleId` updated to *target* in place, unless that slot already convokes
   ///   *target* live, in which case *source*'s row is tombstoned instead — a convocation must never
-  ///   be lost to the merge, which is the one thing that sets this cascade apart from [deleteRole]'s
-  ///   (decision 3's own contrast with decision 5).
+  ///   be lost to the merge, which is the one thing that sets this cascade apart from
+  ///   [deleteRole]'s (decision 3's own contrast with decision 5).
   /// - `breakdown_tags` (own-id primary key, `roleId` a nullable column): every live tag naming
-  ///   *source* has its `roleId` updated to *target*. Tags never dedupe against each other — each is
-  ///   its own passage of the screenplay — so every one of them simply moves.
+  ///   *source* has its `roleId` updated to *target*. Tags never dedupe against each other — each
+  ///   is its own passage of the screenplay — so every one of them simply moves.
   /// - `role_elements` / `role_candidates` / `role_episodes` (own-id primary keys, `roleId` an
   ///   ordinary column on each): a live link naming *source* is re-pointed to *target* by updating
   ///   its `roleId`, unless *target* already has the equivalent link (same `elementId`, same
@@ -870,8 +870,8 @@ class OcptRoleIndexService {
 
   /// Tombstones role [roleId], the `shot_characters` rows and the `breakdown_tags` rows naming it
   /// (decision 5), the `role_elements` links naming it, the `role_candidates` rows naming it and
-  /// every `role_episodes` link it carries: the removed-role banner's "delete" action, and the plain
-  /// way to remove a hand-added role.
+  /// every `role_episodes` link it carries: the removed-role banner's "delete" action, and the
+  /// plain way to remove a hand-added role.
   ///
   /// The links go with it for the reason `OcptElementsService.deleteElement` takes its own along:
   /// nothing can reach a link whose role is gone any more, which makes it an orphan rather than
@@ -883,9 +883,9 @@ class OcptRoleIndexService {
   /// shot of that character rather than deleting the shot.
   ///
   /// **`shooting_slot_cast` is deliberately left untouched** — decision 5's own scope: unlike
-  /// [mergeRole], which must not drop a convocation, a deletion is the user saying the part is gone,
-  /// and the convocation naming an uncast (or now-gone) role is reported by a schedule-side alert
-  /// rather than silently removed here.
+  /// [mergeRole], which must not drop a convocation, a deletion is the user saying the part is
+  /// gone, and the convocation naming an uncast (or now-gone) role is reported by a schedule-side
+  /// alert rather than silently removed here.
   ///
   /// {@macro open_cine_prod_tools.tombstones}
   ///
@@ -1067,8 +1067,8 @@ class OcptRoleIndexService {
   /// banner's choice to delete or keep the role — an episode being deleted outright asks nothing,
   /// because there is no screenplay left to have stopped naming the role.
   ///
-  /// **Unguarded**, exactly as [OcptElementsService.tombstoneRoleLinksOfRole] is: its only caller has
-  /// already refused the write on a preview connection and is already inside the transaction
+  /// **Unguarded**, exactly as [OcptElementsService.tombstoneRoleLinksOfRole] is: its only caller
+  /// has already refused the write on a preview connection and is already inside the transaction
   /// removing the episode, so a second guard here would only be able to disagree with the first.
   /// Stamps through [stamps] — that caller's own instance — rather than resolving a device id of
   /// its own.

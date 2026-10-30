@@ -140,11 +140,11 @@ Color ocptScheduleDayLocationTint(BuildContext context, OcptLocation? location) 
   return Color(ocptCoverageColorAt(location.colorIndex));
 }
 
-/// The colour a day (or a week/month cell) is tinted with under [OcptScheduleAgendaColorMode.effect]
-/// — [ocptScheduleEffectColorOf] applied to [category], or the same neutral `outlineVariant`
-/// [ocptScheduleDayLocationTint] falls back to while [category] is null: a day with nothing placed,
-/// or whose placed shots carry nothing classifiable (`ocptSceneEffectCategoryOf`), has nothing to
-/// say either way.
+/// The colour a day (or a week/month cell) is tinted with under
+/// [OcptScheduleAgendaColorMode.effect] — [ocptScheduleEffectColorOf] applied to [category], or the
+/// same neutral `outlineVariant` [ocptScheduleDayLocationTint] falls back to while [category] is
+/// null: a day with nothing placed, or whose placed shots carry nothing classifiable
+/// (`ocptSceneEffectCategoryOf`), has nothing to say either way.
 Color ocptScheduleDayEffectTint(BuildContext context, OcptSceneEffectCategory? category) {
   if (category == null) {
     return Theme.of(context).colorScheme.outlineVariant;
@@ -289,8 +289,8 @@ String ocptScheduleConvocationBandLabel(OcptDayConvocation convocation) {
 /// four readings, only which one applies. No suffix marks a guest's or a candidate's title: the
 /// panel groups each under its own trailing heading instead of decorating every row.
 ///
-/// **A candidate is titled by their name and nothing else**, exactly like everybody else: they are a
-/// person, one card holds their whole day, and somebody seen for two parts has no single part a
+/// **A candidate is titled by their name and nothing else**, exactly like everybody else: they are
+/// a person, one card holds their whole day, and somebody seen for two parts has no single part a
 /// title could name. Which part each of their auditions is for is on that audition's own timetable
 /// row, and on the printed candidates directory beside their phone number.
 ///
@@ -365,9 +365,9 @@ String ocptScheduleDirectorNameOf(List<OcptPerson> people) {
 }
 
 /// The `directorLine` both `OcptCallSheetLabels` and `OcptShootingPlanLabels` carry:
-/// [Tr.scheduleExportDirectorLine] naming whoever [ocptScheduleDirectorNameOf] finds among [people],
-/// or an empty string while nobody holds the position yet — the manager-layer PDF services print
-/// nothing rather than a guess (both classes' own `directorLine` doc comments).
+/// [Tr.scheduleExportDirectorLine] naming whoever [ocptScheduleDirectorNameOf] finds among
+/// [people], or an empty string while nobody holds the position yet — the manager-layer PDF
+/// services print nothing rather than a guess (both classes' own `directorLine` doc comments).
 String ocptScheduleDirectorLineOf(Tr tr, List<OcptPerson> people) {
   final name = ocptScheduleDirectorNameOf(people);
   return name.isEmpty ? "" : tr.scheduleExportDirectorLine(name);
@@ -713,11 +713,11 @@ OcptOneLineScheduleLabels ocptOneLineScheduleLabelsOf(
 /// by day id. A null [day] — a selection naming a day the mode no longer holds — leaves that title
 /// empty, which the running head prints as its own document title alone.
 ///
-/// [episodes] is resolved into [OcptSidesLabels.episodeLabels] through [ocptWorkspaceEpisodeLabelOf]
-/// — one entry per episode while [episodes] holds more than one ([ocptEpisodePrefixNumberOf] is
-/// what already runs that test for every other export of this app, reused here rather than
-/// restated), and an empty map on a single-episode project, so the booklet names no episode
-/// anywhere (ADR 0019).
+/// [episodes] is resolved into [OcptSidesLabels.episodeLabels] through
+/// [ocptWorkspaceEpisodeLabelOf] — one entry per episode while [episodes] holds more than one
+/// ([ocptEpisodePrefixNumberOf] is what already runs that test for every other export of this app,
+/// reused here rather than restated), and an empty map on a single-episode project, so the booklet
+/// names no episode anywhere (ADR 0019).
 OcptSidesLabels ocptSidesLabelsOf(
   BuildContext context, {
   required OcptShootingDay? day,
@@ -776,7 +776,8 @@ String ocptScheduleAlertKindLabel(Tr tr, OcptScheduleAlertKind kind) => switch (
 /// practice ([alert] and the maps are built from the very same snapshot), but a sentence must never
 /// go blank over it. [slotById] and [blockById] are keyed across the **whole schedule**, not one
 /// day, since an alert's own [OcptScheduleAlert.dayId] is read separately by the caller (the day
-/// control beside the sentence) — this function only ever resolves the ids the alert itself carries.
+/// control beside the sentence) — this function only ever resolves the ids the alert itself
+/// carries.
 String ocptScheduleAlertSentence(
   Tr tr,
   OcptScheduleAlert alert, {
@@ -872,11 +873,11 @@ String _ocptScheduleAlertLocationNameOf(
 
 /// [block]'s own readable identity for the timeline-overrun sentence: a shot block reads as its own
 /// shot's code (falling back to the block kind's own label while the shot itself doesn't resolve),
-/// any other kind reads as its own free-text label (falling back to the block kind's own label while
-/// that is empty) — mirroring how a timetable row itself reads a block (`OcptScheduleTimetable`). An
-/// em dash while [block] itself doesn't resolve, which should not happen in practice (an alert is
-/// computed against the very snapshot the caller's own map is keyed from) but must still read as
-/// something.
+/// any other kind reads as its own free-text label (falling back to the block kind's own label
+/// while that is empty) — mirroring how a timetable row itself reads a block
+/// (`OcptScheduleTimetable`). An em dash while [block] itself doesn't resolve, which should not
+/// happen in practice (an alert is computed against the very snapshot the caller's own map is keyed
+/// from) but must still read as something.
 String _ocptScheduleAlertBlockLabelOf(
   Tr tr,
   OcptShootingDayBlock? block,

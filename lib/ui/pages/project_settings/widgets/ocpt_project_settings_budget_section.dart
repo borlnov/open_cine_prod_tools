@@ -249,12 +249,13 @@ class _OcptProjectSettingsVatRateFieldState extends State<_OcptProjectSettingsVa
 
 /// One of the card's two money fields (meal price, buffet price): typed and read back through
 /// [ocptCostTextOf]/[ocptCostCentsOf], committed on submit or focus loss —
-/// `_OcptProjectSettingsMinimumRestField`'s own idiom, with an **empty** submission a legal clearing
-/// gesture exactly as that field's own is, since neither price has a `0` reading to be confused
-/// with "not recorded" the way the VAT rate does.
+/// `_OcptProjectSettingsMinimumRestField`'s own idiom, with an **empty** submission a legal
+/// clearing gesture exactly as that field's own is, since neither price has a `0` reading to be
+/// confused with "not recorded" the way the VAT rate does.
 ///
-/// The currency symbol is worn as the field's own `suffixText`, `OcptElementSheetSourcingCard`'s own
-/// reasoning for its cost field: what a committed field holds is always something it accepts back.
+/// The currency symbol is worn as the field's own `suffixText`, `OcptElementSheetSourcingCard`'s
+/// own reasoning for its cost field: what a committed field holds is always something it accepts
+/// back.
 class _OcptProjectSettingsBudgetMoneyField extends StatefulWidget {
   /// The project's current price, in cents, or null while unset.
   final int? cents;
@@ -281,8 +282,8 @@ class _OcptProjectSettingsBudgetMoneyField extends StatefulWidget {
 /// commit-on-submit-or-focus-loss idiom.
 class _OcptProjectSettingsBudgetMoneyFieldState
     extends State<_OcptProjectSettingsBudgetMoneyField> {
-  /// The field's own text controller, seeded from [_OcptProjectSettingsBudgetMoneyField.cents]'s own
-  /// formatted reading.
+  /// The field's own text controller, seeded from [_OcptProjectSettingsBudgetMoneyField.cents]'s
+  /// own formatted reading.
   late final TextEditingController _controller = TextEditingController(text: _formatted);
 
   /// The field's own focus node, committing the moment it loses focus.

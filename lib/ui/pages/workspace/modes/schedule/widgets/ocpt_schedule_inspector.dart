@@ -648,9 +648,9 @@ class _OcptScheduleNoteFieldState extends State<_OcptScheduleNoteField> {
 /// in steps of five.
 ///
 /// Follows [_OcptScheduleNoteField]'s own controller-sync idiom ([blockId] resets the controller,
-/// never mid-typing) and `OcptScheduleMinuteField`'s own commit-on-submit-or-focus-loss idiom, guarded
-/// by [_OcptScheduleBlockDurationFieldState._lastReportedDurationMinutes] against the double commit
-/// a submission's own focus loss would otherwise cause.
+/// never mid-typing) and `OcptScheduleMinuteField`'s own commit-on-submit-or-focus-loss idiom,
+/// guarded by [_OcptScheduleBlockDurationFieldState._lastReportedDurationMinutes] against the
+/// double commit a submission's own focus loss would otherwise cause.
 ///
 /// [durationMinutes] is the block's own **resolved** duration — the same figure the timetable's own
 /// row prints (a shot block with no `durationMinutes` column of its own falls back to its shot's
@@ -685,7 +685,8 @@ class _OcptScheduleBlockDurationField extends StatefulWidget {
 /// The state of [_OcptScheduleBlockDurationField]: owns the controller and the focus-loss commit
 /// the class doc comment explains.
 class _OcptScheduleBlockDurationFieldState extends State<_OcptScheduleBlockDurationField> {
-  /// The field's own text controller, seeded from [_OcptScheduleBlockDurationField.durationMinutes].
+  /// The field's own text controller, seeded from
+  /// [_OcptScheduleBlockDurationField.durationMinutes].
   late final TextEditingController _controller = TextEditingController(
     text: "${widget.durationMinutes}",
   );

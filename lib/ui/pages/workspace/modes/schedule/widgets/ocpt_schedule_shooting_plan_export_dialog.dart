@@ -25,8 +25,8 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/o
 /// Use [show] to display it and get back the resulting [OcptShootingPlanExportOptions], or null if
 /// the user cancelled.
 class OcptScheduleShootingPlanExportDialog extends StatefulWidget {
-  /// The page setup the three PDF exports are typeset with, used to pre-fill the format dropdown and
-  /// to supply the margins carried through unchanged into the resulting options.
+  /// The page setup the three PDF exports are typeset with, used to pre-fill the format dropdown
+  /// and to supply the margins carried through unchanged into the resulting options.
   final OcptPageSetup current;
 
   /// Every live shooting day, offered by [OcptScheduleDaySelectionList].

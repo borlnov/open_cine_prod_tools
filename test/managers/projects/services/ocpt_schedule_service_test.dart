@@ -927,7 +927,8 @@ void main() {
         final slotId = (await readLiveSlots(dayId)).single.id;
         final shotId = await createShot("shot-1");
 
-        // A shot interrupted by the meal break and resumed after it: two blocks, same slot, same day.
+        // A shot interrupted by the meal break and resumed after it: two blocks, same slot, same
+        // day.
         final firstBlockId = (await scheduleService.placeShot(
           database: database,
           slotId: slotId,

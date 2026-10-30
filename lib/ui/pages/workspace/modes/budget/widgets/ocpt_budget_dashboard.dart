@@ -306,10 +306,10 @@ class _OcptDashboardTile extends StatelessWidget {
 ///
 /// Whenever `balance.needs` is not [OcptBudgetCoveredTotal.isComplete], the needs figure prints the
 /// very same idiom `OcptBudgetCostTracking`'s own total row already prints in place of a plain
-/// amount — `tr.budgetDashboardBalanceCoverageReadOut` mirrors `tr.budgetCostTrackingCoverageReadOut`
-/// exactly, minted under its own key for the same reason `OcptBudgetRegie`'s own two coverage
-/// read-outs are: this total counts quote *lines*, not postes, the noun the cost-tracking table's
-/// own string names.
+/// amount — `tr.budgetDashboardBalanceCoverageReadOut` mirrors
+/// `tr.budgetCostTrackingCoverageReadOut` exactly, minted under its own key for the same reason
+/// `OcptBudgetRegie`'s own two coverage read-outs are: this total counts quote *lines*, not postes,
+/// the noun the cost-tracking table's own string names.
 ///
 /// **A quote with no line at all is not a quote this bar can say anything about.** A plain
 /// `resources >= needs` reading would answer "balanced" for a project that has recorded nothing,
@@ -586,11 +586,11 @@ class _OcptDashboardAlertRow extends StatelessWidget {
         padding: const EdgeInsets.symmetric(vertical: 8, horizontal: ocptTableRowHorizontalPadding),
         child: Row(
           // **The message wraps rather than truncating**, and the badge and the amount align to its
-          // first line. Every other row in this mode clips a cell to one line because the reader can
-          // widen the column or open the fiche to see the rest; an alert has neither, and its
-          // sentence *is* the whole of what it says — an ellipsis in the middle of "6 840,00 paid or
-          // committed against a 6 200,00 quote" would leave exactly the figure that raised the alert
-          // off screen, on a page built to be read at a glance.
+          // first line. Every other row in this mode clips a cell to one line because the reader
+          // can widen the column or open the fiche to see the rest; an alert has neither, and its
+          // sentence *is* the whole of what it says — an ellipsis in the middle of "6 840,00 paid
+          // or committed against a 6 200,00 quote" would leave exactly the figure that raised the
+          // alert off screen, on a page built to be read at a glance.
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _OcptDashboardAlertBadge(text: badge, color: color),

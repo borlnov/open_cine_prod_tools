@@ -496,8 +496,8 @@ class OcptShotListService {
   }
 
   /// Attaches role [roleId] to shot [shotId], appended after its current characters. Does nothing
-  /// if the shot already has it, if [shotId] doesn't name a live shot, or if [roleId] doesn't name a
-  /// live role.
+  /// if the shot already has it, if [shotId] doesn't name a live shot, or if [roleId] doesn't name
+  /// a live role.
   ///
   /// A shot's characters are the production's `roles`
   /// (`docs/adr/0030-a-shots-characters-are-the-productions-roles.md`), and `shot_characters` is
@@ -569,8 +569,8 @@ class OcptShotListService {
   }
 
   /// Detaches role [roleId] from shot [shotId]. Does nothing if it isn't attached — this never
-  /// creates a role, unlike [attachCharacter]: there is nothing left to detach from one that doesn't
-  /// exist.
+  /// creates a role, unlike [attachCharacter]: there is nothing left to detach from one that
+  /// doesn't exist.
   ///
   /// {@macro open_cine_prod_tools.tombstones}
   ///
@@ -694,8 +694,8 @@ class OcptShotListService {
   /// tombstoned: `OcptScreenplayService.deleteEpisode`'s cascade, which needs those ids to also
   /// tombstone whatever a schedule block placed of one of them.
   ///
-  /// **Unguarded**, exactly as `OcptElementsService.tombstoneRoleLinksOfRole` is: its only caller has
-  /// already refused the write on a preview connection and is already inside the transaction
+  /// **Unguarded**, exactly as `OcptElementsService.tombstoneRoleLinksOfRole` is: its only caller
+  /// has already refused the write on a preview connection and is already inside the transaction
   /// removing the episode, so a second guard here would only be able to disagree with the first —
   /// and stamps through [stamps], that caller's own instance, for the same reason
   /// [detachShotsFromDeletedScenes] does.
@@ -942,10 +942,10 @@ class OcptShotListService {
   /// Resolves [name] (normalised through `fountain_kit`'s `normalizeCharacterName`) to a live
   /// role's id in [database], or **creates** a hand-added silent role linked to [screenplayId]
   /// through [roleIndexService] when none exists
-  /// (`docs/adr/0030-a-shots-characters-are-the-productions-roles.md`, decision 1) — the resolve-or-
-  /// create path the shot list's own add-character affordance calls before [attachCharacter], now
-  /// that [attachCharacter] itself is roleId-native (the resolution lives in the caller, not in the
-  /// service).
+  /// (`docs/adr/0030-a-shots-characters-are-the-productions-roles.md`, decision 1) — the
+  /// resolve-or- create path the shot list's own add-character affordance calls before
+  /// [attachCharacter], now that [attachCharacter] itself is roleId-native (the resolution lives in
+  /// the caller, not in the service).
   ///
   /// The first in `sortKey` order wins on the rare chance more than one live role shares a name —
   /// the same deterministic tie-break `OcptRoleIndexService.reconcile` and the schema v3 migration
@@ -953,8 +953,8 @@ class OcptShotListService {
   ///
   /// Opens no transaction of its own: [OcptRoleIndexService.addRole] opens one when it actually
   /// mints a role, which simply runs as part of whichever transaction the caller is already inside
-  /// (`ConnectionUser.transaction`'s own doc comment on nested transactions) — or on its own when the
-  /// caller isn't inside one, exactly as reading is always safe to do outside a transaction.
+  /// (`ConnectionUser.transaction`'s own doc comment on nested transactions) — or on its own when
+  /// the caller isn't inside one, exactly as reading is always safe to do outside a transaction.
   ///
   /// Returns null only if creating a fresh role is refused for having been handed a preview
   /// connection.

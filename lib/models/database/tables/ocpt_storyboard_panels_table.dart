@@ -14,8 +14,8 @@ import 'package:open_cine_prod_tools/models/database/tables/ocpt_shots_table.dar
 ///
 /// [imageAssetId] is nullable so a panel **outlives its image**: replacing it tombstones the old
 /// `assets` row, mints a new one and re-points this column, while the panel's own [id] — what its
-/// `storyboard_annotations` and a version payload refer to — never changes. The panel's rank (`1/2`,
-/// `2/2` on the board) is a read-time count off [sortKey], exactly as a shot's own code is.
+/// `storyboard_annotations` and a version payload refer to — never changes. The panel's rank
+/// (`1/2`, `2/2` on the board) is a read-time count off [sortKey], exactly as a shot's own code is.
 @DataClassName('OcptStoryboardPanelRow')
 class OcptStoryboardPanelsTable extends Table {
   /// {@macro open_cine_prod_tools.OcptStoryboardPanelsTable}

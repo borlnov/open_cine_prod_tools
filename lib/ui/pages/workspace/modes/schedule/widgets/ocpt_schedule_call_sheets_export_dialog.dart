@@ -27,8 +27,8 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/o
 /// through unchanged: this dialog never lets the user edit them. Use [show] to display it and get
 /// back the resulting [OcptCallSheetExportOptions], or null if the user cancelled.
 class OcptScheduleCallSheetsExportDialog extends StatefulWidget {
-  /// The page setup the three PDF exports are typeset with, used to pre-fill the format dropdown and
-  /// to supply the margins carried through unchanged into the resulting options.
+  /// The page setup the three PDF exports are typeset with, used to pre-fill the format dropdown
+  /// and to supply the margins carried through unchanged into the resulting options.
   final OcptPageSetup current;
 
   /// Every live shooting day, offered by [OcptScheduleDaySelectionList].
@@ -45,8 +45,8 @@ class OcptScheduleCallSheetsExportDialog extends StatefulWidget {
     super.key,
   });
 
-  /// Shows the dialog and returns the [OcptCallSheetExportOptions] the user applied, or null if they
-  /// cancelled it.
+  /// Shows the dialog and returns the [OcptCallSheetExportOptions] the user applied, or null if
+  /// they cancelled it.
   static Future<OcptCallSheetExportOptions?> show(
     BuildContext context, {
     required OcptPageSetup current,

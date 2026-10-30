@@ -15,9 +15,9 @@ import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart'
 /// gives the role's card the order it wants for free: the catalogue's own `sortKey` order, grouped
 /// by category at read time.
 ///
-/// `OcptSceneElementLink`'s sibling, minus the quantity: a role wears the coat or they do not, while
-/// a scene may need two glasses. The link's own id travels with it because that is what an update
-/// and a removal are addressed to.
+/// `OcptSceneElementLink`'s sibling, minus the quantity: a role wears the coat or they do not,
+/// while a scene may need two glasses. The link's own id travels with it because that is what an
+/// update and a removal are addressed to.
 class OcptRoleElementLink extends Equatable {
   /// The stable, unique id of this link (a UUID).
   final String id;

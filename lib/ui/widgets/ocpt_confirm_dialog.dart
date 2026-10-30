@@ -31,9 +31,9 @@ enum OcptConfirmDialogResult {
 ///
 /// One dialog for all of them, and a **dialog** rather than an inline yes/no: an action that cannot
 /// be undone must be answered the same way wherever it is asked from, so a user never has to work
-/// out whether *this* particular question is the kind that acts straight away. Use [show] to display
-/// it and get back whether the user confirmed; it is dismissed through `OcptRouterManager.pop`,
-/// never `Navigator`.
+/// out whether *this* particular question is the kind that acts straight away. Use [show] to
+/// display it and get back whether the user confirmed; it is dismissed through
+/// `OcptRouterManager.pop`, never `Navigator`.
 ///
 /// The caller owns every word of it ([title], [message], [cancelLabel], [confirmLabel]): what is
 /// about to happen, and what it costs, is the one thing this dialog cannot know. It also owns

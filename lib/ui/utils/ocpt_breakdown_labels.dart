@@ -58,8 +58,8 @@ Color ocptBreakdownSceneStatusColor(BuildContext context, OcptBreakdownSceneStat
 /// ([ocptElementCategoryLabel]), or the fixed role/set label for the other two kinds.
 ///
 /// The single switch every legend-keyed label reads off — the category legend's own rows
-/// (`OcptBreakdownCategoryLegend`) and a scene panel bar's tooltip ([ocptBreakdownSceneBarBucketLabel]
-/// below) alike — so a category's label is written once.
+/// (`OcptBreakdownCategoryLegend`) and a scene panel bar's tooltip
+/// ([ocptBreakdownSceneBarBucketLabel] below) alike — so a category's label is written once.
 String ocptBreakdownLegendKeyLabel(Tr tr, OcptBreakdownLegendKey key) => switch (key.$1) {
   OcptBreakdownTargetKind.element => ocptElementCategoryLabel(tr, key.$2!),
   OcptBreakdownTargetKind.role => tr.breakdownTargetKindRoleLabel,

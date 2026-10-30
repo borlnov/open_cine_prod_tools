@@ -80,8 +80,8 @@ OcptBudgetCoveredTotal ocptBudgetLineCommittedTotalOf(
 ///
 /// [ocptBudgetCommitmentPaidCentsOf] is read for each settled commitment, over [entries]; a
 /// commitment whose own reading is not itself complete — one of its own paying entries missing the
-/// rate it would need — leaves this total covered-but-incomplete rather than silently wrong, exactly
-/// as an unreadable rate does anywhere else in this mode.
+/// rate it would need — leaves this total covered-but-incomplete rather than silently wrong,
+/// exactly as an unreadable rate does anywhere else in this mode.
 OcptBudgetCoveredTotal ocptBudgetLinePaidTotalOf(
   List<OcptBudgetCommitment> lineCommitments, {
   required List<OcptBudgetEntry> entries,

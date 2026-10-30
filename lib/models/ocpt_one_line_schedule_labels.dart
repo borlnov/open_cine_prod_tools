@@ -38,8 +38,8 @@ class OcptOneLineScheduleLabels extends Equatable {
   /// own `ocptScheduleGeneratedAtStamp` behind.
   final String versionLabel;
 
-  /// The day tag's own letter (`D`/`J`), printed on each day band beside that day's rank, exactly as
-  /// `OcptShootingPlanLabels.dayTagPrefix` already is.
+  /// The day tag's own letter (`D`/`J`), printed on each day band beside that day's rank, exactly
+  /// as `OcptShootingPlanLabels.dayTagPrefix` already is.
   final String dayTagPrefix;
 
   /// Each printed day's own full title, keyed by `OcptShootingDay.id` — the day band's own second

@@ -68,8 +68,8 @@ import 'package:open_cine_prod_tools/utils/ocpt_cost_amount.dart';
 /// voucher keyed by the entry it evidences), the financing plan ([_budgetFinancingService]: every
 /// live resource and mileage rate), the catering-and-travel pass's own reads ([_scheduleService]'s
 /// schedule, [_roleIndexService]'s roles, [_peopleService]'s people and [_locationsService]'s
-/// locations — the last read only to name the decor a day shoots at, never carried on state itself),
-/// the breakdown's own elements catalogue ([_elementsService], read the same way
+/// locations — the last read only to name the decor a day shoots at, never carried on state
+/// itself), the breakdown's own elements catalogue ([_elementsService], read the same way
 /// `OcptScheduleBloc` already does, carried on state raw beside the roles and the people), and the
 /// project's currency, default VAT rate and meal/snack prices. It mixes in
 /// [MixinOcptProjectVersionsBloc], answering its two hooks through [flushPendingProjectWrites] and
@@ -519,11 +519,11 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
 
   /// The decor name `OcptBudgetRegie` prints under each shooting day: the name of the first set, or
   /// failing that the first location, that any of [days]' own [slotsByDayId] entries name, in slot
-  /// order — resolved out of [locations] (and their own live sets) alone. `lib/utils
-  /// /ocpt_budget_regie.dart`'s own pass reads no location or set at all, being pure arithmetic over
-  /// head counts, so this is a separate, purely presentational reading rather than a second
-  /// implementation of anything that file states. A day whose slots name neither carries no key
-  /// here, which the view reads as nothing rather than a placeholder.
+  /// order — resolved out of [locations] (and their own live sets) alone.
+  /// `lib/utils /ocpt_budget_regie.dart`'s own pass reads no location or set at all, being pure
+  /// arithmetic over head counts, so this is a separate, purely presentational reading rather than
+  /// a second implementation of anything that file states. A day whose slots name neither carries
+  /// no key here, which the view reads as nothing rather than a placeholder.
   Map<String, String> _regieDecorNameByDayId({
     required List<OcptShootingDay> days,
     required Map<String, List<OcptShootingSlot>> slotsByDayId,
@@ -845,8 +845,8 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
 
   /// Selects receipt `event.receiptId` — a sub-row of the resources tree — opening the right dock
   /// on the `Inspector` tab. Mirrors [_onEntrySelected] exactly: a receipt is the very same
-  /// `budget_entries` row read under a different name, so it is looked up in [OcptBudgetState.entries]
-  /// the same way. A receipt id naming no live entry is ignored.
+  /// `budget_entries` row read under a different name, so it is looked up in
+  /// [OcptBudgetState.entries] the same way. A receipt id naming no live entry is ignored.
   Future<void> _onReceiptSelected(
     OcptBudgetReceiptSelectedEvent event,
     Emitter<OcptBudgetState> emitter,
@@ -988,8 +988,8 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     await _applyBudgetSnapshot(emitter, project);
   }
 
-  /// Puts line `event.lineId`'s own VAT rate back to inheriting the project's default, immediately —
-  /// see `OcptBudgetLineVatRateInheritedRequestedEvent`'s own doc comment for why this is a
+  /// Puts line `event.lineId`'s own VAT rate back to inheriting the project's default, immediately
+  /// — see `OcptBudgetLineVatRateInheritedRequestedEvent`'s own doc comment for why this is a
   /// dedicated event rather than something an empty field submission could trigger.
   Future<void> _onLineVatRateInheritedRequested(
     OcptBudgetLineVatRateInheritedRequestedEvent event,
@@ -1147,8 +1147,8 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
   /// [OcptBudgetField.lineVatRateOverride]) are parsed here, and a submission that doesn't parse is
   /// **skipped** rather than written: `quantityMilli` and `unitAmountCents` are never nullable, so
   /// there is no null they could legitimately become, and an estimate's or an override's own
-  /// empty/unparseable reading is deliberately not "clear it" (`OcptBudgetField`'s own doc comment) —
-  /// the field simply reverts to whatever the database already holds on the next read.
+  /// empty/unparseable reading is deliberately not "clear it" (`OcptBudgetField`'s own doc comment)
+  /// — the field simply reverts to whatever the database already holds on the next read.
   Future<void> _writeAllPendingFieldEdits(
     OcptOpenProjectModel project,
     Map<OcptBudgetPendingFieldKey, String> edits,
@@ -1431,8 +1431,8 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
   /// Writes whatever `fields` collected about a journal entry's own voucher, once the entry itself
   /// exists: a fresh pick ([OcptBudgetEntryFormFields.pickedReceiptPath]) references it, replacing
   /// whatever the entry already carried; the dialog's own `Detach` action
-  /// ([OcptBudgetEntryFormFields.isReceiptDetached]) drops it instead — never both at once, see that
-  /// field's own doc comment. A no-op when the dialog asked for neither.
+  /// ([OcptBudgetEntryFormFields.isReceiptDetached]) drops it instead — never both at once, see
+  /// that field's own doc comment. A no-op when the dialog asked for neither.
   ///
   /// Shared by every handler that creates or writes a journal entry ([_onEntryCreationConfirmed],
   /// [_onEntryUpdateConfirmed], [_onCommitmentSettlementConfirmed]), each already reloading the
@@ -1606,12 +1606,12 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
 
   /// Pays quote line `event.lineId` directly, promoting it into a commitment in the same gesture —
   /// the line's own `Pay` action (`OcptBudgetLinePaidDirectlyEvent`). Creates the commitment from
-  /// the line first — its full quoted total, in the line's own tax basis and rate, naming the line —
-  /// then records `event.fields` as the debit that settles it, naming that fresh commitment: the two
-  /// writes `_onCommitmentCreationConfirmed` and `_onCommitmentSettlementConfirmed` do apart, done
-  /// here as one so the engagement stays transparent to a reader who only quoted and paid. A partial
-  /// payment leaves the commitment standing with its own outstanding, read back off the link like
-  /// any other.
+  /// the line first — its full quoted total, in the line's own tax basis and rate, naming the line
+  /// — then records `event.fields` as the debit that settles it, naming that fresh commitment: the
+  /// two writes `_onCommitmentCreationConfirmed` and `_onCommitmentSettlementConfirmed` do apart,
+  /// done here as one so the engagement stays transparent to a reader who only quoted and paid. A
+  /// partial payment leaves the commitment standing with its own outstanding, read back off the
+  /// link like any other.
   Future<void> _onLinePaidDirectly(
     OcptBudgetLinePaidDirectlyEvent event,
     Emitter<OcptBudgetState> emitter,
@@ -1764,12 +1764,12 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
 
   /// Promotes off-line commitment `event.commitmentId` into the quote — the fiche's own banner and
   /// its `Add to the quote` action, offered on a commitment that names a poste but no quote line
-  /// ([OcptBudgetCommitmentPromotedToQuoteEvent]'s own doc comment has the whole mechanism). Creates
-  /// a quote line from the commitment (`createLine`, quantity `1.0`, its own label, amount and tax
-  /// basis), then **re-points the commitment itself at that fresh line** (`updateCommitment`,
-  /// `lineId` alone). The entry that settles the commitment is left untouched — it already names the
-  /// commitment — so the chain gains only the quote line it lacked, and the poste's quote grows by
-  /// the amount that made it overrun.
+  /// ([OcptBudgetCommitmentPromotedToQuoteEvent]'s own doc comment has the whole mechanism).
+  /// Creates a quote line from the commitment (`createLine`, quantity `1.0`, its own label, amount
+  /// and tax basis), then **re-points the commitment itself at that fresh line**
+  /// (`updateCommitment`, `lineId` alone). The entry that settles the commitment is left untouched
+  /// — it already names the commitment — so the chain gains only the quote line it lacked, and the
+  /// poste's quote grows by the amount that made it overrun.
   Future<void> _onCommitmentPromotedToQuote(
     OcptBudgetCommitmentPromotedToQuoteEvent event,
     Emitter<OcptBudgetState> emitter,
@@ -1843,13 +1843,14 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
   /// against what the fresh snapshot still holds — whichever object it names, gone missing, is
   /// dropped rather than trusted to still mean something. `OcptBudgetReceiptSelection` names a
   /// `budget_entries` row exactly as `OcptBudgetEntrySelection` does, so it is checked against
-  /// [OcptBudgetSnapshot.entries] the same way; this also covers `OcptBudgetState.selectedRevenueId`,
-  /// which is now a getter over [OcptBudgetState.selection] rather than a field of its own.
+  /// [OcptBudgetSnapshot.entries] the same way; this also covers
+  /// `OcptBudgetState.selectedRevenueId`, which is now a getter over [OcptBudgetState.selection]
+  /// rather than a field of its own.
   ///
-  /// Every handler that writes to the quote tables ends here, which is also the mode's own
-  /// stand-in for "a save landing while the `Versions` tab is open": [OcptProjectWorkingCopyRefreshRequestedEvent]
-  /// is dispatched once the fresh snapshot has landed, mirroring `OcptScheduleBloc
-  /// ._applyScheduleSnapshot`.
+  /// Every handler that writes to the quote tables ends here, which is also the mode's own stand-in
+  /// for "a save landing while the `Versions` tab is open":
+  /// [OcptProjectWorkingCopyRefreshRequestedEvent] is dispatched once the fresh snapshot has
+  /// landed, mirroring `OcptScheduleBloc ._applyScheduleSnapshot`.
   Future<void> _applyBudgetSnapshot(
     Emitter<OcptBudgetState> emitter,
     OcptOpenProjectModel project,
@@ -2014,17 +2015,17 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
   /// contribution" argues for:
   /// - not in kind any more (or never was): the existing line, if any, is tombstoned — a
   ///   reclassification away from in-kind offsets no poste any more.
-  /// - in kind, no line yet: one is minted, quantity 1 (`quantityMilli` 1000), tax-inclusive, frozen
-  ///   at 0 % VAT (a valuation, not an invoice — "The link, and where the single truth lives"), the
-  ///   figure and label read straight off `fields`.
+  /// - in kind, no line yet: one is minted, quantity 1 (`quantityMilli` 1000), tax-inclusive,
+  ///   frozen at 0 % VAT (a valuation, not an invoice — "The link, and where the single truth
+  ///   lives"), the figure and label read straight off `fields`.
   /// - in kind, a line already exists, same poste: an ordinary field update — the label and the
   ///   amount follow the contribution; the quantity and the 0 % rate are never touched again.
   /// - in kind, a line already exists, a **different** poste: deleted and re-minted in the new one,
   ///   never moved in place. `budget_lines.sortKey` is fractional **within its own `posteId`**
-  ///   (`OcptBudgetPostesTable` orders flat; `budget_lines` orders "like a shot within a scene"), so
-  ///   re-poste-ing a line is really a second operation — its position among a different poste's own
-  ///   lines — wearing the name of a field write (`docs/architecture/budget.md`, "A commitment's
-  ///   poste is editable, a quote line's is not").
+  ///   (`OcptBudgetPostesTable` orders flat; `budget_lines` orders "like a shot within a scene"),
+  ///   so re-poste-ing a line is really a second operation — its position among a different poste's
+  ///   own lines — wearing the name of a field write (`docs/architecture/budget.md`, "A
+  ///   commitment's poste is editable, a quote line's is not").
   ///
   /// `OcptBudgetResourceDialog`'s own poste picker already blocks confirming an in-kind
   /// contribution with no poste chosen, so `fields.posteId == null` here should not occur; this

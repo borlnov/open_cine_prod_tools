@@ -726,14 +726,14 @@ class OcptLocationsService {
   ///
   /// Drift nests a `transaction()` opened while another is already active as its own **savepoint**:
   /// an exception aborts and rolls back that inner savepoint alone before propagating outward, so a
-  /// failure inside [createSiblingSet], `floorPlanService.duplicateSet` or [assignSceneToSet] — none
-  /// of which is caught here — keeps unwinding until it reaches *this* method's own outermost
+  /// failure inside [createSiblingSet], `floorPlanService.duplicateSet` or [assignSceneToSet] —
+  /// none of which is caught here — keeps unwinding until it reaches *this* method's own outermost
   /// `transaction()` call below, which is what actually discards the whole thing.
   ///
   /// Returns null, having written nothing durable, when [sourceSetId] doesn't name a live set
   /// ([createSiblingSet] itself returning null) or when [assignSceneToSet] somehow refuses the link
-  /// (defensive only — `refusesUserWrite` was already checked above, before either sibling call ever
-  /// ran, so this can only trip if the connection turned read-only mid-transaction).
+  /// (defensive only — `refusesUserWrite` was already checked above, before either sibling call
+  /// ever ran, so this can only trip if the connection turned read-only mid-transaction).
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
   Future<String?> duplicateSetForScene({
@@ -1280,13 +1280,13 @@ class OcptLocationsService {
     await assetsService.tombstoneAsset(database: database, assetId: permitAssetId, stamps: stamps);
   }
 
-  /// Tombstones every live `scene_sets` row naming any of [sceneIds]: `scene_sets` is this service's
-  /// table, not `OcptBreakdownService`'s, so its own cascade
+  /// Tombstones every live `scene_sets` row naming any of [sceneIds]: `scene_sets` is this
+  /// service's table, not `OcptBreakdownService`'s, so its own cascade
   /// (`OcptBreakdownService.tombstoneBreakdownOfScenes`) reaches for this narrow helper rather than
   /// writing the table itself — the set these links point at is, of course, untouched.
   ///
-  /// **Unguarded**, exactly as `OcptElementsService.tombstoneRoleLinksOfRole` is: its only caller has
-  /// already refused the write on a preview connection and is already inside the transaction
+  /// **Unguarded**, exactly as `OcptElementsService.tombstoneRoleLinksOfRole` is: its only caller
+  /// has already refused the write on a preview connection and is already inside the transaction
   /// removing the episode, so a second guard here would only be able to disagree with the first.
   /// Stamps through [stamps] — that caller's own instance — rather than resolving a device id of
   /// its own.

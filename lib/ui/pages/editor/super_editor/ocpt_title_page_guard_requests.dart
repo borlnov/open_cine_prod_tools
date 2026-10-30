@@ -57,8 +57,8 @@ Object? _titlePageKeyOf(DocumentNode? node) => node?.getMetadataValue(ocptTitleP
 /// contained in one node is let through untouched below, which is the actual F6 fix. Every
 /// title-page node used to additionally carry `NodeMetadata.isDeletable: false`
 /// (`OcptWysiwygCodec._titlePageNodesFrom`), which also blocked that ordinary in-field editing —
-/// `DeleteSelectionCommand`/`DeleteContentCommand` abort *any* deletion, however small, contained in
-/// a single non-deletable node (`multi_node_editing.dart:1428-1449, 798-822` of the pinned
+/// `DeleteSelectionCommand`/`DeleteContentCommand` abort *any* deletion, however small, contained
+/// in a single non-deletable node (`multi_node_editing.dart:1428-1449, 798-822` of the pinned
 /// super_editor release). Removing the flag and moving every rule below into this handler is what
 /// tells those two paths apart: "delete text inside a field" (allowed) from "delete the field"
 /// (blocked).

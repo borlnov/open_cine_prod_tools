@@ -9,20 +9,20 @@ import 'package:flutter/material.dart';
 ///
 /// Below `ocptCompactWidthBreakpoint` the workspace shell's side docks reduce to edge drawers
 /// (`OcptWorkspaceShell`), so a record can no longer be added from a persistent dock: the shot list
-/// mode's `+ Shot` sits in the left dock, and the budget mode's `+ New` sits in the header band that
-/// stays reachable, but neither is worth summoning a drawer for on a phone or a tablet. This widget
-/// gives the centre its own way in, wired to the very same creation flow the desktop control already
-/// fires — never a new one — so the two stay in lockstep by construction.
+/// mode's `+ Shot` sits in the left dock, and the budget mode's `+ New` sits in the header band
+/// that stays reachable, but neither is worth summoning a drawer for on a phone or a tablet. This
+/// widget gives the centre its own way in, wired to the very same creation flow the desktop control
+/// already fires — never a new one — so the two stay in lockstep by construction.
 ///
 /// [isVisible] is the caller's own `ocptIsCompactWidth` reading of the workspace's width, taken
 /// *outside* this widget (over the shell's own row width, not [child]'s own — narrowed by whichever
-/// docks are open at an expanded width, which would misdetect compactness): a mode measures it once,
-/// alongside every other width-keyed decision the shell's own [LayoutBuilder] makes.
+/// docks are open at an expanded width, which would misdetect compactness): a mode measures it
+/// once, alongside every other width-keyed decision the shell's own [LayoutBuilder] makes.
 ///
 /// [onPressed] is withheld — a null callback, never a disabled button — exactly when the desktop
 /// affordance it mirrors would be: under a read-only version preview, or whenever nothing can be
-/// added right now. A null [onPressed] draws no button at all, matching the app's standing read-only
-/// idiom (`CLAUDE.md`).
+/// added right now. A null [onPressed] draws no button at all, matching the app's standing
+/// read-only idiom (`CLAUDE.md`).
 class OcptWorkspaceFloatingAddButton extends StatelessWidget {
   /// The mode's own centre content, drawn unchanged under the floating button.
   final Widget child;
@@ -49,11 +49,11 @@ class OcptWorkspaceFloatingAddButton extends StatelessWidget {
   /// [FloatingActionButton.extended].
   ///
   /// [label] is not dropped in this mode — it becomes the button's [Tooltip]/semantic label, so the
-  /// affordance still reads for accessibility even though no text is drawn. Use this when the mode's
-  /// own header band already carries the labelled control at a wide width and the floating button
-  /// only needs to stand in for it at a compact one, where the shorter affordance reads more like a
-  /// mobile "add" action (the budget mode's `+ New` does this; the shot list's `+ Shot` does not, and
-  /// keeps the default extended button). Requires [icon] to be non-null.
+  /// affordance still reads for accessibility even though no text is drawn. Use this when the
+  /// mode's own header band already carries the labelled control at a wide width and the floating
+  /// button only needs to stand in for it at a compact one, where the shorter affordance reads more
+  /// like a mobile "add" action (the budget mode's `+ New` does this; the shot list's `+ Shot` does
+  /// not, and keeps the default extended button). Requires [icon] to be non-null.
   final bool iconOnly;
 
   /// Class constructor

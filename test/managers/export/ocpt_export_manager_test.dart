@@ -949,7 +949,8 @@ void main() {
         expect(tempDir.listSync(), isEmpty);
       });
 
-      test('a chosen folder receives one PDF per convocation, none of them the crew list', () async {
+      test('a chosen folder receives one PDF per convocation, none of them the crew '
+          'list', () async {
         final saveLocationService = _FakeSaveLocationService()..directoryResult = tempDir.path;
         final manager = OcptExportManager(
           fileSelectorManager: const FileSelectorManager(),
@@ -968,11 +969,11 @@ void main() {
         expect(result, isNotNull);
         expect(result!.folderPath, tempDir.path);
         // `buildPlan` convokes exactly one person, holding no display name at all (blank first/last
-        // name), so the file name falls back to the labels' own unnamed-person fallback. Whether the
-        // named PDF is smaller than the general one — the crew list it never reads — is asserted at
-        // the service level (`ocpt_call_sheet_pdf_service_test.dart`), against a fixture with an
-        // actual crew to make the comparison meaningful; this manager-level test's own job is only
-        // that the right number of files land under the right names.
+        // name), so the file name falls back to the labels' own unnamed-person fallback. Whether
+        // the named PDF is smaller than the general one — the crew list it never reads — is
+        // asserted at the service level (`ocpt_call_sheet_pdf_service_test.dart`), against a
+        // fixture with an actual crew to make the comparison meaningful; this manager-level test's
+        // own job is only that the right number of files land under the right names.
         expect(result.writtenFileNames, ["FDS-D2-No-name.pdf"]);
         expect(result.failedFileNames, isEmpty);
 

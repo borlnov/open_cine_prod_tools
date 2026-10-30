@@ -877,10 +877,10 @@ String? _inflated(String stream) {
 }
 
 /// The three points — tip, left corner, right corner, in that order — of the very first
-/// `moveTo`/`lineTo`×2/`fillPath` triangle in [inflated]: the camera's own field-of-view wedge fill,
-/// drawn before its own body and lens, and the only shape this file's own drawing code fills after
-/// exactly two line segments (every other filled shape is a rect or an ellipse, drawn through curve
-/// operators, never two bare `l`s).
+/// `moveTo`/`lineTo`×2/`fillPath` triangle in [inflated]: the camera's own field-of-view wedge
+/// fill, drawn before its own body and lens, and the only shape this file's own drawing code fills
+/// after exactly two line segments (every other filled shape is a rect or an ellipse, drawn through
+/// curve operators, never two bare `l`s).
 List<(double, double)> _wedgeTrianglePoints(String inflated) {
   final match = RegExp(
     r"([-\d.]+)\s+([-\d.]+)\s+m\s+([-\d.]+)\s+([-\d.]+)\s+l\s+([-\d.]+)\s+([-\d.]+)\s+l\s+f",

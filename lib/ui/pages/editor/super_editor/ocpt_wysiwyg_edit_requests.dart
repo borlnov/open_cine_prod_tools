@@ -11,9 +11,10 @@ import 'package:super_editor/super_editor.dart';
 /// `ChangeParagraphBlockTypeRequest`).
 ///
 /// Modeled directly on super_editor's own `ChangeParagraphBlockTypeRequest`/
-/// `ChangeParagraphBlockTypeCommand` pair (`package:super_editor/src/default_editor/paragraph.dart`):
-/// this class is deliberately generic (it doesn't know the app's specific metadata key names) so it
-/// can carry any of them, alone or together, in a single request.
+/// `ChangeParagraphBlockTypeCommand` pair
+/// (`package:super_editor/src/default_editor/paragraph.dart`): this class is deliberately generic
+/// (it doesn't know the app's specific metadata key names) so it can carry any of them, alone or
+/// together, in a single request.
 @immutable
 class OcptChangeNodeMetadataRequest implements EditRequest {
   /// Creates an [OcptChangeNodeMetadataRequest].
@@ -155,8 +156,8 @@ class OcptReplaceNodeTextRequest implements EditRequest {
 }
 
 /// [EditCommand] applying an [OcptReplaceNodeTextRequest]: replaces the target `ParagraphNode` with
-/// a copy carrying the new text (metadata untouched), via `ParagraphNode.copyTextNodeWith`, mirroring
-/// [OcptChangeNodeMetadataCommand]'s own pattern.
+/// a copy carrying the new text (metadata untouched), via `ParagraphNode.copyTextNodeWith`,
+/// mirroring [OcptChangeNodeMetadataCommand]'s own pattern.
 class OcptReplaceNodeTextCommand extends EditCommand {
   /// Creates an [OcptReplaceNodeTextCommand].
   const OcptReplaceNodeTextCommand({required this.nodeId, required this.text});

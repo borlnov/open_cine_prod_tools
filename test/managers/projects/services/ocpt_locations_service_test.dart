@@ -86,8 +86,9 @@ void main() {
     ))!;
   }
 
-  /// The ids of the scenes set [setId] holds, read back through [OcptLocationsService.loadLocations]
-  /// — the one way the app itself ever reads a `scene_sets` row.
+  /// The ids of the scenes set [setId] holds, read back through
+  /// [OcptLocationsService.loadLocations] — the one way the app itself ever reads a `scene_sets`
+  /// row.
   Future<List<String>> sceneIdsOfSet(String setId) async {
     final locations = await locationsService.loadLocations(database: database);
     for (final location in locations) {

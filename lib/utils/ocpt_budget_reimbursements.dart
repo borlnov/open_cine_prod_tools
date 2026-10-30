@@ -96,9 +96,9 @@ OcptBudgetCoveredTotal _ocptBudgetReimbursedTotalOf(
   );
 }
 
-/// [personId]'s own reimbursed total, read off [entries] — [ocptBudgetReimbursedByPersonId] narrowed
-/// to this one person, doing its own narrowing rather than asking every caller to group [entries]
-/// itself first, exactly the reason `ocptBudgetCommitmentPaidCentsOf`
+/// [personId]'s own reimbursed total, read off [entries] — [ocptBudgetReimbursedByPersonId]
+/// narrowed to this one person, doing its own narrowing rather than asking every caller to group
+/// [entries] itself first, exactly the reason `ocptBudgetCommitmentPaidCentsOf`
 /// (`lib/utils/ocpt_budget_projection.dart`) does its own.
 OcptBudgetCoveredTotal ocptBudgetPersonReimbursedCentsOf(
   String personId,
@@ -110,8 +110,8 @@ OcptBudgetCoveredTotal ocptBudgetPersonReimbursedCentsOf(
 ], projectVatRateBasisPoints: projectVatRateBasisPoints);
 
 /// What [personId] has advanced, across every one of [allowances] naming them — the plain sum of
-/// [ocptBudgetAllowanceAmountCents], needing no VAT rate at all: see this file's own doc comment for
-/// why a defrayal answers a plain amount rather than an [OcptBudgetCoveredTotal].
+/// [ocptBudgetAllowanceAmountCents], needing no VAT rate at all: see this file's own doc comment
+/// for why a defrayal answers a plain amount rather than an [OcptBudgetCoveredTotal].
 int ocptBudgetPersonAdvancedCents(String personId, List<OcptBudgetAllowance> allowances) =>
     allowances
         .where((allowance) => allowance.personId == personId)

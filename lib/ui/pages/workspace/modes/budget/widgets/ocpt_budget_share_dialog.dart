@@ -80,8 +80,8 @@ class _OcptBudgetShareDialogState extends State<OcptBudgetShareDialog> {
   }
 
   /// Validates the form and, if it passes, pops the dialog returning the last draft
-  /// [OcptBudgetShareFormBody] reported — mirrors what this dialog's own `_submit` did before it was
-  /// split.
+  /// [OcptBudgetShareFormBody] reported — mirrors what this dialog's own `_submit` did before it
+  /// was split.
   void _submit() {
     if (!(_formKey.currentState?.validate() ?? false)) {
       return;
@@ -97,7 +97,8 @@ class _OcptBudgetShareDialogState extends State<OcptBudgetShareDialog> {
 }
 
 /// The whole of [OcptBudgetShareDialog]'s own form, embeddable outside a dialog — the capture
-/// wizard draws this same body under its own step counter, rather than an `AlertDialog`'s `content`.
+/// wizard draws this same body under its own step counter, rather than an `AlertDialog`'s
+/// `content`.
 ///
 /// **`Label` is the dialog's own only required field.** `Person`, `Share` and `Reinvest` all carry
 /// a sensible default the moment the dialog opens (no person, 0 %, 0 %), so there is no second

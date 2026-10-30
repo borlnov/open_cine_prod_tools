@@ -14,9 +14,10 @@ import 'package:open_cine_prod_tools/utils/ocpt_budget_journal.dart';
 ///
 /// This is pure in-memory workbook building with no I/O of its own (no dialog, no file system
 /// access): it's owned by `OcptExportManager` and exposed as a public final field, reached through
-/// the manager rather than through `globalGetIt()` (RFL18), exactly like `OcptShotListXlsxExportService`
-/// and its own siblings. **A `const` service, like every other workbook service in this app**: a
-/// workbook takes no page geometry and no font loader at all (`docs/architecture/exports.md`).
+/// the manager rather than through `globalGetIt()` (RFL18), exactly like
+/// `OcptShotListXlsxExportService` and its own siblings. **A `const` service, like every other
+/// workbook service in this app**: a workbook takes no page geometry and no font loader at all
+/// (`docs/architecture/exports.md`).
 ///
 /// The sheet is one header row, then one row per live entry in **the journal's own chronological
 /// order** — `ocptBudgetJournalRowsOf`'s own reading of `OcptBudgetSnapshot.entries`, never

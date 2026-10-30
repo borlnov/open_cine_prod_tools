@@ -150,50 +150,48 @@ void main() {
       expect(contentHeight + pagination.trailingBottomPadding, closeTo(layout.pageHeight, 0.01));
     });
 
-    test(
-      "a multi-page document's trailing bottom padding reaches exactly the last sheet's bottom edge",
-      () {
-        final document = _documentFrom(_longSource);
-        final layout = OcptEditorPreviewLayout(metrics: metrics);
-        final pagination = computeOcptStyledPagination(document: document, metrics: metrics);
+    test("a multi-page document's trailing bottom padding reaches exactly the last sheet's bottom "
+        "edge", () {
+      final document = _documentFrom(_longSource);
+      final layout = OcptEditorPreviewLayout(metrics: metrics);
+      final pagination = computeOcptStyledPagination(document: document, metrics: metrics);
 
-        expect(pagination.pageCount, greaterThan(1));
+      expect(pagination.pageCount, greaterThan(1));
 
-        // Independently replay the same flow the production pass tracks, using only the public
-        // building blocks (`OcptEditorPreviewLayout.wrappedLineCount`, the `ocptBlankLinesBefore`
-        // metadata, and `pagination.pageStartTopPaddings`), to verify the *combined* effect of
-        // every page-start padding plus the trailing padding lands exactly at the last sheet's
-        // bottom edge — not just that each individual padding looks plausible in isolation.
-        var flowY = layout.marginTop;
-        for (final node in document) {
-          if (node is! ParagraphNode) {
-            continue;
-          }
-          final padding = pagination.pageStartTopPaddings[node.id];
-          if (padding != null) {
-            flowY += padding;
-          }
-          final type = OcptFountainLineAttributions.typeOfAttributionValue(
-            node.getMetadataValue("blockType"),
-          );
-          final wrappedLines = OcptEditorPreviewLayout.wrappedLineCount(
-            node.text.toPlainText(),
-            _elementMaxWidthColumnsOf(type, metrics),
-          );
-          final blankLinesBefore =
-              (node.getMetadataValue(ocptBlankLinesBeforeMetadataKey) as int? ?? 0).clamp(
-                0,
-                ocptMaxBlankLinesBeforeSpacing,
-              );
-          flowY += (wrappedLines + blankLinesBefore) * layout.lineHeight;
+      // Independently replay the same flow the production pass tracks, using only the public
+      // building blocks (`OcptEditorPreviewLayout.wrappedLineCount`, the `ocptBlankLinesBefore`
+      // metadata, and `pagination.pageStartTopPaddings`), to verify the *combined* effect of
+      // every page-start padding plus the trailing padding lands exactly at the last sheet's
+      // bottom edge — not just that each individual padding looks plausible in isolation.
+      var flowY = layout.marginTop;
+      for (final node in document) {
+        if (node is! ParagraphNode) {
+          continue;
         }
+        final padding = pagination.pageStartTopPaddings[node.id];
+        if (padding != null) {
+          flowY += padding;
+        }
+        final type = OcptFountainLineAttributions.typeOfAttributionValue(
+          node.getMetadataValue("blockType"),
+        );
+        final wrappedLines = OcptEditorPreviewLayout.wrappedLineCount(
+          node.text.toPlainText(),
+          _elementMaxWidthColumnsOf(type, metrics),
+        );
+        final blankLinesBefore =
+            (node.getMetadataValue(ocptBlankLinesBeforeMetadataKey) as int? ?? 0).clamp(
+              0,
+              ocptMaxBlankLinesBeforeSpacing,
+            );
+        flowY += (wrappedLines + blankLinesBefore) * layout.lineHeight;
+      }
 
-        final desiredBottomY =
-            (pagination.pageCount - 1) * (layout.pageHeight + OcptEditorPreviewLayout.pageGap) +
-            layout.pageHeight;
-        expect(flowY + pagination.trailingBottomPadding, closeTo(desiredBottomY, 0.01));
-      },
-    );
+      final desiredBottomY =
+          (pagination.pageCount - 1) * (layout.pageHeight + OcptEditorPreviewLayout.pageGap) +
+          layout.pageHeight;
+      expect(flowY + pagination.trailingBottomPadding, closeTo(desiredBottomY, 0.01));
+    });
   });
 
   group("computeOcptStyledPagination with a title page", () {

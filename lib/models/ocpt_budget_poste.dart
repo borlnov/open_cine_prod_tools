@@ -37,8 +37,9 @@ class OcptBudgetPoste extends Equatable {
 
   /// What is still expected to be spent on this poste beyond what has already been paid and
   /// committed against it, in cents, typed by a human — or null, meaning "derive it". See
-  /// `OcptBudgetPostesTable.estimateToCompleteCents`'s own doc comment for why null is not zero, and
-  /// `ocptBudgetEstimateToCompleteCents` (`lib/utils/ocpt_budget_totals.dart`) for the derivation.
+  /// `OcptBudgetPostesTable.estimateToCompleteCents`'s own doc comment for why null is not zero,
+  /// and `ocptBudgetEstimateToCompleteCents` (`lib/utils/ocpt_budget_totals.dart`) for the
+  /// derivation.
   final int? estimateToCompleteCents;
 
   /// Class constructor

@@ -86,7 +86,8 @@ class OcptThreeWayMergeHunk extends Equatable {
 
   @override
   String toString() =>
-      'OcptThreeWayMergeHunk(baseLines: $baseLines, leftLines: $leftLines, rightLines: $rightLines)';
+      'OcptThreeWayMergeHunk(baseLines: $baseLines, leftLines: $leftLines, rightLines: '
+      '$rightLines)';
 }
 
 /// Merges [left] and [right], two texts that independently diverged from their common ancestor
@@ -105,8 +106,8 @@ class OcptThreeWayMergeHunk extends Equatable {
 /// 2. A base line is an **anchor** when it sits inside a matching block on *both* sides at once: a
 ///    line neither edit touched, which is therefore identical across all three texts. Anchors are
 ///    what synchronises the two independent diffs into one three-way alignment.
-/// 3. Between two consecutive anchors (or before the first / after the last one) sits a **gap**: the
-///    base lines there, and whichever lines [left] and [right] hold in the corresponding span.
+/// 3. Between two consecutive anchors (or before the first / after the last one) sits a **gap**:
+///    the base lines there, and whichever lines [left] and [right] hold in the corresponding span.
 ///    Comparing the three spans of one gap is the whole of the merge decision:
 ///    - neither side changed it (a degenerate, zero-length gap): nothing to do, the anchors already
 ///      cover it;

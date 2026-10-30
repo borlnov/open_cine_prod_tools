@@ -23,30 +23,30 @@ const double _ocptScheduleNamedCallSheetsMaxHeight = 260;
 /// A dialog letting the user pick the one-off options a **named** call sheets export runs with: one
 /// PDF per (ticked day × ticked recipient), written into a folder.
 ///
-/// Modelled on `OcptScheduleCallSheetsExportDialog`, whose page-format dropdown, its two buttons and
-/// its own [OcptScheduleDaySelectionList] this dialog reuses outright (in turn reused from
+/// Modelled on `OcptScheduleCallSheetsExportDialog`, whose page-format dropdown, its two buttons
+/// and its own [OcptScheduleDaySelectionList] this dialog reuses outright (in turn reused from
 /// `OcptBreakdownSheetsExportDialog` for the format and the buttons). Unlike that dialog, ticking a
 /// day here does more than choose what gets printed: the recipient list itself is the **union** of
 /// the ticked days' own convocations, deduplicated by `OcptDayConvocation.selectionKey` — a person
 /// convoked on two of the ticked days appears once in the list, and ticking or unticking them there
 /// prints (or withholds) their sheet for every one of those days. Changing which days are ticked
-/// recomputes that union and carries the tick state over rather than resetting it: a recipient still
-/// in the union keeps whatever the user set for them, one newly appearing is ticked (the dialog's
-/// standing default is "everybody"), and one that has left the union is simply dropped — see the
-/// state's own `_onDaysChanged`. An uncast role is listed like any other convocation and named by
-/// its role, with a plain hint that such a sheet has nobody to send it to yet.
+/// recomputes that union and carries the tick state over rather than resetting it: a recipient
+/// still in the union keeps whatever the user set for them, one newly appearing is ticked (the
+/// dialog's standing default is "everybody"), and one that has left the union is simply dropped —
+/// see the state's own `_onDaysChanged`. An uncast role is listed like any other convocation and
+/// named by its role, with a plain hint that such a sheet has nobody to send it to yet.
 ///
 /// **A candidate is a recipient like anybody else**, named by their candidacy — who is coming, and
 /// the part they are coming to be seen for — since two candidacies of one person are two
-/// convocations, and a name alone could not tell them apart. Only a **guest** is absent, carrying no
-/// `selectionKey` at all: `OcptScheduleModeContent` filters the list on that, so this dialog needs
-/// no rule of its own about who may be written to.
+/// convocations, and a name alone could not tell them apart. Only a **guest** is absent, carrying
+/// no `selectionKey` at all: `OcptScheduleModeContent` filters the list on that, so this dialog
+/// needs no rule of its own about who may be written to.
 ///
 /// Use [show] to display it and get back the resulting [OcptCallSheetExportOptions], or null if the
 /// user cancelled.
 class OcptScheduleNamedCallSheetsExportDialog extends StatefulWidget {
-  /// The page setup the three PDF exports are typeset with, used to pre-fill the format dropdown and
-  /// to supply the margins carried through unchanged into the resulting options.
+  /// The page setup the three PDF exports are typeset with, used to pre-fill the format dropdown
+  /// and to supply the margins carried through unchanged into the resulting options.
   final OcptPageSetup current;
 
   /// Every live shooting day, offered by [OcptScheduleDaySelectionList].
@@ -81,8 +81,8 @@ class OcptScheduleNamedCallSheetsExportDialog extends StatefulWidget {
     super.key,
   });
 
-  /// Shows the dialog and returns the [OcptCallSheetExportOptions] the user applied, or null if they
-  /// cancelled it.
+  /// Shows the dialog and returns the [OcptCallSheetExportOptions] the user applied, or null if
+  /// they cancelled it.
   static Future<OcptCallSheetExportOptions?> show(
     BuildContext context, {
     required OcptPageSetup current,
@@ -118,7 +118,8 @@ class _OcptScheduleNamedCallSheetsExportDialogState
   late Set<String> _selectedDayIds;
 
   /// The union of [_selectedDayIds]' own convocations, deduplicated by [_keyOf] — the list the
-  /// checkboxes below are built from. Recomputed by [_onDaysChanged] whenever the ticked days change.
+  /// checkboxes below are built from. Recomputed by [_onDaysChanged] whenever the ticked days
+  /// change.
   late List<OcptDayConvocation> _recipients;
 
   /// The convocation keys currently ticked — `OcptDayConvocation.selectionKey`, the one place that
@@ -285,9 +286,9 @@ class _OcptScheduleNamedCallSheetsExportDialogState
 
   /// [convocation]'s own selection key — see [_selectedKeys]' own doc comment.
   ///
-  /// Non-null for every convocation this dialog is ever handed: a guest is the one kind that carries
-  /// none, and [OcptScheduleNamedCallSheetsExportDialog.recipientsOfDay] filters those out before
-  /// the list ever reaches here.
+  /// Non-null for every convocation this dialog is ever handed: a guest is the one kind that
+  /// carries none, and [OcptScheduleNamedCallSheetsExportDialog.recipientsOfDay] filters those out
+  /// before the list ever reaches here.
   String _keyOf(OcptDayConvocation convocation) => convocation.selectionKey!;
 
   /// The localized label of [format].
@@ -297,8 +298,8 @@ class _OcptScheduleNamedCallSheetsExportDialogState
   };
 
   /// Pops the dialog returning the resulting [OcptCallSheetExportOptions], the selected days in
-  /// [OcptScheduleNamedCallSheetsExportDialog.days]' own order rather than selection order — mirrors
-  /// `OcptScheduleCallSheetsExportDialog._submit`.
+  /// [OcptScheduleNamedCallSheetsExportDialog.days]' own order rather than selection order —
+  /// mirrors `OcptScheduleCallSheetsExportDialog._submit`.
   ///
   /// The dialog is dismissed through the router manager (RFL31: navigation only via the router
   /// manager), whose pop delivers the new options back to the

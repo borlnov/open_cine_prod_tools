@@ -48,14 +48,14 @@ import 'package:open_cine_prod_tools/models/database/tables/ocpt_people_table.da
 ///
 /// [commitmentId] and [personId] complete the set, folding the ledger's last two exceptions into
 /// the very same reading. A `budget_commitments` row used to name **one** settling entry of its own
-/// (`settledEntryId`) — so an order could only ever be paid in a single instalment — and a
-/// defrayed person was linked to nothing at all, so nothing could ever mark them reimbursed.
-/// [commitmentId] names which commitment this debit actually pays and [personId] names which person
-/// this debit actually reimburses, both nullable for the very same reason [resourceId] is: **most
-/// movements name neither**, which is a real fact rather than an unfinished pick, and it is what has
-/// actually been paid against a commitment or a person that is now read off here, summed, exactly
-/// the way `OcptBudgetResourcesTable`'s own doc comment already reads what has come in against a
-/// financing resource — never a stored counter kept in step by hand.
+/// (`settledEntryId`) — so an order could only ever be paid in a single instalment — and a defrayed
+/// person was linked to nothing at all, so nothing could ever mark them reimbursed. [commitmentId]
+/// names which commitment this debit actually pays and [personId] names which person this debit
+/// actually reimburses, both nullable for the very same reason [resourceId] is: **most movements
+/// name neither**, which is a real fact rather than an unfinished pick, and it is what has actually
+/// been paid against a commitment or a person that is now read off here, summed, exactly the way
+/// `OcptBudgetResourcesTable`'s own doc comment already reads what has come in against a financing
+/// resource — never a stored counter kept in step by hand.
 @DataClassName('OcptBudgetEntryRow')
 class OcptBudgetEntriesTable extends Table {
   /// {@macro open_cine_prod_tools.OcptBudgetEntriesTable}
@@ -134,11 +134,11 @@ class OcptBudgetEntriesTable extends Table {
   /// The commitment this debit actually pays, or null. → [OcptBudgetCommitmentsTable]
   ///
   /// See this table's own doc comment: null is the normal case, a movement that pays no commitment
-  /// at all, read exactly the way [resourceId]'s own null is. What a commitment has been paid is the
-  /// tax-inclusive sum of every debit naming it here — `lib/utils/ocpt_budget_projection.dart`'s own
-  /// `ocptBudgetCommitmentPaidCentsOf` — which is what lets a commitment be paid in more than one
-  /// instalment: a second payment is a second entry naming the very same commitment, never a second
-  /// commitment standing in for it.
+  /// at all, read exactly the way [resourceId]'s own null is. What a commitment has been paid is
+  /// the tax-inclusive sum of every debit naming it here —
+  /// `lib/utils/ocpt_budget_projection.dart`'s own `ocptBudgetCommitmentPaidCentsOf` — which is
+  /// what lets a commitment be paid in more than one instalment: a second payment is a second entry
+  /// naming the very same commitment, never a second commitment standing in for it.
   TextColumn get commitmentId => text().nullable().references(OcptBudgetCommitmentsTable, #id)();
 
   /// The person this debit actually reimburses, or null. → [OcptPeopleTable]

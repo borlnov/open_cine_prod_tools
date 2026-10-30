@@ -67,8 +67,8 @@ class OcptShootingPlanXlsxLabels extends Equatable {
   final String presenceMark;
 
   /// The word `Perso.`, reused both as the locations sheet's own nested row and, were it ever
-  /// needed, a shot table's own characters column — the same word `OcptShootingPlanLabels.persoLabel`
-  /// already carries.
+  /// needed, a shot table's own characters column — the same word
+  /// `OcptShootingPlanLabels.persoLabel` already carries.
   final String persoLabel;
 
   /// The prefix a sequences sheet's own row label is built with (`Séq. 2`) — the same word

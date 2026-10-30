@@ -178,8 +178,8 @@ class OcptBudgetHeader extends StatelessWidget {
       view == OcptBudgetView.expenses ||
       (view == OcptBudgetView.tools && toolsView == OcptBudgetToolsView.cashFlow);
 
-  /// Whether the current view honours the simplified/detailed switch — `ocptBudgetViewHonoursPosteFilter`'s
-  /// own reading, true for [OcptBudgetView.expenses] alone.
+  /// Whether the current view honours the simplified/detailed switch —
+  /// `ocptBudgetViewHonoursPosteFilter`'s own reading, true for [OcptBudgetView.expenses] alone.
   bool get _honoursPosteKeyedControls => ocptBudgetViewHonoursPosteFilter(view);
 }
 

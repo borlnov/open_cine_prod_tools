@@ -190,7 +190,8 @@ void main() {
 
   group("the Financement tile", () {
     testWidgets(
-      "reads the resources total and how much of it is in kind, whatever each resource's own status",
+      "reads the resources total and how much of it is in kind, whatever each resource's own "
+      "status",
       (tester) async {
         final poste = _buildPoste(id: "poste-1", quotedAmountCents: 10000);
         final tr = await _pumpDashboard(
@@ -203,8 +204,8 @@ void main() {
         );
 
         expect(find.text(tr.budgetDashboardFinancingLabel.toUpperCase()), findsOneWidget);
-        // The balance card's own "Resources" line reads the very same total, so this amount is drawn
-        // twice on screen — see `_OcptDashboardBalanceBar`'s own doc comment.
+        // The balance card's own "Resources" line reads the very same total, so this amount is
+        // drawn twice on screen — see `_OcptDashboardBalanceBar`'s own doc comment.
         expect(find.text(ocptBudgetAmountLabel(7000, "EUR")), findsWidgets);
         expect(
           find.text(tr.budgetDashboardResourcesInKindCaption(ocptBudgetAmountLabel(2000, "EUR"))),
@@ -525,7 +526,8 @@ void main() {
     });
 
     testWidgets(
-      "the empty-state message wraps instead of overflowing and crushing the title at a narrow width",
+      "the empty-state message wraps instead of overflowing and crushing the title at a narrow "
+      "width",
       (tester) async {
         // No poste at all, so the balance bar reads its own three-way empty state — the longest of
         // its own verdict sentences — squeezed into a band narrow enough that a bare `Text` (no

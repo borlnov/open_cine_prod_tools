@@ -508,9 +508,9 @@ class _ShotListViewState extends State<_ShotListView> {
   ///
   /// The floating button mirrors [_buildSequencePanel]'s own `onShotCreated` gating exactly: wired
   /// only while the selected sequence is a real scene and no version is being previewed, withheld
-  /// (a null callback, never disabled) otherwise. Creating a shot already opens the right dock on its
-  /// inspector tab ([OcptShotListBloc._onShotCreationRequested]), which the compact width shows as an
-  /// edge drawer — nothing further to wire here for that.
+  /// (a null callback, never disabled) otherwise. Creating a shot already opens the right dock on
+  /// its inspector tab ([OcptShotListBloc._onShotCreationRequested]), which the compact width shows
+  /// as an edge drawer — nothing further to wire here for that.
   ///
   /// The banners sit above everything else and stay whichever sequence is selected: they report a
   /// mismatch about the whole cast, not something about the sequence currently being looked at.
@@ -2100,7 +2100,8 @@ class _ShotListViewState extends State<_ShotListView> {
       ).shotListFloorPlanCameraStatusHint(selectedSet.name, cameraCount, shotCountWithCamera);
       return unplacedShot == null
           ? base
-          : "$base · ${Tr.of(context).shotListFloorPlanCameraStatusUnplacedHint(unplacedShot.code)}";
+          : "$base · "
+                "${Tr.of(context).shotListFloorPlanCameraStatusUnplacedHint(unplacedShot.code)}";
     }
 
     if (!isBoardShown) {

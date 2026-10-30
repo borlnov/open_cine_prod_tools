@@ -57,22 +57,22 @@ class OcptSceneEffect {
   const OcptSceneEffect._() : printedEffect = null, place = null, timeOfDay = null;
 }
 
-/// [heading]'s own interior/exterior half and time-of-day half, joined as the reference call sheet's
-/// own `EFFET` column reads (`EXT / JOUR`), plus how those two halves classify along
+/// [heading]'s own interior/exterior half and time-of-day half, joined as the reference call
+/// sheet's own `EFFET` column reads (`EXT / JOUR`), plus how those two halves classify along
 /// [OcptScenePlace] and [OcptSceneTimeOfDay] — each of the two null on its own terms whenever the
 /// heading doesn't say, the app never inventing one for a heading that refuses to commit to it.
 ///
 /// The one place a scene heading is read this way: `OcptCallSheetPdfService`'s own `EFFET` column
-/// and the schedule agenda's own "Colour by effect" tint both call this, so a printed call sheet and
-/// the agenda's own reading of the very same day can never disagree about what a heading says.
+/// and the schedule agenda's own "Colour by effect" tint both call this, so a printed call sheet
+/// and the agenda's own reading of the very same day can never disagree about what a heading says.
 ///
 /// **Time-of-day classification only ever recognises a small, fixed set of words** — `DAY`/`NIGHT`
 /// and their French equivalents `JOUR`/`NUIT`, compared case-insensitively — and everything else
 /// (`DUSK`, `AUBE`, `MAGIC HOUR`, a heading naming no time of day worth splitting off at all) reads
-/// as [OcptSceneTimeOfDay] null rather than being forced into one of the two. Widening that set is a
-/// decision about **which words a screenplay's own language uses for a time of day**, not a bug fix:
-/// a future reader adding a word should ask whether it is genuinely unambiguous in that language
-/// first, since a wrongly classified heading tints a whole shooting day the wrong colour.
+/// as [OcptSceneTimeOfDay] null rather than being forced into one of the two. Widening that set is
+/// a decision about **which words a screenplay's own language uses for a time of day**, not a bug
+/// fix: a future reader adding a word should ask whether it is genuinely unambiguous in that
+/// language first, since a wrongly classified heading tints a whole shooting day the wrong colour.
 OcptSceneEffect ocptSceneEffectOf(String? heading) {
   if (heading == null) {
     return OcptSceneEffect.none;

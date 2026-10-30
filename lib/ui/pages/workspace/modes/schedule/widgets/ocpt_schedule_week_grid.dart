@@ -92,8 +92,8 @@ class OcptScheduleWeekGrid extends StatelessWidget {
   final List<OcptShootingDay> days;
 
   /// A day's own resolved tint, under whichever `OcptScheduleAgendaColorMode` is currently active —
-  /// `ocptScheduleDayLocationTint`/`ocptScheduleDayEffectTint` applied by the caller, so this widget
-  /// stays ignorant of which fact a day is coloured by.
+  /// `ocptScheduleDayLocationTint`/`ocptScheduleDayEffectTint` applied by the caller, so this
+  /// widget stays ignorant of which fact a day is coloured by.
   final Color Function(String dayId) dayTintOf;
 
   /// Each day's own live slots, keyed by day id, in `sortKey` order — the lanes a day's own column

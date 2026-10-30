@@ -158,9 +158,9 @@ class OcptFloorPlanView extends StatefulWidget {
   /// itself.
   final ValueChanged<OcptFloorPlanSetElementShape> onSetElementShapeSelected;
 
-  /// Called with the scope just picked alongside a typed set-element entry ([OcptFloorPlanScope.set]
-  /// for the `Set` group's own four, [OcptFloorPlanScope.scene] for the `Sequence` group's own
-  /// furniture/freeform pair) — click-to-arms [activeSetElementScope].
+  /// Called with the scope just picked alongside a typed set-element entry
+  /// ([OcptFloorPlanScope.set] for the `Set` group's own four, [OcptFloorPlanScope.scene] for the
+  /// `Sequence` group's own furniture/freeform pair) — click-to-arms [activeSetElementScope].
   final ValueChanged<OcptFloorPlanScope> onSetElementScopeSelected;
 
   /// Called with a props chip's own label when it is clicked (click-to-arm) — arms
@@ -672,8 +672,9 @@ class _OcptFloorPlanViewState extends State<OcptFloorPlanView> {
   /// (`ocptFloorPlanFitOf`), reporting the fitted zoom through [OcptFloorPlanView.onZoomSettled] so
   /// it becomes the bloc's own persisted value — the same path a tool bar zoom click reports
   /// through — and never fights [OcptFloorPlanViewportController.syncZoomFromPersisted] on the next
-  /// rebuild. A no-op while there is no set, no canvas size yet (the render object isn't resolvable,
-  /// defensive only), or the sheet draws nothing at all (an empty plan keeps the default view).
+  /// rebuild. A no-op while there is no set, no canvas size yet (the render object isn't
+  /// resolvable, defensive only), or the sheet draws nothing at all (an empty plan keeps the
+  /// default view).
   void _fitToContent() {
     final floorPlanSet = widget.floorPlanSet;
     if (floorPlanSet == null) {

@@ -103,7 +103,8 @@ enum OcptScheduleIoNoticeKind {
   folderExportPartiallySucceeded,
 
   /// An export failed outright (an exception was thrown while rendering or writing it). A cancelled
-  /// save/folder dialog is a silent no-op instead, exactly as the breakdown sheets export treats it.
+  /// save/folder dialog is a silent no-op instead, exactly as the breakdown sheets export treats
+  /// it.
   exportFailed,
 }
 
@@ -118,8 +119,8 @@ class OcptScheduleIoNotice extends Equatable {
   /// The outcome this notice reports.
   final OcptScheduleIoNoticeKind kind;
 
-  /// The path a single-file export was written to, only set when [kind] is [OcptScheduleIoNoticeKind
-  /// .fileExportSucceeded] and [wasShared] is false.
+  /// The path a single-file export was written to, only set when [kind] is
+  /// [OcptScheduleIoNoticeKind .fileExportSucceeded] and [wasShared] is false.
   final String? path;
 
   /// The folder a folder export wrote into, only set for the two folder-export kinds — a temporary

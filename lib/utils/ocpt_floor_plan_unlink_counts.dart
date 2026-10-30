@@ -10,12 +10,13 @@ import 'package:open_cine_prod_tools/types/ocpt_floor_plan_layer.dart';
 /// kept", but every one of these placements
 /// stops showing under this sequence until the set is linked again.
 ///
-/// The count is **live symbols on [floorPlanSet] whose `shotId` belongs to one of [shotIdsOfScene]**
-/// (this sequence's own shots' blocking) **plus [sceneId]'s own scene-scope symbols** (the props and
-/// the re-dressed furniture placed for this sequence alone) — a set-scope symbol (the set's own
-/// walls, doors and fixed furniture, shared by every sequence the set is linked to) is never
-/// counted, since unlinking never touches it. Props counts both a shot-scope prop and a scene-scope
-/// one, exactly as the plan's own wording ("props") makes no distinction between the two.
+/// The count is **live symbols on [floorPlanSet] whose `shotId` belongs to one of
+/// [shotIdsOfScene]** (this sequence's own shots' blocking) **plus [sceneId]'s own scene-scope
+/// symbols** (the props and the re-dressed furniture placed for this sequence alone) — a set-scope
+/// symbol (the set's own walls, doors and fixed furniture, shared by every sequence the set is
+/// linked to) is never counted, since unlinking never touches it. Props counts both a shot-scope
+/// prop and a scene-scope one, exactly as the plan's own wording ("props") makes no distinction
+/// between the two.
 ///
 /// Lights are deliberately left out: the dialog only ever names cameras, characters and props.
 ({int cameras, int characters, int props}) ocptFloorPlanUnlinkCountsOf({

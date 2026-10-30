@@ -22,8 +22,8 @@ import 'package:open_cine_prod_tools/utils/ocpt_shooting_convocations.dart';
 ///
 /// A guest's own card is drawn by the very same [_OcptScheduleConvocationCard] — its band always
 /// reading as an em dash, [OcptDayConvocation.isGuest] never carrying a PAT band at all — kept in
-/// its own group rather than interleaved with the crew and cast by arrival, so a reader can tell "who
-/// is here to work" from "who is here to watch" at a glance.
+/// its own group rather than interleaved with the crew and cast by arrival, so a reader can tell
+/// "who is here to work" from "who is here to watch" at a glance.
 ///
 /// A **candidate**'s card is that same card again, and unlike a guest's it reads a **real band**:
 /// somebody seen for a part is working, and their band is read off the day's auditions like anybody
@@ -109,8 +109,9 @@ class OcptScheduleConvocationsPanel extends StatelessWidget {
     );
   }
 
-  /// One card of either group, its band always reading as an em dash for a guest ([OcptDayConvocation
-  /// .isGuest] never carrying a PAT band) — see [ocptScheduleConvocationBandLabel]'s own doc comment.
+  /// One card of either group, its band always reading as an em dash for a guest
+  /// ([OcptDayConvocation .isGuest] never carrying a PAT band) — see
+  /// [ocptScheduleConvocationBandLabel]'s own doc comment.
   Widget _buildCard(BuildContext context, OcptDayConvocation convocation, String title) =>
       _OcptScheduleConvocationCard(
         title: title,

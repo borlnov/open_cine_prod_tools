@@ -92,8 +92,8 @@ class OcptResourcesPersonCreationRequestedEvent extends OcptResourcesEvent {
 }
 
 /// Requests erasing person [personId], dispatched once `OcptResourcesDeleteConfirmDialog` has
-/// already confirmed it. Clears the selection when [personId] was the selected person, and drops any
-/// pending field edit that still targeted it.
+/// already confirmed it. Clears the selection when [personId] was the selected person, and drops
+/// any pending field edit that still targeted it.
 class OcptResourcesPersonDeletionRequestedEvent extends OcptResourcesEvent {
   /// The id of the person to erase.
   final String personId;
@@ -1834,8 +1834,8 @@ class OcptResourcesXlsxExportRequestedEvent extends OcptResourcesEvent {
 /// [options] is what that dialog returned — the page format and margins the document is typeset
 /// with. Both localized payloads are resolved by the widget dispatching this, since the bloc has no
 /// `BuildContext` of its own: [labels] is every string the document itself carries (see
-/// `ocptContactListLabelsOf`), [fileTypeLabel] the label the native save dialog shows for the `.pdf`
-/// type. Every pending field edit is flushed first, mirroring
+/// `ocptContactListLabelsOf`), [fileTypeLabel] the label the native save dialog shows for the
+/// `.pdf` type. Every pending field edit is flushed first, mirroring
 /// `OcptResourcesXlsxExportRequestedEvent`, so a phone number typed seconds before the export is on
 /// the printed list rather than only on screen.
 class OcptResourcesContactListExportRequestedEvent extends OcptResourcesEvent {

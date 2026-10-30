@@ -40,9 +40,10 @@ class OcptBudgetBinaryChoice extends StatelessWidget {
     children: [
       // Each segment is [Flexible] so the pair shrinks and ellipsizes rather than overflowing when
       // the row is narrower than the two labels want — the poste inspector's own right dock can be
-      // dragged down to its 300 px floor, narrower than these two chips at their natural width. Both
-      // keep that natural width wherever there is room: under the entry dialog's [IntrinsicWidth] the
-      // row is handed `2·max(label) + gap`, so each flex share still clears the wider label.
+      // dragged down to its 300 px floor, narrower than these two chips at their natural width.
+      // Both keep that natural width wherever there is room: under the entry dialog's
+      // [IntrinsicWidth] the row is handed `2·max(label) + gap`, so each flex share still clears
+      // the wider label.
       Flexible(child: _segment(context, true, trueLabel)),
       const SizedBox(width: 8),
       Flexible(child: _segment(context, false, falseLabel)),

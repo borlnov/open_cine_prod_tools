@@ -584,11 +584,11 @@ class OcptBudgetCostTracking extends StatelessWidget {
   /// A poste draws whenever it is live, whatever [expandedNodeIds] holds; its own children —
   /// [OcptBudgetPoste.lines], then its off-line commitments and entries — draw only while its own
   /// id is in [expandedNodeIds]. A quote line's own children — its commitments, and, for each one,
-  /// either every entry that has paid it so far or the muted "no entry" hint while none has —
-  /// draw only while the line's own id is in [expandedNodeIds] too. **A poste's own off-line
-  /// commitment that has been paid is itself an expandable node**, keyed in [expandedNodeIds] by its
-  /// own id: collapsed it is one row, and its payments draw a level deeper only while it is
-  /// expanded — a line-less commitment owning its payments the way a line owns its commitments.
+  /// either every entry that has paid it so far or the muted "no entry" hint while none has — draw
+  /// only while the line's own id is in [expandedNodeIds] too. **A poste's own off-line commitment
+  /// that has been paid is itself an expandable node**, keyed in [expandedNodeIds] by its own id:
+  /// collapsed it is one row, and its payments draw a level deeper only while it is expanded — a
+  /// line-less commitment owning its payments the way a line owns its commitments.
   ///
   /// **The off-quote row follows the last poste, drawn exactly as it always was — only while
   /// [offQuoteTotal] holds something ([OcptBudgetCoveredTotal.lineCount] above zero).** Its own
@@ -658,8 +658,9 @@ class OcptBudgetCostTracking extends StatelessWidget {
       // A poste's own off-line commitment has no quote line to nest under, so it is the expandable
       // node itself: collapsed by default, it draws as one row, and its payments — drawn a level
       // deeper, unlike a line-nested commitment's own siblings — show only once it is expanded, the
-      // way a quote line reveals its commitments. A commitment nobody has paid yet is not expandable
-      // (its status badge already says it is still owed, so an empty expansion would say nothing).
+      // way a quote line reveals its commitments. A commitment nobody has paid yet is not
+      // expandable (its status badge already says it is still owed, so an empty expansion would say
+      // nothing).
       for (final commitment in offLineCommitments) {
         final paymentEntries = [
           for (final entry in entries)
@@ -1053,12 +1054,12 @@ class OcptBudgetCostTracking extends StatelessWidget {
     return count;
   }
 
-  /// The grand `Coût final` total, summed **poste by poste**
-  /// (`ocpt_budget_totals.dart`'s own "row by row, then summed" doctrine) rather than re-derived
-  /// from the grand `Devis`/`Payé`/`Engagé` totals: a typed estimate to complete on one poste
-  /// cannot be reconstructed from any project-wide figure, and [ocptBudgetEstimateToCompleteCents]'s
-  /// own `max(0, …)` clamp does not commute with a sum — summing the clamped, per-poste figures is
-  /// not the same amount as clamping the sum.
+  /// The grand `Coût final` total, summed **poste by poste** (`ocpt_budget_totals.dart`'s own "row
+  /// by row, then summed" doctrine) rather than re-derived from the grand `Devis`/`Payé`/`Engagé`
+  /// totals: a typed estimate to complete on one poste cannot be reconstructed from any
+  /// project-wide figure, and [ocptBudgetEstimateToCompleteCents]'s own `max(0, …)` clamp does not
+  /// commute with a sum — summing the clamped, per-poste figures is not the same amount as clamping
+  /// the sum.
   int _finalCostTotalOf() {
     var finalCostCents = 0;
 
@@ -1413,11 +1414,12 @@ class _OcptCostTrackingPosteIdentityRow extends StatelessWidget {
 /// its own reserved width otherwise, so a row with nothing to expand still lines its own label up
 /// with a sibling that does.
 ///
-/// **Its own tap target is [_ocptCostTrackingTwistyWidth] wide over the whole of [rowHeight]**,
-/// not a square of the twisty's own width: the theme's own floor for an icon button already
-/// exceeds a column this narrow, so the row's own height, whichever fixed figure the row it sits on
-/// draws at, is what the tap target claims instead (`docs/architecture/budget.md`). The 18 px arrow itself stays centred in that taller target — `Icon` centres
-/// its own glyph inside whatever box its surrounding layout hands it.
+/// **Its own tap target is [_ocptCostTrackingTwistyWidth] wide over the whole of [rowHeight]**, not
+/// a square of the twisty's own width: the theme's own floor for an icon button already exceeds a
+/// column this narrow, so the row's own height, whichever fixed figure the row it sits on draws at,
+/// is what the tap target claims instead (`docs/architecture/budget.md`). The 18 px arrow itself
+/// stays centred in that taller target — `Icon` centres its own glyph inside whatever box its
+/// surrounding layout hands it.
 class _OcptCostTrackingTwisty extends StatelessWidget {
   /// Whether this row has anything at all to expand onto.
   final bool isExpandable;
@@ -2179,8 +2181,9 @@ class _OcptCostTrackingSubIdentityRow extends StatelessWidget {
 }
 
 /// A quote line's own six amount cells — [OcptBudgetCostTracking]'s own class doc comment argues
-/// why `Engagé`/`Payé` are read through [ocptBudgetLineCommittedTotalOf]/[ocptBudgetLinePaidTotalOf]
-/// and why the estimate to complete behind `Coût final` is always derived here.
+/// why `Engagé`/`Payé` are read through
+/// [ocptBudgetLineCommittedTotalOf]/[ocptBudgetLinePaidTotalOf] and why the estimate to complete
+/// behind `Coût final` is always derived here.
 ///
 /// **A counterpart line** (`OcptBudgetLine.inKindResourceId` not null) **reads its own `Engagé`
 /// and `Payé` as [ocptBudgetEmptyValue], never the real (and always zero) totals those two

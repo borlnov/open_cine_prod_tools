@@ -56,8 +56,8 @@ class OcptScheduleMonthGrid extends StatelessWidget {
   final Map<String, OcptLocation?> firstLocationByDayId;
 
   /// A day's own resolved tint, under whichever `OcptScheduleAgendaColorMode` is currently active —
-  /// `ocptScheduleDayLocationTint`/`ocptScheduleDayEffectTint` applied by the caller, so this widget
-  /// stays ignorant of which fact a day is coloured by.
+  /// `ocptScheduleDayLocationTint`/`ocptScheduleDayEffectTint` applied by the caller, so this
+  /// widget stays ignorant of which fact a day is coloured by.
   final Color Function(String dayId) dayTintOf;
 
   /// Resolves a day id to its own computed timetable, or null while it has nothing placed.
@@ -111,7 +111,8 @@ class OcptScheduleMonthGrid extends StatelessWidget {
       // regardless of how much room the caller actually has, and a short window would otherwise
       // overflow past the bottom of whatever laid this out (the strip and week agendas already
       // scroll for the very same reason). A tall window still shows every week at once, with
-      // nothing to scroll — the scroll view adds no chrome of its own when there is nothing to hide.
+      // nothing to scroll — the scroll view adds no chrome of its own when there is nothing to
+      // hide.
       child: SingleChildScrollView(
         child: Column(
           children: [
@@ -289,8 +290,8 @@ class _OcptScheduleMonthCell extends StatelessWidget {
                   ),
                   // A day running more than one slot at once — two units shooting in parallel — has
                   // no single "the call" any more, which is exactly what this badge exists to flag:
-                  // a producer scanning the month sees it before wondering why the range below looks
-                  // odd for that day.
+                  // a producer scanning the month sees it before wondering why the range below
+                  // looks odd for that day.
                   if (slots.length > 1)
                     Tooltip(
                       message: tr.scheduleMonthCellSlotCountTooltip(slots.length),

@@ -68,8 +68,8 @@ class _OcptBreakdownOccurrence {
 /// Purely presentational, like `OcptShotInspectorPanel`: the mode is the only caller, wiring every
 /// callback to `OcptBreakdownBloc` events and resolving [fieldValueOf] from the bloc's own pending
 /// element field edits. [scenes] — every scene of the loaded snapshot, in source order, each
-/// carrying its own live tags — is read once, internally, to build the occurrences section: there is
-/// no scroll-to-passage in this change, a click only selects the occurrence's own scene.
+/// carrying its own live tags — is read once, internally, to build the occurrences section: there
+/// is no scroll-to-passage in this change, a click only selects the occurrence's own scene.
 ///
 /// [isReadOnly] withholds every control that writes — the title field, the status and category
 /// chips, the three fields, the two person pickers, a suggested occurrence's own add control and
@@ -101,8 +101,8 @@ class OcptBreakdownTargetInspector extends StatelessWidget {
   /// once to build the occurrences section.
   final List<OcptBreakdownScene> scenes;
 
-  /// [element]'s current value for `field` — a pending edit still in the bloc's own debounce, or the
-  /// element's own stored value. Ignored while [element] is null.
+  /// [element]'s current value for `field` — a pending edit still in the bloc's own debounce, or
+  /// the element's own stored value. Ignored while [element] is null.
   final String Function(OcptElementField field) fieldValueOf;
 
   /// Called when the "back to the scene sheet" link at the top of the panel is clicked. Never
@@ -143,9 +143,9 @@ class OcptBreakdownTargetInspector extends StatelessWidget {
 
   /// [target]'s own suggested occurrences, already computed and filtered to it
   /// (`OcptBreakdownState.selectedTargetSuggestions`) — passages elsewhere in the screenplay that
-  /// read like one of [target]'s own tags but are not tagged themselves. The "Suggested occurrences"
-  /// section is shown directly under the occurrences section, in the same shape, when this is
-  /// non-empty, and dropped entirely otherwise.
+  /// read like one of [target]'s own tags but are not tagged themselves. The "Suggested
+  /// occurrences" section is shown directly under the occurrences section, in the same shape, when
+  /// this is non-empty, and dropped entirely otherwise.
   final List<OcptBreakdownSuggestion> suggestions;
 
   /// Called with a suggestion when its own row's add control is clicked, tagging that passage; null
@@ -444,9 +444,9 @@ class OcptBreakdownTargetInspector extends StatelessWidget {
 
   /// The bordered list of [suggestions], the same shape [_buildOccurrences] builds for the live
   /// occurrences above it, each row additionally carrying a trailing add control tagging that
-  /// passage — withheld, as a null [onSuggestionAccepted], while [isReadOnly]. A row whose own scene
-  /// has, somehow, disappeared from [scenes] (a stale suggestion racing a freshly loaded snapshot) is
-  /// skipped rather than shown with nothing to head it.
+  /// passage — withheld, as a null [onSuggestionAccepted], while [isReadOnly]. A row whose own
+  /// scene has, somehow, disappeared from [scenes] (a stale suggestion racing a freshly loaded
+  /// snapshot) is skipped rather than shown with nothing to head it.
   Widget _buildSuggestedOccurrences(
     BuildContext context,
     Tr tr,

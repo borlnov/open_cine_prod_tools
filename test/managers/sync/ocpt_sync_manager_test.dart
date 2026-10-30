@@ -181,9 +181,9 @@ void main() {
       'syncStatusChanges reaches a subscriber that subscribed before the session started',
       () async {
         // The workspace's own status indicator subscribes when it is built — before the project it
-        // then opens has started its session. The per-session stream would be null at that point, so
-        // this manager-level one has to carry the session's status once it starts, and a null once it
-        // stops, for the indicator to ever appear (and later hide).
+        // then opens has started its session. The per-session stream would be null at that point,
+        // so this manager-level one has to carry the session's status once it starts, and a null
+        // once it stops, for the indicator to ever appear (and later hide).
         final received = <OcptSyncStatus?>[];
         final subscription = manager.syncStatusChanges.listen(received.add);
         addTearDown(subscription.cancel);

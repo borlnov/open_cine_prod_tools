@@ -64,13 +64,13 @@ const Map<int, pw.TableColumnWidth> _lineColumnWidths = {
 /// through `globalGetIt()` (RFL18), exactly like its siblings — `OcptDayOutOfDaysPdfService` chief
 /// among them, whose own doc comment this one mirrors.
 ///
-/// **Every line comes off the same [ocptOrderedScheduleEntriesOfDay] walk both existing schedule PDF
-/// exports already read**, so this document cannot disagree with a call sheet or the shooting plan
-/// about what order a shoot's sequences run in. A line is a run of consecutive
+/// **Every line comes off the same [ocptOrderedScheduleEntriesOfDay] walk both existing schedule
+/// PDF exports already read**, so this document cannot disagree with a call sheet or the shooting
+/// plan about what order a shoot's sequences run in. A line is a run of consecutive
 /// [OcptShootingBlockKind.shot] blocks on the same slot and the same scene, collapsed exactly as
 /// `OcptCallSheetPdfService`'s own `_DayRow.shotRun` folds one, or a single
-/// [OcptShootingBlockKind.hold] block, which never folds with anything — see
-/// [_buildOneLineRows]'s own doc comment for why every other block kind gives no line at all.
+/// [OcptShootingBlockKind.hold] block, which never folds with anything — see [_buildOneLineRows]'s
+/// own doc comment for why every other block kind gives no line at all.
 ///
 /// **The table is landscape** (page width and height swapped from the painter's own geometry) and
 /// **one continuous flow across the whole document**, unlike the *Day Out of Days*' own chunked
@@ -93,24 +93,24 @@ class OcptOneLineSchedulePdfService {
   /// The `.pdf` file name to suggest when exporting the one-line schedule of [projectName].
   ///
   /// [suffix] is the localized word telling this document apart from the other PDFs the app writes
-  /// (`My Movie - one-line schedule.pdf`); a blank one falls back to the project name alone, exactly
-  /// as `OcptDayOutOfDaysPdfService.dayOutOfDaysFileName` does.
+  /// (`My Movie - one-line schedule.pdf`); a blank one falls back to the project name alone,
+  /// exactly as `OcptDayOutOfDaysPdfService.dayOutOfDaysFileName` does.
   String oneLineScheduleFileName({required String projectName, required String suffix}) =>
       suffix.trim().isEmpty ? "$projectName.pdf" : "$projectName - ${suffix.trim()}.pdf";
 
   /// Renders the one-line schedule of [dayIds] (in the order given), returning the PDF's bytes.
   ///
   /// A [dayIds] entry naming no live day of [plan] is silently skipped, exactly as its two sibling
-  /// services read a missing day: nothing this app writes can produce one, but a hand-edited file or
-  /// a stale selection might. [dayIds] naming no live day at all still produces a readable, one-note
-  /// document (plus its title page, when [includeTitlePage] asks for one) rather than an empty file
-  /// nobody can open; a live day whose own lines fold down to none prints its own band and
-  /// [OcptOneLineScheduleLabels.emptyDayNote] in place of its table, never a bare band.
+  /// services read a missing day: nothing this app writes can produce one, but a hand-edited file
+  /// or a stale selection might. [dayIds] naming no live day at all still produces a readable,
+  /// one-note document (plus its title page, when [includeTitlePage] asks for one) rather than an
+  /// empty file nobody can open; a live day whose own lines fold down to none prints its own band
+  /// and [OcptOneLineScheduleLabels.emptyDayNote] in place of its table, never a bare band.
   ///
   /// [exportDate] is the moment the title page's own version line and every page's running head
   /// print (through [ocptScheduleGeneratedAtStamp], the stamp every schedule document of this app
-  /// prints); it defaults to the moment this method runs, and is exposed so a test can pin it rather
-  /// than racing a midnight rollover. It is resolved **once** per document, so a table whose
+  /// prints); it defaults to the moment this method runs, and is exposed so a test can pin it
+  /// rather than racing a midnight rollover. It is resolved **once** per document, so a table whose
   /// rendering straddles a minute boundary still names one issue of itself on every one of its
   /// pages.
   Future<Uint8List> generate({
@@ -171,8 +171,8 @@ class OcptOneLineSchedulePdfService {
   // Pages
   // ---------------------------------------------------------------------------------------------
 
-  /// The document's own title page: its name, the `"<title>" de <director>` line, and the moment the
-  /// export was run.
+  /// The document's own title page: its name, the `"<title>" de <director>` line, and the moment
+  /// the export was run.
   pw.Page _titlePage({
     required OcptScriptPagePainter painter,
     required OcptOneLineScheduleLabels labels,
@@ -446,8 +446,8 @@ class OcptOneLineSchedulePdfService {
     marginBottom: painter.marginRightPt,
   );
 
-  /// The landscape `pdf` page format every table page is drawn on — [painter]'s own width and height
-  /// swapped, its margins otherwise read the same way [_portraitPageFormat] does.
+  /// The landscape `pdf` page format every table page is drawn on — [painter]'s own width and
+  /// height swapped, its margins otherwise read the same way [_portraitPageFormat] does.
   PdfPageFormat _landscapePageFormat(OcptScriptPagePainter painter) => PdfPageFormat(
     painter.pageHeightPt,
     painter.pageWidthPt,
@@ -458,10 +458,10 @@ class OcptOneLineSchedulePdfService {
   );
 }
 
-// ===================================================================================================
-// Pure data-preparation types and functions — no `pw.Widget` in sight, so a future test can exercise
-// them directly if it ever needs to.
-// ===================================================================================================
+// =================================================================================================
+// Pure data-preparation types and functions — no `pw.Widget` in sight, so a future test can
+// exercise them directly if it ever needs to.
+// =================================================================================================
 
 /// One printed line: a run of one or more consecutive [OcptShootingBlockKind.shot] blocks on the
 /// same slot and the same scene, collapsed exactly as `OcptCallSheetPdfService`'s own
@@ -542,8 +542,8 @@ class _OneLineRow {
 ///
 /// A one-line schedule is a schedule of sequences, and a [OcptShootingBlockKind.preparation],
 /// [OcptShootingBlockKind.hairMakeUp], [OcptShootingBlockKind.meal], [OcptShootingBlockKind.pause],
-/// [OcptShootingBlockKind.travel] or [OcptShootingBlockKind.wrap] block is not one — a meal break is
-/// not a sequence, and the mode's own strip agenda, which this document prints, shows shot chips
+/// [OcptShootingBlockKind.travel] or [OcptShootingBlockKind.wrap] block is not one — a meal break
+/// is not a sequence, and the mode's own strip agenda, which this document prints, shows shot chips
 /// alone. Mirrors `OcptCallSheetPdfService`'s own `_buildDayRows`, so the two documents cannot
 /// disagree about what one printed line is.
 List<_OneLineRow> _buildOneLineRows({
@@ -606,9 +606,9 @@ List<_OneLineRow> _buildOneLineRows({
 
 /// [row]'s own `SEQ` cell: [OcptSchedulePlanSnapshot.sceneNumberBySceneId]'s reading of its scene,
 /// falling back to [ocptShotSceneNumberOf] for an orphaned shot (a null scene id but a non-empty
-/// [_OneLineRow.shots]), and to [ocptScheduleEmptyValue] for a hold naming no sequence, or one whose
-/// sequence this snapshot cannot name (nothing this app writes reaches that case; a hand-edited file
-/// might).
+/// [_OneLineRow.shots]), and to [ocptScheduleEmptyValue] for a hold naming no sequence, or one
+/// whose sequence this snapshot cannot name (nothing this app writes reaches that case; a
+/// hand-edited file might).
 String _sceneNumberOf(OcptSchedulePlanSnapshot plan, _OneLineRow row) {
   final sceneId = row.sceneId;
   if (sceneId != null) {
@@ -617,15 +617,15 @@ String _sceneNumberOf(OcptSchedulePlanSnapshot plan, _OneLineRow row) {
   return row.isHold ? ocptScheduleEmptyValue : ocptShotSceneNumberOf(row.shots.first);
 }
 
-/// [row]'s own `DURÉE` cell: the **span its resolved blocks occupy**, from the start of its first to
-/// the end of its last, written through [ocptFormatMinuteDuration].
+/// [row]'s own `DURÉE` cell: the **span its resolved blocks occupy**, from the start of its first
+/// to the end of its last, written through [ocptFormatMinuteDuration].
 ///
 /// It is the time the plan **reserves** for that sequence, never a shot's own
 /// `OcptShot.estimatedDurationMs`, which estimates how long the shot runs on screen rather than how
 /// long it takes to get. And it is the run's span rather than the sum of its blocks' own durations:
 /// the two differ only when a pinned anchor leaves a gap in the middle of a folded run, and a
-/// sequence a day holds its slot busy with from 09:00 to 11:00 has cost that unit two hours whatever
-/// happened in the gap — which is the figure a production reads this column for.
+/// sequence a day holds its slot busy with from 09:00 to 11:00 has cost that unit two hours
+/// whatever happened in the gap — which is the figure a production reads this column for.
 String _durationLabelOf(_OneLineRow row) =>
     ocptFormatMinuteDuration(row.endMinute - row.startMinute);
 
@@ -639,8 +639,8 @@ String _effectOf(OcptSchedulePlanSnapshot plan, _OneLineRow row) {
 }
 
 /// [row]'s own `RÔLES` cell: the role numbers of every role whose character is in one of [row]'s
-/// own [_OneLineRow.shots], among [roles] — matched through `normalizeCharacterName`, the exact join
-/// `OcptCallSheetPdfService`'s own `_rolesLabelOf` makes.
+/// own [_OneLineRow.shots], among [roles] — matched through `normalizeCharacterName`, the exact
+/// join `OcptCallSheetPdfService`'s own `_rolesLabelOf` makes.
 ///
 /// **A hold row always answers [ocptScheduleEmptyValue]**: nothing in the manager layer says which
 /// roles a sequence not yet shot-listed calls for — the day view's own reading of that comes from

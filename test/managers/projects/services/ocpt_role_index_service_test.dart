@@ -490,7 +490,8 @@ Hello again.
         expect(roles, hasLength(1));
         expect(roles.single.name, "CLARA");
         expect(roles.single.kind, OcptRoleKind.speaking);
-        // A fresh row, not the tombstoned one: deleting a speaking role does not stop it coming back.
+        // A fresh row, not the tombstoned one: deleting a speaking role does not stop it coming
+        // back.
         expect(roles.single.id, isNot(roleId));
       },
     );

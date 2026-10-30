@@ -631,10 +631,10 @@ class _EditorViewState extends State<_EditorView> {
   ///
   /// [isRawMode] is already [_liveMode]'s answer by the time it reaches here (see [build]), so on a
   /// phone the raw source field is never the one built here even when [OcptEditorState.mode] itself
-  /// still says raw — the styled editor is, with page simulation forced off ([_isPageSimulationLive])
-  /// and [OcptStyledScreenplayEditor.isCompact] set whenever the window is merely compact (a tablet
-  /// too, not only a phone — see [_isCompactWidth]), which is the phone default:
-  /// raw source and this same read-only preview (its own version-preview branch above)
+  /// still says raw — the styled editor is, with page simulation forced off
+  /// ([_isPageSimulationLive]) and [OcptStyledScreenplayEditor.isCompact] set whenever the window
+  /// is merely compact (a tablet too, not only a phone — see [_isCompactWidth]), which is the phone
+  /// default: raw source and this same read-only preview (its own version-preview branch above)
   /// have no room to be usable there either.
   Widget _buildCentre(BuildContext context, OcptEditorState state, {required bool isRawMode}) {
     if (state.isPreviewingVersion) {
@@ -692,7 +692,8 @@ class _EditorViewState extends State<_EditorView> {
   }
 
   /// Builds the find/replace bar, the first row of [_buildCentre]'s column, or the empty box that
-  /// holds its place while the bar is closed — see [_buildCentre] on why that slot is never removed.
+  /// holds its place while the bar is closed — see [_buildCentre] on why that slot is never
+  /// removed.
   Widget _buildFindBar(BuildContext context, OcptEditorState state, {required bool isRawMode}) {
     if (!state.search.isOpen) {
       return const SizedBox.shrink();
@@ -1065,8 +1066,8 @@ class _EditorViewState extends State<_EditorView> {
 
   /// Places the raw controller's selection on [match] and scrolls it into view exactly as
   /// [_applyJumpRequest] does ([_scrollRawEditorTo]) — deliberately does not focus
-  /// [_editorFocusNode]: the find field must keep the keyboard focus while the user types a query or
-  /// presses Next/Previous.
+  /// [_editorFocusNode]: the find field must keep the keyboard focus while the user types a query
+  /// or presses Next/Previous.
   void _navigateToMatch(OcptTextMatch match) {
     _textController.selection = TextSelection(baseOffset: match.start, extentOffset: match.end);
     _scrollRawEditorTo(match.start);
@@ -1673,8 +1674,8 @@ class _EditorViewState extends State<_EditorView> {
     };
   }
 
-  /// Moves the editor caret to [charOffset], focuses the editor, scrolls the caret's line into
-  /// view ([_scrollRawEditorTo]), and lets the controller listener report the caret move to the bloc.
+  /// Moves the editor caret to [charOffset], focuses the editor, scrolls the caret's line into view
+  /// ([_scrollRawEditorTo]), and lets the controller listener report the caret move to the bloc.
   void _applyJumpRequest(int charOffset) {
     final text = _textController.text;
     final clampedOffset = charOffset > text.length ? text.length : charOffset;

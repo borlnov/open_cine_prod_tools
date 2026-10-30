@@ -13,8 +13,9 @@ import 'package:open_cine_prod_tools/types/ocpt_budget_tax_basis.dart';
 ///
 /// [coverageReadOutTemplate] mirrors `tr.budgetCostTrackingCoverageReadOut` word for word, with
 /// `{amount}`, `{coveredCount}` and `{totalCount}` placeholders standing in for the figures a
-/// manager-layer service cannot ask `Tr` to interpolate itself — `ocptBudgetExportCoveredAmountText`
-/// (`lib/managers/export/services/ocpt_budget_pdf_shared.dart`) is what fills them in.
+/// manager-layer service cannot ask `Tr` to interpolate itself —
+/// `ocptBudgetExportCoveredAmountText` (`lib/managers/export/services/ocpt_budget_pdf_shared.dart`)
+/// is what fills them in.
 class OcptBudgetQuoteLabels extends Equatable {
   /// The localized word telling this document apart from the other PDFs the app writes
   /// (`My Movie - quote.pdf`). A blank one falls back to the project name alone, exactly as its

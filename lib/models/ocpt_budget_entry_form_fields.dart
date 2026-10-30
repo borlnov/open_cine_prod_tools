@@ -12,9 +12,9 @@ import 'package:open_cine_prod_tools/types/ocpt_budget_entry_nature.dart';
 /// both creating and editing a `budget_entries` movement (`docs/architecture/budget.md`).
 ///
 /// [isDebit] is the one field with no direct column mirror: the dialog shows a single [amountCents]
-/// and a single direction choice rather than the entry's own two separate `debitCents`/`creditCents`
-/// columns, so the mode reading this back writes [amountCents] onto whichever of the two [isDebit]
-/// names and zero onto the other.
+/// and a single direction choice rather than the entry's own two separate
+/// `debitCents`/`creditCents` columns, so the mode reading this back writes [amountCents] onto
+/// whichever of the two [isDebit] names and zero onto the other.
 class OcptBudgetEntryFormFields extends Equatable {
   /// The date this movement is recorded under.
   final DateTime date;

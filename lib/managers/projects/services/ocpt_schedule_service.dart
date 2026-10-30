@@ -24,9 +24,10 @@ import 'package:open_cine_prod_tools/utils/ocpt_shooting_day_timeline.dart';
 import 'package:uuid/uuid.dart';
 
 /// CRUD over a screenplay's shooting schedule: its days, the convocation windows inside each day
-/// (`shooting_slots`), who is convoked in each (`shooting_slot_crew`/`shooting_slot_cast`), and each
-/// **slot's own** timetable (`shooting_day_blocks`) — placing a shot, reserving a `hold`, and the
-/// milestones (preparation, hair/make-up, a meal, a travel move, the wrap) interleaved between them.
+/// (`shooting_slots`), who is convoked in each (`shooting_slot_crew`/`shooting_slot_cast`), and
+/// each **slot's own** timetable (`shooting_day_blocks`) — placing a shot, reserving a `hold`, and
+/// the milestones (preparation, hair/make-up, a meal, a travel move, the wrap) interleaved between
+/// them.
 ///
 /// {@macro open_cine_prod_tools.tombstones}
 ///
@@ -95,25 +96,26 @@ import 'package:uuid/uuid.dart';
 /// slotless (`shooting_day_blocks.slotId` is `NOT NULL` from schema v12), so a day with no slot at
 /// all can hold no timetable either.
 ///
-/// **Duplicating a day copies the shape of the crew, not the day's own work.** [duplicateDay] copies
-/// the source day's slots, their crew, their cast and their guests — but copies **neither the placed
-/// shots nor the crew note**, and (a decision this service makes on its own) starts the new day's
-/// own `status`, `weatherNote` and `notes` at their column defaults too: a stable crew is entered
-/// once for a whole shoot and reused day after day, while what got shot, what the weather did and
-/// why a day was lost are all facts of the specific day being duplicated *away* from, not of the one
-/// being planned. A guest is entered once for the same reason a crew member is — a location owner
-/// attending every day of a shoot should not be re-typed each time. The source day's **events are
-/// not copied**: a guest attends a shoot, but an event happens on a date, and carrying the village
-/// fireworks over to a day re-planned at another date would be the app inventing a fact about it.
+/// **Duplicating a day copies the shape of the crew, not the day's own work.** [duplicateDay]
+/// copies the source day's slots, their crew, their cast and their guests — but copies **neither
+/// the placed shots nor the crew note**, and (a decision this service makes on its own) starts the
+/// new day's own `status`, `weatherNote` and `notes` at their column defaults too: a stable crew is
+/// entered once for a whole shoot and reused day after day, while what got shot, what the weather
+/// did and why a day was lost are all facts of the specific day being duplicated *away* from, not
+/// of the one being planned. A guest is entered once for the same reason a crew member is — a
+/// location owner attending every day of a shoot should not be re-typed each time. The source day's
+/// **events are not copied**: a guest attends a shoot, but an event happens on a date, and carrying
+/// the village fireworks over to a day re-planned at another date would be the app inventing a fact
+/// about it.
 ///
 /// **A guest is convoked by the slot exactly as a crew member or a role is, and an event is not
 /// convoked at all.** [addSlotGuest]/[updateSlotGuest]/[deleteSlotGuest] mirror the crew and cast
 /// methods above — appended at the end of the slot's own guests, the discriminator
 /// (`personId`/`freeName`) guaranteed rather than hoped for — because a guest's arrival and
 /// departure are read off the slots they are linked to (ADR 0018) exactly as everybody else's are.
-/// [createDayEvent]/[updateDayEvent]/[deleteDayEvent] have no such reading: an event is a fact about
-/// the day at an absolute hour, ordered by that hour alone, so there is no reorder method for it —
-/// moving one is typing another [OcptShootingDayEvent.minute].
+/// [createDayEvent]/[updateDayEvent]/[deleteDayEvent] have no such reading: an event is a fact
+/// about the day at an absolute hour, ordered by that hour alone, so there is no reorder method for
+/// it — moving one is typing another [OcptShootingDayEvent.minute].
 ///
 /// **The presence grid has nothing of its own to write.** `shooting_presences`, the by-hand
 /// override schema v11 declared for it, is dropped again at schema v17: every cell it drew is
@@ -270,8 +272,8 @@ class OcptScheduleService {
   ///
   /// A shot with no live block has **no entry** in the returned map, rather than an empty list: the
   /// shot list's `Jour de tournage` read-out reads absence as "not yet planned" rather than looking
-  /// for a placement with null fields. A shot placed twice — on the same day either side of the meal
-  /// break, or on two different days — carries two entries in its own list.
+  /// for a placement with null fields. A shot placed twice — on the same day either side of the
+  /// meal break, or on two different days — carries two entries in its own list.
   Future<Map<String, List<OcptShotPlacement>>> loadShotPlacements({
     required OcptProjectDatabase database,
   }) async {
@@ -427,9 +429,10 @@ class OcptScheduleService {
     });
   }
 
-  /// Tombstones day [dayId] in [database], and along with it: its slots, their crew, cast, guest and
-  /// candidate rows, its blocks, and its own events — everything hanging off it, in one transaction, exactly
-  /// as `OcptLocationsService.deleteLocation` tombstones a location's sets and their links.
+  /// Tombstones day [dayId] in [database], and along with it: its slots, their crew, cast, guest
+  /// and candidate rows, its blocks, and its own events — everything hanging off it, in one
+  /// transaction, exactly as `OcptLocationsService.deleteLocation` tombstones a location's sets and
+  /// their links.
   ///
   /// {@macro open_cine_prod_tools.tombstones}
   ///
@@ -844,9 +847,9 @@ class OcptScheduleService {
   /// discriminator (see `OcptShootingSlotsTable`), and a call passing both, or neither, writes
   /// nothing rather than picking one. A link is refused — again writing nothing — when
   /// [sourceSlotId] is [slotId] itself, is not a **live slot of the same day**, or would close a
-  /// circle of anchors (`ocptSlotAnchorWouldCycle`): the picker greys those entries out, and this is
-  /// the guarantee behind that, so `ocptComputeShootingDayTimelines`' own cycle rule never has to
-  /// fire on a project this app wrote.
+  /// circle of anchors (`ocptSlotAnchorWouldCycle`): the picker greys those entries out, and this
+  /// is the guarantee behind that, so `ocptComputeShootingDayTimelines`' own cycle rule never has
+  /// to fire on a project this app wrote.
   ///
   /// **Unlinking freezes nothing on its own.** Passing a [minute] simply writes it; the *hour that
   /// was being read* is the caller's to pass, because only the caller knows which moment the user
@@ -958,9 +961,9 @@ class OcptScheduleService {
     });
   }
 
-  /// Tombstones slot [slotId] in [database], and its crew, cast, guest and candidate rows along with
-  /// it — a guest, and a candidate seen for a part, is convoked by the slot exactly as a crew member
-  /// or a role is, so they go with them.
+  /// Tombstones slot [slotId] in [database], and its crew, cast, guest and candidate rows along
+  /// with it — a guest, and a candidate seen for a part, is convoked by the slot exactly as a crew
+  /// member or a role is, so they go with them.
   ///
   /// **The slot's own live blocks are moved, in their own order, to the end of the day's first
   /// other live slot** (lowest `sortKey`) — removing a convocation window must not silently unplace
@@ -1103,8 +1106,8 @@ class OcptScheduleService {
   /// seeded or typed here.
   ///
   /// A person holding two positions in one slot is two rows — see `OcptShootingSlotCrewTable`'s own
-  /// doc comment — so, unlike [addSlotCastRole], this never refuses a duplicate `{slotId, personId}`
-  /// pair.
+  /// doc comment — so, unlike [addSlotCastRole], this never refuses a duplicate
+  /// `{slotId, personId}` pair.
   ///
   /// **When the caller passes neither [positionId] nor [customLabel], the position is pre-filled**
   /// through `ocptCrewPositionPrefillOf`: [personId]'s live `person_positions` rows, in their
@@ -1468,15 +1471,15 @@ class OcptScheduleService {
   }
 
   /// Updates the fields of guest attendance [guestId] in [database] that are passed as something
-  /// other than [Value.absent]. Never touches `sortKey` or `isDeleted`: the first is allocated once,
-  /// at insertion — nothing reorders a slot's guests, there being no order worth arguing about
-  /// between two people watching the same afternoon — and the second only changes through
+  /// other than [Value.absent]. Never touches `sortKey` or `isDeleted`: the first is allocated
+  /// once, at insertion — nothing reorders a slot's guests, there being no order worth arguing
+  /// about between two people watching the same afternoon — and the second only changes through
   /// [deleteSlotGuest].
   ///
   /// **May move a guest between the two halves of the discriminator**, but refuses a write that
-  /// would leave [personId]/[freeName] both set or both empty — exactly the guarantee [addSlotGuest]
-  /// gives a fresh row, kept over an edit to an existing one. A caller changing only one of the pair
-  /// must therefore also clear the other in the same call.
+  /// would leave [personId]/[freeName] both set or both empty — exactly the guarantee
+  /// [addSlotGuest] gives a fresh row, kept over an edit to an existing one. A caller changing only
+  /// one of the pair must therefore also clear the other in the same call.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
   Future<void> updateSlotGuest({
@@ -1651,8 +1654,8 @@ class OcptScheduleService {
     });
   }
 
-  /// Updates the fields of candidate convocation [blockCandidateId] in [database] that are passed as
-  /// something other than [Value.absent]. Never touches `sortKey`, `roleCandidateId` or
+  /// Updates the fields of candidate convocation [blockCandidateId] in [database] that are passed
+  /// as something other than [Value.absent]. Never touches `sortKey`, `roleCandidateId` or
   /// `isDeleted`: those only change through [addBlockCandidate], [reorderBlockCandidate] and
   /// [removeBlockCandidate].
   ///
@@ -1920,8 +1923,8 @@ class OcptScheduleService {
   ///
   /// **Always creates a new block** — see the class doc comment: calling this on a shot already
   /// placed elsewhere adds a second placement rather than moving the first, exactly what a shot
-  /// interrupted by the meal break needs. Moving an *existing* placement is [moveBlockToSlot] or the
-  /// reorder, and removing one is [deleteBlock] — neither is this method's job.
+  /// interrupted by the meal break needs. Moving an *existing* placement is [moveBlockToSlot] or
+  /// the reorder, and removing one is [deleteBlock] — neither is this method's job.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
   Future<String?> placeShot({
@@ -2208,8 +2211,8 @@ class OcptScheduleService {
   }
 
   /// Whether a block of [kind] names a sequence through `shooting_day_blocks.sceneId`: a
-  /// [OcptShootingBlockKind.hold] reserves one's time, a [OcptShootingBlockKind.rehearsal] works it,
-  /// and no other kind has anything to say about a sequence.
+  /// [OcptShootingBlockKind.hold] reserves one's time, a [OcptShootingBlockKind.rehearsal] works
+  /// it, and no other kind has anything to say about a sequence.
   ///
   /// Written once and read by [createBlock] and [updateBlock] alike, so the two cannot come to
   /// disagree about which kinds keep the column.
@@ -2272,9 +2275,9 @@ class OcptScheduleService {
   /// own timetable, by giving it a `sortKey` sitting between the two blocks it lands between there.
   /// Writes **exactly one row**: both the block's `slotId` and its `shootingDayId` — read off
   /// [targetSlotId]'s own row, so a block can never end up pointing at a day its slot doesn't
-  /// belong to — change in the same write as its `sortKey`. Replaces the old `moveBlockToDay`, whose
-  /// "always nulls the slotId" rule disappears with it: a block belongs to exactly one slot from
-  /// schema v12 on, so moving it across days now always means moving it into a slot of the
+  /// belong to — change in the same write as its `sortKey`. Replaces the old `moveBlockToDay`,
+  /// whose "always nulls the slotId" rule disappears with it: a block belongs to exactly one slot
+  /// from schema v12 on, so moving it across days now always means moving it into a slot of the
   /// destination day too, never leaving it slotless.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
@@ -2325,16 +2328,16 @@ class OcptScheduleService {
     });
   }
 
-  /// Tombstones every live `shooting_day_blocks` row placing any of [shotIds]: `OcptScreenplayService`'s
-  /// episode-delete cascade, once its own shot list service has handed it the ids of the shots going
-  /// with the episode. **The day, its slots, its convocations and its every other block are
-  /// untouched** — the schedule is the production's, not any one episode's
+  /// Tombstones every live `shooting_day_blocks` row placing any of [shotIds]:
+  /// `OcptScreenplayService`'s episode-delete cascade, once its own shot list service has handed it
+  /// the ids of the shots going with the episode. **The day, its slots, its convocations and its
+  /// every other block are untouched** — the schedule is the production's, not any one episode's
   /// (`docs/adr/0019-one-project-several-episodes.md`), and a block placing one of the episode's
   /// shots is the one fact about it this service ever has to give up: the day it sat on was never
   /// that episode's to begin with.
   ///
-  /// **Unguarded**, exactly as `OcptElementsService.tombstoneRoleLinksOfRole` is: its only caller has
-  /// already refused the write on a preview connection and is already inside the transaction
+  /// **Unguarded**, exactly as `OcptElementsService.tombstoneRoleLinksOfRole` is: its only caller
+  /// has already refused the write on a preview connection and is already inside the transaction
   /// removing the episode, so a second guard here would only be able to disagree with the first —
   /// and stamps through [stamps], that caller's own instance, rather than resolving a device id of
   /// its own.
@@ -2394,8 +2397,8 @@ class OcptScheduleService {
   }
 
   /// The hour [slot]'s own anchored edge was reading in [timelines] — what a link that cannot be
-  /// carried across freezes into a typed anchor, so the copy still says the same thing about time as
-  /// the slot it was copied from.
+  /// carried across freezes into a typed anchor, so the copy still says the same thing about time
+  /// as the slot it was copied from.
   ///
   /// Reached only from [duplicateDay], and only for a source slot whose `anchorSlotId` names no
   /// live slot of its own day. Nothing this app writes leaves one like that — [deleteSlot] freezes
@@ -2457,8 +2460,8 @@ class OcptScheduleService {
   /// This service computes them for one reason only: [deleteSlot] has to know the hour a dependent
   /// was reading before it takes that hour's slot away. Nothing else here reads a clock — the mode
   /// computes its own from the snapshot it already holds — so this stays private, and it uses the
-  /// same `ocptDefaultBlockDurationMinutes` every other reader does, that constant living beside the
-  /// rule rather than on one caller.
+  /// same `ocptDefaultBlockDurationMinutes` every other reader does, that constant living beside
+  /// the rule rather than on one caller.
   Future<OcptShootingDayTimelines> _timelinesOfDay({
     required OcptProjectDatabase database,
     required String dayId,

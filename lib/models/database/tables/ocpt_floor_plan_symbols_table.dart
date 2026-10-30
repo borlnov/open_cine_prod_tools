@@ -45,13 +45,13 @@ class OcptFloorPlanSetElementShapeConverter
 /// A camera, a character, a light, a set element or any other placed symbol of a floor plan set.
 ///
 /// **Three scopes, derived from nullness, never stored as their own column**
-/// ([OcptFloorPlanScope]): **set** scope ([sceneId] and [shotId]
-/// both null, shared by every sequence the set is linked to), **scene** scope ([sceneId] set,
-/// [shotId] null, this sequence only) and **shot** scope ([shotId] set, this shot only). Which
-/// scopes a given [layer] may land in is the scope matrix `OcptFloorPlanService._checkScopeInvariant`
-/// enforces at every write: `set` → set or scene scope; `cameras`/`characters`/`lights` → shot scope
-/// only; `props` → scene scope only — a breakdown prop is placed for one sequence's own coverage,
-/// never for a single shot's blocking alone.
+/// ([OcptFloorPlanScope]): **set** scope ([sceneId] and [shotId] both null, shared by every
+/// sequence the set is linked to), **scene** scope ([sceneId] set, [shotId] null, this sequence
+/// only) and **shot** scope ([shotId] set, this shot only). Which scopes a given [layer] may land
+/// in is the scope matrix `OcptFloorPlanService._checkScopeInvariant` enforces at every write:
+/// `set` → set or scene scope; `cameras`/`characters`/`lights` → shot scope only; `props` → scene
+/// scope only — a breakdown prop is placed for one sequence's own coverage, never for a single
+/// shot's blocking alone.
 ///
 /// [overridesSymbolId] is null for every symbol but a **scene-scope override**: a scene-scope
 /// symbol that replaces a live set-scope symbol of the same set when drawing its own [sceneId]'s
@@ -122,9 +122,9 @@ class OcptFloorPlanSymbolsTable extends Table {
   RealColumn get fovDeg => real().nullable()();
 
   /// How deep, in metres, a camera's own field-of-view wedge reaches along its own heading — its
-  /// own axial height, from the lens to the wedge's own far chord, never the length of either angled
-  /// edge — null meaning the drawing's own default (`ocptFloorPlanCameraFovWedgeLengthM`, 2 m). Null
-  /// for every other symbol, which doesn't draw a wedge.
+  /// own axial height, from the lens to the wedge's own far chord, never the length of either
+  /// angled edge — null meaning the drawing's own default (`ocptFloorPlanCameraFovWedgeLengthM`, 2
+  /// m). Null for every other symbol, which doesn't draw a wedge.
   RealColumn get fovReachM => real().nullable()();
 
   /// The text label this symbol carries, e.g. `key · 1.2k`, `SAM · stand-in`,

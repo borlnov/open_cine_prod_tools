@@ -60,8 +60,8 @@ import 'package:open_cine_prod_tools/utils/ocpt_scene_display_number.dart';
 /// selected person, the dock geometry and the pending field edits on top of it.
 ///
 /// Every one of the four [OcptResourcesTab]s now has real content: the address book, the cast
-/// reconciled against the screenplay, the locations with their sets, and the elements catalogue with
-/// the dépouillement links onto the scenes needing each item.
+/// reconciled against the screenplay, the locations with their sets, and the elements catalogue
+/// with the dépouillement links onto the scenes needing each item.
 ///
 /// Alongside that catalogue, [OcptResourcesState.mileageRates] is read once from
 /// `OcptProjectsManager.budgetFinancingService` on every load: the person sheet's own rate picker
@@ -71,22 +71,21 @@ import 'package:open_cine_prod_tools/utils/ocpt_scene_display_number.dart';
 ///
 /// Most of a person's discrete fields (colour, birth date, transport autonomy, image rights status
 /// and date), every sub-list (positions, skills, unavailabilities), a role's cast member and kind,
-/// a location's colour, permit status and date, contact, sets, scene links and referenced files, and
-/// an element's category, provenance, owner, bringer, tracking flags and scene links are written to
-/// the project database the moment they change, exactly like a shot's difficulty axis or its
-/// character chips are. A role's name is never written here for an
-/// `isFromScreenplay` role — [_roleIndexService]'s own reconciliation owns it, and would overwrite
-/// a hand-typed name right back on the next save; withholding that field is the widgets' job, not a
-/// special case here. The sheets' typed free-text fields ([OcptPersonField], [OcptRoleField],
-/// [OcptLocationField], [OcptSetField], [OcptElementField], [OcptRoleCandidateField]) are the
-/// exception: an edit is held in the matching `OcptResourcesState.pending…FieldEdits` map and
-/// written [defaultFieldEditDebounce] after the last keystroke, mirroring `OcptShotListBloc`'s own
-/// autosave convention — the six maps ride the very same debounce timer, so pending edits are
-/// always flushed together, never one kind without the others. The debounce is flushed immediately
-/// whenever the selected record, or the active tab,
-/// changes, when the workspace is left, and (through [flushPendingFieldEdits], called by the mode's
-/// own `deactivate()`) whenever the mode leaves the widget tree for any other reason, so a pending
-/// edit is never silently dropped.
+/// a location's colour, permit status and date, contact, sets, scene links and referenced files,
+/// and an element's category, provenance, owner, bringer, tracking flags and scene links are
+/// written to the project database the moment they change, exactly like a shot's difficulty axis or
+/// its character chips are. A role's name is never written here for an `isFromScreenplay` role —
+/// [_roleIndexService]'s own reconciliation owns it, and would overwrite a hand-typed name right
+/// back on the next save; withholding that field is the widgets' job, not a special case here. The
+/// sheets' typed free-text fields ([OcptPersonField], [OcptRoleField], [OcptLocationField],
+/// [OcptSetField], [OcptElementField], [OcptRoleCandidateField]) are the exception: an edit is held
+/// in the matching `OcptResourcesState.pending…FieldEdits` map and written
+/// [defaultFieldEditDebounce] after the last keystroke, mirroring `OcptShotListBloc`'s own autosave
+/// convention — the six maps ride the very same debounce timer, so pending edits are always flushed
+/// together, never one kind without the others. The debounce is flushed immediately whenever the
+/// selected record, or the active tab, changes, when the workspace is left, and (through
+/// [flushPendingFieldEdits], called by the mode's own `deactivate()`) whenever the mode leaves the
+/// widget tree for any other reason, so a pending edit is never silently dropped.
 ///
 /// It also mixes in [MixinOcptProjectVersionsBloc], which owns everything the right dock's
 /// `Versions` tab does. The two hooks the mixin needs are answered by [flushPendingProjectWrites]
@@ -798,10 +797,10 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
   /// no-op while nothing of any kind is pending.
   ///
   /// Used from inside an event handler, with that handler's own [emitter]: called by
-  /// [_onFieldEditFlushRequested] (the debounce firing), and up front by every handler that
-  /// changes which record, or which tab, is selected, or that leaves the workspace, so a pending
-  /// edit is never silently dropped by a selection change. [flushPendingFieldEdits] is the sibling of
-  /// this method used outside of an event handler.
+  /// [_onFieldEditFlushRequested] (the debounce firing), and up front by every handler that changes
+  /// which record, or which tab, is selected, or that leaves the workspace, so a pending edit is
+  /// never silently dropped by a selection change. [flushPendingFieldEdits] is the sibling of this
+  /// method used outside of an event handler.
   Future<void> _flushPendingFieldEdits(Emitter<OcptResourcesState> emitter) async {
     _fieldEditTimer?.cancel();
     _fieldEditTimer = null;
@@ -2607,9 +2606,10 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
   /// Shows the native "open" dialog and returns the path of the file picked, or null when the user
   /// cancelled it, when it failed, or when the platform gave a file with no path at all.
   ///
-  /// **The file itself is never read here** (see `docs/adr/0013-binary-assets-referenced-by-path.md`)
-  /// — unlike an import, which is exactly why this goes to [FileSelectorManager] directly rather
-  /// than through `OcptExportManager`: there is nothing to decode, only a path to keep.
+  /// **The file itself is never read here** (see
+  /// `docs/adr/0013-binary-assets-referenced-by-path.md`) — unlike an import, which is exactly why
+  /// this goes to [FileSelectorManager] directly rather than through `OcptExportManager`: there is
+  /// nothing to decode, only a path to keep.
   Future<String?> _pickFilePath({
     required List<String> allowedExtensions,
     required String fileTypeLabel,

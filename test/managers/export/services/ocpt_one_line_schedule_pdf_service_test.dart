@@ -616,8 +616,8 @@ int _pageCount(Uint8List bytes) {
   return RegExp(r"/Type\s*/Page[^s]").allMatches(text).length;
 }
 
-/// The raw (still-compressed) bytes of every `stream`/`endstream` object in [bytes], in file order —
-/// see `ocpt_call_sheet_pdf_service_test.dart`'s own doc comment for why this, rather than the
+/// The raw (still-compressed) bytes of every `stream`/`endstream` object in [bytes], in file order
+/// — see `ocpt_call_sheet_pdf_service_test.dart`'s own doc comment for why this, rather than the
 /// printed text, is what every "prints something different" assertion above compares.
 List<String> _contentStreams(Uint8List bytes) {
   final text = latin1.decode(bytes, allowInvalid: true);

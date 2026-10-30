@@ -213,12 +213,13 @@ class OcptShotListXlsxExportService {
   CellValue? _textOrNull(String? value) =>
       value == null || value.trim().isEmpty ? null : TextCellValue(value);
 
-  /// The cell holding [placements]'s read-out — mirroring `ocptShotPlacementLabel` for a caller with
-  /// no `BuildContext`: `D3 · 2026-08-04` (the day's printed rank then its calendar date) when every
-  /// placement lands on the same day, the day tags alone joined with `, ` (`D3, D5`) when they don't,
-  /// or null for a shot the schedule carries no placement for at all — exactly like any other field
-  /// the user hasn't filled in ([_textOrNull]). Days are deduplicated by `OcptShotPlacement.dayId`
-  /// and kept in ascending `dayNumber` order, exactly as `ocptShotPlacementLabel` does.
+  /// The cell holding [placements]'s read-out — mirroring `ocptShotPlacementLabel` for a caller
+  /// with no `BuildContext`: `D3 · 2026-08-04` (the day's printed rank then its calendar date) when
+  /// every placement lands on the same day, the day tags alone joined with `, ` (`D3, D5`) when
+  /// they don't, or null for a shot the schedule carries no placement for at all — exactly like any
+  /// other field the user hasn't filled in ([_textOrNull]). Days are deduplicated by
+  /// `OcptShotPlacement.dayId` and kept in ascending `dayNumber` order, exactly as
+  /// `ocptShotPlacementLabel` does.
   ///
   /// The day tag's own letter is [labels]' own `dayTagPrefix`, resolved by the caller from `Tr`
   /// since this service has none of its own — the paperwork a crew reads follows the app's

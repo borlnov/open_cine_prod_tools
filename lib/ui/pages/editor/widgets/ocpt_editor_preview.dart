@@ -155,21 +155,22 @@ class _OcptEditorPreviewState extends State<OcptEditorPreview> {
             }
 
             // The panel is narrower than the full page: scale the whole page down to fit it, rather
-            // than crop it with horizontal scroll. `height` is inflated by the inverse of `scale` so
-            // the scaled-down viewport exactly fills the panel: `_scrollController`'s viewport/target
-            // math, entirely computed in this unscaled space (see `_syncScrollToCurrentLine`), stays
-            // valid without any adjustment.
+            // than crop it with horizontal scroll. `height` is inflated by the inverse of `scale`
+            // so the scaled-down viewport exactly fills the panel: `_scrollController`'s
+            // viewport/target math, entirely computed in this unscaled space (see
+            // `_syncScrollToCurrentLine`), stays valid without any adjustment.
             //
-            // This must be a `FittedBox`, not a `Transform.scale` wrapping a merely wide `SizedBox`:
-            // this whole subtree already sits under a *tight* incoming width constraint (an
-            // `Expanded` panel gives one), and a plain `SizedBox` cannot exceed a tight constraint —
-            // it silently clamps back down to `constraints.maxWidth`, one level too late for
-            // `Transform.scale` to notice, which then scales down and anchors against that wrong
-            // (already-narrow) box instead of the true, wider page — visibly displacing the left
-            // margin while the vertical margins (unaffected by this) still line up. `FittedBox`
-            // sidesteps this: it always lays its child out with fully unconstrained constraints, so
-            // the inner `SizedBox` genuinely achieves `unscaledWidth`, and `FittedBox` itself then
-            // measures that real size to compute the correct scale and centering.
+            // This must be a `FittedBox`, not a `Transform.scale` wrapping a merely wide
+            // `SizedBox`: this whole subtree already sits under a *tight* incoming width constraint
+            // (an `Expanded` panel gives one), and a plain `SizedBox` cannot exceed a tight
+            // constraint — it silently clamps back down to `constraints.maxWidth`, one level too
+            // late for `Transform.scale` to notice, which then scales down and anchors against that
+            // wrong (already-narrow) box instead of the true, wider page — visibly displacing the
+            // left margin while the vertical margins (unaffected by this) still line up.
+            // `FittedBox` sidesteps this: it always lays its child out with fully unconstrained
+            // constraints, so the inner `SizedBox` genuinely achieves `unscaledWidth`, and
+            // `FittedBox` itself then measures that real size to compute the correct scale and
+            // centering.
             final scale = constraints.maxWidth / unscaledWidth;
             return FittedBox(
               alignment: Alignment.topCenter,
@@ -225,8 +226,8 @@ class _OcptEditorPreviewState extends State<OcptEditorPreview> {
         children: [
           // Width is explicit, not left to the `Stack`'s loose constraints: this `Material` has no
           // child of its own, so a childless `Material` under `StackFit.loose` sizes itself to
-          // `constraints.smallest`, i.e. zero width (only the `SizedBox`'s height is tight). Without
-          // it the sheet collapses to a 0 px-wide sliver and paints nothing.
+          // `constraints.smallest`, i.e. zero width (only the `SizedBox`'s height is tight).
+          // Without it the sheet collapses to a 0 px-wide sliver and paints nothing.
           SizedBox(
             width: layout.pageWidth,
             height: layout.pageHeight,

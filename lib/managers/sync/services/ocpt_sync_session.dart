@@ -229,9 +229,9 @@ class OcptSyncSession {
   /// Records the [error] that has just knocked this session offline into the device-local
   /// diagnostics buffer — the message alone, since the stack trace stays in the file log
   /// ([_logWarning]) — but **only on the way into** offline, not while it stays there. The offline
-  /// status itself logs every push interval it fails on; its cause is logged once, so the diagnostics
-  /// view names *why* syncing stopped (an unreachable relay, a closed database, …) without the reason
-  /// scrolling past on every retry.
+  /// status itself logs every push interval it fails on; its cause is logged once, so the
+  /// diagnostics view names *why* syncing stopped (an unreachable relay, a closed database, …)
+  /// without the reason scrolling past on every retry.
   void _logOfflineCause(Object error) {
     if (_status is OcptSyncStatusOffline) {
       return;

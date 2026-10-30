@@ -97,9 +97,9 @@ class OcptSunTimes {
 /// This is the NOAA General Solar Position Calculations' low-precision formulas (the ones on
 /// <https://gml.noaa.gov/grad/solcalc/solareqns.PDF>), where declination and the equation of time
 /// are a function of where in the year [date] falls, and every one of the eight figures is the same
-/// hour-angle equation run at four depths below the horizon and at each end of the day. No table, no
-/// network call and no external service is involved: the same shoot planned offline in a field with
-/// no signal gets the same numbers as one planned in an office.
+/// hour-angle equation run at four depths below the horizon and at each end of the day. No table,
+/// no network call and no external service is involved: the same shoot planned offline in a field
+/// with no signal gets the same numbers as one planned in an office.
 ///
 /// NOAA's own formulas evaluate declination and the equation of time once, at solar noon, which is
 /// accurate to a minute or two near a solstice (where both move slowly) but drifts several minutes
@@ -111,16 +111,16 @@ class OcptSunTimes {
 /// would sharpen this further by a matter of seconds; two is where the returns stop being worth the
 /// extra trigonometry for a figure this app only ever rounds to the minute.
 ///
-/// [date] is read as a **local** date (`date.toLocal()`; only its year/month/day matter) and its own
-/// [DateTime.timeZoneOffset] — the device's own UTC offset *for that date*, which already accounts
-/// for a daylight-saving change partway through the year — is the one every figure is converted
-/// through and the one [OcptSunTimes.utcOffsetUsed] reports back. **This is correct for a production
-/// shooting in its own time zone, which is every case this app has so far, and wrong by the exact
-/// difference for one shooting abroad on a device still set to home.** That limitation is written
-/// down rather than hidden: [OcptSunTimes.utcOffsetUsed] is what lets the day inspector say which
-/// offset it used instead of presenting a number with no way to tell it might be off, and a future
-/// version that needs to be right abroad has one clearly-named thing to replace — reading the
-/// offset off the device — rather than a computation to re-derive from scratch. See ADR 0016.
+/// [date] is read as a **local** date (`date.toLocal()`; only its year/month/day matter) and its
+/// own [DateTime.timeZoneOffset] — the device's own UTC offset *for that date*, which already
+/// accounts for a daylight-saving change partway through the year — is the one every figure is
+/// converted through and the one [OcptSunTimes.utcOffsetUsed] reports back. **This is correct for a
+/// production shooting in its own time zone, which is every case this app has so far, and wrong by
+/// the exact difference for one shooting abroad on a device still set to home.** That limitation is
+/// written down rather than hidden: [OcptSunTimes.utcOffsetUsed] is what lets the day inspector say
+/// which offset it used instead of presenting a number with no way to tell it might be off, and a
+/// future version that needs to be right abroad has one clearly-named thing to replace — reading
+/// the offset off the device — rather than a computation to re-derive from scratch. See ADR 0016.
 ///
 /// No coordinates, no result to compute in the first place: a day with no location on its first
 /// slot has nothing to call [ocptSunTimesOf] with, and that is the caller's decision, not this

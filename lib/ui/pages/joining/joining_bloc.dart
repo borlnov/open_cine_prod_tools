@@ -266,12 +266,12 @@ class OcptJoiningBloc extends BlocForMixin<OcptJoiningState> {
     }
   }
 
-  /// Where the joined project's `.ocpt` lands: the folder picked in the native folder-picker
-  /// dialog on desktop (mirroring `OcptHomeBloc`'s own save-file dialog, suggested inside
-  /// [OcptProjectsManager.suggestedProjectsDirectory] and labelled [confirmButtonText]'s own confirm
-  /// button), or [OcptProjectsManager.newProjectsDirectory] with no dialog at all on mobile, where
-  /// `file_selector`'s `getDirectoryPath` has no Android/iOS implementation (ADR 0009) — the
-  /// application's own documents directory then.
+  /// Where the joined project's `.ocpt` lands: the folder picked in the native folder-picker dialog
+  /// on desktop (mirroring `OcptHomeBloc`'s own save-file dialog, suggested inside
+  /// [OcptProjectsManager.suggestedProjectsDirectory] and labelled [confirmButtonText]'s own
+  /// confirm button), or [OcptProjectsManager.newProjectsDirectory] with no dialog at all on
+  /// mobile, where `file_selector`'s `getDirectoryPath` has no Android/iOS implementation (ADR
+  /// 0009) — the application's own documents directory then.
   ///
   /// Nothing is written here: the joined project's own folder is created by the package import,
   /// which refuses to replace one already there. Returns null when the user cancelled the desktop

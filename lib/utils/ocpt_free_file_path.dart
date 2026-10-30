@@ -5,8 +5,8 @@
 import 'package:path/path.dart' as p;
 
 /// Returns the first path under [directoryPath] that [exists] reports as free: [baseName] itself
-/// first (`"$baseName.$extension"`), then `"$baseName (2).$extension"`, `"$baseName (3).$extension"`
-/// and so on until one is.
+/// first (`"$baseName.$extension"`), then `"$baseName (2).$extension"`,
+/// `"$baseName (3).$extension"` and so on until one is.
 ///
 /// This is what a caller reaches for instead of writing straight to the obvious path and risking a
 /// silent overwrite of whatever is already there: nothing this function returns is ever a path

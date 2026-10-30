@@ -156,7 +156,8 @@ class _OcptSharingConfigureViewState extends State<OcptSharingConfigureView> {
   }
 
   /// Validates the relay address, showing [_relayAddressError] and dispatching nothing when it
-  /// isn't a well-formed absolute URI, otherwise calling [OcptSharingConfigureView.onPairRequested].
+  /// isn't a well-formed absolute URI, otherwise calling
+  /// [OcptSharingConfigureView.onPairRequested].
   void _onPairPressed() {
     final text = _relayAddressController.text.trim();
     final uri = Uri.tryParse(text);

@@ -24,10 +24,10 @@ import 'package:open_cine_prod_tools/models/ocpt_role_collision_alert.dart';
 /// widget itself knows nothing about either mode's own way of getting there — it only ever asks,
 /// through [onRoleTapped].
 ///
-/// Renders nothing at all — clears itself — the moment neither list holds anything, and [isReadOnly]
-/// withholds it outright: a project version being previewed read-only has no fix to point the way
-/// to. Does **not** change `OcptRoleAlertBanner`'s own, full-size banner, which keeps living in the
-/// resources mode's role sheet and the shot list.
+/// Renders nothing at all — clears itself — the moment neither list holds anything, and
+/// [isReadOnly] withholds it outright: a project version being previewed read-only has no fix to
+/// point the way to. Does **not** change `OcptRoleAlertBanner`'s own, full-size banner, which keeps
+/// living in the resources mode's role sheet and the shot list.
 class OcptRoleAlertCompactBanner extends StatelessWidget {
   /// Every orphaned-role alert of the whole cast, one line each.
   final List<OcptRemovedRoleAlert> orphanedAlerts;

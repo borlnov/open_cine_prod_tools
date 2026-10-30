@@ -238,8 +238,8 @@ OcptBudgetCoveredTotal ocptBudgetRepaidContributionsTotalOf(
 
 /// What there is to share, and what stands between the takings and it.
 ///
-/// The order this states things in **is** the rule the view exists to make legible: the takings come
-/// in, the reimbursable contributions are taken off the top in full, and only what is left is
+/// The order this states things in **is** the rule the view exists to make legible: the takings
+/// come in, the reimbursable contributions are taken off the top in full, and only what is left is
 /// anybody's to split.
 class OcptBudgetSharingPot extends Equatable {
   /// What the takings have actually brought in — [ocptBudgetRevenuesReceivedTotalOf]'s own figure,
@@ -262,8 +262,8 @@ class OcptBudgetSharingPot extends Equatable {
     return outstanding < 0 ? 0 : outstanding;
   }
 
-  /// What is left to share, in cents: the takings less the **whole** of [reimbursableCents], floored
-  /// at zero.
+  /// What is left to share, in cents: the takings less the **whole** of [reimbursableCents],
+  /// floored at zero.
   ///
   /// **The whole of it, not merely what is still outstanding.** Whether a contribution has been
   /// physically repaid yet is a question about the production's cash, not about what belongs to the
@@ -276,9 +276,9 @@ class OcptBudgetSharingPot extends Equatable {
     return shareable < 0 ? 0 : shareable;
   }
 
-  /// Whether there is anything at all to share yet. False while the takings have not yet cleared the
-  /// contributions, which is the ordinary state of a film for a long time — and the state in which
-  /// every participant's own due is honestly zero rather than unknown.
+  /// Whether there is anything at all to share yet. False while the takings have not yet cleared
+  /// the contributions, which is the ordinary state of a film for a long time — and the state in
+  /// which every participant's own due is honestly zero rather than unknown.
   bool get hasSomethingToShare => shareableCents > 0;
 
   /// Class constructor
@@ -400,8 +400,9 @@ int _ocptBudgetPermilleOf(int amountCents, int permille) {
 /// The sum of every live share's own [OcptBudgetShare.sharePermille].
 ///
 /// Offered so the view can **state** it rather than police it: `1000` means the plan adds up,
-/// anything else means it does not, and `OcptBudgetSharesTable`'s own doc comment argues why the app
-/// declines to refuse the second — a plan still being negotiated legitimately does not add up yet.
+/// anything else means it does not, and `OcptBudgetSharesTable`'s own doc comment argues why the
+/// app declines to refuse the second — a plan still being negotiated legitimately does not add up
+/// yet.
 int ocptBudgetSharesPermilleTotal(List<OcptBudgetShare> shares) =>
     shares.fold(0, (sum, share) => sum + share.sharePermille);
 
@@ -413,13 +414,13 @@ int ocptBudgetSharesPermilleTotal(List<OcptBudgetShare> shares) =>
 int ocptBudgetReinvestedTotalCents(List<OcptBudgetShareSplit> splits) =>
     splits.fold(0, (sum, split) => sum + split.reinvestedCents);
 
-/// What [splits] are due in total, in cents — summed row by row for [ocptBudgetReinvestedTotalCents]'
-/// own reason.
+/// What [splits] are due in total, in cents — summed row by row for
+/// [ocptBudgetReinvestedTotalCents]' own reason.
 ///
-/// This is deliberately **not** the same figure as [OcptBudgetSharingPot.shareableCents]: it is what
-/// the shares as written actually claim, which falls short of the pot while they sum under `1000`
-/// and exceeds it while they sum over. The view prints both, side by side, which is the only way a
-/// reader can see that the plan does not add up.
+/// This is deliberately **not** the same figure as [OcptBudgetSharingPot.shareableCents]: it is
+/// what the shares as written actually claim, which falls short of the pot while they sum under
+/// `1000` and exceeds it while they sum over. The view prints both, side by side, which is the only
+/// way a reader can see that the plan does not add up.
 int ocptBudgetDueTotalCents(List<OcptBudgetShareSplit> splits) =>
     splits.fold(0, (sum, split) => sum + split.dueCents);
 
@@ -498,9 +499,10 @@ class OcptBudgetRepaymentLine extends Equatable {
   List<Object?> get props => [personId, label, contributedCents, reimbursableCents, repaid];
 }
 
-/// Groups [resources] by contributor, for the sharing view's own `What each person put in` card: the product owner could not tell, from the plan's own three aggregate figures, that one
-/// person having lent money three times over meant one debt rather than three (*"si Marie me donne
-/// de l'argent... comment je fais pour voir qu'elle m'a prêté 3 fois 100 €, et que donc je dois la
+/// Groups [resources] by contributor, for the sharing view's own `What each person put in` card:
+/// the product owner could not tell, from the plan's own three aggregate figures, that one person
+/// having lent money three times over meant one debt rather than three (*"si Marie me donne de
+/// l'argent... comment je fais pour voir qu'elle m'a prêté 3 fois 100 €, et que donc je dois la
 /// rembourser de 300 € en priorité ?"*).
 ///
 /// **Grouping key: [OcptBudgetResource.personId] when it is set, the resource's own

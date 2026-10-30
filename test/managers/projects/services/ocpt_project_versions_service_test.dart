@@ -992,8 +992,8 @@ void main() {
         expect(stamps["shots/shot-1/framing"]?.deviceId, deviceId);
 
         // A row the version didn't hold is tombstoned, and the tombstone is stamped like any other
-        // write — sharing the very same version, since the whole restore is one transaction and this
-        // device's clock hands out exactly one tick for it.
+        // write — sharing the very same version, since the whole restore is one transaction and
+        // this device's clock hands out exactly one tick for it.
         expect(stamps["shots/shot-2/isDeleted"]?.version, 8);
         expect(stamps["shots/shot-2/isDeleted"]?.deviceId, deviceId);
 
@@ -1951,8 +1951,9 @@ void main() {
       "restoring a payload with no currency leaves the project's own currency untouched",
       () async {
         // A live capture always states a real `currencyCode` ("restores the currency the version
-        // was captured with" above): a null one is reachable only by hand-editing the stored payload,
-        // which is exactly what this does — everything else about the capture stays genuine.
+        // was captured with" above): a null one is reachable only by hand-editing the stored
+        // payload, which is exactly what this does — everything else about the capture stays
+        // genuine.
         final version = await createVersion();
         final storedRow = await (database.select(
           database.ocptProjectVersionsTable,

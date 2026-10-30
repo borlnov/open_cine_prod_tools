@@ -103,8 +103,8 @@ const PdfColor _scaleColor = PdfColor.fromInt(0xFF3A3A3A);
 /// zoom — scaled by the very same pixels-per-metre the rest of the page's shapes are.
 const double _silhouetteMarginPt = 10;
 
-/// Renders the floor plans of a shot list: per sequence, per linked set, one page per shot that has a
-/// camera placed on it — the set drawn in that shot's own focus, no ghosts — or, for a set no
+/// Renders the floor plans of a shot list: per sequence, per linked set, one page per shot that has
+/// a camera placed on it — the set drawn in that shot's own focus, no ghosts — or, for a set no
 /// shot has a camera on, one page of its bare décor.
 ///
 /// This is pure rendering logic with no dialog or file-system access of its own: it's owned by
@@ -195,8 +195,8 @@ class OcptFloorPlanPdfService {
     return pdfDocument.save();
   }
 
-  /// Every page [sequence]'s own linked sets print, in tab order — one page per shot with a camera, or
-  /// one bare-décor page for a set with none.
+  /// Every page [sequence]'s own linked sets print, in tab order — one page per shot with a camera,
+  /// or one bare-décor page for a set with none.
   ///
   /// Public so `OcptStoryboardPdfService` can append the very same pages after a sequence's own
   /// shot rows, when its `Include the floor plans after each sequence` toggle is on — the two
@@ -604,8 +604,8 @@ class OcptFloorPlanPdfService {
   /// `(localXM, localYM)` — metres in [symbol]'s own local frame, `(0, 0)` its own centre,
   /// unrotated, the sign convention [_rotatedRectCorners] already uses (negative Y is the symbol's
   /// own "front"/"up", matching `OcptFloorPlanCanvasPainter`'s own `canvas.rotate` convention) —
-  /// rotated by [symbol]'s own [OcptFloorPlanSymbolShape.rotationDeg], translated to its own centre,
-  /// then mapped into [layout]'s own graphics space. The single-point sibling of
+  /// rotated by [symbol]'s own [OcptFloorPlanSymbolShape.rotationDeg], translated to its own
+  /// centre, then mapped into [layout]'s own graphics space. The single-point sibling of
   /// [_rotatedRectCorners], for every glyph feature beyond its own four corners: a camera's lens, a
   /// light's beam tip, a character's facing notch.
   Offset _localPointGraphics({
@@ -626,9 +626,10 @@ class OcptFloorPlanPdfService {
   /// resolved once, into [OcptFloorPlanSymbolShape.colorArgb], by `OcptFloorPlanSheet`), never
   /// white: a [ocptFloorPlanCharacterDiscFillAlpha] fill with a [ocptFloorPlanCharacterStrokeWidth]
   /// stroke, both in that same colour, plus a facing indicator (a short rim notch and two forward
-  /// arms, both in that colour too) pointing the symbol's own "up" — see [_localPointGraphics]'s own
-  /// doc comment for the shared bearing convention. Mirrors `OcptFloorPlanCanvasPainter
-  /// ._paintCharacterGlyph`'s own geometry exactly, so paper and screen agree.
+  /// arms, both in that colour too) pointing the symbol's own "up" — see [_localPointGraphics]'s
+  /// own doc comment for the shared bearing convention. Mirrors
+  /// `OcptFloorPlanCanvasPainter ._paintCharacterGlyph`'s own geometry exactly, so paper and screen
+  /// agree.
   void _paintCharacterGlyph({
     required PdfGraphics canvas,
     required _FloorPlanPageLayout layout,
@@ -821,9 +822,9 @@ class OcptFloorPlanPdfService {
 
   /// A décor symbol's own typed primitive: [OcptFloorPlanSetElementShape.wall] a thick filled
   /// segment, [OcptFloorPlanSetElementShape.door] an open-sided frame plus its own swing arc,
-  /// [OcptFloorPlanSetElementShape.furniture] a filled, stroked rectangle in its own colour (today's
-  /// generic look, kept for this one shape — the previous, undifferentiated footprint this method
-  /// itself used to draw for every symbol), [OcptFloorPlanSetElementShape.freeform] the same
+  /// [OcptFloorPlanSetElementShape.furniture] a filled, stroked rectangle in its own colour
+  /// (today's generic look, kept for this one shape — the previous, undifferentiated footprint this
+  /// method itself used to draw for every symbol), [OcptFloorPlanSetElementShape.freeform] the same
   /// rectangle with a dashed outline ([_dashPattern]) instead of a solid one, telling it apart from
   /// furniture.
   void _paintSetElementGlyph({
@@ -1049,8 +1050,8 @@ class OcptFloorPlanPdfService {
   /// The four corners, in metres, of a footprint [widthM] × [heightM] centred at
   /// `(centreXM, centreYM)` and rotated by [rotationDeg] — the screen convention every floor plan
   /// renderer shares (clockwise, Y growing downward — `ocpt_floor_plan_canvas_painter.dart`'s own
-  /// `canvas.rotate`), reproduced here rather than imported from that Flutter widget file, which the
-  /// manager layer does not depend on.
+  /// `canvas.rotate`), reproduced here rather than imported from that Flutter widget file, which
+  /// the manager layer does not depend on.
   List<Offset> _rotatedRectCorners({
     required double centreXM,
     required double centreYM,

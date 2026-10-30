@@ -154,17 +154,16 @@ part 'ocpt_project_database.g.dart';
 /// movement and camera-move arrows drawn between them ([OcptFloorPlanArrowsTable]).
 ///
 /// Everything up to [OcptRowFieldVersionsTable] was created by `onCreate` at schema version 1,
-/// which the 0.1.0 release froze per
-/// `docs/adr/0029-schema-versions-frozen-at-stable-releases.md`: no earlier release had shipped, so
-/// that version carries no pre-stable migration history of its own. [OcptSyncRelayCursorsTable] and
-/// [OcptSyncPairingsTable] are schema version 2's own addition — the first real `onUpgrade` step,
-/// additive only per `docs/adr/0007-schema-migration-policy.md` — created for an existing v1 file
-/// without touching anything else, and by `onCreate` alongside every other table for a brand-new
-/// one. Schema version 3 reshapes [OcptShotCharactersTable] to key it by `{shotId, roleId}` instead
-/// of `{shotId, characterName}` — the first **non-additive** migration
-/// (`docs/adr/0030-a-shots-characters-are-the-productions-roles.md`), carried out by
-/// `ocptMigrateToSchemaV3`. Schema version 4 creates the five storyboard and floor plan tables above
-/// — additive only, carried out by `ocptMigrateToSchemaV4`.
+/// which the 0.1.0 release froze per `docs/adr/0029-schema-versions-frozen-at-stable-releases.md`:
+/// no earlier release had shipped, so that version carries no pre-stable migration history of its
+/// own. [OcptSyncRelayCursorsTable] and [OcptSyncPairingsTable] are schema version 2's own addition
+/// — the first real `onUpgrade` step, additive only per `docs/adr/0007-schema-migration-policy.md`
+/// — created for an existing v1 file without touching anything else, and by `onCreate` alongside
+/// every other table for a brand-new one. Schema version 3 reshapes [OcptShotCharactersTable] to
+/// key it by `{shotId, roleId}` instead of `{shotId, characterName}` — the first **non-additive**
+/// migration (`docs/adr/0030-a-shots-characters-are-the-productions-roles.md`), carried out by
+/// `ocptMigrateToSchemaV3`. Schema version 4 creates the five storyboard and floor plan tables
+/// above — additive only, carried out by `ocptMigrateToSchemaV4`.
 ///
 /// `OcptProjectsManager` owns the single instance open at a time.
 @DriftDatabase(
@@ -359,17 +358,17 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
   /// `docs/adr/0007-schema-migration-policy.md` gives, except v3's, called out where it runs.
   ///
   /// From 1 to 2, `onUpgrade` creates [OcptSyncRelayCursorsTable] — the changeset engine's own
-  /// local, never-synchronised delivery-cursor table (`docs/architecture/sync.md`) —
-  /// and [OcptSyncPairingsTable] — this replica's own local, never-synchronised record of which
-  /// relay a project is paired with (`docs/architecture/sync.md`) — and adds
+  /// local, never-synchronised delivery-cursor table (`docs/architecture/sync.md`) — and
+  /// [OcptSyncPairingsTable] — this replica's own local, never-synchronised record of which relay a
+  /// project is paired with (`docs/architecture/sync.md`) — and adds
   /// [OcptBudgetLinesTable.inKindResourceId], naming the in-kind `budget_resources` contribution a
-  /// quote line is the counterpart of (`docs/architecture/budget.md`) — and touches nothing else, so
-  /// a v1 file's existing rows are untouched by the upgrade.
+  /// quote line is the counterpart of (`docs/architecture/budget.md`) — and touches nothing else,
+  /// so a v1 file's existing rows are untouched by the upgrade.
   ///
   /// From 2 to 3, `onUpgrade` delegates to [ocptMigrateToSchemaV3]
   /// (`lib/models/database/migrations/ocpt_migration_v3.dart`): it reshapes `shot_characters` from
-  /// its frozen v2 `{shotId, characterName}` key to `{shotId, roleId}`, referencing `OcptRolesTable`
-  /// — the first non-additive migration this project ships
+  /// its frozen v2 `{shotId, characterName}` key to `{shotId, roleId}`, referencing
+  /// `OcptRolesTable` — the first non-additive migration this project ships
   /// (`docs/adr/0030-a-shots-characters-are-the-productions-roles.md`). See that file's own doc
   /// comment for the full argument, including why it is safe under independent per-replica
   /// migration.

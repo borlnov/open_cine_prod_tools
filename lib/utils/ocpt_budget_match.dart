@@ -25,19 +25,19 @@ import 'package:open_cine_prod_tools/utils/ocpt_budget_totals.dart';
 ///
 /// **The defrayals are the one kind this file has to be careful with.** Nothing in the schema
 /// records that a defrayal has been paid — there is no `settledEntryId` on `budget_allowances` and
-/// no link from a `budget_entries` row to one, and none has ever been added. So every
-/// live defrayal is a candidate, unlike a commitment or a resource, which are pre-filtered to the
-/// ones still owed or still short. What keeps that honest is the very ranking
-/// [ocptBudgetMatchSuggestionsOf] applies: a defrayal only ever survives its own filter, and is only
-/// ever offered, when its own figure actually agrees with the draft on amount, date or wording —
-/// never because it is merely unpaid, since this file has no way to know that.
+/// no link from a `budget_entries` row to one, and none has ever been added. So every live defrayal
+/// is a candidate, unlike a commitment or a resource, which are pre-filtered to the ones still owed
+/// or still short. What keeps that honest is the very ranking [ocptBudgetMatchSuggestionsOf]
+/// applies: a defrayal only ever survives its own filter, and is only ever offered, when its own
+/// figure actually agrees with the draft on amount, date or wording — never because it is merely
+/// unpaid, since this file has no way to know that.
 ///
 /// Every list [ocptBudgetMatchSuggestionsOf] reads is assumed **already live** — every synchronised
 /// table's own tombstones are filtered back out at the very read that loaded the list
 /// (`OcptBudgetJournalService.loadCommitments`, `OcptBudgetAllowancesService.loadAllowances`,
-/// `OcptBudgetFinancingService.loadResources`, `OcptBudgetSharingService.loadRevenues`), exactly the
-/// assumption every other util under `lib/utils/ocpt_budget_*.dart` already makes of the lists it is
-/// handed rather than re-checking `isDeleted` itself.
+/// `OcptBudgetFinancingService.loadResources`, `OcptBudgetSharingService.loadRevenues`), exactly
+/// the assumption every other util under `lib/utils/ocpt_budget_*.dart` already makes of the lists
+/// it is handed rather than re-checking `isDeleted` itself.
 enum OcptBudgetMatchCandidateKind {
   /// An [OcptBudgetCommitment] still owed — offered only against a debit.
   commitment,
@@ -59,8 +59,8 @@ enum OcptBudgetMatchCandidateKind {
 /// object of its own (the caller already holds the commitments, defrayals, resources and revenues
 /// this was built from, and looks the row up by [candidateId]) and no word this file invented.
 ///
-/// Modelled on the pure structures already beside it (`OcptBudgetAlert`, `OcptBudgetProjectionStep`):
-/// `Equatable`, a doc comment on every member, nothing formatted.
+/// Modelled on the pure structures already beside it (`OcptBudgetAlert`,
+/// `OcptBudgetProjectionStep`): `Equatable`, a doc comment on every member, nothing formatted.
 class OcptBudgetMatchSuggestion extends Equatable {
   /// Which ledger [candidateId] names.
   final OcptBudgetMatchCandidateKind kind;
@@ -79,27 +79,27 @@ class OcptBudgetMatchSuggestion extends Equatable {
   final int? amountCents;
 
   /// When the matched row falls due or is expected, or null: a commitment's own `dueDate` and a
-  /// defrayal's own `date` are themselves nullable (nobody has recorded one), a revenue's own `date`
-  /// never is, and a resource carries no date of its own at all.
+  /// defrayal's own `date` are themselves nullable (nobody has recorded one), a revenue's own
+  /// `date` never is, and a resource carries no date of its own at all.
   final DateTime? date;
 
-  /// What the draft movement would actually settle if matched to this row, in cents, or null exactly
-  /// when [amountCents] is for a defrayal (which is always owed or unpaid in full, so this equals
-  /// [amountCents] verbatim); a commitment, a resource or a revenue may already be partly paid or
-  /// received, so this is [amountCents] minus what has already moved against it —
+  /// What the draft movement would actually settle if matched to this row, in cents, or null
+  /// exactly when [amountCents] is for a defrayal (which is always owed or unpaid in full, so this
+  /// equals [amountCents] verbatim); a commitment, a resource or a revenue may already be partly
+  /// paid or received, so this is [amountCents] minus what has already moved against it —
   /// [ocptBudgetCommitmentOutstandingCentsOf] for a commitment, the same reading
   /// `ocptBudgetResourceOutstandingCents` already gives a resource: a resource quoted at 10 000 €
   /// having already received 7 000 € is matched by a 3 000 € receipt, not a 10 000 € one.
   final int? outstandingCents;
 
-  /// Whether [outstandingCents] equals the draft's own amount to the cent — the fact a user actually
-  /// recognises, and the ranking's own first key.
+  /// Whether [outstandingCents] equals the draft's own amount to the cent — the fact a user
+  /// actually recognises, and the ranking's own first key.
   final bool matchesAmount;
 
   /// Whether [date] falls within the "close" window of the draft's own date — see
-  /// [ocptBudgetMatchSuggestionsOf]'s own doc comment for the window and why it is that wide. Always
-  /// false when [date] is null: a resource offers no date to be close to, which is a fact about its
-  /// own nature, not evidence against the match.
+  /// [ocptBudgetMatchSuggestionsOf]'s own doc comment for the window and why it is that wide.
+  /// Always false when [date] is null: a resource offers no date to be close to, which is a fact
+  /// about its own nature, not evidence against the match.
   final bool matchesDate;
 
   /// Whether [label] shares at least one significant word with the draft's own wording, compared
@@ -149,15 +149,16 @@ class OcptBudgetMatchSuggestion extends Equatable {
 /// misleadingly called close just because it happens to be nearer than everything else on offer.
 const int _ocptBudgetMatchCloseDateWindowDays = 7;
 
-/// The fewest letters a folded word needs to count towards [OcptBudgetMatchSuggestion.matchesWording]
-/// — three, so a connector word ("de", "la", "un") shared by almost any two French sentences does not
-/// manufacture a match neither wording actually intended.
+/// The fewest letters a folded word needs to count towards
+/// [OcptBudgetMatchSuggestion.matchesWording] — three, so a connector word ("de", "la", "un")
+/// shared by almost any two French sentences does not manufacture a match neither wording actually
+/// intended.
 const int _ocptBudgetMatchMinWordLength = 3;
 
-/// At most how many suggestions [ocptBudgetMatchSuggestionsOf] ever returns — three. The band itself
-/// shows only the very first, but a close second and third stay one click away without opening the
-/// full dialog, since a production's own paperwork clusters: two invoices from the same supplier,
-/// due the same week, are not a rare shape for the ranking to have to pick between.
+/// At most how many suggestions [ocptBudgetMatchSuggestionsOf] ever returns — three. The band
+/// itself shows only the very first, but a close second and third stay one click away without
+/// opening the full dialog, since a production's own paperwork clusters: two invoices from the same
+/// supplier, due the same week, are not a rare shape for the ranking to have to pick between.
 const int _ocptBudgetMatchSuggestionCap = 3;
 
 /// The diacritics a French wording actually uses, each folded onto the plain letter it decorates —
@@ -211,16 +212,16 @@ String _ocptBudgetMatchFold(String text) {
 }
 
 /// [text] split into its own significant words — folded through [_ocptBudgetMatchFold], cut on
-/// [_ocptBudgetMatchWordSeparators], and read as a set (so "Couronne, Couronne" is one word, not two)
-/// of at least [_ocptBudgetMatchMinWordLength] letters each.
+/// [_ocptBudgetMatchWordSeparators], and read as a set (so "Couronne, Couronne" is one word, not
+/// two) of at least [_ocptBudgetMatchMinWordLength] letters each.
 Set<String> _ocptBudgetMatchWordsOf(String text) => _ocptBudgetMatchFold(text)
     .split(_ocptBudgetMatchWordSeparators)
     .where((word) => word.length >= _ocptBudgetMatchMinWordLength)
     .toSet();
 
 /// One candidate before it is known whether it is worth offering at all — carries the sort keys
-/// alongside the [OcptBudgetMatchSuggestion] it would become, so [_ocptBudgetMatchRank] never has to
-/// recompute a date distance or a word count it already has.
+/// alongside the [OcptBudgetMatchSuggestion] it would become, so [_ocptBudgetMatchRank] never has
+/// to recompute a date distance or a word count it already has.
 class _OcptBudgetMatchCandidate {
   /// The suggestion this candidate would become if it survives the filter.
   final OcptBudgetMatchSuggestion suggestion;
@@ -256,12 +257,12 @@ class _OcptBudgetMatchCandidate {
 /// **Which candidates are even eligible depends on the direction.** A debit (money going out) can
 /// only settle a cost: [commitments] still owed — [ocptBudgetCommitmentOutstandingCentsOf] over
 /// [entries] reading above zero, or unknown — and every one of [allowances] (see the file's own doc
-/// comment for why none is pre-filtered). A credit
-/// (money coming in) can only settle an expectation: a resource of [resources] whose
-/// [receivedByResourceId]'s own figure falls short of [OcptBudgetResource.amountCents], and a
-/// revenue of [revenues] whose [receivedByRevenueId]'s own figure falls short of
-/// [OcptBudgetRevenue.amountCents]. The other two kinds are never even built for a given direction —
-/// money going out cannot settle a resource, and money coming in cannot settle a commitment.
+/// comment for why none is pre-filtered). A credit (money coming in) can only settle an
+/// expectation: a resource of [resources] whose [receivedByResourceId]'s own figure falls short of
+/// [OcptBudgetResource.amountCents], and a revenue of [revenues] whose [receivedByRevenueId]'s own
+/// figure falls short of [OcptBudgetRevenue.amountCents]. The other two kinds are never even built
+/// for a given direction — money going out cannot settle a resource, and money coming in cannot
+/// settle a commitment.
 ///
 /// **The ranking is an order, not a weighted sum**, so that what wins is always explainable in one
 /// sentence rather than by two figures happening to add up a certain way:

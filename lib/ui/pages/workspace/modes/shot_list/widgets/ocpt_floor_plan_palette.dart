@@ -206,7 +206,8 @@ class OcptFloorPlanPalette extends StatelessWidget {
   final VoidCallback onUnderlayVisibilityToggled;
 
   /// Called when the underlay row's own `Clear underlay` action is clicked, or null while withheld
-  /// (no underlay to clear, or a read-only preview). Only asks — the mode opens `OcptConfirmDialog`.
+  /// (no underlay to clear, or a read-only preview). Only asks — the mode opens
+  /// `OcptConfirmDialog`.
   final VoidCallback? onUnderlayClearRequested;
 
   /// Class constructor
@@ -712,8 +713,8 @@ class OcptFloorPlanPalette extends StatelessWidget {
   /// layer left, and every shot layer already has its own dedicated entry above.
   ///
   /// The eye is withheld (disabled, not hidden) while the layer's own count is `0` and it isn't
-  /// already hidden — nothing to hide — but stays enabled while hidden regardless of the count, so a
-  /// layer hidden before its last element was removed can still be shown again.
+  /// already hidden — nothing to hide — but stays enabled while hidden regardless of the count, so
+  /// a layer hidden before its last element was removed can still be shown again.
   Widget _buildLayerRow(BuildContext context, OcptFloorPlanLayer layer, String label) {
     final theme = Theme.of(context);
     final tr = Tr.of(context);

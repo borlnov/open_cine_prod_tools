@@ -17,8 +17,8 @@
 /// submission, and this mode reads that null as "leave the override exactly as it is" rather than
 /// as "clear it" — the field's own way back to inheriting the project's rate is
 /// `OcptBudgetLineVatRateInheritedRequestedEvent`, a dedicated, immediate gesture, exactly as the
-/// project settings' own `No rate` button is for `defaultVatRateBasisPoints`. An empty text field is
-/// not that gesture: a stray backspace must never silently drop an override typed on purpose.
+/// project settings' own `No rate` button is for `defaultVatRateBasisPoints`. An empty text field
+/// is not that gesture: a stray backspace must never silently drop an override typed on purpose.
 enum OcptBudgetField {
   /// Maps to `OcptBudgetQuoteService.updatePoste`'s `label`.
   posteLabel,

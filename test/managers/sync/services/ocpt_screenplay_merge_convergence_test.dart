@@ -152,7 +152,8 @@ void main() {
   }
 
   test(
-    'non-overlapping edits on both replicas converge to the merged text, and scenes are recomputed on both',
+    'non-overlapping edits on both replicas converge to the merged text, and scenes are recomputed '
+    'on both',
     () async {
       final deviceA = buildDevice('device-a');
       final deviceB = buildDevice('device-b');

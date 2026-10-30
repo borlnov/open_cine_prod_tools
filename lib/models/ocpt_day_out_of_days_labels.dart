@@ -57,9 +57,9 @@ class OcptDayOutOfDaysLabels extends Equatable {
 
   /// The letters printed in the cells themselves, keyed by [OcptDayOutOfDaysCode] — `SW`, `W`,
   /// `WF`, `SWF` and `H`, the codes a *Day Out of Days* is read by the world over. They are carried
-  /// here rather than hard-coded so a production working in another convention can be given its own,
-  /// and they are printed beside [codeDescriptions] on the legend for the reader who does not know
-  /// them.
+  /// here rather than hard-coded so a production working in another convention can be given its
+  /// own, and they are printed beside [codeDescriptions] on the legend for the reader who does not
+  /// know them.
   final Map<OcptDayOutOfDaysCode, String> codeLabels;
 
   /// What each code of [codeLabels] means, in a full sentence-case phrase, keyed by the same enum —

@@ -37,9 +37,9 @@ const int _permitCardFlex = 10;
 /// logistics cards (parking, power, facilities), the noise-and-schedule constraints callout, the
 /// scouting photos, the notes, and `Delete this location` at the very bottom.
 ///
-/// It is `OcptPersonSheet`'s and `OcptRoleSheet`'s sibling and follows the same grammar: the tabs of
-/// the resources mode all answer one gesture — pick a record on the left, edit it in the centre —
-/// so they share the header-then-cards shape and the same card and field chrome
+/// It is `OcptPersonSheet`'s and `OcptRoleSheet`'s sibling and follows the same grammar: the tabs
+/// of the resources mode all answer one gesture — pick a record on the left, edit it in the centre
+/// — so they share the header-then-cards shape and the same card and field chrome
 /// (`OcptResourcesSheetCard`, `OcptResourcesSheetField`).
 ///
 /// The three logistics cards sit in one row because that is the shape of the question they answer

@@ -106,7 +106,8 @@ class OcptRelayStore {
   /// replica behind either one converges the same way.
   List<OcptStoredChangeset> readSince(String projectId, OcptSequenceNumber cursor) {
     final rows = _db.select(
-      'SELECT sequence, payload FROM changesets WHERE projectId = ? AND sequence > ? ORDER BY sequence ASC',
+      'SELECT sequence, payload FROM changesets WHERE projectId = ? AND sequence > ? ORDER BY '
+      'sequence ASC',
       [projectId, cursor.value],
     );
 
@@ -209,7 +210,8 @@ class OcptRelayStore {
     required OcptSequenceNumber pull,
   }) {
     _db.execute(
-      'INSERT INTO reconcile_cursors (upstream, projectId, pushCursor, pullCursor) VALUES (?, ?, ?, ?) '
+      'INSERT INTO reconcile_cursors (upstream, projectId, pushCursor, pullCursor) VALUES (?, ?, '
+      '?, ?) '
       'ON CONFLICT (upstream, projectId) DO UPDATE SET pushCursor = excluded.pushCursor, '
       'pullCursor = excluded.pullCursor',
       [upstream, projectId, push.value, pull.value],

@@ -9,9 +9,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_crew_position_search.dart';
 
 /// Every word written in inclusive writing across the French crew position labels, lower-cased,
-/// with the feminine reading it must give. A label added later with a word this table does not
-/// hold fails [main]'s catalogue test until the word is checked and added here — which is the
-/// point: a word no rule of `ocptInclusiveFeminineOf` fits would otherwise search wrongly, silently.
+/// with the feminine reading it must give. A label added later with a word this table does not hold
+/// fails [main]'s catalogue test until the word is checked and added here — which is the point: a
+/// word no rule of `ocptInclusiveFeminineOf` fits would otherwise search wrongly, silently.
 const Map<String, String> _expectedFeminineWords = {
   "adjoint·e": "adjointe",
   "administrateur·rice": "administratrice",

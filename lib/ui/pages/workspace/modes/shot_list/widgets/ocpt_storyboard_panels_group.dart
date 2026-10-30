@@ -21,12 +21,12 @@ const double _thumbnailSize = 40;
 /// tool picker and its marks list).
 ///
 /// A panel's comment rides the mode's field-edit autosave debounce exactly as a shot field does
-/// ([commentValueOf] reads a pending edit over the stored value, matching `OcptShotInspectorPanel`'s
-/// own `fieldValueOf`), and a mark's own text ([annotationTextValueOf]) rides the very same
-/// debounce, keyed differently. Deleting a panel or a mark is a two-step gesture by design: this
-/// group only **asks** ([onDeleteRequested], [onAnnotationDeleteRequested]), the mode opens
-/// `OcptConfirmDialog` and dispatches the deletion itself — this widget never carries the
-/// question.
+/// ([commentValueOf] reads a pending edit over the stored value, matching
+/// `OcptShotInspectorPanel`'s own `fieldValueOf`), and a mark's own text ([annotationTextValueOf])
+/// rides the very same debounce, keyed differently. Deleting a panel or a mark is a two-step
+/// gesture by design: this group only **asks** ([onDeleteRequested],
+/// [onAnnotationDeleteRequested]), the mode opens `OcptConfirmDialog` and dispatches the deletion
+/// itself — this widget never carries the question.
 class OcptStoryboardPanelsGroup extends StatelessWidget {
   /// The selected shot's own panels, in order.
   final List<OcptStoryboardPanel> panels;

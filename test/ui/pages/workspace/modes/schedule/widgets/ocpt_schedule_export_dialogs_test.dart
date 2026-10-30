@@ -351,8 +351,8 @@ void main() {
         roleById: {"role-1": _buildRole(id: "role-1", name: "MARIE")},
       );
 
-      // Their own name and nothing else: a sheet is addressed to a person, and somebody seen for two
-      // parts has no single part this line could name.
+      // Their own name and nothing else: a sheet is addressed to a person, and somebody seen for
+      // two parts has no single part this line could name.
       expect(find.text("Camille Renard"), findsOneWidget);
       // The "nobody to send this to" hint belongs to an uncast role alone — a candidate names a
       // person as squarely as a crew member does.
@@ -496,8 +496,9 @@ void main() {
 
         final options = routerManager.poppedValue as OcptCallSheetExportOptions?;
         expect(options?.dayIds, ["day-1", "day-2"]);
-        // person-1 carries over ticked (present on both days), person-2 carries over unticked (still
-        // in the union, but the user had unticked it), person-3 is ticked as a newly appearing entry.
+        // person-1 carries over ticked (present on both days), person-2 carries over unticked
+        // (still in the union, but the user had unticked it), person-3 is ticked as a newly
+        // appearing entry.
         expect(options?.selectedConvocationKeys, {"person-1", "person-3"});
       },
     );

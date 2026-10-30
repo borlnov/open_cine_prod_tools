@@ -259,7 +259,8 @@ class _BudgetViewState extends State<_BudgetView> {
 
   /// Opens the toolbar's `Export` panel, then dispatches the picked document's own request onto its
   /// own `_request…Export` method — each one opens its own options dialog first, the cash journal
-  /// alone taking none, exactly as `OcptScheduleMode._requestExport` does for its own six documents.
+  /// alone taking none, exactly as `OcptScheduleMode._requestExport` does for its own six
+  /// documents.
   Future<void> _requestExport(
     BuildContext context,
     OcptBudgetState state,
@@ -374,9 +375,9 @@ class _BudgetViewState extends State<_BudgetView> {
 
   /// What each live entry of [state] settles, keyed by its own id — a resource's, a taking's or a
   /// share's own label read straight off the entry naming it, or the label of the commitment this
-  /// entry itself pays (`OcptBudgetEntry.commitmentId`), an entry naming none of them getting no key
-  /// here at all. `OcptBudgetCashJournalXlsxExportService` resolves nothing of this itself (its own
-  /// doc comment), which is what keeps it independent of `budget_revenues`/`budget_shares`.
+  /// entry itself pays (`OcptBudgetEntry.commitmentId`), an entry naming none of them getting no
+  /// key here at all. `OcptBudgetCashJournalXlsxExportService` resolves nothing of this itself (its
+  /// own doc comment), which is what keeps it independent of `budget_revenues`/`budget_shares`.
   Map<String, String> _linkLabelByEntryIdOf(OcptBudgetState state) {
     final resourceById = {for (final resource in state.resources) resource.id: resource};
     final revenueById = {for (final revenue in state.revenues) revenue.id: revenue};
@@ -439,7 +440,8 @@ class _BudgetViewState extends State<_BudgetView> {
   }
 
   /// Asks whether to write the package even though some referenced files are gone, then dispatches
-  /// the export if the user said to go on. Mirrors `OcptScheduleMode._askAboutMissingPackagedFiles`.
+  /// the export if the user said to go on. Mirrors
+  /// `OcptScheduleMode._askAboutMissingPackagedFiles`.
   Future<void> _askAboutMissingPackagedFiles(
     BuildContext context,
     OcptProjectPackagePreflight preflight,
@@ -479,13 +481,14 @@ class _BudgetViewState extends State<_BudgetView> {
   /// Builds the shell's `centre`: the header band, then whichever widget the current
   /// [OcptBudgetState.view] names (see [_buildRoute]), overlaid at a compact width [isCompact] with
   /// the same floating `+ New` affordance the header band's own trailing button already fires — the
-  /// very pair [_newButtonOf] built for it, reused whole rather than resolved twice, so the floating
-  /// button can never drift from the desktop one. The two affordances are mutually exclusive: at a
-  /// wide width [OcptBudgetHeader] carries the capture button and the floating one stays hidden
-  /// ([OcptWorkspaceFloatingAddButton]'s own `isVisible: isCompact` withholds it); at a compact width
-  /// the header's own button is withheld instead (`captureLabel`/`onCaptureRequested` null) and the
-  /// floating one — icon-only, see [OcptWorkspaceFloatingAddButton.iconOnly] — takes over, so the
-  /// user is never shown both at once.
+  /// very pair [_newButtonOf] built for it, reused whole rather than resolved twice, so the
+  /// floating button can never drift from the desktop one. The two affordances are mutually
+  /// exclusive: at a wide width [OcptBudgetHeader] carries the capture button and the floating one
+  /// stays hidden ([OcptWorkspaceFloatingAddButton]'s own `isVisible: isCompact` withholds it); at
+  /// a compact width the header's own button is withheld instead
+  /// (`captureLabel`/`onCaptureRequested` null) and the floating one — icon-only, see
+  /// [OcptWorkspaceFloatingAddButton.iconOnly] — takes over, so the user is never shown both at
+  /// once.
   Widget _buildCentre(BuildContext context, OcptBudgetState state, bool isCompact) {
     final bloc = context.read<OcptBudgetBloc>();
     // Read once, here: null is "a previewed version takes it away" — the same label and gesture on
@@ -507,7 +510,8 @@ class _BudgetViewState extends State<_BudgetView> {
             view: state.view,
             // The header's own chips leave one document for another, so the fiche's own selection —
             // an object that belonged to the view being left — is dropped, greeting the new view
-            // empty. Every gesture that switches the view *and* selects keeps `clearSelection` false.
+            // empty. Every gesture that switches the view *and* selects keeps `clearSelection`
+            // false.
             onViewSelected: (view) =>
                 bloc.add(OcptBudgetViewSelectedEvent(view: view, clearSelection: true)),
             toolsView: state.toolsView,
@@ -543,12 +547,12 @@ class _BudgetViewState extends State<_BudgetView> {
   }
 
   /// The header band's own trailing button, `+ Nouveau` — offered on all five routes, including
-  /// [OcptBudgetView.dashboard] and `tools › cashFlow`.
-  /// Opens the capture wizard's own step 1, the current route's own document promoted to the top of
-  /// the list with its first answer pre-selected (`_promotedGestureFamilyOf`) — never on
-  /// [OcptBudgetView.dashboard], which works on no single document, so pre-answering for it would be
-  /// a guess: nothing is selected there, and `Continuer` stays withheld until a card is picked, the
-  /// very rule the wizard's own step 1 already applies whenever nothing is known yet.
+  /// [OcptBudgetView.dashboard] and `tools › cashFlow`. Opens the capture wizard's own step 1, the
+  /// current route's own document promoted to the top of the list with its first answer
+  /// pre-selected (`_promotedGestureFamilyOf`) — never on [OcptBudgetView.dashboard], which works
+  /// on no single document, so pre-answering for it would be a guess: nothing is selected there,
+  /// and `Continuer` stays withheld until a card is picked, the very rule the wizard's own step 1
+  /// already applies whenever nothing is known yet.
   (String, VoidCallback) _newButtonOf(BuildContext context, OcptBudgetState state) {
     final tr = Tr.of(context);
     return (tr.budgetHeaderNewAction, () => unawaited(_handleNewRequested(context, state)));
@@ -574,14 +578,14 @@ class _BudgetViewState extends State<_BudgetView> {
   OcptBudgetGesture _firstGestureOf(OcptBudgetGestureFamily family) => OcptBudgetGesture.values
       .firstWhere((gesture) => ocptBudgetGestureFamilyOf(gesture) == family);
 
-  /// Which gestures the `+ New` wizard offers when opened from the current route — a semantic filter
-  /// by the direction money moves (`ocptBudgetGestureFlowsOf`), **transverse to the families**: the
-  /// expenses route offers everything that spends, the resources route everything that brings money
-  /// in, the drawer's cash-flow page its own movements, régie its defrayal. Sharing offers its own
-  /// participants **and `Le film a rapporté de l'argent`** (`recordTakingReceipt`): the split is of
-  /// what the film earns, so recording a taking belongs where that money is divided up.
-  /// Null for the dashboard, which works on no document and filters nothing. The reader lifts it
-  /// from inside the wizard (`Show all`).
+  /// Which gestures the `+ New` wizard offers when opened from the current route — a semantic
+  /// filter by the direction money moves (`ocptBudgetGestureFlowsOf`), **transverse to the
+  /// families**: the expenses route offers everything that spends, the resources route everything
+  /// that brings money in, the drawer's cash-flow page its own movements, régie its defrayal.
+  /// Sharing offers its own participants **and `Le film a rapporté de l'argent`**
+  /// (`recordTakingReceipt`): the split is of what the film earns, so recording a taking belongs
+  /// where that money is divided up. Null for the dashboard, which works on no document and filters
+  /// nothing. The reader lifts it from inside the wizard (`Show all`).
   Set<OcptBudgetGesture>? _wizardGesturesForView(OcptBudgetState state) {
     Set<OcptBudgetGesture> spending(OcptBudgetGestureFlow flow) => {
       for (final gesture in OcptBudgetGesture.values)
@@ -666,10 +670,10 @@ class _BudgetViewState extends State<_BudgetView> {
   /// event that already exists for it. Nothing here writes to the project itself.
   ///
   /// [OcptBudgetEntryWizardResult]'s own [OcptBudgetEntryWizardResult.acceptedSuggestion] null: an
-  /// ordinary [OcptBudgetEntryCreationConfirmedEvent]. Non-null: [_handleEntryWizardSuggestionAccepted]
-  /// turns its own draft and the accepted suggestion into whichever of the two events its own kind
-  /// calls for — see that method's own doc comment for the mapping, carried over from the capture
-  /// band the wizard replaced.
+  /// ordinary [OcptBudgetEntryCreationConfirmedEvent]. Non-null:
+  /// [_handleEntryWizardSuggestionAccepted] turns its own draft and the accepted suggestion into
+  /// whichever of the two events its own kind calls for — see that method's own doc comment for the
+  /// mapping, carried over from the capture band the wizard replaced.
   void _handleNewOutcome(OcptBudgetBloc bloc, OcptBudgetState state, OcptBudgetNewOutcome outcome) {
     switch (outcome) {
       case OcptBudgetEntryWizardResult(:final fields, :final acceptedSuggestion):
@@ -703,14 +707,14 @@ class _BudgetViewState extends State<_BudgetView> {
     }
   }
 
-  /// Opens the capture wizard's own step 3 directly, on [gesture], pre-filled with [prefill] — steps
-  /// 1 and 2 both already answered — then dispatches whatever [_handleNewOutcome] says once it
-  /// closes with something. The one shared shape behind every contextual shortcut that pre-fills an
-  /// ordinary movement: a resource's or a taking's own `Receive`, a participant's own payout, a
-  /// contribution's own repayment — every one of them an [OcptBudgetEntryCreationConfirmedEvent] with
-  /// nothing further to decide, unlike [_handleCommitmentSettleRequested], which dispatches a
-  /// settlement instead of a plain creation and so builds its own call to `OcptBudgetNewDialog.show`
-  /// rather than sharing this one.
+  /// Opens the capture wizard's own step 3 directly, on [gesture], pre-filled with [prefill] —
+  /// steps 1 and 2 both already answered — then dispatches whatever [_handleNewOutcome] says once
+  /// it closes with something. The one shared shape behind every contextual shortcut that pre-fills
+  /// an ordinary movement: a resource's or a taking's own `Receive`, a participant's own payout, a
+  /// contribution's own repayment — every one of them an [OcptBudgetEntryCreationConfirmedEvent]
+  /// with nothing further to decide, unlike [_handleCommitmentSettleRequested], which dispatches a
+  /// settlement instead of a plain creation and so builds its own call to
+  /// `OcptBudgetNewDialog.show` rather than sharing this one.
   ///
   /// **The lettrage strip is withheld here** (`offersLettrage: false`), exactly as
   /// [_handleCommitmentSettleRequested] and [_handleLinePayDirectlyRequested] withhold it: the
@@ -765,10 +769,11 @@ class _BudgetViewState extends State<_BudgetView> {
   /// **The commitment case is the only one adding fields the draft never carried**
   /// ([OcptBudgetCommitment.posteId], its own tax basis and its own VAT rate) — mirrors
   /// [_handleCommitmentSettleRequested]'s own prefill. The other three keep every one of [fields]'s
-  /// own values, only naming the matched row (`resourceId`/`revenueId`) or, for a defrayal, adopting
-  /// its own [OcptBudgetMatchSuggestion.label] in place of the draft's — the one asymmetry that
-  /// `OcptBudgetEntryDialog._headlineOf`'s own doc comment argues for: nothing in the schema lets a
-  /// defrayal be marked settled, so the label is the only trace this movement can leave of it.
+  /// own values, only naming the matched row (`resourceId`/`revenueId`) or, for a defrayal,
+  /// adopting its own [OcptBudgetMatchSuggestion.label] in place of the draft's — the one asymmetry
+  /// that `OcptBudgetEntryDialog._headlineOf`'s own doc comment argues for: nothing in the schema
+  /// lets a defrayal be marked settled, so the label is the only trace this movement can leave of
+  /// it.
   void _handleEntryWizardSuggestionAccepted(
     OcptBudgetBloc bloc,
     OcptBudgetState state,
@@ -1222,10 +1227,10 @@ class _BudgetViewState extends State<_BudgetView> {
     bloc.add(OcptBudgetCommitmentDeletionConfirmedEvent(commitmentId: commitmentId));
   }
 
-  /// Opens the capture wizard's own step 3 directly, on [OcptBudgetGesture.recordExpense], pre-filled
-  /// from [commitment] (today's date, its own label, poste, amount, tax basis and rate, as a debit)
-  /// — steps 1 and 2 both already answered, exactly as `OcptBudgetEntryDialog`'s own prefill used to
-  /// skip them — then dispatches the settlement if the user confirmed it — see
+  /// Opens the capture wizard's own step 3 directly, on [OcptBudgetGesture.recordExpense],
+  /// pre-filled from [commitment] (today's date, its own label, poste, amount, tax basis and rate,
+  /// as a debit) — steps 1 and 2 both already answered, exactly as `OcptBudgetEntryDialog`'s own
+  /// prefill used to skip them — then dispatches the settlement if the user confirmed it — see
   /// `OcptBudgetCommitmentSettlementConfirmedEvent`'s own doc comment for the combined write this
   /// produces.
   Future<void> _handleCommitmentSettleRequested(
@@ -1237,10 +1242,10 @@ class _BudgetViewState extends State<_BudgetView> {
     final now = DateTime.now();
     // Offer what is still owed rather than the full commitment, expressed in the commitment's own
     // tax basis and rate so the payment entry carries the very VAT reading the commitment does. The
-    // outstanding is read as a tax-inclusive cash figure, so it is scaled back into the commitment's
-    // basis by the fraction it is of the commitment's own cash — the whole typed amount when nothing
-    // has been paid, proportional once it has. A commitment whose cash cannot be read (unknown rate)
-    // keeps its full typed amount; an overpaid one offers nothing.
+    // outstanding is read as a tax-inclusive cash figure, so it is scaled back into the
+    // commitment's basis by the fraction it is of the commitment's own cash — the whole typed
+    // amount when nothing has been paid, proportional once it has. A commitment whose cash cannot
+    // be read (unknown rate) keeps its full typed amount; an overpaid one offers nothing.
     final commitmentCashCents = ocptBudgetCommitmentCashCentsOf(
       commitment,
       projectVatRateBasisPoints: state.defaultVatRateBasisPoints,
@@ -1441,9 +1446,9 @@ class _BudgetViewState extends State<_BudgetView> {
   /// Opens the capture wizard's own step 3 directly, on [OcptBudgetGesture.recordFinancingReceipt],
   /// pre-filled from [resource] (today's date, its own label, as a credit, for whatever is still
   /// outstanding against it, the resource already named) — mirrors
-  /// `_handleCommitmentSettleRequested`'s own gesture: see "A commitment settles by naming the entry
-  /// that paid it" in `docs/architecture/budget.md` for the reading this mirrors, a receipt naming
-  /// the resource that earned it instead of a commitment being paid.
+  /// `_handleCommitmentSettleRequested`'s own gesture: see "A commitment settles by naming the
+  /// entry that paid it" in `docs/architecture/budget.md` for the reading this mirrors, a receipt
+  /// naming the resource that earned it instead of a commitment being paid.
   Future<void> _handleResourceReceiptRequested(
     BuildContext context,
     OcptBudgetState state,
@@ -2070,9 +2075,9 @@ class _BudgetViewState extends State<_BudgetView> {
     );
   }
 
-  /// Promotes quote line [lineId] into a commitment: opens the capture wizard's own step 3 directly,
-  /// on [OcptBudgetGesture.commitSpend], seeded from the line — steps 1 and 2 both already answered
-  /// — and dispatches the creation naming the line it came from.
+  /// Promotes quote line [lineId] into a commitment: opens the capture wizard's own step 3
+  /// directly, on [OcptBudgetGesture.commitSpend], seeded from the line — steps 1 and 2 both
+  /// already answered — and dispatches the creation naming the line it came from.
   ///
   /// **A promotion, not a move.** The line stays in the quote, because comparing the estimate with
   /// what is actually owed is the whole use of having both — and nothing is counted twice either,
@@ -2134,12 +2139,13 @@ class _BudgetViewState extends State<_BudgetView> {
     _handleNewOutcome(bloc, state, outcome);
   }
 
-  /// Opens the capture wizard to pay quote line [lineId] directly — its own `Pay` action, pre-filled
-  /// from the line (its full quoted total, in the line's own tax basis and rate, as today's debit) —
-  /// and, on confirm, dispatches [OcptBudgetLinePaidDirectlyEvent], which creates the commitment
-  /// behind the payment so the reader only ever quoted and paid. The lettrage strip is withheld
-  /// here, exactly as [_handleCommitmentSettleRequested] withholds it: the payment belongs to this
-  /// very line, so rerouting it onto a different object is a rapprochement the reader never meant.
+  /// Opens the capture wizard to pay quote line [lineId] directly — its own `Pay` action,
+  /// pre-filled from the line (its full quoted total, in the line's own tax basis and rate, as
+  /// today's debit) — and, on confirm, dispatches [OcptBudgetLinePaidDirectlyEvent], which creates
+  /// the commitment behind the payment so the reader only ever quoted and paid. The lettrage strip
+  /// is withheld here, exactly as [_handleCommitmentSettleRequested] withholds it: the payment
+  /// belongs to this very line, so rerouting it onto a different object is a rapprochement the
+  /// reader never meant.
   Future<void> _handleLinePayDirectlyRequested(
     BuildContext context,
     OcptBudgetState state,
@@ -2328,8 +2334,8 @@ class _BudgetViewState extends State<_BudgetView> {
     final isReadOnly = state.isPreviewingVersion;
     final elementNameByElementId = {for (final element in state.elements) element.id: element.name};
     // The off-line-debit banner's own two actions read the very same entry a receipt's own fiche
-    // shares with an ordinary entry's — `OcptBudgetReceiptSelection` names the same `budget_entries`
-    // row as `OcptBudgetEntrySelection`, only through a different field.
+    // shares with an ordinary entry's — `OcptBudgetReceiptSelection` names the same
+    // `budget_entries` row as `OcptBudgetEntrySelection`, only through a different field.
     final selectedEntryId = switch (state.selection) {
       OcptBudgetEntrySelection(:final entryId) => entryId,
       OcptBudgetReceiptSelection(:final receiptId) => receiptId,

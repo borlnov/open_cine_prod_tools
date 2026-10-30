@@ -1233,41 +1233,39 @@ void main() {
     await bloc.close();
   });
 
-  test(
-    "picking a category chip creates the element, tags the range with it and selects the new element",
-    () async {
-      await writeScreenplay("INT. HOUSE - DAY\n\nA lamp sits on the desk.\n");
-      final bloc = buildBloc();
-      final loaded = await waitForState(bloc, (state) => state.scenes.isNotEmpty);
-      final sceneId = loaded.scenes.single.id;
+  test("picking a category chip creates the element, tags the range with it and selects the new "
+      "element", () async {
+    await writeScreenplay("INT. HOUSE - DAY\n\nA lamp sits on the desk.\n");
+    final bloc = buildBloc();
+    final loaded = await waitForState(bloc, (state) => state.scenes.isNotEmpty);
+    final sceneId = loaded.scenes.single.id;
 
-      bloc.add(
-        OcptBreakdownWordClickedEvent(sceneId: sceneId, wordStartOffset: 20, wordEndOffset: 24),
-      );
-      await waitForState(bloc, (state) => state.pendingTagAnchor != null);
-      bloc.add(
-        OcptBreakdownWordClickedEvent(sceneId: sceneId, wordStartOffset: 37, wordEndOffset: 42),
-      );
-      await waitForState(bloc, (state) => state.pendingTagRange != null);
+    bloc.add(
+      OcptBreakdownWordClickedEvent(sceneId: sceneId, wordStartOffset: 20, wordEndOffset: 24),
+    );
+    await waitForState(bloc, (state) => state.pendingTagAnchor != null);
+    bloc.add(
+      OcptBreakdownWordClickedEvent(sceneId: sceneId, wordStartOffset: 37, wordEndOffset: 42),
+    );
+    await waitForState(bloc, (state) => state.pendingTagRange != null);
 
-      bloc.add(
-        const OcptBreakdownPopoverElementCreationRequestedEvent(
-          category: OcptElementCategory.prop,
-          name: "Desk lamp, 1960s",
-        ),
-      );
-      final state = await waitForState(bloc, (state) => state.taggedTargetCount == 1);
+    bloc.add(
+      const OcptBreakdownPopoverElementCreationRequestedEvent(
+        category: OcptElementCategory.prop,
+        name: "Desk lamp, 1960s",
+      ),
+    );
+    final state = await waitForState(bloc, (state) => state.taggedTargetCount == 1);
 
-      expect(state.pendingTagAnchor, isNull);
-      expect(state.pendingTagRange, isNull);
-      expect(state.targets.single.name, "Desk lamp, 1960s");
-      expect(state.targets.single.category, OcptElementCategory.prop);
-      expect(state.selectedTargetRef, (OcptBreakdownTargetKind.element, state.targets.single.id));
-      expect(state.rightDockTab, OcptBreakdownRightDockTab.inspector);
+    expect(state.pendingTagAnchor, isNull);
+    expect(state.pendingTagRange, isNull);
+    expect(state.targets.single.name, "Desk lamp, 1960s");
+    expect(state.targets.single.category, OcptElementCategory.prop);
+    expect(state.selectedTargetRef, (OcptBreakdownTargetKind.element, state.targets.single.id));
+    expect(state.rightDockTab, OcptBreakdownRightDockTab.inspector);
 
-      await bloc.close();
-    },
-  );
+    await bloc.close();
+  });
 
   test("an element created with a cleared field name falls back to the tagged passage", () async {
     await writeScreenplay("INT. HOUSE - DAY\n\nA lamp sits on the desk.\n");

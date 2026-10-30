@@ -72,9 +72,10 @@ class OcptSceneIndexService {
   ///
   /// [onScenesDeleted], when given, is awaited inside this method's own transaction, immediately
   /// before those rows are tombstoned, and only when there is at least one to tombstone: it is the
-  /// single hook a dependent (e.g. `OcptShotListService`, detaching a scene's shots) gets at the one
-  /// moment the about-to-vanish rows' data (their heading, in particular) is still available to copy
-  /// elsewhere. See the class doc comment for why this is a callback rather than a direct call.
+  /// single hook a dependent (e.g. `OcptShotListService`, detaching a scene's shots) gets at the
+  /// one moment the about-to-vanish rows' data (their heading, in particular) is still available to
+  /// copy elsewhere. See the class doc comment for why this is a callback rather than a direct
+  /// call.
   Future<void> reconcile({
     required OcptProjectDatabase database,
     required String screenplayId,
@@ -141,11 +142,11 @@ class OcptSceneIndexService {
 
   /// Tombstones every live scene of [screenplayId] and returns the ids it tombstoned, the cascade
   /// `OcptScreenplayService.deleteEpisode` reaches for first: everything else the episode carries
-  /// off — its shots and coverages, its breakdown — is keyed by `sceneId`, so the caller needs these
-  /// ids in hand before it can tombstone any of them.
+  /// off — its shots and coverages, its breakdown — is keyed by `sceneId`, so the caller needs
+  /// these ids in hand before it can tombstone any of them.
   ///
-  /// **Unguarded**, exactly as `OcptElementsService.tombstoneRoleLinksOfRole` is: its only caller has
-  /// already refused the write on a preview connection and is already inside the transaction
+  /// **Unguarded**, exactly as `OcptElementsService.tombstoneRoleLinksOfRole` is: its only caller
+  /// has already refused the write on a preview connection and is already inside the transaction
   /// removing the episode, so a second guard here would only be able to disagree with the first.
   ///
   /// {@macro open_cine_prod_tools.tombstones}

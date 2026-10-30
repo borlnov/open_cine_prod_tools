@@ -287,10 +287,11 @@ class _OcptWorkspaceShellState extends State<OcptWorkspaceShell> {
   /// side-by-side docks keep reading [OcptWorkspaceShell.isLeftDockOpen]/
   /// [OcptWorkspaceShell.isRightDockOpen] exactly as before, and this field is simply unused. Below
   /// it, honouring those mode-owned flags for visibility would mean a mode that defaults to open
-  /// (most do) covers the whole centre with a drawer the moment it mounts on a phone — so visibility
-  /// is driven from here instead, starting closed regardless of what the mode's own flags say. A
-  /// fresh mode mount (a mode switch, an episode switch) creates a fresh [State] and so a fresh
-  /// `none`, which is what "starts closed" means in practice — there is no reset to write by hand.
+  /// (most do) covers the whole centre with a drawer the moment it mounts on a phone — so
+  /// visibility is driven from here instead, starting closed regardless of what the mode's own
+  /// flags say. A fresh mode mount (a mode switch, an episode switch) creates a fresh [State] and
+  /// so a fresh `none`, which is what "starts closed" means in practice — there is no reset to
+  /// write by hand.
   _OcptCompactDrawerSide _compactDrawer = _OcptCompactDrawerSide.none;
 
   /// Opens [side], or closes it back to [_OcptCompactDrawerSide.none] when it is already the open
@@ -298,11 +299,12 @@ class _OcptWorkspaceShellState extends State<OcptWorkspaceShell> {
   /// the two drawers mutually exclusive: opening one always replaces whatever the other held.
   ///
   /// A side's drawer only shows once the mode has actually built that side's panel, and a mode
-  /// builds a panel gated on its own dock flag — the right dock's tabbed inspector is null until the
-  /// dock is opened, say. So opening a side whose mode dock is still closed also fires the mode's
-  /// own toggle callback, exactly the tap the desktop dock button makes, to get the panel built;
-  /// [didUpdateWidget] then re-syncs [_compactDrawer] to the flag that just flipped (already this
-  /// side). Without it the right toggle looked dead on a phone: the drawer had nothing to show.
+  /// builds a panel gated on its own dock flag — the right dock's tabbed inspector is null until
+  /// the dock is opened, say. So opening a side whose mode dock is still closed also fires the
+  /// mode's own toggle callback, exactly the tap the desktop dock button makes, to get the panel
+  /// built; [didUpdateWidget] then re-syncs [_compactDrawer] to the flag that just flipped (already
+  /// this side). Without it the right toggle looked dead on a phone: the drawer had nothing to
+  /// show.
   void _toggleCompactDrawer(_OcptCompactDrawerSide side) {
     final isOpening = _compactDrawer != side;
     setState(() {
@@ -395,8 +397,9 @@ class _OcptWorkspaceShellState extends State<OcptWorkspaceShell> {
   );
 
   /// Builds the `⋮` overflow entries on a phone: the export, project-settings and help actions the
-  /// toolbar folded out of its own slots, above the mode's own [OcptWorkspaceShell.overflowEntries],
-  /// separated from them by a divider when both groups are present.
+  /// toolbar folded out of its own slots, above the mode's own
+  /// [OcptWorkspaceShell.overflowEntries], separated from them by a divider when both groups are
+  /// present.
   ///
   /// Each folded action guards on its own callback, exactly as the toolbar slot it replaces did, so
   /// a mode that withholds one (the settings action under a version preview, the help action every
@@ -452,15 +455,15 @@ class _OcptWorkspaceShellState extends State<OcptWorkspaceShell> {
   /// [TextButton]'s own default touch target.
   ///
   /// That last part takes **two** overrides, and neither alone is enough.
-  /// [MaterialTapTargetSize.shrinkWrap] drops the stock 48 px touch target, which silently wins over
-  /// the [ocptToolbarChromeButtonSize] minimum below — the very reason the `iconButtonTheme` already
-  /// shrink-wraps every icon button of the app. [VisualDensity.standard] is the one that actually
-  /// shows: a [TextButton] takes its density from the ambient theme, which on a desktop platform is
-  /// [VisualDensity.compact] and takes **8 px off** every minimum size, so this button drew 22 px
-  /// tall beside 30 px toggles — an [IconButton] never does, its own default density being standard
-  /// whatever the theme says. Beware that `flutter test` reports the Android density unless the test
-  /// overrides `debugDefaultTargetPlatform`, so this is a difference a widget test cannot see by
-  /// default.
+  /// [MaterialTapTargetSize.shrinkWrap] drops the stock 48 px touch target, which silently wins
+  /// over the [ocptToolbarChromeButtonSize] minimum below — the very reason the `iconButtonTheme`
+  /// already shrink-wraps every icon button of the app. [VisualDensity.standard] is the one that
+  /// actually shows: a [TextButton] takes its density from the ambient theme, which on a desktop
+  /// platform is [VisualDensity.compact] and takes **8 px off** every minimum size, so this button
+  /// drew 22 px tall beside 30 px toggles — an [IconButton] never does, its own default density
+  /// being standard whatever the theme says. Beware that `flutter test` reports the Android density
+  /// unless the test overrides `debugDefaultTargetPlatform`, so this is a difference a widget test
+  /// cannot see by default.
   ///
   /// Wrapped in its own [Builder] so `onPressed` can resolve the button's own screen [Rect] from
   /// its `RenderBox` at tap time — the anchor [OcptWorkspaceShell.onExportRequested] hands down for
@@ -520,10 +523,11 @@ class _OcptWorkspaceShellState extends State<OcptWorkspaceShell> {
   /// The trigger reads the selected episode's own label; the menu lists every episode with the
   /// selected one marked, followed by `Manage episodes…` when
   /// [OcptWorkspaceShell.onProjectSettingsRequested] is wired (see the class doc comment for why it
-  /// is that callback rather than a new one). That entry carries [_manageEpisodesOption] rather than
-  /// null: a [PopupMenuButton] cannot carry a null value for an entry that must still be selectable,
-  /// since it can't tell that apart from the menu being dismissed without a pick
-  /// (`OcptResourcesPersonPicker`'s own `_nobodyOption` is the same workaround, for the same reason).
+  /// is that callback rather than a new one). That entry carries [_manageEpisodesOption] rather
+  /// than null: a [PopupMenuButton] cannot carry a null value for an entry that must still be
+  /// selectable, since it can't tell that apart from the menu being dismissed without a pick
+  /// (`OcptResourcesPersonPicker`'s own `_nobodyOption` is the same workaround, for the same
+  /// reason).
   ///
   /// It wraps itself in a [Flexible] — the toolbar wraps nothing itself — because an episode's
   /// title is as long as the user made it: on a window too narrow for the whole toolbar, this is
@@ -911,7 +915,8 @@ class _OcptWorkspaceShellState extends State<OcptWorkspaceShell> {
   /// re-lays-out the drawer without rebuilding the centre underneath, the same pattern the
   /// persistent columns use.
   Widget _buildCompactDrawers(BuildContext context, double rowWidth) {
-    // Non-null in this branch: [_buildDocksRow] returns the bare centre when the controller is null.
+    // Non-null in this branch: [_buildDocksRow] returns the bare centre when the controller is
+    // null.
     final controller = widget.dockLayoutController!;
     final leftPanel = widget.leftPanel;
     final rightPanel = widget.rightPanel;
@@ -957,11 +962,12 @@ class _OcptWorkspaceShellState extends State<OcptWorkspaceShell> {
 
   /// Builds one open compact drawer, anchored to [isLeft]'s edge of the row of [rowWidth].
   ///
-  /// On a phone ([ocptIsPhoneWidth]) it fills the whole row and is not resizable. On a wider compact
-  /// row it opens to [controller]'s clamped fraction and carries an [OcptWorkspaceDockDivider] on
-  /// its centre-facing edge, wired exactly like the matching persistent column's — the left drawer's
-  /// handle on its right, the right drawer's on its left — so the drag sign and the persistence
-  /// through [OcptWorkspaceShell.onDockFractionsChanged] are identical.
+  /// On a phone ([ocptIsPhoneWidth]) it fills the whole row and is not resizable. On a wider
+  /// compact row it opens to [controller]'s clamped fraction and carries an
+  /// [OcptWorkspaceDockDivider] on its centre-facing edge, wired exactly like the matching
+  /// persistent column's — the left drawer's handle on its right, the right drawer's on its left —
+  /// so the drag sign and the persistence through [OcptWorkspaceShell.onDockFractionsChanged] are
+  /// identical.
   Widget _buildCompactDrawer({
     required OcptWorkspaceDockLayoutController controller,
     required double rowWidth,

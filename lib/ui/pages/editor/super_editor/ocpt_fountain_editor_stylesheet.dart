@@ -63,18 +63,18 @@ class OcptFountainEditorStylesheet {
   /// follows the app's light/dark theme) — *unless* [usePaperColors] forces the fixed paper colors
   /// on regardless (a phone, where the fluid surface stands in for the desktop's simulated page and
   /// must read as paper, see `OcptStyledScreenplayEditor`). When page simulation is on, every color
-  /// is a fixed paper color (black text, greyed-out scaffolding) regardless of [colorScheme] for the
-  /// same reason [usePaperColors] requests it: the sheet is always white, so a theme-derived color
-  /// (in particular dark mode's light `onSurface`) would otherwise render invisible or
-  /// near-invisible on it. A page-starting node (flagged by
-  /// [ocptStartsNewPageMetadataKey], set by `computeOcptStyledPagination`) also gets extra top
-  /// padding — the exact pixel amount `computeOcptStyledPagination` computed for it — standing in
-  /// for the page gap and the previous/next page's margins. When page simulation is on, the
-  /// document's own top/bottom padding is the page's real top margin and (respectively)
-  /// [trailingBottomPadding], so the first page's content starts at its true margin and the last
-  /// page's content region genuinely fills the sheet down to its own bottom margin, exactly like
-  /// every other simulated page (see [OcptStyledPagination.trailingBottomPadding]'s own doc
-  /// comment for how that padding is computed).
+  /// is a fixed paper color (black text, greyed-out scaffolding) regardless of [colorScheme] for
+  /// the same reason [usePaperColors] requests it: the sheet is always white, so a theme-derived
+  /// color (in particular dark mode's light `onSurface`) would otherwise render invisible or
+  /// near-invisible on it. A page-starting node (flagged by [ocptStartsNewPageMetadataKey], set by
+  /// `computeOcptStyledPagination`) also gets extra top padding — the exact pixel amount
+  /// `computeOcptStyledPagination` computed for it — standing in for the page gap and the
+  /// previous/next page's margins. When page simulation is on, the document's own top/bottom
+  /// padding is the page's real top margin and (respectively) [trailingBottomPadding], so the first
+  /// page's content starts at its true margin and the last page's content region genuinely fills
+  /// the sheet down to its own bottom margin, exactly like every other simulated page (see
+  /// [OcptStyledPagination.trailingBottomPadding]'s own doc comment for how that padding is
+  /// computed).
   ///
   /// [isCompact] scales every element's indent and box width down by
   /// [OcptEditorPreviewLayout.compactLayoutScale] (see [_rule]), carrying the block hierarchy by

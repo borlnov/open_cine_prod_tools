@@ -19,9 +19,9 @@ import 'package:open_cine_prod_tools/models/database/tables/ocpt_shooting_slots_
 /// **Exactly one of [personId]/[freeName] says who the guest is** — the discriminator idiom
 /// `breakdown_tags` and `shooting_slots.anchorMinute`/`anchorSlotId` already use. [personId] names
 /// somebody already in the address book (an owner or a contact entered there for another reason);
-/// [freeName] is what the production actually reaches for most of the time, since forcing a `people`
-/// row onto a mayor invited for one afternoon would fill the address book with names nobody will
-/// ever call again.
+/// [freeName] is what the production actually reaches for most of the time, since forcing a
+/// `people` row onto a mayor invited for one afternoon would fill the address book with names
+/// nobody will ever call again.
 @DataClassName('OcptShootingSlotGuestRow')
 class OcptShootingSlotGuestsTable extends Table {
   /// {@macro open_cine_prod_tools.OcptShootingSlotGuestsTable}
@@ -38,8 +38,8 @@ class OcptShootingSlotGuestsTable extends Table {
   /// the two is set.
   TextColumn get personId => text().nullable().references(OcptPeopleTable, #id)();
 
-  /// A free-text name, used instead of [personId] when the guest is not, and will never be, a row of
-  /// `people`. Empty when [personId] is set.
+  /// A free-text name, used instead of [personId] when the guest is not, and will never be, a row
+  /// of `people`. Empty when [personId] is set.
   TextColumn get freeName => text().withDefault(const Constant(''))();
 
   /// Why this guest is on set ("Maire, prête la place", "Journaliste, Ouest-France").

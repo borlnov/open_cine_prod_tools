@@ -9,9 +9,10 @@ import 'package:open_cine_prod_tools/types/ocpt_floor_plan_scope.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_set_element_shape.dart';
 
 /// The default footprint, in metres, a character silhouette is drawn at — the implicit ruler every
-/// other measurement on a floor plan is read against (`docs/adr/0031-storyboard-panels-and-
-/// floor-plans-in-metres.md`). Never stored: a symbol carries its own [ocptFloorPlanDefaultFootprintM]
-/// only as a drawing default, geometry is always in metres regardless of this constant's value.
+/// other measurement on a floor plan is read against
+/// (`docs/adr/0031-storyboard-panels-and- floor-plans-in-metres.md`). Never stored: a symbol
+/// carries its own [ocptFloorPlanDefaultFootprintM] only as a drawing default, geometry is always
+/// in metres regardless of this constant's value.
 const double ocptFloorPlanCharacterFootprintM = 0.5;
 
 /// The default footprint, in metres, a camera body is drawn at.
@@ -124,9 +125,9 @@ const ({double widthM, double heightM}) ocptFloorPlanDoorDefaultFootprintM = (
 const double ocptFloorPlanBasePixelsPerMetre = 48;
 
 /// The "nice" multipliers a scale bar's length is rounded to, at whichever power of ten fits —
-/// `1 m`, `2 m`, `5 m`, `10 m`, `20 m`, `50 m`, and so on down to tenths. The same 1-2-5 progression
-/// a chart axis is conventionally labelled with, so the bar always reads as a round number a viewer
-/// can do mental arithmetic against.
+/// `1 m`, `2 m`, `5 m`, `10 m`, `20 m`, `50 m`, and so on down to tenths. The same 1-2-5
+/// progression a chart axis is conventionally labelled with, so the bar always reads as a round
+/// number a viewer can do mental arithmetic against.
 const List<double> _niceScaleBarMultipliers = [1, 2, 5];
 
 /// The default footprint, in metres, a symbol of [layer] is drawn at absent a per-symbol

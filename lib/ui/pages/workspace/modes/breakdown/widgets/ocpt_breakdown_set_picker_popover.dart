@@ -25,10 +25,10 @@ const double _ocptBreakdownSetPickerPopoverGap = 6;
 /// replacing what used to be two separate controls side by side.
 ///
 /// The popover's own text field is both the filter the existing-sets list is matched against and
-/// the name a creation would use — pre-filled with [defaultName] (the place the scene's own
-/// heading names), editable before either action. Painted into the app's own [Overlay], through an
-/// [OverlayPortal] and a [LayerLink]/[CompositedTransformFollower] pair, so it is not clipped by the
-/// right dock's `ListView` — the same idiom `OcptBreakdownTagPopoverAnchor` uses for the script
+/// the name a creation would use — pre-filled with [defaultName] (the place the scene's own heading
+/// names), editable before either action. Painted into the app's own [Overlay], through an
+/// [OverlayPortal] and a [LayerLink]/[CompositedTransformFollower] pair, so it is not clipped by
+/// the right dock's `ListView` — the same idiom `OcptBreakdownTagPopoverAnchor` uses for the script
 /// sheet's own tag popover, simplified here since this one is toggled by a tap rather than shown
 /// automatically, and always drawn below the chip rather than flipping sides.
 ///

@@ -12,14 +12,14 @@ const double _characterColourSaturation = 0.55;
 const double _characterColourLightness = 0.5;
 
 /// The deterministic, fully-opaque ARGB colour (`0xAARRGGBB`) a character symbol's own disc is
-/// drawn in, derived from its [name] (`OcptFloorPlanSymbol.label`) — the same name always yields the
-/// same colour, on the canvas and on paper alike, with no palette stored anywhere: the "derived,
-/// never stored" rule already applied to a camera's own letter, applied
-/// here to a character's own colour instead.
+/// drawn in, derived from its [name] (`OcptFloorPlanSymbol.label`) — the same name always yields
+/// the same colour, on the canvas and on paper alike, with no palette stored anywhere: the
+/// "derived, never stored" rule already applied to a camera's own letter, applied here to a
+/// character's own colour instead.
 ///
-/// [name] is trimmed and lower-cased first, so `Sam`, `sam ` and `SAM` share one colour; an empty or
-/// whitespace-only name still returns a valid, stable colour rather than throwing (every character
-/// symbol has *some* colour to draw with the moment it exists, labelled or not).
+/// [name] is trimmed and lower-cased first, so `Sam`, `sam ` and `SAM` share one colour; an empty
+/// or whitespace-only name still returns a valid, stable colour rather than throwing (every
+/// character symbol has *some* colour to draw with the moment it exists, labelled or not).
 ///
 /// The hue is a simple string hash reduced modulo 360 — not cryptographic and not collision-free
 /// (two different names can land on the same hue), but stable across app runs and platforms, which
@@ -47,8 +47,8 @@ int ocptFloorPlanCharacterColourOf(String name) {
 }
 
 /// [hue] (0..360), [saturation] and [lightness] (0..1) converted to a fully opaque ARGB int — the
-/// standard HSL-to-RGB conversion, written out directly rather than pulled in from a package for one
-/// small, pure computation this rule alone needs.
+/// standard HSL-to-RGB conversion, written out directly rather than pulled in from a package for
+/// one small, pure computation this rule alone needs.
 int _argbOfHsl({required double hue, required double saturation, required double lightness}) {
   final chroma = (1 - (2 * lightness - 1).abs()) * saturation;
   final huePrime = hue / 60;

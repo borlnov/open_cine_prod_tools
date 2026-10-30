@@ -44,8 +44,8 @@ const String _otherRolesSeparator = ", ";
 /// episodes card ([OcptRoleSheetEpisodesCard]) right under that, because that is the order the
 /// questions are asked in: who plays them, who was seen, where they appear, then what they wear —
 /// and the episodes card is drawn at all only while the project holds more than one episode (a
-/// single-episode project names no episode anywhere, `docs/adr/0019-one-project-several-episodes.md`
-/// §8).
+/// single-episode project names no episode anywhere,
+/// `docs/adr/0019-one-project-several-episodes.md` §8).
 ///
 /// The removed-role alert is shown **inside the sheet of the role it names**, not stacked above
 /// whichever sheet happens to be open: the cast list of the left dock is what points at it, so the
@@ -205,11 +205,11 @@ class OcptRoleSheet extends StatelessWidget {
   /// it is to remove the character's cues.
   ///
   /// True for an **action-detected** role ([ocptRoleIsActionDetected]) even though the screenplay
-  /// still names it: `OcptRoleIndexService.reconcile`'s own rule 3 refuses to recreate a role from a
-  /// name matching a tombstoned, action-detected one — deliberately, since reading a name out of an
-  /// action line is a convention, not a syntax, and an acronym or a shouted word read as a character
-  /// needs a way out. Without this, that rule would have nothing to be reached by: the sheet would
-  /// offer no gesture at all to reject a false positive.
+  /// still names it: `OcptRoleIndexService.reconcile`'s own rule 3 refuses to recreate a role from
+  /// a name matching a tombstoned, action-detected one — deliberately, since reading a name out of
+  /// an action line is a convention, not a syntax, and an acronym or a shouted word read as a
+  /// character needs a way out. Without this, that rule would have nothing to be reached by: the
+  /// sheet would offer no gesture at all to reject a false positive.
   ///
   /// True as well for a hand-added role, and for an orphaned one (whose character is gone, so
   /// nothing will re-insert it) — the three cases this getter tells apart all share the one thing

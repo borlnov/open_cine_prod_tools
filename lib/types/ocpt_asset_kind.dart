@@ -26,8 +26,8 @@ enum OcptAssetKind {
 
   /// A storyboard panel's imported frame (`storyboard_panels.imageAssetId`).
   ///
-  /// Sets **none** of `assets`' four owner columns: the panel's own `imageAssetId` is the only link,
-  /// the way `people.photoAssetId` is — see `OcptAssetsTable`'s own doc comment, amended by
+  /// Sets **none** of `assets`' four owner columns: the panel's own `imageAssetId` is the only
+  /// link, the way `people.photoAssetId` is — see `OcptAssetsTable`'s own doc comment, amended by
   /// `docs/adr/0013-binary-assets-referenced-by-path.md`'s storyboard follow-up to say these two
   /// kinds set none.
   storyboardPanelImage,

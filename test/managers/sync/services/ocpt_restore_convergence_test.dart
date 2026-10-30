@@ -42,9 +42,10 @@ import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
 /// [OcptProjectVersionsService.restoreVersion] already tombstones-and-stamps through the very same
 /// `OcptRowStampService` any ordinary edit uses (see its own `restoreIsAnEdit` doc), so this file
 /// only has to prove that a restore's stamps actually reach `OcptChangesetService.pushLocalEdits`
-/// the way any other local edit's would — it does, because `OcptProjectsManager.restoreProjectVersion`
-/// already calls it against `OcptOpenProjectModel.fileDatabase`, the very handle the outbound side
-/// reads from, exactly like every other write in the app.
+/// the way any other local edit's would — it does, because
+/// `OcptProjectsManager.restoreProjectVersion` already calls it against
+/// `OcptOpenProjectModel.fileDatabase`, the very handle the outbound side reads from, exactly like
+/// every other write in the app.
 ///
 /// The preview-safety property — an incoming changeset applying to `fileDatabase` normally while a
 /// version preview is up — is already covered by `ocpt_merge_service_test.dart`'s "an incoming
@@ -233,7 +234,8 @@ void main() {
   }
 
   test(
-    'a restore on one replica converges against a replica that was offline throughout, tombstones included',
+    'a restore on one replica converges against a replica that was offline throughout, tombstones '
+    'included',
     () async {
       final deviceA = buildDevice('device-a');
       final deviceB = buildDevice('device-b');

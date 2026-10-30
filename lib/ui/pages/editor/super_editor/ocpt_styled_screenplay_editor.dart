@@ -620,9 +620,9 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
           );
 
     // Wrapped once here, rather than once per branch above: a right-click anywhere over the
-    // document — fluid surface or simulated page alike — opens the same context menu. super_editor's
-    // own desktop gesture interactor handles no secondary mouse button at all (verified against the
-    // pinned `0.3.0-dev.52`), so nothing else ever competes for this gesture.
+    // document — fluid surface or simulated page alike — opens the same context menu.
+    // super_editor's own desktop gesture interactor handles no secondary mouse button at all
+    // (verified against the pinned `0.3.0-dev.52`), so nothing else ever competes for this gesture.
     //
     // The `Listener` above the gesture detector is what dismisses that menu on a left click landing
     // back on the document (see `_onPointerDownOverDocument`): `MenuAnchor` closes itself on a tap
@@ -633,8 +633,9 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
     //
     // No entry is ever withheld for a read-only preview here: `editor_page.dart`'s `_buildCentre`
     // substitutes the read-only `OcptEditorPreview` for both editing modes while a version is being
-    // previewed, so this widget — and the menu it opens — is simply never mounted under one. There is
-    // no `isReadOnly` flag to thread through because there is nothing here that would ever need one.
+    // previewed, so this widget — and the menu it opens — is simply never mounted under one. There
+    // is no `isReadOnly` flag to thread through because there is nothing here that would ever need
+    // one.
     return OcptEditorContextMenu(
       controller: _contextMenuController,
       childFocusNode: _focusNode,
@@ -688,10 +689,10 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
 
   /// The paper-simulated editing surface [build] shows while
   /// [OcptStyledScreenplayEditor.isPageSimulationEnabled] is on: real-size white sheets behind
-  /// [editorWithoutImplicitScrollbar], scaled to fit a panel narrower than [layout]'s own page width.
-  /// The inline comments below are the authority on every geometry decision it makes: why the editor
-  /// is only as wide as the content area, why it is shifted back by one padding inset, and why the
-  /// sheets are painted rather than laid out.
+  /// [editorWithoutImplicitScrollbar], scaled to fit a panel narrower than [layout]'s own page
+  /// width. The inline comments below are the authority on every geometry decision it makes: why
+  /// the editor is only as wide as the content area, why it is shifted back by one padding inset,
+  /// and why the sheets are painted rather than laid out.
   Widget _buildPageSimulationSurface({
     required ThemeData theme,
     required OcptEditorPreviewLayout layout,
@@ -743,11 +744,11 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
                         pageGap: OcptEditorPreviewLayout.pageGap,
                         pageNumberTop: ocptScriptPageNumberTopInches * layout.pixelsPerInch,
                         pageNumberRight: layout.pageWidth - layout.marginRight,
-                        // The sheets are white whatever the app's theme is, so the number is painted
-                        // in the same fixed paper colors `OcptFountainEditorStylesheet` switches to
-                        // under page simulation — a theme-derived color could render invisible on
-                        // that white backdrop — and at the body's own size and family, since that is
-                        // what the PDF prints it at.
+                        // The sheets are white whatever the app's theme is, so the number is
+                        // painted in the same fixed paper colors `OcptFountainEditorStylesheet`
+                        // switches to under page simulation — a theme-derived color could render
+                        // invisible on that white backdrop — and at the body's own size and family,
+                        // since that is what the PDF prints it at.
                         pageNumberStyle: const TextStyle(
                           fontFamily: OcptEditorPreviewLayout.fontFamily,
                           fontSize: OcptEditorPreviewLayout.fontSize,
@@ -760,13 +761,13 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
                     ),
                   ),
                 ),
-                // Deliberately an `Align` (a *non-positioned* Stack child) shifted by a `Transform`,
-                // rather than a `Positioned(left: -inset)`: the `Stack` sizes itself to its
-                // non-positioned children, so making every child positioned would leave it sizing to
-                // its incoming constraints instead, handing `SuperEditor` a differently-constrained
-                // viewport — which, in turn, breaks its IME connection (`editor_page_test.dart`'s
-                // "an edit made in styled mode survives switching back to raw mode" catches exactly
-                // that).
+                // Deliberately an `Align` (a *non-positioned* Stack child) shifted by a
+                // `Transform`, rather than a `Positioned(left: -inset)`: the `Stack` sizes itself
+                // to its non-positioned children, so making every child positioned would leave it
+                // sizing to its incoming constraints instead, handing `SuperEditor` a
+                // differently-constrained viewport — which, in turn, breaks its IME connection
+                // (`editor_page_test.dart`'s "an edit made in styled mode survives switching back
+                // to raw mode" catches exactly that).
                 Align(
                   alignment: Alignment.topLeft,
                   child: Transform.translate(
@@ -789,18 +790,19 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
   /// the whole thing down to fit rather than letting it be squeezed.
   ///
   /// A page whose width is squeezed is not a smaller page: every block's `Styles.maxWidth` is an
-  /// absolute pixel width taken from the page metrics, so a narrower box makes each line wrap several
-  /// columns early, and those surplus lines make every simulated page render taller than the sheet
-  /// `computeOcptStyledPagination` sized for it — the text then runs out under the sheet's bottom
-  /// edge, page after page. Scaling instead keeps the page's proportions, its margins and its wrap
-  /// points exactly right at any panel width, which is what the raw preview already does
-  /// (`OcptEditorPreview`, whose doc comment explains why fitting beats cropping here).
+  /// absolute pixel width taken from the page metrics, so a narrower box makes each line wrap
+  /// several columns early, and those surplus lines make every simulated page render taller than
+  /// the sheet `computeOcptStyledPagination` sized for it — the text then runs out under the
+  /// sheet's bottom edge, page after page. Scaling instead keeps the page's proportions, its
+  /// margins and its wrap points exactly right at any panel width, which is what the raw preview
+  /// already does (`OcptEditorPreview`, whose doc comment explains why fitting beats cropping
+  /// here).
   ///
-  /// [BoxConstraints.maxHeight] is divided by the same scale so the scaled-down viewport still fills
-  /// the panel vertically, and this must be a [FittedBox] rather than a [Transform.scale] around a
-  /// wide [SizedBox]: under the tight width constraint the panel hands down, a plain [SizedBox]
-  /// silently clamps back to that width instead of achieving the page's own (see `OcptEditorPreview`
-  /// for the same trap).
+  /// [BoxConstraints.maxHeight] is divided by the same scale so the scaled-down viewport still
+  /// fills the panel vertically, and this must be a [FittedBox] rather than a [Transform.scale]
+  /// around a wide [SizedBox]: under the tight width constraint the panel hands down, a plain
+  /// [SizedBox] silently clamps back to that width instead of achieving the page's own (see
+  /// `OcptEditorPreview` for the same trap).
   Widget _scaledToFit({
     required BoxConstraints constraints,
     required double pageWidth,
@@ -1319,8 +1321,8 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
   /// `ocptTabToCycleBlockType`'s own guard), otherwise sets the type and locks the block exactly
   /// like the Tab-cycle gesture does — plus, when [type] is [FountainLineType.parenthetical] and
   /// the node's text is still empty, inserts `()` and places the caret between the two parentheses
-  /// (see `ocptParentheticalTemplateRequests`, the same helper the Tab cycle and smart-Enter use, so
-  /// all three gestures behave identically) — then reports the fresh read state and hands focus
+  /// (see `ocptParentheticalTemplateRequests`, the same helper the Tab cycle and smart-Enter use,
+  /// so all three gestures behave identically) — then reports the fresh read state and hands focus
   /// straight back to the editor — the toolbar's dropdown must never keep the keyboard focus it
   /// briefly took to open.
   @override
@@ -1507,9 +1509,10 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
 
   /// The right-click context menu's suggestion entries: replaces
   /// [_contextMenuMisspelledNodeId]/[_contextMenuMisspelledRange] with [suggestion], through the
-  /// very same [OcptReplaceNodeTextRequest] + [_ocptReplaceMatchesInText] path [replaceCurrentMatch]
-  /// already uses — a single [Editor.execute] call, so the edit and the reclassification pass it
-  /// triggers merge into **one** undo step (`docs/architecture/screenplay.md`, "Undo and redo").
+  /// very same [OcptReplaceNodeTextRequest] + [_ocptReplaceMatchesInText] path
+  /// [replaceCurrentMatch] already uses — a single [Editor.execute] call, so the edit and the
+  /// reclassification pass it triggers merge into **one** undo step
+  /// (`docs/architecture/screenplay.md`, "Undo and redo").
   ///
   /// The node is re-read and the range re-clamped against its *current* text length right here,
   /// rather than trusting what [_onSecondaryTapUp] resolved: an edit made elsewhere while the menu
@@ -1582,8 +1585,8 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
 
   /// The right-click context menu's Copy entry: copies the current selection's Fountain source to
   /// the clipboard through [ocptCopySelectionToClipboard], the same helper the Ctrl+C key handler
-  /// uses, so the payload is the exact same plain Fountain text whichever gesture asks for it. Hands
-  /// focus back to the editor afterwards, same as [applyBlockType].
+  /// uses, so the payload is the exact same plain Fountain text whichever gesture asks for it.
+  /// Hands focus back to the editor afterwards, same as [applyBlockType].
   void _copySelectionFromContextMenu() {
     final selection = _composer.selection;
     if (selection == null) {

@@ -25,9 +25,9 @@ const String ocptScheduleEmptyValue = "—";
 /// The moment [exportDate] was produced, as `yyyy-MM-dd HH:mm` — what tells two documents of the
 /// same day apart in the hand of somebody holding both.
 ///
-/// It carries the **time** as well as the date on purpose: a call sheet is regularly reissued in the
-/// afternoon of the day it was first sent out, and a stamp that stopped at the date would leave its
-/// reader with two sheets and no way to tell which one is the one to follow.
+/// It carries the **time** as well as the date on purpose: a call sheet is regularly reissued in
+/// the afternoon of the day it was first sent out, and a stamp that stopped at the date would leave
+/// its reader with two sheets and no way to tell which one is the one to follow.
 ///
 /// It is deliberately **not** locale-formatted, unlike a day's own title, which the two services
 /// take from their caller already localized: this stamp is read as an identifier rather than as a
@@ -114,8 +114,8 @@ List<OcptOrderedScheduleEntry> ocptOrderedScheduleEntriesOfDay({
 /// A map from every real scene's id to its own heading — read by both schedule PDF exports for a
 /// [OcptShootingBlockKind.hold] block's own caption, and by the call sheet's main table for its own
 /// `EFFET` column. A thin wrapper over `OcptSchedulePlanSnapshot.headingBySceneId`, which the
-/// schedule agenda's own "Colour by effect" tint reads too — kept here so neither PDF service has to
-/// know the field moved.
+/// schedule agenda's own "Colour by effect" tint reads too — kept here so neither PDF service has
+/// to know the field moved.
 Map<String, String> ocptScheduleHeadingBySceneId(OcptSchedulePlanSnapshot plan) =>
     plan.headingBySceneId;
 
@@ -157,17 +157,17 @@ List<int> ocptScheduleBlockRoleNumbersOf({
 
 /// The caption a non-shot [block] prints: its own free-text label when it has one, then **whatever
 /// that kind of block names** — a sequence's own heading for a [OcptShootingBlockKind.hold] and a
-/// [OcptShootingBlockKind.rehearsal] alike, the parts an [OcptShootingBlockKind.audition] sees, each
-/// as its own `<number> · <name>` — or [blockKindLabelOf] as the final fallback.
+/// [OcptShootingBlockKind.rehearsal] alike, the parts an [OcptShootingBlockKind.audition] sees,
+/// each as its own `<number> · <name>` — or [blockKindLabelOf] as the final fallback.
 ///
 /// **A band says what it is about, not merely what kind it is.** A hold and a rehearsal both name a
 /// sequence through the same `shooting_day_blocks.sceneId`, so both read it here: a day of
 /// rehearsals whose every band printed the bare word *Rehearsal* would be a running order saying
 /// nothing about what is being worked. An audition names its candidacies through
-/// `shooting_block_candidates`, and this reads the **parts** off them — deduplicated, in the block's
-/// own order, joined by `·`, and in the very shape the cast table already names a role in, so a
-/// reader holding both can match them without being told. Two actors of two different parts read
-/// together therefore print both parts (ADR 0024).
+/// `shooting_block_candidates`, and this reads the **parts** off them — deduplicated, in the
+/// block's own order, joined by `·`, and in the very shape the cast table already names a role in,
+/// so a reader holding both can match them without being told. Two actors of two different parts
+/// read together therefore print both parts (ADR 0024).
 ///
 /// The part is printed rather than the person because this caption goes into the shooting plan and
 /// the call sheet's own main table, both read by the whole unit: who is being seen is the call
@@ -298,7 +298,8 @@ String ocptScheduleArrivalDepartureLabel(OcptDayConvocation? convocation) {
   if (convocation == null) {
     return ocptScheduleEmptyValue;
   }
-  return "${ocptFormatDayMinute(convocation.arrivalMinute)} – ${ocptFormatDayMinute(convocation.departureMinute)}";
+  return "${ocptFormatDayMinute(convocation.arrivalMinute)} – "
+      "${ocptFormatDayMinute(convocation.departureMinute)}";
 }
 
 /// One row of a day's own trailing guest table: a guest convocation's own display name, the
@@ -306,11 +307,12 @@ String ocptScheduleArrivalDepartureLabel(OcptDayConvocation? convocation) {
 /// **Never a PAT band** — a guest is not there to shoot (ADR 0018), so there is no field here to
 /// carry one at all, unlike a crew or cast row's own.
 ///
-/// Shared by `OcptCallSheetPdfService` and `OcptShootingPlanPdfService`, which both print this exact
-/// table (`NOM / MOTIF / HORAIRES`) trailing their own timetable: the join belongs here for the same
-/// reason [ocptScheduleBlockCaptionOf] does — two documents reading a guest's name, reason and hours
-/// two different ways is exactly what this file exists to rule out. Each service keeps only its own
-/// widget that draws the table, the section title and the labels object differing between them.
+/// Shared by `OcptCallSheetPdfService` and `OcptShootingPlanPdfService`, which both print this
+/// exact table (`NOM / MOTIF / HORAIRES`) trailing their own timetable: the join belongs here for
+/// the same reason [ocptScheduleBlockCaptionOf] does — two documents reading a guest's name, reason
+/// and hours two different ways is exactly what this file exists to rule out. Each service keeps
+/// only its own widget that draws the table, the section title and the labels object differing
+/// between them.
 class OcptScheduleGuestRow {
   /// Class constructor
   const OcptScheduleGuestRow({
@@ -339,8 +341,9 @@ class OcptScheduleGuestRow {
 }
 
 /// Whether [guest]'s own discriminator half — [OcptShootingSlotGuest.personId] or
-/// [OcptShootingSlotGuest.freeName] — matches [convocation]'s, the join [ocptScheduleGuestRowsOfDay]
-/// makes between a `shooting_slot_guests` row and the computed convocation it feeds.
+/// [OcptShootingSlotGuest.freeName] — matches [convocation]'s, the join
+/// [ocptScheduleGuestRowsOfDay] makes between a `shooting_slot_guests` row and the computed
+/// convocation it feeds.
 bool _guestMatchesConvocation(OcptShootingSlotGuest guest, OcptDayConvocation convocation) =>
     convocation.guestPersonId != null
     ? guest.personId == convocation.guestPersonId
@@ -385,9 +388,9 @@ String _guestDisplayNameOf(
 /// different reasons has both printed, never one picked over the other.
 ///
 /// [unnamedPersonLabel] is the calling document's own already-localized fallback word
-/// (`OcptCallSheetLabels.unnamedPersonLabel`/`OcptShootingPlanLabels.unnamedPersonLabel`), taken as a
-/// plain string exactly as [ocptScheduleBlockCaptionOf] takes its own `blockKindLabelOf` resolver —
-/// this file must not learn about either labels class.
+/// (`OcptCallSheetLabels.unnamedPersonLabel`/`OcptShootingPlanLabels.unnamedPersonLabel`), taken as
+/// a plain string exactly as [ocptScheduleBlockCaptionOf] takes its own `blockKindLabelOf` resolver
+/// — this file must not learn about either labels class.
 List<OcptScheduleGuestRow> ocptScheduleGuestRowsOfDay({
   required OcptSchedulePlanSnapshot plan,
   required String dayId,

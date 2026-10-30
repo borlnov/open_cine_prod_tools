@@ -26,8 +26,9 @@ class OcptShootingTimelineBlock {
     this.anchorMinute,
   });
 
-  /// The block's own id (`shooting_day_blocks.id`), echoed back on every [OcptShootingTimelineEntry]
-  /// and [OcptTimelineOverrun] that concerns it, so a caller can join the result back onto its rows.
+  /// The block's own id (`shooting_day_blocks.id`), echoed back on every
+  /// [OcptShootingTimelineEntry] and [OcptTimelineOverrun] that concerns it, so a caller can join
+  /// the result back onto its rows.
   final String id;
 
   /// The block's own `durationMinutes`, when the user set one. Takes priority over
@@ -35,8 +36,8 @@ class OcptShootingTimelineBlock {
   final int? durationMinutes;
 
   /// A shot block's estimate (`shots.estimatedDurationMs`, already converted to minutes by the
-  /// caller), used when [durationMinutes] is null. Null for a block that either isn't a shot or is a
-  /// shot with no estimate of its own yet.
+  /// caller), used when [durationMinutes] is null. Null for a block that either isn't a shot or is
+  /// a shot with no estimate of its own yet.
   final int? fallbackDurationMinutes;
 
   /// The block's `anchorMinute`, when it is pinned. A pinned block starts **exactly** here,
@@ -184,22 +185,23 @@ class OcptShootingSlotTimeline {
 ///
 /// 1. The chain starts at [slotStartMinute].
 /// 2. Each block starts where the previous one ended, and lasts [OcptShootingTimelineBlock
-///    .durationMinutes] — or, when that is null, [OcptShootingTimelineBlock.fallbackDurationMinutes]
-///    — or, when that is null too, [defaultDurationMinutes].
+///    .durationMinutes] — or, when that is null,
+///    [OcptShootingTimelineBlock.fallbackDurationMinutes] — or, when that is null too,
+///    [defaultDurationMinutes].
 /// 3. A block whose [OcptShootingTimelineBlock.anchorMinute] is set starts **exactly** there,
-///    whatever the chain's position was; the chain resumes from its end. This holds unconditionally,
-///    whether the anchor sits after the chain's position (the block simply waits, no [
-///    OcptTimelineOverrun]), matches it exactly (no [OcptTimelineOverrun] either — see below), or
-///    sits before it (rule 4).
+///    whatever the chain's position was; the chain resumes from its end. This holds
+///    unconditionally, whether the anchor sits after the chain's position (the block simply waits,
+///    no [ OcptTimelineOverrun]), matches it exactly (no [OcptTimelineOverrun] either — see below),
+///    or sits before it (rule 4).
 /// 4. When the chain's position was **strictly later** than the anchor, the anchor could not be
 ///    honoured without overlap: an [OcptTimelineOverrun] is added to the result, naming the block,
 ///    the minute the chain had reached and the anchor. The block still starts at the anchor (rule 3
 ///    is not an exception to itself) — nothing here "pushes" the anchor later to make it fit, which
 ///    is the one thing rule 4 exists to refuse doing silently. Because the chain is pulled backward
-///    to the anchor regardless, the rest of the slot is computed from that earlier point too, and can
-///    therefore finish **earlier** than a naive sum of every duration would suggest: the over-run
-///    is a true statement about *this* block's own conflict, not a claim that the whole slot grew
-///    longer by the same amount.
+///    to the anchor regardless, the rest of the slot is computed from that earlier point too, and
+///    can therefore finish **earlier** than a naive sum of every duration would suggest: the
+///    over-run is a true statement about *this* block's own conflict, not a claim that the whole
+///    slot grew longer by the same amount.
 ///
 /// There used to be a rule 5, pulling the chain forward to meet a second slot's own later call —
 /// it existed only because one chain served a whole day; now that every slot runs its own, from its
@@ -210,9 +212,9 @@ class OcptShootingSlotTimeline {
 ///
 /// An **empty** [blocks] list — a slot with nothing placed on it yet — returns no entries, no
 /// over-runs and a null [OcptShootingSlotTimeline.endMinute]: there is nothing to call "the end" of
-/// a slot that has not been given any content, which is a different fact from a slot whose one block
-/// ends the instant it begins ([OcptShootingSlotTimeline.endMinute] equal to [slotStartMinute] in
-/// that case).
+/// a slot that has not been given any content, which is a different fact from a slot whose one
+/// block ends the instant it begins ([OcptShootingSlotTimeline.endMinute] equal to
+/// [slotStartMinute] in that case).
 ///
 /// A block's own resolved duration ([OcptShootingTimelineBlock.durationMinutes], its
 /// [OcptShootingTimelineBlock.fallbackDurationMinutes] or [defaultDurationMinutes], whichever is

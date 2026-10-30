@@ -1345,7 +1345,8 @@ void main() {
       fileTypeLabel: "PDF document",
     );
 
-    test("hands the day, the presentation and the project's own screenplay to the manager", () async {
+    test("hands the day, the presentation and the project's own screenplay to the "
+        "manager", () async {
       final fixture = await writePlacedShot();
       final exportManager = _FakeScheduleExportManager(sidesResult: "/tmp/sides.pdf");
       final bloc = buildBloc(exportManager: exportManager);

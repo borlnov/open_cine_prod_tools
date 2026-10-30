@@ -57,8 +57,9 @@ class OcptBudgetResourceDialog extends StatefulWidget {
 
   /// The poste an existing in-kind contribution's counterpart line currently offsets, or null —
   /// seeds the `Poste` picker while editing. Read from the linked line rather than from a field of
-  /// the resource itself, which stores no poste of its own (`OcptBudgetResourceFormFields.posteId`'s
-  /// own doc comment). Ignored while creating: a fresh resource has no counterpart line yet.
+  /// the resource itself, which stores no poste of its own
+  /// (`OcptBudgetResourceFormFields.posteId`'s own doc comment). Ignored while creating: a fresh
+  /// resource has no counterpart line yet.
   final String? initialPosteId;
 
   /// Whether the mode's header currently reads simplified — switches a poste's own displayed name
@@ -190,7 +191,8 @@ class _OcptBudgetResourceDialogState extends State<OcptBudgetResourceDialog> {
 }
 
 /// The whole of [OcptBudgetResourceDialog]'s own form, embeddable outside a dialog — the capture
-/// wizard draws this same body under its own step counter, rather than an `AlertDialog`'s `content`.
+/// wizard draws this same body under its own step counter, rather than an `AlertDialog`'s
+/// `content`.
 ///
 /// **`Label` is the dialog's own only required field**, unlike the commitment dialog's own two: a
 /// resource's `Group` and `Status` both already carry a sensible default the moment the dialog
@@ -198,20 +200,20 @@ class _OcptBudgetResourceDialogState extends State<OcptBudgetResourceDialog> {
 /// fresh resource could be missing the way a commitment is missing its poste until somebody picks
 /// one.
 ///
-/// **The `Group` is fixed, and the picker hidden, while creating** — unless [offerCashOrInKindChoice]
-/// says otherwise. `OcptBudgetFinancing`'s own `+ Resource` control and the capture wizard's own
-/// step 1 both name a subsidy as its own explicit gesture (*"Ajouter une caméra qui est valorisée
-/// n'est pas la même chose que d'ajouter du vrai argent qui va servir à la production pour acheter à
-/// manger"*), so a subsidy's own kind is already decided before this body even opens and never asks
-/// again: offering the picker there would let the very gesture that named the kind be second-guessed
-/// one field later, for no reason a reader could name. **Cash and in-kind are different**: the
-/// wizard's own `planContribution` answer collapses the two — *"En numéraire, ou en nature (matériel
-/// prêté, équipe bénévole)"* — leaving exactly one question the gesture itself could not settle, so
-/// its host passes [offerCashOrInKindChoice] and the picker draws, offering only `cash` and `inKind`
-/// rather than all three: a subsidy stays unreachable from it, [groupKind] still seeding which of the
-/// two starts selected. Editing is different again: `_OcptResourceGroupKindPicker` always draws
-/// there, offering every kind, since a production is free to reclassify a resource it already
-/// created, exactly as it is today.
+/// **The `Group` is fixed, and the picker hidden, while creating** — unless
+/// [offerCashOrInKindChoice] says otherwise. `OcptBudgetFinancing`'s own `+ Resource` control and
+/// the capture wizard's own step 1 both name a subsidy as its own explicit gesture (*"Ajouter une
+/// caméra qui est valorisée n'est pas la même chose que d'ajouter du vrai argent qui va servir à la
+/// production pour acheter à manger"*), so a subsidy's own kind is already decided before this body
+/// even opens and never asks again: offering the picker there would let the very gesture that named
+/// the kind be second-guessed one field later, for no reason a reader could name. **Cash and
+/// in-kind are different**: the wizard's own `planContribution` answer collapses the two — *"En
+/// numéraire, ou en nature (matériel prêté, équipe bénévole)"* — leaving exactly one question the
+/// gesture itself could not settle, so its host passes [offerCashOrInKindChoice] and the picker
+/// draws, offering only `cash` and `inKind` rather than all three: a subsidy stays unreachable from
+/// it, [groupKind] still seeding which of the two starts selected. Editing is different again:
+/// `_OcptResourceGroupKindPicker` always draws there, offering every kind, since a production is
+/// free to reclassify a resource it already created, exactly as it is today.
 ///
 /// **The `Amount` field's own label and helper text are worded for the kind picked**, per this
 /// whole change's own point: a valuation and real money read the same in every other field, but not
@@ -243,10 +245,11 @@ class _OcptBudgetResourceDialogState extends State<OcptBudgetResourceDialog> {
 /// draft to submit. The host validates [formKey] and uses the last reported draft on its own
 /// `Save`; this body never pops anything itself.
 ///
-/// **The `Poste` field draws only while the picked group reads [OcptBudgetResourceGroupKind.inKind]**,
-/// appearing and disappearing the moment the `Group` picker above toggles into or out of it — a
-/// subsidy or a cash contribution offsets no poste, so the field is not merely disabled for them,
-/// it is not drawn at all (`OcptBudgetResourceFormFields.posteId`'s own doc comment). It mirrors
+/// **The `Poste` field draws only while the picked group reads
+/// [OcptBudgetResourceGroupKind.inKind]**, appearing and disappearing the moment the `Group` picker
+/// above toggles into or out of it — a subsidy or a cash contribution offsets no poste, so the
+/// field is not merely disabled for them, it is not drawn at all
+/// (`OcptBudgetResourceFormFields.posteId`'s own doc comment). It mirrors
 /// `OcptBudgetCommitmentFormBody._buildPosteField`'s own picker, but is validated the way this
 /// body's own `Label` field already is — a plain [DropdownButtonFormField] validator — rather than
 /// through a separate missing-fields hint: `Amount` is the one field here that can be technically

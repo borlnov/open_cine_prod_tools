@@ -47,9 +47,9 @@ const double _ocptRegieCateringTotalColumnWidth = 108;
 /// (`12 + 8`) and the `Craft services` header is two words.
 const double _ocptRegieWideCountColumnWidth = 96;
 
-/// The defrayal table's own `Advanced`/`Reimbursed`/`Owed` column width, in logical pixels — mirrors
-/// `OcptBudgetFinancing`'s own `_ocptResourcesAmountColumnWidth`, the three money columns this
-/// table's own person tree mirrors exactly.
+/// The defrayal table's own `Advanced`/`Reimbursed`/`Owed` column width, in logical pixels —
+/// mirrors `OcptBudgetFinancing`'s own `_ocptResourcesAmountColumnWidth`, the three money columns
+/// this table's own person tree mirrors exactly.
 const double _ocptRegieAllowanceAmountColumnWidth = 108;
 
 /// The defrayal table's own trailing `⋮` menu column width, in logical pixels.
@@ -72,8 +72,8 @@ const double _ocptRegieAllowanceIndentStep = 16;
 const double _ocptRegieAllowanceSubRowHeight = 32;
 
 /// The narrowest the `Person`/detail column is ever drawn, in logical pixels — past this, the table
-/// scrolls sideways inside its own frame rather than crushing a person's own name or a sub-row's own
-/// wording, mirroring `OcptBudgetFinancing`'s own `_ocptResourcesRessourceColumnMinWidth`.
+/// scrolls sideways inside its own frame rather than crushing a person's own name or a sub-row's
+/// own wording, mirroring `OcptBudgetFinancing`'s own `_ocptResourcesRessourceColumnMinWidth`.
 const double _ocptRegieAllowanceDetailColumnMinWidth = 220;
 
 /// A reimbursement sub-row's own leading dot, in logical pixels — mirrors `OcptBudgetFinancing`'s
@@ -101,10 +101,10 @@ const double _ocptRegieAllowanceRowHeight = 52;
 const double _ocptRegieCateringMinTableWidth = 768;
 
 /// The narrowest the defrayal table is ever drawn at, in logical pixels: its three money columns
-/// and its menu column — 3 × 108 + 36 = 360 — plus [_ocptRegieAllowanceDetailColumnMinWidth], **no**
-/// extra row inset added, unlike `OcptBudgetFinancing`'s own `_ocptResourcesMinTableWidth`: this
-/// table's own rows carry no `ocptTableRowHorizontalPadding` of their own, the Card's own `all(12)`
-/// padding already framing the whole table once, header, rows and total alike.
+/// and its menu column — 3 × 108 + 36 = 360 — plus [_ocptRegieAllowanceDetailColumnMinWidth],
+/// **no** extra row inset added, unlike `OcptBudgetFinancing`'s own `_ocptResourcesMinTableWidth`:
+/// this table's own rows carry no `ocptTableRowHorizontalPadding` of their own, the Card's own
+/// `all(12)` padding already framing the whole table once, header, rows and total alike.
 ///
 /// Below it the table **scrolls sideways inside its own frame**, exactly as the cash journal's own
 /// does and for the same reason: the `Person`/detail column is the only flexible one, and this
@@ -128,11 +128,11 @@ const double _ocptRegieCardChromeHeight = 110;
 /// **Stacked, a card is sized by its own content rather than by a share of the height.** Both panes
 /// used to take an `Expanded` share of whatever the view had, which works while the view is tall
 /// and fails silently once it is not: a share smaller than the heading band and
-/// [_ocptRegieCardChromeHeight] leaves the `ListView` nothing at all, so the table prints its header
-/// and its total with no day between them, and the pane then spills over the defrayals underneath.
-/// Sized by its rows instead, a card always shows them, the heading band always takes the height it
-/// needs, and **the view scrolls** when the two together are taller than it — the same answer
-/// [_ocptRegieCateringMinTableWidth] gives sideways.
+/// [_ocptRegieCardChromeHeight] leaves the `ListView` nothing at all, so the table prints its
+/// header and its total with no day between them, and the pane then spills over the defrayals
+/// underneath. Sized by its rows instead, a card always shows them, the heading band always takes
+/// the height it needs, and **the view scrolls** when the two together are taller than it — the
+/// same answer [_ocptRegieCateringMinTableWidth] gives sideways.
 const int _ocptRegieStackedMinRowCount = 2;
 
 const int _ocptRegieStackedMaxRowCount = 8;
@@ -169,8 +169,8 @@ int _ocptRegieAllowanceGroupCountOf(List<OcptBudgetAllowance> allowances) {
 /// buffet, next to every defrayal the production owes somebody — the layout the validated mockup
 /// lays this view out as, **two columns side by side, the catering table taking roughly two thirds
 /// and the defrayals one third, wrapping onto one another once the centre narrows past
-/// [_ocptRegieWrapWidth]** rather than crushing either column unreadable — and, underneath both, the
-/// band that provisions the whole thing into the quote.
+/// [_ocptRegieWrapWidth]** rather than crushing either column unreadable — and, underneath both,
+/// the band that provisions the whole thing into the quote.
 ///
 /// **The two halves are read in opposite directions, and that is the point of the view.** The
 /// catering is *computed*: it is read off the schedule and the project's own two unit prices, and
@@ -179,12 +179,12 @@ int _ocptRegieAllowanceGroupCountOf(List<OcptBudgetAllowance> allowances) {
 /// presence on a day — see `OcptBudgetAllowancesTable`'s own doc comment for the shoot this view
 /// used to get wrong.
 ///
-/// **The defrayal table is a tree grouped by person, mirroring `OcptBudgetFinancing`'s own resources
-/// tree exactly** (`_OcptRegieAllowanceColumn._buildRows`'s own doc comment): a person group row
-/// carries the régie's own running account for them — `ADVANCED`, `REIMBURSED`, `OWED` — mirroring
-/// the resources tree's `Promis`/`Rentré`/`Reste à venir`, expanding onto their own defrayals then
-/// their own reimbursements. A defrayal naming nobody stays its own group of one, counting against
-/// the quote and this view's own total but against no running account — see
+/// **The defrayal table is a tree grouped by person, mirroring `OcptBudgetFinancing`'s own
+/// resources tree exactly** (`_OcptRegieAllowanceColumn._buildRows`'s own doc comment): a person
+/// group row carries the régie's own running account for them — `ADVANCED`, `REIMBURSED`, `OWED` —
+/// mirroring the resources tree's `Promis`/`Rentré`/`Reste à venir`, expanding onto their own
+/// defrayals then their own reimbursements. A defrayal naming nobody stays its own group of one,
+/// counting against the quote and this view's own total but against no running account — see
 /// `_OcptRegieAllowanceNoPersonGroupRow`'s own doc comment.
 ///
 /// **This view therefore writes, and carries [isReadOnly] like every other writing view of this
@@ -208,9 +208,10 @@ int _ocptRegieAllowanceGroupCountOf(List<OcptBudgetAllowance> allowances) {
 /// mode ([onPersonOpenRequested]). `OcptBudgetMode` is what turns each of those into a real
 /// dispatch, exactly as it already does for the header's own alert actions.
 ///
-/// Empty state: a project holding no shooting day **and** no defrayal shows [OcptWorkspaceEmptyMode]
-/// in place of the two columns. A project with defrayals but no schedule keeps the full layout,
-/// since there is now a `+` action of this view's own to keep a heading band drawn for.
+/// Empty state: a project holding no shooting day **and** no defrayal shows
+/// [OcptWorkspaceEmptyMode] in place of the two columns. A project with defrayals but no schedule
+/// keeps the full layout, since there is now a `+` action of this view's own to keep a heading band
+/// drawn for.
 ///
 /// **[OcptBudgetFeedCard] sits at the very top, above the two columns, in both readings** — the
 /// empty one included, since a project with nothing here yet is exactly when a way through to the
@@ -241,13 +242,13 @@ class OcptBudgetRegie extends StatelessWidget {
   final List<OcptBudgetEntry> entries;
 
   /// What has actually been reimbursed against each defrayed person, keyed by their own id — the
-  /// tax-inclusive sum of every `budget_entries` debit naming them, `ocptBudgetReimbursedByPersonId`
-  /// (`lib/utils/ocpt_budget_reimbursements.dart`). A person with no key here has been reimbursed
-  /// nothing at all.
+  /// tax-inclusive sum of every `budget_entries` debit naming them,
+  /// `ocptBudgetReimbursedByPersonId` (`lib/utils/ocpt_budget_reimbursements.dart`). A person with
+  /// no key here has been reimbursed nothing at all.
   final Map<String, OcptBudgetCoveredTotal> reimbursedByPersonId;
 
-  /// The project's default VAT rate, in basis points, or null while nobody has recorded one — what a
-  /// reimbursement sub-row's own debit is grossed up against.
+  /// The project's default VAT rate, in basis points, or null while nobody has recorded one — what
+  /// a reimbursement sub-row's own debit is grossed up against.
   final int? defaultVatRateBasisPoints;
 
   /// Every live poste of the quote, offered by the provisioning band's own poste picker.
@@ -313,8 +314,8 @@ class OcptBudgetRegie extends StatelessWidget {
 
   /// Called with the id of the person a person group row's own `⋮` menu asks to reimburse, or null
   /// while withheld — opens the capture wizard's own `reimbursePerson` gesture, pre-filled with
-  /// what is currently owed them, exactly as `OcptBudgetFinancing`'s own `Record a receipt` prefills
-  /// what is still outstanding.
+  /// what is currently owed them, exactly as `OcptBudgetFinancing`'s own `Record a receipt`
+  /// prefills what is still outstanding.
   final ValueChanged<String>? onPersonReimburseRequested;
 
   /// Called with the id of the poste the reader picks to provision into.
@@ -887,9 +888,9 @@ class _OcptRegieCateringRow extends StatelessWidget {
 }
 
 /// The catering table's own total row: the summed meals (every day's own sittings folded together,
-/// [OcptBudgetRegieDay.mealCount]'s own sum), buffet servings and money over every printed day — the
-/// coverage read-out in place of the plain amount for as long as the project has not recorded both
-/// prices, mirroring `OcptBudgetCostTracking`'s own total row.
+/// [OcptBudgetRegieDay.mealCount]'s own sum), buffet servings and money over every printed day —
+/// the coverage read-out in place of the plain amount for as long as the project has not recorded
+/// both prices, mirroring `OcptBudgetCostTracking`'s own total row.
 class _OcptRegieCateringTotalRow extends StatelessWidget {
   /// [OcptBudgetRegie.days] folded into one total.
   final OcptBudgetRegieTotals totals;
@@ -1278,8 +1279,8 @@ class _OcptRegieAllowanceReimbursementSubRow extends _OcptRegieAllowanceTreeRow 
 }
 
 /// The twisty a person group row draws — mirrors `OcptBudgetFinancing`'s own `_OcptResourcesTwisty`
-/// exactly: an arrow while [isExpandable], nothing but its own reserved width otherwise, its own tap
-/// target running the full height of the row it sits on.
+/// exactly: an arrow while [isExpandable], nothing but its own reserved width otherwise, its own
+/// tap target running the full height of the row it sits on.
 class _OcptRegieAllowanceTwisty extends StatelessWidget {
   /// Whether this row has anything at all to expand onto.
   final bool isExpandable;

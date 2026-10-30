@@ -380,8 +380,8 @@ const _exportLabels = OcptShotListXlsxLabels(
 );
 
 /// The labels the scenario coverage export tests dispatch, standing in for what
-/// `ocptScenarioCoverageLabelsOf` builds from a real `Tr`: the bloc only carries them through to the
-/// manager.
+/// `ocptScenarioCoverageLabelsOf` builds from a real `Tr`: the bloc only carries them through to
+/// the manager.
 const _coverageLabels = OcptScenarioCoverageLabels(
   fileNameSuffix: "coverage",
   legendTitle: "Shot legend",

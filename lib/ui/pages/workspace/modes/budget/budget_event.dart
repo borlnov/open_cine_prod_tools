@@ -92,12 +92,12 @@ class OcptBudgetRightDockFractionChangedEvent extends OcptBudgetEvent {
 /// a document, a reading or a sub-page of its own.
 ///
 /// [clearSelection] drops the fiche's own selection as the view changes — **true only for the
-/// header's own chip**, where the reader is leaving one document for another and the object they had
-/// open belonged to the one they are leaving, so the Inspector greets the new view empty rather than
-/// still showing a poste on the takings page. It is **false for every gesture that switches the view
-/// *and* selects something in one move** (`_handleDashboardPosteOpened`, `_handleLineShowCommitment`
-/// Requested), which would otherwise wipe the very selection it just made, whichever order the two
-/// events happen to run in.
+/// header's own chip**, where the reader is leaving one document for another and the object they
+/// had open belonged to the one they are leaving, so the Inspector greets the new view empty rather
+/// than still showing a poste on the takings page. It is **false for every gesture that switches
+/// the view *and* selects something in one move** (`_handleDashboardPosteOpened`,
+/// `_handleLineShowCommitment` Requested), which would otherwise wipe the very selection it just
+/// made, whichever order the two events happen to run in.
 class OcptBudgetViewSelectedEvent extends OcptBudgetEvent {
   /// The view to select.
   final OcptBudgetView view;
@@ -121,7 +121,8 @@ class OcptBudgetToolsViewSelectedEvent extends OcptBudgetEvent {
   /// The tools page to select.
   final OcptBudgetToolsView toolsView;
 
-  /// Whether to drop the fiche's own selection as the tools page changes — see the class doc comment.
+  /// Whether to drop the fiche's own selection as the tools page changes — see the class doc
+  /// comment.
   final bool clearSelection;
 
   /// Class constructor
@@ -176,9 +177,9 @@ class OcptBudgetPosteSelectedEvent extends OcptBudgetEvent {
 }
 
 /// Creates a new, unnamed poste, appended at the end of the catalogue, and selects it — dispatched
-/// by the cost-tracking table's own `+ Poste` footer. Mirrors `OcptResourcesElementCreationRequestedEvent`:
-/// a fresh record is created empty, its own sheet's placeholder reading it as unnamed until
-/// somebody types into it.
+/// by the cost-tracking table's own `+ Poste` footer. Mirrors
+/// `OcptResourcesElementCreationRequestedEvent`: a fresh record is created empty, its own sheet's
+/// placeholder reading it as unnamed until somebody types into it.
 class OcptBudgetPosteCreatedEvent extends OcptBudgetEvent {
   /// Class constructor
   const OcptBudgetPosteCreatedEvent();
@@ -459,9 +460,9 @@ class OcptBudgetProjectSettingsChangedEvent extends OcptBudgetEvent {
 }
 
 /// Creates a new cash-journal entry from [fields], dispatched by the mode once
-/// `OcptBudgetEntryDialog` returned a result for a fresh entry — mirrors `OcptBudgetLineCreatedEvent`'s
-/// own "written the moment it is dispatched" reading: none of this dialog's fields is typing, so
-/// none of them rides the field-edit debounce.
+/// `OcptBudgetEntryDialog` returned a result for a fresh entry — mirrors
+/// `OcptBudgetLineCreatedEvent`'s own "written the moment it is dispatched" reading: none of this
+/// dialog's fields is typing, so none of them rides the field-edit debounce.
 class OcptBudgetEntryCreationConfirmedEvent extends OcptBudgetEvent {
   /// Every field the dialog collected.
   final OcptBudgetEntryFormFields fields;
@@ -589,10 +590,10 @@ class OcptBudgetCommitmentDeletionConfirmedEvent extends OcptBudgetEvent {
 }
 
 /// Records commitment [commitmentId]'s own payment, dispatched by the mode once
-/// `OcptBudgetEntryDialog` returned a result for the fresh entry it was opened pre-filled with, from
-/// its row's own `Settle` action. The bloc creates the journal entry [fields] describes, naming
-/// [commitmentId] on it, in the one handler this event reaches, then reloads once — one dispatched
-/// event, one write.
+/// `OcptBudgetEntryDialog` returned a result for the fresh entry it was opened pre-filled with,
+/// from its row's own `Settle` action. The bloc creates the journal entry [fields] describes,
+/// naming [commitmentId] on it, in the one handler this event reaches, then reloads once — one
+/// dispatched event, one write.
 class OcptBudgetCommitmentSettlementConfirmedEvent extends OcptBudgetEvent {
   /// The id of the commitment being settled.
   final String commitmentId;
@@ -639,13 +640,13 @@ class OcptBudgetLinePaidDirectlyEvent extends OcptBudgetEvent {
 /// Promotes off-line debit entry [entryId] into the quote it never went through — the banner's own
 /// `Add to the quote` action, dispatched on an entry that names a poste but no commitment (a till
 /// receipt for something the quote never anticipated). The bloc creates a quote line from the entry
-/// first (`OcptBudgetQuoteService.createLine`, the entry's own label, quantity `1.0`, unit price and
-/// tax basis), then a commitment from that line exactly as [OcptBudgetLinePaidDirectlyEvent] does
-/// (`OcptBudgetJournalService.createCommitment`, seeded from the line, naming it through `lineId`),
-/// and finally **re-points [entryId] at that fresh commitment**
-/// (`OcptBudgetJournalService.updateEntry`, `commitmentId` alone) rather than minting a second entry
-/// — the entry already exists, so the debit that settles the commitment is the very one this event
-/// promotes. Skipping the relink would leave the commitment unsettled, adding to the poste's
+/// first (`OcptBudgetQuoteService.createLine`, the entry's own label, quantity `1.0`, unit price
+/// and tax basis), then a commitment from that line exactly as [OcptBudgetLinePaidDirectlyEvent]
+/// does (`OcptBudgetJournalService.createCommitment`, seeded from the line, naming it through
+/// `lineId`), and finally **re-points [entryId] at that fresh commitment**
+/// (`OcptBudgetJournalService.updateEntry`, `commitmentId` alone) rather than minting a second
+/// entry — the entry already exists, so the debit that settles the commitment is the very one this
+/// event promotes. Skipping the relink would leave the commitment unsettled, adding to the poste's
 /// committed total on top of what is already paid: the exact double-count this whole mode refuses
 /// everywhere else.
 class OcptBudgetEntryPromotedToQuoteEvent extends OcptBudgetEvent {
@@ -661,9 +662,9 @@ class OcptBudgetEntryPromotedToQuoteEvent extends OcptBudgetEvent {
 }
 
 /// Detaches off-line debit entry [entryId] from its poste — the banner's own `Move off-quote`
-/// action, dispatched on the very same kind of entry [OcptBudgetEntryPromotedToQuoteEvent] promotes,
-/// the other way to reconcile it: rather than folding the spend into the quote, this admits it was
-/// never quoted at all. Clears `posteId` back to null
+/// action, dispatched on the very same kind of entry [OcptBudgetEntryPromotedToQuoteEvent]
+/// promotes, the other way to reconcile it: rather than folding the spend into the quote, this
+/// admits it was never quoted at all. Clears `posteId` back to null
 /// (`OcptBudgetJournalService.updateEntry`) and nothing else, so the entry becomes an honest
 /// off-quote spend, read by `ocptBudgetOffQuotePaidTotalOf` like any other
 /// (`docs/architecture/budget.md`'s "Off-quote spending is named, never hidden").

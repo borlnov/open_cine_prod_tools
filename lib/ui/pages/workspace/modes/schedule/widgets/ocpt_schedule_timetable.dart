@@ -63,15 +63,15 @@ class _OcptScheduleDraggedBlock {
 ///
 /// An **audition** row carries something else again: a strip of **candidacy chips** under it, one
 /// per `shooting_block_candidates` row it names — the person and the part they are being seen for —
-/// each with its own remove control ([onCandidateRemoved]), and a `+` picker
-/// ([onCandidateAdded]) offering every candidacy of the project grouped by role, minus the ones this
-/// block already names. The block *is* the hour somebody is expected at (ADR 0024), so this is where
-/// they are named; several chips on one row is ordinary, two actors of two different parts being
-/// regularly read together, and a row naming nobody yet is as ordinary as a hold with no sequence.
+/// each with its own remove control ([onCandidateRemoved]), and a `+` picker ([onCandidateAdded])
+/// offering every candidacy of the project grouped by role, minus the ones this block already
+/// names. The block *is* the hour somebody is expected at (ADR 0024), so this is where they are
+/// named; several chips on one row is ordinary, two actors of two different parts being regularly
+/// read together, and a row naming nobody yet is as ordinary as a hold with no sequence.
 ///
 /// The picker **picks an existing candidacy and never creates one**: a candidate is recorded on the
-/// role sheet, where the casting is decided, and a timetable that could invent one would be a second
-/// place saying who is seen for a part.
+/// role sheet, where the casting is decided, and a timetable that could invent one would be a
+/// second place saying who is seen for a part.
 ///
 /// Every writing affordance is a nullable callback, withheld while a project version is being
 /// previewed: [onReordered], [onDurationChanged], [onAnchorChanged], [onShotStatusChanged],
@@ -94,10 +94,11 @@ class OcptScheduleTimetable extends StatelessWidget {
   /// read a part's name off, and what groups that picker's own entries.
   final List<OcptRole> roles;
 
-  /// Every live candidacy of the project, keyed by id — what an **audition** row's own chips resolve
-  /// their `roleCandidateId` through, and what its picker offers. A chip whose candidacy this map no
-  /// longer holds is left out: the link points at nobody, and drawing a nameless chip would be worse
-  /// than drawing nothing (no cascade removes it — see `OcptShootingBlockCandidatesTable`).
+  /// Every live candidacy of the project, keyed by id — what an **audition** row's own chips
+  /// resolve their `roleCandidateId` through, and what its picker offers. A chip whose candidacy
+  /// this map no longer holds is left out: the link points at nobody, and drawing a nameless chip
+  /// would be worse than drawing nothing (no cascade removes it — see
+  /// `OcptShootingBlockCandidatesTable`).
   final Map<String, OcptRoleCandidate> roleCandidateById;
 
   /// This slot's own computed timeline, or null while it has nothing placed yet.
@@ -144,8 +145,8 @@ class OcptScheduleTimetable extends StatelessWidget {
   /// read-only text.
   final void Function(String blockId, String? sceneId)? onHoldSequenceChanged;
 
-  /// Called with an **audition** block's id and the id of the candidacy just picked from its own `+`
-  /// picker, or null while withheld — which also hides that picker.
+  /// Called with an **audition** block's id and the id of the candidacy just picked from its own
+  /// `+` picker, or null while withheld — which also hides that picker.
   final void Function(String blockId, String roleCandidateId)? onCandidateAdded;
 
   /// Called with a candidacy convocation's own id (`shooting_block_candidates.id`) when its chip's
@@ -269,8 +270,8 @@ class OcptScheduleTimetable extends StatelessWidget {
         ),
       );
 
-  /// The blocks list itself (or the empty hint), wrapped in a drop target for a block dragged out of
-  /// another slot's own timetable. The drop target exists only while [onBlockMovedToSlot] isn't
+  /// The blocks list itself (or the empty hint), wrapped in a drop target for a block dragged out
+  /// of another slot's own timetable. The drop target exists only while [onBlockMovedToSlot] isn't
   /// withheld, so a read-only preview accepts nothing here at all — there is no such thing as a
   /// [DragTarget] that merely looks disabled.
   Widget _buildBlocksArea(
@@ -413,11 +414,12 @@ class _OcptScheduleTimetableRow extends StatelessWidget {
   /// The shot [block] places, when [block]'s own kind is [OcptShootingBlockKind.shot].
   final OcptShot? shot;
 
-  /// The whole cast — only read when [block]'s own kind is [OcptShootingBlockKind.audition], to name
-  /// and to group the parts its candidacies are seen for.
+  /// The whole cast — only read when [block]'s own kind is [OcptShootingBlockKind.audition], to
+  /// name and to group the parts its candidacies are seen for.
   final List<OcptRole> roles;
 
-  /// Every live candidacy of the project, keyed by id — see [OcptScheduleTimetable.roleCandidateById].
+  /// Every live candidacy of the project, keyed by id — see
+  /// [OcptScheduleTimetable.roleCandidateById].
   final Map<String, OcptRoleCandidate> roleCandidateById;
 
   /// Whether this is the currently selected block.
@@ -431,7 +433,8 @@ class _OcptScheduleTimetableRow extends StatelessWidget {
   /// read when [block]'s own kind names a sequence — see [_namesASequence].
   final List<OcptSceneShotSequence> sequences;
 
-  /// The day's own other live slots, by id and by raw label — see [OcptScheduleTimetable.otherSlots].
+  /// The day's own other live slots, by id and by raw label — see
+  /// [OcptScheduleTimetable.otherSlots].
   final List<(String, String)> otherSlots;
 
   /// Called when this row is clicked.
@@ -456,8 +459,8 @@ class _OcptScheduleTimetableRow extends StatelessWidget {
   /// withheld or [block] isn't an [OcptShootingBlockKind.audition].
   final ValueChanged<String>? onCandidateAdded;
 
-  /// Called with a candidacy convocation's own id when its chip's remove control is clicked, or null
-  /// under the same conditions as [onCandidateAdded].
+  /// Called with a candidacy convocation's own id when its chip's remove control is clicked, or
+  /// null under the same conditions as [onCandidateAdded].
   final ValueChanged<String>? onCandidateRemoved;
 
   /// Called when this row's own remove control is clicked, or null while withheld.
@@ -520,7 +523,8 @@ class _OcptScheduleTimetableRow extends StatelessWidget {
           child: Text(
             entry == null
                 ? "—"
-                : "${ocptFormatDayMinute(entry.startMinute)} → ${ocptFormatDayMinute(entry.endMinute)}",
+                : "${ocptFormatDayMinute(entry.startMinute)} → "
+                      "${ocptFormatDayMinute(entry.endMinute)}",
             style: theme.textTheme.labelSmall?.copyWith(
               color: timeColor,
               fontWeight: FontWeight.w600,
@@ -634,8 +638,8 @@ class _OcptScheduleTimetableRow extends StatelessWidget {
         : rowTail;
 
     // On a line of its own under the row, never inside it: a strip that wraps cannot share a line
-    // with controls that must stay put, and it is left outside the [Draggable] so its own chips keep
-    // their gestures rather than starting a cross-slot drag.
+    // with controls that must stay put, and it is left outside the [Draggable] so its own chips
+    // keep their gestures rather than starting a cross-slot drag.
     final candidateStrip = block.kind == OcptShootingBlockKind.audition
         ? _buildCandidateStrip(context, tr, theme)
         : null;
@@ -709,12 +713,12 @@ class _OcptScheduleTimetableRow extends StatelessWidget {
   /// This **hold** row's own sequence picker: [block]'s own `sceneId` read out as
   /// [Tr.scheduleUnplacedSequenceLabel] (the same "SEQ 4A" tag the left dock's own unplaced-shots
   /// list already prints) or [Tr.scheduleHoldSequencePickerNoSequenceOption] while it names none,
-  /// opening onto every one of [sequences] plus that same "no sequence" entry when [onSequenceChanged]
-  /// is given, or plain read-only text while it is withheld.
+  /// opening onto every one of [sequences] plus that same "no sequence" entry when
+  /// [onSequenceChanged] is given, or plain read-only text while it is withheld.
   ///
-  /// A `sceneId` naming a scene [sequences] no longer carries — deleted from the screenplay since it
-  /// was picked — reads the same as "no sequence yet" rather than crashing on a lookup that found
-  /// nothing: the picker still lets the user pick a live one in its place.
+  /// A `sceneId` naming a scene [sequences] no longer carries — deleted from the screenplay since
+  /// it was picked — reads the same as "no sequence yet" rather than crashing on a lookup that
+  /// found nothing: the picker still lets the user pick a live one in its place.
   Widget _buildSequencePicker(BuildContext context, Tr tr, ThemeData theme) {
     final onSequenceChanged = this.onSequenceChanged;
     final sceneId = block.sceneId;
@@ -751,7 +755,8 @@ class _OcptScheduleTimetableRow extends StatelessWidget {
           PopupMenuItem<String>(
             value: sequence.sceneId,
             child: Text(
-              "${tr.scheduleUnplacedSequenceLabel(sequence.displaySceneNumber)} · ${sequence.heading}",
+              "${tr.scheduleUnplacedSequenceLabel(sequence.displaySceneNumber)} · "
+              "${sequence.heading}",
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
@@ -836,8 +841,8 @@ class _OcptScheduleTimetableRow extends StatelessWidget {
   /// It offers what already exists and never creates: a candidate is recorded on the role sheet,
   /// where the casting is decided. With nothing left to offer, the menu says why rather than
   /// opening empty — a menu with no entry does not open at all, which reads as a dead button: the
-  /// project holds no candidacy yet ([Tr.scheduleAuditionPickerNoCandidacyHint]), or this block already
-  /// names every one ([Tr.scheduleAuditionCandidateAlreadyNamedHint]).
+  /// project holds no candidacy yet ([Tr.scheduleAuditionPickerNoCandidacyHint]), or this block
+  /// already names every one ([Tr.scheduleAuditionCandidateAlreadyNamedHint]).
   Widget _buildCandidatePicker(
     BuildContext context,
     Tr tr,
@@ -857,8 +862,8 @@ class _OcptScheduleTimetableRow extends StatelessWidget {
     }
 
     // The groups in [roles]' own order — the very order the roles tab lists the cast in — rather
-    // than in whatever order the candidacies happened to arrive. A group whose part [roles] does not
-    // hold comes last, under the unnamed-role heading, rather than being dropped from the menu.
+    // than in whatever order the candidacies happened to arrive. A group whose part [roles] does
+    // not hold comes last, under the unnamed-role heading, rather than being dropped from the menu.
     final orderedRoleIds = [
       for (final role in roles)
         if (offerableByRoleId.containsKey(role.id)) role.id,

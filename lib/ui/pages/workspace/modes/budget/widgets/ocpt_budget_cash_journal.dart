@@ -97,21 +97,22 @@ const double _ocptCashJournalHeaderRowHeight = 36;
 /// A read-only view can return the empty state as its whole body because it writes nothing at
 /// all; this view cannot.
 ///
-/// **Under the statement, `À venir` reads the account's future rather than its past** — one row
-/// per unsettled commitment, in [OcptBudgetProjection.steps]' own due-date-first order, then a
-/// footer naming the total falling due and the balance the account would hold once it has. It is
-/// built from [commitments] and the statement's own closing balance, through `ocptBudgetProjectionOf`
+/// **Under the statement, `À venir` reads the account's future rather than its past** — one row per
+/// unsettled commitment, in [OcptBudgetProjection.steps]' own due-date-first order, then a footer
+/// naming the total falling due and the balance the account would hold once it has. It is built
+/// from [commitments] and the statement's own closing balance, through `ocptBudgetProjectionOf`
 /// (`lib/utils/ocpt_budget_projection.dart`) — never re-sorted here, exactly as that function's own
-/// doc comment argues. **Drawn only while at least one unsettled commitment exists**, and it carries
-/// no empty state of its own: a project owing nothing simply has no second card. Both sections scroll
-/// **together**, as slivers of the very same [CustomScrollView], under the one fixed header row above
-/// them — two independent scroll areas would let a reader scroll the statement while `À venir` stayed
-/// put, which is not a statement any more.
+/// doc comment argues. **Drawn only while at least one unsettled commitment exists**, and it
+/// carries no empty state of its own: a project owing nothing simply has no second card. Both
+/// sections scroll **together**, as slivers of the very same [CustomScrollView], under the one
+/// fixed header row above them — two independent scroll areas would let a reader scroll the
+/// statement while `À venir` stayed put, which is not a statement any more.
 ///
 /// **A due row is selectable, never a write** — it dispatches [onCommitmentSelected], opening the
 /// right dock's fiche on the commitment, which is where it is edited or settled — so, unlike the
 /// entry table's own `⋮` menu, it is never withheld under [isReadOnly]. `À venir` draws no `⋮` menu
-/// of its own at all: `Modifier`/`Supprimer`/`Payer` on a commitment live in the fiche and only there.
+/// of its own at all: `Modifier`/`Supprimer`/`Payer` on a commitment live in the fiche and only
+/// there.
 class OcptBudgetCashJournal extends StatelessWidget {
   /// Every live entry of the whole journal, in the chronological order
   /// `OcptBudgetJournalService.loadEntries` already gives them — never reordered by the caller,

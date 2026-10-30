@@ -227,9 +227,10 @@ void main() {
     await tempDir.delete(recursive: true);
   });
 
-  /// Pumps [OcptSharingView] over both blocs [OcptSharingPage] itself provides, with [platformManager]
-  /// and [isReadOnly] injected straight into the view — the same seam `OcptSyncStatusIndicator`'s own
-  /// test already uses for the very same "no `globalGetIt()` registration needed" reason.
+  /// Pumps [OcptSharingView] over both blocs [OcptSharingPage] itself provides, with
+  /// [platformManager] and [isReadOnly] injected straight into the view — the same seam
+  /// `OcptSyncStatusIndicator`'s own test already uses for the very same "no `globalGetIt()`
+  /// registration needed" reason.
   Future<void> pumpView(
     WidgetTester tester, {
     required PlatformManager platformManager,

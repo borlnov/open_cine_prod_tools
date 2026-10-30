@@ -16,15 +16,15 @@ import 'package:open_cine_prod_tools/types/ocpt_breakdown_target_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_status.dart';
 
-/// The whole breakdown mode's read, in one object: [scenes] with their own tags, the [targets] every
-/// tag resolves to, and the four counts the mode's header and status bar show.
+/// The whole breakdown mode's read, in one object: [scenes] with their own tags, the [targets]
+/// every tag resolves to, and the four counts the mode's header and status bar show.
 ///
 /// Built the same way `OcptResourcesSnapshot.build` is: a pure function of already-loaded lists,
 /// with no database access of its own. [scenes] comes from `OcptBreakdownService.loadScenes` (tags
 /// left empty), `tags` from `OcptBreakdownService.loadTags`, and `elements`/`roles`/`sets` from
 /// `OcptElementsService.loadElements`, `OcptRoleIndexService.loadRoles` and
-/// `OcptLocationsService.loadLocations`'s own sets — combining the calls into this one object is the
-/// job of the mode that reads them.
+/// `OcptLocationsService.loadLocations`'s own sets — combining the calls into this one object is
+/// the job of the mode that reads them.
 class OcptBreakdownSnapshot extends Equatable {
   /// The screenplay this breakdown belongs to.
   final String screenplayId;
@@ -44,8 +44,8 @@ class OcptBreakdownSnapshot extends Equatable {
   ///
   /// [OcptBreakdownTarget] deliberately carries only the two fields the script view's highlighting
   /// and the recap need (`category`/`status`, see that class's own doc comment); the target
-  /// inspector's Details section reads the raw row for the rest — sub-category, quantity, notes, the
-  /// owner and who brings it — rather than the model growing fields only one caller wants.
+  /// inspector's Details section reads the raw row for the rest — sub-category, quantity, notes,
+  /// the owner and who brings it — rather than the model growing fields only one caller wants.
   final List<OcptElement> elements;
 
   /// The whole address book, verbatim, as passed to [OcptBreakdownSnapshot.build] — what the target
@@ -119,10 +119,10 @@ class OcptBreakdownSnapshot extends Equatable {
   /// see their own doc comments for why the inspector and the tag popover need the raw rows rather
   /// than the derived [targets] alone.
   ///
-  /// A tag pointing at a catalogue row that is gone — tombstoned underneath, so it no longer appears
-  /// in [elements]/[roles]/[sets] — is **dropped from [targets] but kept on its scene**: the tag row
-  /// is still live and the script must keep showing something at that passage, but there is no sheet
-  /// left behind it to list in the recap or the inspector.
+  /// A tag pointing at a catalogue row that is gone — tombstoned underneath, so it no longer
+  /// appears in [elements]/[roles]/[sets] — is **dropped from [targets] but kept on its scene**:
+  /// the tag row is still live and the script must keep showing something at that passage, but
+  /// there is no sheet left behind it to list in the recap or the inspector.
   factory OcptBreakdownSnapshot.build({
     required String screenplayId,
     required List<OcptBreakdownScene> scenes,

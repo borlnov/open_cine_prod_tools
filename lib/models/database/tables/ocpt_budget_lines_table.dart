@@ -19,11 +19,12 @@ import 'package:open_cine_prod_tools/models/database/tables/ocpt_elements_table.
 /// - [isTaxInclusive] says whether that figure already includes tax — a till receipt does, a
 ///   supplier quote usually does not, and a real budget mixes both, so no basis is imposed;
 /// - [vatRateBasisPoints] is the rate that figure carries. Its own nullability is the override:
-///   **null means "inherit the project's rate"** (`OcptProjectInfoTable.defaultVatRateBasisPoints`),
-///   not "nobody has said" — a silent line follows the project and moves with it when the project's
-///   rate changes, an explicit **0** is wages or a copyright assignment stating plainly that no VAT
-///   applies, and the two are different facts with different totals: an excluding-tax total counts
-///   a `0`-rated line, never a silent one.
+///   **null means "inherit the project's rate"**
+///   (`OcptProjectInfoTable.defaultVatRateBasisPoints`), not "nobody has said" — a silent line
+///   follows the project and moves with it when the project's rate changes, an explicit **0** is
+///   wages or a copyright assignment stating plainly that no VAT applies, and the two are different
+///   facts with different totals: an excluding-tax total counts a `0`-rated line, never a silent
+///   one.
 ///
 /// [quantityMilli] is an integer in **thousandths**, for the reason cents are cents: 1.5 day is
 /// 1500, 1,484 km is 1484000, and a total computed from it (`lib/utils/ocpt_budget_totals.dart`) is
@@ -51,9 +52,9 @@ class OcptBudgetLinesTable extends Table {
 
   /// The quantity this line prices, in thousandths — see this table's own doc comment.
   ///
-  /// Defaults to `1000` (a plain quantity of one) rather than to zero: a freshly created line prices
-  /// one of something until the user says otherwise, which is the reading that keeps a fresh line's
-  /// total equal to its unit price rather than silently zero.
+  /// Defaults to `1000` (a plain quantity of one) rather than to zero: a freshly created line
+  /// prices one of something until the user says otherwise, which is the reading that keeps a fresh
+  /// line's total equal to its unit price rather than silently zero.
   IntColumn get quantityMilli => integer().withDefault(const Constant(1000))();
 
   /// The unit [quantityMilli] is counted in, free text (e.g. "day", "km", "unit").

@@ -11,13 +11,13 @@ import 'package:open_cine_prod_tools/ui/utils/ocpt_budget_labels.dart';
 /// `OcptResourcesStatusBar`.
 ///
 /// **The trailing figure is always the quote total, whatever centre view is on screen, and always
-/// says so.** This band draws over every one of the mode's routes, so a bare figure with no
-/// label at all would silently make a claim about the quote while a reader is looking at, say, the
+/// says so.** This band draws over every one of the mode's routes, so a bare figure with no label
+/// at all would silently make a claim about the quote while a reader is looking at, say, the
 /// financing plan or the cash journal — and, on a project whose quote is still empty, would read as
 /// the app ignoring whatever the reader just typed. `tr.budgetStatsQuoteTotal` names it explicitly
-/// (`Quote <amount>` / `Devis <amount>`) so the figure reads the same whichever view drew it, rather
-/// than changing meaning as the chips are switched — which would be worse than a label-less figure,
-/// not better.
+/// (`Quote <amount>` / `Devis <amount>`) so the figure reads the same whichever view drew it,
+/// rather than changing meaning as the chips are switched — which would be worse than a label-less
+/// figure, not better.
 ///
 /// [quotedTotalCents] is always the plain, unconverted sum of every line's own typed amount
 /// (`ocptBudgetProjectQuotedTotalCents`), never the header's own selected basis: a status band read

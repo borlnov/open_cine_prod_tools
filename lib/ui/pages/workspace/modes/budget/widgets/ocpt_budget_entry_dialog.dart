@@ -36,9 +36,9 @@ import 'package:open_cine_prod_tools/utils/ocpt_cost_amount.dart';
 /// **What used to be this dialog's own step 1 is gone, with everything that served it alone**: the
 /// six nature cards, `Continuer`, the header's own `changer` link, and the reconciliation strip
 /// (`OcptBudgetEntryDialog` only ever drew that strip while creating, which this dialog no longer
-/// does at all). [existing] is now required — this dialog opens on one screen, the very form its own
-/// former step 2 already drew, its nature read once, silently, off whichever of [existing]'s own
-/// links is set (`ocptBudgetEntryNatureOfLinks`), exactly as before.
+/// does at all). [existing] is now required — this dialog opens on one screen, the very form its
+/// own former step 2 already drew, its nature read once, silently, off whichever of [existing]'s
+/// own links is set (`ocptBudgetEntryNatureOfLinks`), exactly as before.
 ///
 /// **[OcptBudgetEntryLinkKind.person] is reachable here**: the
 /// capture wizard's own `reimbursePerson` gesture can write an entry naming a person, and this
@@ -424,8 +424,8 @@ class _OcptBudgetEntryDialogState extends State<OcptBudgetEntryDialog> {
   /// `Poste du devis` — offered under [OcptBudgetEntryNature.expense] and
   /// [OcptBudgetEntryNature.other] alike. **Its own "unanswered" item reads `Hors devis`, never a
   /// generic "no poste"**: the very same label the expenses table draws for the very same synthetic
-  /// row, so a reader who leaves this field blank sees, in the field itself, exactly where the entry
-  /// will land.
+  /// row, so a reader who leaves this field blank sees, in the field itself, exactly where the
+  /// entry will land.
   Widget _buildPosteField(BuildContext context, Tr tr) => Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [

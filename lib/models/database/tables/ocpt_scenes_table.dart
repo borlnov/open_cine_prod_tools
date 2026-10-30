@@ -19,7 +19,8 @@ class OcptScenesTable extends Table {
   @override
   String get tableName => 'scenes';
 
-  /// The stable, unique id of this scene (a UUID). {@macro open_cine_prod_tools.OcptSceneIndexService.stability}
+  /// The stable, unique id of this scene (a UUID). {@macro
+  /// open_cine_prod_tools.OcptSceneIndexService.stability}
   TextColumn get id => text()();
 
   /// The screenplay this scene belongs to.

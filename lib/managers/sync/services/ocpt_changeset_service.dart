@@ -47,8 +47,8 @@ class OcptChangesetService {
   /// so a delete is pushed like any other edit — grouped by `(tableName, rowId)` first so a row
   /// edited on several columns in the same or different transactions still costs one row read. A
   /// row's own id is never parsed back out of anything: it is exactly what the stamp itself already
-  /// carries under `row_field_versions.rowId`, `ocptCompositeRowStampKey`'s own encoding for the one
-  /// composite case (`shot_characters`'s `{shotId, roleId}`) included, and what
+  /// carries under `row_field_versions.rowId`, `ocptCompositeRowStampKey`'s own encoding for the
+  /// one composite case (`shot_characters`'s `{shotId, roleId}`) included, and what
   /// `_readCurrentRow` matches a table's own primary key against through
   /// `ocptCompositeRowStampKeySqlExpression` rather than splitting it back apart.
   Future<void> pushLocalEdits({

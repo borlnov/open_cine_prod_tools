@@ -18,8 +18,8 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/o
 ///
 /// Modelled on `OcptScheduleDayOutOfDaysExportDialog`, whose page-format dropdown, title-page
 /// checkbox, day list and two buttons it shares the same reused strings for.
-/// [OcptScheduleDaySelectionList] ticks every day by default here, as it does there: the common case
-/// for a whole-shoot document is printing the whole shoot.
+/// [OcptScheduleDaySelectionList] ticks every day by default here, as it does there: the common
+/// case for a whole-shoot document is printing the whole shoot.
 ///
 /// Use [show] to display it and get back the resulting [OcptOneLineScheduleExportOptions], or null
 /// if the user cancelled.

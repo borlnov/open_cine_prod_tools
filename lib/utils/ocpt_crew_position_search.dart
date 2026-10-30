@@ -41,8 +41,8 @@ String ocptCrewPositionSearchNormalized(String value) {
 /// having no second reading to offer.
 ///
 /// Each word written `base·ending` reads as `base` in the masculine, and as `base` with its own end
-/// replaced by `ending` in the feminine ([ocptInclusiveFeminineOf]); every other word reads the same
-/// in both: `Première assistante réalisatrice`, `Premier assistant réalisateur`.
+/// replaced by `ending` in the feminine ([ocptInclusiveFeminineOf]); every other word reads the
+/// same in both: `Première assistante réalisatrice`, `Premier assistant réalisateur`.
 List<String> ocptInclusiveReadingsOf(String label) {
   if (!label.contains(_ocptMiddleDot)) {
     return const [];

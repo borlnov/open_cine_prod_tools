@@ -30,11 +30,11 @@ enum OcptScheduleAlertSeverity {
 /// bottleneck), and a list invented for the occasion would read as the app's own opinion rather
 /// than the production's. No alert is better than a wrong one here.
 ///
-/// A **position lost between two consecutive slots** was once the fourth of them and is deliberately
-/// gone: a crew that changes between a morning unit and an afternoon one is what slots are *for*,
-/// and reading every such change as something to look at made the panel cry wolf on the ordinary
-/// case. That a position is held on one slot and not the next is already visible, without a
-/// sentence, in the positions matrix's own column-by-column reading.
+/// A **position lost between two consecutive slots** was once the fourth of them and is
+/// deliberately gone: a crew that changes between a morning unit and an afternoon one is what slots
+/// are *for*, and reading every such change as something to look at made the panel cry wolf on the
+/// ordinary case. That a position is held on one slot and not the next is already visible, without
+/// a sentence, in the positions matrix's own column-by-column reading.
 ///
 /// [OcptTimelineAnchorCycle] (`ocpt_shooting_day_timeline.dart`) is likewise **not** one of the
 /// ten, and deliberately so: the anchor picker already refuses to offer an entry that would
@@ -213,8 +213,8 @@ final class OcptScheduleLocationUncoveredAlert extends OcptScheduleAlert {
   OcptScheduleAlertKind get kind => OcptScheduleAlertKind.locationUncovered;
 }
 
-/// **Soft, rule 4**: [roleId] is called for by [shotId], a shot placed on [OcptScheduleAlert.dayId],
-/// and [roleId] is convoked (cast or not) on none of that day's slots.
+/// **Soft, rule 4**: [roleId] is called for by [shotId], a shot placed on
+/// [OcptScheduleAlert.dayId], and [roleId] is convoked (cast or not) on none of that day's slots.
 ///
 /// One alert per (day, role): a role called for by three shots of the same day that is convoked
 /// nowhere raises exactly one alert, carrying one of those shots — never three. Matching a shot's
@@ -1166,7 +1166,8 @@ DateTime _dateOnly(DateTime date) => DateTime(date.year, date.month, date.day);
 
 /// Whether a window of [dayPart] — [windowStartMinute]/[windowEndMinute] only meaningful when
 /// [dayPart] is [OcptDayPartSlot.custom] — **overlaps** the half-open band
-/// `[bandStartMinute, bandEndMinute)`. What rule 1 asks: is any part of this slot inside the window.
+/// `[bandStartMinute, bandEndMinute)`. What rule 1 asks: is any part of this slot inside the
+/// window.
 bool _dayPartOverlapsBand({
   required OcptDayPartSlot dayPart,
   required int? windowStartMinute,

@@ -612,10 +612,10 @@ class OcptProjectVersionCodec {
 
   /// This is the key used to stringify or parse a `setId` column (`scene_sets.setId`,
   /// `breakdown_tags.setId`, `shooting_slots.setId` or, from payload format 4,
-  /// `floor_plan_symbols.setId`/`floor_plan_arrows.setId` — a different sense of "set" (a sequence's
-  /// own floor plan décor rather than the resources catalogue's), but the same key name, following
-  /// this codec's own convention of one key per column name across the whole schema) from a JSON
-  /// object
+  /// `floor_plan_symbols.setId`/`floor_plan_arrows.setId` — a different sense of "set" (a
+  /// sequence's own floor plan décor rather than the resources catalogue's), but the same key name,
+  /// following this codec's own convention of one key per column name across the whole schema) from
+  /// a JSON object
   static const _setIdKey = "setId";
 
   /// This is the key used to stringify or parse a `roleId` column
@@ -899,8 +899,8 @@ class OcptProjectVersionCodec {
   /// object, from payload format 29: the quote line a commitment was promoted from.
   static const _commitmentLineIdKey = "lineId";
 
-  /// This is the key used to stringify or parse an `assets.budgetEntryId` column from a JSON object,
-  /// from payload format 17: the journal entry a receipt asset is the voucher for.
+  /// This is the key used to stringify or parse an `assets.budgetEntryId` column from a JSON
+  /// object, from payload format 17: the journal entry a receipt asset is the voucher for.
   static const _budgetEntryIdKey = "budgetEntryId";
 
   /// This is the key used to stringify or parse the `budget_resources` rows from a JSON object,
@@ -1048,8 +1048,9 @@ class OcptProjectVersionCodec {
 
   /// This is the key used to stringify or parse a `floor_plan_symbols.layer` column from a JSON
   /// object, from payload format 4 — its own key rather than a reuse of [_kindKey], for the same
-  /// reason [_targetKindKey] has its own: a symbol's `layer` describes which of the floor plan's two
-  /// scopes it belongs to, a distinct enough idea from what [_kindKey] already serves elsewhere.
+  /// reason [_targetKindKey] has its own: a symbol's `layer` describes which of the floor plan's
+  /// two scopes it belongs to, a distinct enough idea from what [_kindKey] already serves
+  /// elsewhere.
   static const _layerKey = "layer";
 
   /// This is the key used to stringify or parse an `xM` column (`floor_plan_symbols`', a symbol's
@@ -1293,83 +1294,77 @@ class OcptProjectVersionCodec {
   ///
   /// - **in**: `screenplays`, `scenes`, `shots`, `shotCharacters`, `shotCoverages`, `people`,
   ///   `personPositions`, `personSkills`, `personUnavailabilities`, `roles`, `roleEpisodes`,
-  ///   `locations`, `sets`,
-  ///   `sceneSets`, `elements`, `sceneElements`, `roleElements`, `roleCandidates`, `assets`,
-  ///   `breakdownTags`,
-  ///   `sceneBreakdowns`,
-  ///   `shootingDays`, `shootingSlots`, `shootingSlotCrew`, `shootingSlotCast`,
-  ///   `shootingDayBlocks`, `shootingSlotGuests`, `shootingBlockCandidates`, `shootingDayEvents`,
+  ///   `locations`, `sets`, `sceneSets`, `elements`, `sceneElements`, `roleElements`,
+  ///   `roleCandidates`, `assets`, `breakdownTags`, `sceneBreakdowns`, `shootingDays`,
+  ///   `shootingSlots`, `shootingSlotCrew`, `shootingSlotCast`, `shootingDayBlocks`,
+  ///   `shootingSlotGuests`, `shootingBlockCandidates`, `shootingDayEvents`,
   ///   `projectDictionaryWords`, `budgetPostes`, `budgetLines`, `budgetEntries`,
   ///   `budgetCommitments`, `budgetResources`, `budgetMileageRates`, `budgetRevenues`,
-  ///   `budgetShares` — every
-  ///   column of each — plus `pageSetup.format`,
-  ///   `settingsJson` and `currencyCode`. This is
-  ///   "the project", as a user would describe it, and the resources tables are not optional here:
-  ///   leave them out and two states differing only in their people, locations or elements would
-  ///   hash identically — the working-copy card would claim no drift after an afternoon of typing
-  ///   resources in, and a restore would skip the safety version it promised to keep. `roleEpisodes`
-  ///   is the same case in miniature, from payload format 13 on: two states differing only in which
-  ///   episodes name a role are not the same project — a character cut from episode 2 but kept in
-  ///   episode 3 is a real edit — and leaving the link table out would let the working-copy card
-  ///   claim no drift after an afternoon spent saying, episode by episode, who speaks where. The
-  ///   breakdown
-  ///   tables are exactly the same case: leave them out and an
-  ///   afternoon spent tagging the script, or marking scenes done, would hash identically to a
-  ///   screenplay nobody has ever broken down. The six schedule tables are the same case again:
-  ///   leave them out and planning a whole shoot — a day added, a slot crewed, a
+  ///   `budgetShares` — every column of each — plus `pageSetup.format`, `settingsJson` and
+  ///   `currencyCode`. This is "the project", as a user would describe it, and the resources tables
+  ///   are not optional here: leave them out and two states differing only in their people,
+  ///   locations or elements would hash identically — the working-copy card would claim no drift
+  ///   after an afternoon of typing resources in, and a restore would skip the safety version it
+  ///   promised to keep. `roleEpisodes` is the same case in miniature, from payload format 13 on:
+  ///   two states differing only in which episodes name a role are not the same project — a
+  ///   character cut from episode 2 but kept in episode 3 is a real edit — and leaving the link
+  ///   table out would let the working-copy card claim no drift after an afternoon spent saying,
+  ///   episode by episode, who speaks where. The breakdown tables are exactly the same case: leave
+  ///   them out and an afternoon spent tagging the script, or marking scenes done, would hash
+  ///   identically to a screenplay nobody has ever broken down. The six schedule tables are the
+  ///   same case again: leave them out and planning a whole shoot — a day added, a slot crewed, a
   ///   shot placed onto a block — would hash identically to a project nobody has ever scheduled, so
-  ///   the working-copy card would claim no drift and a restore over that afternoon's work would skip
-  ///   the safety version it owes. `shootingSlotGuests` and `shootingDayEvents` are the same case
-  ///   again: leave them out and entering the mayor lending a square, or the fireworks
-  ///   nobody controls, would hash identically to a day carrying neither. `projectDictionaryWords`
-  ///   is the same case once more, from payload format 15 on: leave it out and a word learned, or
+  ///   the working-copy card would claim no drift and a restore over that afternoon's work would
+  ///   skip the safety version it owes. `shootingSlotGuests` and `shootingDayEvents` are the same
+  ///   case again: leave them out and entering the mayor lending a square, or the fireworks nobody
+  ///   controls, would hash identically to a day carrying neither. `projectDictionaryWords` is the
+  ///   same case once more, from payload format 15 on: leave it out and a word learned, or
   ///   un-learned, since the version was captured would hash identically to a project whose lexicon
   ///   never changed — the working-copy card would claim no drift, and a restore that is about to
   ///   silently un-teach a word would skip the safety version it owes for it. `roleCandidates` is
   ///   the same case again, from payload format 16 on, and a costly one to get wrong: a whole week
   ///   of casting — twelve people seen, noted and ranked for one part — moves no other table at all
   ///   until somebody is retained, so leaving it out would let the working-copy card claim no drift
-  ///   after exactly the work this table exists to hold. `currencyCode` is only
-  ///   ever
-  ///   null on a payload decoded
-  ///   from a format predating it (never on one freshly captured from a live database, which always
-  ///   reads a real value), so this never makes an old and a current capture of the very same
-  ///   project disagree; `minimumRestMinutes` is different — it is null exactly as often on a live
-  ///   capture as on an old one, since the column is nullable by design — but it stays **in**, not
-  ///   out alongside the margins: two projects agreeing on every shooting day but disagreeing on the
-  ///   rest they owe between them are not the same project, and leaving it out would hide that;
-  ///   `screenplayLanguage` is the same case again, for the same reason: two projects agreeing on
-  ///   everything else but disagreeing on the language their screenplays are written in are not the
-  ///   same project — one of them would be spell-checked and the other would not — so it stays in,
-  ///   null exactly as legitimately as `minimumRestMinutes`. `budgetPostes` and `budgetLines` are
-  ///   the same case once more, from payload format 16 on: leave them out and a whole quote typed in
-  ///   would hash identically to a project with no budget at all — the working-copy card would
-  ///   claim no drift, and a restore over that afternoon's work would skip the safety version it
-  ///   owes. `defaultVatRateBasisPoints`, `mealPriceCents` and `snackPriceCents` are
-  ///   `minimumRestMinutes`'s own case again: nullable by design, in rather than out alongside the
-  ///   margins, since two projects agreeing on every quote line but disagreeing on the rate or the
-  ///   catering prices they read against are not the same project. `budgetEntries` and
-  ///   `budgetCommitments` are the quote's own case yet again, from payload format 17 on: leave them
-  ///   out and a whole afternoon spent recording the cash journal, or the commitments still owed,
-  ///   would hash identically to a project with no movement in its account at all. `budgetResources`
-  ///   and `budgetMileageRates` are the very same case once more, from payload format 18 on: leave
-  ///   them out and a whole financing plan typed in — a subsidy applied for, a rate named for the
-  ///   crew's own car — would hash identically to a project with no financing plan at all, the
-  ///   working-copy card claiming no drift and a restore over that afternoon's work skipping the
-  ///   safety version it owes. `budgetRevenues` and `budgetShares` are the same case once more
-  ///   again, from payload format 19 on: leave them out and a whole sharing plan typed in — a
-  ///   taking recorded, a participant's share agreed — would hash identically to a project with no
-  ///   sharing plan at all, the working-copy card claiming no drift and a restore over that
-  ///   afternoon's work skipping the safety version it owes. `isBudgetSimplified` is
-  ///   `minimumRestMinutes`'s own case once more, from payload format 25 on: nullable by design, in
-  ///   rather than out alongside the margins, since two projects agreeing on every figure but
-  ///   disagreeing on which of the header's two views they were last left on are not the same
-  ///   project. `budget_resources.personId` needs no entry of its own here: it is a column of
-  ///   `budgetResources`, already in above. `storyboardPanels`, `storyboardAnnotations`,
-  ///   `floorPlanSets`, `floorPlanSymbols` and `floorPlanArrows` are the same case once more,
-  ///   from payload format 4 on: leave them out and a whole storyboard drawn, or a floor plan
-  ///   placed, would hash identically to a shot list nobody has ever boarded — the working-copy
-  ///   card claiming no drift and a restore over that work skipping the safety version it owes;
+  ///   after exactly the work this table exists to hold. `currencyCode` is only ever null on a
+  ///   payload decoded from a format predating it (never on one freshly captured from a live
+  ///   database, which always reads a real value), so this never makes an old and a current capture
+  ///   of the very same project disagree; `minimumRestMinutes` is different — it is null exactly as
+  ///   often on a live capture as on an old one, since the column is nullable by design — but it
+  ///   stays **in**, not out alongside the margins: two projects agreeing on every shooting day but
+  ///   disagreeing on the rest they owe between them are not the same project, and leaving it out
+  ///   would hide that; `screenplayLanguage` is the same case again, for the same reason: two
+  ///   projects agreeing on everything else but disagreeing on the language their screenplays are
+  ///   written in are not the same project — one of them would be spell-checked and the other would
+  ///   not — so it stays in, null exactly as legitimately as `minimumRestMinutes`. `budgetPostes`
+  ///   and `budgetLines` are the same case once more, from payload format 16 on: leave them out and
+  ///   a whole quote typed in would hash identically to a project with no budget at all — the
+  ///   working-copy card would claim no drift, and a restore over that afternoon's work would skip
+  ///   the safety version it owes. `defaultVatRateBasisPoints`, `mealPriceCents` and
+  ///   `snackPriceCents` are `minimumRestMinutes`'s own case again: nullable by design, in rather
+  ///   than out alongside the margins, since two projects agreeing on every quote line but
+  ///   disagreeing on the rate or the catering prices they read against are not the same project.
+  ///   `budgetEntries` and `budgetCommitments` are the quote's own case yet again, from payload
+  ///   format 17 on: leave them out and a whole afternoon spent recording the cash journal, or the
+  ///   commitments still owed, would hash identically to a project with no movement in its account
+  ///   at all. `budgetResources` and `budgetMileageRates` are the very same case once more, from
+  ///   payload format 18 on: leave them out and a whole financing plan typed in — a subsidy applied
+  ///   for, a rate named for the crew's own car — would hash identically to a project with no
+  ///   financing plan at all, the working-copy card claiming no drift and a restore over that
+  ///   afternoon's work skipping the safety version it owes. `budgetRevenues` and `budgetShares`
+  ///   are the same case once more again, from payload format 19 on: leave them out and a whole
+  ///   sharing plan typed in — a taking recorded, a participant's share agreed — would hash
+  ///   identically to a project with no sharing plan at all, the working-copy card claiming no
+  ///   drift and a restore over that afternoon's work skipping the safety version it owes.
+  ///   `isBudgetSimplified` is `minimumRestMinutes`'s own case once more, from payload format 25
+  ///   on: nullable by design, in rather than out alongside the margins, since two projects
+  ///   agreeing on every figure but disagreeing on which of the header's two views they were last
+  ///   left on are not the same project. `budget_resources.personId` needs no entry of its own
+  ///   here: it is a column of `budgetResources`, already in above. `storyboardPanels`,
+  ///   `storyboardAnnotations`, `floorPlanSets`, `floorPlanSymbols` and `floorPlanArrows` are the
+  ///   same case once more, from payload format 4 on: leave them out and a whole storyboard drawn,
+  ///   or a floor plan placed, would hash identically to a shot list nobody has ever boarded — the
+  ///   working-copy card claiming no drift and a restore over that work skipping the safety version
+  ///   it owes;
   /// - **out**: `rowFieldVersions`, whose per-column stamps change on every restore without the
   ///   content changing, and `pageSetup.margins`, an app-wide rendering preference rather than
   ///   project state.
@@ -1633,8 +1628,8 @@ class OcptProjectVersionCodec {
   /// all (`decode`'s own doc comment). For `payloadFormat < 4`, the five storyboard and floor plan
   /// lists are read as empty rather than through [_rows]: unlike every other field, whose absent
   /// keys already fall back to the nullable defaults [_nullableString] and its siblings return,
-  /// [_rows] itself throws on a missing key (it reads a required list, not an optional scalar), so a
-  /// pre-4 payload — which never wrote these five keys at all — needs this one explicit default
+  /// [_rows] itself throws on a missing key (it reads a required list, not an optional scalar), so
+  /// a pre-4 payload — which never wrote these five keys at all — needs this one explicit default
   /// rather than reading through unguarded, exactly as `shotCharacters` does one format earlier.
   /// Every other field is read the same way whatever [payloadFormat] says.
   static OcptProjectVersionPayload _payloadFromJson(
@@ -3164,8 +3159,8 @@ class OcptProjectVersionCodec {
   /// for a non-nullable column added mid schema-version-4 development cycle whose own SQL default
   /// is `false` ([_isHiddenKey]): an older format-4 payload written before the column existed reads
   /// back at that very default instead of throwing, the same courtesy [_nullableEnum] and
-  /// [_nullableDouble] already give a *nullable* mid-cycle addition (see [_setElementShapeKey]'s own
-  /// doc comment). Still throws when [key] is present but isn't a boolean.
+  /// [_nullableDouble] already give a *nullable* mid-cycle addition (see [_setElementShapeKey]'s
+  /// own doc comment). Still throws when [key] is present but isn't a boolean.
   static bool _boolWithFalseDefault(Map<String, dynamic> json, String key) {
     if (!json.containsKey(key)) {
       return false;

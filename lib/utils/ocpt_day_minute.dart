@@ -64,8 +64,8 @@ int? ocptParseDayMinute(String text) {
 /// A bare figure of minutes below an hour reads as minutes alone; at an hour or above, the hour
 /// count is always shown and the leftover minutes are dropped entirely when there are none — `60`
 /// is `1 h`, never `1 h 00`. A negative length (a shot whose duration shrank the timeline, an
-/// over-run's shortfall) keeps its sign in front of the same reading rather than being refused: this
-/// is arithmetic on a difference, not a clock, and a difference can run either way.
+/// over-run's shortfall) keeps its sign in front of the same reading rather than being refused:
+/// this is arithmetic on a difference, not a clock, and a difference can run either way.
 String ocptFormatMinuteDuration(int minutes) {
   final sign = minutes < 0 ? "-" : "";
   final absoluteMinutes = minutes.abs();

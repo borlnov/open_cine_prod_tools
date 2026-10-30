@@ -4,8 +4,8 @@
 
 /// One column of the exported shooting plan workbook's `Chronology` sheet, in the order the sheet
 /// lays them out — one row per block over the whole printed range, in shooting order
-/// (`ocptOrderedScheduleEntriesOfDay`), every block kind included: a shot as much as a meal break or
-/// a wrap, this being the sheet a production office reworks the whole timetable from.
+/// (`ocptOrderedScheduleEntriesOfDay`), every block kind included: a shot as much as a meal break
+/// or a wrap, this being the sheet a production office reworks the whole timetable from.
 ///
 /// The four summary grids (locations, sequences, crew and cast, elements) have no enum of their
 /// own: their columns are the slots or the days themselves (`OcptShootingPlanGridColumn`,

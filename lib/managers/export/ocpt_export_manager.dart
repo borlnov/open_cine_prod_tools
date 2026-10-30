@@ -367,9 +367,9 @@ class OcptExportManager extends AbsWithLifeCycle {
   /// sequence titles and the file name's own suffix) and [fileTypeLabel] the one the native dialog
   /// needs — this manager has no `Tr` of its own. [episodeTag] is the selected episode's own tag,
   /// resolved by the caller and present only while the open project holds more than one episode —
-  /// see [exportFountain]'s own doc comment for why. Returns the write funnel's own outcome, or null
-  /// if the user cancelled or the save failed (failures are logged; the OS dialog already reported
-  /// a cancellation to the user).
+  /// see [exportFountain]'s own doc comment for why. Returns the write funnel's own outcome, or
+  /// null if the user cancelled or the save failed (failures are logged; the OS dialog already
+  /// reported a cancellation to the user).
   Future<OcptExportOutcome?> exportScenarioCoverage({
     required FountainDocument document,
     required String screenplayText,
@@ -651,9 +651,9 @@ class OcptExportManager extends AbsWithLifeCycle {
   /// `OcptBudgetEntry.id` and resolved by the caller — this manager has no `Tr` of its own, and
   /// this service resolves nothing itself either (`OcptBudgetCashJournalXlsxExportService`'s own
   /// doc comment). [labels] carries every localized string the sheet itself holds and
-  /// [fileTypeLabel] the one the native dialog needs. Returns the write funnel's own outcome, or null
-  /// if the user cancelled or the save failed (failures are logged; the OS dialog already reported
-  /// a cancellation to the user).
+  /// [fileTypeLabel] the one the native dialog needs. Returns the write funnel's own outcome, or
+  /// null if the user cancelled or the save failed (failures are logged; the OS dialog already
+  /// reported a cancellation to the user).
   Future<OcptExportOutcome?> exportBudgetCashJournalXlsx({
     required OcptBudgetSnapshot snapshot,
     required Map<String, String> linkLabelByEntryId,
@@ -768,7 +768,8 @@ class OcptExportManager extends AbsWithLifeCycle {
   /// manager has no `Tr` of its own. [episodeTag] is the selected episode's own tag, resolved by
   /// the caller and present only while the open project holds more than one episode — see
   /// [exportFountain]'s own doc comment for why. Unlike the breakdown sheets, this export takes no
-  /// options dialog: there is nothing to ask before writing it out. Returns the write funnel's own outcome, or null if the user cancelled or the save failed (failures are logged; the OS dialog
+  /// options dialog: there is nothing to ask before writing it out. Returns the write funnel's own
+  /// outcome, or null if the user cancelled or the save failed (failures are logged; the OS dialog
   /// already reported a cancellation to the user).
   Future<OcptExportOutcome?> exportBreakdownXlsx({
     required FountainDocument document,
@@ -802,11 +803,11 @@ class OcptExportManager extends AbsWithLifeCycle {
   /// This is the one export of this app that writes more than one file, so it shows the native
   /// "choose a folder" dialog ([confirmButtonText] is its own confirm button's localized label)
   /// rather than a "save as" one. Returns null if the user cancelled that dialog — nothing was
-  /// touched on disk yet at that point — or an [OcptCallSheetExportResult] once a folder was chosen,
-  /// even when every write inside it failed: a folder was picked, so the caller needs to know
-  /// exactly what did and did not get written into it rather than being told the whole run "failed".
-  /// A write failure is logged (this manager's usual soft-failure convention) and the file's own
-  /// name lands in [OcptCallSheetExportResult.failedFileNames] instead of
+  /// touched on disk yet at that point — or an [OcptCallSheetExportResult] once a folder was
+  /// chosen, even when every write inside it failed: a folder was picked, so the caller needs to
+  /// know exactly what did and did not get written into it rather than being told the whole run
+  /// "failed". A write failure is logged (this manager's usual soft-failure convention) and the
+  /// file's own name lands in [OcptCallSheetExportResult.failedFileNames] instead of
   /// [OcptCallSheetExportResult.writtenFileNames].
   ///
   /// The moment every sheet of the run is stamped with is resolved **once**, here, and handed to
@@ -871,10 +872,10 @@ class OcptExportManager extends AbsWithLifeCycle {
   /// writes every one of them into a folder the user picks — a call sheet being a document about a
   /// day, so a recipient convoked on two of [dayIds] gets two files, one for each.
   ///
-  /// The loop is over each day's **own** convocations, filtered by [convocationKeys], never over the
-  /// product of the two: a key ticked in the dialog but convoked on none of a given day's slots
-  /// simply yields no file for that day rather than an empty one. [convocationKeys] selects which of
-  /// a day's own convocations are printed — `OcptDayConvocation.selectionKey`, the very key the
+  /// The loop is over each day's **own** convocations, filtered by [convocationKeys], never over
+  /// the product of the two: a key ticked in the dialog but convoked on none of a given day's slots
+  /// simply yields no file for that day rather than an empty one. [convocationKeys] selects which
+  /// of a day's own convocations are printed — `OcptDayConvocation.selectionKey`, the very key the
   /// dialog ticks them by — or null to print every convocation of every day, the common case when
   /// nobody has narrowed the selection down. See [exportGeneralCallSheets] for the folder-picking,
   /// the once-per-run export moment (its own argument holds for a run spanning several days exactly
@@ -882,18 +883,19 @@ class OcptExportManager extends AbsWithLifeCycle {
   /// and the partial-failure contract, identical here.
   ///
   /// **A guest is never printed here**, whatever [convocationKeys] says: a guest carries no
-  /// `selectionKey` at all, so they are out before either the explicit selection or the "print every
-  /// convocation" default is applied — a guest is not yet a call sheet recipient. A **candidate**
-  /// very much is one: somebody coming to be seen for a part is convoked like anybody else (ADR
+  /// `selectionKey` at all, so they are out before either the explicit selection or the "print
+  /// every convocation" default is applied — a guest is not yet a call sheet recipient. A
+  /// **candidate** very much is one: somebody coming to be seen for a part is convoked like anybody
+  /// else (ADR
   /// 0018) and is owed the sheet saying when.
   ///
   /// [_uniqueFileName] accumulates across the **whole** run rather than being reset per day, so two
-  /// recipients whose names collide on one day still each get a file of their own (`-2`, `-3`) — the
-  /// file name already carries the day's own tag, so two different days' sheets never collide with
-  /// each other in the first place.
+  /// recipients whose names collide on one day still each get a file of their own (`-2`, `-3`) —
+  /// the file name already carries the day's own tag, so two different days' sheets never collide
+  /// with each other in the first place.
   ///
-  /// On mobile the whole run is shared together in one gesture rather than written into a folder the
-  /// user picks — see [exportGeneralCallSheets]'s own doc comment for [shareAnchor] and
+  /// On mobile the whole run is shared together in one gesture rather than written into a folder
+  /// the user picks — see [exportGeneralCallSheets]'s own doc comment for [shareAnchor] and
   /// [OcptCallSheetExportResult.wasShared].
   Future<OcptCallSheetExportResult?> exportNamedCallSheets({
     required OcptSchedulePlanSnapshot plan,
@@ -967,10 +969,10 @@ class OcptExportManager extends AbsWithLifeCycle {
   /// [labels] carries every localized string the document itself holds (the day titles, the
   /// director line, the grid and section headings, the shot table's own headers and the file name's
   /// own suffix) and [fileTypeLabel] the one the native dialog needs — this manager has no `Tr` of
-  /// its own. Unlike the call sheets, this is a **single** file: the whole shoot's own plan, through
-  /// `pickSaveLocation` rather than a folder. Returns the write funnel's own outcome, or null if the
-  /// user cancelled or the save failed (failures are logged; the OS dialog already reported a
-  /// cancellation to the user).
+  /// its own. Unlike the call sheets, this is a **single** file: the whole shoot's own plan,
+  /// through `pickSaveLocation` rather than a folder. Returns the write funnel's own outcome, or
+  /// null if the user cancelled or the save failed (failures are logged; the OS dialog already
+  /// reported a cancellation to the user).
   Future<OcptExportOutcome?> exportShootingPlan({
     required OcptSchedulePlanSnapshot plan,
     required List<String> dayIds,
@@ -1016,11 +1018,11 @@ class OcptExportManager extends AbsWithLifeCycle {
   /// [shootingPlanXlsxExportService] and shows the native save dialog to write it out.
   ///
   /// [labels] carries every localized string the five sheets themselves hold and [fileTypeLabel]
-  /// the one the native dialog needs — this manager has no `Tr` of its own. Unlike [exportShootingPlan],
-  /// this export takes no options beyond [dayIds]: there is no page geometry to ask about, and a
-  /// sheet costs nothing to hide, unlike a PDF's own page. Returns the write funnel's own outcome,
-  /// or null if the user cancelled or the save failed (failures are logged; the OS dialog already
-  /// reported a cancellation to the user).
+  /// the one the native dialog needs — this manager has no `Tr` of its own. Unlike
+  /// [exportShootingPlan], this export takes no options beyond [dayIds]: there is no page geometry
+  /// to ask about, and a sheet costs nothing to hide, unlike a PDF's own page. Returns the write
+  /// funnel's own outcome, or null if the user cancelled or the save failed (failures are logged;
+  /// the OS dialog already reported a cancellation to the user).
   Future<OcptExportOutcome?> exportShootingPlanXlsx({
     required OcptSchedulePlanSnapshot plan,
     required List<String> dayIds,
@@ -1044,11 +1046,11 @@ class OcptExportManager extends AbsWithLifeCycle {
   ///
   /// [labels] carries every localized string the document itself holds (the column dates, the code
   /// letters and their legend, the two count headers and the file name's own suffix) and
-  /// [fileTypeLabel] the one the native dialog needs — this manager has no `Tr` of its own. Like the
-  /// shooting plan and unlike the call sheets, this is a **single** file, through `pickSaveLocation`
-  /// rather than a folder. Returns the write funnel's own outcome, or null if the user cancelled or
-  /// the save failed (failures are logged; the OS dialog already reported a cancellation to the
-  /// user).
+  /// [fileTypeLabel] the one the native dialog needs — this manager has no `Tr` of its own. Like
+  /// the shooting plan and unlike the call sheets, this is a **single** file, through
+  /// `pickSaveLocation` rather than a folder. Returns the write funnel's own outcome, or null if
+  /// the user cancelled or the save failed (failures are logged; the OS dialog already reported a
+  /// cancellation to the user).
   Future<OcptExportOutcome?> exportDayOutOfDays({
     required OcptSchedulePlanSnapshot plan,
     required List<String> dayIds,
@@ -1086,7 +1088,8 @@ class OcptExportManager extends AbsWithLifeCycle {
   /// [labels] carries every localized string the document itself holds (the day titles, the column
   /// headers and the file name's own suffix) and [fileTypeLabel] the one the native dialog needs —
   /// this manager has no `Tr` of its own. Like the shooting plan and the *Day Out of Days*, this is
-  /// a **single** file, through `pickSaveLocation` rather than a folder. Returns the write funnel's own outcome, or null if the user cancelled or the save failed (failures are logged; the OS
+  /// a **single** file, through `pickSaveLocation` rather than a folder. Returns the write funnel's
+  /// own outcome, or null if the user cancelled or the save failed (failures are logged; the OS
   /// dialog already reported a cancellation to the user).
   Future<OcptExportOutcome?> exportOneLineSchedule({
     required OcptSchedulePlanSnapshot plan,
@@ -1172,15 +1175,15 @@ class OcptExportManager extends AbsWithLifeCycle {
     );
   }
 
-  /// The name a named call sheet's own file is built from for [convocation]: the person's own display
-  /// name for a crew or cast recipient, the **candidate's** own for a candidacy — read through
-  /// `plan.roleCandidateById`, the candidacy being what points at the person — and the role's own
-  /// name for an uncast role, which names nobody else.
+  /// The name a named call sheet's own file is built from for [convocation]: the person's own
+  /// display name for a crew or cast recipient, the **candidate's** own for a candidacy — read
+  /// through `plan.roleCandidateById`, the candidacy being what points at the person — and the
+  /// role's own name for an uncast role, which names nobody else.
   ///
   /// An empty string is a perfectly ordinary answer here, for a recipient the project has not named
-  /// yet or a candidacy the file no longer holds:
-  /// `OcptCallSheetPdfService.namedCallSheetFileName` falls back to its own localized unnamed-person
-  /// label for it, and the sheet still gets a readable file name rather than none.
+  /// yet or a candidacy the file no longer holds: `OcptCallSheetPdfService.namedCallSheetFileName`
+  /// falls back to its own localized unnamed-person label for it, and the sheet still gets a
+  /// readable file name rather than none.
   String _namedCallSheetRecipientNameOf(
     OcptSchedulePlanSnapshot plan,
     OcptDayConvocation convocation,

@@ -86,8 +86,8 @@ OcptFloorPlanSet _caseOf(OcptFloorPlanSymbol symbol) => OcptFloorPlanSet(
 );
 
 /// A shot-scoped camera symbol at ([xM], [yM]), not rotated, carrying no `fovDeg` of its own — the
-/// drawing default (`ocptFloorPlanDefaultCameraFovDeg`) applies, so its own field-of-view wedge (and
-/// edge handles) always draw.
+/// drawing default (`ocptFloorPlanDefaultCameraFovDeg`) applies, so its own field-of-view wedge
+/// (and edge handles) always draw.
 OcptFloorPlanSymbol _cameraSymbol({required double xM, required double yM}) => OcptFloorPlanSymbol(
   id: "cam-1",
   setId: "case-1",
@@ -179,7 +179,8 @@ OcptFloorPlanSet _caseWithArrow({double? ctrlXM, double? ctrlYM}) {
 
 void main() {
   /// Builds an [OcptFloorPlanCanvas] under the `select` tool, focused on the `Sequence` scope (so
-  /// the sequence-layer [symbol] is editable), reporting every move/resize into [movedTo]/[resizedTo].
+  /// the sequence-layer [symbol] is editable), reporting every move/resize into
+  /// [movedTo]/[resizedTo].
   Widget canvasOf({
     required OcptFloorPlanSymbol symbol,
     required OcptFloorPlanViewportController controller,

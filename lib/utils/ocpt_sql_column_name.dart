@@ -12,8 +12,8 @@
 /// only ever carry their SQL name. Every synchronised table's column is auto-named this way today —
 /// `row_field_versions.targetTableName` is the one column in the whole schema that overrides it
 /// with `.named(...)`, and it sits on the one table the changeset engine never reads or writes a
-/// row of (`ocptSynchronisedTables` excludes it for carrying no `isDeleted`) — so this conversion is
-/// exact for every column this ever runs against, not a heuristic guess.
+/// row of (`ocptSynchronisedTables` excludes it for carrying no `isDeleted`) — so this conversion
+/// is exact for every column this ever runs against, not a heuristic guess.
 String ocptDartFieldName(String sqlColumnName) {
   final words = sqlColumnName.split('_');
 

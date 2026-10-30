@@ -391,9 +391,9 @@ class OcptBreakdownState extends BlocStateForMixin<OcptBreakdownState>
   }
 
   /// [elementId]'s current value for `field` — a pending edit still sitting in
-  /// [pendingElementFieldEdits], or [storedValue] (the element's own value, read off [selectedElement]
-  /// at the call site) otherwise, exactly as `OcptShotListState`/`OcptResourcesState` resolve their
-  /// own pending field edits.
+  /// [pendingElementFieldEdits], or [storedValue] (the element's own value, read off
+  /// [selectedElement] at the call site) otherwise, exactly as
+  /// `OcptShotListState`/`OcptResourcesState` resolve their own pending field edits.
   String elementFieldValueOf(String elementId, OcptElementField field, String storedValue) =>
       pendingElementFieldEdits[(elementId, field)] ?? storedValue;
 
@@ -482,16 +482,16 @@ class OcptBreakdownState extends BlocStateForMixin<OcptBreakdownState>
 
   /// {@macro act_flutter_utility.BlocStateForMixin.copyWith}
   ///
-  /// [snapshot] is only replaced when a new one is given: it never goes back to null once loaded, so
-  /// it needs no clear flag. [selectedSceneId], [selectedTargetRef], [rightDockTab],
+  /// [snapshot] is only replaced when a new one is given: it never goes back to null once loaded,
+  /// so it needs no clear flag. [selectedSceneId], [selectedTargetRef], [rightDockTab],
   /// [pendingTagAnchor] and [pendingTagRange] all legitimately go back to null while the mode is
   /// alive (a fresh load, a selection dropped, the dock closed, an anchor replaced or a range
   /// resolved), so each has its own clear flag instead. [hiddenLegendKeys],
   /// [pendingElementFieldEdits], [pendingSceneNotesEdits] and [pendingSetNameEdits] are each
-  /// replaced wholesale rather than merged — the caller (the bloc's own legend and field-edit handlers) always computes the
-  /// full next map or set. [searchQuery] needs no clear flag either: an empty string is already a
-  /// perfectly valid value for it (the field cleared), so `searchQuery: ""` is passed like any other
-  /// value rather than through a `clear…` flag.
+  /// replaced wholesale rather than merged — the caller (the bloc's own legend and field-edit
+  /// handlers) always computes the full next map or set. [searchQuery] needs no clear flag either:
+  /// an empty string is already a perfectly valid value for it (the field cleared), so
+  /// `searchQuery: ""` is passed like any other value rather than through a `clear…` flag.
   ///
   /// [selectedTargetSuggestions] is the one field this recomputes rather than carries over, and it
   /// does so only when one of the three things it derives from ([snapshot], [screenplayText] and

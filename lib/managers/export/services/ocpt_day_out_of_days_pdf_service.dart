@@ -50,9 +50,9 @@ const PdfColor _mutedColor = PdfColor.fromInt(0xFF6E6E6E);
 /// legibility deciding the other's.
 const int _maxDayColumnsPerPage = 12;
 
-/// Renders the *Day Out of Days*: one row per role the printed range convokes, one column per day of
-/// that range, a code in every cell of a role's own span, and a trailing count of the days it works
-/// and the days it is held.
+/// Renders the *Day Out of Days*: one row per role the printed range convokes, one column per day
+/// of that range, a code in every cell of a role's own span, and a trailing count of the days it
+/// works and the days it is held.
 ///
 /// This is pure rendering logic with no dialog or file-system access of its own: it's owned by
 /// `OcptExportManager` and exposed as a public final field, reached through the manager rather than
@@ -64,19 +64,19 @@ const int _maxDayColumnsPerPage = 12;
 ///
 /// **Every code comes off [ocptComputeDayOutOfDays]**, the pure function that owns every rule this
 /// document has — which day is a start, which a finish, which a hold, and which days carry nothing
-/// at all. This service decides two things only, both of them about paper: the **order** of the rows
-/// (by role number, the order the cast is listed in everywhere else in this app) and how the table
-/// is drawn. It prints the four codes that function derives, plus the one cell where a span's two
-/// ends meet; it never prints a `T` or an `R`, no field of this app saying either — see
+/// at all. This service decides two things only, both of them about paper: the **order** of the
+/// rows (by role number, the order the cast is listed in everywhere else in this app) and how the
+/// table is drawn. It prints the four codes that function derives, plus the one cell where a span's
+/// two ends meet; it never prints a `T` or an `R`, no field of this app saying either — see
 /// [OcptDayOutOfDaysCode]'s own doc comment for that argument.
 ///
 /// **The table is landscape** (page width and height swapped from the painter's own geometry), the
-/// same trade `OcptShootingPlanPdfService`'s own summary grids make: a shoot is wide, and a document
-/// silently cropped to whatever a portrait page holds would be worse than one that runs the columns
-/// on. When more days exist than [_maxDayColumnsPerPage] holds, the rows repeat over as many chunked
-/// pages as it takes, each page's own trailing counts being **the whole range's**, never that
-/// chunk's: an actor's contract is negotiated over the shoot, not over whichever days happened to
-/// fall on one sheet.
+/// same trade `OcptShootingPlanPdfService`'s own summary grids make: a shoot is wide, and a
+/// document silently cropped to whatever a portrait page holds would be worse than one that runs
+/// the columns on. When more days exist than [_maxDayColumnsPerPage] holds, the rows repeat over as
+/// many chunked pages as it takes, each page's own trailing counts being **the whole range's**,
+/// never that chunk's: an actor's contract is negotiated over the shoot, not over whichever days
+/// happened to fall on one sheet.
 class OcptDayOutOfDaysPdfService {
   /// Creates an [OcptDayOutOfDaysPdfService].
   ///
@@ -99,15 +99,15 @@ class OcptDayOutOfDaysPdfService {
   /// Renders the *Day Out of Days* of [dayIds] (in the order given), returning the PDF's bytes.
   ///
   /// A [dayIds] entry naming no live day of [plan] is silently skipped, exactly as its two sibling
-  /// services read a missing day: nothing this app writes can produce one, but a hand-edited file or
-  /// a stale selection might. A range resolving to no live day at all, or to one no role is convoked
-  /// anywhere in, still produces a readable, one-note document (plus its title page, when
+  /// services read a missing day: nothing this app writes can produce one, but a hand-edited file
+  /// or a stale selection might. A range resolving to no live day at all, or to one no role is
+  /// convoked anywhere in, still produces a readable, one-note document (plus its title page, when
   /// [includeTitlePage] asks for one) rather than an empty file nobody can open.
   ///
   /// [exportDate] is the moment the title page's own version line and every page's running head
   /// print (through [ocptScheduleGeneratedAtStamp], the stamp every schedule document of this app
-  /// prints); it defaults to the moment this method runs, and is exposed so a test can pin it rather
-  /// than racing a midnight rollover. It is resolved **once** per document, so a table whose
+  /// prints); it defaults to the moment this method runs, and is exposed so a test can pin it
+  /// rather than racing a midnight rollover. It is resolved **once** per document, so a table whose
   /// rendering straddles a minute boundary still names one issue of itself on every one of its
   /// pages.
   Future<Uint8List> generate({
@@ -199,8 +199,8 @@ class OcptDayOutOfDaysPdfService {
   // Pages
   // ---------------------------------------------------------------------------------------------
 
-  /// The document's own title page: its name, the `"<title>" de <director>` line, and the moment the
-  /// export was run.
+  /// The document's own title page: its name, the `"<title>" de <director>` line, and the moment
+  /// the export was run.
   pw.Page _titlePage({
     required OcptScriptPagePainter painter,
     required OcptDayOutOfDaysLabels labels,
@@ -519,8 +519,8 @@ class OcptDayOutOfDaysPdfService {
     marginBottom: painter.marginRightPt,
   );
 
-  /// The landscape `pdf` page format every table page is drawn on — [painter]'s own width and height
-  /// swapped, its margins otherwise read the same way [_portraitPageFormat] does.
+  /// The landscape `pdf` page format every table page is drawn on — [painter]'s own width and
+  /// height swapped, its margins otherwise read the same way [_portraitPageFormat] does.
   PdfPageFormat _landscapePageFormat(OcptScriptPagePainter painter) => PdfPageFormat(
     painter.pageHeightPt,
     painter.pageWidthPt,
@@ -531,9 +531,9 @@ class OcptDayOutOfDaysPdfService {
   );
 }
 
-/// [days] split into chunks of at most [chunkSize], in order — empty when [days] itself is. The same
-/// rule `OcptShootingPlanPdfService` paginates its own summary grids by, over this document's own
-/// day columns and its own [_maxDayColumnsPerPage].
+/// [days] split into chunks of at most [chunkSize], in order — empty when [days] itself is. The
+/// same rule `OcptShootingPlanPdfService` paginates its own summary grids by, over this document's
+/// own day columns and its own [_maxDayColumnsPerPage].
 List<List<OcptShootingDay>> _chunkDays(List<OcptShootingDay> days, int chunkSize) {
   if (days.isEmpty) {
     return const [];

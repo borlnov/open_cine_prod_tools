@@ -197,8 +197,8 @@ Future<void> _useTallSurface(WidgetTester tester) async {
 
 /// The [Finder] of the text field labelled [label] (its uppercased display label, e.g. `"EMAIL"`),
 /// mirroring `OcptShotInspectorPanel`'s own test helper: the label and the field are siblings
-/// inside one `OcptResourcesSheetField`, so the field is found as its descendant rather than through
-/// the label directly.
+/// inside one `OcptResourcesSheetField`, so the field is found as its descendant rather than
+/// through the label directly.
 Finder _fieldOf(String label) => find.descendant(
   of: find.ancestor(of: find.text(label), matching: find.byType(OcptResourcesSheetField)),
   matching: find.byType(TextField),

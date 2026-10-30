@@ -392,8 +392,8 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
 
   /// The production's whole cast — every live role, in `sortKey` order — as last read by
   /// `OcptRoleIndexService.loadRoles`: what the inspector's character chips are built from
-  /// (`OcptShotCharacterChips`), and what [orphanedRoleAlerts] and [roleCollisionAlerts] are derived
-  /// from.
+  /// (`OcptShotCharacterChips`), and what [orphanedRoleAlerts] and [roleCollisionAlerts] are
+  /// derived from.
   final List<OcptRole> roles;
 
   /// The selected episode's own suggestion lists the inspector's free-text fields with suggestions
@@ -631,8 +631,8 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
       snapshot?.shotsById.values.where((shot) => shot.needsCheck).length ?? 0;
 
   /// One alert per orphaned role of [roles] — the screenplay no longer names it, but its casting
-  /// and notes are kept — the orphaned variant of the shared role alert banner, shown above the shot
-  /// table (ADR 0030, decision 4).
+  /// and notes are kept — the orphaned variant of the shared role alert banner, shown above the
+  /// shot table (ADR 0030, decision 4).
   ///
   /// Derived on demand from [roles], like [otherShotsCoverageOfSelectedScene] and
   /// [buildSelectedCoverageLayout] are, rather than stored: it is already in memory, and computing

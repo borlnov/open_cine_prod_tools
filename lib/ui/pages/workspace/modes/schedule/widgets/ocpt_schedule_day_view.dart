@@ -220,8 +220,8 @@ class OcptScheduleDayView extends StatelessWidget {
   /// row's `+` picker, or null while withheld — see [OcptScheduleSlotCard.onBlockCandidateAdded].
   final void Function(String blockId, String roleCandidateId)? onBlockCandidateAdded;
 
-  /// Called with a candidacy convocation's own id when its chip's remove control is clicked, or null
-  /// while withheld — see [OcptScheduleSlotCard.onBlockCandidateRemoved].
+  /// Called with a candidacy convocation's own id when its chip's remove control is clicked, or
+  /// null while withheld — see [OcptScheduleSlotCard.onBlockCandidateRemoved].
   final ValueChanged<String>? onBlockCandidateRemoved;
 
   /// Called with a block's id when its own remove control is clicked, or null while withheld.
@@ -235,8 +235,8 @@ class OcptScheduleDayView extends StatelessWidget {
   /// null while withheld — see [OcptScheduleSlotCard.onShotBlockRequested].
   final void Function(String slotId)? onShotBlockRequested;
 
-  /// Called with a block's id and the id of the slot it is moved to, dispatched by a cross-slot drag
-  /// or by a row's own `Move to…` menu, or null while withheld — see
+  /// Called with a block's id and the id of the slot it is moved to, dispatched by a cross-slot
+  /// drag or by a row's own `Move to…` menu, or null while withheld — see
   /// [OcptScheduleTimetable.onBlockMovedToSlot].
   final void Function(String blockId, String targetSlotId)? onBlockMovedToSlot;
 

@@ -576,14 +576,14 @@ void main() {
 
   group("a project file from another build", () {
     // The older-file migration flow could not be exercised at schema version 1: ADR 0029 squashed
-    // the pre-stable chain, so no schema below the current one existed then
-    // (currentSchemaVersion - 1 was 0, which reads as an unreadable/foreign file, not an older
-    // one). Schema version 2 (`OcptSyncRelayCursorsTable`) is the first real `onUpgrade` step since,
-    // which is what reactivates the two tests below: `createProjectAtPreviousFormat` undoes exactly
-    // that step's own addition, so whichever schema step is newest has to keep this helper in sync
-    // with what it actually adds, or these tests fail loudly instead of proving anything. The same
-    // limitation is why the pre-release "at your own risk" migration wording has no test here: it
-    // only replaces the migration message, which these two skips already keep untested.
+    // the pre-stable chain, so no schema below the current one existed then (currentSchemaVersion -
+    // 1 was 0, which reads as an unreadable/foreign file, not an older one). Schema version 2
+    // (`OcptSyncRelayCursorsTable`) is the first real `onUpgrade` step since, which is what
+    // reactivates the two tests below: `createProjectAtPreviousFormat` undoes exactly that step's
+    // own addition, so whichever schema step is newest has to keep this helper in sync with what it
+    // actually adds, or these tests fail loudly instead of proving anything. The same limitation is
+    // why the pre-release "at your own risk" migration wording has no test here: it only replaces
+    // the migration message, which these two skips already keep untested.
     const olderFileFlowSkip = OcptProjectDatabase.currentSchemaVersion < 2;
 
     /// The format a file one step behind this build states.
@@ -601,10 +601,10 @@ void main() {
 
       final database = sqlite3.open(filePath);
       database
-        // Schema version 3's own addition undoes `shot_characters`' reshape from `{shotId,
-        // characterName}` to `{shotId, roleId}`
-        // (`docs/adr/0030-a-shots-characters-are-the-productions-roles.md`); the table is empty on a
-        // freshly created project, so a plain drop-and-recreate loses nothing.
+        // Schema version 3's own addition undoes `shot_characters`' reshape from
+        // `{shotId, characterName}` to `{shotId, roleId}`
+        // (`docs/adr/0030-a-shots-characters-are-the-productions-roles.md`); the table is empty on
+        // a freshly created project, so a plain drop-and-recreate loses nothing.
         ..execute("DROP TABLE shot_characters")
         ..execute(
           'CREATE TABLE "shot_characters" ("shot_id" TEXT NOT NULL REFERENCES shots (id), '

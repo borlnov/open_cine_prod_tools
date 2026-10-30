@@ -98,8 +98,8 @@ class OcptPresenceService {
       StreamController<OcptPresenceRoster>.broadcast();
 
   /// This replica's own current frame — [_heartbeatCounter] only actually advances when
-  /// [_sendHeartbeat] runs, so this always reflects the last heartbeat this replica sent (or, before
-  /// [start] has ever run, the frame it would send first).
+  /// [_sendHeartbeat] runs, so this always reflects the last heartbeat this replica sent (or,
+  /// before [start] has ever run, the frame it would send first).
   OcptPresenceFrame get _selfFrame => OcptPresenceFrame(
     deviceId: deviceId,
     platform: platform,

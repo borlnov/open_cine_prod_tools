@@ -37,8 +37,8 @@ class OcptHostingHostStateChangedEvent extends OcptHostingEvent {
 }
 
 /// Reports a new value off `OcptSyncManager.presenceRosterStream` — the bloc's own subscription to
-/// it (kept alive only while hosting is online, since that stream itself is null otherwise) forwards
-/// every roster the sync manager moves through as one of these.
+/// it (kept alive only while hosting is online, since that stream itself is null otherwise)
+/// forwards every roster the sync manager moves through as one of these.
 class OcptHostingPresenceChangedEvent extends OcptHostingEvent {
   /// The presence roster just reported, or null when nobody (not even this replica) is left in it.
   final OcptPresenceRoster? presenceRoster;

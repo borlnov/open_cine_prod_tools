@@ -116,10 +116,11 @@ class OcptWysiwygDecodeResult {
   /// this first.
   final int titlePageNodeCount;
 
-  /// The number of leading characters of the full source text [OcptWysiwygCodec.decodeWithTitlePage]
-  /// was given that the title page (and the blank line separating it from the body) consumed,
-  /// always 0 for a plain [OcptWysiwygCodec.decode] result. A caller translating a character offset
-  /// of the full source text into a [mapping] char offset must subtract this first.
+  /// The number of leading characters of the full source text
+  /// [OcptWysiwygCodec.decodeWithTitlePage] was given that the title page (and the blank line
+  /// separating it from the body) consumed, always 0 for a plain [OcptWysiwygCodec.decode] result.
+  /// A caller translating a character offset of the full source text into a [mapping] char offset
+  /// must subtract this first.
   final int titlePagePrefixLength;
 }
 
@@ -302,13 +303,13 @@ class OcptWysiwygCodec {
 
     return OcptWysiwygDecodeResult(
       // `List<DocumentNode>.of`, not the `List<ParagraphNode>` `nodes` already is, and this is the
-      // reason every `MutableDocument(nodes: ...)` in this class and in `OcptStyledScreenplayEditor`
-      // states its element type too. `MutableDocument`'s `nodes:` parameter is typed
-      // `List<DocumentNode>?`, but Dart's generics are reified, so a narrower list keeps its own
-      // runtime type on the field the constructor stores it in. `Editor.undo()` replays by resetting
-      // every `Editable`, and `MutableDocument.reset()` does
-      // `_nodes..clear()..addAll(_latestNodesSnapshot)`, where `_latestNodesSnapshot` — built by the
-      // constructor itself — is a genuine `List<DocumentNode>`: that `addAll` throws
+      // reason every `MutableDocument(nodes: ...)` in this class and in
+      // `OcptStyledScreenplayEditor` states its element type too. `MutableDocument`'s `nodes:`
+      // parameter is typed `List<DocumentNode>?`, but Dart's generics are reified, so a narrower
+      // list keeps its own runtime type on the field the constructor stores it in. `Editor.undo()`
+      // replays by resetting every `Editable`, and `MutableDocument.reset()` does
+      // `_nodes..clear()..addAll(_latestNodesSnapshot)`, where `_latestNodesSnapshot` — built by
+      // the constructor itself — is a genuine `List<DocumentNode>`: that `addAll` throws
       // `type 'List<DocumentNode>' is not a subtype of type 'Iterable<ParagraphNode>'` *after* the
       // `clear()` has already run, so the document is left permanently empty rather than merely
       // un-undone.

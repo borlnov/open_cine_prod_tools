@@ -15,13 +15,13 @@ import 'package:open_cine_prod_tools/ui/utils/ocpt_resources_labels.dart';
 /// "Filming permit": what the permit *is* — the reference it was granted under, the date that
 /// happened, and the signed document itself.
 ///
-/// The status itself is not here: it is the header's badge (see `OcptLocationSheetHeader`), where it
-/// is read at a glance beside the location's name, and asking for it twice on one sheet would be
+/// The status itself is not here: it is the header's badge (see `OcptLocationSheetHeader`), where
+/// it is read at a glance beside the location's name, and asking for it twice on one sheet would be
 /// two controls answering one question.
 ///
-/// The document is **referenced, never stored** (`docs/adr/0013-binary-assets-referenced-by-path.md`):
-/// referencing another one replaces the reference, and neither file is ever read, copied or
-/// deleted by this app.
+/// The document is **referenced, never stored**
+/// (`docs/adr/0013-binary-assets-referenced-by-path.md`): referencing another one replaces the
+/// reference, and neither file is ever read, copied or deleted by this app.
 ///
 /// Once a document is referenced, this card also shows its own **validity window** —
 /// `OcptAssetRef.validFrom`/`validUntil` — right under its file line: a permit is a document with

@@ -1688,8 +1688,9 @@ void main() {
       revenueId: broadcast,
     );
 
-    // The split. The shares deliberately add up to exactly 1000 per mille here, so the demonstration
-    // project shows a plan that balances; the view states the sum whenever one does not.
+    // The split. The shares deliberately add up to exactly 1000 per mille here, so the
+    // demonstration project shows a plan that balances; the view states the sum whenever one does
+    // not.
     Future<String> share(String label, int sharePermille, int reinvestPermille) async {
       final id = (await budgetSharingService.createShare(database: database, label: label))!;
       await budgetSharingService.updateShare(

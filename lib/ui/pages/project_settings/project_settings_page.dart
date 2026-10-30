@@ -37,12 +37,13 @@ const _maxContentWidth = 720.0;
 /// Displays the settings of the currently open project: its currency, its screenplay page format
 /// and the language its screenplays are written in.
 ///
-/// Reached from every production mode's own toolbar (`OcptWorkspaceShell.onProjectSettingsRequested`)
-/// rather than a dialog: each field writes to the project the moment it changes, exactly like the
-/// app-wide `SettingsPage`'s appearance and language sections, so there is no separate save step
-/// and nothing to cancel. `OcptRouterManager.pop<bool>` hands the caller whether anything actually
-/// changed, so a mode with something to repaginate (the screenplay, on a page-format change) knows
-/// whether it is worth reloading.
+/// Reached from every production mode's own toolbar
+/// (`OcptWorkspaceShell.onProjectSettingsRequested`) rather than a dialog: each field writes to the
+/// project the moment it changes, exactly like the app-wide `SettingsPage`'s appearance and
+/// language sections, so there is no separate save step and nothing to cancel.
+/// `OcptRouterManager.pop<bool>` hands the caller whether anything actually changed, so a mode with
+/// something to repaginate (the screenplay, on a page-format change) knows whether it is worth
+/// reloading.
 ///
 /// A caller that opened this page for one of its cards in particular says so through [reveal], and
 /// the page scrolls there once the settings have loaded — the screenplay mode's `Add an episode…`

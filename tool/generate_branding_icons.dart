@@ -78,12 +78,13 @@ const _masters = <_MasterSpec>[
 ];
 
 /// Rasterizes every entry of [_masters] — both the plain masters and, for the ones that carry a
-/// container, their qualification-banded counterparts — and writes them under [_outputDirectoryPath].
+/// container, their qualification-banded counterparts — and writes them under
+/// [_outputDirectoryPath].
 ///
 /// A containered master is emitted twice: once as itself (the production icon), and once with a
 /// `_qualif` suffix carrying the corner flag (the qualification icon the CI regenerates the native
-/// launcher icons from for a non-stable build). The adaptive foreground layer has no counterpart: it
-/// is masked to the canvas centre where a corner flag would be clipped away, so a qualification
+/// launcher icons from for a non-stable build). The adaptive foreground layer has no counterpart:
+/// it is masked to the canvas centre where a corner flag would be clipped away, so a qualification
 /// Android build reuses this very foreground unchanged and takes its flavour from a blue background
 /// layer instead (chosen in the packaging step, not here).
 void main() {
@@ -112,8 +113,8 @@ void _write(
   _MarkStyle style, {
   required bool banded,
 }) {
-  // The flag rides on the container's silhouette; the container-less adaptive foreground never takes
-  // a banded copy, so only a containered master reaches here with [banded] set.
+  // The flag rides on the container's silhouette; the container-less adaptive foreground never
+  // takes a banded copy, so only a containered master reaches here with [banded] set.
   final flag = banded ? const _CornerFlag(cornerSize: 34) : null;
 
   final pixels = _renderMark(sidePixels: sidePixels, style: style, flag: flag);
@@ -315,7 +316,8 @@ class _CornerFlag {
   /// Class constructor
   const _CornerFlag({required this.cornerSize});
 
-  /// The value of `x - y` along the triangle's hypotenuse; the corner lies below it (more negative).
+  /// The value of `x - y` along the triangle's hypotenuse; the corner lies below it (more
+  /// negative).
   double get _hypotenuse => -(_canvasUnits - cornerSize);
 
   /// The coverage of the flag at ([x], [y]), antialiased over one pixel ([unitsPerPixel]).

@@ -290,8 +290,8 @@ void main() {
       await tester.pumpWidget(_wrap(_fiche(selection: const OcptBudgetPosteSelection("poste-1"))));
 
       // The bar's own track: a Container of the proportion bar's own height, stretched to fill the
-      // width the fiche gives it rather than a fixed one — on the 420-wide test surface it comes out
-      // well past the 160 an earlier fixed pass drew, which is the whole point of the change.
+      // width the fiche gives it rather than a fixed one — on the 420-wide test surface it comes
+      // out well past the 160 an earlier fixed pass drew, which is the whole point of the change.
       final track = find.byWidgetPredicate(
         (widget) =>
             widget is Container &&

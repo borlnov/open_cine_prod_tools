@@ -9,23 +9,24 @@ import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_schedule_labels.dart';
 
-/// The tallest the day list is ever drawn before it starts scrolling, in logical pixels — a forty-day
-/// shoot still has to fit inside one dialog.
+/// The tallest the day list is ever drawn before it starts scrolling, in logical pixels — a
+/// forty-day shoot still has to fit inside one dialog.
 const double _ocptScheduleDaySelectionMaxHeight = 220;
 
-/// A scrollable, checkbox list of shooting days with "select all"/"select none" controls — shared by
-/// `OcptScheduleCallSheetsExportDialog` and `OcptScheduleShootingPlanExportDialog`, the two export
-/// dialogs that ask "which days to print" over what may be a forty-day shoot: offering the two bulk
-/// controls rather than leaving the user to click forty boxes one at a time.
+/// A scrollable, checkbox list of shooting days with "select all"/"select none" controls — shared
+/// by `OcptScheduleCallSheetsExportDialog` and `OcptScheduleShootingPlanExportDialog`, the two
+/// export dialogs that ask "which days to print" over what may be a forty-day shoot: offering the
+/// two bulk controls rather than leaving the user to click forty boxes one at a time.
 ///
-/// Purely presentational: [selectedDayIds] is owned by the caller, and every tick — a single row, or
-/// one of the two bulk controls — reports the full next set through [onChanged] rather than a diff,
-/// mirroring the idiom the rest of this app's checkbox lists already use.
+/// Purely presentational: [selectedDayIds] is owned by the caller, and every tick — a single row,
+/// or one of the two bulk controls — reports the full next set through [onChanged] rather than a
+/// diff, mirroring the idiom the rest of this app's checkbox lists already use.
 ///
 /// The rows are a plain [Column] inside a [SingleChildScrollView] rather than a shrink-wrapped
-/// [ListView], and deliberately so: an `AlertDialog` measures its content's **intrinsic** width, and
-/// a shrink-wrapping viewport cannot report one — it throws at layout rather than merely looking
-/// wrong. A shoot's worth of days is a handful of rows anyway, so laziness buys nothing here.
+/// [ListView], and deliberately so: an `AlertDialog` measures its content's **intrinsic** width,
+/// and a shrink-wrapping viewport cannot report one — it throws at layout rather than merely
+/// looking wrong. A shoot's worth of days is a handful of rows anyway, so laziness buys nothing
+/// here.
 class OcptScheduleDaySelectionList extends StatelessWidget {
   /// Every live day offered, in the order they are printed.
   final List<OcptShootingDay> days;

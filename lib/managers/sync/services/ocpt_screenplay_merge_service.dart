@@ -106,9 +106,10 @@ class OcptScreenplayMergeService {
 
   /// Writes [mergedText] back as the screenplay [screenplayId]'s new text, through
   /// `OcptScreenplayService.reconcileScreenplayText`, seeding and flushing its own
-  /// [OcptRowStampService] around one transaction — nested inside `OcptMergeService.applyChangeset`'s
-  /// own already-open `defer_foreign_keys` transaction when called from there, and a transaction of
-  /// its own when [mergeIncomingFountainText] is called directly, as this class's own tests do.
+  /// [OcptRowStampService] around one transaction — nested inside
+  /// `OcptMergeService.applyChangeset`'s own already-open `defer_foreign_keys` transaction when
+  /// called from there, and a transaction of its own when [mergeIncomingFountainText] is called
+  /// directly, as this class's own tests do.
   Future<void> _writeMergedText({
     required OcptProjectDatabase fileDatabase,
     required String screenplayId,
@@ -149,7 +150,8 @@ class OcptScreenplayMergeService {
   /// necessarily the point the two replicas last actually agreed — picking the newest available
   /// snapshot in that case can diff against a base that already includes one side's own earlier,
   /// unrelated edits. Nothing here detects that case; it simply merges against the newest text it
-  /// can find, which is why this heuristic is documented rather than assumed self-evidently correct.
+  /// can find, which is why this heuristic is documented rather than assumed self-evidently
+  /// correct.
   ///
   /// Returns `null` when [screenplayId] has no live snapshot row at all — pruning
   /// (`OcptScreenplayService.maxSnapshotsPerScreenplay`) removed every candidate, or the screenplay

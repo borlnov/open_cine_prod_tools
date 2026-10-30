@@ -52,8 +52,8 @@ const Map<int, pw.TableColumnWidth> _columnWidths = {
   3: pw.FlexColumnWidth(1.2),
 };
 
-/// Renders the quote: the full CNC nomenclature, poste by poste with its own lines, each poste's own
-/// subtotal, then the project's own grand total.
+/// Renders the quote: the full CNC nomenclature, poste by poste with its own lines, each poste's
+/// own subtotal, then the project's own grand total.
 ///
 /// This is pure rendering logic with no dialog or file-system access of its own: it's owned by
 /// `OcptExportManager` and exposed as a public final field, reached through the manager rather than
@@ -65,8 +65,8 @@ const Map<int, pw.TableColumnWidth> _columnWidths = {
 ///
 /// **Every amount is converted row by row, then summed** — never a summed total converted by one
 /// rate — exactly the reading `lib/utils/ocpt_budget_totals.dart` already gives the cost-tracking
-/// table, and for the same reason: a table mixing tax-inclusive and tax-exclusive lines, or lines at
-/// different rates, would otherwise total wrong. Wherever a total is not
+/// table, and for the same reason: a table mixing tax-inclusive and tax-exclusive lines, or lines
+/// at different rates, would otherwise total wrong. Wherever a total is not
 /// [OcptBudgetCoveredTotal.isComplete], this document prints the coverage read-out
 /// `ocptBudgetExportCoveredAmountText` builds from [OcptBudgetQuoteLabels.coverageReadOutTemplate],
 /// beside it, rather than a figure standing in for the rows it does not cover.

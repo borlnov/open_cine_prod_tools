@@ -223,8 +223,8 @@ class OcptBreakdownRecapTable extends StatelessWidget {
   }
 
   /// Whether [target] matches [searchQuery], resolving its notes/sub-category/owner off
-  /// [elementById]/[personById] first — see `ocptBreakdownRecapRowMatches`'s own doc comment for why
-  /// a role or a set simply never passes those three.
+  /// [elementById]/[personById] first — see `ocptBreakdownRecapRowMatches`'s own doc comment for
+  /// why a role or a set simply never passes those three.
   bool _matches(
     Tr tr,
     OcptBreakdownTarget target,

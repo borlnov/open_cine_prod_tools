@@ -655,11 +655,11 @@ class OcptFloorPlanService {
   /// Tombstones a set-scope symbol **everywhere**: [symbolId] itself (or, when [symbolId] names a
   /// scene-scope override instead, the set-scope original it overrides — resolved through its own
   /// `overridesSymbolId`) and every live scene-scope override of it, in every sequence, plus every
-  /// arrow touching any of them — the "Delete everywhere" branch of the extended delete confirmation
-  /// for a set element used by two or more sequences: the
-  /// original and every one of its own re-dressings for a particular sequence are, semantically, one
-  /// piece of furniture, and "everywhere" removes all of it at once rather than leaving an override
-  /// dangling with no original left to fall back to.
+  /// arrow touching any of them — the "Delete everywhere" branch of the extended delete
+  /// confirmation for a set element used by two or more sequences: the original and every one of
+  /// its own re-dressings for a particular sequence are, semantically, one piece of furniture, and
+  /// "everywhere" removes all of it at once rather than leaving an override dangling with no
+  /// original left to fall back to.
   ///
   /// A no-op while [symbolId] (or the original it resolves to) is already gone.
   ///
@@ -933,11 +933,11 @@ class OcptFloorPlanService {
   }
 
   /// Copies shot [sourceShotId]'s own live shot-layer symbols (cameras, characters, lights — never
-  /// props any more, now that the scope matrix confines a prop to scene scope) and the arrows
-  /// drawn between two of them, from set [sourceSetId] onto shot [destinationShotId]
-  /// of set [destinationSetId] — the same set for a same-set copy, a different one for a copy across
-  /// sets — as **independent copies**, appended after [destinationShotId]'s own current symbols of
-  /// each layer. Creates [destinationSetId]'s plan if it doesn't exist yet ([_ensurePlan]).
+  /// props any more, now that the scope matrix confines a prop to scene scope) and the arrows drawn
+  /// between two of them, from set [sourceSetId] onto shot [destinationShotId] of set
+  /// [destinationSetId] — the same set for a same-set copy, a different one for a copy across sets
+  /// — as **independent copies**, appended after [destinationShotId]'s own current symbols of each
+  /// layer. Creates [destinationSetId]'s plan if it doesn't exist yet ([_ensurePlan]).
   ///
   /// An arrow whose either end is a set-scope or scene-scope symbol (a set element the source
   /// shot's own blocking points at or from) is **not copied**: that symbol belongs to
@@ -1044,8 +1044,8 @@ class OcptFloorPlanService {
   /// only ever own symbols whose own `shotId` equals it (the scope invariant), so this is exactly
   /// the shot's own placements, nothing of the décor it was drawn against.
   ///
-  /// **Unguarded**, exactly as `OcptStoryboardService.tombstonePanelsOfShot` is: its only caller has
-  /// already refused the write on a preview connection and is already inside the transaction
+  /// **Unguarded**, exactly as `OcptStoryboardService.tombstonePanelsOfShot` is: its only caller
+  /// has already refused the write on a preview connection and is already inside the transaction
   /// removing the shot. Stamps through [stamps], that caller's own instance.
   ///
   /// {@macro open_cine_prod_tools.tombstones}

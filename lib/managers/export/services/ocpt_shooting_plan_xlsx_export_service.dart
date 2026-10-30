@@ -27,9 +27,9 @@ import 'package:open_cine_prod_tools/utils/ocpt_day_minute.dart';
 /// The four grid sheets are built from [OcptShootingPlanGrids] (`lib/models/`), the very rows and
 /// columns the PDF service already draws — never a second computation of them, which is exactly how
 /// a printed plan and this workbook would come to disagree about what a production is doing on a
-/// given day. Unlike the PDF's own landscape pages, a sheet is never chunked: [OcptShootingPlanGrids
-/// .slotColumns]/`.dayColumns` are written whole, a spreadsheet running its columns on rather than
-/// paying for a page break.
+/// given day. Unlike the PDF's own landscape pages, a sheet is never chunked:
+/// [OcptShootingPlanGrids .slotColumns]/`.dayColumns` are written whole, a spreadsheet running its
+/// columns on rather than paying for a page break.
 ///
 /// The `Chronology` sheet has no equivalent on the PDF at all: it reads
 /// `ocptOrderedScheduleEntriesOfDay` — the very walk the call sheets, the shooting plan's own day
@@ -39,9 +39,10 @@ import 'package:open_cine_prod_tools/utils/ocpt_day_minute.dart';
 ///
 /// This is pure in-memory workbook building with no I/O of its own (no dialog, no file system
 /// access): it's owned by `OcptExportManager` and exposed as a public final field, reached through
-/// the manager rather than through `globalGetIt()` (RFL18), exactly like `OcptBreakdownXlsxExportService`
-/// and its own siblings. It takes no options: the export panel's card goes straight to the day
-/// picker, that dialog's own days being this service's whole `dayIds`.
+/// the manager rather than through `globalGetIt()` (RFL18), exactly like
+/// `OcptBreakdownXlsxExportService` and its own siblings. It takes no options: the export panel's
+/// card goes straight to the day picker, that dialog's own days being this service's whole
+/// `dayIds`.
 class OcptShootingPlanXlsxExportService {
   /// The sheet name used when the caller's own [OcptShootingPlanXlsxLabels.locationsSheetName] is
   /// blank.
@@ -182,9 +183,9 @@ class OcptShootingPlanXlsxExportService {
 
   /// Writes one of the three slot-shaped summary grids (`Locations`, `Sequences`, `Crew and cast`)
   /// into [sheet]: a bold day-tag row (a day's tag printed once above the first of its own slot
-  /// columns, mirroring `OcptShootingPlanPdfService._gridPage`'s own header), a bold slot-label row,
-  /// then [rows] — a row's own [OcptShootingPlanGridRow.isIndented] read as a two-space indent on
-  /// its label, since a spreadsheet cell has no visual indent of its own to reach for.
+  /// columns, mirroring `OcptShootingPlanPdfService._gridPage`'s own header), a bold slot-label
+  /// row, then [rows] — a row's own [OcptShootingPlanGridRow.isIndented] read as a two-space indent
+  /// on its label, since a spreadsheet cell has no visual indent of its own to reach for.
   void _appendSlotGridSheet({
     required Sheet sheet,
     required List<OcptShootingPlanGridColumn> columns,

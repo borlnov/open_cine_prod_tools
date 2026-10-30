@@ -32,9 +32,9 @@ final RegExp _ocptLeadingOrTrailingClutter = RegExp(r'^[\s.]+|[\s.]+$');
 ///
 /// Windows caps a full path at 260 characters unless long-path support is opted into, and a
 /// project's folder is only the first segment of a deeper one (`<name>/assets/<assetId>/<file>`,
-/// `docs/adr/0021-the-portable-project-package.md`) — 80 leaves comfortable room for everything that
-/// gets appended under it without being so short that two differently-punctuated titles collapse
-/// into the same stem more often than they already would.
+/// `docs/adr/0021-the-portable-project-package.md`) — 80 leaves comfortable room for everything
+/// that gets appended under it without being so short that two differently-punctuated titles
+/// collapse into the same stem more often than they already would.
 const ocptSafeFileNameMaxLength = 80;
 
 /// Turns [name] — a project's free-typed display name — into a name a filesystem accepts on

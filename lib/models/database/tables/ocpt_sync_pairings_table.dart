@@ -18,8 +18,8 @@ import 'package:drift/drift.dart';
 /// `OcptSyncRelayCursorsTable` — read its own doc comment first. Whether *this* replica of the
 /// project happens to be paired with a relay, and which one, is not a fact about the project any
 /// other replica could ever agree or disagree with, so it carries no `isDeleted`, no `sortKey` and
-/// no `row_field_versions` stamp, is never part of `OcptProjectVersionPayload`, and plays no part in
-/// `OcptProjectVersionCodec.contentDigest`: a version restore must leave it alone rather than
+/// no `row_field_versions` stamp, is never part of `OcptProjectVersionPayload`, and plays no part
+/// in `OcptProjectVersionCodec.contentDigest`: a version restore must leave it alone rather than
 /// unpairing or re-pairing the project.
 @DataClassName('OcptSyncPairingRow')
 class OcptSyncPairingsTable extends Table {

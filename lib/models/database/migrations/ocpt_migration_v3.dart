@@ -15,14 +15,15 @@ import 'package:open_cine_prod_tools/utils/ocpt_row_stamp_key.dart';
 const _legacyShotCharactersTableName = 'shot_characters_v2';
 
 /// Schema version 3's own `onUpgrade` step, called from [OcptProjectDatabase.migration] for a file
-/// opened below it: reshapes `shot_characters` from its frozen v2 shape — `{shotId, characterName}`,
-/// a free normalised name with no foreign key — to `{shotId, roleId}`, referencing [OcptRolesTable]
-/// (`docs/adr/0030-a-shots-characters-are-the-productions-roles.md`).
+/// opened below it: reshapes `shot_characters` from its frozen v2 shape —
+/// `{shotId, characterName}`, a free normalised name with no foreign key — to `{shotId, roleId}`,
+/// referencing [OcptRolesTable] (`docs/adr/0030-a-shots-characters-are-the-productions-roles.md`).
 ///
-/// SQLite cannot alter a primary key in place, so this recreates the table: [_legacyShotCharactersTableName]
-/// is a create-new/copy/drop, not a `Migrator.alterTable`, because copying a row also has to decide
-/// *which* role it now points to — a decision `alterTable`'s column-by-column transformer cannot
-/// express, since it may have to **mint a role that does not exist yet**.
+/// SQLite cannot alter a primary key in place, so this recreates the table:
+/// [_legacyShotCharactersTableName] is a create-new/copy/drop, not a `Migrator.alterTable`, because
+/// copying a row also has to decide *which* role it now points to — a decision `alterTable`'s
+/// column-by-column transformer cannot express, since it may have to **mint a role that does not
+/// exist yet**.
 ///
 /// For every `shot_characters` row, live or tombstoned alike (sync history is kept), its normalised
 /// `characterName` maps to a role:
@@ -38,22 +39,23 @@ const _legacyShotCharactersTableName = 'shot_characters_v2';
 /// minted here with a random id would come back as several rows the moment two replicas met. Both
 /// the minted role's own id and its `role_episodes` link's id are therefore **deterministic UUID
 /// v5s** of the normalised name (and, for the link, the pair `(roleId, screenplayId)`) —
-/// [ocptDeterministicRoleId] / [ocptDeterministicRoleEpisodeId] — so two replicas migrating the same
-/// name mint the very same rows. To keep every other part of the outcome just as deterministic: the
-/// distinct names needing a fresh role are minted in **sorted** order, so the fractional `sortKey`
-/// each one is appended with is a pure function of the (byte-identical, per the argument above)
-/// source data rather than of whatever order SQLite happened to return rows in; and a minted role's
-/// `role_episodes` links are one per **distinct** screenplay id its rows reference, never one per
-/// row. **Neither the minted `roles` row nor its `role_episodes` link is stamped** in
-/// `row_field_versions`: their deterministic identity, not a merge stamp, is what makes them
-/// converge, and stamping them with this replica's own clock and device id would make two replicas'
-/// otherwise-identical rows carry different merge history for no reason. The convergence test
-/// (`test/models/database/ocpt_project_database_migration_test.dart`) is the arbiter of this
-/// argument, not this comment.
+/// [ocptDeterministicRoleId] / [ocptDeterministicRoleEpisodeId] — so two replicas migrating the
+/// same name mint the very same rows. To keep every other part of the outcome just as
+/// deterministic: the distinct names needing a fresh role are minted in **sorted** order, so the
+/// fractional `sortKey` each one is appended with is a pure function of the (byte-identical, per
+/// the argument above) source data rather than of whatever order SQLite happened to return rows in;
+/// and a minted role's `role_episodes` links are one per **distinct** screenplay id its rows
+/// reference, never one per row. **Neither the minted `roles` row nor its `role_episodes` link is
+/// stamped** in `row_field_versions`: their deterministic identity, not a merge stamp, is what
+/// makes them converge, and stamping them with this replica's own clock and device id would make
+/// two replicas' otherwise-identical rows carry different merge history for no reason. The
+/// convergence test (`test/models/database/ocpt_project_database_migration_test.dart`) is the
+/// arbiter of this argument, not this comment.
 ///
 /// The **existing** stamps of `shot_characters` rows are a different story: they carry real merge
-/// history and must survive the reshape. Every `row_field_versions` row naming `table_name =
-/// 'shot_characters'` is rekeyed from `rowId = ocptCompositeRowStampKey([shotId, characterName])` to
+/// history and must survive the reshape. Every `row_field_versions` row naming
+/// `table_name = 'shot_characters'` is rekeyed from
+/// `rowId = ocptCompositeRowStampKey([shotId, characterName])` to
 /// `rowId = ocptCompositeRowStampKey([shotId, roleId])` — a pure function of the old key and the
 /// very same (deterministic where minted) role id every replica computes, so the rekey itself
 /// converges — and the one stamp among them whose `columnName` is `characterName` is renamed to

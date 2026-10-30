@@ -9,8 +9,8 @@ import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart'
 ///
 /// [minute] is an offset from the day's own midnight and may exceed 1440 — see
 /// `OcptShootingDayEventsTable`'s own doc comment for why this is deliberately not a
-/// `shooting_day_blocks` row: it takes no part in any slot's chain, and moving one is typing another
-/// hour, never dragging it.
+/// `shooting_day_blocks` row: it takes no part in any slot's chain, and moving one is typing
+/// another hour, never dragging it.
 class OcptShootingDayEvent extends Equatable {
   /// The stable, unique id of this event (a UUID).
   final String id;

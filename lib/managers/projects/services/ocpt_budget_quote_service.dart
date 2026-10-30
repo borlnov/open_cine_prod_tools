@@ -283,19 +283,19 @@ class OcptBudgetQuoteService {
   /// `OcptBudgetLinesTable.provisionKey`. Every other caller leaves all three at [Value.absent],
   /// and the line then reads as one somebody typed, which is what it is.
   ///
-  /// [elementId] and [unitAmountCents] are what `OcptBudgetFiche`'s own `From breakdown`
-  /// gesture fills in — a line minted from a breakdown element, its own unit price seeded from
+  /// [elementId] and [unitAmountCents] are what `OcptBudgetFiche`'s own `From breakdown` gesture
+  /// fills in — a line minted from a breakdown element, its own unit price seeded from
   /// `OcptElement.cost` — and what the ordinary `+ Add` footer leaves at [Value.absent], the plain
   /// `+ Add` line reading exactly as it always has. **A null `elements.cost` is passed on as
   /// [Value.absent] too, never as `Value(0)`**: the line this call mints is then left at
   /// `budget_lines.unitAmountCents`'s own ordinary default — a fresh, unpriced line the ordinary
-  /// `+ Add` footer already produces — rather than writing a figure that would read as a price typed
-  /// on purpose, which nobody has typed.
+  /// `+ Add` footer already produces — rather than writing a figure that would read as a price
+  /// typed on purpose, which nobody has typed.
   ///
   /// [unit] is what a line born already filled — the entry wizard's own `addQuoteLine` gesture —
   /// fills in alongside [label], [quantityMilli] and [unitAmountCents]; every other caller leaves
-  /// it at [Value.absent], reading `budget_lines.unit`'s own ordinary default exactly as before this
-  /// parameter existed.
+  /// it at [Value.absent], reading `budget_lines.unit`'s own ordinary default exactly as before
+  /// this parameter existed.
   ///
   /// [isTaxInclusive] and [vatRateBasisPoints] are what the fiche's own `Add to the quote` banner
   /// action fills in — a line promoted from an off-line journal entry, its own tax basis mirrored

@@ -89,25 +89,25 @@ const double _rotateSnapStepDeg = 15;
 /// [onSymbolLabelChanged]. **Double-clicking a ghost** calls [onGhostShotFocusRequested] with its
 /// own shot's id, focusing it.
 ///
-/// Placing a set element: pick the `setElement` tool (one of the palette's own four typed entries
-/// — wall/door/furniture/freeform — arms both [activeTool] and [activeSetElementShape]), click →
+/// Placing a set element: pick the `setElement` tool (one of the palette's own four typed entries —
+/// wall/door/furniture/freeform — arms both [activeTool] and [activeSetElementShape]), click →
 /// [onSymbolPlaced] onto the set layer, carrying that shape. Dragging a symbol moves it (one
-/// [onSymbolMoved] on drag end, in metres);
-/// dragging its own resize handle resizes it (one [onSymbolResized] on drag end); dragging its own
-/// **aim handle** points it (one [onSymbolRotated] on drag end, the pointer's own bearing around
-/// the symbol's centre computed in **canvas space** through `RenderBox.globalToLocal` — never the
-/// handle's own local position, which reads it relative to the handle's tiny hit box instead —
-/// holding `Shift` snaps it to [_rotateSnapStepDeg]° steps). A selected camera also draws two edge
-/// handles on its own field-of-view wedge; dragging either narrows or widens it (one
-/// [onSymbolFovChanged] on drag end, in degrees). `Ctrl+D` on the selected symbol, or an `Alt`-drag
-/// of any symbol (the drag preview follows the pointer exactly like a plain move, but on release the
-/// *source* symbol is left untouched and a new, independent copy is placed at the release point
-/// instead — [onSymbolDuplicateDragged]), duplicates it: never a link.
+/// [onSymbolMoved] on drag end, in metres); dragging its own resize handle resizes it (one
+/// [onSymbolResized] on drag end); dragging its own **aim handle** points it (one [onSymbolRotated]
+/// on drag end, the pointer's own bearing around the symbol's centre computed in **canvas space**
+/// through `RenderBox.globalToLocal` — never the handle's own local position, which reads it
+/// relative to the handle's tiny hit box instead — holding `Shift` snaps it to
+/// [_rotateSnapStepDeg]° steps). A selected camera also draws two edge handles on its own
+/// field-of-view wedge; dragging either narrows or widens it (one [onSymbolFovChanged] on drag end,
+/// in degrees). `Ctrl+D` on the selected symbol, or an `Alt`-drag of any symbol (the drag preview
+/// follows the pointer exactly like a plain move, but on release the *source* symbol is left
+/// untouched and a new, independent copy is placed at the release point instead —
+/// [onSymbolDuplicateDragged]), duplicates it: never a link.
 ///
 /// Every write is **withheld** under [isReadOnly] (a null `onSymbolPlaced`/move/resize/rotate/fov/
-/// delete/arrow/label/duplicate closes the whole gesture, exactly as the board's null callbacks do);
-/// zoom, pan, selecting, the metrics overlay and the tray's own visibility toggles stay available,
-/// since they only read.
+/// delete/arrow/label/duplicate closes the whole gesture, exactly as the board's null callbacks
+/// do); zoom, pan, selecting, the metrics overlay and the tray's own visibility toggles stay
+/// available, since they only read.
 ///
 /// **Arrow selection**: a click under `select` that lands within `_arrowHitTolerancePx` of a
 /// (non-ghost) arrow's own shaft (straight or curved, `_arrowHitAt`) selects it
@@ -193,9 +193,9 @@ class OcptFloorPlanCanvas extends StatefulWidget {
   /// reads its own payload instead (`OcptFloorPlanPaletteDragPayload.sceneScope`).
   final OcptFloorPlanScope activeSetElementScope;
 
-  /// A `prop` tool click-to-arm placement's own label — which breakdown-prop chip, or the
-  /// `Other…` chip's own typed-in text, was armed last. See [activeSetElementShape]'s own doc
-  /// comment for why a drag reads its own payload instead (`OcptFloorPlanPaletteDragPayload.label`).
+  /// A `prop` tool click-to-arm placement's own label — which breakdown-prop chip, or the `Other…`
+  /// chip's own typed-in text, was armed last. See [activeSetElementShape]'s own doc comment for
+  /// why a drag reads its own payload instead (`OcptFloorPlanPaletteDragPayload.label`).
   final String activeLabel;
 
   /// The live zoom/pan controller this canvas draws and drags against — see that class's own doc
@@ -406,7 +406,8 @@ class _OcptFloorPlanCanvasState extends State<OcptFloorPlanCanvas> {
   /// Whether the drag currently in progress (always a [_SymbolDragKind.move] one) is an `Alt`-drag
   /// duplicate: the live preview tracks the pointer exactly like a plain move, but
   /// [_commitSymbolDrag] reports it through [OcptFloorPlanCanvas.onSymbolDuplicateDragged] instead
-  /// of [OcptFloorPlanCanvas.onSymbolMoved], leaving the source symbol at its own original position.
+  /// of [OcptFloorPlanCanvas.onSymbolMoved], leaving the source symbol at its own original
+  /// position.
   bool _isDuplicatingDrag = false;
 
   /// The dragged symbol's live geometry, updated every frame of the drag. See
@@ -973,8 +974,8 @@ class _OcptFloorPlanCanvasState extends State<OcptFloorPlanCanvas> {
 
   /// The underlay's own visual: a real `OcptReferencedImage`, positioned and rotated to its current
   /// frame, drawn behind the `CustomPaint` (so symbols draw over it) and taking no pointer of its
-  /// own — a separate invisible overlay ([_buildUnderlayHandles]) handles its interaction, decoupling
-  /// visual draw order from hit-test order.
+  /// own — a separate invisible overlay ([_buildUnderlayHandles]) handles its interaction,
+  /// decoupling visual draw order from hit-test order.
   Widget _buildUnderlayVisual(
     OcptFloorPlanSet floorPlanSet,
     Size canvasSize,
@@ -1425,8 +1426,8 @@ class _OcptFloorPlanCanvasState extends State<OcptFloorPlanCanvas> {
     return [buildHandle(-1), buildHandle(1)];
   }
 
-  /// A camera symbol's own field-of-view **tip** handle, straight ahead of its lens at the middle of
-  /// the wedge's own far chord — its own axial height/depth
+  /// A camera symbol's own field-of-view **tip** handle, straight ahead of its lens at the middle
+  /// of the wedge's own far chord — its own axial height/depth
   /// (`OcptFloorPlanSymbolShape.cameraFovWedgeReachM`) along the heading — dragging it changes how
   /// deep the wedge reaches, never its angle (the two edge handles' own job, [_buildFovHandles]),
   /// which stays exactly where it was: the two corners move together with this handle since they
@@ -1482,12 +1483,12 @@ class _OcptFloorPlanCanvasState extends State<OcptFloorPlanCanvas> {
   }
 
   /// Updates [_liveOverride]'s own field-of-view reach (the wedge's own axial height/depth) every
-  /// frame of a tip-handle drag: the pointer's own distance from the symbol's centre, projected onto
-  /// its own heading vector (so a pointer straying sideways still reads as a forward/backward depth
-  /// rather than snapping — the wedge's own half-width at that depth is for [_buildFovHandles]'s own
-  /// corners to derive, never this drag's concern), in **canvas space** (through
-  /// [_resolveLocalPosition], the same fix [_updateRotateDrag] needs), minus the half-footprint
-  /// already between the centre and the lens — clamped to
+  /// frame of a tip-handle drag: the pointer's own distance from the symbol's centre, projected
+  /// onto its own heading vector (so a pointer straying sideways still reads as a forward/backward
+  /// depth rather than snapping — the wedge's own half-width at that depth is for
+  /// [_buildFovHandles]'s own corners to derive, never this drag's concern), in **canvas space**
+  /// (through [_resolveLocalPosition], the same fix [_updateRotateDrag] needs), minus the
+  /// half-footprint already between the centre and the lens — clamped to
   /// [ocptFloorPlanMinCameraFovReachM]..[ocptFloorPlanMaxCameraFovReachM].
   void _updateFovReachDrag(
     String symbolId,
@@ -1754,12 +1755,12 @@ class _OcptFloorPlanCanvasState extends State<OcptFloorPlanCanvas> {
     );
   }
 
-  /// The scope bubble: anchored just below [override]'s own footprint, offering `Every sequence (n)` /
-  /// `Only sequence n` / `Cancel` for a set-scope symbol whose own set is linked to two or more
-  /// sequences, or `The whole sequence` / `Only shot n` / `Cancel` for a scene-scope symbol of a
-  /// sequence with two or more shots — shown the instant a move/rotate/resize ends, in place of
-  /// writing straight away. Works with mouse and touch alike: three plain tappable buttons,
-  /// nothing gesture-specific.
+  /// The scope bubble: anchored just below [override]'s own footprint, offering
+  /// `Every sequence (n)` / `Only sequence n` / `Cancel` for a set-scope symbol whose own set is
+  /// linked to two or more sequences, or `The whole sequence` / `Only shot n` / `Cancel` for a
+  /// scene-scope symbol of a sequence with two or more shots — shown the instant a
+  /// move/rotate/resize ends, in place of writing straight away. Works with mouse and touch alike:
+  /// three plain tappable buttons, nothing gesture-specific.
   Widget _buildScopeBubble(
     OcptFloorPlanSymbolLiveOverride override,
     Size canvasSize,

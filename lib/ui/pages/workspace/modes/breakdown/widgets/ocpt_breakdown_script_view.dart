@@ -42,9 +42,9 @@ const double _ocptBreakdownTagAlpha = 0.35;
 /// one is selected.
 const double _ocptBreakdownSelectedTagAlpha = 0.55;
 
-/// The width of the ring `OcptBreakdownScriptView` draws around a selected target's tagged words, in
-/// logical pixels — what distinguishes the selection from the plain category wash every other tag
-/// of the same category still carries.
+/// The width of the ring `OcptBreakdownScriptView` draws around a selected target's tagged words,
+/// in logical pixels — what distinguishes the selection from the plain category wash every other
+/// tag of the same category still carries.
 const double _ocptBreakdownSelectedTagRingWidth = 1.5;
 
 /// The vertical padding of a clickable word's own box, in logical pixels.
@@ -56,9 +56,9 @@ const double _ocptBreakdownSelectedTagRingWidth = 1.5;
 const double _ocptWordVerticalPadding = 2;
 
 /// The vertical padding kept inside the white sheet on a phone, replacing the page's own (much
-/// larger) top/bottom print margins: the compact sheet fills the row and stands in for the desktop's
-/// floating page, so it wants the screenplay editor's own small fluid inset rather than a full
-/// inch of paper margin before the first scene.
+/// larger) top/bottom print margins: the compact sheet fills the row and stands in for the
+/// desktop's floating page, so it wants the screenplay editor's own small fluid inset rather than a
+/// full inch of paper margin before the first scene.
 const double _ocptCompactSheetVerticalPadding = 16;
 
 /// The breakdown mode's `centre`: the whole screenplay typeset on a simulated paper sheet, centred
@@ -79,28 +79,30 @@ const double _ocptCompactSheetVerticalPadding = 16;
 /// row of separate boxes.
 ///
 /// A word overlapped by a live tag whose target still resolves paints with that target's own colour
-/// (`OcptBreakdownTarget.color`), unless its legend key is in [hiddenLegendKeys] — hiding a category
-/// (`OcptBreakdownCategoryLegend`) is a reading aid for this highlighting alone, so a hidden word
-/// still selects its target on a click, it only stops painting. The tags of [selectedTargetRef]
-/// additionally carry a ring. A tag whose `OcptBreakdownTag.needsCheck` is set is underlined in the
-/// workspace's warning colour, composed with the category wash rather than replacing it. A tag whose
-/// target has been dropped from the snapshot (`OcptBreakdownSnapshot.build`'s own doc comment: a
-/// tombstoned catalogue row keeps its tag on the scene but drops it from the snapshot's targets) has
-/// no colour to paint and is left plain, never crashing.
+/// (`OcptBreakdownTarget.color`), unless its legend key is in [hiddenLegendKeys] — hiding a
+/// category (`OcptBreakdownCategoryLegend`) is a reading aid for this highlighting alone, so a
+/// hidden word still selects its target on a click, it only stops painting. The tags of
+/// [selectedTargetRef] additionally carry a ring. A tag whose `OcptBreakdownTag.needsCheck` is set
+/// is underlined in the workspace's warning colour, composed with the category wash rather than
+/// replacing it. A tag whose target has been dropped from the snapshot
+/// (`OcptBreakdownSnapshot.build`'s own doc comment: a tombstoned catalogue row keeps its tag on
+/// the scene but drops it from the snapshot's targets) has no colour to paint and is left plain,
+/// never crashing.
 ///
-/// Clicking a word that overlaps a live tag whose target resolves reports that target upward through
-/// [onTargetSelected], together with the scene the click happened in — never withheld, since
-/// selecting writes nothing. Clicking any other word — one covered by no tag, or by a tag whose
-/// target is gone — reports its own scene-relative offsets through [onWordClicked], which drives the
-/// range interaction (`OcptBreakdownBloc._onWordClicked`): a first click opens [pendingTagAnchor], a
-/// second one in the same scene closes it into [pendingTagRange], the cue this view reads to open
-/// [OcptBreakdownTagPopover] — through [OcptBreakdownTagPopoverAnchor], anchored under the very word
-/// the second click landed on — offering [candidates] to link to or an element category to create
-/// from. [onWordClicked] is null while a version is being previewed, withholding the whole gesture
-/// on a read-only project: a plain word then paints and reads exactly as before, it simply stops
-/// being a click target. While [pendingTagAnchor] is open in a scene, a plain word whose range with
-/// it would overlap a live tag of that scene is not a click target at all either — greyed out rather
-/// than merely refused on click, so the user never discovers the refusal by trying it.
+/// Clicking a word that overlaps a live tag whose target resolves reports that target upward
+/// through [onTargetSelected], together with the scene the click happened in — never withheld,
+/// since selecting writes nothing. Clicking any other word — one covered by no tag, or by a tag
+/// whose target is gone — reports its own scene-relative offsets through [onWordClicked], which
+/// drives the range interaction (`OcptBreakdownBloc._onWordClicked`): a first click opens
+/// [pendingTagAnchor], a second one in the same scene closes it into [pendingTagRange], the cue
+/// this view reads to open [OcptBreakdownTagPopover] — through [OcptBreakdownTagPopoverAnchor],
+/// anchored under the very word the second click landed on — offering [candidates] to link to or an
+/// element category to create from. [onWordClicked] is null while a version is being previewed,
+/// withholding the whole gesture on a read-only project: a plain word then paints and reads exactly
+/// as before, it simply stops being a click target. While [pendingTagAnchor] is open in a scene, a
+/// plain word whose range with it would overlap a live tag of that scene is not a click target at
+/// all either — greyed out rather than merely refused on click, so the user never discovers the
+/// refusal by trying it.
 ///
 /// Only a scene's heading row stays row-level clickable, selecting that scene — shown with a tinted
 /// accent bar and its own tagged-target count on the right.
@@ -186,7 +188,8 @@ class OcptBreakdownScriptView extends StatefulWidget {
   /// Called when a pending range selection — a first click still waiting for its second — should be
   /// abandoned: the user pressed `Escape`, or clicked the sheet away from any word. It clears the
   /// anchor through the very same `OcptBreakdownTagRangeCancelledEvent` the popover's own
-  /// `Escape`/tap-outside uses, so cancelling a lone anchor and cancelling the popover are one path.
+  /// `Escape`/tap-outside uses, so cancelling a lone anchor and cancelling the popover are one
+  /// path.
   final VoidCallback onSelectionCancelled;
 
   /// Class constructor
@@ -220,11 +223,11 @@ class OcptBreakdownScriptView extends StatefulWidget {
 
 /// [OcptBreakdownScriptView]'s state: it owns a single [FocusNode] so that, while a range selection
 /// is open (a first click with no second yet), `Escape` can abandon it. The node takes focus the
-/// moment such an anchor opens and never on its own otherwise, so it steals nothing from a field the
-/// user is typing in until they have actually started a selection on the sheet.
+/// moment such an anchor opens and never on its own otherwise, so it steals nothing from a field
+/// the user is typing in until they have actually started a selection on the sheet.
 class _OcptBreakdownScriptViewState extends State<OcptBreakdownScriptView> {
-  /// Focused only while a range selection is open, purely to catch its `Escape`; it takes part in no
-  /// traversal, so `Tab` never lands on it.
+  /// Focused only while a range selection is open, purely to catch its `Escape`; it takes part in
+  /// no traversal, so `Tab` never lands on it.
   final FocusNode _keyboardFocusNode = FocusNode(
     debugLabel: "OcptBreakdownScriptViewKeyboard",
     skipTraversal: true,
@@ -262,8 +265,8 @@ class _OcptBreakdownScriptViewState extends State<OcptBreakdownScriptView> {
   }
 
   /// Focuses [_keyboardFocusNode] once the current frame is done, so an open selection's `Escape`
-  /// reaches it — deferred a frame because the node is not yet attached to the tree during the build
-  /// that opens the selection.
+  /// reaches it — deferred a frame because the node is not yet attached to the tree during the
+  /// build that opens the selection.
   void _grabKeyboardFocusAfterFrame() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted && _hasOpenSelection) {
@@ -295,10 +298,11 @@ class _OcptBreakdownScriptViewState extends State<OcptBreakdownScriptView> {
 
     final theme = Theme.of(context);
     final previewLayout = OcptEditorPreviewLayout(metrics: widget.pageSetup.toMetrics());
-    // On a phone the real screenplay indents (a character cue ≈ 3.7″ from the page's left edge) leave
-    // far too much margin to read, and the full page is wider than the row: the sheet fills the row
-    // and every indent and box width is scaled down by the same factor the screenplay editor's own
-    // compact fluid surface uses (`OcptFountainEditorStylesheet`), so the two read identically.
+    // On a phone the real screenplay indents (a character cue ≈ 3.7″ from the page's left edge)
+    // leave far too much margin to read, and the full page is wider than the row: the sheet fills
+    // the row and every indent and box width is scaled down by the same factor the screenplay
+    // editor's own compact fluid surface uses (`OcptFountainEditorStylesheet`), so the two read
+    // identically.
     final isPhone = ocptIsPhoneWidth(MediaQuery.sizeOf(context).width);
     final layoutScale = isPhone ? OcptEditorPreviewLayout.compactLayoutScale : 1.0;
 
@@ -306,10 +310,10 @@ class _OcptBreakdownScriptViewState extends State<OcptBreakdownScriptView> {
       focusNode: _keyboardFocusNode,
       onKeyEvent: _onKeyEvent,
       child: GestureDetector(
-        // A tap that reaches here fell on the sheet away from every word — each word's own box is an
-        // opaque tap target that wins the arena first — so while a selection is open, this is the
-        // click to nowhere that abandons it. Translucent, so a tap over the blank paper or the grey
-        // backdrop around it is caught all the same.
+        // A tap that reaches here fell on the sheet away from every word — each word's own box is
+        // an opaque tap target that wins the arena first — so while a selection is open, this is
+        // the click to nowhere that abandons it. Translucent, so a tap over the blank paper or the
+        // grey backdrop around it is caught all the same.
         behavior: HitTestBehavior.translucent,
         onTap: () {
           if (_hasOpenSelection) {
@@ -797,9 +801,9 @@ class _OcptBreakdownScriptBlock extends StatelessWidget {
 
   /// Whether closing a range between [pendingTagAnchor] and [word] would overlap a live tag of
   /// [scene] — computed cheaply, straight over the scene's own (typically short) tag list, exactly
-  /// as `OcptBreakdownBloc._onWordClicked` itself refuses the same overlap. False while no anchor is
-  /// open in this scene, or for a word already covered by a live tag: a tagged word is never this
-  /// kind of click target to begin with, it is always ordinary tagged word instead.
+  /// as `OcptBreakdownBloc._onWordClicked` itself refuses the same overlap. False while no anchor
+  /// is open in this scene, or for a word already covered by a live tag: a tagged word is never
+  /// this kind of click target to begin with, it is always ordinary tagged word instead.
   bool _isBlockedByAnchor(OcptScriptWord word) {
     final anchor = pendingTagAnchor;
     if (anchor == null || anchor.sceneId != scene.id) {
@@ -828,15 +832,16 @@ class _OcptBreakdownScriptBlock extends StatelessWidget {
       spanEnd > word.startOffset && spanEnd <= word.endOffset;
 
   /// How [word] is painted: the tagged rules `OcptBreakdownScriptView`'s own doc comment describes,
-  /// then — for a plain word — the pending anchor's own distinct mark, then a word of the range whose
-  /// popover is open, then the greyed-out mark of a word blocked by an anchor, and plain otherwise.
+  /// then — for a plain word — the pending anchor's own distinct mark, then a word of the range
+  /// whose popover is open, then the greyed-out mark of a word blocked by an anchor, and plain
+  /// otherwise.
   ///
   /// A tag or a range only trims the affix at the end it actually reaches: the word it starts in
   /// loses its leading affix, the word it ends in its trailing affix, so a passage of several words
-  /// still reads as one continuous band — only its two ends hug the words rather than the sentence's
-  /// punctuation. A tag's and a range's stored offsets are both already narrowed to word cores, so
-  /// [_spanStartsIn]/[_spanEndsIn] land on the boundary words, and the pending anchor (a single word)
-  /// trims both ends alike.
+  /// still reads as one continuous band — only its two ends hug the words rather than the
+  /// sentence's punctuation. A tag's and a range's stored offsets are both already narrowed to word
+  /// cores, so [_spanStartsIn]/[_spanEndsIn] land on the boundary words, and the pending anchor (a
+  /// single word) trims both ends alike.
   _OcptBreakdownWordPaint _paintOf(OcptScriptWord word) {
     final tag = _tagCovering(word);
     if (tag != null) {
@@ -887,9 +892,9 @@ class _OcptBreakdownScriptBlock extends StatelessWidget {
   /// so the left dock and the sheet stay in step — never null, since selecting writes nothing. A
   /// hidden legend key never changes this: hiding a category withholds its paint, not its click.
   ///
-  /// Otherwise null while [onWordClicked] itself is (a previewed version withholding the whole range
-  /// interaction) or while [_isBlockedByAnchor] says so — neither is a click target at all, not
-  /// merely one whose click is refused — and [onWordClicked] with the word's own scene-relative
+  /// Otherwise null while [onWordClicked] itself is (a previewed version withholding the whole
+  /// range interaction) or while [_isBlockedByAnchor] says so — neither is a click target at all,
+  /// not merely one whose click is refused — and [onWordClicked] with the word's own scene-relative
   /// offsets in every other case.
   VoidCallback? _onTapFor(OcptScriptWord word) {
     final tag = _tagCovering(word);
@@ -999,8 +1004,8 @@ TextStyle _runStyleOf(FountainInlineStyle style, TextStyle base) => switch (styl
 /// How one word of the sheet is painted, decided once by `_OcptBreakdownScriptBlock` per word from
 /// its own tag (if any) — see that class's own `_paintOf` for the rules.
 class _OcptBreakdownWordPaint {
-  /// The tagged target's own colour, or null for a plain word (untagged, or its target gone) and for
-  /// the two transient marks below, which never use a category colour.
+  /// The tagged target's own colour, or null for a plain word (untagged, or its target gone) and
+  /// for the two transient marks below, which never use a category colour.
   final Color? color;
 
   /// Whether this word's tag belongs to the currently selected target.
@@ -1031,8 +1036,8 @@ class _OcptBreakdownWordPaint {
   final bool trimLeadingAffix;
 
   /// Whether the highlight box should leave this word's trailing affix (its closing punctuation and
-  /// the whitespace up to the next word) outside it — set for the word a tag or a range **ends** in.
-  /// An interior word trims neither end, so its whole-word wash still bridges to its neighbour.
+  /// the whitespace up to the next word) outside it — set for the word a tag or a range **ends**
+  /// in. An interior word trims neither end, so its whole-word wash still bridges to its neighbour.
   final bool trimTrailingAffix;
 
   /// Class constructor
@@ -1073,8 +1078,8 @@ typedef _OcptTrimmedRuns = ({
 ///
 /// The word is drawn from its printed display [runs] rather than from the source text it covers, so
 /// the Fountain markers around it (`*italic*`, a forced line's leading character) are resolved into
-/// real emphasis instead of being shown — exactly as the raw mode's paper preview resolves them. The
-/// offsets the click reports are the source ones all the same, markers included.
+/// real emphasis instead of being shown — exactly as the raw mode's paper preview resolves them.
+/// The offsets the click reports are the source ones all the same, markers included.
 class _OcptBreakdownWord extends StatelessWidget {
   /// The word's printed runs, whitespace and inline emphasis included.
   final List<OcptFountainDisplayRun> runs;
@@ -1089,8 +1094,8 @@ class _OcptBreakdownWord extends StatelessWidget {
   final _OcptBreakdownWordPaint paint;
 
   /// Called when the word is clicked, or null when it is not a click target at all — a version
-  /// being previewed withholding the whole range interaction, or [_OcptBreakdownWordPaint.isBlocked]
-  /// saying closing a range on it would overlap a live tag.
+  /// being previewed withholding the whole range interaction, or
+  /// [_OcptBreakdownWordPaint.isBlocked] saying closing a range on it would overlap a live tag.
   final VoidCallback? onTap;
 
   /// Class constructor
@@ -1153,8 +1158,9 @@ class _OcptBreakdownWord extends StatelessWidget {
     }
 
     // When a tag or range boundary trims an affix off this word, the box hugs the word core and the
-    // affix sits outside it in the plain paper style; an interior or single-box word keeps its whole
-    // wash (the bridging whitespace of a multi-word band included). A word with no box never trims.
+    // affix sits outside it in the plain paper style; an interior or single-box word keeps its
+    // whole wash (the bridging whitespace of a multi-word band included). A word with no box never
+    // trims.
     final groups = decoration == null
         ? null
         : _trimmedRunGroups(paint.trimLeadingAffix, paint.trimTrailingAffix);
@@ -1192,15 +1198,15 @@ class _OcptBreakdownWord extends StatelessWidget {
 
   /// [runs] split into the leading affix, the word core, and the trailing affix the highlight box
   /// leaves outside itself — or null when there is nothing to trim (neither end asked for, no affix
-  /// there, or the word holds no letter or digit to trim down to), in which case the caller wraps the
-  /// whole word.
+  /// there, or the word holds no letter or digit to trim down to), in which case the caller wraps
+  /// the whole word.
   ///
   /// [trimLeading]/[trimTrailing] say which ends this word is a boundary of; an affix is everything
   /// that is neither a letter nor a digit at that end — the punctuation the recorded span already
   /// drops through [ocptNonWordAffixLengthsOf], plus, at the trailing end, the whitespace a word's
-  /// runs carry up to the next word. The split is on the word's own **displayed** characters (markers
-  /// already hidden), so the highlight and the tag it stands for read the same passage without this
-  /// widget reasoning in source offsets.
+  /// runs carry up to the next word. The split is on the word's own **displayed** characters
+  /// (markers already hidden), so the highlight and the tag it stands for read the same passage
+  /// without this widget reasoning in source offsets.
   _OcptTrimmedRuns? _trimmedRunGroups(bool trimLeading, bool trimTrailing) {
     if (!trimLeading && !trimTrailing) {
       return null;

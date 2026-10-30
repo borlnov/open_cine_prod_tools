@@ -115,7 +115,8 @@ class OcptResourcesPhotoSlot extends StatelessWidget {
   }
 }
 
-/// The [MenuAnchor] popover [OcptResourcesPhotoSlot] opens: the two photo entries, then the palette.
+/// The [MenuAnchor] popover [OcptResourcesPhotoSlot] opens: the two photo entries, then the
+/// palette.
 class _OcptPhotoSlotMenu extends StatelessWidget {
   /// Whether a photo is referenced, which is what decides the wording of the first entry and
   /// whether the second one exists at all.

@@ -140,9 +140,9 @@ class OcptContactListPdfService {
   ///
   /// [pageSetup] supplies the page geometry. [exportDate] is the moment the running head's own
   /// version line prints (`Version 2026-08-08 14:32`, through [ocptScheduleGeneratedAtStamp]),
-  /// resolved once per document — it defaults to [DateTime.now] so a caller that never reissues this
-  /// document doesn't have to pass one. A catalogue holding nobody with a position and no cast role
-  /// at all prints one readable note page rather than an empty file.
+  /// resolved once per document — it defaults to [DateTime.now] so a caller that never reissues
+  /// this document doesn't have to pass one. A catalogue holding nobody with a position and no cast
+  /// role at all prints one readable note page rather than an empty file.
   Future<Uint8List> generate({
     required OcptResourcesSnapshot snapshot,
     required OcptPageSetup pageSetup,

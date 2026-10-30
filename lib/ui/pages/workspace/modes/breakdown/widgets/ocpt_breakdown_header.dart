@@ -62,7 +62,8 @@ class OcptBreakdownHeader extends StatelessWidget {
   /// empty string.
   final ValueChanged<String> onSearchQueryChanged;
 
-  /// The number of distinct targets tagged across the whole screenplay — `snapshot.taggedTargetCount`.
+  /// The number of distinct targets tagged across the whole screenplay —
+  /// `snapshot.taggedTargetCount`.
   final int taggedTargetCount;
 
   /// The number of scenes marked done — `snapshot.doneSceneCount`.

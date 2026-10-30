@@ -522,7 +522,8 @@ void main() {
       expect(flushed.pendingFieldEdits, isEmpty);
     });
 
-    test("switching view writes what is still in the debounce, so the next view reads it", () async {
+    test("switching view writes what is still in the debounce, so the next view reads "
+        "it", () async {
       // The defect this pins: an amount typed in the cost-tracking table and followed straight by a
       // click on another chip was still sitting in the debounce, so the view switched to drew the
       // figures from before it and only corrected itself two seconds later.
@@ -3244,8 +3245,8 @@ void main() {
         expect(state.regieDecorNameByDayId[dayId], "Studio A");
 
         // The person's own commute is loaded and the mileage scales with it — both there to
-        // pre-fill a defrayal somebody types — and nothing is deduced from either: a production that
-        // has written no defrayal is defraying nobody.
+        // pre-fill a defrayal somebody types — and nothing is deduced from either: a production
+        // that has written no defrayal is defraying nobody.
         expect(state.allowances, isEmpty);
         expect(state.people.map((person) => person.id), contains(personId));
         expect(state.mileageRates, hasLength(1));

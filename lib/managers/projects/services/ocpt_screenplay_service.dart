@@ -19,11 +19,11 @@ import 'package:open_cine_prod_tools/utils/ocpt_fractional_key.dart';
 import 'package:uuid/uuid.dart';
 
 /// Loads and saves a screenplay's Fountain text, taking safety snapshots along the way, and owns
-/// the episode CRUD — **there is no twelfth service**: `docs/adr/0019-one-project-several-episodes.md`
-/// settles that a `screenplays` row *is* an episode, so the service that already owns screenplays
-/// owns episodes too, [loadEpisodes]/[createEpisode]/[updateEpisode]/[reorderEpisode]/[deleteEpisode]
-/// sitting beside the text/snapshot methods rather than in a table-per-service split this app
-/// otherwise follows.
+/// the episode CRUD — **there is no twelfth service**:
+/// `docs/adr/0019-one-project-several-episodes.md` settles that a `screenplays` row *is* an
+/// episode, so the service that already owns screenplays owns episodes too,
+/// [loadEpisodes]/[createEpisode]/[updateEpisode]/[reorderEpisode]/[deleteEpisode] sitting beside
+/// the text/snapshot methods rather than in a table-per-service split this app otherwise follows.
 ///
 /// [saveScreenplayText] also reconciles the scene index and the cast (`OcptRoleIndexService`)
 /// against the newly saved text, re-checks the shots' scenario coverage, and re-anchors the
@@ -84,11 +84,11 @@ class OcptScreenplayService {
   /// one instance to [_shotListService]/[_shotCoverageService]/[_roleIndexService]/
   /// [_breakdownService]/[_scheduleService] as well as stamping `screenplays` and
   /// `screenplay_snapshots` themselves with it; every other method that writes either table
-  /// ([createEpisode], [updateEpisode], [reorderEpisode], [snapshotOnProjectOpen]) seeds and flushes
-  /// its own, since none of them run inside another method's transaction. [snapshotBeforeRestore] is
-  /// the one exception: it always runs inside `OcptProjectVersionsService._applyPayload`'s own
-  /// already-seeded transaction, so it takes that caller's instance instead of resolving a device id
-  /// of its own.
+  /// ([createEpisode], [updateEpisode], [reorderEpisode], [snapshotOnProjectOpen]) seeds and
+  /// flushes its own, since none of them run inside another method's transaction.
+  /// [snapshotBeforeRestore] is the one exception: it always runs inside
+  /// `OcptProjectVersionsService._applyPayload`'s own already-seeded transaction, so it takes that
+  /// caller's instance instead of resolving a device id of its own.
   final OcptDeviceIdGetter deviceId;
 
   /// Class constructor
@@ -312,9 +312,9 @@ class OcptScreenplayService {
   /// the empty string — an ordinary state, see `OcptEpisode`'s own doc comment — and [number]
   /// defaults to the last live episode's own number plus one when not given, which is the plain
   /// reading of "the next episode" for a series numbered in order; a caller renumbering as it goes
-  /// (inserting "episode 2.5") passes [number] itself. `fountainText` is left at its column default,
-  /// the empty string, and `updatedAt` is stamped now: a freshly minted screenplay's text was, in a
-  /// sense, just "saved" as empty.
+  /// (inserting "episode 2.5") passes [number] itself. `fountainText` is left at its column
+  /// default, the empty string, and `updatedAt` is stamped now: a freshly minted screenplay's text
+  /// was, in a sense, just "saved" as empty.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
   Future<String?> createEpisode({
@@ -361,8 +361,8 @@ class OcptScreenplayService {
   /// than [Value.absent].
   ///
   /// Never touches `sortKey` ([reorderEpisode] owns it), `fountainText` or `updatedAt`
-  /// ([saveScreenplayText] owns those — `updatedAt` is when the episode's *text* was last saved, and
-  /// renaming an episode or renumbering it is not saving its text). Follows the shape of
+  /// ([saveScreenplayText] owns those — `updatedAt` is when the episode's *text* was last saved,
+  /// and renaming an episode or renumbering it is not saving its text). Follows the shape of
   /// `OcptRoleIndexService.updateRole`.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
@@ -458,27 +458,28 @@ class OcptScreenplayService {
   /// Tombstones episode [screenplayId] and everything it alone owns — its safety snapshots, its
   /// scenes, its shots and their coverage, its breakdown (tags, scene statuses, and — through the
   /// elements and locations services `OcptBreakdownService` itself holds — the
-  /// `scene_elements`/`scene_sets` links its scenes carried), the `shooting_day_blocks` rows placing
-  /// any of its shots, and the `role_episodes` links naming it — in one transaction, and returns
-  /// whether it did.
+  /// `scene_elements`/`scene_sets` links its scenes carried), the `shooting_day_blocks` rows
+  /// placing any of its shots, and the `role_episodes` links naming it — in one transaction, and
+  /// returns whether it did.
   ///
-  /// **What is left alone is just as much the point** (`docs/adr/0019-one-project-several-episodes.md`):
-  /// the people, the locations, the elements and **the shooting days**, none of which were ever this
-  /// episode's. A shooting day that placed one of the episode's shots loses that one block; the day
-  /// itself, its other slots and every other block on it are untouched, since the schedule belongs
-  /// to the production, never to one screenplay. A role that spoke only in this episode keeps its
-  /// row, its casting and its notes — it is simply named in no episode any more, which is not the
-  /// same state as [OcptRoleIndexService.reconcile]'s `orphanedName` (see
+  /// **What is left alone is just as much the point**
+  /// (`docs/adr/0019-one-project-several-episodes.md`): the people, the locations, the elements and
+  /// **the shooting days**, none of which were ever this episode's. A shooting day that placed one
+  /// of the episode's shots loses that one block; the day itself, its other slots and every other
+  /// block on it are untouched, since the schedule belongs to the production, never to one
+  /// screenplay. A role that spoke only in this episode keeps its row, its casting and its notes —
+  /// it is simply named in no episode any more, which is not the same state as
+  /// [OcptRoleIndexService.reconcile]'s `orphanedName` (see
   /// [OcptRoleIndexService.tombstoneEpisodeLinks]'s own doc comment). **A `hold` block whose
   /// `sceneId` names one of this episode's scenes is left exactly as it is**: a scene tombstoned by
-  /// `OcptSceneIndexService.reconcile` already leaves such a block alone today (its `sceneId` simply
-  /// stops resolving to a live scene), and a hold is a reservation on a day this deletion does not
-  /// touch — there is no new behaviour to invent for it here.
+  /// `OcptSceneIndexService.reconcile` already leaves such a block alone today (its `sceneId`
+  /// simply stops resolving to a live scene), and a hold is a reservation on a day this deletion
+  /// does not touch — there is no new behaviour to invent for it here.
   ///
   /// Returns `false`, writing nothing, when the preview guard refuses the write, when
   /// [screenplayId] names no live episode, or when it is **the last live episode of the project** —
-  /// a project always holds at least one screenplay (`OcptProjectsManager.openProject` treats a file
-  /// with none as corrupted) — logging that last refusal through `appLogger().w`, the way
+  /// a project always holds at least one screenplay (`OcptProjectsManager.openProject` treats a
+  /// file with none as corrupted) — logging that last refusal through `appLogger().w`, the way
   /// `OcptProjectsManager.deleteProjectVersion` logs its own.
   ///
   /// The cascade is orchestrated here, but each table is tombstoned **by the service that owns

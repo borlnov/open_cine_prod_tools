@@ -192,7 +192,8 @@ class OcptElementSheetHeader extends StatelessWidget {
   }
 
   /// The category picker: a label over a badge doubling as a [PopupMenuButton] over every
-  /// [OcptElementCategory], withheld (a plain badge, no menu) while the sheet may not be written to.
+  /// [OcptElementCategory], withheld (a plain badge, no menu) while the sheet may not be written
+  /// to.
   Widget _buildCategoryPicker(BuildContext context, Tr tr) {
     final theme = Theme.of(context);
     final onCategoryChanged = this.onCategoryChanged;

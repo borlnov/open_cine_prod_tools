@@ -128,7 +128,8 @@ class _OcptBudgetAllowanceDialogState extends State<OcptBudgetAllowanceDialog> {
 }
 
 /// The whole of [OcptBudgetAllowanceDialog]'s own form, embeddable outside a dialog — the capture
-/// wizard draws this same body under its own step counter, rather than an `AlertDialog`'s `content`.
+/// wizard draws this same body under its own step counter, rather than an `AlertDialog`'s
+/// `content`.
 ///
 /// **`Quantity` and `Unit price` are the only required fields**, and neither has a sensible default
 /// to fall back on: a defrayal of nothing at nothing is a row nobody meant to write. The wording,

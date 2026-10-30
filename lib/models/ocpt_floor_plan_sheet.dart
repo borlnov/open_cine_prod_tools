@@ -52,7 +52,8 @@ enum OcptFloorPlanOverrideLevel {
 /// [setElement].
 enum OcptFloorPlanSymbolGlyphKind {
   /// A character's own facing disc, drawn in [OcptFloorPlanSymbolShape.colorArgb] — the colour
-  /// [ocptFloorPlanCharacterColourOf] derives from the symbol's own [OcptFloorPlanSymbolShape.label].
+  /// [ocptFloorPlanCharacterColourOf] derives from the symbol's own
+  /// [OcptFloorPlanSymbolShape.label].
   character,
 
   /// A camera's own body, lens and, while [OcptFloorPlanSymbolShape.cameraFovWedgeDeg] is set, its
@@ -139,9 +140,9 @@ class OcptFloorPlanSymbolShape extends Equatable {
   /// always accompanies.
   final double? cameraFovWedgeReachM;
 
-  /// A set-element symbol's own drawn primitive, resolved to [OcptFloorPlanSetElementShape.freeform]
-  /// when the symbol carries none of its own — null for every symbol whose [glyphKind] isn't
-  /// [OcptFloorPlanSymbolGlyphKind.setElement].
+  /// A set-element symbol's own drawn primitive, resolved to
+  /// [OcptFloorPlanSetElementShape.freeform] when the symbol carries none of its own — null for
+  /// every symbol whose [glyphKind] isn't [OcptFloorPlanSymbolGlyphKind.setElement].
   final OcptFloorPlanSetElementShape? setElementShape;
 
   /// Whether this shape is a **live, visible** override of an original one level up (a scene-scope
@@ -428,16 +429,16 @@ class OcptFloorPlanSheet extends Equatable {
   /// No arrow is drawn under the sequence focus: an arrow is always a shot's own movement, and the
   /// sequence focus shows no single shot's blocking.
   ///
-  /// **The override rule**, applied at two levels: a live scene-scope
-  /// symbol of [focusSceneId] whose own `overridesSymbolId` names a live set-scope symbol
-  /// **replaces** it here — the set-scope original itself is left out of the *editable* shapes,
-  /// and a **visible** override ([OcptFloorPlanSymbolShape.isOverride],
-  /// [OcptFloorPlanOverrideLevel.sequence]) draws in its place, the original still drawn as a
-  /// faint, non-interactive ghost ([OcptFloorPlanSymbolShape.isOverriddenOriginalGhost]) at its own
-  /// stored geometry. A **hidden** override draws nothing of its own at all: only the original's
-  /// own faint ghost shows, this time *selectable* and naming the override
-  /// ([OcptFloorPlanSymbolShape.isHiddenOverrideGhost]) so the inspector can restore it. A symbol of
-  /// a *different* scene's own `overridesSymbolId` never hides anything from this sheet.
+  /// **The override rule**, applied at two levels: a live scene-scope symbol of [focusSceneId]
+  /// whose own `overridesSymbolId` names a live set-scope symbol **replaces** it here — the
+  /// set-scope original itself is left out of the *editable* shapes, and a **visible** override
+  /// ([OcptFloorPlanSymbolShape.isOverride], [OcptFloorPlanOverrideLevel.sequence]) draws in its
+  /// place, the original still drawn as a faint, non-interactive ghost
+  /// ([OcptFloorPlanSymbolShape.isOverriddenOriginalGhost]) at its own stored geometry. A
+  /// **hidden** override draws nothing of its own at all: only the original's own faint ghost
+  /// shows, this time *selectable* and naming the override
+  /// ([OcptFloorPlanSymbolShape.isHiddenOverrideGhost]) so the inspector can restore it. A symbol
+  /// of a *different* scene's own `overridesSymbolId` never hides anything from this sheet.
   ///
   /// **The very same rule runs a second time, scene → shot, under a shot focus only**: a live
   /// shot-scope symbol of [focusShotId] whose own `overridesSymbolId` names one of the
@@ -454,8 +455,8 @@ class OcptFloorPlanSheet extends Equatable {
   /// built before every shot of a freshly reconciled sequence has been assigned one.
   ///
   /// [showFieldOfView] gates every camera's own [OcptFloorPlanSymbolShape.cameraFovWedgeDeg]:
-  /// defaults to `true` (the wedge shows by default) so a caller that never touches the flag — every
-  /// existing one, ahead of the tray toggle a later piece of work adds — still gets it.
+  /// defaults to `true` (the wedge shows by default) so a caller that never touches the flag —
+  /// every existing one, ahead of the tray toggle a later piece of work adds — still gets it.
   ///
   factory OcptFloorPlanSheet.of({
     required OcptFloorPlanSet floorPlanSet,

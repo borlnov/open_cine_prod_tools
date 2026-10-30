@@ -14,10 +14,10 @@ import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
 /// `OcptScenarioCoverageLabels` already exist for the exports before it.
 ///
 /// [dayTitles] and [directorLine] are the two entries resolved by the caller rather than formatted
-/// here, exactly the trade `OcptBreakdownSheetsLabels.sceneTitles` already makes: a day's own
-/// title (`FEUILLE DE SERVICE DU JEUDI 10 AOÛT 2023`) needs its date formatted through `intl` in the
-/// UI's own locale, which a manager-layer service has no `Localizations` to reach, and a director's
-/// name is the project's own text rather than something to translate.
+/// here, exactly the trade `OcptBreakdownSheetsLabels.sceneTitles` already makes: a day's own title
+/// (`FEUILLE DE SERVICE DU JEUDI 10 AOÛT 2023`) needs its date formatted through `intl` in the UI's
+/// own locale, which a manager-layer service has no `Localizations` to reach, and a director's name
+/// is the project's own text rather than something to translate.
 ///
 /// Every accessor returns an empty string (or, for a map keyed by an enum, the same) for a key it
 /// holds nothing for, exactly as `OcptBreakdownSheetsLabels`'s own accessors do: a missing
@@ -115,8 +115,8 @@ class OcptCallSheetLabels extends Equatable {
   final String presenceLabel;
 
   /// [patLabel] when [isPatBand] says the band covers filming, [presenceLabel] otherwise — the one
-  /// place that choice is written, so a named sheet's own band line, the day's own time band and the
-  /// cast table's own column header can never name the same kind of band differently.
+  /// place that choice is written, so a named sheet's own band line, the day's own time band and
+  /// the cast table's own column header can never name the same kind of band differently.
   String bandLabelOf({required bool isPatBand}) => isPatBand ? patLabel : presenceLabel;
 
   /// The header of a person's arrival figure — the cast table's own `ARRIVÉE` column, and a named
@@ -190,12 +190,13 @@ class OcptCallSheetLabels extends Equatable {
 
   /// The heading of the day's own events section — what the day does not control, at an absolute
   /// hour, printed on both sheets alike. The same word the day view's own bordered band and the day
-  /// inspector's own section already carry on screen, so a printed sheet cannot name it differently.
+  /// inspector's own section already carry on screen, so a printed sheet cannot name it
+  /// differently.
   final String eventsSectionTitle;
 
   /// The heading of the day's own audition table (`HORAIRES / RÔLE / CANDIDAT`) — printed only on a
-  /// day whose own blocks hold an audition, beside (never instead of) the main table the day's shots
-  /// print.
+  /// day whose own blocks hold an audition, beside (never instead of) the main table the day's
+  /// shots print.
   final String auditionsSectionTitle;
 
   /// The audition table's `CANDIDAT` column header — who is being seen at that hour, for that part.

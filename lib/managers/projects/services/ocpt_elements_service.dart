@@ -161,8 +161,8 @@ class OcptElementsService {
   /// than [Value.absent]. Never touches `sortKey` or `isDeleted`: those only change through
   /// [reorderElement] and [deleteElement].
   ///
-  /// `code` is not among the arguments: it is the app's own, minted by [createElement] and rewritten
-  /// **here and nowhere else**, whenever [category] genuinely changes (see
+  /// `code` is not among the arguments: it is the app's own, minted by [createElement] and
+  /// rewritten **here and nowhere else**, whenever [category] genuinely changes (see
   /// [_codeAfterCategoryChangeOf]). A code says which department an item comes from, and nobody can
   /// type one, so an element that moves from props to vehicles and keeps `PRP-4` would be lying
   /// about itself with no way for the user to correct it. Owning that rule here rather than in a
@@ -251,8 +251,8 @@ class OcptElementsService {
   /// Nothing is rewritten when [category] is absent (the caller is changing something else
   /// entirely), when the element has disappeared underneath (a stale write), or when the category
   /// written is the one the element already had — the last of the three being the one that matters:
-  /// [ocptElementCodeOf] answers "the first free number", so regenerating `PRP-2` inside props would
-  /// hand it `PRP-4` for no reason at all.
+  /// [ocptElementCodeOf] answers "the first free number", so regenerating `PRP-2` inside props
+  /// would hand it `PRP-4` for no reason at all.
   Future<Value<String>> _codeAfterCategoryChangeOf({
     required OcptProjectDatabase database,
     required String elementId,

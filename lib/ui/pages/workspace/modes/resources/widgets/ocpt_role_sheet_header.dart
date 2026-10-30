@@ -25,8 +25,8 @@ const double _avatarRadius = 26;
 /// The name is a title-styled [OcptResourcesSheetField] for a hand-added role and plain text for a
 /// role reconciled from the screenplay, whose name `OcptRoleIndexService.reconcile` owns and would
 /// write right back on the next save — it is stated as a note under the title rather than offered
-/// as a disabled field, so nothing ever looks editable that isn't. The note itself says which of the
-/// two ways the role was reconciled — cued in dialogue, or only ever named in capitals in the
+/// as a disabled field, so nothing ever looks editable that isn't. The note itself says which of
+/// the two ways the role was reconciled — cued in dialogue, or only ever named in capitals in the
 /// action ([ocptRoleIsActionDetected]) — since the two are deleted differently (see
 /// `OcptRoleSheet._canBeDeleted`), and a note that read the same for both would hide that. The same
 /// reasoning governs the delete action `OcptRoleSheet` puts at the bottom of the sheet.

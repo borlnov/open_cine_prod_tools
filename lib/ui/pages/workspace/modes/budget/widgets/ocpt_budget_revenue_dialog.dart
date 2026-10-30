@@ -99,7 +99,8 @@ class _OcptBudgetRevenueDialogState extends State<OcptBudgetRevenueDialog> {
 }
 
 /// The whole of [OcptBudgetRevenueDialog]'s own form, embeddable outside a dialog — the capture
-/// wizard draws this same body under its own step counter, rather than an `AlertDialog`'s `content`.
+/// wizard draws this same body under its own step counter, rather than an `AlertDialog`'s
+/// `content`.
 ///
 /// **`Label` is the dialog's own only required field, alongside `Date`**, mirroring the financing
 /// resource form: `Status` already carries a sensible default the moment the dialog opens

@@ -112,8 +112,8 @@ class OcptRowStampService {
   /// and its own tombstoned copy as [next], and only the tombstone column (or whichever few columns
   /// that copy actually flips) ends up written and stamped.
   ///
-  /// [stamps] is `null` for a table no merge ever needs to see (`scenes`): the row is still written,
-  /// simply with nothing recorded about it in `row_field_versions`.
+  /// [stamps] is `null` for a table no merge ever needs to see (`scenes`): the row is still
+  /// written, simply with nothing recorded about it in `row_field_versions`.
   static Future<void> writeAndStamp<D extends DataClass>({
     required OcptProjectDatabase database,
     required TableInfo<Table, D> table,

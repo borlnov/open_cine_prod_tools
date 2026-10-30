@@ -10,9 +10,9 @@ import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart'
 /// `storyboard_panels`, `storyboard_annotations`, `floor_plan_sets`, `floor_plan_symbols` and
 /// `floor_plan_arrows`.
 ///
-/// **Additive only** (`docs/adr/0007-schema-migration-policy.md`): five `createTable` calls, nothing
-/// else — no reshape, no backfill, no existing table touched. A v3 file opened by this build gains
-/// five empty tables and keeps every row it already held.
+/// **Additive only** (`docs/adr/0007-schema-migration-policy.md`): five `createTable` calls,
+/// nothing else — no reshape, no backfill, no existing table touched. A v3 file opened by this
+/// build gains five empty tables and keeps every row it already held.
 ///
 /// Because schema version 4 was an open development cycle until 0.3.0 froze it
 /// (`OcptProjectDatabase.currentSchemaVersion`'s own doc comment), every reshape landed meanwhile —

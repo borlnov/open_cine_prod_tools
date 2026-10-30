@@ -19,10 +19,10 @@ import 'package:drift/drift.dart';
 /// `OcptProjectVersionsTable` and `OcptLocalErasuresTable` — read either one's own doc comment
 /// first. A delivery cursor describes this replica's relationship to one relay, not a fact about
 /// the project any other replica could ever agree or disagree with, so it carries no `isDeleted`,
-/// no `sortKey` and no `row_field_versions` stamp, is never part of `OcptProjectVersionPayload`, and
-/// plays no part in `OcptProjectVersionCodec.contentDigest`: two replicas holding the exact same
-/// project content can legitimately disagree about every cursor here, and a version restore must
-/// leave them alone rather than rewinding what has already been exchanged with a relay.
+/// no `sortKey` and no `row_field_versions` stamp, is never part of `OcptProjectVersionPayload`,
+/// and plays no part in `OcptProjectVersionCodec.contentDigest`: two replicas holding the exact
+/// same project content can legitimately disagree about every cursor here, and a version restore
+/// must leave them alone rather than rewinding what has already been exchanged with a relay.
 ///
 /// A device pairs with more than one relay over its lifetime (the on-set relay of one shoot day,
 /// the production's own relay the rest of the time), and the same project can be behind two relays

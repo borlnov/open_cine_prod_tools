@@ -214,8 +214,8 @@ class OcptBudgetNeedsResourcesBalance extends Equatable {
   List<Object?> get props => [needs, resourcesCents, differenceCents];
 }
 
-/// Builds the balance between [needs] and [resourcesCents] — see [OcptBudgetNeedsResourcesBalance]'s
-/// own doc comment.
+/// Builds the balance between [needs] and [resourcesCents] — see
+/// [OcptBudgetNeedsResourcesBalance]'s own doc comment.
 OcptBudgetNeedsResourcesBalance ocptBudgetNeedsResourcesBalanceOf({
   required OcptBudgetCoveredTotal needs,
   required int resourcesCents,

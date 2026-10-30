@@ -90,8 +90,8 @@ OcptScheduleAlertLocationWindow _buildLocationWindow({
 
 /// Wraps [ocptComputeScheduleAlerts] with the neutral defaults every test but rules 10 and 11 wants
 /// for [minimumRestMinutes] (nobody has recorded one) and [permitWindowsByLocationId] (nobody files
-/// one) — so the bulk of this file, unconcerned with either rule, does not have to repeat two silent
-/// arguments on every call. The other four stay required, exactly as
+/// one) — so the bulk of this file, unconcerned with either rule, does not have to repeat two
+/// silent arguments on every call. The other four stay required, exactly as
 /// [ocptComputeScheduleAlerts]'s own are, so every existing call site keeps stating them itself.
 List<OcptScheduleAlert> _computeAlerts({
   required List<OcptScheduleAlertDay> days,

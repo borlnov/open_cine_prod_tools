@@ -85,7 +85,8 @@ class OcptShootingPlanGridRow extends Equatable {
   /// `Perso.` row.
   final bool isMuted;
 
-  /// Whether [label] is meant to be printed indented — the locations grid's own nested `Perso.` row.
+  /// Whether [label] is meant to be printed indented — the locations grid's own nested `Perso.`
+  /// row.
   final bool isIndented;
 
   /// Object string representation, useful for debugging and logging.
@@ -164,17 +165,17 @@ class OcptShootingPlanElementsGridElementRow extends OcptShootingPlanElementsGri
 /// caller would otherwise have to restate — which locations, sequences, positions, roles and
 /// elements earn a row, which cell is blank because a slot or a day doesn't apply and which is
 /// blank because nothing is there to say — and hands back rows whose own cells are already resolved
-/// strings, never a closure: a `valueOf(column)` callback is a drawing-time convenience belonging to
-/// whichever service consumes it, not something a model should carry.
+/// strings, never a closure: a `valueOf(column)` callback is a drawing-time convenience belonging
+/// to whichever service consumes it, not something a model should carry.
 ///
 /// It takes no `OcptShootingPlanLabels`, and deliberately so: a `lib/models/` file must not depend
 /// on `lib/managers/export/services/`, where that labels class lives beside the PDF service that
 /// reads it (dependencies never reference their dependents). The handful of words its own rows need
-/// — the presence mark, the `Perso.` label, the sequences row's own prefix, and the mark substituted
-/// for a location with no name of its own — arrive as plain [String] parameters instead, exactly the
-/// trade `ocptScheduleGuestRowsOfDay` already makes for its own `unnamedPersonLabel`
-/// (`ocpt_schedule_pdf_shared.dart`). The crew position and element category labels arrive as the
-/// very maps the caller already holds, for the same reason.
+/// — the presence mark, the `Perso.` label, the sequences row's own prefix, and the mark
+/// substituted for a location with no name of its own — arrive as plain [String] parameters
+/// instead, exactly the trade `ocptScheduleGuestRowsOfDay` already makes for its own
+/// `unnamedPersonLabel` (`ocpt_schedule_pdf_shared.dart`). The crew position and element category
+/// labels arrive as the very maps the caller already holds, for the same reason.
 ///
 /// **The locations, sequences and crew-and-cast grids' own columns are one per slot, grouped under
 /// its day** ([slotColumns]) — a decision already taken, this model does not revisit it. **The
@@ -207,8 +208,8 @@ class OcptShootingPlanGrids extends Equatable {
   final List<OcptShootingDay> dayColumns;
 
   /// The locations grid's own rows: two per location referenced by [slotColumns] — its own name
-  /// (marking, in each of its own slot columns, the set shot there or the caller's own presence mark
-  /// when none was chosen) and, nested under it, a row naming who is present.
+  /// (marking, in each of its own slot columns, the set shot there or the caller's own presence
+  /// mark when none was chosen) and, nested under it, a row naming who is present.
   final List<OcptShootingPlanGridRow> locationsRows;
 
   /// The sequences grid's own rows: one per sequence with at least one shot placed anywhere in
@@ -283,8 +284,8 @@ class OcptShootingPlanGrids extends Equatable {
 
   /// One `(day, slot)` pair per live slot of every live day of [dayIds] that carries at least one,
   /// in the order given — the raw material [slotColumns] is built from, and every one of the three
-  /// slot-shaped grids' own rows are resolved against. A day with no live slot at all contributes no
-  /// pair, since its own slot loop below simply runs zero times.
+  /// slot-shaped grids' own rows are resolved against. A day with no live slot at all contributes
+  /// no pair, since its own slot loop below simply runs zero times.
   static List<({OcptShootingDay day, OcptShootingSlot slot})> _liveSlotColumnsOf(
     OcptSchedulePlanSnapshot plan,
     List<String> dayIds,

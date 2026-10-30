@@ -347,8 +347,8 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
 
   /// `resourceId`'s own received total, in cents, tax-inclusive — 0 while [snapshot] is null or
   /// carries no entry against it. See [OcptBudgetSnapshot.receivedCentsOf]'s own doc comment for
-  /// why this `?? 0` is the ordinary reading, and why the financing view reads [receivedByResourceId]
-  /// itself for the one row kind that needs the other one.
+  /// why this `?? 0` is the ordinary reading, and why the financing view reads
+  /// [receivedByResourceId] itself for the one row kind that needs the other one.
   int receivedCentsOf(String resourceId) => snapshot?.receivedCentsOf(resourceId) ?? 0;
 
   /// Every live taking of [snapshot], in `sortKey` order (empty while nothing is loaded).

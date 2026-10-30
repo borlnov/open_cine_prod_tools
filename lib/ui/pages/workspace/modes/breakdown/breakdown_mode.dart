@@ -65,27 +65,27 @@ import 'package:open_cine_prod_tools/utils/ocpt_scene_set_suggestion.dart';
 /// The centre is `OcptBreakdownHeader` above an `Expanded` showing whichever of
 /// `OcptBreakdownScriptView`/`OcptBreakdownRecapTable` `OcptBreakdownState.centreView` currently
 /// names — the header's own `Script`/`Recap` switch is what moves between the two, and its search
-/// field, visible in both, filters the recap's rows and switches to it the moment the script view is
-/// active and the field turns non-empty (`OcptBreakdownBloc._onSearchQueryChanged`'s own doc
+/// field, visible in both, filters the recap's rows and switches to it the moment the script view
+/// is active and the field turns non-empty (`OcptBreakdownBloc._onSearchQueryChanged`'s own doc
 /// comment): the script view is a reading surface, and the answer to "where is this?" is the table.
 ///
 /// The script view lets every word be clicked — a tagged one selects its target, and selecting a
-/// target opens the right dock on its `Inspector` tab, where `OcptBreakdownTargetInspector` shows its
-/// sheet; selecting a scene with no target selected shows that scene's own breakdown sheet instead,
-/// `OcptBreakdownSceneInspector`. Any other word drives the range interaction: a first click opens an
-/// anchor, a second one in the same scene closes it and opens `OcptBreakdownTagPopover`, which links
-/// the passage to an existing target or creates a new element and tags it in one click — either way
-/// landing the selection on it, on the `Inspector` tab, exactly as clicking an already-tagged word
-/// does. The recap's own rows land the very same selection: clicking one dispatches the same event a
-/// tagged word's click does, passing the target's own first scene id, so the left dock and the sheet
-/// stay in step without leaving the recap. There is **no save control and no mode-specific toolbar
-/// action** — the shell simply isn't
-/// handed one, rather than showing an inert one — since every write here (the popover's own links and
-/// creations, the target inspector's chips, pickers, fields and suggested-occurrence acceptances,
-/// the tag removal, and the scene inspector's own status chips) is written by its own event rather
-/// than a single save; the target
-/// inspector's three free-text fields and the scene inspector's own breakdown notes still autosave
-/// on the 2 s debounce every field like it does elsewhere in the app.
+/// target opens the right dock on its `Inspector` tab, where `OcptBreakdownTargetInspector` shows
+/// its sheet; selecting a scene with no target selected shows that scene's own breakdown sheet
+/// instead, `OcptBreakdownSceneInspector`. Any other word drives the range interaction: a first
+/// click opens an anchor, a second one in the same scene closes it and opens
+/// `OcptBreakdownTagPopover`, which links the passage to an existing target or creates a new
+/// element and tags it in one click — either way landing the selection on it, on the `Inspector`
+/// tab, exactly as clicking an already-tagged word does. The recap's own rows land the very same
+/// selection: clicking one dispatches the same event a tagged word's click does, passing the
+/// target's own first scene id, so the left dock and the sheet stay in step without leaving the
+/// recap. There is **no save control and no mode-specific toolbar action** — the shell simply isn't
+/// handed one, rather than showing an inert one — since every write here (the popover's own links
+/// and creations, the target inspector's chips, pickers, fields and suggested-occurrence
+/// acceptances, the tag removal, and the scene inspector's own status chips) is written by its own
+/// event rather than a single save; the target inspector's three free-text fields and the scene
+/// inspector's own breakdown notes still autosave on the 2 s debounce every field like it does
+/// elsewhere in the app.
 ///
 /// While a project version is being previewed, the mode shows that version's own read instead of
 /// the working copy's, and carries the shell's read-only banner naming it, exactly as the resources

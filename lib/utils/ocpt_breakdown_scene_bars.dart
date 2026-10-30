@@ -54,7 +54,8 @@ class OcptBreakdownSceneBarBucket extends Equatable {
   /// [OcptBreakdownTargetKind.element].
   final OcptElementCategory? category;
 
-  /// This bucket's colour, as an ARGB integer — [ocptBreakdownColorOf] applied to [kind]/[category].
+  /// This bucket's colour, as an ARGB integer — [ocptBreakdownColorOf] applied to
+  /// [kind]/[category].
   final int color;
 
   /// The number of distinct targets of this bucket tagged in the scene, what the bar's width grows
@@ -75,8 +76,8 @@ class OcptBreakdownSceneBarBucket extends Equatable {
 }
 
 /// The bar buckets of [scene]: one per [OcptElementCategory] present among its live tags (in
-/// [OcptElementCategory.values] order), then — if present — one for its tagged roles and one for its
-/// tagged sets. `OcptBreakdownScenePanel`'s own per-scene bars.
+/// [OcptElementCategory.values] order), then — if present — one for its tagged roles and one for
+/// its tagged sets. `OcptBreakdownScenePanel`'s own per-scene bars.
 List<OcptBreakdownSceneBarBucket> ocptBreakdownSceneBarBucketsOf(
   OcptBreakdownScene scene,
   OcptBreakdownTargetsById targetById,

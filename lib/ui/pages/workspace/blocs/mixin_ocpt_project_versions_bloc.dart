@@ -482,8 +482,9 @@ mixin MixinOcptProjectVersionsBloc<S extends MixinOcptProjectVersionsState<S>> o
 
   /// Refreshes the working copy's own card alone, throttled to at most one real capture every
   /// [_workingCopyCaptureThrottle]: dispatched on a tab reselection or a save (see the mixin's own
-  /// doc comment for exactly where each mode dispatches it), both of which can happen far more often
-  /// than the whole-project read behind [OcptProjectsManager.captureWorkingCopyState] should run.
+  /// doc comment for exactly where each mode dispatches it), both of which can happen far more
+  /// often than the whole-project read behind [OcptProjectsManager.captureWorkingCopyState] should
+  /// run.
   ///
   /// A dispatch that lands inside the throttle window is a silent no-op — nothing is emitted, so
   /// the state already showing what the last capture found is never replaced by a second,

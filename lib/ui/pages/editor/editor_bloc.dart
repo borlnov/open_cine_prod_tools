@@ -147,8 +147,8 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
   /// [_rawSpellCheckCache]. Node ids are already a stable key on their own — unlike the raw path's
   /// positional block index, a node id doesn't shift when an *earlier* node's own text changes — so
   /// no analogous "re-translate by current offset" step is needed here: a styled `SpellRange` is
-  /// already relative to its own node's display text, exactly the addressing `SpellingAndGrammarStyler`
-  /// wants.
+  /// already relative to its own node's display text, exactly the addressing
+  /// `SpellingAndGrammarStyler` wants.
   final Map<String, ({String text, List<SpellRange> ranges})> _styledSpellCheckCache = {};
 
   /// The (language, visibility, manager generation) combination [_styledSpellCheckCache] was last
@@ -165,12 +165,12 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
 
   /// The learned-word set last pushed into [_spellCheckManager] through
   /// [OcptSpellCheckManager.setLearnedWords], assigned alongside every one of that method's own
-  /// (unconditional) call sites — [_onLoadRequested] and [_onWordLearned]. [_onProjectSettingsChanged]
-  /// is the one caller that pushes conditionally, comparing its freshly re-read set against this
-  /// field with `setEquals` rather than pushing unconditionally like the other two: it runs on
-  /// *every* settings-page change, including a currency edit that has nothing to do with the
-  /// dictionary, and re-checking the whole screenplay on every one of those would be exactly the
-  /// wasted debounce tick the incremental pass exists to avoid.
+  /// (unconditional) call sites — [_onLoadRequested] and [_onWordLearned].
+  /// [_onProjectSettingsChanged] is the one caller that pushes conditionally, comparing its freshly
+  /// re-read set against this field with `setEquals` rather than pushing unconditionally like the
+  /// other two: it runs on *every* settings-page change, including a currency edit that has nothing
+  /// to do with the dictionary, and re-checking the whole screenplay on every one of those would be
+  /// exactly the wasted debounce tick the incremental pass exists to avoid.
   Set<String> _pushedLearnedWords = const {};
 
   /// Unregisters this bloc's unsaved-changes reporter, called when it is disposed.
@@ -334,12 +334,12 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
     Emitter<OcptEditorState> emitter,
   ) async {
     // A (re)load always starts both spell-check caches fresh: an episode switch, a version preview
-    // entering or leaving, and the very first load all hand `_requestSpellCheck`/the styled editor a
-    // document built from a different Fountain source than whatever the caches last described, and
-    // keeping either around risks a stale entry coincidentally matching a new block's/node's text.
-    // The styled editor rebuilds its own document from scratch on the very same triggers (see its
-    // own `didUpdateWidget`), so it will report a fresh set of node ids on its own; this only clears
-    // the bloc's own half.
+    // entering or leaving, and the very first load all hand `_requestSpellCheck`/the styled editor
+    // a document built from a different Fountain source than whatever the caches last described,
+    // and keeping either around risks a stale entry coincidentally matching a new block's/node's
+    // text. The styled editor rebuilds its own document from scratch on the very same triggers (see
+    // its own `didUpdateWidget`), so it will report a fresh set of node ids on its own; this only
+    // clears the bloc's own half.
     _rawSpellCheckCache.clear();
     _rawSpellCheckCacheKey = null;
     _styledSpellCheckCache.clear();
@@ -864,11 +864,11 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
   /// is a no-op while any other mode is mounted (see its own doc comment), so
   /// [OcptEditorState.rawSpellCheckRanges] can otherwise sit unrefreshed for as long as the styled
   /// editor was the one showing — every edit made there still reaches `state.document` through the
-  /// ordinary parse debounce, so a check request made *right here* (rather than waiting for the next
-  /// edit-triggered one) is what keeps the raw controller from painting underlines computed against
-  /// whatever text was current the last time raw mode itself was mounted, rather than the text it is
-  /// about to display. The styled mode's own equivalent needs no such nudge: the styled editor
-  /// reports its checkable texts fresh the moment it (re)mounts, in its own `initState`.
+  /// ordinary parse debounce, so a check request made *right here* (rather than waiting for the
+  /// next edit-triggered one) is what keeps the raw controller from painting underlines computed
+  /// against whatever text was current the last time raw mode itself was mounted, rather than the
+  /// text it is about to display. The styled mode's own equivalent needs no such nudge: the styled
+  /// editor reports its checkable texts fresh the moment it (re)mounts, in its own `initState`.
   Future<void> _onModeToggled(
     OcptEditorModeToggledEvent event,
     Emitter<OcptEditorState> emitter,
@@ -925,10 +925,11 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
   /// Switching off also clears [OcptEditorState.rawSpellCheckRanges] and
   /// [OcptEditorState.styledSpellCheckRanges] right here, synchronously, rather than waiting for
   /// [_reconcileSpellCheckLanguage]'s own async tail: with the switch off, [_requestSpellCheck]
-  /// never runs again (and the styled editor reports nothing to check — its own `isSpellCheckVisible`
-  /// parameter, mirrored from this same field), so nothing would otherwise clear a stale underline
-  /// still on screen in either mode. Switching on leaves the (already empty, from the last time it
-  /// was off) ranges alone — the very next check answers them for real.
+  /// never runs again (and the styled editor reports nothing to check — its own
+  /// `isSpellCheckVisible` parameter, mirrored from this same field), so nothing would otherwise
+  /// clear a stale underline still on screen in either mode. Switching on leaves the (already
+  /// empty, from the last time it was off) ranges alone — the very next check answers them for
+  /// real.
   Future<void> _onSpellCheckToggled(
     OcptEditorSpellCheckToggledEvent event,
     Emitter<OcptEditorState> emitter,
@@ -948,10 +949,10 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
   /// Answers [OcptEditorSpellCheckRangesReportedEvent], the async tail of [_requestSpellCheck].
   ///
   /// Drops the answer (a stale generation's answer is never painted,
-  /// `docs/architecture/screenplay.md`) when: [OcptEditorSpellCheckRangesReportedEvent.generation] no longer
-  /// matches [OcptSpellCheckManager.generation] (a language change, or a word learned or ignored,
-  /// happened while the isolate round trip was in flight); spell-checking is now off (either
-  /// switch) or a version is now being previewed (both can have flipped mid-flight too); or
+  /// `docs/architecture/screenplay.md`) when: [OcptEditorSpellCheckRangesReportedEvent.generation]
+  /// no longer matches [OcptSpellCheckManager.generation] (a language change, or a word learned or
+  /// ignored, happened while the isolate round trip was in flight); spell-checking is now off
+  /// (either switch) or a version is now being previewed (both can have flipped mid-flight too); or
   /// [OcptEditorSpellCheckRangesReportedEvent.checkedText] no longer matches
   /// `OcptEditorState.document`'s own `sourceText` — the document has moved on to a newer parse
   /// since this request was issued, and painting these ranges over it would misplace every one of
@@ -982,18 +983,19 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
   /// answered back as its own [OcptEditorStyledSpellCheckRangesReportedEvent].
   ///
   /// A no-op — nothing sent, [OcptEditorState.styledSpellCheckRanges] left exactly as it is — while
-  /// a version is being previewed or spell-checking is off (either switch): the styled editor itself
-  /// already withholds every checkable text under those same conditions (its own `isSpellCheckVisible`
-  /// parameter, and it is simply never mounted under a preview), so this event would only ever carry
-  /// an empty map then in practice, but the guard is kept here too for the same reason
-  /// [_requestSpellCheck]'s own guard is: a stray event arriving right as either switch flips
-  /// underneath it must never reach the manager.
+  /// a version is being previewed or spell-checking is off (either switch): the styled editor
+  /// itself already withholds every checkable text under those same conditions (its own
+  /// `isSpellCheckVisible` parameter, and it is simply never mounted under a preview), so this
+  /// event would only ever carry an empty map then in practice, but the guard is kept here too for
+  /// the same reason [_requestSpellCheck]'s own guard is: a stray event arriving right as either
+  /// switch flips underneath it must never reach the manager.
   ///
-  /// Only *changed* texts are sent to [OcptSpellCheckManager.check], mirroring [_requestSpellCheck]'s
-  /// own dedup and for the identical reason — a keystroke in one node costs one node's check, not the
-  /// whole reported set — except keyed by node id rather than by a positional block index: a node id
-  /// is already a stable key on its own (see [_styledSpellCheckCache]'s own doc comment), so no
-  /// offset-translation step is needed when re-assembling the answer.
+  /// Only *changed* texts are sent to [OcptSpellCheckManager.check], mirroring
+  /// [_requestSpellCheck]'s own dedup and for the identical reason — a keystroke in one node costs
+  /// one node's check, not the whole reported set — except keyed by node id rather than by a
+  /// positional block index: a node id is already a stable key on its own (see
+  /// [_styledSpellCheckCache]'s own doc comment), so no offset-translation step is needed when
+  /// re-assembling the answer.
   Future<void> _onStyledSpellCheckTextsReported(
     OcptEditorStyledSpellCheckTextsReportedEvent event,
     Emitter<OcptEditorState> emitter,
@@ -1146,8 +1148,8 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
     _reissueStyledSpellCheck();
   }
 
-  /// Answers [OcptEditorWordLearnedEvent]: teaches the event's word to the open project's dictionary
-  /// through [_projectDictionaryService], reloads its word list and pushes it into
+  /// Answers [OcptEditorWordLearnedEvent]: teaches the event's word to the open project's
+  /// dictionary through [_projectDictionaryService], reloads its word list and pushes it into
   /// [OcptSpellCheckManager.setLearnedWords], then re-issues a check over both editing surfaces for
   /// the identical reason [_onWordIgnored] does.
   ///
@@ -1236,8 +1238,8 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
   ///
   /// A no-op while a version is being previewed, while spell-checking is off (either switch), or
   /// while the styled mode is the one mounted — the raw controller is the only thing that ever
-  /// paints [OcptEditorState.rawSpellCheckRanges] (`OcptEditorSearchTextController`, wired only into
-  /// `OcptEditorSourceField`), so a styled-mode pass here would be an isolate round trip for a
+  /// paints [OcptEditorState.rawSpellCheckRanges] (`OcptEditorSearchTextController`, wired only
+  /// into `OcptEditorSourceField`), so a styled-mode pass here would be an isolate round trip for a
   /// squiggle nothing paints. In every no-op case [OcptEditorState.rawSpellCheckRanges] is left
   /// exactly as it is: [_onSpellCheckToggled] already clears it synchronously the moment the switch
   /// flips off, so there is nothing stale left for this method to clear, and [_onModeToggled] is
@@ -1247,13 +1249,13 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
   /// Only *changed* texts are sent to [OcptSpellCheckManager.check]
   /// (`docs/architecture/screenplay.md`): [_rawSpellCheckBlocksOf] keys every checked block by its
   /// index in the walk order, and [_rawSpellCheckCache] is compared against by that same index, so
-  /// a block whose own source text hasn't changed since the index last held it is skipped. `OcptSpellCheckManager
-  /// .check` itself fast-paths an empty request map to an empty answer with no isolate round trip
-  /// at all (its own doc comment), so calling it unconditionally here — even when nothing changed —
-  /// costs nothing extra while still re-assembling and re-reporting the full, current set of
-  /// absolute ranges: a block's cached *relative* ranges are re-translated by its *current*
-  /// `startOffset` on every pass, which is what keeps an edit to an earlier, unrelated block from
-  /// leaving every later misspelling underlined in the wrong place.
+  /// a block whose own source text hasn't changed since the index last held it is skipped.
+  /// `OcptSpellCheckManager .check` itself fast-paths an empty request map to an empty answer with
+  /// no isolate round trip at all (its own doc comment), so calling it unconditionally here — even
+  /// when nothing changed — costs nothing extra while still re-assembling and re-reporting the
+  /// full, current set of absolute ranges: a block's cached *relative* ranges are re-translated by
+  /// its *current* `startOffset` on every pass, which is what keeps an edit to an earlier,
+  /// unrelated block from leaving every later misspelling underlined in the wrong place.
   void _requestSpellCheck() {
     final document = state.document;
     if (document == null || state.isPreviewingVersion || state.mode != OcptEditorMode.raw) {
@@ -1317,11 +1319,12 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
   ///
   /// Recurses into a `FountainDialogueGroup`'s `children` rather than ever handing the group itself
   /// to [ocptLineTypeOfBlock] (which answers null for it, per that function's own doc comment): the
-  /// group is a container, and its cue and its dialogue lines each carry their own line type.
-  /// A [_RawSpellCheckBlock]'s own `text` is a block's own substring of [FountainDocument.sourceText] — the
-  /// exact text raw mode displays and its `OcptEditorSearchTextController` paints offsets into,
-  /// which is not necessarily [OcptEditorState.text]: the parser may have normalized the source's
-  /// line endings, so the two can disagree on length and offsets even when they read the same.
+  /// group is a container, and its cue and its dialogue lines each carry their own line type. A
+  /// [_RawSpellCheckBlock]'s own `text` is a block's own substring of [FountainDocument.sourceText]
+  /// — the exact text raw mode displays and its `OcptEditorSearchTextController` paints offsets
+  /// into, which is not necessarily [OcptEditorState.text]: the parser may have normalized the
+  /// source's line endings, so the two can disagree on length and offsets even when they read the
+  /// same.
   List<_RawSpellCheckBlock> _rawSpellCheckBlocksOf(FountainDocument document) {
     final result = <_RawSpellCheckBlock>[];
     var index = 0;

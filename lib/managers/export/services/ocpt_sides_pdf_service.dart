@@ -215,9 +215,9 @@ class OcptSidesPdfService {
           // annotation (only ever drawn from its 2nd script page onward): that number counts script
           // pages of the document *it* is building, which a booklet's own pages are not — a packed
           // page in particular reproduces no single one at all. This service prints the page's own
-          // identity itself, in its own running head, so a reader of either presentation has exactly
-          // one place to look for it rather than the painter's own count in one and a made-up one in
-          // the other.
+          // identity itself, in its own running head, so a reader of either presentation has
+          // exactly one place to look for it rather than the painter's own count in one and a
+          // made-up one in the other.
           painter.buildScriptPage(
             page: FountainScriptPage(lines: sidesPage.lines),
             pageNumber: 0,

@@ -25,9 +25,10 @@ import 'package:open_cine_prod_tools/utils/ocpt_budget_shares.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_budget_totals.dart';
 
 /// The whole budget mode's read, in one object: the [postes] with their lines, the cash journal's
-/// own [entries] and [commitments], the financing plan's own [resources], the catering-and-defrayals
-/// pass's own [regieDays] and [allowances], the project's own [defaultVatRateBasisPoints] and
-/// [currencyCode], and the counts the status bar and the mode's own reads need.
+/// own [entries] and [commitments], the financing plan's own [resources], the
+/// catering-and-defrayals pass's own [regieDays] and [allowances], the project's own
+/// [defaultVatRateBasisPoints] and [currencyCode], and the counts the status bar and the mode's own
+/// reads need.
 ///
 /// Built the same way `OcptResourcesSnapshot.build` is: a pure function of already-loaded lists,
 /// with no database access of its own. `OcptBudgetQuoteService.loadPostes` is what loads [postes],
@@ -112,8 +113,8 @@ class OcptBudgetSnapshot extends Equatable {
   /// What each poste has settled **in kind**, keyed by `OcptBudgetPoste.id` —
   /// `ocptBudgetInKindCoveredCentsByPosteId`, the sum of a poste's own counterpart quote lines
   /// (`OcptBudgetLine.inKindResourceId` not null). A poste with no such line has no key here,
-  /// mirroring [paidByPosteId]'s own "no key for nothing" discipline. [inKindCoveredCentsOf] is what
-  /// the mode reads instead of this map directly.
+  /// mirroring [paidByPosteId]'s own "no key for nothing" discipline. [inKindCoveredCentsOf] is
+  /// what the mode reads instead of this map directly.
   final Map<String, int> inKindCoveredByPosteId;
 
   /// The cash journal's own debit, credit and balance, over [entries].
@@ -158,9 +159,9 @@ class OcptBudgetSnapshot extends Equatable {
   final List<OcptBudgetAllowance> allowances;
 
   /// What has actually been reimbursed against each defrayed person, keyed by their own id —
-  /// `ocptBudgetReimbursedByPersonId` (`lib/utils/ocpt_budget_reimbursements.dart`), the régie's own
-  /// running account for the person tree, mirroring [receivedByResourceId]. A person with no key
-  /// here has been reimbursed nothing at all.
+  /// `ocptBudgetReimbursedByPersonId` (`lib/utils/ocpt_budget_reimbursements.dart`), the régie's
+  /// own running account for the person tree, mirroring [receivedByResourceId]. A person with no
+  /// key here has been reimbursed nothing at all.
   final Map<String, OcptBudgetCoveredTotal> reimbursedByPersonId;
 
   /// Every live taking of the revenue sharing, in the `sortKey` order `OcptBudgetSharingService

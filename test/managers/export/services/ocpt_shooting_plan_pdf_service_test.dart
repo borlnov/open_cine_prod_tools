@@ -529,8 +529,8 @@ void main() {
       final single = await generateFor(oneSlotPlan);
 
       expect(_contentStreams(full), isNot(_contentStreams(single)));
-      // Two grid columns and two day-slot hours lines printing distinct content is, by construction,
-      // a longer document than one.
+      // Two grid columns and two day-slot hours lines printing distinct content is, by
+      // construction, a longer document than one.
       expect(full.length, greaterThan(single.length));
     });
 
@@ -787,8 +787,8 @@ void main() {
     test(
       "an end-anchored slot prints the hours the timeline resolves, not the raw anchor",
       () async {
-        // Both slots are end-anchored on the very same minute (720); only their own block's duration
-        // differs, so only the *resolved start* tells them apart.
+        // Both slots are end-anchored on the very same minute (720); only their own block's
+        // duration differs, so only the *resolved start* tells them apart.
         final shortSlot = _buildSlot(
           id: "slot-1",
           shootingDayId: "day-1",
@@ -947,8 +947,9 @@ void main() {
         },
       );
 
-      // No title page: what tells these two apart can only be the running head's own stamp, which is
-      // the whole point of repeating it on every page rather than printing it on the cover alone.
+      // No title page: what tells these two apart can only be the running head's own stamp, which
+      // is the whole point of repeating it on every page rather than printing it on the cover
+      // alone.
       Future<Uint8List> generateAt(DateTime exportDate) => service.generate(
         plan: plan,
         dayIds: const ["day-1"],
@@ -1529,8 +1530,8 @@ void main() {
       ],
     );
 
-    /// Episode 2's own one-scene shot list: `scene-e2`, prefixed [displaySceneNumber] (`2.4` unless a
-    /// test deliberately hands in a bare number to simulate the prefix being dropped).
+    /// Episode 2's own one-scene shot list: `scene-e2`, prefixed [displaySceneNumber] (`2.4` unless
+    /// a test deliberately hands in a bare number to simulate the prefix being dropped).
     OcptShotListSnapshot buildEpisodeTwoShotList(
       OcptShot shot, {
       String displaySceneNumber = "2.4",
@@ -1549,7 +1550,8 @@ void main() {
       ],
     );
 
-    test("the sequences grid holds a row for each episode's own sequence, and the day agenda's shot "
+    test("the sequences grid holds a row for each episode's own sequence, and the day agenda's "
+        "shot "
         "table prints each episode's own prefixed shot code", () async {
       final slot = _buildSlot(id: "slot-1", shootingDayId: "day-1", anchorMinute: 480);
       final shotOne = _buildShot(id: "shot-e1", sceneId: "scene-e1", code: "1.3/1");
@@ -1720,8 +1722,8 @@ int _pageCount(Uint8List bytes) {
   return RegExp(r"/Type\s*/Page[^s]").allMatches(text).length;
 }
 
-/// The raw (still-compressed) bytes of every `stream`/`endstream` object in [bytes], in file order —
-/// see `ocpt_call_sheet_pdf_service_test.dart`'s own doc comment for why this, rather than the
+/// The raw (still-compressed) bytes of every `stream`/`endstream` object in [bytes], in file order
+/// — see `ocpt_call_sheet_pdf_service_test.dart`'s own doc comment for why this, rather than the
 /// printed text, is what every "prints something different" assertion below compares.
 List<String> _contentStreams(Uint8List bytes) {
   final text = latin1.decode(bytes, allowInvalid: true);

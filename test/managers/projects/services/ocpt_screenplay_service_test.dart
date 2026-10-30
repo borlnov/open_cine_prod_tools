@@ -337,8 +337,8 @@ void main() {
       database.ocptBreakdownTagsTable,
     )..where((row) => row.id.equals(id))).getSingle();
 
-    /// Creates a role of [screenplayId], a stand-in tag target since `OcptRoleIndexService.reconcile`
-    /// is out of scope here.
+    /// Creates a role of [screenplayId], a stand-in tag target since
+    /// `OcptRoleIndexService.reconcile` is out of scope here.
     Future<String> createRole() => roleIndexService
         .addRole(
           database: database,

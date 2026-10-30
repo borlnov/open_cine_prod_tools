@@ -33,15 +33,16 @@ import 'package:open_cine_prod_tools/utils/ocpt_breakdown_scene_bars.dart';
 ///
 /// This is pure in-memory workbook building with no I/O of its own (no dialog, no file system
 /// access): it's owned by `OcptExportManager` and exposed as a public final field, reached through
-/// the manager rather than through `globalGetIt()` (RFL18), exactly like `OcptResourcesXlsxExportService`
-/// and `OcptShotListXlsxExportService`. Unlike the breakdown sheets PDF, it takes no options: the
-/// export panel's card goes straight to the native save dialog.
+/// the manager rather than through `globalGetIt()` (RFL18), exactly like
+/// `OcptResourcesXlsxExportService` and `OcptShotListXlsxExportService`. Unlike the breakdown
+/// sheets PDF, it takes no options: the export panel's card goes straight to the native save
+/// dialog.
 ///
 /// `document` is read for one thing only, each scene's own length in page eighths — the same figure
 /// `OcptBreakdownSheetsPdfService`'s meta band prints — exactly as that service reads it, and for
 /// the same reason: a scene whose position no longer names a scene of `document` (an index rebuilt
-/// since, or a snapshot from a version captured against another text) simply writes no length rather
-/// than a wrong one.
+/// since, or a snapshot from a version captured against another text) simply writes no length
+/// rather than a wrong one.
 class OcptBreakdownXlsxExportService {
   /// The sheet name used when the caller's own [OcptBreakdownXlsxLabels.scenesSheetName] is blank.
   static const fallbackScenesSheetName = "Scenes";
@@ -53,9 +54,10 @@ class OcptBreakdownXlsxExportService {
   const OcptBreakdownXlsxExportService();
 
   /// The `.xlsx` file name to suggest when exporting the breakdown of the project named
-  /// [projectName], with [suffix] appended, mirroring `OcptResourcesXlsxExportService.xlsxFileName`.
-  /// [episodeTag] is the selected episode's own tag, present only while the open project holds more
-  /// than one episode — see `ocptExportFileNameOf`'s own doc comment.
+  /// [projectName], with [suffix] appended, mirroring
+  /// `OcptResourcesXlsxExportService.xlsxFileName`. [episodeTag] is the selected episode's own tag,
+  /// present only while the open project holds more than one episode — see `ocptExportFileNameOf`'s
+  /// own doc comment.
   String xlsxFileName({required String projectName, required String suffix, String? episodeTag}) =>
       ocptExportFileNameOf(
         projectName: projectName,
@@ -200,10 +202,10 @@ class OcptBreakdownXlsxExportService {
     OcptBreakdownScenesXlsxColumn.notes => _textOrNull(scene.notes),
   };
 
-  /// The sets [sets] holding [scene]'s own id among their own `sceneIds`, named `<set> · <location>`
-  /// and joined — the scene inspector's own sets row, read here rather than through
-  /// `ocptBreakdownSetLabel` (`lib/ui/utils/`, out of reach from the manager layer this service sits
-  /// in) so the composition is inlined instead, mirroring
+  /// The sets [sets] holding [scene]'s own id among their own `sceneIds`, named
+  /// `<set> · <location>` and joined — the scene inspector's own sets row, read here rather than
+  /// through `ocptBreakdownSetLabel` (`lib/ui/utils/`, out of reach from the manager layer this
+  /// service sits in) so the composition is inlined instead, mirroring
   /// `OcptResourcesXlsxExportService._isoDate`'s own doc comment for why.
   String _linkedSetsTextOf({
     required OcptBreakdownScene scene,
@@ -333,7 +335,8 @@ class OcptBreakdownXlsxExportService {
 
   /// The name of [element]'s owner, or null while it has none — a role or a set never has one
   /// ([element] itself is then null), and an element's own `ownerPersonId` may be unset or may name
-  /// somebody the address book no longer holds (an erased person, whose row the erasure tombstoned).
+  /// somebody the address book no longer holds (an erased person, whose row the erasure
+  /// tombstoned).
   String? _ownerNameOf({
     required OcptElement? element,
     required Map<String, OcptPerson> personById,

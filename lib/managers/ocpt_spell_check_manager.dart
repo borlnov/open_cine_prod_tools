@@ -39,8 +39,9 @@ class OcptSpellCheckManagerBuilder extends AbsLifeCycleFactory<OcptSpellCheckMan
 }
 
 /// Owns the one long-lived worker isolate this app's spell-checking runs on
-/// (`docs/architecture/foundations.md`, and `docs/adr/0020-bundled-hunspell-dictionaries-and-our-own-checker.md`
-/// for why this app checks spelling itself at all).
+/// (`docs/architecture/foundations.md`, and
+/// `docs/adr/0020-bundled-hunspell-dictionaries-and-our-own-checker.md` for why this app checks
+/// spelling itself at all).
 ///
 /// The isolate holds a `spell_kit` `SpellChecker` built over whichever language's dictionary
 /// [useLanguage] last loaded, plus the session's ignored words and the open project's learned

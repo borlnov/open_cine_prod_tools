@@ -384,8 +384,8 @@ class _FakeSpellCheckManager extends OcptSpellCheckManager {
     _generation++;
   }
 
-  /// Every word [ignoreWord] was called with, in call order — this fake's own accumulation, mirroring
-  /// the real manager's (`docs/architecture/screenplay.md`), so a test can assert both
+  /// Every word [ignoreWord] was called with, in call order — this fake's own accumulation,
+  /// mirroring the real manager's (`docs/architecture/screenplay.md`), so a test can assert both
   /// that the manager was reached and that the accumulation actually happened.
   final List<String> ignoredWords = [];
 

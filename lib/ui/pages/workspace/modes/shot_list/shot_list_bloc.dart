@@ -1912,13 +1912,13 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     }
   }
 
-  /// Resolves a click on a scenario coverage word, exactly as `OcptShotListCoverageWordClickedEvent`
-  /// documents: with no range open, a click on one of the selected shot's own already-covered words
-  /// removes the range covering it and any other click opens a range on that word; with a range
-  /// open, the click closes it wherever it lands. Written immediately, like every other coverage
-  /// change; a stale click — a shot no longer selected, or nothing left to lay out — is silently
-  /// ignored, since the layout the click was resolved against might no longer describe what is on
-  /// screen.
+  /// Resolves a click on a scenario coverage word, exactly as
+  /// `OcptShotListCoverageWordClickedEvent` documents: with no range open, a click on one of the
+  /// selected shot's own already-covered words removes the range covering it and any other click
+  /// opens a range on that word; with a range open, the click closes it wherever it lands. Written
+  /// immediately, like every other coverage change; a stale click — a shot no longer selected, or
+  /// nothing left to lay out — is silently ignored, since the layout the click was resolved against
+  /// might no longer describe what is on screen.
   ///
   /// A closing click is never rejected for landing in another block than the one the range was
   /// opened in: a range legitimately runs from an action paragraph into the dialogue below it, and
@@ -3916,8 +3916,8 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
   }
 
   /// The live `floor_plan_symbols` row [symbolId] names, searched across every set of
-  /// [OcptShotListState.floorPlanSnapshot] — [_onFloorPlanSymbolDuplicated]'s own source lookup, the
-  /// duplicate's every field but its position copied from here.
+  /// [OcptShotListState.floorPlanSnapshot] — [_onFloorPlanSymbolDuplicated]'s own source lookup,
+  /// the duplicate's every field but its position copied from here.
   OcptFloorPlanSymbol? _findFloorPlanSymbol(String symbolId) {
     for (final floorPlanSet
         in state.floorPlanSnapshot?.setsById.values ?? const <OcptFloorPlanSet>[]) {

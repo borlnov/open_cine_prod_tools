@@ -18,9 +18,9 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/o
 ///
 /// Modelled on `OcptScheduleShootingPlanExportDialog`, whose page-format dropdown, title-page
 /// checkbox, day list and two buttons it shares the same reused strings for.
-/// [OcptScheduleDaySelectionList] ticks every day by default here, as it does there: the common case
-/// for a whole-shoot document is printing the whole shoot, and the days ticked are exactly the range
-/// every `SW`/`WF` in the table is read against.
+/// [OcptScheduleDaySelectionList] ticks every day by default here, as it does there: the common
+/// case for a whole-shoot document is printing the whole shoot, and the days ticked are exactly the
+/// range every `SW`/`WF` in the table is read against.
 ///
 /// Use [show] to display it and get back the resulting [OcptDayOutOfDaysExportOptions], or null if
 /// the user cancelled.
@@ -132,15 +132,15 @@ class _OcptScheduleDayOutOfDaysExportDialogState
   };
 
   /// Pops the dialog returning the resulting [OcptDayOutOfDaysExportOptions], the selected days in
-  /// [OcptScheduleDayOutOfDaysExportDialog.days]' own order rather than selection order — that order
-  /// is what the table's own first and last convoked days are read against.
+  /// [OcptScheduleDayOutOfDaysExportDialog.days]' own order rather than selection order — that
+  /// order is what the table's own first and last convoked days are read against.
   ///
   /// The dialog is dismissed through the router manager (RFL31: navigation only via the router
   /// manager), whose pop delivers the new options back to the
   /// [OcptScheduleDayOutOfDaysExportDialog.show] caller. Like the shooting plan's own dialog and
-  /// unlike the two call sheet ones, it never disables its own export button while no day is ticked:
-  /// an empty selection still produces a readable document, which `OcptDayOutOfDaysPdfService`
-  /// already handles as a one-note page.
+  /// unlike the two call sheet ones, it never disables its own export button while no day is
+  /// ticked: an empty selection still produces a readable document, which
+  /// `OcptDayOutOfDaysPdfService` already handles as a one-note page.
   void _submit() {
     final options = OcptDayOutOfDaysExportOptions(
       format: _selectedFormat,

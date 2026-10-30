@@ -441,8 +441,8 @@ class _ResourcesViewState extends State<_ResourcesView> {
   /// whichever tab is active, filling the rest of the row.
   ///
   /// The banner sits above everything else and stays whichever tab is active: it reports the whole
-  /// cast, not something about the tab currently being looked at — mirroring how the shot list's own
-  /// full role alert banners sit above its sequence content.
+  /// cast, not something about the tab currently being looked at — mirroring how the shot list's
+  /// own full role alert banners sit above its sequence content.
   Widget _buildCentre(BuildContext context, OcptResourcesState state, List<OcptEpisode> episodes) {
     final banner = _buildRoleAlertCompactBanner(context, state);
     final body = _buildTabCentre(context, state, episodes);
@@ -463,7 +463,8 @@ class _ResourcesViewState extends State<_ResourcesView> {
   /// version is being previewed read-only.
   ///
   /// Tapping a line selects that role (`OcptResourcesRoleSelectedEvent`, which now always switches
-  /// to the roles tab too), landing on its sheet where the full `OcptRoleAlertBanner` already lives.
+  /// to the roles tab too), landing on its sheet where the full `OcptRoleAlertBanner` already
+  /// lives.
   Widget? _buildRoleAlertCompactBanner(BuildContext context, OcptResourcesState state) {
     final orphanedAlerts = state.orphanedRoleAlerts;
     final collisionAlerts = state.roleCollisionAlerts;

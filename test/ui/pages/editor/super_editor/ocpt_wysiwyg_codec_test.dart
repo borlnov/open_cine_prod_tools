@@ -188,7 +188,8 @@ void main() {
 
   group("OcptWysiwygCodec.encode dialogue/parenthetical fallback", () {
     test(
-      "a dialogue node not following a character serializes as plain text and degrades to action on reparse",
+      "a dialogue node not following a character serializes as plain text and degrades to action "
+      "on reparse",
       () {
         final document = MutableDocument(
           nodes: [
@@ -444,18 +445,16 @@ void main() {
   });
 
   group("OcptWysiwygCodec.decode/encode scene numbers", () {
-    test(
-      "strips a trailing #N# tag off a scene heading into metadata, hiding it from the display text",
-      () {
-        final decoded = OcptWysiwygCodec.decode("INT. HOUSE - DAY #4A#");
+    test("strips a trailing #N# tag off a scene heading into metadata, hiding it from the display "
+        "text", () {
+      final decoded = OcptWysiwygCodec.decode("INT. HOUSE - DAY #4A#");
 
-        expect(
-          (decoded.document.getNodeAt(0)! as ParagraphNode).text.toPlainText(),
-          "INT. HOUSE - DAY",
-        );
-        expect(_sceneNumberAt(decoded.document, 0), "4A");
-      },
-    );
+      expect(
+        (decoded.document.getNodeAt(0)! as ParagraphNode).text.toPlainText(),
+        "INT. HOUSE - DAY",
+      );
+      expect(_sceneNumberAt(decoded.document, 0), "4A");
+    });
 
     test("a scene heading with no tag has no scene number metadata", () {
       final decoded = OcptWysiwygCodec.decode("INT. HOUSE - DAY");
@@ -984,8 +983,8 @@ void main() {
       "every synthesized title-page node starts fully deletable (F6: edited like any other line)",
       () {
         // `isDeletable: false` used to also block ordinary in-field editing (Backspace, Delete):
-        // the sheet is protected from deletion by `ocptTitlePageGuardRequestHandler` alone now, so a
-        // title-page node must never carry the flag at all.
+        // the sheet is protected from deletion by `ocptTitlePageGuardRequestHandler` alone now, so
+        // a title-page node must never carry the flag at all.
         final decoded = OcptWysiwygCodec.decodeWithTitlePage("INT. HOUSE - DAY");
         for (var index = 0; index < 6; index++) {
           expect(decoded.document.getNodeAt(index)!.isDeletable, isTrue, reason: "node $index");

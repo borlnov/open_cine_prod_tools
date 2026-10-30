@@ -36,9 +36,10 @@ class OcptResourcesSnapshot extends Equatable {
   /// Every live candidacy of the project, grouped by `roleId`, each group in its own `sortKey`
   /// order — exactly `OcptRoleCandidatesService.loadCandidatesByRoleId`'s own return value.
   ///
-  /// No count of its own in the status bar: a candidacy is not a resource of its own, it is what the
-  /// roles tab's pill and a role's own candidates card read to say where a part's casting stands,
-  /// and `ocptCastRoleCount` already reports the one number about casting the status bar shows.
+  /// No count of its own in the status bar: a candidacy is not a resource of its own, it is what
+  /// the roles tab's pill and a role's own candidates card read to say where a part's casting
+  /// stands, and `ocptCastRoleCount` already reports the one number about casting the status bar
+  /// shows.
   final Map<String, List<OcptRoleCandidate>> candidatesByRoleId;
 
   /// Every scene of the project's primary screenplay, in source order.

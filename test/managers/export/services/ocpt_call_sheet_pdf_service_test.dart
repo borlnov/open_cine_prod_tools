@@ -819,7 +819,8 @@ void main() {
       expect(_contentStreams(nightBytes), isNot(_contentStreams(dayBytes)));
     });
 
-    test("an end-anchored slot prints the hours the timeline resolves, not the raw anchor", () async {
+    test("an end-anchored slot prints the hours the timeline resolves, not the raw "
+        "anchor", () async {
       // Both slots are end-anchored on the very same minute (720); only their own block's duration
       // differs, so only the *resolved start* tells them apart — a service that printed the stored
       // anchor by mistake would draw the two documents identically.
@@ -1054,8 +1055,9 @@ void main() {
       );
 
       // A brand new crew member, on the *other* unit, in a department that never reaches the key
-      // contacts block either (image, not production/direction): the only sections that can see them
-      // are the department-contacts table and the crew list, both of which a named sheet now prints.
+      // contacts block either (image, not production/direction): the only sections that can see
+      // them are the department-contacts table and the crew list, both of which a named sheet now
+      // prints.
       final grownPlan = buildTwoSlotDaySnapshot(
         extraEveningCrew: [
           _buildCrewMember(
@@ -1139,7 +1141,8 @@ void main() {
     test("a person's arrival, PAT band and departure print as three distinct figures", () async {
       // slot-1, start-anchored at 08:00: a preparation block (not shooting, 08:00-08:30), a shot
       // block (08:30-09:30) and a wrap block (09:30-10:00, not shooting either) — so arrival
-      // (08:00), PAT start (08:30), PAT end (09:30) and departure (10:00) are four distinct minutes.
+      // (08:00), PAT start (08:30), PAT end (09:30) and departure (10:00) are four distinct
+      // minutes.
       final slot = _buildSlot(
         id: "slot-1",
         anchorMinute: 480,
@@ -1349,77 +1352,75 @@ void main() {
       expect(_contentStreams(namedWith), isNot(_contentStreams(namedWithout)));
     });
 
-    test(
-      "a day's own guests change what both sheets print, and a guest with no PAT band does not crash",
-      () async {
-        final withoutGuest = buildTwoSlotDaySnapshot();
-        final withGuest = buildTwoSlotDaySnapshot(
-          morningGuests: [
-            _buildGuest(
-              id: "guest-1",
-              slotId: "slot-morning",
-              freeName: "Mayor Dupont",
-              reason: "Lends the square",
-            ),
-          ],
-        );
+    test("a day's own guests change what both sheets print, and a guest with no PAT band does not "
+        "crash", () async {
+      final withoutGuest = buildTwoSlotDaySnapshot();
+      final withGuest = buildTwoSlotDaySnapshot(
+        morningGuests: [
+          _buildGuest(
+            id: "guest-1",
+            slotId: "slot-morning",
+            freeName: "Mayor Dupont",
+            reason: "Lends the square",
+          ),
+        ],
+      );
 
-        // A guest's own convocation is computed like any other, and it never carries a PAT band
-        // (ADR 0018) — generating a sheet over one must not throw.
-        final guestConvocation = withGuest.convocationsOfDay("day-1").firstWhere((c) => c.isGuest);
-        expect(guestConvocation.patStartMinute, isNull);
-        expect(guestConvocation.patEndMinute, isNull);
+      // A guest's own convocation is computed like any other, and it never carries a PAT band
+      // (ADR 0018) — generating a sheet over one must not throw.
+      final guestConvocation = withGuest.convocationsOfDay("day-1").firstWhere((c) => c.isGuest);
+      expect(guestConvocation.patStartMinute, isNull);
+      expect(guestConvocation.patEndMinute, isNull);
 
-        final generalWithout = await service.generateGeneralCallSheet(
-          plan: withoutGuest,
-          dayId: "day-1",
-          pageSetup: pageSetup,
-          labels: _labels,
-          projectName: "My Movie",
-          exportDate: _pinnedExportDate,
-        );
-        final generalWith = await service.generateGeneralCallSheet(
-          plan: withGuest,
-          dayId: "day-1",
-          pageSetup: pageSetup,
-          labels: _labels,
-          projectName: "My Movie",
-          exportDate: _pinnedExportDate,
-        );
-        expect(ascii.decode(generalWith.sublist(0, 4)), "%PDF");
-        expect(_contentStreams(generalWith), isNot(_contentStreams(generalWithout)));
+      final generalWithout = await service.generateGeneralCallSheet(
+        plan: withoutGuest,
+        dayId: "day-1",
+        pageSetup: pageSetup,
+        labels: _labels,
+        projectName: "My Movie",
+        exportDate: _pinnedExportDate,
+      );
+      final generalWith = await service.generateGeneralCallSheet(
+        plan: withGuest,
+        dayId: "day-1",
+        pageSetup: pageSetup,
+        labels: _labels,
+        projectName: "My Movie",
+        exportDate: _pinnedExportDate,
+      );
+      expect(ascii.decode(generalWith.sublist(0, 4)), "%PDF");
+      expect(_contentStreams(generalWith), isNot(_contentStreams(generalWithout)));
 
-        // The guest table is day-wide (like the cast table and the two directories), so it shows up
-        // on a named sheet too, even one addressed to the morning unit's own director rather than to
-        // the guest.
-        final convocationWithout = withoutGuest
-            .convocationsOfDay("day-1")
-            .firstWhere((c) => c.personId == "person-1");
-        final convocationWith = withGuest
-            .convocationsOfDay("day-1")
-            .firstWhere((c) => c.personId == "person-1");
-        final namedWithout = await service.generateNamedCallSheet(
-          plan: withoutGuest,
-          dayId: "day-1",
-          pageSetup: pageSetup,
-          labels: _labels,
-          projectName: "My Movie",
-          convocation: convocationWithout,
-          exportDate: _pinnedExportDate,
-        );
-        final namedWith = await service.generateNamedCallSheet(
-          plan: withGuest,
-          dayId: "day-1",
-          pageSetup: pageSetup,
-          labels: _labels,
-          projectName: "My Movie",
-          convocation: convocationWith,
-          exportDate: _pinnedExportDate,
-        );
-        expect(ascii.decode(namedWith.sublist(0, 4)), "%PDF");
-        expect(_contentStreams(namedWith), isNot(_contentStreams(namedWithout)));
-      },
-    );
+      // The guest table is day-wide (like the cast table and the two directories), so it shows up
+      // on a named sheet too, even one addressed to the morning unit's own director rather than
+      // to the guest.
+      final convocationWithout = withoutGuest
+          .convocationsOfDay("day-1")
+          .firstWhere((c) => c.personId == "person-1");
+      final convocationWith = withGuest
+          .convocationsOfDay("day-1")
+          .firstWhere((c) => c.personId == "person-1");
+      final namedWithout = await service.generateNamedCallSheet(
+        plan: withoutGuest,
+        dayId: "day-1",
+        pageSetup: pageSetup,
+        labels: _labels,
+        projectName: "My Movie",
+        convocation: convocationWithout,
+        exportDate: _pinnedExportDate,
+      );
+      final namedWith = await service.generateNamedCallSheet(
+        plan: withGuest,
+        dayId: "day-1",
+        pageSetup: pageSetup,
+        labels: _labels,
+        projectName: "My Movie",
+        convocation: convocationWith,
+        exportDate: _pinnedExportDate,
+      );
+      expect(ascii.decode(namedWith.sublist(0, 4)), "%PDF");
+      expect(_contentStreams(namedWith), isNot(_contentStreams(namedWithout)));
+    });
 
     test("a shot block's own crew note changes the sheet", () async {
       final slot = _buildSlot(id: "slot-1", anchorMinute: 480);
@@ -1617,8 +1618,8 @@ void main() {
 
   group("the named sheet's own 'to bring' section", () {
     /// A day with one crew member (`person-1`) and one uncast role (`role-1`) convoked on the same
-    /// slot, shooting `scene-1` — enough to test the section's own presence, absence and the general
-    /// sheet's own indifference to it.
+    /// slot, shooting `scene-1` — enough to test the section's own presence, absence and the
+    /// general sheet's own indifference to it.
     OcptSchedulePlanSnapshot buildPlan({required List<OcptElement> elements}) {
       final slot = _buildSlot(
         id: "slot-1",
@@ -2768,18 +2769,19 @@ void main() {
 
         // Both documents print the same two SEQ rows (1.3 then 2.4), so the only thing that can
         // still tell them apart is the cast side: a second, distinct role costs a whole extra row
-        // in the cast table and a whole extra entry in the cast-and-extras list, where the very same
-        // Alice speaking a second time costs one more scene number appended to her own row. If the
-        // cast table had printed Alice twice instead of merging her two episodes into one row, the
-        // two documents would be the same size; they are not, and the two-role one is the larger of
-        // the two.
+        // in the cast table and a whole extra entry in the cast-and-extras list, where the very
+        // same Alice speaking a second time costs one more scene number appended to her own row. If
+        // the cast table had printed Alice twice instead of merging her two episodes into one row,
+        // the two documents would be the same size; they are not, and the two-role one is the
+        // larger of the two.
         expect(_contentStreams(oneRoleBytes), isNot(_contentStreams(twoRolesBytes)));
         expect(twoRolesBytes.length, greaterThan(oneRoleBytes.length));
       },
     );
 
     test("a named sheet's own timetable narrows to its recipient's episode, but its cast table "
-        "stays the day's — naming a role that speaks only in the other episode's own slot", () async {
+        "stays the day's — naming a role that speaks only in the other episode's own "
+        "slot", () async {
       final role = _buildRole(id: "role-1", name: "Alice");
       final secondRole = _buildRole(id: "role-2", name: "Bob", number: 2);
       final morning = _buildSlot(
@@ -2922,9 +2924,9 @@ int _pageCount(Uint8List bytes) {
   return RegExp(r"/Type\s*/Page[^s]").allMatches(text).length;
 }
 
-/// The raw (still-compressed) bytes of every `stream`/`endstream` object in [bytes], in file order —
-/// see `ocpt_breakdown_sheets_pdf_service_test.dart`'s own doc comment for why this, rather than the
-/// printed text, is what every "prints something different" assertion below compares.
+/// The raw (still-compressed) bytes of every `stream`/`endstream` object in [bytes], in file order
+/// — see `ocpt_breakdown_sheets_pdf_service_test.dart`'s own doc comment for why this, rather than
+/// the printed text, is what every "prints something different" assertion below compares.
 List<String> _contentStreams(Uint8List bytes) {
   final text = latin1.decode(bytes, allowInvalid: true);
   final pattern = RegExp(r"stream\r?\n(.*?)endstream", dotAll: true);

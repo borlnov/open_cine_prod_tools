@@ -29,10 +29,10 @@ import 'package:open_cine_prod_tools/utils/ocpt_breakdown_scene_bars.dart';
 /// about what a hidden key does to the script view.
 ///
 /// The ⚠ mark is its own tappable region ([onWarningTapped]), separate from the row's own click
-/// ([onSceneSelected]): the row only selects the scene, exactly as `OcptBreakdownSceneSelectedEvent`
-/// always has, while the mark is the fix's own way in — the mode answers it the way a script view
-/// heading's click already is, landing the user on the inspector's own "to check" callout (ADR 0030,
-/// decision 4).
+/// ([onSceneSelected]): the row only selects the scene, exactly as
+/// `OcptBreakdownSceneSelectedEvent` always has, while the mark is the fix's own way in — the mode
+/// answers it the way a script view heading's click already is, landing the user on the inspector's
+/// own "to check" callout (ADR 0030, decision 4).
 class OcptBreakdownScenePanel extends StatelessWidget {
   /// The scenes to list, in source order.
   final List<OcptBreakdownScene> scenes;

@@ -85,17 +85,17 @@ const Map<int, pw.TableColumnWidth> _guestColumnWidths = {
 
 /// Renders the whole shoot's own shooting plan: an optional title page, the four summary grids —
 /// locations, sequences, crew and cast, each crossing every printed day's own slots, and the
-/// elements grid crossing every printed **day** instead — and then one detailed agenda per day, hour
-/// by hour.
+/// elements grid crossing every printed **day** instead — and then one detailed agenda per day,
+/// hour by hour.
 ///
 /// This is pure rendering logic with no dialog or file-system access of its own: it's owned by
 /// `OcptExportManager` and exposed as a public final field, reached through the manager rather than
 /// through `globalGetIt()` (RFL18), exactly like its siblings — `OcptCallSheetPdfService` chief
 /// among them, whose own doc comment this one mirrors. It prints no screenplay, so it draws nothing
 /// through [OcptScriptPagePainter]'s absolutely positioned page builders and flows its content in
-/// [pw.MultiPage]s instead, exactly as `OcptCallSheetPdfService` and `OcptBreakdownSheetsPdfService`
-/// do; it still takes one painter, for the page geometry every export of this app measures a sheet
-/// with and the Courier Prime variants all of them print in.
+/// [pw.MultiPage]s instead, exactly as `OcptCallSheetPdfService` and
+/// `OcptBreakdownSheetsPdfService` do; it still takes one painter, for the page geometry every
+/// export of this app measures a sheet with and the Courier Prime variants all of them print in.
 ///
 /// **Every hour printed comes off [OcptSchedulePlanSnapshot.timelinesOfDay]'s resolved clocks** —
 /// never off a stored anchor, never re-derived. A minute may exceed 1440 for a night shoot's small
@@ -103,8 +103,8 @@ const Map<int, pw.TableColumnWidth> _guestColumnWidths = {
 /// one back onto a clock face — the same rule `OcptCallSheetPdfService` follows, and the reason the
 /// two share `ocpt_schedule_pdf_shared.dart` rather than each reading the schedule its own way. A
 /// day agenda's own shot table leads with an **hours column**, the one column the reference
-/// document's own table carries no equivalent of, reading the same resolved clock a shot's block was
-/// placed on.
+/// document's own table carries no equivalent of, reading the same resolved clock a shot's block
+/// was placed on.
 ///
 /// **The day's own events, guests and a block's own crew note** — schema v17's three additions —
 /// are printed here too, following `OcptCallSheetPdfService`'s own reading of them rather than a
@@ -670,13 +670,14 @@ class OcptShootingPlanPdfService {
   /// **Only the day header repeats across a page break, not a category band.** `pw.TableRow.repeat`
   /// redraws *every* row it marks at the top of *every* page the table spans — right for a fixed
   /// header meant once, wrong for a band that recurs once per category: a table several categories
-  /// deep would stack every category seen so far atop a continuation page rather than only the one a
-  /// reader is actually looking at, which is a worse lie than the one being fixed. Making only the
-  /// *current* band follow the break would need this table built row by row like
-  /// [_dayTimetableWidgets] rather than handed whole to `pw.Table`, for a document that already names
-  /// every row's own element (`<code> · <name>`, [OcptShootingPlanElementsGridElementRow.label])
-  /// whether or not its category is still in view — a reader who has lost the band can still read
-  /// the row, which is not true of a column with no header at all.
+  /// deep would stack every category seen so far atop a continuation page rather than only the one
+  /// a reader is actually looking at, which is a worse lie than the one being fixed. Making only
+  /// the *current* band follow the break would need this table built row by row like
+  /// [_dayTimetableWidgets] rather than handed whole to `pw.Table`, for a document that already
+  /// names every row's own element (`<code> · <name>`,
+  /// [OcptShootingPlanElementsGridElementRow.label]) whether or not its category is still in view —
+  /// a reader who has lost the band can still read the row, which is not true of a column with no
+  /// header at all.
   pw.MultiPage _elementsGridPage({
     required OcptScriptPagePainter painter,
     required OcptShootingPlanLabels labels,
@@ -753,8 +754,8 @@ class OcptShootingPlanPdfService {
 
   /// One day's own detailed agenda: its title, its location(s), its per-slot hours, its own events
   /// next to them, the sets used, then the interleaved timetable — the milestones as prose and the
-  /// shot runs as tables, a block's own [OcptShootingDayBlock.crewNote] printed under its row — and,
-  /// trailing it, the day's own guest table.
+  /// shot runs as tables, a block's own [OcptShootingDayBlock.crewNote] printed under its row —
+  /// and, trailing it, the day's own guest table.
   pw.MultiPage _dayAgendaPage({
     required OcptScriptPagePainter painter,
     required OcptShootingPlanLabels labels,
@@ -851,8 +852,8 @@ class OcptShootingPlanPdfService {
     ];
   }
 
-  /// One line per live slot: its own label, the call time (its resolved start) and the estimated end
-  /// (its resolved end, or [ocptScheduleEmptyValue] while it carries no block yet).
+  /// One line per live slot: its own label, the call time (its resolved start) and the estimated
+  /// end (its resolved end, or [ocptScheduleEmptyValue] while it carries no block yet).
   List<pw.Widget> _hoursLines({
     required OcptScriptPagePainter painter,
     required OcptShootingPlanLabels labels,
@@ -883,8 +884,8 @@ class OcptShootingPlanPdfService {
     return [for (final line in lines) _noteWidget(painter: painter, text: line)];
   }
 
-  /// One line per [locations] entry: its own name, then the sets used there that day, comma-joined —
-  /// or [ocptScheduleEmptyValue] when no slot at that location named one.
+  /// One line per [locations] entry: its own name, then the sets used there that day, comma-joined
+  /// — or [ocptScheduleEmptyValue] when no slot at that location named one.
   List<pw.Widget> _setsLines({
     required OcptScriptPagePainter painter,
     required OcptSchedulePlanSnapshot plan,
@@ -930,14 +931,14 @@ class OcptShootingPlanPdfService {
   }
 
   /// The day's own events section: [OcptShootingPlanLabels.eventsSectionTitle] then one bold
-  /// `HH:mm — <label>` line per event, its own free-form note beneath in a muted second line when it
-  /// carries one.
+  /// `HH:mm — <label>` line per event, its own free-form note beneath in a muted second line when
+  /// it carries one.
   ///
   /// Mirrors `OcptCallSheetPdfService._eventsSection`, placed here beside the day's own hours
   /// section for the same reason it sits beside that document's own time bands: an event is a fact
-  /// about the day rather than about any one slot's chain, so it takes part in no chain and is never
-  /// interleaved into the timetable [_dayTimetableWidgets] builds. Never called on a day with no
-  /// event at all — see [_dayAgendaPage]'s own composition for why an empty section is skipped
+  /// about the day rather than about any one slot's chain, so it takes part in no chain and is
+  /// never interleaved into the timetable [_dayTimetableWidgets] builds. Never called on a day with
+  /// no event at all — see [_dayAgendaPage]'s own composition for why an empty section is skipped
   /// entirely rather than drawn over an em dash.
   pw.Widget _eventsSection({
     required OcptScriptPagePainter painter,
@@ -971,10 +972,10 @@ class OcptShootingPlanPdfService {
   );
 
   /// The day's own trailing guest table (`NOM / MOTIF / HORAIRES`) — the shape
-  /// `OcptCallSheetPdfService._guestsSection` already gives a day's guests, and for the same reason:
-  /// a guest is owed an arrival and a departure and never a PAT band (ADR 0018), so there is no
-  /// fourth column here to leave blank for one. Never called on a day with no guest at all — see
-  /// [_dayAgendaPage]'s own composition.
+  /// `OcptCallSheetPdfService._guestsSection` already gives a day's guests, and for the same
+  /// reason: a guest is owed an arrival and a departure and never a PAT band (ADR 0018), so there
+  /// is no fourth column here to leave blank for one. Never called on a day with no guest at all —
+  /// see [_dayAgendaPage]'s own composition.
   pw.Widget _guestsSection({
     required OcptScriptPagePainter painter,
     required OcptShootingPlanLabels labels,
@@ -1165,7 +1166,8 @@ class OcptShootingPlanPdfService {
     final start = ocptFormatDayMinute(startMinute);
     final text = endMinute == null
         ? "${labels.milestoneFromLabel} $start : $caption"
-        : "${labels.milestoneFromLabel} $start ${labels.milestoneToLabel} ${ocptFormatDayMinute(endMinute)} : "
+        : "${labels.milestoneFromLabel} $start ${labels.milestoneToLabel} "
+              "${ocptFormatDayMinute(endMinute)} : "
               "$caption";
 
     return pw.Padding(
@@ -1564,7 +1566,8 @@ class OcptShootingPlanPdfService {
       padding: const pw.EdgeInsets.all(_cellPaddingPt),
       child: isFirstRow
           ? pw.Text(
-              "${tile.caption} · ${ocptFormatDayMinute(tile.startMinute)}–${ocptFormatDayMinute(tile.endMinute)}",
+              "${tile.caption} · "
+              "${ocptFormatDayMinute(tile.startMinute)}–${ocptFormatDayMinute(tile.endMinute)}",
               style: pw.TextStyle(font: painter.fonts.regular, fontSize: _smallFontSizePt),
             )
           : pw.SizedBox(),
@@ -1586,7 +1589,8 @@ class OcptShootingPlanPdfService {
       color: _bandColor,
     ),
     child: pw.Text(
-      "${ocptFormatDayMinute(marker.minute)} — ${marker.label.trim().isEmpty ? ocptScheduleEmptyValue : marker.label.trim()}",
+      "${ocptFormatDayMinute(marker.minute)} — "
+      "${marker.label.trim().isEmpty ? ocptScheduleEmptyValue : marker.label.trim()}",
       style: pw.TextStyle(font: painter.fonts.bold, fontSize: _bodyFontSizePt),
     ),
   );
@@ -1602,11 +1606,12 @@ class OcptShootingPlanPdfService {
   /// The version line is repeated on **every** page rather than on the title page alone: a shooting
   /// plan is read page by page, a day agenda torn out of it or a landscape grid pinned on a wall,
   /// and a reader holding one sheet of it has nowhere else to find out which issue they are working
-  /// from. Every call site hands this to its own `pw.MultiPage`'s **`header:`** callback rather than
-  /// as the first entry of its `build:` list: `build:` only ever runs once, on the first physical
-  /// page a flow lands on, while `header:` runs on every one it overflows onto — a busy day agenda
-  /// or a wide grid chunked across several sheets would otherwise carry this on its first page alone
-  /// and nothing on the rest, which is exactly the failure this doc comment's own promise rules out.
+  /// from. Every call site hands this to its own `pw.MultiPage`'s **`header:`** callback rather
+  /// than as the first entry of its `build:` list: `build:` only ever runs once, on the first
+  /// physical page a flow lands on, while `header:` runs on every one it overflows onto — a busy
+  /// day agenda or a wide grid chunked across several sheets would otherwise carry this on its
+  /// first page alone and nothing on the rest, which is exactly the failure this doc comment's own
+  /// promise rules out.
   pw.Widget _runningHead({
     required OcptScriptPagePainter painter,
     required String projectName,
@@ -1649,8 +1654,8 @@ class OcptShootingPlanPdfService {
   );
 
   /// One table cell holding [text], substituting [ocptScheduleEmptyValue] when it is blank — unlike
-  /// [_gridDataCell], a shot table cell always names a specific field of a specific shot, so a blank
-  /// one *is* a missing value.
+  /// [_gridDataCell], a shot table cell always names a specific field of a specific shot, so a
+  /// blank one *is* a missing value.
   pw.Widget _textCell({
     required OcptScriptPagePainter painter,
     required String text,
@@ -1678,8 +1683,8 @@ class OcptShootingPlanPdfService {
     marginBottom: painter.marginRightPt,
   );
 
-  /// The landscape `pdf` page format every summary grid page is drawn on — [painter]'s own width and
-  /// height swapped, its margins otherwise read the same way [_portraitPageFormat] does.
+  /// The landscape `pdf` page format every summary grid page is drawn on — [painter]'s own width
+  /// and height swapped, its margins otherwise read the same way [_portraitPageFormat] does.
   PdfPageFormat _landscapePageFormat(OcptScriptPagePainter painter) => PdfPageFormat(
     painter.pageHeightPt,
     painter.pageWidthPt,
@@ -1690,10 +1695,10 @@ class OcptShootingPlanPdfService {
   );
 }
 
-// ===================================================================================================
+// =================================================================================================
 // Pure pagination helper — the columns and rows themselves are `OcptShootingPlanGrids`' own
 // (`lib/models/ocpt_shooting_plan_grids.dart`), shared with `OcptShootingPlanXlsxExportService`.
-// ===================================================================================================
+// =================================================================================================
 
 /// [columns] split into chunks of at most [chunkSize], in order — empty when [columns] itself is.
 /// Generic over the column's own type so every summary grid paginates by the very same rule: a

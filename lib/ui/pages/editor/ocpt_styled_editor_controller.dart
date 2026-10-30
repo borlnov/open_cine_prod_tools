@@ -33,8 +33,9 @@ abstract class OcptStyledEditorControllerDelegate {
   /// Replaces the current match (the one [updateSearch] last pointed at) with [replacement],
   /// returning the index, among the matches left afterwards, of the first one starting at or past
   /// the end of what was just written (wrapping to `0`, or `null` if none remain) — the caller
-  /// (`editor_page.dart`) is what turns that into a fresh `OcptEditorSearchCurrentMatchSelectedEvent`,
-  /// mirroring the raw mode's own `_requestRawReplace`.
+  /// (`editor_page.dart`) is what turns that into a fresh
+  /// `OcptEditorSearchCurrentMatchSelectedEvent`, mirroring the raw mode's own
+  /// `_requestRawReplace`.
   int? replaceCurrentMatch(String replacement);
 
   /// Replaces every current match with [replacement] in one grouped edit.

@@ -548,9 +548,9 @@ void main() {
       bloc.add(OcptProjectVersionPreviewRequestedEvent(versionId: versionId));
       await waitForState(bloc, (state) => state.previewedVersionId != null);
 
-      // `OcptProjectsManager.restoreProjectVersion` leaves the preview on its own, so the same event
-      // a version's own card dispatches is all the read-only banner's `Start from this version`
-      // needs — no dedicated fork event or branch-point card any more.
+      // `OcptProjectsManager.restoreProjectVersion` leaves the preview on its own, so the same
+      // event a version's own card dispatches is all the read-only banner's
+      // `Start from this version` needs — no dedicated fork event or branch-point card any more.
       bloc.add(
         OcptProjectVersionRestoreConfirmedEvent(
           versionId: versionId,

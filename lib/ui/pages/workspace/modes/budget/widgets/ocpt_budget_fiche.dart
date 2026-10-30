@@ -52,8 +52,8 @@ class _OcptBudgetFicheAction {
 ///
 /// Every variant draws the same grammar, top to bottom: a breadcrumb up to the document, the
 /// object's own name and amount, an optional hint (and, for a resource or a taking, a status badge
-/// beside it), a small stepper of its states, the figures that make it up, the outstanding amount in
-/// large type, one primary action and at most two secondary ones. The table says where things
+/// beside it), a small stepper of its states, the figures that make it up, the outstanding amount
+/// in large type, one primary action and at most two secondary ones. The table says where things
 /// stand; this fiche says where they come from and what to do next.
 ///
 /// **The poste's and the quote line's own editable fields move here** (the tree draws every quote
@@ -66,10 +66,10 @@ class _OcptBudgetFicheAction {
 /// never disabling one instead.
 ///
 /// This widget resolves the object [selection] names off the whole catalogues it is handed
-/// ([postes], [commitments], [entries], [resources], [revenues]) rather than being handed the object
-/// pre-resolved, exactly as `OcptBudgetCostTracking` already resolves its own rows off `selection`
-/// and the same catalogues — the mode hands in what it has on state, this panel finds its own
-/// subject and its own ancestors (a line's own poste, a commitment's own line) in it.
+/// ([postes], [commitments], [entries], [resources], [revenues]) rather than being handed the
+/// object pre-resolved, exactly as `OcptBudgetCostTracking` already resolves its own rows off
+/// `selection` and the same catalogues — the mode hands in what it has on state, this panel finds
+/// its own subject and its own ancestors (a line's own poste, a commitment's own line) in it.
 class OcptBudgetFiche extends StatelessWidget {
   /// What is currently selected, or null while nothing is — the tab then shows a plain hint.
   final OcptBudgetSelection? selection;
@@ -182,9 +182,9 @@ class OcptBudgetFiche extends StatelessWidget {
 
   /// Called when the off-line banner's own `Add to the quote` action is clicked, on the commitment
   /// currently shown, or null while [isReadOnly] — `ocptBudgetCommitmentIsOffLine` says which
-  /// commitment draws the banner at all. Promotes the commitment into a quote line it is then linked
-  /// to (`docs/architecture/budget.md`'s "A quote line is paid directly" — this is that same shape,
-  /// run the other way round, on a commitment that already exists).
+  /// commitment draws the banner at all. Promotes the commitment into a quote line it is then
+  /// linked to (`docs/architecture/budget.md`'s "A quote line is paid directly" — this is that same
+  /// shape, run the other way round, on a commitment that already exists).
   final VoidCallback? onCommitmentPromoteToQuoteRequested;
 
   /// Called with an entry when its own `Edit` action is clicked, or null while [isReadOnly].
@@ -422,8 +422,9 @@ class OcptBudgetFiche extends StatelessWidget {
       typedEstimateToCompleteCents: null,
     );
     final currencySymbol = NumberFormat.simpleCurrency(name: currencyCode).currencySymbol;
-    // Signalled, never blocked (`docs/architecture/budget.md`): an empty code is not a duplicate, and the comparison trims both
-    // sides so two codes differing only by surrounding whitespace still read as the same one.
+    // Signalled, never blocked (`docs/architecture/budget.md`): an empty code is not a duplicate,
+    // and the comparison trims both sides so two codes differing only by surrounding whitespace
+    // still read as the same one.
     final trimmedCode = poste.code.trim();
     final hasDuplicateCode =
         trimmedCode.isNotEmpty &&
@@ -501,9 +502,9 @@ class OcptBudgetFiche extends StatelessWidget {
   // ---------------------------------------------------------------------------------------------
 
   /// The quote-line variant: breadcrumb poste › line, the quantity × unit price hint (and the
-  /// breakdown element it prices, when it prices one), the `Estimé — Engagé — Payé` stepper, and one
-  /// of the line's own two mutually exclusive states — `docs/architecture/budget.md`'s "A quote line
-  /// can be promoted into a commitment, and the line stays".
+  /// breakdown element it prices, when it prices one), the `Estimé — Engagé — Payé` stepper, and
+  /// one of the line's own two mutually exclusive states — `docs/architecture/budget.md`'s "A quote
+  /// line can be promoted into a commitment, and the line stays".
   Widget _buildLine(BuildContext context, String lineId) {
     final poste = _posteOfLine(lineId);
     final line = poste == null ? null : _lineById(lineId);
@@ -1111,14 +1112,14 @@ class OcptBudgetFiche extends StatelessWidget {
 
   /// The resource variant: breadcrumb through the resources document and its own group, the
   /// `Dossier` status badge, and — for a subsidy, a cash contribution, or an in-kind resource a
-  /// journal entry has actually named — the `Promis — Rentré` stepper with its `Promised`/`Received`
-  /// figures, plus `Receive`/`Edit`/`Delete`. **A valued in-kind resource no entry names yet
-  /// (`readsAsUncollected`) drops that money stepper entirely**, for a single `Valued at` reading —
-  /// a valuation runs through no collection lifecycle — mirroring its own counterpart quote line on
-  /// the expenses side (`docs/architecture/budget.md`, "An in-kind contribution is valued, not
-  /// collected", "A balanced in-kind contribution"). `Receive` stays withheld for in-kind, and the
-  /// app never hides a real movement: an in-kind resource an entry does name keeps the stepper and
-  /// its received figure.
+  /// journal entry has actually named — the `Promis — Rentré` stepper with its
+  /// `Promised`/`Received` figures, plus `Receive`/`Edit`/`Delete`. **A valued in-kind resource no
+  /// entry names yet (`readsAsUncollected`) drops that money stepper entirely**, for a single
+  /// `Valued at` reading — a valuation runs through no collection lifecycle — mirroring its own
+  /// counterpart quote line on the expenses side (`docs/architecture/budget.md`, "An in-kind
+  /// contribution is valued, not collected", "A balanced in-kind contribution"). `Receive` stays
+  /// withheld for in-kind, and the app never hides a real movement: an in-kind resource an entry
+  /// does name keeps the stepper and its received figure.
   ///
   /// **An in-kind resource names the poste its own counterpart quote line offsets**, resolved
   /// through [ocptBudgetInKindCounterpartLineOf] rather than a field of its own — "No new column
@@ -1152,7 +1153,8 @@ class OcptBudgetFiche extends StatelessWidget {
       if (offsetPoste != null) {
         offsetsPosteBanner = _OcptBudgetFicheInfoBanner(
           message: tr.budgetFicheInKindOffsetsPoste(
-            "${offsetPoste.code} ${ocptBudgetPosteDisplayLabel(offsetPoste, isSimplified: isSimplified)}",
+            "${offsetPoste.code} "
+            "${ocptBudgetPosteDisplayLabel(offsetPoste, isSimplified: isSimplified)}",
           ),
         );
       }
@@ -1612,14 +1614,14 @@ class _OcptBudgetFicheBadge extends StatelessWidget {
 
 /// An off-line record's own banner (`_OcptBudgetFicheScaffold.banner`): a short, neutral, factual
 /// [message], and one or two ways to reconcile the record with the quote it never went through.
-/// `Add to the quote` ([promoteLabel]) is always the first, and `Move off-quote` ([moveOffQuoteLabel],
-/// null for a record that has no such reconciliation) the optional second —
+/// `Add to the quote` ([promoteLabel]) is always the first, and `Move off-quote`
+/// ([moveOffQuoteLabel], null for a record that has no such reconciliation) the optional second —
 /// `docs/architecture/budget.md`'s "Off-quote spending is named, never hidden". An off-line debit
 /// entry offers both (promote into a quote line and a settled commitment, or clear its own poste);
 /// an off-line commitment offers only the first, since a commitment always names a poste and cannot
-/// be moved off-quote. Either action clears the banner in one click, so it carries no warning colour
-/// of its own: the message states the fact, and, while the poste is currently over its quote, by how
-/// much, but the banner itself is neither an alert nor a verdict.
+/// be moved off-quote. Either action clears the banner in one click, so it carries no warning
+/// colour of its own: the message states the fact, and, while the poste is currently over its
+/// quote, by how much, but the banner itself is neither an alert nor a verdict.
 ///
 /// **Withheld, not disabled** (`AGENTS.md`): a null action is simply not drawn, rather than a
 /// button greyed out — `OcptBudgetFiche`'s own callbacks arrive null under a previewed version, and
@@ -1796,9 +1798,9 @@ class _OcptBudgetFicheStepper extends StatelessWidget {
 /// **The track's own scale is the quote, until paid-plus-committed overruns it** — the moment it
 /// does, the scale becomes that overrun total instead, so the whole bar still fits its own width,
 /// and the overrun's own length eats the end of the bar in [ColorScheme.error]. A tick marks where
-/// the quote itself falls on that stretched scale — drawn only while there is an overrun to place it
-/// against, since without one the quote sits exactly at the bar's own right edge, where a tick would
-/// say nothing a reader could not already see.
+/// the quote itself falls on that stretched scale — drawn only while there is an overrun to place
+/// it against, since without one the quote sits exactly at the bar's own right edge, where a tick
+/// would say nothing a reader could not already see.
 class _OcptBudgetPosteProportionBar extends StatelessWidget {
   /// The poste's own quoted total, in cents — the track's own scale while nothing overruns it.
   final int quotedAmountCents;
@@ -1849,7 +1851,8 @@ class _OcptBudgetPosteProportionBar extends StatelessWidget {
         );
 
         if (scaleCents <= 0) {
-          // Nothing quoted and nothing moved: the empty track alone, no segment and no tick to draw.
+          // Nothing quoted and nothing moved: the empty track alone, no segment and no tick to
+          // draw.
           return track;
         }
 
@@ -1929,8 +1932,8 @@ class _OcptBudgetFicheFiguresRow extends StatelessWidget {
 }
 
 /// A promoted quote line's own payments section: every entry that has paid its commitment, one
-/// instalment per row, date then amount — `docs/architecture/budget.md`. Read-only, like every other
-/// figure this fiche prints: there is no affordance here to withhold under a preview.
+/// instalment per row, date then amount — `docs/architecture/budget.md`. Read-only, like every
+/// other figure this fiche prints: there is no affordance here to withhold under a preview.
 class _OcptBudgetCommitmentPayments extends StatelessWidget {
   /// The commitment's own payments, oldest first.
   final List<OcptBudgetEntry> payments;

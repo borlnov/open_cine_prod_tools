@@ -13,11 +13,11 @@ const _ocptRowStampKeySeparator = "/";
 ///
 /// Every synchronised table of this project keys its rows by a single text column except
 /// `shot_characters`, whose key is `{shotId, roleId}`: this is the one encoding the whole app
-/// writes such a key with, and the one whoever parses it back must read it with. It lives in its own
-/// file rather than inside the first service that needed it (`OcptProjectVersionsService`, whose
-/// restore is the first writer of a version stamp) because the changeset engine of
-/// `docs/architecture/sync.md` is the second, and two encodings of the same key
-/// would silently split the merge history of every row that has one.
+/// writes such a key with, and the one whoever parses it back must read it with. It lives in its
+/// own file rather than inside the first service that needed it (`OcptProjectVersionsService`,
+/// whose restore is the first writer of a version stamp) because the changeset engine of
+/// `docs/architecture/sync.md` is the second, and two encodings of the same key would silently
+/// split the merge history of every row that has one.
 ///
 /// A single-column key needs no encoding at all: pass it as is rather than through here.
 String ocptCompositeRowStampKey(Iterable<String> parts) => parts.join(_ocptRowStampKeySeparator);

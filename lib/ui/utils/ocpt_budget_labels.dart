@@ -308,10 +308,11 @@ int? ocptBudgetQuantityMilliOf(String text) {
 /// `ocptCostTextOf` never carries.
 String ocptBudgetSharePercentLabel(int permille) => "${ocptPermillePercentTextOf(permille)}%";
 
-/// A total's own coverage read-out template, still fully localizable and yet handed to the
-/// manager layer as a plain string it can `.replaceAll` the real figures into
-/// (`lib/managers/export/services/ocpt_budget_pdf_shared.dart`'s own `ocptBudgetExportCoveredAmountText`,
-/// which no service under `lib/managers/` may ask `Tr` to interpolate itself).
+/// A total's own coverage read-out template, still fully localizable and yet handed to the manager
+/// layer as a plain string it can `.replaceAll` the real figures into
+/// (`lib/managers/export/services/ocpt_budget_pdf_shared.dart`'s own
+/// `ocptBudgetExportCoveredAmountText`, which no service under `lib/managers/` may ask `Tr` to
+/// interpolate itself).
 ///
 /// Calling [Tr.budgetExportCoverageReadOutTemplate] with the placeholder names themselves as its
 /// own string arguments resolves the current locale's own word order around them (a French

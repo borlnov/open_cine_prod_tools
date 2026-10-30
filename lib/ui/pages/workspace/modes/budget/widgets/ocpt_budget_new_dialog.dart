@@ -92,11 +92,11 @@ const List<OcptBudgetGestureFamily> _ocptNewNaturalFamilyOrder = [
 ///
 /// **Three steps, or two** (`ocptBudgetGestureStepCountOf`): step 1 offers the fifteen answers,
 /// grouped under the five document headings the mode's own chips already read; step 2 asks what the
-/// movement attaches to, for every gesture that attaches to anything at all; step 3 is the money, or
-/// the form. The step counter always tells the truth — `Étape 1 sur 2` where that is the truth —
+/// movement attaches to, for every gesture that attaches to anything at all; step 3 is the money,
+/// or the form. The step counter always tells the truth — `Étape 1 sur 2` where that is the truth —
 /// and the trail above steps 2 and 3 recalls what has been answered so far, ending in a `changer`
-/// link back to step 1, exactly as `OcptBudgetEntryDialog`'s own header already does for its own two
-/// steps.
+/// link back to step 1, exactly as `OcptBudgetEntryDialog`'s own header already does for its own
+/// two steps.
 ///
 /// **Answers already given survive going back and forward again.** Every field this state holds is
 /// read, never cleared, by `Retour` or by `changer` — switching the gesture picked on step 1 keeps
@@ -111,8 +111,9 @@ class OcptBudgetNewDialog extends StatefulWidget {
   /// opened from carries (`budget_mode.dart`'s own `_wizardGesturesForView`): the expenses route
   /// hands the ones that spend, the resources route the ones that bring money in, each drawer page
   /// its own family. A family with no offered gesture draws no heading at all, and the reader can
-  /// lift the filter whole from inside step 1 (`Show all`), after which every family is shown in the
-  /// natural order. Null everywhere step 1 is skipped, and on the dashboard, which filters nothing.
+  /// lift the filter whole from inside step 1 (`Show all`), after which every family is shown in
+  /// the natural order. Null everywhere step 1 is skipped, and on the dashboard, which filters
+  /// nothing.
   final Set<OcptBudgetGesture>? allowedGestures;
 
   /// The word the filter tag names the current filter by — the route's own segment label, resolved
@@ -299,7 +300,8 @@ class _OcptBudgetNewDialogState extends State<OcptBudgetNewDialog> {
   OcptBudgetGesture? _gesture;
 
   /// Whether the reader has lifted [OcptBudgetNewDialog.allowedGestures] with `Show all` — every
-  /// family then shows, in the natural order, exactly as the dashboard's own unfiltered step 1 does.
+  /// family then shows, in the natural order, exactly as the dashboard's own unfiltered step 1
+  /// does.
   bool _showAll = false;
 
   // -----------------------------------------------------------------------------------------
@@ -472,9 +474,9 @@ class _OcptBudgetNewDialogState extends State<OcptBudgetNewDialog> {
 
   /// The compact rendering, below [ocptCompactWidthBreakpoint] — mirrors
   /// `OcptNewProjectNameDialog`'s own `Dialog.fullscreen` shell, holding the exact same three-step
-  /// content [_step] would otherwise hand `AlertDialog`. The trail-carrying [_buildTitle] moves into
-  /// the `AppBar`, tall enough to hold it whether or not step 2/3's own trail row is drawn, and the
-  /// leading `×` cancels the whole wizard exactly as [_handleCancel] already does — never a
+  /// content [_step] would otherwise hand `AlertDialog`. The trail-carrying [_buildTitle] moves
+  /// into the `AppBar`, tall enough to hold it whether or not step 2/3's own trail row is drawn,
+  /// and the leading `×` cancels the whole wizard exactly as [_handleCancel] already does — never a
   /// step-back, which stays in [stepActions] alongside `Continue`/`Save`, both now living in a
   /// bottom bar since there is no `AlertDialog` left to draw them as.
   Widget _buildFullscreen(
@@ -1598,9 +1600,9 @@ class _OcptBudgetNewDialogState extends State<OcptBudgetNewDialog> {
 
   /// The lettrage strip: what accepting one of [suggestions] does, why each was ranked, and every
   /// candidate reachable, `Aucun` included — never a single best guess with no way to say
-  /// otherwise. It stops the same money being counted twice: without it, a user records the payment,
-  /// forgets to settle the commitment it was for, and the poste reads both committed and paid for the
-  /// very same transfer.
+  /// otherwise. It stops the same money being counted twice: without it, a user records the
+  /// payment, forgets to settle the commitment it was for, and the poste reads both committed and
+  /// paid for the very same transfer.
   Widget _buildLettrageStrip(
     BuildContext context,
     Tr tr,
@@ -2019,9 +2021,10 @@ class _OcptBudgetNewDialogState extends State<OcptBudgetNewDialog> {
     );
   }
 
-  /// A compact poste picker — the header's own `File all under` control and every row's own override
-  /// share it. [value] is the poste currently in effect (an override, or the bulk default), null
-  /// drawing the `Choose a poste` hint; [enabled] greys it while its row is unchecked.
+  /// A compact poste picker — the header's own `File all under` control and every row's own
+  /// override share it. [value] is the poste currently in effect (an override, or the bulk
+  /// default), null drawing the `Choose a poste` hint; [enabled] greys it while its row is
+  /// unchecked.
   Widget _buildBreakdownPosteDropdown({
     required String? value,
     required ValueChanged<String?> onChanged,

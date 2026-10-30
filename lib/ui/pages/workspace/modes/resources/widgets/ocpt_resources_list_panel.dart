@@ -53,7 +53,8 @@ class OcptResourcesListPanel extends StatelessWidget {
   final List<OcptRole> roles;
 
   /// Every live candidacy of the project, grouped by `roleId` — read regardless of [activeTab] for
-  /// the same reason [people] is: the roles tab's own header count and each row's pill both read it.
+  /// the same reason [people] is: the roles tab's own header count and each row's pill both read
+  /// it.
   final Map<String, List<OcptRoleCandidate>> candidatesByRoleId;
 
   /// The id of the selected role, or null if none is.

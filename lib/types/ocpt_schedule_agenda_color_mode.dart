@@ -6,9 +6,9 @@
 /// `OcptScheduleHeader`'s own segmented switch. Shown, and read, only while the agenda is the
 /// active centre view.
 ///
-/// Session-only state (`OcptScheduleState.agendaColorMode`), unlike `OcptScheduleState.firstWeekday`
-/// beside it: which fact a day is tinted by is a reading preference for the sitting, not an
-/// app-wide one worth remembering across launches.
+/// Session-only state (`OcptScheduleState.agendaColorMode`), unlike
+/// `OcptScheduleState.firstWeekday` beside it: which fact a day is tinted by is a reading
+/// preference for the sitting, not an app-wide one worth remembering across launches.
 enum OcptScheduleAgendaColorMode {
   /// By the day's own first slot's location (`ocptScheduleDayLocationTint`) — the only rule before
   /// this control existed, and still the default.

@@ -272,8 +272,8 @@ int _pageCount(Uint8List bytes) {
   return RegExp(r"/Type\s*/Page[^s]").allMatches(text).length;
 }
 
-/// The raw (still-compressed) bytes of every `stream`/`endstream` object in [bytes], in file order —
-/// mirroring `ocpt_day_out_of_days_pdf_service_test.dart`'s own `_contentStreams`.
+/// The raw (still-compressed) bytes of every `stream`/`endstream` object in [bytes], in file order
+/// — mirroring `ocpt_day_out_of_days_pdf_service_test.dart`'s own `_contentStreams`.
 List<String> _contentStreams(Uint8List bytes) {
   final text = latin1.decode(bytes, allowInvalid: true);
   final pattern = RegExp(r"stream\r?\n(.*?)endstream", dotAll: true);

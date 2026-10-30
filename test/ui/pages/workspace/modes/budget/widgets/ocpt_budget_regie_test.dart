@@ -394,7 +394,8 @@ void main() {
   });
 
   testWidgets(
-    "a day's buffet count is rendered from its slots, a person convoked to three slots counted once",
+    "a day's buffet count is rendered from its slots, a person convoked to three slots counted "
+    "once",
     (tester) async {
       final day = _buildDay(id: "day-1");
       final slots = [
@@ -820,9 +821,10 @@ void main() {
       expect(find.text(tr.budgetRegieAllowanceNoPerson), findsOneWidget);
       expect(find.byIcon(Icons.keyboard_arrow_right), findsNothing);
       expect(find.byIcon(Icons.keyboard_arrow_down), findsNothing);
-      // ADVANCED and OWED both read its amount — it is owed in full, and the total row counts it in,
-      // so it has to be legible on its own line — while REIMBURSED reads blank, no running account
-      // named by a defrayal that belongs to nobody. The amount therefore appears at least twice.
+      // ADVANCED and OWED both read its amount — it is owed in full, and the total row counts it
+      // in, so it has to be legible on its own line — while REIMBURSED reads blank, no running
+      // account named by a defrayal that belongs to nobody. The amount therefore appears at least
+      // twice.
       expect(find.text(ocptBudgetAmountLabel(100, "EUR")), findsWidgets);
     });
 

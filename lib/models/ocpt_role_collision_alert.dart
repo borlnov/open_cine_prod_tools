@@ -13,12 +13,13 @@ import 'package:open_cine_prod_tools/models/ocpt_role.dart';
 /// 1). When the screenplay later gives that same character a line, `reconcile` creates the speaking
 /// role it always would — the screenplay stays the source of truth, and `reconcile` itself is
 /// unchanged, matching only its own `isFromScreenplay` roles as it always has — so the project
-/// briefly holds two live roles wearing the same name. This is a **pure read over the already-loaded
-/// cast**, computed by [buildAll] exactly the way `OcptRemovedRoleAlert.buildAll` is: nothing here
-/// changes what `reconcile` writes, and nothing here decides anything — the app never merges the two
-/// roles silently, it only ever surfaces that they might be the same person and lets the user say
-/// through `OcptRoleIndexService.mergeRole` (the hand-added role is always offered as *source*, the
-/// screenplay one as *target*, so the reconciled role keeps being the one `reconcile` owns).
+/// briefly holds two live roles wearing the same name. This is a **pure read over the
+/// already-loaded cast**, computed by [buildAll] exactly the way `OcptRemovedRoleAlert.buildAll`
+/// is: nothing here changes what `reconcile` writes, and nothing here decides anything — the app
+/// never merges the two roles silently, it only ever surfaces that they might be the same person
+/// and lets the user say through `OcptRoleIndexService.mergeRole` (the hand-added role is always
+/// offered as *source*, the screenplay one as *target*, so the reconciled role keeps being the one
+/// `reconcile` owns).
 class OcptRoleCollisionAlert extends Equatable {
   /// The normalised name (`fountain_kit`'s `normalizeCharacterName`) both roles below share.
   final String name;

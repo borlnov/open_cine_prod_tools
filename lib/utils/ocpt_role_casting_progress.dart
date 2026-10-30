@@ -10,21 +10,21 @@ import 'package:open_cine_prod_tools/types/ocpt_role_candidate_status.dart';
 /// Where a role's casting stands, read off [OcptRole.personId] and its live candidacies.
 enum OcptRoleCastingStage {
   /// The role is cast — `personId` is set, whether by hand through the sheet's own picker or by a
-  /// candidacy retained through `OcptRoleCandidatesService`. The roles tab and any later reader draw
-  /// no distinction between the two: both are, simply, "cast".
+  /// candidacy retained through `OcptRoleCandidatesService`. The roles tab and any later reader
+  /// draw no distinction between the two: both are, simply, "cast".
   cast,
 
   /// The role is not cast, and at least one candidacy is still a lead
   /// (`OcptRoleCandidateStatus.isStillALead`): somebody could yet be cast in it.
   inProgress,
 
-  /// The role is not cast, candidacies were recorded, and **not one of them is still a lead**: every
-  /// person seen for it has been turned down, has declined, or is unavailable.
+  /// The role is not cast, candidacies were recorded, and **not one of them is still a lead**:
+  /// every person seen for it has been turned down, has declined, or is unavailable.
   ///
   /// Its own stage rather than [inProgress] with a count of zero, and rather than [notStarted]: "we
-  /// saw four people and none of them can do it" is the state a production most needs to see coming,
-  /// and neither of the other two says it. It is also the one stage a role can **leave** without
-  /// anybody being cast — one more name entered puts it back to [inProgress].
+  /// saw four people and none of them can do it" is the state a production most needs to see
+  /// coming, and neither of the other two says it. It is also the one stage a role can **leave**
+  /// without anybody being cast — one more name entered puts it back to [inProgress].
   exhausted,
 
   /// The role is not cast and nobody has been recorded for it at all.
@@ -58,9 +58,9 @@ class OcptRoleCastingProgress extends Equatable {
   ///
   /// [candidates] is assumed to already be **that role's own** live candidacies — the caller reads
   /// them out of `OcptResourcesSnapshot.candidatesByRoleId[role.id]` (or the empty list, absent an
-  /// entry) — and nothing here filters by `roleId` again: a second filter could only ever agree with
-  /// the caller's own read or silently hide a caller's mistake, neither of which this function is in
-  /// a position to do anything about.
+  /// entry) — and nothing here filters by `roleId` again: a second filter could only ever agree
+  /// with the caller's own read or silently hide a caller's mistake, neither of which this function
+  /// is in a position to do anything about.
   factory OcptRoleCastingProgress.of({
     required OcptRole role,
     required List<OcptRoleCandidate> candidates,

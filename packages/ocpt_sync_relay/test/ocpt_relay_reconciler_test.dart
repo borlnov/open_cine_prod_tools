@@ -70,39 +70,36 @@ void main() {
       ]);
     }, timeout: _timeout);
 
-    test(
-      'bidirectional reconciliation converges both stores when each holds changesets the other lacks',
-      () async {
-        setRelayStore.append('project-1', _envelope('set-1'));
-        setRelayStore.append('project-1', _envelope('set-2'));
-        setRelayStore.append('project-1', _envelope('set-3'));
-        upstreamStore.createProject(projectId: 'project-1', tokenHash: _tokenHash('token-1'));
-        upstreamStore.append('project-1', _envelope('upstream-1'));
-        upstreamStore.append('project-1', _envelope('upstream-2'));
+    test('bidirectional reconciliation converges both stores when each holds changesets the other '
+        'lacks', () async {
+      setRelayStore.append('project-1', _envelope('set-1'));
+      setRelayStore.append('project-1', _envelope('set-2'));
+      setRelayStore.append('project-1', _envelope('set-3'));
+      upstreamStore.createProject(projectId: 'project-1', tokenHash: _tokenHash('token-1'));
+      upstreamStore.append('project-1', _envelope('upstream-1'));
+      upstreamStore.append('project-1', _envelope('upstream-2'));
 
-        final result = await reconciler.reconcileProject(projectId: 'project-1');
+      final result = await reconciler.reconcileProject(projectId: 'project-1');
 
-        expect(result.pushed, 3);
-        expect(result.pulled, 2);
-        final onUpstream = upstreamStore.readSince('project-1', OcptSequenceNumber.zero);
-        expect(onUpstream.map((changeset) => changeset.envelope.changesetId).toSet(), {
-          'set-1',
-          'set-2',
-          'set-3',
-          'upstream-1',
-          'upstream-2',
-        });
-        final onSetRelay = setRelayStore.readSince('project-1', OcptSequenceNumber.zero);
-        expect(onSetRelay.map((changeset) => changeset.envelope.changesetId).toSet(), {
-          'set-1',
-          'set-2',
-          'set-3',
-          'upstream-1',
-          'upstream-2',
-        });
-      },
-      timeout: _timeout,
-    );
+      expect(result.pushed, 3);
+      expect(result.pulled, 2);
+      final onUpstream = upstreamStore.readSince('project-1', OcptSequenceNumber.zero);
+      expect(onUpstream.map((changeset) => changeset.envelope.changesetId).toSet(), {
+        'set-1',
+        'set-2',
+        'set-3',
+        'upstream-1',
+        'upstream-2',
+      });
+      final onSetRelay = setRelayStore.readSince('project-1', OcptSequenceNumber.zero);
+      expect(onSetRelay.map((changeset) => changeset.envelope.changesetId).toSet(), {
+        'set-1',
+        'set-2',
+        'set-3',
+        'upstream-1',
+        'upstream-2',
+      });
+    }, timeout: _timeout);
 
     test('a second run right after the first pushes and pulls nothing new', () async {
       setRelayStore.append('project-1', _envelope('set-1'));

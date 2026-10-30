@@ -373,7 +373,8 @@ class _OcptHostingQrCard extends StatelessWidget {
 
 /// The hosting panel's own connected-peers card: [roster]'s own participants, each a small
 /// [ocptPresenceColor] dot and a neutral `platform · <id fragment>` label — never a name, exactly
-/// `OcptPresenceIndicator`'s own reasoning — or [Tr.hostingNoPeers] while [roster] is null or empty.
+/// `OcptPresenceIndicator`'s own reasoning — or [Tr.hostingNoPeers] while [roster] is null or
+/// empty.
 class _OcptHostingPeersCard extends StatelessWidget {
   /// Class constructor
   const _OcptHostingPeersCard({required this.roster});

@@ -85,8 +85,8 @@ class OcptLocationsTable extends Table {
   RealColumn get longitude => real().nullable()();
 
   /// The person to contact about this location, or null — the reference address book *does* list
-  /// the owners of a location alongside the cast and crew, which is exactly why a location's contact
-  /// is a link onto [OcptPeopleTable] rather than a name typed a second time.
+  /// the owners of a location alongside the cast and crew, which is exactly why a location's
+  /// contact is a link onto [OcptPeopleTable] rather than a name typed a second time.
   TextColumn get contactPersonId => text().nullable().references(OcptPeopleTable, #id)();
 
   /// Free-text notes about the contact (how to reach them, best times to call).

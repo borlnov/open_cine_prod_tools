@@ -15,9 +15,9 @@
 /// `OcptRoleCandidatesService` rather than here: a role has at most one retained candidate at a
 /// time, and that row is what writes `roles.personId`.
 ///
-/// The three "no" values are three **different facts**, deliberately not folded into one: [declined]
-/// and [unavailable] are the person's own answer, [notRetained] is the production's. A casting
-/// director re-reading a part months later needs to know which of the three it was.
+/// The three "no" values are three **different facts**, deliberately not folded into one:
+/// [declined] and [unavailable] are the person's own answer, [notRetained] is the production's. A
+/// casting director re-reading a part months later needs to know which of the three it was.
 enum OcptRoleCandidateStatus {
   /// This person's application has arrived, or somebody contacted them. Nothing has been decided —
   /// not even whether to meet them.

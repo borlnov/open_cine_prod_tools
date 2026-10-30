@@ -179,13 +179,14 @@ class _OcptBudgetCommitmentDialogState extends State<OcptBudgetCommitmentDialog>
 }
 
 /// The whole of [OcptBudgetCommitmentDialog]'s own form, embeddable outside a dialog — the capture
-/// wizard draws this same body under its own step counter, rather than an `AlertDialog`'s `content`.
+/// wizard draws this same body under its own step counter, rather than an `AlertDialog`'s
+/// `content`.
 ///
-/// **Two fields gate `Save`, not one.** `Label` is the entry dialog's own only required field, but a
-/// commitment always prices a poste (`OcptBudgetCommitment.posteId`'s own doc comment), so `Poste`
-/// is required here too — [onMissingFieldsHintChanged] is how this body tells its host, since the
-/// host owns `Save` (see [OcptBudgetCommitmentDialog]'s own class doc comment for why that could not
-/// simply be read off [onDraftChanged] instead).
+/// **Two fields gate `Save`, not one.** `Label` is the entry dialog's own only required field, but
+/// a commitment always prices a poste (`OcptBudgetCommitment.posteId`'s own doc comment), so
+/// `Poste` is required here too — [onMissingFieldsHintChanged] is how this body tells its host,
+/// since the host owns `Save` (see [OcptBudgetCommitmentDialog]'s own class doc comment for why
+/// that could not simply be read off [onDraftChanged] instead).
 ///
 /// **`Poste` is a picker whether creating or editing** — a production is free to reclassify a
 /// commitment against a different poste at any time
@@ -436,8 +437,9 @@ class _OcptBudgetCommitmentFormBodyState extends State<OcptBudgetCommitmentFormB
     );
   }
 
-  /// The `Poste` field: a picker, drawn whenever [OcptBudgetCommitmentFormBody.posteAlreadyAnswered]
-  /// is false — whether the dialog is creating a commitment or editing one.
+  /// The `Poste` field: a picker, drawn whenever
+  /// [OcptBudgetCommitmentFormBody.posteAlreadyAnswered] is false — whether the dialog is creating
+  /// a commitment or editing one.
   ///
   /// **Editable in both, unlike a quote line's own poste** — see
   /// `OcptBudgetJournalService.updateCommitment`'s own doc comment: a commitment's poste is an

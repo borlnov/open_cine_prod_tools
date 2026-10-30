@@ -45,8 +45,8 @@ class OcptHostingState extends BlocStateForMixin<OcptHostingState> {
 
   /// Whether [hostOnLaunch] can be changed right now — true once the project has a relay-side id of
   /// its own, either because it is already paired to some relay or because it is hosting right now
-  /// (`OcptRelayHostManager.hostedProjectId`): a project that has never been paired or hosted has no
-  /// id yet for the flag to be stored against, so the checkbox stays disabled until then.
+  /// (`OcptRelayHostManager.hostedProjectId`): a project that has never been paired or hosted has
+  /// no id yet for the flag to be stored against, so the checkbox stays disabled until then.
   final bool canSetAutoRestart;
 
   /// Every replica currently connected to the hosted relay, or null while none is hosting (or the
@@ -135,7 +135,8 @@ class OcptHostingState extends BlocStateForMixin<OcptHostingState> {
   /// panel dismissed the last reconcile result), so each has its own `clear…` flag rather than a
   /// bare nullable parameter, which could never tell "leave it alone" apart from "clear it" —
   /// exactly `OcptSharingState.clearInvite`'s own reasoning. [selectedAddress], [boundPort],
-  /// [enrolment] and [joinInvite] follow the very same shape, going back to null once hosting stops.
+  /// [enrolment] and [joinInvite] follow the very same shape, going back to null once hosting
+  /// stops.
   @override
   OcptHostingState copyWith({
     bool? isLoading,

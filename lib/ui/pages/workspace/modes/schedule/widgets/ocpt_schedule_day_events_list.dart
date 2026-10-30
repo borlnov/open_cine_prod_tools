@@ -224,9 +224,10 @@ class _OcptScheduleDayEventLabelFieldState extends State<_OcptScheduleDayEventLa
   );
 }
 
-/// An event row's own note field, below its hour and label line — [_OcptScheduleDayEventLabelField]'s
-/// own controller-sync idiom, drawn as a body-sized field that grows with what is typed into it
-/// rather than a single-line title, mirroring `_OcptScheduleSlotNoteField`.
+/// An event row's own note field, below its hour and label line —
+/// [_OcptScheduleDayEventLabelField]'s own controller-sync idiom, drawn as a body-sized field that
+/// grows with what is typed into it rather than a single-line title, mirroring
+/// `_OcptScheduleSlotNoteField`.
 class _OcptScheduleDayEventNoteField extends StatefulWidget {
   /// The field's current authoritative value.
   final String value;

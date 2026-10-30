@@ -84,21 +84,21 @@ const double _personCardWidth = 230;
 /// card's **whole** width instead, not being split into halves.
 ///
 /// **A crew or cast row says only who is convoked and in what function** (ADR 0018): a convocation
-/// is a fact about a person on a **day**, joined across every slot they sit on, so it cannot be read
-/// from one slot's card in isolation — the computed arrival/PAT/departure that used to sit here move
-/// to the day's own convocations panel instead. A guest card carries **no clock at all** either, for
-/// the same reason. The one editable clock on the whole card is the slot's own anchor
+/// is a fact about a person on a **day**, joined across every slot they sit on, so it cannot be
+/// read from one slot's card in isolation — the computed arrival/PAT/departure that used to sit
+/// here move to the day's own convocations panel instead. A guest card carries **no clock at all**
+/// either, for the same reason. The one editable clock on the whole card is the slot's own anchor
 /// ([onAnchorChanged]).
 ///
 /// **The guest band is always drawn**, empty hint and all, exactly as the two people halves are: a
 /// slot's guests are one of the three answers to "who is on this unit", and a band that had to be
-/// revealed from the `⋮` menu before it could be filled hid the very affordance somebody looking for
-/// it was after.
+/// revealed from the `⋮` menu before it could be filled hid the very affordance somebody looking
+/// for it was after.
 ///
-/// **No candidate band sits beside them**, and deliberately: somebody seen for a part is expected at
-/// twenty past ten rather than "on this unit today", so they are named on the **audition block** that
-/// sees them, in this card's own timetable, and nowhere else (ADR 0024). A band saying otherwise,
-/// beside the row that says it precisely, would be one band too many.
+/// **No candidate band sits beside them**, and deliberately: somebody seen for a part is expected
+/// at twenty past ten rather than "on this unit today", so they are named on the **audition block**
+/// that sees them, in this card's own timetable, and nowhere else (ADR 0024). A band saying
+/// otherwise, beside the row that says it precisely, would be one band too many.
 ///
 /// **The anchor control is a flat menu on the edge label** (`Début à heure fixe`, `Fin à heure
 /// fixe`, then one entry per other slot of the day, in both directions), with the typed hour beside
@@ -212,8 +212,9 @@ class OcptScheduleSlotCard extends StatelessWidget {
   /// withheld.
   final ValueChanged<String>? onCastRoleRemoved;
 
-  /// Called with the id of the person picked by the guest band's own `+ Guest` footer, or null while
-  /// withheld — also what gates the `⋮` menu's own `Add a guest` entry (see the class doc comment).
+  /// Called with the id of the person picked by the guest band's own `+ Guest` footer, or null
+  /// while withheld — also what gates the `⋮` menu's own `Add a guest` entry (see the class doc
+  /// comment).
   final ValueChanged<String>? onGuestAdded;
 
   /// Called with a guest attendance's id when its row's remove control is clicked, or null while
@@ -285,8 +286,8 @@ class OcptScheduleSlotCard extends StatelessWidget {
   /// [OcptScheduleTimetable.onCandidateAdded].
   final void Function(String blockId, String roleCandidateId)? onBlockCandidateAdded;
 
-  /// Called with a candidacy convocation's own id when its chip's remove control is clicked, or null
-  /// while withheld — see [OcptScheduleTimetable.onCandidateRemoved].
+  /// Called with a candidacy convocation's own id when its chip's remove control is clicked, or
+  /// null while withheld — see [OcptScheduleTimetable.onCandidateRemoved].
   final ValueChanged<String>? onBlockCandidateRemoved;
 
   /// Called with a block's id when its own remove control is clicked, or null while withheld.
@@ -678,7 +679,8 @@ class OcptScheduleSlotCard extends StatelessWidget {
             ),
             const SizedBox(width: 4),
             // A linked edge's hour is computed like every other, so its field carries no callback
-            // and renders as plain text — the same way every computed time in this mode is read out.
+            // and renders as plain text — the same way every computed time in this mode is read
+            // out.
             OcptScheduleMinuteField(
               minute: sourceLabel == null ? slot.anchorMinute : anchoredMinute,
               isClearable: false,
@@ -1037,8 +1039,9 @@ class OcptScheduleSlotCard extends StatelessWidget {
 }
 
 /// One kind of person's own title row inside [_OcptScheduleSlotPeople]'s section, shared by
-/// [OcptScheduleSlotCard]'s cast half, its guest band and [_OcptScheduleCrewSection]: the kind's own
-/// name and how many people it holds, so a half answers "how many" without its cards being counted.
+/// [OcptScheduleSlotCard]'s cast half, its guest band and [_OcptScheduleCrewSection]: the kind's
+/// own name and how many people it holds, so a half answers "how many" without its cards being
+/// counted.
 ///
 /// It is a **plain read-out, clickable by nothing**: the one fold on this card belongs to
 /// [_OcptScheduleSlotPeople] and answers for the three kinds at once, so a title that also folded
@@ -1074,8 +1077,9 @@ Widget _buildPeopleSubsectionTitle(
 }
 
 /// The whole `Assigner des personnes` section of a slot card: the two people halves side by side —
-/// `Équipe technique` and `Comédiens`, each handed at most half the row's width — then the full-width
-/// `Invités` band under them, all three behind **one fold** carried by the section's own title.
+/// `Équipe technique` and `Comédiens`, each handed at most half the row's width — then the
+/// full-width `Invités` band under them, all three behind **one fold** carried by the section's own
+/// title.
 ///
 /// That is the one fold on the card, and it is deliberate: a settled crew, cast and guest list are
 /// entered once and then read past for the rest of the shoot, so one gesture gets the reader to the

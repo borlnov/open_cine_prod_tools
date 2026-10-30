@@ -141,11 +141,11 @@ class OcptBudgetFinancialReportPdfService {
   ///
   /// **The off-quote row mirrors `OcptBudgetCostTracking`'s own reading exactly**
   /// (`docs/architecture/budget.md`): drawn only while there is off-quote spending to show, its
-  /// `Quoted`/`Committed`/`Remaining`/`Variance` cells print [ocptBudgetExportEmptyValue] since there
-  /// is no quote behind it to measure any of them against, and the totals row's own `Paid` cell
-  /// folds it in alongside every poste's own paid total (`ocptBudgetCoveredTotalsFoldOf`) so that
-  /// column adds up to what actually left the account, printing the coverage read-out the moment
-  /// either side is incomplete.
+  /// `Quoted`/`Committed`/`Remaining`/`Variance` cells print [ocptBudgetExportEmptyValue] since
+  /// there is no quote behind it to measure any of them against, and the totals row's own `Paid`
+  /// cell folds it in alongside every poste's own paid total (`ocptBudgetCoveredTotalsFoldOf`) so
+  /// that column adds up to what actually left the account, printing the coverage read-out the
+  /// moment either side is incomplete.
   List<pw.Widget> _body({
     required OcptScriptPagePainter painter,
     required OcptBudgetSnapshot snapshot,

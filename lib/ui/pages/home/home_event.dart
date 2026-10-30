@@ -28,8 +28,8 @@ class OcptHomeRefreshRequestedEvent extends OcptHomeEvent {
 /// created and the app navigates to the editor once it is.
 class OcptHomeCreateProjectRequestedEvent extends OcptHomeEvent {
   /// The name entered by the user for the new project — kept as the project's own name whichever
-  /// file name the desktop save dialog is actually given (the dialog only ever renames the file, not
-  /// the project).
+  /// file name the desktop save dialog is actually given (the dialog only ever renames the file,
+  /// not the project).
   final String name;
 
   /// The label of the project file type shown in the desktop save-file dialog.

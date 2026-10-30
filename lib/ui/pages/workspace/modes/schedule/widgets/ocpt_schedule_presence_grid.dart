@@ -63,11 +63,11 @@ class _OcptPresenceGridDayColumn {
 /// (`OcptScheduleCentreView.presence`).
 ///
 /// **Rows** are the **whole address book**, [people], in the order it is loaded — every person the
-/// project knows about, whether or not they are convoked anywhere yet: a project's crew and cast are
-/// read from there, not from who happens to hold a slot. Each row's own subtitle is a discreet line
-/// of what that person is on this film — their declared `person_positions`, localized, then the
-/// names of the roles cast to them, joined — the same "postes" reading `OcptPeopleList`'s own row
-/// already gives, with roles added.
+/// project knows about, whether or not they are convoked anywhere yet: a project's crew and cast
+/// are read from there, not from who happens to hold a slot. Each row's own subtitle is a discreet
+/// line of what that person is on this film — their declared `person_positions`, localized, then
+/// the names of the roles cast to them, joined — the same "postes" reading `OcptPeopleList`'s own
+/// row already gives, with roles added.
 ///
 /// **Columns** are one per live [days], in `dayNumber` order, headed by the day tag
 /// (`ocptScheduleDayTagLabel`) and a short date; clicking a header selects that day and opens the
@@ -148,8 +148,8 @@ class OcptSchedulePresenceGrid extends StatelessWidget {
     ];
 
     // `OcptScheduleAlert.dayId` is nullable on the base class (null only ever means
-    // `OcptScheduleRoleUncastAlert`), but rule 1 always sets one — the `!` is that guarantee, not an
-    // assumption, mirroring `OcptSchedulePositionsMatrix`'s own read of rule 4.
+    // `OcptScheduleRoleUncastAlert`), but rule 1 always sets one — the `!` is that guarantee, not
+    // an assumption, mirroring `OcptSchedulePositionsMatrix`'s own read of rule 4.
     final conflictCells = <(String, String)>{
       for (final alert in unavailableAlerts) (alert.dayId!, alert.personId),
     };
@@ -292,7 +292,8 @@ class OcptSchedulePresenceGrid extends StatelessWidget {
 
   /// The scrollable right-hand side: one header cell per day plus the total header, then, mirroring
   /// [_buildLabelColumn] row for row, each person's own cells and their total — the two sides
-  /// sharing the exact same row heights is what keeps them aligned with no `IntrinsicHeight` needed.
+  /// sharing the exact same row heights is what keeps them aligned with no `IntrinsicHeight`
+  /// needed.
   Widget _buildCellsColumn(
     BuildContext context,
     Tr tr,

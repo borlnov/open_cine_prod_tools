@@ -38,17 +38,17 @@ const double _ocptBreakdownTagPopoverPreferredHeight = 260;
 const double _ocptBreakdownTagPopoverMinHeight = 160;
 
 /// Anchors [popover] to [child] using an [OverlayPortal] and a [LayerLink]/
-/// [CompositedTransformFollower] pair, so the popover paints into the app's own [Overlay] — above the
-/// script sheet's `SingleChildScrollView`, which would otherwise clip it — rather than being measured
-/// by hand.
+/// [CompositedTransformFollower] pair, so the popover paints into the app's own [Overlay] — above
+/// the script sheet's `SingleChildScrollView`, which would otherwise clip it — rather than being
+/// measured by hand.
 ///
-/// **It is drawn under the word only while the overlay has the room for it**: a word near the bottom
-/// of the window would otherwise hang the panel off the edge, its category grid and its footer out of
-/// reach. The side is picked from the room actually left on each side of the word
+/// **It is drawn under the word only while the overlay has the room for it**: a word near the
+/// bottom of the window would otherwise hang the panel off the edge, its category grid and its
+/// footer out of reach. The side is picked from the room actually left on each side of the word
 /// ([_ocptBreakdownTagPopoverPreferredHeight]), and the panel is then capped to that room, its own
-/// middle scrolling for the rest — the popover's height is a maximum, never a fixed size, so capping
-/// it is enough. The anchoring word rides the script sheet's own scroll view, so the decision is
-/// taken again whenever that scroll offset moves.
+/// middle scrolling for the rest — the popover's height is a maximum, never a fixed size, so
+/// capping it is enough. The anchoring word rides the script sheet's own scroll view, so the
+/// decision is taken again whenever that scroll offset moves.
 ///
 /// A fresh instance is what opens the popover: `OcptBreakdownScriptView` only ever builds this
 /// wrapper around the one word `OcptBreakdownState.pendingTagRange` closed on, replacing the plain
@@ -209,27 +209,27 @@ class _OcptBreakdownTagPopoverPlacement {
 }
 
 /// The popover a range closes on: the passage in quotes, a search field pre-filled with it and
-/// focused, the matches from [candidates] grouped `Roles`/`Sets`/`Elements`, the `Create an element`
-/// category grid, the `Create a set` control, an `Open in Resources` action shown when the search
-/// names no role and no set, and a trailing hint.
+/// focused, the matches from [candidates] grouped `Roles`/`Sets`/`Elements`, the
+/// `Create an element` category grid, the `Create a set` control, an `Open in Resources` action
+/// shown when the search names no role and no set, and a trailing hint.
 ///
-/// **An element and a set are the two things this popover may create; a role is not.** A role exists
-/// because a character speaks in the screenplay — `OcptRoleIndexService` reconciles it from the cue
-/// — so inventing one here would be inventing a character. A set has no such source: the script
-/// names the place (`INT. CUISINE`) but nothing in the project knows it yet, and sending the user to
-/// the resources mode to invent a location first would break the one reading the whole mode exists
-/// for. Its location is therefore picked here, from [locations], or minted along with it.
+/// **An element and a set are the two things this popover may create; a role is not.** A role
+/// exists because a character speaks in the screenplay — `OcptRoleIndexService` reconciles it from
+/// the cue — so inventing one here would be inventing a character. A set has no such source: the
+/// script names the place (`INT. CUISINE`) but nothing in the project knows it yet, and sending the
+/// user to the resources mode to invent a location first would break the one reading the whole mode
+/// exists for. Its location is therefore picked here, from [locations], or minted along with it.
 ///
 /// The field's own text is both the query [candidates] are filtered against
-/// (`ocptBreakdownSearchCatalogues`) and the name a category chip's creation would use — there is no
-/// separate name field: correcting the name and picking the category are the same one gesture.
+/// (`ocptBreakdownSearchCatalogues`) and the name a category chip's creation would use — there is
+/// no separate name field: correcting the name and picking the category are the same one gesture.
 /// Purely presentational: every write goes upward through [onCandidateSelected] (linking) or
 /// [onCategorySelected] (creating), the mode itself resolving each into
 /// `OcptBreakdownService.createTag`/`createElementAndTag`.
 ///
 /// Closed by [onClose] on its own × button, on `Escape`, or on a tap outside it
-/// ([TapRegion.onTapOutside]) — the range interaction's own cancel, clearing the pending range **and**
-/// the anchor.
+/// ([TapRegion.onTapOutside]) — the range interaction's own cancel, clearing the pending range
+/// **and** the anchor.
 class OcptBreakdownTagPopover extends StatefulWidget {
   /// The passage this popover is about, quoted in its header and used as the search field's initial
   /// text.
@@ -262,8 +262,8 @@ class OcptBreakdownTagPopover extends StatefulWidget {
   /// set).
   final VoidCallback onOpenInResourcesRequested;
 
-  /// Called when the popover should close without writing anything: its own × button, `Escape`, or a
-  /// tap outside it.
+  /// Called when the popover should close without writing anything: its own × button, `Escape`, or
+  /// a tap outside it.
   final VoidCallback onClose;
 
   /// Class constructor
@@ -589,8 +589,8 @@ class _OcptBreakdownTagPopoverState extends State<OcptBreakdownTagPopover> {
 }
 
 /// One entry of the popover's category grid: a swatch and a label, mirroring
-/// `OcptBreakdownTargetInspector`'s own category chip minus the "currently selected" state, which has
-/// no meaning here — nothing is selected before a category is clicked, clicking one *is* the
+/// `OcptBreakdownTargetInspector`'s own category chip minus the "currently selected" state, which
+/// has no meaning here — nothing is selected before a category is clicked, clicking one *is* the
 /// creation.
 class _OcptBreakdownPopoverCategoryChip extends StatelessWidget {
   /// The chip's own label.

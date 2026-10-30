@@ -64,12 +64,12 @@ class OcptBudgetPostesTable extends Table {
   /// **Null means "derive it", not "zero"**: `lib/utils/ocpt_budget_totals.dart`'s
   /// `ocptBudgetEstimateToCompleteCents` reads a null here as "nobody has judged this yet" and
   /// answers `max(0, quote − paid − committed)` in its place — the same reading a nullable override
-  /// carries elsewhere in this schema ([simpleLabel] above, or `OcptBudgetLinesTable.vatRateBasisPoints`
-  /// for a line's rate), except that those two fall back to another **stored** fact
-  /// (a label, a project-wide rate) while this one falls back to a **computed** one, since nothing
-  /// this table holds could ever record what a human has not yet judged. A typed value, by
-  /// contrast, is never second-guessed: it is a real cost report's own adjustment, not a restatement
-  /// of the quote.
+  /// carries elsewhere in this schema ([simpleLabel] above, or
+  /// `OcptBudgetLinesTable.vatRateBasisPoints` for a line's rate), except that those two fall back
+  /// to another **stored** fact (a label, a project-wide rate) while this one falls back to a
+  /// **computed** one, since nothing this table holds could ever record what a human has not yet
+  /// judged. A typed value, by contrast, is never second-guessed: it is a real cost report's own
+  /// adjustment, not a restatement of the quote.
   IntColumn get estimateToCompleteCents => integer().nullable()();
 
   /// {@macro drift.Table.primaryKey}

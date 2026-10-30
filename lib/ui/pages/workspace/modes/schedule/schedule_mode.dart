@@ -320,19 +320,18 @@ class _ScheduleViewState extends State<_ScheduleView> {
   /// named call sheets dialog for whichever days the user ticks there, rather than
   /// [OcptScheduleState.convocationsOfDay] directly.
   ///
-  /// A guest is not a call sheet recipient, and every
-  /// reader downstream of this list — the dialog's own selection keys among them — assumes every
-  /// entry has one. A crew member, a cast member, an uncast role and a **candidate** all do: somebody
-  /// coming to be seen for a part is convoked like anybody else (ADR 0018) and is owed the sheet
-  /// saying when.
+  /// A guest is not a call sheet recipient, and every reader downstream of this list — the dialog's
+  /// own selection keys among them — assumes every entry has one. A crew member, a cast member, an
+  /// uncast role and a **candidate** all do: somebody coming to be seen for a part is convoked like
+  /// anybody else (ADR 0018) and is owed the sheet saying when.
   List<OcptDayConvocation> _namedCallSheetRecipientsOf(OcptScheduleState state, String dayId) => [
     for (final convocation in state.convocationsOfDay(dayId))
       if (convocation.selectionKey != null) convocation,
   ];
 
   /// Shows the general call sheets export options dialog, then dispatches the export request if the
-  /// user applied it, resolving here — the last place with a [BuildContext] — every localized string
-  /// the exported documents and the native folder dialog carry.
+  /// user applied it, resolving here — the last place with a [BuildContext] — every localized
+  /// string the exported documents and the native folder dialog carry.
   Future<void> _requestCallSheetsExport(
     BuildContext context,
     OcptScheduleState state,
@@ -364,9 +363,9 @@ class _ScheduleViewState extends State<_ScheduleView> {
   }
 
   /// Shows the named call sheets export options dialog, then dispatches the export request if the
-  /// user applied it — mirrors [_requestCallSheetsExport]. The dialog picks its own days (the mode's
-  /// own selection ticked by default, as [_requestCallSheetsExport]'s general dialog does), so no
-  /// day needs to be selected for this to run.
+  /// user applied it — mirrors [_requestCallSheetsExport]. The dialog picks its own days (the
+  /// mode's own selection ticked by default, as [_requestCallSheetsExport]'s general dialog does),
+  /// so no day needs to be selected for this to run.
   Future<void> _requestNamedCallSheetsExport(
     BuildContext context,
     OcptScheduleState state,
@@ -1058,9 +1057,9 @@ class _ScheduleViewState extends State<_ScheduleView> {
   }
 
   /// Resolves guest attendance [guestId] out of [state]'s own [OcptScheduleState.selectedDaySlots]'
-  /// own [OcptShootingSlot.guests] lists, or null while it names no live guest of the selected day —
-  /// what a slot card's own guest reason/notes fields read their stored value off, `_buildDayView`
-  /// having no per-guest map of its own to keep in step with a fresh snapshot.
+  /// own [OcptShootingSlot.guests] lists, or null while it names no live guest of the selected day
+  /// — what a slot card's own guest reason/notes fields read their stored value off,
+  /// `_buildDayView` having no per-guest map of its own to keep in step with a fresh snapshot.
   OcptShootingSlotGuest? _selectedDayGuestOf(OcptScheduleState state, String guestId) {
     for (final slot in state.selectedDaySlots) {
       for (final guest in slot.guests) {
@@ -1419,10 +1418,10 @@ class _ScheduleViewState extends State<_ScheduleView> {
     );
   }
 
-  /// [shot]'s own sequence label, exactly as the left dock heads that sequence's own section of
-  /// the unplaced-shots list (`Tr.scheduleUnplacedSequenceLabel`/`Tr.scheduleUnplacedOrphanGroupLabel`
-  /// plus the heading) — resolved here, out of [OcptScheduleState.shotListSnapshots], rather than by
-  /// the inspector itself, so a widget never has to search the snapshot on its own. Null while
+  /// [shot]'s own sequence label, exactly as the left dock heads that sequence's own section of the
+  /// unplaced-shots list (`Tr.scheduleUnplacedSequenceLabel`/`Tr.scheduleUnplacedOrphanGroupLabel`
+  /// plus the heading) — resolved here, out of [OcptScheduleState.shotListSnapshots], rather than
+  /// by the inspector itself, so a widget never has to search the snapshot on its own. Null while
   /// [shot]'s own sequence isn't found there (its episode's shot list hasn't loaded yet).
   String? _sequenceLabelOfShot(BuildContext context, OcptScheduleState state, OcptShot shot) {
     final tr = Tr.of(context);
@@ -1524,8 +1523,8 @@ class _ScheduleViewState extends State<_ScheduleView> {
     bloc.add(OcptProjectVersionCreationRequestedEvent(name: fields.name, note: fields.note));
   }
 
-  /// Applies bloc-driven effects onto the page: the live dock fractions, the transient export notice
-  /// SnackBar and the transient version notice SnackBar.
+  /// Applies bloc-driven effects onto the page: the live dock fractions, the transient export
+  /// notice SnackBar and the transient version notice SnackBar.
   void _onStateChanged(BuildContext context, OcptScheduleState state) {
     _dockLayoutController.syncFromPersisted(
       leftFraction: state.leftDockFraction,
@@ -1613,10 +1612,10 @@ class _ScheduleViewState extends State<_ScheduleView> {
   /// The two full-success kinds degrade to the generic "shared" message on mobile
   /// ([OcptScheduleIoNotice.wasShared]): there is no path or folder to name, the run having been
   /// handed to the OS share sheet rather than written to a location the user picked. A **partial**
-  /// folder failure keeps naming [OcptScheduleIoNotice.folderPath] even then — a temporary directory
-  /// rather than one the user picked — since which files failed still matters more than where they
-  /// sat, and that case is rare enough on mobile (a share sheet's own temp storage failing to write)
-  /// not to warrant its own wording.
+  /// folder failure keeps naming [OcptScheduleIoNotice.folderPath] even then — a temporary
+  /// directory rather than one the user picked — since which files failed still matters more than
+  /// where they sat, and that case is rare enough on mobile (a share sheet's own temp storage
+  /// failing to write) not to warrant its own wording.
   String _ioNoticeMessage(BuildContext context, OcptScheduleIoNotice notice) {
     final tr = Tr.of(context);
 

@@ -47,9 +47,9 @@ const double _ocptMobileUiScale = 1.2;
 /// rebuilt with those scalers ([buildOcptThemeModel]); on a tablet and on desktop it is not — a
 /// tablet has desktop-class room, especially in landscape, so magnifying every size by the phone
 /// design-size ratio would blow the type and the controls up out of proportion. There the app keeps
-/// the bloc state's own theme model (the global [ocptTheme]) unchanged and `.sp`/`.w`/`.r` are never
-/// called. Phones and tablets are told apart by the rotation-invariant shortest side, the same 600dp
-/// line the orientation policy and Android's `sw600dp` qualifier draw.
+/// the bloc state's own theme model (the global [ocptTheme]) unchanged and `.sp`/`.w`/`.r` are
+/// never called. Phones and tablets are told apart by the rotation-invariant shortest side, the
+/// same 600dp line the orientation policy and Android's `sw600dp` qualifier draw.
 class MainAppUi extends StatelessWidget {
   /// Creates the main app widget.
   const MainAppUi({super.key});
@@ -67,12 +67,12 @@ class MainAppUi extends StatelessWidget {
           child: BlocBuilder<OcptMainAppBloc, OcptMainAppState>(
             builder: (context, state) {
               final platform = globalGetIt().get<PlatformManager>();
-              // The screenutil-based scaling is a phone concern: only there is the room tight enough
-              // to want the whole UI grown by the phone design-size ratio. A tablet has desktop-class
-              // room, so it keeps the unscaled desktop theme and reads like the desktop build rather
-              // than magnifying every size. The two are told apart by the rotation-invariant shortest
-              // side — [ScreenUtil] is already initialised here, so its screen dimensions are the
-              // measure to hand.
+              // The screenutil-based scaling is a phone concern: only there is the room tight
+              // enough to want the whole UI grown by the phone design-size ratio. A tablet has
+              // desktop-class room, so it keeps the unscaled desktop theme and reads like the
+              // desktop build rather than magnifying every size. The two are told apart by the
+              // rotation-invariant shortest side — [ScreenUtil] is already initialised here, so its
+              // screen dimensions are the measure to hand.
               final screenUtil = ScreenUtil();
               final shortestSide = screenUtil.screenWidth < screenUtil.screenHeight
                   ? screenUtil.screenWidth
@@ -120,8 +120,8 @@ class MainAppUi extends StatelessWidget {
 ///
 /// Android 15 (`targetSdk` 35) draws apps edge to edge: the status bar and the navigation bar
 /// overlay the content instead of insetting it, so a screen that does not account for them slips
-/// underneath. Rather than repeat a `SafeArea` in every page and every future one, this single shell
-/// does three things once, for the whole app:
+/// underneath. Rather than repeat a `SafeArea` in every page and every future one, this single
+/// shell does three things once, for the whole app:
 ///
 /// - it makes both system bars transparent and picks their icon brightness from the active theme,
 ///   through an [AnnotatedRegion] that re-evaluates whenever the theme flips, so the bars read as a
@@ -135,7 +135,8 @@ class MainAppUi extends StatelessWidget {
 /// [AnnotatedRegion] is inert: the shell is a no-op there and changes nothing.
 ///
 /// It is also where the app's device-orientation policy is applied, for the same reason it is the
-/// one wrapper every route passes through: see [_EdgeToEdgeShellState._lockOrientationForDeviceClass].
+/// one wrapper every route passes through: see
+/// [_EdgeToEdgeShellState._lockOrientationForDeviceClass].
 class _EdgeToEdgeShell extends StatefulWidget {
   /// The routed content to inset — the [MaterialApp.router]'s own `child`.
   final Widget child;
@@ -157,8 +158,8 @@ class _EdgeToEdgeShellState extends State<_EdgeToEdgeShell> {
 
   /// On a mobile build, pins a phone to portrait and leaves a tablet free to rotate.
   ///
-  /// A phone has too little room to lay a production mode out in landscape, so it is kept upright; a
-  /// tablet has the space, so every orientation stays available. The two are told apart by the
+  /// A phone has too little room to lay a production mode out in landscape, so it is kept upright;
+  /// a tablet has the space, so every orientation stays available. The two are told apart by the
   /// screen's shortest side — the one measure that does not itself change when the device rotates —
   /// against [ocptPhoneWidthBreakpoint], the same 600dp line Android's own `sw600dp` tablet
   /// qualifier draws. A desktop build reaches none of this: it has no device orientation to
@@ -206,8 +207,8 @@ class _EdgeToEdgeShellState extends State<_EdgeToEdgeShell> {
         // A corner banner naming the environment (blue "QUALIF", red "DEV") over every screen's top
         // toolbar — withheld entirely for a release build in `Environment.production`, so a stable
         // release shows nothing. `EnvBanner` reads `OcptConfigManager`'s own env and is consumed
-        // unchanged (ACT's default colours), the single insertion point being this one wrapper every
-        // route passes through.
+        // unchanged (ACT's default colours), the single insertion point being this one wrapper
+        // every route passes through.
         child: SafeArea(
           child: EnvBanner.displayAppBarBanner<OcptConfigManager>(child: widget.child),
         ),

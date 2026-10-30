@@ -47,12 +47,12 @@ import 'package:open_cine_prod_tools/utils/ocpt_scene_display_number.dart';
 /// mode's own read on entry — the screenplay's Fountain text (kept in state for
 /// `OcptBreakdownScriptView` to slice scene by scene), the page setup the script view is typeset
 /// with, and one [OcptBreakdownSnapshot] joining [_breakdownService]'s scenes and tags with
-/// [_elementsService]/[_roleIndexService]/[_locationsService]/[_peopleService]'s four catalogues, the
-/// way `OcptResourcesBloc` builds its own `OcptResourcesSnapshot` — and holds the selected scene, the
-/// selected target, the legend's hidden keys, the left dock's visibility, the right dock tab and the
-/// two fractions on top of it. Selecting a target or a scene, and hiding a legend key, write nothing
-/// to the project database, so none of the three is ever flushed by [flushPendingProjectWrites] and
-/// all three live only in this bloc's own state.
+/// [_elementsService]/[_roleIndexService]/[_locationsService]/[_peopleService]'s four catalogues,
+/// the way `OcptResourcesBloc` builds its own `OcptResourcesSnapshot` — and holds the selected
+/// scene, the selected target, the legend's hidden keys, the left dock's visibility, the right dock
+/// tab and the two fractions on top of it. Selecting a target or a scene, and hiding a legend key,
+/// write nothing to the project database, so none of the three is ever flushed by
+/// [flushPendingProjectWrites] and all three live only in this bloc's own state.
 ///
 /// The selected target's four free-text fields (`OcptElementField.name`/`.subCategory`/`.quantity`/
 /// `.notes`) and the selected scene's own breakdown notes are what write here through typing, and
@@ -61,25 +61,26 @@ import 'package:open_cine_prod_tools/utils/ocpt_scene_display_number.dart';
 /// [OcptBreakdownState.pendingSceneNotesEdits] and written [_fieldEditDebounce] after the last
 /// keystroke, flushed immediately by [_flushPendingFieldEdits] on a target or scene selection
 /// change, a right dock tab change, a version preview ([flushPendingProjectWrites]) and the mode
-/// leaving the tree ([flushPendingFieldEdits], called by the mode's own `deactivate()`). Every other
-/// write the target inspector or the scene inspector offers — the target's status, its category,
-/// its owner, who brings it and its tag removal, and the scene's own breakdown status — is a single
-/// pick rather than typing, so it is written immediately by its own event.
+/// leaving the tree ([flushPendingFieldEdits], called by the mode's own `deactivate()`). Every
+/// other write the target inspector or the scene inspector offers — the target's status, its
+/// category, its owner, who brings it and its tag removal, and the scene's own breakdown status —
+/// is a single pick rather than typing, so it is written immediately by its own event.
 ///
 /// [_onWordClicked] owns the script view's range interaction: a first click opens
 /// [OcptBreakdownState.pendingTagAnchor], a second one in the same scene closes it into
 /// [OcptBreakdownState.pendingTagRange] — the script view's own cue to open the tag popover — and
 /// [_onPopoverTargetLinked]/[_onPopoverElementCreationRequested] are the popover's two ways of
-/// answering it, both going through [_breakdownService] (`createTag`/`createElementAndTag`) and both
-/// ending the same way: the popover closes, the anchor clears, the snapshot reloads and the linked
-/// or newly created target is selected on the `Inspector` tab.
+/// answering it, both going through [_breakdownService] (`createTag`/`createElementAndTag`) and
+/// both ending the same way: the popover closes, the anchor clears, the snapshot reloads and the
+/// linked or newly created target is selected on the `Inspector` tab.
 ///
 /// It also mixes in [MixinOcptProjectVersionsBloc], which owns everything the right dock's
 /// `Versions` tab does. The two hooks the mixin needs are answered by [flushPendingProjectWrites]
 /// and [reloadFromProjectDatabase]. [_onRightDockTabSelected] dispatches
-/// [OcptProjectWorkingCopyRefreshRequestedEvent] on opening the `Versions` tab, exactly as the other
-/// two modes do, and so does [_flushPendingFieldEdits] when a field edit lands while that tab
-/// is already open — the two moments the mixin's working-copy card is worth a fresh, throttled read.
+/// [OcptProjectWorkingCopyRefreshRequestedEvent] on opening the `Versions` tab, exactly as the
+/// other two modes do, and so does [_flushPendingFieldEdits] when a field edit lands while that tab
+/// is already open — the two moments the mixin's working-copy card is worth a fresh, throttled
+/// read.
 ///
 /// It mixes in [MixinOcptProjectPackageBloc] too, which writes the whole project out as a portable
 /// package from the `Export` panel's own standing card. That mixin reuses
@@ -654,9 +655,9 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
     }
   }
 
-  /// Toggles the right dock from the workspace toolbar: an open dock closes, a closed one reopens on
-  /// [OcptBreakdownState.lastRightDockTab], and that reopening is the moment the working-copy card
-  /// needs a fresh read for whenever it lands on `Versions`.
+  /// Toggles the right dock from the workspace toolbar: an open dock closes, a closed one reopens
+  /// on [OcptBreakdownState.lastRightDockTab], and that reopening is the moment the working-copy
+  /// card needs a fresh read for whenever it lands on `Versions`.
   Future<void> _onRightDockToggled(
     OcptBreakdownRightDockToggledEvent event,
     Emitter<OcptBreakdownState> emitter,
@@ -794,9 +795,9 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
   /// the left dock and the sheet stay in step, exactly as a click on a scene panel row already does
   /// on its own — and opens the right dock on the `Inspector` tab: a closed dock opens there, one
   /// already showing `Versions` switches, so a tagged word's click always lands the user on its
-  /// sheet without a second gesture. Mirrors [_onSceneSelected]'s own defensive check: a scene id no
-  /// longer in the current snapshot (a stale click on a sheet rebuilt underneath) is ignored for the
-  /// scene selection alone, the target selection itself is still applied.
+  /// sheet without a second gesture. Mirrors [_onSceneSelected]'s own defensive check: a scene id
+  /// no longer in the current snapshot (a stale click on a sheet rebuilt underneath) is ignored for
+  /// the scene selection alone, the target selection itself is still applied.
   ///
   /// Flushes any pending field edit first, and drops whatever tag-removal confirmation the
   /// previous selection was showing, exactly as [_onSceneSelected] does.
@@ -961,11 +962,11 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
   ///
   /// A stale click (no pending range, or a previewed version — the popover never withstands either)
   /// is ignored. On success — `OcptBreakdownService.createTag` returning a tag id — closes the
-  /// popover, clears the anchor, reloads the snapshot and selects the linked target on the `Inspector`
-  /// tab, exactly what selecting a tagged word already does (see [_onTargetSelected]): linking *is*
-  /// what makes this passage a tagged word. A refusal (the overlap, or a preview database that
-  /// slipped past the guard above) leaves the range and the popover exactly as they were, surfacing
-  /// [OcptBreakdownState.hasTagWriteError] instead of silently closing on the user.
+  /// popover, clears the anchor, reloads the snapshot and selects the linked target on the
+  /// `Inspector` tab, exactly what selecting a tagged word already does (see [_onTargetSelected]):
+  /// linking *is* what makes this passage a tagged word. A refusal (the overlap, or a preview
+  /// database that slipped past the guard above) leaves the range and the popover exactly as they
+  /// were, surfacing [OcptBreakdownState.hasTagWriteError] instead of silently closing on the user.
   Future<void> _onPopoverTargetLinked(
     OcptBreakdownPopoverTargetLinkedEvent event,
     Emitter<OcptBreakdownState> emitter,
@@ -1010,14 +1011,14 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
 
   /// Creates a new `event.category` element named `event.name` and tags
   /// [OcptBreakdownState.pendingTagRange]'s own passage with it, in one write
-  /// (`OcptBreakdownService.createElementAndTag`), dispatched by a click on one of the popover's own
-  /// category chips.
+  /// (`OcptBreakdownService.createElementAndTag`), dispatched by a click on one of the popover's
+  /// own category chips.
   ///
-  /// Mirrors [_onPopoverTargetLinked] in every other respect: a stale call is ignored, success closes
-  /// the popover and hands the new element off to the `Inspector` tab, and a refusal keeps the range
-  /// and the popover, surfacing [OcptBreakdownState.hasTagWriteError]. `OcptElementSourceKind.owned`
-  /// is the same default the resources mode's own element sheet creates with, so the two modes mint
-  /// an element identically.
+  /// Mirrors [_onPopoverTargetLinked] in every other respect: a stale call is ignored, success
+  /// closes the popover and hands the new element off to the `Inspector` tab, and a refusal keeps
+  /// the range and the popover, surfacing [OcptBreakdownState.hasTagWriteError].
+  /// `OcptElementSourceKind.owned` is the same default the resources mode's own element sheet
+  /// creates with, so the two modes mint an element identically.
   Future<void> _onPopoverElementCreationRequested(
     OcptBreakdownPopoverElementCreationRequestedEvent event,
     Emitter<OcptBreakdownState> emitter,
@@ -1064,8 +1065,8 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
 
   /// Creates a new set named `event.name` — inside `event.locationId`, or inside a location minted
   /// along with it when that is null — and tags [OcptBreakdownState.pendingTagRange]'s own passage
-  /// with it, in one write (`OcptBreakdownService.createSetAndTag`), dispatched by the popover's own
-  /// `Create a set` control.
+  /// with it, in one write (`OcptBreakdownService.createSetAndTag`), dispatched by the popover's
+  /// own `Create a set` control.
   ///
   /// The exact mirror of [_onPopoverElementCreationRequested], down to the selection it lands on:
   /// the new set's own sheet, on the `Inspector` tab.
@@ -1116,10 +1117,10 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
   /// control of one of `OcptBreakdownTargetInspector`'s own "Suggested occurrences" rows — the
   /// writer's second route onto `OcptBreakdownService.createTag`, [_onPopoverTargetLinked] being
   /// the first, and it mirrors that handler in every respect but two: the range comes from
-  /// `event`'s own fields rather than [OcptBreakdownState.pendingTagRange] (there is no popover open
-  /// here), and **the selection does not change** — accepting one row of a list is meant to leave
-  /// the user on that very list, ready for the next row, rather than bouncing them to the newly
-  /// tagged passage's own scene.
+  /// `event`'s own fields rather than [OcptBreakdownState.pendingTagRange] (there is no popover
+  /// open here), and **the selection does not change** — accepting one row of a list is meant to
+  /// leave the user on that very list, ready for the next row, rather than bouncing them to the
+  /// newly tagged passage's own scene.
   ///
   /// A stale call (no project open, or a preview database that slipped past the mode's own gating)
   /// is ignored. A refusal (the range now overlaps a live tag, most likely one just written by an
@@ -1190,7 +1191,8 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
   /// service the resources mode writes that link with, then reloads the snapshot — the sets a scene
   /// is shot in are read off `OcptSet.sceneIds`, so the row has to come back from the database.
   ///
-  /// Writes no tag: linking a scene to a set is a fact about the scene, not a passage of the script.
+  /// Writes no tag: linking a scene to a set is a fact about the scene, not a passage of the
+  /// script.
   Future<void> _onSceneSetLinked(
     OcptBreakdownSceneSetLinkedEvent event,
     Emitter<OcptBreakdownState> emitter,
@@ -1209,8 +1211,8 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
     emitter(state.copyWith(snapshot: await _loadSnapshot(project)));
   }
 
-  /// Creates a set named `event.name` — inside `event.locationId`, or inside a location minted along
-  /// with it when that is null — and says scene `event.sceneId` is shot in it, in one write
+  /// Creates a set named `event.name` — inside `event.locationId`, or inside a location minted
+  /// along with it when that is null — and says scene `event.sceneId` is shot in it, in one write
   /// (`OcptLocationsService.createSetLinkedToScene`), dispatched by the scene inspector's own
   /// `Create a set…` control.
   ///
@@ -1339,7 +1341,8 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
   }
 
   /// Records the raw text just typed into the title of set `event.setId` as a pending rename,
-  /// visible immediately, and (re)starts the same field-edit debounce [_onElementFieldChanged] does.
+  /// visible immediately, and (re)starts the same field-edit debounce [_onElementFieldChanged]
+  /// does.
   Future<void> _onSetNameChanged(
     OcptBreakdownSetNameChangedEvent event,
     Emitter<OcptBreakdownState> emitter,
@@ -1371,9 +1374,10 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
   ///
   /// Used from inside an event handler, with that handler's own [emitter]: called by
   /// [_onFieldEditFlushRequested] (the debounce firing), and up front by every handler that changes
-  /// the selected target, the selected scene, or the right dock tab, and by [flushPendingProjectWrites]
-  /// (a version preview about to swap the database), so a pending edit is never silently dropped.
-  /// [flushPendingFieldEdits] is the sibling of this method used outside of an event handler.
+  /// the selected target, the selected scene, or the right dock tab, and by
+  /// [flushPendingProjectWrites] (a version preview about to swap the database), so a pending edit
+  /// is never silently dropped. [flushPendingFieldEdits] is the sibling of this method used outside
+  /// of an event handler.
   Future<void> _flushPendingFieldEdits(Emitter<OcptBreakdownState> emitter) async {
     _fieldEditTimer?.cancel();
     _fieldEditTimer = null;

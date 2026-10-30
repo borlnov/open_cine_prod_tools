@@ -19,8 +19,8 @@ const _defaultSize = 220.0;
 /// content.
 ///
 /// White, padded, on a plain [Container]: a QR code needs a light quiet zone around its modules to
-/// scan reliably, which is why this stays white even in dark theme, exactly like the paper-simulated
-/// screenplay preview (`CLAUDE.md`'s own "white page even in dark theme").
+/// scan reliably, which is why this stays white even in dark theme, exactly like the
+/// paper-simulated screenplay preview (`CLAUDE.md`'s own "white page even in dark theme").
 class OcptQrCode extends StatelessWidget {
   /// The URI string this QR code encodes — an `OcptRelayEnrolment.toEnrolmentString()` or an
   /// `OcptRelayInvite.toInviteString()`, typically.

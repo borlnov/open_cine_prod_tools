@@ -75,9 +75,9 @@ class OcptScriptSidesPage extends Equatable {
 /// in the one-line schedule.
 ///
 /// **Both presentations reproduce the composer's own lines verbatim** — the runs, the indents, the
-/// alignments, the scene numbers and the `sourceRange`s are exactly the ones `FountainScriptComposer`
-/// produced. Nothing is re-wrapped and nothing is re-paginated: a side that re-typeset its text
-/// would stop being the very page the crew is holding.
+/// alignments, the scene numbers and the `sourceRange`s are exactly the ones
+/// `FountainScriptComposer` produced. Nothing is re-wrapped and nothing is re-paginated: a side
+/// that re-typeset its text would stop being the very page the crew is holding.
 ///
 /// It follows that [OcptSidesPresentation.packed], which does move rows onto pages of its own, may
 /// cut a speech where the composer — paginating the whole screenplay — would have closed it with a
@@ -92,7 +92,8 @@ class OcptScriptSidesLayout extends Equatable {
   /// exactly as a genuine spacer line the composer emits does, so a renderer cannot tell the two
   /// apart by inspecting the row it is handed; only this class needs to, and it never does so by
   /// value (see `_PackedLine.isSeparator`), since a real blank spacer line the bridge rule pulled
-  /// into a scene is built from exactly the same fields and must never be mistaken for one of these.
+  /// into a scene is built from exactly the same fields and must never be mistaken for one of
+  /// these.
   static const FountainScriptLine _blankFiller = FountainScriptLine(
     runs: [],
     lineType: FountainLineType.blank,

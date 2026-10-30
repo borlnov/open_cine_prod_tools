@@ -66,9 +66,9 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState> {
   final OcptExportManager? _exportManagerOverride;
 
   /// The manager owning the sync session [_onMoveRequested] stops before the swap and
-  /// [_restartSyncSessionIfPaired] restarts afterwards, and that [_isHostingOnlineForCurrentProject]
-  /// reads the currently open project's own relay-side id through — resolved lazily and tolerant of
-  /// its absence, see [_syncManager]'s own doc comment.
+  /// [_restartSyncSessionIfPaired] restarts afterwards, and that
+  /// [_isHostingOnlineForCurrentProject] reads the currently open project's own relay-side id
+  /// through — resolved lazily and tolerant of its absence, see [_syncManager]'s own doc comment.
   final OcptSyncManager? _syncManagerOverride;
 
   /// The manager [_isHostingOnlineForCurrentProject] reads to decide whether `Move…` is withheld —
@@ -79,8 +79,8 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState> {
   /// resolved lazily and tolerant of its absence, see [_propertiesManager]'s own doc comment.
   final OcptPropertiesManager? _propertiesManagerOverride;
 
-  /// What `Show in folder` opens the project's folder through: `url_launcher`'s [launchUrl] unless a
-  /// test hands in its own, since no url_launcher implementation answers under `flutter test`.
+  /// What `Show in folder` opens the project's folder through: `url_launcher`'s [launchUrl] unless
+  /// a test hands in its own, since no url_launcher implementation answers under `flutter test`.
   final OcptFolderLauncher _launchFolder;
 
   /// Class constructor
@@ -379,13 +379,15 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState> {
   }
 
   /// Restarts the sync session [_onMoveRequested] stopped before the move, now against the moved
-  /// project's own (freshly opened) database — mirrors `OcptWorkspaceBloc._startSyncSessionIfPaired`
-  /// step for step, reading the very same `sync_pairings` row and starting the very same way, since
-  /// the move touched nothing about the pairing itself, only which file and connection it lives on.
+  /// project's own (freshly opened) database — mirrors
+  /// `OcptWorkspaceBloc._startSyncSessionIfPaired` step for step, reading the very same
+  /// `sync_pairings` row and starting the very same way, since the move touched nothing about the
+  /// pairing itself, only which file and connection it lives on.
   ///
   /// A project counts as paired only when both halves of its pairing are still there, exactly as
-  /// `OcptWorkspaceBloc._startSyncSessionIfPaired`'s own doc comment explains; any failure along the
-  /// way is swallowed rather than left to escape as an unhandled error, for the very same reason.
+  /// `OcptWorkspaceBloc._startSyncSessionIfPaired`'s own doc comment explains; any failure along
+  /// the way is swallowed rather than left to escape as an unhandled error, for the very same
+  /// reason.
   Future<void> _restartSyncSessionIfPaired() async {
     final syncManager = _syncManager;
     final propertiesManager = _propertiesManager;
@@ -470,8 +472,8 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState> {
   /// Writes the newly committed default VAT rate to the project, then reflects it in the state.
   ///
   /// `event.basisPoints` is written whichever it is, including null and including `0` — the same
-  /// reasoning [_onMinimumRestMinutesChanged] already follows for its own field, `0` being as real a
-  /// figure here as any other (`OcptProjectSettingsBudgetSection`'s own doc comment).
+  /// reasoning [_onMinimumRestMinutesChanged] already follows for its own field, `0` being as real
+  /// a figure here as any other (`OcptProjectSettingsBudgetSection`'s own doc comment).
   Future<void> _onDefaultVatRateBasisPointsChanged(
     OcptProjectSettingsDefaultVatRateBasisPointsChangedEvent event,
     Emitter<OcptProjectSettingsState> emitter,

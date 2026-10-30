@@ -163,8 +163,8 @@ class OcptBudgetJournalRow extends Equatable {
   final int? creditCents;
 
   /// The running balance once [entry] has been taken into account, or null when [entry] is
-  /// unreadable — see [ocptBudgetJournalRowsOf]'s own doc comment for why a hole in this one column,
-  /// rather than a guess, is what an unreadable movement earns.
+  /// unreadable — see [ocptBudgetJournalRowsOf]'s own doc comment for why a hole in this one
+  /// column, rather than a guess, is what an unreadable movement earns.
   final int? balanceAfterCents;
 
   /// Class constructor
@@ -195,8 +195,8 @@ class OcptBudgetJournalRow extends Equatable {
 /// harmless, would silently invent an account history that never happened.
 ///
 /// **An unreadable entry leaves the running balance exactly where it was**, and its own
-/// [OcptBudgetJournalRow.balanceAfterCents] is null rather than a repeat of the balance before it or
-/// a guess at what it might become: the balance *after* a movement of unknown size is itself
+/// [OcptBudgetJournalRow.balanceAfterCents] is null rather than a repeat of the balance before it
+/// or a guess at what it might become: the balance *after* a movement of unknown size is itself
 /// unknown, and printing the old figure again would claim this movement changed nothing, which is
 /// not the fact on hand either. The balance the reader already had, by contrast, is not in doubt —
 /// it was computed from every entry read so far, all of them known — so the row below the hole
@@ -246,15 +246,15 @@ List<OcptBudgetJournalRow> ocptBudgetJournalRowsOf(
 }
 
 /// What has actually been paid against each poste, given the project's own
-/// [projectVatRateBasisPoints]: per poste, [OcptBudgetCoveredTotal.amountCents] is the tax-inclusive
-/// sum of [OcptBudgetEntry.debitCents] minus [OcptBudgetEntry.creditCents] over every entry naming
-/// that poste — a refund credited back against a poste genuinely reduces what that poste has cost,
-/// it is not a second poste's income, which is why it is subtracted here rather than tracked as its
-/// own inflow.
+/// [projectVatRateBasisPoints]: per poste, [OcptBudgetCoveredTotal.amountCents] is the
+/// tax-inclusive sum of [OcptBudgetEntry.debitCents] minus [OcptBudgetEntry.creditCents] over every
+/// entry naming that poste — a refund credited back against a poste genuinely reduces what that
+/// poste has cost, it is not a second poste's income, which is why it is subtracted here rather
+/// than tracked as its own inflow.
 ///
 /// **An entry naming no poste is not in this map at all**: `OcptBudgetEntriesTable.posteId`'s own
-/// doc comment reads a null poste as money that priced nothing, most often cash coming in, and money
-/// coming in prices nothing.
+/// doc comment reads a null poste as money that priced nothing, most often cash coming in, and
+/// money coming in prices nothing.
 ///
 /// **A poste with no entry at all has no key in the map** — this is the whole reason this answers a
 /// map rather than a single total: a caller can tell "nothing has moved against this poste" (absent

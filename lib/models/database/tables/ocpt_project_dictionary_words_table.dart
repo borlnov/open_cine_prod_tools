@@ -23,8 +23,8 @@ import 'package:drift/drift.dart';
 ///
 /// No `sortKey`: a project's learned words are an unordered set a writer builds up over the course
 /// of a screenplay, never a list they arrange — the same reasoning `OcptRoleEpisodesTable`'s own
-/// doc comment gives for a role's episodes. `OcptProjectDictionaryService.loadWords` reads them back
-/// sorted by the word itself (case-insensitively), not by an order anybody chose.
+/// doc comment gives for a role's episodes. `OcptProjectDictionaryService.loadWords` reads them
+/// back sorted by the word itself (case-insensitively), not by an order anybody chose.
 @DataClassName('OcptProjectDictionaryWordRow')
 class OcptProjectDictionaryWordsTable extends Table {
   /// {@macro open_cine_prod_tools.OcptProjectDictionaryWordsTable}

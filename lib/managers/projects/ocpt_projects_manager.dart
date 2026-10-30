@@ -561,9 +561,9 @@ class OcptProjectsManager extends AbsWithLifeCycle {
   /// caller, present or future, can make this method destroy a file.
   ///
   /// If a project is already open and [filePath] is free, the open one is closed first. The
-  /// project's page format defaults to [OcptPageFormat.a4] when the platform's locale is French, and
-  /// to [OcptPageFormat.usLetter] otherwise. Its currency defaults to whatever `intl` names for the
-  /// platform's current locale (`fr_FR` suggests EUR, `en_US` suggests USD…), falling back to
+  /// project's page format defaults to [OcptPageFormat.a4] when the platform's locale is French,
+  /// and to [OcptPageFormat.usLetter] otherwise. Its currency defaults to whatever `intl` names for
+  /// the platform's current locale (`fr_FR` suggests EUR, `en_US` suggests USD…), falling back to
   /// [ocptDefaultCurrencyCode] when it can't. Its screenplay language is seeded from the **app's**
   /// own UI language instead ([_defaultScreenplayLanguageForAppLocale]), and left unset when no
   /// dictionary is bundled for it.
@@ -678,8 +678,8 @@ class OcptProjectsManager extends AbsWithLifeCycle {
   ///   its shape isn't guaranteed to match the frozen release
   ///   (`docs/adr/0029-schema-versions-frozen-at-stable-releases.md`);
   /// - an **older** format returns [OcptProjectStatus.migrationRequired] unless [allowMigration] is
-  ///   true, which is the caller saying the user has been told what is about to happen. Only then is
-  ///   the copy written — at the path the probe named, so the promise and the write cannot drift
+  ///   true, which is the caller saying the user has been told what is about to happen. Only then
+  ///   is the copy written — at the path the probe named, so the promise and the write cannot drift
   ///   apart — and the file handed to drift, whose `onUpgrade` migrates it as it always has;
   /// - anything else opens exactly as it did before this gate existed.
   Future<ResultWithStatus<OcptProjectStatus, OcptOpenProjectModel>> openProject({
@@ -1053,10 +1053,10 @@ class OcptProjectsManager extends AbsWithLifeCycle {
         .write(OcptProjectInfoTableCompanion(mealPriceCents: Value(cents)));
   }
 
-  /// Loads the price of the buffet, in cents, stored in the [currentProject]'s `project_info` table,
-  /// or null — [loadCurrentProjectMealPriceCents]'s sibling, read the same way. **Named after the
-  /// column it reads, `project_info.snackPriceCents`, kept for the schema (ADR 0007's schema-number
-  /// rule); the UI names this figure the buffet, or craft services, never a snack.**
+  /// Loads the price of the buffet, in cents, stored in the [currentProject]'s `project_info`
+  /// table, or null — [loadCurrentProjectMealPriceCents]'s sibling, read the same way. **Named
+  /// after the column it reads, `project_info.snackPriceCents`, kept for the schema (ADR 0007's
+  /// schema-number rule); the UI names this figure the buffet, or craft services, never a snack.**
   Future<int?> loadCurrentProjectSnackPriceCents() async {
     final project = currentProject;
     if (project == null) {
@@ -1537,17 +1537,17 @@ class OcptProjectsManager extends AbsWithLifeCycle {
   /// leaving the original file exactly as it was; a failure deleting the *old* file after the swap
   /// has already happened is only ever logged — the move itself has already succeeded by then.
   ///
-  /// The `<path>.relay.sqlite` sidecar an in-app-hosted relay stores beside the project file, if one
-  /// exists, travels with it (with its own `-wal`/`-shm`), renamed first and copied-then-deleted as
-  /// a fallback across filesystems. **This never checks whether in-app hosting is currently online**
-  /// for the project being moved: this manager is a dependency of `OcptSyncManager`, which
-  /// `OcptRelayHostManager` itself depends on, so it may never import either — the dependency rules
-  /// this whole app follows forbid it (`AGENTS.md`, "Dependencies never reference their
-  /// dependents"). A hosted relay keeps the sidecar file open, so moving it out from under a live
-  /// server would leave that server writing to a file at a path nothing else still expects; it is
-  /// therefore the caller's own responsibility to withhold `Move…` while hosting is online for this
-  /// project (`OcptProjectSettingsBloc` reads `OcptRelayHostManager.state` for exactly that), and
-  /// this method trusts that it did.
+  /// The `<path>.relay.sqlite` sidecar an in-app-hosted relay stores beside the project file, if
+  /// one exists, travels with it (with its own `-wal`/`-shm`), renamed first and
+  /// copied-then-deleted as a fallback across filesystems. **This never checks whether in-app
+  /// hosting is currently online** for the project being moved: this manager is a dependency of
+  /// `OcptSyncManager`, which `OcptRelayHostManager` itself depends on, so it may never import
+  /// either — the dependency rules this whole app follows forbid it (`AGENTS.md`, "Dependencies
+  /// never reference their dependents"). A hosted relay keeps the sidecar file open, so moving it
+  /// out from under a live server would leave that server writing to a file at a path nothing else
+  /// still expects; it is therefore the caller's own responsibility to withhold `Move…` while
+  /// hosting is online for this project (`OcptProjectSettingsBloc` reads
+  /// `OcptRelayHostManager.state` for exactly that), and this method trusts that it did.
   ///
   /// For the very same reason, **this never touches a running sync session**: `OcptSyncSession` is
   /// owned by `OcptSyncManager`, which this manager may not import either. A session reading or
@@ -1703,8 +1703,8 @@ class OcptProjectsManager extends AbsWithLifeCycle {
       ocptDefaultCurrencyCode;
 
   /// Returns the default [OcptScreenplayLanguage] for a newly created project: the language the
-  /// **app's own UI** is running in ([_appLanguageCode]), or **null** when no dictionary is bundled for
-  /// it.
+  /// **app's own UI** is running in ([_appLanguageCode]), or **null** when no dictionary is bundled
+  /// for it.
   ///
   /// The two other defaults a new project is seeded with read the *platform* locale
   /// ([_defaultPageFormatForPlatformLocale], [_defaultCurrencyCodeForPlatformLocale]) because a
@@ -1737,10 +1737,10 @@ class OcptProjectsManager extends AbsWithLifeCycle {
   static String _localesManagerLanguageCode() =>
       globalGetIt().get<LocalesManager>().currentLocale.languageCode;
 
-  /// The [OcptDeviceIdGetter] every stamping service this manager builds is given: [propertiesManager]
-  /// when the constructor received one (a test's own double), [globalGetIt]'s singleton otherwise —
-  /// the same fallback [_propertiesManager] itself resolves, repeated here rather than read off that
-  /// field because a constructor initializer list cannot see `this`.
+  /// The [OcptDeviceIdGetter] every stamping service this manager builds is given:
+  /// [propertiesManager] when the constructor received one (a test's own double), [globalGetIt]'s
+  /// singleton otherwise — the same fallback [_propertiesManager] itself resolves, repeated here
+  /// rather than read off that field because a constructor initializer list cannot see `this`.
   static OcptDeviceIdGetter _resolveDeviceId(OcptPropertiesManager? propertiesManager) =>
       (propertiesManager ?? globalGetIt().get<OcptPropertiesManager>()).loadOrCreateDeviceId;
 

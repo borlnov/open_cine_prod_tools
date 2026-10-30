@@ -24,9 +24,9 @@ class OcptViewSwitchSegment<T> {
 /// `primary` and bolder, the others `onSurfaceVariant`.
 ///
 /// Lifted out of the breakdown mode's own private `Script`/`Recap` switch so the shot list mode's
-/// `Table`/`Board` one is built from the very same widget rather than a second copy that could drift
-/// from it: purely presentational, generic over the value type
-/// [T], reporting every click upward through [onChanged] rather than knowing what a segment means.
+/// `Table`/`Board` one is built from the very same widget rather than a second copy that could
+/// drift from it: purely presentational, generic over the value type [T], reporting every click
+/// upward through [onChanged] rather than knowing what a segment means.
 class OcptViewSwitch<T> extends StatelessWidget {
   /// The switch's own segments, in display order.
   final List<OcptViewSwitchSegment<T>> segments;

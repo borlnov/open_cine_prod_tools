@@ -146,11 +146,11 @@ class OcptBreakdownDockLayoutResetEvent extends OcptBreakdownEvent {
   const OcptBreakdownDockLayoutResetEvent();
 }
 
-/// Toggles whether legend key [key] is hidden from the script view's own highlighting, dispatched by
-/// a row of `OcptBreakdownCategoryLegend`.
+/// Toggles whether legend key [key] is hidden from the script view's own highlighting, dispatched
+/// by a row of `OcptBreakdownCategoryLegend`.
 ///
-/// A reading aid for the pass in progress alone: the hidden set this event grows or shrinks is never
-/// persisted, unlike the two dock fractions above.
+/// A reading aid for the pass in progress alone: the hidden set this event grows or shrinks is
+/// never persisted, unlike the two dock fractions above.
 class OcptBreakdownLegendEntryToggledEvent extends OcptBreakdownEvent {
   /// The legend key whose hidden state is toggled.
   final OcptBreakdownLegendKey key;
@@ -210,8 +210,8 @@ class OcptBreakdownSearchQueryChangedEvent extends OcptBreakdownEvent {
 
 /// Selects target [targetKind]/[targetId] in the inspector, dispatched by a click on one of its
 /// tagged words in `OcptBreakdownScriptView` — [sceneId] is the scene that click happened in, which
-/// this event also selects, so the left dock and the sheet stay in step. Opens the right dock on the
-/// `Inspector` tab.
+/// this event also selects, so the left dock and the sheet stay in step. Opens the right dock on
+/// the `Inspector` tab.
 ///
 /// Selecting writes nothing to the project database, so this is never withheld for a previewed
 /// version's sake.
@@ -244,8 +244,8 @@ class OcptBreakdownTargetSelectionClearedEvent extends OcptBreakdownEvent {
   const OcptBreakdownTargetSelectionClearedEvent();
 }
 
-/// Records a click on a word of the script view that overlaps no live tag, or one whose tag's target
-/// has been dropped from the snapshot, dispatched by `OcptBreakdownScriptView`.
+/// Records a click on a word of the script view that overlaps no live tag, or one whose tag's
+/// target has been dropped from the snapshot, dispatched by `OcptBreakdownScriptView`.
 ///
 /// Drives the range interaction: with no pending anchor, or one in another scene, this word becomes
 /// the (new) anchor; with an anchor already open in this very scene, it closes the range on the two
@@ -357,8 +357,8 @@ class OcptBreakdownElementCategoryChangedEvent extends OcptBreakdownEvent {
   List<Object?> get props => [...super.props, elementId, category];
 }
 
-/// Records the raw text just typed into [field] of element [elementId] as a pending edit, dispatched
-/// on every keystroke into one of `OcptBreakdownTargetInspector`'s Details fields.
+/// Records the raw text just typed into [field] of element [elementId] as a pending edit,
+/// dispatched on every keystroke into one of `OcptBreakdownTargetInspector`'s Details fields.
 class OcptBreakdownElementFieldChangedEvent extends OcptBreakdownEvent {
   /// The id of the element being edited.
   final String elementId;
@@ -426,7 +426,8 @@ class OcptBreakdownElementBringerChangedEvent extends OcptBreakdownEvent {
   List<Object?> get props => [...super.props, elementId, personId];
 }
 
-/// Says scene [sceneId] is shot in set [setId], dispatched by the scene inspector's own sets picker.
+/// Says scene [sceneId] is shot in set [setId], dispatched by the scene inspector's own sets
+/// picker.
 ///
 /// **Not** a tagging: no passage of the script is involved, no tag is created, and nothing is
 /// highlighted. It writes the `scene_sets` link alone — the very link the resources mode's own
@@ -526,16 +527,16 @@ class OcptBreakdownTagRemovalConfirmedEvent extends OcptBreakdownEvent {
   const OcptBreakdownTagRemovalConfirmedEvent();
 }
 
-/// Clears the pending anchor and the closed range alike, dispatched by the tag popover's own × close
-/// button, by `Escape` while it is focused, or by a tap outside it — the user changed their mind
-/// about the passage itself, not just about where to send it.
+/// Clears the pending anchor and the closed range alike, dispatched by the tag popover's own ×
+/// close button, by `Escape` while it is focused, or by a tap outside it — the user changed their
+/// mind about the passage itself, not just about where to send it.
 class OcptBreakdownTagRangeCancelledEvent extends OcptBreakdownEvent {
   /// Class constructor
   const OcptBreakdownTagRangeCancelledEvent();
 }
 
-/// Links `OcptBreakdownState.pendingTagRange`'s own passage to the existing [targetKind]/[targetId],
-/// dispatched by a click on one of the tag popover's own match rows.
+/// Links `OcptBreakdownState.pendingTagRange`'s own passage to the existing
+/// [targetKind]/[targetId], dispatched by a click on one of the tag popover's own match rows.
 class OcptBreakdownPopoverTargetLinkedEvent extends OcptBreakdownEvent {
   /// The kind of the target the passage is linked to.
   final OcptBreakdownTargetKind targetKind;
@@ -552,8 +553,8 @@ class OcptBreakdownPopoverTargetLinkedEvent extends OcptBreakdownEvent {
 }
 
 /// Creates a new element of [category] named [name] and tags `OcptBreakdownState.pendingTagRange`'s
-/// own passage with it, in one write, dispatched by a click on one of the tag popover's own category
-/// chips.
+/// own passage with it, in one write, dispatched by a click on one of the tag popover's own
+/// category chips.
 class OcptBreakdownPopoverElementCreationRequestedEvent extends OcptBreakdownEvent {
   /// The category the new element is created in.
   final OcptElementCategory category;
@@ -577,9 +578,9 @@ class OcptBreakdownPopoverElementCreationRequestedEvent extends OcptBreakdownEve
 /// when that is null, and tags `OcptBreakdownState.pendingTagRange`'s own passage with it, in one
 /// write — dispatched by the tag popover's own `Create a set` control.
 ///
-/// The sibling of [OcptBreakdownPopoverElementCreationRequestedEvent], for the second and last thing
-/// the breakdown pass may bring into existence: see `OcptBreakdownTagPopover`'s own doc comment for
-/// why a role is not one of them.
+/// The sibling of [OcptBreakdownPopoverElementCreationRequestedEvent], for the second and last
+/// thing the breakdown pass may bring into existence: see `OcptBreakdownTagPopover`'s own doc
+/// comment for why a role is not one of them.
 class OcptBreakdownPopoverSetCreationRequestedEvent extends OcptBreakdownEvent {
   /// The id of the location holding the new set, or null for a location minted along with it and
   /// named after it.
@@ -673,8 +674,8 @@ class OcptBreakdownSuggestionAcceptedEvent extends OcptBreakdownEvent {
   ];
 }
 
-/// Removes tag [tagId] for good, dispatched by `OcptBreakdownSceneInspector`'s own "to check" alert's
-/// `Remove` action.
+/// Removes tag [tagId] for good, dispatched by `OcptBreakdownSceneInspector`'s own "to check"
+/// alert's `Remove` action.
 ///
 /// Mirrors [OcptBreakdownTagNeedsCheckClearedEvent] in every respect but the write it performs:
 /// acts straight away, with no inline confirmation of its own — this is a different tag-removal

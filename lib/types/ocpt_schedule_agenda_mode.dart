@@ -13,7 +13,7 @@ enum OcptScheduleAgendaMode {
   /// the day's blocks drawn against sunrise/sunset bands.
   week,
 
-  /// The whole shoot at a glance, one cell per day of the month `OcptScheduleState.agendaAnchorDate`
-  /// falls in.
+  /// The whole shoot at a glance, one cell per day of the month
+  /// `OcptScheduleState.agendaAnchorDate` falls in.
   month,
 }

@@ -146,11 +146,11 @@ class OcptProjectSettingsState extends BlocStateForMixin<OcptProjectSettingsStat
   ///
   /// [minimumRestMinutes] legitimately goes back to null while the page is open (the field is
   /// cleared), so it has its own [clearMinimumRestMinutes] flag rather than a bare nullable
-  /// parameter, which could never tell "leave it alone" apart from "clear it".
-  /// [screenplayLanguage] carries exactly the same problem — picking "None" in the dropdown is as
-  /// real a gesture as clearing the rest field is — so it gets the same treatment,
-  /// [clearScreenplayLanguage]. [defaultVatRateBasisPoints], [mealPriceCents] and [buffetPriceCents]
-  /// all get the identical treatment for the identical reason, one clearing flag each.
+  /// parameter, which could never tell "leave it alone" apart from "clear it". [screenplayLanguage]
+  /// carries exactly the same problem — picking "None" in the dropdown is as real a gesture as
+  /// clearing the rest field is — so it gets the same treatment, [clearScreenplayLanguage].
+  /// [defaultVatRateBasisPoints], [mealPriceCents] and [buffetPriceCents] all get the identical
+  /// treatment for the identical reason, one clearing flag each.
   @override
   OcptProjectSettingsState copyWith({
     bool? isLoading,

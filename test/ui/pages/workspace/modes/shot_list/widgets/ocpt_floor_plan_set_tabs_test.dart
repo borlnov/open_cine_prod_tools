@@ -129,7 +129,8 @@ void main() {
   });
 
   testWidgets(
-    "clicking ＋ Set opens a menu whose Create a set submenu fires the creation callback per location",
+    "clicking ＋ Set opens a menu whose Create a set submenu fires the creation callback per "
+    "location",
     (tester) async {
       String? createdIn;
 

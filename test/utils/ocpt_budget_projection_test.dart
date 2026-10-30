@@ -364,7 +364,8 @@ void main() {
     test("an undated commitment still lands last and lowers the balance", () {
       final commitments = [
         buildCommitment(id: "c1", dueDate: DateTime(2026, 2), amountCents: 3000),
-        // loadCommitments has already put the undated ones last; this function must not reorder them.
+        // loadCommitments has already put the undated ones last; this function must not reorder
+        // them.
         buildCommitment(id: "c2", amountCents: 4000),
       ];
 

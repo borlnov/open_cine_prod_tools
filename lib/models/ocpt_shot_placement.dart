@@ -9,10 +9,11 @@ import 'package:equatable/equatable.dart';
 ///
 /// One entry per **block**, not per shot: a shot may now be placed more than once (interrupted by
 /// the meal break and resumed after it, or picked up again on a later date), so a shot placed twice
-/// carries two of these. Returned by `OcptScheduleService.loadShotPlacements`, keyed by shot id onto
-/// a **list** — the shot list's own `Jour de tournage` read-out is built from it. A shot with no
-/// live `shooting_day_blocks` row has no entry in that map at all, rather than an empty list: "not
-/// placed" and "placed nowhere in particular" are not the same state, and only the first exists.
+/// carries two of these. Returned by `OcptScheduleService.loadShotPlacements`, keyed by shot id
+/// onto a **list** — the shot list's own `Jour de tournage` read-out is built from it. A shot with
+/// no live `shooting_day_blocks` row has no entry in that map at all, rather than an empty list:
+/// "not placed" and "placed nowhere in particular" are not the same state, and only the first
+/// exists.
 class OcptShotPlacement extends Equatable {
   /// The shot this placement is for.
   final String shotId;

@@ -58,8 +58,9 @@ enum OcptShootingBlockKind {
 }
 
 /// Whether a block of this kind is **working time** — the time of the day it sits on that a
-/// convocation's own band is read off (ADR 0018) — and, separately, whether that work is **filming**,
-/// which is what says whether the band may be called a PAT (*prêt à tourner*) band at all.
+/// convocation's own band is read off (ADR 0018) — and, separately, whether that work is
+/// **filming**, which is what says whether the band may be called a PAT (*prêt à tourner*) band at
+/// all.
 ///
 /// Four kinds are: [OcptShootingBlockKind.shot] and [OcptShootingBlockKind.hold] — a production
 /// scheduling ahead of its own découpage still owes its cast a band — and
@@ -68,10 +69,10 @@ enum OcptShootingBlockKind {
 /// their band exactly as a cast member is on a shooting day. Every other kind is time around the
 /// work and never opens or closes a band.
 ///
-/// Written here, on the enum, rather than in whichever reader needs it first: "does this block count
-/// as work" and "is that work filming" are questions about the kind itself, and a second reader
-/// deciding either again is how a printed call sheet and the convocations panel come to disagree
-/// about somebody's band.
+/// Written here, on the enum, rather than in whichever reader needs it first: "does this block
+/// count as work" and "is that work filming" are questions about the kind itself, and a second
+/// reader deciding either again is how a printed call sheet and the convocations panel come to
+/// disagree about somebody's band.
 extension OcptShootingBlockKindShootingTime on OcptShootingBlockKind {
   /// Whether a block of this kind is working time. See the extension's doc comment.
   ///
@@ -91,8 +92,8 @@ extension OcptShootingBlockKindShootingTime on OcptShootingBlockKind {
   };
 
   /// Whether a block of this kind is **filming** — a take is made, or is going to be. True for
-  /// [OcptShootingBlockKind.shot] and for [OcptShootingBlockKind.hold], which reserves the time of a
-  /// sequence the shot list cannot yet describe and is filmed all the same; false for everything
+  /// [OcptShootingBlockKind.shot] and for [OcptShootingBlockKind.hold], which reserves the time of
+  /// a sequence the shot list cannot yet describe and is filmed all the same; false for everything
   /// else, [OcptShootingBlockKind.audition] and [OcptShootingBlockKind.rehearsal] included.
   ///
   /// **This is what a band may be called `PAT` on.** *Prêt à tourner* is the hour a performer must

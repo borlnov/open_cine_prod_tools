@@ -21,8 +21,8 @@ import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 /// page.
 ///
 /// Shows a page format dropdown (prefilled from [current], but never persisted: it only changes the
-/// document being exported now) and four checkboxes, all defaulting on. The margins of [current] are
-/// always carried through unchanged: this dialog never lets the user edit them. Use [show] to
+/// document being exported now) and four checkboxes, all defaulting on. The margins of [current]
+/// are always carried through unchanged: this dialog never lets the user edit them. Use [show] to
 /// display it and get back the resulting [OcptScenarioCoverageExportOptions], or null if the user
 /// cancelled.
 class OcptScenarioCoverageExportDialog extends StatefulWidget {

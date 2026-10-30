@@ -42,9 +42,9 @@ class OcptBreakdownScene extends Equatable {
   /// scene.
   final int charEnd;
 
-  /// How far the breakdown pass has got on this scene, held by hand. [OcptBreakdownSceneStatus.toDo]
-  /// for a scene with no `scene_breakdowns` row of its own — the service creates one on the first
-  /// write, never eagerly.
+  /// How far the breakdown pass has got on this scene, held by hand.
+  /// [OcptBreakdownSceneStatus.toDo] for a scene with no `scene_breakdowns` row of its own — the
+  /// service creates one on the first write, never eagerly.
   final OcptBreakdownSceneStatus status;
 
   /// This scene's breakdown notes, free text. Empty for a scene with no `scene_breakdowns` row.
@@ -73,11 +73,11 @@ class OcptBreakdownScene extends Equatable {
     required this.episodeNumber,
   });
 
-  /// Builds an [OcptBreakdownScene] from its stored [sceneRow] and the live [breakdownRow] of it, if
-  /// any — null reading as [OcptBreakdownSceneStatus.toDo] and empty notes, per this class's own doc
-  /// comment. [tags] defaults to empty: `OcptBreakdownService.loadScenes` leaves it for
-  /// `OcptBreakdownSnapshot.build` to fill in, the way it joins every other read. [episodeNumber] has
-  /// no such default — see the field's own doc comment for why it cannot be derived here.
+  /// Builds an [OcptBreakdownScene] from its stored [sceneRow] and the live [breakdownRow] of it,
+  /// if any — null reading as [OcptBreakdownSceneStatus.toDo] and empty notes, per this class's own
+  /// doc comment. [tags] defaults to empty: `OcptBreakdownService.loadScenes` leaves it for
+  /// `OcptBreakdownSnapshot.build` to fill in, the way it joins every other read. [episodeNumber]
+  /// has no such default — see the field's own doc comment for why it cannot be derived here.
   factory OcptBreakdownScene.fromRows({
     required OcptSceneRow sceneRow,
     required int? episodeNumber,
@@ -96,8 +96,8 @@ class OcptBreakdownScene extends Equatable {
     episodeNumber: episodeNumber,
   );
 
-  /// The number this scene is shown by: its own [sceneNumber] when it has one, otherwise its 1-based
-  /// index among the screenplay's scenes — exactly what `OcptSceneRef.displayNumber` and
+  /// The number this scene is shown by: its own [sceneNumber] when it has one, otherwise its
+  /// 1-based index among the screenplay's scenes — exactly what `OcptSceneRef.displayNumber` and
   /// `OcptSceneShotSequence.displaySceneNumber` derive — prefixed with [episodeNumber] once the
   /// project holds more than one.
   String get displayNumber => ocptSceneDisplayNumberOf(
@@ -106,9 +106,9 @@ class OcptBreakdownScene extends Equatable {
     episodeNumber: episodeNumber,
   );
 
-  /// This scene with [tags] replacing its own — how `OcptBreakdownSnapshot.build` attaches each live
-  /// tag to the scene it belongs to, once `OcptBreakdownService.loadScenes` has loaded the scenes
-  /// with none.
+  /// This scene with [tags] replacing its own — how `OcptBreakdownSnapshot.build` attaches each
+  /// live tag to the scene it belongs to, once `OcptBreakdownService.loadScenes` has loaded the
+  /// scenes with none.
   OcptBreakdownScene copyWith({required List<OcptBreakdownTag> tags}) => OcptBreakdownScene(
     id: id,
     position: position,

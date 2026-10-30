@@ -41,10 +41,10 @@ class OcptLocationAvailabilityKindConverter
 /// same date: this is a set of windows, not a calendar with one entry per day.
 ///
 /// [kind] is what an annotation is *for*. A window the production may use freely and one it may use
-/// under a condition ("no noise after 22:00", "no vehicle in the courtyard") are both availabilities
-/// — refusing the second would lose the day entirely — so the condition rides on the window it
-/// applies to, in [note], and [kind] is what lets the schedule mode colour and warn rather than
-/// merely print it.
+/// under a condition ("no noise after 22:00", "no vehicle in the courtyard") are both
+/// availabilities — refusing the second would lose the day entirely — so the condition rides on the
+/// window it applies to, in [note], and [kind] is what lets the schedule mode colour and warn
+/// rather than merely print it.
 ///
 /// No `sortKey` here, for `person_unavailabilities`' own reason: an unordered set of windows rather
 /// than a list the user reorders (the UI shows them in date order).

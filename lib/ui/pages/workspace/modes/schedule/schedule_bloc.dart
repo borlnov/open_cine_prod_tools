@@ -1548,8 +1548,8 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
   }
 
   /// Exports the named call sheets of `event.options.dayIds`, one PDF per (selected convocation ×
-  /// day), into a folder the user picks. See [_onCallSheetsExportRequested]'s own doc comment for the
-  /// flush, the cancellation and the partial-failure contract, identical here.
+  /// day), into a folder the user picks. See [_onCallSheetsExportRequested]'s own doc comment for
+  /// the flush, the cancellation and the partial-failure contract, identical here.
   Future<void> _onNamedCallSheetsExportRequested(
     OcptScheduleNamedCallSheetsExportRequestedEvent event,
     Emitter<OcptScheduleState> emitter,
@@ -1606,9 +1606,9 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
   /// Exports the whole-shoot shooting plan of `event.options.dayIds` as a single PDF, written
   /// through the native save dialog.
   ///
-  /// Flushes whatever is still pending first, exactly as [_onCallSheetsExportRequested]; a cancelled
-  /// save dialog is a silent no-op (`OcptExportManager.exportShootingPlan` returns null for it, the
-  /// same convention every single-file export of this app follows).
+  /// Flushes whatever is still pending first, exactly as [_onCallSheetsExportRequested]; a
+  /// cancelled save dialog is a silent no-op (`OcptExportManager.exportShootingPlan` returns null
+  /// for it, the same convention every single-file export of this app follows).
   Future<void> _onShootingPlanExportRequested(
     OcptScheduleShootingPlanExportRequestedEvent event,
     Emitter<OcptScheduleState> emitter,

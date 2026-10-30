@@ -7,8 +7,8 @@ import 'package:open_cine_prod_tools/models/ocpt_role.dart';
 
 /// A role the screenplay no longer names as a speaking character, but whose casting and notes are
 /// kept: the "orphaned" variant of `OcptRoleAlertBanner`
-/// (`docs/adr/0030-a-shots-characters-are-the-productions-roles.md`, decision 4), shown wherever the
-/// role is — the resources mode's role sheet and, above the shot table, the shot list.
+/// (`docs/adr/0030-a-shots-characters-are-the-productions-roles.md`, decision 4), shown wherever
+/// the role is — the resources mode's role sheet and, above the shot table, the shot list.
 ///
 /// A role's [OcptRole.orphanedName] is already the outcome of the comparison against the
 /// screenplay's current cast — `OcptRoleIndexService.reconcile` sets it once, at save time — so

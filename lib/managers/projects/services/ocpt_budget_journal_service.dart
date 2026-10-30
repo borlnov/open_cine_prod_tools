@@ -41,9 +41,9 @@ class OcptBudgetJournalService {
   static const _voucherNumberPrefix = 'J-';
 
   /// The shape [_nextVoucherNumber] recognises a voucher number by: [_voucherNumberPrefix] followed
-  /// by one or more digits, captured. A `budget_entries.voucherNumber` that doesn't match this — the
-  /// user typed their own reference instead of keeping the minted one — is simply ignored by the
-  /// scan rather than corrected.
+  /// by one or more digits, captured. A `budget_entries.voucherNumber` that doesn't match this —
+  /// the user typed their own reference instead of keeping the minted one — is simply ignored by
+  /// the scan rather than corrected.
   static final RegExp _voucherNumberPattern = RegExp(
     '^${RegExp.escape(_voucherNumberPrefix)}(\\d+)\$',
   );
@@ -304,8 +304,8 @@ class OcptBudgetJournalService {
   /// the element.
   ///
   /// **No commitment needs correcting here any more.** A settled commitment used to name its own
-  /// settling entry (`settledEntryId`), so deleting that entry had to clear the link back to null or
-  /// leave a commitment pointing at a row that no longer existed. Settlement is read off
+  /// settling entry (`settledEntryId`), so deleting that entry had to clear the link back to null
+  /// or leave a commitment pointing at a row that no longer existed. Settlement is read off
   /// `budget_entries.commitmentId` now: tombstoning this entry is enough on its own, since every
   /// read already filters tombstones out (`{@macro open_cine_prod_tools.tombstones}`) — a
   /// commitment this entry used to pay simply stops seeing it summed against it.
@@ -475,8 +475,8 @@ class OcptBudgetJournalService {
   /// Updates the fields of commitment [commitmentId] in [database] that are passed as something
   /// other than [Value.absent]. **Settlement is never written here any more** — it is read off
   /// `budget_entries.commitmentId`, not stored on this row at all: writing a payment is
-  /// [OcptBudgetJournalService.createEntry] naming this commitment, and undoing one is clearing that
-  /// link back to null on the entry that named it ([updateEntry]). Never touches `sortKey` or
+  /// [OcptBudgetJournalService.createEntry] naming this commitment, and undoing one is clearing
+  /// that link back to null on the entry that named it ([updateEntry]). Never touches `sortKey` or
   /// `isDeleted`: those only change through [reorderCommitment] and [deleteCommitment].
   ///
   /// **[posteId] *is* updatable here, unlike `OcptBudgetQuoteService.updateLine`'s own.** That

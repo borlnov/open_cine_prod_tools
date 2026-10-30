@@ -21,8 +21,8 @@ import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 /// figures it is measured against while looking like it measured the same thing.
 ///
 /// Deliberately its own class rather than one of its siblings with fields added, for the reason
-/// `OcptDayOutOfDaysExportOptions`'s own doc comment already gives: each export is dispatched by its
-/// own event, and a shared options class would let one dialog produce something another service
+/// `OcptDayOutOfDaysExportOptions`'s own doc comment already gives: each export is dispatched by
+/// its own event, and a shared options class would let one dialog produce something another service
 /// silently ignores.
 class OcptBudgetFinancialReportExportOptions extends Equatable {
   /// The physical page format to typeset the exported document with.

@@ -610,8 +610,8 @@ class OcptScheduleDayEventDeletionConfirmedEvent extends OcptScheduleEvent {
 /// Selects shot [shotId] — a row of the left dock's own "shots still to place" list — showing its
 /// own read-out in the inspector, and opens the right dock on the `Inspector` tab. Clears the
 /// selected block: the two selections are mutually exclusive, so bringing a shot's own read-out up
-/// would otherwise silently leave a stale block one showing underneath it. A [shotId] naming no live
-/// shot is ignored, mirroring how `OcptScheduleBlockSelectedEvent` ignores an unknown day.
+/// would otherwise silently leave a stale block one showing underneath it. A [shotId] naming no
+/// live shot is ignored, mirroring how `OcptScheduleBlockSelectedEvent` ignores an unknown day.
 class OcptScheduleShotSelectedEvent extends OcptScheduleEvent {
   /// The id of the shot to select.
   final String shotId;
@@ -870,8 +870,8 @@ class OcptScheduleCallSheetsExportRequestedEvent extends OcptScheduleEvent {
 class OcptScheduleNamedCallSheetsExportRequestedEvent extends OcptScheduleEvent {
   /// The one-off options the export runs with: the page format/margins, the days to print
   /// ([OcptCallSheetExportOptions.dayIds]) and which of their own convocations are printed —
-  /// [OcptCallSheetExportOptions.selectedConvocationKeys] being the union over every day named here,
-  /// so a key convoked on only one of them yields one file, not one per day.
+  /// [OcptCallSheetExportOptions.selectedConvocationKeys] being the union over every day named
+  /// here, so a key convoked on only one of them yields one file, not one per day.
   final OcptCallSheetExportOptions options;
 
   /// Every localized string the exported documents carry.

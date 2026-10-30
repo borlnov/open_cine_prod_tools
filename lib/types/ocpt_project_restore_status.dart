@@ -7,10 +7,10 @@ import 'package:act_dart_result/act_dart_result.dart';
 /// The outcome of restoring a project version over the working copy, or of forking from one.
 ///
 /// Restoring is the one operation of the app that rewrites most of a project at once, so every
-/// failure here is an all-or-nothing one: the whole restore happens inside a single transaction, and
-/// the page margins it also restores are written only once that transaction has committed. A status
-/// other than [ok] therefore means the project and the app's preferences are both exactly as they
-/// were.
+/// failure here is an all-or-nothing one: the whole restore happens inside a single transaction,
+/// and the page margins it also restores are written only once that transaction has committed. A
+/// status other than [ok] therefore means the project and the app's preferences are both exactly as
+/// they were.
 enum OcptProjectRestoreStatus with MixinResultStatus {
   /// The project now holds the version's state, and descends from it.
   ok(isSuccess: true, canBeRetried: false),

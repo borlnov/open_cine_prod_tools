@@ -166,8 +166,8 @@ const Map<String, String> _fileNameDiacriticsFold = {
 /// characters Windows refuses in a file name.
 final RegExp _unsafeFileNameChars = RegExp(r'[\\/:*?"<>|\x00-\x1F]');
 
-/// Renders a shooting day's call sheet — the general one, following the reference `.docx` section by
-/// section, and the named one, one per convoked person or uncast role.
+/// Renders a shooting day's call sheet — the general one, following the reference `.docx` section
+/// by section, and the named one, one per convoked person or uncast role.
 ///
 /// This is pure rendering logic with no dialog or file-system access of its own: it's owned by
 /// `OcptExportManager` and exposed as a public final field, reached through the manager rather than
@@ -186,38 +186,38 @@ final RegExp _unsafeFileNameChars = RegExp(r'[\\/:*?"<>|\x00-\x1F]');
 /// skipped rather than drawn empty. A day that auditions in the morning and shoots in the afternoon
 /// is one day, and gets one piece of paper carrying both tables in that order.
 ///
-/// **One composition, two audiences**: every section a general and a named sheet share
-/// (the title block, the day heading, the crew note, the day's own events, the location(s), the sun
-/// block, the key contacts, the main table, the audition table, the cast table, the candidates
-/// list, the two closing directories and the trailing guest table) is built by one shared private
-/// widget builder, called from both
-/// [generateGeneralCallSheet] and [generateNamedCallSheet] rather than duplicated between them. Only
-/// **three** sections belong to one sheet alone, none of them with a counterpart to share: a named
-/// sheet's own recipient line, its own arrival/PAT/departure band, and its own "to bring" section
-/// ([_toBringSection]) — the elements [OcptSchedulePlanSnapshot.elementsToBringOnDay] joins onto
-/// that one recipient. The general sheet has no reading for it at all, deliberately: what to bring
-/// is a fact about **one** recipient, while the general sheet is the day's own paperwork, addressed
-/// to nobody in particular — printing it there would mean printing every recipient's own list on
-/// everybody else's sheet, or guessing which one the reader is.
+/// **One composition, two audiences**: every section a general and a named sheet share (the title
+/// block, the day heading, the crew note, the day's own events, the location(s), the sun block, the
+/// key contacts, the main table, the audition table, the cast table, the candidates list, the two
+/// closing directories and the trailing guest table) is built by one shared private widget builder,
+/// called from both [generateGeneralCallSheet] and [generateNamedCallSheet] rather than duplicated
+/// between them. Only **three** sections belong to one sheet alone, none of them with a counterpart
+/// to share: a named sheet's own recipient line, its own arrival/PAT/departure band, and its own
+/// "to bring" section ([_toBringSection]) — the elements
+/// [OcptSchedulePlanSnapshot.elementsToBringOnDay] joins onto that one recipient. The general sheet
+/// has no reading for it at all, deliberately: what to bring is a fact about **one** recipient,
+/// while the general sheet is the day's own paperwork, addressed to nobody in particular — printing
+/// it there would mean printing every recipient's own list on everybody else's sheet, or guessing
+/// which one the reader is.
 ///
 /// **What a named sheet narrows is the timetable, and only the timetable** — twice over. Its main
-/// table and its audition table hold the blocks of its recipient's own slots, and then only the ones
-/// that recipient is actually **in**: an actor reads the shots calling a part they play, a
+/// table and its audition table hold the blocks of its recipient's own slots, and then only the
+/// ones that recipient is actually **in**: an actor reads the shots calling a part they play, a
 /// technician reads their unit end to end, a candidate reads their own auditions, and every
-/// milestone stays for everybody ([_entriesOfRecipient]). A sheet is read down by one person to know
-/// their own day, and one handed the whole running order makes them work out which half is theirs.
-/// The audition table is a reading of that same timetable, not a directory —
-/// and **a sheet addressed to a candidate narrows both one step further, to that candidacy alone**:
-/// its audition table prints the auditions naming them and no other, and the candidates directory
-/// prints their line alone (ADR 0024). It is the one place a block-level link narrows something a
-/// slot-level one could not, and the reason is not tidiness: who else is being seen for a part, and
-/// on what phone number, is the production's business and not another candidate's. The cast table,
-/// the candidates list for every other recipient and the two closing directories are day-wide,
-/// because they answer "who else is on this day and how do I reach them", which is a question about
-/// the day rather than about the reader — and a crew that cannot phone each other on the morning of a shoot is a crew that
-/// stops. The cast table is day-wide in a second sense too: it lists every role the day **calls
-/// for**, including the ones a placed shot plays that nobody convoked, so a role number printed in
-/// the main table's own `RÔLES` column can always be looked up on the same sheet
+/// milestone stays for everybody ([_entriesOfRecipient]). A sheet is read down by one person to
+/// know their own day, and one handed the whole running order makes them work out which half is
+/// theirs. The audition table is a reading of that same timetable, not a directory — and **a sheet
+/// addressed to a candidate narrows both one step further, to that candidacy alone**: its audition
+/// table prints the auditions naming them and no other, and the candidates directory prints their
+/// line alone (ADR 0024). It is the one place a block-level link narrows something a slot-level one
+/// could not, and the reason is not tidiness: who else is being seen for a part, and on what phone
+/// number, is the production's business and not another candidate's. The cast table, the candidates
+/// list for every other recipient and the two closing directories are day-wide, because they answer
+/// "who else is on this day and how do I reach them", which is a question about the day rather than
+/// about the reader — and a crew that cannot phone each other on the morning of a shoot is a crew
+/// that stops. The cast table is day-wide in a second sense too: it lists every role the day
+/// **calls for**, including the ones a placed shot plays that nobody convoked, so a role number
+/// printed in the main table's own `RÔLES` column can always be looked up on the same sheet
 /// ([_castRowsOfDay]). The day's own events and its guests are day-wide for the same reason: an
 /// event is a fact about the day rather than about a unit, and a guest is owed an hour whichever
 /// slot happens to convoke the sheet's own recipient.
@@ -273,7 +273,8 @@ class OcptCallSheetPdfService {
   }
 
   /// Renders the general call sheet of [dayId]: the whole day's own paperwork, following the
-  /// reference `.docx` section by section (§A of the reference note this service was built against).
+  /// reference `.docx` section by section (§A of the reference note this service was built
+  /// against).
   ///
   /// [exportDate] is the moment the title block's own version line prints, through
   /// [ocptScheduleGeneratedAtStamp] — the very stamp `OcptShootingPlanPdfService` prints, so two
@@ -425,14 +426,14 @@ class OcptCallSheetPdfService {
 
   /// Renders the named call sheet of [convocation] on [dayId]: the same day header, their own
   /// arrival/PAT/departure band, their own "to bring" section, the crew note, the day's own events,
-  /// the location(s) and blocks of their own slots alone, the sun block, the key contacts — then the
-  /// day's own cast table, crew list, cast-and-extras list and trailing guest table, exactly as the
-  /// general sheet prints them. Only the main table is narrowed to the recipient's slots; see the
-  /// class doc comment for why the other day-wide sections are not.
+  /// the location(s) and blocks of their own slots alone, the sun block, the key contacts — then
+  /// the day's own cast table, crew list, cast-and-extras list and trailing guest table, exactly as
+  /// the general sheet prints them. Only the main table is narrowed to the recipient's slots; see
+  /// the class doc comment for why the other day-wide sections are not.
   ///
   /// The "to bring" section is printed only for a recipient this app can name a person for
-  /// ([OcptDayConvocation.personId]) — an uncast role has nobody to bring anything, so the section is
-  /// absent altogether rather than a heading over an em dash — and only when
+  /// ([OcptDayConvocation.personId]) — an uncast role has nobody to bring anything, so the section
+  /// is absent altogether rather than a heading over an em dash — and only when
   /// [OcptSchedulePlanSnapshot.elementsToBringOnDay] actually joins something, exactly as
   /// [_crewNoteSection] and [_eventsSection] are already skipped rather than drawn empty (their own
   /// doc comments).
@@ -504,8 +505,8 @@ class OcptCallSheetPdfService {
       unnamedPersonLabel: labels.unnamedPersonLabel,
     );
     // The one directory a named sheet narrows, and only when the day sees its recipient for a part:
-    // who else is being seen, and on what phone number, is the production's business and not another
-    // candidate's. Null for every other recipient, which leaves both readings day-wide.
+    // who else is being seen, and on what phone number, is the production's business and not
+    // another candidate's. Null for every other recipient, which leaves both readings day-wide.
     final recipientRoleCandidateIds = convocation.isSeenForAPart
         ? convocation.roleCandidateIds
         : null;
@@ -630,22 +631,22 @@ class OcptCallSheetPdfService {
     return pdfDocument.save();
   }
 
-  /// The sections [generateGeneralCallSheet] builds in this exact order, up to and including the sun
-  /// block, over widget builders every one of which is shared with [generateNamedCallSheet] too (the
-  /// title block, the day heading, the crew note, the day's own events, the location(s) and the sun
-  /// block): only the *composition* differs between the two generators, called out inline at each
-  /// call site, never the section builders themselves — that is what "one composition, two
+  /// The sections [generateGeneralCallSheet] builds in this exact order, up to and including the
+  /// sun block, over widget builders every one of which is shared with [generateNamedCallSheet] too
+  /// (the title block, the day heading, the crew note, the day's own events, the location(s) and
+  /// the sun block): only the *composition* differs between the two generators, called out inline
+  /// at each call site, never the section builders themselves — that is what "one composition, two
   /// audiences" means in the class doc comment. The department contacts, the main table, the cast
   /// table, the two closing lists and the trailing guest table all print **after** what this method
-  /// returns, since the reference call sheet's own contacts-by-department table sits between the sun
-  /// block and the main table; they are added by [generateGeneralCallSheet] itself rather than
+  /// returns, since the reference call sheet's own contacts-by-department table sits between the
+  /// sun block and the main table; they are added by [generateGeneralCallSheet] itself rather than
   /// folded in here, over the very same
   /// [_contactsBlock]/[_mainTableSection]/[_castTableSection]/[_peopleListSection]/[_guestsSection]
-  /// builders [generateNamedCallSheet] also calls directly.
-  /// [generateNamedCallSheet] does not call this method at all: its own recipient line and its own
-  /// single band ([_ownBandSection], replacing the day-wide time bands this method prints) make its
-  /// ordering different enough that composing it from this list would need more conditionals than
-  /// just calling the same builders itself does.
+  /// builders [generateNamedCallSheet] also calls directly. [generateNamedCallSheet] does not call
+  /// this method at all: its own recipient line and its own single band ([_ownBandSection],
+  /// replacing the day-wide time bands this method prints) make its ordering different enough that
+  /// composing it from this list would need more conditionals than just calling the same builders
+  /// itself does.
   List<pw.Widget> _sharedSections({
     required OcptScriptPagePainter painter,
     required OcptCallSheetLabels labels,
@@ -711,11 +712,12 @@ class OcptCallSheetPdfService {
   /// bottom of the first.
   ///
   /// The running head is handed to [pw.MultiPage]'s own `header:` rather than laid at the top of
-  /// `build:`, and it matters exactly when a sheet does run long: a `build:` child is drawn **once**,
-  /// where a `header:` is drawn on every physical page the flow lands on. A call sheet whose cast
-  /// table and two directories push it onto a second page was handing that page over naming no
-  /// project and no document at all — the same fix `OcptShootingPlanPdfService._runningHead` carries
-  /// for the same reason, a sheet being read one page at a time whatever it was stapled to.
+  /// `build:`, and it matters exactly when a sheet does run long: a `build:` child is drawn
+  /// **once**, where a `header:` is drawn on every physical page the flow lands on. A call sheet
+  /// whose cast table and two directories push it onto a second page was handing that page over
+  /// naming no project and no document at all — the same fix
+  /// `OcptShootingPlanPdfService._runningHead` carries for the same reason, a sheet being read one
+  /// page at a time whatever it was stapled to.
   pw.Page _page({
     required OcptScriptPagePainter painter,
     required OcptCallSheetLabels labels,
@@ -893,8 +895,8 @@ class OcptCallSheetPdfService {
 
   /// A named sheet's own "to bring" table: one `<code> · <name>` / `SEQ` row per [rows] entry, the
   /// join [OcptSchedulePlanSnapshot.elementsToBringOnDay] makes between this recipient's own
-  /// [OcptElement.broughtByPersonId] and the scenes the day actually plays. [generateNamedCallSheet]
-  /// never calls this on an empty [rows] — see its own doc comment.
+  /// [OcptElement.broughtByPersonId] and the scenes the day actually plays.
+  /// [generateNamedCallSheet] never calls this on an empty [rows] — see its own doc comment.
   pw.Widget _toBringSection({
     required OcptScriptPagePainter painter,
     required OcptCallSheetLabels labels,
@@ -965,7 +967,8 @@ class OcptCallSheetPdfService {
       pw.SizedBox(height: 2),
       for (final event in events) ...[
         pw.Text(
-          "${ocptFormatDayMinute(event.minute)} — ${event.label.trim().isEmpty ? ocptScheduleEmptyValue : event.label.trim()}",
+          "${ocptFormatDayMinute(event.minute)} — "
+          "${event.label.trim().isEmpty ? ocptScheduleEmptyValue : event.label.trim()}",
           style: pw.TextStyle(font: painter.fonts.bold, fontSize: _bodyFontSizePt),
         ),
         if (event.notes.trim().isNotEmpty) ...[
@@ -1288,14 +1291,14 @@ class OcptCallSheetPdfService {
   /// one, a full-width crew-note band — or [OcptCallSheetLabels.emptyDayNote] when [rows] is empty
   /// (no slot, or no block on any of them).
   ///
-  /// **A shot run's own crew note prints directly under its row**, and getting that requires closing
-  /// the `pw.Table` chunk the row belongs to the moment the row is seen: a `pw.TableRow` cannot span
-  /// the page width the way [_milestoneRowWidget] itself can, so the only way to put a full-width
-  /// note right under a run of otherwise ordinary rows is to end the table there and draw the note as
-  /// a widget of its own — `flushShotRows` is called the instant a pending row carries a crew note,
-  /// even mid-run, splitting what would otherwise have been one continuous table into two around the
-  /// note. A milestone's own crew note has no such problem, since [_milestoneRowWidget] is already a
-  /// full-width band and prints it inline.
+  /// **A shot run's own crew note prints directly under its row**, and getting that requires
+  /// closing the `pw.Table` chunk the row belongs to the moment the row is seen: a `pw.TableRow`
+  /// cannot span the page width the way [_milestoneRowWidget] itself can, so the only way to put a
+  /// full-width note right under a run of otherwise ordinary rows is to end the table there and
+  /// draw the note as a widget of its own — `flushShotRows` is called the instant a pending row
+  /// carries a crew note, even mid-run, splitting what would otherwise have been one continuous
+  /// table into two around the note. A milestone's own crew note has no such problem, since
+  /// [_milestoneRowWidget] is already a full-width band and prints it inline.
   pw.Widget _mainTableSection({
     required OcptScriptPagePainter painter,
     required OcptCallSheetLabels labels,
@@ -1345,10 +1348,10 @@ class OcptCallSheetPdfService {
   }
 
   /// A full-width band naming a shot run's own crew note(s) — printed the moment
-  /// [_mainTableSection]'s own composition closes a table chunk on a row that carries one, since the
-  /// `pw.Table` row itself cannot span the page width a note deserves. Drawn like
-  /// [_milestoneRowWidget]'s own container but **without** its [_bandColor] fill, so a note reads as
-  /// a note rather than as another milestone.
+  /// [_mainTableSection]'s own composition closes a table chunk on a row that carries one, since
+  /// the `pw.Table` row itself cannot span the page width a note deserves. Drawn like
+  /// [_milestoneRowWidget]'s own container but **without** its [_bandColor] fill, so a note reads
+  /// as a note rather than as another milestone.
   pw.Widget _crewNoteBandWidget({
     required OcptScriptPagePainter painter,
     required List<String> crewNotes,
@@ -1416,12 +1419,12 @@ class OcptCallSheetPdfService {
     ],
   );
 
-  /// A full-width band naming a non-shot block and its own time band — under it, the roles that band
-  /// expects, on a line of their own behind the `RÔLES` label the main table already heads its own
-  /// column with ([ocptScheduleBlockRoleNumbersLine]), then the block's own crew note, if it has one.
-  /// A band expecting nobody and carrying no note prints the one time-band line alone. The note
-  /// prints inline, unlike a shot run's own ([_crewNoteBandWidget]): this band is already full-width,
-  /// so it has nothing to close and reopen the way a `pw.Table` row does.
+  /// A full-width band naming a non-shot block and its own time band — under it, the roles that
+  /// band expects, on a line of their own behind the `RÔLES` label the main table already heads its
+  /// own column with ([ocptScheduleBlockRoleNumbersLine]), then the block's own crew note, if it
+  /// has one. A band expecting nobody and carrying no note prints the one time-band line alone. The
+  /// note prints inline, unlike a shot run's own ([_crewNoteBandWidget]): this band is already
+  /// full-width, so it has nothing to close and reopen the way a `pw.Table` row does.
   pw.Widget _milestoneRowWidget({
     required OcptScriptPagePainter painter,
     required OcptCallSheetLabels labels,
@@ -1545,10 +1548,11 @@ class OcptCallSheetPdfService {
   /// them.
   ///
   /// [secondColumnHeader] is the only thing that differs between them, and it is a heading rather
-  /// than a shape: the two lists that read a *position* head it [OcptCallSheetLabels.positionsHeader]
-  /// (their default), while the candidates list heads it [OcptCallSheetLabels.roleHeader], somebody
-  /// seen for a part holding no position at all. [_PeopleListEntry.positionOrRole] has carried both
-  /// readings since the cast-and-extras list joined the crew list.
+  /// than a shape: the two lists that read a *position* head it
+  /// [OcptCallSheetLabels.positionsHeader] (their default), while the candidates list heads it
+  /// [OcptCallSheetLabels.roleHeader], somebody seen for a part holding no position at all.
+  /// [_PeopleListEntry.positionOrRole] has carried both readings since the cast-and-extras list
+  /// joined the crew list.
   pw.Widget _peopleListSection({
     required OcptScriptPagePainter painter,
     required OcptCallSheetLabels labels,
@@ -1600,10 +1604,11 @@ class OcptCallSheetPdfService {
   /// block names, in the running order the timetable resolved, saying at what hour which part is
   /// being seen and by whom.
   ///
-  /// Printed **beside** the main table rather than instead of it, and only on a day whose own blocks
-  /// hold an audition: a production that auditions in the morning and shoots in the afternoon gets
-  /// one piece of paper carrying both tables, in that order, and a day that auditions nobody has no
-  /// heading for it at all — the rule the events, guest and crew-note sections already follow.
+  /// Printed **beside** the main table rather than instead of it, and only on a day whose own
+  /// blocks hold an audition: a production that auditions in the morning and shoots in the
+  /// afternoon gets one piece of paper carrying both tables, in that order, and a day that
+  /// auditions nobody has no heading for it at all — the rule the events, guest and crew-note
+  /// sections already follow.
   ///
   /// Both generators call this on their **own** [rows], the general sheet's read off the whole day
   /// and a named sheet's off its recipient's own slots alone: this is a reading of the timetable,
@@ -1764,10 +1769,10 @@ class OcptCallSheetPdfService {
   );
 }
 
-// ===================================================================================================
-// Pure data-preparation types and functions — no `pw.Widget` in sight, so a future test can exercise
-// them directly if it ever needs to.
-// ===================================================================================================
+// =================================================================================================
+// Pure data-preparation types and functions — no `pw.Widget` in sight, so a future test can
+// exercise them directly if it ever needs to.
+// =================================================================================================
 
 /// One printed row of the main table: either a run of one or more consecutive [shots] on the same
 /// slot and the same scene, collapsed the way the reference call sheets do, or a single
@@ -1811,8 +1816,8 @@ class _DayRow {
   );
 
   /// Builds a full-width milestone row, carrying the numbers of the roles its own band expects
-  /// ([ocptScheduleBlockRoleNumbersOf]) — empty for every kind but a hair-and-make-up band — and its
-  /// own block's printable crew note, if it has one.
+  /// ([ocptScheduleBlockRoleNumbersOf]) — empty for every kind but a hair-and-make-up band — and
+  /// its own block's printable crew note, if it has one.
   factory _DayRow.milestone({
     required String caption,
     required List<int> roleNumbers,
@@ -1898,8 +1903,8 @@ class _CastRow {
 /// One printed row of the day's own audition table: an audition block's resolved hours, the part it
 /// sees, and who is being seen for it.
 ///
-/// **One row per candidacy, not per block**: two actors of two different parts read together are two
-/// rows sharing one hour (ADR 0024), and a block naming nobody yet is one row carrying its hour
+/// **One row per candidacy, not per block**: two actors of two different parts read together are
+/// two rows sharing one hour (ADR 0024), and a block naming nobody yet is one row carrying its hour
 /// alone.
 class _AuditionRow {
   const _AuditionRow({
@@ -1967,7 +1972,8 @@ class _PeopleListEntry {
   /// Their own email address, empty for the same reason.
   final String email;
 
-  /// Their own arrival – departure band, or [ocptScheduleEmptyValue] while they have no convocation at all.
+  /// Their own arrival – departure band, or [ocptScheduleEmptyValue] while they have no convocation
+  /// at all.
   final String scheduleLabel;
 }
 
@@ -1982,8 +1988,9 @@ class _ToBringRow {
 
   /// The scene numbers of the day's own shots that play a scene [element] is linked to, sorted —
   /// empty when [element] is linked to a scene the day plays through no numbered shot at all, which
-  /// still prints ([ocptScheduleEmptyValue]) rather than being left out: the join already established
-  /// the element belongs on this list, and a bare scene id would explain nothing on a printed page.
+  /// still prints ([ocptScheduleEmptyValue]) rather than being left out: the join already
+  /// established the element belongs on this list, and a bare scene id would explain nothing on a
+  /// printed page.
   final List<String> sceneNumbers;
 }
 
@@ -2086,9 +2093,9 @@ String _captionOf({
   blockKindLabelOf: labels.blockKindLabelOf,
 );
 
-/// The day's own cast table rows: one per role the day **calls for** — every role convoked on one of
-/// its live slots, and every role a shot placed on it plays — the scenes each of them shoots today
-/// read off [orderedEntries]' own shot blocks.
+/// The day's own cast table rows: one per role the day **calls for** — every role convoked on one
+/// of its live slots, and every role a shot placed on it plays — the scenes each of them shoots
+/// today read off [orderedEntries]' own shot blocks.
 ///
 /// **A role the day's shots name is listed even when nobody convoked it**, and that is the whole
 /// point of the table: the main table's own `RÔLES` column prints role *numbers*, and a reader
@@ -2099,9 +2106,9 @@ String _captionOf({
 /// hours: a convocation is the slot you are linked to (ADR 0018), and a role linked to none has no
 /// times at all.
 ///
-/// Both generators pass the **whole day's** entries, a named sheet included: this table says who the
-/// day calls for, and a `SEQ` cell counting only the sequences its reader happens to share a slot
-/// with would understate every other actor's day.
+/// Both generators pass the **whole day's** entries, a named sheet included: this table says who
+/// the day calls for, and a `SEQ` cell counting only the sequences its reader happens to share a
+/// slot with would understate every other actor's day.
 List<_CastRow> _castRowsOfDay({
   required OcptSchedulePlanSnapshot plan,
   required String dayId,
@@ -2195,8 +2202,8 @@ List<_CastRow> _castRowsOfDay({
 /// meant to do for them. Four rules, in this order:
 ///
 /// - **Every milestone stays**, for everybody: preparation, hair and make-up, a meal, a break, a
-///   travel move, the wrap. Somebody who cannot see when they eat has been handed a worse sheet, not
-///   a shorter one.
+///   travel move, the wrap. Somebody who cannot see when they eat has been handed a worse sheet,
+///   not a shorter one.
 /// - **A technician keeps their whole unit.** A slot naming them as crew is a running order they
 ///   work end to end, so every block of it stays whatever it plays.
 /// - **An audition stays when it names one of their own candidacies** — the same narrowing the
@@ -2207,10 +2214,10 @@ List<_CastRow> _castRowsOfDay({
 ///   already match one.
 ///
 /// **A block the app cannot resolve any part for stays**, which is the fourth rule's own escape
-/// hatch and not an oversight: a hold reserves the time of a sequence the shot list often cannot yet
-/// describe, and a scene with no shot on it names no character. Dropping it would be guessing that
-/// the recipient is not in a sequence nobody has broken down yet, and the truthful reading of "the
-/// app cannot say" is to leave the row where the production put it.
+/// hatch and not an oversight: a hold reserves the time of a sequence the shot list often cannot
+/// yet describe, and a scene with no shot on it names no character. Dropping it would be guessing
+/// that the recipient is not in a sequence nobody has broken down yet, and the truthful reading of
+/// "the app cannot say" is to leave the row where the production put it.
 List<OcptOrderedScheduleEntry> _entriesOfRecipient({
   required OcptSchedulePlanSnapshot plan,
   required OcptDayConvocation convocation,
@@ -2273,9 +2280,9 @@ List<OcptOrderedScheduleEntry> _entriesOfRecipient({
 
 /// The audition rows of [orderedEntries]: one per candidacy every [OcptShootingBlockKind.audition]
 /// block names, in the timetable's own resolved order and, within a block, in its candidacies' own
-/// `sortKey` order — each carrying that block's hours, the part being seen and who is being seen for
-/// it. A block naming nobody yet still prints **one** row, carrying its hour alone: the day plans
-/// something at that time, and a table that hid it would be a running order with a gap in it.
+/// `sortKey` order — each carrying that block's hours, the part being seen and who is being seen
+/// for it. A block naming nobody yet still prints **one** row, carrying its hour alone: the day
+/// plans something at that time, and a table that hid it would be a running order with a gap in it.
 ///
 /// Read off the very entries the main table is built from, so the two tables of one sheet can never
 /// order the day differently — which is also why a named sheet's own narrowed entries narrow the
@@ -2359,16 +2366,16 @@ List<_AuditionRow> _auditionRowsOfDay({
 /// part, which is the whole of what the reader came for.
 ///
 /// **Day-wide on both sheets**, printed under the cast table: this is a directory, and it answers
-/// "who is expected today for a part and how do I reach them" — a question about the day rather than
-/// about which of its slots happens to convoke the reader, exactly as the crew list, the
+/// "who is expected today for a part and how do I reach them" — a question about the day rather
+/// than about which of its slots happens to convoke the reader, exactly as the crew list, the
 /// cast-and-extras list and the trailing guest table already are.
 ///
 /// **[onlyRoleCandidateIds] is the one exception in this whole file**, and a named sheet whose
-/// recipient the day sees for a part is the only thing that ever passes it: their sheet prints their
-/// own lines and no other. The reason is not tidiness — who else is being seen for a part, and on what phone number,
-/// is the production's business and not another candidate's. Every other directory on that same
-/// sheet stays day-wide, a candidate reading the crew and cast lists exactly as any other recipient
-/// does.
+/// recipient the day sees for a part is the only thing that ever passes it: their sheet prints
+/// their own lines and no other. The reason is not tidiness — who else is being seen for a part,
+/// and on what phone number, is the production's business and not another candidate's. Every other
+/// directory on that same sheet stays day-wide, a candidate reading the crew and cast lists exactly
+/// as any other recipient does.
 ///
 /// The part is named through the **candidacy** rather than through the person, which is the whole
 /// reason `shooting_block_candidates` points at a `role_candidates` row: two candidacies of one
@@ -2417,10 +2424,10 @@ List<_PeopleListEntry> _candidateListEntries({
 /// A named sheet's own "to bring" rows: [OcptSchedulePlanSnapshot.elementsToBringOnDay] for
 /// [personId] — already sorted by category then by name — paired with the scene numbers of
 /// [dayEntries]' own shot blocks that play a scene each element is linked to, mirroring how
-/// [_castRowsOfDay]'s own `sceneNumbers` is built off the very same [dayEntries]. Both this function
-/// and [_castRowsOfDay] are handed the **day's** own entries rather than the recipient's restricted
-/// `orderedEntries`, for the comment there's own reason: what an element is needed for today is a
-/// fact about the day, not about which of its slots happens to convoke this reader.
+/// [_castRowsOfDay]'s own `sceneNumbers` is built off the very same [dayEntries]. Both this
+/// function and [_castRowsOfDay] are handed the **day's** own entries rather than the recipient's
+/// restricted `orderedEntries`, for the comment there's own reason: what an element is needed for
+/// today is a fact about the day, not about which of its slots happens to convoke this reader.
 List<_ToBringRow> _toBringRowsOfDay({
   required OcptSchedulePlanSnapshot plan,
   required String dayId,
@@ -2565,8 +2572,8 @@ List<_PeopleListEntry> _castListEntries({
   return entries;
 }
 
-/// [convocation]'s own PAT band, or [ocptScheduleEmptyValue] while it has none — ADR 0018: a slot with no
-/// shooting block gives no band at all, and this is never fabricated.
+/// [convocation]'s own PAT band, or [ocptScheduleEmptyValue] while it has none — ADR 0018: a slot
+/// with no shooting block gives no band at all, and this is never fabricated.
 String _patCellOf(OcptDayConvocation? convocation) {
   if (convocation == null) {
     return ocptScheduleEmptyValue;
@@ -2616,8 +2623,8 @@ String _timeBandLine({required String label, required int startMinute, required 
 }
 
 /// The Google Maps URL built from [location]'s own coordinates, or null while it has none — the app
-/// holds no map-link column of its own and makes no network call to build one (§A.8 of the reference
-/// note this service was built against).
+/// holds no map-link column of its own and makes no network call to build one (§A.8 of the
+/// reference note this service was built against).
 String? _mapsUrlOf(OcptLocation location) {
   final latitude = location.latitude;
   final longitude = location.longitude;
@@ -2664,9 +2671,9 @@ String _convocationDisplayNameOf(
 /// off [OcptDayConvocation.roleCandidateIds] for the auditions, so it can never name something the
 /// timetable below it does not.
 ///
-/// Each part is prefixed by [OcptCallSheetLabels.roleHeader] and printed in the shape the cast table
-/// names a role in, so a reader holding both can match them; a crew position carries no prefix,
-/// being unambiguous on its own.
+/// Each part is prefixed by [OcptCallSheetLabels.roleHeader] and printed in the shape the cast
+/// table names a role in, so a reader holding both can match them; a crew position carries no
+/// prefix, being unambiguous on its own.
 String _convocationPositionsLabel({
   required OcptDayConvocation convocation,
   required List<OcptShootingSlot> ownSlots,

@@ -315,8 +315,9 @@ class _OcptRoleCandidateRowState extends State<_OcptRoleCandidateRow> {
   /// **Retaining is picking the `Retained` status, and nothing else.** A `Retain`/`Drop` pair sat
   /// here beside the list and did exactly what its two entries already did — same callback, same
   /// argument, same transaction — so the menu offered one action twice under two names. The
-  /// consequence retaining carries (the role's previous retained candidacy demoted, `roles.personId`
-  /// written) is the service's, not a second gesture's: it holds however the status was picked.
+  /// consequence retaining carries (the role's previous retained candidacy demoted,
+  /// `roles.personId` written) is the service's, not a second gesture's: it holds however the
+  /// status was picked.
   Widget _buildActionsMenu(
     BuildContext context,
     Tr tr,

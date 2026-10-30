@@ -25,8 +25,8 @@ import 'package:open_cine_prod_tools/utils/ocpt_schedule_alerts.dart';
 ///
 /// Every writing affordance is a nullable callback, withheld while a project version is being
 /// previewed: [onDayCreated] (the `+ New day` control above the list), [onDayDateChangeRequested],
-/// [onDayDuplicationRequested] and [onDayDeletionRequested] (a day card's own `⋮` menu). Selecting a
-/// day ([onDaySelected]) or an unplaced shot ([onShotSelected], which only brings that shot's own
+/// [onDayDuplicationRequested] and [onDayDeletionRequested] (a day card's own `⋮` menu). Selecting
+/// a day ([onDaySelected]) or an unplaced shot ([onShotSelected], which only brings that shot's own
 /// read-out up in the inspector) only ever reads, so neither is ever withheld.
 class OcptScheduleLeftDock extends StatelessWidget {
   /// The live days to list, in `dayNumber` order.

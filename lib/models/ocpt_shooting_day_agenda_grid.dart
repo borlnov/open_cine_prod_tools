@@ -146,8 +146,8 @@ enum OcptShootingDayAgendaEventPlacement {
   /// [OcptShootingDayAgendaEventMarker.row] is null.
   beforeGrid,
 
-  /// The event's own minute falls inside `[startMinute, endMinute)`: drawn as a full-width marker on
-  /// its own [OcptShootingDayAgendaEventMarker.row], exactly as before this placement existed.
+  /// The event's own minute falls inside `[startMinute, endMinute)`: drawn as a full-width marker
+  /// on its own [OcptShootingDayAgendaEventMarker.row], exactly as before this placement existed.
   inGrid,
 
   /// The event's own minute falls at or after [OcptShootingDayAgendaGrid.endMinute]: drawn as a
@@ -383,9 +383,9 @@ class OcptShootingDayAgendaGrid extends Equatable {
   ///
   /// No `.clamp` is needed here, unlike a first version of this method that folded an event's own
   /// minute into the bounds themselves: an event can no longer be the source of either bound, so an
-  /// `.inGrid` marker's own `event.minute - snappedStart` is always in `[0, snappedEnd -
-  /// snappedStart)` by the two comparisons just above it, and [_floorDiv] of a value already in that
-  /// range can never land outside `[0, rowCount)`.
+  /// `.inGrid` marker's own `event.minute - snappedStart` is always in
+  /// `[0, snappedEnd - snappedStart)` by the two comparisons just above it, and [_floorDiv] of a
+  /// value already in that range can never land outside `[0, rowCount)`.
   static OcptShootingDayAgendaEventMarker _eventMarkerOf(
     OcptShootingDayAgendaEventInput event, {
     required int snappedStart,
@@ -435,7 +435,8 @@ class OcptShootingDayAgendaGrid extends Equatable {
   /// day's own midnight — reachable, not a defensive corner case. Deliberately integer-only (no
   /// `double`/`.floor()`, which would need a precision argument this file has no business making):
   /// Dart's `%` is Euclidean (non-negative whenever [divisor] is positive, unlike `.remainder()`),
-  /// so a negative, inexact [value] truncates *up* one step too many and is walked back down by one.
+  /// so a negative, inexact [value] truncates *up* one step too many and is walked back down by
+  /// one.
   static int _floorDiv(int value, int divisor) {
     final quotient = value ~/ divisor;
     return (value < 0 && value % divisor != 0) ? quotient - 1 : quotient;
@@ -443,8 +444,8 @@ class OcptShootingDayAgendaGrid extends Equatable {
 
   /// Integer division of [value] by [divisor], rounded **up** — what turns an end minute into the
   /// row index one past the last row it touches. The mirror of [_floorDiv]: Dart's truncation
-  /// already rounds a negative, inexact [value] up (toward zero), so only a **positive** inexact one
-  /// needs the extra step — `_floorDiv`'s minus becomes this function's plus.
+  /// already rounds a negative, inexact [value] up (toward zero), so only a **positive** inexact
+  /// one needs the extra step — `_floorDiv`'s minus becomes this function's plus.
   static int _ceilDiv(int value, int divisor) {
     final quotient = value ~/ divisor;
     return (value > 0 && value % divisor != 0) ? quotient + 1 : quotient;
@@ -453,7 +454,8 @@ class OcptShootingDayAgendaGrid extends Equatable {
   /// Object string representation, useful for debugging and logging.
   @override
   String toString() =>
-      "OcptShootingDayAgendaGrid(isEmpty: $isEmpty, rowCount: $rowCount, columns: ${columns.length}, "
+      "OcptShootingDayAgendaGrid(isEmpty: $isEmpty, rowCount: $rowCount, columns: "
+      "${columns.length}, "
       "tiles: ${tiles.length}, events: ${events.length})";
 
   /// Object properties

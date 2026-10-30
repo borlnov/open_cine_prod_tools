@@ -24,12 +24,12 @@ import 'package:open_cine_prod_tools/ui/pages/sharing/hosting_state.dart';
 /// This is the bloc class for the Partager screen's "Héberger sur ce poste" segment
 /// (`docs/architecture/sync.md`).
 ///
-/// It drives `OcptRelayHostManager` the way `OcptSharingBloc` drives `OcptSyncManager.
-/// pairProjectToRelay`/`unpairProject` — start/stop hosting, toggle "réhéberger au démarrage", and
-/// run an in-app reconcile against an upstream relay — while mirroring the manager's own host-state
-/// stream and, only while hosting is online, the sync manager's own presence roster stream, both of
-/// which (like every ACT manager stream, `CLAUDE.md`'s own pitfalls list) never replay their current
-/// value to a new listener.
+/// It drives `OcptRelayHostManager` the way `OcptSharingBloc` drives
+/// `OcptSyncManager. pairProjectToRelay`/`unpairProject` — start/stop hosting, toggle "réhéberger
+/// au démarrage", and run an in-app reconcile against an upstream relay — while mirroring the
+/// manager's own host-state stream and, only while hosting is online, the sync manager's own
+/// presence roster stream, both of which (like every ACT manager stream, `CLAUDE.md`'s own pitfalls
+/// list) never replay their current value to a new listener.
 class OcptHostingBloc extends BlocForMixin<OcptHostingState> {
   /// The manager owning the in-process relay this bloc starts, stops and reconciles.
   final OcptRelayHostManager _hostManager;
@@ -130,13 +130,13 @@ class OcptHostingBloc extends BlocForMixin<OcptHostingState> {
     );
   }
 
-  /// Applies [event]'s own host state, and — since presence only ever lives while hosting is
-  /// online — subscribes to (or unsubscribes from) [_syncManager]'s own presence roster stream to
-  /// match: a transition to [OcptRelayHostOnline] means a session just started, so this both starts
-  /// the presence subscription and re-reads whether "réhéberger au démarrage" can now be set (a
-  /// never-paired project that just started hosting for the first time has a relay-side id from this
-  /// moment on, through `OcptRelayHostManager.hostedProjectId`); any other state means hosting is no
-  /// longer live, so the subscription is torn down and the roster cleared.
+  /// Applies [event]'s own host state, and — since presence only ever lives while hosting is online
+  /// — subscribes to (or unsubscribes from) [_syncManager]'s own presence roster stream to match: a
+  /// transition to [OcptRelayHostOnline] means a session just started, so this both starts the
+  /// presence subscription and re-reads whether "réhéberger au démarrage" can now be set (a
+  /// never-paired project that just started hosting for the first time has a relay-side id from
+  /// this moment on, through `OcptRelayHostManager.hostedProjectId`); any other state means hosting
+  /// is no longer live, so the subscription is torn down and the roster cleared.
   Future<void> _onHostStateChanged(
     OcptHostingHostStateChangedEvent event,
     Emitter<OcptHostingState> emitter,
@@ -224,7 +224,8 @@ class OcptHostingBloc extends BlocForMixin<OcptHostingState> {
   /// Persists [event]'s own value against the project's relay-side id — [_hostManager.
   /// hostedProjectId] while hosting is live, or [OcptSyncManager.loadPairedProjectId] otherwise —
   /// and does nothing when neither is known yet: the checkbox stays disabled in that case
-  /// ([OcptHostingState.canSetAutoRestart]), so this should never actually be reached without an id.
+  /// ([OcptHostingState.canSetAutoRestart]), so this should never actually be reached without an
+  /// id.
   Future<void> _onAutoRestartChanged(
     OcptHostingAutoRestartChangedEvent event,
     Emitter<OcptHostingState> emitter,
@@ -383,10 +384,10 @@ class OcptHostingBloc extends BlocForMixin<OcptHostingState> {
   /// [preferredAddress], when it is still one of the addresses on offer, is kept as the selected
   /// address rather than falling back to `online.lanBaseUri.host` (the default) — this is what lets
   /// a port-apply restart ([_onHostStateChanged]'s online branch, which passes
-  /// [OcptHostingState.selectedAddress]) keep the address an operator had already picked, instead of
-  /// wiping it back to the default on every restart. [_onLoadRequested] passes the very same
-  /// [OcptHostingState.selectedAddress] for the same reason, harmless when it is still null (nothing
-  /// was ever picked yet).
+  /// [OcptHostingState.selectedAddress]) keep the address an operator had already picked, instead
+  /// of wiping it back to the default on every restart. [_onLoadRequested] passes the very same
+  /// [OcptHostingState.selectedAddress] for the same reason, harmless when it is still null
+  /// (nothing was ever picked yet).
   Future<
     ({
       List<String> availableAddresses,

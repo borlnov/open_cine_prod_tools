@@ -47,13 +47,13 @@ import 'package:super_editor/super_editor.dart';
 /// lower. `computeOcptStyledTitlePageMetrics`'s flow height is therefore unchanged by this
 /// transform (see its own doc comment); only the paint position moves.
 ///
-/// The row shift is deliberately computed in [createViewModel], not read from a value resolved
-/// once by the widget that constructs this builder: the outer `OcptStyledScreenplayEditor` widget does
+/// The row shift is deliberately computed in [createViewModel], not read from a value resolved once
+/// by the widget that constructs this builder: the outer `OcptStyledScreenplayEditor` widget does
 /// not rebuild on every keystroke (super_editor's own document-driven layout re-renders without
 /// it), but this builder's own `createViewModel` *is* re-invoked, with the live [Document], for
 /// every title-page node on every document change — including a brand new node an Enter split
-/// inside Contact just created. A value threaded in through the constructor instead would freeze
-/// at whatever the document looked like the last time the outer widget happened to rebuild, and a
+/// inside Contact just created. A value threaded in through the constructor instead would freeze at
+/// whatever the document looked like the last time the outer widget happened to rebuild, and a
 /// freshly split node born after that point would never receive its shift at all.
 ///
 /// Claims every title-page field node (not only the empty ones, so a value typed into a field
@@ -90,8 +90,8 @@ class OcptTitlePageComponentBuilder extends ParagraphComponentBuilder {
   /// `componentViewModel.textStyleBuilder(const {})`, i.e. exactly the style the stylesheet
   /// resolved for that node — into the style its placeholder hint is painted with. Must only
   /// `copyWith` on top of the style it's handed (normally the italic slope and a dimmed color),
-  /// never build a fresh [TextStyle]: inheriting is what guarantees the placeholder's size and weight
-  /// match the value that will replace it.
+  /// never build a fresh [TextStyle]: inheriting is what guarantees the placeholder's size and
+  /// weight match the value that will replace it.
   final TextStyle Function(TextStyle resolvedStyle) hintStyleBuilder;
 
   /// The layout metrics [computeOcptStyledTitlePageMetrics] needs to compute `rowShift` — the same

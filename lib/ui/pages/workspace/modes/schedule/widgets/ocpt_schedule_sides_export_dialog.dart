@@ -113,7 +113,8 @@ class _OcptScheduleSidesExportDialogState extends State<OcptScheduleSidesExportD
                   DropdownMenuItem(
                     value: day.id,
                     child: Text(
-                      "${ocptScheduleDayTagLabel(tr, day.dayNumber)} · ${dateFormat.format(day.date)}",
+                      "${ocptScheduleDayTagLabel(tr, day.dayNumber)} · "
+                      "${dateFormat.format(day.date)}",
                     ),
                   ),
               ],

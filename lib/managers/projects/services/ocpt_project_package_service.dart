@@ -468,7 +468,8 @@ class OcptProjectPackageService {
   /// a side effect of importing it — the compatibility gate the caller runs afterwards is what
   /// states that instead. [_hasTable] is reused for the same reason it exists on the write side: a
   /// package built before the `assets` table existed has nothing to rewrite, and a manifest entry
-  /// naming a row this database doesn't hold is not a failure — the `UPDATE` simply matches nothing.
+  /// naming a row this database doesn't hold is not a failure — the `UPDATE` simply matches
+  /// nothing.
   void _rewireUnpackedAssetPaths({
     required String projectFilePath,
     required Directory destinationDirectory,
