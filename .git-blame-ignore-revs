@@ -6,3 +6,6 @@
 
 # style: format the tree at 100 columns
 b04f907a5746747eb790cd14cefc8432756b6ac6
+
+# style: wrap comments and strings at 100 columns
+76754f2886a2e87113270b91ace136af3bab0441
