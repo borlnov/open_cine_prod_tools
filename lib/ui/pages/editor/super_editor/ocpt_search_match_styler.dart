@@ -2,8 +2,8 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+import 'package:open_cine_prod_tools/models/rules/ocpt_text_search.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/ocpt_editor_search.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_text_search.dart';
 import 'package:super_editor/super_editor.dart';
 
 /// The attribution [OcptSearchMatchStyler] adds over every find/replace match's own range, painted

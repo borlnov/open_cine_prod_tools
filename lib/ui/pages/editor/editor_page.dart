@@ -15,6 +15,8 @@ import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_package_report.dart';
 import 'package:open_cine_prod_tools/models/ocpt_workspace_export_entry.dart';
 import 'package:open_cine_prod_tools/models/ocpt_workspace_export_pick.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_responsive.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_text_search.dart';
 import 'package:open_cine_prod_tools/types/ocpt_editor_export_document.dart';
 import 'package:open_cine_prod_tools/types/ocpt_editor_mode.dart';
 import 'package:open_cine_prod_tools/types/ocpt_editor_right_dock_tab.dart';
@@ -53,14 +55,12 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_s
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_status_bar.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/workspace_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/workspace_event.dart';
-import 'package:open_cine_prod_tools/ui/utils/ocpt_project_package_missing_files_confirm.dart';
-import 'package:open_cine_prod_tools/ui/utils/ocpt_project_package_notice_message.dart';
-import 'package:open_cine_prod_tools/ui/utils/ocpt_project_version_notice_message.dart';
-import 'package:open_cine_prod_tools/ui/utils/ocpt_shortcut_labels.dart';
-import 'package:open_cine_prod_tools/ui/utils/ocpt_workspace_episode_export_tag.dart';
+import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_project_package_missing_files_confirm.dart';
+import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_project_package_notice_message.dart';
+import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_project_version_notice_message.dart';
+import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_shortcut_labels.dart';
+import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_workspace_episode_export_tag.dart';
 import 'package:open_cine_prod_tools/ui/widgets/ocpt_confirm_dialog.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_responsive.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_text_search.dart';
 
 /// The screenplay editor: either the styled block editor or the raw Fountain source in the center
 /// (depending on the persisted `OcptEditorMode`, forced to the styled editor on a phone — see

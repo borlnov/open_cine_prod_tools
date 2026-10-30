@@ -8,15 +8,15 @@ import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_poste.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_resource.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_budget_alerts.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_budget_financing.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_budget_journal.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_budget_totals.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_resource_group_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_tax_basis.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_empty_mode.dart';
-import 'package:open_cine_prod_tools/ui/utils/ocpt_budget_labels.dart';
-import 'package:open_cine_prod_tools/ui/utils/ocpt_warning_color.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_budget_alerts.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_budget_financing.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_budget_journal.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_budget_totals.dart';
+import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_budget_labels.dart';
+import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_warning_color.dart';
 
 /// The height of the balance bar, in logical pixels.
 const double _ocptDashboardBarHeight = 6;
@@ -66,9 +66,9 @@ class OcptBudgetDashboard extends StatelessWidget {
   final Map<String, OcptBudgetCoveredTotal> paidByPosteId;
 
   /// The total of every debit that names no poste at all — spending outside the quote
-  /// (`ocptBudgetOffQuotePaidTotalOf`, `lib/utils/ocpt_budget_journal.dart`), folded into the
-  /// `Dépensé` tile alongside [paidByPosteId] so that figure agrees with the cash journal: what has
-  /// actually gone out, off-quote spending included, rather than only what priced a poste.
+  /// (`ocptBudgetOffQuotePaidTotalOf`, `lib/models/rules/ocpt_budget_journal.dart`), folded into
+  /// the `Dépensé` tile alongside [paidByPosteId] so that figure agrees with the cash journal: what
+  /// has actually gone out, off-quote spending included, rather than only what priced a poste.
   final OcptBudgetCoveredTotal offQuotePaidTotal;
 
   /// What is committed against each poste, keyed by its own id — the `Solde en banque` tile's own

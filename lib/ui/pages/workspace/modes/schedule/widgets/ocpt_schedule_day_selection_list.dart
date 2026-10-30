@@ -7,7 +7,7 @@ import 'package:intl/intl.dart';
 import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day.dart';
-import 'package:open_cine_prod_tools/ui/utils/ocpt_schedule_labels.dart';
+import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_schedule_labels.dart';
 
 /// The tallest the day list is ever drawn before it starts scrolling, in logical pixels — a
 /// forty-day shoot still has to fit inside one dialog.

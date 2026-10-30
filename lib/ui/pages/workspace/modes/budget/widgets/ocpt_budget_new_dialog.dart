@@ -32,6 +32,13 @@ import 'package:open_cine_prod_tools/models/ocpt_budget_share.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_share_form_fields.dart';
 import 'package:open_cine_prod_tools/models/ocpt_element.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_budget_financing.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_budget_match.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_budget_reimbursements.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_budget_totals.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_budget_vat.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_cost_amount.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_responsive.dart';
 import 'package:open_cine_prod_tools/types/ocpt_asset_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_commitment_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_entry_nature.dart';
@@ -48,14 +55,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocp
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_share_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_asset_file_line.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_person_sheet_date_field.dart';
-import 'package:open_cine_prod_tools/ui/utils/ocpt_budget_labels.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_budget_financing.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_budget_match.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_budget_reimbursements.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_budget_totals.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_budget_vat.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_cost_amount.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_responsive.dart';
+import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_budget_labels.dart';
 
 /// The dialog's own fixed width, in logical pixels, above [ocptCompactWidthBreakpoint] — wide
 /// enough for the widest step (the breakdown selector's own table) without wrapping. Below the

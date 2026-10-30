@@ -8,7 +8,7 @@ import 'package:excel_community/excel_community.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_export_file_name.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_cash_journal_xlsx_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_snapshot.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_budget_journal.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_budget_journal.dart';
 
 /// Renders the cash journal into the bytes of an XLSX workbook.
 ///

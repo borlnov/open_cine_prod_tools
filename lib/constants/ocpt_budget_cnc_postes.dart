@@ -29,7 +29,7 @@ class OcptBudgetCncPoste {
   ///
   /// A plain [String] rather than a `Tr` lookup: `lib/constants/` must stay free of `Tr`. The ARB
   /// entries and the call site that resolves this key into the seed `OcptBudgetQuoteService.seed`
-  /// takes are the budget mode's own (`lib/ui/utils/ocpt_budget_labels.dart`).
+  /// takes are the budget mode's own (`lib/ui/widgets/helpers/ocpt_budget_labels.dart`).
   final String labelKey;
 
   /// The name of the ARB key this poste's simplified-header label is localised under —

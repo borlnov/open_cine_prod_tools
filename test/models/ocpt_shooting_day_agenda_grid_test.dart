@@ -4,7 +4,7 @@
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day_agenda_grid.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_shooting_day_timeline.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_shooting_day_timeline.dart';
 
 /// Builds an [OcptShootingSlotTimeline] test double directly, without going through
 /// [ocptComputeSlotTimeline]: these tests are about [OcptShootingDayAgendaGrid.of]'s own reading of

@@ -52,14 +52,14 @@ seven documents a production runs on.
   to a unit, and taking part in **no chain** (a block kind for it would let it push a shot back).
   Every minute in this mode is an **offset from the day's own midnight and may exceed 1440**: a
   night slot running 19:00 → 03:00 stores 1140 → 1620, nothing is ever taken modulo anything, and
-  `ocptFormatDayMinute` (`lib/utils/ocpt_day_minute.dart`) is the single formatter that reads one as
-  a clock face. Getting this wrong only shows up on the one night shoot of a production.
+  `ocptFormatDayMinute` (`lib/models/rules/ocpt_day_minute.dart`) is the single formatter that reads
+  one as a clock face. Getting this wrong only shows up on the one night shoot of a production.
   A timetable is `shooting_day_blocks`, and **every block belongs to exactly one slot**: a day is a
   set of **parallel chains**, one per slot, not one chain shared by all of them. **How a chain
   becomes clock times is stated once and implemented once**, in `ocptComputeSlotTimeline`
-  (`lib/utils/ocpt_shooting_day_timeline.dart`, ADR 0015): durations chaining from that slot's own
-  resolved start, a block with an `anchorMinute` starting exactly there, and an anchor the chain has
-  already run past reported as an `OcptTimelineOverrun` rather than silently pushed.
+  (`lib/models/rules/ocpt_shooting_day_timeline.dart`, ADR 0015): durations chaining from that
+  slot's own resolved start, a block with an `anchorMinute` starting exactly there, and an anchor
+  the chain has already run past reported as an `OcptTimelineOverrun` rather than silently pushed.
   `ocptComputeShootingDayTimelines` **resolves the anchors** before that loop runs, around it rather
   than inside it: slots are resolved in **dependency order**, an `end`-anchored one starts at
   `end − Σ durations` and then chains forward unchanged (so adding a block pulls its start earlier
@@ -101,14 +101,14 @@ seven documents a production runs on.
   out**, no cascade written for it, the treatment `shooting_slot_cast` already gets for a role deleted
   under it; the link carries no `personId`, so it joins no erasure implementation.
   **A convocation is the slot you are linked to** (`ocptComputeDayConvocations`,
-  `lib/utils/ocpt_shooting_convocations.dart`, ADR 0018): nobody types a call time, and **nothing is
-  offset from anything**. A person is convoked by being **linked to a slot** — by person, by role or
-  by either half of a guest row, all three kinds counting — and every figure about them is read off
-  the slots they are linked to and the blocks in them, joined across the **whole day**: their
-  **arrival** is the earliest start over those slots, their **band** runs from the earliest
-  shooting block to the latest — the earliest *filming* block to the latest when there is one, see
-  below — and their **departure** is the latest slot end. A production that wants somebody there
-  at 06:00 for make-up creates a 06:00 slot and links them to it — its label (`HMC`,
+  `lib/models/rules/ocpt_shooting_convocations.dart`, ADR 0018): nobody types a call time, and
+  **nothing is offset from anything**. A person is convoked by being **linked to a slot** — by
+  person, by role or by either half of a guest row, all three kinds counting — and every figure
+  about them is read off the slots they are linked to and the blocks in them, joined across the
+  **whole day**: their **arrival** is the earliest start over those slots, their **band** runs from
+  the earliest shooting block to the latest — the earliest *filming* block to the latest when there
+  is one, see below — and their **departure** is the latest slot end. A production that wants
+  somebody there at 06:00 for make-up creates a 06:00 slot and links them to it — its label (`HMC`,
   `Installation`) is what says why, its blocks are what say how long. That is the trade ADR
   0018 accepts: convoking one actor earlier costs a **slot** rather than a number typed in place,
   and the resulting file says what is actually happening, and prints.
@@ -164,7 +164,7 @@ seven documents a production runs on.
   said with a `wrap` block, which moves everybody's departure at once, and **nothing computed is
   overridable by hand**: a typed clock is a claim nothing keeps true once a block moves.
   Sunrise, sunset and the three twilights are **computed offline** from the day's first slot's
-  location (`ocptSunTimesOf`, `lib/utils/ocpt_sun_times.dart`, ADR 0016), each figure independently
+  location (`ocptSunTimesOf`, `lib/models/rules/ocpt_sun_times.dart`, ADR 0016), each figure independently
   nullable — no coordinates, or a phase that never happens at that latitude, prints nothing rather
   than a plausible wrong time. The time zone is the **device's own** for that date, which the day
   inspector says rather than hides.
@@ -222,10 +222,10 @@ seven documents a production runs on.
   every slot they sit on, and cannot honestly be read from one slot's card in isolation. The times
   live in the `Convocations` dock tab instead.
   **A crew row's position is pre-filled from the address book, and the picker is the same join read
-  the other way** (`ocptCrewPositionPrefillOf`, `lib/utils/ocpt_crew_position_prefill.dart`, pure and
-  tested): a position's identity is the pair (`positionId`, `customLabel`) both tables already model
-  one with, and the function answers, out of a person's declared `person_positions` and what they
-  already hold **on that slot**, which position to pre-fill and which to promote.
+  the other way** (`ocptCrewPositionPrefillOf`, `lib/models/rules/ocpt_crew_position_prefill.dart`,
+  pure and tested): a position's identity is the pair (`positionId`, `customLabel`) both tables
+  already model one with, and the function answers, out of a person's declared `person_positions`
+  and what they already hold **on that slot**, which position to pre-fill and which to promote.
   `addSlotCrewMember` lands a fresh row on their first declared position not already taken there —
   so convoking the same person twice lands on their second, then their third — and only ever fills a
   blank, a caller passing a position keeping it. The row's own picker shows those declared positions
@@ -289,7 +289,7 @@ seven documents a production runs on.
   on purpose: a cell there answers "when does this day shoot", not "when is the call".
   The agenda's own **`Colour by`** control tints its three presentations by **location** or by
   **effect**, INT/EXT crossed with day/night read off the headings of the shots placed on that day
-  through `ocptSceneEffectOf` (`lib/utils/ocpt_scene_effect.dart`, pure and shared with the call
+  through `ocptSceneEffectOf` (`lib/models/rules/ocpt_scene_effect.dart`, pure and shared with the call
   sheet's own `EFFET` column, so a printed sheet and the agenda cannot disagree about what a heading
   says). It classifies `DAY`/`NIGHT`/`JOUR`/`NUIT` and **nothing else** — widening that set is a
   decision about a language, not a bug fix — and a day mixing two effects reads as an explicit
@@ -349,7 +349,7 @@ seven documents a production runs on.
 
 ## The alerts
 
-- **`lib/utils/ocpt_schedule_alerts.dart`** (pure, no Flutter, no drift,
+- **`lib/models/rules/ocpt_schedule_alerts.dart`** (pure, no Flutter, no drift,
   no `Tr`) is what the mode says about a plan before the plan breaks: a sealed `OcptScheduleAlert`
   per kind, each carrying **ids and figures alone** — resolving a name and writing the sentence is
   the panel's job — and a severity that is a property of the *kind* rather than of an occurrence.
@@ -550,10 +550,10 @@ seven documents a production runs on.
   role and one column per printed day, landscape and chunked over its own twelve-column budget
   rather than the shooting plan's six (a cell here holds two letters where one there holds a set
   name, so tying the two together would let one document's legibility decide the other's). Every
-  code comes from **`ocptComputeDayOutOfDays`** (`lib/utils/ocpt_day_out_of_days.dart`, pure): a
-  role's `SW` on its first convoked day of the range, `W` between, `WF` on its last, `H` on a day
-  **inside** that span it is not convoked on, and **nothing at all** outside it — a day before a
-  part joins the shoot is not a missing value but a day the document deliberately says nothing
+  code comes from **`ocptComputeDayOutOfDays`** (`lib/models/rules/ocpt_day_out_of_days.dart`,
+  pure): a role's `SW` on its first convoked day of the range, `W` between, `WF` on its last, `H` on
+  a day **inside** that span it is not convoked on, and **nothing at all** outside it — a day before
+  a part joins the shoot is not a missing value but a day the document deliberately says nothing
   about, which is why that cell prints truly empty rather than `ocptScheduleEmptyValue`. The one
   cell where a span's two ends meet is `SWF`: printing a bare `SW` on a role convoked on a single
   day would say it starts and never finishes. **`T` (travel) and `R` (rehearsal) are not printed**,
@@ -640,20 +640,20 @@ seven documents a production runs on.
   regularly reissued the afternoon of the day it first went out, and two sheets stamped with the
   date alone cannot be told apart in the hand of somebody holding both) and deliberately **not**
   locale-formatted, that stamp being read as an identifier rather than as a sentence. How a shot's
-  `<sceneNumber>/<rank>` display code splits lives in `lib/utils/ocpt_shot_code.dart` rather than
-  here, a `lib/models/` file that needs it being unable to import the manager layer: `lib/utils/` is
-  where a pure rule both layers read belongs. Every service takes a nullable `exportDate` defaulting
-  to `DateTime.now()`, resolved **once per document**, and `OcptExportManager` resolves it once per
-  **run** for the exports that write a folder of files, a batch that read the clock per file reading
-  as several issues of one day's paperwork. **Every page of every one of these documents says what
-  it is**: the running head goes through `pw.MultiPage`'s own `header:` rather than a body child (a
-  `build:` child is drawn once per flow, not once per page) and every table that can flow marks its
-  header row `repeat: true`, so a day agenda torn out of the plan, or a grid's second page pinned on
-  a wall, still names its issue and its columns. An elements-grid **category band** is the one
-  exception, deliberately not repeated — `repeat` redraws every marked row on every page, so several
-  bands would stack into a heading that lies, and an element row already names itself. **Every hour
-  on every page is the resolved one** and every convocation figure comes from
-  `ocptComputeDayConvocations`; nothing is re-derived and nothing is invented. **No document gains
-  an episode column**: the six read their sequence numbers off `OcptSchedulePlanSnapshot` and so
-  print `2.12` for free, and a column would say the same thing twice while costing width on grids
-  already chunked for want of it.
+  `<sceneNumber>/<rank>` display code splits lives in `lib/models/rules/ocpt_shot_code.dart` rather
+  than here, a `lib/models/` file that needs it being unable to import the manager layer:
+  `lib/models/rules/` is where a pure rule both layers read belongs. Every service takes a nullable
+  `exportDate` defaulting to `DateTime.now()`, resolved **once per document**, and
+  `OcptExportManager` resolves it once per **run** for the exports that write a folder of files, a
+  batch that read the clock per file reading as several issues of one day's paperwork. **Every page
+  of every one of these documents says what it is**: the running head goes through `pw.MultiPage`'s
+  own `header:` rather than a body child (a `build:` child is drawn once per flow, not once per
+  page) and every table that can flow marks its header row `repeat: true`, so a day agenda torn out
+  of the plan, or a grid's second page pinned on a wall, still names its issue and its columns. An
+  elements-grid **category band** is the one exception, deliberately not repeated — `repeat` redraws
+  every marked row on every page, so several bands would stack into a heading that lies, and an
+  element row already names itself. **Every hour on every page is the resolved one** and every
+  convocation figure comes from `ocptComputeDayConvocations`; nothing is re-derived and nothing is
+  invented. **No document gains an episode column**: the six read their sequence numbers off
+  `OcptSchedulePlanSnapshot` and so print `2.12` for free, and a column would say the same thing
+  twice while costing width on grids already chunked for want of it.

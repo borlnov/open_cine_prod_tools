@@ -10,9 +10,9 @@ import 'package:equatable/equatable.dart';
 /// `BuildContext` and therefore no `Tr`: the same reason `OcptDayOutOfDaysLabels` and its own
 /// siblings already exist for every export before it.
 ///
-/// This report prints the very same readings `lib/utils/ocpt_budget_totals.dart` already computes
-/// for the cost-tracking table (`Quoted`/`Paid`/`Committed`/`Remaining`/`Variance`), then the
-/// financing plan's own total and `ocptBudgetNeedsResourcesBalanceOf`'s own verdict — so
+/// This report prints the very same readings `lib/models/rules/ocpt_budget_totals.dart` already
+/// computes for the cost-tracking table (`Quoted`/`Paid`/`Committed`/`Remaining`/`Variance`), then
+/// the financing plan's own total and `ocptBudgetNeedsResourcesBalanceOf`'s own verdict — so
 /// [balanceNoQuoteMessage], [balanceBalancedMessage] and [balanceShortfallMessageTemplate] mirror
 /// the very three-way verdict `ocptBudgetExportBalanceVerdict` prints, and
 /// [coverageReadOutTemplate] mirrors `tr.budgetCostTrackingCoverageReadOut`, both read through

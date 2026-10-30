@@ -9,10 +9,10 @@ import 'package:open_cine_prod_tools/managers/projects/services/ocpt_role_candid
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_row_stamp_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_fractional_key.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_role_origin.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_row_stamp_key.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_fractional_key.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_role_origin.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_row_stamp_key.dart';
 import 'package:uuid/uuid.dart';
 
 /// Reconciles the `roles` table of the project against each episode's **whole screenplay cast** —
@@ -40,8 +40,8 @@ import 'package:uuid/uuid.dart';
 /// and a statistic must never disagree about whether two cues are the same person.
 ///
 /// A live, `isFromScreenplay` role's two origins — cued, or only ever read out of the action — are
-/// told apart by [ocptRoleIsActionDetected] (`lib/utils/`) over its own `isFromScreenplay` and
-/// `kind` rather than by a column of their own: see that function's doc comment for why "not
+/// told apart by [ocptRoleIsActionDetected] (`lib/models/rules/`) over its own `isFromScreenplay`
+/// and `kind` rather than by a column of their own: see that function's doc comment for why "not
 /// `speaking`" and not "`silent`" is the right test.
 ///
 /// {@macro open_cine_prod_tools.tombstones}

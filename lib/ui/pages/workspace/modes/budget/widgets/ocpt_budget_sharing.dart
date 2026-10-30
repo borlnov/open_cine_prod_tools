@@ -7,8 +7,8 @@ import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_share.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
-import 'package:open_cine_prod_tools/ui/utils/ocpt_budget_labels.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_budget_shares.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_budget_shares.dart';
+import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_budget_labels.dart';
 
 /// The width, in logical pixels, under which the two columns stack instead of sitting side by
 /// side — mirrors `OcptBudgetRegie`'s own `_ocptRegieWrapWidth`.
@@ -77,13 +77,14 @@ class OcptBudgetSharing extends StatelessWidget {
   final List<OcptBudgetShare> shares;
 
   /// What there is to share, and what stands between the takings and it — still summed from the
-  /// takings, by `lib/utils/ocpt_budget_shares.dart`, even though this view no longer draws them.
+  /// takings, by `lib/models/rules/ocpt_budget_shares.dart`, even though this view no longer draws
+  /// them.
   final OcptBudgetSharingPot sharingPot;
 
   /// `resources`' own reimbursable ones, grouped by lender — `ocptBudgetRepaymentLinesOf`
-  /// (`lib/utils/ocpt_budget_shares.dart`). The `Repaying the contributions` card's own detail: who
-  /// is owed what, one line per lender, rather than only [sharingPot]'s own three aggregate
-  /// figures.
+  /// (`lib/models/rules/ocpt_budget_shares.dart`). The `Repaying the contributions` card's own
+  /// detail: who is owed what, one line per lender, rather than only [sharingPot]'s own three
+  /// aggregate figures.
   final List<OcptBudgetRepaymentLine> repaymentLines;
 
   /// Called with a contributor's own line when `Record a repayment` is clicked, or null
@@ -450,11 +451,11 @@ class _OcptSharingRepaymentHeaderRow extends StatelessWidget {
 }
 
 /// One lender's own line in the `Repaying the contributions` card — `ocptBudgetRepaymentLinesOf`'s
-/// own reading (`lib/utils/ocpt_budget_shares.dart`): who they are, what they contributed in total,
-/// what has already gone back to them and what is still owed, the last one printed in the error
-/// colour while positive — this is precisely the detail the product owner asked for: three loans of
-/// 100 € from the same person read as one line owed 300 €, not three figures buried in the plan's
-/// own aggregate.
+/// own reading (`lib/models/rules/ocpt_budget_shares.dart`): who they are, what they contributed in
+/// total, what has already gone back to them and what is still owed, the last one printed in the
+/// error colour while positive — this is precisely the detail the product owner asked for: three
+/// loans of 100 € from the same person read as one line owed 300 €, not three figures buried in the
+/// plan's own aggregate.
 class _OcptSharingRepaymentLenderRow extends StatelessWidget {
   /// The line this row draws.
   final OcptBudgetRepaymentLine line;

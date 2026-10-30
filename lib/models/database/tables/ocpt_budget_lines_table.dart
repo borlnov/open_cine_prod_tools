@@ -10,8 +10,8 @@ import 'package:open_cine_prod_tools/models/database/tables/ocpt_elements_table.
 /// One quoted line of the budget: a quantity of something, at a unit price, inside a poste.
 ///
 /// **The money is three columns, never reconstructed** — ADR 0025 is the
-/// argument this table implements, and `lib/utils/ocpt_budget_vat.dart` is the only place in the
-/// repository allowed to convert between the two tax bases:
+/// argument this table implements, and `lib/models/rules/ocpt_budget_vat.dart` is the only place in
+/// the repository allowed to convert between the two tax bases:
 ///
 /// - [unitAmountCents] is the figure exactly as typed, in cents. A conversion between tax bases is
 ///   computed for display and never written back, so somebody who types the 12.50 € printed on a
@@ -27,8 +27,9 @@ import 'package:open_cine_prod_tools/models/database/tables/ocpt_elements_table.
 ///   one.
 ///
 /// [quantityMilli] is an integer in **thousandths**, for the reason cents are cents: 1.5 day is
-/// 1500, 1,484 km is 1484000, and a total computed from it (`lib/utils/ocpt_budget_totals.dart`) is
-/// exact rather than accumulating a rounding a floating-point quantity would.
+/// 1500, 1,484 km is 1484000, and a total computed from it
+/// (`lib/models/rules/ocpt_budget_totals.dart`) is exact rather than accumulating a rounding a
+/// floating-point quantity would.
 @DataClassName('OcptBudgetLineRow')
 class OcptBudgetLinesTable extends Table {
   /// {@macro open_cine_prod_tools.OcptBudgetLinesTable}

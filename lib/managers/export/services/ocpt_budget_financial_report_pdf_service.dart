@@ -11,9 +11,9 @@ import 'package:open_cine_prod_tools/models/ocpt_budget_financial_report_labels.
 import 'package:open_cine_prod_tools/models/ocpt_budget_poste.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_budget_financing.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_budget_totals.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_tax_basis.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_budget_financing.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_budget_totals.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 
@@ -62,8 +62,8 @@ const Map<int, pw.TableColumnWidth> _columnWidths = {
 /// builders; it still takes one painter, for the page geometry and the Courier Prime variants every
 /// export of this app shares.
 ///
-/// **Every reading is the very one `lib/utils/ocpt_budget_totals.dart` already computes for the
-/// cost-tracking table** — `Quoted` (`ocptBudgetPosteQuotedTotalCents`), `Paid`
+/// **Every reading is the very one `lib/models/rules/ocpt_budget_totals.dart` already computes for
+/// the cost-tracking table** — `Quoted` (`ocptBudgetPosteQuotedTotalCents`), `Paid`
 /// (`snapshot.paidCentsOf`), `Committed` (`snapshot.committedCentsOf`), `Remaining`
 /// (`ocptBudgetRemainingCents`) and `Variance` (`ocptBudgetVarianceCents`) — printed rather than
 /// recomputed a second way. `Paid` and `Committed` are always tax-inclusive, exactly as the journal
@@ -262,7 +262,7 @@ class OcptBudgetFinancialReportPdfService {
 
   /// One poste's own row: its label, its quoted total (tax-inclusive), what has been paid and
   /// committed against it, and the remaining and variance readings — every one of them
-  /// `lib/utils/ocpt_budget_totals.dart`'s own figure.
+  /// `lib/models/rules/ocpt_budget_totals.dart`'s own figure.
   pw.TableRow _posteRow({
     required OcptScriptPagePainter painter,
     required OcptBudgetPoste poste,

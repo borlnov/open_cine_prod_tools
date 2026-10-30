@@ -15,7 +15,7 @@ import 'package:open_cine_prod_tools/models/database/tables/ocpt_people_table.da
 /// or one person holding two functions over the same slot (script supervisor *and* general
 /// assistant). A single free-text scope on this row could say neither. The schedule mode reads
 /// these rows to pre-fill the position of a fresh crew convocation
-/// (`lib/utils/ocpt_crew_position_prefill.dart`) — a join, not a rule: nothing keeps the two
+/// (`lib/models/rules/ocpt_crew_position_prefill.dart`) — a join, not a rule: nothing keeps the two
 /// tables in step afterward.
 @DataClassName('OcptPersonPositionRow')
 class OcptPersonPositionsTable extends Table {

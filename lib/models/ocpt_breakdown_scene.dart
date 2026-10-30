@@ -5,8 +5,8 @@
 import 'package:equatable/equatable.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/ocpt_breakdown_tag.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_scene_display_number.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_scene_status.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_scene_display_number.dart';
 
 /// A screenplay scene as the breakdown mode sees it: its own identity, how far the pass has got on
 /// it, and the tags read from it.

@@ -14,6 +14,12 @@ import 'package:open_cine_prod_tools/models/ocpt_budget_line.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_poste.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_resource.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_revenue.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_budget_financing.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_budget_journal.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_budget_projection.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_budget_totals.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_budget_vat.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_cost_amount.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_resource_family.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_resource_group_kind.dart';
@@ -21,13 +27,7 @@ import 'package:open_cine_prod_tools/types/ocpt_budget_selection.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_tax_basis.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_binary_choice.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_empty_mode.dart';
-import 'package:open_cine_prod_tools/ui/utils/ocpt_budget_labels.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_budget_financing.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_budget_journal.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_budget_projection.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_budget_totals.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_budget_vat.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_cost_amount.dart';
+import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_budget_labels.dart';
 
 /// The poste's own proportion bar's own height, in logical pixels — matches
 /// `OcptBudgetFinancing`'s own two-tone coverage bar.

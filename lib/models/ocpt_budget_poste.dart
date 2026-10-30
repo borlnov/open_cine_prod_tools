@@ -10,10 +10,10 @@ import 'package:open_cine_prod_tools/models/ocpt_budget_line.dart';
 /// holds.
 ///
 /// **No `quotedAmount` field**: a poste's quoted amount is the sum of [lines], computed by
-/// `lib/utils/ocpt_budget_totals.dart`, and is never stored — see `OcptBudgetPostesTable`'s own doc
-/// comment. [estimateToCompleteCents] is not a counter-example, for the same reason argued there:
-/// it is a human's judgement about the future, derivable from nothing [lines] holds, and its null
-/// means "nobody has judged", not zero.
+/// `lib/models/rules/ocpt_budget_totals.dart`, and is never stored — see `OcptBudgetPostesTable`'s
+/// own doc comment. [estimateToCompleteCents] is not a counter-example, for the same reason argued
+/// there: it is a human's judgement about the future, derivable from nothing [lines] holds, and its
+/// null means "nobody has judged", not zero.
 class OcptBudgetPoste extends Equatable {
   /// The stable, unique id of this poste (a UUID).
   final String id;
@@ -38,7 +38,7 @@ class OcptBudgetPoste extends Equatable {
   /// What is still expected to be spent on this poste beyond what has already been paid and
   /// committed against it, in cents, typed by a human — or null, meaning "derive it". See
   /// `OcptBudgetPostesTable.estimateToCompleteCents`'s own doc comment for why null is not zero,
-  /// and `ocptBudgetEstimateToCompleteCents` (`lib/utils/ocpt_budget_totals.dart`) for the
+  /// and `ocptBudgetEstimateToCompleteCents` (`lib/models/rules/ocpt_budget_totals.dart`) for the
   /// derivation.
   final int? estimateToCompleteCents;
 

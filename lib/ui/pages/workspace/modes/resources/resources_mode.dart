@@ -19,6 +19,10 @@ import 'package:open_cine_prod_tools/models/ocpt_role.dart';
 import 'package:open_cine_prod_tools/models/ocpt_workspace_export_entry.dart';
 import 'package:open_cine_prod_tools/models/ocpt_workspace_export_pick.dart';
 import 'package:open_cine_prod_tools/models/ocpt_workspace_reveal_request.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_cost_amount.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_max_daily_presence.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_role_origin.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_scene_set_suggestion.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_location_availability_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_location_editable_field.dart';
@@ -54,16 +58,12 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_r
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_shell.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/workspace_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/workspace_event.dart';
-import 'package:open_cine_prod_tools/ui/utils/ocpt_budget_labels.dart';
-import 'package:open_cine_prod_tools/ui/utils/ocpt_project_package_missing_files_confirm.dart';
-import 'package:open_cine_prod_tools/ui/utils/ocpt_project_package_notice_message.dart';
-import 'package:open_cine_prod_tools/ui/utils/ocpt_project_version_notice_message.dart';
-import 'package:open_cine_prod_tools/ui/utils/ocpt_resources_labels.dart';
+import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_budget_labels.dart';
+import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_project_package_missing_files_confirm.dart';
+import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_project_package_notice_message.dart';
+import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_project_version_notice_message.dart';
+import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_resources_labels.dart';
 import 'package:open_cine_prod_tools/ui/widgets/ocpt_confirm_dialog.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_cost_amount.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_max_daily_presence.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_role_origin.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_scene_set_suggestion.dart';
 
 /// The resources production mode: the four-tab list (people, roles, locations, elements) on the
 /// left, the selected item's editable sheet in the centre, and the shared `Versions` dock tab on

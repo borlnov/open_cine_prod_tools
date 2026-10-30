@@ -11,7 +11,7 @@ import 'package:open_cine_prod_tools/models/sync/ocpt_presence_frame.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_presence_roster.dart';
 import 'package:open_cine_prod_tools/types/ocpt_workspace_mode.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_mode_switcher.dart';
-import 'package:open_cine_prod_tools/ui/utils/ocpt_presence_color.dart';
+import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_presence_color.dart';
 
 /// The diameter of one avatar disc, in the cluster and in the popover alike.
 const double _clusterAvatarSize = 22;

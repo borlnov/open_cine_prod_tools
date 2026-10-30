@@ -6,7 +6,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
-import 'package:open_cine_prod_tools/ui/utils/ocpt_relative_time.dart';
+import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_relative_time.dart';
 
 /// The screenplay status bar's self-refreshing "saved x ago" segment: keeps the last-saved
 /// relative time current by re-rendering every 30 s, without the surrounding status bar itself

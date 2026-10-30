@@ -12,9 +12,9 @@
 ///
 /// Every case maps onto one `OcptShotListService.updateShot` argument of the same name, except
 /// [estimatedDuration], which is parsed from its typed text through `ocptParseShotDuration`
-/// (`lib/ui/utils/ocpt_shot_list_labels.dart`) into `estimatedDurationMs` rather than being stored
-/// verbatim. It being unparseable rejects the edit (the shot list bloc leaves the stored value
-/// untouched) rather than writing anything.
+/// (`lib/ui/widgets/helpers/ocpt_shot_list_labels.dart`) into `estimatedDurationMs` rather than
+/// being stored verbatim. It being unparseable rejects the edit (the shot list bloc leaves the
+/// stored value untouched) rather than writing anything.
 enum OcptShotListEditableField {
   /// Maps to `updateShot`'s `shotSize`.
   shotSize,

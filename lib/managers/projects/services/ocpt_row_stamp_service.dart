@@ -4,8 +4,8 @@
 
 import 'package:drift/drift.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_row_stamp_diff.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_row_stamp_version.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_row_stamp_diff.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_row_stamp_version.dart';
 
 /// Resolves the device id a domain service's own writes stamp with, once per write rather than
 /// baked in at construction: `OcptPropertiesManager.loadOrCreateDeviceId` is the only
@@ -24,8 +24,8 @@ typedef OcptDeviceIdGetter = Future<String> Function();
 /// the second: both need the very same three things, "what changed", "what version does that
 /// change carry" and "batch the stamps rather than writing one row at a time", so this is where
 /// they live once. Everything in [ocptChangedColumnNames] and [ocptNextRowStampVersion] — the pure
-/// halves of the same rule — is deliberately kept out of this class, in `lib/utils/`, so they can
-/// be tested with no database at all.
+/// halves of the same rule — is deliberately kept out of this class, in `lib/models/rules/`, so
+/// they can be tested with no database at all.
 ///
 /// `version` is a **device-local Lamport clock**, one per instance rather than one per stamped
 /// column: [seed] reads the highest version this device has ever recorded anywhere in

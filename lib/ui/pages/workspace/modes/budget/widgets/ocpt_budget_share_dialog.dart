@@ -9,7 +9,7 @@ import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_share.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_share_form_fields.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_percent_permille.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_percent_permille.dart';
 
 /// The dialog that both **creates and edits** a revenue sharing share — one shape for both,
 /// mirroring `OcptBudgetResourceDialog`'s own structure exactly: a [Form], an `AlertDialog` with
@@ -109,9 +109,10 @@ class _OcptBudgetShareDialogState extends State<OcptBudgetShareDialog> {
 /// naming no one person, so null is the ordinary, legitimate answer here, not an unfinished pick.
 ///
 /// **`Share` and `Reinvest` are typed as percentages and stored as per mille**, through
-/// [ocptPercentPermilleOf]/[ocptPermillePercentTextOf] (`lib/utils/ocpt_percent_permille.dart`) —
-/// see that file's own doc comment for why neither `ocptCostCentsOf` nor
-/// `ocptVatRateBasisPointsOf`/`ocptMileageRateMilliCentsOf` fit this one scale.
+/// [ocptPercentPermilleOf]/[ocptPermillePercentTextOf]
+/// (`lib/models/rules/ocpt_percent_permille.dart`) — see that file's own doc comment for why
+/// neither `ocptCostCentsOf` nor `ocptVatRateBasisPointsOf`/`ocptMileageRateMilliCentsOf` fit this
+/// one scale.
 ///
 /// **The sum of every live share's own `Share` is never checked here.** `OcptBudgetSharesTable`'s
 /// own doc comment and `OcptBudgetSharing`'s own class doc comment both argue why the app states

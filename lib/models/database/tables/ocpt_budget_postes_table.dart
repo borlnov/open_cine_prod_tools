@@ -9,9 +9,9 @@ import 'package:drift/drift.dart';
 /// extended like any other record — the nomenclature is seeded, never frozen.
 ///
 /// **This table carries no quoted amount.** A poste's total is the sum of its
-/// `OcptBudgetLinesTable` rows, computed by `lib/utils/ocpt_budget_totals.dart`, never stored here:
-/// a `quotedAmount` column would be a second copy of one truth, and the "frozen quote" the mockup
-/// shows is already what a project version freezes.
+/// `OcptBudgetLinesTable` rows, computed by `lib/models/rules/ocpt_budget_totals.dart`, never
+/// stored here: a `quotedAmount` column would be a second copy of one truth, and the "frozen quote"
+/// the mockup shows is already what a project version freezes.
 ///
 /// [estimateToCompleteCents] is not a counter-example: the quote is *derivable* from the lines it
 /// sums, so storing it would duplicate a truth the lines already state, but what is still expected
@@ -61,7 +61,7 @@ class OcptBudgetPostesTable extends Table {
   /// What is still expected to be spent on this poste beyond what has already been paid and
   /// committed against it, in cents, or null.
   ///
-  /// **Null means "derive it", not "zero"**: `lib/utils/ocpt_budget_totals.dart`'s
+  /// **Null means "derive it", not "zero"**: `lib/models/rules/ocpt_budget_totals.dart`'s
   /// `ocptBudgetEstimateToCompleteCents` reads a null here as "nobody has judged this yet" and
   /// answers `max(0, quote − paid − committed)` in its place — the same reading a nullable override
   /// carries elsewhere in this schema ([simpleLabel] above, or

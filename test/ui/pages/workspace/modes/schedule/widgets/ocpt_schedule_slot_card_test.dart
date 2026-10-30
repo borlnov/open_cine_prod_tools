@@ -20,6 +20,8 @@ import 'package:open_cine_prod_tools/models/ocpt_shooting_slot_crew_member.dart'
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot_guest.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_crew_position_prefill.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_shooting_day_timeline.dart';
 import 'package:open_cine_prod_tools/types/ocpt_image_rights_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_candidate_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
@@ -27,10 +29,8 @@ import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_slot_anchor_edge.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_minute_field.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_slot_card.dart';
-import 'package:open_cine_prod_tools/ui/utils/ocpt_resources_labels.dart';
+import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_resources_labels.dart';
 import 'package:open_cine_prod_tools/ui/widgets/ocpt_crew_position_picker_dialog.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_crew_position_prefill.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_shooting_day_timeline.dart';
 
 /// The navigator [_wrapInApp] mounts, so [_RecordingRouterManager.pop] can close a dialog opened
 /// through `showDialog` (the crew position picker) exactly as the real `GoRouter.pop` would —

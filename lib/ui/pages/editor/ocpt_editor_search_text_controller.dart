@@ -4,8 +4,8 @@
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_text_search.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/ocpt_editor_search.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_text_search.dart';
 import 'package:spell_kit/spell_kit.dart';
 
 /// The raw mode's source text controller, extended to paint the find/replace bar's highlight and

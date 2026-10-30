@@ -4,7 +4,7 @@
 
 import 'package:equatable/equatable.dart';
 import 'package:flutter/painting.dart' show Color;
-import 'package:open_cine_prod_tools/utils/ocpt_text_search.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_text_search.dart';
 
 /// The translucent accent wash painted behind every match, in both editing modes.
 ///

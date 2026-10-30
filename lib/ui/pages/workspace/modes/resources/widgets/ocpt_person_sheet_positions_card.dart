@@ -10,7 +10,7 @@ import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person_position.dart';
 import 'package:open_cine_prod_tools/types/ocpt_crew_department.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_sheet_card.dart';
-import 'package:open_cine_prod_tools/ui/utils/ocpt_resources_labels.dart';
+import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_resources_labels.dart';
 import 'package:open_cine_prod_tools/ui/widgets/ocpt_crew_position_picker_dialog.dart';
 
 /// How long a position row waits after the last keystroke in its label field before dispatching
@@ -29,7 +29,7 @@ const double _departmentColumnWidth = 132;
 ///
 /// A row says only **that** this person holds the function — **when** is the schedule mode's own
 /// answer, on its own surfaces: the schedule's slot crew picker reads these very rows to pre-fill
-/// a convocation's position (`lib/utils/ocpt_crew_position_prefill.dart`), which is the join
+/// a convocation's position (`lib/models/rules/ocpt_crew_position_prefill.dart`), which is the join
 /// between the two tables (see `OcptPersonPositionsTable`'s own doc comment). A scope field here
 /// would only be a second copy of that one truth.
 ///

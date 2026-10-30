@@ -178,9 +178,9 @@ sit.
   "saved to `<path>`" on desktop to "Shared" on mobile, each mode's `IoNotice` carrying a
   `wasShared` flag rather than assuming a path is always there to word. A `Rect? shareAnchor`,
   resolved from the tapped export control's own `RenderBox` (`ocptExportShareAnchorOf`,
-  `lib/ui/utils/`, a manager seeing no `BuildContext` of its own) and threaded through every export
-  event, is the popover source the OS share sheet needs on an iPad or a Mac; the phone toolbar's
-  folded overflow entry hands down null, having no control of its own to anchor from.
+  `lib/ui/widgets/helpers/`, a manager seeing no `BuildContext` of its own) and threaded through
+  every export event, is the popover source the OS share sheet needs on an iPad or a Mac; the phone
+  toolbar's folded overflow entry hands down null, having no control of its own to anchor from.
 
 - Scenario coverage export: the screenplay printed as usual, with a coloured bar in the margin
   alongside every passage a shot covers. `OcptScenarioCoverageLayout.of(...)`
@@ -209,8 +209,8 @@ sit.
   of its panels at a shared row height and each panel's own derived aspect ratio
   (`ocptAspectRatioOf`, `shot-list.md`), its annotations drawn over it from the very same normalised
   geometry the on-screen overlay reads (`ocptStoryboardAnnotationPointOf`,
-  `lib/utils/ocpt_storyboard_annotation_geometry.dart`, the one function both read so a mark can
-  never draw at two different places between screen and paper), its comment under it. **A panel's
+  `lib/models/rules/ocpt_storyboard_annotation_geometry.dart`, the one function both read so a mark
+  can never draw at two different places between screen and paper), its comment under it. **A panel's
   image is read at render time**, off its resolved path (`pw.MemoryImage`, JPEG and PNG) — a missing
   or undecodable file prints the placeholder frame instead, carrying the label's own `file not
   found` text, never a thrown error: the ADR 0013 state, on paper. A shot with no panel at all prints
@@ -223,10 +223,10 @@ sit.
   a set with no camera on it anywhere, its bare décor alone. Per sequence, per linked Resources set,
   one page per shot that carries a live camera on that set, each headed by the shot's own code and
   key information, and one bare page for a set that carries none. Every shape reads the same pure
-  geometry the canvas reads (`lib/utils/ocpt_floor_plan_geometry.dart`), and the scale bar and the
-  0.5 m reference silhouette print bottom-right on every page, exactly as they draw on screen. The
-  underlay prints as the real referenced image, the same render-time rule the storyboard's own panels
-  follow — a missing or undecodable file falls back to a schematic frame rather than the photo, the
-  fallback rather than the rule. Courier Prime throughout, as in every other document. Its card in
-  the export panel goes straight to the native save dialog, the page format coming from the project's
-  own page setup like the workbook cards do.
+  geometry the canvas reads (`lib/models/rules/ocpt_floor_plan_geometry.dart`), and the scale bar
+  and the 0.5 m reference silhouette print bottom-right on every page, exactly as they draw on
+  screen. The underlay prints as the real referenced image, the same render-time rule the
+  storyboard's own panels follow — a missing or undecodable file falls back to a schematic frame
+  rather than the photo, the fallback rather than the rule. Courier Prime throughout, as in every
+  other document. Its card in the export panel goes straight to the native save dialog, the page
+  format coming from the project's own page setup like the workbook cards do.

@@ -39,10 +39,10 @@ their sets, the elements catalogue, and the two documents the mode prints.
   **`OcptCrewPositionPickerDialog`** (`lib/ui/widgets/`, shared with the schedule mode) is the one
   searchable dialog every position picker of the app opens, replacing the popup menus the catalogue
   outgrew: a search field, case- and accent-insensitive and blind to the inclusive-writing dot
-  (`ocptCrewPositionSearchNormalized`, `lib/utils/`), which also matches each label's masculine and
-  feminine readings (`ocptInclusiveReadingsOf`: `directrice` finds `Directeur·rice`, from the few
-  ending patterns every label of the catalogue follows, a test holding each word to its expected
-  feminine), filters an optional `promoted` list (shown
+  (`ocptCrewPositionSearchNormalized`, `lib/models/rules/`), which also matches each label's
+  masculine and feminine readings (`ocptInclusiveReadingsOf`: `directrice` finds `Directeur·rice`,
+  from the few ending patterns every label of the catalogue follows, a test holding each word to its
+  expected feminine), filters an optional `promoted` list (shown
   first, under its own heading — the person sheet's own picker offers none, the schedule's own
   offers the crew member's declared positions) over the catalogue, grouped by department; an
   `excluded` set is left out everywhere; an optional "Custom label…" entry, reused from the person
@@ -121,7 +121,7 @@ their sets, the elements catalogue, and the two documents the mode prints.
   every irreversible action does. A candidacy is added by the shared `OcptResourcesPersonPicker` over
   the whole address book, minus the people already candidates for this role.
   The **roles tab** wears a per-row pill and its header counts `N roles · M cast`, both read off
-  `OcptRoleCastingProgress` (`lib/utils/`, pure and tested), the one place that reading is written:
+  `OcptRoleCastingProgress` (`lib/models/rules/`, pure and tested), the one place that reading is written:
   `cast` when `personId` is set — by hand or by a candidacy, no distinction being drawn — else
   `inProgress` while a lead is left, else `exhausted` when candidacies were recorded and **none** is
   still a lead, else `notStarted`. `exhausted` is its own stage rather than a count of zero because
@@ -143,7 +143,7 @@ their sets, the elements catalogue, and the two documents the mode prints.
   character cued in dialogue and one only ever named in capitals in the action alike — since the
   shot list already offers a silent character and the cast must not disagree about who is in the
   screenplay. The two origins are told apart by the same two columns rather than a column of their
-  own, `ocptRoleIsActionDetected` (`lib/utils/`, read by this service and by the role sheet alike)
+  own, `ocptRoleIsActionDetected` (`lib/models/rules/`, read by this service and by the role sheet alike)
   being the one place the rule is written:
 
   | `isFromScreenplay` | `kind` | Means |
@@ -193,9 +193,9 @@ their sets, the elements catalogue, and the two documents the mode prints.
   A scene is linked to a **set** (`scene_sets`, many-to-many — a continuous action is regularly
   covered in two) and to an **element** (`scene_elements`, the *dépouillement* link, carrying the
   quantity and the note that belong to that scene alone). `ocptSceneSetSuggestionOf`
-  (`lib/utils/`, pure and tested) reduces a heading to the place it names and *offers* the best set
-  at the top of the picker — never applied, since `INT. CUISINE` in two houses is two sets. A set's
-  **location is not one of its fields**: it is what the set belongs to, chosen when it is created
+  (`lib/models/rules/`, pure and tested) reduces a heading to the place it names and *offers* the
+  best set at the top of the picker — never applied, since `INT. CUISINE` in two houses is two sets.
+  A set's **location is not one of its fields**: it is what the set belongs to, chosen when it is created
   and changed only by moving the whole set (`OcptLocationsService.moveSetToLocation`, the sets
   card's own move control, which re-allocates the `sortKey` in the destination), so a set filed
   under the wrong house is repaired rather than deleted and retyped.
@@ -226,7 +226,7 @@ their sets, the elements catalogue, and the two documents the mode prints.
   and the four of them are answered by one `OcptConfirmDialog` opened by the mode, as in the shot
   list and the breakdown; only the wording differs, and it is the caller's. The removed-role
   banner is the one exception: it deletes straight away, being that question itself.
-  The toolbar's search toggle filters the active tab's list (`lib/utils/ocpt_resources_search.dart`,
+  The toolbar's search toggle filters the active tab's list (`lib/models/rules/ocpt_resources_search.dart`,
   diacritic-folded so `lea` finds `Léa`), each list filtering itself because matching includes the
   localized labels a row shows; the header count then reports what is on screen while the status
   bar keeps counting the whole catalogue.

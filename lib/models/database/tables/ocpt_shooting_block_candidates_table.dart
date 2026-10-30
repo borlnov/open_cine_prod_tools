@@ -14,7 +14,7 @@ import 'package:open_cine_prod_tools/models/database/tables/ocpt_shooting_day_bl
 /// are expected at twenty past ten, for twenty minutes, which is exactly what an audition block
 /// *is*. So the block is what they are linked to, and their arrival, their PAT band and their
 /// departure are read off the audition blocks naming them
-/// (`lib/utils/ocpt_shooting_convocations.dart`). It is also what makes ADR 0018's own cost
+/// (`lib/models/rules/ocpt_shooting_convocations.dart`). It is also what makes ADR 0018's own cost
 /// disappear: convoking twelve candidates at twenty-minute intervals is **one** slot carrying
 /// twelve audition blocks, not twelve slots.
 ///

@@ -19,7 +19,7 @@ class OcptCrewPosition {
   ///
   /// A plain [String] rather than a `Tr` lookup: `lib/constants/` must stay free of `Tr`, so the
   /// ARB entries themselves and the call site that resolves this key into a label belong to the
-  /// resources mode UI (`lib/ui/utils/ocpt_resources_labels.dart`).
+  /// resources mode UI (`lib/ui/widgets/helpers/ocpt_resources_labels.dart`).
   final String labelKey;
 
   /// The department this position belongs to, for grouping the catalogue in the UI.

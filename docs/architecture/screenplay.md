@@ -167,16 +167,17 @@ model, the title page, the spell-checking, the docks and the syntax guide.
   and the block type as a submenu; the clipboard entries call the very helpers the Ctrl+C/X/V
   handlers do, and the submenu the same `applyBlockType` the toolbar dropdown does, so no gesture
   can behave differently from its keyboard or toolbar twin. The list of assignable types lives once,
-  as `ocptAssignableFountainLineTypes` (`lib/ui/utils/ocpt_fountain_line_type_labels.dart`). An
-  entry with nothing to act on is **withheld, not disabled** (a null callback), which is what hides
-  Cut/Copy over a collapsed caret. The secondary tap resolves the document position under the
-  pointer and places the caret there, unless it lands inside an expanded selection, which it never
-  destroys. A left click landing back on the document closes the menu, which a `MenuAnchor` does not
-  do on its own: its anchor child — the whole editing surface here — belongs to the same `TapRegion`
-  group as the menu, so a `Listener` above the gesture detector watches for the primary button and
-  closes it, observing the click rather than competing for it. Nothing is withheld for a read-only
-  preview: the styled editor is not mounted under one
-  at all, `editor_page.dart` substituting the read-only preview for both editing modes.
+  as `ocptAssignableFountainLineTypes`
+  (`lib/ui/widgets/helpers/ocpt_fountain_line_type_labels.dart`). An entry with nothing to act on is
+  **withheld, not disabled** (a null callback), which is what hides Cut/Copy over a collapsed caret.
+  The secondary tap resolves the document position under the pointer and places the caret there,
+  unless it lands inside an expanded selection, which it never destroys. A left click landing back
+  on the document closes the menu, which a `MenuAnchor` does not do on its own: its anchor child —
+  the whole editing surface here — belongs to the same `TapRegion` group as the menu, so a
+  `Listener` above the gesture detector watches for the primary button and closes it, observing the
+  click rather than competing for it. Nothing is withheld for a read-only preview: the styled editor
+  is not mounted under one at all, `editor_page.dart` substituting the read-only preview for both
+  editing modes.
 
 - Scene numbers: a heading's `#N#` is a first-class WYSIWYG field
   (`ocptSceneNumberMetadataKey`), kept in sync with the display text by
@@ -211,7 +212,7 @@ model, the title page, the spell-checking, the docks and the syntax guide.
 - Page numbers: every simulated sheet carries the number the printed screenplay would show on it,
   painted by the same `_OcptPageSheetsPainter` that paints the sheets themselves and gated on page
   simulation (there is nothing to number on the fluid surface). The rule itself lives once, in
-  `lib/utils/ocpt_script_page_number.dart`: `N.` at the top right,
+  `lib/models/rules/ocpt_script_page_number.dart`: `N.` at the top right,
   `ocptScriptPageNumberTopInches` (0.5") below the sheet's top edge whatever the configured margin,
   the title page never counted and the first script page never numbered. `OcptScriptPagePainter`
   prints that same rule on paper — a number on screen disagreeing with the number on the PDF would
@@ -287,8 +288,8 @@ model, the title page, the spell-checking, the docks and the syntax guide.
   can therefore differ for a query holding markup, which is the rule rather than a defect. The bloc
   holds the query, the two options and the current index; the **count is reported up by whichever
   surface is mounted**, which is what keeps `Replace all` consistent with the number the bar just
-  showed. The matcher itself is `ocptFindTextMatches` (`lib/utils/ocpt_text_search.dart`), shared by
-  both: literal — a query is never compiled into a `RegExp`, since `(`, `.` and `*` are ordinary
+  showed. The matcher itself is `ocptFindTextMatches` (`lib/models/rules/ocpt_text_search.dart`),
+  shared by both: literal — a query is never compiled into a `RegExp`, since `(`, `.` and `*` are ordinary
   characters to a screenwriter — and its whole-word test counts accented letters as word characters,
   a screenplay being written in French too.
 - The highlight is painted by each surface in its own way, from the same two fixed colours
@@ -330,7 +331,7 @@ model, the title page, the spell-checking, the docks and the syntax guide.
   unloaded, and nothing is painted; a **read-only preview** checks nothing either, there being no
   editing surface to correct.
 - What is checked is the screenplay's **prose and nothing else**, decided once in
-  `lib/utils/ocpt_spell_checked_lines.dart`: `ocptIsSpellCheckedLineType` returns true for action,
+  `lib/models/rules/ocpt_spell_checked_lines.dart`: `ocptIsSpellCheckedLineType` returns true for action,
   dialogue, parenthetical and centered text, and false for scene headings (a set name in capitals),
   character cues (a writer's invented names are exactly what a dictionary does not have),
   transitions (a fixed vocabulary that is not the language's), sections, synopses and lyrics. Title

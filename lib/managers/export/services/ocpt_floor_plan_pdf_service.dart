@@ -18,10 +18,10 @@ import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_list_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_floor_plan_geometry.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_arrow_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_layer.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_set_element_shape.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_floor_plan_geometry.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 
@@ -117,7 +117,7 @@ const double _silhouetteMarginPt = 10;
 /// shows one shot's own blocking, never the previous or next one's), and every shape it returns —
 /// already in metres, already carrying its [OcptFloorPlanSymbolShape.colorArgb] — is placed on the
 /// page through the shared pure rule the canvas itself reads geometry from,
-/// `lib/utils/ocpt_floor_plan_geometry.dart` ([ocptFloorPlanPixelsPerMetreAt],
+/// `lib/models/rules/ocpt_floor_plan_geometry.dart` ([ocptFloorPlanPixelsPerMetreAt],
 /// [ocptFloorPlanMetresToPixels], [ocptFloorPlanScaleBarLengthM]): this service supplies the one
 /// thing a printed page needs that a pannable, zoomable canvas doesn't — the zoom that fits a
 /// set's own shapes onto the page — and hands every metre through the very same conversion from

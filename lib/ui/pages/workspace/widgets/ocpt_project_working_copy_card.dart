@@ -5,7 +5,7 @@
 import 'package:flutter/material.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_working_copy_state.dart';
-import 'package:open_cine_prod_tools/ui/utils/ocpt_project_version_summary_line.dart';
+import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_project_version_summary_line.dart';
 
 /// The `Versions` dock tab's first entry: not a sealed version but the working copy itself, the
 /// present the sealed history underneath is measured against.

@@ -126,7 +126,7 @@ Documented as schema in [`foundations.md`](foundations.md); its sync meaning:
 - **`row_field_versions`** is the per-column stamp sidecar the merge reads. A per-replica `deviceId`
   lives in `OcptPropertiesManager`.
 - Two tables are **local to a replica and never synchronised** — no `is_deleted`, so the rule in
-  `lib/utils/ocpt_synchronised_tables.dart` drops them out on its own: `sync_relay_cursors` (one
+  `lib/models/rules/ocpt_synchronised_tables.dart` drops them out on its own: `sync_relay_cursors` (one
   delivery cursor per relay) and `sync_pairings` (a project's relay base URL). `project_versions`
   and `local_erasures` are local too, and `scenes` is derived and recomputed, never merged.
 

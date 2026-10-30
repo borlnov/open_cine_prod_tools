@@ -215,7 +215,7 @@ class OcptLocationAvailability extends Equatable {
   final DateTime endDate;
 
   /// Which days of the week, inside the range, this window actually covers — the mask
-  /// `ocptWeekdayMask*` reads (`lib/utils/ocpt_weekday_mask.dart`).
+  /// `ocptWeekdayMask*` reads (`lib/models/rules/ocpt_weekday_mask.dart`).
   final int weekdays;
 
   /// Which part of each covered day this window takes.

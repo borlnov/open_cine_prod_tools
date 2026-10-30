@@ -15,12 +15,12 @@ import 'package:open_cine_prod_tools/models/ocpt_shooting_slot_cast_member.dart'
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot_crew_member.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot_guest.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_placement.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_crew_position_prefill.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_fractional_key.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_shooting_day_timeline.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_day_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_slot_anchor_edge.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_crew_position_prefill.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_fractional_key.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_shooting_day_timeline.dart';
 import 'package:uuid/uuid.dart';
 
 /// CRUD over a screenplay's shooting schedule: its days, the convocation windows inside each day
@@ -42,11 +42,11 @@ import 'package:uuid/uuid.dart';
 /// **A day is a set of parallel chains, one per slot, rather than one timetable.** A block belongs
 /// to exactly one slot ([createBlock]/[placeShot] both take a required slot id and read the day off
 /// it, so a block can never name a day its slot doesn't belong to) and chains from that slot's own
-/// `startMinute` — see `lib/utils/ocpt_shooting_day_timeline.dart` (ADR 0015, amended).
+/// `startMinute` — see `lib/models/rules/ocpt_shooting_day_timeline.dart` (ADR 0015, amended).
 ///
 /// **A convocation is what you are linked to, and nothing about it is typed** — see
-/// `lib/utils/ocpt_shooting_convocations.dart` (ADR 0018). For everybody but a candidate that is a
-/// **slot**; a candidate is linked to the **audition block** that sees them
+/// `lib/models/rules/ocpt_shooting_convocations.dart` (ADR 0018). For everybody but a candidate
+/// that is a **slot**; a candidate is linked to the **audition block** that sees them
 /// ([addBlockCandidate], `shooting_block_candidates`, ADR 0024), because somebody seen for a part
 /// is expected at twenty past ten rather than "on this unit today" — the one convocation in this
 /// app read off a block. [addSlotCrewMember]/[addSlotCastRole] do
@@ -58,10 +58,10 @@ import 'package:uuid/uuid.dart';
 /// its slot instead.
 ///
 /// **`person_positions` is what a fresh crew row's position is pre-filled from, and only that** —
-/// see `lib/utils/ocpt_crew_position_prefill.dart`. [addSlotCrewMember] reads a person's declared
-/// positions and what they already hold on the slot being added to, and lands on their first
-/// declared position not already taken there; nothing stops a user changing it afterwards, and
-/// nothing keeps the two tables in step once it has.
+/// see `lib/models/rules/ocpt_crew_position_prefill.dart`. [addSlotCrewMember] reads a person's
+/// declared positions and what they already hold on the slot being added to, and lands on their
+/// first declared position not already taken there; nothing stops a user changing it afterwards,
+/// and nothing keeps the two tables in step once it has.
 ///
 /// **A slot is pinned by one edge, and that edge may read another slot's.** [createSlot] mints a
 /// slot anchored by its **start** at a typed hour, exactly as every slot was before schema version

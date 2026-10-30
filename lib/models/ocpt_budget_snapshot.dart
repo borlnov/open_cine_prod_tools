@@ -15,14 +15,14 @@ import 'package:open_cine_prod_tools/models/ocpt_role.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day_block.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_budget_alerts.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_budget_financing.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_budget_journal.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_budget_projection.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_budget_regie.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_budget_reimbursements.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_budget_shares.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_budget_totals.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_budget_alerts.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_budget_financing.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_budget_journal.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_budget_projection.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_budget_regie.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_budget_reimbursements.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_budget_shares.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_budget_totals.dart';
 
 /// The whole budget mode's read, in one object: the [postes] with their lines, the cash journal's
 /// own [entries] and [commitments], the financing plan's own [resources], the
@@ -140,10 +140,10 @@ class OcptBudgetSnapshot extends Equatable {
   final Map<String, OcptAssetRef> receiptsByEntryId;
 
   /// Every live shooting day's own catering reading, in the schedule's own day-number order —
-  /// `ocptBudgetRegieDaysOf` (`lib/utils/ocpt_budget_regie.dart`), read over the schedule's own
-  /// days, slots and meal blocks, every role's own kind and person, and the project's own meal and
-  /// buffet prices. Empty for every caller unconcerned with the catering-and-travel pass, exactly
-  /// as [resources] already defaults for a caller unconcerned with the financing plan.
+  /// `ocptBudgetRegieDaysOf` (`lib/models/rules/ocpt_budget_regie.dart`), read over the schedule's
+  /// own days, slots and meal blocks, every role's own kind and person, and the project's own meal
+  /// and buffet prices. Empty for every caller unconcerned with the catering-and-travel pass,
+  /// exactly as [resources] already defaults for a caller unconcerned with the financing plan.
   final List<OcptBudgetRegieDay> regieDays;
 
   /// [regieDays] folded into one total — `ocptBudgetRegieTotalsOf`.
@@ -159,9 +159,9 @@ class OcptBudgetSnapshot extends Equatable {
   final List<OcptBudgetAllowance> allowances;
 
   /// What has actually been reimbursed against each defrayed person, keyed by their own id —
-  /// `ocptBudgetReimbursedByPersonId` (`lib/utils/ocpt_budget_reimbursements.dart`), the régie's
-  /// own running account for the person tree, mirroring [receivedByResourceId]. A person with no
-  /// key here has been reimbursed nothing at all.
+  /// `ocptBudgetReimbursedByPersonId` (`lib/models/rules/ocpt_budget_reimbursements.dart`), the
+  /// régie's own running account for the person tree, mirroring [receivedByResourceId]. A person
+  /// with no key here has been reimbursed nothing at all.
   final Map<String, OcptBudgetCoveredTotal> reimbursedByPersonId;
 
   /// Every live taking of the revenue sharing, in the `sortKey` order `OcptBudgetSharingService

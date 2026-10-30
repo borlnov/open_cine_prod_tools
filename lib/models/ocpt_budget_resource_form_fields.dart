@@ -12,8 +12,8 @@ import 'package:open_cine_prod_tools/types/ocpt_budget_resource_status.dart';
 ///
 /// **Carries no tax basis or rate at all**, unlike every other form of this mode: a financing
 /// resource is money coming *in*, and `ocptBudgetResourcesTotalCents`'s own doc comment
-/// (`lib/utils/ocpt_budget_financing.dart`) already settles that there is no second basis to read
-/// it in, so this dialog asks for none.
+/// (`lib/models/rules/ocpt_budget_financing.dart`) already settles that there is no second basis to
+/// read it in, so this dialog asks for none.
 class OcptBudgetResourceFormFields extends Equatable {
   /// What kind of financing this resource is.
   final OcptBudgetResourceGroupKind groupKind;

@@ -35,8 +35,8 @@ class OcptShootingDayStatusConverter extends TypeConverter<OcptShootingDayStatus
 ///
 /// Sunrise, sunset and the three twilights are **not columns here**: they are computed offline,
 /// for the date this row carries, from the coordinates of the day's first slot's location — see
-/// `lib/utils/ocpt_sun_times.dart` (a sibling table, `shooting_slots`, is what actually names a
-/// location).
+/// `lib/models/rules/ocpt_sun_times.dart` (a sibling table, `shooting_slots`, is what actually
+/// names a location).
 @DataClassName('OcptShootingDayRow')
 class OcptShootingDaysTable extends Table {
   /// {@macro open_cine_prod_tools.OcptShootingDaysTable}

@@ -55,9 +55,9 @@ class OcptRolesTable extends Table {
   /// Whether this is a speaking role, a silent role or an extra. [OcptRoleKind.speaking] is always
   /// reconciled from a dialogue cue; [OcptRoleKind.silent] is reconciled from a character's name
   /// standing in capitals in the action **or** added by hand — the two are told apart by
-  /// [isFromScreenplay], not by this column alone (`ocptRoleIsActionDetected`, `lib/utils/`) — and
-  /// [OcptRoleKind.extra] is always added by hand, since the screenplay has no convention naming a
-  /// group of extras.
+  /// [isFromScreenplay], not by this column alone (`ocptRoleIsActionDetected`, `lib/models/rules/`)
+  /// — and [OcptRoleKind.extra] is always added by hand, since the screenplay has no convention
+  /// naming a group of extras.
   TextColumn get kind => text().map(const OcptRoleKindConverter())();
 
   /// Whether [name] (and, for a non-speaking [kind], the row's very existence) is owned by the

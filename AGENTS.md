@@ -179,9 +179,9 @@ file in `docs/architecture/` says what the code does because of it.
 | [`exports.md`](docs/architecture/exports.md) | `lib/managers/export/`, the export panel |
 | [`resources.md`](docs/architecture/resources.md) | `lib/ui/pages/workspace/modes/resources/` |
 | [`breakdown.md`](docs/architecture/breakdown.md) | `lib/ui/pages/workspace/modes/breakdown/` |
-| [`shot-list.md`](docs/architecture/shot-list.md) | `lib/ui/pages/workspace/modes/shot_list/`, `lib/utils/ocpt_floor_plan_*.dart`, `lib/utils/ocpt_storyboard_*.dart` |
+| [`shot-list.md`](docs/architecture/shot-list.md) | `lib/ui/pages/workspace/modes/shot_list/`, `lib/models/rules/ocpt_floor_plan_*.dart`, `lib/models/rules/ocpt_storyboard_*.dart` |
 | [`schedule.md`](docs/architecture/schedule.md) | `lib/ui/pages/workspace/modes/schedule/` |
-| [`budget.md`](docs/architecture/budget.md) | `lib/ui/pages/workspace/modes/budget/`, `lib/utils/ocpt_budget_*.dart` |
+| [`budget.md`](docs/architecture/budget.md) | `lib/ui/pages/workspace/modes/budget/`, `lib/models/rules/ocpt_budget_*.dart` |
 | [`sync.md`](docs/architecture/sync.md) | `packages/ocpt_sync_protocol/`, `packages/ocpt_sync_relay/`, `lib/managers/sync/`, `lib/ui/pages/sharing/`, `lib/ui/pages/joining/`, the sync status indicator |
 
 What follows is the short list of rules that hold **everywhere**, and that a file in
@@ -198,7 +198,7 @@ What follows is the short list of rules that hold **everywhere**, and that a fil
 - **No service ever deletes a synchronised row** (ADR 0010): every synchronised table carries
   `isDeleted`, a "delete" is an update to it, and every read filters tombstones back out. The two
   local tables — `project_versions` and `local_erasures` — are the only exceptions.
-- Ordering is `sortKey`, a fractional index (`lib/utils/ocpt_fractional_key.dart`), so a move
+- Ordering is `sortKey`, a fractional index (`lib/models/rules/ocpt_fractional_key.dart`), so a move
   writes exactly one row. The legacy `position` column is never renumbered and nothing reads it.
 - A schema number is allocated **at merge time, not at branch time** (ADR 0007), and a new
   synchronised table has to reach `OcptProjectVersionCodec`'s payload, its `contentDigest` and its
@@ -213,7 +213,7 @@ What follows is the short list of rules that hold **everywhere**, and that a fil
 - Every export is reached from the toolbar's own `Export` control and writes through a native save
   dialog — no export ever writes to a default location silently.
 - Layering: `packages/fountain_kit` stays free of Flutter imports, a `lib/models/` file may not
-  import the manager layer, and a pure rule both layers read belongs in `lib/utils/`.
+  import the manager layer, and a pure rule both layers read belongs in `lib/models/rules/`.
 - **Before reaching for a pub.dev package, look in `actlibs/` first.** The app is built on the ACT
   packages, and several needs are already met there — secure storage is
   `act_local_storage_manager`'s `AbstractSecretsManager`, not `flutter_secure_storage` used

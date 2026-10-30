@@ -4,7 +4,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_minimum_rest.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_minimum_rest.dart';
 
 /// The project settings page's "Minimum rest between two days" section card: a single
 /// field, typed **in hours** — the unit a production says a turnaround in — and stored in minutes

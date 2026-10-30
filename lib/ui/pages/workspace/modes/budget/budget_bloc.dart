@@ -42,6 +42,11 @@ import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_budget_journal.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_budget_projection.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_budget_totals.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_budget_vat.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_cost_amount.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_resource_group_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_right_dock_tab.dart';
@@ -53,12 +58,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_project_versi
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/budget_event.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/budget_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock.dart';
-import 'package:open_cine_prod_tools/ui/utils/ocpt_budget_labels.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_budget_journal.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_budget_projection.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_budget_totals.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_budget_vat.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_cost_amount.dart';
+import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_budget_labels.dart';
 
 /// This is the bloc class for the budget production mode.
 ///
@@ -520,10 +520,10 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
   /// The decor name `OcptBudgetRegie` prints under each shooting day: the name of the first set, or
   /// failing that the first location, that any of [days]' own [slotsByDayId] entries name, in slot
   /// order — resolved out of [locations] (and their own live sets) alone.
-  /// `lib/utils /ocpt_budget_regie.dart`'s own pass reads no location or set at all, being pure
-  /// arithmetic over head counts, so this is a separate, purely presentational reading rather than
-  /// a second implementation of anything that file states. A day whose slots name neither carries
-  /// no key here, which the view reads as nothing rather than a placeholder.
+  /// `lib/models/rules/ocpt_budget_regie.dart`'s own pass reads no location or set at all, being
+  /// pure arithmetic over head counts, so this is a separate, purely presentational reading rather
+  /// than a second implementation of anything that file states. A day whose slots name neither
+  /// carries no key here, which the view reads as nothing rather than a placeholder.
   Map<String, String> _regieDecorNameByDayId({
     required List<OcptShootingDay> days,
     required Map<String, List<OcptShootingSlot>> slotsByDayId,

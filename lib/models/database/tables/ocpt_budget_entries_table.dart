@@ -29,7 +29,7 @@ import 'package:open_cine_prod_tools/models/database/tables/ocpt_people_table.da
 /// the quote, a subsidy instalment, a contribution repaid, but not only that: this mode's own entry
 /// dialog offers `Aucun poste` as a plain choice on a debit too, so a poste-less entry can just as
 /// well be a real cost that simply prices nothing in the CNC nomenclature, the small-production
-/// reading this whole mode is built for. `lib/utils/ocpt_budget_journal.dart`'s own
+/// reading this whole mode is built for. `lib/models/rules/ocpt_budget_journal.dart`'s own
 /// `ocptBudgetOffQuotePaidTotalOf` is what reads that spending back out, rather than the app
 /// silently losing track of it the moment it names no poste. A line spent against the quote almost
 /// always names one; a receipt almost never does.
@@ -136,9 +136,9 @@ class OcptBudgetEntriesTable extends Table {
   /// See this table's own doc comment: null is the normal case, a movement that pays no commitment
   /// at all, read exactly the way [resourceId]'s own null is. What a commitment has been paid is
   /// the tax-inclusive sum of every debit naming it here —
-  /// `lib/utils/ocpt_budget_projection.dart`'s own `ocptBudgetCommitmentPaidCentsOf` — which is
-  /// what lets a commitment be paid in more than one instalment: a second payment is a second entry
-  /// naming the very same commitment, never a second commitment standing in for it.
+  /// `lib/models/rules/ocpt_budget_projection.dart`'s own `ocptBudgetCommitmentPaidCentsOf` — which
+  /// is what lets a commitment be paid in more than one instalment: a second payment is a second
+  /// entry naming the very same commitment, never a second commitment standing in for it.
   TextColumn get commitmentId => text().nullable().references(OcptBudgetCommitmentsTable, #id)();
 
   /// The person this debit actually reimburses, or null. → [OcptPeopleTable]

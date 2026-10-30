@@ -12,9 +12,9 @@ import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart'
 /// never rewrites the schedule.
 ///
 /// **This row's arrival, PAT band and departure are computed, never typed** — see
-/// `lib/utils/ocpt_shooting_convocations.dart` (ADR 0018): this row's [slotId] is one of possibly
-/// several slots this role is linked to on the same day, and every figure about it is read off
-/// every live slot it is on, joined together. Nothing here says how long before a moment it is
+/// `lib/models/rules/ocpt_shooting_convocations.dart` (ADR 0018): this row's [slotId] is one of
+/// possibly several slots this role is linked to on the same day, and every figure about it is read
+/// off every live slot it is on, joined together. Nothing here says how long before a moment it is
 /// needed — a production wanting the actor there earlier links the role to a slot that says so.
 class OcptShootingSlotCastMember extends Equatable {
   /// The stable, unique id of this convocation (a UUID).

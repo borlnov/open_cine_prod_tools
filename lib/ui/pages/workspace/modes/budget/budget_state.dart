@@ -23,6 +23,12 @@ import 'package:open_cine_prod_tools/models/ocpt_project_package_report.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_version.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_working_copy_state.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_budget_alerts.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_budget_element_link.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_budget_journal.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_budget_regie.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_budget_shares.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_budget_totals.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_right_dock_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_selection.dart';
@@ -33,12 +39,6 @@ import 'package:open_cine_prod_tools/types/ocpt_project_version_notice_kind.dart
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project_package_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project_versions_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_budget_alerts.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_budget_element_link.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_budget_journal.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_budget_regie.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_budget_shares.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_budget_totals.dart';
 
 /// The key [OcptBudgetState.pendingFieldEdits] is stored under: which poste or line, and which of
 /// its own [OcptBudgetField]s — mirrors `OcptSchedulePendingFieldKey`.

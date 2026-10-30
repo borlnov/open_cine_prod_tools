@@ -4,7 +4,7 @@
 
 import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_courier_prime_fonts.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_script_page_number.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_script_page_number.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 

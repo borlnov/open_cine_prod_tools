@@ -8,7 +8,7 @@ import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/models/ocpt_card_choice_entry.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_responsive.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_responsive.dart';
 
 /// The width the grid lays its two columns out at, at an expanded width. Below
 /// [ocptCompactWidthBreakpoint] the dialog drops to a single column and takes the width the screen

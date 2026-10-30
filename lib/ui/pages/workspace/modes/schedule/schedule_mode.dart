@@ -18,6 +18,9 @@ import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
 import 'package:open_cine_prod_tools/models/ocpt_workspace_export_entry.dart';
 import 'package:open_cine_prod_tools/models/ocpt_workspace_export_pick.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_schedule_alerts.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_shooting_convocations.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_shooting_day_timeline.dart';
 import 'package:open_cine_prod_tools/types/ocpt_route.dart';
 import 'package:open_cine_prod_tools/types/ocpt_schedule_agenda_color_mode.dart';
 import 'package:open_cine_prod_tools/types/ocpt_schedule_agenda_mode.dart';
@@ -60,14 +63,11 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_r
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_shell.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/workspace_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/workspace_event.dart';
-import 'package:open_cine_prod_tools/ui/utils/ocpt_project_package_missing_files_confirm.dart';
-import 'package:open_cine_prod_tools/ui/utils/ocpt_project_package_notice_message.dart';
-import 'package:open_cine_prod_tools/ui/utils/ocpt_project_version_notice_message.dart';
-import 'package:open_cine_prod_tools/ui/utils/ocpt_schedule_labels.dart';
+import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_project_package_missing_files_confirm.dart';
+import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_project_package_notice_message.dart';
+import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_project_version_notice_message.dart';
+import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_schedule_labels.dart';
 import 'package:open_cine_prod_tools/ui/widgets/ocpt_confirm_dialog.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_schedule_alerts.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_shooting_convocations.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_shooting_day_timeline.dart';
 
 /// The schedule production mode: planning the shoot day by day.
 ///
@@ -777,7 +777,7 @@ class _ScheduleViewState extends State<_ScheduleView> {
 
   /// Builds the presence grid: who is working or unavailable, day by day, across the whole shoot.
   /// [OcptSchedulePersonUnavailableAlert] is read straight out of `state.planSnapshot`'s own alerts
-  /// (rule 1 of `lib/utils/ocpt_schedule_alerts.dart`) rather than recomputed here.
+  /// (rule 1 of `lib/models/rules/ocpt_schedule_alerts.dart`) rather than recomputed here.
   Widget _buildPresenceGrid(BuildContext context, OcptScheduleState state) {
     final planSnapshot = state.planSnapshot;
 

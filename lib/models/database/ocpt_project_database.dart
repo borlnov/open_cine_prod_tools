@@ -62,6 +62,7 @@ import 'package:open_cine_prod_tools/models/database/tables/ocpt_storyboard_anno
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_storyboard_panels_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_sync_pairings_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_sync_relay_cursors_table.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_weekday_mask.dart';
 // These are only used through the type converters declared in the table files above
 // (OcptPageFormatConverter, OcptSnapshotReasonConverter, OcptShotStatusConverter,
 // OcptShotCheckReasonConverter, OcptImageRightsStatusConverter, OcptRoleKindConverter,
@@ -108,7 +109,6 @@ import 'package:open_cine_prod_tools/types/ocpt_shot_check_reason.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
 import 'package:open_cine_prod_tools/types/ocpt_storyboard_annotation_kind.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_weekday_mask.dart';
 
 part '../../generated/models/database/ocpt_project_database.g.dart';
 

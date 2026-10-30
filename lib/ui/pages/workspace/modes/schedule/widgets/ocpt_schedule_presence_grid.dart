@@ -9,12 +9,12 @@ import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_schedule_alerts.dart';
 import 'package:open_cine_prod_tools/types/ocpt_presence_code.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_person_avatar.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_empty_mode.dart';
-import 'package:open_cine_prod_tools/ui/utils/ocpt_resources_labels.dart';
-import 'package:open_cine_prod_tools/ui/utils/ocpt_schedule_labels.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_schedule_alerts.dart';
+import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_resources_labels.dart';
+import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_schedule_labels.dart';
 
 /// The width of the grid's own frozen first column — wide enough for a name and a "postes" subtitle
 /// line.
@@ -79,11 +79,11 @@ class _OcptPresenceGridDayColumn {
 /// `OcptSchedulePlanSnapshot.presenceCellOf`, entirely computed: [OcptPresenceCode.working] or
 /// [OcptPresenceCode.unavailable], or null, drawn **blank**, no pill at all — absence of
 /// information, never a claim. A cell named by one of [unavailableAlerts]
-/// (`OcptSchedulePersonUnavailableAlert`, rule 1 of `lib/utils/ocpt_schedule_alerts.dart`, **read
-/// here, never recomputed**) is painted in the error colour whatever its own code, mirroring how
-/// `OcptSchedulePositionsMatrix` reads rule 4 through `lostPositionAlerts` rather than re-deriving
-/// "lost" on its own — two implementations of one rule is exactly how this grid and the alerts
-/// panel would come to disagree.
+/// (`OcptSchedulePersonUnavailableAlert`, rule 1 of `lib/models/rules/ocpt_schedule_alerts.dart`,
+/// **read here, never recomputed**) is painted in the error colour whatever its own code, mirroring
+/// how `OcptSchedulePositionsMatrix` reads rule 4 through `lostPositionAlerts` rather than
+/// re-deriving "lost" on its own — two implementations of one rule is exactly how this grid and the
+/// alerts panel would come to disagree.
 ///
 /// **It offers nothing to withhold.** Schema v17 drops `shooting_presences`, the by-hand override a
 /// cell's click used to cycle: every code this grid draws is computed, so it joins `Convocations`,

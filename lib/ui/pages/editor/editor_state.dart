@@ -17,7 +17,7 @@ import 'package:open_cine_prod_tools/types/ocpt_screenplay_language.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project_package_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project_versions_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock.dart';
-import 'package:open_cine_prod_tools/ui/utils/ocpt_current_scene_index.dart';
+import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_current_scene_index.dart';
 import 'package:spell_kit/spell_kit.dart';
 
 /// A request, produced by `OcptEditorBloc`, for the page to move the editor caret to

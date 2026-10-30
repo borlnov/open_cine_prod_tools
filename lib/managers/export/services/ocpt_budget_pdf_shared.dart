@@ -3,22 +3,23 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:intl/intl.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_budget_financing.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_budget_totals.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_budget_financing.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_budget_totals.dart';
 
 /// What every document built off the budget mode's own figures prints in place of a value that
 /// cannot be read at all — an in-kind resource's own received/outstanding while no journal entry
 /// names it, or a cash-journal row whose running balance a movement of unknown size left open. The
 /// budget mode's own screen keeps the very same mark (`ocptBudgetEmptyValue`,
-/// `lib/ui/utils/ocpt_budget_labels.dart`), reached from a `BuildContext` this manager-layer file
-/// has none of — this is that same fact, stated once here for every export rather than the screen's
-/// own copy, which stays out of reach of a service that must not depend on `lib/ui/`.
+/// `lib/ui/widgets/helpers/ocpt_budget_labels.dart`), reached from a `BuildContext` this
+/// manager-layer file has none of — this is that same fact, stated once here for every export
+/// rather than the screen's own copy, which stays out of reach of a service that must not depend on
+/// `lib/ui/`.
 const String ocptBudgetExportEmptyValue = "—";
 
 /// [cents] formatted with [currencyCode]'s own symbol and grouping — `NumberFormat.simpleCurrency`,
 /// the same formula the mode's own `ocptBudgetAmountLabel` reads an amount with on screen. Restated
 /// here rather than imported for the same reason [ocptBudgetExportEmptyValue] is: that formatter
-/// lives in `lib/ui/utils/`, out of reach of a service under `lib/managers/`.
+/// lives in `lib/ui/widgets/helpers/`, out of reach of a service under `lib/managers/`.
 String ocptBudgetExportAmountLabel(int cents, String currencyCode) =>
     NumberFormat.simpleCurrency(name: currencyCode).format(cents / 100);
 

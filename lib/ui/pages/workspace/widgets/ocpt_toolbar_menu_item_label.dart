@@ -18,7 +18,7 @@ const double _shortcutGap = 24;
 /// shortcut is short by nature and always shown whole.
 ///
 /// Formatting [shortcut] itself is the caller's job — `ocptPrimaryShortcutLabel` in
-/// `lib/ui/utils/ocpt_shortcut_labels.dart` is what states the platform's modifier.
+/// `lib/ui/widgets/helpers/ocpt_shortcut_labels.dart` is what states the platform's modifier.
 class OcptToolbarMenuItemLabel extends StatelessWidget {
   /// The entry's own label: what the action does.
   final String label;

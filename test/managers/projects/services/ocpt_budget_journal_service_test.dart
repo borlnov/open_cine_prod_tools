@@ -9,9 +9,9 @@ import 'package:open_cine_prod_tools/managers/projects/services/ocpt_assets_serv
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_budget_journal_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_budget_quote_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_budget_projection.dart';
 import 'package:open_cine_prod_tools/types/ocpt_asset_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_commitment_status.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_budget_projection.dart';
 
 void main() {
   // Refusing a write on a previewed version logs through appLogger(), which requires a global

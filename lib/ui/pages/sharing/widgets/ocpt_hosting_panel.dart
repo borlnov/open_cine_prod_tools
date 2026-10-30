@@ -12,7 +12,7 @@ import 'package:open_cine_prod_tools/models/sync/ocpt_presence_roster.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_reconcile_outcome.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_relay_host_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/sharing/hosting_state.dart';
-import 'package:open_cine_prod_tools/ui/utils/ocpt_presence_color.dart';
+import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_presence_color.dart';
 import 'package:open_cine_prod_tools/ui/widgets/ocpt_qr_code.dart';
 
 /// The maximum width of the hosting panel's own column, matching `OcptSharingConfigureView`'s own

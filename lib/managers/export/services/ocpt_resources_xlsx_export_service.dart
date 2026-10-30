@@ -13,12 +13,12 @@ import 'package:open_cine_prod_tools/models/ocpt_resources_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_resources_xlsx_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role.dart';
 import 'package:open_cine_prod_tools/models/ocpt_set.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_weekday_mask.dart';
 import 'package:open_cine_prod_tools/types/ocpt_day_part_slot.dart';
 import 'package:open_cine_prod_tools/types/ocpt_elements_xlsx_column.dart';
 import 'package:open_cine_prod_tools/types/ocpt_locations_xlsx_column.dart';
 import 'package:open_cine_prod_tools/types/ocpt_people_xlsx_column.dart';
 import 'package:open_cine_prod_tools/types/ocpt_roles_xlsx_column.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_weekday_mask.dart';
 
 /// Renders a whole resources catalogue into the bytes of an XLSX workbook, one sheet per tab.
 ///

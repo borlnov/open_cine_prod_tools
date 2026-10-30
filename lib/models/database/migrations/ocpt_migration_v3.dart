@@ -5,10 +5,10 @@
 import 'package:drift/drift.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_roles_table.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_deterministic_role_id.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_fractional_key.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_row_stamp_key.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_deterministic_role_id.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_fractional_key.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_row_stamp_key.dart';
 
 /// The name `shot_characters`'s old, `{shotId, characterName}`-keyed shape is renamed to for the
 /// short window between the rename and the drop, below.

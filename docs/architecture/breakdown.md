@@ -72,7 +72,7 @@ progress per scene, and the two documents it prints.
   *not* what the same click does in `OcptShotCoverageDialog`, where it removes the range: here a tag
   has a sheet worth inspecting, and losing one by mis-clicking while reading is the worse failure.
   A repeated occurrence elsewhere in the script is **offered, never applied**
-  (`lib/utils/ocpt_breakdown_suggestions.dart`, whole-word and diacritic-folded), the principle
+  (`lib/models/rules/ocpt_breakdown_suggestions.dart`, whole-word and diacritic-folded), the principle
   `ocptSceneSetSuggestionOf` already follows. The header's search filters the recap's **rows** and
   never its columns, and typing into it from the script view switches to the recap carrying the
   text: the script is a reading surface, and the answer to "where is this?" is a table.

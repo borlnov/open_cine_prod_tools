@@ -9,14 +9,14 @@ import 'package:open_cine_prod_tools/models/database/tables/ocpt_shooting_slots_
 /// Which role is convoked during a slot.
 ///
 /// **An actor has three times, not two, and all three are computed** — see
-/// `lib/utils/ocpt_shooting_convocations.dart` (ADR 0018): a role is convoked by being linked to a
-/// slot, and every figure about it (arrival, PAT band, departure) is read off every live slot of
-/// the day this row's own [slotId] is one of, joined with every other slot the same role is linked
-/// to — the PAT (*prêt à tourner*) band, in particular, comes from the blocks of those slots naming
-/// this role (a shot block through its `shot_characters`, a hold block through the sequence it
-/// reserves). Nothing here says "how long before" any more — a production that wants an actor in
-/// the make-up chair earlier creates the slot that says so and links the role to it, rather than
-/// typing a lead time beside an ordinary convocation.
+/// `lib/models/rules/ocpt_shooting_convocations.dart` (ADR 0018): a role is convoked by being
+/// linked to a slot, and every figure about it (arrival, PAT band, departure) is read off every
+/// live slot of the day this row's own [slotId] is one of, joined with every other slot the same
+/// role is linked to — the PAT (*prêt à tourner*) band, in particular, comes from the blocks of
+/// those slots naming this role (a shot block through its `shot_characters`, a hold block through
+/// the sequence it reserves). Nothing here says "how long before" any more — a production that
+/// wants an actor in the make-up chair earlier creates the slot that says so and links the role to
+/// it, rather than typing a lead time beside an ordinary convocation.
 ///
 /// **The role is convoked, not the person**: the actor is read through `roles.personId`, so
 /// recasting a role never rewrites the schedule, and an uncast role convoked anyway is a legitimate

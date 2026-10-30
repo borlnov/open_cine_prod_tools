@@ -81,9 +81,9 @@ are all here, and this file is the whole record of them.
   **An explicit 0 % is a value, not an absence.** Wages and a copyright assignment carry no VAT,
   so their excluding-tax figure equals their tax-inclusive one — a fact a line or the project states
   on purpose — and that is a different fact from a rate nobody has filled in, which contributes to
-  neither total. `lib/utils/ocpt_budget_vat.dart` is the **only** place in the repository allowed to
-  convert between the two bases, and every function in it answers **null, never zero**, when the
-  rate an amount would need is unknown: `ocptExcludingTaxAmountCentsOf`, its mirror
+  neither total. `lib/models/rules/ocpt_budget_vat.dart` is the **only** place in the repository
+  allowed to convert between the two bases, and every function in it answers **null, never zero**,
+  when the rate an amount would need is unknown: `ocptExcludingTaxAmountCentsOf`, its mirror
   `ocptIncludingTaxAmountCentsOf`, and `ocptVatAmountCentsOf`, the difference between them (itself
   null when either side is). `ocptEffectiveVatRateOf` is the one place that resolves which rate a
   line actually reads under, pairing the basis-points figure with whether it came from the line's
@@ -91,7 +91,7 @@ are all here, and this file is the whole record of them.
   colour and the second in grey, switching on that pairing rather than re-deriving the comparison.
   Quantities are integers **in thousandths** (`quantityMilli`), for the same reason cents are cents:
   1,484 km, 5 days and 1.5 day all have to be said exactly, and a total computed from it
-  (`lib/utils/ocpt_budget_totals.dart`) is exact rather than accumulating a rounding a
+  (`lib/models/rules/ocpt_budget_totals.dart`) is exact rather than accumulating a rounding a
   floating-point quantity would.
 
 ## Totals are computed row by row, then summed
@@ -109,8 +109,8 @@ are all here, and this file is the whole record of them.
   it, and would give the wrong figure the moment a table mixes bases or rates, which a real quote
   always does.
   A total therefore does not just answer an amount: `OcptBudgetCoveredTotal`
-  (`lib/utils/ocpt_budget_totals.dart`, pure) pairs it with **how many of the lines it was asked to
-  sum actually carried a known rate** — the whole-table reading of `ocpt_budget_vat.dart`'s
+  (`lib/models/rules/ocpt_budget_totals.dart`, pure) pairs it with **how many of the lines it was
+  asked to sum actually carried a known rate** — the whole-table reading of `ocpt_budget_vat.dart`'s
   "null, never zero" rule. A line whose rate nobody has recorded contributes to neither the amount
   nor the count, so `OcptBudgetCoveredTotal.isComplete` is false for as long as any line is missing
   one, and the cost-tracking table's own total row prints `tr.budgetCostTrackingCoverageReadOut`
@@ -128,12 +128,12 @@ are all here, and this file is the whole record of them.
   depending on who is looking at it; a payment is not a plan, it is the very cash a bank account
   actually saw leave or enter, and there is no second way to look at that. `budget_entries` and
   `budget_commitments` are therefore never read through the header's toggle at all:
-  `ocptBudgetEntryDebitCentsOf`/`ocptBudgetEntryCreditCentsOf` (`lib/utils/ocpt_budget_journal.dart`)
-  and `ocptBudgetCommitmentCashCentsOf` (`lib/utils/ocpt_budget_projection.dart`) each go straight to
-  `ocptIncludingTaxAmountCentsOf`, the one basis a real balance is ever expressed in. An amount typed
-  excluding tax with no rate anywhere to gross it back up with — neither the row's own override nor
-  the project's default — is exactly the case `ocpt_budget_vat.dart`'s "null, never zero" rule
-  already governs, so it answers null here too, carried out through the very same
+  `ocptBudgetEntryDebitCentsOf`/`ocptBudgetEntryCreditCentsOf` (`lib/models/rules/ocpt_budget_journal.dart`)
+  and `ocptBudgetCommitmentCashCentsOf` (`lib/models/rules/ocpt_budget_projection.dart`) each go
+  straight to `ocptIncludingTaxAmountCentsOf`, the one basis a real balance is ever expressed in. An
+  amount typed excluding tax with no rate anywhere to gross it back up with — neither the row's own
+  override nor the project's default — is exactly the case `ocpt_budget_vat.dart`'s "null, never
+  zero" rule already governs, so it answers null here too, carried out through the very same
   `OcptBudgetCoveredTotal` the quote's own totals use: a journal, a poste's paid total or a
   projection missing a rate says *how many* of its rows it covers, never a wrong figure standing in
   for the rows it does not.
@@ -172,8 +172,8 @@ are all here, and this file is the whole record of them.
   actually seen leave, with nothing on screen saying so — precisely the silence this mode refuses
   everywhere else, since every other total states how many of the rows it was asked to sum it
   actually covers.
-- `ocptBudgetOffQuotePaidTotalOf` (`lib/utils/ocpt_budget_journal.dart`) is the reading that closes
-  the gap: the tax-inclusive sum of every **debit** naming no poste at all, read through
+- `ocptBudgetOffQuotePaidTotalOf` (`lib/models/rules/ocpt_budget_journal.dart`) is the reading that
+  closes the gap: the tax-inclusive sum of every **debit** naming no poste at all, read through
   `ocptBudgetEntryDebitCentsOf` like every other movement in the file, answering an
   `OcptBudgetCoveredTotal` so a debit missing the rate it would need to be grossed up leaves the
   figure covered-but-incomplete rather than wrong. **A credit naming no poste is deliberately not
@@ -199,9 +199,9 @@ are all here, and this file is the whole record of them.
   with the menu and the selection every other entry sub-row has — the debit itself is a real
   `budget_entries` row, only the total above it is not a record of anything.
 - The table's own `Total` row folds `paidByPosteId` and the off-quote total together
-  (`ocptBudgetCoveredTotalsFoldOf`, `lib/utils/ocpt_budget_totals.dart`) into its own `Paid` cell,
-  so that column adds up to what actually left the account — the only reading a reader adding the
-  column up themselves would accept — printing the fold's own coverage read-out
+  (`ocptBudgetCoveredTotalsFoldOf`, `lib/models/rules/ocpt_budget_totals.dart`) into its own `Paid`
+  cell, so that column adds up to what actually left the account — the only reading a reader adding
+  the column up themselves would accept — printing the fold's own coverage read-out
   (`tr.budgetCostTrackingPaidCoverageReadOut`) whenever either side is incomplete. The financial
   report's own totals row folds the very same two totals for the very same reason, so the paper
   agrees with the screen instead of quietly disagreeing with it.
@@ -228,7 +228,7 @@ are all here, and this file is the whole record of them.
   (paid): the **estimate to complete** — what a human still expects to spend, which need not equal
   what the quote said and need not equal zero once a poste has gone over. `budget_postes` therefore
   gained one nullable column, `estimateToCompleteCents`. **Null means "derive it"**:
-  `ocptBudgetEstimateToCompleteCents` (`lib/utils/ocpt_budget_totals.dart`) answers
+  `ocptBudgetEstimateToCompleteCents` (`lib/models/rules/ocpt_budget_totals.dart`) answers
   `max(0, quote − paid − committed)` while the column is null, and the poste's own typed figure the
   moment it is not. **It is typed on the fiche's own poste panel and nowhere else** — the cost
   report carries no column for it, only the `Coût final` it feeds. The field stands empty while the
@@ -263,8 +263,8 @@ are all here, and this file is the whole record of them.
   received, declared — and **deliberately no fifth, `settled`**. A commitment is settled the moment
   the debits that name it add up to what it committed, and that reading lives in the ledger, never
   on the commitment: `budget_entries.commitmentId` names the commitment a debit pays,
-  `ocptBudgetCommitmentPaidCentsOf` (`lib/utils/ocpt_budget_projection.dart`) sums the debits naming
-  one, `ocptBudgetCommitmentOutstandingCentsOf` takes that sum from the commitment's own cash
+  `ocptBudgetCommitmentPaidCentsOf` (`lib/models/rules/ocpt_budget_projection.dart`) sums the debits
+  naming one, `ocptBudgetCommitmentOutstandingCentsOf` takes that sum from the commitment's own cash
   amount, and `ocptBudgetCommitmentIsSettledOf` is simply that outstanding figure reaching zero or
   under. This is exactly the reading a financing resource's own "received" already is, and exactly
   the argument the poste's own missing `quotedAmount` column already makes: a `settled` flag beside
@@ -350,13 +350,13 @@ are all here, and this file is the whole record of them.
   on: renamed, reordered or deleted like any other, and never re-inserted by a later read.
   Every entry carries only a `labelKey`/`simpleLabelKey` pair naming an ARB key, never a resolved
   word — `lib/constants/` and every service under `lib/managers/` must stay free of `Tr`
-  (`AGENTS.md`). `ocptBudgetCncPosteSeeds` (`lib/ui/utils/ocpt_budget_labels.dart`) is the one place
-  that turns the ten constants into `OcptBudgetPosteSeed` (`lib/models/`, already localized), and
-  `OcptBudgetMode` calls it **once**, against the outer, listening-safe `BuildContext`, and hands the
-  result to `OcptBudgetBloc` as a constructor argument rather than something the bloc watches: a
-  provider's own `create` callback may never perform a listening `Tr.of` read, and nothing about a
-  seed's own words changes between a preview and a restore, which swap the database, not the app's
-  locale.
+  (`AGENTS.md`). `ocptBudgetCncPosteSeeds` (`lib/ui/widgets/helpers/ocpt_budget_labels.dart`) is the
+  one place that turns the ten constants into `OcptBudgetPosteSeed` (`lib/models/`, already
+  localized), and `OcptBudgetMode` calls it **once**, against the outer, listening-safe
+  `BuildContext`, and hands the result to `OcptBudgetBloc` as a constructor argument rather than
+  something the bloc watches: a provider's own `create` callback may never perform a listening
+  `Tr.of` read, and nothing about a seed's own words changes between a preview and a restore, which
+  swap the database, not the app's locale.
 
 ## The schema
 
@@ -569,7 +569,7 @@ are all here, and this file is the whole record of them.
 
 - Two different questions share the word "coverage", and this mode answers each in its own place
   rather than letting one stand in for the other.
-  **`OcptBudgetResourcesCoverage`/`ocptBudgetResourcesCoverageOf`** (`lib/utils/ocpt_budget_financing.dart`)
+  **`OcptBudgetResourcesCoverage`/`ocptBudgetResourcesCoverageOf`** (`lib/models/rules/ocpt_budget_financing.dart`)
   is drawn live at the foot of the resources tree, as a two-tone bar: a lighter tone for everything
   **promised** (received plus what is only expected), a solid tone on top for what has **really**
   arrived. It reads the needs side tax-inclusive **always**, whatever the header's own basis toggle
@@ -812,7 +812,7 @@ are all here, and this file is the whole record of them.
   **every answer already given survives going back and forward again** — switching the gesture keeps
   whatever the later steps had collected.
 - **The reconciliation strip is the *lettrage* now, on step 3, and only while creating.** The moment
-  the amount and wording are typed, `ocptBudgetMatchSuggestionsOf` (`lib/utils/ocpt_budget_match.dart`,
+  the amount and wording are typed, `ocptBudgetMatchSuggestionsOf` (`lib/models/rules/ocpt_budget_match.dart`,
   pure) ranks what the draft could settle — the commitments still owed and every live defrayal on a
   debit, the resources and takings still short on a credit — in the same order it always has: **exact
   amount first**, then **date proximity** (a 7-day window; a candidate with no date sorts after every
@@ -892,16 +892,16 @@ are all here, and this file is the whole record of them.
 
 ## The alerts compute themselves, and ask for no threshold
 
-- `ocptComputeBudgetAlerts` (`lib/utils/ocpt_budget_alerts.dart`, pure) raises exactly two kinds of
-  alert, and both are read straight off arithmetic the mode already has rather than a figure typed
-  in on purpose for the alert's own sake: a poste whose paid plus committed already exceeds its own
-  quote (`ocptBudgetPosteStrainOf` answering `over`, paired with `ocptBudgetVarianceCents`'s own
-  figure), and the cash projection (`ocptBudgetProjectionOf`, opened at the journal's own balance
-  over the unsettled commitments) going negative, at the date and by the amount its own first
-  negative step already says. The mockup's own 1,500 € cash floor is deliberately not a third alert:
-  it was calibrated by nobody, and it is not the app's place to advance a figure nobody here
-  validated — the same argument `minimumRestMinutes` already settled for a single column, applied
-  here to a whole mode.
+- `ocptComputeBudgetAlerts` (`lib/models/rules/ocpt_budget_alerts.dart`, pure) raises exactly two
+  kinds of alert, and both are read straight off arithmetic the mode already has rather than a
+  figure typed in on purpose for the alert's own sake: a poste whose paid plus committed already
+  exceeds its own quote (`ocptBudgetPosteStrainOf` answering `over`, paired with
+  `ocptBudgetVarianceCents`'s own figure), and the cash projection (`ocptBudgetProjectionOf`, opened
+  at the journal's own balance over the unsettled commitments) going negative, at the date and by
+  the amount its own first negative step already says. The mockup's own 1,500 € cash floor is
+  deliberately not a third alert: it was calibrated by nobody, and it is not the app's place to
+  advance a figure nobody here validated — the same argument `minimumRestMinutes` already settled
+  for a single column, applied here to a whole mode.
 - **Both alerts now draw as cards on the dashboard, and nowhere else** — the header's own alerts
   band (`_OcptBudgetHeaderAlertBand`) is deleted outright, not merely moved. The `Tableau de bord`
   chip carries a **count badge**, a number rather than a dot: two overspent postes and one strained
@@ -967,7 +967,7 @@ are all here, and this file is the whole record of them.
   no `settled` flag, because a stored second copy of one truth has to be kept in step by a write
   nobody can guarantee never to forget. What has come in against a resource is the sum of the
   `budget_entries` **credits** naming it through `budget_entries.resourceId`
-  (`ocptBudgetReceivedByResourceId`, `lib/utils/ocpt_budget_financing.dart`), read through
+  (`ocptBudgetReceivedByResourceId`, `lib/models/rules/ocpt_budget_financing.dart`), read through
   `ocptBudgetEntryCreditCentsOf` like every other movement rather than off `creditCents` raw, so a
   resource whose entries are missing the rate they would need is *covered-but-incomplete* rather
   than wrong. That link is also what makes `resourceId` earn its place: the resources tree's own row
@@ -985,8 +985,8 @@ are all here, and this file is the whole record of them.
   not an edge one. **`Undo the last receipt`** is the way back: a row's own `⋮` menu entry, offered
   once a resource has received anything at all, it resolves the most recently recorded live credit
   naming that resource
-  (`ocptBudgetLatestReceiptEntryIdOf`, `lib/utils/ocpt_budget_financing.dart`, reading [entries] in
-  the very same chronological order the journal itself is loaded in) and, once `OcptConfirmDialog`
+  (`ocptBudgetLatestReceiptEntryIdOf`, `lib/models/rules/ocpt_budget_financing.dart`, reading
+  [entries] in the very same chronological order the journal itself is loaded in) and, once `OcptConfirmDialog`
   confirms it, dispatches the very same `OcptBudgetEntryDeletionConfirmedEvent` the cash book's
   own `Delete` already uses — tombstoning the entry (ADR 0010) rather than a second delete path of
   its own, and never un-receiving the resource through any figure of its own, since
@@ -1006,9 +1006,9 @@ are all here, and this file is the whole record of them.
   settings page's own rates card says as much rather than pre-filling anything. The rate is stored as
   `ratePerKmMilliCents`, in **thousandths of a cent** per kilometre (`0.529 €/km` is `52900`), read
   and written by `ocptMileageRateMilliCentsOf`/`ocptMileageRateTextOf`
-  (`lib/utils/ocpt_mileage_rate_amount.dart`) rather than by `ocptCostCentsOf`: a real scale is
-  quoted to three decimals, and whole cents cannot state the figure the user has in front of them —
-  which is the money rule at the top of this file, applied to a rate.
+  (`lib/models/rules/ocpt_mileage_rate_amount.dart`) rather than by `ocptCostCentsOf`: a real scale
+  is quoted to three decimals, and whole cents cannot state the figure the user has in front of them
+  — which is the money rule at the top of this file, applied to a rate.
 
 ## A defrayal is typed, never deduced
 
@@ -1075,7 +1075,7 @@ are all here, and this file is the whole record of them.
   last movement, not on the day somebody happened to open the page.
 - **Under the statement, `À venir` reads the account's future rather than its past** — one row per
   unsettled commitment, in `ocptBudgetProjectionOf`'s own due-date-first order
-  (`lib/utils/ocpt_budget_projection.dart`), then a footer naming the total falling due and the
+  (`lib/models/rules/ocpt_budget_projection.dart`), then a footer naming the total falling due and the
   balance the account would hold once it has, printing in the error colour once that balance goes
   negative. It draws only while at least one unsettled commitment exists, and carries no empty state
   of its own — a project owing nothing simply has no second card. A row is selectable, never a
@@ -1408,7 +1408,7 @@ are all here, and this file is the whole record of them.
 ## The contributions come off the top, and no remainder is redistributed
 
 - The order the sharing view states things in **is** the rule it exists to make legible, and
-  `lib/utils/ocpt_budget_shares.dart` is where that order is arithmetic rather than layout: the
+  `lib/models/rules/ocpt_budget_shares.dart` is where that order is arithmetic rather than layout: the
   takings come in, the reimbursable contributions are taken off the top, and only what is left is
   anybody's to split. `ocptBudgetReimbursableTotalCents` reads `budget_resources.isReimbursable` —
   the column the resources plan stores and the sharing view reads — and nothing there branches on
@@ -1430,7 +1430,7 @@ are all here, and this file is the whole record of them.
   the three aggregate figures it always kept.** Three aggregate figures could not answer the
   product owner's own question: if Marie lends 100 € three times over, the card had no way to show
   that she is owed 300 €, all at once, ahead of everyone else. `ocptBudgetRepaymentLinesOf`
-  (`lib/utils/ocpt_budget_shares.dart`) groups every **reimbursable** resource by lender —
+  (`lib/models/rules/ocpt_budget_shares.dart`) groups every **reimbursable** resource by lender —
   `budget_resources.personId` when it is set, the resource's own `label` otherwise, so a resource
   naming nobody still earns its own line rather than being lumped into a catch-all, and two
   resources naming nobody but sharing the same label group together, the label being the only thing
@@ -1465,8 +1465,8 @@ are all here, and this file is the whole record of them.
   forget. A taking's own row states what was **expected** — its date, its label, the amount and how
   far its paperwork has got — and the journal states what **arrived**: the sum of the
   `budget_entries` credits naming it through `budget_entries.revenueId`
-  (`ocptBudgetReceivedByRevenueId`, `lib/utils/ocpt_budget_shares.dart`). What a participant has
-  actually been paid is the mirror image, read off the other column: the debits naming them through
+  (`ocptBudgetReceivedByRevenueId`, `lib/models/rules/ocpt_budget_shares.dart`). What a participant
+  has actually been paid is the mirror image, read off the other column: the debits naming them through
   `budget_entries.shareId` (`ocptBudgetPaidByShareId`). Both go through
   `ocptBudgetEntryCreditCentsOf`/`ocptBudgetEntryDebitCentsOf` rather than the raw columns, so a row
   missing the rate it would need is *covered-but-incomplete* rather than wrong, and both answer an
@@ -1623,7 +1623,7 @@ are all here, and this file is the whole record of them.
   The services (`lib/managers/export/services/ocpt_budget_*`) see **no `Tr` at all**: every heading,
   column title, group name, status name and verdict sentence arrives as one of four labels classes
   the mode resolves (`ocptBudgetQuoteLabelsOf` and its three siblings,
-  `lib/ui/utils/ocpt_budget_labels.dart`). Two of those fields are **raw templates** the manager
+  `lib/ui/widgets/helpers/ocpt_budget_labels.dart`). Two of those fields are **raw templates** the manager
   fills in at export time, `{amount} · {coveredCount} of {totalCount} known` and its shortfall
   sibling, because a coverage read-out is built per total, deep inside a service that cannot ask
   `Tr` for anything. `intl_utils` reads any `{word}` in an ARB string as an ICU argument whatever

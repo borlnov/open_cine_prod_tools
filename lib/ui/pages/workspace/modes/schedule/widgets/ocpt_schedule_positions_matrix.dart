@@ -10,14 +10,14 @@ import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_crew_position_prefill.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_day_minute.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_shooting_day_timeline.dart';
 import 'package:open_cine_prod_tools/types/ocpt_crew_department.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_person_avatar.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_empty_mode.dart';
-import 'package:open_cine_prod_tools/ui/utils/ocpt_resources_labels.dart';
-import 'package:open_cine_prod_tools/ui/utils/ocpt_schedule_labels.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_crew_position_prefill.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_day_minute.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_shooting_day_timeline.dart';
+import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_resources_labels.dart';
+import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_schedule_labels.dart';
 
 /// The width of the matrix's own frozen first column — wide enough for the longest crew position
 /// label the `ocptCrewPositions` catalogue prints, department headings included.
@@ -125,9 +125,9 @@ class _OcptPositionsMatrixGroup {
 /// **Rows** are crew positions **held by somebody on at least one live slot of the whole
 /// schedule** — a position nobody has ever convoked prints nothing, exactly as an unused department
 /// heading is never shown either. A row's identity is the pair `(positionId, customLabel)`
-/// [OcptCrewPositionRef] and `lib/utils/ocpt_crew_position_prefill.dart` already model one with.
-/// Catalogue rows are grouped by [OcptCrewDepartment] in the catalogue's own declared order; a
-/// free-label position (`positionId` empty) or one naming a position retired from the catalogue
+/// [OcptCrewPositionRef] and `lib/models/rules/ocpt_crew_position_prefill.dart` already model one
+/// with. Catalogue rows are grouped by [OcptCrewDepartment] in the catalogue's own declared order;
+/// a free-label position (`positionId` empty) or one naming a position retired from the catalogue
 /// (department unresolved) has no department of its own, so every such row is grouped together,
 /// under [Tr.scheduleSlotUnassignedDepartmentLabel] — the exact heading `_OcptScheduleCrewSection`
 /// already shows a slot card's own crew row under for the same reason — sorted alphabetically by

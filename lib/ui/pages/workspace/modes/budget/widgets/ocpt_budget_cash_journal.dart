@@ -13,12 +13,12 @@ import 'package:open_cine_prod_tools/models/ocpt_asset_ref.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_commitment.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_entry.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_poste.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_budget_journal.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_budget_projection.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_selection.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_empty_mode.dart';
-import 'package:open_cine_prod_tools/ui/utils/ocpt_budget_labels.dart';
+import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_budget_labels.dart';
 import 'package:open_cine_prod_tools/ui/widgets/ocpt_horizontal_scroll_view.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_budget_journal.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_budget_projection.dart';
 
 /// The `Date` column's own fixed width, in logical pixels.
 const double _ocptCashJournalDateColumnWidth = 92;
@@ -101,11 +101,11 @@ const double _ocptCashJournalHeaderRowHeight = 36;
 /// unsettled commitment, in [OcptBudgetProjection.steps]' own due-date-first order, then a footer
 /// naming the total falling due and the balance the account would hold once it has. It is built
 /// from [commitments] and the statement's own closing balance, through `ocptBudgetProjectionOf`
-/// (`lib/utils/ocpt_budget_projection.dart`) — never re-sorted here, exactly as that function's own
-/// doc comment argues. **Drawn only while at least one unsettled commitment exists**, and it
-/// carries no empty state of its own: a project owing nothing simply has no second card. Both
-/// sections scroll **together**, as slivers of the very same [CustomScrollView], under the one
-/// fixed header row above them — two independent scroll areas would let a reader scroll the
+/// (`lib/models/rules/ocpt_budget_projection.dart`) — never re-sorted here, exactly as that
+/// function's own doc comment argues. **Drawn only while at least one unsettled commitment
+/// exists**, and it carries no empty state of its own: a project owing nothing simply has no second
+/// card. Both sections scroll **together**, as slivers of the very same [CustomScrollView], under
+/// the one fixed header row above them — two independent scroll areas would let a reader scroll the
 /// statement while `À venir` stayed put, which is not a statement any more.
 ///
 /// **A due row is selectable, never a write** — it dispatches [onCommitmentSelected], opening the

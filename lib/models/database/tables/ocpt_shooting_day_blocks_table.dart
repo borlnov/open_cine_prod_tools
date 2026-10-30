@@ -59,7 +59,8 @@ class OcptShootingBlockKindConverter extends TypeConverter<OcptShootingBlockKind
 /// of parallel chains, one per slot, and a block's own chain is its slot's own, starting from that
 /// slot's own `startMinute` — there is no day-wide chain any more. **How a slot's blocks chain into
 /// actual clock times is stated once and implemented once**, in
-/// `lib/utils/ocpt_shooting_day_timeline.dart` (ADR 0015, amended) — nothing else may re-derive it.
+/// `lib/models/rules/ocpt_shooting_day_timeline.dart` (ADR 0015, amended) — nothing else may
+/// re-derive it.
 @DataClassName('OcptShootingDayBlockRow')
 class OcptShootingDayBlocksTable extends Table {
   /// {@macro open_cine_prod_tools.OcptShootingDayBlocksTable}

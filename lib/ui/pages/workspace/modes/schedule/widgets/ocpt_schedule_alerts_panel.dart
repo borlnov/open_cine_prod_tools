@@ -13,14 +13,14 @@ import 'package:open_cine_prod_tools/models/ocpt_shooting_day.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day_block.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
-import 'package:open_cine_prod_tools/ui/utils/ocpt_schedule_labels.dart';
-import 'package:open_cine_prod_tools/ui/utils/ocpt_warning_color.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_schedule_alerts.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_schedule_alerts.dart';
+import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_schedule_labels.dart';
+import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_warning_color.dart';
 
 /// The right dock's own `Alerts` tab: every [OcptScheduleAlert] the eleven rules of
-/// `lib/utils/ocpt_schedule_alerts.dart` raise over the **whole shoot**, in the order that pure
-/// function already returns them (hard before soft, then day order, then kind order — this widget
-/// never re-sorts).
+/// `lib/models/rules/ocpt_schedule_alerts.dart` raise over the **whole shoot**, in the order that
+/// pure function already returns them (hard before soft, then day order, then kind order — this
+/// widget never re-sorts).
 ///
 /// A card reads as the mock's own alert cards do: a severity-coloured title naming the kind of
 /// problem ([ocptScheduleAlertKindLabel]), then a sentence naming the people, roles, positions,

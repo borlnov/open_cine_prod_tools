@@ -14,9 +14,9 @@ import 'package:open_cine_prod_tools/models/ocpt_shooting_day_block.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_plan_grids.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_plan_xlsx_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_day_minute.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_plan_xlsx_column.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_day_minute.dart';
 
 /// Renders the whole shoot's own shooting plan into the bytes of an XLSX workbook: the same four
 /// summary grids `OcptShootingPlanPdfService` prints as landscape pages — `Locations`, `Sequences`,

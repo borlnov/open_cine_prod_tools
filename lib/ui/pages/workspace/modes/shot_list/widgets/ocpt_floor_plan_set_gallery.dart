@@ -10,8 +10,8 @@ import 'package:open_cine_prod_tools/models/ocpt_floor_plan_sheet.dart';
 import 'package:open_cine_prod_tools/models/ocpt_floor_plan_symbol.dart';
 import 'package:open_cine_prod_tools/models/ocpt_location.dart';
 import 'package:open_cine_prod_tools/models/ocpt_set.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_floor_plan_fit.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_floor_plan_canvas_painter.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_floor_plan_fit.dart';
 
 /// The width, in logical pixels, a gallery card's own thumbnail is drawn at.
 const double _thumbnailWidth = 220;

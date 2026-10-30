@@ -8,10 +8,10 @@ import 'package:open_cine_prod_tools/constants/ocpt_crew_positions.dart';
 import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_crew_position_prefill.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_crew_position_search.dart';
 import 'package:open_cine_prod_tools/types/ocpt_crew_department.dart';
-import 'package:open_cine_prod_tools/ui/utils/ocpt_resources_labels.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_crew_position_prefill.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_crew_position_search.dart';
+import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_resources_labels.dart';
 
 /// The tallest [OcptCrewPositionPickerDialog]'s own scrollable list is ever drawn before it starts
 /// scrolling, in logical pixels — the catalogue's own thirteen departments still have to fit on one

@@ -4,8 +4,8 @@
 
 import 'package:flutter/material.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_day_minute.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_status_bar.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_day_minute.dart';
 
 /// The schedule mode's status band: `N alerts · N episodes · N days · N shots placed · N left to
 /// place`, plus the selected day's own estimated end in the trailing slot — mirroring

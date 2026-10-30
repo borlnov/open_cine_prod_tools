@@ -20,7 +20,7 @@ import 'package:intl/intl.dart';
 import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/types/ocpt_day_part_slot.dart';
-import 'package:open_cine_prod_tools/ui/utils/ocpt_resources_labels.dart';
+import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_resources_labels.dart';
 
 /// The window a row falls back to the first time it is switched to [OcptDayPartSlot.custom]: an
 /// ordinary working day, so the user narrows a plausible window rather than building one from

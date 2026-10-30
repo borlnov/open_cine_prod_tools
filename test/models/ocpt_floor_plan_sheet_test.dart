@@ -7,11 +7,11 @@ import 'package:open_cine_prod_tools/models/ocpt_floor_plan_arrow.dart';
 import 'package:open_cine_prod_tools/models/ocpt_floor_plan_set.dart';
 import 'package:open_cine_prod_tools/models/ocpt_floor_plan_sheet.dart';
 import 'package:open_cine_prod_tools/models/ocpt_floor_plan_symbol.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_floor_plan_character_colour.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_floor_plan_geometry.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_arrow_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_layer.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_set_element_shape.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_floor_plan_character_colour.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_floor_plan_geometry.dart';
 
 /// A symbol with everything but the fields under test defaulted, so each test only spells out
 /// what it actually varies.

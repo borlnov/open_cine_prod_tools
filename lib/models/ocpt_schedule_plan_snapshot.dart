@@ -18,14 +18,14 @@ import 'package:open_cine_prod_tools/models/ocpt_shooting_slot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_list_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_scene_effect.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_schedule_alerts.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_shooting_convocations.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_shooting_day_timeline.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_sun_times.dart';
 import 'package:open_cine_prod_tools/types/ocpt_presence_code.dart';
 import 'package:open_cine_prod_tools/types/ocpt_scene_effect_category.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_scene_effect.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_schedule_alerts.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_shooting_convocations.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_shooting_day_timeline.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_sun_times.dart';
 
 /// The whole schedule read, joined into the day-level facts every reader of the schedule mode is
 /// understood through — a slot's own resolved hours, a day's whole call, its sun times, its first
@@ -52,7 +52,7 @@ import 'package:open_cine_prod_tools/utils/ocpt_sun_times.dart';
 /// [OcptSchedulePlanSnapshot.build], and stored as unmodifiable maps — a caller walking a whole
 /// shoot's worth of days must not rebuild the address book once per day.
 ///
-/// [alerts] is the same idea taken one step further: it is a whole-shoot walk (`lib/utils/
+/// [alerts] is the same idea taken one step further: it is a whole-shoot walk (`lib/models/rules/
 /// ocpt_schedule_alerts.dart`), so it is a `late final` field computed once, on first read, rather
 /// than a getter recomputed on every one — see its own doc comment for why that field is also what
 /// keeps this class from being `const` any more.
@@ -666,11 +666,11 @@ class OcptSchedulePlanSnapshot extends Equatable {
   /// comment), the grid having never needed to restate what the resources mode already recorded.
   ///
   /// The unavailability check here compares calendar dates alone, not the day-part overlap rule 1
-  /// of `lib/utils/ocpt_schedule_alerts.dart` refines against a slot's own band: a person read as
-  /// [OcptPresenceCode.unavailable] here is, by construction, convoked on **no** slot of [dayId] at
-  /// all (the `working` branch above already claimed that case), so there is no band left to refine
-  /// against — the two checks never fire on the same person on the same day, and can therefore
-  /// never disagree.
+  /// of `lib/models/rules/ocpt_schedule_alerts.dart` refines against a slot's own band: a person
+  /// read as [OcptPresenceCode.unavailable] here is, by construction, convoked on **no** slot of
+  /// [dayId] at all (the `working` branch above already claimed that case), so there is no band
+  /// left to refine against — the two checks never fire on the same person on the same day, and can
+  /// therefore never disagree.
   OcptPresenceCode? presenceCellOf({required String dayId, required String personId}) {
     if (_workingPersonIdsByDayId[dayId]?.contains(personId) ?? false) {
       return OcptPresenceCode.working;
@@ -687,10 +687,10 @@ class OcptSchedulePlanSnapshot extends Equatable {
 
   /// Whether any of [person]'s own recorded unavailabilities covers calendar [date] — comparing
   /// dates alone, own time-of-day component dropped, mirroring
-  /// `lib/utils/ocpt_schedule_alerts.dart`'s own private `_dateRangeContains` (duplicated rather
-  /// than shared: that file's own doc comment keeps it free of anything beyond the eleven alert
-  /// rules, and this one-line check creates no risk of disagreement — see [presenceCellOf]'s own
-  /// doc comment for why the two never fire on the same case).
+  /// `lib/models/rules/ocpt_schedule_alerts.dart`'s own private `_dateRangeContains` (duplicated
+  /// rather than shared: that file's own doc comment keeps it free of anything beyond the eleven
+  /// alert rules, and this one-line check creates no risk of disagreement — see [presenceCellOf]'s
+  /// own doc comment for why the two never fire on the same case).
   bool _unavailabilityCoversDate(OcptPerson person, DateTime date) {
     final day = DateTime(date.year, date.month, date.day);
 
@@ -719,8 +719,8 @@ class OcptSchedulePlanSnapshot extends Equatable {
   /// thing that needs to change. A location with no permit document at all, or one recording
   /// neither `OcptAssetRef.validFrom` nor `OcptAssetRef.validUntil`, contributes an **empty**
   /// list — the caller's own reading of "no permit on file", which
-  /// `lib/utils/ocpt_schedule_alerts.dart`'s own permit rule treats identically to a location that
-  /// never declared one at all (that file's own doc comment).
+  /// `lib/models/rules/ocpt_schedule_alerts.dart`'s own permit rule treats identically to a
+  /// location that never declared one at all (that file's own doc comment).
   late final Map<String, List<OcptSchedulePermitWindow>> _permitWindowsByLocationId = {
     for (final location in locations)
       location.id: [
@@ -730,10 +730,10 @@ class OcptSchedulePlanSnapshot extends Equatable {
       ],
   };
 
-  /// Every [OcptScheduleAlert] the eleven rules of `lib/utils/ocpt_schedule_alerts.dart` raise over
-  /// the whole schedule, computed **once**, on first read, rather than per read — see the class doc
-  /// comment and [OcptSchedulePlanSnapshot]'s own constructor doc comment for why this is a
-  /// `late final` field rather than a getter.
+  /// Every [OcptScheduleAlert] the eleven rules of `lib/models/rules/ocpt_schedule_alerts.dart`
+  /// raise over the whole schedule, computed **once**, on first read, rather than per read — see
+  /// the class doc comment and [OcptSchedulePlanSnapshot]'s own constructor doc comment for why
+  /// this is a `late final` field rather than a getter.
   ///
   /// Every join that function needs onto `shots`, `roles`, `people` and `locations` happens here —
   /// [_alertDayOf], [_roleIdByNormalizedName], [_permitWindowsByLocationId] and the location/people

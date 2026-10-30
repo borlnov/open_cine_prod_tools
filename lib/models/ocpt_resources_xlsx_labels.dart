@@ -25,10 +25,10 @@ import 'package:open_cine_prod_tools/types/ocpt_roles_xlsx_column.dart';
 /// differently from the screen.
 ///
 /// [sceneLabels] is the one exception to "every string is a translation": `ocptSceneRefLabel`
-/// lives under `lib/ui/utils/`, which the manager layer must not import, so the UI resolves a
-/// scene's label for every scene id the catalogue might reference and hands the whole map over —
-/// exactly the same trade `OcptShotListXlsxLabels.sequenceTitles` makes for a sequence's own
-/// separator title.
+/// lives under `lib/ui/widgets/helpers/`, which the manager layer must not import, so the UI
+/// resolves a scene's label for every scene id the catalogue might reference and hands the whole
+/// map over — exactly the same trade `OcptShotListXlsxLabels.sequenceTitles` makes for a sequence's
+/// own separator title.
 ///
 /// Every accessor returns an empty string for a key it holds nothing for, exactly as
 /// `OcptShotListXlsxLabels.headerOf`/`.labelOf` do — a missing translation is written as a blank

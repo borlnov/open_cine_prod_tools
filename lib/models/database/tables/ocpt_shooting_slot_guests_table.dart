@@ -12,9 +12,9 @@ import 'package:open_cine_prod_tools/models/database/tables/ocpt_shooting_slots_
 /// book.
 ///
 /// **A guest is convoked by the slot exactly as a crew member or a role is** — see
-/// `lib/utils/ocpt_shooting_convocations.dart` (ADR 0018): this row's [slotId] is one of possibly
-/// several slots the same guest is linked to on the same day, and their arrival and departure are
-/// read off every live slot they are on, joined together, never typed here.
+/// `lib/models/rules/ocpt_shooting_convocations.dart` (ADR 0018): this row's [slotId] is one of
+/// possibly several slots the same guest is linked to on the same day, and their arrival and
+/// departure are read off every live slot they are on, joined together, never typed here.
 ///
 /// **Exactly one of [personId]/[freeName] says who the guest is** — the discriminator idiom
 /// `breakdown_tags` and `shooting_slots.anchorMinute`/`anchorSlotId` already use. [personId] names

@@ -16,10 +16,10 @@ Resources set carries across its three scopes, and the mode's two newest documen
   (keyed to `roleId`, not a free name, since ADR 0030: a shot's characters are the production's own
   roles) and `shot_coverages` (the scenario-coverage ranges `OcptShotCoverageDialog` draws and
   `exports.md`'s scenario coverage PDF prints). A shot's code is `<sceneNumber>/<rank>`, split and
-  joined by `lib/utils/ocpt_shot_code.dart` (`schedule.md`), and its `position` is a read-time rank,
-  never a stored order of its own. The **table** view lists every shot grouped under its sequence,
-  the shot list's own status pill, size, framing, camera move, lens, recording format and a
-  difficulty dot per axis as its own columns (`Columns ▾` picks which show), each cell writing
+  joined by `lib/models/rules/ocpt_shot_code.dart` (`schedule.md`), and its `position` is a
+  read-time rank, never a stored order of its own. The **table** view lists every shot grouped under
+  its sequence, the shot list's own status pill, size, framing, camera move, lens, recording format
+  and a difficulty dot per axis as its own columns (`Columns ▾` picks which show), each cell writing
   straight through except the free-text fields, which ride the sheets' own 2 s autosave debounce.
   The **inspector** (`OcptShotInspectorPanel`) is the sheet for the selected shot: the same
   free-text fields as read-write inputs, the cast chips reading the production's whole cast rather
@@ -63,7 +63,7 @@ Resources set carries across its three scopes, and the mode's two newest documen
   vocabulary — `movementArrow`, `cameraMoveArrow`, `label` — no freehand drawing of any kind, and
   its `x1`/`y1`/`x2`/`y2` are **normalised 0..1 to the frame**, so a replaced image of another size
   keeps the marks where they were. `ocptStoryboardAnnotationPointOf`
-  (`lib/utils/ocpt_storyboard_annotation_geometry.dart`) is the one function that turns a normalised
+  (`lib/models/rules/ocpt_storyboard_annotation_geometry.dart`) is the one function that turns a normalised
   coordinate into a drawn point, read alike by the board's own overlay painter and the storyboard
   PDF, so a mark can never draw at two different places between screen and paper. `OcptStoryboardService`
   owns the CRUD (`addPanel`, `reorderPanel` writing exactly one `sortKey`, `replacePanelImage`,
@@ -77,7 +77,7 @@ Resources set carries across its three scopes, and the mode's two newest documen
   and an `OcptStoryboardPanelStrip` on the right — one frame per panel at a shared row height (the
   header's own `Panel size ▾`, a **view preference for the session alone**, never persisted to the
   project) and each frame's own **derived aspect ratio** (`ocptAspectRatioOf`,
-  `lib/utils/ocpt_storyboard_aspect_ratio.dart`: a `width:height`/`width/height` pair or a bare
+  `lib/models/rules/ocpt_storyboard_aspect_ratio.dart`: a `width:height`/`width/height` pair or a bare
   decimal read out of the shot's free-text `recordingFormat`, falling back to **16:9** when neither
   is found), the board heterogeneous on purpose. A shot with no panel shows a dashed
   `+ Import frame` slot alone. Reordering a panel is a drag inside the strip; drawing an annotation
@@ -185,7 +185,7 @@ Resources set carries across its three scopes, and the mode's two newest documen
 
   **Framing.** Opening a set — from the Resources reveal below or by switching tab — fits the view
   to the plan's own content once, and a toolbar `Recenter` control repeats that fit on demand
-  (`ocptFloorPlanFitOf`, `lib/utils/ocpt_floor_plan_fit.dart`: the sheet's own tight, rotated
+  (`ocptFloorPlanFitOf`, `lib/models/rules/ocpt_floor_plan_fit.dart`: the sheet's own tight, rotated
   bounding box over every symbol, arrow and the underlay, centred in the viewport with a margin,
   never zooming in past a ceiling for a very small room). **Drawing is data**: `OcptFloorPlanSheet`
   (`lib/models/ocpt_floor_plan_sheet.dart`, pure Dart, no Flutter and no `pdf` import, the sibling of

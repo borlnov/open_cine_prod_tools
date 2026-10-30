@@ -5,7 +5,7 @@
 import 'package:flutter/material.dart';
 import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
-import 'package:open_cine_prod_tools/ui/utils/ocpt_fountain_line_type_labels.dart';
+import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_fountain_line_type_labels.dart';
 
 /// The right-click context menu of the styled screenplay editor: up to five spelling suggestions,
 /// `Ignore this word` and `Add to the project's dictionary`, Cut, Copy, Paste, Select all, and the

@@ -4,7 +4,7 @@
 
 import 'package:equatable/equatable.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_scene_display_number.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_scene_display_number.dart';
 
 /// A screenplay scene as another production mode refers to it: enough to name it in a picker and
 /// to match its heading, never enough to render it.

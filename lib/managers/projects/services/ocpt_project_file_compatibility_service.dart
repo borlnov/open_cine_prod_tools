@@ -6,8 +6,8 @@ import 'dart:io';
 
 import 'package:act_global_manager/act_global_manager.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_file_compatibility.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_app_version.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_file_verdict.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_app_version.dart';
 import 'package:path/path.dart' as p;
 import 'package:sqlite3/sqlite3.dart';
 

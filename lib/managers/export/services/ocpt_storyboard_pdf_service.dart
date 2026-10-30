@@ -21,9 +21,9 @@ import 'package:open_cine_prod_tools/models/ocpt_storyboard_annotation.dart';
 import 'package:open_cine_prod_tools/models/ocpt_storyboard_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_storyboard_panel.dart';
 import 'package:open_cine_prod_tools/models/ocpt_storyboard_snapshot.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_storyboard_annotation_geometry.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_storyboard_aspect_ratio.dart';
 import 'package:open_cine_prod_tools/types/ocpt_storyboard_annotation_kind.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_storyboard_annotation_geometry.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_storyboard_aspect_ratio.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 
@@ -510,12 +510,13 @@ class OcptStoryboardPdfService {
 
   /// Draws every arrow's shaft and head, and every label's own anchor dot, over a frame of [size],
   /// from the very same shared pure rule `OcptStoryboardAnnotationOverlayPainter` reads,
-  /// `ocptStoryboardAnnotationPointOf` (`lib/utils/ocpt_storyboard_annotation_geometry.dart`) —
-  /// see this class's own doc comment. A label's own text is a separate [pw.Text] overlay
-  /// ([_annotationCaptionOverlays]): `pdf`'s low-level `PdfGraphics.drawString` takes a `PdfFont`
-  /// the widget-level `pw.Font` this app's `OcptCourierPrimeFonts` hands out cannot be converted
-  /// to outside of a build context, the same reason `OcptFloorPlanPdfService` keeps every caption
-  /// it prints out of its own `CustomPaint` calls.
+  /// `ocptStoryboardAnnotationPointOf`
+  /// (`lib/models/rules/ocpt_storyboard_annotation_geometry.dart`) — see this class's own doc
+  /// comment. A label's own text is a separate [pw.Text] overlay ([_annotationCaptionOverlays]):
+  /// `pdf`'s low-level `PdfGraphics.drawString` takes a `PdfFont` the widget-level `pw.Font` this
+  /// app's `OcptCourierPrimeFonts` hands out cannot be converted to outside of a build context, the
+  /// same reason `OcptFloorPlanPdfService` keeps every caption it prints out of its own
+  /// `CustomPaint` calls.
   void _paintAnnotationMarks(
     PdfGraphics canvas,
     PdfPoint size,

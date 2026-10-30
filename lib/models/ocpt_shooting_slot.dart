@@ -21,10 +21,10 @@ import 'package:open_cine_prod_tools/types/ocpt_shooting_slot_anchor_edge.dart';
 /// **[anchorEdge] plus exactly one of [anchorMinute]/[anchorSlotId] is the whole of what this slot
 /// says about time**, and a stored minute may exceed 1440. See `OcptShootingSlotsTable`'s own doc
 /// comment: where this slot actually starts and ends is computed, never read off a column here —
-/// `lib/utils/ocpt_shooting_day_timeline.dart` (ADR 0015, amended twice) and
-/// `lib/utils/ocpt_shooting_convocations.dart` (ADR 0018). A widget that wants "the hour of this
-/// slot" reads its resolved `OcptShootingSlotTimeline.startMinute`, not [anchorMinute], which is
-/// null the moment the edge is linked and is the *end* whenever [anchorEdge] is
+/// `lib/models/rules/ocpt_shooting_day_timeline.dart` (ADR 0015, amended twice) and
+/// `lib/models/rules/ocpt_shooting_convocations.dart` (ADR 0018). A widget that wants "the hour of
+/// this slot" reads its resolved `OcptShootingSlotTimeline.startMinute`, not [anchorMinute], which
+/// is null the moment the edge is linked and is the *end* whenever [anchorEdge] is
 /// [OcptShootingSlotAnchorEdge.end].
 class OcptShootingSlot extends Equatable {
   /// The stable, unique id of this slot (a UUID).

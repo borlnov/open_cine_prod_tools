@@ -11,9 +11,9 @@ import 'package:archive/archive_io.dart';
 import 'package:open_cine_prod_tools/constants/ocpt_project_file.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_package_manifest.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_package_report.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_erased_person_scrub.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_safe_file_name.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_package_status.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_erased_person_scrub.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_safe_file_name.dart';
 import 'package:path/path.dart' as p;
 import 'package:sqlite3/sqlite3.dart';
 

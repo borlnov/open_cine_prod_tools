@@ -17,10 +17,10 @@ import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role.dart';
 import 'package:open_cine_prod_tools/models/ocpt_set.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_breakdown_scene_bars.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_entries_xlsx_column.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_scenes_xlsx_column.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_target_kind.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_breakdown_scene_bars.dart';
 
 /// Renders a project's whole breakdown into the bytes of an XLSX workbook: a `Scenes` sheet, one
 /// row per scene, and a `Breakdown` sheet, one row per **distinct** target tagged in a scene — the
@@ -204,8 +204,8 @@ class OcptBreakdownXlsxExportService {
 
   /// The sets [sets] holding [scene]'s own id among their own `sceneIds`, named
   /// `<set> · <location>` and joined — the scene inspector's own sets row, read here rather than
-  /// through `ocptBreakdownSetLabel` (`lib/ui/utils/`, out of reach from the manager layer this
-  /// service sits in) so the composition is inlined instead, mirroring
+  /// through `ocptBreakdownSetLabel` (`lib/ui/widgets/helpers/`, out of reach from the manager
+  /// layer this service sits in) so the composition is inlined instead, mirroring
   /// `OcptResourcesXlsxExportService._isoDate`'s own doc comment for why.
   String _linkedSetsTextOf({
     required OcptBreakdownScene scene,

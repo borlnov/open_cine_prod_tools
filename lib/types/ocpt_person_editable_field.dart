@@ -64,9 +64,9 @@ enum OcptPersonField {
   ///
   /// Typed but not stored as text, mirroring [maxDailyPresenceMinutes]: the bloc reads what was
   /// typed as a distance in thousandths of a kilometre (`ocptBudgetQuantityMilliOf`,
-  /// `lib/ui/utils/ocpt_budget_labels.dart` — the very parser the quote lines' own quantity field
-  /// already uses) and writes null for anything it cannot, so a half-typed figure never blocks the
-  /// field and never lands as a distance either.
+  /// `lib/ui/widgets/helpers/ocpt_budget_labels.dart` — the very parser the quote lines' own
+  /// quantity field already uses) and writes null for anything it cannot, so a half-typed figure
+  /// never blocks the field and never lands as a distance either.
   commuteKmMilli,
 
   /// Maps to `updatePerson`'s `accommodationNotes`.

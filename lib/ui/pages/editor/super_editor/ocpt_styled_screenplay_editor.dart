@@ -9,6 +9,9 @@ import 'package:flutter/material.dart';
 import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_script_page_number.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_spell_checked_lines.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_text_search.dart';
 import 'package:open_cine_prod_tools/types/ocpt_inline_style.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/ocpt_editor_search.dart';
@@ -29,9 +32,6 @@ import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_c
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_edit_requests.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_context_menu.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_preview_layout.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_script_page_number.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_spell_checked_lines.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_text_search.dart';
 import 'package:spell_kit/spell_kit.dart';
 import 'package:super_editor/super_editor.dart';
 

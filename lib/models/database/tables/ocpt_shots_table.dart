@@ -83,7 +83,7 @@ class OcptShotsTable extends Table {
   /// (`docs/adr/0010-sync-ready-data-model-prerequisites.md`): the dense `position` renumbering it
   /// replaced turned one user action into as many candidate conflicts as the group had rows, and
   /// made two concurrent insertions at the same index collide instead of coexisting. See
-  /// `lib/utils/ocpt_fractional_key.dart` for how a key is allocated.
+  /// `lib/models/rules/ocpt_fractional_key.dart` for how a key is allocated.
   /// {@endtemplate}
   TextColumn get sortKey => text().withDefault(const Constant(''))();
 

@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:equatable/equatable.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_shooting_day_timeline.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_shooting_day_timeline.dart';
 
 /// One slot's own column, as fed to [OcptShootingDayAgendaGrid.of]: its id, its already-resolved
 /// [OcptShootingSlotTimeline] and the caption every one of its own blocks prints on its tile.

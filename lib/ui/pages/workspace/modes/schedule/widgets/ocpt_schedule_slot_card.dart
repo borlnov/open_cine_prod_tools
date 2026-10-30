@@ -20,18 +20,18 @@ import 'package:open_cine_prod_tools/models/ocpt_shooting_slot_crew_member.dart'
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot_guest.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_crew_position_prefill.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_day_minute.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_shooting_day_timeline.dart';
 import 'package:open_cine_prod_tools/types/ocpt_crew_department.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_slot_anchor_edge.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_status.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_minute_field.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_timetable.dart';
-import 'package:open_cine_prod_tools/ui/utils/ocpt_resources_labels.dart';
-import 'package:open_cine_prod_tools/ui/utils/ocpt_schedule_labels.dart';
+import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_resources_labels.dart';
+import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_schedule_labels.dart';
 import 'package:open_cine_prod_tools/ui/widgets/ocpt_crew_position_picker_dialog.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_crew_position_prefill.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_day_minute.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_shooting_day_timeline.dart';
 
 /// The value the "no location" entry of the location picker menu carries, distinct from every
 /// location id — a [PopupMenuButton] cannot carry a null value for an entry that must still be
@@ -1203,7 +1203,7 @@ class _OcptScheduleSlotPeopleState extends State<_OcptScheduleSlotPeople> {
 /// **This is where a crew row's picker learns what to promote and what to refuse** —
 /// [_prefillFor] joins each member's own person's declared `person_positions` against every other
 /// live crew row of [crew] naming that same person, through `ocptCrewPositionPrefillOf`
-/// (`lib/utils/`): the promoted list and the taken set travel down to
+/// (`lib/models/rules/`): the promoted list and the taken set travel down to
 /// [_OcptScheduleCrewMemberRow] rather than being recomputed inside its own menu builder.
 class _OcptScheduleCrewSection extends StatelessWidget {
   /// The slot's own crew assignments, in `sortKey` order.

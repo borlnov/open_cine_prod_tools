@@ -18,9 +18,9 @@ import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_config_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_responsive.dart';
 import 'package:open_cine_prod_tools/ui/main_app/main_app_bloc.dart';
 import 'package:open_cine_prod_tools/ui/main_app/main_app_state.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_responsive.dart';
 
 /// The extra factor the mobile UI is scaled up by, on top of `flutter_screenutil`'s own
 /// design-size scaling.

@@ -8,12 +8,12 @@ import 'package:ocpt_sync_protocol/ocpt_sync_protocol.dart';
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_merge_service.dart';
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_remote_storage.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_row_stamp_key.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_sql_column_name.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_synchronised_tables.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_changeset.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_field_stamp.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_screenplay_merge_conflict.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_row_stamp_key.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_sql_column_name.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_synchronised_tables.dart';
 import 'package:uuid/uuid.dart';
 
 /// Turns a replica's own un-pushed local edits into a changeset and appends it to a relay

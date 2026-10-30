@@ -13,18 +13,18 @@ import 'package:open_cine_prod_tools/models/ocpt_budget_entry.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_poste.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_budget_allowances.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_budget_journal.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_budget_regie.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_budget_reimbursements.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_budget_totals.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_feed_card.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_empty_mode.dart';
-import 'package:open_cine_prod_tools/ui/utils/ocpt_budget_labels.dart';
-import 'package:open_cine_prod_tools/ui/utils/ocpt_schedule_labels.dart';
-import 'package:open_cine_prod_tools/ui/utils/ocpt_warning_color.dart';
+import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_budget_labels.dart';
+import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_schedule_labels.dart';
+import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_warning_color.dart';
 import 'package:open_cine_prod_tools/ui/widgets/ocpt_horizontal_scroll_view.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_budget_allowances.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_budget_journal.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_budget_regie.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_budget_reimbursements.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_budget_totals.dart';
 
 /// The width, in logical pixels, under which the two columns stack instead of sitting side by
 /// side — see "A stacked pane states its height" in `docs/architecture/budget.md`, raised a
@@ -192,7 +192,7 @@ int _ocptRegieAllowanceGroupCountOf(List<OcptBudgetAllowance> allowances) {
 /// gesture are **withheld, never disabled**, expressed as null callbacks.
 ///
 /// **A meal is read off the day's own timetable, one sitting per meal block.**
-/// [ocptBudgetRegieDaysOf] (`lib/utils/ocpt_budget_regie.dart`) reads every
+/// [ocptBudgetRegieDaysOf] (`lib/models/rules/ocpt_budget_regie.dart`) reads every
 /// [OcptShootingBlockKind.meal] block of a day, over that block's own slot alone — a day with a
 /// lunch and a dinner block feeds its heads twice, and a day whose timetable holds no meal block at
 /// all feeds nobody. That absence prints as [ocptBudgetEmptyValue] in the `Meals` column rather
@@ -243,8 +243,8 @@ class OcptBudgetRegie extends StatelessWidget {
 
   /// What has actually been reimbursed against each defrayed person, keyed by their own id — the
   /// tax-inclusive sum of every `budget_entries` debit naming them,
-  /// `ocptBudgetReimbursedByPersonId` (`lib/utils/ocpt_budget_reimbursements.dart`). A person with
-  /// no key here has been reimbursed nothing at all.
+  /// `ocptBudgetReimbursedByPersonId` (`lib/models/rules/ocpt_budget_reimbursements.dart`). A
+  /// person with no key here has been reimbursed nothing at all.
   final Map<String, OcptBudgetCoveredTotal> reimbursedByPersonId;
 
   /// The project's default VAT rate, in basis points, or null while nobody has recorded one — what

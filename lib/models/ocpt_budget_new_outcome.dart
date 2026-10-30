@@ -10,7 +10,7 @@ import 'package:open_cine_prod_tools/models/ocpt_budget_line_form_fields.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_resource_form_fields.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_revenue_form_fields.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_share_form_fields.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_budget_match.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_budget_match.dart';
 
 /// What `OcptBudgetNewDialog` (the capture wizard) collected, handed back to the mode that opened
 /// it — one variant per payload the mode has to dispatch, one `OcptBudgetGesture` mapping onto

@@ -18,6 +18,7 @@ import 'package:open_cine_prod_tools/managers/projects/services/ocpt_project_dic
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_screenplay_service.dart';
 import 'package:open_cine_prod_tools/models/ocpt_open_project_model.dart';
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_spell_checked_lines.dart';
 import 'package:open_cine_prod_tools/types/ocpt_editor_mode.dart';
 import 'package:open_cine_prod_tools/types/ocpt_editor_right_dock_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
@@ -30,8 +31,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project_versions_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_project_versions_events.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock.dart';
-import 'package:open_cine_prod_tools/ui/utils/ocpt_current_scene_index.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_spell_checked_lines.dart';
+import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_current_scene_index.dart';
 import 'package:spell_kit/spell_kit.dart';
 
 /// This is the bloc class for the editor page.

@@ -13,12 +13,12 @@ import 'package:open_cine_prod_tools/models/database/tables/ocpt_shooting_slots_
 /// line.
 ///
 /// **This row's arrival and PAT band are computed, never typed** — see
-/// `lib/utils/ocpt_shooting_convocations.dart` (ADR 0018): a person is convoked by being linked to
-/// a slot, and every figure about them (arrival, PAT band, departure) is read off every live slot
-/// of the day this row's own [slotId] is one of, joined with every other slot the same person is
-/// linked to. Nothing here says "how long before" any more — a production that wants somebody
-/// there earlier creates the slot that says so (a make-up call, a rigging call) and links them to
-/// it, rather than typing a lead time beside an ordinary convocation.
+/// `lib/models/rules/ocpt_shooting_convocations.dart` (ADR 0018): a person is convoked by being
+/// linked to a slot, and every figure about them (arrival, PAT band, departure) is read off every
+/// live slot of the day this row's own [slotId] is one of, joined with every other slot the same
+/// person is linked to. Nothing here says "how long before" any more — a production that wants
+/// somebody there earlier creates the slot that says so (a make-up call, a rigging call) and links
+/// them to it, rather than typing a lead time beside an ordinary convocation.
 @DataClassName('OcptShootingSlotCrewRow')
 class OcptShootingSlotCrewTable extends Table {
   /// {@macro open_cine_prod_tools.OcptShootingSlotCrewTable}

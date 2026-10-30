@@ -9,18 +9,18 @@ import 'package:open_cine_prod_tools/models/ocpt_budget_commitment.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_entry.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_line.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_poste.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_budget_journal.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_budget_projection.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_budget_totals.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_budget_tree.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_budget_vat.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_responsive.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_selection.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_tax_basis.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_feed_card.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_empty_mode.dart';
-import 'package:open_cine_prod_tools/ui/utils/ocpt_budget_labels.dart';
+import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_budget_labels.dart';
 import 'package:open_cine_prod_tools/ui/widgets/ocpt_horizontal_scroll_view.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_budget_journal.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_budget_projection.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_budget_totals.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_budget_tree.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_budget_vat.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_responsive.dart';
 
 /// The `N°` column's own fixed width, in logical pixels — detailed header only.
 const double _ocptCostTrackingNumberColumnWidth = 44;
@@ -148,11 +148,11 @@ const String _ocptCostTrackingOffQuoteNodeId = "off-quote";
 ///
 /// [paidByPosteId] and [committedCentsOf] read the cash journal's own per-poste totals
 /// (`OcptBudgetState.paidByPosteId`/`committedCentsOf`, backed by
-/// `lib/utils/ocpt_budget_journal.dart`/`ocpt_budget_projection.dart`): a poste with no entry or
-/// commitment against it answers **0**, honestly, rather than a stand-in for an unknown figure —
-/// the journal exists and is kept, so "nothing has moved" is a fact this table can state outright.
-/// `Payé`, `Engagé`, `Reste` and `Écart` therefore always print a real amount at poste level. A
-/// quote line's own `Engagé`/`Payé` are read the very same honest way, through
+/// `lib/models/rules/ocpt_budget_journal.dart`/`ocpt_budget_projection.dart`): a poste with no
+/// entry or commitment against it answers **0**, honestly, rather than a stand-in for an unknown
+/// figure — the journal exists and is kept, so "nothing has moved" is a fact this table can state
+/// outright. `Payé`, `Engagé`, `Reste` and `Écart` therefore always print a real amount at poste
+/// level. A quote line's own `Engagé`/`Payé` are read the very same honest way, through
 /// [ocptBudgetLineCommittedTotalOf]/[ocptBudgetLinePaidTotalOf] — pure functions of [commitments]
 /// and [entries], narrowed to the one line each row draws.
 ///
@@ -183,7 +183,7 @@ const String _ocptCostTrackingOffQuoteNodeId = "off-quote";
 ///
 /// **`_buildRows` folds one extra row into the tree, `Off quote`, after the last poste and before
 /// the `Total` row** — the total of every debit naming no poste at all
-/// (`ocptBudgetOffQuotePaidTotalOf`, `lib/utils/ocpt_budget_journal.dart`), which
+/// (`ocptBudgetOffQuotePaidTotalOf`, `lib/models/rules/ocpt_budget_journal.dart`), which
 /// [paidByPosteId] never keys at all. It is drawn only while some such debit exists and only its
 /// own `Payé` cell carries a figure; it is not a poste, so it carries no `N°`, no `⋮` menu and no
 /// selection of its own — see `_OcptCostTrackingOffQuoteIdentityRow`'s own doc comment. **It gains
@@ -263,7 +263,7 @@ class OcptBudgetCostTracking extends StatelessWidget {
   /// A poste's own in-kind covered total, in cents — the settled bucket a counterpart quote line
   /// contributes (`OcptBudgetState.inKindCoveredCentsOf`), folded alongside [paidByPosteId] and
   /// [committedCentsOf] into `Reste`/`Écart` so a counterpart line never reads as an unspent
-  /// remainder — see `lib/utils/ocpt_budget_totals.dart`'s own doc comments.
+  /// remainder — see `lib/models/rules/ocpt_budget_totals.dart`'s own doc comments.
   final int Function(String posteId) inKindCoveredCentsOf;
 
   /// The total of every debit that names no poste at all — see the class doc comment.

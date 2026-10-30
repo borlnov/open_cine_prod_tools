@@ -13,7 +13,7 @@ import 'package:open_cine_prod_tools/models/ocpt_script_word_layout.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_coverage_range.dart';
 import 'package:open_cine_prod_tools/models/ocpt_specific_colors.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_preview_layout.dart';
-import 'package:open_cine_prod_tools/ui/utils/ocpt_fountain_line_display.dart';
+import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_fountain_line_display.dart';
 
 /// The alpha applied to [ColorScheme.primary] for text covered by the shot being edited: strong
 /// enough to read at a glance, on the simulated paper sheet, as "this shot films this text".

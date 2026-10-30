@@ -11,10 +11,10 @@ import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart'
 /// `OcptShootingSlotGuestsTable`'s own doc comment.
 ///
 /// **This row's arrival and departure are computed, never typed** — see
-/// `lib/utils/ocpt_shooting_convocations.dart` (ADR 0018): this row's [slotId] is one of possibly
-/// several slots this guest is linked to on the same day, and every figure about them is read off
-/// every live slot they are on, joined together. A guest never carries a PAT band, whatever
-/// shooting blocks the slot holds — they are not there to shoot.
+/// `lib/models/rules/ocpt_shooting_convocations.dart` (ADR 0018): this row's [slotId] is one of
+/// possibly several slots this guest is linked to on the same day, and every figure about them is
+/// read off every live slot they are on, joined together. A guest never carries a PAT band,
+/// whatever shooting blocks the slot holds — they are not there to shoot.
 class OcptShootingSlotGuest extends Equatable {
   /// The stable, unique id of this attendance (a UUID).
   final String id;

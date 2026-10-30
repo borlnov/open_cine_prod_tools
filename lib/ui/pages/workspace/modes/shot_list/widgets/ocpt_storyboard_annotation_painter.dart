@@ -8,8 +8,8 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
 import 'package:open_cine_prod_tools/models/ocpt_storyboard_annotation.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_storyboard_annotation_geometry.dart';
 import 'package:open_cine_prod_tools/types/ocpt_storyboard_annotation_kind.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_storyboard_annotation_geometry.dart';
 
 /// The length, in logical pixels, of an arrow's own head.
 const double _headLength = 12;
@@ -29,12 +29,12 @@ const double _handleRadius = 4;
 /// **Coordinate convention**: every mark's `x1`/`y1`/`x2`/`y2` is normalised 0..1 to the frame —
 /// see `OcptStoryboardAnnotationsTable`'s own doc comment — and is mapped to this painter's own
 /// [Size] through the shared pure rule `ocptStoryboardAnnotationPointOf`
-/// (`lib/utils/ocpt_storyboard_annotation_geometry.dart`), a plain product against the frame's own
-/// width/height that `OcptStoryboardPdfService` (the storyboard PDF) reads the very same way,
-/// so a panel's marks can never draw at two different places between screen and paper. No other
-/// transform, offset or clamp is applied by the painter itself (the gesture layer that produces
-/// these coordinates is what clamps them to 0..1 before they ever reach a stored row). An arrow's
-/// head is the second
+/// (`lib/models/rules/ocpt_storyboard_annotation_geometry.dart`), a plain product against the
+/// frame's own width/height that `OcptStoryboardPdfService` (the storyboard PDF) reads the very
+/// same way, so a panel's marks can never draw at two different places between screen and paper. No
+/// other transform, offset or clamp is applied by the painter itself (the gesture layer that
+/// produces these coordinates is what clamps them to 0..1 before they ever reach a stored row). An
+/// arrow's head is the second
 /// point (`x2`/`y2`); its **arrowhead** is drawn as two strokes of [_headLength] logical pixels,
 /// each turned [_headHalfAngle] radians off the shaft's own direction, meeting only at the tip —
 /// filled solid for a [OcptStoryboardAnnotationKind.movementArrow] (an "in frame" movement), left

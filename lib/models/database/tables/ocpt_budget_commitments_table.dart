@@ -42,7 +42,7 @@ class OcptBudgetCommitmentStatusConverter
 /// in a single instalment, and a deposit followed by a balance needed a second commitment standing
 /// in for the second payment. Settlement is read the other way round now, off
 /// `OcptBudgetEntriesTable.commitmentId`: an entry names the commitment it pays, several entries
-/// may name the very same one, and `lib/utils/ocpt_budget_projection.dart`'s own
+/// may name the very same one, and `lib/models/rules/ocpt_budget_projection.dart`'s own
 /// `ocptBudgetCommitmentIsSettledOf` says whether the sum of them has reached this row's own
 /// `amountCents` — exactly the reading `OcptBudgetResourcesTable`'s own doc comment already argues
 /// for a financing resource's "received" figure: summed off the ledger, on every read, never a

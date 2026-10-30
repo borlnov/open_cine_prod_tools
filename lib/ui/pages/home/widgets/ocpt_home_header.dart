@@ -4,8 +4,8 @@
 
 import 'package:flutter/material.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_responsive.dart';
 import 'package:open_cine_prod_tools/ui/widgets/ocpt_logo.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_responsive.dart';
 
 /// The side of the application logo standing next to the home page's title: big enough to read as
 /// the app's mark on the one page that has room for it, small enough to stay under the title's own

@@ -23,6 +23,14 @@ import 'package:open_cine_prod_tools/models/ocpt_project_package_report.dart';
 import 'package:open_cine_prod_tools/models/ocpt_workspace_export_entry.dart';
 import 'package:open_cine_prod_tools/models/ocpt_workspace_export_pick.dart';
 import 'package:open_cine_prod_tools/models/ocpt_workspace_reveal_request.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_budget_financing.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_budget_match.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_budget_projection.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_budget_provision.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_budget_reimbursements.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_budget_shares.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_budget_totals.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_responsive.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_commitment_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_export_document.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_gesture.dart';
@@ -69,19 +77,11 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_r
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_shell.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/workspace_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/workspace_event.dart';
-import 'package:open_cine_prod_tools/ui/utils/ocpt_budget_labels.dart';
-import 'package:open_cine_prod_tools/ui/utils/ocpt_project_package_missing_files_confirm.dart';
-import 'package:open_cine_prod_tools/ui/utils/ocpt_project_package_notice_message.dart';
-import 'package:open_cine_prod_tools/ui/utils/ocpt_project_version_notice_message.dart';
+import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_budget_labels.dart';
+import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_project_package_missing_files_confirm.dart';
+import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_project_package_notice_message.dart';
+import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_project_version_notice_message.dart';
 import 'package:open_cine_prod_tools/ui/widgets/ocpt_confirm_dialog.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_budget_financing.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_budget_match.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_budget_projection.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_budget_provision.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_budget_reimbursements.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_budget_shares.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_budget_totals.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_responsive.dart';
 
 /// The budget production mode: four chips — `Tableau de bord`, `Dépenses`, `Ressources`, `Outils`
 /// — and `Inspector`, `Versions` and `Help` in the right dock. **No left dock**: the mockup draws
@@ -1484,7 +1484,7 @@ class _BudgetViewState extends State<_BudgetView> {
   }
 
   /// Resolves the most recently recorded live credit against [resource]
-  /// (`ocptBudgetLatestReceiptEntryIdOf`, `lib/utils/ocpt_budget_financing.dart`), asks
+  /// (`ocptBudgetLatestReceiptEntryIdOf`, `lib/models/rules/ocpt_budget_financing.dart`), asks
   /// `OcptConfirmDialog` whether it really is to be undone, then dispatches its deletion — the very
   /// same `OcptBudgetEntryDeletionConfirmedEvent` the cash journal's own `Delete` already uses,
   /// tombstoning the entry rather than un-receiving the resource through any figure of its own

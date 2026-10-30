@@ -13,9 +13,9 @@ import 'package:open_cine_prod_tools/models/ocpt_budget_quote_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_money.dart';
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_budget_totals.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_budget_vat.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_tax_basis.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_budget_totals.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_budget_vat.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 
@@ -64,9 +64,9 @@ const Map<int, pw.TableColumnWidth> _columnWidths = {
 /// export of this app measures a sheet with and the Courier Prime variants all of them print in.
 ///
 /// **Every amount is converted row by row, then summed** — never a summed total converted by one
-/// rate — exactly the reading `lib/utils/ocpt_budget_totals.dart` already gives the cost-tracking
-/// table, and for the same reason: a table mixing tax-inclusive and tax-exclusive lines, or lines
-/// at different rates, would otherwise total wrong. Wherever a total is not
+/// rate — exactly the reading `lib/models/rules/ocpt_budget_totals.dart` already gives the
+/// cost-tracking table, and for the same reason: a table mixing tax-inclusive and tax-exclusive
+/// lines, or lines at different rates, would otherwise total wrong. Wherever a total is not
 /// [OcptBudgetCoveredTotal.isComplete], this document prints the coverage read-out
 /// `ocptBudgetExportCoveredAmountText` builds from [OcptBudgetQuoteLabels.coverageReadOutTemplate],
 /// beside it, rather than a figure standing in for the rows it does not cover.
@@ -383,7 +383,7 @@ class OcptBudgetQuotePdfService {
 
   /// [money]'s own amount, read in [taxBasis] — the single place this service picks between
   /// [ocptExcludingTaxAmountCentsOf] and [ocptIncludingTaxAmountCentsOf], both of them
-  /// `lib/utils/ocpt_budget_vat.dart`'s own "null, never zero" readings.
+  /// `lib/models/rules/ocpt_budget_vat.dart`'s own "null, never zero" readings.
   int? _amountInBasisCentsOf(
     OcptMoney money, {
     required OcptBudgetTaxBasis taxBasis,

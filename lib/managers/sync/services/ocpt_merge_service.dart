@@ -6,13 +6,13 @@ import 'package:act_global_manager/act_global_manager.dart';
 import 'package:drift/drift.dart';
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_screenplay_merge_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_row_stamp_key.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_row_stamp_winner.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_sql_column_name.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_synchronised_tables.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_changeset.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_field_stamp.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_screenplay_merge_conflict.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_row_stamp_key.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_row_stamp_winner.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_sql_column_name.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_synchronised_tables.dart';
 
 /// Applies an incoming [OcptChangeset] to a project's own file, per column: the **inbound** half of
 /// the changeset engine (`docs/architecture/sync.md`), and the one that actually makes two replicas

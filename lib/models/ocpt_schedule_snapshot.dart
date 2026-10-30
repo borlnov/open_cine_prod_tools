@@ -21,10 +21,10 @@ import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
 /// order (i.e. `sortKey` order); each day's [slotsByDayId] entry is in `sortKey` order, each slot
 /// carrying its own live crew, cast and guests already nested
 /// (`OcptShootingSlot.crew`/`.cast`/`.guests`); each day's [blocksByDayId] entry is in `sortKey`
-/// order too — the timetable order `lib/utils/ocpt_shooting_day_timeline.dart` reads to chain a
-/// slot's clock, this snapshot deferring to it for every clock time rather than computing one; each
-/// day's [eventsByDayId] entry is ordered by [OcptShootingDayEvent.minute], ties broken by
-/// `sortKey` — an event's own hour, not a chain, being the only thing that orders it.
+/// order too — the timetable order `lib/models/rules/ocpt_shooting_day_timeline.dart` reads to
+/// chain a slot's clock, this snapshot deferring to it for every clock time rather than computing
+/// one; each day's [eventsByDayId] entry is ordered by [OcptShootingDayEvent.minute], ties broken
+/// by `sortKey` — an event's own hour, not a chain, being the only thing that orders it.
 class OcptScheduleSnapshot extends Equatable {
   /// Every live day, in [OcptShootingDay.dayNumber] order.
   final List<OcptShootingDay> days;

@@ -75,10 +75,10 @@ the persistence, the project versions, the sync-ready data model and the read-on
   is no `episodes` table, which would be a 1:1 indirection nothing reads. `OcptEpisode`
   (`lib/models/`, pure: `id`, `number`, `title`) is how the UI reads one, an **untitled** episode
   being ordinary — a series is numbered long before it is titled, and `ocptWorkspaceEpisodeLabelOf`
-  (`lib/ui/utils/`) is the single place `Episode 3` is worded from. `OcptScreenplayService` owns the
-  CRUD (`loadEpisodes`, `createEpisode`, `updateEpisode`, `reorderEpisode`, `deleteEpisode`): a
-  screenplay *is* an episode, so no service of its own was added for one.
-  The **selector** is built by `OcptWorkspaceShell` itself from `episodes`/`selectedEpisodeId`/
+  (`lib/ui/widgets/helpers/`) is the single place `Episode 3` is worded from.
+  `OcptScreenplayService` owns the CRUD (`loadEpisodes`, `createEpisode`, `updateEpisode`,
+  `reorderEpisode`, `deleteEpisode`): a screenplay *is* an episode, so no service of its own was
+  added for one. The **selector** is built by `OcptWorkspaceShell` itself from `episodes`/`selectedEpisodeId`/
   `onEpisodeSelected`, so the gesture cannot drift from one mode to the next, and its nullable
   callback is the whole of its conditional behaviour: **no control is drawn at all** — never a
   disabled one, the very idiom the toolbar's own slots already carry (`onExportRequested`, the two
@@ -116,8 +116,8 @@ the persistence, the project versions, the sync-ready data model and the read-on
   screenplay, which the home page's "import a screenplay" path needs when it creates a project — and
   is no longer what a mode reaches for. The schedule reads them all.
   **The sequence prefix is one rule with one implementation**: `ocptSceneDisplayNumberOf`
-  (`lib/utils/`, pure and tested) renders `<episode>.<scene>` as soon as the project holds more than
-  one episode, and a **null `episodeNumber` means "this project has one episode"**, returning
+  (`lib/models/rules/`, pure and tested) renders `<episode>.<scene>` as soon as the project holds
+  more than one episode, and a **null `episodeNumber` means "this project has one episode"**, returning
   `sceneNumber ?? "${position + 1}"` verbatim. Every reader calls it rather than restating it
   (`OcptSceneRef`, `OcptBreakdownScene`, `OcptShotListService` and
   `OcptSchedulePlanSnapshot.sceneNumberBySceneId`), and a shot's `<sceneNumber>/<rank>` code follows
@@ -254,7 +254,7 @@ the persistence, the project versions, the sync-ready data model and the read-on
   (`buildOcptThemeModel(sp: (v) => v.sp, w: (v) => v.w, r: (v) => v.r)`); desktop keeps the bloc
   state's own theme model — the global `ocptTheme` — and never calls a scaler at all.
 
-- The app's first width-breakpoint seam lives in `lib/utils/ocpt_responsive.dart`, deliberately
+- The app's first width-breakpoint seam lives in `lib/models/rules/ocpt_responsive.dart`, deliberately
   kept apart from the platform-keyed scaling above: `ocptCompactWidthBreakpoint` (816 px — below it
   the left dock's 180 px floor, the right dock's 300 px floor, the centre's 320 px floor and the two
   12 px dividers between them no longer coexist as columns) and `ocptPhoneWidthBreakpoint` (600 px),
@@ -443,8 +443,8 @@ the persistence, the project versions, the sync-ready data model and the read-on
   synchronised table carries `isDeleted`, a "delete" is an update to it, and every read filters
   tombstones back out — including `scenes`, which is never synchronised but whose rows are
   referenced by two tables that are. Ordering is `sortKey`, a fractional index
-  (`lib/utils/ocpt_fractional_key.dart`, base-62 strings, never ending on the lowest digit so two
-  keys always have room for a third): `ocptFractionalKeyBetween` allocates one,
+  (`lib/models/rules/ocpt_fractional_key.dart`, base-62 strings, never ending on the lowest digit so
+  two keys always have room for a third): `ocptFractionalKeyBetween` allocates one,
   `ocptFractionalKeySequence` backfills a whole group, `ocptFractionalKeyRekeyPlan` gives the
   minimal set of writes a reorder needs, so an insertion or a move writes exactly one row.
   `position` survives as a legacy column stamped once at insertion and never renumbered — nothing
@@ -452,8 +452,8 @@ the persistence, the project versions, the sync-ready data model and the read-on
   column. `row_field_versions` holds the per-column version stamps a merge resolves conflicts with;
   a version restore (above) and the domain services write them through `OcptRowStampService` — a
   composite primary key is rendered into `rowId` through
-  `ocptCompositeRowStampKey` (`lib/utils/ocpt_row_stamp_key.dart`), the app's single encoding of
-  one. `OcptPropertiesManager.loadOrCreateDeviceId()` mints and keeps this replica's UUID.
+  `ocptCompositeRowStampKey` (`lib/models/rules/ocpt_row_stamp_key.dart`), the app's single encoding
+  of one. `OcptPropertiesManager.loadOrCreateDeviceId()` mints and keeps this replica's UUID.
 
 - Binary assets (ADR 0013): a photo or a signed document is **referenced, never embedded**. The
   `assets` table holds a path, a kind and its subject's id; no bytes ever enter the `.ocpt`, so
@@ -536,8 +536,8 @@ the persistence, the project versions, the sync-ready data model and the read-on
   to an absolute path on import; a skipped one keeps the path it always had, so either end can name
   what is missing. `project_versions` travel **scrubbed**: on the staged copy alone, every stored
   payload is rewritten with the erased people taken back out
-  (`ocptScrubErasedPeopleFromPayload`, `lib/utils/`, the third implementation of the erasure rule
-  after `OcptPeopleService.deletePerson` and `OcptProjectVersionsService._scrubErasedPeople`, and
+  (`ocptScrubErasedPeopleFromPayload`, `lib/models/rules/`, the third implementation of the erasure
+  rule after `OcptPeopleService.deletePerson` and `OcptProjectVersionsService._scrubErasedPeople`, and
   the only untyped one — a package may be built from a file at any schema version, so it reads the
   payload's own keys; a test walks every key the codec writes for a person and fails unless this one
   classifies it), `content_digest` nulled on the rows actually touched, and `local_erasures` emptied.
@@ -600,7 +600,7 @@ the persistence, the project versions, the sync-ready data model and the read-on
   dialog creates nothing. On Android/iOS, where `file_selector`'s `getSaveLocation` has no
   implementation at all (ADR 0009), `OcptProjectsManager.freeNewProjectFilePath` resolves a free
   name with no dialog instead — `Name.ocpt`, `Name (2).ocpt`, … (`ocptFreeFilePath`,
-  `lib/utils/`) inside `newProjectsDirectory`, the application's own documents directory. Joining
+  `lib/models/rules/`) inside `newProjectsDirectory`, the application's own documents directory. Joining
   a shared project mirrors the same split: a native folder picker on desktop,
   `newProjectsDirectory` with no dialog on mobile — the joined project creates its own sub-folder
   inside whichever parent that names, which is what actually refuses an existing one,

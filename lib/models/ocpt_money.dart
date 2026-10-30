@@ -8,9 +8,9 @@ import 'package:equatable/equatable.dart';
 /// argues it: **stored exactly as typed, never reconstructed**, so it is three columns rather than
 /// one.
 ///
-/// This model carries no conversion logic of its own — `lib/utils/ocpt_budget_vat.dart` is the
-/// only place in the repository allowed to turn one basis into the other, and it is pure so it can
-/// be tested without a database.
+/// This model carries no conversion logic of its own — `lib/models/rules/ocpt_budget_vat.dart` is
+/// the only place in the repository allowed to turn one basis into the other, and it is pure so it
+/// can be tested without a database.
 class OcptMoney extends Equatable {
   /// The amount exactly as typed, in cents.
   final int amountCents;

@@ -9,7 +9,7 @@
 /// its blocks ran on from there. A production books a studio *until* 22:00, or plans backwards from
 /// a sunset, just as often; saying either meant doing the subtraction by hand and redoing it every
 /// time a block moved. The edge is what the app now asks for instead — see
-/// `lib/utils/ocpt_shooting_day_timeline.dart` (ADR 0015, amended a second time).
+/// `lib/models/rules/ocpt_shooting_day_timeline.dart` (ADR 0015, amended a second time).
 ///
 /// Whichever edge is pinned, the chain itself still runs **forwards**: an [end]-anchored slot
 /// starts at `end − Σ durations` and is then chained exactly as a [start]-anchored one is, which is

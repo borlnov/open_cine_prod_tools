@@ -4,9 +4,9 @@
 
 /// A tab of the schedule mode's right dock — one more than `OcptBreakdownRightDockTab`'s and
 /// `OcptShotListRightDockTab`'s own two-tab shape, this mode being the one where a day's whole
-/// call (ADR 0018) and the whole shoot's own alerts (`lib/utils/ocpt_schedule_alerts.dart`) each
-/// need their own place to be read from, having stopped being readable off any single slot card or
-/// day cell.
+/// call (ADR 0018) and the whole shoot's own alerts (`lib/models/rules/ocpt_schedule_alerts.dart`)
+/// each need their own place to be read from, having stopped being readable off any single slot
+/// card or day cell.
 enum OcptScheduleRightDockTab {
   /// The selected block's own read-out, or — while none is selected — the selected day's own
   /// read-out (date, status, locations, sets, slots, the day's arrival → end band, the sun times,
@@ -19,9 +19,9 @@ enum OcptScheduleRightDockTab {
   /// itself cannot give once a person may sit on several slots of the same day (ADR 0018).
   convocations,
 
-  /// Every `OcptScheduleAlert` the eleven rules of `lib/utils/ocpt_schedule_alerts.dart` raise over
-  /// the **whole shoot**, not just the selected day — the mock's own placement, above the agenda,
-  /// would hide them from every other view, so Benoit chose a dock tab instead.
+  /// Every `OcptScheduleAlert` the eleven rules of `lib/models/rules/ocpt_schedule_alerts.dart`
+  /// raise over the **whole shoot**, not just the selected day — the mock's own placement, above
+  /// the agenda, would hide them from every other view, so Benoit chose a dock tab instead.
   alerts,
 
   /// The project's named versions: the production history the user creates, browses read-only and

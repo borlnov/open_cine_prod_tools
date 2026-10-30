@@ -5,9 +5,9 @@
 import 'package:drift/drift.dart';
 import 'package:open_cine_prod_tools/models/database/converters/ocpt_day_part_slot_converter.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_locations_table.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_weekday_mask.dart';
 import 'package:open_cine_prod_tools/types/ocpt_day_part_slot.dart';
 import 'package:open_cine_prod_tools/types/ocpt_location_availability_kind.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_weekday_mask.dart';
 
 /// Converts an [OcptLocationAvailabilityKind] to and from the text stored in the
 /// `location_availabilities.kind` column.
@@ -68,7 +68,7 @@ class OcptLocationAvailabilitiesTable extends Table {
   DateTimeColumn get endDate => dateTime()();
 
   /// Which days of the week, inside the range, this window actually covers, as the bit mask
-  /// `ocptWeekdayMask*` reads and writes (see `lib/utils/ocpt_weekday_mask.dart`).
+  /// `ocptWeekdayMask*` reads and writes (see `lib/models/rules/ocpt_weekday_mask.dart`).
   ///
   /// A mask rather than a table of its own: seven booleans that are only ever read together, and a
   /// weekday has no identity to reference. The default is [ocptEveryWeekdayMask] — a range says

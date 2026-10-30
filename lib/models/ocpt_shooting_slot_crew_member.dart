@@ -11,10 +11,11 @@ import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart'
 /// `OcptShootingSlotCrewTable`'s own doc comment.
 ///
 /// **This row's arrival and PAT band are computed, never typed** — see
-/// `lib/utils/ocpt_shooting_convocations.dart` (ADR 0018): this row's [slotId] is one of possibly
-/// several slots this person is linked to on the same day, and every figure about them is read off
-/// every live slot they are on, joined together. Nothing here says how long before a moment they
-/// are needed — a production wanting them there earlier links them to a slot that says so.
+/// `lib/models/rules/ocpt_shooting_convocations.dart` (ADR 0018): this row's [slotId] is one of
+/// possibly several slots this person is linked to on the same day, and every figure about them is
+/// read off every live slot they are on, joined together. Nothing here says how long before a
+/// moment they are needed — a production wanting them there earlier links them to a slot that says
+/// so.
 class OcptShootingSlotCrewMember extends Equatable {
   /// The stable, unique id of this assignment (a UUID).
   final String id;

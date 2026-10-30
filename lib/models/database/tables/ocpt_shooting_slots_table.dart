@@ -39,8 +39,8 @@ class OcptShootingSlotAnchorEdgeConverter
 /// other time a call sheet prints for this slot — where its blocks land, when it actually ends, a
 /// crew member's or an actor's own arrival, readiness band and departure — is computed from that
 /// one hour and from the slot's own chain of `shooting_day_blocks`, never stored: see
-/// `lib/utils/ocpt_shooting_day_timeline.dart` (ADR 0015, amended twice) and
-/// `lib/utils/ocpt_shooting_convocations.dart` (ADR 0018).
+/// `lib/models/rules/ocpt_shooting_day_timeline.dart` (ADR 0015, amended twice) and
+/// `lib/models/rules/ocpt_shooting_convocations.dart` (ADR 0018).
 ///
 /// **The linked edge is always the opposite one**, so nothing stores which edge is read: a `start`
 /// reads its source's end, an `end` reads its source's start. A link only ever joins **two slots of
@@ -50,7 +50,7 @@ class OcptShootingSlotAnchorEdgeConverter
 ///
 /// A stored minute **may exceed 1440**: a night slot running 19:00 → 03:00 stores `1140`, an offset
 /// from the day's own midnight, nothing ever taken modulo anything — see
-/// `lib/utils/ocpt_day_minute.dart`, the single place that renders one. This is written down
+/// `lib/models/rules/ocpt_day_minute.dart`, the single place that renders one. This is written down
 /// because getting it wrong only shows up on the one night shoot of a production.
 ///
 /// The reference call sheets' "HORAIRES ÉQUIPE IMAGE 16:45 / HORAIRES ÉQUIPE TECHNIQUE 18:30" is
