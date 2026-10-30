@@ -181,6 +181,10 @@ sit.
   `lib/ui/widgets/helpers/`, a manager seeing no `BuildContext` of its own) and threaded through
   every export event, is the popover source the OS share sheet needs on an iPad or a Mac; the phone
   toolbar's folded overflow entry hands down null, having no control of its own to anchor from.
+  The five XLSX services answer their workbook as a `ResultWithStatus<OcptXlsxExportStatus,
+  Uint8List>` rather than throwing when `excel_community` cannot encode it; the manager logs that
+  and answers a third outcome, `OcptExportFailed`, before any save dialog opens, which each mode's
+  bloc words with its own failed-export notice, where a null stays a silent cancellation.
 
 - Scenario coverage export: the screenplay printed as usual, with a coloured bar in the margin
   alongside every passage a shot covers. `OcptScenarioCoverageLayout.of(...)`

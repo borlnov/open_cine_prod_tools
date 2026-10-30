@@ -326,17 +326,19 @@ void main() {
 
   group('generate', () {
     test('writes exactly four sheets, named after the labels, in order', () {
-      final bytes = service.generate(
-        snapshot: OcptResourcesSnapshot.build(
-          people: const [],
-          roles: const [],
-          locations: const [],
-          elements: const [],
-          candidatesByRoleId: const {},
-          scenes: const [],
-        ),
-        labels: _buildLabels(),
-      );
+      final bytes = service
+          .generate(
+            snapshot: OcptResourcesSnapshot.build(
+              people: const [],
+              roles: const [],
+              locations: const [],
+              elements: const [],
+              candidatesByRoleId: const {},
+              scenes: const [],
+            ),
+            labels: _buildLabels(),
+          )
+          .value!;
 
       final excel = Excel.decodeBytes(bytes);
       expect(excel.tables.keys, [
@@ -348,17 +350,19 @@ void main() {
     });
 
     test("writes each sheet's header row, one cell per column", () {
-      final bytes = service.generate(
-        snapshot: OcptResourcesSnapshot.build(
-          people: const [],
-          roles: const [],
-          locations: const [],
-          elements: const [],
-          candidatesByRoleId: const {},
-          scenes: const [],
-        ),
-        labels: _buildLabels(),
-      );
+      final bytes = service
+          .generate(
+            snapshot: OcptResourcesSnapshot.build(
+              people: const [],
+              roles: const [],
+              locations: const [],
+              elements: const [],
+              candidatesByRoleId: const {},
+              scenes: const [],
+            ),
+            labels: _buildLabels(),
+          )
+          .value!;
 
       expect(_rowsOf(bytes, _peopleSheetName).first, [
         for (final column in OcptPeopleXlsxColumn.values) column.name,
@@ -395,17 +399,19 @@ void main() {
       );
       final role = _buildRole(id: "role-1", number: 1, name: "LÉA", personId: "person-1");
 
-      final bytes = service.generate(
-        snapshot: OcptResourcesSnapshot.build(
-          people: [person],
-          roles: [role],
-          locations: const [],
-          elements: const [],
-          candidatesByRoleId: const {},
-          scenes: const [],
-        ),
-        labels: _buildLabels(),
-      );
+      final bytes = service
+          .generate(
+            snapshot: OcptResourcesSnapshot.build(
+              people: [person],
+              roles: [role],
+              locations: const [],
+              elements: const [],
+              candidatesByRoleId: const {},
+              scenes: const [],
+            ),
+            labels: _buildLabels(),
+          )
+          .value!;
 
       final row = _rowsOf(bytes, _peopleSheetName)[1];
       expect(_cellAt(row, OcptPeopleXlsxColumn.name.index), "Léa Martin");
@@ -439,17 +445,19 @@ void main() {
         ],
       );
 
-      final bytes = service.generate(
-        snapshot: OcptResourcesSnapshot.build(
-          people: const [],
-          roles: const [],
-          locations: [location],
-          elements: const [],
-          candidatesByRoleId: const {},
-          scenes: const [],
-        ),
-        labels: _buildLabels(sceneLabels: const {"scene-1": "4 · Cuisine"}),
-      );
+      final bytes = service
+          .generate(
+            snapshot: OcptResourcesSnapshot.build(
+              people: const [],
+              roles: const [],
+              locations: [location],
+              elements: const [],
+              candidatesByRoleId: const {},
+              scenes: const [],
+            ),
+            labels: _buildLabels(sceneLabels: const {"scene-1": "4 · Cuisine"}),
+          )
+          .value!;
 
       final rows = _rowsOf(bytes, _locationsSheetName);
       expect(rows, hasLength(3)); // header + 2 set rows
@@ -469,17 +477,19 @@ void main() {
     test('writes a location with no set at all as one row, its set columns left empty', () {
       final location = _buildLocation(id: "location-1", name: "Rue du marché");
 
-      final bytes = service.generate(
-        snapshot: OcptResourcesSnapshot.build(
-          people: const [],
-          roles: const [],
-          locations: [location],
-          elements: const [],
-          candidatesByRoleId: const {},
-          scenes: const [],
-        ),
-        labels: _buildLabels(),
-      );
+      final bytes = service
+          .generate(
+            snapshot: OcptResourcesSnapshot.build(
+              people: const [],
+              roles: const [],
+              locations: [location],
+              elements: const [],
+              candidatesByRoleId: const {},
+              scenes: const [],
+            ),
+            labels: _buildLabels(),
+          )
+          .value!;
 
       final rows = _rowsOf(bytes, _locationsSheetName);
       expect(rows, hasLength(2)); // header + 1 row
@@ -515,17 +525,19 @@ void main() {
         ],
       );
 
-      final bytes = service.generate(
-        snapshot: OcptResourcesSnapshot.build(
-          people: const [],
-          roles: const [],
-          locations: [location],
-          elements: const [],
-          candidatesByRoleId: const {},
-          scenes: const [],
-        ),
-        labels: _buildLabels(),
-      );
+      final bytes = service
+          .generate(
+            snapshot: OcptResourcesSnapshot.build(
+              people: const [],
+              roles: const [],
+              locations: [location],
+              elements: const [],
+              candidatesByRoleId: const {},
+              scenes: const [],
+            ),
+            labels: _buildLabels(),
+          )
+          .value!;
 
       final windows = _cellAt(
         _rowsOf(bytes, _locationsSheetName)[1],
@@ -551,17 +563,19 @@ void main() {
         ],
       );
 
-      final bytes = service.generate(
-        snapshot: OcptResourcesSnapshot.build(
-          people: const [],
-          roles: const [],
-          locations: const [],
-          elements: [element],
-          candidatesByRoleId: const {},
-          scenes: const [],
-        ),
-        labels: _buildLabels(sceneLabels: const {"scene-1": "4 · Cuisine"}),
-      );
+      final bytes = service
+          .generate(
+            snapshot: OcptResourcesSnapshot.build(
+              people: const [],
+              roles: const [],
+              locations: const [],
+              elements: [element],
+              candidatesByRoleId: const {},
+              scenes: const [],
+            ),
+            labels: _buildLabels(sceneLabels: const {"scene-1": "4 · Cuisine"}),
+          )
+          .value!;
 
       final row = _rowsOf(bytes, _elementsSheetName)[1];
       expect(_cellAt(row, OcptElementsXlsxColumn.name.index), "Vélo rouge");
@@ -579,17 +593,19 @@ void main() {
       final location = _buildLocation(id: "location-1");
       final element = _buildElement(id: "element-1");
 
-      final bytes = service.generate(
-        snapshot: OcptResourcesSnapshot.build(
-          people: [person],
-          roles: [role],
-          locations: [location],
-          elements: [element],
-          candidatesByRoleId: const {},
-          scenes: const [],
-        ),
-        labels: _buildLabels(),
-      );
+      final bytes = service
+          .generate(
+            snapshot: OcptResourcesSnapshot.build(
+              people: [person],
+              roles: [role],
+              locations: [location],
+              elements: [element],
+              candidatesByRoleId: const {},
+              scenes: const [],
+            ),
+            labels: _buildLabels(),
+          )
+          .value!;
 
       final personRow = _rowsOf(bytes, _peopleSheetName)[1];
       expect(_cellAt(personRow, OcptPeopleXlsxColumn.name.index), isNull);

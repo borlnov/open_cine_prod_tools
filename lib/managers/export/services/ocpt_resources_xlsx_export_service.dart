@@ -4,6 +4,7 @@
 
 import 'dart:typed_data';
 
+import 'package:act_dart_result/act_dart_result.dart';
 import 'package:excel_community/excel_community.dart';
 import 'package:open_cine_prod_tools/managers/abs_ocpt_service.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_shot_list_xlsx_export_service.dart';
@@ -20,6 +21,7 @@ import 'package:open_cine_prod_tools/types/ocpt_elements_xlsx_column.dart';
 import 'package:open_cine_prod_tools/types/ocpt_locations_xlsx_column.dart';
 import 'package:open_cine_prod_tools/types/ocpt_people_xlsx_column.dart';
 import 'package:open_cine_prod_tools/types/ocpt_roles_xlsx_column.dart';
+import 'package:open_cine_prod_tools/types/ocpt_xlsx_export_status.dart';
 
 /// Renders a whole resources catalogue into the bytes of an XLSX workbook, one sheet per tab.
 ///
@@ -68,9 +70,10 @@ class OcptResourcesXlsxExportService extends AbsOcptService {
   /// Builds the workbook holding [snapshot]'s whole resources catalogue, titled and headed with
   /// [labels], and returns its bytes.
   ///
-  /// Throws a [StateError] if the workbook cannot be encoded, which the caller reports as a failed
-  /// export: `excel_community` returns null there rather than throwing anything of its own.
-  Uint8List generate({
+  /// Answers [OcptXlsxExportStatus.encodingFailed] if the workbook cannot be encoded, which the
+  /// caller reports as a failed export: `excel_community` returns null there rather than throwing
+  /// anything of its own.
+  ResultWithStatus<OcptXlsxExportStatus, Uint8List> generate({
     required OcptResourcesSnapshot snapshot,
     required OcptResourcesXlsxLabels labels,
   }) {
@@ -165,10 +168,10 @@ class OcptResourcesXlsxExportService extends AbsOcptService {
 
     final bytes = excel.encode();
     if (bytes == null) {
-      throw StateError("The resources workbook could not be encoded");
+      return const ResultWithStatus(status: OcptXlsxExportStatus.encodingFailed);
     }
 
-    return Uint8List.fromList(bytes);
+    return ResultWithStatus(status: OcptXlsxExportStatus.ok, value: Uint8List.fromList(bytes));
   }
 
   /// [name] if it holds anything other than whitespace, [fallback] otherwise.

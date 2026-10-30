@@ -196,7 +196,7 @@ class _StubFileSelectorManager extends FileSelectorManager {
 /// export paths can be exercised without any real native dialog, workbook or PDF write.
 class _FakeExportManager extends OcptExportManager {
   /// Class constructor
-  _FakeExportManager({this.exportResult, this.fails = false})
+  _FakeExportManager({this.exportResult, this.fails = false, this.buildFails = false})
     : super(fileSelectorManager: const FileSelectorManager());
 
   /// The path either export returns, or null to simulate a cancelled save dialog.
@@ -204,6 +204,10 @@ class _FakeExportManager extends OcptExportManager {
 
   /// Whether either export throws, to exercise the bloc's export failure path.
   final bool fails;
+
+  /// Whether the workbook export answers [OcptExportFailed], as the manager does when the
+  /// workbook cannot be encoded.
+  final bool buildFails;
 
   /// The snapshot of the last export call, of either kind.
   OcptShotListSnapshot? lastExportedSnapshot;
@@ -272,6 +276,10 @@ class _FakeExportManager extends OcptExportManager {
 
     if (fails) {
       throw StateError("shot list export intentionally failed for the test");
+    }
+
+    if (buildFails) {
+      return const OcptExportFailed();
     }
 
     final result = exportResult;
@@ -1892,6 +1900,26 @@ void main() {
     await Future<void>.delayed(const Duration(milliseconds: 50));
 
     expect(bloc.state.ioNotice, isNull);
+
+    await bloc.close();
+  });
+
+  test('a workbook that cannot be built raises the transient export failure notice', () async {
+    await writeScreenplay(twoSceneText);
+
+    final bloc = buildBloc(exportManager: _FakeExportManager(buildFails: true));
+    await waitForState(bloc, (state) => !state.isLoading);
+
+    bloc.add(
+      const OcptShotListXlsxExportRequestedEvent(
+        labels: _exportLabels,
+        fileTypeLabel: "Excel workbook",
+      ),
+    );
+    final state = await waitForState(bloc, (state) => state.ioNotice != null);
+
+    expect(state.ioNotice!.kind, OcptShotListIoNoticeKind.xlsxExportFailed);
+    expect(state.ioNotice!.path, isNull);
 
     await bloc.close();
   });

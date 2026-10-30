@@ -319,12 +319,14 @@ void main() {
     people: people,
   );
 
-  Uint8List generate(OcptBreakdownSnapshot snapshot) => service.generate(
-    document: document,
-    snapshot: snapshot,
-    pageSetup: pageSetup,
-    labels: _buildLabels(),
-  );
+  Uint8List generate(OcptBreakdownSnapshot snapshot) => service
+      .generate(
+        document: document,
+        snapshot: snapshot,
+        pageSetup: pageSetup,
+        labels: _buildLabels(),
+      )
+      .value!;
 
   group("xlsxFileName", () {
     test("appends the .xlsx extension and the suffix to the project name", () {

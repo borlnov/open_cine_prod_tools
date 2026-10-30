@@ -4,6 +4,7 @@
 
 import 'dart:typed_data';
 
+import 'package:act_dart_result/act_dart_result.dart';
 import 'package:excel_community/excel_community.dart';
 import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/managers/abs_ocpt_service.dart';
@@ -18,6 +19,7 @@ import 'package:open_cine_prod_tools/models/ocpt_shooting_slot.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_day_minute.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_plan_xlsx_column.dart';
+import 'package:open_cine_prod_tools/types/ocpt_xlsx_export_status.dart';
 
 /// Renders the whole shoot's own shooting plan into the bytes of an XLSX workbook: the same four
 /// summary grids `OcptShootingPlanPdfService` prints as landscape pages — `Locations`, `Sequences`,
@@ -86,9 +88,10 @@ class OcptShootingPlanXlsxExportService extends AbsOcptService {
   /// A [dayIds] entry naming no live day of [plan] is silently skipped, exactly as
   /// `OcptShootingPlanPdfService.generate` reads a missing one.
   ///
-  /// Throws a [StateError] if the workbook cannot be encoded, which the caller reports as a failed
-  /// export: `excel_community` returns null there rather than throwing anything of its own.
-  Uint8List generate({
+  /// Answers [OcptXlsxExportStatus.encodingFailed] if the workbook cannot be encoded, which the
+  /// caller reports as a failed export: `excel_community` returns null there rather than throwing
+  /// anything of its own.
+  ResultWithStatus<OcptXlsxExportStatus, Uint8List> generate({
     required OcptSchedulePlanSnapshot plan,
     required List<String> dayIds,
     required OcptShootingPlanXlsxLabels labels,
@@ -150,10 +153,10 @@ class OcptShootingPlanXlsxExportService extends AbsOcptService {
 
     final bytes = excel.encode();
     if (bytes == null) {
-      throw StateError("The shooting plan workbook could not be encoded");
+      return const ResultWithStatus(status: OcptXlsxExportStatus.encodingFailed);
     }
 
-    return Uint8List.fromList(bytes);
+    return ResultWithStatus(status: OcptXlsxExportStatus.ok, value: Uint8List.fromList(bytes));
   }
 
   /// [name] if it holds anything other than whitespace, [fallback] otherwise.

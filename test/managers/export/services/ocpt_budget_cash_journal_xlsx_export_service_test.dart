@@ -132,7 +132,9 @@ void main() {
       );
 
       final rows = _rowsOf(
-        service.generate(snapshot: snapshot, linkLabelByEntryId: const {}, labels: _buildLabels()),
+        service
+            .generate(snapshot: snapshot, linkLabelByEntryId: const {}, labels: _buildLabels())
+            .value!,
       );
 
       expect(rows, hasLength(4));
@@ -168,11 +170,13 @@ void main() {
       );
 
       final rows = _rowsOf(
-        service.generate(
-          snapshot: snapshot,
-          linkLabelByEntryId: const {"entry-1": "Regional grant"},
-          labels: _buildLabels(),
-        ),
+        service
+            .generate(
+              snapshot: snapshot,
+              linkLabelByEntryId: const {"entry-1": "Regional grant"},
+              labels: _buildLabels(),
+            )
+            .value!,
       );
 
       expect(rows[1][4], "Regional grant");
@@ -199,7 +203,9 @@ void main() {
       );
 
       final rows = _rowsOf(
-        service.generate(snapshot: snapshot, linkLabelByEntryId: const {}, labels: _buildLabels()),
+        service
+            .generate(snapshot: snapshot, linkLabelByEntryId: const {}, labels: _buildLabels())
+            .value!,
       );
 
       // entry-1: balance 100.00 €.
@@ -223,11 +229,13 @@ void main() {
       );
 
       final excel = Excel.decodeBytes(
-        service.generate(
-          snapshot: snapshot,
-          linkLabelByEntryId: const {},
-          labels: _buildLabels(sheetName: "Trésorerie"),
-        ),
+        service
+            .generate(
+              snapshot: snapshot,
+              linkLabelByEntryId: const {},
+              labels: _buildLabels(sheetName: "Trésorerie"),
+            )
+            .value!,
       );
 
       expect(excel.tables.keys, ["Trésorerie"]);
@@ -243,11 +251,13 @@ void main() {
       );
 
       final excel = Excel.decodeBytes(
-        service.generate(
-          snapshot: snapshot,
-          linkLabelByEntryId: const {},
-          labels: _buildLabels(sheetName: "   "),
-        ),
+        service
+            .generate(
+              snapshot: snapshot,
+              linkLabelByEntryId: const {},
+              labels: _buildLabels(sheetName: "   "),
+            )
+            .value!,
       );
 
       expect(excel.tables.keys, [OcptBudgetCashJournalXlsxExportService.fallbackSheetName]);

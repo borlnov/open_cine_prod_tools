@@ -11,8 +11,9 @@ import 'package:equatable/equatable.dart';
 /// or a failed write. On mobile there is no "save as" dialog to pick a path from at all —
 /// `file_selector`'s `getSaveLocation` has no Android or iOS implementation — so the bytes are
 /// instead handed to the OS share sheet, which is [OcptExportShared] rather than
-/// [OcptExportSaved]. A null return still means "cancelled or failed"; once a result comes back,
-/// it is always one of these two.
+/// [OcptExportSaved]. A null return still means "cancelled or failed to write"; a workbook that
+/// could not even be built comes back as [OcptExportFailed], which the caller words as a failed
+/// export rather than a cancellation.
 sealed class OcptExportOutcome {
   /// Class constructor
   const OcptExportOutcome();
@@ -21,6 +22,7 @@ sealed class OcptExportOutcome {
   String? get savedPath => switch (this) {
     OcptExportSaved(:final path) => path,
     OcptExportShared() => null,
+    OcptExportFailed() => null,
   };
 
   /// Whether the bytes were handed to the OS share sheet rather than a picked save location.
@@ -44,6 +46,17 @@ final class OcptExportSaved extends OcptExportOutcome with Equatable {
 final class OcptExportShared extends OcptExportOutcome with Equatable {
   /// Class constructor
   const OcptExportShared();
+
+  /// Object properties
+  @override
+  List<Object?> get props => const [];
+}
+
+/// The export could not be built, so nothing was offered to the user: the XLSX exports answer it
+/// when the workbook cannot be encoded.
+final class OcptExportFailed extends OcptExportOutcome with Equatable {
+  /// Class constructor
+  const OcptExportFailed();
 
   /// Object properties
   @override

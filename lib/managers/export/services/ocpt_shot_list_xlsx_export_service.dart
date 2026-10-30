@@ -4,6 +4,7 @@
 
 import 'dart:typed_data';
 
+import 'package:act_dart_result/act_dart_result.dart';
 import 'package:excel_community/excel_community.dart';
 import 'package:open_cine_prod_tools/managers/abs_ocpt_service.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_export_file_name.dart';
@@ -13,6 +14,7 @@ import 'package:open_cine_prod_tools/models/ocpt_shot_list_xlsx_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_placement.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_xlsx_column.dart';
+import 'package:open_cine_prod_tools/types/ocpt_xlsx_export_status.dart';
 
 /// Renders a whole shot list into the bytes of an XLSX workbook.
 ///
@@ -52,9 +54,10 @@ class OcptShotListXlsxExportService extends AbsOcptService {
   /// Builds the workbook holding [snapshot]'s whole shot list, titled and headed with [labels],
   /// and returns its bytes.
   ///
-  /// Throws a [StateError] if the workbook cannot be encoded, which the caller reports as a failed
-  /// export: `excel_community` returns null there rather than throwing anything of its own.
-  Uint8List generate({
+  /// Answers [OcptXlsxExportStatus.encodingFailed] if the workbook cannot be encoded, which the
+  /// caller reports as a failed export: `excel_community` returns null there rather than throwing
+  /// anything of its own.
+  ResultWithStatus<OcptXlsxExportStatus, Uint8List> generate({
     required OcptShotListSnapshot snapshot,
     required OcptShotListXlsxLabels labels,
   }) {
@@ -76,10 +79,10 @@ class OcptShotListXlsxExportService extends AbsOcptService {
 
     final bytes = excel.encode();
     if (bytes == null) {
-      throw StateError("The shot list workbook could not be encoded");
+      return const ResultWithStatus(status: OcptXlsxExportStatus.encodingFailed);
     }
 
-    return Uint8List.fromList(bytes);
+    return ResultWithStatus(status: OcptXlsxExportStatus.ok, value: Uint8List.fromList(bytes));
   }
 
   /// The name to give the workbook's single sheet: [labels]'s own, or [fallbackSheetName] when it

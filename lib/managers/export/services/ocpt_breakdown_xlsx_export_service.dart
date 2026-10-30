@@ -4,6 +4,7 @@
 
 import 'dart:typed_data';
 
+import 'package:act_dart_result/act_dart_result.dart';
 import 'package:excel_community/excel_community.dart';
 import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/managers/abs_ocpt_service.dart';
@@ -22,6 +23,7 @@ import 'package:open_cine_prod_tools/models/rules/ocpt_breakdown_scene_bars.dart
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_entries_xlsx_column.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_scenes_xlsx_column.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_target_kind.dart';
+import 'package:open_cine_prod_tools/types/ocpt_xlsx_export_status.dart';
 
 /// Renders a project's whole breakdown into the bytes of an XLSX workbook: a `Scenes` sheet, one
 /// row per scene, and a `Breakdown` sheet, one row per **distinct** target tagged in a scene — the
@@ -73,9 +75,10 @@ class OcptBreakdownXlsxExportService extends AbsOcptService {
   /// [pageSetup] supplies the page geometry each scene's own length in eighths is measured against
   /// — see this class' own doc comment.
   ///
-  /// Throws a [StateError] if the workbook cannot be encoded, which the caller reports as a failed
-  /// export: `excel_community` returns null there rather than throwing anything of its own.
-  Uint8List generate({
+  /// Answers [OcptXlsxExportStatus.encodingFailed] if the workbook cannot be encoded, which the
+  /// caller reports as a failed export: `excel_community` returns null there rather than throwing
+  /// anything of its own.
+  ResultWithStatus<OcptXlsxExportStatus, Uint8List> generate({
     required FountainDocument document,
     required OcptBreakdownSnapshot snapshot,
     required OcptPageSetup pageSetup,
@@ -139,10 +142,10 @@ class OcptBreakdownXlsxExportService extends AbsOcptService {
 
     final bytes = excel.encode();
     if (bytes == null) {
-      throw StateError("The breakdown workbook could not be encoded");
+      return const ResultWithStatus(status: OcptXlsxExportStatus.encodingFailed);
     }
 
-    return Uint8List.fromList(bytes);
+    return ResultWithStatus(status: OcptXlsxExportStatus.ok, value: Uint8List.fromList(bytes));
   }
 
   /// [name] if it holds anything other than whitespace, [fallback] otherwise.

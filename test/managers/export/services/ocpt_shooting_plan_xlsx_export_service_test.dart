@@ -247,7 +247,7 @@ void main() {
   const service = OcptShootingPlanXlsxExportService(logger: SilentLogger());
 
   Uint8List generate({required OcptSchedulePlanSnapshot plan, required List<String> dayIds}) =>
-      service.generate(plan: plan, dayIds: dayIds, labels: _buildLabels());
+      service.generate(plan: plan, dayIds: dayIds, labels: _buildLabels()).value!;
 
   group("xlsxFileName", () {
     test("joins the project name and the localized suffix", () {

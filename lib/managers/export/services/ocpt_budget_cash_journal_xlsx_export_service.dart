@@ -4,12 +4,14 @@
 
 import 'dart:typed_data';
 
+import 'package:act_dart_result/act_dart_result.dart';
 import 'package:excel_community/excel_community.dart';
 import 'package:open_cine_prod_tools/managers/abs_ocpt_service.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_export_file_name.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_cash_journal_xlsx_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_snapshot.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_budget_journal.dart';
+import 'package:open_cine_prod_tools/types/ocpt_xlsx_export_status.dart';
 
 /// Renders the cash journal into the bytes of an XLSX workbook.
 ///
@@ -63,10 +65,10 @@ class OcptBudgetCashJournalXlsxExportService extends AbsOcptService {
   /// and returns its bytes.
   ///
   /// [linkLabelByEntryId] is the "what this entry settles" column's own text, keyed by
-  /// `OcptBudgetEntry.id` — see the class doc comment. Throws a [StateError] if the workbook cannot
-  /// be encoded, which the caller reports as a failed export: `excel_community` returns null there
-  /// rather than throwing anything of its own.
-  Uint8List generate({
+  /// `OcptBudgetEntry.id` — see the class doc comment. Answers [OcptXlsxExportStatus.encodingFailed] if the
+  /// workbook cannot be encoded, which the caller reports as a failed export: `excel_community`
+  /// returns null there rather than throwing anything of its own.
+  ResultWithStatus<OcptXlsxExportStatus, Uint8List> generate({
     required OcptBudgetSnapshot snapshot,
     required Map<String, String> linkLabelByEntryId,
     required OcptBudgetCashJournalXlsxLabels labels,
@@ -97,10 +99,10 @@ class OcptBudgetCashJournalXlsxExportService extends AbsOcptService {
 
     final bytes = excel.encode();
     if (bytes == null) {
-      throw StateError("The cash journal workbook could not be encoded");
+      return const ResultWithStatus(status: OcptXlsxExportStatus.encodingFailed);
     }
 
-    return Uint8List.fromList(bytes);
+    return ResultWithStatus(status: OcptXlsxExportStatus.ok, value: Uint8List.fromList(bytes));
   }
 
   /// The name to give the workbook's single sheet: [labels]'s own, or [fallbackSheetName] when it

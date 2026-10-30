@@ -36,6 +36,7 @@ import 'package:open_cine_prod_tools/models/rules/ocpt_scene_display_number.dart
 import 'package:open_cine_prod_tools/types/ocpt_element_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_source_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_tracking_flag.dart';
+import 'package:open_cine_prod_tools/types/ocpt_export_outcome.dart';
 import 'package:open_cine_prod_tools/types/ocpt_location_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 import 'package:open_cine_prod_tools/types/ocpt_person_editable_field.dart';
@@ -3166,6 +3167,16 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
       );
       if (outcome == null) {
         // The user cancelled the save dialog.
+        return;
+      }
+
+      if (outcome is OcptExportFailed) {
+        // The manager already logged why the workbook could not be built.
+        emitter(
+          state.copyWith(
+            ioNotice: const OcptResourcesIoNotice(kind: OcptResourcesIoNoticeKind.xlsxExportFailed),
+          ),
+        );
         return;
       }
 

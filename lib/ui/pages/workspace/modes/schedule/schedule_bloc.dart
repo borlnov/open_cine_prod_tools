@@ -35,6 +35,7 @@ import 'package:open_cine_prod_tools/models/ocpt_shooting_day.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day_block.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_list_snapshot.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_scene_display_number.dart';
+import 'package:open_cine_prod_tools/types/ocpt_export_outcome.dart';
 import 'package:open_cine_prod_tools/types/ocpt_first_weekday.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 import 'package:open_cine_prod_tools/types/ocpt_schedule_field.dart';
@@ -1706,6 +1707,16 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
       );
       if (outcome == null) {
         // The user cancelled the save dialog.
+        return;
+      }
+
+      if (outcome is OcptExportFailed) {
+        // The manager already logged why the workbook could not be built.
+        emitter(
+          state.copyWith(
+            ioNotice: const OcptScheduleIoNotice(kind: OcptScheduleIoNoticeKind.exportFailed),
+          ),
+        );
         return;
       }
 

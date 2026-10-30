@@ -72,6 +72,7 @@ import 'package:open_cine_prod_tools/models/rules/ocpt_shooting_convocations.dar
 import 'package:open_cine_prod_tools/types/ocpt_budget_tax_basis.dart';
 import 'package:open_cine_prod_tools/types/ocpt_export_outcome.dart';
 import 'package:open_cine_prod_tools/types/ocpt_screenplay_import_status.dart';
+import 'package:open_cine_prod_tools/types/ocpt_xlsx_export_status.dart';
 import 'package:path/path.dart' as p;
 
 /// Builds the [OcptExportManager] instance registered by the global manager.
@@ -483,14 +484,14 @@ class OcptExportManager extends AbsWithLifeCycle {
     required String fileTypeLabel,
     String? episodeTag,
     Rect? shareAnchor,
-  }) => _writeToPickedLocation(
+  }) => _writeWorkbookToPickedLocation(
     suggestedFileName: shotListXlsxExportService.xlsxFileName(
       projectName: projectName,
       episodeTag: episodeTag,
     ),
     fileTypeLabel: fileTypeLabel,
     extensions: const [OcptShotListXlsxExportService.xlsxFileExtension],
-    bytes: shotListXlsxExportService.generate(snapshot: snapshot, labels: labels),
+    workbook: shotListXlsxExportService.generate(snapshot: snapshot, labels: labels),
     shareAnchor: shareAnchor,
   );
 
@@ -652,14 +653,14 @@ class OcptExportManager extends AbsWithLifeCycle {
     required String projectName,
     required String fileTypeLabel,
     Rect? shareAnchor,
-  }) => _writeToPickedLocation(
+  }) => _writeWorkbookToPickedLocation(
     suggestedFileName: resourcesXlsxExportService.xlsxFileName(
       projectName: projectName,
       suffix: labels.fileNameSuffix,
     ),
     fileTypeLabel: fileTypeLabel,
     extensions: const [OcptShotListXlsxExportService.xlsxFileExtension],
-    bytes: resourcesXlsxExportService.generate(snapshot: snapshot, labels: labels),
+    workbook: resourcesXlsxExportService.generate(snapshot: snapshot, labels: labels),
     shareAnchor: shareAnchor,
   );
 
@@ -797,11 +798,11 @@ class OcptExportManager extends AbsWithLifeCycle {
     required String projectName,
     required String fileTypeLabel,
     Rect? shareAnchor,
-  }) => _writeToPickedLocation(
+  }) => _writeWorkbookToPickedLocation(
     suggestedFileName: budgetCashJournalXlsxExportService.xlsxFileName(projectName: projectName),
     fileTypeLabel: fileTypeLabel,
     extensions: const [OcptShotListXlsxExportService.xlsxFileExtension],
-    bytes: budgetCashJournalXlsxExportService.generate(
+    workbook: budgetCashJournalXlsxExportService.generate(
       snapshot: snapshot,
       linkLabelByEntryId: linkLabelByEntryId,
       labels: labels,
@@ -916,7 +917,7 @@ class OcptExportManager extends AbsWithLifeCycle {
     required String fileTypeLabel,
     String? episodeTag,
     Rect? shareAnchor,
-  }) => _writeToPickedLocation(
+  }) => _writeWorkbookToPickedLocation(
     suggestedFileName: breakdownXlsxExportService.xlsxFileName(
       projectName: projectName,
       suffix: labels.fileNameSuffix,
@@ -924,7 +925,7 @@ class OcptExportManager extends AbsWithLifeCycle {
     ),
     fileTypeLabel: fileTypeLabel,
     extensions: const [OcptShotListXlsxExportService.xlsxFileExtension],
-    bytes: breakdownXlsxExportService.generate(
+    workbook: breakdownXlsxExportService.generate(
       document: document,
       snapshot: snapshot,
       pageSetup: pageSetup,
@@ -1166,14 +1167,14 @@ class OcptExportManager extends AbsWithLifeCycle {
     required String projectName,
     required String fileTypeLabel,
     Rect? shareAnchor,
-  }) => _writeToPickedLocation(
+  }) => _writeWorkbookToPickedLocation(
     suggestedFileName: shootingPlanXlsxExportService.xlsxFileName(
       projectName: projectName,
       suffix: labels.fileNameSuffix,
     ),
     fileTypeLabel: fileTypeLabel,
     extensions: const [OcptShotListXlsxExportService.xlsxFileExtension],
-    bytes: shootingPlanXlsxExportService.generate(plan: plan, dayIds: dayIds, labels: labels),
+    workbook: shootingPlanXlsxExportService.generate(plan: plan, dayIds: dayIds, labels: labels),
     shareAnchor: shareAnchor,
   );
 
@@ -1454,6 +1455,32 @@ class OcptExportManager extends AbsWithLifeCycle {
       );
       return null;
     }
+  }
+
+  /// [_writeToPickedLocation] for a workbook an XLSX service has just built.
+  ///
+  /// A workbook that could not be encoded is logged and answered as [OcptExportFailed], before any
+  /// save dialog is shown: the caller words it as a failed export, not a cancellation.
+  Future<OcptExportOutcome?> _writeWorkbookToPickedLocation({
+    required String suggestedFileName,
+    required String fileTypeLabel,
+    required List<String> extensions,
+    required ResultWithStatus<OcptXlsxExportStatus, Uint8List> workbook,
+    Rect? shareAnchor,
+  }) async {
+    final bytes = workbook.value;
+    if (!workbook.status.isSuccess || bytes == null) {
+      _logger.e("A workbook could not be built for an export: ${workbook.status}");
+      return const OcptExportFailed();
+    }
+
+    return _writeToPickedLocation(
+      suggestedFileName: suggestedFileName,
+      fileTypeLabel: fileTypeLabel,
+      extensions: extensions,
+      bytes: bytes,
+      shareAnchor: shareAnchor,
+    );
   }
 
   /// [_writeToPickedLocation]'s mobile branch: writes [bytes] to [fileName] under

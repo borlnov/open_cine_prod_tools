@@ -53,6 +53,7 @@ import 'package:open_cine_prod_tools/types/ocpt_budget_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_resource_group_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_right_dock_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_selection.dart';
+import 'package:open_cine_prod_tools/types/ocpt_export_outcome.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project_package_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project_versions_bloc.dart';
@@ -2567,6 +2568,16 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
       );
       if (outcome == null) {
         // The user cancelled the save dialog.
+        return;
+      }
+
+      if (outcome is OcptExportFailed) {
+        // The manager already logged why the workbook could not be built.
+        emitter(
+          state.copyWith(
+            ioNotice: const OcptBudgetIoNotice(kind: OcptBudgetIoNoticeKind.exportFailed),
+          ),
+        );
         return;
       }
 

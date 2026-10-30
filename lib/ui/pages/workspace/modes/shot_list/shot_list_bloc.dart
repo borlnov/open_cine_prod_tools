@@ -48,6 +48,7 @@ import 'package:open_cine_prod_tools/models/ocpt_workspace_reveal_request.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_floor_plan_geometry.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_scene_display_number.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_scene_set_suggestion.dart';
+import 'package:open_cine_prod_tools/types/ocpt_export_outcome.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_arrow_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_layer.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_scope_choice.dart';
@@ -1066,6 +1067,16 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
       );
       if (outcome == null) {
         // The user cancelled the save dialog.
+        return;
+      }
+
+      if (outcome is OcptExportFailed) {
+        // The manager already logged why the workbook could not be built.
+        emitter(
+          state.copyWith(
+            ioNotice: const OcptShotListIoNotice(kind: OcptShotListIoNoticeKind.xlsxExportFailed),
+          ),
+        );
         return;
       }
 
