@@ -5,6 +5,7 @@
 import 'dart:async';
 import 'dart:typed_data';
 
+import 'package:act_dart_result/act_dart_result.dart';
 import 'package:act_test_utility/act_test_utility.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ocpt_sync_protocol/ocpt_sync_protocol.dart';
@@ -15,6 +16,9 @@ import 'package:open_cine_prod_tools/managers/sync/services/ocpt_sync_session.da
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_screenplay_merge_conflict.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_sync_status.dart';
+import 'package:open_cine_prod_tools/models/sync/ocpt_sync_transport_failure.dart';
+import 'package:open_cine_prod_tools/types/ocpt_remote_storage_status.dart';
+import 'package:open_cine_prod_tools/types/ocpt_sync_session_status.dart';
 
 /// A minimal [OcptRemoteStorage] a test can ping through [pingNewWork] to simulate another
 /// replica's own push. `append`/`readSince`/the snapshot ops are never exercised by
@@ -24,17 +28,25 @@ class _FakeRemoteStorage implements OcptRemoteStorage {
   final StreamController<void> _newWorkController = StreamController<void>.broadcast();
 
   @override
-  Future<OcptSequenceNumber> append(OcptChangesetEnvelope envelope) async =>
-      OcptSequenceNumber.zero;
+  Future<ResultWithStatus<OcptRemoteStorageStatus, OcptSequenceNumber>> append(
+    OcptChangesetEnvelope envelope,
+  ) async =>
+      const ResultWithStatus(status: OcptRemoteStorageStatus.ok, value: OcptSequenceNumber.zero);
 
   @override
-  Future<List<OcptStoredChangeset>> readSince(OcptSequenceNumber cursor) async => const [];
+  Future<ResultWithStatus<OcptRemoteStorageStatus, List<OcptStoredChangeset>>> readSince(
+    OcptSequenceNumber cursor,
+  ) async => const ResultWithStatus(status: OcptRemoteStorageStatus.ok, value: []);
 
   @override
-  Future<void> uploadSnapshot(OcptSnapshotDescriptor descriptor, Uint8List bytes) async {}
+  Future<StatusWithExtraInfo<OcptRemoteStorageStatus>> uploadSnapshot(
+    OcptSnapshotDescriptor descriptor,
+    Uint8List bytes,
+  ) async => const StatusWithExtraInfo(status: OcptRemoteStorageStatus.ok);
 
   @override
-  Future<(OcptSnapshotDescriptor, Uint8List)?> fetchLatestSnapshot() async => null;
+  Future<ResultWithStatus<OcptRemoteStorageStatus, (OcptSnapshotDescriptor, Uint8List)>>
+  fetchLatestSnapshot() async => const ResultWithStatus(status: OcptRemoteStorageStatus.ok);
 
   @override
   Stream<void> get newWorkStream => _newWorkController.stream;
@@ -53,7 +65,8 @@ class _FakeRemoteStorage implements OcptRemoteStorage {
 
 /// An [OcptChangesetService] whose `syncOnce`/`pullAndApply`/`countUnpushedEdits` never touch a
 /// real database or transport: each call counts itself and pops its own queued outcome (a list of
-/// conflicts to return, or an object to throw), defaulting to "succeeded with no conflicts" once
+/// conflicts to return, an [OcptSyncError] the relay refused with, an exception the transport hit,
+/// or a [_DatabaseFailure] to throw), defaulting to "succeeded with no conflicts" once
 /// its queue runs dry. This is what lets this file test [OcptSyncSession]'s own scheduling and
 /// status logic without a real merge to drive.
 class _FakeChangesetService extends OcptChangesetService {
@@ -72,7 +85,7 @@ class _FakeChangesetService extends OcptChangesetService {
   final List<Object> pullAndApplyOutcomes = [];
 
   @override
-  Future<List<OcptScreenplayMergeConflict>> syncOnce({
+  Future<ResultWithStatus<OcptRemoteStorageStatus, List<OcptScreenplayMergeConflict>>> syncOnce({
     required OcptProjectDatabase database,
     required OcptRemoteStorage storage,
     required String relayId,
@@ -84,7 +97,8 @@ class _FakeChangesetService extends OcptChangesetService {
   }
 
   @override
-  Future<List<OcptScreenplayMergeConflict>> pullAndApply({
+  Future<ResultWithStatus<OcptRemoteStorageStatus, List<OcptScreenplayMergeConflict>>>
+  pullAndApply({
     required OcptProjectDatabase database,
     required OcptRemoteStorage storage,
     required String relayId,
@@ -105,21 +119,37 @@ class _FakeChangesetService extends OcptChangesetService {
     return unpushedEditCount;
   }
 
-  Future<List<OcptScreenplayMergeConflict>> _resolve(List<Object> outcomes) async {
+  Future<ResultWithStatus<OcptRemoteStorageStatus, List<OcptScreenplayMergeConflict>>> _resolve(
+    List<Object> outcomes,
+  ) async {
     if (outcomes.isEmpty) {
-      return const [];
+      return const ResultWithStatus(status: OcptRemoteStorageStatus.ok, value: []);
     }
 
     final outcome = outcomes.removeAt(0);
     if (outcome is List<OcptScreenplayMergeConflict>) {
-      return outcome;
+      return ResultWithStatus(status: OcptRemoteStorageStatus.ok, value: outcome);
     }
-    // The queued outcome is deliberately not always an Error/Exception: OcptSyncError itself is a
-    // plain value class thrown on purpose (see its own doc comment and
-    // OcptRelayRemoteStorage._throwIfFailed), and a test wants to exercise that exact shape.
-    // ignore: only_throw_errors
-    throw outcome;
+    if (outcome is OcptSyncError) {
+      return ResultWithStatus(status: OcptRemoteStorageStatus.rejected, extraInfo: outcome);
+    }
+    if (outcome is _DatabaseFailure) {
+      throw outcome.error;
+    }
+
+    return ResultWithStatus(
+      status: OcptRemoteStorageStatus.unreachable,
+      extraInfo: OcptSyncTransportFailure(error: outcome),
+    );
   }
+}
+
+/// A queued outcome of [_FakeChangesetService] that makes the call throw [error], the way the
+/// project database failing underneath a run does.
+class _DatabaseFailure {
+  const _DatabaseFailure(this.error);
+
+  final Error error;
 }
 
 /// Waits for [condition] to become true, polling every 5ms, failing the test if [timeout] elapses
@@ -255,6 +285,15 @@ void main() {
     expect(changesetService.countUnpushedEditsCalls, 1);
   });
 
+  test('the database failing under a run moves the status to offline too', () async {
+    changesetService.unpushedEditCount = 2;
+    changesetService.syncOnceOutcomes.add(_DatabaseFailure(StateError('database is closed')));
+
+    await session.start();
+
+    expect(session.status, const OcptSyncStatusOffline(pendingEditCount: 2));
+  });
+
   test('the relay rejecting a request moves the status to error, with its message', () async {
     changesetService.syncOnceOutcomes.add(
       const OcptSyncError(code: OcptSyncErrorCode.badToken, message: 'token mismatch'),
@@ -318,9 +357,9 @@ void main() {
     timeout: const Timeout(Duration(seconds: 5)),
   );
 
-  test('starting a session twice without stopping throws', () async {
-    await session.start();
+  test('starting a session twice without stopping answers the already-running status', () async {
+    expect(await session.start(), OcptSyncSessionStatus.ok);
 
-    await expectLater(session.start, throwsStateError);
+    expect(await session.start(), OcptSyncSessionStatus.alreadyRunning);
   });
 }

@@ -38,17 +38,17 @@ void main() {
     test('a round trip returns the same envelope', () async {
       final envelope = _envelope('a');
 
-      final sequence = await storage.append(envelope);
-      final stored = await storage.readSince(OcptSequenceNumber.zero);
+      final sequence = (await storage.append(envelope)).value!;
+      final stored = (await storage.readSince(OcptSequenceNumber.zero)).value!;
 
       expect(stored, [OcptStoredChangeset(sequenceNumber: sequence, envelope: envelope)]);
     });
 
     test('two separate appends both become visible in sequence order', () async {
-      final first = await storage.append(_envelope('a'));
-      final second = await storage.append(_envelope('b'));
+      final first = (await storage.append(_envelope('a'))).value!;
+      final second = (await storage.append(_envelope('b'))).value!;
 
-      final stored = await storage.readSince(OcptSequenceNumber.zero);
+      final stored = (await storage.readSince(OcptSequenceNumber.zero)).value!;
 
       expect(stored.map((entry) => entry.sequenceNumber), [first, second]);
       expect(stored.map((entry) => entry.envelope.changesetId), ['changeset-a', 'changeset-b']);
@@ -56,9 +56,9 @@ void main() {
 
     test('sequence numbers are strictly monotonic', () async {
       final sequences = [
-        await storage.append(_envelope('a')),
-        await storage.append(_envelope('b')),
-        await storage.append(_envelope('c')),
+        (await storage.append(_envelope('a'))).value!,
+        (await storage.append(_envelope('b'))).value!,
+        (await storage.append(_envelope('c'))).value!,
       ];
 
       for (var i = 1; i < sequences.length; i++) {
@@ -67,19 +67,21 @@ void main() {
     });
 
     test('a cursor at the end of the log returns nothing new', () async {
-      final second = await storage.append(_envelope('a'));
+      final second = (await storage.append(_envelope('a'))).value!;
       await storage.append(_envelope('b'));
 
-      final stored = await storage.readSince(await storage.append(_envelope('c')));
+      final stored = (await storage.readSince(
+        (await storage.append(_envelope('c'))).value!,
+      )).value!;
 
       expect(stored, isEmpty);
       // Reading from an earlier cursor still sees everything appended after it, including
       // [second]'s own follow-up.
-      expect((await storage.readSince(second)).length, 2);
+      expect(((await storage.readSince(second)).value!).length, 2);
     });
 
     test('readSince past the very end of an empty log returns nothing', () async {
-      final stored = await storage.readSince(OcptSequenceNumber.zero);
+      final stored = (await storage.readSince(OcptSequenceNumber.zero)).value!;
 
       expect(stored, isEmpty);
     });
@@ -96,7 +98,7 @@ void main() {
       final bytes = Uint8List.fromList([1, 2, 3, 4]);
 
       await storage.uploadSnapshot(descriptor, bytes);
-      final fetched = await storage.fetchLatestSnapshot();
+      final fetched = (await storage.fetchLatestSnapshot()).value;
 
       expect(fetched, isNotNull);
       expect(fetched!.$1, descriptor);
@@ -104,7 +106,7 @@ void main() {
     });
 
     test('fetching with nothing uploaded yet returns null', () async {
-      expect(await storage.fetchLatestSnapshot(), isNull);
+      expect((await storage.fetchLatestSnapshot()).value, isNull);
     });
 
     test('a later upload becomes the one fetched', () async {
@@ -124,7 +126,7 @@ void main() {
       await storage.uploadSnapshot(first, Uint8List.fromList([1]));
       await storage.uploadSnapshot(second, Uint8List.fromList([2]));
 
-      final fetched = await storage.fetchLatestSnapshot();
+      final fetched = (await storage.fetchLatestSnapshot()).value;
 
       expect(fetched!.$1, second);
       expect(fetched.$2, Uint8List.fromList([2]));

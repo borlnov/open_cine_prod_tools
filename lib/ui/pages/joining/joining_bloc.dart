@@ -2,6 +2,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+import 'package:act_dart_result/act_dart_result.dart';
 import 'package:act_flutter_utility/act_flutter_utility.dart';
 import 'package:act_global_manager/act_global_manager.dart';
 import 'package:act_logger_manager/act_logger_manager.dart';
@@ -17,6 +18,7 @@ import 'package:open_cine_prod_tools/managers/sync/services/ocpt_relay_remote_st
 import 'package:open_cine_prod_tools/models/ocpt_diagnostics_entry.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_relay_invite.dart';
 import 'package:open_cine_prod_tools/types/ocpt_route.dart';
+import 'package:open_cine_prod_tools/types/ocpt_sync_flow_status.dart';
 import 'package:open_cine_prod_tools/ui/pages/joining/joining_event.dart';
 import 'package:open_cine_prod_tools/ui/pages/joining/joining_state.dart';
 
@@ -214,14 +216,14 @@ class OcptJoiningBloc extends BlocForMixin<OcptJoiningState> {
 
       final pairing = OcptProjectPairing(relayBaseUri: invite.relayBaseUri, token: invite.token);
       final storage = _syncManager.openRelayRemoteStorage(pairing, invite.projectId);
-      final String projectFilePath;
+      final ResultWithStatus<OcptSyncFlowStatus, String> joined;
       try {
         emitter(state.copyWith(joinStep: OcptJoinStep.downloading));
         OcptDiagnosticsManager.log(
           category: OcptDiagnosticsCategory.join,
           message: 'downloading: project=${invite.projectId}',
         );
-        projectFilePath = await _syncManager.joinFromRelay(
+        joined = await _syncManager.joinFromRelay(
           storage: storage,
           parentDirectoryPath: parentDirectoryPath,
           pairingService: _syncManager.pairingService,
@@ -234,6 +236,19 @@ class OcptJoiningBloc extends BlocForMixin<OcptJoiningState> {
         }
       }
       if (_cancelled) {
+        return;
+      }
+      final projectFilePath = joined.value;
+      if (!joined.status.isSuccess || projectFilePath == null) {
+        // The relay's answer can name its address, so only the status is logged.
+        _logger.e('Joining a project failed: ${joined.status.name}');
+        OcptDiagnosticsManager.log(
+          category: OcptDiagnosticsCategory.join,
+          level: OcptDiagnosticsLevel.error,
+          message: 'failed: project=${invite.projectId} ${joined.extraInfo ?? joined.status}',
+          logMessage: 'failed: project=${invite.projectId} ${joined.status.name}',
+        );
+        emitter(state.copyWith(isJoining: false, joinFailed: true, clearJoinStep: true));
         return;
       }
 

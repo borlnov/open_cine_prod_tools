@@ -5,6 +5,7 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:act_dart_result/act_dart_result.dart';
 import 'package:act_file_transfer_manager/act_file_transfer_manager.dart';
 import 'package:act_platform_manager/act_platform_manager.dart';
 import 'package:act_test_utility/act_test_utility.dart';
@@ -25,6 +26,7 @@ import 'package:open_cine_prod_tools/managers/sync/services/ocpt_pairing_service
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_remote_storage.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_relay_invite.dart';
 import 'package:open_cine_prod_tools/types/ocpt_route.dart';
+import 'package:open_cine_prod_tools/types/ocpt_sync_flow_status.dart';
 import 'package:open_cine_prod_tools/ui/pages/joining/joining_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/joining/joining_event.dart';
 import 'package:open_cine_prod_tools/ui/pages/joining/joining_state.dart';
@@ -118,6 +120,9 @@ class _FakeSyncManager extends OcptSyncManager {
   /// The path [joinFromRelay] always returns.
   final String joinResultPath;
 
+  /// When set, the failure [joinFromRelay] answers instead of [joinResultPath].
+  OcptSyncFlowStatus? failWith;
+
   /// Optionally awaited before [joinFromRelay] returns.
   final Future<void> Function()? whileJoining;
 
@@ -129,7 +134,7 @@ class _FakeSyncManager extends OcptSyncManager {
   String? lastParentDirectoryPath;
 
   @override
-  Future<String> joinFromRelay({
+  Future<ResultWithStatus<OcptSyncFlowStatus, String>> joinFromRelay({
     required OcptRemoteStorage storage,
     required String parentDirectoryPath,
     required OcptPairingService pairingService,
@@ -139,7 +144,12 @@ class _FakeSyncManager extends OcptSyncManager {
     joinCallCount++;
     lastParentDirectoryPath = parentDirectoryPath;
     await whileJoining?.call();
-    return joinResultPath;
+    final failure = failWith;
+    if (failure != null) {
+      return ResultWithStatus(status: failure);
+    }
+
+    return ResultWithStatus(status: OcptSyncFlowStatus.ok, value: joinResultPath);
   }
 }
 
@@ -364,6 +374,34 @@ void main() {
       expect(projectsManager.currentProject?.path, joinedProjectPath);
     },
   );
+
+  for (final failure in [
+    OcptSyncFlowStatus.emptyRelay,
+    OcptSyncFlowStatus.rejected,
+    OcptSyncFlowStatus.unreachable,
+  ]) {
+    test("a join the relay answers with ${failure.name} surfaces the join error", () async {
+      final manager = _FakeSyncManager(
+        pairingService: pairingService,
+        joinResultPath: joinedProjectPath,
+      )..failWith = failure;
+      final bloc = buildBloc(manager: manager, routerManager: _RecordingRouterManager());
+
+      bloc.add(
+        OcptJoiningManualSubmittedEvent(
+          inviteLinkText: validInviteLink,
+          destinationConfirmButtonText: "Join here",
+        ),
+      );
+      await pumpEventQueue();
+
+      expect(manager.joinCallCount, 1);
+      expect(bloc.state.isJoining, isFalse);
+      expect(bloc.state.joinFailed, isTrue);
+      expect(bloc.state.joinSucceeded, isFalse);
+      expect(projectsManager.currentProject, isNull);
+    });
+  }
 
   test("a valid scanned invite joins the project just like a manual submission", () async {
     final manager = _FakeSyncManager(

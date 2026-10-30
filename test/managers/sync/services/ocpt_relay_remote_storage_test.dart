@@ -12,6 +12,8 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:ocpt_sync_protocol/ocpt_sync_protocol.dart';
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_relay_remote_storage.dart';
+import 'package:open_cine_prod_tools/models/sync/ocpt_sync_transport_failure.dart';
+import 'package:open_cine_prod_tools/types/ocpt_remote_storage_status.dart';
 import 'package:stream_channel/stream_channel.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
@@ -100,9 +102,10 @@ void main() {
         }),
       );
 
-      final sequence = await storage.append(envelope);
+      final result = await storage.append(envelope);
 
-      expect(sequence, const OcptSequenceNumber(7));
+      expect(result.status, OcptRemoteStorageStatus.ok);
+      expect(result.value, const OcptSequenceNumber(7));
       expect(captured.method, 'POST');
       expect(captured.url.path, '/projects/$projectId/changesets');
       expect(captured.headers['Authorization'], 'Bearer $token');
@@ -173,7 +176,7 @@ void main() {
         }),
       );
 
-      final stored = await storage.readSince(const OcptSequenceNumber(3));
+      final stored = (await storage.readSince(const OcptSequenceNumber(3))).value!;
 
       expect(captured.method, 'GET');
       expect(captured.url.path, '/projects/$projectId/changesets');
@@ -240,14 +243,14 @@ void main() {
         }),
       );
 
-      final result = await storage.fetchLatestSnapshot();
+      final result = (await storage.fetchLatestSnapshot()).value;
 
       expect(result, isNotNull);
       expect(result!.$1, descriptor);
       expect(result.$2, bytes);
     });
 
-    test('maps a 404 to null', () async {
+    test('maps a 404 to a successful answer with no snapshot', () async {
       final storage = OcptRelayRemoteStorage(
         logger: const SilentLogger(),
         relayBaseUri: relayBaseUri,
@@ -266,12 +269,14 @@ void main() {
         ),
       );
 
-      expect(await storage.fetchLatestSnapshot(), isNull);
+      final result = await storage.fetchLatestSnapshot();
+      expect(result.status, OcptRemoteStorageStatus.ok);
+      expect(result.value, isNull);
     });
   });
 
   group('error surfacing', () {
-    test('a non-2xx response throws the decoded OcptSyncError', () async {
+    test('a non-2xx response is rejected with the decoded OcptSyncError', () async {
       final storage = OcptRelayRemoteStorage(
         logger: const SilentLogger(),
         relayBaseUri: relayBaseUri,
@@ -287,13 +292,62 @@ void main() {
         ),
       );
 
-      await expectLater(
-        storage.append(_envelope('a')),
-        throwsA(
-          isA<OcptSyncError>()
-              .having((error) => error.code, 'code', OcptSyncErrorCode.badToken)
-              .having((error) => error.message, 'message', 'bad token'),
+      final result = await storage.append(_envelope('a'));
+
+      expect(result.status, OcptRemoteStorageStatus.rejected);
+      expect(result.value, isNull);
+      expect(
+        result.extraInfo,
+        isA<OcptSyncError>()
+            .having((error) => error.code, 'code', OcptSyncErrorCode.badToken)
+            .having((error) => error.message, 'message', 'bad token'),
+      );
+    });
+
+    test('a request that cannot be made is unreachable, carrying the caught error', () async {
+      final storage = OcptRelayRemoteStorage(
+        logger: const SilentLogger(),
+        relayBaseUri: relayBaseUri,
+        projectId: projectId,
+        token: token,
+        httpClient: MockClient((request) async => throw http.ClientException('connection refused')),
+      );
+
+      final result = await storage.readSince(OcptSequenceNumber.zero);
+
+      expect(result.status, OcptRemoteStorageStatus.unreachable);
+      expect(result.value, isNull);
+      expect(
+        result.extraInfo,
+        isA<OcptSyncTransportFailure>().having(
+          (failure) => failure.error,
+          'error',
+          isA<http.ClientException>(),
         ),
+      );
+    });
+
+    test('an answer that is not the expected JSON is unreachable', () async {
+      final storage = OcptRelayRemoteStorage(
+        logger: const SilentLogger(),
+        relayBaseUri: relayBaseUri,
+        projectId: projectId,
+        token: token,
+        httpClient: MockClient((request) async => http.Response('<html>oops</html>', 500)),
+      );
+
+      expect((await storage.append(_envelope('a'))).status, OcptRemoteStorageStatus.unreachable);
+      expect(
+        (await storage.uploadSnapshot(
+          const OcptSnapshotDescriptor(
+            snapshotId: 'snapshot-1',
+            sequenceUpTo: OcptSequenceNumber(1),
+            byteLength: 1,
+            contentDigest: 'digest',
+          ),
+          Uint8List.fromList([1]),
+        )).status,
+        OcptRemoteStorageStatus.unreachable,
       );
     });
   });

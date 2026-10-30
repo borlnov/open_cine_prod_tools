@@ -372,11 +372,11 @@ void main() {
 
       // Bring B online: a single pullAndApply catches up on everything appended since the
       // baseline, in one call.
-      final conflicts = await deviceB.changesetService.pullAndApply(
+      final conflicts = (await deviceB.changesetService.pullAndApply(
         database: replicaB,
         storage: storage,
         relayId: relayId,
-      );
+      )).value!;
       expect(conflicts, isEmpty, reason: "B made no edit of its own, so this merges cleanly");
 
       // The screenplay text converges to A's restored text through the three-way merge — B's own
@@ -407,7 +407,7 @@ void main() {
       // And `scenes` is never named by any changeset this whole scenario appended — the restore's
       // own bulk rewrite of that table included (`OcptProjectVersionsService._applyPayload` stamps
       // every table it restores except `scenes`).
-      final everyAppendedChangeset = await storage.readSince(OcptSequenceNumber.zero);
+      final everyAppendedChangeset = (await storage.readSince(OcptSequenceNumber.zero)).value!;
       expect(
         everyAppendedChangeset,
         hasLength(2),

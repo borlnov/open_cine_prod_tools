@@ -198,24 +198,24 @@ void main() {
       // The usual round-robin: A pushes and pulls (nothing new to pull yet), B pushes and pulls
       // (picks up A's edit alongside its own, merging the two), and a second round for A picks up
       // what B pushed — including the merged text B's own merge just produced.
-      final conflictsA1 = await deviceA.changesetService.syncOnce(
+      final conflictsA1 = (await deviceA.changesetService.syncOnce(
         database: replicaA,
         storage: storage,
         relayId: relayId,
         deviceId: 'device-a',
-      );
-      final conflictsB = await deviceB.changesetService.syncOnce(
+      )).value!;
+      final conflictsB = (await deviceB.changesetService.syncOnce(
         database: replicaB,
         storage: storage,
         relayId: relayId,
         deviceId: 'device-b',
-      );
-      final conflictsA2 = await deviceA.changesetService.syncOnce(
+      )).value!;
+      final conflictsA2 = (await deviceA.changesetService.syncOnce(
         database: replicaA,
         storage: storage,
         relayId: relayId,
         deviceId: 'device-a',
-      );
+      )).value!;
 
       expect(conflictsA1, isEmpty);
       expect(conflictsB, isEmpty);
@@ -283,7 +283,7 @@ void main() {
       deviceId: 'device-a',
     );
 
-    final stored = await storage.readSince(OcptSequenceNumber.zero);
+    final stored = (await storage.readSince(OcptSequenceNumber.zero)).value!;
     expect(stored, isNotEmpty);
 
     for (final entry in stored) {
@@ -324,12 +324,12 @@ void main() {
         relayId: relayId,
         deviceId: 'device-a',
       );
-      final conflictsB = await deviceB.changesetService.syncOnce(
+      final conflictsB = (await deviceB.changesetService.syncOnce(
         database: replicaB,
         storage: storage,
         relayId: relayId,
         deviceId: 'device-b',
-      );
+      )).value!;
 
       expect(conflictsB, [
         const OcptScreenplayMergeConflict(
@@ -349,12 +349,12 @@ void main() {
         localTextOnB,
       );
 
-      final conflictsA = await deviceA.changesetService.syncOnce(
+      final conflictsA = (await deviceA.changesetService.syncOnce(
         database: replicaA,
         storage: storage,
         relayId: relayId,
         deviceId: 'device-a',
-      );
+      )).value!;
 
       expect(conflictsA, [
         const OcptScreenplayMergeConflict(

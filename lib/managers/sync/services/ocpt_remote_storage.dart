@@ -4,7 +4,9 @@
 
 import 'dart:typed_data';
 
+import 'package:act_dart_result/act_dart_result.dart';
 import 'package:ocpt_sync_protocol/ocpt_sync_protocol.dart';
+import 'package:open_cine_prod_tools/types/ocpt_remote_storage_status.dart';
 
 /// The transport a project's changeset engine exchanges its work through, exposing the same five
 /// operations `docs/adr/0009-offline-first-sync-through-a-domain-blind-relay.md` gives the relay:
@@ -16,6 +18,11 @@ import 'package:ocpt_sync_protocol/ocpt_sync_protocol.dart';
 /// changeset's [OcptChangesetEnvelope.payload] actually contains. `OcptFolderRemoteStorage` is the
 /// desktop fallback over a plain directory; `OcptRelayRemoteStorage` talks HTTP and a WebSocket to
 /// a relay.
+///
+/// The four request/response operations never throw for a failure of the transport: they answer an
+/// [OcptRemoteStorageStatus] — [OcptRemoteStorageStatus.rejected] when the relay answered with a
+/// sync error, [OcptRemoteStorageStatus.unreachable] for everything else the transport hit — and
+/// leave what to do about it (go offline, report an error) to the caller.
 abstract interface class OcptRemoteStorage {
   /// Appends [envelope] to the project's changeset log and returns the sequence number the
   /// transport assigned it.
@@ -23,25 +30,33 @@ abstract interface class OcptRemoteStorage {
   /// The assigned sequence number is a delivery cursor only — per ADR 0010, a merge never reads it
   /// to decide which of two column edits wins, since two different transports can assign the same
   /// project two independent sequences on the same day.
-  Future<OcptSequenceNumber> append(OcptChangesetEnvelope envelope);
+  Future<ResultWithStatus<OcptRemoteStorageStatus, OcptSequenceNumber>> append(
+    OcptChangesetEnvelope envelope,
+  );
 
   /// Returns every changeset appended after [cursor], oldest first.
   ///
   /// Returns an empty list, never an error, when [cursor] already names the last position in the
   /// log — a replica catching up after being offline calls this once and gets everything it
   /// missed in one page.
-  Future<List<OcptStoredChangeset>> readSince(OcptSequenceNumber cursor);
+  Future<ResultWithStatus<OcptRemoteStorageStatus, List<OcptStoredChangeset>>> readSince(
+    OcptSequenceNumber cursor,
+  );
 
   /// Stores [bytes] under [descriptor], making it the transport's latest snapshot.
   ///
   /// [descriptor] and [bytes] are opaque to this interface beyond [descriptor]'s own fields: what
   /// [bytes] decodes to, and how [OcptSnapshotDescriptor.contentDigest] was computed, is entirely
   /// the caller's concern.
-  Future<void> uploadSnapshot(OcptSnapshotDescriptor descriptor, Uint8List bytes);
+  Future<StatusWithExtraInfo<OcptRemoteStorageStatus>> uploadSnapshot(
+    OcptSnapshotDescriptor descriptor,
+    Uint8List bytes,
+  );
 
-  /// Returns the transport's latest snapshot, paired with its own descriptor, or null when no
-  /// snapshot has ever been uploaded.
-  Future<(OcptSnapshotDescriptor, Uint8List)?> fetchLatestSnapshot();
+  /// Returns the transport's latest snapshot, paired with its own descriptor, or a successful
+  /// answer with no value when no snapshot has ever been uploaded.
+  Future<ResultWithStatus<OcptRemoteStorageStatus, (OcptSnapshotDescriptor, Uint8List)>>
+  fetchLatestSnapshot();
 
   /// Emits an event whenever new work — a changeset or a snapshot appended by another replica —
   /// becomes available.

@@ -126,7 +126,7 @@ class OcptSharingBloc extends BlocForMixin<OcptSharingState> {
     final projectId = const Uuid().v4();
 
     try {
-      final invite = await _syncManager.pairProjectToRelay(
+      final paired = await _syncManager.pairProjectToRelay(
         database: project.fileDatabase,
         projectId: projectId,
         projectFilePath: project.path,
@@ -136,7 +136,14 @@ class OcptSharingBloc extends BlocForMixin<OcptSharingState> {
         enrolmentSecret: event.enrolmentSecret,
         deviceId: deviceId,
       );
-      emitter(state.copyWith(isPairing: false, invite: invite));
+      if (!paired.status.isSuccess) {
+        // The relay's answer can name its address, so only the status is logged.
+        _logger.e('Pairing the project with a relay failed: ${paired.status.name}');
+        emitter(state.copyWith(isPairing: false, pairingFailed: true));
+        return;
+      }
+
+      emitter(state.copyWith(isPairing: false, invite: paired.value));
     } catch (error, stackTrace) {
       // The error can name the relay's address, so only its type is logged.
       _logger.e('Pairing the project with a relay failed: ${error.runtimeType}', null, stackTrace);

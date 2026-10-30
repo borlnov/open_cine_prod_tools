@@ -5,6 +5,7 @@
 import 'dart:async';
 import 'dart:typed_data';
 
+import 'package:act_dart_result/act_dart_result.dart';
 import 'package:act_test_utility/act_test_utility.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ocpt_sync_protocol/ocpt_sync_protocol.dart';
@@ -17,6 +18,8 @@ import 'package:open_cine_prod_tools/managers/sync/services/ocpt_remote_storage.
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_screenplay_merge_conflict.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_sync_status.dart';
+import 'package:open_cine_prod_tools/types/ocpt_remote_storage_status.dart';
+import 'package:open_cine_prod_tools/types/ocpt_sync_session_status.dart';
 
 /// A minimal [OcptRemoteStorage]: [OcptSyncManager]'s own tests below only care that a session
 /// starts and stops around it, never about what it actually stores.
@@ -24,17 +27,25 @@ class _FakeRemoteStorage implements OcptRemoteStorage {
   final StreamController<void> _newWorkController = StreamController<void>.broadcast();
 
   @override
-  Future<OcptSequenceNumber> append(OcptChangesetEnvelope envelope) async =>
-      OcptSequenceNumber.zero;
+  Future<ResultWithStatus<OcptRemoteStorageStatus, OcptSequenceNumber>> append(
+    OcptChangesetEnvelope envelope,
+  ) async =>
+      const ResultWithStatus(status: OcptRemoteStorageStatus.ok, value: OcptSequenceNumber.zero);
 
   @override
-  Future<List<OcptStoredChangeset>> readSince(OcptSequenceNumber cursor) async => const [];
+  Future<ResultWithStatus<OcptRemoteStorageStatus, List<OcptStoredChangeset>>> readSince(
+    OcptSequenceNumber cursor,
+  ) async => const ResultWithStatus(status: OcptRemoteStorageStatus.ok, value: []);
 
   @override
-  Future<void> uploadSnapshot(OcptSnapshotDescriptor descriptor, Uint8List bytes) async {}
+  Future<StatusWithExtraInfo<OcptRemoteStorageStatus>> uploadSnapshot(
+    OcptSnapshotDescriptor descriptor,
+    Uint8List bytes,
+  ) async => const StatusWithExtraInfo(status: OcptRemoteStorageStatus.ok);
 
   @override
-  Future<(OcptSnapshotDescriptor, Uint8List)?> fetchLatestSnapshot() async => null;
+  Future<ResultWithStatus<OcptRemoteStorageStatus, (OcptSnapshotDescriptor, Uint8List)>>
+  fetchLatestSnapshot() async => const ResultWithStatus(status: OcptRemoteStorageStatus.ok);
 
   @override
   Stream<void> get newWorkStream => _newWorkController.stream;
@@ -61,7 +72,7 @@ class _FakeChangesetService extends OcptChangesetService {
   int syncOnceCalls = 0;
 
   @override
-  Future<List<OcptScreenplayMergeConflict>> syncOnce({
+  Future<ResultWithStatus<OcptRemoteStorageStatus, List<OcptScreenplayMergeConflict>>> syncOnce({
     required OcptProjectDatabase database,
     required OcptRemoteStorage storage,
     required String relayId,
@@ -69,15 +80,16 @@ class _FakeChangesetService extends OcptChangesetService {
   }) async {
     syncOnceCalls++;
 
-    return const [];
+    return const ResultWithStatus(status: OcptRemoteStorageStatus.ok, value: []);
   }
 
   @override
-  Future<List<OcptScreenplayMergeConflict>> pullAndApply({
+  Future<ResultWithStatus<OcptRemoteStorageStatus, List<OcptScreenplayMergeConflict>>>
+  pullAndApply({
     required OcptProjectDatabase database,
     required OcptRemoteStorage storage,
     required String relayId,
-  }) async => const [];
+  }) async => const ResultWithStatus(status: OcptRemoteStorageStatus.ok, value: []);
 }
 
 void main() {
@@ -169,8 +181,8 @@ void main() {
       expect(changesetService.syncOnceCalls, 2);
     });
 
-    test('syncNow throws when no session is running', () async {
-      await expectLater(manager.syncNow, throwsStateError);
+    test('syncNow answers the not-running status when no session is running', () async {
+      expect(await manager.syncNow(), OcptSyncSessionStatus.notRunning);
     });
 
     test('stopSyncSession clears the running session', () async {

@@ -5,6 +5,7 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:act_dart_result/act_dart_result.dart';
 import 'package:act_test_utility/act_test_utility.dart';
 import 'package:drift/drift.dart' show Value;
 import 'package:flutter/services.dart';
@@ -23,6 +24,8 @@ import 'package:open_cine_prod_tools/managers/sync/services/ocpt_remote_storage.
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_relay_invite.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
+import 'package:open_cine_prod_tools/types/ocpt_remote_storage_status.dart';
+import 'package:open_cine_prod_tools/types/ocpt_sync_flow_status.dart';
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
@@ -69,25 +72,50 @@ class _FakeRemoteStorage implements OcptRemoteStorage {
   final List<OcptChangesetEnvelope> appended = [];
   (OcptSnapshotDescriptor, Uint8List)? uploaded;
 
+  /// When set, the status every request/response call answers instead of succeeding.
+  OcptRemoteStorageStatus? failWith;
+
   final StreamController<void> _newWorkController = StreamController<void>.broadcast();
 
   @override
-  Future<OcptSequenceNumber> append(OcptChangesetEnvelope envelope) async {
+  Future<ResultWithStatus<OcptRemoteStorageStatus, OcptSequenceNumber>> append(
+    OcptChangesetEnvelope envelope,
+  ) async {
+    final failure = failWith;
+    if (failure != null) {
+      return ResultWithStatus(status: failure);
+    }
     appended.add(envelope);
 
-    return OcptSequenceNumber(appended.length);
+    return ResultWithStatus(
+      status: OcptRemoteStorageStatus.ok,
+      value: OcptSequenceNumber(appended.length),
+    );
   }
 
   @override
-  Future<List<OcptStoredChangeset>> readSince(OcptSequenceNumber cursor) async => const [];
+  Future<ResultWithStatus<OcptRemoteStorageStatus, List<OcptStoredChangeset>>> readSince(
+    OcptSequenceNumber cursor,
+  ) async => const ResultWithStatus(status: OcptRemoteStorageStatus.ok, value: []);
 
   @override
-  Future<void> uploadSnapshot(OcptSnapshotDescriptor descriptor, Uint8List bytes) async {
+  Future<StatusWithExtraInfo<OcptRemoteStorageStatus>> uploadSnapshot(
+    OcptSnapshotDescriptor descriptor,
+    Uint8List bytes,
+  ) async {
+    final failure = failWith;
+    if (failure != null) {
+      return StatusWithExtraInfo(status: failure);
+    }
     uploaded = (descriptor, bytes);
+
+    return const StatusWithExtraInfo(status: OcptRemoteStorageStatus.ok);
   }
 
   @override
-  Future<(OcptSnapshotDescriptor, Uint8List)?> fetchLatestSnapshot() async => uploaded;
+  Future<ResultWithStatus<OcptRemoteStorageStatus, (OcptSnapshotDescriptor, Uint8List)>>
+  fetchLatestSnapshot() async =>
+      ResultWithStatus(status: OcptRemoteStorageStatus.ok, value: uploaded);
 
   @override
   Stream<void> get newWorkStream => _newWorkController.stream;
@@ -240,7 +268,7 @@ void main() {
 
   group('pairProjectToRelay', () {
     test('saves the pairing with a freshly minted token', () async {
-      final invite = await manager.pairProjectToRelay(
+      final paired = await manager.pairProjectToRelay(
         database: database,
         projectId: projectId,
         projectFilePath: projectPath,
@@ -250,6 +278,8 @@ void main() {
         enrolmentSecret: 'enrolment-secret-1',
         deviceId: deviceId,
       );
+      expect(paired.status, OcptSyncFlowStatus.ok);
+      final invite = paired.value!;
 
       final pairing = await pairingService.loadPairing(database: database, projectId: projectId);
       expect(pairing, isNotNull);
@@ -328,8 +358,10 @@ void main() {
       expect(manager.syncStatus, isNotNull);
     });
 
-    test('returns an invite matching the relay, the project and the minted token', () async {
-      final invite = await manager.pairProjectToRelay(
+    test('answers the transport failure and starts no session when the push fails', () async {
+      storage.failWith = OcptRemoteStorageStatus.unreachable;
+
+      final paired = await manager.pairProjectToRelay(
         database: database,
         projectId: projectId,
         projectFilePath: projectPath,
@@ -339,6 +371,26 @@ void main() {
         enrolmentSecret: 'enrolment-secret-1',
         deviceId: deviceId,
       );
+
+      expect(paired.status, OcptSyncFlowStatus.unreachable);
+      expect(paired.value, isNull);
+      expect(manager.syncStatus, isNull);
+      expect(storage.uploaded, isNull);
+    });
+
+    test('returns an invite matching the relay, the project and the minted token', () async {
+      final paired = await manager.pairProjectToRelay(
+        database: database,
+        projectId: projectId,
+        projectFilePath: projectPath,
+        projectName: 'Les Vagues',
+        appVersion: '0.1.0',
+        relayBaseUri: relayBaseUri,
+        enrolmentSecret: 'enrolment-secret-1',
+        deviceId: deviceId,
+      );
+      expect(paired.status, OcptSyncFlowStatus.ok);
+      final invite = paired.value!;
 
       final pairing = await pairingService.loadPairing(database: database, projectId: projectId);
       expect(
@@ -352,7 +404,7 @@ void main() {
     final newRelayBaseUri = Uri.parse('https://set-relay.example.org/');
 
     test('reuses the existing token and re-saves the pairing against the new relay', () async {
-      final invite = await manager.pairProjectToRelay(
+      final paired = await manager.pairProjectToRelay(
         database: database,
         projectId: projectId,
         projectFilePath: projectPath,
@@ -362,6 +414,8 @@ void main() {
         enrolmentSecret: 'enrolment-secret-1',
         deviceId: deviceId,
       );
+      expect(paired.status, OcptSyncFlowStatus.ok);
+      final invite = paired.value!;
 
       await manager.repointProjectToRelay(
         database: database,
@@ -448,20 +502,20 @@ void main() {
       await newStorage.dispose();
     });
 
-    test('throws a StateError when the project has no existing pairing', () async {
-      expect(
-        () => manager.repointProjectToRelay(
-          database: database,
-          projectId: projectId,
-          projectFilePath: projectPath,
-          projectName: 'Les Vagues',
-          appVersion: '0.1.0',
-          relayBaseUri: newRelayBaseUri,
-          enrolmentSecret: 'set-relay-secret',
-          deviceId: deviceId,
-        ),
-        throwsA(isA<StateError>()),
+    test('answers the not-paired status when the project has no existing pairing', () async {
+      final result = await manager.repointProjectToRelay(
+        database: database,
+        projectId: projectId,
+        projectFilePath: projectPath,
+        projectName: 'Les Vagues',
+        appVersion: '0.1.0',
+        relayBaseUri: newRelayBaseUri,
+        enrolmentSecret: 'set-relay-secret',
+        deviceId: deviceId,
       );
+
+      expect(result.status, OcptSyncFlowStatus.notPaired);
+      expect(manager.syncStatus, isNull);
     });
   });
 }

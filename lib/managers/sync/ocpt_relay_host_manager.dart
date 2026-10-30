@@ -5,6 +5,7 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:act_dart_result/act_dart_result.dart';
 import 'package:act_global_manager/act_global_manager.dart';
 import 'package:act_life_cycle/act_life_cycle.dart';
 import 'package:act_logger_manager/act_logger_manager.dart';
@@ -20,6 +21,8 @@ import 'package:open_cine_prod_tools/models/ocpt_diagnostics_entry.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_reconcile_outcome.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_relay_host_state.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_relay_invite.dart';
+import 'package:open_cine_prod_tools/models/sync/ocpt_sync_transport_failure.dart';
+import 'package:open_cine_prod_tools/types/ocpt_sync_flow_status.dart';
 import 'package:path/path.dart' as p;
 import 'package:shelf/shelf_io.dart' as shelf_io;
 import 'package:uuid/uuid.dart';
@@ -372,8 +375,9 @@ class OcptRelayHostManager extends AbsWithLifeCycle {
       );
 
       final localBaseUri = Uri(scheme: 'http', host: 'localhost', port: httpServer.port);
+      final StatusWithExtraInfo<OcptSyncFlowStatus> bringUp;
       if (isPaired) {
-        await _sync.repointProjectToRelay(
+        bringUp = await _sync.repointProjectToRelay(
           database: database,
           projectId: projectId,
           projectFilePath: projectFilePath,
@@ -384,7 +388,7 @@ class OcptRelayHostManager extends AbsWithLifeCycle {
           deviceId: deviceId,
         );
       } else {
-        await _sync.pairProjectToRelay(
+        bringUp = await _sync.pairProjectToRelay(
           database: database,
           projectId: projectId,
           projectFilePath: projectFilePath,
@@ -394,6 +398,10 @@ class OcptRelayHostManager extends AbsWithLifeCycle {
           enrolmentSecret: secret,
           deviceId: deviceId,
         );
+      }
+      if (!bringUp.status.isSuccess) {
+        await _failStart(bringUp.extraInfo ?? bringUp.status, null);
+        return;
       }
 
       final lanAddresses = await _lanAddressResolver();
@@ -417,16 +425,28 @@ class OcptRelayHostManager extends AbsWithLifeCycle {
         logMessage: 'online: project=$projectId',
       );
     } catch (error, stackTrace) {
-      await _teardown();
-      _logger.e('Could not start hosting project: ${error.runtimeType}', null, stackTrace);
-      OcptDiagnosticsManager.log(
-        category: OcptDiagnosticsCategory.hosting,
-        level: OcptDiagnosticsLevel.error,
-        message: 'could not start hosting: $error',
-        logMessage: 'could not start hosting: ${error.runtimeType}',
-      );
-      _setState(OcptRelayHostFailed('Could not start hosting: $error'));
+      await _failStart(error, stackTrace);
     }
+  }
+
+  /// Tears down whatever [startHosting] already opened, logs why it could not finish, and reports
+  /// [OcptRelayHostFailed] with [error]'s own text: a bring-up failure is a state to render, not an
+  /// exception to propagate.
+  ///
+  /// [error] is either something [startHosting] caught or the detail a sync flow answered with (the
+  /// relay's `OcptSyncError`, an `OcptSyncTransportFailure`); the type logged is the underlying
+  /// one in both cases.
+  Future<void> _failStart(Object error, StackTrace? stackTrace) async {
+    final cause = error is OcptSyncTransportFailure ? error.error : error;
+    await _teardown();
+    _logger.e('Could not start hosting project: ${cause.runtimeType}', null, stackTrace);
+    OcptDiagnosticsManager.log(
+      category: OcptDiagnosticsCategory.hosting,
+      level: OcptDiagnosticsLevel.error,
+      message: 'could not start hosting: $error',
+      logMessage: 'could not start hosting: ${cause.runtimeType}',
+    );
+    _setState(OcptRelayHostFailed('Could not start hosting: $error'));
   }
 
   /// Stops the currently hosted relay, if any: ends the self-seeded sync session, closes the

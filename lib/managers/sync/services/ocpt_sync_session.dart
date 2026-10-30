@@ -4,6 +4,7 @@
 
 import 'dart:async';
 
+import 'package:act_dart_result/act_dart_result.dart';
 import 'package:act_foundation/act_foundation.dart';
 import 'package:ocpt_sync_protocol/ocpt_sync_protocol.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_diagnostics_manager.dart';
@@ -13,6 +14,9 @@ import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart'
 import 'package:open_cine_prod_tools/models/ocpt_diagnostics_entry.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_screenplay_merge_conflict.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_sync_status.dart';
+import 'package:open_cine_prod_tools/models/sync/ocpt_sync_transport_failure.dart';
+import 'package:open_cine_prod_tools/types/ocpt_remote_storage_status.dart';
+import 'package:open_cine_prod_tools/types/ocpt_sync_session_status.dart';
 
 /// How often [OcptSyncSession] runs [OcptChangesetService.syncOnce] on its own timer, with no
 /// [OcptRemoteStorage.newWorkStream] ping and no [OcptSyncSession.syncNow] call from the user — the
@@ -130,11 +134,11 @@ class OcptSyncSession {
   ///
   /// The initial sync runs and settles first, so a listener attached right after this returns
   /// never races it: [status] already reflects that first run's own outcome, subscribing and
-  /// arming the timer only happen once it is done. Throws [StateError] when this session is
-  /// already running — call [stop] first to restart it.
-  Future<void> start() async {
+  /// arming the timer only happen once it is done. Answers [OcptSyncSessionStatus.alreadyRunning],
+  /// and does nothing, when this session is already running — call [stop] first to restart it.
+  Future<OcptSyncSessionStatus> start() async {
     if (_isRunning) {
-      throw StateError('OcptSyncSession is already running for project $projectId');
+      return OcptSyncSessionStatus.alreadyRunning;
     }
     _isRunning = true;
 
@@ -142,6 +146,8 @@ class OcptSyncSession {
 
     _newWorkSubscription = storage.newWorkStream.listen((_) => unawaited(_runPullOnly()));
     _pushTimer = Timer.periodic(pushInterval, (_) => unawaited(_runSyncOnce()));
+
+    return OcptSyncSessionStatus.ok;
   }
 
   /// Cancels the [pushInterval] timer and the [OcptRemoteStorage.newWorkStream] subscription, and
@@ -167,40 +173,71 @@ class OcptSyncSession {
   Future<void> _runPullOnly() async {
     _setStatus(const OcptSyncStatusSyncing());
     try {
-      final conflicts = await changesetService.pullAndApply(
+      final result = await changesetService.pullAndApply(
         database: database,
         storage: storage,
         relayId: relayId,
       );
-      _conflicts.addAll(conflicts);
-      _setStatus(const OcptSyncStatusInSync());
-    } on OcptSyncError catch (error) {
-      _setStatus(OcptSyncStatusError(error.message));
+      await _settle(result, failureLabel: 'Sync pull failed');
     } catch (error, stackTrace) {
-      _logger.w('Sync pull failed for project $projectId: ${error.runtimeType}', null, stackTrace);
-      _logOfflineCause(error);
-      _setStatus(OcptSyncStatusOffline(pendingEditCount: await _pendingEditCountOrNull()));
+      await _goOffline(error, stackTrace, failureLabel: 'Sync pull failed');
     }
   }
 
   Future<void> _runSyncOnce() async {
     _setStatus(const OcptSyncStatusSyncing());
     try {
-      final conflicts = await changesetService.syncOnce(
+      final result = await changesetService.syncOnce(
         database: database,
         storage: storage,
         relayId: relayId,
         deviceId: deviceId,
       );
+      await _settle(result, failureLabel: 'Sync failed');
+    } catch (error, stackTrace) {
+      // Only [database] still throws: the transport answers a status.
+      await _goOffline(error, stackTrace, failureLabel: 'Sync failed');
+    }
+  }
+
+  /// Moves this session to the status [result] stands for: in sync with its conflicts collected,
+  /// an error carrying the relay's own message when the relay refused the call, or offline when the
+  /// transport could not reach it.
+  Future<void> _settle(
+    ResultWithStatus<OcptRemoteStorageStatus, List<OcptScreenplayMergeConflict>> result, {
+    required String failureLabel,
+  }) async {
+    final conflicts = result.value;
+    if (result.status.isSuccess && conflicts != null) {
       _conflicts.addAll(conflicts);
       _setStatus(const OcptSyncStatusInSync());
-    } on OcptSyncError catch (error) {
-      _setStatus(OcptSyncStatusError(error.message));
-    } catch (error, stackTrace) {
-      _logger.w('Sync failed for project $projectId: ${error.runtimeType}', null, stackTrace);
-      _logOfflineCause(error);
-      _setStatus(OcptSyncStatusOffline(pendingEditCount: await _pendingEditCountOrNull()));
+      return;
     }
+
+    final detail = result.extraInfo;
+    if (detail is OcptSyncError) {
+      _setStatus(OcptSyncStatusError(detail.message));
+      return;
+    }
+
+    if (detail is OcptSyncTransportFailure) {
+      await _goOffline(detail.error, detail.stackTrace, failureLabel: failureLabel);
+      return;
+    }
+
+    await _goOffline(result.status, null, failureLabel: failureLabel);
+  }
+
+  /// Logs [error] as what knocked this session offline, and moves it to
+  /// [OcptSyncStatusOffline] with however many edits are still waiting to be pushed.
+  Future<void> _goOffline(
+    Object error,
+    StackTrace? stackTrace, {
+    required String failureLabel,
+  }) async {
+    _logger.w('$failureLabel for project $projectId: ${error.runtimeType}', null, stackTrace);
+    _logOfflineCause(error);
+    _setStatus(OcptSyncStatusOffline(pendingEditCount: await _pendingEditCountOrNull()));
   }
 
   /// [OcptChangesetService.countUnpushedEdits] against [database], or null when even that cheap

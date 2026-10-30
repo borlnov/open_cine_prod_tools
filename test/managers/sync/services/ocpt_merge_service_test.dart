@@ -353,7 +353,7 @@ void main() {
       );
     }
 
-    expect(await storage.readSince(OcptSequenceNumber.zero), hasLength(3));
+    expect((await storage.readSince(OcptSequenceNumber.zero)).value, hasLength(3));
 
     await service.pullAndApply(database: offline, storage: storage, relayId: relayId);
 

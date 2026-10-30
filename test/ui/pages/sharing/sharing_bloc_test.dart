@@ -4,6 +4,7 @@
 
 import 'dart:io';
 
+import 'package:act_dart_result/act_dart_result.dart';
 import 'package:act_test_utility/act_test_utility.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -20,6 +21,8 @@ import 'package:open_cine_prod_tools/managers/sync/services/ocpt_pairing_service
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_remote_storage.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_relay_invite.dart';
+import 'package:open_cine_prod_tools/types/ocpt_remote_storage_status.dart';
+import 'package:open_cine_prod_tools/types/ocpt_sync_flow_status.dart';
 import 'package:open_cine_prod_tools/ui/pages/sharing/sharing_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/sharing/sharing_event.dart';
 import 'package:path/path.dart' as p;
@@ -65,17 +68,25 @@ void _mockSecureStorage(Map<String, String> store) {
 /// [OcptSyncManager.pairProjectToRelay] needs of a transport for this bloc's own tests.
 class _FakeRemoteStorage implements OcptRemoteStorage {
   @override
-  Future<OcptSequenceNumber> append(OcptChangesetEnvelope envelope) async =>
-      OcptSequenceNumber.zero;
+  Future<ResultWithStatus<OcptRemoteStorageStatus, OcptSequenceNumber>> append(
+    OcptChangesetEnvelope envelope,
+  ) async =>
+      const ResultWithStatus(status: OcptRemoteStorageStatus.ok, value: OcptSequenceNumber.zero);
 
   @override
-  Future<List<OcptStoredChangeset>> readSince(OcptSequenceNumber cursor) async => const [];
+  Future<ResultWithStatus<OcptRemoteStorageStatus, List<OcptStoredChangeset>>> readSince(
+    OcptSequenceNumber cursor,
+  ) async => const ResultWithStatus(status: OcptRemoteStorageStatus.ok, value: []);
 
   @override
-  Future<void> uploadSnapshot(OcptSnapshotDescriptor descriptor, Uint8List bytes) async {}
+  Future<StatusWithExtraInfo<OcptRemoteStorageStatus>> uploadSnapshot(
+    OcptSnapshotDescriptor descriptor,
+    Uint8List bytes,
+  ) async => const StatusWithExtraInfo(status: OcptRemoteStorageStatus.ok);
 
   @override
-  Future<(OcptSnapshotDescriptor, Uint8List)?> fetchLatestSnapshot() async => null;
+  Future<ResultWithStatus<OcptRemoteStorageStatus, (OcptSnapshotDescriptor, Uint8List)>>
+  fetchLatestSnapshot() async => const ResultWithStatus(status: OcptRemoteStorageStatus.ok);
 
   @override
   Stream<void> get newWorkStream => const Stream.empty();
@@ -127,7 +138,7 @@ class _FakeTransportSyncManager extends OcptSyncManager {
   // load is the one flaky step — the pairing is saved and an invite returned, or the failure flag
   // throws, which is all the bloc reacts to.
   @override
-  Future<OcptRelayInvite> pairProjectToRelay({
+  Future<ResultWithStatus<OcptSyncFlowStatus, OcptRelayInvite>> pairProjectToRelay({
     required OcptProjectDatabase database,
     required String projectId,
     required String projectFilePath,
@@ -138,7 +149,7 @@ class _FakeTransportSyncManager extends OcptSyncManager {
     required String deviceId,
   }) async {
     if (shouldFailToOpenTransport) {
-      throw StateError('The relay could not be reached');
+      return const ResultWithStatus(status: OcptSyncFlowStatus.unreachable);
     }
 
     const token = 'fake-project-token';
@@ -159,7 +170,10 @@ class _FakeTransportSyncManager extends OcptSyncManager {
       storage: openRelayRemoteStorage(pairing, projectId),
     );
 
-    return OcptRelayInvite(relayBaseUri: relayBaseUri, projectId: projectId, token: token);
+    return ResultWithStatus(
+      status: OcptSyncFlowStatus.ok,
+      value: OcptRelayInvite(relayBaseUri: relayBaseUri, projectId: projectId, token: token),
+    );
   }
 }
 
@@ -289,7 +303,7 @@ void main() {
 
   test("a project already paired opens directly on ② Invite", () async {
     final manager = _FakeTransportSyncManager(pairingService: pairingService);
-    final invite = await manager.pairProjectToRelay(
+    final invite = (await manager.pairProjectToRelay(
       database: projectsManager.currentProject!.fileDatabase,
       projectId: "project-abc",
       projectFilePath: projectsManager.currentProject!.path,
@@ -298,7 +312,7 @@ void main() {
       relayBaseUri: relayBaseUri,
       enrolmentSecret: "enrolment-secret",
       deviceId: "device-1",
-    );
+    )).value!;
 
     final bloc = buildBloc(manager);
     await pumpEventQueue();

@@ -5,6 +5,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:act_dart_result/act_dart_result.dart';
 import 'package:act_platform_manager/act_platform_manager.dart';
 import 'package:act_test_utility/act_test_utility.dart';
 import 'package:crypto/crypto.dart';
@@ -25,6 +26,7 @@ import 'package:open_cine_prod_tools/models/sync/ocpt_presence_roster.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_reconcile_outcome.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_relay_host_state.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_relay_invite.dart';
+import 'package:open_cine_prod_tools/types/ocpt_sync_flow_status.dart';
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
@@ -100,7 +102,7 @@ class _SpySyncManager extends OcptSyncManager {
   OcptPresenceRoster? rosterWhileSeeded;
 
   @override
-  Future<OcptRelayInvite> pairProjectToRelay({
+  Future<ResultWithStatus<OcptSyncFlowStatus, OcptRelayInvite>> pairProjectToRelay({
     required OcptProjectDatabase database,
     required String projectId,
     required String projectFilePath,
@@ -128,11 +130,14 @@ class _SpySyncManager extends OcptSyncManager {
           ),
         );
 
-    return OcptRelayInvite(relayBaseUri: relayBaseUri, projectId: projectId, token: 'spy-token');
+    return ResultWithStatus(
+      status: OcptSyncFlowStatus.ok,
+      value: OcptRelayInvite(relayBaseUri: relayBaseUri, projectId: projectId, token: 'spy-token'),
+    );
   }
 
   @override
-  Future<void> repointProjectToRelay({
+  Future<StatusWithExtraInfo<OcptSyncFlowStatus>> repointProjectToRelay({
     required OcptProjectDatabase database,
     required String projectId,
     required String projectFilePath,
@@ -155,6 +160,8 @@ class _SpySyncManager extends OcptSyncManager {
             relayBaseUrl: relayBaseUri.toString(),
           ),
         );
+
+    return const StatusWithExtraInfo(status: OcptSyncFlowStatus.ok);
   }
 
   @override

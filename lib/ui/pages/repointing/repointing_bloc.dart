@@ -93,14 +93,13 @@ class OcptRepointingBloc extends BlocForMixin<OcptRepointingState> {
       final database = _database;
       final row = await database.select(database.ocptSyncPairingsTable).getSingleOrNull();
       if (row == null) {
-        throw StateError(
-          'Cannot switch relay for project "${project.name}": it has no existing pairing to '
-          'reuse a token from.',
-        );
+        _logger.e('Switching the project to another relay failed: it has no existing pairing');
+        emitter(state.copyWith(isRepointing: false, repointFailed: true));
+        return;
       }
 
       final deviceId = await _propertiesManager.loadOrCreateDeviceId();
-      await _syncManager.repointProjectToRelay(
+      final repointed = await _syncManager.repointProjectToRelay(
         database: database,
         projectId: row.projectId,
         projectFilePath: project.path,
@@ -110,6 +109,12 @@ class OcptRepointingBloc extends BlocForMixin<OcptRepointingState> {
         enrolmentSecret: event.enrolmentSecret,
         deviceId: deviceId,
       );
+      if (!repointed.status.isSuccess) {
+        // The relay's answer can name its address, so only the status is logged.
+        _logger.e('Switching the project to another relay failed: ${repointed.status.name}');
+        emitter(state.copyWith(isRepointing: false, repointFailed: true));
+        return;
+      }
 
       emitter(
         state.copyWith(

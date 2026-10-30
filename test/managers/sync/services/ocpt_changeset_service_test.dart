@@ -45,10 +45,10 @@ void main() {
   /// Every field stamp appended to [storage] so far, across however many changesets it holds,
   /// decoding each one's own opaque payload.
   Future<List<OcptFieldStamp>> readAppendedFieldStamps() async {
-    final stored = await storage.readSince(OcptSequenceNumber.zero);
+    final stored = (await storage.readSince(OcptSequenceNumber.zero)).value;
 
     return [
-      for (final entry in stored) ...OcptChangeset.decode(entry.envelope.payload).fieldStamps,
+      for (final entry in stored!) ...OcptChangeset.decode(entry.envelope.payload).fieldStamps,
     ];
   }
 
@@ -71,7 +71,7 @@ void main() {
       deviceId: deviceId,
     );
 
-    expect(await storage.readSince(OcptSequenceNumber.zero), isEmpty);
+    expect((await storage.readSince(OcptSequenceNumber.zero)).value, isEmpty);
     expect(await database.select(database.ocptSyncRelayCursorsTable).get(), isEmpty);
   });
 
@@ -197,7 +197,7 @@ void main() {
         relayId: relayId,
         deviceId: deviceId,
       );
-      expect(await storage.readSince(OcptSequenceNumber.zero), hasLength(1));
+      expect((await storage.readSince(OcptSequenceNumber.zero)).value, hasLength(1));
 
       final cursor = await (database.select(
         database.ocptSyncRelayCursorsTable,
@@ -211,7 +211,7 @@ void main() {
         relayId: relayId,
         deviceId: deviceId,
       );
-      expect(await storage.readSince(OcptSequenceNumber.zero), hasLength(1));
+      expect((await storage.readSince(OcptSequenceNumber.zero)).value, hasLength(1));
     },
   );
 
@@ -240,7 +240,7 @@ void main() {
         deviceId: deviceId,
       );
 
-      expect(await storage.readSince(OcptSequenceNumber.zero), isEmpty);
+      expect((await storage.readSince(OcptSequenceNumber.zero)).value, isEmpty);
     },
   );
 

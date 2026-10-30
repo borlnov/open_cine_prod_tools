@@ -15,6 +15,7 @@ import 'package:open_cine_prod_tools/managers/sync/services/ocpt_changeset_servi
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_merge_service.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_sync_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_route.dart';
+import 'package:open_cine_prod_tools/types/ocpt_sync_session_status.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_sync_status_indicator.dart';
 
 /// An [OcptSyncManager] whose [syncStatus]/[syncStatusChanges] are fully under this file's own
@@ -53,8 +54,10 @@ class _FakeSyncManager extends OcptSyncManager {
   }
 
   @override
-  Future<void> syncNow() async {
+  Future<OcptSyncSessionStatus> syncNow() async {
     syncNowCallCount++;
+
+    return OcptSyncSessionStatus.ok;
   }
 
   Future<void> disposeStream() => _controller.close();

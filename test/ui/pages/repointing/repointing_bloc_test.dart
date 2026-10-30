@@ -4,6 +4,7 @@
 
 import 'dart:io';
 
+import 'package:act_dart_result/act_dart_result.dart';
 import 'package:act_test_utility/act_test_utility.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -20,6 +21,8 @@ import 'package:open_cine_prod_tools/managers/sync/services/ocpt_pairing_service
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_remote_storage.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_relay_invite.dart';
+import 'package:open_cine_prod_tools/types/ocpt_remote_storage_status.dart';
+import 'package:open_cine_prod_tools/types/ocpt_sync_flow_status.dart';
 import 'package:open_cine_prod_tools/ui/pages/repointing/repointing_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/repointing/repointing_event.dart';
 import 'package:path/path.dart' as p;
@@ -64,17 +67,25 @@ void _mockSecureStorage(Map<String, String> store) {
 /// `_FakeRemoteStorage`.
 class _FakeRemoteStorage implements OcptRemoteStorage {
   @override
-  Future<OcptSequenceNumber> append(OcptChangesetEnvelope envelope) async =>
-      OcptSequenceNumber.zero;
+  Future<ResultWithStatus<OcptRemoteStorageStatus, OcptSequenceNumber>> append(
+    OcptChangesetEnvelope envelope,
+  ) async =>
+      const ResultWithStatus(status: OcptRemoteStorageStatus.ok, value: OcptSequenceNumber.zero);
 
   @override
-  Future<List<OcptStoredChangeset>> readSince(OcptSequenceNumber cursor) async => const [];
+  Future<ResultWithStatus<OcptRemoteStorageStatus, List<OcptStoredChangeset>>> readSince(
+    OcptSequenceNumber cursor,
+  ) async => const ResultWithStatus(status: OcptRemoteStorageStatus.ok, value: []);
 
   @override
-  Future<void> uploadSnapshot(OcptSnapshotDescriptor descriptor, Uint8List bytes) async {}
+  Future<StatusWithExtraInfo<OcptRemoteStorageStatus>> uploadSnapshot(
+    OcptSnapshotDescriptor descriptor,
+    Uint8List bytes,
+  ) async => const StatusWithExtraInfo(status: OcptRemoteStorageStatus.ok);
 
   @override
-  Future<(OcptSnapshotDescriptor, Uint8List)?> fetchLatestSnapshot() async => null;
+  Future<ResultWithStatus<OcptRemoteStorageStatus, (OcptSnapshotDescriptor, Uint8List)>>
+  fetchLatestSnapshot() async => const ResultWithStatus(status: OcptRemoteStorageStatus.ok);
 
   @override
   Stream<void> get newWorkStream => const Stream.empty();
@@ -125,7 +136,7 @@ class _FakeTransportSyncManager extends OcptSyncManager {
   }
 
   @override
-  Future<OcptRelayInvite> pairProjectToRelay({
+  Future<ResultWithStatus<OcptSyncFlowStatus, OcptRelayInvite>> pairProjectToRelay({
     required OcptProjectDatabase database,
     required String projectId,
     required String projectFilePath,
@@ -136,7 +147,7 @@ class _FakeTransportSyncManager extends OcptSyncManager {
     required String deviceId,
   }) async {
     if (shouldFailToOpenTransport) {
-      throw StateError('The relay could not be reached');
+      return const ResultWithStatus(status: OcptSyncFlowStatus.unreachable);
     }
 
     const token = 'fake-project-token';
@@ -155,11 +166,14 @@ class _FakeTransportSyncManager extends OcptSyncManager {
       storage: openRelayRemoteStorage(pairing, projectId),
     );
 
-    return OcptRelayInvite(relayBaseUri: relayBaseUri, projectId: projectId, token: token);
+    return ResultWithStatus(
+      status: OcptSyncFlowStatus.ok,
+      value: OcptRelayInvite(relayBaseUri: relayBaseUri, projectId: projectId, token: token),
+    );
   }
 
   @override
-  Future<void> repointProjectToRelay({
+  Future<StatusWithExtraInfo<OcptSyncFlowStatus>> repointProjectToRelay({
     required OcptProjectDatabase database,
     required String projectId,
     required String projectFilePath,
@@ -170,12 +184,12 @@ class _FakeTransportSyncManager extends OcptSyncManager {
     required String deviceId,
   }) async {
     if (shouldFailToOpenTransport) {
-      throw StateError('The relay could not be reached');
+      return const StatusWithExtraInfo(status: OcptSyncFlowStatus.unreachable);
     }
 
     final existing = await _pairing.loadPairing(database: database, projectId: projectId);
     if (existing == null) {
-      throw StateError('Cannot re-point an unpaired project.');
+      return const StatusWithExtraInfo(status: OcptSyncFlowStatus.notPaired);
     }
 
     await _pairing.savePairing(
@@ -192,6 +206,8 @@ class _FakeTransportSyncManager extends OcptSyncManager {
       relayId: OcptSyncManager.relayIdFor(newPairing),
       storage: openRelayRemoteStorage(newPairing, projectId, enrolmentSecret: enrolmentSecret),
     );
+
+    return const StatusWithExtraInfo(status: OcptSyncFlowStatus.ok);
   }
 }
 

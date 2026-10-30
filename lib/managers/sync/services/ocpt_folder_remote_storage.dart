@@ -6,8 +6,11 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
+import 'package:act_dart_result/act_dart_result.dart';
 import 'package:ocpt_sync_protocol/ocpt_sync_protocol.dart';
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_remote_storage.dart';
+import 'package:open_cine_prod_tools/models/sync/ocpt_sync_transport_failure.dart';
+import 'package:open_cine_prod_tools/types/ocpt_remote_storage_status.dart';
 import 'package:path/path.dart' as p;
 
 /// An [OcptRemoteStorage] over a plain directory, usable with no network at all and, on desktop,
@@ -48,7 +51,9 @@ class OcptFolderRemoteStorage implements OcptRemoteStorage {
   Directory get _snapshotsDir => Directory(p.join(directory.path, _snapshotsDirName));
 
   @override
-  Future<OcptSequenceNumber> append(OcptChangesetEnvelope envelope) async {
+  Future<ResultWithStatus<OcptRemoteStorageStatus, OcptSequenceNumber>> append(
+    OcptChangesetEnvelope envelope,
+  ) => _guarded(() async {
     final changesetsDir = _changesetsDir;
     await changesetsDir.create(recursive: true);
 
@@ -56,14 +61,16 @@ class OcptFolderRemoteStorage implements OcptRemoteStorage {
     final file = File(p.join(changesetsDir.path, _changesetFileName(sequence)));
     await file.writeAsString(jsonEncode(envelope.toJson()), flush: true);
 
-    return sequence;
-  }
+    return ResultWithStatus(status: OcptRemoteStorageStatus.ok, value: sequence);
+  });
 
   @override
-  Future<List<OcptStoredChangeset>> readSince(OcptSequenceNumber cursor) async {
+  Future<ResultWithStatus<OcptRemoteStorageStatus, List<OcptStoredChangeset>>> readSince(
+    OcptSequenceNumber cursor,
+  ) => _guarded(() async {
     final changesetsDir = _changesetsDir;
     if (!changesetsDir.existsSync()) {
-      return const [];
+      return const ResultWithStatus(status: OcptRemoteStorageStatus.ok, value: []);
     }
 
     final stored = <OcptStoredChangeset>[];
@@ -82,11 +89,14 @@ class OcptFolderRemoteStorage implements OcptRemoteStorage {
       );
     }
 
-    return stored;
-  }
+    return ResultWithStatus(status: OcptRemoteStorageStatus.ok, value: stored);
+  });
 
   @override
-  Future<void> uploadSnapshot(OcptSnapshotDescriptor descriptor, Uint8List bytes) async {
+  Future<StatusWithExtraInfo<OcptRemoteStorageStatus>> uploadSnapshot(
+    OcptSnapshotDescriptor descriptor,
+    Uint8List bytes,
+  ) => _guarded<Object>(() async {
     final snapshotsDir = _snapshotsDir;
     await snapshotsDir.create(recursive: true);
 
@@ -99,13 +109,16 @@ class OcptFolderRemoteStorage implements OcptRemoteStorage {
     await File(
       p.join(snapshotsDir.path, _latestSnapshotMarkerFileName),
     ).writeAsString(descriptor.snapshotId, flush: true);
-  }
+
+    return const ResultWithStatus(status: OcptRemoteStorageStatus.ok);
+  });
 
   @override
-  Future<(OcptSnapshotDescriptor, Uint8List)?> fetchLatestSnapshot() async {
+  Future<ResultWithStatus<OcptRemoteStorageStatus, (OcptSnapshotDescriptor, Uint8List)>>
+  fetchLatestSnapshot() => _guarded(() async {
     final marker = File(p.join(_snapshotsDir.path, _latestSnapshotMarkerFileName));
     if (!marker.existsSync()) {
-      return null;
+      return const ResultWithStatus(status: OcptRemoteStorageStatus.ok);
     }
 
     final snapshotId = (await marker.readAsString()).trim();
@@ -114,14 +127,30 @@ class OcptFolderRemoteStorage implements OcptRemoteStorage {
     );
     final bytesFile = File(p.join(_snapshotsDir.path, '$snapshotId$_snapshotBytesExtension'));
     if (!descriptorFile.existsSync() || !bytesFile.existsSync()) {
-      return null;
+      return const ResultWithStatus(status: OcptRemoteStorageStatus.ok);
     }
 
     final descriptorJson = jsonDecode(await descriptorFile.readAsString()) as Map<String, dynamic>;
     final descriptor = OcptSnapshotDescriptor.fromJson(descriptorJson);
     final bytes = await bytesFile.readAsBytes();
 
-    return (descriptor, bytes);
+    return ResultWithStatus(status: OcptRemoteStorageStatus.ok, value: (descriptor, bytes));
+  });
+
+  /// Runs [call], answering [OcptRemoteStorageStatus.unreachable] with the failure it caught when
+  /// it throws anything at all: the file system and `dart:convert` are third-party boundaries, and
+  /// a directory that cannot be read is the same thing to a caller as a relay that cannot be heard.
+  Future<ResultWithStatus<OcptRemoteStorageStatus, T>> _guarded<T>(
+    Future<ResultWithStatus<OcptRemoteStorageStatus, T>> Function() call,
+  ) async {
+    try {
+      return await call();
+    } catch (error, stackTrace) {
+      return ResultWithStatus(
+        status: OcptRemoteStorageStatus.unreachable,
+        extraInfo: OcptSyncTransportFailure(error: error, stackTrace: stackTrace),
+      );
+    }
   }
 
   // No network and no other process to watch for on the common case of a plain local directory;

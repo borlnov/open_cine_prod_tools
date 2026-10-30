@@ -5,6 +5,7 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:act_dart_result/act_dart_result.dart';
 import 'package:act_test_utility/act_test_utility.dart';
 import 'package:drift/drift.dart' show Value;
 import 'package:flutter/services.dart';
@@ -21,6 +22,8 @@ import 'package:open_cine_prod_tools/managers/sync/services/ocpt_pairing_service
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_remote_storage.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
+import 'package:open_cine_prod_tools/types/ocpt_remote_storage_status.dart';
+import 'package:open_cine_prod_tools/types/ocpt_sync_flow_status.dart';
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
@@ -65,22 +68,46 @@ void _mockSecureStorage(Map<String, String> store) {
 class _FakeRemoteStorage implements OcptRemoteStorage {
   (OcptSnapshotDescriptor, Uint8List)? uploaded;
 
+  /// When set, the status every request/response call answers instead of succeeding.
+  OcptRemoteStorageStatus? failWith;
+
   final StreamController<void> _newWorkController = StreamController<void>.broadcast();
 
   @override
-  Future<OcptSequenceNumber> append(OcptChangesetEnvelope envelope) async =>
-      OcptSequenceNumber.zero;
+  Future<ResultWithStatus<OcptRemoteStorageStatus, OcptSequenceNumber>> append(
+    OcptChangesetEnvelope envelope,
+  ) async =>
+      const ResultWithStatus(status: OcptRemoteStorageStatus.ok, value: OcptSequenceNumber.zero);
 
   @override
-  Future<List<OcptStoredChangeset>> readSince(OcptSequenceNumber cursor) async => const [];
+  Future<ResultWithStatus<OcptRemoteStorageStatus, List<OcptStoredChangeset>>> readSince(
+    OcptSequenceNumber cursor,
+  ) async => const ResultWithStatus(status: OcptRemoteStorageStatus.ok, value: []);
 
   @override
-  Future<void> uploadSnapshot(OcptSnapshotDescriptor descriptor, Uint8List bytes) async {
+  Future<StatusWithExtraInfo<OcptRemoteStorageStatus>> uploadSnapshot(
+    OcptSnapshotDescriptor descriptor,
+    Uint8List bytes,
+  ) async {
+    final failure = failWith;
+    if (failure != null) {
+      return StatusWithExtraInfo(status: failure);
+    }
     uploaded = (descriptor, bytes);
+
+    return const StatusWithExtraInfo(status: OcptRemoteStorageStatus.ok);
   }
 
   @override
-  Future<(OcptSnapshotDescriptor, Uint8List)?> fetchLatestSnapshot() async => uploaded;
+  Future<ResultWithStatus<OcptRemoteStorageStatus, (OcptSnapshotDescriptor, Uint8List)>>
+  fetchLatestSnapshot() async {
+    final failure = failWith;
+    if (failure != null) {
+      return ResultWithStatus(status: failure);
+    }
+
+    return ResultWithStatus(status: OcptRemoteStorageStatus.ok, value: uploaded);
+  }
 
   @override
   Stream<void> get newWorkStream => _newWorkController.stream;
@@ -203,7 +230,7 @@ void main() {
   });
 
   group('joinFromRelay', () {
-    test('throws when the relay holds no snapshot yet', () async {
+    test('answers the empty-relay status when the relay holds no snapshot yet', () async {
       final manager = OcptSyncManager(
         changesetService: const OcptChangesetService(
           logger: SilentLogger(),
@@ -214,16 +241,39 @@ void main() {
       addTearDown(storage.dispose);
       final parentDirectory = Directory(p.join(workspace.path, 'joined'))..createSync();
 
-      await expectLater(
-        () => manager.joinFromRelay(
-          storage: storage,
-          parentDirectoryPath: parentDirectory.path,
-          pairingService: pairingService,
-          relayBaseUri: Uri.parse('https://relay.example.org/'),
-          token: 'token-1',
-        ),
-        throwsStateError,
+      final result = await manager.joinFromRelay(
+        storage: storage,
+        parentDirectoryPath: parentDirectory.path,
+        pairingService: pairingService,
+        relayBaseUri: Uri.parse('https://relay.example.org/'),
+        token: 'token-1',
       );
+
+      expect(result.status, OcptSyncFlowStatus.emptyRelay);
+      expect(result.value, isNull);
+    });
+
+    test('answers the transport failure when the relay cannot be asked', () async {
+      final manager = OcptSyncManager(
+        changesetService: const OcptChangesetService(
+          logger: SilentLogger(),
+          mergeService: OcptMergeService(logger: SilentLogger()),
+        ),
+      );
+      final storage = _FakeRemoteStorage()..failWith = OcptRemoteStorageStatus.unreachable;
+      addTearDown(storage.dispose);
+      final parentDirectory = Directory(p.join(workspace.path, 'joined'))..createSync();
+
+      final result = await manager.joinFromRelay(
+        storage: storage,
+        parentDirectoryPath: parentDirectory.path,
+        pairingService: pairingService,
+        relayBaseUri: Uri.parse('https://relay.example.org/'),
+        token: 'token-1',
+      );
+
+      expect(result.status, OcptSyncFlowStatus.unreachable);
+      expect(parentDirectory.listSync(), isEmpty);
     });
 
     test('materialises the shared project and saves its pairing, with no network', () async {
@@ -246,13 +296,15 @@ void main() {
       );
 
       final parentDirectory = Directory(p.join(workspace.path, 'joined'))..createSync();
-      final joinedProjectPath = await manager.joinFromRelay(
+      final joined = await manager.joinFromRelay(
         storage: storage,
         parentDirectoryPath: parentDirectory.path,
         pairingService: pairingService,
         relayBaseUri: relayBaseUri,
         token: 'token-1',
       );
+      expect(joined.status, OcptSyncFlowStatus.ok);
+      final joinedProjectPath = joined.value!;
 
       expect(File(joinedProjectPath).existsSync(), isTrue);
       expect(joinedProjectPath, isNot(projectPath));

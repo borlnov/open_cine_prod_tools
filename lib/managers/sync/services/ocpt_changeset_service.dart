@@ -2,6 +2,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+import 'package:act_dart_result/act_dart_result.dart';
 import 'package:drift/drift.dart';
 import 'package:ocpt_sync_protocol/ocpt_sync_protocol.dart';
 import 'package:open_cine_prod_tools/managers/abs_ocpt_service.dart';
@@ -14,6 +15,7 @@ import 'package:open_cine_prod_tools/models/rules/ocpt_synchronised_tables.dart'
 import 'package:open_cine_prod_tools/models/sync/ocpt_changeset.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_field_stamp.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_screenplay_merge_conflict.dart';
+import 'package:open_cine_prod_tools/types/ocpt_remote_storage_status.dart';
 import 'package:uuid/uuid.dart';
 
 /// Turns a replica's own un-pushed local edits into a changeset and appends it to a relay
@@ -62,6 +64,9 @@ class OcptChangesetService extends AbsOcptService {
   /// per-column one (see its own doc comment). When there is nothing to push, this does nothing:
   /// no changeset is appended and [relayId]'s cursor is left untouched.
   ///
+  /// A [storage] that cannot take the changeset is answered as its own status (and detail), with
+  /// the cursor left untouched too; only a failure of [database] itself still throws.
+  ///
   /// Every stamped column is read back off its own table's **current** row — tombstones included,
   /// so a delete is pushed like any other edit — grouped by `(tableName, rowId)` first so a row
   /// edited on several columns in the same or different transactions still costs one row read. A
@@ -70,7 +75,7 @@ class OcptChangesetService extends AbsOcptService {
   /// one composite case (`shot_characters`'s `{shotId, roleId}`) included, and what
   /// `_readCurrentRow` matches a table's own primary key against through
   /// `ocptCompositeRowStampKeySqlExpression` rather than splitting it back apart.
-  Future<void> pushLocalEdits({
+  Future<StatusWithExtraInfo<OcptRemoteStorageStatus>> pushLocalEdits({
     required OcptProjectDatabase database,
     required OcptRemoteStorage storage,
     required String relayId,
@@ -86,7 +91,7 @@ class OcptChangesetService extends AbsOcptService {
             .get();
 
     if (stamps.isEmpty) {
-      return;
+      return const StatusWithExtraInfo(status: OcptRemoteStorageStatus.ok);
     }
 
     final tablesByName = {
@@ -143,7 +148,7 @@ class OcptChangesetService extends AbsOcptService {
 
     final maxVersion = stamps.map((stamp) => stamp.version).reduce((a, b) => a > b ? a : b);
 
-    await storage.append(
+    final appended = await storage.append(
       OcptChangesetEnvelope(
         changesetId: const Uuid().v4(),
         originDeviceId: deviceId,
@@ -152,12 +157,19 @@ class OcptChangesetService extends AbsOcptService {
         payload: OcptChangeset(fieldStamps: fieldStamps).encode(),
       ),
     );
+    if (!appended.status.isSuccess) {
+      // Nothing was appended, so the high-water mark stays where it was and the same edits are
+      // pushed again by the next run.
+      return StatusWithExtraInfo(status: appended.status, extraInfo: appended.extraInfo);
+    }
 
     await _advanceOutboxHighWaterMark(
       database: database,
       relayId: relayId,
       highWaterMark: maxVersion,
     );
+
+    return const StatusWithExtraInfo(status: OcptRemoteStorageStatus.ok);
   }
 
   /// Applies every changeset [relayId] holds that this replica hasn't read yet to [database]'s
@@ -171,16 +183,22 @@ class OcptChangesetService extends AbsOcptService {
   /// merge runs and [relayId]'s cursor is left untouched.
   ///
   /// Returns every [OcptScreenplayMergeConflict] raised while applying any of those changesets, in
-  /// the order they were applied — empty when nothing conflicted, which is the ordinary case.
-  Future<List<OcptScreenplayMergeConflict>> pullAndApply({
+  /// the order they were applied — empty when nothing conflicted, which is the ordinary case — or
+  /// the status of a [storage] that could not be read, with nothing applied.
+  Future<ResultWithStatus<OcptRemoteStorageStatus, List<OcptScreenplayMergeConflict>>>
+  pullAndApply({
     required OcptProjectDatabase database,
     required OcptRemoteStorage storage,
     required String relayId,
   }) async {
     final cursor = await _lastAppliedSequence(database: database, relayId: relayId);
-    final stored = await storage.readSince(cursor);
+    final read = await storage.readSince(cursor);
+    final stored = read.value;
+    if (!read.status.isSuccess || stored == null) {
+      return ResultWithStatus(status: read.status, extraInfo: read.extraInfo);
+    }
     if (stored.isEmpty) {
-      return const [];
+      return const ResultWithStatus(status: OcptRemoteStorageStatus.ok, value: []);
     }
 
     var highestSequence = cursor;
@@ -204,25 +222,29 @@ class OcptChangesetService extends AbsOcptService {
       sequence: highestSequence,
     );
 
-    return conflicts;
+    return ResultWithStatus(status: OcptRemoteStorageStatus.ok, value: conflicts);
   }
 
   /// [pushLocalEdits] followed by [pullAndApply], against the very same [relayId]: what a replica
   /// runs to both publish what it changed and absorb what everyone else did, in one call. Returns
   /// whatever [pullAndApply] returns — [pushLocalEdits] never merges anything inbound, so it never
   /// raises a conflict of its own.
-  Future<List<OcptScreenplayMergeConflict>> syncOnce({
+  Future<ResultWithStatus<OcptRemoteStorageStatus, List<OcptScreenplayMergeConflict>>> syncOnce({
     required OcptProjectDatabase database,
     required OcptRemoteStorage storage,
     required String relayId,
     required String deviceId,
   }) async {
-    await pushLocalEdits(
+    final pushed = await pushLocalEdits(
       database: database,
       storage: storage,
       relayId: relayId,
       deviceId: deviceId,
     );
+    if (!pushed.status.isSuccess) {
+      return ResultWithStatus(status: pushed.status, extraInfo: pushed.extraInfo);
+    }
+
     return pullAndApply(database: database, storage: storage, relayId: relayId);
   }
 

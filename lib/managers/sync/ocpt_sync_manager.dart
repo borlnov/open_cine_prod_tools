@@ -5,6 +5,7 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:act_dart_result/act_dart_result.dart';
 import 'package:act_global_manager/act_global_manager.dart';
 import 'package:act_life_cycle/act_life_cycle.dart';
 import 'package:act_logger_manager/act_logger_manager.dart';
@@ -28,6 +29,9 @@ import 'package:open_cine_prod_tools/models/sync/ocpt_presence_roster.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_relay_invite.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_screenplay_merge_conflict.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_sync_status.dart';
+import 'package:open_cine_prod_tools/types/ocpt_remote_storage_status.dart';
+import 'package:open_cine_prod_tools/types/ocpt_sync_flow_status.dart';
+import 'package:open_cine_prod_tools/types/ocpt_sync_session_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_workspace_mode.dart';
 import 'package:uuid/uuid.dart';
 
@@ -266,10 +270,12 @@ class OcptSyncManager extends AbsWithLifeCycle {
   ///    being sent again on whatever it appends from here on is harmless, per
   ///    [openRelayRemoteStorage]'s own doc comment.
   ///
-  /// A failure at any step (the transport throwing, most likely) propagates to the caller rather
-  /// than being swallowed, and leaves no sync session dangling: [startSyncSession] is the last
-  /// step, so a failure anywhere before it never starts one at all.
-  Future<OcptRelayInvite> pairProjectToRelay({
+  /// A step the relay refuses or cannot be reached for is answered as [OcptSyncFlowStatus.rejected]
+  /// or [OcptSyncFlowStatus.unreachable] (the detail in the result's `extraInfo`), and any other
+  /// failure (the database, the packaging of the snapshot) still propagates to the caller. Either
+  /// way no sync session is left dangling: [startSyncSession] is the last step, so a failure
+  /// anywhere before it never starts one at all.
+  Future<ResultWithStatus<OcptSyncFlowStatus, OcptRelayInvite>> pairProjectToRelay({
     required OcptProjectDatabase database,
     required String projectId,
     required String projectFilePath,
@@ -292,24 +298,30 @@ class OcptSyncManager extends AbsWithLifeCycle {
     final relayId = relayIdFor(pairing);
     final storage = openRelayRemoteStorage(pairing, projectId, enrolmentSecret: enrolmentSecret);
 
-    await changesetService.pushLocalEdits(
+    final pushed = await changesetService.pushLocalEdits(
       database: database,
       storage: storage,
       relayId: relayId,
       deviceId: deviceId,
     );
+    if (!pushed.status.isSuccess) {
+      return ResultWithStatus(status: _flowStatusOf(pushed.status), extraInfo: pushed.extraInfo);
+    }
 
     final sequenceUpTo = await changesetService.highestAppendedSequence(
       database: database,
       relayId: relayId,
     );
-    await publishSnapshot(
+    final published = await publishSnapshot(
       storage: storage,
       projectFilePath: projectFilePath,
       projectName: projectName,
       appVersion: appVersion,
       sequenceUpTo: sequenceUpTo,
     );
+    if (!published.status.isSuccess) {
+      return ResultWithStatus(status: published.status, extraInfo: published.extraInfo);
+    }
 
     await startSyncSession(
       projectId: projectId,
@@ -321,7 +333,10 @@ class OcptSyncManager extends AbsWithLifeCycle {
 
     _logger.i("A project was paired with a relay: $projectId");
 
-    return OcptRelayInvite(relayBaseUri: relayBaseUri, projectId: projectId, token: token);
+    return ResultWithStatus(
+      status: OcptSyncFlowStatus.ok,
+      value: OcptRelayInvite(relayBaseUri: relayBaseUri, projectId: projectId, token: token),
+    );
   }
 
   /// Re-points [projectId] at a new relay (typically the on-set relay), reusing its **existing**
@@ -346,7 +361,7 @@ class OcptSyncManager extends AbsWithLifeCycle {
   ///
   /// 1. Loads [projectId]'s current pairing through [pairingService]. A null pairing means
   ///    [projectId] was never paired to any relay — re-pointing has no existing token to reuse, so
-  ///    this throws a [StateError] rather than silently minting one (that is what
+  ///    this answers [OcptSyncFlowStatus.notPaired] rather than silently minting one (that is what
   ///    [pairProjectToRelay] is for).
   /// 2. Re-saves [projectId]'s pairing through [pairingService], to the new [relayBaseUri] but with
   ///    the very same token — [OcptPairingService.savePairing] upserts by [projectId], so this
@@ -367,10 +382,9 @@ class OcptSyncManager extends AbsWithLifeCycle {
   /// keeps one delivery cursor per relay, per [relayIdFor]'s own doc comment, and re-pointing back
   /// to a relay this replica has talked to before simply resumes that relay's own cursor.
   ///
-  /// A failure at any step (the transport throwing, most likely) propagates to the caller rather
-  /// than being swallowed, and leaves no sync session dangling: [startSyncSession] is the last
-  /// step, so a failure anywhere before it never starts one at all.
-  Future<void> repointProjectToRelay({
+  /// Fails exactly as [pairProjectToRelay] does, and leaves no sync session dangling for the same
+  /// reason.
+  Future<StatusWithExtraInfo<OcptSyncFlowStatus>> repointProjectToRelay({
     required OcptProjectDatabase database,
     required String projectId,
     required String projectFilePath,
@@ -382,11 +396,9 @@ class OcptSyncManager extends AbsWithLifeCycle {
   }) async {
     final pairing = await pairingService.loadPairing(database: database, projectId: projectId);
     if (pairing == null) {
-      throw StateError(
-        'Cannot re-point project "$projectId" to a new relay: it has no existing pairing to '
-        'reuse a token from. Re-pointing only ever moves an already-paired project to a new '
-        'relay; pair it first through pairProjectToRelay.',
-      );
+      // Re-pointing only ever moves an already-paired project to a new relay; pairing a new one is
+      // [pairProjectToRelay]'s job.
+      return const StatusWithExtraInfo(status: OcptSyncFlowStatus.notPaired);
     }
     final token = pairing.token;
 
@@ -401,24 +413,30 @@ class OcptSyncManager extends AbsWithLifeCycle {
     final relayId = relayIdFor(newPairing);
     final storage = openRelayRemoteStorage(newPairing, projectId, enrolmentSecret: enrolmentSecret);
 
-    await changesetService.pushLocalEdits(
+    final pushed = await changesetService.pushLocalEdits(
       database: database,
       storage: storage,
       relayId: relayId,
       deviceId: deviceId,
     );
+    if (!pushed.status.isSuccess) {
+      return StatusWithExtraInfo(status: _flowStatusOf(pushed.status), extraInfo: pushed.extraInfo);
+    }
 
     final sequenceUpTo = await changesetService.highestAppendedSequence(
       database: database,
       relayId: relayId,
     );
-    await publishSnapshot(
+    final published = await publishSnapshot(
       storage: storage,
       projectFilePath: projectFilePath,
       projectName: projectName,
       appVersion: appVersion,
       sequenceUpTo: sequenceUpTo,
     );
+    if (!published.status.isSuccess) {
+      return published;
+    }
 
     await startSyncSession(
       projectId: projectId,
@@ -429,6 +447,8 @@ class OcptSyncManager extends AbsWithLifeCycle {
     );
 
     _logger.i("A project was re-pointed at another relay: $projectId");
+
+    return const StatusWithExtraInfo(status: OcptSyncFlowStatus.ok);
   }
 
   /// Packages the project at [projectFilePath] as a snapshot and uploads it to [storage].
@@ -441,7 +461,10 @@ class OcptSyncManager extends AbsWithLifeCycle {
   /// [sequenceUpTo] is the caller's own delivery cursor at the moment it decides to publish: the
   /// position in [storage]'s changeset log this snapshot already reflects, exactly as
   /// [OcptSnapshotDescriptor.sequenceUpTo]'s own doc comment describes.
-  Future<void> publishSnapshot({
+  ///
+  /// Answers [OcptSyncFlowStatus.rejected] or [OcptSyncFlowStatus.unreachable] when [storage]
+  /// cannot take the upload.
+  Future<StatusWithExtraInfo<OcptSyncFlowStatus>> publishSnapshot({
     required OcptRemoteStorage storage,
     required String projectFilePath,
     required String projectName,
@@ -455,18 +478,34 @@ class OcptSyncManager extends AbsWithLifeCycle {
       sequenceUpTo: sequenceUpTo,
     );
 
-    await storage.uploadSnapshot(descriptor, bytes);
+    final uploaded = await storage.uploadSnapshot(descriptor, bytes);
+    if (!uploaded.status.isSuccess) {
+      return StatusWithExtraInfo(
+        status: _flowStatusOf(uploaded.status),
+        extraInfo: uploaded.extraInfo,
+      );
+    }
 
     _logger.i("A snapshot was published to the relay");
+
+    return const StatusWithExtraInfo(status: OcptSyncFlowStatus.ok);
   }
+
+  /// The [OcptSyncFlowStatus] a failed [OcptRemoteStorageStatus] stands for.
+  OcptSyncFlowStatus _flowStatusOf(OcptRemoteStorageStatus status) => switch (status) {
+    OcptRemoteStorageStatus.ok => OcptSyncFlowStatus.ok,
+    OcptRemoteStorageStatus.rejected => OcptSyncFlowStatus.rejected,
+    OcptRemoteStorageStatus.unreachable => OcptSyncFlowStatus.unreachable,
+  };
 
   /// Fetches [storage]'s latest snapshot and materialises it as a new project under
   /// [parentDirectoryPath], pairing that new project with the relay [storage] talks to before
   /// handing back the `.ocpt` path it landed at.
   ///
-  /// Throws [StateError] when [storage] holds no snapshot yet — an empty relay is not something to
-  /// join, only to create (the Partager flow does that, by publishing the first one through
-  /// [publishSnapshot]).
+  /// Answers [OcptSyncFlowStatus.emptyRelay] when [storage] holds no snapshot yet — an empty relay
+  /// is not something to join, only to create (the Partager flow does that, by publishing the
+  /// first one through [publishSnapshot]) — and [OcptSyncFlowStatus.rejected] or
+  /// [OcptSyncFlowStatus.unreachable] when it cannot be asked at all.
   ///
   /// **How the project id, the relay address and the token are obtained**, since the newly
   /// materialised project has never been opened and so cannot be asked: the relay address and the
@@ -481,19 +520,21 @@ class OcptSyncManager extends AbsWithLifeCycle {
   /// so it is read back off the freshly materialised project itself, and the same value is written
   /// into this replica's own pairing, keeping every replica of the same project keyed by the same
   /// relay-side id.
-  Future<String> joinFromRelay({
+  Future<ResultWithStatus<OcptSyncFlowStatus, String>> joinFromRelay({
     required OcptRemoteStorage storage,
     required String parentDirectoryPath,
     required OcptPairingService pairingService,
     required Uri relayBaseUri,
     required String token,
   }) async {
-    final fetched = await storage.fetchLatestSnapshot();
+    final fetch = await storage.fetchLatestSnapshot();
+    if (!fetch.status.isSuccess) {
+      return ResultWithStatus(status: _flowStatusOf(fetch.status), extraInfo: fetch.extraInfo);
+    }
+    final fetched = fetch.value;
     if (fetched == null) {
-      throw StateError(
-        'This relay holds no snapshot yet: there is nothing to join. Ask whoever shared the '
-        'project to open it once so a first snapshot can be published.',
-      );
+      // Ask whoever shared the project to open it once so a first snapshot can be published.
+      return const ResultWithStatus(status: OcptSyncFlowStatus.emptyRelay);
     }
     final (descriptor, bytes) = fetched;
 
@@ -519,7 +560,7 @@ class OcptSyncManager extends AbsWithLifeCycle {
 
     _logger.i("A project was joined from a relay: $projectId");
 
-    return projectFilePath;
+    return ResultWithStatus(status: OcptSyncFlowStatus.ok, value: projectFilePath);
   }
 
   /// The relay-side project id a freshly materialised snapshot already carries in its own
@@ -585,7 +626,13 @@ class OcptSyncManager extends AbsWithLifeCycle {
     );
     _syncSession = session;
 
-    await session.start();
+    final started = await session.start();
+    if (!started.isSuccess) {
+      // A session built a few lines above has never run, so this cannot happen; were it to, there
+      // would be nothing more to set up around a session that is not ours to start.
+      _logger.w("The sync session of project $projectId could not be started: $started");
+      return;
+    }
     // Pipe the new session's status onto the manager-level stream, seeded with the current one, so
     // an indicator built before this session started still learns about it — see
     // [_syncStatusController].
@@ -671,14 +718,16 @@ class OcptSyncManager extends AbsWithLifeCycle {
   }
 
   /// Runs a sync right now against the running session, on demand — what the status indicator's
-  /// tap calls. Throws [StateError] when no session is running.
-  Future<void> syncNow() async {
+  /// tap calls. Answers [OcptSyncSessionStatus.notRunning] when no session is running.
+  Future<OcptSyncSessionStatus> syncNow() async {
     final session = _syncSession;
     if (session == null) {
-      throw StateError('No sync session is running');
+      return OcptSyncSessionStatus.notRunning;
     }
 
     await session.syncNow();
+
+    return OcptSyncSessionStatus.ok;
   }
 
   /// The running session's current status, or null when no session is running. The session's own

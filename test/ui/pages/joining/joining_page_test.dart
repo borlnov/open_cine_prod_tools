@@ -4,6 +4,7 @@
 
 import 'dart:io';
 
+import 'package:act_dart_result/act_dart_result.dart';
 import 'package:act_file_transfer_manager/act_file_transfer_manager.dart';
 import 'package:act_global_manager/act_global_manager.dart';
 import 'package:act_platform_manager/act_platform_manager.dart';
@@ -26,6 +27,7 @@ import 'package:open_cine_prod_tools/managers/sync/services/ocpt_pairing_service
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_remote_storage.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_relay_invite.dart';
 import 'package:open_cine_prod_tools/types/ocpt_route.dart';
+import 'package:open_cine_prod_tools/types/ocpt_sync_flow_status.dart';
 import 'package:open_cine_prod_tools/ui/pages/joining/joining_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/joining/joining_page.dart';
 import 'package:open_cine_prod_tools/ui/pages/joining/joining_state.dart';
@@ -63,13 +65,13 @@ class _FailFastSyncManager extends OcptSyncManager {
       );
 
   @override
-  Future<String> joinFromRelay({
+  Future<ResultWithStatus<OcptSyncFlowStatus, String>> joinFromRelay({
     required OcptRemoteStorage storage,
     required String parentDirectoryPath,
     required OcptPairingService pairingService,
     required Uri relayBaseUri,
     required String token,
-  }) async => throw Exception("no relay reachable in this test");
+  }) async => const ResultWithStatus(status: OcptSyncFlowStatus.unreachable);
 }
 
 /// A [PlatformManager] whose [isMobile] is stubbed to true, so [_joiningExportManager] never
@@ -233,7 +235,7 @@ void main() {
 
     await tester.enterText(find.byType(TextField), inviteLink);
     await tester.tap(find.text(tr.joiningJoinAction));
-    // A bounded pump only: `_FailFastSyncManager.joinFromRelay` throws straight away, which
+    // A bounded pump only: `_FailFastSyncManager.joinFromRelay` answers a failure straight away, which
     // `OcptJoiningBloc._join` catches and reports as `OcptJoiningState.joinFailed` — this test only
     // cares that submitting doesn't overflow or crash the widget tree, not about that failure
     // itself.

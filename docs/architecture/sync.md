@@ -74,7 +74,14 @@ this project read-only?".
 changesets since a sequence, upload a snapshot, fetch the latest snapshot, a stream announcing new
 work, and, for presence, a `sendPresence`/`presenceStream` pair carrying opaque frames a replica
 broadcasts to and receives from its peers — speaking only `ocpt_sync_protocol`'s wire types and
-opaque bytes, never a table name. Two implementations:
+opaque bytes, never a table name. The four request operations never throw for a failure of the
+transport: each answers an `OcptRemoteStorageStatus` — `rejected` when the relay answered with an
+`OcptSyncError` (carried in the result's `extraInfo`), `unreachable` for anything else the transport
+hit (a refused connection, a body that is not the JSON it should be, a directory that cannot be
+read), carried as an `OcptSyncTransportFailure` — and `OcptChangesetService.pushLocalEdits`,
+`pullAndApply` and `syncOnce` pass that status up unchanged, leaving the cursors where they were. Two
+implementations, both converting the exceptions of their third-party layer (`package:http`,
+`dart:io`, `dart:convert`) at their own edge:
 
 - **`OcptFolderRemoteStorage`** — a plain directory (`changesets/`, `snapshots/`), no network at all.
   It exercised the whole engine before any server existed, and stays as the desktop fallback over any
@@ -95,13 +102,15 @@ opaque bytes, never a table name. Two implementations:
 `newWorkStream` ping, and a `syncOnce` on a periodic timer so this replica's own edits reach the
 relay without waiting for someone else's; `syncNow()` is the manual trigger. With the ping now the
 real driver, that timer is a long-interval fallback (sixty seconds), not the primary path it was
-before live push. It is started and
-stopped explicitly — the workspace starts it when it opens a paired project and stops it on close.
-It exposes `OcptSyncStatus` (a sealed value: in sync, syncing, offline with a pending count, or an
-error): the relay rejecting a request is an error, anything else — a refused connection, a dropped
-socket — is offline, and a later success recovers to in sync; a transport failure never throws out of
-the session. The `relayId` keying `sync_relay_cursors` is the relay's base URL, stable per relay so
-the same project behind two relays keeps two independent delivery cursors.
+before live push. It is started and stopped explicitly — the workspace starts it when it opens a
+paired project and stops it on close. It exposes `OcptSyncStatus` (a sealed value: in sync, syncing,
+offline with a pending count, or an error): the relay rejecting a request (`rejected`) is an error,
+anything else — a refused connection, a dropped socket (`unreachable`), the project database failing
+under a run — is offline, and a later success recovers to in sync; a transport failure never throws
+out of the session. `start()` answers an `OcptSyncSessionStatus` (`alreadyRunning` rather than a
+`StateError`), and so does `OcptSyncManager.syncNow` (`notRunning` when no session runs). The
+`relayId` keying `sync_relay_cursors` is the relay's base URL, stable per relay so the same project
+behind two relays keeps two independent delivery cursors.
 
 ### Presence
 
@@ -215,7 +224,8 @@ from the prep relay for the day, or back again — without losing its token or i
   which pairs one specific project to one specific relay, this URI only ever points a device at a
   *relay*. Scanning it therefore never hands out a project's own credential.
 - **`OcptSyncManager.repointProjectToRelay`** loads the project's existing pairing to recover its
-  current token (a `StateError` on an unpaired project — re-pointing has no token to reuse),
+  current token (an `OcptSyncFlowStatus.notPaired` answer on an unpaired project — re-pointing has no
+  token to reuse),
   re-saves the pairing against the new relay with that same token, pushes this replica's own local
   edits (creating the project there when the relay has never seen it, idempotent when it has),
   publishes a snapshot so a joiner can bootstrap, and restarts the sync session against the new
@@ -319,7 +329,9 @@ Sync is invisible when it works; the visible surface is deliberately small.
   distant" is two states. ① *Configure* takes the relay address and the enrolment secret and calls
   `OcptSyncManager.pairProjectToRelay`, which mints the token, saves the pairing, pushes the
   project's changesets (creating it on the relay), publishes a snapshot so a joiner can bootstrap,
-  and starts the session. ② *Invite* then shows the QR the crew scans, the relay address, the masked
+  and starts the session (a relay that refuses or cannot be reached comes back as an
+  `OcptSyncFlowStatus` of `rejected` or `unreachable`, which the bloc turns into its `pairingFailed`
+  flag). ② *Invite* then shows the QR the crew scans, the relay address, the masked
   token, a **copy-the-invite-link** button, and a *stop sharing* that goes through
   `OcptConfirmDialog` into `unpairProject`.
 - **Joining (the Rejoindre screen, `lib/ui/pages/joining/`)** — reached from the Home toolbar,
@@ -328,7 +340,9 @@ Sync is invisible when it works; the visible surface is deliberately small.
   both resolve to one `OcptRelayInvite`
   (`ocpt://join?r=…&p=…&t=…`); `joinFromRelay` fetches the snapshot into a fresh `.ocpt` (a native
   save location on desktop, the app documents directory on mobile), saves the pairing and opens the
-  project.
+  project; an empty relay (`OcptSyncFlowStatus.emptyRelay`), a refusal or an unreachable relay each
+  end in the screen's one join error. `OcptRelayInvite.parse` and `OcptRelayEnrolment.parse` read a
+  pasted or scanned string the same way, answering a status and a value rather than throwing.
 - **The status indicator** (`lib/ui/pages/workspace/widgets/ocpt_sync_status_indicator.dart`) sits in
   the shared workspace status bar, so every mode gets it at once. It seeds from
   `OcptSyncManager.syncStatus` and rebuilds on `OcptSyncManager.syncStatusChanges` — **not** the

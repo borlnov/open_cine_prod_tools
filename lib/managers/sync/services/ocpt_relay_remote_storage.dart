@@ -6,10 +6,13 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
 
+import 'package:act_dart_result/act_dart_result.dart';
 import 'package:act_foundation/act_foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:ocpt_sync_protocol/ocpt_sync_protocol.dart';
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_remote_storage.dart';
+import 'package:open_cine_prod_tools/models/sync/ocpt_sync_transport_failure.dart';
+import 'package:open_cine_prod_tools/types/ocpt_remote_storage_status.dart';
 import 'package:web_socket_channel/io.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
@@ -43,7 +46,7 @@ typedef OcptWebSocketConnector = WebSocketChannel Function(Uri uri);
 /// Every route is authenticated with `Authorization: Bearer <token>`; an append that might be the
 /// first request ever made for [projectId] also carries `X-Ocpt-Enrolment-Secret` when
 /// [enrolmentSecret] is set (see that field's own doc comment). A non-2xx response is decoded as
-/// [OcptSyncError] and thrown, except the snapshot route's `404`, which [fetchLatestSnapshot] maps
+/// [OcptSyncError] and answered as [OcptRemoteStorageStatus.rejected], except the snapshot route's `404`, which [fetchLatestSnapshot] maps
 /// to `null` per its own contract.
 class OcptRelayRemoteStorage implements OcptRemoteStorage {
   /// Creates a transport talking to the relay at [relayBaseUri] for [projectId], authenticating
@@ -135,39 +138,65 @@ class OcptRelayRemoteStorage implements OcptRemoteStorage {
   bool _socketWanted = false;
 
   @override
-  Future<OcptSequenceNumber> append(OcptChangesetEnvelope envelope) async {
+  Future<ResultWithStatus<OcptRemoteStorageStatus, OcptSequenceNumber>> append(
+    OcptChangesetEnvelope envelope,
+  ) => _guarded(() async {
     final response = await _httpClient.post(
       _changesetsUri(),
       headers: _jsonHeaders(includeEnrolmentSecret: true),
       body: jsonEncode(envelope.toJson()),
     );
-    final json = _decodeObjectOrThrow(response);
+    final rejection = _rejectionOf(response);
+    if (rejection != null) {
+      return ResultWithStatus(status: OcptRemoteStorageStatus.rejected, extraInfo: rejection);
+    }
+    final json = jsonDecode(response.body) as Map<String, dynamic>;
 
-    return OcptSequenceNumber.fromJson(json[_sequenceKey] as int);
-  }
+    return ResultWithStatus(
+      status: OcptRemoteStorageStatus.ok,
+      value: OcptSequenceNumber.fromJson(json[_sequenceKey] as int),
+    );
+  });
 
   @override
-  Future<List<OcptStoredChangeset>> readSince(OcptSequenceNumber cursor) async {
+  Future<ResultWithStatus<OcptRemoteStorageStatus, List<OcptStoredChangeset>>> readSince(
+    OcptSequenceNumber cursor,
+  ) => _guarded(() async {
     final response = await _httpClient.get(
       _changesetsUri().replace(queryParameters: {_sinceParam: cursor.value.toString()}),
       headers: _authHeaders(),
     );
-    final decoded = _decodeListOrThrow(response);
+    final rejection = _rejectionOf(response);
+    if (rejection != null) {
+      return ResultWithStatus(status: OcptRemoteStorageStatus.rejected, extraInfo: rejection);
+    }
+    final decoded = jsonDecode(response.body) as List<dynamic>;
 
-    return [
-      for (final entry in decoded) OcptStoredChangeset.fromJson(entry as Map<String, dynamic>),
-    ];
-  }
+    return ResultWithStatus(
+      status: OcptRemoteStorageStatus.ok,
+      value: [
+        for (final entry in decoded) OcptStoredChangeset.fromJson(entry as Map<String, dynamic>),
+      ],
+    );
+  });
 
   @override
-  Future<void> uploadSnapshot(OcptSnapshotDescriptor descriptor, Uint8List bytes) async {
+  Future<StatusWithExtraInfo<OcptRemoteStorageStatus>> uploadSnapshot(
+    OcptSnapshotDescriptor descriptor,
+    Uint8List bytes,
+  ) => _guarded<Object>(() async {
     final response = await _httpClient.post(
       _snapshotUri(),
       headers: _jsonHeaders(),
       body: jsonEncode({_descriptorKey: descriptor.toJson(), _bytesKey: base64Encode(bytes)}),
     );
-    _throwIfFailed(response);
-  }
+    final rejection = _rejectionOf(response);
+    if (rejection != null) {
+      return ResultWithStatus(status: OcptRemoteStorageStatus.rejected, extraInfo: rejection);
+    }
+
+    return const ResultWithStatus(status: OcptRemoteStorageStatus.ok);
+  });
 
   /// Writes [opaquePayload] to the `events` socket for the relay to rebroadcast to this project's
   /// other subscribers (`OcptRelayServer._rebroadcastToPeers`).
@@ -182,19 +211,24 @@ class OcptRelayRemoteStorage implements OcptRemoteStorage {
   }
 
   @override
-  Future<(OcptSnapshotDescriptor, Uint8List)?> fetchLatestSnapshot() async {
+  Future<ResultWithStatus<OcptRemoteStorageStatus, (OcptSnapshotDescriptor, Uint8List)>>
+  fetchLatestSnapshot() => _guarded(() async {
     final response = await _httpClient.get(_snapshotUri(), headers: _authHeaders());
     if (response.statusCode == 404) {
-      return null;
+      return const ResultWithStatus(status: OcptRemoteStorageStatus.ok);
     }
-    final json = _decodeObjectOrThrow(response);
+    final rejection = _rejectionOf(response);
+    if (rejection != null) {
+      return ResultWithStatus(status: OcptRemoteStorageStatus.rejected, extraInfo: rejection);
+    }
+    final json = jsonDecode(response.body) as Map<String, dynamic>;
     final descriptor = OcptSnapshotDescriptor.fromJson(
       json[_descriptorKey] as Map<String, dynamic>,
     );
     final bytes = base64Decode(json[_bytesKey] as String);
 
-    return (descriptor, bytes);
-  }
+    return ResultWithStatus(status: OcptRemoteStorageStatus.ok, value: (descriptor, bytes));
+  });
 
   /// Releases every resource this transport holds: tears down the `events` WebSocket and its
   /// pending reconnect timer exactly as unsubscribing from [newWorkStream] and [presenceStream]
@@ -381,30 +415,33 @@ class OcptRelayRemoteStorage implements OcptRemoteStorage {
     _contentTypeHeader: _contentTypeJson,
   };
 
-  Map<String, dynamic> _decodeObjectOrThrow(http.Response response) {
-    _throwIfFailed(response);
-
-    return jsonDecode(response.body) as Map<String, dynamic>;
-  }
-
-  List<dynamic> _decodeListOrThrow(http.Response response) {
-    _throwIfFailed(response);
-
-    return jsonDecode(response.body) as List<dynamic>;
-  }
-
-  /// Throws the [OcptSyncError] [response]'s body decodes to when [response] is not a 2xx.
+  /// Runs [call], answering [OcptRemoteStorageStatus.unreachable] with the failure it caught when
+  /// it throws anything at all.
   ///
-  /// [OcptSyncError] is a plain value class, not an [Exception] or [Error] — deliberately, per its
-  /// own doc comment, so a caller can inspect, display or re-carry it — which is exactly what a
-  /// caller of this transport does with what it catches here.
-  void _throwIfFailed(http.Response response) {
-    if (response.statusCode >= 200 && response.statusCode < 300) {
-      return;
+  /// This is the boundary with `package:http` and `dart:convert`, whose errors (a refused
+  /// connection, a body that is not the JSON it should be, the protocol package rejecting a
+  /// malformed wire value) are all the same thing to a caller: the relay could not be heard. The
+  /// error is kept rather than logged here, for the caller that decides what it means.
+  Future<ResultWithStatus<OcptRemoteStorageStatus, T>> _guarded<T>(
+    Future<ResultWithStatus<OcptRemoteStorageStatus, T>> Function() call,
+  ) async {
+    try {
+      return await call();
+    } catch (error, stackTrace) {
+      return ResultWithStatus(
+        status: OcptRemoteStorageStatus.unreachable,
+        extraInfo: OcptSyncTransportFailure(error: error, stackTrace: stackTrace),
+      );
     }
-    // OcptSyncError is a plain value class by design (see its own doc comment) so a caller can
-    // inspect, display or re-carry it — not an Exception/Error this lint expects to be thrown.
-    // ignore: only_throw_errors
-    throw OcptSyncError.fromJson(jsonDecode(response.body) as Map<String, dynamic>);
+  }
+
+  /// The [OcptSyncError] [response]'s body decodes to when [response] is not a 2xx, or null when it
+  /// is one.
+  OcptSyncError? _rejectionOf(http.Response response) {
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      return null;
+    }
+
+    return OcptSyncError.fromJson(jsonDecode(response.body) as Map<String, dynamic>);
   }
 }
