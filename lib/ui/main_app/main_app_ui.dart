@@ -55,62 +55,69 @@ class OcptMainAppUi extends StatelessWidget {
   const OcptMainAppUi({super.key});
 
   @override
+  Widget build(BuildContext context) => ScreenUtilInit(
+    designSize: const Size(375, 812),
+    minTextAdapt: true,
+    builder: (context, _) => LocalesObserverWidget(
+      child: BlocProvider(create: (context) => OcptMainAppBloc(), child: const _MainAppView()),
+    ),
+  );
+}
+
+/// The content of [OcptMainAppUi], separated from it so [OcptMainAppUi] only wires the
+/// [OcptMainAppBloc] up inside [ScreenUtilInit] and [LocalesObserverWidget].
+class _MainAppView extends StatelessWidget {
+  /// Class constructor
+  const _MainAppView();
+
+  @override
   Widget build(BuildContext context) {
     final router = globalGetIt().get<OcptRouterManager>().router;
 
-    return ScreenUtilInit(
-      designSize: const Size(375, 812),
-      minTextAdapt: true,
-      builder: (context, _) => LocalesObserverWidget(
-        child: BlocProvider(
-          create: (context) => OcptMainAppBloc(),
-          child: BlocBuilder<OcptMainAppBloc, OcptMainAppState>(
-            builder: (context, state) {
-              final platform = globalGetIt().get<PlatformManager>();
-              // The screenutil-based scaling is a phone concern: only there is the room tight
-              // enough to want the whole UI grown by the phone design-size ratio. A tablet has
-              // desktop-class room, so it keeps the unscaled desktop theme and reads like the
-              // desktop build rather than magnifying every size. The two are told apart by the
-              // rotation-invariant shortest side — [ScreenUtil] is already initialised here, so its
-              // screen dimensions are the measure to hand.
-              final screenUtil = ScreenUtil();
-              final shortestSide = screenUtil.screenWidth < screenUtil.screenHeight
-                  ? screenUtil.screenWidth
-                  : screenUtil.screenHeight;
-              final isPhone = platform.isMobile && shortestSide < ocptPhoneWidthBreakpoint;
-              final themeModel = isPhone
-                  ? buildOcptThemeModel(
-                      sp: (v) => (v * _ocptMobileUiScale).sp,
-                      w: (v) => (v * _ocptMobileUiScale).w,
-                      r: (v) => v.r,
-                    )
-                  : state.currentTheme.themeData;
+    return BlocBuilder<OcptMainAppBloc, OcptMainAppState>(
+      builder: (context, state) {
+        final platform = globalGetIt().get<PlatformManager>();
+        // The screenutil-based scaling is a phone concern: only there is the room tight
+        // enough to want the whole UI grown by the phone design-size ratio. A tablet has
+        // desktop-class room, so it keeps the unscaled desktop theme and reads like the
+        // desktop build rather than magnifying every size. The two are told apart by the
+        // rotation-invariant shortest side — [ScreenUtil] is already initialised here, so its
+        // screen dimensions are the measure to hand.
+        final screenUtil = ScreenUtil();
+        final shortestSide = screenUtil.screenWidth < screenUtil.screenHeight
+            ? screenUtil.screenWidth
+            : screenUtil.screenHeight;
+        final isPhone = platform.isMobile && shortestSide < ocptPhoneWidthBreakpoint;
+        final themeModel = isPhone
+            ? buildOcptThemeModel(
+                sp: (v) => (v * _ocptMobileUiScale).sp,
+                w: (v) => (v * _ocptMobileUiScale).w,
+                r: (v) => v.r,
+              )
+            : state.currentTheme.themeData;
 
-              return MaterialApp.router(
-                // The app title is the one displayed in the window title bar.
-                onGenerateTitle: (context) => Tr.of(context).appTitle,
-                routerConfig: router,
-                theme: themeModel.lightThemeData,
-                darkTheme: themeModel.darkThemeData,
-                themeMode: state.themeMode,
-                locale: state.wantedLocale,
-                localizationsDelegates: const [
-                  Tr.delegate,
-                  GlobalMaterialLocalizations.delegate,
-                  GlobalWidgetsLocalizations.delegate,
-                  GlobalCupertinoLocalizations.delegate,
-                ],
-                supportedLocales: Tr.delegate.supportedLocales,
-                builder: (context, child) {
-                  OcptGlobalManager.instance.initInFirstView(context);
+        return MaterialApp.router(
+          // The app title is the one displayed in the window title bar.
+          onGenerateTitle: (context) => Tr.of(context).appTitle,
+          routerConfig: router,
+          theme: themeModel.lightThemeData,
+          darkTheme: themeModel.darkThemeData,
+          themeMode: state.themeMode,
+          locale: state.wantedLocale,
+          localizationsDelegates: const [
+            Tr.delegate,
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          supportedLocales: Tr.delegate.supportedLocales,
+          builder: (context, child) {
+            OcptGlobalManager.instance.initInFirstView(context);
 
-                  return _EdgeToEdgeShell(child: child ?? const SizedBox.shrink());
-                },
-              );
-            },
-          ),
-        ),
-      ),
+            return _EdgeToEdgeShell(child: child ?? const SizedBox.shrink());
+          },
+        );
+      },
     );
   }
 }
