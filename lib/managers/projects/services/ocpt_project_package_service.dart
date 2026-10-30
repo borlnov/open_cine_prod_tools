@@ -17,24 +17,6 @@ import 'package:open_cine_prod_tools/types/ocpt_project_package_status.dart';
 import 'package:path/path.dart' as p;
 import 'package:sqlite3/sqlite3.dart';
 
-/// Thrown from inside [OcptProjectPackageService.readPackage]'s unpacking loop the moment an entry
-/// would land outside the destination folder, and caught by the very method that throws it.
-///
-/// A dedicated type rather than reusing a generic exception: the outer `catch` needs to tell this
-/// apart from an ordinary I/O failure so it can report
-/// [OcptProjectPackageStatus.unreadableArchive] (the archive itself is the problem) rather than
-/// [OcptProjectPackageStatus.ioError] (reading or writing failed for a reason outside the app).
-class _OcptZipSlipException implements Exception {
-  /// Class constructor
-  const _OcptZipSlipException(this.entryName);
-
-  /// The archive entry whose path resolved outside the destination folder.
-  final String entryName;
-
-  @override
-  String toString() => "the entry '$entryName' resolves outside the destination folder";
-}
-
 /// Reads and writes the **portable project package**: the project database plus every file it
 /// references, as one archive somebody can send.
 ///
@@ -345,11 +327,19 @@ class OcptProjectPackageService extends AbsOcptService {
         destinationDirectory.path,
         "$folderName.$ocptProjectFileExtension",
       );
-      await _unpackEntries(
+      final escapingEntry = await _unpackEntries(
         archive: archive,
         destinationDirectory: destinationDirectory,
         projectFilePath: projectFilePath,
       );
+      if (escapingEntry != null) {
+        // The archive itself is the problem, not the I/O: an entry engineered to land outside the
+        // folder the user picked. The entry's name is the archive's own wording, so it isn't
+        // logged.
+        logger.e("A package can't be trusted: an entry resolves outside the destination folder");
+        await _deleteQuietly(destinationDirectory);
+        return const ResultWithStatus(status: OcptProjectPackageStatus.unreadableArchive);
+      }
       _rewireUnpackedAssetPaths(
         projectFilePath: projectFilePath,
         destinationDirectory: destinationDirectory,
@@ -365,15 +355,6 @@ class OcptProjectPackageService extends AbsOcptService {
           skippedAssets: manifest.skippedAssets,
         ),
       );
-    } on _OcptZipSlipException catch (error, stackTrace) {
-      logger.e(
-        "A package can't be trusted: "
-        "${error.runtimeType}",
-        null,
-        stackTrace,
-      );
-      await _deleteQuietly(destinationDirectory);
-      return const ResultWithStatus(status: OcptProjectPackageStatus.unreadableArchive);
     } catch (error, stackTrace) {
       logger.e(
         "A package can't be unpacked: "
@@ -445,7 +426,10 @@ class OcptProjectPackageService extends AbsOcptService {
   /// must never be allowed to resolve outside the folder the user picked. `project.ocpt` itself
   /// never goes through that check against its own name — it always lands at [projectFilePath],
   /// which this method computes, never at whatever [ocptPackageDatabaseEntry] states.
-  Future<void> _unpackEntries({
+  ///
+  /// Returns the name of the first entry that would have landed outside [destinationDirectory], and
+  /// stops there, or null once every entry is written.
+  Future<String?> _unpackEntries({
     required Archive archive,
     required Directory destinationDirectory,
     required String projectFilePath,
@@ -460,7 +444,7 @@ class OcptProjectPackageService extends AbsOcptService {
           : _nativePathForEntry(destinationDirectory.path, entry.name);
 
       if (!_isWithinDestination(destinationDirectory.path, targetPath)) {
-        throw _OcptZipSlipException(entry.name);
+        return entry.name;
       }
 
       Directory(p.dirname(targetPath)).createSync(recursive: true);
@@ -471,6 +455,8 @@ class OcptProjectPackageService extends AbsOcptService {
         await output.close();
       }
     }
+
+    return null;
   }
 
   /// Rewrites the unpacked `.ocpt` at [projectFilePath] so every `assets` row [assets] names points
