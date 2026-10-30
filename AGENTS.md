@@ -85,8 +85,7 @@ floor plan per Resources set across its three scopes, and their two documents,
 
 What is still ahead, in priority order:
 
-- The M2–M6 end-user collaboration guide, in `docs-site/`
-  (`docs/plans/collaboration-user-guide.md`).
+- The end-user collaboration guide, in `docs-site/`.
 - After that: call sheets beyond what the schedule mode already prints, then
   script supervisor reports.
 
@@ -96,16 +95,18 @@ no file any more.
 ## Ways of working
 
 - The maintainer communicates in French; **all code, comments, commits, branches and GitHub
-  content are in English**.
+  content are in English**. A plan is the one exception (see below).
 - Work happens on an issue-named branch (`<issue-number>-<slug>`), merged into `main` through a
   pull request.
 - A session that needs a checkout of its own puts it under `worktrees/`
   (`git worktree add worktrees/<name> -b <branch>`), never in the `.claude/worktrees/` directory
   Claude Code's own worktree feature defaults to: create it with git first, then enter it by path.
   A fresh worktree is not usable until the bring-up in `worktrees/README.md` has run.
-- A plan in `docs/plans/` describes work not yet done. Once its step ships and its outcome is
-  folded into `docs/architecture/`, the plan is deleted — the code, that directory and the ADRs
-  are the record from then on.
+- A plan is **written in French and never committed**: `docs/plans/` is git-ignored. It describes
+  work not yet done, and once that work ships and its outcome is folded into `docs/architecture/`,
+  the plan is deleted — the code, that directory and the ADRs are the record from then on, in
+  English. An ignored plan does not follow a checkout: a fresh `worktrees/<name>` does not contain
+  it, so a delegated agent has to be given its absolute path.
 - Model tiers: the orchestrating (main) session — the one that discusses, plans, tests, debugs
   and reviews — runs on **Opus 4.8** (not Opus 5, which is weaker here; delete this parenthesis
   once a newer Opus supersedes 4.8). It is the **default planner**; implementation is delegated to
@@ -302,9 +303,9 @@ minimum before each commit):
 5. `flutter test` → all green
 6. `flutter build linux --debug`
 7. `reuse lint` → compliant
-8. `git grep -l 'allcircuits.com' -- ':!actlibs' ':!AGENTS.md' ':!docs/plans'` → empty
-   (the two extra exclusions are the files that *describe* this gate, which would otherwise
-   always match their own search string)
+8. `git grep -l 'allcircuits.com' -- ':!actlibs' ':!AGENTS.md'` → empty
+   (the extra exclusion is the file that *describes* this gate, which would otherwise always
+   match its own search string)
 9. `dart run tool/check_markdown.dart` → no violation, whenever a `.md` file was touched. This
    gate is about the documentation rather than the code, so it is the one to run before pushing
    a docs-only change, which the other eight would say nothing about. The `markdown_lint`

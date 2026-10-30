@@ -57,6 +57,12 @@ app.*.map.json
 # is by definition machine-local (that is what the name means to the tool).
 .claude/settings.local.json
 
+# Plans
+
+# A plan is working material, written in French and deleted once its work ships: it is never
+# committed. docs/architecture/ and docs/adr/ are the record that stays.
+/docs/plans/
+
 # Git worktrees
 
 # Home for `git worktree add worktrees/<name>` checkouts. Ignored so worktrees can live inside the
