@@ -6,6 +6,7 @@ import 'dart:typed_data';
 
 import 'package:excel_community/excel_community.dart';
 import 'package:fountain_kit/fountain_kit.dart';
+import 'package:open_cine_prod_tools/managers/abs_ocpt_service.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_schedule_pdf_shared.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_shot_list_xlsx_export_service.dart';
 import 'package:open_cine_prod_tools/models/ocpt_schedule_plan_snapshot.dart';
@@ -43,7 +44,7 @@ import 'package:open_cine_prod_tools/types/ocpt_shooting_plan_xlsx_column.dart';
 /// `OcptBreakdownXlsxExportService` and its own siblings. It takes no options: the export panel's
 /// card goes straight to the day picker, that dialog's own days being this service's whole
 /// `dayIds`.
-class OcptShootingPlanXlsxExportService {
+class OcptShootingPlanXlsxExportService extends AbsOcptService {
   /// The sheet name used when the caller's own [OcptShootingPlanXlsxLabels.locationsSheetName] is
   /// blank.
   static const fallbackLocationsSheetName = "Locations";

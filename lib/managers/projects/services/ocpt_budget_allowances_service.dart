@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:drift/drift.dart';
+import 'package:open_cine_prod_tools/managers/abs_ocpt_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_row_stamp_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_allowance.dart';
@@ -21,7 +22,7 @@ import 'package:uuid/uuid.dart';
 ///
 /// **Orders flat by `sortKey`**, like the financing plan's own two catalogues: a defrayal belongs
 /// inside no other row.
-class OcptBudgetAllowancesService {
+class OcptBudgetAllowancesService extends AbsOcptService {
   /// Resolves the device id every stamp this service's own writes carry — see
   /// [OcptDeviceIdGetter].
   final OcptDeviceIdGetter deviceId;

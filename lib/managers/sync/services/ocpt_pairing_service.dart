@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:equatable/equatable.dart';
+import 'package:open_cine_prod_tools/managers/abs_ocpt_service.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_secrets_manager.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 
@@ -38,7 +39,7 @@ class OcptProjectPairing extends Equatable {
 /// **both** halves are present: a `sync_pairings` row whose token has gone missing from secure
 /// storage (the user cleared it, a reinstall wiped it) is treated exactly like an unpaired project
 /// rather than as a pairing with an empty token, which is never a valid state to hand a transport.
-class OcptPairingService {
+class OcptPairingService extends AbsOcptService {
   /// Class constructor
   const OcptPairingService({required this.secretsManager});
 

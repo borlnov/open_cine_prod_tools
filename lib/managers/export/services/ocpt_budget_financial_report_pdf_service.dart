@@ -4,6 +4,7 @@
 
 import 'dart:typed_data';
 
+import 'package:open_cine_prod_tools/managers/abs_ocpt_service.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_budget_pdf_shared.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_courier_prime_fonts.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_script_page_painter.dart';
@@ -71,7 +72,7 @@ const Map<int, pw.TableColumnWidth> _columnWidths = {
 /// here too — this report measures one figure against the other, and comparing an excluding-tax
 /// quote against a tax-inclusive actual would compare two different figures while looking like it
 /// compared one.
-class OcptBudgetFinancialReportPdfService {
+class OcptBudgetFinancialReportPdfService extends AbsOcptService {
   /// Creates an [OcptBudgetFinancialReportPdfService].
   ///
   /// Pass the manager's own [fontsLoader] so every export of the app session shares one font cache;

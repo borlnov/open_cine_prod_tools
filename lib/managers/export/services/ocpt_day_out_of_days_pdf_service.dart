@@ -4,6 +4,7 @@
 
 import 'dart:typed_data';
 
+import 'package:open_cine_prod_tools/managers/abs_ocpt_service.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_courier_prime_fonts.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_schedule_pdf_shared.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_script_page_painter.dart';
@@ -77,7 +78,7 @@ const int _maxDayColumnsPerPage = 12;
 /// many chunked pages as it takes, each page's own trailing counts being **the whole range's**,
 /// never that chunk's: an actor's contract is negotiated over the shoot, not over whichever days
 /// happened to fall on one sheet.
-class OcptDayOutOfDaysPdfService {
+class OcptDayOutOfDaysPdfService extends AbsOcptService {
   /// Creates an [OcptDayOutOfDaysPdfService].
   ///
   /// Pass the manager's own [fontsLoader] so every export of the app session shares one font cache;

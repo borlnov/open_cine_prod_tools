@@ -5,6 +5,7 @@
 import 'dart:typed_data';
 
 import 'package:excel_community/excel_community.dart';
+import 'package:open_cine_prod_tools/managers/abs_ocpt_service.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_shot_list_xlsx_export_service.dart';
 import 'package:open_cine_prod_tools/models/ocpt_element.dart';
 import 'package:open_cine_prod_tools/models/ocpt_location.dart';
@@ -34,7 +35,7 @@ import 'package:open_cine_prod_tools/types/ocpt_roles_xlsx_column.dart';
 /// tools. The other three sheets write one row per record, every column of it always written,
 /// whichever card the person/role/element sheet happens to show at once — the workbook is what
 /// leaves the app.
-class OcptResourcesXlsxExportService {
+class OcptResourcesXlsxExportService extends AbsOcptService {
   /// The sheet name used when the caller's own [OcptResourcesXlsxLabels.peopleSheetName] is blank.
   static const fallbackPeopleSheetName = "People";
 

@@ -4,6 +4,7 @@
 
 import 'package:act_global_manager/act_global_manager.dart';
 import 'package:file_selector/file_selector.dart';
+import 'package:open_cine_prod_tools/managers/abs_ocpt_service.dart';
 import 'package:path/path.dart' as p;
 
 /// Shows the native "save as" dialog and resolves the path the user picked.
@@ -11,7 +12,7 @@ import 'package:path/path.dart' as p;
 /// Pure Flutter-plugin wrapper around `package:file_selector`'s [getSaveLocation]: it's owned by
 /// `OcptExportManager` as a public final field, reached through the manager rather than
 /// through `globalGetIt()`, so it can be replaced by a test double.
-class OcptSaveLocationService {
+class OcptSaveLocationService extends AbsOcptService {
   /// Class constructor
   const OcptSaveLocationService();
 

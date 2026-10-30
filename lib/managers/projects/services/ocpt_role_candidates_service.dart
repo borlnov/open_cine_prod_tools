@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:drift/drift.dart';
+import 'package:open_cine_prod_tools/managers/abs_ocpt_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_row_stamp_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
@@ -30,7 +31,7 @@ import 'package:uuid/uuid.dart';
 /// candidacy exactly as a coat outlives the character who wore it.
 ///
 /// {@macro open_cine_prod_tools.tombstones}
-class OcptRoleCandidatesService {
+class OcptRoleCandidatesService extends AbsOcptService {
   /// The statuses that leave a candidacy in the running — the rows retaining somebody turns down.
   ///
   /// Resolved off `OcptRoleCandidateStatus.isStillALead` rather than listed here, so the one place

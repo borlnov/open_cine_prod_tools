@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:drift/drift.dart';
+import 'package:open_cine_prod_tools/managers/abs_ocpt_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_row_stamp_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/types/ocpt_asset_kind.dart';
@@ -24,7 +25,7 @@ import 'package:uuid/uuid.dart';
 /// own those subjects (`OcptPeopleService`, `OcptLocationsService`, `OcptElementsService`) take one
 /// of these and write their own `…AssetId` column beside the row it mints, since which asset is
 /// *the* headshot is a fact about the person rather than about the file.
-class OcptAssetsService {
+class OcptAssetsService extends AbsOcptService {
   /// Resolves the device id every stamp this service's own writes carry — see
   /// [OcptDeviceIdGetter]. [insertAsset], [tombstoneAsset] and [erasePersonAssets] never call it:
   /// they write inside a caller's own transaction, and take that caller's own

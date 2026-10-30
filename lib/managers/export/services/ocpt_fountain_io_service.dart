@@ -6,6 +6,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:fountain_kit/fountain_kit.dart';
+import 'package:open_cine_prod_tools/managers/abs_ocpt_service.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_export_file_name.dart';
 import 'package:path/path.dart' as p;
 
@@ -15,7 +16,7 @@ import 'package:path/path.dart' as p;
 /// This is pure text/bytes logic with no I/O of its own (no dialog, no file system access): it's
 /// owned by `OcptExportManager` and exposed as a public final field, reached through the manager
 /// rather than through `globalGetIt()`.
-class OcptFountainIoService {
+class OcptFountainIoService extends AbsOcptService {
   /// The extension of a Fountain screenplay file, without its leading dot.
   static const fountainFileExtension = "fountain";
 

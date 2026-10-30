@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:drift/drift.dart';
+import 'package:open_cine_prod_tools/managers/abs_ocpt_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_assets_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_role_candidates_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_row_stamp_service.dart';
@@ -28,7 +29,7 @@ import 'package:uuid/uuid.dart';
 ///
 /// **[deletePerson] is an erasure, not a plain tombstone**. See its own doc comment for exactly
 /// which columns are blanked.
-class OcptPeopleService {
+class OcptPeopleService extends AbsOcptService {
   /// The service minting and tombstoning the `assets` rows a person owns — their photo and their
   /// signed image rights release. Held rather than reached for, exactly as
   /// `OcptLocationsService` holds its own.

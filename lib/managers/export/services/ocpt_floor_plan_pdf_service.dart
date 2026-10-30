@@ -7,6 +7,7 @@ import 'dart:math' as math;
 import 'dart:typed_data';
 import 'dart:ui' show Offset;
 
+import 'package:open_cine_prod_tools/managers/abs_ocpt_service.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_courier_prime_fonts.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_export_file_name.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_script_page_painter.dart';
@@ -135,7 +136,7 @@ const double _silhouetteMarginPt = 10;
 /// `Positioned` + `Transform.rotate` around an unrotated `Positioned` rect) handles it for free. A
 /// missing or undecodable file (ADR 0013) falls back to the schematic frame this class used to
 /// always draw — [_paintUnderlayFrame], now the fallback rather than the rule.
-class OcptFloorPlanPdfService {
+class OcptFloorPlanPdfService extends AbsOcptService {
   /// Creates an [OcptFloorPlanPdfService].
   ///
   /// Pass the manager's own [fontsLoader] so every export of the app session shares one font cache;

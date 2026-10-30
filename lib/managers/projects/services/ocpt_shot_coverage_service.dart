@@ -6,6 +6,7 @@ import 'dart:convert';
 
 import 'package:crypto/crypto.dart';
 import 'package:drift/drift.dart';
+import 'package:open_cine_prod_tools/managers/abs_ocpt_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_row_stamp_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_coverage_range.dart';
@@ -36,7 +37,7 @@ import 'package:uuid/uuid.dart';
 /// digests to the current text, so nothing fires again until a real further change.
 ///
 /// {@macro open_cine_prod_tools.tombstones}
-class OcptShotCoverageService {
+class OcptShotCoverageService extends AbsOcptService {
   /// Resolves the device id every stamp this service's own writes carry — see
   /// [OcptDeviceIdGetter]. [refreshStaleness] never calls it: it writes inside a caller's own
   /// transaction, and takes that caller's own [OcptRowStampService] instead.

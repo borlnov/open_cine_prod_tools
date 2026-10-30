@@ -4,6 +4,7 @@
 
 import 'package:drift/drift.dart';
 import 'package:fountain_kit/fountain_kit.dart';
+import 'package:open_cine_prod_tools/managers/abs_ocpt_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_floor_plan_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_role_index_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_row_stamp_service.dart';
@@ -40,7 +41,7 @@ import 'package:uuid/uuid.dart';
 /// **Order is `sortKey`, never `position`.** A group's rows are ordered by their fractional index,
 /// so inserting or moving one writes exactly that one row rather than renumbering the whole group.
 /// `position` survives only as the legacy column ADR 0007 forbids dropping in place.
-class OcptShotListService {
+class OcptShotListService extends AbsOcptService {
   /// The service a character resolved to no live role is created through
   /// (`OcptRoleIndexService.addRole`), by [resolveOrCreateRoleId]: a shot's characters are the
   /// production's `roles` (`docs/adr/0030-a-shots-characters-are-the-productions-roles.md`), so a

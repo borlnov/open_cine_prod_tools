@@ -6,6 +6,7 @@ import 'dart:io';
 import 'dart:ui';
 
 import 'package:act_global_manager/act_global_manager.dart';
+import 'package:open_cine_prod_tools/managers/abs_ocpt_service.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
@@ -16,7 +17,7 @@ import 'package:share_plus/share_plus.dart';
 /// public final field, reached through the manager rather than through `globalGetIt()`, so
 /// it can be replaced by a test double — exactly as `OcptSaveLocationService` is for the native
 /// save dialog.
-class OcptShareService {
+class OcptShareService extends AbsOcptService {
   /// Class constructor
   const OcptShareService();
 

@@ -2,6 +2,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+import 'package:open_cine_prod_tools/managers/abs_ocpt_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_row_stamp_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:uuid/uuid.dart';
@@ -17,7 +18,7 @@ import 'package:uuid/uuid.dart';
 /// so a writer who right-clicks the same name twice, in two different cases, never ends up with two
 /// rows for it. What is actually stored is the word **as typed**, case included — matching is
 /// case-insensitive, storage is not.
-class OcptProjectDictionaryService {
+class OcptProjectDictionaryService extends AbsOcptService {
   /// Resolves the device id every stamp [learnWord] and [unlearnWord] make carries — see
   /// [OcptDeviceIdGetter].
   final OcptDeviceIdGetter deviceId;

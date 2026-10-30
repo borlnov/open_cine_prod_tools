@@ -5,6 +5,7 @@
 import 'dart:typed_data';
 
 import 'package:act_dart_result/act_dart_result.dart';
+import 'package:open_cine_prod_tools/managers/abs_ocpt_service.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_fountain_io_service.dart';
 import 'package:open_cine_prod_tools/types/ocpt_screenplay_import_status.dart';
 import 'package:script_import_kit/script_import_kit.dart';
@@ -22,7 +23,7 @@ import 'package:script_import_kit/script_import_kit.dart';
 /// even a logger: the developer-facing detail of a refusal travels back as the result's own
 /// `extraInfo`, for the manager to log. It's owned by `OcptExportManager` and exposed as a public
 /// final field, reached through the manager rather than through `globalGetIt()`.
-class OcptScriptImportService {
+class OcptScriptImportService extends AbsOcptService {
   /// The extension of a Final Draft screenplay file, without its leading dot.
   static const finalDraftFileExtension = "fdx";
 

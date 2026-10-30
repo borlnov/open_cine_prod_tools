@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:drift/drift.dart';
+import 'package:open_cine_prod_tools/managers/abs_ocpt_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_assets_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_row_stamp_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
@@ -44,7 +45,7 @@ import 'package:uuid/uuid.dart';
 ///
 /// **Order is `sortKey`, never `position`** — none of the three tables this service owns carries a
 /// `position` column: all three are new in a schema version that never needed one.
-class OcptFloorPlanService {
+class OcptFloorPlanService extends AbsOcptService {
   /// The service used to mint and tombstone a set's underlay `assets` row.
   final OcptAssetsService assetsService;
 

@@ -5,6 +5,7 @@
 import 'dart:typed_data';
 
 import 'package:excel_community/excel_community.dart';
+import 'package:open_cine_prod_tools/managers/abs_ocpt_service.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_export_file_name.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_list_snapshot.dart';
@@ -26,7 +27,7 @@ import 'package:open_cine_prod_tools/types/ocpt_shot_list_xlsx_column.dart';
 /// it. Every [OcptShotListXlsxColumn] is always written, whichever columns the table happens to
 /// show: the workbook is what leaves the app, so hiding a column on screen must not amputate the
 /// file a crew works from.
-class OcptShotListXlsxExportService {
+class OcptShotListXlsxExportService extends AbsOcptService {
   /// The extension of an Excel workbook file, without its leading dot.
   static const xlsxFileExtension = "xlsx";
 

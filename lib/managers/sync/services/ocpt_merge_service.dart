@@ -4,6 +4,7 @@
 
 import 'package:act_global_manager/act_global_manager.dart';
 import 'package:drift/drift.dart';
+import 'package:open_cine_prod_tools/managers/abs_ocpt_service.dart';
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_screenplay_merge_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_row_stamp_key.dart';
@@ -47,7 +48,7 @@ import 'package:open_cine_prod_tools/models/sync/ocpt_screenplay_merge_conflict.
 /// this class's own tests): `OcptSyncManager` is the one place that always wires a real one for the
 /// running app. `scenes` is never named by an incoming changeset in the first place
 /// ([ocptSynchronisedTables] excludes it), so nothing here ever writes to it either way.
-class OcptMergeService {
+class OcptMergeService extends AbsOcptService {
   /// The Dart field name `screenplays.fountainText` stamps carry — see [_applyRowGroup] for why
   /// this one column is pulled out of the generic overlay.
   static const _fountainTextColumnName = 'fountainText';

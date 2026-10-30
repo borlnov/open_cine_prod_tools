@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:drift/drift.dart';
+import 'package:open_cine_prod_tools/managers/abs_ocpt_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_row_stamp_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_line.dart';
@@ -27,7 +28,7 @@ import 'package:uuid/uuid.dart';
 /// **`budget_lines` is ordered by `sortKey` within its own `posteId`**, like
 /// `OcptShotListService`'s shots within a scene: a line only ever competes for a position against
 /// the other lines of the very poste it prices.
-class OcptBudgetQuoteService {
+class OcptBudgetQuoteService extends AbsOcptService {
   /// Resolves the device id every stamp this service's own writes carry — see
   /// [OcptDeviceIdGetter].
   final OcptDeviceIdGetter deviceId;

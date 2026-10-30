@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:drift/drift.dart';
+import 'package:open_cine_prod_tools/managers/abs_ocpt_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_assets_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_row_stamp_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
@@ -40,7 +41,7 @@ import 'package:uuid/uuid.dart';
 /// Neither link table carries a `sortKey`: a scene's elements, like a role's things, are a set the
 /// user adds to and removes from rather than a list they reorder (see `OcptSceneElementsTable`'s
 /// own doc comment).
-class OcptElementsService {
+class OcptElementsService extends AbsOcptService {
   /// The service minting and tombstoning the `assets` row an element's photo is. Held rather than
   /// reached for, exactly as `OcptPeopleService` and `OcptLocationsService` hold their own.
   final OcptAssetsService assetsService;

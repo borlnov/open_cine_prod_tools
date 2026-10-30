@@ -5,6 +5,7 @@
 import 'package:act_global_manager/act_global_manager.dart';
 import 'package:drift/drift.dart';
 import 'package:fountain_kit/fountain_kit.dart';
+import 'package:open_cine_prod_tools/managers/abs_ocpt_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_breakdown_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_role_index_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_row_stamp_service.dart';
@@ -51,7 +52,7 @@ import 'package:uuid/uuid.dart';
 /// Only the [OcptScreenplayService.maxSnapshotsPerScreenplay] most recent snapshots of a
 /// screenplay are kept: [saveScreenplayText] prunes older ones after every save.
 /// {@endtemplate}
-class OcptScreenplayService {
+class OcptScreenplayService extends AbsOcptService {
   /// The maximum number of snapshots kept per screenplay: older ones are pruned after every save.
   static const maxSnapshotsPerScreenplay = 30;
 

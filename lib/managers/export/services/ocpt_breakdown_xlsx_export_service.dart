@@ -6,6 +6,7 @@ import 'dart:typed_data';
 
 import 'package:excel_community/excel_community.dart';
 import 'package:fountain_kit/fountain_kit.dart';
+import 'package:open_cine_prod_tools/managers/abs_ocpt_service.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_export_file_name.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_shot_list_xlsx_export_service.dart';
 import 'package:open_cine_prod_tools/models/ocpt_breakdown_scene.dart';
@@ -43,7 +44,7 @@ import 'package:open_cine_prod_tools/types/ocpt_breakdown_target_kind.dart';
 /// the same reason: a scene whose position no longer names a scene of `document` (an index rebuilt
 /// since, or a snapshot from a version captured against another text) simply writes no length
 /// rather than a wrong one.
-class OcptBreakdownXlsxExportService {
+class OcptBreakdownXlsxExportService extends AbsOcptService {
   /// The sheet name used when the caller's own [OcptBreakdownXlsxLabels.scenesSheetName] is blank.
   static const fallbackScenesSheetName = "Scenes";
 

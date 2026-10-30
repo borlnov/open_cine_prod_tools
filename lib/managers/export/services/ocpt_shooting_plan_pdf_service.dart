@@ -5,6 +5,7 @@
 import 'dart:typed_data';
 
 import 'package:fountain_kit/fountain_kit.dart';
+import 'package:open_cine_prod_tools/managers/abs_ocpt_service.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_courier_prime_fonts.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_schedule_pdf_shared.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_script_page_painter.dart';
@@ -149,7 +150,7 @@ const Map<int, pw.TableColumnWidth> _guestColumnWidths = {
 /// [OcptShootingDayAgendaGrid.of]'s own; this service only draws it, and only the drawing choices
 /// specific to `pdf`'s own `Table` widget belong here — see [_tenMinuteGridPage]'s own doc comment
 /// for the one it has to work around (no cell can span more than one row of a `pw.Table`).
-class OcptShootingPlanPdfService {
+class OcptShootingPlanPdfService extends AbsOcptService {
   /// Creates an [OcptShootingPlanPdfService].
   ///
   /// Pass the manager's own [fontsLoader] so every export of the app session shares one font cache;

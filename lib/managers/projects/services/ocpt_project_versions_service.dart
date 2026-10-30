@@ -8,6 +8,7 @@ import 'package:act_dart_result/act_dart_result.dart';
 import 'package:act_global_manager/act_global_manager.dart';
 import 'package:drift/drift.dart';
 import 'package:fountain_kit/fountain_kit.dart';
+import 'package:open_cine_prod_tools/managers/abs_ocpt_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_project_version_codec.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_row_stamp_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_screenplay_service.dart';
@@ -37,7 +38,7 @@ import 'package:uuid/uuid.dart';
 /// - a version captures **every row** of the tables it covers, tombstones included, exactly as
 ///   they stand — no read here filters `isDeleted` out, unlike every other read in the app;
 /// - versions are **never pruned**. Unlike `screenplay_snapshots`, only the user deletes one.
-class OcptProjectVersionsService {
+class OcptProjectVersionsService extends AbsOcptService {
   /// The tables a payload carries every row of, as `row_field_versions.table_name` spells them.
   ///
   /// The stamps of those tables — and of no others — travel with a version (see

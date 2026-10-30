@@ -7,6 +7,7 @@ import 'dart:math' as math;
 import 'dart:typed_data';
 import 'dart:ui' show Offset;
 
+import 'package:open_cine_prod_tools/managers/abs_ocpt_service.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_courier_prime_fonts.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_export_file_name.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_floor_plan_pdf_service.dart';
@@ -114,7 +115,7 @@ const double _annotationHeadAnglePt = 0.45;
 /// sheets print right after that sequence's own rows** — through [floorPlanPdfService], the very
 /// same service (and the very same `OcptFloorPlanSheet`-drawing code) the standalone floor plans
 /// PDF uses, so the two documents can never draw one set's plan two different ways.
-class OcptStoryboardPdfService {
+class OcptStoryboardPdfService extends AbsOcptService {
   /// Creates an [OcptStoryboardPdfService].
   ///
   /// Pass the manager's own [fontsLoader] so every export of the app session shares one font

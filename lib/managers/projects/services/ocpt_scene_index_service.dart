@@ -4,6 +4,7 @@
 
 import 'package:drift/drift.dart';
 import 'package:fountain_kit/fountain_kit.dart';
+import 'package:open_cine_prod_tools/managers/abs_ocpt_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:uuid/uuid.dart';
 
@@ -43,7 +44,7 @@ class _ParsedScene {
 /// does with it.
 ///
 /// {@macro open_cine_prod_tools.tombstones}
-class OcptSceneIndexService {
+class OcptSceneIndexService extends AbsOcptService {
   /// Class constructor
   const OcptSceneIndexService();
 

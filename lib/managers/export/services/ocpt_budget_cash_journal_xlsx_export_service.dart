@@ -5,6 +5,7 @@
 import 'dart:typed_data';
 
 import 'package:excel_community/excel_community.dart';
+import 'package:open_cine_prod_tools/managers/abs_ocpt_service.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_export_file_name.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_cash_journal_xlsx_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_snapshot.dart';
@@ -32,7 +33,7 @@ import 'package:open_cine_prod_tools/models/rules/ocpt_budget_journal.dart';
 /// caller hands in — this service resolves nothing itself, which is what keeps it independent of
 /// `budget_revenues`/`budget_shares`: an entry naming a revenue or a share simply arrives with a
 /// label in that map once the mode fills it in.
-class OcptBudgetCashJournalXlsxExportService {
+class OcptBudgetCashJournalXlsxExportService extends AbsOcptService {
   /// The extension of an Excel workbook file, without its leading dot.
   static const xlsxFileExtension = "xlsx";
 

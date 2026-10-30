@@ -7,6 +7,7 @@ import 'dart:typed_data';
 
 import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/constants/ocpt_crew_positions.dart';
+import 'package:open_cine_prod_tools/managers/abs_ocpt_service.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_courier_prime_fonts.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_schedule_pdf_shared.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_script_page_painter.dart';
@@ -238,7 +239,7 @@ final RegExp _unsafeFileNameChars = RegExp(r'[\\/:*?"<>|\x00-\x1F]');
 /// rather than handing somebody five anonymous columns. `OcptShootingPlanPdfService` states the
 /// same two rules for the same reason — a printed page is read on its own, and the sheet it was
 /// stapled to is regularly not in the reader's hand.
-class OcptCallSheetPdfService {
+class OcptCallSheetPdfService extends AbsOcptService {
   /// Creates an [OcptCallSheetPdfService].
   ///
   /// Pass the manager's own [fontsLoader] so every export of the app session shares one font cache;

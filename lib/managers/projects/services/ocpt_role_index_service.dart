@@ -4,6 +4,7 @@
 
 import 'package:drift/drift.dart';
 import 'package:fountain_kit/fountain_kit.dart';
+import 'package:open_cine_prod_tools/managers/abs_ocpt_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_elements_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_role_candidates_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_row_stamp_service.dart';
@@ -52,7 +53,7 @@ import 'package:uuid/uuid.dart';
 /// roles, one list over the whole cast rather than one per episode — a shooting day regularly
 /// covers two episodes, and two roles numbered 3 on the call sheet it prints would make the
 /// `RÔLES` column unreadable.
-class OcptRoleIndexService {
+class OcptRoleIndexService extends AbsOcptService {
   /// The service owning the `role_elements` links, held so [deleteRole] can carry them off with
   /// the role it removes.
   ///

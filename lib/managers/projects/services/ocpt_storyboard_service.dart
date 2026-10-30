@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:drift/drift.dart';
+import 'package:open_cine_prod_tools/managers/abs_ocpt_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_assets_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_row_stamp_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
@@ -26,7 +27,7 @@ import 'package:uuid/uuid.dart';
 /// **Order is `sortKey`, never `position`** — neither `storyboard_panels` nor
 /// `storyboard_annotations` carries a `position` column at all: both are new in a schema version
 /// that never needed one.
-class OcptStoryboardService {
+class OcptStoryboardService extends AbsOcptService {
   /// The service used to mint and tombstone a panel's image `assets` row.
   final OcptAssetsService assetsService;
 

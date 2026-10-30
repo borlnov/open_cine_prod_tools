@@ -4,6 +4,7 @@
 
 import 'package:act_global_manager/act_global_manager.dart';
 import 'package:drift/drift.dart';
+import 'package:open_cine_prod_tools/managers/abs_ocpt_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_row_stamp_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_screenplay_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
@@ -36,7 +37,7 @@ import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
 /// path, not a user edit (see that guard's own doc comment), and it must go through even while a
 /// version preview is open. `screenplayService.reconcileScreenplayText` never checks it either, by
 /// design — see that method's own doc comment.
-class OcptScreenplayMergeService {
+class OcptScreenplayMergeService extends AbsOcptService {
   /// The screenplay service whose extracted reconciliation core writes a clean merge back.
   final OcptScreenplayService screenplayService;
 

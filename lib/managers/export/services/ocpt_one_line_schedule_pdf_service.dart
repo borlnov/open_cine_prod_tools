@@ -5,6 +5,7 @@
 import 'dart:typed_data';
 
 import 'package:fountain_kit/fountain_kit.dart';
+import 'package:open_cine_prod_tools/managers/abs_ocpt_service.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_courier_prime_fonts.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_schedule_pdf_shared.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_script_page_painter.dart';
@@ -79,7 +80,7 @@ const Map<int, pw.TableColumnWidth> _lineColumnWidths = {
 /// day. **No hours column**: a one-line schedule is read as an order, and the resolved clock a line
 /// happens at is the shooting plan's own day agenda — printing it twice would be the two documents
 /// disagreeing about which one says when.
-class OcptOneLineSchedulePdfService {
+class OcptOneLineSchedulePdfService extends AbsOcptService {
   /// Creates an [OcptOneLineSchedulePdfService].
   ///
   /// Pass the manager's own [fontsLoader] so every export of the app session shares one font cache;

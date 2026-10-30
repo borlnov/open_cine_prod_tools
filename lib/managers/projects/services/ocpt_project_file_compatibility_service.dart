@@ -5,6 +5,7 @@
 import 'dart:io';
 
 import 'package:act_global_manager/act_global_manager.dart';
+import 'package:open_cine_prod_tools/managers/abs_ocpt_service.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_file_compatibility.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_app_version.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_file_verdict.dart';
@@ -26,7 +27,7 @@ import 'package:sqlite3/sqlite3.dart';
 /// migration and no `user_version` write can happen as a side effect of looking. It knows nothing
 /// of Flutter and holds no state — it takes a path and answers about it, which is what lets it be
 /// tested against files a test builds by hand.
-class OcptProjectFileCompatibilityService {
+class OcptProjectFileCompatibilityService extends AbsOcptService {
   /// The name a backup takes, before the counter that may follow it: the project's own file name,
   /// the format it is in, and the extension it always had.
   ///

@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:drift/drift.dart';
+import 'package:open_cine_prod_tools/managers/abs_ocpt_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_row_stamp_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/ocpt_schedule_snapshot.dart';
@@ -121,7 +122,7 @@ import 'package:uuid/uuid.dart';
 /// override schema v11 declared for it, is dropped again at schema v17: every cell it drew is
 /// **computed**, from that day's convocations and from `person_unavailabilities` — see
 /// `OcptSchedulePlanSnapshot.presenceCellOf` — so this service holds no writer for it at all.
-class OcptScheduleService {
+class OcptScheduleService extends AbsOcptService {
   /// The minute a day's first slot is given by [createDay]: 08:00.
   static const _defaultStartMinute = 480;
 

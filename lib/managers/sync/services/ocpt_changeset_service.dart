@@ -5,6 +5,7 @@
 import 'package:act_global_manager/act_global_manager.dart';
 import 'package:drift/drift.dart';
 import 'package:ocpt_sync_protocol/ocpt_sync_protocol.dart';
+import 'package:open_cine_prod_tools/managers/abs_ocpt_service.dart';
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_merge_service.dart';
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_remote_storage.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
@@ -25,7 +26,7 @@ import 'package:uuid/uuid.dart';
 /// A "relay" here is any [OcptRemoteStorage] this replica is paired with, named by a `relayId` —
 /// the same identifier `sync_relay_cursors.relayId` keys a replica's own delivery state by, since a
 /// device can be paired with more than one relay over its lifetime.
-class OcptChangesetService {
+class OcptChangesetService extends AbsOcptService {
   /// Class constructor
   const OcptChangesetService({this.mergeService = const OcptMergeService()});
 

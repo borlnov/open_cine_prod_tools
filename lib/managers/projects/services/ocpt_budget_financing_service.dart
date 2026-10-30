@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:drift/drift.dart';
+import 'package:open_cine_prod_tools/managers/abs_ocpt_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_row_stamp_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_mileage_rate.dart';
@@ -26,7 +27,7 @@ import 'package:uuid/uuid.dart';
 /// **Both tables order flat by their own `sortKey`**, like `OcptBudgetPostesTable`'s own catalogue:
 /// neither a resource nor a rate belongs inside another row the way a quote line belongs inside its
 /// poste.
-class OcptBudgetFinancingService {
+class OcptBudgetFinancingService extends AbsOcptService {
   /// Resolves the device id every stamp this service's own writes carry — see
   /// [OcptDeviceIdGetter].
   final OcptDeviceIdGetter deviceId;

@@ -4,6 +4,7 @@
 
 import 'package:act_global_manager/act_global_manager.dart';
 import 'package:drift/drift.dart';
+import 'package:open_cine_prod_tools/managers/abs_ocpt_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_elements_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_locations_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_row_stamp_service.dart';
@@ -47,7 +48,7 @@ class _OcptBreakdownTagRefused implements Exception {
 /// for why.
 ///
 /// {@macro open_cine_prod_tools.tombstones}
-class OcptBreakdownService {
+class OcptBreakdownService extends AbsOcptService {
   /// The service used to mint the element a category chip creates, exactly as the resources mode's
   /// own element sheet would.
   final OcptElementsService _elementsService;

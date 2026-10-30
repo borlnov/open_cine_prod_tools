@@ -4,6 +4,7 @@
 
 import 'dart:typed_data';
 
+import 'package:open_cine_prod_tools/managers/abs_ocpt_service.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_budget_pdf_shared.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_courier_prime_fonts.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_script_page_painter.dart';
@@ -75,7 +76,7 @@ const Map<int, pw.TableColumnWidth> _columnWidths = {
 /// name as a quiet second line under its own label, resolved through `elementNameById` — a plain
 /// map the caller hands in, this service resolving nothing itself
 /// (`docs/architecture/budget.md`'s own "A quote line can price a breakdown element").
-class OcptBudgetQuotePdfService {
+class OcptBudgetQuotePdfService extends AbsOcptService {
   /// Creates an [OcptBudgetQuotePdfService].
   ///
   /// Pass the manager's own [fontsLoader] so every export of the app session shares one font cache;

@@ -5,6 +5,7 @@
 import 'dart:typed_data';
 
 import 'package:open_cine_prod_tools/constants/ocpt_crew_positions.dart';
+import 'package:open_cine_prod_tools/managers/abs_ocpt_service.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_courier_prime_fonts.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_schedule_pdf_shared.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_script_page_painter.dart';
@@ -116,7 +117,7 @@ typedef _ContactGroup = (String label, List<_ContactRow> rows);
 /// [OcptScriptPagePainter]'s page builders. It still takes one: the painter owns the page geometry
 /// every export of this app measures a sheet with, and the Courier Prime variants all of them print
 /// in.
-class OcptContactListPdfService {
+class OcptContactListPdfService extends AbsOcptService {
   /// Creates an [OcptContactListPdfService].
   ///
   /// Pass the manager's own [fontsLoader] so every export of the app session shares one font cache;

@@ -8,6 +8,7 @@ import 'dart:typed_data';
 import 'package:act_global_manager/act_global_manager.dart';
 import 'package:crypto/crypto.dart';
 import 'package:ocpt_sync_protocol/ocpt_sync_protocol.dart';
+import 'package:open_cine_prod_tools/managers/abs_ocpt_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_project_package_service.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_package_status.dart';
 import 'package:path/path.dart' as p;
@@ -27,7 +28,7 @@ import 'package:uuid/uuid.dart';
 /// itself never does, for the reasons its own doc comment gives, and a snapshot is exactly as free
 /// to be built from, or applied onto, a project at any schema version this build would otherwise
 /// migrate.
-class OcptSnapshotService {
+class OcptSnapshotService extends AbsOcptService {
   /// Creates a service using [packageService] to read and write the portable package a snapshot's
   /// bytes actually are.
   ///

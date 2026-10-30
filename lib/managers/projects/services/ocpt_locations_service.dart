@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:drift/drift.dart';
+import 'package:open_cine_prod_tools/managers/abs_ocpt_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_assets_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_floor_plan_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_row_stamp_service.dart';
@@ -41,7 +42,7 @@ import 'package:uuid/uuid.dart';
 /// applied automatically, only offered: `ocptSceneSetSuggestionOf` computes it and the resources
 /// mode offers it, while [assignSceneToSet]/[removeSceneFromSet] are the plain link writes the mode
 /// calls once the user has picked (or confirmed) one.
-class OcptLocationsService {
+class OcptLocationsService extends AbsOcptService {
   /// The service minting and tombstoning the `assets` rows a location owns. Held rather than
   /// reached for so a test can hand in its own, exactly as `OcptBreakdownService` holds the two
   /// services it composes.

@@ -5,6 +5,7 @@
 import 'dart:typed_data';
 
 import 'package:fountain_kit/fountain_kit.dart';
+import 'package:open_cine_prod_tools/managers/abs_ocpt_service.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_courier_prime_fonts.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_export_file_name.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_script_page_painter.dart';
@@ -19,7 +20,7 @@ import 'package:pdf/widgets.dart' as pw;
 /// which must stay Flutter-free) for the body's line-level pagination and [OcptScriptPagePainter]
 /// for the drawing itself, so the screenplay it prints is the very same drawing the scenario
 /// coverage export prints under its bars.
-class OcptPdfExportService {
+class OcptPdfExportService extends AbsOcptService {
   /// Creates an [OcptPdfExportService].
   ///
   /// Deliberately not `const` (unlike the sibling `OcptFountainIoService`): this service loads its

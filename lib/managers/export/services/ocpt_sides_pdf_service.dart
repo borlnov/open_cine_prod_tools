@@ -5,6 +5,7 @@
 import 'dart:typed_data';
 
 import 'package:fountain_kit/fountain_kit.dart';
+import 'package:open_cine_prod_tools/managers/abs_ocpt_service.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_courier_prime_fonts.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_schedule_pdf_shared.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_script_page_painter.dart';
@@ -59,7 +60,7 @@ const PdfColor _mutedColor = PdfColor.fromInt(0xFF6E6E6E);
 /// produce, from the same composer call and the same metrics, so a side can never disagree with the
 /// full script about how a page is laid out), and this service only wraps that drawing in the
 /// running head and foot a torn-off booklet page needs to say who and what it is.
-class OcptSidesPdfService {
+class OcptSidesPdfService extends AbsOcptService {
   /// Creates an [OcptSidesPdfService].
   ///
   /// Pass the manager's own [fontsLoader] so every export of the app session shares one font cache;

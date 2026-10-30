@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:drift/drift.dart';
+import 'package:open_cine_prod_tools/managers/abs_ocpt_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_assets_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_row_stamp_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
@@ -30,7 +31,7 @@ import 'package:uuid/uuid.dart';
 /// own catalogue is: [createEntry]/[createCommitment] append to it and [reorderEntry]/
 /// [reorderCommitment] move a single row within it, independently of the chronological or
 /// due-date order [loadEntries]/[loadCommitments] actually display rows in.
-class OcptBudgetJournalService {
+class OcptBudgetJournalService extends AbsOcptService {
   /// The prefix every voucher number [createEntry] mints starts with: `J-001`, `J-002`, …, growing
   /// past three digits rather than wrapping once a project needs a fourth.
   ///

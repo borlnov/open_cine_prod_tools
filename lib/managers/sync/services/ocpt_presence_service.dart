@@ -7,6 +7,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:act_global_manager/act_global_manager.dart';
+import 'package:open_cine_prod_tools/managers/abs_ocpt_service.dart';
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_remote_storage.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_presence_frame.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_presence_roster.dart';
@@ -51,7 +52,7 @@ class _SeenPeer {
 /// [start]/[stop] bound this service's lifetime, mirroring `OcptSyncSession`'s own pair exactly —
 /// [roster] seeds a fresh listener the way `OcptSyncSession.status` does, since [rosterStream]
 /// never replays its current value either (no ACT stream does, `CLAUDE.md`'s own pitfalls list).
-class OcptPresenceService {
+class OcptPresenceService extends AbsOcptService {
   /// Class constructor
   ///
   /// [platform] defaults to [Platform.operatingSystem] — not usable as a literal default value,

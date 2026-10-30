@@ -9,6 +9,7 @@ import 'package:act_dart_result/act_dart_result.dart';
 import 'package:act_global_manager/act_global_manager.dart';
 import 'package:archive/archive_io.dart';
 import 'package:open_cine_prod_tools/constants/ocpt_project_file.dart';
+import 'package:open_cine_prod_tools/managers/abs_ocpt_service.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_package_manifest.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_package_report.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_erased_person_scrub.dart';
@@ -65,7 +66,7 @@ class _OcptZipSlipException implements Exception {
 ///   `local_erasures` is emptied. Shipping the table instead of applying it would leave the phone
 ///   number, the address and the allergies of somebody who asked to be removed one `sqlite3` prompt
 ///   away on the recipient's machine, which is not erasure.
-class OcptProjectPackageService {
+class OcptProjectPackageService extends AbsOcptService {
   /// The `assets` columns this service reads, by the names **SQL** knows them under.
   ///
   /// Watch the two naming worlds this file sits between: drift names a column in `snake_case`
