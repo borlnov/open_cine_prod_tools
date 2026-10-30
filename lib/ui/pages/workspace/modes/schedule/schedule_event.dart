@@ -86,10 +86,8 @@ class OcptScheduleRightDockClosedEvent extends OcptScheduleEvent {
 /// Applies whichever dock fraction the ended drag gesture reports.
 ///
 /// Only one of [left]/[right] is ever non-null per event, mirroring how the shell's own
-/// `onDockFractionsChanged` callback is shaped. Unlike the other three modes' own version of this
-/// event, the fraction is **not persisted**: `OcptPropertiesManager` is out of this milestone's
-/// scope (see `OcptScheduleBloc`'s own doc comment), so the width only survives for the life of the
-/// mode.
+/// `onDockFractionsChanged` callback is shaped. The bloc persists the fractions through
+/// `OcptPropertiesManager` (see `OcptScheduleBloc`'s own doc comment).
 class OcptScheduleDockFractionsChangedEvent extends OcptScheduleEvent {
   /// The left dock's new fraction, or null when the drag was on the right divider.
   final double? left;
@@ -762,7 +760,7 @@ class OcptScheduleBlockReorderedEvent extends OcptScheduleEvent {
 
 /// Moves block [blockId] to slot [targetSlotId], appended at the end of that slot's own timetable,
 /// dispatched either by dragging a row out of one slot card's own timetable onto another's, or by
-/// picking an entry of the block's own `Move to…` menu (M2').
+/// picking an entry of the block's own `Move to…` menu.
 class OcptScheduleBlockMovedToSlotEvent extends OcptScheduleEvent {
   /// The id of the block to move.
   final String blockId;

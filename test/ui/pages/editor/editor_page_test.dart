@@ -743,7 +743,7 @@ void main() {
     (tester) async {
       // The persisted preference is deliberately the opposite of what a phone width should show:
       // raw mode, with page simulation on. Neither is touched by the override (see
-      // `_EditorViewState._liveMode`/`docs/plans/tablet.md`) — only what actually renders is.
+      // `_EditorViewState._liveMode`) — only what actually renders is.
       await propertiesManager.editorMode.store(OcptEditorMode.raw);
       await propertiesManager.isPageSimulationEnabled.store(true);
 
@@ -1733,7 +1733,7 @@ void main() {
         await tester.enterText(barTextFields.first, "MARIE");
         await tester.pumpAndSettle();
         // "MARIE" replaced by "MARIE-JEANNE" still matches "MARIE" at that very same offset, so
-        // this is the plan's own headline scenario for putting replace in scope at all.
+        // this is the scenario replace exists for.
         await tester.enterText(barTextFields.last, "MARIE-JEANNE");
         await tester.pumpAndSettle();
 

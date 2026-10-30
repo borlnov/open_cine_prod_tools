@@ -1058,8 +1058,8 @@ class OcptShotListFloorPlanToolSelectedEvent extends OcptShotListEvent {
 /// Picks the sequence layer a placed set element lands on, dispatched by a click on one of the
 /// tray's own sequence layer rows.
 class OcptShotListFloorPlanActiveLayerChangedEvent extends OcptShotListEvent {
-  /// The layer just picked. Always sequence-scoped: the tray only ever offers those three rows in
-  /// this milestone.
+  /// The layer just picked. Always sequence-scoped: the tray only ever offers sequence layer
+  /// rows.
   final OcptFloorPlanLayer layer;
 
   /// Class constructor

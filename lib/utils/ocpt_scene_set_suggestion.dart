@@ -35,7 +35,7 @@ const _minimumContainmentLength = 3;
 /// The set the scene headed [heading] is most likely shot in, among every set of [locations], or
 /// null when nothing in the project resembles it.
 ///
-/// This is a **suggestion and only ever a suggestion** (§4.5 of the plan this ships under): the
+/// This is a **suggestion and only ever a suggestion**: the
 /// caller offers it and the user confirms it, because `INT. CUISINE` in two different houses is two
 /// different sets and only they know which. Nothing here writes, and nothing here is applied
 /// automatically.

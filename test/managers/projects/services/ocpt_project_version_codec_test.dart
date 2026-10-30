@@ -1155,8 +1155,8 @@ void main() {
         isDeleted: true,
       ),
       // A scene-scope override symbol: sceneId set, no shotId, replacing symbol-1 in scene-1,
-      // masking it for that one sequence (isHidden) — the round trip this milestone adds a
-      // column for.
+      // masking it for that one sequence (isHidden) — the round trip of the
+      // `isHidden` column.
       OcptFloorPlanSymbolRow(
         id: "symbol-4",
         setId: "case-1",
@@ -1298,7 +1298,7 @@ void main() {
 
     test(
       'a floor_plan_symbols row with no isHidden key at all (an older format-4 payload, from '
-      'before this milestone added the column) reads back as false rather than throwing',
+      'before the column existed) reads back as false rather than throwing',
       () {
         final encoded = jsonDecode(codec.encode(buildRichPayload())) as Map<String, dynamic>;
         final rewritten = {

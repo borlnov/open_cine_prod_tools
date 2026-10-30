@@ -10,8 +10,8 @@ import 'package:ocpt_sync_protocol/ocpt_sync_protocol.dart';
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_remote_storage.dart';
 import 'package:path/path.dart' as p;
 
-/// An [OcptRemoteStorage] over a plain directory, usable with no network at all and, per
-/// `docs/plans/collaboration-and-sync.md` (M3), over any file-sync client on desktop afterwards.
+/// An [OcptRemoteStorage] over a plain directory, usable with no network at all and, on desktop,
+/// over any file-sync client.
 ///
 /// [directory] holds two subdirectories this transport creates as needed:
 ///

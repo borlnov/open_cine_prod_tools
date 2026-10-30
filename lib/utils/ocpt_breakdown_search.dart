@@ -66,7 +66,7 @@ class OcptBreakdownSearchResults extends Equatable {
   });
 
   /// Whether every section came back with nothing — the popover's cue to fall back on
-  /// `Open in Resources` (§3.8 of the breakdown-mode plan) rather than an empty list.
+  /// `Open in Resources` rather than an empty list.
   bool get isEmpty => roles.isEmpty && sets.isEmpty && elements.isEmpty;
 
   /// Object properties
@@ -189,7 +189,7 @@ int _compareCandidates(
 }
 
 /// Whether [targetName] (and, where they exist, [categoryLabel]/[subCategory]/[ownerName]/[notes])
-/// matches [query] — the recap's own row filter (§5.3 of the plan this mode shipped from): the
+/// matches [query] — the recap's own row filter: the
 /// header's search field filters the recap's **rows**, and this is the predicate one row is kept
 /// or dropped by.
 ///

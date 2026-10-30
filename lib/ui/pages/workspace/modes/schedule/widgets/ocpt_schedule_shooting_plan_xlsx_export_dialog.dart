@@ -15,8 +15,8 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/o
 ///
 /// A small dedicated dialog rather than a reuse of `OcptScheduleShootingPlanExportDialog`: that one
 /// also asks for a page format and four section toggles, neither of which means anything to a
-/// spreadsheet (§5 of the export panel's own design — a sheet costs nothing and is hidden in one
-/// click, and page geometry is the printer's business). [OcptScheduleDaySelectionList] ticks every
+/// spreadsheet (a sheet costs nothing and is hidden in one click, and page geometry is the
+/// printer's business). [OcptScheduleDaySelectionList] ticks every
 /// day by default here, as its PDF sibling does: the common case for a whole-shoot document is
 /// printing the whole shoot.
 ///

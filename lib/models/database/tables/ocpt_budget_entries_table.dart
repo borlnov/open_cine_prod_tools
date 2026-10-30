@@ -40,7 +40,7 @@ import 'package:open_cine_prod_tools/models/database/tables/ocpt_people_table.da
 /// own doc comment on `OcptBudgetResourcesTable` is what actually adds this figure up (there is no
 /// stored `receivedCents` counter on that table to keep in step with it).
 ///
-/// [revenueId] and [shareId] mirror [resourceId] exactly, one milestone later: [revenueId] names
+/// [revenueId] and [shareId] mirror [resourceId] exactly: [revenueId] names
 /// which taking a credit is the actual cash for, and [shareId] names which participant a debit
 /// actually pays — both nullable for the very same reason, and both are what a revenue's or a
 /// share's own doc comment (`OcptBudgetRevenuesTable`, `OcptBudgetSharesTable`) reads to add up

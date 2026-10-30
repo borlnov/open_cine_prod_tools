@@ -45,17 +45,15 @@ class OcptSyncManagerBuilder extends AbsLifeCycleFactory<OcptSyncManager> {
   ];
 }
 
-/// Owns a project's own side of `docs/plans/collaboration-and-sync.md`'s changeset engine (M3):
-/// turning local writes into changesets and applying incoming ones, per-column merge, the
-/// screenplay's own three-way text merge, and the transport those changesets and snapshots travel
-/// over.
+/// Owns a project's own side of the changeset engine (`docs/architecture/sync.md`): turning local
+/// writes into changesets and applying incoming ones, per-column merge, the screenplay's own
+/// three-way text merge, and the transport those changesets and snapshots travel over.
 ///
-/// This step of that plan lands [changesetService]'s **inbound** half on top of the outbound one
-/// that shipped before it: [OcptMergeService], the per-column resolver
-/// [changesetService].`pullAndApply` hands every incoming changeset to, is what actually makes two
-/// replicas pointed at the same [OcptRemoteStorage] converge — plus the [OcptRemoteStorage] seam and
-/// [OcptFolderRemoteStorage], the directory transport that exercises the whole engine with no
-/// network at all and stays afterwards as the desktop fallback
+/// [changesetService]'s **inbound** half sits on top of its outbound one: [OcptMergeService], the
+/// per-column resolver [changesetService].`pullAndApply` hands every incoming changeset to, is what
+/// actually makes two replicas pointed at the same [OcptRemoteStorage] converge — plus the
+/// [OcptRemoteStorage] seam and [OcptFolderRemoteStorage], the directory transport that exercises
+/// the whole engine with no network at all and stays as the desktop fallback
 /// (`docs/adr/0009-offline-first-sync-through-a-domain-blind-relay.md`) — and
 /// [OcptScreenplayMergeService], the one column [OcptMergeService] hands off instead of resolving
 /// generically: the three-way line merge for `screenplays.fountainText`.
@@ -72,7 +70,7 @@ class OcptSyncManager extends AbsWithLifeCycle {
   final OcptChangesetService changesetService;
 
   /// The service turning a project into snapshot bytes and back — what [publishSnapshot] and
-  /// [joinFromRelay] build on (`docs/plans/relay.md`, Phase C, commit 1).
+  /// [joinFromRelay] build on.
   final OcptSnapshotService snapshotService;
 
   /// The service reading and writing a project's own relay pairing — what [pairProjectToRelay]
@@ -126,7 +124,7 @@ class OcptSyncManager extends AbsWithLifeCycle {
   OcptSyncSession? _syncSession;
 
   /// This project's current presence service, or null when none is running — see
-  /// [startSyncSession] and `docs/plans/presence.md` (M5, Phase B).
+  /// [startSyncSession].
   OcptPresenceService? _presenceService;
 
   /// Emits this manager's sync status across the whole session lifecycle — see [syncStatusChanges].
@@ -178,41 +176,36 @@ class OcptSyncManager extends AbsWithLifeCycle {
   /// The stable id [changesetService] keys a pairing's own delivery cursor by
   /// (`sync_relay_cursors.relayId`): [pairing]'s relay base URL, stringified.
   ///
-  /// This has to stay stable for as long as a project is paired with the same relay — restarting
-  /// or re-pairing to the very same address must not reset the cursor — and differ between two
+  /// This has to stay stable for as long as a project is paired with the same relay — restarting or
+  /// re-pairing to the very same address must not reset the cursor — and differ between two
   /// different relays, since a device keeps one delivery cursor per relay and the same project can
-  /// live behind two relays in one day (the prep relay and the set relay, M6,
-  /// `docs/plans/collaboration-and-sync.md` §3.3/§5.3). The relay base URL already has exactly
-  /// that shape, so nothing further is minted or stored for it.
+  /// live behind two relays in one day (the prep relay and the set relay). The relay base URL
+  /// already has exactly that shape, so nothing further is minted or stored for it.
   static String relayIdFor(OcptProjectPairing pairing) => pairing.relayBaseUri.toString();
 
-  /// Pairs [projectId] to the relay at [relayBaseUri], pushes this replica's own edits to create
-  /// it there, publishes a first snapshot so a joiner can bootstrap, and starts the ongoing sync
+  /// Pairs [projectId] to the relay at [relayBaseUri], pushes this replica's own edits to create it
+  /// there, publishes a first snapshot so a joiner can bootstrap, and starts the ongoing sync
   /// session — the create-and-share orchestration the Partager screen's "pair and create on the
-  /// relay" action calls (`docs/plans/relay.md`, Phase C, commit 3), returning the invite that
-  /// screen renders as a QR code.
+  /// relay" action calls, returning the invite that screen renders as a QR code.
   ///
   /// In order:
   ///
   /// 1. Mints a fresh project token — full-entropy machine output (a plain `Uuid().v4()`), never
-  ///    typed by a human, exactly as `docs/plans/collaboration-and-sync.md` §5.2 requires of a
-  ///    project token (as opposed to [enrolmentSecret], the instance-wide secret handed to this
-  ///    call, never minted by it).
+  ///    typed by a human, as a project token always is (as opposed to [enrolmentSecret], the
+  ///    instance-wide secret handed to this call, never minted by it).
   /// 2. Saves [projectId]'s pairing to [relayBaseUri] with that token through [pairingService],
   ///    before the relay has even heard of the project — so a failure past this point still leaves
   ///    the pairing recorded, exactly as a real pairing that a later retry (or a manual re-pair)
   ///    can reuse rather than minting a second token.
   /// 3. Opens the relay transport with [openRelayRemoteStorage], carrying [enrolmentSecret] so the
-  ///    very first append below is allowed to create [projectId] on that relay
-  ///    (`docs/plans/collaboration-and-sync.md` §5.2).
+  ///    very first append below is allowed to create [projectId] on that relay.
   /// 4. Pushes [database]'s own un-pushed local edits to that transport
   ///    ([OcptChangesetService.pushLocalEdits]) — the append that actually creates the project on
   ///    the relay.
   /// 5. Reads how far that push just advanced this replica's own delivery cursor
   ///    ([OcptChangesetService.highestAppendedSequence]) and [publishSnapshot]s the project as of
   ///    that position, so a joiner fetching the relay's latest snapshot lands exactly there
-  ///    (`docs/plans/collaboration-and-sync.md` §5.3: "the first device to append uploads a
-  ///    snapshot").
+  ///    (the first device to append uploads a snapshot).
   /// 6. [startSyncSession]s against the same transport for the ongoing sync — [enrolmentSecret]
   ///    being sent again on whatever it appends from here on is harmless, per
   ///    [openRelayRemoteStorage]'s own doc comment.
@@ -276,7 +269,7 @@ class OcptSyncManager extends AbsWithLifeCycle {
   /// Re-points [projectId] at a new relay (typically the on-set relay), reusing its **existing**
   /// project token, pushes this replica's own edits to create it there, publishes a fresh snapshot
   /// so the next joiner bootstraps against [relayBaseUri], and restarts the ongoing sync session —
-  /// the "Changer de relais" flow's own orchestration (`docs/plans/on-set-server.md`, Phase D).
+  /// the "Changer de relais" flow's own orchestration.
   ///
   /// This is [pairProjectToRelay] with exactly one difference: it never mints a token. Where
   /// [pairProjectToRelay] creates a brand new pairing (a fresh [Uuid] token for a project never
@@ -381,9 +374,8 @@ class OcptSyncManager extends AbsWithLifeCycle {
   /// Packages the project at [projectFilePath] as a snapshot and uploads it to [storage].
   ///
   /// This is what lets a joiner bootstrap against an otherwise-empty relay
-  /// (`docs/plans/collaboration-and-sync.md` §5.3: "the first device to append uploads a
-  /// snapshot") and what a restore publishes through instead of a changeset (§3.4) — the Partager
-  /// screen and the restore flow are later commits that call this rather than talking to
+  /// (the first device to append uploads a snapshot) and what a restore publishes through instead
+  /// of a changeset — the Partager screen and the restore flow call this rather than talking to
   /// [snapshotService] or [storage] themselves.
   ///
   /// [sequenceUpTo] is the caller's own delivery cursor at the moment it decides to publish: the
@@ -417,16 +409,16 @@ class OcptSyncManager extends AbsWithLifeCycle {
   /// **How the project id, the relay address and the token are obtained**, since the newly
   /// materialised project has never been opened and so cannot be asked: the relay address and the
   /// token are exactly what the caller already used to build [storage] in the first place (the
-  /// invite `{relayBaseUri, projectId, token}` a later commit's QR/manual-entry Rejoindre screen
-  /// reads), so they are taken as plain parameters here rather than guessed back out of [storage],
-  /// which — typed only as [OcptRemoteStorage] — carries neither. The **project id**, on the other
-  /// hand, does not need to be carried by the invite at all: a snapshot is a package built off the
-  /// sharer's own project file (`docs/plans/relay.md`, Phase C, commit 1), and by the time anyone
-  /// can publish one, the sharer's project already carries its own `sync_pairings` row — written by
-  /// the very act of pairing that let them publish to this relay to begin with. That row travels
-  /// inside the snapshot precisely as every other row does, so it is read back off the freshly
-  /// materialised project itself, and the same value is written into this replica's own pairing,
-  /// keeping every replica of the same project keyed by the same relay-side id.
+  /// invite `{relayBaseUri, projectId, token}` the QR/manual-entry Rejoindre screen reads), so they
+  /// are taken as plain parameters here rather than guessed back out of [storage], which — typed
+  /// only as [OcptRemoteStorage] — carries neither. The **project id**, on the other hand, does not
+  /// need to be carried by the invite at all: a snapshot is a package built off the sharer's own
+  /// project file, and by the time anyone can publish one, the sharer's project already carries its
+  /// own `sync_pairings` row — written by the very act of pairing that let them publish to this
+  /// relay to begin with. That row travels inside the snapshot precisely as every other row does,
+  /// so it is read back off the freshly materialised project itself, and the same value is written
+  /// into this replica's own pairing, keeping every replica of the same project keyed by the same
+  /// relay-side id.
   Future<String> joinFromRelay({
     required OcptRemoteStorage storage,
     required String parentDirectoryPath,
@@ -488,9 +480,9 @@ class OcptSyncManager extends AbsWithLifeCycle {
   /// before ([stopSyncSession] runs first, so calling this twice in a row is always safe).
   ///
   /// This is called **explicitly** by whoever decides a project should be syncing right now — the
-  /// workspace, once it opens a paired project (`docs/plans/relay.md`, M4, Phase C) — never
-  /// implicitly from a project-open lifecycle hook: this manager has no opinion on when a project
-  /// deserves a session, only on how to run one.
+  /// workspace, once it opens a paired project — never implicitly from a project-open lifecycle
+  /// hook: this manager has no opinion on when a project deserves a session, only on how to run
+  /// one.
   ///
   /// [database] must be [projectId]'s **writable** file
   /// (`OcptOpenProjectModel.fileDatabase`), never a read-only preview — see
@@ -500,10 +492,10 @@ class OcptSyncManager extends AbsWithLifeCycle {
   /// a directory has no URL to derive one from.
   ///
   /// Also starts an [OcptPresenceService] over the very same [storage] and [deviceId] — see
-  /// [presenceRoster]/[presenceRosterStream]/[updatePresenceMode] and
-  /// `docs/plans/presence.md` (M5, Phase B). [presenceHeartbeatInterval] and [presencePeerTimeout]
-  /// default exactly as [pushInterval] does, for the same reason: a test hands in much shorter ones
-  /// so its own timer-driven assertions do not have to wait out the real defaults.
+  /// [presenceRoster]/[presenceRosterStream]/[updatePresenceMode]. [presenceHeartbeatInterval] and
+  /// [presencePeerTimeout] default exactly as [pushInterval] does, for the same reason: a test
+  /// hands in much shorter ones so its own timer-driven assertions do not have to wait out the real
+  /// defaults.
   Future<void> startSyncSession({
     required String projectId,
     required OcptProjectDatabase database,
@@ -548,8 +540,7 @@ class OcptSyncManager extends AbsWithLifeCycle {
   }
 
   /// Unpairs [projectId] from whatever relay it was synced through — the Partager screen's own
-  /// "stop sharing" action, once the page's own `OcptConfirmDialog` has confirmed it
-  /// (`docs/plans/relay.md`, Phase C, commit 3).
+  /// "stop sharing" action, once the page's own `OcptConfirmDialog` has confirmed it.
   ///
   /// [stopSyncSession] first, since a session kept running against a pairing whose token has just
   /// been deleted from secure storage would only fail on its very next push; then

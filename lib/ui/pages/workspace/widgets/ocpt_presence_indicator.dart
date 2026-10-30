@@ -32,11 +32,10 @@ const int _maxClusterAvatars = 3;
 /// The width of the ring drawn around the self avatar, both in the cluster and in the popover.
 const double _selfRingWidth = 2;
 
-/// The workspace toolbar's presence indicator, from `docs/plans/presence.md` (M5, Phase C): an
-/// overlapping avatar cluster naming every replica that currently has this project open, and a
-/// `MenuAnchor` popover — the exact mechanism `OcptWorkspaceToolbar`'s own sync indicator
-/// (`OcptSyncStatusIndicator`) already uses — detailing each one's platform, a short id fragment
-/// and its current mode.
+/// The workspace toolbar's presence indicator: an overlapping avatar cluster naming every replica
+/// that currently has this project open, and a `MenuAnchor` popover — the exact mechanism
+/// `OcptWorkspaceToolbar`'s own sync indicator (`OcptSyncStatusIndicator`) already uses — detailing
+/// each one's platform, a short id fragment and its current mode.
 ///
 /// Renders nothing at all — [SizedBox.shrink] — whenever there is no [OcptSyncManager] registered
 /// (an app-wide manager environment that never registered one, or a widget test that built a bare

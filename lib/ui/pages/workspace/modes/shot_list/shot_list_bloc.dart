@@ -3468,7 +3468,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
   /// `event.heightM`, dispatched once a drag moving or resizing it ends.
   /// `OcptFloorPlanService.updateUnderlayFrame` — never `setSetUnderlay`, which would tombstone
   /// and re-mint the underlay's own `assets` row on every drag-end — is the one write this touches;
-  /// its own current rotation is left alone, since this milestone builds no underlay rotate handle.
+  /// its own current rotation is left alone, since no underlay rotate handle exists.
   /// A no-op while the set carries no underlay at all (nothing to move).
   Future<void> _onFloorPlanUnderlayTransformChanged(
     OcptShotListFloorPlanUnderlayTransformChangedEvent event,

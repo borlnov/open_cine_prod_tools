@@ -18,7 +18,7 @@ import 'package:web_socket_channel/web_socket_channel.dart';
 typedef OcptWebSocketConnector = WebSocketChannel Function(Uri uri);
 
 /// An [OcptRemoteStorage] talking to `packages/ocpt_sync_relay`'s five routes over HTTP and a
-/// WebSocket — see `docs/plans/relay.md` (M4, Phase B) and
+/// WebSocket — see `docs/architecture/sync.md` and
 /// `docs/adr/0009-offline-first-sync-through-a-domain-blind-relay.md`.
 ///
 /// This class never imports `ocpt_sync_relay`: per ADR 0009, the app never depends on the relay

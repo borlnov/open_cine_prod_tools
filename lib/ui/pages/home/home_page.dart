@@ -237,7 +237,7 @@ class _HomeView extends StatelessWidget {
   /// States the skipped files a landed project package import carries, if any, then dispatches the
   /// open that finishes bringing it in.
   ///
-  /// The dialog is shown **before** the open, on purpose — the plan's own arbitration: a SnackBar
+  /// The dialog is shown **before** the open, on purpose: a SnackBar
   /// would be covered by the pushed workspace within the second, and nothing at all is said when
   /// [report] carries no skipped file, the project opening being the report then. The open reuses
   /// the very same compatibility gate every other door into a project file goes through: a package

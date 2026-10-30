@@ -325,8 +325,7 @@ class _OcptBudgetHelpChain extends StatelessWidget {
 /// therefore announced rather than drawn: it rides the cell's [Semantics] label, so a screen reader
 /// still hears which step the reader stands on, and the wash never has to carry the meaning alone —
 /// colour by itself would say nothing in high contrast, nothing to a colour-blind reader and nothing
-/// at all to a screen reader (`_OcptBudgetHelpMapDataCell`'s own reasoning before this milestone,
-/// carried over unchanged).
+/// at all to a screen reader (`_OcptBudgetHelpMapDataCell`'s own reasoning applies here as well).
 class _OcptBudgetHelpChainCell extends StatelessWidget {
   /// The step's own word — the very ARB key the screen itself draws for it.
   final String label;

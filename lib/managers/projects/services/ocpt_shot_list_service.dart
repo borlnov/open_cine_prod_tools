@@ -509,11 +509,9 @@ class OcptShotListService {
   /// (`docs/adr/0030-a-shots-characters-are-the-productions-roles.md`), and `shot_characters` is
   /// keyed by `{shotId, roleId}`: this method is purely mechanical, taking [roleId] as given rather
   /// than resolving one out of a typed name — that resolution (or creation, decision 1) is the
-  /// caller's, through [resolveOrCreateRoleId] (M3 of
-  /// `docs/plans/shot-characters-are-roles.md` turns this roleId-native; M1/M2 kept it name-based
-  /// with the resolution inside). A character detached earlier left a tombstone behind: re-attaching
-  /// it therefore lifts that tombstone rather than inserting a second row, which the key would
-  /// refuse anyway.
+  /// caller's, through [resolveOrCreateRoleId]. A character detached earlier left a tombstone
+  /// behind: re-attaching it therefore lifts that tombstone rather than inserting a second row,
+  /// which the key would refuse anyway.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
   Future<void> attachCharacter({
@@ -955,8 +953,8 @@ class OcptShotListService {
   /// through [roleIndexService] when none exists
   /// (`docs/adr/0030-a-shots-characters-are-the-productions-roles.md`, decision 1) — the resolve-or-
   /// create path the shot list's own add-character affordance calls before [attachCharacter], now
-  /// that [attachCharacter] itself is roleId-native (M3 of `docs/plans/shot-characters-are-roles.md`
-  /// moved the resolution out of the service and into the caller).
+  /// that [attachCharacter] itself is roleId-native (the resolution lives in the caller, not in the
+  /// service).
   ///
   /// The first in `sortKey` order wins on the rare chance more than one live role shares a name —
   /// the same deterministic tie-break `OcptRoleIndexService.reconcile` and the schema v3 migration

@@ -176,7 +176,7 @@ class OcptShootingSlotTimeline {
 /// shooting at the same hour as the first — and **that is legal, not a conflict this function (or
 /// anything built on it) reports**: a production splits a day into slots precisely so two crews can
 /// work at once. Whether one *person* ends up convoked in both at the same moment is a different
-/// question, answered elsewhere (M3's presence alerts), not here.
+/// question, answered elsewhere (the schedule's presence alerts), not here.
 ///
 /// 1. The chain starts at [slotStartMinute].
 /// 2. Each block starts where the previous one ended, and lasts [OcptShootingTimelineBlock

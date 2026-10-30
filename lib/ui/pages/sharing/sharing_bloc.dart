@@ -16,11 +16,10 @@ import 'package:uuid/uuid.dart';
 
 /// This is the bloc class for the Partager (sharing) screen.
 ///
-/// It reads the currently open project's own relay pairing on entry
-/// (`docs/plans/relay.md`, Phase C, commit 3) — a project holds at most one `sync_pairings` row of
-/// its own, so it is found with no id in hand yet by selecting that table's single row, exactly as
-/// `OcptSyncManager._readSnapshottedProjectId` already does for the very same reason. Pairing it
-/// through [OcptSyncManager.pairProjectToRelay] and unpairing it through
+/// It reads the currently open project's own relay pairing on entry — a project holds at most one
+/// `sync_pairings` row of its own, so it is found with no id in hand yet by selecting that table's
+/// single row, exactly as `OcptSyncManager._readSnapshottedProjectId` already does for the very
+/// same reason. Pairing it through [OcptSyncManager.pairProjectToRelay] and unpairing it through
 /// [OcptSyncManager.unpairProject] are the only two writes this bloc ever makes.
 class OcptSharingBloc extends BlocForMixin<OcptSharingState> {
   /// The manager used to read the current project and its own app version.
@@ -102,9 +101,8 @@ class OcptSharingBloc extends BlocForMixin<OcptSharingState> {
     );
   }
 
-  /// Mints a fresh project id — the client's own to pick, per `docs/plans/relay.md`'s own Phase A
-  /// doc comment — and pairs the project to `event.relayBaseUri` with `event.enrolmentSecret`,
-  /// moving the page to ② Invite on success.
+  /// Mints a fresh project id — the client's own to pick — and pairs the project to
+  /// `event.relayBaseUri` with `event.enrolmentSecret`, moving the page to ② Invite on success.
   ///
   /// A failure (the relay unreachable, a bad enrolment secret, …) is surfaced as
   /// [OcptSharingState.pairingFailed] rather than propagated: this bloc has no caller ready to

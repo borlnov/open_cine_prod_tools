@@ -252,8 +252,8 @@ void main() {
   test('the presence roster is reachable while hosting, once the self-seed has started a session', () async {
     await startHosting();
 
-    // The hosting panel reads OcptSyncManager.presenceRoster directly (Phase E) — this only
-    // proves the self-seed actually started a session, which is what makes presence live at all.
+    // The hosting panel reads OcptSyncManager.presenceRoster directly — this only proves the
+    // self-seed actually started a session, which is what makes presence live at all.
     expect(spy.presenceRoster, isNotNull);
   });
 

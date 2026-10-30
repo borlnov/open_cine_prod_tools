@@ -57,8 +57,8 @@ const double _ocptCardChoiceUnavailableOpacity = 0.5;
 /// app knows how to produce, and a card that disappeared would make it lie about what exists.
 ///
 /// A **section** holding no entries at all is a different case, and is dropped rather than drawn:
-/// the budget mode at M1 opens this panel with its own documents section empty (it prints nothing
-/// yet) and only the project package section to show, and a section with nothing in it draws
+/// a mode that prints nothing opens this panel with its own documents section empty and only
+/// the project package section to show, and a section with nothing in it draws
 /// neither cards nor a heading — only the divider [_OcptCardChoiceSectionView] puts above every
 /// section but the first, which a naive `sections.indexed` reading would still draw over the empty
 /// section's own nothing, floating with no card above it. [build] filters the list down to the

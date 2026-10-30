@@ -647,7 +647,7 @@ void main() {
     },
   );
 
-  group("the compact role alert banner (M4)", () {
+  group("the compact role alert banner", () {
     test("orphanedRoleAlerts reports a role the screenplay no longer names", () async {
       await writeScreenplay("INT. HOUSE - DAY\n\nCLARA\nHello.\n");
 

@@ -8,7 +8,7 @@ import 'package:ocpt_sync_relay/src/ocpt_relay_upstream_client.dart';
 
 /// Reconciles one project's changeset log between a local [OcptRelayStore] (a set relay's own,
 /// gathered offline over a shoot) and an upstream relay reached through [upstream] (typically the
-/// production's prep relay) — the whole of `docs/plans/on-set-server.md`'s Phase B.
+/// production's prep relay) — the whole of the set relay's evening reconciliation.
 ///
 /// [reconcileProject] pushes what the local store holds that the upstream does not, then pulls
 /// what the upstream holds that the local store does not — both directions deduped by

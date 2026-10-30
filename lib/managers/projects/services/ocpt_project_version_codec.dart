@@ -1322,14 +1322,14 @@ class OcptProjectVersionCodec {
   ///   episode 3 is a real edit — and leaving the link table out would let the working-copy card
   ///   claim no drift after an afternoon spent saying, episode by episode, who speaks where. The
   ///   breakdown
-  ///   tables are exactly the same case, one step later in the project's life: leave them out and an
+  ///   tables are exactly the same case: leave them out and an
   ///   afternoon spent tagging the script, or marking scenes done, would hash identically to a
-  ///   screenplay nobody has ever broken down. The six schedule tables are the same case again, one
-  ///   milestone later: leave them out and planning a whole shoot — a day added, a slot crewed, a
+  ///   screenplay nobody has ever broken down. The six schedule tables are the same case again:
+  ///   leave them out and planning a whole shoot — a day added, a slot crewed, a
   ///   shot placed onto a block — would hash identically to a project nobody has ever scheduled, so
   ///   the working-copy card would claim no drift and a restore over that afternoon's work would skip
-  ///   the safety version it owes. `shootingSlotGuests` and `shootingDayEvents` are the same case a
-  ///   step later still: leave them out and entering the mayor lending a square, or the fireworks
+  ///   the safety version it owes. `shootingSlotGuests` and `shootingDayEvents` are the same case
+  ///   again: leave them out and entering the mayor lending a square, or the fireworks
   ///   nobody controls, would hash identically to a day carrying neither. `projectDictionaryWords`
   ///   is the same case once more, from payload format 15 on: leave it out and a word learned, or
   ///   un-learned, since the version was captured would hash identically to a project whose lexicon

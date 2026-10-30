@@ -37,11 +37,10 @@ import 'package:uuid/uuid.dart';
 /// [assignSceneToSet] and `OcptSceneSetsTable`'s own doc comment), and the scenes read back for a
 /// set are ordered by the screenplay's own scene order instead.
 ///
-/// This service does not decide *which* set a scene's heading suggests — §4.5 of the plan this
-/// service ships under is explicit that the suggestion is never applied automatically, only
-/// offered: `ocptSceneSetSuggestionOf` computes it and the resources mode offers it, while
-/// [assignSceneToSet]/[removeSceneFromSet] are the plain link writes the mode calls once the user
-/// has picked (or confirmed) one.
+/// This service does not decide *which* set a scene's heading suggests: the suggestion is never
+/// applied automatically, only offered: `ocptSceneSetSuggestionOf` computes it and the resources
+/// mode offers it, while [assignSceneToSet]/[removeSceneFromSet] are the plain link writes the mode
+/// calls once the user has picked (or confirmed) one.
 class OcptLocationsService {
   /// The service minting and tombstoning the `assets` rows a location owns. Held rather than
   /// reached for so a test can hand in its own, exactly as `OcptBreakdownService` holds the two

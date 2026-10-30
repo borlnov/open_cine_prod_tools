@@ -8,11 +8,10 @@ import 'package:equatable/equatable.dart';
 /// this replica's own text and an incoming edit both touched the very same lines of the
 /// screenplay's Fountain text, differently.
 ///
-/// This is `docs/plans/collaboration-and-sync.md`'s "screenplay conflict view" (§3.5) — the only
-/// conflict a user is ever asked to resolve — as far as M3 goes: **recorded, never resolved**. M5 is
-/// what builds the view that lets a user pick a side or hand-merge the two; this class is simply
-/// what a caller needs in hand to build that view later, and what M3's own tests assert against in
-/// its place. Nothing about this class blocks or loses data on its own: raising one leaves the
+/// This is the only conflict a user is ever asked to resolve, and for now it is **recorded, never
+/// resolved**: no screen yet lets a user pick a side or hand-merge the two. This class is simply
+/// what a caller needs in hand to build such a view, and what the merge tests assert against in its
+/// place. Nothing about this class blocks or loses data on its own: raising one leaves the
 /// screenplay's stored text exactly as it stood before the incoming edit arrived — [localText],
 /// never [incomingText], is what stays live on screen and in the database.
 class OcptScreenplayMergeConflict extends Equatable {

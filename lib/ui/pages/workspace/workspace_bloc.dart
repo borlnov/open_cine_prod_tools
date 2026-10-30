@@ -41,7 +41,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/workspace_state.dart';
 /// (`OcptPairingService`'s own doc comment) — hands [OcptSyncManager.startSyncSession] the transport
 /// [OcptSyncManager.openRelayRemoteStorage] builds from it. [disposeLifeCycle] stops it: the
 /// workspace closing is the one signal this bloc has for "nobody needs this session running any
-/// more", exactly as `docs/plans/relay.md` (Phase C, commit 5) describes. An unpaired project
+/// more", as `docs/architecture/sync.md` describes. An unpaired project
 /// starts nothing at all, and [OcptSyncManager.startSyncSession] itself is never called again after
 /// that first attempt — the workspace bloc lives exactly as long as one project stays open, so
 /// there is nothing later to react to.

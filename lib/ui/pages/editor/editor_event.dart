@@ -305,13 +305,13 @@ class OcptEditorStyledSpellCheckRangesReportedEvent extends OcptEditorEvent {
 
 /// Reports that the styled editor's right-click "Ignore this word" entry was picked for [word].
 ///
-/// Session-only (`docs/architecture/screenplay.md`): reaches
-/// `OcptSpellCheckManager.ignoreWord` alone, never `OcptProjectDictionaryService` — persisting an
-/// ignored word would silently build a second dictionary nobody can see or edit. The manager's own
-/// generation bump has invalidated both spell-check caches by the time this handler returns, so it
-/// re-issues a check over both editing surfaces right away: the milestone's own acceptance
-/// criterion is that ignoring a word makes its underline disappear without anything having to be
-/// re-typed. Refused while a version is being previewed, like every other write this bloc makes.
+/// Session-only (`docs/architecture/screenplay.md`): reaches `OcptSpellCheckManager.ignoreWord`
+/// alone, never `OcptProjectDictionaryService` — persisting an ignored word would silently build a
+/// second dictionary nobody can see or edit. The manager's own generation bump has invalidated both
+/// spell-check caches by the time this handler returns, so it re-issues a check over both editing
+/// surfaces right away, so ignoring a word makes its underline disappear without anything
+/// having to be re-typed. Refused while a version is being previewed, like every other write this
+/// bloc makes.
 class OcptEditorWordIgnoredEvent extends OcptEditorEvent {
   /// The word to ignore for the rest of this session.
   final String word;
@@ -621,9 +621,9 @@ class OcptEditorSearchPreviousRequestedEvent extends OcptEditorEvent {
 /// current next.
 ///
 /// Not necessarily the match that now sits at the same index the replaced one held: a replacement
-/// that itself still matches the query (`MARIE` → `MARIE-JEANNE`, the plan's own headline scenario)
-/// still matches at the very same offset, so naively keeping the index in place would land back
-/// inside what was just written — turning every further `Replace` press into
+/// that itself still matches the query (`MARIE` → `MARIE-JEANNE`, the scenario that puts replace in
+/// scope) still matches at the very same offset, so naively keeping the index in place would land
+/// back inside what was just written — turning every further `Replace` press into
 /// `MARIE-JEANNE-JEANNE-JEANNE…` forever. The surface is expected to have already recomputed its
 /// own matches from the edited text and to follow this event with its own
 /// [OcptEditorSearchMatchesReportedEvent], whose clamp is what keeps [index] honest once the final

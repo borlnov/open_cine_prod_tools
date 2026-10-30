@@ -14,8 +14,8 @@ import 'package:open_cine_prod_tools/utils/ocpt_budget_totals.dart';
 /// reimbursable contributions take back out of that before anything is split, and what each
 /// participant is then due, has been paid and reinvests.
 ///
-/// A **separate file from `ocpt_budget_financing.dart`**, for the reason M2 kept
-/// `ocpt_budget_journal.dart` apart from `ocpt_budget_projection.dart` and M3 kept the financing
+/// A **separate file from `ocpt_budget_financing.dart`**, for the reason
+/// `ocpt_budget_journal.dart` is kept apart from `ocpt_budget_projection.dart` and the financing
 /// plan apart from the totals: money raised *to make* the film and money the finished film *earns*
 /// are different subjects, read by different views, long apart in time.
 ///

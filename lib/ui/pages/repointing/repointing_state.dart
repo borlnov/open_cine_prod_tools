@@ -7,10 +7,10 @@ import 'package:open_cine_prod_tools/models/sync/ocpt_relay_enrolment.dart';
 
 /// The state of `OcptRepointingBloc`.
 ///
-/// The page's two states (`docs/plans/on-set-server.md`, Phase E) are one screen reading a single
-/// fact: whether [enrolment] is null. Null is ① Configure — the relay address and enrolment secret
-/// form, shown every time the page opens, even for a project already paired elsewhere — and
-/// non-null is ② QR code, the enrolment QR the next crew member scans, drawn straight off it.
+/// The page's two states are one screen reading a single fact: whether [enrolment] is null. Null is
+/// ① Configure — the relay address and enrolment secret form, shown every time the page opens, even
+/// for a project already paired elsewhere — and non-null is ② QR code, the enrolment QR the next
+/// crew member scans, drawn straight off it.
 class OcptRepointingState extends BlocStateForMixin<OcptRepointingState> {
   /// Whether the current project's own name is still being loaded from the projects manager.
   final bool isLoading;

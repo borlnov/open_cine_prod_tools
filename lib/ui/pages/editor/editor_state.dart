@@ -42,8 +42,7 @@ class OcptEditorJumpRequest extends Equatable {
 }
 
 /// The editor's live find/replace state — one search, kept in the bloc rather than in either
-/// editing surface, which is what lets it survive a raw ⇄ styled mode toggle (the plan's own
-/// M4 decision).
+/// editing surface, which is what lets it survive a raw ⇄ styled mode toggle.
 class OcptEditorSearchState extends Equatable {
   /// Whether the find/replace bar is open at all.
   final bool isOpen;

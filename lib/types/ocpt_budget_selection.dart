@@ -12,8 +12,8 @@ import 'package:equatable/equatable.dart';
 /// own highlight used to be two independent ids; a fiche able to show any object can only ever be
 /// looking at one of them at a time. `OcptBudgetState.selectedRevenueId` folds onto
 /// [OcptBudgetRevenueSelection] — a plain getter now, read by the resources tree's own revenue row
-/// — while `.selectedShareId` stays its own field: a share opens no fiche in any document this
-/// milestone reaches, so it has nothing to fold onto yet.
+/// — while `.selectedShareId` stays its own field: a share opens no fiche in any document, so
+/// it has nothing to fold onto.
 ///
 /// Every variant carries only the id it names — mirroring the `state` holding the actual objects,
 /// exactly as `OcptBudgetState.selectedPosteId` never carried an `OcptBudgetPoste` of its own.

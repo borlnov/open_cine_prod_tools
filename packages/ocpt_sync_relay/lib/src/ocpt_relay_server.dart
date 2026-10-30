@@ -47,13 +47,12 @@ import 'package:web_socket_channel/web_socket_channel.dart';
 ///   over a different connection to this same server process — nothing about that frame is
 ///   meaningful beyond its arrival, exactly as `OcptRemoteStorage.newWorkStream`'s own contract says
 ///   a listener should treat it: react by calling `readSince`/`fetchLatestSnapshot` again, never by
-///   parsing it. Any *other* frame a subscriber sends — a peer's opaque presence payload, per
-///   `docs/plans/presence.md` (M5, Phase A) — is rebroadcast verbatim to that same project's other
-///   subscribers only, never back to the sender and never to another project's subscribers; this
-///   relay only moves that frame, exactly as it moves a changeset payload, and never looks inside
-///   it. The subscriber set behind this is in-memory and per server process
-///   ([_eventSubscribersByProject]): fine for the one relay process a project talks to, and
-///   cleared as each socket closes.
+///   parsing it. Any *other* frame a subscriber sends — a peer's opaque presence payload — is
+///   rebroadcast verbatim to that same project's other subscribers only, never back to the sender
+///   and never to another project's subscribers; this relay only moves that frame, exactly as it
+///   moves a changeset payload, and never looks inside it. The subscriber set behind this is
+///   in-memory and per server process ([_eventSubscribersByProject]): fine for the one relay
+///   process a project talks to, and cleared as each socket closes.
 ///
 /// A request this class refuses — a bad body, a bad token, an unknown project, or the rate limiter
 /// tripping — answers with the matching HTTP status and an [OcptSyncError] JSON body

@@ -320,7 +320,7 @@ class _ScheduleViewState extends State<_ScheduleView> {
   /// named call sheets dialog for whichever days the user ticks there, rather than
   /// [OcptScheduleState.convocationsOfDay] directly.
   ///
-  /// A guest is not yet a call sheet recipient (that is a later milestone's own job), and every
+  /// A guest is not a call sheet recipient, and every
   /// reader downstream of this list — the dialog's own selection keys among them — assumes every
   /// entry has one. A crew member, a cast member, an uncast role and a **candidate** all do: somebody
   /// coming to be seen for a part is convoked like anybody else (ADR 0018) and is owed the sheet

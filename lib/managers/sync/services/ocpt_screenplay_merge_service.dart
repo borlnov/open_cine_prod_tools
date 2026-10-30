@@ -12,8 +12,8 @@ import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_three_way_merge.dart';
 
 /// The three-way line merge for a screenplay's `fountainText` — the one column `OcptMergeService`
-/// never resolves generically (see its own doc comment): `docs/plans/collaboration-and-sync.md`
-/// §2.4/§3.4 reconciles the whole document by content instead of picking one side outright.
+/// never resolves generically (see its own doc comment): it reconciles the whole document by
+/// content instead of picking one side outright.
 ///
 /// [mergeIncomingFountainText] is handed the *incoming* full text a changeset carries for one
 /// screenplay. It:
@@ -30,7 +30,7 @@ import 'package:open_cine_prod_tools/utils/ocpt_three_way_merge.dart';
 ///      advancing this device's own clock (tagged [OcptSnapshotReason.merge]).
 ///    - **Conflict**: nothing is written at all. The local text stays exactly as it stood, and an
 ///      [OcptScreenplayMergeConflict] is returned for the caller (`OcptMergeService`, and
-///      ultimately whatever collects them for the M5 conflict view) to record.
+/// ultimately whatever collects them for a conflict view) to record.
 ///
 /// Runs with **no [OcptProjectDatabase.refusesUserWrite] guard**: an incoming merge is the engine
 /// path, not a user edit (see that guard's own doc comment), and it must go through even while a
@@ -129,10 +129,10 @@ class OcptScreenplayMergeService {
   /// stood *immediately before* that overwrite (`OcptScreenplayService`'s own snapshot policy), and
   /// because `screenplay_snapshots` is an ordinary synchronised table: the row a replica's own last
   /// save inserted, and the row the *other* replica's last save inserted, both eventually exist on
-  /// both sides. For the single-generation divergence this milestone's tests cover — each replica
-  /// making exactly one offline edit from a shared, unedited starting text — both of those rows
-  /// hold the very same content, so whichever one happens to be newest by `createdAt` is already
-  /// the right answer.
+  /// both sides. For the single-generation divergence the merge tests cover — each replica making
+  /// exactly one offline edit from a shared, unedited starting text — both of those rows hold the
+  /// very same content, so whichever one happens to be newest by `createdAt` is already the right
+  /// answer.
   ///
   /// **Known limitation, left for later work:** when either replica has made *several* successive
   /// offline saves before syncing, its own newest snapshot only predates its own *last* save, not

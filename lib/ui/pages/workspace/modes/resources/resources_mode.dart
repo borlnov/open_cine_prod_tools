@@ -440,9 +440,8 @@ class _ResourcesViewState extends State<_ResourcesView> {
     );
   }
 
-  /// Builds the shell's `centre`: the compact role alert banner (ADR 0030 decision 4, refined by
-  /// the M4 step of `docs/plans/shot-characters-are-roles.md`), then whichever tab is active, filling
-  /// the rest of the row.
+  /// Builds the shell's `centre`: the compact role alert banner (ADR 0030 decision 4), then
+  /// whichever tab is active, filling the rest of the row.
   ///
   /// The banner sits above everything else and stays whichever tab is active: it reports the whole
   /// cast, not something about the tab currently being looked at — mirroring how the shot list's own

@@ -533,8 +533,8 @@ class _BudgetViewState extends State<_BudgetView> {
     );
   }
 
-  /// The header band's own trailing button, `+ Nouveau` — offered on all five routes now, including
-  /// [OcptBudgetView.dashboard] and `tools › cashFlow`, which carried none before this milestone.
+  /// The header band's own trailing button, `+ Nouveau` — offered on all five routes, including
+  /// [OcptBudgetView.dashboard] and `tools › cashFlow`.
   /// Opens the capture wizard's own step 1, the current route's own document promoted to the top of
   /// the list with its first answer pre-selected (`_promotedGestureFamilyOf`) — never on
   /// [OcptBudgetView.dashboard], which works on no single document, so pre-answering for it would be
@@ -655,7 +655,7 @@ class _BudgetViewState extends State<_BudgetView> {
   /// ordinary [OcptBudgetEntryCreationConfirmedEvent]. Non-null: [_handleEntryWizardSuggestionAccepted]
   /// turns its own draft and the accepted suggestion into whichever of the two events its own kind
   /// calls for — see that method's own doc comment for the mapping, carried over from the capture
-  /// band the wizard replaced in an earlier milestone.
+  /// band the wizard replaced.
   void _handleNewOutcome(OcptBudgetBloc bloc, OcptBudgetState state, OcptBudgetNewOutcome outcome) {
     switch (outcome) {
       case OcptBudgetEntryWizardResult(:final fields, :final acceptedSuggestion):

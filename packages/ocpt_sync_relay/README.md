@@ -18,9 +18,8 @@ and `docs/architecture/sync.md` instead; this file is only the self-hoster's gui
 set" walkthrough — starting a relay, sharing its enrolment QR, and the evening reconciliation below
 — see `docs/on-set-server.md`.
 
-This is not a multi-tenant hosted service. One instance is for one person or one production
-(§5.1 below): hosting a second person means running a second instance, not adding an account to
-this one.
+This is not a multi-tenant hosted service. One instance is for one person or one production:
+hosting a second person means running a second instance, not adding an account to this one.
 
 ## The two secrets
 

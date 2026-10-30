@@ -42,9 +42,8 @@ Iterable<String> _searchFieldsOf(Tr tr, OcptPerson person) => [
 /// with the person's own colour and carrying their initials, the display name, and under it the
 /// positions summary in a muted small style.
 ///
-/// Role chips and the day count the mock-up's own row also shows belong to later milestones (roles
-/// and the schedule aren't wired up yet): this row deliberately leaves them out rather than
-/// faking them.
+/// Role chips and the day count the mock-up's own row also shows are deliberately left out of this
+/// row rather than faked.
 class OcptPeopleList extends StatelessWidget {
   /// The people to list, in display order.
   final List<OcptPerson> people;

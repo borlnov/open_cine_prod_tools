@@ -1064,7 +1064,7 @@ void main() {
 
     // Two timetables, standing in for two slot cards' own, stacked so a drag can cross from one to
     // the other — proving the mechanism actually resolves in the gesture arena rather than assuming
-    // it does, as the plan asks: the drag handle keeps the in-slot reorder, and the rest of the row
+    // it does, as designed: the drag handle keeps the in-slot reorder, and the rest of the row
     // is what becomes draggable, so the two never compete for the same pointer.
     await tester.pumpWidget(
       _wrapInApp(

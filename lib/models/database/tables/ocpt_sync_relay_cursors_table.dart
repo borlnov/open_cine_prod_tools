@@ -4,8 +4,8 @@
 
 import 'package:drift/drift.dart';
 
-/// This replica's delivery state against each relay it talks to: schema version 2's addition,
-/// ahead of the changeset engine itself (`docs/plans/collaboration-and-sync.md`, M3).
+/// This replica's delivery state against each relay it talks to: schema version 2's addition, ahead
+/// of the changeset engine itself.
 ///
 /// A relay is domain-blind and stateless about who has read what — it only ever answers "give me
 /// everything since sequence N" — so each replica has to remember, per relay, where it last left
@@ -26,8 +26,7 @@ import 'package:drift/drift.dart';
 ///
 /// A device pairs with more than one relay over its lifetime (the on-set relay of one shoot day,
 /// the production's own relay the rest of the time), and the same project can be behind two relays
-/// on the same day (`docs/plans/collaboration-and-sync.md` §5.3) — hence one row per relay rather
-/// than one row for the project.
+/// on the same day — hence one row per relay rather than one row for the project.
 @DataClassName('OcptSyncRelayCursorRow')
 class OcptSyncRelayCursorsTable extends Table {
   /// {@macro open_cine_prod_tools.OcptSyncRelayCursorsTable}

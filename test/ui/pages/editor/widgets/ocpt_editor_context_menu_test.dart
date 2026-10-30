@@ -182,8 +182,8 @@ void main() {
     expect(find.text("world"), findsNothing);
     expect(find.text("Ignore this word"), findsNothing);
     expect(find.text("Add to the project's dictionary"), findsNothing);
-    // The clipboard entry withheld for a null callback is absent, exactly as it was before this
-    // milestone — the spelling group's absence must not somehow drag anything else down with it.
+    // The clipboard entry is still offered: the spelling group's absence must not somehow drag
+    // anything else down with it.
     expect(find.text("Cut"), findsOneWidget);
   });
 

@@ -14,7 +14,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/
 
 /// Wraps [child] with the localization delegates so `Tr.of` lookups resolve, and sets the test
 /// surface past the 800 px compact breakpoint (`docs/architecture/foundations.md`), matching every
-/// other shot list widget test of this milestone.
+/// other shot list widget test.
 Future<void> _pump(WidgetTester tester, Widget child) async {
   tester.view.physicalSize = const Size(1400, 900);
   tester.view.devicePixelRatio = 1.0;

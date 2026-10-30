@@ -253,8 +253,8 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
   /// A **view/session state** value, like [floorPlanZoom]: never written to the project.
   final OcptFloorPlanTool floorPlanActiveTool;
 
-  /// The layer a placed set element lands on, picked from the palette's own set/scene group. Always
-  /// [OcptFloorPlanLayer.set] in this milestone — the shot layers group is picked separately.
+  /// The layer a placed set element lands on, picked from the palette's own set/scene group; the
+  /// shot layers group is picked separately.
   ///
   /// A **view/session state** value, like [floorPlanZoom]: never written to the project.
   final OcptFloorPlanLayer floorPlanActiveLayer;

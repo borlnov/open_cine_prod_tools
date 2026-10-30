@@ -125,7 +125,7 @@ void main() {
       checker.setExtraWords({'flurg'});
       expect(checker.isKnown('flurg'), isTrue);
       // The memo must not keep answering "known" for a word the caller has
-      // just un-learned: this is the round trip M5's dialog depends on.
+      // just un-learned: this is the round trip the project dictionary dialog depends on.
       checker.setExtraWords(const {});
       expect(checker.isKnown('flurg'), isFalse);
     });

@@ -103,7 +103,7 @@ const double _ocptCompactSheetVerticalPadding = 16;
 /// than merely refused on click, so the user never discovers the refusal by trying it.
 ///
 /// Only a scene's heading row stays row-level clickable, selecting that scene — shown with a tinted
-/// accent bar and its own tagged-target count on the right, exactly as before this milestone.
+/// accent bar and its own tagged-target count on the right.
 ///
 /// While a range selection is open (a first click with no second yet), pressing `Escape` or
 /// clicking the sheet away from any word abandons it through [onSelectionCancelled]: a lone anchor
@@ -766,7 +766,7 @@ class _OcptBreakdownScriptBlock extends StatelessWidget {
 
   /// The live tag of [scene] covering [word], or null if none does.
   ///
-  /// Tags never overlap (breakdown plan §3.9), so at most one can ever cover a given word.
+  /// Tags never overlap, so at most one can ever cover a given word.
   OcptBreakdownTag? _tagCovering(OcptScriptWord word) {
     for (final tag in scene.tags) {
       if (tag.startOffset < word.endOffset && tag.endOffset > word.startOffset) {

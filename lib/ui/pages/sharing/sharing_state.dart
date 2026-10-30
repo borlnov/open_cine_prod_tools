@@ -7,10 +7,9 @@ import 'package:open_cine_prod_tools/models/sync/ocpt_relay_invite.dart';
 
 /// The state of `OcptSharingBloc`.
 ///
-/// The page's two states (`docs/plans/relay.md`, Phase C, commit 3) are one screen reading a
-/// single fact: whether [invite] is null. Null is ① Configure — the project has never been paired,
-/// or was unpaired since — and non-null is ② Invite, everything the QR and the connection card
-/// render coming straight off it.
+/// The page's two states are one screen reading a single fact: whether [invite] is null. Null is ①
+/// Configure — the project has never been paired, or was unpaired since — and non-null is ② Invite,
+/// everything the QR and the connection card render coming straight off it.
 class OcptSharingState extends BlocStateForMixin<OcptSharingState> {
   /// Whether the project's own pairing is still being loaded from the database and secure storage.
   final bool isLoading;

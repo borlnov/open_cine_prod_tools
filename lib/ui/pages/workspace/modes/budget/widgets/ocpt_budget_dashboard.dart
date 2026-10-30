@@ -313,8 +313,7 @@ class _OcptDashboardTile extends StatelessWidget {
 /// **The card's own title and verdict share one line**, the mockup's own arrangement — the title on
 /// the left, `Manque {amount}`/`Short by {amount}` in the error colour on the right the moment the
 /// plan falls short. `Ressources {amount}`/`Besoins {amount}` stay small and muted underneath the
-/// bar, mirroring the balance bar the mode drew before this milestone, only turned the other way
-/// up.
+/// bar, turned the other way up from the balance bar the mode drew before.
 class _OcptDashboardBalanceBar extends StatelessWidget {
   /// The balance this bar draws — `ocptBudgetNeedsResourcesBalanceOf`'s own answer.
   final OcptBudgetNeedsResourcesBalance balance;
@@ -430,7 +429,7 @@ class _OcptDashboardBalanceBar extends StatelessWidget {
 
 /// The alerts card, `Ce qui demande une décision`: one row per [OcptBudgetAlert], a coloured badge,
 /// the message and an amount right-aligned. **No buttons — the row itself is the click target**,
-/// exactly as a poste row already was before this milestone, each one going where its own alert
+/// exactly as a poste row is, each one going where its own alert
 /// already goes.
 class _OcptDashboardAlertsCard extends StatelessWidget {
   /// The alerts this card draws, one row each, in [ocptComputeBudgetAlerts]'s own order.

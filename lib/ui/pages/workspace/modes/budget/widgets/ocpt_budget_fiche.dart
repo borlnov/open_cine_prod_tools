@@ -56,7 +56,7 @@ class _OcptBudgetFicheAction {
 /// large type, one primary action and at most two secondary ones. The table says where things
 /// stand; this fiche says where they come from and what to do next.
 ///
-/// **The poste's and the quote line's own editable fields move here** (M4's tree draws every quote
+/// **The poste's and the quote line's own editable fields move here** (the tree draws every quote
 /// line, commitment and entry as a row of its own, so this panel stops listing them): a poste keeps
 /// its label, code, simple label and typed estimate to complete; a quote line keeps its label,
 /// quantity, unit, unit price, tax choice, VAT override and notes.
@@ -284,8 +284,7 @@ class OcptBudgetFiche extends StatelessWidget {
       OcptBudgetEntrySelection(:final entryId) => _buildEntry(context, entryId),
       OcptBudgetResourceSelection(:final resourceId) => _buildResource(context, resourceId),
       OcptBudgetRevenueSelection(:final revenueId) => _buildRevenue(context, revenueId),
-      // M6 wires the resources tree's own receipt sub-rows; nothing dispatches this selection
-      // before then, so this reads exactly like an entry's own fiche until it does.
+      // A receipt sub-row of the resources tree selects the entry it settles.
       OcptBudgetReceiptSelection(:final receiptId) => _buildReceipt(context, receiptId),
     };
   }
@@ -326,7 +325,7 @@ class OcptBudgetFiche extends StatelessWidget {
   // ---------------------------------------------------------------------------------------------
 
   /// The poste variant: breadcrumb through the document, the quote/committed/paid/estimate to
-  /// complete/final cost/final-cost variance figures (M1's own utils), the remaining amount as its
+  /// complete/final cost/final-cost variance figures, the remaining amount as its
   /// own outstanding, and its editable fields — label, code, simple label, the typed estimate to
   /// complete and its `Derive again` action.
   Widget _buildPoste(BuildContext context, String posteId) {
@@ -1224,13 +1223,12 @@ class OcptBudgetFiche extends StatelessWidget {
   }
 
   // ---------------------------------------------------------------------------------------------
-  // Receipt (M6 wires the selection itself; this reads the entry it names today)
+  // Receipt
   // ---------------------------------------------------------------------------------------------
 
   /// The receipt variant: the entry it names, read with a `Promis — Rentré` stepper and a
-  /// breadcrumb through the resource or the taking it settles — nothing dispatches
-  /// [OcptBudgetReceiptSelection] before M6 wires the resources tree's own receipt sub-rows, so this
-  /// is answered rather than left to throw.
+  /// breadcrumb through the resource or the taking it settles — the entry that
+  /// [OcptBudgetReceiptSelection] names may have gone, which is answered rather than left to throw.
   Widget _buildReceipt(BuildContext context, String receiptId) {
     final entry = entries.firstWhereOrNull((entry) => entry.id == receiptId);
     if (entry == null) {

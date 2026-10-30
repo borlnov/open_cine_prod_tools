@@ -30,14 +30,13 @@ import 'package:open_cine_prod_tools/utils/ocpt_schedule_alerts.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_shooting_day_timeline.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_sun_times.dart';
 
-/// The day view: the mode's real working surface — the day's own
-/// summary band, then one [OcptScheduleSlotCard] per slot with
-/// its own `+ Slot` footer. A day used to draw one shared [OcptScheduleTimetable] of its own beneath
-/// every card; it no longer does (M2') — each card now draws its own, over that slot's own blocks
-/// alone, so [blocks] and [timeline] here only ever feed the summary band's own totals and each
-/// card's own slice of them. Below the slot cards sits [day]'s own events band, built exactly like
-/// the summary band's own container over `OcptScheduleDayEventsList` — see that widget's own doc
-/// comment for why this band is the day view's only representation of an event.
+/// The day view: the mode's real working surface — the day's own summary band, then one
+/// [OcptScheduleSlotCard] per slot with its own `+ Slot` footer. Each card draws its own
+/// [OcptScheduleTimetable], over that slot's own blocks alone, so [blocks] and [timeline] here only
+/// ever feed the summary band's own totals and each card's own slice of them. Below the slot cards
+/// sits [day]'s own events band, built exactly like the summary band's own container over
+/// `OcptScheduleDayEventsList` — see that widget's own doc comment for why this band is the day
+/// view's only representation of an event.
 ///
 /// Every writing affordance every one of its children exposes is threaded through as a nullable
 /// callback, withheld while a project version is being previewed — this widget itself withholds

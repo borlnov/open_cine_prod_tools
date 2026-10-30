@@ -34,10 +34,10 @@ import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_restore_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
 
-/// M3's acceptance test for `docs/plans/collaboration-and-sync.md` §3.4: a project-version
-/// **restore** on one replica converges, through the changeset engine, against a replica that was
-/// offline throughout — with the rows the restore tombstoned staying gone on the other side, and
-/// the whole catch-up landing in one [OcptChangesetService.pullAndApply] call.
+/// Acceptance test for restore convergence: a project-version **restore** on one replica converges,
+/// through the changeset engine, against a replica that was offline throughout — with the rows the
+/// restore tombstoned staying gone on the other side, and the whole catch-up landing in one
+/// [OcptChangesetService.pullAndApply] call.
 ///
 /// [OcptProjectVersionsService.restoreVersion] already tombstones-and-stamps through the very same
 /// `OcptRowStampService` any ordinary edit uses (see its own `restoreIsAnEdit` doc), so this file
@@ -46,10 +46,10 @@ import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
 /// already calls it against `OcptOpenProjectModel.fileDatabase`, the very handle the outbound side
 /// reads from, exactly like every other write in the app.
 ///
-/// The preview-safety property M3's own test list also names — an incoming changeset applying to
-/// `fileDatabase` normally while a version preview is up — is already covered by
-/// `ocpt_merge_service_test.dart`'s "an incoming changeset applies to fileDatabase normally even
-/// while a version preview is up" test and is not duplicated here.
+/// The preview-safety property — an incoming changeset applying to `fileDatabase` normally while a
+/// version preview is up — is already covered by `ocpt_merge_service_test.dart`'s "an incoming
+/// changeset applies to fileDatabase normally even while a version preview is up" test and is not
+/// duplicated here.
 void main() {
   // Restoring a version, and a screenplay merge with no common base, both log through
   // appLogger(), which requires a global manager instance to be set; merely accessing it creates

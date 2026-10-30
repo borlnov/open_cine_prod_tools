@@ -102,8 +102,8 @@ import 'package:open_cine_prod_tools/utils/ocpt_cost_amount.dart';
 /// save landing while it is open".
 ///
 /// It mixes in [MixinOcptProjectPackageBloc] too: the `Export` panel's own standing project-package
-/// card is wired here exactly as every other mode's is, even though this milestone offers no
-/// document of its own — see `OcptBudgetMode`'s own doc comment for why the panel still opens.
+/// card is wired here exactly as every other mode's is, beside the budget's own documents — see
+/// `OcptBudgetMode`'s own doc comment.
 class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     with
         MixinOcptProjectVersionsBloc<OcptBudgetState>,
@@ -1818,9 +1818,8 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
   /// several payments against one commitment possible (`OcptBudgetEntryFormFields.commitmentId`'s
   /// own doc comment), so `Undo settlement` clearing only the first one found would leave the
   /// commitment reading unsettled while some of its instalments still counted as paid against it —
-  /// exactly the double-count this whole mode refuses everywhere else. Unlinking one instalment
-  /// among several, rather than all of them, is a later milestone's job, once the expenses tree
-  /// draws a commitment's own payments individually.
+  /// exactly the double-count this whole mode refuses everywhere else. Unlinking a single
+  /// instalment among several is not something this handler does.
   Future<void> _onCommitmentUnsettleRequested(
     OcptBudgetCommitmentUnsettleRequestedEvent event,
     Emitter<OcptBudgetState> emitter,

@@ -1116,8 +1116,7 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
   /// check over both editing surfaces — the manager's own generation bump has just invalidated both
   /// spell-check caches, so [_requestSpellCheck] (raw) and [_reissueStyledSpellCheck] (styled) both
   /// re-send everything they have rather than skipping it as unchanged, which is what makes the
-  /// ignored word's underline disappear without anything having to be re-typed (the milestone's own
-  /// acceptance criterion).
+  /// ignored word's underline disappear without anything having to be re-typed.
   ///
   /// Refused entirely while a version is being previewed, like every other write this bloc makes.
   Future<void> _onWordIgnored(

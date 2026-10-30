@@ -11,9 +11,8 @@ import 'package:ocpt_sync_protocol/src/ocpt_sync_wire_json.dart';
 /// snapshot's own bytes: enough for a replica to decide whether it already has this snapshot and
 /// to verify what it downloads next against [contentDigest].
 ///
-/// Defined in M3, alongside the rest of the wire format, even though no route produces a
-/// snapshot until M4 — so that shipping snapshot upload later adds no protocol churn on top of
-/// what M3 already committed to.
+/// Defined alongside the rest of the wire format, so that snapshot upload and download add no
+/// protocol churn on top of what the changeset log already committed to.
 class OcptSnapshotDescriptor extends Equatable {
   /// Creates a descriptor. [snapshotFormat] defaults to [currentSnapshotFormat], which is what
   /// every snapshot this build writes should carry; a caller decoding one off the wire uses

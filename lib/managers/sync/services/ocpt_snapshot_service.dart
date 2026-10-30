@@ -14,10 +14,9 @@ import 'package:path/path.dart' as p;
 import 'package:uuid/uuid.dart';
 
 /// Turns an open project into snapshot bytes and back, the one piece
-/// `docs/plans/relay.md` (Phase C, commit 1) needed of `OcptRemoteStorage.uploadSnapshot`/
-/// `fetchLatestSnapshot` before either could actually be called: the join flow, the first append
-/// to an empty relay (`docs/plans/collaboration-and-sync.md` §5.3) and a restore's publish (§3.4)
-/// all need a project turned into bytes and back.
+/// `OcptRemoteStorage.uploadSnapshot`/`fetchLatestSnapshot` need before either can actually be
+/// called: the join flow, the first append to an empty relay and a restore's publish all need a
+/// project turned into bytes and back.
 ///
 /// **The snapshot payload is the portable project package, unchanged.** [OcptProjectPackageService]
 /// already zips a project's `.ocpt` and every file it references into one archive somebody can

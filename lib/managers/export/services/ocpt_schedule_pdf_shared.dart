@@ -19,7 +19,7 @@ import 'package:open_cine_prod_tools/utils/ocpt_shooting_day_timeline.dart';
 ///
 /// Shared by `OcptCallSheetPdfService` and `OcptShootingPlanPdfService` — the two documents read
 /// the very same schedule, and a printed blank meaning two different things between them would be
-/// the app disagreeing with itself about the one thing this milestone exists to get right.
+/// the app disagreeing with itself about the one thing these documents exist to get right.
 const String ocptScheduleEmptyValue = "—";
 
 /// The moment [exportDate] was produced, as `yyyy-MM-dd HH:mm` — what tells two documents of the

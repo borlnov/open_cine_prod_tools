@@ -12,7 +12,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocp
 /// A minimal host exercising [OcptBudgetLineFormBody] the way the capture wizard eventually will:
 /// it owns the [GlobalKey<FormState>], keeps the last draft the body reported, and its own `Save`
 /// validates the form before handing the draft to [onSaved] — mirroring every one of the five
-/// dialog shells this milestone split `OcptBudgetLineFormBody` alongside.
+/// dialog shells `OcptBudgetLineFormBody` is shared with.
 class _TestHost extends StatefulWidget {
   /// Called with the draft [_TestHostState._submit] popped, once validation passed and a draft was
   /// available.
@@ -50,7 +50,7 @@ class _TestHostState extends State<_TestHost> {
   );
 
   /// Validates the form and, if it passes, reports the last draft the body reported — exactly what
-  /// every one of the five dialog shells this milestone split does on their own `Save`.
+  /// every one of the five dialog shells does on their own `Save`.
   void _submit() {
     if (!(_formKey.currentState?.validate() ?? false)) {
       return;

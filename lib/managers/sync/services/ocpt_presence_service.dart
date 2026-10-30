@@ -38,17 +38,15 @@ class _SeenPeer {
   DateTime lastSeen;
 }
 
-/// Keeps one project's presence roster converging against its peers for as long as it runs —
-/// `docs/plans/presence.md` (M5, Phase B): the client-side half of the avatar cluster a future
-/// widget renders, over the very same [OcptRemoteStorage] a project's `OcptChangesetService`
-/// already pushes and pulls through.
+/// Keeps one project's presence roster converging against its peers for as long as it runs — the
+/// client-side half of the avatar cluster the presence indicator renders, over the very same
+/// [OcptRemoteStorage] a project's `OcptChangesetService` already pushes and pulls through.
 ///
 /// This class heartbeats this replica's own [OcptPresenceFrame] every [heartbeatInterval] via
 /// [OcptRemoteStorage.sendPresence], listens to [OcptRemoteStorage.presenceStream] for every peer
 /// doing the same, and keeps a [OcptPresenceRoster] of whoever has heartbeated within the last
 /// [peerTimeout] — a peer that goes silent longer than that is swept out on the next tick. Nothing
-/// here is persisted, on this device or anywhere past [storage]: presence is entirely ephemeral,
-/// exactly as `docs/plans/presence.md`'s own "out of scope" section says.
+/// here is persisted, on this device or anywhere past [storage]: presence is entirely ephemeral.
 ///
 /// [start]/[stop] bound this service's lifetime, mirroring `OcptSyncSession`'s own pair exactly —
 /// [roster] seeds a fresh listener the way `OcptSyncSession.status` does, since [rosterStream]

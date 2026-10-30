@@ -9,9 +9,9 @@ import 'package:ocpt_sync_protocol/ocpt_sync_protocol.dart';
 
 /// A slim, pure-Dart transport speaking two of `OcptRelayServer`'s own routes against an
 /// **upstream** relay — the two a set relay needs to reconcile a changeset log with a prep relay
-/// (`docs/plans/on-set-server.md`, Phase B): appending a changeset and reading the tail of the log
-/// since a cursor. Snapshot routes are deliberately not spoken here — reconciliation never
-/// exchanges snapshots, see the reconciler's own doc comment for why.
+/// (see `OcptRelayReconciler`): appending a changeset and reading the tail of the log since a
+/// cursor. Snapshot routes are deliberately not spoken here — reconciliation never exchanges
+/// snapshots, see the reconciler's own doc comment for why.
 ///
 /// This class is a standalone client, not a shared implementation with the app's
 /// `OcptRelayRemoteStorage` transport: the two mirror the same wire shapes

@@ -18,8 +18,8 @@ class OcptCrewPosition {
   /// this position's label is localised under.
   ///
   /// A plain [String] rather than a `Tr` lookup: `lib/constants/` must stay free of `Tr`, so the
-  /// ARB entries themselves and the call site that resolves this key into a label are left to the
-  /// milestone that builds the resources mode UI.
+  /// ARB entries themselves and the call site that resolves this key into a label belong to the
+  /// resources mode UI (`lib/ui/utils/ocpt_resources_labels.dart`).
   final String labelKey;
 
   /// The department this position belongs to, for grouping the catalogue in the UI.

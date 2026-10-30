@@ -15,7 +15,7 @@ import 'package:open_cine_prod_tools/ui/pages/repointing/widgets/ocpt_repointing
 import 'package:open_cine_prod_tools/ui/pages/sharing/widgets/ocpt_sharing_chip.dart';
 
 /// The "Changer de relais" screen for the currently open project: moving its ongoing sync from the
-/// relay it is paired to onto another one (`docs/plans/on-set-server.md`, Phase E).
+/// relay it is paired to onto another one.
 ///
 /// One screen, two states, told apart by [OcptRepointingState.enrolment]: ① Configure — a relay
 /// address and an enrolment secret, typed or scanned off another relay's own enrolment QR, and the

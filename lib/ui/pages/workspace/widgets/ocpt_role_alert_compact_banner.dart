@@ -8,9 +8,8 @@ import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_removed_role_alert.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role_collision_alert.dart';
 
-/// The compact, mode-level summary of every role needing attention — ADR 0030 decision 4, refined
-/// by the M4 step of `docs/plans/shot-characters-are-roles.md`: a role's trouble must be visible the
-/// moment a mode is entered, not only once its own record is opened.
+/// The compact, mode-level summary of every role needing attention — ADR 0030 decision 4: a role's
+/// trouble must be visible the moment a mode is entered, not only once its own record is opened.
 ///
 /// Shown at the top of the resources mode and the breakdown mode alike, above everything else those
 /// modes show: one line per role needing attention, built straight from [OcptRemovedRoleAlert] and

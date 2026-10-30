@@ -9,8 +9,8 @@ import 'package:open_cine_prod_tools/models/database/tables/ocpt_scenes_table.da
 /// The *dépouillement* link: which element a scene needs, and how many.
 ///
 /// This is what turns the elements catalogue into a per-day requirements list once the schedule
-/// mode exists (§6 of the plan this table ships under); the per-scene breakdown *view* itself is
-/// out of scope for this step, only the link ships.
+/// mode exists; the per-scene breakdown *view* lives in the breakdown mode, this table is only the
+/// link.
 ///
 /// No `sortKey`: a scene's elements are a set the user adds to and removes from, not a list they
 /// reorder.

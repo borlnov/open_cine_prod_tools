@@ -23,7 +23,7 @@ import 'package:open_cine_prod_tools/types/ocpt_budget_entry_link_kind.dart';
 /// **[personReimbursement] is the seventh, and it is not [repayment].** [repayment] is money going
 /// back to somebody who *lent the film money* — a financing resource, `budget_resources`, however
 /// it is later spent. [personReimbursement] is money going back to somebody who *advanced it for
-/// the production* — a défraiement, the debt `budget_allowances` builds up and this milestone's own
+/// the production* — a défraiement, the debt `budget_allowances` builds up and
 /// `OcptBudgetEntryLinkKind.person` names — and it prices no resource at all. A crew member who
 /// buys the gaffer tape and a producer who lends the production 5,000 € are both owed money, but
 /// only one of the two lent the film anything, and a status resolved off `resourceId` alone would

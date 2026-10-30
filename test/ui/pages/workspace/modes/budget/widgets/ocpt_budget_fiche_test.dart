@@ -1174,7 +1174,7 @@ void main() {
     });
   });
 
-  group("the receipt variant (M6 wires the selection itself)", () {
+  group("the receipt variant", () {
     testWidgets("reads the entry it names with a two-step stepper, rather than throwing", (
       tester,
     ) async {

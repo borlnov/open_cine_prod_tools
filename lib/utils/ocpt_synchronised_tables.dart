@@ -19,11 +19,11 @@ const _ocptDerivedTableName = 'scenes';
 /// every [TableInfo] carrying the tombstone column ADR 0010 puts on a synchronised table, minus
 /// [_ocptDerivedTableName].
 ///
-/// This is a **rule**, not a maintained list (`docs/plans/collaboration-and-sync.md`, M3): a table
-/// with no `is_deleted` column drops out on its own for being local rather than synchronised —
-/// `project_info`, `row_field_versions`, `project_versions`, `local_erasures` and
-/// `sync_relay_cursors` all lack it today — and a future synchronised table is swept in the moment
-/// its own migration adds that column, with nothing here to update for it.
+/// This is a **rule**, not a maintained list: a table with no `is_deleted` column drops out on its
+/// own for being local rather than synchronised — `project_info`, `row_field_versions`,
+/// `project_versions`, `local_erasures` and `sync_relay_cursors` all lack it today — and a future
+/// synchronised table is swept in the moment its own migration adds that column, with nothing here
+/// to update for it.
 Iterable<TableInfo<Table, Object?>> ocptSynchronisedTables(OcptProjectDatabase database) =>
     database.allTables.where(
       (table) =>

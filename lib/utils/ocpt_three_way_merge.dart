@@ -6,10 +6,10 @@ import 'dart:typed_data';
 
 import 'package:equatable/equatable.dart';
 
-/// A line-based three-way (diff3) merge of a screenplay's Fountain text — the one column
-/// `docs/plans/collaboration-and-sync.md` (§2.4/§3.4) reconciles by comparing the *content* of two
-/// diverging edits against their nearest common ancestor, rather than picking one side outright the
-/// way every other synchronised column does (`OcptMergeService`).
+/// A line-based three-way (diff3) merge of a screenplay's Fountain text — the one column that
+/// `docs/architecture/sync.md` reconciles by comparing the *content* of two diverging edits against
+/// their nearest common ancestor, rather than picking one side outright the way every other
+/// synchronised column does (`OcptMergeService`).
 ///
 /// This file is a pure, dependency-free function over three plain strings: it knows nothing about
 /// `screenplays`, `OcptProjectDatabase` or the sync engine at all — `OcptScreenplayMergeService` is

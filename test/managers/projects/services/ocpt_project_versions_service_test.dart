@@ -1832,7 +1832,7 @@ void main() {
     });
 
     test(
-      "restores a schedule captured after M1 exactly, tombstones and sort keys included",
+      "restores a captured schedule exactly, tombstones and sort keys included",
       () async {
         await insertShootingDay(id: "day-1", date: DateTime.utc(2026, 3, 10));
         await insertShootingSlot(id: "slot-1", shootingDayId: "day-1");

@@ -30,7 +30,7 @@ class OcptProjectPairing extends Equatable {
 
 /// Reads and writes a project's relay pairing, the one place both halves of it —
 /// `sync_pairings.relayBaseUrl` and the project token held by [OcptSecretsManager] — are ever
-/// touched together (`docs/plans/relay.md`, M4, Phase B).
+/// touched together.
 ///
 /// The two halves live apart on purpose: the relay address is not a secret and belongs in the
 /// `.ocpt` file like any other project data, while the token is a secret and must never land there

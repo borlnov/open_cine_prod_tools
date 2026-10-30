@@ -5,8 +5,8 @@
 /// A document the budget mode's export panel offers, through `OcptWorkspaceExportDialog`.
 ///
 /// The mockup names two further documents — the statement of justified spending and the in-kind
-/// contributions certificate — that stay on the roadmap rather than being rushed into this
-/// milestone (`docs/architecture/budget.md`, "The four documents").
+/// contributions certificate — that stay on the roadmap rather than being rushed in
+/// (`docs/architecture/budget.md`, "The four documents").
 enum OcptBudgetExportDocument {
   /// The quote: the full CNC nomenclature, poste by poste with its own lines and totals.
   quote,

@@ -19,11 +19,11 @@ import 'package:open_cine_prod_tools/models/database/tables/ocpt_shooting_slots_
 /// typing a lead time beside an ordinary convocation.
 ///
 /// **The role is convoked, not the person**: the actor is read through `roles.personId`, so
-/// recasting a role never rewrites the schedule, and an uncast role convoked anyway is a
-/// legitimate state (reported by an M3 alert, not refused here). One actor playing two roles in one
-/// night is two rows collapsing into one person on the printed sheet. Extras are ordinary `extra`
-/// roles, created by hand in the resources mode exactly as any other role is — a nameless crowd is
-/// a sentence in the day's `shooting_days.crewNote`, not a row here.
+/// recasting a role never rewrites the schedule, and an uncast role convoked anyway is a legitimate
+/// state (reported by a schedule alert, not refused here). One actor playing two roles in one night
+/// is two rows collapsing into one person on the printed sheet. Extras are ordinary `extra` roles,
+/// created by hand in the resources mode exactly as any other role is — a nameless crowd is a
+/// sentence in the day's `shooting_days.crewNote`, not a row here.
 @DataClassName('OcptShootingSlotCastRow')
 class OcptShootingSlotCastTable extends Table {
   /// {@macro open_cine_prod_tools.OcptShootingSlotCastTable}

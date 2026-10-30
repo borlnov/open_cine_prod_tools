@@ -151,7 +151,7 @@ class OcptProjectsManager extends AbsWithLifeCycle {
   /// from and why it defaults the way it does.
   ///
   /// Exposed alongside it rather than duplicated: the Partager screen's own pairing call
-  /// (`docs/plans/relay.md`, Phase C, commit 3) stamps a freshly published snapshot with this same
+  /// (`docs/architecture/sync.md`) stamps a freshly published snapshot with this same
   /// version, through `OcptSyncManager.pairProjectToRelay`, and reading it here is what keeps that
   /// one string from drifting out of step with what [createProject] and [_gateOnFileFormat] already
   /// stamp into a project file.

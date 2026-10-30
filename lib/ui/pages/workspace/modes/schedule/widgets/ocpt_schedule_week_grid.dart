@@ -77,8 +77,7 @@ const double _ocptWeekGridBlockHorizontalMargin = 2;
 /// is typing another hour in the day view's own events band, never a gesture on this grid. Its
 /// `[startMinute, endMinute)` range stretches to cover an event exactly as it stretches to cover a
 /// night block (see [_ocptWeekGridRange]), so an event pinned outside every block's own span still
-/// draws rather than being clipped. The strip and month agendas draw no such marker — out of scope
-/// for this milestone.
+/// draws rather than being clipped. The strip and month agendas draw no such marker.
 ///
 /// Purely presentational: selecting a day only ever reads, so it needs no `isReadOnly` flag.
 class OcptScheduleWeekGrid extends StatelessWidget {

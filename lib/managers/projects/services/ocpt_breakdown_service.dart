@@ -107,9 +107,8 @@ class OcptBreakdownService {
   ///
   /// A scene with no row simply has none: the caller reads a missing row as
   /// [OcptBreakdownSceneStatus.toDo] rather than this method synthesizing one, exactly as a scene's
-  /// tagged-element count cannot stand in for its breakdown status (§3.5 of the plan this ships
-  /// under). A row whose scene is tombstoned is left out, for the same reason [loadTags] leaves out
-  /// a tag whose scene is gone.
+  /// tagged-element count cannot stand in for its breakdown status. A row whose scene is tombstoned
+  /// is left out, for the same reason [loadTags] leaves out a tag whose scene is gone.
   Future<List<OcptSceneBreakdownRow>> loadSceneBreakdowns({
     required OcptProjectDatabase database,
     String? screenplayId,
@@ -178,7 +177,7 @@ class OcptBreakdownService {
   ///
   /// In one transaction: refuses (returns null, logged) when the range overlaps a live tag of the
   /// same scene — two ranges overlap when `a.start < b.end && b.start < a.end`, so touching end to
-  /// end is not an overlap (§3.9 of the plan this ships under) — otherwise writes [targetId] into
+  /// end is not an overlap — otherwise writes [targetId] into
   /// whichever of `elementId`/`roleId`/`setId` [targetKind] names, leaving the other two null, and
   /// **ensures the link the tag implies**: `OcptElementsService.addSceneElement` for
   /// [OcptBreakdownTargetKind.element], `OcptLocationsService.assignSceneToSet` for
@@ -320,8 +319,7 @@ class OcptBreakdownService {
 
   /// Creates a new [category]/[sourceKind] element named [name] and tags the scene-relative
   /// `[startOffset, endOffset)` passage [taggedText] of scene [sceneId] with it, in one
-  /// transaction — the one write the popover's category chips perform (§2.1/§3.8 of the plan this
-  /// ships under).
+  /// transaction — the one write the popover's category chips perform.
   ///
   /// The element is minted through `OcptElementsService.createElement` rather than by reaching into
   /// `elements` directly, so the resources mode and this one mint an element exactly the same way,

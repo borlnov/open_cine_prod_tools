@@ -13,8 +13,7 @@ import 'package:open_cine_prod_tools/types/ocpt_storyboard_annotation_tool.dart'
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_storyboard_panels_group.dart';
 
 /// Wraps [child] with the localization delegates so [Tr.of] lookups resolve, and sets the test
-/// surface past the 800 px compact breakpoint, matching every other shot list widget/bloc test of
-/// this milestone.
+/// surface past the 800 px compact breakpoint, matching every other shot list widget/bloc test.
 Future<void> _pumpGroup(WidgetTester tester, Widget child) async {
   tester.view.physicalSize = const Size(1400, 900);
   tester.view.devicePixelRatio = 1.0;

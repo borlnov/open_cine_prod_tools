@@ -16,7 +16,7 @@ const _ocptRowStampKeySeparator = "/";
 /// writes such a key with, and the one whoever parses it back must read it with. It lives in its own
 /// file rather than inside the first service that needed it (`OcptProjectVersionsService`, whose
 /// restore is the first writer of a version stamp) because the changeset engine of
-/// `docs/plans/collaboration-and-sync.md` will be the second, and two encodings of the same key
+/// `docs/architecture/sync.md` is the second, and two encodings of the same key
 /// would silently split the merge history of every row that has one.
 ///
 /// A single-column key needs no encoding at all: pass it as is rather than through here.
@@ -27,7 +27,7 @@ String ocptCompositeRowStampKey(Iterable<String> parts) => parts.join(_ocptRowSt
 /// [ocptCompositeRowStampKey] itself receives its parts in — with the very same separator.
 ///
 /// This is what lets a generic reader (the changeset engine of
-/// `docs/plans/collaboration-and-sync.md`, M3) match a stored `row_field_versions.rowId` against a
+/// `docs/architecture/sync.md`) match a stored `row_field_versions.rowId` against a
 /// table's own current row without ever parsing that id back apart: `WHERE <this> = ?` reproduces
 /// exactly the same string [ocptCompositeRowStampKey] wrote, whatever a later component happens to
 /// contain — even the separator itself, since nothing here ever needs to split it back out. A

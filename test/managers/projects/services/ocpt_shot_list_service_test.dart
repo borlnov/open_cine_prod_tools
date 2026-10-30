@@ -137,7 +137,7 @@ void main() {
   )..orderBy([(row) => OrderingTerm.asc(row.sortKey)])).get();
 
   /// Resolves [characterName] to a live role's id, or creates a hand-added silent one — exactly
-  /// what the shot list's own add-character affordance does (M3 of
+  /// what the shot list's own add-character affordance does (see
   /// `docs/adr/0030-a-shots-characters-are-the-productions-roles.md`), now that
   /// `attachCharacter`/`detachCharacter` are roleId-native and no longer resolve a name on their
   /// own. The test suite's own stand-in for what the bloc does before calling either of them.

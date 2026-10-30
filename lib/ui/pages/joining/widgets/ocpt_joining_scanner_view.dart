@@ -8,10 +8,10 @@ import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/ui/pages/joining/widgets/ocpt_joining_scan_frame.dart';
 
 /// The Rejoindre screen's camera-scan tab, mobile only — `MobileScanner` is instantiated **only**
-/// while this widget is actually mounted, which the page itself gates on `PlatformManager.isMobile`
-/// (`docs/plans/relay.md`, Phase C, commit 4): a desktop build never reaches this widget at all,
-/// keeping it — and its tests — off the camera plugin entirely. `mobile_scanner` surfaces the OS
-/// camera-permission prompt itself, so there is no permission plumbing to build here.
+/// while this widget is actually mounted, which the page itself gates on
+/// `PlatformManager.isMobile`: a desktop build never reaches this widget at all, keeping it — and
+/// its tests — off the camera plugin entirely. `mobile_scanner` surfaces the OS camera-permission
+/// prompt itself, so there is no permission plumbing to build here.
 ///
 /// [status] paints [OcptJoiningScanFrame]'s own border around the camera preview — driven by the
 /// page off `OcptJoiningBloc`'s state, not by this widget, which has no opinion of its own on

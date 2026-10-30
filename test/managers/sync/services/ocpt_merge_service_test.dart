@@ -24,8 +24,8 @@ import 'package:open_cine_prod_tools/types/ocpt_shot_status.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_row_stamp_key.dart';
 
 /// Two replicas of the same project, both reading and writing through one shared
-/// [OcptFolderRemoteStorage] — exactly the setup `docs/plans/collaboration-and-sync.md`'s M3 tests
-/// ask for, exercised here through [OcptChangesetService]'s outbound and inbound halves together.
+/// [OcptFolderRemoteStorage] — exactly the setup the changeset engine's convergence tests need,
+/// exercised here through [OcptChangesetService]'s outbound and inbound halves together.
 void main() {
   // The preview test below calls `refusesUserWrite`, which logs through `appLogger()`; that
   // requires a global manager instance to be set, and merely accessing it creates the (otherwise

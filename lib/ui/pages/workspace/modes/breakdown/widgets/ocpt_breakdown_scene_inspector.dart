@@ -173,7 +173,7 @@ class OcptBreakdownSceneInspector extends StatelessWidget {
     return ListView(
       // Keyed by the scene's own id so switching scenes always resets the scroll offset to the top
       // rather than keeping whatever position the previous scene's sheet was left at — the "to
-      // check" callout sits near the top precisely so the M4 warning-mark path
+      // check" callout sits near the top precisely so the warning-mark path
       // (`OcptBreakdownScenePanel.onWarningTapped`) lands the user on it without a further scroll.
       key: ValueKey(scene.id),
       padding: const EdgeInsets.all(16),

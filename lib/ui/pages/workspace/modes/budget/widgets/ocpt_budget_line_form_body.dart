@@ -26,7 +26,7 @@ import 'package:open_cine_prod_tools/utils/ocpt_cost_amount.dart';
 /// line typed here reads no differently from one typed inline.
 ///
 /// **The host owns the submit gesture**, the same contract every one of the five dialog bodies
-/// split for this milestone carries: [formKey] is put on this body's own [Form], and
+/// carries: [formKey] is put on this body's own [Form], and
 /// [onDraftChanged] fires with the fields this body would submit right now — or null while
 /// `Quantity` or `Unit price` does not parse, the one way this body can be unreadable — every time
 /// a field changes, `initState` included so a host that opens this body pre-scrolled to a default
@@ -79,8 +79,8 @@ class _OcptBudgetLineFormBodyState extends State<OcptBudgetLineFormBody> {
     _unitPriceController = TextEditingController()..addListener(_report);
 
     // The host's own `Save` may be reached before any field is touched, exactly as the other four
-    // form bodies this milestone split — so the very first draft has to travel without waiting on
-    // a keystroke, even though this one starts with nothing worth submitting.
+    // form bodies — so the very first draft has to travel without waiting on a keystroke, even
+    // though this one starts with nothing worth submitting.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         _report();

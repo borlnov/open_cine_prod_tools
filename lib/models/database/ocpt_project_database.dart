@@ -144,9 +144,9 @@ part 'ocpt_project_database.g.dart';
 /// ([OcptProjectVersionsTable]); the per-column version stamps a merge resolves conflicts with
 /// ([OcptRowFieldVersionsTable]); the changeset engine's own delivery state against each relay it
 /// talks to, local to this replica and never synchronised
-/// ([OcptSyncRelayCursorsTable], `docs/plans/collaboration-and-sync.md`, M3); which relay this
+/// ([OcptSyncRelayCursorsTable], `docs/architecture/sync.md`); which relay this
 /// replica's project is paired with, also local and never synchronised
-/// ([OcptSyncPairingsTable], `docs/plans/collaboration-and-sync.md`, M4); and the shot list's
+/// ([OcptSyncPairingsTable], `docs/architecture/sync.md`); and the shot list's
 /// storyboard and floor plans — a shot's ordered panels
 /// ([OcptStoryboardPanelsTable]) and each panel's light annotation marks
 /// ([OcptStoryboardAnnotationsTable]), and a sequence's floor plan sets
@@ -359,9 +359,9 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
   /// `docs/adr/0007-schema-migration-policy.md` gives, except v3's, called out where it runs.
   ///
   /// From 1 to 2, `onUpgrade` creates [OcptSyncRelayCursorsTable] — the changeset engine's own
-  /// local, never-synchronised delivery-cursor table (`docs/plans/collaboration-and-sync.md`, M3) —
+  /// local, never-synchronised delivery-cursor table (`docs/architecture/sync.md`) —
   /// and [OcptSyncPairingsTable] — this replica's own local, never-synchronised record of which
-  /// relay a project is paired with (`docs/plans/collaboration-and-sync.md`, M4) — and adds
+  /// relay a project is paired with (`docs/architecture/sync.md`) — and adds
   /// [OcptBudgetLinesTable.inKindResourceId], naming the in-kind `budget_resources` contribution a
   /// quote line is the counterpart of (`docs/architecture/budget.md`) — and touches nothing else, so
   /// a v1 file's existing rows are untouched by the upgrade.

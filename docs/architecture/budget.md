@@ -242,7 +242,7 @@ are all here, and this file is the whole record of them.
   real cost report has a human adjust *that* figure, once, where it is read.
   `ocptBudgetFinalCostCents` reads `paid + committed + estimateToComplete`, drawn as `Coût final`.
   **Read the second variance's name carefully — it is not `ocptBudgetVarianceCents`.** That one
-  already existed before this milestone, reads `paid + committed − quote`, and is what the header's
+  is the original variance, reads `paid + committed − quote`, and is what the header's
   alerts band, the cost-tracking table's own `Écart` column and the financial report PDF print; it
   stays exactly as it is and keeps every one of its callers, because a variance read against what
   has actually moved is not the same fact as a variance read against what a human now expects the
@@ -1127,8 +1127,8 @@ are all here, and this file is the whole record of them.
   a filed dossier in one card and something vaguer in the next. `OcptBudgetResourceStatus` stores a
   **step** — `pending`, `agreed`, `confirmed`, deliberately anonymous — and
   `ocptBudgetResourceStatusLabel(tr, kind, status)` resolves the word from the row's own
-  `OcptBudgetResourceGroupKind` **and** its step, exactly as before this milestone's tree replaced
-  the group's own card with a family's: `OcptBudgetResourceFamily` decides which card a row draws
+  `OcptBudgetResourceGroupKind` **and** its step, exactly as when the group's own card was
+  replaced by a family's: `OcptBudgetResourceFamily` decides which card a row draws
   in, `OcptBudgetResourceGroupKind` still decides which nine words it can be called. Nine words,
   three steps, one stored column: a subsidy is `Applied`, `Notified`, `Secured`; a cash contribution
   `Requested`, `Agreed`, `Contracted`; a contribution in kind `Promised`, `Valued`, `Signed`. In
@@ -1373,7 +1373,7 @@ are all here, and this file is the whole record of them.
   journal and the financial report, above the dialog's own standing project-package card — see "The
   four documents" below. `OcptBudgetBloc` also mixes in `MixinOcptProjectPackageBloc` exactly as
   every other mode's bloc does, which is what let a colleague receive this project as a portable
-  `.ocptz` a milestone before the mode printed a single PDF of its own.
+  `.ocptz` independently of the mode's own PDFs.
 
 ## The sharing view says what each person put in, not only what comes back
 

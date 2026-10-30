@@ -19,8 +19,8 @@ import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart'
 /// `floor_plan_symbols.setElementShape`/`.fovReachM`/`.sceneId`/`.overridesSymbolId`,
 /// `floor_plan_arrows.ctrlXM`/`.ctrlYM`, and `floor_plan_sets` losing `sceneId`/`name`/`sortKey` in
 /// favour of its own id being the Resources set's — was made straight on the table classes rather
-/// than through a v5 migration: this step's `createTable` calls already produce the frozen shape,
-/// with no `addColumn`/reshape step of its own needed.
+/// than through a v5 migration: this migration's `createTable` calls already produce the frozen
+/// shape, with no `addColumn`/reshape step of its own needed.
 Future<void> ocptMigrateToSchemaV4({
   required Migrator migrator,
   required OcptProjectDatabase database,

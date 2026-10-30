@@ -4,9 +4,9 @@
 
 import 'package:equatable/equatable.dart';
 
-/// What `OcptSyncSession` reports of itself, at every moment it runs — the four states
-/// `docs/plans/collaboration-and-sync.md` §3.5 names for the workspace status bar's indicator: in
-/// sync, syncing, offline with a pending count, or an error.
+/// What `OcptSyncSession` reports of itself, at every moment it runs — the four states the
+/// workspace status bar's indicator shows: in sync, syncing, offline with a pending count, or an
+/// error.
 ///
 /// This is a status report only: nothing here writes anything, and a mode reads it purely to
 /// render — see `OcptSyncSession`'s own doc comment for what actually drives it from one state to

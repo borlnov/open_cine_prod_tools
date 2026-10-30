@@ -286,8 +286,8 @@ class OcptBudgetProjectionStep extends Equatable {
   final String commitmentId;
 
   /// The date this instalment falls due, or null — see `OcptBudgetCommitment.dueDate`'s own doc
-  /// comment: null means "nobody has recorded a due date", never "due immediately", and this step
-  /// still lowers the projected balance even though no date names when.
+  /// comment: null means "nobody has recorded a due date", never "due immediately", and this
+  /// instalment still lowers the projected balance even though no date names when.
   final DateTime? dueDate;
 
   /// What this instalment's own commitment still owed at the time this projection was built, read
@@ -298,7 +298,7 @@ class OcptBudgetProjectionStep extends Equatable {
   final int amountCents;
 
   /// The balance once this instalment has fallen due — [amountCents] taken out of the balance the
-  /// projection stood at just before this step.
+  /// projection stood at just before this instalment.
   final int balanceAfterCents;
 
   /// Class constructor

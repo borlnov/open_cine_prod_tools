@@ -20,7 +20,7 @@ import 'package:open_cine_prod_tools/ui/pages/joining/joining_state.dart';
 
 /// This is the bloc class for the Rejoindre (joining) screen: pairing this replica to a project
 /// already shared on a relay, by scanning the Partager screen's own QR code (tablet only) or by
-/// typing its connection details by hand (`docs/plans/relay.md`, Phase C, commit 4).
+/// typing its connection details by hand.
 ///
 /// Reachable with **no project open**: joining is how one comes to exist on this replica in the
 /// first place, so [OcptRoute.joining] carries none of the workspace/project settings/sharing

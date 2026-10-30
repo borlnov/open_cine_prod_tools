@@ -100,9 +100,9 @@ class OcptProjectInfoTable extends Table {
   /// app ships in more than one country, and a default would be it advancing a legal figure nobody
   /// here validated — the whole reason the column exists at all rather than a constant the rest
   /// alert compares every gap against. Null means "nobody has recorded a minimum", never "any rest
-  /// is enough", and the alert that reads it (a coming milestone) stays silent when it is null,
-  /// exactly as `people.maxDailyPresenceMinutes` and a location declaring no availability window
-  /// already do.
+  /// is enough", and the alert that reads it (`OcptScheduleRestTimeAlert`) stays silent when it is
+  /// null, exactly as `people.maxDailyPresenceMinutes` and a location declaring no availability
+  /// window already do.
   IntColumn get minimumRestMinutes => integer().nullable()();
 
   /// The language this project's screenplays are **written** in ([OcptScreenplayLanguage]), or
@@ -139,7 +139,7 @@ class OcptProjectInfoTable extends Table {
   ///
   /// Nullable for the reason [defaultVatRateBasisPoints] is: no figure here would be one this app
   /// could validate on the production's behalf, so null means "nobody has recorded a price" and the
-  /// catering view (a coming milestone) stays silent for a day it cannot cost, rather than
+  /// catering view stays silent for a day it cannot cost, rather than
   /// advancing a price nobody typed.
   IntColumn get mealPriceCents => integer().nullable()();
 

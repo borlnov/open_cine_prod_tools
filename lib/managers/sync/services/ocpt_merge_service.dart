@@ -15,9 +15,9 @@ import 'package:open_cine_prod_tools/utils/ocpt_sql_column_name.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_synchronised_tables.dart';
 
 /// Applies an incoming [OcptChangeset] to a project's own file, per column: the **inbound** half of
-/// `docs/plans/collaboration-and-sync.md`'s M3 changeset engine, and the one that actually makes two
-/// replicas converge — `OcptChangesetService.pushLocalEdits` only ever reads a project, this is what
-/// writes one back.
+/// the changeset engine (`docs/architecture/sync.md`), and the one that actually makes two replicas
+/// converge — `OcptChangesetService.pushLocalEdits` only ever reads a project, this is what writes
+/// one back.
 ///
 /// [applyChangeset] runs in one transaction against **`OcptOpenProjectModel.fileDatabase`**, never
 /// `database`: a changeset arriving while the user previews an old version belongs to the working
@@ -64,8 +64,7 @@ class OcptMergeService {
   /// an order that violates a foreign key part way through (ADR 0010), exactly the situation
   /// `OcptProjectVersionsService.restoreVersion` already defers the same way — and returns every
   /// [OcptScreenplayMergeConflict] a screenplay text merge raised along the way, for the caller to
-  /// record (`docs/plans/collaboration-and-sync.md` §3.5's future conflict view; M3 only collects
-  /// them).
+  /// record (this service only collects them; it never resolves one).
   Future<List<OcptScreenplayMergeConflict>> applyChangeset({
     required OcptProjectDatabase fileDatabase,
     required OcptChangeset changeset,

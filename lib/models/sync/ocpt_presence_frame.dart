@@ -6,14 +6,14 @@ import 'package:equatable/equatable.dart';
 
 /// One replica's own presence, at the moment it last sent a heartbeat — the opaque frame
 /// `OcptPresenceService` sends through `OcptRemoteStorage.sendPresence` and reads back off
-/// `OcptRemoteStorage.presenceStream`, per `docs/plans/presence.md` (M5, Phase B).
+/// `OcptRemoteStorage.presenceStream`.
 ///
 /// This is a pure model: no `dart:ui`/Flutter import and no `Color` — the avatar colour and the
 /// display label a presence indicator renders are derived from [deviceId]/[platform] entirely by
-/// Phase C's own UI code, never carried here. The relay this frame eventually rides through never
-/// decodes it either (`docs/architecture/sync.md`'s own "domain-blind" rule) — [toJson] and
-/// `OcptPresenceFrame.fromJson` exist purely for the two replicas on either end of that opaque
-/// string.
+/// the presence indicator's own UI code, never carried here. The relay this frame eventually rides
+/// through never decodes it either (`docs/architecture/sync.md`'s own "domain-blind" rule) —
+/// [toJson] and `OcptPresenceFrame.fromJson` exist purely for the two replicas on either end of
+/// that opaque string.
 class OcptPresenceFrame extends Equatable {
   static const _deviceIdKey = 'deviceId';
   static const _platformKey = 'platform';

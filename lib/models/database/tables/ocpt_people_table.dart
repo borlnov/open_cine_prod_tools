@@ -42,7 +42,7 @@ class OcptPeopleTable extends Table {
 
   /// {@macro open_cine_prod_tools.isDeleted}
   ///
-  /// Deleting a person is an **erasure** (decision 6 of the plan this table ships under): the
+  /// Deleting a person is an **erasure**: the
   /// tombstone is written here and the personal columns below are blanked in the same write, so the
   /// file stops holding a phone number, a home address or an allergy for someone who asked to be
   /// removed. See `ocpt_local_erasures_table.dart` for how that erasure survives a version restore.
@@ -128,11 +128,11 @@ class OcptPeopleTable extends Table {
   /// never taken modulo anything.
   ///
   /// **Nullable, and deliberately so: null means "nobody has recorded one", never "no limit is
-  /// imposed".** This is not restricted to minors — an adult under a medical restriction is the same
-  /// fact — but it lives beside [minorNotes] because that is where the constraint is thought about
-  /// on the sheet. The schedule mode's alert that reads it (a coming milestone) fires only when this
-  /// column is filled *and* exceeded, and stays silent otherwise: the app must never advance a
-  /// figure — a legal maximum, say — that nobody here validated.
+  /// imposed".** This is not restricted to minors — an adult under a medical restriction is the
+  /// same fact — but it lives beside [minorNotes] because that is where the constraint is thought
+  /// about on the sheet. The schedule mode's alert that reads it (`ocpt_schedule_alerts.dart`)
+  /// fires only when this column is filled *and* exceeded, and stays silent otherwise: the app must
+  /// never advance a figure — a legal maximum, say — that nobody here validated.
   IntColumn get maxDailyPresenceMinutes => integer().nullable()();
 
   /// Whether this person can travel to set on their own.

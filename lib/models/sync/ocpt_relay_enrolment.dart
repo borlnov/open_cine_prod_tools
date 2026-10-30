@@ -6,7 +6,7 @@ import 'package:equatable/equatable.dart';
 
 /// The two pieces of information the on-set relay's own enrolment QR carries so a device can be
 /// pointed at it: the relay to talk to and the instance-wide enrolment secret that lets the very
-/// first append create a project there (`docs/plans/on-set-server.md`, Phase C).
+/// first append create a project there.
 ///
 /// This deliberately carries neither a project id nor a project token — unlike `OcptRelayInvite`,
 /// which pairs one specific project to one specific relay, this QR only ever points a device at a

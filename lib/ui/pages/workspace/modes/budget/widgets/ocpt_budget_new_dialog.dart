@@ -1121,7 +1121,7 @@ class _OcptBudgetNewDialogState extends State<OcptBudgetNewDialog> {
         formKey: _formKey,
         onDraftChanged: (draft) => setState(() => _resourceDraft = draft),
         // `planContribution` collapses cash and in-kind into one gesture — the picker is the one
-        // question left for this step to ask, offering only the two.
+        // question left for the wizard to ask, offering only the two.
         offerCashOrInKindChoice: true,
       ),
       OcptBudgetGesture.planTaking => OcptBudgetRevenueFormBody(

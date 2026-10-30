@@ -25,14 +25,14 @@ import 'package:open_cine_prod_tools/utils/ocpt_breakdown_scene_bars.dart';
 /// scene, which is what both `OcptBreakdownScriptView` and the scene inspector read off — this
 /// panel itself never scrolls the script view to it, since the two are siblings of the same shell
 /// rather than one driving the other. The legend's own callbacks pass straight through: this panel
-/// hosts it (the plan puts the legend in the left dock, under the scenes) without knowing anything
+/// hosts it (the legend sits in the left dock, under the scenes) without knowing anything
 /// about what a hidden key does to the script view.
 ///
 /// The ⚠ mark is its own tappable region ([onWarningTapped]), separate from the row's own click
 /// ([onSceneSelected]): the row only selects the scene, exactly as `OcptBreakdownSceneSelectedEvent`
 /// always has, while the mark is the fix's own way in — the mode answers it the way a script view
 /// heading's click already is, landing the user on the inspector's own "to check" callout (ADR 0030,
-/// decision 4, refined by the M4 step of `docs/plans/shot-characters-are-roles.md`).
+/// decision 4).
 class OcptBreakdownScenePanel extends StatelessWidget {
   /// The scenes to list, in source order.
   final List<OcptBreakdownScene> scenes;
@@ -51,8 +51,7 @@ class OcptBreakdownScenePanel extends StatelessWidget {
   /// only while the scene holds a flagged tag. Unlike [onSceneSelected], which only selects the
   /// scene, this is meant to lead straight to the fix: the mode answers it the way a script view
   /// heading's click already is, opening the right dock on the `Inspector` tab so the scene's own
-  /// "to check" callout is what the user lands on (ADR 0030, decision 4, refined by the M4 step of
-  /// `docs/plans/shot-characters-are-roles.md`).
+  /// "to check" callout is what the user lands on (ADR 0030, decision 4).
   final ValueChanged<String> onWarningTapped;
 
   /// The category legend's own rows, already built by `ocptBreakdownLegendEntriesOf` from the

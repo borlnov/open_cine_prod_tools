@@ -110,7 +110,7 @@ void main() {
       // A shape assertion, never a wall-clock threshold: a CI runner's
       // timing is not a specification, but a memoized pass over words
       // already seen must be dramatically cheaper than the first pass.
-      // The order of magnitude §2.3 asks for is asserted literally, at
+      // The order of magnitude expected is asserted literally, at
       // 10x: the warm pass is a map read per word and measures three
       // orders of magnitude cheaper here, so 10x leaves ample room for a
       // slow or loaded runner without weakening into a truism.

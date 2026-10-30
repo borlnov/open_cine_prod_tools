@@ -23,8 +23,7 @@ import 'package:open_cine_prod_tools/ui/pages/sharing/widgets/ocpt_sharing_confi
 import 'package:open_cine_prod_tools/ui/pages/sharing/widgets/ocpt_sharing_invite_view.dart';
 import 'package:open_cine_prod_tools/ui/widgets/ocpt_confirm_dialog.dart';
 
-/// The Partager screen's own segments — the [SegmentedButton] at the top of its body, per
-/// `docs/plans/in-app-relay-hosting.md`'s Phase E decision.
+/// The Partager screen's own segments — the [SegmentedButton] at the top of its body.
 enum _OcptSharingSegment {
   /// The existing pair→invite flow against a remote relay — the screen's own historical, and only,
   /// content before this segment existed.
@@ -35,7 +34,7 @@ enum _OcptSharingSegment {
 }
 
 /// The "Partager" (sharing) screen for the currently open project: pairing it to a relay so a team
-/// can join it, and inviting them once it is (`docs/plans/relay.md`, Phase C, commit 3).
+/// can join it, and inviting them once it is.
 ///
 /// One screen, two states, told apart by [OcptSharingState.invite]: ① Configure — a relay address
 /// and an enrolment secret, and the button that pairs the project and creates it on the relay — and

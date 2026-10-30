@@ -104,7 +104,7 @@ void main() {
 
     test('"backlit" is unknown: the dictionary\'s own gap, not the engine\'s', () {
       // This is the SCOWL size-60 dictionary's own gap, not a defect in
-      // the engine — the argument for M4's "add to the project's
+      // the engine — the argument for the "add to the project's
       // dictionary" feature, not something this package can fix.
       expect(checker.isKnown('backlit'), isFalse);
     });

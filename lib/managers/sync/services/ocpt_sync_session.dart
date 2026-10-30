@@ -15,19 +15,17 @@ import 'package:open_cine_prod_tools/models/sync/ocpt_screenplay_merge_conflict.
 import 'package:open_cine_prod_tools/models/sync/ocpt_sync_status.dart';
 
 /// How often [OcptSyncSession] runs [OcptChangesetService.syncOnce] on its own timer, with no
-/// [OcptRemoteStorage.newWorkStream] ping and no [OcptSyncSession.syncNow] call from the user —
-/// the long-interval fallback that gets this replica's own edits to the relay even on a day
-/// nobody else's write ever pings it, now that the `newWorkStream` ping itself (M4/M5) is the real
-/// driver of an ordinary sync rather than this timer (`docs/plans/presence.md`, M5, Phase B).
+/// [OcptRemoteStorage.newWorkStream] ping and no [OcptSyncSession.syncNow] call from the user — the
+/// long-interval fallback that gets this replica's own edits to the relay even on a day nobody
+/// else's write ever pings it, now that the `newWorkStream` ping itself is the real driver of an
+/// ordinary sync rather than this timer.
 const ocptDefaultSyncPushInterval = Duration(seconds: 60);
 
-/// Keeps one project's replica converging against one relay for as long as it runs —
-/// `docs/plans/relay.md` (M4, Phase B, "wiring the transport in") and
-/// `docs/plans/collaboration-and-sync.md` §3.2 and §3.5: the driver `OcptSyncManager.
-/// startSyncSession` hands back so a paired project keeps itself in sync for as long as it is
-/// open, with no further attention from anything above it. This class does not decide *when* a
-/// project should be syncing — the workspace does that explicitly, once Phase C opens or closes a
-/// paired project (`docs/plans/relay.md`).
+/// Keeps one project's replica converging against one relay for as long as it runs — the driver
+/// `OcptSyncManager.startSyncSession` hands back so a paired project keeps itself in sync for as
+/// long as it is open, with no further attention from anything above it. This class does not decide
+/// *when* a project should be syncing — the workspace does that explicitly, once it opens or closes
+/// a paired project.
 ///
 /// [OcptChangesetService.syncOnce] — its existing push-then-pull, unchanged — runs three ways
 /// against the very same [database], [relayId] and [deviceId]: once immediately from [start];
@@ -40,7 +38,7 @@ const ocptDefaultSyncPushInterval = Duration(seconds: 60);
 ///
 /// [database] is always the project's **writable** file (`OcptOpenProjectModel.fileDatabase`),
 /// never a read-only preview: an incoming merge must land on the working copy even while the user
-/// reads an old version, exactly as `docs/plans/collaboration-and-sync.md` §3.2 says. This class
+/// reads an old version, as the sync design requires (`docs/architecture/sync.md`). This class
 /// never reads [database] itself beyond what [changesetService] already does — it only ever hands
 /// it along.
 ///
@@ -55,9 +53,8 @@ const ocptDefaultSyncPushInterval = Duration(seconds: 60);
 /// so a caller seeds its own first render from [status] before it ever listens.
 ///
 /// Every [OcptScreenplayMergeConflict] any run has raised so far is kept, in order, in [conflicts]
-/// — the one conflict `docs/plans/collaboration-and-sync.md` §3.5 ever asks a user to resolve, for
-/// whatever screenplay conflict view eventually reads it. This class only collects them; it builds
-/// no UI of its own.
+/// — the one conflict a user is ever asked to resolve, for a screenplay conflict view to read. This
+/// class only collects them; it builds no UI of its own.
 class OcptSyncSession {
   /// Class constructor
   ///
@@ -84,11 +81,10 @@ class OcptSyncSession {
   final String deviceId;
 
   /// The id [OcptChangesetService] keys this session's own delivery cursor by
-  /// (`sync_relay_cursors.relayId`) — stable for as long as [storage] points at the same relay,
-  /// and different from any other relay's own id, exactly as §3.3/§5.3 of
-  /// `docs/plans/collaboration-and-sync.md` require, since a device keeps one delivery cursor per
-  /// relay and the same project can live behind two relays in one day (the prep relay and the set
-  /// relay, M6). `OcptSyncManager.relayIdFor` is how a caller derives this for a real pairing.
+  /// (`sync_relay_cursors.relayId`) — stable for as long as [storage] points at the same relay, and
+  /// different from any other relay's own id, since a device keeps one delivery cursor per relay
+  /// and the same project can live behind two relays in one day (the prep relay and the set relay).
+  /// `OcptSyncManager.relayIdFor` is how a caller derives this for a real pairing.
   final String relayId;
 
   /// The transport this session pushes to and pulls from.

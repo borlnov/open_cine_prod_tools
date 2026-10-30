@@ -18,8 +18,7 @@ import 'package:open_cine_prod_tools/utils/ocpt_day_minute.dart';
 /// see `OcptShootingSlotsTable`'s own doc comment. A fresh clock reading typed here is placed on
 /// the same calendar day [minute] already was on (its own `minute ~/ 1440` multiple, computed via
 /// Dart's floored `%`), so re-typing a night wrap time round-trips correctly; there is no "+1 day"
-/// toggle in this milestone to move a value onto a *different* day than it already read from, which
-/// is a deliberate scope cut for M1.
+/// toggle to move a value onto a *different* day than it already read from.
 ///
 /// A block's own anchor is typed here too: the pin captures the chain's current position, and this
 /// field is what then names the minute the anchor actually exists for — a meal break's legal start,

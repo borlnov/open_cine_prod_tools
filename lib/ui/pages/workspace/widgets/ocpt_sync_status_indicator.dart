@@ -16,8 +16,8 @@ import 'package:open_cine_prod_tools/models/sync/ocpt_sync_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_route.dart';
 import 'package:open_cine_prod_tools/ui/utils/ocpt_warning_color.dart';
 
-/// The workspace status bar's sync indicator, straight from the mock-up (`docs/plans/relay.md`,
-/// Phase C, commit 5): the one on-screen entry point into a project's own sync session.
+/// The workspace status bar's sync indicator, straight from the mock-up: the one on-screen entry
+/// point into a project's own sync session.
 ///
 /// Renders nothing at all while [OcptSyncManager.syncStatus] is null — no session is running,
 /// either because the project isn't paired or because the workspace hasn't started one yet — the
@@ -38,10 +38,9 @@ import 'package:open_cine_prod_tools/ui/utils/ocpt_warning_color.dart';
 /// ([OcptSyncManager.syncNow]); `Afficher le QR d'invitation` / `Ré-appairer…`, which both simply
 /// open the Partager screen ([OcptRoute.sharing]) already showing the invite QR and the way to
 /// replace a pairing; and `Changer de relais…`, which opens the repointing screen
-/// ([OcptRoute.repointing]) to move the project's ongoing sync onto a different relay
-/// (`docs/plans/on-set-server.md`, Phase E). Under a read-only preview (`isReadOnly`) all four are
-/// withheld — a null callback, never merely a disabled one, exactly as every other affordance that
-/// writes does.
+/// ([OcptRoute.repointing]) to move the project's ongoing sync onto a different relay. Under a
+/// read-only preview (`isReadOnly`) all four are withheld — a null callback, never merely a
+/// disabled one, exactly as every other affordance that writes does.
 class OcptSyncStatusIndicator extends StatelessWidget {
   /// Class constructor
   ///

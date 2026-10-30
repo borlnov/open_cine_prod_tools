@@ -432,8 +432,7 @@ class _OcptFloorPlanCanvasState extends State<OcptFloorPlanCanvas> {
   /// The key of the `Stack` filling this canvas's own local coordinate space (the same origin
   /// [ocptFloorPlanScreenPointOf]/[ocptFloorPlanMetrePointOf] already agree on) — what
   /// [_resolveLocalPosition] converts a gesture's own **global** position through, since a handle's
-  /// own `details.localPosition` is relative to that tiny handle's own hit box, not to the canvas
-  /// (the rotation bug this milestone fixes).
+  /// own `details.localPosition` is relative to that tiny handle's own hit box, not to the canvas.
   final GlobalKey _canvasStackKey = GlobalKey();
 
   @override
@@ -1609,9 +1608,9 @@ class _OcptFloorPlanCanvasState extends State<OcptFloorPlanCanvas> {
   /// pointer's own bearing around the symbol's centre (0° pointing up, clockwise positive — see
   /// `ocptFloorPlanRotateVector`'s own doc comment for the same screen convention read the other
   /// way), **[localPosition] already converted to canvas space** by [_resolveLocalPosition] — the
-  /// rotation bug this milestone fixes was reading the handle's own local position instead, which
-  /// is relative to that tiny hit box rather than to the canvas the symbol's own centre is placed
-  /// in, so the computed bearing bore no relation to where the pointer actually was. Holding `Shift`
+  /// handle's own local position is relative to that tiny hit box rather than to the canvas the
+  /// symbol's own centre is placed in, so a bearing computed from it would bear no relation to
+  /// where the pointer actually is. Holding `Shift`
   /// snaps the result to [_rotateSnapStepDeg]° steps.
   void _updateRotateDrag(
     String symbolId,

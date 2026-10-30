@@ -5,15 +5,14 @@
 import 'package:drift/drift.dart';
 
 /// Where a project is paired to sync through: schema version 2's own addition, alongside
-/// `OcptSyncRelayCursorsTable` (`docs/plans/collaboration-and-sync.md`, M4).
+/// `OcptSyncRelayCursorsTable`.
 ///
 /// A project pairs with at most one relay at a time — [relayBaseUrl] is the address the pairing
-/// screen collected (`docs/plans/relay.md`, Phase C, commit 1) and `OcptRelayRemoteStorage` is
-/// opened against. **The project token authenticating every request to that relay is never stored
-/// here**: it is a secret and lives through `OcptSecretsManager` instead
-/// (`act_local_storage_manager`'s `AbstractSecretsManager`), keyed by [projectId] — see
-/// `OcptPairingService`, which is the only place both halves of a pairing are read or written
-/// together.
+/// screen collected and `OcptRelayRemoteStorage` is opened against. **The project token
+/// authenticating every request to that relay is never stored here**: it is a secret and lives
+/// through `OcptSecretsManager` instead (`act_local_storage_manager`'s `AbstractSecretsManager`),
+/// keyed by [projectId] — see `OcptPairingService`, which is the only place both halves of a
+/// pairing are read or written together.
 ///
 /// **This table is local and is never synchronised**, on the exact model of
 /// `OcptSyncRelayCursorsTable` — read its own doc comment first. Whether *this* replica of the

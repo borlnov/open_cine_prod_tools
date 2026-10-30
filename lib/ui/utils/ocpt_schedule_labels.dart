@@ -126,8 +126,7 @@ String ocptScheduleAgendaModeLabel(Tr tr, OcptScheduleAgendaMode mode) => switch
 String ocptScheduleDayTagLabel(Tr tr, int dayNumber) => "${tr.scheduleDayTagPrefix}$dayNumber";
 
 /// The colour a day (or, once built, a week/month cell) is tinted with, following its first slot's
-/// own location — the M1 rule ("M1 tints a day by its location, with no choice offered", the
-/// `Couleur par lieu` segmented control the mock shows arriving with M3).
+/// own location — the `Couleur par lieu` choice of the agenda's "Colour by" control.
 ///
 /// [location] is the day's own first live slot's location, resolved by the caller (a day with no
 /// slot, or a slot with no location chosen yet, has none), which then reads the neutral

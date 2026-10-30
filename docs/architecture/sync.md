@@ -72,7 +72,7 @@ this project read-only?".
 
 `OcptRemoteStorage` is the seam the engine exchanges work through — append a changeset, read
 changesets since a sequence, upload a snapshot, fetch the latest snapshot, a stream announcing new
-work, and, for presence (M5), a `sendPresence`/`presenceStream` pair carrying opaque frames a replica
+work, and, for presence, a `sendPresence`/`presenceStream` pair carrying opaque frames a replica
 broadcasts to and receives from its peers — speaking only `ocpt_sync_protocol`'s wire types and
 opaque bytes, never a table name. Two implementations:
 

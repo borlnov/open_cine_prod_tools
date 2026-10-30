@@ -33,8 +33,8 @@ import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
 /// Two replicas of the same project, converging over one shared [OcptFolderRemoteStorage], exactly
 /// as `ocpt_changeset_service_test.dart` and `ocpt_merge_service_test.dart` already exercise for
 /// every other synchronised column — this file is the same setup for `screenplays.fountainText`
-/// specifically: the one column `docs/plans/collaboration-and-sync.md` (M3) reconciles by a
-/// three-way line merge rather than last-writer-wins (`OcptScreenplayMergeService`).
+/// specifically: the one column reconciled by a three-way line merge rather than last-writer-wins
+/// (`OcptScreenplayMergeService`).
 void main() {
   // Refusing a write on a previewed version, and the screenplay merge service's own "no common
   // base" warning, both log through appLogger(), which requires a global manager instance to be

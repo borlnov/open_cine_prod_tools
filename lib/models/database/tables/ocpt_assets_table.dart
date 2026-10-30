@@ -111,11 +111,11 @@ class OcptAssetsTable extends Table {
   /// **Nullable, and deliberately so: null means "nobody has recorded one", never "valid from the
   /// start of time".** This is about the *document* the asset stands for, never about the
   /// referenced file on disk — the app never opens it (`docs/adr/0013-binary-assets-referenced-by-
-  /// path.md`) and has no way to read a date off it. The permit alert that reads this pair (a
-  /// coming milestone) fires only when both a window is recorded and the day being checked falls
-  /// outside it, and stays silent otherwise: the same reading `people.maxDailyPresenceMinutes` and
-  /// a location declaring no availability window already have — absence of data is not a claim
-  /// that nothing is required.
+  /// path.md`) and has no way to read a date off it. The permit alert that reads this pair
+  /// (`OcptSchedulePermitNotValidAlert`) fires only when both a window is recorded and the day
+  /// being checked falls outside it, and stays silent otherwise: the same reading
+  /// `people.maxDailyPresenceMinutes` and a location declaring no availability window already have
+  /// — absence of data is not a claim that nothing is required.
   DateTimeColumn get validFrom => dateTime().nullable()();
 
   /// The date this asset's document stops being valid, or null. See [validFrom].

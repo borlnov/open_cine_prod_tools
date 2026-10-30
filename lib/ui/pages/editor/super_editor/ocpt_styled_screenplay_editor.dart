@@ -85,7 +85,7 @@ class OcptStyledScreenplayEditor extends StatefulWidget {
   final bool isPageSimulationEnabled;
 
   /// Whether the row this editor is laid out in is narrow enough
-  /// (`ocptIsCompactWidth`/`docs/plans/tablet.md`) that the stylesheet should carry the block
+  /// (`ocptIsCompactWidth`) that the stylesheet should carry the block
   /// hierarchy by *style* rather than by the real screenplay indents: a phone or a narrow tablet
   /// window has no room for a character cue starting 3.7 inches from the page's left edge. Only
   /// ever acted on while [isPageSimulationEnabled] is off (see

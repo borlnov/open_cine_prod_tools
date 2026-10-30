@@ -586,7 +586,7 @@ void main() {
       // muted dot's own 4 px, the widget's own two diameters (see the dedicated dot test above,
       // which pins the ordering these hard-coded values assume rather than the exact pixels) —
       // must equal `ocptBreakdownSceneTargetsOf`'s own count for that scene against the very same
-      // targets: the scene panel's own per-scene counter, and the milestone's own exit criterion.
+      // targets: the scene panel's own per-scene counter.
       final targetById = ocptBreakdownTargetsById(targets);
       for (final scene in scenes) {
         final expectedTaggedCount = ocptBreakdownSceneTargetsOf(scene, targetById).length;

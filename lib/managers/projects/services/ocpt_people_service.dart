@@ -26,8 +26,8 @@ import 'package:uuid/uuid.dart';
 /// (`person_unavailabilities` carries no `sortKey`: it is an unordered set of constraints, not a
 /// list a user reorders — see `OcptPersonUnavailabilitiesTable`'s own doc comment).
 ///
-/// **[deletePerson] is an erasure, not a plain tombstone** — decision 6 of the plan this service
-/// ships under. See its own doc comment for exactly which columns are blanked.
+/// **[deletePerson] is an erasure, not a plain tombstone**. See its own doc comment for exactly
+/// which columns are blanked.
 class OcptPeopleService {
   /// The service minting and tombstoning the `assets` rows a person owns — their photo and their
   /// signed image rights release. Held rather than reached for, exactly as
@@ -344,11 +344,11 @@ class OcptPeopleService {
     });
   }
 
-  /// Erases person [personId] from [database] (decision 6 of the plan this service ships under):
+  /// Erases person [personId] from [database]:
   /// tombstones the row and blanks its personal columns in the same write — see
   /// [_erasureCompanion] for exactly which ones — then records the erasure in `local_erasures`, the
   /// local, never-synchronised table that lets a later version restore refuse to resurrect this
-  /// person (§4.9 of the plan; the restore side is other work, this only writes the row).
+  /// person (the restore side is `OcptProjectVersionsService`'s; this only writes the row).
   ///
   /// Does nothing if [personId] doesn't exist or is already erased: an erasure only ever happens
   /// once, so a second call is a no-op rather than a second `local_erasures` row or a second write

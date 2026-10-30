@@ -6,7 +6,7 @@ import 'package:equatable/equatable.dart';
 
 /// The three pieces of information the Partager screen's QR code carries so the Rejoindre screen
 /// can pair to the same project: the relay to talk to, the project it holds, and the token that
-/// authenticates every request to it (`docs/plans/relay.md`, Phase C, commit 2).
+/// authenticates every request to it.
 ///
 /// [toInviteString] encodes the three as a single custom-scheme URI a QR code can hold and a
 /// camera scan or manual entry can read back byte-for-byte:

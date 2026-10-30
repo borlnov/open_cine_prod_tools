@@ -20,7 +20,7 @@ const defaultRelayPort = 8080;
 /// README). Required: [buildRelayServerFromEnvironment] throws [StateError] when it is missing or
 /// empty, since a relay with no enrolment secret can never have a project created on it. It is set
 /// by the operator at deploy time and is never typed into the server by anyone else — see
-/// `docs/plans/collaboration-and-sync.md` §5.2.
+/// `docs/adr/0009-offline-first-sync-through-a-domain-blind-relay.md`.
 const relayEnrolmentSecretEnvVar = 'OCPT_RELAY_ENROLMENT_SECRET';
 
 /// The environment variable naming the SQLite database file [buildRelayServerFromEnvironment]

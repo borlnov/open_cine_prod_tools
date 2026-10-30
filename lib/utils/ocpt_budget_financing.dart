@@ -15,16 +15,16 @@ import 'package:open_cine_prod_tools/utils/ocpt_budget_totals.dart';
 /// The financing plan's own readings: what each resource is meant to bring in, what has actually
 /// come in against it, and how the whole plan stands against the quote.
 ///
-/// A **separate file from `ocpt_budget_totals.dart`**, for exactly the reason M2 kept
-/// `ocpt_budget_journal.dart` apart from `ocpt_budget_projection.dart`: money coming *in* (this
-/// file) and a quote line (the totals file) are different subjects, read by different views, and
-/// folding them together would blur that distinction rather than clarify it.
+/// A **separate file from `ocpt_budget_totals.dart`**, for exactly the reason
+/// `ocpt_budget_journal.dart` is kept apart from `ocpt_budget_projection.dart`: money coming *in*
+/// (this file) and a quote line (the totals file) are different subjects, read by different views,
+/// and folding them together would blur that distinction rather than clarify it.
 
 /// What has actually come in against each financing resource, given the project's own
 /// [projectVatRateBasisPoints]: per resource, the tax-inclusive sum of every `budget_entries`
 /// credit naming it through `budget_entries.resourceId`.
 ///
-/// **This is the whole point of the milestone's data shape**: `budget_resources` stores no
+/// **This is the whole point of the data shape**: `budget_resources` stores no
 /// `receivedCents` column of its own, so what has come in is summed here, off the journal, exactly
 /// the way `ocptBudgetPaidCentsByPosteId` (`lib/utils/ocpt_budget_journal.dart`) already sums a
 /// poste's own payments rather than reading a stored figure that could drift from the entries that
@@ -41,7 +41,7 @@ import 'package:open_cine_prod_tools/utils/ocpt_budget_totals.dart';
 /// paying money *back out* — repaying a reimbursable cash contribution before the revenue sharing
 /// splits what is left — and that repayment does not un-receive the money: it came in once, and it
 /// is still true that it did. What a production has since paid back is the revenue-sharing view's
-/// own subject, at a later milestone, not a correction to how much a resource brought in. Only
+/// own subject, not a correction to how much a resource brought in. Only
 /// [OcptBudgetEntry.creditCents] is ever read here; [OcptBudgetEntry.debitCents] naming the same
 /// resource is read by no line of this function at all.
 ///

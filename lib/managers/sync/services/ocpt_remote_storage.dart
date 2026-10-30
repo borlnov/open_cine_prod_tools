@@ -13,10 +13,9 @@ import 'package:ocpt_sync_protocol/ocpt_sync_protocol.dart';
 ///
 /// This interface speaks only `ocpt_sync_protocol`'s own wire types and opaque bytes — never a
 /// table name, a column name or a domain model — so an implementation never has to know what a
-/// changeset's [OcptChangesetEnvelope.payload] actually contains
-/// (`docs/plans/collaboration-and-sync.md`, M3). `OcptFolderRemoteStorage` is the only
-/// implementation this milestone ships, and the desktop fallback it stays afterwards; a relay
-/// implementation talking HTTP and a WebSocket follows once the relay itself exists.
+/// changeset's [OcptChangesetEnvelope.payload] actually contains. `OcptFolderRemoteStorage` is the
+/// desktop fallback over a plain directory; `OcptRelayRemoteStorage` talks HTTP and a WebSocket to
+/// a relay.
 abstract interface class OcptRemoteStorage {
   /// Appends [envelope] to the project's changeset log and returns the sequence number the
   /// transport assigned it.
@@ -57,11 +56,11 @@ abstract interface class OcptRemoteStorage {
   /// listens on.
   ///
   /// [opaquePayload] is exactly that to this interface — a string this transport moves without
-  /// reading, per `docs/plans/presence.md` (M5, Phase A): today's only caller is presence, but
-  /// nothing here names it, so the relay this method talks to never learns what the payload means.
-  /// A transport with no peer to reach (a folder, say) drops the call silently — never throws — and
-  /// the same holds while a networked transport is disconnected: the next call carries current
-  /// state again, so nothing is lost that a caller needs to react to.
+  /// reading: today's only caller is presence, but nothing here names it, so the relay this method
+  /// talks to never learns what the payload means. A transport with no peer to reach (a folder,
+  /// say) drops the call silently — never throws — and the same holds while a networked transport
+  /// is disconnected: the next call carries current state again, so nothing is lost that a caller
+  /// needs to react to.
   void sendPresence(String opaquePayload);
 
   /// Emits every opaque frame another replica sent through its own [sendPresence], in arrival

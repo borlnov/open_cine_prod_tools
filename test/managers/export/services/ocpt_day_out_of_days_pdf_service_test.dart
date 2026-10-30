@@ -384,7 +384,7 @@ void main() {
       "whole series, held on the day between them",
       () async {
         // Day 1 plays episode 1's own scene, day 3 plays episode 2's — the very shape a series shot
-        // out of order produces, and exactly the case §4.4 says buys a single Day Out of Days row
+        // out of order produces, and exactly the case that buys a single Day Out of Days row
         // "for free": `convokedRoleIdsOfDay` reads `slot.cast` alone, which never named a screenplay
         // to begin with (ADR 0019), so the span below is computed no differently than it would be
         // for a role convoked on two days of one screenplay.

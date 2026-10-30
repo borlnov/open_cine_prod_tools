@@ -244,9 +244,8 @@ class OcptBudgetSnapshot extends Equatable {
   /// project's [defaultVatRateBasisPoints] and [currencyCode], deriving every count and every map
   /// from them. [receiptsByEntryId] is loaded the same way everything else here is
   /// (`OcptBudgetJournalService.loadReceipts`) and simply carried through — defaulted to empty for
-  /// every caller unconcerned with vouchers, exactly as every one of this snapshot's own callers
-  /// before this milestone still may be; [resources] is defaulted the same way, for every caller
-  /// unconcerned with the financing plan.
+  /// every caller unconcerned with vouchers; [resources] is defaulted the same way, for every
+  /// caller unconcerned with the financing plan.
   ///
   /// [paidByPosteId], [offQuotePaidTotal], [committedByPosteId], [cashTotals],
   /// [receivedByResourceId] and [alerts] are derived here exactly as [posteCount]/[lineCount] are:
@@ -402,10 +401,8 @@ class OcptBudgetSnapshot extends Equatable {
   /// [posteId]'s own paid total, in cents, tax-inclusive — [paidByPosteId]'s own entry for
   /// [posteId], or **0** while it carries none.
   ///
-  /// This `?? 0` is honest where M1's own zero was not: at M1 the app could not know what had
-  /// moved against a poste at all, so printing `0 €` would have claimed a figure the data did not
-  /// support. The journal exists now and is kept, so a poste with no entry against it genuinely has
-  /// had nothing move against it — zero is the true answer here, not a stand-in for one.
+  /// This `?? 0` is honest because the journal is kept: a poste with no entry against it genuinely
+  /// has had nothing move against it — zero is the true answer here, not a stand-in for one.
   int paidCentsOf(String posteId) => paidByPosteId[posteId]?.amountCents ?? 0;
 
   /// [posteId]'s own committed total, in cents, tax-inclusive — [committedByPosteId]'s own entry

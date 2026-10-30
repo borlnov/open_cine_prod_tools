@@ -51,7 +51,7 @@ class _OcptBreakdownOccurrence {
 /// name, its category (or role/set kind) and scene count, then — **element targets only**, a role
 /// or a set having neither a status nor the fields below — its status chips, its category chips and
 /// its details (sub-category, quantity, notes, owner, who brings it), then every target's own
-/// occurrences in the screenplay, its suggested ones (§3.4 of the plan this ships under: a repeated
+/// occurrences in the screenplay, its suggested ones (a repeated
 /// occurrence is offered, never applied — [suggestions] read the same way [scenes] is, verbatim
 /// passages the target inspector shows and, unless [isReadOnly], offers to tag), and the two
 /// trailing actions every kind offers.

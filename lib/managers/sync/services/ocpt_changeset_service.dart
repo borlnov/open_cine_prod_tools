@@ -18,14 +18,13 @@ import 'package:uuid/uuid.dart';
 
 /// Turns a replica's own un-pushed local edits into a changeset and appends it to a relay
 /// ([pushLocalEdits]), and applies every changeset a relay holds that this replica hasn't seen yet
-/// ([pullAndApply]) — the outbound and inbound halves of `docs/plans/collaboration-and-sync.md`'s M3
-/// changeset engine. [syncOnce] is the two run back to back, which is what makes two replicas
-/// pointed at the same [OcptRemoteStorage] converge.
+/// ([pullAndApply]) — the outbound and inbound halves of the changeset engine
+/// (`docs/architecture/sync.md`). [syncOnce] is the two run back to back, which is what makes two
+/// replicas pointed at the same [OcptRemoteStorage] converge.
 ///
 /// A "relay" here is any [OcptRemoteStorage] this replica is paired with, named by a `relayId` —
 /// the same identifier `sync_relay_cursors.relayId` keys a replica's own delivery state by, since a
-/// device can be paired with more than one relay over its lifetime
-/// (`docs/plans/collaboration-and-sync.md` §5.3).
+/// device can be paired with more than one relay over its lifetime.
 class OcptChangesetService {
   /// Class constructor
   const OcptChangesetService({this.mergeService = const OcptMergeService()});
@@ -249,11 +248,10 @@ class OcptChangesetService {
   ///
   /// A read-only counterpart to [_outboxHighWaterMark], for a caller outside this service that
   /// needs the position a just-published changeset log stands at right now — the create-and-share
-  /// orchestration (`docs/plans/relay.md`, Phase C, commit 3) reads this immediately after
-  /// [pushLocalEdits] to know what a snapshot it publishes in the same breath should declare as its
-  /// own [OcptSnapshotDescriptor.sequenceUpTo]. Behaviourally inert on its own, exactly like
-  /// [countUnpushedEdits]: nothing about calling this changes [relayId]'s cursor or anything else in
-  /// [database].
+  /// orchestration reads this immediately after [pushLocalEdits] to know what a snapshot it
+  /// publishes in the same breath should declare as its own [OcptSnapshotDescriptor.sequenceUpTo].
+  /// Behaviourally inert on its own, exactly like [countUnpushedEdits]: nothing about calling this
+  /// changes [relayId]'s cursor or anything else in [database].
   Future<OcptSequenceNumber> highestAppendedSequence({
     required OcptProjectDatabase database,
     required String relayId,

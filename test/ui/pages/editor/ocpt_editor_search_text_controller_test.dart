@@ -130,7 +130,7 @@ void main() {
       const text = 'Short text.';
 
       final controller = OcptEditorSearchTextController(text: text);
-      // Computed against a longer text this controller has since moved past (the plan's own M3
+      // Computed against a longer text this controller has since moved past (a known
       // trap: a spelling range arrives one isolate round trip later than a search match does, so
       // it is more exposed to this than a match is).
       controller.updateSpellCheckRanges([const SpellRange(0, text.length + 50)]);

@@ -76,9 +76,9 @@ class OcptBudgetLinesTable extends Table {
 
   /// The breakdown element this line prices, or null. → [OcptElementsTable]
   ///
-  /// Declared from this milestone on but read by no service before M3: a quote line and a
-  /// breakdown element are captured independently until the cost-tracking view can cross them
-  /// (`elements.cost` seeding a fresh line's unit price, an unpriced element surfacing as a need).
+  /// A quote line and a breakdown element are captured independently; the budget fiche's
+  /// `From breakdown` action is what crosses them (`elements.cost` seeding a fresh line's unit
+  /// price).
   TextColumn get elementId => text().nullable().references(OcptElementsTable, #id)();
 
   /// The in-kind `budget_resources` contribution this line is the counterpart of, or null. →

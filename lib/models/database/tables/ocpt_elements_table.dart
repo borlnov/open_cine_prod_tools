@@ -55,10 +55,9 @@ class OcptElementStatusConverter extends TypeConverter<OcptElementStatus, String
 /// Anything that must be present on a given shooting day and is not a person: props, set dressing,
 /// costumes, vehicles, animals, special equipment, generators, even a block of extras.
 ///
-/// One table rather than one per department, deliberately (decision 8 of the plan this table ships
-/// under): both reference spreadsheets already keep every kind of item in one sheet with a category
-/// column, because the tracking columns below — owner, who brings it, ready, returned — are
-/// identical whatever the item is.
+/// One table rather than one per department, deliberately: both reference spreadsheets already keep
+/// every kind of item in one sheet with a category column, because the tracking columns below —
+/// owner, who brings it, ready, returned — are identical whatever the item is.
 @DataClassName('OcptElementRow')
 class OcptElementsTable extends Table {
   /// {@macro open_cine_prod_tools.OcptElementsTable}

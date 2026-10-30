@@ -881,7 +881,7 @@ void main() {
     await bloc.close();
   });
 
-  group("the compact role alert banner (M4)", () {
+  group("the compact role alert banner", () {
     test("selecting a role from another tab switches to the roles tab too", () async {
       final bloc = buildBloc();
       await waitForState(bloc, (state) => !state.isLoading);

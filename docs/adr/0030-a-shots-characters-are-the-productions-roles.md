@@ -162,6 +162,4 @@ deliberate choice of decision 2, the same "surface the state, let the user decid
 already makes.
 
 `reconcile` itself is untouched in how it matches and what it writes; the unification lives in the
-store, the services around it and the shared banner, not in the reconciliation. The plan that
-carries this out is `docs/plans/shot-characters-are-roles.md`, deleted once the work ships and its
-outcome is folded into `docs/architecture/`.
+store, the services around it and the shared banner, not in the reconciliation.

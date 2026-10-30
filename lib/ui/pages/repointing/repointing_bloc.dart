@@ -16,11 +16,11 @@ import 'package:open_cine_prod_tools/ui/pages/repointing/repointing_state.dart';
 /// This is the bloc class for the "Changer de relais" (repointing) screen.
 ///
 /// Unlike `OcptSharingBloc`, this bloc reads no pairing on entry: the page always opens ready to
-/// enter or scan a *new* relay (`docs/plans/on-set-server.md`, Phase E), even for a project already
-/// paired elsewhere. [OcptSyncManager.repointProjectToRelay] is the only write this bloc ever
-/// makes, and it is the only manager method this screen calls beyond reading the current project's
-/// own `sync_pairings` row for the `projectId` that method needs — exactly as `OcptSharingBloc`
-/// reads that same single row for the very same reason.
+/// enter or scan a *new* relay, even for a project already paired elsewhere.
+/// [OcptSyncManager.repointProjectToRelay] is the only write this bloc ever makes, and it is the
+/// only manager method this screen calls beyond reading the current project's own `sync_pairings`
+/// row for the `projectId` that method needs — exactly as `OcptSharingBloc` reads that same single
+/// row for the very same reason.
 class OcptRepointingBloc extends BlocForMixin<OcptRepointingState> {
   /// The manager used to read the current project and its own app version.
   final OcptProjectsManager _projectsManager;

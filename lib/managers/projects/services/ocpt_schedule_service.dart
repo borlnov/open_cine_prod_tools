@@ -570,7 +570,7 @@ class OcptScheduleService {
   /// **block** that sees them (ADR 0024), and a day duplicated without its blocks has no hour to
   /// convoke them at. See the class doc comment for why, and
   /// for the two further fields (`weatherNote`, `notes`) this service also leaves at their defaults
-  /// on the new day, a decision the plan left unsaid. If [sourceDayId] currently holds no live slot
+  /// on the new day, a choice made here. If [sourceDayId] currently holds no live slot
   /// at all (every one of them since deleted), the new day is given the same default slot
   /// [createDay] would give a brand new one, so the invariant "a day has at least one slot" still
   /// holds for a day built by this method too.

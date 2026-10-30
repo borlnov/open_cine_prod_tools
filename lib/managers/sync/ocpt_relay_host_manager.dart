@@ -482,7 +482,7 @@ class OcptRelayHostManager extends AbsWithLifeCycle {
   }
 
   /// The manager-layer half of "réhéberger au démarrage" (`docs/architecture/sync.md`): a
-  /// project-open caller (wired in a later step) hands this the project it just opened, and this
+  /// project-open caller (`OcptWorkspaceBloc`) hands this the project it just opened, and this
   /// starts hosting it again only when both hold: the project is paired — has a relay-side id, so
   /// [OcptSyncManager.loadPairedProjectId] returns one; a never-paired project was never hosted, so
   /// there is nothing to restart — AND its per-project [OcptPropertiesManager] "host on launch"

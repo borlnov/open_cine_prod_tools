@@ -164,7 +164,7 @@ bool ocptCycleBlockTypeAtSelection({
 ///
 /// Shared by [ocptTabToCycleBlockType] and the toolbar's block-type dropdown
 /// (`OcptStyledEditorControllerDelegate.applyBlockType`): both are the same "manual override"
-/// gesture (Goal 2 of the plan), so both must produce the exact same requests.
+/// gesture, so both must produce the exact same requests.
 List<EditRequest> ocptManualBlockTypeRequests({required String nodeId, required FountainLineType type}) => [
   ChangeParagraphBlockTypeRequest(nodeId: nodeId, blockType: OcptFountainLineAttributions.attributionOf(type)),
   OcptChangeNodeMetadataRequest(

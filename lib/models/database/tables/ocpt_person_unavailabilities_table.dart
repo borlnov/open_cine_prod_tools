@@ -15,9 +15,9 @@ import 'package:open_cine_prod_tools/types/ocpt_day_part_slot.dart';
 /// cover the same date, which is how two windows in one day are said — this is a set of
 /// constraints, not a calendar with one entry per day.
 ///
-/// Nothing in this step reads this table yet — the schedule mode is what will cross it against the
-/// shooting days it plans — but capturing it as people are entered is worth doing from the start,
-/// rather than asking a user to re-enter every actor's known conflicts once scheduling exists.
+/// The schedule mode crosses this table against the shooting days it plans, and capturing it as
+/// people are entered means a user never has to re-enter every actor's known conflicts once
+/// scheduling starts.
 ///
 /// No `sortKey` column here: unlike `person_skills` and `person_positions`, this is an unordered
 /// set of constraints rather than a list the user reorders (the UI shows them in date order).

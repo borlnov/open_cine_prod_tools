@@ -125,7 +125,7 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
   /// separate `selectedPosteId`/`selectedResourceId` id fields this state used to carry: see
   /// `OcptBudgetSelection`'s own doc comment for why one field now answers both. [selectedPosteId]
   /// and [selectedResourceId] below are the narrow getters every dock panel already reads, resolved
-  /// off this one field so neither had to learn about the sealed type for this milestone.
+  /// off this one field so neither has to learn about the sealed type.
   final OcptBudgetSelection? selection;
 
   /// The id of the currently selected poste, or null while [selection] does not name one.

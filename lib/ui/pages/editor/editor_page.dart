@@ -64,18 +64,18 @@ import 'package:open_cine_prod_tools/utils/ocpt_text_search.dart';
 
 /// The screenplay editor: either the styled block editor or the raw Fountain source in the center
 /// (depending on the persisted `OcptEditorMode`, forced to the styled editor on a phone — see
-/// `_EditorViewState._liveMode`/`docs/plans/tablet.md`), the collapsible scene panel on the left,
+/// `_EditorViewState._liveMode`), the collapsible scene panel on the left,
 /// the tabbed right dock (formatted preview, raw mode only; the Fountain syntax guide, the scene
 /// inspector, the read-only metadata panel and the project versions, all four in both modes)
 /// hosting at most one panel at a time, and a thin toolbar above them.
 ///
 /// While a project version is being previewed, the mode shows the version instead of the working
 /// copy, and shows it read-only: the centre becomes the formatted preview whichever editing mode is
-/// active (there is no editor at all then, see `OcptProjectVersionsPanel` and the plan's decision
-/// 7 — making the styled editor read-only would mean a second super_editor rendering path to
-/// maintain forever), every control that would write is withheld, and the shell carries the band
-/// naming the version. Reading the screenplay, browsing its scenes, exporting it and looking at its
-/// statistics all stay available: none of them touches the project.
+/// active (there is no editor at all then, see `OcptProjectVersionsPanel`: making the styled editor
+/// read-only would mean a second super_editor rendering path to maintain forever), every control
+/// that would write is withheld, and the shell carries the band naming the version. Reading the
+/// screenplay, browsing its scenes, exporting it and looking at its statistics all stay available:
+/// none of them touches the project.
 ///
 /// The `OcptRouterManager` editor guard guarantees a project is open when this page is reached.
 class EditorPage extends StatelessWidget {
@@ -265,16 +265,15 @@ class _EditorViewState extends State<_EditorView> {
     super.dispose();
   }
 
-  /// Whether the window this page is laid out in is a phone ([ocptIsPhoneWidth]/
-  /// `docs/plans/tablet.md`) narrow enough to force the styled editor as the only editing surface,
-  /// and page simulation off, regardless of what [OcptEditorState.mode] and
-  /// [OcptEditorState.isPageSimulationEnabled] are persisted as: raw source (and its own
-  /// find/replace and spell-check wiring) and a real-size simulated page have no room to be usable
-  /// there. Deliberately the *phone* breakpoint rather than [ocptIsCompactWidth]'s wider one: a
-  /// tablet window between the two still has room for the toolbar's format controls (hidden in raw
-  /// mode, shown the moment the styled editor is forced on) beside everything else the toolbar
-  /// already carries there, which a phone-width toolbar has separately been folded down for
-  /// (`OcptWorkspaceShell`) but a merely-compact one has not.
+  /// Whether the window this page is laid out in is a phone ([ocptIsPhoneWidth]) narrow enough to
+  /// force the styled editor as the only editing surface, and page simulation off, regardless of
+  /// what [OcptEditorState.mode] and [OcptEditorState.isPageSimulationEnabled] are persisted as:
+  /// raw source (and its own find/replace and spell-check wiring) and a real-size simulated page
+  /// have no room to be usable there. Deliberately the *phone* breakpoint rather than
+  /// [ocptIsCompactWidth]'s wider one: a tablet window between the two still has room for the
+  /// toolbar's format controls (hidden in raw mode, shown the moment the styled editor is forced
+  /// on) beside everything else the toolbar already carries there, which a phone-width toolbar has
+  /// separately been folded down for (`OcptWorkspaceShell`) but a merely-compact one has not.
   ///
   /// Read straight off [MediaQuery] rather than a value captured once by a `LayoutBuilder` in
   /// [build]: [_syncRawSearch] and its siblings run from the `BlocConsumer`'s `listener`, which
@@ -285,7 +284,7 @@ class _EditorViewState extends State<_EditorView> {
   /// Whether the window this page is laid out in is narrow enough ([ocptIsCompactWidth]) that the
   /// styled editor — forced on by [_isPhoneWidth], or simply the user's own live preference at any
   /// width — should carry its block hierarchy by style rather than by the real screenplay indents
-  /// (see [OcptStyledScreenplayEditor.isCompact]/`docs/plans/tablet.md`): a tablet window has more
+  /// (see [OcptStyledScreenplayEditor.isCompact]): a tablet window has more
   /// room than a phone, but still not the width a real screenplay page wants.
   bool get _isCompactWidth => ocptIsCompactWidth(MediaQuery.sizeOf(context).width);
 
@@ -493,7 +492,7 @@ class _EditorViewState extends State<_EditorView> {
         ),
       ],
       // Reads the persisted `state.mode` rather than [_liveMode]: this toggle is the user's own
-      // desktop preference (`docs/plans/tablet.md`), left untouched by a phone width forcing the
+      // desktop preference, left untouched by a phone width forcing the
       // styled editor onto the screen — it keeps stating (and toggling) what will apply once the
       // window widens back out, not what happens to be rendered right this moment.
       IconButton(
@@ -629,7 +628,7 @@ class _EditorViewState extends State<_EditorView> {
   /// Builds the editor itself (raw source field or styled block editor), the shell's `centre`, or
   /// the read-only formatted preview while a project version is being previewed.
   ///
-  /// That substitution is the plan's decision 7: the preview renders the version exactly as it
+  /// That substitution is deliberate: the preview renders the version exactly as it
   /// would print, and reusing it costs nothing, whereas making the styled editor read-only would
   /// mean a second super_editor rendering path (`SuperReader`, its own stylesheet, its own
   /// title-page components) to maintain forever. It applies in both editing modes, since neither of
@@ -639,8 +638,8 @@ class _EditorViewState extends State<_EditorView> {
   /// phone the raw source field is never the one built here even when [OcptEditorState.mode] itself
   /// still says raw — the styled editor is, with page simulation forced off ([_isPageSimulationLive])
   /// and [OcptStyledScreenplayEditor.isCompact] set whenever the window is merely compact (a tablet
-  /// too, not only a phone — see [_isCompactWidth]), which is the phone default `docs/plans/tablet.md`
-  /// settled on: raw source and this same read-only preview (its own version-preview branch above)
+  /// too, not only a phone — see [_isCompactWidth]), which is the phone default:
+  /// raw source and this same read-only preview (its own version-preview branch above)
   /// have no room to be usable there either.
   Widget _buildCentre(BuildContext context, OcptEditorState state, {required bool isRawMode}) {
     if (state.isPreviewingVersion) {
@@ -1088,7 +1087,7 @@ class _EditorViewState extends State<_EditorView> {
   /// Replaces the current match in raw mode with the replacement field's text, then selects
   /// whichever match now starts at or after the end of what was just written — never simply the
   /// match that ends up at the same index, which a replacement that itself still matches the query
-  /// (`MARIE` → `MARIE-JEANNE`, the plan's own headline scenario for putting replace in scope)
+  /// (`MARIE` → `MARIE-JEANNE`, the scenario that puts replace in scope)
   /// would land back inside, turning every further `Replace` press into
   /// `MARIE-JEANNE-JEANNE-JEANNE…` forever — see `OcptEditorSearchCurrentMatchSelectedEvent`'s own
   /// doc comment. Wraps to the first remaining match when none starts after the edit; dispatches

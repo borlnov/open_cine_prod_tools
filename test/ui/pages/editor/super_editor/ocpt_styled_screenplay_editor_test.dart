@@ -752,7 +752,7 @@ void main() {
         "slack eating half of it)", (tester) async {
       // The default test surface (800x600) is narrower than the full page-simulation width
       // (`pageWidth` can reach ~975 logical pixels at US Letter): widen it first, like the
-      // M1 test above and the app's own desktop window would be in practice.
+      // earlier test and the app's own desktop window would be in practice.
       tester.view.physicalSize = const Size(1400, 900);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
@@ -1719,7 +1719,7 @@ void main() {
       // committed by the platform IME as a `TextEditingDeltaInsertion` of `'\t'` before Flutter
       // ever synthesizes a hardware `KeyEvent` for it — `tester.sendKeyEvent(...)` above
       // reproduces none of that; only `tester.typeImeText('\t')` (going through the same
-      // `updateEditingValueWithDeltas` path a real platform Tab uses) does. Before the M2 fix
+      // `updateEditingValueWithDeltas` path a real platform Tab uses) does. Without the fix
       // (no `imeOverrides` wired), this test fails: the delta reaches super_editor's own
       // document IME client unfiltered and inserts a literal tab character instead of cycling.
       var lastEncoded = "";
@@ -2792,7 +2792,7 @@ void main() {
         await tester.pump();
 
         // "MARIE" replaced by "MARIE-JEANNE" still matches "MARIE" at that very same offset, so
-        // this is the plan's own headline scenario for putting replace in scope at all.
+        // this is the scenario replace exists for.
         final firstNextIndex = controller.replaceCurrentMatch("MARIE-JEANNE");
         await tester.pump(const Duration(milliseconds: 150));
         await tester.pump();

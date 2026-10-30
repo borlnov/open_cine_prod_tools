@@ -13,7 +13,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/
 /// "Address and access": the location's postal address in the six fields an address is made of, its
 /// GPS coordinates, and who to contact about it.
 ///
-/// The six address fields are `people`'s own (decision 10 of the plan this ships under): an address
+/// The six address fields are `people`'s own: an address
 /// has one shape wherever it appears, and a call sheet prints a location's exactly as it prints a
 /// person's.
 ///
@@ -143,10 +143,10 @@ class OcptLocationSheetAddressCard extends StatelessWidget {
 
   /// What is wrong with the coordinate [value], or null when there is nothing to say about it.
   ///
-  /// A **remark, never a gate** (decision 11 of the plan this ships under, the rule the email field
-  /// already follows): the value is written either way — as no coordinate at all, since a location
-  /// half-way through being pinned is not at 45 degrees north of nowhere — and the field says so
-  /// once it loses the focus. An empty field is not an error: most locations are never pinned.
+  /// A **remark, never a gate** (the rule the email field already follows): the value is written
+  /// either way — as no coordinate at all, since a location half-way through being pinned is not at
+  /// 45 degrees north of nowhere — and the field says so once it loses the focus. An empty field is
+  /// not an error: most locations are never pinned.
   String? _coordinateErrorOf(Tr tr, String value) {
     final trimmed = value.trim();
     if (trimmed.isEmpty || double.tryParse(trimmed) != null) {

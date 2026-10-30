@@ -18,7 +18,7 @@ const NamedAttribution ocptSearchMatchAttribution = NamedAttribution("ocptSearch
 /// [ocptEditorSearchCurrentMatchColor].
 const NamedAttribution ocptSearchCurrentMatchAttribution = NamedAttribution("ocptSearchCurrentMatch");
 
-/// The styled mode's own half of the find/replace bar's highlight (the plan's M4 decision, §6):
+/// The styled mode's own half of the find/replace bar's highlight:
 /// raw mode paints its matches by overriding `TextEditingController.buildTextSpan`
 /// (`OcptEditorSearchTextController`); the styled block editor has no such single field to
 /// override, so this is a `SingleColumnLayoutStylePhase` handed to `SuperEditor`'s

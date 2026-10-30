@@ -372,7 +372,7 @@ void main() {
     });
 
     testWidgets(
-      "a person alone draws Personne — reachable now, unlike before this milestone",
+      "a person alone draws Personne",
       (tester) async {
         final tr = await pumpDialog(
           tester,
@@ -504,8 +504,7 @@ void main() {
   });
 
   group("the taking picker's own inline creation", () {
-    testWidgets("New taking… still opens the revenue dialog, unchanged from before this "
-        "milestone", (tester) async {
+    testWidgets("New taking… still opens the revenue dialog", (tester) async {
       final tr = await pumpDialog(
         tester,
         existing: _existingEntry(revenueId: "v1", creditCents: 5000),

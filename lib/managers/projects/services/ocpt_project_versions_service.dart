@@ -281,7 +281,7 @@ class OcptProjectVersionsService {
   ///
   /// **This is also where an erased person is scrubbed back out** ([_scrubErasedPeople]), and being
   /// the single door both operations come through is the whole reason it belongs here rather than
-  /// in the restore alone. §4.9's answer to "a version captured before an erasure still holds that
+  /// in the restore alone. The answer to "a version captured before an erasure still holds that
   /// person's row, forever" is to scrub **on decode**, not on disk: the stored text stays
   /// byte-identical, and no reader of it ever sees the person again. A preview is a reader — it
   /// hydrates the payload into a database the modes draw every sheet from — so a scrub that only
@@ -1304,7 +1304,7 @@ class OcptProjectVersionsService {
   /// captured (`OcptProjectVersionCodec`'s own doc comment). `local_erasures` is what lets this
   /// replica remember the erasure happened without the payload that predates it ever having to
   /// become untruthful about the moment it captured — decode-time scrubbing, not a rewrite on disk
-  /// (§4.9 of the plan this ships under, option 3). It is read fresh from [database] rather than
+  /// (see `docs/architecture/foundations.md`). It is read fresh from [database] rather than
   /// from [payload] on purpose: that is what lets a restore of an *old* version still honour an
   /// erasure recorded strictly after that version was taken, and `local_erasures` itself is never
   /// part of a payload — carrying it there would let this very restore rewind the fact that the

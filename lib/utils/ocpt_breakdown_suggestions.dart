@@ -9,8 +9,8 @@ import 'package:open_cine_prod_tools/utils/ocpt_resources_search.dart';
 
 /// A passage that reads like one of a target's own tags but is not tagged itself — what
 /// [ocptBreakdownSuggestionsOf] offers, and what the caller needs to both show the row and write
-/// the tag if the offer is accepted (§3.4 of the plan this ships under: a repeated occurrence is
-/// offered, never applied).
+/// the tag if the offer is accepted (a repeated occurrence is offered,
+/// never applied).
 class OcptBreakdownSuggestion extends Equatable {
   /// The kind of the target this passage is suggested for.
   final OcptBreakdownTargetKind targetKind;
@@ -103,7 +103,7 @@ class _OcptFoldedSceneText {
 /// Every passage of [scenes] that reads like one of its own live tags' `taggedText` and is not
 /// itself tagged — what the target inspector's own "Suggested occurrences" section offers, one
 /// entry per (target, scene, range), the user confirming each one before it becomes a tag of its
-/// own (§3.4/§5.4 of the plan this ships under: a repeated occurrence is offered, never applied).
+/// own (a repeated occurrence is offered, never applied).
 ///
 /// [target] restricts the search to the tags of that one `(kind, id)`, which is what the only
 /// caller so far ever asks for — the inspector shows the **selected** target's suggestions alone.

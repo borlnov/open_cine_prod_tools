@@ -321,9 +321,9 @@ class OcptBreakdownState extends BlocStateForMixin<OcptBreakdownState>
   /// [searchCandidates] flattens for the tag popover.
   List<OcptRole> get roles => snapshot?.roles ?? const [];
 
-  /// Every orphaned-role alert found in [roles] (ADR 0030, decision 4, refined by the M4 step of
-  /// `docs/plans/shot-characters-are-roles.md`) — what the mode-level compact banner is built from.
-  /// No service work of its own: [roles] is already loaded for [searchCandidates].
+  /// Every orphaned-role alert found in [roles] (ADR 0030, decision 4) — what the mode-level
+  /// compact banner is built from. No service work of its own: [roles] is already loaded for
+  /// [searchCandidates].
   List<OcptRemovedRoleAlert> get orphanedRoleAlerts => OcptRemovedRoleAlert.buildAll(roles);
 
   /// Every name-collision alert found in [roles] (ADR 0030, decision 2), sorted stably — the

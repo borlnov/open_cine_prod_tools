@@ -33,7 +33,7 @@ const double _departmentColumnWidth = 132;
 /// between the two tables (see `OcptPersonPositionsTable`'s own doc comment). A scope field here
 /// would only be a second copy of that one truth.
 ///
-/// Roles (the cast, reconciled from the screenplay) are a later milestone: this card only ever
+/// Roles (the cast, reconciled from the screenplay) have their own sheet: this card only ever
 /// shows crew position assignments, never a role row.
 class OcptPersonSheetPositionsCard extends StatelessWidget {
   /// The person these positions belong to.

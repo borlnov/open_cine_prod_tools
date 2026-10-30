@@ -20,7 +20,7 @@ typedef OcptDeviceIdGetter = Future<String> Function();
 /// This is the row-stamping machinery of `docs/adr/0010-sync-ready-data-model-prerequisites.md`,
 /// factored out of `OcptProjectVersionsService.restoreVersion` — its restore was the first writer
 /// of a `row_field_versions` stamp, and the changeset engine of
-/// `docs/plans/collaboration-and-sync.md` (M3) is what will make an ordinary domain-service write
+/// `OcptChangesetService` (`docs/architecture/sync.md`) makes an ordinary domain-service write
 /// the second: both need the very same three things, "what changed", "what version does that
 /// change carry" and "batch the stamps rather than writing one row at a time", so this is where
 /// they live once. Everything in [ocptChangedColumnNames] and [ocptNextRowStampVersion] — the pure

@@ -104,8 +104,8 @@ const String ocptMonospaceFontFamily = "CourierPrime";
 
 /// The small corner radius: dropdowns/text fields, the scrollbar thumb and icon buttons.
 ///
-/// Single source of truth for the shell widgets built in later milestones, which read this
-/// constant instead of re-declaring their own radius.
+/// Single source of truth for the shell widgets, which read this constant instead of re-declaring
+/// their own radius.
 const double ocptRadiusSmall = 6;
 
 /// The medium corner radius: filled/outlined/text buttons and every menu surface (popup menu,

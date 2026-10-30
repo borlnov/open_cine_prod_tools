@@ -13,12 +13,12 @@ import 'package:drift/drift.dart';
 /// director setting that same shot's `shootingDay` touch one row, and a stamp per row rather than
 /// per column would drop one of the two edits.
 ///
-/// Schema version 3 creates it. The one thing writing to it so far is
+/// Schema version 3 creates it. Two things write to it:
 /// `OcptProjectVersionsService.restoreVersion`, which stamps every column it puts back — a restore
 /// that left the stamps behind would be undone by the next merge — and the changeset engine
-/// (`docs/plans/collaboration-and-sync.md`, M3) is what will fill it for every other edit. Whoever
-/// writes here writes in the same transaction as the row being stamped, or the two drift apart
-/// silently.
+/// (`OcptChangesetService`, `docs/architecture/sync.md`) is what fills it for every other edit.
+/// Whoever writes here writes in the same transaction as the row being stamped, or the two drift
+/// apart silently.
 ///
 /// [rowId] holds the stamped row's primary key rendered as text. Every synchronised table this
 /// project has keys its rows by a single text column except `shot_characters`, whose key is

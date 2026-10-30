@@ -37,7 +37,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/o
 /// this widget *is* how the day view shows what the day's events are. A reader looking for a
 /// marker on the day view itself will not find one; the week grid's own full-width marker
 /// (`OcptScheduleWeekGrid`) is the only agenda presentation that draws one, the strip and month
-/// agendas being out of scope for this milestone.
+/// agendas drawing none.
 class OcptScheduleDayEventsList extends StatelessWidget {
   /// The day's own live events, already ordered by hour.
   final List<OcptShootingDayEvent> events;

@@ -173,7 +173,7 @@ class OcptBudgetRegieDay extends Equatable {
 /// schedule's own chronological order gets it because the schedule handed the days in that order
 /// already, not because this function imposes one of its own.
 ///
-/// **The buffet's own reading is untouched by this milestone.** Crew is the distinct `personId` set
+/// **The buffet's own reading is mechanical.** Crew is the distinct `personId` set
 /// across every slot of the day ([OcptShootingSlot.crew]): a person linked to three slots of one
 /// day still counts once. Cast and extras are the distinct `roleId` set across the day's slots
 /// ([OcptShootingSlot.cast]), split on [roleKindById]: a role of kind [OcptRoleKind.extra] counts as
@@ -235,7 +235,7 @@ OcptBudgetRegieDay _ocptBudgetRegieDayOf(
   required int? mealPriceCents,
   required int? buffetPriceCents,
 }) {
-  // The buffet's own day-wide reading — mechanical, unchanged by this milestone.
+  // The buffet's own day-wide reading — mechanical.
   final crewPersonIds = <String>{};
   final castRoleIds = <String>{};
 

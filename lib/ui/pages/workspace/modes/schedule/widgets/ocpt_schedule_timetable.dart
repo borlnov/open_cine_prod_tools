@@ -50,9 +50,8 @@ class _OcptScheduleDraggedBlock {
 /// row's own `Move to…` menu for the keyboard path), the anchor pin, a shot block's own status
 /// control, and a delete/add-block pair (`design.html` lines 311-335).
 ///
-/// A day used to carry one shared timetable, drawn once beneath every slot card; it no longer does
-/// (M2') — every slot now draws its own copy of this widget, over its own [blocks] alone, chained
-/// by its own [timeline].
+/// Every slot draws its own copy of this widget, over its own [blocks] alone, chained by its own
+/// [timeline].
 ///
 /// A **hold** row carries one further control the others don't: a picker naming the sequence it
 /// reserves time for ([onHoldSequenceChanged]), writing `shooting_day_blocks.sceneId` — which is

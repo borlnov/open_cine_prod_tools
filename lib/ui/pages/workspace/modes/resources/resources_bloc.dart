@@ -1678,10 +1678,10 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     }
 
     // Always lands on the roles tab, exactly like [_onTabSelected] switching to it: this event is
-    // dispatched from a row of `OcptRolesList` — already there, a no-op below — and, since the M4
-    // compact banner, from any tab at all, which is the case this actually has to answer. Clears
-    // the search query the same way a genuine tab switch does, so a query left over from another
-    // tab's list can never keep filtering the roles tab it lands on.
+    // dispatched from a row of `OcptRolesList` — already there, a no-op below — and, from the
+    // compact role banner, from any tab at all, which is the case this actually has to answer.
+    // Clears the search query the same way a genuine tab switch does, so a query left over from
+    // another tab's list can never keep filtering the roles tab it lands on.
     final isAlreadyOnRolesTab = state.activeTab == OcptResourcesTab.roles;
 
     emitter(

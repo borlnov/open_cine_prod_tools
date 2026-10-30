@@ -239,7 +239,7 @@ the persistence, the project versions, the sync-ready data model and the read-on
   `.sp`/`.w`/`.r` behind `buildOcptThemeModel`, active only on `PlatformManager.isMobile` — is
   described next, beside the app's width-breakpoint seam.
 
-- The mobile responsive theme foundation (M2): `flutter_screenutil` scales sizes on mobile only —
+- The mobile responsive theme foundation: `flutter_screenutil` scales sizes on mobile only —
   `.sp` for fonts, `.w`/`.h` for dimensions — neutralised to the identity function on desktop, the
   running platform read from `PlatformManager` (`act_platform_manager`, `isMobile`/`isDesktop`),
   registered in `OcptGlobalManager` beside `OcptConfigManager`. `ActThemeModel` builds and caches
@@ -449,8 +449,8 @@ the persistence, the project versions, the sync-ready data model and the read-on
   `position` survives as a legacy column stamped once at insertion and never renumbered — nothing
   reads it, and `OcptShot.position` is a read-time rank the loading service counts off, not that
   column. `row_field_versions` holds the per-column version stamps a merge resolves conflicts with;
-  the only writer so far is a version restore (above), and M3 of the collaboration plan is what will
-  stamp every other edit — a composite primary key is rendered into `rowId` through
+  a version restore (above) and the domain services write them through `OcptRowStampService` — a
+  composite primary key is rendered into `rowId` through
   `ocptCompositeRowStampKey` (`lib/utils/ocpt_row_stamp_key.dart`), the app's single encoding of
   one. `OcptPropertiesManager.loadOrCreateDeviceId()` mints and keeps this replica's UUID.
 

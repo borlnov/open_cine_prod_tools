@@ -40,10 +40,10 @@ import 'package:open_cine_prod_tools/utils/ocpt_cost_amount.dart';
 /// former step 2 already drew, its nature read once, silently, off whichever of [existing]'s own
 /// links is set (`ocptBudgetEntryNatureOfLinks`), exactly as before.
 ///
-/// **[OcptBudgetEntryLinkKind.person] is reachable here now**, unlike before this milestone: the
+/// **[OcptBudgetEntryLinkKind.person] is reachable here**: the
 /// capture wizard's own `reimbursePerson` gesture can write an entry naming a person, and this
-/// dialog has to be able to edit it back rather than throwing the moment it tries. [people] is new
-/// for exactly that: the `Personne` field mirrors `_buildShareField` verbatim.
+/// dialog has to be able to edit it back rather than throwing the moment it tries. [people] is
+/// there for exactly that: the `Personne` field mirrors `_buildShareField` verbatim.
 ///
 /// Structured after `OcptProjectVersionCreateDialog`: a [Form] validating the label before `Save`
 /// is honoured, an `AlertDialog`. `Date` is `OcptPersonSheetDateField`; `Amount` is read through
@@ -137,7 +137,7 @@ class OcptBudgetEntryDialog extends StatefulWidget {
 }
 
 /// The `Recette` picker's own value standing for the taking `New taking…` has just collected but
-/// nothing has created yet — unchanged from before this milestone.
+/// nothing has created yet.
 const String _ocptNewRevenuePickedValue = "#new-revenue";
 
 /// The `Recette` picker's own value standing for the `New taking…` action itself.
@@ -464,7 +464,7 @@ class _OcptBudgetEntryDialogState extends State<OcptBudgetEntryDialog> {
   );
 
   /// `Recette` — offered under [OcptBudgetEntryNature.revenue] alone. Carries the `New taking…`
-  /// entry unchanged from before this milestone: see [_onRevenuePicked].
+  /// entry: see [_onRevenuePicked].
   Widget _buildRevenueField(BuildContext context, Tr tr) => DropdownButtonFormField<String?>(
     key: ValueKey("ocptBudgetEntryWizardRevenueField/$_revenueId/${_newRevenue?.label}"),
     initialValue: _revenueId,
@@ -507,8 +507,8 @@ class _OcptBudgetEntryDialogState extends State<OcptBudgetEntryDialog> {
   );
 
   /// `Personne` — offered under [OcptBudgetEntryNature.personReimbursement] alone. Mirrors
-  /// [_buildShareField] verbatim: the field this dialog could neither draw nor infer before this
-  /// milestone gave [OcptBudgetEntryLinkKind.person] a real screen instead of a thrown error.
+  /// [_buildShareField] verbatim: the field that gives [OcptBudgetEntryLinkKind.person] a real
+  /// screen instead of a thrown error.
   Widget _buildPersonField(Tr tr) => DropdownButtonFormField<String?>(
     key: const Key("ocptBudgetEntryWizardPersonField"),
     initialValue: _personId,
@@ -521,7 +521,7 @@ class _OcptBudgetEntryDialogState extends State<OcptBudgetEntryDialog> {
     onChanged: (value) => setState(() => _personId = value),
   );
 
-  /// Applies the `Recette` picker's own choice — unchanged from before this milestone.
+  /// Applies the `Recette` picker's own choice.
   Future<void> _onRevenuePicked(String? value) async {
     if (value != _ocptNewRevenueActionValue) {
       setState(() => _revenueId = value);

@@ -77,9 +77,8 @@ class SpellChecker {
   /// The dictionary this checker looks words up in.
   final SpellDictionary dictionary;
 
-  /// The index narrowing which affix rules a lookup tries (§2.3's first
-  /// performance rule). Exposed so a test can assert its shape without
-  /// having to time anything.
+  /// The index narrowing which affix rules a lookup tries. Exposed so a test
+  /// can assert its shape without having to time anything.
   final HunspellAffixRuleIndex ruleIndex;
 
   /// The bound on [_memo]'s size.

@@ -273,7 +273,7 @@ void main() {
       expect(find.text(tr.budgetCostTrackingColumnRemaining.toUpperCase()), findsOneWidget);
       expect(find.text(tr.budgetCostTrackingColumnFinalCost.toUpperCase()), findsOneWidget);
       expect(find.text(tr.budgetCostTrackingColumnVariance.toUpperCase()), findsOneWidget);
-      // The two columns this milestone drops leave the table altogether.
+      // The two dropped columns leave the table altogether.
       expect(find.text(tr.budgetCostTrackingColumnEstimateToComplete.toUpperCase()), findsNothing);
       expect(find.text(tr.budgetCostTrackingColumnConsumed.toUpperCase()), findsNothing);
     },

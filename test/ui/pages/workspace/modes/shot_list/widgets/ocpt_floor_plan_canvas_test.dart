@@ -24,7 +24,7 @@ import 'package:open_cine_prod_tools/utils/ocpt_floor_plan_geometry.dart';
 
 /// Wraps [child] with the localization delegates so `Tr.of` lookups resolve, and sets the test
 /// surface past the 800 px compact breakpoint (`docs/architecture/foundations.md`), matching every
-/// other shot list widget test of this milestone.
+/// other shot list widget test.
 Future<void> _pumpCanvas(WidgetTester tester, Widget child) async {
   tester.view.physicalSize = const Size(1400, 900);
   tester.view.devicePixelRatio = 1.0;
@@ -428,10 +428,10 @@ void main() {
           symbolCentreScreen +
           Offset(0, -(defaultFootprintM / 2 + rotateHandleGapM) * pixelsPerMetre);
 
-      // The bug this milestone fixes read the pointer relative to the handle's own 18x18 hit
-      // box instead of canvas space: the handle's own starting point (up, away from the centre)
-      // is itself proof the two frames disagree, so driving the gesture from here and asserting
-      // an exact bearing below is what a still-buggy `details.localPosition` reader would fail.
+      // Reading the pointer relative to the handle's own 18x18 hit box instead of canvas space
+      // would be wrong: the handle's own starting point (up, away from the centre) is itself proof
+      // the two frames disagree, so driving the gesture from here and asserting an exact bearing
+      // below is what a still-buggy `details.localPosition` reader would fail.
       final gesture = await tester.startGesture(canvasTopLeft + handleScreen);
       // Move the pointer to a point due east of the symbol's own centre: a 90° bearing (0° = up,
       // clockwise positive), whatever the handle's own starting position was.

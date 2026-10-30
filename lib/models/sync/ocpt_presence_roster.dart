@@ -7,7 +7,7 @@ import 'package:open_cine_prod_tools/models/sync/ocpt_presence_frame.dart';
 
 /// Every replica `OcptPresenceService` currently knows to have the project open — this replica
 /// itself, first, then every peer whose last heartbeat has not yet aged past the service's own
-/// TTL — what a presence indicator (Phase C) renders as its avatar cluster.
+/// TTL — what the presence indicator renders as its avatar cluster.
 ///
 /// This is a report only, exactly as `OcptSyncStatus` is for the sync session: nothing here
 /// writes anything, and `OcptPresenceService` is what actually decides when a peer joins or ages

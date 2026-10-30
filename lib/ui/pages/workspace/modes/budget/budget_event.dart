@@ -702,8 +702,8 @@ class OcptBudgetCommitmentPromotedToQuoteEvent extends OcptBudgetEvent {
 /// doc comment), so leaving some of them still attached would contradict that promise. **The
 /// journal entries it named are never touched otherwise**: each is a movement that either happened
 /// or did not, and the journal is where one is deleted, if it should be — this event only forgets
-/// the link, not the payment. Unlinking one instalment among several, rather than all of them, is a
-/// later milestone's job, once the expenses tree draws a commitment's own payments individually.
+/// the link, not the payment. This event unlinks all of them at once, not one instalment among
+/// several.
 class OcptBudgetCommitmentUnsettleRequestedEvent extends OcptBudgetEvent {
   /// The id of the commitment to unsettle.
   final String commitmentId;

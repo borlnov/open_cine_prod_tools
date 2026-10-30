@@ -410,10 +410,9 @@ class _BreakdownViewState extends State<_BreakdownView> {
     );
   }
 
-  /// Builds the shell's `centre`: the compact role alert banner (ADR 0030 decision 4, refined by
-  /// the M4 step of `docs/plans/shot-characters-are-roles.md`), then the header band, then whichever
-  /// of the script view or the recap table [OcptBreakdownState.centreView] currently names, filling
-  /// the rest of the row.
+  /// Builds the shell's `centre`: the compact role alert banner (ADR 0030 decision 4), then the
+  /// header band, then whichever of the script view or the recap table
+  /// [OcptBreakdownState.centreView] currently names, filling the rest of the row.
   ///
   /// The banner sits above everything else and stays whichever scene or target is selected: it
   /// reports the whole cast, not something about the sheet currently being looked at.
