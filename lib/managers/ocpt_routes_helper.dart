@@ -43,15 +43,14 @@ class OcptRoutesHelper extends AbstractRoutesHelper<OcptRoute> {
 
   /// Callback to create the [OcptProjectSettingsPage]
   ///
-  /// The route's `extra` names the section the page scrolls to when it opens, or is null (anything
-  /// that is not an [OcptProjectSettingsReveal] included) for the page opened plainly.
-  RoutePageDetails _createProjectSettingsPage(BuildContext context, GoRouterState state) {
-    final reveal = state.extra;
-
-    return RoutePageDetails(
-      widget: OcptProjectSettingsPage(reveal: reveal is OcptProjectSettingsReveal ? reveal : null),
-    );
-  }
+  /// The route's `extra` names the section the page scrolls to when it opens, or is null for the
+  /// page opened plainly.
+  RoutePageDetails _createProjectSettingsPage(BuildContext context, GoRouterState state) =>
+      RoutePageDetails(
+        widget: OcptProjectSettingsPage(
+          reveal: checkAndCastNullableExtra<OcptProjectSettingsReveal>(state),
+        ),
+      );
 
   /// Callback to create the [OcptSharingPage]
   RoutePageDetails _createSharingPage(BuildContext context, GoRouterState state) =>
