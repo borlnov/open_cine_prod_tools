@@ -297,18 +297,9 @@ class _OcptSyncStatusPanel extends StatelessWidget {
             ),
           ),
           const Divider(height: 1),
-          MenuItemButton(
-            onPressed: onSyncNowRequested,
-            child: Text(tr.workspaceSyncActionSyncNow),
-          ),
-          MenuItemButton(
-            onPressed: onSharingRequested,
-            child: Text(tr.workspaceSyncActionShowQr),
-          ),
-          MenuItemButton(
-            onPressed: onSharingRequested,
-            child: Text(tr.workspaceSyncActionRepair),
-          ),
+          MenuItemButton(onPressed: onSyncNowRequested, child: Text(tr.workspaceSyncActionSyncNow)),
+          MenuItemButton(onPressed: onSharingRequested, child: Text(tr.workspaceSyncActionShowQr)),
+          MenuItemButton(onPressed: onSharingRequested, child: Text(tr.workspaceSyncActionRepair)),
           MenuItemButton(
             onPressed: onSwitchRelayRequested,
             child: Text(tr.workspaceSyncActionSwitchRelay),
@@ -324,9 +315,10 @@ class _OcptSyncStatusPanel extends StatelessWidget {
 String _labelFor(Tr tr, OcptSyncStatus status) => switch (status) {
   OcptSyncStatusInSync() => tr.workspaceSyncStatusInSync,
   OcptSyncStatusSyncing() => tr.workspaceSyncStatusSyncing,
-  OcptSyncStatusOffline(pendingEditCount: final count) => count == null
-      ? tr.workspaceSyncStatusOfflineUnknown
-      : tr.workspaceSyncStatusOfflinePending(count),
+  OcptSyncStatusOffline(pendingEditCount: final count) =>
+    count == null
+        ? tr.workspaceSyncStatusOfflineUnknown
+        : tr.workspaceSyncStatusOfflinePending(count),
   OcptSyncStatusError() => tr.workspaceSyncStatusError,
 };
 

@@ -253,12 +253,7 @@ List<OcptBudgetProvisionEntry> ocptBudgetProvisionPlanOf({
         label: label,
         quantityMilli: 0,
         unitAmountCents: 0,
-        outcome: _outcomeOf(
-          existing: line,
-          label: label,
-          quantityMilli: 0,
-          unitAmountCents: 0,
-        ),
+        outcome: _outcomeOf(existing: line, label: label, quantityMilli: 0, unitAmountCents: 0),
       ),
     );
   }

@@ -42,7 +42,10 @@ void main() {
   testWidgets("shows the localized label of currentType", (tester) async {
     await tester.pumpWidget(
       _wrapWithLocalization(
-        OcptEditorBlockTypeDropdown(currentType: FountainLineType.character, onTypeSelected: (_) {}),
+        OcptEditorBlockTypeDropdown(
+          currentType: FountainLineType.character,
+          onTypeSelected: (_) {},
+        ),
       ),
     );
 

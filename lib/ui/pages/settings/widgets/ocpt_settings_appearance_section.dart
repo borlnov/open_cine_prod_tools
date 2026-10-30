@@ -51,7 +51,10 @@ class OcptSettingsAppearanceSection extends StatelessWidget {
                       value: Brightness.light,
                       child: Text(tr.settingsThemeLightOption),
                     ),
-                    DropdownMenuItem(value: Brightness.dark, child: Text(tr.settingsThemeDarkOption)),
+                    DropdownMenuItem(
+                      value: Brightness.dark,
+                      child: Text(tr.settingsThemeDarkOption),
+                    ),
                   ],
                 ),
               ],

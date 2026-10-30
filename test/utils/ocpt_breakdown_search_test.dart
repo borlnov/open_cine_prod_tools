@@ -90,7 +90,10 @@ void main() {
     test("an empty query matches every candidate", () {
       final results = ocptBreakdownSearchCatalogues(
         query: "",
-        candidates: [_element(id: "e1", name: "Lampe"), _element(id: "e2", name: "Chaise")],
+        candidates: [
+          _element(id: "e1", name: "Lampe"),
+          _element(id: "e2", name: "Chaise"),
+        ],
       );
 
       expect(results.elements.map((c) => c.id).toSet(), {"e1", "e2"});
@@ -105,14 +108,20 @@ void main() {
       expect(results.elements.map((c) => c.id), ["e1"]);
     });
 
-    test("an unaccented query finds an accented name, folding through ocptResourcesSearchMatches", () {
-      final results = ocptBreakdownSearchCatalogues(
-        query: "lea",
-        candidates: [_role(id: "r1", name: "Léa"), _role(id: "r2", name: "Marc")],
-      );
+    test(
+      "an unaccented query finds an accented name, folding through ocptResourcesSearchMatches",
+      () {
+        final results = ocptBreakdownSearchCatalogues(
+          query: "lea",
+          candidates: [
+            _role(id: "r1", name: "Léa"),
+            _role(id: "r2", name: "Marc"),
+          ],
+        );
 
-      expect(results.roles.map((c) => c.id), ["r1"]);
-    });
+        expect(results.roles.map((c) => c.id), ["r1"]);
+      },
+    );
 
     test("a query typed into the middle of a name still finds it", () {
       final results = ocptBreakdownSearchCatalogues(
@@ -179,7 +188,10 @@ void main() {
     test("ties fall back to the name, compared normalized so accents don't scatter the order", () {
       final results = ocptBreakdownSearchCatalogues(
         query: "",
-        candidates: [_role(id: "r1", name: "Zoé"), _role(id: "r2", name: "Amélie")],
+        candidates: [
+          _role(id: "r1", name: "Zoé"),
+          _role(id: "r2", name: "Amélie"),
+        ],
       );
 
       expect(results.roles.map((c) => c.id), ["r2", "r1"]);
@@ -188,7 +200,10 @@ void main() {
     test("a full tie on name falls back to the id, deterministically", () {
       final results = ocptBreakdownSearchCatalogues(
         query: "",
-        candidates: [_role(id: "r2", name: "Léa"), _role(id: "r1", name: "Léa")],
+        candidates: [
+          _role(id: "r2", name: "Léa"),
+          _role(id: "r1", name: "Léa"),
+        ],
       );
 
       expect(results.roles.map((c) => c.id), ["r1", "r2"]);
@@ -275,7 +290,11 @@ void main() {
         isTrue,
       );
       expect(
-        ocptBreakdownRecapRowMatches(query: "chair", targetName: "Desk lamp", categoryLabel: "Prop"),
+        ocptBreakdownRecapRowMatches(
+          query: "chair",
+          targetName: "Desk lamp",
+          categoryLabel: "Prop",
+        ),
         isFalse,
       );
     });
@@ -323,16 +342,23 @@ void main() {
       );
     });
 
-    test("a role or a set (no sub-category/owner/notes passed) still matches on its name/category", () {
-      expect(
-        ocptBreakdownRecapRowMatches(query: "léa", targetName: "Léa", categoryLabel: "Characters"),
-        isTrue,
-      );
-      expect(
-        ocptBreakdownRecapRowMatches(query: "kitchen", targetName: "Léa", categoryLabel: "Set"),
-        isFalse,
-      );
-    });
+    test(
+      "a role or a set (no sub-category/owner/notes passed) still matches on its name/category",
+      () {
+        expect(
+          ocptBreakdownRecapRowMatches(
+            query: "léa",
+            targetName: "Léa",
+            categoryLabel: "Characters",
+          ),
+          isTrue,
+        );
+        expect(
+          ocptBreakdownRecapRowMatches(query: "kitchen", targetName: "Léa", categoryLabel: "Set"),
+          isFalse,
+        );
+      },
+    );
 
     test("a query matching nothing at all returns false", () {
       expect(

@@ -353,7 +353,10 @@ void main() {
       final state = await waitForState(bloc, (state) => !state.isLoading);
 
       expect(state.postes, hasLength(10));
-      expect(state.postes.map((poste) => poste.id).toSet(), ocptBudgetCncPostes.map((c) => c.id).toSet());
+      expect(
+        state.postes.map((poste) => poste.id).toSet(),
+        ocptBudgetCncPostes.map((c) => c.id).toSet(),
+      );
     });
 
     test("reads the project's own currency and default VAT rate", () async {
@@ -447,8 +450,15 @@ void main() {
       final posteId = loaded.postes.first.id;
 
       bloc.add(OcptBudgetLineCreatedEvent(posteId: posteId));
-      final loadedWithLine = await waitForState(bloc, (state) => state.postes.first.lines.isNotEmpty);
-      final lineId = loadedWithLine.postes.firstWhere((poste) => poste.id == posteId).lines.single.id;
+      final loadedWithLine = await waitForState(
+        bloc,
+        (state) => state.postes.first.lines.isNotEmpty,
+      );
+      final lineId = loadedWithLine.postes
+          .firstWhere((poste) => poste.id == posteId)
+          .lines
+          .single
+          .id;
       final withLine = await waitForState(
         bloc,
         (state) => state.selection == OcptBudgetLineSelection(lineId),
@@ -497,12 +507,13 @@ void main() {
 
       final flushed = await waitForState(
         bloc,
-        (state) => state.postes
-            .firstWhere((poste) => poste.id == posteId)
-            .lines
-            .firstWhere((line) => line.id == lineId)
-            .unitPrice
-            .amountCents ==
+        (state) =>
+            state.postes
+                .firstWhere((poste) => poste.id == posteId)
+                .lines
+                .firstWhere((line) => line.id == lineId)
+                .unitPrice
+                .amountCents ==
             1250,
       );
 
@@ -560,37 +571,40 @@ void main() {
       expect(switched.pendingFieldEdits, isEmpty);
     });
 
-    test("skips the write when the typed unit price does not parse, leaving the stored value alone", () async {
-      final bloc = buildBloc();
-      addTearDown(bloc.close);
-      final loaded = await waitForState(bloc, (state) => !state.isLoading);
-      final posteId = loaded.postes.first.id;
+    test(
+      "skips the write when the typed unit price does not parse, leaving the stored value alone",
+      () async {
+        final bloc = buildBloc();
+        addTearDown(bloc.close);
+        final loaded = await waitForState(bloc, (state) => !state.isLoading);
+        final posteId = loaded.postes.first.id;
 
-      bloc.add(OcptBudgetLineCreatedEvent(posteId: posteId));
-      final withLine = await waitForState(
-        bloc,
-        (state) => state.postes.firstWhere((poste) => poste.id == posteId).lines.isNotEmpty,
-      );
-      final lineId = withLine.postes.firstWhere((poste) => poste.id == posteId).lines.single.id;
-      final storedBefore = withLine.postes
-          .firstWhere((poste) => poste.id == posteId)
-          .lines
-          .single
-          .unitPrice
-          .amountCents;
+        bloc.add(OcptBudgetLineCreatedEvent(posteId: posteId));
+        final withLine = await waitForState(
+          bloc,
+          (state) => state.postes.firstWhere((poste) => poste.id == posteId).lines.isNotEmpty,
+        );
+        final lineId = withLine.postes.firstWhere((poste) => poste.id == posteId).lines.single.id;
+        final storedBefore = withLine.postes
+            .firstWhere((poste) => poste.id == posteId)
+            .lines
+            .single
+            .unitPrice
+            .amountCents;
 
-      bloc.add(
-        OcptBudgetFieldChangedEvent(
-          targetId: lineId,
-          field: OcptBudgetField.lineUnitAmount,
-          rawValue: "not a number",
-        ),
-      );
-      final flushed = await waitForState(bloc, (state) => state.pendingFieldEdits.isEmpty);
+        bloc.add(
+          OcptBudgetFieldChangedEvent(
+            targetId: lineId,
+            field: OcptBudgetField.lineUnitAmount,
+            rawValue: "not a number",
+          ),
+        );
+        final flushed = await waitForState(bloc, (state) => state.pendingFieldEdits.isEmpty);
 
-      final line = flushed.postes.firstWhere((poste) => poste.id == posteId).lines.single;
-      expect(line.unitPrice.amountCents, storedBefore);
-    });
+        final line = flushed.postes.firstWhere((poste) => poste.id == posteId).lines.single;
+        expect(line.unitPrice.amountCents, storedBefore);
+      },
+    );
   });
 
   group("selecting a view", () {
@@ -707,7 +721,12 @@ void main() {
       );
 
       expect(
-        state.postes.firstWhere((poste) => poste.id == posteId).lines.single.unitPrice.isTaxInclusive,
+        state.postes
+            .firstWhere((poste) => poste.id == posteId)
+            .lines
+            .single
+            .unitPrice
+            .isTaxInclusive,
         isFalse,
       );
     });
@@ -743,29 +762,36 @@ void main() {
       bloc.add(const OcptBudgetProjectSettingsChangedEvent());
       await waitForState(
         bloc,
-        (state) => state.postes
-            .firstWhere((poste) => poste.id == posteId)
-            .lines
-            .single
-            .unitPrice
-            .vatRateBasisPoints ==
+        (state) =>
+            state.postes
+                .firstWhere((poste) => poste.id == posteId)
+                .lines
+                .single
+                .unitPrice
+                .vatRateBasisPoints ==
             550,
       );
 
       bloc.add(OcptBudgetLineVatRateInheritedRequestedEvent(lineId: lineId));
       final state = await waitForState(
         bloc,
-        (state) => state.postes
-            .firstWhere((poste) => poste.id == posteId)
-            .lines
-            .single
-            .unitPrice
-            .vatRateBasisPoints ==
+        (state) =>
+            state.postes
+                .firstWhere((poste) => poste.id == posteId)
+                .lines
+                .single
+                .unitPrice
+                .vatRateBasisPoints ==
             null,
       );
 
       expect(
-        state.postes.firstWhere((poste) => poste.id == posteId).lines.single.unitPrice.vatRateBasisPoints,
+        state.postes
+            .firstWhere((poste) => poste.id == posteId)
+            .lines
+            .single
+            .unitPrice
+            .vatRateBasisPoints,
         isNull,
       );
     });
@@ -790,8 +816,8 @@ void main() {
       // flushed yet.
       final pending = await waitForState(
         bloc,
-        (state) => state.pendingFieldEdits[(posteId, OcptBudgetField.posteEstimateToComplete)] ==
-            "12.50",
+        (state) =>
+            state.pendingFieldEdits[(posteId, OcptBudgetField.posteEstimateToComplete)] == "12.50",
       );
       expect(pending.fieldValueOf(posteId, OcptBudgetField.posteEstimateToComplete, ""), "12.50");
 
@@ -909,35 +935,41 @@ void main() {
 
       bloc.add(const OcptBudgetRightDockTabSelectedEvent(tab: OcptBudgetRightDockTab.versions));
       await waitForState(bloc, (state) => state.rightDockTab == OcptBudgetRightDockTab.versions);
-      expect(await propertiesManager.budgetLastRightDockTab.load(), OcptBudgetRightDockTab.versions);
+      expect(
+        await propertiesManager.budgetLastRightDockTab.load(),
+        OcptBudgetRightDockTab.versions,
+      );
     });
   });
 
   group("the cash journal", () {
-    test("loads its entries, and paidCentsOf reflects a poste that has actually been paid", () async {
-      final bloc = buildBloc();
-      addTearDown(bloc.close);
-      final loaded = await waitForState(bloc, (state) => !state.isLoading);
-      final posteId = loaded.postes.first.id;
-      final otherPosteId = loaded.postes[1].id;
-      final project = projectsManager.currentProject!;
+    test(
+      "loads its entries, and paidCentsOf reflects a poste that has actually been paid",
+      () async {
+        final bloc = buildBloc();
+        addTearDown(bloc.close);
+        final loaded = await waitForState(bloc, (state) => !state.isLoading);
+        final posteId = loaded.postes.first.id;
+        final otherPosteId = loaded.postes[1].id;
+        final project = projectsManager.currentProject!;
 
-      await projectsManager.budgetJournalService.createEntry(
-        database: project.database,
-        date: DateTime(2026),
-        label: "Camera rental",
-        posteId: posteId,
-        debitCents: 5000,
-      );
+        await projectsManager.budgetJournalService.createEntry(
+          database: project.database,
+          date: DateTime(2026),
+          label: "Camera rental",
+          posteId: posteId,
+          debitCents: 5000,
+        );
 
-      bloc.add(const OcptBudgetProjectSettingsChangedEvent());
-      final state = await waitForState(bloc, (state) => state.entries.isNotEmpty);
+        bloc.add(const OcptBudgetProjectSettingsChangedEvent());
+        final state = await waitForState(bloc, (state) => state.entries.isNotEmpty);
 
-      expect(state.entries, hasLength(1));
-      expect(state.paidCentsOf(posteId), 5000);
-      // A poste with no entry against it reads a real zero, not a hole.
-      expect(state.paidCentsOf(otherPosteId), 0);
-    });
+        expect(state.entries, hasLength(1));
+        expect(state.paidCentsOf(posteId), 5000);
+        // A poste with no entry against it reads a real zero, not a hole.
+        expect(state.paidCentsOf(otherPosteId), 0);
+      },
+    );
   });
 
   group("creating a cash-journal entry", () {
@@ -1969,7 +2001,10 @@ void main() {
           ),
         ),
       );
-      final state = await waitForState(bloc, (state) => state.commitments.single.label == "Renamed");
+      final state = await waitForState(
+        bloc,
+        (state) => state.commitments.single.label == "Renamed",
+      );
 
       final commitment = state.commitments.single;
       expect(commitment.posteId, posteId);
@@ -2395,7 +2430,9 @@ void main() {
       );
       final state = await waitForState(
         bloc,
-        (state) => ocptBudgetInKindCounterpartLineOf(state.postes, resourceId)?.unitPrice.amountCents == 400000,
+        (state) =>
+            ocptBudgetInKindCounterpartLineOf(state.postes, resourceId)?.unitPrice.amountCents ==
+            400000,
       );
 
       final poste = state.postes.singleWhere((poste) => poste.id == posteId);
@@ -2442,7 +2479,8 @@ void main() {
       );
       final state = await waitForState(
         bloc,
-        (state) => ocptBudgetInKindCounterpartLineOf(state.postes, resourceId)?.label == "Zoom lens loan",
+        (state) =>
+            ocptBudgetInKindCounterpartLineOf(state.postes, resourceId)?.label == "Zoom lens loan",
       );
 
       final poste = state.postes.singleWhere((poste) => poste.id == posteId);
@@ -2490,7 +2528,8 @@ void main() {
       );
       final state = await waitForState(
         bloc,
-        (state) => ocptBudgetInKindCounterpartLineOf(state.postes, resourceId)?.posteId == newPosteId,
+        (state) =>
+            ocptBudgetInKindCounterpartLineOf(state.postes, resourceId)?.posteId == newPosteId,
       );
 
       final oldPoste = state.postes.singleWhere((poste) => poste.id == originalPosteId);
@@ -2543,7 +2582,10 @@ void main() {
         (state) => ocptBudgetInKindCounterpartLineOf(state.postes, resourceId) == null,
       );
 
-      expect(state.resources.singleWhere((r) => r.id == resourceId).groupKind, OcptBudgetResourceGroupKind.cash);
+      expect(
+        state.resources.singleWhere((r) => r.id == resourceId).groupKind,
+        OcptBudgetResourceGroupKind.cash,
+      );
     });
 
     test("reclassifying cash to in-kind mints exactly one line", () async {
@@ -3133,77 +3175,82 @@ void main() {
   });
 
   group("the catering pass", () {
-    test("loads the schedule, the roles, the people and the prices, and computes the pass", () async {
-      final bloc = buildBloc();
-      addTearDown(bloc.close);
-      final project = projectsManager.currentProject!;
+    test(
+      "loads the schedule, the roles, the people and the prices, and computes the pass",
+      () async {
+        final bloc = buildBloc();
+        addTearDown(bloc.close);
+        final project = projectsManager.currentProject!;
 
-      final personId = await projectsManager.peopleService.createPerson(database: project.database);
-      expect(personId, isNotNull);
-      await projectsManager.peopleService.updatePerson(
-        database: project.database,
-        personId: personId!,
-        commuteKmMilli: const drift.Value(10000),
-      );
+        final personId = await projectsManager.peopleService.createPerson(
+          database: project.database,
+        );
+        expect(personId, isNotNull);
+        await projectsManager.peopleService.updatePerson(
+          database: project.database,
+          personId: personId!,
+          commuteKmMilli: const drift.Value(10000),
+        );
 
-      final locationId = await projectsManager.locationsService.createLocation(
-        database: project.database,
-        name: "Studio A",
-      );
-      expect(locationId, isNotNull);
+        final locationId = await projectsManager.locationsService.createLocation(
+          database: project.database,
+          name: "Studio A",
+        );
+        expect(locationId, isNotNull);
 
-      final dayId = await projectsManager.scheduleService.createDay(
-        database: project.database,
-        date: DateTime(2026, 3),
-      );
-      expect(dayId, isNotNull);
+        final dayId = await projectsManager.scheduleService.createDay(
+          database: project.database,
+          date: DateTime(2026, 3),
+        );
+        expect(dayId, isNotNull);
 
-      final scheduleSnapshot = await projectsManager.scheduleService.loadSchedule(
-        database: project.database,
-      );
-      final slotId = scheduleSnapshot.slotsByDayId[dayId]!.single.id;
-      await projectsManager.scheduleService.updateSlot(
-        database: project.database,
-        slotId: slotId,
-        locationId: drift.Value(locationId),
-      );
-      await projectsManager.scheduleService.addSlotCrewMember(
-        database: project.database,
-        slotId: slotId,
-        personId: personId,
-      );
+        final scheduleSnapshot = await projectsManager.scheduleService.loadSchedule(
+          database: project.database,
+        );
+        final slotId = scheduleSnapshot.slotsByDayId[dayId]!.single.id;
+        await projectsManager.scheduleService.updateSlot(
+          database: project.database,
+          slotId: slotId,
+          locationId: drift.Value(locationId),
+        );
+        await projectsManager.scheduleService.addSlotCrewMember(
+          database: project.database,
+          slotId: slotId,
+          personId: personId,
+        );
 
-      await projectsManager.saveCurrentProjectMealPriceCents(1200);
-      await projectsManager.saveCurrentProjectSnackPriceCents(400);
+        await projectsManager.saveCurrentProjectMealPriceCents(1200);
+        await projectsManager.saveCurrentProjectSnackPriceCents(400);
 
-      // A mileage scale, there to pre-fill a defrayal somebody types — never to deduce one.
-      await projectsManager.budgetFinancingService.createMileageRate(
-        database: project.database,
-        label: "Car",
-      );
+        // A mileage scale, there to pre-fill a defrayal somebody types — never to deduce one.
+        await projectsManager.budgetFinancingService.createMileageRate(
+          database: project.database,
+          label: "Car",
+        );
 
-      bloc.add(const OcptBudgetProjectSettingsChangedEvent());
-      // Waits for the crew count itself, not merely for a day to exist: the bloc's own initial
-      // load (fired at construction, before any of the writes above) races these very writes, and
-      // a state it emits mid-way through them would still make `regieDays` non-empty on its own.
-      final state = await waitForState(
-        bloc,
-        (state) => state.regieDays.isNotEmpty && state.regieDays.single.crewCount == 1,
-      );
+        bloc.add(const OcptBudgetProjectSettingsChangedEvent());
+        // Waits for the crew count itself, not merely for a day to exist: the bloc's own initial
+        // load (fired at construction, before any of the writes above) races these very writes, and
+        // a state it emits mid-way through them would still make `regieDays` non-empty on its own.
+        final state = await waitForState(
+          bloc,
+          (state) => state.regieDays.isNotEmpty && state.regieDays.single.crewCount == 1,
+        );
 
-      expect(state.regieDays.single.dayId, dayId);
-      expect(state.regieDays.single.crewCount, 1);
-      expect(state.regieDays.single.headCount, 1);
-      expect(state.regieDays.single.cost.isComplete, isTrue);
-      expect(state.regieDecorNameByDayId[dayId], "Studio A");
+        expect(state.regieDays.single.dayId, dayId);
+        expect(state.regieDays.single.crewCount, 1);
+        expect(state.regieDays.single.headCount, 1);
+        expect(state.regieDays.single.cost.isComplete, isTrue);
+        expect(state.regieDecorNameByDayId[dayId], "Studio A");
 
-      // The person's own commute is loaded and the mileage scales with it — both there to
-      // pre-fill a defrayal somebody types — and nothing is deduced from either: a production that
-      // has written no defrayal is defraying nobody.
-      expect(state.allowances, isEmpty);
-      expect(state.people.map((person) => person.id), contains(personId));
-      expect(state.mileageRates, hasLength(1));
-    });
+        // The person's own commute is loaded and the mileage scales with it — both there to
+        // pre-fill a defrayal somebody types — and nothing is deduced from either: a production that
+        // has written no defrayal is defraying nobody.
+        expect(state.allowances, isEmpty);
+        expect(state.people.map((person) => person.id), contains(personId));
+        expect(state.mileageRates, hasLength(1));
+      },
+    );
   });
 
   group("the breakdown link", () {
@@ -3236,10 +3283,7 @@ void main() {
           OcptBudgetLineCreatedFromElementEvent(posteId: posteId, elementId: pricedElementId!),
         );
 
-        final state = await waitForState(
-          bloc,
-          (state) => state.elementLinkCounts.pricedCount == 1,
-        );
+        final state = await waitForState(bloc, (state) => state.elementLinkCounts.pricedCount == 1);
 
         expect(state.elementLinkCounts.unpricedCount, 1);
         expect(state.unpricedElements.map((element) => element.id), [unpricedElementId]);
@@ -3273,7 +3317,8 @@ void main() {
 
         final state = await waitForState(
           bloc,
-          (state) => state.postes.any((poste) => poste.lines.any((line) => line.elementId == elementId)),
+          (state) =>
+              state.postes.any((poste) => poste.lines.any((line) => line.elementId == elementId)),
         );
         final line = state.postes
             .expand((poste) => poste.lines)
@@ -3284,70 +3329,77 @@ void main() {
       },
     );
 
-    test("event.quantityMilli seeds the fresh line's own quantity, absent leaving the default", () async {
-      final bloc = buildBloc();
-      addTearDown(bloc.close);
-      final project = projectsManager.currentProject!;
+    test(
+      "event.quantityMilli seeds the fresh line's own quantity, absent leaving the default",
+      () async {
+        final bloc = buildBloc();
+        addTearDown(bloc.close);
+        final project = projectsManager.currentProject!;
 
-      final elementId = await projectsManager.elementsService.createElement(
-        database: project.database,
-        name: "Rostrum",
-        category: OcptElementCategory.specialEquipment,
-        sourceKind: OcptElementSourceKind.toBuy,
-      );
-      expect(elementId, isNotNull);
+        final elementId = await projectsManager.elementsService.createElement(
+          database: project.database,
+          name: "Rostrum",
+          category: OcptElementCategory.specialEquipment,
+          sourceKind: OcptElementSourceKind.toBuy,
+        );
+        expect(elementId, isNotNull);
 
-      final loaded = await waitForState(bloc, (state) => state.elements.length == 1);
-      final posteId = loaded.postes.first.id;
+        final loaded = await waitForState(bloc, (state) => state.elements.length == 1);
+        final posteId = loaded.postes.first.id;
 
-      bloc.add(
-        OcptBudgetLineCreatedFromElementEvent(
-          posteId: posteId,
-          elementId: elementId!,
-          quantityMilli: 3000,
-        ),
-      );
+        bloc.add(
+          OcptBudgetLineCreatedFromElementEvent(
+            posteId: posteId,
+            elementId: elementId!,
+            quantityMilli: 3000,
+          ),
+        );
 
-      final state = await waitForState(
-        bloc,
-        (state) => state.postes.any((poste) => poste.lines.any((line) => line.elementId == elementId)),
-      );
-      final line = state.postes
-          .expand((poste) => poste.lines)
-          .firstWhere((line) => line.elementId == elementId);
+        final state = await waitForState(
+          bloc,
+          (state) =>
+              state.postes.any((poste) => poste.lines.any((line) => line.elementId == elementId)),
+        );
+        final line = state.postes
+            .expand((poste) => poste.lines)
+            .firstWhere((line) => line.elementId == elementId);
 
-      expect(line.quantityMilli, 3000);
-    });
+        expect(line.quantityMilli, 3000);
+      },
+    );
   });
 
   group("exporting the quote", () {
-    test("hands the snapshot and the tax basis to the manager and raises the succeeded notice", () async {
-      final exportManager = _FakeBudgetExportManager(quoteResult: "/tmp/quote.pdf");
-      final bloc = buildBloc(exportManager: exportManager);
-      await waitForState(bloc, (state) => !state.isLoading);
+    test(
+      "hands the snapshot and the tax basis to the manager and raises the succeeded notice",
+      () async {
+        final exportManager = _FakeBudgetExportManager(quoteResult: "/tmp/quote.pdf");
+        final bloc = buildBloc(exportManager: exportManager);
+        await waitForState(bloc, (state) => !state.isLoading);
 
-      bloc.add(
-        const OcptBudgetQuoteExportRequestedEvent(
-          options: OcptBudgetQuoteExportOptions(
-            format: OcptPageFormat.usLetter,
-            margins: FountainPageMargins.standard(),
-            includeTitlePage: true,
-            taxBasis: OcptBudgetTaxBasis.excludingTax,
+        bloc.add(
+          const OcptBudgetQuoteExportRequestedEvent(
+            options: OcptBudgetQuoteExportOptions(
+              format: OcptPageFormat.usLetter,
+              margins: FountainPageMargins.standard(),
+              includeTitlePage: true,
+              taxBasis: OcptBudgetTaxBasis.excludingTax,
+            ),
+            labels: _quoteLabels,
+            elementNameById: {},
+            fileTypeLabel: "PDF document",
           ),
-          labels: _quoteLabels,
-          elementNameById: {},
-          fileTypeLabel: "PDF document",
-        ),
-      );
-      final state = await waitForState(bloc, (state) => state.ioNotice != null);
+        );
+        final state = await waitForState(bloc, (state) => state.ioNotice != null);
 
-      expect(exportManager.lastQuoteSnapshot, isNotNull);
-      expect(exportManager.lastQuoteTaxBasis, OcptBudgetTaxBasis.excludingTax);
-      expect(state.ioNotice?.kind, OcptBudgetIoNoticeKind.fileExportSucceeded);
-      expect(state.ioNotice?.path, "/tmp/quote.pdf");
+        expect(exportManager.lastQuoteSnapshot, isNotNull);
+        expect(exportManager.lastQuoteTaxBasis, OcptBudgetTaxBasis.excludingTax);
+        expect(state.ioNotice?.kind, OcptBudgetIoNoticeKind.fileExportSucceeded);
+        expect(state.ioNotice?.path, "/tmp/quote.pdf");
 
-      await bloc.close();
-    });
+        await bloc.close();
+      },
+    );
 
     test("is a silent no-op when the save dialog is cancelled", () async {
       final bloc = buildBloc();
@@ -3626,14 +3678,16 @@ void main() {
       expect(onlyLineLeft.expandedNodeIds, {"line-1"});
     });
 
-    test("is not persisted across a fresh load — every bloc starts with nothing expanded",
-        () async {
-      final bloc = buildBloc();
-      addTearDown(bloc.close);
-      final state = await waitForState(bloc, (state) => !state.isLoading);
+    test(
+      "is not persisted across a fresh load — every bloc starts with nothing expanded",
+      () async {
+        final bloc = buildBloc();
+        addTearDown(bloc.close);
+        final state = await waitForState(bloc, (state) => !state.isLoading);
 
-      expect(state.expandedNodeIds, isEmpty);
-    });
+        expect(state.expandedNodeIds, isEmpty);
+      },
+    );
   });
 
   group("selecting a quote line, a commitment or an entry", () {
@@ -3785,43 +3839,46 @@ void main() {
       expect(bloc.state.selection, isNull);
     });
 
-    test("selecting a receipt names the same entry in the selection and opens the Inspector", () async {
-      final bloc = buildBloc();
-      addTearDown(bloc.close);
-      final loaded = await waitForState(bloc, (state) => !state.isLoading);
-      final posteId = loaded.postes.first.id;
+    test(
+      "selecting a receipt names the same entry in the selection and opens the Inspector",
+      () async {
+        final bloc = buildBloc();
+        addTearDown(bloc.close);
+        final loaded = await waitForState(bloc, (state) => !state.isLoading);
+        final posteId = loaded.postes.first.id;
 
-      bloc.add(
-        OcptBudgetEntryCreationConfirmedEvent(
-          fields: OcptBudgetEntryFormFields(
-            date: DateTime(2026, 3),
-            label: "Camera rental",
-            posteId: posteId,
-            resourceId: null,
-            revenueId: null,
-            shareId: null,
-            isDebit: true,
-            amountCents: 5000,
-            isTaxInclusive: true,
-            vatRateBasisPoints: null,
-            voucherNumber: null,
-            pickedReceiptPath: null,
-            isReceiptDetached: false,
+        bloc.add(
+          OcptBudgetEntryCreationConfirmedEvent(
+            fields: OcptBudgetEntryFormFields(
+              date: DateTime(2026, 3),
+              label: "Camera rental",
+              posteId: posteId,
+              resourceId: null,
+              revenueId: null,
+              shareId: null,
+              isDebit: true,
+              amountCents: 5000,
+              isTaxInclusive: true,
+              vatRateBasisPoints: null,
+              voucherNumber: null,
+              pickedReceiptPath: null,
+              isReceiptDetached: false,
+            ),
           ),
-        ),
-      );
-      final withEntry = await waitForState(bloc, (state) => state.entries.isNotEmpty);
-      final entryId = withEntry.entries.single.id;
+        );
+        final withEntry = await waitForState(bloc, (state) => state.entries.isNotEmpty);
+        final entryId = withEntry.entries.single.id;
 
-      bloc.add(OcptBudgetReceiptSelectedEvent(receiptId: entryId));
-      final state = await waitForState(
-        bloc,
-        (state) => state.selection == OcptBudgetReceiptSelection(entryId),
-      );
+        bloc.add(OcptBudgetReceiptSelectedEvent(receiptId: entryId));
+        final state = await waitForState(
+          bloc,
+          (state) => state.selection == OcptBudgetReceiptSelection(entryId),
+        );
 
-      expect(state.selection, OcptBudgetReceiptSelection(entryId));
-      expect(state.rightDockTab, OcptBudgetRightDockTab.inspector);
-    });
+        expect(state.selection, OcptBudgetReceiptSelection(entryId));
+        expect(state.rightDockTab, OcptBudgetRightDockTab.inspector);
+      },
+    );
 
     test("a receipt id naming no live entry is ignored", () async {
       final bloc = buildBloc();

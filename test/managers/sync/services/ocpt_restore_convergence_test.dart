@@ -89,7 +89,10 @@ void main() {
 
     final assetsService = OcptAssetsService(deviceId: thisDeviceId);
     final roleCandidatesService = OcptRoleCandidatesService(deviceId: thisDeviceId);
-    final elementsService = OcptElementsService(assetsService: assetsService, deviceId: thisDeviceId);
+    final elementsService = OcptElementsService(
+      assetsService: assetsService,
+      deviceId: thisDeviceId,
+    );
     final locationsService = OcptLocationsService(
       assetsService: assetsService,
       floorPlanService: OcptFloorPlanService(assetsService: assetsService, deviceId: thisDeviceId),
@@ -113,7 +116,10 @@ void main() {
           assetsService: assetsService,
           deviceId: thisDeviceId,
         ),
-        floorPlanService: OcptFloorPlanService(assetsService: assetsService, deviceId: thisDeviceId),
+        floorPlanService: OcptFloorPlanService(
+          assetsService: assetsService,
+          deviceId: thisDeviceId,
+        ),
         deviceId: thisDeviceId,
       ),
       shotCoverageService: OcptShotCoverageService(deviceId: thisDeviceId),
@@ -200,26 +206,29 @@ void main() {
 
   /// Every live (non-tombstoned) location's name in [database], in `sortKey` order.
   Future<List<String>> liveLocationNames(OcptProjectDatabase database) async {
-    final rows = await (database.select(database.ocptLocationsTable)
-          ..where((table) => table.isDeleted.equals(false))
-          ..orderBy([(table) => OrderingTerm.asc(table.sortKey)]))
-        .get();
+    final rows =
+        await (database.select(database.ocptLocationsTable)
+              ..where((table) => table.isDeleted.equals(false))
+              ..orderBy([(table) => OrderingTerm.asc(table.sortKey)]))
+            .get();
     return rows.map((row) => row.name).toList();
   }
 
   /// The location [id] as [database] currently holds it, tombstone included.
-  Future<OcptLocationRow> locationRow(OcptProjectDatabase database, String id) =>
-      (database.select(database.ocptLocationsTable)..where((table) => table.id.equals(id))).getSingle();
+  Future<OcptLocationRow> locationRow(OcptProjectDatabase database, String id) => (database.select(
+    database.ocptLocationsTable,
+  )..where((table) => table.id.equals(id))).getSingle();
 
   /// Every live scene's heading of [screenplayId] in [database], in source order — `scenes` is
   /// derived and recomputed independently on each replica (never synchronised, ADR 0010), so this
   /// compares structure rather than row identity, exactly as
   /// `ocpt_screenplay_merge_convergence_test.dart`'s own `sceneHeadingsOf` does.
   Future<List<String>> sceneHeadingsOf(OcptProjectDatabase database) async {
-    final scenes = await (database.select(database.ocptScenesTable)
-          ..where((table) => table.isDeleted.equals(false))
-          ..orderBy([(table) => OrderingTerm.asc(table.position)]))
-        .get();
+    final scenes =
+        await (database.select(database.ocptScenesTable)
+              ..where((table) => table.isDeleted.equals(false))
+              ..orderBy([(table) => OrderingTerm.asc(table.position)]))
+            .get();
     return scenes.map((scene) => scene.heading).toList();
   }
 
@@ -233,11 +242,17 @@ void main() {
       // of the shared starting text (`OcptScreenplayService.snapshotOnProjectOpen`, exactly what
       // the real app calls on every project open) — the common ancestor its own later merge, made
       // with no edit of its own, needs to diff against.
-      await deviceB.screenplayService.snapshotOnProjectOpen(database: replicaB, screenplayId: screenplayId);
+      await deviceB.screenplayService.snapshotOnProjectOpen(
+        database: replicaB,
+        screenplayId: screenplayId,
+      );
 
       // Seed one ordinary row on A only, then let it reach B through the real folder transport —
       // proving the two replicas start identical through the engine, not by construction.
-      final office = (await deviceA.locationsService.createLocation(database: replicaA, name: 'Office'))!;
+      final office = (await deviceA.locationsService.createLocation(
+        database: replicaA,
+        name: 'Office',
+      ))!;
 
       await deviceA.changesetService.pushLocalEdits(
         database: replicaA,
@@ -245,7 +260,11 @@ void main() {
         relayId: relayId,
         deviceId: 'device-a',
       );
-      await deviceB.changesetService.pullAndApply(database: replicaB, storage: storage, relayId: relayId);
+      await deviceB.changesetService.pullAndApply(
+        database: replicaB,
+        storage: storage,
+        relayId: relayId,
+      );
 
       expect(await liveLocationNames(replicaA), ['Office']);
       expect(await liveLocationNames(replicaB), ['Office']);
@@ -260,7 +279,10 @@ void main() {
         fountainText: textAtV1,
         snapshotReason: OcptSnapshotReason.manual,
       );
-      final studio = (await deviceA.locationsService.createLocation(database: replicaA, name: 'Studio'))!;
+      final studio = (await deviceA.locationsService.createLocation(
+        database: replicaA,
+        name: 'Studio',
+      ))!;
 
       final v1 = await deviceA.projectVersionsService.createVersion(
         database: replicaA,
@@ -285,7 +307,10 @@ void main() {
         name: const Value('Office HQ'),
       );
       await deviceA.locationsService.deleteLocation(database: replicaA, locationId: studio);
-      final backlot = (await deviceA.locationsService.createLocation(database: replicaA, name: 'Backlot'))!;
+      final backlot = (await deviceA.locationsService.createLocation(
+        database: replicaA,
+        name: 'Backlot',
+      ))!;
 
       final restoreResult = await deviceA.projectVersionsService.restoreVersion(
         database: replicaA,
@@ -300,7 +325,10 @@ void main() {
       // Sanity, on A itself, before anything is even pushed: the restore reverted the rename,
       // resurrected the deletion, tombstoned the addition, and put the screenplay text back.
       expect(
-        await deviceA.screenplayService.loadScreenplayText(database: replicaA, screenplayId: screenplayId),
+        await deviceA.screenplayService.loadScreenplayText(
+          database: replicaA,
+          screenplayId: screenplayId,
+        ),
         textAtV1,
       );
       expect((await locationRow(replicaA, office)).name, 'Office');
@@ -329,7 +357,10 @@ void main() {
       // The screenplay text converges to A's restored text through the three-way merge — B's own
       // side of that merge is unchanged since the baseline, so this is the clean case.
       expect(
-        await deviceB.screenplayService.loadScreenplayText(database: replicaB, screenplayId: screenplayId),
+        await deviceB.screenplayService.loadScreenplayText(
+          database: replicaB,
+          screenplayId: screenplayId,
+        ),
         textAtV1,
       );
 
@@ -352,7 +383,11 @@ void main() {
       // own bulk rewrite of that table included (`OcptProjectVersionsService._applyPayload` stamps
       // every table it restores except `scenes`).
       final everyAppendedChangeset = await storage.readSince(OcptSequenceNumber.zero);
-      expect(everyAppendedChangeset, hasLength(2), reason: "the baseline push, and the restore's own");
+      expect(
+        everyAppendedChangeset,
+        hasLength(2),
+        reason: "the baseline push, and the restore's own",
+      );
       for (final entry in everyAppendedChangeset) {
         final changeset = OcptChangeset.decode(entry.envelope.payload);
         for (final stamp in changeset.fieldStamps) {

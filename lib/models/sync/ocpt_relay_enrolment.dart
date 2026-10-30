@@ -94,7 +94,10 @@ class OcptRelayEnrolment extends Equatable {
   String toEnrolmentString() => Uri(
     scheme: _scheme,
     host: _host,
-    queryParameters: <String, String>{_relayParam: relayBaseUri.toString(), _secretParam: enrolmentSecret},
+    queryParameters: <String, String>{
+      _relayParam: relayBaseUri.toString(),
+      _secretParam: enrolmentSecret,
+    },
   ).toString();
 
   /// Object properties

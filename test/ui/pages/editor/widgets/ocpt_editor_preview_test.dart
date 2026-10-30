@@ -82,43 +82,40 @@ final _backdropFinder = find.descendant(
 );
 
 void main() {
-  final layout = OcptEditorPreviewLayout(
-    metrics: FountainLayoutMetrics.usLetter(),
-  );
+  final layout = OcptEditorPreviewLayout(metrics: FountainLayoutMetrics.usLetter());
   // Matches `_OcptEditorPreviewState._pagePadding`: the horizontal padding kept around the page.
   const pagePadding = 16.0;
   final unscaledPanelWidth = layout.pageWidth + pagePadding * 2;
 
-  testWidgets(
-    "a panel at least as wide as the page renders it unscaled, fully visible",
-    (tester) async {
-      _widenTestSurface(tester, unscaledPanelWidth);
-      final document = const FountainParser().parse(_longSampleText);
+  testWidgets("a panel at least as wide as the page renders it unscaled, fully visible", (
+    tester,
+  ) async {
+    _widenTestSurface(tester, unscaledPanelWidth);
+    final document = const FountainParser().parse(_longSampleText);
 
-      await tester.pumpWidget(
-        _wrap(
-          OcptEditorPreview(
-            document: document,
-            pageSetup: const OcptPageSetup.standard(),
-            currentLine: 0,
-            isPageSimulationEnabled: false,
-          ),
-          width: unscaledPanelWidth,
+    await tester.pumpWidget(
+      _wrap(
+        OcptEditorPreview(
+          document: document,
+          pageSetup: const OcptPageSetup.standard(),
+          currentLine: 0,
+          isPageSimulationEnabled: false,
         ),
-      );
-      await tester.pump();
+        width: unscaledPanelWidth,
+      ),
+    );
+    await tester.pump();
 
-      // No horizontal scroller is ever built: a wide-enough panel never needed one, and a narrow
-      // panel now scales instead of scrolling.
-      expect(find.byType(SingleChildScrollView), findsNothing);
+    // No horizontal scroller is ever built: a wide-enough panel never needed one, and a narrow
+    // panel now scales instead of scrolling.
+    expect(find.byType(SingleChildScrollView), findsNothing);
 
-      final pageRect = tester.getRect(find.byType(Material));
-      expect(pageRect.width, closeTo(layout.pageWidth, 0.5));
-      // The full page, including its right edge, sits within the panel.
-      expect(pageRect.left, greaterThanOrEqualTo(0));
-      expect(pageRect.right, lessThanOrEqualTo(unscaledPanelWidth));
-    },
-  );
+    final pageRect = tester.getRect(find.byType(Material));
+    expect(pageRect.width, closeTo(layout.pageWidth, 0.5));
+    // The full page, including its right edge, sits within the panel.
+    expect(pageRect.left, greaterThanOrEqualTo(0));
+    expect(pageRect.right, lessThanOrEqualTo(unscaledPanelWidth));
+  });
 
   testWidgets(
     "a panel narrower than the page scales it down instead of cropping it, right margin included",
@@ -163,9 +160,7 @@ void main() {
     },
   );
 
-  testWidgets("a wrapped action line leaves the page's true right margin visible", (
-    tester,
-  ) async {
+  testWidgets("a wrapped action line leaves the page's true right margin visible", (tester) async {
     _widenTestSurface(tester, unscaledPanelWidth);
     // A single action paragraph long enough that it wraps: its wrapped lines fill the action
     // element's box right up to its full width, so the box's own right edge is a reliable proxy
@@ -230,43 +225,36 @@ void main() {
       );
       await tester.pump();
 
-      expect(
-        tester.getSize(find.byType(RichText).first).height,
-        closeTo(layout.lineHeight, 1),
-      );
+      expect(tester.getSize(find.byType(RichText).first).height, closeTo(layout.lineHeight, 1));
     },
   );
 
-  testWidgets(
-    "the platform's font-scaling preference never grows the page's own type",
-    (tester) async {
-      _widenTestSurface(tester, unscaledPanelWidth);
-      // Same line, same box, but with the desktop asking for larger text: the page is a simulation
-      // of paper, so its type size is the page's own. Scaling the glyphs without scaling the page
-      // would wrap and overflow it exactly the way the inherited `letterSpacing` above did.
-      final columns = layout.metrics.action.maxWidthColumns;
-      final document = const FountainParser().parse(_actionLineOfColumns(columns));
+  testWidgets("the platform's font-scaling preference never grows the page's own type", (
+    tester,
+  ) async {
+    _widenTestSurface(tester, unscaledPanelWidth);
+    // Same line, same box, but with the desktop asking for larger text: the page is a simulation
+    // of paper, so its type size is the page's own. Scaling the glyphs without scaling the page
+    // would wrap and overflow it exactly the way the inherited `letterSpacing` above did.
+    final columns = layout.metrics.action.maxWidthColumns;
+    final document = const FountainParser().parse(_actionLineOfColumns(columns));
 
-      await tester.pumpWidget(
-        _wrap(
-          OcptEditorPreview(
-            document: document,
-            pageSetup: const OcptPageSetup.standard(),
-            currentLine: 0,
-            isPageSimulationEnabled: false,
-          ),
-          width: unscaledPanelWidth,
-          textScaler: const TextScaler.linear(1.6),
+    await tester.pumpWidget(
+      _wrap(
+        OcptEditorPreview(
+          document: document,
+          pageSetup: const OcptPageSetup.standard(),
+          currentLine: 0,
+          isPageSimulationEnabled: false,
         ),
-      );
-      await tester.pump();
+        width: unscaledPanelWidth,
+        textScaler: const TextScaler.linear(1.6),
+      ),
+    );
+    await tester.pump();
 
-      expect(
-        tester.getSize(find.byType(RichText).first).height,
-        closeTo(layout.lineHeight, 1),
-      );
-    },
-  );
+    expect(tester.getSize(find.byType(RichText).first).height, closeTo(layout.lineHeight, 1));
+  });
 
   testWidgets(
     "caret scroll-sync still scrolls to the current line's block when the page is scaled",
@@ -342,32 +330,31 @@ void main() {
     },
   );
 
-  testWidgets(
-    "a page-simulation sheet is the full page width, not collapsed to a 0-width sliver",
-    (tester) async {
-      final tallPanelHeight = layout.pageHeight * 2 + 200;
-      _widenTestSurface(tester, unscaledPanelWidth, height: tallPanelHeight + 100);
-      final document = const FountainParser().parse(_longSampleText);
+  testWidgets("a page-simulation sheet is the full page width, not collapsed to a 0-width sliver", (
+    tester,
+  ) async {
+    final tallPanelHeight = layout.pageHeight * 2 + 200;
+    _widenTestSurface(tester, unscaledPanelWidth, height: tallPanelHeight + 100);
+    final document = const FountainParser().parse(_longSampleText);
 
-      await tester.pumpWidget(
-        _wrap(
-          OcptEditorPreview(
-            document: document,
-            pageSetup: const OcptPageSetup.standard(),
-            currentLine: 0,
-            isPageSimulationEnabled: true,
-          ),
-          width: unscaledPanelWidth,
-          height: tallPanelHeight,
+    await tester.pumpWidget(
+      _wrap(
+        OcptEditorPreview(
+          document: document,
+          pageSetup: const OcptPageSetup.standard(),
+          currentLine: 0,
+          isPageSimulationEnabled: true,
         ),
-      );
-      await tester.pump();
+        width: unscaledPanelWidth,
+        height: tallPanelHeight,
+      ),
+    );
+    await tester.pump();
 
-      final sheetRect = tester.getRect(find.byType(Material).first);
-      expect(sheetRect.width, closeTo(layout.pageWidth, 0.5));
-      expect(sheetRect.height, closeTo(layout.pageHeight, 0.5));
-    },
-  );
+    final sheetRect = tester.getRect(find.byType(Material).first);
+    expect(sheetRect.width, closeTo(layout.pageWidth, 0.5));
+    expect(sheetRect.height, closeTo(layout.pageHeight, 0.5));
+  });
 
   testWidgets(
     "in dark theme the preview panel's backdrop is white, not the themed dock background",
@@ -419,28 +406,27 @@ void main() {
     expect(coloredBox.color, ocptTheme.lightThemeData!.colorScheme.surfaceContainerLow);
   });
 
-  testWidgets(
-    "page simulation off keeps a single continuous sheet even for a long document",
-    (tester) async {
-      _widenTestSurface(tester, unscaledPanelWidth);
-      final document = const FountainParser().parse(_longSampleText);
+  testWidgets("page simulation off keeps a single continuous sheet even for a long document", (
+    tester,
+  ) async {
+    _widenTestSurface(tester, unscaledPanelWidth);
+    final document = const FountainParser().parse(_longSampleText);
 
-      await tester.pumpWidget(
-        _wrap(
-          OcptEditorPreview(
-            document: document,
-            pageSetup: const OcptPageSetup.standard(),
-            currentLine: 0,
-            isPageSimulationEnabled: false,
-          ),
-          width: unscaledPanelWidth,
+    await tester.pumpWidget(
+      _wrap(
+        OcptEditorPreview(
+          document: document,
+          pageSetup: const OcptPageSetup.standard(),
+          currentLine: 0,
+          isPageSimulationEnabled: false,
         ),
-      );
-      await tester.pump();
+        width: unscaledPanelWidth,
+      ),
+    );
+    await tester.pump();
 
-      expect(find.byType(Material), findsOneWidget);
-    },
-  );
+    expect(find.byType(Material), findsOneWidget);
+  });
 
   testWidgets(
     "a simulated page's content stays inside its own sheet, blank separator lines included",

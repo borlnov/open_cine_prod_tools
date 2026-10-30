@@ -109,8 +109,7 @@ enum OcptShotListTableColumn {
   /// column, plus the optional ones currently visible.
   static List<OcptShotListTableColumn> visibleIn(Set<OcptShotListColumn> visibleColumns) => [
     for (final column in OcptShotListTableColumn.values)
-      if (column.optionalColumn == null || visibleColumns.contains(column.optionalColumn))
-        column,
+      if (column.optionalColumn == null || visibleColumns.contains(column.optionalColumn)) column,
   ];
 
   /// This column's header label.
@@ -142,9 +141,8 @@ enum OcptShotListTableColumn {
     List<OcptShotPlacement> placements,
   ) => switch (this) {
     OcptShotListTableColumn.shot => shot.code,
-    OcptShotListTableColumn.characters => shot.characters.isEmpty
-        ? ocptShotListEmptyValue
-        : shot.characters.join(", "),
+    OcptShotListTableColumn.characters =>
+      shot.characters.isEmpty ? ocptShotListEmptyValue : shot.characters.join(", "),
     OcptShotListTableColumn.set => sequenceHeading,
     OcptShotListTableColumn.shotSize => ocptShotFieldOrDash(shot.shotSize),
     OcptShotListTableColumn.framing => ocptShotFieldOrDash(shot.framing),
@@ -278,9 +276,7 @@ class OcptShotListTable extends StatelessWidget {
       return [for (final column in columns) column.minWidth];
     }
 
-    return [
-      for (final column in columns) column.minWidth + extraWidth * column.flex / totalFlex,
-    ];
+    return [for (final column in columns) column.minWidth + extraWidth * column.flex / totalFlex];
   }
 }
 
@@ -302,12 +298,7 @@ class _HeaderRow extends StatelessWidget {
     final style = theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant);
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(
-        _selectionBarWidth + _gutterWidth,
-        10,
-        0,
-        8,
-      ),
+      padding: const EdgeInsets.fromLTRB(_selectionBarWidth + _gutterWidth, 10, 0, 8),
       child: Row(
         children: [
           for (var index = 0; index < columns.length; index++)
@@ -417,9 +408,7 @@ class OcptShotListRow extends StatelessWidget {
                     child: Text(
                       columns[index].valueFor(context, shot, sequenceHeading, placements),
                       maxLines: columns[index].wraps ? null : 1,
-                      overflow: columns[index].wraps
-                          ? TextOverflow.clip
-                          : TextOverflow.ellipsis,
+                      overflow: columns[index].wraps ? TextOverflow.clip : TextOverflow.ellipsis,
                       softWrap: columns[index].wraps,
                       textAlign: columns[index].alignment,
                       style: _styleFor(context, columns[index]),

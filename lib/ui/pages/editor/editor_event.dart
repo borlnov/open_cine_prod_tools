@@ -296,7 +296,10 @@ class OcptEditorStyledSpellCheckRangesReportedEvent extends OcptEditorEvent {
   final Map<String, List<SpellRange>> ranges;
 
   /// Class constructor
-  const OcptEditorStyledSpellCheckRangesReportedEvent({required this.generation, required this.ranges});
+  const OcptEditorStyledSpellCheckRangesReportedEvent({
+    required this.generation,
+    required this.ranges,
+  });
 
   /// Object properties
   @override

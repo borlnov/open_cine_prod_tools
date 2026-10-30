@@ -62,7 +62,9 @@ void main() {
       final document = _documentFrom("Some action.\n\n===\n\nMore action.");
       final pageBreakNode = document.firstWhere(
         (node) =>
-            OcptFountainLineAttributions.typeOfAttributionValue(node.getMetadataValue("blockType")) ==
+            OcptFountainLineAttributions.typeOfAttributionValue(
+              node.getMetadataValue("blockType"),
+            ) ==
             FountainLineType.pageBreak,
       );
 
@@ -77,7 +79,9 @@ void main() {
       final pageBreakNodeIds = document
           .where(
             (node) =>
-                OcptFountainLineAttributions.typeOfAttributionValue(node.getMetadataValue("blockType")) ==
+                OcptFountainLineAttributions.typeOfAttributionValue(
+                  node.getMetadataValue("blockType"),
+                ) ==
                 FountainLineType.pageBreak,
           )
           .map((node) => node.id)
@@ -98,7 +102,9 @@ void main() {
 
         final pageBreakNode = document.firstWhere(
           (node) =>
-              OcptFountainLineAttributions.typeOfAttributionValue(node.getMetadataValue("blockType")) ==
+              OcptFountainLineAttributions.typeOfAttributionValue(
+                node.getMetadataValue("blockType"),
+              ) ==
               FountainLineType.pageBreak,
         );
 
@@ -122,72 +128,79 @@ void main() {
         // text origin — not one `lineHeight` short (the bug a naive `marginTop + marginBottom +
         // pageGap` estimate, or forgetting to subtract the blank-line padding, would produce).
         final actualTextOrigin =
-            flowYBeforeBreak + pagination.pageStartTopPaddings[pageBreakNode.id]! + blankLinesPadding;
+            flowYBeforeBreak +
+            pagination.pageStartTopPaddings[pageBreakNode.id]! +
+            blankLinesPadding;
         expect(actualTextOrigin, closeTo(desiredSheetTextOrigin, 0.01));
       },
     );
 
-    test(
-      "a document short enough to fit one page still gets trailing bottom padding filling it to "
-      "its sheet's full height",
-      () {
-        final document = _documentFrom("Some action.");
-        final layout = OcptEditorPreviewLayout(metrics: metrics);
-        final pagination = computeOcptStyledPagination(document: document, metrics: metrics);
-
-        expect(pagination.pageCount, 1);
-        // marginTop (the document's own top padding while page simulation is on) plus one
-        // wrapped line of text is the only content; the rest of the sheet must be reserved as
-        // trailing bottom padding so the document's scrollable content actually reaches the
-        // bottom of its (only) simulated sheet.
-        final contentHeight = layout.marginTop + layout.lineHeight;
-        expect(contentHeight + pagination.trailingBottomPadding, closeTo(layout.pageHeight, 0.01));
-      },
-    );
-
-    test("a multi-page document's trailing bottom padding reaches exactly the last sheet's bottom edge", () {
-      final document = _documentFrom(_longSource);
+    test("a document short enough to fit one page still gets trailing bottom padding filling it to "
+        "its sheet's full height", () {
+      final document = _documentFrom("Some action.");
       final layout = OcptEditorPreviewLayout(metrics: metrics);
       final pagination = computeOcptStyledPagination(document: document, metrics: metrics);
 
-      expect(pagination.pageCount, greaterThan(1));
-
-      // Independently replay the same flow the production pass tracks, using only the public
-      // building blocks (`OcptEditorPreviewLayout.wrappedLineCount`, the `ocptBlankLinesBefore`
-      // metadata, and `pagination.pageStartTopPaddings`), to verify the *combined* effect of
-      // every page-start padding plus the trailing padding lands exactly at the last sheet's
-      // bottom edge — not just that each individual padding looks plausible in isolation.
-      var flowY = layout.marginTop;
-      for (final node in document) {
-        if (node is! ParagraphNode) {
-          continue;
-        }
-        final padding = pagination.pageStartTopPaddings[node.id];
-        if (padding != null) {
-          flowY += padding;
-        }
-        final type = OcptFountainLineAttributions.typeOfAttributionValue(node.getMetadataValue("blockType"));
-        final wrappedLines = OcptEditorPreviewLayout.wrappedLineCount(
-          node.text.toPlainText(),
-          _elementMaxWidthColumnsOf(type, metrics),
-        );
-        final blankLinesBefore = (node.getMetadataValue(ocptBlankLinesBeforeMetadataKey) as int? ?? 0).clamp(
-          0,
-          ocptMaxBlankLinesBeforeSpacing,
-        );
-        flowY += (wrappedLines + blankLinesBefore) * layout.lineHeight;
-      }
-
-      final desiredBottomY =
-          (pagination.pageCount - 1) * (layout.pageHeight + OcptEditorPreviewLayout.pageGap) + layout.pageHeight;
-      expect(flowY + pagination.trailingBottomPadding, closeTo(desiredBottomY, 0.01));
+      expect(pagination.pageCount, 1);
+      // marginTop (the document's own top padding while page simulation is on) plus one
+      // wrapped line of text is the only content; the rest of the sheet must be reserved as
+      // trailing bottom padding so the document's scrollable content actually reaches the
+      // bottom of its (only) simulated sheet.
+      final contentHeight = layout.marginTop + layout.lineHeight;
+      expect(contentHeight + pagination.trailingBottomPadding, closeTo(layout.pageHeight, 0.01));
     });
+
+    test(
+      "a multi-page document's trailing bottom padding reaches exactly the last sheet's bottom edge",
+      () {
+        final document = _documentFrom(_longSource);
+        final layout = OcptEditorPreviewLayout(metrics: metrics);
+        final pagination = computeOcptStyledPagination(document: document, metrics: metrics);
+
+        expect(pagination.pageCount, greaterThan(1));
+
+        // Independently replay the same flow the production pass tracks, using only the public
+        // building blocks (`OcptEditorPreviewLayout.wrappedLineCount`, the `ocptBlankLinesBefore`
+        // metadata, and `pagination.pageStartTopPaddings`), to verify the *combined* effect of
+        // every page-start padding plus the trailing padding lands exactly at the last sheet's
+        // bottom edge — not just that each individual padding looks plausible in isolation.
+        var flowY = layout.marginTop;
+        for (final node in document) {
+          if (node is! ParagraphNode) {
+            continue;
+          }
+          final padding = pagination.pageStartTopPaddings[node.id];
+          if (padding != null) {
+            flowY += padding;
+          }
+          final type = OcptFountainLineAttributions.typeOfAttributionValue(
+            node.getMetadataValue("blockType"),
+          );
+          final wrappedLines = OcptEditorPreviewLayout.wrappedLineCount(
+            node.text.toPlainText(),
+            _elementMaxWidthColumnsOf(type, metrics),
+          );
+          final blankLinesBefore =
+              (node.getMetadataValue(ocptBlankLinesBeforeMetadataKey) as int? ?? 0).clamp(
+                0,
+                ocptMaxBlankLinesBeforeSpacing,
+              );
+          flowY += (wrappedLines + blankLinesBefore) * layout.lineHeight;
+        }
+
+        final desiredBottomY =
+            (pagination.pageCount - 1) * (layout.pageHeight + OcptEditorPreviewLayout.pageGap) +
+            layout.pageHeight;
+        expect(flowY + pagination.trailingBottomPadding, closeTo(desiredBottomY, 0.01));
+      },
+    );
   });
 
   group("computeOcptStyledPagination with a title page", () {
     /// Builds a styled editor document from [source] the same way the live editor decodes one
     /// while page simulation is on: with its leading title-page field nodes.
-    MutableDocument documentWithTitlePageFrom(String source) => OcptWysiwygCodec.decodeWithTitlePage(source).document;
+    MutableDocument documentWithTitlePageFrom(String source) =>
+        OcptWysiwygCodec.decodeWithTitlePage(source).document;
 
     test("a title page always reserves page 1, whatever little content the body has", () {
       final document = documentWithTitlePageFrom("Some action.");
@@ -202,31 +215,28 @@ void main() {
       expect(pagination.pageStartTopPaddings[bodyNode.id], greaterThan(0));
     });
 
-    test(
-      "the first body node's padding is short by exactly the title page's rendered height, "
-      "not a full sheet",
-      () {
-        final document = documentWithTitlePageFrom("Some action.");
-        final layout = OcptEditorPreviewLayout(metrics: metrics);
-        final sheetExtent = layout.pageHeight + OcptEditorPreviewLayout.pageGap;
-        final titlePageFlowHeight = computeOcptStyledTitlePageMetrics(
-          document: document,
-          metrics: metrics,
-        ).flowHeight;
+    test("the first body node's padding is short by exactly the title page's rendered height, "
+        "not a full sheet", () {
+      final document = documentWithTitlePageFrom("Some action.");
+      final layout = OcptEditorPreviewLayout(metrics: metrics);
+      final sheetExtent = layout.pageHeight + OcptEditorPreviewLayout.pageGap;
+      final titlePageFlowHeight = computeOcptStyledTitlePageMetrics(
+        document: document,
+        metrics: metrics,
+      ).flowHeight;
 
-        final pagination = computeOcptStyledPagination(document: document, metrics: metrics);
+      final pagination = computeOcptStyledPagination(document: document, metrics: metrics);
 
-        final bodyNode = document.getNodeAt(6)!;
-        // The regression this guards: before the fix, `pageStartTopPaddings` for the first body
-        // node was a full `sheetExtent` (the title page's real height was never subtracted), which
-        // pushes every page after it down by the same constant offset.
-        expect(
-          pagination.pageStartTopPaddings[bodyNode.id],
-          closeTo(sheetExtent - titlePageFlowHeight, 0.01),
-        );
-        expect(pagination.pageStartTopPaddings[bodyNode.id], lessThan(sheetExtent));
-      },
-    );
+      final bodyNode = document.getNodeAt(6)!;
+      // The regression this guards: before the fix, `pageStartTopPaddings` for the first body
+      // node was a full `sheetExtent` (the title page's real height was never subtracted), which
+      // pushes every page after it down by the same constant offset.
+      expect(
+        pagination.pageStartTopPaddings[bodyNode.id],
+        closeTo(sheetExtent - titlePageFlowHeight, 0.01),
+      );
+      expect(pagination.pageStartTopPaddings[bodyNode.id], lessThan(sheetExtent));
+    });
 
     test("a longer body still starts on page 2, then paginates normally from there", () {
       final document = documentWithTitlePageFrom(_longSource);
@@ -238,9 +248,58 @@ void main() {
       expect(pagination.pageCount, greaterThan(2));
     });
 
+    test("every page-start node, once the title page's height is folded back into the flow, lands "
+        "exactly on a sheet's text origin", () {
+      final document = documentWithTitlePageFrom(_longSource);
+      final layout = OcptEditorPreviewLayout(metrics: metrics);
+      final sheetExtent = layout.pageHeight + OcptEditorPreviewLayout.pageGap;
+      final titlePageFlowHeight = computeOcptStyledTitlePageMetrics(
+        document: document,
+        metrics: metrics,
+      ).flowHeight;
+      final pagination = computeOcptStyledPagination(document: document, metrics: metrics);
+
+      expect(pagination.pageCount, greaterThan(2));
+
+      var flowY = layout.marginTop + titlePageFlowHeight;
+      for (final node in document) {
+        if (node is! ParagraphNode || OcptWysiwygCodec.isTitlePageNode(node)) {
+          continue;
+        }
+        final type = OcptFountainLineAttributions.typeOfAttributionValue(
+          node.getMetadataValue("blockType"),
+        );
+        final wrappedLines = OcptEditorPreviewLayout.wrappedLineCount(
+          node.text.toPlainText(),
+          _elementMaxWidthColumnsOf(type, metrics),
+        );
+        final blankLinesBefore =
+            (node.getMetadataValue(ocptBlankLinesBeforeMetadataKey) as int? ?? 0).clamp(
+              0,
+              ocptMaxBlankLinesBeforeSpacing,
+            );
+
+        final padding = pagination.pageStartTopPaddings[node.id];
+        if (padding != null) {
+          // The stylesheet renders the blank-lines-before gap as its own top padding, stacked
+          // on top of the page-boundary padding (see `_pageBoundaryTopPadding`'s doc comment),
+          // so the node's actual text origin is the page-boundary padding *plus* that gap, not
+          // the page-boundary padding alone.
+          final textOrigin = flowY + padding + blankLinesBefore * layout.lineHeight;
+          // A page-start node's text origin is always `marginTop + n * sheetExtent` for some
+          // integer `n`: the ratio below must therefore land on a whole number, not just "close
+          // to a full sheetExtent" (which the pre-fix constant-offset bug would still satisfy
+          // for the very first page-start node, but not for the ones after it).
+          final pagesAdvanced = (textOrigin - layout.marginTop) / sheetExtent;
+          expect(pagesAdvanced, closeTo(pagesAdvanced.roundToDouble(), 0.001));
+          flowY += padding;
+        }
+        flowY += (wrappedLines + blankLinesBefore) * layout.lineHeight;
+      }
+    });
+
     test(
-      "every page-start node, once the title page's height is folded back into the flow, lands "
-      "exactly on a sheet's text origin",
+      "trailing bottom padding reaches exactly the last sheet's bottom edge, title page included",
       () {
         final document = documentWithTitlePageFrom(_longSource);
         final layout = OcptEditorPreviewLayout(metrics: metrics);
@@ -258,72 +317,29 @@ void main() {
           if (node is! ParagraphNode || OcptWysiwygCodec.isTitlePageNode(node)) {
             continue;
           }
-          final type = OcptFountainLineAttributions.typeOfAttributionValue(node.getMetadataValue("blockType"));
+          final padding = pagination.pageStartTopPaddings[node.id];
+          if (padding != null) {
+            flowY += padding;
+          }
+          final type = OcptFountainLineAttributions.typeOfAttributionValue(
+            node.getMetadataValue("blockType"),
+          );
           final wrappedLines = OcptEditorPreviewLayout.wrappedLineCount(
             node.text.toPlainText(),
             _elementMaxWidthColumnsOf(type, metrics),
           );
-          final blankLinesBefore = (node.getMetadataValue(ocptBlankLinesBeforeMetadataKey) as int? ?? 0).clamp(
-            0,
-            ocptMaxBlankLinesBeforeSpacing,
-          );
-
-          final padding = pagination.pageStartTopPaddings[node.id];
-          if (padding != null) {
-            // The stylesheet renders the blank-lines-before gap as its own top padding, stacked
-            // on top of the page-boundary padding (see `_pageBoundaryTopPadding`'s doc comment),
-            // so the node's actual text origin is the page-boundary padding *plus* that gap, not
-            // the page-boundary padding alone.
-            final textOrigin = flowY + padding + blankLinesBefore * layout.lineHeight;
-            // A page-start node's text origin is always `marginTop + n * sheetExtent` for some
-            // integer `n`: the ratio below must therefore land on a whole number, not just "close
-            // to a full sheetExtent" (which the pre-fix constant-offset bug would still satisfy
-            // for the very first page-start node, but not for the ones after it).
-            final pagesAdvanced = (textOrigin - layout.marginTop) / sheetExtent;
-            expect(pagesAdvanced, closeTo(pagesAdvanced.roundToDouble(), 0.001));
-            flowY += padding;
-          }
+          final blankLinesBefore =
+              (node.getMetadataValue(ocptBlankLinesBeforeMetadataKey) as int? ?? 0).clamp(
+                0,
+                ocptMaxBlankLinesBeforeSpacing,
+              );
           flowY += (wrappedLines + blankLinesBefore) * layout.lineHeight;
         }
+
+        final desiredBottomY = (pagination.pageCount - 1) * sheetExtent + layout.pageHeight;
+        expect(flowY + pagination.trailingBottomPadding, closeTo(desiredBottomY, 0.01));
       },
     );
-
-    test("trailing bottom padding reaches exactly the last sheet's bottom edge, title page included", () {
-      final document = documentWithTitlePageFrom(_longSource);
-      final layout = OcptEditorPreviewLayout(metrics: metrics);
-      final sheetExtent = layout.pageHeight + OcptEditorPreviewLayout.pageGap;
-      final titlePageFlowHeight = computeOcptStyledTitlePageMetrics(
-        document: document,
-        metrics: metrics,
-      ).flowHeight;
-      final pagination = computeOcptStyledPagination(document: document, metrics: metrics);
-
-      expect(pagination.pageCount, greaterThan(2));
-
-      var flowY = layout.marginTop + titlePageFlowHeight;
-      for (final node in document) {
-        if (node is! ParagraphNode || OcptWysiwygCodec.isTitlePageNode(node)) {
-          continue;
-        }
-        final padding = pagination.pageStartTopPaddings[node.id];
-        if (padding != null) {
-          flowY += padding;
-        }
-        final type = OcptFountainLineAttributions.typeOfAttributionValue(node.getMetadataValue("blockType"));
-        final wrappedLines = OcptEditorPreviewLayout.wrappedLineCount(
-          node.text.toPlainText(),
-          _elementMaxWidthColumnsOf(type, metrics),
-        );
-        final blankLinesBefore = (node.getMetadataValue(ocptBlankLinesBeforeMetadataKey) as int? ?? 0).clamp(
-          0,
-          ocptMaxBlankLinesBeforeSpacing,
-        );
-        flowY += (wrappedLines + blankLinesBefore) * layout.lineHeight;
-      }
-
-      final desiredBottomY = (pagination.pageCount - 1) * sheetExtent + layout.pageHeight;
-      expect(flowY + pagination.trailingBottomPadding, closeTo(desiredBottomY, 0.01));
-    });
 
     test("a document with no title-page nodes at all behaves exactly as without this feature", () {
       final document = _documentFrom("Some action.");
@@ -346,35 +362,35 @@ void main() {
     });
 
     test("a document with no title page has no sheet to skip before its first script page", () {
-      final pagination = computeOcptStyledPagination(document: _documentFrom(_longSource), metrics: metrics);
+      final pagination = computeOcptStyledPagination(
+        document: _documentFrom(_longSource),
+        metrics: metrics,
+      );
 
       expect(pagination.titlePageSheetCount, 0);
     });
 
-    test(
-      "a title page long enough to overflow page 1 does not throw and clamps the first body "
-      "node's padding to 0 rather than going negative",
-      () {
-        // A deliberately long Contact/Source, well past what a single page 1 can hold above the
-        // body.
-        final longField = List.generate(400, (index) => "line $index").join("\n    ");
-        final document = documentWithTitlePageFrom("Contact:\n    $longField\n\nSome action.");
-        final layout = OcptEditorPreviewLayout(metrics: metrics);
-        final titlePageFlowHeight = computeOcptStyledTitlePageMetrics(
-          document: document,
-          metrics: metrics,
-        ).flowHeight;
+    test("a title page long enough to overflow page 1 does not throw and clamps the first body "
+        "node's padding to 0 rather than going negative", () {
+      // A deliberately long Contact/Source, well past what a single page 1 can hold above the
+      // body.
+      final longField = List.generate(400, (index) => "line $index").join("\n    ");
+      final document = documentWithTitlePageFrom("Contact:\n    $longField\n\nSome action.");
+      final layout = OcptEditorPreviewLayout(metrics: metrics);
+      final titlePageFlowHeight = computeOcptStyledTitlePageMetrics(
+        document: document,
+        metrics: metrics,
+      ).flowHeight;
 
-        expect(titlePageFlowHeight, greaterThan(layout.pageHeight));
+      expect(titlePageFlowHeight, greaterThan(layout.pageHeight));
 
-        final pagination = computeOcptStyledPagination(document: document, metrics: metrics);
+      final pagination = computeOcptStyledPagination(document: document, metrics: metrics);
 
-        final bodyNode = document.firstWhere(
-          (node) => node is ParagraphNode && !OcptWysiwygCodec.isTitlePageNode(node),
-        );
-        expect(pagination.pageStartTopPaddings[bodyNode.id], 0);
-      },
-    );
+      final bodyNode = document.firstWhere(
+        (node) => node is ParagraphNode && !OcptWysiwygCodec.isTitlePageNode(node),
+      );
+      expect(pagination.pageStartTopPaddings[bodyNode.id], 0);
+    });
   });
 }
 
@@ -382,17 +398,18 @@ void main() {
 /// sharing the dialogue box, and every non-printing/scaffolding type using the full-width action
 /// box), used only to independently recompute the expected flow in the test above without relying
 /// on the pagination module's own private helper.
-int _elementMaxWidthColumnsOf(FountainLineType type, FountainLayoutMetrics metrics) => switch (type) {
-  FountainLineType.sceneHeading => metrics.sceneHeading.maxWidthColumns,
-  FountainLineType.character => metrics.character.maxWidthColumns,
-  FountainLineType.parenthetical => metrics.parenthetical.maxWidthColumns,
-  FountainLineType.dialogue => metrics.dialogue.maxWidthColumns,
-  FountainLineType.lyrics => metrics.dialogue.maxWidthColumns,
-  FountainLineType.transition => metrics.transition.maxWidthColumns,
-  FountainLineType.centeredText => metrics.centeredText.maxWidthColumns,
-  FountainLineType.pageBreak => metrics.centeredText.maxWidthColumns,
-  FountainLineType.section ||
-  FountainLineType.synopsis ||
-  FountainLineType.action ||
-  FountainLineType.blank => metrics.action.maxWidthColumns,
-};
+int _elementMaxWidthColumnsOf(FountainLineType type, FountainLayoutMetrics metrics) =>
+    switch (type) {
+      FountainLineType.sceneHeading => metrics.sceneHeading.maxWidthColumns,
+      FountainLineType.character => metrics.character.maxWidthColumns,
+      FountainLineType.parenthetical => metrics.parenthetical.maxWidthColumns,
+      FountainLineType.dialogue => metrics.dialogue.maxWidthColumns,
+      FountainLineType.lyrics => metrics.dialogue.maxWidthColumns,
+      FountainLineType.transition => metrics.transition.maxWidthColumns,
+      FountainLineType.centeredText => metrics.centeredText.maxWidthColumns,
+      FountainLineType.pageBreak => metrics.centeredText.maxWidthColumns,
+      FountainLineType.section ||
+      FountainLineType.synopsis ||
+      FountainLineType.action ||
+      FountainLineType.blank => metrics.action.maxWidthColumns,
+    };

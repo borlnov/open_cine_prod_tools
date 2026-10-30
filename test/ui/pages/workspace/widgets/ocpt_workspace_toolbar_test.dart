@@ -27,11 +27,7 @@ void main() {
 
     await tester.pumpWidget(
       _wrapInApp(
-        OcptWorkspaceToolbar(
-          title: "My Movie",
-          isDirty: false,
-          onBack: () => backCount++,
-        ),
+        OcptWorkspaceToolbar(title: "My Movie", isDirty: false, onBack: () => backCount++),
       ),
     );
     await tester.pumpAndSettle();
@@ -47,9 +43,7 @@ void main() {
     tester,
   ) async {
     await tester.pumpWidget(
-      _wrapInApp(
-        OcptWorkspaceToolbar(title: "My Movie", isDirty: false, onBack: () {}),
-      ),
+      _wrapInApp(OcptWorkspaceToolbar(title: "My Movie", isDirty: false, onBack: () {})),
     );
     await tester.pumpAndSettle();
 
@@ -61,9 +55,7 @@ void main() {
 
   testWidgets("the dirty marker is shown only while there are unsaved changes", (tester) async {
     await tester.pumpWidget(
-      _wrapInApp(
-        OcptWorkspaceToolbar(title: "My Movie", isDirty: false, onBack: () {}),
-      ),
+      _wrapInApp(OcptWorkspaceToolbar(title: "My Movie", isDirty: false, onBack: () {})),
     );
     await tester.pumpAndSettle();
 
@@ -71,9 +63,7 @@ void main() {
     expect(find.byTooltip(tr.editorUnsavedChangesTooltip), findsNothing);
 
     await tester.pumpWidget(
-      _wrapInApp(
-        OcptWorkspaceToolbar(title: "My Movie", isDirty: true, onBack: () {}),
-      ),
+      _wrapInApp(OcptWorkspaceToolbar(title: "My Movie", isDirty: true, onBack: () {})),
     );
     await tester.pumpAndSettle();
 
@@ -106,9 +96,7 @@ void main() {
 
   testWidgets("no read-only pill is shown outside a preview", (tester) async {
     await tester.pumpWidget(
-      _wrapInApp(
-        OcptWorkspaceToolbar(title: "My Movie", isDirty: true, onBack: () {}),
-      ),
+      _wrapInApp(OcptWorkspaceToolbar(title: "My Movie", isDirty: true, onBack: () {})),
     );
     await tester.pumpAndSettle();
 
@@ -153,9 +141,7 @@ void main() {
 
   testWidgets("the mode label is rendered only when one is given", (tester) async {
     await tester.pumpWidget(
-      _wrapInApp(
-        OcptWorkspaceToolbar(title: "My Movie", isDirty: false, onBack: () {}),
-      ),
+      _wrapInApp(OcptWorkspaceToolbar(title: "My Movie", isDirty: false, onBack: () {})),
     );
     await tester.pumpAndSettle();
 
@@ -178,9 +164,7 @@ void main() {
 
   testWidgets("the export action is rendered only when one is given", (tester) async {
     await tester.pumpWidget(
-      _wrapInApp(
-        OcptWorkspaceToolbar(title: "My Movie", isDirty: false, onBack: () {}),
-      ),
+      _wrapInApp(OcptWorkspaceToolbar(title: "My Movie", isDirty: false, onBack: () {})),
     );
     await tester.pumpAndSettle();
 
@@ -241,9 +225,7 @@ void main() {
 
   testWidgets("an empty overflowEntries list renders no ⋮ button", (tester) async {
     await tester.pumpWidget(
-      _wrapInApp(
-        OcptWorkspaceToolbar(title: "My Movie", isDirty: false, onBack: () {}),
-      ),
+      _wrapInApp(OcptWorkspaceToolbar(title: "My Movie", isDirty: false, onBack: () {})),
     );
     await tester.pumpAndSettle();
 
@@ -252,9 +234,7 @@ void main() {
 
   testWidgets("the episode control is rendered only when one is given", (tester) async {
     await tester.pumpWidget(
-      _wrapInApp(
-        OcptWorkspaceToolbar(title: "My Movie", isDirty: false, onBack: () {}),
-      ),
+      _wrapInApp(OcptWorkspaceToolbar(title: "My Movie", isDirty: false, onBack: () {})),
     );
     await tester.pumpAndSettle();
 

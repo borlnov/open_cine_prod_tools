@@ -253,7 +253,9 @@ class OcptExportManager extends AbsWithLifeCycle {
        contactListPdfService = OcptContactListPdfService(fontsLoader: fontsLoader),
        budgetQuotePdfService = OcptBudgetQuotePdfService(fontsLoader: fontsLoader),
        budgetFinancingPlanPdfService = OcptBudgetFinancingPlanPdfService(fontsLoader: fontsLoader),
-       budgetFinancialReportPdfService = OcptBudgetFinancialReportPdfService(fontsLoader: fontsLoader),
+       budgetFinancialReportPdfService = OcptBudgetFinancialReportPdfService(
+         fontsLoader: fontsLoader,
+       ),
        floorPlanPdfService = OcptFloorPlanPdfService(fontsLoader: fontsLoader),
        storyboardPdfService = OcptStoryboardPdfService(
          fontsLoader: fontsLoader,
@@ -595,7 +597,10 @@ class OcptExportManager extends AbsWithLifeCycle {
     );
 
     return _writeToPickedLocation(
-      suggestedFileName: budgetQuotePdfService.quoteFileName(projectName: projectName, suffix: labels.fileNameSuffix),
+      suggestedFileName: budgetQuotePdfService.quoteFileName(
+        projectName: projectName,
+        suffix: labels.fileNameSuffix,
+      ),
       fileTypeLabel: fileTypeLabel,
       extensions: const ["pdf"],
       bytes: bytes,
@@ -1176,7 +1181,10 @@ class OcptExportManager extends AbsWithLifeCycle {
   /// yet or a candidacy the file no longer holds:
   /// `OcptCallSheetPdfService.namedCallSheetFileName` falls back to its own localized unnamed-person
   /// label for it, and the sheet still gets a readable file name rather than none.
-  String _namedCallSheetRecipientNameOf(OcptSchedulePlanSnapshot plan, OcptDayConvocation convocation) {
+  String _namedCallSheetRecipientNameOf(
+    OcptSchedulePlanSnapshot plan,
+    OcptDayConvocation convocation,
+  ) {
     final personId = convocation.personId;
     if (personId != null) {
       return plan.personById[personId]?.displayName ?? "";
@@ -1356,8 +1364,10 @@ class OcptExportManager extends AbsWithLifeCycle {
     final read = scriptImportService.readScreenplay(bytes: bytes, fileName: selectedFile.name);
     final fountainText = read.value;
     if (!read.status.isSuccess || fountainText == null) {
-      appLogger().w("The picked file ${selectedFile.name} could not be read as a screenplay: "
-          "${read.extraInfo}");
+      appLogger().w(
+        "The picked file ${selectedFile.name} could not be read as a screenplay: "
+        "${read.extraInfo}",
+      );
       return ResultWithStatus(status: read.status);
     }
 

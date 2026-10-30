@@ -165,9 +165,7 @@ class OcptLocationsService {
               ..orderBy([(table) => OrderingTerm.asc(table.position)]))
             .get();
 
-    return [
-      for (final row in rows) OcptSceneRef.fromRow(row: row, episodeNumber: episodeNumber),
-    ];
+    return [for (final row in rows) OcptSceneRef.fromRow(row: row, episodeNumber: episodeNumber)];
   }
 
   /// Creates a new location named [name] in [database], appended at the end, and returns its
@@ -210,7 +208,9 @@ class OcptLocationsService {
           facilitiesNotes: '',
           constraintsNotes: '',
           notes: '',
-          sortKey: ocptFractionalKeyBetween(before: existing.isEmpty ? null : existing.last.sortKey),
+          sortKey: ocptFractionalKeyBetween(
+            before: existing.isEmpty ? null : existing.last.sortKey,
+          ),
           isDeleted: false,
         ),
         stamps: stamps,
@@ -323,19 +323,15 @@ class OcptLocationsService {
     await database.transaction(() async {
       final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
 
-      final setRows =
-          await (database.select(database.ocptSetsTable)..where(
-                (table) => table.locationId.equals(locationId) & table.isDeleted.not(),
-              ))
-              .get();
+      final setRows = await (database.select(
+        database.ocptSetsTable,
+      )..where((table) => table.locationId.equals(locationId) & table.isDeleted.not())).get();
       final setIds = setRows.map((row) => row.id).toList(growable: false);
 
       if (setIds.isNotEmpty) {
-        final sceneSetRows =
-            await (database.select(
-                  database.ocptSceneSetsTable,
-                )..where((table) => table.setId.isIn(setIds) & table.isDeleted.not()))
-                .get();
+        final sceneSetRows = await (database.select(
+          database.ocptSceneSetsTable,
+        )..where((table) => table.setId.isIn(setIds) & table.isDeleted.not())).get();
         for (final row in sceneSetRows) {
           await OcptRowStampService.writeAndStamp(
             database: database,
@@ -365,11 +361,9 @@ class OcptLocationsService {
         }
       }
 
-      final availabilityRows =
-          await (database.select(database.ocptLocationAvailabilitiesTable)..where(
-                (table) => table.locationId.equals(locationId) & table.isDeleted.not(),
-              ))
-              .get();
+      final availabilityRows = await (database.select(
+        database.ocptLocationAvailabilitiesTable,
+      )..where((table) => table.locationId.equals(locationId) & table.isDeleted.not())).get();
       for (final availabilityRow in availabilityRows) {
         await OcptRowStampService.writeAndStamp(
           database: database,
@@ -381,11 +375,9 @@ class OcptLocationsService {
         );
       }
 
-      final assetRows =
-          await (database.select(
-                database.ocptAssetsTable,
-              )..where((table) => table.locationId.equals(locationId) & table.isDeleted.not()))
-              .get();
+      final assetRows = await (database.select(
+        database.ocptAssetsTable,
+      )..where((table) => table.locationId.equals(locationId) & table.isDeleted.not())).get();
       for (final assetRow in assetRows) {
         await OcptRowStampService.writeAndStamp(
           database: database,
@@ -495,7 +487,9 @@ class OcptLocationsService {
           code: ocptSetCodeOf(existingCodes: await _liveSetCodes(database)),
           name: name,
           notes: '',
-          sortKey: ocptFractionalKeyBetween(before: existing.isEmpty ? null : existing.last.sortKey),
+          sortKey: ocptFractionalKeyBetween(
+            before: existing.isEmpty ? null : existing.last.sortKey,
+          ),
           isDeleted: false,
         ),
         stamps: stamps,
@@ -533,17 +527,12 @@ class OcptLocationsService {
     }
 
     return database.transaction(() async {
-      final holdingLocationId =
-          locationId ?? await createLocation(database: database, name: name);
+      final holdingLocationId = locationId ?? await createLocation(database: database, name: name);
       if (holdingLocationId == null) {
         return null;
       }
 
-      final setId = await createSet(
-        database: database,
-        locationId: holdingLocationId,
-        name: name,
-      );
+      final setId = await createSet(database: database, locationId: holdingLocationId, name: name);
       if (setId == null) {
         return null;
       }
@@ -636,7 +625,9 @@ class OcptLocationsService {
         current: current,
         next: current.copyWith(
           locationId: locationId,
-          sortKey: ocptFractionalKeyBetween(before: existing.isEmpty ? null : existing.last.sortKey),
+          sortKey: ocptFractionalKeyBetween(
+            before: existing.isEmpty ? null : existing.last.sortKey,
+          ),
         ),
         stamps: stamps,
       );
@@ -659,11 +650,9 @@ class OcptLocationsService {
     await database.transaction(() async {
       final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
 
-      final sceneSetRows =
-          await (database.select(
-                database.ocptSceneSetsTable,
-              )..where((table) => table.setId.equals(setId) & table.isDeleted.not()))
-              .get();
+      final sceneSetRows = await (database.select(
+        database.ocptSceneSetsTable,
+      )..where((table) => table.setId.equals(setId) & table.isDeleted.not())).get();
       for (final row in sceneSetRows) {
         await OcptRowStampService.writeAndStamp(
           database: database,
@@ -855,11 +844,9 @@ class OcptLocationsService {
     }
 
     return database.transaction(() async {
-      final existingLinks =
-          await (database.select(database.ocptSceneSetsTable)..where(
-                (table) => table.sceneId.equals(sceneId) & table.setId.equals(setId),
-              ))
-              .get();
+      final existingLinks = await (database.select(
+        database.ocptSceneSetsTable,
+      )..where((table) => table.sceneId.equals(sceneId) & table.setId.equals(setId))).get();
 
       OcptSceneSetRow? droppedLink;
       for (final link in existingLinks) {
@@ -921,10 +908,14 @@ class OcptLocationsService {
     }
 
     await database.transaction(() async {
-      final current = await (database.select(database.ocptSceneSetsTable)..where(
-            (table) => table.sceneId.equals(sceneId) & table.setId.equals(setId) & table.isDeleted.not(),
-          ))
-          .getSingleOrNull();
+      final current =
+          await (database.select(database.ocptSceneSetsTable)..where(
+                (table) =>
+                    table.sceneId.equals(sceneId) &
+                    table.setId.equals(setId) &
+                    table.isDeleted.not(),
+              ))
+              .getSingleOrNull();
 
       if (current == null) {
         return;
@@ -957,31 +948,25 @@ class OcptLocationsService {
     required OcptProjectDatabase database,
     required String setId,
   }) async {
-    final linkRows =
-        await (database.select(
-              database.ocptSceneSetsTable,
-            )..where((table) => table.setId.equals(setId) & table.isDeleted.not()))
-            .get();
+    final linkRows = await (database.select(
+      database.ocptSceneSetsTable,
+    )..where((table) => table.setId.equals(setId) & table.isDeleted.not())).get();
     if (linkRows.isEmpty) {
       return null;
     }
 
     final sceneIds = linkRows.map((row) => row.sceneId).toSet();
-    final sceneRows =
-        await (database.select(
-              database.ocptScenesTable,
-            )..where((table) => table.id.isIn(sceneIds) & table.isDeleted.not()))
-            .get();
+    final sceneRows = await (database.select(
+      database.ocptScenesTable,
+    )..where((table) => table.id.isIn(sceneIds) & table.isDeleted.not())).get();
     if (sceneRows.isEmpty) {
       return null;
     }
 
     final screenplayIds = sceneRows.map((row) => row.screenplayId).toSet();
-    final screenplayRows =
-        await (database.select(
-              database.ocptScreenplaysTable,
-            )..where((table) => table.id.isIn(screenplayIds) & table.isDeleted.not()))
-            .get();
+    final screenplayRows = await (database.select(
+      database.ocptScreenplaysTable,
+    )..where((table) => table.id.isIn(screenplayIds) & table.isDeleted.not())).get();
     final sortKeyByScreenplayId = {for (final row in screenplayRows) row.id: row.sortKey};
 
     final sorted = sceneRows.toList()
@@ -1316,11 +1301,9 @@ class OcptLocationsService {
       return;
     }
 
-    final rows =
-        await (database.select(
-              database.ocptSceneSetsTable,
-            )..where((table) => table.sceneId.isIn(sceneIds) & table.isDeleted.not()))
-            .get();
+    final rows = await (database.select(
+      database.ocptSceneSetsTable,
+    )..where((table) => table.sceneId.isIn(sceneIds) & table.isDeleted.not())).get();
 
     for (final row in rows) {
       await OcptRowStampService.writeAndStamp(
@@ -1345,11 +1328,9 @@ class OcptLocationsService {
       return const {};
     }
 
-    final linkRows =
-        await (database.select(database.ocptSceneSetsTable)..where(
-              (table) => table.setId.isIn(setIds) & table.isDeleted.not(),
-            ))
-            .get();
+    final linkRows = await (database.select(
+      database.ocptSceneSetsTable,
+    )..where((table) => table.setId.isIn(setIds) & table.isDeleted.not())).get();
     if (linkRows.isEmpty) {
       return const {};
     }
@@ -1402,8 +1383,9 @@ class OcptLocationsService {
   Future<List<OcptSetRow>> _liveSetRowsOfLocation({
     required OcptProjectDatabase database,
     required String locationId,
-  }) => (database.select(database.ocptSetsTable)
-        ..where((table) => table.locationId.equals(locationId) & table.isDeleted.not())
-        ..orderBy([(table) => OrderingTerm.asc(table.sortKey)]))
-      .get();
+  }) =>
+      (database.select(database.ocptSetsTable)
+            ..where((table) => table.locationId.equals(locationId) & table.isDeleted.not())
+            ..orderBy([(table) => OrderingTerm.asc(table.sortKey)]))
+          .get();
 }

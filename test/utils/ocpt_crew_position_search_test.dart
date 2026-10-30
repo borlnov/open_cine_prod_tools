@@ -86,7 +86,10 @@ void main() {
     });
 
     test("an unaccented, dot-free query finds an inclusive-writing label", () {
-      expect(ocptCrewPositionSearchMatches(query: "realisateurrice", label: "Réalisateur·rice"), isTrue);
+      expect(
+        ocptCrewPositionSearchMatches(query: "realisateurrice", label: "Réalisateur·rice"),
+        isTrue,
+      );
     });
 
     test("a plain substring query finds a label carrying it, case-insensitively", () {
@@ -98,13 +101,19 @@ void main() {
     });
 
     test("does not match when the label does not contain the query", () {
-      expect(ocptCrewPositionSearchMatches(query: "machiniste", label: "Réalisateur·rice"), isFalse);
+      expect(
+        ocptCrewPositionSearchMatches(query: "machiniste", label: "Réalisateur·rice"),
+        isFalse,
+      );
     });
 
     test("matches the feminine reading of an inclusive label", () {
       expect(ocptCrewPositionSearchMatches(query: "directrice", label: "Directeur·rice"), isTrue);
       expect(
-        ocptCrewPositionSearchMatches(query: "régisseuse générale", label: "Régisseur·euse général·e"),
+        ocptCrewPositionSearchMatches(
+          query: "régisseuse générale",
+          label: "Régisseur·euse général·e",
+        ),
         isTrue,
       );
       expect(
@@ -156,7 +165,8 @@ void main() {
     });
 
     test("reads every inclusive word of the French crew position labels as expected", () {
-      final french = jsonDecode(File("lib/l10n/intl_fr.arb").readAsStringSync()) as Map<String, dynamic>;
+      final french =
+          jsonDecode(File("lib/l10n/intl_fr.arb").readAsStringSync()) as Map<String, dynamic>;
       final inclusiveWords = <String>{
         for (final entry in french.entries)
           if (entry.key.startsWith("resourcesCrewPosition") && !entry.key.contains("Picker"))
@@ -168,7 +178,11 @@ void main() {
       for (final word in inclusiveWords) {
         final key = word.toLowerCase();
         expect(_expectedFeminineWords, contains(key), reason: "no expected feminine for '$word'");
-        expect(ocptInclusiveFeminineOf(word).toLowerCase(), _expectedFeminineWords[key], reason: word);
+        expect(
+          ocptInclusiveFeminineOf(word).toLowerCase(),
+          _expectedFeminineWords[key],
+          reason: word,
+        );
       }
     });
   });

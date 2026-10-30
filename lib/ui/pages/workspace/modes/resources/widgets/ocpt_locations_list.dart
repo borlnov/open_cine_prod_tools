@@ -113,11 +113,7 @@ class _OcptLocationEntry extends StatelessWidget {
   final VoidCallback onTap;
 
   /// Class constructor
-  const _OcptLocationEntry({
-    required this.location,
-    required this.isSelected,
-    required this.onTap,
-  });
+  const _OcptLocationEntry({required this.location, required this.isSelected, required this.onTap});
 
   @override
   Widget build(BuildContext context) {

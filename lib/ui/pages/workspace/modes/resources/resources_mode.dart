@@ -175,7 +175,8 @@ class _ResourcesViewState extends State<_ResourcesView> {
         title: state.title,
         isDirty: false,
         isReadOnly: state.isPreviewingVersion,
-        onBack: () => context.read<OcptResourcesBloc>().add(const OcptResourcesBackRequestedEvent()),
+        onBack: () =>
+            context.read<OcptResourcesBloc>().add(const OcptResourcesBackRequestedEvent()),
         episodes: workspaceState.episodes,
         selectedEpisodeId: workspaceState.selectedEpisodeId,
         onEpisodeSelected: (episodeId) => context.read<OcptWorkspaceBloc>().add(
@@ -186,13 +187,11 @@ class _ResourcesViewState extends State<_ResourcesView> {
         onExportRequested: (anchor) => unawaited(_requestExport(context, state, anchor)),
         overflowEntries: _buildOverflowEntries(context),
         isLeftDockOpen: state.isListPanelVisible,
-        onToggleLeftDock: () => context.read<OcptResourcesBloc>().add(
-          const OcptResourcesLeftPanelToggledEvent(),
-        ),
+        onToggleLeftDock: () =>
+            context.read<OcptResourcesBloc>().add(const OcptResourcesLeftPanelToggledEvent()),
         isRightDockOpen: state.rightDockTab != null,
-        onToggleRightDock: () => context.read<OcptResourcesBloc>().add(
-          const OcptResourcesRightDockToggledEvent(),
-        ),
+        onToggleRightDock: () =>
+            context.read<OcptResourcesBloc>().add(const OcptResourcesRightDockToggledEvent()),
         onProjectSettingsRequested: state.isPreviewingVersion
             ? null
             : () => _requestProjectSettings(context),
@@ -234,8 +233,7 @@ class _ResourcesViewState extends State<_ResourcesView> {
   /// but honest: moving it somewhere else is a separate question this doesn't answer.
   List<PopupMenuEntry<void>> _buildOverflowEntries(BuildContext context) => [
     PopupMenuItem<void>(
-      onTap: () =>
-          context.read<OcptResourcesBloc>().add(const OcptResourcesDockLayoutResetEvent()),
+      onTap: () => context.read<OcptResourcesBloc>().add(const OcptResourcesDockLayoutResetEvent()),
       child: Text(Tr.of(context).resourcesResetPanelLayoutAction),
     ),
   ];
@@ -403,9 +401,8 @@ class _ResourcesViewState extends State<_ResourcesView> {
       searchQuery: state.searchQuery,
       onTabSelected: (tab) =>
           context.read<OcptResourcesBloc>().add(OcptResourcesTabSelectedEvent(tab: tab)),
-      onSearchQueryChanged: (query) => context.read<OcptResourcesBloc>().add(
-        OcptResourcesSearchQueryChangedEvent(query: query),
-      ),
+      onSearchQueryChanged: (query) =>
+          context.read<OcptResourcesBloc>().add(OcptResourcesSearchQueryChangedEvent(query: query)),
       onPersonSelected: (personId) => context.read<OcptResourcesBloc>().add(
         OcptResourcesPersonSelectedEvent(personId: personId),
       ),
@@ -521,7 +518,11 @@ class _ResourcesViewState extends State<_ResourcesView> {
       isReadOnly: state.isPreviewingVersion,
       fieldValueOf: (field) => _fieldValueOf(state, selectedPerson, field),
       onFieldChanged: (field, rawValue) => bloc.add(
-        OcptResourcesPersonFieldChangedEvent(personId: selectedPerson.id, field: field, rawValue: rawValue),
+        OcptResourcesPersonFieldChangedEvent(
+          personId: selectedPerson.id,
+          field: field,
+          rawValue: rawValue,
+        ),
       ),
       onColorChanged: (colorIndex) => bloc.add(
         OcptResourcesPersonColorChangedEvent(personId: selectedPerson.id, colorIndex: colorIndex),
@@ -552,7 +553,10 @@ class _ResourcesViewState extends State<_ResourcesView> {
         ),
       ),
       onImageRightsStatusChanged: (status) => bloc.add(
-        OcptResourcesPersonImageRightsStatusChangedEvent(personId: selectedPerson.id, status: status),
+        OcptResourcesPersonImageRightsStatusChangedEvent(
+          personId: selectedPerson.id,
+          status: status,
+        ),
       ),
       mileageRates: state.mileageRates,
       onMileageRateChanged: (mileageRateId) => bloc.add(
@@ -565,7 +569,11 @@ class _ResourcesViewState extends State<_ResourcesView> {
         OcptResourcesPersonImageRightsDateChangedEvent(personId: selectedPerson.id, date: date),
       ),
       onPositionAdded: () => bloc.add(
-        OcptResourcesPositionAddedEvent(personId: selectedPerson.id, positionId: "", customLabel: ""),
+        OcptResourcesPositionAddedEvent(
+          personId: selectedPerson.id,
+          positionId: "",
+          customLabel: "",
+        ),
       ),
       onPositionUpdated: (id, {required positionId, required customLabel}) => bloc.add(
         OcptResourcesPositionUpdatedEvent(id: id, positionId: positionId, customLabel: customLabel),
@@ -650,9 +658,8 @@ class _ResourcesViewState extends State<_ResourcesView> {
       OcptPersonField.maxDailyPresenceMinutes => ocptMaxDailyPresenceTextOf(
         person.maxDailyPresenceMinutes,
       ),
-      OcptPersonField.commuteKmMilli => person.commuteKmMilli == null
-          ? ""
-          : ocptBudgetQuantityLabel(person.commuteKmMilli!),
+      OcptPersonField.commuteKmMilli =>
+        person.commuteKmMilli == null ? "" : ocptBudgetQuantityLabel(person.commuteKmMilli!),
       OcptPersonField.accommodationNotes => person.accommodationNotes,
       OcptPersonField.travelNotes => person.travelNotes,
       OcptPersonField.dietaryNotes => person.dietaryNotes,
@@ -787,9 +794,8 @@ class _ResourcesViewState extends State<_ResourcesView> {
           rawValue: rawValue,
         ),
       ),
-      onCastChanged: (personId) => bloc.add(
-        OcptResourcesRoleCastChangedEvent(roleId: selectedRole.id, personId: personId),
-      ),
+      onCastChanged: (personId) =>
+          bloc.add(OcptResourcesRoleCastChangedEvent(roleId: selectedRole.id, personId: personId)),
       onKindChanged: (kind) =>
           bloc.add(OcptResourcesRoleKindChangedEvent(roleId: selectedRole.id, kind: kind)),
       onEpisodesChanged: (episodeIds) => bloc.add(
@@ -931,9 +937,8 @@ class _ResourcesViewState extends State<_ResourcesView> {
           fileTypeLabel: tr.resourcesDocumentFileTypeLabel,
         ),
       ),
-      onPermitDocumentCleared: () => bloc.add(
-        OcptResourcesPermitDocumentClearedEvent(locationId: selectedLocation.id),
-      ),
+      onPermitDocumentCleared: () =>
+          bloc.add(OcptResourcesPermitDocumentClearedEvent(locationId: selectedLocation.id)),
       onPermitDocumentValidFromChanged: (date) => bloc.add(
         OcptResourcesAssetValidFromChangedEvent(
           assetId: selectedLocation.permitDocument!.id,
@@ -1047,10 +1052,7 @@ class _ResourcesViewState extends State<_ResourcesView> {
         ),
       ),
       onCategoryChanged: (category) => bloc.add(
-        OcptResourcesElementCategoryChangedEvent(
-          elementId: selectedElement.id,
-          category: category,
-        ),
+        OcptResourcesElementCategoryChangedEvent(elementId: selectedElement.id, category: category),
       ),
       onSourceKindChanged: (sourceKind) => bloc.add(
         OcptResourcesElementSourceKindChangedEvent(
@@ -1059,16 +1061,10 @@ class _ResourcesViewState extends State<_ResourcesView> {
         ),
       ),
       onOwnerChanged: (personId) => bloc.add(
-        OcptResourcesElementOwnerChangedEvent(
-          elementId: selectedElement.id,
-          personId: personId,
-        ),
+        OcptResourcesElementOwnerChangedEvent(elementId: selectedElement.id, personId: personId),
       ),
       onBringerChanged: (personId) => bloc.add(
-        OcptResourcesElementBringerChangedEvent(
-          elementId: selectedElement.id,
-          personId: personId,
-        ),
+        OcptResourcesElementBringerChangedEvent(elementId: selectedElement.id, personId: personId),
       ),
       onTrackingFlagChanged: (flag, {required value}) => bloc.add(
         OcptResourcesElementTrackingFlagChangedEvent(
@@ -1078,14 +1074,10 @@ class _ResourcesViewState extends State<_ResourcesView> {
         ),
       ),
       onSceneAssigned: (sceneId) => bloc.add(
-        OcptResourcesSceneAssignedToElementEvent(
-          sceneId: sceneId,
-          elementId: selectedElement.id,
-        ),
+        OcptResourcesSceneAssignedToElementEvent(sceneId: sceneId, elementId: selectedElement.id),
       ),
-      onLinkUpdated: (id, {required quantity, required notes}) => bloc.add(
-        OcptResourcesSceneElementUpdatedEvent(id: id, quantity: quantity, notes: notes),
-      ),
+      onLinkUpdated: (id, {required quantity, required notes}) =>
+          bloc.add(OcptResourcesSceneElementUpdatedEvent(id: id, quantity: quantity, notes: notes)),
       onLinkRemoved: (id) => bloc.add(OcptResourcesSceneElementRemovedEvent(id: id)),
       onDeleteRequested: () => _handleDeleteRequested(
         context,
@@ -1161,10 +1153,7 @@ class _ResourcesViewState extends State<_ResourcesView> {
         continue;
       }
 
-      final setId = ocptSceneSetSuggestionOf(
-        heading: scene.heading,
-        locations: state.locations,
-      );
+      final setId = ocptSceneSetSuggestionOf(heading: scene.heading, locations: state.locations);
       if (setId != null) {
         suggestions[scene.id] = setId;
       }
@@ -1352,9 +1341,8 @@ class _ResourcesViewState extends State<_ResourcesView> {
         onRestoreRequested: (versionId) => context.read<OcptResourcesBloc>().add(
           OcptProjectVersionRestoreRequestedEvent(versionId: versionId),
         ),
-        onRestoreCancelled: () => context.read<OcptResourcesBloc>().add(
-          const OcptProjectVersionRestoreCancelledEvent(),
-        ),
+        onRestoreCancelled: () =>
+            context.read<OcptResourcesBloc>().add(const OcptProjectVersionRestoreCancelledEvent()),
         onRestoreConfirmed: (version) => context.read<OcptResourcesBloc>().add(
           OcptProjectVersionRestoreConfirmedEvent(
             versionId: version.id,
@@ -1364,18 +1352,16 @@ class _ResourcesViewState extends State<_ResourcesView> {
         onDeleteRequested: (versionId) => context.read<OcptResourcesBloc>().add(
           OcptProjectVersionDeletionRequestedEvent(versionId: versionId),
         ),
-        onDeleteCancelled: () => context.read<OcptResourcesBloc>().add(
-          const OcptProjectVersionDeletionCancelledEvent(),
-        ),
+        onDeleteCancelled: () =>
+            context.read<OcptResourcesBloc>().add(const OcptProjectVersionDeletionCancelledEvent()),
         onDeleteConfirmed: (versionId) => context.read<OcptResourcesBloc>().add(
           OcptProjectVersionDeletionConfirmedEvent(versionId: versionId),
         ),
         onRenameRequested: (versionId) => context.read<OcptResourcesBloc>().add(
           OcptProjectVersionRenameRequestedEvent(versionId: versionId),
         ),
-        onRenameCancelled: () => context.read<OcptResourcesBloc>().add(
-          const OcptProjectVersionRenameCancelledEvent(),
-        ),
+        onRenameCancelled: () =>
+            context.read<OcptResourcesBloc>().add(const OcptProjectVersionRenameCancelledEvent()),
         onRenameConfirmed: (versionId, name, note) => context.read<OcptResourcesBloc>().add(
           OcptProjectVersionRenameConfirmedEvent(versionId: versionId, name: name, note: note),
         ),
@@ -1508,13 +1494,15 @@ class _ResourcesViewState extends State<_ResourcesView> {
     final tr = Tr.of(context);
 
     return switch (notice.kind) {
-      OcptResourcesIoNoticeKind.xlsxExportSucceeded => notice.wasShared
-          ? tr.exportSharedMessage
-          : tr.resourcesExportXlsxSuccessMessage(notice.path ?? ""),
+      OcptResourcesIoNoticeKind.xlsxExportSucceeded =>
+        notice.wasShared
+            ? tr.exportSharedMessage
+            : tr.resourcesExportXlsxSuccessMessage(notice.path ?? ""),
       OcptResourcesIoNoticeKind.xlsxExportFailed => tr.resourcesExportXlsxError,
-      OcptResourcesIoNoticeKind.contactListExportSucceeded => notice.wasShared
-          ? tr.exportSharedMessage
-          : tr.resourcesExportContactListSuccessMessage(notice.path ?? ""),
+      OcptResourcesIoNoticeKind.contactListExportSucceeded =>
+        notice.wasShared
+            ? tr.exportSharedMessage
+            : tr.resourcesExportContactListSuccessMessage(notice.path ?? ""),
       OcptResourcesIoNoticeKind.contactListExportFailed => tr.resourcesExportContactListError,
     };
   }

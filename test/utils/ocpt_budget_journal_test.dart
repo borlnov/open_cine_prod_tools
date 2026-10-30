@@ -40,27 +40,14 @@ void main() {
     test("a tax-inclusive entry reads back to the cent with no rate anywhere", () {
       final entry = buildEntry(debitCents: 1250, creditCents: 300);
 
-      expect(
-        ocptBudgetEntryDebitCentsOf(entry, projectVatRateBasisPoints: null),
-        1250,
-      );
-      expect(
-        ocptBudgetEntryCreditCentsOf(entry, projectVatRateBasisPoints: null),
-        300,
-      );
+      expect(ocptBudgetEntryDebitCentsOf(entry, projectVatRateBasisPoints: null), 1250);
+      expect(ocptBudgetEntryCreditCentsOf(entry, projectVatRateBasisPoints: null), 300);
     });
 
     test("an entry typed excluding tax at 20 % converts exactly", () {
-      final entry = buildEntry(
-        debitCents: 1000,
-        isTaxInclusive: false,
-        vatRateBasisPoints: 2000,
-      );
+      final entry = buildEntry(debitCents: 1000, isTaxInclusive: false, vatRateBasisPoints: 2000);
 
-      expect(
-        ocptBudgetEntryDebitCentsOf(entry, projectVatRateBasisPoints: null),
-        1200,
-      );
+      expect(ocptBudgetEntryDebitCentsOf(entry, projectVatRateBasisPoints: null), 1200);
     });
 
     test("an entry typed excluding tax with no rate anywhere reads null on both sides", () {
@@ -77,16 +64,9 @@ void main() {
     });
 
     test("a line's own override departs from the project's rate", () {
-      final entry = buildEntry(
-        debitCents: 1000,
-        isTaxInclusive: false,
-        vatRateBasisPoints: 550,
-      );
+      final entry = buildEntry(debitCents: 1000, isTaxInclusive: false, vatRateBasisPoints: 550);
 
-      expect(
-        ocptBudgetEntryDebitCentsOf(entry, projectVatRateBasisPoints: 2000),
-        1055,
-      );
+      expect(ocptBudgetEntryDebitCentsOf(entry, projectVatRateBasisPoints: 2000), 1055);
     });
   });
 
@@ -238,16 +218,19 @@ void main() {
       expect(total.isComplete, isTrue);
     });
 
-    test("a credit naming no poste does not count — it is money coming in, not off-quote spending", () {
-      final entries = [buildEntry(id: "e1", creditCents: 5000)];
+    test(
+      "a credit naming no poste does not count — it is money coming in, not off-quote spending",
+      () {
+        final entries = [buildEntry(id: "e1", creditCents: 5000)];
 
-      final total = ocptBudgetOffQuotePaidTotalOf(entries, projectVatRateBasisPoints: null);
+        final total = ocptBudgetOffQuotePaidTotalOf(entries, projectVatRateBasisPoints: null);
 
-      expect(total.amountCents, 0);
-      expect(total.coveredLineCount, 0);
-      expect(total.lineCount, 0);
-      expect(total.isComplete, isTrue);
-    });
+        expect(total.amountCents, 0);
+        expect(total.coveredLineCount, 0);
+        expect(total.lineCount, 0);
+        expect(total.isComplete, isTrue);
+      },
+    );
 
     test("an unreadable off-quote debit leaves the total incomplete rather than wrong", () {
       final entries = [

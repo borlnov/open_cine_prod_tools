@@ -212,9 +212,7 @@ class _SequenceEntry extends StatelessWidget {
                         const SizedBox(height: 2),
                         Text(
                           "${tr.shotListShotsCount(sequence.shotCount)} · "
-                          "${tr.shotListAverageDifficulty(
-                            ocptFormatShotDifficulty(context, sequence.averageDifficulty),
-                          )}",
+                          "${tr.shotListAverageDifficulty(ocptFormatShotDifficulty(context, sequence.averageDifficulty))}",
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: theme.textTheme.labelMedium?.copyWith(

@@ -195,88 +195,76 @@ void main() {
     expect(manager.currentProject, isNull);
   });
 
-  test(
-    'closeCurrentProject records the episode count the project ended with, not the one it '
-    'opened with',
-    () async {
-      final filePath = p.join(tempDir.path, "movie.ocpt");
-      await manager.createProject(name: "My Movie", filePath: filePath);
+  test('closeCurrentProject records the episode count the project ended with, not the one it '
+      'opened with', () async {
+    final filePath = p.join(tempDir.path, "movie.ocpt");
+    await manager.createProject(name: "My Movie", filePath: filePath);
 
-      await manager.screenplayService.createEpisode(database: manager.currentProject!.database);
-      await manager.closeCurrentProject();
+    await manager.screenplayService.createEpisode(database: manager.currentProject!.database);
+    await manager.closeCurrentProject();
 
-      final recents = await propertiesManager.recentProjects.load();
-      expect(recents?.first.episodeCount, 2);
-    },
-  );
+    final recents = await propertiesManager.recentProjects.load();
+    expect(recents?.first.episodeCount, 2);
+  });
 
-  test(
-    'recordCurrentProjectEpisodeCount writes the live count without closing the project, and is '
-    'a no-op when none is open',
-    () async {
-      final filePath = p.join(tempDir.path, "movie.ocpt");
-      await manager.createProject(name: "My Movie", filePath: filePath);
+  test('recordCurrentProjectEpisodeCount writes the live count without closing the project, and is '
+      'a no-op when none is open', () async {
+    final filePath = p.join(tempDir.path, "movie.ocpt");
+    await manager.createProject(name: "My Movie", filePath: filePath);
 
-      await manager.screenplayService.createEpisode(database: manager.currentProject!.database);
-      await manager.recordCurrentProjectEpisodeCount();
+    await manager.screenplayService.createEpisode(database: manager.currentProject!.database);
+    await manager.recordCurrentProjectEpisodeCount();
 
-      // What an app quit from inside the project would leave behind: the project is still open,
-      // and the recent-projects entry already knows about the second episode.
-      expect(manager.currentProject, isNotNull);
-      final recents = await propertiesManager.recentProjects.load();
-      expect(recents?.first.episodeCount, 2);
+    // What an app quit from inside the project would leave behind: the project is still open,
+    // and the recent-projects entry already knows about the second episode.
+    expect(manager.currentProject, isNotNull);
+    final recents = await propertiesManager.recentProjects.load();
+    expect(recents?.first.episodeCount, 2);
 
-      await manager.closeCurrentProject();
+    await manager.closeCurrentProject();
 
-      // Calling it with no project open must not throw, nor touch what's stored.
-      await manager.recordCurrentProjectEpisodeCount();
-      final unchanged = await propertiesManager.recentProjects.load();
-      expect(unchanged?.first.episodeCount, 2);
-    },
-  );
+    // Calling it with no project open must not throw, nor touch what's stored.
+    await manager.recordCurrentProjectEpisodeCount();
+    final unchanged = await propertiesManager.recentProjects.load();
+    expect(unchanged?.first.episodeCount, 2);
+  });
 
-  test(
-    "recordCurrentProjectEpisodeCount mid-preview records the working copy's episode count, "
-    "never the previewed version's",
-    () async {
-      final filePath = p.join(tempDir.path, "movie.ocpt");
-      await manager.createProject(name: "My Movie", filePath: filePath);
-      final version = await manager.createProjectVersion(name: "v1", note: "");
+  test("recordCurrentProjectEpisodeCount mid-preview records the working copy's episode count, "
+      "never the previewed version's", () async {
+    final filePath = p.join(tempDir.path, "movie.ocpt");
+    await manager.createProject(name: "My Movie", filePath: filePath);
+    final version = await manager.createProjectVersion(name: "v1", note: "");
 
-      // The working copy grows a second episode after the version was captured.
-      await manager.screenplayService.createEpisode(database: manager.currentProject!.database);
+    // The working copy grows a second episode after the version was captured.
+    await manager.screenplayService.createEpisode(database: manager.currentProject!.database);
 
-      await manager.previewVersion(version!.id);
-      await manager.recordCurrentProjectEpisodeCount();
+    await manager.previewVersion(version!.id);
+    await manager.recordCurrentProjectEpisodeCount();
 
-      final recents = await propertiesManager.recentProjects.load();
-      expect(recents?.first.episodeCount, 2);
-    },
-  );
+    final recents = await propertiesManager.recentProjects.load();
+    expect(recents?.first.episodeCount, 2);
+  });
 
-  test(
-    "closeCurrentProject mid-preview records the working copy's episode count, never the "
-    "previewed version's",
-    () async {
-      final filePath = p.join(tempDir.path, "movie.ocpt");
-      await manager.createProject(name: "My Movie", filePath: filePath);
-      final version = await manager.createProjectVersion(name: "v1", note: "");
+  test("closeCurrentProject mid-preview records the working copy's episode count, never the "
+      "previewed version's", () async {
+    final filePath = p.join(tempDir.path, "movie.ocpt");
+    await manager.createProject(name: "My Movie", filePath: filePath);
+    final version = await manager.createProjectVersion(name: "v1", note: "");
 
-      // The working copy grows a second episode after the version was captured.
-      await manager.screenplayService.createEpisode(database: manager.currentProject!.database);
+    // The working copy grows a second episode after the version was captured.
+    await manager.screenplayService.createEpisode(database: manager.currentProject!.database);
 
-      await manager.previewVersion(version!.id);
-      expect(manager.currentProject!.isReadOnly, isTrue);
+    await manager.previewVersion(version!.id);
+    expect(manager.currentProject!.isReadOnly, isTrue);
 
-      await manager.closeCurrentProject();
+    await manager.closeCurrentProject();
 
-      final recents = await propertiesManager.recentProjects.load();
-      // The previewed version only ever held one episode; the working copy — read through
-      // fileDatabase, never the in-memory database the preview reads through — held two by the
-      // time it closed.
-      expect(recents?.first.episodeCount, 2);
-    },
-  );
+    final recents = await propertiesManager.recentProjects.load();
+    // The previewed version only ever held one episode; the working copy — read through
+    // fileDatabase, never the in-memory database the preview reads through — held two by the
+    // time it closed.
+    expect(recents?.first.episodeCount, 2);
+  });
 
   test('currentProjectStream emits every time the current project changes', () async {
     // expectLater/emitsInOrder subscribes right away and awaits each expected event in turn,
@@ -328,10 +316,7 @@ void main() {
   );
 
   test('saveCurrentProjectPageFormat is a no-op when no project is open', () async {
-    await expectLater(
-      manager.saveCurrentProjectPageFormat(OcptPageFormat.a4),
-      completes,
-    );
+    await expectLater(manager.saveCurrentProjectPageFormat(OcptPageFormat.a4), completes);
     expect(manager.currentProject, isNull);
   });
 
@@ -359,21 +344,18 @@ void main() {
     expect(await manager.loadCurrentProjectCurrencyCode(), isNull);
   });
 
-  test(
-    'saveCurrentProjectMinimumRestMinutes writes the minutes, '
-    'loadCurrentProjectMinimumRestMinutes reads them back',
-    () async {
-      final filePath = p.join(tempDir.path, "movie.ocpt");
-      await manager.createProject(name: "My Movie", filePath: filePath);
+  test('saveCurrentProjectMinimumRestMinutes writes the minutes, '
+      'loadCurrentProjectMinimumRestMinutes reads them back', () async {
+    final filePath = p.join(tempDir.path, "movie.ocpt");
+    await manager.createProject(name: "My Movie", filePath: filePath);
 
-      // Nobody has recorded a minimum yet — not "no minimum required".
-      expect(await manager.loadCurrentProjectMinimumRestMinutes(), isNull);
+    // Nobody has recorded a minimum yet — not "no minimum required".
+    expect(await manager.loadCurrentProjectMinimumRestMinutes(), isNull);
 
-      await manager.saveCurrentProjectMinimumRestMinutes(660);
+    await manager.saveCurrentProjectMinimumRestMinutes(660);
 
-      expect(await manager.loadCurrentProjectMinimumRestMinutes(), 660);
-    },
-  );
+    expect(await manager.loadCurrentProjectMinimumRestMinutes(), 660);
+  });
 
   test('saveCurrentProjectMinimumRestMinutes can clear a minimum already recorded', () async {
     await manager.createProject(name: "My Movie", filePath: p.join(tempDir.path, "movie.ocpt"));
@@ -406,10 +388,7 @@ void main() {
       filePath: p.join(tempDir.path, "mon_film.ocpt"),
     );
 
-    expect(
-      await frenchManager.loadCurrentProjectScreenplayLanguage(),
-      OcptScreenplayLanguage.fr,
-    );
+    expect(await frenchManager.loadCurrentProjectScreenplayLanguage(), OcptScreenplayLanguage.fr);
   });
 
   test('createProject leaves the screenplay language unset when no dictionary matches', () async {
@@ -430,23 +409,20 @@ void main() {
     expect(await germanManager.loadCurrentProjectScreenplayLanguage(), isNull);
   });
 
-  test(
-    'saveCurrentProjectScreenplayLanguage writes the language, '
-    'loadCurrentProjectScreenplayLanguage reads it back',
-    () async {
-      final filePath = p.join(tempDir.path, "movie.ocpt");
-      await manager.createProject(name: "My Movie", filePath: filePath);
+  test('saveCurrentProjectScreenplayLanguage writes the language, '
+      'loadCurrentProjectScreenplayLanguage reads it back', () async {
+    final filePath = p.join(tempDir.path, "movie.ocpt");
+    await manager.createProject(name: "My Movie", filePath: filePath);
 
-      final initialLanguage = await manager.loadCurrentProjectScreenplayLanguage();
-      final otherLanguage = initialLanguage == OcptScreenplayLanguage.fr
-          ? OcptScreenplayLanguage.enGb
-          : OcptScreenplayLanguage.fr;
+    final initialLanguage = await manager.loadCurrentProjectScreenplayLanguage();
+    final otherLanguage = initialLanguage == OcptScreenplayLanguage.fr
+        ? OcptScreenplayLanguage.enGb
+        : OcptScreenplayLanguage.fr;
 
-      await manager.saveCurrentProjectScreenplayLanguage(otherLanguage);
+    await manager.saveCurrentProjectScreenplayLanguage(otherLanguage);
 
-      expect(await manager.loadCurrentProjectScreenplayLanguage(), otherLanguage);
-    },
-  );
+    expect(await manager.loadCurrentProjectScreenplayLanguage(), otherLanguage);
+  });
 
   test('saveCurrentProjectScreenplayLanguage can clear a language already recorded', () async {
     await manager.createProject(name: "My Movie", filePath: p.join(tempDir.path, "movie.ocpt"));
@@ -469,25 +445,28 @@ void main() {
     expect(await manager.loadCurrentProjectScreenplayLanguage(), isNull);
   });
 
-  test('createProjectVersion captures the open project, listProjectVersions reads it back', () async {
-    await manager.createProject(name: "My Movie", filePath: p.join(tempDir.path, "movie.ocpt"));
+  test(
+    'createProjectVersion captures the open project, listProjectVersions reads it back',
+    () async {
+      await manager.createProject(name: "My Movie", filePath: p.join(tempDir.path, "movie.ocpt"));
 
-    final created = await manager.createProjectVersion(
-      name: "v1 — First read",
-      note: "Before the rewrite",
-    );
+      final created = await manager.createProjectVersion(
+        name: "v1 — First read",
+        note: "Before the rewrite",
+      );
 
-    expect(created?.name, "v1 — First read");
-    expect(created?.isBase, isTrue);
+      expect(created?.name, "v1 — First read");
+      expect(created?.isBase, isTrue);
 
-    final versions = await manager.listProjectVersions();
-    expect(versions.map((version) => version.id), [created?.id]);
-    expect(versions.single.note, "Before the rewrite");
+      final versions = await manager.listProjectVersions();
+      expect(versions.map((version) => version.id), [created?.id]);
+      expect(versions.single.note, "Before the rewrite");
 
-    // The manager is what fills in the facts a version records but the service can't know: the
-    // replica's device id is minted through the properties manager on the way.
-    expect(await propertiesManager.deviceId.load(), isNotEmpty);
-  });
+      // The manager is what fills in the facts a version records but the service can't know: the
+      // replica's device id is minted through the properties manager on the way.
+      expect(await propertiesManager.deviceId.load(), isNotEmpty);
+    },
+  );
 
   test('deleteProjectVersion removes the version from the open project', () async {
     await manager.createProject(name: "My Movie", filePath: p.join(tempDir.path, "movie.ocpt"));
@@ -969,30 +948,27 @@ void main() {
       expect(manager.currentProject?.path, openPath);
     });
 
-    test(
-      "a file at the current schema written by a different pre-release build is refused, "
-      "leaving any already-open project alone",
-      () async {
-        final openPath = p.join(tempDir.path, "current.ocpt");
-        await manager.createProject(name: "Current", filePath: openPath);
+    test("a file at the current schema written by a different pre-release build is refused, "
+        "leaving any already-open project alone", () async {
+      final openPath = p.join(tempDir.path, "current.ocpt");
+      await manager.createProject(name: "Current", filePath: openPath);
 
-        final foreignPath = p.join(tempDir.path, "foreign.ocpt");
-        await manager.createProject(name: "From Another Workshop", filePath: foreignPath);
-        await manager.closeCurrentProject();
-        // A pre-release writer, whereas the manager's own fallback under `flutter test` is the
-        // stable "0.3.0" (per `OcptProjectsManager._appVersion`): same schema, and a pre-release
-        // is involved on the writer side, so the file is a foreign dev build.
-        stampWriter(foreignPath, "0.2.0-alpha.99");
+      final foreignPath = p.join(tempDir.path, "foreign.ocpt");
+      await manager.createProject(name: "From Another Workshop", filePath: foreignPath);
+      await manager.closeCurrentProject();
+      // A pre-release writer, whereas the manager's own fallback under `flutter test` is the
+      // stable "0.3.0" (per `OcptProjectsManager._appVersion`): same schema, and a pre-release
+      // is involved on the writer side, so the file is a foreign dev build.
+      stampWriter(foreignPath, "0.2.0-alpha.99");
 
-        // Reopen "Current" since createProject above closed it to open "foreign.ocpt".
-        await manager.openProject(filePath: openPath);
+      // Reopen "Current" since createProject above closed it to open "foreign.ocpt".
+      await manager.openProject(filePath: openPath);
 
-        final result = await manager.openProject(filePath: foreignPath);
+      final result = await manager.openProject(filePath: foreignPath);
 
-        expect(result.status, OcptProjectStatus.foreignDevBuildFormat);
-        expect(manager.currentProject?.path, openPath);
-      },
-    );
+      expect(result.status, OcptProjectStatus.foreignDevBuildFormat);
+      expect(manager.currentProject?.path, openPath);
+    });
 
     test("a file stamped with this exact build's own version opens normally", () async {
       final filePath = p.join(tempDir.path, "movie.ocpt");

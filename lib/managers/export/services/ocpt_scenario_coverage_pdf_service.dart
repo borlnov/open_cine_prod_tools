@@ -300,7 +300,9 @@ class OcptScenarioCoveragePdfService {
             width: widthPt,
             height: heightPt,
             decoration: segment.isStale
-                ? pw.BoxDecoration(border: pw.Border.all(color: color, width: _staleBarStrokePt))
+                ? pw.BoxDecoration(
+                    border: pw.Border.all(color: color, width: _staleBarStrokePt),
+                  )
                 : pw.BoxDecoration(color: color),
           ),
         ),
@@ -503,13 +505,16 @@ class OcptScenarioCoveragePdfService {
     required OcptScriptPagePainter painter,
   }) {
     final rows = <pw.TableRow>[
-      _appendixHeaderRow(painter: painter, cells: [
-        labels.summarySequenceHeader,
-        labels.summaryShotCountHeader,
-        labels.summaryCoveredHeader,
-        labels.summaryStaleHeader,
-        labels.summaryUncoveredHeader,
-      ]),
+      _appendixHeaderRow(
+        painter: painter,
+        cells: [
+          labels.summarySequenceHeader,
+          labels.summaryShotCountHeader,
+          labels.summaryCoveredHeader,
+          labels.summaryStaleHeader,
+          labels.summaryUncoveredHeader,
+        ],
+      ),
       for (final row in coverage.summary)
         pw.TableRow(
           children: [
@@ -546,10 +551,7 @@ class OcptScenarioCoveragePdfService {
           pw.SizedBox(height: _appendixTitleFontSizePt),
           pw.Text(
             labels.laneOverflowNote,
-            style: pw.TextStyle(
-              font: painter.fonts.italic,
-              fontSize: _appendixFontSizePt,
-            ),
+            style: pw.TextStyle(font: painter.fonts.italic, fontSize: _appendixFontSizePt),
           ),
         ],
       ],

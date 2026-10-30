@@ -99,7 +99,10 @@ class OcptRelayServer {
     int maxAuthFailuresPerSource = 20,
     Duration authFailureWindow = const Duration(minutes: 1),
     this.onEvent,
-  }) : _rateLimiter = _AuthRateLimiter(maxFailures: maxAuthFailuresPerSource, window: authFailureWindow);
+  }) : _rateLimiter = _AuthRateLimiter(
+         maxFailures: maxAuthFailuresPerSource,
+         window: authFailureWindow,
+       );
 
   static const _enrolmentSecretHeader = 'X-Ocpt-Enrolment-Secret';
   static const _bearerPrefix = 'Bearer ';
@@ -240,11 +243,18 @@ class OcptRelayServer {
       // OcptSyncErrorCode has no dedicated "nothing uploaded yet" member; this is the closest
       // existing one, and the 404 status is what a caller (`fetchLatestSnapshot` returning null)
       // actually acts on.
-      return _errorResponse(404, OcptSyncErrorCode.unknownProject, 'project $projectId has no snapshot yet');
+      return _errorResponse(
+        404,
+        OcptSyncErrorCode.unknownProject,
+        'project $projectId has no snapshot yet',
+      );
     }
     final (descriptor, bytes) = latest;
 
-    return _jsonResponse(200, {_descriptorKey: descriptor.toJson(), _bytesKey: base64Encode(bytes)});
+    return _jsonResponse(200, {
+      _descriptorKey: descriptor.toJson(),
+      _bytesKey: base64Encode(bytes),
+    });
   }
 
   /// Upgrades [request] to the `events` WebSocket for `<projectId>`, behind the same bearer check
@@ -262,7 +272,9 @@ class OcptRelayServer {
       return rejection;
     }
 
-    final upgrade = shelf_web_socket.webSocketHandler((webSocket, _) => _subscribe(projectId, webSocket));
+    final upgrade = shelf_web_socket.webSocketHandler(
+      (webSocket, _) => _subscribe(projectId, webSocket),
+    );
 
     return upgrade(request);
   }
@@ -314,7 +326,11 @@ class OcptRelayServer {
   /// every subscriber including whichever socket triggered it: this method only ever moves a frame
   /// a client itself sent, and never inspects it — [frame] passes through exactly as received,
   /// keeping this class domain-blind.
-  void _rebroadcastToPeers(String projectId, {required WebSocketChannel sender, required Object? frame}) {
+  void _rebroadcastToPeers(
+    String projectId, {
+    required WebSocketChannel sender,
+    required Object? frame,
+  }) {
     final subscribers = _eventSubscribersByProject[projectId];
     if (subscribers == null) {
       return;
@@ -330,7 +346,11 @@ class OcptRelayServer {
   /// Authenticates [request] for [projectId], creating the project first when [allowCreate] is
   /// true and every condition in this class's own doc comment is met. Returns null when the
   /// request may proceed, or the [shelf.Response] to send instead.
-  shelf.Response? _authenticate(shelf.Request request, {required String projectId, required bool allowCreate}) {
+  shelf.Response? _authenticate(
+    shelf.Request request, {
+    required String projectId,
+    required bool allowCreate,
+  }) {
     final source = _sourceKeyFor(request);
     if (_rateLimiter.isBlocked(source)) {
       onEvent?.call('auth rejected: project=$projectId status=429');
@@ -346,7 +366,9 @@ class OcptRelayServer {
     final project = store.findProject(projectId);
 
     if (project == null) {
-      if (allowCreate && token != null && request.headers[_enrolmentSecretHeader] == enrolmentSecret) {
+      if (allowCreate &&
+          token != null &&
+          request.headers[_enrolmentSecretHeader] == enrolmentSecret) {
         store.createProject(projectId: projectId, tokenHash: _hashToken(token));
         onEvent?.call('project created: project=$projectId');
 

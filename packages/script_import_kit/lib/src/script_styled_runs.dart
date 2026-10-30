@@ -45,10 +45,9 @@ List<FountainStyledRun> trimStyledRunEdges(List<FountainStyledRun> runs) {
 }
 
 /// [run] with its text replaced by [text], its styles kept.
-FountainStyledRun _withText(FountainStyledRun run, String text) =>
-    FountainStyledRun(
-      text: text,
-      isBold: run.isBold,
-      isItalic: run.isItalic,
-      isUnderline: run.isUnderline,
-    );
+FountainStyledRun _withText(FountainStyledRun run, String text) => FountainStyledRun(
+  text: text,
+  isBold: run.isBold,
+  isItalic: run.isItalic,
+  isUnderline: run.isUnderline,
+);

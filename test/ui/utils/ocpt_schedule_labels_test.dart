@@ -17,11 +17,7 @@ void main() {
     test("a Monday-start week runs Monday to Sunday", () {
       for (var offset = 0; offset < 7; offset++) {
         final date = monday.add(Duration(days: offset));
-        expect(
-          ocptScheduleStartOfWeek(date, OcptFirstWeekday.monday),
-          monday,
-          reason: "for $date",
-        );
+        expect(ocptScheduleStartOfWeek(date, OcptFirstWeekday.monday), monday, reason: "for $date");
       }
     });
 
@@ -33,11 +29,7 @@ void main() {
 
       for (var offset = 1; offset < 7; offset++) {
         final date = sunday.add(Duration(days: offset));
-        expect(
-          ocptScheduleStartOfWeek(date, OcptFirstWeekday.sunday),
-          sunday,
-          reason: "for $date",
-        );
+        expect(ocptScheduleStartOfWeek(date, OcptFirstWeekday.sunday), sunday, reason: "for $date");
       }
     });
 
@@ -73,30 +65,29 @@ void main() {
       );
     });
 
-    testWidgets(
-      "a mixed day reads a colour distinct from both the neutral and every category",
-      (tester) async {
-        await tester.pumpWidget(
-          MaterialApp(
-            home: Builder(
-              builder: (context) {
-                final neutral = ocptScheduleDayEffectTint(context, null);
-                final mixed = ocptScheduleDayEffectTint(context, OcptSceneEffectCategory.mixed);
+    testWidgets("a mixed day reads a colour distinct from both the neutral and every category", (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Builder(
+            builder: (context) {
+              final neutral = ocptScheduleDayEffectTint(context, null);
+              final mixed = ocptScheduleDayEffectTint(context, OcptSceneEffectCategory.mixed);
 
-                expect(mixed, isNot(neutral));
-                for (final category in OcptSceneEffectCategory.values) {
-                  if (category == OcptSceneEffectCategory.mixed) {
-                    continue;
-                  }
-                  expect(mixed, isNot(ocptScheduleDayEffectTint(context, category)));
+              expect(mixed, isNot(neutral));
+              for (final category in OcptSceneEffectCategory.values) {
+                if (category == OcptSceneEffectCategory.mixed) {
+                  continue;
                 }
-                return const SizedBox();
-              },
-            ),
+                expect(mixed, isNot(ocptScheduleDayEffectTint(context, category)));
+              }
+              return const SizedBox();
+            },
           ),
-        );
-      },
-    );
+        ),
+      );
+    });
 
     testWidgets("switching the category switches the resolved tint", (tester) async {
       await tester.pumpWidget(

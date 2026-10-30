@@ -102,9 +102,7 @@ class OcptFloorPlanSetGallery extends StatelessWidget {
                   locationName: locationName,
                   symbols: symbolsBySetId[set.id] ?? const [],
                   isSuggested: set.id == suggestedSetId,
-                  onTap: onSetLinkRequested == null
-                      ? null
-                      : () => onSetLinkRequested!(set.id),
+                  onTap: onSetLinkRequested == null ? null : () => onSetLinkRequested!(set.id),
                 ),
             ],
           ),
@@ -120,17 +118,12 @@ class OcptFloorPlanSetGallery extends StatelessWidget {
   /// The `Create a set…` action: an outlined button opening the same location/`New location…`
   /// menu the set tabs' own `＋ Set` button does.
   Widget _buildCreateSetButton(BuildContext context, Tr tr) {
-    final locationEntries = [
-      for (final location in locations) (location.id, location.name),
-    ];
+    final locationEntries = [for (final location in locations) (location.id, location.name)];
 
     return MenuAnchor(
       menuChildren: [
         for (final (id, name) in locationEntries)
-          MenuItemButton(
-            onPressed: () => onSetCreationRequested!(id),
-            child: Text(name),
-          ),
+          MenuItemButton(onPressed: () => onSetCreationRequested!(id), child: Text(name)),
         if (locationEntries.isNotEmpty) const Divider(height: 1),
         MenuItemButton(
           onPressed: () => onSetCreationRequested!(null),
@@ -225,9 +218,7 @@ class _OcptFloorPlanSetGalleryCard extends StatelessWidget {
             ),
             Text(
               set.code.isEmpty ? locationName : "$locationName · ${set.code}",
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
+              style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),

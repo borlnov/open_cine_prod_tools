@@ -106,10 +106,7 @@ void main() {
     });
 
     test('a file name with no extension is unsupported', () {
-      expect(
-        _failureOf('She waits.\n', 'the-last-kettle'),
-        ScriptImportFailure.unsupportedFormat,
-      );
+      expect(_failureOf('She waits.\n', 'the-last-kettle'), ScriptImportFailure.unsupportedFormat);
     });
   });
 
@@ -131,10 +128,7 @@ void main() {
 
   group('the result', () {
     test('two results holding the same screenplay are equal', () {
-      expect(
-        _read(_finalDraftDocument, 'a.fdx'),
-        _read(_finalDraftDocument, 'b.fdx'),
-      );
+      expect(_read(_finalDraftDocument, 'a.fdx'), _read(_finalDraftDocument, 'b.fdx'));
     });
   });
 }

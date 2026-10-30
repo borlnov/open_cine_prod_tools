@@ -130,15 +130,35 @@ const Map<int, pw.TableColumnWidth> _toBringColumnWidths = {
 /// should keep the name's own casing (`Élisa` → `Elisa`, not `elisa`) — the two could not share one
 /// function without one of them losing what it needs.
 const Map<String, String> _fileNameDiacriticsFold = {
-  "à": "a", "â": "a", "ä": "a", "á": "a", "ã": "a", "å": "a",
+  "à": "a",
+  "â": "a",
+  "ä": "a",
+  "á": "a",
+  "ã": "a",
+  "å": "a",
   "ç": "c",
-  "é": "e", "è": "e", "ê": "e", "ë": "e",
-  "í": "i", "ì": "i", "î": "i", "ï": "i",
+  "é": "e",
+  "è": "e",
+  "ê": "e",
+  "ë": "e",
+  "í": "i",
+  "ì": "i",
+  "î": "i",
+  "ï": "i",
   "ñ": "n",
-  "ó": "o", "ò": "o", "ô": "o", "ö": "o", "õ": "o",
-  "ú": "u", "ù": "u", "û": "u", "ü": "u",
-  "ý": "y", "ÿ": "y",
-  "œ": "oe", "æ": "ae",
+  "ó": "o",
+  "ò": "o",
+  "ô": "o",
+  "ö": "o",
+  "õ": "o",
+  "ú": "u",
+  "ù": "u",
+  "û": "u",
+  "ü": "u",
+  "ý": "y",
+  "ÿ": "y",
+  "œ": "oe",
+  "æ": "ae",
 };
 
 /// The characters a file name may not hold on any platform this app targets, dropped in
@@ -270,7 +290,8 @@ class OcptCallSheetPdfService {
     DateTime? exportDate,
   }) async {
     final painter = await _painterFor(pageSetup);
-    final versionLine = "${labels.versionLabel} ${ocptScheduleGeneratedAtStamp(exportDate ?? DateTime.now())}";
+    final versionLine =
+        "${labels.versionLabel} ${ocptScheduleGeneratedAtStamp(exportDate ?? DateTime.now())}";
     final day = plan.schedule.daysById[dayId];
     final pdfDocument = pw.Document();
 
@@ -315,7 +336,12 @@ class OcptCallSheetPdfService {
         labels: labels,
         projectName: projectName,
         children: [
-          _recipientsSection(painter: painter, labels: labels, convocations: convocations, plan: plan),
+          _recipientsSection(
+            painter: painter,
+            labels: labels,
+            convocations: convocations,
+            plan: plan,
+          ),
           pw.SizedBox(height: 10),
           ..._sharedSections(
             painter: painter,
@@ -422,7 +448,8 @@ class OcptCallSheetPdfService {
     DateTime? exportDate,
   }) async {
     final painter = await _painterFor(pageSetup);
-    final versionLine = "${labels.versionLabel} ${ocptScheduleGeneratedAtStamp(exportDate ?? DateTime.now())}";
+    final versionLine =
+        "${labels.versionLabel} ${ocptScheduleGeneratedAtStamp(exportDate ?? DateTime.now())}";
     final day = plan.schedule.daysById[dayId];
     final pdfDocument = pw.Document();
 
@@ -440,7 +467,10 @@ class OcptCallSheetPdfService {
 
     final onlySlotIds = convocation.slotIds.toSet();
     final allSlots = plan.schedule.slotsByDayId[dayId] ?? const <OcptShootingSlot>[];
-    final ownSlots = [for (final slot in allSlots) if (onlySlotIds.contains(slot.id)) slot];
+    final ownSlots = [
+      for (final slot in allSlots)
+        if (onlySlotIds.contains(slot.id)) slot,
+    ];
     final headingBySceneId = ocptScheduleHeadingBySceneId(plan);
     // Narrowed twice: to the units this recipient is on, then to what they are actually in on them
     // ([_entriesOfRecipient]). A sheet is read down by one person to know their own day.
@@ -476,7 +506,9 @@ class OcptCallSheetPdfService {
     // The one directory a named sheet narrows, and only when the day sees its recipient for a part:
     // who else is being seen, and on what phone number, is the production's business and not another
     // candidate's. Null for every other recipient, which leaves both readings day-wide.
-    final recipientRoleCandidateIds = convocation.isSeenForAPart ? convocation.roleCandidateIds : null;
+    final recipientRoleCandidateIds = convocation.isSeenForAPart
+        ? convocation.roleCandidateIds
+        : null;
     final auditionRows = _auditionRowsOfDay(
       plan: plan,
       orderedEntries: orderedEntries,
@@ -498,7 +530,12 @@ class OcptCallSheetPdfService {
     final recipientPersonId = convocation.personId;
     final toBringRows = recipientPersonId == null
         ? const <_ToBringRow>[]
-        : _toBringRowsOfDay(plan: plan, dayId: dayId, personId: recipientPersonId, dayEntries: dayEntries);
+        : _toBringRowsOfDay(
+            plan: plan,
+            dayId: dayId,
+            personId: recipientPersonId,
+            dayEntries: dayEntries,
+          );
 
     pdfDocument.addPage(
       _page(
@@ -513,7 +550,12 @@ class OcptCallSheetPdfService {
             positionsOrRole: positionsOrRole,
           ),
           pw.SizedBox(height: 10),
-          _titleBlock(painter: painter, projectName: projectName, labels: labels, versionLine: versionLine),
+          _titleBlock(
+            painter: painter,
+            projectName: projectName,
+            labels: labels,
+            versionLine: versionLine,
+          ),
           pw.SizedBox(height: 10),
           _dayHeadingSection(painter: painter, labels: labels, day: day),
           pw.SizedBox(height: 10),
@@ -621,9 +663,19 @@ class OcptCallSheetPdfService {
     required List<OcptShootingDayEvent> events,
     required OcptSchedulePlanSnapshot plan,
   }) => [
-    _titleBlock(painter: painter, projectName: projectName, labels: labels, versionLine: versionLine),
+    _titleBlock(
+      painter: painter,
+      projectName: projectName,
+      labels: labels,
+      versionLine: versionLine,
+    ),
     pw.SizedBox(height: 10),
-    _contactsBlock(painter: painter, labels: labels, crewContacts: crewContacts, departments: contactDepartments),
+    _contactsBlock(
+      painter: painter,
+      labels: labels,
+      crewContacts: crewContacts,
+      departments: contactDepartments,
+    ),
     pw.SizedBox(height: 10),
     _timeBandsSection(
       painter: painter,
@@ -683,7 +735,11 @@ class OcptCallSheetPdfService {
       children: [
         pw.Text(
           "$projectName — ${labels.documentTitle}",
-          style: pw.TextStyle(font: painter.fonts.regular, fontSize: _smallFontSizePt, color: _mutedColor),
+          style: pw.TextStyle(
+            font: painter.fonts.regular,
+            fontSize: _smallFontSizePt,
+            color: _mutedColor,
+          ),
         ),
         pw.SizedBox(height: 2),
         pw.Divider(color: _ruleColor, thickness: 0.5, height: 6),
@@ -705,7 +761,8 @@ class OcptCallSheetPdfService {
   }) {
     final names = [
       for (final convocation in convocations)
-        if (convocation.personId != null) plan.personById[convocation.personId]?.firstName.trim() ?? "",
+        if (convocation.personId != null)
+          plan.personById[convocation.personId]?.firstName.trim() ?? "",
     ].where((name) => name.isNotEmpty).toList();
 
     return pw.Column(
@@ -713,7 +770,10 @@ class OcptCallSheetPdfService {
       children: [
         _sectionTitle(painter: painter, title: labels.recipientsSectionTitle),
         pw.SizedBox(height: 2),
-        _noteWidget(painter: painter, text: names.isEmpty ? ocptScheduleEmptyValue : names.join(", ")),
+        _noteWidget(
+          painter: painter,
+          text: names.isEmpty ? ocptScheduleEmptyValue : names.join(", "),
+        ),
       ],
     );
   }
@@ -756,15 +816,25 @@ class OcptCallSheetPdfService {
   }) => pw.Column(
     crossAxisAlignment: pw.CrossAxisAlignment.start,
     children: [
-      pw.Text(projectName, style: pw.TextStyle(font: painter.fonts.bold, fontSize: _titleFontSizePt)),
+      pw.Text(
+        projectName,
+        style: pw.TextStyle(font: painter.fonts.bold, fontSize: _titleFontSizePt),
+      ),
       if (labels.directorLine.trim().isNotEmpty) ...[
         pw.SizedBox(height: 2),
-        pw.Text(labels.directorLine, style: pw.TextStyle(font: painter.fonts.regular, fontSize: _bodyFontSizePt)),
+        pw.Text(
+          labels.directorLine,
+          style: pw.TextStyle(font: painter.fonts.regular, fontSize: _bodyFontSizePt),
+        ),
       ],
       pw.SizedBox(height: 2),
       pw.Text(
         versionLine,
-        style: pw.TextStyle(font: painter.fonts.regular, fontSize: _smallFontSizePt, color: _mutedColor),
+        style: pw.TextStyle(
+          font: painter.fonts.regular,
+          fontSize: _smallFontSizePt,
+          color: _mutedColor,
+        ),
       ),
     ],
   );
@@ -813,7 +883,10 @@ class OcptCallSheetPdfService {
       crossAxisAlignment: pw.CrossAxisAlignment.start,
       children: [
         for (final line in lines)
-          pw.Text(line, style: pw.TextStyle(font: painter.fonts.bold, fontSize: _bodyFontSizePt)),
+          pw.Text(
+            line,
+            style: pw.TextStyle(font: painter.fonts.bold, fontSize: _bodyFontSizePt),
+          ),
       ],
     );
   }
@@ -849,7 +922,9 @@ class OcptCallSheetPdfService {
                 _textCell(painter: painter, text: "${row.element.code} · ${row.element.name}"),
                 _textCell(
                   painter: painter,
-                  text: row.sceneNumbers.isEmpty ? ocptScheduleEmptyValue : row.sceneNumbers.join(", "),
+                  text: row.sceneNumbers.isEmpty
+                      ? ocptScheduleEmptyValue
+                      : row.sceneNumbers.join(", "),
                 ),
               ],
             ),
@@ -897,7 +972,11 @@ class OcptCallSheetPdfService {
           pw.SizedBox(height: 1),
           pw.Text(
             event.notes.trim(),
-            style: pw.TextStyle(font: painter.fonts.regular, fontSize: _smallFontSizePt, color: _mutedColor),
+            style: pw.TextStyle(
+              font: painter.fonts.regular,
+              fontSize: _smallFontSizePt,
+              color: _mutedColor,
+            ),
           ),
         ],
         pw.SizedBox(height: 4),
@@ -927,7 +1006,11 @@ class OcptCallSheetPdfService {
               destination: url,
               child: pw.Text(
                 "${labels.mapsLinkLabel} : $url",
-                style: pw.TextStyle(font: painter.fonts.regular, fontSize: _bodyFontSizePt, color: PdfColors.blue),
+                style: pw.TextStyle(
+                  font: painter.fonts.regular,
+                  fontSize: _bodyFontSizePt,
+                  color: PdfColors.blue,
+                ),
               ),
             ),
           ],
@@ -951,21 +1034,32 @@ class OcptCallSheetPdfService {
         spacing: 16,
         runSpacing: 2,
         children: [
-          _sunFigure(painter: painter, label: labels.civilDawnLabel, minute: sunTimes?.civilDawnMinute),
+          _sunFigure(
+            painter: painter,
+            label: labels.civilDawnLabel,
+            minute: sunTimes?.civilDawnMinute,
+          ),
           _sunFigure(painter: painter, label: labels.sunriseLabel, minute: sunTimes?.sunriseMinute),
           _sunFigure(painter: painter, label: labels.sunsetLabel, minute: sunTimes?.sunsetMinute),
-          _sunFigure(painter: painter, label: labels.civilDuskLabel, minute: sunTimes?.civilDuskMinute),
+          _sunFigure(
+            painter: painter,
+            label: labels.civilDuskLabel,
+            minute: sunTimes?.civilDuskMinute,
+          ),
         ],
       ),
     ],
   );
 
   /// One figure of [_sunSection].
-  pw.Widget _sunFigure({required OcptScriptPagePainter painter, required String label, required int? minute}) =>
-      pw.Text(
-        "$label ${minute == null ? ocptScheduleEmptyValue : ocptFormatDayMinute(minute)}",
-        style: pw.TextStyle(font: painter.fonts.regular, fontSize: _bodyFontSizePt),
-      );
+  pw.Widget _sunFigure({
+    required OcptScriptPagePainter painter,
+    required String label,
+    required int? minute,
+  }) => pw.Text(
+    "$label ${minute == null ? ocptScheduleEmptyValue : ocptFormatDayMinute(minute)}",
+    style: pw.TextStyle(font: painter.fonts.regular, fontSize: _bodyFontSizePt),
+  );
 
   /// The key contacts (production, direction and unit management) or the by-department contacts
   /// table (casting and extras, image, electric and grip, sound, art department, costume, hair and
@@ -1055,7 +1149,11 @@ class OcptCallSheetPdfService {
     children: [
       pw.Text(
         labels.crewDepartmentLabelOf(department).toUpperCase(),
-        style: pw.TextStyle(font: painter.fonts.bold, fontSize: _smallFontSizePt, color: _mutedColor),
+        style: pw.TextStyle(
+          font: painter.fonts.bold,
+          fontSize: _smallFontSizePt,
+          color: _mutedColor,
+        ),
       ),
       pw.SizedBox(height: 2),
       for (final contact in contacts)
@@ -1064,11 +1162,18 @@ class OcptCallSheetPdfService {
           child: pw.Column(
             crossAxisAlignment: pw.CrossAxisAlignment.start,
             children: [
-              _noteWidget(painter: painter, text: "${contact.positionLabel} : ${contact.person.firstName}"),
+              _noteWidget(
+                painter: painter,
+                text: "${contact.positionLabel} : ${contact.person.firstName}",
+              ),
               if (contact.person.phone.trim().isNotEmpty)
                 pw.Text(
                   contact.person.phone,
-                  style: pw.TextStyle(font: painter.fonts.regular, fontSize: _smallFontSizePt, color: _mutedColor),
+                  style: pw.TextStyle(
+                    font: painter.fonts.regular,
+                    fontSize: _smallFontSizePt,
+                    color: _mutedColor,
+                  ),
                 ),
             ],
           ),
@@ -1097,7 +1202,13 @@ class OcptCallSheetPdfService {
         final label = slot.label.trim().isEmpty
             ? labels.hoursLinePrefix
             : "${labels.hoursLinePrefix} ${slot.label.trim()}";
-        lines.add(_timeBandLine(label: label, startMinute: timeline.startMinute, endMinute: timeline.endMinute));
+        lines.add(
+          _timeBandLine(
+            label: label,
+            startMinute: timeline.startMinute,
+            endMinute: timeline.endMinute,
+          ),
+        );
       }
     }
 
@@ -1161,7 +1272,10 @@ class OcptCallSheetPdfService {
       crossAxisAlignment: pw.CrossAxisAlignment.start,
       children: [
         for (final line in lines)
-          pw.Text(line, style: pw.TextStyle(font: painter.fonts.bold, fontSize: _bodyFontSizePt)),
+          pw.Text(
+            line,
+            style: pw.TextStyle(font: painter.fonts.bold, fontSize: _bodyFontSizePt),
+          ),
       ],
     );
   }
@@ -1199,7 +1313,9 @@ class OcptCallSheetPdfService {
       if (pendingShotRows.isEmpty) {
         return;
       }
-      children.add(_mainTable(painter: painter, labels: labels, rows: pendingShotRows, roles: roles));
+      children.add(
+        _mainTable(painter: painter, labels: labels, rows: pendingShotRows, roles: roles),
+      );
       pendingShotRows = <_DayRow>[];
     }
 
@@ -1220,7 +1336,10 @@ class OcptCallSheetPdfService {
     return pw.Column(
       crossAxisAlignment: pw.CrossAxisAlignment.start,
       children: [
-        for (final (index, child) in children.indexed) ...[if (index > 0) pw.SizedBox(height: 4), child],
+        for (final (index, child) in children.indexed) ...[
+          if (index > 0) pw.SizedBox(height: 4),
+          child,
+        ],
       ],
     );
   }
@@ -1230,21 +1349,26 @@ class OcptCallSheetPdfService {
   /// `pw.Table` row itself cannot span the page width a note deserves. Drawn like
   /// [_milestoneRowWidget]'s own container but **without** its [_bandColor] fill, so a note reads as
   /// a note rather than as another milestone.
-  pw.Widget _crewNoteBandWidget({required OcptScriptPagePainter painter, required List<String> crewNotes}) =>
-      pw.Container(
-        constraints: const pw.BoxConstraints(minWidth: double.infinity),
-        decoration: pw.BoxDecoration(border: pw.Border.all(color: _ruleColor, width: 0.5)),
-        padding: const pw.EdgeInsets.all(_cellPaddingPt),
-        child: pw.Column(
-          crossAxisAlignment: pw.CrossAxisAlignment.start,
-          children: [
-            for (final (index, note) in crewNotes.indexed) ...[
-              if (index > 0) pw.SizedBox(height: 2),
-              pw.Text(note, style: pw.TextStyle(font: painter.fonts.regular, fontSize: _bodyFontSizePt)),
-            ],
-          ],
-        ),
-      );
+  pw.Widget _crewNoteBandWidget({
+    required OcptScriptPagePainter painter,
+    required List<String> crewNotes,
+  }) => pw.Container(
+    constraints: const pw.BoxConstraints(minWidth: double.infinity),
+    decoration: pw.BoxDecoration(border: pw.Border.all(color: _ruleColor, width: 0.5)),
+    padding: const pw.EdgeInsets.all(_cellPaddingPt),
+    child: pw.Column(
+      crossAxisAlignment: pw.CrossAxisAlignment.start,
+      children: [
+        for (final (index, note) in crewNotes.indexed) ...[
+          if (index > 0) pw.SizedBox(height: 2),
+          pw.Text(
+            note,
+            style: pw.TextStyle(font: painter.fonts.regular, fontSize: _bodyFontSizePt),
+          ),
+        ],
+      ],
+    ),
+  );
 
   /// One run of consecutive [_DayRow.shotRun] rows, as a `SEQ / PLANS / EFFET / DÉCORS / RÔLES`
   /// table — see [_mainColumnWidths] for why the reference's own `RÉSUMÉ` column is not among them.
@@ -1274,7 +1398,12 @@ class OcptCallSheetPdfService {
       for (final row in rows)
         pw.TableRow(
           children: [
-            _textCell(painter: painter, text: row.shots.isEmpty ? ocptScheduleEmptyValue : ocptShotSceneNumberOf(row.shots.first)),
+            _textCell(
+              painter: painter,
+              text: row.shots.isEmpty
+                  ? ocptScheduleEmptyValue
+                  : ocptShotSceneNumberOf(row.shots.first),
+            ),
             _textCell(painter: painter, text: row.shots.map(ocptShotRankOf).join(",")),
             _textCell(
               painter: painter,
@@ -1305,22 +1434,35 @@ class OcptCallSheetPdfService {
 
     return pw.Container(
       constraints: const pw.BoxConstraints(minWidth: double.infinity),
-      decoration: pw.BoxDecoration(color: _bandColor, border: pw.Border.all(color: _ruleColor, width: 0.5)),
+      decoration: pw.BoxDecoration(
+        color: _bandColor,
+        border: pw.Border.all(color: _ruleColor, width: 0.5),
+      ),
       padding: const pw.EdgeInsets.all(_cellPaddingPt),
       child: pw.Column(
         crossAxisAlignment: pw.CrossAxisAlignment.start,
         children: [
           pw.Text(
-            _timeBandLine(label: row.milestoneCaption ?? "", startMinute: row.startMinute, endMinute: row.endMinute),
+            _timeBandLine(
+              label: row.milestoneCaption ?? "",
+              startMinute: row.startMinute,
+              endMinute: row.endMinute,
+            ),
             style: pw.TextStyle(font: painter.fonts.bold, fontSize: _bodyFontSizePt),
           ),
           if (rolesLine != null) ...[
             pw.SizedBox(height: 2),
-            pw.Text(rolesLine, style: pw.TextStyle(font: painter.fonts.regular, fontSize: _bodyFontSizePt)),
+            pw.Text(
+              rolesLine,
+              style: pw.TextStyle(font: painter.fonts.regular, fontSize: _bodyFontSizePt),
+            ),
           ],
           for (final note in row.crewNotes) ...[
             pw.SizedBox(height: 2),
-            pw.Text(note, style: pw.TextStyle(font: painter.fonts.regular, fontSize: _bodyFontSizePt)),
+            pw.Text(
+              note,
+              style: pw.TextStyle(font: painter.fonts.regular, fontSize: _bodyFontSizePt),
+            ),
           ],
         ],
       ),
@@ -1373,12 +1515,21 @@ class OcptCallSheetPdfService {
                   _textCell(painter: painter, text: "${row.role.number} · ${row.role.name}"),
                   _textCell(
                     painter: painter,
-                    text: (row.actor?.displayName ?? "").trim().isEmpty ? ocptScheduleEmptyValue : row.actor!.displayName,
+                    text: (row.actor?.displayName ?? "").trim().isEmpty
+                        ? ocptScheduleEmptyValue
+                        : row.actor!.displayName,
                   ),
-                  _textCell(painter: painter, text: row.sceneNumbers.isEmpty ? ocptScheduleEmptyValue : row.sceneNumbers.join(", ")),
                   _textCell(
                     painter: painter,
-                    text: row.convocation == null ? ocptScheduleEmptyValue : ocptFormatDayMinute(row.convocation!.arrivalMinute),
+                    text: row.sceneNumbers.isEmpty
+                        ? ocptScheduleEmptyValue
+                        : row.sceneNumbers.join(", "),
+                  ),
+                  _textCell(
+                    painter: painter,
+                    text: row.convocation == null
+                        ? ocptScheduleEmptyValue
+                        : ocptFormatDayMinute(row.convocation!.arrivalMinute),
                   ),
                   _textCell(painter: painter, text: _patCellOf(row.convocation)),
                 ],
@@ -1524,7 +1675,11 @@ class OcptCallSheetPdfService {
             repeat: true,
             decoration: const pw.BoxDecoration(color: _bandColor),
             children: [
-              for (final header in [labels.nameHeader, labels.guestReasonHeader, labels.hoursLinePrefix])
+              for (final header in [
+                labels.nameHeader,
+                labels.guestReasonHeader,
+                labels.hoursLinePrefix,
+              ])
                 _textCell(painter: painter, text: header, isBold: true),
             ],
           ),
@@ -1560,7 +1715,11 @@ class OcptCallSheetPdfService {
           pw.SizedBox(height: 1),
           pw.Text(
             row.notes,
-            style: pw.TextStyle(font: painter.fonts.regular, fontSize: _smallFontSizePt, color: _mutedColor),
+            style: pw.TextStyle(
+              font: painter.fonts.regular,
+              fontSize: _smallFontSizePt,
+              color: _mutedColor,
+            ),
           ),
         ],
       ],
@@ -1572,24 +1731,37 @@ class OcptCallSheetPdfService {
   // ---------------------------------------------------------------------------------------------
 
   /// One section's own small, muted heading.
-  pw.Widget _sectionTitle({required OcptScriptPagePainter painter, required String title}) => pw.Text(
-    title.toUpperCase(),
-    style: pw.TextStyle(font: painter.fonts.bold, fontSize: _smallFontSizePt, color: _mutedColor),
-  );
-
-  /// A block of free text.
-  pw.Widget _noteWidget({required OcptScriptPagePainter painter, required String text}) =>
-      pw.Text(text, style: pw.TextStyle(font: painter.fonts.regular, fontSize: _bodyFontSizePt));
-
-  /// One table cell holding [text].
-  pw.Widget _textCell({required OcptScriptPagePainter painter, required String text, bool isBold = false}) =>
-      pw.Padding(
-        padding: const pw.EdgeInsets.all(_cellPaddingPt),
-        child: pw.Text(
-          text.isEmpty ? ocptScheduleEmptyValue : text,
-          style: pw.TextStyle(font: painter.fonts.variant(bold: isBold, italic: false), fontSize: _bodyFontSizePt),
+  pw.Widget _sectionTitle({required OcptScriptPagePainter painter, required String title}) =>
+      pw.Text(
+        title.toUpperCase(),
+        style: pw.TextStyle(
+          font: painter.fonts.bold,
+          fontSize: _smallFontSizePt,
+          color: _mutedColor,
         ),
       );
+
+  /// A block of free text.
+  pw.Widget _noteWidget({required OcptScriptPagePainter painter, required String text}) => pw.Text(
+    text,
+    style: pw.TextStyle(font: painter.fonts.regular, fontSize: _bodyFontSizePt),
+  );
+
+  /// One table cell holding [text].
+  pw.Widget _textCell({
+    required OcptScriptPagePainter painter,
+    required String text,
+    bool isBold = false,
+  }) => pw.Padding(
+    padding: const pw.EdgeInsets.all(_cellPaddingPt),
+    child: pw.Text(
+      text.isEmpty ? ocptScheduleEmptyValue : text,
+      style: pw.TextStyle(
+        font: painter.fonts.variant(bold: isBold, italic: false),
+        fontSize: _bodyFontSizePt,
+      ),
+    ),
+  );
 }
 
 // ===================================================================================================
@@ -1701,7 +1873,12 @@ class _DayRow {
 
 /// One row of the day's own cast table.
 class _CastRow {
-  const _CastRow({required this.role, required this.actor, required this.sceneNumbers, required this.convocation});
+  const _CastRow({
+    required this.role,
+    required this.actor,
+    required this.sceneNumbers,
+    required this.convocation,
+  });
 
   /// The role convoked.
   final OcptRole role;
@@ -1932,8 +2109,14 @@ List<_CastRow> _castRowsOfDay({
 }) {
   final slots = plan.schedule.slotsByDayId[dayId] ?? const <OcptShootingSlot>[];
   final convocations = plan.convocationsOfDay(dayId);
-  final convocationByPersonId = {for (final c in convocations) if (c.personId != null) c.personId!: c};
-  final convocationByRoleId = {for (final c in convocations) if (c.roleId != null) c.roleId!: c};
+  final convocationByPersonId = {
+    for (final c in convocations)
+      if (c.personId != null) c.personId!: c,
+  };
+  final convocationByRoleId = {
+    for (final c in convocations)
+      if (c.roleId != null) c.roleId!: c,
+  };
   final roleByNormalizedName = {
     for (final role in plan.roles) normalizeCharacterName(role.name): role,
   };
@@ -1947,7 +2130,9 @@ List<_CastRow> _castRowsOfDay({
     }
 
     final actor = role.personId == null ? null : plan.personById[role.personId];
-    final convocation = actor != null ? convocationByPersonId[actor.id] : convocationByRoleId[role.id];
+    final convocation = actor != null
+        ? convocationByPersonId[actor.id]
+        : convocationByRoleId[role.id];
 
     final normalizedName = normalizeCharacterName(role.name);
     final sceneNumbers = <String>{};
@@ -1962,7 +2147,12 @@ List<_CastRow> _castRowsOfDay({
     }
 
     rows.add(
-      _CastRow(role: role, actor: actor, sceneNumbers: sceneNumbers.toList()..sort(), convocation: convocation),
+      _CastRow(
+        role: role,
+        actor: actor,
+        sceneNumbers: sceneNumbers.toList()..sort(),
+        convocation: convocation,
+      ),
     );
   }
 
@@ -2293,12 +2483,20 @@ List<_CrewContact> _crewContactsOfDay({
         continue;
       }
       final position = member.positionId.isEmpty ? null : positionById[member.positionId];
-      final positionLabel = position != null ? labels.crewPositionLabelOf(position.id) : member.customLabel;
+      final positionLabel = position != null
+          ? labels.crewPositionLabelOf(position.id)
+          : member.customLabel;
       final key = "${person.id}|$positionLabel";
       if (!seen.add(key)) {
         continue;
       }
-      contacts.add(_CrewContact(person: person, positionLabel: positionLabel, department: position?.department));
+      contacts.add(
+        _CrewContact(
+          person: person,
+          positionLabel: positionLabel,
+          department: position?.department,
+        ),
+      );
     }
   }
 
@@ -2311,7 +2509,10 @@ List<_PeopleListEntry> _crewListEntries({
   required List<_CrewContact> crewContacts,
   required List<OcptDayConvocation> convocations,
 }) {
-  final convocationByPersonId = {for (final c in convocations) if (c.personId != null) c.personId!: c};
+  final convocationByPersonId = {
+    for (final c in convocations)
+      if (c.personId != null) c.personId!: c,
+  };
   final positionsByPersonId = <String, List<String>>{};
   final personById = <String, OcptPerson>{};
 
@@ -2343,11 +2544,16 @@ List<_PeopleListEntry> _crewListEntries({
 /// this list answers "how do I reach the people this day is about", and the one person an assistant
 /// director needs to phone on the morning of a shoot is precisely the actor nobody called. Their
 /// `HORAIRES` cell reads as an em dash, as their cast row's own times do.
-List<_PeopleListEntry> _castListEntries({required List<_CastRow> castRows, required OcptCallSheetLabels labels}) {
+List<_PeopleListEntry> _castListEntries({
+  required List<_CastRow> castRows,
+  required OcptCallSheetLabels labels,
+}) {
   final entries = [
     for (final row in castRows)
       _PeopleListEntry(
-        name: (row.actor?.displayName ?? "").trim().isEmpty ? labels.unnamedPersonLabel : row.actor!.displayName,
+        name: (row.actor?.displayName ?? "").trim().isEmpty
+            ? labels.unnamedPersonLabel
+            : row.actor!.displayName,
         positionOrRole: "${row.role.number} · ${row.role.name}",
         phone: row.actor?.phone ?? "",
         email: row.actor?.email ?? "",

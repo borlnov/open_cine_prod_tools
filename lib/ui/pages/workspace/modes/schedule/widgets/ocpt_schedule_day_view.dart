@@ -374,9 +374,7 @@ class OcptScheduleDayView extends StatelessWidget {
                   ? null
                   : (edge, minute, sourceSlotId) =>
                         onSlotAnchorChanged!(slot.id, edge, minute, sourceSlotId),
-              anchorSourceBySlotId: {
-                for (final other in slots) other.id: other.anchorSlotId,
-              },
+              anchorSourceBySlotId: {for (final other in slots) other.id: other.anchorSlotId},
               onMovedUp: onSlotMoved == null || index == 0
                   ? null
                   : () => onSlotMoved!(slot.id, index - 1),
@@ -459,7 +457,10 @@ class OcptScheduleDayView extends StatelessWidget {
     final dayEndMinute = timeline?.dayEndMinute;
     final totalLabel = dayEndMinute == null || dayArrivalMinute == null
         ? tr.scheduleDayNoShotsPlaced
-        : tr.scheduleDaySummaryTotal(shotBlocks, ocptFormatMinuteDuration(dayEndMinute - dayArrivalMinute!));
+        : tr.scheduleDaySummaryTotal(
+            shotBlocks,
+            ocptFormatMinuteDuration(dayEndMinute - dayArrivalMinute!),
+          );
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 13),
@@ -483,7 +484,11 @@ class OcptScheduleDayView extends StatelessWidget {
             tr.scheduleInspectorArrivalToEndLabel,
             ocptScheduleDayMinuteRangeLabel(dayArrivalMinute, dayEndMinute),
           ),
-          _buildSummaryField(context, tr.scheduleInspectorSunLabel, ocptScheduleSunTimesLine(tr, sunTimes)),
+          _buildSummaryField(
+            context,
+            tr.scheduleInspectorSunLabel,
+            ocptScheduleSunTimesLine(tr, sunTimes),
+          ),
           _buildSummaryField(
             context,
             tr.scheduleInspectorWeatherLabel,

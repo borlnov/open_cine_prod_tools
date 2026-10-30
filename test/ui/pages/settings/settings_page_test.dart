@@ -208,7 +208,10 @@ void main() {
 
   /// Pumps [OcptSettingsView] backed by a fresh [OcptSettingsBloc] with the injected
   /// [appVersion], returning the bloc so tests can inspect its state.
-  Future<OcptSettingsBloc> pumpSettingsView(WidgetTester tester, {String appVersion = "1.2.3"}) async {
+  Future<OcptSettingsBloc> pumpSettingsView(
+    WidgetTester tester, {
+    String appVersion = "1.2.3",
+  }) async {
     final bloc = OcptSettingsBloc(appVersion: appVersion);
     addTearDown(bloc.close);
 

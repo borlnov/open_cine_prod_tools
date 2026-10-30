@@ -64,9 +64,7 @@ class OcptBreakdownCategoryLegend extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
           child: Row(
             children: [
-              Expanded(
-                child: Text(tr.breakdownLegendTitle, style: theme.textTheme.titleSmall),
-              ),
+              Expanded(child: Text(tr.breakdownLegendTitle, style: theme.textTheme.titleSmall)),
               if (hiddenKeys.isNotEmpty)
                 InkWell(
                   onTap: onShowAllRequested,

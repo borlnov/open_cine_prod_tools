@@ -64,11 +64,7 @@ FountainLayoutMetrics _metrics({
   character: _box(characterCols, leftIndentInches: 3.7),
   parenthetical: _box(parentheticalCols, leftIndentInches: 3.1),
   dialogue: _box(dialogueCols, leftIndentInches: 2.5),
-  transition: _box(
-    transitionCols,
-    leftIndentInches: 1.5,
-    alignment: FountainLayoutAlignment.right,
-  ),
+  transition: _box(transitionCols, leftIndentInches: 1.5, alignment: FountainLayoutAlignment.right),
   centeredText: _box(
     centeredCols,
     leftIndentInches: 1.5,
@@ -95,19 +91,15 @@ FountainTransition _transition(String text) =>
 FountainCenteredText _centeredText(String text) =>
     FountainCenteredText(sourceRange: _range, text: text);
 
-FountainLyrics _lyrics(List<String> lines) =>
-    FountainLyrics(sourceRange: _range, lines: lines);
+FountainLyrics _lyrics(List<String> lines) => FountainLyrics(sourceRange: _range, lines: lines);
 
-FountainCharacter _character(
-  String name, {
-  String? extension,
-  bool isDualDialogue = false,
-}) => FountainCharacter(
-  sourceRange: _range,
-  name: name,
-  extension: extension,
-  isDualDialogue: isDualDialogue,
-);
+FountainCharacter _character(String name, {String? extension, bool isDualDialogue = false}) =>
+    FountainCharacter(
+      sourceRange: _range,
+      name: name,
+      extension: extension,
+      isDualDialogue: isDualDialogue,
+    );
 
 FountainParenthetical _parenthetical(String text) =>
     FountainParenthetical(sourceRange: _range, text: text);
@@ -122,11 +114,7 @@ FountainDialogueGroup _dialogueGroup(
   String? extension,
 }) => FountainDialogueGroup(
   sourceRange: _range,
-  character: _character(
-    name,
-    extension: extension,
-    isDualDialogue: isDualDialogue,
-  ),
+  character: _character(name, extension: extension, isDualDialogue: isDualDialogue),
   children: children,
   isDualDialogue: isDualDialogue,
 );
@@ -174,23 +162,20 @@ void main() {
       expect(layout.pages.single.lines, hasLength(3));
     });
 
-    test(
-      'a long action paragraph wraps at the real US Letter preset '
-      'action.maxWidthColumns',
-      () {
-        final metrics = FountainLayoutMetrics.usLetter();
-        final cols = metrics.action.maxWidthColumns;
-        const wordLen = 9;
-        final perLine = _wordsPerLine(cols, wordLen);
-        final layout = _composer.compose(
-          document: _document([
-            _action([_words('A' * wordLen, perLine * 3)]),
-          ]),
-          metrics: metrics,
-        );
-        expect(layout.pages.single.lines, hasLength(3));
-      },
-    );
+    test('a long action paragraph wraps at the real US Letter preset '
+        'action.maxWidthColumns', () {
+      final metrics = FountainLayoutMetrics.usLetter();
+      final cols = metrics.action.maxWidthColumns;
+      const wordLen = 9;
+      final perLine = _wordsPerLine(cols, wordLen);
+      final layout = _composer.compose(
+        document: _document([
+          _action([_words('A' * wordLen, perLine * 3)]),
+        ]),
+        metrics: metrics,
+      );
+      expect(layout.pages.single.lines, hasLength(3));
+    });
 
     test('character cue wraps at metrics.character.maxWidthColumns', () {
       const cols = 9;
@@ -216,10 +201,7 @@ void main() {
       final metrics = _metrics(linesPerPage: 100, parentheticalCols: 10);
       final layout = _composer.compose(
         document: _document([
-          _dialogueGroup('BOB', [
-            _parenthetical('A' * 9),
-            _dialogueLine('Hi.'),
-          ]),
+          _dialogueGroup('BOB', [_parenthetical('A' * 9), _dialogueLine('Hi.')]),
         ]),
         metrics: metrics,
       );
@@ -238,9 +220,7 @@ void main() {
       final metrics = _metrics(linesPerPage: 100, dialogueCols: cols);
       final layout = _composer.compose(
         document: _document([
-          _dialogueGroup('BOB', [
-            _dialogueLine(_words('AAAA', perLine * 4)),
-          ]),
+          _dialogueGroup('BOB', [_dialogueLine(_words('AAAA', perLine * 4))]),
         ]),
         metrics: metrics,
       );
@@ -323,7 +303,10 @@ void main() {
         'page', () {
       final metrics = _metrics(linesPerPage: 20);
       final layout = _composer.compose(
-        document: _document([_pageBreak, _action(['Only page.'])]),
+        document: _document([
+          _pageBreak,
+          _action(['Only page.']),
+        ]),
         metrics: metrics,
       );
       expect(layout.pages, hasLength(1));
@@ -332,216 +315,184 @@ void main() {
   });
 
   group('dialogue split across a page boundary', () {
-    test(
-      '(MORE) closes the page and NAME (CONT\'D) reopens it with the '
-      'remaining dialogue lines',
-      () {
-        final metrics = _metrics(linesPerPage: 5, dialogueCols: 10);
-        final layout = _composer.compose(
-          document: _document([
-            _dialogueGroup('SARAH', [
-              _dialogueLine(_words('AAAA', 12)),
-            ]),
-          ]),
-          metrics: metrics,
-        );
+    test('(MORE) closes the page and NAME (CONT\'D) reopens it with the '
+        'remaining dialogue lines', () {
+      final metrics = _metrics(linesPerPage: 5, dialogueCols: 10);
+      final layout = _composer.compose(
+        document: _document([
+          _dialogueGroup('SARAH', [_dialogueLine(_words('AAAA', 12))]),
+        ]),
+        metrics: metrics,
+      );
 
-        expect(layout.pages, hasLength(2));
+      expect(layout.pages, hasLength(2));
 
-        final page0 = layout.pages[0].lines;
-        expect(page0, hasLength(5));
-        expect(page0.first.lineType, FountainLineType.character);
-        expect(page0.first.plainText, 'SARAH');
-        expect(page0.last.plainText, '(MORE)');
-        expect(page0.last.lineType, FountainLineType.parenthetical);
-        final page0DialogueLines = page0
-            .where((line) => line.lineType == FountainLineType.dialogue)
-            .toList();
-        expect(page0DialogueLines, hasLength(3));
+      final page0 = layout.pages[0].lines;
+      expect(page0, hasLength(5));
+      expect(page0.first.lineType, FountainLineType.character);
+      expect(page0.first.plainText, 'SARAH');
+      expect(page0.last.plainText, '(MORE)');
+      expect(page0.last.lineType, FountainLineType.parenthetical);
+      final page0DialogueLines = page0
+          .where((line) => line.lineType == FountainLineType.dialogue)
+          .toList();
+      expect(page0DialogueLines, hasLength(3));
 
-        final page1 = layout.pages[1].lines;
-        expect(page1.first.plainText, "SARAH (CONT'D)");
-        expect(page1.first.lineType, FountainLineType.character);
-        final page1DialogueLines = page1
-            .where((line) => line.lineType == FountainLineType.dialogue)
-            .toList();
-        expect(page1DialogueLines, hasLength(3));
+      final page1 = layout.pages[1].lines;
+      expect(page1.first.plainText, "SARAH (CONT'D)");
+      expect(page1.first.lineType, FountainLineType.character);
+      final page1DialogueLines = page1
+          .where((line) => line.lineType == FountainLineType.dialogue)
+          .toList();
+      expect(page1DialogueLines, hasLength(3));
 
-        // No dialogue content is lost or duplicated across the split.
-        expect(page0DialogueLines.length + page1DialogueLines.length, 6);
-      },
-    );
+      // No dialogue content is lost or duplicated across the split.
+      expect(page0DialogueLines.length + page1DialogueLines.length, 6);
+    });
   });
 
   group('orphan scene heading', () {
-    test(
-      'a scene heading that would land as a page\'s last line is pushed '
-      'to the next page instead',
-      () {
-        final metrics = _metrics(linesPerPage: 5);
-        final layout = _composer.compose(
-          document: _document([
-            _action(['One.', 'Two.', 'Three.', 'Four.']),
-            _sceneHeading('INT. HOUSE - DAY'),
-            _action(['More.', 'Even more.']),
-          ]),
-          metrics: metrics,
-        );
+    test('a scene heading that would land as a page\'s last line is pushed '
+        'to the next page instead', () {
+      final metrics = _metrics(linesPerPage: 5);
+      final layout = _composer.compose(
+        document: _document([
+          _action(['One.', 'Two.', 'Three.', 'Four.']),
+          _sceneHeading('INT. HOUSE - DAY'),
+          _action(['More.', 'Even more.']),
+        ]),
+        metrics: metrics,
+      );
 
-        expect(layout.pages, hasLength(2));
-        expect(layout.pages[0].lines, hasLength(4));
-        expect(
-          layout.pages[0].lines.any((line) => line.isSceneHeading),
-          isFalse,
-        );
+      expect(layout.pages, hasLength(2));
+      expect(layout.pages[0].lines, hasLength(4));
+      expect(layout.pages[0].lines.any((line) => line.isSceneHeading), isFalse);
 
-        final page1 = layout.pages[1].lines;
-        expect(page1.first.isSceneHeading, isTrue);
-        expect(page1.first.plainText, 'INT. HOUSE - DAY');
-      },
-    );
+      final page1 = layout.pages[1].lines;
+      expect(page1.first.isSceneHeading, isTrue);
+      expect(page1.first.plainText, 'INT. HOUSE - DAY');
+    });
   });
 
   group('orphan character cue', () {
-    test(
-      'a cue that would land as a page\'s last line is pushed, with its '
-      'whole group, to the next page',
-      () {
-        final metrics = _metrics(linesPerPage: 5);
-        final layout = _composer.compose(
-          document: _document([
-            _action(['One.', 'Two.', 'Three.', 'Four.']),
-            _dialogueGroup('BOB', [_dialogueLine('Hi there.')]),
-          ]),
-          metrics: metrics,
-        );
+    test('a cue that would land as a page\'s last line is pushed, with its '
+        'whole group, to the next page', () {
+      final metrics = _metrics(linesPerPage: 5);
+      final layout = _composer.compose(
+        document: _document([
+          _action(['One.', 'Two.', 'Three.', 'Four.']),
+          _dialogueGroup('BOB', [_dialogueLine('Hi there.')]),
+        ]),
+        metrics: metrics,
+      );
 
-        expect(layout.pages, hasLength(2));
-        expect(layout.pages[0].lines, hasLength(4));
-        expect(
-          layout.pages[0].lines.any(
-            (line) => line.lineType == FountainLineType.character,
-          ),
-          isFalse,
-        );
+      expect(layout.pages, hasLength(2));
+      expect(layout.pages[0].lines, hasLength(4));
+      expect(
+        layout.pages[0].lines.any((line) => line.lineType == FountainLineType.character),
+        isFalse,
+      );
 
-        final page1 = layout.pages[1].lines;
-        expect(page1, hasLength(2));
-        expect(page1[0].lineType, FountainLineType.character);
-        expect(page1[0].plainText, 'BOB');
-        expect(page1[1].lineType, FountainLineType.dialogue);
-      },
-    );
+      final page1 = layout.pages[1].lines;
+      expect(page1, hasLength(2));
+      expect(page1[0].lineType, FountainLineType.character);
+      expect(page1[0].plainText, 'BOB');
+      expect(page1[1].lineType, FountainLineType.dialogue);
+    });
   });
 
   group('linesPerPage boundary', () {
-    test(
-      'a block that exactly uses the remaining capacity stays on the '
-      'same page, filling it to exactly linesPerPage',
-      () {
-        final metrics = _metrics(linesPerPage: 6);
-        final layout = _composer.compose(
-          document: _document([
-            _action(['1.', '2.', '3.', '4.']),
-            _action(['5.']),
-            _action(['6.']),
-          ]),
-          metrics: metrics,
-        );
+    test('a block that exactly uses the remaining capacity stays on the '
+        'same page, filling it to exactly linesPerPage', () {
+      final metrics = _metrics(linesPerPage: 6);
+      final layout = _composer.compose(
+        document: _document([
+          _action(['1.', '2.', '3.', '4.']),
+          _action(['5.']),
+          _action(['6.']),
+        ]),
+        metrics: metrics,
+      );
 
-        expect(layout.pages, hasLength(2));
-        expect(layout.pages[0].lines, hasLength(6));
-        expect(layout.pages[0].lines.last.plainText, '5.');
-        expect(layout.pages[1].lines.single.plainText, '6.');
-      },
-    );
+      expect(layout.pages, hasLength(2));
+      expect(layout.pages[0].lines, hasLength(6));
+      expect(layout.pages[0].lines.last.plainText, '5.');
+      expect(layout.pages[1].lines.single.plainText, '6.');
+    });
 
-    test(
-      'one line less of remaining capacity pushes the next block to a '
-      'fresh page instead',
-      () {
-        final metrics = _metrics(linesPerPage: 6);
-        final layout = _composer.compose(
-          document: _document([
-            _action(['1.', '2.', '3.', '4.', '5.']),
-            _action(['6.']),
-          ]),
-          metrics: metrics,
-        );
+    test('one line less of remaining capacity pushes the next block to a '
+        'fresh page instead', () {
+      final metrics = _metrics(linesPerPage: 6);
+      final layout = _composer.compose(
+        document: _document([
+          _action(['1.', '2.', '3.', '4.', '5.']),
+          _action(['6.']),
+        ]),
+        metrics: metrics,
+      );
 
-        expect(layout.pages, hasLength(2));
-        expect(layout.pages[0].lines, hasLength(6));
-        expect(layout.pages[1].lines.single.plainText, '6.');
-      },
-    );
+      expect(layout.pages, hasLength(2));
+      expect(layout.pages[0].lines, hasLength(6));
+      expect(layout.pages[1].lines.single.plainText, '6.');
+    });
   });
 
   group('dual dialogue adjacency', () {
-    test(
-      'two adjacent dialogue groups, the second dual, both appear in '
-      'order with exactly one spacer between them',
-      () {
-        final metrics = _metrics(linesPerPage: 20);
-        final layout = _composer.compose(
-          document: _document([
-            _dialogueGroup('ROSS', [_dialogueLine('First.')]),
-            _dialogueGroup(
-              'KIM',
-              [_dialogueLine('Second.')],
-              isDualDialogue: true,
-            ),
-          ]),
-          metrics: metrics,
-        );
+    test('two adjacent dialogue groups, the second dual, both appear in '
+        'order with exactly one spacer between them', () {
+      final metrics = _metrics(linesPerPage: 20);
+      final layout = _composer.compose(
+        document: _document([
+          _dialogueGroup('ROSS', [_dialogueLine('First.')]),
+          _dialogueGroup('KIM', [_dialogueLine('Second.')], isDualDialogue: true),
+        ]),
+        metrics: metrics,
+      );
 
-        final lines = layout.pages.single.lines;
-        expect(lines, hasLength(5));
-        expect(lines[0].plainText, 'ROSS');
-        expect(lines[1].plainText, 'First.');
-        expect(lines[2].lineType, FountainLineType.blank);
-        expect(lines[2].runs, isEmpty);
-        expect(lines[3].plainText, 'KIM');
-        expect(lines[4].plainText, 'Second.');
-      },
-    );
+      final lines = layout.pages.single.lines;
+      expect(lines, hasLength(5));
+      expect(lines[0].plainText, 'ROSS');
+      expect(lines[1].plainText, 'First.');
+      expect(lines[2].lineType, FountainLineType.blank);
+      expect(lines[2].runs, isEmpty);
+      expect(lines[3].plainText, 'KIM');
+      expect(lines[4].plainText, 'Second.');
+    });
   });
 
   group('inline styled runs survive wrapping', () {
-    test(
-      'a bold span crossing a wrap boundary is split into two runs, each '
-      'keeping isBold, and each line\'s runs join back to its plain text',
-      () {
-        final metrics = _metrics(linesPerPage: 20, actionCols: 11);
-        final layout = _composer.compose(
-          document: _document([
-            _action(['normal **bold words here** end']),
-          ]),
-          metrics: metrics,
-        );
+    test('a bold span crossing a wrap boundary is split into two runs, each '
+        'keeping isBold, and each line\'s runs join back to its plain text', () {
+      final metrics = _metrics(linesPerPage: 20, actionCols: 11);
+      final layout = _composer.compose(
+        document: _document([
+          _action(['normal **bold words here** end']),
+        ]),
+        metrics: metrics,
+      );
 
-        final lines = layout.pages.single.lines;
-        expect(lines, hasLength(3));
+      final lines = layout.pages.single.lines;
+      expect(lines, hasLength(3));
 
-        expect(lines[0].plainText, 'normal bold');
-        expect(lines[0].runs, hasLength(2));
-        expect(lines[0].runs[0].isBold, isFalse);
-        expect(lines[0].runs[0].text, 'normal ');
-        expect(lines[0].runs[1].isBold, isTrue);
-        expect(lines[0].runs[1].text, 'bold');
+      expect(lines[0].plainText, 'normal bold');
+      expect(lines[0].runs, hasLength(2));
+      expect(lines[0].runs[0].isBold, isFalse);
+      expect(lines[0].runs[0].text, 'normal ');
+      expect(lines[0].runs[1].isBold, isTrue);
+      expect(lines[0].runs[1].text, 'bold');
 
-        expect(lines[1].plainText, 'words here');
-        expect(lines[1].runs, hasLength(1));
-        expect(lines[1].runs.single.isBold, isTrue);
+      expect(lines[1].plainText, 'words here');
+      expect(lines[1].runs, hasLength(1));
+      expect(lines[1].runs.single.isBold, isTrue);
 
-        expect(lines[2].plainText, 'end');
-        expect(lines[2].runs, hasLength(1));
-        expect(lines[2].runs.single.isBold, isFalse);
+      expect(lines[2].plainText, 'end');
+      expect(lines[2].runs, hasLength(1));
+      expect(lines[2].runs.single.isBold, isFalse);
 
-        for (final line in lines) {
-          expect(line.runs.map((run) => run.text).join(), line.plainText);
-        }
-      },
-    );
+      for (final line in lines) {
+        expect(line.runs.map((run) => run.text).join(), line.plainText);
+      }
+    });
   });
 
   group('inline emphasis flags reach the composed runs', () {
@@ -549,39 +500,36 @@ void main() {
     // this file up to here only ever exercises bold: nothing asserts that italic, bold-italic or
     // underline reach a composed run at all, in either an action block or a dialogue line, which
     // is exactly what a regression here would need to catch.
-    test(
-      'an action line carries independent bold, italic, bold-italic and underline flags',
-      () {
-        final metrics = _metrics(linesPerPage: 20, actionCols: 60);
-        final layout = _composer.compose(
-          document: _document([
-            _action(['plain **bold** and *italic* and ***both*** and _under_ end']),
-          ]),
-          metrics: metrics,
-        );
+    test('an action line carries independent bold, italic, bold-italic and underline flags', () {
+      final metrics = _metrics(linesPerPage: 20, actionCols: 60);
+      final layout = _composer.compose(
+        document: _document([
+          _action(['plain **bold** and *italic* and ***both*** and _under_ end']),
+        ]),
+        metrics: metrics,
+      );
 
-        final line = layout.pages.single.lines.single;
-        expect(line.plainText, 'plain bold and italic and both and under end');
+      final line = layout.pages.single.lines.single;
+      expect(line.plainText, 'plain bold and italic and both and under end');
 
-        final boldRun = line.runs.firstWhere((run) => run.text == 'bold');
-        expect(boldRun.isBold, isTrue);
-        expect(boldRun.isItalic, isFalse);
-        expect(boldRun.isUnderline, isFalse);
+      final boldRun = line.runs.firstWhere((run) => run.text == 'bold');
+      expect(boldRun.isBold, isTrue);
+      expect(boldRun.isItalic, isFalse);
+      expect(boldRun.isUnderline, isFalse);
 
-        final italicRun = line.runs.firstWhere((run) => run.text == 'italic');
-        expect(italicRun.isItalic, isTrue);
-        expect(italicRun.isBold, isFalse);
+      final italicRun = line.runs.firstWhere((run) => run.text == 'italic');
+      expect(italicRun.isItalic, isTrue);
+      expect(italicRun.isBold, isFalse);
 
-        final bothRun = line.runs.firstWhere((run) => run.text == 'both');
-        expect(bothRun.isBold, isTrue);
-        expect(bothRun.isItalic, isTrue);
+      final bothRun = line.runs.firstWhere((run) => run.text == 'both');
+      expect(bothRun.isBold, isTrue);
+      expect(bothRun.isItalic, isTrue);
 
-        final underRun = line.runs.firstWhere((run) => run.text == 'under');
-        expect(underRun.isUnderline, isTrue);
-        expect(underRun.isBold, isFalse);
-        expect(underRun.isItalic, isFalse);
-      },
-    );
+      final underRun = line.runs.firstWhere((run) => run.text == 'under');
+      expect(underRun.isUnderline, isTrue);
+      expect(underRun.isBold, isFalse);
+      expect(underRun.isItalic, isFalse);
+    });
 
     test('a dialogue line carries the same inline emphasis flags as an action line', () {
       final metrics = _metrics(linesPerPage: 20, dialogueCols: 60);
@@ -605,137 +553,108 @@ void main() {
   });
 
   group('print-time uppercasing', () {
-    test(
-      'a character cue prints upper-cased regardless of source casing',
-      () {
-        final metrics = _metrics(linesPerPage: 20);
-        final layout = _composer.compose(
-          document: _document([
-            _dialogueGroup('bob', [_dialogueLine('Hi there.')]),
-          ]),
-          metrics: metrics,
-        );
+    test('a character cue prints upper-cased regardless of source casing', () {
+      final metrics = _metrics(linesPerPage: 20);
+      final layout = _composer.compose(
+        document: _document([
+          _dialogueGroup('bob', [_dialogueLine('Hi there.')]),
+        ]),
+        metrics: metrics,
+      );
 
-        final cueLine = layout.pages.single.lines.firstWhere(
-          (line) => line.lineType == FountainLineType.character,
-        );
-        expect(cueLine.plainText, 'BOB');
-      },
-    );
+      final cueLine = layout.pages.single.lines.firstWhere(
+        (line) => line.lineType == FountainLineType.character,
+      );
+      expect(cueLine.plainText, 'BOB');
+    });
 
-    test(
-      "a character cue with an extension prints upper-cased, extension "
-      'included',
-      () {
-        final metrics = _metrics(linesPerPage: 20);
-        final layout = _composer.compose(
-          document: _document([
-            _dialogueGroup(
-              'bob',
-              [_dialogueLine('Hi there.')],
-              extension: "cont'd",
-            ),
-          ]),
-          metrics: metrics,
-        );
+    test("a character cue with an extension prints upper-cased, extension "
+        'included', () {
+      final metrics = _metrics(linesPerPage: 20);
+      final layout = _composer.compose(
+        document: _document([
+          _dialogueGroup('bob', [_dialogueLine('Hi there.')], extension: "cont'd"),
+        ]),
+        metrics: metrics,
+      );
 
-        final cueLine = layout.pages.single.lines.firstWhere(
-          (line) => line.lineType == FountainLineType.character,
-        );
-        expect(cueLine.plainText, "BOB (CONT'D)");
-      },
-    );
+      final cueLine = layout.pages.single.lines.firstWhere(
+        (line) => line.lineType == FountainLineType.character,
+      );
+      expect(cueLine.plainText, "BOB (CONT'D)");
+    });
 
-    test(
-      'a forced transition prints upper-cased regardless of source casing',
-      () {
-        final metrics = _metrics(linesPerPage: 20);
-        final layout = _composer.compose(
-          document: _document([_transition('burn to white.')]),
-          metrics: metrics,
-        );
+    test('a forced transition prints upper-cased regardless of source casing', () {
+      final metrics = _metrics(linesPerPage: 20);
+      final layout = _composer.compose(
+        document: _document([_transition('burn to white.')]),
+        metrics: metrics,
+      );
 
-        expect(layout.pages.single.lines.single.plainText, 'BURN TO WHITE.');
-      },
-    );
+      expect(layout.pages.single.lines.single.plainText, 'BURN TO WHITE.');
+    });
 
-    test(
-      "a continued NAME (CONT'D) cue prints upper-cased even when the "
-      'original cue was lower-cased',
-      () {
-        final metrics = _metrics(linesPerPage: 5, dialogueCols: 10);
-        final layout = _composer.compose(
-          document: _document([
-            _dialogueGroup('sarah', [
-              _dialogueLine(_words('AAAA', 12)),
-            ]),
-          ]),
-          metrics: metrics,
-        );
+    test("a continued NAME (CONT'D) cue prints upper-cased even when the "
+        'original cue was lower-cased', () {
+      final metrics = _metrics(linesPerPage: 5, dialogueCols: 10);
+      final layout = _composer.compose(
+        document: _document([
+          _dialogueGroup('sarah', [_dialogueLine(_words('AAAA', 12))]),
+        ]),
+        metrics: metrics,
+      );
 
-        expect(layout.pages, hasLength(2));
-        expect(layout.pages[0].lines.first.plainText, 'SARAH');
-        expect(layout.pages[1].lines.first.plainText, "SARAH (CONT'D)");
-      },
-    );
+      expect(layout.pages, hasLength(2));
+      expect(layout.pages[0].lines.first.plainText, 'SARAH');
+      expect(layout.pages[1].lines.first.plainText, "SARAH (CONT'D)");
+    });
   });
 
   group('scene heading print text', () {
-    test(
-      'an explicitly numbered scene heading prints its heading text alone, '
-      'never prefixed with the number: the number is only ever carried '
-      'separately as FountainScriptLine.sceneNumber',
-      () {
-        final metrics = _metrics(linesPerPage: 20);
-        final layout = _composer.compose(
-          document: _document([
-            _sceneHeading('INT. HOUSE - DAY', sceneNumber: '12'),
-          ]),
-          metrics: metrics,
-        );
+    test('an explicitly numbered scene heading prints its heading text alone, '
+        'never prefixed with the number: the number is only ever carried '
+        'separately as FountainScriptLine.sceneNumber', () {
+      final metrics = _metrics(linesPerPage: 20);
+      final layout = _composer.compose(
+        document: _document([_sceneHeading('INT. HOUSE - DAY', sceneNumber: '12')]),
+        metrics: metrics,
+      );
 
-        final headingLine = layout.pages.single.lines.single;
-        expect(headingLine.plainText, 'INT. HOUSE - DAY');
-        expect(headingLine.sceneNumber, '12');
-        expect(headingLine.isSceneHeading, isTrue);
-      },
-    );
+      final headingLine = layout.pages.single.lines.single;
+      expect(headingLine.plainText, 'INT. HOUSE - DAY');
+      expect(headingLine.sceneNumber, '12');
+      expect(headingLine.isSceneHeading, isTrue);
+    });
 
-    test(
-      'an unnumbered scene heading prints its heading text with no scene '
-      'number',
-      () {
-        final metrics = _metrics(linesPerPage: 20);
-        final layout = _composer.compose(
-          document: _document([_sceneHeading('INT. HOUSE - DAY')]),
-          metrics: metrics,
-        );
+    test('an unnumbered scene heading prints its heading text with no scene '
+        'number', () {
+      final metrics = _metrics(linesPerPage: 20);
+      final layout = _composer.compose(
+        document: _document([_sceneHeading('INT. HOUSE - DAY')]),
+        metrics: metrics,
+      );
 
-        final headingLine = layout.pages.single.lines.single;
-        expect(headingLine.plainText, 'INT. HOUSE - DAY');
-        expect(headingLine.sceneNumber, isNull);
-      },
-    );
+      final headingLine = layout.pages.single.lines.single;
+      expect(headingLine.plainText, 'INT. HOUSE - DAY');
+      expect(headingLine.sceneNumber, isNull);
+    });
   });
 
   group('non-printable blocks', () {
-    test(
-      'sections, synopses, notes and boneyard comments produce no output '
-      'lines',
-      () {
-        final metrics = _metrics(linesPerPage: 20);
-        final layout = _composer.compose(
-          document: _document([
-            const FountainSection(sourceRange: _range, level: 1, text: 'Act'),
-            const FountainSynopsis(sourceRange: _range, text: 'Synopsis.'),
-            const FountainNoteBlock(sourceRange: _range, text: 'Note.'),
-            const FountainBoneyard(sourceRange: _range, text: 'Cut.'),
-          ]),
-          metrics: metrics,
-        );
+    test('sections, synopses, notes and boneyard comments produce no output '
+        'lines', () {
+      final metrics = _metrics(linesPerPage: 20);
+      final layout = _composer.compose(
+        document: _document([
+          const FountainSection(sourceRange: _range, level: 1, text: 'Act'),
+          const FountainSynopsis(sourceRange: _range, text: 'Synopsis.'),
+          const FountainNoteBlock(sourceRange: _range, text: 'Note.'),
+          const FountainBoneyard(sourceRange: _range, text: 'Cut.'),
+        ]),
+        metrics: metrics,
+      );
 
-        expect(layout.pages, isEmpty);
-      },
-    );
+      expect(layout.pages, isEmpty);
+    });
   });
 }

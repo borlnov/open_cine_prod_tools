@@ -69,7 +69,11 @@ void main() {
         source: source,
         existingRange: existingRange,
         entries: const [
-          FountainTitlePageEntry(key: 'Title', values: ['New Screenplay'], sourceRange: _dummyRange),
+          FountainTitlePageEntry(
+            key: 'Title',
+            values: ['New Screenplay'],
+            sourceRange: _dummyRange,
+          ),
         ],
       );
 

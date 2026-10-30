@@ -139,7 +139,10 @@ class OcptStoryboardBoard extends StatelessWidget {
         return OcptStoryboardShotRow(
           key: ValueKey(shot.id),
           shot: shot,
-          attachedRoles: [for (final role in roles) if (shot.characterRoleIds.contains(role.id)) role],
+          attachedRoles: [
+            for (final role in roles)
+              if (shot.characterRoleIds.contains(role.id)) role,
+          ],
           panels: panelsByShotId[shot.id] ?? const [],
           panelSize: panelSize,
           isSelected: isSelectedShot,

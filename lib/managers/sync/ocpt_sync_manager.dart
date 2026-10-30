@@ -84,8 +84,9 @@ class OcptSyncManager extends AbsWithLifeCycle {
   /// [OcptPropertiesManager] above. A test that does need one hands it in through the constructor
   /// instead — built over a fake secure-storage channel, exactly as
   /// `ocpt_sync_manager_snapshot_test.dart` already does for [joinFromRelay].
-  OcptPairingService get pairingService =>
-      _pairingService ??= OcptPairingService(secretsManager: globalGetIt().get<OcptSecretsManager>());
+  OcptPairingService get pairingService => _pairingService ??= OcptPairingService(
+    secretsManager: globalGetIt().get<OcptSecretsManager>(),
+  );
   OcptPairingService? _pairingService;
 
   /// Class constructor
@@ -111,8 +112,10 @@ class OcptSyncManager extends AbsWithLifeCycle {
            OcptChangesetService(
              mergeService: OcptMergeService(
                screenplayMergeService: OcptScreenplayMergeService(
-                 screenplayService: (projectsManager ?? globalGetIt().get<OcptProjectsManager>()).screenplayService,
-                 deviceId: (propertiesManager ?? globalGetIt().get<OcptPropertiesManager>()).loadOrCreateDeviceId,
+                 screenplayService: (projectsManager ?? globalGetIt().get<OcptProjectsManager>())
+                     .screenplayService,
+                 deviceId: (propertiesManager ?? globalGetIt().get<OcptPropertiesManager>())
+                     .loadOrCreateDeviceId,
                ),
              ),
            ),
@@ -155,7 +158,8 @@ class OcptSyncManager extends AbsWithLifeCycle {
   /// This is the one [OcptRemoteStorage] implementation the changeset engine has to exercise
   /// against today; [openRelayRemoteStorage] is the second, once a project is actually paired
   /// with a relay.
-  OcptRemoteStorage openFolderRemoteStorage(Directory directory) => OcptFolderRemoteStorage(directory);
+  OcptRemoteStorage openFolderRemoteStorage(Directory directory) =>
+      OcptFolderRemoteStorage(directory);
 
   /// Opens the relay transport [pairing] describes, for [projectId].
   ///
@@ -547,7 +551,10 @@ class OcptSyncManager extends AbsWithLifeCycle {
   /// [pairingService].`clearPairing` removes [database]'s own `sync_pairings` row and the project
   /// token it named, leaving [projectId] exactly as unpaired as a project that never talked to a
   /// relay at all.
-  Future<void> unpairProject({required OcptProjectDatabase database, required String projectId}) async {
+  Future<void> unpairProject({
+    required OcptProjectDatabase database,
+    required String projectId,
+  }) async {
     await stopSyncSession();
     await pairingService.clearPairing(database: database, projectId: projectId);
   }

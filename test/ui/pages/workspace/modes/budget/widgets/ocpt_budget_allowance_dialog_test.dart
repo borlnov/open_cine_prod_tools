@@ -172,9 +172,7 @@ void main() {
     final tr = await pumpDialog(tester, rates: rates);
 
     await tester.tap(
-      find.text(
-        ocptBudgetAllowanceKindLabel(tr, OcptBudgetAllowanceKind.accommodation),
-      ),
+      find.text(ocptBudgetAllowanceKindLabel(tr, OcptBudgetAllowanceKind.accommodation)),
     );
     await tester.pumpAndSettle();
 

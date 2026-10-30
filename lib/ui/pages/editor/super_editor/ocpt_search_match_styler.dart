@@ -16,7 +16,9 @@ const NamedAttribution ocptSearchMatchAttribution = NamedAttribution("ocptSearch
 
 /// The stronger variant of [ocptSearchMatchAttribution] marking the *current* match, painted as
 /// [ocptEditorSearchCurrentMatchColor].
-const NamedAttribution ocptSearchCurrentMatchAttribution = NamedAttribution("ocptSearchCurrentMatch");
+const NamedAttribution ocptSearchCurrentMatchAttribution = NamedAttribution(
+  "ocptSearchCurrentMatch",
+);
 
 /// The styled mode's own half of the find/replace bar's highlight:
 /// raw mode paints its matches by overriding `TextEditingController.buildTextSpan`
@@ -81,7 +83,8 @@ class OcptSearchMatchStyler extends SingleColumnLayoutStylePhase {
     return SingleColumnLayoutViewModel(
       padding: viewModel.padding,
       componentViewModels: [
-        for (final previousViewModel in viewModel.componentViewModels) _applyMatches(previousViewModel),
+        for (final previousViewModel in viewModel.componentViewModels)
+          _applyMatches(previousViewModel),
       ],
     );
   }
@@ -89,7 +92,9 @@ class OcptSearchMatchStyler extends SingleColumnLayoutStylePhase {
   /// Returns [previousViewModel] unchanged when it carries no match or isn't a text component
   /// (e.g. the title page's own field components, which do mix in [TextComponentViewModel], are
   /// still handled the same way as every other text block); otherwise returns a highlighted copy.
-  SingleColumnLayoutComponentViewModel _applyMatches(SingleColumnLayoutComponentViewModel previousViewModel) {
+  SingleColumnLayoutComponentViewModel _applyMatches(
+    SingleColumnLayoutComponentViewModel previousViewModel,
+  ) {
     final matches = _matchesByNodeId[previousViewModel.nodeId];
     if (matches == null || matches.isEmpty || previousViewModel is! TextComponentViewModel) {
       return previousViewModel;

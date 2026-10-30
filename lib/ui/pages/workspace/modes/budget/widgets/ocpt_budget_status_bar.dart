@@ -48,7 +48,9 @@ class OcptBudgetStatusBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
-    final totalText = tr.budgetStatsQuoteTotal(ocptBudgetAmountLabel(quotedTotalCents, currencyCode));
+    final totalText = tr.budgetStatsQuoteTotal(
+      ocptBudgetAmountLabel(quotedTotalCents, currencyCode),
+    );
 
     return OcptWorkspaceStatusBar(
       counters: [tr.budgetStatsPostes(posteCount), tr.budgetStatsLines(lineCount)],

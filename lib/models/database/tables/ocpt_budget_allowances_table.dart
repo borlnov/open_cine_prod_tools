@@ -73,9 +73,8 @@ class OcptBudgetAllowancesTable extends Table {
   // The stored literal below must match `OcptBudgetAllowanceKind.travel.name` exactly, for the same
   // reason `budget_resources.groupKind`'s default does: an enum's `.name` getter isn't a
   // compile-time constant expression, so it can't be written as `Constant(…)`.
-  TextColumn get kind => text()
-      .map(const OcptBudgetAllowanceKindConverter())
-      .withDefault(const Constant('travel'))();
+  TextColumn get kind =>
+      text().map(const OcptBudgetAllowanceKindConverter()).withDefault(const Constant('travel'))();
 
   /// This defrayal's free-text wording, e.g. "Aller Paris — Le Havre".
   TextColumn get label => text().withDefault(const Constant(''))();

@@ -130,8 +130,10 @@ class OcptScriptPagePainter {
       marginBottom: metrics.marginBottomInches * ocptPdfPointsPerInch,
     );
 
-    pw.TextStyle style(double size, {bool bold = false}) =>
-        pw.TextStyle(font: fonts.variant(bold: bold, italic: false), fontSize: size);
+    pw.TextStyle style(double size, {bool bold = false}) => pw.TextStyle(
+      font: fonts.variant(bold: bold, italic: false),
+      fontSize: size,
+    );
 
     final title = titlePage?.title?.trim();
     if (title == null || title.isEmpty) {
@@ -196,8 +198,7 @@ class OcptScriptPagePainter {
                 crossAxisAlignment: pw.CrossAxisAlignment.start,
                 mainAxisSize: pw.MainAxisSize.min,
                 children: [
-                  for (final line in contact)
-                    pw.Text(line, style: style(_titleMetaFontSizePt)),
+                  for (final line in contact) pw.Text(line, style: style(_titleMetaFontSizePt)),
                 ],
               ),
               if (draftDate != null && draftDate.isNotEmpty)

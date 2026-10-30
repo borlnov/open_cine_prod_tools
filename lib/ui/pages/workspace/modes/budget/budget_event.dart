@@ -374,7 +374,10 @@ class OcptBudgetLineTaxInclusiveChangedEvent extends OcptBudgetEvent {
   final bool isTaxInclusive;
 
   /// Class constructor
-  const OcptBudgetLineTaxInclusiveChangedEvent({required this.lineId, required this.isTaxInclusive});
+  const OcptBudgetLineTaxInclusiveChangedEvent({
+    required this.lineId,
+    required this.isTaxInclusive,
+  });
 
   /// Object properties
   @override
@@ -560,7 +563,10 @@ class OcptBudgetCommitmentUpdateConfirmedEvent extends OcptBudgetEvent {
   final OcptBudgetCommitmentFormFields fields;
 
   /// Class constructor
-  const OcptBudgetCommitmentUpdateConfirmedEvent({required this.commitmentId, required this.fields});
+  const OcptBudgetCommitmentUpdateConfirmedEvent({
+    required this.commitmentId,
+    required this.fields,
+  });
 
   /// Object properties
   @override

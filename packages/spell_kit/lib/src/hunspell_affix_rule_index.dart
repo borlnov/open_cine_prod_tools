@@ -27,9 +27,7 @@ class HunspellAffixRuleIndex {
   /// Builds a [HunspellAffixRuleIndex] over [affixFile]'s rules.
   HunspellAffixRuleIndex(HunspellAffixFile affixFile) {
     for (final rule in affixFile.suffixRules) {
-      final key = rule.append.isEmpty
-          ? ''
-          : rule.append[rule.append.length - 1];
+      final key = rule.append.isEmpty ? '' : rule.append[rule.append.length - 1];
       (_suffixByTail[key] ??= []).add(rule);
     }
     for (final rule in affixFile.prefixRules) {

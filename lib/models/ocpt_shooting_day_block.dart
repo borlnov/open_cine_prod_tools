@@ -107,8 +107,7 @@ class OcptShootingDayBlock extends Equatable {
 
   /// Object string representation, useful for debugging and logging.
   @override
-  String toString() =>
-      "OcptShootingDayBlock(id: $id, shootingDayId: $shootingDayId, kind: $kind)";
+  String toString() => "OcptShootingDayBlock(id: $id, shootingDayId: $shootingDayId, kind: $kind)";
 
   /// Object properties
   @override

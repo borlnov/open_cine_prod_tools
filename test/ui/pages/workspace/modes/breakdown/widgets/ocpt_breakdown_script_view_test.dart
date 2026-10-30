@@ -205,7 +205,9 @@ void main() {
     await tester.pumpWidget(
       _wrapInApp(
         _buildView(
-          scene: _buildScene(tags: [_buildTag(word: _actionWords[5], targetId: "el-desk")]),
+          scene: _buildScene(
+            tags: [_buildTag(word: _actionWords[5], targetId: "el-desk")],
+          ),
           targets: [target],
         ),
       ),
@@ -275,7 +277,11 @@ void main() {
   testWidgets("only the selected target's own tag gets a ring, not another one's", (tester) async {
     await _useLargeSurface(tester);
     final lamp = _buildElementTarget();
-    final desk = _buildElementTarget(id: "el-2", name: "Desk", category: OcptElementCategory.setDressing);
+    final desk = _buildElementTarget(
+      id: "el-2",
+      name: "Desk",
+      category: OcptElementCategory.setDressing,
+    );
 
     await tester.pumpWidget(
       _wrapInApp(
@@ -323,7 +329,9 @@ void main() {
     await tester.pumpWidget(
       _wrapInApp(
         _buildView(
-          scene: _buildScene(tags: [_buildTag(word: _actionWords[1], targetId: "gone")]),
+          scene: _buildScene(
+            tags: [_buildTag(word: _actionWords[1], targetId: "gone")],
+          ),
         ),
       ),
     );
@@ -396,17 +404,18 @@ void main() {
     expect(reported, (_sceneId, sitsWord.startOffset, sitsWord.endOffset));
   });
 
-  testWidgets("a plain word click is withheld while a version is previewed, its own tap doing nothing", (
-    tester,
-  ) async {
-    await _useLargeSurface(tester);
+  testWidgets(
+    "a plain word click is withheld while a version is previewed, its own tap doing nothing",
+    (tester) async {
+      await _useLargeSurface(tester);
 
-    await tester.pumpWidget(_wrapInApp(_buildView(isWordClickWithheld: true)));
+      await tester.pumpWidget(_wrapInApp(_buildView(isWordClickWithheld: true)));
 
-    // Must not throw: the word simply has no click callback at all.
-    await tester.tap(find.text("sits "));
-    await tester.pump();
-  });
+      // Must not throw: the word simply has no click callback at all.
+      await tester.tap(find.text("sits "));
+      await tester.pump();
+    },
+  );
 
   testWidgets("a tagged word still selects its target while a version is previewed", (
     tester,

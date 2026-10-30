@@ -27,24 +27,26 @@ Future<void> _pump(WidgetTester tester, Widget child) async {
         GlobalCupertinoLocalizations.delegate,
       ],
       supportedLocales: Tr.delegate.supportedLocales,
-      home: Scaffold(body: Align(alignment: Alignment.topLeft, child: child)),
+      home: Scaffold(
+        body: Align(alignment: Alignment.topLeft, child: child),
+      ),
     ),
   );
 }
 
 OcptFloorPlanSet _set({required String id, required String name}) => OcptFloorPlanSet(
-      id: id,
-      name: name,
-      underlayAssetId: null,
-      underlayPath: null,
-      underlayXM: null,
-      underlayYM: null,
-      underlayWidthM: null,
-      underlayHeightM: null,
-      underlayRotationDeg: null,
-      symbols: const [],
-      arrows: const [],
-    );
+  id: id,
+  name: name,
+  underlayAssetId: null,
+  underlayPath: null,
+  underlayXM: null,
+  underlayYM: null,
+  underlayWidthM: null,
+  underlayHeightM: null,
+  underlayRotationDeg: null,
+  symbols: const [],
+  arrows: const [],
+);
 
 /// A bare [OcptFloorPlanSetTabs], every optional field at its own withheld/empty default — the
 /// tests below only override what they mean to exercise.
@@ -65,7 +67,12 @@ Widget _tabs({
 }) => OcptFloorPlanSetTabs(
   sets: sets,
   selectedSetId: selectedSetId,
-  nameValueOf: (setId) => sets.firstWhere((set) => set.id == setId, orElse: () => _set(id: setId, name: "")).name,
+  nameValueOf: (setId) => sets
+      .firstWhere(
+        (set) => set.id == setId,
+        orElse: () => _set(id: setId, name: ""),
+      )
+      .name,
   placedShotCountOf: (_) => 0,
   suggestedSetId: suggestedSetId,
   suggestedSetName: suggestedSetName,
@@ -151,10 +158,7 @@ void main() {
   ) async {
     String? createdIn = "unset";
 
-    await _pump(
-      tester,
-      _tabs(onSetCreationRequested: (locationId) => createdIn = locationId),
-    );
+    await _pump(tester, _tabs(onSetCreationRequested: (locationId) => createdIn = locationId));
     final tr = Tr.of(tester.element(find.byType(OcptFloorPlanSetTabs)));
 
     await tester.tap(find.widgetWithText(FilledButton, tr.shotListFloorPlanAddSetButtonLabel));
@@ -190,34 +194,33 @@ void main() {
     expect(linked, "set-a");
   });
 
-  testWidgets(
-    "Link an existing set groups its own entries by location, and links the one picked",
-    (tester) async {
-      String? linked;
+  testWidgets("Link an existing set groups its own entries by location, and links the one picked", (
+    tester,
+  ) async {
+    String? linked;
 
-      await _pump(
-        tester,
-        _tabs(
-          linkableSetsByLocation: const [
-            ("Maison", [("set-a", "Cuisine"), ("set-b", "Salon")]),
-          ],
-          onSetLinkRequested: (setId) => linked = setId,
-        ),
-      );
-      final tr = Tr.of(tester.element(find.byType(OcptFloorPlanSetTabs)));
+    await _pump(
+      tester,
+      _tabs(
+        linkableSetsByLocation: const [
+          ("Maison", [("set-a", "Cuisine"), ("set-b", "Salon")]),
+        ],
+        onSetLinkRequested: (setId) => linked = setId,
+      ),
+    );
+    final tr = Tr.of(tester.element(find.byType(OcptFloorPlanSetTabs)));
 
-      await tester.tap(find.widgetWithText(FilledButton, tr.shotListFloorPlanAddSetButtonLabel));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text(tr.shotListFloorPlanLinkExistingSetMenuAction));
-      await tester.pumpAndSettle();
-      expect(find.text("Maison"), findsOneWidget);
+    await tester.tap(find.widgetWithText(FilledButton, tr.shotListFloorPlanAddSetButtonLabel));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(tr.shotListFloorPlanLinkExistingSetMenuAction));
+    await tester.pumpAndSettle();
+    expect(find.text("Maison"), findsOneWidget);
 
-      await tester.tap(find.text("Salon"));
-      await tester.pumpAndSettle();
+    await tester.tap(find.text("Salon"));
+    await tester.pumpAndSettle();
 
-      expect(linked, "set-b");
-    },
-  );
+    expect(linked, "set-b");
+  });
 
   testWidgets("Link an existing set is omitted from the menu when there is nothing to link", (
     tester,
@@ -264,9 +267,7 @@ void main() {
     },
   );
 
-  testWidgets("no writable callback at all shows a disabled ＋ Set button, no menu", (
-    tester,
-  ) async {
+  testWidgets("no writable callback at all shows a disabled ＋ Set button, no menu", (tester) async {
     await _pump(tester, _tabs());
     final tr = Tr.of(tester.element(find.byType(OcptFloorPlanSetTabs)));
 

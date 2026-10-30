@@ -36,16 +36,14 @@ void main() {
   };
 
   /// Every `budget_resources` row, tombstoned or not, in `sortKey` order.
-  Future<List<OcptBudgetResourceRow>> readAllResources() =>
-      (database.select(database.ocptBudgetResourcesTable)
-            ..orderBy([(table) => OrderingTerm.asc(table.sortKey)]))
-          .get();
+  Future<List<OcptBudgetResourceRow>> readAllResources() => (database.select(
+    database.ocptBudgetResourcesTable,
+  )..orderBy([(table) => OrderingTerm.asc(table.sortKey)])).get();
 
   /// Every `budget_mileage_rates` row, tombstoned or not, in `sortKey` order.
-  Future<List<OcptBudgetMileageRateRow>> readAllMileageRates() =>
-      (database.select(database.ocptBudgetMileageRatesTable)
-            ..orderBy([(table) => OrderingTerm.asc(table.sortKey)]))
-          .get();
+  Future<List<OcptBudgetMileageRateRow>> readAllMileageRates() => (database.select(
+    database.ocptBudgetMileageRatesTable,
+  )..orderBy([(table) => OrderingTerm.asc(table.sortKey)])).get();
 
   group("financing resources", () {
     test("a fresh project names no resource of its own", () async {
@@ -125,26 +123,29 @@ void main() {
       await preview.close();
     });
 
-    test("updateResource, reorderResource and deleteResource are all refused on a preview", () async {
-      final preview = OcptProjectDatabase.memory(isPreview: true);
-      await preview
-          .into(preview.ocptBudgetResourcesTable)
-          .insert(OcptBudgetResourcesTableCompanion.insert(id: "resource-1", label: "CNC"));
+    test(
+      "updateResource, reorderResource and deleteResource are all refused on a preview",
+      () async {
+        final preview = OcptProjectDatabase.memory(isPreview: true);
+        await preview
+            .into(preview.ocptBudgetResourcesTable)
+            .insert(OcptBudgetResourcesTableCompanion.insert(id: "resource-1", label: "CNC"));
 
-      await service.updateResource(
-        database: preview,
-        resourceId: "resource-1",
-        label: const Value("Renamed"),
-      );
-      await service.reorderResource(database: preview, resourceId: "resource-1", newPosition: 0);
-      await service.deleteResource(database: preview, resourceId: "resource-1");
+        await service.updateResource(
+          database: preview,
+          resourceId: "resource-1",
+          label: const Value("Renamed"),
+        );
+        await service.reorderResource(database: preview, resourceId: "resource-1", newPosition: 0);
+        await service.deleteResource(database: preview, resourceId: "resource-1");
 
-      final row = await preview.select(preview.ocptBudgetResourcesTable).getSingle();
-      expect(row.label, "CNC");
-      expect(row.isDeleted, isFalse);
+        final row = await preview.select(preview.ocptBudgetResourcesTable).getSingle();
+        expect(row.label, "CNC");
+        expect(row.isDeleted, isFalse);
 
-      await preview.close();
-    });
+        await preview.close();
+      },
+    );
   });
 
   group("mileage rates", () {

@@ -122,9 +122,7 @@ void main() {
     final context = tester.element(find.byType(OcptBreakdownSheetsExportDialog));
     final tr = Tr.of(context);
 
-    await tester.tap(
-      find.widgetWithText(CheckboxListTile, tr.breakdownExportSheetsOnlyDoneLabel),
-    );
+    await tester.tap(find.widgetWithText(CheckboxListTile, tr.breakdownExportSheetsOnlyDoneLabel));
     await tester.pumpAndSettle();
 
     await tester.tap(find.text(tr.editorExportPdfExportAction));

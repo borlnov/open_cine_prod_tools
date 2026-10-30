@@ -83,7 +83,11 @@ class OcptBudgetCashJournalXlsxExportService {
     );
     for (final row in rows) {
       sheet.appendRow(
-        _rowCellsOf(row: row, posteLabelById: posteLabelById, linkLabelByEntryId: linkLabelByEntryId),
+        _rowCellsOf(
+          row: row,
+          posteLabelById: posteLabelById,
+          linkLabelByEntryId: linkLabelByEntryId,
+        ),
       );
     }
 
@@ -131,7 +135,9 @@ class OcptBudgetCashJournalXlsxExportService {
     for (var columnIndex = 0; columnIndex < headers.length; columnIndex++) {
       sheet
           .cell(CellIndex.indexByColumnRow(columnIndex: columnIndex, rowIndex: headerRowIndex))
-          .cellStyle = CellStyle(bold: true);
+          .cellStyle = CellStyle(
+        bold: true,
+      );
     }
   }
 
@@ -167,7 +173,11 @@ class OcptBudgetCashJournalXlsxExportService {
 
   /// Appends the trailing totals row: [totals]' own debit, credit and balance, bolded, under
   /// [labels]'s own [OcptBudgetCashJournalXlsxLabels.totalsRowLabel].
-  void _appendTotalsRow(Sheet sheet, OcptBudgetCashTotals totals, OcptBudgetCashJournalXlsxLabels labels) {
+  void _appendTotalsRow(
+    Sheet sheet,
+    OcptBudgetCashTotals totals,
+    OcptBudgetCashJournalXlsxLabels labels,
+  ) {
     final totalsRowIndex = sheet.maxRows;
     sheet.appendRow([
       TextCellValue(labels.totalsRowLabel),
@@ -183,13 +193,16 @@ class OcptBudgetCashJournalXlsxExportService {
     for (var columnIndex = 0; columnIndex < 8; columnIndex++) {
       sheet
           .cell(CellIndex.indexByColumnRow(columnIndex: columnIndex, rowIndex: totalsRowIndex))
-          .cellStyle = CellStyle(bold: true);
+          .cellStyle = CellStyle(
+        bold: true,
+      );
     }
   }
 
   /// A text cell holding [value], or null when it is null or holds nothing but whitespace —
   /// mirroring `OcptShotListXlsxExportService._textOrNull`.
-  CellValue? _textOrNull(String? value) => value == null || value.trim().isEmpty ? null : TextCellValue(value);
+  CellValue? _textOrNull(String? value) =>
+      value == null || value.trim().isEmpty ? null : TextCellValue(value);
 
   /// [date] as `yyyy-MM-dd`, mirroring `OcptResourcesXlsxExportService._isoDate`.
   String _isoDate(DateTime date) =>

@@ -113,10 +113,7 @@ Widget _wrapWithLocalization(Widget child) => MaterialApp(
   supportedLocales: Tr.delegate.supportedLocales,
   // The real WorkspacePage always provides this ancestor: EditorPage now reads it for the
   // episode selector's episodes/selection, exactly as it already reads OcptEditorBloc.
-  home: BlocProvider<OcptWorkspaceBloc>(
-    create: (context) => OcptWorkspaceBloc(),
-    child: child,
-  ),
+  home: BlocProvider<OcptWorkspaceBloc>(create: (context) => OcptWorkspaceBloc(), child: child),
 );
 
 /// An export manager whose [exportFountain] is stubbed and records the episode tag it was handed,
@@ -357,57 +354,60 @@ void main() {
     final textField = tester.widget<TextField>(
       find.descendant(of: find.byType(OcptEditorSourceField), matching: find.byType(TextField)),
     );
-    expect(
-      textField.controller?.selection.baseOffset,
-      _sampleText.indexOf("EXT. GARDEN - NIGHT"),
-    );
+    expect(textField.controller?.selection.baseOffset, _sampleText.indexOf("EXT. GARDEN - NIGHT"));
   });
 
-  testWidgets("clicking a far scene in raw mode lands its heading a third of the way down, even past "
-      "wrapped paragraphs", (tester) async {
-    // Every action paragraph wraps over several visual lines of the source field: counting
-    // newlines would put the target thousands of pixels short of where the heading really is.
-    final buffer = StringBuffer();
-    for (var scene = 1; scene <= 20; scene++) {
-      buffer.write("INT. ROOM $scene - DAY\n\n${"Something happens in room $scene. " * 20}\n\n");
-    }
-    final text = buffer.toString();
-    final project = projectsManager.currentProject!;
-    await tester.runAsync(
-      () => projectsManager.screenplayService.saveScreenplayText(
-        database: project.database,
-        screenplayId: project.primaryScreenplayId,
-        fountainText: text,
-        snapshotReason: OcptSnapshotReason.manual,
-      ),
-    );
+  testWidgets(
+    "clicking a far scene in raw mode lands its heading a third of the way down, even past "
+    "wrapped paragraphs",
+    (tester) async {
+      // Every action paragraph wraps over several visual lines of the source field: counting
+      // newlines would put the target thousands of pixels short of where the heading really is.
+      final buffer = StringBuffer();
+      for (var scene = 1; scene <= 20; scene++) {
+        buffer.write("INT. ROOM $scene - DAY\n\n${"Something happens in room $scene. " * 20}\n\n");
+      }
+      final text = buffer.toString();
+      final project = projectsManager.currentProject!;
+      await tester.runAsync(
+        () => projectsManager.screenplayService.saveScreenplayText(
+          database: project.database,
+          screenplayId: project.primaryScreenplayId,
+          fountainText: text,
+          snapshotReason: OcptSnapshotReason.manual,
+        ),
+      );
 
-    await pumpEditorPage(tester);
-    await tester.pumpAndSettle();
+      await pumpEditorPage(tester);
+      await tester.pumpAndSettle();
 
-    final heading = find.descendant(
-      of: find.byType(OcptEditorScenePanel),
-      matching: find.text("INT. ROOM 15 - DAY"),
-    );
-    await tester.scrollUntilVisible(heading, 100, scrollable: find.descendant(
-      of: find.byType(OcptEditorScenePanel),
-      matching: find.byType(Scrollable),
-    ).first);
-    await tester.tap(heading);
-    await tester.pumpAndSettle();
+      final heading = find.descendant(
+        of: find.byType(OcptEditorScenePanel),
+        matching: find.text("INT. ROOM 15 - DAY"),
+      );
+      await tester.scrollUntilVisible(
+        heading,
+        100,
+        scrollable: find
+            .descendant(of: find.byType(OcptEditorScenePanel), matching: find.byType(Scrollable))
+            .first,
+      );
+      await tester.tap(heading);
+      await tester.pumpAndSettle();
 
-    final editableText = find.descendant(
-      of: find.byType(OcptEditorSourceField),
-      matching: find.byType(EditableText),
-    );
-    final renderEditable = tester.state<EditableTextState>(editableText).renderEditable;
-    final caret = renderEditable.getLocalRectForCaret(
-      TextPosition(offset: text.indexOf("INT. ROOM 15 - DAY")),
-    );
-    final caretTop = renderEditable.localToGlobal(caret.topLeft).dy;
-    final field = tester.getRect(editableText);
-    expect((caretTop - field.top) / field.height, inInclusiveRange(0.2, 0.45));
-  });
+      final editableText = find.descendant(
+        of: find.byType(OcptEditorSourceField),
+        matching: find.byType(EditableText),
+      );
+      final renderEditable = tester.state<EditableTextState>(editableText).renderEditable;
+      final caret = renderEditable.getLocalRectForCaret(
+        TextPosition(offset: text.indexOf("INT. ROOM 15 - DAY")),
+      );
+      final caretTop = renderEditable.localToGlobal(caret.topLeft).dy;
+      final field = tester.getRect(editableText);
+      expect((caretTop - field.top) / field.height, inInclusiveRange(0.2, 0.45));
+    },
+  );
 
   testWidgets('the preview and the scene panel can be hidden from the toolbar', (tester) async {
     await pumpEditorPage(tester);
@@ -495,35 +495,34 @@ void main() {
     },
   );
 
-  testWidgets(
-    'the syntax guide panel stays available in styled mode, without its toolbar button',
-    (tester) async {
-      await pumpEditorPage(tester);
-      await tester.pumpAndSettle();
+  testWidgets('the syntax guide panel stays available in styled mode, without its toolbar button', (
+    tester,
+  ) async {
+    await pumpEditorPage(tester);
+    await tester.pumpAndSettle();
 
-      final context = tester.element(find.byType(EditorPage));
-      final tr = Tr.of(context);
+    final context = tester.element(find.byType(EditorPage));
+    final tr = Tr.of(context);
 
-      await tester.tap(find.byTooltip(tr.editorToggleSyntaxGuideTooltip));
-      await tester.pumpAndSettle();
-      expect(find.byType(OcptEditorSyntaxGuidePanel), findsOneWidget);
+    await tester.tap(find.byTooltip(tr.editorToggleSyntaxGuideTooltip));
+    await tester.pumpAndSettle();
+    expect(find.byType(OcptEditorSyntaxGuidePanel), findsOneWidget);
 
-      await tester.tap(find.byTooltip(tr.editorSwitchToStyledModeTooltip));
-      await tester.pumpAndSettle();
-      // Mounting the styled editor auto-numbers every scene heading, which reports the corrected
-      // text to the bloc and restarts its 150 ms parse debounce — longer than `pumpAndSettle`'s
-      // own 100 ms step, so it needs this extra pump to be let go of before the test ends.
-      await tester.pump(const Duration(milliseconds: 200));
-      await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip(tr.editorSwitchToStyledModeTooltip));
+    await tester.pumpAndSettle();
+    // Mounting the styled editor auto-numbers every scene heading, which reports the corrected
+    // text to the bloc and restarts its 150 ms parse debounce — longer than `pumpAndSettle`'s
+    // own 100 ms step, so it needs this extra pump to be let go of before the test ends.
+    await tester.pump(const Duration(milliseconds: 200));
+    await tester.pumpAndSettle();
 
-      // Styled mode still offers the syntax tab (only the preview tab is mode-gated): the dock
-      // stays open on the same guide panel, reachable from the dock's own tab row alone — the
-      // toolbar carries no tab shortcut at all in that mode.
-      expect(find.byType(OcptEditorSyntaxGuidePanel), findsOneWidget);
-      expect(find.byTooltip(tr.editorToggleSyntaxGuideTooltip), findsNothing);
-      expect(find.byTooltip(tr.editorTogglePreviewTooltip), findsNothing);
-    },
-  );
+    // Styled mode still offers the syntax tab (only the preview tab is mode-gated): the dock
+    // stays open on the same guide panel, reachable from the dock's own tab row alone — the
+    // toolbar carries no tab shortcut at all in that mode.
+    expect(find.byType(OcptEditorSyntaxGuidePanel), findsOneWidget);
+    expect(find.byTooltip(tr.editorToggleSyntaxGuideTooltip), findsNothing);
+    expect(find.byTooltip(tr.editorTogglePreviewTooltip), findsNothing);
+  });
 
   testWidgets(
     "the toolbar's right dock toggle closes the dock and reopens it on the tab it showed",
@@ -573,32 +572,31 @@ void main() {
     expect(toggleOf(tr.workspaceToggleRightDockTooltip).isSelected, isFalse);
   });
 
-  testWidgets(
-    'a dock closed by hand in raw mode stays closed across a raw/styled/raw round trip',
-    (tester) async {
-      await pumpEditorPage(tester);
-      await tester.pumpAndSettle();
+  testWidgets('a dock closed by hand in raw mode stays closed across a raw/styled/raw round trip', (
+    tester,
+  ) async {
+    await pumpEditorPage(tester);
+    await tester.pumpAndSettle();
 
-      final context = tester.element(find.byType(EditorPage));
-      final tr = Tr.of(context);
+    final context = tester.element(find.byType(EditorPage));
+    final tr = Tr.of(context);
 
-      expect(find.byType(OcptEditorPreview), findsOneWidget);
+    expect(find.byType(OcptEditorPreview), findsOneWidget);
 
-      await tester.tap(find.byTooltip(tr.editorRightDockCloseTooltip));
-      await tester.pumpAndSettle();
-      expect(find.byType(OcptEditorRightDock), findsNothing);
+    await tester.tap(find.byTooltip(tr.editorRightDockCloseTooltip));
+    await tester.pumpAndSettle();
+    expect(find.byType(OcptEditorRightDock), findsNothing);
 
-      await tester.tap(find.byTooltip(tr.editorSwitchToStyledModeTooltip));
-      await tester.pumpAndSettle();
-      expect(find.byType(OcptEditorRightDock), findsNothing);
+    await tester.tap(find.byTooltip(tr.editorSwitchToStyledModeTooltip));
+    await tester.pumpAndSettle();
+    expect(find.byType(OcptEditorRightDock), findsNothing);
 
-      await tester.tap(find.byTooltip(tr.editorSwitchToRawModeTooltip));
-      await tester.pumpAndSettle();
-      // Explicitly closed, so the mode round trip never reopens it, unlike the default dance.
-      expect(find.byType(OcptEditorRightDock), findsNothing);
-      expect(find.byType(OcptEditorPreview), findsNothing);
-    },
-  );
+    await tester.tap(find.byTooltip(tr.editorSwitchToRawModeTooltip));
+    await tester.pumpAndSettle();
+    // Explicitly closed, so the mode round trip never reopens it, unlike the default dance.
+    expect(find.byType(OcptEditorRightDock), findsNothing);
+    expect(find.byType(OcptEditorPreview), findsNothing);
+  });
 
   testWidgets(
     "dragging the left divider live-resizes the scene panel dock without touching the bloc "
@@ -1150,9 +1148,7 @@ void main() {
 
           final node = document.getNodeAt(0)! as ParagraphNode;
           expect(
-            OcptFountainLineAttributions.typeOfAttributionValue(
-              node.getMetadataValue("blockType"),
-            ),
+            OcptFountainLineAttributions.typeOfAttributionValue(node.getMetadataValue("blockType")),
             FountainLineType.transition,
           );
 
@@ -1230,24 +1226,23 @@ void main() {
     expect(find.text(tr.editorTogglePageSimulationAction), findsOneWidget);
   });
 
-  testWidgets(
-    "the toolbar's Export button opens a panel listing the screenplay's two documents",
-    (tester) async {
-      await pumpEditorPage(tester);
-      await tester.pumpAndSettle();
+  testWidgets("the toolbar's Export button opens a panel listing the screenplay's two documents", (
+    tester,
+  ) async {
+    await pumpEditorPage(tester);
+    await tester.pumpAndSettle();
 
-      final tr = Tr.of(tester.element(find.byType(EditorPage)));
+    final tr = Tr.of(tester.element(find.byType(EditorPage)));
 
-      await tester.tap(find.byTooltip(tr.workspaceExportTooltip));
-      await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip(tr.workspaceExportTooltip));
+    await tester.pumpAndSettle();
 
-      expect(find.text(tr.editorExportPanelTitle), findsOneWidget);
-      expect(find.text(tr.editorExportFountainTitle), findsOneWidget);
-      expect(find.text(tr.editorExportPdfTitle), findsOneWidget);
-      expect(find.text(".fountain"), findsOneWidget);
-      expect(find.text("PDF"), findsOneWidget);
-    },
-  );
+    expect(find.text(tr.editorExportPanelTitle), findsOneWidget);
+    expect(find.text(tr.editorExportFountainTitle), findsOneWidget);
+    expect(find.text(tr.editorExportPdfTitle), findsOneWidget);
+    expect(find.text(".fountain"), findsOneWidget);
+    expect(find.text("PDF"), findsOneWidget);
+  });
 
   testWidgets("picking the screenplay PDF card opens its own export options dialog", (
     tester,
@@ -1348,109 +1343,110 @@ void main() {
     },
   );
 
-  testWidgets(
-    'toggling page simulation from the ⋮ menu flips it and persists the new value',
-    (tester) async {
-      await propertiesManager.isPageSimulationEnabled.store(true);
-      await pumpEditorPage(tester);
-      await tester.pumpAndSettle();
+  testWidgets('toggling page simulation from the ⋮ menu flips it and persists the new value', (
+    tester,
+  ) async {
+    await propertiesManager.isPageSimulationEnabled.store(true);
+    await pumpEditorPage(tester);
+    await tester.pumpAndSettle();
 
-      final context = tester.element(find.byType(EditorPage));
-      final tr = Tr.of(context);
+    final context = tester.element(find.byType(EditorPage));
+    final tr = Tr.of(context);
 
-      await tester.tap(find.byTooltip(MaterialLocalizations.of(context).showMenuTooltip));
-      await tester.pumpAndSettle();
-      await tester.tap(
-        find.ancestor(
-          of: find.text(tr.editorTogglePageSimulationAction),
-          matching: find.byType(CheckedPopupMenuItem<void>),
-        ),
-      );
-      await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip(MaterialLocalizations.of(context).showMenuTooltip));
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.ancestor(
+        of: find.text(tr.editorTogglePageSimulationAction),
+        matching: find.byType(CheckedPopupMenuItem<void>),
+      ),
+    );
+    await tester.pumpAndSettle();
 
-      expect(await propertiesManager.isPageSimulationEnabled.load(), isFalse);
-    },
-  );
+    expect(await propertiesManager.isPageSimulationEnabled.load(), isFalse);
+  });
 
-  testWidgets(
-    'toggling scene numbers from the ⋮ menu flips it and persists the new value',
-    (tester) async {
-      await propertiesManager.styledSceneNumbersVisible.store(true);
-      await pumpEditorPage(tester);
-      await tester.pumpAndSettle();
+  testWidgets('toggling scene numbers from the ⋮ menu flips it and persists the new value', (
+    tester,
+  ) async {
+    await propertiesManager.styledSceneNumbersVisible.store(true);
+    await pumpEditorPage(tester);
+    await tester.pumpAndSettle();
 
-      final context = tester.element(find.byType(EditorPage));
-      final tr = Tr.of(context);
+    final context = tester.element(find.byType(EditorPage));
+    final tr = Tr.of(context);
 
-      await tester.tap(find.byTooltip(MaterialLocalizations.of(context).showMenuTooltip));
-      await tester.pumpAndSettle();
-      await tester.tap(
-        find.ancestor(
-          of: find.text(tr.editorToggleSceneNumbersAction),
-          matching: find.byType(CheckedPopupMenuItem<void>),
-        ),
-      );
-      await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip(MaterialLocalizations.of(context).showMenuTooltip));
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.ancestor(
+        of: find.text(tr.editorToggleSceneNumbersAction),
+        matching: find.byType(CheckedPopupMenuItem<void>),
+      ),
+    );
+    await tester.pumpAndSettle();
 
-      expect(await propertiesManager.styledSceneNumbersVisible.load(), isFalse);
-    },
-  );
+    expect(await propertiesManager.styledSceneNumbersVisible.load(), isFalse);
+  });
 
-  testWidgets(
-    "scrolling the styled editor with page simulation on does not move the toolbar",
-    (tester) async {
-      // Wide enough for the full page-simulation width (`pageWidth` reaches ~975 logical pixels
-      // at US Letter) and tall enough that the long document below genuinely overflows the
-      // viewport, giving real distance to scroll.
-      tester.view.physicalSize = const Size(1400, 900);
-      tester.view.devicePixelRatio = 1.0;
-      addTearDown(tester.view.resetPhysicalSize);
-      addTearDown(tester.view.resetDevicePixelRatio);
+  testWidgets("scrolling the styled editor with page simulation on does not move the toolbar", (
+    tester,
+  ) async {
+    // Wide enough for the full page-simulation width (`pageWidth` reaches ~975 logical pixels
+    // at US Letter) and tall enough that the long document below genuinely overflows the
+    // viewport, giving real distance to scroll.
+    tester.view.physicalSize = const Size(1400, 900);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
 
-      await propertiesManager.editorMode.store(OcptEditorMode.styled);
-      await propertiesManager.isPageSimulationEnabled.store(true);
+    await propertiesManager.editorMode.store(OcptEditorMode.styled);
+    await propertiesManager.isPageSimulationEnabled.store(true);
 
-      final longText = List.generate(
-        80,
-        (index) => "Action line number $index goes here.",
-      ).join("\n\n");
-      final project = projectsManager.currentProject!;
-      await projectsManager.screenplayService.saveScreenplayText(
-        database: project.database,
-        screenplayId: project.primaryScreenplayId,
-        fountainText: longText,
-        snapshotReason: OcptSnapshotReason.manual,
-      );
+    final longText = List.generate(
+      80,
+      (index) => "Action line number $index goes here.",
+    ).join("\n\n");
+    final project = projectsManager.currentProject!;
+    await projectsManager.screenplayService.saveScreenplayText(
+      database: project.database,
+      screenplayId: project.primaryScreenplayId,
+      fountainText: longText,
+      snapshotReason: OcptSnapshotReason.manual,
+    );
 
-      await pumpEditorPage(tester);
-      await tester.pumpAndSettle();
+    await pumpEditorPage(tester);
+    await tester.pumpAndSettle();
 
-      expect(find.byType(OcptStyledScreenplayEditor), findsOneWidget);
+    expect(find.byType(OcptStyledScreenplayEditor), findsOneWidget);
 
-      // The styled editor's own scrollable (via `_pageScrollController`) must be the only
-      // `Scrollable` in the tree: no ancestor `Scrollable` should exist for a wheel scroll to
-      // leak into and move a sibling widget (the toolbar) instead.
-      expect(find.byType(Scrollable), findsOneWidget);
-      final scrollableState = tester.state<ScrollableState>(find.byType(Scrollable));
-      expect(scrollableState.position.pixels, 0);
+    // The styled editor's own scrollable (via `_pageScrollController`) must be the only
+    // `Scrollable` in the tree: no ancestor `Scrollable` should exist for a wheel scroll to
+    // leak into and move a sibling widget (the toolbar) instead.
+    expect(find.byType(Scrollable), findsOneWidget);
+    final scrollableState = tester.state<ScrollableState>(find.byType(Scrollable));
+    expect(scrollableState.position.pixels, 0);
 
-      final toolbarTopBefore = tester.getTopLeft(find.byType(OcptWorkspaceToolbar));
-      final editorCenter = tester.getCenter(find.byType(SuperEditor));
+    final toolbarTopBefore = tester.getTopLeft(find.byType(OcptWorkspaceToolbar));
+    final editorCenter = tester.getCenter(find.byType(SuperEditor));
 
-      final testPointer = TestPointer(1, PointerDeviceKind.mouse);
-      await tester.sendEventToBinding(testPointer.addPointer(location: editorCenter));
-      await tester.sendEventToBinding(testPointer.scroll(const Offset(0, 400)));
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 500));
+    final testPointer = TestPointer(1, PointerDeviceKind.mouse);
+    await tester.sendEventToBinding(testPointer.addPointer(location: editorCenter));
+    await tester.sendEventToBinding(testPointer.scroll(const Offset(0, 400)));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
 
-      // The scroll must have actually happened (otherwise the "toolbar didn't move" assertion
-      // below would be vacuously true).
-      expect(scrollableState.position.pixels, greaterThan(0));
+    // The scroll must have actually happened (otherwise the "toolbar didn't move" assertion
+    // below would be vacuously true).
+    expect(scrollableState.position.pixels, greaterThan(0));
 
-      final toolbarTopAfter = tester.getTopLeft(find.byType(OcptWorkspaceToolbar));
-      expect(toolbarTopAfter, toolbarTopBefore, reason: "toolbar must not move when the editor scrolls");
-    },
-  );
+    final toolbarTopAfter = tester.getTopLeft(find.byType(OcptWorkspaceToolbar));
+    expect(
+      toolbarTopAfter,
+      toolbarTopBefore,
+      reason: "toolbar must not move when the editor scrolls",
+    );
+  });
 
   testWidgets(
     "a previewed version is shown read-only: no editor, no save, no entry that would rewrite it",
@@ -1713,10 +1709,7 @@ void main() {
         await tester.pumpAndSettle();
 
         await tester.enterText(
-          find.descendant(
-            of: find.byType(OcptEditorSourceField),
-            matching: find.byType(TextField),
-          ),
+          find.descendant(of: find.byType(OcptEditorSourceField), matching: find.byType(TextField)),
           "MARIE enters.\n\nMARIE speaks.\n",
         );
         await tester.pumpAndSettle();
@@ -1908,7 +1901,9 @@ void main() {
       expect(nodeContaining("Monday").text.toPlainText(), "Smells like Monday.");
     });
 
-    testWidgets('Replace all goes through the confirm dialog, exactly like raw mode', (tester) async {
+    testWidgets('Replace all goes through the confirm dialog, exactly like raw mode', (
+      tester,
+    ) async {
       await propertiesManager.editorMode.store(OcptEditorMode.styled);
       await pumpEditorPage(tester);
       await tester.pumpAndSettle();

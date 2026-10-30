@@ -66,7 +66,14 @@ const NamedAttribution ocptTitlePageFieldAttribution = NamedAttribution("fountai
 /// the order `OcptEditorTitlePageDialog`'s `⋮ ▸ Title page…` fields already appear in
 /// (`editor_bloc.dart`'s `_titlePageEntriesFrom`), so editing the same screenplay through either
 /// front-end never reorders the block for no reason.
-const List<String> ocptTitlePageFieldKeys = ["Title", "Credit", "Author", "Draft date", "Contact", "Source"];
+const List<String> ocptTitlePageFieldKeys = [
+  "Title",
+  "Credit",
+  "Author",
+  "Draft date",
+  "Contact",
+  "Source",
+];
 
 /// The attribution marking an inline authoring note (`[[text]]`) for dimmed rendering; unlike
 /// [boldAttribution]/[italicsAttribution]/[underlineAttribution], a note's delimiters stay part of
@@ -185,7 +192,8 @@ class OcptWysiwygLineMapping {
 
   /// The 0-based source line the node at [nodeIndex] sits on, accounting for every preceding
   /// node's [ocptBlankLinesBeforeMetadataKey] metadata; [nodeIndex] is clamped to a valid index.
-  int lineOfNodeIndex(int nodeIndex) => _lineByNodeIndex[nodeIndex.clamp(0, _lineByNodeIndex.length - 1)];
+  int lineOfNodeIndex(int nodeIndex) =>
+      _lineByNodeIndex[nodeIndex.clamp(0, _lineByNodeIndex.length - 1)];
 
   /// The 0-based node index owning the source line containing character offset [charOffset] of
   /// this mapping's own source text, clamped to a valid line (out-of-range clamps to the text's
@@ -247,7 +255,8 @@ class OcptWysiwygCodec {
   /// Splits [text] into its source lines, normalizing `\r\n`/`\r` line endings to `\n` first (the
   /// same normalization `FountainParser.parse` applies), so folded blank-line counts and the
   /// resulting [OcptWysiwygLineMapping] agree with the rest of the editor.
-  static List<String> _splitLines(String text) => text.replaceAll("\r\n", "\n").replaceAll("\r", "\n").split("\n");
+  static List<String> _splitLines(String text) =>
+      text.replaceAll("\r\n", "\n").replaceAll("\r", "\n").split("\n");
 
   /// Decodes [text] into a fresh document: one `ParagraphNode` per non-blank source line, blank
   /// runs folded into [ocptBlankLinesBeforeMetadataKey] metadata (or, for a trailing run, into
@@ -336,7 +345,11 @@ class OcptWysiwygCodec {
     final titlePage = const FountainParser().parse(text).titlePage;
     final bodyText = titlePage == null
         ? text
-        : const FountainTitlePageWriter().apply(source: text, existingRange: titlePage.sourceRange, entries: const []);
+        : const FountainTitlePageWriter().apply(
+            source: text,
+            existingRange: titlePage.sourceRange,
+            entries: const [],
+          );
 
     final titlePageNodes = _titlePageNodesFrom(titlePage);
     final bodyDecoded = decode(bodyText);
@@ -445,7 +458,8 @@ class OcptWysiwygCodec {
     final nodes = document.map((node) => node as ParagraphNode).toList(growable: false);
 
     final types = [
-      for (final node in nodes) OcptFountainLineAttributions.typeOfAttributionValue(node.getMetadataValue("blockType")),
+      for (final node in nodes)
+        OcptFountainLineAttributions.typeOfAttributionValue(node.getMetadataValue("blockType")),
     ];
     final displayTextByNode = [
       for (var index = 0; index < nodes.length; index++)
@@ -464,7 +478,8 @@ class OcptWysiwygCodec {
     // kitchen_sink.fountain) must be preserved, not zeroed.
     for (var index = 1; index < nodes.length; index++) {
       final continuesDialogueGroup =
-          (types[index] == FountainLineType.dialogue || types[index] == FountainLineType.parenthetical) &&
+          (types[index] == FountainLineType.dialogue ||
+              types[index] == FountainLineType.parenthetical) &&
           _isDialogueGroupMember(types[index - 1]);
       if (continuesDialogueGroup) {
         blankLinesBeforeByNode[index] = 0;
@@ -483,13 +498,17 @@ class OcptWysiwygCodec {
       // serializes an empty node as a plain empty line instead.
       final displayText = displayTextByNode[index];
       final type = types[index];
-      if (displayText.isEmpty && type != FountainLineType.pageBreak && type != FountainLineType.centeredText) {
+      if (displayText.isEmpty &&
+          type != FountainLineType.pageBreak &&
+          type != FountainLineType.centeredText) {
         outputLines.add("");
         continue;
       }
 
       final hasNextNode = index + 1 < nodes.length;
-      final nextNodeBlankLines = hasNextNode ? blankLinesBeforeByNode[index + 1] : trailingBlankLines;
+      final nextNodeBlankLines = hasNextNode
+          ? blankLinesBeforeByNode[index + 1]
+          : trailingBlankLines;
       final nextRawLine = hasNextNode
           ? (nextNodeBlankLines > 0 ? "" : displayTextByNode[index + 1])
           : (trailingBlankLines > 0 ? "" : null);
@@ -534,7 +553,10 @@ class OcptWysiwygCodec {
   ///
   /// See [OcptWysiwygEncodeResult.titlePageNodeCount]/[OcptWysiwygEncodeResult
   /// .titlePagePrefixLength]'s own doc comments for what a caller needs them for.
-  static OcptWysiwygEncodeResult encodeWithTitlePage(Document document, {int trailingBlankLines = 0}) {
+  static OcptWysiwygEncodeResult encodeWithTitlePage(
+    Document document, {
+    int trailingBlankLines = 0,
+  }) {
     final allNodes = document.map((node) => node as ParagraphNode).toList(growable: false);
     final titlePageNodes = <ParagraphNode>[];
     final bodyNodes = <ParagraphNode>[];
@@ -566,7 +588,8 @@ class OcptWysiwygCodec {
   /// ([ocptTitlePageKeyMetadataKey] set) rather than an ordinary body line: every pass in this
   /// class that classifies, forces or uppercases a node's text (none of which has any meaning for
   /// a title-page field) checks this first and skips the node entirely when it's true.
-  static bool isTitlePageNode(ParagraphNode node) => node.getMetadataValue(ocptTitlePageKeyMetadataKey) is String;
+  static bool isTitlePageNode(ParagraphNode node) =>
+      node.getMetadataValue(ocptTitlePageKeyMetadataKey) is String;
 
   /// The title page entry for [key] (`Author` also matching a source written as `Authors`, per
   /// `FountainTitlePage.authors`'s own fallback), or null when [titlePage] is null or has no such
@@ -575,7 +598,9 @@ class OcptWysiwygCodec {
     if (titlePage == null) {
       return null;
     }
-    return key == "Author" ? (titlePage.entry("Author") ?? titlePage.entry("Authors")) : titlePage.entry(key);
+    return key == "Author"
+        ? (titlePage.entry("Author") ?? titlePage.entry("Authors"))
+        : titlePage.entry(key);
   }
 
   /// A placeholder source range for a title-page entry synthesized from live node text rather than
@@ -611,7 +636,10 @@ class OcptWysiwygCodec {
           ParagraphNode(
             id: Editor.createNodeId(),
             text: AttributedText(value),
-            metadata: {"blockType": ocptTitlePageFieldAttribution, ocptTitlePageKeyMetadataKey: key},
+            metadata: {
+              "blockType": ocptTitlePageFieldAttribution,
+              ocptTitlePageKeyMetadataKey: key,
+            },
           ),
         );
       }
@@ -624,7 +652,9 @@ class OcptWysiwygCodec {
   /// into [FountainTitlePageEntry] values, dropping a field whose every line is empty (the common
   /// case for most fields most of the time) so [FountainTitlePageWriter.apply] never writes a
   /// stray `Key:` line with nothing after it.
-  static List<FountainTitlePageEntry> _titlePageEntriesFromNodes(List<ParagraphNode> titlePageNodes) {
+  static List<FountainTitlePageEntry> _titlePageEntriesFromNodes(
+    List<ParagraphNode> titlePageNodes,
+  ) {
     final entries = <FountainTitlePageEntry>[];
     String? currentKey;
     var currentValues = <String>[];
@@ -632,10 +662,16 @@ class OcptWysiwygCodec {
     void flush() {
       final key = currentKey;
       if (key != null) {
-        final nonEmptyValues = currentValues.where((value) => value.trim().isNotEmpty).toList(growable: false);
+        final nonEmptyValues = currentValues
+            .where((value) => value.trim().isNotEmpty)
+            .toList(growable: false);
         if (nonEmptyValues.isNotEmpty) {
           entries.add(
-            FountainTitlePageEntry(key: key, values: nonEmptyValues, sourceRange: _placeholderTitlePageEntryRange),
+            FountainTitlePageEntry(
+              key: key,
+              values: nonEmptyValues,
+              sourceRange: _placeholderTitlePageEntryRange,
+            ),
           );
         }
       }
@@ -689,7 +725,10 @@ class OcptWysiwygCodec {
   /// a single node clips both ends of that one node). A non-[ParagraphNode] inside the span (none
   /// exist in this model today, but [Document.getNodesInside]'s contract allows any [DocumentNode]
   /// type) is skipped rather than crashing, since it carries nothing this codec can serialize.
-  static List<ParagraphNode> _clippedSelectionNodes(Document document, DocumentSelection selection) {
+  static List<ParagraphNode> _clippedSelectionNodes(
+    Document document,
+    DocumentSelection selection,
+  ) {
     final range = selection.normalize(document);
     final startPosition = range.start.nodePosition;
     final endPosition = range.end.nodePosition;
@@ -697,7 +736,10 @@ class OcptWysiwygCodec {
       return const [];
     }
 
-    final nodes = document.getNodesInside(range.start, range.end).whereType<ParagraphNode>().toList(growable: false);
+    final nodes = document
+        .getNodesInside(range.start, range.end)
+        .whereType<ParagraphNode>()
+        .toList(growable: false);
     if (nodes.isEmpty) {
       return const [];
     }
@@ -716,7 +758,9 @@ class OcptWysiwygCodec {
   /// text when [endOffset] is null), attributions preserved; every other field, including
   /// metadata, is left untouched.
   static ParagraphNode _clipNode(ParagraphNode node, {required int startOffset, int? endOffset}) {
-    final clippedText = endOffset != null ? node.text.copyText(startOffset, endOffset) : node.text.copyText(startOffset);
+    final clippedText = endOffset != null
+        ? node.text.copyText(startOffset, endOffset)
+        : node.text.copyText(startOffset);
     return node.copyParagraphWith(text: clippedText);
   }
 
@@ -757,7 +801,8 @@ class OcptWysiwygCodec {
         .where((node) => !isTitlePageNode(node))
         .toList(growable: false);
     final types = [
-      for (final node in nodes) OcptFountainLineAttributions.typeOfAttributionValue(node.getMetadataValue("blockType")),
+      for (final node in nodes)
+        OcptFountainLineAttributions.typeOfAttributionValue(node.getMetadataValue("blockType")),
     ];
 
     // Reconstruct the virtual line list every node's context depends on: blank runs are real
@@ -785,13 +830,18 @@ class OcptWysiwygCodec {
         continue;
       }
 
-      final expectedAttribution = OcptFountainLineAttributions.attributionOf(classifiedTypes[lineIndexOfNode[index]]);
+      final expectedAttribution = OcptFountainLineAttributions.attributionOf(
+        classifiedTypes[lineIndexOfNode[index]],
+      );
       final currentBlockType = node.getMetadataValue("blockType");
-      if (currentBlockType is NamedAttribution && currentBlockType.name == expectedAttribution.name) {
+      if (currentBlockType is NamedAttribution &&
+          currentBlockType.name == expectedAttribution.name) {
         continue;
       }
 
-      requests.add(ChangeParagraphBlockTypeRequest(nodeId: node.id, blockType: expectedAttribution));
+      requests.add(
+        ChangeParagraphBlockTypeRequest(nodeId: node.id, blockType: expectedAttribution),
+      );
     }
 
     return requests;
@@ -815,7 +865,9 @@ class OcptWysiwygCodec {
         continue;
       }
 
-      final type = OcptFountainLineAttributions.typeOfAttributionValue(node.getMetadataValue("blockType"));
+      final type = OcptFountainLineAttributions.typeOfAttributionValue(
+        node.getMetadataValue("blockType"),
+      );
       if (type != FountainLineType.sceneHeading) {
         continue;
       }
@@ -827,9 +879,14 @@ class OcptWysiwygCodec {
       }
 
       final strippedLength = plainText.substring(0, match.start).trimRight().length;
-      requests.add(OcptReplaceNodeTextRequest(nodeId: node.id, text: node.text.copyText(0, strippedLength)));
       requests.add(
-        OcptChangeNodeMetadataRequest(nodeId: node.id, metadata: {ocptSceneNumberMetadataKey: match.group(1)}),
+        OcptReplaceNodeTextRequest(nodeId: node.id, text: node.text.copyText(0, strippedLength)),
+      );
+      requests.add(
+        OcptChangeNodeMetadataRequest(
+          nodeId: node.id,
+          metadata: {ocptSceneNumberMetadataKey: match.group(1)},
+        ),
       );
     }
 
@@ -856,7 +913,9 @@ class OcptWysiwygCodec {
         continue;
       }
 
-      final blockType = OcptFountainLineAttributions.typeOfAttributionValue(node.getMetadataValue("blockType"));
+      final blockType = OcptFountainLineAttributions.typeOfAttributionValue(
+        node.getMetadataValue("blockType"),
+      );
       if (!_uppercasedTypes.contains(blockType)) {
         continue;
       }
@@ -867,7 +926,9 @@ class OcptWysiwygCodec {
         continue;
       }
 
-      requests.add(OcptReplaceNodeTextRequest(nodeId: node.id, text: _uppercased(node.text, upperText)));
+      requests.add(
+        OcptReplaceNodeTextRequest(nodeId: node.id, text: _uppercased(node.text, upperText)),
+      );
     }
 
     return requests;
@@ -893,11 +954,12 @@ class OcptWysiwygCodec {
 
       final plainText = node.text.toPlainText();
       final desiredRanges = _noteRanges(plainText);
-      final currentRanges = node.text
-          .getAttributionSpans({ocptFountainNoteAttribution})
-          .map((span) => (span.start, span.end + 1))
-          .toList(growable: false)
-        ..sort((a, b) => a.$1.compareTo(b.$1));
+      final currentRanges =
+          node.text
+              .getAttributionSpans({ocptFountainNoteAttribution})
+              .map((span) => (span.start, span.end + 1))
+              .toList(growable: false)
+            ..sort((a, b) => a.$1.compareTo(b.$1));
 
       if (_sameRanges(currentRanges, desiredRanges)) {
         continue;
@@ -907,8 +969,14 @@ class OcptWysiwygCodec {
         requests.add(
           RemoveTextAttributionsRequest(
             documentRange: DocumentRange(
-              start: DocumentPosition(nodeId: node.id, nodePosition: const TextNodePosition(offset: 0)),
-              end: DocumentPosition(nodeId: node.id, nodePosition: TextNodePosition(offset: plainText.length)),
+              start: DocumentPosition(
+                nodeId: node.id,
+                nodePosition: const TextNodePosition(offset: 0),
+              ),
+              end: DocumentPosition(
+                nodeId: node.id,
+                nodePosition: TextNodePosition(offset: plainText.length),
+              ),
             ),
             attributions: {ocptFountainNoteAttribution},
           ),
@@ -919,8 +987,14 @@ class OcptWysiwygCodec {
         requests.add(
           AddTextAttributionsRequest(
             documentRange: DocumentRange(
-              start: DocumentPosition(nodeId: node.id, nodePosition: TextNodePosition(offset: start)),
-              end: DocumentPosition(nodeId: node.id, nodePosition: TextNodePosition(offset: end)),
+              start: DocumentPosition(
+                nodeId: node.id,
+                nodePosition: TextNodePosition(offset: start),
+              ),
+              end: DocumentPosition(
+                nodeId: node.id,
+                nodePosition: TextNodePosition(offset: end),
+              ),
             ),
             attributions: {ocptFountainNoteAttribution},
           ),
@@ -969,7 +1043,9 @@ class OcptWysiwygCodec {
   /// [FountainLineClassifier]'s own equivalent private rule), used by [encode] to force
   /// [ocptBlankLinesBeforeMetadataKey] to 0 between two directly-adjacent members.
   static bool _isDialogueGroupMember(FountainLineType type) =>
-      type == FountainLineType.character || type == FountainLineType.parenthetical || type == FountainLineType.dialogue;
+      type == FountainLineType.character ||
+      type == FountainLineType.parenthetical ||
+      type == FountainLineType.dialogue;
 
   /// Reads a node's [ocptBlankLinesBeforeMetadataKey] metadata, defaulting to 0 for a node that
   /// never had it set (for example one freshly split off by a default super_editor command).
@@ -979,7 +1055,8 @@ class OcptWysiwygCodec {
   }
 
   /// Reads a node's [ocptHadForcingMarkerMetadataKey] metadata, defaulting to false.
-  static bool _readHadForcingMarker(ParagraphNode node) => node.getMetadataValue(ocptHadForcingMarkerMetadataKey) == true;
+  static bool _readHadForcingMarker(ParagraphNode node) =>
+      node.getMetadataValue(ocptHadForcingMarkerMetadataKey) == true;
 
   /// Reads a node's [ocptSceneNumberMetadataKey] metadata, or null if it isn't set.
   static String? _readSceneNumber(ParagraphNode node) {
@@ -1002,7 +1079,8 @@ class OcptWysiwygCodec {
   }
 
   /// Reads a node's [ocptTypeLockedMetadataKey] metadata, defaulting to false.
-  static bool _readTypeLocked(ParagraphNode node) => node.getMetadataValue(ocptTypeLockedMetadataKey) == true;
+  static bool _readTypeLocked(ParagraphNode node) =>
+      node.getMetadataValue(ocptTypeLockedMetadataKey) == true;
 
   /// Whether [node]'s stored `blockType` is pinned by the user rather than up for
   /// auto-detection, per [reclassifyRequests]'s doc comment: either a manual dropdown/Tab choice
@@ -1010,7 +1088,8 @@ class OcptWysiwygCodec {
   /// ([ocptHadForcingMarkerMetadataKey]) — the *serialized* form of that very same "the user fixed
   /// this type on purpose" intent, already honoured by [encode] and, until this method existed,
   /// silently ignored by [reclassifyRequests].
-  static bool _isPinnedNode(ParagraphNode node) => _readTypeLocked(node) || _readHadForcingMarker(node);
+  static bool _isPinnedNode(ParagraphNode node) =>
+      _readTypeLocked(node) || _readHadForcingMarker(node);
 
   /// The virtual source line [reclassifyRequests] feeds the classifier for [node], currently
   /// stored as [type]. A pinned node (see [_isPinnedNode]) gets its marker re-emitted through

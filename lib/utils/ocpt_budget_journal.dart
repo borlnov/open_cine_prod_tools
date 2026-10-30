@@ -32,15 +32,17 @@ bool ocptBudgetEntryIsOffLineDebit(OcptBudgetEntry entry) =>
 /// See [ocptBudgetEntryCreditCentsOf]: both read the very same basis and rate, off the very same
 /// entry, so **the two answer null together** — an entry never has one readable side and one
 /// unreadable one.
-int? ocptBudgetEntryDebitCentsOf(OcptBudgetEntry entry, {required int? projectVatRateBasisPoints}) =>
-    ocptIncludingTaxAmountCentsOf(
-      OcptMoney(
-        amountCents: entry.debitCents,
-        isTaxInclusive: entry.isTaxInclusive,
-        vatRateBasisPoints: entry.vatRateBasisPoints,
-      ),
-      projectVatRateBasisPoints: projectVatRateBasisPoints,
-    );
+int? ocptBudgetEntryDebitCentsOf(
+  OcptBudgetEntry entry, {
+  required int? projectVatRateBasisPoints,
+}) => ocptIncludingTaxAmountCentsOf(
+  OcptMoney(
+    amountCents: entry.debitCents,
+    isTaxInclusive: entry.isTaxInclusive,
+    vatRateBasisPoints: entry.vatRateBasisPoints,
+  ),
+  projectVatRateBasisPoints: projectVatRateBasisPoints,
+);
 
 /// [entry]'s own [OcptBudgetEntry.creditCents], read **tax-inclusive**, given the project's own
 /// [projectVatRateBasisPoints] — or null when that reading is impossible.
@@ -49,15 +51,17 @@ int? ocptBudgetEntryDebitCentsOf(OcptBudgetEntry entry, {required int? projectVa
 /// [OcptBudgetEntry.debitCents] — see that function's own doc comment for the argument and for why
 /// both answer null together, since an entry carries one basis and one rate for both of its
 /// figures.
-int? ocptBudgetEntryCreditCentsOf(OcptBudgetEntry entry, {required int? projectVatRateBasisPoints}) =>
-    ocptIncludingTaxAmountCentsOf(
-      OcptMoney(
-        amountCents: entry.creditCents,
-        isTaxInclusive: entry.isTaxInclusive,
-        vatRateBasisPoints: entry.vatRateBasisPoints,
-      ),
-      projectVatRateBasisPoints: projectVatRateBasisPoints,
-    );
+int? ocptBudgetEntryCreditCentsOf(
+  OcptBudgetEntry entry, {
+  required int? projectVatRateBasisPoints,
+}) => ocptIncludingTaxAmountCentsOf(
+  OcptMoney(
+    amountCents: entry.creditCents,
+    isTaxInclusive: entry.isTaxInclusive,
+    vatRateBasisPoints: entry.vatRateBasisPoints,
+  ),
+  projectVatRateBasisPoints: projectVatRateBasisPoints,
+);
 
 /// The cash journal's own totals: [debitCents] and [creditCents] summed **row by row, then summed**
 /// (`docs/architecture/budget.md`'s own law), each already read tax-inclusive, paired with how many
@@ -121,7 +125,10 @@ OcptBudgetCashTotals ocptBudgetCashTotalsOf(
   var coveredEntryCount = 0;
 
   for (final entry in entries) {
-    final debit = ocptBudgetEntryDebitCentsOf(entry, projectVatRateBasisPoints: projectVatRateBasisPoints);
+    final debit = ocptBudgetEntryDebitCentsOf(
+      entry,
+      projectVatRateBasisPoints: projectVatRateBasisPoints,
+    );
     final credit = ocptBudgetEntryCreditCentsOf(
       entry,
       projectVatRateBasisPoints: projectVatRateBasisPoints,
@@ -203,7 +210,10 @@ List<OcptBudgetJournalRow> ocptBudgetJournalRowsOf(
   final rows = <OcptBudgetJournalRow>[];
 
   for (final entry in entries) {
-    final debit = ocptBudgetEntryDebitCentsOf(entry, projectVatRateBasisPoints: projectVatRateBasisPoints);
+    final debit = ocptBudgetEntryDebitCentsOf(
+      entry,
+      projectVatRateBasisPoints: projectVatRateBasisPoints,
+    );
     final credit = ocptBudgetEntryCreditCentsOf(
       entry,
       projectVatRateBasisPoints: projectVatRateBasisPoints,
@@ -313,7 +323,10 @@ OcptBudgetCoveredTotal ocptBudgetOffQuotePaidTotalOf(
   var coveredLineCount = 0;
 
   for (final entry in offQuoteDebits) {
-    final debit = ocptBudgetEntryDebitCentsOf(entry, projectVatRateBasisPoints: projectVatRateBasisPoints);
+    final debit = ocptBudgetEntryDebitCentsOf(
+      entry,
+      projectVatRateBasisPoints: projectVatRateBasisPoints,
+    );
     if (debit == null) {
       continue;
     }
@@ -341,7 +354,10 @@ OcptBudgetCoveredTotal _ocptBudgetPaidTotalOf(
   var coveredEntryCount = 0;
 
   for (final entry in entries) {
-    final debit = ocptBudgetEntryDebitCentsOf(entry, projectVatRateBasisPoints: projectVatRateBasisPoints);
+    final debit = ocptBudgetEntryDebitCentsOf(
+      entry,
+      projectVatRateBasisPoints: projectVatRateBasisPoints,
+    );
     final credit = ocptBudgetEntryCreditCentsOf(
       entry,
       projectVatRateBasisPoints: projectVatRateBasisPoints,

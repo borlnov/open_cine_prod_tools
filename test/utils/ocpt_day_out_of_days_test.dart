@@ -180,10 +180,7 @@ void main() {
 
     test("days convoking nobody read as empty too", () {
       final table = ocptComputeDayOutOfDays(
-        days: [
-          _day(1, {}),
-          _day(2, {}),
-        ],
+        days: [_day(1, {}), _day(2, {})],
         roleIds: const ["role-1"],
       );
 

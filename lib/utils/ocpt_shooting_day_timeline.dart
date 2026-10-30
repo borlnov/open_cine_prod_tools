@@ -81,7 +81,11 @@ class OcptShootingTimelineEntry {
 /// fine when it isn't; this is what lets the day view show the block in red instead.
 class OcptTimelineOverrun {
   /// Builds an over-run record.
-  const OcptTimelineOverrun({required this.blockId, required this.reachedMinute, required this.anchorMinute});
+  const OcptTimelineOverrun({
+    required this.blockId,
+    required this.reachedMinute,
+    required this.anchorMinute,
+  });
 
   /// The [OcptShootingTimelineBlock.id] whose anchor could not be honoured.
   final String blockId;
@@ -240,21 +244,33 @@ OcptShootingSlotTimeline ocptComputeSlotTimeline({
     if (anchorMinute != null) {
       if (current > anchorMinute) {
         overruns.add(
-          OcptTimelineOverrun(blockId: block.id, reachedMinute: current, anchorMinute: anchorMinute),
+          OcptTimelineOverrun(
+            blockId: block.id,
+            reachedMinute: current,
+            anchorMinute: anchorMinute,
+          ),
         );
       }
       current = anchorMinute; // Rule 3, unconditionally — including right after the line above.
     }
 
-    final duration = block.durationMinutes ?? block.fallbackDurationMinutes ?? defaultDurationMinutes;
+    final duration =
+        block.durationMinutes ?? block.fallbackDurationMinutes ?? defaultDurationMinutes;
     if (duration < 0) {
-      throw ArgumentError("Block '${block.id}' resolves to a negative duration ($duration minutes)");
+      throw ArgumentError(
+        "Block '${block.id}' resolves to a negative duration ($duration minutes)",
+      );
     }
 
     final start = current;
     final end = start + duration;
     entries.add(
-      OcptShootingTimelineEntry(blockId: block.id, startMinute: start, endMinute: end, durationMinutes: duration),
+      OcptShootingTimelineEntry(
+        blockId: block.id,
+        startMinute: start,
+        endMinute: end,
+        durationMinutes: duration,
+      ),
     );
     current = end;
   }
@@ -442,8 +458,7 @@ OcptShootingDayTimelines ocptComputeShootingDayTimelines({
 
     var total = 0;
     for (final block in slot.blocks) {
-      total +=
-          block.durationMinutes ?? block.fallbackDurationMinutes ?? defaultDurationMinutes;
+      total += block.durationMinutes ?? block.fallbackDurationMinutes ?? defaultDurationMinutes;
     }
 
     return anchoredHour - total;
@@ -460,9 +475,7 @@ OcptShootingDayTimelines ocptComputeShootingDayTimelines({
       // Rule 6: the walk came back to a slot it is still resolving. Report the circle it closed,
       // then break it by pinning this slot's start to the fallback hour — the frames still on the
       // stack below check `bySlotId` again before placing anything of their own.
-      anchorCycles.add(
-        OcptTimelineAnchorCycle(slotIds: path.sublist(path.indexOf(slot.id))),
-      );
+      anchorCycles.add(OcptTimelineAnchorCycle(slotIds: path.sublist(path.indexOf(slot.id))));
       return place(slot, startMinute: fallbackStartMinute(), fixedEndMinute: null);
     }
 

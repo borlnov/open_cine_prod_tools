@@ -45,7 +45,10 @@ class OcptRoleAvatar extends StatelessWidget {
     return Container(
       width: radius * 2,
       height: radius * 2,
-      decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: outline)),
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        border: Border.all(color: outline),
+      ),
       child: Icon(Icons.person_outline, size: radius * _iconScale, color: outline),
     );
   }

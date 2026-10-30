@@ -142,10 +142,7 @@ class OcptProjectsManager extends AbsWithLifeCycle {
   // value the CI passes deliberately (`--dart-define=APP_VERSION=...`), with a documented,
   // version-controlled default for every build that doesn't pass one.
   // ignore: do_not_use_environment
-  static const _appVersion = String.fromEnvironment(
-    "APP_VERSION",
-    defaultValue: "0.3.0",
-  );
+  static const _appVersion = String.fromEnvironment("APP_VERSION", defaultValue: "0.3.0");
 
   /// The running build's own app version — see [_appVersion]'s own doc comment for where it comes
   /// from and why it defaults the way it does.
@@ -317,9 +314,7 @@ class OcptProjectsManager extends AbsWithLifeCycle {
          floorPlanService: _buildFloorPlanService(propertiesManager),
          deviceId: _resolveDeviceId(propertiesManager),
        ),
-       shotCoverageService = OcptShotCoverageService(
-         deviceId: _resolveDeviceId(propertiesManager),
-       ),
+       shotCoverageService = OcptShotCoverageService(deviceId: _resolveDeviceId(propertiesManager)),
        projectVersionsService = OcptProjectVersionsService(
          codec: const OcptProjectVersionCodec(),
          screenplayService: OcptScreenplayService(
@@ -1081,8 +1076,7 @@ class OcptProjectsManager extends AbsWithLifeCycle {
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
   Future<void> saveCurrentProjectSnackPriceCents(int? cents) async {
     final project = currentProject;
-    if (project == null ||
-        project.database.refusesUserWrite("saveCurrentProjectSnackPriceCents")) {
+    if (project == null || project.database.refusesUserWrite("saveCurrentProjectSnackPriceCents")) {
       return;
     }
 

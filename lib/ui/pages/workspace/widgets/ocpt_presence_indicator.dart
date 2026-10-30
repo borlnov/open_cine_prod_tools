@@ -131,7 +131,8 @@ class _OcptPresenceCluster extends StatelessWidget {
         : participants.length;
     final overflowCount = participants.length - visibleCount;
     final step = _clusterAvatarSize - _clusterOverlap;
-    final clusterWidth = _clusterAvatarSize + (visibleCount - 1 + (overflowCount > 0 ? 1 : 0)) * step;
+    final clusterWidth =
+        _clusterAvatarSize + (visibleCount - 1 + (overflowCount > 0 ? 1 : 0)) * step;
 
     return MenuAnchor(
       menuChildren: [_OcptPresencePopover(roster: roster)],

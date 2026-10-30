@@ -148,26 +148,22 @@ void main() {
     },
   );
 
-  testWidgets(
-    'a spelling range starting past the current text end is dropped the same way',
-    (tester) async {
-      final context = await pumpContext(tester);
-      const text = 'Short text.';
+  testWidgets('a spelling range starting past the current text end is dropped the same way', (
+    tester,
+  ) async {
+    final context = await pumpContext(tester);
+    const text = 'Short text.';
 
-      final controller = OcptEditorSearchTextController(text: text);
-      controller.updateSpellCheckRanges([const SpellRange(text.length + 5, text.length + 10)]);
+    final controller = OcptEditorSearchTextController(text: text);
+    controller.updateSpellCheckRanges([const SpellRange(text.length + 5, text.length + 10)]);
 
-      expect(
-        () => controller.buildTextSpan(context: context, withComposing: false),
-        returnsNormally,
-      );
+    expect(() => controller.buildTextSpan(context: context, withComposing: false), returnsNormally);
 
-      final span = controller.buildTextSpan(context: context, withComposing: false);
-      expect(_anySpanIsUnderlined(span), isFalse);
+    final span = controller.buildTextSpan(context: context, withComposing: false);
+    expect(_anySpanIsUnderlined(span), isFalse);
 
-      controller.dispose();
-    },
-  );
+    controller.dispose();
+  });
 
   test('updateSpellCheckRanges is a no-op, and notifies no listener, when given the ranges '
       'already held', () {

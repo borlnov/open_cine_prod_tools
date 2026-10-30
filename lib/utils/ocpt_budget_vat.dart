@@ -82,8 +82,7 @@ int? ocptExcludingTaxAmountCentsOf(OcptMoney money, {required int? projectVatRat
     return null;
   }
 
-  return (money.amountCents * _ocptBasisPointsPerWhole / (_ocptBasisPointsPerWhole + rate))
-      .round();
+  return (money.amountCents * _ocptBasisPointsPerWhole / (_ocptBasisPointsPerWhole + rate)).round();
 }
 
 /// [money]'s amount **including** tax, in cents, given the project's own
@@ -107,8 +106,7 @@ int? ocptIncludingTaxAmountCentsOf(OcptMoney money, {required int? projectVatRat
     return null;
   }
 
-  return (money.amountCents * (_ocptBasisPointsPerWhole + rate) / _ocptBasisPointsPerWhole)
-      .round();
+  return (money.amountCents * (_ocptBasisPointsPerWhole + rate) / _ocptBasisPointsPerWhole).round();
 }
 
 /// The VAT [money] carries, in cents, given the project's own [projectVatRateBasisPoints] — the
@@ -174,7 +172,9 @@ final RegExp _ocptTrailingZeroes = RegExp(r"0+$");
 /// copyright assignment carry no VAT — and collapsing it into null would say "nobody has recorded
 /// a rate" instead, which this file's whole arithmetic treats as a different fact.
 int? ocptVatRateBasisPointsOf(String text) {
-  final normalized = text.replaceAll(_ocptSpaces, "").replaceAll(_ocptDecimalComma, _ocptDecimalPoint);
+  final normalized = text
+      .replaceAll(_ocptSpaces, "")
+      .replaceAll(_ocptDecimalComma, _ocptDecimalPoint);
   if (normalized.isEmpty) {
     return null;
   }

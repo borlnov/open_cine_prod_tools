@@ -62,48 +62,49 @@ OcptBudgetShare _existingShare({
 );
 
 /// A minimal person, the few fields these tests read, everything else neutral.
-OcptPerson _person({required String id, String firstName = "Alice", String lastName = "Martin"}) => OcptPerson(
-  id: id,
-  firstName: firstName,
-  lastName: lastName,
-  email: "",
-  phone: "",
-  addressLine1: "",
-  addressLine2: "",
-  postalCode: "",
-  city: "",
-  region: "",
-  country: "",
-  colorIndex: 0,
-  birthDate: null,
-  minorNotes: "",
-  maxDailyPresenceMinutes: null,
-  isTransportAutonomous: null,
-  accommodationNotes: "",
-  travelNotes: "",
-  dietaryNotes: "",
-  allergies: "",
-  measurementHeight: "",
-  measurementChest: "",
-  measurementWaist: "",
-  measurementHips: "",
-  sizeTop: "",
-  sizeBottom: "",
-  sizeShoes: "",
-  hmcNotes: "",
-  imageRightsStatus: OcptImageRightsStatus.notApplicable,
-  imageRightsDate: null,
-  imageRightsAssetId: null,
-  imageRightsDocument: null,
-  photoAssetId: null,
-  photo: null,
-  notes: "",
-  commuteKmMilli: null,
-  mileageRateId: null,
-  positions: const [],
-  skills: const [],
-  unavailabilities: const [],
-);
+OcptPerson _person({required String id, String firstName = "Alice", String lastName = "Martin"}) =>
+    OcptPerson(
+      id: id,
+      firstName: firstName,
+      lastName: lastName,
+      email: "",
+      phone: "",
+      addressLine1: "",
+      addressLine2: "",
+      postalCode: "",
+      city: "",
+      region: "",
+      country: "",
+      colorIndex: 0,
+      birthDate: null,
+      minorNotes: "",
+      maxDailyPresenceMinutes: null,
+      isTransportAutonomous: null,
+      accommodationNotes: "",
+      travelNotes: "",
+      dietaryNotes: "",
+      allergies: "",
+      measurementHeight: "",
+      measurementChest: "",
+      measurementWaist: "",
+      measurementHips: "",
+      sizeTop: "",
+      sizeBottom: "",
+      sizeShoes: "",
+      hmcNotes: "",
+      imageRightsStatus: OcptImageRightsStatus.notApplicable,
+      imageRightsDate: null,
+      imageRightsAssetId: null,
+      imageRightsDocument: null,
+      photoAssetId: null,
+      photo: null,
+      notes: "",
+      commuteKmMilli: null,
+      mileageRateId: null,
+      positions: const [],
+      skills: const [],
+      unavailabilities: const [],
+    );
 
 void main() {
   late _RecordingRouterManager routerManager;
@@ -187,12 +188,19 @@ void main() {
       reinvestPermille: 250,
       notes: "Agreed in the co-production contract",
     );
-    final tr = await pumpDialog(tester, existing: existing, people: [_person(id: "p1")]);
+    final tr = await pumpDialog(
+      tester,
+      existing: existing,
+      people: [_person(id: "p1")],
+    );
 
     expect(find.widgetWithText(TextFormField, "Production"), findsOneWidget);
     expect(find.widgetWithText(TextFormField, "40"), findsOneWidget);
     expect(find.widgetWithText(TextFormField, "25"), findsOneWidget);
-    expect(find.widgetWithText(TextFormField, "Agreed in the co-production contract"), findsOneWidget);
+    expect(
+      find.widgetWithText(TextFormField, "Agreed in the co-production contract"),
+      findsOneWidget,
+    );
 
     await tester.tap(find.text(tr.budgetEntryDialogConfirmAction));
     await tester.pumpAndSettle();

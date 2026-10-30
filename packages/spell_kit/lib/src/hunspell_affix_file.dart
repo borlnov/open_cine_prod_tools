@@ -21,10 +21,7 @@ enum HunspellCompoundRuleQuantifier {
 /// piece must carry, and how many consecutive pieces may carry it.
 class HunspellCompoundRuleElement {
   /// Creates a [HunspellCompoundRuleElement].
-  const HunspellCompoundRuleElement({
-    required this.flag,
-    required this.quantifier,
-  });
+  const HunspellCompoundRuleElement({required this.flag, required this.quantifier});
 
   /// The flag a compound piece must carry to satisfy this element.
   final String flag;
@@ -122,12 +119,10 @@ class _HunspellConditionAtom {
 
   /// Creates an atom matching membership of [members] (or its complement,
   /// if [negated]).
-  const _HunspellConditionAtom.charClass({
-    required Set<String> members,
-    required bool negated,
-  }) : _literal = null,
-       _members = members,
-       _negated = negated;
+  const _HunspellConditionAtom.charClass({required Set<String> members, required bool negated})
+    : _literal = null,
+      _members = members,
+      _negated = negated;
 
   /// The literal character this atom matches, or `null` for a class atom.
   final String? _literal;
@@ -366,9 +361,7 @@ class HunspellAffixFile {
 
       final spaceIndex = line.indexOf(RegExp(r'\s'));
       final keyword = spaceIndex == -1 ? line : line.substring(0, spaceIndex);
-      final value = spaceIndex == -1
-          ? ''
-          : line.substring(spaceIndex + 1).trim();
+      final value = spaceIndex == -1 ? '' : line.substring(spaceIndex + 1).trim();
 
       switch (keyword) {
         case 'FLAG':
@@ -378,10 +371,7 @@ class HunspellAffixFile {
         case 'WORDCHARS':
           wordChars = value;
         case 'MAP':
-          pendingCounted = _PendingCountedBlock(
-            remaining: int.parse(value),
-            onLine: mapGroups.add,
-          );
+          pendingCounted = _PendingCountedBlock(remaining: int.parse(value), onLine: mapGroups.add);
         case 'REP':
           pendingCounted = _PendingCountedBlock(
             remaining: int.parse(value),
@@ -401,10 +391,7 @@ class HunspellAffixFile {
           breakDeclared = true;
           final count = int.parse(value);
           if (count > 0) {
-            pendingCounted = _PendingCountedBlock(
-              remaining: count,
-              onLine: breakPatternLines.add,
-            );
+            pendingCounted = _PendingCountedBlock(remaining: count, onLine: breakPatternLines.add);
           }
         case 'COMPOUNDRULE':
           final count = int.parse(value);
@@ -704,10 +691,7 @@ HunspellRepRule _parseRepLine(String line) {
 /// [HunspellConvRule].
 HunspellConvRule _parseConvLine(String line) {
   final tokens = line.split(RegExp(r'\s+'));
-  return HunspellConvRule(
-    from: tokens[0],
-    to: tokens.length > 1 ? tokens[1] : '',
-  );
+  return HunspellConvRule(from: tokens[0], to: tokens.length > 1 ? tokens[1] : '');
 }
 
 /// Parses one `BREAK` data line into a [HunspellBreakPattern], splitting
@@ -722,11 +706,7 @@ HunspellBreakPattern _parseBreakPattern(String raw) {
   if (anchoredEnd) {
     text = text.substring(0, text.length - 1);
   }
-  return HunspellBreakPattern(
-    text: text,
-    anchoredStart: anchoredStart,
-    anchoredEnd: anchoredEnd,
-  );
+  return HunspellBreakPattern(text: text, anchoredStart: anchoredStart, anchoredEnd: anchoredEnd);
 }
 
 /// Parses one `COMPOUNDRULE` pattern (for example `n*1t`) into a

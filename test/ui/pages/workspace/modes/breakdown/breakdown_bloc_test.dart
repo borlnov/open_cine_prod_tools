@@ -267,9 +267,9 @@ void main() {
   Future<({String sceneId, String elementId})> writeTaggedElement() async {
     await writeScreenplay("INT. HOUSE - DAY\n\nA lamp sits on the desk.\n");
     final project = projectsManager.currentProject!;
-    final sceneId = (await (project.database.select(project.database.ocptScenesTable)).get())
-        .single
-        .id;
+    final sceneId = (await (project.database.select(
+      project.database.ocptScenesTable,
+    )).get()).single.id;
 
     final elementId = await projectsManager.elementsService.createElement(
       database: project.database,
@@ -323,19 +323,22 @@ void main() {
     return bloc.stream.firstWhere(predicate).timeout(const Duration(seconds: 5));
   }
 
-  test("loads the project's title and an empty snapshot when the screenplay has no scene", () async {
-    final bloc = buildBloc();
-    final state = await waitForState(bloc, (state) => !state.isLoading);
+  test(
+    "loads the project's title and an empty snapshot when the screenplay has no scene",
+    () async {
+      final bloc = buildBloc();
+      final state = await waitForState(bloc, (state) => !state.isLoading);
 
-    expect(state.title, "My Movie");
-    expect(state.scenes, isEmpty);
-    expect(state.taggedTargetCount, 0);
-    expect(state.usedCategoryCount, 0);
-    expect(state.toFindCount, 0);
-    expect(state.selectedSceneId, isNull);
+      expect(state.title, "My Movie");
+      expect(state.scenes, isEmpty);
+      expect(state.taggedTargetCount, 0);
+      expect(state.usedCategoryCount, 0);
+      expect(state.toFindCount, 0);
+      expect(state.selectedSceneId, isNull);
 
-    await bloc.close();
-  });
+      await bloc.close();
+    },
+  );
 
   test("loads every scene of the screenplay, in source order", () async {
     await writeScreenplay(
@@ -352,57 +355,54 @@ void main() {
     await bloc.close();
   });
 
-  test(
-    "constructed with a second episode selected, reads and writes that episode rather than the "
-    "primary screenplay",
-    () async {
-      await writeScreenplay("INT. PRIMARY - DAY\n\nAction one.\n");
-      final project = projectsManager.currentProject!;
-      final secondEpisodeId = await projectsManager.screenplayService.createEpisode(
-        database: project.database,
-      );
-      await projectsManager.screenplayService.saveScreenplayText(
-        database: project.database,
-        screenplayId: secondEpisodeId!,
-        fountainText: "INT. SECOND EPISODE - NIGHT\n\nAction two.\n",
-        snapshotReason: OcptSnapshotReason.manual,
-      );
+  test("constructed with a second episode selected, reads and writes that episode rather than the "
+      "primary screenplay", () async {
+    await writeScreenplay("INT. PRIMARY - DAY\n\nAction one.\n");
+    final project = projectsManager.currentProject!;
+    final secondEpisodeId = await projectsManager.screenplayService.createEpisode(
+      database: project.database,
+    );
+    await projectsManager.screenplayService.saveScreenplayText(
+      database: project.database,
+      screenplayId: secondEpisodeId!,
+      fountainText: "INT. SECOND EPISODE - NIGHT\n\nAction two.\n",
+      snapshotReason: OcptSnapshotReason.manual,
+    );
 
-      final bloc = buildBloc(selectedEpisodeId: secondEpisodeId);
-      final state = await waitForState(bloc, (state) => state.scenes.isNotEmpty);
+    final bloc = buildBloc(selectedEpisodeId: secondEpisodeId);
+    final state = await waitForState(bloc, (state) => state.scenes.isNotEmpty);
 
-      expect(state.scenes.single.heading, "INT. SECOND EPISODE - NIGHT");
-      expect(state.screenplayText, contains("SECOND EPISODE"));
+    expect(state.scenes.single.heading, "INT. SECOND EPISODE - NIGHT");
+    expect(state.screenplayText, contains("SECOND EPISODE"));
 
-      final sceneId = state.scenes.single.id;
-      bloc.add(OcptBreakdownSceneNotesChangedEvent(sceneId: sceneId, rawValue: "note"));
-      await waitForState(bloc, (state) => state.pendingSceneNotesEdits.isNotEmpty);
-      await bloc.flushPendingFieldEdits();
+    final sceneId = state.scenes.single.id;
+    bloc.add(OcptBreakdownSceneNotesChangedEvent(sceneId: sceneId, rawValue: "note"));
+    await waitForState(bloc, (state) => state.pendingSceneNotesEdits.isNotEmpty);
+    await bloc.flushPendingFieldEdits();
 
-      final primaryScenes = await projectsManager.breakdownService.loadScenes(
-        database: project.database,
-        screenplayId: project.primaryScreenplayId,
-        episodeNumber: null,
-      );
-      final secondEpisodeScenes = await projectsManager.breakdownService.loadScenes(
-        database: project.database,
-        screenplayId: secondEpisodeId,
-        episodeNumber: null,
-      );
-      expect(primaryScenes.single.notes, isEmpty);
-      expect(secondEpisodeScenes.single.notes, "note");
+    final primaryScenes = await projectsManager.breakdownService.loadScenes(
+      database: project.database,
+      screenplayId: project.primaryScreenplayId,
+      episodeNumber: null,
+    );
+    final secondEpisodeScenes = await projectsManager.breakdownService.loadScenes(
+      database: project.database,
+      screenplayId: secondEpisodeId,
+      episodeNumber: null,
+    );
+    expect(primaryScenes.single.notes, isEmpty);
+    expect(secondEpisodeScenes.single.notes, "note");
 
-      await bloc.close();
-    },
-  );
+    await bloc.close();
+  });
 
   test("a tagged element is resolved into the snapshot's targets and counters", () async {
     await writeScreenplay("INT. HOUSE - DAY\n\nA lamp sits on the desk.\n");
 
     final project = projectsManager.currentProject!;
-    final sceneId = (await (project.database.select(project.database.ocptScenesTable)).get())
-        .single
-        .id;
+    final sceneId = (await (project.database.select(
+      project.database.ocptScenesTable,
+    )).get()).single.id;
 
     final elementId = await projectsManager.elementsService.createElement(
       database: project.database,
@@ -468,7 +468,8 @@ void main() {
     expect(
       state.selectedTargetRef,
       isNotNull,
-      reason: "browsing the left dock's list is reading, so it must not drop the sheet the "
+      reason:
+          "browsing the left dock's list is reading, so it must not drop the sheet the "
           "inspector is showing",
     );
 
@@ -594,7 +595,10 @@ void main() {
     );
 
     expect(state.rightDockFraction, OcptWorkspaceDock.rightDefaultFraction);
-    expect(await propertiesManager.breakdownLeftDockFraction.load(), OcptWorkspaceDock.leftDefaultFraction);
+    expect(
+      await propertiesManager.breakdownLeftDockFraction.load(),
+      OcptWorkspaceDock.leftDefaultFraction,
+    );
     expect(
       await propertiesManager.breakdownRightDockFraction.load(),
       OcptWorkspaceDock.rightDefaultFraction,
@@ -623,9 +627,7 @@ void main() {
       final bloc = buildBloc();
       await waitForState(bloc, (state) => state.scenes.isNotEmpty);
 
-      bloc.add(
-        const OcptProjectVersionCreationRequestedEvent(name: "One scene", note: ""),
-      );
+      bloc.add(const OcptProjectVersionCreationRequestedEvent(name: "One scene", note: ""));
       final withVersion = await waitForState(bloc, (state) => state.projectVersions.isNotEmpty);
       final versionId = withVersion.projectVersions.single.id;
 
@@ -659,10 +661,7 @@ void main() {
       // Forces a full reload: unlike the resources mode's own handler, this event's breakdown
       // sibling only re-reads the page setup, not the whole snapshot.
       bloc.add(const OcptBreakdownLoadRequestedEvent());
-      final orphaned = await waitForState(
-        bloc,
-        (state) => state.orphanedRoleAlerts.isNotEmpty,
-      );
+      final orphaned = await waitForState(bloc, (state) => state.orphanedRoleAlerts.isNotEmpty);
 
       expect(orphaned.orphanedRoleAlerts, hasLength(1));
       expect(orphaned.orphanedRoleAlerts.single.characterName, "CLARA");
@@ -671,31 +670,34 @@ void main() {
       await bloc.close();
     });
 
-    test("roleCollisionAlerts reports a hand-added role sharing a screenplay role's name", () async {
-      await writeScreenplay("INT. HOUSE - DAY\n\nCLARA\nHello.\n");
-      final project = projectsManager.currentProject!;
+    test(
+      "roleCollisionAlerts reports a hand-added role sharing a screenplay role's name",
+      () async {
+        await writeScreenplay("INT. HOUSE - DAY\n\nCLARA\nHello.\n");
+        final project = projectsManager.currentProject!;
 
-      final bloc = buildBloc();
-      final loaded = await waitForState(bloc, (state) => state.roles.isNotEmpty);
-      expect(loaded.roleCollisionAlerts, isEmpty);
-      final screenplayRoleId = loaded.roles.single.id;
+        final bloc = buildBloc();
+        final loaded = await waitForState(bloc, (state) => state.roles.isNotEmpty);
+        expect(loaded.roleCollisionAlerts, isEmpty);
+        final screenplayRoleId = loaded.roles.single.id;
 
-      final handAddedRoleId = await projectsManager.roleIndexService.addRole(
-        database: project.database,
-        screenplayId: project.primaryScreenplayId,
-        name: "Clara",
-        kind: OcptRoleKind.extra,
-      );
+        final handAddedRoleId = await projectsManager.roleIndexService.addRole(
+          database: project.database,
+          screenplayId: project.primaryScreenplayId,
+          name: "Clara",
+          kind: OcptRoleKind.extra,
+        );
 
-      bloc.add(const OcptBreakdownLoadRequestedEvent());
-      final state = await waitForState(bloc, (state) => state.roleCollisionAlerts.isNotEmpty);
+        bloc.add(const OcptBreakdownLoadRequestedEvent());
+        final state = await waitForState(bloc, (state) => state.roleCollisionAlerts.isNotEmpty);
 
-      expect(state.roleCollisionAlerts, hasLength(1));
-      expect(state.roleCollisionAlerts.single.screenplayRoleId, screenplayRoleId);
-      expect(state.roleCollisionAlerts.single.handAddedRoleId, handAddedRoleId);
+        expect(state.roleCollisionAlerts, hasLength(1));
+        expect(state.roleCollisionAlerts.single.screenplayRoleId, screenplayRoleId);
+        expect(state.roleCollisionAlerts.single.handAddedRoleId, handAddedRoleId);
 
-      await bloc.close();
-    });
+        await bloc.close();
+      },
+    );
   });
 
   test("toggling a legend entry hides it, toggling it again reveals it", () async {
@@ -750,13 +752,20 @@ void main() {
     final loaded = await waitForState(bloc, (state) => state.scenes.isNotEmpty);
     final sceneId = loaded.scenes.single.id;
 
-    bloc.add(OcptBreakdownWordClickedEvent(sceneId: sceneId, wordStartOffset: 20, wordEndOffset: 24));
+    bloc.add(
+      OcptBreakdownWordClickedEvent(sceneId: sceneId, wordStartOffset: 20, wordEndOffset: 24),
+    );
     await waitForState(bloc, (state) => state.pendingTagAnchor != null);
-    bloc.add(OcptBreakdownWordClickedEvent(sceneId: sceneId, wordStartOffset: 37, wordEndOffset: 42));
+    bloc.add(
+      OcptBreakdownWordClickedEvent(sceneId: sceneId, wordStartOffset: 37, wordEndOffset: 42),
+    );
     await waitForState(bloc, (state) => state.pendingTagRange != null);
 
     bloc.add(const OcptBreakdownCentreViewSelectedEvent(view: OcptBreakdownCentreView.recap));
-    final state = await waitForState(bloc, (state) => state.centreView == OcptBreakdownCentreView.recap);
+    final state = await waitForState(
+      bloc,
+      (state) => state.centreView == OcptBreakdownCentreView.recap,
+    );
 
     expect(state.pendingTagAnchor, isNull);
     expect(state.pendingTagRange, isNull);
@@ -834,7 +843,9 @@ void main() {
     final loaded = await waitForState(bloc, (state) => state.scenes.isNotEmpty);
     final sceneId = loaded.scenes.single.id;
 
-    bloc.add(OcptBreakdownWordClickedEvent(sceneId: sceneId, wordStartOffset: 20, wordEndOffset: 24));
+    bloc.add(
+      OcptBreakdownWordClickedEvent(sceneId: sceneId, wordStartOffset: 20, wordEndOffset: 24),
+    );
     final withAnchor = await waitForState(bloc, (state) => state.pendingTagAnchor != null);
     expect(withAnchor.pendingTagAnchor, isNotNull);
 
@@ -873,33 +884,36 @@ void main() {
     await bloc.close();
   });
 
-  test("selecting a target naming a scene id that no longer exists drops the scene selection", () async {
-    await writeScreenplay("INT. HOUSE - DAY\n\nAction one.\n");
-    final bloc = buildBloc();
-    await waitForState(bloc, (state) => state.scenes.isNotEmpty);
+  test(
+    "selecting a target naming a scene id that no longer exists drops the scene selection",
+    () async {
+      await writeScreenplay("INT. HOUSE - DAY\n\nAction one.\n");
+      final bloc = buildBloc();
+      await waitForState(bloc, (state) => state.scenes.isNotEmpty);
 
-    bloc.add(
-      const OcptBreakdownTargetSelectedEvent(
-        targetKind: OcptBreakdownTargetKind.element,
-        targetId: "el-1",
-        sceneId: "not-a-scene",
-      ),
-    );
-    final state = await waitForState(bloc, (state) => state.selectedTargetRef != null);
+      bloc.add(
+        const OcptBreakdownTargetSelectedEvent(
+          targetKind: OcptBreakdownTargetKind.element,
+          targetId: "el-1",
+          sceneId: "not-a-scene",
+        ),
+      );
+      final state = await waitForState(bloc, (state) => state.selectedTargetRef != null);
 
-    expect(state.selectedTargetRef, (OcptBreakdownTargetKind.element, "el-1"));
-    expect(state.selectedSceneId, isNull);
+      expect(state.selectedTargetRef, (OcptBreakdownTargetKind.element, "el-1"));
+      expect(state.selectedSceneId, isNull);
 
-    await bloc.close();
-  });
+      await bloc.close();
+    },
+  );
 
   test("a selected target resolves against the loaded snapshot's own targets", () async {
     await writeScreenplay("INT. HOUSE - DAY\n\nA lamp sits on the desk.\n");
 
     final project = projectsManager.currentProject!;
-    final sceneId = (await (project.database.select(project.database.ocptScenesTable)).get())
-        .single
-        .id;
+    final sceneId = (await (project.database.select(
+      project.database.ocptScenesTable,
+    )).get()).single.id;
 
     final elementId = await projectsManager.elementsService.createElement(
       database: project.database,
@@ -963,7 +977,9 @@ void main() {
     final loaded = await waitForState(bloc, (state) => state.scenes.isNotEmpty);
     final sceneId = loaded.scenes.single.id;
 
-    bloc.add(OcptBreakdownWordClickedEvent(sceneId: sceneId, wordStartOffset: 20, wordEndOffset: 24));
+    bloc.add(
+      OcptBreakdownWordClickedEvent(sceneId: sceneId, wordStartOffset: 20, wordEndOffset: 24),
+    );
     final state = await waitForState(bloc, (state) => state.pendingTagAnchor != null);
 
     expect(state.pendingTagAnchor, (sceneId: sceneId, wordStartOffset: 20, wordEndOffset: 24));
@@ -985,16 +1001,27 @@ void main() {
       final gardenSceneId = loaded.scenes[1].id;
 
       bloc.add(
-        OcptBreakdownWordClickedEvent(sceneId: houseSceneId, wordStartOffset: 20, wordEndOffset: 24),
+        OcptBreakdownWordClickedEvent(
+          sceneId: houseSceneId,
+          wordStartOffset: 20,
+          wordEndOffset: 24,
+        ),
       );
       await waitForState(bloc, (state) => state.pendingTagAnchor != null);
 
       bloc.add(
         OcptBreakdownWordClickedEvent(sceneId: gardenSceneId, wordStartOffset: 0, wordEndOffset: 6),
       );
-      final state = await waitForState(bloc, (state) => state.pendingTagAnchor?.sceneId == gardenSceneId);
+      final state = await waitForState(
+        bloc,
+        (state) => state.pendingTagAnchor?.sceneId == gardenSceneId,
+      );
 
-      expect(state.pendingTagAnchor, (sceneId: gardenSceneId, wordStartOffset: 0, wordEndOffset: 6));
+      expect(state.pendingTagAnchor, (
+        sceneId: gardenSceneId,
+        wordStartOffset: 0,
+        wordEndOffset: 6,
+      ));
       expect(state.selectedSceneId, gardenSceneId);
       expect(state.pendingTagRange, isNull);
 
@@ -1012,10 +1039,14 @@ void main() {
 
       // "lamp" (20, 24) then "desk." (37, 42): the range closes on "lamp sits on the desk", the
       // full stop the last word is written against left out of it.
-      bloc.add(OcptBreakdownWordClickedEvent(sceneId: sceneId, wordStartOffset: 20, wordEndOffset: 24));
+      bloc.add(
+        OcptBreakdownWordClickedEvent(sceneId: sceneId, wordStartOffset: 20, wordEndOffset: 24),
+      );
       await waitForState(bloc, (state) => state.pendingTagAnchor != null);
 
-      bloc.add(OcptBreakdownWordClickedEvent(sceneId: sceneId, wordStartOffset: 37, wordEndOffset: 42));
+      bloc.add(
+        OcptBreakdownWordClickedEvent(sceneId: sceneId, wordStartOffset: 37, wordEndOffset: 42),
+      );
       final state = await waitForState(bloc, (state) => state.pendingTagRange != null);
 
       expect(state.pendingTagAnchor, isNull);
@@ -1041,10 +1072,14 @@ void main() {
       final sceneId = loaded.scenes.single.id;
 
       // "desk." (37, 42) first, then "lamp" (20, 24): same merged range as clicking forwards.
-      bloc.add(OcptBreakdownWordClickedEvent(sceneId: sceneId, wordStartOffset: 37, wordEndOffset: 42));
+      bloc.add(
+        OcptBreakdownWordClickedEvent(sceneId: sceneId, wordStartOffset: 37, wordEndOffset: 42),
+      );
       await waitForState(bloc, (state) => state.pendingTagAnchor != null);
 
-      bloc.add(OcptBreakdownWordClickedEvent(sceneId: sceneId, wordStartOffset: 20, wordEndOffset: 24));
+      bloc.add(
+        OcptBreakdownWordClickedEvent(sceneId: sceneId, wordStartOffset: 20, wordEndOffset: 24),
+      );
       final state = await waitForState(bloc, (state) => state.pendingTagRange != null);
 
       expect(state.pendingTagRange?.startOffset, 20);
@@ -1064,10 +1099,14 @@ void main() {
     final sceneId = loaded.scenes.single.id;
 
     // The same word clicked twice: `"desk",` (37, 44) is tagged as `desk` (38, 42) alone.
-    bloc.add(OcptBreakdownWordClickedEvent(sceneId: sceneId, wordStartOffset: 37, wordEndOffset: 44));
+    bloc.add(
+      OcptBreakdownWordClickedEvent(sceneId: sceneId, wordStartOffset: 37, wordEndOffset: 44),
+    );
     await waitForState(bloc, (state) => state.pendingTagAnchor != null);
 
-    bloc.add(OcptBreakdownWordClickedEvent(sceneId: sceneId, wordStartOffset: 37, wordEndOffset: 44));
+    bloc.add(
+      OcptBreakdownWordClickedEvent(sceneId: sceneId, wordStartOffset: 37, wordEndOffset: 44),
+    );
     final state = await waitForState(bloc, (state) => state.pendingTagRange != null);
 
     expect(state.pendingTagRange?.startOffset, 38);
@@ -1082,9 +1121,9 @@ void main() {
     () async {
       await writeScreenplay("INT. HOUSE - DAY\n\nA lamp sits on the desk.\n");
       final project = projectsManager.currentProject!;
-      final sceneId = (await (project.database.select(project.database.ocptScenesTable)).get())
-          .single
-          .id;
+      final sceneId = (await (project.database.select(
+        project.database.ocptScenesTable,
+      )).get()).single.id;
       final elementId = await projectsManager.elementsService.createElement(
         database: project.database,
         name: "Desk lamp",
@@ -1107,11 +1146,15 @@ void main() {
 
       // "A" (18, 19) as the anchor, then "sits" (25, 29): the merged range [18, 29) crosses the
       // existing tag over "lamp" (20, 24).
-      bloc.add(OcptBreakdownWordClickedEvent(sceneId: sceneId, wordStartOffset: 18, wordEndOffset: 19));
+      bloc.add(
+        OcptBreakdownWordClickedEvent(sceneId: sceneId, wordStartOffset: 18, wordEndOffset: 19),
+      );
       final withAnchor = await waitForState(bloc, (state) => state.pendingTagAnchor != null);
       expect(withAnchor.pendingTagAnchor?.wordStartOffset, 18);
 
-      bloc.add(OcptBreakdownWordClickedEvent(sceneId: sceneId, wordStartOffset: 25, wordEndOffset: 29));
+      bloc.add(
+        OcptBreakdownWordClickedEvent(sceneId: sceneId, wordStartOffset: 25, wordEndOffset: 29),
+      );
       // Nothing to wait for since the refusal changes nothing; give the event a moment to process.
       await Future<void>.delayed(const Duration(milliseconds: 50));
 
@@ -1129,9 +1172,13 @@ void main() {
     final loaded = await waitForState(bloc, (state) => state.scenes.isNotEmpty);
     final sceneId = loaded.scenes.single.id;
 
-    bloc.add(OcptBreakdownWordClickedEvent(sceneId: sceneId, wordStartOffset: 20, wordEndOffset: 24));
+    bloc.add(
+      OcptBreakdownWordClickedEvent(sceneId: sceneId, wordStartOffset: 20, wordEndOffset: 24),
+    );
     await waitForState(bloc, (state) => state.pendingTagAnchor != null);
-    bloc.add(OcptBreakdownWordClickedEvent(sceneId: sceneId, wordStartOffset: 37, wordEndOffset: 42));
+    bloc.add(
+      OcptBreakdownWordClickedEvent(sceneId: sceneId, wordStartOffset: 37, wordEndOffset: 42),
+    );
     await waitForState(bloc, (state) => state.pendingTagRange != null);
 
     bloc.add(const OcptBreakdownTagRangeCancelledEvent());
@@ -1146,9 +1193,9 @@ void main() {
   test("linking the closed range to an existing element writes the tag and selects it", () async {
     await writeScreenplay("INT. HOUSE - DAY\n\nA lamp sits on the desk.\n");
     final project = projectsManager.currentProject!;
-    final sceneId = (await (project.database.select(project.database.ocptScenesTable)).get())
-        .single
-        .id;
+    final sceneId = (await (project.database.select(
+      project.database.ocptScenesTable,
+    )).get()).single.id;
     final elementId = await projectsManager.elementsService.createElement(
       database: project.database,
       name: "Desk lamp",
@@ -1160,9 +1207,13 @@ void main() {
     final bloc = buildBloc();
     await waitForState(bloc, (state) => !state.isLoading);
 
-    bloc.add(OcptBreakdownWordClickedEvent(sceneId: sceneId, wordStartOffset: 20, wordEndOffset: 24));
+    bloc.add(
+      OcptBreakdownWordClickedEvent(sceneId: sceneId, wordStartOffset: 20, wordEndOffset: 24),
+    );
     await waitForState(bloc, (state) => state.pendingTagAnchor != null);
-    bloc.add(OcptBreakdownWordClickedEvent(sceneId: sceneId, wordStartOffset: 20, wordEndOffset: 24));
+    bloc.add(
+      OcptBreakdownWordClickedEvent(sceneId: sceneId, wordStartOffset: 20, wordEndOffset: 24),
+    );
     await waitForState(bloc, (state) => state.pendingTagRange != null);
 
     bloc.add(
@@ -1190,9 +1241,13 @@ void main() {
       final loaded = await waitForState(bloc, (state) => state.scenes.isNotEmpty);
       final sceneId = loaded.scenes.single.id;
 
-      bloc.add(OcptBreakdownWordClickedEvent(sceneId: sceneId, wordStartOffset: 20, wordEndOffset: 24));
+      bloc.add(
+        OcptBreakdownWordClickedEvent(sceneId: sceneId, wordStartOffset: 20, wordEndOffset: 24),
+      );
       await waitForState(bloc, (state) => state.pendingTagAnchor != null);
-      bloc.add(OcptBreakdownWordClickedEvent(sceneId: sceneId, wordStartOffset: 37, wordEndOffset: 42));
+      bloc.add(
+        OcptBreakdownWordClickedEvent(sceneId: sceneId, wordStartOffset: 37, wordEndOffset: 42),
+      );
       await waitForState(bloc, (state) => state.pendingTagRange != null);
 
       bloc.add(
@@ -1220,9 +1275,13 @@ void main() {
     final loaded = await waitForState(bloc, (state) => state.scenes.isNotEmpty);
     final sceneId = loaded.scenes.single.id;
 
-    bloc.add(OcptBreakdownWordClickedEvent(sceneId: sceneId, wordStartOffset: 20, wordEndOffset: 24));
+    bloc.add(
+      OcptBreakdownWordClickedEvent(sceneId: sceneId, wordStartOffset: 20, wordEndOffset: 24),
+    );
     await waitForState(bloc, (state) => state.pendingTagAnchor != null);
-    bloc.add(OcptBreakdownWordClickedEvent(sceneId: sceneId, wordStartOffset: 20, wordEndOffset: 24));
+    bloc.add(
+      OcptBreakdownWordClickedEvent(sceneId: sceneId, wordStartOffset: 20, wordEndOffset: 24),
+    );
     await waitForState(bloc, (state) => state.pendingTagRange != null);
 
     bloc.add(
@@ -1251,7 +1310,9 @@ void main() {
     bloc.add(OcptProjectVersionPreviewRequestedEvent(versionId: versionId));
     await waitForState(bloc, (state) => state.previewedVersionId != null);
 
-    bloc.add(OcptBreakdownWordClickedEvent(sceneId: sceneId, wordStartOffset: 20, wordEndOffset: 24));
+    bloc.add(
+      OcptBreakdownWordClickedEvent(sceneId: sceneId, wordStartOffset: 20, wordEndOffset: 24),
+    );
     // Nothing to wait for since nothing should change; give the event a moment to process.
     await Future<void>.delayed(const Duration(milliseconds: 50));
 
@@ -1334,7 +1395,8 @@ void main() {
       );
       final state = await waitForState(
         bloc,
-        (state) => state.targets.any((target) => target.id == elementId && target.occurrenceCount == 2),
+        (state) =>
+            state.targets.any((target) => target.id == elementId && target.occurrenceCount == 2),
       );
 
       // Accepting the suggestion writes the tag (the second occurrence now counts) without
@@ -1408,26 +1470,29 @@ void main() {
     await bloc.close();
   });
 
-  test("leaving a preview reloads the working copy's own read, clearing the previewed id", () async {
-    await writeScreenplay("INT. HOUSE - DAY\n\nAction one.\n");
-    final bloc = buildBloc();
-    await waitForState(bloc, (state) => state.scenes.isNotEmpty);
+  test(
+    "leaving a preview reloads the working copy's own read, clearing the previewed id",
+    () async {
+      await writeScreenplay("INT. HOUSE - DAY\n\nAction one.\n");
+      final bloc = buildBloc();
+      await waitForState(bloc, (state) => state.scenes.isNotEmpty);
 
-    bloc.add(const OcptProjectVersionCreationRequestedEvent(name: "Base", note: ""));
-    final withVersion = await waitForState(bloc, (state) => state.projectVersions.isNotEmpty);
-    final versionId = withVersion.projectVersions.single.id;
+      bloc.add(const OcptProjectVersionCreationRequestedEvent(name: "Base", note: ""));
+      final withVersion = await waitForState(bloc, (state) => state.projectVersions.isNotEmpty);
+      final versionId = withVersion.projectVersions.single.id;
 
-    bloc.add(OcptProjectVersionPreviewRequestedEvent(versionId: versionId));
-    await waitForState(bloc, (state) => state.previewedVersionId != null);
+      bloc.add(OcptProjectVersionPreviewRequestedEvent(versionId: versionId));
+      await waitForState(bloc, (state) => state.previewedVersionId != null);
 
-    bloc.add(const OcptProjectVersionPreviewExitRequestedEvent());
-    final state = await waitForState(bloc, (state) => state.previewedVersionId == null);
+      bloc.add(const OcptProjectVersionPreviewExitRequestedEvent());
+      final state = await waitForState(bloc, (state) => state.previewedVersionId == null);
 
-    expect(state.isPreviewingVersion, isFalse);
-    expect(state.scenes, isNotEmpty);
+      expect(state.isPreviewingVersion, isFalse);
+      expect(state.scenes, isNotEmpty);
 
-    await bloc.close();
-  });
+      await bloc.close();
+    },
+  );
 
   test("selecting a target opens the right dock on the Inspector tab", () async {
     final bloc = buildBloc();
@@ -1449,33 +1514,38 @@ void main() {
     await bloc.close();
   });
 
-  test("the right dock toggle reopens the last tab explicitly selected, persisted across entries",
-      () async {
-    final bloc = buildBloc();
-    await waitForState(bloc, (state) => !state.isLoading);
+  test(
+    "the right dock toggle reopens the last tab explicitly selected, persisted across entries",
+    () async {
+      final bloc = buildBloc();
+      await waitForState(bloc, (state) => !state.isLoading);
 
-    bloc.add(
-      const OcptBreakdownRightDockTabSelectedEvent(tab: OcptBreakdownRightDockTab.versions),
-    );
-    await waitForState(bloc, (state) => state.rightDockTab == OcptBreakdownRightDockTab.versions);
+      bloc.add(
+        const OcptBreakdownRightDockTabSelectedEvent(tab: OcptBreakdownRightDockTab.versions),
+      );
+      await waitForState(bloc, (state) => state.rightDockTab == OcptBreakdownRightDockTab.versions);
 
-    bloc.add(const OcptBreakdownRightDockClosedEvent());
-    await waitForState(bloc, (state) => state.rightDockTab == null);
+      bloc.add(const OcptBreakdownRightDockClosedEvent());
+      await waitForState(bloc, (state) => state.rightDockTab == null);
 
-    bloc.add(const OcptBreakdownRightDockToggledEvent());
-    final reopened = await waitForState(bloc, (state) => state.rightDockTab != null);
-    expect(reopened.rightDockTab, OcptBreakdownRightDockTab.versions);
+      bloc.add(const OcptBreakdownRightDockToggledEvent());
+      final reopened = await waitForState(bloc, (state) => state.rightDockTab != null);
+      expect(reopened.rightDockTab, OcptBreakdownRightDockTab.versions);
 
-    await bloc.close();
+      await bloc.close();
 
-    expect(await propertiesManager.breakdownLastRightDockTab.load(), OcptBreakdownRightDockTab.versions);
+      expect(
+        await propertiesManager.breakdownLastRightDockTab.load(),
+        OcptBreakdownRightDockTab.versions,
+      );
 
-    final nextEntry = buildBloc();
-    final loaded = await waitForState(nextEntry, (state) => !state.isLoading);
-    expect(loaded.lastRightDockTab, OcptBreakdownRightDockTab.versions);
+      final nextEntry = buildBloc();
+      final loaded = await waitForState(nextEntry, (state) => !state.isLoading);
+      expect(loaded.lastRightDockTab, OcptBreakdownRightDockTab.versions);
 
-    await nextEntry.close();
-  });
+      await nextEntry.close();
+    },
+  );
 
   test("changing an element's status writes it immediately and reloads the snapshot", () async {
     final tagged = await writeTaggedElement();
@@ -1519,35 +1589,40 @@ void main() {
     await bloc.close();
   });
 
-  test("typing into an element field debounces then writes it, clearing the pending edit",
-      () async {
-    final tagged = await writeTaggedElement();
-    final bloc = buildBloc();
-    await waitForState(bloc, (state) => state.taggedTargetCount == 1);
+  test(
+    "typing into an element field debounces then writes it, clearing the pending edit",
+    () async {
+      final tagged = await writeTaggedElement();
+      final bloc = buildBloc();
+      await waitForState(bloc, (state) => state.taggedTargetCount == 1);
 
-    bloc.add(
-      OcptBreakdownElementFieldChangedEvent(
-        elementId: tagged.elementId,
-        field: OcptElementField.subCategory,
-        rawValue: "1960s",
-      ),
-    );
-    final pending = await waitForState(bloc, (state) => state.pendingElementFieldEdits.isNotEmpty);
-    expect(
-      pending.elementFieldValueOf(tagged.elementId, OcptElementField.subCategory, ""),
-      "1960s",
-    );
+      bloc.add(
+        OcptBreakdownElementFieldChangedEvent(
+          elementId: tagged.elementId,
+          field: OcptElementField.subCategory,
+          rawValue: "1960s",
+        ),
+      );
+      final pending = await waitForState(
+        bloc,
+        (state) => state.pendingElementFieldEdits.isNotEmpty,
+      );
+      expect(
+        pending.elementFieldValueOf(tagged.elementId, OcptElementField.subCategory, ""),
+        "1960s",
+      );
 
-    final flushed = await waitForState(bloc, (state) => state.pendingElementFieldEdits.isEmpty);
-    expect(flushed.selectedElement, isNull); // nothing selected here, just checking it flushed
+      final flushed = await waitForState(bloc, (state) => state.pendingElementFieldEdits.isEmpty);
+      expect(flushed.selectedElement, isNull); // nothing selected here, just checking it flushed
 
-    final elements = await projectsManager.elementsService.loadElements(
-      database: projectsManager.currentProject!.database,
-    );
-    expect(elements.single.subCategory, "1960s");
+      final elements = await projectsManager.elementsService.loadElements(
+        database: projectsManager.currentProject!.database,
+      );
+      expect(elements.single.subCategory, "1960s");
 
-    await bloc.close();
-  });
+      await bloc.close();
+    },
+  );
 
   test("renaming an element through the name field writes it and renames its target", () async {
     final tagged = await writeTaggedElement();
@@ -1564,7 +1639,10 @@ void main() {
 
     // The snapshot is read again once the debounce lands, so every surface naming the target — the
     // script's tooltips, the legend, the recap table — follows the new name.
-    final renamed = await waitForState(bloc, (state) => state.targets.single.name == "Queen's crown");
+    final renamed = await waitForState(
+      bloc,
+      (state) => state.targets.single.name == "Queen's crown",
+    );
     expect(renamed.pendingElementFieldEdits, isEmpty);
 
     final elements = await projectsManager.elementsService.loadElements(
@@ -1651,9 +1729,9 @@ void main() {
   test("linking a scene to a set writes the link alone, and unlinking drops it", () async {
     await writeScreenplay("INT. CUISINE - DAY\n\nA lamp sits on the desk.\n");
     final project = projectsManager.currentProject!;
-    final sceneId = (await (project.database.select(project.database.ocptScenesTable)).get())
-        .single
-        .id;
+    final sceneId = (await (project.database.select(
+      project.database.ocptScenesTable,
+    )).get()).single.id;
     final locationId = (await projectsManager.locationsService.createLocation(
       database: project.database,
       name: "Maison des Martin",
@@ -1688,9 +1766,9 @@ void main() {
   test("creating a set from the scene sheet mints its location too, and no tag", () async {
     await writeScreenplay("INT. CUISINE - DAY\n\nA lamp sits on the desk.\n");
     final project = projectsManager.currentProject!;
-    final sceneId = (await (project.database.select(project.database.ocptScenesTable)).get())
-        .single
-        .id;
+    final sceneId = (await (project.database.select(
+      project.database.ocptScenesTable,
+    )).get()).single.id;
 
     final bloc = buildBloc();
     await waitForState(bloc, (state) => state.scenes.length == 1);
@@ -1732,9 +1810,9 @@ void main() {
   test("renaming a set rides the field-edit debounce and lands on the catalogue row", () async {
     await writeScreenplay("INT. CUISINE - DAY\n\nA lamp sits on the desk.\n");
     final project = projectsManager.currentProject!;
-    final sceneId = (await (project.database.select(project.database.ocptScenesTable)).get())
-        .single
-        .id;
+    final sceneId = (await (project.database.select(
+      project.database.ocptScenesTable,
+    )).get()).single.id;
 
     final bloc = buildBloc();
     await waitForState(bloc, (state) => state.scenes.length == 1);
@@ -1812,126 +1890,129 @@ void main() {
     },
   );
 
+  test("marking a flagged tag as checked clears needsCheck without moving its offsets", () async {
+    await writeTaggedElement();
+    // The tagged word is gone from the scene: the next save flags the tag rather than
+    // re-anchoring it, mirroring `OcptBreakdownService.reconcileTags`'s own "text is gone" test.
+    await writeScreenplay("INT. HOUSE - DAY\n\nA torch sits on the desk.\n");
+
+    final bloc = buildBloc();
+    final loaded = await waitForState(bloc, (state) => state.needsCheckTagCount == 1);
+    final flaggedTag = loaded.scenes.single.tags.single;
+    expect(flaggedTag.needsCheck, isTrue);
+
+    bloc.add(OcptBreakdownTagNeedsCheckClearedEvent(tagId: flaggedTag.id));
+    final state = await waitForState(bloc, (state) => state.needsCheckTagCount == 0);
+
+    final clearedTag = state.scenes.single.tags.single;
+    expect(clearedTag.needsCheck, isFalse);
+    expect(clearedTag.startOffset, flaggedTag.startOffset);
+    expect(clearedTag.endOffset, flaggedTag.endOffset);
+
+    await bloc.close();
+  });
+
+  test("removing a flagged tag tombstones it and drops its target from the snapshot", () async {
+    await writeTaggedElement();
+    await writeScreenplay("INT. HOUSE - DAY\n\nA torch sits on the desk.\n");
+
+    final bloc = buildBloc();
+    final loaded = await waitForState(bloc, (state) => state.needsCheckTagCount == 1);
+    final flaggedTagId = loaded.scenes.single.tags.single.id;
+
+    bloc.add(OcptBreakdownFlaggedTagRemovedEvent(tagId: flaggedTagId));
+    final state = await waitForState(bloc, (state) => state.needsCheckTagCount == 0);
+
+    expect(state.taggedTargetCount, 0);
+    expect(state.scenes.single.tags, isEmpty);
+
+    await bloc.close();
+  });
+
   test(
-    "marking a flagged tag as checked clears needsCheck without moving its offsets",
+    "flushPendingFieldEdits writes a pending element field edit directly, bypassing the debounce",
     () async {
-      await writeTaggedElement();
-      // The tagged word is gone from the scene: the next save flags the tag rather than
-      // re-anchoring it, mirroring `OcptBreakdownService.reconcileTags`'s own "text is gone" test.
-      await writeScreenplay("INT. HOUSE - DAY\n\nA torch sits on the desk.\n");
+      final tagged = await writeTaggedElement();
+      final bloc = buildBloc(fieldEditDebounce: const Duration(days: 1));
+      await waitForState(bloc, (state) => state.taggedTargetCount == 1);
 
-      final bloc = buildBloc();
-      final loaded = await waitForState(bloc, (state) => state.needsCheckTagCount == 1);
-      final flaggedTag = loaded.scenes.single.tags.single;
-      expect(flaggedTag.needsCheck, isTrue);
+      bloc.add(
+        OcptBreakdownElementFieldChangedEvent(
+          elementId: tagged.elementId,
+          field: OcptElementField.notes,
+          rawValue: "handle with care",
+        ),
+      );
+      await waitForState(bloc, (state) => state.pendingElementFieldEdits.isNotEmpty);
 
-      bloc.add(OcptBreakdownTagNeedsCheckClearedEvent(tagId: flaggedTag.id));
-      final state = await waitForState(bloc, (state) => state.needsCheckTagCount == 0);
+      await bloc.flushPendingFieldEdits();
 
-      final clearedTag = state.scenes.single.tags.single;
-      expect(clearedTag.needsCheck, isFalse);
-      expect(clearedTag.startOffset, flaggedTag.startOffset);
-      expect(clearedTag.endOffset, flaggedTag.endOffset);
+      final elements = await projectsManager.elementsService.loadElements(
+        database: projectsManager.currentProject!.database,
+      );
+      expect(elements.single.notes, "handle with care");
 
       await bloc.close();
     },
   );
 
   test(
-    "removing a flagged tag tombstones it and drops its target from the snapshot",
+    "changing a scene's breakdown status writes it immediately and reloads the snapshot",
     () async {
-      await writeTaggedElement();
-      await writeScreenplay("INT. HOUSE - DAY\n\nA torch sits on the desk.\n");
-
+      await writeScreenplay("INT. HOUSE - DAY\n\nAction one.\n");
       final bloc = buildBloc();
-      final loaded = await waitForState(bloc, (state) => state.needsCheckTagCount == 1);
-      final flaggedTagId = loaded.scenes.single.tags.single.id;
+      final loaded = await waitForState(bloc, (state) => state.scenes.isNotEmpty);
+      final sceneId = loaded.scenes.single.id;
 
-      bloc.add(OcptBreakdownFlaggedTagRemovedEvent(tagId: flaggedTagId));
-      final state = await waitForState(bloc, (state) => state.needsCheckTagCount == 0);
+      bloc.add(
+        OcptBreakdownSceneStatusChangedEvent(
+          sceneId: sceneId,
+          status: OcptBreakdownSceneStatus.done,
+        ),
+      );
+      final state = await waitForState(
+        bloc,
+        (state) => state.scenes.single.status == OcptBreakdownSceneStatus.done,
+      );
 
-      expect(state.taggedTargetCount, 0);
-      expect(state.scenes.single.tags, isEmpty);
+      expect(state.scenes.single.status, OcptBreakdownSceneStatus.done);
+
+      final scenes = await projectsManager.breakdownService.loadScenes(
+        database: projectsManager.currentProject!.database,
+        screenplayId: projectsManager.currentProject!.primaryScreenplayId,
+        episodeNumber: null,
+      );
+      expect(scenes.single.status, OcptBreakdownSceneStatus.done);
 
       await bloc.close();
     },
   );
 
-  test("flushPendingFieldEdits writes a pending element field edit directly, bypassing the debounce",
-      () async {
-    final tagged = await writeTaggedElement();
-    final bloc = buildBloc(fieldEditDebounce: const Duration(days: 1));
-    await waitForState(bloc, (state) => state.taggedTargetCount == 1);
+  test(
+    "typing into a scene's breakdown notes debounces then writes it, clearing the pending edit",
+    () async {
+      await writeScreenplay("INT. HOUSE - DAY\n\nAction one.\n");
+      final bloc = buildBloc();
+      final loaded = await waitForState(bloc, (state) => state.scenes.isNotEmpty);
+      final sceneId = loaded.scenes.single.id;
 
-    bloc.add(
-      OcptBreakdownElementFieldChangedEvent(
-        elementId: tagged.elementId,
-        field: OcptElementField.notes,
-        rawValue: "handle with care",
-      ),
-    );
-    await waitForState(bloc, (state) => state.pendingElementFieldEdits.isNotEmpty);
+      bloc.add(OcptBreakdownSceneNotesChangedEvent(sceneId: sceneId, rawValue: "Bring the lamp"));
+      final pending = await waitForState(bloc, (state) => state.pendingSceneNotesEdits.isNotEmpty);
+      expect(pending.sceneNotesValueOf(sceneId, ""), "Bring the lamp");
 
-    await bloc.flushPendingFieldEdits();
+      final flushed = await waitForState(bloc, (state) => state.pendingSceneNotesEdits.isEmpty);
+      expect(flushed.scenes.single.notes, "Bring the lamp");
 
-    final elements = await projectsManager.elementsService.loadElements(
-      database: projectsManager.currentProject!.database,
-    );
-    expect(elements.single.notes, "handle with care");
+      final scenes = await projectsManager.breakdownService.loadScenes(
+        database: projectsManager.currentProject!.database,
+        screenplayId: projectsManager.currentProject!.primaryScreenplayId,
+        episodeNumber: null,
+      );
+      expect(scenes.single.notes, "Bring the lamp");
 
-    await bloc.close();
-  });
-
-  test("changing a scene's breakdown status writes it immediately and reloads the snapshot",
-      () async {
-    await writeScreenplay("INT. HOUSE - DAY\n\nAction one.\n");
-    final bloc = buildBloc();
-    final loaded = await waitForState(bloc, (state) => state.scenes.isNotEmpty);
-    final sceneId = loaded.scenes.single.id;
-
-    bloc.add(
-      OcptBreakdownSceneStatusChangedEvent(sceneId: sceneId, status: OcptBreakdownSceneStatus.done),
-    );
-    final state = await waitForState(
-      bloc,
-      (state) => state.scenes.single.status == OcptBreakdownSceneStatus.done,
-    );
-
-    expect(state.scenes.single.status, OcptBreakdownSceneStatus.done);
-
-    final scenes = await projectsManager.breakdownService.loadScenes(
-      database: projectsManager.currentProject!.database,
-      screenplayId: projectsManager.currentProject!.primaryScreenplayId,
-      episodeNumber: null,
-    );
-    expect(scenes.single.status, OcptBreakdownSceneStatus.done);
-
-    await bloc.close();
-  });
-
-  test("typing into a scene's breakdown notes debounces then writes it, clearing the pending edit",
-      () async {
-    await writeScreenplay("INT. HOUSE - DAY\n\nAction one.\n");
-    final bloc = buildBloc();
-    final loaded = await waitForState(bloc, (state) => state.scenes.isNotEmpty);
-    final sceneId = loaded.scenes.single.id;
-
-    bloc.add(OcptBreakdownSceneNotesChangedEvent(sceneId: sceneId, rawValue: "Bring the lamp"));
-    final pending = await waitForState(bloc, (state) => state.pendingSceneNotesEdits.isNotEmpty);
-    expect(pending.sceneNotesValueOf(sceneId, ""), "Bring the lamp");
-
-    final flushed = await waitForState(bloc, (state) => state.pendingSceneNotesEdits.isEmpty);
-    expect(flushed.scenes.single.notes, "Bring the lamp");
-
-    final scenes = await projectsManager.breakdownService.loadScenes(
-      database: projectsManager.currentProject!.database,
-      screenplayId: projectsManager.currentProject!.primaryScreenplayId,
-      episodeNumber: null,
-    );
-    expect(scenes.single.notes, "Bring the lamp");
-
-    await bloc.close();
-  });
+      await bloc.close();
+    },
+  );
 
   test("selecting a different scene flushes a pending scene notes edit", () async {
     await writeScreenplay(
@@ -1980,61 +2061,65 @@ void main() {
     await bloc.close();
   });
 
-  test("flushPendingFieldEdits writes a pending scene notes edit directly, bypassing the debounce",
-      () async {
-    await writeScreenplay("INT. HOUSE - DAY\n\nAction one.\n");
-    final bloc = buildBloc(fieldEditDebounce: const Duration(days: 1));
-    final loaded = await waitForState(bloc, (state) => state.scenes.isNotEmpty);
-    final sceneId = loaded.scenes.single.id;
+  test(
+    "flushPendingFieldEdits writes a pending scene notes edit directly, bypassing the debounce",
+    () async {
+      await writeScreenplay("INT. HOUSE - DAY\n\nAction one.\n");
+      final bloc = buildBloc(fieldEditDebounce: const Duration(days: 1));
+      final loaded = await waitForState(bloc, (state) => state.scenes.isNotEmpty);
+      final sceneId = loaded.scenes.single.id;
 
-    bloc.add(OcptBreakdownSceneNotesChangedEvent(sceneId: sceneId, rawValue: "handle with care"));
-    await waitForState(bloc, (state) => state.pendingSceneNotesEdits.isNotEmpty);
+      bloc.add(OcptBreakdownSceneNotesChangedEvent(sceneId: sceneId, rawValue: "handle with care"));
+      await waitForState(bloc, (state) => state.pendingSceneNotesEdits.isNotEmpty);
 
-    await bloc.flushPendingFieldEdits();
+      await bloc.flushPendingFieldEdits();
 
-    final scenes = await projectsManager.breakdownService.loadScenes(
-      database: projectsManager.currentProject!.database,
-      screenplayId: projectsManager.currentProject!.primaryScreenplayId,
-      episodeNumber: null,
-    );
-    expect(scenes.single.notes, "handle with care");
+      final scenes = await projectsManager.breakdownService.loadScenes(
+        database: projectsManager.currentProject!.database,
+        screenplayId: projectsManager.currentProject!.primaryScreenplayId,
+        episodeNumber: null,
+      );
+      expect(scenes.single.notes, "handle with care");
 
-    await bloc.close();
-  });
+      await bloc.close();
+    },
+  );
 
-  test("exporting the sheets hands the snapshot, the options and the labels to the manager",
-      () async {
-    await writeTaggedElement();
-    final exportManager = _FakeExportManager(exportResult: "/tmp/My Movie - breakdown.pdf");
-    final bloc = buildBloc(exportManager: exportManager);
-    await waitForState(bloc, (state) => state.scenes.isNotEmpty);
+  test(
+    "exporting the sheets hands the snapshot, the options and the labels to the manager",
+    () async {
+      await writeTaggedElement();
+      final exportManager = _FakeExportManager(exportResult: "/tmp/My Movie - breakdown.pdf");
+      final bloc = buildBloc(exportManager: exportManager);
+      await waitForState(bloc, (state) => state.scenes.isNotEmpty);
 
-    bloc.add(
-      const OcptBreakdownSheetsExportRequestedEvent(
-        options: _exportOptions,
-        labels: _exportLabels,
-        fileTypeLabel: "PDF document",
-        episodeTag: "ep. 2",
-      ),
-    );
-    final state = await waitForState(bloc, (state) => state.ioNotice != null);
+      bloc.add(
+        const OcptBreakdownSheetsExportRequestedEvent(
+          options: _exportOptions,
+          labels: _exportLabels,
+          fileTypeLabel: "PDF document",
+          episodeTag: "ep. 2",
+        ),
+      );
+      final state = await waitForState(bloc, (state) => state.ioNotice != null);
 
-    expect(exportManager.lastExportedSnapshot?.targets, hasLength(1));
-    expect(exportManager.lastExportedProjectName, "My Movie");
-    expect(exportManager.lastExportedLabels, _exportLabels);
-    expect(exportManager.lastExportedFileTypeLabel, "PDF document");
-    expect(exportManager.lastExportedEpisodeTag, "ep. 2");
-    // The dialog's own page format wins over the project's, and its margins travel with it.
-    expect(exportManager.lastExportedPageSetup?.format, OcptPageFormat.a4);
-    expect(exportManager.lastExportedPageSetup?.margins, const FountainPageMargins.standard());
-    expect(exportManager.lastExportedToggles?.onlyDoneScenes, isFalse);
-    expect(exportManager.lastExportedToggles?.includeNotes, isTrue);
-    expect(exportManager.lastExportedToggles?.includeToFindList, isTrue);
-    expect(state.ioNotice?.kind, OcptBreakdownIoNoticeKind.sheetsExportSucceeded);
-    expect(state.ioNotice?.path, "/tmp/My Movie - breakdown.pdf");
+      expect(exportManager.lastExportedSnapshot?.targets, hasLength(1));
+      expect(exportManager.lastExportedProjectName, "My Movie");
+      expect(exportManager.lastExportedLabels, _exportLabels);
+      expect(exportManager.lastExportedFileTypeLabel, "PDF document");
+      expect(exportManager.lastExportedEpisodeTag, "ep. 2");
+      // The dialog's own page format wins over the project's, and its margins travel with it.
+      expect(exportManager.lastExportedPageSetup?.format, OcptPageFormat.a4);
+      expect(exportManager.lastExportedPageSetup?.margins, const FountainPageMargins.standard());
+      expect(exportManager.lastExportedToggles?.onlyDoneScenes, isFalse);
+      expect(exportManager.lastExportedToggles?.includeNotes, isTrue);
+      expect(exportManager.lastExportedToggles?.includeToFindList, isTrue);
+      expect(state.ioNotice?.kind, OcptBreakdownIoNoticeKind.sheetsExportSucceeded);
+      expect(state.ioNotice?.path, "/tmp/My Movie - breakdown.pdf");
 
-    await bloc.close();
-  });
+      await bloc.close();
+    },
+  );
 
   test("a pending scene notes edit is flushed into the snapshot the export is handed", () async {
     await writeScreenplay("INT. HOUSE - DAY\n\nAction one.\n");
@@ -2106,59 +2191,63 @@ void main() {
     await bloc.close();
   });
 
-  test("exporting the workbook hands the snapshot and the labels to the manager, with no options",
-      () async {
-    await writeTaggedElement();
-    final exportManager = _FakeExportManager(exportResult: "/tmp/My Movie - breakdown.xlsx");
-    final bloc = buildBloc(exportManager: exportManager);
-    await waitForState(bloc, (state) => state.scenes.isNotEmpty);
+  test(
+    "exporting the workbook hands the snapshot and the labels to the manager, with no options",
+    () async {
+      await writeTaggedElement();
+      final exportManager = _FakeExportManager(exportResult: "/tmp/My Movie - breakdown.xlsx");
+      final bloc = buildBloc(exportManager: exportManager);
+      await waitForState(bloc, (state) => state.scenes.isNotEmpty);
 
-    bloc.add(
-      const OcptBreakdownXlsxExportRequestedEvent(
-        labels: _exportXlsxLabels,
-        fileTypeLabel: "Excel workbook",
-        episodeTag: "ep. 2",
-      ),
-    );
-    final state = await waitForState(bloc, (state) => state.ioNotice != null);
+      bloc.add(
+        const OcptBreakdownXlsxExportRequestedEvent(
+          labels: _exportXlsxLabels,
+          fileTypeLabel: "Excel workbook",
+          episodeTag: "ep. 2",
+        ),
+      );
+      final state = await waitForState(bloc, (state) => state.ioNotice != null);
 
-    expect(exportManager.lastExportedXlsxSnapshot?.targets, hasLength(1));
-    expect(exportManager.lastExportedXlsxProjectName, "My Movie");
-    expect(exportManager.lastExportedXlsxLabels, _exportXlsxLabels);
-    expect(exportManager.lastExportedXlsxFileTypeLabel, "Excel workbook");
-    expect(exportManager.lastExportedXlsxEpisodeTag, "ep. 2");
-    expect(state.ioNotice?.kind, OcptBreakdownIoNoticeKind.xlsxExportSucceeded);
-    expect(state.ioNotice?.path, "/tmp/My Movie - breakdown.xlsx");
+      expect(exportManager.lastExportedXlsxSnapshot?.targets, hasLength(1));
+      expect(exportManager.lastExportedXlsxProjectName, "My Movie");
+      expect(exportManager.lastExportedXlsxLabels, _exportXlsxLabels);
+      expect(exportManager.lastExportedXlsxFileTypeLabel, "Excel workbook");
+      expect(exportManager.lastExportedXlsxEpisodeTag, "ep. 2");
+      expect(state.ioNotice?.kind, OcptBreakdownIoNoticeKind.xlsxExportSucceeded);
+      expect(state.ioNotice?.path, "/tmp/My Movie - breakdown.xlsx");
 
-    await bloc.close();
-  });
+      await bloc.close();
+    },
+  );
 
-  test("a pending scene notes edit is flushed into the snapshot the workbook export is handed",
-      () async {
-    await writeScreenplay("INT. HOUSE - DAY\n\nAction one.\n");
-    final exportManager = _FakeExportManager(exportResult: "/tmp/breakdown.xlsx");
-    final bloc = buildBloc(
-      exportManager: exportManager,
-      fieldEditDebounce: const Duration(days: 1),
-    );
-    final loaded = await waitForState(bloc, (state) => state.scenes.isNotEmpty);
-    final sceneId = loaded.scenes.single.id;
+  test(
+    "a pending scene notes edit is flushed into the snapshot the workbook export is handed",
+    () async {
+      await writeScreenplay("INT. HOUSE - DAY\n\nAction one.\n");
+      final exportManager = _FakeExportManager(exportResult: "/tmp/breakdown.xlsx");
+      final bloc = buildBloc(
+        exportManager: exportManager,
+        fieldEditDebounce: const Duration(days: 1),
+      );
+      final loaded = await waitForState(bloc, (state) => state.scenes.isNotEmpty);
+      final sceneId = loaded.scenes.single.id;
 
-    bloc.add(OcptBreakdownSceneNotesChangedEvent(sceneId: sceneId, rawValue: "handle with care"));
-    await waitForState(bloc, (state) => state.pendingSceneNotesEdits.isNotEmpty);
+      bloc.add(OcptBreakdownSceneNotesChangedEvent(sceneId: sceneId, rawValue: "handle with care"));
+      await waitForState(bloc, (state) => state.pendingSceneNotesEdits.isNotEmpty);
 
-    bloc.add(
-      const OcptBreakdownXlsxExportRequestedEvent(
-        labels: _exportXlsxLabels,
-        fileTypeLabel: "Excel workbook",
-      ),
-    );
-    await waitForState(bloc, (state) => state.ioNotice != null);
+      bloc.add(
+        const OcptBreakdownXlsxExportRequestedEvent(
+          labels: _exportXlsxLabels,
+          fileTypeLabel: "Excel workbook",
+        ),
+      );
+      await waitForState(bloc, (state) => state.ioNotice != null);
 
-    expect(exportManager.lastExportedXlsxSnapshot?.scenes.single.notes, "handle with care");
+      expect(exportManager.lastExportedXlsxSnapshot?.scenes.single.notes, "handle with care");
 
-    await bloc.close();
-  });
+      await bloc.close();
+    },
+  );
 
   test("a cancelled workbook save dialog raises no notice at all", () async {
     await writeTaggedElement();
@@ -2179,26 +2268,28 @@ void main() {
     await bloc.close();
   });
 
-  test("a failed workbook export raises the export-failed notice, which dismissing clears",
-      () async {
-    await writeTaggedElement();
-    final bloc = buildBloc(exportManager: _FakeExportManager(fails: true));
-    await waitForState(bloc, (state) => state.scenes.isNotEmpty);
+  test(
+    "a failed workbook export raises the export-failed notice, which dismissing clears",
+    () async {
+      await writeTaggedElement();
+      final bloc = buildBloc(exportManager: _FakeExportManager(fails: true));
+      await waitForState(bloc, (state) => state.scenes.isNotEmpty);
 
-    bloc.add(
-      const OcptBreakdownXlsxExportRequestedEvent(
-        labels: _exportXlsxLabels,
-        fileTypeLabel: "Excel workbook",
-      ),
-    );
-    final state = await waitForState(bloc, (state) => state.ioNotice != null);
+      bloc.add(
+        const OcptBreakdownXlsxExportRequestedEvent(
+          labels: _exportXlsxLabels,
+          fileTypeLabel: "Excel workbook",
+        ),
+      );
+      final state = await waitForState(bloc, (state) => state.ioNotice != null);
 
-    expect(state.ioNotice?.kind, OcptBreakdownIoNoticeKind.xlsxExportFailed);
-    expect(state.ioNotice?.path, isNull);
+      expect(state.ioNotice?.kind, OcptBreakdownIoNoticeKind.xlsxExportFailed);
+      expect(state.ioNotice?.path, isNull);
 
-    bloc.add(const OcptBreakdownIoNoticeDismissedEvent());
-    await waitForState(bloc, (state) => state.ioNotice == null);
+      bloc.add(const OcptBreakdownIoNoticeDismissedEvent());
+      await waitForState(bloc, (state) => state.ioNotice == null);
 
-    await bloc.close();
-  });
+      await bloc.close();
+    },
+  );
 }

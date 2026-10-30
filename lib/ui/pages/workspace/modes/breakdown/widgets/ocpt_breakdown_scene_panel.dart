@@ -85,9 +85,7 @@ class OcptBreakdownScenePanel extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final tr = Tr.of(context);
-    final doneCount = scenes
-        .where((scene) => scene.status == OcptBreakdownSceneStatus.done)
-        .length;
+    final doneCount = scenes.where((scene) => scene.status == OcptBreakdownSceneStatus.done).length;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,

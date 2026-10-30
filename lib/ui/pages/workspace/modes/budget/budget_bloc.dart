@@ -329,12 +329,7 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
   @override
   Future<void> flushPendingProjectWrites(Emitter<OcptBudgetState> emitter) async {
     await _flushPendingFieldEdits(emitter);
-    emitter(
-      state.copyWith(
-        clearSelection: true,
-        clearSelectedShareId: true,
-      ),
-    );
+    emitter(state.copyWith(clearSelection: true, clearSelectedShareId: true));
   }
 
   /// {@macro open_cine_prod_tools.MixinOcptProjectVersionsBloc.reloadFromProjectDatabase}
@@ -419,7 +414,8 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
       project.previewedPageSetup ??
       OcptPageSetup(
         format: await _projectsManager.loadCurrentProjectPageFormat() ?? OcptPageFormat.usLetter,
-        margins: await _propertiesManager.pageMargins.load() ?? const FountainPageMargins.standard(),
+        margins:
+            await _propertiesManager.pageMargins.load() ?? const FountainPageMargins.standard(),
       );
 
   /// Reads [project]'s whole read: the postes with their lines, the cash journal's own entries and
@@ -518,9 +514,7 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
   String? _defaultProvisionPosteIdOf(List<OcptBudgetPoste> postes) {
     const regiePosteId = 'd75aa74c-ed99-494a-bca0-3508b166ec18';
 
-    return postes.any((poste) => poste.id == regiePosteId)
-        ? regiePosteId
-        : postes.firstOrNull?.id;
+    return postes.any((poste) => poste.id == regiePosteId) ? regiePosteId : postes.firstOrNull?.id;
   }
 
   /// The decor name `OcptBudgetRegie` prints under each shooting day: the name of the first set, or
@@ -1110,8 +1104,10 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     try {
       await _writeAllPendingFieldEdits(project, edits);
     } catch (error) {
-      appLogger().e("A problem occurred when tried to flush a pending budget field edit of the "
-          "project at ${project.path}: $error");
+      appLogger().e(
+        "A problem occurred when tried to flush a pending budget field edit of the "
+        "project at ${project.path}: $error",
+      );
     }
   }
 
@@ -1869,18 +1865,27 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
         snapshot.postes.any((poste) => poste.id == state.filterPosteId);
     final selectionStillExists = switch (state.selection) {
       null => true,
-      OcptBudgetPosteSelection(:final posteId) => snapshot.postes.any((poste) => poste.id == posteId),
-      OcptBudgetLineSelection(:final lineId) =>
-        snapshot.postes.any((poste) => poste.lines.any((line) => line.id == lineId)),
-      OcptBudgetCommitmentSelection(:final commitmentId) =>
-        snapshot.commitments.any((commitment) => commitment.id == commitmentId),
-      OcptBudgetEntrySelection(:final entryId) => snapshot.entries.any((entry) => entry.id == entryId),
-      OcptBudgetResourceSelection(:final resourceId) =>
-        snapshot.resources.any((resource) => resource.id == resourceId),
-      OcptBudgetRevenueSelection(:final revenueId) =>
-        snapshot.revenues.any((revenue) => revenue.id == revenueId),
-      OcptBudgetReceiptSelection(:final receiptId) =>
-        snapshot.entries.any((entry) => entry.id == receiptId),
+      OcptBudgetPosteSelection(:final posteId) => snapshot.postes.any(
+        (poste) => poste.id == posteId,
+      ),
+      OcptBudgetLineSelection(:final lineId) => snapshot.postes.any(
+        (poste) => poste.lines.any((line) => line.id == lineId),
+      ),
+      OcptBudgetCommitmentSelection(:final commitmentId) => snapshot.commitments.any(
+        (commitment) => commitment.id == commitmentId,
+      ),
+      OcptBudgetEntrySelection(:final entryId) => snapshot.entries.any(
+        (entry) => entry.id == entryId,
+      ),
+      OcptBudgetResourceSelection(:final resourceId) => snapshot.resources.any(
+        (resource) => resource.id == resourceId,
+      ),
+      OcptBudgetRevenueSelection(:final revenueId) => snapshot.revenues.any(
+        (revenue) => revenue.id == revenueId,
+      ),
+      OcptBudgetReceiptSelection(:final receiptId) => snapshot.entries.any(
+        (entry) => entry.id == receiptId,
+      ),
     };
     final shareStillExists =
         state.selectedShareId == null ||
@@ -2300,7 +2305,10 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
       return;
     }
 
-    await _budgetSharingService.deleteRevenue(database: project.database, revenueId: event.revenueId);
+    await _budgetSharingService.deleteRevenue(
+      database: project.database,
+      revenueId: event.revenueId,
+    );
     await _applyBudgetSnapshot(emitter, project);
   }
 
@@ -2453,9 +2461,15 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
         ),
       );
     } catch (error) {
-      appLogger().e("A problem occurred when tried to export the quote of the project at "
-          "${_projectsManager.currentProject?.path}: $error");
-      emitter(state.copyWith(ioNotice: const OcptBudgetIoNotice(kind: OcptBudgetIoNoticeKind.exportFailed)));
+      appLogger().e(
+        "A problem occurred when tried to export the quote of the project at "
+        "${_projectsManager.currentProject?.path}: $error",
+      );
+      emitter(
+        state.copyWith(
+          ioNotice: const OcptBudgetIoNotice(kind: OcptBudgetIoNoticeKind.exportFailed),
+        ),
+      );
     }
   }
 
@@ -2499,9 +2513,15 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
         ),
       );
     } catch (error) {
-      appLogger().e("A problem occurred when tried to export the financing plan of the project at "
-          "${_projectsManager.currentProject?.path}: $error");
-      emitter(state.copyWith(ioNotice: const OcptBudgetIoNotice(kind: OcptBudgetIoNoticeKind.exportFailed)));
+      appLogger().e(
+        "A problem occurred when tried to export the financing plan of the project at "
+        "${_projectsManager.currentProject?.path}: $error",
+      );
+      emitter(
+        state.copyWith(
+          ioNotice: const OcptBudgetIoNotice(kind: OcptBudgetIoNoticeKind.exportFailed),
+        ),
+      );
     }
   }
 
@@ -2545,9 +2565,15 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
         ),
       );
     } catch (error) {
-      appLogger().e("A problem occurred when tried to export the cash journal of the project at "
-          "${_projectsManager.currentProject?.path}: $error");
-      emitter(state.copyWith(ioNotice: const OcptBudgetIoNotice(kind: OcptBudgetIoNoticeKind.exportFailed)));
+      appLogger().e(
+        "A problem occurred when tried to export the cash journal of the project at "
+        "${_projectsManager.currentProject?.path}: $error",
+      );
+      emitter(
+        state.copyWith(
+          ioNotice: const OcptBudgetIoNotice(kind: OcptBudgetIoNoticeKind.exportFailed),
+        ),
+      );
     }
   }
 
@@ -2591,9 +2617,15 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
         ),
       );
     } catch (error) {
-      appLogger().e("A problem occurred when tried to export the financial report of the project "
-          "at ${_projectsManager.currentProject?.path}: $error");
-      emitter(state.copyWith(ioNotice: const OcptBudgetIoNotice(kind: OcptBudgetIoNoticeKind.exportFailed)));
+      appLogger().e(
+        "A problem occurred when tried to export the financial report of the project "
+        "at ${_projectsManager.currentProject?.path}: $error",
+      );
+      emitter(
+        state.copyWith(
+          ioNotice: const OcptBudgetIoNotice(kind: OcptBudgetIoNoticeKind.exportFailed),
+        ),
+      );
     }
   }
 

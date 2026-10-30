@@ -132,11 +132,17 @@ Future<void> runReconcileCommand(
 
   final resolvedDbPath = dbPath ?? environment[relayDbPathEnvVar] ?? defaultRelayDbPath;
   final store = (openStore ?? OcptRelayStore.new)(resolvedDbPath);
-  final upstream = (openUpstream ?? OcptRelayUpstreamClient.new)(baseUri: upstreamUri, token: token);
+  final upstream = (openUpstream ?? OcptRelayUpstreamClient.new)(
+    baseUri: upstreamUri,
+    token: token,
+  );
 
   try {
     final reconciler = OcptRelayReconciler(store: store, upstream: upstream);
-    final result = await reconciler.reconcileProject(projectId: projectId, enrolmentSecret: enrolmentSecret);
+    final result = await reconciler.reconcileProject(
+      projectId: projectId,
+      enrolmentSecret: enrolmentSecret,
+    );
     log('pushed ${result.pushed}, pulled ${result.pulled}');
   } finally {
     store.close();

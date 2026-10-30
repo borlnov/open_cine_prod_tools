@@ -198,16 +198,12 @@ class OcptScheduleService {
 
     final crewBySlotId = <String, List<OcptShootingSlotCrewMember>>{};
     for (final row in crewRows) {
-      crewBySlotId
-          .putIfAbsent(row.slotId, () => [])
-          .add(OcptShootingSlotCrewMember.fromRow(row));
+      crewBySlotId.putIfAbsent(row.slotId, () => []).add(OcptShootingSlotCrewMember.fromRow(row));
     }
 
     final castBySlotId = <String, List<OcptShootingSlotCastMember>>{};
     for (final row in castRows) {
-      castBySlotId
-          .putIfAbsent(row.slotId, () => [])
-          .add(OcptShootingSlotCastMember.fromRow(row));
+      castBySlotId.putIfAbsent(row.slotId, () => []).add(OcptShootingSlotCastMember.fromRow(row));
     }
 
     final guestsBySlotId = <String, List<OcptShootingSlotGuest>>{};
@@ -250,9 +246,7 @@ class OcptScheduleService {
 
     final eventsByDayId = <String, List<OcptShootingDayEvent>>{};
     for (final row in eventRows) {
-      eventsByDayId
-          .putIfAbsent(row.shootingDayId, () => [])
-          .add(OcptShootingDayEvent.fromRow(row));
+      eventsByDayId.putIfAbsent(row.shootingDayId, () => []).add(OcptShootingDayEvent.fromRow(row));
     }
 
     final days = [
@@ -344,10 +338,7 @@ class OcptScheduleService {
   /// and the default start [_defaultStartMinute] (08:00).
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<String?> createDay({
-    required OcptProjectDatabase database,
-    required DateTime date,
-  }) async {
+  Future<String?> createDay({required OcptProjectDatabase database, required DateTime date}) async {
     if (database.refusesUserWrite("createDay")) {
       return null;
     }
@@ -366,7 +357,9 @@ class OcptScheduleService {
         next: OcptShootingDayRow(
           id: dayId,
           date: date,
-          sortKey: ocptFractionalKeyBetween(before: existing.isEmpty ? null : existing.last.sortKey),
+          sortKey: ocptFractionalKeyBetween(
+            before: existing.isEmpty ? null : existing.last.sortKey,
+          ),
           status: OcptShootingDayStatus.planned,
           crewNote: '',
           weatherNote: '',
@@ -453,11 +446,9 @@ class OcptScheduleService {
       final slotIds = slotRows.map((row) => row.id).toList(growable: false);
 
       if (slotIds.isNotEmpty) {
-        final crewRows =
-            await (database.select(
-                  database.ocptShootingSlotCrewTable,
-                )..where((table) => table.slotId.isIn(slotIds) & table.isDeleted.not()))
-                .get();
+        final crewRows = await (database.select(
+          database.ocptShootingSlotCrewTable,
+        )..where((table) => table.slotId.isIn(slotIds) & table.isDeleted.not())).get();
         for (final row in crewRows) {
           await OcptRowStampService.writeAndStamp(
             database: database,
@@ -469,11 +460,9 @@ class OcptScheduleService {
           );
         }
 
-        final castRows =
-            await (database.select(
-                  database.ocptShootingSlotCastTable,
-                )..where((table) => table.slotId.isIn(slotIds) & table.isDeleted.not()))
-                .get();
+        final castRows = await (database.select(
+          database.ocptShootingSlotCastTable,
+        )..where((table) => table.slotId.isIn(slotIds) & table.isDeleted.not())).get();
         for (final row in castRows) {
           await OcptRowStampService.writeAndStamp(
             database: database,
@@ -485,11 +474,9 @@ class OcptScheduleService {
           );
         }
 
-        final guestRows =
-            await (database.select(
-                  database.ocptShootingSlotGuestsTable,
-                )..where((table) => table.slotId.isIn(slotIds) & table.isDeleted.not()))
-                .get();
+        final guestRows = await (database.select(
+          database.ocptShootingSlotGuestsTable,
+        )..where((table) => table.slotId.isIn(slotIds) & table.isDeleted.not())).get();
         for (final row in guestRows) {
           await OcptRowStampService.writeAndStamp(
             database: database,
@@ -783,7 +770,9 @@ class OcptScheduleService {
         next: OcptShootingSlotRow(
           id: id,
           shootingDayId: shootingDayId,
-          sortKey: ocptFractionalKeyBetween(before: existing.isEmpty ? null : existing.last.sortKey),
+          sortKey: ocptFractionalKeyBetween(
+            before: existing.isEmpty ? null : existing.last.sortKey,
+          ),
           label: label,
           locationId: locationId,
           setId: setId,
@@ -937,9 +926,8 @@ class OcptScheduleService {
 
     await database.transaction(() async {
       final slot = await _getSlotRow(database: database, slotId: slotId);
-      final others =
-          (await _liveSlotRows(database: database, dayId: slot.shootingDayId))
-            ..removeWhere((row) => row.id == slotId);
+      final others = (await _liveSlotRows(database: database, dayId: slot.shootingDayId))
+        ..removeWhere((row) => row.id == slotId);
 
       final clampedPosition = newPosition < 0
           ? 0
@@ -1003,11 +991,9 @@ class OcptScheduleService {
 
       await _freezeDependentsOf(database: database, slot: slot, stamps: stamps);
 
-      final crewRows =
-          await (database.select(
-                database.ocptShootingSlotCrewTable,
-              )..where((table) => table.slotId.equals(slotId) & table.isDeleted.not()))
-              .get();
+      final crewRows = await (database.select(
+        database.ocptShootingSlotCrewTable,
+      )..where((table) => table.slotId.equals(slotId) & table.isDeleted.not())).get();
       for (final row in crewRows) {
         await OcptRowStampService.writeAndStamp(
           database: database,
@@ -1019,11 +1005,9 @@ class OcptScheduleService {
         );
       }
 
-      final castRows =
-          await (database.select(
-                database.ocptShootingSlotCastTable,
-              )..where((table) => table.slotId.equals(slotId) & table.isDeleted.not()))
-              .get();
+      final castRows = await (database.select(
+        database.ocptShootingSlotCastTable,
+      )..where((table) => table.slotId.equals(slotId) & table.isDeleted.not())).get();
       for (final row in castRows) {
         await OcptRowStampService.writeAndStamp(
           database: database,
@@ -1035,11 +1019,9 @@ class OcptScheduleService {
         );
       }
 
-      final guestRows =
-          await (database.select(
-                database.ocptShootingSlotGuestsTable,
-              )..where((table) => table.slotId.equals(slotId) & table.isDeleted.not()))
-              .get();
+      final guestRows = await (database.select(
+        database.ocptShootingSlotGuestsTable,
+      )..where((table) => table.slotId.equals(slotId) & table.isDeleted.not())).get();
       for (final row in guestRows) {
         await OcptRowStampService.writeAndStamp(
           database: database,
@@ -1051,9 +1033,8 @@ class OcptScheduleService {
         );
       }
 
-      final otherSlots =
-          (await _liveSlotRows(database: database, dayId: slot.shootingDayId))
-            ..removeWhere((row) => row.id == slotId);
+      final otherSlots = (await _liveSlotRows(database: database, dayId: slot.shootingDayId))
+        ..removeWhere((row) => row.id == slotId);
       final blocksToMove = await _liveBlockRowsOfSlot(database: database, slotId: slotId);
 
       if (otherSlots.isEmpty) {
@@ -1091,10 +1072,7 @@ class OcptScheduleService {
             table: database.ocptShootingDayBlocksTable,
             rowId: blocksToMove[i].id,
             current: blocksToMove[i],
-            next: blocksToMove[i].copyWith(
-              slotId: destinationSlot.id,
-              sortKey: newSortKeys[i],
-            ),
+            next: blocksToMove[i].copyWith(slotId: destinationSlot.id, sortKey: newSortKeys[i]),
             stamps: stamps,
           );
         }
@@ -1184,7 +1162,9 @@ class OcptScheduleService {
         next: OcptShootingSlotCrewRow(
           id: id,
           slotId: slotId,
-          sortKey: ocptFractionalKeyBetween(before: existing.isEmpty ? null : existing.last.sortKey),
+          sortKey: ocptFractionalKeyBetween(
+            before: existing.isEmpty ? null : existing.last.sortKey,
+          ),
           personId: personId,
           positionId: resolvedPositionId,
           customLabel: resolvedCustomLabel,
@@ -1304,11 +1284,9 @@ class OcptScheduleService {
     }
 
     return database.transaction(() async {
-      final existingRows =
-          await (database.select(database.ocptShootingSlotCastTable)..where(
-                (table) => table.slotId.equals(slotId) & table.roleId.equals(roleId),
-              ))
-              .get();
+      final existingRows = await (database.select(
+        database.ocptShootingSlotCastTable,
+      )..where((table) => table.slotId.equals(slotId) & table.roleId.equals(roleId))).get();
 
       OcptShootingSlotCastRow? tombstoned;
       for (final row in existingRows) {
@@ -1345,7 +1323,9 @@ class OcptScheduleService {
           id: id,
           slotId: slotId,
           roleId: roleId,
-          sortKey: ocptFractionalKeyBetween(before: existing.isEmpty ? null : existing.last.sortKey),
+          sortKey: ocptFractionalKeyBetween(
+            before: existing.isEmpty ? null : existing.last.sortKey,
+          ),
           notes: notes,
           isDeleted: false,
         ),
@@ -1474,7 +1454,9 @@ class OcptScheduleService {
           freeName: resolvedFreeName,
           reason: reason,
           notes: notes,
-          sortKey: ocptFractionalKeyBetween(before: existing.isEmpty ? null : existing.last.sortKey),
+          sortKey: ocptFractionalKeyBetween(
+            before: existing.isEmpty ? null : existing.last.sortKey,
+          ),
           isDeleted: false,
         ),
         stamps: stamps,
@@ -1517,11 +1499,9 @@ class OcptScheduleService {
     );
 
     await database.transaction(() async {
-      final row =
-          await (database.select(database.ocptShootingSlotGuestsTable)..where(
-                (table) => table.id.equals(guestId) & table.isDeleted.not(),
-              ))
-              .getSingleOrNull();
+      final row = await (database.select(
+        database.ocptShootingSlotGuestsTable,
+      )..where((table) => table.id.equals(guestId) & table.isDeleted.not())).getSingleOrNull();
       if (row == null) {
         return;
       }
@@ -1657,7 +1637,9 @@ class OcptScheduleService {
           id: id,
           blockId: blockId,
           roleCandidateId: roleCandidateId,
-          sortKey: ocptFractionalKeyBetween(before: existing.isEmpty ? null : existing.last.sortKey),
+          sortKey: ocptFractionalKeyBetween(
+            before: existing.isEmpty ? null : existing.last.sortKey,
+          ),
           notes: notes,
           isDeleted: false,
         ),
@@ -1687,9 +1669,10 @@ class OcptScheduleService {
     final companion = OcptShootingBlockCandidatesTableCompanion(notes: notes);
 
     await database.transaction(() async {
-      final current = await (database.select(
-        database.ocptShootingBlockCandidatesTable,
-      )..where((table) => table.id.equals(blockCandidateId) & table.isDeleted.not())).getSingleOrNull();
+      final current =
+          await (database.select(database.ocptShootingBlockCandidatesTable)
+                ..where((table) => table.id.equals(blockCandidateId) & table.isDeleted.not()))
+              .getSingleOrNull();
 
       if (current == null) {
         return;
@@ -1734,9 +1717,8 @@ class OcptScheduleService {
         return;
       }
 
-      final others =
-          (await _liveCandidateRowsOfBlock(database: database, blockId: row.blockId))
-            ..removeWhere((other) => other.id == blockCandidateId);
+      final others = (await _liveCandidateRowsOfBlock(database: database, blockId: row.blockId))
+        ..removeWhere((other) => other.id == blockCandidateId);
 
       final clampedPosition = newPosition < 0
           ? 0
@@ -1839,7 +1821,9 @@ class OcptScheduleService {
           minute: minute,
           label: label,
           notes: notes,
-          sortKey: ocptFractionalKeyBetween(before: existing.isEmpty ? null : existing.last.sortKey),
+          sortKey: ocptFractionalKeyBetween(
+            before: existing.isEmpty ? null : existing.last.sortKey,
+          ),
           isDeleted: false,
         ),
         stamps: stamps,
@@ -1866,7 +1850,11 @@ class OcptScheduleService {
       return;
     }
 
-    final companion = OcptShootingDayEventsTableCompanion(minute: minute, label: label, notes: notes);
+    final companion = OcptShootingDayEventsTableCompanion(
+      minute: minute,
+      label: label,
+      notes: notes,
+    );
 
     await database.transaction(() async {
       final current = await (database.select(
@@ -1954,7 +1942,9 @@ class OcptScheduleService {
 
       final clampedPosition = atPosition == null
           ? slotBlocks.length
-          : (atPosition < 0 ? 0 : (atPosition > slotBlocks.length ? slotBlocks.length : atPosition));
+          : (atPosition < 0
+                ? 0
+                : (atPosition > slotBlocks.length ? slotBlocks.length : atPosition));
 
       final sortKey = ocptFractionalKeyBetween(
         before: clampedPosition > 0 ? slotBlocks[clampedPosition - 1].sortKey : null,
@@ -2001,10 +1991,7 @@ class OcptScheduleService {
   /// {@macro open_cine_prod_tools.tombstones}
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<void> deleteBlock({
-    required OcptProjectDatabase database,
-    required String blockId,
-  }) async {
+  Future<void> deleteBlock({required OcptProjectDatabase database, required String blockId}) async {
     if (database.refusesUserWrite("deleteBlock")) {
       return;
     }
@@ -2079,7 +2066,9 @@ class OcptScheduleService {
       final slotBlocks = await _liveBlockRowsOfSlot(database: database, slotId: slotId);
       final clampedPosition = atPosition == null
           ? slotBlocks.length
-          : (atPosition < 0 ? 0 : (atPosition > slotBlocks.length ? slotBlocks.length : atPosition));
+          : (atPosition < 0
+                ? 0
+                : (atPosition > slotBlocks.length ? slotBlocks.length : atPosition));
 
       final sortKey = ocptFractionalKeyBetween(
         before: clampedPosition > 0 ? slotBlocks[clampedPosition - 1].sortKey : null,
@@ -2165,11 +2154,9 @@ class OcptScheduleService {
     await database.transaction(() async {
       var sceneIdToWrite = sceneId;
 
-      final row =
-          await (database.select(database.ocptShootingDayBlocksTable)..where(
-                (table) => table.id.equals(blockId) & table.isDeleted.not(),
-              ))
-              .getSingleOrNull();
+      final row = await (database.select(
+        database.ocptShootingDayBlocksTable,
+      )..where((table) => table.id.equals(blockId) & table.isDeleted.not())).getSingleOrNull();
 
       if (row == null) {
         return;
@@ -2191,7 +2178,11 @@ class OcptScheduleService {
 
       if (row.kind == OcptShootingBlockKind.audition &&
           resultingKind != OcptShootingBlockKind.audition) {
-        await _tombstoneCandidaciesOfBlocks(database: database, blockIds: [blockId], stamps: stamps);
+        await _tombstoneCandidaciesOfBlocks(
+          database: database,
+          blockIds: [blockId],
+          stamps: stamps,
+        );
       }
 
       final companion = OcptShootingDayBlocksTableCompanion(
@@ -2245,9 +2236,8 @@ class OcptScheduleService {
 
     await database.transaction(() async {
       final block = await _getBlockRow(database: database, blockId: blockId);
-      final others =
-          (await _liveBlockRowsOfSlot(database: database, slotId: block.slotId))
-            ..removeWhere((row) => row.id == blockId);
+      final others = (await _liveBlockRowsOfSlot(database: database, slotId: block.slotId))
+        ..removeWhere((row) => row.id == blockId);
 
       final clampedPosition = newPosition < 0
           ? 0
@@ -2359,11 +2349,9 @@ class OcptScheduleService {
       return;
     }
 
-    final rows =
-        await (database.select(
-              database.ocptShootingDayBlocksTable,
-            )..where((table) => table.shotId.isIn(shotIds) & table.isDeleted.not()))
-            .get();
+    final rows = await (database.select(
+      database.ocptShootingDayBlocksTable,
+    )..where((table) => table.shotId.isIn(shotIds) & table.isDeleted.not())).get();
 
     for (final row in rows) {
       await OcptRowStampService.writeAndStamp(
@@ -2413,10 +2401,7 @@ class OcptScheduleService {
   /// live slot of its own day. Nothing this app writes leaves one like that — [deleteSlot] freezes
   /// the dependents of the slot it takes away — but a restored payload or a hand-edited file can,
   /// and the alternative would be a copy anchored by neither a slot nor an hour.
-  static int _frozenAnchorMinuteOf(
-    OcptShootingSlotRow slot,
-    OcptShootingDayTimelines timelines,
-  ) {
+  static int _frozenAnchorMinuteOf(OcptShootingSlotRow slot, OcptShootingDayTimelines timelines) {
     final timeline = timelines.bySlotId[slot.id];
     return slot.anchorEdge == OcptShootingSlotAnchorEdge.start
         ? (timeline?.startMinute ?? 0)
@@ -2534,25 +2519,25 @@ class OcptScheduleService {
   Future<OcptShootingDayRow> _getDayRow({
     required OcptProjectDatabase database,
     required String dayId,
-  }) => (database.select(database.ocptShootingDaysTable)
-        ..where((table) => table.id.equals(dayId) & table.isDeleted.not()))
-      .getSingle();
+  }) => (database.select(
+    database.ocptShootingDaysTable,
+  )..where((table) => table.id.equals(dayId) & table.isDeleted.not())).getSingle();
 
   /// Reads back the slot row [slotId], throwing if it doesn't exist or has been tombstoned.
   Future<OcptShootingSlotRow> _getSlotRow({
     required OcptProjectDatabase database,
     required String slotId,
-  }) => (database.select(database.ocptShootingSlotsTable)
-        ..where((table) => table.id.equals(slotId) & table.isDeleted.not()))
-      .getSingle();
+  }) => (database.select(
+    database.ocptShootingSlotsTable,
+  )..where((table) => table.id.equals(slotId) & table.isDeleted.not())).getSingle();
 
   /// Reads back the block row [blockId], throwing if it doesn't exist or has been tombstoned.
   Future<OcptShootingDayBlockRow> _getBlockRow({
     required OcptProjectDatabase database,
     required String blockId,
-  }) => (database.select(database.ocptShootingDayBlocksTable)
-        ..where((table) => table.id.equals(blockId) & table.isDeleted.not()))
-      .getSingle();
+  }) => (database.select(
+    database.ocptShootingDayBlocksTable,
+  )..where((table) => table.id.equals(blockId) & table.isDeleted.not())).getSingle();
 
   /// Every live day row of the **project** — a shooting day belongs to no one episode
   /// (`docs/adr/0019-one-project-several-episodes.md`), the schedule being shared across every
@@ -2572,10 +2557,11 @@ class OcptScheduleService {
   Future<List<OcptShootingSlotRow>> _liveSlotRows({
     required OcptProjectDatabase database,
     required String dayId,
-  }) => (database.select(database.ocptShootingSlotsTable)
-        ..where((table) => table.shootingDayId.equals(dayId) & table.isDeleted.not())
-        ..orderBy([(table) => OrderingTerm.asc(table.sortKey)]))
-      .get();
+  }) =>
+      (database.select(database.ocptShootingSlotsTable)
+            ..where((table) => table.shootingDayId.equals(dayId) & table.isDeleted.not())
+            ..orderBy([(table) => OrderingTerm.asc(table.sortKey)]))
+          .get();
 
   /// Every live `person_positions` row of [personId], ordered by `sortKey` — what
   /// [addSlotCrewMember] reads to pre-fill a fresh crew row's position, written exactly as
@@ -2583,65 +2569,72 @@ class OcptScheduleService {
   Future<List<OcptPersonPositionRow>> _livePositionRowsOfPerson({
     required OcptProjectDatabase database,
     required String personId,
-  }) => (database.select(database.ocptPersonPositionsTable)
-        ..where((table) => table.personId.equals(personId) & table.isDeleted.not())
-        ..orderBy([(table) => OrderingTerm.asc(table.sortKey)]))
-      .get();
+  }) =>
+      (database.select(database.ocptPersonPositionsTable)
+            ..where((table) => table.personId.equals(personId) & table.isDeleted.not())
+            ..orderBy([(table) => OrderingTerm.asc(table.sortKey)]))
+          .get();
 
   /// Every live crew row of slot [slotId], ordered by `sortKey`.
   Future<List<OcptShootingSlotCrewRow>> _liveCrewRowsOfSlot({
     required OcptProjectDatabase database,
     required String slotId,
-  }) => (database.select(database.ocptShootingSlotCrewTable)
-        ..where((table) => table.slotId.equals(slotId) & table.isDeleted.not())
-        ..orderBy([(table) => OrderingTerm.asc(table.sortKey)]))
-      .get();
+  }) =>
+      (database.select(database.ocptShootingSlotCrewTable)
+            ..where((table) => table.slotId.equals(slotId) & table.isDeleted.not())
+            ..orderBy([(table) => OrderingTerm.asc(table.sortKey)]))
+          .get();
 
   /// Every live cast row of slot [slotId], ordered by `sortKey`.
   Future<List<OcptShootingSlotCastRow>> _liveCastRowsOfSlot({
     required OcptProjectDatabase database,
     required String slotId,
-  }) => (database.select(database.ocptShootingSlotCastTable)
-        ..where((table) => table.slotId.equals(slotId) & table.isDeleted.not())
-        ..orderBy([(table) => OrderingTerm.asc(table.sortKey)]))
-      .get();
+  }) =>
+      (database.select(database.ocptShootingSlotCastTable)
+            ..where((table) => table.slotId.equals(slotId) & table.isDeleted.not())
+            ..orderBy([(table) => OrderingTerm.asc(table.sortKey)]))
+          .get();
 
   /// Every live block row of slot [slotId], ordered by `sortKey` — that slot's own timetable order.
   Future<List<OcptShootingDayBlockRow>> _liveBlockRowsOfSlot({
     required OcptProjectDatabase database,
     required String slotId,
-  }) => (database.select(database.ocptShootingDayBlocksTable)
-        ..where((table) => table.slotId.equals(slotId) & table.isDeleted.not())
-        ..orderBy([(table) => OrderingTerm.asc(table.sortKey)]))
-      .get();
+  }) =>
+      (database.select(database.ocptShootingDayBlocksTable)
+            ..where((table) => table.slotId.equals(slotId) & table.isDeleted.not())
+            ..orderBy([(table) => OrderingTerm.asc(table.sortKey)]))
+          .get();
 
   /// Every live guest row of slot [slotId], ordered by `sortKey`.
   Future<List<OcptShootingSlotGuestRow>> _liveGuestRowsOfSlot({
     required OcptProjectDatabase database,
     required String slotId,
-  }) => (database.select(database.ocptShootingSlotGuestsTable)
-        ..where((table) => table.slotId.equals(slotId) & table.isDeleted.not())
-        ..orderBy([(table) => OrderingTerm.asc(table.sortKey)]))
-      .get();
+  }) =>
+      (database.select(database.ocptShootingSlotGuestsTable)
+            ..where((table) => table.slotId.equals(slotId) & table.isDeleted.not())
+            ..orderBy([(table) => OrderingTerm.asc(table.sortKey)]))
+          .get();
 
   /// Every live candidate row of block [blockId], ordered by `sortKey`.
   Future<List<OcptShootingBlockCandidateRow>> _liveCandidateRowsOfBlock({
     required OcptProjectDatabase database,
     required String blockId,
-  }) => (database.select(database.ocptShootingBlockCandidatesTable)
-        ..where((table) => table.blockId.equals(blockId) & table.isDeleted.not())
-        ..orderBy([(table) => OrderingTerm.asc(table.sortKey)]))
-      .get();
+  }) =>
+      (database.select(database.ocptShootingBlockCandidatesTable)
+            ..where((table) => table.blockId.equals(blockId) & table.isDeleted.not())
+            ..orderBy([(table) => OrderingTerm.asc(table.sortKey)]))
+          .get();
 
   /// Every live block row of day [dayId], ordered by `sortKey` — the whole day's timetable, across
   /// its slots, which is what a day-wide cascade has to reach.
   Future<List<OcptShootingDayBlockRow>> _liveBlockRowsOfDay({
     required OcptProjectDatabase database,
     required String dayId,
-  }) => (database.select(database.ocptShootingDayBlocksTable)
-        ..where((table) => table.shootingDayId.equals(dayId) & table.isDeleted.not())
-        ..orderBy([(table) => OrderingTerm.asc(table.sortKey)]))
-      .get();
+  }) =>
+      (database.select(database.ocptShootingDayBlocksTable)
+            ..where((table) => table.shootingDayId.equals(dayId) & table.isDeleted.not())
+            ..orderBy([(table) => OrderingTerm.asc(table.sortKey)]))
+          .get();
 
   /// Tombstones every `shooting_block_candidates` row hanging off [blockIds], and does nothing at
   /// all when that list is empty.
@@ -2659,11 +2652,9 @@ class OcptScheduleService {
       return;
     }
 
-    final rows =
-        await (database.select(
-              database.ocptShootingBlockCandidatesTable,
-            )..where((table) => table.blockId.isIn(blockIds) & table.isDeleted.not()))
-            .get();
+    final rows = await (database.select(
+      database.ocptShootingBlockCandidatesTable,
+    )..where((table) => table.blockId.isIn(blockIds) & table.isDeleted.not())).get();
 
     for (final row in rows) {
       await OcptRowStampService.writeAndStamp(
@@ -2682,8 +2673,9 @@ class OcptScheduleService {
   Future<List<OcptShootingDayEventRow>> _liveEventRowsOfDay({
     required OcptProjectDatabase database,
     required String dayId,
-  }) => (database.select(database.ocptShootingDayEventsTable)
-        ..where((table) => table.shootingDayId.equals(dayId) & table.isDeleted.not())
-        ..orderBy([(table) => OrderingTerm.asc(table.sortKey)]))
-      .get();
+  }) =>
+      (database.select(database.ocptShootingDayEventsTable)
+            ..where((table) => table.shootingDayId.equals(dayId) & table.isDeleted.not())
+            ..orderBy([(table) => OrderingTerm.asc(table.sortKey)]))
+          .get();
 }

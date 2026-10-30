@@ -84,7 +84,15 @@ OcptElement _buildElement({required String id, String name = "", int? cost}) => 
 
 /// Builds a minimal poste, everything but [id]/[lines] neutral.
 OcptBudgetPoste _buildPoste({required String id, List<OcptBudgetLine> lines = const []}) =>
-    OcptBudgetPoste(id: id, code: "1", label: "Poste $id", simpleLabel: null, estimateToCompleteCents: null, sortKey: "a0", lines: lines);
+    OcptBudgetPoste(
+      id: id,
+      code: "1",
+      label: "Poste $id",
+      simpleLabel: null,
+      estimateToCompleteCents: null,
+      sortKey: "a0",
+      lines: lines,
+    );
 
 /// Builds a minimal journal entry naming [posteId] — null for an entry naming no poste at all,
 /// off-quote spending's own reading — everything else neutral (a debit of [debitCents],
@@ -202,52 +210,49 @@ OcptRole _buildRole({
 );
 
 /// Builds a person, the few fields these tests read, everything else neutral.
-OcptPerson _buildPerson({
-  required String id,
-  int? commuteKmMilli,
-  String? mileageRateId,
-}) => OcptPerson(
-  id: id,
-  firstName: "Person $id",
-  lastName: "",
-  email: "",
-  phone: "",
-  addressLine1: "",
-  addressLine2: "",
-  postalCode: "",
-  city: "",
-  region: "",
-  country: "",
-  colorIndex: 0,
-  birthDate: null,
-  minorNotes: "",
-  maxDailyPresenceMinutes: null,
-  isTransportAutonomous: null,
-  accommodationNotes: "",
-  travelNotes: "",
-  dietaryNotes: "",
-  allergies: "",
-  measurementHeight: "",
-  measurementChest: "",
-  measurementWaist: "",
-  measurementHips: "",
-  sizeTop: "",
-  sizeBottom: "",
-  sizeShoes: "",
-  hmcNotes: "",
-  imageRightsStatus: OcptImageRightsStatus.notApplicable,
-  imageRightsDate: null,
-  imageRightsAssetId: null,
-  imageRightsDocument: null,
-  photoAssetId: null,
-  photo: null,
-  notes: "",
-  commuteKmMilli: commuteKmMilli,
-  mileageRateId: mileageRateId,
-  positions: const [],
-  skills: const [],
-  unavailabilities: const [],
-);
+OcptPerson _buildPerson({required String id, int? commuteKmMilli, String? mileageRateId}) =>
+    OcptPerson(
+      id: id,
+      firstName: "Person $id",
+      lastName: "",
+      email: "",
+      phone: "",
+      addressLine1: "",
+      addressLine2: "",
+      postalCode: "",
+      city: "",
+      region: "",
+      country: "",
+      colorIndex: 0,
+      birthDate: null,
+      minorNotes: "",
+      maxDailyPresenceMinutes: null,
+      isTransportAutonomous: null,
+      accommodationNotes: "",
+      travelNotes: "",
+      dietaryNotes: "",
+      allergies: "",
+      measurementHeight: "",
+      measurementChest: "",
+      measurementWaist: "",
+      measurementHips: "",
+      sizeTop: "",
+      sizeBottom: "",
+      sizeShoes: "",
+      hmcNotes: "",
+      imageRightsStatus: OcptImageRightsStatus.notApplicable,
+      imageRightsDate: null,
+      imageRightsAssetId: null,
+      imageRightsDocument: null,
+      photoAssetId: null,
+      photo: null,
+      notes: "",
+      commuteKmMilli: commuteKmMilli,
+      mileageRateId: mileageRateId,
+      positions: const [],
+      skills: const [],
+      unavailabilities: const [],
+    );
 
 void main() {
   group("OcptBudgetState.init", () {
@@ -418,7 +423,10 @@ void main() {
   group("OcptBudgetState.paidCentsOf / committedCentsOf", () {
     test("reads zero for a poste with no entry against it, rather than a hole", () {
       final snapshot = OcptBudgetSnapshot.build(
-        postes: [_buildPoste(id: "poste-1"), _buildPoste(id: "poste-2")],
+        postes: [
+          _buildPoste(id: "poste-1"),
+          _buildPoste(id: "poste-2"),
+        ],
         entries: [_buildEntry(id: "entry-1", posteId: "poste-1", debitCents: 1000)],
         commitments: const [],
         defaultVatRateBasisPoints: null,
@@ -453,7 +461,14 @@ void main() {
     test("excludes a settled commitment outright", () {
       final snapshot = OcptBudgetSnapshot.build(
         postes: [_buildPoste(id: "poste-1")],
-        entries: [_buildEntry(id: "entry-1", posteId: "poste-1", debitCents: 5000, commitmentId: "commitment-1")],
+        entries: [
+          _buildEntry(
+            id: "entry-1",
+            posteId: "poste-1",
+            debitCents: 5000,
+            commitmentId: "commitment-1",
+          ),
+        ],
         commitments: const [
           OcptBudgetCommitment(
             id: "commitment-1",
@@ -509,7 +524,12 @@ void main() {
       expect(emptyState.alerts, isEmpty);
 
       final snapshot = OcptBudgetSnapshot.build(
-        postes: [_buildPoste(id: "poste-1", lines: [_buildLine(id: "line-1", posteId: "poste-1")])],
+        postes: [
+          _buildPoste(
+            id: "poste-1",
+            lines: [_buildLine(id: "line-1", posteId: "poste-1")],
+          ),
+        ],
         entries: const [],
         commitments: const [],
         defaultVatRateBasisPoints: null,
@@ -703,7 +723,10 @@ void main() {
         postes: const [],
         entries: const [],
         commitments: const [],
-        resources: [_buildResource(id: "resource-1"), _buildResource(id: "resource-2")],
+        resources: [
+          _buildResource(id: "resource-1"),
+          _buildResource(id: "resource-2"),
+        ],
         defaultVatRateBasisPoints: null,
         currencyCode: "EUR",
       );
@@ -740,7 +763,11 @@ void main() {
     });
 
     test("read the snapshot's own catering pass, built from the schedule it was given", () {
-      final crewPerson = _buildPerson(id: "person-crew", commuteKmMilli: 10000, mileageRateId: "rate-1");
+      final crewPerson = _buildPerson(
+        id: "person-crew",
+        commuteKmMilli: 10000,
+        mileageRateId: "rate-1",
+      );
       final castPerson = _buildPerson(id: "person-cast");
       final role = _buildRole(id: "role-1", name: "Hero", personId: "person-cast");
 

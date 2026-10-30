@@ -262,11 +262,13 @@ class OcptShootingPlanLabels extends Equatable {
   String blockKindLabelOf(OcptShootingBlockKind kind) => blockKindLabels[kind] ?? "";
 
   /// The label of [category], or an empty string if [elementCategoryLabels] holds none for it.
-  String elementCategoryLabelOf(OcptElementCategory category) => elementCategoryLabels[category] ?? "";
+  String elementCategoryLabelOf(OcptElementCategory category) =>
+      elementCategoryLabels[category] ?? "";
 
   /// Object string representation, useful for debugging and logging.
   @override
-  String toString() => "OcptShootingPlanLabels(documentTitle: $documentTitle, dayCount: ${dayTitles.length})";
+  String toString() =>
+      "OcptShootingPlanLabels(documentTitle: $documentTitle, dayCount: ${dayTitles.length})";
 
   /// Object properties
   @override

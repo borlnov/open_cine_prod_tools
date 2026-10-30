@@ -294,44 +294,41 @@ void main() {
     },
   );
 
-  testWidgets(
-    "the export action is exactly as tall as a dock toggle on a desktop platform",
-    (tester) async {
-      // The density a [TextButton] takes from the ambient theme is the platform's own, and on a
-      // desktop one it is [VisualDensity.compact] — which takes 8 px off every minimum size. An
-      // [IconButton] never follows it, so without this override the test would report the Android
-      // density and the two controls would agree at a height neither has on Linux or Windows.
-      debugDefaultTargetPlatformOverride = TargetPlatform.linux;
+  testWidgets("the export action is exactly as tall as a dock toggle on a desktop platform", (
+    tester,
+  ) async {
+    // The density a [TextButton] takes from the ambient theme is the platform's own, and on a
+    // desktop one it is [VisualDensity.compact] — which takes 8 px off every minimum size. An
+    // [IconButton] never follows it, so without this override the test would report the Android
+    // density and the two controls would agree at a height neither has on Linux or Windows.
+    debugDefaultTargetPlatformOverride = TargetPlatform.linux;
 
-      await tester.pumpWidget(
-        _wrapInApp(
-          OcptWorkspaceShell(
-            title: "My Movie",
-            isDirty: false,
-            onBack: () {},
-            centre: const Text("centre"),
-            onExportRequested: (_) {},
-            isLeftDockOpen: true,
-            onToggleLeftDock: () {},
-          ),
-          theme: ocptTheme.lightThemeData,
+    await tester.pumpWidget(
+      _wrapInApp(
+        OcptWorkspaceShell(
+          title: "My Movie",
+          isDirty: false,
+          onBack: () {},
+          centre: const Text("centre"),
+          onExportRequested: (_) {},
+          isLeftDockOpen: true,
+          onToggleLeftDock: () {},
         ),
-      );
-      await tester.pumpAndSettle();
-      // Put back before anything can fail: the framework's own invariant check runs before this
-      // test's tear-downs would, and a leaked foundation override fails the *next* test instead.
-      debugDefaultTargetPlatformOverride = null;
+        theme: ocptTheme.lightThemeData,
+      ),
+    );
+    await tester.pumpAndSettle();
+    // Put back before anything can fail: the framework's own invariant check runs before this
+    // test's tear-downs would, and a leaked foundation override fails the *next* test instead.
+    debugDefaultTargetPlatformOverride = null;
 
-      final tr = Tr.of(tester.element(find.byType(OcptWorkspaceShell)));
-      final exportHeight = tester.getSize(find.byTooltip(tr.workspaceExportTooltip)).height;
-      final toggleHeight = tester
-          .getSize(find.byTooltip(tr.workspaceToggleLeftDockTooltip))
-          .height;
+    final tr = Tr.of(tester.element(find.byType(OcptWorkspaceShell)));
+    final exportHeight = tester.getSize(find.byTooltip(tr.workspaceExportTooltip)).height;
+    final toggleHeight = tester.getSize(find.byTooltip(tr.workspaceToggleLeftDockTooltip)).height;
 
-      expect(exportHeight, ocptToolbarChromeButtonSize);
-      expect(exportHeight, toggleHeight);
-    },
-  );
+    expect(exportHeight, ocptToolbarChromeButtonSize);
+    expect(exportHeight, toggleHeight);
+  });
 
   testWidgets(
     "the project settings action is rendered only when the mode wired it, and clicking it fires "
@@ -408,57 +405,56 @@ void main() {
     expect(find.byTooltip(tr.workspaceProjectSettingsTooltip), findsNothing);
   });
 
-  testWidgets(
-    "the onDockFractionsChanged callback fires exactly once per completed drag gesture",
-    (tester) async {
-      tester.view.physicalSize = const Size(1400, 900);
-      tester.view.devicePixelRatio = 1.0;
-      addTearDown(tester.view.resetPhysicalSize);
-      addTearDown(tester.view.resetDevicePixelRatio);
+  testWidgets("the onDockFractionsChanged callback fires exactly once per completed drag gesture", (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1400, 900);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
 
-      final controller = OcptWorkspaceDockLayoutController(
-        leftFraction: OcptWorkspaceDock.leftDefaultFraction,
-        rightFraction: OcptWorkspaceDock.rightDefaultFraction,
-      );
-      addTearDown(controller.dispose);
+    final controller = OcptWorkspaceDockLayoutController(
+      leftFraction: OcptWorkspaceDock.leftDefaultFraction,
+      rightFraction: OcptWorkspaceDock.rightDefaultFraction,
+    );
+    addTearDown(controller.dispose);
 
-      var callCount = 0;
-      ({double? left, double? right})? lastReported;
+    var callCount = 0;
+    ({double? left, double? right})? lastReported;
 
-      await tester.pumpWidget(
-        _wrapInApp(
-          OcptWorkspaceShell(
-            title: "My Movie",
-            isDirty: false,
-            onBack: () {},
-            centre: const Text("centre"),
-            leftPanel: const Text("left"),
-            dockLayoutController: controller,
-            onDockFractionsChanged: (fractions) {
-              callCount++;
-              lastReported = fractions;
-            },
-          ),
+    await tester.pumpWidget(
+      _wrapInApp(
+        OcptWorkspaceShell(
+          title: "My Movie",
+          isDirty: false,
+          onBack: () {},
+          centre: const Text("centre"),
+          leftPanel: const Text("left"),
+          dockLayoutController: controller,
+          onDockFractionsChanged: (fractions) {
+            callCount++;
+            lastReported = fractions;
+          },
         ),
-      );
-      await tester.pumpAndSettle();
+      ),
+    );
+    await tester.pumpAndSettle();
 
-      final gesture = await tester.startGesture(
-        tester.getCenter(find.byType(OcptWorkspaceDockDivider).first),
-      );
-      await gesture.moveBy(const Offset(40, 0));
-      await tester.pump();
-      // Mid-drag: no callback yet.
-      expect(callCount, 0);
+    final gesture = await tester.startGesture(
+      tester.getCenter(find.byType(OcptWorkspaceDockDivider).first),
+    );
+    await gesture.moveBy(const Offset(40, 0));
+    await tester.pump();
+    // Mid-drag: no callback yet.
+    expect(callCount, 0);
 
-      await gesture.up();
-      await tester.pumpAndSettle();
+    await gesture.up();
+    await tester.pumpAndSettle();
 
-      expect(callCount, 1);
-      expect(lastReported?.left, isNotNull);
-      expect(lastReported?.right, isNull);
-    },
-  );
+    expect(callCount, 1);
+    expect(lastReported?.left, isNotNull);
+    expect(lastReported?.right, isNull);
+  });
 
   const pilotEpisode = OcptEpisode(id: "ep-1", number: 1, title: "Pilot");
   const untitledEpisode = OcptEpisode(id: "ep-2", number: 3, title: "");
@@ -540,73 +536,69 @@ void main() {
     },
   );
 
-  testWidgets(
-    "no Manage episodes… entry when no project settings callback is wired",
-    (tester) async {
-      await tester.pumpWidget(
-        _wrapInApp(
-          OcptWorkspaceShell(
-            title: "My Movie",
-            isDirty: false,
-            onBack: () {},
-            centre: const Text("centre"),
-            episodes: const [pilotEpisode, untitledEpisode],
-            selectedEpisodeId: pilotEpisode.id,
-            onEpisodeSelected: (_) {},
-          ),
+  testWidgets("no Manage episodes… entry when no project settings callback is wired", (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _wrapInApp(
+        OcptWorkspaceShell(
+          title: "My Movie",
+          isDirty: false,
+          onBack: () {},
+          centre: const Text("centre"),
+          episodes: const [pilotEpisode, untitledEpisode],
+          selectedEpisodeId: pilotEpisode.id,
+          onEpisodeSelected: (_) {},
         ),
-      );
-      await tester.pumpAndSettle();
+      ),
+    );
+    await tester.pumpAndSettle();
 
-      final tr = Tr.of(tester.element(find.byType(OcptWorkspaceShell)));
-      await tester.tap(find.byTooltip(tr.workspaceEpisodeSelectorTooltip));
-      await tester.pumpAndSettle();
+    final tr = Tr.of(tester.element(find.byType(OcptWorkspaceShell)));
+    await tester.tap(find.byTooltip(tr.workspaceEpisodeSelectorTooltip));
+    await tester.pumpAndSettle();
 
-      expect(find.text(tr.workspaceManageEpisodesAction), findsNothing);
-    },
-  );
+    expect(find.text(tr.workspaceManageEpisodesAction), findsNothing);
+  });
 
-  testWidgets(
-    "the Manage episodes… entry is the menu's last one, and clicking it fires "
-    "onProjectSettingsRequested",
-    (tester) async {
-      var settingsCount = 0;
+  testWidgets("the Manage episodes… entry is the menu's last one, and clicking it fires "
+      "onProjectSettingsRequested", (tester) async {
+    var settingsCount = 0;
 
-      await tester.pumpWidget(
-        _wrapInApp(
-          OcptWorkspaceShell(
-            title: "My Movie",
-            isDirty: false,
-            onBack: () {},
-            centre: const Text("centre"),
-            episodes: const [pilotEpisode, untitledEpisode],
-            selectedEpisodeId: pilotEpisode.id,
-            onEpisodeSelected: (_) {},
-            onProjectSettingsRequested: () => settingsCount++,
-          ),
+    await tester.pumpWidget(
+      _wrapInApp(
+        OcptWorkspaceShell(
+          title: "My Movie",
+          isDirty: false,
+          onBack: () {},
+          centre: const Text("centre"),
+          episodes: const [pilotEpisode, untitledEpisode],
+          selectedEpisodeId: pilotEpisode.id,
+          onEpisodeSelected: (_) {},
+          onProjectSettingsRequested: () => settingsCount++,
         ),
-      );
-      await tester.pumpAndSettle();
+      ),
+    );
+    await tester.pumpAndSettle();
 
-      final tr = Tr.of(tester.element(find.byType(OcptWorkspaceShell)));
-      await tester.tap(find.byTooltip(tr.workspaceEpisodeSelectorTooltip));
-      await tester.pumpAndSettle();
+    final tr = Tr.of(tester.element(find.byType(OcptWorkspaceShell)));
+    await tester.tap(find.byTooltip(tr.workspaceEpisodeSelectorTooltip));
+    await tester.pumpAndSettle();
 
-      final manageEntry = find.text(tr.workspaceManageEpisodesAction);
-      expect(manageEntry, findsOneWidget);
+    final manageEntry = find.text(tr.workspaceManageEpisodesAction);
+    expect(manageEntry, findsOneWidget);
 
-      final entryTops = tester
-          .widgetList<PopupMenuItem<String>>(find.byType(PopupMenuItem<String>))
-          .toList();
-      expect(entryTops.last.child, isA<Text>());
-      expect((entryTops.last.child! as Text).data, tr.workspaceManageEpisodesAction);
+    final entryTops = tester
+        .widgetList<PopupMenuItem<String>>(find.byType(PopupMenuItem<String>))
+        .toList();
+    expect(entryTops.last.child, isA<Text>());
+    expect((entryTops.last.child! as Text).data, tr.workspaceManageEpisodesAction);
 
-      await tester.tap(manageEntry);
-      await tester.pumpAndSettle();
+    await tester.tap(manageEntry);
+    await tester.pumpAndSettle();
 
-      expect(settingsCount, 1);
-    },
-  );
+    expect(settingsCount, 1);
+  });
 
   testWidgets(
     "the Add an episode… button takes the selector's place on a single-episode project, and "
@@ -935,45 +927,44 @@ void main() {
       },
     );
 
-    testWidgets(
-      "opening a compact drawer whose mode dock is closed fires the mode's own toggle",
-      (tester) async {
-        // A mode builds a dock's panel gated on its own flag, so a closed dock's panel is null and
-        // its drawer would have nothing to show. Opening the drawer therefore also fires the mode's
-        // toggle so the panel gets built — the same tap the desktop dock button makes.
-        tester.view.physicalSize = const Size(700, 1000);
-        tester.view.devicePixelRatio = 1.0;
-        addTearDown(tester.view.resetPhysicalSize);
-        addTearDown(tester.view.resetDevicePixelRatio);
+    testWidgets("opening a compact drawer whose mode dock is closed fires the mode's own toggle", (
+      tester,
+    ) async {
+      // A mode builds a dock's panel gated on its own flag, so a closed dock's panel is null and
+      // its drawer would have nothing to show. Opening the drawer therefore also fires the mode's
+      // toggle so the panel gets built — the same tap the desktop dock button makes.
+      tester.view.physicalSize = const Size(700, 1000);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
 
-        var rightToggleCount = 0;
-        final controller = buildController();
-        addTearDown(controller.dispose);
+      var rightToggleCount = 0;
+      final controller = buildController();
+      addTearDown(controller.dispose);
 
-        await tester.pumpWidget(
-          _wrapInApp(
-            OcptWorkspaceShell(
-              title: "My Movie",
-              isDirty: false,
-              onBack: () {},
-              centre: const Text("centre"),
-              rightPanel: const Text("right"),
-              // The mode's own right dock is closed: without firing its toggle, tapping the drawer
-              // open would leave the mode none the wiser and its panel unbuilt.
-              onToggleRightDock: () => rightToggleCount++,
-              dockLayoutController: controller,
-            ),
+      await tester.pumpWidget(
+        _wrapInApp(
+          OcptWorkspaceShell(
+            title: "My Movie",
+            isDirty: false,
+            onBack: () {},
+            centre: const Text("centre"),
+            rightPanel: const Text("right"),
+            // The mode's own right dock is closed: without firing its toggle, tapping the drawer
+            // open would leave the mode none the wiser and its panel unbuilt.
+            onToggleRightDock: () => rightToggleCount++,
+            dockLayoutController: controller,
           ),
-        );
-        await tester.pumpAndSettle();
+        ),
+      );
+      await tester.pumpAndSettle();
 
-        final tr = Tr.of(tester.element(find.byType(OcptWorkspaceShell)));
-        await tester.tap(find.byTooltip(tr.workspaceToggleRightDockTooltip));
-        await tester.pumpAndSettle();
+      final tr = Tr.of(tester.element(find.byType(OcptWorkspaceShell)));
+      await tester.tap(find.byTooltip(tr.workspaceToggleRightDockTooltip));
+      await tester.pumpAndSettle();
 
-        expect(rightToggleCount, 1);
-      },
-    );
+      expect(rightToggleCount, 1);
+    });
 
     testWidgets("tapping its own toggle again closes an open drawer", (tester) async {
       tester.view.physicalSize = const Size(700, 1000);
@@ -1209,85 +1200,83 @@ void main() {
       },
     );
 
-    testWidgets(
-      "the multi-episode selector is icon-only and does not overflow the toolbar",
-      (tester) async {
-        tester.view.physicalSize = const Size(360, 844);
-        tester.view.devicePixelRatio = 1.0;
-        addTearDown(tester.view.resetPhysicalSize);
-        addTearDown(tester.view.resetDevicePixelRatio);
+    testWidgets("the multi-episode selector is icon-only and does not overflow the toolbar", (
+      tester,
+    ) async {
+      tester.view.physicalSize = const Size(360, 844);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
 
-        await tester.pumpWidget(
-          _wrapInApp(
-            OcptWorkspaceShell(
-              title: "A Rather Long Movie Project Title Here",
-              isDirty: false,
-              onBack: () {},
-              modeLabel: "Screenplay",
-              centre: const Text("centre"),
-              episodes: const [
-                OcptEpisode(id: "ep-1", number: 1, title: "A Very Long Episode Title Indeed"),
-                OcptEpisode(id: "ep-2", number: 2, title: "Another Long One"),
-              ],
-              selectedEpisodeId: "ep-1",
-              onEpisodeSelected: (_) {},
-              onSave: () {},
-              isLeftDockOpen: true,
-              onToggleLeftDock: () {},
-              onToggleRightDock: () {},
-            ),
+      await tester.pumpWidget(
+        _wrapInApp(
+          OcptWorkspaceShell(
+            title: "A Rather Long Movie Project Title Here",
+            isDirty: false,
+            onBack: () {},
+            modeLabel: "Screenplay",
+            centre: const Text("centre"),
+            episodes: const [
+              OcptEpisode(id: "ep-1", number: 1, title: "A Very Long Episode Title Indeed"),
+              OcptEpisode(id: "ep-2", number: 2, title: "Another Long One"),
+            ],
+            selectedEpisodeId: "ep-1",
+            onEpisodeSelected: (_) {},
+            onSave: () {},
+            isLeftDockOpen: true,
+            onToggleLeftDock: () {},
+            onToggleRightDock: () {},
           ),
-        );
-        await tester.pump();
+        ),
+      );
+      await tester.pump();
 
-        expect(tester.takeException(), isNull);
+      expect(tester.takeException(), isNull);
 
-        final tr = Tr.of(tester.element(find.byType(OcptWorkspaceShell)));
-        // The selector is reachable by its tooltip, but the selected episode's title is not drawn
-        // in the toolbar (icon-only trigger); it appears only once the menu is opened.
-        expect(find.byTooltip(tr.workspaceEpisodeSelectorTooltip), findsOneWidget);
-        expect(find.text(tr.workspaceEpisodeTitledLabel(1, "A Very Long Episode Title Indeed")),
-            findsNothing);
-      },
-    );
+      final tr = Tr.of(tester.element(find.byType(OcptWorkspaceShell)));
+      // The selector is reachable by its tooltip, but the selected episode's title is not drawn
+      // in the toolbar (icon-only trigger); it appears only once the menu is opened.
+      expect(find.byTooltip(tr.workspaceEpisodeSelectorTooltip), findsOneWidget);
+      expect(
+        find.text(tr.workspaceEpisodeTitledLabel(1, "A Very Long Episode Title Indeed")),
+        findsNothing,
+      );
+    });
   });
 
   group("compact-width toolbar reductions", () {
-    testWidgets(
-      "hides the title and mode label, and the single-episode add button, below "
-      "ocptCompactWidthBreakpoint",
-      (tester) async {
-        // Explicitly below the 816px breakpoint — the default 800px test surface is compact too,
-        // but this test is about the reduction itself, so it states the width it relies on.
-        tester.view.physicalSize = const Size(500, 900);
-        tester.view.devicePixelRatio = 1.0;
-        addTearDown(tester.view.resetPhysicalSize);
-        addTearDown(tester.view.resetDevicePixelRatio);
+    testWidgets("hides the title and mode label, and the single-episode add button, below "
+        "ocptCompactWidthBreakpoint", (tester) async {
+      // Explicitly below the 816px breakpoint — the default 800px test surface is compact too,
+      // but this test is about the reduction itself, so it states the width it relies on.
+      tester.view.physicalSize = const Size(500, 900);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
 
-        await tester.pumpWidget(
-          _wrapInApp(
-            OcptWorkspaceShell(
-              title: "My Movie",
-              isDirty: false,
-              onBack: () {},
-              modeLabel: "Screenplay",
-              centre: const Text("centre"),
-              episodes: const [pilotEpisode],
-              selectedEpisodeId: pilotEpisode.id,
-              onEpisodeSelected: (_) {},
-              onAddEpisodeRequested: () {},
-            ),
+      await tester.pumpWidget(
+        _wrapInApp(
+          OcptWorkspaceShell(
+            title: "My Movie",
+            isDirty: false,
+            onBack: () {},
+            modeLabel: "Screenplay",
+            centre: const Text("centre"),
+            episodes: const [pilotEpisode],
+            selectedEpisodeId: pilotEpisode.id,
+            onEpisodeSelected: (_) {},
+            onAddEpisodeRequested: () {},
           ),
-        );
-        await tester.pumpAndSettle();
+        ),
+      );
+      await tester.pumpAndSettle();
 
-        final tr = Tr.of(tester.element(find.byType(OcptWorkspaceShell)));
-        expect(find.text("My Movie"), findsNothing);
-        expect(find.text("Screenplay"), findsNothing);
-        expect(find.byTooltip(tr.workspaceAddEpisodeTooltip), findsNothing);
-        expect(find.text(tr.workspaceAddEpisodeAction), findsNothing);
-      },
-    );
+      final tr = Tr.of(tester.element(find.byType(OcptWorkspaceShell)));
+      expect(find.text("My Movie"), findsNothing);
+      expect(find.text("Screenplay"), findsNothing);
+      expect(find.byTooltip(tr.workspaceAddEpisodeTooltip), findsNothing);
+      expect(find.text(tr.workspaceAddEpisodeAction), findsNothing);
+    });
 
     testWidgets(
       "keeps the title, the mode label and the single-episode add button at a wide width",

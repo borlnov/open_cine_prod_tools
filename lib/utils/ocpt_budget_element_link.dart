@@ -70,5 +70,8 @@ List<OcptElement> ocptBudgetUnpricedElementsOf({
   required List<OcptElement> elements,
 }) {
   final pricedIds = ocptBudgetPricedElementIdsOf(postes);
-  return [for (final element in elements) if (!pricedIds.contains(element.id)) element];
+  return [
+    for (final element in elements)
+      if (!pricedIds.contains(element.id)) element,
+  ];
 }

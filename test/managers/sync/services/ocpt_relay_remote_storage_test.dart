@@ -148,8 +148,14 @@ void main() {
 
   group('readSince', () {
     test('sends since and parses the list oldest-first', () async {
-      final first = OcptStoredChangeset(sequenceNumber: const OcptSequenceNumber(4), envelope: _envelope('a'));
-      final second = OcptStoredChangeset(sequenceNumber: const OcptSequenceNumber(5), envelope: _envelope('b'));
+      final first = OcptStoredChangeset(
+        sequenceNumber: const OcptSequenceNumber(4),
+        envelope: _envelope('a'),
+      );
+      final second = OcptStoredChangeset(
+        sequenceNumber: const OcptSequenceNumber(5),
+        envelope: _envelope('b'),
+      );
       late http.Request captured;
       final storage = OcptRelayRemoteStorage(
         relayBaseUri: relayBaseUri,
@@ -241,7 +247,12 @@ void main() {
         token: token,
         httpClient: MockClient(
           (request) async => http.Response(
-            jsonEncode(const OcptSyncError(code: OcptSyncErrorCode.unknownProject, message: 'none yet').toJson()),
+            jsonEncode(
+              const OcptSyncError(
+                code: OcptSyncErrorCode.unknownProject,
+                message: 'none yet',
+              ).toJson(),
+            ),
             404,
           ),
         ),
@@ -259,7 +270,9 @@ void main() {
         token: token,
         httpClient: MockClient(
           (request) async => http.Response(
-            jsonEncode(const OcptSyncError(code: OcptSyncErrorCode.badToken, message: 'bad token').toJson()),
+            jsonEncode(
+              const OcptSyncError(code: OcptSyncErrorCode.badToken, message: 'bad token').toJson(),
+            ),
             401,
           ),
         ),
@@ -300,50 +313,54 @@ void main() {
       expect(events, hasLength(1));
     });
 
-    test('reconnects after a socket drop instead of ending the stream', () async {
-      final firstIncoming = StreamController<dynamic>.broadcast();
-      final secondIncoming = StreamController<dynamic>.broadcast();
-      var connectCount = 0;
-      final storage = OcptRelayRemoteStorage(
-        relayBaseUri: relayBaseUri,
-        projectId: projectId,
-        token: token,
-        reconnectDelay: const Duration(milliseconds: 10),
-        httpClient: MockClient((request) async => http.Response('', 500)),
-        webSocketConnector: (uri) {
-          connectCount += 1;
+    test(
+      'reconnects after a socket drop instead of ending the stream',
+      () async {
+        final firstIncoming = StreamController<dynamic>.broadcast();
+        final secondIncoming = StreamController<dynamic>.broadcast();
+        var connectCount = 0;
+        final storage = OcptRelayRemoteStorage(
+          relayBaseUri: relayBaseUri,
+          projectId: projectId,
+          token: token,
+          reconnectDelay: const Duration(milliseconds: 10),
+          httpClient: MockClient((request) async => http.Response('', 500)),
+          webSocketConnector: (uri) {
+            connectCount += 1;
 
-          return _FakeWebSocketChannel(connectCount == 1 ? firstIncoming : secondIncoming);
-        },
-      );
-      addTearDown(() {
-        if (!firstIncoming.isClosed) {
-          unawaited(firstIncoming.close());
-        }
-        if (!secondIncoming.isClosed) {
-          unawaited(secondIncoming.close());
-        }
-      });
+            return _FakeWebSocketChannel(connectCount == 1 ? firstIncoming : secondIncoming);
+          },
+        );
+        addTearDown(() {
+          if (!firstIncoming.isClosed) {
+            unawaited(firstIncoming.close());
+          }
+          if (!secondIncoming.isClosed) {
+            unawaited(secondIncoming.close());
+          }
+        });
 
-      final events = <void>[];
-      final subscription = storage.newWorkStream.listen(events.add);
-      addTearDown(subscription.cancel);
-      await Future<void>.delayed(Duration.zero);
+        final events = <void>[];
+        final subscription = storage.newWorkStream.listen(events.add);
+        addTearDown(subscription.cancel);
+        await Future<void>.delayed(Duration.zero);
 
-      expect(connectCount, 1);
+        expect(connectCount, 1);
 
-      // Simulate the first socket dropping.
-      await firstIncoming.close();
-      // Wait past the reconnect backoff for the second connect attempt to happen.
-      await Future<void>.delayed(const Duration(milliseconds: 50));
+        // Simulate the first socket dropping.
+        await firstIncoming.close();
+        // Wait past the reconnect backoff for the second connect attempt to happen.
+        await Future<void>.delayed(const Duration(milliseconds: 50));
 
-      expect(connectCount, 2);
+        expect(connectCount, 2);
 
-      secondIncoming.add('new-work');
-      await Future<void>.delayed(Duration.zero);
+        secondIncoming.add('new-work');
+        await Future<void>.delayed(Duration.zero);
 
-      expect(events, hasLength(1));
-    }, timeout: const Timeout(Duration(seconds: 5)));
+        expect(events, hasLength(1));
+      },
+      timeout: const Timeout(Duration(seconds: 5)),
+    );
   });
 
   group('presenceStream', () {
@@ -399,30 +416,33 @@ void main() {
       expect(newWorkEvents, isEmpty);
     });
 
-    test('connecting starts once, shared between newWorkStream and presenceStream listeners', () async {
-      final incoming = StreamController<dynamic>.broadcast();
-      var connectCount = 0;
-      final storage = OcptRelayRemoteStorage(
-        relayBaseUri: relayBaseUri,
-        projectId: projectId,
-        token: token,
-        httpClient: MockClient((request) async => http.Response('', 500)),
-        webSocketConnector: (uri) {
-          connectCount += 1;
+    test(
+      'connecting starts once, shared between newWorkStream and presenceStream listeners',
+      () async {
+        final incoming = StreamController<dynamic>.broadcast();
+        var connectCount = 0;
+        final storage = OcptRelayRemoteStorage(
+          relayBaseUri: relayBaseUri,
+          projectId: projectId,
+          token: token,
+          httpClient: MockClient((request) async => http.Response('', 500)),
+          webSocketConnector: (uri) {
+            connectCount += 1;
 
-          return _FakeWebSocketChannel(incoming);
-        },
-      );
-      addTearDown(incoming.close);
+            return _FakeWebSocketChannel(incoming);
+          },
+        );
+        addTearDown(incoming.close);
 
-      final newWorkSubscription = storage.newWorkStream.listen((_) {});
-      final presenceSubscription = storage.presenceStream.listen((_) {});
-      addTearDown(newWorkSubscription.cancel);
-      addTearDown(presenceSubscription.cancel);
-      await Future<void>.delayed(Duration.zero);
+        final newWorkSubscription = storage.newWorkStream.listen((_) {});
+        final presenceSubscription = storage.presenceStream.listen((_) {});
+        addTearDown(newWorkSubscription.cancel);
+        addTearDown(presenceSubscription.cancel);
+        await Future<void>.delayed(Duration.zero);
 
-      expect(connectCount, 1);
-    });
+        expect(connectCount, 1);
+      },
+    );
   });
 
   group('sendPresence', () {

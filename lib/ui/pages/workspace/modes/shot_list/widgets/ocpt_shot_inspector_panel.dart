@@ -372,9 +372,7 @@ class OcptShotInspectorPanel extends StatelessWidget {
       label: tr.shotListInspectorEstimatedDurationLabel,
       value: value,
       hintText: tr.shotListInspectorEstimatedDurationHint,
-      errorText: ocptIsShotDurationValid(value)
-          ? null
-          : tr.shotListInspectorEstimatedDurationError,
+      errorText: ocptIsShotDurationValid(value) ? null : tr.shotListInspectorEstimatedDurationError,
       inputFormatters: ocptShotDurationInputFormatters,
       onChanged: _onFieldChangedOrNull(OcptShotListEditableField.estimatedDuration),
     );

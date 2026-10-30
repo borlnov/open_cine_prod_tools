@@ -30,11 +30,7 @@ import 'package:fountain_kit/src/parser/fountain_line_classifier.dart';
 class FountainPrintStyle extends Equatable {
   /// Creates a [FountainPrintStyle]. Prefer [FountainPrintStyle.of] unless a
   /// bespoke combination is genuinely required.
-  const FountainPrintStyle({
-    this.isBold = false,
-    this.isItalic = false,
-    this.isUppercase = false,
-  });
+  const FountainPrintStyle({this.isBold = false, this.isItalic = false, this.isUppercase = false});
 
   /// The print style shared by every [FountainLineType] with no base
   /// treatment of its own (action, dialogue, parenthetical, centered text,
@@ -59,10 +55,7 @@ class FountainPrintStyle extends Equatable {
   /// catch-all `default`), so adding a new line type forces a deliberate
   /// decision here instead of silently inheriting [plain].
   factory FountainPrintStyle.of(FountainLineType type) => switch (type) {
-    FountainLineType.sceneHeading => const FountainPrintStyle(
-      isBold: true,
-      isUppercase: true,
-    ),
+    FountainLineType.sceneHeading => const FountainPrintStyle(isBold: true, isUppercase: true),
     FountainLineType.character => const FountainPrintStyle(isUppercase: true),
     FountainLineType.transition => const FountainPrintStyle(isUppercase: true),
     FountainLineType.lyrics => const FountainPrintStyle(isItalic: true),
@@ -81,11 +74,7 @@ class FountainPrintStyle extends Equatable {
 
   @override
   String toString() {
-    final flags = [
-      if (isBold) 'bold',
-      if (isItalic) 'italic',
-      if (isUppercase) 'uppercase',
-    ];
+    final flags = [if (isBold) 'bold', if (isItalic) 'italic', if (isUppercase) 'uppercase'];
     return 'FountainPrintStyle(${flags.isEmpty ? 'plain' : flags.join('+')})';
   }
 }

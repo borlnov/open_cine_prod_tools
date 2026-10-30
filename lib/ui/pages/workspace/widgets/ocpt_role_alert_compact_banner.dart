@@ -112,7 +112,9 @@ class OcptRoleAlertCompactBanner extends StatelessWidget {
         children: [
           Icon(Icons.person_off_outlined, size: 14, color: color),
           const SizedBox(width: 6),
-          Expanded(child: Text(text, style: theme.textTheme.bodySmall?.copyWith(color: color))),
+          Expanded(
+            child: Text(text, style: theme.textTheme.bodySmall?.copyWith(color: color)),
+          ),
           Icon(Icons.chevron_right, size: 16, color: color),
         ],
       ),

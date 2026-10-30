@@ -81,8 +81,7 @@ OcptShot _buildShot({
   characterRoleIds: characterRoleIds,
   coverageRanges: const [],
   code: code,
-  averageDifficulty:
-      (difficultySet + difficultyCamera + difficultyActing + difficultySound) / 4,
+  averageDifficulty: (difficultySet + difficultyCamera + difficultyActing + difficultySound) / 4,
 );
 
 /// The text field of the panel's estimated duration row, the one field of the panel bound to
@@ -101,17 +100,19 @@ TextField _durationFieldOf(WidgetTester tester) => tester.widget<TextField>(
 /// about overridden.
 Widget _buildPanel({
   OcptShot? shot,
-  List<OcptRole> roles = const [OcptRole(
-    id: "role-LÉA",
-    name: "LÉA",
-    personId: null,
-    kind: OcptRoleKind.speaking,
-    isFromScreenplay: true,
-    orphanedName: null,
-    castingNotes: "",
-    number: 1,
-    episodeIds: [],
-  )],
+  List<OcptRole> roles = const [
+    OcptRole(
+      id: "role-LÉA",
+      name: "LÉA",
+      personId: null,
+      kind: OcptRoleKind.speaking,
+      isFromScreenplay: true,
+      orphanedName: null,
+      castingNotes: "",
+      number: 1,
+      episodeIds: [],
+    ),
+  ],
   void Function(OcptShotDifficultyAxis axis, int value)? onDifficultyChanged,
   ValueChanged<String>? onCharacterToggled,
   ValueChanged<String>? onCharacterAdded,
@@ -188,8 +189,9 @@ void main() {
     expect(find.text("Delete shot"), findsNothing);
   });
 
-  testWidgets("renders the selected shot's header, sequence and average difficulty",
-      (tester) async {
+  testWidgets("renders the selected shot's header, sequence and average difficulty", (
+    tester,
+  ) async {
     await _useTallSurface(tester);
     await tester.pumpWidget(_wrapInApp(_buildPanel(shot: _buildShot())));
 
@@ -233,8 +235,7 @@ void main() {
     expect(find.text("PLANNED TAKES"), findsNothing);
   });
 
-  testWidgets("the estimated duration field accepts nothing but a mm:ss duration",
-      (tester) async {
+  testWidgets("the estimated duration field accepts nothing but a mm:ss duration", (tester) async {
     await _useTallSurface(tester);
     await tester.pumpWidget(
       _wrapInApp(
@@ -253,8 +254,9 @@ void main() {
     expect(field.decoration?.errorText, "Use the mm:ss format");
   });
 
-  testWidgets("the estimated duration field shows no error for a duration it accepts",
-      (tester) async {
+  testWidgets("the estimated duration field shows no error for a duration it accepts", (
+    tester,
+  ) async {
     await _useTallSurface(tester);
     await tester.pumpWidget(
       _wrapInApp(
@@ -269,18 +271,16 @@ void main() {
     expect(_durationFieldOf(tester).decoration?.errorText, isNull);
   });
 
-  testWidgets("the fields written as a sentence are as tall as the director's notes",
-      (tester) async {
+  testWidgets("the fields written as a sentence are as tall as the director's notes", (
+    tester,
+  ) async {
     await _useTallSurface(tester);
     await tester.pumpWidget(_wrapInApp(_buildPanel(shot: _buildShot())));
 
     /// The text field of the inspector field labelled [label].
     TextField fieldOf(String label) => tester.widget<TextField>(
       find.descendant(
-        of: find.ancestor(
-          of: find.text(label),
-          matching: find.byType(OcptShotInspectorField),
-        ),
+        of: find.ancestor(of: find.text(label), matching: find.byType(OcptShotInspectorField)),
         matching: find.byType(TextField),
       ),
     );
@@ -293,15 +293,15 @@ void main() {
     expect(fieldOf("SHOT SIZE").maxLines, 1);
   });
 
-  testWidgets("the abbreviation sits right under the shot size, in a box of its own width",
-      (tester) async {
+  testWidgets("the abbreviation sits right under the shot size, in a box of its own width", (
+    tester,
+  ) async {
     await _useTallSurface(tester);
     await tester.pumpWidget(
       _wrapInApp(
         _buildPanel(
           shot: _buildShot(),
-          fieldValueOf: (field) =>
-              field == OcptShotListEditableField.abbreviation ? "PM" : "",
+          fieldValueOf: (field) => field == OcptShotListEditableField.abbreviation ? "PM" : "",
         ),
       ),
     );
@@ -309,10 +309,7 @@ void main() {
     /// The rectangle of the text field of the inspector field labelled [label].
     Rect fieldRectOf(String label) => tester.getRect(
       find.descendant(
-        of: find.ancestor(
-          of: find.text(label),
-          matching: find.byType(OcptShotInspectorField),
-        ),
+        of: find.ancestor(of: find.text(label), matching: find.byType(OcptShotInspectorField)),
         matching: find.byType(TextField),
       ),
     );
@@ -375,9 +372,7 @@ void main() {
     var deleteRequested = false;
 
     await tester.pumpWidget(
-      _wrapInApp(
-        _buildPanel(shot: _buildShot(), onDeleteRequested: () => deleteRequested = true),
-      ),
+      _wrapInApp(_buildPanel(shot: _buildShot(), onDeleteRequested: () => deleteRequested = true)),
     );
 
     await tester.tap(find.text("Delete shot"));
@@ -386,8 +381,9 @@ void main() {
     expect(deleteRequested, isTrue);
   });
 
-  testWidgets("the Needs checking callout is absent when the shot doesn't need checking",
-      (tester) async {
+  testWidgets("the Needs checking callout is absent when the shot doesn't need checking", (
+    tester,
+  ) async {
     await _useTallSurface(tester);
     await tester.pumpWidget(_wrapInApp(_buildPanel(shot: _buildShot())));
 
@@ -399,10 +395,7 @@ void main() {
     await tester.pumpWidget(
       _wrapInApp(
         _buildPanel(
-          shot: _buildShot(
-            needsCheck: true,
-            checkReason: OcptShotCheckReason.coveredTextChanged,
-          ),
+          shot: _buildShot(needsCheck: true, checkReason: OcptShotCheckReason.coveredTextChanged),
         ),
       ),
     );
@@ -419,10 +412,7 @@ void main() {
     await tester.pumpWidget(
       _wrapInApp(
         _buildPanel(
-          shot: _buildShot(
-            needsCheck: true,
-            checkReason: OcptShotCheckReason.coverageOutOfBounds,
-          ),
+          shot: _buildShot(needsCheck: true, checkReason: OcptShotCheckReason.coverageOutOfBounds),
         ),
       ),
     );
@@ -464,10 +454,7 @@ void main() {
       find.ancestor(of: find.text("Mark as checked"), matching: find.byType(FilledButton)),
     );
     final context = tester.element(find.byType(OcptShotInspectorPanel));
-    expect(
-      button.style?.backgroundColor?.resolve({}),
-      ocptWarningColor(context),
-    );
+    expect(button.style?.backgroundColor?.resolve({}), ocptWarningColor(context));
   });
 
   testWidgets("clicking Mark as checked reports it", (tester) async {

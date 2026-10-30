@@ -16,7 +16,8 @@ import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
-import 'package:open_cine_prod_tools/models/ocpt_floor_plan_sheet.dart' show OcptFloorPlanOverrideLevel;
+import 'package:open_cine_prod_tools/models/ocpt_floor_plan_sheet.dart'
+    show OcptFloorPlanOverrideLevel;
 import 'package:open_cine_prod_tools/models/ocpt_shot_list_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_list_xlsx_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
@@ -358,48 +359,45 @@ void main() {
     },
   );
 
-  testWidgets(
-    "a project holding two episodes dispatches the selected one's tag when exporting the "
-    "workbook",
-    (tester) async {
-      tester.view.physicalSize = const Size(1400, 900);
-      tester.view.devicePixelRatio = 1.0;
-      addTearDown(tester.view.resetPhysicalSize);
-      addTearDown(tester.view.resetDevicePixelRatio);
+  testWidgets("a project holding two episodes dispatches the selected one's tag when exporting the "
+      "workbook", (tester) async {
+    tester.view.physicalSize = const Size(1400, 900);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
 
-      final project = projectsManager.currentProject!;
-      final secondEpisodeId = await projectsManager.screenplayService.createEpisode(
-        database: project.database,
-      );
+    final project = projectsManager.currentProject!;
+    final secondEpisodeId = await projectsManager.screenplayService.createEpisode(
+      database: project.database,
+    );
 
-      final exportManager = _RecordingExportManager();
-      useExportManager(exportManager);
+    final exportManager = _RecordingExportManager();
+    useExportManager(exportManager);
 
-      await tester.pumpWidget(_wrapWithLocalization(const OcptShotListMode()));
-      await tester.pumpAndSettle();
+    await tester.pumpWidget(_wrapWithLocalization(const OcptShotListMode()));
+    await tester.pumpAndSettle();
 
-      final context = tester.element(find.byType(OcptShotListMode));
-      final tr = Tr.of(context);
+    final context = tester.element(find.byType(OcptShotListMode));
+    final tr = Tr.of(context);
 
-      // The workspace bloc lands on the first episode by default; select the second one so the
-      // exported tag can be told apart from what a single-episode project would produce.
-      context.read<OcptWorkspaceBloc>().add(
-        OcptWorkspaceEpisodeSelectedEvent(episodeId: secondEpisodeId!),
-      );
-      await tester.pumpAndSettle();
+    // The workspace bloc lands on the first episode by default; select the second one so the
+    // exported tag can be told apart from what a single-episode project would produce.
+    context.read<OcptWorkspaceBloc>().add(
+      OcptWorkspaceEpisodeSelectedEvent(episodeId: secondEpisodeId!),
+    );
+    await tester.pumpAndSettle();
 
-      await tester.tap(find.text(tr.shotListAddShotAction));
-      await tester.pumpAndSettle();
+    await tester.tap(find.text(tr.shotListAddShotAction));
+    await tester.pumpAndSettle();
 
-      await tester.tap(find.byTooltip(tr.workspaceExportTooltip));
-      await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip(tr.workspaceExportTooltip));
+    await tester.pumpAndSettle();
 
-      await tester.tap(inPanel(find.text(tr.shotListExportXlsxTitle)));
-      await tester.pumpAndSettle();
+    await tester.tap(inPanel(find.text(tr.shotListExportXlsxTitle)));
+    await tester.pumpAndSettle();
 
-      expect(exportManager.lastExportedEpisodeTag, tr.workspaceEpisodeTag(2));
-    },
-  );
+    expect(exportManager.lastExportedEpisodeTag, tr.workspaceEpisodeTag(2));
+  });
 
   group("the floating add at a compact width", () {
     /// Closes the left dock, open by default, so its drawer stops covering the centre — the
@@ -573,44 +571,41 @@ void main() {
       },
     );
 
-    testWidgets(
-      "the board's own frame shows a Delete panel action too, asking through the same "
-      "confirm dialog before removing it",
-      (tester) async {
-        useFileSelectorManager(const _StubFileSelectorManager(pickedPath: "/frames/a.png"));
+    testWidgets("the board's own frame shows a Delete panel action too, asking through the same "
+        "confirm dialog before removing it", (tester) async {
+      useFileSelectorManager(const _StubFileSelectorManager(pickedPath: "/frames/a.png"));
 
-        final bloc = await mountWithASelectedShot(tester);
-        final shotId = bloc.state.selectedShotId!;
-        final tr = Tr.of(tester.element(find.byType(OcptShotListMode)));
+      final bloc = await mountWithASelectedShot(tester);
+      final shotId = bloc.state.selectedShotId!;
+      final tr = Tr.of(tester.element(find.byType(OcptShotListMode)));
 
-        await tester.tap(find.text(tr.shotListBoardBoardSegmentLabel));
-        await tester.pumpAndSettle();
+      await tester.tap(find.text(tr.shotListBoardBoardSegmentLabel));
+      await tester.pumpAndSettle();
 
-        await tester.tap(find.byIcon(Icons.add_photo_alternate_outlined));
-        await tester.pumpAndSettle();
+      await tester.tap(find.byIcon(Icons.add_photo_alternate_outlined));
+      await tester.pumpAndSettle();
 
-        expect(bloc.state.panelsOfShot(shotId), hasLength(1));
+      expect(bloc.state.panelsOfShot(shotId), hasLength(1));
 
-        // The frame's own `Delete panel` action, drawn on the panel itself — not the inspector's —
-        // only asks, exactly like the inspector's Panels group action above.
-        final boardDeleteFinder = find.descendant(
-          of: find.byType(OcptStoryboardPanelFrame),
-          matching: find.byIcon(Icons.delete_outline),
-        );
-        await tester.ensureVisible(boardDeleteFinder);
-        await tester.pumpAndSettle();
-        await tester.tap(boardDeleteFinder);
-        await tester.pumpAndSettle();
+      // The frame's own `Delete panel` action, drawn on the panel itself — not the inspector's —
+      // only asks, exactly like the inspector's Panels group action above.
+      final boardDeleteFinder = find.descendant(
+        of: find.byType(OcptStoryboardPanelFrame),
+        matching: find.byIcon(Icons.delete_outline),
+      );
+      await tester.ensureVisible(boardDeleteFinder);
+      await tester.pumpAndSettle();
+      await tester.tap(boardDeleteFinder);
+      await tester.pumpAndSettle();
 
-        expect(find.byType(OcptConfirmDialog), findsOneWidget);
-        expect(bloc.state.panelsOfShot(shotId), hasLength(1));
+      expect(find.byType(OcptConfirmDialog), findsOneWidget);
+      expect(bloc.state.panelsOfShot(shotId), hasLength(1));
 
-        await tester.tap(find.text(tr.shotListDeleteConfirmDeleteAction));
-        await tester.pumpAndSettle();
+      await tester.tap(find.text(tr.shotListDeleteConfirmDeleteAction));
+      await tester.pumpAndSettle();
 
-        expect(bloc.state.panelsOfShot(shotId), isEmpty);
-      },
-    );
+      expect(bloc.state.panelsOfShot(shotId), isEmpty);
+    });
 
     testWidgets("a previewed version withholds Import frame and Delete panel", (tester) async {
       useFileSelectorManager(const _StubFileSelectorManager(pickedPath: "/frames/a.png"));
@@ -641,7 +636,9 @@ void main() {
       await tester.pumpWidget(_wrapWithLocalization(const OcptShotListMode()));
       await tester.pumpAndSettle();
 
-      final previewedBloc = tester.element(find.byType(OcptShotListStatusBar)).read<OcptShotListBloc>();
+      final previewedBloc = tester
+          .element(find.byType(OcptShotListStatusBar))
+          .read<OcptShotListBloc>();
       expect(previewedBloc.state.isPreviewingVersion, isTrue);
       expect(previewedBloc.state.centreView, OcptShotListCentreView.board);
 
@@ -684,36 +681,33 @@ void main() {
         return bloc;
       }
 
-      testWidgets(
-        "picking the label tool then clicking the frame places a mark, and Remove asks "
-        "through the confirm dialog before removing it",
-        (tester) async {
-          final bloc = await mountWithASelectedPanel(tester);
-          final tr = Tr.of(tester.element(find.byType(OcptShotListMode)));
+      testWidgets("picking the label tool then clicking the frame places a mark, and Remove asks "
+          "through the confirm dialog before removing it", (tester) async {
+        final bloc = await mountWithASelectedPanel(tester);
+        final tr = Tr.of(tester.element(find.byType(OcptShotListMode)));
 
-          await tester.tap(find.text(tr.shotListBoardAnnotationToolLabelSegmentLabel));
-          await tester.pumpAndSettle();
-          expect(bloc.state.activeAnnotationTool, OcptStoryboardAnnotationTool.label);
+        await tester.tap(find.text(tr.shotListBoardAnnotationToolLabelSegmentLabel));
+        await tester.pumpAndSettle();
+        expect(bloc.state.activeAnnotationTool, OcptStoryboardAnnotationTool.label);
 
-          await tester.tapAt(tester.getCenter(find.byType(OcptStoryboardPanelFrame)));
-          await tester.pumpAndSettle();
+        await tester.tapAt(tester.getCenter(find.byType(OcptStoryboardPanelFrame)));
+        await tester.pumpAndSettle();
 
-          final panel = bloc.state.selectedPanel!;
-          expect(panel.annotations, hasLength(1));
-          expect(bloc.state.selectedAnnotationId, panel.annotations.single.id);
+        final panel = bloc.state.selectedPanel!;
+        expect(panel.annotations, hasLength(1));
+        expect(bloc.state.selectedAnnotationId, panel.annotations.single.id);
 
-          await tester.tap(find.byTooltip(tr.shotListBoardRemoveAnnotationAction));
-          await tester.pumpAndSettle();
+        await tester.tap(find.byTooltip(tr.shotListBoardRemoveAnnotationAction));
+        await tester.pumpAndSettle();
 
-          expect(find.byType(OcptConfirmDialog), findsOneWidget);
-          expect(bloc.state.selectedPanel!.annotations, hasLength(1));
+        expect(find.byType(OcptConfirmDialog), findsOneWidget);
+        expect(bloc.state.selectedPanel!.annotations, hasLength(1));
 
-          await tester.tap(find.text(tr.shotListDeleteConfirmDeleteAction));
-          await tester.pumpAndSettle();
+        await tester.tap(find.text(tr.shotListDeleteConfirmDeleteAction));
+        await tester.pumpAndSettle();
 
-          expect(bloc.state.selectedPanel!.annotations, isEmpty);
-        },
-      );
+        expect(bloc.state.selectedPanel!.annotations, isEmpty);
+      });
 
       testWidgets("dragging over the frame with the movement arrow tool draws a mark", (
         tester,
@@ -736,74 +730,69 @@ void main() {
         expect(annotations.single.kind, OcptStoryboardAnnotationKind.movementArrow);
       });
 
-      testWidgets(
-        "a previewed version withholds the Annotate control, the gestures and the remove "
-        "action, while still drawing the existing mark",
-        (tester) async {
-          final bloc = await mountWithASelectedPanel(tester);
-          final tr = Tr.of(tester.element(find.byType(OcptShotListMode)));
-          final panelId = bloc.state.selectedPanelId!;
+      testWidgets("a previewed version withholds the Annotate control, the gestures and the remove "
+          "action, while still drawing the existing mark", (tester) async {
+        final bloc = await mountWithASelectedPanel(tester);
+        final tr = Tr.of(tester.element(find.byType(OcptShotListMode)));
+        final panelId = bloc.state.selectedPanelId!;
 
-          bloc.add(
-            OcptShotListAnnotationPlacedEvent(panelId: panelId, x1: 0.5, y1: 0.4),
-          );
-          await tester.pumpAndSettle();
-          expect(bloc.state.selectedPanel!.annotations, hasLength(1));
+        bloc.add(OcptShotListAnnotationPlacedEvent(panelId: panelId, x1: 0.5, y1: 0.4));
+        await tester.pumpAndSettle();
+        expect(bloc.state.selectedPanel!.annotations, hasLength(1));
 
-          final version = await projectsManager.createProjectVersion(name: "With a mark", note: "");
-          expect(version, isNotNull);
-          final previewResult = await projectsManager.previewVersion(version!.id);
-          expect(previewResult.status.isSuccess, isTrue);
+        final version = await projectsManager.createProjectVersion(name: "With a mark", note: "");
+        expect(version, isNotNull);
+        final previewResult = await projectsManager.previewVersion(version!.id);
+        expect(previewResult.status.isSuccess, isTrue);
 
-          // Remounts fresh, exactly as the sibling panel-level test above does, so a genuinely
-          // new, read-only `OcptShotListBloc` loads from what was just captured.
-          await tester.pumpWidget(const SizedBox.shrink());
-          await tester.pumpAndSettle();
-          await tester.pumpWidget(_wrapWithLocalization(const OcptShotListMode()));
-          await tester.pumpAndSettle();
+        // Remounts fresh, exactly as the sibling panel-level test above does, so a genuinely
+        // new, read-only `OcptShotListBloc` loads from what was just captured.
+        await tester.pumpWidget(const SizedBox.shrink());
+        await tester.pumpAndSettle();
+        await tester.pumpWidget(_wrapWithLocalization(const OcptShotListMode()));
+        await tester.pumpAndSettle();
 
-          final previewedBloc = tester
-              .element(find.byType(OcptShotListStatusBar))
-              .read<OcptShotListBloc>();
-          expect(previewedBloc.state.isPreviewingVersion, isTrue);
-          expect(previewedBloc.state.centreView, OcptShotListCentreView.board);
+        final previewedBloc = tester
+            .element(find.byType(OcptShotListStatusBar))
+            .read<OcptShotListBloc>();
+        expect(previewedBloc.state.isPreviewingVersion, isTrue);
+        expect(previewedBloc.state.centreView, OcptShotListCentreView.board);
 
-          // Selecting the shot, then its panel, is never withheld (it only reads) — a fresh
-          // reload starts with neither selected, and `selectedPanel` needs both (it reads off
-          // `panelsOfSelectedShot`, which is empty without a selected shot).
-          await tester.tap(find.byType(OcptStoryboardShotLeaderCard));
-          await tester.pumpAndSettle();
-          expect(previewedBloc.state.selectedShotId, isNotNull);
-          await tester.tap(find.byType(OcptStoryboardPanelFrame));
-          await tester.pumpAndSettle();
-          expect(previewedBloc.state.selectedPanelId, isNotNull);
+        // Selecting the shot, then its panel, is never withheld (it only reads) — a fresh
+        // reload starts with neither selected, and `selectedPanel` needs both (it reads off
+        // `panelsOfSelectedShot`, which is empty without a selected shot).
+        await tester.tap(find.byType(OcptStoryboardShotLeaderCard));
+        await tester.pumpAndSettle();
+        expect(previewedBloc.state.selectedShotId, isNotNull);
+        await tester.tap(find.byType(OcptStoryboardPanelFrame));
+        await tester.pumpAndSettle();
+        expect(previewedBloc.state.selectedPanelId, isNotNull);
 
-          // The Annotate control and the mark's own remove action are never built at all.
-          expect(find.byType(SegmentedButton<OcptStoryboardAnnotationTool>), findsNothing);
-          expect(find.byTooltip(tr.shotListBoardRemoveAnnotationAction), findsNothing);
+        // The Annotate control and the mark's own remove action are never built at all.
+        expect(find.byType(SegmentedButton<OcptStoryboardAnnotationTool>), findsNothing);
+        expect(find.byTooltip(tr.shotListBoardRemoveAnnotationAction), findsNothing);
 
-          // The overlay still draws the mark captured in the version — a read, kept read-only.
-          final painters = tester
-              .widgetList<CustomPaint>(find.byType(CustomPaint))
-              .map((widget) => widget.painter)
-              .whereType<OcptStoryboardAnnotationOverlayPainter>()
-              .toList();
-          expect(painters, isNotEmpty);
-          expect(painters.first.annotations, hasLength(1));
+        // The overlay still draws the mark captured in the version — a read, kept read-only.
+        final painters = tester
+            .widgetList<CustomPaint>(find.byType(CustomPaint))
+            .map((widget) => widget.painter)
+            .whereType<OcptStoryboardAnnotationOverlayPainter>()
+            .toList();
+        expect(painters, isNotEmpty);
+        expect(painters.first.annotations, hasLength(1));
 
-          // A drag over the frame draws nothing: with no tool ever pickable, the gesture layer
-          // never turns live.
-          final frameCenter = tester.getCenter(find.byType(OcptStoryboardPanelFrame));
-          final gesture = await tester.startGesture(frameCenter - const Offset(30, 0));
-          await gesture.moveBy(const Offset(60, 0));
-          await gesture.up();
-          await tester.pumpAndSettle();
-          expect(previewedBloc.state.selectedPanel!.annotations, hasLength(1));
+        // A drag over the frame draws nothing: with no tool ever pickable, the gesture layer
+        // never turns live.
+        final frameCenter = tester.getCenter(find.byType(OcptStoryboardPanelFrame));
+        final gesture = await tester.startGesture(frameCenter - const Offset(30, 0));
+        await gesture.moveBy(const Offset(60, 0));
+        await gesture.up();
+        await tester.pumpAndSettle();
+        expect(previewedBloc.state.selectedPanel!.annotations, hasLength(1));
 
-          // Leave the preview so the working copy is what the next test opens onto.
-          await projectsManager.exitPreview();
-        },
-      );
+        // Leave the preview so the working copy is what the next test opens onto.
+        await projectsManager.exitPreview();
+      });
     });
   });
 
@@ -865,24 +854,23 @@ void main() {
       expect(find.byType(OcptFloorPlanCanvas), findsNothing);
     });
 
-    testWidgets(
-      "the empty-state gallery fills the centre until the sequence has a linked set",
-      (tester) async {
-        await mountOnFloorPlans(tester);
-        final tr = Tr.of(tester.element(find.byType(OcptShotListMode)));
+    testWidgets("the empty-state gallery fills the centre until the sequence has a linked set", (
+      tester,
+    ) async {
+      await mountOnFloorPlans(tester);
+      final tr = Tr.of(tester.element(find.byType(OcptShotListMode)));
 
-        expect(find.byType(OcptFloorPlanSetGallery), findsOneWidget);
-        expect(find.text(tr.shotListFloorPlanGalleryTitle), findsOneWidget);
-        expect(find.byType(OcptFloorPlanCanvas), findsNothing);
+      expect(find.byType(OcptFloorPlanSetGallery), findsOneWidget);
+      expect(find.text(tr.shotListFloorPlanGalleryTitle), findsOneWidget);
+      expect(find.byType(OcptFloorPlanCanvas), findsNothing);
 
-        // The header's own ＋ Set button is still reachable (this test's own way of linking a
-        // set), even while the gallery fills the centre.
-        expect(
-          find.widgetWithText(FilledButton, tr.shotListFloorPlanAddSetButtonLabel),
-          findsOneWidget,
-        );
-      },
-    );
+      // The header's own ＋ Set button is still reachable (this test's own way of linking a
+      // set), even while the gallery fills the centre.
+      expect(
+        find.widgetWithText(FilledButton, tr.shotListFloorPlanAddSetButtonLabel),
+        findsOneWidget,
+      );
+    });
 
     testWidgets("linking the gallery's own Create a set… flow selects the new set's tab, "
         "replacing the gallery", (tester) async {
@@ -900,9 +888,7 @@ void main() {
     });
 
     testWidgets("＋ Set's own Create set entry names a set from the scene heading's place and "
-        "selects it", (
-      tester,
-    ) async {
+        "selects it", (tester) async {
       final bloc = await mountOnFloorPlans(tester);
       final tr = Tr.of(tester.element(find.byType(OcptShotListMode)));
 
@@ -993,7 +979,10 @@ void main() {
 
         // The set tab's own close control, not the selected character's delete handle.
         await tester.tap(
-          find.descendant(of: find.byType(OcptFloorPlanSetTabs), matching: find.byIcon(Icons.close)),
+          find.descendant(
+            of: find.byType(OcptFloorPlanSetTabs),
+            matching: find.byIcon(Icons.close),
+          ),
         );
         await tester.pumpAndSettle();
 
@@ -1001,12 +990,9 @@ void main() {
         expect(find.text(tr.shotListFloorPlanDeleteSetConfirmTitle), findsOneWidget);
         final expectedMessage =
             "${tr.shotListFloorPlanDeleteSetConfirmMessage} "
-            "${tr.shotListFloorPlanUnlinkCountMessage(
-              2,
-              "${tr.shotListFloorPlanUnlinkCountCamerasPart(1)} "
-              "${tr.shotListFloorPlanUnlinkCountConjunction} "
-              "${tr.shotListFloorPlanUnlinkCountCharactersPart(1)}",
-            )}";
+            "${tr.shotListFloorPlanUnlinkCountMessage(2, "${tr.shotListFloorPlanUnlinkCountCamerasPart(1)} "
+            "${tr.shotListFloorPlanUnlinkCountConjunction} "
+            "${tr.shotListFloorPlanUnlinkCountCharactersPart(1)}")}";
         expect(find.text(expectedMessage), findsOneWidget);
 
         await tester.tap(find.text(tr.shotListFloorPlanUnlinkSetConfirmAction));
@@ -1249,109 +1235,105 @@ void main() {
       },
     );
 
-    testWidgets(
-      "a previewed version withholds ＋ Set, the set element tool and symbol placement",
-      (tester) async {
-        await mountWithACase(tester);
+    testWidgets("a previewed version withholds ＋ Set, the set element tool and symbol placement", (
+      tester,
+    ) async {
+      await mountWithACase(tester);
 
-        final version = await projectsManager.createProjectVersion(name: "v1", note: "");
-        expect(version, isNotNull);
-        final previewResult = await projectsManager.previewVersion(version!.id);
-        expect(previewResult.status.isSuccess, isTrue);
+      final version = await projectsManager.createProjectVersion(name: "v1", note: "");
+      expect(version, isNotNull);
+      final previewResult = await projectsManager.previewVersion(version!.id);
+      expect(previewResult.status.isSuccess, isTrue);
 
-        // Unmounts, then remounts fresh — see the board's own previewed-version test for why.
-        await tester.pumpWidget(const SizedBox.shrink());
-        await tester.pumpAndSettle();
-        await tester.pumpWidget(_wrapWithLocalization(const OcptShotListMode()));
-        await tester.pumpAndSettle();
+      // Unmounts, then remounts fresh — see the board's own previewed-version test for why.
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pumpAndSettle();
+      await tester.pumpWidget(_wrapWithLocalization(const OcptShotListMode()));
+      await tester.pumpAndSettle();
 
-        final previewedBloc = tester
-            .element(find.byType(OcptShotListStatusBar))
-            .read<OcptShotListBloc>();
-        expect(previewedBloc.state.isPreviewingVersion, isTrue);
-        expect(previewedBloc.state.centreView, OcptShotListCentreView.floorPlans);
-        expect(previewedBloc.state.selectedSetId, isNotNull);
+      final previewedBloc = tester
+          .element(find.byType(OcptShotListStatusBar))
+          .read<OcptShotListBloc>();
+      expect(previewedBloc.state.isPreviewingVersion, isTrue);
+      expect(previewedBloc.state.centreView, OcptShotListCentreView.floorPlans);
+      expect(previewedBloc.state.selectedSetId, isNotNull);
 
-        final tr = Tr.of(tester.element(find.byType(OcptShotListMode)));
+      final tr = Tr.of(tester.element(find.byType(OcptShotListMode)));
 
-        // `＋ Set` no longer offers a menu at all (every entry withheld): a plain disabled button.
-        final addSetButton = tester.widget<FilledButton>(
-          find.widgetWithText(FilledButton, tr.shotListFloorPlanAddSetButtonLabel),
-        );
-        expect(addSetButton.onPressed, isNull);
+      // `＋ Set` no longer offers a menu at all (every entry withheld): a plain disabled button.
+      final addSetButton = tester.widget<FilledButton>(
+        find.widgetWithText(FilledButton, tr.shotListFloorPlanAddSetButtonLabel),
+      );
+      expect(addSetButton.onPressed, isNull);
 
-        // The `setElement` tool is withheld too (a null `onPressed`), so it can never be picked
-        // to place anything in the first place.
-        final setElementButton = tester.widget<IconButton>(
-          find.descendant(
-            of: find.byTooltip(tr.shotListFloorPlanToolSetElementAction),
-            matching: find.byType(IconButton),
-          ),
-        );
-        expect(setElementButton.onPressed, isNull);
+      // The `setElement` tool is withheld too (a null `onPressed`), so it can never be picked
+      // to place anything in the first place.
+      final setElementButton = tester.widget<IconButton>(
+        find.descendant(
+          of: find.byTooltip(tr.shotListFloorPlanToolSetElementAction),
+          matching: find.byType(IconButton),
+        ),
+      );
+      expect(setElementButton.onPressed, isNull);
 
-        // The shot-scoped camera tool is withheld too, under the preview (no tool is ever dimmed
-        // — only `isReadOnly` withholds a tool bar button now).
-        final cameraButton = tester.widget<IconButton>(
-          find.descendant(
-            of: find.byTooltip(tr.shotListFloorPlanToolCameraAction),
-            matching: find.byType(IconButton),
-          ),
-        );
-        expect(cameraButton.onPressed, isNull);
+      // The shot-scoped camera tool is withheld too, under the preview (no tool is ever dimmed
+      // — only `isReadOnly` withholds a tool bar button now).
+      final cameraButton = tester.widget<IconButton>(
+        find.descendant(
+          of: find.byTooltip(tr.shotListFloorPlanToolCameraAction),
+          matching: find.byType(IconButton),
+        ),
+      );
+      expect(cameraButton.onPressed, isNull);
 
-        // The canvas's own write callback is withheld directly, whichever tool ends up active —
-        // the null closes the whole placing gesture at its source, exactly like the board's own
-        // null callbacks. Reads (selecting, focusing a ghost's shot) stay available.
-        final canvas = tester.widget<OcptFloorPlanCanvas>(find.byType(OcptFloorPlanCanvas));
-        expect(canvas.onSymbolPlaced, isNull);
-        expect(canvas.onSymbolMoved, isNull);
-        expect(canvas.onSymbolDeleteRequested, isNull);
-        expect(canvas.onArrowSymbolTapped, isNull);
-        expect(canvas.onArrowAnchorCancelled, isNull);
-        expect(canvas.onSymbolLabelChanged, isNull);
-        expect(canvas.onSymbolSelected, isNotNull);
-        expect(canvas.onGhostShotFocusRequested, isNotNull);
+      // The canvas's own write callback is withheld directly, whichever tool ends up active —
+      // the null closes the whole placing gesture at its source, exactly like the board's own
+      // null callbacks. Reads (selecting, focusing a ghost's shot) stay available.
+      final canvas = tester.widget<OcptFloorPlanCanvas>(find.byType(OcptFloorPlanCanvas));
+      expect(canvas.onSymbolPlaced, isNull);
+      expect(canvas.onSymbolMoved, isNull);
+      expect(canvas.onSymbolDeleteRequested, isNull);
+      expect(canvas.onArrowSymbolTapped, isNull);
+      expect(canvas.onArrowAnchorCancelled, isNull);
+      expect(canvas.onSymbolLabelChanged, isNull);
+      expect(canvas.onSymbolSelected, isNotNull);
+      expect(canvas.onGhostShotFocusRequested, isNotNull);
 
-        // Leave the preview so the working copy is what the next test opens onto.
-        await projectsManager.exitPreview();
-      },
-    );
+      // Leave the preview so the working copy is what the next test opens onto.
+      await projectsManager.exitPreview();
+    });
 
-    testWidgets(
-      "creating a second shot's own chip selects it, always one active",
-      (tester) async {
-        final bloc = await mountWithACase(tester);
+    testWidgets("creating a second shot's own chip selects it, always one active", (tester) async {
+      final bloc = await mountWithACase(tester);
 
-        bloc.add(const OcptShotListShotCreationRequestedEvent());
-        await tester.pumpAndSettle();
-        final firstShotId = bloc.state.selectedShotId!;
-        final firstShotCode = bloc.state.selectedShot!.code;
-        expect(bloc.state.isFloorPlanShotFocusActive, isTrue);
+      bloc.add(const OcptShotListShotCreationRequestedEvent());
+      await tester.pumpAndSettle();
+      final firstShotId = bloc.state.selectedShotId!;
+      final firstShotCode = bloc.state.selectedShot!.code;
+      expect(bloc.state.isFloorPlanShotFocusActive, isTrue);
 
-        // The shot's own chip is already active (the very selection the table's rows share) —
-        // scoped to the focus strip: the shot's own code is also shown by the left tree and the
-        // inspector header.
-        final firstShotChipFinder = find.descendant(
-          of: find.byType(OcptFloorPlanFocusStrip),
-          matching: find.text(firstShotCode),
-        );
-        expect(firstShotChipFinder, findsOneWidget);
+      // The shot's own chip is already active (the very selection the table's rows share) —
+      // scoped to the focus strip: the shot's own code is also shown by the left tree and the
+      // inspector header.
+      final firstShotChipFinder = find.descendant(
+        of: find.byType(OcptFloorPlanFocusStrip),
+        matching: find.text(firstShotCode),
+      );
+      expect(firstShotChipFinder, findsOneWidget);
 
-        // A second shot's own creation selects it in turn — there is no `Sequence` chip to flip
-        // back to any more: the current shot is never null while the sequence holds one.
-        bloc.add(const OcptShotListShotCreationRequestedEvent());
-        await tester.pumpAndSettle();
-        final secondShotId = bloc.state.selectedShotId!;
-        expect(secondShotId, isNot(firstShotId));
+      // A second shot's own creation selects it in turn — there is no `Sequence` chip to flip
+      // back to any more: the current shot is never null while the sequence holds one.
+      bloc.add(const OcptShotListShotCreationRequestedEvent());
+      await tester.pumpAndSettle();
+      final secondShotId = bloc.state.selectedShotId!;
+      expect(secondShotId, isNot(firstShotId));
 
-        // Tapping the first shot's own chip again re-selects it — the mode's one selection,
-        // shared with the table.
-        await tester.tap(firstShotChipFinder);
-        await tester.pumpAndSettle();
-        expect(bloc.state.selectedShotId, firstShotId);
-      },
-    );
+      // Tapping the first shot's own chip again re-selects it — the mode's one selection,
+      // shared with the table.
+      await tester.tap(firstShotChipFinder);
+      await tester.pumpAndSettle();
+      expect(bloc.state.selectedShotId, firstShotId);
+    });
 
     testWidgets(
       "placing a camera under the shot focus, then deleting it, asks through the confirm dialog",

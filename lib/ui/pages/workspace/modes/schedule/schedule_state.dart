@@ -425,26 +425,20 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
   /// selected day carries none).
   List<OcptShootingSlot> get selectedDaySlots {
     final selectedDayId = this.selectedDayId;
-    return selectedDayId == null
-        ? const []
-        : (snapshot?.slotsByDayId[selectedDayId] ?? const []);
+    return selectedDayId == null ? const [] : (snapshot?.slotsByDayId[selectedDayId] ?? const []);
   }
 
   /// [selectedDayId]'s own live blocks — its timetable — in `sortKey` order.
   List<OcptShootingDayBlock> get selectedDayBlocks {
     final selectedDayId = this.selectedDayId;
-    return selectedDayId == null
-        ? const []
-        : (snapshot?.blocksByDayId[selectedDayId] ?? const []);
+    return selectedDayId == null ? const [] : (snapshot?.blocksByDayId[selectedDayId] ?? const []);
   }
 
   /// [selectedDayId]'s own live events, ordered by [OcptShootingDayEvent.minute] then by
   /// `sortKey` — see `OcptScheduleSnapshot.eventsByDayId`.
   List<OcptShootingDayEvent> get selectedDayEvents {
     final selectedDayId = this.selectedDayId;
-    return selectedDayId == null
-        ? const []
-        : (snapshot?.eventsByDayId[selectedDayId] ?? const []);
+    return selectedDayId == null ? const [] : (snapshot?.eventsByDayId[selectedDayId] ?? const []);
   }
 
   /// Every real scene of every episode's own [shotListSnapshots], as an [OcptSceneShotSequence],
@@ -483,7 +477,9 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
           OcptScheduleUnplacedGroup(
             screenplayId: shotListSnapshot.screenplayId,
             sequenceId: sequence.id,
-            displaySceneNumber: sequence is OcptSceneShotSequence ? sequence.displaySceneNumber : null,
+            displaySceneNumber: sequence is OcptSceneShotSequence
+                ? sequence.displaySceneNumber
+                : null,
             heading: sequence is OcptSceneShotSequence ? sequence.heading : null,
             shots: unplaced,
           ),
@@ -507,7 +503,9 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
   Map<String, List<int>> get placedDayNumbersByShotId {
     final dayNumbersByShotId = <String, Set<int>>{};
 
-    for (final entry in snapshot?.blocksByDayId.entries ?? const <MapEntry<String, List<OcptShootingDayBlock>>>[]) {
+    for (final entry
+        in snapshot?.blocksByDayId.entries ??
+            const <MapEntry<String, List<OcptShootingDayBlock>>>[]) {
       final dayNumber = daysById[entry.key]?.dayNumber;
       if (dayNumber == null) {
         continue;
@@ -733,7 +731,9 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
     pageSetup: pageSetup ?? this.pageSetup,
     ioNotice: clearIoNotice ? null : (ioNotice ?? this.ioNotice),
     projectVersions: projectVersions ?? this.projectVersions,
-    previewedVersionId: clearPreviewedVersionId ? null : (previewedVersionId ?? this.previewedVersionId),
+    previewedVersionId: clearPreviewedVersionId
+        ? null
+        : (previewedVersionId ?? this.previewedVersionId),
     workingCopy: clearWorkingCopy ? null : (workingCopy ?? this.workingCopy),
     versionPendingDeletionId: clearVersionPendingDeletionId
         ? null

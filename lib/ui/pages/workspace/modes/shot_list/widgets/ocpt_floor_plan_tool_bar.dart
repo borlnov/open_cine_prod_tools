@@ -212,10 +212,7 @@ class OcptFloorPlanToolBar extends StatelessWidget {
               visualDensity: VisualDensity.compact,
             ),
           ),
-          SizedBox(
-            width: 40,
-            child: Center(child: Text("${(zoom * 100).round()}%")),
-          ),
+          SizedBox(width: 40, child: Center(child: Text("${(zoom * 100).round()}%"))),
           Tooltip(
             message: Tr.of(context).shotListFloorPlanZoomInAction,
             child: IconButton(

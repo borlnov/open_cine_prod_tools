@@ -157,7 +157,10 @@ class OcptProjectSettingsEpisodeTitleChangedEvent extends OcptProjectSettingsEve
   final String title;
 
   /// Class constructor
-  const OcptProjectSettingsEpisodeTitleChangedEvent({required this.screenplayId, required this.title});
+  const OcptProjectSettingsEpisodeTitleChangedEvent({
+    required this.screenplayId,
+    required this.title,
+  });
 
   /// Object properties
   @override
@@ -196,7 +199,10 @@ class OcptProjectSettingsEpisodeMovedEvent extends OcptProjectSettingsEvent {
   final int newPosition;
 
   /// Class constructor
-  const OcptProjectSettingsEpisodeMovedEvent({required this.screenplayId, required this.newPosition});
+  const OcptProjectSettingsEpisodeMovedEvent({
+    required this.screenplayId,
+    required this.newPosition,
+  });
 
   /// Object properties
   @override
@@ -234,7 +240,10 @@ class OcptProjectSettingsMileageRateLabelChangedEvent extends OcptProjectSetting
   final String label;
 
   /// Class constructor
-  const OcptProjectSettingsMileageRateLabelChangedEvent({required this.rateId, required this.label});
+  const OcptProjectSettingsMileageRateLabelChangedEvent({
+    required this.rateId,
+    required this.label,
+  });
 
   /// Object properties
   @override

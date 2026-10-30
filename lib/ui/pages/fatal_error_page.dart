@@ -50,10 +50,7 @@ class FatalErrorPage extends StatelessWidget {
                     style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 8),
-                  Text(
-                    tr.fatalErrorMessage,
-                    textAlign: TextAlign.center,
-                  ),
+                  Text(tr.fatalErrorMessage, textAlign: TextAlign.center),
                   const SizedBox(height: 12),
                   SelectableText(
                     error.toString(),

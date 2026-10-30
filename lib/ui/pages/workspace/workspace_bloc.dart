@@ -131,7 +131,9 @@ class OcptWorkspaceBloc extends BlocForMixin<OcptWorkspaceState> {
     }
 
     final managers = globalGetIt();
-    return managers.isRegistered<OcptRelayHostManager>() ? managers.get<OcptRelayHostManager>() : null;
+    return managers.isRegistered<OcptRelayHostManager>()
+        ? managers.get<OcptRelayHostManager>()
+        : null;
   }
 
   /// {@macro act_flutter_utility.BlocForMixin.registerMixinEvents}
@@ -297,8 +299,10 @@ class OcptWorkspaceBloc extends BlocForMixin<OcptWorkspaceState> {
         ),
       );
     } catch (error) {
-      appLogger().w("A problem occurred when tried to reload the project's episodes, most likely "
-          "because the project already closed: $error");
+      appLogger().w(
+        "A problem occurred when tried to reload the project's episodes, most likely "
+        "because the project already closed: $error",
+      );
     }
   }
 

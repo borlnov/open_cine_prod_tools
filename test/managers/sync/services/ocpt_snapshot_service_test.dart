@@ -93,30 +93,34 @@ void main() {
   });
 
   group('applySnapshot', () {
-    test('materialises a project carrying the same content, under a fresh parent directory', () async {
-      final (descriptor, bytes) = await build();
-      final parentDirectory = Directory(p.join(workspace.path, 'joined'))..createSync();
+    test(
+      'materialises a project carrying the same content, under a fresh parent directory',
+      () async {
+        final (descriptor, bytes) = await build();
+        final parentDirectory = Directory(p.join(workspace.path, 'joined'))..createSync();
 
-      final materialisedPath = await service.applySnapshot(
-        bytes: bytes,
-        parentDirectoryPath: parentDirectory.path,
-        descriptor: descriptor,
-      );
+        final materialisedPath = await service.applySnapshot(
+          bytes: bytes,
+          parentDirectoryPath: parentDirectory.path,
+          descriptor: descriptor,
+        );
 
-      expect(File(materialisedPath).existsSync(), isTrue);
-      expect(materialisedPath, isNot(projectPath));
+        expect(File(materialisedPath).existsSync(), isTrue);
+        expect(materialisedPath, isNot(projectPath));
 
-      final materialised = OcptProjectDatabase(File(materialisedPath));
-      addTearDown(materialised.close);
-      final info = await materialised.select(materialised.ocptProjectInfoTable).getSingle();
-      expect(info.name, 'Les Vagues');
-      final screenplay = await materialised.select(materialised.ocptScreenplaysTable).getSingle();
-      expect(screenplay.fountainText, 'INT. HOUSE - DAY\n\nA quiet morning.');
-    });
+        final materialised = OcptProjectDatabase(File(materialisedPath));
+        addTearDown(materialised.close);
+        final info = await materialised.select(materialised.ocptProjectInfoTable).getSingle();
+        expect(info.name, 'Les Vagues');
+        final screenplay = await materialised.select(materialised.ocptScreenplaysTable).getSingle();
+        expect(screenplay.fountainText, 'INT. HOUSE - DAY\n\nA quiet morning.');
+      },
+    );
 
     test('accepts bytes with no descriptor to verify against', () async {
       final (_, bytes) = await build();
-      final parentDirectory = Directory(p.join(workspace.path, 'joined-no-descriptor'))..createSync();
+      final parentDirectory = Directory(p.join(workspace.path, 'joined-no-descriptor'))
+        ..createSync();
 
       final materialisedPath = await service.applySnapshot(
         bytes: bytes,

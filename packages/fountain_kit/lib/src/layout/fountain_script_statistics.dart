@@ -65,10 +65,7 @@ class FountainScriptStatistics extends Equatable {
   final int signCount;
 
   /// Computes the statistics of [document] when laid out at [metrics].
-  factory FountainScriptStatistics.of(
-    FountainDocument document,
-    FountainLayoutMetrics metrics,
-  ) {
+  factory FountainScriptStatistics.of(FountainDocument document, FountainLayoutMetrics metrics) {
     var words = 0;
     var signs = 0;
     for (final block in document.blocks) {
@@ -91,13 +88,7 @@ class FountainScriptStatistics extends Equatable {
   }
 
   @override
-  List<Object?> get props => [
-    pageCount,
-    sceneCount,
-    speakingCharacterCount,
-    wordCount,
-    signCount,
-  ];
+  List<Object?> get props => [pageCount, sceneCount, speakingCharacterCount, wordCount, signCount];
 
   @override
   String toString() =>

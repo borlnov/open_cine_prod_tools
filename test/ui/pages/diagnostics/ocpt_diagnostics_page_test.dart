@@ -119,7 +119,10 @@ void main() {
   });
 
   testWidgets("shows every recorded entry, with the title and the back button", (tester) async {
-    diagnosticsManager.record(category: OcptDiagnosticsCategory.hosting, message: 'starting hosting');
+    diagnosticsManager.record(
+      category: OcptDiagnosticsCategory.hosting,
+      message: 'starting hosting',
+    );
     diagnosticsManager.record(category: OcptDiagnosticsCategory.sync, message: 'in sync');
 
     await tester.pumpWidget(_wrap(const OcptDiagnosticsPage()));
@@ -143,7 +146,10 @@ void main() {
   testWidgets("the copy and clear actions still wire up to the diagnostics manager", (
     tester,
   ) async {
-    diagnosticsManager.record(category: OcptDiagnosticsCategory.hosting, message: 'starting hosting');
+    diagnosticsManager.record(
+      category: OcptDiagnosticsCategory.hosting,
+      message: 'starting hosting',
+    );
 
     await tester.pumpWidget(_wrap(const OcptDiagnosticsPage()));
 
@@ -170,10 +176,7 @@ void main() {
 
     final tr = Tr.of(tester.element(find.byType(OcptDiagnosticsPage)));
     expect(find.text(tr.diagnosticsLogFileLabel), findsOneWidget);
-    expect(
-      find.text('/home/user/.local/share/open_cine_prod_tools/logs/app.log'),
-      findsOneWidget,
-    );
+    expect(find.text('/home/user/.local/share/open_cine_prod_tools/logs/app.log'), findsOneWidget);
     expect(find.text(tr.diagnosticsLogFileDisabled), findsNothing);
 
     await tester.tap(find.byTooltip(tr.diagnosticsLogFileCopyPath));
@@ -189,18 +192,15 @@ void main() {
     expect(find.byTooltip(tr.diagnosticsLogFileCopyPath), findsNothing);
   });
 
-  testWidgets(
-    "tolerates a completely bare manager environment, with no error",
-    (tester) async {
-      final managers = globalGetIt();
-      await managers.unregister<OcptDiagnosticsManager>();
+  testWidgets("tolerates a completely bare manager environment, with no error", (tester) async {
+    final managers = globalGetIt();
+    await managers.unregister<OcptDiagnosticsManager>();
 
-      await tester.pumpWidget(_wrap(const OcptDiagnosticsPage()));
+    await tester.pumpWidget(_wrap(const OcptDiagnosticsPage()));
 
-      final tr = Tr.of(tester.element(find.byType(OcptDiagnosticsPage)));
-      expect(find.text(tr.diagnosticsEmpty), findsOneWidget);
-      expect(find.text(tr.diagnosticsLogFileDisabled), findsOneWidget);
-      expect(tester.takeException(), isNull);
-    },
-  );
+    final tr = Tr.of(tester.element(find.byType(OcptDiagnosticsPage)));
+    expect(find.text(tr.diagnosticsEmpty), findsOneWidget);
+    expect(find.text(tr.diagnosticsLogFileDisabled), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
 }

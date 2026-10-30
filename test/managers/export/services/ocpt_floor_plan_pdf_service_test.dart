@@ -240,9 +240,7 @@ void main() {
         displaySceneNumber: "1",
         charStart: 0,
         charEnd: 100,
-        shots: [
-          for (var i = 0; i < shotCount; i++) _buildShot(id: "shot-$i", code: "1/${i + 1}"),
-        ],
+        shots: [for (var i = 0; i < shotCount; i++) _buildShot(id: "shot-$i", code: "1/${i + 1}")],
       ),
     ],
   );
@@ -285,7 +283,12 @@ void main() {
         floorPlanSnapshot: OcptFloorPlanSnapshot.build(
           screenplayId: "screenplay",
           setsBySceneId: {
-            "scene-1": [buildCase(id: "case-1", symbols: [_decorSymbolOf(id: "sym-1", setId: "case-1")])],
+            "scene-1": [
+              buildCase(
+                id: "case-1",
+                symbols: [_decorSymbolOf(id: "sym-1", setId: "case-1")],
+              ),
+            ],
           },
         ),
       );
@@ -300,7 +303,12 @@ void main() {
         floorPlanSnapshot: OcptFloorPlanSnapshot.build(
           screenplayId: "screenplay",
           setsBySceneId: {
-            "scene-1": [buildCase(id: "case-1", symbols: [_decorSymbolOf(id: "sym-1", setId: "case-1")])],
+            "scene-1": [
+              buildCase(
+                id: "case-1",
+                symbols: [_decorSymbolOf(id: "sym-1", setId: "case-1")],
+              ),
+            ],
           },
         ),
       );
@@ -308,28 +316,31 @@ void main() {
       expect(_pageCount(bytes), 1);
     });
 
-    test("one page per shot that has a camera placed on this set, not per shot of the sequence", () async {
-      // 3 shots, only shot-0 and shot-2 have a camera on case-1: exactly 2 pages, never 3 or 1.
-      final bytes = await generate(
-        snapshot: snapshotOf(3),
-        floorPlanSnapshot: OcptFloorPlanSnapshot.build(
-          screenplayId: "screenplay",
-          setsBySceneId: {
-            "scene-1": [
-              buildCase(
-                id: "case-1",
-                symbols: [
-                  _cameraSymbolOf(id: "cam-0", setId: "case-1", shotId: "shot-0"),
-                  _cameraSymbolOf(id: "cam-2", setId: "case-1", shotId: "shot-2"),
-                ],
-              ),
-            ],
-          },
-        ),
-      );
+    test(
+      "one page per shot that has a camera placed on this set, not per shot of the sequence",
+      () async {
+        // 3 shots, only shot-0 and shot-2 have a camera on case-1: exactly 2 pages, never 3 or 1.
+        final bytes = await generate(
+          snapshot: snapshotOf(3),
+          floorPlanSnapshot: OcptFloorPlanSnapshot.build(
+            screenplayId: "screenplay",
+            setsBySceneId: {
+              "scene-1": [
+                buildCase(
+                  id: "case-1",
+                  symbols: [
+                    _cameraSymbolOf(id: "cam-0", setId: "case-1", shotId: "shot-0"),
+                    _cameraSymbolOf(id: "cam-2", setId: "case-1", shotId: "shot-2"),
+                  ],
+                ),
+              ],
+            },
+          ),
+        );
 
-      expect(_pageCount(bytes), 2);
-    });
+        expect(_pageCount(bytes), 2);
+      },
+    );
 
     test("several sets of the same sequence each contribute their own pages", () async {
       final bytes = await generate(
@@ -345,7 +356,10 @@ void main() {
                   _cameraSymbolOf(id: "cam-2", setId: "case-1", shotId: "shot-2"),
                 ],
               ),
-              buildCase(id: "case-2", symbols: [_decorSymbolOf(id: "sym-1", setId: "case-2")]),
+              buildCase(
+                id: "case-2",
+                symbols: [_decorSymbolOf(id: "sym-1", setId: "case-2")],
+              ),
             ],
           },
         ),
@@ -358,12 +372,19 @@ void main() {
     test("the orphan group has no scene and so contributes no page", () async {
       final snapshot = OcptShotListSnapshot.build(
         screenplayId: "screenplay",
-        sequences: [OcptOrphanShotSequence(shots: [_buildShot(id: "shot-orphan", code: "0/1")])],
+        sequences: [
+          OcptOrphanShotSequence(
+            shots: [_buildShot(id: "shot-orphan", code: "0/1")],
+          ),
+        ],
       );
 
       final bytes = await generate(
         snapshot: snapshot,
-        floorPlanSnapshot: OcptFloorPlanSnapshot.build(screenplayId: "screenplay", setsBySceneId: const {}),
+        floorPlanSnapshot: OcptFloorPlanSnapshot.build(
+          screenplayId: "screenplay",
+          setsBySceneId: const {},
+        ),
       );
 
       expect(_pageCount(bytes), 0);
@@ -372,16 +393,19 @@ void main() {
 
   group("what the floor plan draws", () {
     test("a set with a camera draws differently from the very same set with none", () async {
-      OcptFloorPlanSnapshot snapshotWith(List<OcptFloorPlanSymbol> symbols) => OcptFloorPlanSnapshot.build(
-        screenplayId: "screenplay",
-        setsBySceneId: {
-          "scene-1": [buildCase(id: "case-1", symbols: symbols)],
-        },
-      );
+      OcptFloorPlanSnapshot snapshotWith(List<OcptFloorPlanSymbol> symbols) =>
+          OcptFloorPlanSnapshot.build(
+            screenplayId: "screenplay",
+            setsBySceneId: {
+              "scene-1": [buildCase(id: "case-1", symbols: symbols)],
+            },
+          );
 
       final withCamera = await generate(
         snapshot: snapshotOf(1),
-        floorPlanSnapshot: snapshotWith([_cameraSymbolOf(id: "cam-0", setId: "case-1", shotId: "shot-0")]),
+        floorPlanSnapshot: snapshotWith([
+          _cameraSymbolOf(id: "cam-0", setId: "case-1", shotId: "shot-0"),
+        ]),
       );
       final withoutCamera = await generate(
         snapshot: snapshotOf(1),
@@ -423,7 +447,9 @@ void main() {
           "scene-1": [
             buildCase(
               id: "case-1",
-              symbols: [_cameraSymbolOf(id: "cam-0", setId: "case-1", shotId: "shot-0", fovDeg: fovDeg)],
+              symbols: [
+                _cameraSymbolOf(id: "cam-0", setId: "case-1", shotId: "shot-0", fovDeg: fovDeg),
+              ],
             ),
           ],
         },
@@ -491,17 +517,27 @@ void main() {
     );
 
     test("each décor primitive draws its own page", () async {
-      OcptFloorPlanSnapshot snapshotOfShape(OcptFloorPlanSetElementShape shape) => OcptFloorPlanSnapshot.build(
-        screenplayId: "screenplay",
-        setsBySceneId: {
-          "scene-1": [
-            buildCase(id: "case-1", symbols: [_decorSymbolOf(id: "sym-1", setId: "case-1", shape: shape)]),
-          ],
-        },
-      );
+      OcptFloorPlanSnapshot snapshotOfShape(OcptFloorPlanSetElementShape shape) =>
+          OcptFloorPlanSnapshot.build(
+            screenplayId: "screenplay",
+            setsBySceneId: {
+              "scene-1": [
+                buildCase(
+                  id: "case-1",
+                  symbols: [_decorSymbolOf(id: "sym-1", setId: "case-1", shape: shape)],
+                ),
+              ],
+            },
+          );
 
-      final wall = await generate(snapshot: snapshotOf(1), floorPlanSnapshot: snapshotOfShape(OcptFloorPlanSetElementShape.wall));
-      final door = await generate(snapshot: snapshotOf(1), floorPlanSnapshot: snapshotOfShape(OcptFloorPlanSetElementShape.door));
+      final wall = await generate(
+        snapshot: snapshotOf(1),
+        floorPlanSnapshot: snapshotOfShape(OcptFloorPlanSetElementShape.wall),
+      );
+      final door = await generate(
+        snapshot: snapshotOf(1),
+        floorPlanSnapshot: snapshotOfShape(OcptFloorPlanSetElementShape.door),
+      );
       final furniture = await generate(
         snapshot: snapshotOf(1),
         floorPlanSnapshot: snapshotOfShape(OcptFloorPlanSetElementShape.furniture),
@@ -518,33 +554,43 @@ void main() {
     });
 
     test("a curved movement arrow draws differently from a straight one", () async {
-      OcptFloorPlanSnapshot snapshotOfArrow({double? ctrlXM, double? ctrlYM}) => OcptFloorPlanSnapshot.build(
-        screenplayId: "screenplay",
-        setsBySceneId: {
-          "scene-1": [
-            buildCase(
-              id: "case-1",
-              symbols: [
-                _cameraSymbolOf(id: "cam-0", setId: "case-1", shotId: "shot-0"),
-                _characterSymbolOf(id: "char-0", setId: "case-1", shotId: "shot-0", xM: 2, yM: 2),
-              ],
-              arrows: [
-                _movementArrowOf(
-                  id: "arrow-1",
-                  setId: "case-1",
-                  shotId: "shot-0",
-                  fromSymbolId: "char-0",
-                  toSymbolId: "cam-0",
-                  ctrlXM: ctrlXM,
-                  ctrlYM: ctrlYM,
+      OcptFloorPlanSnapshot snapshotOfArrow({double? ctrlXM, double? ctrlYM}) =>
+          OcptFloorPlanSnapshot.build(
+            screenplayId: "screenplay",
+            setsBySceneId: {
+              "scene-1": [
+                buildCase(
+                  id: "case-1",
+                  symbols: [
+                    _cameraSymbolOf(id: "cam-0", setId: "case-1", shotId: "shot-0"),
+                    _characterSymbolOf(
+                      id: "char-0",
+                      setId: "case-1",
+                      shotId: "shot-0",
+                      xM: 2,
+                      yM: 2,
+                    ),
+                  ],
+                  arrows: [
+                    _movementArrowOf(
+                      id: "arrow-1",
+                      setId: "case-1",
+                      shotId: "shot-0",
+                      fromSymbolId: "char-0",
+                      toSymbolId: "cam-0",
+                      ctrlXM: ctrlXM,
+                      ctrlYM: ctrlYM,
+                    ),
+                  ],
                 ),
               ],
-            ),
-          ],
-        },
-      );
+            },
+          );
 
-      final straight = await generate(snapshot: snapshotOf(1), floorPlanSnapshot: snapshotOfArrow());
+      final straight = await generate(
+        snapshot: snapshotOf(1),
+        floorPlanSnapshot: snapshotOfArrow(),
+      );
       final curved = await generate(
         snapshot: snapshotOf(1),
         floorPlanSnapshot: snapshotOfArrow(ctrlXM: 3, ctrlYM: -1),
@@ -555,27 +601,33 @@ void main() {
   });
 
   group("the character glyph and the camera label pill", () {
-    test("a character's own facing indicator (rim notch and arms) never draws in plain white", () async {
-      // Sequence-scoped, so it draws on the bare-décor page even with no camera anywhere on this
-      // set — the one page this set's own symbols can ever draw with no camera label pill
-      // (see the sibling test below) to also contribute a white fill/stroke of its own.
-      final bytes = await generate(
-        snapshot: snapshotOf(1),
-        floorPlanSnapshot: OcptFloorPlanSnapshot.build(
-          screenplayId: "screenplay",
-          setsBySceneId: {
-            "scene-1": [
-              buildCase(id: "case-1", symbols: [_sequenceCharacterSymbolOf(id: "char-0", setId: "case-1")]),
-            ],
-          },
-        ),
-      );
+    test(
+      "a character's own facing indicator (rim notch and arms) never draws in plain white",
+      () async {
+        // Sequence-scoped, so it draws on the bare-décor page even with no camera anywhere on this
+        // set — the one page this set's own symbols can ever draw with no camera label pill
+        // (see the sibling test below) to also contribute a white fill/stroke of its own.
+        final bytes = await generate(
+          snapshot: snapshotOf(1),
+          floorPlanSnapshot: OcptFloorPlanSnapshot.build(
+            screenplayId: "screenplay",
+            setsBySceneId: {
+              "scene-1": [
+                buildCase(
+                  id: "case-1",
+                  symbols: [_sequenceCharacterSymbolOf(id: "char-0", setId: "case-1")],
+                ),
+              ],
+            },
+          ),
+        );
 
-      final inflated = _inflatedContentOf(bytes);
+        final inflated = _inflatedContentOf(bytes);
 
-      expect(inflated, isNot(contains("1 1 1 rg")));
-      expect(inflated, isNot(contains("1 1 1 RG")));
-    });
+        expect(inflated, isNot(contains("1 1 1 rg")));
+        expect(inflated, isNot(contains("1 1 1 RG")));
+      },
+    );
 
     test("a camera's own derived label draws white text on a filled pill; a page with no camera "
         "never draws that white at all", () async {
@@ -585,7 +637,10 @@ void main() {
           screenplayId: "screenplay",
           setsBySceneId: {
             "scene-1": [
-              buildCase(id: "case-1", symbols: [_cameraSymbolOf(id: "cam-0", setId: "case-1", shotId: "shot-0")]),
+              buildCase(
+                id: "case-1",
+                symbols: [_cameraSymbolOf(id: "cam-0", setId: "case-1", shotId: "shot-0")],
+              ),
             ],
           },
         ),
@@ -595,7 +650,12 @@ void main() {
         floorPlanSnapshot: OcptFloorPlanSnapshot.build(
           screenplayId: "screenplay",
           setsBySceneId: {
-            "scene-1": [buildCase(id: "case-1", symbols: [_decorSymbolOf(id: "sym-1", setId: "case-1")])],
+            "scene-1": [
+              buildCase(
+                id: "case-1",
+                symbols: [_decorSymbolOf(id: "sym-1", setId: "case-1")],
+              ),
+            ],
           },
         ),
       );
@@ -621,21 +681,27 @@ void main() {
           },
         );
 
-    test("a set whose underlay file resolves draws differently from one whose file is missing", () async {
-      final resolved = await generate(
-        snapshot: snapshotOf(1),
-        floorPlanSnapshot: snapshotWithUnderlay(imagePath),
-      );
-      final missing = await generate(
-        snapshot: snapshotOf(1),
-        floorPlanSnapshot: snapshotWithUnderlay(missingPath),
-      );
+    test(
+      "a set whose underlay file resolves draws differently from one whose file is missing",
+      () async {
+        final resolved = await generate(
+          snapshot: snapshotOf(1),
+          floorPlanSnapshot: snapshotWithUnderlay(imagePath),
+        );
+        final missing = await generate(
+          snapshot: snapshotOf(1),
+          floorPlanSnapshot: snapshotWithUnderlay(missingPath),
+        );
 
-      expect(_contentStreams(resolved), isNot(_contentStreams(missing)));
-    });
+        expect(_contentStreams(resolved), isNot(_contentStreams(missing)));
+      },
+    );
 
     test("a set with no underlay at all still exports without throwing", () async {
-      final bytes = await generate(snapshot: snapshotOf(1), floorPlanSnapshot: snapshotWithUnderlay(null));
+      final bytes = await generate(
+        snapshot: snapshotOf(1),
+        floorPlanSnapshot: snapshotWithUnderlay(null),
+      );
 
       expect(ascii.decode(bytes.sublist(0, 4)), "%PDF");
     });
@@ -657,108 +723,104 @@ void main() {
   });
 
   group("overrides and hidden overrides — the printed page shows the effective plan alone", () {
-    test(
-      "a visible override draws normally, in its own place — no dashed mark or ghost of the "
-      "original prints",
-      () async {
-        final original = _decorSymbolOf(id: "sym-original", setId: "case-1");
-        final override = OcptFloorPlanSymbol(
-          id: "sym-override",
-          setId: "case-1",
-          sceneId: "scene-1",
-          shotId: null,
-          layer: OcptFloorPlanLayer.set,
-          sortKey: "b",
-          xM: 3,
-          yM: 3,
-          rotationDeg: 0,
-          widthM: 2,
-          heightM: 1,
-          fovDeg: null,
-          fovReachM: null,
-          label: "wall",
-          setElementShape: OcptFloorPlanSetElementShape.wall,
-          overridesSymbolId: original.id,
-          isHidden: false,
-        );
+    test("a visible override draws normally, in its own place — no dashed mark or ghost of the "
+        "original prints", () async {
+      final original = _decorSymbolOf(id: "sym-original", setId: "case-1");
+      final override = OcptFloorPlanSymbol(
+        id: "sym-override",
+        setId: "case-1",
+        sceneId: "scene-1",
+        shotId: null,
+        layer: OcptFloorPlanLayer.set,
+        sortKey: "b",
+        xM: 3,
+        yM: 3,
+        rotationDeg: 0,
+        widthM: 2,
+        heightM: 1,
+        fovDeg: null,
+        fovReachM: null,
+        label: "wall",
+        setElementShape: OcptFloorPlanSetElementShape.wall,
+        overridesSymbolId: original.id,
+        isHidden: false,
+      );
 
-        // The override alone, at its own moved position — this is what a page drawing only the
-        // override (no ghost of the original) must match.
-        final overrideAlone = await generate(
-          snapshot: snapshotOf(1),
-          floorPlanSnapshot: OcptFloorPlanSnapshot.build(
-            screenplayId: "screenplay",
-            setsBySceneId: {
-              "scene-1": [buildCase(id: "case-1", symbols: [override])],
-            },
-          ),
-        );
+      // The override alone, at its own moved position — this is what a page drawing only the
+      // override (no ghost of the original) must match.
+      final overrideAlone = await generate(
+        snapshot: snapshotOf(1),
+        floorPlanSnapshot: OcptFloorPlanSnapshot.build(
+          screenplayId: "screenplay",
+          setsBySceneId: {
+            "scene-1": [
+              buildCase(id: "case-1", symbols: [override]),
+            ],
+          },
+        ),
+      );
 
-        final overrideAndOriginal = await generate(
-          snapshot: snapshotOf(1),
-          floorPlanSnapshot: OcptFloorPlanSnapshot.build(
-            screenplayId: "screenplay",
-            setsBySceneId: {
-              "scene-1": [
-                buildCase(id: "case-1", symbols: [original, override]),
-              ],
-            },
-          ),
-        );
+      final overrideAndOriginal = await generate(
+        snapshot: snapshotOf(1),
+        floorPlanSnapshot: OcptFloorPlanSnapshot.build(
+          screenplayId: "screenplay",
+          setsBySceneId: {
+            "scene-1": [
+              buildCase(id: "case-1", symbols: [original, override]),
+            ],
+          },
+        ),
+      );
 
-        expect(_contentStreams(overrideAndOriginal), _contentStreams(overrideAlone));
-      },
-    );
+      expect(_contentStreams(overrideAndOriginal), _contentStreams(overrideAlone));
+    });
 
-    test(
-      "a hidden override prints nothing at all for that element — same page as if it were never "
-      "placed",
-      () async {
-        final original = _decorSymbolOf(id: "sym-original", setId: "case-1");
-        final hiddenOverride = OcptFloorPlanSymbol(
-          id: "sym-override",
-          setId: "case-1",
-          sceneId: "scene-1",
-          shotId: null,
-          layer: OcptFloorPlanLayer.set,
-          sortKey: "b",
-          xM: original.xM,
-          yM: original.yM,
-          rotationDeg: original.rotationDeg,
-          widthM: original.widthM,
-          heightM: original.heightM,
-          fovDeg: null,
-          fovReachM: null,
-          label: original.label,
-          setElementShape: original.setElementShape,
-          overridesSymbolId: original.id,
-          isHidden: true,
-        );
+    test("a hidden override prints nothing at all for that element — same page as if it were never "
+        "placed", () async {
+      final original = _decorSymbolOf(id: "sym-original", setId: "case-1");
+      final hiddenOverride = OcptFloorPlanSymbol(
+        id: "sym-override",
+        setId: "case-1",
+        sceneId: "scene-1",
+        shotId: null,
+        layer: OcptFloorPlanLayer.set,
+        sortKey: "b",
+        xM: original.xM,
+        yM: original.yM,
+        rotationDeg: original.rotationDeg,
+        widthM: original.widthM,
+        heightM: original.heightM,
+        fovDeg: null,
+        fovReachM: null,
+        label: original.label,
+        setElementShape: original.setElementShape,
+        overridesSymbolId: original.id,
+        isHidden: true,
+      );
 
-        final withHiddenOverride = await generate(
-          snapshot: snapshotOf(1),
-          floorPlanSnapshot: OcptFloorPlanSnapshot.build(
-            screenplayId: "screenplay",
-            setsBySceneId: {
-              "scene-1": [
-                buildCase(id: "case-1", symbols: [original, hiddenOverride]),
-              ],
-            },
-          ),
-        );
-        final withNoDecorAtAll = await generate(
-          snapshot: snapshotOf(1),
-          floorPlanSnapshot: OcptFloorPlanSnapshot.build(
-            screenplayId: "screenplay",
-            setsBySceneId: {
-              "scene-1": [buildCase(id: "case-1")],
-            },
-          ),
-        );
+      final withHiddenOverride = await generate(
+        snapshot: snapshotOf(1),
+        floorPlanSnapshot: OcptFloorPlanSnapshot.build(
+          screenplayId: "screenplay",
+          setsBySceneId: {
+            "scene-1": [
+              buildCase(id: "case-1", symbols: [original, hiddenOverride]),
+            ],
+          },
+        ),
+      );
+      final withNoDecorAtAll = await generate(
+        snapshot: snapshotOf(1),
+        floorPlanSnapshot: OcptFloorPlanSnapshot.build(
+          screenplayId: "screenplay",
+          setsBySceneId: {
+            "scene-1": [buildCase(id: "case-1")],
+          },
+        ),
+      );
 
-        expect(_contentStreams(withHiddenOverride), _contentStreams(withNoDecorAtAll));
-      },
-    );
+      expect(_contentStreams(withHiddenOverride), _contentStreams(withNoDecorAtAll));
+    });
   });
 
   group("floorPlansFileName", () {
@@ -771,7 +833,11 @@ void main() {
 
     test("appends the episode tag last, after the suffix, when there is one", () {
       expect(
-        service.floorPlansFileName(projectName: "My Movie", suffix: "floor plans", episodeTag: "ep. 2"),
+        service.floorPlansFileName(
+          projectName: "My Movie",
+          suffix: "floor plans",
+          episodeTag: "ep. 2",
+        ),
         "My Movie - floor plans - ep. 2.pdf",
       );
     });

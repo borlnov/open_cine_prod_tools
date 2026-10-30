@@ -159,49 +159,52 @@ OcptElement _buildElement({
 );
 
 /// Builds a person, every field left at a neutral value.
-OcptPerson _buildPerson({required String id, String firstName = "Jean", String lastName = "Dupont"}) =>
-    OcptPerson(
-      id: id,
-      firstName: firstName,
-      lastName: lastName,
-      email: "",
-      phone: "",
-      addressLine1: "",
-      addressLine2: "",
-      postalCode: "",
-      city: "",
-      region: "",
-      country: "",
-      colorIndex: 0,
-      birthDate: null,
-      minorNotes: "",
-      maxDailyPresenceMinutes: null,
-      isTransportAutonomous: null,
-      accommodationNotes: "",
-      travelNotes: "",
-      dietaryNotes: "",
-      allergies: "",
-      measurementHeight: "",
-      measurementChest: "",
-      measurementWaist: "",
-      measurementHips: "",
-      sizeTop: "",
-      sizeBottom: "",
-      sizeShoes: "",
-      hmcNotes: "",
-      imageRightsStatus: OcptImageRightsStatus.notApplicable,
-      imageRightsDate: null,
-      imageRightsAssetId: null,
-      imageRightsDocument: null,
-      photoAssetId: null,
-      photo: null,
-      notes: "",
-      commuteKmMilli: null,
-      mileageRateId: null,
-      positions: const [],
-      skills: const [],
-      unavailabilities: const [],
-    );
+OcptPerson _buildPerson({
+  required String id,
+  String firstName = "Jean",
+  String lastName = "Dupont",
+}) => OcptPerson(
+  id: id,
+  firstName: firstName,
+  lastName: lastName,
+  email: "",
+  phone: "",
+  addressLine1: "",
+  addressLine2: "",
+  postalCode: "",
+  city: "",
+  region: "",
+  country: "",
+  colorIndex: 0,
+  birthDate: null,
+  minorNotes: "",
+  maxDailyPresenceMinutes: null,
+  isTransportAutonomous: null,
+  accommodationNotes: "",
+  travelNotes: "",
+  dietaryNotes: "",
+  allergies: "",
+  measurementHeight: "",
+  measurementChest: "",
+  measurementWaist: "",
+  measurementHips: "",
+  sizeTop: "",
+  sizeBottom: "",
+  sizeShoes: "",
+  hmcNotes: "",
+  imageRightsStatus: OcptImageRightsStatus.notApplicable,
+  imageRightsDate: null,
+  imageRightsAssetId: null,
+  imageRightsDocument: null,
+  photoAssetId: null,
+  photo: null,
+  notes: "",
+  commuteKmMilli: null,
+  mileageRateId: null,
+  positions: const [],
+  skills: const [],
+  unavailabilities: const [],
+);
 
 /// The text field of the details field labelled [label] — the labels are rendered upper-cased, and
 /// the panel now holds several fields, so no test may reach for `find.byType(TextField).first`.
@@ -581,7 +584,9 @@ void main() {
     expect(reported, ["scene-1"]);
   });
 
-  testWidgets("shows the suggested occurrences section with its own count and rows", (tester) async {
+  testWidgets("shows the suggested occurrences section with its own count and rows", (
+    tester,
+  ) async {
     await _useTallSurface(tester);
     final sceneA = _buildScene(id: "scene-a", sceneNumber: "8", heading: "INT. OFFICE - DAY");
     final sceneB = _buildScene(id: "scene-b", sceneNumber: "14", heading: "INT. BEDROOM - NIGHT");
@@ -621,8 +626,9 @@ void main() {
     expect(find.text("…the desk lamp falls…"), findsOneWidget);
   });
 
-  testWidgets("the suggested occurrences section is absent when there is nothing to suggest",
-      (tester) async {
+  testWidgets("the suggested occurrences section is absent when there is nothing to suggest", (
+    tester,
+  ) async {
     await _useTallSurface(tester);
 
     await tester.pumpWidget(
@@ -655,8 +661,9 @@ void main() {
     expect(find.textContaining("Suggested occurrences"), findsNothing);
   });
 
-  testWidgets("clicking a suggestion's add control reports it, and its row still jumps",
-      (tester) async {
+  testWidgets("clicking a suggestion's add control reports it, and its row still jumps", (
+    tester,
+  ) async {
     await _useTallSurface(tester);
     final scene = _buildScene(id: "scene-a", sceneNumber: "8", heading: "INT. OFFICE - DAY");
     final suggestion = _buildSuggestion(sceneId: "scene-a", text: "switches the desk lamp on");
@@ -702,55 +709,55 @@ void main() {
     expect(jumped, ["scene-a"]);
   });
 
-  testWidgets(
-    "a read-only panel withholds a suggestion's add control while its row still jumps",
-    (tester) async {
-      await _useTallSurface(tester);
-      final scene = _buildScene(id: "scene-a", sceneNumber: "8", heading: "INT. OFFICE - DAY");
-      final suggestion = _buildSuggestion(sceneId: "scene-a", text: "switches the desk lamp on");
-      final jumped = <String>[];
+  testWidgets("a read-only panel withholds a suggestion's add control while its row still jumps", (
+    tester,
+  ) async {
+    await _useTallSurface(tester);
+    final scene = _buildScene(id: "scene-a", sceneNumber: "8", heading: "INT. OFFICE - DAY");
+    final suggestion = _buildSuggestion(sceneId: "scene-a", text: "switches the desk lamp on");
+    final jumped = <String>[];
 
-      await tester.pumpWidget(
-        _wrapInApp(
-          OcptBreakdownTargetInspector(
-            target: _buildElementTarget(),
-            element: _buildElement(),
-            owner: null,
-            bringer: null,
-            people: const [],
-            scenes: [scene],
-            fieldValueOf: (_) => "",
-            onBackToSceneRequested: () {},
-            nameValue: "Desk lamp",
-            onNameChanged: (_) {},
-            onStatusChanged: null,
-            onCategoryChanged: null,
-            onFieldChanged: null,
-            onOwnerChanged: null,
-            onBringerChanged: null,
-            onOccurrenceSelected: jumped.add,
-            suggestions: [suggestion],
-            onSuggestionAccepted: null,
-            onOpenInResourcesRequested: () {},
-            onTagRemovalRequested: null,
-            isReadOnly: true,
-          ),
+    await tester.pumpWidget(
+      _wrapInApp(
+        OcptBreakdownTargetInspector(
+          target: _buildElementTarget(),
+          element: _buildElement(),
+          owner: null,
+          bringer: null,
+          people: const [],
+          scenes: [scene],
+          fieldValueOf: (_) => "",
+          onBackToSceneRequested: () {},
+          nameValue: "Desk lamp",
+          onNameChanged: (_) {},
+          onStatusChanged: null,
+          onCategoryChanged: null,
+          onFieldChanged: null,
+          onOwnerChanged: null,
+          onBringerChanged: null,
+          onOccurrenceSelected: jumped.add,
+          suggestions: [suggestion],
+          onSuggestionAccepted: null,
+          onOpenInResourcesRequested: () {},
+          onTagRemovalRequested: null,
+          isReadOnly: true,
         ),
-      );
+      ),
+    );
 
-      // The section still reads, but the add control is gone.
-      expect(find.text("Suggested occurrences (1)"), findsOneWidget);
-      expect(find.byIcon(Icons.add), findsNothing);
+    // The section still reads, but the add control is gone.
+    expect(find.text("Suggested occurrences (1)"), findsOneWidget);
+    expect(find.byIcon(Icons.add), findsNothing);
 
-      await tester.tap(find.text("…switches the desk lamp on…"));
-      await tester.pump();
+    await tester.tap(find.text("…switches the desk lamp on…"));
+    await tester.pump();
 
-      expect(jumped, ["scene-a"]);
-    },
-  );
+    expect(jumped, ["scene-a"]);
+  });
 
-  testWidgets("shows the owner's name, and picking another one from the menu reports its id",
-      (tester) async {
+  testWidgets("shows the owner's name, and picking another one from the menu reports its id", (
+    tester,
+  ) async {
     await _useTallSurface(tester);
     final owner = _buildPerson(id: "person-1", lastName: "Owner");
     final other = _buildPerson(id: "person-2", firstName: "Léa", lastName: "Other");
@@ -831,8 +838,9 @@ void main() {
     expect(requested, isTrue);
   });
 
-  testWidgets("the tag-removal action only asks, the confirmation being the mode's own dialog",
-      (tester) async {
+  testWidgets("the tag-removal action only asks, the confirmation being the mode's own dialog", (
+    tester,
+  ) async {
     await _useTallSurface(tester);
     var requested = false;
 
@@ -869,14 +877,17 @@ void main() {
     expect(requested, isTrue);
     // The panel itself never shows the question: it is the `OcptConfirmDialog` the mode opens.
     expect(
-      find.text("This removes the tag from this scene. The link it created in Resources, if any, stays."),
+      find.text(
+        "This removes the tag from this scene. The link it created in Resources, if any, stays.",
+      ),
       findsNothing,
     );
     expect(find.text("Remove from the breakdown"), findsOneWidget);
   });
 
-  testWidgets("a read-only panel withholds every write and hides the removal action",
-      (tester) async {
+  testWidgets("a read-only panel withholds every write and hides the removal action", (
+    tester,
+  ) async {
     await _useTallSurface(tester);
     final statusReported = <OcptElementStatus>[];
 

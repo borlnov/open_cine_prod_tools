@@ -626,41 +626,44 @@ void main() {
       expect(uncastConvocation.personId, isNull);
     });
 
-    test("a guest reads as its own convocation, with an arrival and a departure but no PAT band", () {
-      final slot = _buildSlot(
-        id: "slot-1",
-        anchorMinute: 480,
-        guests: [_buildGuest(id: "guest-1", slotId: "slot-1", personId: "person-guest")],
-      );
-      final day = _buildDay(id: "day-1", dayNumber: 1);
-      final snapshot = _buildSnapshot(
-        days: [day],
-        slotsByDayId: {
-          "day-1": [slot],
-        },
-        blocksByDayId: {
-          "day-1": [
-            _buildBlock(
-              id: "block-1",
-              slotId: "slot-1",
-              kind: OcptShootingBlockKind.shot,
-              shotId: "shot-1",
-              durationMinutes: 60,
-            ),
-          ],
-        },
-      );
+    test(
+      "a guest reads as its own convocation, with an arrival and a departure but no PAT band",
+      () {
+        final slot = _buildSlot(
+          id: "slot-1",
+          anchorMinute: 480,
+          guests: [_buildGuest(id: "guest-1", slotId: "slot-1", personId: "person-guest")],
+        );
+        final day = _buildDay(id: "day-1", dayNumber: 1);
+        final snapshot = _buildSnapshot(
+          days: [day],
+          slotsByDayId: {
+            "day-1": [slot],
+          },
+          blocksByDayId: {
+            "day-1": [
+              _buildBlock(
+                id: "block-1",
+                slotId: "slot-1",
+                kind: OcptShootingBlockKind.shot,
+                shotId: "shot-1",
+                durationMinutes: 60,
+              ),
+            ],
+          },
+        );
 
-      final convocation = snapshot.convocationsOfDay("day-1").single;
+        final convocation = snapshot.convocationsOfDay("day-1").single;
 
-      expect(convocation.isGuest, isTrue);
-      expect(convocation.guestPersonId, "person-guest");
-      expect(convocation.personId, isNull);
-      expect(convocation.arrivalMinute, 480);
-      expect(convocation.departureMinute, 540);
-      expect(convocation.patStartMinute, isNull);
-      expect(convocation.patEndMinute, isNull);
-    });
+        expect(convocation.isGuest, isTrue);
+        expect(convocation.guestPersonId, "person-guest");
+        expect(convocation.personId, isNull);
+        expect(convocation.arrivalMinute, 480);
+        expect(convocation.departureMinute, 540);
+        expect(convocation.patStartMinute, isNull);
+        expect(convocation.patEndMinute, isNull);
+      },
+    );
 
     test("a candidate convoked on a day reads a band over its auditions", () {
       final person = _buildPerson(id: "person-1", firstName: "Camille");
@@ -674,11 +677,7 @@ void main() {
         },
         blocksByDayId: {
           "day-1": [
-            _buildBlock(
-              id: "block-arrival",
-              slotId: "slot-1",
-              durationMinutes: 15,
-            ),
+            _buildBlock(id: "block-arrival", slotId: "slot-1", durationMinutes: 15),
             _buildBlock(
               id: "block-audition",
               slotId: "slot-1",
@@ -895,7 +894,12 @@ void main() {
     test("null while nothing is placed on the day at all", () {
       final day = _buildDay(id: "day-1", dayNumber: 1);
       final slot = _buildSlot(id: "slot-1", anchorMinute: 480);
-      final snapshot = _buildSnapshot(days: [day], slotsByDayId: {"day-1": [slot]});
+      final snapshot = _buildSnapshot(
+        days: [day],
+        slotsByDayId: {
+          "day-1": [slot],
+        },
+      );
 
       expect(snapshot.effectCategoryOfDay("day-1"), isNull);
     });
@@ -906,7 +910,9 @@ void main() {
       final slot = _buildSlot(id: "slot-1", anchorMinute: 480);
       final snapshot = _buildSnapshot(
         days: [day],
-        slotsByDayId: {"day-1": [slot]},
+        slotsByDayId: {
+          "day-1": [slot],
+        },
         blocksByDayId: {
           "day-1": [
             _buildBlock(
@@ -918,7 +924,9 @@ void main() {
             ),
           ],
         },
-        shotLists: [_buildShotList(shots: [shot])],
+        shotLists: [
+          _buildShotList(shots: [shot]),
+        ],
       );
 
       expect(snapshot.effectCategoryOfDay("day-1"), OcptSceneEffectCategory.interiorDay);
@@ -931,7 +939,9 @@ void main() {
       final slot = _buildSlot(id: "slot-1", anchorMinute: 480);
       final snapshot = _buildSnapshot(
         days: [day],
-        slotsByDayId: {"day-1": [slot]},
+        slotsByDayId: {
+          "day-1": [slot],
+        },
         blocksByDayId: {
           "day-1": [
             _buildBlock(
@@ -950,7 +960,9 @@ void main() {
             ),
           ],
         },
-        shotLists: [_buildTwoSceneShotList(sceneOneShots: [sceneOneShot], sceneTwoShots: [sceneTwoShot])],
+        shotLists: [
+          _buildTwoSceneShotList(sceneOneShots: [sceneOneShot], sceneTwoShots: [sceneTwoShot]),
+        ],
       );
 
       expect(snapshot.effectCategoryOfDay("day-1"), OcptSceneEffectCategory.mixed);
@@ -962,7 +974,9 @@ void main() {
       final slot = _buildSlot(id: "slot-1", anchorMinute: 480);
       final snapshot = _buildSnapshot(
         days: [day],
-        slotsByDayId: {"day-1": [slot]},
+        slotsByDayId: {
+          "day-1": [slot],
+        },
         blocksByDayId: {
           "day-1": [
             const OcptShootingDayBlock(
@@ -1041,7 +1055,9 @@ void main() {
             ),
           ],
         },
-        shotLists: [_buildShotList(shots: [shot])],
+        shotLists: [
+          _buildShotList(shots: [shot]),
+        ],
         roles: [role],
       );
 
@@ -1115,7 +1131,9 @@ void main() {
             ),
           ],
         },
-        shotLists: [_buildShotList(shots: [shot])],
+        shotLists: [
+          _buildShotList(shots: [shot]),
+        ],
         roles: [role],
       );
 
@@ -1302,14 +1320,31 @@ void main() {
         },
         blocksByDayId: {
           "day-1": [
-            _buildBlock(id: "block-1", slotId: "slot-1", kind: OcptShootingBlockKind.shot, shotId: "shot-1"),
-            _buildBlock(id: "block-2", slotId: "slot-1", kind: OcptShootingBlockKind.shot, shotId: "shot-2"),
-            _buildBlock(id: "block-3", slotId: "slot-1", kind: OcptShootingBlockKind.shot, shotId: "shot-3"),
+            _buildBlock(
+              id: "block-1",
+              slotId: "slot-1",
+              kind: OcptShootingBlockKind.shot,
+              shotId: "shot-1",
+            ),
+            _buildBlock(
+              id: "block-2",
+              slotId: "slot-1",
+              kind: OcptShootingBlockKind.shot,
+              shotId: "shot-2",
+            ),
+            _buildBlock(
+              id: "block-3",
+              slotId: "slot-1",
+              kind: OcptShootingBlockKind.shot,
+              shotId: "shot-3",
+            ),
             // A milestone block names no shot and contributes nothing.
             _buildBlock(id: "block-4", slotId: "slot-1", kind: OcptShootingBlockKind.meal),
           ],
         },
-        shotLists: [_buildShotList(shots: [shotOne, shotTwo, shotThree])],
+        shotLists: [
+          _buildShotList(shots: [shotOne, shotTwo, shotThree]),
+        ],
       );
 
       expect(snapshot.sceneIdsOfDay("day-1"), {"scene-1", "scene-2"});
@@ -1346,9 +1381,7 @@ void main() {
         ],
       );
 
-      expect(snapshot.sceneSpanBySceneId, {
-        "scene-1": (charStart: 42, charEnd: 108),
-      });
+      expect(snapshot.sceneSpanBySceneId, {"scene-1": (charStart: 42, charEnd: 108)});
     });
 
     test("an orphan sequence contributes no entry", () {
@@ -1413,7 +1446,10 @@ void main() {
     });
 
     test("empty for a day with no slot at all", () {
-      final snapshot = _buildSnapshot(days: [_buildDay(id: "day-1", dayNumber: 1)], slotsByDayId: const {});
+      final snapshot = _buildSnapshot(
+        days: [_buildDay(id: "day-1", dayNumber: 1)],
+        slotsByDayId: const {},
+      );
 
       expect(snapshot.convokedRoleIdsOfDay("day-1"), isEmpty);
     });
@@ -1432,30 +1468,43 @@ void main() {
           "day-1": [slot],
         },
         blocksByDayId: {
-          "day-1": [_buildBlock(id: "block-1", slotId: "slot-1", kind: OcptShootingBlockKind.shot, shotId: "shot-1")],
+          "day-1": [
+            _buildBlock(
+              id: "block-1",
+              slotId: "slot-1",
+              kind: OcptShootingBlockKind.shot,
+              shotId: "shot-1",
+            ),
+          ],
         },
-        shotLists: [_buildShotList(shots: [shot])],
+        shotLists: [
+          _buildShotList(shots: [shot]),
+        ],
         elements: elements,
       );
     }
 
-    test("an element brought by the right person but needed in no scene the day plays is absent", () {
-      final element = _buildElement(
-        id: "element-1",
-        name: "Umbrella",
-        broughtByPersonId: "person-1",
-        sceneLinks: [_buildSceneElementLink(id: "link-1", sceneId: "scene-2")],
-      );
-      final snapshot = buildDayPlayingSceneOne(elements: [element]);
+    test(
+      "an element brought by the right person but needed in no scene the day plays is absent",
+      () {
+        final element = _buildElement(
+          id: "element-1",
+          name: "Umbrella",
+          broughtByPersonId: "person-1",
+          sceneLinks: [_buildSceneElementLink(id: "link-1", sceneId: "scene-2")],
+        );
+        final snapshot = buildDayPlayingSceneOne(elements: [element]);
 
-      final toBring = snapshot.elementsToBringOnDay(dayId: "day-1", personId: "person-1");
+        final toBring = snapshot.elementsToBringOnDay(dayId: "day-1", personId: "person-1");
 
-      expect(
-        toBring,
-        isEmpty,
-        reason: "a call sheet says what to bring today, not everything this person was ever assigned",
-      );
-    });
+        expect(
+          toBring,
+          isEmpty,
+          reason:
+              "a call sheet says what to bring today, not everything this person was ever assigned",
+        );
+      },
+    );
 
     test("an element needed in a scene the day plays but brought by somebody else is absent", () {
       final element = _buildElement(
@@ -1640,7 +1689,9 @@ void main() {
       final snapshot = _buildSnapshot(
         days: const [],
         slotsByDayId: const {},
-        shotLists: [_buildShotList(shots: [shot])],
+        shotLists: [
+          _buildShotList(shots: [shot]),
+        ],
         episodes: const [OcptEpisode(id: "screenplay-1", number: 1, title: "")],
       );
 

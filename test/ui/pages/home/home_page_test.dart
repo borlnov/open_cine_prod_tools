@@ -220,25 +220,24 @@ void main() {
     expect(find.byType(FloatingActionButton), findsNothing);
   });
 
-  testWidgets(
-    'the empty state shows the compact hint instead of the button row at compact width',
-    (tester) async {
-      await _pumpHome(
-        tester,
-        const HomePage(),
-        size: const Size(ocptCompactWidthBreakpoint - 100, 900),
-      );
-      await tester.pumpAndSettle();
+  testWidgets('the empty state shows the compact hint instead of the button row at compact width', (
+    tester,
+  ) async {
+    await _pumpHome(
+      tester,
+      const HomePage(),
+      size: const Size(ocptCompactWidthBreakpoint - 100, 900),
+    );
+    await tester.pumpAndSettle();
 
-      final context = tester.element(find.byType(HomePage));
-      final tr = Tr.of(context);
+    final context = tester.element(find.byType(HomePage));
+    final tr = Tr.of(context);
 
-      expect(find.text(tr.homeEmptyStateCompactHint), findsOneWidget);
-      expect(find.text(tr.homeNewProjectAction), findsNothing);
-      expect(find.text(tr.homeOpenProjectAction), findsNothing);
-      expect(find.text(tr.homeImportAction), findsNothing);
-    },
-  );
+    expect(find.text(tr.homeEmptyStateCompactHint), findsOneWidget);
+    expect(find.text(tr.homeNewProjectAction), findsNothing);
+    expect(find.text(tr.homeOpenProjectAction), findsNothing);
+    expect(find.text(tr.homeImportAction), findsNothing);
+  });
 
   testWidgets('shows a card per recent project once loaded', (tester) async {
     final existingFile = File(p.join(tempDir.path, "movie.ocpt"))..writeAsStringSync("");

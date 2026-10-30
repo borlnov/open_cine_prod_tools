@@ -313,7 +313,10 @@ class _OcptBreakdownTagPopoverState extends State<OcptBreakdownTagPopover> {
 
   void _onQueryChanged() {
     setState(() {
-      _results = ocptBreakdownSearchCatalogues(query: _controller.text, candidates: widget.candidates);
+      _results = ocptBreakdownSearchCatalogues(
+        query: _controller.text,
+        candidates: widget.candidates,
+      );
     });
   }
 
@@ -387,7 +390,9 @@ class _OcptBreakdownTagPopoverState extends State<OcptBreakdownTagPopover> {
                               padding: const EdgeInsets.fromLTRB(12, 0, 12, 10),
                               child: OutlinedButton(
                                 onPressed: widget.onOpenInResourcesRequested,
-                                style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(34)),
+                                style: OutlinedButton.styleFrom(
+                                  minimumSize: const Size.fromHeight(34),
+                                ),
                                 child: Text(tr.breakdownOpenInResourcesAction),
                               ),
                             ),
@@ -480,42 +485,49 @@ class _OcptBreakdownTagPopoverState extends State<OcptBreakdownTagPopover> {
 
   /// One clickable match row: its own swatch, its name and — while already tagged somewhere — the
   /// number of scenes it is tagged in.
-  Widget _buildMatchRow(BuildContext context, ThemeData theme, OcptBreakdownSearchCandidate candidate) =>
-      InkWell(
-        onTap: () => widget.onCandidateSelected(candidate),
-        mouseCursor: ocptClickableCursor,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-          child: Row(
-            children: [
-              Container(
-                width: 7,
-                height: 7,
-                decoration: BoxDecoration(
-                  color: Color(ocptBreakdownColorOf(kind: candidate.kind, category: candidate.category)),
-                  borderRadius: BorderRadius.circular(2),
-                ),
+  Widget _buildMatchRow(
+    BuildContext context,
+    ThemeData theme,
+    OcptBreakdownSearchCandidate candidate,
+  ) => InkWell(
+    onTap: () => widget.onCandidateSelected(candidate),
+    mouseCursor: ocptClickableCursor,
+    child: Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+      child: Row(
+        children: [
+          Container(
+            width: 7,
+            height: 7,
+            decoration: BoxDecoration(
+              color: Color(
+                ocptBreakdownColorOf(kind: candidate.kind, category: candidate.category),
               ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  candidate.name,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.bodySmall,
-                ),
-              ),
-              if (candidate.taggedSceneCount > 0) ...[
-                const SizedBox(width: 8),
-                Text(
-                  Tr.of(context).breakdownInspectorSceneCountLabel(candidate.taggedSceneCount),
-                  style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
-                ),
-              ],
-            ],
+              borderRadius: BorderRadius.circular(2),
+            ),
           ),
-        ),
-      );
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              candidate.name,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: theme.textTheme.bodySmall,
+            ),
+          ),
+          if (candidate.taggedSceneCount > 0) ...[
+            const SizedBox(width: 8),
+            Text(
+              Tr.of(context).breakdownInspectorSceneCountLabel(candidate.taggedSceneCount),
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ],
+        ],
+      ),
+    ),
+  );
 
   /// The two-column category grid: a click creates the element in that category, named from the
   /// field's own current text.
@@ -624,7 +636,9 @@ class _OcptBreakdownPopoverCategoryChip extends StatelessWidget {
                 label,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
               ),
             ),
           ],

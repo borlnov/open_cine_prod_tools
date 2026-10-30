@@ -90,7 +90,9 @@ class OcptPersonSheetHeader extends StatelessWidget {
                       label: "",
                       value: fieldValueOf(OcptPersonField.firstName),
                       hintText: tr.resourcesFirstNameHint,
-                      textStyle: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700),
+                      textStyle: theme.textTheme.headlineSmall?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
                       onChanged: _onFieldChangedOrNull(OcptPersonField.firstName),
                     ),
                   ),
@@ -101,7 +103,9 @@ class OcptPersonSheetHeader extends StatelessWidget {
                       label: "",
                       value: fieldValueOf(OcptPersonField.lastName),
                       hintText: tr.resourcesLastNameHint,
-                      textStyle: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700),
+                      textStyle: theme.textTheme.headlineSmall?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
                       onChanged: _onFieldChangedOrNull(OcptPersonField.lastName),
                     ),
                   ),

@@ -68,7 +68,8 @@ class OcptBudgetResource extends Equatable {
 
   /// Object string representation, useful for debugging and logging.
   @override
-  String toString() => "OcptBudgetResource(id: $id, groupKind: $groupKind, personId: $personId, "
+  String toString() =>
+      "OcptBudgetResource(id: $id, groupKind: $groupKind, personId: $personId, "
       "label: $label, amountCents: $amountCents, status: $status)";
 
   /// Object properties

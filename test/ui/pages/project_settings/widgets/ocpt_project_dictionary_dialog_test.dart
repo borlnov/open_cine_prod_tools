@@ -256,11 +256,7 @@ void main() {
 
   testWidgets("Close reports the added and removed words against what was given", (tester) async {
     ({List<String> added, List<String> removed})? report;
-    await pumpDialog(
-      tester,
-      words: const ["marie", "Bob"],
-      onReport: (value) => report = value,
-    );
+    await pumpDialog(tester, words: const ["marie", "Bob"], onReport: (value) => report = value);
     final context = tester.element(find.byType(OcptProjectDictionaryDialog));
     final tr = Tr.of(context);
 

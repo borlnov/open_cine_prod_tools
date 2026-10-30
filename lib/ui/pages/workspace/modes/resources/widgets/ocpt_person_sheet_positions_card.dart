@@ -101,10 +101,7 @@ class OcptPersonSheetPositionsCard extends StatelessWidget {
           if (onAdded != null)
             SizedBox(
               width: double.infinity,
-              child: OutlinedButton(
-                onPressed: onAdded,
-                child: Text(tr.resourcesAddPositionAction),
-              ),
+              child: OutlinedButton(onPressed: onAdded, child: Text(tr.resourcesAddPositionAction)),
             ),
         ],
       ),
@@ -126,7 +123,12 @@ class _OcptPersonPositionRow extends StatefulWidget {
   final VoidCallback? onRemoved;
 
   /// Class constructor
-  const _OcptPersonPositionRow({super.key, required this.position, required this.onUpdated, required this.onRemoved});
+  const _OcptPersonPositionRow({
+    super.key,
+    required this.position,
+    required this.onUpdated,
+    required this.onRemoved,
+  });
 
   @override
   State<_OcptPersonPositionRow> createState() => _OcptPersonPositionRowState();
@@ -252,10 +254,14 @@ class _OcptPersonPositionRowState extends State<_OcptPersonPositionRow> {
           SizedBox(
             width: _departmentColumnWidth,
             child: Text(
-              department != null ? ocptCrewDepartmentLabel(tr, department) : ocptResourcesEmptyValue,
+              department != null
+                  ? ocptCrewDepartmentLabel(tr, department)
+                  : ocptResourcesEmptyValue,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
             ),
           ),
           Expanded(
@@ -268,7 +274,10 @@ class _OcptPersonPositionRowState extends State<_OcptPersonPositionRow> {
                     readOnly: isReadOnly,
                     onChanged: isReadOnly ? null : _onLabelChanged,
                     style: theme.textTheme.bodySmall,
-                    decoration: InputDecoration(isDense: true, hintText: tr.resourcesPositionLabelHint),
+                    decoration: InputDecoration(
+                      isDense: true,
+                      hintText: tr.resourcesPositionLabelHint,
+                    ),
                   ),
                 ),
                 if (!isReadOnly)

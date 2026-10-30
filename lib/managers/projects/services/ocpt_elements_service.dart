@@ -78,9 +78,9 @@ class OcptElementsService {
 
     final assetRows = elementIds.isEmpty
         ? const <OcptAssetRow>[]
-        : await (database.select(database.ocptAssetsTable)
-                ..where((table) => table.elementId.isIn(elementIds) & table.isDeleted.not()))
-              .get();
+        : await (database.select(
+            database.ocptAssetsTable,
+          )..where((table) => table.elementId.isIn(elementIds) & table.isDeleted.not())).get();
 
     final assetsById = {for (final row in assetRows) row.id: OcptAssetRef.fromRow(row)};
 
@@ -127,12 +127,17 @@ class OcptElementsService {
         current: null,
         next: OcptElementRow(
           id: id,
-          sortKey: ocptFractionalKeyBetween(before: existing.isEmpty ? null : existing.last.sortKey),
+          sortKey: ocptFractionalKeyBetween(
+            before: existing.isEmpty ? null : existing.last.sortKey,
+          ),
           isDeleted: false,
           category: category,
           subCategory: '',
           name: name,
-          code: ocptElementCodeOf(category: category, existingCodes: existing.map((row) => row.code)),
+          code: ocptElementCodeOf(
+            category: category,
+            existingCodes: existing.map((row) => row.code),
+          ),
           quantity: '',
           sourceKind: sourceKind,
           ownerNotes: '',
@@ -294,11 +299,9 @@ class OcptElementsService {
     await database.transaction(() async {
       final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
 
-      final sceneElementRows =
-          await (database.select(
-                database.ocptSceneElementsTable,
-              )..where((table) => table.elementId.equals(elementId) & table.isDeleted.not()))
-              .get();
+      final sceneElementRows = await (database.select(
+        database.ocptSceneElementsTable,
+      )..where((table) => table.elementId.equals(elementId) & table.isDeleted.not())).get();
       for (final row in sceneElementRows) {
         await OcptRowStampService.writeAndStamp(
           database: database,
@@ -310,11 +313,9 @@ class OcptElementsService {
         );
       }
 
-      final roleElementRows =
-          await (database.select(
-                database.ocptRoleElementsTable,
-              )..where((table) => table.elementId.equals(elementId) & table.isDeleted.not()))
-              .get();
+      final roleElementRows = await (database.select(
+        database.ocptRoleElementsTable,
+      )..where((table) => table.elementId.equals(elementId) & table.isDeleted.not())).get();
       for (final row in roleElementRows) {
         await OcptRowStampService.writeAndStamp(
           database: database,
@@ -529,11 +530,9 @@ class OcptElementsService {
     }
 
     return database.transaction(() async {
-      final existingLinks =
-          await (database.select(database.ocptSceneElementsTable)..where(
-                (table) => table.sceneId.equals(sceneId) & table.elementId.equals(elementId),
-              ))
-              .get();
+      final existingLinks = await (database.select(
+        database.ocptSceneElementsTable,
+      )..where((table) => table.sceneId.equals(sceneId) & table.elementId.equals(elementId))).get();
 
       OcptSceneElementRow? droppedLink;
       for (final link in existingLinks) {
@@ -675,11 +674,9 @@ class OcptElementsService {
     }
 
     return database.transaction(() async {
-      final existingLinks =
-          await (database.select(database.ocptRoleElementsTable)..where(
-                (table) => table.roleId.equals(roleId) & table.elementId.equals(elementId),
-              ))
-              .get();
+      final existingLinks = await (database.select(
+        database.ocptRoleElementsTable,
+      )..where((table) => table.roleId.equals(roleId) & table.elementId.equals(elementId))).get();
 
       OcptRoleElementRow? droppedLink;
       for (final link in existingLinks) {
@@ -810,11 +807,9 @@ class OcptElementsService {
     required String roleId,
     required OcptRowStampService? stamps,
   }) async {
-    final rows =
-        await (database.select(
-              database.ocptRoleElementsTable,
-            )..where((table) => table.roleId.equals(roleId) & table.isDeleted.not()))
-            .get();
+    final rows = await (database.select(
+      database.ocptRoleElementsTable,
+    )..where((table) => table.roleId.equals(roleId) & table.isDeleted.not())).get();
 
     for (final row in rows) {
       await OcptRowStampService.writeAndStamp(
@@ -848,11 +843,9 @@ class OcptElementsService {
       return;
     }
 
-    final rows =
-        await (database.select(
-              database.ocptSceneElementsTable,
-            )..where((table) => table.sceneId.isIn(sceneIds) & table.isDeleted.not()))
-            .get();
+    final rows = await (database.select(
+      database.ocptSceneElementsTable,
+    )..where((table) => table.sceneId.isIn(sceneIds) & table.isDeleted.not())).get();
 
     for (final row in rows) {
       await OcptRowStampService.writeAndStamp(
@@ -870,10 +863,9 @@ class OcptElementsService {
   Future<List<OcptSceneElementRow>> sceneElementsOfScene({
     required OcptProjectDatabase database,
     required String sceneId,
-  }) => (database.select(database.ocptSceneElementsTable)..where(
-        (table) => table.sceneId.equals(sceneId) & table.isDeleted.not(),
-      ))
-      .get();
+  }) => (database.select(
+    database.ocptSceneElementsTable,
+  )..where((table) => table.sceneId.equals(sceneId) & table.isDeleted.not())).get();
 
   /// Scene [sceneId]'s own breakdown props (category [OcptElementCategory.prop] alone), each
   /// carrying its own effective quantity — the floor plans palette's own `Sequence` group chips. In
@@ -882,19 +874,20 @@ class OcptElementsService {
     required OcptProjectDatabase database,
     required String sceneId,
   }) async {
-    final query = database.select(database.ocptSceneElementsTable).join([
-      innerJoin(
-        database.ocptElementsTable,
-        database.ocptElementsTable.id.equalsExp(database.ocptSceneElementsTable.elementId),
-      ),
-    ])
-      ..where(
-        database.ocptSceneElementsTable.sceneId.equals(sceneId) &
-            database.ocptSceneElementsTable.isDeleted.not() &
-            database.ocptElementsTable.isDeleted.not() &
-            database.ocptElementsTable.category.equalsValue(OcptElementCategory.prop),
-      )
-      ..orderBy([OrderingTerm.asc(database.ocptElementsTable.sortKey)]);
+    final query =
+        database.select(database.ocptSceneElementsTable).join([
+            innerJoin(
+              database.ocptElementsTable,
+              database.ocptElementsTable.id.equalsExp(database.ocptSceneElementsTable.elementId),
+            ),
+          ])
+          ..where(
+            database.ocptSceneElementsTable.sceneId.equals(sceneId) &
+                database.ocptSceneElementsTable.isDeleted.not() &
+                database.ocptElementsTable.isDeleted.not() &
+                database.ocptElementsTable.category.equalsValue(OcptElementCategory.prop),
+          )
+          ..orderBy([OrderingTerm.asc(database.ocptElementsTable.sortKey)]);
 
     final rows = await query.get();
     return [
@@ -932,11 +925,9 @@ class OcptElementsService {
       return const {};
     }
 
-    final linkRows =
-        await (database.select(database.ocptSceneElementsTable)..where(
-              (table) => table.elementId.isIn(elementIds) & table.isDeleted.not(),
-            ))
-            .get();
+    final linkRows = await (database.select(
+      database.ocptSceneElementsTable,
+    )..where((table) => table.elementId.isIn(elementIds) & table.isDeleted.not())).get();
     if (linkRows.isEmpty) {
       return const {};
     }
@@ -961,9 +952,7 @@ class OcptElementsService {
     }
 
     for (final links in linksByElementId.values) {
-      links.sort(
-        (a, b) => positionBySceneId[a.sceneId]!.compareTo(positionBySceneId[b.sceneId]!),
-      );
+      links.sort((a, b) => positionBySceneId[a.sceneId]!.compareTo(positionBySceneId[b.sceneId]!));
     }
 
     return linksByElementId;
@@ -986,11 +975,9 @@ class OcptElementsService {
       return const {};
     }
 
-    final linkRows =
-        await (database.select(database.ocptRoleElementsTable)..where(
-              (table) => table.elementId.isIn(elementIds) & table.isDeleted.not(),
-            ))
-            .get();
+    final linkRows = await (database.select(
+      database.ocptRoleElementsTable,
+    )..where((table) => table.elementId.isIn(elementIds) & table.isDeleted.not())).get();
     if (linkRows.isEmpty) {
       return const {};
     }

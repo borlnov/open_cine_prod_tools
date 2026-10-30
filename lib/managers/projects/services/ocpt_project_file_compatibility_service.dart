@@ -217,9 +217,9 @@ class OcptProjectFileCompatibilityService {
   /// The table is asked for rather than assumed: this runs against a file at *any* format,
   /// including one from before that column existed and one that is not a project at all.
   String? _appVersionAtCreation(Database database) {
-    final hasProjectInfo = database.select(
-      "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'project_info'",
-    ).isNotEmpty;
+    final hasProjectInfo = database
+        .select("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'project_info'")
+        .isNotEmpty;
     if (!hasProjectInfo) {
       return null;
     }
@@ -239,9 +239,9 @@ class OcptProjectFileCompatibilityService {
   /// including one from before `project_info` existed at all, and one from before that column was
   /// added to it.
   String? _migratedByAppVersion(Database database) {
-    final hasProjectInfo = database.select(
-      "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'project_info'",
-    ).isNotEmpty;
+    final hasProjectInfo = database
+        .select("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'project_info'")
+        .isNotEmpty;
     if (!hasProjectInfo) {
       return null;
     }

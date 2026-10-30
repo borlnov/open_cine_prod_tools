@@ -264,10 +264,7 @@ class OcptBreakdownTargetInspector extends StatelessWidget {
         const SizedBox(height: 16),
 
         if (suggestions.isNotEmpty) ...[
-          _sectionTitle(
-            context,
-            tr.breakdownSuggestedOccurrencesSectionTitle(suggestions.length),
-          ),
+          _sectionTitle(context, tr.breakdownSuggestedOccurrencesSectionTitle(suggestions.length)),
           const SizedBox(height: 8),
           _buildSuggestedOccurrences(context, tr, suggestions),
           const SizedBox(height: 16),
@@ -320,7 +317,9 @@ class OcptBreakdownTargetInspector extends StatelessWidget {
         for (final category in OcptElementCategory.values)
           _OcptBreakdownCategoryChip(
             label: ocptElementCategoryLabel(tr, category),
-            swatchColor: Color(ocptBreakdownColorOf(kind: OcptBreakdownTargetKind.element, category: category)),
+            swatchColor: Color(
+              ocptBreakdownColorOf(kind: OcptBreakdownTargetKind.element, category: category),
+            ),
             isSelected: element.category == category,
             onTap: onCategoryChanged == null ? null : () => onCategoryChanged!(category),
           ),
@@ -382,7 +381,11 @@ class OcptBreakdownTargetInspector extends StatelessWidget {
   );
 
   /// The bordered list of [occurrences], each row clickable.
-  Widget _buildOccurrences(BuildContext context, Tr tr, List<_OcptBreakdownOccurrence> occurrences) {
+  Widget _buildOccurrences(
+    BuildContext context,
+    Tr tr,
+    List<_OcptBreakdownOccurrence> occurrences,
+  ) {
     final theme = Theme.of(context);
 
     if (occurrences.isEmpty) {
@@ -652,7 +655,9 @@ class _OcptBreakdownCategoryChip extends StatelessWidget {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: theme.textTheme.labelSmall?.copyWith(
-                  color: isSelected ? theme.colorScheme.onSurface : theme.colorScheme.onSurfaceVariant,
+                  color: isSelected
+                      ? theme.colorScheme.onSurface
+                      : theme.colorScheme.onSurfaceVariant,
                 ),
               ),
             ),

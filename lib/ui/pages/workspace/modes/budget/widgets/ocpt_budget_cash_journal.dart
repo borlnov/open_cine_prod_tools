@@ -204,8 +204,14 @@ class OcptBudgetCashJournal extends StatelessWidget {
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
 
-    final rows = ocptBudgetJournalRowsOf(entries, projectVatRateBasisPoints: defaultVatRateBasisPoints);
-    final totals = ocptBudgetCashTotalsOf(entries, projectVatRateBasisPoints: defaultVatRateBasisPoints);
+    final rows = ocptBudgetJournalRowsOf(
+      entries,
+      projectVatRateBasisPoints: defaultVatRateBasisPoints,
+    );
+    final totals = ocptBudgetCashTotalsOf(
+      entries,
+      projectVatRateBasisPoints: defaultVatRateBasisPoints,
+    );
     final projection = ocptBudgetProjectionOf(
       openingBalanceCents: totals.balanceCents,
       commitments: commitments,
@@ -225,7 +231,9 @@ class OcptBudgetCashJournal extends StatelessWidget {
                   // The detailed wording names this ledger by its trade word, which is exactly
                   // what the simplified reading is set to spare a crew — and the empty state is
                   // the one sentence somebody who has never opened this view will read.
-                  message: isSimplified ? tr.budgetCashJournalSimpleEmptyHint : tr.budgetCashJournalEmptyHint,
+                  message: isSimplified
+                      ? tr.budgetCashJournalSimpleEmptyHint
+                      : tr.budgetCashJournalEmptyHint,
                 )
               : LayoutBuilder(
                   builder: (context, constraints) => OcptHorizontalScrollView(
@@ -235,7 +243,9 @@ class OcptBudgetCashJournal extends StatelessWidget {
                     child: SizedBox(
                       width: math.max(constraints.maxWidth, _ocptCashJournalMinTableWidth),
                       child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: ocptTableRowHorizontalPadding),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: ocptTableRowHorizontalPadding,
+                        ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
@@ -261,9 +271,12 @@ class OcptBudgetCashJournal extends StatelessWidget {
                                       onEditRequested: isReadOnly || onEntryEditRequested == null
                                           ? null
                                           : () => onEntryEditRequested?.call(rows[index].entry),
-                                      onDeletionRequested: isReadOnly || onEntryDeletionRequested == null
+                                      onDeletionRequested:
+                                          isReadOnly || onEntryDeletionRequested == null
                                           ? null
-                                          : () => onEntryDeletionRequested?.call(rows[index].entry.id),
+                                          : () => onEntryDeletionRequested?.call(
+                                              rows[index].entry.id,
+                                            ),
                                     ),
                                   ),
                                   if (rows.isNotEmpty) ...[
@@ -321,12 +334,15 @@ class OcptBudgetCashJournal extends StatelessWidget {
                                     ),
                                     SliverToBoxAdapter(
                                       child: _OcptCashUpcomingFooterRow(
-                                        totalDueCents: projection.openingBalanceCents - projection.finalBalanceCents,
+                                        totalDueCents:
+                                            projection.openingBalanceCents -
+                                            projection.finalBalanceCents,
                                         projectedBalanceCents: projection.finalBalanceCents,
                                         currencyCode: currencyCode,
                                       ),
                                     ),
-                                    if (projection.coveredCommitmentCount != projection.commitmentCount)
+                                    if (projection.coveredCommitmentCount !=
+                                        projection.commitmentCount)
                                       SliverToBoxAdapter(
                                         child: Padding(
                                           padding: const EdgeInsets.symmetric(vertical: 6),
@@ -444,7 +460,9 @@ class _OcptCashStatementFooterRow extends StatelessWidget {
           children: [
             Expanded(
               child: Text(
-                tr.budgetCashJournalClosingBalanceLabel(DateFormat.yMMMd(locale).format(closingDate)),
+                tr.budgetCashJournalClosingBalanceLabel(
+                  DateFormat.yMMMd(locale).format(closingDate),
+                ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600),
@@ -503,7 +521,9 @@ class _OcptCashShareableReminder extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final tr = Tr.of(context);
-    final captionStyle = theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant);
+    final captionStyle = theme.textTheme.labelSmall?.copyWith(
+      color: theme.colorScheme.onSurfaceVariant,
+    );
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
@@ -512,7 +532,9 @@ class _OcptCashShareableReminder extends StatelessWidget {
         spacing: 8,
         children: [
           Text(
-            tr.budgetCashJournalShareableReminder(ocptBudgetAmountLabel(shareableCents, currencyCode)),
+            tr.budgetCashJournalShareableReminder(
+              ocptBudgetAmountLabel(shareableCents, currencyCode),
+            ),
             style: captionStyle,
           ),
           if (onOpenSharing != null)
@@ -689,116 +711,124 @@ class _OcptCashJournalRow extends StatelessWidget {
           height: _ocptCashJournalRowHeight,
           child: Row(
             children: [
-            SizedBox(
-              width: _ocptCashJournalDateColumnWidth,
-              child: Text(
-                dateLabel,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: theme.textTheme.bodySmall,
-              ),
-            ),
-            SizedBox(
-              width: _ocptCashJournalVoucherColumnWidth,
-              child: Text(
-                entry.voucherNumber,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: theme.textTheme.bodySmall,
-              ),
-            ),
-            SizedBox(
-              width: _ocptCashJournalPosteColumnWidth,
-              child: Padding(
-                padding: const EdgeInsets.only(right: 8),
+              SizedBox(
+                width: _ocptCashJournalDateColumnWidth,
                 child: Text(
-                  poste == null
-                      ? tr.budgetCashJournalNoPosteLabel
-                      : ocptBudgetPosteDisplayLabel(poste, isSimplified: isSimplified),
+                  dateLabel,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: poste == null ? theme.colorScheme.onSurfaceVariant : null,
-                    fontStyle: poste == null ? FontStyle.italic : FontStyle.normal,
+                  style: theme.textTheme.bodySmall,
+                ),
+              ),
+              SizedBox(
+                width: _ocptCashJournalVoucherColumnWidth,
+                child: Text(
+                  entry.voucherNumber,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.bodySmall,
+                ),
+              ),
+              SizedBox(
+                width: _ocptCashJournalPosteColumnWidth,
+                child: Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: Text(
+                    poste == null
+                        ? tr.budgetCashJournalNoPosteLabel
+                        : ocptBudgetPosteDisplayLabel(poste, isSimplified: isSimplified),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: poste == null ? theme.colorScheme.onSurfaceVariant : null,
+                      fontStyle: poste == null ? FontStyle.italic : FontStyle.normal,
+                    ),
                   ),
                 ),
               ),
-            ),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.only(right: 8),
-                child: Row(
-                  children: [
-                    if (receipt != null) ...[
-                      _OcptCashJournalVoucherMarker(path: receipt!.path),
-                      const SizedBox(width: 6),
-                    ],
-                    Expanded(
-                      child: Text(
-                        entry.label,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.bodySmall,
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: Row(
+                    children: [
+                      if (receipt != null) ...[
+                        _OcptCashJournalVoucherMarker(path: receipt!.path),
+                        const SizedBox(width: 6),
+                      ],
+                      Expanded(
+                        child: Text(
+                          entry.label,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.bodySmall,
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
-            ),
-            _amountCell(
-              context,
-              debitCents,
-              color: (debitCents != null && entry.debitCents != 0) ? theme.colorScheme.error : null,
-            ),
-            _amountCell(
-              context,
-              creditCents,
-              color: (creditCents != null && entry.creditCents != 0) ? theme.colorScheme.primary : null,
-            ),
-            _amountCell(context, balanceCents, bold: true),
-            SizedBox(
-              width: _ocptCashJournalMenuColumnWidth,
-              child: onEditRequested == null && onDeletionRequested == null
-                  ? null
-                  : PopupMenuButton<String>(
-                      tooltip: "",
-                      icon: const Icon(Icons.more_vert, size: 18),
-                      onSelected: (value) => switch (value) {
-                        "edit" => onEditRequested?.call(),
-                        "delete" => onDeletionRequested?.call(),
-                        _ => null,
-                      },
-                      itemBuilder: (context) => [
-                        if (onEditRequested != null)
-                          PopupMenuItem<String>(
-                            value: "edit",
-                            child: Text(tr.budgetFinancingEditAction),
-                          ),
-                        if (onDeletionRequested != null)
-                          PopupMenuItem<String>(value: "delete", child: Text(tr.budgetEntryDeleteAction)),
-                      ],
-                    ),
-            ),
-          ],
-        ),
+              _amountCell(
+                context,
+                debitCents,
+                color: (debitCents != null && entry.debitCents != 0)
+                    ? theme.colorScheme.error
+                    : null,
+              ),
+              _amountCell(
+                context,
+                creditCents,
+                color: (creditCents != null && entry.creditCents != 0)
+                    ? theme.colorScheme.primary
+                    : null,
+              ),
+              _amountCell(context, balanceCents, bold: true),
+              SizedBox(
+                width: _ocptCashJournalMenuColumnWidth,
+                child: onEditRequested == null && onDeletionRequested == null
+                    ? null
+                    : PopupMenuButton<String>(
+                        tooltip: "",
+                        icon: const Icon(Icons.more_vert, size: 18),
+                        onSelected: (value) => switch (value) {
+                          "edit" => onEditRequested?.call(),
+                          "delete" => onDeletionRequested?.call(),
+                          _ => null,
+                        },
+                        itemBuilder: (context) => [
+                          if (onEditRequested != null)
+                            PopupMenuItem<String>(
+                              value: "edit",
+                              child: Text(tr.budgetFinancingEditAction),
+                            ),
+                          if (onDeletionRequested != null)
+                            PopupMenuItem<String>(
+                              value: "delete",
+                              child: Text(tr.budgetEntryDeleteAction),
+                            ),
+                        ],
+                      ),
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 
   /// One amount cell, right-aligned, printing [ocptBudgetEmptyValue] while [cents] is null.
-  Widget _amountCell(BuildContext context, int? cents, {Color? color, bool bold = false}) => SizedBox(
-    width: _ocptCashJournalAmountColumnWidth,
-    child: Text(
-      cents == null ? ocptBudgetEmptyValue : ocptBudgetAmountLabel(cents, currencyCode),
-      textAlign: TextAlign.right,
-      maxLines: 1,
-      overflow: TextOverflow.ellipsis,
-      style: Theme.of(
-        context,
-      ).textTheme.bodySmall?.copyWith(color: color, fontWeight: bold ? FontWeight.w600 : null),
-    ),
-  );
+  Widget _amountCell(BuildContext context, int? cents, {Color? color, bool bold = false}) =>
+      SizedBox(
+        width: _ocptCashJournalAmountColumnWidth,
+        child: Text(
+          cents == null ? ocptBudgetEmptyValue : ocptBudgetAmountLabel(cents, currencyCode),
+          textAlign: TextAlign.right,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: Theme.of(
+            context,
+          ).textTheme.bodySmall?.copyWith(color: color, fontWeight: bold ? FontWeight.w600 : null),
+        ),
+      );
 }
 
 /// The `À venir` section's own title row — one cell, unlike [_OcptCashJournalHeaderRow]'s own

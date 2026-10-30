@@ -44,10 +44,10 @@ void main() {
     });
 
     test("Autre mouvement flows both ways, so it shows on expenses and resources alike", () {
-      expect(
-        ocptBudgetGestureFlowsOf(OcptBudgetGesture.recordOtherMovement),
-        {OcptBudgetGestureFlow.spends, OcptBudgetGestureFlow.brings},
-      );
+      expect(ocptBudgetGestureFlowsOf(OcptBudgetGesture.recordOtherMovement), {
+        OcptBudgetGestureFlow.spends,
+        OcptBudgetGestureFlow.brings,
+      });
     });
 
     test("a defrayal and a sharing participant have no direction — their own view files them", () {

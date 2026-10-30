@@ -265,9 +265,8 @@ class _OcptSharingSegmentedBodyState extends State<_OcptSharingSegmentedBody> {
                       onPortChangeRequested: (port) => context.read<OcptHostingBloc>().add(
                         OcptHostingPortChangeRequestedEvent(port),
                       ),
-                      onQrKindChanged: (kind) => context.read<OcptHostingBloc>().add(
-                        OcptHostingQrKindChangedEvent(kind),
-                      ),
+                      onQrKindChanged: (kind) =>
+                          context.read<OcptHostingBloc>().add(OcptHostingQrKindChangedEvent(kind)),
                     ),
             ),
           },

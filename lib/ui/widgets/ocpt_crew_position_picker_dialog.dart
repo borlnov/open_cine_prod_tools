@@ -133,7 +133,8 @@ class _OcptCrewPositionPickerDialogState extends State<OcptCrewPositionPickerDia
     for (final position in ocptCrewPositions) {
       final ref = OcptCrewPositionRef(positionId: position.id, customLabel: "");
       final label = ocptCrewPositionLabel(tr, position.id);
-      if (widget.excluded.contains(ref) || !ocptCrewPositionSearchMatches(query: query, label: label)) {
+      if (widget.excluded.contains(ref) ||
+          !ocptCrewPositionSearchMatches(query: query, label: label)) {
         continue;
       }
       byDepartment.putIfAbsent(position.department, () => []).add(position);

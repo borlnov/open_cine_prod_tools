@@ -17,13 +17,11 @@ class SpellDictionary {
 
   /// Parses [affix] and [dictionary] (the verbatim contents of a `.aff`
   /// file and its matching `.dic` file) into a [SpellDictionary].
-  factory SpellDictionary.parse({
-    required String affix,
-    required String dictionary,
-  }) => SpellDictionary(
-    affixFile: HunspellAffixFile.parse(affix),
-    entries: _parseDictionaryEntries(dictionary),
-  );
+  factory SpellDictionary.parse({required String affix, required String dictionary}) =>
+      SpellDictionary(
+        affixFile: HunspellAffixFile.parse(affix),
+        entries: _parseDictionaryEntries(dictionary),
+      );
 
   /// The parsed `.aff` rules.
   final HunspellAffixFile affixFile;
@@ -49,8 +47,7 @@ class SpellDictionary {
 /// bundled dictionary carries any.
 Map<String, String> _parseDictionaryEntries(String source) {
   final lines = source.split('\n');
-  final startIndex =
-      lines.isNotEmpty && int.tryParse(lines.first.trim()) != null ? 1 : 0;
+  final startIndex = lines.isNotEmpty && int.tryParse(lines.first.trim()) != null ? 1 : 0;
 
   final entries = <String, String>{};
   for (var i = startIndex; i < lines.length; i++) {
@@ -61,9 +58,7 @@ Map<String, String> _parseDictionaryEntries(String source) {
     final firstToken = trimmed.split(RegExp(r'\s+')).first;
     final entry = _parseDictionaryLine(firstToken);
     final existing = entries[entry.word];
-    entries[entry.word] = existing == null
-        ? entry.flags
-        : existing + entry.flags;
+    entries[entry.word] = existing == null ? entry.flags : existing + entry.flags;
   }
   return entries;
 }

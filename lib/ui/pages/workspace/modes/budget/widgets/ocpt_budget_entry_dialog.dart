@@ -348,8 +348,9 @@ class _OcptBudgetEntryDialogState extends State<OcptBudgetEntryDialog> {
               key: const Key("ocptBudgetEntryWizardAmountField"),
               controller: _amountController,
               decoration: InputDecoration(isDense: true, suffixText: currencySymbol),
-              validator: (value) =>
-                  ocptCostCentsOf(value ?? "") == null ? tr.budgetEntryDialogAmountInvalidError : null,
+              validator: (value) => ocptCostCentsOf(value ?? "") == null
+                  ? tr.budgetEntryDialogAmountInvalidError
+                  : null,
               onChanged: (_) => setState(() {}),
             ),
           ],
@@ -399,7 +400,9 @@ class _OcptBudgetEntryDialogState extends State<OcptBudgetEntryDialog> {
       const SizedBox(height: 4),
       OcptBudgetBinaryChoice(
         value: _isDebit,
-        trueLabel: widget.isSimplified ? tr.budgetEntryDialogPaidOption : tr.budgetEntryDialogDebitOption,
+        trueLabel: widget.isSimplified
+            ? tr.budgetEntryDialogPaidOption
+            : tr.budgetEntryDialogDebitOption,
         falseLabel: widget.isSimplified
             ? tr.budgetEntryDialogReceivedOption
             : tr.budgetEntryDialogCreditOption,
@@ -409,13 +412,14 @@ class _OcptBudgetEntryDialogState extends State<OcptBudgetEntryDialog> {
   );
 
   /// The one link field [_nature] picks — [OcptBudgetEntryLinkKind] says which.
-  Widget _buildLinkField(BuildContext context, Tr tr) => switch (ocptBudgetEntryNatureLinkKindOf(_nature)) {
-    OcptBudgetEntryLinkKind.poste => _buildPosteField(context, tr),
-    OcptBudgetEntryLinkKind.financingResource => _buildResourceField(tr),
-    OcptBudgetEntryLinkKind.taking => _buildRevenueField(context, tr),
-    OcptBudgetEntryLinkKind.participant => _buildShareField(tr),
-    OcptBudgetEntryLinkKind.person => _buildPersonField(tr),
-  };
+  Widget _buildLinkField(BuildContext context, Tr tr) =>
+      switch (ocptBudgetEntryNatureLinkKindOf(_nature)) {
+        OcptBudgetEntryLinkKind.poste => _buildPosteField(context, tr),
+        OcptBudgetEntryLinkKind.financingResource => _buildResourceField(tr),
+        OcptBudgetEntryLinkKind.taking => _buildRevenueField(context, tr),
+        OcptBudgetEntryLinkKind.participant => _buildShareField(tr),
+        OcptBudgetEntryLinkKind.person => _buildPersonField(tr),
+      };
 
   /// `Poste du devis` — offered under [OcptBudgetEntryNature.expense] and
   /// [OcptBudgetEntryNature.other] alike. **Its own "unanswered" item reads `Hors devis`, never a
@@ -501,7 +505,8 @@ class _OcptBudgetEntryDialogState extends State<OcptBudgetEntryDialog> {
     decoration: InputDecoration(labelText: tr.budgetEntryDialogShareFieldLabel),
     items: [
       DropdownMenuItem(child: Text(tr.budgetEntryDialogNoShareLabel)),
-      for (final share in widget.shares) DropdownMenuItem(value: share.id, child: Text(share.label)),
+      for (final share in widget.shares)
+        DropdownMenuItem(value: share.id, child: Text(share.label)),
     ],
     onChanged: (value) => setState(() => _shareId = value),
   );

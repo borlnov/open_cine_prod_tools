@@ -877,7 +877,11 @@ void _addLocationUncoveredAlerts(
 
       if (!isCovered) {
         alerts.add(
-          OcptScheduleLocationUncoveredAlert(dayId: day.id, slotId: slot.id, locationId: locationId),
+          OcptScheduleLocationUncoveredAlert(
+            dayId: day.id,
+            slotId: slot.id,
+            locationId: locationId,
+          ),
         );
       }
     }
@@ -887,9 +891,7 @@ void _addLocationUncoveredAlerts(
 /// Rule 4: a role a placed shot calls for and no slot of that same day convokes, cast or not.
 void _addRoleNotConvokedAlerts(List<OcptScheduleAlert> alerts, List<OcptScheduleAlertDay> days) {
   for (final day in days) {
-    final convokedRoleIds = <String>{
-      for (final slot in day.slots) ...slot.convokedRoleIds,
-    };
+    final convokedRoleIds = <String>{for (final slot in day.slots) ...slot.convokedRoleIds};
 
     final seenRoleIds = <String>{};
     for (final calledRole in day.calledRoles) {

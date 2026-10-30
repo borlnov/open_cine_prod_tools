@@ -103,7 +103,8 @@ class OcptFieldStamp extends Equatable {
   /// (a `TypeConverter`'s own `toSql` and every other column type in this schema write a bare
   /// scalar), so a single-key `{$_blobKey: ...}` object can never be mistaken for — or collide
   /// with — a legitimate `String` value, which `jsonEncode` always writes as a bare JSON string.
-  static Object? _encodeValue(Object? value) => value is Uint8List ? {_blobKey: base64Encode(value)} : value;
+  static Object? _encodeValue(Object? value) =>
+      value is Uint8List ? {_blobKey: base64Encode(value)} : value;
 
   /// The inverse of [_encodeValue]: a JSON value shaped exactly like a tagged blob — a `Map`
   /// carrying [_blobKey] and nothing else — decodes back to the [Uint8List] it was base64-encoded
@@ -111,8 +112,8 @@ class OcptFieldStamp extends Equatable {
   /// through unchanged.
   static Object? _decodeValue(Object? json) =>
       json is Map<String, dynamic> && json.length == 1 && json.containsKey(_blobKey)
-          ? base64Decode(json[_blobKey] as String)
-          : json;
+      ? base64Decode(json[_blobKey] as String)
+      : json;
 
   @override
   List<Object?> get props => [tableName, rowId, columnName, value, version, deviceId];

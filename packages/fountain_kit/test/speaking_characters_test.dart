@@ -19,18 +19,16 @@ const FountainSourceRange _range = FountainSourceRange(
 FountainActionBlock _action(List<String> lines) =>
     FountainActionBlock(sourceRange: _range, lines: lines, forced: false);
 
-FountainCharacter _character(
-  String name, {
-  String? extension,
-  bool isDualDialogue = false,
-}) => FountainCharacter(
-  sourceRange: _range,
-  name: name,
-  extension: extension,
-  isDualDialogue: isDualDialogue,
-);
+FountainCharacter _character(String name, {String? extension, bool isDualDialogue = false}) =>
+    FountainCharacter(
+      sourceRange: _range,
+      name: name,
+      extension: extension,
+      isDualDialogue: isDualDialogue,
+    );
 
-FountainDialogueLine _dialogueLine(String text) => FountainDialogueLine(sourceRange: _range, text: text);
+FountainDialogueLine _dialogueLine(String text) =>
+    FountainDialogueLine(sourceRange: _range, text: text);
 
 FountainDialogueGroup _dialogueGroup(
   String name, {
@@ -46,7 +44,12 @@ FountainDialogueGroup _dialogueGroup(
 void main() {
   group('speakingCharactersOf', () {
     test('a document with no dialogue has no speaking characters', () {
-      expect(speakingCharactersOf([_action(['Nothing happens.'])]), isEmpty);
+      expect(
+        speakingCharactersOf([
+          _action(['Nothing happens.']),
+        ]),
+        isEmpty,
+      );
     });
 
     test('the same role cued twice is deduplicated', () {
@@ -56,11 +59,7 @@ void main() {
     });
 
     test('roles are ordered by first appearance', () {
-      final blocks = [
-        _dialogueGroup('JOHN'),
-        _dialogueGroup('SARAH'),
-        _dialogueGroup('JOHN'),
-      ];
+      final blocks = [_dialogueGroup('JOHN'), _dialogueGroup('SARAH'), _dialogueGroup('JOHN')];
 
       expect(speakingCharactersOf(blocks), ['JOHN', 'SARAH']);
     });
@@ -76,10 +75,7 @@ void main() {
     });
 
     test('a dual-dialogue pair contributes both of its cues', () {
-      final blocks = [
-        _dialogueGroup('SARAH'),
-        _dialogueGroup('JOHN', isDualDialogue: true),
-      ];
+      final blocks = [_dialogueGroup('SARAH'), _dialogueGroup('JOHN', isDualDialogue: true)];
 
       expect(speakingCharactersOf(blocks), ['SARAH', 'JOHN']);
     });

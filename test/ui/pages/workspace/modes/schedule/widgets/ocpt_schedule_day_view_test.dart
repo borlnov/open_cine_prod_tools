@@ -286,9 +286,7 @@ void main() {
     await _pumpDayView(
       tester,
       slots: [_buildSlot()],
-      blocks: [
-        _buildBlock(id: "block-1", kind: OcptShootingBlockKind.audition, roleId: "role-1"),
-      ],
+      blocks: [_buildBlock(id: "block-1", kind: OcptShootingBlockKind.audition, roleId: "role-1")],
     );
 
     expect(find.byType(OcptScheduleSlotCard), findsOneWidget);

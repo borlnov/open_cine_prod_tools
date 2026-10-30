@@ -233,7 +233,9 @@ class OcptScheduleInspector extends StatelessWidget {
   Widget _buildDayInspector(BuildContext context, OcptShootingDay day) {
     final theme = Theme.of(context);
     final tr = Tr.of(context);
-    final dateLabel = DateFormat.yMMMEd(Localizations.localeOf(context).toString()).format(day.date);
+    final dateLabel = DateFormat.yMMMEd(
+      Localizations.localeOf(context).toString(),
+    ).format(day.date);
     final locationNames = {
       for (final slot in slots)
         if (slot.locationId != null) locationById[slot.locationId]?.name,
@@ -308,10 +310,7 @@ class OcptScheduleInspector extends StatelessWidget {
                         padding: const EdgeInsets.only(bottom: 2),
                         child: Text(
                           "${slot.label.isEmpty ? tr.scheduleInspectorUnnamedSlot : slot.label} · "
-                          "${ocptScheduleDayMinuteRangeLabel(
-                            timeline?.bySlotId[slot.id]?.startMinute,
-                            timeline?.bySlotId[slot.id]?.endMinute,
-                          )}",
+                          "${ocptScheduleDayMinuteRangeLabel(timeline?.bySlotId[slot.id]?.startMinute, timeline?.bySlotId[slot.id]?.endMinute)}",
                           style: theme.textTheme.bodySmall,
                         ),
                       ),
@@ -380,7 +379,10 @@ class OcptScheduleInspector extends StatelessWidget {
         if (block.kind == OcptShootingBlockKind.shot && blockShot != null) ...[
           _OcptScheduleInspectorSection(
             label: tr.scheduleInspectorShotLabel,
-            child: Text("${blockShot.code} · ${blockShot.shotSize}", style: theme.textTheme.bodySmall),
+            child: Text(
+              "${blockShot.code} · ${blockShot.shotSize}",
+              style: theme.textTheme.bodySmall,
+            ),
           ),
           if (blockShot.characters.isNotEmpty)
             _OcptScheduleInspectorSection(
@@ -407,7 +409,7 @@ class OcptScheduleInspector extends StatelessWidget {
             entry == null
                 ? "—"
                 : "${ocptScheduleDayMinuteRangeLabel(entry.startMinute, entry.endMinute)} · "
-                    "${ocptFormatMinuteDuration(entry.durationMinutes)}",
+                      "${ocptFormatMinuteDuration(entry.durationMinutes)}",
             style: theme.textTheme.bodySmall,
           ),
         ),
@@ -472,7 +474,10 @@ class OcptScheduleInspector extends StatelessWidget {
           ),
         _OcptScheduleInspectorSection(
           label: tr.scheduleInspectorEstimatedDurationLabel,
-          child: Text(ocptFormatShotDuration(shot.estimatedDurationMs), style: theme.textTheme.bodySmall),
+          child: Text(
+            ocptFormatShotDuration(shot.estimatedDurationMs),
+            style: theme.textTheme.bodySmall,
+          ),
         ),
         _OcptScheduleInspectorSection(
           label: tr.scheduleInspectorPlacementLabel,
@@ -581,7 +586,11 @@ class _OcptScheduleNoteField extends StatefulWidget {
   final ValueChanged<String>? onChanged;
 
   /// Class constructor
-  const _OcptScheduleNoteField({required this.ownerId, required this.value, required this.onChanged});
+  const _OcptScheduleNoteField({
+    required this.ownerId,
+    required this.value,
+    required this.onChanged,
+  });
 
   @override
   State<_OcptScheduleNoteField> createState() => _OcptScheduleNoteFieldState();
@@ -677,7 +686,9 @@ class _OcptScheduleBlockDurationField extends StatefulWidget {
 /// the class doc comment explains.
 class _OcptScheduleBlockDurationFieldState extends State<_OcptScheduleBlockDurationField> {
   /// The field's own text controller, seeded from [_OcptScheduleBlockDurationField.durationMinutes].
-  late final TextEditingController _controller = TextEditingController(text: "${widget.durationMinutes}");
+  late final TextEditingController _controller = TextEditingController(
+    text: "${widget.durationMinutes}",
+  );
 
   /// The field's own focus node, committing the moment it loses focus.
   final FocusNode _focusNode = FocusNode();
@@ -756,7 +767,10 @@ class _OcptScheduleBlockDurationFieldState extends State<_OcptScheduleBlockDurat
     final onChanged = widget.onChanged;
 
     if (onChanged == null) {
-      return Text(ocptFormatMinuteDuration(widget.durationMinutes), style: theme.textTheme.bodySmall);
+      return Text(
+        ocptFormatMinuteDuration(widget.durationMinutes),
+        style: theme.textTheme.bodySmall,
+      );
     }
 
     return SizedBox(

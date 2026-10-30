@@ -141,12 +141,8 @@ void main() {
   /// `docs/adr/0030-a-shots-characters-are-the-productions-roles.md`), now that
   /// `attachCharacter`/`detachCharacter` are roleId-native and no longer resolve a name on their
   /// own. The test suite's own stand-in for what the bloc does before calling either of them.
-  Future<String> roleIdOf(String characterName) async =>
-      (await shotListService.resolveOrCreateRoleId(
-        database: database,
-        screenplayId: screenplayId,
-        name: characterName,
-      ))!;
+  Future<String> roleIdOf(String characterName) async => (await shotListService
+      .resolveOrCreateRoleId(database: database, screenplayId: screenplayId, name: characterName))!;
 
   /// Every version stamp the project currently holds, keyed by `<table>/<row>/<column>` — the same
   /// shape `OcptProjectVersionsService`'s own tests read `row_field_versions` back through.
@@ -226,124 +222,117 @@ Action.
       expect(everyRow.singleWhere((row) => row.id == firstId).isDeleted, isTrue);
     });
 
-    test(
-      "deleteShot also tombstones the shot's storyboard panels and floor plan shot-layer "
-      "placements, leaving sequence layers and other shots alone",
-      () async {
-        final scenes = await reconcile('''
+    test("deleteShot also tombstones the shot's storyboard panels and floor plan shot-layer "
+        "placements, leaving sequence layers and other shots alone", () async {
+      final scenes = await reconcile('''
 INT. HOUSE - DAY
 
 Action.
 ''');
-        final sceneId = scenes.single.id;
+      final sceneId = scenes.single.id;
 
-        final deletedShotId = (await shotListService.createShot(
-          database: database,
-          screenplayId: screenplayId,
-          sceneId: sceneId,
-        ))!;
-        final survivingShotId = (await shotListService.createShot(
-          database: database,
-          screenplayId: screenplayId,
-          sceneId: sceneId,
-        ))!;
+      final deletedShotId = (await shotListService.createShot(
+        database: database,
+        screenplayId: screenplayId,
+        sceneId: sceneId,
+      ))!;
+      final survivingShotId = (await shotListService.createShot(
+        database: database,
+        screenplayId: screenplayId,
+        sceneId: sceneId,
+      ))!;
 
-        final panelId = (await storyboardService.addPanel(
-          database: database,
-          shotId: deletedShotId,
-        ))!;
-        await storyboardService.replacePanelImage(
-          database: database,
-          panelId: panelId,
-          path: "/tmp/frame.jpg",
-        );
-        final panelAssetId = (await (database.select(
-          database.ocptStoryboardPanelsTable,
-        )..where((row) => row.id.equals(panelId))).getSingle()).imageAssetId!;
-        await storyboardService.addAnnotation(
-          database: database,
-          panelId: panelId,
-          kind: OcptStoryboardAnnotationKind.label,
-          x1: 0.5,
-          y1: 0.5,
-          text: "note",
-        );
+      final panelId = (await storyboardService.addPanel(
+        database: database,
+        shotId: deletedShotId,
+      ))!;
+      await storyboardService.replacePanelImage(
+        database: database,
+        panelId: panelId,
+        path: "/tmp/frame.jpg",
+      );
+      final panelAssetId = (await (database.select(
+        database.ocptStoryboardPanelsTable,
+      )..where((row) => row.id.equals(panelId))).getSingle()).imageAssetId!;
+      await storyboardService.addAnnotation(
+        database: database,
+        panelId: panelId,
+        kind: OcptStoryboardAnnotationKind.label,
+        x1: 0.5,
+        y1: 0.5,
+        text: "note",
+      );
 
-        final setId = (await locationsService.createSetLinkedToScene(
-          database: database,
-          sceneId: sceneId,
-          name: "Kitchen",
-        ))!;
-        final decorSymbolId = (await floorPlanService.placeSymbol(
-          database: database,
-          setId: setId,
-          sceneId: null,
-          shotId: null,
-          layer: OcptFloorPlanLayer.set,
-          xM: 0,
-          yM: 0,
-        ))!;
-        final deletedCameraId = (await floorPlanService.placeSymbol(
-          database: database,
-          setId: setId,
-          sceneId: null,
-          shotId: deletedShotId,
-          layer: OcptFloorPlanLayer.cameras,
-          xM: 1,
-          yM: 1,
-        ))!;
-        final survivingCameraId = (await floorPlanService.placeSymbol(
-          database: database,
-          setId: setId,
-          sceneId: null,
-          shotId: survivingShotId,
-          layer: OcptFloorPlanLayer.cameras,
-          xM: 2,
-          yM: 2,
-        ))!;
-        await floorPlanService.addArrow(
-          database: database,
-          setId: setId,
-          shotId: deletedShotId,
-          kind: OcptFloorPlanArrowKind.cameraMove,
-          fromSymbolId: deletedCameraId,
-          toSymbolId: decorSymbolId,
-        );
+      final setId = (await locationsService.createSetLinkedToScene(
+        database: database,
+        sceneId: sceneId,
+        name: "Kitchen",
+      ))!;
+      final decorSymbolId = (await floorPlanService.placeSymbol(
+        database: database,
+        setId: setId,
+        sceneId: null,
+        shotId: null,
+        layer: OcptFloorPlanLayer.set,
+        xM: 0,
+        yM: 0,
+      ))!;
+      final deletedCameraId = (await floorPlanService.placeSymbol(
+        database: database,
+        setId: setId,
+        sceneId: null,
+        shotId: deletedShotId,
+        layer: OcptFloorPlanLayer.cameras,
+        xM: 1,
+        yM: 1,
+      ))!;
+      final survivingCameraId = (await floorPlanService.placeSymbol(
+        database: database,
+        setId: setId,
+        sceneId: null,
+        shotId: survivingShotId,
+        layer: OcptFloorPlanLayer.cameras,
+        xM: 2,
+        yM: 2,
+      ))!;
+      await floorPlanService.addArrow(
+        database: database,
+        setId: setId,
+        shotId: deletedShotId,
+        kind: OcptFloorPlanArrowKind.cameraMove,
+        fromSymbolId: deletedCameraId,
+        toSymbolId: decorSymbolId,
+      );
 
-        await shotListService.deleteShot(database: database, shotId: deletedShotId);
+      await shotListService.deleteShot(database: database, shotId: deletedShotId);
 
-        final livePanels = await (database.select(
-          database.ocptStoryboardPanelsTable,
-        )..where((row) => row.isDeleted.equals(false))).get();
-        expect(livePanels, isEmpty);
+      final livePanels = await (database.select(
+        database.ocptStoryboardPanelsTable,
+      )..where((row) => row.isDeleted.equals(false))).get();
+      expect(livePanels, isEmpty);
 
-        final liveAnnotations = await (database.select(
-          database.ocptStoryboardAnnotationsTable,
-        )..where((row) => row.isDeleted.equals(false))).get();
-        expect(liveAnnotations, isEmpty);
+      final liveAnnotations = await (database.select(
+        database.ocptStoryboardAnnotationsTable,
+      )..where((row) => row.isDeleted.equals(false))).get();
+      expect(liveAnnotations, isEmpty);
 
-        final panelAsset = await (database.select(
-          database.ocptAssetsTable,
-        )..where((row) => row.id.equals(panelAssetId))).getSingle();
-        expect(panelAsset.isDeleted, isTrue);
+      final panelAsset = await (database.select(
+        database.ocptAssetsTable,
+      )..where((row) => row.id.equals(panelAssetId))).getSingle();
+      expect(panelAsset.isDeleted, isTrue);
 
-        final liveSymbolIds =
-            (await (database.select(
-                  database.ocptFloorPlanSymbolsTable,
-                )..where((row) => row.isDeleted.equals(false)))
-                .get())
-                .map((row) => row.id)
-                .toSet();
-        expect(liveSymbolIds.contains(deletedCameraId), isFalse);
-        expect(liveSymbolIds.contains(decorSymbolId), isTrue);
-        expect(liveSymbolIds.contains(survivingCameraId), isTrue);
+      final liveSymbolIds = (await (database.select(
+        database.ocptFloorPlanSymbolsTable,
+      )..where((row) => row.isDeleted.equals(false))).get()).map((row) => row.id).toSet();
+      expect(liveSymbolIds.contains(deletedCameraId), isFalse);
+      expect(liveSymbolIds.contains(decorSymbolId), isTrue);
+      expect(liveSymbolIds.contains(survivingCameraId), isTrue);
 
-        final liveArrows = await (database.select(
-          database.ocptFloorPlanArrowsTable,
-        )..where((row) => row.isDeleted.equals(false))).get();
-        expect(liveArrows, isEmpty);
-      },
-    );
+      final liveArrows = await (database.select(
+        database.ocptFloorPlanArrowsTable,
+      )..where((row) => row.isDeleted.equals(false))).get();
+      expect(liveArrows, isEmpty);
+    });
 
     test("reorderShot moves a shot by writing exactly one row", () async {
       final scenes = await reconcile('''
@@ -377,42 +366,42 @@ Action.
       expect((await readShots()).map((row) => row.id), [secondId, thirdId, firstId]);
       // This is the whole point of the fractional index: however far a shot moves and however
       // large its scene, only the shot that moved is written.
-      expect(
-        keysAfter.keys.where((id) => keysAfter[id] != keysBefore[id]),
-        [firstId],
-      );
+      expect(keysAfter.keys.where((id) => keysAfter[id] != keysBefore[id]), [firstId]);
     });
 
-    test("reorderShot to the head, and repeatedly between the same pair, keeps the order", () async {
-      final scenes = await reconcile('''
+    test(
+      "reorderShot to the head, and repeatedly between the same pair, keeps the order",
+      () async {
+        final scenes = await reconcile('''
 INT. HOUSE - DAY
 
 Action.
 ''');
-      final sceneId = scenes.single.id;
+        final sceneId = scenes.single.id;
 
-      final ids = [
-        for (var i = 0; i < 4; i++)
-          (await shotListService.createShot(
-            database: database,
-            screenplayId: screenplayId,
-            sceneId: sceneId,
-          ))!,
-      ];
+        final ids = [
+          for (var i = 0; i < 4; i++)
+            (await shotListService.createShot(
+              database: database,
+              screenplayId: screenplayId,
+              sceneId: sceneId,
+            ))!,
+        ];
 
-      // To the head, from the tail.
-      await shotListService.reorderShot(database: database, shotId: ids[3], newPosition: 0);
-      expect((await readShots()).map((row) => row.id), [ids[3], ids[0], ids[1], ids[2]]);
+        // To the head, from the tail.
+        await shotListService.reorderShot(database: database, shotId: ids[3], newPosition: 0);
+        expect((await readShots()).map((row) => row.id), [ids[3], ids[0], ids[1], ids[2]]);
 
-      // Then squeeze the last one between the same two neighbours, over and over: a fractional
-      // key always has room for one more, it just grows a digit when it runs out.
-      for (var i = 0; i < 5; i++) {
-        await shotListService.reorderShot(database: database, shotId: ids[2], newPosition: 1);
-        expect((await readShots()).map((row) => row.id), [ids[3], ids[2], ids[0], ids[1]]);
-        await shotListService.reorderShot(database: database, shotId: ids[0], newPosition: 1);
-        expect((await readShots()).map((row) => row.id), [ids[3], ids[0], ids[2], ids[1]]);
-      }
-    });
+        // Then squeeze the last one between the same two neighbours, over and over: a fractional
+        // key always has room for one more, it just grows a digit when it runs out.
+        for (var i = 0; i < 5; i++) {
+          await shotListService.reorderShot(database: database, shotId: ids[2], newPosition: 1);
+          expect((await readShots()).map((row) => row.id), [ids[3], ids[2], ids[0], ids[1]]);
+          await shotListService.reorderShot(database: database, shotId: ids[0], newPosition: 1);
+          expect((await readShots()).map((row) => row.id), [ids[3], ids[0], ids[2], ids[1]]);
+        }
+      },
+    );
 
     test("updateShot only touches the fields it's given a Value for", () async {
       final scenes = await reconcile('''
@@ -521,7 +510,11 @@ Action.
         shotId: shotId,
         roleId: await roleIdOf("  clara  "),
       );
-      await shotListService.attachCharacter(database: database, shotId: shotId, roleId: await roleIdOf("Marc"));
+      await shotListService.attachCharacter(
+        database: database,
+        shotId: shotId,
+        roleId: await roleIdOf("Marc"),
+      );
 
       final snapshot = await shotListService.loadShotList(
         database: database,
@@ -542,11 +535,27 @@ Action.
         screenplayId: screenplayId,
         sceneId: scenes.single.id,
       ))!;
-      await shotListService.attachCharacter(database: database, shotId: shotId, roleId: await roleIdOf("Clara"));
-      await shotListService.attachCharacter(database: database, shotId: shotId, roleId: await roleIdOf("Marc"));
-      await shotListService.attachCharacter(database: database, shotId: shotId, roleId: await roleIdOf("Théo"));
+      await shotListService.attachCharacter(
+        database: database,
+        shotId: shotId,
+        roleId: await roleIdOf("Clara"),
+      );
+      await shotListService.attachCharacter(
+        database: database,
+        shotId: shotId,
+        roleId: await roleIdOf("Marc"),
+      );
+      await shotListService.attachCharacter(
+        database: database,
+        shotId: shotId,
+        roleId: await roleIdOf("Théo"),
+      );
 
-      await shotListService.detachCharacter(database: database, shotId: shotId, roleId: await roleIdOf("Marc"));
+      await shotListService.detachCharacter(
+        database: database,
+        shotId: shotId,
+        roleId: await roleIdOf("Marc"),
+      );
 
       final snapshot = await shotListService.loadShotList(
         database: database,
@@ -555,7 +564,6 @@ Action.
       );
       expect(snapshot.shotsById[shotId]!.characters, ["CLARA", "THÉO"]);
     });
-
   });
 
   group("derived shot code", () {
@@ -588,8 +596,10 @@ Action.
       expect(sequence.shots[1].code, "5/2");
     });
 
-    test("a scene with no scene number falls back to its 1-based index among the screenplay's scenes", () async {
-      final scenes = await reconcile('''
+    test(
+      "a scene with no scene number falls back to its 1-based index among the screenplay's scenes",
+      () async {
+        final scenes = await reconcile('''
 INT. HOUSE - DAY
 
 Action.
@@ -598,23 +608,24 @@ EXT. STREET - NIGHT
 
 Action.
 ''');
-      final shotId = (await shotListService.createShot(
-        database: database,
-        screenplayId: screenplayId,
-        sceneId: scenes[1].id,
-      ))!;
+        final shotId = (await shotListService.createShot(
+          database: database,
+          screenplayId: screenplayId,
+          sceneId: scenes[1].id,
+        ))!;
 
-      final snapshot = await shotListService.loadShotList(
-        database: database,
-        screenplayId: screenplayId,
-        episodeNumber: null,
-      );
-      final secondSequence = snapshot.sequences[1] as OcptSceneShotSequence;
+        final snapshot = await shotListService.loadShotList(
+          database: database,
+          screenplayId: screenplayId,
+          episodeNumber: null,
+        );
+        final secondSequence = snapshot.sequences[1] as OcptSceneShotSequence;
 
-      expect(secondSequence.sceneNumber, isNull);
-      expect(secondSequence.displaySceneNumber, "2");
-      expect(snapshot.shotsById[shotId]!.code, "2/1");
-    });
+        expect(secondSequence.sceneNumber, isNull);
+        expect(secondSequence.displaySceneNumber, "2");
+        expect(snapshot.shotsById[shotId]!.code, "2/1");
+      },
+    );
   });
 
   test("a scene sequence's charStart/charEnd come straight from its scene row", () async {
@@ -642,14 +653,12 @@ Action two.
     expect(secondSequence.charEnd, scenes[1].charEnd);
   });
 
-  test(
-    "detaching a shot's scene through a real saveScreenplayText call preserves its shots, "
-    "their heading and drops their coverage",
-    () async {
-      await screenplayService.saveScreenplayText(
-        database: database,
-        screenplayId: screenplayId,
-        fountainText: '''
+  test("detaching a shot's scene through a real saveScreenplayText call preserves its shots, "
+      "their heading and drops their coverage", () async {
+    await screenplayService.saveScreenplayText(
+      database: database,
+      screenplayId: screenplayId,
+      fountainText: '''
 INT. HOUSE - DAY
 
 Action one.
@@ -658,71 +667,69 @@ EXT. STREET - NIGHT
 
 Action two.
 ''',
-        snapshotReason: OcptSnapshotReason.manual,
-      );
+      snapshotReason: OcptSnapshotReason.manual,
+    );
 
-      final scenesBefore =
-          await (database.select(database.ocptScenesTable)
-                ..where((row) => row.isDeleted.equals(false))
-                ..orderBy([(row) => OrderingTerm.asc(row.position)]))
-              .get();
-      final streetScene = scenesBefore.firstWhere((row) => row.heading == "EXT. STREET - NIGHT");
+    final scenesBefore =
+        await (database.select(database.ocptScenesTable)
+              ..where((row) => row.isDeleted.equals(false))
+              ..orderBy([(row) => OrderingTerm.asc(row.position)]))
+            .get();
+    final streetScene = scenesBefore.firstWhere((row) => row.heading == "EXT. STREET - NIGHT");
 
-      final shotId = (await shotListService.createShot(
-        database: database,
-        screenplayId: screenplayId,
-        sceneId: streetScene.id,
-      ))!;
-      await database
-          .into(database.ocptShotCoveragesTable)
-          .insert(
-            OcptShotCoveragesTableCompanion.insert(
-              id: "range-1",
-              shotId: shotId,
-              sceneId: streetScene.id,
-              startOffset: 0,
-              endOffset: 5,
-              coveredTextDigest: "irrelevant-for-this-test",
-            ),
-          );
+    final shotId = (await shotListService.createShot(
+      database: database,
+      screenplayId: screenplayId,
+      sceneId: streetScene.id,
+    ))!;
+    await database
+        .into(database.ocptShotCoveragesTable)
+        .insert(
+          OcptShotCoveragesTableCompanion.insert(
+            id: "range-1",
+            shotId: shotId,
+            sceneId: streetScene.id,
+            startOffset: 0,
+            endOffset: 5,
+            coveredTextDigest: "irrelevant-for-this-test",
+          ),
+        );
 
-      // The new text drops the street scene entirely.
-      await screenplayService.saveScreenplayText(
-        database: database,
-        screenplayId: screenplayId,
-        fountainText: '''
+    // The new text drops the street scene entirely.
+    await screenplayService.saveScreenplayText(
+      database: database,
+      screenplayId: screenplayId,
+      fountainText: '''
 INT. HOUSE - DAY
 
 Action one.
 ''',
-        snapshotReason: OcptSnapshotReason.manual,
-      );
+      snapshotReason: OcptSnapshotReason.manual,
+    );
 
-      final shot = (await readShots()).singleWhere((row) => row.id == shotId);
-      expect(shot.sceneId, isNull);
-      expect(shot.orphanedHeading, "EXT. STREET - NIGHT");
-      expect(shot.needsCheck, isTrue);
-      expect(shot.checkReason, OcptShotCheckReason.sceneDeleted);
+    final shot = (await readShots()).singleWhere((row) => row.id == shotId);
+    expect(shot.sceneId, isNull);
+    expect(shot.orphanedHeading, "EXT. STREET - NIGHT");
+    expect(shot.needsCheck, isTrue);
+    expect(shot.checkReason, OcptShotCheckReason.sceneDeleted);
 
-      final liveCoverage =
-          await (database.select(database.ocptShotCoveragesTable)
-                ..where((row) => row.isDeleted.equals(false)))
-              .get();
-      expect(liveCoverage, isEmpty);
-      // Tombstoned, not deleted: the range's row is still there for a replica to learn about.
-      final everyCoverage = await database.select(database.ocptShotCoveragesTable).get();
-      expect(everyCoverage.single.isDeleted, isTrue);
+    final liveCoverage = await (database.select(
+      database.ocptShotCoveragesTable,
+    )..where((row) => row.isDeleted.equals(false))).get();
+    expect(liveCoverage, isEmpty);
+    // Tombstoned, not deleted: the range's row is still there for a replica to learn about.
+    final everyCoverage = await database.select(database.ocptShotCoveragesTable).get();
+    expect(everyCoverage.single.isDeleted, isTrue);
 
-      final snapshot = await shotListService.loadShotList(
-        database: database,
-        screenplayId: screenplayId,
-        episodeNumber: null,
-      );
-      final orphanSequence = snapshot.sequences.last as OcptOrphanShotSequence;
-      expect(orphanSequence.shots.single.id, shotId);
-      expect(orphanSequence.shots.single.orphanedHeading, "EXT. STREET - NIGHT");
-    },
-  );
+    final snapshot = await shotListService.loadShotList(
+      database: database,
+      screenplayId: screenplayId,
+      episodeNumber: null,
+    );
+    final orphanSequence = snapshot.sequences.last as OcptOrphanShotSequence;
+    expect(orphanSequence.shots.single.id, shotId);
+    expect(orphanSequence.shots.single.orphanedHeading, "EXT. STREET - NIGHT");
+  });
 
   group("a tombstoned row is invisible to every reader", () {
     test("a deleted shot is gone from the shot list, its characters and its suggestions", () async {
@@ -818,12 +825,11 @@ Action.
         roleId: await roleIdOf("Clara"),
       );
 
-      Future<List<String>> charactersOfShot() async =>
-          (await shotListService.loadShotList(
-            database: database,
-            screenplayId: screenplayId,
-            episodeNumber: null,
-          )).shotsById[shotId]!.characters;
+      Future<List<String>> charactersOfShot() async => (await shotListService.loadShotList(
+        database: database,
+        screenplayId: screenplayId,
+        episodeNumber: null,
+      )).shotsById[shotId]!.characters;
 
       expect(await charactersOfShot(), ["MARC"]);
 
@@ -900,10 +906,9 @@ Action two.
         screenplayId: screenplayId,
         episodeNumber: null,
       );
-      final withoutEpisodeSequence =
-          withoutEpisode.sequences.whereType<OcptSceneShotSequence>().firstWhere(
-            (sequence) => sequence.sceneId == streetScene.id,
-          );
+      final withoutEpisodeSequence = withoutEpisode.sequences
+          .whereType<OcptSceneShotSequence>()
+          .firstWhere((sequence) => sequence.sceneId == streetScene.id);
       expect(withoutEpisodeSequence.displaySceneNumber, "2");
 
       final withEpisode = await shotListService.loadShotList(
@@ -911,9 +916,9 @@ Action two.
         screenplayId: screenplayId,
         episodeNumber: 3,
       );
-      final withEpisodeSequence = withEpisode.sequences.whereType<OcptSceneShotSequence>().firstWhere(
-        (sequence) => sequence.sceneId == streetScene.id,
-      );
+      final withEpisodeSequence = withEpisode.sequences
+          .whereType<OcptSceneShotSequence>()
+          .firstWhere((sequence) => sequence.sceneId == streetScene.id);
       expect(withEpisodeSequence.displaySceneNumber, "3.2");
     });
 
@@ -1150,96 +1155,89 @@ Action.
   });
 
   group("tombstoneShotsOfScreenplay — the storyboard/floor plan cascade", () {
-    test(
-      "tombstones every shot's storyboard panels and floor plan shot-layer placements across "
-      "the whole screenplay, leaving sequence layers alone",
-      () async {
-        final scenes = await reconcile('''
+    test("tombstones every shot's storyboard panels and floor plan shot-layer placements across "
+        "the whole screenplay, leaving sequence layers alone", () async {
+      final scenes = await reconcile('''
 INT. HOUSE - DAY
 
 Action.
 ''');
-        final sceneId = scenes.single.id;
+      final sceneId = scenes.single.id;
 
-        final firstShotId = (await shotListService.createShot(
+      final firstShotId = (await shotListService.createShot(
+        database: database,
+        screenplayId: screenplayId,
+        sceneId: sceneId,
+      ))!;
+      final secondShotId = (await shotListService.createShot(
+        database: database,
+        screenplayId: screenplayId,
+        sceneId: sceneId,
+      ))!;
+
+      final firstPanelId = (await storyboardService.addPanel(
+        database: database,
+        shotId: firstShotId,
+      ))!;
+      final secondPanelId = (await storyboardService.addPanel(
+        database: database,
+        shotId: secondShotId,
+      ))!;
+
+      final setId = (await locationsService.createSetLinkedToScene(
+        database: database,
+        sceneId: sceneId,
+        name: "Kitchen",
+      ))!;
+      final decorSymbolId = (await floorPlanService.placeSymbol(
+        database: database,
+        setId: setId,
+        sceneId: null,
+        shotId: null,
+        layer: OcptFloorPlanLayer.set,
+        xM: 0,
+        yM: 0,
+      ))!;
+      final firstCameraId = (await floorPlanService.placeSymbol(
+        database: database,
+        setId: setId,
+        sceneId: null,
+        shotId: firstShotId,
+        layer: OcptFloorPlanLayer.cameras,
+        xM: 1,
+        yM: 1,
+      ))!;
+      final secondCameraId = (await floorPlanService.placeSymbol(
+        database: database,
+        setId: setId,
+        sceneId: null,
+        shotId: secondShotId,
+        layer: OcptFloorPlanLayer.cameras,
+        xM: 2,
+        yM: 2,
+      ))!;
+
+      await database.transaction(() async {
+        final stamps = await OcptRowStampService.seed(database: database, deviceId: _deviceId);
+        await shotListService.tombstoneShotsOfScreenplay(
           database: database,
           screenplayId: screenplayId,
-          sceneId: sceneId,
-        ))!;
-        final secondShotId = (await shotListService.createShot(
-          database: database,
-          screenplayId: screenplayId,
-          sceneId: sceneId,
-        ))!;
+          stamps: stamps,
+        );
+        await stamps.flush(database);
+      });
 
-        final firstPanelId = (await storyboardService.addPanel(
-          database: database,
-          shotId: firstShotId,
-        ))!;
-        final secondPanelId = (await storyboardService.addPanel(
-          database: database,
-          shotId: secondShotId,
-        ))!;
+      final livePanels = await (database.select(
+        database.ocptStoryboardPanelsTable,
+      )..where((row) => row.isDeleted.equals(false))).get();
+      expect(livePanels, isEmpty, reason: "$firstPanelId and $secondPanelId should be gone");
 
-        final setId = (await locationsService.createSetLinkedToScene(
-          database: database,
-          sceneId: sceneId,
-          name: "Kitchen",
-        ))!;
-        final decorSymbolId = (await floorPlanService.placeSymbol(
-          database: database,
-          setId: setId,
-          sceneId: null,
-          shotId: null,
-          layer: OcptFloorPlanLayer.set,
-          xM: 0,
-          yM: 0,
-        ))!;
-        final firstCameraId = (await floorPlanService.placeSymbol(
-          database: database,
-          setId: setId,
-          sceneId: null,
-          shotId: firstShotId,
-          layer: OcptFloorPlanLayer.cameras,
-          xM: 1,
-          yM: 1,
-        ))!;
-        final secondCameraId = (await floorPlanService.placeSymbol(
-          database: database,
-          setId: setId,
-          sceneId: null,
-          shotId: secondShotId,
-          layer: OcptFloorPlanLayer.cameras,
-          xM: 2,
-          yM: 2,
-        ))!;
-
-        await database.transaction(() async {
-          final stamps = await OcptRowStampService.seed(database: database, deviceId: _deviceId);
-          await shotListService.tombstoneShotsOfScreenplay(
-            database: database,
-            screenplayId: screenplayId,
-            stamps: stamps,
-          );
-          await stamps.flush(database);
-        });
-
-        final livePanels = await (database.select(
-          database.ocptStoryboardPanelsTable,
-        )..where((row) => row.isDeleted.equals(false))).get();
-        expect(livePanels, isEmpty, reason: "$firstPanelId and $secondPanelId should be gone");
-
-        final liveSymbolIds =
-            (await (database.select(
-                  database.ocptFloorPlanSymbolsTable,
-                )..where((row) => row.isDeleted.equals(false)))
-                .get())
-                .map((row) => row.id)
-                .toSet();
-        expect(liveSymbolIds.contains(firstCameraId), isFalse);
-        expect(liveSymbolIds.contains(secondCameraId), isFalse);
-        expect(liveSymbolIds.contains(decorSymbolId), isTrue);
-      },
-    );
+      final liveSymbolIds = (await (database.select(
+        database.ocptFloorPlanSymbolsTable,
+      )..where((row) => row.isDeleted.equals(false))).get()).map((row) => row.id).toSet();
+      expect(liveSymbolIds.contains(firstCameraId), isFalse);
+      expect(liveSymbolIds.contains(secondCameraId), isFalse);
+      expect(liveSymbolIds.contains(decorSymbolId), isTrue);
+    });
   });
 }

@@ -135,7 +135,11 @@ class OcptDiagnosticsManager extends AbsWithLifeCycle {
       return;
     }
 
-    managers.get<OcptDiagnosticsManager>().record(category: category, level: level, message: message);
+    managers.get<OcptDiagnosticsManager>().record(
+      category: category,
+      level: level,
+      message: message,
+    );
   }
 
   /// {@macro act_life_cycle.MixinWithLifeCycleDispose.disposeLifeCycle}

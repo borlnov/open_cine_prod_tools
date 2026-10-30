@@ -18,7 +18,9 @@ Widget _wrapInApp(Widget child) => MaterialApp(
     GlobalCupertinoLocalizations.delegate,
   ],
   supportedLocales: Tr.delegate.supportedLocales,
-  home: Scaffold(body: Align(alignment: Alignment.topLeft, child: child)),
+  home: Scaffold(
+    body: Align(alignment: Alignment.topLeft, child: child),
+  ),
 );
 
 void main() {
@@ -31,10 +33,7 @@ void main() {
 
     await tester.pumpWidget(
       _wrapInApp(
-        OcptShotListColumnsMenu(
-          visibleColumns: visibleColumns,
-          onColumnToggled: toggled.add,
-        ),
+        OcptShotListColumnsMenu(visibleColumns: visibleColumns, onColumnToggled: toggled.add),
       ),
     );
     await tester.pumpAndSettle();
@@ -42,8 +41,9 @@ void main() {
     return toggled;
   }
 
-  testWidgets("lists one entry per optional column, and none for the always-shown ones",
-      (tester) async {
+  testWidgets("lists one entry per optional column, and none for the always-shown ones", (
+    tester,
+  ) async {
     await pumpMenu(tester, visibleColumns: OcptShotListColumn.defaultVisibleColumns);
 
     await tester.tap(find.text("Columns"));

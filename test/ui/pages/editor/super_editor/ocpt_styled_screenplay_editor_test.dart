@@ -235,7 +235,8 @@ Future<void> _pumpStandaloneEditor(
 /// Finds the page-simulation background painter (`_OcptPageSheetsPainter`) by the runtime name of
 /// its painter: it's private to the production file, so it can't be named from here directly.
 Finder _pageSheetsPainterFinder() => find.byWidgetPredicate(
-  (widget) => widget is CustomPaint && widget.painter.runtimeType.toString() == "_OcptPageSheetsPainter",
+  (widget) =>
+      widget is CustomPaint && widget.painter.runtimeType.toString() == "_OcptPageSheetsPainter",
 );
 
 /// Whether the page-simulation background painter (`_OcptPageSheetsPainter`, private to the
@@ -270,7 +271,9 @@ ParagraphNode _nodeAt(Document document, int index) => document.getNodeAt(index)
 
 /// The [FountainLineType] the node at [index] of [document] is currently classified as.
 FountainLineType _typeAt(Document document, int index) =>
-    OcptFountainLineAttributions.typeOfAttributionValue(_nodeAt(document, index).getMetadataValue("blockType"));
+    OcptFountainLineAttributions.typeOfAttributionValue(
+      _nodeAt(document, index).getMetadataValue("blockType"),
+    );
 
 /// Whether the node at [index] of [document] currently carries a manual type lock.
 bool _isLockedAt(Document document, int index) =>
@@ -369,140 +372,160 @@ void main() {
   // at the end of a test; every test below that gives the styled editor a selection is affected.
   BlinkController.indeterminateAnimationsEnabled = false;
 
-  testWidgets("renders a scene heading bold at the margin and indents a character cue further than action", (
-    tester,
-  ) async {
-    const text = "INT. HOUSE - DAY\n\nSome action text.\n\nSARAH\nHello.";
+  testWidgets(
+    "renders a scene heading bold at the margin and indents a character cue further than action",
+    (tester) async {
+      const text = "INT. HOUSE - DAY\n\nSome action text.\n\nSARAH\nHello.";
 
-    await tester.pumpWidget(
-      _wrap(
-        OcptStyledScreenplayEditor(
-          text: text,
-          pageSetup: const OcptPageSetup.standard(),
-          isPageSimulationEnabled: false,
-          areSceneNumbersVisible: false,
-          isSpellCheckVisible: false,
-          onTextChanged: (_) {},
-          onCaretLineChanged: (_) {},
-          jumpRequest: null,
+      await tester.pumpWidget(
+        _wrap(
+          OcptStyledScreenplayEditor(
+            text: text,
+            pageSetup: const OcptPageSetup.standard(),
+            isPageSimulationEnabled: false,
+            areSceneNumbersVisible: false,
+            isSpellCheckVisible: false,
+            onTextChanged: (_) {},
+            onCaretLineChanged: (_) {},
+            jumpRequest: null,
+          ),
         ),
-      ),
-    );
-    await tester.pumpAndSettle();
-
-    final document = SuperEditorInspector.findDocument()!;
-    // Blank source lines are folded into node metadata (not their own node), so nodes are
-    // dense: 0 = heading, 1 = action, 2 = character, 3 = dialogue.
-    final headingNodeId = document.getNodeAt(0)!.id;
-    final actionNodeId = document.getNodeAt(1)!.id;
-    final characterNodeId = document.getNodeAt(2)!.id;
-
-    expect(SuperEditorInspector.findParagraphStyle(headingNodeId)?.fontWeight, FontWeight.bold);
-
-    final headingOffset = SuperEditorInspector.findComponentOffset(headingNodeId, Alignment.topLeft);
-    final actionOffset = SuperEditorInspector.findComponentOffset(actionNodeId, Alignment.topLeft);
-    final characterOffset = SuperEditorInspector.findComponentOffset(characterNodeId, Alignment.topLeft);
-
-    // The scene heading sits at the same left margin as action text...
-    expect(headingOffset.dx, actionOffset.dx);
-    // ...while the character cue is indented noticeably further in.
-    expect(characterOffset.dx, greaterThan(actionOffset.dx));
-  });
-
-  testWidgets("sizes and positions every element type at the raw preview's indent/width, wide enough that "
-      "a long character cue never wraps", (tester) async {
-    // One line per element type. "DETECTIVE JONATHAN" (19 characters) is comfortably narrower
-    // than the character box's correct width (38 columns on US Letter) but would have wrapped
-    // to nearly one letter per line under the pre-fix box, whose usable text width collapsed to
-    // roughly `width - indent` (about 1 column).
-    const text =
-        "INT. HOUSE - DAY\n\n"
-        "Some action text describing the scene in some detail.\n\n"
-        "DETECTIVE JONATHAN\n"
-        "(quietly)\n"
-        "Hello there, how are you doing today my friend?\n\n"
-        "CUT TO:\n\n"
-        ">THE END<";
-
-    // The default test surface (800x600) is narrower than a full-width US Letter box at font
-    // size 13 (indent + width can reach ~975 logical pixels), which would clip every full-width
-    // element's rendered size before it ever reached its styled `maxWidth`: widen the surface,
-    // like the app's own desktop window would be in practice.
-    tester.view.physicalSize = const Size(1400, 900);
-    tester.view.devicePixelRatio = 1.0;
-    addTearDown(tester.view.resetPhysicalSize);
-    addTearDown(tester.view.resetDevicePixelRatio);
-
-    await tester.pumpWidget(
-      _wrap(
-        OcptStyledScreenplayEditor(
-          text: text,
-          pageSetup: const OcptPageSetup.standard(),
-          isPageSimulationEnabled: false,
-          areSceneNumbersVisible: false,
-          isSpellCheckVisible: false,
-          onTextChanged: (_) {},
-          onCaretLineChanged: (_) {},
-          jumpRequest: null,
-        ),
-      ),
-    );
-    await tester.pumpAndSettle();
-
-    final document = SuperEditorInspector.findDocument()!;
-    final layout = OcptEditorPreviewLayout(metrics: FountainLayoutMetrics.usLetter());
-    final metrics = layout.metrics;
-
-    // Blank source lines are folded into node metadata (not their own node), so nodes are
-    // dense in source order: heading, action, character, parenthetical, dialogue, transition,
-    // centered text.
-    final elementsByNodeIndex = [
-      metrics.sceneHeading,
-      metrics.action,
-      metrics.character,
-      metrics.parenthetical,
-      metrics.dialogue,
-      metrics.transition,
-      metrics.centeredText,
-    ];
-    final nodeIds = [for (var index = 0; index < elementsByNodeIndex.length; index++) _nodeAt(document, index).id];
-    final actionOffset = SuperEditorInspector.findComponentOffset(nodeIds[1], Alignment.topLeft);
-
-    for (var index = 0; index < elementsByNodeIndex.length; index++) {
-      final element = elementsByNodeIndex[index];
-      final nodeId = nodeIds[index];
-
-      // The component's rendered width is `Styles.maxWidth` minus the left padding super_editor
-      // applies inside it: with the fix, that's exactly the element's own text width.
-      final size = SuperEditorInspector.findComponentSize(nodeId);
-      expect(size.width, closeTo(layout.widthOf(element), 1), reason: "width of node $index ($element)");
-
-      // The component's left edge sits at the element's indent, relative to the action box's —
-      // but only for element types whose box is exactly as wide as action's (`indent + width`,
-      // the fixed value the `Styles.maxWidth` fix now sets): the document's internal `Column`
-      // centers each block's box within the widest sibling's, so a narrower box (dialogue,
-      // fixed at 3.5in regardless of page size, unlike the others which stretch to the
-      // printable area's right edge) picks up extra centering offset that has nothing to do
-      // with this fix, and would make a direct indent comparison against action meaningless.
-      final sameBoxWidthAsAction =
-          layout.indentOf(element) + layout.widthOf(element) ==
-          layout.indentOf(metrics.action) + layout.widthOf(metrics.action);
-      if (!sameBoxWidthAsAction) {
-        continue;
-      }
-      final offset = SuperEditorInspector.findComponentOffset(nodeId, Alignment.topLeft);
-      expect(
-        offset.dx - actionOffset.dx,
-        closeTo(layout.indentOf(element) - layout.indentOf(metrics.action), 1),
-        reason: "indent of node $index ($element)",
       );
-    }
+      await tester.pumpAndSettle();
 
-    // The most visible symptom of the bug: the character cue box collapsed to near-zero usable
-    // width, wrapping to one letter per line. `findOffsetOfLineBreak` throws when a text node
-    // renders on a single line, which is what must happen now.
-    expect(() => SuperEditorInspector.findOffsetOfLineBreak(nodeIds[2]), throwsException);
-  });
+      final document = SuperEditorInspector.findDocument()!;
+      // Blank source lines are folded into node metadata (not their own node), so nodes are
+      // dense: 0 = heading, 1 = action, 2 = character, 3 = dialogue.
+      final headingNodeId = document.getNodeAt(0)!.id;
+      final actionNodeId = document.getNodeAt(1)!.id;
+      final characterNodeId = document.getNodeAt(2)!.id;
+
+      expect(SuperEditorInspector.findParagraphStyle(headingNodeId)?.fontWeight, FontWeight.bold);
+
+      final headingOffset = SuperEditorInspector.findComponentOffset(
+        headingNodeId,
+        Alignment.topLeft,
+      );
+      final actionOffset = SuperEditorInspector.findComponentOffset(
+        actionNodeId,
+        Alignment.topLeft,
+      );
+      final characterOffset = SuperEditorInspector.findComponentOffset(
+        characterNodeId,
+        Alignment.topLeft,
+      );
+
+      // The scene heading sits at the same left margin as action text...
+      expect(headingOffset.dx, actionOffset.dx);
+      // ...while the character cue is indented noticeably further in.
+      expect(characterOffset.dx, greaterThan(actionOffset.dx));
+    },
+  );
+
+  testWidgets(
+    "sizes and positions every element type at the raw preview's indent/width, wide enough that "
+    "a long character cue never wraps",
+    (tester) async {
+      // One line per element type. "DETECTIVE JONATHAN" (19 characters) is comfortably narrower
+      // than the character box's correct width (38 columns on US Letter) but would have wrapped
+      // to nearly one letter per line under the pre-fix box, whose usable text width collapsed to
+      // roughly `width - indent` (about 1 column).
+      const text =
+          "INT. HOUSE - DAY\n\n"
+          "Some action text describing the scene in some detail.\n\n"
+          "DETECTIVE JONATHAN\n"
+          "(quietly)\n"
+          "Hello there, how are you doing today my friend?\n\n"
+          "CUT TO:\n\n"
+          ">THE END<";
+
+      // The default test surface (800x600) is narrower than a full-width US Letter box at font
+      // size 13 (indent + width can reach ~975 logical pixels), which would clip every full-width
+      // element's rendered size before it ever reached its styled `maxWidth`: widen the surface,
+      // like the app's own desktop window would be in practice.
+      tester.view.physicalSize = const Size(1400, 900);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      await tester.pumpWidget(
+        _wrap(
+          OcptStyledScreenplayEditor(
+            text: text,
+            pageSetup: const OcptPageSetup.standard(),
+            isPageSimulationEnabled: false,
+            areSceneNumbersVisible: false,
+            isSpellCheckVisible: false,
+            onTextChanged: (_) {},
+            onCaretLineChanged: (_) {},
+            jumpRequest: null,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final document = SuperEditorInspector.findDocument()!;
+      final layout = OcptEditorPreviewLayout(metrics: FountainLayoutMetrics.usLetter());
+      final metrics = layout.metrics;
+
+      // Blank source lines are folded into node metadata (not their own node), so nodes are
+      // dense in source order: heading, action, character, parenthetical, dialogue, transition,
+      // centered text.
+      final elementsByNodeIndex = [
+        metrics.sceneHeading,
+        metrics.action,
+        metrics.character,
+        metrics.parenthetical,
+        metrics.dialogue,
+        metrics.transition,
+        metrics.centeredText,
+      ];
+      final nodeIds = [
+        for (var index = 0; index < elementsByNodeIndex.length; index++)
+          _nodeAt(document, index).id,
+      ];
+      final actionOffset = SuperEditorInspector.findComponentOffset(nodeIds[1], Alignment.topLeft);
+
+      for (var index = 0; index < elementsByNodeIndex.length; index++) {
+        final element = elementsByNodeIndex[index];
+        final nodeId = nodeIds[index];
+
+        // The component's rendered width is `Styles.maxWidth` minus the left padding super_editor
+        // applies inside it: with the fix, that's exactly the element's own text width.
+        final size = SuperEditorInspector.findComponentSize(nodeId);
+        expect(
+          size.width,
+          closeTo(layout.widthOf(element), 1),
+          reason: "width of node $index ($element)",
+        );
+
+        // The component's left edge sits at the element's indent, relative to the action box's —
+        // but only for element types whose box is exactly as wide as action's (`indent + width`,
+        // the fixed value the `Styles.maxWidth` fix now sets): the document's internal `Column`
+        // centers each block's box within the widest sibling's, so a narrower box (dialogue,
+        // fixed at 3.5in regardless of page size, unlike the others which stretch to the
+        // printable area's right edge) picks up extra centering offset that has nothing to do
+        // with this fix, and would make a direct indent comparison against action meaningless.
+        final sameBoxWidthAsAction =
+            layout.indentOf(element) + layout.widthOf(element) ==
+            layout.indentOf(metrics.action) + layout.widthOf(metrics.action);
+        if (!sameBoxWidthAsAction) {
+          continue;
+        }
+        final offset = SuperEditorInspector.findComponentOffset(nodeId, Alignment.topLeft);
+        expect(
+          offset.dx - actionOffset.dx,
+          closeTo(layout.indentOf(element) - layout.indentOf(metrics.action), 1),
+          reason: "indent of node $index ($element)",
+        );
+      }
+
+      // The most visible symptom of the bug: the character cue box collapsed to near-zero usable
+      // width, wrapping to one letter per line. `findOffsetOfLineBreak` throws when a text node
+      // renders on a single line, which is what must happen now.
+      expect(() => SuperEditorInspector.findOffsetOfLineBreak(nodeIds[2]), throwsException);
+    },
+  );
 
   testWidgets("moving the caret to another line reports its 0-based source line", (tester) async {
     const text = "INT. HOUSE - DAY\n\nSome action text.";
@@ -552,27 +575,37 @@ void main() {
       expect(_hasPageSheetsPainter(), isFalse);
     });
 
-    testWidgets("paints exactly one Scrollbar, ancestor of SuperEditor, so the thumb never sits over the "
-        "page", (tester) async {
-      await _pumpStandaloneEditor(
-        tester,
-        "INT. HOUSE - DAY\n\nSome action text.",
-        isPageSimulationEnabled: true,
-        areSceneNumbersVisible: true,
-      );
+    testWidgets(
+      "paints exactly one Scrollbar, ancestor of SuperEditor, so the thumb never sits over the "
+      "page",
+      (tester) async {
+        await _pumpStandaloneEditor(
+          tester,
+          "INT. HOUSE - DAY\n\nSome action text.",
+          isPageSimulationEnabled: true,
+          areSceneNumbersVisible: true,
+        );
 
-      expect(find.byType(Scrollbar), findsOneWidget);
-      expect(find.descendant(of: find.byType(Scrollbar), matching: find.byType(SuperEditor)), findsOneWidget);
-    });
+        expect(find.byType(Scrollbar), findsOneWidget);
+        expect(
+          find.descendant(of: find.byType(Scrollbar), matching: find.byType(SuperEditor)),
+          findsOneWidget,
+        );
+      },
+    );
 
-    testWidgets("paints exactly one Scrollbar, ancestor of SuperEditor, with page simulation disabled too", (
-      tester,
-    ) async {
-      await _pumpStandaloneEditor(tester, "INT. HOUSE - DAY\n\nSome action text.");
+    testWidgets(
+      "paints exactly one Scrollbar, ancestor of SuperEditor, with page simulation disabled too",
+      (tester) async {
+        await _pumpStandaloneEditor(tester, "INT. HOUSE - DAY\n\nSome action text.");
 
-      expect(find.byType(Scrollbar), findsOneWidget);
-      expect(find.descendant(of: find.byType(Scrollbar), matching: find.byType(SuperEditor)), findsOneWidget);
-    });
+        expect(find.byType(Scrollbar), findsOneWidget);
+        expect(
+          find.descendant(of: find.byType(Scrollbar), matching: find.byType(SuperEditor)),
+          findsOneWidget,
+        );
+      },
+    );
 
     testWidgets("the page sheets are clipped to the editor's own bounds", (tester) async {
       await _pumpStandaloneEditor(
@@ -607,90 +640,101 @@ void main() {
       expect(_pageSheetsPainterFinder(), paintsExactlyCountTimes(#drawParagraph, 0));
     });
 
-    testWidgets("the second script page is numbered, half an inch below its own sheet's top edge and "
-        "right-aligned at the page's right margin", (tester) async {
-      final layout = OcptEditorPreviewLayout(metrics: FountainLayoutMetrics.usLetter());
-      // Tall enough for the title sheet, the first script page and the second one to be laid out
-      // at once: a sheet scrolled out of view has its number skipped (see `_paintPageNumber`), and
-      // wide enough for a full US Letter page to lay out unscaled.
-      tester.view.physicalSize = Size(1600, 3 * (layout.pageHeight + OcptEditorPreviewLayout.pageGap) + 100);
-      tester.view.devicePixelRatio = 1.0;
-      addTearDown(tester.view.resetPhysicalSize);
-      addTearDown(tester.view.resetDevicePixelRatio);
-
-      // 40 one-line action paragraphs, each preceded by a blank line: 79 lines, which overflows
-      // US Letter's 54 lines per page exactly once — a title sheet plus two script pages.
-      await _pumpStandaloneEditor(
-        tester,
-        List.generate(40, (index) => "Action line $index.").join("\n\n"),
-        isPageSimulationEnabled: true,
-      );
-
-      // "2." is two columns wide in a fixed-pitch font, and the number's right edge lands exactly
-      // where the printed page's own right margin starts.
-      final expectedOffset = Offset(
-        layout.pageWidth - layout.marginRight - 2 * layout.glyphWidth,
-        2 * (layout.pageHeight + OcptEditorPreviewLayout.pageGap) + ocptScriptPageNumberTopInches * layout.pixelsPerInch,
-      );
-
-      expect(
-        _pageSheetsPainterFinder(),
-        paints..paragraph(offset: within(distance: 0.5, from: expectedOffset)),
-      );
-      // Exactly one number on screen: the title sheet and the first script page carry none.
-      expect(_pageSheetsPainterFinder(), paintsExactlyCountTimes(#drawParagraph, 1));
-    });
-
-    testWidgets("every element still spans its exact preview width, at its exact preview indent from the "
-        "page's left edge", (tester) async {
-      // Wide enough for a full US Letter page to lay out unclipped at font size 13.
-      tester.view.physicalSize = const Size(1600, 900);
-      tester.view.devicePixelRatio = 1.0;
-      addTearDown(tester.view.resetPhysicalSize);
-      addTearDown(tester.view.resetDevicePixelRatio);
-
-      await _pumpStandaloneEditor(
-        tester,
-        "INT. HOUSE - DAY\n\nSome action text.\n\nSARAH\nHello there.",
-        isPageSimulationEnabled: true,
-        areSceneNumbersVisible: true,
-      );
-
-      final layout = OcptEditorPreviewLayout(metrics: FountainLayoutMetrics.usLetter());
-      final metrics = layout.metrics;
-      final document = SuperEditorInspector.findDocument()!;
-
-      // The editor's box is deliberately shifted left by the stylesheet's horizontal
-      // `documentPadding` inset (see `OcptStyledScreenplayEditor.build`), so the page's own left
-      // edge sits exactly one inset to the right of the box's.
-      final pageLeft =
-          tester.getRect(find.byType(SuperEditor)).left + OcptFountainEditorStylesheet.horizontalDocumentPaddingInset;
-
-      // Blank source lines are folded into metadata, so nodes are dense: heading, action,
-      // character, dialogue. `titlePageFieldCount` leading nodes come first (page simulation is
-      // on, and this text has no title page of its own, so all six fields synthesize empty).
-      final elementsByNodeIndex = [metrics.sceneHeading, metrics.action, metrics.character];
-
-      for (var index = 0; index < elementsByNodeIndex.length; index++) {
-        final element = elementsByNodeIndex[index];
-        final nodeId = document.getNodeAt(index + _titlePageFieldCount)!.id;
-
-        // The whole point of the horizontal-inset compensation: page simulation must not shrink
-        // any element's wrap width, nor shift its indent, away from what the raw preview
-        // typesets the very same line at — otherwise the two modes would wrap the same text at
-        // different columns.
-        expect(
-          SuperEditorInspector.findComponentSize(nodeId).width,
-          closeTo(layout.widthOf(element), 0.5),
-          reason: "width of node $index",
+    testWidgets(
+      "the second script page is numbered, half an inch below its own sheet's top edge and "
+      "right-aligned at the page's right margin",
+      (tester) async {
+        final layout = OcptEditorPreviewLayout(metrics: FountainLayoutMetrics.usLetter());
+        // Tall enough for the title sheet, the first script page and the second one to be laid out
+        // at once: a sheet scrolled out of view has its number skipped (see `_paintPageNumber`), and
+        // wide enough for a full US Letter page to lay out unscaled.
+        tester.view.physicalSize = Size(
+          1600,
+          3 * (layout.pageHeight + OcptEditorPreviewLayout.pageGap) + 100,
         );
-        expect(
-          SuperEditorInspector.findComponentOffset(nodeId, Alignment.topLeft).dx - pageLeft,
-          closeTo(layout.indentOf(element), 0.5),
-          reason: "indent of node $index",
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
+
+        // 40 one-line action paragraphs, each preceded by a blank line: 79 lines, which overflows
+        // US Letter's 54 lines per page exactly once — a title sheet plus two script pages.
+        await _pumpStandaloneEditor(
+          tester,
+          List.generate(40, (index) => "Action line $index.").join("\n\n"),
+          isPageSimulationEnabled: true,
         );
-      }
-    });
+
+        // "2." is two columns wide in a fixed-pitch font, and the number's right edge lands exactly
+        // where the printed page's own right margin starts.
+        final expectedOffset = Offset(
+          layout.pageWidth - layout.marginRight - 2 * layout.glyphWidth,
+          2 * (layout.pageHeight + OcptEditorPreviewLayout.pageGap) +
+              ocptScriptPageNumberTopInches * layout.pixelsPerInch,
+        );
+
+        expect(
+          _pageSheetsPainterFinder(),
+          paints..paragraph(offset: within(distance: 0.5, from: expectedOffset)),
+        );
+        // Exactly one number on screen: the title sheet and the first script page carry none.
+        expect(_pageSheetsPainterFinder(), paintsExactlyCountTimes(#drawParagraph, 1));
+      },
+    );
+
+    testWidgets(
+      "every element still spans its exact preview width, at its exact preview indent from the "
+      "page's left edge",
+      (tester) async {
+        // Wide enough for a full US Letter page to lay out unclipped at font size 13.
+        tester.view.physicalSize = const Size(1600, 900);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
+
+        await _pumpStandaloneEditor(
+          tester,
+          "INT. HOUSE - DAY\n\nSome action text.\n\nSARAH\nHello there.",
+          isPageSimulationEnabled: true,
+          areSceneNumbersVisible: true,
+        );
+
+        final layout = OcptEditorPreviewLayout(metrics: FountainLayoutMetrics.usLetter());
+        final metrics = layout.metrics;
+        final document = SuperEditorInspector.findDocument()!;
+
+        // The editor's box is deliberately shifted left by the stylesheet's horizontal
+        // `documentPadding` inset (see `OcptStyledScreenplayEditor.build`), so the page's own left
+        // edge sits exactly one inset to the right of the box's.
+        final pageLeft =
+            tester.getRect(find.byType(SuperEditor)).left +
+            OcptFountainEditorStylesheet.horizontalDocumentPaddingInset;
+
+        // Blank source lines are folded into metadata, so nodes are dense: heading, action,
+        // character, dialogue. `titlePageFieldCount` leading nodes come first (page simulation is
+        // on, and this text has no title page of its own, so all six fields synthesize empty).
+        final elementsByNodeIndex = [metrics.sceneHeading, metrics.action, metrics.character];
+
+        for (var index = 0; index < elementsByNodeIndex.length; index++) {
+          final element = elementsByNodeIndex[index];
+          final nodeId = document.getNodeAt(index + _titlePageFieldCount)!.id;
+
+          // The whole point of the horizontal-inset compensation: page simulation must not shrink
+          // any element's wrap width, nor shift its indent, away from what the raw preview
+          // typesets the very same line at — otherwise the two modes would wrap the same text at
+          // different columns.
+          expect(
+            SuperEditorInspector.findComponentSize(nodeId).width,
+            closeTo(layout.widthOf(element), 0.5),
+            reason: "width of node $index",
+          );
+          expect(
+            SuperEditorInspector.findComponentOffset(nodeId, Alignment.topLeft).dx - pageLeft,
+            closeTo(layout.indentOf(element), 0.5),
+            reason: "indent of node $index",
+          );
+        }
+      },
+    );
 
     testWidgets("toggling it on and off swaps the background painter accordingly", (tester) async {
       const text = "INT. HOUSE - DAY\n\nSome action text.";
@@ -732,7 +776,9 @@ void main() {
       expect(_hasPageSheetsPainter(), isFalse);
     });
 
-    testWidgets("a document long enough to span multiple pages flags a page-start node", (tester) async {
+    testWidgets("a document long enough to span multiple pages flags a page-start node", (
+      tester,
+    ) async {
       final longText = List.generate(80, (index) => "Action line $index.").join("\n\n");
 
       await _pumpStandaloneEditor(tester, longText, isPageSimulationEnabled: true);
@@ -747,47 +793,50 @@ void main() {
       expect(hasPageStartNode, isTrue);
     });
 
-    testWidgets("a full-width element's box exactly fills the editor's own width, flush with the page's "
-        "left edge, leaving the true right margin outside it (no leftover super_editor centering "
-        "slack eating half of it)", (tester) async {
-      // The default test surface (800x600) is narrower than the full page-simulation width
-      // (`pageWidth` can reach ~975 logical pixels at US Letter): widen it first, like the
-      // earlier test and the app's own desktop window would be in practice.
-      tester.view.physicalSize = const Size(1400, 900);
-      tester.view.devicePixelRatio = 1.0;
-      addTearDown(tester.view.resetPhysicalSize);
-      addTearDown(tester.view.resetDevicePixelRatio);
+    testWidgets(
+      "a full-width element's box exactly fills the editor's own width, flush with the page's "
+      "left edge, leaving the true right margin outside it (no leftover super_editor centering "
+      "slack eating half of it)",
+      (tester) async {
+        // The default test surface (800x600) is narrower than the full page-simulation width
+        // (`pageWidth` can reach ~975 logical pixels at US Letter): widen it first, like the
+        // earlier test and the app's own desktop window would be in practice.
+        tester.view.physicalSize = const Size(1400, 900);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
 
-      await _pumpStandaloneEditor(tester, "Some action text.", isPageSimulationEnabled: true);
+        await _pumpStandaloneEditor(tester, "Some action text.", isPageSimulationEnabled: true);
 
-      final document = SuperEditorInspector.findDocument()!;
-      final nodeId = _nodeAt(document, _titlePageFieldCount).id;
-      final layout = OcptEditorPreviewLayout(metrics: FountainLayoutMetrics.usLetter());
+        final document = SuperEditorInspector.findDocument()!;
+        final nodeId = _nodeAt(document, _titlePageFieldCount).id;
+        final layout = OcptEditorPreviewLayout(metrics: FountainLayoutMetrics.usLetter());
 
-      final editorRect = tester.getRect(find.byType(SuperEditor));
-      final componentOffset = SuperEditorInspector.findComponentOffset(nodeId, Alignment.topLeft);
-      final componentSize = SuperEditorInspector.findComponentSize(nodeId);
+        final editorRect = tester.getRect(find.byType(SuperEditor));
+        final componentOffset = SuperEditorInspector.findComponentOffset(nodeId, Alignment.topLeft);
+        final componentSize = SuperEditorInspector.findComponentSize(nodeId);
 
-      // The editor's box spans the page's content area (`pageWidth - marginRight`) widened by the
-      // stylesheet's horizontal `documentPadding` inset on each side, and is shifted left by one
-      // inset — so it's the *content area inside that padding*, not the box itself, that lands
-      // flush on the page's left edge (see `OcptStyledScreenplayEditor.build`). That compensation
-      // is what keeps every element at its exact preview width instead of one inset short per
-      // side.
-      const inset = OcptFountainEditorStylesheet.horizontalDocumentPaddingInset;
-      expect(editorRect.width, closeTo(layout.pageWidth - layout.marginRight + inset * 2, 0.5));
-      final pageLeftEdge = editorRect.left + inset;
-      final pageRightEdge = pageLeftEdge + layout.pageWidth;
+        // The editor's box spans the page's content area (`pageWidth - marginRight`) widened by the
+        // stylesheet's horizontal `documentPadding` inset on each side, and is shifted left by one
+        // inset — so it's the *content area inside that padding*, not the box itself, that lands
+        // flush on the page's left edge (see `OcptStyledScreenplayEditor.build`). That compensation
+        // is what keeps every element at its exact preview width instead of one inset short per
+        // side.
+        const inset = OcptFountainEditorStylesheet.horizontalDocumentPaddingInset;
+        expect(editorRect.width, closeTo(layout.pageWidth - layout.marginRight + inset * 2, 0.5));
+        final pageLeftEdge = editorRect.left + inset;
+        final pageRightEdge = pageLeftEdge + layout.pageWidth;
 
-      // The action element's text starts exactly `marginLeft` from the page's left edge and ends
-      // exactly `marginRight` short of its right edge — the very same numbers the raw preview
-      // typesets it at. Asserted to the half-pixel: the pre-fix centering bug put ~`marginRight /
-      // 2` of slack on each side, and the uncompensated `documentPadding` inset a further 8px.
-      final leftGap = componentOffset.dx - pageLeftEdge;
-      final rightGap = pageRightEdge - (componentOffset.dx + componentSize.width);
-      expect(leftGap, closeTo(layout.marginLeft, 0.5));
-      expect(rightGap, closeTo(layout.marginRight, 0.5));
-    });
+        // The action element's text starts exactly `marginLeft` from the page's left edge and ends
+        // exactly `marginRight` short of its right edge — the very same numbers the raw preview
+        // typesets it at. Asserted to the half-pixel: the pre-fix centering bug put ~`marginRight /
+        // 2` of slack on each side, and the uncompensated `documentPadding` inset a further 8px.
+        final leftGap = componentOffset.dx - pageLeftEdge;
+        final rightGap = pageRightEdge - (componentOffset.dx + componentSize.width);
+        expect(leftGap, closeTo(layout.marginLeft, 0.5));
+        expect(rightGap, closeTo(layout.marginRight, 0.5));
+      },
+    );
 
     testWidgets("a panel narrower than the page scales the page down instead of squeezing it", (
       tester,
@@ -812,11 +861,11 @@ void main() {
       const inset = OcptFountainEditorStylesheet.horizontalDocumentPaddingInset;
       final unscaledWidth = layout.pageWidth - layout.marginRight + inset * 2;
       expect(tester.getSize(find.byType(SuperEditor)).width, closeTo(unscaledWidth, 0.5));
+      expect(tester.getRect(find.byType(SuperEditor)).width, closeTo(unscaledWidth / 2, 0.5));
       expect(
-        tester.getRect(find.byType(SuperEditor)).width,
-        closeTo(unscaledWidth / 2, 0.5),
+        tester.getRect(find.byType(SuperEditor)).right,
+        lessThanOrEqualTo(narrowPanelWidth + 0.5),
       );
-      expect(tester.getRect(find.byType(SuperEditor)).right, lessThanOrEqualTo(narrowPanelWidth + 0.5));
     });
   });
 
@@ -842,46 +891,49 @@ void main() {
         },
       );
 
-      testWidgets("an empty title-page field's placeholder sits exactly where the real value would be typeset "
-          "(scene numbers: $sceneNumbersVisible)", (tester) async {
-        // The title fields sit hundreds of pixels down the simulated page: tall enough that the
-        // default 800x600 test surface would leave the lower fields outside the viewport.
-        tester.view.physicalSize = const Size(1400, 1200);
-        tester.view.devicePixelRatio = 1.0;
-        addTearDown(tester.view.resetPhysicalSize);
-        addTearDown(tester.view.resetDevicePixelRatio);
+      testWidgets(
+        "an empty title-page field's placeholder sits exactly where the real value would be typeset "
+        "(scene numbers: $sceneNumbersVisible)",
+        (tester) async {
+          // The title fields sit hundreds of pixels down the simulated page: tall enough that the
+          // default 800x600 test surface would leave the lower fields outside the viewport.
+          tester.view.physicalSize = const Size(1400, 1200);
+          tester.view.devicePixelRatio = 1.0;
+          addTearDown(tester.view.resetPhysicalSize);
+          addTearDown(tester.view.resetDevicePixelRatio);
 
-        await _pumpStandaloneEditor(
-          tester,
-          "Some action.",
-          isPageSimulationEnabled: true,
-          areSceneNumbersVisible: sceneNumbersVisible,
-        );
+          await _pumpStandaloneEditor(
+            tester,
+            "Some action.",
+            isPageSimulationEnabled: true,
+            areSceneNumbersVisible: sceneNumbersVisible,
+          );
 
-        // Same "page's content area" reconstruction the page-simulation group above uses: the
-        // editor's own box spans the content area widened by the stylesheet's horizontal
-        // `documentPadding` inset on each side (see `OcptStyledScreenplayEditor.build`).
-        final layout = OcptEditorPreviewLayout(metrics: FountainLayoutMetrics.usLetter());
-        const inset = OcptFountainEditorStylesheet.horizontalDocumentPaddingInset;
-        final editorRect = tester.getRect(find.byType(SuperEditor));
-        final pageLeftEdge = editorRect.left + inset;
-        final pageRightEdge = pageLeftEdge + layout.pageWidth;
-        final contentLeft = pageLeftEdge + layout.marginLeft;
-        final contentRight = pageRightEdge - layout.marginRight;
-        final contentCentreX = (contentLeft + contentRight) / 2;
+          // Same "page's content area" reconstruction the page-simulation group above uses: the
+          // editor's own box spans the content area widened by the stylesheet's horizontal
+          // `documentPadding` inset on each side (see `OcptStyledScreenplayEditor.build`).
+          final layout = OcptEditorPreviewLayout(metrics: FountainLayoutMetrics.usLetter());
+          const inset = OcptFountainEditorStylesheet.horizontalDocumentPaddingInset;
+          final editorRect = tester.getRect(find.byType(SuperEditor));
+          final pageLeftEdge = editorRect.left + inset;
+          final pageRightEdge = pageLeftEdge + layout.pageWidth;
+          final contentLeft = pageLeftEdge + layout.marginLeft;
+          final contentRight = pageRightEdge - layout.marginRight;
+          final contentCentreX = (contentLeft + contentRight) / 2;
 
-        // Title/Credit/Author are centred on the content area, exactly like the value that will
-        // replace them (this is the assertion that fails against the pre-fix `TextWithHintComponent`,
-        // whose hint `Text.rich` never receives a `textAlign` and so always sits flush left).
-        for (final label in ["Title", "Credit", "Author"]) {
-          final rect = tester.getRect(find.text(label));
-          expect(rect.center.dx, closeTo(contentCentreX, 1), reason: "$label placeholder");
-        }
+          // Title/Credit/Author are centred on the content area, exactly like the value that will
+          // replace them (this is the assertion that fails against the pre-fix `TextWithHintComponent`,
+          // whose hint `Text.rich` never receives a `textAlign` and so always sits flush left).
+          for (final label in ["Title", "Credit", "Author"]) {
+            final rect = tester.getRect(find.text(label));
+            expect(rect.center.dx, closeTo(contentCentreX, 1), reason: "$label placeholder");
+          }
 
-        // Draft date is right-aligned, its text ending flush with the content area's right edge.
-        final draftDateRect = tester.getRect(find.text("Draft date"));
-        expect(draftDateRect.right, closeTo(contentRight, 1));
-      });
+          // Draft date is right-aligned, its text ending flush with the content area's right edge.
+          final draftDateRect = tester.getRect(find.text("Draft date"));
+          expect(draftDateRect.right, closeTo(contentRight, 1));
+        },
+      );
 
       testWidgets("the Title placeholder is typeset at the Title rule's own font size and weight "
           "(scene numbers: $sceneNumbersVisible)", (tester) async {
@@ -907,7 +959,11 @@ void main() {
       testWidgets(
         "the title sheet disappears entirely while page simulation is off (scene numbers: $sceneNumbersVisible)",
         (tester) async {
-          await _pumpStandaloneEditor(tester, "Some action.", areSceneNumbersVisible: sceneNumbersVisible);
+          await _pumpStandaloneEditor(
+            tester,
+            "Some action.",
+            areSceneNumbersVisible: sceneNumbersVisible,
+          );
 
           expect(find.text("Title"), findsNothing);
           final document = SuperEditorInspector.findDocument()!;
@@ -995,71 +1051,82 @@ void main() {
 
           final document = SuperEditorInspector.findDocument()!;
           expect(document.nodeCount, 8);
-          expect((document.getNodeAt(2)! as ParagraphNode).getMetadataValue(ocptTitlePageKeyMetadataKey), "Author");
-          expect((document.getNodeAt(3)! as ParagraphNode).getMetadataValue(ocptTitlePageKeyMetadataKey), "Author");
+          expect(
+            (document.getNodeAt(2)! as ParagraphNode).getMetadataValue(ocptTitlePageKeyMetadataKey),
+            "Author",
+          );
+          expect(
+            (document.getNodeAt(3)! as ParagraphNode).getMetadataValue(ocptTitlePageKeyMetadataKey),
+            "Author",
+          );
           expect((document.getNodeAt(2)! as ParagraphNode).text.toPlainText(), "Jane Doe");
           expect((document.getNodeAt(3)! as ParagraphNode).text.toPlainText(), "John Smith");
           expect(encodedText, "Author:\n    Jane Doe\n    John Smith\n\nSome action.");
         },
       );
 
-      testWidgets("Backspace at the start of an empty field never deletes it (scene numbers: $sceneNumbersVisible)", (
-        tester,
-      ) async {
-        tester.view.physicalSize = const Size(1400, 1200);
-        tester.view.devicePixelRatio = 1.0;
-        addTearDown(tester.view.resetPhysicalSize);
-        addTearDown(tester.view.resetDevicePixelRatio);
+      testWidgets(
+        "Backspace at the start of an empty field never deletes it (scene numbers: $sceneNumbersVisible)",
+        (tester) async {
+          tester.view.physicalSize = const Size(1400, 1200);
+          tester.view.devicePixelRatio = 1.0;
+          addTearDown(tester.view.resetPhysicalSize);
+          addTearDown(tester.view.resetDevicePixelRatio);
 
-        await _pumpStandaloneEditor(
-          tester,
-          "Some action.",
-          isPageSimulationEnabled: true,
-          areSceneNumbersVisible: sceneNumbersVisible,
-        );
+          await _pumpStandaloneEditor(
+            tester,
+            "Some action.",
+            isPageSimulationEnabled: true,
+            areSceneNumbersVisible: sceneNumbersVisible,
+          );
 
-        final document = SuperEditorInspector.findDocument()!;
-        expect(document.nodeCount, _titlePageFieldCount + 1);
-        // Credit: index 1.
-        final creditNodeId = document.getNodeAt(1)!.id;
+          final document = SuperEditorInspector.findDocument()!;
+          expect(document.nodeCount, _titlePageFieldCount + 1);
+          // Credit: index 1.
+          final creditNodeId = document.getNodeAt(1)!.id;
 
-        await _placeCaretAtStartOf(tester, creditNodeId);
-        await tester.sendKeyEvent(LogicalKeyboardKey.backspace);
-        await tester.pump(const Duration(milliseconds: 200));
+          await _placeCaretAtStartOf(tester, creditNodeId);
+          await tester.sendKeyEvent(LogicalKeyboardKey.backspace);
+          await tester.pump(const Duration(milliseconds: 200));
 
-        expect(document.nodeCount, _titlePageFieldCount + 1);
-        expect(document.getNodeById(creditNodeId), isNotNull);
-      });
+          expect(document.nodeCount, _titlePageFieldCount + 1);
+          expect(document.getNodeById(creditNodeId), isNotNull);
+        },
+      );
 
-      testWidgets("Backspace at the start of a filled field never deletes it (scene numbers: $sceneNumbersVisible)", (
-        tester,
-      ) async {
-        tester.view.physicalSize = const Size(1400, 1200);
-        tester.view.devicePixelRatio = 1.0;
-        addTearDown(tester.view.resetPhysicalSize);
-        addTearDown(tester.view.resetDevicePixelRatio);
+      testWidgets(
+        "Backspace at the start of a filled field never deletes it (scene numbers: $sceneNumbersVisible)",
+        (tester) async {
+          tester.view.physicalSize = const Size(1400, 1200);
+          tester.view.devicePixelRatio = 1.0;
+          addTearDown(tester.view.resetPhysicalSize);
+          addTearDown(tester.view.resetDevicePixelRatio);
 
-        await _pumpStandaloneEditor(
-          tester,
-          "Some action.",
-          isPageSimulationEnabled: true,
-          areSceneNumbersVisible: sceneNumbersVisible,
-        );
+          await _pumpStandaloneEditor(
+            tester,
+            "Some action.",
+            isPageSimulationEnabled: true,
+            areSceneNumbersVisible: sceneNumbersVisible,
+          );
 
-        final document = SuperEditorInspector.findDocument()!;
-        // Credit: index 1.
-        final creditNodeId = document.getNodeAt(1)!.id;
-        await _placeCaretAtStartOf(tester, creditNodeId);
-        await tester.typeImeText("written by");
-        await tester.pump(const Duration(milliseconds: 200));
+          final document = SuperEditorInspector.findDocument()!;
+          // Credit: index 1.
+          final creditNodeId = document.getNodeAt(1)!.id;
+          await _placeCaretAtStartOf(tester, creditNodeId);
+          await tester.typeImeText("written by");
+          await tester.pump(const Duration(milliseconds: 200));
 
-        await _placeCaretAtStartOf(tester, creditNodeId);
-        await tester.sendKeyEvent(LogicalKeyboardKey.backspace);
-        await tester.pump(const Duration(milliseconds: 200));
+          await _placeCaretAtStartOf(tester, creditNodeId);
+          await tester.sendKeyEvent(LogicalKeyboardKey.backspace);
+          await tester.pump(const Duration(milliseconds: 200));
 
-        expect(document.nodeCount, _titlePageFieldCount + 1);
-        expect((document.getNodeById(creditNodeId)! as ParagraphNode).text.toPlainText(), "written by");
-      });
+          expect(document.nodeCount, _titlePageFieldCount + 1);
+          expect(
+            (document.getNodeById(creditNodeId)! as ParagraphNode).text.toPlainText(),
+            "written by",
+          );
+        },
+      );
 
       testWidgets(
         "Backspace at the start of the first body line never merges it into Source (scene numbers: $sceneNumbersVisible)",
@@ -1091,7 +1158,10 @@ void main() {
 
           expect(document.nodeCount, _titlePageFieldCount + 1);
           expect(document.getNodeById(sourceNodeId), isNotNull);
-          expect((document.getNodeById(bodyNodeId)! as ParagraphNode).text.toPlainText(), "Some action.");
+          expect(
+            (document.getNodeById(bodyNodeId)! as ParagraphNode).text.toPlainText(),
+            "Some action.",
+          );
         },
       );
 
@@ -1128,104 +1198,112 @@ void main() {
           await tester.pump(const Duration(milliseconds: 200));
 
           expect(document.nodeCount, _titlePageFieldCount + 1);
-          expect((document.getNodeAt(2)! as ParagraphNode).text.toPlainText(), "Jane DoeJohn Smith");
-          expect((document.getNodeAt(2)! as ParagraphNode).getMetadataValue(ocptTitlePageKeyMetadataKey), "Author");
-        },
-      );
-
-      testWidgets(
-        "typing into a field then pressing Backspace deletes the last character "
-        "(scene numbers: $sceneNumbersVisible)",
-        (tester) async {
-          // The F6 defect itself: `NodeMetadata.isDeletable: false` used to make
-          // `DeleteContentCommand`/`DeleteSelectionCommand` abort *any* deletion inside a single
-          // title-page node, not just the node's own removal — so typed text could never be
-          // shortened, only added to.
-          tester.view.physicalSize = const Size(1400, 1200);
-          tester.view.devicePixelRatio = 1.0;
-          addTearDown(tester.view.resetPhysicalSize);
-          addTearDown(tester.view.resetDevicePixelRatio);
-
-          String? encodedText;
-
-          await tester.pumpWidget(
-            _wrap(
-              OcptStyledScreenplayEditor(
-                text: "Some action.",
-                pageSetup: const OcptPageSetup.standard(),
-                isPageSimulationEnabled: true,
-                areSceneNumbersVisible: sceneNumbersVisible,
-                isSpellCheckVisible: false,
-                onTextChanged: (text) => encodedText = text,
-                onCaretLineChanged: (_) {},
-                jumpRequest: null,
-              ),
-            ),
+          expect(
+            (document.getNodeAt(2)! as ParagraphNode).text.toPlainText(),
+            "Jane DoeJohn Smith",
           );
-          await tester.pumpAndSettle();
-
-          // Credit: index 1.
-          final creditNodeId = SuperEditorInspector.findDocument()!.getNodeAt(1)!.id;
-          await _placeCaretAtStartOf(tester, creditNodeId);
-          await tester.typeImeText("written by");
-          await tester.pump(const Duration(milliseconds: 200));
-
-          // The caret sits at the end of "written by" (offset 10): a plain hardware Backspace, the
-          // same key `CommonEditorOperations.deleteUpstreamCharacter`-driven path a real desktop
-          // keypress travels through.
-          await tester.sendKeyEvent(LogicalKeyboardKey.backspace);
-          await tester.pump(const Duration(milliseconds: 200));
-
-          expect((SuperEditorInspector.findDocument()!.getNodeById(creditNodeId)! as ParagraphNode).text.toPlainText(), "written b");
-          expect(encodedText, contains("Credit: written b\n"));
-        },
-      );
-
-      testWidgets(
-        "deleting a selection inside a field removes just the selection "
-        "(scene numbers: $sceneNumbersVisible)",
-        (tester) async {
-          tester.view.physicalSize = const Size(1400, 1200);
-          tester.view.devicePixelRatio = 1.0;
-          addTearDown(tester.view.resetPhysicalSize);
-          addTearDown(tester.view.resetDevicePixelRatio);
-
-          String? encodedText;
-
-          await tester.pumpWidget(
-            _wrap(
-              OcptStyledScreenplayEditor(
-                text: "Some action.",
-                pageSetup: const OcptPageSetup.standard(),
-                isPageSimulationEnabled: true,
-                areSceneNumbersVisible: sceneNumbersVisible,
-                isSpellCheckVisible: false,
-                onTextChanged: (text) => encodedText = text,
-                onCaretLineChanged: (_) {},
-                jumpRequest: null,
-              ),
-            ),
+          expect(
+            (document.getNodeAt(2)! as ParagraphNode).getMetadataValue(ocptTitlePageKeyMetadataKey),
+            "Author",
           );
-          await tester.pumpAndSettle();
-
-          // Credit: index 1.
-          final creditNodeId = SuperEditorInspector.findDocument()!.getNodeAt(1)!.id;
-          await _placeCaretAtStartOf(tester, creditNodeId);
-          await tester.typeImeText("written by");
-          await tester.pump(const Duration(milliseconds: 200));
-
-          // Extend the selection upstream over the last two characters ("by"), then delete them —
-          // exactly the "typing over/deleting an expanded selection inside a field" case F2's flag
-          // used to also silently block.
-          await _sendShift(tester, LogicalKeyboardKey.arrowLeft);
-          await _sendShift(tester, LogicalKeyboardKey.arrowLeft);
-          await tester.sendKeyEvent(LogicalKeyboardKey.backspace);
-          await tester.pump(const Duration(milliseconds: 200));
-
-          expect((SuperEditorInspector.findDocument()!.getNodeById(creditNodeId)! as ParagraphNode).text.toPlainText(), "written ");
-          expect(encodedText, contains("Credit: written \n"));
         },
       );
+
+      testWidgets("typing into a field then pressing Backspace deletes the last character "
+          "(scene numbers: $sceneNumbersVisible)", (tester) async {
+        // The F6 defect itself: `NodeMetadata.isDeletable: false` used to make
+        // `DeleteContentCommand`/`DeleteSelectionCommand` abort *any* deletion inside a single
+        // title-page node, not just the node's own removal — so typed text could never be
+        // shortened, only added to.
+        tester.view.physicalSize = const Size(1400, 1200);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
+
+        String? encodedText;
+
+        await tester.pumpWidget(
+          _wrap(
+            OcptStyledScreenplayEditor(
+              text: "Some action.",
+              pageSetup: const OcptPageSetup.standard(),
+              isPageSimulationEnabled: true,
+              areSceneNumbersVisible: sceneNumbersVisible,
+              isSpellCheckVisible: false,
+              onTextChanged: (text) => encodedText = text,
+              onCaretLineChanged: (_) {},
+              jumpRequest: null,
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        // Credit: index 1.
+        final creditNodeId = SuperEditorInspector.findDocument()!.getNodeAt(1)!.id;
+        await _placeCaretAtStartOf(tester, creditNodeId);
+        await tester.typeImeText("written by");
+        await tester.pump(const Duration(milliseconds: 200));
+
+        // The caret sits at the end of "written by" (offset 10): a plain hardware Backspace, the
+        // same key `CommonEditorOperations.deleteUpstreamCharacter`-driven path a real desktop
+        // keypress travels through.
+        await tester.sendKeyEvent(LogicalKeyboardKey.backspace);
+        await tester.pump(const Duration(milliseconds: 200));
+
+        expect(
+          (SuperEditorInspector.findDocument()!.getNodeById(creditNodeId)! as ParagraphNode).text
+              .toPlainText(),
+          "written b",
+        );
+        expect(encodedText, contains("Credit: written b\n"));
+      });
+
+      testWidgets("deleting a selection inside a field removes just the selection "
+          "(scene numbers: $sceneNumbersVisible)", (tester) async {
+        tester.view.physicalSize = const Size(1400, 1200);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
+
+        String? encodedText;
+
+        await tester.pumpWidget(
+          _wrap(
+            OcptStyledScreenplayEditor(
+              text: "Some action.",
+              pageSetup: const OcptPageSetup.standard(),
+              isPageSimulationEnabled: true,
+              areSceneNumbersVisible: sceneNumbersVisible,
+              isSpellCheckVisible: false,
+              onTextChanged: (text) => encodedText = text,
+              onCaretLineChanged: (_) {},
+              jumpRequest: null,
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        // Credit: index 1.
+        final creditNodeId = SuperEditorInspector.findDocument()!.getNodeAt(1)!.id;
+        await _placeCaretAtStartOf(tester, creditNodeId);
+        await tester.typeImeText("written by");
+        await tester.pump(const Duration(milliseconds: 200));
+
+        // Extend the selection upstream over the last two characters ("by"), then delete them —
+        // exactly the "typing over/deleting an expanded selection inside a field" case F2's flag
+        // used to also silently block.
+        await _sendShift(tester, LogicalKeyboardKey.arrowLeft);
+        await _sendShift(tester, LogicalKeyboardKey.arrowLeft);
+        await tester.sendKeyEvent(LogicalKeyboardKey.backspace);
+        await tester.pump(const Duration(milliseconds: 200));
+
+        expect(
+          (SuperEditorInspector.findDocument()!.getNodeById(creditNodeId)! as ParagraphNode).text
+              .toPlainText(),
+          "written ",
+        );
+        expect(encodedText, contains("Credit: written \n"));
+      });
 
       testWidgets(
         "select-all then Delete clears the body but leaves the six title-page fields standing "
@@ -1279,216 +1357,253 @@ void main() {
           for (final fieldId in fieldIds) {
             expect(document.getNodeById(fieldId), isNotNull, reason: "field node $fieldId");
           }
-          expect((document.getNodeAt(_titlePageFieldCount)! as ParagraphNode).text.toPlainText(), isEmpty);
+          expect(
+            (document.getNodeAt(_titlePageFieldCount)! as ParagraphNode).text.toPlainText(),
+            isEmpty,
+          );
           expect(encodedText, "");
         },
       );
 
-      testWidgets("the Draft date and Contact placeholders share the same row, split at the page's horizontal centre "
-          "(scene numbers: $sceneNumbersVisible)", (tester) async {
-        tester.view.physicalSize = const Size(1400, 1200);
-        tester.view.devicePixelRatio = 1.0;
-        addTearDown(tester.view.resetPhysicalSize);
-        addTearDown(tester.view.resetDevicePixelRatio);
+      testWidgets(
+        "the Draft date and Contact placeholders share the same row, split at the page's horizontal centre "
+        "(scene numbers: $sceneNumbersVisible)",
+        (tester) async {
+          tester.view.physicalSize = const Size(1400, 1200);
+          tester.view.devicePixelRatio = 1.0;
+          addTearDown(tester.view.resetPhysicalSize);
+          addTearDown(tester.view.resetDevicePixelRatio);
 
-        await _pumpStandaloneEditor(
-          tester,
-          "Some action.",
-          isPageSimulationEnabled: true,
-          areSceneNumbersVisible: sceneNumbersVisible,
-        );
+          await _pumpStandaloneEditor(
+            tester,
+            "Some action.",
+            isPageSimulationEnabled: true,
+            areSceneNumbersVisible: sceneNumbersVisible,
+          );
 
-        // Same "page's content area" reconstruction the earlier placeholder-alignment test uses.
-        final layout = OcptEditorPreviewLayout(metrics: FountainLayoutMetrics.usLetter());
-        const inset = OcptFountainEditorStylesheet.horizontalDocumentPaddingInset;
-        final editorRect = tester.getRect(find.byType(SuperEditor));
-        final pageLeftEdge = editorRect.left + inset;
-        final pageRightEdge = pageLeftEdge + layout.pageWidth;
-        final contentLeft = pageLeftEdge + layout.marginLeft;
-        final contentRight = pageRightEdge - layout.marginRight;
-        final contentCentreX = (contentLeft + contentRight) / 2;
+          // Same "page's content area" reconstruction the earlier placeholder-alignment test uses.
+          final layout = OcptEditorPreviewLayout(metrics: FountainLayoutMetrics.usLetter());
+          const inset = OcptFountainEditorStylesheet.horizontalDocumentPaddingInset;
+          final editorRect = tester.getRect(find.byType(SuperEditor));
+          final pageLeftEdge = editorRect.left + inset;
+          final pageRightEdge = pageLeftEdge + layout.pageWidth;
+          final contentLeft = pageLeftEdge + layout.marginLeft;
+          final contentRight = pageRightEdge - layout.marginRight;
+          final contentCentreX = (contentLeft + contentRight) / 2;
 
-        final draftDateRect = tester.getRect(find.text("Draft date"));
-        final contactRect = tester.getRect(find.text("Contact"));
+          final draftDateRect = tester.getRect(find.text("Draft date"));
+          final contactRect = tester.getRect(find.text("Contact"));
 
-        // Same row (Contact's own top gap is 0; the shift takes its place), split at the centre:
-        // Contact stops at or before it, Draft date starts at or after it.
-        expect(draftDateRect.top, closeTo(contactRect.top, 1));
-        expect(contactRect.right, lessThanOrEqualTo(contentCentreX + 1));
-        expect(draftDateRect.left, greaterThanOrEqualTo(contentCentreX - 1));
-      });
-
-      testWidgets("a filled Draft date and Contact still share the same row (scene numbers: $sceneNumbersVisible)", (
-        tester,
-      ) async {
-        tester.view.physicalSize = const Size(1400, 1200);
-        tester.view.devicePixelRatio = 1.0;
-        addTearDown(tester.view.resetPhysicalSize);
-        addTearDown(tester.view.resetDevicePixelRatio);
-
-        await _pumpStandaloneEditor(
-          tester,
-          "Some action.",
-          isPageSimulationEnabled: true,
-          areSceneNumbersVisible: sceneNumbersVisible,
-        );
-
-        // Draft date, Contact: indices 3, 4.
-        final document = SuperEditorInspector.findDocument()!;
-        final draftDateNodeId = document.getNodeAt(3)!.id;
-        final contactNodeId = document.getNodeAt(4)!.id;
-
-        await _placeCaretAtStartOf(tester, draftDateNodeId);
-        await tester.typeImeText("2026-07-26");
-        await tester.pump(const Duration(milliseconds: 200));
-
-        await _placeCaretAtStartOf(tester, contactNodeId);
-        await tester.typeImeText("Jane Doe");
-        await tester.pump(const Duration(milliseconds: 200));
-
-        // A filled node's own text no longer renders through a plain `Text` widget this builder
-        // controls (unlike the empty placeholder), so the component's own box — read straight off
-        // its `RenderBox`, the same way `SuperEditorInspector` and the document layout's own hit
-        // testing both do — is what stands in for "where the field visually sits" here.
-        final draftDateOffset = SuperEditorInspector.findComponentOffset(draftDateNodeId, Alignment.topRight);
-        final contactOffset = SuperEditorInspector.findComponentOffset(contactNodeId, Alignment.topLeft);
-        final contactSize = SuperEditorInspector.findComponentSize(contactNodeId);
-
-        expect(draftDateOffset.dy, closeTo(contactOffset.dy, 1));
-        expect(contactOffset.dx + contactSize.width, lessThanOrEqualTo(draftDateOffset.dx + 1));
-      });
-
-      testWidgets("tapping the Draft date and Contact fields routes the caret to the right node, not the other "
-          "(scene numbers: $sceneNumbersVisible)", (tester) async {
-        // The risky assertion: it proves the paint-time shift `OcptTitlePageComponentBuilder`
-        // applies to Contact/Source does not also move where a tap is hit-tested to, since both
-        // are derived from the exact same (transformed) component `RenderBox` (see that builder's
-        // own doc comment). A regression here would make one field swallow the other's clicks.
-        tester.view.physicalSize = const Size(1400, 1200);
-        tester.view.devicePixelRatio = 1.0;
-        addTearDown(tester.view.resetPhysicalSize);
-        addTearDown(tester.view.resetDevicePixelRatio);
-
-        await _pumpStandaloneEditor(
-          tester,
-          "Some action.",
-          isPageSimulationEnabled: true,
-          areSceneNumbersVisible: sceneNumbersVisible,
-        );
-
-        final document = SuperEditorInspector.findDocument()!;
-        final draftDateNodeId = document.getNodeAt(3)!.id;
-        final contactNodeId = document.getNodeAt(4)!.id;
-
-        await _placeCaretAtStartOf(tester, draftDateNodeId);
-        await _placeCaretAtStartOf(tester, contactNodeId);
-      });
-
-      testWidgets("a multi-line Contact still stacks under the row, and Source follows with no leftover gap "
-          "(scene numbers: $sceneNumbersVisible)", (tester) async {
-        tester.view.physicalSize = const Size(1400, 1200);
-        tester.view.devicePixelRatio = 1.0;
-        addTearDown(tester.view.resetPhysicalSize);
-        addTearDown(tester.view.resetDevicePixelRatio);
-
-        await _pumpStandaloneEditor(
-          tester,
-          "Some action.",
-          isPageSimulationEnabled: true,
-          areSceneNumbersVisible: sceneNumbersVisible,
-        );
-
-        // Contact: index 4.
-        final contactNodeId = SuperEditorInspector.findDocument()!.getNodeAt(4)!.id;
-        await _placeCaretAtStartOf(tester, contactNodeId);
-        await tester.typeImeText("123 Reel Street");
-        await tester.sendKeyEvent(LogicalKeyboardKey.enter);
-        await tester.pump();
-        await tester.typeImeText("Second line");
-        await tester.pump(const Duration(milliseconds: 200));
-
-        final document = SuperEditorInspector.findDocument()!;
-        expect(document.nodeCount, _titlePageFieldCount + 2);
-        // Title, Credit, Author, Draft date, Contact (first line): indices 0-4. Contact's second
-        // line and Source follow at 5 and 6.
-        final firstLineId = document.getNodeAt(4)!.id;
-        final secondLineId = document.getNodeAt(5)!.id;
-        final sourceNodeId = document.getNodeAt(6)!.id;
-
-        final layout = OcptEditorPreviewLayout(metrics: FountainLayoutMetrics.usLetter());
-        final firstLineTop = SuperEditorInspector.findComponentOffset(firstLineId, Alignment.topLeft).dy;
-        final secondLineOffset = SuperEditorInspector.findComponentOffset(secondLineId, Alignment.topLeft);
-        final secondLineHeight = SuperEditorInspector.findComponentSize(secondLineId).height;
-        // The two Contact lines stack with no gap between them, exactly one lineHeight apart.
-        expect(secondLineOffset.dy - firstLineTop, closeTo(layout.lineHeight, 1));
-
-        // Source keeps its usual one-line gap below the last Contact line, unaffected by the
-        // shift: both nodes are painted with the exact same `rowShift` translation, so their
-        // relative spacing is exactly what it was before this node ever needed shifting.
-        final sourceTop = SuperEditorInspector.findComponentOffset(sourceNodeId, Alignment.topLeft).dy;
-        expect(sourceTop - (secondLineOffset.dy + secondLineHeight), closeTo(layout.lineHeight, 1));
-      });
-
-      testWidgets("the shared Draft date/Contact row is purely visual: the encoded source is unaffected "
-          "(scene numbers: $sceneNumbersVisible)", (tester) async {
-        tester.view.physicalSize = const Size(1400, 1200);
-        tester.view.devicePixelRatio = 1.0;
-        addTearDown(tester.view.resetPhysicalSize);
-        addTearDown(tester.view.resetDevicePixelRatio);
-
-        String? encodedText;
-
-        await tester.pumpWidget(
-          _wrap(
-            OcptStyledScreenplayEditor(
-              text: "Some action.",
-              pageSetup: const OcptPageSetup.standard(),
-              isPageSimulationEnabled: true,
-              areSceneNumbersVisible: sceneNumbersVisible,
-              isSpellCheckVisible: false,
-              onTextChanged: (text) => encodedText = text,
-              onCaretLineChanged: (_) {},
-              jumpRequest: null,
-            ),
-          ),
-        );
-        await tester.pumpAndSettle();
-
-        final document = SuperEditorInspector.findDocument()!;
-        final draftDateNodeId = document.getNodeAt(3)!.id;
-        final contactNodeId = document.getNodeAt(4)!.id;
-
-        await tester.placeCaretInParagraph(draftDateNodeId, 0);
-        await tester.typeImeText("2026-07-26");
-        await tester.pump(const Duration(milliseconds: 200));
-
-        await tester.placeCaretInParagraph(contactNodeId, 0);
-        await tester.typeImeText("jane@example.com");
-        await tester.pump(const Duration(milliseconds: 200));
-
-        expect(encodedText, "Draft date: 2026-07-26\nContact: jane@example.com\n\nSome action.");
-      });
-    }
-
-    testWidgets("a scene heading still shows its gutter number with a title page and scene numbers on", (tester) async {
-      // Tall enough to reach the body's first (and only) node past the whole title sheet, same as
-      // the "Backspace ... never merges it into Source" case above.
-      tester.view.physicalSize = const Size(1400, 2700);
-      tester.view.devicePixelRatio = 1.0;
-      addTearDown(tester.view.resetPhysicalSize);
-      addTearDown(tester.view.resetDevicePixelRatio);
-
-      await _pumpStandaloneEditor(
-        tester,
-        "INT. HOUSE - DAY\n\nSome action.",
-        isPageSimulationEnabled: true,
-        areSceneNumbersVisible: true,
+          // Same row (Contact's own top gap is 0; the shift takes its place), split at the centre:
+          // Contact stops at or before it, Draft date starts at or after it.
+          expect(draftDateRect.top, closeTo(contactRect.top, 1));
+          expect(contactRect.right, lessThanOrEqualTo(contentCentreX + 1));
+          expect(draftDateRect.left, greaterThanOrEqualTo(contentCentreX - 1));
+        },
       );
 
-      // Proves `OcptSceneNumberGutterComponentBuilder` still claims its own nodes even though it
-      // now falls through for every title-page node ahead of it in `componentBuilders`.
-      expect(find.text("1"), findsOneWidget);
-    });
+      testWidgets(
+        "a filled Draft date and Contact still share the same row (scene numbers: $sceneNumbersVisible)",
+        (tester) async {
+          tester.view.physicalSize = const Size(1400, 1200);
+          tester.view.devicePixelRatio = 1.0;
+          addTearDown(tester.view.resetPhysicalSize);
+          addTearDown(tester.view.resetDevicePixelRatio);
+
+          await _pumpStandaloneEditor(
+            tester,
+            "Some action.",
+            isPageSimulationEnabled: true,
+            areSceneNumbersVisible: sceneNumbersVisible,
+          );
+
+          // Draft date, Contact: indices 3, 4.
+          final document = SuperEditorInspector.findDocument()!;
+          final draftDateNodeId = document.getNodeAt(3)!.id;
+          final contactNodeId = document.getNodeAt(4)!.id;
+
+          await _placeCaretAtStartOf(tester, draftDateNodeId);
+          await tester.typeImeText("2026-07-26");
+          await tester.pump(const Duration(milliseconds: 200));
+
+          await _placeCaretAtStartOf(tester, contactNodeId);
+          await tester.typeImeText("Jane Doe");
+          await tester.pump(const Duration(milliseconds: 200));
+
+          // A filled node's own text no longer renders through a plain `Text` widget this builder
+          // controls (unlike the empty placeholder), so the component's own box — read straight off
+          // its `RenderBox`, the same way `SuperEditorInspector` and the document layout's own hit
+          // testing both do — is what stands in for "where the field visually sits" here.
+          final draftDateOffset = SuperEditorInspector.findComponentOffset(
+            draftDateNodeId,
+            Alignment.topRight,
+          );
+          final contactOffset = SuperEditorInspector.findComponentOffset(
+            contactNodeId,
+            Alignment.topLeft,
+          );
+          final contactSize = SuperEditorInspector.findComponentSize(contactNodeId);
+
+          expect(draftDateOffset.dy, closeTo(contactOffset.dy, 1));
+          expect(contactOffset.dx + contactSize.width, lessThanOrEqualTo(draftDateOffset.dx + 1));
+        },
+      );
+
+      testWidgets(
+        "tapping the Draft date and Contact fields routes the caret to the right node, not the other "
+        "(scene numbers: $sceneNumbersVisible)",
+        (tester) async {
+          // The risky assertion: it proves the paint-time shift `OcptTitlePageComponentBuilder`
+          // applies to Contact/Source does not also move where a tap is hit-tested to, since both
+          // are derived from the exact same (transformed) component `RenderBox` (see that builder's
+          // own doc comment). A regression here would make one field swallow the other's clicks.
+          tester.view.physicalSize = const Size(1400, 1200);
+          tester.view.devicePixelRatio = 1.0;
+          addTearDown(tester.view.resetPhysicalSize);
+          addTearDown(tester.view.resetDevicePixelRatio);
+
+          await _pumpStandaloneEditor(
+            tester,
+            "Some action.",
+            isPageSimulationEnabled: true,
+            areSceneNumbersVisible: sceneNumbersVisible,
+          );
+
+          final document = SuperEditorInspector.findDocument()!;
+          final draftDateNodeId = document.getNodeAt(3)!.id;
+          final contactNodeId = document.getNodeAt(4)!.id;
+
+          await _placeCaretAtStartOf(tester, draftDateNodeId);
+          await _placeCaretAtStartOf(tester, contactNodeId);
+        },
+      );
+
+      testWidgets(
+        "a multi-line Contact still stacks under the row, and Source follows with no leftover gap "
+        "(scene numbers: $sceneNumbersVisible)",
+        (tester) async {
+          tester.view.physicalSize = const Size(1400, 1200);
+          tester.view.devicePixelRatio = 1.0;
+          addTearDown(tester.view.resetPhysicalSize);
+          addTearDown(tester.view.resetDevicePixelRatio);
+
+          await _pumpStandaloneEditor(
+            tester,
+            "Some action.",
+            isPageSimulationEnabled: true,
+            areSceneNumbersVisible: sceneNumbersVisible,
+          );
+
+          // Contact: index 4.
+          final contactNodeId = SuperEditorInspector.findDocument()!.getNodeAt(4)!.id;
+          await _placeCaretAtStartOf(tester, contactNodeId);
+          await tester.typeImeText("123 Reel Street");
+          await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+          await tester.pump();
+          await tester.typeImeText("Second line");
+          await tester.pump(const Duration(milliseconds: 200));
+
+          final document = SuperEditorInspector.findDocument()!;
+          expect(document.nodeCount, _titlePageFieldCount + 2);
+          // Title, Credit, Author, Draft date, Contact (first line): indices 0-4. Contact's second
+          // line and Source follow at 5 and 6.
+          final firstLineId = document.getNodeAt(4)!.id;
+          final secondLineId = document.getNodeAt(5)!.id;
+          final sourceNodeId = document.getNodeAt(6)!.id;
+
+          final layout = OcptEditorPreviewLayout(metrics: FountainLayoutMetrics.usLetter());
+          final firstLineTop = SuperEditorInspector.findComponentOffset(
+            firstLineId,
+            Alignment.topLeft,
+          ).dy;
+          final secondLineOffset = SuperEditorInspector.findComponentOffset(
+            secondLineId,
+            Alignment.topLeft,
+          );
+          final secondLineHeight = SuperEditorInspector.findComponentSize(secondLineId).height;
+          // The two Contact lines stack with no gap between them, exactly one lineHeight apart.
+          expect(secondLineOffset.dy - firstLineTop, closeTo(layout.lineHeight, 1));
+
+          // Source keeps its usual one-line gap below the last Contact line, unaffected by the
+          // shift: both nodes are painted with the exact same `rowShift` translation, so their
+          // relative spacing is exactly what it was before this node ever needed shifting.
+          final sourceTop = SuperEditorInspector.findComponentOffset(
+            sourceNodeId,
+            Alignment.topLeft,
+          ).dy;
+          expect(
+            sourceTop - (secondLineOffset.dy + secondLineHeight),
+            closeTo(layout.lineHeight, 1),
+          );
+        },
+      );
+
+      testWidgets(
+        "the shared Draft date/Contact row is purely visual: the encoded source is unaffected "
+        "(scene numbers: $sceneNumbersVisible)",
+        (tester) async {
+          tester.view.physicalSize = const Size(1400, 1200);
+          tester.view.devicePixelRatio = 1.0;
+          addTearDown(tester.view.resetPhysicalSize);
+          addTearDown(tester.view.resetDevicePixelRatio);
+
+          String? encodedText;
+
+          await tester.pumpWidget(
+            _wrap(
+              OcptStyledScreenplayEditor(
+                text: "Some action.",
+                pageSetup: const OcptPageSetup.standard(),
+                isPageSimulationEnabled: true,
+                areSceneNumbersVisible: sceneNumbersVisible,
+                isSpellCheckVisible: false,
+                onTextChanged: (text) => encodedText = text,
+                onCaretLineChanged: (_) {},
+                jumpRequest: null,
+              ),
+            ),
+          );
+          await tester.pumpAndSettle();
+
+          final document = SuperEditorInspector.findDocument()!;
+          final draftDateNodeId = document.getNodeAt(3)!.id;
+          final contactNodeId = document.getNodeAt(4)!.id;
+
+          await tester.placeCaretInParagraph(draftDateNodeId, 0);
+          await tester.typeImeText("2026-07-26");
+          await tester.pump(const Duration(milliseconds: 200));
+
+          await tester.placeCaretInParagraph(contactNodeId, 0);
+          await tester.typeImeText("jane@example.com");
+          await tester.pump(const Duration(milliseconds: 200));
+
+          expect(encodedText, "Draft date: 2026-07-26\nContact: jane@example.com\n\nSome action.");
+        },
+      );
+    }
+
+    testWidgets(
+      "a scene heading still shows its gutter number with a title page and scene numbers on",
+      (tester) async {
+        // Tall enough to reach the body's first (and only) node past the whole title sheet, same as
+        // the "Backspace ... never merges it into Source" case above.
+        tester.view.physicalSize = const Size(1400, 2700);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
+
+        await _pumpStandaloneEditor(
+          tester,
+          "INT. HOUSE - DAY\n\nSome action.",
+          isPageSimulationEnabled: true,
+          areSceneNumbersVisible: true,
+        );
+
+        // Proves `OcptSceneNumberGutterComponentBuilder` still claims its own nodes even though it
+        // now falls through for every title-page node ahead of it in `componentBuilders`.
+        expect(find.text("1"), findsOneWidget);
+      },
+    );
 
     testWidgets("a multi-line field's placeholder hints only its first line", (tester) async {
       tester.view.physicalSize = const Size(1400, 1200);
@@ -1510,42 +1625,52 @@ void main() {
       final document = SuperEditorInspector.findDocument()!;
       // Six title-page fields, one split into two lines, plus the body's one node.
       expect(document.nodeCount, _titlePageFieldCount + 2);
-      expect((document.getNodeAt(4)! as ParagraphNode).getMetadataValue(ocptTitlePageKeyMetadataKey), "Contact");
-      expect((document.getNodeAt(5)! as ParagraphNode).getMetadataValue(ocptTitlePageKeyMetadataKey), "Contact");
+      expect(
+        (document.getNodeAt(4)! as ParagraphNode).getMetadataValue(ocptTitlePageKeyMetadataKey),
+        "Contact",
+      );
+      expect(
+        (document.getNodeAt(5)! as ParagraphNode).getMetadataValue(ocptTitlePageKeyMetadataKey),
+        "Contact",
+      );
 
       expect(find.text("Contact"), findsOneWidget);
     });
 
-    testWidgets("Backspace via the IME delta channel at the start of a field does not merge it into its neighbour", (
-      tester,
-    ) async {
-      // The IME delta channel is a genuinely different code path from `sendKeyEvent`: at offset 0
-      // of a node, `document_delta_editing.dart`'s `delete()` sends a
-      // `DeleteUpstreamAtBeginningOfNodeRequest`, never a `CombineParagraphsRequest` — so this
-      // exercises `ocptTitlePageGuardRequestHandler`'s dedicated rule for that request, not the one
-      // the hardware-Backspace tests above already cover.
-      tester.view.physicalSize = const Size(1400, 1200);
-      tester.view.devicePixelRatio = 1.0;
-      addTearDown(tester.view.resetPhysicalSize);
-      addTearDown(tester.view.resetDevicePixelRatio);
+    testWidgets(
+      "Backspace via the IME delta channel at the start of a field does not merge it into its neighbour",
+      (tester) async {
+        // The IME delta channel is a genuinely different code path from `sendKeyEvent`: at offset 0
+        // of a node, `document_delta_editing.dart`'s `delete()` sends a
+        // `DeleteUpstreamAtBeginningOfNodeRequest`, never a `CombineParagraphsRequest` — so this
+        // exercises `ocptTitlePageGuardRequestHandler`'s dedicated rule for that request, not the one
+        // the hardware-Backspace tests above already cover.
+        tester.view.physicalSize = const Size(1400, 1200);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
 
-      await _pumpStandaloneEditor(tester, "Some action.", isPageSimulationEnabled: true);
+        await _pumpStandaloneEditor(tester, "Some action.", isPageSimulationEnabled: true);
 
-      // Credit: index 1.
-      final creditNodeId = SuperEditorInspector.findDocument()!.getNodeAt(1)!.id;
-      await _placeCaretAtStartOf(tester, creditNodeId);
-      await tester.typeImeText("written by");
-      await tester.pump(const Duration(milliseconds: 200));
-      await _placeCaretAtStartOf(tester, creditNodeId);
+        // Credit: index 1.
+        final creditNodeId = SuperEditorInspector.findDocument()!.getNodeAt(1)!.id;
+        await _placeCaretAtStartOf(tester, creditNodeId);
+        await tester.typeImeText("written by");
+        await tester.pump(const Duration(milliseconds: 200));
+        await _placeCaretAtStartOf(tester, creditNodeId);
 
-      await tester.ime.backspace(getter: imeClientGetter);
-      await tester.pump(const Duration(milliseconds: 200));
+        await tester.ime.backspace(getter: imeClientGetter);
+        await tester.pump(const Duration(milliseconds: 200));
 
-      final document = SuperEditorInspector.findDocument()!;
-      expect(document.nodeCount, _titlePageFieldCount + 1);
-      expect(document.getNodeById(creditNodeId), isNotNull);
-      expect((document.getNodeById(creditNodeId)! as ParagraphNode).text.toPlainText(), "written by");
-    });
+        final document = SuperEditorInspector.findDocument()!;
+        expect(document.nodeCount, _titlePageFieldCount + 1);
+        expect(document.getNodeById(creditNodeId), isNotNull);
+        expect(
+          (document.getNodeById(creditNodeId)! as ParagraphNode).text.toPlainText(),
+          "written by",
+        );
+      },
+    );
   });
 
   group("typing in the styled editor, wired to a real (fast) OcptEditorBloc", () {
@@ -1565,9 +1690,9 @@ void main() {
       savedTexts = [];
       tempDir = await Directory.systemTemp.createTemp("ocpt_styled_editor_test_");
       projectsManager = OcptProjectsManager(
-      propertiesManager: propertiesManager,
-      appLanguageCode: () => "en",
-    );
+        propertiesManager: propertiesManager,
+        appLanguageCode: () => "en",
+      );
       await projectsManager.initLifeCycle();
 
       final result = await projectsManager.createProject(
@@ -1615,8 +1740,9 @@ void main() {
                       isPageSimulationEnabled: state.isPageSimulationEnabled,
                       areSceneNumbersVisible: state.areStyledSceneNumbersVisible,
                       isSpellCheckVisible: state.isSpellCheckVisible,
-                      onTextChanged: (text) =>
-                          context.read<OcptEditorBloc>().add(OcptEditorTextChangedEvent(text: text)),
+                      onTextChanged: (text) => context.read<OcptEditorBloc>().add(
+                        OcptEditorTextChangedEvent(text: text),
+                      ),
                       onCaretLineChanged: (line) =>
                           context.read<OcptEditorBloc>().add(OcptEditorCaretMovedEvent(line: line)),
                       jumpRequest: state.jumpRequest,
@@ -1645,47 +1771,50 @@ void main() {
   });
 
   group("Tab cycles the caret's block type", () {
-    testWidgets("Tab advances through the six common types (wrapping) and locks the block; Shift+Tab "
-        "reverses", (tester) async {
-      await _pumpStandaloneEditor(tester, "Some action text.");
+    testWidgets(
+      "Tab advances through the six common types (wrapping) and locks the block; Shift+Tab "
+      "reverses",
+      (tester) async {
+        await _pumpStandaloneEditor(tester, "Some action text.");
 
-      final document = SuperEditorInspector.findDocument()!;
-      final nodeId = _nodeAt(document, 0).id;
-      await tester.placeCaretInParagraph(nodeId, 0);
+        final document = SuperEditorInspector.findDocument()!;
+        final nodeId = _nodeAt(document, 0).id;
+        await tester.placeCaretInParagraph(nodeId, 0);
 
-      expect(_typeAt(document, 0), FountainLineType.action);
+        expect(_typeAt(document, 0), FountainLineType.action);
 
-      const forwardCycle = [
-        FountainLineType.character,
-        FountainLineType.parenthetical,
-        FountainLineType.dialogue,
-        FountainLineType.transition,
-        FountainLineType.sceneHeading,
-        FountainLineType.action,
-      ];
-      for (final expectedType in forwardCycle) {
-        await tester.sendKeyEvent(LogicalKeyboardKey.tab);
-        await tester.pump();
-        expect(_typeAt(document, 0), expectedType);
-        expect(_isLockedAt(document, 0), isTrue);
-      }
+        const forwardCycle = [
+          FountainLineType.character,
+          FountainLineType.parenthetical,
+          FountainLineType.dialogue,
+          FountainLineType.transition,
+          FountainLineType.sceneHeading,
+          FountainLineType.action,
+        ];
+        for (final expectedType in forwardCycle) {
+          await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+          await tester.pump();
+          expect(_typeAt(document, 0), expectedType);
+          expect(_isLockedAt(document, 0), isTrue);
+        }
 
-      // The forward loop above ends back at `action`; reversing from there steps backward
-      // through the cycle the other way round (wrapping at `sceneHeading` to `transition`).
-      const reverseCycle = [
-        FountainLineType.sceneHeading,
-        FountainLineType.transition,
-        FountainLineType.dialogue,
-        FountainLineType.parenthetical,
-        FountainLineType.character,
-        FountainLineType.action,
-      ];
-      for (final expectedType in reverseCycle) {
-        await _sendShift(tester, LogicalKeyboardKey.tab);
-        await tester.pump();
-        expect(_typeAt(document, 0), expectedType);
-      }
-    });
+        // The forward loop above ends back at `action`; reversing from there steps backward
+        // through the cycle the other way round (wrapping at `sceneHeading` to `transition`).
+        const reverseCycle = [
+          FountainLineType.sceneHeading,
+          FountainLineType.transition,
+          FountainLineType.dialogue,
+          FountainLineType.parenthetical,
+          FountainLineType.character,
+          FountainLineType.action,
+        ];
+        for (final expectedType in reverseCycle) {
+          await _sendShift(tester, LogicalKeyboardKey.tab);
+          await tester.pump();
+          expect(_typeAt(document, 0), expectedType);
+        }
+      },
+    );
 
     testWidgets("Tab from outside the cycle enters at sceneHeading", (tester) async {
       await _pumpStandaloneEditor(tester, "~A lyric line");
@@ -1714,7 +1843,9 @@ void main() {
     });
 
     testWidgets("a plain Tab delivered as an IME text-insertion delta (the real desktop bug, not "
-        "reproduced by sendKeyEvent) cycles the block type instead of inserting a literal tab", (tester) async {
+        "reproduced by sendKeyEvent) cycles the block type instead of inserting a literal tab", (
+      tester,
+    ) async {
       // On real desktop, `SuperEditor` runs on `TextInputSource.ime`, and an unmodified Tab is
       // committed by the platform IME as a `TextEditingDeltaInsertion` of `'\t'` before Flutter
       // ever synthesizes a hardware `KeyEvent` for it — `tester.sendKeyEvent(...)` above
@@ -1766,22 +1897,25 @@ void main() {
       expect(lastEncoded.contains("\t"), isFalse);
     });
 
-    testWidgets("Shift+Tab (a hardware KeyEvent, never delivered through the IME delta channel) still "
-        "reverses the cycle once imeOverrides is wired", (tester) async {
-      await _pumpStandaloneEditor(tester, "Some action text.");
+    testWidgets(
+      "Shift+Tab (a hardware KeyEvent, never delivered through the IME delta channel) still "
+      "reverses the cycle once imeOverrides is wired",
+      (tester) async {
+        await _pumpStandaloneEditor(tester, "Some action text.");
 
-      final document = SuperEditorInspector.findDocument()!;
-      final nodeId = _nodeAt(document, 0).id;
-      await tester.placeCaretInParagraph(nodeId, 0);
+        final document = SuperEditorInspector.findDocument()!;
+        final nodeId = _nodeAt(document, 0).id;
+        await tester.placeCaretInParagraph(nodeId, 0);
 
-      expect(_typeAt(document, 0), FountainLineType.action);
+        expect(_typeAt(document, 0), FountainLineType.action);
 
-      await _sendShift(tester, LogicalKeyboardKey.tab);
-      await tester.pump();
+        await _sendShift(tester, LogicalKeyboardKey.tab);
+        await tester.pump();
 
-      expect(_typeAt(document, 0), FountainLineType.sceneHeading);
-      expect(_isLockedAt(document, 0), isTrue);
-    });
+        expect(_typeAt(document, 0), FountainLineType.sceneHeading);
+        expect(_isLockedAt(document, 0), isTrue);
+      },
+    );
   });
 
   group("smart Enter", () {
@@ -1808,11 +1942,16 @@ void main() {
 
         final newNode = _nodeAt(document, testCase.nodeIndex + 1);
         expect(
-          OcptFountainLineAttributions.typeOfAttributionValue(newNode.getMetadataValue("blockType")),
+          OcptFountainLineAttributions.typeOfAttributionValue(
+            newNode.getMetadataValue("blockType"),
+          ),
           testCase.nextType,
           reason: "new node after node ${testCase.nodeIndex}",
         );
-        expect(newNode.getMetadataValue(ocptBlankLinesBeforeMetadataKey), testCase.blankLinesBefore);
+        expect(
+          newNode.getMetadataValue(ocptBlankLinesBeforeMetadataKey),
+          testCase.blankLinesBefore,
+        );
         expect(newNode.getMetadataValue(ocptTypeLockedMetadataKey), isFalse);
         expect(newNode.text.toPlainText(), isEmpty);
       }
@@ -1832,7 +1971,9 @@ void main() {
       expect(_typeAt(document, 1), FountainLineType.action);
     });
 
-    testWidgets("Shift+Enter splits into a node of the same type with no blank line before it", (tester) async {
+    testWidgets("Shift+Enter splits into a node of the same type with no blank line before it", (
+      tester,
+    ) async {
       await _pumpStandaloneEditor(tester, "First action line.");
 
       final document = SuperEditorInspector.findDocument()!;
@@ -1850,7 +1991,9 @@ void main() {
     });
 
     testWidgets("splitting a scene heading before its end lets the next reclassify pass settle the "
-        "carried-over remainder's type instead of forcing a mismatched one onto it", (tester) async {
+        "carried-over remainder's type instead of forcing a mismatched one onto it", (
+      tester,
+    ) async {
       var lastEncoded = "";
       await tester.pumpWidget(
         _wrap(
@@ -1885,85 +2028,94 @@ void main() {
       expect(lastEncoded, "INT. #1#\n\n HOUSE - DAY");
     });
 
-    testWidgets("splitting one scene heading mid-text leaves every OTHER scene heading's number and text "
-        "untouched", (tester) async {
-      var lastEncoded = "";
-      await tester.pumpWidget(
-        _wrap(
-          OcptStyledScreenplayEditor(
-            text: "INT. HOUSE - DAY\n\nEXT. GARDEN - NIGHT\n\nINT. ATTIC - DAY",
-            pageSetup: const OcptPageSetup.standard(),
-            isPageSimulationEnabled: false,
-            areSceneNumbersVisible: false,
-            isSpellCheckVisible: false,
-            onTextChanged: (value) => lastEncoded = value,
-            onCaretLineChanged: (_) {},
-            jumpRequest: null,
+    testWidgets(
+      "splitting one scene heading mid-text leaves every OTHER scene heading's number and text "
+      "untouched",
+      (tester) async {
+        var lastEncoded = "";
+        await tester.pumpWidget(
+          _wrap(
+            OcptStyledScreenplayEditor(
+              text: "INT. HOUSE - DAY\n\nEXT. GARDEN - NIGHT\n\nINT. ATTIC - DAY",
+              pageSetup: const OcptPageSetup.standard(),
+              isPageSimulationEnabled: false,
+              areSceneNumbersVisible: false,
+              isSpellCheckVisible: false,
+              onTextChanged: (value) => lastEncoded = value,
+              onCaretLineChanged: (_) {},
+              jumpRequest: null,
+            ),
           ),
-        ),
-      );
-      await tester.pumpAndSettle();
+        );
+        await tester.pumpAndSettle();
 
-      final document = SuperEditorInspector.findDocument()!;
-      final nodeId = _nodeAt(document, 0).id;
-      await tester.placeCaretInParagraph(nodeId, 4);
-      await tester.sendKeyEvent(LogicalKeyboardKey.enter);
-      await tester.pump(const Duration(milliseconds: 150));
-      await tester.pump();
+        final document = SuperEditorInspector.findDocument()!;
+        final nodeId = _nodeAt(document, 0).id;
+        await tester.placeCaretInParagraph(nodeId, 4);
+        await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+        await tester.pump(const Duration(milliseconds: 150));
+        await tester.pump();
 
-      // Nodes, in order after the split: "INT.", " HOUSE - DAY", "EXT. GARDEN - NIGHT",
-      // "INT. ATTIC - DAY".
-      expect(_nodeAt(document, 2).text.toPlainText(), "EXT. GARDEN - NIGHT");
-      expect(_sceneNumberAt(document, 2), "2");
-      expect(_nodeAt(document, 3).text.toPlainText(), "INT. ATTIC - DAY");
-      expect(_sceneNumberAt(document, 3), "3");
-      expect(lastEncoded, isNot(contains("!")));
-      expect(lastEncoded, "INT. #1#\n\n HOUSE - DAY\n\nEXT. GARDEN - NIGHT #2#\n\nINT. ATTIC - DAY #3#");
-    });
+        // Nodes, in order after the split: "INT.", " HOUSE - DAY", "EXT. GARDEN - NIGHT",
+        // "INT. ATTIC - DAY".
+        expect(_nodeAt(document, 2).text.toPlainText(), "EXT. GARDEN - NIGHT");
+        expect(_sceneNumberAt(document, 2), "2");
+        expect(_nodeAt(document, 3).text.toPlainText(), "INT. ATTIC - DAY");
+        expect(_sceneNumberAt(document, 3), "3");
+        expect(lastEncoded, isNot(contains("!")));
+        expect(
+          lastEncoded,
+          "INT. #1#\n\n HOUSE - DAY\n\nEXT. GARDEN - NIGHT #2#\n\nINT. ATTIC - DAY #3#",
+        );
+      },
+    );
   });
 
   group("flushing a pending sync on deactivate", () {
-    testWidgets("a scene heading split mid-text, then removed from the tree before its debounce clears, "
-        "reports the same settled text a normal debounce would have", (tester) async {
-      var lastEncoded = "";
-      await tester.pumpWidget(
-        _wrap(
-          OcptStyledScreenplayEditor(
-            text: "INT. HOUSE - DAY",
-            pageSetup: const OcptPageSetup.standard(),
-            isPageSimulationEnabled: false,
-            areSceneNumbersVisible: false,
-            isSpellCheckVisible: false,
-            onTextChanged: (value) => lastEncoded = value,
-            onCaretLineChanged: (_) {},
-            jumpRequest: null,
+    testWidgets(
+      "a scene heading split mid-text, then removed from the tree before its debounce clears, "
+      "reports the same settled text a normal debounce would have",
+      (tester) async {
+        var lastEncoded = "";
+        await tester.pumpWidget(
+          _wrap(
+            OcptStyledScreenplayEditor(
+              text: "INT. HOUSE - DAY",
+              pageSetup: const OcptPageSetup.standard(),
+              isPageSimulationEnabled: false,
+              areSceneNumbersVisible: false,
+              isSpellCheckVisible: false,
+              onTextChanged: (value) => lastEncoded = value,
+              onCaretLineChanged: (_) {},
+              jumpRequest: null,
+            ),
           ),
-        ),
-      );
-      await tester.pumpAndSettle();
+        );
+        await tester.pumpAndSettle();
 
-      final document = SuperEditorInspector.findDocument()!;
-      final nodeId = _nodeAt(document, 0).id;
-      await tester.placeCaretInParagraph(nodeId, 4);
-      await tester.sendKeyEvent(LogicalKeyboardKey.enter);
-      // A bounded pump shorter than the styled editor's 120 ms sync debounce: long enough to
-      // process the split, short enough that `_syncTimer` is still pending when this widget is
-      // removed from the tree below — the exact race `_flushPendingSync` has to handle.
-      await tester.pump(const Duration(milliseconds: 20));
+        final document = SuperEditorInspector.findDocument()!;
+        final nodeId = _nodeAt(document, 0).id;
+        await tester.placeCaretInParagraph(nodeId, 4);
+        await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+        // A bounded pump shorter than the styled editor's 120 ms sync debounce: long enough to
+        // process the split, short enough that `_syncTimer` is still pending when this widget is
+        // removed from the tree below — the exact race `_flushPendingSync` has to handle.
+        await tester.pump(const Duration(milliseconds: 20));
 
-      // Replacing the whole widget tree removes `OcptStyledScreenplayEditor`, running
-      // `deactivate()` (and, with it, `_flushPendingSync`) without ever letting `_syncTimer`
-      // fire on its own.
-      await tester.pumpWidget(_wrap(const SizedBox()));
-      await tester.pump();
+        // Replacing the whole widget tree removes `OcptStyledScreenplayEditor`, running
+        // `deactivate()` (and, with it, `_flushPendingSync`) without ever letting `_syncTimer`
+        // fire on its own.
+        await tester.pumpWidget(_wrap(const SizedBox()));
+        await tester.pump();
 
-      // Before this fix, flushing skipped reclassification entirely and encoded the split
-      // fragment under its stale `sceneHeading` type, forcing a "." marker onto text that no
-      // longer read as a heading (and, once decoded again, sticking as a permanent forcing
-      // marker misclassified as user intent).
-      expect(lastEncoded, isNot(contains("!")));
-      expect(lastEncoded, "INT. #1#\n\n HOUSE - DAY");
-    });
+        // Before this fix, flushing skipped reclassification entirely and encoded the split
+        // fragment under its stale `sceneHeading` type, forcing a "." marker onto text that no
+        // longer read as a heading (and, once decoded again, sticking as a permanent forcing
+        // marker misclassified as user intent).
+        expect(lastEncoded, isNot(contains("!")));
+        expect(lastEncoded, "INT. #1#\n\n HOUSE - DAY");
+      },
+    );
   });
 
   testWidgets("reclassify skips a locked block; emptying it keeps the lock and the type sticky for "
@@ -2014,68 +2166,21 @@ void main() {
   });
 
   group("auto-uppercase scene headings, character cues and transitions", () {
-    testWidgets("typing a lowercase scene heading uppercases the stored text as you type, caret offset unchanged", (
-      tester,
-    ) async {
-      var lastEncoded = "";
-      await tester.pumpWidget(
-        _wrap(
-          OcptStyledScreenplayEditor(
-            text: "",
-            pageSetup: const OcptPageSetup.standard(),
-            isPageSimulationEnabled: false,
-            areSceneNumbersVisible: false,
-            isSpellCheckVisible: false,
-            onTextChanged: (value) => lastEncoded = value,
-            onCaretLineChanged: (_) {},
-            jumpRequest: null,
-          ),
-        ),
-      );
-      await tester.pumpAndSettle();
-
-      final document = SuperEditorInspector.findDocument()!;
-      final nodeId = _nodeAt(document, 0).id;
-      await tester.placeCaretInParagraph(nodeId, 0);
-
-      await tester.typeImeText("int. kitchen - day");
-      await tester.pump(const Duration(milliseconds: 150));
-      await tester.pump();
-
-      expect(_nodeAt(document, 0).text.toPlainText(), "INT. KITCHEN - DAY");
-      expect(_typeAt(document, 0), FountainLineType.sceneHeading);
-      expect(lastEncoded, "INT. KITCHEN - DAY #1#");
-
-      final selection = SuperEditorInspector.findDocumentSelection();
-      final extentOffset = (selection!.extent.nodePosition as TextNodePosition).offset;
-      expect(extentOffset, "int. kitchen - day".length);
-    });
-
-    testWidgets("typing lowercase text into a manually-locked character cue or transition uppercases it", (
-      tester,
-    ) async {
-      // Unlike scene headings, `FountainLineClassifier` only auto-detects a character cue or
-      // transition from already-uppercase text (that asymmetry is the whole reason auto-uppercase
-      // is needed for these two types): the only way such a block ever holds lowercase text in
-      // practice is a manual type choice (dropdown or Tab, both of which lock the block), so that
-      // is what this test drives, through `OcptStyledEditorController.setBlockType`.
-      Future<String> typeIntoLockedBlock(FountainLineType type, String lowercaseText) async {
-        final controller = OcptStyledEditorController();
-        addTearDown(controller.dispose);
-
+    testWidgets(
+      "typing a lowercase scene heading uppercases the stored text as you type, caret offset unchanged",
+      (tester) async {
+        var lastEncoded = "";
         await tester.pumpWidget(
           _wrap(
             OcptStyledScreenplayEditor(
-              key: ValueKey(type),
               text: "",
               pageSetup: const OcptPageSetup.standard(),
               isPageSimulationEnabled: false,
               areSceneNumbersVisible: false,
               isSpellCheckVisible: false,
-              onTextChanged: (_) {},
+              onTextChanged: (value) => lastEncoded = value,
               onCaretLineChanged: (_) {},
               jumpRequest: null,
-              styledController: controller,
             ),
           ),
         );
@@ -2085,50 +2190,102 @@ void main() {
         final nodeId = _nodeAt(document, 0).id;
         await tester.placeCaretInParagraph(nodeId, 0);
 
-        controller.setBlockType(type);
-        await tester.pump();
-
-        await tester.typeImeText(lowercaseText);
+        await tester.typeImeText("int. kitchen - day");
         await tester.pump(const Duration(milliseconds: 150));
         await tester.pump();
 
-        expect(_typeAt(document, 0), type);
-        return _nodeAt(document, 0).text.toPlainText();
-      }
+        expect(_nodeAt(document, 0).text.toPlainText(), "INT. KITCHEN - DAY");
+        expect(_typeAt(document, 0), FountainLineType.sceneHeading);
+        expect(lastEncoded, "INT. KITCHEN - DAY #1#");
 
-      expect(await typeIntoLockedBlock(FountainLineType.character, "sarah"), "SARAH");
-      expect(await typeIntoLockedBlock(FountainLineType.transition, "cut to:"), "CUT TO:");
-    });
+        final selection = SuperEditorInspector.findDocumentSelection();
+        final extentOffset = (selection!.extent.nodePosition as TextNodePosition).offset;
+        expect(extentOffset, "int. kitchen - day".length);
+      },
+    );
 
-    testWidgets("a character type set on an empty block survives the reclassify debounce firing before any "
-        "text is typed", (tester) async {
-      // Regression test: the debounce used to fire while the block was still empty and clear
-      // `ocptTypeLocked` as a side effect, so the first characters typed afterwards were
-      // reclassified away from character. Unlike the test above, this one explicitly pumps past
-      // `_syncDebounce` (120 ms) right after `setBlockType`, before typing anything.
-      final controller = OcptStyledEditorController();
-      addTearDown(controller.dispose);
+    testWidgets(
+      "typing lowercase text into a manually-locked character cue or transition uppercases it",
+      (tester) async {
+        // Unlike scene headings, `FountainLineClassifier` only auto-detects a character cue or
+        // transition from already-uppercase text (that asymmetry is the whole reason auto-uppercase
+        // is needed for these two types): the only way such a block ever holds lowercase text in
+        // practice is a manual type choice (dropdown or Tab, both of which lock the block), so that
+        // is what this test drives, through `OcptStyledEditorController.setBlockType`.
+        Future<String> typeIntoLockedBlock(FountainLineType type, String lowercaseText) async {
+          final controller = OcptStyledEditorController();
+          addTearDown(controller.dispose);
 
-      await _pumpStandaloneEditor(tester, "", styledController: controller);
+          await tester.pumpWidget(
+            _wrap(
+              OcptStyledScreenplayEditor(
+                key: ValueKey(type),
+                text: "",
+                pageSetup: const OcptPageSetup.standard(),
+                isPageSimulationEnabled: false,
+                areSceneNumbersVisible: false,
+                isSpellCheckVisible: false,
+                onTextChanged: (_) {},
+                onCaretLineChanged: (_) {},
+                jumpRequest: null,
+                styledController: controller,
+              ),
+            ),
+          );
+          await tester.pumpAndSettle();
 
-      final document = SuperEditorInspector.findDocument()!;
-      final nodeId = _nodeAt(document, 0).id;
-      await tester.placeCaretInParagraph(nodeId, 0);
+          final document = SuperEditorInspector.findDocument()!;
+          final nodeId = _nodeAt(document, 0).id;
+          await tester.placeCaretInParagraph(nodeId, 0);
 
-      controller.setBlockType(FountainLineType.character);
-      await tester.pump(const Duration(milliseconds: 150));
-      await tester.pump();
+          controller.setBlockType(type);
+          await tester.pump();
 
-      expect(_typeAt(document, 0), FountainLineType.character);
-      expect(_isLockedAt(document, 0), isTrue);
+          await tester.typeImeText(lowercaseText);
+          await tester.pump(const Duration(milliseconds: 150));
+          await tester.pump();
 
-      await tester.typeImeText("john");
-      await tester.pump(const Duration(milliseconds: 150));
-      await tester.pump();
+          expect(_typeAt(document, 0), type);
+          return _nodeAt(document, 0).text.toPlainText();
+        }
 
-      expect(_typeAt(document, 0), FountainLineType.character);
-      expect(_nodeAt(document, 0).text.toPlainText(), "JOHN");
-    });
+        expect(await typeIntoLockedBlock(FountainLineType.character, "sarah"), "SARAH");
+        expect(await typeIntoLockedBlock(FountainLineType.transition, "cut to:"), "CUT TO:");
+      },
+    );
+
+    testWidgets(
+      "a character type set on an empty block survives the reclassify debounce firing before any "
+      "text is typed",
+      (tester) async {
+        // Regression test: the debounce used to fire while the block was still empty and clear
+        // `ocptTypeLocked` as a side effect, so the first characters typed afterwards were
+        // reclassified away from character. Unlike the test above, this one explicitly pumps past
+        // `_syncDebounce` (120 ms) right after `setBlockType`, before typing anything.
+        final controller = OcptStyledEditorController();
+        addTearDown(controller.dispose);
+
+        await _pumpStandaloneEditor(tester, "", styledController: controller);
+
+        final document = SuperEditorInspector.findDocument()!;
+        final nodeId = _nodeAt(document, 0).id;
+        await tester.placeCaretInParagraph(nodeId, 0);
+
+        controller.setBlockType(FountainLineType.character);
+        await tester.pump(const Duration(milliseconds: 150));
+        await tester.pump();
+
+        expect(_typeAt(document, 0), FountainLineType.character);
+        expect(_isLockedAt(document, 0), isTrue);
+
+        await tester.typeImeText("john");
+        await tester.pump(const Duration(milliseconds: 150));
+        await tester.pump();
+
+        expect(_typeAt(document, 0), FountainLineType.character);
+        expect(_nodeAt(document, 0).text.toPlainText(), "JOHN");
+      },
+    );
 
     testWidgets("bold/italic/underline spans survive the uppercase conversion", (tester) async {
       var lastEncoded = "";
@@ -2165,7 +2322,9 @@ void main() {
     });
   });
 
-  testWidgets("Ctrl+B, Ctrl+I and Ctrl+U toggle bold/italic/underline, serialized as **/*/_", (tester) async {
+  testWidgets("Ctrl+B, Ctrl+I and Ctrl+U toggle bold/italic/underline, serialized as **/*/_", (
+    tester,
+  ) async {
     Future<String> encodedAfterToggling(LogicalKeyboardKey key) async {
       var lastEncoded = "";
       await tester.pumpWidget(
@@ -2214,7 +2373,10 @@ void main() {
 
         final document = SuperEditorInspector.findDocument()!;
         final secondHeading = _nodeAt(document, 1);
-        await tester.placeCaretInParagraph(secondHeading.id, secondHeading.text.toPlainText().length);
+        await tester.placeCaretInParagraph(
+          secondHeading.id,
+          secondHeading.text.toPlainText().length,
+        );
 
         await tester.typeImeText(" #2#");
         await tester.pump(const Duration(milliseconds: 150));
@@ -2225,34 +2387,44 @@ void main() {
       },
     );
 
-    testWidgets("typing a #N# tag that does not fit its position is absorbed then immediately corrected", (
+    testWidgets(
+      "typing a #N# tag that does not fit its position is absorbed then immediately corrected",
+      (tester) async {
+        await _pumpStandaloneEditor(tester, "INT. HOUSE - DAY");
+
+        final document = SuperEditorInspector.findDocument()!;
+        final node = _nodeAt(document, 0);
+        await tester.placeCaretInParagraph(node.id, node.text.toPlainText().length);
+
+        await tester.typeImeText(" #4A#");
+        await tester.pump(const Duration(milliseconds: 150));
+        await tester.pump();
+
+        expect(_nodeAt(document, 0).text.toPlainText(), "INT. HOUSE - DAY");
+        expect(_sceneNumberAt(document, 0), "1");
+      },
+    );
+
+    testWidgets("the scene-number gutter renders only while areSceneNumbersVisible is true", (
       tester,
     ) async {
-      await _pumpStandaloneEditor(tester, "INT. HOUSE - DAY");
-
-      final document = SuperEditorInspector.findDocument()!;
-      final node = _nodeAt(document, 0);
-      await tester.placeCaretInParagraph(node.id, node.text.toPlainText().length);
-
-      await tester.typeImeText(" #4A#");
-      await tester.pump(const Duration(milliseconds: 150));
-      await tester.pump();
-
-      expect(_nodeAt(document, 0).text.toPlainText(), "INT. HOUSE - DAY");
-      expect(_sceneNumberAt(document, 0), "1");
-    });
-
-    testWidgets("the scene-number gutter renders only while areSceneNumbersVisible is true", (tester) async {
       const text = "INT. HOUSE - DAY\n\nAction.";
 
       await _pumpStandaloneEditor(tester, text);
       expect(find.text("1"), findsNothing);
 
-      await _pumpStandaloneEditor(tester, text, key: const Key("visible"), areSceneNumbersVisible: true);
+      await _pumpStandaloneEditor(
+        tester,
+        text,
+        key: const Key("visible"),
+        areSceneNumbersVisible: true,
+      );
       expect(find.text("1"), findsOneWidget);
     });
 
-    testWidgets("every scene heading is auto-numbered into the source, even with no #N# typed", (tester) async {
+    testWidgets("every scene heading is auto-numbered into the source, even with no #N# typed", (
+      tester,
+    ) async {
       var lastEncoded = "";
       await tester.pumpWidget(
         _wrap(
@@ -2273,28 +2445,29 @@ void main() {
       expect(lastEncoded, "INT. HOUSE - DAY #1#\n\nAction.\n\nEXT. GARDEN - NIGHT #2#");
     });
 
-    testWidgets("badly-ordered numbers entered in raw mode are corrected once decoded into the styled view", (
-      tester,
-    ) async {
-      var lastEncoded = "";
-      await tester.pumpWidget(
-        _wrap(
-          OcptStyledScreenplayEditor(
-            text: "INT. HOUSE - DAY #9#\n\nEXT. GARDEN - NIGHT #2#",
-            pageSetup: const OcptPageSetup.standard(),
-            isPageSimulationEnabled: false,
-            areSceneNumbersVisible: false,
-            isSpellCheckVisible: false,
-            onTextChanged: (text) => lastEncoded = text,
-            onCaretLineChanged: (_) {},
-            jumpRequest: null,
+    testWidgets(
+      "badly-ordered numbers entered in raw mode are corrected once decoded into the styled view",
+      (tester) async {
+        var lastEncoded = "";
+        await tester.pumpWidget(
+          _wrap(
+            OcptStyledScreenplayEditor(
+              text: "INT. HOUSE - DAY #9#\n\nEXT. GARDEN - NIGHT #2#",
+              pageSetup: const OcptPageSetup.standard(),
+              isPageSimulationEnabled: false,
+              areSceneNumbersVisible: false,
+              isSpellCheckVisible: false,
+              onTextChanged: (text) => lastEncoded = text,
+              onCaretLineChanged: (_) {},
+              jumpRequest: null,
+            ),
           ),
-        ),
-      );
-      await tester.pumpAndSettle();
+        );
+        await tester.pumpAndSettle();
 
-      expect(lastEncoded, "INT. HOUSE - DAY #1#\n\nEXT. GARDEN - NIGHT #2#");
-    });
+        expect(lastEncoded, "INT. HOUSE - DAY #1#\n\nEXT. GARDEN - NIGHT #2#");
+      },
+    );
   });
 
   group("copy, cut and paste keep block types", () {
@@ -2359,7 +2532,10 @@ void main() {
       await tester.placeCaretInParagraph(characterNode.id, 0);
       composer.setSelectionWithReason(
         DocumentSelection(
-          base: DocumentPosition(nodeId: characterNode.id, nodePosition: const TextNodePosition(offset: 0)),
+          base: DocumentPosition(
+            nodeId: characterNode.id,
+            nodePosition: const TextNodePosition(offset: 0),
+          ),
           extent: DocumentPosition(
             nodeId: dialogueNode.id,
             nodePosition: TextNodePosition(offset: dialogueNode.text.toPlainText().length),
@@ -2395,98 +2571,109 @@ void main() {
       );
     });
 
-    testWidgets("pasting a single-node fragment inside existing text inserts it inline without splitting the block", (
-      tester,
-    ) async {
-      var lastEncoded = "";
-      const text = "Some action text here.";
+    testWidgets(
+      "pasting a single-node fragment inside existing text inserts it inline without splitting the block",
+      (tester) async {
+        var lastEncoded = "";
+        const text = "Some action text here.";
 
-      await tester.pumpWidget(
-        _wrap(
-          OcptStyledScreenplayEditor(
-            text: text,
-            pageSetup: const OcptPageSetup.standard(),
-            isPageSimulationEnabled: false,
-            areSceneNumbersVisible: false,
-            isSpellCheckVisible: false,
-            onTextChanged: (value) => lastEncoded = value,
-            onCaretLineChanged: (_) {},
-            jumpRequest: null,
+        await tester.pumpWidget(
+          _wrap(
+            OcptStyledScreenplayEditor(
+              text: text,
+              pageSetup: const OcptPageSetup.standard(),
+              isPageSimulationEnabled: false,
+              areSceneNumbersVisible: false,
+              isSpellCheckVisible: false,
+              onTextChanged: (value) => lastEncoded = value,
+              onCaretLineChanged: (_) {},
+              jumpRequest: null,
+            ),
           ),
-        ),
-      );
-      await tester.pumpAndSettle();
+        );
+        await tester.pumpAndSettle();
 
-      final document = SuperEditorInspector.findDocument()!;
-      final composer = SuperEditorInspector.findComposer()! as MutableDocumentComposer;
-      final actionNode = _nodeAt(document, 0);
+        final document = SuperEditorInspector.findDocument()!;
+        final composer = SuperEditorInspector.findComposer()! as MutableDocumentComposer;
+        final actionNode = _nodeAt(document, 0);
 
-      // Placing the caret first is what actually gives the editor keyboard focus (a bare
-      // `setSelectionWithReason` doesn't); the expanded selection then overrides it.
-      await tester.placeCaretInParagraph(actionNode.id, 5);
-      composer.setSelectionWithReason(
-        DocumentSelection(
-          base: DocumentPosition(nodeId: actionNode.id, nodePosition: const TextNodePosition(offset: 5)),
-          extent: DocumentPosition(nodeId: actionNode.id, nodePosition: const TextNodePosition(offset: 11)),
-        ),
-      );
-      await tester.pump();
-
-      await _sendCtrl(tester, LogicalKeyboardKey.keyC);
-      await tester.pumpAndSettle();
-
-      await tester.placeCaretInParagraph(actionNode.id, 0);
-      await _sendCtrl(tester, LogicalKeyboardKey.keyV);
-      await tester.pumpAndSettle();
-
-      expect(document.nodeCount, 1);
-      expect(_typeAt(document, 0), FountainLineType.action);
-      expect(_nodeAt(document, 0).text.toPlainText(), "actionSome action text here.");
-
-      await tester.pump(const Duration(milliseconds: 150));
-      await tester.pump();
-      expect(lastEncoded, "actionSome action text here.");
-    });
-
-    testWidgets("cutting a selection removes it from the document and copies its Fountain text to the clipboard", (
-      tester,
-    ) async {
-      const text = "SARAH\nHello there.\n\nSome trailing action.";
-
-      await _pumpStandaloneEditor(tester, text);
-
-      final document = SuperEditorInspector.findDocument()!;
-      final composer = SuperEditorInspector.findComposer()! as MutableDocumentComposer;
-      final characterNode = _nodeAt(document, 0);
-      final dialogueNode = _nodeAt(document, 1);
-
-      // Placing the caret first is what actually gives the editor keyboard focus (a bare
-      // `setSelectionWithReason` doesn't); the expanded selection then overrides it.
-      await tester.placeCaretInParagraph(characterNode.id, 0);
-      composer.setSelectionWithReason(
-        DocumentSelection(
-          base: DocumentPosition(nodeId: characterNode.id, nodePosition: const TextNodePosition(offset: 0)),
-          extent: DocumentPosition(
-            nodeId: dialogueNode.id,
-            nodePosition: TextNodePosition(offset: dialogueNode.text.toPlainText().length),
+        // Placing the caret first is what actually gives the editor keyboard focus (a bare
+        // `setSelectionWithReason` doesn't); the expanded selection then overrides it.
+        await tester.placeCaretInParagraph(actionNode.id, 5);
+        composer.setSelectionWithReason(
+          DocumentSelection(
+            base: DocumentPosition(
+              nodeId: actionNode.id,
+              nodePosition: const TextNodePosition(offset: 5),
+            ),
+            extent: DocumentPosition(
+              nodeId: actionNode.id,
+              nodePosition: const TextNodePosition(offset: 11),
+            ),
           ),
-        ),
-      );
-      await tester.pump();
+        );
+        await tester.pump();
 
-      await _sendCtrl(tester, LogicalKeyboardKey.keyX);
-      await tester.pumpAndSettle();
+        await _sendCtrl(tester, LogicalKeyboardKey.keyC);
+        await tester.pumpAndSettle();
 
-      // super_editor's own `DeleteContentCommand` inserts a fresh empty paragraph in place of a
-      // selection that fully covered every node it touched, so there's somewhere for the caret to
-      // land — the deleted character cue and dialogue become one empty node, not zero.
-      expect(document.nodeCount, 2);
-      expect(_nodeAt(document, 0).text.toPlainText(), isEmpty);
-      expect(_nodeAt(document, 1).text.toPlainText(), "Some trailing action.");
+        await tester.placeCaretInParagraph(actionNode.id, 0);
+        await _sendCtrl(tester, LogicalKeyboardKey.keyV);
+        await tester.pumpAndSettle();
 
-      final clipboardData = await Clipboard.getData(Clipboard.kTextPlain);
-      expect(clipboardData?.text, "SARAH\nHello there.");
-    });
+        expect(document.nodeCount, 1);
+        expect(_typeAt(document, 0), FountainLineType.action);
+        expect(_nodeAt(document, 0).text.toPlainText(), "actionSome action text here.");
+
+        await tester.pump(const Duration(milliseconds: 150));
+        await tester.pump();
+        expect(lastEncoded, "actionSome action text here.");
+      },
+    );
+
+    testWidgets(
+      "cutting a selection removes it from the document and copies its Fountain text to the clipboard",
+      (tester) async {
+        const text = "SARAH\nHello there.\n\nSome trailing action.";
+
+        await _pumpStandaloneEditor(tester, text);
+
+        final document = SuperEditorInspector.findDocument()!;
+        final composer = SuperEditorInspector.findComposer()! as MutableDocumentComposer;
+        final characterNode = _nodeAt(document, 0);
+        final dialogueNode = _nodeAt(document, 1);
+
+        // Placing the caret first is what actually gives the editor keyboard focus (a bare
+        // `setSelectionWithReason` doesn't); the expanded selection then overrides it.
+        await tester.placeCaretInParagraph(characterNode.id, 0);
+        composer.setSelectionWithReason(
+          DocumentSelection(
+            base: DocumentPosition(
+              nodeId: characterNode.id,
+              nodePosition: const TextNodePosition(offset: 0),
+            ),
+            extent: DocumentPosition(
+              nodeId: dialogueNode.id,
+              nodePosition: TextNodePosition(offset: dialogueNode.text.toPlainText().length),
+            ),
+          ),
+        );
+        await tester.pump();
+
+        await _sendCtrl(tester, LogicalKeyboardKey.keyX);
+        await tester.pumpAndSettle();
+
+        // super_editor's own `DeleteContentCommand` inserts a fresh empty paragraph in place of a
+        // selection that fully covered every node it touched, so there's somewhere for the caret to
+        // land — the deleted character cue and dialogue become one empty node, not zero.
+        expect(document.nodeCount, 2);
+        expect(_nodeAt(document, 0).text.toPlainText(), isEmpty);
+        expect(_nodeAt(document, 1).text.toPlainText(), "Some trailing action.");
+
+        final clipboardData = await Clipboard.getData(Clipboard.kTextPlain);
+        expect(clipboardData?.text, "SARAH\nHello there.");
+      },
+    );
   });
 
   group("OcptStyledEditorController", () {
@@ -2500,7 +2687,9 @@ void main() {
       expect(controller.isAttached, isTrue);
     });
 
-    testWidgets("currentBlockType follows the caret across nodes of different types", (tester) async {
+    testWidgets("currentBlockType follows the caret across nodes of different types", (
+      tester,
+    ) async {
       final controller = OcptStyledEditorController();
       addTearDown(controller.dispose);
       const text = "INT. HOUSE - DAY\n\nSARAH\nHello.";
@@ -2522,7 +2711,9 @@ void main() {
       expect(controller.currentBlockType, FountainLineType.dialogue);
     });
 
-    testWidgets("currentBlockType follows a Tab cycle immediately, before the sync debounce", (tester) async {
+    testWidgets("currentBlockType follows a Tab cycle immediately, before the sync debounce", (
+      tester,
+    ) async {
       final controller = OcptStyledEditorController();
       addTearDown(controller.dispose);
 
@@ -2541,7 +2732,9 @@ void main() {
       expect(controller.currentBlockType, FountainLineType.character);
     });
 
-    testWidgets("setBlockType changes the live document's node blockType and locks it", (tester) async {
+    testWidgets("setBlockType changes the live document's node blockType and locks it", (
+      tester,
+    ) async {
       final controller = OcptStyledEditorController();
       addTearDown(controller.dispose);
 
@@ -2644,7 +2837,9 @@ void main() {
       return found;
     }
 
-    testWidgets("matches are highlighted, the current one more strongly than the rest", (tester) async {
+    testWidgets("matches are highlighted, the current one more strongly than the rest", (
+      tester,
+    ) async {
       final controller = OcptStyledEditorController();
       addTearDown(controller.dispose);
 
@@ -2655,16 +2850,25 @@ void main() {
       final secondNodeId = _nodeAt(document, 1).id;
 
       controller.updateSearch(
-        query: const OcptEditorSearchQuery(query: "Line", isCaseSensitive: false, isWholeWord: false),
+        query: const OcptEditorSearchQuery(
+          query: "Line",
+          isCaseSensitive: false,
+          isWholeWord: false,
+        ),
         currentMatchIndex: 0,
       );
       await tester.pump();
 
-      expect(styleOfSubstring(firstNodeId, "Line")?.backgroundColor, ocptEditorSearchCurrentMatchColor);
+      expect(
+        styleOfSubstring(firstNodeId, "Line")?.backgroundColor,
+        ocptEditorSearchCurrentMatchColor,
+      );
       expect(styleOfSubstring(secondNodeId, "Line")?.backgroundColor, ocptEditorSearchMatchColor);
     });
 
-    testWidgets("navigation moves the current match without stealing keyboard focus", (tester) async {
+    testWidgets("navigation moves the current match without stealing keyboard focus", (
+      tester,
+    ) async {
       final controller = OcptStyledEditorController();
       addTearDown(controller.dispose);
       // Stands in for the real find field's own `FocusNode`, which is what must keep the keyboard
@@ -2705,7 +2909,11 @@ void main() {
       final document = SuperEditorInspector.findDocument()!;
       final firstNodeId = _nodeAt(document, 0).id;
       final secondNodeId = _nodeAt(document, 1).id;
-      const query = OcptEditorSearchQuery(query: "Line", isCaseSensitive: false, isWholeWord: false);
+      const query = OcptEditorSearchQuery(
+        query: "Line",
+        isCaseSensitive: false,
+        isWholeWord: false,
+      );
 
       controller.updateSearch(query: query, currentMatchIndex: 0);
       await tester.pump();
@@ -2723,7 +2931,9 @@ void main() {
       expect(proxyFindFieldFocusNode.hasFocus, isTrue);
     });
 
-    testWidgets("a replacement reaches the encoded text and reports the next match's index", (tester) async {
+    testWidgets("a replacement reaches the encoded text and reports the next match's index", (
+      tester,
+    ) async {
       final controller = OcptStyledEditorController();
       addTearDown(controller.dispose);
       var lastEncoded = "";
@@ -2746,7 +2956,11 @@ void main() {
       await tester.pumpAndSettle();
 
       controller.updateSearch(
-        query: const OcptEditorSearchQuery(query: "Line", isCaseSensitive: false, isWholeWord: false),
+        query: const OcptEditorSearchQuery(
+          query: "Line",
+          isCaseSensitive: false,
+          isWholeWord: false,
+        ),
         currentMatchIndex: 0,
       );
       await tester.pump();
@@ -2787,7 +3001,11 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        const query = OcptEditorSearchQuery(query: "MARIE", isCaseSensitive: false, isWholeWord: false);
+        const query = OcptEditorSearchQuery(
+          query: "MARIE",
+          isCaseSensitive: false,
+          isWholeWord: false,
+        );
         controller.updateSearch(query: query, currentMatchIndex: 0);
         await tester.pump();
 
@@ -2840,7 +3058,12 @@ void main() {
         final controller = OcptStyledEditorController();
         addTearDown(controller.dispose);
 
-        await _pumpStandaloneEditor(tester, text, styledController: controller, isSpellCheckVisible: true);
+        await _pumpStandaloneEditor(
+          tester,
+          text,
+          styledController: controller,
+          isSpellCheckVisible: true,
+        );
 
         final document = SuperEditorInspector.findDocument()!;
         expect(_typeAt(document, 0), FountainLineType.sceneHeading);
@@ -2857,16 +3080,17 @@ void main() {
       },
     );
 
-    testWidgets("nothing at all is reported while OcptStyledScreenplayEditor.isSpellCheckVisible is false", (
-      tester,
-    ) async {
-      final controller = OcptStyledEditorController();
-      addTearDown(controller.dispose);
+    testWidgets(
+      "nothing at all is reported while OcptStyledScreenplayEditor.isSpellCheckVisible is false",
+      (tester) async {
+        final controller = OcptStyledEditorController();
+        addTearDown(controller.dispose);
 
-      await _pumpStandaloneEditor(tester, text, styledController: controller);
+        await _pumpStandaloneEditor(tester, text, styledController: controller);
 
-      expect(controller.spellCheckTextsByNodeId, isEmpty);
-    });
+        expect(controller.spellCheckTextsByNodeId, isEmpty);
+      },
+    );
 
     testWidgets("a title-page field node is never reported as checkable", (tester) async {
       final controller = OcptStyledEditorController();
@@ -2900,7 +3124,12 @@ void main() {
         final controller = OcptStyledEditorController();
         addTearDown(controller.dispose);
 
-        await _pumpStandaloneEditor(tester, text, styledController: controller, isSpellCheckVisible: true);
+        await _pumpStandaloneEditor(
+          tester,
+          text,
+          styledController: controller,
+          isSpellCheckVisible: true,
+        );
 
         final document = SuperEditorInspector.findDocument()!;
         final headingNodeId = _nodeAt(document, 0).id;
@@ -2921,7 +3150,9 @@ void main() {
         ).viewModel;
         expect(actionViewModel.spellingErrors, [const TextRange(start: 4, end: 9)]);
 
-        final cueViewModel = SuperEditorInspector.findWidgetForComponent<ParagraphComponent>(cueNodeId).viewModel;
+        final cueViewModel = SuperEditorInspector.findWidgetForComponent<ParagraphComponent>(
+          cueNodeId,
+        ).viewModel;
         expect(cueViewModel.spellingErrors, isEmpty);
 
         final headingViewModel = SuperEditorInspector.findWidgetForComponent<ParagraphComponent>(
@@ -2931,50 +3162,64 @@ void main() {
       },
     );
 
-    testWidgets("a range that no longer fits the node's current text length is dropped rather than painted", (
-      tester,
-    ) async {
-      final controller = OcptStyledEditorController();
-      addTearDown(controller.dispose);
+    testWidgets(
+      "a range that no longer fits the node's current text length is dropped rather than painted",
+      (tester) async {
+        final controller = OcptStyledEditorController();
+        addTearDown(controller.dispose);
 
-      await _pumpStandaloneEditor(tester, "Some action.", styledController: controller, isSpellCheckVisible: true);
+        await _pumpStandaloneEditor(
+          tester,
+          "Some action.",
+          styledController: controller,
+          isSpellCheckVisible: true,
+        );
 
-      final document = SuperEditorInspector.findDocument()!;
-      final nodeId = _nodeAt(document, 0).id;
+        final document = SuperEditorInspector.findDocument()!;
+        final nodeId = _nodeAt(document, 0).id;
 
-      // "Some action." is 12 characters long: a range reaching past that must be dropped, not
-      // handed to `TextError.spelling`, which would otherwise build a `TextRange` past the end of
-      // the text it addresses.
-      controller.updateSpellCheckRanges({
-        nodeId: [const SpellRange(0, 100)],
-      });
-      await tester.pump();
+        // "Some action." is 12 characters long: a range reaching past that must be dropped, not
+        // handed to `TextError.spelling`, which would otherwise build a `TextRange` past the end of
+        // the text it addresses.
+        controller.updateSpellCheckRanges({
+          nodeId: [const SpellRange(0, 100)],
+        });
+        await tester.pump();
 
-      final viewModel = SuperEditorInspector.findWidgetForComponent<ParagraphComponent>(nodeId).viewModel;
-      expect(viewModel.spellingErrors, isEmpty);
-    });
+        final viewModel = SuperEditorInspector.findWidgetForComponent<ParagraphComponent>(
+          nodeId,
+        ).viewModel;
+        expect(viewModel.spellingErrors, isEmpty);
+      },
+    );
 
-    testWidgets("a range for a node id the live document no longer holds is ignored rather than crashing", (
-      tester,
-    ) async {
-      final controller = OcptStyledEditorController();
-      addTearDown(controller.dispose);
+    testWidgets(
+      "a range for a node id the live document no longer holds is ignored rather than crashing",
+      (tester) async {
+        final controller = OcptStyledEditorController();
+        addTearDown(controller.dispose);
 
-      await _pumpStandaloneEditor(tester, "Some action.", styledController: controller, isSpellCheckVisible: true);
+        await _pumpStandaloneEditor(
+          tester,
+          "Some action.",
+          styledController: controller,
+          isSpellCheckVisible: true,
+        );
 
-      controller.updateSpellCheckRanges({
-        "not-a-real-node-id": [const SpellRange(0, 3)],
-      });
-      await tester.pump();
+        controller.updateSpellCheckRanges({
+          "not-a-real-node-id": [const SpellRange(0, 3)],
+        });
+        await tester.pump();
 
-      // No exception thrown reaching here is the assertion itself; the fresh document still shows
-      // no error, matching the case above.
-      final document = SuperEditorInspector.findDocument()!;
-      final viewModel = SuperEditorInspector.findWidgetForComponent<ParagraphComponent>(
-        _nodeAt(document, 0).id,
-      ).viewModel;
-      expect(viewModel.spellingErrors, isEmpty);
-    });
+        // No exception thrown reaching here is the assertion itself; the fresh document still shows
+        // no error, matching the case above.
+        final document = SuperEditorInspector.findDocument()!;
+        final viewModel = SuperEditorInspector.findWidgetForComponent<ParagraphComponent>(
+          _nodeAt(document, 0).id,
+        ).viewModel;
+        expect(viewModel.spellingErrors, isEmpty);
+      },
+    );
 
     test("updateSpellCheckRanges is re-pushed to a delegate attaching afterwards", () {
       final controller = OcptStyledEditorController();
@@ -2997,96 +3242,101 @@ void main() {
   });
 
   group("a parenthetical opens on ()", () {
-    testWidgets("setBlockType(parenthetical) on an empty block inserts () and places the caret between them", (
-      tester,
-    ) async {
-      final controller = OcptStyledEditorController();
-      addTearDown(controller.dispose);
+    testWidgets(
+      "setBlockType(parenthetical) on an empty block inserts () and places the caret between them",
+      (tester) async {
+        final controller = OcptStyledEditorController();
+        addTearDown(controller.dispose);
 
-      await _pumpStandaloneEditor(tester, "", styledController: controller);
+        await _pumpStandaloneEditor(tester, "", styledController: controller);
 
-      final document = SuperEditorInspector.findDocument()!;
-      final nodeId = _nodeAt(document, 0).id;
-      await tester.placeCaretInParagraph(nodeId, 0);
+        final document = SuperEditorInspector.findDocument()!;
+        final nodeId = _nodeAt(document, 0).id;
+        await tester.placeCaretInParagraph(nodeId, 0);
 
-      controller.setBlockType(FountainLineType.parenthetical);
-      await tester.pump();
+        controller.setBlockType(FountainLineType.parenthetical);
+        await tester.pump();
 
-      expect(_typeAt(document, 0), FountainLineType.parenthetical);
-      expect(_isLockedAt(document, 0), isTrue);
-      expect(_nodeAt(document, 0).text.toPlainText(), "()");
+        expect(_typeAt(document, 0), FountainLineType.parenthetical);
+        expect(_isLockedAt(document, 0), isTrue);
+        expect(_nodeAt(document, 0).text.toPlainText(), "()");
 
-      final selection = SuperEditorInspector.findDocumentSelection();
-      expect(selection, isNotNull);
-      expect(selection!.isCollapsed, isTrue);
-      expect(selection.extent.nodeId, nodeId);
-      expect((selection.extent.nodePosition as TextNodePosition).offset, 1);
-    });
+        final selection = SuperEditorInspector.findDocumentSelection();
+        expect(selection, isNotNull);
+        expect(selection!.isCollapsed, isTrue);
+        expect(selection.extent.nodeId, nodeId);
+        expect((selection.extent.nodePosition as TextNodePosition).offset, 1);
+      },
+    );
 
-    testWidgets("setBlockType(parenthetical) on a block that already holds text leaves the text untouched", (
-      tester,
-    ) async {
-      final controller = OcptStyledEditorController();
-      addTearDown(controller.dispose);
+    testWidgets(
+      "setBlockType(parenthetical) on a block that already holds text leaves the text untouched",
+      (tester) async {
+        final controller = OcptStyledEditorController();
+        addTearDown(controller.dispose);
 
-      await _pumpStandaloneEditor(tester, "Some action text.", styledController: controller);
+        await _pumpStandaloneEditor(tester, "Some action text.", styledController: controller);
 
-      final document = SuperEditorInspector.findDocument()!;
-      final nodeId = _nodeAt(document, 0).id;
-      await tester.placeCaretInParagraph(nodeId, 0);
+        final document = SuperEditorInspector.findDocument()!;
+        final nodeId = _nodeAt(document, 0).id;
+        await tester.placeCaretInParagraph(nodeId, 0);
 
-      controller.setBlockType(FountainLineType.parenthetical);
-      await tester.pump();
+        controller.setBlockType(FountainLineType.parenthetical);
+        await tester.pump();
 
-      expect(_typeAt(document, 0), FountainLineType.parenthetical);
-      expect(_nodeAt(document, 0).text.toPlainText(), "Some action text.");
-    });
+        expect(_typeAt(document, 0), FountainLineType.parenthetical);
+        expect(_nodeAt(document, 0).text.toPlainText(), "Some action text.");
+      },
+    );
 
-    testWidgets("Tab-cycling onto parenthetical from an empty block inserts the () pair, and the encoded "
-        "text carries it through the sync debounce", (tester) async {
-      var lastEncoded = "";
-      await tester.pumpWidget(
-        _wrap(
-          OcptStyledScreenplayEditor(
-            text: "",
-            pageSetup: const OcptPageSetup.standard(),
-            isPageSimulationEnabled: false,
-            areSceneNumbersVisible: false,
-            isSpellCheckVisible: false,
-            onTextChanged: (value) => lastEncoded = value,
-            onCaretLineChanged: (_) {},
-            jumpRequest: null,
+    testWidgets(
+      "Tab-cycling onto parenthetical from an empty block inserts the () pair, and the encoded "
+      "text carries it through the sync debounce",
+      (tester) async {
+        var lastEncoded = "";
+        await tester.pumpWidget(
+          _wrap(
+            OcptStyledScreenplayEditor(
+              text: "",
+              pageSetup: const OcptPageSetup.standard(),
+              isPageSimulationEnabled: false,
+              areSceneNumbersVisible: false,
+              isSpellCheckVisible: false,
+              onTextChanged: (value) => lastEncoded = value,
+              onCaretLineChanged: (_) {},
+              jumpRequest: null,
+            ),
           ),
-        ),
-      );
-      await tester.pumpAndSettle();
+        );
+        await tester.pumpAndSettle();
 
-      final document = SuperEditorInspector.findDocument()!;
-      final nodeId = _nodeAt(document, 0).id;
-      await tester.placeCaretInParagraph(nodeId, 0);
-      // An empty block auto-detects as `action`, and `parenthetical` sits two steps further down
-      // the cycle, right after `character`: hence the two Tab presses below.
-      expect(_typeAt(document, 0), FountainLineType.action);
+        final document = SuperEditorInspector.findDocument()!;
+        final nodeId = _nodeAt(document, 0).id;
+        await tester.placeCaretInParagraph(nodeId, 0);
+        // An empty block auto-detects as `action`, and `parenthetical` sits two steps further down
+        // the cycle, right after `character`: hence the two Tab presses below.
+        expect(_typeAt(document, 0), FountainLineType.action);
 
-      await tester.sendKeyEvent(LogicalKeyboardKey.tab);
-      await tester.pump();
-      expect(_typeAt(document, 0), FountainLineType.character);
+        await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+        await tester.pump();
+        expect(_typeAt(document, 0), FountainLineType.character);
 
-      await tester.sendKeyEvent(LogicalKeyboardKey.tab);
-      await tester.pump();
+        await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+        await tester.pump();
 
-      expect(_typeAt(document, 0), FountainLineType.parenthetical);
-      expect(_nodeAt(document, 0).text.toPlainText(), "()");
+        expect(_typeAt(document, 0), FountainLineType.parenthetical);
+        expect(_nodeAt(document, 0).text.toPlainText(), "()");
 
-      final selection = SuperEditorInspector.findDocumentSelection();
-      expect(selection, isNotNull);
-      expect(selection!.extent.nodeId, nodeId);
-      expect((selection.extent.nodePosition as TextNodePosition).offset, 1);
+        final selection = SuperEditorInspector.findDocumentSelection();
+        expect(selection, isNotNull);
+        expect(selection!.extent.nodeId, nodeId);
+        expect((selection.extent.nodePosition as TextNodePosition).offset, 1);
 
-      await tester.pump(const Duration(milliseconds: 150));
-      await tester.pump();
-      expect(lastEncoded.contains("()"), isTrue);
-    });
+        await tester.pump(const Duration(milliseconds: 150));
+        await tester.pump();
+        expect(lastEncoded.contains("()"), isTrue);
+      },
+    );
   });
 
   group("right-click context menu", () {
@@ -3117,219 +3367,249 @@ void main() {
       );
     });
 
-    _testWidgetsAsDesktop("right-clicking with a collapsed caret shows Paste, Select all and Block type, but "
-        "neither Cut nor Copy", (tester) async {
-      await _pumpStandaloneEditor(tester, "Some action text.");
+    _testWidgetsAsDesktop(
+      "right-clicking with a collapsed caret shows Paste, Select all and Block type, but "
+      "neither Cut nor Copy",
+      (tester) async {
+        await _pumpStandaloneEditor(tester, "Some action text.");
 
-      final document = SuperEditorInspector.findDocument()!;
-      final nodeId = _nodeAt(document, 0).id;
-      final tapOffset = _tapOffsetInsideText(nodeId);
+        final document = SuperEditorInspector.findDocument()!;
+        final nodeId = _nodeAt(document, 0).id;
+        final tapOffset = _tapOffsetInsideText(nodeId);
 
-      await tester.tapAt(tapOffset, buttons: kSecondaryButton);
-      await tester.pumpAndSettle();
+        await tester.tapAt(tapOffset, buttons: kSecondaryButton);
+        await tester.pumpAndSettle();
 
-      final tr = Tr.of(tester.element(find.byType(OcptStyledScreenplayEditor)));
-      expect(find.text(tr.editorContextMenuPasteAction), findsOneWidget);
-      expect(find.text(tr.editorContextMenuSelectAllAction), findsOneWidget);
-      expect(find.text(tr.editorContextMenuBlockTypeSubmenu), findsOneWidget);
-      expect(find.text(tr.editorContextMenuCutAction), findsNothing);
-      expect(find.text(tr.editorContextMenuCopyAction), findsNothing);
-    });
+        final tr = Tr.of(tester.element(find.byType(OcptStyledScreenplayEditor)));
+        expect(find.text(tr.editorContextMenuPasteAction), findsOneWidget);
+        expect(find.text(tr.editorContextMenuSelectAllAction), findsOneWidget);
+        expect(find.text(tr.editorContextMenuBlockTypeSubmenu), findsOneWidget);
+        expect(find.text(tr.editorContextMenuCutAction), findsNothing);
+        expect(find.text(tr.editorContextMenuCopyAction), findsNothing);
+      },
+    );
 
-    _testWidgetsAsDesktop("right-clicking with an expanded selection shows Cut and Copy too, and picking Copy "
-        "puts that selection's Fountain source on the clipboard", (tester) async {
-      const text = "SARAH\nHello there.\n\nSome trailing action.";
-      await _pumpStandaloneEditor(tester, text);
+    _testWidgetsAsDesktop(
+      "right-clicking with an expanded selection shows Cut and Copy too, and picking Copy "
+      "puts that selection's Fountain source on the clipboard",
+      (tester) async {
+        const text = "SARAH\nHello there.\n\nSome trailing action.";
+        await _pumpStandaloneEditor(tester, text);
 
-      final document = SuperEditorInspector.findDocument()!;
-      final composer = SuperEditorInspector.findComposer()! as MutableDocumentComposer;
-      final characterNode = _nodeAt(document, 0);
-      final dialogueNode = _nodeAt(document, 1);
+        final document = SuperEditorInspector.findDocument()!;
+        final composer = SuperEditorInspector.findComposer()! as MutableDocumentComposer;
+        final characterNode = _nodeAt(document, 0);
+        final dialogueNode = _nodeAt(document, 1);
 
-      // Placing the caret first is what actually gives the editor keyboard focus (a bare
-      // `setSelectionWithReason` doesn't); the expanded selection then overrides it.
-      await tester.placeCaretInParagraph(characterNode.id, 0);
-      composer.setSelectionWithReason(
-        DocumentSelection(
-          base: DocumentPosition(nodeId: characterNode.id, nodePosition: const TextNodePosition(offset: 0)),
+        // Placing the caret first is what actually gives the editor keyboard focus (a bare
+        // `setSelectionWithReason` doesn't); the expanded selection then overrides it.
+        await tester.placeCaretInParagraph(characterNode.id, 0);
+        composer.setSelectionWithReason(
+          DocumentSelection(
+            base: DocumentPosition(
+              nodeId: characterNode.id,
+              nodePosition: const TextNodePosition(offset: 0),
+            ),
+            extent: DocumentPosition(
+              nodeId: dialogueNode.id,
+              nodePosition: TextNodePosition(offset: dialogueNode.text.toPlainText().length),
+            ),
+          ),
+        );
+        await tester.pump();
+
+        final tapOffset = _tapOffsetInsideText(dialogueNode.id);
+        await tester.tapAt(tapOffset, buttons: kSecondaryButton);
+        await tester.pumpAndSettle();
+
+        final tr = Tr.of(tester.element(find.byType(OcptStyledScreenplayEditor)));
+        expect(find.text(tr.editorContextMenuCutAction), findsOneWidget);
+        expect(find.text(tr.editorContextMenuCopyAction), findsOneWidget);
+
+        await tester.tap(find.text(tr.editorContextMenuCopyAction));
+        await tester.pumpAndSettle();
+
+        final clipboardData = await Clipboard.getData(Clipboard.kTextPlain);
+        expect(clipboardData?.text, "SARAH\nHello there.");
+      },
+    );
+
+    _testWidgetsAsDesktop(
+      "picking Paste inserts the clipboard's Fountain source at the caret, block types "
+      "and all",
+      (tester) async {
+        var lastEncoded = "";
+        await tester.pumpWidget(
+          _wrap(
+            OcptStyledScreenplayEditor(
+              text: "Some trailing action.",
+              pageSetup: const OcptPageSetup.standard(),
+              isPageSimulationEnabled: false,
+              areSceneNumbersVisible: false,
+              isSpellCheckVisible: false,
+              onTextChanged: (value) => lastEncoded = value,
+              onCaretLineChanged: (_) {},
+              jumpRequest: null,
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        // Fountain source put on the clipboard by anything at all — another app, or this editor's own
+        // Copy: the payload is plain Fountain text either way, which is the whole point of sharing
+        // `ocptPasteFountainClipboardContent` with the Ctrl+V handler.
+        await Clipboard.setData(const ClipboardData(text: "SARAH\nHello there."));
+
+        final document = SuperEditorInspector.findDocument()!;
+        final actionNode = _nodeAt(document, 0);
+        // A fresh empty line at the very end of the document, the common "paste elsewhere" target.
+        await tester.placeCaretInParagraph(actionNode.id, actionNode.text.toPlainText().length);
+        await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+        await tester.pump();
+
+        await tester.tapAt(
+          _tapOffsetInsideText(_nodeAt(document, 1).id),
+          buttons: kSecondaryButton,
+        );
+        await tester.pumpAndSettle();
+
+        final tr = Tr.of(tester.element(find.byType(OcptStyledScreenplayEditor)));
+        await tester.tap(find.text(tr.editorContextMenuPasteAction));
+        await tester.pumpAndSettle();
+
+        expect(document.nodeCount, 3);
+        expect(_typeAt(document, 1), FountainLineType.character);
+        expect(_nodeAt(document, 1).text.toPlainText(), "SARAH");
+        expect(_typeAt(document, 2), FountainLineType.dialogue);
+        expect(_nodeAt(document, 2).text.toPlainText(), "Hello there.");
+
+        await tester.pump(const Duration(milliseconds: 150));
+        await tester.pump();
+        expect(lastEncoded, "Some trailing action.\n\nSARAH\nHello there.");
+      },
+    );
+
+    _testWidgetsAsDesktop(
+      "right-clicking a different block than the one holding the caret retypes THAT block "
+      "through the submenu, not the previously-focused one",
+      (tester) async {
+        const text = "INT. HOUSE - DAY\n\nSome action text.";
+        await _pumpStandaloneEditor(tester, text);
+
+        final document = SuperEditorInspector.findDocument()!;
+        final headingNode = _nodeAt(document, 0);
+        final actionNode = _nodeAt(document, 1);
+
+        await tester.placeCaretInParagraph(headingNode.id, 0);
+
+        final tapOffset = _tapOffsetInsideText(actionNode.id);
+        await tester.tapAt(tapOffset, buttons: kSecondaryButton);
+        await tester.pumpAndSettle();
+
+        final tr = Tr.of(tester.element(find.byType(OcptStyledScreenplayEditor)));
+        await tester.tap(find.text(tr.editorContextMenuBlockTypeSubmenu));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text(ocptFountainLineTypeLabel(tr, FountainLineType.character)));
+        await tester.pumpAndSettle();
+
+        // The heading (where the caret used to sit) is untouched; the action block the right-click
+        // actually landed on is the one that got retyped.
+        expect(_typeAt(document, 0), FountainLineType.sceneHeading);
+        expect(_typeAt(document, 1), FountainLineType.character);
+      },
+    );
+
+    _testWidgetsAsDesktop(
+      "right-clicking inside an existing expanded selection leaves that selection intact",
+      (tester) async {
+        const text = "SARAH\nHello there.\n\nSome trailing action.";
+        await _pumpStandaloneEditor(tester, text);
+
+        final document = SuperEditorInspector.findDocument()!;
+        final composer = SuperEditorInspector.findComposer()! as MutableDocumentComposer;
+        final characterNode = _nodeAt(document, 0);
+        final dialogueNode = _nodeAt(document, 1);
+
+        await tester.placeCaretInParagraph(characterNode.id, 0);
+        final expandedSelection = DocumentSelection(
+          base: DocumentPosition(
+            nodeId: characterNode.id,
+            nodePosition: const TextNodePosition(offset: 0),
+          ),
           extent: DocumentPosition(
             nodeId: dialogueNode.id,
             nodePosition: TextNodePosition(offset: dialogueNode.text.toPlainText().length),
           ),
-        ),
-      );
-      await tester.pump();
+        );
+        composer.setSelectionWithReason(expandedSelection);
+        await tester.pump();
 
-      final tapOffset = _tapOffsetInsideText(dialogueNode.id);
-      await tester.tapAt(tapOffset, buttons: kSecondaryButton);
-      await tester.pumpAndSettle();
+        // The tap lands on the character cue, itself inside the selection's own range.
+        final tapOffset = _tapOffsetInsideText(characterNode.id);
+        await tester.tapAt(tapOffset, buttons: kSecondaryButton);
+        await tester.pumpAndSettle();
 
-      final tr = Tr.of(tester.element(find.byType(OcptStyledScreenplayEditor)));
-      expect(find.text(tr.editorContextMenuCutAction), findsOneWidget);
-      expect(find.text(tr.editorContextMenuCopyAction), findsOneWidget);
+        expect(SuperEditorInspector.findDocumentSelection(), expandedSelection);
+      },
+    );
 
-      await tester.tap(find.text(tr.editorContextMenuCopyAction));
-      await tester.pumpAndSettle();
+    _testWidgetsAsDesktop(
+      "picking a type in the submenu changes the block's type and locks it, exactly like "
+      "the toolbar dropdown",
+      (tester) async {
+        await _pumpStandaloneEditor(tester, "Some action text.");
 
-      final clipboardData = await Clipboard.getData(Clipboard.kTextPlain);
-      expect(clipboardData?.text, "SARAH\nHello there.");
-    });
+        final document = SuperEditorInspector.findDocument()!;
+        final nodeId = _nodeAt(document, 0).id;
+        final tapOffset = _tapOffsetInsideText(nodeId);
 
-    _testWidgetsAsDesktop("picking Paste inserts the clipboard's Fountain source at the caret, block types "
-        "and all", (tester) async {
-      var lastEncoded = "";
-      await tester.pumpWidget(
-        _wrap(
-          OcptStyledScreenplayEditor(
-            text: "Some trailing action.",
-            pageSetup: const OcptPageSetup.standard(),
-            isPageSimulationEnabled: false,
-            areSceneNumbersVisible: false,
-            isSpellCheckVisible: false,
-            onTextChanged: (value) => lastEncoded = value,
-            onCaretLineChanged: (_) {},
-            jumpRequest: null,
-          ),
-        ),
-      );
-      await tester.pumpAndSettle();
+        expect(_typeAt(document, 0), FountainLineType.action);
+        expect(_isLockedAt(document, 0), isFalse);
 
-      // Fountain source put on the clipboard by anything at all — another app, or this editor's own
-      // Copy: the payload is plain Fountain text either way, which is the whole point of sharing
-      // `ocptPasteFountainClipboardContent` with the Ctrl+V handler.
-      await Clipboard.setData(const ClipboardData(text: "SARAH\nHello there."));
+        await tester.tapAt(tapOffset, buttons: kSecondaryButton);
+        await tester.pumpAndSettle();
 
-      final document = SuperEditorInspector.findDocument()!;
-      final actionNode = _nodeAt(document, 0);
-      // A fresh empty line at the very end of the document, the common "paste elsewhere" target.
-      await tester.placeCaretInParagraph(actionNode.id, actionNode.text.toPlainText().length);
-      await tester.sendKeyEvent(LogicalKeyboardKey.enter);
-      await tester.pump();
+        final tr = Tr.of(tester.element(find.byType(OcptStyledScreenplayEditor)));
+        await tester.tap(find.text(tr.editorContextMenuBlockTypeSubmenu));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text(ocptFountainLineTypeLabel(tr, FountainLineType.character)));
+        await tester.pumpAndSettle();
 
-      await tester.tapAt(_tapOffsetInsideText(_nodeAt(document, 1).id), buttons: kSecondaryButton);
-      await tester.pumpAndSettle();
+        expect(_typeAt(document, 0), FountainLineType.character);
+        expect(_isLockedAt(document, 0), isTrue);
+      },
+    );
 
-      final tr = Tr.of(tester.element(find.byType(OcptStyledScreenplayEditor)));
-      await tester.tap(find.text(tr.editorContextMenuPasteAction));
-      await tester.pumpAndSettle();
+    _testWidgetsAsDesktop(
+      "a left click elsewhere on the document closes the menu and still places the "
+      "caret",
+      (tester) async {
+        const text = "INT. HOUSE - DAY\n\nSome action text.";
+        await _pumpStandaloneEditor(tester, text);
 
-      expect(document.nodeCount, 3);
-      expect(_typeAt(document, 1), FountainLineType.character);
-      expect(_nodeAt(document, 1).text.toPlainText(), "SARAH");
-      expect(_typeAt(document, 2), FountainLineType.dialogue);
-      expect(_nodeAt(document, 2).text.toPlainText(), "Hello there.");
+        final document = SuperEditorInspector.findDocument()!;
+        final headingNode = _nodeAt(document, 0);
+        final actionNode = _nodeAt(document, 1);
 
-      await tester.pump(const Duration(milliseconds: 150));
-      await tester.pump();
-      expect(lastEncoded, "Some trailing action.\n\nSARAH\nHello there.");
-    });
+        // Right-clicked on the lower node and left-clicked back on the upper one, so the second click
+        // lands on the document itself rather than on the menu the first one just opened below it.
+        await tester.tapAt(_tapOffsetInsideText(actionNode.id), buttons: kSecondaryButton);
+        await tester.pumpAndSettle();
 
-    _testWidgetsAsDesktop("right-clicking a different block than the one holding the caret retypes THAT block "
-        "through the submenu, not the previously-focused one", (tester) async {
-      const text = "INT. HOUSE - DAY\n\nSome action text.";
-      await _pumpStandaloneEditor(tester, text);
+        final tr = Tr.of(tester.element(find.byType(OcptStyledScreenplayEditor)));
+        expect(find.text(tr.editorContextMenuSelectAllAction), findsOneWidget);
 
-      final document = SuperEditorInspector.findDocument()!;
-      final headingNode = _nodeAt(document, 0);
-      final actionNode = _nodeAt(document, 1);
+        await tester.tapAt(_tapOffsetInsideText(headingNode.id));
+        await tester.pumpAndSettle();
 
-      await tester.placeCaretInParagraph(headingNode.id, 0);
+        expect(find.text(tr.editorContextMenuSelectAllAction), findsNothing);
+        expect(SuperEditorInspector.findDocumentSelection()?.extent.nodeId, headingNode.id);
+      },
+    );
 
-      final tapOffset = _tapOffsetInsideText(actionNode.id);
-      await tester.tapAt(tapOffset, buttons: kSecondaryButton);
-      await tester.pumpAndSettle();
-
-      final tr = Tr.of(tester.element(find.byType(OcptStyledScreenplayEditor)));
-      await tester.tap(find.text(tr.editorContextMenuBlockTypeSubmenu));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text(ocptFountainLineTypeLabel(tr, FountainLineType.character)));
-      await tester.pumpAndSettle();
-
-      // The heading (where the caret used to sit) is untouched; the action block the right-click
-      // actually landed on is the one that got retyped.
-      expect(_typeAt(document, 0), FountainLineType.sceneHeading);
-      expect(_typeAt(document, 1), FountainLineType.character);
-    });
-
-    _testWidgetsAsDesktop("right-clicking inside an existing expanded selection leaves that selection intact", (
+    _testWidgetsAsDesktop("Select all expands the selection across the whole document", (
       tester,
     ) async {
-      const text = "SARAH\nHello there.\n\nSome trailing action.";
-      await _pumpStandaloneEditor(tester, text);
-
-      final document = SuperEditorInspector.findDocument()!;
-      final composer = SuperEditorInspector.findComposer()! as MutableDocumentComposer;
-      final characterNode = _nodeAt(document, 0);
-      final dialogueNode = _nodeAt(document, 1);
-
-      await tester.placeCaretInParagraph(characterNode.id, 0);
-      final expandedSelection = DocumentSelection(
-        base: DocumentPosition(nodeId: characterNode.id, nodePosition: const TextNodePosition(offset: 0)),
-        extent: DocumentPosition(
-          nodeId: dialogueNode.id,
-          nodePosition: TextNodePosition(offset: dialogueNode.text.toPlainText().length),
-        ),
-      );
-      composer.setSelectionWithReason(expandedSelection);
-      await tester.pump();
-
-      // The tap lands on the character cue, itself inside the selection's own range.
-      final tapOffset = _tapOffsetInsideText(characterNode.id);
-      await tester.tapAt(tapOffset, buttons: kSecondaryButton);
-      await tester.pumpAndSettle();
-
-      expect(SuperEditorInspector.findDocumentSelection(), expandedSelection);
-    });
-
-    _testWidgetsAsDesktop("picking a type in the submenu changes the block's type and locks it, exactly like "
-        "the toolbar dropdown", (tester) async {
-      await _pumpStandaloneEditor(tester, "Some action text.");
-
-      final document = SuperEditorInspector.findDocument()!;
-      final nodeId = _nodeAt(document, 0).id;
-      final tapOffset = _tapOffsetInsideText(nodeId);
-
-      expect(_typeAt(document, 0), FountainLineType.action);
-      expect(_isLockedAt(document, 0), isFalse);
-
-      await tester.tapAt(tapOffset, buttons: kSecondaryButton);
-      await tester.pumpAndSettle();
-
-      final tr = Tr.of(tester.element(find.byType(OcptStyledScreenplayEditor)));
-      await tester.tap(find.text(tr.editorContextMenuBlockTypeSubmenu));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text(ocptFountainLineTypeLabel(tr, FountainLineType.character)));
-      await tester.pumpAndSettle();
-
-      expect(_typeAt(document, 0), FountainLineType.character);
-      expect(_isLockedAt(document, 0), isTrue);
-    });
-
-    _testWidgetsAsDesktop("a left click elsewhere on the document closes the menu and still places the "
-        "caret", (tester) async {
-      const text = "INT. HOUSE - DAY\n\nSome action text.";
-      await _pumpStandaloneEditor(tester, text);
-
-      final document = SuperEditorInspector.findDocument()!;
-      final headingNode = _nodeAt(document, 0);
-      final actionNode = _nodeAt(document, 1);
-
-      // Right-clicked on the lower node and left-clicked back on the upper one, so the second click
-      // lands on the document itself rather than on the menu the first one just opened below it.
-      await tester.tapAt(_tapOffsetInsideText(actionNode.id), buttons: kSecondaryButton);
-      await tester.pumpAndSettle();
-
-      final tr = Tr.of(tester.element(find.byType(OcptStyledScreenplayEditor)));
-      expect(find.text(tr.editorContextMenuSelectAllAction), findsOneWidget);
-
-      await tester.tapAt(_tapOffsetInsideText(headingNode.id));
-      await tester.pumpAndSettle();
-
-      expect(find.text(tr.editorContextMenuSelectAllAction), findsNothing);
-      expect(SuperEditorInspector.findDocumentSelection()?.extent.nodeId, headingNode.id);
-    });
-
-    _testWidgetsAsDesktop("Select all expands the selection across the whole document", (tester) async {
       const text = "INT. HOUSE - DAY\n\nSome action text.";
       await _pumpStandaloneEditor(tester, text);
 
@@ -3557,26 +3837,27 @@ void main() {
       expect(_nodeAt(document, 0).text.toPlainText(), "A");
     });
 
-    testWidgets("Ctrl+Y redoes what Ctrl+Z just undid (the Windows habit Ctrl+Shift+Z coexists with)", (
-      tester,
-    ) async {
-      await _pumpStandaloneEditor(tester, "");
+    testWidgets(
+      "Ctrl+Y redoes what Ctrl+Z just undid (the Windows habit Ctrl+Shift+Z coexists with)",
+      (tester) async {
+        await _pumpStandaloneEditor(tester, "");
 
-      final document = SuperEditorInspector.findDocument()!;
-      final nodeId = _nodeAt(document, 0).id;
-      await tester.placeCaretInParagraph(nodeId, 0);
-      await tester.typeImeText("A");
+        final document = SuperEditorInspector.findDocument()!;
+        final nodeId = _nodeAt(document, 0).id;
+        await tester.placeCaretInParagraph(nodeId, 0);
+        await tester.typeImeText("A");
 
-      await _sendCtrl(tester, LogicalKeyboardKey.keyZ);
-      await tester.pumpAndSettle();
-      expect(_nodeAt(document, 0).text.toPlainText(), "");
+        await _sendCtrl(tester, LogicalKeyboardKey.keyZ);
+        await tester.pumpAndSettle();
+        expect(_nodeAt(document, 0).text.toPlainText(), "");
 
-      await _sendCtrl(tester, LogicalKeyboardKey.keyY);
-      await tester.pumpAndSettle();
+        await _sendCtrl(tester, LogicalKeyboardKey.keyY);
+        await tester.pumpAndSettle();
 
-      expect(document.nodeCount, 1);
-      expect(_nodeAt(document, 0).text.toPlainText(), "A");
-    });
+        expect(document.nodeCount, 1);
+        expect(_nodeAt(document, 0).text.toPlainText(), "A");
+      },
+    );
   });
 
   group("one gesture, one undo step", () {
@@ -3667,7 +3948,9 @@ void main() {
       expect(_nodeAt(document, 0).text.toPlainText(), "");
     });
 
-    testWidgets("the settle pass that follows an undo writes no history of its own", (tester) async {
+    testWidgets("the settle pass that follows an undo writes no history of its own", (
+      tester,
+    ) async {
       await _pumpStandaloneEditor(tester, "");
 
       final document = SuperEditorInspector.findDocument()!;
@@ -3718,33 +4001,37 @@ void main() {
       final selection = SuperEditorInspector.findDocumentSelection();
       expect(selection, isNotNull);
       expect(selection!.extent.nodeId, originalNodeId);
-      expect((selection.extent.nodePosition as TextNodePosition).offset, "Some action text.".length);
+      expect(
+        (selection.extent.nodePosition as TextNodePosition).offset,
+        "Some action text.".length,
+      );
     });
 
-    testWidgets("a scene number the editor renumbered comes back with the gesture that shifted it", (
-      tester,
-    ) async {
-      await _pumpStandaloneEditor(tester, "INT. HOUSE - DAY\n\nEXT. GARDEN - NIGHT");
+    testWidgets(
+      "a scene number the editor renumbered comes back with the gesture that shifted it",
+      (tester) async {
+        await _pumpStandaloneEditor(tester, "INT. HOUSE - DAY\n\nEXT. GARDEN - NIGHT");
 
-      final document = SuperEditorInspector.findDocument()!;
-      expect(_sceneNumberAt(document, 0), "1");
-      expect(_sceneNumberAt(document, 1), "2");
+        final document = SuperEditorInspector.findDocument()!;
+        expect(_sceneNumberAt(document, 0), "1");
+        expect(_sceneNumberAt(document, 1), "2");
 
-      // Tab cycles a scene heading to `action`: the second heading is then the only one left, and
-      // the settle pass renumbers it from 2 to 1.
-      await tester.placeCaretInParagraph(_nodeAt(document, 0).id, 0);
-      await tester.sendKeyEvent(LogicalKeyboardKey.tab);
-      await _pumpPastSettleDebounce(tester);
-      expect(_typeAt(document, 0), FountainLineType.action);
-      expect(_sceneNumberAt(document, 1), "1");
+        // Tab cycles a scene heading to `action`: the second heading is then the only one left, and
+        // the settle pass renumbers it from 2 to 1.
+        await tester.placeCaretInParagraph(_nodeAt(document, 0).id, 0);
+        await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+        await _pumpPastSettleDebounce(tester);
+        expect(_typeAt(document, 0), FountainLineType.action);
+        expect(_sceneNumberAt(document, 1), "1");
 
-      await _sendCtrl(tester, LogicalKeyboardKey.keyZ);
-      await _pumpPastSettleDebounce(tester);
+        await _sendCtrl(tester, LogicalKeyboardKey.keyZ);
+        await _pumpPastSettleDebounce(tester);
 
-      expect(_typeAt(document, 0), FountainLineType.sceneHeading);
-      expect(_sceneNumberAt(document, 0), "1");
-      expect(_sceneNumberAt(document, 1), "2");
-    });
+        expect(_typeAt(document, 0), FountainLineType.sceneHeading);
+        expect(_sceneNumberAt(document, 0), "1");
+        expect(_sceneNumberAt(document, 1), "2");
+      },
+    );
 
     testWidgets("Replace all is undone in one step", (tester) async {
       final controller = OcptStyledEditorController();
@@ -3762,7 +4049,11 @@ void main() {
       await tester.placeCaretInParagraph(_nodeAt(document, 0).id, 0);
 
       controller.updateSearch(
-        query: const OcptEditorSearchQuery(query: "MARIE", isCaseSensitive: false, isWholeWord: false),
+        query: const OcptEditorSearchQuery(
+          query: "MARIE",
+          isCaseSensitive: false,
+          isWholeWord: false,
+        ),
         currentMatchIndex: 0,
       );
       await tester.pump();
@@ -3839,7 +4130,9 @@ void main() {
       }
     }
 
-    testWidgets("a redo asked for after a new edit is refused, and writes nothing at all", (tester) async {
+    testWidgets("a redo asked for after a new edit is refused, and writes nothing at all", (
+      tester,
+    ) async {
       await withClock(Clock.fixed(frozenNow), () async {
         await _pumpStandaloneEditor(tester, "");
 
@@ -3869,7 +4162,9 @@ void main() {
       });
     });
 
-    testWidgets("a refused redo leaves the history alone: Ctrl+Z still walks back through it", (tester) async {
+    testWidgets("a refused redo leaves the history alone: Ctrl+Z still walks back through it", (
+      tester,
+    ) async {
       await withClock(Clock.fixed(frozenNow), () async {
         await _pumpStandaloneEditor(tester, "");
 
@@ -3894,33 +4189,36 @@ void main() {
       });
     });
 
-    testWidgets("an undo left to settle can still be redone: the derived pass does not stale the stack", (
+    testWidgets(
+      "an undo left to settle can still be redone: the derived pass does not stale the stack",
+      (tester) async {
+        await withClock(Clock.fixed(frozenNow), () async {
+          await _pumpStandaloneEditor(tester, "");
+
+          final document = SuperEditorInspector.findDocument()!;
+          await tester.placeCaretInParagraph(_nodeAt(document, 0).id, 0);
+          // A line the editor derives from, rather than plain action text: the settle pass that runs
+          // after the undo has reclassification and uppercasing to redo if the undo left it anything
+          // to do at all, which is exactly what must not count as an edit of the writer's.
+          await typeRun(tester, "Ext. garden - night");
+          expect(_nodeAt(document, 0).text.toPlainText(), "EXT. GARDEN - NIGHT");
+
+          await _sendCtrl(tester, LogicalKeyboardKey.keyZ);
+          await _pumpPastSettleDebounce(tester);
+          expect(_nodeAt(document, 0).text.toPlainText(), "");
+
+          await _sendCtrlShift(tester, LogicalKeyboardKey.keyZ);
+          await _pumpPastSettleDebounce(tester);
+
+          expect(_nodeAt(document, 0).text.toPlainText(), "EXT. GARDEN - NIGHT");
+          expect(_typeAt(document, 0), FountainLineType.sceneHeading);
+        });
+      },
+    );
+
+    testWidgets("the controller reports what can be undone and redone, refusal included", (
       tester,
     ) async {
-      await withClock(Clock.fixed(frozenNow), () async {
-        await _pumpStandaloneEditor(tester, "");
-
-        final document = SuperEditorInspector.findDocument()!;
-        await tester.placeCaretInParagraph(_nodeAt(document, 0).id, 0);
-        // A line the editor derives from, rather than plain action text: the settle pass that runs
-        // after the undo has reclassification and uppercasing to redo if the undo left it anything
-        // to do at all, which is exactly what must not count as an edit of the writer's.
-        await typeRun(tester, "Ext. garden - night");
-        expect(_nodeAt(document, 0).text.toPlainText(), "EXT. GARDEN - NIGHT");
-
-        await _sendCtrl(tester, LogicalKeyboardKey.keyZ);
-        await _pumpPastSettleDebounce(tester);
-        expect(_nodeAt(document, 0).text.toPlainText(), "");
-
-        await _sendCtrlShift(tester, LogicalKeyboardKey.keyZ);
-        await _pumpPastSettleDebounce(tester);
-
-        expect(_nodeAt(document, 0).text.toPlainText(), "EXT. GARDEN - NIGHT");
-        expect(_typeAt(document, 0), FountainLineType.sceneHeading);
-      });
-    });
-
-    testWidgets("the controller reports what can be undone and redone, refusal included", (tester) async {
       await withClock(Clock.fixed(frozenNow), () async {
         final controller = OcptStyledEditorController();
         addTearDown(controller.dispose);
@@ -4019,7 +4317,11 @@ void main() {
   group("scene jump", () {
     /// Pumps the editor over [text] with [jumpRequest], keeping one [key] across calls so a second
     /// pump delivers the request to the same live editor rather than a fresh one.
-    Future<void> pumpWithJump(WidgetTester tester, String text, OcptEditorJumpRequest? jumpRequest) async {
+    Future<void> pumpWithJump(
+      WidgetTester tester,
+      String text,
+      OcptEditorJumpRequest? jumpRequest,
+    ) async {
       await tester.pumpWidget(
         _wrap(
           OcptStyledScreenplayEditor(

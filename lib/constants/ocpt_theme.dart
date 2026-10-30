@@ -44,20 +44,18 @@ final _lightColorScheme = ColorScheme.fromSeed(seedColor: _seedColor);
 /// dark professional video/creative tools stay almost black outside of their accent color). The
 /// surface family is overridden here for that reason, while [_seedColor]'s hue is kept for every
 /// tonal surface so they still feel like part of the same coherent scheme, only darker.
-final _darkColorScheme = ColorScheme.fromSeed(
-  seedColor: _seedColor,
-  brightness: Brightness.dark,
-).copyWith(
-  surface: const Color(0xFF121114),
-  onSurface: const Color(0xFFE7E5EA),
-  surfaceContainerLowest: const Color(0xFF09090B),
-  surfaceContainerLow: const Color(0xFF17161A),
-  surfaceContainer: const Color(0xFF1C1B20),
-  surfaceContainerHigh: const Color(0xFF242329),
-  surfaceContainerHighest: const Color(0xFF2C2B32),
-  outline: const Color(0xFF3D3B45),
-  outlineVariant: const Color(0xFF29282E),
-);
+final _darkColorScheme = ColorScheme.fromSeed(seedColor: _seedColor, brightness: Brightness.dark)
+    .copyWith(
+      surface: const Color(0xFF121114),
+      onSurface: const Color(0xFFE7E5EA),
+      surfaceContainerLowest: const Color(0xFF09090B),
+      surfaceContainerLow: const Color(0xFF17161A),
+      surfaceContainer: const Color(0xFF1C1B20),
+      surfaceContainerHigh: const Color(0xFF242329),
+      surfaceContainerHighest: const Color(0xFF2C2B32),
+      outline: const Color(0xFF3D3B45),
+      outlineVariant: const Color(0xFF29282E),
+    );
 
 /// The project poster tint family for dark theme: violet, blue, pink, green and amber, vivid
 /// enough to read as distinct posters against the dark scheme's near-black card background.
@@ -383,11 +381,7 @@ ThemeData _buildThemeData({
     switchTheme: const SwitchThemeData(mouseCursor: ocptClickableCursor),
     // A thin `outlineVariant` line with no surrounding space, instead of the stock 16 px of
     // vertical breathing room.
-    dividerTheme: DividerThemeData(
-      color: colorScheme.outlineVariant,
-      thickness: w(1),
-      space: w(1),
-    ),
+    dividerTheme: DividerThemeData(color: colorScheme.outlineVariant, thickness: w(1), space: w(1)),
     // A thin, always-visible `outline` thumb over a transparent track, instead of the platform
     // default.
     scrollbarTheme: ScrollbarThemeData(

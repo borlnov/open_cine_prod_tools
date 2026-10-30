@@ -569,20 +569,19 @@ class _ScheduleViewState extends State<_ScheduleView> {
       blockCountByDayId: {
         for (final day in state.days) day.id: state.snapshot?.blocksByDayId[day.id]?.length ?? 0,
       },
-      firstLocationByDayId: {for (final day in state.days) day.id: state.firstLocationOfDay(day.id)},
+      firstLocationByDayId: {
+        for (final day in state.days) day.id: state.firstLocationOfDay(day.id),
+      },
       alertsOfDay: state.alertsOfDay,
       onDaySelected: (dayId) => bloc.add(OcptScheduleDaySelectedEvent(dayId: dayId)),
-      onDayCreated: isReadOnly
-          ? null
-          : (date) => bloc.add(OcptScheduleDayCreatedEvent(date: date)),
+      onDayCreated: isReadOnly ? null : (date) => bloc.add(OcptScheduleDayCreatedEvent(date: date)),
       onDayDateChangeRequested: isReadOnly
           ? null
           : (dayId, date) => bloc.add(OcptScheduleDayDateChangedEvent(dayId: dayId, date: date)),
       onDayDuplicationRequested: isReadOnly
           ? null
-          : (dayId, date) => bloc.add(
-              OcptScheduleDayDuplicationRequestedEvent(sourceDayId: dayId, date: date),
-            ),
+          : (dayId, date) =>
+                bloc.add(OcptScheduleDayDuplicationRequestedEvent(sourceDayId: dayId, date: date)),
       onDayDeletionRequested: isReadOnly
           ? null
           : (dayId) => unawaited(_handleDayDeletionRequested(context, dayId)),
@@ -754,23 +753,28 @@ class _ScheduleViewState extends State<_ScheduleView> {
   /// once without any of them knowing which fact they are currently reading.
   Color Function(String dayId) _dayTintOf(BuildContext context, OcptScheduleState state) =>
       switch (state.agendaColorMode) {
-        OcptScheduleAgendaColorMode.location => (dayId) =>
-            ocptScheduleDayLocationTint(context, state.firstLocationOfDay(dayId)),
-        OcptScheduleAgendaColorMode.effect => (dayId) =>
-            ocptScheduleDayEffectTint(context, state.planSnapshot?.effectCategoryOfDay(dayId)),
+        OcptScheduleAgendaColorMode.location => (dayId) => ocptScheduleDayLocationTint(
+          context,
+          state.firstLocationOfDay(dayId),
+        ),
+        OcptScheduleAgendaColorMode.effect => (dayId) => ocptScheduleDayEffectTint(
+          context,
+          state.planSnapshot?.effectCategoryOfDay(dayId),
+        ),
       };
 
   /// Builds the positions matrix: who holds which crew position, slot by slot, across the whole
   /// shoot. A position held on one slot and by nobody on the next is read straight off two
   /// neighbouring columns here, and raises no alert of its own — a crew that changes between two
   /// units is what a slot is for.
-  Widget _buildPositionsMatrix(BuildContext context, OcptScheduleState state) => OcptSchedulePositionsMatrix(
-    days: state.days,
-    slotsByDayId: state.snapshot?.slotsByDayId ?? const <String, List<OcptShootingSlot>>{},
-    personById: state.personById,
-    timelinesOfDay: state.timelinesOfDay,
-    onDayOpenRequested: (dayId) => _openDay(context, dayId),
-  );
+  Widget _buildPositionsMatrix(BuildContext context, OcptScheduleState state) =>
+      OcptSchedulePositionsMatrix(
+        days: state.days,
+        slotsByDayId: state.snapshot?.slotsByDayId ?? const <String, List<OcptShootingSlot>>{},
+        personById: state.personById,
+        timelinesOfDay: state.timelinesOfDay,
+        onDayOpenRequested: (dayId) => _openDay(context, dayId),
+      );
 
   /// Builds the presence grid: who is working or unavailable, day by day, across the whole shoot.
   /// [OcptSchedulePersonUnavailableAlert] is read straight out of `state.planSnapshot`'s own alerts
@@ -859,7 +863,11 @@ class _ScheduleViewState extends State<_ScheduleView> {
       onSlotPlaceChanged: isReadOnly
           ? null
           : (slotId, locationId, setId) => bloc.add(
-              OcptScheduleSlotPlaceChangedEvent(slotId: slotId, locationId: locationId, setId: setId),
+              OcptScheduleSlotPlaceChangedEvent(
+                slotId: slotId,
+                locationId: locationId,
+                setId: setId,
+              ),
             ),
       onSlotAnchorChanged: isReadOnly
           ? null
@@ -902,7 +910,8 @@ class _ScheduleViewState extends State<_ScheduleView> {
                 bloc.add(OcptScheduleSlotCrewMemberRemovedEvent(crewMemberId: crewMemberId)),
       onSlotCastRoleAdded: isReadOnly
           ? null
-          : (slotId, roleId) => bloc.add(OcptScheduleSlotCastRoleAddedEvent(slotId: slotId, roleId: roleId)),
+          : (slotId, roleId) =>
+                bloc.add(OcptScheduleSlotCastRoleAddedEvent(slotId: slotId, roleId: roleId)),
       onSlotCastRoleRemoved: isReadOnly
           ? null
           : (castRoleId) => bloc.add(OcptScheduleSlotCastRoleRemovedEvent(castRoleId: castRoleId)),
@@ -989,20 +998,26 @@ class _ScheduleViewState extends State<_ScheduleView> {
           bloc.add(OcptScheduleBlockSelectedEvent(blockId: blockId, dayId: day.id)),
       onBlockReordered: isReadOnly
           ? null
-          : (blockId, newPosition) =>
-                bloc.add(OcptScheduleBlockReorderedEvent(blockId: blockId, newPosition: newPosition)),
+          : (blockId, newPosition) => bloc.add(
+              OcptScheduleBlockReorderedEvent(blockId: blockId, newPosition: newPosition),
+            ),
       onBlockDurationChanged: isReadOnly
           ? null
           : (blockId, durationMinutes) => bloc.add(
-              OcptScheduleBlockDurationChangedEvent(blockId: blockId, durationMinutes: durationMinutes),
+              OcptScheduleBlockDurationChangedEvent(
+                blockId: blockId,
+                durationMinutes: durationMinutes,
+              ),
             ),
       onBlockAnchorChanged: isReadOnly
           ? null
-          : (blockId, anchorMinute) =>
-                bloc.add(OcptScheduleBlockAnchorChangedEvent(blockId: blockId, anchorMinute: anchorMinute)),
+          : (blockId, anchorMinute) => bloc.add(
+              OcptScheduleBlockAnchorChangedEvent(blockId: blockId, anchorMinute: anchorMinute),
+            ),
       onShotStatusChanged: isReadOnly
           ? null
-          : (shotId, status) => bloc.add(OcptScheduleShotStatusChangedEvent(shotId: shotId, status: status)),
+          : (shotId, status) =>
+                bloc.add(OcptScheduleShotStatusChangedEvent(shotId: shotId, status: status)),
       onBlockSequenceChanged: isReadOnly
           ? null
           : (blockId, sceneId) =>
@@ -1031,8 +1046,9 @@ class _ScheduleViewState extends State<_ScheduleView> {
           : (slotId) => unawaited(_handleShotBlockRequested(context, slotId)),
       onBlockMovedToSlot: isReadOnly
           ? null
-          : (blockId, targetSlotId) =>
-                bloc.add(OcptScheduleBlockMovedToSlotEvent(blockId: blockId, targetSlotId: targetSlotId)),
+          : (blockId, targetSlotId) => bloc.add(
+              OcptScheduleBlockMovedToSlotEvent(blockId: blockId, targetSlotId: targetSlotId),
+            ),
       // Never withheld under a version preview: selecting a dock tab writes nothing, and an alert
       // is exactly what a reader of a previewed plan is looking for.
       onAlertsOpenRequested: () => bloc.add(
@@ -1098,7 +1114,6 @@ class _ScheduleViewState extends State<_ScheduleView> {
 
     bloc.add(OcptScheduleShotBlockCreatedEvent(slotId: slotId, shotId: shotId));
   }
-
 
   /// Asks `OcptConfirmDialog` whether slot [slotId] really is to be deleted, then dispatches the
   /// deletion if the user answered `Delete`.
@@ -1252,7 +1267,8 @@ class _ScheduleViewState extends State<_ScheduleView> {
     OcptShootingTimelineEntry? blockEntry;
     if (block != null) {
       final entries =
-          state.timelinesOfDay(state.selectedDayId ?? "")?.entries ?? const <OcptShootingTimelineEntry>[];
+          state.timelinesOfDay(state.selectedDayId ?? "")?.entries ??
+          const <OcptShootingTimelineEntry>[];
       for (final entry in entries) {
         if (entry.blockId == block.id) {
           blockEntry = entry;
@@ -1280,7 +1296,9 @@ class _ScheduleViewState extends State<_ScheduleView> {
       locationById: state.locationById,
       setById: state.setById,
       timeline: state.selectedDayId == null ? null : state.timelinesOfDay(state.selectedDayId!),
-      dayArrivalMinute: state.selectedDayId == null ? null : state.dayArrivalMinute(state.selectedDayId!),
+      dayArrivalMinute: state.selectedDayId == null
+          ? null
+          : state.dayArrivalMinute(state.selectedDayId!),
       sunTimes: state.selectedDayId == null ? null : state.sunTimesOfDay(state.selectedDayId!),
       crewNoteValue: day == null
           ? ""
@@ -1362,12 +1380,16 @@ class _ScheduleViewState extends State<_ScheduleView> {
       blockEntry: blockEntry,
       onShotStatusChanged: isReadOnly || effectiveShot == null
           ? null
-          : (status) =>
-                bloc.add(OcptScheduleShotStatusChangedEvent(shotId: effectiveShot.id, status: status)),
+          : (status) => bloc.add(
+              OcptScheduleShotStatusChangedEvent(shotId: effectiveShot.id, status: status),
+            ),
       onBlockDurationChanged: isReadOnly || block == null
           ? null
           : (durationMinutes) => bloc.add(
-              OcptScheduleBlockDurationChangedEvent(blockId: block.id, durationMinutes: durationMinutes),
+              OcptScheduleBlockDurationChangedEvent(
+                blockId: block.id,
+                durationMinutes: durationMinutes,
+              ),
             ),
       blockCrewNoteValue: block == null
           ? ""
@@ -1441,58 +1463,55 @@ class _ScheduleViewState extends State<_ScheduleView> {
           safetyVersionName: tr.projectVersionRestoreSafetyName(previewedVersion.name),
         ),
       ),
-      onExitPreview: () => context.read<OcptScheduleBloc>().add(
-        const OcptProjectVersionPreviewExitRequestedEvent(),
-      ),
+      onExitPreview: () =>
+          context.read<OcptScheduleBloc>().add(const OcptProjectVersionPreviewExitRequestedEvent()),
     );
   }
 
   /// Builds the right dock's `Versions` tab, wired exactly as every other mode's own dock.
-  Widget _buildVersionsPanel(BuildContext context, OcptScheduleState state) => OcptProjectVersionsPanel(
-    versions: state.projectVersions,
-    previewedVersionId: state.previewedVersionId,
-    workingCopy: state.workingCopy,
-    versionPendingDeletionId: state.versionPendingDeletionId,
-    versionPendingRestoreId: state.versionPendingRestoreId,
-    versionPendingRenameId: state.versionPendingRenameId,
-    onCreateRequested: () => _requestVersionCreation(context),
-    onPreviewRequested: (versionId) => context.read<OcptScheduleBloc>().add(
-      OcptProjectVersionPreviewRequestedEvent(versionId: versionId),
-    ),
-    onPreviewExitRequested: () => context.read<OcptScheduleBloc>().add(
-      const OcptProjectVersionPreviewExitRequestedEvent(),
-    ),
-    onRestoreRequested: (versionId) => context.read<OcptScheduleBloc>().add(
-      OcptProjectVersionRestoreRequestedEvent(versionId: versionId),
-    ),
-    onRestoreCancelled: () => context.read<OcptScheduleBloc>().add(
-      const OcptProjectVersionRestoreCancelledEvent(),
-    ),
-    onRestoreConfirmed: (version) => context.read<OcptScheduleBloc>().add(
-      OcptProjectVersionRestoreConfirmedEvent(
-        versionId: version.id,
-        safetyVersionName: Tr.of(context).projectVersionRestoreSafetyName(version.name),
-      ),
-    ),
-    onDeleteRequested: (versionId) => context.read<OcptScheduleBloc>().add(
-      OcptProjectVersionDeletionRequestedEvent(versionId: versionId),
-    ),
-    onDeleteCancelled: () => context.read<OcptScheduleBloc>().add(
-      const OcptProjectVersionDeletionCancelledEvent(),
-    ),
-    onDeleteConfirmed: (versionId) => context.read<OcptScheduleBloc>().add(
-      OcptProjectVersionDeletionConfirmedEvent(versionId: versionId),
-    ),
-    onRenameRequested: (versionId) => context.read<OcptScheduleBloc>().add(
-      OcptProjectVersionRenameRequestedEvent(versionId: versionId),
-    ),
-    onRenameCancelled: () => context.read<OcptScheduleBloc>().add(
-      const OcptProjectVersionRenameCancelledEvent(),
-    ),
-    onRenameConfirmed: (versionId, name, note) => context.read<OcptScheduleBloc>().add(
-      OcptProjectVersionRenameConfirmedEvent(versionId: versionId, name: name, note: note),
-    ),
-  );
+  Widget _buildVersionsPanel(BuildContext context, OcptScheduleState state) =>
+      OcptProjectVersionsPanel(
+        versions: state.projectVersions,
+        previewedVersionId: state.previewedVersionId,
+        workingCopy: state.workingCopy,
+        versionPendingDeletionId: state.versionPendingDeletionId,
+        versionPendingRestoreId: state.versionPendingRestoreId,
+        versionPendingRenameId: state.versionPendingRenameId,
+        onCreateRequested: () => _requestVersionCreation(context),
+        onPreviewRequested: (versionId) => context.read<OcptScheduleBloc>().add(
+          OcptProjectVersionPreviewRequestedEvent(versionId: versionId),
+        ),
+        onPreviewExitRequested: () => context.read<OcptScheduleBloc>().add(
+          const OcptProjectVersionPreviewExitRequestedEvent(),
+        ),
+        onRestoreRequested: (versionId) => context.read<OcptScheduleBloc>().add(
+          OcptProjectVersionRestoreRequestedEvent(versionId: versionId),
+        ),
+        onRestoreCancelled: () =>
+            context.read<OcptScheduleBloc>().add(const OcptProjectVersionRestoreCancelledEvent()),
+        onRestoreConfirmed: (version) => context.read<OcptScheduleBloc>().add(
+          OcptProjectVersionRestoreConfirmedEvent(
+            versionId: version.id,
+            safetyVersionName: Tr.of(context).projectVersionRestoreSafetyName(version.name),
+          ),
+        ),
+        onDeleteRequested: (versionId) => context.read<OcptScheduleBloc>().add(
+          OcptProjectVersionDeletionRequestedEvent(versionId: versionId),
+        ),
+        onDeleteCancelled: () =>
+            context.read<OcptScheduleBloc>().add(const OcptProjectVersionDeletionCancelledEvent()),
+        onDeleteConfirmed: (versionId) => context.read<OcptScheduleBloc>().add(
+          OcptProjectVersionDeletionConfirmedEvent(versionId: versionId),
+        ),
+        onRenameRequested: (versionId) => context.read<OcptScheduleBloc>().add(
+          OcptProjectVersionRenameRequestedEvent(versionId: versionId),
+        ),
+        onRenameCancelled: () =>
+            context.read<OcptScheduleBloc>().add(const OcptProjectVersionRenameCancelledEvent()),
+        onRenameConfirmed: (versionId, name, note) => context.read<OcptScheduleBloc>().add(
+          OcptProjectVersionRenameConfirmedEvent(versionId: versionId, name: name, note: note),
+        ),
+      );
 
   /// Shows the version creation dialog, then dispatches the capture if the user confirmed it.
   Future<void> _requestVersionCreation(BuildContext context) async {
@@ -1533,9 +1552,7 @@ class _ScheduleViewState extends State<_ScheduleView> {
 
     final packagePendingExport = state.projectPackagePendingExport;
     if (packagePendingExport != null) {
-      context.read<OcptScheduleBloc>().add(
-        const OcptProjectPackageMissingFilesAskDismissedEvent(),
-      );
+      context.read<OcptScheduleBloc>().add(const OcptProjectPackageMissingFilesAskDismissedEvent());
       unawaited(_askAboutMissingPackagedFiles(context, packagePendingExport));
     }
 
@@ -1604,17 +1621,23 @@ class _ScheduleViewState extends State<_ScheduleView> {
     final tr = Tr.of(context);
 
     return switch (notice.kind) {
-      OcptScheduleIoNoticeKind.fileExportSucceeded => notice.wasShared
-          ? tr.exportSharedMessage
-          : tr.scheduleExportFileSuccessMessage(notice.path ?? ""),
-      OcptScheduleIoNoticeKind.folderExportSucceeded => notice.wasShared
-          ? tr.exportSharedMessage
-          : tr.scheduleExportFolderSuccessMessage(notice.writtenCount ?? 0, notice.folderPath ?? ""),
-      OcptScheduleIoNoticeKind.folderExportPartiallySucceeded => tr.scheduleExportFolderPartialMessage(
-        notice.writtenCount ?? 0,
-        notice.folderPath ?? "",
-        notice.failedCount ?? 0,
-      ),
+      OcptScheduleIoNoticeKind.fileExportSucceeded =>
+        notice.wasShared
+            ? tr.exportSharedMessage
+            : tr.scheduleExportFileSuccessMessage(notice.path ?? ""),
+      OcptScheduleIoNoticeKind.folderExportSucceeded =>
+        notice.wasShared
+            ? tr.exportSharedMessage
+            : tr.scheduleExportFolderSuccessMessage(
+                notice.writtenCount ?? 0,
+                notice.folderPath ?? "",
+              ),
+      OcptScheduleIoNoticeKind.folderExportPartiallySucceeded =>
+        tr.scheduleExportFolderPartialMessage(
+          notice.writtenCount ?? 0,
+          notice.folderPath ?? "",
+          notice.failedCount ?? 0,
+        ),
       OcptScheduleIoNoticeKind.exportFailed => tr.scheduleExportError,
     };
   }

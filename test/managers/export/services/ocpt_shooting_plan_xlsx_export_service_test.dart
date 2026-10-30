@@ -55,9 +55,7 @@ OcptShootingPlanXlsxLabels _buildLabels() => OcptShootingPlanXlsxLabels(
   sequenceRowPrefix: "Seq.",
   crewPositionLabels: const {},
   elementCategoryLabels: const {},
-  blockKindLabels: {
-    for (final kind in OcptShootingBlockKind.values) kind: kind.name,
-  },
+  blockKindLabels: {for (final kind in OcptShootingBlockKind.values) kind: kind.name},
 );
 
 /// Builds a shooting day with the few fields these tests read, everything else neutral.
@@ -118,54 +116,62 @@ OcptShootingDayBlock _buildBlock({
 );
 
 /// Builds a cast member with the few fields these tests read, everything else neutral.
-OcptShootingSlotCastMember _buildCastMember({required String id, required String slotId, required String roleId}) =>
-    OcptShootingSlotCastMember(id: id, slotId: slotId, roleId: roleId, notes: "");
+OcptShootingSlotCastMember _buildCastMember({
+  required String id,
+  required String slotId,
+  required String roleId,
+}) => OcptShootingSlotCastMember(id: id, slotId: slotId, roleId: roleId, notes: "");
 
 /// Builds a role with the few fields these tests read, everything else neutral.
-OcptRole _buildRole({required String id, required String name, String? personId, int number = 1}) => OcptRole(
-  id: id,
-  name: name,
-  personId: personId,
-  kind: OcptRoleKind.speaking,
-  isFromScreenplay: true,
-  orphanedName: null,
-  castingNotes: "",
-  number: number,
-  episodeIds: const [],
-);
+OcptRole _buildRole({required String id, required String name, String? personId, int number = 1}) =>
+    OcptRole(
+      id: id,
+      name: name,
+      personId: personId,
+      kind: OcptRoleKind.speaking,
+      isFromScreenplay: true,
+      orphanedName: null,
+      castingNotes: "",
+      number: number,
+      episodeIds: const [],
+    );
 
 /// Builds a shot with the few fields these tests read, everything else neutral.
-OcptShot _buildShot({required String id, String? sceneId, required String code, List<String> characters = const []}) =>
-    OcptShot(
-      id: id,
-      screenplayId: "screenplay-1",
-      sceneId: sceneId,
-      orphanedHeading: null,
-      position: 0,
-      shotSize: "",
-      abbreviation: "",
-      framing: "",
-      cameraMove: "",
-      lens: "",
-      recordingFormat: "",
-      estimatedDurationMs: null,
-      shootingDay: null,
-      plannedTakes: null,
-      sound: "",
-      status: OcptShotStatus.toShoot,
-      difficultySet: 0,
-      difficultyCamera: 0,
-      difficultyActing: 0,
-      difficultySound: 0,
-      notes: "",
-      locationNotes: "",
-      needsCheck: false,
-      checkReason: null,
-      characters: characters,
-      coverageRanges: const [],
-      code: code,
-      averageDifficulty: 0,
-    );
+OcptShot _buildShot({
+  required String id,
+  String? sceneId,
+  required String code,
+  List<String> characters = const [],
+}) => OcptShot(
+  id: id,
+  screenplayId: "screenplay-1",
+  sceneId: sceneId,
+  orphanedHeading: null,
+  position: 0,
+  shotSize: "",
+  abbreviation: "",
+  framing: "",
+  cameraMove: "",
+  lens: "",
+  recordingFormat: "",
+  estimatedDurationMs: null,
+  shootingDay: null,
+  plannedTakes: null,
+  sound: "",
+  status: OcptShotStatus.toShoot,
+  difficultySet: 0,
+  difficultyCamera: 0,
+  difficultyActing: 0,
+  difficultySound: 0,
+  notes: "",
+  locationNotes: "",
+  needsCheck: false,
+  checkReason: null,
+  characters: characters,
+  coverageRanges: const [],
+  code: code,
+  averageDifficulty: 0,
+);
 
 /// Builds a one-scene shot list snapshot over [shots], all belonging to `scene-1`.
 OcptShotListSnapshot _buildShotList({required List<OcptShot> shots}) => OcptShotListSnapshot.build(
@@ -239,10 +245,8 @@ Object? _cellAt(List<Object?> row, int index) => index < row.length ? row[index]
 void main() {
   const service = OcptShootingPlanXlsxExportService();
 
-  Uint8List generate({
-    required OcptSchedulePlanSnapshot plan,
-    required List<String> dayIds,
-  }) => service.generate(plan: plan, dayIds: dayIds, labels: _buildLabels());
+  Uint8List generate({required OcptSchedulePlanSnapshot plan, required List<String> dayIds}) =>
+      service.generate(plan: plan, dayIds: dayIds, labels: _buildLabels());
 
   group("xlsxFileName", () {
     test("joins the project name and the localized suffix", () {
@@ -308,7 +312,10 @@ void main() {
     });
 
     test("an empty range still produces a decodable workbook", () {
-      final bytes = generate(plan: _buildSnapshot(days: const [], slotsByDayId: const {}), dayIds: const []);
+      final bytes = generate(
+        plan: _buildSnapshot(days: const [], slotsByDayId: const {}),
+        dayIds: const [],
+      );
 
       final excel = Excel.decodeBytes(bytes);
       expect(excel.tables.keys, isNotEmpty);
@@ -324,8 +331,18 @@ void main() {
         final slotTwo = _buildSlot(id: "slot-2", shootingDayId: "day-2", label: "Morning");
         final shotA = _buildShot(id: "shot-a", sceneId: "scene-1", code: "1/1");
         final shotB = _buildShot(id: "shot-b", sceneId: "scene-1", code: "1/2");
-        final blockA = _buildBlock(id: "block-a", shootingDayId: "day-1", slotId: "slot-1", shotId: "shot-a");
-        final blockB = _buildBlock(id: "block-b", shootingDayId: "day-2", slotId: "slot-2", shotId: "shot-b");
+        final blockA = _buildBlock(
+          id: "block-a",
+          shootingDayId: "day-1",
+          slotId: "slot-1",
+          shotId: "shot-a",
+        );
+        final blockB = _buildBlock(
+          id: "block-b",
+          shootingDayId: "day-2",
+          slotId: "slot-2",
+          shotId: "shot-b",
+        );
 
         final bytes = generate(
           plan: _buildSnapshot(
@@ -338,25 +355,18 @@ void main() {
               "day-1": [blockA],
               "day-2": [blockB],
             },
-            shotLists: [_buildShotList(shots: [shotA, shotB])],
+            shotLists: [
+              _buildShotList(shots: [shotA, shotB]),
+            ],
           ),
           dayIds: const ["day-1", "day-2"],
         );
 
         final rows = _rowsOf(bytes, _chronologySheetName);
         expect(rows, hasLength(3)); // header + one row per block
-        expect(
-          _cellAt(rows[1], OcptShootingPlanXlsxColumn.shot.index),
-          "1/1",
-        );
-        expect(
-          _cellAt(rows[2], OcptShootingPlanXlsxColumn.shot.index),
-          "1/2",
-        );
-        expect(
-          _cellAt(rows[1], OcptShootingPlanXlsxColumn.dayTag.index),
-          "D1",
-        );
+        expect(_cellAt(rows[1], OcptShootingPlanXlsxColumn.shot.index), "1/1");
+        expect(_cellAt(rows[2], OcptShootingPlanXlsxColumn.shot.index), "1/2");
+        expect(_cellAt(rows[1], OcptShootingPlanXlsxColumn.dayTag.index), "D1");
         expect(
           _cellAt(rows[1], OcptShootingPlanXlsxColumn.date.index),
           DateCellValue.fromDateTime(dayOne.date),
@@ -382,7 +392,12 @@ void main() {
           cast: [_buildCastMember(id: "cast-1", slotId: "slot-1", roleId: "role-1")],
         );
         final role = _buildRole(id: "role-1", name: "COP");
-        final shot = _buildShot(id: "shot-1", sceneId: "scene-1", code: "1/1", characters: const ["COP"]);
+        final shot = _buildShot(
+          id: "shot-1",
+          sceneId: "scene-1",
+          code: "1/1",
+          characters: const ["COP"],
+        );
         final block = _buildBlock(
           id: "block-1",
           shootingDayId: "day-1",
@@ -402,13 +417,18 @@ void main() {
               "day-1": [block],
             },
             roles: [role],
-            shotLists: [_buildShotList(shots: [shot])],
+            shotLists: [
+              _buildShotList(shots: [shot]),
+            ],
           ),
           dayIds: const ["day-1"],
         );
 
         final row = _rowsOf(bytes, _chronologySheetName)[1];
-        expect(_cellAt(row, OcptShootingPlanXlsxColumn.kind.index), OcptShootingBlockKind.shot.name);
+        expect(
+          _cellAt(row, OcptShootingPlanXlsxColumn.kind.index),
+          OcptShootingBlockKind.shot.name,
+        );
         expect(_cellAt(row, OcptShootingPlanXlsxColumn.durationMinutes.index), 45);
         expect(_cellAt(row, OcptShootingPlanXlsxColumn.roles.index), "COP");
         expect(_cellAt(row, OcptShootingPlanXlsxColumn.crewNote.index), "Careful with the vase");
@@ -493,8 +513,18 @@ void main() {
           },
           blocksByDayId: {
             "day-1": [
-              _buildBlock(id: "block-1", shootingDayId: "day-1", slotId: "slot-1", shotId: "shot-e1"),
-              _buildBlock(id: "block-2", shootingDayId: "day-1", slotId: "slot-1", shotId: "shot-e2"),
+              _buildBlock(
+                id: "block-1",
+                shootingDayId: "day-1",
+                slotId: "slot-1",
+                shotId: "shot-e1",
+              ),
+              _buildBlock(
+                id: "block-2",
+                shootingDayId: "day-1",
+                slotId: "slot-1",
+                shotId: "shot-e2",
+              ),
             ],
           },
           shotLists: [buildEpisodeOneShotList(shotOne), buildEpisodeTwoShotList(shotTwo)],

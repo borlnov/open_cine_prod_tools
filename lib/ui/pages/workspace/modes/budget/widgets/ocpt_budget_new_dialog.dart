@@ -504,13 +504,11 @@ class _OcptBudgetNewDialogState extends State<OcptBudgetNewDialog> {
         bottomNavigationBar: SafeArea(
           top: false,
           child: Container(
-            decoration: BoxDecoration(border: Border(top: BorderSide(color: theme.dividerColor))),
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            child: OverflowBar(
-              alignment: MainAxisAlignment.end,
-              spacing: 8,
-              children: stepActions,
+            decoration: BoxDecoration(
+              border: Border(top: BorderSide(color: theme.dividerColor)),
             ),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            child: OverflowBar(alignment: MainAxisAlignment.end, spacing: 8, children: stepActions),
           ),
         ),
       ),
@@ -550,7 +548,11 @@ class _OcptBudgetNewDialogState extends State<OcptBudgetNewDialog> {
       children.add(_buildTrail(context, tr, gesture));
     }
 
-    return Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: children);
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: children,
+    );
   }
 
   /// The trail above steps 2 and 3: what has been answered so far, ending in a `changer` link back
@@ -558,7 +560,9 @@ class _OcptBudgetNewDialogState extends State<OcptBudgetNewDialog> {
   /// answer while step 3 is on screen.
   Widget _buildTrail(BuildContext context, Tr tr, OcptBudgetGesture gesture) {
     final theme = Theme.of(context);
-    final mutedStyle = theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant);
+    final mutedStyle = theme.textTheme.bodySmall?.copyWith(
+      color: theme.colorScheme.onSurfaceVariant,
+    );
     final segments = <String>[_ocptBudgetGestureAnswerLabel(tr, gesture)];
     if (_step == _OcptBudgetNewStep.form) {
       final attachmentLabel = _attachmentAnswerLabel(context, tr, gesture);
@@ -650,7 +654,11 @@ class _OcptBudgetNewDialogState extends State<OcptBudgetNewDialog> {
     if (promoted == null) {
       return _ocptNewNaturalFamilyOrder;
     }
-    return [promoted, for (final family in _ocptNewNaturalFamilyOrder) if (family != promoted) family];
+    return [
+      promoted,
+      for (final family in _ocptNewNaturalFamilyOrder)
+        if (family != promoted) family,
+    ];
   }
 
   /// [family]'s own gestures that step 1 currently offers — every one of them while the filter is
@@ -659,7 +667,8 @@ class _OcptBudgetNewDialogState extends State<OcptBudgetNewDialog> {
     final allowed = _showAll ? null : widget.allowedGestures;
     return [
       for (final gesture in OcptBudgetGesture.values)
-        if (ocptBudgetGestureFamilyOf(gesture) == family && (allowed == null || allowed.contains(gesture)))
+        if (ocptBudgetGestureFamilyOf(gesture) == family &&
+            (allowed == null || allowed.contains(gesture)))
           gesture,
     ];
   }
@@ -771,7 +780,11 @@ class _OcptBudgetNewDialogState extends State<OcptBudgetNewDialog> {
 
     return switch (ocptBudgetGestureAttachmentOf(gesture)) {
       OcptBudgetGestureAttachment.none => const SizedBox.shrink(),
-      OcptBudgetGestureAttachment.poste => _buildPosteAttachment(context, tr, offersOffQuote: false),
+      OcptBudgetGestureAttachment.poste => _buildPosteAttachment(
+        context,
+        tr,
+        offersOffQuote: false,
+      ),
       OcptBudgetGestureAttachment.optionalPoste => _buildPosteAttachment(
         context,
         tr,
@@ -784,32 +797,33 @@ class _OcptBudgetNewDialogState extends State<OcptBudgetNewDialog> {
     };
   }
 
-  Widget _buildPosteAttachment(BuildContext context, Tr tr, {required bool offersOffQuote}) => Column(
-    mainAxisSize: MainAxisSize.min,
-    crossAxisAlignment: CrossAxisAlignment.stretch,
-    children: [
-      for (final poste in widget.postes)
-        _OcptBudgetNewChoiceRow(
-          label: ocptBudgetPosteDisplayLabel(poste, isSimplified: widget.isSimplified),
-          isSelected: _posteAnswered && _posteId == poste.id,
-          onTap: () => setState(() {
-            _posteId = poste.id;
-            _posteAnswered = true;
-          }),
-        ),
-      if (offersOffQuote)
-        _OcptBudgetNewChoiceRow(
-          key: const Key("ocptBudgetNewOffQuoteChoice"),
-          label: tr.budgetCostTrackingOffQuoteLabel,
-          hint: tr.budgetEntryWizardPosteFieldHint(tr.budgetCostTrackingOffQuoteLabel),
-          isSelected: _posteAnswered && _posteId == null,
-          onTap: () => setState(() {
-            _posteId = null;
-            _posteAnswered = true;
-          }),
-        ),
-    ],
-  );
+  Widget _buildPosteAttachment(BuildContext context, Tr tr, {required bool offersOffQuote}) =>
+      Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          for (final poste in widget.postes)
+            _OcptBudgetNewChoiceRow(
+              label: ocptBudgetPosteDisplayLabel(poste, isSimplified: widget.isSimplified),
+              isSelected: _posteAnswered && _posteId == poste.id,
+              onTap: () => setState(() {
+                _posteId = poste.id;
+                _posteAnswered = true;
+              }),
+            ),
+          if (offersOffQuote)
+            _OcptBudgetNewChoiceRow(
+              key: const Key("ocptBudgetNewOffQuoteChoice"),
+              label: tr.budgetCostTrackingOffQuoteLabel,
+              hint: tr.budgetEntryWizardPosteFieldHint(tr.budgetCostTrackingOffQuoteLabel),
+              isSelected: _posteAnswered && _posteId == null,
+              onTap: () => setState(() {
+                _posteId = null;
+                _posteAnswered = true;
+              }),
+            ),
+        ],
+      );
 
   Widget _buildPosteAndLineAttachment(BuildContext context, Tr tr) {
     if (!_posteAnswered) {
@@ -888,7 +902,10 @@ class _OcptBudgetNewDialogState extends State<OcptBudgetNewDialog> {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        for (final family in [OcptBudgetResourceFamily.subsidies, OcptBudgetResourceFamily.contributions])
+        for (final family in [
+          OcptBudgetResourceFamily.subsidies,
+          OcptBudgetResourceFamily.contributions,
+        ])
           if (byFamily[family]?.isNotEmpty ?? false) ...[
             Padding(
               padding: const EdgeInsets.only(top: 8, bottom: 4),
@@ -1043,7 +1060,8 @@ class _OcptBudgetNewDialogState extends State<OcptBudgetNewDialog> {
 
     return switch (ocptBudgetGestureAttachmentOf(gesture)) {
       OcptBudgetGestureAttachment.none => true,
-      OcptBudgetGestureAttachment.poste || OcptBudgetGestureAttachment.optionalPoste => _posteAnswered,
+      OcptBudgetGestureAttachment.poste ||
+      OcptBudgetGestureAttachment.optionalPoste => _posteAnswered,
       OcptBudgetGestureAttachment.posteAndLine =>
         _posteAnswered && (_lineId != null || _lineNoneAnswered),
       OcptBudgetGestureAttachment.financingResource =>
@@ -1061,7 +1079,9 @@ class _OcptBudgetNewDialogState extends State<OcptBudgetNewDialog> {
     ),
     FilledButton(
       key: const Key("ocptBudgetNewAttachmentContinueButton"),
-      onPressed: _isAttachmentAnswered ? () => setState(() => _step = _OcptBudgetNewStep.form) : null,
+      onPressed: _isAttachmentAnswered
+          ? () => setState(() => _step = _OcptBudgetNewStep.form)
+          : null,
       child: Text(tr.budgetEntryWizardContinueAction),
     ),
   ];
@@ -1238,11 +1258,10 @@ class _OcptBudgetNewDialogState extends State<OcptBudgetNewDialog> {
 
     final onPressed = switch (gesture) {
       OcptBudgetGesture.addQuoteLine => _lineDraft == null ? null : _submitLine,
-      OcptBudgetGesture.commitSpend => _commitmentMissingHint != null || _commitmentDraft == null
-          ? null
-          : _submitCommitment,
-      OcptBudgetGesture.planSubsidy || OcptBudgetGesture.planContribution =>
-        _resourceDraft == null ? null : _submitResource,
+      OcptBudgetGesture.commitSpend =>
+        _commitmentMissingHint != null || _commitmentDraft == null ? null : _submitCommitment,
+      OcptBudgetGesture.planSubsidy ||
+      OcptBudgetGesture.planContribution => _resourceDraft == null ? null : _submitResource,
       OcptBudgetGesture.planTaking => _revenueDraft == null ? null : _submitRevenue,
       OcptBudgetGesture.defrayPerson => _allowanceDraft == null ? null : _submitAllowance,
       OcptBudgetGesture.addSharingParticipant => _shareDraft == null ? null : _submitShare,
@@ -1408,8 +1427,9 @@ class _OcptBudgetNewDialogState extends State<OcptBudgetNewDialog> {
             key: const Key("ocptBudgetNewAmountField"),
             controller: _amountController,
             decoration: InputDecoration(isDense: true, suffixText: currencySymbol),
-            validator: (value) =>
-                ocptCostCentsOf(value ?? "") == null ? tr.budgetEntryDialogAmountInvalidError : null,
+            validator: (value) => ocptCostCentsOf(value ?? "") == null
+                ? tr.budgetEntryDialogAmountInvalidError
+                : null,
             onChanged: (_) => setState(() {}),
           ),
         ),
@@ -1435,7 +1455,9 @@ class _OcptBudgetNewDialogState extends State<OcptBudgetNewDialog> {
     label: tr.budgetEntryDialogDirectionFieldLabel,
     child: OcptBudgetBinaryChoice(
       value: _isDebit,
-      trueLabel: widget.isSimplified ? tr.budgetEntryDialogPaidOption : tr.budgetEntryDialogDebitOption,
+      trueLabel: widget.isSimplified
+          ? tr.budgetEntryDialogPaidOption
+          : tr.budgetEntryDialogDebitOption,
       falseLabel: widget.isSimplified
           ? tr.budgetEntryDialogReceivedOption
           : tr.budgetEntryDialogCreditOption,
@@ -1454,7 +1476,11 @@ class _OcptBudgetNewDialogState extends State<OcptBudgetNewDialog> {
       label: tr.budgetLineVatRateFieldLabel,
       child: TextFormField(
         controller: _vatRateController,
-        decoration: InputDecoration(isDense: true, hintText: vatRateHint, suffixText: tr.budgetLineVatRateSuffix),
+        decoration: InputDecoration(
+          isDense: true,
+          hintText: vatRateHint,
+          suffixText: tr.budgetLineVatRateSuffix,
+        ),
       ),
     );
   }
@@ -1575,7 +1601,11 @@ class _OcptBudgetNewDialogState extends State<OcptBudgetNewDialog> {
   /// otherwise. It stops the same money being counted twice: without it, a user records the payment,
   /// forgets to settle the commitment it was for, and the poste reads both committed and paid for the
   /// very same transfer.
-  Widget _buildLettrageStrip(BuildContext context, Tr tr, List<OcptBudgetMatchSuggestion> suggestions) {
+  Widget _buildLettrageStrip(
+    BuildContext context,
+    Tr tr,
+    List<OcptBudgetMatchSuggestion> suggestions,
+  ) {
     final theme = Theme.of(context);
     final selectedIndex = _selectedSuggestionIndex;
 
@@ -1631,10 +1661,15 @@ class _OcptBudgetNewDialogState extends State<OcptBudgetNewDialog> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(_lettrageHeadlineOf(context, tr, suggestion), style: theme.textTheme.bodySmall),
+                  Text(
+                    _lettrageHeadlineOf(context, tr, suggestion),
+                    style: theme.textTheme.bodySmall,
+                  ),
                   Text(
                     _lettrageReasonsOf(tr, suggestion),
-                    style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
                   ),
                 ],
               ),
@@ -1690,7 +1725,11 @@ class _OcptBudgetNewDialogState extends State<OcptBudgetNewDialog> {
         final posteLabel = _commitmentPosteLabelOf(tr, suggestion);
         final date = suggestion.date;
         if (date == null) {
-          return tr.budgetEntryMatchCommitmentHeadlineUndated(suggestion.label, amountLabel, posteLabel);
+          return tr.budgetEntryMatchCommitmentHeadlineUndated(
+            suggestion.label,
+            amountLabel,
+            posteLabel,
+          );
         }
         return tr.budgetEntryMatchCommitmentHeadlineDated(
           suggestion.label,
@@ -1751,8 +1790,9 @@ class _OcptBudgetNewDialogState extends State<OcptBudgetNewDialog> {
 
     final suggestions = _lettrageSuggestionsOf();
     final selectedIndex = _selectedSuggestionIndex;
-    final acceptedSuggestion =
-        selectedIndex != null && selectedIndex < suggestions.length ? suggestions[selectedIndex] : null;
+    final acceptedSuggestion = selectedIndex != null && selectedIndex < suggestions.length
+        ? suggestions[selectedIndex]
+        : null;
 
     if (acceptedSuggestion != null) {
       _pop(
@@ -1789,10 +1829,13 @@ class _OcptBudgetNewDialogState extends State<OcptBudgetNewDialog> {
     return OcptBudgetEntryFormFields(
       date: _date,
       label: _labelController.text.trim(),
-      posteId: gesture == OcptBudgetGesture.recordExpense || gesture == OcptBudgetGesture.recordOtherMovement
+      posteId:
+          gesture == OcptBudgetGesture.recordExpense ||
+              gesture == OcptBudgetGesture.recordOtherMovement
           ? _posteId
           : null,
-      resourceId: gesture == OcptBudgetGesture.recordFinancingReceipt ||
+      resourceId:
+          gesture == OcptBudgetGesture.recordFinancingReceipt ||
               gesture == OcptBudgetGesture.repayContribution
           ? (_pendingNewResource == null ? _resourceId : null)
           : null,
@@ -1803,7 +1846,8 @@ class _OcptBudgetNewDialogState extends State<OcptBudgetNewDialog> {
           ? (_pendingNewShare == null ? _shareId : null)
           : null,
       personId: gesture == OcptBudgetGesture.reimbursePerson ? _personId : null,
-      newResource: gesture == OcptBudgetGesture.recordFinancingReceipt ||
+      newResource:
+          gesture == OcptBudgetGesture.recordFinancingReceipt ||
               gesture == OcptBudgetGesture.repayContribution
           ? _pendingNewResource
           : null,
@@ -1931,7 +1975,9 @@ class _OcptBudgetNewDialogState extends State<OcptBudgetNewDialog> {
                 Text(element.name.isEmpty ? tr.resourcesElementUnnamed : element.name),
                 Text(
                   tr.budgetNewBreakdownSceneCountHint(element.sceneLinks.length),
-                  style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
                 ),
               ],
             ),
@@ -2076,7 +2122,9 @@ class _OcptBudgetNewGestureCard extends StatelessWidget {
         width: double.infinity,
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         decoration: BoxDecoration(
-          color: isSelected ? theme.colorScheme.primary.withValues(alpha: ocptSelectedStateAlpha) : null,
+          color: isSelected
+              ? theme.colorScheme.primary.withValues(alpha: ocptSelectedStateAlpha)
+              : null,
           border: Border.all(
             color: isSelected ? theme.colorScheme.primary : theme.colorScheme.outlineVariant,
           ),
@@ -2137,7 +2185,9 @@ class _OcptBudgetNewChoiceRow extends StatelessWidget {
         width: double.infinity,
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
         decoration: BoxDecoration(
-          color: isSelected ? theme.colorScheme.primary.withValues(alpha: ocptSelectedStateAlpha) : null,
+          color: isSelected
+              ? theme.colorScheme.primary.withValues(alpha: ocptSelectedStateAlpha)
+              : null,
           borderRadius: BorderRadius.circular(ocptRadiusSmall),
         ),
         child: Row(
@@ -2160,7 +2210,9 @@ class _OcptBudgetNewChoiceRow extends StatelessWidget {
                   if (hint case final hint?)
                     Text(
                       hint,
-                      style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
                     ),
                 ],
               ),
@@ -2175,7 +2227,8 @@ class _OcptBudgetNewChoiceRow extends StatelessWidget {
 /// [gesture]'s own bold answer label — the fifteen answers, per the class doc comment's table.
 String _ocptBudgetGestureAnswerLabel(Tr tr, OcptBudgetGesture gesture) => switch (gesture) {
   OcptBudgetGesture.addQuoteLine => tr.budgetNewGestureAddQuoteLineLabel,
-  OcptBudgetGesture.addQuoteLinesFromBreakdown => tr.budgetNewGestureAddQuoteLinesFromBreakdownLabel,
+  OcptBudgetGesture.addQuoteLinesFromBreakdown =>
+    tr.budgetNewGestureAddQuoteLinesFromBreakdownLabel,
   OcptBudgetGesture.commitSpend => tr.budgetNewGestureCommitSpendLabel,
   OcptBudgetGesture.recordExpense => tr.budgetNewGestureRecordExpenseLabel,
   OcptBudgetGesture.recordFinancingReceipt => tr.budgetNewGestureRecordFinancingReceiptLabel,

@@ -44,8 +44,7 @@ void main() {
   const screenplayId = 'screenplay-1';
   const relayId = 'relay-1';
 
-  const originalText =
-      'INT. HOUSE - DAY\n\nAction one.\n\nEXT. STREET - NIGHT\n\nAction two.';
+  const originalText = 'INT. HOUSE - DAY\n\nAction one.\n\nEXT. STREET - NIGHT\n\nAction two.';
 
   /// A "device" bundle: a full `OcptScreenplayService` (with its own five collaborator services,
   /// mirroring `ocpt_screenplay_service_test.dart`'s own wiring) plus the `OcptChangesetService`
@@ -59,7 +58,10 @@ void main() {
 
     final assetsService = OcptAssetsService(deviceId: thisDeviceId);
     final roleCandidatesService = OcptRoleCandidatesService(deviceId: thisDeviceId);
-    final elementsService = OcptElementsService(assetsService: assetsService, deviceId: thisDeviceId);
+    final elementsService = OcptElementsService(
+      assetsService: assetsService,
+      deviceId: thisDeviceId,
+    );
     final locationsService = OcptLocationsService(
       assetsService: assetsService,
       floorPlanService: OcptFloorPlanService(assetsService: assetsService, deviceId: thisDeviceId),
@@ -83,7 +85,10 @@ void main() {
           assetsService: assetsService,
           deviceId: thisDeviceId,
         ),
-        floorPlanService: OcptFloorPlanService(assetsService: assetsService, deviceId: thisDeviceId),
+        floorPlanService: OcptFloorPlanService(
+          assetsService: assetsService,
+          deviceId: thisDeviceId,
+        ),
         deviceId: thisDeviceId,
       ),
       shotCoverageService: OcptShotCoverageService(deviceId: thisDeviceId),
@@ -155,13 +160,15 @@ void main() {
       await deviceA.screenplayService.saveScreenplayText(
         database: replicaA,
         screenplayId: screenplayId,
-        fountainText: 'INT. HOUSE - DAY\n\nAction one, from A.\n\nEXT. STREET - NIGHT\n\nAction two.',
+        fountainText:
+            'INT. HOUSE - DAY\n\nAction one, from A.\n\nEXT. STREET - NIGHT\n\nAction two.',
         snapshotReason: OcptSnapshotReason.manual,
       );
       await deviceB.screenplayService.saveScreenplayText(
         database: replicaB,
         screenplayId: screenplayId,
-        fountainText: 'INT. HOUSE - DAY\n\nAction one.\n\nEXT. STREET - NIGHT\n\nAction two, from B.',
+        fountainText:
+            'INT. HOUSE - DAY\n\nAction one.\n\nEXT. STREET - NIGHT\n\nAction two, from B.',
         snapshotReason: OcptSnapshotReason.manual,
       );
 
@@ -195,11 +202,17 @@ void main() {
           'INT. HOUSE - DAY\n\nAction one, from A.\n\nEXT. STREET - NIGHT\n\nAction two, from B.';
 
       expect(
-        await deviceA.screenplayService.loadScreenplayText(database: replicaA, screenplayId: screenplayId),
+        await deviceA.screenplayService.loadScreenplayText(
+          database: replicaA,
+          screenplayId: screenplayId,
+        ),
         mergedText,
       );
       expect(
-        await deviceB.screenplayService.loadScreenplayText(database: replicaB, screenplayId: screenplayId),
+        await deviceB.screenplayService.loadScreenplayText(
+          database: replicaB,
+          screenplayId: screenplayId,
+        ),
         mergedText,
       );
 
@@ -228,9 +241,24 @@ void main() {
       snapshotReason: OcptSnapshotReason.manual,
     );
 
-    await deviceA.changesetService.syncOnce(database: replicaA, storage: storage, relayId: relayId, deviceId: 'device-a');
-    await deviceB.changesetService.syncOnce(database: replicaB, storage: storage, relayId: relayId, deviceId: 'device-b');
-    await deviceA.changesetService.syncOnce(database: replicaA, storage: storage, relayId: relayId, deviceId: 'device-a');
+    await deviceA.changesetService.syncOnce(
+      database: replicaA,
+      storage: storage,
+      relayId: relayId,
+      deviceId: 'device-a',
+    );
+    await deviceB.changesetService.syncOnce(
+      database: replicaB,
+      storage: storage,
+      relayId: relayId,
+      deviceId: 'device-b',
+    );
+    await deviceA.changesetService.syncOnce(
+      database: replicaA,
+      storage: storage,
+      relayId: relayId,
+      deviceId: 'device-a',
+    );
 
     final stored = await storage.readSince(OcptSequenceNumber.zero);
     expect(stored, isNotEmpty);
@@ -243,69 +271,83 @@ void main() {
     }
   });
 
-  test('the same lines edited differently on both replicas raise a recorded conflict, losing nothing', () async {
-    final deviceA = buildDevice('device-a');
-    final deviceB = buildDevice('device-b');
+  test(
+    'the same lines edited differently on both replicas raise a recorded conflict, losing nothing',
+    () async {
+      final deviceA = buildDevice('device-a');
+      final deviceB = buildDevice('device-b');
 
-    const localTextOnA =
-        'INT. HOUSE - DAY\n\nAction one, from A.\n\nEXT. STREET - NIGHT\n\nAction two.';
-    const localTextOnB =
-        'INT. HOUSE - DAY\n\nAction one, from B.\n\nEXT. STREET - NIGHT\n\nAction two.';
+      const localTextOnA =
+          'INT. HOUSE - DAY\n\nAction one, from A.\n\nEXT. STREET - NIGHT\n\nAction two.';
+      const localTextOnB =
+          'INT. HOUSE - DAY\n\nAction one, from B.\n\nEXT. STREET - NIGHT\n\nAction two.';
 
-    await deviceA.screenplayService.saveScreenplayText(
-      database: replicaA,
-      screenplayId: screenplayId,
-      fountainText: localTextOnA,
-      snapshotReason: OcptSnapshotReason.manual,
-    );
-    await deviceB.screenplayService.saveScreenplayText(
-      database: replicaB,
-      screenplayId: screenplayId,
-      fountainText: localTextOnB,
-      snapshotReason: OcptSnapshotReason.manual,
-    );
-
-    await deviceA.changesetService.syncOnce(database: replicaA, storage: storage, relayId: relayId, deviceId: 'device-a');
-    final conflictsB = await deviceB.changesetService.syncOnce(
-      database: replicaB,
-      storage: storage,
-      relayId: relayId,
-      deviceId: 'device-b',
-    );
-
-    expect(conflictsB, [
-      const OcptScreenplayMergeConflict(
+      await deviceA.screenplayService.saveScreenplayText(
+        database: replicaA,
         screenplayId: screenplayId,
-        baseText: originalText,
-        localText: localTextOnB,
-        incomingText: localTextOnA,
-      ),
-    ]);
-
-    // Nothing was lost or silently overwritten: B's own text is exactly as it stood.
-    expect(
-      await deviceB.screenplayService.loadScreenplayText(database: replicaB, screenplayId: screenplayId),
-      localTextOnB,
-    );
-
-    final conflictsA = await deviceA.changesetService.syncOnce(
-      database: replicaA,
-      storage: storage,
-      relayId: relayId,
-      deviceId: 'device-a',
-    );
-
-    expect(conflictsA, [
-      const OcptScreenplayMergeConflict(
+        fountainText: localTextOnA,
+        snapshotReason: OcptSnapshotReason.manual,
+      );
+      await deviceB.screenplayService.saveScreenplayText(
+        database: replicaB,
         screenplayId: screenplayId,
-        baseText: originalText,
-        localText: localTextOnA,
-        incomingText: localTextOnB,
-      ),
-    ]);
-    expect(
-      await deviceA.screenplayService.loadScreenplayText(database: replicaA, screenplayId: screenplayId),
-      localTextOnA,
-    );
-  });
+        fountainText: localTextOnB,
+        snapshotReason: OcptSnapshotReason.manual,
+      );
+
+      await deviceA.changesetService.syncOnce(
+        database: replicaA,
+        storage: storage,
+        relayId: relayId,
+        deviceId: 'device-a',
+      );
+      final conflictsB = await deviceB.changesetService.syncOnce(
+        database: replicaB,
+        storage: storage,
+        relayId: relayId,
+        deviceId: 'device-b',
+      );
+
+      expect(conflictsB, [
+        const OcptScreenplayMergeConflict(
+          screenplayId: screenplayId,
+          baseText: originalText,
+          localText: localTextOnB,
+          incomingText: localTextOnA,
+        ),
+      ]);
+
+      // Nothing was lost or silently overwritten: B's own text is exactly as it stood.
+      expect(
+        await deviceB.screenplayService.loadScreenplayText(
+          database: replicaB,
+          screenplayId: screenplayId,
+        ),
+        localTextOnB,
+      );
+
+      final conflictsA = await deviceA.changesetService.syncOnce(
+        database: replicaA,
+        storage: storage,
+        relayId: relayId,
+        deviceId: 'device-a',
+      );
+
+      expect(conflictsA, [
+        const OcptScreenplayMergeConflict(
+          screenplayId: screenplayId,
+          baseText: originalText,
+          localText: localTextOnA,
+          incomingText: localTextOnB,
+        ),
+      ]);
+      expect(
+        await deviceA.screenplayService.loadScreenplayText(
+          database: replicaA,
+          screenplayId: screenplayId,
+        ),
+        localTextOnA,
+      );
+    },
+  );
 }

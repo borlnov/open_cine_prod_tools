@@ -61,8 +61,7 @@ class OcptFloorPlanCopyBlockingDialog extends StatelessWidget {
                 dense: true,
                 contentPadding: EdgeInsets.zero,
                 title: Text(candidate.shotCode),
-                onTap: () =>
-                    globalGetIt().get<OcptRouterManager>().pop<String>(candidate.shotId),
+                onTap: () => globalGetIt().get<OcptRouterManager>().pop<String>(candidate.shotId),
               ),
           ],
         ),

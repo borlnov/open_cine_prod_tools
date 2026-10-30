@@ -167,7 +167,10 @@ class OcptResourcesListPanel extends StatelessWidget {
           child: Row(
             children: [
               Expanded(
-                child: Text(ocptResourcesTabLabel(tr, activeTab), style: theme.textTheme.titleSmall),
+                child: Text(
+                  ocptResourcesTabLabel(tr, activeTab),
+                  style: theme.textTheme.titleSmall,
+                ),
               ),
               if (isPeopleTab)
                 Text(

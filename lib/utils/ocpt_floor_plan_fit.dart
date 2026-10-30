@@ -64,7 +64,10 @@ import 'package:open_cine_prod_tools/utils/ocpt_floor_plan_geometry.dart';
   final resolvedMinY = minY;
   final resolvedMaxX = maxX;
   final resolvedMaxY = maxY;
-  if (resolvedMinX == null || resolvedMinY == null || resolvedMaxX == null || resolvedMaxY == null) {
+  if (resolvedMinX == null ||
+      resolvedMinY == null ||
+      resolvedMaxX == null ||
+      resolvedMaxY == null) {
     return null;
   }
 

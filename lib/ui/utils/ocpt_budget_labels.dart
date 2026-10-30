@@ -114,12 +114,13 @@ String ocptBudgetPosteDisplayLabel(OcptBudgetPoste poste, {required bool isSimpl
 /// [status]'s own localized word — shared between the committed-spending view's own status badge
 /// and the commitment dialog's own status picker, lifted here so both always agree on the wording
 /// rather than each resolving it independently.
-String ocptBudgetCommitmentStatusLabel(Tr tr, OcptBudgetCommitmentStatus status) => switch (status) {
-  OcptBudgetCommitmentStatus.quoteAccepted => tr.budgetCommittedStatusQuoteAcceptedLabel,
-  OcptBudgetCommitmentStatus.contractSigned => tr.budgetCommittedStatusContractSignedLabel,
-  OcptBudgetCommitmentStatus.invoiceReceived => tr.budgetCommittedStatusInvoiceReceivedLabel,
-  OcptBudgetCommitmentStatus.declared => tr.budgetCommittedStatusDeclaredLabel,
-};
+String ocptBudgetCommitmentStatusLabel(Tr tr, OcptBudgetCommitmentStatus status) =>
+    switch (status) {
+      OcptBudgetCommitmentStatus.quoteAccepted => tr.budgetCommittedStatusQuoteAcceptedLabel,
+      OcptBudgetCommitmentStatus.contractSigned => tr.budgetCommittedStatusContractSignedLabel,
+      OcptBudgetCommitmentStatus.invoiceReceived => tr.budgetCommittedStatusInvoiceReceivedLabel,
+      OcptBudgetCommitmentStatus.declared => tr.budgetCommittedStatusDeclaredLabel,
+    };
 
 /// [status]'s own accent colour, read off [colorScheme] alone — never a hard-coded hex — from the
 /// lightest step (a mere quote accepted) to the one nearest to being paid (declared).
@@ -198,12 +199,14 @@ String ocptBudgetResourceStatusLabel(
 /// is *called* belongs to the group, but how far along it is does not — a contribution in kind that
 /// is signed and a subsidy that is secured stand at the same place, and the eye should read them
 /// the same.
-Color ocptBudgetResourceStatusAccentColor(ColorScheme colorScheme, OcptBudgetResourceStatus status) =>
-    switch (status) {
-      OcptBudgetResourceStatus.pending => colorScheme.onSurfaceVariant,
-      OcptBudgetResourceStatus.agreed => colorScheme.tertiary,
-      OcptBudgetResourceStatus.confirmed => colorScheme.primary,
-    };
+Color ocptBudgetResourceStatusAccentColor(
+  ColorScheme colorScheme,
+  OcptBudgetResourceStatus status,
+) => switch (status) {
+  OcptBudgetResourceStatus.pending => colorScheme.onSurfaceVariant,
+  OcptBudgetResourceStatus.agreed => colorScheme.tertiary,
+  OcptBudgetResourceStatus.confirmed => colorScheme.primary,
+};
 
 /// [kind]'s own localized word — the régie view's own defrayal table and its dialog, always
 /// reading the same four words, mirroring [ocptBudgetResourceStatusLabel]'s own reason for living

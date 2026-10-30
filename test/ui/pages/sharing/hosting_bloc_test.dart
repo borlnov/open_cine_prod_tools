@@ -209,7 +209,10 @@ void main() {
 
   /// Builds an [OcptHostingBloc] over [hostManager]/[syncManager], tearing both streams down on
   /// test end.
-  OcptHostingBloc buildBloc({required _FakeHostManager hostManager, required _FakeSyncManager syncManager}) {
+  OcptHostingBloc buildBloc({
+    required _FakeHostManager hostManager,
+    required _FakeSyncManager syncManager,
+  }) {
     addTearDown(hostManager.disposeStream);
     addTearDown(syncManager.disposeStream);
 
@@ -223,28 +226,34 @@ void main() {
     return bloc;
   }
 
-  test("a never-paired, never-hosted project loads stopped with no auto-restart available", () async {
-    final bloc = buildBloc(hostManager: _FakeHostManager(), syncManager: _FakeSyncManager());
-    await pumpEventQueue();
+  test(
+    "a never-paired, never-hosted project loads stopped with no auto-restart available",
+    () async {
+      final bloc = buildBloc(hostManager: _FakeHostManager(), syncManager: _FakeSyncManager());
+      await pumpEventQueue();
 
-    expect(bloc.state.isLoading, isFalse);
-    expect(bloc.state.hostState, const OcptRelayHostStopped());
-    expect(bloc.state.canSetAutoRestart, isFalse);
-    expect(bloc.state.hostOnLaunch, isFalse);
-    expect(bloc.state.presenceRoster, isNull);
-  });
+      expect(bloc.state.isLoading, isFalse);
+      expect(bloc.state.hostState, const OcptRelayHostStopped());
+      expect(bloc.state.canSetAutoRestart, isFalse);
+      expect(bloc.state.hostOnLaunch, isFalse);
+      expect(bloc.state.presenceRoster, isNull);
+    },
+  );
 
-  test("an already-paired project loads with auto-restart available, reading the stored flag", () async {
-    await propertiesManager.setHostOnLaunch(projectId: "existing-project", value: true);
-    final bloc = buildBloc(
-      hostManager: _FakeHostManager(),
-      syncManager: _FakeSyncManager(pairedProjectId: "existing-project"),
-    );
-    await pumpEventQueue();
+  test(
+    "an already-paired project loads with auto-restart available, reading the stored flag",
+    () async {
+      await propertiesManager.setHostOnLaunch(projectId: "existing-project", value: true);
+      final bloc = buildBloc(
+        hostManager: _FakeHostManager(),
+        syncManager: _FakeSyncManager(pairedProjectId: "existing-project"),
+      );
+      await pumpEventQueue();
 
-    expect(bloc.state.canSetAutoRestart, isTrue);
-    expect(bloc.state.hostOnLaunch, isTrue);
-  });
+      expect(bloc.state.canSetAutoRestart, isTrue);
+      expect(bloc.state.hostOnLaunch, isTrue);
+    },
+  );
 
   test("starting hosting calls the manager and follows its state stream to online", () async {
     final hostManager = _FakeHostManager();
@@ -273,72 +282,78 @@ void main() {
     expect(bloc.state.canSetAutoRestart, isTrue);
   });
 
-  test("going online populates the available addresses and builds the enrolment/join invite", () async {
-    final hostManager = _FakeHostManager()
-      ..lanAddresses = [InternetAddress("192.168.1.42"), InternetAddress("10.0.0.5")];
-    final syncManager = _FakeSyncManager(
-      pairingService: _FakePairingService(
-        pairing: OcptProjectPairing(
-          relayBaseUri: Uri.https("prep.example.org"),
-          token: "prep-token",
+  test(
+    "going online populates the available addresses and builds the enrolment/join invite",
+    () async {
+      final hostManager = _FakeHostManager()
+        ..lanAddresses = [InternetAddress("192.168.1.42"), InternetAddress("10.0.0.5")];
+      final syncManager = _FakeSyncManager(
+        pairingService: _FakePairingService(
+          pairing: OcptProjectPairing(
+            relayBaseUri: Uri.https("prep.example.org"),
+            token: "prep-token",
+          ),
         ),
-      ),
-    );
-    final bloc = buildBloc(hostManager: hostManager, syncManager: syncManager);
-    await pumpEventQueue();
+      );
+      final bloc = buildBloc(hostManager: hostManager, syncManager: syncManager);
+      await pumpEventQueue();
 
-    hostManager.emit(
-      OcptRelayHostOnline(
-        lanBaseUri: Uri.parse("http://192.168.1.42:53187"),
-        enrolmentSecret: "secret",
-      ),
-      hostedProjectId: "hosted-project",
-    );
-    await pumpEventQueue();
-
-    expect(bloc.state.availableAddresses, ["192.168.1.42", "10.0.0.5"]);
-    expect(bloc.state.selectedAddress, "192.168.1.42");
-    expect(bloc.state.boundPort, 53187);
-    expect(bloc.state.enrolment?.relayBaseUri, Uri.parse("http://192.168.1.42:53187"));
-    expect(bloc.state.enrolment?.enrolmentSecret, "secret");
-    expect(bloc.state.joinInvite?.relayBaseUri, Uri.parse("http://192.168.1.42:53187"));
-    expect(bloc.state.joinInvite?.projectId, "hosted-project");
-    expect(bloc.state.joinInvite?.token, "prep-token");
-    expect(bloc.state.qrKind, OcptHostingQrKind.join);
-  });
-
-  test("an advertised-address change rebuilds both credentials without restarting hosting", () async {
-    final hostManager = _FakeHostManager()
-      ..lanAddresses = [InternetAddress("192.168.1.42"), InternetAddress("10.0.0.5")];
-    final syncManager = _FakeSyncManager(
-      pairingService: _FakePairingService(
-        pairing: OcptProjectPairing(
-          relayBaseUri: Uri.https("prep.example.org"),
-          token: "prep-token",
+      hostManager.emit(
+        OcptRelayHostOnline(
+          lanBaseUri: Uri.parse("http://192.168.1.42:53187"),
+          enrolmentSecret: "secret",
         ),
-      ),
-    );
-    final bloc = buildBloc(hostManager: hostManager, syncManager: syncManager);
-    await pumpEventQueue();
+        hostedProjectId: "hosted-project",
+      );
+      await pumpEventQueue();
 
-    hostManager.emit(
-      OcptRelayHostOnline(
-        lanBaseUri: Uri.parse("http://192.168.1.42:53187"),
-        enrolmentSecret: "secret",
-      ),
-      hostedProjectId: "hosted-project",
-    );
-    await pumpEventQueue();
+      expect(bloc.state.availableAddresses, ["192.168.1.42", "10.0.0.5"]);
+      expect(bloc.state.selectedAddress, "192.168.1.42");
+      expect(bloc.state.boundPort, 53187);
+      expect(bloc.state.enrolment?.relayBaseUri, Uri.parse("http://192.168.1.42:53187"));
+      expect(bloc.state.enrolment?.enrolmentSecret, "secret");
+      expect(bloc.state.joinInvite?.relayBaseUri, Uri.parse("http://192.168.1.42:53187"));
+      expect(bloc.state.joinInvite?.projectId, "hosted-project");
+      expect(bloc.state.joinInvite?.token, "prep-token");
+      expect(bloc.state.qrKind, OcptHostingQrKind.join);
+    },
+  );
 
-    bloc.add(const OcptHostingAdvertisedAddressChangedEvent("10.0.0.5"));
-    await pumpEventQueue();
+  test(
+    "an advertised-address change rebuilds both credentials without restarting hosting",
+    () async {
+      final hostManager = _FakeHostManager()
+        ..lanAddresses = [InternetAddress("192.168.1.42"), InternetAddress("10.0.0.5")];
+      final syncManager = _FakeSyncManager(
+        pairingService: _FakePairingService(
+          pairing: OcptProjectPairing(
+            relayBaseUri: Uri.https("prep.example.org"),
+            token: "prep-token",
+          ),
+        ),
+      );
+      final bloc = buildBloc(hostManager: hostManager, syncManager: syncManager);
+      await pumpEventQueue();
 
-    expect(bloc.state.selectedAddress, "10.0.0.5");
-    expect(bloc.state.enrolment?.relayBaseUri, Uri.parse("http://10.0.0.5:53187"));
-    expect(bloc.state.joinInvite?.relayBaseUri, Uri.parse("http://10.0.0.5:53187"));
-    expect(bloc.state.joinInvite?.token, "prep-token");
-    expect(hostManager.startHostingCallCount, 0);
-  });
+      hostManager.emit(
+        OcptRelayHostOnline(
+          lanBaseUri: Uri.parse("http://192.168.1.42:53187"),
+          enrolmentSecret: "secret",
+        ),
+        hostedProjectId: "hosted-project",
+      );
+      await pumpEventQueue();
+
+      bloc.add(const OcptHostingAdvertisedAddressChangedEvent("10.0.0.5"));
+      await pumpEventQueue();
+
+      expect(bloc.state.selectedAddress, "10.0.0.5");
+      expect(bloc.state.enrolment?.relayBaseUri, Uri.parse("http://10.0.0.5:53187"));
+      expect(bloc.state.joinInvite?.relayBaseUri, Uri.parse("http://10.0.0.5:53187"));
+      expect(bloc.state.joinInvite?.token, "prep-token");
+      expect(hostManager.startHostingCallCount, 0);
+    },
+  );
 
   test(
     "a port restart (a re-emitted online host state) keeps the previously selected address",
@@ -434,20 +449,23 @@ void main() {
     expect(bloc.state.hostState, const OcptRelayHostStopped());
   });
 
-  test("toggling auto-restart persists the flag and emits it, once a relay-side id is known", () async {
-    final bloc = buildBloc(
-      hostManager: _FakeHostManager(),
-      syncManager: _FakeSyncManager(pairedProjectId: "existing-project"),
-    );
-    await pumpEventQueue();
-    expect(bloc.state.canSetAutoRestart, isTrue);
+  test(
+    "toggling auto-restart persists the flag and emits it, once a relay-side id is known",
+    () async {
+      final bloc = buildBloc(
+        hostManager: _FakeHostManager(),
+        syncManager: _FakeSyncManager(pairedProjectId: "existing-project"),
+      );
+      await pumpEventQueue();
+      expect(bloc.state.canSetAutoRestart, isTrue);
 
-    bloc.add(const OcptHostingAutoRestartChangedEvent(value: true));
-    await pumpEventQueue();
+      bloc.add(const OcptHostingAutoRestartChangedEvent(value: true));
+      await pumpEventQueue();
 
-    expect(bloc.state.hostOnLaunch, isTrue);
-    expect(await propertiesManager.loadHostOnLaunch("existing-project"), isTrue);
-  });
+      expect(bloc.state.hostOnLaunch, isTrue);
+      expect(await propertiesManager.loadHostOnLaunch("existing-project"), isTrue);
+    },
+  );
 
   test("presence forwards through the bloc once hosting goes online", () async {
     final hostManager = _FakeHostManager();

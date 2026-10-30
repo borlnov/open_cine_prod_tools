@@ -112,9 +112,9 @@ class OcptScreenplayService {
     required OcptProjectDatabase database,
     required String screenplayId,
   }) async {
-    final row = await (database.select(database.ocptScreenplaysTable)
-          ..where((table) => table.id.equals(screenplayId) & table.isDeleted.not()))
-        .getSingle();
+    final row = await (database.select(
+      database.ocptScreenplaysTable,
+    )..where((table) => table.id.equals(screenplayId) & table.isDeleted.not())).getSingle();
 
     return row.fountainText;
   }
@@ -240,9 +240,9 @@ class OcptScreenplayService {
     required OcptSnapshotReason snapshotReason,
     required OcptRowStampService stamps,
   }) async {
-    final currentScreenplay = await (database.select(database.ocptScreenplaysTable)
-          ..where((table) => table.id.equals(screenplayId) & table.isDeleted.not()))
-        .getSingle();
+    final currentScreenplay = await (database.select(
+      database.ocptScreenplaysTable,
+    )..where((table) => table.id.equals(screenplayId) & table.isDeleted.not())).getSingle();
 
     await _createSnapshot(
       database: database,
@@ -379,10 +379,9 @@ class OcptScreenplayService {
     final companion = OcptScreenplaysTableCompanion(title: title, number: number);
 
     await database.transaction(() async {
-      final current =
-          await (database.select(database.ocptScreenplaysTable)
-                ..where((table) => table.id.equals(screenplayId) & table.isDeleted.not()))
-              .getSingleOrNull();
+      final current = await (database.select(
+        database.ocptScreenplaysTable,
+      )..where((table) => table.id.equals(screenplayId) & table.isDeleted.not())).getSingleOrNull();
       if (current == null) {
         return;
       }
@@ -512,8 +511,10 @@ class OcptScreenplayService {
       }
 
       if (liveEpisodes.length <= 1) {
-        appLogger().w("The episode $screenplayId can't be deleted: it's the project's last live "
-            "one, and a project always holds at least one screenplay");
+        appLogger().w(
+          "The episode $screenplayId can't be deleted: it's the project's last live "
+          "one, and a project always holds at least one screenplay",
+        );
         return false;
       }
 

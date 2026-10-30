@@ -23,7 +23,11 @@ class OcptEditorBlockTypeDropdown extends StatelessWidget {
   final ValueChanged<FountainLineType> onTypeSelected;
 
   /// Class constructor
-  const OcptEditorBlockTypeDropdown({super.key, required this.currentType, required this.onTypeSelected});
+  const OcptEditorBlockTypeDropdown({
+    super.key,
+    required this.currentType,
+    required this.onTypeSelected,
+  });
 
   @override
   Widget build(BuildContext context) {

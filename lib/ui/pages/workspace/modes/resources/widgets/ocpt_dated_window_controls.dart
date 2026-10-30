@@ -72,9 +72,7 @@ class OcptDateRangeControl extends StatelessWidget {
       children: [
         Text(tr.resourcesUnavailabilityFromLabel, style: labelStyle),
         OcptPickedValueButton(
-          label: DateFormat.yMMMd(
-            Localizations.localeOf(context).toString(),
-          ).format(startDate),
+          label: DateFormat.yMMMd(Localizations.localeOf(context).toString()).format(startDate),
           onPressed: onStartPressed,
         ),
         Text(tr.resourcesUnavailabilityToLabel, style: labelStyle),

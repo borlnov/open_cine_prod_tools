@@ -31,12 +31,21 @@ Widget _wrap(Widget child, {double width = 1400}) => MaterialApp(
     GlobalCupertinoLocalizations.delegate,
   ],
   supportedLocales: Tr.delegate.supportedLocales,
-  home: Scaffold(body: SizedBox(width: width, height: 700, child: child)),
+  home: Scaffold(
+    body: SizedBox(width: width, height: 700, child: child),
+  ),
 );
 
 /// A minimal poste, everything but [id]/[label] neutral.
-OcptBudgetPoste _poste({required String id, required String label}) =>
-    OcptBudgetPoste(id: id, code: "1", label: label, simpleLabel: null, estimateToCompleteCents: null, sortKey: "a0", lines: const []);
+OcptBudgetPoste _poste({required String id, required String label}) => OcptBudgetPoste(
+  id: id,
+  code: "1",
+  label: label,
+  simpleLabel: null,
+  estimateToCompleteCents: null,
+  sortKey: "a0",
+  lines: const [],
+);
 
 /// A minimal journal entry, everything but what each test actually varies neutral.
 OcptBudgetEntry _entry({
@@ -149,7 +158,9 @@ void main() {
     );
     expect(horizontalScroll, findsOneWidget);
     expect(
-      tester.getSize(find.descendant(of: horizontalScroll, matching: find.byType(Column)).first).width,
+      tester
+          .getSize(find.descendant(of: horizontalScroll, matching: find.byType(Column)).first)
+          .width,
       960,
     );
     expect(find.text("Camera rental"), findsOneWidget);
@@ -309,49 +320,51 @@ void main() {
     });
   });
 
-  testWidgets(
-    "the running balance is the whole journal's, never reset at a poste's own boundary",
-    (tester) async {
-      // A poste-2 credit lands first, so poste-1's own two debits fall from +10000 rather than
-      // from zero — the figure a balance wrongly reset at every poste's own boundary would show
-      // instead. This page honours no poste filter of its own any more, but the two postes still
-      // prove the balance is one column read top to bottom, not one per poste.
-      final entries = [
-        _entry(id: "e1", date: DateTime(2026), posteId: "poste-2", creditCents: 10000),
-        _entry(id: "e2", date: DateTime(2026, 1, 2), posteId: "poste-1", debitCents: 4000),
-        _entry(id: "e3", date: DateTime(2026, 1, 3), posteId: "poste-1", debitCents: 1000),
-      ];
+  testWidgets("the running balance is the whole journal's, never reset at a poste's own boundary", (
+    tester,
+  ) async {
+    // A poste-2 credit lands first, so poste-1's own two debits fall from +10000 rather than
+    // from zero — the figure a balance wrongly reset at every poste's own boundary would show
+    // instead. This page honours no poste filter of its own any more, but the two postes still
+    // prove the balance is one column read top to bottom, not one per poste.
+    final entries = [
+      _entry(id: "e1", date: DateTime(2026), posteId: "poste-2", creditCents: 10000),
+      _entry(id: "e2", date: DateTime(2026, 1, 2), posteId: "poste-1", debitCents: 4000),
+      _entry(id: "e3", date: DateTime(2026, 1, 3), posteId: "poste-1", debitCents: 1000),
+    ];
 
-      await tester.pumpWidget(
-        _wrap(
-          OcptBudgetCashJournal(
+    await tester.pumpWidget(
+      _wrap(
+        OcptBudgetCashJournal(
           shareableCents: 0,
           onOpenSharing: null,
-            entries: entries,
-            postes: [_poste(id: "poste-1", label: "Camera"), _poste(id: "poste-2", label: "Grant")],
-            receiptsByEntryId: const {},
-            commitments: const [],
-            onCommitmentSelected: (_) {},
+          entries: entries,
+          postes: [
+            _poste(id: "poste-1", label: "Camera"),
+            _poste(id: "poste-2", label: "Grant"),
+          ],
+          receiptsByEntryId: const {},
+          commitments: const [],
+          onCommitmentSelected: (_) {},
           selection: null,
-            isSimplified: false,
-            defaultVatRateBasisPoints: null,
-            currencyCode: "EUR",
-            isReadOnly: false,
-            onEntrySelected: (_) {},
+          isSimplified: false,
+          defaultVatRateBasisPoints: null,
+          currencyCode: "EUR",
+          isReadOnly: false,
+          onEntrySelected: (_) {},
           onEntryEditRequested: (_) {},
-            onEntryDeletionRequested: (_) {},
-          ),
+          onEntryDeletionRequested: (_) {},
         ),
-      );
+      ),
+    );
 
-      expect(find.text(ocptBudgetAmountLabel(6000, "EUR")), findsWidgets);
-      expect(find.text(ocptBudgetAmountLabel(5000, "EUR")), findsWidgets);
-      // Neither poste-1 row is poisoned into starting over from zero: a balance reset at the
-      // poste boundary would go negative from the very first one.
-      expect(find.text(ocptBudgetAmountLabel(-4000, "EUR")), findsNothing);
-      expect(find.text(ocptBudgetAmountLabel(-5000, "EUR")), findsNothing);
-    },
-  );
+    expect(find.text(ocptBudgetAmountLabel(6000, "EUR")), findsWidgets);
+    expect(find.text(ocptBudgetAmountLabel(5000, "EUR")), findsWidgets);
+    // Neither poste-1 row is poisoned into starting over from zero: a balance reset at the
+    // poste boundary would go negative from the very first one.
+    expect(find.text(ocptBudgetAmountLabel(-4000, "EUR")), findsNothing);
+    expect(find.text(ocptBudgetAmountLabel(-5000, "EUR")), findsNothing);
+  });
 
   testWidgets(
     "an entry that cannot be read tax-inclusive prints the em dash without breaking the rows "
@@ -359,32 +372,27 @@ void main() {
     (tester) async {
       final entries = [
         _entry(id: "e1", date: DateTime(2026), debitCents: 2000),
-        _entry(
-          id: "e2",
-          date: DateTime(2026, 1, 2),
-          debitCents: 1000,
-          isTaxInclusive: false,
-        ),
+        _entry(id: "e2", date: DateTime(2026, 1, 2), debitCents: 1000, isTaxInclusive: false),
         _entry(id: "e3", date: DateTime(2026, 1, 3), debitCents: 500),
       ];
 
       await tester.pumpWidget(
         _wrap(
           OcptBudgetCashJournal(
-          shareableCents: 0,
-          onOpenSharing: null,
+            shareableCents: 0,
+            onOpenSharing: null,
             entries: entries,
             postes: const [],
             receiptsByEntryId: const {},
             commitments: const [],
             onCommitmentSelected: (_) {},
-          selection: null,
+            selection: null,
             isSimplified: false,
             defaultVatRateBasisPoints: null,
             currencyCode: "EUR",
             isReadOnly: false,
             onEntrySelected: (_) {},
-          onEntryEditRequested: (_) {},
+            onEntryEditRequested: (_) {},
             onEntryDeletionRequested: (_) {},
           ),
         ),
@@ -453,8 +461,8 @@ void main() {
       await tester.pumpWidget(
         _wrap(
           OcptBudgetCashJournal(
-          shareableCents: 0,
-          onOpenSharing: null,
+            shareableCents: 0,
+            onOpenSharing: null,
             entries: entries,
             postes: const [],
             receiptsByEntryId: const {},
@@ -509,9 +517,7 @@ void main() {
   testWidgets("an entry naming no poste reads as such rather than leaving the cell empty", (
     tester,
   ) async {
-    final entries = [
-      _entry(id: "e1", date: DateTime(2026), debitCents: 1000),
-    ];
+    final entries = [_entry(id: "e1", date: DateTime(2026), debitCents: 1000)];
 
     await tester.pumpWidget(
       _wrap(
@@ -543,12 +549,7 @@ void main() {
       "once every entry does", (tester) async {
     final entries = [
       _entry(id: "e1", date: DateTime(2026), debitCents: 1000),
-      _entry(
-        id: "e2",
-        date: DateTime(2026, 1, 2),
-        debitCents: 500,
-        isTaxInclusive: false,
-      ),
+      _entry(id: "e2", date: DateTime(2026, 1, 2), debitCents: 500, isTaxInclusive: false),
     ];
 
     await tester.pumpWidget(
@@ -611,50 +612,47 @@ void main() {
     expect(find.text(tr.budgetCashJournalCoverageReadOut(1, 2)), findsNothing);
   });
 
-  testWidgets(
-    "withholds every writing affordance under a previewed version, but still selects",
-    (tester) async {
-      var written = false;
-      var selected = false;
-      final entries = [
-        _entry(id: "e1", date: DateTime(2026), posteId: "poste-1", debitCents: 1000),
-      ];
-      final postes = [_poste(id: "poste-1", label: "Camera")];
+  testWidgets("withholds every writing affordance under a previewed version, but still selects", (
+    tester,
+  ) async {
+    var written = false;
+    var selected = false;
+    final entries = [_entry(id: "e1", date: DateTime(2026), posteId: "poste-1", debitCents: 1000)];
+    final postes = [_poste(id: "poste-1", label: "Camera")];
 
-      await tester.pumpWidget(
-        _wrap(
-          OcptBudgetCashJournal(
+    await tester.pumpWidget(
+      _wrap(
+        OcptBudgetCashJournal(
           shareableCents: 0,
           onOpenSharing: null,
-            entries: entries,
-            postes: postes,
-            receiptsByEntryId: const {},
-            commitments: const [],
-            onCommitmentSelected: (_) {},
-            selection: null,
-            isSimplified: false,
-            defaultVatRateBasisPoints: null,
-            currencyCode: "EUR",
-            isReadOnly: true,
-            onEntrySelected: (_) => selected = true,
-            onEntryEditRequested: (_) => written = true,
-            onEntryDeletionRequested: (_) => written = true,
-          ),
+          entries: entries,
+          postes: postes,
+          receiptsByEntryId: const {},
+          commitments: const [],
+          onCommitmentSelected: (_) {},
+          selection: null,
+          isSimplified: false,
+          defaultVatRateBasisPoints: null,
+          currencyCode: "EUR",
+          isReadOnly: true,
+          onEntrySelected: (_) => selected = true,
+          onEntryEditRequested: (_) => written = true,
+          onEntryDeletionRequested: (_) => written = true,
         ),
-      );
+      ),
+    );
 
-      // The row's own `⋮` menu (Edit/Delete) is withheld whole rather than offered with nothing
-      // left in it — this page carries no capture affordance of its own to withhold either way.
-      expect(find.byType(PopupMenuButton<String>), findsNothing);
+    // The row's own `⋮` menu (Edit/Delete) is withheld whole rather than offered with nothing
+    // left in it — this page carries no capture affordance of its own to withhold either way.
+    expect(find.byType(PopupMenuButton<String>), findsNothing);
 
-      // A row's own click never writes — it only selects, opening the right dock's fiche on it —
-      // so it is never withheld under a previewed version.
-      await tester.tap(find.text(entries.first.label));
-      await tester.pumpAndSettle();
-      expect(selected, isTrue);
-      expect(written, isFalse);
-    },
-  );
+    // A row's own click never writes — it only selects, opening the right dock's fiche on it —
+    // so it is never withheld under a previewed version.
+    await tester.tap(find.text(entries.first.label));
+    await tester.pumpAndSettle();
+    expect(selected, isTrue);
+    expect(written, isFalse);
+  });
 
   group("selecting a row and its own menu", () {
     testWidgets("clicking a row selects it, dispatching its own id", (tester) async {
@@ -664,8 +662,8 @@ void main() {
       await tester.pumpWidget(
         _wrap(
           OcptBudgetCashJournal(
-          shareableCents: 0,
-          onOpenSharing: null,
+            shareableCents: 0,
+            onOpenSharing: null,
             entries: entries,
             postes: const [],
             receiptsByEntryId: const {},
@@ -707,8 +705,8 @@ void main() {
       await tester.pumpWidget(
         _wrap(
           OcptBudgetCashJournal(
-          shareableCents: 0,
-          onOpenSharing: null,
+            shareableCents: 0,
+            onOpenSharing: null,
             entries: entries,
             postes: const [],
             receiptsByEntryId: const {},
@@ -749,8 +747,8 @@ void main() {
       await tester.pumpWidget(
         _wrap(
           OcptBudgetCashJournal(
-          shareableCents: 0,
-          onOpenSharing: null,
+            shareableCents: 0,
+            onOpenSharing: null,
             entries: entries,
             postes: const [],
             receiptsByEntryId: const {},
@@ -782,20 +780,20 @@ void main() {
       await tester.pumpWidget(
         _wrap(
           OcptBudgetCashJournal(
-          shareableCents: 0,
-          onOpenSharing: null,
+            shareableCents: 0,
+            onOpenSharing: null,
             entries: entries,
             postes: const [],
             receiptsByEntryId: const {},
             commitments: const [],
             onCommitmentSelected: (_) {},
-          selection: null,
+            selection: null,
             isSimplified: false,
             defaultVatRateBasisPoints: null,
             currencyCode: "EUR",
             isReadOnly: false,
             onEntrySelected: (_) {},
-          onEntryEditRequested: (_) {},
+            onEntryEditRequested: (_) {},
             onEntryDeletionRequested: (_) {},
           ),
         ),
@@ -816,20 +814,20 @@ void main() {
       await tester.pumpWidget(
         _wrap(
           OcptBudgetCashJournal(
-          shareableCents: 0,
-          onOpenSharing: null,
+            shareableCents: 0,
+            onOpenSharing: null,
             entries: entries,
             postes: const [],
             receiptsByEntryId: {"e1": _receipt(path: tempFile.path)},
             commitments: const [],
             onCommitmentSelected: (_) {},
-          selection: null,
+            selection: null,
             isSimplified: false,
             defaultVatRateBasisPoints: null,
             currencyCode: "EUR",
             isReadOnly: false,
             onEntrySelected: (_) {},
-          onEntryEditRequested: (_) {},
+            onEntryEditRequested: (_) {},
             onEntryDeletionRequested: (_) {},
           ),
         ),
@@ -850,20 +848,20 @@ void main() {
       await tester.pumpWidget(
         _wrap(
           OcptBudgetCashJournal(
-          shareableCents: 0,
-          onOpenSharing: null,
+            shareableCents: 0,
+            onOpenSharing: null,
             entries: entries,
             postes: const [],
             receiptsByEntryId: {"e1": _receipt(path: "/nowhere/facture.pdf")},
             commitments: const [],
             onCommitmentSelected: (_) {},
-          selection: null,
+            selection: null,
             isSimplified: false,
             defaultVatRateBasisPoints: null,
             currencyCode: "EUR",
             isReadOnly: false,
             onEntrySelected: (_) {},
-          onEntryEditRequested: (_) {},
+            onEntryEditRequested: (_) {},
             onEntryDeletionRequested: (_) {},
           ),
         ),
@@ -886,8 +884,8 @@ void main() {
       await tester.pumpWidget(
         _wrap(
           OcptBudgetCashJournal(
-          shareableCents: 0,
-          onOpenSharing: null,
+            shareableCents: 0,
+            onOpenSharing: null,
             entries: entries,
             postes: const [],
             receiptsByEntryId: const {},
@@ -916,8 +914,8 @@ void main() {
       await tester.pumpWidget(
         _wrap(
           OcptBudgetCashJournal(
-          shareableCents: 0,
-          onOpenSharing: null,
+            shareableCents: 0,
+            onOpenSharing: null,
             entries: entries,
             postes: const [],
             receiptsByEntryId: const {},
@@ -960,8 +958,8 @@ void main() {
       await tester.pumpWidget(
         _wrap(
           OcptBudgetCashJournal(
-          shareableCents: 0,
-          onOpenSharing: null,
+            shareableCents: 0,
+            onOpenSharing: null,
             entries: entries,
             postes: postes,
             receiptsByEntryId: const {},
@@ -993,8 +991,8 @@ void main() {
       await tester.pumpWidget(
         _wrap(
           OcptBudgetCashJournal(
-          shareableCents: 0,
-          onOpenSharing: null,
+            shareableCents: 0,
+            onOpenSharing: null,
             entries: entries,
             postes: const [],
             receiptsByEntryId: const {},
@@ -1028,8 +1026,8 @@ void main() {
       await tester.pumpWidget(
         _wrap(
           OcptBudgetCashJournal(
-          shareableCents: 0,
-          onOpenSharing: null,
+            shareableCents: 0,
+            onOpenSharing: null,
             entries: entries,
             postes: const [],
             receiptsByEntryId: const {},
@@ -1063,8 +1061,8 @@ void main() {
       await tester.pumpWidget(
         _wrap(
           OcptBudgetCashJournal(
-          shareableCents: 0,
-          onOpenSharing: null,
+            shareableCents: 0,
+            onOpenSharing: null,
             entries: entries,
             postes: const [],
             receiptsByEntryId: const {},
@@ -1105,8 +1103,8 @@ void main() {
         await tester.pumpWidget(
           _wrap(
             OcptBudgetCashJournal(
-          shareableCents: 0,
-          onOpenSharing: null,
+              shareableCents: 0,
+              onOpenSharing: null,
               entries: entries,
               postes: const [],
               receiptsByEntryId: const {},
@@ -1132,8 +1130,8 @@ void main() {
         await tester.pumpWidget(
           _wrap(
             OcptBudgetCashJournal(
-          shareableCents: 0,
-          onOpenSharing: null,
+              shareableCents: 0,
+              onOpenSharing: null,
               entries: entries,
               postes: const [],
               receiptsByEntryId: const {},
@@ -1172,8 +1170,8 @@ void main() {
       await tester.pumpWidget(
         _wrap(
           OcptBudgetCashJournal(
-          shareableCents: 0,
-          onOpenSharing: null,
+            shareableCents: 0,
+            onOpenSharing: null,
             entries: entries,
             postes: const [],
             receiptsByEntryId: const {},
@@ -1205,8 +1203,8 @@ void main() {
       await tester.pumpWidget(
         _wrap(
           OcptBudgetCashJournal(
-          shareableCents: 0,
-          onOpenSharing: null,
+            shareableCents: 0,
+            onOpenSharing: null,
             entries: entries,
             postes: const [],
             receiptsByEntryId: const {},
@@ -1238,15 +1236,20 @@ void main() {
   group("the statement's own closing row", () {
     testWidgets("closes on the last entry's date, and states the balance alone", (tester) async {
       final entries = [
-        _entry(id: "e1", date: DateTime(2026, 1, 4), label: "Grant instalment", creditCents: 800000),
+        _entry(
+          id: "e1",
+          date: DateTime(2026, 1, 4),
+          label: "Grant instalment",
+          creditCents: 800000,
+        ),
         _entry(id: "e2", date: DateTime(2026, 2, 23), label: "Camera deposit", debitCents: 120000),
       ];
 
       await tester.pumpWidget(
         _wrap(
           OcptBudgetCashJournal(
-          shareableCents: 0,
-          onOpenSharing: null,
+            shareableCents: 0,
+            onOpenSharing: null,
             entries: entries,
             postes: const [],
             receiptsByEntryId: const {},
@@ -1288,12 +1291,14 @@ void main() {
       await tester.pumpWidget(
         _wrap(
           OcptBudgetCashJournal(
-          shareableCents: 0,
-          onOpenSharing: null,
+            shareableCents: 0,
+            onOpenSharing: null,
             entries: const [],
             postes: const [],
             receiptsByEntryId: const {},
-            commitments: [_commitment(id: "c1", dueDate: DateTime(2026, 3, 10), amountCents: 50000)],
+            commitments: [
+              _commitment(id: "c1", dueDate: DateTime(2026, 3, 10), amountCents: 50000),
+            ],
             onCommitmentSelected: (_) {},
             selection: null,
             isSimplified: false,

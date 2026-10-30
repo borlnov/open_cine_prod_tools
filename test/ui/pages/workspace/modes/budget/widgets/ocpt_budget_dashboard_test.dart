@@ -32,7 +32,9 @@ Widget _wrap(Widget child, {double width = 1200}) => MaterialApp(
     GlobalCupertinoLocalizations.delegate,
   ],
   supportedLocales: Tr.delegate.supportedLocales,
-  home: Scaffold(body: SizedBox(width: width, height: 900, child: child)),
+  home: Scaffold(
+    body: SizedBox(width: width, height: 900, child: child),
+  ),
 );
 
 /// Builds a quote line quoted at [amountCents] (a single unit at that price), tax-inclusive with no
@@ -159,55 +161,57 @@ void main() {
       expect(find.text(tr.budgetStatsPostes(1)), findsOneWidget);
     });
 
-    testWidgets("shows the coverage read-out instead of the poste count while a line lacks a rate", (
-      tester,
-    ) async {
-      final uncoveredLine = _buildLine(
-        id: "poste-1-line",
-        posteId: "poste-1",
-        amountCents: 10000,
-        isTaxInclusive: false,
-      );
-      final poste = OcptBudgetPoste(
-        id: "poste-1",
-        code: "1",
-        label: "Camera",
-        simpleLabel: null,
-        estimateToCompleteCents: null,
-        sortKey: "a0",
-        lines: [uncoveredLine],
-      );
+    testWidgets(
+      "shows the coverage read-out instead of the poste count while a line lacks a rate",
+      (tester) async {
+        final uncoveredLine = _buildLine(
+          id: "poste-1-line",
+          posteId: "poste-1",
+          amountCents: 10000,
+          isTaxInclusive: false,
+        );
+        final poste = OcptBudgetPoste(
+          id: "poste-1",
+          code: "1",
+          label: "Camera",
+          simpleLabel: null,
+          estimateToCompleteCents: null,
+          sortKey: "a0",
+          lines: [uncoveredLine],
+        );
 
-      final tr = await _pumpDashboard(tester, postes: [poste]);
+        final tr = await _pumpDashboard(tester, postes: [poste]);
 
-      expect(find.text(tr.budgetDashboardCoverageCaption(0, 1)), findsOneWidget);
-      expect(find.text(tr.budgetStatsPostes(1)), findsNothing);
-    });
+        expect(find.text(tr.budgetDashboardCoverageCaption(0, 1)), findsOneWidget);
+        expect(find.text(tr.budgetStatsPostes(1)), findsNothing);
+      },
+    );
   });
 
   group("the Financement tile", () {
-    testWidgets("reads the resources total and how much of it is in kind, whatever each resource's own status", (
-      tester,
-    ) async {
-      final poste = _buildPoste(id: "poste-1", quotedAmountCents: 10000);
-      final tr = await _pumpDashboard(
-        tester,
-        postes: [poste],
-        resources: [
-          _resource(id: "r1", amountCents: 5000),
-          _resource(id: "r2", groupKind: OcptBudgetResourceGroupKind.inKind, amountCents: 2000),
-        ],
-      );
+    testWidgets(
+      "reads the resources total and how much of it is in kind, whatever each resource's own status",
+      (tester) async {
+        final poste = _buildPoste(id: "poste-1", quotedAmountCents: 10000);
+        final tr = await _pumpDashboard(
+          tester,
+          postes: [poste],
+          resources: [
+            _resource(id: "r1", amountCents: 5000),
+            _resource(id: "r2", groupKind: OcptBudgetResourceGroupKind.inKind, amountCents: 2000),
+          ],
+        );
 
-      expect(find.text(tr.budgetDashboardFinancingLabel.toUpperCase()), findsOneWidget);
-      // The balance card's own "Resources" line reads the very same total, so this amount is drawn
-      // twice on screen — see `_OcptDashboardBalanceBar`'s own doc comment.
-      expect(find.text(ocptBudgetAmountLabel(7000, "EUR")), findsWidgets);
-      expect(
-        find.text(tr.budgetDashboardResourcesInKindCaption(ocptBudgetAmountLabel(2000, "EUR"))),
-        findsOneWidget,
-      );
-    });
+        expect(find.text(tr.budgetDashboardFinancingLabel.toUpperCase()), findsOneWidget);
+        // The balance card's own "Resources" line reads the very same total, so this amount is drawn
+        // twice on screen — see `_OcptDashboardBalanceBar`'s own doc comment.
+        expect(find.text(ocptBudgetAmountLabel(7000, "EUR")), findsWidgets);
+        expect(
+          find.text(tr.budgetDashboardResourcesInKindCaption(ocptBudgetAmountLabel(2000, "EUR"))),
+          findsOneWidget,
+        );
+      },
+    );
   });
 
   group("the Dépensé tile", () {
@@ -236,24 +240,25 @@ void main() {
       expect(find.text(ocptBudgetAmountLabel(3500, "EUR")), findsOneWidget);
     });
 
-    testWidgets("its own hint reads the share of the quote it represents, off-quote spending included", (
-      tester,
-    ) async {
-      final poste = _buildPoste(id: "poste-1", quotedAmountCents: 10000);
-      final tr = await _pumpDashboard(
-        tester,
-        postes: [poste],
-        paidByPosteId: {
-          "poste-1": const OcptBudgetCoveredTotal(
-            amountCents: 3000,
-            coveredLineCount: 1,
-            lineCount: 1,
-          ),
-        },
-      );
+    testWidgets(
+      "its own hint reads the share of the quote it represents, off-quote spending included",
+      (tester) async {
+        final poste = _buildPoste(id: "poste-1", quotedAmountCents: 10000);
+        final tr = await _pumpDashboard(
+          tester,
+          postes: [poste],
+          paidByPosteId: {
+            "poste-1": const OcptBudgetCoveredTotal(
+              amountCents: 3000,
+              coveredLineCount: 1,
+              lineCount: 1,
+            ),
+          },
+        );
 
-      expect(find.text(tr.budgetDashboardSpentShareCaption(30)), findsOneWidget);
-    });
+        expect(find.text(tr.budgetDashboardSpentShareCaption(30)), findsOneWidget);
+      },
+    );
 
     testWidgets("the coverage read-out wins over the percentage while a row cannot be read", (
       tester,
@@ -346,34 +351,35 @@ void main() {
       );
     });
 
-    testWidgets("the coverage read-out wins over the committed hint while an entry cannot be read", (
-      tester,
-    ) async {
-      final poste = _buildPoste(id: "poste-1", quotedAmountCents: 10000);
-      final tr = await _pumpDashboard(
-        tester,
-        postes: [poste],
-        cashTotals: const OcptBudgetCashTotals(
-          debitCents: 1000,
-          creditCents: 1000,
-          coveredEntryCount: 1,
-          entryCount: 2,
-        ),
-        committedByPosteId: {
-          "poste-1": const OcptBudgetCoveredTotal(
-            amountCents: 4000,
-            coveredLineCount: 1,
-            lineCount: 1,
+    testWidgets(
+      "the coverage read-out wins over the committed hint while an entry cannot be read",
+      (tester) async {
+        final poste = _buildPoste(id: "poste-1", quotedAmountCents: 10000);
+        final tr = await _pumpDashboard(
+          tester,
+          postes: [poste],
+          cashTotals: const OcptBudgetCashTotals(
+            debitCents: 1000,
+            creditCents: 1000,
+            coveredEntryCount: 1,
+            entryCount: 2,
           ),
-        },
-      );
+          committedByPosteId: {
+            "poste-1": const OcptBudgetCoveredTotal(
+              amountCents: 4000,
+              coveredLineCount: 1,
+              lineCount: 1,
+            ),
+          },
+        );
 
-      expect(find.text(tr.budgetDashboardCoverageCaption(1, 2)), findsOneWidget);
-      expect(
-        find.text(tr.budgetDashboardCommittedCaption(ocptBudgetAmountLabel(4000, "EUR"))),
-        findsNothing,
-      );
-    });
+        expect(find.text(tr.budgetDashboardCoverageCaption(1, 2)), findsOneWidget);
+        expect(
+          find.text(tr.budgetDashboardCommittedCaption(ocptBudgetAmountLabel(4000, "EUR"))),
+          findsNothing,
+        );
+      },
+    );
   });
 
   group("the balance card", () {
@@ -562,35 +568,36 @@ void main() {
       expect(find.text(tr.budgetDashboardAlertsSectionTitle), findsNothing);
     });
 
-    testWidgets("a poste over its quote draws its own badge, message and the variance printed negative", (
-      tester,
-    ) async {
-      final poste = _buildPoste(id: "poste-1", quotedAmountCents: 10000);
-      final alert = const OcptBudgetPosteOverQuoteAlert(
-        posteId: "poste-1",
-        quotedAmountCents: 10000,
-        paidCents: 7000,
-        committedCents: 5000,
-        varianceCents: 2000,
-      );
+    testWidgets(
+      "a poste over its quote draws its own badge, message and the variance printed negative",
+      (tester) async {
+        final poste = _buildPoste(id: "poste-1", quotedAmountCents: 10000);
+        final alert = const OcptBudgetPosteOverQuoteAlert(
+          posteId: "poste-1",
+          quotedAmountCents: 10000,
+          paidCents: 7000,
+          committedCents: 5000,
+          varianceCents: 2000,
+        );
 
-      final tr = await _pumpDashboard(tester, postes: [poste], alerts: [alert]);
+        final tr = await _pumpDashboard(tester, postes: [poste], alerts: [alert]);
 
-      expect(find.text(tr.budgetDashboardAlertsSectionTitle), findsOneWidget);
-      expect(find.text(tr.budgetDashboardOverrunBadge), findsOneWidget);
-      expect(
-        find.text(
-          tr.budgetDashboardPosteOverQuoteAlertMessage(
-            "Camera",
-            ocptBudgetAmountLabel(12000, "EUR"),
-            ocptBudgetAmountLabel(10000, "EUR"),
-            ocptBudgetAmountLabel(2000, "EUR"),
+        expect(find.text(tr.budgetDashboardAlertsSectionTitle), findsOneWidget);
+        expect(find.text(tr.budgetDashboardOverrunBadge), findsOneWidget);
+        expect(
+          find.text(
+            tr.budgetDashboardPosteOverQuoteAlertMessage(
+              "Camera",
+              ocptBudgetAmountLabel(12000, "EUR"),
+              ocptBudgetAmountLabel(10000, "EUR"),
+              ocptBudgetAmountLabel(2000, "EUR"),
+            ),
           ),
-        ),
-        findsOneWidget,
-      );
-      expect(find.text(ocptBudgetAmountLabel(-2000, "EUR")), findsOneWidget);
-    });
+          findsOneWidget,
+        );
+        expect(find.text(ocptBudgetAmountLabel(-2000, "EUR")), findsOneWidget);
+      },
+    );
 
     testWidgets("its own row selects the poste and switches the centre view", (tester) async {
       final poste = _buildPoste(id: "poste-1", quotedAmountCents: 10000);

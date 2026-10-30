@@ -105,14 +105,15 @@ class OcptShotListXlsxExportService {
   void _appendHeaderRow(Sheet sheet, OcptShotListXlsxLabels labels) {
     final headerRowIndex = sheet.maxRows;
     sheet.appendRow([
-      for (final column in OcptShotListXlsxColumn.values)
-        TextCellValue(labels.headerOf(column)),
+      for (final column in OcptShotListXlsxColumn.values) TextCellValue(labels.headerOf(column)),
     ]);
 
     for (var columnIndex = 0; columnIndex < OcptShotListXlsxColumn.values.length; columnIndex++) {
       sheet
           .cell(CellIndex.indexByColumnRow(columnIndex: columnIndex, rowIndex: headerRowIndex))
-          .cellStyle = CellStyle(bold: true);
+          .cellStyle = CellStyle(
+        bold: true,
+      );
     }
   }
 
@@ -126,9 +127,8 @@ class OcptShotListXlsxExportService {
   }) {
     final separatorRowIndex = sheet.maxRows;
     sheet.appendRow([TextCellValue(labels.titleOfSequence(sequence.id))]);
-    sheet
-        .cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: separatorRowIndex))
-        .cellStyle = CellStyle(bold: true);
+    sheet.cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: separatorRowIndex)).cellStyle =
+        CellStyle(bold: true);
 
     for (final shot in sequence.shots) {
       sheet.appendRow([
@@ -183,10 +183,11 @@ class OcptShotListXlsxExportService {
   /// The set of [shot]: the heading of the scene [sequence] is built from, or the heading that
   /// scene had when it was deleted for a shot of the orphan group — a sequence *is* a screenplay
   /// scene, so its set is never stored on the shot itself.
-  String? _setOf({required OcptShotSequence sequence, required OcptShot shot}) => switch (sequence) {
-    OcptSceneShotSequence() => sequence.heading,
-    OcptOrphanShotSequence() => shot.orphanedHeading,
-  };
+  String? _setOf({required OcptShotSequence sequence, required OcptShot shot}) =>
+      switch (sequence) {
+        OcptSceneShotSequence() => sequence.heading,
+        OcptOrphanShotSequence() => shot.orphanedHeading,
+      };
 
   /// The cell holding a shot's estimated duration [milliseconds], written `mm:ss` as the app shows
   /// it (both halves on two digits, so a column of durations reads as one column here too), or
@@ -225,7 +226,10 @@ class OcptShotListXlsxExportService {
   /// format a date with is exactly the situation `yyyy-MM-dd` already serves elsewhere in this
   /// codebase (`OcptResourcesXlsxExportService._isoDate`), inlined here rather than imported since
   /// the service layer this class sits in must not depend on the UI layer that helper lives in.
-  CellValue? _placementCellOf(List<OcptShotPlacement> placements, {required OcptShotListXlsxLabels labels}) {
+  CellValue? _placementCellOf(
+    List<OcptShotPlacement> placements, {
+    required OcptShotListXlsxLabels labels,
+  }) {
     if (placements.isEmpty) {
       return null;
     }

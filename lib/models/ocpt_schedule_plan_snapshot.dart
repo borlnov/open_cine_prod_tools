@@ -201,9 +201,7 @@ class OcptSchedulePlanSnapshot extends Equatable {
       for (final candidate in roleCandidates) candidate.id: candidate,
     }),
     episodeById: Map.unmodifiable({for (final episode in episodes) episode.id: episode}),
-    shotsById: Map.unmodifiable({
-      for (final shotList in shotLists) ...shotList.shotsById,
-    }),
+    shotsById: Map.unmodifiable({for (final shotList in shotLists) ...shotList.shotsById}),
   );
 
   /// The shot [shotId] names, or null while it hasn't been read yet (or it has since been deleted).
@@ -242,7 +240,8 @@ class OcptSchedulePlanSnapshot extends Equatable {
               OcptShootingTimelineBlock(
                 id: block.id,
                 durationMinutes: block.durationMinutes,
-                fallbackDurationMinutes: block.kind == OcptShootingBlockKind.shot && block.shotId != null
+                fallbackDurationMinutes:
+                    block.kind == OcptShootingBlockKind.shot && block.shotId != null
                     ? _durationMinutesOfShot(block.shotId!)
                     : null,
                 anchorMinute: block.anchorMinute,
@@ -330,10 +329,7 @@ class OcptSchedulePlanSnapshot extends Equatable {
           continue;
         }
         candidacies.add(
-          OcptConvocationCandidacy(
-            roleCandidateId: candidate.id,
-            personId: candidate.person.id,
-          ),
+          OcptConvocationCandidacy(roleCandidateId: candidate.id, personId: candidate.person.id),
         );
       }
       if (candidacies.isEmpty) {
@@ -762,9 +758,7 @@ class OcptSchedulePlanSnapshot extends Equatable {
           ],
         ),
     ],
-    roles: [
-      for (final role in roles) OcptScheduleAlertRole(id: role.id, personId: role.personId),
-    ],
+    roles: [for (final role in roles) OcptScheduleAlertRole(id: role.id, personId: role.personId)],
     locationWindowsByLocationId: {
       for (final location in locations)
         location.id: [
@@ -791,7 +785,9 @@ class OcptSchedulePlanSnapshot extends Equatable {
   /// it is: the whole-shoot walk runs once per snapshot, and this grouping rides on it. A day
   /// raising nothing has no entry at all, and [OcptScheduleRoleUncastAlert] marks no day — see
   /// `ocptGroupScheduleAlertsByDay` for why.
-  late final Map<String, List<OcptScheduleAlert>> alertsByDayId = ocptGroupScheduleAlertsByDay(alerts);
+  late final Map<String, List<OcptScheduleAlert>> alertsByDayId = ocptGroupScheduleAlertsByDay(
+    alerts,
+  );
 
   /// Every [OcptRole.name] of [roles], normalised through `fountain_kit`'s `normalizeCharacterName`
   /// and keyed onto its own id — the same join `OcptCallSheetPdfService` and

@@ -91,7 +91,10 @@ class OcptShootingPlanXlsxExportService {
     required List<String> dayIds,
     required OcptShootingPlanXlsxLabels labels,
   }) {
-    final resolvedDayIds = [for (final id in dayIds) if (plan.schedule.daysById.containsKey(id)) id];
+    final resolvedDayIds = [
+      for (final id in dayIds)
+        if (plan.schedule.daysById.containsKey(id)) id,
+    ];
 
     final excel = Excel.createExcel();
     final locationsSheetName = _sheetNameOr(labels.locationsSheetName, fallbackLocationsSheetName);
@@ -169,8 +172,11 @@ class OcptShootingPlanXlsxExportService {
   /// Emboldens every cell of row [rowIndex], from column 0 up to (but excluding) [columnCount].
   void _boldRow(Sheet sheet, int rowIndex, int columnCount) {
     for (var columnIndex = 0; columnIndex < columnCount; columnIndex++) {
-      sheet.cell(CellIndex.indexByColumnRow(columnIndex: columnIndex, rowIndex: rowIndex)).cellStyle =
-          CellStyle(bold: true);
+      sheet
+          .cell(CellIndex.indexByColumnRow(columnIndex: columnIndex, rowIndex: rowIndex))
+          .cellStyle = CellStyle(
+        bold: true,
+      );
     }
   }
 
@@ -200,7 +206,9 @@ class OcptShootingPlanXlsxExportService {
     sheet.appendRow([
       TextCellValue(rowHeaderLabel),
       for (final column in columns)
-        TextCellValue(column.slotLabel.trim().isEmpty ? ocptScheduleEmptyValue : column.slotLabel.trim()),
+        TextCellValue(
+          column.slotLabel.trim().isEmpty ? ocptScheduleEmptyValue : column.slotLabel.trim(),
+        ),
     ]);
     _boldRow(sheet, sheet.maxRows - 1, columns.length + 1);
 
@@ -267,7 +275,13 @@ class OcptShootingPlanXlsxExportService {
       for (final ordered in ocptOrderedScheduleEntriesOfDay(plan: plan, dayId: dayId)) {
         sheet.appendRow([
           for (final column in OcptShootingPlanXlsxColumn.values)
-            _chronologyCellOf(column: column, day: day, ordered: ordered, plan: plan, labels: labels),
+            _chronologyCellOf(
+              column: column,
+              day: day,
+              ordered: ordered,
+              plan: plan,
+              labels: labels,
+            ),
         ]);
       }
     }
@@ -294,14 +308,18 @@ class OcptShootingPlanXlsxExportService {
       OcptShootingPlanXlsxColumn.dayTag => TextCellValue("${labels.dayTagPrefix}${day.dayNumber}"),
       OcptShootingPlanXlsxColumn.date => DateCellValue.fromDateTime(day.date),
       OcptShootingPlanXlsxColumn.slot => _textOrNull(ordered.slot.label),
-      OcptShootingPlanXlsxColumn.start => TextCellValue(ocptFormatDayMinute(ordered.entry.startMinute)),
+      OcptShootingPlanXlsxColumn.start => TextCellValue(
+        ocptFormatDayMinute(ordered.entry.startMinute),
+      ),
       OcptShootingPlanXlsxColumn.end => TextCellValue(ocptFormatDayMinute(ordered.entry.endMinute)),
       OcptShootingPlanXlsxColumn.kind => _textOrNull(labels.blockKindLabelOf(block.kind)),
       OcptShootingPlanXlsxColumn.shot => _textOrNull(_shotCodeOf(block, plan)),
       OcptShootingPlanXlsxColumn.sequence => _textOrNull(_sequenceHeadingOf(block, plan)),
       OcptShootingPlanXlsxColumn.set => _textOrNull(_setNameOf(ordered.slot, plan)),
       OcptShootingPlanXlsxColumn.roles => _textOrNull(_rolesOf(block, plan)),
-      OcptShootingPlanXlsxColumn.durationMinutes => IntCellValue(ordered.entry.endMinute - ordered.entry.startMinute),
+      OcptShootingPlanXlsxColumn.durationMinutes => IntCellValue(
+        ordered.entry.endMinute - ordered.entry.startMinute,
+      ),
       OcptShootingPlanXlsxColumn.crewNote => _textOrNull(block.crewNote),
     };
   }
@@ -321,7 +339,8 @@ class OcptShootingPlanXlsxExportService {
   /// other kind, which concerns no sequence at all.
   String? _sequenceHeadingOf(OcptShootingDayBlock block, OcptSchedulePlanSnapshot plan) {
     final sceneId = switch (block.kind) {
-      OcptShootingBlockKind.shot => block.shotId == null ? null : plan.shotById(block.shotId!)?.sceneId,
+      OcptShootingBlockKind.shot =>
+        block.shotId == null ? null : plan.shotById(block.shotId!)?.sceneId,
       OcptShootingBlockKind.hold => block.sceneId,
       _ => null,
     };
@@ -347,7 +366,9 @@ class OcptShootingPlanXlsxExportService {
       return null;
     }
 
-    final byNormalizedName = {for (final role in plan.roles) normalizeCharacterName(role.name): role};
+    final byNormalizedName = {
+      for (final role in plan.roles) normalizeCharacterName(role.name): role,
+    };
     final matched = <String>{};
     for (final name in shot.characters) {
       if (byNormalizedName[name] case final role?) {

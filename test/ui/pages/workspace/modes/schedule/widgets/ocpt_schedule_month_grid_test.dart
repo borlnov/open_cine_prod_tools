@@ -26,7 +26,9 @@ Widget _wrapInApp(Widget child, {double height = 700}) => MaterialApp(
     GlobalCupertinoLocalizations.delegate,
   ],
   supportedLocales: Tr.delegate.supportedLocales,
-  home: Scaffold(body: SizedBox(width: 900, height: height, child: child)),
+  home: Scaffold(
+    body: SizedBox(width: 900, height: height, child: child),
+  ),
 );
 
 /// Builds a shooting day dated [date] with the few fields these tests read, everything else
@@ -134,10 +136,7 @@ void main() {
 
   testWidgets("a multi-slot day's cell carries a badge naming its own slot count", (tester) async {
     final day = _buildDay(id: "day-1", dayNumber: 1, date: anchorDate);
-    final slots = [
-      _buildSlot(id: "slot-1"),
-      _buildSlot(id: "slot-2"),
-    ];
+    final slots = [_buildSlot(id: "slot-1"), _buildSlot(id: "slot-2")];
 
     await tester.pumpWidget(
       _wrapInApp(

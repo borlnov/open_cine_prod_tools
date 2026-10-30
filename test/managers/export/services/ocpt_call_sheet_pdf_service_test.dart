@@ -193,8 +193,18 @@ OcptShootingDayBlock _buildBlock({
 );
 
 /// Builds a day event with the few fields these tests read, everything else neutral.
-OcptShootingDayEvent _buildEvent({required String id, required int minute, String label = "", String notes = ""}) =>
-    OcptShootingDayEvent(id: id, shootingDayId: "day-1", minute: minute, label: label, notes: notes);
+OcptShootingDayEvent _buildEvent({
+  required String id,
+  required int minute,
+  String label = "",
+  String notes = "",
+}) => OcptShootingDayEvent(
+  id: id,
+  shootingDayId: "day-1",
+  minute: minute,
+  label: label,
+  notes: notes,
+);
 
 /// Builds a slot guest with the few fields these tests read, everything else neutral.
 OcptShootingSlotGuest _buildGuest({
@@ -240,13 +250,12 @@ OcptShootingBlockCandidate _buildBlockCandidate({
   required String id,
   required String blockId,
   required String roleCandidateId,
-}) =>
-    OcptShootingBlockCandidate(
-      id: id,
-      blockId: blockId,
-      roleCandidateId: roleCandidateId,
-      notes: "",
-    );
+}) => OcptShootingBlockCandidate(
+  id: id,
+  blockId: blockId,
+  roleCandidateId: roleCandidateId,
+  notes: "",
+);
 
 /// Builds a candidacy — somebody seen for a part — with the few fields these tests read.
 OcptRoleCandidate _buildRoleCandidate({
@@ -436,21 +445,23 @@ OcptSceneElementLink _buildSceneElementLink({required String id, required String
     OcptSceneElementLink(id: id, sceneId: sceneId, quantity: "1", notes: "");
 
 /// Builds a one-scene shot list snapshot over [shots], all belonging to one synthetic scene.
-OcptShotListSnapshot _buildShotList({required List<OcptShot> shots, String heading = "INT. HOUSE - DAY"}) =>
-    OcptShotListSnapshot.build(
-      screenplayId: "screenplay-1",
-      sequences: [
-        OcptSceneShotSequence(
-          sceneId: "scene-1",
-          heading: heading,
-          sceneNumber: null,
-          displaySceneNumber: "1",
-          charStart: 0,
-          charEnd: 10,
-          shots: shots,
-        ),
-      ],
-    );
+OcptShotListSnapshot _buildShotList({
+  required List<OcptShot> shots,
+  String heading = "INT. HOUSE - DAY",
+}) => OcptShotListSnapshot.build(
+  screenplayId: "screenplay-1",
+  sequences: [
+    OcptSceneShotSequence(
+      sceneId: "scene-1",
+      heading: heading,
+      sceneNumber: null,
+      displaySceneNumber: "1",
+      charStart: 0,
+      charEnd: 10,
+      shots: shots,
+    ),
+  ],
+);
 
 /// Builds an [OcptSchedulePlanSnapshot] over one screenplay's worth of days/slots/blocks, plus
 /// whichever catalogues a test needs, exactly as `ocpt_schedule_plan_snapshot_test.dart`'s own
@@ -498,7 +509,12 @@ void main() {
     List<OcptShootingDayEvent> events = const [],
     List<OcptShootingSlotGuest> morningGuests = const [],
   }) {
-    final locationA = _buildLocation(id: "loc-a", name: "Studio A", latitude: 48.85, longitude: 2.35);
+    final locationA = _buildLocation(
+      id: "loc-a",
+      name: "Studio A",
+      latitude: 48.85,
+      longitude: 2.35,
+    );
     final locationB = _buildLocation(id: "loc-b", name: "Location B");
 
     final morning = _buildSlot(
@@ -506,7 +522,14 @@ void main() {
       label: "Morning unit",
       locationId: "loc-a",
       anchorMinute: 480, // 08:00
-      crew: [_buildCrewMember(id: "crew-1", slotId: "slot-morning", personId: "person-1", positionId: "director")],
+      crew: [
+        _buildCrewMember(
+          id: "crew-1",
+          slotId: "slot-morning",
+          personId: "person-1",
+          positionId: "director",
+        ),
+      ],
       cast: [_buildCastMember(id: "cast-1", slotId: "slot-morning", roleId: "role-1")],
       guests: morningGuests,
     );
@@ -521,8 +544,18 @@ void main() {
       ],
     );
 
-    final shot1 = _buildShot(id: "shot-1", sceneId: "scene-1", code: "1/1", characters: const ["ALICE"]);
-    final shot2 = _buildShot(id: "shot-2", sceneId: "scene-1", code: "1/2", characters: const ["ALICE"]);
+    final shot1 = _buildShot(
+      id: "shot-1",
+      sceneId: "scene-1",
+      code: "1/1",
+      characters: const ["ALICE"],
+    );
+    final shot2 = _buildShot(
+      id: "shot-2",
+      sceneId: "scene-1",
+      code: "1/2",
+      characters: const ["ALICE"],
+    );
 
     return _buildSnapshot(
       days: [_buildDay(id: "day-1", dayNumber: 2, crewNote: "Bring rain gear.")],
@@ -554,7 +587,9 @@ void main() {
         _buildPerson(id: "person-1", firstName: "Justine", lastName: "Renard", phone: "0601020304"),
         _buildPerson(id: "person-2", firstName: "Marc", lastName: "Petit", phone: "0605060708"),
       ],
-      shotLists: [_buildShotList(shots: [shot1, shot2])],
+      shotLists: [
+        _buildShotList(shots: [shot1, shot2]),
+      ],
     );
   }
 
@@ -585,16 +620,33 @@ void main() {
 
       // Drop the evening slot and its crew entirely: the second unit's own time band, its
       // crew-list row and its shot must all disappear with it.
-      final locationA = _buildLocation(id: "loc-a", name: "Studio A", latitude: 48.85, longitude: 2.35);
+      final locationA = _buildLocation(
+        id: "loc-a",
+        name: "Studio A",
+        latitude: 48.85,
+        longitude: 2.35,
+      );
       final morning = _buildSlot(
         id: "slot-morning",
         label: "Morning unit",
         locationId: "loc-a",
         anchorMinute: 480,
-        crew: [_buildCrewMember(id: "crew-1", slotId: "slot-morning", personId: "person-1", positionId: "director")],
+        crew: [
+          _buildCrewMember(
+            id: "crew-1",
+            slotId: "slot-morning",
+            personId: "person-1",
+            positionId: "director",
+          ),
+        ],
         cast: [_buildCastMember(id: "cast-1", slotId: "slot-morning", roleId: "role-1")],
       );
-      final shot1 = _buildShot(id: "shot-1", sceneId: "scene-1", code: "1/1", characters: const ["ALICE"]);
+      final shot1 = _buildShot(
+        id: "shot-1",
+        sceneId: "scene-1",
+        code: "1/1",
+        characters: const ["ALICE"],
+      );
       final oneSlotOnly = _buildSnapshot(
         days: [_buildDay(id: "day-1", dayNumber: 2, crewNote: "Bring rain gear.")],
         slotsByDayId: {
@@ -614,7 +666,9 @@ void main() {
         locations: [locationA],
         roles: [_buildRole(id: "role-1", name: "Alice")],
         people: [_buildPerson(id: "person-1", firstName: "Justine", lastName: "Renard")],
-        shotLists: [_buildShotList(shots: [shot1])],
+        shotLists: [
+          _buildShotList(shots: [shot1]),
+        ],
       );
 
       final single = await service.generateGeneralCallSheet(
@@ -661,7 +715,14 @@ void main() {
         roles: roles,
         shotLists: [
           _buildShotList(
-            shots: [_buildShot(id: "shot-1", sceneId: "scene-1", code: "1/1", characters: const ["ALICE", "BOB"])],
+            shots: [
+              _buildShot(
+                id: "shot-1",
+                sceneId: "scene-1",
+                code: "1/1",
+                characters: const ["ALICE", "BOB"],
+              ),
+            ],
           ),
         ],
       );
@@ -674,7 +735,14 @@ void main() {
         roles: roles,
         shotLists: [
           _buildShotList(
-            shots: [_buildShot(id: "shot-1", sceneId: "scene-1", code: "1/1", characters: const ["ALICE"])],
+            shots: [
+              _buildShot(
+                id: "shot-1",
+                sceneId: "scene-1",
+                code: "1/1",
+                characters: const ["ALICE"],
+              ),
+            ],
           ),
         ],
       );
@@ -710,7 +778,9 @@ void main() {
           "day-1": [nightSlot],
         },
         blocksByDayId: {
-          "day-1": [_buildBlock(id: "block-1", slotId: "slot-night", durationMinutes: 480)], // ends at 1620
+          "day-1": [
+            _buildBlock(id: "block-1", slotId: "slot-night", durationMinutes: 480),
+          ], // ends at 1620
         },
       );
 
@@ -779,7 +849,9 @@ void main() {
           "day-1": [longSlot],
         },
         blocksByDayId: {
-          "day-1": [_buildBlock(id: "block-1", slotId: "slot-1", durationMinutes: 180)], // starts at 540
+          "day-1": [
+            _buildBlock(id: "block-1", slotId: "slot-1", durationMinutes: 180),
+          ], // starts at 540
         },
       );
 
@@ -804,7 +876,10 @@ void main() {
     });
 
     test("a day with no slot at all still writes a readable one-page document", () async {
-      final emptySnapshot = _buildSnapshot(days: [_buildDay(id: "day-1", dayNumber: 1)], slotsByDayId: const {});
+      final emptySnapshot = _buildSnapshot(
+        days: [_buildDay(id: "day-1", dayNumber: 1)],
+        slotsByDayId: const {},
+      );
 
       final bytes = await service.generateGeneralCallSheet(
         plan: emptySnapshot,
@@ -896,11 +971,17 @@ void main() {
         "specialEffectsSupervisor", // specialEffects
       ];
       final people = [
-        for (var i = 0; i < count; i++) _buildPerson(id: "person-$i", firstName: "First$i", lastName: "Last$i"),
+        for (var i = 0; i < count; i++)
+          _buildPerson(id: "person-$i", firstName: "First$i", lastName: "Last$i"),
       ];
       final crew = [
         for (var i = 0; i < count; i++)
-          _buildCrewMember(id: "crew-$i", slotId: "slot-1", personId: "person-$i", positionId: positionsByDepartment[i]),
+          _buildCrewMember(
+            id: "crew-$i",
+            slotId: "slot-1",
+            personId: "person-$i",
+            positionId: positionsByDepartment[i],
+          ),
       ];
 
       return _buildSnapshot(
@@ -959,7 +1040,9 @@ void main() {
   group("generateNamedCallSheet vs generateGeneralCallSheet", () {
     test("a named sheet carries the day's own directories, so it grows with the crew", () async {
       final plan = buildTwoSlotDaySnapshot();
-      final convocation = plan.convocationsOfDay("day-1").firstWhere((c) => c.personId == "person-1");
+      final convocation = plan
+          .convocationsOfDay("day-1")
+          .firstWhere((c) => c.personId == "person-1");
       final namedBytes = await service.generateNamedCallSheet(
         plan: plan,
         dayId: "day-1",
@@ -975,7 +1058,12 @@ void main() {
       // are the department-contacts table and the crew list, both of which a named sheet now prints.
       final grownPlan = buildTwoSlotDaySnapshot(
         extraEveningCrew: [
-          _buildCrewMember(id: "crew-3", slotId: "slot-evening", personId: "person-3", positionId: "cameraOperator"),
+          _buildCrewMember(
+            id: "crew-3",
+            slotId: "slot-evening",
+            personId: "person-3",
+            positionId: "cameraOperator",
+          ),
         ],
       );
       final grownPlanWithPerson = _addPerson(
@@ -1077,7 +1165,9 @@ void main() {
           ],
         },
         people: [_buildPerson(id: "person-1", firstName: "Justine", lastName: "Renard")],
-        shotLists: [_buildShotList(shots: [shot])],
+        shotLists: [
+          _buildShotList(shots: [shot]),
+        ],
       );
 
       // Drop the wrap block: departure now collapses onto the PAT end (09:30), so the four-figure
@@ -1100,7 +1190,9 @@ void main() {
           ],
         },
         people: [_buildPerson(id: "person-1", firstName: "Justine", lastName: "Renard")],
-        shotLists: [_buildShotList(shots: [shot])],
+        shotLists: [
+          _buildShotList(shots: [shot]),
+        ],
       );
 
       // Drop the preparation block too: arrival now collapses onto PAT start (08:30) as well.
@@ -1121,7 +1213,9 @@ void main() {
           ],
         },
         people: [_buildPerson(id: "person-1", firstName: "Justine", lastName: "Renard")],
-        shotLists: [_buildShotList(shots: [shot])],
+        shotLists: [
+          _buildShotList(shots: [shot]),
+        ],
       );
 
       Future<Uint8List> generateFor(OcptSchedulePlanSnapshot plan) async {
@@ -1182,7 +1276,9 @@ void main() {
 
     test("a named sheet is stamped too: two moments, two documents", () async {
       final plan = buildTwoSlotDaySnapshot();
-      final convocation = plan.convocationsOfDay("day-1").firstWhere((c) => c.personId == "person-1");
+      final convocation = plan
+          .convocationsOfDay("day-1")
+          .firstWhere((c) => c.personId == "person-1");
 
       Future<Uint8List> generateAt(DateTime exportDate) => service.generateNamedCallSheet(
         plan: plan,
@@ -1226,8 +1322,12 @@ void main() {
       );
       expect(_contentStreams(generalWith), isNot(_contentStreams(generalWithout)));
 
-      final convocationWithout = withoutEvents.convocationsOfDay("day-1").firstWhere((c) => c.personId == "person-1");
-      final convocationWith = withEvents.convocationsOfDay("day-1").firstWhere((c) => c.personId == "person-1");
+      final convocationWithout = withoutEvents
+          .convocationsOfDay("day-1")
+          .firstWhere((c) => c.personId == "person-1");
+      final convocationWith = withEvents
+          .convocationsOfDay("day-1")
+          .firstWhere((c) => c.personId == "person-1");
       final namedWithout = await service.generateNamedCallSheet(
         plan: withoutEvents,
         dayId: "day-1",
@@ -1249,65 +1349,77 @@ void main() {
       expect(_contentStreams(namedWith), isNot(_contentStreams(namedWithout)));
     });
 
-    test("a day's own guests change what both sheets print, and a guest with no PAT band does not crash", () async {
-      final withoutGuest = buildTwoSlotDaySnapshot();
-      final withGuest = buildTwoSlotDaySnapshot(
-        morningGuests: [
-          _buildGuest(id: "guest-1", slotId: "slot-morning", freeName: "Mayor Dupont", reason: "Lends the square"),
-        ],
-      );
+    test(
+      "a day's own guests change what both sheets print, and a guest with no PAT band does not crash",
+      () async {
+        final withoutGuest = buildTwoSlotDaySnapshot();
+        final withGuest = buildTwoSlotDaySnapshot(
+          morningGuests: [
+            _buildGuest(
+              id: "guest-1",
+              slotId: "slot-morning",
+              freeName: "Mayor Dupont",
+              reason: "Lends the square",
+            ),
+          ],
+        );
 
-      // A guest's own convocation is computed like any other, and it never carries a PAT band
-      // (ADR 0018) — generating a sheet over one must not throw.
-      final guestConvocation = withGuest.convocationsOfDay("day-1").firstWhere((c) => c.isGuest);
-      expect(guestConvocation.patStartMinute, isNull);
-      expect(guestConvocation.patEndMinute, isNull);
+        // A guest's own convocation is computed like any other, and it never carries a PAT band
+        // (ADR 0018) — generating a sheet over one must not throw.
+        final guestConvocation = withGuest.convocationsOfDay("day-1").firstWhere((c) => c.isGuest);
+        expect(guestConvocation.patStartMinute, isNull);
+        expect(guestConvocation.patEndMinute, isNull);
 
-      final generalWithout = await service.generateGeneralCallSheet(
-        plan: withoutGuest,
-        dayId: "day-1",
-        pageSetup: pageSetup,
-        labels: _labels,
-        projectName: "My Movie",
-        exportDate: _pinnedExportDate,
-      );
-      final generalWith = await service.generateGeneralCallSheet(
-        plan: withGuest,
-        dayId: "day-1",
-        pageSetup: pageSetup,
-        labels: _labels,
-        projectName: "My Movie",
-        exportDate: _pinnedExportDate,
-      );
-      expect(ascii.decode(generalWith.sublist(0, 4)), "%PDF");
-      expect(_contentStreams(generalWith), isNot(_contentStreams(generalWithout)));
+        final generalWithout = await service.generateGeneralCallSheet(
+          plan: withoutGuest,
+          dayId: "day-1",
+          pageSetup: pageSetup,
+          labels: _labels,
+          projectName: "My Movie",
+          exportDate: _pinnedExportDate,
+        );
+        final generalWith = await service.generateGeneralCallSheet(
+          plan: withGuest,
+          dayId: "day-1",
+          pageSetup: pageSetup,
+          labels: _labels,
+          projectName: "My Movie",
+          exportDate: _pinnedExportDate,
+        );
+        expect(ascii.decode(generalWith.sublist(0, 4)), "%PDF");
+        expect(_contentStreams(generalWith), isNot(_contentStreams(generalWithout)));
 
-      // The guest table is day-wide (like the cast table and the two directories), so it shows up
-      // on a named sheet too, even one addressed to the morning unit's own director rather than to
-      // the guest.
-      final convocationWithout = withoutGuest.convocationsOfDay("day-1").firstWhere((c) => c.personId == "person-1");
-      final convocationWith = withGuest.convocationsOfDay("day-1").firstWhere((c) => c.personId == "person-1");
-      final namedWithout = await service.generateNamedCallSheet(
-        plan: withoutGuest,
-        dayId: "day-1",
-        pageSetup: pageSetup,
-        labels: _labels,
-        projectName: "My Movie",
-        convocation: convocationWithout,
-        exportDate: _pinnedExportDate,
-      );
-      final namedWith = await service.generateNamedCallSheet(
-        plan: withGuest,
-        dayId: "day-1",
-        pageSetup: pageSetup,
-        labels: _labels,
-        projectName: "My Movie",
-        convocation: convocationWith,
-        exportDate: _pinnedExportDate,
-      );
-      expect(ascii.decode(namedWith.sublist(0, 4)), "%PDF");
-      expect(_contentStreams(namedWith), isNot(_contentStreams(namedWithout)));
-    });
+        // The guest table is day-wide (like the cast table and the two directories), so it shows up
+        // on a named sheet too, even one addressed to the morning unit's own director rather than to
+        // the guest.
+        final convocationWithout = withoutGuest
+            .convocationsOfDay("day-1")
+            .firstWhere((c) => c.personId == "person-1");
+        final convocationWith = withGuest
+            .convocationsOfDay("day-1")
+            .firstWhere((c) => c.personId == "person-1");
+        final namedWithout = await service.generateNamedCallSheet(
+          plan: withoutGuest,
+          dayId: "day-1",
+          pageSetup: pageSetup,
+          labels: _labels,
+          projectName: "My Movie",
+          convocation: convocationWithout,
+          exportDate: _pinnedExportDate,
+        );
+        final namedWith = await service.generateNamedCallSheet(
+          plan: withGuest,
+          dayId: "day-1",
+          pageSetup: pageSetup,
+          labels: _labels,
+          projectName: "My Movie",
+          convocation: convocationWith,
+          exportDate: _pinnedExportDate,
+        );
+        expect(ascii.decode(namedWith.sublist(0, 4)), "%PDF");
+        expect(_contentStreams(namedWith), isNot(_contentStreams(namedWithout)));
+      },
+    );
 
     test("a shot block's own crew note changes the sheet", () async {
       final slot = _buildSlot(id: "slot-1", anchorMinute: 480);
@@ -1330,7 +1442,9 @@ void main() {
             ),
           ],
         },
-        shotLists: [_buildShotList(shots: [shot])],
+        shotLists: [
+          _buildShotList(shots: [shot]),
+        ],
       );
 
       final withoutNote = await service.generateGeneralCallSheet(
@@ -1362,7 +1476,14 @@ void main() {
           "day-1": [slot],
         },
         blocksByDayId: {
-          "day-1": [_buildBlock(id: "block-1", slotId: "slot-1", kind: OcptShootingBlockKind.meal, crewNote: crewNote)],
+          "day-1": [
+            _buildBlock(
+              id: "block-1",
+              slotId: "slot-1",
+              kind: OcptShootingBlockKind.meal,
+              crewNote: crewNote,
+            ),
+          ],
         },
       );
 
@@ -1429,7 +1550,9 @@ void main() {
           _buildPerson(id: "person-1", firstName: "Justine", lastName: "Renard"),
           _buildPerson(id: "person-2", firstName: "Marc", lastName: "Petit"),
         ],
-        shotLists: [_buildShotList(shots: [shot1, shot2])],
+        shotLists: [
+          _buildShotList(shots: [shot1, shot2]),
+        ],
       );
 
       final withoutEveningNote = buildPlan(eveningCrewNote: "");
@@ -1523,54 +1646,61 @@ void main() {
         },
         roles: [_buildRole(id: "role-1", name: "Alice")], // personId null: an uncast role.
         people: [_buildPerson(id: "person-1", firstName: "Justine", lastName: "Renard")],
-        shotLists: [_buildShotList(shots: [shot])],
+        shotLists: [
+          _buildShotList(shots: [shot]),
+        ],
         elements: elements,
       );
     }
 
-    test("a named sheet differs once its recipient's own element is linked to a scene the day plays", () async {
-      final linkedPlan = buildPlan(
-        elements: [
-          _buildElement(
-            id: "element-1",
-            name: "Umbrella",
-            broughtByPersonId: "person-1",
-            sceneLinks: [_buildSceneElementLink(id: "link-1", sceneId: "scene-1")],
-          ),
-        ],
-      );
-      final unlinkedPlan = buildPlan(
-        elements: [
-          _buildElement(id: "element-1", name: "Umbrella", broughtByPersonId: "person-1"),
-        ],
-      );
+    test(
+      "a named sheet differs once its recipient's own element is linked to a scene the day plays",
+      () async {
+        final linkedPlan = buildPlan(
+          elements: [
+            _buildElement(
+              id: "element-1",
+              name: "Umbrella",
+              broughtByPersonId: "person-1",
+              sceneLinks: [_buildSceneElementLink(id: "link-1", sceneId: "scene-1")],
+            ),
+          ],
+        );
+        final unlinkedPlan = buildPlan(
+          elements: [
+            _buildElement(id: "element-1", name: "Umbrella", broughtByPersonId: "person-1"),
+          ],
+        );
 
-      final linkedConvocation = linkedPlan.convocationsOfDay("day-1").firstWhere((c) => c.personId == "person-1");
-      final unlinkedConvocation = unlinkedPlan
-          .convocationsOfDay("day-1")
-          .firstWhere((c) => c.personId == "person-1");
+        final linkedConvocation = linkedPlan
+            .convocationsOfDay("day-1")
+            .firstWhere((c) => c.personId == "person-1");
+        final unlinkedConvocation = unlinkedPlan
+            .convocationsOfDay("day-1")
+            .firstWhere((c) => c.personId == "person-1");
 
-      final linkedBytes = await service.generateNamedCallSheet(
-        plan: linkedPlan,
-        dayId: "day-1",
-        pageSetup: pageSetup,
-        labels: _labels,
-        projectName: "My Movie",
-        convocation: linkedConvocation,
-        exportDate: _pinnedExportDate,
-      );
-      final unlinkedBytes = await service.generateNamedCallSheet(
-        plan: unlinkedPlan,
-        dayId: "day-1",
-        pageSetup: pageSetup,
-        labels: _labels,
-        projectName: "My Movie",
-        convocation: unlinkedConvocation,
-        exportDate: _pinnedExportDate,
-      );
+        final linkedBytes = await service.generateNamedCallSheet(
+          plan: linkedPlan,
+          dayId: "day-1",
+          pageSetup: pageSetup,
+          labels: _labels,
+          projectName: "My Movie",
+          convocation: linkedConvocation,
+          exportDate: _pinnedExportDate,
+        );
+        final unlinkedBytes = await service.generateNamedCallSheet(
+          plan: unlinkedPlan,
+          dayId: "day-1",
+          pageSetup: pageSetup,
+          labels: _labels,
+          projectName: "My Movie",
+          convocation: unlinkedConvocation,
+          exportDate: _pinnedExportDate,
+        );
 
-      expect(_contentStreams(linkedBytes), isNot(_contentStreams(unlinkedBytes)));
-    });
+        expect(_contentStreams(linkedBytes), isNot(_contentStreams(unlinkedBytes)));
+      },
+    );
 
     test("a named sheet for an uncast role is unchanged by any element at all", () async {
       final withElement = buildPlan(
@@ -1585,7 +1715,9 @@ void main() {
       );
       final withoutElement = buildPlan(elements: const []);
 
-      final withElementConvocation = withElement.convocationsOfDay("day-1").firstWhere((c) => c.roleId == "role-1");
+      final withElementConvocation = withElement
+          .convocationsOfDay("day-1")
+          .firstWhere((c) => c.roleId == "role-1");
       final withoutElementConvocation = withoutElement
           .convocationsOfDay("day-1")
           .firstWhere((c) => c.roleId == "role-1");
@@ -1649,7 +1781,8 @@ void main() {
       expect(
         _contentStreams(withElementBytes),
         _contentStreams(withoutElementBytes),
-        reason: "what to bring is a fact about one recipient; the general sheet never reads it at all",
+        reason:
+            "what to bring is a fact about one recipient; the general sheet never reads it at all",
       );
     });
   });
@@ -1695,32 +1828,40 @@ void main() {
       exportDate: _pinnedExportDate,
     );
 
-    test("a day of auditions prints a table a day of the same blocks without them does not", () async {
-      final auditions = buildDay(
-        blocks: [
-          _buildBlock(
-            id: "block-1",
-            slotId: "slot-1",
-            kind: OcptShootingBlockKind.audition,
-            durationMinutes: 120,
-            candidates: [namedOn("block-1")],
-          ),
-        ],
-      );
-      final holds = buildDay(
-        blocks: [
-          _buildBlock(id: "block-1", slotId: "slot-1", kind: OcptShootingBlockKind.hold, durationMinutes: 120),
-        ],
-      );
+    test(
+      "a day of auditions prints a table a day of the same blocks without them does not",
+      () async {
+        final auditions = buildDay(
+          blocks: [
+            _buildBlock(
+              id: "block-1",
+              slotId: "slot-1",
+              kind: OcptShootingBlockKind.audition,
+              durationMinutes: 120,
+              candidates: [namedOn("block-1")],
+            ),
+          ],
+        );
+        final holds = buildDay(
+          blocks: [
+            _buildBlock(
+              id: "block-1",
+              slotId: "slot-1",
+              kind: OcptShootingBlockKind.hold,
+              durationMinutes: 120,
+            ),
+          ],
+        );
 
-      final auditionBytes = await generalOf(auditions);
-      final holdBytes = await generalOf(holds);
+        final auditionBytes = await generalOf(auditions);
+        final holdBytes = await generalOf(holds);
 
-      expect(ascii.decode(auditionBytes.sublist(0, 4)), "%PDF");
-      expect(_contentStreams(auditionBytes), isNot(_contentStreams(holdBytes)));
-      // The audition table is a whole section the hold day has no heading for at all.
-      expect(auditionBytes.length, greaterThan(holdBytes.length));
-    });
+        expect(ascii.decode(auditionBytes.sublist(0, 4)), "%PDF");
+        expect(_contentStreams(auditionBytes), isNot(_contentStreams(holdBytes)));
+        // The audition table is a whole section the hold day has no heading for at all.
+        expect(auditionBytes.length, greaterThan(holdBytes.length));
+      },
+    );
 
     test("a second audition adds a row rather than a second table", () async {
       final one = buildDay(
@@ -1871,42 +2012,45 @@ void main() {
       expect(_contentStreams(withBytes), isNot(_contentStreams(withoutBytes)));
     });
 
-    test("a candidate named on an audition is listed under the cast table, with their contact", () async {
-      final without = buildDay(
-        blocks: [
-          _buildBlock(
-            id: "block-1",
-            slotId: "slot-1",
-            kind: OcptShootingBlockKind.audition,
-            durationMinutes: 120,
-          ),
-        ],
-      );
-      final with_ = buildDay(
-        blocks: [
-          _buildBlock(
-            id: "block-1",
-            slotId: "slot-1",
-            kind: OcptShootingBlockKind.audition,
-            durationMinutes: 120,
-            candidates: [namedOn("block-1")],
-          ),
-        ],
-      );
+    test(
+      "a candidate named on an audition is listed under the cast table, with their contact",
+      () async {
+        final without = buildDay(
+          blocks: [
+            _buildBlock(
+              id: "block-1",
+              slotId: "slot-1",
+              kind: OcptShootingBlockKind.audition,
+              durationMinutes: 120,
+            ),
+          ],
+        );
+        final with_ = buildDay(
+          blocks: [
+            _buildBlock(
+              id: "block-1",
+              slotId: "slot-1",
+              kind: OcptShootingBlockKind.audition,
+              durationMinutes: 120,
+              candidates: [namedOn("block-1")],
+            ),
+          ],
+        );
 
-      // The candidate's own hours come off the audition that sees them, not off the unit's day
-      // (ADR 0024) — here they happen to be the same, the slot holding that one block.
-      final convocation = with_.convocationsOfDay("day-1").firstWhere((c) => c.isSeenForAPart);
-      expect(convocation.roleCandidateIds, {"candidate-1"});
-      expect(convocation.patStartMinute, 540);
-      expect(convocation.patEndMinute, 660);
+        // The candidate's own hours come off the audition that sees them, not off the unit's day
+        // (ADR 0024) — here they happen to be the same, the slot holding that one block.
+        final convocation = with_.convocationsOfDay("day-1").firstWhere((c) => c.isSeenForAPart);
+        expect(convocation.roleCandidateIds, {"candidate-1"});
+        expect(convocation.patStartMinute, 540);
+        expect(convocation.patEndMinute, 660);
 
-      final withoutBytes = await generalOf(without);
-      final withBytes = await generalOf(with_);
+        final withoutBytes = await generalOf(without);
+        final withBytes = await generalOf(with_);
 
-      expect(_contentStreams(withBytes), isNot(_contentStreams(withoutBytes)));
-      expect(withBytes.length, greaterThan(withoutBytes.length));
-    });
+        expect(_contentStreams(withBytes), isNot(_contentStreams(withoutBytes)));
+        expect(withBytes.length, greaterThan(withoutBytes.length));
+      },
+    );
 
     test("the audition table names who is seen at which hour", () async {
       // The `CANDIDAT` column: a block naming somebody prints their name beside the hour, where a
@@ -2011,11 +2155,16 @@ void main() {
           ],
         },
         roles: [_buildRole(id: "role-1", name: "Marie", number: 3)],
-        people: [camille, _buildPerson(id: "person-1", firstName: "Justine", lastName: "Renard")],
+        people: [
+          camille,
+          _buildPerson(id: "person-1", firstName: "Justine", lastName: "Renard"),
+        ],
         roleCandidates: [candidate],
       );
 
-      final crewConvocation = plan.convocationsOfDay("day-1").firstWhere((c) => c.personId == "person-1");
+      final crewConvocation = plan
+          .convocationsOfDay("day-1")
+          .firstWhere((c) => c.personId == "person-1");
       final named = await service.generateNamedCallSheet(
         plan: plan,
         dayId: "day-1",
@@ -2033,39 +2182,48 @@ void main() {
       expect(_contentStreams(named), isNot(_contentStreams(general)));
     });
 
-    test("a candidate gets a named sheet of their own, headed by their name and the part", () async {
-      final plan = buildDay(
-        blocks: [
-          _buildBlock(
-            id: "block-1",
-            slotId: "slot-1",
-            kind: OcptShootingBlockKind.audition,
-            durationMinutes: 120,
-            candidates: [namedOn("block-1")],
+    test(
+      "a candidate gets a named sheet of their own, headed by their name and the part",
+      () async {
+        final plan = buildDay(
+          blocks: [
+            _buildBlock(
+              id: "block-1",
+              slotId: "slot-1",
+              kind: OcptShootingBlockKind.audition,
+              durationMinutes: 120,
+              candidates: [namedOn("block-1")],
+            ),
+          ],
+        );
+
+        final candidateConvocation = plan
+            .convocationsOfDay("day-1")
+            .firstWhere((c) => c.isSeenForAPart);
+        final bytes = await service.generateNamedCallSheet(
+          plan: plan,
+          dayId: "day-1",
+          pageSetup: pageSetup,
+          labels: _labels,
+          projectName: "My Movie",
+          convocation: candidateConvocation,
+          exportDate: _pinnedExportDate,
+        );
+
+        expect(ascii.decode(bytes.sublist(0, 4)), "%PDF");
+        expect(_pageCount(bytes), 1);
+        // The recipient's own name is what the file is called: not the fallback label a convocation
+        // this service could name nobody for would fall back to.
+        expect(
+          service.namedCallSheetFileName(
+            labels: _labels,
+            dayNumber: 1,
+            personName: "Camille Renard",
           ),
-        ],
-      );
-
-      final candidateConvocation = plan.convocationsOfDay("day-1").firstWhere((c) => c.isSeenForAPart);
-      final bytes = await service.generateNamedCallSheet(
-        plan: plan,
-        dayId: "day-1",
-        pageSetup: pageSetup,
-        labels: _labels,
-        projectName: "My Movie",
-        convocation: candidateConvocation,
-        exportDate: _pinnedExportDate,
-      );
-
-      expect(ascii.decode(bytes.sublist(0, 4)), "%PDF");
-      expect(_pageCount(bytes), 1);
-      // The recipient's own name is what the file is called: not the fallback label a convocation
-      // this service could name nobody for would fall back to.
-      expect(
-        service.namedCallSheetFileName(labels: _labels, dayNumber: 1, personName: "Camille Renard"),
-        "FDS-D1-Camille-Renard.pdf",
-      );
-    });
+          "FDS-D1-Camille-Renard.pdf",
+        );
+      },
+    );
 
     test("a candidate's own sheet prints their audition and their line, and no other's", () async {
       // The one place a named sheet narrows a directory (ADR 0024): who else is being seen for a
@@ -2073,11 +2231,7 @@ void main() {
       // Proved by swapping *who* that other candidate is: Camille's own sheet must come out
       // identical, which it only can if neither the audition table nor the directory carries them.
       OcptSchedulePlanSnapshot buildWithOther(OcptPerson otherPerson) {
-        final other = _buildRoleCandidate(
-          id: "candidate-2",
-          roleId: "role-1",
-          person: otherPerson,
-        );
+        final other = _buildRoleCandidate(id: "candidate-2", roleId: "role-1", person: otherPerson);
 
         return _buildSnapshot(
           days: [_buildDay(id: "day-1", dayNumber: 1)],
@@ -2149,7 +2303,9 @@ void main() {
       // Each candidate is expected at their own twenty minutes, off their own block rather than off
       // the unit's whole session.
       final convocations = withAlice.convocationsOfDay("day-1");
-      final camilleCall = convocations.firstWhere((c) => c.roleCandidateIds.contains("candidate-1"));
+      final camilleCall = convocations.firstWhere(
+        (c) => c.roleCandidateIds.contains("candidate-1"),
+      );
       final aliceCall = convocations.firstWhere((c) => c.roleCandidateIds.contains("candidate-2"));
       expect(camilleCall.arrivalMinute, 540);
       expect(camilleCall.departureMinute, 560);
@@ -2238,9 +2394,14 @@ void main() {
           ],
         },
         roles: [_buildRole(id: "role-1", name: "Marie", number: 3, personId: "person-lea")],
-        people: [camille, _buildPerson(id: "person-lea", firstName: "Léa", lastName: "Dubois")],
+        people: [
+          camille,
+          _buildPerson(id: "person-lea", firstName: "Léa", lastName: "Dubois"),
+        ],
         roleCandidates: [candidate],
-        shotLists: [_buildShotList(shots: [shot])],
+        shotLists: [
+          _buildShotList(shots: [shot]),
+        ],
       );
 
       final convocations = plan.convocationsOfDay("day-1");
@@ -2303,82 +2464,95 @@ void main() {
       expect(_pageCount(bytes), 1);
     });
 
-    test("an actor's own sheet drops the shots they are not in, and keeps every milestone", () async {
-      // The fault reading the exports showed: a sheet narrowed to the recipient's units and then
-      // printed the whole running order, so an actor had to work out which shots were theirs.
-      // Thirty shots, alternating between two parts, is enough for the difference to be a page.
-      final lea = _buildPerson(id: "person-lea", firstName: "Léa", lastName: "Dubois");
-      final shots = [
-        for (var i = 0; i < 30; i++)
-          _buildShot(
-            id: "shot-$i",
-            sceneId: "scene-1",
-            code: "$i/1",
-            characters: [if (i.isEven) "MARIE" else "JULIEN"],
-          ),
-      ];
-      final plan = _buildSnapshot(
-        days: [_buildDay(id: "day-1", dayNumber: 1)],
-        slotsByDayId: {
-          "day-1": [
-            _buildSlot(
-              id: "slot-1",
-              anchorMinute: 480,
-              cast: [
-                _buildCastMember(id: "cast-1", slotId: "slot-1", roleId: "role-1"),
-                _buildCastMember(id: "cast-2", slotId: "slot-1", roleId: "role-2"),
-              ],
+    test(
+      "an actor's own sheet drops the shots they are not in, and keeps every milestone",
+      () async {
+        // The fault reading the exports showed: a sheet narrowed to the recipient's units and then
+        // printed the whole running order, so an actor had to work out which shots were theirs.
+        // Thirty shots, alternating between two parts, is enough for the difference to be a page.
+        final lea = _buildPerson(id: "person-lea", firstName: "Léa", lastName: "Dubois");
+        final shots = [
+          for (var i = 0; i < 30; i++)
+            _buildShot(
+              id: "shot-$i",
+              sceneId: "scene-1",
+              code: "$i/1",
+              characters: [if (i.isEven) "MARIE" else "JULIEN"],
             ),
-          ],
-        },
-        blocksByDayId: {
-          "day-1": [
-            for (var i = 0; i < 30; i++)
-              _buildBlock(
-                id: "block-$i",
-                slotId: "slot-1",
-                kind: OcptShootingBlockKind.shot,
-                shotId: "shot-$i",
-                durationMinutes: 20,
+        ];
+        final plan = _buildSnapshot(
+          days: [_buildDay(id: "day-1", dayNumber: 1)],
+          slotsByDayId: {
+            "day-1": [
+              _buildSlot(
+                id: "slot-1",
+                anchorMinute: 480,
+                cast: [
+                  _buildCastMember(id: "cast-1", slotId: "slot-1", roleId: "role-1"),
+                  _buildCastMember(id: "cast-2", slotId: "slot-1", roleId: "role-2"),
+                ],
               ),
-            _buildBlock(
-              id: "block-meal",
-              slotId: "slot-1",
-              kind: OcptShootingBlockKind.meal,
-              durationMinutes: 45,
-            ),
+            ],
+          },
+          blocksByDayId: {
+            "day-1": [
+              for (var i = 0; i < 30; i++)
+                _buildBlock(
+                  id: "block-$i",
+                  slotId: "slot-1",
+                  kind: OcptShootingBlockKind.shot,
+                  shotId: "shot-$i",
+                  durationMinutes: 20,
+                ),
+              _buildBlock(
+                id: "block-meal",
+                slotId: "slot-1",
+                kind: OcptShootingBlockKind.meal,
+                durationMinutes: 45,
+              ),
+            ],
+          },
+          roles: [
+            _buildRole(id: "role-1", name: "MARIE", number: 3, personId: "person-lea"),
+            _buildRole(id: "role-2", name: "JULIEN", number: 4, personId: "person-jules"),
           ],
-        },
-        roles: [
-          _buildRole(id: "role-1", name: "MARIE", number: 3, personId: "person-lea"),
-          _buildRole(id: "role-2", name: "JULIEN", number: 4, personId: "person-jules"),
-        ],
-        people: [lea, _buildPerson(id: "person-jules", firstName: "Jules", lastName: "Marchand")],
-        shotLists: [_buildShotList(shots: shots)],
-      );
+          people: [
+            lea,
+            _buildPerson(id: "person-jules", firstName: "Jules", lastName: "Marchand"),
+          ],
+          shotLists: [_buildShotList(shots: shots)],
+        );
 
-      final leaCall = plan.convocationsOfDay("day-1").firstWhere((c) => c.personId == "person-lea");
-      final leaSheet = await service.generateNamedCallSheet(
-        plan: plan,
-        dayId: "day-1",
-        pageSetup: pageSetup,
-        labels: _labels,
-        projectName: "My Movie",
-        convocation: leaCall,
-        exportDate: _pinnedExportDate,
-      );
-      final general = await generalOf(plan);
+        final leaCall = plan
+            .convocationsOfDay("day-1")
+            .firstWhere((c) => c.personId == "person-lea");
+        final leaSheet = await service.generateNamedCallSheet(
+          plan: plan,
+          dayId: "day-1",
+          pageSetup: pageSetup,
+          labels: _labels,
+          projectName: "My Movie",
+          convocation: leaCall,
+          exportDate: _pinnedExportDate,
+        );
+        final general = await generalOf(plan);
 
-      // The day's whole order runs onto a second page; hers, holding half of it, does not.
-      expect(_pageCount(general), greaterThan(1));
-      expect(_pageCount(leaSheet), 1);
-    });
+        // The day's whole order runs onto a second page; hers, holding half of it, does not.
+        expect(_pageCount(general), greaterThan(1));
+        expect(_pageCount(leaSheet), 1);
+      },
+    );
 
     test("a technician keeps the whole running order of the unit they crew", () async {
       // The rule that keeps a narrowing from taking a sheet apart: a slot naming somebody as crew
       // is an order they work end to end, whatever it plays.
       final gaffer = _buildPerson(id: "person-gaffer", firstName: "Sam", lastName: "Roche");
-      final shot = _buildShot(id: "shot-1", sceneId: "scene-1", code: "1/1", characters: const ["MARIE"]);
+      final shot = _buildShot(
+        id: "shot-1",
+        sceneId: "scene-1",
+        code: "1/1",
+        characters: const ["MARIE"],
+      );
       final plan = _buildSnapshot(
         days: [_buildDay(id: "day-1", dayNumber: 1)],
         slotsByDayId: {
@@ -2403,7 +2577,9 @@ void main() {
         },
         roles: [_buildRole(id: "role-1", name: "MARIE", number: 3)],
         people: [gaffer],
-        shotLists: [_buildShotList(shots: [shot])],
+        shotLists: [
+          _buildShotList(shots: [shot]),
+        ],
       );
 
       final call = plan.convocationsOfDay("day-1").firstWhere((c) => c.personId == "person-gaffer");
@@ -2422,26 +2598,29 @@ void main() {
       expect(_pageCount(theirs), 1);
     });
 
-    test("a candidate carries a selection key, so the named export can be narrowed to them", () async {
-      final plan = buildDay(
-        blocks: [
-          _buildBlock(
-            id: "block-1",
-            slotId: "slot-1",
-            kind: OcptShootingBlockKind.audition,
-            durationMinutes: 120,
-            candidates: [namedOn("block-1")],
-          ),
-        ],
-      );
+    test(
+      "a candidate carries a selection key, so the named export can be narrowed to them",
+      () async {
+        final plan = buildDay(
+          blocks: [
+            _buildBlock(
+              id: "block-1",
+              slotId: "slot-1",
+              kind: OcptShootingBlockKind.audition,
+              durationMinutes: 120,
+              candidates: [namedOn("block-1")],
+            ),
+          ],
+        );
 
-      // Keyed by their **person**: a sheet is addressed to somebody, so somebody crewing the day
-      // and seen for a part is one recipient and one PDF. A guest is the one convocation kind
-      // carrying no key at all, which is what keeps them out of the named sheets dialog without
-      // that dialog needing a rule of its own.
-      final convocations = plan.convocationsOfDay("day-1");
-      expect(convocations.single.selectionKey, camille.id);
-    });
+        // Keyed by their **person**: a sheet is addressed to somebody, so somebody crewing the day
+        // and seen for a part is one recipient and one PDF. A guest is the one convocation kind
+        // carrying no key at all, which is what keeps them out of the named sheets dialog without
+        // that dialog needing a rule of its own.
+        final convocations = plan.convocationsOfDay("day-1");
+        expect(convocations.single.selectionKey, camille.id);
+      },
+    );
   });
 
   group("multiple episodes", () {
@@ -2509,8 +2688,18 @@ void main() {
 
         // Alice speaks in both episodes' own shots: one role, cast once on the slot, its character
         // read off two shots of two different scenes.
-        final oneRoleShotOne = _buildShot(id: "shot-e1", sceneId: "scene-e1", code: "1.3/1", characters: const ["ALICE"]);
-        final oneRoleShotTwo = _buildShot(id: "shot-e2", sceneId: "scene-e2", code: "2.4/1", characters: const ["ALICE"]);
+        final oneRoleShotOne = _buildShot(
+          id: "shot-e1",
+          sceneId: "scene-e1",
+          code: "1.3/1",
+          characters: const ["ALICE"],
+        );
+        final oneRoleShotTwo = _buildShot(
+          id: "shot-e2",
+          sceneId: "scene-e2",
+          code: "2.4/1",
+          characters: const ["ALICE"],
+        );
         final oneRolePlan = _buildSnapshot(
           days: [_buildDay(id: "day-1", dayNumber: 1)],
           slotsByDayId: {
@@ -2518,14 +2707,27 @@ void main() {
           },
           blocksByDayId: blocks,
           roles: [role],
-          shotLists: [buildEpisodeOneShotList(oneRoleShotOne), buildEpisodeTwoShotList(oneRoleShotTwo)],
+          shotLists: [
+            buildEpisodeOneShotList(oneRoleShotOne),
+            buildEpisodeTwoShotList(oneRoleShotTwo),
+          ],
         );
 
         // A second, distinct role speaks in the second episode's own shot instead — a whole second
         // identity, where the fixture above kept it the very same Alice.
         final secondRole = _buildRole(id: "role-2", name: "Bob", number: 2);
-        final twoRolesShotOne = _buildShot(id: "shot-e1", sceneId: "scene-e1", code: "1.3/1", characters: const ["ALICE"]);
-        final twoRolesShotTwo = _buildShot(id: "shot-e2", sceneId: "scene-e2", code: "2.4/1", characters: const ["BOB"]);
+        final twoRolesShotOne = _buildShot(
+          id: "shot-e1",
+          sceneId: "scene-e1",
+          code: "1.3/1",
+          characters: const ["ALICE"],
+        );
+        final twoRolesShotTwo = _buildShot(
+          id: "shot-e2",
+          sceneId: "scene-e2",
+          code: "2.4/1",
+          characters: const ["BOB"],
+        );
         final twoRolesSlot = _buildSlot(
           id: "slot-1",
           anchorMinute: 480,
@@ -2541,7 +2743,10 @@ void main() {
           },
           blocksByDayId: blocks,
           roles: [role, secondRole],
-          shotLists: [buildEpisodeOneShotList(twoRolesShotOne), buildEpisodeTwoShotList(twoRolesShotTwo)],
+          shotLists: [
+            buildEpisodeOneShotList(twoRolesShotOne),
+            buildEpisodeTwoShotList(twoRolesShotTwo),
+          ],
         );
 
         final oneRoleBytes = await service.generateGeneralCallSheet(
@@ -2573,79 +2778,91 @@ void main() {
       },
     );
 
-    test(
-      "a named sheet's own timetable narrows to its recipient's episode, but its cast table "
-      "stays the day's — naming a role that speaks only in the other episode's own slot",
-      () async {
-        final role = _buildRole(id: "role-1", name: "Alice");
-        final secondRole = _buildRole(id: "role-2", name: "Bob", number: 2);
-        final morning = _buildSlot(
-          id: "slot-morning",
-          anchorMinute: 480,
-          crew: [_buildCrewMember(id: "crew-1", slotId: "slot-morning", personId: "person-1")],
-        );
-        final evening = _buildSlot(id: "slot-evening", anchorMinute: 1080);
-        final shotOne = _buildShot(id: "shot-e1", sceneId: "scene-e1", code: "1.3/1", characters: const ["ALICE"]);
-        final shotTwo = _buildShot(id: "shot-e2", sceneId: "scene-e2", code: "2.4/1", characters: const ["BOB"]);
+    test("a named sheet's own timetable narrows to its recipient's episode, but its cast table "
+        "stays the day's — naming a role that speaks only in the other episode's own slot", () async {
+      final role = _buildRole(id: "role-1", name: "Alice");
+      final secondRole = _buildRole(id: "role-2", name: "Bob", number: 2);
+      final morning = _buildSlot(
+        id: "slot-morning",
+        anchorMinute: 480,
+        crew: [_buildCrewMember(id: "crew-1", slotId: "slot-morning", personId: "person-1")],
+      );
+      final evening = _buildSlot(id: "slot-evening", anchorMinute: 1080);
+      final shotOne = _buildShot(
+        id: "shot-e1",
+        sceneId: "scene-e1",
+        code: "1.3/1",
+        characters: const ["ALICE"],
+      );
+      final shotTwo = _buildShot(
+        id: "shot-e2",
+        sceneId: "scene-e2",
+        code: "2.4/1",
+        characters: const ["BOB"],
+      );
 
-        OcptSchedulePlanSnapshot buildPlan({required bool withEveningEpisode}) => _buildSnapshot(
-          days: [_buildDay(id: "day-1", dayNumber: 1)],
-          slotsByDayId: {
-            "day-1": withEveningEpisode ? [morning, evening] : [morning],
-          },
-          blocksByDayId: {
-            "day-1": [
+      OcptSchedulePlanSnapshot buildPlan({required bool withEveningEpisode}) => _buildSnapshot(
+        days: [_buildDay(id: "day-1", dayNumber: 1)],
+        slotsByDayId: {
+          "day-1": withEveningEpisode ? [morning, evening] : [morning],
+        },
+        blocksByDayId: {
+          "day-1": [
+            _buildBlock(
+              id: "block-1",
+              slotId: "slot-morning",
+              kind: OcptShootingBlockKind.shot,
+              shotId: "shot-e1",
+              durationMinutes: 60,
+            ),
+            if (withEveningEpisode)
               _buildBlock(
-                id: "block-1",
-                slotId: "slot-morning",
+                id: "block-2",
+                slotId: "slot-evening",
                 kind: OcptShootingBlockKind.shot,
-                shotId: "shot-e1",
+                shotId: "shot-e2",
                 durationMinutes: 60,
               ),
-              if (withEveningEpisode)
-                _buildBlock(
-                  id: "block-2",
-                  slotId: "slot-evening",
-                  kind: OcptShootingBlockKind.shot,
-                  shotId: "shot-e2",
-                  durationMinutes: 60,
-                ),
-            ],
-          },
-          roles: withEveningEpisode ? [role, secondRole] : [role],
-          people: [_buildPerson(id: "person-1", firstName: "Justine", lastName: "Renard")],
-          shotLists: withEveningEpisode
-              ? [buildEpisodeOneShotList(shotOne), buildEpisodeTwoShotList(shotTwo)]
-              : [buildEpisodeOneShotList(shotOne)],
+          ],
+        },
+        roles: withEveningEpisode ? [role, secondRole] : [role],
+        people: [_buildPerson(id: "person-1", firstName: "Justine", lastName: "Renard")],
+        shotLists: withEveningEpisode
+            ? [buildEpisodeOneShotList(shotOne), buildEpisodeTwoShotList(shotTwo)]
+            : [buildEpisodeOneShotList(shotOne)],
+      );
+
+      final withBothEpisodes = buildPlan(withEveningEpisode: true);
+      final morningEpisodeOnly = buildPlan(withEveningEpisode: false);
+
+      Future<Uint8List> generateNamedFor(OcptSchedulePlanSnapshot plan) async {
+        final convocation = plan
+            .convocationsOfDay("day-1")
+            .firstWhere((c) => c.personId == "person-1");
+        return service.generateNamedCallSheet(
+          plan: plan,
+          dayId: "day-1",
+          pageSetup: pageSetup,
+          labels: _labels,
+          projectName: "My Movie",
+          convocation: convocation,
+          exportDate: _pinnedExportDate,
         );
+      }
 
-        final withBothEpisodes = buildPlan(withEveningEpisode: true);
-        final morningEpisodeOnly = buildPlan(withEveningEpisode: false);
+      final withBothEpisodesBytes = await generateNamedFor(withBothEpisodes);
+      final morningEpisodeOnlyBytes = await generateNamedFor(morningEpisodeOnly);
 
-        Future<Uint8List> generateNamedFor(OcptSchedulePlanSnapshot plan) async {
-          final convocation = plan.convocationsOfDay("day-1").firstWhere((c) => c.personId == "person-1");
-          return service.generateNamedCallSheet(
-            plan: plan,
-            dayId: "day-1",
-            pageSetup: pageSetup,
-            labels: _labels,
-            projectName: "My Movie",
-            convocation: convocation,
-            exportDate: _pinnedExportDate,
-          );
-        }
-
-        final withBothEpisodesBytes = await generateNamedFor(withBothEpisodes);
-        final morningEpisodeOnlyBytes = await generateNamedFor(morningEpisodeOnly);
-
-        // The morning recipient's own main table never sees the evening slot at all, so this can
-        // only differ through the day-wide cast table (and the two closing lists it feeds): Bob, cast
-        // in the evening's own episode 2 shot alone, still has to show up on a sheet addressed to
-        // somebody who never shares a slot with him.
-        expect(_contentStreams(withBothEpisodesBytes), isNot(_contentStreams(morningEpisodeOnlyBytes)));
-        expect(withBothEpisodesBytes.length, greaterThan(morningEpisodeOnlyBytes.length));
-      },
-    );
+      // The morning recipient's own main table never sees the evening slot at all, so this can
+      // only differ through the day-wide cast table (and the two closing lists it feeds): Bob, cast
+      // in the evening's own episode 2 shot alone, still has to show up on a sheet addressed to
+      // somebody who never shares a slot with him.
+      expect(
+        _contentStreams(withBothEpisodesBytes),
+        isNot(_contentStreams(morningEpisodeOnlyBytes)),
+      );
+      expect(withBothEpisodesBytes.length, greaterThan(morningEpisodeOnlyBytes.length));
+    });
   });
 
   group("callSheetFileName", () {

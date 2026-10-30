@@ -339,7 +339,8 @@ class _OcptEditorPreviewState extends State<OcptEditorPreview> {
       // The blank line separating this block from the one above it, which only exists once the
       // page already holds something.
       var separatorLines = currentPage.isEmpty ? 0 : 1;
-      if (currentPage.isNotEmpty && currentLines + separatorLines + lines > layout.metrics.linesPerPage) {
+      if (currentPage.isNotEmpty &&
+          currentLines + separatorLines + lines > layout.metrics.linesPerPage) {
         pages.add(currentPage);
         currentPage = [];
         currentLines = 0;

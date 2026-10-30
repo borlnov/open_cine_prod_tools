@@ -70,7 +70,10 @@ void main() {
     scheduleService: scheduleService,
     deviceId: testDeviceId,
   );
-  final mergeService = OcptScreenplayMergeService(screenplayService: screenplayService, deviceId: testDeviceId);
+  final mergeService = OcptScreenplayMergeService(
+    screenplayService: screenplayService,
+    deviceId: testDeviceId,
+  );
 
   late OcptProjectDatabase database;
 
@@ -79,7 +82,11 @@ void main() {
     await database
         .into(database.ocptScreenplaysTable)
         .insert(
-          OcptScreenplaysTableCompanion.insert(id: screenplayId, title: 'Title', updatedAt: DateTime.utc(2026)),
+          OcptScreenplaysTableCompanion.insert(
+            id: screenplayId,
+            title: 'Title',
+            updatedAt: DateTime.utc(2026),
+          ),
         );
   });
 
@@ -101,18 +108,20 @@ void main() {
 
   /// Inserts a live snapshot row for the screenplay directly, with a caller-chosen `createdAt` —
   /// used to control which of several snapshots the "nearest common base" heuristic should pick.
-  Future<void> insertSnapshotDirectly({required String fountainText, required DateTime createdAt}) =>
-      database
-          .into(database.ocptScreenplaySnapshotsTable)
-          .insert(
-            OcptScreenplaySnapshotsTableCompanion.insert(
-              id: const Uuid().v4(),
-              screenplayId: screenplayId,
-              createdAt: createdAt,
-              reason: OcptSnapshotReason.manual,
-              fountainText: fountainText,
-            ),
-          );
+  Future<void> insertSnapshotDirectly({
+    required String fountainText,
+    required DateTime createdAt,
+  }) => database
+      .into(database.ocptScreenplaySnapshotsTable)
+      .insert(
+        OcptScreenplaySnapshotsTableCompanion.insert(
+          id: const Uuid().v4(),
+          screenplayId: screenplayId,
+          createdAt: createdAt,
+          reason: OcptSnapshotReason.manual,
+          fountainText: fountainText,
+        ),
+      );
 
   Future<String> storedText() =>
       screenplayService.loadScreenplayText(database: database, screenplayId: screenplayId);
@@ -155,7 +164,9 @@ void main() {
   test('a clean merge writes the merged text back and recomputes scenes', () async {
     // The snapshot is what saveScreenplayText itself takes, right before the overwrite: it
     // captures the original text as the merge base, exactly like a real edit would.
-    await setStoredTextDirectly('INT. HOUSE - DAY\n\nAction one.\n\nEXT. STREET - NIGHT\n\nAction two.');
+    await setStoredTextDirectly(
+      'INT. HOUSE - DAY\n\nAction one.\n\nEXT. STREET - NIGHT\n\nAction two.',
+    );
     await screenplayService.saveScreenplayText(
       database: database,
       screenplayId: screenplayId,
@@ -166,7 +177,8 @@ void main() {
     final conflict = await mergeService.mergeIncomingFountainText(
       fileDatabase: database,
       screenplayId: screenplayId,
-      incomingText: 'INT. HOUSE - DAY\n\nAction one.\n\nEXT. STREET - NIGHT\n\nAction two, incoming.',
+      incomingText:
+          'INT. HOUSE - DAY\n\nAction one.\n\nEXT. STREET - NIGHT\n\nAction two, incoming.',
     );
 
     expect(conflict, isNull);
@@ -199,10 +211,9 @@ void main() {
       incomingText: 'a\nb\nc\nd-incoming\ne',
     );
 
-    final mergeSnapshots =
-        await (database.select(database.ocptScreenplaySnapshotsTable)
-              ..where((table) => table.reason.equalsValue(OcptSnapshotReason.merge)))
-            .get();
+    final mergeSnapshots = await (database.select(
+      database.ocptScreenplaySnapshotsTable,
+    )..where((table) => table.reason.equalsValue(OcptSnapshotReason.merge))).get();
 
     expect(mergeSnapshots, hasLength(1));
     expect(mergeSnapshots.single.fountainText, 'a\nb-local\nc\nd\ne');
@@ -246,7 +257,10 @@ void main() {
     // clean merge this test expects.
     await insertSnapshotDirectly(fountainText: 'AAAA\nBBBB\nCCCC', createdAt: DateTime.utc(2026));
     // The true, more recent common ancestor both local and incoming actually edited from.
-    await insertSnapshotDirectly(fountainText: 'line1\nline2\nline3', createdAt: DateTime.utc(2026, 6));
+    await insertSnapshotDirectly(
+      fountainText: 'line1\nline2\nline3',
+      createdAt: DateTime.utc(2026, 6),
+    );
 
     await setStoredTextDirectly('line1-edited\nline2\nline3');
 

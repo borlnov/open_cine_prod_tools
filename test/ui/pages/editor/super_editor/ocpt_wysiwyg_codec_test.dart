@@ -13,7 +13,9 @@ import 'package:super_editor/super_editor.dart';
 
 /// Reads the classified [FountainLineType] the node at [index] of [document] currently carries.
 FountainLineType _typeAt(Document document, int index) =>
-    OcptFountainLineAttributions.typeOfAttributionValue(document.getNodeAt(index)!.getMetadataValue("blockType"));
+    OcptFountainLineAttributions.typeOfAttributionValue(
+      document.getNodeAt(index)!.getMetadataValue("blockType"),
+    );
 
 /// Reads the node at [index] of [document]'s `ocptBlankLinesBefore` metadata (0 if absent).
 int _blanksBeforeAt(Document document, int index) {
@@ -51,7 +53,13 @@ void _setMetadata(MutableDocument document, int index, Map<String, dynamic> entr
 
 /// Applies [attribution] to every character of the node at [index] of [document]'s text `[start,
 /// end)`, so a note-attribution test can seed a stale span to be corrected.
-void _addAttribution(MutableDocument document, int index, Attribution attribution, int start, int end) {
+void _addAttribution(
+  MutableDocument document,
+  int index,
+  Attribution attribution,
+  int start,
+  int end,
+) {
   final node = document.getNodeAt(index)! as ParagraphNode;
   final text = AttributedText(node.text.toPlainText(), node.text.spans.copy());
   text.addAttribution(attribution, SpanRange(start, end - 1));
@@ -70,9 +78,12 @@ void main() {
   group("OcptWysiwygCodec.decode/encode corpus identity", () {
     final corpusDirectory = Directory("packages/fountain_kit/test/corpus");
     final corpusFiles =
-        corpusDirectory.listSync().whereType<File>().where((file) => file.path.endsWith(".fountain")).toList(
-          growable: false,
-        )..sort((a, b) => a.path.compareTo(b.path));
+        corpusDirectory
+            .listSync()
+            .whereType<File>()
+            .where((file) => file.path.endsWith(".fountain"))
+            .toList(growable: false)
+          ..sort((a, b) => a.path.compareTo(b.path));
 
     test("the corpus directory is not empty", () {
       expect(corpusFiles, isNotEmpty);
@@ -85,7 +96,10 @@ void main() {
         final source = file.readAsStringSync();
 
         final decoded = OcptWysiwygCodec.decode(source);
-        final encoded = OcptWysiwygCodec.encode(decoded.document, trailingBlankLines: decoded.trailingBlankLines);
+        final encoded = OcptWysiwygCodec.encode(
+          decoded.document,
+          trailingBlankLines: decoded.trailingBlankLines,
+        );
 
         expect(encoded.text, _expectedRoundTrip(fileName, source));
       });
@@ -100,7 +114,10 @@ void main() {
       expect((decoded.document.getNodeAt(0)! as ParagraphNode).text.toPlainText(), "");
       expect(decoded.trailingBlankLines, 0);
 
-      final encoded = OcptWysiwygCodec.encode(decoded.document, trailingBlankLines: decoded.trailingBlankLines);
+      final encoded = OcptWysiwygCodec.encode(
+        decoded.document,
+        trailingBlankLines: decoded.trailingBlankLines,
+      );
       expect(encoded.text, "");
     });
 
@@ -110,7 +127,10 @@ void main() {
       expect(decoded.document.nodeCount, 1);
       expect(decoded.trailingBlankLines, 2);
 
-      final encoded = OcptWysiwygCodec.encode(decoded.document, trailingBlankLines: decoded.trailingBlankLines);
+      final encoded = OcptWysiwygCodec.encode(
+        decoded.document,
+        trailingBlankLines: decoded.trailingBlankLines,
+      );
       expect(encoded.text, "\n\n");
     });
   });
@@ -146,7 +166,10 @@ void main() {
       expect(_typeAt(decoded.document, 0), FountainLineType.action);
       expect(_hadForcingMarkerAt(decoded.document, 0), isTrue);
 
-      final encoded = OcptWysiwygCodec.encode(decoded.document, trailingBlankLines: decoded.trailingBlankLines);
+      final encoded = OcptWysiwygCodec.encode(
+        decoded.document,
+        trailingBlankLines: decoded.trailingBlankLines,
+      );
       expect(encoded.text, "!Some action.");
     });
 
@@ -155,7 +178,10 @@ void main() {
 
       expect(_hadForcingMarkerAt(decoded.document, 0), isFalse);
 
-      final encoded = OcptWysiwygCodec.encode(decoded.document, trailingBlankLines: decoded.trailingBlankLines);
+      final encoded = OcptWysiwygCodec.encode(
+        decoded.document,
+        trailingBlankLines: decoded.trailingBlankLines,
+      );
       expect(encoded.text, "Some action.");
     });
   });
@@ -187,36 +213,39 @@ void main() {
       },
     );
 
-    test("a dialogue node that does follow a character keeps classifying as dialogue on reparse", () {
-      final document = MutableDocument(
-        nodes: [
-          ParagraphNode(
-            id: "n0",
-            text: AttributedText("SARAH"),
-            metadata: {
-              "blockType": OcptFountainLineAttributions.attributionOf(FountainLineType.character),
-              ocptBlankLinesBeforeMetadataKey: 0,
-              ocptTypeLockedMetadataKey: false,
-              ocptHadForcingMarkerMetadataKey: false,
-            },
-          ),
-          ParagraphNode(
-            id: "n1",
-            text: AttributedText("Hello there."),
-            metadata: {
-              "blockType": OcptFountainLineAttributions.attributionOf(FountainLineType.dialogue),
-              ocptBlankLinesBeforeMetadataKey: 0,
-              ocptTypeLockedMetadataKey: false,
-              ocptHadForcingMarkerMetadataKey: false,
-            },
-          ),
-        ],
-      );
+    test(
+      "a dialogue node that does follow a character keeps classifying as dialogue on reparse",
+      () {
+        final document = MutableDocument(
+          nodes: [
+            ParagraphNode(
+              id: "n0",
+              text: AttributedText("SARAH"),
+              metadata: {
+                "blockType": OcptFountainLineAttributions.attributionOf(FountainLineType.character),
+                ocptBlankLinesBeforeMetadataKey: 0,
+                ocptTypeLockedMetadataKey: false,
+                ocptHadForcingMarkerMetadataKey: false,
+              },
+            ),
+            ParagraphNode(
+              id: "n1",
+              text: AttributedText("Hello there."),
+              metadata: {
+                "blockType": OcptFountainLineAttributions.attributionOf(FountainLineType.dialogue),
+                ocptBlankLinesBeforeMetadataKey: 0,
+                ocptTypeLockedMetadataKey: false,
+                ocptHadForcingMarkerMetadataKey: false,
+              },
+            ),
+          ],
+        );
 
-      final encoded = OcptWysiwygCodec.encode(document);
-      final reparsed = OcptWysiwygCodec.decode(encoded.text);
-      expect(_typeAt(reparsed.document, 1), FountainLineType.dialogue);
-    });
+        final encoded = OcptWysiwygCodec.encode(document);
+        final reparsed = OcptWysiwygCodec.decode(encoded.text);
+        expect(_typeAt(reparsed.document, 1), FountainLineType.dialogue);
+      },
+    );
 
     test(
       "a locked character node holding JOHN, last in the document, encodes with a forcing marker "
@@ -252,11 +281,16 @@ void main() {
       expect(_typeAt(decoded.document, 0), FountainLineType.action);
 
       _replaceText(decoded.document, 0, "INT. HOUSE - DAY");
-      final requests = OcptWysiwygCodec.reclassifyRequests(decoded.document).cast<ChangeParagraphBlockTypeRequest>();
+      final requests = OcptWysiwygCodec.reclassifyRequests(
+        decoded.document,
+      ).cast<ChangeParagraphBlockTypeRequest>();
 
       expect(requests, hasLength(1));
       expect(requests.single.nodeId, decoded.document.getNodeAt(0)!.id);
-      expect(requests.single.blockType, OcptFountainLineAttributions.attributionOf(FountainLineType.sceneHeading));
+      expect(
+        requests.single.blockType,
+        OcptFountainLineAttributions.attributionOf(FountainLineType.sceneHeading),
+      );
     });
 
     test("returns no request when no node's classified type actually changed", () {
@@ -315,11 +349,16 @@ void main() {
       _setMetadata(decoded.document, 1, {ocptBlankLinesBeforeMetadataKey: 1});
       _setMetadata(decoded.document, 2, {ocptBlankLinesBeforeMetadataKey: 1});
 
-      final requests = OcptWysiwygCodec.reclassifyRequests(decoded.document).cast<ChangeParagraphBlockTypeRequest>();
+      final requests = OcptWysiwygCodec.reclassifyRequests(
+        decoded.document,
+      ).cast<ChangeParagraphBlockTypeRequest>();
 
       expect(requests, hasLength(1));
       expect(requests.single.nodeId, decoded.document.getNodeAt(1)!.id);
-      expect(requests.single.blockType, OcptFountainLineAttributions.attributionOf(FountainLineType.sceneHeading));
+      expect(
+        requests.single.blockType,
+        OcptFountainLineAttributions.attributionOf(FountainLineType.sceneHeading),
+      );
     });
   });
 
@@ -382,9 +421,12 @@ void main() {
   group("OcptWysiwygCodec.reclassifyRequests corpus fixed point", () {
     final corpusDirectory = Directory("packages/fountain_kit/test/corpus");
     final corpusFiles =
-        corpusDirectory.listSync().whereType<File>().where((file) => file.path.endsWith(".fountain")).toList(
-          growable: false,
-        )..sort((a, b) => a.path.compareTo(b.path));
+        corpusDirectory
+            .listSync()
+            .whereType<File>()
+            .where((file) => file.path.endsWith(".fountain"))
+            .toList(growable: false)
+          ..sort((a, b) => a.path.compareTo(b.path));
 
     test("the corpus directory is not empty", () {
       expect(corpusFiles, isNotEmpty);
@@ -402,12 +444,18 @@ void main() {
   });
 
   group("OcptWysiwygCodec.decode/encode scene numbers", () {
-    test("strips a trailing #N# tag off a scene heading into metadata, hiding it from the display text", () {
-      final decoded = OcptWysiwygCodec.decode("INT. HOUSE - DAY #4A#");
+    test(
+      "strips a trailing #N# tag off a scene heading into metadata, hiding it from the display text",
+      () {
+        final decoded = OcptWysiwygCodec.decode("INT. HOUSE - DAY #4A#");
 
-      expect((decoded.document.getNodeAt(0)! as ParagraphNode).text.toPlainText(), "INT. HOUSE - DAY");
-      expect(_sceneNumberAt(decoded.document, 0), "4A");
-    });
+        expect(
+          (decoded.document.getNodeAt(0)! as ParagraphNode).text.toPlainText(),
+          "INT. HOUSE - DAY",
+        );
+        expect(_sceneNumberAt(decoded.document, 0), "4A");
+      },
+    );
 
     test("a scene heading with no tag has no scene number metadata", () {
       final decoded = OcptWysiwygCodec.decode("INT. HOUSE - DAY");
@@ -419,7 +467,10 @@ void main() {
       const source = "INT. HOUSE - DAY #4A#";
       final decoded = OcptWysiwygCodec.decode(source);
 
-      final encoded = OcptWysiwygCodec.encode(decoded.document, trailingBlankLines: decoded.trailingBlankLines);
+      final encoded = OcptWysiwygCodec.encode(
+        decoded.document,
+        trailingBlankLines: decoded.trailingBlankLines,
+      );
       expect(encoded.text, source);
     });
 
@@ -427,7 +478,10 @@ void main() {
       final decoded = OcptWysiwygCodec.decode("INT. HOUSE - DAY #4A#");
       _replaceText(decoded.document, 0, "");
 
-      final encoded = OcptWysiwygCodec.encode(decoded.document, trailingBlankLines: decoded.trailingBlankLines);
+      final encoded = OcptWysiwygCodec.encode(
+        decoded.document,
+        trailingBlankLines: decoded.trailingBlankLines,
+      );
       expect(encoded.text, "");
     });
   });
@@ -498,7 +552,9 @@ void main() {
       _replaceText(decoded.document, 0, "sarah");
       _replaceText(decoded.document, 2, "cut to:");
 
-      final requests = OcptWysiwygCodec.uppercaseRequests(decoded.document).cast<OcptReplaceNodeTextRequest>();
+      final requests = OcptWysiwygCodec.uppercaseRequests(
+        decoded.document,
+      ).cast<OcptReplaceNodeTextRequest>();
 
       expect(requests, hasLength(2));
       expect(requests[0].text.toPlainText(), "SARAH");
@@ -506,18 +562,25 @@ void main() {
     });
 
     test("leaves action, dialogue and already-uppercase nodes untouched", () {
-      final decoded = OcptWysiwygCodec.decode("INT. HOUSE - DAY\n\nSome action.\n\nSARAH\nhello there.");
+      final decoded = OcptWysiwygCodec.decode(
+        "INT. HOUSE - DAY\n\nSome action.\n\nSARAH\nhello there.",
+      );
 
       expect(OcptWysiwygCodec.uppercaseRequests(decoded.document), isEmpty);
     });
 
     test("the saved Fountain text round-trips with the uppercased line", () {
       final decoded = OcptWysiwygCodec.decode("int. kitchen - day");
-      final requests = OcptWysiwygCodec.uppercaseRequests(decoded.document).cast<OcptReplaceNodeTextRequest>();
+      final requests = OcptWysiwygCodec.uppercaseRequests(
+        decoded.document,
+      ).cast<OcptReplaceNodeTextRequest>();
       final node = decoded.document.getNodeAt(0)! as ParagraphNode;
       decoded.document.replaceNodeById(node.id, node.copyParagraphWith(text: requests.single.text));
 
-      final encoded = OcptWysiwygCodec.encode(decoded.document, trailingBlankLines: decoded.trailingBlankLines);
+      final encoded = OcptWysiwygCodec.encode(
+        decoded.document,
+        trailingBlankLines: decoded.trailingBlankLines,
+      );
 
       expect(encoded.text, "INT. KITCHEN - DAY");
     });
@@ -526,9 +589,7 @@ void main() {
   group("OcptWysiwygCodec.noteAttributionRequests", () {
     test("adds a fountainNote attribution bounding a [[...]] region", () {
       final document = MutableDocument(
-        nodes: [
-          ParagraphNode(id: "n0", text: AttributedText("Before [[a note]] after.")),
-        ],
+        nodes: [ParagraphNode(id: "n0", text: AttributedText("Before [[a note]] after."))],
       );
 
       final requests = OcptWysiwygCodec.noteAttributionRequests(document);
@@ -536,7 +597,10 @@ void main() {
       expect(requests, hasLength(1));
       final request = requests.single as AddTextAttributionsRequest;
       expect(request.attributions, {ocptFountainNoteAttribution});
-      expect((request.documentRange.start.nodePosition as TextNodePosition).offset, "Before ".length);
+      expect(
+        (request.documentRange.start.nodePosition as TextNodePosition).offset,
+        "Before ".length,
+      );
       expect(
         (request.documentRange.end.nodePosition as TextNodePosition).offset,
         "Before [[a note]]".length,
@@ -545,23 +609,31 @@ void main() {
 
     test("returns no request when the current spans already match", () {
       final document = MutableDocument(
-        nodes: [
-          ParagraphNode(id: "n0", text: AttributedText("Before [[a note]] after.")),
-        ],
+        nodes: [ParagraphNode(id: "n0", text: AttributedText("Before [[a note]] after."))],
       );
-      _addAttribution(document, 0, ocptFountainNoteAttribution, "Before ".length, "Before [[a note]]".length);
+      _addAttribution(
+        document,
+        0,
+        ocptFountainNoteAttribution,
+        "Before ".length,
+        "Before [[a note]]".length,
+      );
 
       expect(OcptWysiwygCodec.noteAttributionRequests(document), isEmpty);
     });
 
     test("re-bounds the span when a note's contents change", () {
       final document = MutableDocument(
-        nodes: [
-          ParagraphNode(id: "n0", text: AttributedText("Before [[a note]] after.")),
-        ],
+        nodes: [ParagraphNode(id: "n0", text: AttributedText("Before [[a note]] after."))],
       );
       // Seed a stale span reflecting the note's old, shorter contents.
-      _addAttribution(document, 0, ocptFountainNoteAttribution, "Before ".length, "Before [[a]]".length);
+      _addAttribution(
+        document,
+        0,
+        ocptFountainNoteAttribution,
+        "Before ".length,
+        "Before [[a]]".length,
+      );
 
       final requests = OcptWysiwygCodec.noteAttributionRequests(document);
 
@@ -576,9 +648,7 @@ void main() {
 
     test("produces no requests for a node with no note markup", () {
       final document = MutableDocument(
-        nodes: [
-          ParagraphNode(id: "n0", text: AttributedText("Just plain text.")),
-        ],
+        nodes: [ParagraphNode(id: "n0", text: AttributedText("Just plain text."))],
       );
 
       expect(OcptWysiwygCodec.noteAttributionRequests(document), isEmpty);
@@ -587,7 +657,9 @@ void main() {
 
   group("OcptWysiwygLineMapping", () {
     test("lineOfNodeIndex accounts for every preceding node's blank-lines-before count", () {
-      final decoded = OcptWysiwygCodec.decode("INT. HOUSE - DAY\n\nSome action.\n\n\nSARAH\nHello.");
+      final decoded = OcptWysiwygCodec.decode(
+        "INT. HOUSE - DAY\n\nSome action.\n\n\nSARAH\nHello.",
+      );
 
       expect(decoded.mapping.lineOfNodeIndex(0), 0);
       expect(decoded.mapping.lineOfNodeIndex(1), 2);
@@ -632,7 +704,10 @@ void main() {
 
     test("encode produces a fresh mapping consistent with its own output text", () {
       final decoded = OcptWysiwygCodec.decode("INT. HOUSE - DAY\n\nSARAH\nHello.");
-      final encoded = OcptWysiwygCodec.encode(decoded.document, trailingBlankLines: decoded.trailingBlankLines);
+      final encoded = OcptWysiwygCodec.encode(
+        decoded.document,
+        trailingBlankLines: decoded.trailingBlankLines,
+      );
 
       expect(encoded.mapping.lineOfNodeIndex(0), 0);
       expect(encoded.mapping.lineOfNodeIndex(1), 2);
@@ -645,11 +720,18 @@ void main() {
     /// Builds an expanded [DocumentSelection] spanning the full node at [fromIndex] to the full
     /// node at [toIndex] of [document] (inclusive), in whichever order [base]/[extent] are asked
     /// for, so a reversed selection can be exercised too.
-    DocumentSelection selectFullNodes(Document document, {required int fromIndex, required int toIndex}) {
+    DocumentSelection selectFullNodes(
+      Document document, {
+      required int fromIndex,
+      required int toIndex,
+    }) {
       final fromNode = document.getNodeAt(fromIndex)! as ParagraphNode;
       final toNode = document.getNodeAt(toIndex)! as ParagraphNode;
       return DocumentSelection(
-        base: DocumentPosition(nodeId: fromNode.id, nodePosition: const TextNodePosition(offset: 0)),
+        base: DocumentPosition(
+          nodeId: fromNode.id,
+          nodePosition: const TextNodePosition(offset: 0),
+        ),
         extent: DocumentPosition(
           nodeId: toNode.id,
           nodePosition: TextNodePosition(offset: toNode.text.toPlainText().length),
@@ -676,15 +758,21 @@ void main() {
         final fragmentNodes = OcptWysiwygCodec.decodeNodesFromFountain(fragmentText);
         expect(fragmentNodes, hasLength(3));
         expect(
-          OcptFountainLineAttributions.typeOfAttributionValue(fragmentNodes[0].getMetadataValue("blockType")),
+          OcptFountainLineAttributions.typeOfAttributionValue(
+            fragmentNodes[0].getMetadataValue("blockType"),
+          ),
           FountainLineType.action,
         );
         expect(
-          OcptFountainLineAttributions.typeOfAttributionValue(fragmentNodes[1].getMetadataValue("blockType")),
+          OcptFountainLineAttributions.typeOfAttributionValue(
+            fragmentNodes[1].getMetadataValue("blockType"),
+          ),
           FountainLineType.character,
         );
         expect(
-          OcptFountainLineAttributions.typeOfAttributionValue(fragmentNodes[2].getMetadataValue("blockType")),
+          OcptFountainLineAttributions.typeOfAttributionValue(
+            fragmentNodes[2].getMetadataValue("blockType"),
+          ),
           FountainLineType.dialogue,
         );
         expect(fragmentNodes[0].getMetadataValue(ocptBlankLinesBeforeMetadataKey), 0);
@@ -693,19 +781,25 @@ void main() {
       },
     );
 
-    test("a reversed selection (base after extent in document order) encodes the same fragment", () {
-      const source = "SARAH\nHello there.\n\nJOHN\nHi.";
-      final decoded = OcptWysiwygCodec.decode(source);
-      final document = decoded.document;
+    test(
+      "a reversed selection (base after extent in document order) encodes the same fragment",
+      () {
+        const source = "SARAH\nHello there.\n\nJOHN\nHi.";
+        final decoded = OcptWysiwygCodec.decode(source);
+        final document = decoded.document;
 
-      final forwardSelection = selectFullNodes(document, fromIndex: 0, toIndex: 3);
-      final reversedSelection = DocumentSelection(base: forwardSelection.extent, extent: forwardSelection.base);
+        final forwardSelection = selectFullNodes(document, fromIndex: 0, toIndex: 3);
+        final reversedSelection = DocumentSelection(
+          base: forwardSelection.extent,
+          extent: forwardSelection.base,
+        );
 
-      expect(
-        OcptWysiwygCodec.encodeSelectionToFountain(document, reversedSelection),
-        OcptWysiwygCodec.encodeSelectionToFountain(document, forwardSelection),
-      );
-    });
+        expect(
+          OcptWysiwygCodec.encodeSelectionToFountain(document, reversedSelection),
+          OcptWysiwygCodec.encodeSelectionToFountain(document, forwardSelection),
+        );
+      },
+    );
 
     test("a partial single-node selection yields just its selected text", () {
       final decoded = OcptWysiwygCodec.decode("Some action text here.");
@@ -741,28 +835,42 @@ void main() {
       return value is String ? value : null;
     }
 
-    test("a screenplay with no title page still synthesizes all six fields, empty, in canonical order", () {
-      final decoded = OcptWysiwygCodec.decodeWithTitlePage("INT. HOUSE - DAY\n\nSome action.");
+    test(
+      "a screenplay with no title page still synthesizes all six fields, empty, in canonical order",
+      () {
+        final decoded = OcptWysiwygCodec.decodeWithTitlePage("INT. HOUSE - DAY\n\nSome action.");
 
-      expect(decoded.titlePageNodeCount, 6);
-      expect(decoded.document.nodeCount, 8);
-      expect(
-        [for (var index = 0; index < 6; index++) titlePageKeyAt(decoded.document, index)],
-        ocptTitlePageFieldKeys,
-      );
-      for (var index = 0; index < 6; index++) {
-        expect(decoded.document.getNodeAt(index)!.getMetadataValue("blockType"), ocptTitlePageFieldAttribution);
-        expect((decoded.document.getNodeAt(index)! as ParagraphNode).text.toPlainText(), isEmpty);
-        expect(OcptWysiwygCodec.isTitlePageNode(decoded.document.getNodeAt(index)! as ParagraphNode), isTrue);
-      }
+        expect(decoded.titlePageNodeCount, 6);
+        expect(decoded.document.nodeCount, 8);
+        expect([
+          for (var index = 0; index < 6; index++) titlePageKeyAt(decoded.document, index),
+        ], ocptTitlePageFieldKeys);
+        for (var index = 0; index < 6; index++) {
+          expect(
+            decoded.document.getNodeAt(index)!.getMetadataValue("blockType"),
+            ocptTitlePageFieldAttribution,
+          );
+          expect((decoded.document.getNodeAt(index)! as ParagraphNode).text.toPlainText(), isEmpty);
+          expect(
+            OcptWysiwygCodec.isTitlePageNode(decoded.document.getNodeAt(index)! as ParagraphNode),
+            isTrue,
+          );
+        }
 
-      // The body starts right where a plain `decode` of the same (title-page-free) text would
-      // put it, just shifted by the six title-page nodes.
-      expect(_typeAt(decoded.document, 6), FountainLineType.sceneHeading);
-      expect((decoded.document.getNodeAt(6)! as ParagraphNode).text.toPlainText(), "INT. HOUSE - DAY");
-      expect(_typeAt(decoded.document, 7), FountainLineType.action);
-      expect(OcptWysiwygCodec.isTitlePageNode(decoded.document.getNodeAt(7)! as ParagraphNode), isFalse);
-    });
+        // The body starts right where a plain `decode` of the same (title-page-free) text would
+        // put it, just shifted by the six title-page nodes.
+        expect(_typeAt(decoded.document, 6), FountainLineType.sceneHeading);
+        expect(
+          (decoded.document.getNodeAt(6)! as ParagraphNode).text.toPlainText(),
+          "INT. HOUSE - DAY",
+        );
+        expect(_typeAt(decoded.document, 7), FountainLineType.action);
+        expect(
+          OcptWysiwygCodec.isTitlePageNode(decoded.document.getNodeAt(7)! as ParagraphNode),
+          isFalse,
+        );
+      },
+    );
 
     test("an existing title page decodes its present fields, absent ones stay empty", () {
       const source = "Title: My Movie\nCredit: written by\n\nINT. HOUSE - DAY";
@@ -792,20 +900,23 @@ void main() {
       expect(_typeAt(decoded.document, 7), FountainLineType.action);
     });
 
-    test("round trip: an untouched decode/encode of a title-page-free screenplay changes nothing", () {
-      const source = "INT. HOUSE - DAY\n\nSome action.\n\nJOHN\nHello.";
-      final decoded = OcptWysiwygCodec.decodeWithTitlePage(source);
+    test(
+      "round trip: an untouched decode/encode of a title-page-free screenplay changes nothing",
+      () {
+        const source = "INT. HOUSE - DAY\n\nSome action.\n\nJOHN\nHello.";
+        final decoded = OcptWysiwygCodec.decodeWithTitlePage(source);
 
-      final encoded = OcptWysiwygCodec.encodeWithTitlePage(
-        decoded.document,
-        trailingBlankLines: decoded.trailingBlankLines,
-      );
+        final encoded = OcptWysiwygCodec.encodeWithTitlePage(
+          decoded.document,
+          trailingBlankLines: decoded.trailingBlankLines,
+        );
 
-      expect(encoded.text, source);
-      // The document still carries six (all-empty) title-page nodes; only the *rendered* text
-      // omits them, since every field is empty.
-      expect(encoded.titlePageNodeCount, 6);
-    });
+        expect(encoded.text, source);
+        // The document still carries six (all-empty) title-page nodes; only the *rendered* text
+        // omits them, since every field is empty.
+        expect(encoded.titlePageNodeCount, 6);
+      },
+    );
 
     test("filling only the Title field of an untitled screenplay writes just a Title: line", () {
       const source = "INT. HOUSE - DAY\n\nSome action.";
@@ -857,61 +968,81 @@ void main() {
       expect(encoded.text, "Author: Jane Doe\n\nSome action.");
     });
 
-    test("a locked/uppercased title-page field is never reclassified or uppercased by the body passes", () {
-      final decoded = OcptWysiwygCodec.decodeWithTitlePage("INT. HOUSE - DAY\n\nSome action.");
-      _replaceText(decoded.document, 0, "lowercase title");
+    test(
+      "a locked/uppercased title-page field is never reclassified or uppercased by the body passes",
+      () {
+        final decoded = OcptWysiwygCodec.decodeWithTitlePage("INT. HOUSE - DAY\n\nSome action.");
+        _replaceText(decoded.document, 0, "lowercase title");
 
-      expect(OcptWysiwygCodec.reclassifyRequests(decoded.document), isEmpty);
-      expect(OcptWysiwygCodec.uppercaseRequests(decoded.document), isEmpty);
-      expect(OcptWysiwygCodec.sceneNumberRequests(decoded.document), isEmpty);
-    });
+        expect(OcptWysiwygCodec.reclassifyRequests(decoded.document), isEmpty);
+        expect(OcptWysiwygCodec.uppercaseRequests(decoded.document), isEmpty);
+        expect(OcptWysiwygCodec.sceneNumberRequests(decoded.document), isEmpty);
+      },
+    );
 
-    test("every synthesized title-page node starts fully deletable (F6: edited like any other line)", () {
-      // `isDeletable: false` used to also block ordinary in-field editing (Backspace, Delete):
-      // the sheet is protected from deletion by `ocptTitlePageGuardRequestHandler` alone now, so a
-      // title-page node must never carry the flag at all.
-      final decoded = OcptWysiwygCodec.decodeWithTitlePage("INT. HOUSE - DAY");
-      for (var index = 0; index < 6; index++) {
-        expect(decoded.document.getNodeAt(index)!.isDeletable, isTrue, reason: "node $index");
-      }
-    });
+    test(
+      "every synthesized title-page node starts fully deletable (F6: edited like any other line)",
+      () {
+        // `isDeletable: false` used to also block ordinary in-field editing (Backspace, Delete):
+        // the sheet is protected from deletion by `ocptTitlePageGuardRequestHandler` alone now, so a
+        // title-page node must never carry the flag at all.
+        final decoded = OcptWysiwygCodec.decodeWithTitlePage("INT. HOUSE - DAY");
+        for (var index = 0; index < 6; index++) {
+          expect(decoded.document.getNodeAt(index)!.isDeletable, isTrue, reason: "node $index");
+        }
+      },
+    );
 
-    test("a metadata merge (OcptChangeNodeMetadataRequest) keeps a title-page node's field key", () {
-      final decoded = OcptWysiwygCodec.decodeWithTitlePage("INT. HOUSE - DAY");
-      final document = decoded.document;
-      final creditNode = document.getNodeAt(1)!;
-      final editor = Editor(
-        editables: {Editor.documentKey: document, Editor.composerKey: MutableDocumentComposer()},
-        requestHandlers: List<EditRequestHandler>.from(defaultRequestHandlers)
-          ..add(ocptChangeNodeMetadataRequestHandler),
-      );
+    test(
+      "a metadata merge (OcptChangeNodeMetadataRequest) keeps a title-page node's field key",
+      () {
+        final decoded = OcptWysiwygCodec.decodeWithTitlePage("INT. HOUSE - DAY");
+        final document = decoded.document;
+        final creditNode = document.getNodeAt(1)!;
+        final editor = Editor(
+          editables: {Editor.documentKey: document, Editor.composerKey: MutableDocumentComposer()},
+          requestHandlers: List<EditRequestHandler>.from(defaultRequestHandlers)
+            ..add(ocptChangeNodeMetadataRequestHandler),
+        );
 
-      editor.execute([
-        OcptChangeNodeMetadataRequest(nodeId: creditNode.id, metadata: {ocptTypeLockedMetadataKey: true}),
-      ]);
+        editor.execute([
+          OcptChangeNodeMetadataRequest(
+            nodeId: creditNode.id,
+            metadata: {ocptTypeLockedMetadataKey: true},
+          ),
+        ]);
 
-      expect(document.getNodeById(creditNode.id)!.getMetadataValue(ocptTitlePageKeyMetadataKey), "Credit");
-    });
+        expect(
+          document.getNodeById(creditNode.id)!.getMetadataValue(ocptTitlePageKeyMetadataKey),
+          "Credit",
+        );
+      },
+    );
 
-    test("encodeWithTitlePage ignores node metadata that isn't the field key or the text itself", () {
-      const source = "Title: My Movie\n\nSome action.";
-      final decoded = OcptWysiwygCodec.decodeWithTitlePage(source);
+    test(
+      "encodeWithTitlePage ignores node metadata that isn't the field key or the text itself",
+      () {
+        const source = "Title: My Movie\n\nSome action.";
+        final decoded = OcptWysiwygCodec.decodeWithTitlePage(source);
 
-      final titleNode = decoded.document.getNodeAt(0)! as ParagraphNode;
-      final withExtraMetadata = MutableDocument(
-        nodes: [
-          titleNode.copyParagraphWith(metadata: {...titleNode.metadata, ocptTypeLockedMetadataKey: true}),
-          ...decoded.document.skip(1),
-        ],
-      );
+        final titleNode = decoded.document.getNodeAt(0)! as ParagraphNode;
+        final withExtraMetadata = MutableDocument(
+          nodes: [
+            titleNode.copyParagraphWith(
+              metadata: {...titleNode.metadata, ocptTypeLockedMetadataKey: true},
+            ),
+            ...decoded.document.skip(1),
+          ],
+        );
 
-      final encoded = OcptWysiwygCodec.encodeWithTitlePage(
-        withExtraMetadata,
-        trailingBlankLines: decoded.trailingBlankLines,
-      );
+        final encoded = OcptWysiwygCodec.encodeWithTitlePage(
+          withExtraMetadata,
+          trailingBlankLines: decoded.trailingBlankLines,
+        );
 
-      expect(encoded.text, source);
-    });
+        expect(encoded.text, source);
+      },
+    );
   });
 
   group("Editor.undo() survives a document built by decode/decodeWithTitlePage", () {
@@ -930,14 +1061,21 @@ void main() {
 
       final editor = Editor(
         editables: {Editor.documentKey: document, Editor.composerKey: MutableDocumentComposer()},
-        requestHandlers: List<EditRequestHandler>.from(defaultRequestHandlers)..add(ocptReplaceNodeTextRequestHandler),
+        requestHandlers: List<EditRequestHandler>.from(defaultRequestHandlers)
+          ..add(ocptReplaceNodeTextRequestHandler),
         isHistoryEnabled: true,
       );
 
       editor.execute([
-        OcptReplaceNodeTextRequest(nodeId: nodeId, text: AttributedText("Some action text, edited.")),
+        OcptReplaceNodeTextRequest(
+          nodeId: nodeId,
+          text: AttributedText("Some action text, edited."),
+        ),
       ]);
-      expect((document.getNodeAt(0)! as ParagraphNode).text.toPlainText(), "Some action text, edited.");
+      expect(
+        (document.getNodeAt(0)! as ParagraphNode).text.toPlainText(),
+        "Some action text, edited.",
+      );
 
       expect(editor.undo, returnsNormally);
 
@@ -945,33 +1083,42 @@ void main() {
       expect((document.getNodeAt(0)! as ParagraphNode).text.toPlainText(), "Some action text.");
     });
 
-    test("decodeWithTitlePage: undoing an edit restores the document instead of leaving it empty", () {
-      final decoded = OcptWysiwygCodec.decodeWithTitlePage("Title: My Movie\n\nSome action text.");
-      final document = decoded.document;
-      final originalNodeCount = document.nodeCount;
-      final bodyNodeId = document.getNodeAt(originalNodeCount - 1)!.id;
+    test(
+      "decodeWithTitlePage: undoing an edit restores the document instead of leaving it empty",
+      () {
+        final decoded = OcptWysiwygCodec.decodeWithTitlePage(
+          "Title: My Movie\n\nSome action text.",
+        );
+        final document = decoded.document;
+        final originalNodeCount = document.nodeCount;
+        final bodyNodeId = document.getNodeAt(originalNodeCount - 1)!.id;
 
-      final editor = Editor(
-        editables: {Editor.documentKey: document, Editor.composerKey: MutableDocumentComposer()},
-        requestHandlers: List<EditRequestHandler>.from(defaultRequestHandlers)..add(ocptReplaceNodeTextRequestHandler),
-        isHistoryEnabled: true,
-      );
+        final editor = Editor(
+          editables: {Editor.documentKey: document, Editor.composerKey: MutableDocumentComposer()},
+          requestHandlers: List<EditRequestHandler>.from(defaultRequestHandlers)
+            ..add(ocptReplaceNodeTextRequestHandler),
+          isHistoryEnabled: true,
+        );
 
-      editor.execute([
-        OcptReplaceNodeTextRequest(nodeId: bodyNodeId, text: AttributedText("Some action text, edited.")),
-      ]);
-      expect(
-        (document.getNodeAt(originalNodeCount - 1)! as ParagraphNode).text.toPlainText(),
-        "Some action text, edited.",
-      );
+        editor.execute([
+          OcptReplaceNodeTextRequest(
+            nodeId: bodyNodeId,
+            text: AttributedText("Some action text, edited."),
+          ),
+        ]);
+        expect(
+          (document.getNodeAt(originalNodeCount - 1)! as ParagraphNode).text.toPlainText(),
+          "Some action text, edited.",
+        );
 
-      expect(editor.undo, returnsNormally);
+        expect(editor.undo, returnsNormally);
 
-      expect(document.nodeCount, originalNodeCount);
-      expect(
-        (document.getNodeAt(originalNodeCount - 1)! as ParagraphNode).text.toPlainText(),
-        "Some action text.",
-      );
-    });
+        expect(document.nodeCount, originalNodeCount);
+        expect(
+          (document.getNodeAt(originalNodeCount - 1)! as ParagraphNode).text.toPlainText(),
+          "Some action text.",
+        );
+      },
+    );
   });
 }

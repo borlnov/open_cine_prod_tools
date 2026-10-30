@@ -74,7 +74,8 @@ List<OcptOrderedScheduleEntry> ocptOrderedScheduleEntriesOfDay({
 
   final slots = plan.schedule.slotsByDayId[dayId] ?? const <OcptShootingSlot>[];
   final blocksById = {
-    for (final block in plan.schedule.blocksByDayId[dayId] ?? const <OcptShootingDayBlock>[]) block.id: block,
+    for (final block in plan.schedule.blocksByDayId[dayId] ?? const <OcptShootingDayBlock>[])
+      block.id: block,
   };
 
   final tagged = <(int, OcptShootingSlot, OcptShootingTimelineEntry, int)>[];
@@ -105,7 +106,8 @@ List<OcptOrderedScheduleEntry> ocptOrderedScheduleEntriesOfDay({
 
   return [
     for (final (_, slot, entry, _) in tagged)
-      if (blocksById[entry.blockId] case final block?) OcptOrderedScheduleEntry(slot: slot, block: block, entry: entry),
+      if (blocksById[entry.blockId] case final block?)
+        OcptOrderedScheduleEntry(slot: slot, block: block, entry: entry),
   ];
 }
 
@@ -127,8 +129,10 @@ Map<String, String> ocptScheduleHeadingBySceneId(OcptSchedulePlanSnapshot plan) 
 List<int> ocptScheduleSlotRoleNumbersOf({
   required OcptShootingSlot slot,
   required Map<String, OcptRole> roleById,
-}) =>
-    [for (final member in slot.cast) if (roleById[member.roleId] case final role?) role.number]..sort();
+}) => [
+  for (final member in slot.cast)
+    if (roleById[member.roleId] case final role?) role.number,
+]..sort();
 
 /// The role numbers [block] prints under its own caption: [ocptScheduleSlotRoleNumbersOf]'s answer
 /// for a [OcptShootingBlockKind.hairMakeUp] block, and nothing at all for every other kind.
@@ -247,7 +251,10 @@ String? ocptScheduleBlockRoleNumbersLine({
 /// Every distinct location of [slots], in the order they are first met — a general document's own
 /// locations (every slot of the day) or a named one's own (only the slots its recipient is linked
 /// to).
-List<OcptLocation> ocptScheduleLocationsOfSlots(OcptSchedulePlanSnapshot plan, List<OcptShootingSlot> slots) {
+List<OcptLocation> ocptScheduleLocationsOfSlots(
+  OcptSchedulePlanSnapshot plan,
+  List<OcptShootingSlot> slots,
+) {
   final seen = <String>{};
   final locations = <OcptLocation>[];
   for (final slot in slots) {
@@ -269,7 +276,10 @@ List<OcptLocation> ocptScheduleLocationsOfSlots(OcptSchedulePlanSnapshot plan, L
 String ocptScheduleLocationAddressLine(OcptLocation location) {
   final parts = [
     location.name.trim(),
-    [location.addressLine1, location.addressLine2].where((line) => line.trim().isNotEmpty).join(", "),
+    [
+      location.addressLine1,
+      location.addressLine2,
+    ].where((line) => line.trim().isNotEmpty).join(", "),
     [location.postalCode, location.city].where((part) => part.trim().isNotEmpty).join(" "),
   ].where((part) => part.trim().isNotEmpty).toList();
 
@@ -303,7 +313,12 @@ String ocptScheduleArrivalDepartureLabel(OcptDayConvocation? convocation) {
 /// widget that draws the table, the section title and the labels object differing between them.
 class OcptScheduleGuestRow {
   /// Class constructor
-  const OcptScheduleGuestRow({required this.name, required this.reason, required this.notes, required this.hours});
+  const OcptScheduleGuestRow({
+    required this.name,
+    required this.reason,
+    required this.notes,
+    required this.hours,
+  });
 
   /// The guest's own display name — the address-book person's, the free name, or the
   /// `unnamedPersonLabel` [ocptScheduleGuestRowsOfDay] was given while neither names anybody
@@ -328,8 +343,8 @@ class OcptScheduleGuestRow {
 /// makes between a `shooting_slot_guests` row and the computed convocation it feeds.
 bool _guestMatchesConvocation(OcptShootingSlotGuest guest, OcptDayConvocation convocation) =>
     convocation.guestPersonId != null
-        ? guest.personId == convocation.guestPersonId
-        : guest.freeName == convocation.guestFreeName;
+    ? guest.personId == convocation.guestPersonId
+    : guest.freeName == convocation.guestFreeName;
 
 /// [convocation]'s own display name for the trailing guest table: the address-book display name
 /// when it carries a [OcptDayConvocation.guestPersonId], its own [OcptDayConvocation.guestFreeName]
@@ -379,7 +394,9 @@ List<OcptScheduleGuestRow> ocptScheduleGuestRowsOfDay({
   required String unnamedPersonLabel,
 }) {
   final slots = plan.schedule.slotsByDayId[dayId] ?? const <OcptShootingSlot>[];
-  final guestConvocations = plan.convocationsOfDay(dayId).where((convocation) => convocation.isGuest);
+  final guestConvocations = plan
+      .convocationsOfDay(dayId)
+      .where((convocation) => convocation.isGuest);
 
   final rows = <OcptScheduleGuestRow>[];
   for (final convocation in guestConvocations) {

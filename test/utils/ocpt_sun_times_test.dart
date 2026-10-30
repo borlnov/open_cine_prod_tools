@@ -21,7 +21,11 @@ const _ocptGrazingAngleToleranceMinutes = 8;
 /// Fails unless [actual] is within [toleranceMinutes] of [expected], with both null read as
 /// "no such event" — which must match exactly, since a wrong null is a wrong answer no tolerance
 /// should paper over.
-void _expectCloseTo(int? actual, int? expected, {int toleranceMinutes = _ocptTypicalToleranceMinutes}) {
+void _expectCloseTo(
+  int? actual,
+  int? expected, {
+  int toleranceMinutes = _ocptTypicalToleranceMinutes,
+}) {
   if (expected == null) {
     expect(actual, isNull);
     return;
@@ -40,7 +44,11 @@ void main() {
     // sunrise 03:44:59, sunset 19:59:51, civil 03:04:21 / 20:40:28, nautical 02:03:37 / 21:41:12,
     // astronomical: does not occur (the sky never gets that dark this close to the solstice at
     // this latitude — see the "even a temperate city" group below).
-    final result = ocptSunTimesOf(date: DateTime(2026, 6, 21), latitudeDegrees: 48.8566, longitudeDegrees: 2.3522);
+    final result = ocptSunTimesOf(
+      date: DateTime(2026, 6, 21),
+      latitudeDegrees: 48.8566,
+      longitudeDegrees: 2.3522,
+    );
 
     test("sunrise and sunset", () {
       _expectCloseTo(result.sunriseMinute, 225);
@@ -67,7 +75,11 @@ void main() {
   group("Paris — winter solstice", () {
     // Reference: sunrise 07:39:17, sunset 15:58:01, civil 07:04:01 / 16:33:16,
     // nautical 06:23:33 / 17:13:44, astronomical 05:45:02 / 17:52:15.
-    final result = ocptSunTimesOf(date: DateTime(2026, 12, 21), latitudeDegrees: 48.8566, longitudeDegrees: 2.3522);
+    final result = ocptSunTimesOf(
+      date: DateTime(2026, 12, 21),
+      latitudeDegrees: 48.8566,
+      longitudeDegrees: 2.3522,
+    );
 
     test("every figure is present and short-day-shaped", () {
       _expectCloseTo(result.sunriseMinute, 459);
@@ -95,7 +107,11 @@ void main() {
   group("Paris — spring equinox", () {
     // Reference: sunrise 05:51:33, sunset 18:04:32, civil 05:21:41 / 18:34:24,
     // nautical 04:44:34 / 19:11:31, astronomical 04:06:13 / 19:49:52.
-    final result = ocptSunTimesOf(date: DateTime(2026, 3, 20), latitudeDegrees: 48.8566, longitudeDegrees: 2.3522);
+    final result = ocptSunTimesOf(
+      date: DateTime(2026, 3, 20),
+      latitudeDegrees: 48.8566,
+      longitudeDegrees: 2.3522,
+    );
 
     test("every figure is present", () {
       _expectCloseTo(result.sunriseMinute, 352);
@@ -133,8 +149,16 @@ void main() {
     );
 
     test("sunrise and sunset, sunset landing past midnight", () {
-      _expectCloseTo(result.sunriseMinute, 168, toleranceMinutes: _ocptGrazingAngleToleranceMinutes);
-      _expectCloseTo(result.sunsetMinute, 1451, toleranceMinutes: _ocptGrazingAngleToleranceMinutes);
+      _expectCloseTo(
+        result.sunriseMinute,
+        168,
+        toleranceMinutes: _ocptGrazingAngleToleranceMinutes,
+      );
+      _expectCloseTo(
+        result.sunsetMinute,
+        1451,
+        toleranceMinutes: _ocptGrazingAngleToleranceMinutes,
+      );
       expect(result.sunsetMinute, greaterThan(1440));
     });
 
@@ -150,7 +174,11 @@ void main() {
 
   group("Longyearbyen, Svalbard — the polar case (78.2232N, 15.6267E)", () {
     test("midnight sun in June: nothing crosses the horizon at all", () {
-      final result = ocptSunTimesOf(date: DateTime(2026, 6, 21), latitudeDegrees: 78.2232, longitudeDegrees: 15.6267);
+      final result = ocptSunTimesOf(
+        date: DateTime(2026, 6, 21),
+        latitudeDegrees: 78.2232,
+        longitudeDegrees: 15.6267,
+      );
 
       expect(result.sunriseMinute, isNull);
       expect(result.sunsetMinute, isNull);
@@ -208,7 +236,11 @@ void main() {
         latitudeDegrees: -33.8688,
         longitudeDegrees: 151.2093,
       );
-      final june = ocptSunTimesOf(date: DateTime(2026, 6, 21), latitudeDegrees: -33.8688, longitudeDegrees: 151.2093);
+      final june = ocptSunTimesOf(
+        date: DateTime(2026, 6, 21),
+        latitudeDegrees: -33.8688,
+        longitudeDegrees: 151.2093,
+      );
 
       _expectCloseTo(december.sunriseMinute, -321);
       _expectCloseTo(december.sunsetMinute, 547);

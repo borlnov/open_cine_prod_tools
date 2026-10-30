@@ -368,7 +368,12 @@ class _EditableTabName extends StatefulWidget {
   final ValueChanged<String> onChanged;
 
   /// Class constructor
-  const _EditableTabName({super.key, required this.value, required this.color, required this.onChanged});
+  const _EditableTabName({
+    super.key,
+    required this.value,
+    required this.color,
+    required this.onChanged,
+  });
 
   @override
   State<_EditableTabName> createState() => _EditableTabNameState();
@@ -391,10 +396,9 @@ class _EditableTabNameState extends State<_EditableTabName> {
     child: TextField(
       controller: _controller,
       onChanged: widget.onChanged,
-      style: Theme.of(context).textTheme.labelMedium?.copyWith(
-        color: widget.color,
-        fontWeight: FontWeight.w700,
-      ),
+      style: Theme.of(
+        context,
+      ).textTheme.labelMedium?.copyWith(color: widget.color, fontWeight: FontWeight.w700),
       decoration: const InputDecoration(
         isDense: true,
         border: InputBorder.none,

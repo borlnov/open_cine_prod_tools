@@ -50,7 +50,10 @@ class OcptRelayUpstreamClient {
   /// anything but `200` — this is operator tooling run from a terminal, so a thrown error that
   /// aborts the run with a readable message is the right behaviour, not a typed exception a caller
   /// is expected to catch and recover from.
-  Future<List<OcptStoredChangeset>> readChangesetsSince(String projectId, OcptSequenceNumber cursor) async {
+  Future<List<OcptStoredChangeset>> readChangesetsSince(
+    String projectId,
+    OcptSequenceNumber cursor,
+  ) async {
     final response = await _httpClient.get(
       _changesetsUri(projectId).replace(queryParameters: {_sinceParam: cursor.value.toString()}),
       headers: _authHeaders(),
@@ -85,7 +88,10 @@ class OcptRelayUpstreamClient {
       },
       body: jsonEncode(envelope.toJson()),
     );
-    _throwIfFailed(response, action: 'append changeset ${envelope.changesetId} for project $projectId');
+    _throwIfFailed(
+      response,
+      action: 'append changeset ${envelope.changesetId} for project $projectId',
+    );
 
     final json = jsonDecode(response.body) as Map<String, dynamic>;
 
@@ -96,7 +102,9 @@ class OcptRelayUpstreamClient {
   /// through [Uri.resolve] — which would silently drop [baseUri]'s last path segment when it does
   /// not already end in `/` — mirroring the app's `OcptRelayRemoteStorage._projectUri`.
   Uri _changesetsUri(String projectId) {
-    final basePath = baseUri.path.endsWith('/') ? baseUri.path.substring(0, baseUri.path.length - 1) : baseUri.path;
+    final basePath = baseUri.path.endsWith('/')
+        ? baseUri.path.substring(0, baseUri.path.length - 1)
+        : baseUri.path;
 
     return baseUri.replace(path: '$basePath/projects/$projectId/changesets');
   }

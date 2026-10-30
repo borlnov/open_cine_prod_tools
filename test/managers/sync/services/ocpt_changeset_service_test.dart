@@ -67,10 +67,7 @@ void main() {
     );
 
     expect(await storage.readSince(OcptSequenceNumber.zero), isEmpty);
-    expect(
-      await database.select(database.ocptSyncRelayCursorsTable).get(),
-      isEmpty,
-    );
+    expect(await database.select(database.ocptSyncRelayCursorsTable).get(), isEmpty);
   });
 
   test(
@@ -113,49 +110,123 @@ void main() {
     },
   );
 
+  test("the generic row id for a shot_characters row equals ocptCompositeRowStampKey "
+      "([shotId, roleId])", () async {
+    await database
+        .into(database.ocptScreenplaysTable)
+        .insert(
+          OcptScreenplaysTableCompanion.insert(
+            id: 'screenplay-1',
+            title: 'Title',
+            updatedAt: DateTime.utc(2026),
+          ),
+        );
+    await database
+        .into(database.ocptShotsTable)
+        .insert(
+          OcptShotsTableCompanion.insert(id: 'shot-1', screenplayId: 'screenplay-1', position: 0),
+        );
+    await database
+        .into(database.ocptRolesTable)
+        .insert(
+          OcptRolesTableCompanion.insert(id: 'role-1', name: 'JOHN', kind: OcptRoleKind.speaking),
+        );
+
+    const shotCharacter = OcptShotCharacterRow(
+      shotId: 'shot-1',
+      roleId: 'role-1',
+      position: 0,
+      sortKey: '',
+      isDeleted: false,
+    );
+    final expectedRowId = ocptCompositeRowStampKey([shotCharacter.shotId, shotCharacter.roleId]);
+
+    final stamps = await OcptRowStampService.seed(database: database, deviceId: deviceId);
+    await OcptRowStampService.writeAndStamp(
+      database: database,
+      table: database.ocptShotCharactersTable,
+      rowId: expectedRowId,
+      current: null,
+      next: shotCharacter,
+      stamps: stamps,
+    );
+    await stamps.flush(database);
+
+    await service.pushLocalEdits(
+      database: database,
+      storage: storage,
+      relayId: relayId,
+      deviceId: deviceId,
+    );
+
+    final fieldStamps = await readAppendedFieldStamps();
+
+    expect(fieldStamps, isNotEmpty);
+    for (final stamp in fieldStamps) {
+      expect(stamp.tableName, 'shot_characters');
+      expect(stamp.rowId, expectedRowId);
+    }
+  });
+
   test(
-    "the generic row id for a shot_characters row equals ocptCompositeRowStampKey "
-    "([shotId, roleId])",
+    'a second generate with no new edits appends nothing once the water mark has advanced',
     () async {
-      await database
-          .into(database.ocptScreenplaysTable)
-          .insert(
-            OcptScreenplaysTableCompanion.insert(
-              id: 'screenplay-1',
-              title: 'Title',
-              updatedAt: DateTime.utc(2026),
-            ),
-          );
-      await database
-          .into(database.ocptShotsTable)
-          .insert(
-            OcptShotsTableCompanion.insert(id: 'shot-1', screenplayId: 'screenplay-1', position: 0),
-          );
-      await database
-          .into(database.ocptRolesTable)
-          .insert(
-            OcptRolesTableCompanion.insert(id: 'role-1', name: 'JOHN', kind: OcptRoleKind.speaking),
-          );
-
-      const shotCharacter = OcptShotCharacterRow(
-        shotId: 'shot-1',
-        roleId: 'role-1',
-        position: 0,
-        sortKey: '',
-        isDeleted: false,
-      );
-      final expectedRowId = ocptCompositeRowStampKey([shotCharacter.shotId, shotCharacter.roleId]);
-
+      final location = await insertLocation('location-1');
       final stamps = await OcptRowStampService.seed(database: database, deviceId: deviceId);
       await OcptRowStampService.writeAndStamp(
         database: database,
-        table: database.ocptShotCharactersTable,
-        rowId: expectedRowId,
-        current: null,
-        next: shotCharacter,
+        table: database.ocptLocationsTable,
+        rowId: location.id,
+        current: location,
+        next: location.copyWith(name: 'Exterior'),
         stamps: stamps,
       );
       await stamps.flush(database);
+
+      final stampedVersion =
+          (await database.select(database.ocptRowFieldVersionsTable).getSingle()).version;
+
+      await service.pushLocalEdits(
+        database: database,
+        storage: storage,
+        relayId: relayId,
+        deviceId: deviceId,
+      );
+      expect(await storage.readSince(OcptSequenceNumber.zero), hasLength(1));
+
+      final cursor = await (database.select(
+        database.ocptSyncRelayCursorsTable,
+      )..where((table) => table.relayId.equals(relayId))).getSingle();
+      expect(cursor.outboxHighWaterMark, stampedVersion);
+
+      // Calling it again with no new edits must append nothing more.
+      await service.pushLocalEdits(
+        database: database,
+        storage: storage,
+        relayId: relayId,
+        deviceId: deviceId,
+      );
+      expect(await storage.readSince(OcptSequenceNumber.zero), hasLength(1));
+    },
+  );
+
+  test(
+    "a stamp bearing a different device id is never pushed as this replica's own edit",
+    () async {
+      final location = await insertLocation('location-1');
+
+      // As if this column had been merged in from another device rather than edited locally.
+      await database
+          .into(database.ocptRowFieldVersionsTable)
+          .insert(
+            OcptRowFieldVersionsTableCompanion.insert(
+              targetTableName: 'locations',
+              rowId: location.id,
+              columnName: 'name',
+              version: 1,
+              deviceId: 'other-device',
+            ),
+          );
 
       await service.pushLocalEdits(
         database: database,
@@ -164,79 +235,9 @@ void main() {
         deviceId: deviceId,
       );
 
-      final fieldStamps = await readAppendedFieldStamps();
-
-      expect(fieldStamps, isNotEmpty);
-      for (final stamp in fieldStamps) {
-        expect(stamp.tableName, 'shot_characters');
-        expect(stamp.rowId, expectedRowId);
-      }
+      expect(await storage.readSince(OcptSequenceNumber.zero), isEmpty);
     },
   );
-
-  test('a second generate with no new edits appends nothing once the water mark has advanced', () async {
-    final location = await insertLocation('location-1');
-    final stamps = await OcptRowStampService.seed(database: database, deviceId: deviceId);
-    await OcptRowStampService.writeAndStamp(
-      database: database,
-      table: database.ocptLocationsTable,
-      rowId: location.id,
-      current: location,
-      next: location.copyWith(name: 'Exterior'),
-      stamps: stamps,
-    );
-    await stamps.flush(database);
-
-    final stampedVersion = (await database.select(database.ocptRowFieldVersionsTable).getSingle()).version;
-
-    await service.pushLocalEdits(
-      database: database,
-      storage: storage,
-      relayId: relayId,
-      deviceId: deviceId,
-    );
-    expect(await storage.readSince(OcptSequenceNumber.zero), hasLength(1));
-
-    final cursor = await (database.select(
-      database.ocptSyncRelayCursorsTable,
-    )..where((table) => table.relayId.equals(relayId))).getSingle();
-    expect(cursor.outboxHighWaterMark, stampedVersion);
-
-    // Calling it again with no new edits must append nothing more.
-    await service.pushLocalEdits(
-      database: database,
-      storage: storage,
-      relayId: relayId,
-      deviceId: deviceId,
-    );
-    expect(await storage.readSince(OcptSequenceNumber.zero), hasLength(1));
-  });
-
-  test("a stamp bearing a different device id is never pushed as this replica's own edit", () async {
-    final location = await insertLocation('location-1');
-
-    // As if this column had been merged in from another device rather than edited locally.
-    await database
-        .into(database.ocptRowFieldVersionsTable)
-        .insert(
-          OcptRowFieldVersionsTableCompanion.insert(
-            targetTableName: 'locations',
-            rowId: location.id,
-            columnName: 'name',
-            version: 1,
-            deviceId: 'other-device',
-          ),
-        );
-
-    await service.pushLocalEdits(
-      database: database,
-      storage: storage,
-      relayId: relayId,
-      deviceId: deviceId,
-    );
-
-    expect(await storage.readSince(OcptSequenceNumber.zero), isEmpty);
-  });
 
   group('countUnpushedEdits', () {
     test('is zero when nothing has ever been stamped', () async {
@@ -318,7 +319,8 @@ void main() {
         stamps: stamps,
       );
       await stamps.flush(database);
-      final stampedVersion = (await database.select(database.ocptRowFieldVersionsTable).getSingle()).version;
+      final stampedVersion =
+          (await database.select(database.ocptRowFieldVersionsTable).getSingle()).version;
 
       await service.pushLocalEdits(
         database: database,

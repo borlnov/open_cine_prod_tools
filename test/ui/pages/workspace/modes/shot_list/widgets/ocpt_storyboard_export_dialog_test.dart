@@ -90,30 +90,31 @@ void main() {
     },
   );
 
-  testWidgets("picking A4 in the format dropdown carries it into the popped options, margins unchanged", (
-    tester,
-  ) async {
-    const current = OcptPageSetup(
-      format: OcptPageFormat.usLetter,
-      margins: FountainPageMargins(leftInches: 2, rightInches: 2, topInches: 2, bottomInches: 2),
-    );
-    await pumpDialog(tester, current: current);
-    final context = tester.element(find.byType(OcptStoryboardExportDialog));
-    final tr = Tr.of(context);
+  testWidgets(
+    "picking A4 in the format dropdown carries it into the popped options, margins unchanged",
+    (tester) async {
+      const current = OcptPageSetup(
+        format: OcptPageFormat.usLetter,
+        margins: FountainPageMargins(leftInches: 2, rightInches: 2, topInches: 2, bottomInches: 2),
+      );
+      await pumpDialog(tester, current: current);
+      final context = tester.element(find.byType(OcptStoryboardExportDialog));
+      final tr = Tr.of(context);
 
-    await tester.tap(find.byType(DropdownButtonFormField<OcptPageFormat>));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text(tr.editorPageSetupA4Option).last);
-    await tester.pumpAndSettle();
+      await tester.tap(find.byType(DropdownButtonFormField<OcptPageFormat>));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(tr.editorPageSetupA4Option).last);
+      await tester.pumpAndSettle();
 
-    await tester.tap(find.text(tr.editorExportPdfExportAction));
-    await tester.pumpAndSettle();
+      await tester.tap(find.text(tr.editorExportPdfExportAction));
+      await tester.pumpAndSettle();
 
-    expect(routerManager.popped, isTrue);
-    final popped = routerManager.poppedValue! as OcptStoryboardExportOptions;
-    expect(popped.format, OcptPageFormat.a4);
-    expect(popped.margins, current.margins);
-  });
+      expect(routerManager.popped, isTrue);
+      final popped = routerManager.poppedValue! as OcptStoryboardExportOptions;
+      expect(popped.format, OcptPageFormat.a4);
+      expect(popped.margins, current.margins);
+    },
+  );
 
   testWidgets("picking a shots-per-page value carries it into the popped options", (tester) async {
     await pumpDialog(tester);

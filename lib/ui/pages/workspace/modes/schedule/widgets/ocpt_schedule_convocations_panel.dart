@@ -78,9 +78,7 @@ class OcptScheduleConvocationsPanel extends StatelessWidget {
 
     final mainRows = _sortedRows(
       tr,
-      convocations.where(
-        (convocation) => !convocation.isGuest && !convocation.isOnlySeenForAPart,
-      ),
+      convocations.where((convocation) => !convocation.isGuest && !convocation.isOnlySeenForAPart),
     );
     final candidateRows = _sortedRows(
       tr,
@@ -140,15 +138,7 @@ class OcptScheduleConvocationsPanel extends StatelessWidget {
   List<(OcptDayConvocation, String)> _sortedRows(Tr tr, Iterable<OcptDayConvocation> source) {
     final rows = [
       for (final convocation in source)
-        (
-          convocation,
-          ocptScheduleConvocationTitle(
-            tr,
-            convocation,
-            personById,
-            roleById,
-          ),
-        ),
+        (convocation, ocptScheduleConvocationTitle(tr, convocation, personById, roleById)),
     ];
 
     rows.sort((left, right) {

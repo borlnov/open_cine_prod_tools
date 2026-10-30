@@ -430,7 +430,8 @@ class OcptBudgetCostTracking extends StatelessWidget {
 
         final identityFixedWidth = isSimplified ? 0.0 : _ocptCostTrackingNumberColumnWidth;
         // Devis, Engagé, Payé, Reste, Coût final, Écart — six amount columns.
-        final amountsWidth = 6 * _ocptCostTrackingAmountColumnWidth + _ocptCostTrackingMenuColumnWidth;
+        final amountsWidth =
+            6 * _ocptCostTrackingAmountColumnWidth + _ocptCostTrackingMenuColumnWidth;
         final posteWidth = (constraints.maxWidth - identityFixedWidth - amountsWidth).clamp(
           _ocptCostTrackingPosteColumnMinWidth,
           double.infinity,
@@ -455,8 +456,7 @@ class OcptBudgetCostTracking extends StatelessWidget {
                             isSimplified: isSimplified,
                             posteWidth: posteWidth,
                           ),
-                          for (final row in rows)
-                            _identityRowOf(row, posteWidth: posteWidth),
+                          for (final row in rows) _identityRowOf(row, posteWidth: posteWidth),
                           _OcptCostTrackingIdentityTotalRow(
                             isSimplified: isSimplified,
                             posteWidth: posteWidth,
@@ -605,7 +605,10 @@ class OcptBudgetCostTracking extends StatelessWidget {
     // Every entry naming a commitment at all, settled or still owed — an off-line entry list must
     // never repeat one of these, since [_addCommitmentRows] already draws every one of them nested
     // under the very commitment it pays, whether that commitment is settled yet or only part-paid.
-    final settlingEntryIds = {for (final entry in entries) if (entry.commitmentId != null) entry.id};
+    final settlingEntryIds = {
+      for (final entry in entries)
+        if (entry.commitmentId != null) entry.id,
+    };
 
     for (final poste in postes) {
       final offLineCommitments = [
@@ -621,7 +624,11 @@ class OcptBudgetCostTracking extends StatelessWidget {
       final isPosteExpanded = isPosteExpandable && expandedNodeIds.contains(poste.id);
 
       rows.add(
-        _OcptPosteTreeRow(poste: poste, isExpandable: isPosteExpandable, isExpanded: isPosteExpanded),
+        _OcptPosteTreeRow(
+          poste: poste,
+          isExpandable: isPosteExpandable,
+          isExpanded: isPosteExpanded,
+        ),
       );
       if (!isPosteExpanded) {
         continue;
@@ -635,7 +642,11 @@ class OcptBudgetCostTracking extends StatelessWidget {
         final isLineExpanded = lineCommitments.isNotEmpty && expandedNodeIds.contains(line.id);
 
         rows.add(
-          _OcptLineTreeRow(line: line, lineCommitments: lineCommitments, isExpanded: isLineExpanded),
+          _OcptLineTreeRow(
+            line: line,
+            lineCommitments: lineCommitments,
+            isExpanded: isLineExpanded,
+          ),
         );
         if (!isLineExpanded) {
           continue;
@@ -783,13 +794,19 @@ class OcptBudgetCostTracking extends StatelessWidget {
           isMuted: true,
           dotColor: isSettled
               ? Theme.of(context).colorScheme.onSurfaceVariant
-              : ocptBudgetCommitmentStatusAccentColor(Theme.of(context).colorScheme, row.commitment.status),
+              : ocptBudgetCommitmentStatusAccentColor(
+                  Theme.of(context).colorScheme,
+                  row.commitment.status,
+                ),
           badgeText: isSettled
               ? tr.budgetCommittedStatusSettledLabel
               : ocptBudgetCommitmentStatusLabel(tr, row.commitment.status),
           badgeColor: isSettled
               ? Theme.of(context).colorScheme.onSurfaceVariant
-              : ocptBudgetCommitmentStatusAccentColor(Theme.of(context).colorScheme, row.commitment.status),
+              : ocptBudgetCommitmentStatusAccentColor(
+                  Theme.of(context).colorScheme,
+                  row.commitment.status,
+                ),
         );
       },
     ),
@@ -937,7 +954,10 @@ class OcptBudgetCostTracking extends StatelessWidget {
             entries,
             projectVatRateBasisPoints: defaultVatRateBasisPoints,
           ).amountCents
-        : ocptBudgetCommitmentCashCentsOf(commitment, projectVatRateBasisPoints: defaultVatRateBasisPoints);
+        : ocptBudgetCommitmentCashCentsOf(
+            commitment,
+            projectVatRateBasisPoints: defaultVatRateBasisPoints,
+          );
 
     return _OcptCostTrackingSubAmountsRow(
       isSelected: _isCommitmentSelected(commitment.id),
@@ -1088,7 +1108,11 @@ class _OcptPosteTreeRow extends _OcptTreeRow {
   final bool isExpanded;
 
   /// Class constructor
-  const _OcptPosteTreeRow({required this.poste, required this.isExpandable, required this.isExpanded});
+  const _OcptPosteTreeRow({
+    required this.poste,
+    required this.isExpandable,
+    required this.isExpanded,
+  });
 }
 
 /// A quote line row — one step under its own poste.
@@ -1107,7 +1131,11 @@ class _OcptLineTreeRow extends _OcptTreeRow {
   bool get isExpandable => lineCommitments.isNotEmpty;
 
   /// Class constructor
-  const _OcptLineTreeRow({required this.line, required this.lineCommitments, required this.isExpanded});
+  const _OcptLineTreeRow({
+    required this.line,
+    required this.lineCommitments,
+    required this.isExpanded,
+  });
 }
 
 /// A commitment row — two steps under its own poste while it names a line, one step while it does
@@ -1587,7 +1615,8 @@ class _OcptCostTrackingPosteAmountsRow extends StatelessWidget {
               ),
               SizedBox(
                 width: _ocptCostTrackingMenuColumnWidth,
-                child: (onRenameRequested == null &&
+                child:
+                    (onRenameRequested == null &&
                         onMoveUpRequested == null &&
                         onMoveDownRequested == null &&
                         onDeletionRequested == null &&
@@ -1611,7 +1640,10 @@ class _OcptCostTrackingPosteAmountsRow extends StatelessWidget {
                               child: Text(tr.budgetPosteRenameAction),
                             ),
                           if (onMoveUpRequested != null)
-                            PopupMenuItem<String>(value: "up", child: Text(tr.budgetPosteMoveUpAction)),
+                            PopupMenuItem<String>(
+                              value: "up",
+                              child: Text(tr.budgetPosteMoveUpAction),
+                            ),
                           if (onMoveDownRequested != null)
                             PopupMenuItem<String>(
                               value: "down",
@@ -1827,7 +1859,11 @@ class _OcptCostTrackingPosteCard extends StatelessWidget {
                   children: [
                     _figureOf(context, tr.budgetCostTrackingColumnCommitted, committedCents),
                     _figureOf(context, tr.budgetCostTrackingColumnPaid, paidCents),
-                    _figureOf(context, tr.budgetCostTrackingColumnRemaining, figures.remainingCents),
+                    _figureOf(
+                      context,
+                      tr.budgetCostTrackingColumnRemaining,
+                      figures.remainingCents,
+                    ),
                     _figureOf(context, tr.budgetCostTrackingColumnVariance, figures.varianceCents),
                   ],
                 ),
@@ -2339,7 +2375,9 @@ class _OcptCostTrackingSubAmountsRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final activeCents = this.activeCents;
-    final activeText = activeCents == null ? null : ocptBudgetAmountLabel(activeCents, currencyCode);
+    final activeText = activeCents == null
+        ? null
+        : ocptBudgetAmountLabel(activeCents, currencyCode);
     final onTap = this.onTap;
 
     final row = Row(
@@ -2473,7 +2511,10 @@ class _OcptCostTrackingOffQuoteAmountsRow extends StatelessWidget {
   final String currencyCode;
 
   /// Class constructor
-  const _OcptCostTrackingOffQuoteAmountsRow({required this.offQuoteTotal, required this.currencyCode});
+  const _OcptCostTrackingOffQuoteAmountsRow({
+    required this.offQuoteTotal,
+    required this.currencyCode,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -2485,7 +2526,10 @@ class _OcptCostTrackingOffQuoteAmountsRow extends StatelessWidget {
         children: [
           _emptyCell(theme), // Devis
           _emptyCell(theme), // Engagé
-          _amountCell(theme, ocptBudgetAmountLabel(offQuoteTotal.amountCents, currencyCode)), // Payé
+          _amountCell(
+            theme,
+            ocptBudgetAmountLabel(offQuoteTotal.amountCents, currencyCode),
+          ), // Payé
           _emptyCell(theme), // Reste
           _emptyCell(theme), // Coût final
           _emptyCell(theme), // Écart

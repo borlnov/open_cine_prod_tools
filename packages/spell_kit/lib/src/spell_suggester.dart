@@ -29,10 +29,7 @@ class SpellSuggester {
 
   /// Suggests up to [limit] corrections for [word], deduplicated, with
   /// [word]'s own capitalisation carried onto each one.
-  List<String> suggestionsFor(
-    String word, {
-    int limit = _defaultSuggestionLimit,
-  }) {
+  List<String> suggestionsFor(String word, {int limit = _defaultSuggestionLimit}) {
     // REP/MAP/TRY tables and the dictionary itself are keyed on the
     // language's own (typically lowercase) casing, so candidates are
     // generated against a lowercased working word whenever the writer
@@ -134,9 +131,7 @@ class SpellSuggester {
         if (index == -1) {
           break;
         }
-        yield word.substring(0, index) +
-            rule.to +
-            word.substring(index + rule.from.length);
+        yield word.substring(0, index) + rule.to + word.substring(index + rule.from.length);
         searchFrom = index + 1;
       }
     }
@@ -170,9 +165,7 @@ class SpellSuggester {
   /// insertion characters drawn from `TRY`.
   Iterable<String> _editCandidates(String word) sync* {
     final codePoints = word.runes.toList();
-    final tryChars = checker.dictionary.affixFile.tryChars.runes
-        .map(String.fromCharCode)
-        .toList();
+    final tryChars = checker.dictionary.affixFile.tryChars.runes.map(String.fromCharCode).toList();
 
     for (var i = 0; i < codePoints.length; i++) {
       final withoutI = [...codePoints]..removeAt(i);
@@ -228,11 +221,8 @@ class SpellSuggester {
       return _SuggesterWordCase.allCaps;
     }
     final rest = word.substring(1);
-    final isTitleCase =
-        word[0] == word[0].toUpperCase() && rest == rest.toLowerCase();
-    return isTitleCase
-        ? _SuggesterWordCase.titleCase
-        : _SuggesterWordCase.mixed;
+    final isTitleCase = word[0] == word[0].toUpperCase() && rest == rest.toLowerCase();
+    return isTitleCase ? _SuggesterWordCase.titleCase : _SuggesterWordCase.mixed;
   }
 
   /// Applies [caseShape] to [suggestion]: an all-caps typed word gets an

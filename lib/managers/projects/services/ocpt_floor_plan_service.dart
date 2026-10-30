@@ -78,11 +78,9 @@ class OcptFloorPlanService {
       return OcptFloorPlanSnapshot.build(screenplayId: screenplayId, setsBySceneId: const {});
     }
 
-    final sceneSetRows =
-        await (database.select(
-              database.ocptSceneSetsTable,
-            )..where((table) => table.sceneId.isIn(sceneIds) & table.isDeleted.not()))
-            .get();
+    final sceneSetRows = await (database.select(
+      database.ocptSceneSetsTable,
+    )..where((table) => table.sceneId.isIn(sceneIds) & table.isDeleted.not())).get();
     if (sceneSetRows.isEmpty) {
       return OcptFloorPlanSnapshot.build(screenplayId: screenplayId, setsBySceneId: const {});
     }
@@ -96,26 +94,22 @@ class OcptFloorPlanService {
             .get();
     final liveSetIds = resourceSetRows.map((row) => row.id).toSet();
 
-    final planRows =
-        await (database.select(
-              database.ocptFloorPlanSetsTable,
-            )..where((table) => table.id.isIn(liveSetIds) & table.isDeleted.not()))
-            .get();
+    final planRows = await (database.select(
+      database.ocptFloorPlanSetsTable,
+    )..where((table) => table.id.isIn(liveSetIds) & table.isDeleted.not())).get();
     final planRowById = {for (final row in planRows) row.id: row};
 
     final symbolRows = liveSetIds.isEmpty
         ? const <OcptFloorPlanSymbolRow>[]
         : await (database.select(
-                database.ocptFloorPlanSymbolsTable,
-              )..where((table) => table.setId.isIn(liveSetIds) & table.isDeleted.not()))
-              .get();
+            database.ocptFloorPlanSymbolsTable,
+          )..where((table) => table.setId.isIn(liveSetIds) & table.isDeleted.not())).get();
 
     final arrowRows = liveSetIds.isEmpty
         ? const <OcptFloorPlanArrowRow>[]
         : await (database.select(
-                database.ocptFloorPlanArrowsTable,
-              )..where((table) => table.setId.isIn(liveSetIds) & table.isDeleted.not()))
-              .get();
+            database.ocptFloorPlanArrowsTable,
+          )..where((table) => table.setId.isIn(liveSetIds) & table.isDeleted.not())).get();
 
     final symbolsBySetId = <String, List<OcptFloorPlanSymbol>>{};
     for (final row in symbolRows) {
@@ -131,10 +125,7 @@ class OcptFloorPlanService {
       for (final row in planRows)
         if (row.underlayAssetId != null) row.underlayAssetId!,
     };
-    final pathByAssetId = await _liveAssetPathsById(
-      database: database,
-      assetIds: underlayAssetIds,
-    );
+    final pathByAssetId = await _liveAssetPathsById(database: database, assetIds: underlayAssetIds);
 
     final floorPlanSetById = <String, OcptFloorPlanSet>{
       for (final resourceRow in resourceSetRows)
@@ -185,8 +176,7 @@ class OcptFloorPlanService {
   }) async {
     final rows =
         await (database.select(database.ocptFloorPlanSymbolsTable)..where(
-              (table) =>
-                  table.sceneId.isNull() & table.shotId.isNull() & table.isDeleted.not(),
+              (table) => table.sceneId.isNull() & table.shotId.isNull() & table.isDeleted.not(),
             ))
             .get();
 
@@ -213,7 +203,8 @@ class OcptFloorPlanService {
     final query = database.selectOnly(database.ocptFloorPlanSetsTable)
       ..addColumns([database.ocptFloorPlanSetsTable.id])
       ..where(
-        database.ocptFloorPlanSetsTable.id.isIn(ids) & database.ocptFloorPlanSetsTable.isDeleted.not(),
+        database.ocptFloorPlanSetsTable.id.isIn(ids) &
+            database.ocptFloorPlanSetsTable.isDeleted.not(),
       );
     final rows = await query.get();
 
@@ -624,11 +615,9 @@ class OcptFloorPlanService {
       // A set-scope original may still carry overrides from a sequence no longer linked to its set
       // (unlinking keeps every placement): left live, one would come back on relinking with no
       // original to stand for.
-      final overrides =
-          await (database.select(database.ocptFloorPlanSymbolsTable)..where(
-                (table) => table.overridesSymbolId.equals(symbolId) & table.isDeleted.not(),
-              ))
-              .get();
+      final overrides = await (database.select(
+        database.ocptFloorPlanSymbolsTable,
+      )..where((table) => table.overridesSymbolId.equals(symbolId) & table.isDeleted.not())).get();
       for (final override in overrides) {
         await _tombstoneArrowsTouchingSymbol(
           database: database,
@@ -696,8 +685,7 @@ class OcptFloorPlanService {
 
       final overrides =
           await (database.select(database.ocptFloorPlanSymbolsTable)..where(
-                (table) =>
-                    table.overridesSymbolId.equals(originalId) & table.isDeleted.not(),
+                (table) => table.overridesSymbolId.equals(originalId) & table.isDeleted.not(),
               ))
               .get();
       for (final override in overrides) {
@@ -716,7 +704,11 @@ class OcptFloorPlanService {
         );
       }
 
-      await _tombstoneArrowsTouchingSymbol(database: database, symbolId: originalId, stamps: stamps);
+      await _tombstoneArrowsTouchingSymbol(
+        database: database,
+        symbolId: originalId,
+        stamps: stamps,
+      );
       final original = await _liveSymbolRowOrNull(database: database, symbolId: originalId);
       if (original != null) {
         await OcptRowStampService.writeAndStamp(
@@ -855,10 +847,7 @@ class OcptFloorPlanService {
   /// {@macro open_cine_prod_tools.tombstones}
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<void> deleteArrow({
-    required OcptProjectDatabase database,
-    required String arrowId,
-  }) async {
+  Future<void> deleteArrow({required OcptProjectDatabase database, required String arrowId}) async {
     if (database.refusesUserWrite("deleteArrow")) {
       return;
     }
@@ -911,11 +900,13 @@ class OcptFloorPlanService {
 
     await database.transaction(() async {
       final setScopeSymbols =
-          (await _symbolRowsOfSet(database: database, setId: sourceSetId)).where(
-            (row) =>
-                ocptFloorPlanScopeOf(sceneId: row.sceneId, shotId: row.shotId) ==
-                OcptFloorPlanScope.set,
-          ).toList()
+          (await _symbolRowsOfSet(database: database, setId: sourceSetId))
+              .where(
+                (row) =>
+                    ocptFloorPlanScopeOf(sceneId: row.sceneId, shotId: row.shotId) ==
+                    OcptFloorPlanScope.set,
+              )
+              .toList()
             ..sort((a, b) => a.sortKey.compareTo(b.sortKey));
 
       if (setScopeSymbols.isEmpty) {
@@ -975,12 +966,12 @@ class OcptFloorPlanService {
 
       final symbolRows =
           (await (database.select(database.ocptFloorPlanSymbolsTable)..where(
-                (table) =>
-                    table.setId.equals(sourceSetId) &
-                    table.shotId.equals(sourceShotId) &
-                    table.isDeleted.not(),
-              ))
-              .get())
+                  (table) =>
+                      table.setId.equals(sourceSetId) &
+                      table.shotId.equals(sourceShotId) &
+                      table.isDeleted.not(),
+                ))
+                .get())
             ..sort((a, b) => a.sortKey.compareTo(b.sortKey));
 
       final newSymbolIdBySourceId = <String, String>{};
@@ -1063,11 +1054,9 @@ class OcptFloorPlanService {
     required String shotId,
     required OcptRowStampService? stamps,
   }) async {
-    final ownArrows =
-        await (database.select(
-              database.ocptFloorPlanArrowsTable,
-            )..where((table) => table.shotId.equals(shotId) & table.isDeleted.not()))
-            .get();
+    final ownArrows = await (database.select(
+      database.ocptFloorPlanArrowsTable,
+    )..where((table) => table.shotId.equals(shotId) & table.isDeleted.not())).get();
     for (final row in ownArrows) {
       await OcptRowStampService.writeAndStamp(
         database: database,
@@ -1079,11 +1068,9 @@ class OcptFloorPlanService {
       );
     }
 
-    final symbolRows =
-        await (database.select(
-              database.ocptFloorPlanSymbolsTable,
-            )..where((table) => table.shotId.equals(shotId) & table.isDeleted.not()))
-            .get();
+    final symbolRows = await (database.select(
+      database.ocptFloorPlanSymbolsTable,
+    )..where((table) => table.shotId.equals(shotId) & table.isDeleted.not())).get();
     for (final row in symbolRows) {
       await _tombstoneArrowsTouchingSymbol(database: database, symbolId: row.id, stamps: stamps);
       await OcptRowStampService.writeAndStamp(
@@ -1161,11 +1148,9 @@ class OcptFloorPlanService {
     required String setId,
     required OcptRowStampService stamps,
   }) async {
-    final existing =
-        await (database.select(
-              database.ocptFloorPlanSetsTable,
-            )..where((table) => table.id.equals(setId)))
-            .getSingleOrNull();
+    final existing = await (database.select(
+      database.ocptFloorPlanSetsTable,
+    )..where((table) => table.id.equals(setId))).getSingleOrNull();
     if (existing != null) {
       return;
     }
@@ -1267,11 +1252,9 @@ class OcptFloorPlanService {
     required OcptProjectDatabase database,
     required String screenplayId,
   }) async {
-    final rows =
-        await (database.select(database.ocptScenesTable)..where(
-              (table) => table.screenplayId.equals(screenplayId) & table.isDeleted.not(),
-            ))
-            .get();
+    final rows = await (database.select(
+      database.ocptScenesTable,
+    )..where((table) => table.screenplayId.equals(screenplayId) & table.isDeleted.not())).get();
     return rows.map((row) => row.id).toList(growable: false);
   }
 
@@ -1286,11 +1269,9 @@ class OcptFloorPlanService {
       return const {};
     }
 
-    final rows =
-        await (database.select(
-              database.ocptAssetsTable,
-            )..where((table) => table.id.isIn(assetIds) & table.isDeleted.not()))
-            .get();
+    final rows = await (database.select(
+      database.ocptAssetsTable,
+    )..where((table) => table.id.isIn(assetIds) & table.isDeleted.not())).get();
     return {for (final row in rows) row.id: row.path};
   }
 
@@ -1299,18 +1280,17 @@ class OcptFloorPlanService {
   Future<OcptFloorPlanSetRow?> _livePlanRowOrNull({
     required OcptProjectDatabase database,
     required String setId,
-  }) => (database.select(database.ocptFloorPlanSetsTable)
-        ..where((table) => table.id.equals(setId) & table.isDeleted.not()))
-      .getSingleOrNull();
+  }) => (database.select(
+    database.ocptFloorPlanSetsTable,
+  )..where((table) => table.id.equals(setId) & table.isDeleted.not())).getSingleOrNull();
 
   /// Every live symbol row of set [setId].
   Future<List<OcptFloorPlanSymbolRow>> _symbolRowsOfSet({
     required OcptProjectDatabase database,
     required String setId,
   }) => (database.select(
-        database.ocptFloorPlanSymbolsTable,
-      )..where((table) => table.setId.equals(setId) & table.isDeleted.not()))
-      .get();
+    database.ocptFloorPlanSymbolsTable,
+  )..where((table) => table.setId.equals(setId) & table.isDeleted.not())).get();
 
   /// Every live symbol row of set [setId] on layer [layer], ordered by `sortKey` — what a new
   /// symbol of that layer is appended after.
@@ -1318,23 +1298,24 @@ class OcptFloorPlanService {
     required OcptProjectDatabase database,
     required String setId,
     required OcptFloorPlanLayer layer,
-  }) => (database.select(database.ocptFloorPlanSymbolsTable)
-        ..where(
-          (table) =>
-              table.setId.equals(setId) &
-              table.layer.equalsValue(layer) &
-              table.isDeleted.not(),
-        )
-        ..orderBy([(table) => OrderingTerm.asc(table.sortKey)]))
-      .get();
+  }) =>
+      (database.select(database.ocptFloorPlanSymbolsTable)
+            ..where(
+              (table) =>
+                  table.setId.equals(setId) &
+                  table.layer.equalsValue(layer) &
+                  table.isDeleted.not(),
+            )
+            ..orderBy([(table) => OrderingTerm.asc(table.sortKey)]))
+          .get();
 
   /// Reads back the live symbol row [symbolId], or null if it doesn't exist or has been tombstoned.
   Future<OcptFloorPlanSymbolRow?> _liveSymbolRowOrNull({
     required OcptProjectDatabase database,
     required String symbolId,
-  }) => (database.select(database.ocptFloorPlanSymbolsTable)
-        ..where((table) => table.id.equals(symbolId) & table.isDeleted.not()))
-      .getSingleOrNull();
+  }) => (database.select(
+    database.ocptFloorPlanSymbolsTable,
+  )..where((table) => table.id.equals(symbolId) & table.isDeleted.not())).getSingleOrNull();
 
   /// Reads back the live shot row [shotId], or null if it doesn't exist or has been tombstoned —
   /// [placeSymbol]'s own way of checking a shot-scope override's own shot belongs to the sequence
@@ -1342,24 +1323,23 @@ class OcptFloorPlanService {
   Future<OcptShotRow?> _liveShotRowOrNull({
     required OcptProjectDatabase database,
     required String shotId,
-  }) => (database.select(database.ocptShotsTable)
-        ..where((table) => table.id.equals(shotId) & table.isDeleted.not()))
-      .getSingleOrNull();
+  }) => (database.select(
+    database.ocptShotsTable,
+  )..where((table) => table.id.equals(shotId) & table.isDeleted.not())).getSingleOrNull();
 
   /// Every live arrow row of set [setId].
   Future<List<OcptFloorPlanArrowRow>> _arrowRowsOfSet({
     required OcptProjectDatabase database,
     required String setId,
   }) => (database.select(
-        database.ocptFloorPlanArrowsTable,
-      )..where((table) => table.setId.equals(setId) & table.isDeleted.not()))
-      .get();
+    database.ocptFloorPlanArrowsTable,
+  )..where((table) => table.setId.equals(setId) & table.isDeleted.not())).get();
 
   /// Reads back the live arrow row [arrowId], or null if it doesn't exist or has been tombstoned.
   Future<OcptFloorPlanArrowRow?> _liveArrowRowOrNull({
     required OcptProjectDatabase database,
     required String arrowId,
-  }) => (database.select(database.ocptFloorPlanArrowsTable)
-        ..where((table) => table.id.equals(arrowId) & table.isDeleted.not()))
-      .getSingleOrNull();
+  }) => (database.select(
+    database.ocptFloorPlanArrowsTable,
+  )..where((table) => table.id.equals(arrowId) & table.isDeleted.not())).getSingleOrNull();
 }

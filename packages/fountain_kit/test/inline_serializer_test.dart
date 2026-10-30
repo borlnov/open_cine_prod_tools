@@ -13,60 +13,40 @@ const FountainInlineSerializer _serializer = FountainInlineSerializer();
 void main() {
   group('single styles', () {
     test('a plain run serializes with no markers', () {
-      expect(
-        _serializer.write(const [FountainStyledRun(text: 'hello')]),
-        'hello',
-      );
+      expect(_serializer.write(const [FountainStyledRun(text: 'hello')]), 'hello');
     });
 
     test('a bold run serializes with "**"', () {
-      expect(
-        _serializer.write(const [FountainStyledRun(text: 'x', isBold: true)]),
-        '**x**',
-      );
+      expect(_serializer.write(const [FountainStyledRun(text: 'x', isBold: true)]), '**x**');
     });
 
     test('an italic run serializes with "*"', () {
-      expect(
-        _serializer.write(const [FountainStyledRun(text: 'x', isItalic: true)]),
-        '*x*',
-      );
+      expect(_serializer.write(const [FountainStyledRun(text: 'x', isItalic: true)]), '*x*');
     });
 
     test('an underline run serializes with "_"', () {
-      expect(
-        _serializer.write(const [
-          FountainStyledRun(text: 'x', isUnderline: true),
-        ]),
-        '_x_',
-      );
+      expect(_serializer.write(const [FountainStyledRun(text: 'x', isUnderline: true)]), '_x_');
     });
   });
 
   group('style combinations', () {
     test('bold+italic serializes with the canonical "***"', () {
       expect(
-        _serializer.write(const [
-          FountainStyledRun(text: 'x', isBold: true, isItalic: true),
-        ]),
+        _serializer.write(const [FountainStyledRun(text: 'x', isBold: true, isItalic: true)]),
         '***x***',
       );
     });
 
     test('bold+underline serializes with underline outermost', () {
       expect(
-        _serializer.write(const [
-          FountainStyledRun(text: 'x', isBold: true, isUnderline: true),
-        ]),
+        _serializer.write(const [FountainStyledRun(text: 'x', isBold: true, isUnderline: true)]),
         '_**x**_',
       );
     });
 
     test('italic+underline serializes with underline outermost', () {
       expect(
-        _serializer.write(const [
-          FountainStyledRun(text: 'x', isItalic: true, isUnderline: true),
-        ]),
+        _serializer.write(const [FountainStyledRun(text: 'x', isItalic: true, isUnderline: true)]),
         '_*x*_',
       );
     });
@@ -74,12 +54,7 @@ void main() {
     test('bold+italic+underline serializes with underline outermost', () {
       expect(
         _serializer.write(const [
-          FountainStyledRun(
-            text: 'x',
-            isBold: true,
-            isItalic: true,
-            isUnderline: true,
-          ),
+          FountainStyledRun(text: 'x', isBold: true, isItalic: true, isUnderline: true),
         ]),
         '_***x***_',
       );
@@ -89,9 +64,7 @@ void main() {
   group('notes', () {
     test('a note run is emitted verbatim (text already has brackets)', () {
       expect(
-        _serializer.write(const [
-          FountainStyledRun(text: '[[a note]]', isNote: true),
-        ]),
+        _serializer.write(const [FountainStyledRun(text: '[[a note]]', isNote: true)]),
         '[[a note]]',
       );
     });
@@ -113,9 +86,7 @@ void main() {
         FountainStyledRun(text: 'ld', isBold: true),
       ]);
       expect(line, '**bold**');
-      expect(_parser.parseRuns(line), const [
-        FountainStyledRun(text: 'bold', isBold: true),
-      ]);
+      expect(_parser.parseRuns(line), const [FountainStyledRun(text: 'bold', isBold: true)]);
     });
 
     test('empty runs are dropped and never emit stray markers', () {
@@ -133,13 +104,9 @@ void main() {
     });
 
     test('a run of only whitespace is preserved, not treated as empty', () {
-      final line = _serializer.write(const [
-        FountainStyledRun(text: ' ', isBold: true),
-      ]);
+      final line = _serializer.write(const [FountainStyledRun(text: ' ', isBold: true)]);
       expect(line, '** **');
-      expect(_parser.parseRuns(line), const [
-        FountainStyledRun(text: ' ', isBold: true),
-      ]);
+      expect(_parser.parseRuns(line), const [FountainStyledRun(text: ' ', isBold: true)]);
     });
   });
 
@@ -221,16 +188,11 @@ void main() {
       expect(line, isNot(contains('* 2 = 4, not 3 *')));
     });
 
-    test(
-      'two literal underscores that would otherwise pair up are escaped',
-      () {
-        const runs = [
-          FountainStyledRun(text: 'a_b and c_d look like underline'),
-        ];
-        final line = _serializer.write(runs);
-        expect(_parser.parseRuns(line), runs);
-      },
-    );
+    test('two literal underscores that would otherwise pair up are escaped', () {
+      const runs = [FountainStyledRun(text: 'a_b and c_d look like underline')];
+      final line = _serializer.write(runs);
+      expect(_parser.parseRuns(line), runs);
+    });
 
     test('a literal "[[...]]" that is not meant as a note is escaped', () {
       const runs = [FountainStyledRun(text: 'matrix[[3]] example')];
@@ -313,14 +275,7 @@ void main() {
       [FountainStyledRun(text: 'x', isBold: true, isItalic: true)],
       [FountainStyledRun(text: 'x', isBold: true, isUnderline: true)],
       [FountainStyledRun(text: 'x', isItalic: true, isUnderline: true)],
-      [
-        FountainStyledRun(
-          text: 'x',
-          isBold: true,
-          isItalic: true,
-          isUnderline: true,
-        ),
-      ],
+      [FountainStyledRun(text: 'x', isBold: true, isItalic: true, isUnderline: true)],
       [FountainStyledRun(text: '[[a note]]', isNote: true)],
       [
         FountainStyledRun(text: 'a '),

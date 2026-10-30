@@ -69,4 +69,5 @@ int signCountOf(String text) => text.replaceAll(RegExp(r'\s'), '').length;
 /// Trims [name], collapses runs of internal whitespace to a single space,
 /// and upper-cases it, so two spellings of the same role are recognized as
 /// one.
-String normalizeCharacterName(String name) => name.trim().replaceAll(RegExp(r'\s+'), ' ').toUpperCase();
+String normalizeCharacterName(String name) =>
+    name.trim().replaceAll(RegExp(r'\s+'), ' ').toUpperCase();

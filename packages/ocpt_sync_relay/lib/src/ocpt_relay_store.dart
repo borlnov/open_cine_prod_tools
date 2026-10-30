@@ -27,7 +27,8 @@ class OcptRelayStore {
   /// Opens (creating if absent) the database at [path], and creates the schema below if it is not
   /// already there. Pass the literal string `:memory:` to open a private, in-memory database — the
   /// form every test in this package uses.
-  OcptRelayStore(String path) : _db = path == _inMemoryPath ? sqlite3.openInMemory() : sqlite3.open(path) {
+  OcptRelayStore(String path)
+    : _db = path == _inMemoryPath ? sqlite3.openInMemory() : sqlite3.open(path) {
     _createSchemaIfAbsent();
   }
 
@@ -42,10 +43,11 @@ class OcptRelayStore {
   /// Registers a new project with [projectId], remembering only [tokenHash] — a fast hash of the
   /// bearer token a caller presents on every later request, never the token itself.
   void createProject({required String projectId, required String tokenHash}) {
-    _db.execute(
-      'INSERT INTO projects (projectId, tokenHash, createdAt) VALUES (?, ?, ?)',
-      [projectId, tokenHash, DateTime.now().toUtc().toIso8601String()],
-    );
+    _db.execute('INSERT INTO projects (projectId, tokenHash, createdAt) VALUES (?, ?, ?)', [
+      projectId,
+      tokenHash,
+      DateTime.now().toUtc().toIso8601String(),
+    ]);
   }
 
   /// The project registered under [projectId], or null when none has been created yet.
@@ -137,10 +139,10 @@ class OcptRelayStore {
         'VALUES (?, ?, ?, ?, 1)',
         [projectId, descriptor.snapshotId, _encodeSnapshotDescriptor(descriptor), bytes],
       );
-      _db.execute(
-        'DELETE FROM changesets WHERE projectId = ? AND sequence <= ?',
-        [projectId, descriptor.sequenceUpTo.value],
-      );
+      _db.execute('DELETE FROM changesets WHERE projectId = ? AND sequence <= ?', [
+        projectId,
+        descriptor.sequenceUpTo.value,
+      ]);
       _db.execute('COMMIT');
     } catch (_) {
       _db.execute('ROLLBACK');
@@ -217,10 +219,9 @@ class OcptRelayStore {
   /// The highest sequence number already stored for [projectId], or [OcptSequenceNumber.zero] when
   /// its log holds nothing yet — so [append] always has a value to call `next()` on.
   OcptSequenceNumber _highestSequenceNumber(String projectId) {
-    final rows = _db.select(
-      'SELECT MAX(sequence) AS highest FROM changesets WHERE projectId = ?',
-      [projectId],
-    );
+    final rows = _db.select('SELECT MAX(sequence) AS highest FROM changesets WHERE projectId = ?', [
+      projectId,
+    ]);
     final highest = rows.first['highest'] as int?;
 
     return highest == null ? OcptSequenceNumber.zero : OcptSequenceNumber(highest);

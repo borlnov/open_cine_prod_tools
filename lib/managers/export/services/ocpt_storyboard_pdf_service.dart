@@ -121,11 +121,13 @@ class OcptStoryboardPdfService {
   /// cache, and its own [floorPlanPdfService] so the two documents' shared font cache and shared
   /// page-building code are truly the same instance; a service built without either gets one of
   /// its own.
-  OcptStoryboardPdfService({OcptCourierPrimeFontsLoader? fontsLoader, OcptFloorPlanPdfService? floorPlanPdfService})
-    : this._(
-        fontsLoader: fontsLoader ?? OcptCourierPrimeFontsLoader(),
-        floorPlanPdfService: floorPlanPdfService,
-      );
+  OcptStoryboardPdfService({
+    OcptCourierPrimeFontsLoader? fontsLoader,
+    OcptFloorPlanPdfService? floorPlanPdfService,
+  }) : this._(
+         fontsLoader: fontsLoader ?? OcptCourierPrimeFontsLoader(),
+         floorPlanPdfService: floorPlanPdfService,
+       );
 
   /// Class constructor, taking the resolved [fontsLoader] so [floorPlanPdfService]'s own default
   /// can share it.
@@ -133,7 +135,8 @@ class OcptStoryboardPdfService {
     required OcptCourierPrimeFontsLoader fontsLoader,
     required OcptFloorPlanPdfService? floorPlanPdfService,
   }) : fontsLoader = fontsLoader,
-       floorPlanPdfService = floorPlanPdfService ?? OcptFloorPlanPdfService(fontsLoader: fontsLoader);
+       floorPlanPdfService =
+           floorPlanPdfService ?? OcptFloorPlanPdfService(fontsLoader: fontsLoader);
 
   /// The loader the embedded Courier Prime font set is read through.
   final OcptCourierPrimeFontsLoader fontsLoader;
@@ -386,10 +389,17 @@ class OcptStoryboardPdfService {
     child: pw.Column(
       crossAxisAlignment: pw.CrossAxisAlignment.start,
       children: [
-        pw.Text(shot.code, style: pw.TextStyle(font: painter.fonts.bold, fontSize: _codeFontSizePt)),
+        pw.Text(
+          shot.code,
+          style: pw.TextStyle(font: painter.fonts.bold, fontSize: _codeFontSizePt),
+        ),
         pw.Text(
           labels.labelOfStatus(shot.status),
-          style: pw.TextStyle(font: painter.fonts.italic, fontSize: _bodyFontSizePt, color: _mutedColor),
+          style: pw.TextStyle(
+            font: painter.fonts.italic,
+            fontSize: _bodyFontSizePt,
+            color: _mutedColor,
+          ),
         ),
         pw.SizedBox(height: 4),
         _infoLine(painter, labels.shotSizeLabel, shot.shotSize),
@@ -435,7 +445,11 @@ class OcptStoryboardPdfService {
     child: pw.Text(
       text,
       textAlign: pw.TextAlign.center,
-      style: pw.TextStyle(font: painter.fonts.italic, fontSize: _bodyFontSizePt, color: _mutedColor),
+      style: pw.TextStyle(
+        font: painter.fonts.italic,
+        fontSize: _bodyFontSizePt,
+        color: _mutedColor,
+      ),
     ),
   );
 
@@ -465,7 +479,8 @@ class OcptStoryboardPdfService {
                 pw.Positioned.fill(
                   child: pw.CustomPaint(
                     size: PdfPoint(widthPt, heightPt),
-                    painter: (canvas, size) => _paintAnnotationMarks(canvas, size, panel.annotations),
+                    painter: (canvas, size) =>
+                        _paintAnnotationMarks(canvas, size, panel.annotations),
                   ),
                 ),
                 ..._annotationCaptionOverlays(panel.annotations, widthPt, heightPt, painter),
@@ -501,7 +516,11 @@ class OcptStoryboardPdfService {
   /// the widget-level `pw.Font` this app's `OcptCourierPrimeFonts` hands out cannot be converted
   /// to outside of a build context, the same reason `OcptFloorPlanPdfService` keeps every caption
   /// it prints out of its own `CustomPaint` calls.
-  void _paintAnnotationMarks(PdfGraphics canvas, PdfPoint size, List<OcptStoryboardAnnotation> annotations) {
+  void _paintAnnotationMarks(
+    PdfGraphics canvas,
+    PdfPoint size,
+    List<OcptStoryboardAnnotation> annotations,
+  ) {
     for (final annotation in annotations) {
       // The shared rule measures y from the frame's own top; PdfGraphics measures it from the
       // frame's own bottom — the one flip this drawing needs, applied here and nowhere else.
@@ -575,7 +594,13 @@ class OcptStoryboardPdfService {
 
   /// One arrow annotation: a shaft from [tail] to [head], solid or [dashed], and a small filled
   /// arrowhead at [head].
-  void _paintArrow(PdfGraphics canvas, Offset tail, Offset head, PdfColor color, {required bool dashed}) {
+  void _paintArrow(
+    PdfGraphics canvas,
+    Offset tail,
+    Offset head,
+    PdfColor color, {
+    required bool dashed,
+  }) {
     canvas
       ..setColor(color)
       ..setLineWidth(1.5);

@@ -102,7 +102,10 @@ class OcptCardChoiceDialog<T> extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final tr = Tr.of(context);
-    final visibleSections = [for (final section in sections) if (section.entries.isNotEmpty) section];
+    final visibleSections = [
+      for (final section in sections)
+        if (section.entries.isNotEmpty) section,
+    ];
 
     // On a phone-width screen the fixed 600px grid would overflow, and two columns leave each card
     // too narrow to read: below the breakpoint the dialog takes the width it is given and stacks its

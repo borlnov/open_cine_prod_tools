@@ -167,17 +167,11 @@ void main() {
 
   group("ocptBudgetResourceOutstandingCents", () {
     test("is the plain difference", () {
-      expect(
-        ocptBudgetResourceOutstandingCents(amountCents: 10000, receivedCents: 4000),
-        6000,
-      );
+      expect(ocptBudgetResourceOutstandingCents(amountCents: 10000, receivedCents: 4000), 6000);
     });
 
     test("reads negative, never clamped, once a resource is over-received", () {
-      expect(
-        ocptBudgetResourceOutstandingCents(amountCents: 10000, receivedCents: 15000),
-        -5000,
-      );
+      expect(ocptBudgetResourceOutstandingCents(amountCents: 10000, receivedCents: 15000), -5000);
     });
   });
 

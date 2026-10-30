@@ -357,10 +357,7 @@ class OcptPerson extends Equatable {
   );
 
   /// [firstName] and [lastName], space-joined, either side dropped when empty.
-  String get displayName => [
-    firstName,
-    lastName,
-  ].where((part) => part.isNotEmpty).join(' ');
+  String get displayName => [firstName, lastName].where((part) => part.isNotEmpty).join(' ');
 
   /// The upper-cased first letter of [firstName] and of [lastName], concatenated; empty when both
   /// are empty.

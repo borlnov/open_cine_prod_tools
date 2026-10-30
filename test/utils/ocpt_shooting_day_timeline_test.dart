@@ -260,7 +260,11 @@ void main() {
             anchorSlotId: null,
             blocks: [
               OcptShootingTimelineBlock(id: "b1", durationMinutes: 60), // 480 -> 540
-              OcptShootingTimelineBlock(id: "b2", anchorMinute: 510, durationMinutes: 15), // over-run
+              OcptShootingTimelineBlock(
+                id: "b2",
+                anchorMinute: 510,
+                durationMinutes: 15,
+              ), // over-run
             ],
           ),
           OcptShootingTimelineSlot(
@@ -306,12 +310,20 @@ void main() {
     test("dayEndMinute is null when every slot is empty", () {
       final result = ocptComputeShootingDayTimelines(
         slots: const [
-          OcptShootingTimelineSlot(id: "slot-1", anchorEdge: OcptShootingSlotAnchorEdge.start,
+          OcptShootingTimelineSlot(
+            id: "slot-1",
+            anchorEdge: OcptShootingSlotAnchorEdge.start,
             anchorMinute: 480,
-            anchorSlotId: null, blocks: []),
-          OcptShootingTimelineSlot(id: "slot-2", anchorEdge: OcptShootingSlotAnchorEdge.start,
+            anchorSlotId: null,
+            blocks: [],
+          ),
+          OcptShootingTimelineSlot(
+            id: "slot-2",
+            anchorEdge: OcptShootingSlotAnchorEdge.start,
             anchorMinute: 600,
-            anchorSlotId: null, blocks: []),
+            anchorSlotId: null,
+            blocks: [],
+          ),
         ],
         defaultDurationMinutes: _defaultDuration,
       );
@@ -352,7 +364,10 @@ void main() {
     });
 
     test("an empty slot list produces an empty result", () {
-      final result = ocptComputeShootingDayTimelines(slots: const [], defaultDurationMinutes: _defaultDuration);
+      final result = ocptComputeShootingDayTimelines(
+        slots: const [],
+        defaultDurationMinutes: _defaultDuration,
+      );
 
       expect(result.bySlotId, isEmpty);
       expect(result.entries, isEmpty);

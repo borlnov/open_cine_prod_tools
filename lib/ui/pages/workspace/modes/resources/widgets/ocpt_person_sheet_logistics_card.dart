@@ -200,7 +200,9 @@ class _OcptTransportAutonomyControl extends StatelessWidget {
     final pill = Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
-        color: isSelected ? theme.colorScheme.primary.withValues(alpha: ocptSelectedStateAlpha) : null,
+        color: isSelected
+            ? theme.colorScheme.primary.withValues(alpha: ocptSelectedStateAlpha)
+            : null,
         borderRadius: BorderRadius.circular(ocptRadiusSmall),
       ),
       child: Text(

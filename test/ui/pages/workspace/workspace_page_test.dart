@@ -139,36 +139,35 @@ void main() {
     expect(find.byType(OcptWorkspaceModeSwitcher), findsOneWidget);
   });
 
-  testWidgets(
-    'switching to Budget shows the budget mode; switching back shows the editor',
-    (tester) async {
-      // Wide enough that the budget mode's own header shows every one of its controls without
-      // overflowing — `flutter_test`'s own substituted test font renders its short labels far
-      // wider than any real font does.
-      tester.view.physicalSize = const Size(1750, 900);
-      tester.view.devicePixelRatio = 1.0;
-      addTearDown(tester.view.resetPhysicalSize);
-      addTearDown(tester.view.resetDevicePixelRatio);
+  testWidgets('switching to Budget shows the budget mode; switching back shows the editor', (
+    tester,
+  ) async {
+    // Wide enough that the budget mode's own header shows every one of its controls without
+    // overflowing — `flutter_test`'s own substituted test font renders its short labels far
+    // wider than any real font does.
+    tester.view.physicalSize = const Size(1750, 900);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
 
-      await tester.pumpWidget(_wrapWithLocalization(const WorkspacePage()));
-      await tester.pumpAndSettle();
+    await tester.pumpWidget(_wrapWithLocalization(const WorkspacePage()));
+    await tester.pumpAndSettle();
 
-      final tr = Tr.of(tester.element(find.byType(WorkspacePage)));
+    final tr = Tr.of(tester.element(find.byType(WorkspacePage)));
 
-      await tester.tap(find.text(tr.workspaceModeBudget));
-      await tester.pumpAndSettle();
+    await tester.tap(find.text(tr.workspaceModeBudget));
+    await tester.pumpAndSettle();
 
-      expect(find.byType(EditorPage), findsNothing);
-      expect(find.byType(OcptBudgetMode), findsOneWidget);
-      expect(find.byType(OcptEditorSourceField), findsNothing);
+    expect(find.byType(EditorPage), findsNothing);
+    expect(find.byType(OcptBudgetMode), findsOneWidget);
+    expect(find.byType(OcptEditorSourceField), findsNothing);
 
-      await tester.tap(find.text(tr.workspaceModeScreenplay));
-      await tester.pumpAndSettle();
+    await tester.tap(find.text(tr.workspaceModeScreenplay));
+    await tester.pumpAndSettle();
 
-      expect(find.byType(EditorPage), findsOneWidget);
-      expect(find.byType(OcptBudgetMode), findsNothing);
-    },
-  );
+    expect(find.byType(EditorPage), findsOneWidget);
+    expect(find.byType(OcptBudgetMode), findsNothing);
+  });
 
   testWidgets('an edit survives a round trip through another mode', (tester) async {
     const editedText = "INT. HOUSE - DAY\n\nAction.\n";

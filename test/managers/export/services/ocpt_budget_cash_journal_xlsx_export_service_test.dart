@@ -15,18 +15,19 @@ const _sheetName = "Cash journal";
 
 /// Builds the labels the tests export with: a header naming each column after its own role, so an
 /// assertion can tell any two columns apart without depending on the app's own translations.
-OcptBudgetCashJournalXlsxLabels _buildLabels({String sheetName = _sheetName}) => OcptBudgetCashJournalXlsxLabels(
-  sheetName: sheetName,
-  dateHeader: "Date",
-  voucherHeader: "Voucher",
-  labelHeader: "Label",
-  posteHeader: "Poste",
-  settlesHeader: "Settles",
-  debitHeader: "Debit",
-  creditHeader: "Credit",
-  balanceHeader: "Balance",
-  totalsRowLabel: "Total",
-);
+OcptBudgetCashJournalXlsxLabels _buildLabels({String sheetName = _sheetName}) =>
+    OcptBudgetCashJournalXlsxLabels(
+      sheetName: sheetName,
+      dateHeader: "Date",
+      voucherHeader: "Voucher",
+      labelHeader: "Label",
+      posteHeader: "Poste",
+      settlesHeader: "Settles",
+      debitHeader: "Debit",
+      creditHeader: "Credit",
+      balanceHeader: "Balance",
+      totalsRowLabel: "Total",
+    );
 
 /// Builds an entry, every field left at a neutral value unless the test overrides it.
 OcptBudgetEntry _buildEntry({
@@ -60,7 +61,15 @@ OcptBudgetEntry _buildEntry({
 
 /// Builds a poste holding no line, only what this test reads: its own id and label.
 OcptBudgetPoste _buildPoste({required String id, required String code, required String label}) =>
-    OcptBudgetPoste(id: id, code: code, label: label, simpleLabel: null, estimateToCompleteCents: null, sortKey: "a", lines: const []);
+    OcptBudgetPoste(
+      id: id,
+      code: code,
+      label: label,
+      simpleLabel: null,
+      estimateToCompleteCents: null,
+      sortKey: "a",
+      lines: const [],
+    );
 
 /// Decodes [bytes] and returns the rows of its [_sheetName] sheet, as plain Dart values — mirroring
 /// `ocpt_shot_list_xlsx_export_service_test.dart`'s own `_rowsOf`.
@@ -122,15 +131,20 @@ void main() {
       );
 
       final rows = _rowsOf(
-        service.generate(
-          snapshot: snapshot,
-          linkLabelByEntryId: const {},
-          labels: _buildLabels(),
-        ),
+        service.generate(snapshot: snapshot, linkLabelByEntryId: const {}, labels: _buildLabels()),
       );
 
       expect(rows, hasLength(4));
-      expect(rows.first, ["Date", "Voucher", "Label", "Poste", "Settles", "Debit", "Credit", "Balance"]);
+      expect(rows.first, [
+        "Date",
+        "Voucher",
+        "Label",
+        "Poste",
+        "Settles",
+        "Debit",
+        "Credit",
+        "Balance",
+      ]);
 
       // entry-1: a credit of 1,000.00 €, no debit at all — a real zero, printed as data rather
       // than left blank, since the movement is fully readable — balance after is 1,000.00 €.
@@ -185,7 +199,11 @@ void main() {
         );
 
         final rows = _rowsOf(
-          service.generate(snapshot: snapshot, linkLabelByEntryId: const {}, labels: _buildLabels()),
+          service.generate(
+            snapshot: snapshot,
+            linkLabelByEntryId: const {},
+            labels: _buildLabels(),
+          ),
         );
 
         // entry-1: balance 100.00 €.
@@ -230,7 +248,11 @@ void main() {
       );
 
       final excel = Excel.decodeBytes(
-        service.generate(snapshot: snapshot, linkLabelByEntryId: const {}, labels: _buildLabels(sheetName: "   ")),
+        service.generate(
+          snapshot: snapshot,
+          linkLabelByEntryId: const {},
+          labels: _buildLabels(sheetName: "   "),
+        ),
       );
 
       expect(excel.tables.keys, [OcptBudgetCashJournalXlsxExportService.fallbackSheetName]);

@@ -108,7 +108,11 @@ OcptBudgetLine _line({
   label: label,
   quantityMilli: quantityMilli,
   unit: "",
-  unitPrice: OcptMoney(amountCents: unitAmountCents, isTaxInclusive: true, vatRateBasisPoints: null),
+  unitPrice: OcptMoney(
+    amountCents: unitAmountCents,
+    isTaxInclusive: true,
+    vatRateBasisPoints: null,
+  ),
   elementId: null,
   inKindResourceId: null,
   provisionKey: null,
@@ -118,18 +122,21 @@ OcptBudgetLine _line({
 );
 
 /// A minimal financing resource, everything but [id]/[label]/[amountCents] neutral.
-OcptBudgetResource _resource({required String id, required String label, int amountCents = 100000}) =>
-    OcptBudgetResource(
-      id: id,
-      groupKind: OcptBudgetResourceGroupKind.cash,
-      personId: null,
-      label: label,
-      amountCents: amountCents,
-      status: OcptBudgetResourceStatus.pending,
-      isReimbursable: false,
-      notes: "",
-      sortKey: "a0",
-    );
+OcptBudgetResource _resource({
+  required String id,
+  required String label,
+  int amountCents = 100000,
+}) => OcptBudgetResource(
+  id: id,
+  groupKind: OcptBudgetResourceGroupKind.cash,
+  personId: null,
+  label: label,
+  amountCents: amountCents,
+  status: OcptBudgetResourceStatus.pending,
+  isReimbursable: false,
+  notes: "",
+  sortKey: "a0",
+);
 
 /// A minimal, unsettled commitment against [posteId], everything but [id]/[label]/[amountCents]
 /// neutral.
@@ -413,14 +420,10 @@ void main() {
     });
   });
 
-  testWidgets("the current route's own document is promoted to the top of step 1", (
-    tester,
-  ) async {
+  testWidgets("the current route's own document is promoted to the top of step 1", (tester) async {
     final tr = await pumpDialog(tester, promotedFamily: OcptBudgetGestureFamily.allowances);
 
-    final allowancesY = tester
-        .getTopLeft(find.text(tr.budgetNewFamilyAllowancesLabel))
-        .dy;
+    final allowancesY = tester.getTopLeft(find.text(tr.budgetNewFamilyAllowancesLabel)).dy;
     final quoteY = tester.getTopLeft(find.text(tr.budgetNewFamilyQuoteLabel)).dy;
 
     // `allowances` is not the natural first family (`quote` is), so its own heading sitting
@@ -614,10 +617,7 @@ void main() {
       expect(outcome.lines.every((line) => line.posteId == "p1"), isTrue);
       // The suggested quantity is the scene count, in thousandths — a suggestion, corrected
       // nowhere in this test, but read back verbatim here.
-      expect(
-        outcome.lines.firstWhere((line) => line.elementId == "e1").quantityMilli,
-        3000,
-      );
+      expect(outcome.lines.firstWhere((line) => line.elementId == "e1").quantityMilli, 3000);
     });
 
     testWidgets("files each element under the poste chosen for its own row", (tester) async {
@@ -682,10 +682,7 @@ void main() {
       await tester.tap(find.byKey(const Key("ocptBudgetNewAttachmentContinueButton")));
       await tester.pumpAndSettle();
 
-      await tester.enterText(
-        find.byKey(const Key("ocptBudgetNewLabelField")),
-        "Atelier Verrier",
-      );
+      await tester.enterText(find.byKey(const Key("ocptBudgetNewLabelField")), "Atelier Verrier");
       await tester.enterText(find.byKey(const Key("ocptBudgetNewAmountField")), "250.00");
       await tester.pumpAndSettle();
 
@@ -727,10 +724,7 @@ void main() {
       await tester.tap(find.byKey(const Key("ocptBudgetNewAttachmentContinueButton")));
       await tester.pumpAndSettle();
 
-      await tester.enterText(
-        find.byKey(const Key("ocptBudgetNewLabelField")),
-        "Atelier Verrier",
-      );
+      await tester.enterText(find.byKey(const Key("ocptBudgetNewLabelField")), "Atelier Verrier");
       await tester.enterText(find.byKey(const Key("ocptBudgetNewAmountField")), "250.00");
       await tester.pumpAndSettle();
 
@@ -776,115 +770,110 @@ void main() {
       expect(outcome.acceptedSuggestion, isNull);
     });
 
-    testWidgets(
-      "offersLettrage false withholds the strip even where a candidate would match",
-      (tester) async {
-        // The direct pay of a quote line opens the wizard exactly this way — pre-filled on step 3
-        // with the line's own label and amount, offersLettrage off. A commitment sharing that
-        // amount would ordinarily be offered; here the strip is withheld whole.
-        final prefill = OcptBudgetEntryFormFields(
-          date: DateTime(2026, 1, 5),
-          label: "Atelier Verrier",
-          posteId: "p1",
-          resourceId: null,
-          revenueId: null,
-          shareId: null,
-          isDebit: true,
-          amountCents: 25000,
-          isTaxInclusive: true,
-          vatRateBasisPoints: null,
-          voucherNumber: null,
-          pickedReceiptPath: null,
-          isReceiptDetached: false,
-        );
+    testWidgets("offersLettrage false withholds the strip even where a candidate would match", (
+      tester,
+    ) async {
+      // The direct pay of a quote line opens the wizard exactly this way — pre-filled on step 3
+      // with the line's own label and amount, offersLettrage off. A commitment sharing that
+      // amount would ordinarily be offered; here the strip is withheld whole.
+      final prefill = OcptBudgetEntryFormFields(
+        date: DateTime(2026, 1, 5),
+        label: "Atelier Verrier",
+        posteId: "p1",
+        resourceId: null,
+        revenueId: null,
+        shareId: null,
+        isDebit: true,
+        amountCents: 25000,
+        isTaxInclusive: true,
+        vatRateBasisPoints: null,
+        voucherNumber: null,
+        pickedReceiptPath: null,
+        isReceiptDetached: false,
+      );
 
-        final tr = await pumpDialog(
-          tester,
-          initialGesture: OcptBudgetGesture.recordExpense,
-          entryPrefill: prefill,
-          offersLettrage: false,
-          postes: [_poste(id: "p1", label: "Camera")],
-          commitments: [
-            _commitment(id: "c1", label: "Atelier Verrier", posteId: "p1", amountCents: 25000),
-          ],
-        );
+      final tr = await pumpDialog(
+        tester,
+        initialGesture: OcptBudgetGesture.recordExpense,
+        entryPrefill: prefill,
+        offersLettrage: false,
+        postes: [_poste(id: "p1", label: "Camera")],
+        commitments: [
+          _commitment(id: "c1", label: "Atelier Verrier", posteId: "p1", amountCents: 25000),
+        ],
+      );
 
-        // Landed on the form with the matching amount typed, yet no strip and no candidate row.
-        expect(find.text(tr.budgetNewLettrageTitle), findsNothing);
-        expect(find.byKey(const Key("ocptBudgetNewLettrageCandidate0")), findsNothing);
-        expect(find.byKey(const Key("ocptBudgetNewLettrageNone")), findsNothing);
-      },
-    );
+      // Landed on the form with the matching amount typed, yet no strip and no candidate row.
+      expect(find.text(tr.budgetNewLettrageTitle), findsNothing);
+      expect(find.byKey(const Key("ocptBudgetNewLettrageCandidate0")), findsNothing);
+      expect(find.byKey(const Key("ocptBudgetNewLettrageNone")), findsNothing);
+    });
   });
 
   group("the dashboard's own case", () {
-    testWidgets(
-      "nothing is pre-selected and Continuer is withheld until a card is picked",
-      (tester) async {
-        await pumpDialog(tester);
+    testWidgets("nothing is pre-selected and Continuer is withheld until a card is picked", (
+      tester,
+    ) async {
+      await pumpDialog(tester);
 
-        var continueButton = tester.widget<FilledButton>(
-          find.byKey(const Key("ocptBudgetNewContinueButton")),
-        );
-        expect(continueButton.onPressed, isNull);
+      var continueButton = tester.widget<FilledButton>(
+        find.byKey(const Key("ocptBudgetNewContinueButton")),
+      );
+      expect(continueButton.onPressed, isNull);
 
-        final card = find.byKey(
-          Key("ocptBudgetNewGestureCard-${OcptBudgetGesture.planTaking.name}"),
-        );
-        await tester.ensureVisible(card);
-        await tester.pumpAndSettle();
-        await tester.tap(card);
-        await tester.pumpAndSettle();
+      final card = find.byKey(Key("ocptBudgetNewGestureCard-${OcptBudgetGesture.planTaking.name}"));
+      await tester.ensureVisible(card);
+      await tester.pumpAndSettle();
+      await tester.tap(card);
+      await tester.pumpAndSettle();
 
-        continueButton = tester.widget<FilledButton>(
-          find.byKey(const Key("ocptBudgetNewContinueButton")),
-        );
-        expect(continueButton.onPressed, isNotNull);
-      },
-    );
+      continueButton = tester.widget<FilledButton>(
+        find.byKey(const Key("ocptBudgetNewContinueButton")),
+      );
+      expect(continueButton.onPressed, isNotNull);
+    });
   });
 
   group("every outcome variant reaches the mode correctly", () {
-    testWidgets(
-      "addQuoteLine pops OcptBudgetNewLineOutcome naming the poste and the typing",
-      (tester) async {
-        final tr = await pumpDialog(
-          tester,
-          initialGesture: OcptBudgetGesture.addQuoteLine,
-          postes: [_poste(id: "p1", label: "Camera")],
-        );
+    testWidgets("addQuoteLine pops OcptBudgetNewLineOutcome naming the poste and the typing", (
+      tester,
+    ) async {
+      final tr = await pumpDialog(
+        tester,
+        initialGesture: OcptBudgetGesture.addQuoteLine,
+        postes: [_poste(id: "p1", label: "Camera")],
+      );
 
-        await tester.tap(find.byKey(const Key("ocptBudgetNewContinueButton")));
-        await tester.pumpAndSettle();
-        await tester.tap(find.text("Camera"));
-        await tester.pumpAndSettle();
-        await tester.tap(find.byKey(const Key("ocptBudgetNewAttachmentContinueButton")));
-        await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key("ocptBudgetNewContinueButton")));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text("Camera"));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key("ocptBudgetNewAttachmentContinueButton")));
+      await tester.pumpAndSettle();
 
-        await tester.enterText(
-          find.widgetWithText(TextFormField, tr.budgetLineLabelFieldLabel),
-          "Camera hire",
-        );
-        await tester.enterText(
-          find.widgetWithText(TextFormField, tr.budgetLineQuantityFieldLabel),
-          "5",
-        );
-        await tester.enterText(
-          find.widgetWithText(TextFormField, tr.budgetLineUnitPriceFieldLabel),
-          "120",
-        );
-        await tester.pumpAndSettle();
+      await tester.enterText(
+        find.widgetWithText(TextFormField, tr.budgetLineLabelFieldLabel),
+        "Camera hire",
+      );
+      await tester.enterText(
+        find.widgetWithText(TextFormField, tr.budgetLineQuantityFieldLabel),
+        "5",
+      );
+      await tester.enterText(
+        find.widgetWithText(TextFormField, tr.budgetLineUnitPriceFieldLabel),
+        "120",
+      );
+      await tester.pumpAndSettle();
 
-        await tester.tap(find.byKey(const Key("ocptBudgetNewSaveButton")));
-        await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key("ocptBudgetNewSaveButton")));
+      await tester.pumpAndSettle();
 
-        final outcome = routerManager.poppedValue! as OcptBudgetNewLineOutcome;
-        expect(outcome.posteId, "p1");
-        expect(outcome.fields.label, "Camera hire");
-        expect(outcome.fields.quantityMilli, 5000);
-        expect(outcome.fields.unitAmountCents, 12000);
-      },
-    );
+      final outcome = routerManager.poppedValue! as OcptBudgetNewLineOutcome;
+      expect(outcome.posteId, "p1");
+      expect(outcome.fields.label, "Camera hire");
+      expect(outcome.fields.quantityMilli, 5000);
+      expect(outcome.fields.unitAmountCents, 12000);
+    });
 
     testWidgets("commitSpend pops OcptBudgetNewCommitmentOutcome naming the line picked", (
       tester,
@@ -1015,49 +1004,42 @@ void main() {
       expect(outcome.fields.label, "Co-producer");
     });
 
-    testWidgets(
-      "recordExpense with nothing to reconcile against pops a plain wizard result",
-      (tester) async {
-        await pumpDialog(
-          tester,
-          initialGesture: OcptBudgetGesture.recordExpense,
-          postes: [_poste(id: "p1", label: "Camera")],
-        );
+    testWidgets("recordExpense with nothing to reconcile against pops a plain wizard result", (
+      tester,
+    ) async {
+      await pumpDialog(
+        tester,
+        initialGesture: OcptBudgetGesture.recordExpense,
+        postes: [_poste(id: "p1", label: "Camera")],
+      );
 
-        await tester.tap(find.byKey(const Key("ocptBudgetNewContinueButton")));
-        await tester.pumpAndSettle();
-        await tester.tap(find.text("Camera"));
-        await tester.pumpAndSettle();
-        await tester.tap(find.byKey(const Key("ocptBudgetNewAttachmentContinueButton")));
-        await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key("ocptBudgetNewContinueButton")));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text("Camera"));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key("ocptBudgetNewAttachmentContinueButton")));
+      await tester.pumpAndSettle();
 
-        await tester.enterText(
-          find.byKey(const Key("ocptBudgetNewLabelField")),
-          "Rushes hard drive",
-        );
-        await tester.enterText(find.byKey(const Key("ocptBudgetNewAmountField")), "45.00");
-        await tester.pumpAndSettle();
+      await tester.enterText(find.byKey(const Key("ocptBudgetNewLabelField")), "Rushes hard drive");
+      await tester.enterText(find.byKey(const Key("ocptBudgetNewAmountField")), "45.00");
+      await tester.pumpAndSettle();
 
-        // No commitments, entries or resources were given, so nothing was ever offered to
-        // reconcile against — the strip itself never drew.
-        expect(find.byKey(const Key("ocptBudgetNewLettrageNone")), findsNothing);
+      // No commitments, entries or resources were given, so nothing was ever offered to
+      // reconcile against — the strip itself never drew.
+      expect(find.byKey(const Key("ocptBudgetNewLettrageNone")), findsNothing);
 
-        await tester.tap(find.byKey(const Key("ocptBudgetNewSaveButton")));
-        await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key("ocptBudgetNewSaveButton")));
+      await tester.pumpAndSettle();
 
-        final outcome = routerManager.poppedValue! as OcptBudgetEntryWizardResult;
-        expect(outcome.acceptedSuggestion, isNull);
-        expect(outcome.fields.posteId, "p1");
-      },
-    );
+      final outcome = routerManager.poppedValue! as OcptBudgetEntryWizardResult;
+      expect(outcome.acceptedSuggestion, isNull);
+      expect(outcome.fields.posteId, "p1");
+    });
   });
 
   group("recording a taking mints its own from one amount and label", () {
     testWidgets("goes straight to the form and carries a to-be-made taking", (tester) async {
-      final tr = await pumpDialog(
-        tester,
-        initialGesture: OcptBudgetGesture.recordTakingReceipt,
-      );
+      final tr = await pumpDialog(tester, initialGesture: OcptBudgetGesture.recordTakingReceipt);
 
       // Two steps, not three: no taking to pick, so step 1 goes straight to the money form.
       expect(find.text(tr.budgetNewStepLabel(1, 2)), findsOneWidget);
@@ -1086,41 +1068,37 @@ void main() {
   });
 
   group("step 2 closes the dead end for a missing object", () {
-    testWidgets(
-      "a missing participant is created inline, without leaving the wizard",
-      (tester) async {
-        tester.view.physicalSize = const Size(900, 1000);
-        tester.view.devicePixelRatio = 1.0;
-        addTearDown(tester.view.resetPhysicalSize);
-        addTearDown(tester.view.resetDevicePixelRatio);
+    testWidgets("a missing participant is created inline, without leaving the wizard", (
+      tester,
+    ) async {
+      tester.view.physicalSize = const Size(900, 1000);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
 
-        final tr = await pumpDialog(
-          tester,
-          initialGesture: OcptBudgetGesture.payParticipantShare,
-        );
+      final tr = await pumpDialog(tester, initialGesture: OcptBudgetGesture.payParticipantShare);
 
-        await tester.tap(find.byKey(const Key("ocptBudgetNewContinueButton")));
-        await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key("ocptBudgetNewContinueButton")));
+      await tester.pumpAndSettle();
 
-        await tester.tap(find.byKey(const Key("ocptBudgetNewCreateShareChoice")));
-        await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key("ocptBudgetNewCreateShareChoice")));
+      await tester.pumpAndSettle();
 
-        expect(find.byType(OcptBudgetShareDialog), findsOneWidget);
+      expect(find.byType(OcptBudgetShareDialog), findsOneWidget);
 
-        await tester.enterText(
-          find.widgetWithText(TextFormField, tr.budgetEntryDialogLabelFieldLabel),
-          "Co-producer",
-        );
-        await tester.tap(find.text(tr.budgetEntryDialogConfirmAction));
-        await tester.pumpAndSettle();
+      await tester.enterText(
+        find.widgetWithText(TextFormField, tr.budgetEntryDialogLabelFieldLabel),
+        "Co-producer",
+      );
+      await tester.tap(find.text(tr.budgetEntryDialogConfirmAction));
+      await tester.pumpAndSettle();
 
-        expect(find.byType(OcptBudgetShareDialog), findsNothing);
-        expect(find.byType(OcptBudgetNewDialog), findsOneWidget);
-        expect(find.byKey(const Key("ocptBudgetNewPendingShareChoice")), findsOneWidget);
-        expect(find.text(tr.budgetNewWillCreateLabel("Co-producer")), findsOneWidget);
-        expect(find.text(tr.budgetNewStepLabel(2, 3)), findsOneWidget);
-      },
-    );
+      expect(find.byType(OcptBudgetShareDialog), findsNothing);
+      expect(find.byType(OcptBudgetNewDialog), findsOneWidget);
+      expect(find.byKey(const Key("ocptBudgetNewPendingShareChoice")), findsOneWidget);
+      expect(find.text(tr.budgetNewWillCreateLabel("Co-producer")), findsOneWidget);
+      expect(find.text(tr.budgetNewStepLabel(2, 3)), findsOneWidget);
+    });
   });
 
   group("step 2's own escape answers", () {
@@ -1155,180 +1133,173 @@ void main() {
       expect(outcome.fields.posteId, isNull);
     });
 
-    testWidgets(
-      "commitSpend's own Aucune answer hangs the commitment off the poste, no line",
-      (tester) async {
-        final tr = await pumpDialog(
-          tester,
-          initialGesture: OcptBudgetGesture.commitSpend,
-          postes: [
-            _poste(
-              id: "p1",
-              label: "Camera",
-              lines: [_line(id: "l1", posteId: "p1", label: "Zoom lens")],
-            ),
-          ],
-        );
+    testWidgets("commitSpend's own Aucune answer hangs the commitment off the poste, no line", (
+      tester,
+    ) async {
+      final tr = await pumpDialog(
+        tester,
+        initialGesture: OcptBudgetGesture.commitSpend,
+        postes: [
+          _poste(
+            id: "p1",
+            label: "Camera",
+            lines: [_line(id: "l1", posteId: "p1", label: "Zoom lens")],
+          ),
+        ],
+      );
 
-        await tester.tap(find.byKey(const Key("ocptBudgetNewContinueButton")));
-        await tester.pumpAndSettle();
-        await tester.tap(find.text("Camera"));
-        await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key("ocptBudgetNewContinueButton")));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text("Camera"));
+      await tester.pumpAndSettle();
 
-        expect(find.text(tr.budgetNewNoLineAnswer), findsOneWidget);
+      expect(find.text(tr.budgetNewNoLineAnswer), findsOneWidget);
 
-        await tester.tap(find.byKey(const Key("ocptBudgetNewNoLineChoice")));
-        await tester.pumpAndSettle();
-        await tester.tap(find.byKey(const Key("ocptBudgetNewAttachmentContinueButton")));
-        await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key("ocptBudgetNewNoLineChoice")));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key("ocptBudgetNewAttachmentContinueButton")));
+      await tester.pumpAndSettle();
 
-        await tester.enterText(
-          find.widgetWithText(TextFormField, tr.budgetEntryDialogLabelFieldLabel),
-          "Zoom lens repair",
-        );
-        await tester.enterText(
-          find.widgetWithText(TextFormField, tr.budgetEntryDialogAmountFieldLabel),
-          "150",
-        );
-        await tester.pumpAndSettle();
+      await tester.enterText(
+        find.widgetWithText(TextFormField, tr.budgetEntryDialogLabelFieldLabel),
+        "Zoom lens repair",
+      );
+      await tester.enterText(
+        find.widgetWithText(TextFormField, tr.budgetEntryDialogAmountFieldLabel),
+        "150",
+      );
+      await tester.pumpAndSettle();
 
-        await tester.tap(find.byKey(const Key("ocptBudgetNewSaveButton")));
-        await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key("ocptBudgetNewSaveButton")));
+      await tester.pumpAndSettle();
 
-        final outcome = routerManager.poppedValue! as OcptBudgetNewCommitmentOutcome;
-        expect(outcome.lineId, isNull);
-        expect(outcome.fields.posteId, "p1");
-      },
-    );
+      final outcome = routerManager.poppedValue! as OcptBudgetNewCommitmentOutcome;
+      expect(outcome.lineId, isNull);
+      expect(outcome.fields.posteId, "p1");
+    });
   });
 
-  testWidgets(
-    "step 2's own resource row states what is promised, received and outstanding",
-    (tester) async {
-      final tr = await pumpDialog(
-        tester,
-        initialGesture: OcptBudgetGesture.recordFinancingReceipt,
-        resources: [_resource(id: "r1", label: "Région subvention", amountCents: 500000)],
-        receivedByResourceId: const {
-          "r1": OcptBudgetCoveredTotal(amountCents: 150000, coveredLineCount: 1, lineCount: 1),
-        },
-      );
+  testWidgets("step 2's own resource row states what is promised, received and outstanding", (
+    tester,
+  ) async {
+    final tr = await pumpDialog(
+      tester,
+      initialGesture: OcptBudgetGesture.recordFinancingReceipt,
+      resources: [_resource(id: "r1", label: "Région subvention", amountCents: 500000)],
+      receivedByResourceId: const {
+        "r1": OcptBudgetCoveredTotal(amountCents: 150000, coveredLineCount: 1, lineCount: 1),
+      },
+    );
 
-      await tester.tap(find.byKey(const Key("ocptBudgetNewContinueButton")));
-      await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key("ocptBudgetNewContinueButton")));
+    await tester.pumpAndSettle();
 
-      final expectedHint = tr.budgetNewResourceChoiceHint(
-        ocptBudgetAmountLabel(500000, "EUR"),
-        ocptBudgetAmountLabel(150000, "EUR"),
-        // The one computed figure: 500000 - 150000 = 350000, never read off a stored column.
-        ocptBudgetAmountLabel(350000, "EUR"),
-      );
-      expect(find.text(expectedHint), findsOneWidget);
-    },
-  );
+    final expectedHint = tr.budgetNewResourceChoiceHint(
+      ocptBudgetAmountLabel(500000, "EUR"),
+      ocptBudgetAmountLabel(150000, "EUR"),
+      // The one computed figure: 500000 - 150000 = 350000, never read off a stored column.
+      ocptBudgetAmountLabel(350000, "EUR"),
+    );
+    expect(find.text(expectedHint), findsOneWidget);
+  });
 
-  testWidgets(
-    "step 2's own person row states what is advanced, reimbursed and owed",
-    (tester) async {
-      final tr = await pumpDialog(
-        tester,
-        initialGesture: OcptBudgetGesture.reimbursePerson,
-        people: [_person(id: "p1", firstName: "Alex")],
-        allowances: [_allowance(id: "a1", personId: "p1")],
-        reimbursedByPersonId: const {
-          "p1": OcptBudgetCoveredTotal(amountCents: 40, coveredLineCount: 1, lineCount: 1),
-        },
-      );
+  testWidgets("step 2's own person row states what is advanced, reimbursed and owed", (
+    tester,
+  ) async {
+    final tr = await pumpDialog(
+      tester,
+      initialGesture: OcptBudgetGesture.reimbursePerson,
+      people: [_person(id: "p1", firstName: "Alex")],
+      allowances: [_allowance(id: "a1", personId: "p1")],
+      reimbursedByPersonId: const {
+        "p1": OcptBudgetCoveredTotal(amountCents: 40, coveredLineCount: 1, lineCount: 1),
+      },
+    );
 
-      await tester.tap(find.byKey(const Key("ocptBudgetNewContinueButton")));
-      await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key("ocptBudgetNewContinueButton")));
+    await tester.pumpAndSettle();
 
-      final expectedHint = tr.budgetNewPersonChoiceHint(
-        ocptBudgetAmountLabel(100, "EUR"),
-        ocptBudgetAmountLabel(40, "EUR"),
-        // The one computed figure: 100 - 40 = 60, never read off a stored column.
-        ocptBudgetAmountLabel(60, "EUR"),
-      );
-      expect(find.text(expectedHint), findsOneWidget);
-    },
-  );
+    final expectedHint = tr.budgetNewPersonChoiceHint(
+      ocptBudgetAmountLabel(100, "EUR"),
+      ocptBudgetAmountLabel(40, "EUR"),
+      // The one computed figure: 100 - 40 = 60, never read off a stored column.
+      ocptBudgetAmountLabel(60, "EUR"),
+    );
+    expect(find.text(expectedHint), findsOneWidget);
+  });
 
-  testWidgets(
-    "a contextual shortcut lands on the form, trail a summary alone, no way back",
-    (tester) async {
-      final poste = _poste(id: "p1", label: "Camera");
-      final prefill = OcptBudgetEntryFormFields(
-        date: DateTime(2026, 1, 5),
-        label: "Zoom lens repair",
-        posteId: "p1",
-        resourceId: null,
-        revenueId: null,
-        shareId: null,
-        isDebit: true,
-        amountCents: 15000,
-        isTaxInclusive: true,
-        vatRateBasisPoints: null,
-        voucherNumber: null,
-        pickedReceiptPath: null,
-        isReceiptDetached: false,
-      );
+  testWidgets("a contextual shortcut lands on the form, trail a summary alone, no way back", (
+    tester,
+  ) async {
+    final poste = _poste(id: "p1", label: "Camera");
+    final prefill = OcptBudgetEntryFormFields(
+      date: DateTime(2026, 1, 5),
+      label: "Zoom lens repair",
+      posteId: "p1",
+      resourceId: null,
+      revenueId: null,
+      shareId: null,
+      isDebit: true,
+      amountCents: 15000,
+      isTaxInclusive: true,
+      vatRateBasisPoints: null,
+      voucherNumber: null,
+      pickedReceiptPath: null,
+      isReceiptDetached: false,
+    );
 
-      final tr = await pumpDialog(
-        tester,
-        initialGesture: OcptBudgetGesture.recordExpense,
-        entryPrefill: prefill,
-        postes: [poste],
-      );
+    final tr = await pumpDialog(
+      tester,
+      initialGesture: OcptBudgetGesture.recordExpense,
+      entryPrefill: prefill,
+      postes: [poste],
+    );
 
-      // Landed straight on the form step — recordExpense takes 3 steps, and this is the third,
-      // step 1 and step 2 both already answered by the shortcut.
-      expect(find.text(tr.budgetNewStepLabel(3, 3)), findsOneWidget);
-      // The trail recalls the poste step 2 would have asked, but offers no way back to a step the
-      // reader never chose, and the form's own first action is `Cancel`, not `Back`.
-      expect(find.textContaining("Camera"), findsWidgets);
-      expect(find.byKey(const Key("ocptBudgetNewChangeGestureLink")), findsNothing);
-      expect(find.byKey(const Key("ocptBudgetNewFormBackButton")), findsNothing);
-      expect(find.byKey(const Key("ocptBudgetNewFormCancelButton")), findsOneWidget);
-      // The form itself opened pre-filled, not blank.
-      expect(find.text("Zoom lens repair"), findsOneWidget);
-    },
-  );
+    // Landed straight on the form step — recordExpense takes 3 steps, and this is the third,
+    // step 1 and step 2 both already answered by the shortcut.
+    expect(find.text(tr.budgetNewStepLabel(3, 3)), findsOneWidget);
+    // The trail recalls the poste step 2 would have asked, but offers no way back to a step the
+    // reader never chose, and the form's own first action is `Cancel`, not `Back`.
+    expect(find.textContaining("Camera"), findsWidgets);
+    expect(find.byKey(const Key("ocptBudgetNewChangeGestureLink")), findsNothing);
+    expect(find.byKey(const Key("ocptBudgetNewFormBackButton")), findsNothing);
+    expect(find.byKey(const Key("ocptBudgetNewFormCancelButton")), findsOneWidget);
+    // The form itself opened pre-filled, not blank.
+    expect(find.text("Zoom lens repair"), findsOneWidget);
+  });
 
-  testWidgets(
-    "the form's Cancel closes the wizard whole, returning no outcome",
-    (tester) async {
-      final prefill = OcptBudgetEntryFormFields(
-        date: DateTime(2026, 1, 5),
-        label: "Zoom lens repair",
-        posteId: "p1",
-        resourceId: null,
-        revenueId: null,
-        shareId: null,
-        isDebit: true,
-        amountCents: 15000,
-        isTaxInclusive: true,
-        vatRateBasisPoints: null,
-        voucherNumber: null,
-        pickedReceiptPath: null,
-        isReceiptDetached: false,
-      );
+  testWidgets("the form's Cancel closes the wizard whole, returning no outcome", (tester) async {
+    final prefill = OcptBudgetEntryFormFields(
+      date: DateTime(2026, 1, 5),
+      label: "Zoom lens repair",
+      posteId: "p1",
+      resourceId: null,
+      revenueId: null,
+      shareId: null,
+      isDebit: true,
+      amountCents: 15000,
+      isTaxInclusive: true,
+      vatRateBasisPoints: null,
+      voucherNumber: null,
+      pickedReceiptPath: null,
+      isReceiptDetached: false,
+    );
 
-      await pumpDialog(
-        tester,
-        initialGesture: OcptBudgetGesture.recordExpense,
-        entryPrefill: prefill,
-        postes: [_poste(id: "p1", label: "Camera")],
-      );
+    await pumpDialog(
+      tester,
+      initialGesture: OcptBudgetGesture.recordExpense,
+      entryPrefill: prefill,
+      postes: [_poste(id: "p1", label: "Camera")],
+    );
 
-      await tester.tap(find.byKey(const Key("ocptBudgetNewFormCancelButton")));
-      await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key("ocptBudgetNewFormCancelButton")));
+    await tester.pumpAndSettle();
 
-      // The wizard popped, and with no outcome — exactly a cancellation, never a step surfaced
-      // behind the form. (The recording router only records the pop; it mounts no route to remove.)
-      expect(routerManager.popped, isTrue);
-      expect(routerManager.poppedValue, isNull);
-    },
-  );
+    // The wizard popped, and with no outcome — exactly a cancellation, never a step surfaced
+    // behind the form. (The recording router only records the pop; it mounts no route to remove.)
+    expect(routerManager.popped, isTrue);
+    expect(routerManager.poppedValue, isNull);
+  });
 
   group("the wizard shell answers ocptIsCompactWidth", () {
     testWidgets(

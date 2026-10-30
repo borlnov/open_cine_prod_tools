@@ -68,15 +68,9 @@ class OcptScriptImportService {
 
     try {
       final result = _importer.read(bytes: bytes, fileName: fileName);
-      return ResultWithStatus(
-        status: OcptScreenplayImportStatus.ok,
-        value: result.fountainText,
-      );
+      return ResultWithStatus(status: OcptScreenplayImportStatus.ok, value: result.fountainText);
     } on ScriptImportException catch (error) {
-      return ResultWithStatus(
-        status: OcptScreenplayImportStatus.unreadableFile,
-        extraInfo: error,
-      );
+      return ResultWithStatus(status: OcptScreenplayImportStatus.unreadableFile, extraInfo: error);
     }
   }
 

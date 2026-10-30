@@ -230,9 +230,7 @@ class OcptElementSheet extends StatelessWidget {
             title: tr.resourcesNotesTitle,
             ownerId: element.id,
             value: fieldValueOf(OcptElementField.notes),
-            onChanged: isReadOnly
-                ? null
-                : (value) => onFieldChanged(OcptElementField.notes, value),
+            onChanged: isReadOnly ? null : (value) => onFieldChanged(OcptElementField.notes, value),
           ),
           if (!isReadOnly) ...[
             const SizedBox(height: 20),

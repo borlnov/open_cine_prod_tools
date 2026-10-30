@@ -56,14 +56,9 @@ class OcptProjectSettingsScreenplayLanguageSection extends StatelessWidget {
                   onChanged: onScreenplayLanguageChanged,
                   mouseCursor: ocptClickableCursor,
                   items: [
-                    DropdownMenuItem(
-                      child: Text(tr.projectSettingsScreenplayLanguageNoneOption),
-                    ),
+                    DropdownMenuItem(child: Text(tr.projectSettingsScreenplayLanguageNoneOption)),
                     for (final language in OcptScreenplayLanguage.values)
-                      DropdownMenuItem(
-                        value: language,
-                        child: Text(_languageLabel(tr, language)),
-                      ),
+                      DropdownMenuItem(value: language, child: Text(_languageLabel(tr, language))),
                   ],
                 ),
               ],

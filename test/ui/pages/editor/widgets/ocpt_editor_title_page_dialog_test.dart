@@ -68,12 +68,12 @@ void main() {
   }
 
   /// The current text of the [TextFormField] labelled [label].
-  String? fieldText(WidgetTester tester, String label) => tester
-      .widget<TextFormField>(find.widgetWithText(TextFormField, label))
-      .controller
-      ?.text;
+  String? fieldText(WidgetTester tester, String label) =>
+      tester.widget<TextFormField>(find.widgetWithText(TextFormField, label)).controller?.text;
 
-  testWidgets("prefills every field from the parsed title page's raw joined values", (tester) async {
+  testWidgets("prefills every field from the parsed title page's raw joined values", (
+    tester,
+  ) async {
     const titlePage = FountainTitlePage(
       entries: [
         FountainTitlePageEntry(key: 'Title', values: ['My Screenplay'], sourceRange: _dummyRange),

@@ -35,11 +35,7 @@ class OcptEditorPreviewBlock extends StatelessWidget {
   final OcptEditorPreviewLayout layout;
 
   /// Class constructor
-  const OcptEditorPreviewBlock({
-    super.key,
-    required this.block,
-    required this.layout,
-  });
+  const OcptEditorPreviewBlock({super.key, required this.block, required this.layout});
 
   /// The base text style every preview run derives from: Courier Prime, black on the white page,
   /// rendered at exactly [layout]'s [OcptEditorPreviewLayout.lineHeight] (not a fixed factor: see
@@ -94,10 +90,7 @@ class OcptEditorPreviewBlock extends StatelessWidget {
       ),
       final FountainLyrics lyrics => _element(
         layout.metrics.lyrics,
-        _multilineText(
-          lyrics.lines,
-          _baseTextStyleFor(FountainLineType.lyrics, _baseStyle),
-        ),
+        _multilineText(lyrics.lines, _baseTextStyleFor(FountainLineType.lyrics, _baseStyle)),
       ),
       FountainPageBreak() => Padding(
         padding: EdgeInsets.symmetric(
@@ -191,7 +184,6 @@ class OcptEditorPreviewBlock extends StatelessWidget {
     textScaler: _textScaler,
   );
 
-
   /// The horizontal text alignment of [block]'s element.
   TextAlign get _textAlign => switch (_elementOf(block)?.alignment) {
     FountainLayoutAlignment.center => TextAlign.center,
@@ -239,19 +231,13 @@ class OcptEditorPreviewBlock extends StatelessWidget {
         TextSpan(
           text: span.text,
           style: switch (span.style) {
-            FountainInlineStyle.italic => style.copyWith(
-              fontStyle: FontStyle.italic,
-            ),
-            FountainInlineStyle.bold => style.copyWith(
-              fontWeight: FontWeight.bold,
-            ),
+            FountainInlineStyle.italic => style.copyWith(fontStyle: FontStyle.italic),
+            FountainInlineStyle.bold => style.copyWith(fontWeight: FontWeight.bold),
             FountainInlineStyle.boldItalic => style.copyWith(
               fontWeight: FontWeight.bold,
               fontStyle: FontStyle.italic,
             ),
-            FountainInlineStyle.underline => style.copyWith(
-              decoration: TextDecoration.underline,
-            ),
+            FountainInlineStyle.underline => style.copyWith(decoration: TextDecoration.underline),
             _ => style,
           },
         ),

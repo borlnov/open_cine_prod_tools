@@ -45,7 +45,12 @@ FountainScriptLine _line(String tag, {required int start, required int end}) => 
   runs: [
     FountainStyledRun(
       text: tag,
-      sourceRange: FountainSourceRange(startLine: 0, endLine: 0, startOffset: start, endOffset: end),
+      sourceRange: FountainSourceRange(
+        startLine: 0,
+        endLine: 0,
+        startOffset: start,
+        endOffset: end,
+      ),
     ),
   ],
   lineType: FountainLineType.action,
@@ -104,7 +109,11 @@ void main() {
       expect(layout.pages.single.scriptPageIndex, 0);
       // row0 is not selected but sits before the last selected row, so it survives as a blank
       // filler at its own true index; row3/row4 are trailing and dropped outright.
-      expect(layout.pages.single.lines, [_blank, script.pages[0].lines[1], script.pages[0].lines[2]]);
+      expect(layout.pages.single.lines, [
+        _blank,
+        script.pages[0].lines[1],
+        script.pages[0].lines[2],
+      ]);
     });
 
     test("packed keeps only the selected rows, contiguous", () {
@@ -210,14 +219,22 @@ void main() {
       );
 
       expect(layout.pages, hasLength(1));
-      expect(layout.pages.single.lines, [script.pages[0].lines[0], _blank, script.pages[0].lines[3]]);
+      expect(layout.pages.single.lines, [
+        script.pages[0].lines[0],
+        _blank,
+        script.pages[0].lines[3],
+      ]);
     });
   });
 
   test("the bridge rule pulls an unanchored row between two anchored ones into the scene", () {
     // row0 and row2 are anchored inside the span; row1 (the synthetic (MORE) token) carries no
     // source range at all and can only be reached by bridging between the two rows around it.
-    final script = _onePageScript([_line("row0", start: 0, end: 5), _moreLine, _line("row2", start: 5, end: 10)]);
+    final script = _onePageScript([
+      _line("row0", start: 0, end: 5),
+      _moreLine,
+      _line("row2", start: 5, end: 10),
+    ]);
     const span = (charStart: 0, charEnd: 10);
 
     final scriptPages = OcptScriptSidesLayout.of(
@@ -226,7 +243,11 @@ void main() {
       metrics: _metrics(54),
       presentation: OcptSidesPresentation.scriptPages,
     );
-    expect(scriptPages.pages.single.lines, [script.pages[0].lines[0], _moreLine, script.pages[0].lines[2]]);
+    expect(scriptPages.pages.single.lines, [
+      script.pages[0].lines[0],
+      _moreLine,
+      script.pages[0].lines[2],
+    ]);
 
     final packed = OcptScriptSidesLayout.of(
       script: script,
@@ -234,11 +255,18 @@ void main() {
       metrics: _metrics(54),
       presentation: OcptSidesPresentation.packed,
     );
-    expect(packed.pages.single.lines, [script.pages[0].lines[0], _moreLine, script.pages[0].lines[2]]);
+    expect(packed.pages.single.lines, [
+      script.pages[0].lines[0],
+      _moreLine,
+      script.pages[0].lines[2],
+    ]);
   });
 
   test("a span no row overlaps contributes nothing", () {
-    final script = _onePageScript([_line("row0", start: 0, end: 5), _line("row1", start: 10, end: 15)]);
+    final script = _onePageScript([
+      _line("row0", start: 0, end: 5),
+      _line("row1", start: 10, end: 15),
+    ]);
     // Falls strictly between the two anchored rows: overlaps neither.
     const span = (charStart: 6, charEnd: 9);
 

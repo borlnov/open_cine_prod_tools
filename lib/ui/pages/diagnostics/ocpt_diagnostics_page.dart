@@ -94,9 +94,7 @@ class _OcptDiagnosticsLogFileRow extends StatelessWidget {
                 else
                   SelectableText(
                     logFilePath,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      fontFamily: ocptMonospaceFontFamily,
-                    ),
+                    style: theme.textTheme.bodySmall?.copyWith(fontFamily: ocptMonospaceFontFamily),
                   ),
               ],
             ),
@@ -105,8 +103,7 @@ class _OcptDiagnosticsLogFileRow extends StatelessWidget {
             IconButton(
               tooltip: tr.diagnosticsLogFileCopyPath,
               icon: const Icon(Icons.copy_outlined),
-              onPressed: () =>
-                  unawaited(Clipboard.setData(ClipboardData(text: logFilePath))),
+              onPressed: () => unawaited(Clipboard.setData(ClipboardData(text: logFilePath))),
             ),
         ],
       ),

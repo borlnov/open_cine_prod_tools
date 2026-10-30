@@ -95,7 +95,11 @@ OcptBreakdownTarget _buildRoleTarget({required String id, required String name})
     );
 
 void main() {
-  final propTarget = _buildElementTarget(id: "el-1", name: "Lamp", category: OcptElementCategory.prop);
+  final propTarget = _buildElementTarget(
+    id: "el-1",
+    name: "Lamp",
+    category: OcptElementCategory.prop,
+  );
   final costumeTarget = _buildElementTarget(
     id: "el-2",
     name: "Jacket",
@@ -109,16 +113,8 @@ void main() {
     heading: "EXT. GARDEN - NIGHT",
     status: OcptBreakdownSceneStatus.inProgress,
     tags: [
-      _buildTag(
-        sceneId: "scene-2",
-        targetKind: OcptBreakdownTargetKind.element,
-        targetId: "el-1",
-      ),
-      _buildTag(
-        sceneId: "scene-2",
-        targetKind: OcptBreakdownTargetKind.element,
-        targetId: "el-2",
-      ),
+      _buildTag(sceneId: "scene-2", targetKind: OcptBreakdownTargetKind.element, targetId: "el-1"),
+      _buildTag(sceneId: "scene-2", targetKind: OcptBreakdownTargetKind.element, targetId: "el-2"),
       _buildTag(sceneId: "scene-2", targetKind: OcptBreakdownTargetKind.role, targetId: "role-1"),
     ],
   );

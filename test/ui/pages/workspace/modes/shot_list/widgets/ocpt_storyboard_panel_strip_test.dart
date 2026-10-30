@@ -140,48 +140,43 @@ void main() {
     expect(deleteRequested, ["p2"]);
   });
 
-  testWidgets(
-    "read-only withholds the import slot, the replace/delete actions and reordering, "
-    "while selecting still reports",
-    (tester) async {
-      await _pumpStrip(
-        tester,
-        OcptStoryboardPanelStrip(
-          panels: [_panel("p1")],
-          aspectRatio: 16 / 9,
-          height: 160,
-          selectedPanelId: null,
-          isReadOnly: true,
-          onPanelSelected: (_) {},
-          onReplaceRequested: null,
-          onDeleteRequested: null,
-          onImportRequested: null,
-          onReordered: null,
-          activeAnnotationTool: null,
-          selectedAnnotationId: null,
-          onAnnotationDrawn: null,
-          onLabelPlaced: null,
-          onAnnotationSelected: null,
-        ),
-      );
+  testWidgets("read-only withholds the import slot, the replace/delete actions and reordering, "
+      "while selecting still reports", (tester) async {
+    await _pumpStrip(
+      tester,
+      OcptStoryboardPanelStrip(
+        panels: [_panel("p1")],
+        aspectRatio: 16 / 9,
+        height: 160,
+        selectedPanelId: null,
+        isReadOnly: true,
+        onPanelSelected: (_) {},
+        onReplaceRequested: null,
+        onDeleteRequested: null,
+        onImportRequested: null,
+        onReordered: null,
+        activeAnnotationTool: null,
+        selectedAnnotationId: null,
+        onAnnotationDrawn: null,
+        onLabelPlaced: null,
+        onAnnotationSelected: null,
+      ),
+    );
 
-      // The import slot is still drawn (a shot may still need one described), but its own tap
-      // does nothing: there is no `onTap` to report through.
-      final importSlotFinder = find.byIcon(Icons.add_photo_alternate_outlined);
-      expect(importSlotFinder, findsOneWidget);
-      final inkWell = tester.widget<InkWell>(
-        find
-            .ancestor(of: importSlotFinder, matching: find.byType(InkWell))
-            .first,
-      );
-      expect(inkWell.onTap, isNull);
+    // The import slot is still drawn (a shot may still need one described), but its own tap
+    // does nothing: there is no `onTap` to report through.
+    final importSlotFinder = find.byIcon(Icons.add_photo_alternate_outlined);
+    expect(importSlotFinder, findsOneWidget);
+    final inkWell = tester.widget<InkWell>(
+      find.ancestor(of: importSlotFinder, matching: find.byType(InkWell)).first,
+    );
+    expect(inkWell.onTap, isNull);
 
-      // The frame's own `Replace image` and `Delete panel` icon buttons are never built at all
-      // while withheld.
-      expect(find.byIcon(Icons.swap_horiz), findsNothing);
-      expect(find.byIcon(Icons.delete_outline), findsNothing);
-    },
-  );
+    // The frame's own `Replace image` and `Delete panel` icon buttons are never built at all
+    // while withheld.
+    expect(find.byIcon(Icons.swap_horiz), findsNothing);
+    expect(find.byIcon(Icons.delete_outline), findsNothing);
+  });
 
   testWidgets("a panel's own comment reads under its frame", (tester) async {
     await _pumpStrip(
@@ -242,39 +237,36 @@ void main() {
     expect(drawn.single.$1, OcptStoryboardAnnotationKind.movementArrow);
   });
 
-  testWidgets(
-    "a tool active on the selected panel suspends this strip's reorder, "
-    "and turning it off restores it",
-    (tester) async {
-      final reordered = <String>[];
+  testWidgets("a tool active on the selected panel suspends this strip's reorder, "
+      "and turning it off restores it", (tester) async {
+    final reordered = <String>[];
 
-      Widget buildStrip(OcptStoryboardAnnotationTool? tool) => OcptStoryboardPanelStrip(
-        panels: [_panel("p1"), _panel("p2")],
-        aspectRatio: 16 / 9,
-        height: 160,
-        selectedPanelId: "p1",
-        isReadOnly: false,
-        onPanelSelected: (_) {},
-        onReplaceRequested: (_) {},
-        onDeleteRequested: (_) {},
-        onImportRequested: () {},
-        onReordered: (panelId, _) => reordered.add(panelId),
-        activeAnnotationTool: tool,
-        selectedAnnotationId: null,
-        onAnnotationDrawn: (_, __, ___, ____, _____, ______) {},
-        onLabelPlaced: (_, __, ___) {},
-        onAnnotationSelected: (_) {},
-      );
+    Widget buildStrip(OcptStoryboardAnnotationTool? tool) => OcptStoryboardPanelStrip(
+      panels: [_panel("p1"), _panel("p2")],
+      aspectRatio: 16 / 9,
+      height: 160,
+      selectedPanelId: "p1",
+      isReadOnly: false,
+      onPanelSelected: (_) {},
+      onReplaceRequested: (_) {},
+      onDeleteRequested: (_) {},
+      onImportRequested: () {},
+      onReordered: (panelId, _) => reordered.add(panelId),
+      activeAnnotationTool: tool,
+      selectedAnnotationId: null,
+      onAnnotationDrawn: (_, __, ___, ____, _____, ______) {},
+      onLabelPlaced: (_, __, ___) {},
+      onAnnotationSelected: (_) {},
+    );
 
-      await _pumpStrip(tester, buildStrip(OcptStoryboardAnnotationTool.movementArrow));
-      final strip = tester.widget<OcptStoryboardPanelStrip>(find.byType(OcptStoryboardPanelStrip));
-      expect(strip.effectiveOnReordered, isNull);
+    await _pumpStrip(tester, buildStrip(OcptStoryboardAnnotationTool.movementArrow));
+    final strip = tester.widget<OcptStoryboardPanelStrip>(find.byType(OcptStoryboardPanelStrip));
+    expect(strip.effectiveOnReordered, isNull);
 
-      await _pumpStrip(tester, buildStrip(null));
-      final restoredStrip = tester.widget<OcptStoryboardPanelStrip>(
-        find.byType(OcptStoryboardPanelStrip),
-      );
-      expect(restoredStrip.effectiveOnReordered, isNotNull);
-    },
-  );
+    await _pumpStrip(tester, buildStrip(null));
+    final restoredStrip = tester.widget<OcptStoryboardPanelStrip>(
+      find.byType(OcptStoryboardPanelStrip),
+    );
+    expect(restoredStrip.effectiveOnReordered, isNotNull);
+  });
 }

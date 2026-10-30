@@ -56,8 +56,9 @@ class OcptFloorPlanSnapshot extends Equatable {
   /// move/delete that never asks (one sequence) from one that must ask "every sequence / only this
   /// one" or offer "remove from sequence n" (two or more). Zero while [setId] names no live set at
   /// all.
-  int sequenceCountOfSet(String setId) =>
-      setsBySceneId.values.where((sets) => sets.any((floorPlanSet) => floorPlanSet.id == setId)).length;
+  int sequenceCountOfSet(String setId) => setsBySceneId.values
+      .where((sets) => sets.any((floorPlanSet) => floorPlanSet.id == setId))
+      .length;
 
   /// Object string representation, useful for debugging and logging.
   @override

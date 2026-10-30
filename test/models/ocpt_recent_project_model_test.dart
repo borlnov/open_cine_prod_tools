@@ -53,10 +53,7 @@ void main() {
     });
 
     test('fromJson returns null when a required key is missing', () {
-      final json = {
-        "path": "/home/user/projects/my_script.ocpt",
-        "name": "My Script",
-      };
+      final json = {"path": "/home/user/projects/my_script.ocpt", "name": "My Script"};
 
       expect(OcptRecentProjectModel.fromJson(json), isNull);
     });

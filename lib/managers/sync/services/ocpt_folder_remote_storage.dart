@@ -74,7 +74,12 @@ class OcptFolderRemoteStorage implements OcptRemoteStorage {
       }
 
       final json = jsonDecode(await entry.readAsString()) as Map<String, dynamic>;
-      stored.add(OcptStoredChangeset(sequenceNumber: sequence, envelope: OcptChangesetEnvelope.fromJson(json)));
+      stored.add(
+        OcptStoredChangeset(
+          sequenceNumber: sequence,
+          envelope: OcptChangesetEnvelope.fromJson(json),
+        ),
+      );
     }
 
     return stored;
@@ -104,7 +109,9 @@ class OcptFolderRemoteStorage implements OcptRemoteStorage {
     }
 
     final snapshotId = (await marker.readAsString()).trim();
-    final descriptorFile = File(p.join(_snapshotsDir.path, '$snapshotId$_snapshotDescriptorExtension'));
+    final descriptorFile = File(
+      p.join(_snapshotsDir.path, '$snapshotId$_snapshotDescriptorExtension'),
+    );
     final bytesFile = File(p.join(_snapshotsDir.path, '$snapshotId$_snapshotBytesExtension'));
     if (!descriptorFile.existsSync() || !bytesFile.existsSync()) {
       return null;
@@ -153,12 +160,11 @@ class OcptFolderRemoteStorage implements OcptRemoteStorage {
   /// Every changeset file directly under [changesetsDir], sorted by name — which, given
   /// [_changesetFileName]'s fixed-width zero-padding, is the same order as by sequence number.
   Future<List<File>> _sortedChangesetFiles(Directory changesetsDir) async {
-    final entries =
-        await changesetsDir
-            .list()
-            .where((entry) => entry is File && p.extension(entry.path) == _changesetFileExtension)
-            .cast<File>()
-            .toList();
+    final entries = await changesetsDir
+        .list()
+        .where((entry) => entry is File && p.extension(entry.path) == _changesetFileExtension)
+        .cast<File>()
+        .toList();
     entries.sort((a, b) => a.path.compareTo(b.path));
 
     return entries;

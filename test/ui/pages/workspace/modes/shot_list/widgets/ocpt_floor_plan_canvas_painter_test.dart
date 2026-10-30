@@ -135,12 +135,8 @@ void main() {
 
   group("OcptFloorPlanCanvasPainter — camera field-of-view wedge", () {
     test("a camera with a wedge paints differently from one without", () async {
-      final withWedge = await _renderRgba(
-        _sheetOf(symbols: [_symbolShape(cameraFovWedgeDeg: 50)]),
-      );
-      final withoutWedge = await _renderRgba(
-        _sheetOf(symbols: [_symbolShape()]),
-      );
+      final withWedge = await _renderRgba(_sheetOf(symbols: [_symbolShape(cameraFovWedgeDeg: 50)]));
+      final withoutWedge = await _renderRgba(_sheetOf(symbols: [_symbolShape()]));
 
       expect(withWedge, isNot(equals(withoutWedge)));
     });
@@ -161,36 +157,29 @@ void main() {
       final tipScreenY = 100 - ocptFloorPlanCameraFootprintM / 2 * pixelsPerMetre;
       final chordScreenY = tipScreenY - reachM * pixelsPerMetre;
 
-      test(
-        "the far chord sits at the very same depth for a narrow and for a wide angle",
-        () async {
-          final narrow = await _renderRgba(
-            _sheetOf(
-              symbols: [_symbolShape(cameraFovWedgeDeg: 20, cameraFovWedgeReachM: reachM)],
-            ),
-          );
-          final wide = await _renderRgba(
-            _sheetOf(
-              symbols: [_symbolShape(cameraFovWedgeDeg: 140, cameraFovWedgeReachM: reachM)],
-            ),
-          );
+      test("the far chord sits at the very same depth for a narrow and for a wide angle", () async {
+        final narrow = await _renderRgba(
+          _sheetOf(symbols: [_symbolShape(cameraFovWedgeDeg: 20, cameraFovWedgeReachM: reachM)]),
+        );
+        final wide = await _renderRgba(
+          _sheetOf(symbols: [_symbolShape(cameraFovWedgeDeg: 140, cameraFovWedgeReachM: reachM)]),
+        );
 
-          // Straight ahead of the lens (screen x = 100), at the chord's own depth: inside the
-          // wedge whatever the angle, since every angle's chord passes through the axis.
-          final narrowAtChord = _pixelAt(narrow, 100, chordScreenY.round());
-          final wideAtChord = _pixelAt(wide, 100, chordScreenY.round());
-          expect(narrowAtChord.$4, greaterThan(0));
-          expect(wideAtChord.$4, greaterThan(0));
+        // Straight ahead of the lens (screen x = 100), at the chord's own depth: inside the
+        // wedge whatever the angle, since every angle's chord passes through the axis.
+        final narrowAtChord = _pixelAt(narrow, 100, chordScreenY.round());
+        final wideAtChord = _pixelAt(wide, 100, chordScreenY.round());
+        expect(narrowAtChord.$4, greaterThan(0));
+        expect(wideAtChord.$4, greaterThan(0));
 
-          // A few pixels past the chord (further from the lens than the reach): outside the wedge
-          // for both — the edge-length bug used to let a wide angle's far side sit short of this
-          // depth, or a narrow one overshoot it; the height is fixed regardless of the angle.
-          final narrowPastChord = _pixelAt(narrow, 100, (chordScreenY - 6).round());
-          final widePastChord = _pixelAt(wide, 100, (chordScreenY - 6).round());
-          expect(narrowPastChord.$4, 0);
-          expect(widePastChord.$4, 0);
-        },
-      );
+        // A few pixels past the chord (further from the lens than the reach): outside the wedge
+        // for both — the edge-length bug used to let a wide angle's far side sit short of this
+        // depth, or a narrow one overshoot it; the height is fixed regardless of the angle.
+        final narrowPastChord = _pixelAt(narrow, 100, (chordScreenY - 6).round());
+        final widePastChord = _pixelAt(wide, 100, (chordScreenY - 6).round());
+        expect(narrowPastChord.$4, 0);
+        expect(widePastChord.$4, 0);
+      });
 
       test("the far corner sits at (height × tan(halfAngle), −height) from the lens tip", () async {
         // A 90° wedge: half angle 45°, tan(45°) == 1, so the corner sits exactly `reachM` to the
@@ -207,17 +196,9 @@ void main() {
         final halfWidthAtDepth = depth * math.tan(45 * math.pi / 180);
 
         // Just inside the right edge at that depth (smaller half-width than the wedge's own).
-        final inside = _pixelAt(
-          rgba,
-          (100 + halfWidthAtDepth - 6).round(),
-          sampleScreenY.round(),
-        );
+        final inside = _pixelAt(rgba, (100 + halfWidthAtDepth - 6).round(), sampleScreenY.round());
         // Just outside it (larger half-width than the wedge's own), at the very same depth.
-        final outside = _pixelAt(
-          rgba,
-          (100 + halfWidthAtDepth + 6).round(),
-          sampleScreenY.round(),
-        );
+        final outside = _pixelAt(rgba, (100 + halfWidthAtDepth + 6).round(), sampleScreenY.round());
 
         expect(inside.$4, greaterThan(0));
         expect(outside.$4, 0);
@@ -236,8 +217,12 @@ void main() {
     );
 
     test("each décor primitive paints its own pixels", () async {
-      final wall = await _renderRgba(_sheetOf(symbols: [decorOf(OcptFloorPlanSetElementShape.wall)]));
-      final door = await _renderRgba(_sheetOf(symbols: [decorOf(OcptFloorPlanSetElementShape.door)]));
+      final wall = await _renderRgba(
+        _sheetOf(symbols: [decorOf(OcptFloorPlanSetElementShape.wall)]),
+      );
+      final door = await _renderRgba(
+        _sheetOf(symbols: [decorOf(OcptFloorPlanSetElementShape.door)]),
+      );
       final furniture = await _renderRgba(
         _sheetOf(symbols: [decorOf(OcptFloorPlanSetElementShape.furniture)]),
       );
@@ -253,22 +238,25 @@ void main() {
   });
 
   group("OcptFloorPlanCanvasPainter — character and light glyphs", () {
-    test("a character glyph paints differently from a camera glyph of the same footprint", () async {
-      final character = await _renderRgba(
-        _sheetOf(
-          symbols: [
-            _symbolShape(
-              layer: OcptFloorPlanLayer.characters,
-              glyphKind: OcptFloorPlanSymbolGlyphKind.character,
-              colorArgb: 0xFFFF9800,
-            ),
-          ],
-        ),
-      );
-      final camera = await _renderRgba(_sheetOf(symbols: [_symbolShape()]));
+    test(
+      "a character glyph paints differently from a camera glyph of the same footprint",
+      () async {
+        final character = await _renderRgba(
+          _sheetOf(
+            symbols: [
+              _symbolShape(
+                layer: OcptFloorPlanLayer.characters,
+                glyphKind: OcptFloorPlanSymbolGlyphKind.character,
+                colorArgb: 0xFFFF9800,
+              ),
+            ],
+          ),
+        );
+        final camera = await _renderRgba(_sheetOf(symbols: [_symbolShape()]));
 
-      expect(character, isNot(equals(camera)));
-    });
+        expect(character, isNot(equals(camera)));
+      },
+    );
 
     test("a light glyph paints differently from an unlit footprint of the same size", () async {
       final light = await _renderRgba(
@@ -334,7 +322,10 @@ void main() {
       final symbol = characterOf();
 
       final unselected = await _renderRgba(_sheetOf(symbols: [symbol]));
-      final selected = await _renderRgba(_sheetOf(symbols: [symbol]), selectedSymbolId: symbol.symbolId);
+      final selected = await _renderRgba(
+        _sheetOf(symbols: [symbol]),
+        selectedSymbolId: symbol.symbolId,
+      );
 
       expect(selected, isNot(equals(unselected)));
     });
@@ -355,12 +346,15 @@ void main() {
       expect(withoutLabelPixel.$4, 0);
     });
 
-    test("a camera with a derived label paints differently from the same camera with none", () async {
-      final withLabel = await _renderRgba(_sheetOf(symbols: [_symbolShape(cameraLabel: "3A")]));
-      final withoutLabel = await _renderRgba(_sheetOf(symbols: [_symbolShape()]));
+    test(
+      "a camera with a derived label paints differently from the same camera with none",
+      () async {
+        final withLabel = await _renderRgba(_sheetOf(symbols: [_symbolShape(cameraLabel: "3A")]));
+        final withoutLabel = await _renderRgba(_sheetOf(symbols: [_symbolShape()]));
 
-      expect(withLabel, isNot(equals(withoutLabel)));
-    });
+        expect(withLabel, isNot(equals(withoutLabel)));
+      },
+    );
   });
 
   group("OcptFloorPlanCanvasPainter — arrow curve", () {

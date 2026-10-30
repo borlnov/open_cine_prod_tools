@@ -55,7 +55,9 @@ void main() {
     expect(find.text("wrong"), findsNothing);
   });
 
-  testWidgets("tapping a suggestion invokes onSuggestionSelected with that suggestion", (tester) async {
+  testWidgets("tapping a suggestion invokes onSuggestionSelected with that suggestion", (
+    tester,
+  ) async {
     String? selected;
     final controller = MenuController();
 
@@ -152,7 +154,9 @@ void main() {
     expect(learned, isTrue);
   });
 
-  testWidgets("withholds the whole spelling group when there is no misspelled word", (tester) async {
+  testWidgets("withholds the whole spelling group when there is no misspelled word", (
+    tester,
+  ) async {
     final controller = MenuController();
 
     await tester.pumpWidget(
@@ -224,67 +228,69 @@ void main() {
     },
   );
 
-  testWidgets("draws no divider between the suggestions and the actions when there are no suggestions", (
-    tester,
-  ) async {
-    final controller = MenuController();
+  testWidgets(
+    "draws no divider between the suggestions and the actions when there are no suggestions",
+    (tester) async {
+      final controller = MenuController();
 
-    await tester.pumpWidget(
-      _wrapWithLocalization(
-        OcptEditorContextMenu(
-          controller: controller,
-          childFocusNode: FocusNode(),
-          misspelledWord: "wrold",
-          onSuggestionSelected: (_) {},
-          onIgnoreWord: () {},
-          onLearnWord: () {},
-          currentType: null,
-          onCut: () {},
-          onCopy: null,
-          onPaste: null,
-          onSelectAll: null,
-          onTypeSelected: null,
-          child: const SizedBox(),
+      await tester.pumpWidget(
+        _wrapWithLocalization(
+          OcptEditorContextMenu(
+            controller: controller,
+            childFocusNode: FocusNode(),
+            misspelledWord: "wrold",
+            onSuggestionSelected: (_) {},
+            onIgnoreWord: () {},
+            onLearnWord: () {},
+            currentType: null,
+            onCut: () {},
+            onCopy: null,
+            onPaste: null,
+            onSelectAll: null,
+            onTypeSelected: null,
+            child: const SizedBox(),
+          ),
         ),
-      ),
-    );
+      );
 
-    controller.open();
-    await tester.pumpAndSettle();
+      controller.open();
+      await tester.pumpAndSettle();
 
-    // Only the divider separating the spelling group (Ignore/Add, with no suggestions above them)
-    // from Cut below it.
-    expect(find.byType(Divider), findsOneWidget);
-  });
+      // Only the divider separating the spelling group (Ignore/Add, with no suggestions above them)
+      // from Cut below it.
+      expect(find.byType(Divider), findsOneWidget);
+    },
+  );
 
-  testWidgets("draws no divider at all when there is nothing on either side of the spelling group", (
-    tester,
-  ) async {
-    final controller = MenuController();
+  testWidgets(
+    "draws no divider at all when there is nothing on either side of the spelling group",
+    (tester) async {
+      final controller = MenuController();
 
-    await tester.pumpWidget(
-      _wrapWithLocalization(
-        OcptEditorContextMenu(
-          controller: controller,
-          childFocusNode: FocusNode(),
-          misspelledWord: "wrold",
-          onSuggestionSelected: (_) {},
-          onIgnoreWord: () {},
-          onLearnWord: () {},
-          currentType: null,
-          onCut: null,
-          onCopy: null,
-          onPaste: null,
-          onSelectAll: null,
-          onTypeSelected: null,
-          child: const SizedBox(),
+      await tester.pumpWidget(
+        _wrapWithLocalization(
+          OcptEditorContextMenu(
+            controller: controller,
+            childFocusNode: FocusNode(),
+            misspelledWord: "wrold",
+            onSuggestionSelected: (_) {},
+            onIgnoreWord: () {},
+            onLearnWord: () {},
+            currentType: null,
+            onCut: null,
+            onCopy: null,
+            onPaste: null,
+            onSelectAll: null,
+            onTypeSelected: null,
+            child: const SizedBox(),
+          ),
         ),
-      ),
-    );
+      );
 
-    controller.open();
-    await tester.pumpAndSettle();
+      controller.open();
+      await tester.pumpAndSettle();
 
-    expect(find.byType(Divider), findsNothing);
-  });
+      expect(find.byType(Divider), findsNothing);
+    },
+  );
 }

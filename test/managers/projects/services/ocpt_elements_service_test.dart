@@ -41,9 +41,8 @@ void main() {
           .get();
 
   /// The element row [id], tombstoned or not.
-  Future<OcptElementRow> readElement(String id) => (database.select(
-    database.ocptElementsTable,
-  )..where((row) => row.id.equals(id))).getSingle();
+  Future<OcptElementRow> readElement(String id) =>
+      (database.select(database.ocptElementsTable)..where((row) => row.id.equals(id))).getSingle();
 
   /// Every version stamp the project currently holds, keyed by `<table>/<row>/<column>` — the same
   /// shape `OcptShotListService`'s own stamping tests read `row_field_versions` back through.
@@ -123,11 +122,7 @@ void main() {
       final firstId = await createElement("A");
       final secondId = await createElement("B");
 
-      await elementsService.reorderElement(
-        database: database,
-        elementId: secondId,
-        newPosition: 0,
-      );
+      await elementsService.reorderElement(database: database, elementId: secondId, newPosition: 0);
       final thirdId = await createElement("C");
       await elementsService.reorderElement(database: database, elementId: thirdId, newPosition: 1);
 
@@ -366,61 +361,60 @@ void main() {
       );
       expect(links, isEmpty);
     });
-    test(
-      "propsOfScene reads only prop-category elements, quantity resolved from the link's own "
-      "override or the catalogue's own default",
-      () async {
-        final candlesId = await createElement("Candles");
-        await elementsService.updateElement(
-          database: database,
-          elementId: candlesId,
-          quantity: const Value("6"),
-        );
-        await elementsService.addSceneElement(
-          database: database,
-          sceneId: "scene-1",
-          elementId: candlesId,
-          quantity: "12",
-        );
+    test("propsOfScene reads only prop-category elements, quantity resolved from the link's own "
+        "override or the catalogue's own default", () async {
+      final candlesId = await createElement("Candles");
+      await elementsService.updateElement(
+        database: database,
+        elementId: candlesId,
+        quantity: const Value("6"),
+      );
+      await elementsService.addSceneElement(
+        database: database,
+        sceneId: "scene-1",
+        elementId: candlesId,
+        quantity: "12",
+      );
 
-        final vaseId = await createElement("Vase");
-        await elementsService.addSceneElement(
-          database: database,
-          sceneId: "scene-1",
-          elementId: vaseId,
-        );
+      final vaseId = await createElement("Vase");
+      await elementsService.addSceneElement(
+        database: database,
+        sceneId: "scene-1",
+        elementId: vaseId,
+      );
 
-        // A costume, never a prop chip.
-        final costumeId = await elementsService.createElement(
-          database: database,
-          name: "Coat",
-          category: OcptElementCategory.costume,
-          sourceKind: OcptElementSourceKind.owned,
-        ).then((id) => id!);
-        await elementsService.addSceneElement(
-          database: database,
-          sceneId: "scene-1",
-          elementId: costumeId,
-        );
+      // A costume, never a prop chip.
+      final costumeId = await elementsService
+          .createElement(
+            database: database,
+            name: "Coat",
+            category: OcptElementCategory.costume,
+            sourceKind: OcptElementSourceKind.owned,
+          )
+          .then((id) => id!);
+      await elementsService.addSceneElement(
+        database: database,
+        sceneId: "scene-1",
+        elementId: costumeId,
+      );
 
-        // A prop of a different scene, never in scene-1's own list.
-        final elsewhereId = await createElement("Lantern");
-        await elementsService.addSceneElement(
-          database: database,
-          sceneId: "scene-2",
-          elementId: elsewhereId,
-        );
+      // A prop of a different scene, never in scene-1's own list.
+      final elsewhereId = await createElement("Lantern");
+      await elementsService.addSceneElement(
+        database: database,
+        sceneId: "scene-2",
+        elementId: elsewhereId,
+      );
 
-        final props = await elementsService.propsOfScene(database: database, sceneId: "scene-1");
+      final props = await elementsService.propsOfScene(database: database, sceneId: "scene-1");
 
-        expect(props.map((prop) => prop.elementId), [candlesId, vaseId]);
-        final candles = props.firstWhere((prop) => prop.elementId == candlesId);
-        expect(candles.name, "Candles");
-        expect(candles.quantity, "12"); // the link's own override, not the catalogue's "6"
-        final vase = props.firstWhere((prop) => prop.elementId == vaseId);
-        expect(vase.quantity, ""); // neither the link nor the catalogue carries one
-      },
-    );
+      expect(props.map((prop) => prop.elementId), [candlesId, vaseId]);
+      final candles = props.firstWhere((prop) => prop.elementId == candlesId);
+      expect(candles.name, "Candles");
+      expect(candles.quantity, "12"); // the link's own override, not the catalogue's "6"
+      final vase = props.firstWhere((prop) => prop.elementId == vaseId);
+      expect(vase.quantity, ""); // neither the link nor the catalogue carries one
+    });
 
     test("propsOfScene leaves out a tombstoned element or link", () async {
       final elementId = await createElement("Valise");
@@ -437,10 +431,7 @@ void main() {
       expect(beforeDelete, hasLength(1));
 
       await elementsService.removeSceneElement(database: database, id: linkId);
-      expect(
-        await elementsService.propsOfScene(database: database, sceneId: "scene-1"),
-        isEmpty,
-      );
+      expect(await elementsService.propsOfScene(database: database, sceneId: "scene-1"), isEmpty);
     });
 
     test("loadElements joins the links in the screenplay's own scene order", () async {
@@ -478,11 +469,8 @@ void main() {
         elementId: elementId,
       );
 
-      await (database.update(
-        database.ocptScenesTable,
-      )..where((row) => row.id.equals("scene-1"))).write(
-        const OcptScenesTableCompanion(isDeleted: Value(true)),
-      );
+      await (database.update(database.ocptScenesTable)..where((row) => row.id.equals("scene-1")))
+          .write(const OcptScenesTableCompanion(isDeleted: Value(true)));
 
       final element = (await elementsService.loadElements(database: database)).single;
       expect(element.sceneLinks.map((link) => link.sceneId), ["scene-2"]);
@@ -677,11 +665,8 @@ void main() {
         elementId: elementId,
       );
 
-      await (database.update(
-        database.ocptRolesTable,
-      )..where((row) => row.id.equals("role-1"))).write(
-        const OcptRolesTableCompanion(isDeleted: Value(true)),
-      );
+      await (database.update(database.ocptRolesTable)..where((row) => row.id.equals("role-1")))
+          .write(const OcptRolesTableCompanion(isDeleted: Value(true)));
 
       final element = (await elementsService.loadElements(database: database)).single;
       expect(element.roleLinks, isEmpty);
@@ -704,11 +689,7 @@ void main() {
     test("tombstoneRoleLinksOfRole takes every link of one role and no other", () async {
       final wornId = await createElement("Manteau rouge");
       final otherId = await createElement("Valise");
-      await elementsService.addRoleElement(
-        database: database,
-        roleId: "role-1",
-        elementId: wornId,
-      );
+      await elementsService.addRoleElement(database: database, roleId: "role-1", elementId: wornId);
       await elementsService.addRoleElement(
         database: database,
         roleId: "role-2",
@@ -916,9 +897,7 @@ void main() {
       );
 
       final stamps = await readStamps();
-      final ownKeys = stamps.keys
-          .where((key) => key.startsWith("scene_elements/$linkId/"))
-          .toSet();
+      final ownKeys = stamps.keys.where((key) => key.startsWith("scene_elements/$linkId/")).toSet();
       expect(ownKeys, {"scene_elements/$linkId/notes"});
     });
 

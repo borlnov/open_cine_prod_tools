@@ -88,20 +88,21 @@ OcptShootingDay _buildDay({required String id, required int dayNumber}) => OcptS
 );
 
 /// Builds a slot with the few fields these tests read, everything else neutral.
-OcptShootingSlot _buildSlot({required String id, required String shootingDayId}) => OcptShootingSlot(
-  id: id,
-  shootingDayId: shootingDayId,
-  label: "",
-  locationId: null,
-  setId: null,
-  anchorEdge: OcptShootingSlotAnchorEdge.start,
-  anchorMinute: 480,
-  anchorSlotId: null,
-  notes: "",
-  crew: const [],
-  cast: const [],
-  guests: const [],
-);
+OcptShootingSlot _buildSlot({required String id, required String shootingDayId}) =>
+    OcptShootingSlot(
+      id: id,
+      shootingDayId: shootingDayId,
+      label: "",
+      locationId: null,
+      setId: null,
+      anchorEdge: OcptShootingSlotAnchorEdge.start,
+      anchorMinute: 480,
+      anchorSlotId: null,
+      notes: "",
+      crew: const [],
+      cast: const [],
+      guests: const [],
+    );
 
 /// Builds a shooting day block with the few fields these tests read, everything else neutral.
 OcptShootingDayBlock _buildBlock({
@@ -249,15 +250,22 @@ void main() {
         "day-1": [_buildSlot(id: "slot-1", shootingDayId: "day-1")],
       },
       blocksByDayId: {
-        "day-1": [_buildBlock(id: "block-1", shootingDayId: "day-1", slotId: "slot-1", shotId: "shot-1")],
+        "day-1": [
+          _buildBlock(id: "block-1", shootingDayId: "day-1", slotId: "slot-1", shotId: "shot-1"),
+        ],
       },
-      shotLists: [buildShotListA(shots: [shot])],
+      shotLists: [
+        buildShotListA(shots: [shot]),
+      ],
     );
   }
 
   /// A one-day plan with two slots, each placing a shot of episode A's `scene-1` and episode B's
   /// `scene-b1` respectively — the fixture the multi-episode tests below share.
-  ({OcptSchedulePlanSnapshot plan, List<({String screenplayId, FountainDocument document})> documents})
+  ({
+    OcptSchedulePlanSnapshot plan,
+    List<({String screenplayId, FountainDocument document})> documents,
+  })
   buildTwoEpisodePlan() {
     final shotA = _buildShot(id: "shot-a1", sceneId: "scene-1", code: "1/1");
     final shotB = _buildShot(id: "shot-b1", sceneId: "scene-b1", code: "1/1");
@@ -275,7 +283,10 @@ void main() {
           _buildBlock(id: "block-b", shootingDayId: "day-1", slotId: "slot-b", shotId: "shot-b1"),
         ],
       },
-      shotLists: [buildShotListA(shots: [shotA]), buildShotListB(shots: [shotB])],
+      shotLists: [
+        buildShotListA(shots: [shotA]),
+        buildShotListB(shots: [shotB]),
+      ],
     );
 
     return (
@@ -402,23 +413,26 @@ void main() {
     });
 
     group("more than one episode", () {
-      test("a day playing sequences from two episodes composes one page per episode, chained in order", () async {
-        final fixture = buildTwoEpisodePlan();
+      test(
+        "a day playing sequences from two episodes composes one page per episode, chained in order",
+        () async {
+          final fixture = buildTwoEpisodePlan();
 
-        final bytes = await service.generate(
-          plan: fixture.plan,
-          dayId: "day-1",
-          documents: fixture.documents,
-          pageSetup: pageSetup,
-          labels: _labels,
-          projectName: "My Movie",
-          includeSceneNumbers: false,
-          presentation: OcptSidesPresentation.scriptPages,
-          exportDate: pinnedExportDate,
-        );
+          final bytes = await service.generate(
+            plan: fixture.plan,
+            dayId: "day-1",
+            documents: fixture.documents,
+            pageSetup: pageSetup,
+            labels: _labels,
+            projectName: "My Movie",
+            includeSceneNumbers: false,
+            presentation: OcptSidesPresentation.scriptPages,
+            exportDate: pinnedExportDate,
+          );
 
-        expect(_pageCount(bytes), 2);
-      });
+          expect(_pageCount(bytes), 2);
+        },
+      );
 
       test("the runs chain in the order the documents are given, not a fixed one", () async {
         final fixture = buildTwoEpisodePlan();
@@ -465,7 +479,9 @@ void main() {
           final scene = doc.scenes.single;
           final layout = OcptScriptSidesLayout.of(
             script: composed,
-            sceneSpans: [(charStart: scene.sourceRange.startOffset, charEnd: doc.sourceText.length)],
+            sceneSpans: [
+              (charStart: scene.sourceRange.startOffset, charEnd: doc.sourceText.length),
+            ],
             metrics: metrics,
             presentation: OcptSidesPresentation.scriptPages,
           );
@@ -491,14 +507,23 @@ void main() {
           },
           blocksByDayId: {
             "day-1": [
-              _buildBlock(id: "block-a", shootingDayId: "day-1", slotId: "slot-a", shotId: "shot-a1"),
+              _buildBlock(
+                id: "block-a",
+                shootingDayId: "day-1",
+                slotId: "slot-a",
+                shotId: "shot-a1",
+              ),
             ],
           },
           // Episode B's own shot list is still read (as it would be for any episode the day's
           // scenes might name), it simply places no shot of it on this day.
           shotLists: [
-            buildShotListA(shots: [_buildShot(id: "shot-a1", sceneId: "scene-1", code: "1/1")]),
-            buildShotListB(shots: [_buildShot(id: "shot-b1", sceneId: "scene-b1", code: "1/1")]),
+            buildShotListA(
+              shots: [_buildShot(id: "shot-a1", sceneId: "scene-1", code: "1/1")],
+            ),
+            buildShotListB(
+              shots: [_buildShot(id: "shot-b1", sceneId: "scene-b1", code: "1/1")],
+            ),
           ],
         );
 
@@ -514,7 +539,11 @@ void main() {
           exportDate: pinnedExportDate,
         );
 
-        expect(_pageCount(bytes), 1, reason: "episode A's own single page only, episode B named nothing to print");
+        expect(
+          _pageCount(bytes),
+          1,
+          reason: "episode A's own single page only, episode B named nothing to print",
+        );
       });
 
       test("the empty-day note page still prints when no episode contributes anything", () async {
@@ -525,8 +554,12 @@ void main() {
             "day-1": [_buildSlot(id: "slot-1", shootingDayId: "day-1")],
           },
           shotLists: [
-            buildShotListA(shots: [_buildShot(id: "shot-a1", sceneId: "scene-1", code: "1/1")]),
-            buildShotListB(shots: [_buildShot(id: "shot-b1", sceneId: "scene-b1", code: "1/1")]),
+            buildShotListA(
+              shots: [_buildShot(id: "shot-a1", sceneId: "scene-1", code: "1/1")],
+            ),
+            buildShotListB(
+              shots: [_buildShot(id: "shot-b1", sceneId: "scene-b1", code: "1/1")],
+            ),
           ],
         );
 
@@ -545,39 +578,46 @@ void main() {
         expect(_pageCount(bytes), 1);
       });
 
-      test("a packed booklet spanning two episodes counts pages over the whole booklet, not one run", () async {
-        final fixture = buildTwoEpisodePlan();
+      test(
+        "a packed booklet spanning two episodes counts pages over the whole booklet, not one run",
+        () async {
+          final fixture = buildTwoEpisodePlan();
 
-        final singleEpisodeBytes = await service.generate(
-          plan: fixture.plan,
-          dayId: "day-1",
-          documents: [fixture.documents.first],
-          pageSetup: pageSetup,
-          labels: _labels,
-          projectName: "My Movie",
-          includeSceneNumbers: false,
-          presentation: OcptSidesPresentation.packed,
-          exportDate: pinnedExportDate,
-        );
-        final twoEpisodeBytes = await service.generate(
-          plan: fixture.plan,
-          dayId: "day-1",
-          documents: fixture.documents,
-          pageSetup: pageSetup,
-          labels: _labels,
-          projectName: "My Movie",
-          includeSceneNumbers: false,
-          presentation: OcptSidesPresentation.packed,
-          exportDate: pinnedExportDate,
-        );
+          final singleEpisodeBytes = await service.generate(
+            plan: fixture.plan,
+            dayId: "day-1",
+            documents: [fixture.documents.first],
+            pageSetup: pageSetup,
+            labels: _labels,
+            projectName: "My Movie",
+            includeSceneNumbers: false,
+            presentation: OcptSidesPresentation.packed,
+            exportDate: pinnedExportDate,
+          );
+          final twoEpisodeBytes = await service.generate(
+            plan: fixture.plan,
+            dayId: "day-1",
+            documents: fixture.documents,
+            pageSetup: pageSetup,
+            labels: _labels,
+            projectName: "My Movie",
+            includeSceneNumbers: false,
+            presentation: OcptSidesPresentation.packed,
+            exportDate: pinnedExportDate,
+          );
 
-        expect(_pageCount(singleEpisodeBytes), 1);
-        expect(_pageCount(twoEpisodeBytes), 2, reason: "one packed page per episode, chained into the same booklet");
-        // Episode A's own page identity reads "1 / 1" alone but "1 / 2" once episode B joins the
-        // booklet: the denominator is the only thing that changed, so the two runs cannot print an
-        // identical document.
-        expect(_contentStreams(singleEpisodeBytes), isNot(_contentStreams(twoEpisodeBytes)));
-      });
+          expect(_pageCount(singleEpisodeBytes), 1);
+          expect(
+            _pageCount(twoEpisodeBytes),
+            2,
+            reason: "one packed page per episode, chained into the same booklet",
+          );
+          // Episode A's own page identity reads "1 / 1" alone but "1 / 2" once episode B joins the
+          // booklet: the denominator is the only thing that changed, so the two runs cannot print an
+          // identical document.
+          expect(_contentStreams(singleEpisodeBytes), isNot(_contentStreams(twoEpisodeBytes)));
+        },
+      );
 
       test("a matching episode label changes the running head", () async {
         final withoutLabel = await service.generate(
@@ -640,7 +680,10 @@ void main() {
 
   group("sidesFileName", () {
     test("joins the project name, the localized suffix and the day tag", () {
-      final plan = _buildSnapshot(days: [_buildDay(id: "day-1", dayNumber: 3)], slotsByDayId: const {});
+      final plan = _buildSnapshot(
+        days: [_buildDay(id: "day-1", dayNumber: 3)],
+        slotsByDayId: const {},
+      );
 
       expect(
         service.sidesFileName(plan: plan, dayId: "day-1", projectName: "My Movie", labels: _labels),
@@ -649,7 +692,10 @@ void main() {
     });
 
     test("a blank suffix drops that segment", () {
-      final plan = _buildSnapshot(days: [_buildDay(id: "day-1", dayNumber: 3)], slotsByDayId: const {});
+      final plan = _buildSnapshot(
+        days: [_buildDay(id: "day-1", dayNumber: 3)],
+        slotsByDayId: const {},
+      );
       const blankSuffixLabels = OcptSidesLabels(
         fileNameSuffix: "   ",
         documentTitle: "Sides",
@@ -662,7 +708,12 @@ void main() {
       );
 
       expect(
-        service.sidesFileName(plan: plan, dayId: "day-1", projectName: "My Movie", labels: blankSuffixLabels),
+        service.sidesFileName(
+          plan: plan,
+          dayId: "day-1",
+          projectName: "My Movie",
+          labels: blankSuffixLabels,
+        ),
         "My Movie - D3.pdf",
       );
     });
@@ -677,7 +728,10 @@ void main() {
     });
 
     test("carries no episode segment (a booklet is a day's paperwork, not one episode's)", () {
-      final plan = _buildSnapshot(days: [_buildDay(id: "day-1", dayNumber: 3)], slotsByDayId: const {});
+      final plan = _buildSnapshot(
+        days: [_buildDay(id: "day-1", dayNumber: 3)],
+        slotsByDayId: const {},
+      );
 
       expect(
         service.sidesFileName(

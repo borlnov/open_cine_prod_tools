@@ -34,11 +34,7 @@ enum FountainInlineStyle {
 /// always covers text from a single source line.
 class FountainInlineSpan extends Equatable {
   /// Creates a [FountainInlineSpan].
-  const FountainInlineSpan({
-    required this.text,
-    required this.style,
-    required this.sourceRange,
-  });
+  const FountainInlineSpan({required this.text, required this.style, required this.sourceRange});
 
   /// The rendered text of this span, with any emphasis or note markers
   /// already stripped and escape sequences already resolved.

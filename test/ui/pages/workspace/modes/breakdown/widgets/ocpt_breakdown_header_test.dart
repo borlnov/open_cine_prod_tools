@@ -126,8 +126,9 @@ void main() {
     expect(queries, ["Peugeot"]);
   });
 
-  testWidgets("the clear button only shows once the query is non-empty, and reports an empty one",
-      (tester) async {
+  testWidgets("the clear button only shows once the query is non-empty, and reports an empty one", (
+    tester,
+  ) async {
     final (_, queries) = await pumpHeader(tester, searchQuery: "Peugeot");
     final tr = Tr.of(tester.element(find.byType(OcptBreakdownHeader)));
 
@@ -160,10 +161,7 @@ void main() {
     await pumpHeader(tester);
 
     final track = tester.widget<Container>(
-      find.ancestor(
-        of: find.byType(FractionallySizedBox),
-        matching: find.byType(Container),
-      ),
+      find.ancestor(of: find.byType(FractionallySizedBox), matching: find.byType(Container)),
     );
     final fill = tester.widget<FractionallySizedBox>(find.byType(FractionallySizedBox));
 
@@ -182,7 +180,13 @@ void main() {
   testWidgets("a narrow band drops the hint and the progress label, keeping the bar", (
     tester,
   ) async {
-    await pumpHeader(tester, width: _narrowHeaderWidth, taggedTargetCount: 7, doneSceneCount: 2, sceneCount: 5);
+    await pumpHeader(
+      tester,
+      width: _narrowHeaderWidth,
+      taggedTargetCount: 7,
+      doneSceneCount: 2,
+      sceneCount: 5,
+    );
     final tr = Tr.of(tester.element(find.byType(OcptBreakdownHeader)));
     final progressLabel =
         "${tr.breakdownStatsTagged(7)} · ${tr.breakdownHeaderScenesProgressLabel(2, 5)}";
@@ -214,9 +218,6 @@ void main() {
     await pumpHeader(tester, width: _tinyHeaderWidth);
 
     expect(tester.takeException(), isNull);
-    expect(
-      tester.getSize(find.byType(TextField)).width,
-      lessThan(_tinyHeaderWidth),
-    );
+    expect(tester.getSize(find.byType(TextField)).width, lessThan(_tinyHeaderWidth));
   });
 }

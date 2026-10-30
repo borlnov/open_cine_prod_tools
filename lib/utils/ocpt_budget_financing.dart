@@ -85,7 +85,10 @@ OcptBudgetCoveredTotal _ocptBudgetReceivedTotalOf(
   var coveredEntryCount = 0;
 
   for (final entry in entries) {
-    final credit = ocptBudgetEntryCreditCentsOf(entry, projectVatRateBasisPoints: projectVatRateBasisPoints);
+    final credit = ocptBudgetEntryCreditCentsOf(
+      entry,
+      projectVatRateBasisPoints: projectVatRateBasisPoints,
+    );
     if (credit == null) {
       continue;
     }
@@ -110,7 +113,10 @@ OcptBudgetCoveredTotal _ocptBudgetReceivedTotalOf(
 /// **A debit naming [resourceId] is not a candidate**, mirroring [ocptBudgetReceivedByResourceId]'s
 /// own reading: a debit repaying a reimbursable contribution never un-receives it, so undoing it is
 /// not what this gesture is for — only [OcptBudgetEntry.creditCents] is ever read here.
-String? ocptBudgetLatestReceiptEntryIdOf(List<OcptBudgetEntry> entries, {required String resourceId}) {
+String? ocptBudgetLatestReceiptEntryIdOf(
+  List<OcptBudgetEntry> entries, {
+  required String resourceId,
+}) {
   String? latestEntryId;
   for (final entry in entries) {
     if (entry.resourceId == resourceId && entry.creditCents > 0) {

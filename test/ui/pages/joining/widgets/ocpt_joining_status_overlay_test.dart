@@ -79,9 +79,7 @@ void main() {
     }
   });
 
-  testWidgets("the success state shows a check mark, the success title and Ouvrir", (
-    tester,
-  ) async {
+  testWidgets("the success state shows a check mark, the success title and Ouvrir", (tester) async {
     var opened = false;
 
     await tester.pumpWidget(
@@ -89,7 +87,8 @@ void main() {
         OcptJoiningStatusOverlay(
           step: null,
           succeeded: true,
-          onCancelRequested: () => fail("onCancelRequested must not be called in the success state"),
+          onCancelRequested: () =>
+              fail("onCancelRequested must not be called in the success state"),
           onOpenRequested: () => opened = true,
         ),
       ),

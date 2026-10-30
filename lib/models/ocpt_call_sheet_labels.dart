@@ -272,7 +272,8 @@ class OcptCallSheetLabels extends Equatable {
   String titleOfDay(String dayId) => dayTitles[dayId] ?? "";
 
   /// The label of [department], or an empty string if [crewDepartmentLabels] holds none for it.
-  String crewDepartmentLabelOf(OcptCrewDepartment department) => crewDepartmentLabels[department] ?? "";
+  String crewDepartmentLabelOf(OcptCrewDepartment department) =>
+      crewDepartmentLabels[department] ?? "";
 
   /// The label of the crew position [positionId] names, or an empty string if [crewPositionLabels]
   /// holds none for it.
@@ -283,7 +284,8 @@ class OcptCallSheetLabels extends Equatable {
 
   /// Object string representation, useful for debugging and logging.
   @override
-  String toString() => "OcptCallSheetLabels(documentTitle: $documentTitle, dayCount: ${dayTitles.length})";
+  String toString() =>
+      "OcptCallSheetLabels(documentTitle: $documentTitle, dayCount: ${dayTitles.length})";
 
   /// Object properties
   @override

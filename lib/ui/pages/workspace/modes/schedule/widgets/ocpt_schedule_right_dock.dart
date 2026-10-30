@@ -65,7 +65,8 @@ class OcptScheduleRightDock extends StatelessWidget {
                     for (final tab in OcptScheduleRightDockTab.values)
                       _OcptScheduleRightDockTabLabel(
                         label: switch (tab) {
-                          OcptScheduleRightDockTab.inspector => tr.scheduleRightDockInspectorTabLabel,
+                          OcptScheduleRightDockTab.inspector =>
+                            tr.scheduleRightDockInspectorTabLabel,
                           OcptScheduleRightDockTab.convocations =>
                             tr.scheduleRightDockConvocationsTabLabel,
                           OcptScheduleRightDockTab.alerts => tr.scheduleRightDockAlertsTabLabel,

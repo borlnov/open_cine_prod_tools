@@ -26,6 +26,5 @@ class ScriptImportResult extends Equatable {
   List<Object?> get props => [format, fountainText];
 
   @override
-  String toString() =>
-      'ScriptImportResult(${format.name}, ${fountainText.length} chars)';
+  String toString() => 'ScriptImportResult(${format.name}, ${fountainText.length} chars)';
 }

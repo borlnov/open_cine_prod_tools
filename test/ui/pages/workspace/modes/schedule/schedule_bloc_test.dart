@@ -455,8 +455,7 @@ void main() {
     // themselves are passed to it explicitly below.
     OcptGlobalManager.instance;
 
-    SharedPreferencesAsyncPlatform.instance =
-        InMemorySharedPreferencesAsync.empty();
+    SharedPreferencesAsyncPlatform.instance = InMemorySharedPreferencesAsync.empty();
     propertiesManager = OcptPropertiesManager();
     await propertiesManager.initLifeCycle();
   });
@@ -496,8 +495,7 @@ void main() {
 
   /// Writes a one-scene screenplay, creates a shot in it, a shooting day with its default slot,
   /// and places the shot on that slot — the fixture every selection test below shares.
-  Future<({String shotId, String dayId, String blockId})>
-  writePlacedShot() async {
+  Future<({String shotId, String dayId, String blockId})> writePlacedShot() async {
     await writeScreenplay("INT. HOUSE - DAY\n\nAction one.\n");
     final project = projectsManager.currentProject!;
     final sceneId = (await (project.database.select(
@@ -517,9 +515,7 @@ void main() {
     );
     expect(dayId, isNotNull);
 
-    final snapshot = await projectsManager.scheduleService.loadSchedule(
-      database: project.database,
-    );
+    final snapshot = await projectsManager.scheduleService.loadSchedule(database: project.database);
     final slotId = snapshot.slotsByDayId[dayId]!.single.id;
 
     final blockId = await projectsManager.scheduleService.placeShot(
@@ -551,9 +547,7 @@ void main() {
       return bloc.state;
     }
 
-    return bloc.stream
-        .firstWhere(predicate)
-        .timeout(const Duration(seconds: 5));
+    return bloc.stream.firstWhere(predicate).timeout(const Duration(seconds: 5));
   }
 
   group("loading the schedule", () {
@@ -575,7 +569,8 @@ void main() {
       expect(
         loadedElement.name,
         "Umbrella",
-        reason: "the sixth read the bloc now performs alongside the schedule, the shot list and the "
+        reason:
+            "the sixth read the bloc now performs alongside the schedule, the shot list and the "
             "other three catalogues",
       );
 
@@ -618,7 +613,10 @@ void main() {
       final bloc = buildBloc();
       final state = await waitForState(bloc, (state) => !state.isLoading);
 
-      expect(state.episodes.map((episode) => episode.id), [project.primaryScreenplayId, secondEpisodeId]);
+      expect(state.episodes.map((episode) => episode.id), [
+        project.primaryScreenplayId,
+        secondEpisodeId,
+      ]);
       expect(state.shotListSnapshots, hasLength(2));
       expect(
         state.shotListSnapshots.map((shotList) => shotList.screenplayId),
@@ -648,9 +646,7 @@ void main() {
         name: "MARIE",
         kind: OcptRoleKind.silent,
       );
-      final personId = await projectsManager.peopleService.createPerson(
-        database: project.database,
-      );
+      final personId = await projectsManager.peopleService.createPerson(database: project.database);
       await projectsManager.peopleService.updatePerson(
         database: project.database,
         personId: personId!,
@@ -685,46 +681,46 @@ void main() {
       await bloc.close();
     });
 
-    test("an audition block is created in place, and its candidacies named onto it after", () async {
-      final (slotId, roleCandidateId) = await seedCastingDay();
+    test(
+      "an audition block is created in place, and its candidacies named onto it after",
+      () async {
+        final (slotId, roleCandidateId) = await seedCastingDay();
 
-      final bloc = buildBloc();
-      await waitForState(bloc, (state) => !state.isLoading);
+        final bloc = buildBloc();
+        await waitForState(bloc, (state) => !state.isLoading);
 
-      // Created like every other block that names no row of another table: nothing is asked at
-      // creation, and an audition naming nobody yet is an ordinary state.
-      bloc.add(
-        OcptScheduleBlockCreatedEvent(slotId: slotId, kind: OcptShootingBlockKind.audition),
-      );
-      final created = await waitForState(bloc, (state) => state.selectedDayBlocks.isNotEmpty);
-      final block = created.selectedDayBlocks.single;
-      expect(block.kind, OcptShootingBlockKind.audition);
-      expect(block.candidates, isEmpty);
+        // Created like every other block that names no row of another table: nothing is asked at
+        // creation, and an audition naming nobody yet is an ordinary state.
+        bloc.add(
+          OcptScheduleBlockCreatedEvent(slotId: slotId, kind: OcptShootingBlockKind.audition),
+        );
+        final created = await waitForState(bloc, (state) => state.selectedDayBlocks.isNotEmpty);
+        final block = created.selectedDayBlocks.single;
+        expect(block.kind, OcptShootingBlockKind.audition);
+        expect(block.candidates, isEmpty);
 
-      // Then the row's own picker says who is seen at that hour, and for which part.
-      bloc.add(
-        OcptScheduleBlockCandidateAddedEvent(
-          blockId: block.id,
-          roleCandidateId: roleCandidateId,
-        ),
-      );
-      final named = await waitForState(
-        bloc,
-        (state) => state.selectedDayBlocks.single.candidates.isNotEmpty,
-      );
-      final link = named.selectedDayBlocks.single.candidates.single;
-      expect(link.roleCandidateId, roleCandidateId);
+        // Then the row's own picker says who is seen at that hour, and for which part.
+        bloc.add(
+          OcptScheduleBlockCandidateAddedEvent(blockId: block.id, roleCandidateId: roleCandidateId),
+        );
+        final named = await waitForState(
+          bloc,
+          (state) => state.selectedDayBlocks.single.candidates.isNotEmpty,
+        );
+        final link = named.selectedDayBlocks.single.candidates.single;
+        expect(link.roleCandidateId, roleCandidateId);
 
-      // And taking them back off leaves the audition exactly where it is.
-      bloc.add(OcptScheduleBlockCandidateRemovedEvent(blockCandidateId: link.id));
-      final emptied = await waitForState(
-        bloc,
-        (state) => state.selectedDayBlocks.single.candidates.isEmpty,
-      );
-      expect(emptied.selectedDayBlocks.single.kind, OcptShootingBlockKind.audition);
+        // And taking them back off leaves the audition exactly where it is.
+        bloc.add(OcptScheduleBlockCandidateRemovedEvent(blockCandidateId: link.id));
+        final emptied = await waitForState(
+          bloc,
+          (state) => state.selectedDayBlocks.single.candidates.isEmpty,
+        );
+        expect(emptied.selectedDayBlocks.single.kind, OcptShootingBlockKind.audition);
 
-      await bloc.close();
-    });
+        await bloc.close();
+      },
+    );
   });
 
   group("coming back from the project settings page", () {
@@ -772,7 +768,8 @@ void main() {
       expect(
         state.unplacedGroups.map((group) => group.heading),
         isNot(contains("EXT. STREET - NIGHT")),
-        reason: "a deleted episode's shots must not stay on the board — this mode shows no episode "
+        reason:
+            "a deleted episode's shots must not stay on the board — this mode shows no episode "
             "selector, so no keyed remount tells it the project lost one",
       );
 
@@ -786,23 +783,12 @@ void main() {
       final bloc = buildBloc();
       await waitForState(bloc, (state) => !state.isLoading);
 
-      bloc.add(
-        OcptScheduleBlockSelectedEvent(
-          blockId: fixture.blockId,
-          dayId: fixture.dayId,
-        ),
-      );
-      final withBlock = await waitForState(
-        bloc,
-        (state) => state.selectedBlockId != null,
-      );
+      bloc.add(OcptScheduleBlockSelectedEvent(blockId: fixture.blockId, dayId: fixture.dayId));
+      final withBlock = await waitForState(bloc, (state) => state.selectedBlockId != null);
       expect(withBlock.selectedBlockId, fixture.blockId);
 
       bloc.add(OcptScheduleShotSelectedEvent(shotId: fixture.shotId));
-      final withShot = await waitForState(
-        bloc,
-        (state) => state.selectedShotId != null,
-      );
+      final withShot = await waitForState(bloc, (state) => state.selectedShotId != null);
 
       expect(withShot.selectedShotId, fixture.shotId);
       expect(
@@ -840,22 +826,11 @@ void main() {
       await waitForState(bloc, (state) => !state.isLoading);
 
       bloc.add(OcptScheduleShotSelectedEvent(shotId: fixture.shotId));
-      final withShot = await waitForState(
-        bloc,
-        (state) => state.selectedShotId != null,
-      );
+      final withShot = await waitForState(bloc, (state) => state.selectedShotId != null);
       expect(withShot.selectedShotId, fixture.shotId);
 
-      bloc.add(
-        OcptScheduleBlockSelectedEvent(
-          blockId: fixture.blockId,
-          dayId: fixture.dayId,
-        ),
-      );
-      final withBlock = await waitForState(
-        bloc,
-        (state) => state.selectedBlockId != null,
-      );
+      bloc.add(OcptScheduleBlockSelectedEvent(blockId: fixture.blockId, dayId: fixture.dayId));
+      final withBlock = await waitForState(bloc, (state) => state.selectedBlockId != null);
 
       expect(withBlock.selectedBlockId, fixture.blockId);
       expect(withBlock.selectedShotId, isNull);
@@ -878,20 +853,12 @@ void main() {
 
       final bloc = buildBloc();
       final loaded = await waitForState(bloc, (state) => !state.isLoading);
-      expect(
-        loaded.days.firstWhere((day) => day.id == fixture.dayId).dayNumber,
-        1,
-      );
-      expect(
-        loaded.days.firstWhere((day) => day.id == laterDayId).dayNumber,
-        2,
-      );
+      expect(loaded.days.firstWhere((day) => day.id == fixture.dayId).dayNumber, 1);
+      expect(loaded.days.firstWhere((day) => day.id == laterDayId).dayNumber, 2);
 
       // Re-dating the second day to before the first flips their order: `dayNumber` is a
       // read-time rank over `date`, not a stored column, so it follows the new date.
-      bloc.add(
-        OcptScheduleDayDateChangedEvent(dayId: laterDayId!, date: DateTime(2026, 8)),
-      );
+      bloc.add(OcptScheduleDayDateChangedEvent(dayId: laterDayId!, date: DateTime(2026, 8)));
       final redated = await waitForState(
         bloc,
         (state) => state.days.firstWhere((day) => day.id == laterDayId).dayNumber == 1,
@@ -909,26 +876,17 @@ void main() {
       final bloc = buildBloc();
       await waitForState(bloc, (state) => !state.isLoading);
 
-      bloc.add(
-        OcptScheduleBlockSelectedEvent(
-          blockId: fixture.blockId,
-          dayId: fixture.dayId,
-        ),
-      );
+      bloc.add(OcptScheduleBlockSelectedEvent(blockId: fixture.blockId, dayId: fixture.dayId));
       await waitForState(bloc, (state) => state.selectedBlockId != null);
 
       bloc.add(OcptScheduleShotSelectedEvent(shotId: fixture.shotId));
       await waitForState(
         bloc,
-        (state) =>
-            state.selectedShotId != null && state.selectedBlockId == null,
+        (state) => state.selectedShotId != null && state.selectedBlockId == null,
       );
 
       bloc.add(OcptScheduleDaySelectedEvent(dayId: fixture.dayId));
-      final withDay = await waitForState(
-        bloc,
-        (state) => state.selectedShotId == null,
-      );
+      final withDay = await waitForState(bloc, (state) => state.selectedShotId == null);
 
       expect(withDay.selectedDayId, fixture.dayId);
       expect(withDay.selectedBlockId, isNull);
@@ -1031,7 +989,9 @@ void main() {
 
     test("raises the failed notice when the export throws", () async {
       final fixture = await writePlacedShot();
-      final bloc = buildBloc(exportManager: _FakeScheduleExportManager(generalCallSheetsFails: true));
+      final bloc = buildBloc(
+        exportManager: _FakeScheduleExportManager(generalCallSheetsFails: true),
+      );
       await waitForState(bloc, (state) => !state.isLoading);
 
       bloc.add(
@@ -1127,37 +1087,40 @@ void main() {
   });
 
   group("exporting the shooting plan", () {
-    test("hands the plan and the options to the manager and raises the file-succeeded notice", () async {
-      final fixture = await writePlacedShot();
-      final exportManager = _FakeScheduleExportManager(shootingPlanResult: "/tmp/plan.pdf");
-      final bloc = buildBloc(exportManager: exportManager);
-      await waitForState(bloc, (state) => !state.isLoading);
+    test(
+      "hands the plan and the options to the manager and raises the file-succeeded notice",
+      () async {
+        final fixture = await writePlacedShot();
+        final exportManager = _FakeScheduleExportManager(shootingPlanResult: "/tmp/plan.pdf");
+        final bloc = buildBloc(exportManager: exportManager);
+        await waitForState(bloc, (state) => !state.isLoading);
 
-      bloc.add(
-        OcptScheduleShootingPlanExportRequestedEvent(
-          options: OcptShootingPlanExportOptions(
-            format: OcptPageFormat.usLetter,
-            margins: const FountainPageMargins.standard(),
-            dayIds: [fixture.dayId],
-            includeTitlePage: true,
-            includeLocationsGrid: true,
-            includeSequencesGrid: true,
-            includePeopleGrid: true,
-            includeTenMinuteGrid: true,
-            includeElementsGrid: true,
+        bloc.add(
+          OcptScheduleShootingPlanExportRequestedEvent(
+            options: OcptShootingPlanExportOptions(
+              format: OcptPageFormat.usLetter,
+              margins: const FountainPageMargins.standard(),
+              dayIds: [fixture.dayId],
+              includeTitlePage: true,
+              includeLocationsGrid: true,
+              includeSequencesGrid: true,
+              includePeopleGrid: true,
+              includeTenMinuteGrid: true,
+              includeElementsGrid: true,
+            ),
+            labels: _shootingPlanLabels,
+            fileTypeLabel: "PDF document",
           ),
-          labels: _shootingPlanLabels,
-          fileTypeLabel: "PDF document",
-        ),
-      );
-      final state = await waitForState(bloc, (state) => state.ioNotice != null);
+        );
+        final state = await waitForState(bloc, (state) => state.ioNotice != null);
 
-      expect(exportManager.lastShootingPlanDayIds, [fixture.dayId]);
-      expect(state.ioNotice?.kind, OcptScheduleIoNoticeKind.fileExportSucceeded);
-      expect(state.ioNotice?.path, "/tmp/plan.pdf");
+        expect(exportManager.lastShootingPlanDayIds, [fixture.dayId]);
+        expect(state.ioNotice?.kind, OcptScheduleIoNoticeKind.fileExportSucceeded);
+        expect(state.ioNotice?.path, "/tmp/plan.pdf");
 
-      await bloc.close();
-    });
+        await bloc.close();
+      },
+    );
 
     test("is a silent no-op when the save dialog is cancelled", () async {
       final fixture = await writePlacedShot();
@@ -1219,27 +1182,30 @@ void main() {
   });
 
   group("exporting the shooting plan workbook", () {
-    test("hands the plan and the options to the manager and raises the file-succeeded notice", () async {
-      final fixture = await writePlacedShot();
-      final exportManager = _FakeScheduleExportManager(shootingPlanXlsxResult: "/tmp/plan.xlsx");
-      final bloc = buildBloc(exportManager: exportManager);
-      await waitForState(bloc, (state) => !state.isLoading);
+    test(
+      "hands the plan and the options to the manager and raises the file-succeeded notice",
+      () async {
+        final fixture = await writePlacedShot();
+        final exportManager = _FakeScheduleExportManager(shootingPlanXlsxResult: "/tmp/plan.xlsx");
+        final bloc = buildBloc(exportManager: exportManager);
+        await waitForState(bloc, (state) => !state.isLoading);
 
-      bloc.add(
-        OcptScheduleShootingPlanXlsxExportRequestedEvent(
-          options: OcptShootingPlanXlsxExportOptions(dayIds: [fixture.dayId]),
-          labels: _shootingPlanXlsxLabels,
-          fileTypeLabel: "Excel workbook",
-        ),
-      );
-      final state = await waitForState(bloc, (state) => state.ioNotice != null);
+        bloc.add(
+          OcptScheduleShootingPlanXlsxExportRequestedEvent(
+            options: OcptShootingPlanXlsxExportOptions(dayIds: [fixture.dayId]),
+            labels: _shootingPlanXlsxLabels,
+            fileTypeLabel: "Excel workbook",
+          ),
+        );
+        final state = await waitForState(bloc, (state) => state.ioNotice != null);
 
-      expect(exportManager.lastShootingPlanXlsxDayIds, [fixture.dayId]);
-      expect(state.ioNotice?.kind, OcptScheduleIoNoticeKind.fileExportSucceeded);
-      expect(state.ioNotice?.path, "/tmp/plan.xlsx");
+        expect(exportManager.lastShootingPlanXlsxDayIds, [fixture.dayId]);
+        expect(state.ioNotice?.kind, OcptScheduleIoNoticeKind.fileExportSucceeded);
+        expect(state.ioNotice?.path, "/tmp/plan.xlsx");
 
-      await bloc.close();
-    });
+        await bloc.close();
+      },
+    );
 
     test("is a silent no-op when the save dialog is cancelled", () async {
       final fixture = await writePlacedShot();
@@ -1262,7 +1228,9 @@ void main() {
 
     test("raises the failed notice when the export throws", () async {
       final fixture = await writePlacedShot();
-      final bloc = buildBloc(exportManager: _FakeScheduleExportManager(shootingPlanXlsxFails: true));
+      final bloc = buildBloc(
+        exportManager: _FakeScheduleExportManager(shootingPlanXlsxFails: true),
+      );
       await waitForState(bloc, (state) => !state.isLoading);
 
       bloc.add(
@@ -1281,32 +1249,35 @@ void main() {
   });
 
   group("exporting the day out of days", () {
-    test("hands the plan and the options to the manager and raises the file-succeeded notice", () async {
-      final fixture = await writePlacedShot();
-      final exportManager = _FakeScheduleExportManager(dayOutOfDaysResult: "/tmp/dood.pdf");
-      final bloc = buildBloc(exportManager: exportManager);
-      await waitForState(bloc, (state) => !state.isLoading);
+    test(
+      "hands the plan and the options to the manager and raises the file-succeeded notice",
+      () async {
+        final fixture = await writePlacedShot();
+        final exportManager = _FakeScheduleExportManager(dayOutOfDaysResult: "/tmp/dood.pdf");
+        final bloc = buildBloc(exportManager: exportManager);
+        await waitForState(bloc, (state) => !state.isLoading);
 
-      bloc.add(
-        OcptScheduleDayOutOfDaysExportRequestedEvent(
-          options: OcptDayOutOfDaysExportOptions(
-            format: OcptPageFormat.usLetter,
-            margins: const FountainPageMargins.standard(),
-            dayIds: [fixture.dayId],
-            includeTitlePage: true,
+        bloc.add(
+          OcptScheduleDayOutOfDaysExportRequestedEvent(
+            options: OcptDayOutOfDaysExportOptions(
+              format: OcptPageFormat.usLetter,
+              margins: const FountainPageMargins.standard(),
+              dayIds: [fixture.dayId],
+              includeTitlePage: true,
+            ),
+            labels: _dayOutOfDaysLabels,
+            fileTypeLabel: "PDF document",
           ),
-          labels: _dayOutOfDaysLabels,
-          fileTypeLabel: "PDF document",
-        ),
-      );
-      final state = await waitForState(bloc, (state) => state.ioNotice != null);
+        );
+        final state = await waitForState(bloc, (state) => state.ioNotice != null);
 
-      expect(exportManager.lastDayOutOfDaysDayIds, [fixture.dayId]);
-      expect(state.ioNotice?.kind, OcptScheduleIoNoticeKind.fileExportSucceeded);
-      expect(state.ioNotice?.path, "/tmp/dood.pdf");
+        expect(exportManager.lastDayOutOfDaysDayIds, [fixture.dayId]);
+        expect(state.ioNotice?.kind, OcptScheduleIoNoticeKind.fileExportSucceeded);
+        expect(state.ioNotice?.path, "/tmp/dood.pdf");
 
-      await bloc.close();
-    });
+        await bloc.close();
+      },
+    );
 
     test("is a silent no-op when the save dialog is cancelled", () async {
       final fixture = await writePlacedShot();
@@ -1400,67 +1371,70 @@ void main() {
       await bloc.close();
     });
 
-    test("a day playing two episodes hands the manager both episodes' documents, in episode order", () async {
-      final fixture = await writePlacedShot();
-      final project = projectsManager.currentProject!;
+    test(
+      "a day playing two episodes hands the manager both episodes' documents, in episode order",
+      () async {
+        final fixture = await writePlacedShot();
+        final project = projectsManager.currentProject!;
 
-      final secondEpisodeId = await projectsManager.screenplayService.createEpisode(
-        database: project.database,
-      );
-      expect(secondEpisodeId, isNotNull);
-      await projectsManager.screenplayService.saveScreenplayText(
-        database: project.database,
-        screenplayId: secondEpisodeId!,
-        fountainText: "EXT. STREET - NIGHT\n\nAction two.\n",
-        snapshotReason: OcptSnapshotReason.manual,
-      );
-      final secondSceneId = (await (project.database.select(
-        project.database.ocptScenesTable,
-      )..where((table) => table.screenplayId.equals(secondEpisodeId))).get()).single.id;
+        final secondEpisodeId = await projectsManager.screenplayService.createEpisode(
+          database: project.database,
+        );
+        expect(secondEpisodeId, isNotNull);
+        await projectsManager.screenplayService.saveScreenplayText(
+          database: project.database,
+          screenplayId: secondEpisodeId!,
+          fountainText: "EXT. STREET - NIGHT\n\nAction two.\n",
+          snapshotReason: OcptSnapshotReason.manual,
+        );
+        final secondSceneId = (await (project.database.select(
+          project.database.ocptScenesTable,
+        )..where((table) => table.screenplayId.equals(secondEpisodeId))).get()).single.id;
 
-      final secondShotId = await projectsManager.shotListService.createShot(
-        database: project.database,
-        screenplayId: secondEpisodeId,
-        sceneId: secondSceneId,
-      );
-      expect(secondShotId, isNotNull);
+        final secondShotId = await projectsManager.shotListService.createShot(
+          database: project.database,
+          screenplayId: secondEpisodeId,
+          sceneId: secondSceneId,
+        );
+        expect(secondShotId, isNotNull);
 
-      final secondSlotId = await projectsManager.scheduleService.createSlot(
-        database: project.database,
-        shootingDayId: fixture.dayId,
-        anchorMinute: 600,
-      );
-      expect(secondSlotId, isNotNull);
-      final secondBlockId = await projectsManager.scheduleService.placeShot(
-        database: project.database,
-        slotId: secondSlotId!,
-        shotId: secondShotId!,
-      );
-      expect(secondBlockId, isNotNull);
+        final secondSlotId = await projectsManager.scheduleService.createSlot(
+          database: project.database,
+          shootingDayId: fixture.dayId,
+          anchorMinute: 600,
+        );
+        expect(secondSlotId, isNotNull);
+        final secondBlockId = await projectsManager.scheduleService.placeShot(
+          database: project.database,
+          slotId: secondSlotId!,
+          shotId: secondShotId!,
+        );
+        expect(secondBlockId, isNotNull);
 
-      final exportManager = _FakeScheduleExportManager(sidesResult: "/tmp/sides.pdf");
-      final bloc = buildBloc(exportManager: exportManager);
-      await waitForState(bloc, (state) => !state.isLoading);
+        final exportManager = _FakeScheduleExportManager(sidesResult: "/tmp/sides.pdf");
+        final bloc = buildBloc(exportManager: exportManager);
+        await waitForState(bloc, (state) => !state.isLoading);
 
-      bloc.add(requestFor(fixture.dayId));
-      await waitForState(bloc, (state) => state.ioNotice != null);
+        bloc.add(requestFor(fixture.dayId));
+        await waitForState(bloc, (state) => state.ioNotice != null);
 
-      expect(
-        exportManager.lastSidesScreenplayIds,
-        [project.primaryScreenplayId, secondEpisodeId],
-        reason: "episode 1's own document before episode 2's, the project's own episode order",
-      );
-      expect(
-        exportManager.lastSidesSourceTextsByScreenplayId?[project.primaryScreenplayId],
-        contains("INT. HOUSE - DAY"),
-      );
-      expect(
-        exportManager.lastSidesSourceTextsByScreenplayId?[secondEpisodeId],
-        contains("EXT. STREET - NIGHT"),
-      );
+        expect(
+          exportManager.lastSidesScreenplayIds,
+          [project.primaryScreenplayId, secondEpisodeId],
+          reason: "episode 1's own document before episode 2's, the project's own episode order",
+        );
+        expect(
+          exportManager.lastSidesSourceTextsByScreenplayId?[project.primaryScreenplayId],
+          contains("INT. HOUSE - DAY"),
+        );
+        expect(
+          exportManager.lastSidesSourceTextsByScreenplayId?[secondEpisodeId],
+          contains("EXT. STREET - NIGHT"),
+        );
 
-      await bloc.close();
-    });
+        await bloc.close();
+      },
+    );
 
     test("is a silent no-op when the save dialog is cancelled", () async {
       final fixture = await writePlacedShot();

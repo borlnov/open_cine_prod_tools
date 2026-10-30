@@ -60,7 +60,11 @@ class _OcptPositionsMatrixColumn {
   final OcptShootingSlotTimeline? timeline;
 
   /// Class constructor
-  const _OcptPositionsMatrixColumn({required this.dayId, required this.slot, required this.timeline});
+  const _OcptPositionsMatrixColumn({
+    required this.dayId,
+    required this.slot,
+    required this.timeline,
+  });
 }
 
 /// One day band of [OcptSchedulePositionsMatrix]: the header cell grouping the columns of one day,
@@ -270,7 +274,10 @@ class OcptSchedulePositionsMatrix extends StatelessWidget {
     final held = <OcptCrewPositionRef>{};
     for (final column in columns) {
       for (final member in column.slot.crew) {
-        final ref = OcptCrewPositionRef(positionId: member.positionId, customLabel: member.customLabel);
+        final ref = OcptCrewPositionRef(
+          positionId: member.positionId,
+          customLabel: member.customLabel,
+        );
         if (!ref.isEmpty) {
           held.add(ref);
         }
@@ -286,11 +293,15 @@ class OcptSchedulePositionsMatrix extends StatelessWidget {
         }
         final ref = OcptCrewPositionRef(positionId: position.id, customLabel: "");
         if (held.remove(ref)) {
-          rows.add(_OcptPositionsMatrixRow(position: ref, label: ocptCrewPositionLabel(tr, position.id)));
+          rows.add(
+            _OcptPositionsMatrixRow(position: ref, label: ocptCrewPositionLabel(tr, position.id)),
+          );
         }
       }
       if (rows.isNotEmpty) {
-        groups.add(_OcptPositionsMatrixGroup(heading: ocptCrewDepartmentLabel(tr, department), rows: rows));
+        groups.add(
+          _OcptPositionsMatrixGroup(heading: ocptCrewDepartmentLabel(tr, department), rows: rows),
+        );
       }
     }
 
@@ -302,11 +313,16 @@ class OcptSchedulePositionsMatrix extends StatelessWidget {
         for (final ref in held)
           _OcptPositionsMatrixRow(
             position: ref,
-            label: ref.positionId.isEmpty ? ref.customLabel : ocptCrewPositionLabel(tr, ref.positionId),
+            label: ref.positionId.isEmpty
+                ? ref.customLabel
+                : ocptCrewPositionLabel(tr, ref.positionId),
           ),
       ]..sort((a, b) => a.label.toLowerCase().compareTo(b.label.toLowerCase()));
       groups.add(
-        _OcptPositionsMatrixGroup(heading: tr.scheduleSlotUnassignedDepartmentLabel, rows: leftoverRows),
+        _OcptPositionsMatrixGroup(
+          heading: tr.scheduleSlotUnassignedDepartmentLabel,
+          rows: leftoverRows,
+        ),
       );
     }
 
@@ -340,7 +356,9 @@ class OcptSchedulePositionsMatrix extends StatelessWidget {
             ),
             child: Text(
               tr.schedulePositionsMatrixPositionColumnHeader.toUpperCase(),
-              style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
             ),
           ),
           for (final group in groups) ...[
@@ -366,7 +384,11 @@ class OcptSchedulePositionsMatrix extends StatelessWidget {
                 alignment: Alignment.centerLeft,
                 padding: const EdgeInsets.symmetric(horizontal: 11),
                 decoration: BoxDecoration(
-                  border: Border(bottom: BorderSide(color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5))),
+                  border: Border(
+                    bottom: BorderSide(
+                      color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5),
+                    ),
+                  ),
                 ),
                 child: Text(
                   row.label,
@@ -407,7 +429,11 @@ class OcptSchedulePositionsMatrix extends StatelessWidget {
           children: [for (final column in columns) _buildColumnHeader(context, tr, column)],
         ),
         for (final group in groups) ...[
-          Container(height: _ocptPositionsMatrixGroupHeaderHeight, width: totalWidth, color: theme.colorScheme.surfaceContainerHigh),
+          Container(
+            height: _ocptPositionsMatrixGroupHeaderHeight,
+            width: totalWidth,
+            color: theme.colorScheme.surfaceContainerHigh,
+          ),
           for (final row in group.rows)
             Row(
               mainAxisSize: MainAxisSize.min,
@@ -455,7 +481,9 @@ class OcptSchedulePositionsMatrix extends StatelessWidget {
                     band.dateLabel,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
                   ),
                 ),
               ],
@@ -470,7 +498,9 @@ class OcptSchedulePositionsMatrix extends StatelessWidget {
   /// off the band above it — clicking it opens that day.
   Widget _buildColumnHeader(BuildContext context, Tr tr, _OcptPositionsMatrixColumn column) {
     final theme = Theme.of(context);
-    final slotLabel = column.slot.label.isEmpty ? tr.scheduleInspectorUnnamedSlot : column.slot.label;
+    final slotLabel = column.slot.label.isEmpty
+        ? tr.scheduleInspectorUnnamedSlot
+        : column.slot.label;
 
     return SizedBox(
       width: _ocptPositionsMatrixSlotColumnWidth,
@@ -541,7 +571,8 @@ class OcptSchedulePositionsMatrix extends StatelessWidget {
 
     String? holderId;
     for (final member in column.slot.crew) {
-      if (member.positionId == row.position.positionId && member.customLabel == row.position.customLabel) {
+      if (member.positionId == row.position.positionId &&
+          member.customLabel == row.position.customLabel) {
         holderId = member.personId;
         break;
       }
@@ -553,7 +584,10 @@ class OcptSchedulePositionsMatrix extends StatelessWidget {
       content = Tooltip(
         message: holder.displayName.isEmpty ? tr.resourcesUnnamedPerson : holder.displayName,
         child: Center(
-          child: OcptPersonInitialsAvatar(person: holder, radius: _ocptPositionsMatrixCellAvatarRadius),
+          child: OcptPersonInitialsAvatar(
+            person: holder,
+            radius: _ocptPositionsMatrixCellAvatarRadius,
+          ),
         ),
       );
     } else {

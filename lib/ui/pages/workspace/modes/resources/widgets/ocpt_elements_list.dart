@@ -96,25 +96,24 @@ class OcptElementsList extends StatelessWidget {
       children: [
         for (final category in OcptElementCategory.values)
           if (_elementsOf(filtered, category) case final categoryElements
-              when categoryElements.isNotEmpty)
-            ...[
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-                child: Text(
-                  ocptElementCategoryLabel(tr, category).toUpperCase(),
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
-                    letterSpacing: 0.6,
-                  ),
+              when categoryElements.isNotEmpty) ...[
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+              child: Text(
+                ocptElementCategoryLabel(tr, category).toUpperCase(),
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                  letterSpacing: 0.6,
                 ),
               ),
-              for (final element in categoryElements)
-                _OcptElementEntry(
-                  element: element,
-                  isSelected: element.id == selectedElementId,
-                  onTap: () => onElementSelected(element.id),
-                ),
-            ],
+            ),
+            for (final element in categoryElements)
+              _OcptElementEntry(
+                element: element,
+                isSelected: element.id == selectedElementId,
+                onTap: () => onElementSelected(element.id),
+              ),
+          ],
       ],
     );
   }
@@ -141,11 +140,7 @@ class _OcptElementEntry extends StatelessWidget {
   final VoidCallback onTap;
 
   /// Class constructor
-  const _OcptElementEntry({
-    required this.element,
-    required this.isSelected,
-    required this.onTap,
-  });
+  const _OcptElementEntry({required this.element, required this.isSelected, required this.onTap});
 
   @override
   Widget build(BuildContext context) {

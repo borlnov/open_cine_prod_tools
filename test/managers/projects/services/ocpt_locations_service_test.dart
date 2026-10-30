@@ -23,7 +23,10 @@ void main() {
 
   Future<String> testDeviceId() async => "test-device";
   final assetsService = OcptAssetsService(deviceId: testDeviceId);
-  final floorPlanService = OcptFloorPlanService(assetsService: assetsService, deviceId: testDeviceId);
+  final floorPlanService = OcptFloorPlanService(
+    assetsService: assetsService,
+    deviceId: testDeviceId,
+  );
   final locationsService = OcptLocationsService(
     assetsService: assetsService,
     floorPlanService: floorPlanService,
@@ -48,9 +51,8 @@ void main() {
           .get();
 
   /// The location row [id], tombstoned or not.
-  Future<OcptLocationRow> readLocation(String id) => (database.select(
-    database.ocptLocationsTable,
-  )..where((row) => row.id.equals(id))).getSingle();
+  Future<OcptLocationRow> readLocation(String id) =>
+      (database.select(database.ocptLocationsTable)..where((row) => row.id.equals(id))).getSingle();
 
   /// Every version stamp the project currently holds, keyed by `<table>/<row>/<column>` — the same
   /// shape `OcptShotListService`'s own stamping tests read `row_field_versions` back through.
@@ -60,22 +62,19 @@ void main() {
   };
 
   /// Inserts one scene of `screenplay-1`, the screenplay the scene ↔ set group sets up.
-  Future<void> insertScene({
-    required String id,
-    required int position,
-    required String heading,
-  }) => database
-      .into(database.ocptScenesTable)
-      .insert(
-        OcptScenesTableCompanion.insert(
-          id: id,
-          screenplayId: "screenplay-1",
-          position: position,
-          heading: heading,
-          charStart: position * 100,
-          charEnd: position * 100 + 50,
-        ),
-      );
+  Future<void> insertScene({required String id, required int position, required String heading}) =>
+      database
+          .into(database.ocptScenesTable)
+          .insert(
+            OcptScenesTableCompanion.insert(
+              id: id,
+              screenplayId: "screenplay-1",
+              position: position,
+              heading: heading,
+              charStart: position * 100,
+              charEnd: position * 100 + 50,
+            ),
+          );
 
   /// Creates a location holding one set named [name], and returns that set's id.
   Future<String> createSetInNewLocation(String name) async {
@@ -264,15 +263,26 @@ void main() {
   });
 
   group("sets", () {
-    test("createSet appends within its location and loadLocations reads them back in order", () async {
-      final locationId = (await locationsService.createLocation(database: database, name: "A"))!;
+    test(
+      "createSet appends within its location and loadLocations reads them back in order",
+      () async {
+        final locationId = (await locationsService.createLocation(database: database, name: "A"))!;
 
-      await locationsService.createSet(database: database, locationId: locationId, name: "Hangar");
-      await locationsService.createSet(database: database, locationId: locationId, name: "Jardin");
+        await locationsService.createSet(
+          database: database,
+          locationId: locationId,
+          name: "Hangar",
+        );
+        await locationsService.createSet(
+          database: database,
+          locationId: locationId,
+          name: "Jardin",
+        );
 
-      final locations = await locationsService.loadLocations(database: database);
-      expect(locations.single.sets.map((set) => set.name), ["Hangar", "Jardin"]);
-    });
+        final locations = await locationsService.loadLocations(database: database);
+        expect(locations.single.sets.map((set) => set.name), ["Hangar", "Jardin"]);
+      },
+    );
 
     test("createSet codes a set across the whole project, not within its location", () async {
       final firstLocationId = (await locationsService.createLocation(
@@ -467,11 +477,9 @@ void main() {
         expect(newSet.name, "Cuisine copy");
         expect(newSet.sceneIds, ["scene-1"]);
 
-        final copiedSymbols =
-            await (database.select(
-                  database.ocptFloorPlanSymbolsTable,
-                )..where((row) => row.setId.equals(newSetId!)))
-                .get();
+        final copiedSymbols = await (database.select(
+          database.ocptFloorPlanSymbolsTable,
+        )..where((row) => row.setId.equals(newSetId!))).get();
         expect(copiedSymbols, hasLength(1));
         expect(copiedSymbols.single.xM, 1);
         expect(copiedSymbols.single.yM, 2);
@@ -734,11 +742,8 @@ void main() {
       final setId = await createSetInNewLocation("Cuisine");
       await locationsService.assignSceneToSet(database: database, sceneId: "scene-1", setId: setId);
 
-      await (database.update(
-        database.ocptScenesTable,
-      )..where((row) => row.id.equals("scene-1"))).write(
-        const OcptScenesTableCompanion(isDeleted: Value(true)),
-      );
+      await (database.update(database.ocptScenesTable)..where((row) => row.id.equals("scene-1")))
+          .write(const OcptScenesTableCompanion(isDeleted: Value(true)));
 
       expect(await sceneIdsOfSet(setId), isEmpty);
     });
@@ -768,16 +773,21 @@ void main() {
       test("names null while the set carries no live link at all", () async {
         final setId = await createSetInNewLocation("Cuisine");
 
-        expect(
-          await locationsService.firstLinkedSceneOf(database: database, setId: setId),
-          isNull,
-        );
+        expect(await locationsService.firstLinkedSceneOf(database: database, setId: setId), isNull);
       });
 
       test("picks the earlier scene of the same episode when linked to two", () async {
         final setId = await createSetInNewLocation("Cuisine");
-        await locationsService.assignSceneToSet(database: database, sceneId: "scene-2", setId: setId);
-        await locationsService.assignSceneToSet(database: database, sceneId: "scene-1", setId: setId);
+        await locationsService.assignSceneToSet(
+          database: database,
+          sceneId: "scene-2",
+          setId: setId,
+        );
+        await locationsService.assignSceneToSet(
+          database: database,
+          sceneId: "scene-1",
+          setId: setId,
+        );
 
         final first = await locationsService.firstLinkedSceneOf(database: database, setId: setId);
 
@@ -785,11 +795,9 @@ void main() {
       });
 
       test("picks the earlier episode's own scene over a later episode's earlier one", () async {
-        await (database.update(
-          database.ocptScreenplaysTable,
-        )..where((row) => row.id.equals("screenplay-1"))).write(
-          const OcptScreenplaysTableCompanion(sortKey: Value("b")),
-        );
+        await (database.update(database.ocptScreenplaysTable)
+              ..where((row) => row.id.equals("screenplay-1")))
+            .write(const OcptScreenplaysTableCompanion(sortKey: Value("b")));
         await database
             .into(database.ocptScreenplaysTable)
             .insert(
@@ -817,8 +825,16 @@ void main() {
         // scene-1 (position 0 of screenplay-1, the later episode) is linked first, scene-0
         // (position 5 of screenplay-0, the earlier episode) linked after — episode order must
         // still win over insertion order and over the raw scene position.
-        await locationsService.assignSceneToSet(database: database, sceneId: "scene-1", setId: setId);
-        await locationsService.assignSceneToSet(database: database, sceneId: "scene-0", setId: setId);
+        await locationsService.assignSceneToSet(
+          database: database,
+          sceneId: "scene-1",
+          setId: setId,
+        );
+        await locationsService.assignSceneToSet(
+          database: database,
+          sceneId: "scene-0",
+          setId: setId,
+        );
 
         final first = await locationsService.firstLinkedSceneOf(database: database, setId: setId);
 
@@ -1186,29 +1202,31 @@ void main() {
       expect(await readStamps(), stamps);
     });
 
-    test("deleteLocation stamps isDeleted on the location, its sets and its availabilities",
-        () async {
-      final locationId = (await locationsService.createLocation(database: database, name: "A"))!;
-      final setId = (await locationsService.createSet(
-        database: database,
-        locationId: locationId,
-        name: "Cuisine",
-      ))!;
-      final availabilityId = (await locationsService.addAvailability(
-        database: database,
-        locationId: locationId,
-        startDate: DateTime(2026, 3, 10),
-        endDate: DateTime(2026, 3, 10),
-      ))!;
-      await database.delete(database.ocptRowFieldVersionsTable).go();
+    test(
+      "deleteLocation stamps isDeleted on the location, its sets and its availabilities",
+      () async {
+        final locationId = (await locationsService.createLocation(database: database, name: "A"))!;
+        final setId = (await locationsService.createSet(
+          database: database,
+          locationId: locationId,
+          name: "Cuisine",
+        ))!;
+        final availabilityId = (await locationsService.addAvailability(
+          database: database,
+          locationId: locationId,
+          startDate: DateTime(2026, 3, 10),
+          endDate: DateTime(2026, 3, 10),
+        ))!;
+        await database.delete(database.ocptRowFieldVersionsTable).go();
 
-      await locationsService.deleteLocation(database: database, locationId: locationId);
+        await locationsService.deleteLocation(database: database, locationId: locationId);
 
-      final stamps = await readStamps();
-      expect(stamps["locations/$locationId/isDeleted"]!.version, 1);
-      expect(stamps["sets/$setId/isDeleted"]!.version, 1);
-      expect(stamps["location_availabilities/$availabilityId/isDeleted"]!.version, 1);
-    });
+        final stamps = await readStamps();
+        expect(stamps["locations/$locationId/isDeleted"]!.version, 1);
+        expect(stamps["sets/$setId/isDeleted"]!.version, 1);
+        expect(stamps["location_availabilities/$availabilityId/isDeleted"]!.version, 1);
+      },
+    );
 
     test("createSet stamps every column of the new row", () async {
       final locationId = (await locationsService.createLocation(database: database, name: "A"))!;
@@ -1286,7 +1304,11 @@ void main() {
       ))!;
       await database.delete(database.ocptRowFieldVersionsTable).go();
 
-      await locationsService.removeSceneFromSet(database: database, sceneId: "scene-1", setId: setId);
+      await locationsService.removeSceneFromSet(
+        database: database,
+        sceneId: "scene-1",
+        setId: setId,
+      );
 
       final stamps = await readStamps();
       expect(stamps["scene_sets/$linkId/isDeleted"]!.version, 1);

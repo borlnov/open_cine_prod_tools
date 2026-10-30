@@ -23,7 +23,9 @@ Widget _wrap(Widget child, {double width = 220}) => MaterialApp(
     GlobalCupertinoLocalizations.delegate,
   ],
   supportedLocales: Tr.delegate.supportedLocales,
-  home: Scaffold(body: SizedBox(width: width, child: child)),
+  home: Scaffold(
+    body: SizedBox(width: width, child: child),
+  ),
 );
 
 void main() {
@@ -80,7 +82,11 @@ void main() {
       headingText: 'EXT. GARDEN - NIGHT',
       forcedMarker: false,
     );
-    const statistics = FountainSceneStatistics(speakingCharacters: [], wordCount: 4, pageEighths: 1);
+    const statistics = FountainSceneStatistics(
+      speakingCharacters: [],
+      wordCount: 4,
+      pageEighths: 1,
+    );
 
     await tester.pumpWidget(
       _wrap(
@@ -105,7 +111,11 @@ void main() {
       headingText: 'INT. HALL - DAY',
       forcedMarker: false,
     );
-    const statistics = FountainSceneStatistics(speakingCharacters: [], wordCount: 4, pageEighths: 16);
+    const statistics = FountainSceneStatistics(
+      speakingCharacters: [],
+      wordCount: 4,
+      pageEighths: 16,
+    );
 
     await tester.pumpWidget(
       _wrap(
@@ -134,7 +144,9 @@ void main() {
     );
 
     await tester.pumpWidget(
-      _wrap(const OcptEditorInspectorPanel(scene: heading, sceneOrdinal: 12, statistics: statistics)),
+      _wrap(
+        const OcptEditorInspectorPanel(scene: heading, sceneOrdinal: 12, statistics: statistics),
+      ),
     );
 
     expect(tester.takeException(), isNull);

@@ -64,9 +64,7 @@ class OcptRepointingBloc extends BlocForMixin<OcptRepointingState> {
     OcptRepointingLoadRequestedEvent event,
     Emitter<OcptRepointingState> emitter,
   ) async {
-    emitter(
-      state.copyWith(isLoading: false, projectName: _projectsManager.currentProject!.name),
-    );
+    emitter(state.copyWith(isLoading: false, projectName: _projectsManager.currentProject!.name));
   }
 
   /// Re-points the current project to `event.relayBaseUri` with `event.enrolmentSecret`, reusing

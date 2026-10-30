@@ -79,7 +79,10 @@ class OcptLocationSheetAddressCard extends StatelessWidget {
                 child: _field(context, OcptLocationField.postalCode, tr.resourcesPostalCodeLabel),
               ),
               const SizedBox(width: 10),
-              Expanded(flex: 2, child: _field(context, OcptLocationField.city, tr.resourcesCityLabel)),
+              Expanded(
+                flex: 2,
+                child: _field(context, OcptLocationField.city, tr.resourcesCityLabel),
+              ),
             ],
           ),
           const SizedBox(height: 8),

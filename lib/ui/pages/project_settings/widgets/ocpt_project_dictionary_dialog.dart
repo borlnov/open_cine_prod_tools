@@ -150,9 +150,7 @@ class _OcptProjectDictionaryDialogState extends State<OcptProjectDictionaryDialo
             ],
           ),
         ),
-        actions: [
-          FilledButton(onPressed: _close, child: Text(tr.projectDictionaryCloseAction)),
-        ],
+        actions: [FilledButton(onPressed: _close, child: Text(tr.projectDictionaryCloseAction))],
       ),
     );
   }
@@ -313,8 +311,9 @@ class _OcptProjectDictionaryDialogState extends State<OcptProjectDictionaryDialo
   /// Sorts [words] case-insensitively, ties broken by the exact text —
   /// `OcptProjectDictionaryService.loadWords`'s own ordering, reproduced here so the working copy
   /// never disagrees with what a reload from the service would show.
-  static List<String> _sorted(List<String> words) => [...words]..sort((a, b) {
-    final byLowerCase = a.toLowerCase().compareTo(b.toLowerCase());
-    return byLowerCase != 0 ? byLowerCase : a.compareTo(b);
-  });
+  static List<String> _sorted(List<String> words) => [...words]
+    ..sort((a, b) {
+      final byLowerCase = a.toLowerCase().compareTo(b.toLowerCase());
+      return byLowerCase != 0 ? byLowerCase : a.compareTo(b);
+    });
 }

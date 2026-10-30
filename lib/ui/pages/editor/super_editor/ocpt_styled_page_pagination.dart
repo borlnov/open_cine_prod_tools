@@ -107,7 +107,9 @@ OcptStyledPagination computeOcptStyledPagination({
   final layout = OcptEditorPreviewLayout(metrics: metrics);
   final sheetExtent = layout.pageHeight + OcptEditorPreviewLayout.pageGap;
 
-  final hasTitlePage = document.any((node) => node is ParagraphNode && OcptWysiwygCodec.isTitlePageNode(node));
+  final hasTitlePage = document.any(
+    (node) => node is ParagraphNode && OcptWysiwygCodec.isTitlePageNode(node),
+  );
 
   final pageStartNodeIds = <String>{};
   final pageStartTopPaddings = <String, double>{};
@@ -140,7 +142,9 @@ OcptStyledPagination computeOcptStyledPagination({
       continue;
     }
 
-    final type = OcptFountainLineAttributions.typeOfAttributionValue(node.getMetadataValue("blockType"));
+    final type = OcptFountainLineAttributions.typeOfAttributionValue(
+      node.getMetadataValue("blockType"),
+    );
     final wrappedLines = _wrappedLineCountOf(node, type, metrics);
     final blankLinesBefore = _blankLinesBeforeOf(node);
     final lines = wrappedLines + blankLinesBefore;
@@ -150,7 +154,9 @@ OcptStyledPagination computeOcptStyledPagination({
 
     if (pageCount == 0) {
       pageCount = 1;
-    } else if (forcesPageBreak || type == FountainLineType.pageBreak || currentLines + lines > metrics.linesPerPage) {
+    } else if (forcesPageBreak ||
+        type == FountainLineType.pageBreak ||
+        currentLines + lines > metrics.linesPerPage) {
       pageCount++;
       // The forced title-page-to-body break targets `pageIndex`, already 1 from initialization,
       // rather than incrementing it again: every other trigger below genuinely advances past a
@@ -179,7 +185,9 @@ OcptStyledPagination computeOcptStyledPagination({
   }
 
   final desiredBottomY = pageCount == 0 ? 0.0 : (pageCount - 1) * sheetExtent + layout.pageHeight;
-  final trailingBottomPadding = pageCount == 0 ? 0.0 : (desiredBottomY - currentY).clamp(0.0, double.infinity);
+  final trailingBottomPadding = pageCount == 0
+      ? 0.0
+      : (desiredBottomY - currentY).clamp(0.0, double.infinity);
 
   return OcptStyledPagination(
     pageStartNodeIds: pageStartNodeIds,
@@ -200,20 +208,21 @@ int _wrappedLineCountOf(ParagraphNode node, FountainLineType type, FountainLayou
 /// The layout box [type] is set in, mirroring `OcptFountainEditorStylesheet`'s own element choice
 /// per type (in particular lyrics sharing the dialogue box, and every non-printing/scaffolding
 /// type using the full-width action box).
-FountainElementLayout _elementLayoutOf(FountainLineType type, FountainLayoutMetrics metrics) => switch (type) {
-  FountainLineType.sceneHeading => metrics.sceneHeading,
-  FountainLineType.character => metrics.character,
-  FountainLineType.parenthetical => metrics.parenthetical,
-  FountainLineType.dialogue => metrics.dialogue,
-  FountainLineType.lyrics => metrics.dialogue,
-  FountainLineType.transition => metrics.transition,
-  FountainLineType.centeredText => metrics.centeredText,
-  FountainLineType.pageBreak => metrics.centeredText,
-  FountainLineType.section ||
-  FountainLineType.synopsis ||
-  FountainLineType.action ||
-  FountainLineType.blank => metrics.action,
-};
+FountainElementLayout _elementLayoutOf(FountainLineType type, FountainLayoutMetrics metrics) =>
+    switch (type) {
+      FountainLineType.sceneHeading => metrics.sceneHeading,
+      FountainLineType.character => metrics.character,
+      FountainLineType.parenthetical => metrics.parenthetical,
+      FountainLineType.dialogue => metrics.dialogue,
+      FountainLineType.lyrics => metrics.dialogue,
+      FountainLineType.transition => metrics.transition,
+      FountainLineType.centeredText => metrics.centeredText,
+      FountainLineType.pageBreak => metrics.centeredText,
+      FountainLineType.section ||
+      FountainLineType.synopsis ||
+      FountainLineType.action ||
+      FountainLineType.blank => metrics.action,
+    };
 
 /// Reads [node]'s `ocptBlankLinesBefore` metadata, capped at [ocptMaxBlankLinesBeforeSpacing] to
 /// match the extra spacing `OcptFountainEditorStylesheet` actually renders for it.

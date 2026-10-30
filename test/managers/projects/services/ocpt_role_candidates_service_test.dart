@@ -88,10 +88,9 @@ void main() {
           .get();
 
   /// The person role [roleId] is cast with, or null while it is uncast.
-  Future<String?> readCasting(String roleId) async =>
-      (await (database.select(
-        database.ocptRolesTable,
-      )..where((row) => row.id.equals(roleId))).getSingle()).personId;
+  Future<String?> readCasting(String roleId) async => (await (database.select(
+    database.ocptRolesTable,
+  )..where((row) => row.id.equals(roleId))).getSingle()).personId;
 
   group("candidates CRUD and ordering", () {
     test("addCandidate appends after the role's other candidates", () async {
@@ -331,9 +330,7 @@ void main() {
       // The three closed statuses are three different facts, and none of them is "we turned them
       // down": somebody who declined did not lose the part to this casting, they were out of it
       // before it was decided.
-      for (final status in OcptRoleCandidateStatus.values.where(
-        (status) => !status.isStillALead,
-      )) {
+      for (final status in OcptRoleCandidateStatus.values.where((status) => !status.isStillALead)) {
         await candidatesService.setStatus(
           database: database,
           candidateId: secondCandidateId,
@@ -396,22 +393,24 @@ void main() {
       }
     });
 
-    test("turning the retained candidate down uncasts the part, as any other move away does",
-        () async {
-      // `notRetained` is the mirror of `retained` and the likeliest way a production changes its
-      // mind, so it gets its own case beside the walk above rather than only being one of its
-      // iterations.
-      await candidatesService.retainCandidate(database: database, candidateId: firstCandidateId);
+    test(
+      "turning the retained candidate down uncasts the part, as any other move away does",
+      () async {
+        // `notRetained` is the mirror of `retained` and the likeliest way a production changes its
+        // mind, so it gets its own case beside the walk above rather than only being one of its
+        // iterations.
+        await candidatesService.retainCandidate(database: database, candidateId: firstCandidateId);
 
-      await candidatesService.setStatus(
-        database: database,
-        candidateId: firstCandidateId,
-        status: OcptRoleCandidateStatus.notRetained,
-      );
+        await candidatesService.setStatus(
+          database: database,
+          candidateId: firstCandidateId,
+          status: OcptRoleCandidateStatus.notRetained,
+        );
 
-      expect((await readCandidate(firstCandidateId)).status, OcptRoleCandidateStatus.notRetained);
-      expect(await readCasting("role-1"), isNull);
-    });
+        expect((await readCandidate(firstCandidateId)).status, OcptRoleCandidateStatus.notRetained);
+        expect(await readCasting("role-1"), isNull);
+      },
+    );
 
     test("removing the retained candidate leaves the part uncast", () async {
       await candidatesService.retainCandidate(database: database, candidateId: firstCandidateId);
@@ -729,10 +728,9 @@ void main() {
       );
 
       final stamps = await readStamps();
-      expect(
-        stamps.keys.where((key) => key.startsWith("role_candidates/$candidateId/")).toSet(),
-        {"role_candidates/$candidateId/notes"},
-      );
+      expect(stamps.keys.where((key) => key.startsWith("role_candidates/$candidateId/")).toSet(), {
+        "role_candidates/$candidateId/notes",
+      });
 
       // Writing the same value again touches nothing: there is nothing left to stamp.
       await candidatesService.updateCandidate(
@@ -756,14 +754,12 @@ void main() {
       await candidatesService.removeCandidate(database: database, candidateId: candidateId);
 
       final stamps = await readStamps();
-      expect(
-        stamps.keys.where((key) => key.startsWith("role_candidates/$candidateId/")).toSet(),
-        {"role_candidates/$candidateId/isDeleted"},
-      );
+      expect(stamps.keys.where((key) => key.startsWith("role_candidates/$candidateId/")).toSet(), {
+        "role_candidates/$candidateId/isDeleted",
+      });
     });
 
-    test("retainCandidate stamps the role's personId along with the candidacy's status",
-        () async {
+    test("retainCandidate stamps the role's personId along with the candidacy's status", () async {
       await createRole("role-1");
       await createPerson("person-1");
       final candidateId = (await candidatesService.addCandidate(

@@ -111,7 +111,10 @@ class OcptBudgetQuotePdfService {
     required bool includeTitlePage,
     DateTime? exportDate,
   }) async {
-    final painter = OcptScriptPagePainter(metrics: pageSetup.toMetrics(), fonts: await fontsLoader.load());
+    final painter = OcptScriptPagePainter(
+      metrics: pageSetup.toMetrics(),
+      fonts: await fontsLoader.load(),
+    );
     final versionLine =
         "${labels.versionLabel} ${ocptBudgetExportGeneratedAtStamp(exportDate ?? DateTime.now())}";
 
@@ -132,7 +135,13 @@ class OcptBudgetQuotePdfService {
         ),
         build: (context) => snapshot.postes.isEmpty
             ? [_noteWidget(painter: painter, text: labels.emptyDocumentNote)]
-            : _body(painter: painter, snapshot: snapshot, elementNameById: elementNameById, taxBasis: taxBasis, labels: labels),
+            : _body(
+                painter: painter,
+                snapshot: snapshot,
+                elementNameById: elementNameById,
+                taxBasis: taxBasis,
+                labels: labels,
+              ),
       ),
     );
 
@@ -158,7 +167,11 @@ class OcptBudgetQuotePdfService {
     return [
       pw.Text(
         labels.taxBasisCaptionOf(taxBasis),
-        style: pw.TextStyle(font: painter.fonts.italic, fontSize: _smallFontSizePt, color: _mutedColor),
+        style: pw.TextStyle(
+          font: painter.fonts.italic,
+          fontSize: _smallFontSizePt,
+          color: _mutedColor,
+        ),
       ),
       pw.SizedBox(height: 10),
       for (final poste in snapshot.postes) ...[
@@ -218,7 +231,11 @@ class OcptBudgetQuotePdfService {
         if (poste.lines.isEmpty)
           pw.Text(
             labels.noLinesLabel,
-            style: pw.TextStyle(font: painter.fonts.italic, fontSize: _bodyFontSizePt, color: _mutedColor),
+            style: pw.TextStyle(
+              font: painter.fonts.italic,
+              fontSize: _bodyFontSizePt,
+              color: _mutedColor,
+            ),
           )
         else
           pw.Table(
@@ -229,10 +246,26 @@ class OcptBudgetQuotePdfService {
                 repeat: true,
                 decoration: const pw.BoxDecoration(color: _bandColor),
                 children: [
-                  _headerCell(painter: painter, text: labels.lineLabelHeader, align: pw.TextAlign.left),
-                  _headerCell(painter: painter, text: labels.quantityHeader, align: pw.TextAlign.right),
-                  _headerCell(painter: painter, text: labels.unitPriceHeader, align: pw.TextAlign.right),
-                  _headerCell(painter: painter, text: labels.lineTotalHeader, align: pw.TextAlign.right),
+                  _headerCell(
+                    painter: painter,
+                    text: labels.lineLabelHeader,
+                    align: pw.TextAlign.left,
+                  ),
+                  _headerCell(
+                    painter: painter,
+                    text: labels.quantityHeader,
+                    align: pw.TextAlign.right,
+                  ),
+                  _headerCell(
+                    painter: painter,
+                    text: labels.unitPriceHeader,
+                    align: pw.TextAlign.right,
+                  ),
+                  _headerCell(
+                    painter: painter,
+                    text: labels.lineTotalHeader,
+                    align: pw.TextAlign.right,
+                  ),
                 ],
               ),
               for (final line in poste.lines)
@@ -302,12 +335,19 @@ class OcptBudgetQuotePdfService {
               if (elementName != null && elementName.trim().isNotEmpty)
                 pw.Text(
                   elementName,
-                  style: pw.TextStyle(font: painter.fonts.italic, fontSize: _smallFontSizePt, color: _mutedColor),
+                  style: pw.TextStyle(
+                    font: painter.fonts.italic,
+                    fontSize: _smallFontSizePt,
+                    color: _mutedColor,
+                  ),
                 ),
             ],
           ),
         ),
-        _amountCell(painter: painter, text: "${ocptBudgetExportQuantityLabel(line.quantityMilli)} ${line.unit}"),
+        _amountCell(
+          painter: painter,
+          text: "${ocptBudgetExportQuantityLabel(line.quantityMilli)} ${line.unit}",
+        ),
         _amountCell(
           painter: painter,
           text: unitPriceCents == null
@@ -359,18 +399,23 @@ class OcptBudgetQuotePdfService {
     required pw.TextAlign align,
   }) => pw.Padding(
     padding: const pw.EdgeInsets.all(_cellPaddingPt),
-    child: pw.Text(text, textAlign: align, style: pw.TextStyle(font: painter.fonts.bold, fontSize: _bodyFontSizePt)),
+    child: pw.Text(
+      text,
+      textAlign: align,
+      style: pw.TextStyle(font: painter.fonts.bold, fontSize: _bodyFontSizePt),
+    ),
   );
 
   /// One right-aligned amount cell.
-  pw.Widget _amountCell({required OcptScriptPagePainter painter, required String text}) => pw.Padding(
-    padding: const pw.EdgeInsets.all(_cellPaddingPt),
-    child: pw.Text(
-      text,
-      textAlign: pw.TextAlign.right,
-      style: pw.TextStyle(font: painter.fonts.regular, fontSize: _bodyFontSizePt),
-    ),
-  );
+  pw.Widget _amountCell({required OcptScriptPagePainter painter, required String text}) =>
+      pw.Padding(
+        padding: const pw.EdgeInsets.all(_cellPaddingPt),
+        child: pw.Text(
+          text,
+          textAlign: pw.TextAlign.right,
+          style: pw.TextStyle(font: painter.fonts.regular, fontSize: _bodyFontSizePt),
+        ),
+      );
 
   /// A right-aligned `<label>: <text>` line — a poste's own subtotal, or the project's own grand
   /// total.
@@ -409,7 +454,11 @@ class OcptBudgetQuotePdfService {
           pw.SizedBox(height: 32),
           pw.Text(
             versionLine,
-            style: pw.TextStyle(font: painter.fonts.regular, fontSize: _smallFontSizePt, color: _mutedColor),
+            style: pw.TextStyle(
+              font: painter.fonts.regular,
+              fontSize: _smallFontSizePt,
+              color: _mutedColor,
+            ),
           ),
         ],
       ),
@@ -418,8 +467,10 @@ class OcptBudgetQuotePdfService {
 
   /// A block of free text — the note standing in for the whole document on a project with no poste
   /// at all.
-  pw.Widget _noteWidget({required OcptScriptPagePainter painter, required String text}) =>
-      pw.Text(text, style: pw.TextStyle(font: painter.fonts.regular, fontSize: _bodyFontSizePt));
+  pw.Widget _noteWidget({required OcptScriptPagePainter painter, required String text}) => pw.Text(
+    text,
+    style: pw.TextStyle(font: painter.fonts.regular, fontSize: _bodyFontSizePt),
+  );
 
   /// The running head every page of the document carries: the project and the document's own name
   /// on the left, [versionLine] on the right, over a rule — mirroring
@@ -437,11 +488,19 @@ class OcptBudgetQuotePdfService {
         children: [
           pw.Text(
             "$projectName — $documentTitle",
-            style: pw.TextStyle(font: painter.fonts.regular, fontSize: _smallFontSizePt, color: _mutedColor),
+            style: pw.TextStyle(
+              font: painter.fonts.regular,
+              fontSize: _smallFontSizePt,
+              color: _mutedColor,
+            ),
           ),
           pw.Text(
             versionLine,
-            style: pw.TextStyle(font: painter.fonts.regular, fontSize: _smallFontSizePt, color: _mutedColor),
+            style: pw.TextStyle(
+              font: painter.fonts.regular,
+              fontSize: _smallFontSizePt,
+              color: _mutedColor,
+            ),
           ),
         ],
       ),

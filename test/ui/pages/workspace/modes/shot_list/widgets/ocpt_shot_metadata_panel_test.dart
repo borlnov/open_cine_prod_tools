@@ -99,8 +99,9 @@ void main() {
     expect(find.text("4"), findsOneWidget);
   });
 
-  testWidgets("renders the em dash for a shot with no characters, placement or takes",
-      (tester) async {
+  testWidgets("renders the em dash for a shot with no characters, placement or takes", (
+    tester,
+  ) async {
     await tester.pumpWidget(
       _wrapInApp(
         OcptShotMetadataPanel(

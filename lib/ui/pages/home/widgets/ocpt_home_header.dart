@@ -66,10 +66,7 @@ class OcptHomeHeader extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 16),
-            if (isCompact)
-              ..._buildCompactActions(tr)
-            else
-              ..._buildWideActions(tr),
+            if (isCompact) ..._buildCompactActions(tr) else ..._buildWideActions(tr),
           ],
         );
       },
@@ -137,8 +134,7 @@ class OcptHomeHeader extends StatelessWidget {
         ),
       ],
       builder: (context, controller, child) => IconButton(
-        onPressed: () =>
-            controller.isOpen ? controller.close() : controller.open(),
+        onPressed: () => controller.isOpen ? controller.close() : controller.open(),
         icon: const Icon(Icons.more_vert),
         // Flutter's own generic "Show menu" string, not a bespoke ARB key: this button behaves
         // exactly like `PopupMenuButton`'s default trigger, just built from `MenuAnchor` so the

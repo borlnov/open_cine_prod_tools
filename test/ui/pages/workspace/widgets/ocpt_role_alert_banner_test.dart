@@ -41,36 +41,38 @@ void main() {
   group("orphaned variant", () {
     const alert = OcptRemovedRoleAlert(roleId: "r1", characterName: "LE CLIENT");
 
-    testWidgets("names the role and offers delete/keep, with no merge row when there is no target",
-        (tester) async {
-      var deleted = 0;
-      var kept = 0;
+    testWidgets(
+      "names the role and offers delete/keep, with no merge row when there is no target",
+      (tester) async {
+        var deleted = 0;
+        var kept = 0;
 
-      await tester.pumpWidget(
-        _wrapInApp(
-          OcptRoleAlertBanner.orphaned(
-            alert: alert,
-            mergeTargets: const [],
-            onDeleteRequested: (_) => deleted++,
-            onKeepRequested: (_) => kept++,
-            onMergeRequested: (_, __) {},
+        await tester.pumpWidget(
+          _wrapInApp(
+            OcptRoleAlertBanner.orphaned(
+              alert: alert,
+              mergeTargets: const [],
+              onDeleteRequested: (_) => deleted++,
+              onKeepRequested: (_) => kept++,
+              onMergeRequested: (_, __) {},
+            ),
           ),
-        ),
-      );
+        );
 
-      final tr = Tr.of(tester.element(find.byType(OcptRoleAlertBanner)));
-      expect(find.text(tr.roleAlertOrphanedMessage("LE CLIENT")), findsOneWidget);
-      expect(find.text(tr.roleAlertOrphanedDeleteAction), findsOneWidget);
-      expect(find.text(tr.roleAlertOrphanedKeepAction), findsOneWidget);
-      expect(find.text(tr.roleAlertMergeWithLabel), findsNothing);
+        final tr = Tr.of(tester.element(find.byType(OcptRoleAlertBanner)));
+        expect(find.text(tr.roleAlertOrphanedMessage("LE CLIENT")), findsOneWidget);
+        expect(find.text(tr.roleAlertOrphanedDeleteAction), findsOneWidget);
+        expect(find.text(tr.roleAlertOrphanedKeepAction), findsOneWidget);
+        expect(find.text(tr.roleAlertMergeWithLabel), findsNothing);
 
-      await tester.tap(find.text(tr.roleAlertOrphanedDeleteAction));
-      await tester.tap(find.text(tr.roleAlertOrphanedKeepAction));
-      await tester.pump();
+        await tester.tap(find.text(tr.roleAlertOrphanedDeleteAction));
+        await tester.tap(find.text(tr.roleAlertOrphanedKeepAction));
+        await tester.pump();
 
-      expect(deleted, 1);
-      expect(kept, 1);
-    });
+        expect(deleted, 1);
+        expect(kept, 1);
+      },
+    );
 
     testWidgets("offers one merge chip per target, reporting (alert's role, clicked target)", (
       tester,

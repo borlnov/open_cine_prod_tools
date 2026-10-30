@@ -202,10 +202,8 @@ void main() {
       _wrapInApp(
         _buildDialog(
           layout: layout,
-          onWordTapped: (wordStartOffset, wordEndOffset) => reported = (
-            wordStartOffset,
-            wordEndOffset,
-          ),
+          onWordTapped: (wordStartOffset, wordEndOffset) =>
+              reported = (wordStartOffset, wordEndOffset),
         ),
       ),
     );
@@ -226,10 +224,8 @@ void main() {
       _wrapInApp(
         _buildDialog(
           layout: layout,
-          onWordTapped: (wordStartOffset, wordEndOffset) => reported = (
-            wordStartOffset,
-            wordEndOffset,
-          ),
+          onWordTapped: (wordStartOffset, wordEndOffset) =>
+              reported = (wordStartOffset, wordEndOffset),
         ),
       ),
     );
@@ -339,11 +335,7 @@ void main() {
     );
 
     await tester.pumpWidget(
-      _wrapInApp(
-        _buildDialog(
-          pendingAnchor: (wordStartOffset: 0, wordEndOffset: 4),
-        ),
-      ),
+      _wrapInApp(_buildDialog(pendingAnchor: (wordStartOffset: 0, wordEndOffset: 4))),
     );
 
     expect(

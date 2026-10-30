@@ -49,15 +49,17 @@ class OcptShotCoverageRange extends Equatable {
 
   /// Builds an [OcptShotCoverageRange] from its stored [row], paired with whether the caller has
   /// determined it [isStale].
-  factory OcptShotCoverageRange.fromRow({required OcptShotCoverageRow row, required bool isStale}) =>
-      OcptShotCoverageRange(
-        id: row.id,
-        sceneId: row.sceneId,
-        startOffset: row.startOffset,
-        endOffset: row.endOffset,
-        coveredTextDigest: row.coveredTextDigest,
-        isStale: isStale,
-      );
+  factory OcptShotCoverageRange.fromRow({
+    required OcptShotCoverageRow row,
+    required bool isStale,
+  }) => OcptShotCoverageRange(
+    id: row.id,
+    sceneId: row.sceneId,
+    startOffset: row.startOffset,
+    endOffset: row.endOffset,
+    coveredTextDigest: row.coveredTextDigest,
+    isStale: isStale,
+  );
 
   /// Object string representation, useful for debugging and logging.
   @override

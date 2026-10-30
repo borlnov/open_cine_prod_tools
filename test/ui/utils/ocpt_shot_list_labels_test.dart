@@ -214,8 +214,9 @@ void main() {
       expect(label, "D3 · Tue 4 Aug");
     });
 
-    testWidgets("placements on several distinct days read as their tags alone, joined",
-        (tester) async {
+    testWidgets("placements on several distinct days read as their tags alone, joined", (
+      tester,
+    ) async {
       late String label;
 
       await tester.pumpWidget(
@@ -256,8 +257,9 @@ void main() {
   });
 
   group("ocptShotListXlsxLabelsOf", () {
-    testWidgets("names every column of the workbook and every sequence it groups by",
-        (tester) async {
+    testWidgets("names every column of the workbook and every sequence it groups by", (
+      tester,
+    ) async {
       final labels = await _buildXlsxLabels(
         tester,
         sequences: [

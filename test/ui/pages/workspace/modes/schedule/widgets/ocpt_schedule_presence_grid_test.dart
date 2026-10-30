@@ -122,8 +122,9 @@ void main() {
     expect(find.byTooltip("Working"), findsOneWidget);
   });
 
-  testWidgets("a computed unavailable cell reads its own letter and full-word tooltip",
-      (tester) async {
+  testWidgets("a computed unavailable cell reads its own letter and full-word tooltip", (
+    tester,
+  ) async {
     final person = _buildPerson(id: "person-1", firstName: "Léa");
     final day = _buildDay(id: "day-1", dayNumber: 1, date: DateTime(2026, 8, 3));
 
@@ -144,7 +145,9 @@ void main() {
     expect(find.byTooltip("Unavailable"), findsOneWidget);
   });
 
-  testWidgets("a cell named by a person-unavailable alert reads in the error colour", (tester) async {
+  testWidgets("a cell named by a person-unavailable alert reads in the error colour", (
+    tester,
+  ) async {
     final person = _buildPerson(id: "person-1", firstName: "Léa");
     final day = _buildDay(id: "day-1", dayNumber: 1, date: DateTime(2026, 8, 3));
 

@@ -47,21 +47,24 @@ OcptShootingDay _buildDay({required String id, required int dayNumber, required 
 
 /// Builds a shooting day block with the few fields these tests read, everything else neutral.
 /// [slotId] and [label] default to the single-slot-day shape most tests exercise.
-OcptShootingDayBlock _buildBlock({required String id, String slotId = "slot-1", String label = "Prep"}) =>
-    OcptShootingDayBlock(
-      id: id,
-      shootingDayId: "day-1",
-      slotId: slotId,
-      kind: OcptShootingBlockKind.preparation,
-      shotId: null,
-      sceneId: null,
-      candidates: const [],
-      label: label,
-      durationMinutes: null,
-      anchorMinute: null,
-      notes: "",
-      crewNote: "",
-    );
+OcptShootingDayBlock _buildBlock({
+  required String id,
+  String slotId = "slot-1",
+  String label = "Prep",
+}) => OcptShootingDayBlock(
+  id: id,
+  shootingDayId: "day-1",
+  slotId: slotId,
+  kind: OcptShootingBlockKind.preparation,
+  shotId: null,
+  sceneId: null,
+  candidates: const [],
+  label: label,
+  durationMinutes: null,
+  anchorMinute: null,
+  notes: "",
+  crewNote: "",
+);
 
 /// Builds a day event with the few fields these tests read, everything else neutral.
 OcptShootingDayEvent _buildEvent({
@@ -69,7 +72,13 @@ OcptShootingDayEvent _buildEvent({
   String shootingDayId = "day-1",
   required int minute,
   String label = "",
-}) => OcptShootingDayEvent(id: id, shootingDayId: shootingDayId, minute: minute, label: label, notes: "");
+}) => OcptShootingDayEvent(
+  id: id,
+  shootingDayId: shootingDayId,
+  minute: minute,
+  label: label,
+  notes: "",
+);
 
 /// Builds a shooting slot with the few fields these tests read, everything else neutral — no crew,
 /// no cast, since the grid never reads either.
@@ -128,7 +137,12 @@ void main() {
     const timeline = OcptShootingDayTimelines(
       bySlotId: {},
       entries: [
-        OcptShootingTimelineEntry(blockId: "block-1", startMinute: 1140, endMinute: 1620, durationMinutes: 480),
+        OcptShootingTimelineEntry(
+          blockId: "block-1",
+          startMinute: 1140,
+          endMinute: 1620,
+          durationMinutes: 480,
+        ),
       ],
       overruns: [],
       fixedEndMisses: [],
@@ -144,8 +158,12 @@ void main() {
           firstWeekday: OcptFirstWeekday.monday,
           days: [day],
           dayTintOf: (_) => Colors.transparent,
-          slotsByDayId: {"day-1": [_buildSlot(id: "slot-1")]},
-          blocksByDayId: {"day-1": [block]},
+          slotsByDayId: {
+            "day-1": [_buildSlot(id: "slot-1")],
+          },
+          blocksByDayId: {
+            "day-1": [block],
+          },
           eventsByDayId: const {},
           shotOf: (_) => null,
           timelineOf: (dayId) => dayId == "day-1" ? timeline : null,
@@ -170,7 +188,12 @@ void main() {
     const timeline = OcptShootingDayTimelines(
       bySlotId: {},
       entries: [
-        OcptShootingTimelineEntry(blockId: "block-1", startMinute: 480, endMinute: 510, durationMinutes: 30),
+        OcptShootingTimelineEntry(
+          blockId: "block-1",
+          startMinute: 480,
+          endMinute: 510,
+          durationMinutes: 30,
+        ),
       ],
       overruns: [],
       fixedEndMisses: [],
@@ -186,8 +209,12 @@ void main() {
           firstWeekday: OcptFirstWeekday.monday,
           days: [day],
           dayTintOf: (_) => Colors.transparent,
-          slotsByDayId: {"day-1": [_buildSlot(id: "slot-1")]},
-          blocksByDayId: {"day-1": [block]},
+          slotsByDayId: {
+            "day-1": [_buildSlot(id: "slot-1")],
+          },
+          blocksByDayId: {
+            "day-1": [block],
+          },
           eventsByDayId: const {},
           shotOf: (_) => null,
           timelineOf: (dayId) => dayId == "day-1" ? timeline : null,
@@ -210,7 +237,12 @@ void main() {
     const timeline = OcptShootingDayTimelines(
       bySlotId: {},
       entries: [
-        OcptShootingTimelineEntry(blockId: "block-1", startMinute: 480, endMinute: 510, durationMinutes: 30),
+        OcptShootingTimelineEntry(
+          blockId: "block-1",
+          startMinute: 480,
+          endMinute: 510,
+          durationMinutes: 30,
+        ),
       ],
       overruns: [],
       fixedEndMisses: [],
@@ -237,8 +269,12 @@ void main() {
           firstWeekday: OcptFirstWeekday.monday,
           days: [day],
           dayTintOf: (_) => Colors.transparent,
-          slotsByDayId: {"day-1": [_buildSlot(id: "slot-1")]},
-          blocksByDayId: {"day-1": [block]},
+          slotsByDayId: {
+            "day-1": [_buildSlot(id: "slot-1")],
+          },
+          blocksByDayId: {
+            "day-1": [block],
+          },
           eventsByDayId: const {},
           shotOf: (_) => null,
           timelineOf: (dayId) => dayId == "day-1" ? timeline : null,
@@ -333,7 +369,12 @@ void main() {
     const timeline = OcptShootingDayTimelines(
       bySlotId: {},
       entries: [
-        OcptShootingTimelineEntry(blockId: "block-1", startMinute: 480, endMinute: 510, durationMinutes: 30),
+        OcptShootingTimelineEntry(
+          blockId: "block-1",
+          startMinute: 480,
+          endMinute: 510,
+          durationMinutes: 30,
+        ),
       ],
       overruns: [],
       fixedEndMisses: [],
@@ -349,8 +390,12 @@ void main() {
           firstWeekday: OcptFirstWeekday.monday,
           days: [day],
           dayTintOf: (_) => Colors.transparent,
-          slotsByDayId: {"day-1": [_buildSlot(id: "slot-1")]},
-          blocksByDayId: {"day-1": [block]},
+          slotsByDayId: {
+            "day-1": [_buildSlot(id: "slot-1")],
+          },
+          blocksByDayId: {
+            "day-1": [block],
+          },
           eventsByDayId: const {},
           shotOf: (_) => null,
           timelineOf: (dayId) => dayId == "day-1" ? timeline : null,
@@ -383,8 +428,18 @@ void main() {
     const timeline = OcptShootingDayTimelines(
       bySlotId: {},
       entries: [
-        OcptShootingTimelineEntry(blockId: "block-1", startMinute: 480, endMinute: 510, durationMinutes: 30),
-        OcptShootingTimelineEntry(blockId: "block-2", startMinute: 480, endMinute: 510, durationMinutes: 30),
+        OcptShootingTimelineEntry(
+          blockId: "block-1",
+          startMinute: 480,
+          endMinute: 510,
+          durationMinutes: 30,
+        ),
+        OcptShootingTimelineEntry(
+          blockId: "block-2",
+          startMinute: 480,
+          endMinute: 510,
+          durationMinutes: 30,
+        ),
       ],
       overruns: [],
       fixedEndMisses: [],
@@ -401,7 +456,10 @@ void main() {
           days: [day],
           dayTintOf: (_) => Colors.transparent,
           slotsByDayId: {
-            "day-1": [_buildSlot(id: "slot-1", label: "Morning"), _buildSlot(id: "slot-2", label: "Evening")],
+            "day-1": [
+              _buildSlot(id: "slot-1", label: "Morning"),
+              _buildSlot(id: "slot-2", label: "Evening"),
+            ],
           },
           blocksByDayId: {
             "day-1": [morningBlock, eveningBlock],
@@ -456,8 +514,18 @@ void main() {
     const timeline = OcptShootingDayTimelines(
       bySlotId: {},
       entries: [
-        OcptShootingTimelineEntry(blockId: "block-1", startMinute: 480, endMinute: 510, durationMinutes: 30),
-        OcptShootingTimelineEntry(blockId: "block-2", startMinute: 1140, endMinute: 1620, durationMinutes: 480),
+        OcptShootingTimelineEntry(
+          blockId: "block-1",
+          startMinute: 480,
+          endMinute: 510,
+          durationMinutes: 30,
+        ),
+        OcptShootingTimelineEntry(
+          blockId: "block-2",
+          startMinute: 1140,
+          endMinute: 1620,
+          durationMinutes: 480,
+        ),
       ],
       overruns: [],
       fixedEndMisses: [],
@@ -474,7 +542,10 @@ void main() {
           days: [day],
           dayTintOf: (_) => Colors.transparent,
           slotsByDayId: {
-            "day-1": [_buildSlot(id: "slot-1", label: "Day"), _buildSlot(id: "slot-2", label: "Night")],
+            "day-1": [
+              _buildSlot(id: "slot-1", label: "Day"),
+              _buildSlot(id: "slot-2", label: "Night"),
+            ],
           },
           blocksByDayId: {
             "day-1": [dayBlock, nightBlock],
@@ -500,7 +571,11 @@ void main() {
     tester,
   ) async {
     final day = _buildDay(id: "day-1", dayNumber: 1, date: monday);
-    final otherDay = _buildDay(id: "day-2", dayNumber: 2, date: monday.add(const Duration(days: 1)));
+    final otherDay = _buildDay(
+      id: "day-2",
+      dayNumber: 2,
+      date: monday.add(const Duration(days: 1)),
+    );
     final event = _buildEvent(id: "event-1", minute: 720, label: "Fireworks");
 
     await tester.pumpWidget(
@@ -541,7 +616,12 @@ void main() {
       const timeline = OcptShootingDayTimelines(
         bySlotId: {},
         entries: [
-          OcptShootingTimelineEntry(blockId: "block-1", startMinute: 480, endMinute: 510, durationMinutes: 30),
+          OcptShootingTimelineEntry(
+            blockId: "block-1",
+            startMinute: 480,
+            endMinute: 510,
+            durationMinutes: 30,
+          ),
         ],
         overruns: [],
         fixedEndMisses: [],
@@ -558,8 +638,12 @@ void main() {
             firstWeekday: OcptFirstWeekday.monday,
             days: [day],
             dayTintOf: (_) => Colors.transparent,
-            slotsByDayId: {"day-1": [_buildSlot(id: "slot-1")]},
-            blocksByDayId: {"day-1": [block]},
+            slotsByDayId: {
+              "day-1": [_buildSlot(id: "slot-1")],
+            },
+            blocksByDayId: {
+              "day-1": [block],
+            },
             eventsByDayId: {
               "day-1": [event],
             },

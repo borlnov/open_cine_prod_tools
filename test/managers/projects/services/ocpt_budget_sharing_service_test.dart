@@ -35,16 +35,14 @@ void main() {
   };
 
   /// Every `budget_revenues` row, tombstoned or not, in `sortKey` order.
-  Future<List<OcptBudgetRevenueRow>> readAllRevenues() =>
-      (database.select(database.ocptBudgetRevenuesTable)
-            ..orderBy([(table) => OrderingTerm.asc(table.sortKey)]))
-          .get();
+  Future<List<OcptBudgetRevenueRow>> readAllRevenues() => (database.select(
+    database.ocptBudgetRevenuesTable,
+  )..orderBy([(table) => OrderingTerm.asc(table.sortKey)])).get();
 
   /// Every `budget_shares` row, tombstoned or not, in `sortKey` order.
-  Future<List<OcptBudgetShareRow>> readAllShares() =>
-      (database.select(database.ocptBudgetSharesTable)
-            ..orderBy([(table) => OrderingTerm.asc(table.sortKey)]))
-          .get();
+  Future<List<OcptBudgetShareRow>> readAllShares() => (database.select(
+    database.ocptBudgetSharesTable,
+  )..orderBy([(table) => OrderingTerm.asc(table.sortKey)])).get();
 
   group("revenues", () {
     test("a fresh project names no taking of its own", () async {
@@ -354,11 +352,7 @@ void main() {
       final id = (await service.createShare(database: database, label: "Réalisatrice"))!;
       await database.delete(database.ocptRowFieldVersionsTable).go();
 
-      await service.updateShare(
-        database: database,
-        shareId: id,
-        sharePermille: const Value(300),
-      );
+      await service.updateShare(database: database, shareId: id, sharePermille: const Value(300));
 
       final stamps = await readStamps();
       final ownKeys = stamps.keys.where((key) => key.startsWith("budget_shares/$id/")).toSet();

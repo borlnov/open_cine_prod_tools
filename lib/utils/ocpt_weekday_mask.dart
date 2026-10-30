@@ -34,8 +34,7 @@ bool ocptWeekdayMaskContains(int mask, int weekday) => mask & _bitOf(weekday) !=
 
 /// Whether [mask] covers the whole week, i.e. whether it narrows its range to nothing in
 /// particular — which is how a range with no weekday restriction reads.
-bool ocptWeekdayMaskCoversEveryDay(int mask) =>
-    mask & ocptEveryWeekdayMask == ocptEveryWeekdayMask;
+bool ocptWeekdayMaskCoversEveryDay(int mask) => mask & ocptEveryWeekdayMask == ocptEveryWeekdayMask;
 
 /// [mask] with [weekday] added when it was missing, removed when it was there.
 ///

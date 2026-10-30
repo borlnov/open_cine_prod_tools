@@ -73,7 +73,11 @@ import 'package:super_editor/super_editor.dart';
 /// bug it and this builder both had before `blockType` was checked here).
 class OcptTitlePageComponentBuilder extends ParagraphComponentBuilder {
   /// Creates an [OcptTitlePageComponentBuilder].
-  OcptTitlePageComponentBuilder({required this.placeholders, required this.hintStyleBuilder, required this.metrics});
+  OcptTitlePageComponentBuilder({
+    required this.placeholders,
+    required this.hintStyleBuilder,
+    required this.metrics,
+  });
 
   /// The placeholder text to show for an empty field, keyed by [ocptTitlePageFieldKeys] (a key
   /// missing an entry, which should not normally happen, simply never gets a hint shown for it):
@@ -117,7 +121,10 @@ class OcptTitlePageComponentBuilder extends ParagraphComponentBuilder {
 
     final key = node.getMetadataValue(ocptTitlePageKeyMetadataKey) as String;
     if (key == "Contact" || key == "Source") {
-      _rowShiftByNodeId[node.id] = computeOcptStyledTitlePageMetrics(document: document, metrics: metrics).rowShift;
+      _rowShiftByNodeId[node.id] = computeOcptStyledTitlePageMetrics(
+        document: document,
+        metrics: metrics,
+      ).rowShift;
     } else {
       _rowShiftByNodeId.remove(node.id);
     }

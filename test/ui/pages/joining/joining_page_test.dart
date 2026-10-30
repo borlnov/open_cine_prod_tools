@@ -270,7 +270,11 @@ void main() {
     await tester.pump();
 
     bloc.pushTestState(
-      const OcptJoiningState(isJoining: true, joinFailed: false, joinStep: OcptJoinStep.downloading),
+      const OcptJoiningState(
+        isJoining: true,
+        joinFailed: false,
+        joinStep: OcptJoinStep.downloading,
+      ),
     );
     // Two pumps: `pushTestState` calls `Bloc.emit` directly (bypassing any event handler's own
     // await chain), so the stream's async delivery to `BlocConsumer`'s subscription needs one pump
@@ -312,7 +316,9 @@ void main() {
     );
     await tester.pump();
 
-    bloc.pushTestState(const OcptJoiningState(isJoining: false, joinFailed: false, joinSucceeded: true));
+    bloc.pushTestState(
+      const OcptJoiningState(isJoining: false, joinFailed: false, joinSucceeded: true),
+    );
     // See the sibling "blocking overlay" test's own comment for why this needs two pumps.
     await tester.pump();
     await tester.pump();

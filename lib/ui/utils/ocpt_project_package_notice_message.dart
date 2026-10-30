@@ -19,12 +19,13 @@ String ocptProjectPackageNoticeMessage(BuildContext context, OcptProjectPackageN
   final tr = Tr.of(context);
 
   return switch (notice.kind) {
-    OcptProjectPackageNoticeKind.exportSucceeded => notice.skippedAssetCount > 0
-        ? tr.projectPackageExportSuccessWithSkippedMessage(
-            notice.path ?? "",
-            notice.skippedAssetCount,
-          )
-        : tr.projectPackageExportSuccessMessage(notice.path ?? ""),
+    OcptProjectPackageNoticeKind.exportSucceeded =>
+      notice.skippedAssetCount > 0
+          ? tr.projectPackageExportSuccessWithSkippedMessage(
+              notice.path ?? "",
+              notice.skippedAssetCount,
+            )
+          : tr.projectPackageExportSuccessMessage(notice.path ?? ""),
     OcptProjectPackageNoticeKind.exportFailed => tr.projectPackageExportError,
     OcptProjectPackageNoticeKind.exportShared => tr.projectPackageExportShared,
   };

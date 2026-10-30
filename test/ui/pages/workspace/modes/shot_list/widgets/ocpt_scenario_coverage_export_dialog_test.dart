@@ -124,12 +124,8 @@ void main() {
     final context = tester.element(find.byType(OcptScenarioCoverageExportDialog));
     final tr = Tr.of(context);
 
-    await tester.tap(
-      find.widgetWithText(CheckboxListTile, tr.shotListExportCoverageLegendLabel),
-    );
-    await tester.tap(
-      find.widgetWithText(CheckboxListTile, tr.shotListExportCoverageSummaryLabel),
-    );
+    await tester.tap(find.widgetWithText(CheckboxListTile, tr.shotListExportCoverageLegendLabel));
+    await tester.tap(find.widgetWithText(CheckboxListTile, tr.shotListExportCoverageSummaryLabel));
     await tester.pumpAndSettle();
 
     await tester.tap(find.text(tr.editorExportPdfExportAction));

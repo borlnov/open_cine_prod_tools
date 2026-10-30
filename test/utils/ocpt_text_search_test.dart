@@ -156,12 +156,7 @@ void main() {
 
     test("a query longer than the text matches nothing", () {
       expect(
-        ocptFindTextMatches(
-          text: "hi",
-          query: "hello",
-          isCaseSensitive: true,
-          isWholeWord: false,
-        ),
+        ocptFindTextMatches(text: "hi", query: "hello", isCaseSensitive: true, isWholeWord: false),
         isEmpty,
       );
     });

@@ -345,7 +345,12 @@ class OcptStoryboardAnnotationOverlayPainter extends CustomPainter {
 
   /// Draws a dashed line from [from] to [to], each dash and gap `dashLength` logical pixels long
   /// — the same technique `OcptDashedRoundedRectPainter` uses for its own outline.
-  void _drawDashedLine({required Canvas canvas, required Offset from, required Offset to, required Paint paint}) {
+  void _drawDashedLine({
+    required Canvas canvas,
+    required Offset from,
+    required Offset to,
+    required Paint paint,
+  }) {
     const dashLength = 6.0;
     final total = (to - from).distance;
     if (total == 0) {

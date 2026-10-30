@@ -484,7 +484,6 @@ class OcptFloorPlanPdfService {
     _paintScaleAndSilhouette(canvas: canvas, layout: layout);
   }
 
-
   /// One [pw.Positioned] caption per symbol that carries one, placed near the symbol's own mapped
   /// centre: a camera's own derived number/letter ([OcptFloorPlanSymbolShape.cameraLabel], when
   /// set) as a filled pill in the camera's own colour — the printed equivalent of
@@ -500,7 +499,11 @@ class OcptFloorPlanPdfService {
         _positionedTopDown(
           layout.topDownPointOf(symbol.xM, symbol.yM) + const Offset(4, 4),
           symbol.cameraLabel != null && symbol.cameraLabel!.isNotEmpty
-              ? _cameraLabelPill(cameraLabel: symbol.cameraLabel!, colorArgb: symbol.colorArgb, painter: painter)
+              ? _cameraLabelPill(
+                  cameraLabel: symbol.cameraLabel!,
+                  colorArgb: symbol.colorArgb,
+                  painter: painter,
+                )
               : pw.Text(
                   symbol.label,
                   style: pw.TextStyle(font: painter.fonts.bold, fontSize: _symbolLabelFontSizePt),
@@ -522,7 +525,11 @@ class OcptFloorPlanPdfService {
     ),
     child: pw.Text(
       cameraLabel,
-      style: pw.TextStyle(font: painter.fonts.bold, fontSize: _symbolLabelFontSizePt, color: PdfColors.white),
+      style: pw.TextStyle(
+        font: painter.fonts.bold,
+        fontSize: _symbolLabelFontSizePt,
+        color: PdfColors.white,
+      ),
     ),
   );
 
@@ -562,7 +569,10 @@ class OcptFloorPlanPdfService {
     );
     _fillAndStrokePolygon(
       canvas: canvas,
-      points: [for (final corner in corners) layout.graphicsOf(layout.topDownPointOf(corner.dx, corner.dy))],
+      points: [
+        for (final corner in corners)
+          layout.graphicsOf(layout.topDownPointOf(corner.dx, corner.dy)),
+      ],
       fillColor: _underlayColor,
       strokeColor: _underlayColor,
       strokeWidthPt: 0.75,
@@ -630,7 +640,9 @@ class OcptFloorPlanPdfService {
     final radiusPt = radiusM * layout.pixelsPerMetre;
 
     canvas
-      ..setFillColor(PdfColor(color.red, color.green, color.blue, ocptFloorPlanCharacterDiscFillAlpha).flatten())
+      ..setFillColor(
+        PdfColor(color.red, color.green, color.blue, ocptFloorPlanCharacterDiscFillAlpha).flatten(),
+      )
       ..drawEllipse(centre.dx, centre.dy, radiusPt, radiusPt)
       ..fillPath();
     canvas
@@ -724,7 +736,10 @@ class OcptFloorPlanPdfService {
     );
     _fillAndStrokePolygon(
       canvas: canvas,
-      points: [for (final corner in corners) layout.graphicsOf(layout.topDownPointOf(corner.dx, corner.dy))],
+      points: [
+        for (final corner in corners)
+          layout.graphicsOf(layout.topDownPointOf(corner.dx, corner.dy)),
+      ],
       fillColor: PdfColor(color.red, color.green, color.blue, _symbolFillOpacity).flatten(),
       strokeColor: color,
       strokeWidthPt: _symbolStrokeWidthPt,
@@ -777,16 +792,25 @@ class OcptFloorPlanPdfService {
     );
     _fillAndStrokePolygon(
       canvas: canvas,
-      points: [for (final corner in corners) layout.graphicsOf(layout.topDownPointOf(corner.dx, corner.dy))],
+      points: [
+        for (final corner in corners)
+          layout.graphicsOf(layout.topDownPointOf(corner.dx, corner.dy)),
+      ],
       fillColor: PdfColor(color.red, color.green, color.blue, 0.5).flatten(),
       strokeColor: color,
       strokeWidthPt: _symbolStrokeWidthPt,
     );
 
     final doorLeftStart = local(-symbol.widthM / 2, tipYM);
-    final doorLeftEnd = local(-symbol.widthM / 2 - symbol.widthM * 0.3, tipYM - symbol.heightM * 0.4);
+    final doorLeftEnd = local(
+      -symbol.widthM / 2 - symbol.widthM * 0.3,
+      tipYM - symbol.heightM * 0.4,
+    );
     final doorRightStart = local(symbol.widthM / 2, tipYM);
-    final doorRightEnd = local(symbol.widthM / 2 + symbol.widthM * 0.3, tipYM - symbol.heightM * 0.4);
+    final doorRightEnd = local(
+      symbol.widthM / 2 + symbol.widthM * 0.3,
+      tipYM - symbol.heightM * 0.4,
+    );
     canvas
       ..setColor(color)
       ..setLineWidth(0.75)
@@ -829,7 +853,13 @@ class OcptFloorPlanPdfService {
           strokeWidthPt: _symbolStrokeWidthPt + 0.5,
         );
       case OcptFloorPlanSetElementShape.door:
-        _paintDoorGlyph(canvas: canvas, layout: layout, symbol: symbol, color: color, points: points);
+        _paintDoorGlyph(
+          canvas: canvas,
+          layout: layout,
+          symbol: symbol,
+          color: color,
+          points: points,
+        );
       case OcptFloorPlanSetElementShape.furniture:
         _fillAndStrokePolygon(
           canvas: canvas,
@@ -951,7 +981,10 @@ class OcptFloorPlanPdfService {
     }
     canvas.moveTo(from.dx, from.dy);
     if (ctrl != null) {
-      final cp1 = Offset(from.dx + 2 / 3 * (ctrl.dx - from.dx), from.dy + 2 / 3 * (ctrl.dy - from.dy));
+      final cp1 = Offset(
+        from.dx + 2 / 3 * (ctrl.dx - from.dx),
+        from.dy + 2 / 3 * (ctrl.dy - from.dy),
+      );
       final cp2 = Offset(to.dx + 2 / 3 * (ctrl.dx - to.dx), to.dy + 2 / 3 * (ctrl.dy - to.dy));
       canvas.curveTo(cp1.dx, cp1.dy, cp2.dx, cp2.dy, to.dx, to.dy);
     } else {
@@ -986,7 +1019,10 @@ class OcptFloorPlanPdfService {
   /// equivalent of `ocpt_floor_plan_canvas_painter.dart`'s always-on pair, at the zoom [layout]
   /// fitted the set's own shapes at. The scale bar's own length is a separate [pw.Text] overlay
   /// (see [_buildPage]'s own doc comment for why).
-  void _paintScaleAndSilhouette({required PdfGraphics canvas, required _FloorPlanPageLayout layout}) {
+  void _paintScaleAndSilhouette({
+    required PdfGraphics canvas,
+    required _FloorPlanPageLayout layout,
+  }) {
     canvas
       ..setColor(_scaleColor)
       ..setLineWidth(1)
@@ -1138,7 +1174,10 @@ class _FloorPlanPageLayout {
     double boxHeightM;
     double centerXM;
     double centerYM;
-    if (resolvedMinX == null || resolvedMaxX == null || resolvedMinY == null || resolvedMaxY == null) {
+    if (resolvedMinX == null ||
+        resolvedMaxX == null ||
+        resolvedMinY == null ||
+        resolvedMaxY == null) {
       boxWidthM = _minimumHalfSpanM * 2;
       boxHeightM = _minimumHalfSpanM * 2;
       centerXM = 0;
@@ -1147,9 +1186,17 @@ class _FloorPlanPageLayout {
       centerXM = (resolvedMinX + resolvedMaxX) / 2;
       centerYM = (resolvedMinY + resolvedMaxY) / 2;
       boxWidthM =
-          math.max(_minimumHalfSpanM, (resolvedMaxX - resolvedMinX) / 2 * (1 + _boundingBoxPaddingFraction)) * 2;
+          math.max(
+            _minimumHalfSpanM,
+            (resolvedMaxX - resolvedMinX) / 2 * (1 + _boundingBoxPaddingFraction),
+          ) *
+          2;
       boxHeightM =
-          math.max(_minimumHalfSpanM, (resolvedMaxY - resolvedMinY) / 2 * (1 + _boundingBoxPaddingFraction)) * 2;
+          math.max(
+            _minimumHalfSpanM,
+            (resolvedMaxY - resolvedMinY) / 2 * (1 + _boundingBoxPaddingFraction),
+          ) *
+          2;
     }
 
     final pixelsPerMetre = widthPt <= 0 || heightPt <= 0
@@ -1212,8 +1259,7 @@ class _FloorPlanPageLayout {
   double get _scaleBarLengthPt => ocptFloorPlanMetresToPixels(metres: scaleBarLengthM, zoom: zoom);
 
   /// The scale bar's own top-down Y — just above the reference silhouette.
-  double get scaleBarTopDown =>
-      heightPt - _silhouetteMarginPt - silhouetteRadiusPt * 2 - 10;
+  double get scaleBarTopDown => heightPt - _silhouetteMarginPt - silhouetteRadiusPt * 2 - 10;
 
   /// The scale bar's own right edge, in top-down X (and graphics X, the two coinciding on this
   /// axis since no flip ever touches X).

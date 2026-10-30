@@ -331,7 +331,13 @@ class OcptStoryboardPanelFrame extends StatelessWidget {
 
   /// Called with the new mark's kind and its normalised tail/head once a drag draws an arrow, or
   /// null while withheld.
-  final void Function(OcptStoryboardAnnotationKind kind, double x1, double y1, double x2, double y2)?
+  final void Function(
+    OcptStoryboardAnnotationKind kind,
+    double x1,
+    double y1,
+    double x2,
+    double y2,
+  )?
   onAnnotationDrawn;
 
   /// Called with a normalised point once a click places a label there, or null while withheld.
@@ -449,7 +455,9 @@ class OcptStoryboardPanelFrame extends StatelessWidget {
               panel.comment.isEmpty ? ratioLabel : "${panel.comment} · $ratioLabel",
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
-              style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
             ),
           ),
         ],

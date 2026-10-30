@@ -62,7 +62,10 @@ class OcptEditorMetadataPanel extends StatelessWidget {
           label: tr.editorTitlePageDraftDateLabel,
           value: _displayValueOf('Draft date'),
         ),
-        OcptEditorDockField(label: tr.editorTitlePageContactLabel, value: _displayValueOf('Contact')),
+        OcptEditorDockField(
+          label: tr.editorTitlePageContactLabel,
+          value: _displayValueOf('Contact'),
+        ),
         Padding(
           padding: const EdgeInsets.only(top: 8, bottom: 12),
           child: Text(

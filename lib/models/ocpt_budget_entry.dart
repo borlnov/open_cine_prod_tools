@@ -119,7 +119,8 @@ class OcptBudgetEntry extends Equatable {
 
   /// Object string representation, useful for debugging and logging.
   @override
-  String toString() => "OcptBudgetEntry(id: $id, date: $date, label: $label, "
+  String toString() =>
+      "OcptBudgetEntry(id: $id, date: $date, label: $label, "
       "voucherNumber: $voucherNumber)";
 
   /// Object properties

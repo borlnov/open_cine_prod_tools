@@ -513,10 +513,8 @@ class OcptScheduleSlotCard extends StatelessWidget {
                   ? _buildPlaceName(context, location?.name ?? tr.scheduleDayNoLocation)
                   : PopupMenuButton<String>(
                       tooltip: "",
-                      onSelected: (value) => onPlaceChanged(
-                        value == _noLocationOption ? null : value,
-                        null,
-                      ),
+                      onSelected: (value) =>
+                          onPlaceChanged(value == _noLocationOption ? null : value, null),
                       itemBuilder: (context) => [
                         PopupMenuItem<String>(
                           value: _noLocationOption,
@@ -597,10 +595,7 @@ class OcptScheduleSlotCard extends StatelessWidget {
         return const [];
       }
 
-      return [
-        const SizedBox(height: 3),
-        Text(notesValue, style: theme.textTheme.bodySmall),
-      ];
+      return [const SizedBox(height: 3), Text(notesValue, style: theme.textTheme.bodySmall)];
     }
 
     return [
@@ -665,7 +660,9 @@ class OcptScheduleSlotCard extends StatelessWidget {
     final anchoredMinute = isEndAnchored ? resolvedEndMinute : resolvedStartMinute;
     final oppositeMinute = isEndAnchored ? resolvedStartMinute : resolvedEndMinute;
     final oppositeLabel = isEndAnchored ? tr.scheduleSlotStartLabel : tr.scheduleSlotEndLabel;
-    final sourceLabel = slot.anchorSlotId == null ? null : _labelOfSlot(context, slot.anchorSlotId!);
+    final sourceLabel = slot.anchorSlotId == null
+        ? null
+        : _labelOfSlot(context, slot.anchorSlotId!);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.end,
@@ -780,11 +777,12 @@ class OcptScheduleSlotCard extends StatelessWidget {
                 ? tr.scheduleSlotAnchorStartFromSlot(_labelOf(context, rawLabel))
                 : tr.scheduleSlotAnchorEndFromSlot(_labelOf(context, rawLabel)),
             isSelected: slot.anchorSlotId == sourceId && slot.anchorEdge == edge,
-            disabledReason: ocptSlotAnchorWouldCycle(
-              anchorSourceBySlotId: anchorSourceBySlotId,
-              slotId: slot.id,
-              sourceSlotId: sourceId,
-            )
+            disabledReason:
+                ocptSlotAnchorWouldCycle(
+                  anchorSourceBySlotId: anchorSourceBySlotId,
+                  slotId: slot.id,
+                  sourceSlotId: sourceId,
+                )
                 ? tr.scheduleSlotAnchorCycleReason
                 : null,
           ),
@@ -1051,7 +1049,9 @@ Widget _buildPeopleSubsectionTitle(
   required int count,
 }) {
   final theme = Theme.of(context);
-  final titleStyle = theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant);
+  final titleStyle = theme.textTheme.labelSmall?.copyWith(
+    color: theme.colorScheme.onSurfaceVariant,
+  );
 
   return Row(
     mainAxisSize: MainAxisSize.min,
@@ -1288,10 +1288,7 @@ class _OcptScheduleCrewSection extends StatelessWidget {
                     runSpacing: 8,
                     children: [
                       for (final member in byDepartment[department]!)
-                        SizedBox(
-                          width: cardWidth,
-                          child: _buildCrewMemberRow(member),
-                        ),
+                        SizedBox(width: cardWidth, child: _buildCrewMemberRow(member)),
                     ],
                   ),
                 ],
@@ -1406,9 +1403,7 @@ class _OcptScheduleCrewMemberRow extends StatelessWidget {
     final theme = Theme.of(context);
     final tr = Tr.of(context);
     final positionLabel = member.positionId.isEmpty
-        ? (member.customLabel.isEmpty
-              ? tr.scheduleSlotCrewPositionPlaceholder
-              : member.customLabel)
+        ? (member.customLabel.isEmpty ? tr.scheduleSlotCrewPositionPlaceholder : member.customLabel)
         : ocptCrewPositionLabel(tr, member.positionId);
     final personName = person?.displayName.isEmpty ?? true
         ? tr.resourcesUnnamedPerson

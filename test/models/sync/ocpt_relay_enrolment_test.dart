@@ -59,7 +59,10 @@ void main() {
     });
 
     test('rejects an unrelated https:// URL', () {
-      expect(() => OcptRelayEnrolment.parse('https://example.org/relay?r=x&e=y'), throwsFormatException);
+      expect(
+        () => OcptRelayEnrolment.parse('https://example.org/relay?r=x&e=y'),
+        throwsFormatException,
+      );
       expect(OcptRelayEnrolment.tryParse('https://example.org/relay?r=x&e=y'), isNull);
     });
 

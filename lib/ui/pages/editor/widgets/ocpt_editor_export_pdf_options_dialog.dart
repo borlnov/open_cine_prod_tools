@@ -28,11 +28,13 @@ class OcptEditorExportPdfOptionsDialog extends StatefulWidget {
 
   /// Shows the dialog and returns the [OcptPdfExportOptions] the user applied, or null if they
   /// cancelled it.
-  static Future<OcptPdfExportOptions?> show(BuildContext context, {required OcptPageSetup current}) =>
-      showDialog<OcptPdfExportOptions>(
-        context: context,
-        builder: (context) => OcptEditorExportPdfOptionsDialog(current: current),
-      );
+  static Future<OcptPdfExportOptions?> show(
+    BuildContext context, {
+    required OcptPageSetup current,
+  }) => showDialog<OcptPdfExportOptions>(
+    context: context,
+    builder: (context) => OcptEditorExportPdfOptionsDialog(current: current),
+  );
 
   @override
   State<OcptEditorExportPdfOptionsDialog> createState() => _OcptEditorExportPdfOptionsDialogState();

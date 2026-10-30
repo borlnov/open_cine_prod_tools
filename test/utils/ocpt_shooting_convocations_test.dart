@@ -435,9 +435,7 @@ void main() {
         guestFreeNames: {},
       );
 
-      final convocation = ocptComputeDayConvocations(
-        slots: const [rehearsal, shooting],
-      ).single;
+      final convocation = ocptComputeDayConvocations(slots: const [rehearsal, shooting]).single;
       expect(convocation.arrivalMinute, 480);
       expect(convocation.patStartMinute, 780);
       expect(convocation.patEndMinute, 1080);
@@ -529,13 +527,12 @@ void main() {
         slotId: "slot-1",
         startMinute: 560, // 09:20
         endMinute: 580, // 09:40
-        candidacies: [OcptConvocationCandidacy(roleCandidateId: "candidacy-1", personId: "person-1")],
+        candidacies: [
+          OcptConvocationCandidacy(roleCandidateId: "candidacy-1", personId: "person-1"),
+        ],
       );
 
-      final result = ocptComputeDayConvocations(
-        slots: const [slot],
-        auditions: const [audition],
-      );
+      final result = ocptComputeDayConvocations(slots: const [slot], auditions: const [audition]);
 
       final convocation = result.single;
       expect(convocation.isSeenForAPart, isTrue);
@@ -579,13 +576,17 @@ void main() {
         slotId: "slot-1",
         startMinute: 560,
         endMinute: 580,
-        candidacies: [OcptConvocationCandidacy(roleCandidateId: "candidacy-1", personId: "person-1")],
+        candidacies: [
+          OcptConvocationCandidacy(roleCandidateId: "candidacy-1", personId: "person-1"),
+        ],
       );
       const afternoon = OcptConvocationAudition(
         slotId: "slot-1",
         startMinute: 900,
         endMinute: 930,
-        candidacies: [OcptConvocationCandidacy(roleCandidateId: "candidacy-1", personId: "person-1")],
+        candidacies: [
+          OcptConvocationCandidacy(roleCandidateId: "candidacy-1", personId: "person-1"),
+        ],
       );
 
       final result = ocptComputeDayConvocations(
@@ -660,10 +661,7 @@ void main() {
         ],
       );
 
-      final result = ocptComputeDayConvocations(
-        slots: const [slot],
-        auditions: const [audition],
-      );
+      final result = ocptComputeDayConvocations(slots: const [slot], auditions: const [audition]);
 
       final convocation = result.single;
       expect(convocation.personId, "person-1");

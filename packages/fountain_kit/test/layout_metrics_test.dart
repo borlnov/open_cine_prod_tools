@@ -39,16 +39,13 @@ void main() {
       expect(metrics.linesPerPage, 54);
     });
 
-    test(
-      'scene heading and action start at the 1.5in left margin, full width',
-      () {
-        _expectClose(metrics.sceneHeading.leftIndentInches, 1.5);
-        _expectClose(metrics.action.leftIndentInches, 1.5);
-        _expectClose(metrics.sceneHeading.maxWidthInches, 6);
-        _expectClose(metrics.action.maxWidthInches, 6);
-        expect(metrics.sceneHeading.alignment, FountainLayoutAlignment.left);
-      },
-    );
+    test('scene heading and action start at the 1.5in left margin, full width', () {
+      _expectClose(metrics.sceneHeading.leftIndentInches, 1.5);
+      _expectClose(metrics.action.leftIndentInches, 1.5);
+      _expectClose(metrics.sceneHeading.maxWidthInches, 6);
+      _expectClose(metrics.action.maxWidthInches, 6);
+      expect(metrics.sceneHeading.alignment, FountainLayoutAlignment.left);
+    });
 
     test('character cues start 3.7in from the page edge', () {
       _expectClose(metrics.character.leftIndentInches, 3.7);
@@ -100,19 +97,13 @@ void main() {
     });
 
     test('a taller page fits more lines than US Letter', () {
-      expect(
-        metrics.linesPerPage,
-        greaterThan(FountainLayoutMetrics.usLetter().linesPerPage),
-      );
+      expect(metrics.linesPerPage, greaterThan(FountainLayoutMetrics.usLetter().linesPerPage));
       expect(metrics.linesPerPage, 58);
     });
 
     test('a narrower page narrows the full-width elements', () {
       final usLetter = FountainLayoutMetrics.usLetter();
-      expect(
-        metrics.action.maxWidthInches,
-        lessThan(usLetter.action.maxWidthInches),
-      );
+      expect(metrics.action.maxWidthInches, lessThan(usLetter.action.maxWidthInches));
     });
 
     test('dialogue keeps its fixed 3.5in width regardless of page size', () {
@@ -145,9 +136,7 @@ void main() {
       'US Letter': FountainLayoutMetrics.usLetter(),
       'A4': FountainLayoutMetrics.a4(),
       'A4 with wide margins': FountainLayoutMetrics.a4(
-        margins: const FountainPageMargins.standard().copyWith(
-          rightInches: 1.35,
-        ),
+        margins: const FountainPageMargins.standard().copyWith(rightInches: 1.35),
       ),
     }.entries) {
       test('${entry.key} keeps every element within its own width', () {
@@ -162,8 +151,7 @@ void main() {
           metrics.centeredText,
           metrics.lyrics,
         ]) {
-          final columnsWidthInches =
-              element.maxWidthColumns / metrics.charsPerInch;
+          final columnsWidthInches = element.maxWidthColumns / metrics.charsPerInch;
           expect(
             columnsWidthInches,
             lessThanOrEqualTo(element.maxWidthInches),
@@ -183,17 +171,11 @@ void main() {
 
   group('equality', () {
     test('two US Letter presets are equal', () {
-      expect(
-        FountainLayoutMetrics.usLetter(),
-        FountainLayoutMetrics.usLetter(),
-      );
+      expect(FountainLayoutMetrics.usLetter(), FountainLayoutMetrics.usLetter());
     });
 
     test('US Letter and A4 are not equal', () {
-      expect(
-        FountainLayoutMetrics.usLetter(),
-        isNot(equals(FountainLayoutMetrics.a4())),
-      );
+      expect(FountainLayoutMetrics.usLetter(), isNot(equals(FountainLayoutMetrics.a4())));
     });
   });
 
@@ -218,12 +200,7 @@ void main() {
     test('equal margins compare equal', () {
       expect(
         const FountainPageMargins.standard(),
-        const FountainPageMargins(
-          leftInches: 1.5,
-          rightInches: 1,
-          topInches: 1,
-          bottomInches: 1,
-        ),
+        const FountainPageMargins(leftInches: 1.5, rightInches: 1, topInches: 1, bottomInches: 1),
       );
     });
 
@@ -267,33 +244,21 @@ void main() {
       _expectClose(metrics.centeredText.maxWidthInches, 6);
     });
 
-    test(
-      'character, parenthetical and dialogue indents stay fixed from the '
-      'page edge regardless of margins',
-      () {
-        _expectClose(metrics.character.leftIndentInches, 3.7);
-        _expectClose(metrics.parenthetical.leftIndentInches, 3.1);
-        _expectClose(metrics.dialogue.leftIndentInches, 2.5);
-        _expectClose(metrics.dialogue.maxWidthInches, 3.5);
+    test('character, parenthetical and dialogue indents stay fixed from the '
+        'page edge regardless of margins', () {
+      _expectClose(metrics.character.leftIndentInches, 3.7);
+      _expectClose(metrics.parenthetical.leftIndentInches, 3.1);
+      _expectClose(metrics.dialogue.leftIndentInches, 2.5);
+      _expectClose(metrics.dialogue.maxWidthInches, 3.5);
 
-        _expectClose(
-          metrics.character.leftIndentInches,
-          standardMetrics.character.leftIndentInches,
-        );
-        _expectClose(
-          metrics.parenthetical.leftIndentInches,
-          standardMetrics.parenthetical.leftIndentInches,
-        );
-        _expectClose(
-          metrics.dialogue.leftIndentInches,
-          standardMetrics.dialogue.leftIndentInches,
-        );
-        _expectClose(
-          metrics.dialogue.maxWidthInches,
-          standardMetrics.dialogue.maxWidthInches,
-        );
-      },
-    );
+      _expectClose(metrics.character.leftIndentInches, standardMetrics.character.leftIndentInches);
+      _expectClose(
+        metrics.parenthetical.leftIndentInches,
+        standardMetrics.parenthetical.leftIndentInches,
+      );
+      _expectClose(metrics.dialogue.leftIndentInches, standardMetrics.dialogue.leftIndentInches);
+      _expectClose(metrics.dialogue.maxWidthInches, standardMetrics.dialogue.maxWidthInches);
+    });
 
     test('a4() also accepts non-standard margins', () {
       final a4Metrics = FountainLayoutMetrics.a4(margins: margins);

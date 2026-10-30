@@ -35,10 +35,7 @@ Widget _wrapWithLocalization(Widget child) => MaterialApp(
     GlobalCupertinoLocalizations.delegate,
   ],
   supportedLocales: Tr.delegate.supportedLocales,
-  home: BlocProvider<OcptWorkspaceBloc>(
-    create: (context) => OcptWorkspaceBloc(),
-    child: child,
-  ),
+  home: BlocProvider<OcptWorkspaceBloc>(create: (context) => OcptWorkspaceBloc(), child: child),
 );
 
 /// The miniature hunspell pair this file's spell-check manager stands the two ~1 MB bundled

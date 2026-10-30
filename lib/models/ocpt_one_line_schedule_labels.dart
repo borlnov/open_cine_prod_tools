@@ -96,7 +96,8 @@ class OcptOneLineScheduleLabels extends Equatable {
 
   /// Object string representation, useful for debugging and logging.
   @override
-  String toString() => "OcptOneLineScheduleLabels(documentTitle: $documentTitle, dayCount: ${dayTitles.length})";
+  String toString() =>
+      "OcptOneLineScheduleLabels(documentTitle: $documentTitle, dayCount: ${dayTitles.length})";
 
   /// Object properties
   @override

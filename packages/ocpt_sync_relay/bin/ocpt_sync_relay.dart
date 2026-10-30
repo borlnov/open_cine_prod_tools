@@ -37,7 +37,11 @@ const _defaultAddress = '0.0.0.0';
 Future<void> main(List<String> arguments) async {
   if (arguments.isNotEmpty && arguments.first == _reconcileSubcommand) {
     try {
-      await runReconcileCommand(arguments.sublist(1), environment: Platform.environment, log: stdout.writeln);
+      await runReconcileCommand(
+        arguments.sublist(1),
+        environment: Platform.environment,
+        log: stdout.writeln,
+      );
     } on FormatException catch (error) {
       stderr.writeln(error.message);
       exit(2);

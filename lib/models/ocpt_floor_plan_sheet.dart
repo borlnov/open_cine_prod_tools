@@ -488,7 +488,8 @@ class OcptFloorPlanSheet extends Equatable {
         if (symbol.overridesSymbolId != null && symbol.isHidden) symbol,
     ];
     final plainSceneSymbols = [
-      for (final symbol in sceneScopeSymbols) if (symbol.overridesSymbolId == null) symbol,
+      for (final symbol in sceneScopeSymbols)
+        if (symbol.overridesSymbolId == null) symbol,
     ];
     final overriddenSetSymbolIds = {
       for (final symbol in [...visibleSequenceOverrides, ...hiddenSequenceOverrides])
@@ -522,10 +523,12 @@ class OcptFloorPlanSheet extends Equatable {
             symbol,
       ];
       visibleShotOverrides = [
-        for (final symbol in shotOverrideCandidates) if (!symbol.isHidden) symbol,
+        for (final symbol in shotOverrideCandidates)
+          if (!symbol.isHidden) symbol,
       ];
       hiddenShotOverrides = [
-        for (final symbol in shotOverrideCandidates) if (symbol.isHidden) symbol,
+        for (final symbol in shotOverrideCandidates)
+          if (symbol.isHidden) symbol,
       ];
       final overriddenSequenceSymbolIds = {
         for (final symbol in [...visibleShotOverrides, ...hiddenShotOverrides])
@@ -537,9 +540,7 @@ class OcptFloorPlanSheet extends Equatable {
       ];
     }
 
-    final sequenceOverrideSymbolIds = {
-      for (final symbol in visibleSequenceOverrides) symbol.id,
-    };
+    final sequenceOverrideSymbolIds = {for (final symbol in visibleSequenceOverrides) symbol.id};
     final shotOverrideSymbolIds = {for (final symbol in visibleShotOverrides) symbol.id};
     final symbolShapes = <OcptFloorPlanSymbolShape>[
       for (final shape in _shapesOf(
@@ -559,12 +560,7 @@ class OcptFloorPlanSheet extends Equatable {
       // overlay for one of these.
       for (final override in visibleSequenceOverrides)
         if (setScopeSymbolById[override.overridesSymbolId] case final original?)
-          _shapeOf(
-            original,
-            isGhost: false,
-            showFieldOfView: false,
-            cameraLabel: null,
-          ).copyWith(
+          _shapeOf(original, isGhost: false, showFieldOfView: false, cameraLabel: null).copyWith(
             isOverriddenOriginalGhost: true,
             overrideLevel: OcptFloorPlanOverrideLevel.sequence,
           ),
@@ -573,12 +569,7 @@ class OcptFloorPlanSheet extends Equatable {
       // inspector reaches `Restore` for an override the sequence currently masks entirely.
       for (final override in hiddenSequenceOverrides)
         if (setScopeSymbolById[override.overridesSymbolId] case final original?)
-          _shapeOf(
-            original,
-            isGhost: false,
-            showFieldOfView: false,
-            cameraLabel: null,
-          ).copyWith(
+          _shapeOf(original, isGhost: false, showFieldOfView: false, cameraLabel: null).copyWith(
             symbolId: override.id,
             isHiddenOverrideGhost: true,
             overrideLevel: OcptFloorPlanOverrideLevel.sequence,
@@ -587,23 +578,13 @@ class OcptFloorPlanSheet extends Equatable {
       // original here is already scene-effective (a plain symbol, or itself a sequence override).
       for (final override in visibleShotOverrides)
         if (sequenceEffectiveById[override.overridesSymbolId] case final original?)
-          _shapeOf(
-            original,
-            isGhost: false,
-            showFieldOfView: false,
-            cameraLabel: null,
-          ).copyWith(
+          _shapeOf(original, isGhost: false, showFieldOfView: false, cameraLabel: null).copyWith(
             isOverriddenOriginalGhost: true,
             overrideLevel: OcptFloorPlanOverrideLevel.shot,
           ),
       for (final override in hiddenShotOverrides)
         if (sequenceEffectiveById[override.overridesSymbolId] case final original?)
-          _shapeOf(
-            original,
-            isGhost: false,
-            showFieldOfView: false,
-            cameraLabel: null,
-          ).copyWith(
+          _shapeOf(original, isGhost: false, showFieldOfView: false, cameraLabel: null).copyWith(
             symbolId: override.id,
             isHiddenOverrideGhost: true,
             overrideLevel: OcptFloorPlanOverrideLevel.shot,
@@ -835,9 +816,14 @@ class OcptFloorPlanSheet extends Equatable {
       xM: symbol.xM,
       yM: symbol.yM,
       rotationDeg: symbol.rotationDeg,
-      widthM: symbol.widthM ?? setElementDefault?.widthM ?? ocptFloorPlanDefaultFootprintM(symbol.layer),
+      widthM:
+          symbol.widthM ??
+          setElementDefault?.widthM ??
+          ocptFloorPlanDefaultFootprintM(symbol.layer),
       heightM:
-          symbol.heightM ?? setElementDefault?.heightM ?? ocptFloorPlanDefaultFootprintM(symbol.layer),
+          symbol.heightM ??
+          setElementDefault?.heightM ??
+          ocptFloorPlanDefaultFootprintM(symbol.layer),
       fovDeg: symbol.fovDeg,
       fovReachM: symbol.fovReachM,
       label: symbol.label,

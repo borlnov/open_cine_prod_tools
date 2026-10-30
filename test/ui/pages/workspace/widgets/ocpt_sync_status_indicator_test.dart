@@ -77,7 +77,9 @@ Widget _wrap(Widget child) => MaterialApp(
     GlobalCupertinoLocalizations.delegate,
   ],
   supportedLocales: Tr.delegate.supportedLocales,
-  home: Scaffold(body: Align(alignment: Alignment.topLeft, child: child)),
+  home: Scaffold(
+    body: Align(alignment: Alignment.topLeft, child: child),
+  ),
 );
 
 void main() {
@@ -214,35 +216,34 @@ void main() {
     expect(syncManager.syncNowCallCount, 1);
   });
 
-  testWidgets(
-    "Afficher le QR d'invitation and Ré-appairer… both navigate to the Partager route",
-    (tester) async {
-      final syncManager = _FakeSyncManager(const OcptSyncStatusInSync());
-      addTearDown(syncManager.disposeStream);
-      final router = _RecordingRouterManager();
+  testWidgets("Afficher le QR d'invitation and Ré-appairer… both navigate to the Partager route", (
+    tester,
+  ) async {
+    final syncManager = _FakeSyncManager(const OcptSyncStatusInSync());
+    addTearDown(syncManager.disposeStream);
+    final router = _RecordingRouterManager();
 
-      await pumpIndicator(
-        tester,
-        OcptSyncStatusIndicator(syncManager: syncManager, routerManager: router),
-      );
-      final tr = Tr.of(tester.element(find.byType(OcptSyncStatusIndicator)));
+    await pumpIndicator(
+      tester,
+      OcptSyncStatusIndicator(syncManager: syncManager, routerManager: router),
+    );
+    final tr = Tr.of(tester.element(find.byType(OcptSyncStatusIndicator)));
 
-      await tester.tap(find.byType(OcptSyncStatusIndicator));
-      await tester.pump(const Duration(milliseconds: 50));
-      await tester.tap(find.text(tr.workspaceSyncActionShowQr));
-      await tester.pump(const Duration(milliseconds: 50));
+    await tester.tap(find.byType(OcptSyncStatusIndicator));
+    await tester.pump(const Duration(milliseconds: 50));
+    await tester.tap(find.text(tr.workspaceSyncActionShowQr));
+    await tester.pump(const Duration(milliseconds: 50));
 
-      expect(router.pushedRoute, OcptRoute.sharing);
+    expect(router.pushedRoute, OcptRoute.sharing);
 
-      router.pushedRoute = null;
-      await tester.tap(find.byType(OcptSyncStatusIndicator));
-      await tester.pump(const Duration(milliseconds: 50));
-      await tester.tap(find.text(tr.workspaceSyncActionRepair));
-      await tester.pump(const Duration(milliseconds: 50));
+    router.pushedRoute = null;
+    await tester.tap(find.byType(OcptSyncStatusIndicator));
+    await tester.pump(const Duration(milliseconds: 50));
+    await tester.tap(find.text(tr.workspaceSyncActionRepair));
+    await tester.pump(const Duration(milliseconds: 50));
 
-      expect(router.pushedRoute, OcptRoute.sharing);
-    },
-  );
+    expect(router.pushedRoute, OcptRoute.sharing);
+  });
 
   testWidgets("Changer de relais… navigates to the repointing route", (tester) async {
     final syncManager = _FakeSyncManager(const OcptSyncStatusInSync());

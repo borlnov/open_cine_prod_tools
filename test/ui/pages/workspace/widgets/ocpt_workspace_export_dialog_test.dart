@@ -144,7 +144,10 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(routerManager.popped, isTrue);
-    expect(routerManager.poppedValue, const OcptWorkspaceExportProjectPackagePick<_TestExportKind>());
+    expect(
+      routerManager.poppedValue,
+      const OcptWorkspaceExportProjectPackagePick<_TestExportKind>(),
+    );
   });
 
   testWidgets("under a version preview that card is greyed with its reason, not withheld", (

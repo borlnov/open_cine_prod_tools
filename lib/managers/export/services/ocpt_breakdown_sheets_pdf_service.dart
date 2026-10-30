@@ -476,11 +476,10 @@ class OcptBreakdownSheetsPdfService {
     required Map<String, OcptElement> elementById,
     required Map<String, OcptPerson> personById,
   }) {
-    final bucketTargets =
-        [
-          for (final target in targets)
-            if (target.kind == bucket.kind && target.category == bucket.category) target,
-        ]..sort((a, b) => a.name.compareTo(b.name));
+    final bucketTargets = [
+      for (final target in targets)
+        if (target.kind == bucket.kind && target.category == bucket.category) target,
+    ]..sort((a, b) => a.name.compareTo(b.name));
 
     return pw.Table(
       border: pw.TableBorder.all(color: _ruleColor, width: 0.5),

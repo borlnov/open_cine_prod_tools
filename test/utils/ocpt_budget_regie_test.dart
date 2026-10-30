@@ -107,9 +107,18 @@ void main() {
     test("a person linked to three slots of one day is counted once", () {
       final day = buildDay();
       final slots = [
-        buildSlot(id: "s1", crew: [buildCrew(id: "c1", slotId: "s1", personId: "p1")]),
-        buildSlot(id: "s2", crew: [buildCrew(id: "c2", slotId: "s2", personId: "p1")]),
-        buildSlot(id: "s3", crew: [buildCrew(id: "c3", slotId: "s3", personId: "p1")]),
+        buildSlot(
+          id: "s1",
+          crew: [buildCrew(id: "c1", slotId: "s1", personId: "p1")],
+        ),
+        buildSlot(
+          id: "s2",
+          crew: [buildCrew(id: "c2", slotId: "s2", personId: "p1")],
+        ),
+        buildSlot(
+          id: "s3",
+          crew: [buildCrew(id: "c3", slotId: "s3", personId: "p1")],
+        ),
       ];
 
       final days = ocptBudgetRegieDaysOf(
@@ -138,7 +147,9 @@ void main() {
 
       final days = ocptBudgetRegieDaysOf(
         days: [day],
-        slotsByDayId: {"day-1": [slot]},
+        slotsByDayId: {
+          "day-1": [slot],
+        },
         blocksByDayId: const {},
         roleKindById: const {
           "extra-role": OcptRoleKind.extra,
@@ -161,7 +172,9 @@ void main() {
 
       final days = ocptBudgetRegieDaysOf(
         days: [day],
-        slotsByDayId: {"day-1": [slot]},
+        slotsByDayId: {
+          "day-1": [slot],
+        },
         blocksByDayId: const {},
         roleKindById: const {},
         personIdByRoleId: const {},
@@ -199,7 +212,9 @@ void main() {
 
       final days = ocptBudgetRegieDaysOf(
         days: [day],
-        slotsByDayId: {"day-1": [slot]},
+        slotsByDayId: {
+          "day-1": [slot],
+        },
         blocksByDayId: {
           "day-1": [buildShotBlock(slotId: "slot-1")],
         },
@@ -217,12 +232,17 @@ void main() {
       final day = buildDay();
       final slot = buildSlot(
         id: "s1",
-        crew: [buildCrew(id: "c1", slotId: "s1", personId: "p1"), buildCrew(id: "c2", slotId: "s1", personId: "p2")],
+        crew: [
+          buildCrew(id: "c1", slotId: "s1", personId: "p1"),
+          buildCrew(id: "c2", slotId: "s1", personId: "p2"),
+        ],
       );
 
       final days = ocptBudgetRegieDaysOf(
         days: [day],
-        slotsByDayId: {"day-1": [slot]},
+        slotsByDayId: {
+          "day-1": [slot],
+        },
         blocksByDayId: {
           "day-1": [
             buildMealBlock(id: "lunch", slotId: "s1"),
@@ -247,8 +267,14 @@ void main() {
     test("two parallel slots each with their own meal block feed their own heads only", () {
       final day = buildDay();
       final slots = [
-        buildSlot(id: "s1", crew: [buildCrew(id: "c1", slotId: "s1", personId: "p1")]),
-        buildSlot(id: "s2", crew: [buildCrew(id: "c2", slotId: "s2", personId: "p2")]),
+        buildSlot(
+          id: "s1",
+          crew: [buildCrew(id: "c1", slotId: "s1", personId: "p1")],
+        ),
+        buildSlot(
+          id: "s2",
+          crew: [buildCrew(id: "c2", slotId: "s2", personId: "p2")],
+        ),
       ];
 
       final days = ocptBudgetRegieDaysOf(
@@ -271,8 +297,14 @@ void main() {
     test("a slot with no meal block feeds nobody, even though another slot of the day does", () {
       final day = buildDay();
       final slots = [
-        buildSlot(id: "s1", crew: [buildCrew(id: "c1", slotId: "s1", personId: "p1")]),
-        buildSlot(id: "s2", crew: [buildCrew(id: "c2", slotId: "s2", personId: "p2")]),
+        buildSlot(
+          id: "s1",
+          crew: [buildCrew(id: "c1", slotId: "s1", personId: "p1")],
+        ),
+        buildSlot(
+          id: "s2",
+          crew: [buildCrew(id: "c2", slotId: "s2", personId: "p2")],
+        ),
       ];
 
       final days = ocptBudgetRegieDaysOf(
@@ -303,7 +335,9 @@ void main() {
 
       final days = ocptBudgetRegieDaysOf(
         days: [day],
-        slotsByDayId: {"day-1": [slot]},
+        slotsByDayId: {
+          "day-1": [slot],
+        },
         blocksByDayId: {
           "day-1": [buildMealBlock(slotId: "s1")],
         },
@@ -327,7 +361,9 @@ void main() {
 
       final days = ocptBudgetRegieDaysOf(
         days: [day],
-        slotsByDayId: {"day-1": [slot]},
+        slotsByDayId: {
+          "day-1": [slot],
+        },
         blocksByDayId: {
           "day-1": [buildMealBlock(slotId: "s1")],
         },
@@ -344,11 +380,18 @@ void main() {
 
     test("a meal price with no buffet price reads a real, partial cost", () {
       final day = buildDay();
-      final slot = buildSlot(crew: [buildCrew(id: "c1", personId: "p1"), buildCrew(id: "c2", personId: "p2")]);
+      final slot = buildSlot(
+        crew: [
+          buildCrew(id: "c1", personId: "p1"),
+          buildCrew(id: "c2", personId: "p2"),
+        ],
+      );
 
       final days = ocptBudgetRegieDaysOf(
         days: [day],
-        slotsByDayId: {"day-1": [slot]},
+        slotsByDayId: {
+          "day-1": [slot],
+        },
         blocksByDayId: {
           "day-1": [buildMealBlock(slotId: "slot-1")],
         },
@@ -370,15 +413,24 @@ void main() {
   group("ocptBudgetRegieTotalsOf", () {
     test("folds head count, meals, buffet servings and cost across every day", () {
       final days = ocptBudgetRegieDaysOf(
-        days: [buildDay(id: "d1"), buildDay(id: "d2", dayNumber: 2)],
+        days: [
+          buildDay(id: "d1"),
+          buildDay(id: "d2", dayNumber: 2),
+        ],
         slotsByDayId: {
           "d1": [
-            buildSlot(shootingDayId: "d1", crew: [buildCrew(personId: "p1")]),
+            buildSlot(
+              shootingDayId: "d1",
+              crew: [buildCrew(personId: "p1")],
+            ),
           ],
           "d2": [
             buildSlot(
               shootingDayId: "d2",
-              crew: [buildCrew(personId: "p1"), buildCrew(id: "c2", personId: "p2")],
+              crew: [
+                buildCrew(personId: "p1"),
+                buildCrew(id: "c2", personId: "p2"),
+              ],
             ),
           ],
         },

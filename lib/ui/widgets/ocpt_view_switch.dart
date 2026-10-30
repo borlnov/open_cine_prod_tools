@@ -38,7 +38,12 @@ class OcptViewSwitch<T> extends StatelessWidget {
   final ValueChanged<T> onChanged;
 
   /// Class constructor
-  const OcptViewSwitch({super.key, required this.segments, required this.value, required this.onChanged});
+  const OcptViewSwitch({
+    super.key,
+    required this.segments,
+    required this.value,
+    required this.onChanged,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -67,10 +72,7 @@ class OcptViewSwitch<T> extends StatelessWidget {
       mouseCursor: ocptClickableCursor,
       borderRadius: BorderRadius.circular(ocptRadiusSmall),
       child: Container(
-        padding: const EdgeInsets.symmetric(
-          horizontal: _ocptViewSwitchSegmentPadding,
-          vertical: 6,
-        ),
+        padding: const EdgeInsets.symmetric(horizontal: _ocptViewSwitchSegmentPadding, vertical: 6),
         decoration: BoxDecoration(
           color: isActive
               ? theme.colorScheme.primary.withValues(alpha: ocptSelectedStateAlpha)

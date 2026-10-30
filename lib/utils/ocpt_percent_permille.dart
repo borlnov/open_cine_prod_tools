@@ -70,5 +70,7 @@ String ocptPermillePercentTextOf(int? permille) {
     return "${permille ~/ _permillePerPercent}";
   }
 
-  return (permille / _permillePerPercent).toStringAsFixed(_percentDigits).replaceFirst(_trailingZero, "");
+  return (permille / _permillePerPercent)
+      .toStringAsFixed(_percentDigits)
+      .replaceFirst(_trailingZero, "");
 }

@@ -91,7 +91,6 @@ OcptShootingSlot _buildSlot({
   guests: guests,
 );
 
-
 /// Builds a person with the few fields these tests read, everything else neutral.
 OcptPerson _buildPerson({
   required String id,
@@ -160,19 +159,19 @@ OcptShootingDayBlock _buildBlock({
   String label = "",
   OcptShootingBlockKind kind = OcptShootingBlockKind.preparation,
 }) => OcptShootingDayBlock(
-      id: id,
-      shootingDayId: "day-1",
-      slotId: slotId,
-      kind: kind,
-      shotId: null,
-      sceneId: null,
-      candidates: const [],
-      label: label,
-      durationMinutes: null,
-      anchorMinute: null,
-      notes: "",
-      crewNote: "",
-    );
+  id: id,
+  shootingDayId: "day-1",
+  slotId: slotId,
+  kind: kind,
+  shotId: null,
+  sceneId: null,
+  candidates: const [],
+  label: label,
+  durationMinutes: null,
+  anchorMinute: null,
+  notes: "",
+  crewNote: "",
+);
 
 /// Builds candidacy [id] of [firstName] for role [roleId], everything else neutral.
 OcptRoleCandidate _buildCandidacy({
@@ -233,8 +232,7 @@ void main() {
     List<OcptShootingSlotGuest> guests = const [],
     List<OcptRole>? roles,
     ValueChanged<String>? onCrewMemberAdded,
-    void Function(String crewMemberId, OcptCrewPositionRef position)?
-    onCrewMemberPositionChanged,
+    void Function(String crewMemberId, OcptCrewPositionRef position)? onCrewMemberPositionChanged,
     ValueChanged<String>? onCastRoleAdded,
     ValueChanged<String>? onGuestAdded,
     ValueChanged<String>? onGuestRemoved,
@@ -275,7 +273,9 @@ void main() {
     set: null,
     locations: const [],
     personById: {(crewPerson ?? person).id: crewPerson ?? person},
-    roleById: {for (final castRole in roles ?? [role]) castRole.id: castRole},
+    roleById: {
+      for (final castRole in roles ?? [role]) castRole.id: castRole,
+    },
     roleCandidateById: roleCandidateById,
     people: [crewPerson ?? person],
     roles: roles ?? [role],
@@ -336,7 +336,9 @@ void main() {
     expect(added, ["person-1"]);
   });
 
-  testWidgets("the `+ Cast` footer opens a picker dispatching the role just picked", (tester) async {
+  testWidgets("the `+ Cast` footer opens a picker dispatching the role just picked", (
+    tester,
+  ) async {
     final added = <String>[];
     await tester.pumpWidget(_wrapInApp(buildCard(isReadOnly: false, onCastRoleAdded: added.add)));
     await tester.pumpAndSettle();
@@ -356,7 +358,10 @@ void main() {
       _wrapInApp(
         buildCard(
           isReadOnly: false,
-          roles: [role, _buildRole(id: "role-2", name: "Paul")],
+          roles: [
+            role,
+            _buildRole(id: "role-2", name: "Paul"),
+          ],
           cast: [
             const OcptShootingSlotCastMember(
               id: "cast-1",
@@ -419,7 +424,12 @@ void main() {
         OcptScheduleSlotCard(
           slot: _buildSlot(
             cast: const [
-              OcptShootingSlotCastMember(id: "cast-1", slotId: "slot-1", roleId: "role-1", notes: ""),
+              OcptShootingSlotCastMember(
+                id: "cast-1",
+                slotId: "slot-1",
+                roleId: "role-1",
+                notes: "",
+              ),
             ],
           ),
           location: null,
@@ -428,7 +438,11 @@ void main() {
           personById: {person.id: person},
           roleById: {role.id: role},
           roleCandidateById: {
-            "candidacy-1": _buildCandidacy(id: "candidacy-1", roleId: "role-1", firstName: "Camille"),
+            "candidacy-1": _buildCandidacy(
+              id: "candidacy-1",
+              roleId: "role-1",
+              firstName: "Camille",
+            ),
           },
           people: [person],
           roles: [role],
@@ -501,12 +515,7 @@ void main() {
       ),
     ];
     final cast = [
-      const OcptShootingSlotCastMember(
-        id: "cast-1",
-        slotId: "slot-1",
-        roleId: "role-1",
-        notes: "",
-      ),
+      const OcptShootingSlotCastMember(id: "cast-1", slotId: "slot-1", roleId: "role-1", notes: ""),
     ];
 
     await tester.pumpWidget(_wrapInApp(buildCard(isReadOnly: false, crew: crew, cast: cast)));
@@ -565,158 +574,165 @@ void main() {
       expect(find.byType(OcptCrewPositionPickerDialog), findsOneWidget);
       expect(find.text(tr.resourcesCrewPositionPickerPromotedHeading), findsOneWidget);
       expect(find.text(ocptCrewPositionLabel(tr, "director")), findsNWidgets(2));
-      final promotedHeadingY = tester.getTopLeft(find.text(tr.resourcesCrewPositionPickerPromotedHeading)).dy;
-      final firstDirectorY = tester.getTopLeft(find.text(ocptCrewPositionLabel(tr, "director")).first).dy;
+      final promotedHeadingY = tester
+          .getTopLeft(find.text(tr.resourcesCrewPositionPickerPromotedHeading))
+          .dy;
+      final firstDirectorY = tester
+          .getTopLeft(find.text(ocptCrewPositionLabel(tr, "director")).first)
+          .dy;
       expect(promotedHeadingY, lessThan(firstDirectorY));
     },
   );
 
-  testWidgets(
-    "the picker never offers a position that person already holds on that slot",
-    (tester) async {
-      tester.view.physicalSize = const Size(900, 1000);
-      tester.view.devicePixelRatio = 1.0;
-      addTearDown(tester.view.resetPhysicalSize);
-      addTearDown(tester.view.resetDevicePixelRatio);
+  testWidgets("the picker never offers a position that person already holds on that slot", (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(900, 1000);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
 
-      final crewPerson = _buildPerson(
-        id: "person-1",
-        firstName: "Léa",
-        positions: const [
-          OcptPersonPosition(
-            id: "pp-1",
-            personId: "person-1",
-            positionId: "director",
-            customLabel: "",
-          ),
-          OcptPersonPosition(
-            id: "pp-2",
-            personId: "person-1",
-            positionId: "boomOperator",
-            customLabel: "",
-          ),
-        ],
-      );
-      final crew = [
-        // Already holds "director" on this slot.
-        const OcptShootingSlotCrewMember(
-          id: "crew-1",
-          slotId: "slot-1",
+    final crewPerson = _buildPerson(
+      id: "person-1",
+      firstName: "Léa",
+      positions: const [
+        OcptPersonPosition(
+          id: "pp-1",
           personId: "person-1",
           positionId: "director",
           customLabel: "",
-          notes: "",
         ),
-        // The blank row whose picker is under test.
-        const OcptShootingSlotCrewMember(
-          id: "crew-2",
-          slotId: "slot-1",
+        OcptPersonPosition(
+          id: "pp-2",
           personId: "person-1",
-          positionId: "",
+          positionId: "boomOperator",
           customLabel: "",
-          notes: "",
         ),
-      ];
+      ],
+    );
+    final crew = [
+      // Already holds "director" on this slot.
+      const OcptShootingSlotCrewMember(
+        id: "crew-1",
+        slotId: "slot-1",
+        personId: "person-1",
+        positionId: "director",
+        customLabel: "",
+        notes: "",
+      ),
+      // The blank row whose picker is under test.
+      const OcptShootingSlotCrewMember(
+        id: "crew-2",
+        slotId: "slot-1",
+        personId: "person-1",
+        positionId: "",
+        customLabel: "",
+        notes: "",
+      ),
+    ];
 
-      await tester.pumpWidget(
-        _wrapInApp(buildCard(isReadOnly: false, crewPerson: crewPerson, crew: crew)),
-      );
-      await tester.pumpAndSettle();
+    await tester.pumpWidget(
+      _wrapInApp(buildCard(isReadOnly: false, crewPerson: crewPerson, crew: crew)),
+    );
+    await tester.pumpAndSettle();
 
-      final tr = Tr.of(tester.element(find.byType(OcptScheduleSlotCard)));
-      await tester.tap(find.text(tr.scheduleSlotCrewPositionPlaceholder));
-      await tester.pumpAndSettle();
+    final tr = Tr.of(tester.element(find.byType(OcptScheduleSlotCard)));
+    await tester.tap(find.text(tr.scheduleSlotCrewPositionPlaceholder));
+    await tester.pumpAndSettle();
 
-      final dialog = find.byType(OcptCrewPositionPickerDialog);
-      expect(dialog, findsOneWidget);
-      // "Director" is already held on this slot — left out everywhere the dialog offers,
-      // promoted block and catalogue alike.
-      expect(
-        find.descendant(of: dialog, matching: find.text(ocptCrewPositionLabel(tr, "director"))),
-        findsNothing,
-      );
-      // "boomOperator", still free, is promoted ahead of the catalogue.
-      expect(find.text(tr.resourcesCrewPositionPickerPromotedHeading), findsOneWidget);
-      final promotedHeadingY = tester.getTopLeft(find.text(tr.resourcesCrewPositionPickerPromotedHeading)).dy;
-      final firstBoomOperatorY = tester.getTopLeft(find.text(ocptCrewPositionLabel(tr, "boomOperator")).first).dy;
-      expect(promotedHeadingY, lessThan(firstBoomOperatorY));
-    },
-  );
+    final dialog = find.byType(OcptCrewPositionPickerDialog);
+    expect(dialog, findsOneWidget);
+    // "Director" is already held on this slot — left out everywhere the dialog offers,
+    // promoted block and catalogue alike.
+    expect(
+      find.descendant(of: dialog, matching: find.text(ocptCrewPositionLabel(tr, "director"))),
+      findsNothing,
+    );
+    // "boomOperator", still free, is promoted ahead of the catalogue.
+    expect(find.text(tr.resourcesCrewPositionPickerPromotedHeading), findsOneWidget);
+    final promotedHeadingY = tester
+        .getTopLeft(find.text(tr.resourcesCrewPositionPickerPromotedHeading))
+        .dy;
+    final firstBoomOperatorY = tester
+        .getTopLeft(find.text(ocptCrewPositionLabel(tr, "boomOperator")).first)
+        .dy;
+    expect(promotedHeadingY, lessThan(firstBoomOperatorY));
+  });
 
-  testWidgets(
-    "picking a declared free-label entry reports a ref carrying that label",
-    (tester) async {
-      tester.view.physicalSize = const Size(900, 1000);
-      tester.view.devicePixelRatio = 1.0;
-      addTearDown(tester.view.resetPhysicalSize);
-      addTearDown(tester.view.resetDevicePixelRatio);
+  testWidgets("picking a declared free-label entry reports a ref carrying that label", (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(900, 1000);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
 
-      final crewPerson = _buildPerson(
-        id: "person-1",
-        firstName: "Léa",
-        positions: const [
-          OcptPersonPosition(id: "pp-1", personId: "person-1", positionId: "", customLabel: "Rigger"),
-        ],
-      );
-      final crew = [
-        const OcptShootingSlotCrewMember(
-          id: "crew-1",
-          slotId: "slot-1",
-          personId: "person-1",
-          positionId: "",
-          customLabel: "",
-          notes: "",
+    final crewPerson = _buildPerson(
+      id: "person-1",
+      firstName: "Léa",
+      positions: const [
+        OcptPersonPosition(id: "pp-1", personId: "person-1", positionId: "", customLabel: "Rigger"),
+      ],
+    );
+    final crew = [
+      const OcptShootingSlotCrewMember(
+        id: "crew-1",
+        slotId: "slot-1",
+        personId: "person-1",
+        positionId: "",
+        customLabel: "",
+        notes: "",
+      ),
+    ];
+    final reported = <(String, OcptCrewPositionRef)>[];
+
+    await tester.pumpWidget(
+      _wrapInApp(
+        buildCard(
+          isReadOnly: false,
+          crewPerson: crewPerson,
+          crew: crew,
+          onCrewMemberPositionChanged: (crewMemberId, position) =>
+              reported.add((crewMemberId, position)),
         ),
-      ];
-      final reported = <(String, OcptCrewPositionRef)>[];
+      ),
+    );
+    await tester.pumpAndSettle();
 
-      await tester.pumpWidget(
-        _wrapInApp(
-          buildCard(
-            isReadOnly: false,
-            crewPerson: crewPerson,
-            crew: crew,
-            onCrewMemberPositionChanged: (crewMemberId, position) =>
-                reported.add((crewMemberId, position)),
-          ),
-        ),
-      );
-      await tester.pumpAndSettle();
+    final tr = Tr.of(tester.element(find.byType(OcptScheduleSlotCard)));
+    await tester.tap(find.text(tr.scheduleSlotCrewPositionPlaceholder));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text("Rigger"));
+    await tester.pumpAndSettle();
 
-      final tr = Tr.of(tester.element(find.byType(OcptScheduleSlotCard)));
-      await tester.tap(find.text(tr.scheduleSlotCrewPositionPlaceholder));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text("Rigger"));
-      await tester.pumpAndSettle();
+    expect(reported, [
+      ("crew-1", const OcptCrewPositionRef(positionId: "", customLabel: "Rigger")),
+    ]);
+  });
 
-      expect(reported, [("crew-1", const OcptCrewPositionRef(positionId: "", customLabel: "Rigger"))]);
-    },
-  );
+  testWidgets("a read-only crew row shows its position as plain text, with no picker", (
+    tester,
+  ) async {
+    final crew = [
+      const OcptShootingSlotCrewMember(
+        id: "crew-1",
+        slotId: "slot-1",
+        personId: "person-1",
+        positionId: "director",
+        customLabel: "",
+        notes: "",
+      ),
+    ];
 
-  testWidgets(
-    "a read-only crew row shows its position as plain text, with no picker",
-    (tester) async {
-      final crew = [
-        const OcptShootingSlotCrewMember(
-          id: "crew-1",
-          slotId: "slot-1",
-          personId: "person-1",
-          positionId: "director",
-          customLabel: "",
-          notes: "",
-        ),
-      ];
+    await tester.pumpWidget(_wrapInApp(buildCard(isReadOnly: true, crew: crew)));
+    await tester.pumpAndSettle();
 
-      await tester.pumpWidget(_wrapInApp(buildCard(isReadOnly: true, crew: crew)));
-      await tester.pumpAndSettle();
-
-      final tr = Tr.of(tester.element(find.byType(OcptScheduleSlotCard)));
-      expect(find.text(ocptCrewPositionLabel(tr, "director")), findsOneWidget);
-      await tester.tap(find.text(ocptCrewPositionLabel(tr, "director")));
-      await tester.pumpAndSettle();
-      expect(find.byType(OcptCrewPositionPickerDialog), findsNothing);
-    },
-  );
+    final tr = Tr.of(tester.element(find.byType(OcptScheduleSlotCard)));
+    expect(find.text(ocptCrewPositionLabel(tr, "director")), findsOneWidget);
+    await tester.tap(find.text(ocptCrewPositionLabel(tr, "director")));
+    await tester.pumpAndSettle();
+    expect(find.byType(OcptCrewPositionPickerDialog), findsNothing);
+  });
 
   testWidgets("the card offers exactly one editable minute field: the slot's own anchor", (
     tester,
@@ -872,12 +888,7 @@ void main() {
       ),
     ];
     final cast = [
-      const OcptShootingSlotCastMember(
-        id: "cast-1",
-        slotId: "slot-1",
-        roleId: "role-1",
-        notes: "",
-      ),
+      const OcptShootingSlotCastMember(id: "cast-1", slotId: "slot-1", roleId: "role-1", notes: ""),
     ];
 
     final block = _buildBlock(id: "block-1", slotId: "slot-1", label: "Prep");
@@ -1049,9 +1060,7 @@ void main() {
   ) async {
     final typed = <String>[];
 
-    await tester.pumpWidget(
-      _wrapInApp(buildCard(isReadOnly: false, onNotesChanged: typed.add)),
-    );
+    await tester.pumpWidget(_wrapInApp(buildCard(isReadOnly: false, onNotesChanged: typed.add)));
     await tester.pumpAndSettle();
 
     final tr = Tr.of(tester.element(find.byType(OcptScheduleSlotCard)));
@@ -1086,9 +1095,7 @@ void main() {
   });
 
   testWidgets("the `▲` control is drawn but disabled when the slot cannot move up", (tester) async {
-    await tester.pumpWidget(
-      _wrapInApp(buildCard(isReadOnly: false, onMovedDown: () {})),
-    );
+    await tester.pumpWidget(_wrapInApp(buildCard(isReadOnly: false, onMovedDown: () {})));
     await tester.pumpAndSettle();
 
     // Both controls are drawn as soon as one of them leads anywhere: a column of cards whose
@@ -1118,17 +1125,11 @@ void main() {
   testWidgets("a slot with one guest draws its name, its reason and its remove control", (
     tester,
   ) async {
-    final guests = [
-      _buildGuest(id: "guest-1", personId: "person-1", reason: "Visite guidée"),
-    ];
+    final guests = [_buildGuest(id: "guest-1", personId: "person-1", reason: "Visite guidée")];
 
     await tester.pumpWidget(
       _wrapInApp(
-        buildCard(
-          isReadOnly: false,
-          guests: guests,
-          guestReasonValueOf: (_) => "Visite guidée",
-        ),
+        buildCard(isReadOnly: false, guests: guests, guestReasonValueOf: (_) => "Visite guidée"),
       ),
     );
     await tester.pumpAndSettle();
@@ -1143,9 +1144,7 @@ void main() {
   testWidgets(
     "with every callback null (a version preview) the remove control and the footer are gone",
     (tester) async {
-      final guests = [
-        _buildGuest(id: "guest-1", personId: "person-1", reason: "Visite guidée"),
-      ];
+      final guests = [_buildGuest(id: "guest-1", personId: "person-1", reason: "Visite guidée")];
 
       await tester.pumpWidget(
         _wrapInApp(

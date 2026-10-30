@@ -129,10 +129,7 @@ class OcptAssetsService {
   /// {@macro open_cine_prod_tools.tombstones}
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<void> removeAsset({
-    required OcptProjectDatabase database,
-    required String assetId,
-  }) async {
+  Future<void> removeAsset({required OcptProjectDatabase database, required String assetId}) async {
     if (database.refusesUserWrite("removeAsset")) {
       return;
     }
@@ -203,11 +200,9 @@ class OcptAssetsService {
     required String personId,
     required OcptRowStampService? stamps,
   }) async {
-    final rows =
-        await (database.select(
-              database.ocptAssetsTable,
-            )..where((table) => table.personId.equals(personId)))
-            .get();
+    final rows = await (database.select(
+      database.ocptAssetsTable,
+    )..where((table) => table.personId.equals(personId))).get();
 
     for (final row in rows) {
       await OcptRowStampService.writeAndStamp(

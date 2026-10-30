@@ -119,9 +119,8 @@ RegExp _wordPatternFor(Set<String> extraWordCharacters) {
 /// then be cut out whole, punctuation included (`Bonjour,`, `souffle)`,
 /// `?`), and reported misspelled. Escaping by code point has no such
 /// second reading, whatever the set holds and whatever order it sorts in.
-String _characterClassEscape(String character) => character.runes
-    .map((rune) => '\\u{${rune.toRadixString(16)}}')
-    .join();
+String _characterClassEscape(String character) =>
+    character.runes.map((rune) => '\\u{${rune.toRadixString(16)}}').join();
 
 /// Whether [chunk] reads as a URI, an email address or a file path, and so
 /// should never be offered up as word tokens at all.
@@ -134,8 +133,7 @@ bool _isNonWordChunk(String chunk) =>
 
 /// Whether [text] contains no lowercase letter and at least one cased
 /// letter (so a token of only digits or punctuation does not count).
-bool _isAllCaps(String text) =>
-    text == text.toUpperCase() && text != text.toLowerCase();
+bool _isAllCaps(String text) => text == text.toUpperCase() && text != text.toLowerCase();
 
 /// Finds every word-shaped token in [text].
 ///
@@ -167,8 +165,7 @@ List<SpellToken> spellTokensIn(
       while (start < end && _trimmedBoundaryCharacters.contains(chunk[start])) {
         start++;
       }
-      while (end > start &&
-          _trimmedBoundaryCharacters.contains(chunk[end - 1])) {
+      while (end > start && _trimmedBoundaryCharacters.contains(chunk[end - 1])) {
         end--;
       }
       if (start == end) {
@@ -182,10 +179,7 @@ List<SpellToken> spellTokensIn(
         continue;
       }
       tokens.add(
-        SpellToken(
-          tokenText,
-          SpellRange(chunkMatch.start + start, chunkMatch.start + end),
-        ),
+        SpellToken(tokenText, SpellRange(chunkMatch.start + start, chunkMatch.start + end)),
       );
     }
   }

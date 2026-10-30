@@ -156,37 +156,40 @@ OcptSceneShotSequence _buildSequence({
 );
 
 /// Builds a shot with the few fields these tests read, everything else neutral.
-OcptShot _buildShot({required String id, required String code, OcptShotStatus status = OcptShotStatus.toShoot}) =>
-    OcptShot(
-      id: id,
-      screenplayId: "screenplay-1",
-      sceneId: "scene-1",
-      orphanedHeading: null,
-      position: 0,
-      shotSize: "GP",
-      abbreviation: "GP",
-      framing: "",
-      cameraMove: "",
-      lens: "",
-      recordingFormat: "",
-      estimatedDurationMs: null,
-      shootingDay: null,
-      plannedTakes: null,
-      sound: "",
-      status: status,
-      difficultySet: 0,
-      difficultyCamera: 0,
-      difficultyActing: 0,
-      difficultySound: 0,
-      notes: "",
-      locationNotes: "",
-      needsCheck: false,
-      checkReason: null,
-      characters: const [],
-      coverageRanges: const [],
-      code: code,
-      averageDifficulty: 0,
-    );
+OcptShot _buildShot({
+  required String id,
+  required String code,
+  OcptShotStatus status = OcptShotStatus.toShoot,
+}) => OcptShot(
+  id: id,
+  screenplayId: "screenplay-1",
+  sceneId: "scene-1",
+  orphanedHeading: null,
+  position: 0,
+  shotSize: "GP",
+  abbreviation: "GP",
+  framing: "",
+  cameraMove: "",
+  lens: "",
+  recordingFormat: "",
+  estimatedDurationMs: null,
+  shootingDay: null,
+  plannedTakes: null,
+  sound: "",
+  status: status,
+  difficultySet: 0,
+  difficultyCamera: 0,
+  difficultyActing: 0,
+  difficultySound: 0,
+  notes: "",
+  locationNotes: "",
+  needsCheck: false,
+  checkReason: null,
+  characters: const [],
+  coverageRanges: const [],
+  code: code,
+  averageDifficulty: 0,
+);
 
 void main() {
   /// Builds an [OcptScheduleTimetable] with the neutral defaults these tests don't otherwise care
@@ -241,7 +244,12 @@ void main() {
     final block = _buildBlock(id: "block-1", kind: OcptShootingBlockKind.meal, label: "Lunch");
     const timeline = OcptShootingSlotTimeline(
       entries: [
-        OcptShootingTimelineEntry(blockId: "block-1", startMinute: 480, endMinute: 510, durationMinutes: 30),
+        OcptShootingTimelineEntry(
+          blockId: "block-1",
+          startMinute: 480,
+          endMinute: 510,
+          durationMinutes: 30,
+        ),
       ],
       overruns: [],
       startMinute: 480,
@@ -259,7 +267,12 @@ void main() {
     final block = _buildBlock(id: "block-1", kind: OcptShootingBlockKind.meal, anchorMinute: 480);
     const timeline = OcptShootingSlotTimeline(
       entries: [
-        OcptShootingTimelineEntry(blockId: "block-1", startMinute: 480, endMinute: 510, durationMinutes: 30),
+        OcptShootingTimelineEntry(
+          blockId: "block-1",
+          startMinute: 480,
+          endMinute: 510,
+          durationMinutes: 30,
+        ),
       ],
       overruns: [OcptTimelineOverrun(blockId: "block-1", reachedMinute: 540, anchorMinute: 480)],
       startMinute: 480,
@@ -278,7 +291,12 @@ void main() {
     final block = _buildBlock(id: "block-1", kind: OcptShootingBlockKind.meal);
     const timeline = OcptShootingSlotTimeline(
       entries: [
-        OcptShootingTimelineEntry(blockId: "block-1", startMinute: 480, endMinute: 510, durationMinutes: 30),
+        OcptShootingTimelineEntry(
+          blockId: "block-1",
+          startMinute: 480,
+          endMinute: 510,
+          durationMinutes: 30,
+        ),
       ],
       overruns: [],
       startMinute: 480,
@@ -308,7 +326,12 @@ void main() {
     final block = _buildBlock(id: "block-1", kind: OcptShootingBlockKind.meal);
     const timeline = OcptShootingSlotTimeline(
       entries: [
-        OcptShootingTimelineEntry(blockId: "block-1", startMinute: 480, endMinute: 495, durationMinutes: 15),
+        OcptShootingTimelineEntry(
+          blockId: "block-1",
+          startMinute: 480,
+          endMinute: 495,
+          durationMinutes: 15,
+        ),
       ],
       overruns: [],
       startMinute: 480,
@@ -338,7 +361,12 @@ void main() {
     final block = _buildBlock(id: "block-1", kind: OcptShootingBlockKind.meal);
     const timeline = OcptShootingSlotTimeline(
       entries: [
-        OcptShootingTimelineEntry(blockId: "block-1", startMinute: 480, endMinute: 492, durationMinutes: 12),
+        OcptShootingTimelineEntry(
+          blockId: "block-1",
+          startMinute: 480,
+          endMinute: 492,
+          durationMinutes: 12,
+        ),
       ],
       overruns: [],
       startMinute: 480,
@@ -369,7 +397,12 @@ void main() {
     final block = _buildBlock(id: "block-1", kind: OcptShootingBlockKind.meal);
     const timeline = OcptShootingSlotTimeline(
       entries: [
-        OcptShootingTimelineEntry(blockId: "block-1", startMinute: 480, endMinute: 483, durationMinutes: 3),
+        OcptShootingTimelineEntry(
+          blockId: "block-1",
+          startMinute: 480,
+          endMinute: 483,
+          durationMinutes: 3,
+        ),
       ],
       overruns: [],
       startMinute: 480,
@@ -399,8 +432,18 @@ void main() {
     final blockB = _buildBlock(id: "block-b", kind: OcptShootingBlockKind.meal, label: "Lunch");
     const timeline = OcptShootingSlotTimeline(
       entries: [
-        OcptShootingTimelineEntry(blockId: "block-a", startMinute: 480, endMinute: 510, durationMinutes: 30),
-        OcptShootingTimelineEntry(blockId: "block-b", startMinute: 510, endMinute: 540, durationMinutes: 30),
+        OcptShootingTimelineEntry(
+          blockId: "block-a",
+          startMinute: 480,
+          endMinute: 510,
+          durationMinutes: 30,
+        ),
+        OcptShootingTimelineEntry(
+          blockId: "block-b",
+          startMinute: 510,
+          endMinute: 540,
+          durationMinutes: 30,
+        ),
       ],
       overruns: [],
       startMinute: 480,
@@ -433,7 +476,12 @@ void main() {
     final block = _buildBlock(id: "block-1", kind: OcptShootingBlockKind.shot, shotId: "shot-1");
     const timeline = OcptShootingSlotTimeline(
       entries: [
-        OcptShootingTimelineEntry(blockId: "block-1", startMinute: 480, endMinute: 510, durationMinutes: 30),
+        OcptShootingTimelineEntry(
+          blockId: "block-1",
+          startMinute: 480,
+          endMinute: 510,
+          durationMinutes: 30,
+        ),
       ],
       overruns: [],
       startMinute: 480,
@@ -472,7 +520,12 @@ void main() {
     final block = _buildBlock(id: "block-1", kind: OcptShootingBlockKind.shot, shotId: "shot-1");
     const timeline = OcptShootingSlotTimeline(
       entries: [
-        OcptShootingTimelineEntry(blockId: "block-1", startMinute: 480, endMinute: 510, durationMinutes: 30),
+        OcptShootingTimelineEntry(
+          blockId: "block-1",
+          startMinute: 480,
+          endMinute: 510,
+          durationMinutes: 30,
+        ),
       ],
       overruns: [],
       startMinute: 480,
@@ -525,7 +578,12 @@ void main() {
     final block = _buildBlock(id: "block-1", kind: OcptShootingBlockKind.meal, anchorMinute: 745);
     const timeline = OcptShootingSlotTimeline(
       entries: [
-        OcptShootingTimelineEntry(blockId: "block-1", startMinute: 745, endMinute: 790, durationMinutes: 45),
+        OcptShootingTimelineEntry(
+          blockId: "block-1",
+          startMinute: 745,
+          endMinute: 790,
+          durationMinutes: 45,
+        ),
       ],
       overruns: [],
       startMinute: 745,
@@ -555,7 +613,12 @@ void main() {
     final block = _buildBlock(id: "block-1", kind: OcptShootingBlockKind.meal);
     const timeline = OcptShootingSlotTimeline(
       entries: [
-        OcptShootingTimelineEntry(blockId: "block-1", startMinute: 480, endMinute: 525, durationMinutes: 45),
+        OcptShootingTimelineEntry(
+          blockId: "block-1",
+          startMinute: 480,
+          endMinute: 525,
+          durationMinutes: 45,
+        ),
       ],
       overruns: [],
       startMinute: 480,
@@ -575,7 +638,12 @@ void main() {
     final ownBlock = _buildBlock(id: "block-own", label: "Prep");
     const timeline = OcptShootingSlotTimeline(
       entries: [
-        OcptShootingTimelineEntry(blockId: "block-own", startMinute: 480, endMinute: 510, durationMinutes: 30),
+        OcptShootingTimelineEntry(
+          blockId: "block-own",
+          startMinute: 480,
+          endMinute: 510,
+          durationMinutes: 30,
+        ),
       ],
       overruns: [],
       startMinute: 480,
@@ -662,7 +730,9 @@ void main() {
     expect(find.text(tr.scheduleBlockKindShot), findsNothing);
   });
 
-  testWidgets("the `+ Block` menu offers every kind, an audition and a rehearsal included", (tester) async {
+  testWidgets("the `+ Block` menu offers every kind, an audition and a rehearsal included", (
+    tester,
+  ) async {
     // Nothing narrows this menu: what a day is for is what its blocks say, and one day regularly
     // auditions in the morning, rehearses at noon and shoots in the afternoon.
     await tester.pumpWidget(
@@ -717,7 +787,12 @@ void main() {
     final audition = _buildBlock(id: "block-1", kind: OcptShootingBlockKind.audition);
     const timeline = OcptShootingSlotTimeline(
       entries: [
-        OcptShootingTimelineEntry(blockId: "block-1", startMinute: 540, endMinute: 560, durationMinutes: 20),
+        OcptShootingTimelineEntry(
+          blockId: "block-1",
+          startMinute: 540,
+          endMinute: 560,
+          durationMinutes: 20,
+        ),
       ],
       overruns: [],
       startMinute: 540,
@@ -733,7 +808,11 @@ void main() {
           timeline: timeline,
           roles: [marie],
           roleCandidateById: {
-            "candidacy-1": _buildCandidacy(id: "candidacy-1", roleId: "role-1", firstName: "Camille"),
+            "candidacy-1": _buildCandidacy(
+              id: "candidacy-1",
+              roleId: "role-1",
+              firstName: "Camille",
+            ),
           },
           onCandidateAdded: (_, roleCandidateId) => pickedCandidacyId = roleCandidateId,
         ),
@@ -761,7 +840,12 @@ void main() {
     final audition = _buildBlock(id: "block-1", kind: OcptShootingBlockKind.audition);
     const timeline = OcptShootingSlotTimeline(
       entries: [
-        OcptShootingTimelineEntry(blockId: "block-1", startMinute: 540, endMinute: 560, durationMinutes: 20),
+        OcptShootingTimelineEntry(
+          blockId: "block-1",
+          startMinute: 540,
+          endMinute: 560,
+          durationMinutes: 20,
+        ),
       ],
       overruns: [],
       startMinute: 540,
@@ -793,7 +877,12 @@ void main() {
     final audition = _buildBlock(id: "block-1", kind: OcptShootingBlockKind.audition);
     const timeline = OcptShootingSlotTimeline(
       entries: [
-        OcptShootingTimelineEntry(blockId: "block-1", startMinute: 540, endMinute: 560, durationMinutes: 20),
+        OcptShootingTimelineEntry(
+          blockId: "block-1",
+          startMinute: 540,
+          endMinute: 560,
+          durationMinutes: 20,
+        ),
       ],
       overruns: [],
       startMinute: 540,
@@ -807,7 +896,11 @@ void main() {
           blocks: [audition],
           timeline: timeline,
           roleCandidateById: {
-            "candidacy-1": _buildCandidacy(id: "candidacy-1", roleId: "role-1", firstName: "Camille"),
+            "candidacy-1": _buildCandidacy(
+              id: "candidacy-1",
+              roleId: "role-1",
+              firstName: "Camille",
+            ),
           },
           onCandidateAdded: (_, roleCandidateId) => pickedCandidacyId = roleCandidateId,
         ),
@@ -838,7 +931,12 @@ void main() {
     );
     const timeline = OcptShootingSlotTimeline(
       entries: [
-        OcptShootingTimelineEntry(blockId: "block-1", startMinute: 540, endMinute: 580, durationMinutes: 40),
+        OcptShootingTimelineEntry(
+          blockId: "block-1",
+          startMinute: 540,
+          endMinute: 580,
+          durationMinutes: 40,
+        ),
       ],
       overruns: [],
       startMinute: 540,
@@ -851,9 +949,16 @@ void main() {
         buildTimetable(
           blocks: [audition],
           timeline: timeline,
-          roles: [_buildRole(id: "role-1", name: "MARIE"), _buildRole(id: "role-2", name: "JULIEN")],
+          roles: [
+            _buildRole(id: "role-1", name: "MARIE"),
+            _buildRole(id: "role-2", name: "JULIEN"),
+          ],
           roleCandidateById: {
-            "candidacy-1": _buildCandidacy(id: "candidacy-1", roleId: "role-1", firstName: "Camille"),
+            "candidacy-1": _buildCandidacy(
+              id: "candidacy-1",
+              roleId: "role-1",
+              firstName: "Camille",
+            ),
             "candidacy-2": _buildCandidacy(id: "candidacy-2", roleId: "role-2", firstName: "Alice"),
           },
           onCandidateRemoved: removed.add,
@@ -881,16 +986,19 @@ void main() {
     );
     const timeline = OcptShootingSlotTimeline(
       entries: [
-        OcptShootingTimelineEntry(blockId: "block-1", startMinute: 540, endMinute: 560, durationMinutes: 20),
+        OcptShootingTimelineEntry(
+          blockId: "block-1",
+          startMinute: 540,
+          endMinute: 560,
+          durationMinutes: 20,
+        ),
       ],
       overruns: [],
       startMinute: 540,
       endMinute: 560,
     );
 
-    await tester.pumpWidget(
-      _wrapInApp(buildTimetable(blocks: [audition], timeline: timeline)),
-    );
+    await tester.pumpWidget(_wrapInApp(buildTimetable(blocks: [audition], timeline: timeline)));
     await tester.pumpAndSettle();
 
     final tr = Tr.of(tester.element(find.byType(OcptScheduleTimetable)));
@@ -901,7 +1009,12 @@ void main() {
     final meal = _buildBlock(id: "block-1", kind: OcptShootingBlockKind.meal);
     const timeline = OcptShootingSlotTimeline(
       entries: [
-        OcptShootingTimelineEntry(blockId: "block-1", startMinute: 560, endMinute: 620, durationMinutes: 60),
+        OcptShootingTimelineEntry(
+          blockId: "block-1",
+          startMinute: 560,
+          endMinute: 620,
+          durationMinutes: 60,
+        ),
       ],
       overruns: [],
       startMinute: 560,
@@ -909,9 +1022,7 @@ void main() {
     );
 
     await tester.pumpWidget(
-      _wrapInApp(
-        buildTimetable(blocks: [meal], timeline: timeline, onCandidateAdded: (_, _) {}),
-      ),
+      _wrapInApp(buildTimetable(blocks: [meal], timeline: timeline, onCandidateAdded: (_, _) {})),
     );
     await tester.pumpAndSettle();
 
@@ -928,7 +1039,12 @@ void main() {
     );
     const timeline = OcptShootingSlotTimeline(
       entries: [
-        OcptShootingTimelineEntry(blockId: "block-1", startMinute: 540, endMinute: 560, durationMinutes: 20),
+        OcptShootingTimelineEntry(
+          blockId: "block-1",
+          startMinute: 540,
+          endMinute: 560,
+          durationMinutes: 20,
+        ),
       ],
       overruns: [],
       startMinute: 540,
@@ -942,7 +1058,11 @@ void main() {
           timeline: timeline,
           roles: [_buildRole(id: "role-1", name: "MARIE")],
           roleCandidateById: {
-            "candidacy-1": _buildCandidacy(id: "candidacy-1", roleId: "role-1", firstName: "Camille"),
+            "candidacy-1": _buildCandidacy(
+              id: "candidacy-1",
+              roleId: "role-1",
+              firstName: "Camille",
+            ),
           },
         ),
       ),
@@ -961,7 +1081,12 @@ void main() {
     final rehearsal = _buildBlock(id: "block-1", kind: OcptShootingBlockKind.rehearsal);
     const timeline = OcptShootingSlotTimeline(
       entries: [
-        OcptShootingTimelineEntry(blockId: "block-1", startMinute: 480, endMinute: 570, durationMinutes: 90),
+        OcptShootingTimelineEntry(
+          blockId: "block-1",
+          startMinute: 480,
+          endMinute: 570,
+          durationMinutes: 90,
+        ),
       ],
       overruns: [],
       startMinute: 480,
@@ -988,7 +1113,12 @@ void main() {
     final block = _buildBlock(id: "block-1", label: "Prep");
     const timeline = OcptShootingSlotTimeline(
       entries: [
-        OcptShootingTimelineEntry(blockId: "block-1", startMinute: 480, endMinute: 510, durationMinutes: 30),
+        OcptShootingTimelineEntry(
+          blockId: "block-1",
+          startMinute: 480,
+          endMinute: 510,
+          durationMinutes: 30,
+        ),
       ],
       overruns: [],
       startMinute: 480,
@@ -997,11 +1127,7 @@ void main() {
 
     await tester.pumpWidget(
       _wrapInApp(
-        buildTimetable(
-          blocks: [block],
-          timeline: timeline,
-          onBlockMovedToSlot: (_, _) {},
-        ),
+        buildTimetable(blocks: [block], timeline: timeline, onBlockMovedToSlot: (_, _) {}),
       ),
     );
     await tester.pumpAndSettle();
@@ -1015,7 +1141,12 @@ void main() {
     final block = _buildBlock(id: "block-1", label: "Prep");
     const timeline = OcptShootingSlotTimeline(
       entries: [
-        OcptShootingTimelineEntry(blockId: "block-1", startMinute: 480, endMinute: 510, durationMinutes: 30),
+        OcptShootingTimelineEntry(
+          blockId: "block-1",
+          startMinute: 480,
+          endMinute: 510,
+          durationMinutes: 30,
+        ),
       ],
       overruns: [],
       startMinute: 480,
@@ -1050,11 +1181,18 @@ void main() {
     expect(moved, [("block-1", "slot-2")]);
   });
 
-  testWidgets("dragging a row onto another slot's own timetable dispatches the move", (tester) async {
+  testWidgets("dragging a row onto another slot's own timetable dispatches the move", (
+    tester,
+  ) async {
     final block = _buildBlock(id: "block-1", label: "Prep");
     const timelineOne = OcptShootingSlotTimeline(
       entries: [
-        OcptShootingTimelineEntry(blockId: "block-1", startMinute: 480, endMinute: 510, durationMinutes: 30),
+        OcptShootingTimelineEntry(
+          blockId: "block-1",
+          startMinute: 480,
+          endMinute: 510,
+          durationMinutes: 30,
+        ),
       ],
       overruns: [],
       startMinute: 480,
@@ -1149,11 +1287,18 @@ void main() {
     expect(moved, [("block-1", "slot-2")]);
   });
 
-  testWidgets("a dropped-into slot shows a hover state while a block hovers over it", (tester) async {
+  testWidgets("a dropped-into slot shows a hover state while a block hovers over it", (
+    tester,
+  ) async {
     final block = _buildBlock(id: "block-1", label: "Prep");
     const timelineOne = OcptShootingSlotTimeline(
       entries: [
-        OcptShootingTimelineEntry(blockId: "block-1", startMinute: 480, endMinute: 510, durationMinutes: 30),
+        OcptShootingTimelineEntry(
+          blockId: "block-1",
+          startMinute: 480,
+          endMinute: 510,
+          durationMinutes: 30,
+        ),
       ],
       overruns: [],
       startMinute: 480,
@@ -1245,7 +1390,10 @@ void main() {
     final theme = Theme.of(tester.element(find.byKey(const ValueKey("timetable-2"))));
     final hoveringContainer = tester
         .widgetList<AnimatedContainer>(
-          find.descendant(of: find.byKey(const ValueKey("timetable-2")), matching: find.byType(AnimatedContainer)),
+          find.descendant(
+            of: find.byKey(const ValueKey("timetable-2")),
+            matching: find.byType(AnimatedContainer),
+          ),
         )
         .first;
     final hoveringDecoration = hoveringContainer.decoration! as BoxDecoration;
@@ -1256,21 +1404,31 @@ void main() {
 
     final settledContainer = tester
         .widgetList<AnimatedContainer>(
-          find.descendant(of: find.byKey(const ValueKey("timetable-2")), matching: find.byType(AnimatedContainer)),
+          find.descendant(
+            of: find.byKey(const ValueKey("timetable-2")),
+            matching: find.byType(AnimatedContainer),
+          ),
         )
         .first;
     final settledDecoration = settledContainer.decoration! as BoxDecoration;
     expect(settledDecoration.border!.top.color, Colors.transparent);
   });
 
-  testWidgets("the duration stepper still responds once cross-slot dragging is wired up", (tester) async {
+  testWidgets("the duration stepper still responds once cross-slot dragging is wired up", (
+    tester,
+  ) async {
     // Real usage always turns on every writing affordance together, including cross-slot moving —
     // this pins that wrapping a row's body in a `Draggable` for that doesn't also swallow its own
     // ordinary control taps.
     final block = _buildBlock(id: "block-1", kind: OcptShootingBlockKind.meal);
     const timeline = OcptShootingSlotTimeline(
       entries: [
-        OcptShootingTimelineEntry(blockId: "block-1", startMinute: 480, endMinute: 510, durationMinutes: 30),
+        OcptShootingTimelineEntry(
+          blockId: "block-1",
+          startMinute: 480,
+          endMinute: 510,
+          durationMinutes: 30,
+        ),
       ],
       overruns: [],
       startMinute: 480,
@@ -1302,8 +1460,18 @@ void main() {
     final meal = _buildBlock(id: "block-2", kind: OcptShootingBlockKind.meal);
     const timeline = OcptShootingSlotTimeline(
       entries: [
-        OcptShootingTimelineEntry(blockId: "block-1", startMinute: 480, endMinute: 510, durationMinutes: 30),
-        OcptShootingTimelineEntry(blockId: "block-2", startMinute: 510, endMinute: 540, durationMinutes: 30),
+        OcptShootingTimelineEntry(
+          blockId: "block-1",
+          startMinute: 480,
+          endMinute: 510,
+          durationMinutes: 30,
+        ),
+        OcptShootingTimelineEntry(
+          blockId: "block-2",
+          startMinute: 510,
+          endMinute: 540,
+          durationMinutes: 30,
+        ),
       ],
       overruns: [],
       startMinute: 480,
@@ -1333,7 +1501,12 @@ void main() {
     final hold = _buildBlock(id: "block-1", kind: OcptShootingBlockKind.hold);
     const timeline = OcptShootingSlotTimeline(
       entries: [
-        OcptShootingTimelineEntry(blockId: "block-1", startMinute: 480, endMinute: 510, durationMinutes: 30),
+        OcptShootingTimelineEntry(
+          blockId: "block-1",
+          startMinute: 480,
+          endMinute: 510,
+          durationMinutes: 30,
+        ),
       ],
       overruns: [],
       startMinute: 480,
@@ -1376,7 +1549,12 @@ void main() {
     final hold = _buildBlock(id: "block-1", kind: OcptShootingBlockKind.hold, sceneId: "scene-1");
     const timeline = OcptShootingSlotTimeline(
       entries: [
-        OcptShootingTimelineEntry(blockId: "block-1", startMinute: 480, endMinute: 510, durationMinutes: 30),
+        OcptShootingTimelineEntry(
+          blockId: "block-1",
+          startMinute: 480,
+          endMinute: 510,
+          durationMinutes: 30,
+        ),
       ],
       overruns: [],
       startMinute: 480,

@@ -42,27 +42,24 @@ void main() {
     sortKey: "V",
   );
 
-  OcptBudgetEntry buildEntry({
-    required String id,
-    String? commitmentId,
-    int debitCents = 0,
-  }) => OcptBudgetEntry(
-    id: id,
-    date: DateTime(2026),
-    label: "An entry",
-    posteId: null,
-    debitCents: debitCents,
-    creditCents: 0,
-    isTaxInclusive: true,
-    vatRateBasisPoints: null,
-    voucherNumber: "J-001",
-    sortKey: "V",
-    resourceId: null,
-    revenueId: null,
-    shareId: null,
-    commitmentId: commitmentId,
-    personId: null,
-  );
+  OcptBudgetEntry buildEntry({required String id, String? commitmentId, int debitCents = 0}) =>
+      OcptBudgetEntry(
+        id: id,
+        date: DateTime(2026),
+        label: "An entry",
+        posteId: null,
+        debitCents: debitCents,
+        creditCents: 0,
+        isTaxInclusive: true,
+        vatRateBasisPoints: null,
+        voucherNumber: "J-001",
+        sortKey: "V",
+        resourceId: null,
+        revenueId: null,
+        shareId: null,
+        commitmentId: commitmentId,
+        personId: null,
+      );
 
   OcptBudgetAllowance buildAllowance({
     String id = "allowance-1",
@@ -126,7 +123,9 @@ void main() {
         draftAmountCents: 25000,
         draftDate: draftDate,
         draftWording: "Couronne",
-        commitments: [buildCommitment(id: "c1", label: "Couronne", amountCents: 25000, dueDate: draftDate)],
+        commitments: [
+          buildCommitment(id: "c1", label: "Couronne", amountCents: 25000, dueDate: draftDate),
+        ],
         entries: const [],
         allowances: [buildAllowance(id: "a1", label: "Couronne", unitAmountMilliCents: 25000000)],
         resources: [buildResource(id: "r1", label: "Couronne", amountCents: 25000)],
@@ -148,7 +147,9 @@ void main() {
         draftAmountCents: 25000,
         draftDate: draftDate,
         draftWording: "Couronne",
-        commitments: [buildCommitment(id: "c1", label: "Couronne", amountCents: 25000, dueDate: draftDate)],
+        commitments: [
+          buildCommitment(id: "c1", label: "Couronne", amountCents: 25000, dueDate: draftDate),
+        ],
         entries: const [],
         allowances: [buildAllowance(id: "a1", label: "Couronne", unitAmountMilliCents: 25000000)],
         resources: [buildResource(id: "r1", label: "Couronne", amountCents: 25000)],
@@ -346,7 +347,8 @@ void main() {
         draftWording: "unrelated",
         commitments: List.generate(
           5,
-          (i) => buildCommitment(id: "c$i", label: "unrelated", amountCents: 5000, dueDate: draftDate),
+          (i) =>
+              buildCommitment(id: "c$i", label: "unrelated", amountCents: 5000, dueDate: draftDate),
         ),
         entries: const [],
         allowances: const [],

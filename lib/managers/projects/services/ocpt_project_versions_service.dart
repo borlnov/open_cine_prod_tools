@@ -108,10 +108,9 @@ class OcptProjectVersionsService {
   /// Deliberately does **not** deserialize any payload: a card renders from the counters stored
   /// with the version, and a payload is hundreds of kilobytes.
   Future<List<OcptProjectVersion>> listVersions({required OcptProjectDatabase database}) async {
-    final rows =
-        await (database.select(database.ocptProjectVersionsTable)
-              ..orderBy([(table) => OrderingTerm.desc(table.createdAt)]))
-            .get();
+    final rows = await (database.select(
+      database.ocptProjectVersionsTable,
+    )..orderBy([(table) => OrderingTerm.desc(table.createdAt)])).get();
 
     final info = await database.select(database.ocptProjectInfoTable).getSingleOrNull();
 
@@ -213,11 +212,9 @@ class OcptProjectVersionsService {
     required String name,
     required String note,
   }) async {
-    await (database.update(
-      database.ocptProjectVersionsTable,
-    )..where((table) => table.id.equals(id))).write(
-      OcptProjectVersionsTableCompanion(name: Value(name), note: Value(note)),
-    );
+    await (database.update(database.ocptProjectVersionsTable)
+          ..where((table) => table.id.equals(id)))
+        .write(OcptProjectVersionsTableCompanion(name: Value(name), note: Value(note)));
   }
 
   /// Loads the single version [id] of the project in [database], or null if it has no such
@@ -464,7 +461,8 @@ class OcptProjectVersionsService {
   Future<OcptProjectWorkingCopyState> captureWorkingCopyState({
     required OcptProjectDatabase database,
     required FountainPageMargins pageMargins,
-  }) async => (await _captureWorkingCopySnapshot(database: database, pageMargins: pageMargins)).state;
+  }) async =>
+      (await _captureWorkingCopySnapshot(database: database, pageMargins: pageMargins)).state;
 
   /// The shared half of [captureWorkingCopyState]: everything it reports, plus the payload it was
   /// measured from, which only [restoreVersion] needs — to write it out as a safety version without
@@ -631,10 +629,7 @@ class OcptProjectVersionsService {
   /// Deleting the version *currently being previewed* has to be refused, but that is a matter of
   /// the open project's state rather than of the database, so it belongs to `OcptProjectsManager`
   /// alongside the preview it owns — which doesn't exist yet.
-  Future<void> deleteVersion({
-    required OcptProjectDatabase database,
-    required String id,
-  }) async {
+  Future<void> deleteVersion({required OcptProjectDatabase database, required String id}) async {
     await database.transaction(() async {
       final info = await database.select(database.ocptProjectInfoTable).getSingleOrNull();
 
@@ -673,9 +668,7 @@ class OcptProjectVersionsService {
       roles: await database.select(database.ocptRolesTable).get(),
       roleEpisodes: await database.select(database.ocptRoleEpisodesTable).get(),
       locations: await database.select(database.ocptLocationsTable).get(),
-      locationAvailabilities: await database
-          .select(database.ocptLocationAvailabilitiesTable)
-          .get(),
+      locationAvailabilities: await database.select(database.ocptLocationAvailabilitiesTable).get(),
       sets: await database.select(database.ocptSetsTable).get(),
       sceneSets: await database.select(database.ocptSceneSetsTable).get(),
       elements: await database.select(database.ocptElementsTable).get(),
@@ -695,9 +688,7 @@ class OcptProjectVersionsService {
           .select(database.ocptShootingBlockCandidatesTable)
           .get(),
       shootingDayEvents: await database.select(database.ocptShootingDayEventsTable).get(),
-      projectDictionaryWords: await database
-          .select(database.ocptProjectDictionaryWordsTable)
-          .get(),
+      projectDictionaryWords: await database.select(database.ocptProjectDictionaryWordsTable).get(),
       budgetPostes: await database.select(database.ocptBudgetPostesTable).get(),
       budgetLines: await database.select(database.ocptBudgetLinesTable).get(),
       budgetEntries: await database.select(database.ocptBudgetEntriesTable).get(),
@@ -708,9 +699,7 @@ class OcptProjectVersionsService {
       budgetShares: await database.select(database.ocptBudgetSharesTable).get(),
       budgetAllowances: await database.select(database.ocptBudgetAllowancesTable).get(),
       storyboardPanels: await database.select(database.ocptStoryboardPanelsTable).get(),
-      storyboardAnnotations: await database
-          .select(database.ocptStoryboardAnnotationsTable)
-          .get(),
+      storyboardAnnotations: await database.select(database.ocptStoryboardAnnotationsTable).get(),
       floorPlanSets: await database.select(database.ocptFloorPlanSetsTable).get(),
       floorPlanSymbols: await database.select(database.ocptFloorPlanSymbolsTable).get(),
       floorPlanArrows: await database.select(database.ocptFloorPlanArrowsTable).get(),
@@ -1353,15 +1342,11 @@ class OcptProjectVersionsService {
       // showing.
       personSkills: [
         for (final row in payload.personSkills)
-          erasedPersonIds.contains(row.personId)
-              ? row.copyWith(isDeleted: true, label: '')
-              : row,
+          erasedPersonIds.contains(row.personId) ? row.copyWith(isDeleted: true, label: '') : row,
       ],
       personUnavailabilities: [
         for (final row in payload.personUnavailabilities)
-          erasedPersonIds.contains(row.personId)
-              ? row.copyWith(isDeleted: true, reason: '')
-              : row,
+          erasedPersonIds.contains(row.personId) ? row.copyWith(isDeleted: true, reason: '') : row,
       ],
       roles: payload.roles,
       // A role_episodes row names a role and a screenplay, never a person: an actor is reached
@@ -1386,9 +1371,7 @@ class OcptProjectVersionsService {
       // every other reference to an erased person does.
       roleCandidates: [
         for (final row in payload.roleCandidates)
-          erasedPersonIds.contains(row.personId)
-              ? row.copyWith(isDeleted: true, notes: '')
-              : row,
+          erasedPersonIds.contains(row.personId) ? row.copyWith(isDeleted: true, notes: '') : row,
       ],
       // An asset's `path` is personal data in its own right: an absolute path routinely names the
       // person (`…/cession-droits-Jean-Dupont.pdf`) and always says where a photograph of them
@@ -1581,9 +1564,7 @@ class OcptProjectVersionsService {
     required D Function(D row) tombstonedOf,
     required OcptRowStampService? stamps,
   }) async {
-    final leftovers = {
-      for (final row in await database.select(table).get()) rowIdOf(row): row,
-    };
+    final leftovers = {for (final row in await database.select(table).get()) rowIdOf(row): row};
 
     for (final row in payloadRows) {
       final rowId = rowIdOf(row);

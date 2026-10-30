@@ -191,14 +191,11 @@ class OcptProjectVersionCard extends StatelessWidget {
   Widget _buildFooter(BuildContext context, ThemeData theme, Tr tr) => Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
-      Text(
-        switch ((version.isBase, isPreviewed)) {
-          (true, false) => tr.projectVersionBaseHint,
-          (_, true) => tr.projectVersionPreviewedHint,
-          _ => tr.projectVersionPreviewHint,
-        },
-        style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
-      ),
+      Text(switch ((version.isBase, isPreviewed)) {
+        (true, false) => tr.projectVersionBaseHint,
+        (_, true) => tr.projectVersionPreviewedHint,
+        _ => tr.projectVersionPreviewHint,
+      }, style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
       // A `Wrap` rather than a `Row`: `Restore this version` is a long label, the dock it lives
       // in is resizable down to a third of the workspace, and the actions then simply stack
       // instead of overflowing.
@@ -319,10 +316,7 @@ class _OcptProjectVersionBadge extends StatelessWidget {
       color: color.withValues(alpha: ocptSelectedStateAlpha),
       borderRadius: BorderRadius.circular(ocptRadiusSmall),
     ),
-    child: Text(
-      label,
-      style: Theme.of(context).textTheme.labelSmall?.copyWith(color: color),
-    ),
+    child: Text(label, style: Theme.of(context).textTheme.labelSmall?.copyWith(color: color)),
   );
 }
 
@@ -371,8 +365,7 @@ class _OcptProjectVersionRenameFormState extends State<_OcptProjectVersionRename
   @override
   void initState() {
     super.initState();
-    _nameController = TextEditingController(text: widget.initialName)
-      ..addListener(_onNameChanged);
+    _nameController = TextEditingController(text: widget.initialName)..addListener(_onNameChanged);
     _noteController = TextEditingController(text: widget.initialNote);
   }
 

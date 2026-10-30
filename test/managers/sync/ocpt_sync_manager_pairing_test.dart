@@ -104,8 +104,10 @@ class _FakeRemoteStorage implements OcptRemoteStorage {
 /// [pairProjectToRelay] itself has no seam for a transport (it always builds its own, per its own
 /// doc comment), so this is how its own tests exercise it with no network at all.
 class _FakeTransportSyncManager extends OcptSyncManager {
-  _FakeTransportSyncManager({required this.storage, required OcptPairingService super.pairingService})
-    : super(changesetService: const OcptChangesetService());
+  _FakeTransportSyncManager({
+    required this.storage,
+    required OcptPairingService super.pairingService,
+  }) : super(changesetService: const OcptChangesetService());
 
   final OcptRemoteStorage storage;
   String? capturedEnrolmentSecret;
@@ -290,7 +292,9 @@ void main() {
 
       expect(storage.uploaded, isNotNull);
 
-      final relayId = OcptSyncManager.relayIdFor(OcptProjectPairing(relayBaseUri: relayBaseUri, token: 't'));
+      final relayId = OcptSyncManager.relayIdFor(
+        OcptProjectPairing(relayBaseUri: relayBaseUri, token: 't'),
+      );
       final sequenceUpTo = await const OcptChangesetService().highestAppendedSequence(
         database: database,
         relayId: relayId,

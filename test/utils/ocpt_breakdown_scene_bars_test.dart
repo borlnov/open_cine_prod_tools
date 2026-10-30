@@ -29,16 +29,18 @@ OcptBreakdownTag _buildTag({
 );
 
 /// Builds an element target of [category].
-OcptBreakdownTarget _buildElementTarget({required String id, required OcptElementCategory category}) =>
-    OcptBreakdownTarget(
-      kind: OcptBreakdownTargetKind.element,
-      id: id,
-      name: id,
-      category: category,
-      status: OcptElementStatus.toFind,
-      sceneIds: const [],
-      occurrenceCount: 1,
-    );
+OcptBreakdownTarget _buildElementTarget({
+  required String id,
+  required OcptElementCategory category,
+}) => OcptBreakdownTarget(
+  kind: OcptBreakdownTargetKind.element,
+  id: id,
+  name: id,
+  category: category,
+  status: OcptElementStatus.toFind,
+  sceneIds: const [],
+  occurrenceCount: 1,
+);
 
 /// Builds a role or a set target.
 OcptBreakdownTarget _buildTarget({required OcptBreakdownTargetKind kind, required String id}) =>
@@ -106,7 +108,10 @@ void main() {
     expect(buckets.single.count, 2);
     expect(
       buckets.single.color,
-      ocptBreakdownColorOf(kind: OcptBreakdownTargetKind.element, category: OcptElementCategory.prop),
+      ocptBreakdownColorOf(
+        kind: OcptBreakdownTargetKind.element,
+        category: OcptElementCategory.prop,
+      ),
     );
   });
 

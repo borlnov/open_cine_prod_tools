@@ -270,12 +270,7 @@ void main() {
 
   group("rule 3 — a slot whose location has no window covering it", () {
     test("fires when a declared window doesn't match the day's own weekday", () {
-      final slot = _buildSlot(
-        id: "slot-1",
-        startMinute: 480,
-        endMinute: 600,
-        locationId: "loc-1",
-      );
+      final slot = _buildSlot(id: "slot-1", startMinute: 480, endMinute: 600, locationId: "loc-1");
       final day = _buildDay(id: "day-1", slots: [slot]);
       final window = _buildLocationWindow(weekdays: 0, dayPart: OcptDayPartSlot.fullDay);
 
@@ -283,7 +278,9 @@ void main() {
         days: [day],
         people: const [],
         roles: const [],
-        locationWindowsByLocationId: {"loc-1": [window]},
+        locationWindowsByLocationId: {
+          "loc-1": [window],
+        },
       );
 
       final alert = alerts.whereType<OcptScheduleLocationUncoveredAlert>().single;
@@ -292,12 +289,7 @@ void main() {
     });
 
     test("does not fire when a declared window fully covers the slot's band", () {
-      final slot = _buildSlot(
-        id: "slot-1",
-        startMinute: 480,
-        endMinute: 600,
-        locationId: "loc-1",
-      );
+      final slot = _buildSlot(id: "slot-1", startMinute: 480, endMinute: 600, locationId: "loc-1");
       final day = _buildDay(id: "day-1", slots: [slot]);
       final window = _buildLocationWindow(dayPart: OcptDayPartSlot.fullDay);
 
@@ -305,19 +297,16 @@ void main() {
         days: [day],
         people: const [],
         roles: const [],
-        locationWindowsByLocationId: {"loc-1": [window]},
+        locationWindowsByLocationId: {
+          "loc-1": [window],
+        },
       );
 
       expect(alerts.whereType<OcptScheduleLocationUncoveredAlert>(), isEmpty);
     });
 
     test("does not fire when the location declares no window at all", () {
-      final slot = _buildSlot(
-        id: "slot-1",
-        startMinute: 480,
-        endMinute: 600,
-        locationId: "loc-1",
-      );
+      final slot = _buildSlot(id: "slot-1", startMinute: 480, endMinute: 600, locationId: "loc-1");
       final day = _buildDay(id: "day-1", slots: [slot]);
 
       final alerts = _computeAlerts(
@@ -576,7 +565,9 @@ void main() {
     test("a role-uncast alert (no day) sorts after every real day of the same severity", () {
       final day = _buildDay(
         id: "day-1",
-        slots: [_buildSlot(id: "slot-1", startMinute: 480, convokedRoleIds: {"role-1"})],
+        slots: [
+          _buildSlot(id: "slot-1", startMinute: 480, convokedRoleIds: {"role-1"}),
+        ],
       );
 
       final alerts = _computeAlerts(
@@ -636,7 +627,12 @@ void main() {
     test("a day raising nothing has no entry at all", () {
       final grouped = ocptGroupScheduleAlertsByDay(
         _computeAlerts(
-          days: [_buildDay(id: "day-1", slots: [_buildSlot(id: "slot-1", startMinute: 480)])],
+          days: [
+            _buildDay(
+              id: "day-1",
+              slots: [_buildSlot(id: "slot-1", startMinute: 480)],
+            ),
+          ],
           people: const [],
           roles: const [],
           locationWindowsByLocationId: const {},
@@ -651,7 +647,9 @@ void main() {
         days: [
           _buildDay(
             id: "day-1",
-            slots: [_buildSlot(id: "slot-1", startMinute: 480, convokedRoleIds: {"role-1"})],
+            slots: [
+              _buildSlot(id: "slot-1", startMinute: 480, convokedRoleIds: {"role-1"}),
+            ],
           ),
         ],
         people: const [],
@@ -669,12 +667,16 @@ void main() {
       final day1 = _buildDay(
         id: "day-1",
         date: DateTime(2026, 1, 5),
-        slots: [_buildSlot(id: "slot-1", startMinute: 1140, endMinute: 1620, personIds: {"p1"})],
+        slots: [
+          _buildSlot(id: "slot-1", startMinute: 1140, endMinute: 1620, personIds: {"p1"}),
+        ],
       );
       final day2 = _buildDay(
         id: "day-2",
         date: DateTime(2026, 1, 6),
-        slots: [_buildSlot(id: "slot-2", startMinute: 420, personIds: {"p1"})],
+        slots: [
+          _buildSlot(id: "slot-2", startMinute: 420, personIds: {"p1"}),
+        ],
       );
 
       final alerts = _computeAlerts(
@@ -692,12 +694,16 @@ void main() {
       final day1 = _buildDay(
         id: "day-1",
         date: DateTime(2026, 1, 5),
-        slots: [_buildSlot(id: "slot-1", startMinute: 480, endMinute: 1000, personIds: {"p1"})],
+        slots: [
+          _buildSlot(id: "slot-1", startMinute: 480, endMinute: 1000, personIds: {"p1"}),
+        ],
       );
       final day2 = _buildDay(
         id: "day-2",
         date: DateTime(2026, 1, 6),
-        slots: [_buildSlot(id: "slot-2", startMinute: 1000, personIds: {"p1"})],
+        slots: [
+          _buildSlot(id: "slot-2", startMinute: 1000, personIds: {"p1"}),
+        ],
       );
 
       // Gap: 1 whole day (1440) + 1000 (next arrival) - 1000 (previous departure) = 1440.
@@ -718,12 +724,16 @@ void main() {
         id: "day-1",
         date: DateTime(2026, 1, 5),
         // 19:00 -> 03:00 the next morning, stored as 1140 -> 1620 (never wrapped).
-        slots: [_buildSlot(id: "slot-1", startMinute: 1140, endMinute: 1620, personIds: {"p1"})],
+        slots: [
+          _buildSlot(id: "slot-1", startMinute: 1140, endMinute: 1620, personIds: {"p1"}),
+        ],
       );
       final day2 = _buildDay(
         id: "day-2",
         date: DateTime(2026, 1, 6),
-        slots: [_buildSlot(id: "slot-2", startMinute: 420, personIds: {"p1"})], // 07:00
+        slots: [
+          _buildSlot(id: "slot-2", startMinute: 420, personIds: {"p1"}),
+        ], // 07:00
       );
 
       final alerts = _computeAlerts(
@@ -742,38 +752,47 @@ void main() {
       expect(alert.minimumRestMinutes, 660);
     });
 
-    test("compares the next day the person is actually convoked on, not the next calendar date", () {
-      final day1 = _buildDay(
-        id: "day-1",
-        date: DateTime(2026, 1, 5),
-        slots: [_buildSlot(id: "slot-1", startMinute: 780, endMinute: 1200, personIds: {"p1"})],
-      );
-      // A day the schedule holds, dated in between, that this person is not linked to at all.
-      final day2 = _buildDay(
-        id: "day-2",
-        date: DateTime(2026, 1, 6),
-        slots: [_buildSlot(id: "slot-2", startMinute: 480, personIds: {"p2"})],
-      );
-      final day3 = _buildDay(
-        id: "day-3",
-        date: DateTime(2026, 1, 7),
-        slots: [_buildSlot(id: "slot-3", startMinute: 60, personIds: {"p1"})],
-      );
+    test(
+      "compares the next day the person is actually convoked on, not the next calendar date",
+      () {
+        final day1 = _buildDay(
+          id: "day-1",
+          date: DateTime(2026, 1, 5),
+          slots: [
+            _buildSlot(id: "slot-1", startMinute: 780, endMinute: 1200, personIds: {"p1"}),
+          ],
+        );
+        // A day the schedule holds, dated in between, that this person is not linked to at all.
+        final day2 = _buildDay(
+          id: "day-2",
+          date: DateTime(2026, 1, 6),
+          slots: [
+            _buildSlot(id: "slot-2", startMinute: 480, personIds: {"p2"}),
+          ],
+        );
+        final day3 = _buildDay(
+          id: "day-3",
+          date: DateTime(2026, 1, 7),
+          slots: [
+            _buildSlot(id: "slot-3", startMinute: 60, personIds: {"p1"}),
+          ],
+        );
 
-      // Gap: 2 whole days (2880) + 60 - 1200 = 1740, comparing day-1 straight to day-3.
-      final alerts = _computeAlerts(
-        days: [day1, day2, day3],
-        people: [_buildPerson(id: "p1")],
-        roles: const [],
-        locationWindowsByLocationId: const {},
-        minimumRestMinutes: 2000,
-      );
+        // Gap: 2 whole days (2880) + 60 - 1200 = 1740, comparing day-1 straight to day-3.
+        final alerts = _computeAlerts(
+          days: [day1, day2, day3],
+          people: [_buildPerson(id: "p1")],
+          roles: const [],
+          locationWindowsByLocationId: const {},
+          minimumRestMinutes: 2000,
+        );
 
-      final alert = alerts.whereType<OcptScheduleRestTimeAlert>().single;
-      expect(alert.dayId, "day-3");
-      expect(alert.previousDayId, "day-1");
-      expect(alert.restMinutes, 1740);
-    });
+        final alert = alerts.whereType<OcptScheduleRestTimeAlert>().single;
+        expect(alert.dayId, "day-3");
+        expect(alert.previousDayId, "day-1");
+        expect(alert.restMinutes, 1740);
+      },
+    );
   });
 
   group("rule 10 — a slot booked at a location whose permit doesn't cover the day", () {
@@ -854,51 +873,59 @@ void main() {
   });
 
   group("ordering with the two newest kinds present", () {
-    test("rest-time and permit alerts sort after every earlier kind, in their own declaration order", () {
-      final day = _buildDay(
-        id: "day-1",
-        date: DateTime(2026, 1, 5),
-        slots: [
-          _buildSlot(id: "slot-1", startMinute: 480, endMinute: 600, locationId: "loc-1"),
-        ],
-        overruns: [
-          const OcptTimelineOverrun(blockId: "block-1", reachedMinute: 600, anchorMinute: 550),
-        ],
-      );
-      final nextDay = _buildDay(
-        id: "day-2",
-        date: DateTime(2026, 1, 6),
-        slots: [_buildSlot(id: "slot-2", startMinute: 60, personIds: {"p1"})],
-      );
-      final firstDayWithPerson = _buildDay(
-        id: "day-0",
-        date: DateTime(2026, 1, 4),
-        slots: [_buildSlot(id: "slot-0", startMinute: 780, endMinute: 1200, personIds: {"p1"})],
-      );
-
-      final alerts = _computeAlerts(
-        days: [firstDayWithPerson, day, nextDay],
-        people: [_buildPerson(id: "p1")],
-        roles: const [],
-        locationWindowsByLocationId: const {},
-        minimumRestMinutes: 2000,
-        permitWindowsByLocationId: {
-          "loc-1": [
-            _buildPermitWindow(validFrom: DateTime(2026, 1, 10), validUntil: DateTime(2026, 1, 20)),
+    test(
+      "rest-time and permit alerts sort after every earlier kind, in their own declaration order",
+      () {
+        final day = _buildDay(
+          id: "day-1",
+          date: DateTime(2026, 1, 5),
+          slots: [_buildSlot(id: "slot-1", startMinute: 480, endMinute: 600, locationId: "loc-1")],
+          overruns: [
+            const OcptTimelineOverrun(blockId: "block-1", reachedMinute: 600, anchorMinute: 550),
           ],
-        },
-      );
+        );
+        final nextDay = _buildDay(
+          id: "day-2",
+          date: DateTime(2026, 1, 6),
+          slots: [
+            _buildSlot(id: "slot-2", startMinute: 60, personIds: {"p1"}),
+          ],
+        );
+        final firstDayWithPerson = _buildDay(
+          id: "day-0",
+          date: DateTime(2026, 1, 4),
+          slots: [
+            _buildSlot(id: "slot-0", startMinute: 780, endMinute: 1200, personIds: {"p1"}),
+          ],
+        );
 
-      // Every alert here is soft; within day-1's own group, kind order applies: the timeline
-      // over-run (kind 7) sorts before the permit alert (kind 11) it shares that day with.
-      final day1Alerts = alerts.where((alert) => alert.dayId == "day-1").toList();
-      expect(day1Alerts.first, isA<OcptScheduleTimelineOverrunAlert>());
-      expect(day1Alerts.last, isA<OcptSchedulePermitNotValidAlert>());
+        final alerts = _computeAlerts(
+          days: [firstDayWithPerson, day, nextDay],
+          people: [_buildPerson(id: "p1")],
+          roles: const [],
+          locationWindowsByLocationId: const {},
+          minimumRestMinutes: 2000,
+          permitWindowsByLocationId: {
+            "loc-1": [
+              _buildPermitWindow(
+                validFrom: DateTime(2026, 1, 10),
+                validUntil: DateTime(2026, 1, 20),
+              ),
+            ],
+          },
+        );
 
-      // The rest-time alert lands on day-2, sorted after day-1's own group (day order first).
-      final restTimeIndex = alerts.indexWhere((alert) => alert is OcptScheduleRestTimeAlert);
-      final day1LastIndex = alerts.lastIndexWhere((alert) => alert.dayId == "day-1");
-      expect(restTimeIndex, greaterThan(day1LastIndex));
-    });
+        // Every alert here is soft; within day-1's own group, kind order applies: the timeline
+        // over-run (kind 7) sorts before the permit alert (kind 11) it shares that day with.
+        final day1Alerts = alerts.where((alert) => alert.dayId == "day-1").toList();
+        expect(day1Alerts.first, isA<OcptScheduleTimelineOverrunAlert>());
+        expect(day1Alerts.last, isA<OcptSchedulePermitNotValidAlert>());
+
+        // The rest-time alert lands on day-2, sorted after day-1's own group (day order first).
+        final restTimeIndex = alerts.indexWhere((alert) => alert is OcptScheduleRestTimeAlert);
+        final day1LastIndex = alerts.lastIndexWhere((alert) => alert.dayId == "day-1");
+        expect(restTimeIndex, greaterThan(day1LastIndex));
+      },
+    );
   });
 }

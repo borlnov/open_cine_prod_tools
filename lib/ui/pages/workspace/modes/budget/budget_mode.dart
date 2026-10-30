@@ -236,7 +236,9 @@ class _BudgetViewState extends State<_BudgetView> {
         title: tr.budgetExportFinancingPlanTitle,
         description: tr.budgetExportFinancingPlanDescription,
         formatLabel: "PDF",
-        unavailableReason: state.resources.isEmpty ? tr.budgetExportUnavailableNoResourceReason : null,
+        unavailableReason: state.resources.isEmpty
+            ? tr.budgetExportUnavailableNoResourceReason
+            : null,
       ),
       OcptWorkspaceExportEntry<OcptBudgetExportDocument>(
         value: OcptBudgetExportDocument.cashJournal,
@@ -334,7 +336,10 @@ class _BudgetViewState extends State<_BudgetView> {
     OcptBudgetState state,
     Rect? shareAnchor,
   ) async {
-    final options = await OcptBudgetFinancingPlanExportDialog.show(context, current: state.pageSetup);
+    final options = await OcptBudgetFinancingPlanExportDialog.show(
+      context,
+      current: state.pageSetup,
+    );
     if (options == null) {
       return;
     }
@@ -427,7 +432,9 @@ class _BudgetViewState extends State<_BudgetView> {
   /// `OcptScheduleMode._requestProjectPackageExport`.
   void _requestProjectPackageExport(BuildContext context) {
     context.read<OcptBudgetBloc>().add(
-      OcptProjectPackageExportRequestedEvent(fileTypeLabel: Tr.of(context).projectPackageFileTypeLabel),
+      OcptProjectPackageExportRequestedEvent(
+        fileTypeLabel: Tr.of(context).projectPackageFileTypeLabel,
+      ),
     );
   }
 
@@ -447,7 +454,9 @@ class _BudgetViewState extends State<_BudgetView> {
     }
 
     bloc.add(
-      OcptProjectPackageExportConfirmedEvent(fileTypeLabel: Tr.of(context).projectPackageFileTypeLabel),
+      OcptProjectPackageExportConfirmedEvent(
+        fileTypeLabel: Tr.of(context).projectPackageFileTypeLabel,
+      ),
     );
   }
 
@@ -548,20 +557,22 @@ class _BudgetViewState extends State<_BudgetView> {
   /// Which [OcptBudgetGestureFamily] the current route promotes to the top of step 1 — the group
   /// whose document the route works on — or null for [OcptBudgetView.dashboard], which works on no
   /// single document.
-  OcptBudgetGestureFamily? _promotedGestureFamilyOf(OcptBudgetState state) =>
-      switch ((state.view, state.toolsView)) {
-        (OcptBudgetView.expenses, _) => OcptBudgetGestureFamily.quote,
-        (OcptBudgetView.resources, _) => OcptBudgetGestureFamily.financingPlan,
-        (OcptBudgetView.tools, OcptBudgetToolsView.cashFlow) => OcptBudgetGestureFamily.cashMovement,
-        (OcptBudgetView.tools, OcptBudgetToolsView.regie) => OcptBudgetGestureFamily.allowances,
-        (OcptBudgetView.tools, OcptBudgetToolsView.sharing) => OcptBudgetGestureFamily.revenueSharing,
-        (OcptBudgetView.dashboard, _) => null,
-      };
+  OcptBudgetGestureFamily? _promotedGestureFamilyOf(OcptBudgetState state) => switch ((
+    state.view,
+    state.toolsView,
+  )) {
+    (OcptBudgetView.expenses, _) => OcptBudgetGestureFamily.quote,
+    (OcptBudgetView.resources, _) => OcptBudgetGestureFamily.financingPlan,
+    (OcptBudgetView.tools, OcptBudgetToolsView.cashFlow) => OcptBudgetGestureFamily.cashMovement,
+    (OcptBudgetView.tools, OcptBudgetToolsView.regie) => OcptBudgetGestureFamily.allowances,
+    (OcptBudgetView.tools, OcptBudgetToolsView.sharing) => OcptBudgetGestureFamily.revenueSharing,
+    (OcptBudgetView.dashboard, _) => null,
+  };
 
   /// [family]'s own first answer, in [OcptBudgetGesture]'s own declared order — the promoted
   /// group's own first card, which arrives pre-selected so the frequent gesture is one click.
-  OcptBudgetGesture _firstGestureOf(OcptBudgetGestureFamily family) =>
-      OcptBudgetGesture.values.firstWhere((gesture) => ocptBudgetGestureFamilyOf(gesture) == family);
+  OcptBudgetGesture _firstGestureOf(OcptBudgetGestureFamily family) => OcptBudgetGesture.values
+      .firstWhere((gesture) => ocptBudgetGestureFamilyOf(gesture) == family);
 
   /// Which gestures the `+ New` wizard offers when opened from the current route — a semantic filter
   /// by the direction money moves (`ocptBudgetGestureFlowsOf`), **transverse to the families**: the
@@ -585,10 +596,12 @@ class _BudgetViewState extends State<_BudgetView> {
       (OcptBudgetView.dashboard, _) => null,
       (OcptBudgetView.expenses, _) => spending(OcptBudgetGestureFlow.spends),
       (OcptBudgetView.resources, _) => spending(OcptBudgetGestureFlow.brings),
-      (OcptBudgetView.tools, OcptBudgetToolsView.cashFlow) =>
-        ofFamily(OcptBudgetGestureFamily.cashMovement),
-      (OcptBudgetView.tools, OcptBudgetToolsView.regie) =>
-        ofFamily(OcptBudgetGestureFamily.allowances),
+      (OcptBudgetView.tools, OcptBudgetToolsView.cashFlow) => ofFamily(
+        OcptBudgetGestureFamily.cashMovement,
+      ),
+      (OcptBudgetView.tools, OcptBudgetToolsView.regie) => ofFamily(
+        OcptBudgetGestureFamily.allowances,
+      ),
       (OcptBudgetView.tools, OcptBudgetToolsView.sharing) => {
         ...ofFamily(OcptBudgetGestureFamily.revenueSharing),
         OcptBudgetGesture.recordTakingReceipt,
@@ -598,14 +611,15 @@ class _BudgetViewState extends State<_BudgetView> {
 
   /// The word the wizard's own filter tag names the current filter by — the route's own header
   /// segment label. Read only where [_wizardGesturesForView] is non-null.
-  String _wizardFilterLabelOf(Tr tr, OcptBudgetState state) => switch ((state.view, state.toolsView)) {
-    (OcptBudgetView.expenses, _) => tr.budgetHeaderExpensesSegmentLabel,
-    (OcptBudgetView.resources, _) => tr.budgetHeaderResourcesSegmentLabel,
-    (OcptBudgetView.tools, OcptBudgetToolsView.cashFlow) => tr.budgetHeaderCashFlowSegmentLabel,
-    (OcptBudgetView.tools, OcptBudgetToolsView.regie) => tr.budgetHeaderRegieSegmentLabel,
-    (OcptBudgetView.tools, OcptBudgetToolsView.sharing) => tr.budgetHeaderSharingSegmentLabel,
-    (OcptBudgetView.dashboard, _) => "",
-  };
+  String _wizardFilterLabelOf(Tr tr, OcptBudgetState state) =>
+      switch ((state.view, state.toolsView)) {
+        (OcptBudgetView.expenses, _) => tr.budgetHeaderExpensesSegmentLabel,
+        (OcptBudgetView.resources, _) => tr.budgetHeaderResourcesSegmentLabel,
+        (OcptBudgetView.tools, OcptBudgetToolsView.cashFlow) => tr.budgetHeaderCashFlowSegmentLabel,
+        (OcptBudgetView.tools, OcptBudgetToolsView.regie) => tr.budgetHeaderRegieSegmentLabel,
+        (OcptBudgetView.tools, OcptBudgetToolsView.sharing) => tr.budgetHeaderSharingSegmentLabel,
+        (OcptBudgetView.dashboard, _) => "",
+      };
 
   /// Opens the capture wizard fresh — no step already answered — promoted and pre-selected per the
   /// current route, exactly as [_newButtonOf]'s own doc comment describes. Dispatches whatever
@@ -992,7 +1006,8 @@ class _BudgetViewState extends State<_BudgetView> {
           : (posteId) => unawaited(_handlePosteDeletionRequested(context, posteId)),
       // Never withheld under a preview: it only ever reads the project — see
       // `OcptBudgetCostTracking.onPosteFilterRequested`'s own doc comment.
-      onPosteFilterRequested: (posteId) => bloc.add(OcptBudgetPosteFilterSelectedEvent(posteId: posteId)),
+      onPosteFilterRequested: (posteId) =>
+          bloc.add(OcptBudgetPosteFilterSelectedEvent(posteId: posteId)),
       onCommitmentEditRequested: isReadOnly
           ? null
           : (commitment) => unawaited(_handleCommitmentEditRequested(context, state, commitment)),
@@ -1325,7 +1340,8 @@ class _BudgetViewState extends State<_BudgetView> {
       selection: state.selection,
       expandedNodeIds: state.expandedNodeIds,
       isReadOnly: isReadOnly,
-      onNodeExpansionToggled: (nodeId) => bloc.add(OcptBudgetRowExpansionToggledEvent(nodeId: nodeId)),
+      onNodeExpansionToggled: (nodeId) =>
+          bloc.add(OcptBudgetRowExpansionToggledEvent(nodeId: nodeId)),
       onResourceSelected: (resourceId) =>
           bloc.add(OcptBudgetResourceSelectedEvent(resourceId: resourceId)),
       onResourceEditRequested: isReadOnly
@@ -1340,7 +1356,8 @@ class _BudgetViewState extends State<_BudgetView> {
       onResourceDeletionRequested: isReadOnly
           ? null
           : (resourceId) => unawaited(_handleResourceDeletionRequested(context, resourceId)),
-      onRevenueSelected: (revenueId) => bloc.add(OcptBudgetRevenueSelectedEvent(revenueId: revenueId)),
+      onRevenueSelected: (revenueId) =>
+          bloc.add(OcptBudgetRevenueSelectedEvent(revenueId: revenueId)),
       onRevenueEditRequested: isReadOnly
           ? null
           : (revenue) => unawaited(_handleRevenueEditRequested(context, state, revenue)),
@@ -1358,7 +1375,8 @@ class _BudgetViewState extends State<_BudgetView> {
       onRevenueDeletionRequested: isReadOnly
           ? null
           : (revenueId) => unawaited(_handleRevenueDeletionRequested(context, revenueId)),
-      onReceiptSelected: (receiptId) => bloc.add(OcptBudgetReceiptSelectedEvent(receiptId: receiptId)),
+      onReceiptSelected: (receiptId) =>
+          bloc.add(OcptBudgetReceiptSelectedEvent(receiptId: receiptId)),
       onExpensesRequested: () =>
           bloc.add(const OcptBudgetViewSelectedEvent(view: OcptBudgetView.expenses)),
     );
@@ -1541,7 +1559,8 @@ class _BudgetViewState extends State<_BudgetView> {
       currencyCode: state.currencyCode,
       isReadOnly: isReadOnly,
       expandedNodeIds: state.expandedNodeIds,
-      onNodeExpansionToggled: (nodeId) => bloc.add(OcptBudgetRowExpansionToggledEvent(nodeId: nodeId)),
+      onNodeExpansionToggled: (nodeId) =>
+          bloc.add(OcptBudgetRowExpansionToggledEvent(nodeId: nodeId)),
       onScheduleOpenRequested: () => _handleScheduleFeedRequested(context),
       onBreakdownFeedRequested: () => _handleBreakdownFeedRequested(context),
       onProjectSettingsRequested: () => unawaited(_requestProjectSettings(context)),
@@ -1652,10 +1671,7 @@ class _BudgetViewState extends State<_BudgetView> {
 
   /// Asks `OcptConfirmDialog` whether defrayal [allowanceId] really is to be deleted, then
   /// dispatches the deletion if the user answered `Delete`.
-  Future<void> _handleAllowanceDeletionRequested(
-    BuildContext context,
-    String allowanceId,
-  ) async {
+  Future<void> _handleAllowanceDeletionRequested(BuildContext context, String allowanceId) async {
     final bloc = context.read<OcptBudgetBloc>();
     final tr = Tr.of(context);
 
@@ -1945,7 +1961,12 @@ class _BudgetViewState extends State<_BudgetView> {
       isReceiptDetached: false,
     );
 
-    await _handleWizardEntryShortcut(context, state, OcptBudgetGesture.recordTakingReceipt, prefill);
+    await _handleWizardEntryShortcut(
+      context,
+      state,
+      OcptBudgetGesture.recordTakingReceipt,
+      prefill,
+    );
   }
 
   /// The 0-based position share [shareId] moves to when its row's own `⋮` menu `▲`/`▼` entry is
@@ -2041,7 +2062,12 @@ class _BudgetViewState extends State<_BudgetView> {
       isReceiptDetached: false,
     );
 
-    await _handleWizardEntryShortcut(context, state, OcptBudgetGesture.payParticipantShare, prefill);
+    await _handleWizardEntryShortcut(
+      context,
+      state,
+      OcptBudgetGesture.payParticipantShare,
+      prefill,
+    );
   }
 
   /// Promotes quote line [lineId] into a commitment: opens the capture wizard's own step 3 directly,
@@ -2300,9 +2326,7 @@ class _BudgetViewState extends State<_BudgetView> {
   Widget _buildFiche(BuildContext context, OcptBudgetState state) {
     final bloc = context.read<OcptBudgetBloc>();
     final isReadOnly = state.isPreviewingVersion;
-    final elementNameByElementId = {
-      for (final element in state.elements) element.id: element.name,
-    };
+    final elementNameByElementId = {for (final element in state.elements) element.id: element.name};
     // The off-line-debit banner's own two actions read the very same entry a receipt's own fiche
     // shares with an ordinary entry's — `OcptBudgetReceiptSelection` names the same `budget_entries`
     // row as `OcptBudgetEntrySelection`, only through a different field.
@@ -2345,7 +2369,10 @@ class _BudgetViewState extends State<_BudgetView> {
       onLineTaxInclusiveChanged: isReadOnly
           ? null
           : (lineId, {required isTaxInclusive}) => bloc.add(
-              OcptBudgetLineTaxInclusiveChangedEvent(lineId: lineId, isTaxInclusive: isTaxInclusive),
+              OcptBudgetLineTaxInclusiveChangedEvent(
+                lineId: lineId,
+                isTaxInclusive: isTaxInclusive,
+              ),
             ),
       onLineVatRateInheritedRequested: isReadOnly
           ? null
@@ -2359,7 +2386,8 @@ class _BudgetViewState extends State<_BudgetView> {
       onLineSettleRequested: isReadOnly
           ? null
           : (lineId) => unawaited(_handleLineSettleRequested(context, state, lineId)),
-      onLineShowCommitmentRequested: (lineId) => _handleLineShowCommitmentRequested(bloc, state, lineId),
+      onLineShowCommitmentRequested: (lineId) =>
+          _handleLineShowCommitmentRequested(bloc, state, lineId),
       onLineUncommitRequested: isReadOnly
           ? null
           : (lineId) => unawaited(_handleLineUncommitRequested(context, state, lineId)),
@@ -2444,7 +2472,11 @@ class _BudgetViewState extends State<_BudgetView> {
   /// there, under its own `À venir` section — never withheld under a preview, since it only moves
   /// the reader. Resolving the commitment is [_handleLineSettleRequested]'s own reading: the line's
   /// own unsettled commitment, `À venir` holding no other kind.
-  void _handleLineShowCommitmentRequested(OcptBudgetBloc bloc, OcptBudgetState state, String lineId) {
+  void _handleLineShowCommitmentRequested(
+    OcptBudgetBloc bloc,
+    OcptBudgetState state,
+    String lineId,
+  ) {
     final commitment = state.commitments
         .where(
           (commitment) =>
@@ -2490,47 +2522,48 @@ class _BudgetViewState extends State<_BudgetView> {
   }
 
   /// Builds the right dock's `Versions` tab, wired exactly as every other mode's own dock.
-  Widget _buildVersionsPanel(BuildContext context, OcptBudgetState state) => OcptProjectVersionsPanel(
-    versions: state.projectVersions,
-    previewedVersionId: state.previewedVersionId,
-    workingCopy: state.workingCopy,
-    versionPendingDeletionId: state.versionPendingDeletionId,
-    versionPendingRestoreId: state.versionPendingRestoreId,
-    versionPendingRenameId: state.versionPendingRenameId,
-    onCreateRequested: () => _requestVersionCreation(context),
-    onPreviewRequested: (versionId) => context.read<OcptBudgetBloc>().add(
-      OcptProjectVersionPreviewRequestedEvent(versionId: versionId),
-    ),
-    onPreviewExitRequested: () =>
-        context.read<OcptBudgetBloc>().add(const OcptProjectVersionPreviewExitRequestedEvent()),
-    onRestoreRequested: (versionId) => context.read<OcptBudgetBloc>().add(
-      OcptProjectVersionRestoreRequestedEvent(versionId: versionId),
-    ),
-    onRestoreCancelled: () =>
-        context.read<OcptBudgetBloc>().add(const OcptProjectVersionRestoreCancelledEvent()),
-    onRestoreConfirmed: (version) => context.read<OcptBudgetBloc>().add(
-      OcptProjectVersionRestoreConfirmedEvent(
-        versionId: version.id,
-        safetyVersionName: Tr.of(context).projectVersionRestoreSafetyName(version.name),
-      ),
-    ),
-    onDeleteRequested: (versionId) => context.read<OcptBudgetBloc>().add(
-      OcptProjectVersionDeletionRequestedEvent(versionId: versionId),
-    ),
-    onDeleteCancelled: () =>
-        context.read<OcptBudgetBloc>().add(const OcptProjectVersionDeletionCancelledEvent()),
-    onDeleteConfirmed: (versionId) => context.read<OcptBudgetBloc>().add(
-      OcptProjectVersionDeletionConfirmedEvent(versionId: versionId),
-    ),
-    onRenameRequested: (versionId) => context.read<OcptBudgetBloc>().add(
-      OcptProjectVersionRenameRequestedEvent(versionId: versionId),
-    ),
-    onRenameCancelled: () =>
-        context.read<OcptBudgetBloc>().add(const OcptProjectVersionRenameCancelledEvent()),
-    onRenameConfirmed: (versionId, name, note) => context.read<OcptBudgetBloc>().add(
-      OcptProjectVersionRenameConfirmedEvent(versionId: versionId, name: name, note: note),
-    ),
-  );
+  Widget _buildVersionsPanel(BuildContext context, OcptBudgetState state) =>
+      OcptProjectVersionsPanel(
+        versions: state.projectVersions,
+        previewedVersionId: state.previewedVersionId,
+        workingCopy: state.workingCopy,
+        versionPendingDeletionId: state.versionPendingDeletionId,
+        versionPendingRestoreId: state.versionPendingRestoreId,
+        versionPendingRenameId: state.versionPendingRenameId,
+        onCreateRequested: () => _requestVersionCreation(context),
+        onPreviewRequested: (versionId) => context.read<OcptBudgetBloc>().add(
+          OcptProjectVersionPreviewRequestedEvent(versionId: versionId),
+        ),
+        onPreviewExitRequested: () =>
+            context.read<OcptBudgetBloc>().add(const OcptProjectVersionPreviewExitRequestedEvent()),
+        onRestoreRequested: (versionId) => context.read<OcptBudgetBloc>().add(
+          OcptProjectVersionRestoreRequestedEvent(versionId: versionId),
+        ),
+        onRestoreCancelled: () =>
+            context.read<OcptBudgetBloc>().add(const OcptProjectVersionRestoreCancelledEvent()),
+        onRestoreConfirmed: (version) => context.read<OcptBudgetBloc>().add(
+          OcptProjectVersionRestoreConfirmedEvent(
+            versionId: version.id,
+            safetyVersionName: Tr.of(context).projectVersionRestoreSafetyName(version.name),
+          ),
+        ),
+        onDeleteRequested: (versionId) => context.read<OcptBudgetBloc>().add(
+          OcptProjectVersionDeletionRequestedEvent(versionId: versionId),
+        ),
+        onDeleteCancelled: () =>
+            context.read<OcptBudgetBloc>().add(const OcptProjectVersionDeletionCancelledEvent()),
+        onDeleteConfirmed: (versionId) => context.read<OcptBudgetBloc>().add(
+          OcptProjectVersionDeletionConfirmedEvent(versionId: versionId),
+        ),
+        onRenameRequested: (versionId) => context.read<OcptBudgetBloc>().add(
+          OcptProjectVersionRenameRequestedEvent(versionId: versionId),
+        ),
+        onRenameCancelled: () =>
+            context.read<OcptBudgetBloc>().add(const OcptProjectVersionRenameCancelledEvent()),
+        onRenameConfirmed: (versionId, name, note) => context.read<OcptBudgetBloc>().add(
+          OcptProjectVersionRenameConfirmedEvent(versionId: versionId, name: name, note: note),
+        ),
+      );
 
   /// Shows the version creation dialog, then dispatches the capture if the user confirmed it.
   Future<void> _requestVersionCreation(BuildContext context) async {
@@ -2558,7 +2591,9 @@ class _BudgetViewState extends State<_BudgetView> {
     if (versionNotice != null) {
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
-        ..showSnackBar(SnackBar(content: Text(ocptProjectVersionNoticeMessage(context, versionNotice))));
+        ..showSnackBar(
+          SnackBar(content: Text(ocptProjectVersionNoticeMessage(context, versionNotice))),
+        );
       context.read<OcptBudgetBloc>().add(const OcptProjectVersionNoticeDismissedEvent());
     }
 
@@ -2572,7 +2607,9 @@ class _BudgetViewState extends State<_BudgetView> {
     if (packageNotice != null) {
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
-        ..showSnackBar(SnackBar(content: Text(ocptProjectPackageNoticeMessage(context, packageNotice))));
+        ..showSnackBar(
+          SnackBar(content: Text(ocptProjectPackageNoticeMessage(context, packageNotice))),
+        );
       context.read<OcptBudgetBloc>().add(const OcptProjectPackageNoticeDismissedEvent());
     }
 
@@ -2591,9 +2628,10 @@ class _BudgetViewState extends State<_BudgetView> {
     final tr = Tr.of(context);
 
     return switch (notice.kind) {
-      OcptBudgetIoNoticeKind.fileExportSucceeded => notice.wasShared
-          ? tr.exportSharedMessage
-          : tr.budgetExportFileSuccessMessage(notice.path ?? ""),
+      OcptBudgetIoNoticeKind.fileExportSucceeded =>
+        notice.wasShared
+            ? tr.exportSharedMessage
+            : tr.budgetExportFileSuccessMessage(notice.path ?? ""),
       OcptBudgetIoNoticeKind.exportFailed => tr.budgetExportError,
     };
   }

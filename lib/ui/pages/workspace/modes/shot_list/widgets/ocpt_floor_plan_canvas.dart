@@ -448,9 +448,7 @@ class _OcptFloorPlanCanvasState extends State<OcptFloorPlanCanvas> {
   /// resolvable yet (defensive only).
   Offset _resolveLocalPosition(Offset globalPosition) {
     final renderObject = _canvasStackKey.currentContext?.findRenderObject();
-    return renderObject is RenderBox
-        ? renderObject.globalToLocal(globalPosition)
-        : globalPosition;
+    return renderObject is RenderBox ? renderObject.globalToLocal(globalPosition) : globalPosition;
   }
 
   @override
@@ -495,41 +493,41 @@ class _OcptFloorPlanCanvasState extends State<OcptFloorPlanCanvas> {
                       onAcceptWithDetails: (details) =>
                           _handlePaletteDrop(details, canvasSize, zoom, pan),
                       builder: (context, candidateData, rejectedData) => Listener(
-                      onPointerSignal: _handlePointerSignal,
-                      child: GestureDetector(
-                        behavior: HitTestBehavior.opaque,
-                        onTapUp: (details) => _handleBackgroundTap(
-                          details.localPosition,
-                          canvasSize,
-                          zoom,
-                          pan,
-                          sheet,
-                        ),
-                        onPanUpdate: (details) => widget.viewportController.panBy(details.delta),
-                        child: CustomPaint(
-                          size: canvasSize,
-                          painter: OcptFloorPlanCanvasPainter(
-                            sheet: sheet,
-                            zoom: zoom,
-                            pan: pan,
-                            selectedSymbolId: widget.selectedSymbolId,
-                            arrowAnchorSymbolId: widget.pendingArrowAnchorSymbolId,
-                            liveOverride: _liveOverride ?? widget.pendingScopeLiveOverride,
-                            symbolBorderColor: theme.colorScheme.outline,
-                            selectionColor: theme.colorScheme.primary,
-                            arrowAnchorColor: theme.colorScheme.secondary,
-                            arrowColor: theme.colorScheme.onSurface,
-                            labelTextColor: theme.colorScheme.onSurface,
-                            scaleColor: theme.colorScheme.onSurfaceVariant,
-                            scaleBarLabel: tr.shotListFloorPlanScaleBarLengthLabel(
-                              ocptFloorPlanScaleBarLengthLabelOf(barLengthM),
+                        onPointerSignal: _handlePointerSignal,
+                        child: GestureDetector(
+                          behavior: HitTestBehavior.opaque,
+                          onTapUp: (details) => _handleBackgroundTap(
+                            details.localPosition,
+                            canvasSize,
+                            zoom,
+                            pan,
+                            sheet,
+                          ),
+                          onPanUpdate: (details) => widget.viewportController.panBy(details.delta),
+                          child: CustomPaint(
+                            size: canvasSize,
+                            painter: OcptFloorPlanCanvasPainter(
+                              sheet: sheet,
+                              zoom: zoom,
+                              pan: pan,
+                              selectedSymbolId: widget.selectedSymbolId,
+                              arrowAnchorSymbolId: widget.pendingArrowAnchorSymbolId,
+                              liveOverride: _liveOverride ?? widget.pendingScopeLiveOverride,
+                              symbolBorderColor: theme.colorScheme.outline,
+                              selectionColor: theme.colorScheme.primary,
+                              arrowAnchorColor: theme.colorScheme.secondary,
+                              arrowColor: theme.colorScheme.onSurface,
+                              labelTextColor: theme.colorScheme.onSurface,
+                              scaleColor: theme.colorScheme.onSurfaceVariant,
+                              scaleBarLabel: tr.shotListFloorPlanScaleBarLengthLabel(
+                                ocptFloorPlanScaleBarLengthLabelOf(barLengthM),
+                              ),
+                              onionSkinOpacity: widget.onionSkinOpacity,
+                              metricLines: _metricLinesOf(sheet, selectedShape, tr),
+                              metricLineColor: theme.colorScheme.tertiary,
                             ),
-                            onionSkinOpacity: widget.onionSkinOpacity,
-                            metricLines: _metricLinesOf(sheet, selectedShape, tr),
-                            metricLineColor: theme.colorScheme.tertiary,
                           ),
                         ),
-                      ),
                       ),
                     ),
                   ),
@@ -719,7 +717,8 @@ class _OcptFloorPlanCanvasState extends State<OcptFloorPlanCanvas> {
     final layer = tool == OcptFloorPlanTool.setElement
         ? OcptFloorPlanLayer.set
         : (ocptFloorPlanFixedLayerOf(tool) ?? OcptFloorPlanLayer.props);
-    final isShotScoped = layer == OcptFloorPlanLayer.cameras ||
+    final isShotScoped =
+        layer == OcptFloorPlanLayer.cameras ||
         layer == OcptFloorPlanLayer.characters ||
         layer == OcptFloorPlanLayer.lights;
     final shotId = isShotScoped ? widget.focusShotId : null;
@@ -948,13 +947,24 @@ class _OcptFloorPlanCanvasState extends State<OcptFloorPlanCanvas> {
 
   /// The underlay's own screen rect, un-rotated (its rotation is applied by a `Transform.rotate`
   /// wrapping whichever widget this sizes).
-  Rect _underlayScreenRect(OcptFloorPlanSet floorPlanSet, Size canvasSize, double zoom, Offset pan) {
+  Rect _underlayScreenRect(
+    OcptFloorPlanSet floorPlanSet,
+    Size canvasSize,
+    double zoom,
+    Offset pan,
+  ) {
     final frame = _liveUnderlayFrame;
     final xM = frame?.xM ?? floorPlanSet.underlayXM ?? 0;
     final yM = frame?.yM ?? floorPlanSet.underlayYM ?? 0;
     final widthM = frame?.widthM ?? floorPlanSet.underlayWidthM ?? 0;
     final heightM = frame?.heightM ?? floorPlanSet.underlayHeightM ?? 0;
-    final centre = ocptFloorPlanScreenPointOf(xM: xM, yM: yM, canvasSize: canvasSize, zoom: zoom, pan: pan);
+    final centre = ocptFloorPlanScreenPointOf(
+      xM: xM,
+      yM: yM,
+      canvasSize: canvasSize,
+      zoom: zoom,
+      pan: pan,
+    );
     final pixelsPerMetre = ocptFloorPlanPixelsPerMetreAt(zoom);
     final widthPx = widthM * pixelsPerMetre;
     final heightPx = heightM * pixelsPerMetre;
@@ -965,7 +975,12 @@ class _OcptFloorPlanCanvasState extends State<OcptFloorPlanCanvas> {
   /// frame, drawn behind the `CustomPaint` (so symbols draw over it) and taking no pointer of its
   /// own — a separate invisible overlay ([_buildUnderlayHandles]) handles its interaction, decoupling
   /// visual draw order from hit-test order.
-  Widget _buildUnderlayVisual(OcptFloorPlanSet floorPlanSet, Size canvasSize, double zoom, Offset pan) {
+  Widget _buildUnderlayVisual(
+    OcptFloorPlanSet floorPlanSet,
+    Size canvasSize,
+    double zoom,
+    Offset pan,
+  ) {
     final rect = _underlayScreenRect(floorPlanSet, canvasSize, zoom, pan);
     final rotationDeg = floorPlanSet.underlayRotationDeg ?? 0;
 
@@ -980,9 +995,8 @@ class _OcptFloorPlanCanvasState extends State<OcptFloorPlanCanvas> {
           child: OcptReferencedImage(
             path: floorPlanSet.underlayPath,
             fit: BoxFit.fill,
-            fallbackBuilder: (context) => ColoredBox(
-              color: Theme.of(context).colorScheme.surfaceContainerHighest,
-            ),
+            fallbackBuilder: (context) =>
+                ColoredBox(color: Theme.of(context).colorScheme.surfaceContainerHighest),
           ),
         ),
       ),
@@ -1125,7 +1139,13 @@ class _OcptFloorPlanCanvasState extends State<OcptFloorPlanCanvas> {
     final heightM = isDragged ? override.heightM : symbol.heightM;
     final rotationDeg = isDragged ? override.rotationDeg : symbol.rotationDeg;
 
-    final centre = ocptFloorPlanScreenPointOf(xM: xM, yM: yM, canvasSize: canvasSize, zoom: zoom, pan: pan);
+    final centre = ocptFloorPlanScreenPointOf(
+      xM: xM,
+      yM: yM,
+      canvasSize: canvasSize,
+      zoom: zoom,
+      pan: pan,
+    );
     final pixelsPerMetre = ocptFloorPlanPixelsPerMetreAt(zoom);
     final widthPx = widthM * pixelsPerMetre;
     final heightPx = heightM * pixelsPerMetre;
@@ -1214,11 +1234,18 @@ class _OcptFloorPlanCanvasState extends State<OcptFloorPlanCanvas> {
     final heightM = isDragged ? override.heightM : symbol.heightM;
     final rotationDeg = isDragged ? override.rotationDeg : symbol.rotationDeg;
 
-    final centre = ocptFloorPlanScreenPointOf(xM: xM, yM: yM, canvasSize: canvasSize, zoom: zoom, pan: pan);
+    final centre = ocptFloorPlanScreenPointOf(
+      xM: xM,
+      yM: yM,
+      canvasSize: canvasSize,
+      zoom: zoom,
+      pan: pan,
+    );
     final pixelsPerMetre = ocptFloorPlanPixelsPerMetreAt(zoom);
 
     final resizeLocal = Offset(widthM / 2, heightM / 2);
-    final resizeScreen = centre + ocptFloorPlanRotateVector(resizeLocal * pixelsPerMetre, rotationDeg);
+    final resizeScreen =
+        centre + ocptFloorPlanRotateVector(resizeLocal * pixelsPerMetre, rotationDeg);
 
     final rotateLocalM = Offset(0, -(heightM / 2 + _rotateHandleGapM));
     final rotateScreen =

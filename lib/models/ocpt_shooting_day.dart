@@ -71,13 +71,5 @@ class OcptShootingDay extends Equatable {
 
   /// Object properties
   @override
-  List<Object?> get props => [
-    id,
-    date,
-    dayNumber,
-    status,
-    crewNote,
-    weatherNote,
-    notes,
-  ];
+  List<Object?> get props => [id, date, dayNumber, status, crewNote, weatherNote, notes];
 }

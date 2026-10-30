@@ -126,25 +126,26 @@ OcptShootingSlotCrewMember _buildCrewMember({
 /// given resolved start and end (a null end standing for a slot carrying no block at all), and
 /// nothing else — enough for a column header to print real hours instead of falling back to the
 /// very em dash the empty-cell test means to count on its own.
-OcptShootingDayTimelines _buildTimelines(Map<String, (int, int?)> hoursBySlotId) => OcptShootingDayTimelines(
-  bySlotId: {
-    for (final entry in hoursBySlotId.entries)
-      entry.key: OcptShootingSlotTimeline(
-        entries: const [],
-        overruns: const [],
-        startMinute: entry.value.$1,
-        endMinute: entry.value.$2,
-      ),
-  },
-  entries: const [],
-  overruns: const [],
-  fixedEndMisses: const [],
-  anchorCycles: const [],
-  dayStartMinute: hoursBySlotId.values.isEmpty
-      ? null
-      : hoursBySlotId.values.map((hours) => hours.$1).reduce((a, b) => a < b ? a : b),
-  dayEndMinute: null,
-);
+OcptShootingDayTimelines _buildTimelines(Map<String, (int, int?)> hoursBySlotId) =>
+    OcptShootingDayTimelines(
+      bySlotId: {
+        for (final entry in hoursBySlotId.entries)
+          entry.key: OcptShootingSlotTimeline(
+            entries: const [],
+            overruns: const [],
+            startMinute: entry.value.$1,
+            endMinute: entry.value.$2,
+          ),
+      },
+      entries: const [],
+      overruns: const [],
+      fixedEndMisses: const [],
+      anchorCycles: const [],
+      dayStartMinute: hoursBySlotId.values.isEmpty
+          ? null
+          : hoursBySlotId.values.map((hours) => hours.$1).reduce((a, b) => a < b ? a : b),
+      dayEndMinute: null,
+    );
 
 /// Pumps [OcptSchedulePositionsMatrix] with the given schedule, everything else defaulting to
 /// empty or to a widget that resolves no timeline at all.

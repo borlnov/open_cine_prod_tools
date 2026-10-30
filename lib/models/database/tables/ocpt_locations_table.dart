@@ -96,9 +96,8 @@ class OcptLocationsTable extends Table {
   // The stored literal must match `OcptPermitStatus.toRequest.name` exactly, for the same reason
   // `shots.status`'s default does: an enum's `.name` getter isn't a compile-time constant
   // expression.
-  TextColumn get permitStatus => text()
-      .map(const OcptPermitStatusConverter())
-      .withDefault(const Constant('toRequest'))();
+  TextColumn get permitStatus =>
+      text().map(const OcptPermitStatusConverter()).withDefault(const Constant('toRequest'))();
 
   /// The permit's own reference/label as the issuing authority names it, free text.
   TextColumn get permitLabel => text().withDefault(const Constant(''))();

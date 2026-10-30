@@ -77,7 +77,10 @@ OcptBudgetCoveredTotal _ocptBudgetReimbursedTotalOf(
   var coveredEntryCount = 0;
 
   for (final entry in entries) {
-    final debit = ocptBudgetEntryDebitCentsOf(entry, projectVatRateBasisPoints: projectVatRateBasisPoints);
+    final debit = ocptBudgetEntryDebitCentsOf(
+      entry,
+      projectVatRateBasisPoints: projectVatRateBasisPoints,
+    );
     if (debit == null) {
       continue;
     }
@@ -101,10 +104,10 @@ OcptBudgetCoveredTotal ocptBudgetPersonReimbursedCentsOf(
   String personId,
   List<OcptBudgetEntry> entries, {
   required int? projectVatRateBasisPoints,
-}) => _ocptBudgetReimbursedTotalOf(
-  [for (final entry in entries) if (entry.personId == personId) entry],
-  projectVatRateBasisPoints: projectVatRateBasisPoints,
-);
+}) => _ocptBudgetReimbursedTotalOf([
+  for (final entry in entries)
+    if (entry.personId == personId) entry,
+], projectVatRateBasisPoints: projectVatRateBasisPoints);
 
 /// What [personId] has advanced, across every one of [allowances] naming them — the plain sum of
 /// [ocptBudgetAllowanceAmountCents], needing no VAT rate at all: see this file's own doc comment for

@@ -99,8 +99,7 @@ void main() {
     });
 
     test('the registered logger writes under the resolved directory, at the configured level', () {
-      final fileLogger =
-          loggerManager.added[OcptExternalLoggerKey.file]! as OcptFileExternalLogger;
+      final fileLogger = loggerManager.added[OcptExternalLoggerKey.file]! as OcptFileExternalLogger;
 
       expect(fileLogger.logDirectoryPath, tempDir.path);
       expect(fileLogger.minLevel, LogsLevel.debug);
@@ -137,22 +136,25 @@ void main() {
   });
 
   group('OcptFileLoggingManager, config enabled on a mobile platform', () {
-    test('registers no logger: a phone never writes a log file even where config enables it', () async {
-      final loggerManager = _RecordingLoggerManager();
-      final manager = OcptFileLoggingManager(
-        configManager: _FakeConfigManager(fileLogEnabled: true, fileLogLevel: LogsLevel.debug),
-        loggerManager: loggerManager,
-        resolveLogDirectoryPath: () async => throw StateError('should not be reached'),
-        isDesktopPlatform: () => false,
-      );
+    test(
+      'registers no logger: a phone never writes a log file even where config enables it',
+      () async {
+        final loggerManager = _RecordingLoggerManager();
+        final manager = OcptFileLoggingManager(
+          configManager: _FakeConfigManager(fileLogEnabled: true, fileLogLevel: LogsLevel.debug),
+          loggerManager: loggerManager,
+          resolveLogDirectoryPath: () async => throw StateError('should not be reached'),
+          isDesktopPlatform: () => false,
+        );
 
-      await manager.initLifeCycle();
+        await manager.initLifeCycle();
 
-      expect(loggerManager.added, isEmpty);
-      expect(manager.logFilePath, isNull);
+        expect(loggerManager.added, isEmpty);
+        expect(manager.logFilePath, isNull);
 
-      await manager.disposeLifeCycle();
-    });
+        await manager.disposeLifeCycle();
+      },
+    );
   });
 
   group('OcptFileLoggingManager, log directory resolution failure', () {
@@ -161,7 +163,8 @@ void main() {
       final manager = OcptFileLoggingManager(
         configManager: _FakeConfigManager(fileLogEnabled: true),
         loggerManager: loggerManager,
-        resolveLogDirectoryPath: () async => throw const FileSystemException('read-only file system'),
+        resolveLogDirectoryPath: () async =>
+            throw const FileSystemException('read-only file system'),
       );
 
       await manager.initLifeCycle();

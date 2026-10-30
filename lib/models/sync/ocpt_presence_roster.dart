@@ -30,5 +30,6 @@ class OcptPresenceRoster extends Equatable {
   List<Object?> get props => [participants, selfDeviceId];
 
   @override
-  String toString() => 'OcptPresenceRoster(participants: $participants, selfDeviceId: $selfDeviceId)';
+  String toString() =>
+      'OcptPresenceRoster(participants: $participants, selfDeviceId: $selfDeviceId)';
 }

@@ -51,10 +51,7 @@ void main() {
       final overByOne = "${"x" * ocptSafeFileNameMaxLength}y";
 
       expect(ocptSafeFileNameOf(exactlyAtLimit, fallback: "project"), exactlyAtLimit);
-      expect(
-        ocptSafeFileNameOf(overByOne, fallback: "project").length,
-        ocptSafeFileNameMaxLength,
-      );
+      expect(ocptSafeFileNameOf(overByOne, fallback: "project").length, ocptSafeFileNameMaxLength);
     });
   });
 }

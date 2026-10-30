@@ -103,7 +103,10 @@ class OcptBudgetFinancingPlanPdfService {
     required bool includeTitlePage,
     DateTime? exportDate,
   }) async {
-    final painter = OcptScriptPagePainter(metrics: pageSetup.toMetrics(), fonts: await fontsLoader.load());
+    final painter = OcptScriptPagePainter(
+      metrics: pageSetup.toMetrics(),
+      fonts: await fontsLoader.load(),
+    );
     final versionLine =
         "${labels.versionLabel} ${ocptBudgetExportGeneratedAtStamp(exportDate ?? DateTime.now())}";
 
@@ -147,7 +150,10 @@ class OcptBudgetFinancingPlanPdfService {
       basis: OcptBudgetTaxBasis.includingTax,
       projectVatRateBasisPoints: snapshot.defaultVatRateBasisPoints,
     );
-    final balance = ocptBudgetNeedsResourcesBalanceOf(needs: needs, resourcesCents: grandTotalCents);
+    final balance = ocptBudgetNeedsResourcesBalanceOf(
+      needs: needs,
+      resourcesCents: grandTotalCents,
+    );
 
     return [
       for (final kind in OcptBudgetResourceGroupKind.values)
@@ -175,7 +181,10 @@ class OcptBudgetFinancingPlanPdfService {
     required OcptBudgetSnapshot snapshot,
     required OcptBudgetFinancingPlanLabels labels,
   }) {
-    final resources = [for (final resource in snapshot.resources) if (resource.groupKind == kind) resource];
+    final resources = [
+      for (final resource in snapshot.resources)
+        if (resource.groupKind == kind) resource,
+    ];
     final subtotalCents = ocptBudgetResourcesTotalByGroupKind(snapshot.resources)[kind] ?? 0;
 
     return pw.Column(
@@ -197,12 +206,25 @@ class OcptBudgetFinancingPlanPdfService {
                 _headerCell(painter: painter, text: labels.labelHeader, align: pw.TextAlign.left),
                 _headerCell(painter: painter, text: labels.statusHeader, align: pw.TextAlign.left),
                 _headerCell(painter: painter, text: labels.amountHeader, align: pw.TextAlign.right),
-                _headerCell(painter: painter, text: labels.receivedHeader, align: pw.TextAlign.right),
-                _headerCell(painter: painter, text: labels.outstandingHeader, align: pw.TextAlign.right),
+                _headerCell(
+                  painter: painter,
+                  text: labels.receivedHeader,
+                  align: pw.TextAlign.right,
+                ),
+                _headerCell(
+                  painter: painter,
+                  text: labels.outstandingHeader,
+                  align: pw.TextAlign.right,
+                ),
               ],
             ),
             for (final resource in resources)
-              _resourceRow(painter: painter, resource: resource, snapshot: snapshot, labels: labels),
+              _resourceRow(
+                painter: painter,
+                resource: resource,
+                snapshot: snapshot,
+                labels: labels,
+              ),
           ],
         ),
         pw.SizedBox(height: 4),
@@ -226,7 +248,8 @@ class OcptBudgetFinancingPlanPdfService {
     required OcptBudgetFinancingPlanLabels labels,
   }) {
     final receivedTotal = snapshot.receivedByResourceId[resource.id];
-    final isUncollectedInKind = resource.groupKind == OcptBudgetResourceGroupKind.inKind && receivedTotal == null;
+    final isUncollectedInKind =
+        resource.groupKind == OcptBudgetResourceGroupKind.inKind && receivedTotal == null;
 
     String receivedText;
     String outstandingText;
@@ -234,7 +257,9 @@ class OcptBudgetFinancingPlanPdfService {
       receivedText = ocptBudgetExportEmptyValue;
       outstandingText = ocptBudgetExportEmptyValue;
     } else {
-      final received = receivedTotal ?? const OcptBudgetCoveredTotal(amountCents: 0, coveredLineCount: 0, lineCount: 0);
+      final received =
+          receivedTotal ??
+          const OcptBudgetCoveredTotal(amountCents: 0, coveredLineCount: 0, lineCount: 0);
       final outstandingCents = ocptBudgetResourceOutstandingCents(
         amountCents: resource.amountCents,
         receivedCents: received.amountCents,
@@ -287,7 +312,10 @@ class OcptBudgetFinancingPlanPdfService {
       currencyCode: snapshot.currencyCode,
       coverageReadOutTemplate: labels.coverageReadOutTemplate,
     );
-    final resourcesText = ocptBudgetExportAmountLabel(balance.resourcesCents, snapshot.currencyCode);
+    final resourcesText = ocptBudgetExportAmountLabel(
+      balance.resourcesCents,
+      snapshot.currencyCode,
+    );
     final verdict = ocptBudgetExportBalanceVerdict(
       balance: balance,
       noQuoteMessage: labels.balanceNoQuoteMessage,
@@ -313,7 +341,10 @@ class OcptBudgetFinancingPlanPdfService {
           ],
         ),
         pw.SizedBox(height: 4),
-        pw.Text(verdict, style: pw.TextStyle(font: painter.fonts.regular, fontSize: _bodyFontSizePt)),
+        pw.Text(
+          verdict,
+          style: pw.TextStyle(font: painter.fonts.regular, fontSize: _bodyFontSizePt),
+        ),
       ],
     );
   }
@@ -325,7 +356,11 @@ class OcptBudgetFinancingPlanPdfService {
     required pw.TextAlign align,
   }) => pw.Padding(
     padding: const pw.EdgeInsets.all(_cellPaddingPt),
-    child: pw.Text(text, textAlign: align, style: pw.TextStyle(font: painter.fonts.bold, fontSize: _bodyFontSizePt)),
+    child: pw.Text(
+      text,
+      textAlign: align,
+      style: pw.TextStyle(font: painter.fonts.bold, fontSize: _bodyFontSizePt),
+    ),
   );
 
   /// One ordinary table cell.
@@ -378,7 +413,11 @@ class OcptBudgetFinancingPlanPdfService {
           pw.SizedBox(height: 32),
           pw.Text(
             versionLine,
-            style: pw.TextStyle(font: painter.fonts.regular, fontSize: _smallFontSizePt, color: _mutedColor),
+            style: pw.TextStyle(
+              font: painter.fonts.regular,
+              fontSize: _smallFontSizePt,
+              color: _mutedColor,
+            ),
           ),
         ],
       ),
@@ -387,8 +426,10 @@ class OcptBudgetFinancingPlanPdfService {
 
   /// A block of free text — the note standing in for the whole document on a project with no live
   /// resource at all.
-  pw.Widget _noteWidget({required OcptScriptPagePainter painter, required String text}) =>
-      pw.Text(text, style: pw.TextStyle(font: painter.fonts.regular, fontSize: _bodyFontSizePt));
+  pw.Widget _noteWidget({required OcptScriptPagePainter painter, required String text}) => pw.Text(
+    text,
+    style: pw.TextStyle(font: painter.fonts.regular, fontSize: _bodyFontSizePt),
+  );
 
   /// The running head every page of the document carries, mirroring
   /// `OcptContactListPdfService._runningHead` exactly.
@@ -405,11 +446,19 @@ class OcptBudgetFinancingPlanPdfService {
         children: [
           pw.Text(
             "$projectName — $documentTitle",
-            style: pw.TextStyle(font: painter.fonts.regular, fontSize: _smallFontSizePt, color: _mutedColor),
+            style: pw.TextStyle(
+              font: painter.fonts.regular,
+              fontSize: _smallFontSizePt,
+              color: _mutedColor,
+            ),
           ),
           pw.Text(
             versionLine,
-            style: pw.TextStyle(font: painter.fonts.regular, fontSize: _smallFontSizePt, color: _mutedColor),
+            style: pw.TextStyle(
+              font: painter.fonts.regular,
+              fontSize: _smallFontSizePt,
+              color: _mutedColor,
+            ),
           ),
         ],
       ),

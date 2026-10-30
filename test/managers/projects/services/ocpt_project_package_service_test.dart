@@ -338,66 +338,65 @@ void main() {
       );
     });
 
-    test(
-      "packages a storyboardPanelImage asset, skips one whose file is missing, and re-points "
-      "the packaged one on import",
-      () async {
-        // The service walks `assets` generically by kind/path/label/isDeleted, so a
-        // storyboardPanelImage row rides the very same path a personPhoto or a locationPhoto
-        // already does: no owner column is set, and none of the
-        // packaging or import code reads one.
-        await database
-            .into(database.ocptAssetsTable)
-            .insert(
-              OcptAssetsTableCompanion.insert(
-                id: "asset-panel-1",
-                kind: OcptAssetKind.storyboardPanelImage,
-                path: writeReferencedFile("panel-1.jpg", "the panel bytes"),
-                addedAt: DateTime.utc(2026, 4),
-              ),
-            );
-        await database
-            .into(database.ocptAssetsTable)
-            .insert(
-              OcptAssetsTableCompanion.insert(
-                id: "asset-panel-2",
-                kind: OcptAssetKind.storyboardPanelImage,
-                path: p.join(workspace.path, "files", "gone-panel.jpg"),
-                addedAt: DateTime.utc(2026, 4, 2),
-              ),
-            );
+    test("packages a storyboardPanelImage asset, skips one whose file is missing, and re-points "
+        "the packaged one on import", () async {
+      // The service walks `assets` generically by kind/path/label/isDeleted, so a
+      // storyboardPanelImage row rides the very same path a personPhoto or a locationPhoto
+      // already does: no owner column is set, and none of the
+      // packaging or import code reads one.
+      await database
+          .into(database.ocptAssetsTable)
+          .insert(
+            OcptAssetsTableCompanion.insert(
+              id: "asset-panel-1",
+              kind: OcptAssetKind.storyboardPanelImage,
+              path: writeReferencedFile("panel-1.jpg", "the panel bytes"),
+              addedAt: DateTime.utc(2026, 4),
+            ),
+          );
+      await database
+          .into(database.ocptAssetsTable)
+          .insert(
+            OcptAssetsTableCompanion.insert(
+              id: "asset-panel-2",
+              kind: OcptAssetKind.storyboardPanelImage,
+              path: p.join(workspace.path, "files", "gone-panel.jpg"),
+              addedAt: DateTime.utc(2026, 4, 2),
+            ),
+          );
 
-        final exported = await export();
+      final exported = await export();
 
-        expect(exported.status, OcptProjectPackageStatus.ok);
-        expect(exported.value!.packagedAssetCount, 1);
-        expect(exported.value!.skippedAssets.single.assetId, "asset-panel-2");
-        expect(packagedEntries(), contains("assets/asset-panel-1/panel-1.jpg"));
+      expect(exported.status, OcptProjectPackageStatus.ok);
+      expect(exported.value!.packagedAssetCount, 1);
+      expect(exported.value!.skippedAssets.single.assetId, "asset-panel-2");
+      expect(packagedEntries(), contains("assets/asset-panel-1/panel-1.jpg"));
 
-        final importsParent = Directory(p.join(workspace.path, "imports"))
-          ..createSync(recursive: true);
-        final imported = await service.readPackage(
-          packageFilePath: packagePath,
-          parentDirectoryPath: importsParent.path,
-        );
+      final importsParent = Directory(p.join(workspace.path, "imports"))
+        ..createSync(recursive: true);
+      final imported = await service.readPackage(
+        packageFilePath: packagePath,
+        parentDirectoryPath: importsParent.path,
+      );
 
-        expect(imported.status, OcptProjectPackageStatus.ok);
-        final importedDatabase = sqlite3.open(
-          imported.value!.projectFilePath,
-          mode: OpenMode.readOnly,
-        );
-        addTearDown(importedDatabase.dispose);
-        final packagedPanel = importedDatabase
-            .select("SELECT path FROM assets WHERE id = 'asset-panel-1'")
-            .first["path"] as String;
-        expect(p.isAbsolute(packagedPanel), isTrue);
-        expect(File(packagedPanel).existsSync(), isTrue);
-        final skippedPanel = importedDatabase
-            .select("SELECT path FROM assets WHERE id = 'asset-panel-2'")
-            .first["path"];
-        expect(skippedPanel, p.join(workspace.path, "files", "gone-panel.jpg"));
-      },
-    );
+      expect(imported.status, OcptProjectPackageStatus.ok);
+      final importedDatabase = sqlite3.open(
+        imported.value!.projectFilePath,
+        mode: OpenMode.readOnly,
+      );
+      addTearDown(importedDatabase.dispose);
+      final packagedPanel =
+          importedDatabase
+                  .select("SELECT path FROM assets WHERE id = 'asset-panel-1'")
+                  .first["path"]
+              as String;
+      expect(p.isAbsolute(packagedPanel), isTrue);
+      expect(File(packagedPanel).existsSync(), isTrue);
+      final skippedPanel = importedDatabase
+          .select("SELECT path FROM assets WHERE id = 'asset-panel-2'")
+          .first["path"];
+      expect(skippedPanel, p.join(workspace.path, "files", "gone-panel.jpg"));
+    });
 
     test("states its own format, the app version and the schema the file is in", () async {
       await export();
@@ -554,8 +553,7 @@ void main() {
     late Directory importsParent;
 
     setUp(() {
-      importsParent = Directory(p.join(workspace.path, "imports"))
-        ..createSync(recursive: true);
+      importsParent = Directory(p.join(workspace.path, "imports"))..createSync(recursive: true);
     });
 
     /// Rewrites the entry [name] of the package at [sourcePath] with [bytes], keeping every other
@@ -581,9 +579,7 @@ void main() {
             continue;
           }
           final replacement = entry.name == name ? bytes : null;
-          encoder.addArchiveFile(
-            ArchiveFile.bytes(entry.name, replacement ?? entry.readBytes()!),
-          );
+          encoder.addArchiveFile(ArchiveFile.bytes(entry.name, replacement ?? entry.readBytes()!));
         }
         if (bytes != null && !archive.files.any((entry) => entry.name == name)) {
           encoder.addArchiveFile(ArchiveFile.bytes(name, bytes));
@@ -607,36 +603,33 @@ void main() {
       return utf8.encode(jsonEncode(transform(manifest as Map<String, dynamic>)));
     }
 
-    test(
-      "a package exported by the write half imports into an empty parent, every asset row "
-      "pointing at a file that exists",
-      () async {
-        await addAsset(id: "asset-1", path: writeReferencedFile("headshot.jpg", "photo bytes"));
-        await addAsset(id: "asset-2", path: writeReferencedFile("permit.pdf", "permit bytes"));
-        await export();
+    test("a package exported by the write half imports into an empty parent, every asset row "
+        "pointing at a file that exists", () async {
+      await addAsset(id: "asset-1", path: writeReferencedFile("headshot.jpg", "photo bytes"));
+      await addAsset(id: "asset-2", path: writeReferencedFile("permit.pdf", "permit bytes"));
+      await export();
 
-        final imported = await service.readPackage(
-          packageFilePath: packagePath,
-          parentDirectoryPath: importsParent.path,
-        );
+      final imported = await service.readPackage(
+        packageFilePath: packagePath,
+        parentDirectoryPath: importsParent.path,
+      );
 
-        expect(imported.status, OcptProjectPackageStatus.ok);
-        final report = imported.value!;
-        expect(report.projectName, "Les Vagues");
-        expect(report.importedAssetCount, 2);
-        expect(report.skippedAssets, isEmpty);
-        expect(File(report.projectFilePath).existsSync(), isTrue);
-        expect(report.projectFilePath, p.join(importsParent.path, "Les Vagues", "Les Vagues.ocpt"));
+      expect(imported.status, OcptProjectPackageStatus.ok);
+      final report = imported.value!;
+      expect(report.projectName, "Les Vagues");
+      expect(report.importedAssetCount, 2);
+      expect(report.skippedAssets, isEmpty);
+      expect(File(report.projectFilePath).existsSync(), isTrue);
+      expect(report.projectFilePath, p.join(importsParent.path, "Les Vagues", "Les Vagues.ocpt"));
 
-        final importedDatabase = sqlite3.open(report.projectFilePath, mode: OpenMode.readOnly);
-        addTearDown(importedDatabase.dispose);
-        for (final row in importedDatabase.select("SELECT path FROM assets ORDER BY id")) {
-          final assetPath = row["path"] as String;
-          expect(p.isAbsolute(assetPath), isTrue, reason: assetPath);
-          expect(File(assetPath).existsSync(), isTrue, reason: assetPath);
-        }
-      },
-    );
+      final importedDatabase = sqlite3.open(report.projectFilePath, mode: OpenMode.readOnly);
+      addTearDown(importedDatabase.dispose);
+      for (final row in importedDatabase.select("SELECT path FROM assets ORDER BY id")) {
+        final assetPath = row["path"] as String;
+        expect(p.isAbsolute(assetPath), isTrue, reason: assetPath);
+        expect(File(assetPath).existsSync(), isTrue, reason: assetPath);
+      }
+    });
 
     test("keeps every row and PRAGMA user_version", () async {
       await addPerson("person-1");
@@ -693,30 +686,27 @@ void main() {
       },
     );
 
-    test(
-      "refuses a packageFormat newer than this build's with unsupportedPackageFormat, writing "
-      "nothing",
-      () async {
-        await export();
+    test("refuses a packageFormat newer than this build's with unsupportedPackageFormat, writing "
+        "nothing", () async {
+      await export();
 
-        final futurePackagePath = await repackagedWith(
+      final futurePackagePath = await repackagedWith(
+        packagePath,
+        name: "manifest.json",
+        bytes: transformedManifestBytes(
           packagePath,
-          name: "manifest.json",
-          bytes: transformedManifestBytes(
-            packagePath,
-            (manifest) => {...manifest, "packageFormat": 999},
-          ),
-        );
+          (manifest) => {...manifest, "packageFormat": 999},
+        ),
+      );
 
-        final imported = await service.readPackage(
-          packageFilePath: futurePackagePath,
-          parentDirectoryPath: importsParent.path,
-        );
+      final imported = await service.readPackage(
+        packageFilePath: futurePackagePath,
+        parentDirectoryPath: importsParent.path,
+      );
 
-        expect(imported.status, OcptProjectPackageStatus.unsupportedPackageFormat);
-        expect(importsParent.listSync(), isEmpty);
-      },
-    );
+      expect(imported.status, OcptProjectPackageStatus.unsupportedPackageFormat);
+      expect(importsParent.listSync(), isEmpty);
+    });
 
     test("refuses something that isn't a zip at all with unreadableArchive", () async {
       final notAZip = p.join(workspace.path, "junk.ocptz");

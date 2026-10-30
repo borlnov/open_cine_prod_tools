@@ -165,11 +165,7 @@ class OcptRoleSheetElementsCard extends StatelessWidget {
   /// The `Element` picker: every element this role is not already linked to, grouped by category
   /// the way the left dock's own list heads it. Renders nothing at all once there is none left to
   /// offer.
-  Widget _buildElementPicker(
-    BuildContext context,
-    Tr tr,
-    List<(OcptElement, String)> linked,
-  ) {
+  Widget _buildElementPicker(BuildContext context, Tr tr, List<(OcptElement, String)> linked) {
     final onElementLinked = this.onElementLinked!;
     final linkedIds = {for (final (element, _) in linked) element.id};
     final offered = [
@@ -199,10 +195,7 @@ class OcptRoleSheetElementsCard extends StatelessWidget {
                 ),
               ),
               for (final element in categoryElements)
-                PopupMenuItem<String>(
-                  value: element.id,
-                  child: Text(_elementLabel(element)),
-                ),
+                PopupMenuItem<String>(value: element.id, child: Text(_elementLabel(element))),
             ],
         ],
         child: Chip(

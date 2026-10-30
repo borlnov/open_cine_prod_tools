@@ -65,7 +65,8 @@ FountainActionBlock _action(List<String> lines) =>
 FountainCharacter _character(String name, {bool isDualDialogue = false}) =>
     FountainCharacter(sourceRange: _range, name: name, isDualDialogue: isDualDialogue);
 
-FountainDialogueLine _dialogueLine(String text) => FountainDialogueLine(sourceRange: _range, text: text);
+FountainDialogueLine _dialogueLine(String text) =>
+    FountainDialogueLine(sourceRange: _range, text: text);
 
 FountainDialogueGroup _dialogueGroup(
   String name,

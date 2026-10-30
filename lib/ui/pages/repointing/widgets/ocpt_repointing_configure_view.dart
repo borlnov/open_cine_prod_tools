@@ -140,8 +140,7 @@ class _OcptRepointingConfigureViewState extends State<OcptRepointingConfigureVie
                                 _isSecretVisible ? Icons.visibility_off : Icons.visibility,
                               ),
                               mouseCursor: ocptClickableCursor,
-                              onPressed: () =>
-                                  setState(() => _isSecretVisible = !_isSecretVisible),
+                              onPressed: () => setState(() => _isSecretVisible = !_isSecretVisible),
                             ),
                           ),
                         ),

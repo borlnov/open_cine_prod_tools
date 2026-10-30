@@ -94,7 +94,8 @@ class OcptPresenceService {
   Timer? _heartbeatTimer;
   bool _isRunning = false;
 
-  final StreamController<OcptPresenceRoster> _rosterController = StreamController<OcptPresenceRoster>.broadcast();
+  final StreamController<OcptPresenceRoster> _rosterController =
+      StreamController<OcptPresenceRoster>.broadcast();
 
   /// This replica's own current frame — [_heartbeatCounter] only actually advances when
   /// [_sendHeartbeat] runs, so this always reflects the last heartbeat this replica sent (or, before

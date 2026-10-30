@@ -160,12 +160,9 @@ class OcptRoleIndexService {
     }
     final roleById = {for (final role in projectRoles) role.id: role};
 
-    final existingLinksQuery = database.select(
-      database.ocptRoleEpisodesTable,
-    )..where((table) => table.screenplayId.equals(screenplayId));
-    final linkByRoleId = {
-      for (final link in await existingLinksQuery.get()) link.roleId: link,
-    };
+    final existingLinksQuery = database.select(database.ocptRoleEpisodesTable)
+      ..where((table) => table.screenplayId.equals(screenplayId));
+    final linkByRoleId = {for (final link in await existingLinksQuery.get()) link.roleId: link};
 
     // Rule 3's rejection: every tombstoned, action-detected role's name, matched only when this
     // episode does not cue it (a cued name is never rejected, see the doc comment above). The
@@ -178,9 +175,7 @@ class OcptRoleIndexService {
             table.isFromScreenplay.equals(true) &
             table.kind.equalsValue(OcptRoleKind.speaking).not(),
       );
-    final rejectedActionNames = {
-      for (final row in await rejectedNamesQuery.get()) row.name,
-    };
+    final rejectedActionNames = {for (final row in await rejectedNamesQuery.get()) row.name};
 
     // Rule 1 and rule 3: every cast member either matches a live, from-screenplay role of the
     // project (its link to this episode is ensured, its orphan mark lifted, and it is promoted to
@@ -234,12 +229,13 @@ class OcptRoleIndexService {
     // Of those, only the ones left with no live link anywhere else become orphaned.
     final roleIdsToOrphan = <String>{};
     if (droppedRoleIds.isNotEmpty) {
-      final otherLiveLinksQuery = database.select(database.ocptRoleEpisodesTable)..where(
-        (table) =>
-            table.roleId.isIn(droppedRoleIds) &
-            table.isDeleted.not() &
-            table.screenplayId.equals(screenplayId).not(),
-      );
+      final otherLiveLinksQuery = database.select(database.ocptRoleEpisodesTable)
+        ..where(
+          (table) =>
+              table.roleId.isIn(droppedRoleIds) &
+              table.isDeleted.not() &
+              table.screenplayId.equals(screenplayId).not(),
+        );
       final roleIdsWithOtherLiveLinks = {
         for (final link in await otherLiveLinksQuery.get()) link.roleId,
       };
@@ -428,7 +424,9 @@ class OcptRoleIndexService {
         next: OcptRoleRow(
           id: id,
           name: name,
-          sortKey: ocptFractionalKeyBetween(before: existing.isEmpty ? null : existing.last.sortKey),
+          sortKey: ocptFractionalKeyBetween(
+            before: existing.isEmpty ? null : existing.last.sortKey,
+          ),
           isDeleted: false,
           kind: kind,
           isFromScreenplay: false,
@@ -533,9 +531,8 @@ class OcptRoleIndexService {
     }
 
     await database.transaction(() async {
-      final existingLinksQuery = database.select(
-        database.ocptRoleEpisodesTable,
-      )..where((table) => table.roleId.equals(roleId));
+      final existingLinksQuery = database.select(database.ocptRoleEpisodesTable)
+        ..where((table) => table.roleId.equals(roleId));
       final existingLinks = await existingLinksQuery.get();
       final linkByScreenplayId = {for (final link in existingLinks) link.screenplayId: link};
 
@@ -670,11 +667,9 @@ class OcptRoleIndexService {
 
       // shot_characters: {shotId, roleId} primary key, so a re-point is tombstone-and-recreate —
       // there is no other way to move a composite primary key's row onto a different key.
-      final sourceShotCharacters =
-          await (database.select(database.ocptShotCharactersTable)..where(
-                (table) => table.roleId.equals(sourceRoleId) & table.isDeleted.not(),
-              ))
-              .get();
+      final sourceShotCharacters = await (database.select(
+        database.ocptShotCharactersTable,
+      )..where((table) => table.roleId.equals(sourceRoleId) & table.isDeleted.not())).get();
       for (final row in sourceShotCharacters) {
         await OcptRowStampService.writeAndStamp(
           database: database,
@@ -723,11 +718,9 @@ class OcptRoleIndexService {
       // shooting_slot_cast: own-id primary key, so a re-point updates the roleId column in place —
       // unless the slot already convokes target, in which case source's convocation is tombstoned
       // rather than duplicating one, since a role is convoked at most once per slot.
-      final sourceSlotCast =
-          await (database.select(database.ocptShootingSlotCastTable)..where(
-                (table) => table.roleId.equals(sourceRoleId) & table.isDeleted.not(),
-              ))
-              .get();
+      final sourceSlotCast = await (database.select(
+        database.ocptShootingSlotCastTable,
+      )..where((table) => table.roleId.equals(sourceRoleId) & table.isDeleted.not())).get();
       for (final row in sourceSlotCast) {
         final targetAlreadyConvoked =
             await (database.select(database.ocptShootingSlotCastTable)..where(
@@ -753,11 +746,9 @@ class OcptRoleIndexService {
 
       // breakdown_tags: own-id primary key, nullable roleId column, no dedup — each tag is its own
       // passage of the screenplay.
-      final sourceTags =
-          await (database.select(database.ocptBreakdownTagsTable)..where(
-                (table) => table.roleId.equals(sourceRoleId) & table.isDeleted.not(),
-              ))
-              .get();
+      final sourceTags = await (database.select(
+        database.ocptBreakdownTagsTable,
+      )..where((table) => table.roleId.equals(sourceRoleId) & table.isDeleted.not())).get();
       for (final row in sourceTags) {
         await OcptRowStampService.writeAndStamp(
           database: database,
@@ -770,16 +761,13 @@ class OcptRoleIndexService {
       }
 
       // role_elements: own-id primary key, deduped by elementId.
-      final sourceElements =
-          await (database.select(database.ocptRoleElementsTable)..where(
-                (table) => table.roleId.equals(sourceRoleId) & table.isDeleted.not(),
-              ))
-              .get();
+      final sourceElements = await (database.select(
+        database.ocptRoleElementsTable,
+      )..where((table) => table.roleId.equals(sourceRoleId) & table.isDeleted.not())).get();
       if (sourceElements.isNotEmpty) {
         final targetElementIds =
-            (await (database.select(database.ocptRoleElementsTable)..where(
-                      (table) => table.roleId.equals(targetRoleId) & table.isDeleted.not(),
-                    ))
+            (await (database.select(database.ocptRoleElementsTable)
+                      ..where((table) => table.roleId.equals(targetRoleId) & table.isDeleted.not()))
                     .get())
                 .map((row) => row.elementId)
                 .toSet();
@@ -798,16 +786,13 @@ class OcptRoleIndexService {
       }
 
       // role_candidates: own-id primary key, deduped by personId.
-      final sourceCandidates =
-          await (database.select(database.ocptRoleCandidatesTable)..where(
-                (table) => table.roleId.equals(sourceRoleId) & table.isDeleted.not(),
-              ))
-              .get();
+      final sourceCandidates = await (database.select(
+        database.ocptRoleCandidatesTable,
+      )..where((table) => table.roleId.equals(sourceRoleId) & table.isDeleted.not())).get();
       if (sourceCandidates.isNotEmpty) {
         final targetPersonIds =
-            (await (database.select(database.ocptRoleCandidatesTable)..where(
-                      (table) => table.roleId.equals(targetRoleId) & table.isDeleted.not(),
-                    ))
+            (await (database.select(database.ocptRoleCandidatesTable)
+                      ..where((table) => table.roleId.equals(targetRoleId) & table.isDeleted.not()))
                     .get())
                 .map((row) => row.personId)
                 .toSet();
@@ -826,16 +811,13 @@ class OcptRoleIndexService {
       }
 
       // role_episodes: own-id primary key, deduped by screenplayId.
-      final sourceEpisodes =
-          await (database.select(database.ocptRoleEpisodesTable)..where(
-                (table) => table.roleId.equals(sourceRoleId) & table.isDeleted.not(),
-              ))
-              .get();
+      final sourceEpisodes = await (database.select(
+        database.ocptRoleEpisodesTable,
+      )..where((table) => table.roleId.equals(sourceRoleId) & table.isDeleted.not())).get();
       if (sourceEpisodes.isNotEmpty) {
         final targetScreenplayIds =
-            (await (database.select(database.ocptRoleEpisodesTable)..where(
-                      (table) => table.roleId.equals(targetRoleId) & table.isDeleted.not(),
-                    ))
+            (await (database.select(database.ocptRoleEpisodesTable)
+                      ..where((table) => table.roleId.equals(targetRoleId) & table.isDeleted.not()))
                     .get())
                 .map((row) => row.screenplayId)
                 .toSet();
@@ -928,11 +910,9 @@ class OcptRoleIndexService {
         stamps: stamps,
       );
 
-      final shotCharacterRows =
-          await (database.select(
-                database.ocptShotCharactersTable,
-              )..where((table) => table.roleId.equals(roleId) & table.isDeleted.not()))
-              .get();
+      final shotCharacterRows = await (database.select(
+        database.ocptShotCharactersTable,
+      )..where((table) => table.roleId.equals(roleId) & table.isDeleted.not())).get();
       for (final row in shotCharacterRows) {
         await OcptRowStampService.writeAndStamp(
           database: database,
@@ -944,11 +924,9 @@ class OcptRoleIndexService {
         );
       }
 
-      final breakdownTagRows =
-          await (database.select(
-                database.ocptBreakdownTagsTable,
-              )..where((table) => table.roleId.equals(roleId) & table.isDeleted.not()))
-              .get();
+      final breakdownTagRows = await (database.select(
+        database.ocptBreakdownTagsTable,
+      )..where((table) => table.roleId.equals(roleId) & table.isDeleted.not())).get();
       for (final row in breakdownTagRows) {
         await OcptRowStampService.writeAndStamp(
           database: database,
@@ -960,11 +938,9 @@ class OcptRoleIndexService {
         );
       }
 
-      final linkRows =
-          await (database.select(
-                database.ocptRoleEpisodesTable,
-              )..where((table) => table.roleId.equals(roleId) & table.isDeleted.not()))
-              .get();
+      final linkRows = await (database.select(
+        database.ocptRoleEpisodesTable,
+      )..where((table) => table.roleId.equals(roleId) & table.isDeleted.not())).get();
       for (final link in linkRows) {
         await OcptRowStampService.writeAndStamp(
           database: database,
@@ -1103,11 +1079,9 @@ class OcptRoleIndexService {
     required String screenplayId,
     required OcptRowStampService? stamps,
   }) async {
-    final rows =
-        await (database.select(
-              database.ocptRoleEpisodesTable,
-            )..where((table) => table.screenplayId.equals(screenplayId) & table.isDeleted.not()))
-            .get();
+    final rows = await (database.select(
+      database.ocptRoleEpisodesTable,
+    )..where((table) => table.screenplayId.equals(screenplayId) & table.isDeleted.not())).get();
 
     for (final row in rows) {
       await OcptRowStampService.writeAndStamp(
@@ -1138,17 +1112,20 @@ class OcptRoleIndexService {
   Future<Map<String, List<String>>> _liveEpisodeIdsByRoleId({
     required OcptProjectDatabase database,
   }) async {
-    final query = database.select(database.ocptRoleEpisodesTable).join([
-      innerJoin(
-        database.ocptScreenplaysTable,
-        database.ocptScreenplaysTable.id.equalsExp(database.ocptRoleEpisodesTable.screenplayId),
-      ),
-    ])
-      ..where(
-        database.ocptRoleEpisodesTable.isDeleted.not() &
-            database.ocptScreenplaysTable.isDeleted.not(),
-      )
-      ..orderBy([OrderingTerm.asc(database.ocptScreenplaysTable.sortKey)]);
+    final query =
+        database.select(database.ocptRoleEpisodesTable).join([
+            innerJoin(
+              database.ocptScreenplaysTable,
+              database.ocptScreenplaysTable.id.equalsExp(
+                database.ocptRoleEpisodesTable.screenplayId,
+              ),
+            ),
+          ])
+          ..where(
+            database.ocptRoleEpisodesTable.isDeleted.not() &
+                database.ocptScreenplaysTable.isDeleted.not(),
+          )
+          ..orderBy([OrderingTerm.asc(database.ocptScreenplaysTable.sortKey)]);
 
     final episodeIdsByRoleId = <String, List<String>>{};
     for (final row in await query.get()) {

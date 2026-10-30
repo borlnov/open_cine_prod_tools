@@ -47,48 +47,49 @@ OcptBudgetShare _share({
 
 /// A minimal person, the few fields these tests read, everything else neutral — mirrors
 /// `ocpt_budget_regie_test.dart`'s own `_buildPerson`.
-OcptPerson _person({required String id, String firstName = "Jane", String lastName = "Doe"}) => OcptPerson(
-  id: id,
-  firstName: firstName,
-  lastName: lastName,
-  email: "",
-  phone: "",
-  addressLine1: "",
-  addressLine2: "",
-  postalCode: "",
-  city: "",
-  region: "",
-  country: "",
-  colorIndex: 0,
-  birthDate: null,
-  minorNotes: "",
-  maxDailyPresenceMinutes: null,
-  isTransportAutonomous: null,
-  accommodationNotes: "",
-  travelNotes: "",
-  dietaryNotes: "",
-  allergies: "",
-  measurementHeight: "",
-  measurementChest: "",
-  measurementWaist: "",
-  measurementHips: "",
-  sizeTop: "",
-  sizeBottom: "",
-  sizeShoes: "",
-  hmcNotes: "",
-  imageRightsStatus: OcptImageRightsStatus.notApplicable,
-  imageRightsDate: null,
-  imageRightsAssetId: null,
-  imageRightsDocument: null,
-  photoAssetId: null,
-  photo: null,
-  notes: "",
-  commuteKmMilli: null,
-  mileageRateId: null,
-  positions: const [],
-  skills: const [],
-  unavailabilities: const [],
-);
+OcptPerson _person({required String id, String firstName = "Jane", String lastName = "Doe"}) =>
+    OcptPerson(
+      id: id,
+      firstName: firstName,
+      lastName: lastName,
+      email: "",
+      phone: "",
+      addressLine1: "",
+      addressLine2: "",
+      postalCode: "",
+      city: "",
+      region: "",
+      country: "",
+      colorIndex: 0,
+      birthDate: null,
+      minorNotes: "",
+      maxDailyPresenceMinutes: null,
+      isTransportAutonomous: null,
+      accommodationNotes: "",
+      travelNotes: "",
+      dietaryNotes: "",
+      allergies: "",
+      measurementHeight: "",
+      measurementChest: "",
+      measurementWaist: "",
+      measurementHips: "",
+      sizeTop: "",
+      sizeBottom: "",
+      sizeShoes: "",
+      hmcNotes: "",
+      imageRightsStatus: OcptImageRightsStatus.notApplicable,
+      imageRightsDate: null,
+      imageRightsAssetId: null,
+      imageRightsDocument: null,
+      photoAssetId: null,
+      photo: null,
+      notes: "",
+      commuteKmMilli: null,
+      mileageRateId: null,
+      positions: const [],
+      skills: const [],
+      unavailabilities: const [],
+    );
 
 /// A zero-amount, fully-covered total — the default reading of an amount nothing names.
 const _zeroTotal = OcptBudgetCoveredTotal(amountCents: 0, coveredLineCount: 0, lineCount: 0);
@@ -115,12 +116,7 @@ void main() {
         sharingPot ??
         const OcptBudgetSharingPot(received: _zeroTotal, reimbursableCents: 0, repaid: _zeroTotal);
     final splits =
-        shareSplits ??
-        ocptBudgetShareSplitsOf(
-          shares: shares,
-          pot: pot,
-          paidByShareId: const {},
-        );
+        shareSplits ?? ocptBudgetShareSplitsOf(shares: shares, pot: pot, paidByShareId: const {});
 
     // The default test surface is narrower than `_ocptSharingWrapWidth`, which would stack the
     // two columns instead of laying them out side by side.
@@ -249,7 +245,9 @@ void main() {
     expect(payoutRequested?.id, "s1");
   });
 
-  testWidgets("the repayment card shows a muted hint while no resource is reimbursable", (tester) async {
+  testWidgets("the repayment card shows a muted hint while no resource is reimbursable", (
+    tester,
+  ) async {
     await pumpView(tester);
 
     final tr = Tr.of(tester.element(find.byType(OcptBudgetSharing)));

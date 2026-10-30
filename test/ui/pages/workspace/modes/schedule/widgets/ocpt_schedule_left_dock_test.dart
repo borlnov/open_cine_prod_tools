@@ -226,9 +226,7 @@ void main() {
     expect(find.text("D1"), findsOneWidget);
   });
 
-  testWidgets("the day card's ⋮ menu offers to change the date, first in the menu", (
-    tester,
-  ) async {
+  testWidgets("the day card's ⋮ menu offers to change the date, first in the menu", (tester) async {
     final dateChangeRequests = <(String, DateTime)>[];
 
     await tester.pumpWidget(

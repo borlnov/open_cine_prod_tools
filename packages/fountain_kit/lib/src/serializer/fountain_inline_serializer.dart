@@ -40,8 +40,7 @@ class FountainInlineSerializer {
   String write(List<FountainStyledRun> runs) {
     final merged = _mergeAdjacent(runs);
     final texts = [
-      for (final run in merged)
-        _isPlain(run) ? _escapeAmbiguousMarkers(run.text) : run.text,
+      for (final run in merged) _isPlain(run) ? _escapeAmbiguousMarkers(run.text) : run.text,
     ];
     while (true) {
       final line = _emit(merged, texts);
@@ -67,10 +66,7 @@ class FountainInlineSerializer {
         continue;
       }
       final previous = merged.isEmpty ? null : merged.last;
-      if (previous != null &&
-          !previous.isNote &&
-          !run.isNote &&
-          _sameStyle(previous, run)) {
+      if (previous != null && !previous.isNote && !run.isNote && _sameStyle(previous, run)) {
         merged[merged.length - 1] = FountainStyledRun(
           text: previous.text + run.text,
           isBold: run.isBold,
@@ -86,9 +82,7 @@ class FountainInlineSerializer {
 
   /// Whether [a] and [b] carry the same style flags.
   bool _sameStyle(FountainStyledRun a, FountainStyledRun b) =>
-      a.isBold == b.isBold &&
-      a.isItalic == b.isItalic &&
-      a.isUnderline == b.isUnderline;
+      a.isBold == b.isBold && a.isItalic == b.isItalic && a.isUnderline == b.isUnderline;
 
   /// Whether [run] carries no style at all (plain text, not a note).
   bool _isPlain(FountainStyledRun run) =>
@@ -183,9 +177,7 @@ class FountainInlineSerializer {
           buffer
             ..write(r'\[')
             ..write('[')
-            ..write(
-              _escapeAmbiguousMarkers(text.substring(index + 2, closeIndex)),
-            )
+            ..write(_escapeAmbiguousMarkers(text.substring(index + 2, closeIndex)))
             ..write(']]');
           index = closeIndex + 2;
           continue;
@@ -223,8 +215,7 @@ class FountainInlineSerializer {
 
   /// Escapes every character of [token] individually, for example `**` →
   /// `\*\*`, so re-parsing sees no unescaped marker character at all.
-  String _escapeToken(String token) =>
-      token.split('').map((char) => '\\$char').join();
+  String _escapeToken(String token) => token.split('').map((char) => '\\$char').join();
 
   /// Escapes the next unescaped `*`, `_` or `[` found across [runs]' plain
   /// (non-note, non-emphasis) [texts], in document order, and returns

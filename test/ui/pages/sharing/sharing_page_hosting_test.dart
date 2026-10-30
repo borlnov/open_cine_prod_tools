@@ -74,7 +74,8 @@ void _mockSecureStorage(Map<String, String> store) {
 /// fixture, unused by these tests beyond satisfying [OcptSyncManager]'s own constructor.
 class _FakeRemoteStorage implements OcptRemoteStorage {
   @override
-  Future<OcptSequenceNumber> append(OcptChangesetEnvelope envelope) async => OcptSequenceNumber.zero;
+  Future<OcptSequenceNumber> append(OcptChangesetEnvelope envelope) async =>
+      OcptSequenceNumber.zero;
 
   @override
   Future<List<OcptStoredChangeset>> readSince(OcptSequenceNumber cursor) async => const [];
@@ -210,7 +211,10 @@ void main() {
     managers.registerSingleton<OcptRouterManager>(OcptRouterManager());
 
     tempDir = await Directory.systemTemp.createTemp("ocpt_sharing_page_hosting_test_");
-    projectsManager = OcptProjectsManager(propertiesManager: propertiesManager, appLanguageCode: () => "en");
+    projectsManager = OcptProjectsManager(
+      propertiesManager: propertiesManager,
+      appLanguageCode: () => "en",
+    );
     await projectsManager.initLifeCycle();
     await projectsManager.createProject(
       name: "Les Vagues",

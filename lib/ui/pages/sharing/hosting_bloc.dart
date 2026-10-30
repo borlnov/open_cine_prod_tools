@@ -103,8 +103,7 @@ class OcptHostingBloc extends BlocForMixin<OcptHostingState> {
     }
 
     final projectId = await _syncManager.loadPairedProjectId(_project.fileDatabase);
-    final hostOnLaunch =
-        projectId != null && await _propertiesManager.loadHostOnLaunch(projectId);
+    final hostOnLaunch = projectId != null && await _propertiesManager.loadHostOnLaunch(projectId);
     final presenceRoster = _syncManager.presenceRoster;
     final extras = hostState is OcptRelayHostOnline
         ? await _loadOnlineExtras(hostState, preferredAddress: state.selectedAddress)
@@ -230,7 +229,9 @@ class OcptHostingBloc extends BlocForMixin<OcptHostingState> {
     OcptHostingAutoRestartChangedEvent event,
     Emitter<OcptHostingState> emitter,
   ) async {
-    final id = _hostManager.hostedProjectId ?? await _syncManager.loadPairedProjectId(_project.fileDatabase);
+    final id =
+        _hostManager.hostedProjectId ??
+        await _syncManager.loadPairedProjectId(_project.fileDatabase);
     if (id == null) {
       return;
     }
@@ -260,7 +261,13 @@ class OcptHostingBloc extends BlocForMixin<OcptHostingState> {
       return;
     }
 
-    emitter(state.copyWith(isReconciling: true, reconcileInviteInvalid: false, clearReconcileOutcome: true));
+    emitter(
+      state.copyWith(
+        isReconciling: true,
+        reconcileInviteInvalid: false,
+        clearReconcileOutcome: true,
+      ),
+    );
     final outcome = await _hostManager.reconcileWithUpstream(invite);
     emitter(state.copyWith(isReconciling: false, reconcileOutcome: outcome));
   }
@@ -351,7 +358,8 @@ class OcptHostingBloc extends BlocForMixin<OcptHostingState> {
     final addresses = await _hostManager.availableLanAddresses();
     final availableAddresses = [for (final address in addresses) address.address];
     final currentSelection = state.selectedAddress;
-    final selectedAddress = currentSelection != null && availableAddresses.contains(currentSelection)
+    final selectedAddress =
+        currentSelection != null && availableAddresses.contains(currentSelection)
         ? currentSelection
         : (availableAddresses.isNotEmpty ? availableAddresses.first : currentSelection);
 
@@ -391,7 +399,8 @@ class OcptHostingBloc extends BlocForMixin<OcptHostingState> {
   _loadOnlineExtras(OcptRelayHostOnline online, {String? preferredAddress}) async {
     final addresses = await _hostManager.availableLanAddresses();
     final availableAddresses = [for (final address in addresses) address.address];
-    final selectedAddress = preferredAddress != null && availableAddresses.contains(preferredAddress)
+    final selectedAddress =
+        preferredAddress != null && availableAddresses.contains(preferredAddress)
         ? preferredAddress
         : online.lanBaseUri.host;
     final boundPort = online.lanBaseUri.port;
@@ -427,7 +436,8 @@ class OcptHostingBloc extends BlocForMixin<OcptHostingState> {
       OcptDiagnosticsManager.log(
         category: OcptDiagnosticsCategory.hosting,
         level: OcptDiagnosticsLevel.warning,
-        message: 'join QR unavailable: no project token to build the invite '
+        message:
+            'join QR unavailable: no project token to build the invite '
             '(hostedProjectId=${hostedProjectId ?? "none"}) — the "Envoyer le projet" QR is blank',
       );
     } else {
@@ -459,9 +469,7 @@ class OcptHostingBloc extends BlocForMixin<OcptHostingState> {
       return;
     }
 
-    _presenceSubscription = stream.listen(
-      (roster) => add(OcptHostingPresenceChangedEvent(roster)),
-    );
+    _presenceSubscription = stream.listen((roster) => add(OcptHostingPresenceChangedEvent(roster)));
   }
 
   /// Cancels [_presenceSubscription], if any — called both on a transition away from

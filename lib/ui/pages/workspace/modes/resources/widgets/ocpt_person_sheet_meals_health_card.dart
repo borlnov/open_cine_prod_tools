@@ -112,7 +112,11 @@ class _OcptPersonSkillChips extends StatefulWidget {
   final ValueChanged<String>? onRemoved;
 
   /// Class constructor
-  const _OcptPersonSkillChips({required this.skills, required this.onAdded, required this.onRemoved});
+  const _OcptPersonSkillChips({
+    required this.skills,
+    required this.onAdded,
+    required this.onRemoved,
+  });
 
   @override
   State<_OcptPersonSkillChips> createState() => _OcptPersonSkillChipsState();

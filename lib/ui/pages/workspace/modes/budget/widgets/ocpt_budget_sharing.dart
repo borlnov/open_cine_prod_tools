@@ -91,7 +91,6 @@ class OcptBudgetSharing extends StatelessWidget {
   /// is being repaid.
   final ValueChanged<OcptBudgetRepaymentLine>? onRepaymentRequested;
 
-
   /// The split of [sharingPot] across [shares], in the order they are handed in.
   final List<OcptBudgetShareSplit> shareSplits;
 
@@ -287,7 +286,8 @@ class _OcptSharingLeftColumn extends StatelessWidget {
                                 .where((share) => share.personId == line.personId)
                                 .fold<int?>(null, (sum, share) => (sum ?? 0) + share.sharePermille),
                       currencyCode: currencyCode,
-                      onRepaymentRequested: onRepaymentRequested == null || line.outstandingCents == 0
+                      onRepaymentRequested:
+                          onRepaymentRequested == null || line.outstandingCents == 0
                           ? null
                           : () => onRepaymentRequested?.call(line),
                     ),
@@ -305,7 +305,10 @@ class _OcptSharingLeftColumn extends StatelessWidget {
                 ),
                 _OcptSharingPotLine(
                   label: tr.budgetSharingOutstandingRepaymentLabel,
-                  valueText: ocptBudgetAmountLabel(sharingPot.outstandingRepaymentCents, currencyCode),
+                  valueText: ocptBudgetAmountLabel(
+                    sharingPot.outstandingRepaymentCents,
+                    currencyCode,
+                  ),
                 ),
                 const SizedBox(height: 4),
                 const Divider(height: 1),
@@ -338,17 +341,18 @@ class _OcptSharingPotLine extends StatelessWidget {
   final bool isEmphasized;
 
   /// Class constructor
-  const _OcptSharingPotLine({required this.label, required this.valueText, this.isEmphasized = false});
+  const _OcptSharingPotLine({
+    required this.label,
+    required this.valueText,
+    this.isEmphasized = false,
+  });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
     return Padding(
-      padding: const EdgeInsets.symmetric(
-        vertical: 4,
-        horizontal: ocptTableRowHorizontalPadding,
-      ),
+      padding: const EdgeInsets.symmetric(vertical: 4, horizontal: ocptTableRowHorizontalPadding),
       child: Row(
         children: [
           Expanded(
@@ -496,10 +500,7 @@ class _OcptSharingRepaymentLenderRow extends StatelessWidget {
     final isOutstanding = line.outstandingCents > 0;
 
     return Padding(
-      padding: const EdgeInsets.symmetric(
-        vertical: 4,
-        horizontal: ocptTableRowHorizontalPadding,
-      ),
+      padding: const EdgeInsets.symmetric(vertical: 4, horizontal: ocptTableRowHorizontalPadding),
       child: Row(
         children: [
           Expanded(
@@ -668,7 +669,9 @@ class _OcptSharingDistributionColumn extends StatelessWidget {
                   for (final (index, split) in shareSplits.indexed)
                     _OcptSharingShareRow(
                       split: split,
-                      person: split.share.personId == null ? null : personById[split.share.personId],
+                      person: split.share.personId == null
+                          ? null
+                          : personById[split.share.personId],
                       currencyCode: currencyCode,
                       isSelected: split.share.id == selectedShareId,
                       onTap: () => onShareSelected(split.share.id),
@@ -682,7 +685,9 @@ class _OcptSharingDistributionColumn extends StatelessWidget {
                           ? null
                           : () => onShareReorderRequested?.call(split.share.id, moveUp: true),
                       onMoveDownRequested:
-                          isReadOnly || onShareReorderRequested == null || index == shareSplits.length - 1
+                          isReadOnly ||
+                              onShareReorderRequested == null ||
+                              index == shareSplits.length - 1
                           ? null
                           : () => onShareReorderRequested?.call(split.share.id, moveUp: false),
                       onDeletionRequested: isReadOnly || onShareDeletionRequested == null
@@ -738,7 +743,9 @@ class _OcptSharingDistributionHeaderRow extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Expanded(child: Text(tr.budgetSharingParticipantColumnLabel.toUpperCase(), style: labelStyle)),
+          Expanded(
+            child: Text(tr.budgetSharingParticipantColumnLabel.toUpperCase(), style: labelStyle),
+          ),
           SizedBox(
             width: _ocptSharingPercentColumnWidth,
             child: Text(
@@ -843,7 +850,9 @@ class _OcptSharingShareRow extends StatelessWidget {
       onTap: onTap,
       mouseCursor: ocptClickableCursor,
       child: ColoredBox(
-        color: isSelected ? theme.colorScheme.primary.withValues(alpha: ocptSelectedStateAlpha) : Colors.transparent,
+        color: isSelected
+            ? theme.colorScheme.primary.withValues(alpha: ocptSelectedStateAlpha)
+            : Colors.transparent,
         child: Padding(
           padding: const EdgeInsets.symmetric(
             vertical: 8,
@@ -915,7 +924,9 @@ class _OcptSharingShareRow extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: theme.textTheme.bodySmall?.copyWith(
-                    color: isReinvestedNonZero ? theme.colorScheme.primary : theme.colorScheme.onSurfaceVariant,
+                    color: isReinvestedNonZero
+                        ? theme.colorScheme.primary
+                        : theme.colorScheme.onSurfaceVariant,
                     fontWeight: isReinvestedNonZero ? FontWeight.w600 : null,
                   ),
                 ),
@@ -937,18 +948,30 @@ class _OcptSharingShareRow extends StatelessWidget {
                         },
                         itemBuilder: (context) => [
                           if (onEditRequested != null)
-                            PopupMenuItem<String>(value: "edit", child: Text(tr.budgetFinancingEditAction)),
+                            PopupMenuItem<String>(
+                              value: "edit",
+                              child: Text(tr.budgetFinancingEditAction),
+                            ),
                           if (onPayoutRequested != null)
                             PopupMenuItem<String>(
                               value: "payout",
                               child: Text(tr.budgetSharingRecordPayoutAction),
                             ),
                           if (onMoveUpRequested != null)
-                            PopupMenuItem<String>(value: "up", child: Text(tr.budgetPosteMoveUpAction)),
+                            PopupMenuItem<String>(
+                              value: "up",
+                              child: Text(tr.budgetPosteMoveUpAction),
+                            ),
                           if (onMoveDownRequested != null)
-                            PopupMenuItem<String>(value: "down", child: Text(tr.budgetPosteMoveDownAction)),
+                            PopupMenuItem<String>(
+                              value: "down",
+                              child: Text(tr.budgetPosteMoveDownAction),
+                            ),
                           if (onDeletionRequested != null)
-                            PopupMenuItem<String>(value: "delete", child: Text(tr.budgetCommittedDeleteAction)),
+                            PopupMenuItem<String>(
+                              value: "delete",
+                              child: Text(tr.budgetCommittedDeleteAction),
+                            ),
                         ],
                       ),
               ),
@@ -977,10 +1000,7 @@ class _OcptSharingTotalRow extends StatelessWidget {
     final boldStyle = theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w700);
 
     return Padding(
-      padding: const EdgeInsets.symmetric(
-        vertical: 6,
-        horizontal: ocptTableRowHorizontalPadding,
-      ),
+      padding: const EdgeInsets.symmetric(vertical: 6, horizontal: ocptTableRowHorizontalPadding),
       child: Row(
         children: [
           Expanded(child: Text(label, style: boldStyle)),

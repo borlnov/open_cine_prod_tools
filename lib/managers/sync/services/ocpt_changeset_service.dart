@@ -59,9 +59,12 @@ class OcptChangesetService {
   }) async {
     final highWaterMark = await _outboxHighWaterMark(database: database, relayId: relayId);
 
-    final stamps = await (database.select(
-      database.ocptRowFieldVersionsTable,
-    )..where((table) => table.deviceId.equals(deviceId) & table.version.isBiggerThanValue(highWaterMark))).get();
+    final stamps =
+        await (database.select(database.ocptRowFieldVersionsTable)..where(
+              (table) =>
+                  table.deviceId.equals(deviceId) & table.version.isBiggerThanValue(highWaterMark),
+            ))
+            .get();
 
     if (stamps.isEmpty) {
       return;
@@ -131,7 +134,11 @@ class OcptChangesetService {
       ),
     );
 
-    await _advanceOutboxHighWaterMark(database: database, relayId: relayId, highWaterMark: maxVersion);
+    await _advanceOutboxHighWaterMark(
+      database: database,
+      relayId: relayId,
+      highWaterMark: maxVersion,
+    );
   }
 
   /// Applies every changeset [relayId] holds that this replica hasn't read yet to [database]'s
@@ -172,7 +179,11 @@ class OcptChangesetService {
       }
     }
 
-    await _advanceLastAppliedSequence(database: database, relayId: relayId, sequence: highestSequence);
+    await _advanceLastAppliedSequence(
+      database: database,
+      relayId: relayId,
+      sequence: highestSequence,
+    );
 
     return conflicts;
   }
@@ -187,7 +198,12 @@ class OcptChangesetService {
     required String relayId,
     required String deviceId,
   }) async {
-    await pushLocalEdits(database: database, storage: storage, relayId: relayId, deviceId: deviceId);
+    await pushLocalEdits(
+      database: database,
+      storage: storage,
+      relayId: relayId,
+      deviceId: deviceId,
+    );
     return pullAndApply(database: database, storage: storage, relayId: relayId);
   }
 
@@ -207,9 +223,12 @@ class OcptChangesetService {
   }) async {
     final highWaterMark = await _outboxHighWaterMark(database: database, relayId: relayId);
 
-    final stamps = await (database.select(
-      database.ocptRowFieldVersionsTable,
-    )..where((table) => table.deviceId.equals(deviceId) & table.version.isBiggerThanValue(highWaterMark))).get();
+    final stamps =
+        await (database.select(database.ocptRowFieldVersionsTable)..where(
+              (table) =>
+                  table.deviceId.equals(deviceId) & table.version.isBiggerThanValue(highWaterMark),
+            ))
+            .get();
 
     return stamps.length;
   }
@@ -259,7 +278,10 @@ class OcptChangesetService {
 
   /// [relayId]'s current `outboxHighWaterMark` against [database], or `0` when this replica has
   /// never pushed anything to it yet.
-  Future<int> _outboxHighWaterMark({required OcptProjectDatabase database, required String relayId}) async {
+  Future<int> _outboxHighWaterMark({
+    required OcptProjectDatabase database,
+    required String relayId,
+  }) async {
     final row = await (database.select(
       database.ocptSyncRelayCursorsTable,
     )..where((table) => table.relayId.equals(relayId))).getSingleOrNull();
@@ -315,7 +337,9 @@ class OcptChangesetService {
         "row_field_versions stamps a row '$rowId' of '${table.actualTableName}' that no longer "
         "exists",
       );
-      throw StateError("No row '$rowId' found in '${table.actualTableName}' to build a changeset from");
+      throw StateError(
+        "No row '$rowId' found in '${table.actualTableName}' to build a changeset from",
+      );
     }
 
     return row.data;

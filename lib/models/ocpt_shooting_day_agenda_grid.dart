@@ -43,7 +43,11 @@ class OcptShootingDayAgendaColumnInput {
 /// makes, for the same reason.
 class OcptShootingDayAgendaEventInput {
   /// Class constructor
-  const OcptShootingDayAgendaEventInput({required this.id, required this.minute, required this.label});
+  const OcptShootingDayAgendaEventInput({
+    required this.id,
+    required this.minute,
+    required this.label,
+  });
 
   /// The event's own id (`shooting_day_events.id`).
   final String id;
@@ -188,7 +192,8 @@ class OcptShootingDayAgendaEventMarker extends Equatable {
 
   /// Object string representation, useful for debugging and logging.
   @override
-  String toString() => "OcptShootingDayAgendaEventMarker(eventId: $eventId, placement: $placement, row: $row)";
+  String toString() =>
+      "OcptShootingDayAgendaEventMarker(eventId: $eventId, placement: $placement, row: $row)";
 
   /// Object properties
   @override
@@ -355,14 +360,18 @@ class OcptShootingDayAgendaGrid extends Equatable {
     }
 
     final eventMarkers = [
-      for (final event in events) _eventMarkerOf(event, snappedStart: snappedStart, snappedEnd: snappedEnd),
+      for (final event in events)
+        _eventMarkerOf(event, snappedStart: snappedStart, snappedEnd: snappedEnd),
     ];
 
     return OcptShootingDayAgendaGrid(
       isEmpty: false,
       startMinute: snappedStart,
       endMinute: snappedEnd,
-      columns: [for (final column in columns) OcptShootingDayAgendaColumn(slotId: column.slotId, label: column.label)],
+      columns: [
+        for (final column in columns)
+          OcptShootingDayAgendaColumn(slotId: column.slotId, label: column.label),
+      ],
       tiles: tiles,
       events: eventMarkers,
     );

@@ -483,8 +483,7 @@ class _OcptFloorPlanViewState extends State<OcptFloorPlanView> {
                       onSetElementShapeSelected: widget.onSetElementShapeSelected,
                       onSetElementScopeSelected: widget.onSetElementScopeSelected,
                       onPropChipSelected: widget.onPropChipSelected,
-                      onOtherPropRequested: () =>
-                          unawaited(_handleOtherPropRequested(context)),
+                      onOtherPropRequested: () => unawaited(_handleOtherPropRequested(context)),
                       onLayerVisibilityToggled: widget.onLayerVisibilityToggled,
                       onCameraVisibilityToggled: widget.onCameraVisibilityToggled,
                       onOnionSkinToggled: widget.onOnionSkinToggled,

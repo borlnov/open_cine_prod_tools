@@ -233,10 +233,7 @@ OcptBudgetCoveredTotal ocptBudgetRepaidContributionsTotalOf(
       if (entry.resourceId != null && reimbursableIds.contains(entry.resourceId)) entry,
   ];
 
-  return _ocptBudgetDebitTotalOf(
-    repayments,
-    projectVatRateBasisPoints: projectVatRateBasisPoints,
-  );
+  return _ocptBudgetDebitTotalOf(repayments, projectVatRateBasisPoints: projectVatRateBasisPoints);
 }
 
 /// What there is to share, and what stands between the takings and it.
@@ -307,11 +304,8 @@ OcptBudgetSharingPot ocptBudgetSharingPotOf({
   required OcptBudgetCoveredTotal received,
   required int reimbursableCents,
   required OcptBudgetCoveredTotal repaid,
-}) => OcptBudgetSharingPot(
-  received: received,
-  reimbursableCents: reimbursableCents,
-  repaid: repaid,
-);
+}) =>
+    OcptBudgetSharingPot(received: received, reimbursableCents: reimbursableCents, repaid: repaid);
 
 /// One participant's line in the split: what they are due out of the pot, what they have actually
 /// been paid, and what of their due they reinvest.

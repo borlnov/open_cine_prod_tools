@@ -42,7 +42,12 @@ const defaultRelayDbPath = 'relay.sqlite';
 /// wiring stays coverable by a plain test that never opens a socket either.
 class OcptRelayBinding {
   /// Pairs [server] with the [store] backing it and the [port] it was resolved to listen on.
-  const OcptRelayBinding({required this.server, required this.store, required this.port, required this.dbPath});
+  const OcptRelayBinding({
+    required this.server,
+    required this.store,
+    required this.port,
+    required this.dbPath,
+  });
 
   /// The constructed relay server, ready to be handed to `shelf_io.serve`.
   final OcptRelayServer server;

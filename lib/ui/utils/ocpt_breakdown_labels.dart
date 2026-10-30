@@ -103,8 +103,7 @@ OcptBreakdownSheetsLabels ocptBreakdownSheetsLabelsOf(Tr tr, List<OcptBreakdownS
       fileNameSuffix: tr.breakdownExportSheetsFileNameSuffix,
       documentTitle: tr.breakdownExportSheetsDocumentTitle,
       sceneTitles: {
-        for (final scene in scenes)
-          scene.id: tr.breakdownSceneInspectorTitle(scene.displayNumber),
+        for (final scene in scenes) scene.id: tr.breakdownSceneInspectorTitle(scene.displayNumber),
       },
       statusLabel: tr.breakdownSceneInspectorStatusLabel,
       lengthLabel: tr.breakdownExportSheetsLengthLabel,

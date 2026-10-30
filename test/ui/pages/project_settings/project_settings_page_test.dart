@@ -236,7 +236,10 @@ void main() {
   /// A finder scoped to the budget defaults section's own VAT rate field — the first of its three
   /// `TextField`s, so it can't collide with the meal and snack price fields sharing the same card.
   Finder budgetVatRateField() => find
-      .descendant(of: find.byType(OcptProjectSettingsBudgetSection), matching: find.byType(TextField))
+      .descendant(
+        of: find.byType(OcptProjectSettingsBudgetSection),
+        matching: find.byType(TextField),
+      )
       .first;
 
   /// A finder scoped to the episodes card, matching [inner] inside it alone.
@@ -398,49 +401,46 @@ void main() {
     expect(find.text(tr.projectSettingsDictionaryEmpty), findsNothing);
   });
 
-  testWidgets(
-    "the dictionary dialog's report reaches the service, and the section reflects it",
-    (tester) async {
-      final database = projectsManager.currentProject!.database;
-      await projectsManager.projectDictionaryService.learnWord(database: database, word: "Marie");
+  testWidgets("the dictionary dialog's report reaches the service, and the section reflects it", (
+    tester,
+  ) async {
+    final database = projectsManager.currentProject!.database;
+    await projectsManager.projectDictionaryService.learnWord(database: database, word: "Marie");
 
-      final bloc = await pumpView(tester);
-      final tr = Tr.of(tester.element(find.byType(OcptProjectSettingsView)));
+    final bloc = await pumpView(tester);
+    final tr = Tr.of(tester.element(find.byType(OcptProjectSettingsView)));
 
-      await tester.tap(find.widgetWithText(OutlinedButton, tr.projectSettingsDictionaryEditAction));
-      await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(OutlinedButton, tr.projectSettingsDictionaryEditAction));
+    await tester.pumpAndSettle();
 
-      expect(find.byType(OcptProjectDictionaryDialog), findsOneWidget);
+    expect(find.byType(OcptProjectDictionaryDialog), findsOneWidget);
 
-      // Remove the seeded "Marie".
-      await tester.tap(find.byTooltip(tr.projectDictionaryRemoveTooltip));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text(tr.projectDictionaryRemoveConfirmYesAction));
-      await tester.pumpAndSettle();
+    // Remove the seeded "Marie".
+    await tester.tap(find.byTooltip(tr.projectDictionaryRemoveTooltip));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(tr.projectDictionaryRemoveConfirmYesAction));
+    await tester.pumpAndSettle();
 
-      // Add a fresh word.
-      final addField = find
-          .descendant(of: find.byType(OcptProjectDictionaryDialog), matching: find.byType(TextField))
-          .last;
-      await tester.enterText(addField, "Zorglurbe");
-      await tester.tap(find.widgetWithText(FilledButton, tr.projectDictionaryAddAction));
-      await tester.pumpAndSettle();
+    // Add a fresh word.
+    final addField = find
+        .descendant(of: find.byType(OcptProjectDictionaryDialog), matching: find.byType(TextField))
+        .last;
+    await tester.enterText(addField, "Zorglurbe");
+    await tester.tap(find.widgetWithText(FilledButton, tr.projectDictionaryAddAction));
+    await tester.pumpAndSettle();
 
-      await tester.tap(find.widgetWithText(FilledButton, tr.projectDictionaryCloseAction));
-      await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(FilledButton, tr.projectDictionaryCloseAction));
+    await tester.pumpAndSettle();
 
-      expect(bloc.state.hasChanged, isTrue);
-      expect(bloc.state.dictionaryWords, ["Zorglurbe"]);
+    expect(bloc.state.hasChanged, isTrue);
+    expect(bloc.state.dictionaryWords, ["Zorglurbe"]);
 
-      final persisted = await projectsManager.projectDictionaryService.loadWords(
-        database: database,
-      );
-      expect(persisted, ["Zorglurbe"]);
+    final persisted = await projectsManager.projectDictionaryService.loadWords(database: database);
+    expect(persisted, ["Zorglurbe"]);
 
-      // The section, back on screen once the dialog closed, reflects the very same word list.
-      expect(find.text(tr.projectSettingsDictionaryWordCount(1)), findsOneWidget);
-    },
-  );
+    // The section, back on screen once the dialog closed, reflects the very same word list.
+    expect(find.text(tr.projectSettingsDictionaryWordCount(1)), findsOneWidget);
+  });
 
   testWidgets("closing the dictionary dialog with nothing touched leaves the state unchanged", (
     tester,
@@ -513,9 +513,7 @@ void main() {
     expect(await projectsManager.loadCurrentProjectMinimumRestMinutes(), isNull);
   });
 
-  testWidgets("a zero or negative minimum rest is rejected and nothing is written", (
-    tester,
-  ) async {
+  testWidgets("a zero or negative minimum rest is rejected and nothing is written", (tester) async {
     await projectsManager.saveCurrentProjectMinimumRestMinutes(90);
     final bloc = await pumpView(tester);
 
@@ -682,7 +680,8 @@ void main() {
     final upButtons = tester
         .widgetList<IconButton>(
           find.byWidgetPredicate(
-            (widget) => widget is IconButton && widget.tooltip == tr.projectSettingsEpisodeMoveUpTooltip,
+            (widget) =>
+                widget is IconButton && widget.tooltip == tr.projectSettingsEpisodeMoveUpTooltip,
           ),
         )
         .toList();
@@ -773,10 +772,7 @@ void main() {
     await pumpShortView(tester);
 
     // The very same card the reveal brings up, left below the fold of the same short surface.
-    expect(
-      tester.getTopLeft(find.byType(OcptProjectSettingsEpisodesSection)).dy,
-      greaterThan(500),
-    );
+    expect(tester.getTopLeft(find.byType(OcptProjectSettingsEpisodesSection)).dy, greaterThan(500));
   });
 
   group("the Project file card", () {

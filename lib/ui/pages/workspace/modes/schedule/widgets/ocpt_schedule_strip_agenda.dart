@@ -174,10 +174,13 @@ class _OcptScheduleStripDayCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final tr = Tr.of(context);
-    final dateLabel = DateFormat.yMMMEd(Localizations.localeOf(context).toString()).format(day.date);
+    final dateLabel = DateFormat.yMMMEd(
+      Localizations.localeOf(context).toString(),
+    ).format(day.date);
     final shotBlocks = blocks.where((block) => block.kind == OcptShootingBlockKind.shot).toList();
     final entryByBlockId = <String, OcptShootingTimelineEntry>{
-      for (final entry in timeline?.entries ?? const <OcptShootingTimelineEntry>[]) entry.blockId: entry,
+      for (final entry in timeline?.entries ?? const <OcptShootingTimelineEntry>[])
+        entry.blockId: entry,
     };
 
     return Container(
@@ -356,7 +359,9 @@ class _OcptScheduleStripShotChip extends StatelessWidget {
             const SizedBox(width: 6),
             Text(
               shot?.shotSize ?? "",
-              style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
             ),
             if (startMinute != null) ...[
               const SizedBox(width: 6),

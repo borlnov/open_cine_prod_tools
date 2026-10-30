@@ -382,10 +382,7 @@ class OcptLocationSheet extends StatelessWidget {
             style: theme.textTheme.labelLarge?.copyWith(color: color, fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: 6),
-          _buildNotesField(
-            OcptLocationField.constraintsNotes,
-            tr.resourcesLocationConstraintsHint,
-          ),
+          _buildNotesField(OcptLocationField.constraintsNotes, tr.resourcesLocationConstraintsHint),
         ],
       ),
     );

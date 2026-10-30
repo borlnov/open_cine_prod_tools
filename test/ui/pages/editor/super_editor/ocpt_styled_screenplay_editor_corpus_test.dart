@@ -46,9 +46,12 @@ void main() {
   group("OcptStyledScreenplayEditor builds every fountain_kit corpus file without crashing", () {
     final corpusDirectory = Directory("packages/fountain_kit/test/corpus");
     final corpusFiles =
-        corpusDirectory.listSync().whereType<File>().where((file) => file.path.endsWith(".fountain")).toList(
-          growable: false,
-        )..sort((a, b) => a.path.compareTo(b.path));
+        corpusDirectory
+            .listSync()
+            .whereType<File>()
+            .where((file) => file.path.endsWith(".fountain"))
+            .toList(growable: false)
+          ..sort((a, b) => a.path.compareTo(b.path));
 
     test("the corpus directory is not empty", () {
       expect(corpusFiles, isNotEmpty);

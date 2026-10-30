@@ -39,7 +39,10 @@ void main() {
     assetsService: assetsService,
     deviceId: _testDeviceId,
   );
-  const elementsService = OcptElementsService(assetsService: assetsService, deviceId: _testDeviceId);
+  const elementsService = OcptElementsService(
+    assetsService: assetsService,
+    deviceId: _testDeviceId,
+  );
   const locationsService = OcptLocationsService(
     assetsService: assetsService,
     floorPlanService: OcptFloorPlanService(assetsService: assetsService, deviceId: _testDeviceId),
@@ -125,8 +128,9 @@ Action.
     database.ocptStoryboardAnnotationsTable,
   )..where((row) => row.isDeleted.equals(false))).get();
 
-  Future<List<OcptAssetRow>> readLiveAssets() =>
-      (database.select(database.ocptAssetsTable)..where((row) => row.isDeleted.equals(false))).get();
+  Future<List<OcptAssetRow>> readLiveAssets() => (database.select(
+    database.ocptAssetsTable,
+  )..where((row) => row.isDeleted.equals(false))).get();
 
   group("loadStoryboard", () {
     test("returns an empty snapshot for a screenplay with no shots", () async {
@@ -193,9 +197,9 @@ Action.
       final firstId = (await storyboardService.addPanel(database: database, shotId: shotId))!;
       final secondId = (await storyboardService.addPanel(database: database, shotId: shotId))!;
 
-      final panels = await (database.select(database.ocptStoryboardPanelsTable)
-            ..orderBy([(row) => OrderingTerm.asc(row.sortKey)]))
-          .get();
+      final panels = await (database.select(
+        database.ocptStoryboardPanelsTable,
+      )..orderBy([(row) => OrderingTerm.asc(row.sortKey)])).get();
       expect(panels.map((row) => row.id), [firstId, secondId]);
       expect(panels.every((row) => row.imageAssetId == null), isTrue);
     });
@@ -222,35 +226,38 @@ Action.
       expect(assets.single.kind, OcptAssetKind.storyboardPanelImage);
     });
 
-    test("tombstones the previous image asset and mints a new one, keeping the panel's own id", () async {
-      final shotId = await seedShot();
-      final panelId = (await storyboardService.addPanel(database: database, shotId: shotId))!;
+    test(
+      "tombstones the previous image asset and mints a new one, keeping the panel's own id",
+      () async {
+        final shotId = await seedShot();
+        final panelId = (await storyboardService.addPanel(database: database, shotId: shotId))!;
 
-      await storyboardService.replacePanelImage(
-        database: database,
-        panelId: panelId,
-        path: "/tmp/frame-1.jpg",
-      );
-      final firstAssetId = (await readPanels()).single.imageAssetId!;
+        await storyboardService.replacePanelImage(
+          database: database,
+          panelId: panelId,
+          path: "/tmp/frame-1.jpg",
+        );
+        final firstAssetId = (await readPanels()).single.imageAssetId!;
 
-      await storyboardService.replacePanelImage(
-        database: database,
-        panelId: panelId,
-        path: "/tmp/frame-2.jpg",
-      );
+        await storyboardService.replacePanelImage(
+          database: database,
+          panelId: panelId,
+          path: "/tmp/frame-2.jpg",
+        );
 
-      final panel = (await readPanels()).single;
-      expect(panel.id, panelId);
-      expect(panel.imageAssetId, isNot(firstAssetId));
+        final panel = (await readPanels()).single;
+        expect(panel.id, panelId);
+        expect(panel.imageAssetId, isNot(firstAssetId));
 
-      final liveAssets = await readLiveAssets();
-      expect(liveAssets, hasLength(1));
-      expect(liveAssets.single.path, "/tmp/frame-2.jpg");
+        final liveAssets = await readLiveAssets();
+        expect(liveAssets, hasLength(1));
+        expect(liveAssets.single.path, "/tmp/frame-2.jpg");
 
-      final allAssets = await database.select(database.ocptAssetsTable).get();
-      final tombstoned = allAssets.singleWhere((row) => row.id == firstAssetId);
-      expect(tombstoned.isDeleted, isTrue);
-    });
+        final allAssets = await database.select(database.ocptAssetsTable).get();
+        final tombstoned = allAssets.singleWhere((row) => row.id == firstAssetId);
+        expect(tombstoned.isDeleted, isTrue);
+      },
+    );
   });
 
   group("reorderPanel", () {
@@ -260,9 +267,7 @@ Action.
       final secondId = (await storyboardService.addPanel(database: database, shotId: shotId))!;
       final thirdId = (await storyboardService.addPanel(database: database, shotId: shotId))!;
 
-      final sortKeysBefore = {
-        for (final row in await readPanels()) row.id: row.sortKey,
-      };
+      final sortKeysBefore = {for (final row in await readPanels()) row.id: row.sortKey};
 
       await storyboardService.reorderPanel(database: database, panelId: thirdId, newPosition: 0);
 
@@ -273,8 +278,9 @@ Action.
       expect(sortKeysAfter[secondId], sortKeysBefore[secondId]);
       expect(sortKeysAfter[thirdId], isNot(sortKeysBefore[thirdId]));
 
-      final orderedIds = (panels..sort((a, b) => a.sortKey.compareTo(b.sortKey)))
-          .map((row) => row.id);
+      final orderedIds = (panels..sort((a, b) => a.sortKey.compareTo(b.sortKey))).map(
+        (row) => row.id,
+      );
       expect(orderedIds, [thirdId, firstId, secondId]);
     });
   });

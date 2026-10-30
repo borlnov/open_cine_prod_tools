@@ -125,9 +125,9 @@ void main() {
 
     test("is refused on the database of a version being previewed", () async {
       final preview = OcptProjectDatabase.memory(isPreview: true);
-      await preview.into(preview.ocptProjectDictionaryWordsTable).insert(
-        OcptProjectDictionaryWordsTableCompanion.insert(id: "word-1", word: "Clara"),
-      );
+      await preview
+          .into(preview.ocptProjectDictionaryWordsTable)
+          .insert(OcptProjectDictionaryWordsTableCompanion.insert(id: "word-1", word: "Clara"));
 
       await service.unlearnWord(database: preview, word: "Clara");
 

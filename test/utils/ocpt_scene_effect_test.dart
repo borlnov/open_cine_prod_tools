@@ -47,23 +47,16 @@ void main() {
       expect(effect.timeOfDay, OcptSceneTimeOfDay.day);
     });
 
-    test(
-      'an EST prefix reads as exterior, the same variant the call sheet already accepted',
-      () {
-        final effect = ocptSceneEffectOf('EST. JARDIN - JOUR');
+    test('an EST prefix reads as exterior, the same variant the call sheet already accepted', () {
+      final effect = ocptSceneEffectOf('EST. JARDIN - JOUR');
 
-        // Printed as "EXT", not "EST": the call sheet's own reading normalises the variant, exactly
-        // as the pre-refactor `_effectOf` already did.
-        expect(effect.printedEffect, 'EXT / JOUR');
-        expect(effect.place, OcptScenePlace.exterior);
-      },
-    );
+      // Printed as "EXT", not "EST": the call sheet's own reading normalises the variant, exactly
+      // as the pre-refactor `_effectOf` already did.
+      expect(effect.printedEffect, 'EXT / JOUR');
+      expect(effect.place, OcptScenePlace.exterior);
+    });
 
-    for (final prefix in [
-      'INT./EXT. VOITURE',
-      'INT/EXT. VOITURE',
-      'I/E. VOITURE',
-    ]) {
+    for (final prefix in ['INT./EXT. VOITURE', 'INT/EXT. VOITURE', 'I/E. VOITURE']) {
       test('an "$prefix" heading prints INT/EXT but classifies no place', () {
         final effect = ocptSceneEffectOf('$prefix - JOUR');
 
@@ -73,26 +66,20 @@ void main() {
       });
     }
 
-    test(
-      'an unrecognised time-of-day word classifies no time of day, but still prints',
-      () {
-        final effect = ocptSceneEffectOf('INT. CUISINE - DAWN');
+    test('an unrecognised time-of-day word classifies no time of day, but still prints', () {
+      final effect = ocptSceneEffectOf('INT. CUISINE - DAWN');
 
-        expect(effect.printedEffect, 'INT / DAWN');
-        expect(effect.place, OcptScenePlace.interior);
-        expect(effect.timeOfDay, isNull);
-      },
-    );
+      expect(effect.printedEffect, 'INT / DAWN');
+      expect(effect.place, OcptScenePlace.interior);
+      expect(effect.timeOfDay, isNull);
+    });
 
-    test(
-      'a heading naming neither INT nor EXT keeps its own prefix verbatim, unclassified',
-      () {
-        final effect = ocptSceneEffectOf('CUISINE - JOUR');
+    test('a heading naming neither INT nor EXT keeps its own prefix verbatim, unclassified', () {
+      final effect = ocptSceneEffectOf('CUISINE - JOUR');
 
-        expect(effect.printedEffect, 'CUISINE / JOUR');
-        expect(effect.place, isNull);
-      },
-    );
+      expect(effect.printedEffect, 'CUISINE / JOUR');
+      expect(effect.place, isNull);
+    });
 
     test('a heading with no " - " split reads as nothing at all', () {
       final effect = ocptSceneEffectOf('INT. CUISINE');
@@ -116,18 +103,11 @@ void main() {
       expect(ocptSceneEffectCategoryOf(const []), isNull);
     });
 
-    test(
-      'a list of only unclassifiable headings classifies as null (nothing to say)',
-      () {
-        final category = ocptSceneEffectCategoryOf([
-          'INT. CUISINE - DAWN',
-          'no split here',
-          null,
-        ]);
+    test('a list of only unclassifiable headings classifies as null (nothing to say)', () {
+      final category = ocptSceneEffectCategoryOf(['INT. CUISINE - DAWN', 'no split here', null]);
 
-        expect(category, isNull);
-      },
-    );
+      expect(category, isNull);
+    });
 
     test('every classifiable heading agreeing reads as that one category', () {
       final category = ocptSceneEffectCategoryOf([
@@ -140,31 +120,16 @@ void main() {
     });
 
     test('two disagreeing classifiable headings read as mixed', () {
-      final category = ocptSceneEffectCategoryOf([
-        'INT. CUISINE - JOUR',
-        'EXT. RUE - NUIT',
-      ]);
+      final category = ocptSceneEffectCategoryOf(['INT. CUISINE - JOUR', 'EXT. RUE - NUIT']);
 
       expect(category, OcptSceneEffectCategory.mixed);
     });
 
     test('every one of the four categories is reachable', () {
-      expect(
-        ocptSceneEffectCategoryOf(['INT. A - JOUR']),
-        OcptSceneEffectCategory.interiorDay,
-      );
-      expect(
-        ocptSceneEffectCategoryOf(['INT. A - NUIT']),
-        OcptSceneEffectCategory.interiorNight,
-      );
-      expect(
-        ocptSceneEffectCategoryOf(['EXT. A - JOUR']),
-        OcptSceneEffectCategory.exteriorDay,
-      );
-      expect(
-        ocptSceneEffectCategoryOf(['EXT. A - NUIT']),
-        OcptSceneEffectCategory.exteriorNight,
-      );
+      expect(ocptSceneEffectCategoryOf(['INT. A - JOUR']), OcptSceneEffectCategory.interiorDay);
+      expect(ocptSceneEffectCategoryOf(['INT. A - NUIT']), OcptSceneEffectCategory.interiorNight);
+      expect(ocptSceneEffectCategoryOf(['EXT. A - JOUR']), OcptSceneEffectCategory.exteriorDay);
+      expect(ocptSceneEffectCategoryOf(['EXT. A - NUIT']), OcptSceneEffectCategory.exteriorNight);
     });
   });
 }

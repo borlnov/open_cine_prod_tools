@@ -218,7 +218,10 @@ OcptStyledTitlePageMetrics computeOcptStyledTitlePageMetrics({
     final fieldWidth = fieldLayout.maxWidth - fieldLayout.left - fieldLayout.right;
     final columnWidth = layout.glyphWidth * fieldLayout.fontScale;
     final maxColumns = (fieldWidth / columnWidth).floor();
-    final wrappedLines = OcptEditorPreviewLayout.wrappedLineCount(node.text.toPlainText(), maxColumns);
+    final wrappedLines = OcptEditorPreviewLayout.wrappedLineCount(
+      node.text.toPlainText(),
+      maxColumns,
+    );
     final lineContribution = wrappedLines * layout.lineHeight * fieldLayout.fontScale;
     flowHeight += lineContribution;
     if (key == "Draft date") {

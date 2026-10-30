@@ -434,7 +434,10 @@ class _OcptHostingPeerChip extends StatelessWidget {
         Container(
           width: 8,
           height: 8,
-          decoration: BoxDecoration(color: ocptPresenceColor(frame.deviceId), shape: BoxShape.circle),
+          decoration: BoxDecoration(
+            color: ocptPresenceColor(frame.deviceId),
+            shape: BoxShape.circle,
+          ),
         ),
         const SizedBox(width: 6),
         Text(_peerLabel(frame), style: theme.textTheme.bodySmall),

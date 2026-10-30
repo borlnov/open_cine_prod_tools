@@ -52,10 +52,7 @@ class OcptJoiningScanFrame extends StatelessWidget {
         border: Border.all(color: _colorFor(theme), width: 3),
         borderRadius: BorderRadius.circular(ocptRadiusMedium),
       ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(ocptRadiusMedium - 3),
-        child: child,
-      ),
+      child: ClipRRect(borderRadius: BorderRadius.circular(ocptRadiusMedium - 3), child: child),
     );
   }
 

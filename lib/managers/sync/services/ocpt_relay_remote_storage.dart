@@ -79,7 +79,8 @@ class OcptRelayRemoteStorage implements OcptRemoteStorage {
        // is the only place this transport runs.
        _webSocketConnector =
            webSocketConnector ??
-           ((uri) => IOWebSocketChannel.connect(uri, headers: {_authorizationHeader: 'Bearer $token'}));
+           ((uri) =>
+               IOWebSocketChannel.connect(uri, headers: {_authorizationHeader: 'Bearer $token'}));
 
   static const _authorizationHeader = 'Authorization';
   static const _enrolmentSecretHeader = 'X-Ocpt-Enrolment-Secret';
@@ -181,7 +182,9 @@ class OcptRelayRemoteStorage implements OcptRemoteStorage {
       return null;
     }
     final json = _decodeObjectOrThrow(response);
-    final descriptor = OcptSnapshotDescriptor.fromJson(json[_descriptorKey] as Map<String, dynamic>);
+    final descriptor = OcptSnapshotDescriptor.fromJson(
+      json[_descriptorKey] as Map<String, dynamic>,
+    );
     final bytes = base64Decode(json[_bytesKey] as String);
 
     return (descriptor, bytes);

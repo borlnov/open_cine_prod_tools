@@ -70,10 +70,8 @@ class OcptShotListRightDock extends StatelessWidget {
                         label: switch (tab) {
                           OcptShotListRightDockTab.inspector =>
                             tr.shotListRightDockInspectorTabLabel,
-                          OcptShotListRightDockTab.metadata =>
-                            tr.shotListRightDockMetadataTabLabel,
-                          OcptShotListRightDockTab.versions =>
-                            tr.shotListRightDockVersionsTabLabel,
+                          OcptShotListRightDockTab.metadata => tr.shotListRightDockMetadataTabLabel,
+                          OcptShotListRightDockTab.versions => tr.shotListRightDockVersionsTabLabel,
                         },
                         isActive: activeTab == tab,
                         onTap: () => onTabSelected(tab),

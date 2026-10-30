@@ -698,7 +698,10 @@ class OcptScheduleBlockDurationChangedEvent extends OcptScheduleEvent {
   final int? durationMinutes;
 
   /// Class constructor
-  const OcptScheduleBlockDurationChangedEvent({required this.blockId, required this.durationMinutes});
+  const OcptScheduleBlockDurationChangedEvent({
+    required this.blockId,
+    required this.durationMinutes,
+  });
 
   /// Object properties
   @override

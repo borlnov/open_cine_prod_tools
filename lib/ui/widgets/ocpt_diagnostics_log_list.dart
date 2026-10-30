@@ -52,7 +52,10 @@ class OcptDiagnosticsLogList extends StatelessWidget {
       return entries;
     }
 
-    return [for (final entry in entries) if (wanted.contains(entry.category)) entry];
+    return [
+      for (final entry in entries)
+        if (wanted.contains(entry.category)) entry,
+    ];
   }
 
   @override
@@ -106,9 +109,7 @@ class _OcptDiagnosticsBody extends StatelessWidget {
               icon: const Icon(Icons.copy_outlined),
               onPressed: entries.isEmpty
                   ? null
-                  : () => unawaited(
-                      Clipboard.setData(ClipboardData(text: _joinedText(entries))),
-                    ),
+                  : () => unawaited(Clipboard.setData(ClipboardData(text: _joinedText(entries)))),
             ),
             IconButton(
               tooltip: tr.diagnosticsClearTooltip,

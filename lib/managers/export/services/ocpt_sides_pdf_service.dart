@@ -184,12 +184,20 @@ class OcptSidesPdfService {
       runs.add((screenplayId: pair.screenplayId, layout: layout));
     }
 
-    final versionLine = "${labels.versionLabel} ${ocptScheduleGeneratedAtStamp(exportDate ?? DateTime.now())}";
+    final versionLine =
+        "${labels.versionLabel} ${ocptScheduleGeneratedAtStamp(exportDate ?? DateTime.now())}";
     final pdfDocument = pw.Document();
 
     if (runs.isEmpty) {
       pdfDocument.addPage(
-        _notePage(painter: painter, labels: labels, plan: plan, dayId: dayId, projectName: projectName, versionLine: versionLine),
+        _notePage(
+          painter: painter,
+          labels: labels,
+          plan: plan,
+          dayId: dayId,
+          projectName: projectName,
+          versionLine: versionLine,
+        ),
       );
       return pdfDocument.save();
     }
@@ -260,7 +268,12 @@ class OcptSidesPdfService {
     _rightAlignedRunningText(
       painter: painter,
       topPt: _runningHeadTopInches * ocptPdfPointsPerInch,
-      text: _pageIdentityOf(labels: labels, sidesPage: sidesPage, pageIndex: pageIndex, pageCount: pageCount),
+      text: _pageIdentityOf(
+        labels: labels,
+        sidesPage: sidesPage,
+        pageIndex: pageIndex,
+        pageCount: pageCount,
+      ),
     ),
     _leftAlignedRunningText(
       painter: painter,
@@ -331,7 +344,9 @@ class OcptSidesPdfService {
     } else {
       final tag = "${labels.dayTagPrefix}${day.dayNumber}";
       final title = labels.dayTitle.trim();
-      base = title.isEmpty ? "${labels.documentTitle} · $tag" : "${labels.documentTitle} · $tag — $title";
+      base = title.isEmpty
+          ? "${labels.documentTitle} · $tag"
+          : "${labels.documentTitle} · $tag — $title";
     }
 
     final episodeLabel = screenplayId == null ? "" : labels.episodeLabelOf(screenplayId).trim();
@@ -358,8 +373,11 @@ class OcptSidesPdfService {
   }
 
   /// The shared text style every running-head and running-foot line is drawn with.
-  pw.TextStyle _runningStyle(OcptScriptPagePainter painter) =>
-      pw.TextStyle(font: painter.fonts.regular, fontSize: _runningTextFontSizePt, color: _mutedColor);
+  pw.TextStyle _runningStyle(OcptScriptPagePainter painter) => pw.TextStyle(
+    font: painter.fonts.regular,
+    fontSize: _runningTextFontSizePt,
+    color: _mutedColor,
+  );
 
   /// A single portrait note page: the running head and foot exactly as every other page carries
   /// them, then [OcptSidesLabels.emptyDayNote] alone — what a day whose scenes fold down to no page

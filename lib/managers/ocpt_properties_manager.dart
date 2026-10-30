@@ -138,9 +138,7 @@ class OcptPropertiesManager extends AbstractPropertiesManager
   /// Kept separate from [editorRightDockFraction] and [shotListRightDockFraction] for the same
   /// reason. Loading it returns null if nothing has been stored yet, which is equivalent to
   /// `OcptWorkspaceDock.rightDefaultFraction`, applied at the call site.
-  final resourcesRightDockFraction = SharedPreferencesItem<double>(
-    "RESOURCES_RIGHT_DOCK_FRACTION",
-  );
+  final resourcesRightDockFraction = SharedPreferencesItem<double>("RESOURCES_RIGHT_DOCK_FRACTION");
 
   /// This is the key used to store the breakdown mode's left (scenes) dock width, as a fraction of
   /// its editing row width.
@@ -158,9 +156,7 @@ class OcptPropertiesManager extends AbstractPropertiesManager
   /// [resourcesRightDockFraction] for the same reason. Loading it returns null if nothing has been
   /// stored yet, which is equivalent to `OcptWorkspaceDock.rightDefaultFraction`, applied at the
   /// call site.
-  final breakdownRightDockFraction = SharedPreferencesItem<double>(
-    "BREAKDOWN_RIGHT_DOCK_FRACTION",
-  );
+  final breakdownRightDockFraction = SharedPreferencesItem<double>("BREAKDOWN_RIGHT_DOCK_FRACTION");
 
   /// This is the key used to store the tab the breakdown mode's right dock last showed, so
   /// reopening the dock brings it back where the user left it.
@@ -189,9 +185,7 @@ class OcptPropertiesManager extends AbstractPropertiesManager
   /// [resourcesRightDockFraction] and [breakdownRightDockFraction] for the same reason. Loading it
   /// returns null if nothing has been stored yet, which is equivalent to
   /// `OcptWorkspaceDock.rightDefaultFraction`, applied at the call site.
-  final scheduleRightDockFraction = SharedPreferencesItem<double>(
-    "SCHEDULE_RIGHT_DOCK_FRACTION",
-  );
+  final scheduleRightDockFraction = SharedPreferencesItem<double>("SCHEDULE_RIGHT_DOCK_FRACTION");
 
   /// This is the key used to store the tab the schedule mode's right dock last showed, so
   /// reopening the dock brings it back where the user left it.
@@ -385,8 +379,10 @@ class OcptPropertiesManager extends AbstractPropertiesManager
   static List<OcptRecentProjectModel>? _parseRecentProjects(String value) {
     final jsonList = JsonUtility.parseJsonArrayBodyToArray(value, logger: appLogger());
     if (jsonList == null) {
-      appLogger().w("The recent projects stored in the local storage isn't a JSON array, we "
-          "can't convert it");
+      appLogger().w(
+        "The recent projects stored in the local storage isn't a JSON array, we "
+        "can't convert it",
+      );
       return null;
     }
 
@@ -415,8 +411,10 @@ class OcptPropertiesManager extends AbstractPropertiesManager
       }
     }
 
-    appLogger().w("The editor mode stored in the local storage: $value, isn't a known editor "
-        "mode, we can't convert it");
+    appLogger().w(
+      "The editor mode stored in the local storage: $value, isn't a known editor "
+      "mode, we can't convert it",
+    );
     return null;
   }
 
@@ -430,8 +428,10 @@ class OcptPropertiesManager extends AbstractPropertiesManager
       }
     }
 
-    appLogger().w("The first weekday stored in the local storage: $value, isn't a known first "
-        "weekday, we can't convert it");
+    appLogger().w(
+      "The first weekday stored in the local storage: $value, isn't a known first "
+      "weekday, we can't convert it",
+    );
     return null;
   }
 
@@ -470,8 +470,10 @@ class OcptPropertiesManager extends AbstractPropertiesManager
       }
     }
 
-    appLogger().w("The shot list right dock tab stored in the local storage: $value, isn't a "
-        "known tab, we can't convert it");
+    appLogger().w(
+      "The shot list right dock tab stored in the local storage: $value, isn't a "
+      "known tab, we can't convert it",
+    );
     return null;
   }
 
@@ -485,8 +487,10 @@ class OcptPropertiesManager extends AbstractPropertiesManager
       }
     }
 
-    appLogger().w("The shot list centre view stored in the local storage: $value, isn't a "
-        "known view, we can't convert it");
+    appLogger().w(
+      "The shot list centre view stored in the local storage: $value, isn't a "
+      "known view, we can't convert it",
+    );
     return null;
   }
 
@@ -500,8 +504,10 @@ class OcptPropertiesManager extends AbstractPropertiesManager
       }
     }
 
-    appLogger().w("The breakdown right dock tab stored in the local storage: $value, isn't a "
-        "known tab, we can't convert it");
+    appLogger().w(
+      "The breakdown right dock tab stored in the local storage: $value, isn't a "
+      "known tab, we can't convert it",
+    );
     return null;
   }
 
@@ -515,8 +521,10 @@ class OcptPropertiesManager extends AbstractPropertiesManager
       }
     }
 
-    appLogger().w("The schedule right dock tab stored in the local storage: $value, isn't a "
-        "known tab, we can't convert it");
+    appLogger().w(
+      "The schedule right dock tab stored in the local storage: $value, isn't a "
+      "known tab, we can't convert it",
+    );
     return null;
   }
 
@@ -530,8 +538,10 @@ class OcptPropertiesManager extends AbstractPropertiesManager
       }
     }
 
-    appLogger().w("The budget right dock tab stored in the local storage: $value, isn't a "
-        "known tab, we can't convert it");
+    appLogger().w(
+      "The budget right dock tab stored in the local storage: $value, isn't a "
+      "known tab, we can't convert it",
+    );
     return null;
   }
 
@@ -541,8 +551,10 @@ class OcptPropertiesManager extends AbstractPropertiesManager
   static FountainPageMargins? _parsePageMargins(String value) {
     final json = JsonUtility.parseJsonBodyToObj(value, logger: appLogger());
     if (json == null) {
-      appLogger().w("The page margins stored in the local storage isn't a JSON object, we can't "
-          "convert it");
+      appLogger().w(
+        "The page margins stored in the local storage isn't a JSON object, we can't "
+        "convert it",
+      );
       return null;
     }
 

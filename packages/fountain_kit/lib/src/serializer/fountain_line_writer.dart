@@ -36,9 +36,7 @@ import 'package:fountain_kit/src/parser/fountain_line_classifier.dart';
 /// codec that calls this class).
 class FountainLineWriter {
   /// Creates a [FountainLineWriter].
-  const FountainLineWriter({
-    this.classifier = const FountainLineClassifier(),
-  });
+  const FountainLineWriter({this.classifier = const FountainLineClassifier()});
 
   /// The classifier used to decide whether a candidate line needs a forcing
   /// marker to (re-)classify as its intended type.
@@ -77,8 +75,7 @@ class FountainLineWriter {
             'are represented as ocptBlankLinesBefore metadata, not as a '
             'written line',
       ),
-      FountainLineType.dialogue ||
-      FountainLineType.parenthetical => text,
+      FountainLineType.dialogue || FountainLineType.parenthetical => text,
       FountainLineType.pageBreak => '===',
       FountainLineType.centeredText => '> $text <',
       FountainLineType.sceneHeading => _writeWithPrefixMarker(
@@ -152,12 +149,7 @@ class FountainLineWriter {
     required String? nextRawLine,
   }) {
     final autoDetects =
-        classifier.classifyLine(
-          text,
-          previousType: previousType,
-          nextRawLine: nextRawLine,
-        ) ==
-        type;
+        classifier.classifyLine(text, previousType: previousType, nextRawLine: nextRawLine) == type;
     if (autoDetects && !hadForcingMarker) {
       return text;
     }

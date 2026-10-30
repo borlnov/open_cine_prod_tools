@@ -25,14 +25,8 @@ Widget _wrapInApp(Widget child) => MaterialApp(
 );
 
 /// A set carrying nothing but a name, enough to be counted on a row.
-OcptSet _set(String id) => OcptSet(
-  id: id,
-  locationId: "l1",
-  code: "",
-  name: id,
-  notes: "",
-  sceneIds: const [],
-);
+OcptSet _set(String id) =>
+    OcptSet(id: id, locationId: "l1", code: "", name: id, notes: "", sceneIds: const []);
 
 /// A location with only the fields a row of the list reads.
 OcptLocation _location({
@@ -112,14 +106,20 @@ void main() {
   });
 
   testWidgets("a location with no city reads its set count alone", (tester) async {
-    await pumpList(tester, locations: [_location(id: "l1", name: "Le hangar")]);
+    await pumpList(
+      tester,
+      locations: [_location(id: "l1", name: "Le hangar")],
+    );
 
     // No leading separator: it would read as a word missing rather than as an empty city.
     expect(find.text("0 sets"), findsOneWidget);
   });
 
   testWidgets("a location with no name yet reads as unnamed rather than blank", (tester) async {
-    await pumpList(tester, locations: [_location(id: "l1", name: "")]);
+    await pumpList(
+      tester,
+      locations: [_location(id: "l1", name: "")],
+    );
 
     expect(find.text("Unnamed location"), findsOneWidget);
   });

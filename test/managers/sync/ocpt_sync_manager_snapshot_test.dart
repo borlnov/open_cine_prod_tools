@@ -66,7 +66,8 @@ class _FakeRemoteStorage implements OcptRemoteStorage {
   final StreamController<void> _newWorkController = StreamController<void>.broadcast();
 
   @override
-  Future<OcptSequenceNumber> append(OcptChangesetEnvelope envelope) async => OcptSequenceNumber.zero;
+  Future<OcptSequenceNumber> append(OcptChangesetEnvelope envelope) async =>
+      OcptSequenceNumber.zero;
 
   @override
   Future<List<OcptStoredChangeset>> readSince(OcptSequenceNumber cursor) async => const [];
@@ -241,7 +242,9 @@ void main() {
 
       final info = await joinedDatabase.select(joinedDatabase.ocptProjectInfoTable).getSingle();
       expect(info.name, 'Les Vagues');
-      final screenplay = await joinedDatabase.select(joinedDatabase.ocptScreenplaysTable).getSingle();
+      final screenplay = await joinedDatabase
+          .select(joinedDatabase.ocptScreenplaysTable)
+          .getSingle();
       expect(screenplay.fountainText, 'INT. HOUSE - DAY\n\nA quiet morning.');
 
       final pairing = await pairingService.loadPairing(

@@ -54,16 +54,19 @@ void main() {
       expect(stored?.map((project) => project.path).toList(), ["/c", "/b", "/a"]);
     });
 
-    test('addRecentProject moves an already known path to the front instead of duplicating it', () async {
-      await manager.addRecentProject(_projectAt("/a"));
-      await manager.addRecentProject(_projectAt("/b"));
-      await manager.addRecentProject(_projectAt("/a", lastOpenedAt: DateTime.utc(2026, 2)));
+    test(
+      'addRecentProject moves an already known path to the front instead of duplicating it',
+      () async {
+        await manager.addRecentProject(_projectAt("/a"));
+        await manager.addRecentProject(_projectAt("/b"));
+        await manager.addRecentProject(_projectAt("/a", lastOpenedAt: DateTime.utc(2026, 2)));
 
-      final stored = await manager.recentProjects.load();
+        final stored = await manager.recentProjects.load();
 
-      expect(stored?.map((project) => project.path).toList(), ["/a", "/b"]);
-      expect(stored?.first.lastOpenedAt, DateTime.utc(2026, 2));
-    });
+        expect(stored?.map((project) => project.path).toList(), ["/a", "/b"]);
+        expect(stored?.first.lastOpenedAt, DateTime.utc(2026, 2));
+      },
+    );
 
     test('addRecentProject caps the list at 10 entries, dropping the oldest ones', () async {
       for (var i = 0; i < 12; i++) {
@@ -144,13 +147,16 @@ void main() {
       expect(await manager.deviceId.load(), isNull);
     });
 
-    test('loadOrCreateDeviceId mints one, stores it, and returns the same one afterwards', () async {
-      final minted = await manager.loadOrCreateDeviceId();
+    test(
+      'loadOrCreateDeviceId mints one, stores it, and returns the same one afterwards',
+      () async {
+        final minted = await manager.loadOrCreateDeviceId();
 
-      expect(minted, isNotEmpty);
-      expect(await manager.deviceId.load(), minted);
-      expect(await manager.loadOrCreateDeviceId(), minted);
-    });
+        expect(minted, isNotEmpty);
+        expect(await manager.deviceId.load(), minted);
+        expect(await manager.loadOrCreateDeviceId(), minted);
+      },
+    );
 
     test('loadOrCreateDeviceId keeps an id already stored rather than minting a new one', () async {
       await manager.deviceId.store("an-existing-device-id");

@@ -43,13 +43,11 @@ class ScriptFountainEmitter {
   /// Creates a [ScriptFountainEmitter].
   const ScriptFountainEmitter();
 
-  static const FountainInlineSerializer _inlineSerializer =
-      FountainInlineSerializer();
+  static const FountainInlineSerializer _inlineSerializer = FountainInlineSerializer();
 
   static const FountainLineWriter _lineWriter = FountainLineWriter();
 
-  static const FountainTitlePageWriter _titlePageWriter =
-      FountainTitlePageWriter();
+  static const FountainTitlePageWriter _titlePageWriter = FountainTitlePageWriter();
 
   /// Matches a line a Fountain parser would read as the first key of a
   /// title page, mirroring `FountainParser`'s own rule.
@@ -98,9 +96,7 @@ class ScriptFountainEmitter {
           text: rawTexts[index],
           type: kept[index].type,
           hadForcingMarker:
-              index == 0 &&
-              entries.isEmpty &&
-              _looksLikeTitlePageKey(rawTexts[index]),
+              index == 0 && entries.isEmpty && _looksLikeTitlePageKey(rawTexts[index]),
           previousType: previousType,
           nextRawLine: nextRawLine,
         ),
@@ -108,11 +104,7 @@ class ScriptFountainEmitter {
     }
 
     final body = outputLines.isEmpty ? '' : '${outputLines.join('\n')}\n';
-    return _titlePageWriter.apply(
-      source: body,
-      existingRange: null,
-      entries: entries,
-    );
+    return _titlePageWriter.apply(source: body, existingRange: null, entries: entries);
   }
 
   /// The plain text [FountainLineWriter.writeLine] is handed for [line]:
@@ -149,8 +141,7 @@ class ScriptFountainEmitter {
   /// rule anyway — are unaffected: a screenplay whose very first line is a
   /// bare line of dialogue holding a colon cannot be written in Fountain at
   /// all.
-  bool _looksLikeTitlePageKey(String rawText) =>
-      _titlePageKey.hasMatch(rawText);
+  bool _looksLikeTitlePageKey(String rawText) => _titlePageKey.hasMatch(rawText);
 
   /// How many blank source lines each of [lines] is preceded by: one, to
   /// separate it from the block before, unless it continues that block.
@@ -170,8 +161,7 @@ class ScriptFountainEmitter {
 
     final type = lines[index].type;
     final isDialogueBody =
-        type == FountainLineType.dialogue ||
-        type == FountainLineType.parenthetical;
+        type == FountainLineType.dialogue || type == FountainLineType.parenthetical;
     return isDialogueBody && _isDialogueBlockMember(lines[index - 1].type);
   }
 

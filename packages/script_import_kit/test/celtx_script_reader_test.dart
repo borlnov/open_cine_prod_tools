@@ -18,11 +18,7 @@ const String _scriptFileName = 'script-a1b2c3.html';
 ///
 /// Neither is given by default, so that a test about the body of a
 /// screenplay is not read against a title page it never asked for.
-String _manifest({
-  String? title,
-  String? creator,
-  String scriptFileName = _scriptFileName,
-}) {
+String _manifest({String? title, String? creator, String scriptFileName = _scriptFileName}) {
   final metadata = [
     if (title != null) 'dc:title="$title"',
     if (creator != null) 'dc:creator="$creator"',
@@ -60,10 +56,8 @@ Uint8List _container(Map<String, String> entries) {
 
 /// A whole `.celtx` file holding [body] as its script document, under
 /// [manifest].
-Uint8List _celtx(String body, {String? manifest}) => _container({
-  'project.rdf': manifest ?? _manifest(),
-  _scriptFileName: _scriptDocument(body),
-});
+Uint8List _celtx(String body, {String? manifest}) =>
+    _container({'project.rdf': manifest ?? _manifest(), _scriptFileName: _scriptDocument(body)});
 
 /// Reads a `.celtx` holding [body] as Fountain text.
 String _readBody(String body) => const CeltxScriptReader().read(_celtx(body));
@@ -86,25 +80,16 @@ ScriptImportFailure _failureOf(Uint8List bytes) {
 void main() {
   group('paragraph classes', () {
     test('a scene heading keeps its INT./EXT. form', () {
-      expect(
-        _readBody(_paragraph('sceneheading', 'INT. KITCHEN - DAY')),
-        'INT. KITCHEN - DAY\n',
-      );
+      expect(_readBody(_paragraph('sceneheading', 'INT. KITCHEN - DAY')), 'INT. KITCHEN - DAY\n');
     });
 
     test('a scene heading carries its scenenumber as a "#N#" tag', () {
       final text = _readBody(
-        _paragraph(
-          'sceneheading',
-          'INT. KITCHEN - DAY',
-          attributes: ' scenenumber="4A"',
-        ),
+        _paragraph('sceneheading', 'INT. KITCHEN - DAY', attributes: ' scenenumber="4A"'),
       );
 
       expect(text, 'INT. KITCHEN - DAY #4A#\n');
-      final heading =
-          const FountainParser().parse(text).blocks.single
-              as FountainSceneHeading;
+      final heading = const FountainParser().parse(text).blocks.single as FountainSceneHeading;
       expect(heading.sceneNumber, '4A');
       expect(heading.headingText, 'INT. KITCHEN - DAY');
     });
@@ -142,19 +127,13 @@ She puts the kettle down.
 
 CUT TO:
 ''');
-      expect(
-        const FountainParser().parse(text).blocks.last,
-        isA<FountainTransition>(),
-      );
+      expect(const FountainParser().parse(text).blocks.last, isA<FountainTransition>());
     });
 
     test('an act break is centered', () {
       expect(
         _readBody(
-          [
-            _paragraph('act', 'ACT ONE'),
-            _paragraph('actbreak', 'END OF ACT ONE'),
-          ].join('\n'),
+          [_paragraph('act', 'ACT ONE'), _paragraph('actbreak', 'END OF ACT ONE')].join('\n'),
         ),
         '''
 > ACT ONE <
@@ -221,16 +200,11 @@ Then she does not.
 
   group('inside a paragraph', () {
     test('a <br> splits the paragraph into lines of one same block', () {
-      expect(
-        _readBody(
-          _paragraph('action', 'She waits.<br>Then she does not.<br>Ever.'),
-        ),
-        '''
+      expect(_readBody(_paragraph('action', 'She waits.<br>Then she does not.<br>Ever.')), '''
 She waits.
 Then she does not.
 Ever.
-''',
-      );
+''');
     });
 
     test('a <br> at the end of a paragraph adds no line', () {
@@ -239,21 +213,14 @@ Ever.
 
     test('bold, italic and underline become their Fountain markers', () {
       expect(
-        _readBody(
-          _paragraph(
-            'action',
-            'She <b>waits</b>, <i>quietly</i>, and <u>alone</u>.',
-          ),
-        ),
+        _readBody(_paragraph('action', 'She <b>waits</b>, <i>quietly</i>, and <u>alone</u>.')),
         'She **waits**, *quietly*, and _alone_.\n',
       );
     });
 
     test('<strong> and <em> are read as bold and italic too', () {
       expect(
-        _readBody(
-          _paragraph('action', 'She <strong>waits</strong>, <em>still</em>.'),
-        ),
+        _readBody(_paragraph('action', 'She <strong>waits</strong>, <em>still</em>.')),
         'She **waits**, *still*.\n',
       );
     });
@@ -267,27 +234,17 @@ Ever.
 
     test('an element Fountain has no marker for keeps its text', () {
       expect(
-        _readBody(
-          _paragraph(
-            'action',
-            'She waits <span class="rev">by the door</span>.',
-          ),
-        ),
+        _readBody(_paragraph('action', 'She waits <span class="rev">by the door</span>.')),
         'She waits by the door.\n',
       );
     });
 
-    test(
-      'entities, non-breaking spaces and layout whitespace are absorbed',
-      () {
-        expect(
-          _readBody(
-            '<p class="action">\n  She waits &amp; waits,&nbsp;alone.\n</p>',
-          ),
-          'She waits & waits, alone.\n',
-        );
-      },
-    );
+    test('entities, non-breaking spaces and layout whitespace are absorbed', () {
+      expect(
+        _readBody('<p class="action">\n  She waits &amp; waits,&nbsp;alone.\n</p>'),
+        'She waits & waits, alone.\n',
+      );
+    });
   });
 
   group('the title page', () {
@@ -296,10 +253,7 @@ Ever.
         const CeltxScriptReader().read(
           _celtx(
             _paragraph('action', 'She waits.'),
-            manifest: _manifest(
-              title: 'The Last Kettle',
-              creator: 'Sarah Vaughn',
-            ),
+            manifest: _manifest(title: 'The Last Kettle', creator: 'Sarah Vaughn'),
           ),
         ),
         '''
@@ -314,10 +268,7 @@ She waits.
     test('a project with no creator gets a title alone', () {
       expect(
         const CeltxScriptReader().read(
-          _celtx(
-            _paragraph('action', 'She waits.'),
-            manifest: _manifest(title: 'The Last Kettle'),
-          ),
+          _celtx(_paragraph('action', 'She waits.'), manifest: _manifest(title: 'The Last Kettle')),
         ),
         '''
 Title: The Last Kettle
@@ -382,12 +333,8 @@ She waits.
       final bytes = _container({
         'project.rdf': manifest,
         'catalog.html': _scriptDocument(_paragraph('action', 'A location.')),
-        'script-first.html': _scriptDocument(
-          _paragraph('action', 'She waits.'),
-        ),
-        'script-second.html': _scriptDocument(
-          _paragraph('action', 'Another episode entirely.'),
-        ),
+        'script-first.html': _scriptDocument(_paragraph('action', 'She waits.')),
+        'script-second.html': _scriptDocument(_paragraph('action', 'Another episode entirely.')),
       });
 
       expect(const CeltxScriptReader().read(bytes), '''
@@ -400,9 +347,7 @@ She waits.
     test('a project wrapped in a folder of its own still opens', () {
       final bytes = _container({
         'The Last Kettle/project.rdf': _manifest(title: 'The Last Kettle'),
-        'The Last Kettle/$_scriptFileName': _scriptDocument(
-          _paragraph('action', 'She waits.'),
-        ),
+        'The Last Kettle/$_scriptFileName': _scriptDocument(_paragraph('action', 'She waits.')),
       });
 
       expect(const CeltxScriptReader().read(bytes), '''
@@ -424,11 +369,7 @@ She waits.
     test('a container with no project.rdf holds no script document', () {
       expect(
         _failureOf(
-          _container({
-            _scriptFileName: _scriptDocument(
-              _paragraph('action', 'She waits.'),
-            ),
-          }),
+          _container({_scriptFileName: _scriptDocument(_paragraph('action', 'She waits.'))}),
         ),
         ScriptImportFailure.noScriptDocument,
       );
@@ -439,9 +380,7 @@ She waits.
         _failureOf(
           _container({
             'project.rdf': '<?xml version="1.0"?><RDF:RDF><cx:Project',
-            _scriptFileName: _scriptDocument(
-              _paragraph('action', 'She waits.'),
-            ),
+            _scriptFileName: _scriptDocument(_paragraph('action', 'She waits.')),
           }),
         ),
         ScriptImportFailure.noScriptDocument,
@@ -461,18 +400,14 @@ She waits.
 ''';
 
       expect(
-        _failureOf(
-          _celtx(_paragraph('action', 'She waits.'), manifest: manifest),
-        ),
+        _failureOf(_celtx(_paragraph('action', 'She waits.'), manifest: manifest)),
         ScriptImportFailure.noScriptDocument,
       );
     });
 
     test('a script document the container does not hold is refused', () {
       expect(
-        _failureOf(
-          _container({'project.rdf': _manifest(scriptFileName: 'gone.html')}),
-        ),
+        _failureOf(_container({'project.rdf': _manifest(scriptFileName: 'gone.html')})),
         ScriptImportFailure.noScriptDocument,
       );
     });
@@ -494,11 +429,7 @@ She waits.
       final text = const CeltxScriptReader().read(
         _celtx(
           [
-            _paragraph(
-              'sceneheading',
-              'INT. KITCHEN - DAY',
-              attributes: ' scenenumber="1"',
-            ),
+            _paragraph('sceneheading', 'INT. KITCHEN - DAY', attributes: ' scenenumber="1"'),
             _paragraph('action', 'Sarah stares at the kettle.'),
             _paragraph('character', 'SARAH (V.O.)'),
             _paragraph('parenthetical', '(to herself)'),
@@ -540,10 +471,7 @@ She waits.
       // and the action line opening on `INT.` stayed prose rather than
       // turning into a scene heading: the two things a forcing marker, or
       // the lack of one, is there to decide.
-      expect(
-        (document.blocks[3] as FountainActionBlock).lines.single,
-        'ANGLE ON THE DOOR',
-      );
+      expect((document.blocks[3] as FountainActionBlock).lines.single, 'ANGLE ON THE DOOR');
       expect(
         (document.blocks[4] as FountainActionBlock).lines.single,
         'INT. is how this one starts.',
@@ -551,23 +479,16 @@ She waits.
 
       final lowerCaseCue = document.blocks[5] as FountainDialogueGroup;
       expect(lowerCaseCue.character.name, 'Sarah');
-      expect(
-        (lowerCaseCue.children.single as FountainDialogueLine).text,
-        'GET OUT.',
-      );
+      expect((lowerCaseCue.children.single as FountainDialogueLine).text, 'GET OUT.');
 
       expect((document.blocks[6] as FountainCenteredText).text, 'ACT TWO');
       expect((document.blocks[7] as FountainTransition).text, 'FADE OUT.');
     });
 
     test('a paragraph split by a <br> comes back as one action block', () {
-      final text = _readBody(
-        _paragraph('action', 'She waits.<br>Then she does not.'),
-      );
+      final text = _readBody(_paragraph('action', 'She waits.<br>Then she does not.'));
 
-      final block =
-          const FountainParser().parse(text).blocks.single
-              as FountainActionBlock;
+      final block = const FountainParser().parse(text).blocks.single as FountainActionBlock;
       expect(block.lines, ['She waits.', 'Then she does not.']);
     });
   });

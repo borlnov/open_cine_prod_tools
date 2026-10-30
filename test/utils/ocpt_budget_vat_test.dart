@@ -50,10 +50,7 @@ void main() {
     test("a project with no rate leaves a tax-inclusive line's excluding-tax figure empty", () {
       const money = OcptMoney(amountCents: 1250, isTaxInclusive: true, vatRateBasisPoints: null);
 
-      expect(
-        ocptExcludingTaxAmountCentsOf(money, projectVatRateBasisPoints: null),
-        isNull,
-      );
+      expect(ocptExcludingTaxAmountCentsOf(money, projectVatRateBasisPoints: null), isNull);
       expect(ocptVatAmountCentsOf(money, projectVatRateBasisPoints: null), isNull);
       // Including tax needs no rate at all: the figure was typed that way.
       expect(ocptIncludingTaxAmountCentsOf(money, projectVatRateBasisPoints: null), 1250);
@@ -62,10 +59,7 @@ void main() {
     test("a line overriding to 5.5 % against a project at 20 % reads its own rate", () {
       const money = OcptMoney(amountCents: 10550, isTaxInclusive: true, vatRateBasisPoints: 550);
 
-      expect(
-        ocptExcludingTaxAmountCentsOf(money, projectVatRateBasisPoints: 2000),
-        10000,
-      );
+      expect(ocptExcludingTaxAmountCentsOf(money, projectVatRateBasisPoints: 2000), 10000);
       expect(ocptIncludingTaxAmountCentsOf(money, projectVatRateBasisPoints: 2000), 10550);
       expect(ocptVatAmountCentsOf(money, projectVatRateBasisPoints: 2000), 550);
     });
@@ -76,10 +70,7 @@ void main() {
         isTaxInclusive: true,
         vatRateBasisPoints: 0,
       );
-      expect(
-        ocptExcludingTaxAmountCentsOf(taxInclusive, projectVatRateBasisPoints: 2000),
-        5000,
-      );
+      expect(ocptExcludingTaxAmountCentsOf(taxInclusive, projectVatRateBasisPoints: 2000), 5000);
       expect(ocptVatAmountCentsOf(taxInclusive, projectVatRateBasisPoints: 2000), 0);
 
       const taxExclusive = OcptMoney(
@@ -87,40 +78,24 @@ void main() {
         isTaxInclusive: false,
         vatRateBasisPoints: 0,
       );
-      expect(
-        ocptIncludingTaxAmountCentsOf(taxExclusive, projectVatRateBasisPoints: 2000),
-        5000,
-      );
+      expect(ocptIncludingTaxAmountCentsOf(taxExclusive, projectVatRateBasisPoints: 2000), 5000);
       expect(ocptVatAmountCentsOf(taxExclusive, projectVatRateBasisPoints: 2000), 0);
     });
 
     test("a silent line at a project with no rate counts for neither figure", () {
       const money = OcptMoney(amountCents: 5000, isTaxInclusive: true, vatRateBasisPoints: null);
 
-      expect(
-        ocptExcludingTaxAmountCentsOf(money, projectVatRateBasisPoints: null),
-        isNull,
-      );
+      expect(ocptExcludingTaxAmountCentsOf(money, projectVatRateBasisPoints: null), isNull);
       expect(ocptVatAmountCentsOf(money, projectVatRateBasisPoints: null), isNull);
     });
 
-    test(
-      "a tax-exclusive amount is already its own excluding-tax figure, rate or no rate",
-      () {
-        const money = OcptMoney(
-          amountCents: 8000,
-          isTaxInclusive: false,
-          vatRateBasisPoints: null,
-        );
+    test("a tax-exclusive amount is already its own excluding-tax figure, rate or no rate", () {
+      const money = OcptMoney(amountCents: 8000, isTaxInclusive: false, vatRateBasisPoints: null);
 
-        expect(
-          ocptExcludingTaxAmountCentsOf(money, projectVatRateBasisPoints: null),
-          8000,
-        );
-        // But grossing it up to the including-tax figure still needs a known rate.
-        expect(ocptIncludingTaxAmountCentsOf(money, projectVatRateBasisPoints: null), isNull);
-      },
-    );
+      expect(ocptExcludingTaxAmountCentsOf(money, projectVatRateBasisPoints: null), 8000);
+      // But grossing it up to the including-tax figure still needs a known rate.
+      expect(ocptIncludingTaxAmountCentsOf(money, projectVatRateBasisPoints: null), isNull);
+    });
 
     test("an amount typed reads back to the cent after a round trip through the display basis", () {
       const money = OcptMoney(amountCents: 1249, isTaxInclusive: true, vatRateBasisPoints: 2000);
@@ -207,23 +182,20 @@ void main() {
     );
 
     test("answers the rate every line agrees on, and says it was overridden", () {
-      final rate = ocptBudgetPosteUniformVatRateOf(
-        [
-          buildLine(id: "a", vatRateBasisPoints: 550),
-          buildLine(id: "b", vatRateBasisPoints: 550),
-        ],
-        projectVatRateBasisPoints: 2000,
-      );
+      final rate = ocptBudgetPosteUniformVatRateOf([
+        buildLine(id: "a", vatRateBasisPoints: 550),
+        buildLine(id: "b", vatRateBasisPoints: 550),
+      ], projectVatRateBasisPoints: 2000);
 
       expect(rate?.basisPoints, 550);
       expect(rate?.isOverridden, isTrue);
     });
 
     test("answers the project's own rate when every line inherits it", () {
-      final rate = ocptBudgetPosteUniformVatRateOf(
-        [buildLine(id: "a"), buildLine(id: "b")],
-        projectVatRateBasisPoints: 2000,
-      );
+      final rate = ocptBudgetPosteUniformVatRateOf([
+        buildLine(id: "a"),
+        buildLine(id: "b"),
+      ], projectVatRateBasisPoints: 2000);
 
       expect(rate?.basisPoints, 2000);
       expect(rate?.isOverridden, isFalse);
@@ -231,13 +203,10 @@ void main() {
 
     test("answers nothing while the lines disagree about the figure", () {
       expect(
-        ocptBudgetPosteUniformVatRateOf(
-          [
-            buildLine(id: "a", vatRateBasisPoints: 550),
-            buildLine(id: "b", vatRateBasisPoints: 2000),
-          ],
-          projectVatRateBasisPoints: null,
-        ),
+        ocptBudgetPosteUniformVatRateOf([
+          buildLine(id: "a", vatRateBasisPoints: 550),
+          buildLine(id: "b", vatRateBasisPoints: 2000),
+        ], projectVatRateBasisPoints: null),
         isNull,
       );
     });
@@ -246,10 +215,10 @@ void main() {
       // The figure is the same either way; where it comes from is not, and the sub-line would have
       // no one colour to be painted in.
       expect(
-        ocptBudgetPosteUniformVatRateOf(
-          [buildLine(id: "a", vatRateBasisPoints: 2000), buildLine(id: "b")],
-          projectVatRateBasisPoints: 2000,
-        ),
+        ocptBudgetPosteUniformVatRateOf([
+          buildLine(id: "a", vatRateBasisPoints: 2000),
+          buildLine(id: "b"),
+        ], projectVatRateBasisPoints: 2000),
         isNull,
       );
     });

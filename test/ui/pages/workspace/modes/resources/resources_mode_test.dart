@@ -112,40 +112,39 @@ void main() {
   Finder inPanel(Finder matching) =>
       find.descendant(of: find.byType(AlertDialog), matching: matching);
 
-  testWidgets(
-    "with an empty catalogue, the export panel's own card is unavailable and says why",
-    (tester) async {
-      tester.view.physicalSize = const Size(1400, 900);
-      tester.view.devicePixelRatio = 1.0;
-      addTearDown(tester.view.resetPhysicalSize);
-      addTearDown(tester.view.resetDevicePixelRatio);
+  testWidgets("with an empty catalogue, the export panel's own card is unavailable and says why", (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1400, 900);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
 
-      await tester.pumpWidget(_wrapWithLocalization(const OcptResourcesMode()));
-      await tester.pumpAndSettle();
+    await tester.pumpWidget(_wrapWithLocalization(const OcptResourcesMode()));
+    await tester.pumpAndSettle();
 
-      final tr = Tr.of(tester.element(find.byType(OcptResourcesMode)));
+    final tr = Tr.of(tester.element(find.byType(OcptResourcesMode)));
 
-      await tester.tap(find.byTooltip(tr.workspaceExportTooltip));
-      await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip(tr.workspaceExportTooltip));
+    await tester.pumpAndSettle();
 
-      expect(find.text(tr.resourcesExportPanelTitle), findsOneWidget);
-      expect(inPanel(find.text(tr.resourcesExportXlsxTitle)), findsOneWidget);
-      expect(inPanel(find.text(tr.resourcesExportContactListTitle)), findsOneWidget);
-      expect(inPanel(find.text(tr.resourcesExportUnavailableReason)), findsOneWidget);
-      expect(inPanel(find.text(tr.resourcesExportContactListUnavailableReason)), findsOneWidget);
-      expect(inPanel(find.text(tr.resourcesExportXlsxDescription)), findsNothing);
-      expect(inPanel(find.text(tr.resourcesExportContactListDescription)), findsNothing);
+    expect(find.text(tr.resourcesExportPanelTitle), findsOneWidget);
+    expect(inPanel(find.text(tr.resourcesExportXlsxTitle)), findsOneWidget);
+    expect(inPanel(find.text(tr.resourcesExportContactListTitle)), findsOneWidget);
+    expect(inPanel(find.text(tr.resourcesExportUnavailableReason)), findsOneWidget);
+    expect(inPanel(find.text(tr.resourcesExportContactListUnavailableReason)), findsOneWidget);
+    expect(inPanel(find.text(tr.resourcesExportXlsxDescription)), findsNothing);
+    expect(inPanel(find.text(tr.resourcesExportContactListDescription)), findsNothing);
 
-      // Unavailable: tapping either card pops nothing, so the panel stays open.
-      await tester.tap(inPanel(find.text(tr.resourcesExportXlsxTitle)));
-      await tester.pumpAndSettle();
-      expect(find.text(tr.resourcesExportPanelTitle), findsOneWidget);
+    // Unavailable: tapping either card pops nothing, so the panel stays open.
+    await tester.tap(inPanel(find.text(tr.resourcesExportXlsxTitle)));
+    await tester.pumpAndSettle();
+    expect(find.text(tr.resourcesExportPanelTitle), findsOneWidget);
 
-      await tester.tap(inPanel(find.text(tr.resourcesExportContactListTitle)));
-      await tester.pumpAndSettle();
-      expect(find.text(tr.resourcesExportPanelTitle), findsOneWidget);
-    },
-  );
+    await tester.tap(inPanel(find.text(tr.resourcesExportContactListTitle)));
+    await tester.pumpAndSettle();
+    expect(find.text(tr.resourcesExportPanelTitle), findsOneWidget);
+  });
 
   testWidgets(
     "once a person exists, picking the workbook card dispatches the export request directly",
@@ -182,42 +181,41 @@ void main() {
     },
   );
 
-  testWidgets(
-    "once a role exists, picking the contact list card opens its own options dialog",
-    (tester) async {
-      tester.view.physicalSize = const Size(1400, 900);
-      tester.view.devicePixelRatio = 1.0;
-      addTearDown(tester.view.resetPhysicalSize);
-      addTearDown(tester.view.resetDevicePixelRatio);
+  testWidgets("once a role exists, picking the contact list card opens its own options dialog", (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1400, 900);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
 
-      await tester.pumpWidget(_wrapWithLocalization(const OcptResourcesMode()));
-      await tester.pumpAndSettle();
+    await tester.pumpWidget(_wrapWithLocalization(const OcptResourcesMode()));
+    await tester.pumpAndSettle();
 
-      final tr = Tr.of(tester.element(find.byType(OcptResourcesMode)));
+    final tr = Tr.of(tester.element(find.byType(OcptResourcesMode)));
 
-      // A role is enough on its own to make the contact list printable: the cast side of it
-      // needs no crew position at all. A hand-added role is only ever silent or an extra — a
-      // speaking one is reconciled from the screenplay, which this project holds none of.
-      await tester.tap(find.text(tr.resourcesTabRoles));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text(tr.resourcesAddRoleAction));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text(tr.resourcesAddRoleSilentOption));
-      await tester.pumpAndSettle();
+    // A role is enough on its own to make the contact list printable: the cast side of it
+    // needs no crew position at all. A hand-added role is only ever silent or an extra — a
+    // speaking one is reconciled from the screenplay, which this project holds none of.
+    await tester.tap(find.text(tr.resourcesTabRoles));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(tr.resourcesAddRoleAction));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(tr.resourcesAddRoleSilentOption));
+    await tester.pumpAndSettle();
 
-      await tester.tap(find.byTooltip(tr.workspaceExportTooltip));
-      await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip(tr.workspaceExportTooltip));
+    await tester.pumpAndSettle();
 
-      expect(inPanel(find.text(tr.resourcesExportContactListUnavailableReason)), findsNothing);
-      expect(inPanel(find.text(tr.resourcesExportContactListDescription)), findsOneWidget);
+    expect(inPanel(find.text(tr.resourcesExportContactListUnavailableReason)), findsNothing);
+    expect(inPanel(find.text(tr.resourcesExportContactListDescription)), findsOneWidget);
 
-      await tester.tap(inPanel(find.text(tr.resourcesExportContactListTitle)));
-      await tester.pumpAndSettle();
+    await tester.tap(inPanel(find.text(tr.resourcesExportContactListTitle)));
+    await tester.pumpAndSettle();
 
-      expect(find.text(tr.resourcesExportPanelTitle), findsNothing);
-      expect(find.text(tr.resourcesExportContactListDialogTitle), findsOneWidget);
-    },
-  );
+    expect(find.text(tr.resourcesExportPanelTitle), findsNothing);
+    expect(find.text(tr.resourcesExportContactListDialogTitle), findsOneWidget);
+  });
 
   testWidgets(
     "the compact banner shows an orphaned role and tapping it selects it on the roles tab",

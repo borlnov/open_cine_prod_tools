@@ -118,10 +118,7 @@ void main() {
     // Its own first paragraph says why: it is not all typing or all reading, one column computed
     // and the other typed row by row.
     expect(find.text(tr.budgetHelpRegieBody1), findsOneWidget);
-    expect(
-      find.text(tr.budgetHelpRegieBody5(tr.budgetHeaderExpensesSegmentLabel)),
-      findsOneWidget,
-    );
+    expect(find.text(tr.budgetHelpRegieBody5(tr.budgetHeaderExpensesSegmentLabel)), findsOneWidget);
   });
 
   testWidgets(
@@ -192,26 +189,13 @@ void main() {
     // All three name the header's own single New button, so a reader looking for the control the
     // paragraph talks about finds the same word above the panel on every page.
     var tr = await pumpHelp(tester, view: OcptBudgetView.expenses);
-    expect(
-      find.text(tr.budgetHelpExpensesBody3(tr.budgetHeaderNewAction)),
-      findsOneWidget,
-    );
+    expect(find.text(tr.budgetHelpExpensesBody3(tr.budgetHeaderNewAction)), findsOneWidget);
 
     tr = await pumpHelp(tester, view: OcptBudgetView.resources);
-    expect(
-      find.text(tr.budgetHelpResourcesBody3(tr.budgetHeaderNewAction)),
-      findsOneWidget,
-    );
+    expect(find.text(tr.budgetHelpResourcesBody3(tr.budgetHeaderNewAction)), findsOneWidget);
 
-    tr = await pumpHelp(
-      tester,
-      view: OcptBudgetView.tools,
-      toolsView: OcptBudgetToolsView.sharing,
-    );
-    expect(
-      find.text(tr.budgetHelpSharingBody3(tr.budgetHeaderNewAction)),
-      findsOneWidget,
-    );
+    tr = await pumpHelp(tester, view: OcptBudgetView.tools, toolsView: OcptBudgetToolsView.sharing);
+    expect(find.text(tr.budgetHelpSharingBody3(tr.budgetHeaderNewAction)), findsOneWidget);
   });
 
   testWidgets("the cash flow page says the statement is only read, and why", (tester) async {

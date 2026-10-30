@@ -390,48 +390,50 @@ void main() {
     await bloc.close();
   });
 
-  test("a typed field edit is visible as a pending value and writes once after the debounce",
-      () async {
-    final bloc = buildBloc();
-    await waitForState(bloc, (state) => !state.isLoading);
-    bloc.add(const OcptResourcesPersonCreationRequestedEvent());
-    final created = await waitForState(bloc, (state) => state.peopleCount == 1);
-    final personId = created.selectedPersonId!;
+  test(
+    "a typed field edit is visible as a pending value and writes once after the debounce",
+    () async {
+      final bloc = buildBloc();
+      await waitForState(bloc, (state) => !state.isLoading);
+      bloc.add(const OcptResourcesPersonCreationRequestedEvent());
+      final created = await waitForState(bloc, (state) => state.peopleCount == 1);
+      final personId = created.selectedPersonId!;
 
-    bloc.add(
-      OcptResourcesPersonFieldChangedEvent(
-        personId: personId,
-        field: OcptPersonField.firstName,
-        rawValue: "L",
-      ),
-    );
-    var state = await waitForState(
-      bloc,
-      (state) => state.pendingFieldEdits[(personId, OcptPersonField.firstName)] == "L",
-    );
-    // Not written yet: still the field's default empty value.
-    expect(state.selectedPerson!.firstName, isEmpty);
+      bloc.add(
+        OcptResourcesPersonFieldChangedEvent(
+          personId: personId,
+          field: OcptPersonField.firstName,
+          rawValue: "L",
+        ),
+      );
+      var state = await waitForState(
+        bloc,
+        (state) => state.pendingFieldEdits[(personId, OcptPersonField.firstName)] == "L",
+      );
+      // Not written yet: still the field's default empty value.
+      expect(state.selectedPerson!.firstName, isEmpty);
 
-    // A second keystroke before the debounce elapses restarts it rather than firing twice: only
-    // the last value typed is ever written.
-    bloc.add(
-      OcptResourcesPersonFieldChangedEvent(
-        personId: personId,
-        field: OcptPersonField.firstName,
-        rawValue: "Léa",
-      ),
-    );
-    state = await waitForState(
-      bloc,
-      (state) => state.pendingFieldEdits[(personId, OcptPersonField.firstName)] == "Léa",
-    );
-    expect(state.selectedPerson!.firstName, isEmpty);
+      // A second keystroke before the debounce elapses restarts it rather than firing twice: only
+      // the last value typed is ever written.
+      bloc.add(
+        OcptResourcesPersonFieldChangedEvent(
+          personId: personId,
+          field: OcptPersonField.firstName,
+          rawValue: "Léa",
+        ),
+      );
+      state = await waitForState(
+        bloc,
+        (state) => state.pendingFieldEdits[(personId, OcptPersonField.firstName)] == "Léa",
+      );
+      expect(state.selectedPerson!.firstName, isEmpty);
 
-    state = await waitForState(bloc, (state) => state.selectedPerson!.firstName == "Léa");
-    expect(state.pendingFieldEdits, isEmpty);
+      state = await waitForState(bloc, (state) => state.selectedPerson!.firstName == "Léa");
+      expect(state.pendingFieldEdits, isEmpty);
 
-    await bloc.close();
-  });
+      await bloc.close();
+    },
+  );
 
   test("deleting the selected person erases it and clears the selection", () async {
     final bloc = buildBloc();
@@ -618,9 +620,7 @@ void main() {
     bloc.add(const OcptResourcesPersonCreationRequestedEvent());
     await waitForState(bloc, (state) => state.peopleCount == 1);
 
-    bloc.add(
-      const OcptProjectVersionCreationRequestedEvent(name: "Cast locked", note: ""),
-    );
+    bloc.add(const OcptProjectVersionCreationRequestedEvent(name: "Cast locked", note: ""));
     final withVersion = await waitForState(bloc, (state) => state.projectVersions.isNotEmpty);
     final versionId = withVersion.projectVersions.single.id;
 
@@ -655,44 +655,41 @@ void main() {
     await bloc.close();
   });
 
-  test(
-    "constructed with a second episode selected, reads and writes that episode rather than the "
-    "primary screenplay",
-    () async {
-      final project = projectsManager.currentProject!;
-      await projectsManager.screenplayService.saveScreenplayText(
-        database: project.database,
-        screenplayId: project.primaryScreenplayId,
-        fountainText: "INT. PRIMARY - DAY\n\nAction one.\n",
-        snapshotReason: OcptSnapshotReason.manual,
-      );
-      final secondEpisodeId = await projectsManager.screenplayService.createEpisode(
-        database: project.database,
-      );
-      await projectsManager.screenplayService.saveScreenplayText(
-        database: project.database,
-        screenplayId: secondEpisodeId!,
-        fountainText: "INT. SECOND EPISODE - NIGHT\n\nAction two.\n",
-        snapshotReason: OcptSnapshotReason.manual,
-      );
+  test("constructed with a second episode selected, reads and writes that episode rather than the "
+      "primary screenplay", () async {
+    final project = projectsManager.currentProject!;
+    await projectsManager.screenplayService.saveScreenplayText(
+      database: project.database,
+      screenplayId: project.primaryScreenplayId,
+      fountainText: "INT. PRIMARY - DAY\n\nAction one.\n",
+      snapshotReason: OcptSnapshotReason.manual,
+    );
+    final secondEpisodeId = await projectsManager.screenplayService.createEpisode(
+      database: project.database,
+    );
+    await projectsManager.screenplayService.saveScreenplayText(
+      database: project.database,
+      screenplayId: secondEpisodeId!,
+      fountainText: "INT. SECOND EPISODE - NIGHT\n\nAction two.\n",
+      snapshotReason: OcptSnapshotReason.manual,
+    );
 
-      final bloc = buildBloc(selectedEpisodeId: secondEpisodeId);
-      final state = await waitForState(bloc, (state) => !state.isLoading);
+    final bloc = buildBloc(selectedEpisodeId: secondEpisodeId);
+    final state = await waitForState(bloc, (state) => !state.isLoading);
 
-      // The scenes offered to a set or an element are the selected episode's own, not the
-      // primary screenplay's.
-      expect(state.scenes, hasLength(1));
-      expect(state.scenes.single.heading, "INT. SECOND EPISODE - NIGHT");
+    // The scenes offered to a set or an element are the selected episode's own, not the
+    // primary screenplay's.
+    expect(state.scenes, hasLength(1));
+    expect(state.scenes.single.heading, "INT. SECOND EPISODE - NIGHT");
 
-      // A hand-added role is linked to the selected episode (ADR 0019's "created on the
-      // selected episode"), not to the primary screenplay.
-      bloc.add(const OcptResourcesRoleCreationRequestedEvent(kind: OcptRoleKind.silent));
-      final withRole = await waitForState(bloc, (state) => state.roleCount == 1);
-      expect(withRole.roles.single.episodeIds, [secondEpisodeId]);
+    // A hand-added role is linked to the selected episode (ADR 0019's "created on the
+    // selected episode"), not to the primary screenplay.
+    bloc.add(const OcptResourcesRoleCreationRequestedEvent(kind: OcptRoleKind.silent));
+    final withRole = await waitForState(bloc, (state) => state.roleCount == 1);
+    expect(withRole.roles.single.episodeIds, [secondEpisodeId]);
 
-      await bloc.close();
-    },
-  );
+    await bloc.close();
+  });
 
   test("casting a person to a role and changing its kind both land in the database", () async {
     final bloc = buildBloc();
@@ -707,10 +704,7 @@ void main() {
     final roleId = withRole.selectedRoleId!;
 
     bloc.add(OcptResourcesRoleCastChangedEvent(roleId: roleId, personId: personId));
-    var state = await waitForState(
-      bloc,
-      (state) => state.roles.single.personId == personId,
-    );
+    var state = await waitForState(bloc, (state) => state.roles.single.personId == personId);
     expect(state.roles.single.kind, OcptRoleKind.extra);
 
     bloc.add(OcptResourcesRoleKindChangedEvent(roleId: roleId, kind: OcptRoleKind.silent));
@@ -850,36 +844,40 @@ void main() {
     await bloc.close();
   });
 
-  test("merging two roles carries the source's casting onto the target and drops the source",
-      () async {
-    final bloc = buildBloc();
-    await waitForState(bloc, (state) => !state.isLoading);
+  test(
+    "merging two roles carries the source's casting onto the target and drops the source",
+    () async {
+      final bloc = buildBloc();
+      await waitForState(bloc, (state) => !state.isLoading);
 
-    bloc.add(const OcptResourcesPersonCreationRequestedEvent());
-    var state = await waitForState(bloc, (state) => state.peopleCount == 1);
-    final personId = state.selectedPersonId!;
+      bloc.add(const OcptResourcesPersonCreationRequestedEvent());
+      var state = await waitForState(bloc, (state) => state.peopleCount == 1);
+      final personId = state.selectedPersonId!;
 
-    bloc.add(const OcptResourcesRoleCreationRequestedEvent(kind: OcptRoleKind.extra));
-    state = await waitForState(bloc, (state) => state.roleCount == 1);
-    final targetId = state.selectedRoleId!;
+      bloc.add(const OcptResourcesRoleCreationRequestedEvent(kind: OcptRoleKind.extra));
+      state = await waitForState(bloc, (state) => state.roleCount == 1);
+      final targetId = state.selectedRoleId!;
 
-    bloc.add(const OcptResourcesRoleCreationRequestedEvent(kind: OcptRoleKind.extra));
-    state = await waitForState(bloc, (state) => state.roleCount == 2);
-    final sourceId = state.selectedRoleId!;
+      bloc.add(const OcptResourcesRoleCreationRequestedEvent(kind: OcptRoleKind.extra));
+      state = await waitForState(bloc, (state) => state.roleCount == 2);
+      final sourceId = state.selectedRoleId!;
 
-    // Cast a person to the source role, written immediately (a discrete pick, not typing): what
-    // the merge is expected to carry onto the target, which starts out uncast.
-    bloc.add(OcptResourcesRoleCastChangedEvent(roleId: sourceId, personId: personId));
-    await waitForState(bloc, (state) => state.selectedRole!.personId == personId);
+      // Cast a person to the source role, written immediately (a discrete pick, not typing): what
+      // the merge is expected to carry onto the target, which starts out uncast.
+      bloc.add(OcptResourcesRoleCastChangedEvent(roleId: sourceId, personId: personId));
+      await waitForState(bloc, (state) => state.selectedRole!.personId == personId);
 
-    bloc.add(OcptResourcesRoleMergeRequestedEvent(sourceRoleId: sourceId, targetRoleId: targetId));
-    state = await waitForState(bloc, (state) => state.roleCount == 1);
+      bloc.add(
+        OcptResourcesRoleMergeRequestedEvent(sourceRoleId: sourceId, targetRoleId: targetId),
+      );
+      state = await waitForState(bloc, (state) => state.roleCount == 1);
 
-    expect(state.roles.single.id, targetId);
-    expect(state.roles.single.personId, personId);
+      expect(state.roles.single.id, targetId);
+      expect(state.roles.single.personId, personId);
 
-    await bloc.close();
-  });
+      await bloc.close();
+    },
+  );
 
   group("the compact role alert banner", () {
     test("selecting a role from another tab switches to the roles tab too", () async {
@@ -896,10 +894,7 @@ void main() {
       await waitForState(bloc, (state) => state.activeTab == OcptResourcesTab.locations);
 
       bloc.add(OcptResourcesRoleSelectedEvent(roleId: roleId));
-      final state = await waitForState(
-        bloc,
-        (state) => state.activeTab == OcptResourcesTab.roles,
-      );
+      final state = await waitForState(bloc, (state) => state.activeTab == OcptResourcesTab.roles);
 
       expect(state.selectedRoleId, roleId);
 
@@ -926,10 +921,7 @@ void main() {
         snapshotReason: OcptSnapshotReason.manual,
       );
       bloc.add(const OcptResourcesProjectSettingsChangedEvent());
-      final orphaned = await waitForState(
-        bloc,
-        (state) => state.orphanedRoleAlerts.isNotEmpty,
-      );
+      final orphaned = await waitForState(bloc, (state) => state.orphanedRoleAlerts.isNotEmpty);
 
       expect(orphaned.orphanedRoleAlerts, hasLength(1));
       expect(orphaned.orphanedRoleAlerts.single.characterName, "CLARA");
@@ -938,41 +930,44 @@ void main() {
       await bloc.close();
     });
 
-    test("roleCollisionAlerts reports a hand-added role sharing a screenplay role's name", () async {
-      final project = projectsManager.currentProject!;
-      await projectsManager.screenplayService.saveScreenplayText(
-        database: project.database,
-        screenplayId: project.primaryScreenplayId,
-        fountainText: "INT. HOUSE - DAY\n\nCLARA\nHello.\n",
-        snapshotReason: OcptSnapshotReason.manual,
-      );
+    test(
+      "roleCollisionAlerts reports a hand-added role sharing a screenplay role's name",
+      () async {
+        final project = projectsManager.currentProject!;
+        await projectsManager.screenplayService.saveScreenplayText(
+          database: project.database,
+          screenplayId: project.primaryScreenplayId,
+          fountainText: "INT. HOUSE - DAY\n\nCLARA\nHello.\n",
+          snapshotReason: OcptSnapshotReason.manual,
+        );
 
-      final bloc = buildBloc();
-      final loaded = await waitForState(bloc, (state) => state.roleCount == 1);
-      expect(loaded.roleCollisionAlerts, isEmpty);
-      final screenplayRoleId = loaded.roles.single.id;
+        final bloc = buildBloc();
+        final loaded = await waitForState(bloc, (state) => state.roleCount == 1);
+        expect(loaded.roleCollisionAlerts, isEmpty);
+        final screenplayRoleId = loaded.roles.single.id;
 
-      bloc.add(const OcptResourcesRoleCreationRequestedEvent(kind: OcptRoleKind.extra));
-      final withHandAdded = await waitForState(bloc, (state) => state.roleCount == 2);
-      final handAddedRoleId = withHandAdded.selectedRoleId!;
+        bloc.add(const OcptResourcesRoleCreationRequestedEvent(kind: OcptRoleKind.extra));
+        final withHandAdded = await waitForState(bloc, (state) => state.roleCount == 2);
+        final handAddedRoleId = withHandAdded.selectedRoleId!;
 
-      bloc.add(
-        OcptResourcesRoleFieldChangedEvent(
-          roleId: handAddedRoleId,
-          field: OcptRoleField.name,
-          rawValue: "Clara",
-        ),
-      );
-      // Flushed by leaving the roles tab, exactly as "a debounced role name edit" above does.
-      bloc.add(const OcptResourcesTabSelectedEvent(tab: OcptResourcesTab.people));
-      final state = await waitForState(bloc, (state) => state.roleCollisionAlerts.isNotEmpty);
+        bloc.add(
+          OcptResourcesRoleFieldChangedEvent(
+            roleId: handAddedRoleId,
+            field: OcptRoleField.name,
+            rawValue: "Clara",
+          ),
+        );
+        // Flushed by leaving the roles tab, exactly as "a debounced role name edit" above does.
+        bloc.add(const OcptResourcesTabSelectedEvent(tab: OcptResourcesTab.people));
+        final state = await waitForState(bloc, (state) => state.roleCollisionAlerts.isNotEmpty);
 
-      expect(state.roleCollisionAlerts, hasLength(1));
-      expect(state.roleCollisionAlerts.single.screenplayRoleId, screenplayRoleId);
-      expect(state.roleCollisionAlerts.single.handAddedRoleId, handAddedRoleId);
+        expect(state.roleCollisionAlerts, hasLength(1));
+        expect(state.roleCollisionAlerts.single.screenplayRoleId, screenplayRoleId);
+        expect(state.roleCollisionAlerts.single.handAddedRoleId, handAddedRoleId);
 
-      await bloc.close();
-    });
+        await bloc.close();
+      },
+    );
   });
 
   group("role candidates", () {
@@ -1084,10 +1079,7 @@ void main() {
       await waitForState(bloc, (state) => state.pendingCandidateFieldEdits.isNotEmpty);
 
       bloc.add(OcptResourcesRoleCandidateRemovedEvent(candidateId: candidateId));
-      final state = await waitForState(
-        bloc,
-        (state) => state.candidatesOfRole(roleId).isEmpty,
-      );
+      final state = await waitForState(bloc, (state) => state.candidatesOfRole(roleId).isEmpty);
 
       expect(state.pendingCandidateFieldEdits, isEmpty);
 
@@ -1118,25 +1110,27 @@ void main() {
     });
   });
 
-  test("opening a person's sheet from the roles tab selects them on the people tab at once",
-      () async {
-    final bloc = buildBloc();
-    await waitForState(bloc, (state) => !state.isLoading);
+  test(
+    "opening a person's sheet from the roles tab selects them on the people tab at once",
+    () async {
+      final bloc = buildBloc();
+      await waitForState(bloc, (state) => !state.isLoading);
 
-    bloc.add(const OcptResourcesPersonCreationRequestedEvent());
-    final withPerson = await waitForState(bloc, (state) => state.peopleCount == 1);
-    final personId = withPerson.selectedPersonId!;
+      bloc.add(const OcptResourcesPersonCreationRequestedEvent());
+      final withPerson = await waitForState(bloc, (state) => state.peopleCount == 1);
+      final personId = withPerson.selectedPersonId!;
 
-    bloc.add(const OcptResourcesTabSelectedEvent(tab: OcptResourcesTab.roles));
-    await waitForState(bloc, (state) => state.activeTab == OcptResourcesTab.roles);
+      bloc.add(const OcptResourcesTabSelectedEvent(tab: OcptResourcesTab.roles));
+      await waitForState(bloc, (state) => state.activeTab == OcptResourcesTab.roles);
 
-    bloc.add(OcptResourcesPersonSheetOpenRequestedEvent(personId: personId));
-    final state = await waitForState(bloc, (state) => state.activeTab == OcptResourcesTab.people);
+      bloc.add(OcptResourcesPersonSheetOpenRequestedEvent(personId: personId));
+      final state = await waitForState(bloc, (state) => state.activeTab == OcptResourcesTab.people);
 
-    expect(state.selectedPersonId, personId);
+      expect(state.selectedPersonId, personId);
 
-    await bloc.close();
-  });
+      await bloc.close();
+    },
+  );
 
   test("creating a location appends it to the list, selects it and colours it by rank", () async {
     final bloc = buildBloc();
@@ -1259,7 +1253,10 @@ void main() {
         rawValue: "Cuisine",
       ),
     );
-    state = await waitForState(bloc, (state) => state.selectedLocation!.sets.single.name == "Cuisine");
+    state = await waitForState(
+      bloc,
+      (state) => state.selectedLocation!.sets.single.name == "Cuisine",
+    );
     expect(state.pendingSetFieldEdits, isEmpty);
 
     bloc.add(
@@ -1299,10 +1296,7 @@ void main() {
     final locationId = created.selectedLocationId!;
 
     bloc.add(
-      OcptResourcesLocationPhotoAddRequestedEvent(
-        locationId: locationId,
-        fileTypeLabel: "Images",
-      ),
+      OcptResourcesLocationPhotoAddRequestedEvent(locationId: locationId, fileTypeLabel: "Images"),
     );
     var state = await waitForState(bloc, (state) => state.selectedLocation!.photos.isNotEmpty);
     expect(state.selectedLocation!.photos.single.path, "/photos/hangar.jpg");
@@ -1331,9 +1325,7 @@ void main() {
     var state = await waitForState(bloc, (state) => state.selectedLocation!.permitDocument != null);
     final assetId = state.selectedLocation!.permitDocument!.id;
 
-    bloc.add(
-      OcptResourcesAssetValidFromChangedEvent(assetId: assetId, date: DateTime(2026, 3, 5)),
-    );
+    bloc.add(OcptResourcesAssetValidFromChangedEvent(assetId: assetId, date: DateTime(2026, 3, 5)));
     state = await waitForState(
       bloc,
       (state) => state.selectedLocation!.permitDocument!.validFrom != null,
@@ -1360,9 +1352,7 @@ void main() {
   });
 
   test("a cancelled picker references nothing at all", () async {
-    final bloc = buildBloc(
-      fileSelectorManager: const _StubFileSelectorManager(pickedPath: null),
-    );
+    final bloc = buildBloc(fileSelectorManager: const _StubFileSelectorManager(pickedPath: null));
     await waitForState(bloc, (state) => !state.isLoading);
     bloc.add(const OcptResourcesLocationCreationRequestedEvent());
     final created = await waitForState(bloc, (state) => state.locationCount == 1);
@@ -1470,7 +1460,8 @@ void main() {
     );
     var state = await waitForState(
       bloc,
-      (state) => state.pendingElementFieldEdits[(elementId, OcptElementField.name)] == "Vélo de Léa",
+      (state) =>
+          state.pendingElementFieldEdits[(elementId, OcptElementField.name)] == "Vélo de Léa",
     );
     expect(state.selectedElement!.name, isEmpty);
 
@@ -1574,9 +1565,7 @@ void main() {
     final created = await waitForState(bloc, (state) => state.elementCount == 1);
     final elementId = created.selectedElementId!;
 
-    bloc.add(
-      OcptResourcesSceneAssignedToElementEvent(sceneId: "scene-1", elementId: elementId),
-    );
+    bloc.add(OcptResourcesSceneAssignedToElementEvent(sceneId: "scene-1", elementId: elementId));
     var state = await waitForState(bloc, (state) => state.elements.single.sceneLinks.isNotEmpty);
     final linkId = state.elements.single.sceneLinks.single.id;
     expect(state.elements.single.sceneLinks.single.sceneId, "scene-1");
@@ -1630,25 +1619,28 @@ void main() {
     await bloc.close();
   });
 
-  test("opening a role's sheet from the elements tab selects it on the roles tab at once", () async {
-    final bloc = buildBloc();
-    await waitForState(bloc, (state) => !state.isLoading);
+  test(
+    "opening a role's sheet from the elements tab selects it on the roles tab at once",
+    () async {
+      final bloc = buildBloc();
+      await waitForState(bloc, (state) => !state.isLoading);
 
-    bloc.add(const OcptResourcesRoleCreationRequestedEvent(kind: OcptRoleKind.silent));
-    final withRole = await waitForState(bloc, (state) => state.roles.length == 1);
-    final roleId = withRole.selectedRoleId!;
+      bloc.add(const OcptResourcesRoleCreationRequestedEvent(kind: OcptRoleKind.silent));
+      final withRole = await waitForState(bloc, (state) => state.roles.length == 1);
+      final roleId = withRole.selectedRoleId!;
 
-    bloc.add(const OcptResourcesTabSelectedEvent(tab: OcptResourcesTab.elements));
-    await waitForState(bloc, (state) => state.activeTab == OcptResourcesTab.elements);
+      bloc.add(const OcptResourcesTabSelectedEvent(tab: OcptResourcesTab.elements));
+      await waitForState(bloc, (state) => state.activeTab == OcptResourcesTab.elements);
 
-    bloc.add(OcptResourcesRoleSheetOpenRequestedEvent(roleId: roleId));
-    final state = await waitForState(bloc, (state) => state.activeTab == OcptResourcesTab.roles);
+      bloc.add(OcptResourcesRoleSheetOpenRequestedEvent(roleId: roleId));
+      final state = await waitForState(bloc, (state) => state.activeTab == OcptResourcesTab.roles);
 
-    expect(state.selectedRoleId, roleId);
-    expect(state.selectedElementId, isNull);
+      expect(state.selectedRoleId, roleId);
+      expect(state.selectedElementId, isNull);
 
-    await bloc.close();
-  });
+      await bloc.close();
+    },
+  );
 
   test("deleting the selected element clears the selection and drops its pending edit", () async {
     final bloc = buildBloc(fieldEditDebounce: const Duration(seconds: 30));
@@ -1803,47 +1795,56 @@ void main() {
     await bloc.close();
   });
 
-  test('exporting the contact list hands its snapshot and its options to the export manager',
-      () async {
-    final exportManager = _FakeExportManager(exportResult: "/tmp/My Movie - contacts.pdf");
-    final bloc = buildBloc(exportManager: exportManager);
-    await waitForState(bloc, (state) => !state.isLoading);
+  test(
+    'exporting the contact list hands its snapshot and its options to the export manager',
+    () async {
+      final exportManager = _FakeExportManager(exportResult: "/tmp/My Movie - contacts.pdf");
+      final bloc = buildBloc(exportManager: exportManager);
+      await waitForState(bloc, (state) => !state.isLoading);
 
-    bloc.add(const OcptResourcesPersonCreationRequestedEvent());
-    var state = await waitForState(bloc, (state) => state.peopleCount == 1);
-    final personId = state.selectedPersonId!;
+      bloc.add(const OcptResourcesPersonCreationRequestedEvent());
+      var state = await waitForState(bloc, (state) => state.peopleCount == 1);
+      final personId = state.selectedPersonId!;
 
-    bloc.add(
-      OcptResourcesPositionAddedEvent(personId: personId, positionId: "director", customLabel: ""),
-    );
-    await waitForState(bloc, (state) => state.positionCount == 1);
+      bloc.add(
+        OcptResourcesPositionAddedEvent(
+          personId: personId,
+          positionId: "director",
+          customLabel: "",
+        ),
+      );
+      await waitForState(bloc, (state) => state.positionCount == 1);
 
-    bloc.add(
-      const OcptResourcesContactListExportRequestedEvent(
-        options: _contactListOptions,
-        labels: _contactListLabels,
-        fileTypeLabel: "PDF document",
-      ),
-    );
-    state = await waitForState(bloc, (state) => state.ioNotice != null);
+      bloc.add(
+        const OcptResourcesContactListExportRequestedEvent(
+          options: _contactListOptions,
+          labels: _contactListLabels,
+          fileTypeLabel: "PDF document",
+        ),
+      );
+      state = await waitForState(bloc, (state) => state.ioNotice != null);
 
-    expect(state.ioNotice!.kind, OcptResourcesIoNoticeKind.contactListExportSucceeded);
-    expect(state.ioNotice!.path, "/tmp/My Movie - contacts.pdf");
-    expect(exportManager.lastExportedContactListProjectName, "My Movie");
-    expect(exportManager.lastExportedContactListFileTypeLabel, "PDF document");
-    expect(exportManager.lastExportedContactListLabels, _contactListLabels);
-    expect(
-      exportManager.lastExportedContactListPageSetup,
-      const OcptPageSetup(format: OcptPageFormat.usLetter, margins: FountainPageMargins.standard()),
-    );
-    expect(exportManager.lastExportedContactListSnapshot!.positionCount, 1);
+      expect(state.ioNotice!.kind, OcptResourcesIoNoticeKind.contactListExportSucceeded);
+      expect(state.ioNotice!.path, "/tmp/My Movie - contacts.pdf");
+      expect(exportManager.lastExportedContactListProjectName, "My Movie");
+      expect(exportManager.lastExportedContactListFileTypeLabel, "PDF document");
+      expect(exportManager.lastExportedContactListLabels, _contactListLabels);
+      expect(
+        exportManager.lastExportedContactListPageSetup,
+        const OcptPageSetup(
+          format: OcptPageFormat.usLetter,
+          margins: FountainPageMargins.standard(),
+        ),
+      );
+      expect(exportManager.lastExportedContactListSnapshot!.positionCount, 1);
 
-    bloc.add(const OcptResourcesIoNoticeDismissedEvent());
-    final dismissedState = await waitForState(bloc, (state) => state.ioNotice == null);
-    expect(dismissedState.hasWriteError, isFalse);
+      bloc.add(const OcptResourcesIoNoticeDismissedEvent());
+      final dismissedState = await waitForState(bloc, (state) => state.ioNotice == null);
+      expect(dismissedState.hasWriteError, isFalse);
 
-    await bloc.close();
-  });
+      await bloc.close();
+    },
+  );
 
   test('exporting the contact list flushes a pending field edit first, so it holds it', () async {
     final exportManager = _FakeExportManager(exportResult: "/tmp/My Movie - contacts.pdf");

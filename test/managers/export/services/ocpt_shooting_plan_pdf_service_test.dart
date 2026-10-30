@@ -175,7 +175,13 @@ OcptShootingDayEvent _buildEvent({
   required int minute,
   String label = "",
   String notes = "",
-}) => OcptShootingDayEvent(id: id, shootingDayId: shootingDayId, minute: minute, label: label, notes: notes);
+}) => OcptShootingDayEvent(
+  id: id,
+  shootingDayId: shootingDayId,
+  minute: minute,
+  label: label,
+  notes: notes,
+);
 
 /// Builds a slot guest with the few fields these tests read, everything else neutral.
 OcptShootingSlotGuest _buildGuest({
@@ -217,7 +223,11 @@ OcptShootingSlotCastMember _buildCastMember({
 }) => OcptShootingSlotCastMember(id: id, slotId: slotId, roleId: roleId, notes: "");
 
 /// Builds a person with the few fields these tests read, everything else neutral.
-OcptPerson _buildPerson({required String id, required String firstName, required String lastName}) => OcptPerson(
+OcptPerson _buildPerson({
+  required String id,
+  required String firstName,
+  required String lastName,
+}) => OcptPerson(
   id: id,
   firstName: firstName,
   lastName: lastName,
@@ -261,17 +271,18 @@ OcptPerson _buildPerson({required String id, required String firstName, required
 );
 
 /// Builds a role with the few fields these tests read, everything else neutral.
-OcptRole _buildRole({required String id, required String name, String? personId, int number = 1}) => OcptRole(
-  id: id,
-  name: name,
-  personId: personId,
-  kind: OcptRoleKind.speaking,
-  isFromScreenplay: true,
-  orphanedName: null,
-  castingNotes: "",
-  number: number,
-  episodeIds: const [],
-);
+OcptRole _buildRole({required String id, required String name, String? personId, int number = 1}) =>
+    OcptRole(
+      id: id,
+      name: name,
+      personId: personId,
+      kind: OcptRoleKind.speaking,
+      isFromScreenplay: true,
+      orphanedName: null,
+      castingNotes: "",
+      number: number,
+      episodeIds: const [],
+    );
 
 /// Builds a location with the few fields these tests read, everything else neutral.
 OcptLocation _buildLocation({required String id, String name = ""}) => OcptLocation(
@@ -341,21 +352,23 @@ OcptShot _buildShot({
 );
 
 /// Builds a one-scene shot list snapshot over [shots], all belonging to one synthetic scene.
-OcptShotListSnapshot _buildShotList({required List<OcptShot> shots, String heading = "INT. HOUSE - DAY"}) =>
-    OcptShotListSnapshot.build(
-      screenplayId: "screenplay-1",
-      sequences: [
-        OcptSceneShotSequence(
-          sceneId: "scene-1",
-          heading: heading,
-          sceneNumber: null,
-          displaySceneNumber: "1",
-          charStart: 0,
-          charEnd: 10,
-          shots: shots,
-        ),
-      ],
-    );
+OcptShotListSnapshot _buildShotList({
+  required List<OcptShot> shots,
+  String heading = "INT. HOUSE - DAY",
+}) => OcptShotListSnapshot.build(
+  screenplayId: "screenplay-1",
+  sequences: [
+    OcptSceneShotSequence(
+      sceneId: "scene-1",
+      heading: heading,
+      sceneNumber: null,
+      displaySceneNumber: "1",
+      charStart: 0,
+      charEnd: 10,
+      shots: shots,
+    ),
+  ],
+);
 
 /// Builds a scene-element link with the few fields these tests read, everything else neutral.
 OcptSceneElementLink _buildSceneElementLink({required String id, required String sceneId}) =>
@@ -433,7 +446,12 @@ void main() {
   group("generate", () {
     test("produces bytes starting with the %PDF magic string", () async {
       final locationA = _buildLocation(id: "loc-a", name: "Studio A");
-      final slot = _buildSlot(id: "slot-1", shootingDayId: "day-1", locationId: "loc-a", anchorMinute: 480);
+      final slot = _buildSlot(
+        id: "slot-1",
+        shootingDayId: "day-1",
+        locationId: "loc-a",
+        anchorMinute: 480,
+      );
       final plan = _buildSnapshot(
         days: [_buildDay(id: "day-1", dayNumber: 1)],
         slotsByDayId: {
@@ -464,8 +482,18 @@ void main() {
     test("a two-slot day produces two grid columns under one day tag", () async {
       final locationA = _buildLocation(id: "loc-a", name: "Studio A");
       final locationB = _buildLocation(id: "loc-b", name: "Location B");
-      final morning = _buildSlot(id: "slot-morning", shootingDayId: "day-1", locationId: "loc-a", anchorMinute: 480);
-      final evening = _buildSlot(id: "slot-evening", shootingDayId: "day-1", locationId: "loc-b", anchorMinute: 1080);
+      final morning = _buildSlot(
+        id: "slot-morning",
+        shootingDayId: "day-1",
+        locationId: "loc-a",
+        anchorMinute: 480,
+      );
+      final evening = _buildSlot(
+        id: "slot-evening",
+        shootingDayId: "day-1",
+        locationId: "loc-b",
+        anchorMinute: 1080,
+      );
 
       final twoSlotPlan = _buildSnapshot(
         days: [_buildDay(id: "day-1", dayNumber: 2)],
@@ -514,7 +542,14 @@ void main() {
       final days = [for (var i = 1; i <= 8; i++) _buildDay(id: "day-$i", dayNumber: i)];
       final slotsByDayId = {
         for (var i = 1; i <= 8; i++)
-          "day-$i": [_buildSlot(id: "slot-$i", shootingDayId: "day-$i", locationId: "loc-a", anchorMinute: 480)],
+          "day-$i": [
+            _buildSlot(
+              id: "slot-$i",
+              shootingDayId: "day-$i",
+              locationId: "loc-a",
+              anchorMinute: 480,
+            ),
+          ],
       };
       final dayIds = [for (var i = 1; i <= 8; i++) "day-$i"];
       final plan = _buildSnapshot(days: days, slotsByDayId: slotsByDayId, locations: [location]);
@@ -549,12 +584,32 @@ void main() {
         shootingDayId: "day-1",
         locationId: "loc-a",
         anchorMinute: 480,
-        crew: [_buildCrewMember(id: "crew-1", slotId: "slot-1", personId: "person-1", positionId: "director")],
+        crew: [
+          _buildCrewMember(
+            id: "crew-1",
+            slotId: "slot-1",
+            personId: "person-1",
+            positionId: "director",
+          ),
+        ],
         cast: [_buildCastMember(id: "cast-1", slotId: "slot-1", roleId: "role-1")],
       );
-      final shot = _buildShot(id: "shot-1", sceneId: "scene-1", code: "1/1", characters: const ["ALICE"]);
+      final shot = _buildShot(
+        id: "shot-1",
+        sceneId: "scene-1",
+        code: "1/1",
+        characters: const ["ALICE"],
+      );
       final blocksByDayId = {
-        "day-1": [_buildBlock(id: "block-1", shootingDayId: "day-1", slotId: "slot-1", kind: OcptShootingBlockKind.shot, shotId: "shot-1")],
+        "day-1": [
+          _buildBlock(
+            id: "block-1",
+            shootingDayId: "day-1",
+            slotId: "slot-1",
+            kind: OcptShootingBlockKind.shot,
+            shotId: "shot-1",
+          ),
+        ],
       };
       final plan = _buildSnapshot(
         days: [_buildDay(id: "day-1", dayNumber: 1)],
@@ -565,7 +620,9 @@ void main() {
         locations: [location],
         roles: [role],
         people: [person],
-        shotLists: [_buildShotList(shots: [shot])],
+        shotLists: [
+          _buildShotList(shots: [shot]),
+        ],
       );
 
       Future<Uint8List> generateFor({required bool includeGrids}) => service.generate(
@@ -590,14 +647,25 @@ void main() {
     });
 
     test("a night slot crossing midnight prints the resolved hours, never modulo 1440", () async {
-      final nightSlot = _buildSlot(id: "slot-night", shootingDayId: "day-1", anchorMinute: 1140); // 19:00
+      final nightSlot = _buildSlot(
+        id: "slot-night",
+        shootingDayId: "day-1",
+        anchorMinute: 1140,
+      ); // 19:00
       final nightSnapshot = _buildSnapshot(
         days: [_buildDay(id: "day-1", dayNumber: 1)],
         slotsByDayId: {
           "day-1": [nightSlot],
         },
         blocksByDayId: {
-          "day-1": [_buildBlock(id: "block-1", shootingDayId: "day-1", slotId: "slot-night", durationMinutes: 480)], // ends at 1620
+          "day-1": [
+            _buildBlock(
+              id: "block-1",
+              shootingDayId: "day-1",
+              slotId: "slot-night",
+              durationMinutes: 480,
+            ),
+          ], // ends at 1620
         },
       );
 
@@ -608,7 +676,14 @@ void main() {
           "day-1": [daySlot],
         },
         blocksByDayId: {
-          "day-1": [_buildBlock(id: "block-1", shootingDayId: "day-1", slotId: "slot-day", durationMinutes: 480)],
+          "day-1": [
+            _buildBlock(
+              id: "block-1",
+              shootingDayId: "day-1",
+              slotId: "slot-day",
+              durationMinutes: 480,
+            ),
+          ],
         },
       );
 
@@ -637,7 +712,11 @@ void main() {
     test("a shot table's own hours column prints the resolved hours, never modulo 1440", () async {
       final shot = _buildShot(id: "shot-1", sceneId: "scene-1", code: "1/1");
 
-      final nightSlot = _buildSlot(id: "slot-night", shootingDayId: "day-1", anchorMinute: 1140); // 19:00
+      final nightSlot = _buildSlot(
+        id: "slot-night",
+        shootingDayId: "day-1",
+        anchorMinute: 1140,
+      ); // 19:00
       final nightSnapshot = _buildSnapshot(
         days: [_buildDay(id: "day-1", dayNumber: 1)],
         slotsByDayId: {
@@ -655,7 +734,9 @@ void main() {
             ),
           ],
         },
-        shotLists: [_buildShotList(shots: [shot])],
+        shotLists: [
+          _buildShotList(shots: [shot]),
+        ],
       );
 
       final daySlot = _buildSlot(id: "slot-day", shootingDayId: "day-1", anchorMinute: 480);
@@ -676,7 +757,9 @@ void main() {
             ),
           ],
         },
-        shotLists: [_buildShotList(shots: [shot])],
+        shotLists: [
+          _buildShotList(shots: [shot]),
+        ],
       );
 
       Future<Uint8List> generateFor(OcptSchedulePlanSnapshot plan) => service.generate(
@@ -701,66 +784,79 @@ void main() {
       expect(_contentStreams(nightBytes), isNot(_contentStreams(dayBytes)));
     });
 
-    test("an end-anchored slot prints the hours the timeline resolves, not the raw anchor", () async {
-      // Both slots are end-anchored on the very same minute (720); only their own block's duration
-      // differs, so only the *resolved start* tells them apart.
-      final shortSlot = _buildSlot(
-        id: "slot-1",
-        shootingDayId: "day-1",
-        anchorEdge: OcptShootingSlotAnchorEdge.end,
-        anchorMinute: 720,
-      );
-      final shortSnapshot = _buildSnapshot(
-        days: [_buildDay(id: "day-1", dayNumber: 1)],
-        slotsByDayId: {
-          "day-1": [shortSlot],
-        },
-        blocksByDayId: {
-          "day-1": [_buildBlock(id: "block-1", shootingDayId: "day-1", slotId: "slot-1")], // starts at 690
-        },
-      );
+    test(
+      "an end-anchored slot prints the hours the timeline resolves, not the raw anchor",
+      () async {
+        // Both slots are end-anchored on the very same minute (720); only their own block's duration
+        // differs, so only the *resolved start* tells them apart.
+        final shortSlot = _buildSlot(
+          id: "slot-1",
+          shootingDayId: "day-1",
+          anchorEdge: OcptShootingSlotAnchorEdge.end,
+          anchorMinute: 720,
+        );
+        final shortSnapshot = _buildSnapshot(
+          days: [_buildDay(id: "day-1", dayNumber: 1)],
+          slotsByDayId: {
+            "day-1": [shortSlot],
+          },
+          blocksByDayId: {
+            "day-1": [
+              _buildBlock(id: "block-1", shootingDayId: "day-1", slotId: "slot-1"),
+            ], // starts at 690
+          },
+        );
 
-      final longSlot = _buildSlot(
-        id: "slot-1",
-        shootingDayId: "day-1",
-        anchorEdge: OcptShootingSlotAnchorEdge.end,
-        anchorMinute: 720,
-      );
-      final longSnapshot = _buildSnapshot(
-        days: [_buildDay(id: "day-1", dayNumber: 1)],
-        slotsByDayId: {
-          "day-1": [longSlot],
-        },
-        blocksByDayId: {
-          "day-1": [
-            _buildBlock(id: "block-1", shootingDayId: "day-1", slotId: "slot-1", durationMinutes: 180),
-          ], // starts at 540
-        },
-      );
+        final longSlot = _buildSlot(
+          id: "slot-1",
+          shootingDayId: "day-1",
+          anchorEdge: OcptShootingSlotAnchorEdge.end,
+          anchorMinute: 720,
+        );
+        final longSnapshot = _buildSnapshot(
+          days: [_buildDay(id: "day-1", dayNumber: 1)],
+          slotsByDayId: {
+            "day-1": [longSlot],
+          },
+          blocksByDayId: {
+            "day-1": [
+              _buildBlock(
+                id: "block-1",
+                shootingDayId: "day-1",
+                slotId: "slot-1",
+                durationMinutes: 180,
+              ),
+            ], // starts at 540
+          },
+        );
 
-      Future<Uint8List> generateFor(OcptSchedulePlanSnapshot plan) => service.generate(
-        plan: plan,
-        dayIds: const ["day-1"],
-        pageSetup: pageSetup,
-        labels: _labels,
-        projectName: "My Movie",
-        includeTitlePage: false,
-        includeLocationsGrid: false,
-        includeSequencesGrid: false,
-        includePeopleGrid: false,
-        includeTenMinuteGrid: false,
-        includeElementsGrid: false,
-        exportDate: pinnedExportDate,
-      );
+        Future<Uint8List> generateFor(OcptSchedulePlanSnapshot plan) => service.generate(
+          plan: plan,
+          dayIds: const ["day-1"],
+          pageSetup: pageSetup,
+          labels: _labels,
+          projectName: "My Movie",
+          includeTitlePage: false,
+          includeLocationsGrid: false,
+          includeSequencesGrid: false,
+          includePeopleGrid: false,
+          includeTenMinuteGrid: false,
+          includeElementsGrid: false,
+          exportDate: pinnedExportDate,
+        );
 
-      final shortBytes = await generateFor(shortSnapshot);
-      final longBytes = await generateFor(longSnapshot);
+        final shortBytes = await generateFor(shortSnapshot);
+        final longBytes = await generateFor(longSnapshot);
 
-      expect(_contentStreams(shortBytes), isNot(_contentStreams(longBytes)));
-    });
+        expect(_contentStreams(shortBytes), isNot(_contentStreams(longBytes)));
+      },
+    );
 
     test("a day with no slot still writes a readable document", () async {
-      final plan = _buildSnapshot(days: [_buildDay(id: "day-1", dayNumber: 1)], slotsByDayId: const {});
+      final plan = _buildSnapshot(
+        days: [_buildDay(id: "day-1", dayNumber: 1)],
+        slotsByDayId: const {},
+      );
 
       final bytes = await service.generate(
         plan: plan,
@@ -803,37 +899,45 @@ void main() {
       expect(_pageCount(bytes), 1);
     });
 
-    test("the same schedule exported twice, at the same export date, draws exactly the same pages", () async {
-      final location = _buildLocation(id: "loc-a", name: "Studio A");
-      final slot = _buildSlot(id: "slot-1", shootingDayId: "day-1", locationId: "loc-a", anchorMinute: 480);
-      final plan = _buildSnapshot(
-        days: [_buildDay(id: "day-1", dayNumber: 1)],
-        slotsByDayId: {
-          "day-1": [slot],
-        },
-        locations: [location],
-      );
+    test(
+      "the same schedule exported twice, at the same export date, draws exactly the same pages",
+      () async {
+        final location = _buildLocation(id: "loc-a", name: "Studio A");
+        final slot = _buildSlot(
+          id: "slot-1",
+          shootingDayId: "day-1",
+          locationId: "loc-a",
+          anchorMinute: 480,
+        );
+        final plan = _buildSnapshot(
+          days: [_buildDay(id: "day-1", dayNumber: 1)],
+          slotsByDayId: {
+            "day-1": [slot],
+          },
+          locations: [location],
+        );
 
-      Future<Uint8List> generateOnce() => service.generate(
-        plan: plan,
-        dayIds: const ["day-1"],
-        pageSetup: pageSetup,
-        labels: _labels,
-        projectName: "My Movie",
-        includeTitlePage: true,
-        includeLocationsGrid: true,
-        includeSequencesGrid: true,
-        includePeopleGrid: true,
-        includeTenMinuteGrid: false,
-        includeElementsGrid: false,
-        exportDate: pinnedExportDate,
-      );
+        Future<Uint8List> generateOnce() => service.generate(
+          plan: plan,
+          dayIds: const ["day-1"],
+          pageSetup: pageSetup,
+          labels: _labels,
+          projectName: "My Movie",
+          includeTitlePage: true,
+          includeLocationsGrid: true,
+          includeSequencesGrid: true,
+          includePeopleGrid: true,
+          includeTenMinuteGrid: false,
+          includeElementsGrid: false,
+          exportDate: pinnedExportDate,
+        );
 
-      final first = await generateOnce();
-      final second = await generateOnce();
+        final first = await generateOnce();
+        final second = await generateOnce();
 
-      expect(_contentStreams(first), _contentStreams(second));
-    });
+        expect(_contentStreams(first), _contentStreams(second));
+      },
+    );
 
     test("the same schedule exported at two moments of one day draws different pages", () async {
       final plan = _buildSnapshot(
@@ -877,7 +981,12 @@ void main() {
         },
         blocksByDayId: {
           "day-1": [
-            _buildBlock(id: "block-1", shootingDayId: "day-1", slotId: "slot-1", kind: OcptShootingBlockKind.meal),
+            _buildBlock(
+              id: "block-1",
+              shootingDayId: "day-1",
+              slotId: "slot-1",
+              kind: OcptShootingBlockKind.meal,
+            ),
           ],
         },
       );
@@ -886,7 +995,14 @@ void main() {
         id: "slot-1",
         shootingDayId: "day-1",
         anchorMinute: 480,
-        guests: [_buildGuest(id: "guest-1", slotId: "slot-1", freeName: "Mayor Dupont", reason: "Lends the square")],
+        guests: [
+          _buildGuest(
+            id: "guest-1",
+            slotId: "slot-1",
+            freeName: "Mayor Dupont",
+            reason: "Lends the square",
+          ),
+        ],
       );
       final withExtras = _buildSnapshot(
         days: [_buildDay(id: "day-1", dayNumber: 1)],
@@ -905,7 +1021,14 @@ void main() {
           ],
         },
         eventsByDayId: {
-          "day-1": [_buildEvent(id: "event-1", shootingDayId: "day-1", minute: 1020, label: "Village fireworks")],
+          "day-1": [
+            _buildEvent(
+              id: "event-1",
+              shootingDayId: "day-1",
+              minute: 1020,
+              label: "Village fireworks",
+            ),
+          ],
         },
       );
 
@@ -938,47 +1061,50 @@ void main() {
       expect(withBytes.length, greaterThan(withoutBytes.length));
     });
 
-    test("a milestone block's own crew note changes the document even with no shot on the day", () async {
-      final slot = _buildSlot(id: "slot-1", shootingDayId: "day-1", anchorMinute: 480);
+    test(
+      "a milestone block's own crew note changes the document even with no shot on the day",
+      () async {
+        final slot = _buildSlot(id: "slot-1", shootingDayId: "day-1", anchorMinute: 480);
 
-      OcptSchedulePlanSnapshot buildPlan(String crewNote) => _buildSnapshot(
-        days: [_buildDay(id: "day-1", dayNumber: 1)],
-        slotsByDayId: {
-          "day-1": [slot],
-        },
-        blocksByDayId: {
-          "day-1": [
-            _buildBlock(
-              id: "block-1",
-              shootingDayId: "day-1",
-              slotId: "slot-1",
-              kind: OcptShootingBlockKind.meal,
-              crewNote: crewNote,
-            ),
-          ],
-        },
-      );
+        OcptSchedulePlanSnapshot buildPlan(String crewNote) => _buildSnapshot(
+          days: [_buildDay(id: "day-1", dayNumber: 1)],
+          slotsByDayId: {
+            "day-1": [slot],
+          },
+          blocksByDayId: {
+            "day-1": [
+              _buildBlock(
+                id: "block-1",
+                shootingDayId: "day-1",
+                slotId: "slot-1",
+                kind: OcptShootingBlockKind.meal,
+                crewNote: crewNote,
+              ),
+            ],
+          },
+        );
 
-      Future<Uint8List> generateFor(OcptSchedulePlanSnapshot plan) => service.generate(
-        plan: plan,
-        dayIds: const ["day-1"],
-        pageSetup: pageSetup,
-        labels: _labels,
-        projectName: "My Movie",
-        includeTitlePage: false,
-        includeLocationsGrid: false,
-        includeSequencesGrid: false,
-        includePeopleGrid: false,
-        includeTenMinuteGrid: false,
-        includeElementsGrid: false,
-        exportDate: pinnedExportDate,
-      );
+        Future<Uint8List> generateFor(OcptSchedulePlanSnapshot plan) => service.generate(
+          plan: plan,
+          dayIds: const ["day-1"],
+          pageSetup: pageSetup,
+          labels: _labels,
+          projectName: "My Movie",
+          includeTitlePage: false,
+          includeLocationsGrid: false,
+          includeSequencesGrid: false,
+          includePeopleGrid: false,
+          includeTenMinuteGrid: false,
+          includeElementsGrid: false,
+          exportDate: pinnedExportDate,
+        );
 
-      final withoutNote = await generateFor(buildPlan(""));
-      final withNote = await generateFor(buildPlan("Keep noise down before 9am."));
+        final withoutNote = await generateFor(buildPlan(""));
+        final withNote = await generateFor(buildPlan("Keep noise down before 9am."));
 
-      expect(_contentStreams(withNote), isNot(_contentStreams(withoutNote)));
-    });
+        expect(_contentStreams(withNote), isNot(_contentStreams(withoutNote)));
+      },
+    );
 
     test("a shot block's own crew note closes its table chunk and changes the document", () async {
       final slot = _buildSlot(id: "slot-1", shootingDayId: "day-1", anchorMinute: 480);
@@ -1002,7 +1128,9 @@ void main() {
             ),
           ],
         },
-        shotLists: [_buildShotList(shots: [shot])],
+        shotLists: [
+          _buildShotList(shots: [shot]),
+        ],
       );
 
       Future<Uint8List> generateFor(OcptSchedulePlanSnapshot plan) => service.generate(
@@ -1048,7 +1176,9 @@ void main() {
             ),
           ],
         },
-        shotLists: [_buildShotList(shots: [shot])],
+        shotLists: [
+          _buildShotList(shots: [shot]),
+        ],
       );
 
       Future<Uint8List> generateFor({required bool includeTenMinuteGrid}) => service.generate(
@@ -1079,7 +1209,11 @@ void main() {
     });
 
     test("a day whose blocks run past midnight still produces it", () async {
-      final nightSlot = _buildSlot(id: "slot-night", shootingDayId: "day-1", anchorMinute: 1140); // 19:00
+      final nightSlot = _buildSlot(
+        id: "slot-night",
+        shootingDayId: "day-1",
+        anchorMinute: 1140,
+      ); // 19:00
       final shot = _buildShot(id: "shot-1", sceneId: "scene-1", code: "1/1");
       final plan = _buildSnapshot(
         days: [_buildDay(id: "day-1", dayNumber: 1)],
@@ -1098,7 +1232,9 @@ void main() {
             ),
           ],
         },
-        shotLists: [_buildShotList(shots: [shot])],
+        shotLists: [
+          _buildShotList(shots: [shot]),
+        ],
       );
 
       final bytes = await service.generate(
@@ -1122,51 +1258,75 @@ void main() {
       expect(_pageCount(bytes), greaterThanOrEqualTo(3));
     });
 
-    test("an event pinned outside every block's own band still produces a readable document", () async {
-      final slot = _buildSlot(id: "slot-1", shootingDayId: "day-1", anchorMinute: 480);
-      final withoutEvent = _buildSnapshot(
-        days: [_buildDay(id: "day-1", dayNumber: 1)],
-        slotsByDayId: {
-          "day-1": [slot],
-        },
-        blocksByDayId: {
-          "day-1": [_buildBlock(id: "block-1", shootingDayId: "day-1", slotId: "slot-1", durationMinutes: 60)],
-        },
-      );
-      final withEvent = _buildSnapshot(
-        days: [_buildDay(id: "day-1", dayNumber: 1)],
-        slotsByDayId: {
-          "day-1": [slot],
-        },
-        blocksByDayId: {
-          "day-1": [_buildBlock(id: "block-1", shootingDayId: "day-1", slotId: "slot-1", durationMinutes: 60)],
-        },
-        eventsByDayId: {
-          "day-1": [_buildEvent(id: "event-1", shootingDayId: "day-1", minute: 1020, label: "Village fireworks")],
-        },
-      );
+    test(
+      "an event pinned outside every block's own band still produces a readable document",
+      () async {
+        final slot = _buildSlot(id: "slot-1", shootingDayId: "day-1", anchorMinute: 480);
+        final withoutEvent = _buildSnapshot(
+          days: [_buildDay(id: "day-1", dayNumber: 1)],
+          slotsByDayId: {
+            "day-1": [slot],
+          },
+          blocksByDayId: {
+            "day-1": [
+              _buildBlock(
+                id: "block-1",
+                shootingDayId: "day-1",
+                slotId: "slot-1",
+                durationMinutes: 60,
+              ),
+            ],
+          },
+        );
+        final withEvent = _buildSnapshot(
+          days: [_buildDay(id: "day-1", dayNumber: 1)],
+          slotsByDayId: {
+            "day-1": [slot],
+          },
+          blocksByDayId: {
+            "day-1": [
+              _buildBlock(
+                id: "block-1",
+                shootingDayId: "day-1",
+                slotId: "slot-1",
+                durationMinutes: 60,
+              ),
+            ],
+          },
+          eventsByDayId: {
+            "day-1": [
+              _buildEvent(
+                id: "event-1",
+                shootingDayId: "day-1",
+                minute: 1020,
+                label: "Village fireworks",
+              ),
+            ],
+          },
+        );
 
-      Future<Uint8List> generateFor(OcptSchedulePlanSnapshot plan) => service.generate(
-        plan: plan,
-        dayIds: const ["day-1"],
-        pageSetup: pageSetup,
-        labels: _labels,
-        projectName: "My Movie",
-        includeTitlePage: false,
-        includeLocationsGrid: false,
-        includeSequencesGrid: false,
-        includePeopleGrid: false,
-        includeTenMinuteGrid: true,
-        includeElementsGrid: false,
-        exportDate: pinnedExportDate,
-      );
+        Future<Uint8List> generateFor(OcptSchedulePlanSnapshot plan) => service.generate(
+          plan: plan,
+          dayIds: const ["day-1"],
+          pageSetup: pageSetup,
+          labels: _labels,
+          projectName: "My Movie",
+          includeTitlePage: false,
+          includeLocationsGrid: false,
+          includeSequencesGrid: false,
+          includePeopleGrid: false,
+          includeTenMinuteGrid: true,
+          includeElementsGrid: false,
+          exportDate: pinnedExportDate,
+        );
 
-      final withBytes = await generateFor(withEvent);
-      final withoutBytes = await generateFor(withoutEvent);
+        final withBytes = await generateFor(withEvent);
+        final withoutBytes = await generateFor(withoutEvent);
 
-      expect(ascii.decode(withBytes.sublist(0, 4)), "%PDF");
-      expect(_contentStreams(withBytes), isNot(_contentStreams(withoutBytes)));
-    });
+        expect(ascii.decode(withBytes.sublist(0, 4)), "%PDF");
+        expect(_contentStreams(withBytes), isNot(_contentStreams(withoutBytes)));
+      },
+    );
   });
 
   group("elements grid", () {
@@ -1195,7 +1355,9 @@ void main() {
             ),
           ],
         },
-        shotLists: [_buildShotList(shots: [shot])],
+        shotLists: [
+          _buildShotList(shots: [shot]),
+        ],
         elements: [element],
       );
 
@@ -1259,7 +1421,9 @@ void main() {
             ),
           ],
         },
-        shotLists: [_buildShotList(shots: [shot])],
+        shotLists: [
+          _buildShotList(shots: [shot]),
+        ],
         elements: elements,
       );
 
@@ -1292,9 +1456,12 @@ void main() {
       // alone so the grid draws at least one row.
       final days = [for (var i = 1; i <= 8; i++) _buildDay(id: "day-$i", dayNumber: i)];
       final slotsByDayId = {
-        for (var i = 1; i <= 8; i++) "day-$i": [_buildSlot(id: "slot-$i", shootingDayId: "day-$i", anchorMinute: 480)],
+        for (var i = 1; i <= 8; i++)
+          "day-$i": [_buildSlot(id: "slot-$i", shootingDayId: "day-$i", anchorMinute: 480)],
       };
-      final shots = [for (var i = 1; i <= 8; i++) _buildShot(id: "shot-$i", sceneId: "scene-$i", code: "$i/1")];
+      final shots = [
+        for (var i = 1; i <= 8; i++) _buildShot(id: "shot-$i", sceneId: "scene-$i", code: "$i/1"),
+      ];
       final blocksByDayId = {
         for (var i = 1; i <= 8; i++)
           "day-$i": [
@@ -1364,114 +1531,113 @@ void main() {
 
     /// Episode 2's own one-scene shot list: `scene-e2`, prefixed [displaySceneNumber] (`2.4` unless a
     /// test deliberately hands in a bare number to simulate the prefix being dropped).
-    OcptShotListSnapshot buildEpisodeTwoShotList(OcptShot shot, {String displaySceneNumber = "2.4"}) =>
-        OcptShotListSnapshot.build(
-          screenplayId: "episode-2",
-          sequences: [
-            OcptSceneShotSequence(
-              sceneId: "scene-e2",
-              heading: "EXT. STREET - NIGHT",
-              sceneNumber: null,
-              displaySceneNumber: displaySceneNumber,
-              charStart: 0,
-              charEnd: 10,
-              shots: [shot],
-            ),
-          ],
-        );
-
-    test(
-      "the sequences grid holds a row for each episode's own sequence, and the day agenda's shot "
-      "table prints each episode's own prefixed shot code",
-      () async {
-        final slot = _buildSlot(id: "slot-1", shootingDayId: "day-1", anchorMinute: 480);
-        final shotOne = _buildShot(id: "shot-e1", sceneId: "scene-e1", code: "1.3/1");
-        final shotTwo = _buildShot(id: "shot-e2", sceneId: "scene-e2", code: "2.4/1");
-        final blocks = {
-          "day-1": [
-            _buildBlock(
-              id: "block-1",
-              shootingDayId: "day-1",
-              slotId: "slot-1",
-              kind: OcptShootingBlockKind.shot,
-              shotId: "shot-e1",
-              durationMinutes: 60,
-            ),
-            _buildBlock(
-              id: "block-2",
-              shootingDayId: "day-1",
-              slotId: "slot-1",
-              kind: OcptShootingBlockKind.shot,
-              shotId: "shot-e2",
-              durationMinutes: 60,
-            ),
-          ],
-        };
-
-        final bothEpisodesPlan = _buildSnapshot(
-          days: [_buildDay(id: "day-1", dayNumber: 1)],
-          slotsByDayId: {
-            "day-1": [slot],
-          },
-          blocksByDayId: blocks,
-          shotLists: [buildEpisodeOneShotList(shotOne), buildEpisodeTwoShotList(shotTwo)],
-        );
-
-        // Episode 2's own shot list is unchanged but for its display number, which is stripped of
-        // its prefix here — the very string the day agenda's own shot-table cell (`shot.code`) and
-        // the sequences grid's own row label both read from.
-        final unprefixedShotTwo = _buildShot(id: "shot-e2", sceneId: "scene-e2", code: "4/1");
-        final unprefixedPlan = _buildSnapshot(
-          days: [_buildDay(id: "day-1", dayNumber: 1)],
-          slotsByDayId: {
-            "day-1": [slot],
-          },
-          blocksByDayId: blocks,
-          shotLists: [
-            buildEpisodeOneShotList(shotOne),
-            buildEpisodeTwoShotList(unprefixedShotTwo, displaySceneNumber: "4"),
-          ],
-        );
-
-        // Episode 1 alone: the control this test's own "both episodes print a row each" assertion is
-        // measured against.
-        final episodeOneOnlyPlan = _buildSnapshot(
-          days: [_buildDay(id: "day-1", dayNumber: 1)],
-          slotsByDayId: {
-            "day-1": [slot],
-          },
-          blocksByDayId: {
-            "day-1": [blocks["day-1"]!.first],
-          },
-          shotLists: [buildEpisodeOneShotList(shotOne)],
-        );
-
-        Future<Uint8List> generateFor(OcptSchedulePlanSnapshot plan) => service.generate(
-          plan: plan,
-          dayIds: const ["day-1"],
-          pageSetup: pageSetup,
-          labels: _labels,
-          projectName: "My Movie",
-          includeTitlePage: false,
-          includeLocationsGrid: false,
-          includeSequencesGrid: true,
-          includePeopleGrid: false,
-          includeTenMinuteGrid: false,
-          includeElementsGrid: false,
-          exportDate: pinnedExportDate,
-        );
-
-        final bothEpisodesBytes = await generateFor(bothEpisodesPlan);
-        final unprefixedBytes = await generateFor(unprefixedPlan);
-        final episodeOneOnlyBytes = await generateFor(episodeOneOnlyPlan);
-
-        // The prefixed reading of episode 2's own sequence draws differently from the unprefixed
-        // one: the prefix genuinely reaches the page rather than being resolved and then dropped.
-        expect(_contentStreams(bothEpisodesBytes), isNot(_contentStreams(unprefixedBytes)));
-        // Both episodes' own sequence and shot draw more than episode 1's alone.
-        expect(bothEpisodesBytes.length, greaterThan(episodeOneOnlyBytes.length));
-      },
+    OcptShotListSnapshot buildEpisodeTwoShotList(
+      OcptShot shot, {
+      String displaySceneNumber = "2.4",
+    }) => OcptShotListSnapshot.build(
+      screenplayId: "episode-2",
+      sequences: [
+        OcptSceneShotSequence(
+          sceneId: "scene-e2",
+          heading: "EXT. STREET - NIGHT",
+          sceneNumber: null,
+          displaySceneNumber: displaySceneNumber,
+          charStart: 0,
+          charEnd: 10,
+          shots: [shot],
+        ),
+      ],
     );
+
+    test("the sequences grid holds a row for each episode's own sequence, and the day agenda's shot "
+        "table prints each episode's own prefixed shot code", () async {
+      final slot = _buildSlot(id: "slot-1", shootingDayId: "day-1", anchorMinute: 480);
+      final shotOne = _buildShot(id: "shot-e1", sceneId: "scene-e1", code: "1.3/1");
+      final shotTwo = _buildShot(id: "shot-e2", sceneId: "scene-e2", code: "2.4/1");
+      final blocks = {
+        "day-1": [
+          _buildBlock(
+            id: "block-1",
+            shootingDayId: "day-1",
+            slotId: "slot-1",
+            kind: OcptShootingBlockKind.shot,
+            shotId: "shot-e1",
+            durationMinutes: 60,
+          ),
+          _buildBlock(
+            id: "block-2",
+            shootingDayId: "day-1",
+            slotId: "slot-1",
+            kind: OcptShootingBlockKind.shot,
+            shotId: "shot-e2",
+            durationMinutes: 60,
+          ),
+        ],
+      };
+
+      final bothEpisodesPlan = _buildSnapshot(
+        days: [_buildDay(id: "day-1", dayNumber: 1)],
+        slotsByDayId: {
+          "day-1": [slot],
+        },
+        blocksByDayId: blocks,
+        shotLists: [buildEpisodeOneShotList(shotOne), buildEpisodeTwoShotList(shotTwo)],
+      );
+
+      // Episode 2's own shot list is unchanged but for its display number, which is stripped of
+      // its prefix here — the very string the day agenda's own shot-table cell (`shot.code`) and
+      // the sequences grid's own row label both read from.
+      final unprefixedShotTwo = _buildShot(id: "shot-e2", sceneId: "scene-e2", code: "4/1");
+      final unprefixedPlan = _buildSnapshot(
+        days: [_buildDay(id: "day-1", dayNumber: 1)],
+        slotsByDayId: {
+          "day-1": [slot],
+        },
+        blocksByDayId: blocks,
+        shotLists: [
+          buildEpisodeOneShotList(shotOne),
+          buildEpisodeTwoShotList(unprefixedShotTwo, displaySceneNumber: "4"),
+        ],
+      );
+
+      // Episode 1 alone: the control this test's own "both episodes print a row each" assertion is
+      // measured against.
+      final episodeOneOnlyPlan = _buildSnapshot(
+        days: [_buildDay(id: "day-1", dayNumber: 1)],
+        slotsByDayId: {
+          "day-1": [slot],
+        },
+        blocksByDayId: {
+          "day-1": [blocks["day-1"]!.first],
+        },
+        shotLists: [buildEpisodeOneShotList(shotOne)],
+      );
+
+      Future<Uint8List> generateFor(OcptSchedulePlanSnapshot plan) => service.generate(
+        plan: plan,
+        dayIds: const ["day-1"],
+        pageSetup: pageSetup,
+        labels: _labels,
+        projectName: "My Movie",
+        includeTitlePage: false,
+        includeLocationsGrid: false,
+        includeSequencesGrid: true,
+        includePeopleGrid: false,
+        includeTenMinuteGrid: false,
+        includeElementsGrid: false,
+        exportDate: pinnedExportDate,
+      );
+
+      final bothEpisodesBytes = await generateFor(bothEpisodesPlan);
+      final unprefixedBytes = await generateFor(unprefixedPlan);
+      final episodeOneOnlyBytes = await generateFor(episodeOneOnlyPlan);
+
+      // The prefixed reading of episode 2's own sequence draws differently from the unprefixed
+      // one: the prefix genuinely reaches the page rather than being resolved and then dropped.
+      expect(_contentStreams(bothEpisodesBytes), isNot(_contentStreams(unprefixedBytes)));
+      // Both episodes' own sequence and shot draw more than episode 1's alone.
+      expect(bothEpisodesBytes.length, greaterThan(episodeOneOnlyBytes.length));
+    });
 
     test("the ten-minute grid draws a tile for a block of either episode", () async {
       final morning = _buildSlot(id: "slot-morning", shootingDayId: "day-1", anchorMinute: 480);

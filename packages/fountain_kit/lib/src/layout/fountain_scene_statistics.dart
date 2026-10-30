@@ -83,10 +83,7 @@ class FountainSceneStatistics extends Equatable {
   /// The top-level blocks of [document] belonging to its [sceneIndex]-th
   /// scene: the scene heading itself, up to (but excluding) the next scene
   /// heading, or the end of [FountainDocument.blocks] for the last scene.
-  static List<FountainBlock> _blocksOfScene(
-    FountainDocument document,
-    int sceneIndex,
-  ) {
+  static List<FountainBlock> _blocksOfScene(FountainDocument document, int sceneIndex) {
     final blocks = document.blocks;
     final headingIndices = [
       for (var index = 0; index < blocks.length; index++)
@@ -94,7 +91,9 @@ class FountainSceneStatistics extends Equatable {
     ];
 
     final start = headingIndices[sceneIndex];
-    final end = sceneIndex + 1 < headingIndices.length ? headingIndices[sceneIndex + 1] : blocks.length;
+    final end = sceneIndex + 1 < headingIndices.length
+        ? headingIndices[sceneIndex + 1]
+        : blocks.length;
     return blocks.sublist(start, end);
   }
 
@@ -115,7 +114,8 @@ class FountainSceneStatistics extends Equatable {
     int sceneIndex,
   ) {
     final lines = [
-      for (final page in const FountainScriptComposer().compose(document: document, metrics: metrics).pages)
+      for (final page
+          in const FountainScriptComposer().compose(document: document, metrics: metrics).pages)
         ...page.lines,
     ];
 

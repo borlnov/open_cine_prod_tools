@@ -148,7 +148,9 @@ class _OcptShotInspectorFieldState extends State<OcptShotInspectorField> {
           if (label.isNotEmpty) ...[
             Text(
               label.toUpperCase(),
-              style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
             ),
             const SizedBox(height: 4),
           ],
@@ -194,10 +196,8 @@ class _OcptShotInspectorFieldState extends State<OcptShotInspectorField> {
       onSelected: onChanged,
       fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) =>
           _textField(controller, focusNode),
-      optionsViewBuilder: (context, onSelected, options) => _OcptShotInspectorFieldOptions(
-        options: options,
-        onSelected: onSelected,
-      ),
+      optionsViewBuilder: (context, onSelected, options) =>
+          _OcptShotInspectorFieldOptions(options: options, onSelected: onSelected),
     );
   }
 

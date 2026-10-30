@@ -98,7 +98,12 @@ class OcptMergeService {
           throw StateError("Table '$tableName' is not part of the synchronised table set");
         }
 
-        final conflict = await _applyRowGroup(database: fileDatabase, table: table, rowId: rowId, incoming: incomingStamps);
+        final conflict = await _applyRowGroup(
+          database: fileDatabase,
+          table: table,
+          rowId: rowId,
+          incoming: incomingStamps,
+        );
         if (conflict != null) {
           conflicts.add(conflict);
         }
@@ -125,12 +130,15 @@ class OcptMergeService {
     required List<OcptFieldStamp> incoming,
   }) async {
     final mergeService = screenplayMergeService;
-    final isScreenplaysTable = table.actualTableName == database.ocptScreenplaysTable.actualTableName;
+    final isScreenplaysTable =
+        table.actualTableName == database.ocptScreenplaysTable.actualTableName;
 
     OcptFieldStamp? fountainTextStamp;
     final genericIncoming = <OcptFieldStamp>[];
     for (final stamp in incoming) {
-      if (mergeService != null && isScreenplaysTable && stamp.columnName == _fountainTextColumnName) {
+      if (mergeService != null &&
+          isScreenplaysTable &&
+          stamp.columnName == _fountainTextColumnName) {
         fountainTextStamp = stamp;
       } else {
         genericIncoming.add(stamp);
@@ -156,7 +164,12 @@ class OcptMergeService {
       ];
 
       if (genericWinners.isNotEmpty) {
-        await _applyGenericWinners(database: database, table: table, rowId: rowId, winners: genericWinners);
+        await _applyGenericWinners(
+          database: database,
+          table: table,
+          rowId: rowId,
+          winners: genericWinners,
+        );
       }
     }
 

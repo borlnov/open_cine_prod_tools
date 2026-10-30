@@ -460,7 +460,9 @@ void main() {
       longitude: const Value(-4.4058),
       permitStatus: const Value(OcptPermitStatus.requested),
       permitLabel: const Value("Maritime authority — filming at sea"),
-      constraintsNotes: const Value("Sailing window depends on the swell; skipper decides at 05:00."),
+      constraintsNotes: const Value(
+        "Sailing window depends on the swell; skipper decides at 05:00.",
+      ),
     );
     final boatSetId = (await locationsService.createSet(
       database: database,
@@ -1225,7 +1227,10 @@ void main() {
     }
 
     // Day 1 — the cafe in the morning, the pier in the afternoon.
-    final day1 = (await scheduleService.createDay(database: database, date: DateTime(2026, 9, 15)))!;
+    final day1 = (await scheduleService.createDay(
+      database: database,
+      date: DateTime(2026, 9, 15),
+    ))!;
     await scheduleService.updateDay(
       database: database,
       dayId: day1,
@@ -1313,7 +1318,10 @@ void main() {
     );
 
     // Day 2 — the rest of the cafe, then the end of the pier.
-    final day2 = (await scheduleService.createDay(database: database, date: DateTime(2026, 9, 16)))!;
+    final day2 = (await scheduleService.createDay(
+      database: database,
+      date: DateTime(2026, 9, 16),
+    ))!;
     await scheduleService.updateDay(
       database: database,
       dayId: day2,
@@ -1371,7 +1379,10 @@ void main() {
     await milestone(day2Pier, OcptShootingBlockKind.wrap, 30);
 
     // Day 3 — at sea, one unit, an early call and a hold for the sequence not yet shot-listed.
-    final day3 = (await scheduleService.createDay(database: database, date: DateTime(2026, 9, 17)))!;
+    final day3 = (await scheduleService.createDay(
+      database: database,
+      date: DateTime(2026, 9, 17),
+    ))!;
     await scheduleService.updateDay(
       database: database,
       dayId: day3,
@@ -1487,8 +1498,14 @@ void main() {
       180000,
       vatRateBasisPoints: 2000,
     );
-    await quoteLine("5", "Set dressing — the lighthouse", 1000, "package", 95000,
-        vatRateBasisPoints: 2000);
+    await quoteLine(
+      "5",
+      "Set dressing — the lighthouse",
+      1000,
+      "package",
+      95000,
+      vatRateBasisPoints: 2000,
+    );
     await quoteLine("6", "Boat charter", 3000, "day", 48000, vatRateBasisPoints: 2000);
     await quoteLine("7", "Camera package", 12000, "day", 39000, vatRateBasisPoints: 2000);
     await quoteLine("8", "Colour grading", 4000, "day", 55000, vatRateBasisPoints: 2000);

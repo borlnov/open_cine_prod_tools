@@ -76,42 +76,48 @@ void main() {
       expect(total.lineCount, 2);
     });
 
-    test("excludes a settled commitment outright — from the total and from the coverage counts", () {
-      final commitments = [
-        buildCommitment(id: "c1", amountCents: 1000),
-        buildCommitment(id: "c2", amountCents: 500),
-      ];
-      final entries = [buildEntry(commitmentId: "c2", debitCents: 500)];
+    test(
+      "excludes a settled commitment outright — from the total and from the coverage counts",
+      () {
+        final commitments = [
+          buildCommitment(id: "c1", amountCents: 1000),
+          buildCommitment(id: "c2", amountCents: 500),
+        ];
+        final entries = [buildEntry(commitmentId: "c2", debitCents: 500)];
 
-      final total = ocptBudgetLineCommittedTotalOf(
-        commitments,
-        entries: entries,
-        projectVatRateBasisPoints: null,
-      );
+        final total = ocptBudgetLineCommittedTotalOf(
+          commitments,
+          entries: entries,
+          projectVatRateBasisPoints: null,
+        );
 
-      expect(total.amountCents, 1000);
-      expect(total.coveredLineCount, 1);
-      expect(total.lineCount, 1);
-    });
+        expect(total.amountCents, 1000);
+        expect(total.coveredLineCount, 1);
+        expect(total.lineCount, 1);
+      },
+    );
 
-    test("a part-paid commitment contributes only what it still owes, never its own full amount", () {
-      // The line-level mirror of the poste-level regression: summing a part-paid commitment's
-      // full cash figure here would double-count it against `ocptBudgetLinePaidTotalOf`'s own
-      // reading of the same entry the moment the two are read side by side, exactly as it did
-      // against `ocptBudgetPaidCentsByPosteId` at the poste level.
-      final commitments = [buildCommitment(id: "c1", amountCents: 400000)];
-      final entries = [buildEntry(commitmentId: "c1", debitCents: 120000)];
+    test(
+      "a part-paid commitment contributes only what it still owes, never its own full amount",
+      () {
+        // The line-level mirror of the poste-level regression: summing a part-paid commitment's
+        // full cash figure here would double-count it against `ocptBudgetLinePaidTotalOf`'s own
+        // reading of the same entry the moment the two are read side by side, exactly as it did
+        // against `ocptBudgetPaidCentsByPosteId` at the poste level.
+        final commitments = [buildCommitment(id: "c1", amountCents: 400000)];
+        final entries = [buildEntry(commitmentId: "c1", debitCents: 120000)];
 
-      final total = ocptBudgetLineCommittedTotalOf(
-        commitments,
-        entries: entries,
-        projectVatRateBasisPoints: null,
-      );
+        final total = ocptBudgetLineCommittedTotalOf(
+          commitments,
+          entries: entries,
+          projectVatRateBasisPoints: null,
+        );
 
-      expect(total.amountCents, 280000);
-      expect(total.coveredLineCount, 1);
-      expect(total.lineCount, 1);
-    });
+        expect(total.amountCents, 280000);
+        expect(total.coveredLineCount, 1);
+        expect(total.lineCount, 1);
+      },
+    );
 
     test("a line with no commitment at all answers a zero, fully covered total", () {
       final total = ocptBudgetLineCommittedTotalOf(
@@ -127,9 +133,7 @@ void main() {
 
     test("an unsettled commitment with no known rate leaves the total covered-but-incomplete "
         "rather than silently wrong", () {
-      final commitments = [
-        buildCommitment(id: "c1", amountCents: 1000, isTaxInclusive: false),
-      ];
+      final commitments = [buildCommitment(id: "c1", amountCents: 1000, isTaxInclusive: false)];
 
       final total = ocptBudgetLineCommittedTotalOf(
         commitments,
@@ -146,7 +150,12 @@ void main() {
     test("reads tax-inclusive even when a commitment is typed excluding tax, given the "
         "project's own rate", () {
       final commitments = [
-        buildCommitment(id: "c1", amountCents: 1000, isTaxInclusive: false, vatRateBasisPoints: 2000),
+        buildCommitment(
+          id: "c1",
+          amountCents: 1000,
+          isTaxInclusive: false,
+          vatRateBasisPoints: 2000,
+        ),
       ];
 
       final total = ocptBudgetLineCommittedTotalOf(
@@ -182,23 +191,26 @@ void main() {
       expect(total.lineCount, 2);
     });
 
-    test("excludes an unsettled commitment outright — nothing paid against it reaches its amount", () {
-      final commitments = [
-        buildCommitment(id: "c1", amountCents: 1000),
-        buildCommitment(id: "c2", amountCents: 500),
-      ];
-      final entries = [buildEntry(commitmentId: "c2", debitCents: 500)];
+    test(
+      "excludes an unsettled commitment outright — nothing paid against it reaches its amount",
+      () {
+        final commitments = [
+          buildCommitment(id: "c1", amountCents: 1000),
+          buildCommitment(id: "c2", amountCents: 500),
+        ];
+        final entries = [buildEntry(commitmentId: "c2", debitCents: 500)];
 
-      final total = ocptBudgetLinePaidTotalOf(
-        commitments,
-        entries: entries,
-        projectVatRateBasisPoints: null,
-      );
+        final total = ocptBudgetLinePaidTotalOf(
+          commitments,
+          entries: entries,
+          projectVatRateBasisPoints: null,
+        );
 
-      expect(total.amountCents, 500);
-      expect(total.coveredLineCount, 1);
-      expect(total.lineCount, 1);
-    });
+        expect(total.amountCents, 500);
+        expect(total.coveredLineCount, 1);
+        expect(total.lineCount, 1);
+      },
+    );
 
     test("reads what has actually been paid, not the commitment's own amount, once an "
         "overpayment makes the two disagree", () {
@@ -252,7 +264,12 @@ void main() {
     test("reads what has been paid tax-inclusive, given the project's own rate", () {
       final commitments = [buildCommitment(id: "c1", amountCents: 1000)];
       final entries = [
-        buildEntry(commitmentId: "c1", debitCents: 1000, isTaxInclusive: false, vatRateBasisPoints: 2000),
+        buildEntry(
+          commitmentId: "c1",
+          debitCents: 1000,
+          isTaxInclusive: false,
+          vatRateBasisPoints: 2000,
+        ),
       ];
 
       final total = ocptBudgetLinePaidTotalOf(

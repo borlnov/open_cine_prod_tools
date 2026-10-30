@@ -63,7 +63,8 @@ void _mockSecureStorage(Map<String, String> store) {
 /// [OcptSyncManager.pairProjectToRelay] needs of a transport for this bloc's own tests.
 class _FakeRemoteStorage implements OcptRemoteStorage {
   @override
-  Future<OcptSequenceNumber> append(OcptChangesetEnvelope envelope) async => OcptSequenceNumber.zero;
+  Future<OcptSequenceNumber> append(OcptChangesetEnvelope envelope) async =>
+      OcptSequenceNumber.zero;
 
   @override
   Future<List<OcptStoredChangeset>> readSince(OcptSequenceNumber cursor) async => const [];
@@ -195,7 +196,10 @@ void main() {
     secureStore.clear();
 
     tempDir = await Directory.systemTemp.createTemp("ocpt_sharing_bloc_test_");
-    projectsManager = OcptProjectsManager(propertiesManager: propertiesManager, appLanguageCode: () => "en");
+    projectsManager = OcptProjectsManager(
+      propertiesManager: propertiesManager,
+      appLanguageCode: () => "en",
+    );
     await projectsManager.initLifeCycle();
     await projectsManager.createProject(
       name: "My Movie",
@@ -242,7 +246,10 @@ void main() {
     await pumpEventQueue();
 
     bloc.add(
-      OcptSharingPairRequestedEvent(relayBaseUri: relayBaseUri, enrolmentSecret: "enrolment-secret"),
+      OcptSharingPairRequestedEvent(
+        relayBaseUri: relayBaseUri,
+        enrolmentSecret: "enrolment-secret",
+      ),
     );
     // `pumpEventQueue()` alone occasionally races the raw, read-only sqlite3 connection
     // `OcptProjectPackageService.writePackage` opens for its own `VACUUM INTO` against the very
@@ -289,36 +296,39 @@ void main() {
     expect(bloc.state.invite, invite);
   });
 
-  test("confirming unpair clears the invite, stops the session and returns to ① Configure", () async {
-    final manager = _FakeTransportSyncManager(pairingService: pairingService);
-    await manager.pairProjectToRelay(
-      database: projectsManager.currentProject!.fileDatabase,
-      projectId: "project-abc",
-      projectFilePath: projectsManager.currentProject!.path,
-      projectName: "My Movie",
-      appVersion: "0.1.0",
-      relayBaseUri: relayBaseUri,
-      enrolmentSecret: "enrolment-secret",
-      deviceId: "device-1",
-    );
-    expect(manager.syncStatus, isNotNull);
+  test(
+    "confirming unpair clears the invite, stops the session and returns to ① Configure",
+    () async {
+      final manager = _FakeTransportSyncManager(pairingService: pairingService);
+      await manager.pairProjectToRelay(
+        database: projectsManager.currentProject!.fileDatabase,
+        projectId: "project-abc",
+        projectFilePath: projectsManager.currentProject!.path,
+        projectName: "My Movie",
+        appVersion: "0.1.0",
+        relayBaseUri: relayBaseUri,
+        enrolmentSecret: "enrolment-secret",
+        deviceId: "device-1",
+      );
+      expect(manager.syncStatus, isNotNull);
 
-    final bloc = buildBloc(manager);
-    await pumpEventQueue();
-    expect(bloc.state.invite, isNotNull);
+      final bloc = buildBloc(manager);
+      await pumpEventQueue();
+      expect(bloc.state.invite, isNotNull);
 
-    bloc.add(const OcptSharingUnpairConfirmedEvent());
-    await pumpEventQueue();
+      bloc.add(const OcptSharingUnpairConfirmedEvent());
+      await pumpEventQueue();
 
-    expect(bloc.state.invite, isNull);
-    expect(manager.syncStatus, isNull);
+      expect(bloc.state.invite, isNull);
+      expect(manager.syncStatus, isNull);
 
-    final pairing = await pairingService.loadPairing(
-      database: projectsManager.currentProject!.fileDatabase,
-      projectId: "project-abc",
-    );
-    expect(pairing, isNull);
-  });
+      final pairing = await pairingService.loadPairing(
+        database: projectsManager.currentProject!.fileDatabase,
+        projectId: "project-abc",
+      );
+      expect(pairing, isNull);
+    },
+  );
 
   test("a pairing failure surfaces pairingFailed and leaves the project unpaired", () async {
     final bloc = buildBloc(
@@ -327,7 +337,10 @@ void main() {
     await pumpEventQueue();
 
     bloc.add(
-      OcptSharingPairRequestedEvent(relayBaseUri: relayBaseUri, enrolmentSecret: "enrolment-secret"),
+      OcptSharingPairRequestedEvent(
+        relayBaseUri: relayBaseUri,
+        enrolmentSecret: "enrolment-secret",
+      ),
     );
     await pumpEventQueue();
 
@@ -343,7 +356,10 @@ void main() {
     await pumpEventQueue();
 
     bloc.add(
-      OcptSharingPairRequestedEvent(relayBaseUri: relayBaseUri, enrolmentSecret: "enrolment-secret"),
+      OcptSharingPairRequestedEvent(
+        relayBaseUri: relayBaseUri,
+        enrolmentSecret: "enrolment-secret",
+      ),
     );
     await pumpEventQueue();
     expect(bloc.state.pairingFailed, isTrue);

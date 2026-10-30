@@ -40,7 +40,10 @@ void main() {
     assetsService: assetsService,
     deviceId: _testDeviceId,
   );
-  const elementsService = OcptElementsService(assetsService: assetsService, deviceId: _testDeviceId);
+  const elementsService = OcptElementsService(
+    assetsService: assetsService,
+    deviceId: _testDeviceId,
+  );
   const locationsService = OcptLocationsService(
     assetsService: assetsService,
     floorPlanService: floorPlanService,
@@ -107,11 +110,9 @@ void main() {
       fountainText: buffer.toString(),
       snapshotReason: OcptSnapshotReason.manual,
     );
-    final rows =
-        await (database.select(
-              database.ocptScenesTable,
-            )..where((row) => row.isDeleted.equals(false)))
-            .get();
+    final rows = await (database.select(
+      database.ocptScenesTable,
+    )..where((row) => row.isDeleted.equals(false))).get();
     rows.sort((a, b) => a.position.compareTo(b.position));
     return rows.map((row) => row.id).toList();
   }
@@ -143,11 +144,9 @@ void main() {
     return (resolvedSceneId, setId);
   }
 
-  Future<List<OcptFloorPlanSetRow>> readPlans() =>
-      (database.select(
-            database.ocptFloorPlanSetsTable,
-          )..where((row) => row.isDeleted.equals(false)))
-          .get();
+  Future<List<OcptFloorPlanSetRow>> readPlans() => (database.select(
+    database.ocptFloorPlanSetsTable,
+  )..where((row) => row.isDeleted.equals(false))).get();
 
   Future<List<OcptFloorPlanSymbolRow>> readSymbols() => (database.select(
     database.ocptFloorPlanSymbolsTable,
@@ -195,11 +194,7 @@ void main() {
     test("a set linked to two scenes shows the same set-scope symbols in both", () async {
       final scenes = await seedScenes(2);
       final (_, setId) = await seedLinkedSet(sceneId: scenes[0]);
-      await locationsService.assignSceneToSet(
-        database: database,
-        sceneId: scenes[1],
-        setId: setId,
-      );
+      await locationsService.assignSceneToSet(database: database, sceneId: scenes[1], setId: setId);
       await floorPlanService.placeSymbol(
         database: database,
         setId: setId,
@@ -227,11 +222,7 @@ void main() {
     test("a scene-scope symbol is loaded regardless of which scene reads the set", () async {
       final scenes = await seedScenes(2);
       final (_, setId) = await seedLinkedSet(sceneId: scenes[0]);
-      await locationsService.assignSceneToSet(
-        database: database,
-        sceneId: scenes[1],
-        setId: setId,
-      );
+      await locationsService.assignSceneToSet(database: database, sceneId: scenes[1], setId: setId);
       await floorPlanService.placeSymbol(
         database: database,
         setId: setId,
@@ -330,47 +321,44 @@ void main() {
       expect(asset.isDeleted, isTrue);
     });
 
-    test(
-      "updateUnderlayFrame re-frames the underlay without touching any asset row",
-      () async {
-        final (_, setId) = await seedLinkedSet();
-        await floorPlanService.setSetUnderlay(
-          database: database,
-          setId: setId,
-          path: "/tmp/plan.jpg",
-          xM: 0,
-          yM: 0,
-          widthM: 4,
-          heightM: 3,
-        );
-        final imported = (await readPlans()).single;
-        final assetId = imported.underlayAssetId!;
-        final assetsBefore = await database.select(database.ocptAssetsTable).get();
+    test("updateUnderlayFrame re-frames the underlay without touching any asset row", () async {
+      final (_, setId) = await seedLinkedSet();
+      await floorPlanService.setSetUnderlay(
+        database: database,
+        setId: setId,
+        path: "/tmp/plan.jpg",
+        xM: 0,
+        yM: 0,
+        widthM: 4,
+        heightM: 3,
+      );
+      final imported = (await readPlans()).single;
+      final assetId = imported.underlayAssetId!;
+      final assetsBefore = await database.select(database.ocptAssetsTable).get();
 
-        await floorPlanService.updateUnderlayFrame(
-          database: database,
-          setId: setId,
-          xM: const Value(2),
-          yM: const Value(-1),
-          widthM: const Value(6),
-          heightM: const Value(5),
-        );
+      await floorPlanService.updateUnderlayFrame(
+        database: database,
+        setId: setId,
+        xM: const Value(2),
+        yM: const Value(-1),
+        widthM: const Value(6),
+        heightM: const Value(5),
+      );
 
-        final reframed = (await readPlans()).single;
-        expect(reframed.underlayAssetId, assetId);
-        expect(reframed.underlayXM, 2);
-        expect(reframed.underlayYM, -1);
-        expect(reframed.underlayWidthM, 6);
-        expect(reframed.underlayHeightM, 5);
+      final reframed = (await readPlans()).single;
+      expect(reframed.underlayAssetId, assetId);
+      expect(reframed.underlayXM, 2);
+      expect(reframed.underlayYM, -1);
+      expect(reframed.underlayWidthM, 6);
+      expect(reframed.underlayHeightM, 5);
 
-        // No `assets` row was minted or tombstoned by this write: the very defect this method
-        // exists to avoid (dragging the underlay must never churn the `assets` table).
-        final assetsAfter = await database.select(database.ocptAssetsTable).get();
-        expect(assetsAfter, hasLength(assetsBefore.length));
-        expect(assetsAfter.single.id, assetsBefore.single.id);
-        expect(assetsAfter.single.isDeleted, isFalse);
-      },
-    );
+      // No `assets` row was minted or tombstoned by this write: the very defect this method
+      // exists to avoid (dragging the underlay must never churn the `assets` table).
+      final assetsAfter = await database.select(database.ocptAssetsTable).get();
+      expect(assetsAfter, hasLength(assetsBefore.length));
+      expect(assetsAfter.single.id, assetsBefore.single.id);
+      expect(assetsAfter.single.isDeleted, isFalse);
+    });
 
     test("updateUnderlayFrame is a no-op while the set carries no plan yet", () async {
       final (_, setId) = await seedLinkedSet();
@@ -455,67 +443,70 @@ void main() {
   });
 
   group("duplicateSet", () {
-    test("copies the source's set-scope symbols only, into an already-minted destination", () async {
-      final shotId = await seedShot();
-      final sceneRow = await (database.select(
-        database.ocptShotsTable,
-      )..where((row) => row.id.equals(shotId))).getSingle();
-      final (sceneId, sourceSetId) = await seedLinkedSet(sceneId: sceneRow.sceneId);
-      final decor = (await floorPlanService.placeSymbol(
-        database: database,
-        setId: sourceSetId,
-        sceneId: null,
-        shotId: null,
-        layer: OcptFloorPlanLayer.set,
-        xM: 0,
-        yM: 0,
-        label: "Table",
-      ))!;
-      // A scene-scope prop and a shot-scope camera, neither of which travels with the copy.
-      await floorPlanService.placeSymbol(
-        database: database,
-        setId: sourceSetId,
-        sceneId: sceneId,
-        shotId: null,
-        layer: OcptFloorPlanLayer.props,
-        xM: 2,
-        yM: 2,
-      );
-      await floorPlanService.placeSymbol(
-        database: database,
-        setId: sourceSetId,
-        sceneId: null,
-        shotId: shotId,
-        layer: OcptFloorPlanLayer.cameras,
-        xM: 1,
-        yM: 1,
-      );
+    test(
+      "copies the source's set-scope symbols only, into an already-minted destination",
+      () async {
+        final shotId = await seedShot();
+        final sceneRow = await (database.select(
+          database.ocptShotsTable,
+        )..where((row) => row.id.equals(shotId))).getSingle();
+        final (sceneId, sourceSetId) = await seedLinkedSet(sceneId: sceneRow.sceneId);
+        final decor = (await floorPlanService.placeSymbol(
+          database: database,
+          setId: sourceSetId,
+          sceneId: null,
+          shotId: null,
+          layer: OcptFloorPlanLayer.set,
+          xM: 0,
+          yM: 0,
+          label: "Table",
+        ))!;
+        // A scene-scope prop and a shot-scope camera, neither of which travels with the copy.
+        await floorPlanService.placeSymbol(
+          database: database,
+          setId: sourceSetId,
+          sceneId: sceneId,
+          shotId: null,
+          layer: OcptFloorPlanLayer.props,
+          xM: 2,
+          yM: 2,
+        );
+        await floorPlanService.placeSymbol(
+          database: database,
+          setId: sourceSetId,
+          sceneId: null,
+          shotId: shotId,
+          layer: OcptFloorPlanLayer.cameras,
+          xM: 1,
+          yM: 1,
+        );
 
-      final destinationSetId = (await locationsService.createSiblingSet(
-        database: database,
-        sourceSetId: sourceSetId,
-        name: "Kitchen copy",
-      ))!;
+        final destinationSetId = (await locationsService.createSiblingSet(
+          database: database,
+          sourceSetId: sourceSetId,
+          name: "Kitchen copy",
+        ))!;
 
-      await floorPlanService.duplicateSet(
-        database: database,
-        sourceSetId: sourceSetId,
-        destinationSetId: destinationSetId,
-      );
+        await floorPlanService.duplicateSet(
+          database: database,
+          sourceSetId: sourceSetId,
+          destinationSetId: destinationSetId,
+        );
 
-      final newSymbols = (await readSymbols())
-          .where((row) => row.setId == destinationSetId)
-          .toList();
-      expect(newSymbols, hasLength(1));
-      expect(newSymbols.single.id, isNot(decor));
-      expect(newSymbols.single.label, "Table");
-      expect(newSymbols.single.sceneId, isNull);
-      expect(newSymbols.single.shotId, isNull);
+        final newSymbols = (await readSymbols())
+            .where((row) => row.setId == destinationSetId)
+            .toList();
+        expect(newSymbols, hasLength(1));
+        expect(newSymbols.single.id, isNot(decor));
+        expect(newSymbols.single.label, "Table");
+        expect(newSymbols.single.sceneId, isNull);
+        expect(newSymbols.single.shotId, isNull);
 
-      // The source set is untouched.
-      final sourceSymbols = (await readSymbols()).where((row) => row.setId == sourceSetId);
-      expect(sourceSymbols, hasLength(3));
-    });
+        // The source set is untouched.
+        final sourceSymbols = (await readSymbols()).where((row) => row.setId == sourceSetId);
+        expect(sourceSymbols, hasLength(3));
+      },
+    );
 
     test("mutating the copy never touches the source (independent copies, not links)", () async {
       final (_, sourceSetId) = await seedLinkedSet();
@@ -768,66 +759,63 @@ void main() {
       expect(sourceLight.isDeleted, isFalse);
     });
 
-    test(
-      "an arrow touching a set-scope symbol is not copied",
-      () async {
-        final sceneId = await seedScene();
-        final sourceShotId = (await shotListService.createShot(
-          database: database,
-          screenplayId: screenplayId,
-          sceneId: sceneId,
-        ))!;
-        final destinationShotId = (await shotListService.createShot(
-          database: database,
-          screenplayId: screenplayId,
-          sceneId: sceneId,
-        ))!;
-        final (_, setId) = await seedLinkedSet(sceneId: sceneId);
-        final decor = (await floorPlanService.placeSymbol(
-          database: database,
-          setId: setId,
-          sceneId: null,
-          shotId: null,
-          layer: OcptFloorPlanLayer.set,
-          xM: 0,
-          yM: 0,
-        ))!;
-        final character = (await floorPlanService.placeSymbol(
-          database: database,
-          setId: setId,
-          sceneId: null,
-          shotId: sourceShotId,
-          layer: OcptFloorPlanLayer.characters,
-          xM: 1,
-          yM: 1,
-        ))!;
-        await floorPlanService.addArrow(
-          database: database,
-          setId: setId,
-          shotId: sourceShotId,
-          kind: OcptFloorPlanArrowKind.movement,
-          fromSymbolId: character,
-          toSymbolId: decor,
-        );
+    test("an arrow touching a set-scope symbol is not copied", () async {
+      final sceneId = await seedScene();
+      final sourceShotId = (await shotListService.createShot(
+        database: database,
+        screenplayId: screenplayId,
+        sceneId: sceneId,
+      ))!;
+      final destinationShotId = (await shotListService.createShot(
+        database: database,
+        screenplayId: screenplayId,
+        sceneId: sceneId,
+      ))!;
+      final (_, setId) = await seedLinkedSet(sceneId: sceneId);
+      final decor = (await floorPlanService.placeSymbol(
+        database: database,
+        setId: setId,
+        sceneId: null,
+        shotId: null,
+        layer: OcptFloorPlanLayer.set,
+        xM: 0,
+        yM: 0,
+      ))!;
+      final character = (await floorPlanService.placeSymbol(
+        database: database,
+        setId: setId,
+        sceneId: null,
+        shotId: sourceShotId,
+        layer: OcptFloorPlanLayer.characters,
+        xM: 1,
+        yM: 1,
+      ))!;
+      await floorPlanService.addArrow(
+        database: database,
+        setId: setId,
+        shotId: sourceShotId,
+        kind: OcptFloorPlanArrowKind.movement,
+        fromSymbolId: character,
+        toSymbolId: decor,
+      );
 
-        await floorPlanService.copyShotBlocking(
-          database: database,
-          sourceSetId: setId,
-          sourceShotId: sourceShotId,
-          destinationSetId: setId,
-          destinationShotId: destinationShotId,
-        );
+      await floorPlanService.copyShotBlocking(
+        database: database,
+        sourceSetId: setId,
+        sourceShotId: sourceShotId,
+        destinationSetId: setId,
+        destinationShotId: destinationShotId,
+      );
 
-        expect((await readArrows()).where((row) => row.shotId == destinationShotId), isEmpty);
-        // The character symbol was still copied on its own.
-        expect(
-          (await readSymbols()).where(
-            (row) => row.shotId == destinationShotId && row.layer == OcptFloorPlanLayer.characters,
-          ),
-          hasLength(1),
-        );
-      },
-    );
+      expect((await readArrows()).where((row) => row.shotId == destinationShotId), isEmpty);
+      // The character symbol was still copied on its own.
+      expect(
+        (await readSymbols()).where(
+          (row) => row.shotId == destinationShotId && row.layer == OcptFloorPlanLayer.characters,
+        ),
+        hasLength(1),
+      );
+    });
 
     test("is a no-op while the source shot carries nothing on the set", () async {
       final sceneId = await seedScene();
@@ -1025,50 +1013,10 @@ void main() {
       expect(await readPlans(), isEmpty);
     });
 
-    test(
-      "records a set element's shape; a camera symbol placed alongside it stays null",
-      () async {
-        final (sceneId, setId) = await seedLinkedSet();
-
-        final wallId = (await floorPlanService.placeSymbol(
-          database: database,
-          setId: setId,
-          sceneId: null,
-          shotId: null,
-          layer: OcptFloorPlanLayer.set,
-          xM: 0,
-          yM: 0,
-          setElementShape: OcptFloorPlanSetElementShape.wall,
-        ))!;
-
-        final shotId = (await shotListService.createShot(
-          database: database,
-          screenplayId: screenplayId,
-          sceneId: sceneId,
-        ))!;
-        final cameraId = (await floorPlanService.placeSymbol(
-          database: database,
-          setId: setId,
-          sceneId: null,
-          shotId: shotId,
-          layer: OcptFloorPlanLayer.cameras,
-          xM: 1,
-          yM: 1,
-        ))!;
-
-        final symbolsById = {for (final row in await readSymbols()) row.id: row};
-        expect(symbolsById[wallId]!.setElementShape, OcptFloorPlanSetElementShape.wall);
-        expect(symbolsById[wallId]!.shotId, isNull);
-        expect(symbolsById[cameraId]!.setElementShape, isNull);
-        expect(symbolsById[cameraId]!.shotId, shotId);
-      },
-    );
-  });
-
-  group("placeSymbol — overridesSymbolId (scene-scope override)", () {
-    test("a scene-scope symbol may override a live set-scope symbol of the same set/layer", () async {
+    test("records a set element's shape; a camera symbol placed alongside it stays null", () async {
       final (sceneId, setId) = await seedLinkedSet();
-      final originalId = (await floorPlanService.placeSymbol(
+
+      final wallId = (await floorPlanService.placeSymbol(
         database: database,
         setId: setId,
         sceneId: null,
@@ -1076,23 +1024,63 @@ void main() {
         layer: OcptFloorPlanLayer.set,
         xM: 0,
         yM: 0,
+        setElementShape: OcptFloorPlanSetElementShape.wall,
       ))!;
 
-      final overrideId = await floorPlanService.placeSymbol(
+      final shotId = (await shotListService.createShot(
+        database: database,
+        screenplayId: screenplayId,
+        sceneId: sceneId,
+      ))!;
+      final cameraId = (await floorPlanService.placeSymbol(
         database: database,
         setId: setId,
-        sceneId: sceneId,
-        shotId: null,
-        layer: OcptFloorPlanLayer.set,
+        sceneId: null,
+        shotId: shotId,
+        layer: OcptFloorPlanLayer.cameras,
         xM: 1,
         yM: 1,
-        overridesSymbolId: originalId,
-      );
+      ))!;
 
-      expect(overrideId, isNotNull);
-      final overrideRow = (await readSymbols()).singleWhere((row) => row.id == overrideId);
-      expect(overrideRow.overridesSymbolId, originalId);
+      final symbolsById = {for (final row in await readSymbols()) row.id: row};
+      expect(symbolsById[wallId]!.setElementShape, OcptFloorPlanSetElementShape.wall);
+      expect(symbolsById[wallId]!.shotId, isNull);
+      expect(symbolsById[cameraId]!.setElementShape, isNull);
+      expect(symbolsById[cameraId]!.shotId, shotId);
     });
+  });
+
+  group("placeSymbol — overridesSymbolId (scene-scope override)", () {
+    test(
+      "a scene-scope symbol may override a live set-scope symbol of the same set/layer",
+      () async {
+        final (sceneId, setId) = await seedLinkedSet();
+        final originalId = (await floorPlanService.placeSymbol(
+          database: database,
+          setId: setId,
+          sceneId: null,
+          shotId: null,
+          layer: OcptFloorPlanLayer.set,
+          xM: 0,
+          yM: 0,
+        ))!;
+
+        final overrideId = await floorPlanService.placeSymbol(
+          database: database,
+          setId: setId,
+          sceneId: sceneId,
+          shotId: null,
+          layer: OcptFloorPlanLayer.set,
+          xM: 1,
+          yM: 1,
+          overridesSymbolId: originalId,
+        );
+
+        expect(overrideId, isNotNull);
+        final overrideRow = (await readSymbols()).singleWhere((row) => row.id == overrideId);
+        expect(overrideRow.overridesSymbolId, originalId);
+      },
+    );
 
     test("overridesSymbolId on a set-scope or shot-scope symbol throws", () async {
       final shotId = await seedShot();
@@ -1204,44 +1192,41 @@ void main() {
   });
 
   group("placeSymbol — shot-scope override", () {
-    test(
-      "a shot-scope set symbol may override a live scene-scope symbol of the same set/layer, "
-      "its shot belonging to that symbol's own sequence",
-      () async {
-        final (sceneId, setId) = await seedLinkedSet();
-        final sceneOriginalId = (await floorPlanService.placeSymbol(
-          database: database,
-          setId: setId,
-          sceneId: sceneId,
-          shotId: null,
-          layer: OcptFloorPlanLayer.set,
-          xM: 0,
-          yM: 0,
-        ))!;
-        final shotId = (await shotListService.createShot(
-          database: database,
-          screenplayId: screenplayId,
-          sceneId: sceneId,
-        ))!;
+    test("a shot-scope set symbol may override a live scene-scope symbol of the same set/layer, "
+        "its shot belonging to that symbol's own sequence", () async {
+      final (sceneId, setId) = await seedLinkedSet();
+      final sceneOriginalId = (await floorPlanService.placeSymbol(
+        database: database,
+        setId: setId,
+        sceneId: sceneId,
+        shotId: null,
+        layer: OcptFloorPlanLayer.set,
+        xM: 0,
+        yM: 0,
+      ))!;
+      final shotId = (await shotListService.createShot(
+        database: database,
+        screenplayId: screenplayId,
+        sceneId: sceneId,
+      ))!;
 
-        final overrideId = await floorPlanService.placeSymbol(
-          database: database,
-          setId: setId,
-          sceneId: null,
-          shotId: shotId,
-          layer: OcptFloorPlanLayer.set,
-          xM: 1,
-          yM: 1,
-          overridesSymbolId: sceneOriginalId,
-        );
+      final overrideId = await floorPlanService.placeSymbol(
+        database: database,
+        setId: setId,
+        sceneId: null,
+        shotId: shotId,
+        layer: OcptFloorPlanLayer.set,
+        xM: 1,
+        yM: 1,
+        overridesSymbolId: sceneOriginalId,
+      );
 
-        expect(overrideId, isNotNull);
-        final overrideRow = (await readSymbols()).singleWhere((row) => row.id == overrideId);
-        expect(overrideRow.overridesSymbolId, sceneOriginalId);
-        expect(overrideRow.shotId, shotId);
-        expect(overrideRow.sceneId, isNull);
-      },
-    );
+      expect(overrideId, isNotNull);
+      final overrideRow = (await readSymbols()).singleWhere((row) => row.id == overrideId);
+      expect(overrideRow.overridesSymbolId, sceneOriginalId);
+      expect(overrideRow.shotId, shotId);
+      expect(overrideRow.sceneId, isNull);
+    });
 
     test("a shot-scope props symbol may likewise override a live scene-scope prop", () async {
       final (sceneId, setId) = await seedLinkedSet();
@@ -1294,41 +1279,38 @@ void main() {
       });
     }
 
-    test(
-      "overridesSymbolId at shot scope must name a live scene-scope symbol, never a set-scope "
-      "one",
-      () async {
-        final (sceneId, setId) = await seedLinkedSet();
-        final setOriginalId = (await floorPlanService.placeSymbol(
+    test("overridesSymbolId at shot scope must name a live scene-scope symbol, never a set-scope "
+        "one", () async {
+      final (sceneId, setId) = await seedLinkedSet();
+      final setOriginalId = (await floorPlanService.placeSymbol(
+        database: database,
+        setId: setId,
+        sceneId: null,
+        shotId: null,
+        layer: OcptFloorPlanLayer.set,
+        xM: 0,
+        yM: 0,
+      ))!;
+      final shotId = (await shotListService.createShot(
+        database: database,
+        screenplayId: screenplayId,
+        sceneId: sceneId,
+      ))!;
+
+      expect(
+        () => floorPlanService.placeSymbol(
           database: database,
           setId: setId,
           sceneId: null,
-          shotId: null,
+          shotId: shotId,
           layer: OcptFloorPlanLayer.set,
-          xM: 0,
-          yM: 0,
-        ))!;
-        final shotId = (await shotListService.createShot(
-          database: database,
-          screenplayId: screenplayId,
-          sceneId: sceneId,
-        ))!;
-
-        expect(
-          () => floorPlanService.placeSymbol(
-            database: database,
-            setId: setId,
-            sceneId: null,
-            shotId: shotId,
-            layer: OcptFloorPlanLayer.set,
-            xM: 1,
-            yM: 1,
-            overridesSymbolId: setOriginalId,
-          ),
-          throwsArgumentError,
-        );
-      },
-    );
+          xM: 1,
+          yM: 1,
+          overridesSymbolId: setOriginalId,
+        ),
+        throwsArgumentError,
+      );
+    });
 
     test("the shot must belong to the overridden scene-scope symbol's own sequence", () async {
       final scenes = await seedScenes(2);
@@ -1367,41 +1349,44 @@ void main() {
   });
 
   group("updateSymbol", () {
-    test("moves, rotates, resizes, sets fov and label without touching layer/scope/setId", () async {
-      final (_, setId) = await seedLinkedSet();
-      final symbolId = (await floorPlanService.placeSymbol(
-        database: database,
-        setId: setId,
-        sceneId: null,
-        shotId: null,
-        layer: OcptFloorPlanLayer.set,
-        xM: 0,
-        yM: 0,
-      ))!;
+    test(
+      "moves, rotates, resizes, sets fov and label without touching layer/scope/setId",
+      () async {
+        final (_, setId) = await seedLinkedSet();
+        final symbolId = (await floorPlanService.placeSymbol(
+          database: database,
+          setId: setId,
+          sceneId: null,
+          shotId: null,
+          layer: OcptFloorPlanLayer.set,
+          xM: 0,
+          yM: 0,
+        ))!;
 
-      await floorPlanService.updateSymbol(
-        database: database,
-        symbolId: symbolId,
-        xM: const Value(2.5),
-        yM: const Value(3.5),
-        rotationDeg: const Value(90),
-        widthM: const Value(1.1),
-        heightM: const Value(0.6),
-        label: const Value("sofa"),
-      );
+        await floorPlanService.updateSymbol(
+          database: database,
+          symbolId: symbolId,
+          xM: const Value(2.5),
+          yM: const Value(3.5),
+          rotationDeg: const Value(90),
+          widthM: const Value(1.1),
+          heightM: const Value(0.6),
+          label: const Value("sofa"),
+        );
 
-      final symbol = (await readSymbols()).single;
-      expect(symbol.xM, 2.5);
-      expect(symbol.yM, 3.5);
-      expect(symbol.rotationDeg, 90);
-      expect(symbol.widthM, 1.1);
-      expect(symbol.heightM, 0.6);
-      expect(symbol.label, "sofa");
-      expect(symbol.setId, setId);
-      expect(symbol.layer, OcptFloorPlanLayer.set);
-      expect(symbol.sceneId, isNull);
-      expect(symbol.shotId, isNull);
-    });
+        final symbol = (await readSymbols()).single;
+        expect(symbol.xM, 2.5);
+        expect(symbol.yM, 3.5);
+        expect(symbol.rotationDeg, 90);
+        expect(symbol.widthM, 1.1);
+        expect(symbol.heightM, 0.6);
+        expect(symbol.label, "sofa");
+        expect(symbol.setId, setId);
+        expect(symbol.layer, OcptFloorPlanLayer.set);
+        expect(symbol.sceneId, isNull);
+        expect(symbol.shotId, isNull);
+      },
+    );
 
     test("changes a set element's shape", () async {
       final (_, setId) = await seedLinkedSet();
@@ -1455,125 +1440,131 @@ void main() {
   });
 
   group("deleteSymbol — the arrow cascade", () {
-    test("tombstones every arrow whose fromSymbolId or toSymbolId names the removed symbol", () async {
-      final shotId = await seedShot();
-      final sceneRow = await (database.select(
-        database.ocptShotsTable,
-      )..where((row) => row.id.equals(shotId))).getSingle();
-      final (_, setId) = await seedLinkedSet(sceneId: sceneRow.sceneId);
+    test(
+      "tombstones every arrow whose fromSymbolId or toSymbolId names the removed symbol",
+      () async {
+        final shotId = await seedShot();
+        final sceneRow = await (database.select(
+          database.ocptShotsTable,
+        )..where((row) => row.id.equals(shotId))).getSingle();
+        final (_, setId) = await seedLinkedSet(sceneId: sceneRow.sceneId);
 
-      final camera = (await floorPlanService.placeSymbol(
-        database: database,
-        setId: setId,
-        sceneId: null,
-        shotId: shotId,
-        layer: OcptFloorPlanLayer.cameras,
-        xM: 0,
-        yM: 0,
-      ))!;
-      final character = (await floorPlanService.placeSymbol(
-        database: database,
-        setId: setId,
-        sceneId: null,
-        shotId: shotId,
-        layer: OcptFloorPlanLayer.characters,
-        xM: 1,
-        yM: 1,
-      ))!;
-      final untouchedA = (await floorPlanService.placeSymbol(
-        database: database,
-        setId: setId,
-        sceneId: null,
-        shotId: shotId,
-        layer: OcptFloorPlanLayer.lights,
-        xM: 2,
-        yM: 2,
-      ))!;
-      final untouchedB = (await floorPlanService.placeSymbol(
-        database: database,
-        setId: setId,
-        sceneId: sceneRow.sceneId,
-        shotId: null,
-        layer: OcptFloorPlanLayer.props,
-        xM: 3,
-        yM: 3,
-      ))!;
+        final camera = (await floorPlanService.placeSymbol(
+          database: database,
+          setId: setId,
+          sceneId: null,
+          shotId: shotId,
+          layer: OcptFloorPlanLayer.cameras,
+          xM: 0,
+          yM: 0,
+        ))!;
+        final character = (await floorPlanService.placeSymbol(
+          database: database,
+          setId: setId,
+          sceneId: null,
+          shotId: shotId,
+          layer: OcptFloorPlanLayer.characters,
+          xM: 1,
+          yM: 1,
+        ))!;
+        final untouchedA = (await floorPlanService.placeSymbol(
+          database: database,
+          setId: setId,
+          sceneId: null,
+          shotId: shotId,
+          layer: OcptFloorPlanLayer.lights,
+          xM: 2,
+          yM: 2,
+        ))!;
+        final untouchedB = (await floorPlanService.placeSymbol(
+          database: database,
+          setId: setId,
+          sceneId: sceneRow.sceneId,
+          shotId: null,
+          layer: OcptFloorPlanLayer.props,
+          xM: 3,
+          yM: 3,
+        ))!;
 
-      final arrowFrom = (await floorPlanService.addArrow(
-        database: database,
-        setId: setId,
-        shotId: shotId,
-        kind: OcptFloorPlanArrowKind.movement,
-        fromSymbolId: character,
-        toSymbolId: camera,
-      ))!;
-      final arrowTo = (await floorPlanService.addArrow(
-        database: database,
-        setId: setId,
-        shotId: shotId,
-        kind: OcptFloorPlanArrowKind.cameraMove,
-        fromSymbolId: camera,
-        toSymbolId: character,
-      ))!;
-      final untouchedArrow = (await floorPlanService.addArrow(
-        database: database,
-        setId: setId,
-        shotId: shotId,
-        kind: OcptFloorPlanArrowKind.movement,
-        fromSymbolId: untouchedA,
-        toSymbolId: untouchedB,
-      ))!;
+        final arrowFrom = (await floorPlanService.addArrow(
+          database: database,
+          setId: setId,
+          shotId: shotId,
+          kind: OcptFloorPlanArrowKind.movement,
+          fromSymbolId: character,
+          toSymbolId: camera,
+        ))!;
+        final arrowTo = (await floorPlanService.addArrow(
+          database: database,
+          setId: setId,
+          shotId: shotId,
+          kind: OcptFloorPlanArrowKind.cameraMove,
+          fromSymbolId: camera,
+          toSymbolId: character,
+        ))!;
+        final untouchedArrow = (await floorPlanService.addArrow(
+          database: database,
+          setId: setId,
+          shotId: shotId,
+          kind: OcptFloorPlanArrowKind.movement,
+          fromSymbolId: untouchedA,
+          toSymbolId: untouchedB,
+        ))!;
 
-      await floorPlanService.deleteSymbol(database: database, symbolId: camera);
+        await floorPlanService.deleteSymbol(database: database, symbolId: camera);
 
-      final liveArrowIds = (await readArrows()).map((row) => row.id).toSet();
-      expect(liveArrowIds.contains(arrowFrom), isFalse);
-      expect(liveArrowIds.contains(arrowTo), isFalse);
-      expect(liveArrowIds.contains(untouchedArrow), isTrue);
+        final liveArrowIds = (await readArrows()).map((row) => row.id).toSet();
+        expect(liveArrowIds.contains(arrowFrom), isFalse);
+        expect(liveArrowIds.contains(arrowTo), isFalse);
+        expect(liveArrowIds.contains(untouchedArrow), isTrue);
 
-      final liveSymbolIds = (await readSymbols()).map((row) => row.id).toSet();
-      expect(liveSymbolIds.contains(camera), isFalse);
-      expect(liveSymbolIds.contains(character), isTrue);
-    });
+        final liveSymbolIds = (await readSymbols()).map((row) => row.id).toSet();
+        expect(liveSymbolIds.contains(camera), isFalse);
+        expect(liveSymbolIds.contains(character), isTrue);
+      },
+    );
 
-    test("deleting a set-scope original also tombstones its overrides, even an unlinked scene's", () async {
-      final (sceneId, setId) = await seedLinkedSet();
-      final originalId = (await floorPlanService.placeSymbol(
-        database: database,
-        setId: setId,
-        sceneId: null,
-        shotId: null,
-        layer: OcptFloorPlanLayer.set,
-        xM: 0,
-        yM: 0,
-      ))!;
-      final overrideId = (await floorPlanService.placeSymbol(
-        database: database,
-        setId: setId,
-        sceneId: sceneId,
-        shotId: null,
-        layer: OcptFloorPlanLayer.set,
-        xM: 1,
-        yM: 1,
-        overridesSymbolId: originalId,
-      ))!;
-      final untouchedId = (await floorPlanService.placeSymbol(
-        database: database,
-        setId: setId,
-        sceneId: null,
-        shotId: null,
-        layer: OcptFloorPlanLayer.set,
-        xM: 2,
-        yM: 2,
-      ))!;
+    test(
+      "deleting a set-scope original also tombstones its overrides, even an unlinked scene's",
+      () async {
+        final (sceneId, setId) = await seedLinkedSet();
+        final originalId = (await floorPlanService.placeSymbol(
+          database: database,
+          setId: setId,
+          sceneId: null,
+          shotId: null,
+          layer: OcptFloorPlanLayer.set,
+          xM: 0,
+          yM: 0,
+        ))!;
+        final overrideId = (await floorPlanService.placeSymbol(
+          database: database,
+          setId: setId,
+          sceneId: sceneId,
+          shotId: null,
+          layer: OcptFloorPlanLayer.set,
+          xM: 1,
+          yM: 1,
+          overridesSymbolId: originalId,
+        ))!;
+        final untouchedId = (await floorPlanService.placeSymbol(
+          database: database,
+          setId: setId,
+          sceneId: null,
+          shotId: null,
+          layer: OcptFloorPlanLayer.set,
+          xM: 2,
+          yM: 2,
+        ))!;
 
-      await floorPlanService.deleteSymbol(database: database, symbolId: originalId);
+        await floorPlanService.deleteSymbol(database: database, symbolId: originalId);
 
-      final liveSymbolIds = (await readSymbols()).map((row) => row.id).toSet();
-      expect(liveSymbolIds.contains(originalId), isFalse);
-      expect(liveSymbolIds.contains(overrideId), isFalse);
-      expect(liveSymbolIds.contains(untouchedId), isTrue);
-    });
+        final liveSymbolIds = (await readSymbols()).map((row) => row.id).toSet();
+        expect(liveSymbolIds.contains(originalId), isFalse);
+        expect(liveSymbolIds.contains(overrideId), isFalse);
+        expect(liveSymbolIds.contains(untouchedId), isTrue);
+      },
+    );
   });
 
   group("arrow CRUD", () {
@@ -1809,7 +1800,10 @@ void main() {
     });
 
     test("is empty for an empty set of ids", () async {
-      final withPlan = await floorPlanService.liveSetIdsWithPlan(database: database, setIds: const []);
+      final withPlan = await floorPlanService.liveSetIdsWithPlan(
+        database: database,
+        setIds: const [],
+      );
       expect(withPlan, isEmpty);
     });
   });

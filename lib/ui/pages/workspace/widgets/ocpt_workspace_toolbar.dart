@@ -245,10 +245,7 @@ class OcptWorkspaceToolbar extends StatelessWidget {
         child: SizedBox.square(
           dimension: _backActionSize,
           child: Center(
-            child: OcptLogoGlyph(
-              width: _backActionIconSize,
-              color: theme.colorScheme.onPrimary,
-            ),
+            child: OcptLogoGlyph(width: _backActionIconSize, color: theme.colorScheme.onPrimary),
           ),
         ),
       ),

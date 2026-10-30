@@ -45,11 +45,7 @@ class OcptPackagedAsset extends Equatable {
   final String originalPath;
 
   /// Class constructor
-  const OcptPackagedAsset({
-    required this.assetId,
-    required this.entry,
-    required this.originalPath,
-  });
+  const OcptPackagedAsset({required this.assetId, required this.entry, required this.originalPath});
 
   /// Parses one packaged asset out of the JSON the manifest stores it as.
   factory OcptPackagedAsset.fromJson(Map<String, dynamic> json) => OcptPackagedAsset(
@@ -87,11 +83,7 @@ class OcptSkippedAsset extends Equatable {
   final String originalPath;
 
   /// Class constructor
-  const OcptSkippedAsset({
-    required this.assetId,
-    required this.label,
-    required this.originalPath,
-  });
+  const OcptSkippedAsset({required this.assetId, required this.label, required this.originalPath});
 
   /// Parses one skipped asset out of the JSON the manifest stores it as.
   factory OcptSkippedAsset.fromJson(Map<String, dynamic> json) => OcptSkippedAsset(

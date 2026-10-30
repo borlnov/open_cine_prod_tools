@@ -43,9 +43,16 @@ OcptBreakdownTarget _buildTarget({
 void main() {
   group("ocptBreakdownLegendKeyOf", () {
     test("an element target's key carries its own category", () {
-      final target = _buildElementTarget(id: "el-1", name: "Lamp", category: OcptElementCategory.prop);
+      final target = _buildElementTarget(
+        id: "el-1",
+        name: "Lamp",
+        category: OcptElementCategory.prop,
+      );
 
-      expect(ocptBreakdownLegendKeyOf(target), (OcptBreakdownTargetKind.element, OcptElementCategory.prop));
+      expect(ocptBreakdownLegendKeyOf(target), (
+        OcptBreakdownTargetKind.element,
+        OcptElementCategory.prop,
+      ));
     });
 
     test("a role or a set target's key carries no category", () {
@@ -74,7 +81,10 @@ void main() {
       expect(entries.single.count, 2);
       expect(
         entries.single.color,
-        ocptBreakdownColorOf(kind: OcptBreakdownTargetKind.element, category: OcptElementCategory.prop),
+        ocptBreakdownColorOf(
+          kind: OcptBreakdownTargetKind.element,
+          category: OcptElementCategory.prop,
+        ),
       );
       expect(entries.single.key, (OcptBreakdownTargetKind.element, OcptElementCategory.prop));
     });

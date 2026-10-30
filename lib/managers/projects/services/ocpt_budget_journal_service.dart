@@ -84,7 +84,9 @@ class OcptBudgetJournalService {
   /// when" should read as. Ordering by `dueDate.isNull()` first (`false` sorts before `true`) is
   /// what puts every dated commitment ahead of the undated ones, in their own date order, before
   /// `dueDate` itself is asked to order anything.
-  Future<List<OcptBudgetCommitment>> loadCommitments({required OcptProjectDatabase database}) async {
+  Future<List<OcptBudgetCommitment>> loadCommitments({
+    required OcptProjectDatabase database,
+  }) async {
     final rows =
         await (database.select(database.ocptBudgetCommitmentsTable)
               ..where((table) => table.isDeleted.not())
@@ -159,7 +161,9 @@ class OcptBudgetJournalService {
         current: null,
         next: OcptBudgetEntryRow(
           id: id,
-          sortKey: ocptFractionalKeyBetween(before: existing.isEmpty ? null : existing.last.sortKey),
+          sortKey: ocptFractionalKeyBetween(
+            before: existing.isEmpty ? null : existing.last.sortKey,
+          ),
           isDeleted: false,
           date: date,
           label: label,
@@ -408,11 +412,9 @@ class OcptBudgetJournalService {
     required String entryId,
     required OcptRowStampService? stamps,
   }) async {
-    final vouchers =
-        await (database.select(database.ocptAssetsTable)..where(
-              (table) => table.budgetEntryId.equals(entryId) & table.isDeleted.not(),
-            ))
-            .get();
+    final vouchers = await (database.select(
+      database.ocptAssetsTable,
+    )..where((table) => table.budgetEntryId.equals(entryId) & table.isDeleted.not())).get();
     for (final voucher in vouchers) {
       await _assetsService.tombstoneAsset(database: database, assetId: voucher.id, stamps: stamps);
     }
@@ -449,7 +451,9 @@ class OcptBudgetJournalService {
         current: null,
         next: OcptBudgetCommitmentRow(
           id: id,
-          sortKey: ocptFractionalKeyBetween(before: existing.isEmpty ? null : existing.last.sortKey),
+          sortKey: ocptFractionalKeyBetween(
+            before: existing.isEmpty ? null : existing.last.sortKey,
+          ),
           isDeleted: false,
           posteId: posteId,
           label: label,
@@ -514,7 +518,10 @@ class OcptBudgetJournalService {
     );
 
     await database.transaction(() async {
-      final current = await _liveCommitmentRowOrNull(database: database, commitmentId: commitmentId);
+      final current = await _liveCommitmentRowOrNull(
+        database: database,
+        commitmentId: commitmentId,
+      );
       if (current == null) {
         return;
       }
@@ -547,13 +554,16 @@ class OcptBudgetJournalService {
     }
 
     await database.transaction(() async {
-      final current = await _liveCommitmentRowOrNull(database: database, commitmentId: commitmentId);
+      final current = await _liveCommitmentRowOrNull(
+        database: database,
+        commitmentId: commitmentId,
+      );
       if (current == null) {
         return;
       }
 
-      final others =
-          (await _liveCommitmentRows(database))..removeWhere((row) => row.id == commitmentId);
+      final others = (await _liveCommitmentRows(database))
+        ..removeWhere((row) => row.id == commitmentId);
 
       final clampedPosition = newPosition < 0
           ? 0
@@ -592,7 +602,10 @@ class OcptBudgetJournalService {
     }
 
     await database.transaction(() async {
-      final current = await _liveCommitmentRowOrNull(database: database, commitmentId: commitmentId);
+      final current = await _liveCommitmentRowOrNull(
+        database: database,
+        commitmentId: commitmentId,
+      );
       if (current == null) {
         return;
       }
@@ -652,9 +665,9 @@ class OcptBudgetJournalService {
   Future<OcptBudgetEntryRow?> _liveEntryRowOrNull({
     required OcptProjectDatabase database,
     required String entryId,
-  }) => (database.select(database.ocptBudgetEntriesTable)
-        ..where((table) => table.id.equals(entryId) & table.isDeleted.not()))
-      .getSingleOrNull();
+  }) => (database.select(
+    database.ocptBudgetEntriesTable,
+  )..where((table) => table.id.equals(entryId) & table.isDeleted.not())).getSingleOrNull();
 
   /// Every live commitment row of [database], ordered by `sortKey`.
   Future<List<OcptBudgetCommitmentRow>> _liveCommitmentRows(OcptProjectDatabase database) =>
@@ -667,7 +680,7 @@ class OcptBudgetJournalService {
   Future<OcptBudgetCommitmentRow?> _liveCommitmentRowOrNull({
     required OcptProjectDatabase database,
     required String commitmentId,
-  }) => (database.select(database.ocptBudgetCommitmentsTable)
-        ..where((table) => table.id.equals(commitmentId) & table.isDeleted.not()))
-      .getSingleOrNull();
+  }) => (database.select(
+    database.ocptBudgetCommitmentsTable,
+  )..where((table) => table.id.equals(commitmentId) & table.isDeleted.not())).getSingleOrNull();
 }

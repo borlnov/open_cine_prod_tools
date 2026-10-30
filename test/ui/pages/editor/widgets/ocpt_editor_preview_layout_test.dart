@@ -29,20 +29,29 @@ void main() {
         },
       );
 
-      testWidgets("${metrics.name}: horizontal and vertical scales share one pixels-per-inch value", (
+      testWidgets(
+        "${metrics.name}: horizontal and vertical scales share one pixels-per-inch value",
+        (tester) async {
+          final layout = OcptEditorPreviewLayout(metrics: metrics.value);
+
+          expect(
+            layout.pageWidth / metrics.value.pageWidthInches,
+            closeTo(layout.pixelsPerInch, 0.001),
+          );
+          expect(
+            layout.pageHeight / metrics.value.pageHeightInches,
+            closeTo(layout.pixelsPerInch, 0.001),
+          );
+          expect(
+            layout.lineHeight,
+            closeTo(layout.pixelsPerInch / metrics.value.linesPerInch, 0.001),
+          );
+        },
+      );
+
+      testWidgets("${metrics.name}: lineHeightFactor renders text at exactly lineHeight", (
         tester,
       ) async {
-        final layout = OcptEditorPreviewLayout(metrics: metrics.value);
-
-        expect(layout.pageWidth / metrics.value.pageWidthInches, closeTo(layout.pixelsPerInch, 0.001));
-        expect(layout.pageHeight / metrics.value.pageHeightInches, closeTo(layout.pixelsPerInch, 0.001));
-        expect(
-          layout.lineHeight,
-          closeTo(layout.pixelsPerInch / metrics.value.linesPerInch, 0.001),
-        );
-      });
-
-      testWidgets("${metrics.name}: lineHeightFactor renders text at exactly lineHeight", (tester) async {
         final layout = OcptEditorPreviewLayout(metrics: metrics.value);
 
         expect(

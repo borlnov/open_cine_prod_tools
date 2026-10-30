@@ -165,8 +165,7 @@ class OcptProjectInfoTable extends Table {
   /// a version is created and when one is restored, and cleared when the version it points at is
   /// deleted. Like [OcptProjectVersionsTable] itself, it is **local and never synchronised** — a
   /// restore performed on one machine must not silently move another machine's pointer.
-  TextColumn get currentVersionId =>
-      text().nullable().references(OcptProjectVersionsTable, #id)();
+  TextColumn get currentVersionId => text().nullable().references(OcptProjectVersionsTable, #id)();
 
   /// {@macro drift.Table.primaryKey}
   @override

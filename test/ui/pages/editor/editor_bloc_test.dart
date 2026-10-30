@@ -320,10 +320,9 @@ class _FakeSpellCheckManager extends OcptSpellCheckManager {
   final List<Map<Object, String>> checkCalls = [];
 
   /// Computes [check]'s answer for a request; overridable per test.
-  Map<Object, List<SpellRange>> Function(Map<Object, String> requested) answerFor =
-      (requested) => {
-        for (final entry in requested.entries) entry.key: [SpellRange(0, entry.value.length)],
-      };
+  Map<Object, List<SpellRange>> Function(Map<Object, String> requested) answerFor = (requested) => {
+    for (final entry in requested.entries) entry.key: [SpellRange(0, entry.value.length)],
+  };
 
   /// When set, [check] awaits this before resolving — a test's way of holding an isolate round
   /// trip open long enough to change something (the language, most plainly) out from under it, to
@@ -411,7 +410,8 @@ void main() {
   // Scene headings start at line 0 and line 4; the two scenes are deliberately given different
   // word counts (6 and 7) so a test can tell "the first scene's stats" and "the second scene's
   // stats" apart just by comparing counts.
-  const twoSceneText = "INT. HOUSE - DAY\n\nAction one.\n\nEXT. GARDEN - NIGHT\n\nAction two here.\n";
+  const twoSceneText =
+      "INT. HOUSE - DAY\n\nAction one.\n\nEXT. GARDEN - NIGHT\n\nAction two here.\n";
 
   late OcptPropertiesManager propertiesManager;
   late OcptProjectsManager projectsManager;
@@ -558,25 +558,27 @@ void main() {
     await bloc.close();
   });
 
-  test('statistics are populated from the screenplay already on disk once the load completes',
-      () async {
-    final project = projectsManager.currentProject!;
-    await projectsManager.screenplayService.saveScreenplayText(
-      database: project.database,
-      screenplayId: project.primaryScreenplayId,
-      fountainText: editedText,
-      snapshotReason: OcptSnapshotReason.manual,
-    );
+  test(
+    'statistics are populated from the screenplay already on disk once the load completes',
+    () async {
+      final project = projectsManager.currentProject!;
+      await projectsManager.screenplayService.saveScreenplayText(
+        database: project.database,
+        screenplayId: project.primaryScreenplayId,
+        fountainText: editedText,
+        snapshotReason: OcptSnapshotReason.manual,
+      );
 
-    final bloc = buildBloc();
-    final state = await waitForState(bloc, (state) => !state.isLoading);
+      final bloc = buildBloc();
+      final state = await waitForState(bloc, (state) => !state.isLoading);
 
-    expect(state.statistics.sceneCount, 1);
-    expect(state.statistics.pageCount, 1);
-    expect(state.statistics.wordCount, greaterThan(0));
+      expect(state.statistics.sceneCount, 1);
+      expect(state.statistics.pageCount, 1);
+      expect(state.statistics.wordCount, greaterThan(0));
 
-    await bloc.close();
-  });
+      await bloc.close();
+    },
+  );
 
   test('marks the text dirty on edit, then re-parses it after the debounce', () async {
     final bloc = buildBloc();
@@ -647,22 +649,24 @@ void main() {
     },
   );
 
-  test('sceneStatistics is recomputed on the parse debounce, for the scene under the caret',
-      () async {
-    final bloc = buildBloc();
-    await waitForState(bloc, (state) => !state.isLoading);
-    expect(bloc.state.sceneStatistics, isNull);
+  test(
+    'sceneStatistics is recomputed on the parse debounce, for the scene under the caret',
+    () async {
+      final bloc = buildBloc();
+      await waitForState(bloc, (state) => !state.isLoading);
+      expect(bloc.state.sceneStatistics, isNull);
 
-    bloc.add(const OcptEditorTextChangedEvent(text: twoSceneText));
-    // The document already reflects the edit once this resolves, but that alone must not have
-    // populated the scene statistics synchronously (they piggyback on the same parse tick, not a
-    // separate, earlier one).
-    final parsedState = await waitForState(bloc, (state) => state.scenes.length == 2);
-    expect(parsedState.sceneStatistics, isNotNull);
-    expect(parsedState.sceneStatistics!.wordCount, greaterThan(0));
+      bloc.add(const OcptEditorTextChangedEvent(text: twoSceneText));
+      // The document already reflects the edit once this resolves, but that alone must not have
+      // populated the scene statistics synchronously (they piggyback on the same parse tick, not a
+      // separate, earlier one).
+      final parsedState = await waitForState(bloc, (state) => state.scenes.length == 2);
+      expect(parsedState.sceneStatistics, isNotNull);
+      expect(parsedState.sceneStatistics!.wordCount, greaterThan(0));
 
-    await bloc.close();
-  });
+      await bloc.close();
+    },
+  );
 
   test(
     'sceneStatistics is recomputed immediately when the caret crosses into a different scene',
@@ -677,7 +681,8 @@ void main() {
       bloc.add(const OcptEditorCaretMovedEvent(line: 6));
       final secondSceneState = await waitForState(
         bloc,
-        (state) => state.currentSceneIndex == 1 && state.sceneStatistics!.wordCount != firstSceneWords,
+        (state) =>
+            state.currentSceneIndex == 1 && state.sceneStatistics!.wordCount != firstSceneWords,
       );
       // "EXT. GARDEN - NIGHT" (4) + "Action two here." (3).
       expect(secondSceneState.sceneStatistics!.wordCount, 4 + 3);
@@ -706,31 +711,33 @@ void main() {
     await bloc.close();
   });
 
-  test('autosaves after the debounce, clearing the dirty flag and tagging the snapshot "timer"',
-      () async {
-    final bloc = buildBloc();
-    await waitForState(bloc, (state) => !state.isLoading);
+  test(
+    'autosaves after the debounce, clearing the dirty flag and tagging the snapshot "timer"',
+    () async {
+      final bloc = buildBloc();
+      await waitForState(bloc, (state) => !state.isLoading);
 
-    bloc.add(const OcptEditorTextChangedEvent(text: editedText));
-    final savedState = await waitForState(
-      bloc,
-      (state) => !state.isDirty && state.lastSavedAt != null,
-    );
+      bloc.add(const OcptEditorTextChangedEvent(text: editedText));
+      final savedState = await waitForState(
+        bloc,
+        (state) => !state.isDirty && state.lastSavedAt != null,
+      );
 
-    expect(savedState.isSaving, isFalse);
+      expect(savedState.isSaving, isFalse);
 
-    final project = projectsManager.currentProject!;
-    final storedText = await projectsManager.screenplayService.loadScreenplayText(
-      database: project.database,
-      screenplayId: project.primaryScreenplayId,
-    );
-    expect(storedText, editedText);
+      final project = projectsManager.currentProject!;
+      final storedText = await projectsManager.screenplayService.loadScreenplayText(
+        database: project.database,
+        screenplayId: project.primaryScreenplayId,
+      );
+      expect(storedText, editedText);
 
-    final snapshots = await readSnapshots();
-    expect(snapshots.last.reason, OcptSnapshotReason.timer);
+      final snapshots = await readSnapshots();
+      expect(snapshots.last.reason, OcptSnapshotReason.timer);
 
-    await bloc.close();
-  });
+      await bloc.close();
+    },
+  );
 
   test('a manual save request saves immediately and tags the snapshot "manual"', () async {
     final bloc = buildBloc();
@@ -820,22 +827,19 @@ void main() {
     await bloc.close();
   });
 
-  test(
-    'loading the editor in styled mode closes the preview tab and remembers it, exactly like a '
-    'live mode switch would',
-    () async {
-      await propertiesManager.editorMode.store(OcptEditorMode.styled);
+  test('loading the editor in styled mode closes the preview tab and remembers it, exactly like a '
+      'live mode switch would', () async {
+    await propertiesManager.editorMode.store(OcptEditorMode.styled);
 
-      final bloc = buildBloc();
-      final state = await waitForState(bloc, (state) => !state.isLoading);
+    final bloc = buildBloc();
+    final state = await waitForState(bloc, (state) => !state.isLoading);
 
-      expect(state.mode, OcptEditorMode.styled);
-      expect(state.rightDockTab, isNull);
-      expect(state.autoClosedRightDockTab, OcptEditorRightDockTab.preview);
+    expect(state.mode, OcptEditorMode.styled);
+    expect(state.rightDockTab, isNull);
+    expect(state.autoClosedRightDockTab, OcptEditorRightDockTab.preview);
 
-      await bloc.close();
-    },
-  );
+    await bloc.close();
+  });
 
   test('selecting a closed tab opens the dock on it', () async {
     await propertiesManager.editorMode.store(OcptEditorMode.raw);
@@ -1045,10 +1049,7 @@ void main() {
 
     // Switch to styled to have the active preview tab remembered.
     bloc.add(const OcptEditorModeToggledEvent());
-    final styledState = await waitForState(
-      bloc,
-      (state) => state.mode == OcptEditorMode.styled,
-    );
+    final styledState = await waitForState(bloc, (state) => state.mode == OcptEditorMode.styled);
     expect(styledState.autoClosedRightDockTab, OcptEditorRightDockTab.preview);
 
     // Opening the syntax tab (an explicit action, valid in styled mode) must clear the memory.
@@ -1251,8 +1252,14 @@ void main() {
     );
 
     expect(state.rightDockFraction, OcptWorkspaceDock.rightDefaultFraction);
-    expect(await propertiesManager.editorLeftDockFraction.load(), OcptWorkspaceDock.leftDefaultFraction);
-    expect(await propertiesManager.editorRightDockFraction.load(), OcptWorkspaceDock.rightDefaultFraction);
+    expect(
+      await propertiesManager.editorLeftDockFraction.load(),
+      OcptWorkspaceDock.leftDefaultFraction,
+    );
+    expect(
+      await propertiesManager.editorRightDockFraction.load(),
+      OcptWorkspaceDock.rightDefaultFraction,
+    );
 
     await bloc.close();
   });
@@ -1304,30 +1311,27 @@ void main() {
     await bloc.close();
   });
 
-  test(
-    'the project settings changed event re-reads the page format and repaginates',
-    () async {
-      final bloc = buildBloc();
-      await waitForState(bloc, (state) => !state.isLoading);
+  test('the project settings changed event re-reads the page format and repaginates', () async {
+    final bloc = buildBloc();
+    await waitForState(bloc, (state) => !state.isLoading);
 
-      final otherFormat = bloc.state.pageSetup.format == OcptPageFormat.usLetter
-          ? OcptPageFormat.a4
-          : OcptPageFormat.usLetter;
-      // Written directly through the manager, the way the project settings page itself writes it
-      // — this bloc never sees the new value on an event, only the fact that something changed.
-      await projectsManager.saveCurrentProjectPageFormat(otherFormat);
+    final otherFormat = bloc.state.pageSetup.format == OcptPageFormat.usLetter
+        ? OcptPageFormat.a4
+        : OcptPageFormat.usLetter;
+    // Written directly through the manager, the way the project settings page itself writes it
+    // — this bloc never sees the new value on an event, only the fact that something changed.
+    await projectsManager.saveCurrentProjectPageFormat(otherFormat);
 
-      bloc.add(const OcptEditorProjectSettingsChangedEvent());
-      final state = await waitForState(bloc, (state) => state.pageSetup.format == otherFormat);
+    bloc.add(const OcptEditorProjectSettingsChangedEvent());
+    final state = await waitForState(bloc, (state) => state.pageSetup.format == otherFormat);
 
-      expect(
-        state.statistics,
-        FountainScriptStatistics.of(state.document!, state.pageSetup.toMetrics()),
-      );
+    expect(
+      state.statistics,
+      FountainScriptStatistics.of(state.document!, state.pageSetup.toMetrics()),
+    );
 
-      await bloc.close();
-    },
-  );
+    await bloc.close();
+  });
 
   test('the project settings changed event is a no-op when the format did not change', () async {
     final bloc = buildBloc();
@@ -1394,41 +1398,35 @@ void main() {
     expect(storedText, editedText);
   });
 
-  test(
-    'exporting a dirty screenplay saves it with the "export" reason and hands the current text '
-    'to the manager',
-    () async {
-      final exportManager = _FakeExportManager(exportResult: "/tmp/My Movie.fountain");
-      final bloc = buildBloc(exportManager: exportManager);
-      await waitForState(bloc, (state) => !state.isLoading);
+  test('exporting a dirty screenplay saves it with the "export" reason and hands the current text '
+      'to the manager', () async {
+    final exportManager = _FakeExportManager(exportResult: "/tmp/My Movie.fountain");
+    final bloc = buildBloc(exportManager: exportManager);
+    await waitForState(bloc, (state) => !state.isLoading);
 
-      bloc.add(const OcptEditorTextChangedEvent(text: editedText));
-      await waitForState(bloc, (state) => state.isDirty);
+    bloc.add(const OcptEditorTextChangedEvent(text: editedText));
+    await waitForState(bloc, (state) => state.isDirty);
 
-      bloc.add(
-        const OcptEditorExportRequestedEvent(
-          fileTypeLabel: "Screenplay",
-          episodeTag: "ep. 2",
-        ),
-      );
-      final state = await waitForState(
-        bloc,
-        (state) => state.ioNotice?.kind == OcptEditorIoNoticeKind.exportSucceeded,
-      );
+    bloc.add(
+      const OcptEditorExportRequestedEvent(fileTypeLabel: "Screenplay", episodeTag: "ep. 2"),
+    );
+    final state = await waitForState(
+      bloc,
+      (state) => state.ioNotice?.kind == OcptEditorIoNoticeKind.exportSucceeded,
+    );
 
-      expect(state.isDirty, isFalse);
-      expect(state.ioNotice?.path, "/tmp/My Movie.fountain");
-      expect(exportManager.lastExportedText, editedText);
-      expect(exportManager.lastExportedProjectName, "My Movie");
-      expect(exportManager.lastExportedFileTypeLabel, "Screenplay");
-      expect(exportManager.lastExportedEpisodeTag, "ep. 2");
+    expect(state.isDirty, isFalse);
+    expect(state.ioNotice?.path, "/tmp/My Movie.fountain");
+    expect(exportManager.lastExportedText, editedText);
+    expect(exportManager.lastExportedProjectName, "My Movie");
+    expect(exportManager.lastExportedFileTypeLabel, "Screenplay");
+    expect(exportManager.lastExportedEpisodeTag, "ep. 2");
 
-      final snapshots = await readSnapshots();
-      expect(snapshots.last.reason, OcptSnapshotReason.export);
+    final snapshots = await readSnapshots();
+    expect(snapshots.last.reason, OcptSnapshotReason.export);
 
-      await bloc.close();
-    },
-  );
+    await bloc.close();
+  });
 
   test('a cancelled export dialog raises no notice', () async {
     final exportManager = _FakeExportManager();
@@ -1444,70 +1442,67 @@ void main() {
     await bloc.close();
   });
 
-  test(
-    'exporting a dirty screenplay to PDF saves it with the "export" reason and hands the '
-    'manager a document parsed from the current text, the project name, and the pageSetup built '
-    'from the event options',
-    () async {
-      final exportManager = _FakeExportManager(exportPdfResult: "/tmp/My Movie.pdf");
-      final bloc = buildBloc(exportManager: exportManager);
-      await waitForState(bloc, (state) => !state.isLoading);
+  test('exporting a dirty screenplay to PDF saves it with the "export" reason and hands the '
+      'manager a document parsed from the current text, the project name, and the pageSetup built '
+      'from the event options', () async {
+    final exportManager = _FakeExportManager(exportPdfResult: "/tmp/My Movie.pdf");
+    final bloc = buildBloc(exportManager: exportManager);
+    await waitForState(bloc, (state) => !state.isLoading);
 
-      final formatBefore = await projectsManager.loadCurrentProjectPageFormat();
-      final marginsBefore = await propertiesManager.pageMargins.load();
+    final formatBefore = await projectsManager.loadCurrentProjectPageFormat();
+    final marginsBefore = await propertiesManager.pageMargins.load();
 
-      bloc.add(const OcptEditorTextChangedEvent(text: editedText));
-      await waitForState(bloc, (state) => state.isDirty);
+    bloc.add(const OcptEditorTextChangedEvent(text: editedText));
+    await waitForState(bloc, (state) => state.isDirty);
 
-      // A format/margins deliberately different from `bloc.state.pageSetup`, to prove they're
-      // taken from the event's options rather than the live state.
-      const options = OcptPdfExportOptions(
-        format: OcptPageFormat.a4,
-        margins: FountainPageMargins(
-          leftInches: 2,
-          rightInches: 0.5,
-          topInches: 0.75,
-          bottomInches: 0.75,
-        ),
-        includeSceneNumbers: false,
-        includeTitlePage: false,
-      );
-      bloc.add(
-        const OcptEditorExportPdfRequestedEvent(
-          options: options,
-          fileTypeLabel: "PDF document",
-          episodeTag: "ep. 2",
-        ),
-      );
-      final state = await waitForState(
-        bloc,
-        (state) => state.ioNotice?.kind == OcptEditorIoNoticeKind.pdfExportSucceeded,
-      );
+    // A format/margins deliberately different from `bloc.state.pageSetup`, to prove they're
+    // taken from the event's options rather than the live state.
+    const options = OcptPdfExportOptions(
+      format: OcptPageFormat.a4,
+      margins: FountainPageMargins(
+        leftInches: 2,
+        rightInches: 0.5,
+        topInches: 0.75,
+        bottomInches: 0.75,
+      ),
+      includeSceneNumbers: false,
+      includeTitlePage: false,
+    );
+    bloc.add(
+      const OcptEditorExportPdfRequestedEvent(
+        options: options,
+        fileTypeLabel: "PDF document",
+        episodeTag: "ep. 2",
+      ),
+    );
+    final state = await waitForState(
+      bloc,
+      (state) => state.ioNotice?.kind == OcptEditorIoNoticeKind.pdfExportSucceeded,
+    );
 
-      expect(state.isDirty, isFalse);
-      expect(state.ioNotice?.path, "/tmp/My Movie.pdf");
-      expect(exportManager.lastExportedPdfProjectName, "My Movie");
-      expect(exportManager.lastExportedPdfDocument?.scenes.single.headingText, "INT. HOUSE - DAY");
-      expect(
-        exportManager.lastExportedPdfPageSetup,
-        OcptPageSetup(format: options.format, margins: options.margins),
-      );
-      expect(exportManager.lastExportedPdfIncludeSceneNumbers, isFalse);
-      expect(exportManager.lastExportedPdfIncludeTitlePage, isFalse);
-      expect(exportManager.lastExportedPdfFileTypeLabel, "PDF document");
-      expect(exportManager.lastExportedPdfEpisodeTag, "ep. 2");
+    expect(state.isDirty, isFalse);
+    expect(state.ioNotice?.path, "/tmp/My Movie.pdf");
+    expect(exportManager.lastExportedPdfProjectName, "My Movie");
+    expect(exportManager.lastExportedPdfDocument?.scenes.single.headingText, "INT. HOUSE - DAY");
+    expect(
+      exportManager.lastExportedPdfPageSetup,
+      OcptPageSetup(format: options.format, margins: options.margins),
+    );
+    expect(exportManager.lastExportedPdfIncludeSceneNumbers, isFalse);
+    expect(exportManager.lastExportedPdfIncludeTitlePage, isFalse);
+    expect(exportManager.lastExportedPdfFileTypeLabel, "PDF document");
+    expect(exportManager.lastExportedPdfEpisodeTag, "ep. 2");
 
-      final snapshots = await readSnapshots();
-      expect(snapshots.last.reason, OcptSnapshotReason.export);
+    final snapshots = await readSnapshots();
+    expect(snapshots.last.reason, OcptSnapshotReason.export);
 
-      // The PDF export's format/options choice is a one-off, export-time setting: it must never
-      // persist the project's page format or the app-wide margins.
-      expect(await projectsManager.loadCurrentProjectPageFormat(), formatBefore);
-      expect(await propertiesManager.pageMargins.load(), marginsBefore);
+    // The PDF export's format/options choice is a one-off, export-time setting: it must never
+    // persist the project's page format or the app-wide margins.
+    expect(await projectsManager.loadCurrentProjectPageFormat(), formatBefore);
+    expect(await propertiesManager.pageMargins.load(), marginsBefore);
 
-      await bloc.close();
-    },
-  );
+    await bloc.close();
+  });
 
   test('a cancelled PDF export dialog raises no notice', () async {
     final exportManager = _FakeExportManager();
@@ -1558,43 +1553,40 @@ void main() {
     await bloc.close();
   });
 
-  test(
-    'importing replaces the text, tags the snapshot "import", leaves isDirty false and '
-    're-parses',
-    () async {
-      const importedText = "INT. OFFICE - DAY\n\nA new script.\n";
-      final exportManager = _FakeExportManager(
-        importResult: const OcptImportedFountainModel(
-          fountainText: importedText,
-          sourceFileName: "draft.fountain",
-        ),
-      );
-      final bloc = buildBloc(exportManager: exportManager);
-      await waitForState(bloc, (state) => !state.isLoading);
+  test('importing replaces the text, tags the snapshot "import", leaves isDirty false and '
+      're-parses', () async {
+    const importedText = "INT. OFFICE - DAY\n\nA new script.\n";
+    final exportManager = _FakeExportManager(
+      importResult: const OcptImportedFountainModel(
+        fountainText: importedText,
+        sourceFileName: "draft.fountain",
+      ),
+    );
+    final bloc = buildBloc(exportManager: exportManager);
+    await waitForState(bloc, (state) => !state.isLoading);
 
-      bloc.add(const OcptEditorImportRequestedEvent(fileTypeLabel: "Screenplay"));
-      // The text/dirty/notice change, the re-parse and the statistics recompute are three
-      // separate emissions (the notice arrives with the first one and survives into the next
-      // two, since re-parsing only replaces `document`): wait for the statistics recompute, the
-      // last of the three, to also have landed before asserting on `scenes`/`statistics`.
-      final state = await waitForState(bloc, (state) => state.statistics.sceneCount != 0);
+    bloc.add(const OcptEditorImportRequestedEvent(fileTypeLabel: "Screenplay"));
+    // The text/dirty/notice change, the re-parse and the statistics recompute are three
+    // separate emissions (the notice arrives with the first one and survives into the next
+    // two, since re-parsing only replaces `document`): wait for the statistics recompute, the
+    // last of the three, to also have landed before asserting on `scenes`/`statistics`.
+    final state = await waitForState(bloc, (state) => state.statistics.sceneCount != 0);
 
-      expect(state.text, importedText);
-      expect(state.isDirty, isFalse);
-      expect(state.currentLine, 0);
-      expect(state.ioNotice?.kind, OcptEditorIoNoticeKind.importSucceeded);
-      expect(state.scenes, hasLength(1));
-      expect(state.scenes.single.headingText, "INT. OFFICE - DAY");
-      expect(exportManager.lastImportFileTypeLabel, "Screenplay");
-      expect(state.statistics.sceneCount, 1);
-      expect(state.statistics.pageCount, 1);
+    expect(state.text, importedText);
+    expect(state.isDirty, isFalse);
+    expect(state.currentLine, 0);
+    expect(state.ioNotice?.kind, OcptEditorIoNoticeKind.importSucceeded);
+    expect(state.scenes, hasLength(1));
+    expect(state.scenes.single.headingText, "INT. OFFICE - DAY");
+    expect(exportManager.lastImportFileTypeLabel, "Screenplay");
+    expect(state.statistics.sceneCount, 1);
+    expect(state.statistics.pageCount, 1);
 
-      final snapshots = await readSnapshots();
-      expect(snapshots.last.reason, OcptSnapshotReason.import);
+    final snapshots = await readSnapshots();
+    expect(snapshots.last.reason, OcptSnapshotReason.import);
 
-      await bloc.close();
-    },
-  );
+    await bloc.close();
+  });
 
   test('a cancelled import dialog changes nothing', () async {
     final exportManager = _FakeExportManager();
@@ -1639,50 +1631,44 @@ void main() {
     await bloc.close();
   });
 
-  test(
-    'adding title page fields to a screenplay with none inserts one, saves it "manual", and '
-    're-parses',
-    () async {
-      final bloc = buildBloc();
-      await waitForState(bloc, (state) => !state.isLoading);
+  test('adding title page fields to a screenplay with none inserts one, saves it "manual", and '
+      're-parses', () async {
+    final bloc = buildBloc();
+    await waitForState(bloc, (state) => !state.isLoading);
 
-      bloc.add(const OcptEditorTextChangedEvent(text: editedText));
-      await waitForState(bloc, (state) => state.scenes.isNotEmpty);
+    bloc.add(const OcptEditorTextChangedEvent(text: editedText));
+    await waitForState(bloc, (state) => state.scenes.isNotEmpty);
 
-      bloc.add(
-        const OcptEditorTitlePageChangedEvent(
-          title: 'My Screenplay',
-          credit: 'written by',
-          author: 'Jane Doe',
-          draftDate: '',
-          contact: '',
-          source: '',
-        ),
-      );
+    bloc.add(
+      const OcptEditorTitlePageChangedEvent(
+        title: 'My Screenplay',
+        credit: 'written by',
+        author: 'Jane Doe',
+        draftDate: '',
+        contact: '',
+        source: '',
+      ),
+    );
 
-      final state = await waitForState(bloc, (state) => state.document?.titlePage != null);
-      expect(state.document!.titlePage!.title, 'My Screenplay');
-      expect(state.document!.titlePage!.credit, 'written by');
-      expect(state.document!.titlePage!.authors, ['Jane Doe']);
-      expect(
-        state.text,
-        'Title: My Screenplay\nCredit: written by\nAuthor: Jane Doe\n\n$editedText',
-      );
-      expect(state.scenes.single.headingText, 'INT. HOUSE - DAY');
+    final state = await waitForState(bloc, (state) => state.document?.titlePage != null);
+    expect(state.document!.titlePage!.title, 'My Screenplay');
+    expect(state.document!.titlePage!.credit, 'written by');
+    expect(state.document!.titlePage!.authors, ['Jane Doe']);
+    expect(state.text, 'Title: My Screenplay\nCredit: written by\nAuthor: Jane Doe\n\n$editedText');
+    expect(state.scenes.single.headingText, 'INT. HOUSE - DAY');
 
-      final project = projectsManager.currentProject!;
-      final storedText = await projectsManager.screenplayService.loadScreenplayText(
-        database: project.database,
-        screenplayId: project.primaryScreenplayId,
-      );
-      expect(storedText, state.text);
+    final project = projectsManager.currentProject!;
+    final storedText = await projectsManager.screenplayService.loadScreenplayText(
+      database: project.database,
+      screenplayId: project.primaryScreenplayId,
+    );
+    expect(storedText, state.text);
 
-      final snapshots = await readSnapshots();
-      expect(snapshots.last.reason, OcptSnapshotReason.manual);
+    final snapshots = await readSnapshots();
+    expect(snapshots.last.reason, OcptSnapshotReason.manual);
 
-      await bloc.close();
-    },
-  );
+    await bloc.close();
+  });
 
   test("editing an existing title page's fields replaces it, leaving the body unchanged", () async {
     const initialText = 'Title: Old\nCredit: written by\n\n$editedText';
@@ -1755,20 +1741,22 @@ void main() {
       expect(state.search.currentMatchIndex, isNull);
     });
 
-    test('Ctrl+F opens the bar with the replace row folded and bumps the focus request id',
-        () async {
-      final bloc = buildBloc();
-      await waitForState(bloc, (state) => !state.isLoading);
-      final focusRequestIdBefore = bloc.state.search.focusRequestId;
+    test(
+      'Ctrl+F opens the bar with the replace row folded and bumps the focus request id',
+      () async {
+        final bloc = buildBloc();
+        await waitForState(bloc, (state) => !state.isLoading);
+        final focusRequestIdBefore = bloc.state.search.focusRequestId;
 
-      bloc.add(const OcptEditorSearchOpenedEvent(withReplaceRow: false));
-      final state = await waitForState(bloc, (state) => state.search.isOpen);
+        bloc.add(const OcptEditorSearchOpenedEvent(withReplaceRow: false));
+        final state = await waitForState(bloc, (state) => state.search.isOpen);
 
-      expect(state.search.isReplaceRowOpen, isFalse);
-      expect(state.search.focusRequestId, greaterThan(focusRequestIdBefore));
+        expect(state.search.isReplaceRowOpen, isFalse);
+        expect(state.search.focusRequestId, greaterThan(focusRequestIdBefore));
 
-      await bloc.close();
-    });
+        await bloc.close();
+      },
+    );
 
     test('Ctrl+H opens the bar with the replace row unfolded', () async {
       final bloc = buildBloc();
@@ -1782,25 +1770,27 @@ void main() {
       await bloc.close();
     });
 
-    test('opening an already-open, replace-unfolded bar with Ctrl+F never folds the row back',
-        () async {
-      final bloc = buildBloc();
-      await waitForState(bloc, (state) => !state.isLoading);
+    test(
+      'opening an already-open, replace-unfolded bar with Ctrl+F never folds the row back',
+      () async {
+        final bloc = buildBloc();
+        await waitForState(bloc, (state) => !state.isLoading);
 
-      bloc.add(const OcptEditorSearchOpenedEvent(withReplaceRow: true));
-      await waitForState(bloc, (state) => state.search.isReplaceRowOpen);
-      final focusRequestIdBefore = bloc.state.search.focusRequestId;
+        bloc.add(const OcptEditorSearchOpenedEvent(withReplaceRow: true));
+        await waitForState(bloc, (state) => state.search.isReplaceRowOpen);
+        final focusRequestIdBefore = bloc.state.search.focusRequestId;
 
-      bloc.add(const OcptEditorSearchOpenedEvent(withReplaceRow: false));
-      final state = await waitForState(
-        bloc,
-        (state) => state.search.focusRequestId > focusRequestIdBefore,
-      );
+        bloc.add(const OcptEditorSearchOpenedEvent(withReplaceRow: false));
+        final state = await waitForState(
+          bloc,
+          (state) => state.search.focusRequestId > focusRequestIdBefore,
+        );
 
-      expect(state.search.isReplaceRowOpen, isTrue);
+        expect(state.search.isReplaceRowOpen, isTrue);
 
-      await bloc.close();
-    });
+        await bloc.close();
+      },
+    );
 
     test('the chevron folds and unfolds the replace row', () async {
       final bloc = buildBloc();
@@ -1811,10 +1801,7 @@ void main() {
       expect(openState.search.isReplaceRowOpen, isTrue);
 
       bloc.add(const OcptEditorSearchReplaceRowToggledEvent());
-      final closedState = await waitForState(
-        bloc,
-        (state) => !state.search.isReplaceRowOpen,
-      );
+      final closedState = await waitForState(bloc, (state) => !state.search.isReplaceRowOpen);
       expect(closedState.search.isReplaceRowOpen, isFalse);
 
       await bloc.close();
@@ -1899,7 +1886,10 @@ void main() {
       bloc.add(const OcptEditorSearchNextRequestedEvent());
       bloc.add(const OcptEditorSearchNextRequestedEvent());
       bloc.add(const OcptEditorSearchNextRequestedEvent());
-      final lastIndexState = await waitForState(bloc, (state) => state.search.currentMatchIndex == 4);
+      final lastIndexState = await waitForState(
+        bloc,
+        (state) => state.search.currentMatchIndex == 4,
+      );
       expect(lastIndexState.search.currentMatchIndex, 4);
 
       // The count shrinks to 2 (indices 0 and 1 only): the current index clamps down into range
@@ -1929,10 +1919,7 @@ void main() {
       expect(wrappedBackState.search.currentMatchIndex, 2);
 
       bloc.add(const OcptEditorSearchNextRequestedEvent());
-      final nextState = await waitForState(
-        bloc,
-        (state) => state.search.currentMatchIndex == 0,
-      );
+      final nextState = await waitForState(bloc, (state) => state.search.currentMatchIndex == 0);
       expect(nextState.search.currentMatchIndex, 0);
 
       bloc.add(const OcptEditorSearchNextRequestedEvent());
@@ -2058,9 +2045,7 @@ void main() {
         await waitForState(bloc, (state) => !state.isLoading);
 
         bloc.add(
-          const OcptEditorTextChangedEvent(
-            text: "INT. HOUSE - DAY\n\nSomethign is wrong here.\n",
-          ),
+          const OcptEditorTextChangedEvent(text: "INT. HOUSE - DAY\n\nSomethign is wrong here.\n"),
         );
         final checkedState = await waitForState(
           bloc,
@@ -2083,48 +2068,48 @@ void main() {
       },
     );
 
-    test(
-      'a scene heading, a character cue, a transition and a lyrics line produce no range, an '
-      'action line and a dialogue line do',
-      () async {
-        final manager = _FakeSpellCheckManager();
-        await propertiesManager.spellCheckVisible.store(true);
-        await propertiesManager.editorMode.store(OcptEditorMode.raw);
-        await projectsManager.saveCurrentProjectScreenplayLanguage(OcptScreenplayLanguage.enGb);
+    test('a scene heading, a character cue, a transition and a lyrics line produce no range, an '
+        'action line and a dialogue line do', () async {
+      final manager = _FakeSpellCheckManager();
+      await propertiesManager.spellCheckVisible.store(true);
+      await propertiesManager.editorMode.store(OcptEditorMode.raw);
+      await projectsManager.saveCurrentProjectScreenplayLanguage(OcptScreenplayLanguage.enGb);
 
-        final bloc = buildBloc(spellCheckManager: manager);
-        await waitForState(bloc, (state) => !state.isLoading);
+      final bloc = buildBloc(spellCheckManager: manager);
+      await waitForState(bloc, (state) => !state.isLoading);
 
-        const text =
-            "INT. HOUSE - DAY\n\n"
-            "She walks across the room slowly.\n\n"
-            "MARIE\n"
-            "Bonjour tout le monde.\n\n"
-            "CUT TO:\n\n"
-            "~La la la la\n";
-        bloc.add(const OcptEditorTextChangedEvent(text: text));
+      const text =
+          "INT. HOUSE - DAY\n\n"
+          "She walks across the room slowly.\n\n"
+          "MARIE\n"
+          "Bonjour tout le monde.\n\n"
+          "CUT TO:\n\n"
+          "~La la la la\n";
+      bloc.add(const OcptEditorTextChangedEvent(text: text));
 
-        final state = await waitForState(bloc, (state) => state.rawSpellCheckRanges.isNotEmpty);
+      final state = await waitForState(bloc, (state) => state.rawSpellCheckRanges.isNotEmpty);
 
-        // Only the action line and the dialogue line were ever sent to the manager for checking —
-        // never the scene heading, the character cue, the transition or the lyrics line.
-        final sentTexts = manager.checkCalls.expand((call) => call.values).toSet();
-        expect(sentTexts, {"She walks across the room slowly.", "Bonjour tout le monde."});
+      // Only the action line and the dialogue line were ever sent to the manager for checking —
+      // never the scene heading, the character cue, the transition or the lyrics line.
+      final sentTexts = manager.checkCalls.expand((call) => call.values).toSet();
+      expect(sentTexts, {"She walks across the room slowly.", "Bonjour tout le monde."});
 
-        // And the reported ranges land exactly on those two blocks (the fake's default answer
-        // marks a requested text entirely misspelled).
-        const actionText = "She walks across the room slowly.";
-        const dialogueText = "Bonjour tout le monde.";
-        final actionStart = text.indexOf(actionText);
-        final dialogueStart = text.indexOf(dialogueText);
-        expect(state.rawSpellCheckRanges, unorderedEquals([
+      // And the reported ranges land exactly on those two blocks (the fake's default answer
+      // marks a requested text entirely misspelled).
+      const actionText = "She walks across the room slowly.";
+      const dialogueText = "Bonjour tout le monde.";
+      final actionStart = text.indexOf(actionText);
+      final dialogueStart = text.indexOf(dialogueText);
+      expect(
+        state.rawSpellCheckRanges,
+        unorderedEquals([
           SpellRange(actionStart, actionStart + actionText.length),
           SpellRange(dialogueStart, dialogueStart + dialogueText.length),
-        ]));
+        ]),
+      );
 
-        await bloc.close();
-      },
-    );
+      await bloc.close();
+    });
 
     test('only changed texts are sent to the manager between two ticks', () async {
       final manager = _FakeSpellCheckManager();
@@ -2454,177 +2439,179 @@ void main() {
   });
 
   group('spellingSuggestionsFor', () {
-    test('forwards to the manager when both switches are on and nothing is being previewed', () async {
-      final manager = _FakeSpellCheckManager()..suggestionsAnswer = (word) => ['world'];
-      await propertiesManager.spellCheckVisible.store(true);
-      await projectsManager.saveCurrentProjectScreenplayLanguage(OcptScreenplayLanguage.enGb);
+    test(
+      'forwards to the manager when both switches are on and nothing is being previewed',
+      () async {
+        final manager = _FakeSpellCheckManager()..suggestionsAnswer = (word) => ['world'];
+        await propertiesManager.spellCheckVisible.store(true);
+        await projectsManager.saveCurrentProjectScreenplayLanguage(OcptScreenplayLanguage.enGb);
 
-      final bloc = buildBloc(spellCheckManager: manager);
-      await waitForState(bloc, (state) => !state.isLoading);
+        final bloc = buildBloc(spellCheckManager: manager);
+        await waitForState(bloc, (state) => !state.isLoading);
 
-      final suggestions = await bloc.spellingSuggestionsFor('wrold');
+        final suggestions = await bloc.spellingSuggestionsFor('wrold');
 
-      expect(suggestions, ['world']);
-      expect(manager.suggestionsForCalls, ['wrold']);
+        expect(suggestions, ['world']);
+        expect(manager.suggestionsForCalls, ['wrold']);
 
-      await bloc.close();
-    });
+        await bloc.close();
+      },
+    );
 
-    test('returns nothing, with no manager call at all, while isSpellCheckVisible is off', () async {
-      final manager = _FakeSpellCheckManager()..suggestionsAnswer = (word) => ['world'];
-      await propertiesManager.spellCheckVisible.store(false);
-      await projectsManager.saveCurrentProjectScreenplayLanguage(OcptScreenplayLanguage.enGb);
+    test(
+      'returns nothing, with no manager call at all, while isSpellCheckVisible is off',
+      () async {
+        final manager = _FakeSpellCheckManager()..suggestionsAnswer = (word) => ['world'];
+        await propertiesManager.spellCheckVisible.store(false);
+        await projectsManager.saveCurrentProjectScreenplayLanguage(OcptScreenplayLanguage.enGb);
 
-      final bloc = buildBloc(spellCheckManager: manager);
-      await waitForState(bloc, (state) => !state.isLoading);
+        final bloc = buildBloc(spellCheckManager: manager);
+        await waitForState(bloc, (state) => !state.isLoading);
 
-      expect(await bloc.spellingSuggestionsFor('wrold'), isEmpty);
-      expect(manager.suggestionsForCalls, isEmpty);
+        expect(await bloc.spellingSuggestionsFor('wrold'), isEmpty);
+        expect(manager.suggestionsForCalls, isEmpty);
 
-      await bloc.close();
-      // Restores the shared properties manager's value: every other test in this file expects
-      // spell-check visible by default.
-      await propertiesManager.spellCheckVisible.store(true);
-    });
+        await bloc.close();
+        // Restores the shared properties manager's value: every other test in this file expects
+        // spell-check visible by default.
+        await propertiesManager.spellCheckVisible.store(true);
+      },
+    );
 
-    test('returns nothing, with no manager call at all, while the screenplay has no language', () async {
-      final manager = _FakeSpellCheckManager()..suggestionsAnswer = (word) => ['world'];
-      await propertiesManager.spellCheckVisible.store(true);
-      await projectsManager.saveCurrentProjectScreenplayLanguage(null);
+    test(
+      'returns nothing, with no manager call at all, while the screenplay has no language',
+      () async {
+        final manager = _FakeSpellCheckManager()..suggestionsAnswer = (word) => ['world'];
+        await propertiesManager.spellCheckVisible.store(true);
+        await projectsManager.saveCurrentProjectScreenplayLanguage(null);
 
-      final bloc = buildBloc(spellCheckManager: manager);
-      await waitForState(bloc, (state) => !state.isLoading);
+        final bloc = buildBloc(spellCheckManager: manager);
+        await waitForState(bloc, (state) => !state.isLoading);
 
-      expect(await bloc.spellingSuggestionsFor('wrold'), isEmpty);
-      expect(manager.suggestionsForCalls, isEmpty);
+        expect(await bloc.spellingSuggestionsFor('wrold'), isEmpty);
+        expect(manager.suggestionsForCalls, isEmpty);
 
-      await bloc.close();
-    });
+        await bloc.close();
+      },
+    );
 
-    test('returns nothing, with no manager call at all, while a version is being previewed', () async {
-      final manager = _FakeSpellCheckManager()..suggestionsAnswer = (word) => ['world'];
-      await propertiesManager.spellCheckVisible.store(true);
-      await projectsManager.saveCurrentProjectScreenplayLanguage(OcptScreenplayLanguage.enGb);
-      final project = projectsManager.currentProject!;
-      await projectsManager.screenplayService.saveScreenplayText(
-        database: project.database,
-        screenplayId: project.primaryScreenplayId,
-        fountainText: "Some text.\n",
-        snapshotReason: OcptSnapshotReason.manual,
-      );
-      final version = await projectsManager.createProjectVersion(name: "v1", note: "");
-      expect(version, isNotNull);
+    test(
+      'returns nothing, with no manager call at all, while a version is being previewed',
+      () async {
+        final manager = _FakeSpellCheckManager()..suggestionsAnswer = (word) => ['world'];
+        await propertiesManager.spellCheckVisible.store(true);
+        await projectsManager.saveCurrentProjectScreenplayLanguage(OcptScreenplayLanguage.enGb);
+        final project = projectsManager.currentProject!;
+        await projectsManager.screenplayService.saveScreenplayText(
+          database: project.database,
+          screenplayId: project.primaryScreenplayId,
+          fountainText: "Some text.\n",
+          snapshotReason: OcptSnapshotReason.manual,
+        );
+        final version = await projectsManager.createProjectVersion(name: "v1", note: "");
+        expect(version, isNotNull);
 
-      final bloc = buildBloc(spellCheckManager: manager);
-      await waitForState(bloc, (state) => !state.isLoading);
+        final bloc = buildBloc(spellCheckManager: manager);
+        await waitForState(bloc, (state) => !state.isLoading);
 
-      bloc.add(OcptProjectVersionPreviewRequestedEvent(versionId: version!.id));
-      await waitForState(bloc, (state) => state.isPreviewingVersion);
+        bloc.add(OcptProjectVersionPreviewRequestedEvent(versionId: version!.id));
+        await waitForState(bloc, (state) => state.isPreviewingVersion);
 
-      expect(await bloc.spellingSuggestionsFor('wrold'), isEmpty);
-      expect(manager.suggestionsForCalls, isEmpty);
+        expect(await bloc.spellingSuggestionsFor('wrold'), isEmpty);
+        expect(manager.suggestionsForCalls, isEmpty);
 
-      await bloc.close();
-    });
+        await bloc.close();
+      },
+    );
   });
 
   group('ignoring and learning words', () {
-    test(
-      'ignoring a word reaches the manager and re-issues a check over both the raw document and '
-      'the last reported styled texts',
-      () async {
-        final manager = _FakeSpellCheckManager();
-        await propertiesManager.spellCheckVisible.store(true);
-        await propertiesManager.editorMode.store(OcptEditorMode.raw);
-        await projectsManager.saveCurrentProjectScreenplayLanguage(OcptScreenplayLanguage.enGb);
+    test('ignoring a word reaches the manager and re-issues a check over both the raw document and '
+        'the last reported styled texts', () async {
+      final manager = _FakeSpellCheckManager();
+      await propertiesManager.spellCheckVisible.store(true);
+      await propertiesManager.editorMode.store(OcptEditorMode.raw);
+      await projectsManager.saveCurrentProjectScreenplayLanguage(OcptScreenplayLanguage.enGb);
 
-        final bloc = buildBloc(spellCheckManager: manager);
-        await waitForState(bloc, (state) => !state.isLoading);
-        while (manager.setLearnedWordsCalls.isEmpty) {
-          await Future<void>.delayed(Duration.zero);
-        }
+      final bloc = buildBloc(spellCheckManager: manager);
+      await waitForState(bloc, (state) => !state.isLoading);
+      while (manager.setLearnedWordsCalls.isEmpty) {
+        await Future<void>.delayed(Duration.zero);
+      }
 
-        bloc.add(
-          const OcptEditorTextChangedEvent(
-            text: "INT. HOUSE - DAY\n\nSomethign is wrong here.\n",
-          ),
-        );
-        await waitForState(bloc, (state) => state.rawSpellCheckRanges.isNotEmpty);
+      bloc.add(
+        const OcptEditorTextChangedEvent(text: "INT. HOUSE - DAY\n\nSomethign is wrong here.\n"),
+      );
+      await waitForState(bloc, (state) => state.rawSpellCheckRanges.isNotEmpty);
 
-        bloc.add(
-          const OcptEditorStyledSpellCheckTextsReportedEvent(
-            textsByNodeId: {"node-1": "Somethign is wrong here."},
-          ),
-        );
-        await waitForState(bloc, (state) => state.styledSpellCheckRanges.isNotEmpty);
+      bloc.add(
+        const OcptEditorStyledSpellCheckTextsReportedEvent(
+          textsByNodeId: {"node-1": "Somethign is wrong here."},
+        ),
+      );
+      await waitForState(bloc, (state) => state.styledSpellCheckRanges.isNotEmpty);
 
-        manager.checkCalls.clear();
+      manager.checkCalls.clear();
 
-        bloc.add(const OcptEditorWordIgnoredEvent(word: "Somethign"));
-        while (manager.checkCalls.length < 2) {
-          await Future<void>.delayed(Duration.zero);
-        }
+      bloc.add(const OcptEditorWordIgnoredEvent(word: "Somethign"));
+      while (manager.checkCalls.length < 2) {
+        await Future<void>.delayed(Duration.zero);
+      }
 
-        expect(manager.ignoredWords, ["Somethign"]);
-        // Neither the raw block nor the styled node was skipped as "unchanged" — the manager's own
-        // generation bump (from ignoreWord) is what forces both caches to treat everything as
-        // needing a fresh answer even though no text actually changed.
-        final sentTexts = manager.checkCalls.expand((call) => call.values).toSet();
-        expect(sentTexts, contains("Somethign is wrong here."));
+      expect(manager.ignoredWords, ["Somethign"]);
+      // Neither the raw block nor the styled node was skipped as "unchanged" — the manager's own
+      // generation bump (from ignoreWord) is what forces both caches to treat everything as
+      // needing a fresh answer even though no text actually changed.
+      final sentTexts = manager.checkCalls.expand((call) => call.values).toSet();
+      expect(sentTexts, contains("Somethign is wrong here."));
 
-        await bloc.close();
-      },
-    );
+      await bloc.close();
+    });
 
-    test(
-      "learning a word reaches the service and the manager, and re-issues a check over both the "
-      "raw document and the last reported styled texts",
-      () async {
-        final manager = _FakeSpellCheckManager();
-        await propertiesManager.spellCheckVisible.store(true);
-        await propertiesManager.editorMode.store(OcptEditorMode.raw);
-        await projectsManager.saveCurrentProjectScreenplayLanguage(OcptScreenplayLanguage.enGb);
+    test("learning a word reaches the service and the manager, and re-issues a check over both the "
+        "raw document and the last reported styled texts", () async {
+      final manager = _FakeSpellCheckManager();
+      await propertiesManager.spellCheckVisible.store(true);
+      await propertiesManager.editorMode.store(OcptEditorMode.raw);
+      await projectsManager.saveCurrentProjectScreenplayLanguage(OcptScreenplayLanguage.enGb);
 
-        final bloc = buildBloc(spellCheckManager: manager);
-        await waitForState(bloc, (state) => !state.isLoading);
-        while (manager.setLearnedWordsCalls.isEmpty) {
-          await Future<void>.delayed(Duration.zero);
-        }
+      final bloc = buildBloc(spellCheckManager: manager);
+      await waitForState(bloc, (state) => !state.isLoading);
+      while (manager.setLearnedWordsCalls.isEmpty) {
+        await Future<void>.delayed(Duration.zero);
+      }
 
-        bloc.add(
-          const OcptEditorTextChangedEvent(
-            text: "INT. HOUSE - DAY\n\nSomethign is wrong here.\n",
-          ),
-        );
-        await waitForState(bloc, (state) => state.rawSpellCheckRanges.isNotEmpty);
+      bloc.add(
+        const OcptEditorTextChangedEvent(text: "INT. HOUSE - DAY\n\nSomethign is wrong here.\n"),
+      );
+      await waitForState(bloc, (state) => state.rawSpellCheckRanges.isNotEmpty);
 
-        bloc.add(
-          const OcptEditorStyledSpellCheckTextsReportedEvent(
-            textsByNodeId: {"node-1": "Somethign is wrong here."},
-          ),
-        );
-        await waitForState(bloc, (state) => state.styledSpellCheckRanges.isNotEmpty);
+      bloc.add(
+        const OcptEditorStyledSpellCheckTextsReportedEvent(
+          textsByNodeId: {"node-1": "Somethign is wrong here."},
+        ),
+      );
+      await waitForState(bloc, (state) => state.styledSpellCheckRanges.isNotEmpty);
 
-        manager.checkCalls.clear();
-        manager.setLearnedWordsCalls.clear();
+      manager.checkCalls.clear();
+      manager.setLearnedWordsCalls.clear();
 
-        bloc.add(const OcptEditorWordLearnedEvent(word: "Somethign"));
-        while (manager.setLearnedWordsCalls.isEmpty || manager.checkCalls.length < 2) {
-          await Future<void>.delayed(Duration.zero);
-        }
+      bloc.add(const OcptEditorWordLearnedEvent(word: "Somethign"));
+      while (manager.setLearnedWordsCalls.isEmpty || manager.checkCalls.length < 2) {
+        await Future<void>.delayed(Duration.zero);
+      }
 
-        final persisted = await projectsManager.projectDictionaryService.loadWords(
-          database: projectsManager.currentProject!.database,
-        );
-        expect(persisted, contains("Somethign"));
-        expect(manager.setLearnedWordsCalls.last, contains("Somethign"));
+      final persisted = await projectsManager.projectDictionaryService.loadWords(
+        database: projectsManager.currentProject!.database,
+      );
+      expect(persisted, contains("Somethign"));
+      expect(manager.setLearnedWordsCalls.last, contains("Somethign"));
 
-        final sentTexts = manager.checkCalls.expand((call) => call.values).toSet();
-        expect(sentTexts, contains("Somethign is wrong here."));
+      final sentTexts = manager.checkCalls.expand((call) => call.values).toSet();
+      expect(sentTexts, contains("Somethign is wrong here."));
 
-        await bloc.close();
-      },
-    );
+      await bloc.close();
+    });
 
     test('learning a word with no project open is a no-op', () async {
       final manager = _FakeSpellCheckManager();
@@ -2645,19 +2632,109 @@ void main() {
       await bloc.close();
     });
 
-    test('both ignoring and learning a word are refused while a version is being previewed', () async {
+    test(
+      'both ignoring and learning a word are refused while a version is being previewed',
+      () async {
+        final manager = _FakeSpellCheckManager();
+        await propertiesManager.spellCheckVisible.store(true);
+        await projectsManager.saveCurrentProjectScreenplayLanguage(OcptScreenplayLanguage.enGb);
+        final project = projectsManager.currentProject!;
+        await projectsManager.screenplayService.saveScreenplayText(
+          database: project.database,
+          screenplayId: project.primaryScreenplayId,
+          fountainText: "Some text.\n",
+          snapshotReason: OcptSnapshotReason.manual,
+        );
+        final version = await projectsManager.createProjectVersion(name: "v1", note: "");
+        expect(version, isNotNull);
+
+        final bloc = buildBloc(spellCheckManager: manager);
+        await waitForState(bloc, (state) => !state.isLoading);
+        while (manager.setLearnedWordsCalls.isEmpty) {
+          await Future<void>.delayed(Duration.zero);
+        }
+
+        bloc.add(OcptProjectVersionPreviewRequestedEvent(versionId: version!.id));
+        await waitForState(bloc, (state) => state.isPreviewingVersion);
+        // Entering a preview reloads from the previewed version's own database, which pushes that
+        // version's own learned words too (correctly) — wait for that second, legitimate push to
+        // land before clearing below, so it can't be mistaken for the ignore/learn events this test
+        // is actually about.
+        while (manager.setLearnedWordsCalls.length < 2) {
+          await Future<void>.delayed(Duration.zero);
+        }
+
+        manager.ignoredWords.clear();
+        manager.setLearnedWordsCalls.clear();
+
+        bloc.add(const OcptEditorWordIgnoredEvent(word: "anything"));
+        bloc.add(const OcptEditorWordLearnedEvent(word: "anything"));
+        await Future<void>.delayed(Duration.zero);
+
+        expect(manager.ignoredWords, isEmpty);
+        expect(manager.setLearnedWordsCalls, isEmpty);
+
+        await bloc.close();
+      },
+    );
+  });
+
+  group('the project settings changed event and the dictionary', () {
+    test("un-learning a word directly through the service, then reporting the project settings "
+        "changed event, pushes the new set into the manager and re-checks the text again — the "
+        "round trip's whole point: a word removed in the settings page's dictionary dialog is "
+        "underlined again on the next check pass, with nothing re-typed", () async {
+      final database = projectsManager.currentProject!.database;
+      await projectsManager.projectDictionaryService.learnWord(
+        database: database,
+        word: "Zorglurbe",
+      );
+
       final manager = _FakeSpellCheckManager();
       await propertiesManager.spellCheckVisible.store(true);
+      await propertiesManager.editorMode.store(OcptEditorMode.raw);
       await projectsManager.saveCurrentProjectScreenplayLanguage(OcptScreenplayLanguage.enGb);
-      final project = projectsManager.currentProject!;
-      await projectsManager.screenplayService.saveScreenplayText(
-        database: project.database,
-        screenplayId: project.primaryScreenplayId,
-        fountainText: "Some text.\n",
-        snapshotReason: OcptSnapshotReason.manual,
+
+      final bloc = buildBloc(spellCheckManager: manager);
+      await waitForState(bloc, (state) => !state.isLoading);
+      while (manager.setLearnedWordsCalls.isEmpty) {
+        await Future<void>.delayed(Duration.zero);
+      }
+      expect(manager.setLearnedWordsCalls.last, contains("Zorglurbe"));
+
+      bloc.add(const OcptEditorTextChangedEvent(text: "INT. HOUSE - DAY\n\nZorglurbe is here.\n"));
+      await waitForState(bloc, (state) => state.rawSpellCheckRanges.isNotEmpty);
+
+      manager.checkCalls.clear();
+      manager.setLearnedWordsCalls.clear();
+
+      // The dictionary dialog itself never runs in this bloc; the project settings page
+      // applies its report directly through the service, exactly as reproduced here — this
+      // bloc only ever learns about it through the settings-changed event below.
+      await projectsManager.projectDictionaryService.unlearnWord(
+        database: database,
+        word: "Zorglurbe",
       );
-      final version = await projectsManager.createProjectVersion(name: "v1", note: "");
-      expect(version, isNotNull);
+
+      bloc.add(const OcptEditorProjectSettingsChangedEvent());
+      while (manager.setLearnedWordsCalls.isEmpty) {
+        await Future<void>.delayed(Duration.zero);
+      }
+
+      expect(manager.setLearnedWordsCalls.last, isNot(contains("Zorglurbe")));
+      expect(manager.checkCalls, isNotEmpty);
+      final sentTexts = manager.checkCalls.expand((call) => call.values).toSet();
+      expect(sentTexts, contains("Zorglurbe is here."));
+
+      await bloc.close();
+    });
+
+    test("the project settings changed event pushes nothing into the manager when the dictionary "
+        "was not touched", () async {
+      final manager = _FakeSpellCheckManager();
+      await propertiesManager.spellCheckVisible.store(true);
+      await propertiesManager.editorMode.store(OcptEditorMode.raw);
+      await projectsManager.saveCurrentProjectScreenplayLanguage(OcptScreenplayLanguage.enGb);
 
       final bloc = buildBloc(spellCheckManager: manager);
       await waitForState(bloc, (state) => !state.isLoading);
@@ -2665,126 +2742,31 @@ void main() {
         await Future<void>.delayed(Duration.zero);
       }
 
-      bloc.add(OcptProjectVersionPreviewRequestedEvent(versionId: version!.id));
-      await waitForState(bloc, (state) => state.isPreviewingVersion);
-      // Entering a preview reloads from the previewed version's own database, which pushes that
-      // version's own learned words too (correctly) — wait for that second, legitimate push to
-      // land before clearing below, so it can't be mistaken for the ignore/learn events this test
-      // is actually about.
-      while (manager.setLearnedWordsCalls.length < 2) {
+      manager.checkCalls.clear();
+      manager.setLearnedWordsCalls.clear();
+
+      // A real settings-page change that has nothing to do with the dictionary — the page
+      // format, which this same handler does act on. Waiting for the state it emits for that is
+      // what makes the assertions below mean something: without it, an assertion made one
+      // microtask after the dispatch would pass just as happily against a handler that pushes
+      // unconditionally, having simply not reached its dictionary read yet.
+      final otherFormat = bloc.state.pageSetup.format == OcptPageFormat.usLetter
+          ? OcptPageFormat.a4
+          : OcptPageFormat.usLetter;
+      await projectsManager.saveCurrentProjectPageFormat(otherFormat);
+
+      bloc.add(const OcptEditorProjectSettingsChangedEvent());
+      await waitForState(bloc, (state) => state.pageSetup.format == otherFormat);
+      // The dictionary read is the last thing that handler does, one await past the state just
+      // waited for: let those remaining microtasks drain before reading the manager's calls.
+      for (var turn = 0; turn < 10; turn++) {
         await Future<void>.delayed(Duration.zero);
       }
 
-      manager.ignoredWords.clear();
-      manager.setLearnedWordsCalls.clear();
-
-      bloc.add(const OcptEditorWordIgnoredEvent(word: "anything"));
-      bloc.add(const OcptEditorWordLearnedEvent(word: "anything"));
-      await Future<void>.delayed(Duration.zero);
-
-      expect(manager.ignoredWords, isEmpty);
       expect(manager.setLearnedWordsCalls, isEmpty);
+      expect(manager.checkCalls, isEmpty);
 
       await bloc.close();
     });
-  });
-
-  group('the project settings changed event and the dictionary', () {
-    test(
-      "un-learning a word directly through the service, then reporting the project settings "
-      "changed event, pushes the new set into the manager and re-checks the text again — the "
-      "round trip's whole point: a word removed in the settings page's dictionary dialog is "
-      "underlined again on the next check pass, with nothing re-typed",
-      () async {
-        final database = projectsManager.currentProject!.database;
-        await projectsManager.projectDictionaryService.learnWord(
-          database: database,
-          word: "Zorglurbe",
-        );
-
-        final manager = _FakeSpellCheckManager();
-        await propertiesManager.spellCheckVisible.store(true);
-        await propertiesManager.editorMode.store(OcptEditorMode.raw);
-        await projectsManager.saveCurrentProjectScreenplayLanguage(OcptScreenplayLanguage.enGb);
-
-        final bloc = buildBloc(spellCheckManager: manager);
-        await waitForState(bloc, (state) => !state.isLoading);
-        while (manager.setLearnedWordsCalls.isEmpty) {
-          await Future<void>.delayed(Duration.zero);
-        }
-        expect(manager.setLearnedWordsCalls.last, contains("Zorglurbe"));
-
-        bloc.add(
-          const OcptEditorTextChangedEvent(text: "INT. HOUSE - DAY\n\nZorglurbe is here.\n"),
-        );
-        await waitForState(bloc, (state) => state.rawSpellCheckRanges.isNotEmpty);
-
-        manager.checkCalls.clear();
-        manager.setLearnedWordsCalls.clear();
-
-        // The dictionary dialog itself never runs in this bloc; the project settings page
-        // applies its report directly through the service, exactly as reproduced here — this
-        // bloc only ever learns about it through the settings-changed event below.
-        await projectsManager.projectDictionaryService.unlearnWord(
-          database: database,
-          word: "Zorglurbe",
-        );
-
-        bloc.add(const OcptEditorProjectSettingsChangedEvent());
-        while (manager.setLearnedWordsCalls.isEmpty) {
-          await Future<void>.delayed(Duration.zero);
-        }
-
-        expect(manager.setLearnedWordsCalls.last, isNot(contains("Zorglurbe")));
-        expect(manager.checkCalls, isNotEmpty);
-        final sentTexts = manager.checkCalls.expand((call) => call.values).toSet();
-        expect(sentTexts, contains("Zorglurbe is here."));
-
-        await bloc.close();
-      },
-    );
-
-    test(
-      "the project settings changed event pushes nothing into the manager when the dictionary "
-      "was not touched",
-      () async {
-        final manager = _FakeSpellCheckManager();
-        await propertiesManager.spellCheckVisible.store(true);
-        await propertiesManager.editorMode.store(OcptEditorMode.raw);
-        await projectsManager.saveCurrentProjectScreenplayLanguage(OcptScreenplayLanguage.enGb);
-
-        final bloc = buildBloc(spellCheckManager: manager);
-        await waitForState(bloc, (state) => !state.isLoading);
-        while (manager.setLearnedWordsCalls.isEmpty) {
-          await Future<void>.delayed(Duration.zero);
-        }
-
-        manager.checkCalls.clear();
-        manager.setLearnedWordsCalls.clear();
-
-        // A real settings-page change that has nothing to do with the dictionary — the page
-        // format, which this same handler does act on. Waiting for the state it emits for that is
-        // what makes the assertions below mean something: without it, an assertion made one
-        // microtask after the dispatch would pass just as happily against a handler that pushes
-        // unconditionally, having simply not reached its dictionary read yet.
-        final otherFormat = bloc.state.pageSetup.format == OcptPageFormat.usLetter
-            ? OcptPageFormat.a4
-            : OcptPageFormat.usLetter;
-        await projectsManager.saveCurrentProjectPageFormat(otherFormat);
-
-        bloc.add(const OcptEditorProjectSettingsChangedEvent());
-        await waitForState(bloc, (state) => state.pageSetup.format == otherFormat);
-        // The dictionary read is the last thing that handler does, one await past the state just
-        // waited for: let those remaining microtasks drain before reading the manager's calls.
-        for (var turn = 0; turn < 10; turn++) {
-          await Future<void>.delayed(Duration.zero);
-        }
-
-        expect(manager.setLearnedWordsCalls, isEmpty);
-        expect(manager.checkCalls, isEmpty);
-
-        await bloc.close();
-      },
-    );
   });
 }

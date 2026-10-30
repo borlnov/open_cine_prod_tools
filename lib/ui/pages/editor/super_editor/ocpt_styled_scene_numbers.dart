@@ -46,13 +46,17 @@ List<EditRequest> sceneNumberNormalizationRequests(Document document, {bool isHi
     if (node is! ParagraphNode) {
       continue;
     }
-    final type = OcptFountainLineAttributions.typeOfAttributionValue(node.getMetadataValue("blockType"));
+    final type = OcptFountainLineAttributions.typeOfAttributionValue(
+      node.getMetadataValue("blockType"),
+    );
     if (type != FountainLineType.sceneHeading) {
       continue;
     }
 
     final currentNumber = node.getMetadataValue(ocptSceneNumberMetadataKey);
-    final match = currentNumber is String ? _sequentialSceneNumberPattern.firstMatch(currentNumber) : null;
+    final match = currentNumber is String
+        ? _sequentialSceneNumberPattern.firstMatch(currentNumber)
+        : null;
     final base = match == null ? null : int.parse(match.group(1)!);
     final hasLetterSuffix = match != null && match.group(2)!.isNotEmpty;
 
@@ -159,7 +163,9 @@ class OcptSceneNumberGutterComponentBuilder implements ComponentBuilder {
     if (node is! ParagraphNode) {
       return null;
     }
-    final type = OcptFountainLineAttributions.typeOfAttributionValue(node.getMetadataValue("blockType"));
+    final type = OcptFountainLineAttributions.typeOfAttributionValue(
+      node.getMetadataValue("blockType"),
+    );
     if (type != FountainLineType.sceneHeading) {
       return null;
     }

@@ -44,8 +44,9 @@ class OcptPersonSheetAvatar extends StatelessWidget {
   Widget build(BuildContext context) => OcptResourcesPhotoSlot(
     photo: person.photo,
     currentColorIndex: person.colorIndex,
-    placeholderBuilder: (context) =>
-        Center(child: OcptPersonInitialsAvatar(person: person, radius: _avatarDiameter / 2)),
+    placeholderBuilder: (context) => Center(
+      child: OcptPersonInitialsAvatar(person: person, radius: _avatarDiameter / 2),
+    ),
     onPhotoPickRequested: onPhotoPickRequested,
     onPhotoCleared: onPhotoCleared,
     onColorChanged: onColorChanged,

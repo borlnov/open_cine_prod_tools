@@ -123,7 +123,9 @@ class _OcptBudgetCommitmentDialogState extends State<OcptBudgetCommitmentDialog>
     final missingFieldsHint = _missingFieldsHint;
 
     return AlertDialog(
-      title: Text(isEditing ? tr.budgetCommitmentDialogEditTitle : tr.budgetCommitmentDialogCreateTitle),
+      title: Text(
+        isEditing ? tr.budgetCommitmentDialogEditTitle : tr.budgetCommitmentDialogCreateTitle,
+      ),
       content: OcptBudgetCommitmentFormBody(
         existing: widget.existing,
         prefill: widget.prefill,
@@ -141,7 +143,9 @@ class _OcptBudgetCommitmentDialogState extends State<OcptBudgetCommitmentDialog>
             padding: const EdgeInsets.only(right: 12),
             child: Text(
               missingFieldsHint,
-              style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
             ),
           ),
         TextButton(
@@ -381,18 +385,16 @@ class _OcptBudgetCommitmentFormBodyState extends State<OcptBudgetCommitmentFormB
               decoration: InputDecoration(labelText: tr.budgetEntryDialogLabelFieldLabel),
             ),
             const SizedBox(height: 12),
-            if (!widget.posteAlreadyAnswered) ...[
-              _buildPosteField(tr),
-              const SizedBox(height: 12),
-            ],
+            if (!widget.posteAlreadyAnswered) ...[_buildPosteField(tr), const SizedBox(height: 12)],
             TextFormField(
               controller: _amountController,
               decoration: InputDecoration(
                 labelText: tr.budgetEntryDialogAmountFieldLabel,
                 suffixText: currencySymbol,
               ),
-              validator: (value) =>
-                  ocptCostCentsOf(value ?? "") == null ? tr.budgetEntryDialogAmountInvalidError : null,
+              validator: (value) => ocptCostCentsOf(value ?? "") == null
+                  ? tr.budgetEntryDialogAmountInvalidError
+                  : null,
             ),
             const SizedBox(height: 12),
             OcptBudgetBinaryChoice(
@@ -416,7 +418,9 @@ class _OcptBudgetCommitmentFormBodyState extends State<OcptBudgetCommitmentFormB
             const SizedBox(height: 12),
             Text(
               tr.budgetCommitmentDialogStatusFieldLabel.toUpperCase(),
-              style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
             ),
             const SizedBox(height: 4),
             _OcptCommitmentStatusPicker(

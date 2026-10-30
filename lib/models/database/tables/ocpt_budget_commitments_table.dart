@@ -9,7 +9,8 @@ import 'package:open_cine_prod_tools/types/ocpt_budget_commitment_status.dart';
 
 /// Converts a [OcptBudgetCommitmentStatus] to and from the text stored in the
 /// `budget_commitments.status` column.
-class OcptBudgetCommitmentStatusConverter extends TypeConverter<OcptBudgetCommitmentStatus, String> {
+class OcptBudgetCommitmentStatusConverter
+    extends TypeConverter<OcptBudgetCommitmentStatus, String> {
   /// Class constructor
   const OcptBudgetCommitmentStatusConverter();
 

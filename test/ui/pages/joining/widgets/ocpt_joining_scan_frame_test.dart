@@ -12,8 +12,10 @@ import 'package:open_cine_prod_tools/ui/pages/joining/widgets/ocpt_joining_scan_
 /// `OcptJoiningScanFrame` is pumped directly here, never `OcptJoiningScannerView`: `MobileScanner`
 /// cannot be instantiated under `flutter test` at all, which is the whole reason the coloured
 /// border was pulled out into its own, camera-free widget.
-Widget _wrap(Widget child) =>
-    MaterialApp(theme: ocptTheme.lightThemeData, home: Scaffold(body: child));
+Widget _wrap(Widget child) => MaterialApp(
+  theme: ocptTheme.lightThemeData,
+  home: Scaffold(body: child),
+);
 
 /// Reads [OcptJoiningScanFrame]'s own border colour off the `AnimatedContainer` it builds.
 Color _borderColor(WidgetTester tester) {

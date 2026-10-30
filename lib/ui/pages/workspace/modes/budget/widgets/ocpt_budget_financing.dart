@@ -258,13 +258,18 @@ class OcptBudgetFinancing extends StatelessWidget {
     final rows = isEmpty ? const <_OcptResourcesTreeRow>[] : _buildRows();
     final grandTotal = _familyAggregatesOf(resources, revenues);
     final drawnFamilyCount = OcptBudgetResourceFamily.values
-        .where((family) => _familyResources(family).isNotEmpty || _familyRevenues(family).isNotEmpty)
+        .where(
+          (family) => _familyResources(family).isNotEmpty || _familyRevenues(family).isNotEmpty,
+        )
         .length;
-    final hasInKind = resources.any((resource) => resource.groupKind == OcptBudgetResourceGroupKind.inKind);
+    final hasInKind = resources.any(
+      (resource) => resource.groupKind == OcptBudgetResourceGroupKind.inKind,
+    );
     final valuedCents = resources.fold(
       0,
       (sum, resource) =>
-          sum + (resource.groupKind == OcptBudgetResourceGroupKind.inKind ? resource.amountCents : 0),
+          sum +
+          (resource.groupKind == OcptBudgetResourceGroupKind.inKind ? resource.amountCents : 0),
     );
     final needs = _needsOf();
     final coverage = ocptBudgetResourcesCoverageOf(
@@ -339,8 +344,11 @@ class OcptBudgetFinancing extends StatelessWidget {
   /// into contributions, takings holds none (a revenue carries no group kind at all).
   List<OcptBudgetResource> _familyResources(OcptBudgetResourceFamily family) =>
       family == OcptBudgetResourceFamily.takings
-          ? const []
-          : [for (final resource in resources) if (OcptBudgetResourceFamily.of(resource.groupKind) == family) resource];
+      ? const []
+      : [
+          for (final resource in resources)
+            if (OcptBudgetResourceFamily.of(resource.groupKind) == family) resource,
+        ];
 
   /// [revenues], for [OcptBudgetResourceFamily.takings] alone.
   List<OcptBudgetRevenue> _familyRevenues(OcptBudgetResourceFamily family) =>
@@ -407,12 +415,14 @@ class OcptBudgetFinancing extends StatelessWidget {
   /// Every live credit naming [resourceId], in the chronological order [entries] is already loaded
   /// in — the receipts a resource's own twisty reveals.
   List<OcptBudgetEntry> _receiptsOfResource(String resourceId) => [
-    for (final entry in entries) if (entry.resourceId == resourceId && entry.creditCents > 0) entry,
+    for (final entry in entries)
+      if (entry.resourceId == resourceId && entry.creditCents > 0) entry,
   ];
 
   /// Every live credit naming [revenueId] — mirrors [_receiptsOfResource].
   List<OcptBudgetEntry> _receiptsOfRevenue(String revenueId) => [
-    for (final entry in entries) if (entry.revenueId == revenueId && entry.creditCents > 0) entry,
+    for (final entry in entries)
+      if (entry.revenueId == revenueId && entry.creditCents > 0) entry,
   ];
 
   /// [resource]'s own `Promis`/`Rentré`/`Reste à venir` — see the class doc comment for the
@@ -424,7 +434,10 @@ class OcptBudgetFinancing extends StatelessWidget {
     final receivedCents = isUnentriedInKind ? null : receivedCentsOf(resource.id);
     final outstandingCents = receivedCents == null
         ? null
-        : ocptBudgetResourceOutstandingCents(amountCents: resource.amountCents, receivedCents: receivedCents);
+        : ocptBudgetResourceOutstandingCents(
+            amountCents: resource.amountCents,
+            receivedCents: receivedCents,
+          );
 
     return _OcptRowFigures(
       promisedCents: resource.amountCents,
@@ -439,7 +452,10 @@ class OcptBudgetFinancing extends StatelessWidget {
     final receivedCents = receivedByRevenueId[revenue.id]?.amountCents;
     final outstandingCents = receivedCents == null
         ? null
-        : ocptBudgetResourceOutstandingCents(amountCents: revenue.amountCents, receivedCents: receivedCents);
+        : ocptBudgetResourceOutstandingCents(
+            amountCents: revenue.amountCents,
+            receivedCents: receivedCents,
+          );
 
     return _OcptRowFigures(
       promisedCents: revenue.amountCents,
@@ -508,11 +524,15 @@ class OcptBudgetFinancing extends StatelessWidget {
           ? null
           : () => onResourceEditRequested?.call(row.resource),
       onReceiptRequested:
-          isReadOnly || onResourceReceiptRequested == null || !_canOfferReceipt(row.resource, row.figures)
+          isReadOnly ||
+              onResourceReceiptRequested == null ||
+              !_canOfferReceipt(row.resource, row.figures)
           ? null
           : () => onResourceReceiptRequested?.call(row.resource),
       onReceiptUndoRequested:
-          isReadOnly || onResourceReceiptUndoRequested == null || !_hasReceivedSomething(row.figures)
+          isReadOnly ||
+              onResourceReceiptUndoRequested == null ||
+              !_hasReceivedSomething(row.figures)
           ? null
           : () => onResourceReceiptUndoRequested?.call(row.resource),
       onDeletionRequested: isReadOnly || onResourceDeletionRequested == null
@@ -534,10 +554,12 @@ class OcptBudgetFinancing extends StatelessWidget {
       onReceiptRequested: isReadOnly || onRevenueReceiptRequested == null
           ? null
           : () => onRevenueReceiptRequested?.call(row.revenue),
-      onMoveUpRequested: isReadOnly || onRevenueReorderRequested == null || _isFirstRevenue(row.revenue.id)
+      onMoveUpRequested:
+          isReadOnly || onRevenueReorderRequested == null || _isFirstRevenue(row.revenue.id)
           ? null
           : () => onRevenueReorderRequested?.call(row.revenue.id, moveUp: true),
-      onMoveDownRequested: isReadOnly || onRevenueReorderRequested == null || _isLastRevenue(row.revenue.id)
+      onMoveDownRequested:
+          isReadOnly || onRevenueReorderRequested == null || _isLastRevenue(row.revenue.id)
           ? null
           : () => onRevenueReorderRequested?.call(row.revenue.id, moveUp: false),
       onDeletionRequested: isReadOnly || onRevenueDeletionRequested == null
@@ -603,7 +625,11 @@ class _OcptRowFigures {
   final int? outstandingCents;
 
   /// Class constructor
-  const _OcptRowFigures({required this.promisedCents, required this.receivedCents, required this.outstandingCents});
+  const _OcptRowFigures({
+    required this.promisedCents,
+    required this.receivedCents,
+    required this.outstandingCents,
+  });
 }
 
 /// One flattened row of the resources tree — see `OcptBudgetFinancing._buildRows`'s own doc
@@ -624,7 +650,11 @@ class _OcptFamilyTreeRow extends _OcptResourcesTreeRow {
   final bool isExpanded;
 
   /// Class constructor
-  const _OcptFamilyTreeRow({required this.family, required this.aggregates, required this.isExpanded});
+  const _OcptFamilyTreeRow({
+    required this.family,
+    required this.aggregates,
+    required this.isExpanded,
+  });
 }
 
 /// A resource row — one step under its own family.
@@ -811,7 +841,9 @@ Widget _ocptResourcesAmountCell(
   return SizedBox(
     width: _ocptResourcesAmountColumnWidth,
     child: Text(
-      showBlank ? "" : (cents == null ? ocptBudgetEmptyValue : ocptBudgetAmountLabel(cents, currencyCode)),
+      showBlank
+          ? ""
+          : (cents == null ? ocptBudgetEmptyValue : ocptBudgetAmountLabel(cents, currencyCode)),
       textAlign: TextAlign.right,
       maxLines: 1,
       overflow: TextOverflow.ellipsis,
@@ -882,9 +914,24 @@ class _OcptResourcesFamilyRow extends StatelessWidget {
               ),
             ),
             const SizedBox(width: _ocptResourcesDossierColumnWidth),
-            _ocptResourcesAmountCell(context, aggregates.promisedCents, currencyCode, style: boldStyle),
-            _ocptResourcesAmountCell(context, aggregates.receivedCents, currencyCode, style: boldStyle),
-            _ocptResourcesAmountCell(context, aggregates.outstandingCents, currencyCode, style: boldStyle),
+            _ocptResourcesAmountCell(
+              context,
+              aggregates.promisedCents,
+              currencyCode,
+              style: boldStyle,
+            ),
+            _ocptResourcesAmountCell(
+              context,
+              aggregates.receivedCents,
+              currencyCode,
+              style: boldStyle,
+            ),
+            _ocptResourcesAmountCell(
+              context,
+              aggregates.outstandingCents,
+              currencyCode,
+              style: boldStyle,
+            ),
             const SizedBox(width: _ocptResourcesMenuColumnWidth),
           ],
         ),
@@ -965,7 +1012,9 @@ class _OcptResourcesResourceRow extends StatelessWidget {
       onTap: onTap,
       mouseCursor: ocptClickableCursor,
       child: ColoredBox(
-        color: isSelected ? theme.colorScheme.primary.withValues(alpha: ocptSelectedStateAlpha) : Colors.transparent,
+        color: isSelected
+            ? theme.colorScheme.primary.withValues(alpha: ocptSelectedStateAlpha)
+            : Colors.transparent,
         child: SizedBox(
           height: _ocptResourcesRowHeight,
           child: Padding(
@@ -1012,7 +1061,10 @@ class _OcptResourcesResourceRow extends StatelessWidget {
                 ),
                 SizedBox(
                   width: _ocptResourcesDossierColumnWidth,
-                  child: _OcptResourcesResourceStatusPill(groupKind: resource.groupKind, status: resource.status),
+                  child: _OcptResourcesResourceStatusPill(
+                    groupKind: resource.groupKind,
+                    status: resource.status,
+                  ),
                 ),
                 _ocptResourcesAmountCell(context, figures.promisedCents, currencyCode),
                 _ocptResourcesAmountCell(context, figures.receivedCents, currencyCode),
@@ -1033,7 +1085,10 @@ class _OcptResourcesResourceRow extends StatelessWidget {
                           },
                           itemBuilder: (context) => [
                             if (onEditRequested != null)
-                              PopupMenuItem<String>(value: "edit", child: Text(tr.budgetFinancingEditAction)),
+                              PopupMenuItem<String>(
+                                value: "edit",
+                                child: Text(tr.budgetFinancingEditAction),
+                              ),
                             if (onReceiptRequested != null)
                               PopupMenuItem<String>(
                                 value: "receipt",
@@ -1045,7 +1100,10 @@ class _OcptResourcesResourceRow extends StatelessWidget {
                                 child: Text(tr.budgetFinancingUndoReceiptAction),
                               ),
                             if (onDeletionRequested != null)
-                              PopupMenuItem<String>(value: "delete", child: Text(tr.budgetCommittedDeleteAction)),
+                              PopupMenuItem<String>(
+                                value: "delete",
+                                child: Text(tr.budgetCommittedDeleteAction),
+                              ),
                           ],
                         ),
                 ),
@@ -1135,7 +1193,9 @@ class _OcptResourcesRevenueRow extends StatelessWidget {
       onTap: onTap,
       mouseCursor: ocptClickableCursor,
       child: ColoredBox(
-        color: isSelected ? theme.colorScheme.primary.withValues(alpha: ocptSelectedStateAlpha) : Colors.transparent,
+        color: isSelected
+            ? theme.colorScheme.primary.withValues(alpha: ocptSelectedStateAlpha)
+            : Colors.transparent,
         child: SizedBox(
           height: _ocptResourcesRowHeight,
           child: Padding(
@@ -1204,18 +1264,30 @@ class _OcptResourcesRevenueRow extends StatelessWidget {
                           },
                           itemBuilder: (context) => [
                             if (onEditRequested != null)
-                              PopupMenuItem<String>(value: "edit", child: Text(tr.budgetFinancingEditAction)),
+                              PopupMenuItem<String>(
+                                value: "edit",
+                                child: Text(tr.budgetFinancingEditAction),
+                              ),
                             if (onReceiptRequested != null)
                               PopupMenuItem<String>(
                                 value: "receipt",
                                 child: Text(tr.budgetFinancingRecordReceiptAction),
                               ),
                             if (onMoveUpRequested != null)
-                              PopupMenuItem<String>(value: "up", child: Text(tr.budgetPosteMoveUpAction)),
+                              PopupMenuItem<String>(
+                                value: "up",
+                                child: Text(tr.budgetPosteMoveUpAction),
+                              ),
                             if (onMoveDownRequested != null)
-                              PopupMenuItem<String>(value: "down", child: Text(tr.budgetPosteMoveDownAction)),
+                              PopupMenuItem<String>(
+                                value: "down",
+                                child: Text(tr.budgetPosteMoveDownAction),
+                              ),
                             if (onDeletionRequested != null)
-                              PopupMenuItem<String>(value: "delete", child: Text(tr.budgetCommittedDeleteAction)),
+                              PopupMenuItem<String>(
+                                value: "delete",
+                                child: Text(tr.budgetCommittedDeleteAction),
+                              ),
                           ],
                         ),
                 ),
@@ -1274,7 +1346,9 @@ class _OcptResourcesReceiptRow extends StatelessWidget {
       onTap: onTap,
       mouseCursor: ocptClickableCursor,
       child: ColoredBox(
-        color: isSelected ? theme.colorScheme.primary.withValues(alpha: ocptSelectedStateAlpha) : Colors.transparent,
+        color: isSelected
+            ? theme.colorScheme.primary.withValues(alpha: ocptSelectedStateAlpha)
+            : Colors.transparent,
         child: SizedBox(
           height: _ocptResourcesReceiptRowHeight,
           child: Padding(
@@ -1292,7 +1366,10 @@ class _OcptResourcesReceiptRow extends StatelessWidget {
                         Container(
                           width: _ocptResourcesDotDiameter,
                           height: _ocptResourcesDotDiameter,
-                          decoration: BoxDecoration(color: theme.colorScheme.primary, shape: BoxShape.circle),
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.primary,
+                            shape: BoxShape.circle,
+                          ),
                         ),
                         const SizedBox(width: 6),
                         Expanded(
@@ -1407,15 +1484,34 @@ class _OcptResourcesTotalRow extends StatelessWidget {
                 child: !hasInKind
                     ? null
                     : Text(
-                        tr.budgetFinancingValuedCaption(ocptBudgetAmountLabel(valuedCents, currencyCode)),
+                        tr.budgetFinancingValuedCaption(
+                          ocptBudgetAmountLabel(valuedCents, currencyCode),
+                        ),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
                       ),
               ),
-              _ocptResourcesAmountCell(context, aggregates.promisedCents, currencyCode, style: boldStyle),
-              _ocptResourcesAmountCell(context, aggregates.receivedCents, currencyCode, style: boldStyle),
-              _ocptResourcesAmountCell(context, aggregates.outstandingCents, currencyCode, style: boldStyle),
+              _ocptResourcesAmountCell(
+                context,
+                aggregates.promisedCents,
+                currencyCode,
+                style: boldStyle,
+              ),
+              _ocptResourcesAmountCell(
+                context,
+                aggregates.receivedCents,
+                currencyCode,
+                style: boldStyle,
+              ),
+              _ocptResourcesAmountCell(
+                context,
+                aggregates.outstandingCents,
+                currencyCode,
+                style: boldStyle,
+              ),
               const SizedBox(width: _ocptResourcesMenuColumnWidth),
             ],
           ),
@@ -1541,7 +1637,11 @@ class _OcptResourcesCoverageBand extends StatelessWidget {
     final needsAmount = ocptBudgetAmountLabel(needs.amountCents, currencyCode);
     final needsText = needs.isComplete
         ? needsAmount
-        : tr.budgetDashboardBalanceCoverageReadOut(needsAmount, needs.coveredLineCount, needs.lineCount);
+        : tr.budgetDashboardBalanceCoverageReadOut(
+            needsAmount,
+            needs.coveredLineCount,
+            needs.lineCount,
+          );
 
     final receivedFraction = needs.amountCents <= 0
         ? (coverage.received.amountCents > 0 ? 1.0 : 0.0)
@@ -1552,10 +1652,14 @@ class _OcptResourcesCoverageBand extends StatelessWidget {
 
     final receivedAmount = ocptBudgetAmountLabel(coverage.received.amountCents, currencyCode);
     final promisedAmount = ocptBudgetAmountLabel(coverage.promisedCents, currencyCode);
-    final suffixColor = coverage.isCovered ? theme.colorScheme.onSurfaceVariant : theme.colorScheme.error;
+    final suffixColor = coverage.isCovered
+        ? theme.colorScheme.onSurfaceVariant
+        : theme.colorScheme.error;
     final suffixText = coverage.isCovered
         ? tr.budgetFinancingCoverageCoveredReadOut
-        : tr.budgetFinancingCoverageMissingReadOut(ocptBudgetAmountLabel(coverage.missingCents, currencyCode));
+        : tr.budgetFinancingCoverageMissingReadOut(
+            ocptBudgetAmountLabel(coverage.missingCents, currencyCode),
+          );
 
     return Card(
       margin: EdgeInsets.zero,
@@ -1571,7 +1675,9 @@ class _OcptResourcesCoverageBand extends StatelessWidget {
                 children: [
                   Text(
                     tr.budgetFinancingCoverageTitle.toUpperCase(),
-                    style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
                   ),
                   Text(needsText, style: theme.textTheme.titleMedium),
                 ],
@@ -1599,7 +1705,9 @@ class _OcptResourcesCoverageBand extends StatelessWidget {
                           alignment: Alignment.centerLeft,
                           child: SizedBox(
                             height: _ocptResourcesCoverageBarHeight,
-                            child: ColoredBox(color: theme.colorScheme.primary.withValues(alpha: 0.35)),
+                            child: ColoredBox(
+                              color: theme.colorScheme.primary.withValues(alpha: 0.35),
+                            ),
                           ),
                         ),
                       ),
@@ -1621,7 +1729,9 @@ class _OcptResourcesCoverageBand extends StatelessWidget {
                     TextSpan(
                       style: theme.textTheme.bodySmall,
                       children: [
-                        TextSpan(text: tr.budgetFinancingCoverageReadOut(receivedAmount, promisedAmount)),
+                        TextSpan(
+                          text: tr.budgetFinancingCoverageReadOut(receivedAmount, promisedAmount),
+                        ),
                         const TextSpan(text: " · "),
                         TextSpan(
                           text: suffixText,

@@ -442,7 +442,10 @@ OcptBudgetCoveredTotal ocptBudgetTotalOf(
   required int? projectVatRateBasisPoints,
 }) {
   if (basis == OcptBudgetTaxBasis.excludingTax) {
-    return ocptBudgetExcludingTaxTotalOf(lines, projectVatRateBasisPoints: projectVatRateBasisPoints);
+    return ocptBudgetExcludingTaxTotalOf(
+      lines,
+      projectVatRateBasisPoints: projectVatRateBasisPoints,
+    );
   }
 
   var amountCents = 0;

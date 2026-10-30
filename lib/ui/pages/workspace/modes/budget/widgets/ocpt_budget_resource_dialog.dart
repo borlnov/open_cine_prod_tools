@@ -430,7 +430,9 @@ class _OcptBudgetResourceFormBodyState extends State<OcptBudgetResourceFormBody>
             if (isEditing || widget.offerCashOrInKindChoice) ...[
               Text(
                 tr.budgetResourceDialogGroupFieldLabel.toUpperCase(),
-                style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
               ),
               const SizedBox(height: 4),
               _OcptResourceGroupKindPicker(
@@ -470,8 +472,9 @@ class _OcptBudgetResourceFormBodyState extends State<OcptBudgetResourceFormBody>
                 helperMaxLines: 2,
                 suffixText: currencySymbol,
               ),
-              validator: (value) =>
-                  ocptCostCentsOf(value ?? "") == null ? tr.budgetEntryDialogAmountInvalidError : null,
+              validator: (value) => ocptCostCentsOf(value ?? "") == null
+                  ? tr.budgetEntryDialogAmountInvalidError
+                  : null,
             ),
             if (_groupKind == OcptBudgetResourceGroupKind.inKind) ...[
               const SizedBox(height: 12),
@@ -480,7 +483,9 @@ class _OcptBudgetResourceFormBodyState extends State<OcptBudgetResourceFormBody>
             const SizedBox(height: 12),
             Text(
               tr.budgetCommitmentDialogStatusFieldLabel.toUpperCase(),
-              style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
             ),
             const SizedBox(height: 4),
             _OcptResourceStatusPicker(
@@ -499,7 +504,9 @@ class _OcptBudgetResourceFormBodyState extends State<OcptBudgetResourceFormBody>
             const SizedBox(height: 12),
             Text(
               tr.budgetResourceDialogReimbursableFieldLabel.toUpperCase(),
-              style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
             ),
             const SizedBox(height: 4),
             OcptBudgetBinaryChoice(
@@ -515,7 +522,9 @@ class _OcptBudgetResourceFormBodyState extends State<OcptBudgetResourceFormBody>
               const SizedBox(height: 4),
               Text(
                 tr.budgetResourceDialogReimbursableHelperInKind,
-                style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
               ),
             ],
             const SizedBox(height: 12),
@@ -561,8 +570,8 @@ class _OcptBudgetResourceFormBodyState extends State<OcptBudgetResourceFormBody>
   /// in-kind contribution's figure is what it is *valued at*, never an amount to be received.
   String _amountFieldLabel(Tr tr) => switch (_groupKind) {
     OcptBudgetResourceGroupKind.inKind => tr.budgetResourceDialogValuedAtFieldLabel,
-    OcptBudgetResourceGroupKind.subsidy || OcptBudgetResourceGroupKind.cash =>
-      tr.budgetEntryDialogAmountFieldLabel,
+    OcptBudgetResourceGroupKind.subsidy ||
+    OcptBudgetResourceGroupKind.cash => tr.budgetEntryDialogAmountFieldLabel,
   };
 
   /// The `Amount` field's own helper text, worded for [_groupKind] — this is the field the product
@@ -607,7 +616,11 @@ class _OcptResourceGroupKindPicker extends StatelessWidget {
   final ValueChanged<OcptBudgetResourceGroupKind> onChanged;
 
   /// Class constructor
-  const _OcptResourceGroupKindPicker({required this.value, required this.choices, required this.onChanged});
+  const _OcptResourceGroupKindPicker({
+    required this.value,
+    required this.choices,
+    required this.onChanged,
+  });
 
   @override
   Widget build(BuildContext context) => Wrap(
@@ -632,7 +645,9 @@ class _OcptResourceGroupKindPicker extends StatelessWidget {
           color: isActive
               ? theme.colorScheme.primary.withValues(alpha: ocptSelectedStateAlpha)
               : Colors.transparent,
-          border: Border.all(color: isActive ? theme.colorScheme.primary : theme.colorScheme.outlineVariant),
+          border: Border.all(
+            color: isActive ? theme.colorScheme.primary : theme.colorScheme.outlineVariant,
+          ),
           borderRadius: BorderRadius.circular(ocptRadiusSmall),
         ),
         child: Text(

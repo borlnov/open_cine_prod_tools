@@ -7,8 +7,7 @@
 /// Base 62, `0-9A-Za-z`, listed in the very order their code units compare in: that is what makes
 /// a plain lexicographic string comparison — which is all SQLite's `ORDER BY` does on a `TEXT`
 /// column — agree with the numeric order of the fraction each key denotes.
-const _ocptFractionalKeyDigits =
-    "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+const _ocptFractionalKeyDigits = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
 
 /// The base fractional keys are written in: the number of [_ocptFractionalKeyDigits].
 const _ocptFractionalKeyBase = 62;
@@ -95,20 +94,14 @@ List<String> ocptFractionalKeySequence(int count) {
 
   final step = capacity ~/ (count + 1);
 
-  return [
-    for (var i = 1; i <= count; i++) _encode(_withRoomBelow(step * i), width),
-  ];
+  return [for (var i = 1; i <= count; i++) _encode(_withRoomBelow(step * i), width)];
 }
 
 /// [count] keys in strictly ascending order, all strictly between [after] and [before]'s bounds.
 ///
 /// Each key is allocated against the one before it, so the whole run stays inside the gap it was
 /// asked for. A null bound means that side is open, exactly as in [ocptFractionalKeyBetween].
-List<String> ocptFractionalKeysBetween({
-  required int count,
-  String? before,
-  String? after,
-}) {
+List<String> ocptFractionalKeysBetween({required int count, String? before, String? after}) {
   final keys = <String>[];
   var previous = before;
 
@@ -142,11 +135,7 @@ Map<int, String> ocptFractionalKeyRekeyPlan(List<String> currentKeys) {
     final toRekey = boundIndex - firstToRekey;
 
     if (toRekey > 0) {
-      final keys = ocptFractionalKeysBetween(
-        count: toRekey,
-        before: lowerBound,
-        after: upperBound,
-      );
+      final keys = ocptFractionalKeysBetween(count: toRekey, before: lowerBound, after: upperBound);
       for (var i = 0; i < toRekey; i++) {
         plan[firstToRekey + i] = keys[i];
       }

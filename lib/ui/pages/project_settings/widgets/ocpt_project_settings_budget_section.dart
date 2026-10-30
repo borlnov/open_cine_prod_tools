@@ -279,7 +279,8 @@ class _OcptProjectSettingsBudgetMoneyField extends StatefulWidget {
 
 /// The state of [_OcptProjectSettingsBudgetMoneyField]: owns the controller and the
 /// commit-on-submit-or-focus-loss idiom.
-class _OcptProjectSettingsBudgetMoneyFieldState extends State<_OcptProjectSettingsBudgetMoneyField> {
+class _OcptProjectSettingsBudgetMoneyFieldState
+    extends State<_OcptProjectSettingsBudgetMoneyField> {
   /// The field's own text controller, seeded from [_OcptProjectSettingsBudgetMoneyField.cents]'s own
   /// formatted reading.
   late final TextEditingController _controller = TextEditingController(text: _formatted);

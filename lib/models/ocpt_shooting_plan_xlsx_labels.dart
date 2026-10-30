@@ -111,14 +111,16 @@ class OcptShootingPlanXlsxLabels extends Equatable {
 
   /// The header of [column] in the `Chronology` sheet, or an empty string if
   /// [chronologyColumnHeaders] holds none for it.
-  String chronologyHeaderOf(OcptShootingPlanXlsxColumn column) => chronologyColumnHeaders[column] ?? "";
+  String chronologyHeaderOf(OcptShootingPlanXlsxColumn column) =>
+      chronologyColumnHeaders[column] ?? "";
 
   /// The label of the crew position [positionId] names, or an empty string if [crewPositionLabels]
   /// holds none for it.
   String crewPositionLabelOf(String positionId) => crewPositionLabels[positionId] ?? "";
 
   /// The label of [category], or an empty string if [elementCategoryLabels] holds none for it.
-  String elementCategoryLabelOf(OcptElementCategory category) => elementCategoryLabels[category] ?? "";
+  String elementCategoryLabelOf(OcptElementCategory category) =>
+      elementCategoryLabels[category] ?? "";
 
   /// The label of [kind], or an empty string if [blockKindLabels] holds none for it.
   String blockKindLabelOf(OcptShootingBlockKind kind) => blockKindLabels[kind] ?? "";

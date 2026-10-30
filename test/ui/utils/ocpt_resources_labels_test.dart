@@ -20,9 +20,7 @@ void main() {
       expect(usdLabels.elementsHeaderOf(OcptElementsXlsxColumn.cost), "Cost (USD)");
     });
 
-    testWidgets("every other elements column header is unaffected by the currency", (
-      tester,
-    ) async {
+    testWidgets("every other elements column header is unaffected by the currency", (tester) async {
       final labels = await _buildXlsxLabels(tester, currencyCode: "EUR");
 
       expect(labels.elementsHeaderOf(OcptElementsXlsxColumn.name), "Name");

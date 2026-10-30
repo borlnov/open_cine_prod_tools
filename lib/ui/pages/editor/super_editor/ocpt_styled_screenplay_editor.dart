@@ -346,7 +346,9 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
   /// [_searchMatchStyler] isn't: `addErrors`/`clearErrorsForNode`/`clearAllErrors` calls must
   /// survive across a [build].
   final SpellingAndGrammarStyler _spellingAndGrammarStyler = SpellingAndGrammarStyler(
-    spellingErrorUnderlineStyle: const SquiggleUnderlineStyle(color: ocptEditorSpellCheckErrorColor),
+    spellingErrorUnderlineStyle: const SquiggleUnderlineStyle(
+      color: ocptEditorSpellCheckErrorColor,
+    ),
   );
 
   /// The misspelled ranges [updateSpellCheckRanges] last applied to [_spellingAndGrammarStyler],
@@ -446,7 +448,9 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
     final jumpRequest = widget.jumpRequest;
     if (jumpRequest != null && jumpRequest.id != _lastAppliedJumpRequestId) {
       _lastAppliedJumpRequestId = jumpRequest.id;
-      WidgetsBinding.instance.addPostFrameCallback((_) => _applyJumpRequest(jumpRequest.charOffset));
+      WidgetsBinding.instance.addPostFrameCallback(
+        (_) => _applyJumpRequest(jumpRequest.charOffset),
+      );
     }
   }
 
@@ -551,8 +555,10 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
         if (widget.isPageSimulationEnabled)
           OcptTitlePageComponentBuilder(
             placeholders: _titlePagePlaceholders(context),
-            hintStyleBuilder: (resolvedStyle) =>
-                resolvedStyle.copyWith(fontStyle: FontStyle.italic, color: resolvedStyle.color?.withValues(alpha: 0.4)),
+            hintStyleBuilder: (resolvedStyle) => resolvedStyle.copyWith(
+              fontStyle: FontStyle.italic,
+              color: resolvedStyle.color?.withValues(alpha: 0.4),
+            ),
             metrics: metrics,
           ),
         ...defaultComponentBuilders,
@@ -607,7 +613,11 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
             usePaperColors: usePaperColors,
             editorWithoutImplicitScrollbar: editorWithoutImplicitScrollbar,
           )
-        : _buildPageSimulationSurface(theme: theme, layout: layout, editorWithoutImplicitScrollbar: editorWithoutImplicitScrollbar);
+        : _buildPageSimulationSurface(
+            theme: theme,
+            layout: layout,
+            editorWithoutImplicitScrollbar: editorWithoutImplicitScrollbar,
+          );
 
     // Wrapped once here, rather than once per branch above: a right-click anywhere over the
     // document — fluid surface or simulated page alike — opens the same context menu. super_editor's
@@ -630,7 +640,9 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
       childFocusNode: _focusNode,
       misspelledWord: _contextMenuMisspelledWord,
       suggestions: _contextMenuSuggestions,
-      onSuggestionSelected: _contextMenuMisspelledWord != null ? _applySuggestionFromContextMenu : null,
+      onSuggestionSelected: _contextMenuMisspelledWord != null
+          ? _applySuggestionFromContextMenu
+          : null,
       // Each of the two actions is additionally gated on the callback that would carry it out: a
       // caller that wired none of them (a test, chiefly) must see the entry withheld rather than
       // shown and inert, the repository-wide rule this menu already follows everywhere else.
@@ -741,7 +753,9 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
                           fontSize: OcptEditorPreviewLayout.fontSize,
                           color: Colors.black,
                         ),
-                        scrollOffset: _pageScrollController.hasClients ? _pageScrollController.offset : 0,
+                        scrollOffset: _pageScrollController.hasClients
+                            ? _pageScrollController.offset
+                            : 0,
                       ),
                     ),
                   ),
@@ -824,7 +838,9 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
       if (node is! ParagraphNode) {
         continue;
       }
-      final type = OcptFountainLineAttributions.typeOfAttributionValue(node.getMetadataValue("blockType"));
+      final type = OcptFountainLineAttributions.typeOfAttributionValue(
+        node.getMetadataValue("blockType"),
+      );
       if (type != FountainLineType.sceneHeading) {
         continue;
       }
@@ -967,7 +983,8 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
     final previousPageCount = _pageCount;
     final previousTrailingBottomPadding = _trailingBottomPadding;
     _recomputePageSimulation();
-    if (_pageCount != previousPageCount || _trailingBottomPadding != previousTrailingBottomPadding) {
+    if (_pageCount != previousPageCount ||
+        _trailingBottomPadding != previousTrailingBottomPadding) {
       setState(() {});
     }
   }
@@ -1152,7 +1169,10 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
       final clearRequests = <EditRequest>[
         for (final node in _document)
           if (node is ParagraphNode && _pageStartPaddingOf(node) != 0)
-            OcptChangeNodeMetadataRequest(nodeId: node.id, metadata: {ocptStartsNewPageMetadataKey: 0.0}),
+            OcptChangeNodeMetadataRequest(
+              nodeId: node.id,
+              metadata: {ocptStartsNewPageMetadataKey: 0.0},
+            ),
       ];
       if (clearRequests.isNotEmpty) {
         _runDerivedPass(() => _editor.execute(clearRequests));
@@ -1172,7 +1192,9 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
           if (_pageStartPaddingOf(node) != (pagination.pageStartTopPaddings[node.id] ?? 0.0))
             OcptChangeNodeMetadataRequest(
               nodeId: node.id,
-              metadata: {ocptStartsNewPageMetadataKey: pagination.pageStartTopPaddings[node.id] ?? 0.0},
+              metadata: {
+                ocptStartsNewPageMetadataKey: pagination.pageStartTopPaddings[node.id] ?? 0.0,
+              },
             ),
     ];
     if (requests.isNotEmpty) {
@@ -1203,8 +1225,9 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
   /// in page mode, matching the raw preview's own paper-only page simulation), or plain
   /// [OcptWysiwygCodec.decode] otherwise, so the fluid, theme-following surface stays exactly what
   /// it always was: the body alone, no title-page nodes at all.
-  OcptWysiwygDecodeResult _decode(String text) =>
-      widget.isPageSimulationEnabled ? OcptWysiwygCodec.decodeWithTitlePage(text) : OcptWysiwygCodec.decode(text);
+  OcptWysiwygDecodeResult _decode(String text) => widget.isPageSimulationEnabled
+      ? OcptWysiwygCodec.decodeWithTitlePage(text)
+      : OcptWysiwygCodec.decode(text);
 
   /// The [_decode] counterpart for encoding, switching between
   /// [OcptWysiwygCodec.encodeWithTitlePage] and [OcptWysiwygCodec.encode] the same way.
@@ -1314,7 +1337,11 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
 
     _editor.execute([
       ...ocptManualBlockTypeRequests(nodeId: node.id, type: type),
-      ...ocptParentheticalTemplateRequests(nodeId: node.id, type: type, isNodeEmpty: node.text.isEmpty),
+      ...ocptParentheticalTemplateRequests(
+        nodeId: node.id,
+        type: type,
+        isNodeEmpty: node.text.isEmpty,
+      ),
     ]);
     _reportReadStateToController();
     _focusNode.requestFocus();
@@ -1395,7 +1422,9 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
 
     final selection = _composer.selection;
     final tapIsInsideSelection =
-        selection != null && !selection.isCollapsed && _document.doesSelectionContainPosition(selection, position);
+        selection != null &&
+        !selection.isCollapsed &&
+        _document.doesSelectionContainPosition(selection, position);
     if (!tapIsInsideSelection) {
       _editor.execute([
         ChangeSelectionRequest(
@@ -1466,7 +1495,11 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
         continue;
       }
       if (offset >= range.start && offset <= range.end) {
-        return (nodeId: position.nodeId, range: range, word: text.substring(range.start, range.end));
+        return (
+          nodeId: position.nodeId,
+          range: range,
+          word: text.substring(range.start, range.end),
+        );
       }
     }
     return null;
@@ -1500,11 +1533,9 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
     _editor.execute([
       OcptReplaceNodeTextRequest(
         nodeId: nodeId,
-        text: _ocptReplaceMatchesInText(
-          node.text,
-          [OcptTextMatch(start: range.start, end: range.end)],
-          suggestion,
-        ),
+        text: _ocptReplaceMatchesInText(node.text, [
+          OcptTextMatch(start: range.start, end: range.end),
+        ], suggestion),
       ),
     ]);
 
@@ -1579,7 +1610,9 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
   /// The right-click context menu's Paste entry: [ocptPasteFountainClipboardContent], the same
   /// Fountain-aware paste the Ctrl+V key handler uses.
   void _pasteFromContextMenu() {
-    unawaited(ocptPasteFountainClipboardContent(editor: _editor, document: _document, composer: _composer));
+    unawaited(
+      ocptPasteFountainClipboardContent(editor: _editor, document: _document, composer: _composer),
+    );
     _focusNode.requestFocus();
   }
 
@@ -1595,8 +1628,14 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
     _editor.execute([
       ChangeSelectionRequest(
         DocumentSelection(
-          base: DocumentPosition(nodeId: _document.first.id, nodePosition: _document.first.beginningPosition),
-          extent: DocumentPosition(nodeId: _document.last.id, nodePosition: _document.last.endPosition),
+          base: DocumentPosition(
+            nodeId: _document.first.id,
+            nodePosition: _document.first.beginningPosition,
+          ),
+          extent: DocumentPosition(
+            nodeId: _document.last.id,
+            nodePosition: _document.last.endPosition,
+          ),
         ),
         SelectionChangeType.expandSelection,
         SelectionReason.userInteraction,
@@ -1662,7 +1701,11 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
   void _recomputeSearchMatches({required bool navigateToCurrent}) {
     final query = _searchQuery;
     if (query == null) {
-      _searchMatchStyler.updateMatches(matchesByNodeId: const {}, currentMatchNodeId: null, currentMatch: null);
+      _searchMatchStyler.updateMatches(
+        matchesByNodeId: const {},
+        currentMatchNodeId: null,
+        currentMatch: null,
+      );
       widget.styledController?.reportSearchMatchCount(0);
       return;
     }
@@ -1676,7 +1719,8 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
     widget.styledController?.reportSearchMatchCount(orderedMatches.length);
 
     final currentIndex = _searchCurrentMatchIndex;
-    final current = currentIndex != null && currentIndex >= 0 && currentIndex < orderedMatches.length
+    final current =
+        currentIndex != null && currentIndex >= 0 && currentIndex < orderedMatches.length
         ? orderedMatches[currentIndex]
         : null;
 
@@ -1710,8 +1754,14 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
     _editor.execute([
       ChangeSelectionRequest(
         DocumentSelection(
-          base: DocumentPosition(nodeId: nodeId, nodePosition: TextNodePosition(offset: match.start)),
-          extent: DocumentPosition(nodeId: nodeId, nodePosition: TextNodePosition(offset: match.end)),
+          base: DocumentPosition(
+            nodeId: nodeId,
+            nodePosition: TextNodePosition(offset: match.start),
+          ),
+          extent: DocumentPosition(
+            nodeId: nodeId,
+            nodePosition: TextNodePosition(offset: match.end),
+          ),
         ),
         SelectionChangeType.expandSelection,
         ocptProgrammaticNavigationSelectionReason,
@@ -1722,14 +1772,20 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
       if (!mounted) {
         return;
       }
-      final component = (_documentLayoutKey.currentState as DocumentLayout?)?.getComponentByNodeId(nodeId);
+      final component = (_documentLayoutKey.currentState as DocumentLayout?)?.getComponentByNodeId(
+        nodeId,
+      );
       if (component == null) {
         return;
       }
       final componentState = component as State;
       if (componentState.mounted) {
         unawaited(
-          Scrollable.ensureVisible(componentState.context, alignment: 0.3, duration: const Duration(milliseconds: 200)),
+          Scrollable.ensureVisible(
+            componentState.context,
+            alignment: 0.3,
+            duration: const Duration(milliseconds: 200),
+          ),
         );
       }
     });
@@ -1862,7 +1918,9 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
       if (node is! ParagraphNode || OcptWysiwygCodec.isTitlePageNode(node)) {
         continue;
       }
-      final type = OcptFountainLineAttributions.typeOfAttributionValue(node.getMetadataValue("blockType"));
+      final type = OcptFountainLineAttributions.typeOfAttributionValue(
+        node.getMetadataValue("blockType"),
+      );
       if (!ocptIsSpellCheckedLineType(type)) {
         continue;
       }
@@ -1953,7 +2011,12 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
   /// delta channel [_imeOverrides] intercepts, only a plain Tab does, so there is no reversed case
   /// to handle here.
   void _cycleBlockTypeForwardFromTab() {
-    ocptCycleBlockTypeAtSelection(editor: _editor, document: _document, composer: _composer, reversed: false);
+    ocptCycleBlockTypeAtSelection(
+      editor: _editor,
+      document: _document,
+      composer: _composer,
+      reversed: false,
+    );
   }
 
   /// Moves the styled editor's selection to the start of the node containing [charOffset] of
@@ -1968,7 +2031,9 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
     // body, so it's always at or past the title page's own prefix, but the subtraction is clamped
     // defensively anyway); `_mapping` itself is body-scoped, so its own resolved node index needs
     // `_titlePageNodeCount` added back before it means anything to `_document`.
-    final bodyCharOffset = charOffset <= _titlePagePrefixLength ? 0 : charOffset - _titlePagePrefixLength;
+    final bodyCharOffset = charOffset <= _titlePagePrefixLength
+        ? 0
+        : charOffset - _titlePagePrefixLength;
     final nodeIndex = _mapping.nodeIndexOfCharOffset(bodyCharOffset) + _titlePageNodeCount;
     final node = _document.getNodeAt(nodeIndex);
     if (node == null) {
@@ -1978,7 +2043,10 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
     _editor.execute([
       ChangeSelectionRequest(
         DocumentSelection.collapsed(
-          position: DocumentPosition(nodeId: node.id, nodePosition: const TextNodePosition(offset: 0)),
+          position: DocumentPosition(
+            nodeId: node.id,
+            nodePosition: const TextNodePosition(offset: 0),
+          ),
         ),
         SelectionChangeType.placeCaret,
         ocptProgrammaticNavigationSelectionReason,
@@ -1986,7 +2054,9 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
     ]);
     _focusNode.requestFocus();
 
-    final component = (_documentLayoutKey.currentState as DocumentLayout?)?.getComponentByNodeId(node.id);
+    final component = (_documentLayoutKey.currentState as DocumentLayout?)?.getComponentByNodeId(
+      node.id,
+    );
     if (component == null) {
       return;
     }
@@ -1997,7 +2067,11 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
     final componentState = component as State;
     if (componentState.mounted) {
       unawaited(
-        Scrollable.ensureVisible(componentState.context, alignment: 0.3, duration: const Duration(milliseconds: 200)),
+        Scrollable.ensureVisible(
+          componentState.context,
+          alignment: 0.3,
+          duration: const Duration(milliseconds: 200),
+        ),
       );
     }
   }
@@ -2073,7 +2147,10 @@ class _OcptPageSheetsPainter extends CustomPainter {
     for (var page = 0; page < pageCount; page++) {
       final top = page * (pageHeight + pageGap);
       canvas.drawRRect(
-        RRect.fromRectAndRadius(Rect.fromLTWH(0, top, size.width, pageHeight), const Radius.circular(3)),
+        RRect.fromRectAndRadius(
+          Rect.fromLTWH(0, top, size.width, pageHeight),
+          const Radius.circular(3),
+        ),
         paint,
       );
       _paintPageNumber(canvas: canvas, size: size, page: page, top: top);

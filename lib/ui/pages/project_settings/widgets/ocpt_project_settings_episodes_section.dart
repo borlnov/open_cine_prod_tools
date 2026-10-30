@@ -70,9 +70,7 @@ class OcptProjectSettingsEpisodesSection extends StatelessWidget {
                 episode: episodes[index],
                 onTitleChanged: (title) => onEpisodeTitleChanged(episodes[index].id, title),
                 onNumberChanged: (number) => onEpisodeNumberChanged(episodes[index].id, number),
-                onMovedUp: index == 0
-                    ? null
-                    : () => onEpisodeMoved(episodes[index].id, index - 1),
+                onMovedUp: index == 0 ? null : () => onEpisodeMoved(episodes[index].id, index - 1),
                 onMovedDown: index == episodes.length - 1
                     ? null
                     : () => onEpisodeMoved(episodes[index].id, index + 1),

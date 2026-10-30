@@ -9,14 +9,23 @@ import 'package:spell_kit/spell_kit.dart';
 
 /// A placeholder [FountainSourceRange]: none of these tests care where in a source string a block
 /// was parsed from, only what [FountainBlock] subclass it is.
-const _placeholderRange = FountainSourceRange(startLine: 0, endLine: 0, startOffset: 0, endOffset: 0);
+const _placeholderRange = FountainSourceRange(
+  startLine: 0,
+  endLine: 0,
+  startOffset: 0,
+  endOffset: 0,
+);
 
 void main() {
   group('ocptLineTypeOfBlock', () {
     test("maps each of the screenplay's own prose blocks to its line type", () {
       expect(
         ocptLineTypeOfBlock(
-          const FountainActionBlock(sourceRange: _placeholderRange, lines: ['She walks in.'], forced: false),
+          const FountainActionBlock(
+            sourceRange: _placeholderRange,
+            lines: ['She walks in.'],
+            forced: false,
+          ),
         ),
         FountainLineType.action,
       );
@@ -54,7 +63,11 @@ void main() {
       );
       expect(
         ocptLineTypeOfBlock(
-          const FountainCharacter(sourceRange: _placeholderRange, name: 'MARIE', isDualDialogue: false),
+          const FountainCharacter(
+            sourceRange: _placeholderRange,
+            name: 'MARIE',
+            isDualDialogue: false,
+          ),
         ),
         FountainLineType.character,
       );
@@ -65,15 +78,21 @@ void main() {
         FountainLineType.transition,
       );
       expect(
-        ocptLineTypeOfBlock(const FountainLyrics(sourceRange: _placeholderRange, lines: ['La la la'])),
+        ocptLineTypeOfBlock(
+          const FountainLyrics(sourceRange: _placeholderRange, lines: ['La la la']),
+        ),
         FountainLineType.lyrics,
       );
       expect(
-        ocptLineTypeOfBlock(const FountainSection(sourceRange: _placeholderRange, level: 1, text: 'Act one')),
+        ocptLineTypeOfBlock(
+          const FountainSection(sourceRange: _placeholderRange, level: 1, text: 'Act one'),
+        ),
         FountainLineType.section,
       );
       expect(
-        ocptLineTypeOfBlock(const FountainSynopsis(sourceRange: _placeholderRange, text: 'She arrives.')),
+        ocptLineTypeOfBlock(
+          const FountainSynopsis(sourceRange: _placeholderRange, text: 'She arrives.'),
+        ),
         FountainLineType.synopsis,
       );
       expect(
@@ -84,11 +103,15 @@ void main() {
 
     test('returns null for the block kinds with no line type of their own', () {
       expect(
-        ocptLineTypeOfBlock(const FountainNoteBlock(sourceRange: _placeholderRange, text: 'maybe cut')),
+        ocptLineTypeOfBlock(
+          const FountainNoteBlock(sourceRange: _placeholderRange, text: 'maybe cut'),
+        ),
         isNull,
       );
       expect(
-        ocptLineTypeOfBlock(const FountainBoneyard(sourceRange: _placeholderRange, text: 'old draft')),
+        ocptLineTypeOfBlock(
+          const FountainBoneyard(sourceRange: _placeholderRange, text: 'old draft'),
+        ),
         isNull,
       );
       expect(

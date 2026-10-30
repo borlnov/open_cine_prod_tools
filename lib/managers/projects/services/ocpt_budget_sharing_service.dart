@@ -63,7 +63,9 @@ class OcptBudgetSharingService {
         current: null,
         next: OcptBudgetRevenueRow(
           id: id,
-          sortKey: ocptFractionalKeyBetween(before: existing.isEmpty ? null : existing.last.sortKey),
+          sortKey: ocptFractionalKeyBetween(
+            before: existing.isEmpty ? null : existing.last.sortKey,
+          ),
           isDeleted: false,
           date: date,
           label: label,
@@ -230,7 +232,9 @@ class OcptBudgetSharingService {
         current: null,
         next: OcptBudgetShareRow(
           id: id,
-          sortKey: ocptFractionalKeyBetween(before: existing.isEmpty ? null : existing.last.sortKey),
+          sortKey: ocptFractionalKeyBetween(
+            before: existing.isEmpty ? null : existing.last.sortKey,
+          ),
           isDeleted: false,
           label: label,
           sharePermille: 0,
@@ -374,9 +378,9 @@ class OcptBudgetSharingService {
   Future<OcptBudgetRevenueRow?> _liveRevenueRowOrNull({
     required OcptProjectDatabase database,
     required String revenueId,
-  }) => (database.select(database.ocptBudgetRevenuesTable)
-        ..where((table) => table.id.equals(revenueId) & table.isDeleted.not()))
-      .getSingleOrNull();
+  }) => (database.select(
+    database.ocptBudgetRevenuesTable,
+  )..where((table) => table.id.equals(revenueId) & table.isDeleted.not())).getSingleOrNull();
 
   /// Every live share row of [database], ordered by `sortKey`.
   Future<List<OcptBudgetShareRow>> _liveShareRows(OcptProjectDatabase database) =>
@@ -389,7 +393,7 @@ class OcptBudgetSharingService {
   Future<OcptBudgetShareRow?> _liveShareRowOrNull({
     required OcptProjectDatabase database,
     required String shareId,
-  }) => (database.select(database.ocptBudgetSharesTable)
-        ..where((table) => table.id.equals(shareId) & table.isDeleted.not()))
-      .getSingleOrNull();
+  }) => (database.select(
+    database.ocptBudgetSharesTable,
+  )..where((table) => table.id.equals(shareId) & table.isDeleted.not())).getSingleOrNull();
 }

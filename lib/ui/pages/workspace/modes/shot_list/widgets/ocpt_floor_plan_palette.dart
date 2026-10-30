@@ -33,7 +33,11 @@ class OcptFloorPlanPropChip extends Equatable {
   final String quantity;
 
   /// Class constructor
-  const OcptFloorPlanPropChip({required this.elementId, required this.name, required this.quantity});
+  const OcptFloorPlanPropChip({
+    required this.elementId,
+    required this.name,
+    required this.quantity,
+  });
 
   /// Object properties
   @override
@@ -394,7 +398,9 @@ class OcptFloorPlanPalette extends StatelessWidget {
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
       decoration: BoxDecoration(
-        color: isActive ? theme.colorScheme.primary.withValues(alpha: ocptSelectedStateAlpha) : null,
+        color: isActive
+            ? theme.colorScheme.primary.withValues(alpha: ocptSelectedStateAlpha)
+            : null,
         borderRadius: BorderRadius.circular(ocptRadiusSmall),
       ),
       child: Row(
@@ -609,14 +615,14 @@ class OcptFloorPlanPalette extends StatelessWidget {
       padding: const EdgeInsets.only(left: 30, right: 12, top: 2, bottom: 2),
       child: Row(
         children: [
-          Expanded(
-            child: Text(camera.label, style: theme.textTheme.bodySmall),
-          ),
+          Expanded(child: Text(camera.label, style: theme.textTheme.bodySmall)),
           IconButton(
             iconSize: 16,
             padding: EdgeInsets.zero,
             constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
-            tooltip: isHidden ? tr.shotListFloorPlanShowLayerAction : tr.shotListFloorPlanHideLayerAction,
+            tooltip: isHidden
+                ? tr.shotListFloorPlanShowLayerAction
+                : tr.shotListFloorPlanHideLayerAction,
             onPressed: () => onCameraVisibilityToggled(camera.symbolId),
             icon: Icon(isHidden ? Icons.visibility_off_outlined : Icons.visibility_outlined),
           ),
@@ -649,10 +655,7 @@ class OcptFloorPlanPalette extends StatelessWidget {
           controlAffinity: ListTileControlAffinity.leading,
           value: isOnionSkinPreviousShown,
           onChanged: (_) => onOnionSkinToggled(true),
-          title: Text(
-            tr.shotListFloorPlanOnionSkinPreviousLabel,
-            style: theme.textTheme.bodySmall,
-          ),
+          title: Text(tr.shotListFloorPlanOnionSkinPreviousLabel, style: theme.textTheme.bodySmall),
         ),
         CheckboxListTile(
           dense: true,
@@ -781,7 +784,9 @@ class OcptFloorPlanPalette extends StatelessWidget {
             iconSize: 16,
             padding: EdgeInsets.zero,
             constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
-            tooltip: isUnderlayHidden ? tr.shotListFloorPlanShowLayerAction : tr.shotListFloorPlanHideLayerAction,
+            tooltip: isUnderlayHidden
+                ? tr.shotListFloorPlanShowLayerAction
+                : tr.shotListFloorPlanHideLayerAction,
             onPressed: hasUnderlay ? onUnderlayVisibilityToggled : null,
             icon: Icon(
               isUnderlayHidden ? Icons.visibility_off_outlined : Icons.visibility_outlined,
@@ -852,9 +857,7 @@ class _OcptFloorPlanMetricsToggleRowState extends State<_OcptFloorPlanMetricsTog
             padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
             child: Text(
               tr.shotListFloorPlanMetricsHelpText,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
+              style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
             ),
           ),
       ],

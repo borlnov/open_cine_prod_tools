@@ -10,37 +10,19 @@ void main() {
   group("ocptRoleIsActionDetected", () {
     test("false for a cued role, isFromScreenplay true", () {
       expect(
-        ocptRoleIsActionDetected(
-          isFromScreenplay: true,
-          kind: OcptRoleKind.speaking,
-        ),
+        ocptRoleIsActionDetected(isFromScreenplay: true, kind: OcptRoleKind.speaking),
         isFalse,
       );
     });
 
     test("true for a silent role reconciled from the action", () {
-      expect(
-        ocptRoleIsActionDetected(
-          isFromScreenplay: true,
-          kind: OcptRoleKind.silent,
-        ),
-        isTrue,
-      );
+      expect(ocptRoleIsActionDetected(isFromScreenplay: true, kind: OcptRoleKind.silent), isTrue);
     });
 
-    test(
-      "true for a detected role requalified as an extra: the middle row is any non-speaking "
-      "kind, not silent alone",
-      () {
-        expect(
-          ocptRoleIsActionDetected(
-            isFromScreenplay: true,
-            kind: OcptRoleKind.extra,
-          ),
-          isTrue,
-        );
-      },
-    );
+    test("true for a detected role requalified as an extra: the middle row is any non-speaking "
+        "kind, not silent alone", () {
+      expect(ocptRoleIsActionDetected(isFromScreenplay: true, kind: OcptRoleKind.extra), isTrue);
+    });
 
     test("false for a hand-added role, whatever its kind", () {
       for (final kind in OcptRoleKind.values) {

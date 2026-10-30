@@ -244,8 +244,7 @@ class OcptShotCoverageDialog extends StatelessWidget {
 
   /// The total number of words across every block of [layout], the denominator of the footer's
   /// `N words covered of M` counter.
-  int get _totalWordCount =>
-      layout.blocks.fold(0, (total, block) => total + block.words.length);
+  int get _totalWordCount => layout.blocks.fold(0, (total, block) => total + block.words.length);
 }
 
 /// The simulated paper sheet the sequence is typeset on: white, at the page setup's own width, each
@@ -289,10 +288,7 @@ class _OcptShotCoverageSheet extends StatelessWidget {
     child: SizedBox(
       width: previewLayout.pageWidth,
       child: Padding(
-        padding: EdgeInsets.only(
-          top: previewLayout.marginTop,
-          bottom: previewLayout.marginBottom,
-        ),
+        padding: EdgeInsets.only(top: previewLayout.marginTop, bottom: previewLayout.marginBottom),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -406,10 +402,8 @@ class _OcptShotCoverageSheetBlock extends StatelessWidget {
                             isUppercase: printStyle.isUppercase,
                             style: baseStyle,
                             state: _stateOf(block.words[i]),
-                            onTap: () => onWordTapped(
-                              block.words[i].startOffset,
-                              block.words[i].endOffset,
-                            ),
+                            onTap: () =>
+                                onWordTapped(block.words[i].startOffset, block.words[i].endOffset),
                           ),
                         ),
                     ],

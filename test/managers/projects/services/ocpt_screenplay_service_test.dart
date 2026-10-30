@@ -240,8 +240,7 @@ void main() {
     expect(await preview.select(preview.ocptScreenplaySnapshotsTable).get(), isEmpty);
   });
 
-  test('saveScreenplayText reconciles the cast, inserting a speaking role per character',
-      () async {
+  test('saveScreenplayText reconciles the cast, inserting a speaking role per character', () async {
     await service.saveScreenplayText(
       database: database,
       screenplayId: screenplayId,
@@ -249,9 +248,9 @@ void main() {
       snapshotReason: OcptSnapshotReason.manual,
     );
 
-    final roles = await (database.select(database.ocptRolesTable)
-          ..orderBy([(table) => OrderingTerm.asc(table.sortKey)]))
-        .get();
+    final roles = await (database.select(
+      database.ocptRolesTable,
+    )..orderBy([(table) => OrderingTerm.asc(table.sortKey)])).get();
 
     expect(roles, hasLength(2));
     expect(roles.map((role) => role.name), ["JOHN", "MARY"]);
@@ -259,46 +258,48 @@ void main() {
     expect(roles.every((role) => role.kind == OcptRoleKind.speaking), isTrue);
   });
 
-  test('a save whose screenplay drops a character orphans that role, keeping its casting',
-      () async {
-    await database
-        .into(database.ocptPeopleTable)
-        .insert(OcptPeopleTableCompanion.insert(id: "person-1"));
+  test(
+    'a save whose screenplay drops a character orphans that role, keeping its casting',
+    () async {
+      await database
+          .into(database.ocptPeopleTable)
+          .insert(OcptPeopleTableCompanion.insert(id: "person-1"));
 
-    await service.saveScreenplayText(
-      database: database,
-      screenplayId: screenplayId,
-      fountainText: 'INT. HOUSE - DAY\n\nJOHN\nHello.\n\nMARY\nHi back.\n',
-      snapshotReason: OcptSnapshotReason.manual,
-    );
+      await service.saveScreenplayText(
+        database: database,
+        screenplayId: screenplayId,
+        fountainText: 'INT. HOUSE - DAY\n\nJOHN\nHello.\n\nMARY\nHi back.\n',
+        snapshotReason: OcptSnapshotReason.manual,
+      );
 
-    final roles = await roleIndexService.loadRoles(database: database);
-    final maryRole = roles.firstWhere((role) => role.name == "MARY");
+      final roles = await roleIndexService.loadRoles(database: database);
+      final maryRole = roles.firstWhere((role) => role.name == "MARY");
 
-    await roleIndexService.updateRole(
-      database: database,
-      roleId: maryRole.id,
-      personId: const Value("person-1"),
-      castingNotes: const Value("Understudy confirmed"),
-    );
+      await roleIndexService.updateRole(
+        database: database,
+        roleId: maryRole.id,
+        personId: const Value("person-1"),
+        castingNotes: const Value("Understudy confirmed"),
+      );
 
-    // The next save's screenplay no longer names MARY.
-    await service.saveScreenplayText(
-      database: database,
-      screenplayId: screenplayId,
-      fountainText: 'INT. HOUSE - DAY\n\nJOHN\nHello.\n',
-      snapshotReason: OcptSnapshotReason.manual,
-    );
+      // The next save's screenplay no longer names MARY.
+      await service.saveScreenplayText(
+        database: database,
+        screenplayId: screenplayId,
+        fountainText: 'INT. HOUSE - DAY\n\nJOHN\nHello.\n',
+        snapshotReason: OcptSnapshotReason.manual,
+      );
 
-    final row = await (database.select(
-      database.ocptRolesTable,
-    )..where((table) => table.id.equals(maryRole.id))).getSingle();
+      final row = await (database.select(
+        database.ocptRolesTable,
+      )..where((table) => table.id.equals(maryRole.id))).getSingle();
 
-    expect(row.orphanedName, "MARY");
-    expect(row.personId, "person-1");
-    expect(row.castingNotes, "Understudy confirmed");
-    expect(row.isDeleted, isFalse);
-  });
+      expect(row.orphanedName, "MARY");
+      expect(row.personId, "person-1");
+      expect(row.castingNotes, "Understudy confirmed");
+      expect(row.isDeleted, isFalse);
+    },
+  );
 
   test('a hand-added role survives a save mentioning none of its character', () async {
     final handAddedId = await roleIndexService.addRole(
@@ -339,7 +340,12 @@ void main() {
     /// Creates a role of [screenplayId], a stand-in tag target since `OcptRoleIndexService.reconcile`
     /// is out of scope here.
     Future<String> createRole() => roleIndexService
-        .addRole(database: database, screenplayId: screenplayId, name: "LÉA", kind: OcptRoleKind.silent)
+        .addRole(
+          database: database,
+          screenplayId: screenplayId,
+          name: "LÉA",
+          kind: OcptRoleKind.silent,
+        )
         .then((id) => id!);
 
     test(
@@ -367,11 +373,9 @@ void main() {
         ))!;
         // Simulate a tag left needing attention by an earlier, unrelated save, so this save's
         // reconciliation has something to clear.
-        await (database.update(
-          database.ocptBreakdownTagsTable,
-        )..where((table) => table.id.equals(tagId))).write(
-          const OcptBreakdownTagsTableCompanion(needsCheck: Value(true)),
-        );
+        await (database.update(database.ocptBreakdownTagsTable)
+              ..where((table) => table.id.equals(tagId)))
+            .write(const OcptBreakdownTagsTableCompanion(needsCheck: Value(true)));
 
         // The same text saved again: nothing about the tagged passage changed.
         await service.saveScreenplayText(
@@ -575,54 +579,49 @@ Action two three.
     // episode ahead of it would find no key to allocate. Giving it a real key here is what the
     // migration already guarantees in production; it is not this method's concern.
     setUp(() async {
-      await (database.update(
-        database.ocptScreenplaysTable,
-      )..where((table) => table.id.equals(screenplayId))).write(
-        OcptScreenplaysTableCompanion(sortKey: Value(ocptFractionalKeyBetween())),
-      );
+      await (database.update(database.ocptScreenplaysTable)
+            ..where((table) => table.id.equals(screenplayId)))
+          .write(OcptScreenplaysTableCompanion(sortKey: Value(ocptFractionalKeyBetween())));
     });
 
     Future<OcptScreenplayRow> readEpisode(String id) => (database.select(
       database.ocptScreenplaysTable,
     )..where((table) => table.id.equals(id))).getSingle();
 
-    test('loadEpisodes returns live episodes in sortKey order, leaving tombstoned ones out',
-        () async {
-      final secondId = (await service.createEpisode(database: database, title: "Ep 2"))!;
-      final thirdId = (await service.createEpisode(database: database, title: "Ep 3"))!;
-
-      // A middle episode removed some other way is still a tombstone `loadEpisodes` must filter.
-      await (database.update(
-        database.ocptScreenplaysTable,
-      )..where((table) => table.id.equals(secondId))).write(
-        const OcptScreenplaysTableCompanion(isDeleted: Value(true)),
-      );
-
-      final episodes = await service.loadEpisodes(database: database);
-
-      expect(episodes.map((episode) => episode.id), [screenplayId, thirdId]);
-    });
-
     test(
-      'createEpisode appends after the last live episode and numbers it last + 1, and honours '
-      'an explicit number',
+      'loadEpisodes returns live episodes in sortKey order, leaving tombstoned ones out',
       () async {
         final secondId = (await service.createEpisode(database: database, title: "Ep 2"))!;
+        final thirdId = (await service.createEpisode(database: database, title: "Ep 3"))!;
 
-        final afterSecond = await service.loadEpisodes(database: database);
-        expect(afterSecond.map((episode) => episode.id), [screenplayId, secondId]);
-        final second = afterSecond.firstWhere((episode) => episode.id == secondId);
-        expect(second.number, 2);
-        expect(second.title, "Ep 2");
+        // A middle episode removed some other way is still a tombstone `loadEpisodes` must filter.
+        await (database.update(database.ocptScreenplaysTable)
+              ..where((table) => table.id.equals(secondId)))
+            .write(const OcptScreenplaysTableCompanion(isDeleted: Value(true)));
 
-        final explicitId = (await service.createEpisode(database: database, number: 99))!;
+        final episodes = await service.loadEpisodes(database: database);
 
-        final afterExplicit = await service.loadEpisodes(database: database);
-        // Appended at the tail, whatever its own printed number turned out to be.
-        expect(afterExplicit.last.id, explicitId);
-        expect(afterExplicit.firstWhere((episode) => episode.id == explicitId).number, 99);
+        expect(episodes.map((episode) => episode.id), [screenplayId, thirdId]);
       },
     );
+
+    test('createEpisode appends after the last live episode and numbers it last + 1, and honours '
+        'an explicit number', () async {
+      final secondId = (await service.createEpisode(database: database, title: "Ep 2"))!;
+
+      final afterSecond = await service.loadEpisodes(database: database);
+      expect(afterSecond.map((episode) => episode.id), [screenplayId, secondId]);
+      final second = afterSecond.firstWhere((episode) => episode.id == secondId);
+      expect(second.number, 2);
+      expect(second.title, "Ep 2");
+
+      final explicitId = (await service.createEpisode(database: database, number: 99))!;
+
+      final afterExplicit = await service.loadEpisodes(database: database);
+      // Appended at the tail, whatever its own printed number turned out to be.
+      expect(afterExplicit.last.id, explicitId);
+      expect(afterExplicit.firstWhere((episode) => episode.id == explicitId).number, 99);
+    });
 
     test('updateEpisode writes only what it is given, touching neither sortKey, fountainText '
         'nor updatedAt', () async {
@@ -649,78 +648,83 @@ Action two three.
       expect(after.updatedAt, before.updatedAt);
     });
 
-    test('reorderEpisode moves an episode and writes exactly one row, leaving every number alone',
-        () async {
-      final secondId = (await service.createEpisode(database: database, title: "Ep 2"))!;
-      final thirdId = (await service.createEpisode(database: database, title: "Ep 3"))!;
+    test(
+      'reorderEpisode moves an episode and writes exactly one row, leaving every number alone',
+      () async {
+        final secondId = (await service.createEpisode(database: database, title: "Ep 2"))!;
+        final thirdId = (await service.createEpisode(database: database, title: "Ep 3"))!;
 
-      final before = {
-        for (final row in await database.select(database.ocptScreenplaysTable).get())
-          row.id: row,
-      };
+        final before = {
+          for (final row in await database.select(database.ocptScreenplaysTable).get()) row.id: row,
+        };
 
-      // The third episode moves to the front.
-      await service.reorderEpisode(database: database, screenplayId: thirdId, newPosition: 0);
+        // The third episode moves to the front.
+        await service.reorderEpisode(database: database, screenplayId: thirdId, newPosition: 0);
 
-      final after = await database.select(database.ocptScreenplaysTable).get();
-      final order = (await service.loadEpisodes(database: database))
-          .map((episode) => episode.id)
-          .toList();
-      expect(order, [thirdId, screenplayId, secondId]);
+        final after = await database.select(database.ocptScreenplaysTable).get();
+        final order = (await service.loadEpisodes(
+          database: database,
+        )).map((episode) => episode.id).toList();
+        expect(order, [thirdId, screenplayId, secondId]);
 
-      final rowsWithChangedSortKey = after
-          .where((row) => row.sortKey != before[row.id]!.sortKey)
-          .toList(growable: false);
-      expect(rowsWithChangedSortKey, hasLength(1));
-      expect(rowsWithChangedSortKey.single.id, thirdId);
+        final rowsWithChangedSortKey = after
+            .where((row) => row.sortKey != before[row.id]!.sortKey)
+            .toList(growable: false);
+        expect(rowsWithChangedSortKey, hasLength(1));
+        expect(rowsWithChangedSortKey.single.id, thirdId);
 
-      for (final row in after) {
-        expect(row.number, before[row.id]!.number);
-      }
-    });
+        for (final row in after) {
+          expect(row.number, before[row.id]!.number);
+        }
+      },
+    );
 
-    test("deleteEpisode refuses to remove the project's last live episode, writing nothing",
-        () async {
-      final result = await service.deleteEpisode(database: database, screenplayId: screenplayId);
+    test(
+      "deleteEpisode refuses to remove the project's last live episode, writing nothing",
+      () async {
+        final result = await service.deleteEpisode(database: database, screenplayId: screenplayId);
 
-      expect(result, isFalse);
-      final row = await readEpisode(screenplayId);
-      expect(row.isDeleted, isFalse);
-    });
+        expect(result, isFalse);
+        final row = await readEpisode(screenplayId);
+        expect(row.isDeleted, isFalse);
+      },
+    );
 
-    test('a deleteEpisode handed the read-only database of a previewed version is refused',
-        () async {
-      final preview = OcptProjectDatabase.memory(isPreview: true);
-      addTearDown(preview.close);
+    test(
+      'a deleteEpisode handed the read-only database of a previewed version is refused',
+      () async {
+        final preview = OcptProjectDatabase.memory(isPreview: true);
+        addTearDown(preview.close);
 
-      await preview
-          .into(preview.ocptScreenplaysTable)
-          .insert(
-            OcptScreenplaysTableCompanion.insert(
-              id: screenplayId,
-              title: "Draft",
-              updatedAt: DateTime.now(),
-            ),
-          );
-      await preview
-          .into(preview.ocptScreenplaysTable)
-          .insert(
-            OcptScreenplaysTableCompanion.insert(
-              id: "screenplay-2",
-              title: "Second",
-              updatedAt: DateTime.now(),
-              sortKey: const Value("A"),
-            ),
-          );
+        await preview
+            .into(preview.ocptScreenplaysTable)
+            .insert(
+              OcptScreenplaysTableCompanion.insert(
+                id: screenplayId,
+                title: "Draft",
+                updatedAt: DateTime.now(),
+              ),
+            );
+        await preview
+            .into(preview.ocptScreenplaysTable)
+            .insert(
+              OcptScreenplaysTableCompanion.insert(
+                id: "screenplay-2",
+                title: "Second",
+                updatedAt: DateTime.now(),
+                sortKey: const Value("A"),
+              ),
+            );
 
-      final result = await service.deleteEpisode(database: preview, screenplayId: screenplayId);
+        final result = await service.deleteEpisode(database: preview, screenplayId: screenplayId);
 
-      expect(result, isFalse);
-      final row = await (preview.select(
-        preview.ocptScreenplaysTable,
-      )..where((table) => table.id.equals(screenplayId))).getSingle();
-      expect(row.isDeleted, isFalse);
-    });
+        expect(result, isFalse);
+        final row = await (preview.select(
+          preview.ocptScreenplaysTable,
+        )..where((table) => table.id.equals(screenplayId))).getSingle();
+        expect(row.isDeleted, isFalse);
+      },
+    );
 
     test(
       'deleteEpisode tombstones everything the deleted episode owns, and leaves everything else',
@@ -870,17 +874,15 @@ Action two three.
           isTrue,
         );
         expect(
-          await (database.select(database.ocptShotCharactersTable)..where(
-                (table) => table.shotId.equals(shotId) & table.isDeleted.not(),
-              ))
-              .get(),
+          await (database.select(
+            database.ocptShotCharactersTable,
+          )..where((table) => table.shotId.equals(shotId) & table.isDeleted.not())).get(),
           isEmpty,
         );
         expect(
-          await (database.select(database.ocptShotCoveragesTable)..where(
-                (table) => table.shotId.equals(shotId) & table.isDeleted.not(),
-              ))
-              .get(),
+          await (database.select(
+            database.ocptShotCoveragesTable,
+          )..where((table) => table.shotId.equals(shotId) & table.isDeleted.not())).get(),
           isEmpty,
         );
         expect(
@@ -890,10 +892,9 @@ Action two three.
           isTrue,
         );
         expect(
-          await (database.select(database.ocptSceneBreakdownsTable)..where(
-                (table) => table.sceneId.equals(scene.id) & table.isDeleted.not(),
-              ))
-              .get(),
+          await (database.select(
+            database.ocptSceneBreakdownsTable,
+          )..where((table) => table.sceneId.equals(scene.id) & table.isDeleted.not())).get(),
           isEmpty,
         );
         expect(
@@ -909,17 +910,14 @@ Action two three.
           isTrue,
         );
         expect(
-          await (database.select(database.ocptScreenplaySnapshotsTable)..where(
-                (table) => table.screenplayId.equals(screenplayId) & table.isDeleted.not(),
-              ))
+          await (database.select(database.ocptScreenplaySnapshotsTable)
+                ..where((table) => table.screenplayId.equals(screenplayId) & table.isDeleted.not()))
               .get(),
           isEmpty,
         );
         expect(
-          await (database.select(database.ocptRoleEpisodesTable)..where(
-                (table) =>
-                    table.screenplayId.equals(screenplayId) & table.isDeleted.not(),
-              ))
+          await (database.select(database.ocptRoleEpisodesTable)
+                ..where((table) => table.screenplayId.equals(screenplayId) & table.isDeleted.not()))
               .get(),
           isEmpty,
         );
@@ -980,10 +978,9 @@ Action two three.
         expect(johnRow.isDeleted, isFalse);
         expect(johnRow.orphanedName, isNull);
         expect(
-          await (database.select(database.ocptRoleEpisodesTable)..where(
-                (table) => table.roleId.equals(johnRole.id) & table.isDeleted.not(),
-              ))
-              .get(),
+          await (database.select(
+            database.ocptRoleEpisodesTable,
+          )..where((table) => table.roleId.equals(johnRole.id) & table.isDeleted.not())).get(),
           isEmpty,
         );
 
@@ -992,10 +989,9 @@ Action two three.
           database.ocptRolesTable,
         )..where((table) => table.id.equals(maryRole.id))).getSingle();
         expect(maryRow.isDeleted, isFalse);
-        final maryLinks = await (database.select(database.ocptRoleEpisodesTable)..where(
-              (table) => table.roleId.equals(maryRole.id) & table.isDeleted.not(),
-            ))
-            .get();
+        final maryLinks = await (database.select(
+          database.ocptRoleEpisodesTable,
+        )..where((table) => table.roleId.equals(maryRole.id) & table.isDeleted.not())).get();
         expect(maryLinks.map((link) => link.screenplayId), [otherScreenplayId]);
       },
     );
@@ -1006,11 +1002,9 @@ Action two three.
     // stamping test: the outer `setUp`'s raw default sortKey (the empty string) is a valid lower
     // bound but not a valid upper one.
     setUp(() async {
-      await (database.update(
-        database.ocptScreenplaysTable,
-      )..where((table) => table.id.equals(screenplayId))).write(
-        OcptScreenplaysTableCompanion(sortKey: Value(ocptFractionalKeyBetween())),
-      );
+      await (database.update(database.ocptScreenplaysTable)
+            ..where((table) => table.id.equals(screenplayId)))
+          .write(OcptScreenplaysTableCompanion(sortKey: Value(ocptFractionalKeyBetween())));
     });
 
     test('saveScreenplayText stamps fountainText and updatedAt of the screenplay row', () async {
@@ -1062,9 +1056,7 @@ Action two three.
         );
       }
 
-      final pruned = (await readSnapshotsIncludingTombstones())
-          .where((row) => row.isDeleted)
-          .first;
+      final pruned = (await readSnapshotsIncludingTombstones()).where((row) => row.isDeleted).first;
 
       final stamps = await readStamps();
       expect(stamps["screenplay_snapshots/${pruned.id}/isDeleted"], isNotNull);
@@ -1115,7 +1107,9 @@ Action two three.
       );
 
       final stamps = await readStamps();
-      final ownKeys = stamps.keys.where((key) => key.startsWith("screenplays/$screenplayId/")).toSet();
+      final ownKeys = stamps.keys
+          .where((key) => key.startsWith("screenplays/$screenplayId/"))
+          .toSet();
       expect(ownKeys, {"screenplays/$screenplayId/title"});
     });
 

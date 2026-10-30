@@ -170,8 +170,9 @@ class _OcptBudgetLineFormBodyState extends State<OcptBudgetLineFormBody> {
                 labelText: tr.budgetLineUnitPriceFieldLabel,
                 suffixText: currencySymbol,
               ),
-              validator: (value) =>
-                  ocptCostCentsOf(value ?? "") == null ? tr.budgetEntryDialogAmountInvalidError : null,
+              validator: (value) => ocptCostCentsOf(value ?? "") == null
+                  ? tr.budgetEntryDialogAmountInvalidError
+                  : null,
             ),
           ],
         ),

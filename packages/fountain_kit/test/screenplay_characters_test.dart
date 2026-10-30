@@ -9,24 +9,17 @@ import 'package:test/test.dart';
 void main() {
   group('charactersIntroducedInActionLine', () {
     test('names a character introduced at the start of the line', () {
-      expect(
-        charactersIntroducedInActionLine('ELISA entre dans le derrière de scène.'),
-        ['ELISA'],
-      );
+      expect(charactersIntroducedInActionLine('ELISA entre dans le derrière de scène.'), ['ELISA']);
     });
 
     test('names a character introduced mid-sentence', () {
-      expect(
-        charactersIntroducedInActionLine("Derrière lui, plus loin, PASCAL s'échauffe."),
-        ['PASCAL'],
-      );
+      expect(charactersIntroducedInActionLine("Derrière lui, plus loin, PASCAL s'échauffe."), [
+        'PASCAL',
+      ]);
     });
 
     test('names nobody in a line written in ordinary case', () {
-      expect(
-        charactersIntroducedInActionLine('Paul se libère doucement de Juliette.'),
-        isEmpty,
-      );
+      expect(charactersIntroducedInActionLine('Paul se libère doucement de Juliette.'), isEmpty);
     });
 
     test('keeps the words of a two-word name together', () {

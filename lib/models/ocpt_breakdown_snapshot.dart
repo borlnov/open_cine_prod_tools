@@ -217,9 +217,7 @@ class OcptBreakdownSnapshot extends Equatable {
       taggedTargetCount: targets.length,
       usedCategoryCount: targets.map((target) => target.color).toSet().length,
       toFindCount: targets.where((target) => target.status == OcptElementStatus.toFind).length,
-      doneSceneCount: scenes
-          .where((scene) => scene.status == OcptBreakdownSceneStatus.done)
-          .length,
+      doneSceneCount: scenes.where((scene) => scene.status == OcptBreakdownSceneStatus.done).length,
       needsCheckTagCount: tags.where((tag) => tag.needsCheck).length,
     );
   }

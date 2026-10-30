@@ -24,7 +24,8 @@ class _FakeRemoteStorage implements OcptRemoteStorage {
   final List<String> sentPayloads = [];
 
   @override
-  Future<OcptSequenceNumber> append(OcptChangesetEnvelope envelope) async => OcptSequenceNumber.zero;
+  Future<OcptSequenceNumber> append(OcptChangesetEnvelope envelope) async =>
+      OcptSequenceNumber.zero;
 
   @override
   Future<List<OcptStoredChangeset>> readSince(OcptSequenceNumber cursor) async => const [];
@@ -45,7 +46,8 @@ class _FakeRemoteStorage implements OcptRemoteStorage {
   Stream<String> get presenceStream => _presenceController.stream;
 
   /// Simulates a peer's own frame arriving over the wire.
-  void emitPeerFrame(OcptPresenceFrame frame) => _presenceController.add(jsonEncode(frame.toJson()));
+  void emitPeerFrame(OcptPresenceFrame frame) =>
+      _presenceController.add(jsonEncode(frame.toJson()));
 
   /// Simulates a malformed frame arriving over the wire — never a valid [OcptPresenceFrame.toJson].
   void emitRawFrame(String raw) => _presenceController.add(raw);
@@ -56,7 +58,10 @@ class _FakeRemoteStorage implements OcptRemoteStorage {
 /// Waits for [condition] to become true, polling every 5ms, failing the test if [timeout] elapses
 /// first — matches `ocpt_sync_session_test.dart`'s own helper, for the same reason: every
 /// timer/stream-driven assertion below uses this instead of a fixed delay.
-Future<void> _waitUntil(bool Function() condition, {Duration timeout = const Duration(seconds: 2)}) async {
+Future<void> _waitUntil(
+  bool Function() condition, {
+  Duration timeout = const Duration(seconds: 2),
+}) async {
   final deadline = DateTime.now().add(timeout);
   while (!condition()) {
     if (DateTime.now().isAfter(deadline)) {
@@ -102,7 +107,9 @@ void main() {
     await service.start();
 
     expect(storage.sentPayloads, hasLength(1));
-    final sent = OcptPresenceFrame.fromJson(jsonDecode(storage.sentPayloads.single) as Map<String, dynamic>);
+    final sent = OcptPresenceFrame.fromJson(
+      jsonDecode(storage.sentPayloads.single) as Map<String, dynamic>,
+    );
     expect(sent.deviceId, deviceId);
     expect(sent.platform, 'windows');
     expect(sent.modeKey, isNull);
@@ -132,15 +139,27 @@ void main() {
     await service.start();
 
     storage.emitPeerFrame(
-      const OcptPresenceFrame(deviceId: peerDeviceId, platform: 'android', modeKey: 'breakdown', heartbeat: 1),
+      const OcptPresenceFrame(
+        deviceId: peerDeviceId,
+        platform: 'android',
+        modeKey: 'breakdown',
+        heartbeat: 1,
+      ),
     );
     await _waitUntil(() => service.roster.participants.length == 2);
 
     storage.emitPeerFrame(
-      const OcptPresenceFrame(deviceId: peerDeviceId, platform: 'android', modeKey: 'schedule', heartbeat: 2),
+      const OcptPresenceFrame(
+        deviceId: peerDeviceId,
+        platform: 'android',
+        modeKey: 'schedule',
+        heartbeat: 2,
+      ),
     );
     await _waitUntil(
-      () => service.roster.participants.any((frame) => frame.deviceId == peerDeviceId && frame.modeKey == 'schedule'),
+      () => service.roster.participants.any(
+        (frame) => frame.deviceId == peerDeviceId && frame.modeKey == 'schedule',
+      ),
     );
 
     expect(service.roster.participants, hasLength(2));
@@ -153,7 +172,12 @@ void main() {
     storage.emitRawFrame(jsonEncode({'deviceId': peerDeviceId}));
 
     storage.emitPeerFrame(
-      const OcptPresenceFrame(deviceId: peerDeviceId, platform: 'android', modeKey: null, heartbeat: 1),
+      const OcptPresenceFrame(
+        deviceId: peerDeviceId,
+        platform: 'android',
+        modeKey: null,
+        heartbeat: 1,
+      ),
     );
     await _waitUntil(() => service.roster.participants.length == 2);
 
@@ -164,7 +188,12 @@ void main() {
     await service.start();
 
     storage.emitPeerFrame(
-      const OcptPresenceFrame(deviceId: deviceId, platform: 'windows', modeKey: 'budget', heartbeat: 99),
+      const OcptPresenceFrame(
+        deviceId: deviceId,
+        platform: 'windows',
+        modeKey: 'budget',
+        heartbeat: 99,
+      ),
     );
     // Give the stream a moment to be processed; nothing should change.
     await Future<void>.delayed(const Duration(milliseconds: 50));
@@ -172,24 +201,31 @@ void main() {
     expect(service.roster.participants, hasLength(1));
   });
 
-  test('updateMode sends a heartbeat immediately and emits a fresh roster with the new mode', () async {
-    await service.start();
+  test(
+    'updateMode sends a heartbeat immediately and emits a fresh roster with the new mode',
+    () async {
+      await service.start();
 
-    final rosters = <String?>[];
-    final subscription = service.rosterStream.listen((roster) => rosters.add(roster.participants.first.modeKey));
+      final rosters = <String?>[];
+      final subscription = service.rosterStream.listen(
+        (roster) => rosters.add(roster.participants.first.modeKey),
+      );
 
-    service.updateMode(OcptWorkspaceMode.breakdown);
-    await _waitUntil(() => rosters.isNotEmpty);
+      service.updateMode(OcptWorkspaceMode.breakdown);
+      await _waitUntil(() => rosters.isNotEmpty);
 
-    expect(rosters.last, OcptWorkspaceMode.breakdown.name);
-    expect(service.roster.participants.first.modeKey, OcptWorkspaceMode.breakdown.name);
-    // The initial start() heartbeat plus this one.
-    expect(storage.sentPayloads, hasLength(2));
-    final lastSent = OcptPresenceFrame.fromJson(jsonDecode(storage.sentPayloads.last) as Map<String, dynamic>);
-    expect(lastSent.modeKey, OcptWorkspaceMode.breakdown.name);
+      expect(rosters.last, OcptWorkspaceMode.breakdown.name);
+      expect(service.roster.participants.first.modeKey, OcptWorkspaceMode.breakdown.name);
+      // The initial start() heartbeat plus this one.
+      expect(storage.sentPayloads, hasLength(2));
+      final lastSent = OcptPresenceFrame.fromJson(
+        jsonDecode(storage.sentPayloads.last) as Map<String, dynamic>,
+      );
+      expect(lastSent.modeKey, OcptWorkspaceMode.breakdown.name);
 
-    await subscription.cancel();
-  });
+      await subscription.cancel();
+    },
+  );
 
   test('a peer goes stale and is swept after peerTimeout, driven by an injected clock', () async {
     var currentTime = DateTime(2026);
@@ -207,7 +243,12 @@ void main() {
     await service.start();
 
     storage.emitPeerFrame(
-      const OcptPresenceFrame(deviceId: peerDeviceId, platform: 'android', modeKey: 'breakdown', heartbeat: 1),
+      const OcptPresenceFrame(
+        deviceId: peerDeviceId,
+        platform: 'android',
+        modeKey: 'breakdown',
+        heartbeat: 1,
+      ),
     );
     await _waitUntil(() => service.roster.participants.length == 2);
 

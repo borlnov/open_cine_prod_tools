@@ -148,10 +148,7 @@ void main() {
 
     expect(pairing!.relayBaseUri, replacementUri);
     expect(pairing.token, 'token-2');
-    expect(
-      await (database.select(database.ocptSyncPairingsTable)).get(),
-      hasLength(1),
-    );
+    expect(await (database.select(database.ocptSyncPairingsTable)).get(), hasLength(1));
   });
 
   test('two projects keep independent pairings', () async {
@@ -186,10 +183,7 @@ void main() {
     await service.clearPairing(database: database, projectId: projectId);
 
     expect(await service.loadPairing(database: database, projectId: projectId), isNull);
-    expect(
-      await (database.select(database.ocptSyncPairingsTable)).get(),
-      isEmpty,
-    );
+    expect(await (database.select(database.ocptSyncPairingsTable)).get(), isEmpty);
     expect(secureStore, isEmpty);
   });
 

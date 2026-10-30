@@ -84,7 +84,8 @@ class OcptContactListLabels extends Equatable {
   });
 
   /// The label of [department], or an empty string if [crewDepartmentLabels] holds none for it.
-  String crewDepartmentLabelOf(OcptCrewDepartment department) => crewDepartmentLabels[department] ?? "";
+  String crewDepartmentLabelOf(OcptCrewDepartment department) =>
+      crewDepartmentLabels[department] ?? "";
 
   /// The label of the crew position [positionId] names, or an empty string if [crewPositionLabels]
   /// holds none for it.

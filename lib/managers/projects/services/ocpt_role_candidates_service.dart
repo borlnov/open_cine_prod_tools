@@ -150,7 +150,9 @@ class OcptRoleCandidatesService {
           personId: personId,
           status: OcptRoleCandidateStatus.spotted,
           notes: '',
-          sortKey: ocptFractionalKeyBetween(before: existing.isEmpty ? null : existing.last.sortKey),
+          sortKey: ocptFractionalKeyBetween(
+            before: existing.isEmpty ? null : existing.last.sortKey,
+          ),
           isDeleted: false,
         ),
         stamps: stamps,
@@ -182,9 +184,9 @@ class OcptRoleCandidatesService {
     final companion = OcptRoleCandidatesTableCompanion(auditionedOn: auditionedOn, notes: notes);
 
     await database.transaction(() async {
-      final current = await (database.select(database.ocptRoleCandidatesTable)
-            ..where((table) => table.id.equals(candidateId) & table.isDeleted.not()))
-          .getSingleOrNull();
+      final current = await (database.select(
+        database.ocptRoleCandidatesTable,
+      )..where((table) => table.id.equals(candidateId) & table.isDeleted.not())).getSingleOrNull();
 
       if (current == null) {
         return;
@@ -432,11 +434,9 @@ class OcptRoleCandidatesService {
     required String roleId,
     required OcptRowStampService? stamps,
   }) async {
-    final rows =
-        await (database.select(
-              database.ocptRoleCandidatesTable,
-            )..where((table) => table.roleId.equals(roleId) & table.isDeleted.not()))
-            .get();
+    final rows = await (database.select(
+      database.ocptRoleCandidatesTable,
+    )..where((table) => table.roleId.equals(roleId) & table.isDeleted.not())).get();
 
     for (final row in rows) {
       await OcptRowStampService.writeAndStamp(
@@ -471,11 +471,9 @@ class OcptRoleCandidatesService {
     required String personId,
     required OcptRowStampService? stamps,
   }) async {
-    final rows =
-        await (database.select(
-              database.ocptRoleCandidatesTable,
-            )..where((table) => table.personId.equals(personId)))
-            .get();
+    final rows = await (database.select(
+      database.ocptRoleCandidatesTable,
+    )..where((table) => table.personId.equals(personId))).get();
 
     for (final row in rows) {
       await OcptRowStampService.writeAndStamp(

@@ -172,36 +172,35 @@ void main() {
     });
   }
 
-  testWidgets(
-    "with no scene at all, the export panel's own card is unavailable and says why",
-    (tester) async {
-      tester.view.physicalSize = const Size(1400, 900);
-      tester.view.devicePixelRatio = 1.0;
-      addTearDown(tester.view.resetPhysicalSize);
-      addTearDown(tester.view.resetDevicePixelRatio);
+  testWidgets("with no scene at all, the export panel's own card is unavailable and says why", (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1400, 900);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
 
-      await tester.pumpWidget(_wrapWithLocalization(const OcptBreakdownMode()));
-      await tester.pumpAndSettle();
+    await tester.pumpWidget(_wrapWithLocalization(const OcptBreakdownMode()));
+    await tester.pumpAndSettle();
 
-      final tr = Tr.of(tester.element(find.byType(OcptBreakdownMode)));
+    final tr = Tr.of(tester.element(find.byType(OcptBreakdownMode)));
 
-      await tester.tap(find.byTooltip(tr.workspaceExportTooltip));
-      await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip(tr.workspaceExportTooltip));
+    await tester.pumpAndSettle();
 
-      expect(find.text(tr.breakdownExportPanelTitle), findsOneWidget);
-      expect(inPanel(find.text(tr.breakdownExportSheetsTitle)), findsOneWidget);
-      expect(inPanel(find.text(tr.breakdownExportXlsxTitle)), findsOneWidget);
-      // Both cards share the same reason: neither has a scene to print or write a row for.
-      expect(inPanel(find.text(tr.breakdownExportUnavailableReason)), findsNWidgets(2));
-      expect(inPanel(find.text(tr.breakdownExportSheetsDescription)), findsNothing);
-      expect(inPanel(find.text(tr.breakdownExportXlsxDescription)), findsNothing);
+    expect(find.text(tr.breakdownExportPanelTitle), findsOneWidget);
+    expect(inPanel(find.text(tr.breakdownExportSheetsTitle)), findsOneWidget);
+    expect(inPanel(find.text(tr.breakdownExportXlsxTitle)), findsOneWidget);
+    // Both cards share the same reason: neither has a scene to print or write a row for.
+    expect(inPanel(find.text(tr.breakdownExportUnavailableReason)), findsNWidgets(2));
+    expect(inPanel(find.text(tr.breakdownExportSheetsDescription)), findsNothing);
+    expect(inPanel(find.text(tr.breakdownExportXlsxDescription)), findsNothing);
 
-      // Unavailable: tapping it pops nothing, so the panel stays open.
-      await tester.tap(inPanel(find.text(tr.breakdownExportSheetsTitle)));
-      await tester.pumpAndSettle();
-      expect(find.text(tr.breakdownExportPanelTitle), findsOneWidget);
-    },
-  );
+    // Unavailable: tapping it pops nothing, so the panel stays open.
+    await tester.tap(inPanel(find.text(tr.breakdownExportSheetsTitle)));
+    await tester.pumpAndSettle();
+    expect(find.text(tr.breakdownExportPanelTitle), findsOneWidget);
+  });
 
   testWidgets(
     "once the screenplay holds a scene, picking the card opens its own export options dialog",
@@ -307,51 +306,48 @@ void main() {
     },
   );
 
-  testWidgets(
-    "a project holding two episodes dispatches the selected one's tag when exporting the "
-    "workbook",
-    (tester) async {
-      tester.view.physicalSize = const Size(1400, 900);
-      tester.view.devicePixelRatio = 1.0;
-      addTearDown(tester.view.resetPhysicalSize);
-      addTearDown(tester.view.resetDevicePixelRatio);
+  testWidgets("a project holding two episodes dispatches the selected one's tag when exporting the "
+      "workbook", (tester) async {
+    tester.view.physicalSize = const Size(1400, 900);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
 
-      final project = projectsManager.currentProject!;
-      await projectsManager.screenplayService.saveScreenplayText(
-        database: project.database,
-        screenplayId: project.primaryScreenplayId,
-        fountainText: "INT. KITCHEN - DAY\n\nAction.\n",
-        snapshotReason: OcptSnapshotReason.manual,
-      );
-      final secondEpisodeId = await projectsManager.screenplayService.createEpisode(
-        database: project.database,
-      );
+    final project = projectsManager.currentProject!;
+    await projectsManager.screenplayService.saveScreenplayText(
+      database: project.database,
+      screenplayId: project.primaryScreenplayId,
+      fountainText: "INT. KITCHEN - DAY\n\nAction.\n",
+      snapshotReason: OcptSnapshotReason.manual,
+    );
+    final secondEpisodeId = await projectsManager.screenplayService.createEpisode(
+      database: project.database,
+    );
 
-      final exportManager = _RecordingExportManager();
-      useExportManager(exportManager);
+    final exportManager = _RecordingExportManager();
+    useExportManager(exportManager);
 
-      await tester.pumpWidget(_wrapWithLocalization(const OcptBreakdownMode()));
-      await tester.pumpAndSettle();
+    await tester.pumpWidget(_wrapWithLocalization(const OcptBreakdownMode()));
+    await tester.pumpAndSettle();
 
-      final context = tester.element(find.byType(OcptBreakdownMode));
-      final tr = Tr.of(context);
+    final context = tester.element(find.byType(OcptBreakdownMode));
+    final tr = Tr.of(context);
 
-      // The workspace bloc lands on the first episode by default; select the second one so the
-      // exported tag can be told apart from what a single-episode project would produce.
-      context.read<OcptWorkspaceBloc>().add(
-        OcptWorkspaceEpisodeSelectedEvent(episodeId: secondEpisodeId!),
-      );
-      await tester.pumpAndSettle();
+    // The workspace bloc lands on the first episode by default; select the second one so the
+    // exported tag can be told apart from what a single-episode project would produce.
+    context.read<OcptWorkspaceBloc>().add(
+      OcptWorkspaceEpisodeSelectedEvent(episodeId: secondEpisodeId!),
+    );
+    await tester.pumpAndSettle();
 
-      await tester.tap(find.byTooltip(tr.workspaceExportTooltip));
-      await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip(tr.workspaceExportTooltip));
+    await tester.pumpAndSettle();
 
-      await tester.tap(inPanel(find.text(tr.breakdownExportXlsxTitle)));
-      await tester.pumpAndSettle();
+    await tester.tap(inPanel(find.text(tr.breakdownExportXlsxTitle)));
+    await tester.pumpAndSettle();
 
-      expect(exportManager.lastExportedEpisodeTag, tr.workspaceEpisodeTag(2));
-    },
-  );
+    expect(exportManager.lastExportedEpisodeTag, tr.workspaceEpisodeTag(2));
+  });
 
   testWidgets(
     "the compact banner shows an orphaned role and tapping it asks to reveal it in Resources",
@@ -388,9 +384,7 @@ void main() {
         snapshotReason: OcptSnapshotReason.manual,
       );
       final shellContext = tester.element(find.byType(OcptWorkspaceShell));
-      BlocProvider.of<OcptBreakdownBloc>(shellContext).add(
-        const OcptBreakdownLoadRequestedEvent(),
-      );
+      BlocProvider.of<OcptBreakdownBloc>(shellContext).add(const OcptBreakdownLoadRequestedEvent());
       await tester.pumpAndSettle();
 
       expect(find.text(tr.roleAlertCompactOrphanedLine("CLARA")), findsOneWidget);
@@ -404,8 +398,11 @@ void main() {
       expect(workspaceState.mode, OcptWorkspaceMode.resources);
       expect(
         workspaceState.revealRequest,
-        isA<OcptResourcesRevealRequest>()
-            .having((request) => request.tab, "tab", OcptResourcesTab.roles),
+        isA<OcptResourcesRevealRequest>().having(
+          (request) => request.tab,
+          "tab",
+          OcptResourcesTab.roles,
+        ),
       );
     },
   );

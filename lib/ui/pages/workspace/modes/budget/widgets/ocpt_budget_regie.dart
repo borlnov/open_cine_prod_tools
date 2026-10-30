@@ -488,7 +488,8 @@ class OcptBudgetRegie extends StatelessWidget {
         ),
         const SizedBox(height: 16),
         _OcptRegieProvisionBand(
-          computedTotalCents: cateringTotals.cost.amountCents + ocptBudgetAllowancesTotalCents(allowances),
+          computedTotalCents:
+              cateringTotals.cost.amountCents + ocptBudgetAllowancesTotalCents(allowances),
           provisionedTotalCents: provisionedTotalCents,
           postes: postes,
           provisionPosteId: provisionPosteId,
@@ -522,8 +523,9 @@ class _OcptRegieVerticalScroller extends StatelessWidget {
   const _OcptRegieVerticalScroller({required this.height, required this.child});
 
   @override
-  Widget build(BuildContext context) =>
-      SingleChildScrollView(child: SizedBox(height: height, child: child));
+  Widget build(BuildContext context) => SingleChildScrollView(
+    child: SizedBox(height: height, child: child),
+  );
 }
 
 /// A table card inside its own pane: drawn at exactly [height] once the panes stack, and taking
@@ -542,9 +544,8 @@ class _OcptRegieTablePane extends StatelessWidget {
   const _OcptRegieTablePane({required this.height, required this.child});
 
   @override
-  Widget build(BuildContext context) => height == null
-      ? Expanded(child: child)
-      : SizedBox(height: height, child: child);
+  Widget build(BuildContext context) =>
+      height == null ? Expanded(child: child) : SizedBox(height: height, child: child);
 }
 
 /// The left column: the heading band with its two captions, then the catering table.
@@ -602,10 +603,15 @@ class _OcptRegieCateringColumn extends StatelessWidget {
                       ? ocptBudgetEmptyValue
                       : ocptBudgetAmountLabel(buffetPriceCents!, currencyCode),
                 ),
-                style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
               ),
             ),
-            TextButton(onPressed: onProjectSettingsRequested, child: Text(tr.budgetRegiePricesEditAction)),
+            TextButton(
+              onPressed: onProjectSettingsRequested,
+              child: Text(tr.budgetRegiePricesEditAction),
+            ),
           ],
         ),
         Row(
@@ -614,10 +620,15 @@ class _OcptRegieCateringColumn extends StatelessWidget {
             Expanded(
               child: Text(
                 tr.budgetRegieCateringScheduleHint,
-                style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
               ),
             ),
-            TextButton(onPressed: onScheduleOpenRequested, child: Text(tr.budgetRegieOpenScheduleAction)),
+            TextButton(
+              onPressed: onScheduleOpenRequested,
+              child: Text(tr.budgetRegieOpenScheduleAction),
+            ),
           ],
         ),
         const SizedBox(height: 8),
@@ -766,7 +777,11 @@ class _OcptRegieCateringRow extends StatelessWidget {
   final String currencyCode;
 
   /// Class constructor
-  const _OcptRegieCateringRow({required this.day, required this.decorName, required this.currencyCode});
+  const _OcptRegieCateringRow({
+    required this.day,
+    required this.decorName,
+    required this.currencyCode,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -810,7 +825,9 @@ class _OcptRegieCateringRow extends StatelessWidget {
                     DateFormat.yMMMd(locale).format(day.date),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
                   ),
                 ],
               ),
@@ -1023,7 +1040,9 @@ class _OcptRegieAllowanceColumn extends StatelessWidget {
                       child: Text(
                         tr.budgetRegieAllowancesEmptyHint,
                         textAlign: TextAlign.center,
-                        style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
                       ),
                     )
                   : LayoutBuilder(
@@ -1035,7 +1054,9 @@ class _OcptRegieAllowanceColumn extends StatelessWidget {
                             children: [
                               const _OcptRegieAllowanceHeaderRow(),
                               const Divider(height: 1),
-                              Expanded(child: ListView(children: [for (final row in rows) _rowOf(row)])),
+                              Expanded(
+                                child: ListView(children: [for (final row in rows) _rowOf(row)]),
+                              ),
                               const Divider(height: 1),
                               _OcptRegieAllowanceTotalRow(
                                 allowances: allowances,
@@ -1320,7 +1341,9 @@ Widget _ocptRegieAllowanceAmountCell(
   return SizedBox(
     width: _ocptRegieAllowanceAmountColumnWidth,
     child: Text(
-      showBlank ? "" : (cents == null ? ocptBudgetEmptyValue : ocptBudgetAmountLabel(cents, currencyCode)),
+      showBlank
+          ? ""
+          : (cents == null ? ocptBudgetEmptyValue : ocptBudgetAmountLabel(cents, currencyCode)),
       textAlign: TextAlign.right,
       maxLines: 1,
       overflow: TextOverflow.ellipsis,
@@ -1440,9 +1463,15 @@ class _OcptRegieAllowancePersonRow extends StatelessWidget {
                 _ => null,
               },
               itemBuilder: (context) => [
-                PopupMenuItem<String>(value: "person", child: Text(tr.budgetRegieAllowanceOpenPersonAction)),
+                PopupMenuItem<String>(
+                  value: "person",
+                  child: Text(tr.budgetRegieAllowanceOpenPersonAction),
+                ),
                 if (onReimburseRequested != null)
-                  PopupMenuItem<String>(value: "reimburse", child: Text(tr.budgetRegieReimburseAction)),
+                  PopupMenuItem<String>(
+                    value: "reimburse",
+                    child: Text(tr.budgetRegieReimburseAction),
+                  ),
               ],
             ),
           ),
@@ -1527,9 +1556,17 @@ class _OcptRegieAllowanceNoPersonRow extends StatelessWidget {
                 ],
               ),
             ),
-            _ocptRegieAllowanceAmountCell(context, ocptBudgetAllowanceCentsOf(allowance), currencyCode),
+            _ocptRegieAllowanceAmountCell(
+              context,
+              ocptBudgetAllowanceCentsOf(allowance),
+              currencyCode,
+            ),
             _ocptRegieAllowanceAmountCell(context, null, currencyCode, showBlank: true),
-            _ocptRegieAllowanceAmountCell(context, ocptBudgetAllowanceCentsOf(allowance), currencyCode),
+            _ocptRegieAllowanceAmountCell(
+              context,
+              ocptBudgetAllowanceCentsOf(allowance),
+              currencyCode,
+            ),
             SizedBox(
               width: _ocptRegieAllowanceMenuColumnWidth,
               child: onDeletionRequested == null
@@ -1539,7 +1576,10 @@ class _OcptRegieAllowanceNoPersonRow extends StatelessWidget {
                       icon: const Icon(Icons.more_vert, size: 18),
                       onSelected: (_) => onDeletionRequested?.call(),
                       itemBuilder: (context) => [
-                        PopupMenuItem<String>(value: "delete", child: Text(tr.budgetCommittedDeleteAction)),
+                        PopupMenuItem<String>(
+                          value: "delete",
+                          child: Text(tr.budgetCommittedDeleteAction),
+                        ),
                       ],
                     ),
             ),
@@ -1601,11 +1641,17 @@ class _OcptRegieAllowanceDefrayalRow extends StatelessWidget {
                   _detailTextOf(context),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
                 ),
               ),
             ),
-            _ocptRegieAllowanceAmountCell(context, ocptBudgetAllowanceCentsOf(allowance), currencyCode),
+            _ocptRegieAllowanceAmountCell(
+              context,
+              ocptBudgetAllowanceCentsOf(allowance),
+              currencyCode,
+            ),
             _ocptRegieAllowanceAmountCell(context, null, currencyCode, showBlank: true),
             _ocptRegieAllowanceAmountCell(context, null, currencyCode, showBlank: true),
             SizedBox(
@@ -1623,7 +1669,10 @@ class _OcptRegieAllowanceDefrayalRow extends StatelessWidget {
                     child: Text(tr.budgetRegieAllowanceOpenPersonAction),
                   ),
                   if (onDeletionRequested != null)
-                    PopupMenuItem<String>(value: "delete", child: Text(tr.budgetCommittedDeleteAction)),
+                    PopupMenuItem<String>(
+                      value: "delete",
+                      child: Text(tr.budgetCommittedDeleteAction),
+                    ),
                 ],
               ),
             ),
@@ -1654,7 +1703,9 @@ class _OcptRegieAllowanceDefrayalRow extends StatelessWidget {
     final format = DateFormat.Md(Localizations.localeOf(context).toLanguageTag());
     final endDate = allowance.endDate;
 
-    return endDate == null ? format.format(date) : "${format.format(date)} – ${format.format(endDate)}";
+    return endDate == null
+        ? format.format(date)
+        : "${format.format(date)} – ${format.format(endDate)}";
   }
 }
 
@@ -1688,7 +1739,10 @@ class _OcptRegieAllowanceReimbursementRow extends StatelessWidget {
     // Read exactly the way the `REIMBURSED` column above it is — tax-inclusive, through the
     // journal's own reading rather than off `debitCents` raw — mirrors
     // `OcptBudgetFinancing`'s own receipt sub-row.
-    final debitCents = ocptBudgetEntryDebitCentsOf(entry, projectVatRateBasisPoints: defaultVatRateBasisPoints);
+    final debitCents = ocptBudgetEntryDebitCentsOf(
+      entry,
+      projectVatRateBasisPoints: defaultVatRateBasisPoints,
+    );
 
     return SizedBox(
       height: _ocptRegieAllowanceSubRowHeight,
@@ -1705,7 +1759,10 @@ class _OcptRegieAllowanceReimbursementRow extends StatelessWidget {
                   Container(
                     width: _ocptRegieAllowanceDotDiameter,
                     height: _ocptRegieAllowanceDotDiameter,
-                    decoration: BoxDecoration(color: theme.colorScheme.primary, shape: BoxShape.circle),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.primary,
+                      shape: BoxShape.circle,
+                    ),
                   ),
                   const SizedBox(width: 6),
                   Expanded(
@@ -1713,7 +1770,9 @@ class _OcptRegieAllowanceReimbursementRow extends StatelessWidget {
                       label,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
                     ),
                   ),
                   const SizedBox(width: 6),
@@ -1741,7 +1800,9 @@ class _OcptRegieAllowanceReimbursementRow extends StatelessWidget {
           SizedBox(
             width: _ocptRegieAllowanceAmountColumnWidth,
             child: Text(
-              debitCents == null ? ocptBudgetEmptyValue : ocptBudgetAmountLabel(debitCents, currencyCode),
+              debitCents == null
+                  ? ocptBudgetEmptyValue
+                  : ocptBudgetAmountLabel(debitCents, currencyCode),
               textAlign: TextAlign.right,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
@@ -1942,7 +2003,9 @@ class _OcptRegieProvisionBand extends StatelessWidget {
             if (postes.isEmpty)
               Text(
                 tr.budgetRegieProvisionNoPosteHint,
-                style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
               )
             else ...[
               if (onPosteSelected != null)

@@ -47,36 +47,37 @@ const _labels = OcptStoryboardLabels(
 
 /// Builds an [OcptShot] test double with sensible defaults for the fields a given test does not
 /// care about.
-OcptShot _buildShot({required String id, required String code, String recordingFormat = ""}) => OcptShot(
-  id: id,
-  screenplayId: "screenplay",
-  sceneId: "scene-1",
-  orphanedHeading: null,
-  position: 0,
-  shotSize: "Medium shot",
-  abbreviation: "PM",
-  framing: "Front",
-  cameraMove: "Static",
-  lens: "35mm",
-  recordingFormat: recordingFormat,
-  estimatedDurationMs: null,
-  shootingDay: null,
-  plannedTakes: null,
-  sound: "",
-  status: OcptShotStatus.toShoot,
-  difficultySet: 0,
-  difficultyCamera: 0,
-  difficultyActing: 0,
-  difficultySound: 0,
-  notes: "",
-  locationNotes: "",
-  needsCheck: false,
-  checkReason: null,
-  characters: const ["ROLE A"],
-  coverageRanges: const [],
-  code: code,
-  averageDifficulty: 0,
-);
+OcptShot _buildShot({required String id, required String code, String recordingFormat = ""}) =>
+    OcptShot(
+      id: id,
+      screenplayId: "screenplay",
+      sceneId: "scene-1",
+      orphanedHeading: null,
+      position: 0,
+      shotSize: "Medium shot",
+      abbreviation: "PM",
+      framing: "Front",
+      cameraMove: "Static",
+      lens: "35mm",
+      recordingFormat: recordingFormat,
+      estimatedDurationMs: null,
+      shootingDay: null,
+      plannedTakes: null,
+      sound: "",
+      status: OcptShotStatus.toShoot,
+      difficultySet: 0,
+      difficultyCamera: 0,
+      difficultyActing: 0,
+      difficultySound: 0,
+      notes: "",
+      locationNotes: "",
+      needsCheck: false,
+      checkReason: null,
+      characters: const ["ROLE A"],
+      coverageRanges: const [],
+      code: code,
+      averageDifficulty: 0,
+    );
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -110,9 +111,7 @@ void main() {
         displaySceneNumber: "1",
         charStart: 0,
         charEnd: 100,
-        shots: [
-          for (var i = 0; i < shotCount; i++) _buildShot(id: "shot-$i", code: "1/${i + 1}"),
-        ],
+        shots: [for (var i = 0; i < shotCount; i++) _buildShot(id: "shot-$i", code: "1/${i + 1}")],
       ),
     ],
   );
@@ -134,7 +133,10 @@ void main() {
     test("produces bytes starting with the %PDF magic string", () async {
       final bytes = await generate(
         snapshot: snapshotOf(1),
-        storyboardSnapshot: const OcptStoryboardSnapshot(screenplayId: "screenplay", panelsByShotId: {}),
+        storyboardSnapshot: const OcptStoryboardSnapshot(
+          screenplayId: "screenplay",
+          panelsByShotId: {},
+        ),
       );
 
       expect(bytes, isNotEmpty);
@@ -145,7 +147,10 @@ void main() {
       // 5 shots at 2 per page: 3 chunks, hence 3 pages — no floor plans appended, no title page.
       final bytes = await generate(
         snapshot: snapshotOf(5),
-        storyboardSnapshot: const OcptStoryboardSnapshot(screenplayId: "screenplay", panelsByShotId: {}),
+        storyboardSnapshot: const OcptStoryboardSnapshot(
+          screenplayId: "screenplay",
+          panelsByShotId: {},
+        ),
         shotsPerPage: 2,
       );
 
@@ -155,7 +160,10 @@ void main() {
     test("a sequence with no shot at all contributes no page", () async {
       final bytes = await generate(
         snapshot: OcptShotListSnapshot.build(screenplayId: "screenplay", sequences: const []),
-        storyboardSnapshot: const OcptStoryboardSnapshot(screenplayId: "screenplay", panelsByShotId: {}),
+        storyboardSnapshot: const OcptStoryboardSnapshot(
+          screenplayId: "screenplay",
+          panelsByShotId: {},
+        ),
       );
 
       expect(_pageCount(bytes), 0);
@@ -164,7 +172,10 @@ void main() {
     test("a shot with no panel still prints its own row", () async {
       final bytes = await generate(
         snapshot: snapshotOf(1),
-        storyboardSnapshot: const OcptStoryboardSnapshot(screenplayId: "screenplay", panelsByShotId: {}),
+        storyboardSnapshot: const OcptStoryboardSnapshot(
+          screenplayId: "screenplay",
+          panelsByShotId: {},
+        ),
       );
 
       expect(_pageCount(bytes), 1);
@@ -391,7 +402,11 @@ void main() {
 
     test("appends the episode tag last, after the suffix, when there is one", () {
       expect(
-        service.storyboardFileName(projectName: "My Movie", suffix: "storyboard", episodeTag: "ep. 2"),
+        service.storyboardFileName(
+          projectName: "My Movie",
+          suffix: "storyboard",
+          episodeTag: "ep. 2",
+        ),
         "My Movie - storyboard - ep. 2.pdf",
       );
     });

@@ -350,9 +350,11 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
     final areStyledSceneNumbersVisible =
         await _propertiesManager.styledSceneNumbersVisible.load() ?? true;
     final leftDockFraction =
-        await _propertiesManager.editorLeftDockFraction.load() ?? OcptWorkspaceDock.leftDefaultFraction;
+        await _propertiesManager.editorLeftDockFraction.load() ??
+        OcptWorkspaceDock.leftDefaultFraction;
     final rightDockFraction =
-        await _propertiesManager.editorRightDockFraction.load() ?? OcptWorkspaceDock.rightDefaultFraction;
+        await _propertiesManager.editorRightDockFraction.load() ??
+        OcptWorkspaceDock.rightDefaultFraction;
     final isSpellCheckVisible = await _propertiesManager.spellCheckVisible.load() ?? true;
     final screenplayLanguage = await _projectsManager.loadCurrentProjectScreenplayLanguage();
 
@@ -474,7 +476,8 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
       project.previewedPageSetup ??
       OcptPageSetup(
         format: await _projectsManager.loadCurrentProjectPageFormat() ?? OcptPageFormat.usLetter,
-        margins: await _propertiesManager.pageMargins.load() ?? const FountainPageMargins.standard(),
+        margins:
+            await _propertiesManager.pageMargins.load() ?? const FountainPageMargins.standard(),
       );
 
   /// Computes the statistics of [document] laid out at [pageSetup]'s metrics.
@@ -488,7 +491,9 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
     FountainDocument document,
     OcptPageSetup pageSetup,
     int? sceneIndex,
-  ) => sceneIndex == null ? null : FountainSceneStatistics.of(document, pageSetup.toMetrics(), sceneIndex);
+  ) => sceneIndex == null
+      ? null
+      : FountainSceneStatistics.of(document, pageSetup.toMetrics(), sceneIndex);
 
   /// Computes how the right dock's active tab and its "auto-closed" memory should change when the
   /// editing mode becomes [newMode], applied identically by [_onModeToggled] and by
@@ -705,8 +710,10 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
         add(const OcptProjectWorkingCopyRefreshRequestedEvent());
       }
     } catch (error) {
-      appLogger().e("A problem occurred when tried to save the screenplay of the project at "
-          "${project.path}: $error");
+      appLogger().e(
+        "A problem occurred when tried to save the screenplay of the project at "
+        "${project.path}: $error",
+      );
       emitter(state.copyWith(isSaving: false, hasSaveError: true));
     }
   }
@@ -823,9 +830,7 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
     OcptEditorDockFractionsChangedEvent event,
     Emitter<OcptEditorState> emitter,
   ) async {
-    emitter(
-      state.copyWith(leftDockFraction: event.left, rightDockFraction: event.right),
-    );
+    emitter(state.copyWith(leftDockFraction: event.left, rightDockFraction: event.right));
 
     final left = event.left;
     if (left != null) {
@@ -868,7 +873,9 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
     OcptEditorModeToggledEvent event,
     Emitter<OcptEditorState> emitter,
   ) async {
-    final newMode = state.mode == OcptEditorMode.styled ? OcptEditorMode.raw : OcptEditorMode.styled;
+    final newMode = state.mode == OcptEditorMode.styled
+        ? OcptEditorMode.raw
+        : OcptEditorMode.styled;
     final dockTabTransition = _rightDockTransitionFor(
       newMode: newMode,
       isReadOnly: state.isPreviewingVersion,
@@ -956,7 +963,9 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
     if (event.generation != _spellCheckManager.generation) {
       return;
     }
-    if (state.isPreviewingVersion || !state.isSpellCheckVisible || state.screenplayLanguage == null) {
+    if (state.isPreviewingVersion ||
+        !state.isSpellCheckVisible ||
+        state.screenplayLanguage == null) {
       return;
     }
     final document = state.document;
@@ -1040,7 +1049,8 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
 
         final ranges = <String, List<SpellRange>>{
           for (final nodeId in textsByNodeId.keys)
-            if (_styledSpellCheckCache[nodeId] != null) nodeId: _styledSpellCheckCache[nodeId]!.ranges,
+            if (_styledSpellCheckCache[nodeId] != null)
+              nodeId: _styledSpellCheckCache[nodeId]!.ranges,
         };
 
         add(
@@ -1087,7 +1097,9 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
     if (event.generation != _spellCheckManager.generation) {
       return;
     }
-    if (state.isPreviewingVersion || !state.isSpellCheckVisible || state.screenplayLanguage == null) {
+    if (state.isPreviewingVersion ||
+        !state.isSpellCheckVisible ||
+        state.screenplayLanguage == null) {
       return;
     }
 
@@ -1106,7 +1118,9 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
   /// so) or a version is being previewed — the same three conditions every other spell-check path
   /// here guards on.
   Future<List<String>> spellingSuggestionsFor(String word) {
-    if (state.isPreviewingVersion || !state.isSpellCheckVisible || state.screenplayLanguage == null) {
+    if (state.isPreviewingVersion ||
+        !state.isSpellCheckVisible ||
+        state.screenplayLanguage == null) {
       return Future.value(const []);
     }
     return _spellCheckManager.suggestionsFor(word);
@@ -1326,13 +1340,11 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
       }
 
       final range = block.sourceRange;
-      result.add(
-        (
-          index: index++,
-          text: document.sourceText.substring(range.startOffset, range.endOffset),
-          startOffset: range.startOffset,
-        ),
-      );
+      result.add((
+        index: index++,
+        text: document.sourceText.substring(range.startOffset, range.endOffset),
+        startOffset: range.startOffset,
+      ));
     }
 
     for (final block in document.blocks) {
@@ -1465,8 +1477,10 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
         ),
       );
     } catch (error) {
-      appLogger().e("A problem occurred when tried to export the screenplay of the project at "
-          "${_projectsManager.currentProject?.path}: $error");
+      appLogger().e(
+        "A problem occurred when tried to export the screenplay of the project at "
+        "${_projectsManager.currentProject?.path}: $error",
+      );
       emitter(
         state.copyWith(
           ioNotice: const OcptEditorIoNotice(kind: OcptEditorIoNoticeKind.exportFailed),
@@ -1522,8 +1536,10 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
         ),
       );
     } catch (error) {
-      appLogger().e("A problem occurred when tried to export the screenplay of the project at "
-          "${_projectsManager.currentProject?.path} to PDF: $error");
+      appLogger().e(
+        "A problem occurred when tried to export the screenplay of the project at "
+        "${_projectsManager.currentProject?.path} to PDF: $error",
+      );
       emitter(
         state.copyWith(
           ioNotice: const OcptEditorIoNotice(kind: OcptEditorIoNoticeKind.pdfExportFailed),
@@ -1593,10 +1609,16 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
         ),
       );
       await _onParseRequested(const OcptEditorParseRequestedEvent(), emitter);
-      _recomputeStatisticsNow(document: state.document!, pageSetup: state.pageSetup, emitter: emitter);
+      _recomputeStatisticsNow(
+        document: state.document!,
+        pageSetup: state.pageSetup,
+        emitter: emitter,
+      );
     } catch (error) {
-      appLogger().e("A problem occurred when tried to import a fountain file into the project at "
-          "${project.path}: $error");
+      appLogger().e(
+        "A problem occurred when tried to import a fountain file into the project at "
+        "${project.path}: $error",
+      );
       emitter(
         state.copyWith(
           ioNotice: const OcptEditorIoNotice(kind: OcptEditorIoNoticeKind.importFailed),
@@ -1646,7 +1668,11 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
     emitter(state.copyWith(text: newText));
     await _saveCurrentText(reason: OcptSnapshotReason.manual, emitter: emitter);
     await _onParseRequested(const OcptEditorParseRequestedEvent(), emitter);
-    _recomputeStatisticsNow(document: state.document!, pageSetup: state.pageSetup, emitter: emitter);
+    _recomputeStatisticsNow(
+      document: state.document!,
+      pageSetup: state.pageSetup,
+      emitter: emitter,
+    );
   }
 
   /// Builds the title-page entries [event] describes, skipping every field left blank.
@@ -1696,11 +1722,7 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
   ) async {
     emitter(
       state.copyWith(
-        search: state.search.copyWith(
-          isOpen: false,
-          matchCount: 0,
-          clearCurrentMatchIndex: true,
-        ),
+        search: state.search.copyWith(isOpen: false, matchCount: 0, clearCurrentMatchIndex: true),
       ),
     );
   }
@@ -1733,9 +1755,7 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
     OcptEditorSearchReplacementChangedEvent event,
     Emitter<OcptEditorState> emitter,
   ) async {
-    emitter(
-      state.copyWith(search: state.search.copyWith(replacement: event.replacement)),
-    );
+    emitter(state.copyWith(search: state.search.copyWith(replacement: event.replacement)));
   }
 
   /// Toggles the "match case" option.
@@ -1744,9 +1764,7 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
     Emitter<OcptEditorState> emitter,
   ) async {
     emitter(
-      state.copyWith(
-        search: state.search.copyWith(isCaseSensitive: !state.search.isCaseSensitive),
-      ),
+      state.copyWith(search: state.search.copyWith(isCaseSensitive: !state.search.isCaseSensitive)),
     );
   }
 
@@ -1755,9 +1773,7 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
     OcptEditorSearchWholeWordToggledEvent event,
     Emitter<OcptEditorState> emitter,
   ) async {
-    emitter(
-      state.copyWith(search: state.search.copyWith(isWholeWord: !state.search.isWholeWord)),
-    );
+    emitter(state.copyWith(search: state.search.copyWith(isWholeWord: !state.search.isWholeWord)));
   }
 
   /// Records the mounted surface's current match count, clamping the current match index into the
@@ -1769,9 +1785,7 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
     final matchCount = event.matchCount;
     if (matchCount == 0) {
       emitter(
-        state.copyWith(
-          search: state.search.copyWith(matchCount: 0, clearCurrentMatchIndex: true),
-        ),
+        state.copyWith(search: state.search.copyWith(matchCount: 0, clearCurrentMatchIndex: true)),
       );
       return;
     }
@@ -1869,8 +1883,10 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
           snapshotReason: OcptSnapshotReason.timer,
         );
       } catch (error) {
-        appLogger().e("A problem occurred when tried to flush the screenplay of the project at "
-            "${project.path} while leaving the editor: $error");
+        appLogger().e(
+          "A problem occurred when tried to flush the screenplay of the project at "
+          "${project.path} while leaving the editor: $error",
+        );
       }
     }
 

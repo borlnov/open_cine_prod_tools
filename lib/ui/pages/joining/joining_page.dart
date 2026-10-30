@@ -200,11 +200,7 @@ class _OcptJoiningViewState extends State<OcptJoiningView> {
         padding: const EdgeInsets.all(22),
         child: Column(
           children: [
-            Icon(
-              Icons.videocam_off_outlined,
-              size: 40,
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
+            Icon(Icons.videocam_off_outlined, size: 40, color: theme.colorScheme.onSurfaceVariant),
             const SizedBox(height: 12),
             Text(
               tr.joiningScannerUnavailableTitle,

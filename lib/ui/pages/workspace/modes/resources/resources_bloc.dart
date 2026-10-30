@@ -414,7 +414,8 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     final setIdsWithPlan = await _locationsService.floorPlanService.liveSetIdsWithPlan(
       database: project.database,
       setIds: [
-        for (final location in snapshot.locations) for (final set in location.sets) set.id,
+        for (final location in snapshot.locations)
+          for (final set in location.sets) set.id,
       ],
     );
 
@@ -501,7 +502,8 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
       project.previewedPageSetup ??
       OcptPageSetup(
         format: await _projectsManager.loadCurrentProjectPageFormat() ?? OcptPageFormat.usLetter,
-        margins: await _propertiesManager.pageMargins.load() ?? const FountainPageMargins.standard(),
+        margins:
+            await _propertiesManager.pageMargins.load() ?? const FountainPageMargins.standard(),
       );
 
   /// Reads the whole resources catalogue of [project], joining the four services' own reads into
@@ -664,8 +666,10 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
       final snapshot = await _loadSnapshot(project);
       emitter(state.copyWith(snapshot: snapshot, selectedPersonId: personId));
     } catch (error) {
-      appLogger().e("A problem occurred when tried to create a person in the project at "
-          "${project.path}: $error");
+      appLogger().e(
+        "A problem occurred when tried to create a person in the project at "
+        "${project.path}: $error",
+      );
       emitter(state.copyWith(hasWriteError: true));
     }
   }
@@ -682,9 +686,8 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
       return;
     }
 
-    final pendingWithoutPerson = Map<(String, OcptPersonField), String>.of(
-      state.pendingFieldEdits,
-    )..removeWhere((key, _) => key.$1 == event.personId);
+    final pendingWithoutPerson = Map<(String, OcptPersonField), String>.of(state.pendingFieldEdits)
+      ..removeWhere((key, _) => key.$1 == event.personId);
     _cancelFieldEditTimerIfIdle(
       pendingPersonEdits: pendingWithoutPerson,
       pendingRoleEdits: state.pendingRoleFieldEdits,
@@ -707,8 +710,10 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
         ),
       );
     } catch (error) {
-      appLogger().e("A problem occurred when tried to erase person ${event.personId} of the "
-          "project at ${project.path}: $error");
+      appLogger().e(
+        "A problem occurred when tried to erase person ${event.personId} of the "
+        "project at ${project.path}: $error",
+      );
       emitter(state.copyWith(hasWriteError: true));
     }
   }
@@ -818,14 +823,16 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
 
     final project = _projectsManager.currentProject;
     if (project == null) {
-      emitter(state.copyWith(
-        pendingFieldEdits: const {},
-        pendingRoleFieldEdits: const {},
-        pendingLocationFieldEdits: const {},
-        pendingSetFieldEdits: const {},
-        pendingElementFieldEdits: const {},
-        pendingCandidateFieldEdits: const {},
-      ));
+      emitter(
+        state.copyWith(
+          pendingFieldEdits: const {},
+          pendingRoleFieldEdits: const {},
+          pendingLocationFieldEdits: const {},
+          pendingSetFieldEdits: const {},
+          pendingElementFieldEdits: const {},
+          pendingCandidateFieldEdits: const {},
+        ),
+      );
       return;
     }
 
@@ -837,10 +844,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
         pending: pendingLocationEdits,
       );
       await _writeAllPendingSetFields(database: project.database, pending: pendingSetEdits);
-      await _writeAllPendingElementFields(
-        database: project.database,
-        pending: pendingElementEdits,
-      );
+      await _writeAllPendingElementFields(database: project.database, pending: pendingElementEdits);
       await _writeAllPendingCandidateFields(
         database: project.database,
         pending: pendingCandidateEdits,
@@ -864,8 +868,10 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
         add(const OcptProjectWorkingCopyRefreshRequestedEvent());
       }
     } catch (error) {
-      appLogger().e("A problem occurred when tried to flush a pending resources field edit of "
-          "the project at ${project.path}: $error");
+      appLogger().e(
+        "A problem occurred when tried to flush a pending resources field edit of "
+        "the project at ${project.path}: $error",
+      );
       emitter(
         state.copyWith(
           hasWriteError: true,
@@ -925,17 +931,16 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
         pending: pendingLocationEdits,
       );
       await _writeAllPendingSetFields(database: project.database, pending: pendingSetEdits);
-      await _writeAllPendingElementFields(
-        database: project.database,
-        pending: pendingElementEdits,
-      );
+      await _writeAllPendingElementFields(database: project.database, pending: pendingElementEdits);
       await _writeAllPendingCandidateFields(
         database: project.database,
         pending: pendingCandidateEdits,
       );
     } catch (error) {
-      appLogger().e("A problem occurred when tried to flush a pending resources field edit of "
-          "the project at ${project.path}: $error");
+      appLogger().e(
+        "A problem occurred when tried to flush a pending resources field edit of "
+        "the project at ${project.path}: $error",
+      );
     }
   }
 
@@ -946,7 +951,12 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
   }) async {
     for (final entry in pending.entries) {
       final (personId, field) = entry.key;
-      await _writeField(database: database, personId: personId, field: field, rawValue: entry.value);
+      await _writeField(
+        database: database,
+        personId: personId,
+        field: field,
+        rawValue: entry.value,
+      );
     }
   }
 
@@ -1125,7 +1135,12 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
   }) async {
     for (final entry in pending.entries) {
       final (roleId, field) = entry.key;
-      await _writeRoleField(database: database, roleId: roleId, field: field, rawValue: entry.value);
+      await _writeRoleField(
+        database: database,
+        roleId: roleId,
+        field: field,
+        rawValue: entry.value,
+      );
     }
   }
 
@@ -1144,7 +1159,11 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
   }) async {
     switch (field) {
       case OcptRoleField.name:
-        await _roleIndexService.updateRole(database: database, roleId: roleId, name: Value(rawValue));
+        await _roleIndexService.updateRole(
+          database: database,
+          roleId: roleId,
+          name: Value(rawValue),
+        );
       case OcptRoleField.castingNotes:
         await _roleIndexService.updateRole(
           database: database,
@@ -1325,12 +1344,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
   }) async {
     for (final entry in pending.entries) {
       final (setId, field) = entry.key;
-      await _writeSetField(
-        database: database,
-        setId: setId,
-        field: field,
-        rawValue: entry.value,
-      );
+      await _writeSetField(database: database, setId: setId, field: field, rawValue: entry.value);
     }
   }
 
@@ -1344,17 +1358,9 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
   }) async {
     switch (field) {
       case OcptSetField.name:
-        await _locationsService.updateSet(
-          database: database,
-          setId: setId,
-          name: Value(rawValue),
-        );
+        await _locationsService.updateSet(database: database, setId: setId, name: Value(rawValue));
       case OcptSetField.notes:
-        await _locationsService.updateSet(
-          database: database,
-          setId: setId,
-          notes: Value(rawValue),
-        );
+        await _locationsService.updateSet(database: database, setId: setId, notes: Value(rawValue));
     }
   }
 
@@ -1564,8 +1570,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
   ) => _writeCatalogueChange(
     emitter: emitter,
     logContext: "remove position ${event.id}",
-    action: (project) =>
-        _peopleService.removePosition(database: project.database, id: event.id),
+    action: (project) => _peopleService.removePosition(database: project.database, id: event.id),
   );
 
   /// Adds a skill to person `event.personId`, written immediately.
@@ -1722,8 +1727,10 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
       final snapshot = await _loadSnapshot(project);
       emitter(state.copyWith(snapshot: snapshot, selectedRoleId: roleId));
     } catch (error) {
-      appLogger().e("A problem occurred when tried to create a role in the project at "
-          "${project.path}: $error");
+      appLogger().e(
+        "A problem occurred when tried to create a role in the project at "
+        "${project.path}: $error",
+      );
       emitter(state.copyWith(hasWriteError: true));
     }
   }
@@ -1785,9 +1792,8 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
       return;
     }
 
-    final pendingWithoutRole = Map<(String, OcptRoleField), String>.of(
-      state.pendingRoleFieldEdits,
-    )..removeWhere((key, _) => key.$1 == event.roleId);
+    final pendingWithoutRole = Map<(String, OcptRoleField), String>.of(state.pendingRoleFieldEdits)
+      ..removeWhere((key, _) => key.$1 == event.roleId);
     _cancelFieldEditTimerIfIdle(
       pendingPersonEdits: state.pendingFieldEdits,
       pendingRoleEdits: pendingWithoutRole,
@@ -1810,8 +1816,10 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
         ),
       );
     } catch (error) {
-      appLogger().e("A problem occurred when tried to delete role ${event.roleId} of the "
-          "project at ${project.path}: $error");
+      appLogger().e(
+        "A problem occurred when tried to delete role ${event.roleId} of the "
+        "project at ${project.path}: $error",
+      );
       emitter(state.copyWith(hasWriteError: true));
     }
   }
@@ -1823,8 +1831,10 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
   ) => _writeCatalogueChange(
     emitter: emitter,
     logContext: "keep orphaned role ${event.roleId} as silent",
-    action: (project) =>
-        _roleIndexService.keepOrphanedRoleAsSilent(database: project.database, roleId: event.roleId),
+    action: (project) => _roleIndexService.keepOrphanedRoleAsSilent(
+      database: project.database,
+      roleId: event.roleId,
+    ),
   );
 
   /// Merges role `event.sourceRoleId` into role `event.targetRoleId`, written immediately: the
@@ -1943,8 +1953,10 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
         state.copyWith(snapshot: snapshot, pendingCandidateFieldEdits: pendingWithoutCandidate),
       );
     } catch (error) {
-      appLogger().e("A problem occurred when tried to remove candidacy ${event.candidateId} of "
-          "the project at ${project.path}: $error");
+      appLogger().e(
+        "A problem occurred when tried to remove candidacy ${event.candidateId} of "
+        "the project at ${project.path}: $error",
+      );
       emitter(state.copyWith(hasWriteError: true));
     }
   }
@@ -2030,8 +2042,10 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
       final snapshot = await _loadSnapshot(project);
       emitter(state.copyWith(snapshot: snapshot, selectedLocationId: locationId));
     } catch (error) {
-      appLogger().e("A problem occurred when tried to create a location in the project at "
-          "${project.path}: $error");
+      appLogger().e(
+        "A problem occurred when tried to create a location in the project at "
+        "${project.path}: $error",
+      );
       emitter(state.copyWith(hasWriteError: true));
     }
   }
@@ -2085,8 +2099,10 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
         ),
       );
     } catch (error) {
-      appLogger().e("A problem occurred when tried to delete location ${event.locationId} of the "
-          "project at ${project.path}: $error");
+      appLogger().e(
+        "A problem occurred when tried to delete location ${event.locationId} of the "
+        "project at ${project.path}: $error",
+      );
       emitter(state.copyWith(hasWriteError: true));
     }
   }
@@ -2175,20 +2191,18 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
   );
 
   /// Adds a new, blank set at the end of location `event.locationId`'s sets, written immediately.
-  Future<void> _onSetAdded(
-    OcptResourcesSetAddedEvent event,
-    Emitter<OcptResourcesState> emitter,
-  ) => _writeCatalogueChange(
-    emitter: emitter,
-    logContext: "add a set to location ${event.locationId}",
-    action: (project) async {
-      await _locationsService.createSet(
-        database: project.database,
-        locationId: event.locationId,
-        name: "",
+  Future<void> _onSetAdded(OcptResourcesSetAddedEvent event, Emitter<OcptResourcesState> emitter) =>
+      _writeCatalogueChange(
+        emitter: emitter,
+        logContext: "add a set to location ${event.locationId}",
+        action: (project) async {
+          await _locationsService.createSet(
+            database: project.database,
+            locationId: event.locationId,
+            name: "",
+          );
+        },
       );
-    },
-  );
 
   /// Removes set `event.setId`, written immediately, dropping any pending edit that still targeted
   /// it.
@@ -2212,10 +2226,8 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     await _writeCatalogueChange(
       emitter: emitter,
       logContext: "remove set ${event.setId}",
-      action: (project) => _locationsService.deleteSet(
-        database: project.database,
-        setId: event.setId,
-      ),
+      action: (project) =>
+          _locationsService.deleteSet(database: project.database, setId: event.setId),
     );
   }
 
@@ -2602,8 +2614,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     required List<String> allowedExtensions,
     required String fileTypeLabel,
   }) async {
-    final fileSelectorManager =
-        _fileSelectorManager ?? globalGetIt().get<FileSelectorManager>();
+    final fileSelectorManager = _fileSelectorManager ?? globalGetIt().get<FileSelectorManager>();
 
     final selection = await fileSelectorManager.openSelector(
       allowedExtensions: allowedExtensions,
@@ -2641,8 +2652,10 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
       await action(project);
       emitter(state.copyWith(snapshot: await _loadSnapshot(project)));
     } catch (error) {
-      appLogger().e("A problem occurred when tried to $logContext of the project at "
-          "${project.path}: $error");
+      appLogger().e(
+        "A problem occurred when tried to $logContext of the project at "
+        "${project.path}: $error",
+      );
       emitter(state.copyWith(hasWriteError: true));
     }
   }
@@ -2699,8 +2712,10 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
       final snapshot = await _loadSnapshot(project);
       emitter(state.copyWith(snapshot: snapshot, selectedElementId: elementId));
     } catch (error) {
-      appLogger().e("A problem occurred when tried to create an element in the project at "
-          "${project.path}: $error");
+      appLogger().e(
+        "A problem occurred when tried to create an element in the project at "
+        "${project.path}: $error",
+      );
       emitter(state.copyWith(hasWriteError: true));
     }
   }
@@ -2741,8 +2756,10 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
         ),
       );
     } catch (error) {
-      appLogger().e("A problem occurred when tried to delete element ${event.elementId} of the "
-          "project at ${project.path}: $error");
+      appLogger().e(
+        "A problem occurred when tried to delete element ${event.elementId} of the "
+        "project at ${project.path}: $error",
+      );
       emitter(state.copyWith(hasWriteError: true));
     }
   }
@@ -3007,7 +3024,10 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     final isAlreadyActive = state.rightDockTab == event.tab;
 
     emitter(
-      state.copyWith(rightDockTab: isAlreadyActive ? null : event.tab, clearRightDockTab: isAlreadyActive),
+      state.copyWith(
+        rightDockTab: isAlreadyActive ? null : event.tab,
+        clearRightDockTab: isAlreadyActive,
+      ),
     );
 
     if (!isAlreadyActive && event.tab == OcptResourcesRightDockTab.versions) {
@@ -3125,8 +3145,10 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
         ),
       );
     } catch (error) {
-      appLogger().e("A problem occurred when tried to export the resources catalogue of the "
-          "project at ${project.path}: $error");
+      appLogger().e(
+        "A problem occurred when tried to export the resources catalogue of the "
+        "project at ${project.path}: $error",
+      );
       emitter(
         state.copyWith(
           ioNotice: const OcptResourcesIoNotice(kind: OcptResourcesIoNoticeKind.xlsxExportFailed),
@@ -3178,8 +3200,10 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
         ),
       );
     } catch (error) {
-      appLogger().e("A problem occurred when tried to export the contact list of the project at "
-          "${project.path}: $error");
+      appLogger().e(
+        "A problem occurred when tried to export the contact list of the project at "
+        "${project.path}: $error",
+      );
       emitter(
         state.copyWith(
           ioNotice: const OcptResourcesIoNotice(

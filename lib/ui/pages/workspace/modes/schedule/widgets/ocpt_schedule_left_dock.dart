@@ -113,9 +113,7 @@ class OcptScheduleLeftDock extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
           child: Row(
             children: [
-              Expanded(
-                child: Text(tr.scheduleDaysPanelTitle, style: theme.textTheme.titleSmall),
-              ),
+              Expanded(child: Text(tr.scheduleDaysPanelTitle, style: theme.textTheme.titleSmall)),
               if (onDayCreated != null)
                 IconButton(
                   icon: const Icon(Icons.add, size: 18),
@@ -203,8 +201,7 @@ class OcptScheduleLeftDock extends StatelessWidget {
   }
 
   /// The total number of shots across every [unplacedGroups] entry.
-  int get _totalUnplacedCount =>
-      unplacedGroups.fold(0, (sum, group) => sum + group.shots.length);
+  int get _totalUnplacedCount => unplacedGroups.fold(0, (sum, group) => sum + group.shots.length);
 
   /// The unplaced-shots section's own body: one [_OcptScheduleUnplacedGroupSection] per group of
   /// [unplacedGroups], banded by episode ([OcptScheduleEpisodeBand]) while [episodes] holds more
@@ -326,7 +323,9 @@ class _OcptScheduleDayCard extends StatelessWidget {
     final theme = Theme.of(context);
     final tr = Tr.of(context);
     final tint = ocptScheduleDayLocationTint(context, location);
-    final dateLabel = DateFormat.yMMMEd(Localizations.localeOf(context).toString()).format(day.date);
+    final dateLabel = DateFormat.yMMMEd(
+      Localizations.localeOf(context).toString(),
+    ).format(day.date);
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(12, 3, 12, 3),
@@ -413,7 +412,9 @@ class _OcptScheduleDayCard extends StatelessWidget {
                   ],
                 ),
               ),
-              if (onDateChangeRequested != null || onDuplicationRequested != null || onDeletionRequested != null)
+              if (onDateChangeRequested != null ||
+                  onDuplicationRequested != null ||
+                  onDeletionRequested != null)
                 PopupMenuButton<VoidCallback>(
                   icon: const Icon(Icons.more_vert, size: 16),
                   tooltip: "",
@@ -568,10 +569,7 @@ class _OcptScheduleUnplacedShotRow extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
           child: Row(
             children: [
-              Text(
-                code,
-                style: theme.textTheme.labelSmall?.copyWith(fontWeight: FontWeight.bold),
-              ),
+              Text(code, style: theme.textTheme.labelSmall?.copyWith(fontWeight: FontWeight.bold)),
               const SizedBox(width: 7),
               Expanded(
                 child: Text(

@@ -70,7 +70,8 @@ void _mockSecureStorage(Map<String, String> store) {
 /// [OcptSyncManager.pairProjectToRelay] needs of a transport for this page's own fixtures.
 class _FakeRemoteStorage implements OcptRemoteStorage {
   @override
-  Future<OcptSequenceNumber> append(OcptChangesetEnvelope envelope) async => OcptSequenceNumber.zero;
+  Future<OcptSequenceNumber> append(OcptChangesetEnvelope envelope) async =>
+      OcptSequenceNumber.zero;
 
   @override
   Future<List<OcptStoredChangeset>> readSince(OcptSequenceNumber cursor) async => const [];
@@ -165,7 +166,10 @@ void main() {
     managers.registerSingleton<OcptRouterManager>(OcptRouterManager());
 
     tempDir = await Directory.systemTemp.createTemp("ocpt_sharing_page_test_");
-    projectsManager = OcptProjectsManager(propertiesManager: propertiesManager, appLanguageCode: () => "en");
+    projectsManager = OcptProjectsManager(
+      propertiesManager: propertiesManager,
+      appLanguageCode: () => "en",
+    );
     await projectsManager.initLifeCycle();
     await projectsManager.createProject(
       name: "My Movie",

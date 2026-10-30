@@ -270,7 +270,6 @@ void main() {
     });
   });
 
-
   group("referenced files", () {
     test("setPersonPhoto references the file and points the person at it", () async {
       final id = (await peopleService.createPerson(database: database))!;
@@ -457,7 +456,7 @@ void main() {
             personId: personId,
             positionId: "position$i",
             customLabel: "",
-              ))!,
+          ))!,
       ];
 
       await peopleService.reorderPositions(

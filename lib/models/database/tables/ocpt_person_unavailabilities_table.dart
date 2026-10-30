@@ -44,9 +44,8 @@ class OcptPersonUnavailabilitiesTable extends Table {
   // The stored literal below must match `OcptDayPartSlot.fullDay.name` exactly, for the
   // same reason `shots.status`'s default does: an enum's `.name` getter isn't a compile-time
   // constant expression, so it can't be written as `Constant(OcptDayPartSlot.fullDay)`.
-  TextColumn get slot => text()
-      .map(const OcptDayPartSlotConverter())
-      .withDefault(const Constant('fullDay'))();
+  TextColumn get slot =>
+      text().map(const OcptDayPartSlotConverter()).withDefault(const Constant('fullDay'))();
 
   /// The start of the window, in minutes from midnight, or null unless [slot] is
   /// [OcptDayPartSlot.custom].

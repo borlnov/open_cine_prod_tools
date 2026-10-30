@@ -124,7 +124,8 @@ class OcptOneLineSchedulePdfService {
   }) async {
     final painter = await _painterFor(pageSetup);
     final pdfDocument = pw.Document();
-    final versionLine = "${labels.versionLabel} ${ocptScheduleGeneratedAtStamp(exportDate ?? DateTime.now())}";
+    final versionLine =
+        "${labels.versionLabel} ${ocptScheduleGeneratedAtStamp(exportDate ?? DateTime.now())}";
 
     final days = [
       for (final dayId in dayIds)
@@ -198,7 +199,11 @@ class OcptOneLineSchedulePdfService {
           pw.SizedBox(height: 32),
           pw.Text(
             versionLine,
-            style: pw.TextStyle(font: painter.fonts.regular, fontSize: _smallFontSizePt, color: _mutedColor),
+            style: pw.TextStyle(
+              font: painter.fonts.regular,
+              fontSize: _smallFontSizePt,
+              color: _mutedColor,
+            ),
           ),
         ],
       ),
@@ -223,9 +228,15 @@ class OcptOneLineSchedulePdfService {
     ),
     build: (context) => [
       pw.SizedBox(height: 6),
-      pw.Text(labels.documentTitle, style: pw.TextStyle(font: painter.fonts.bold, fontSize: _bodyFontSizePt)),
+      pw.Text(
+        labels.documentTitle,
+        style: pw.TextStyle(font: painter.fonts.bold, fontSize: _bodyFontSizePt),
+      ),
       pw.SizedBox(height: 8),
-      pw.Text(text, style: pw.TextStyle(font: painter.fonts.regular, fontSize: _bodyFontSizePt)),
+      pw.Text(
+        text,
+        style: pw.TextStyle(font: painter.fonts.regular, fontSize: _bodyFontSizePt),
+      ),
     ],
   );
 
@@ -304,7 +315,11 @@ class OcptOneLineSchedulePdfService {
           ),
           pw.Text(
             location?.name ?? labels.noLocationLabel,
-            style: pw.TextStyle(font: painter.fonts.regular, fontSize: _smallFontSizePt, color: _mutedColor),
+            style: pw.TextStyle(
+              font: painter.fonts.regular,
+              fontSize: _smallFontSizePt,
+              color: _mutedColor,
+            ),
           ),
         ],
       ),
@@ -359,18 +374,26 @@ class OcptOneLineSchedulePdfService {
   // ---------------------------------------------------------------------------------------------
 
   /// A line of plain text, printed in place of a day's own table while it holds none.
-  pw.Widget _noteWidget({required OcptScriptPagePainter painter, required String text}) =>
-      pw.Text(text, style: pw.TextStyle(font: painter.fonts.regular, fontSize: _bodyFontSizePt));
+  pw.Widget _noteWidget({required OcptScriptPagePainter painter, required String text}) => pw.Text(
+    text,
+    style: pw.TextStyle(font: painter.fonts.regular, fontSize: _bodyFontSizePt),
+  );
 
   /// One table cell holding [text].
-  pw.Widget _textCell({required OcptScriptPagePainter painter, required String text, bool isBold = false}) =>
-      pw.Padding(
-        padding: const pw.EdgeInsets.all(_cellPaddingPt),
-        child: pw.Text(
-          text,
-          style: pw.TextStyle(font: painter.fonts.variant(bold: isBold, italic: false), fontSize: _bodyFontSizePt),
-        ),
-      );
+  pw.Widget _textCell({
+    required OcptScriptPagePainter painter,
+    required String text,
+    bool isBold = false,
+  }) => pw.Padding(
+    padding: const pw.EdgeInsets.all(_cellPaddingPt),
+    child: pw.Text(
+      text,
+      style: pw.TextStyle(
+        font: painter.fonts.variant(bold: isBold, italic: false),
+        fontSize: _bodyFontSizePt,
+      ),
+    ),
+  );
 
   /// The running head naming the project and the document on the left, [versionLine] on the right,
   /// over a thin rule — handed to every page's own `header:` callback rather than to its `build:`
@@ -389,11 +412,19 @@ class OcptOneLineSchedulePdfService {
         children: [
           pw.Text(
             "$projectName — $documentTitle",
-            style: pw.TextStyle(font: painter.fonts.regular, fontSize: _smallFontSizePt, color: _mutedColor),
+            style: pw.TextStyle(
+              font: painter.fonts.regular,
+              fontSize: _smallFontSizePt,
+              color: _mutedColor,
+            ),
           ),
           pw.Text(
             versionLine,
-            style: pw.TextStyle(font: painter.fonts.regular, fontSize: _smallFontSizePt, color: _mutedColor),
+            style: pw.TextStyle(
+              font: painter.fonts.regular,
+              fontSize: _smallFontSizePt,
+              color: _mutedColor,
+            ),
           ),
         ],
       ),
@@ -595,7 +626,8 @@ String _sceneNumberOf(OcptSchedulePlanSnapshot plan, _OneLineRow row) {
 /// the two differ only when a pinned anchor leaves a gap in the middle of a folded run, and a
 /// sequence a day holds its slot busy with from 09:00 to 11:00 has cost that unit two hours whatever
 /// happened in the gap — which is the figure a production reads this column for.
-String _durationLabelOf(_OneLineRow row) => ocptFormatMinuteDuration(row.endMinute - row.startMinute);
+String _durationLabelOf(_OneLineRow row) =>
+    ocptFormatMinuteDuration(row.endMinute - row.startMinute);
 
 /// [row]'s own `EFFET` cell: [ocptSceneEffectOf]'s reading of its scene's heading, read off
 /// [OcptSchedulePlanSnapshot.headingBySceneId] exactly as `OcptCallSheetPdfService`'s own `EFFET`

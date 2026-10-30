@@ -323,9 +323,7 @@ class OcptSpellCheckManager extends AbsWithLifeCycle {
   /// Sends the union of [_ignoredWords] and [_learnedWords] to [worker]; fire-and-forget, since
   /// nothing here needs to await the memo actually being cleared before returning.
   void _pushExtraWords(_SpellCheckWorkerHandle worker) {
-    worker.sendPort.send(
-      _SetExtraWordsRequest(words: {..._ignoredWords, ..._learnedWords}),
-    );
+    worker.sendPort.send(_SetExtraWordsRequest(words: {..._ignoredWords, ..._learnedWords}));
   }
 
   /// Returns the already-spawned worker, or spawns one and returns it, or returns null (having
@@ -354,8 +352,10 @@ class OcptSpellCheckManager extends AbsWithLifeCycle {
         onError: errorPort.sendPort,
       );
     } catch (error) {
-      appLogger().e("A problem occurred when tried to spawn the spell-check worker isolate: "
-          "$error");
+      appLogger().e(
+        "A problem occurred when tried to spawn the spell-check worker isolate: "
+        "$error",
+      );
       receivePort.close();
       exitPort.close();
       errorPort.close();
@@ -677,10 +677,7 @@ void _spellCheckWorkerMain(SendPort mainSendPort) {
         if (currentChecker != null) {
           final options = SpellTokenizerOptions.fromAffixFile(currentChecker.dictionary.affixFile);
           for (final entry in textsByIndex.entries) {
-            rangesByIndex[entry.key] = currentChecker.misspellingsIn(
-              entry.value,
-              options: options,
-            );
+            rangesByIndex[entry.key] = currentChecker.misspellingsIn(entry.value, options: options);
           }
         }
         mainSendPort.send(_CheckResponse(requestId, rangesByIndex));

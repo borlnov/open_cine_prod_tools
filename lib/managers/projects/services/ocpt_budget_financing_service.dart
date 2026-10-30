@@ -64,7 +64,9 @@ class OcptBudgetFinancingService {
         current: null,
         next: OcptBudgetResourceRow(
           id: id,
-          sortKey: ocptFractionalKeyBetween(before: existing.isEmpty ? null : existing.last.sortKey),
+          sortKey: ocptFractionalKeyBetween(
+            before: existing.isEmpty ? null : existing.last.sortKey,
+          ),
           isDeleted: false,
           groupKind: OcptBudgetResourceGroupKind.subsidy,
           label: label,
@@ -239,7 +241,9 @@ class OcptBudgetFinancingService {
         current: null,
         next: OcptBudgetMileageRateRow(
           id: id,
-          sortKey: ocptFractionalKeyBetween(before: existing.isEmpty ? null : existing.last.sortKey),
+          sortKey: ocptFractionalKeyBetween(
+            before: existing.isEmpty ? null : existing.last.sortKey,
+          ),
           isDeleted: false,
           label: label,
           ratePerKmMilliCents: 0,
@@ -378,9 +382,9 @@ class OcptBudgetFinancingService {
   Future<OcptBudgetResourceRow?> _liveResourceRowOrNull({
     required OcptProjectDatabase database,
     required String resourceId,
-  }) => (database.select(database.ocptBudgetResourcesTable)
-        ..where((table) => table.id.equals(resourceId) & table.isDeleted.not()))
-      .getSingleOrNull();
+  }) => (database.select(
+    database.ocptBudgetResourcesTable,
+  )..where((table) => table.id.equals(resourceId) & table.isDeleted.not())).getSingleOrNull();
 
   /// Every live mileage rate row of [database], ordered by `sortKey`.
   Future<List<OcptBudgetMileageRateRow>> _liveMileageRateRows(OcptProjectDatabase database) =>
@@ -393,7 +397,7 @@ class OcptBudgetFinancingService {
   Future<OcptBudgetMileageRateRow?> _liveMileageRateRowOrNull({
     required OcptProjectDatabase database,
     required String rateId,
-  }) => (database.select(database.ocptBudgetMileageRatesTable)
-        ..where((table) => table.id.equals(rateId) & table.isDeleted.not()))
-      .getSingleOrNull();
+  }) => (database.select(
+    database.ocptBudgetMileageRatesTable,
+  )..where((table) => table.id.equals(rateId) & table.isDeleted.not())).getSingleOrNull();
 }

@@ -112,12 +112,7 @@ void main() {
 
     test('brackets and guillemets are left out of the token', () {
       final tokens = spellTokensIn('(il souffle) « attends » [note]');
-      expect(tokens.map((t) => t.text), [
-        'il',
-        'souffle',
-        'attends',
-        'note',
-      ]);
+      expect(tokens.map((t) => t.text), ['il', 'souffle', 'attends', 'note']);
     });
 
     test('an extra word character never widens into a range', () {
@@ -125,21 +120,13 @@ void main() {
       // character class unescaped, its hyphen would declare the range
       // U+0027–U+2019 and swallow every mark below.
       final tokens = spellTokensIn("il s'approche; puis: <plus> #encore");
-      expect(tokens.map((t) => t.text), [
-        'il',
-        "s'approche",
-        'puis',
-        'plus',
-        'encore',
-      ]);
+      expect(tokens.map((t) => t.text), ['il', "s'approche", 'puis', 'plus', 'encore']);
     });
   });
 
   group('SpellTokenizerOptions.fromAffixFile', () {
     test('drops "." and every digit from WORDCHARS', () {
-      final affixFile = HunspellAffixFile.parse(
-        "WORDCHARS -'1234567890.\n",
-      );
+      final affixFile = HunspellAffixFile.parse("WORDCHARS -'1234567890.\n");
       final options = SpellTokenizerOptions.fromAffixFile(affixFile);
       expect(options.extraWordCharacters, {'-', "'"});
     });

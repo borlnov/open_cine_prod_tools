@@ -18,7 +18,9 @@ Widget _wrapInApp(Widget child) => MaterialApp(
     GlobalCupertinoLocalizations.delegate,
   ],
   supportedLocales: Tr.delegate.supportedLocales,
-  home: Scaffold(body: Align(alignment: Alignment.topLeft, child: child)),
+  home: Scaffold(
+    body: Align(alignment: Alignment.topLeft, child: child),
+  ),
 );
 
 void main() {

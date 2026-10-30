@@ -178,10 +178,7 @@ void main() {
   testWidgets("an empty screenplay shows the hint instead of the tree", (tester) async {
     await pumpPanel(tester, selectedSequenceId: null, sequences: const []);
 
-    expect(
-      find.text("Sequences will appear here as the screenplay grows."),
-      findsOneWidget,
-    );
+    expect(find.text("Sequences will appear here as the screenplay grows."), findsOneWidget);
   });
 
   testWidgets("the orphan group is named rather than carrying a scene heading", (tester) async {
@@ -190,7 +187,9 @@ void main() {
       selectedSequenceId: OcptOrphanShotSequence.sequenceId,
       sequences: [
         sceneSequence,
-        OcptOrphanShotSequence(shots: [_buildShot(id: "shot-4", code: "—/1")]),
+        OcptOrphanShotSequence(
+          shots: [_buildShot(id: "shot-4", code: "—/1")],
+        ),
       ],
     );
 

@@ -40,11 +40,8 @@ class OcptPdfExportService {
   /// `OcptFountainIoService.fountainFileName`. [episodeTag] is the selected episode's own tag,
   /// present only while the open project holds more than one episode — see
   /// `ocptExportFileNameOf`'s own doc comment.
-  String pdfFileName({required String projectName, String? episodeTag}) => ocptExportFileNameOf(
-    projectName: projectName,
-    episodeTag: episodeTag,
-    extension: "pdf",
-  );
+  String pdfFileName({required String projectName, String? episodeTag}) =>
+      ocptExportFileNameOf(projectName: projectName, episodeTag: episodeTag, extension: "pdf");
 
   /// Renders [document] into a complete screenplay PDF, returning its bytes.
   ///

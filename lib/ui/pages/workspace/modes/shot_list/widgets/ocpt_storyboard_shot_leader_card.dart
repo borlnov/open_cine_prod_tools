@@ -120,12 +120,12 @@ class OcptStoryboardShotLeaderCard extends StatelessWidget {
             width: 64,
             child: Text(
               label,
-              style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
             ),
           ),
-          Expanded(
-            child: Text(value, style: theme.textTheme.bodySmall, softWrap: true),
-          ),
+          Expanded(child: Text(value, style: theme.textTheme.bodySmall, softWrap: true)),
         ],
       ),
     );

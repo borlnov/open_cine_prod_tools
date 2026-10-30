@@ -384,9 +384,7 @@ class _OcptWorkspaceShellState extends State<OcptWorkspaceShell> {
             saveAction: _buildSaveAction(context),
             projectSettingsAction: isPhone ? null : _buildProjectSettingsAction(context),
             helpAction: isPhone ? null : _buildHelpAction(context),
-            overflowEntries: isPhone
-                ? _buildPhoneOverflowEntries(context)
-                : widget.overflowEntries,
+            overflowEntries: isPhone ? _buildPhoneOverflowEntries(context) : widget.overflowEntries,
           ),
           if (widget.banner != null) widget.banner!,
           Expanded(child: _buildDocksRow(isCompact)),
@@ -938,9 +936,19 @@ class _OcptWorkspaceShellState extends State<OcptWorkspaceShell> {
                 ),
               ),
             if (isLeftDrawerOpen)
-              _buildCompactDrawer(controller: controller, rowWidth: rowWidth, isLeft: true, panel: leftPanel),
+              _buildCompactDrawer(
+                controller: controller,
+                rowWidth: rowWidth,
+                isLeft: true,
+                panel: leftPanel,
+              ),
             if (isRightDrawerOpen)
-              _buildCompactDrawer(controller: controller, rowWidth: rowWidth, isLeft: false, panel: rightPanel),
+              _buildCompactDrawer(
+                controller: controller,
+                rowWidth: rowWidth,
+                isLeft: false,
+                panel: rightPanel,
+              ),
           ],
         );
       },
@@ -979,13 +987,21 @@ class _OcptWorkspaceShellState extends State<OcptWorkspaceShell> {
     final divider = OcptWorkspaceDockDivider(
       onDragUpdate: (deltaX) => isLeft
           ? controller.setLeftFraction(
-              OcptWorkspaceDock.clampLeftFraction(controller.leftFraction + deltaX / rowWidth, rowWidth),
+              OcptWorkspaceDock.clampLeftFraction(
+                controller.leftFraction + deltaX / rowWidth,
+                rowWidth,
+              ),
             )
           : controller.setRightFraction(
-              OcptWorkspaceDock.clampRightFraction(controller.rightFraction - deltaX / rowWidth, rowWidth),
+              OcptWorkspaceDock.clampRightFraction(
+                controller.rightFraction - deltaX / rowWidth,
+                rowWidth,
+              ),
             ),
       onDragEnd: () => widget.onDockFractionsChanged?.call(
-        isLeft ? (left: controller.leftFraction, right: null) : (left: null, right: controller.rightFraction),
+        isLeft
+            ? (left: controller.leftFraction, right: null)
+            : (left: null, right: controller.rightFraction),
       ),
     );
     final dock = OcptWorkspaceDock(width: drawerWidth, child: panel);

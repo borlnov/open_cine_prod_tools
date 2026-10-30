@@ -59,12 +59,7 @@ class FountainPageMargins extends Equatable {
   );
 
   @override
-  List<Object?> get props => [
-    leftInches,
-    rightInches,
-    topInches,
-    bottomInches,
-  ];
+  List<Object?> get props => [leftInches, rightInches, topInches, bottomInches];
 
   @override
   String toString() =>

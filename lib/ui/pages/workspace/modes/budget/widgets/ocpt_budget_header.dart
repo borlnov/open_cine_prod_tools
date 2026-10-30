@@ -381,7 +381,11 @@ class _OcptBudgetViewSwitch extends StatelessWidget {
   final int alertCount;
 
   /// Class constructor
-  const _OcptBudgetViewSwitch({required this.value, required this.onChanged, required this.alertCount});
+  const _OcptBudgetViewSwitch({
+    required this.value,
+    required this.onChanged,
+    required this.alertCount,
+  });
 
   @override
   Widget build(BuildContext context) {

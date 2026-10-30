@@ -79,10 +79,7 @@ Offset ocptFloorPlanRotateVector(Offset vector, double degrees) {
   final radians = degrees * math.pi / 180;
   final cosA = math.cos(radians);
   final sinA = math.sin(radians);
-  return Offset(
-    vector.dx * cosA - vector.dy * sinA,
-    vector.dx * sinA + vector.dy * cosA,
-  );
+  return Offset(vector.dx * cosA - vector.dy * sinA, vector.dx * sinA + vector.dy * cosA);
 }
 
 /// The half-length, in logical pixels, of an arrowhead's own two strokes.
@@ -408,7 +405,10 @@ class OcptFloorPlanCanvasPainter extends CustomPainter {
     );
 
     final textPainter = TextPainter(
-      text: TextSpan(text: line.label, style: TextStyle(color: metricLineColor, fontSize: 9)),
+      text: TextSpan(
+        text: line.label,
+        style: TextStyle(color: metricLineColor, fontSize: 9),
+      ),
       textDirection: ui.TextDirection.ltr,
     )..layout();
     final midpoint = Offset((from.dx + to.dx) / 2, (from.dy + to.dy) / 2);
@@ -453,7 +453,13 @@ class OcptFloorPlanCanvasPainter extends CustomPainter {
         ? (override.fovReachM ?? symbol.cameraFovWedgeReachM)
         : symbol.cameraFovWedgeReachM;
 
-    final centre = ocptFloorPlanScreenPointOf(xM: xM, yM: yM, canvasSize: size, zoom: zoom, pan: pan);
+    final centre = ocptFloorPlanScreenPointOf(
+      xM: xM,
+      yM: yM,
+      canvasSize: size,
+      zoom: zoom,
+      pan: pan,
+    );
     final pixelsPerMetre = ocptFloorPlanPixelsPerMetreAt(zoom);
     final widthPx = widthM * pixelsPerMetre;
     final heightPx = heightM * pixelsPerMetre;
@@ -464,7 +470,9 @@ class OcptFloorPlanCanvasPainter extends CustomPainter {
         ? _overrideGhostOpacity
         : (symbol.isGhost ? onionSkinOpacity : 1.0);
     final color = Color(symbol.colorArgb);
-    final borderColor = (isSelected ? selectionColor : symbolBorderColor).withValues(alpha: opacity);
+    final borderColor = (isSelected ? selectionColor : symbolBorderColor).withValues(
+      alpha: opacity,
+    );
     final borderWidth = isSelected ? 2.5 : 1.5;
 
     canvas.save();
@@ -678,7 +686,13 @@ class OcptFloorPlanCanvasPainter extends CustomPainter {
   /// on the back edge (the "down"/local `+y` side, opposite the lens), drawn wider than the body so
   /// it reads as a badge the camera sits on rather than a caption competing with `_paintLabel`'s own
   /// below-symbol placement (skipped for a camera whose label this pill already draws).
-  void _paintCameraLabelPill(Canvas canvas, Rect rect, Color color, double opacity, String cameraLabel) {
+  void _paintCameraLabelPill(
+    Canvas canvas,
+    Rect rect,
+    Color color,
+    double opacity,
+    String cameraLabel,
+  ) {
     final textPainter = TextPainter(
       text: TextSpan(
         text: cameraLabel,
@@ -740,8 +754,16 @@ class OcptFloorPlanCanvasPainter extends CustomPainter {
       ..color = borderColor
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1.5;
-    canvas.drawLine(rect.topLeft, rect.topLeft + Offset(-rect.width * 0.3, -rect.height * 0.4), doorPaint);
-    canvas.drawLine(rect.topRight, rect.topRight + Offset(rect.width * 0.3, -rect.height * 0.4), doorPaint);
+    canvas.drawLine(
+      rect.topLeft,
+      rect.topLeft + Offset(-rect.width * 0.3, -rect.height * 0.4),
+      doorPaint,
+    );
+    canvas.drawLine(
+      rect.topRight,
+      rect.topRight + Offset(rect.width * 0.3, -rect.height * 0.4),
+      doorPaint,
+    );
   }
 
   /// A décor symbol's own typed primitive: [OcptFloorPlanSetElementShape.wall] a thick filled
@@ -830,12 +852,16 @@ class OcptFloorPlanCanvasPainter extends CustomPainter {
 
     final badgeCentre = Offset(rect.right, rect.top);
     final pinPath = Path()
-      ..addOval(
-        Rect.fromCircle(center: badgeCentre, radius: _overridePinBadgeRadius),
+      ..addOval(Rect.fromCircle(center: badgeCentre, radius: _overridePinBadgeRadius))
+      ..moveTo(
+        badgeCentre.dx - _overridePinBadgeRadius * 0.5,
+        badgeCentre.dy + _overridePinBadgeRadius * 0.4,
       )
-      ..moveTo(badgeCentre.dx - _overridePinBadgeRadius * 0.5, badgeCentre.dy + _overridePinBadgeRadius * 0.4)
       ..lineTo(badgeCentre.dx, badgeCentre.dy + _overridePinBadgeRadius * 1.6)
-      ..lineTo(badgeCentre.dx + _overridePinBadgeRadius * 0.5, badgeCentre.dy + _overridePinBadgeRadius * 0.4)
+      ..lineTo(
+        badgeCentre.dx + _overridePinBadgeRadius * 0.5,
+        badgeCentre.dy + _overridePinBadgeRadius * 0.4,
+      )
       ..close();
     canvas.drawPath(pinPath, Paint()..color = accentColor);
     canvas.drawCircle(
@@ -851,7 +877,10 @@ class OcptFloorPlanCanvasPainter extends CustomPainter {
   /// A symbol's own free-text label, centred under its footprint.
   void _paintLabel(Canvas canvas, Offset anchor, String text) {
     final textPainter = TextPainter(
-      text: TextSpan(text: text, style: TextStyle(color: labelTextColor, fontSize: 10)),
+      text: TextSpan(
+        text: text,
+        style: TextStyle(color: labelTextColor, fontSize: 10),
+      ),
       textDirection: ui.TextDirection.ltr,
       maxLines: 1,
       ellipsis: '…',
@@ -898,7 +927,10 @@ class OcptFloorPlanCanvasPainter extends CustomPainter {
     canvas.drawLine(Offset(barRight, barY - 4), Offset(barRight, barY + 4), barPaint);
 
     final labelPainter = TextPainter(
-      text: TextSpan(text: scaleBarLabel, style: TextStyle(color: scaleColor, fontSize: 11)),
+      text: TextSpan(
+        text: scaleBarLabel,
+        style: TextStyle(color: scaleColor, fontSize: 11),
+      ),
       textDirection: ui.TextDirection.ltr,
     )..layout();
     labelPainter.paint(

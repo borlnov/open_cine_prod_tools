@@ -141,7 +141,8 @@ void main() {
       expect(
         identical(next.selectedTargetSuggestions, state.selectedTargetSuggestions),
         isTrue,
-        reason: "an edit touching neither the snapshot, the text nor the selection must not pay "
+        reason:
+            "an edit touching neither the snapshot, the text nor the selection must not pay "
             "the cost of folding the screenplay again",
       );
     });

@@ -285,7 +285,13 @@ void main() {
         sortKey: "V",
         isDeleted: false,
       ),
-      OcptPersonSkillRow(id: "skill-2", personId: "person-1", label: "", sortKey: "k", isDeleted: true),
+      OcptPersonSkillRow(
+        id: "skill-2",
+        personId: "person-1",
+        label: "",
+        sortKey: "k",
+        isDeleted: true,
+      ),
     ],
     personUnavailabilities: [
       OcptPersonUnavailabilityRow(
@@ -1296,26 +1302,23 @@ void main() {
       expect(roundTrip(payload), payload);
     });
 
-    test(
-      'a floor_plan_symbols row with no isHidden key at all (an older format-4 payload, from '
-      'before the column existed) reads back as false rather than throwing',
-      () {
-        final encoded = jsonDecode(codec.encode(buildRichPayload())) as Map<String, dynamic>;
-        final rewritten = {
-          ...encoded,
-          "floorPlanSymbols": [
-            for (final row in encoded["floorPlanSymbols"] as List)
-              {...row as Map<String, dynamic>}..remove("isHidden"),
-          ],
-        };
+    test('a floor_plan_symbols row with no isHidden key at all (an older format-4 payload, from '
+        'before the column existed) reads back as false rather than throwing', () {
+      final encoded = jsonDecode(codec.encode(buildRichPayload())) as Map<String, dynamic>;
+      final rewritten = {
+        ...encoded,
+        "floorPlanSymbols": [
+          for (final row in encoded["floorPlanSymbols"] as List)
+            {...row as Map<String, dynamic>}..remove("isHidden"),
+        ],
+      };
 
-        final result = codec.decode(jsonEncode(rewritten));
+      final result = codec.decode(jsonEncode(rewritten));
 
-        expect(result.status, OcptProjectVersionPayloadStatus.ok);
-        expect(result.value!.floorPlanSymbols, isNotEmpty);
-        expect(result.value!.floorPlanSymbols.map((row) => row.isHidden), everyElement(isFalse));
-      },
-    );
+      expect(result.status, OcptProjectVersionPayloadStatus.ok);
+      expect(result.value!.floorPlanSymbols, isNotEmpty);
+      expect(result.value!.floorPlanSymbols.map((row) => row.isHidden), everyElement(isFalse));
+    });
 
     test('tombstones, sort keys and version stamps all survive', () {
       final roundTripped = roundTrip(buildRichPayload());
@@ -1342,7 +1345,12 @@ void main() {
       expect(roundTripped.storyboardPanels.map((row) => row.isDeleted), [false, true]);
       expect(roundTripped.storyboardAnnotations.map((row) => row.isDeleted), [false, true]);
       expect(roundTripped.floorPlanSets.map((row) => row.isDeleted), [false, true]);
-      expect(roundTripped.floorPlanSymbols.map((row) => row.isDeleted), [false, false, true, false]);
+      expect(roundTripped.floorPlanSymbols.map((row) => row.isDeleted), [
+        false,
+        false,
+        true,
+        false,
+      ]);
       expect(roundTripped.floorPlanArrows.map((row) => row.isDeleted), [false, true]);
 
       // sortKey, not position, is what orders a group after ADR 0010.
@@ -1506,115 +1514,108 @@ void main() {
       expect(underlayAsset.kind, OcptAssetKind.floorPlanUnderlay);
     });
 
-    test(
-      'every column of the storyboard and floor plan tables round trips, enums and nulls '
-      'included',
-      () {
-        final roundTripped = roundTrip(buildRichPayload());
+    test('every column of the storyboard and floor plan tables round trips, enums and nulls '
+        'included', () {
+      final roundTripped = roundTrip(buildRichPayload());
 
-        final panel = roundTripped.storyboardPanels.firstWhere((row) => row.id == "panel-1");
-        expect(panel.shotId, "shot-1");
-        expect(panel.imageAssetId, "asset-4");
-        expect(panel.comment, "Wide establishing");
-        expect(panel.isDeleted, isFalse);
-        // A panel outlives its image: `Replace image` tombstones the old asset and re-points this
-        // column, so it has to survive a round trip as null.
-        final panelWithNoImage = roundTripped.storyboardPanels.firstWhere(
-          (row) => row.id == "panel-2",
-        );
-        expect(panelWithNoImage.imageAssetId, isNull);
+      final panel = roundTripped.storyboardPanels.firstWhere((row) => row.id == "panel-1");
+      expect(panel.shotId, "shot-1");
+      expect(panel.imageAssetId, "asset-4");
+      expect(panel.comment, "Wide establishing");
+      expect(panel.isDeleted, isFalse);
+      // A panel outlives its image: `Replace image` tombstones the old asset and re-points this
+      // column, so it has to survive a round trip as null.
+      final panelWithNoImage = roundTripped.storyboardPanels.firstWhere(
+        (row) => row.id == "panel-2",
+      );
+      expect(panelWithNoImage.imageAssetId, isNull);
 
-        final movementArrow = roundTripped.storyboardAnnotations.firstWhere(
-          (row) => row.id == "annotation-1",
-        );
-        expect(movementArrow.panelId, "panel-1");
-        expect(movementArrow.kind, OcptStoryboardAnnotationKind.movementArrow);
-        expect(movementArrow.x1, 0.1);
-        expect(movementArrow.y1, 0.2);
-        expect(movementArrow.x2, 0.8);
-        expect(movementArrow.y2, 0.75);
-        expect(movementArrow.labelText, "dolly in");
-        final label = roundTripped.storyboardAnnotations.firstWhere(
-          (row) => row.id == "annotation-2",
-        );
-        expect(label.kind, OcptStoryboardAnnotationKind.label);
-        expect(label.isDeleted, isTrue);
+      final movementArrow = roundTripped.storyboardAnnotations.firstWhere(
+        (row) => row.id == "annotation-1",
+      );
+      expect(movementArrow.panelId, "panel-1");
+      expect(movementArrow.kind, OcptStoryboardAnnotationKind.movementArrow);
+      expect(movementArrow.x1, 0.1);
+      expect(movementArrow.y1, 0.2);
+      expect(movementArrow.x2, 0.8);
+      expect(movementArrow.y2, 0.75);
+      expect(movementArrow.labelText, "dolly in");
+      final label = roundTripped.storyboardAnnotations.firstWhere(
+        (row) => row.id == "annotation-2",
+      );
+      expect(label.kind, OcptStoryboardAnnotationKind.label);
+      expect(label.isDeleted, isTrue);
 
-        final case1 = roundTripped.floorPlanSets.firstWhere((row) => row.id == "case-1");
-        expect(case1.underlayAssetId, "asset-5");
-        expect(case1.underlayXM, 1.2);
-        expect(case1.underlayYM, 0.8);
-        expect(case1.underlayWidthM, 4);
-        expect(case1.underlayHeightM, 3);
-        expect(case1.underlayRotationDeg, 15);
-        // No underlay placed yet on the second set: every underlay column stays null.
-        final caseWithNoUnderlay = roundTripped.floorPlanSets.firstWhere(
-          (row) => row.id == "case-2",
-        );
-        expect(caseWithNoUnderlay.underlayAssetId, isNull);
-        expect(caseWithNoUnderlay.underlayXM, isNull);
-        expect(caseWithNoUnderlay.underlayYM, isNull);
-        expect(caseWithNoUnderlay.underlayWidthM, isNull);
-        expect(caseWithNoUnderlay.underlayHeightM, isNull);
-        expect(caseWithNoUnderlay.underlayRotationDeg, isNull);
+      final case1 = roundTripped.floorPlanSets.firstWhere((row) => row.id == "case-1");
+      expect(case1.underlayAssetId, "asset-5");
+      expect(case1.underlayXM, 1.2);
+      expect(case1.underlayYM, 0.8);
+      expect(case1.underlayWidthM, 4);
+      expect(case1.underlayHeightM, 3);
+      expect(case1.underlayRotationDeg, 15);
+      // No underlay placed yet on the second set: every underlay column stays null.
+      final caseWithNoUnderlay = roundTripped.floorPlanSets.firstWhere((row) => row.id == "case-2");
+      expect(caseWithNoUnderlay.underlayAssetId, isNull);
+      expect(caseWithNoUnderlay.underlayXM, isNull);
+      expect(caseWithNoUnderlay.underlayYM, isNull);
+      expect(caseWithNoUnderlay.underlayWidthM, isNull);
+      expect(caseWithNoUnderlay.underlayHeightM, isNull);
+      expect(caseWithNoUnderlay.underlayRotationDeg, isNull);
 
-        // A sequence layer: shotId null, a footprint of its own, no field of view.
-        final sequenceSymbol = roundTripped.floorPlanSymbols.firstWhere(
-          (row) => row.id == "symbol-1",
-        );
-        expect(sequenceSymbol.setId, "case-1");
-        expect(sequenceSymbol.shotId, isNull);
-        expect(sequenceSymbol.layer, OcptFloorPlanLayer.set);
-        expect(sequenceSymbol.xM, 0.5);
-        expect(sequenceSymbol.yM, 0.5);
-        expect(sequenceSymbol.widthM, 5);
-        expect(sequenceSymbol.heightM, 4);
-        expect(sequenceSymbol.fovDeg, isNull);
-        expect(sequenceSymbol.label, "North wall");
-        expect(sequenceSymbol.setElementShape, OcptFloorPlanSetElementShape.wall);
-        // A shot layer: shotId set, a field of view instead of a footprint, no set-element shape.
-        final cameraSymbol = roundTripped.floorPlanSymbols.firstWhere(
-          (row) => row.id == "symbol-2",
-        );
-        expect(cameraSymbol.shotId, "shot-1");
-        expect(cameraSymbol.layer, OcptFloorPlanLayer.cameras);
-        expect(cameraSymbol.rotationDeg, 45);
-        expect(cameraSymbol.widthM, isNull);
-        expect(cameraSymbol.heightM, isNull);
-        expect(cameraSymbol.fovDeg, 84);
-        expect(cameraSymbol.setElementShape, isNull);
-        final tombstonedSymbol = roundTripped.floorPlanSymbols.firstWhere(
-          (row) => row.id == "symbol-3",
-        );
-        expect(tombstonedSymbol.layer, OcptFloorPlanLayer.characters);
-        expect(tombstonedSymbol.isDeleted, isTrue);
-        // A scene-scope override: sceneId set, overridesSymbolId naming the set-scope original.
-        final overrideSymbol = roundTripped.floorPlanSymbols.firstWhere(
-          (row) => row.id == "symbol-4",
-        );
-        expect(overrideSymbol.sceneId, "scene-1");
-        expect(overrideSymbol.shotId, isNull);
-        expect(overrideSymbol.overridesSymbolId, "symbol-1");
-        expect(overrideSymbol.label, "North wall, re-dressed");
-        expect(overrideSymbol.isHidden, isTrue);
-        expect(sequenceSymbol.isHidden, isFalse);
+      // A sequence layer: shotId null, a footprint of its own, no field of view.
+      final sequenceSymbol = roundTripped.floorPlanSymbols.firstWhere(
+        (row) => row.id == "symbol-1",
+      );
+      expect(sequenceSymbol.setId, "case-1");
+      expect(sequenceSymbol.shotId, isNull);
+      expect(sequenceSymbol.layer, OcptFloorPlanLayer.set);
+      expect(sequenceSymbol.xM, 0.5);
+      expect(sequenceSymbol.yM, 0.5);
+      expect(sequenceSymbol.widthM, 5);
+      expect(sequenceSymbol.heightM, 4);
+      expect(sequenceSymbol.fovDeg, isNull);
+      expect(sequenceSymbol.label, "North wall");
+      expect(sequenceSymbol.setElementShape, OcptFloorPlanSetElementShape.wall);
+      // A shot layer: shotId set, a field of view instead of a footprint, no set-element shape.
+      final cameraSymbol = roundTripped.floorPlanSymbols.firstWhere((row) => row.id == "symbol-2");
+      expect(cameraSymbol.shotId, "shot-1");
+      expect(cameraSymbol.layer, OcptFloorPlanLayer.cameras);
+      expect(cameraSymbol.rotationDeg, 45);
+      expect(cameraSymbol.widthM, isNull);
+      expect(cameraSymbol.heightM, isNull);
+      expect(cameraSymbol.fovDeg, 84);
+      expect(cameraSymbol.setElementShape, isNull);
+      final tombstonedSymbol = roundTripped.floorPlanSymbols.firstWhere(
+        (row) => row.id == "symbol-3",
+      );
+      expect(tombstonedSymbol.layer, OcptFloorPlanLayer.characters);
+      expect(tombstonedSymbol.isDeleted, isTrue);
+      // A scene-scope override: sceneId set, overridesSymbolId naming the set-scope original.
+      final overrideSymbol = roundTripped.floorPlanSymbols.firstWhere(
+        (row) => row.id == "symbol-4",
+      );
+      expect(overrideSymbol.sceneId, "scene-1");
+      expect(overrideSymbol.shotId, isNull);
+      expect(overrideSymbol.overridesSymbolId, "symbol-1");
+      expect(overrideSymbol.label, "North wall, re-dressed");
+      expect(overrideSymbol.isHidden, isTrue);
+      expect(sequenceSymbol.isHidden, isFalse);
 
-        final movement = roundTripped.floorPlanArrows.firstWhere((row) => row.id == "arrow-1");
-        expect(movement.setId, "case-1");
-        expect(movement.shotId, "shot-1");
-        expect(movement.kind, OcptFloorPlanArrowKind.movement);
-        expect(movement.fromSymbolId, "symbol-2");
-        expect(movement.toSymbolId, "symbol-3");
-        expect(movement.label, "walks in");
-        expect(movement.ctrlXM, 1.1);
-        expect(movement.ctrlYM, 1.6);
-        final cameraMove = roundTripped.floorPlanArrows.firstWhere((row) => row.id == "arrow-2");
-        expect(cameraMove.kind, OcptFloorPlanArrowKind.cameraMove);
-        expect(cameraMove.isDeleted, isTrue);
-        expect(cameraMove.ctrlXM, isNull);
-        expect(cameraMove.ctrlYM, isNull);
-      },
-    );
+      final movement = roundTripped.floorPlanArrows.firstWhere((row) => row.id == "arrow-1");
+      expect(movement.setId, "case-1");
+      expect(movement.shotId, "shot-1");
+      expect(movement.kind, OcptFloorPlanArrowKind.movement);
+      expect(movement.fromSymbolId, "symbol-2");
+      expect(movement.toSymbolId, "symbol-3");
+      expect(movement.label, "walks in");
+      expect(movement.ctrlXM, 1.1);
+      expect(movement.ctrlYM, 1.6);
+      final cameraMove = roundTripped.floorPlanArrows.firstWhere((row) => row.id == "arrow-2");
+      expect(cameraMove.kind, OcptFloorPlanArrowKind.cameraMove);
+      expect(cameraMove.isDeleted, isTrue);
+      expect(cameraMove.ctrlXM, isNull);
+      expect(cameraMove.ctrlYM, isNull);
+    });
 
     test('every column of the two breakdown tables round trips, enums and nulls included', () {
       final roundTripped = roundTrip(buildRichPayload());
@@ -1622,7 +1623,9 @@ void main() {
       // The three targetKind values, each pointing at exactly one of elementId/roleId/setId and
       // leaving the other two null — a codec that forgot one of the three columns would silently
       // lose the tags of that whole kind on a restore.
-      final elementTag = roundTripped.breakdownTags.firstWhere((tag) => tag.id == "breakdown-tag-1");
+      final elementTag = roundTripped.breakdownTags.firstWhere(
+        (tag) => tag.id == "breakdown-tag-1",
+      );
       expect(elementTag.targetKind, OcptBreakdownTargetKind.element);
       expect(elementTag.elementId, "element-1");
       expect(elementTag.roleId, isNull);
@@ -1814,14 +1817,8 @@ void main() {
     test('the learned words come back, exactly as typed, tombstones included', () {
       final roundTripped = roundTrip(buildRichPayload());
 
-      expect(
-        roundTripped.projectDictionaryWords.map((row) => row.word),
-        ["Séquence", "Marc"],
-      );
-      expect(
-        roundTripped.projectDictionaryWords.map((row) => row.isDeleted),
-        [false, true],
-      );
+      expect(roundTripped.projectDictionaryWords.map((row) => row.word), ["Séquence", "Marc"]);
+      expect(roundTripped.projectDictionaryWords.map((row) => row.isDeleted), [false, true]);
     });
 
     test("a block's crew note comes back", () {
@@ -2301,7 +2298,10 @@ void main() {
         shots: payload.shots,
         shotCharacters: payload.shotCharacters,
         shotCoverages: payload.shotCoverages,
-        people: [payload.people.first.copyWith(phone: "0699999999"), payload.people.last],
+        people: [
+          payload.people.first.copyWith(phone: "0699999999"),
+          payload.people.last,
+        ],
         personPositions: payload.personPositions,
         personSkills: payload.personSkills,
         personUnavailabilities: payload.personUnavailabilities,
@@ -2894,11 +2894,7 @@ void main() {
         floorPlanArrows: payload.floorPlanArrows,
         assets: payload.assets,
         breakdownTags: [
-          payload.breakdownTags.first.copyWith(
-            startOffset: 5,
-            endOffset: 9,
-            taggedText: "lamp",
-          ),
+          payload.breakdownTags.first.copyWith(startOffset: 5, endOffset: 9, taggedText: "lamp"),
           ...payload.breakdownTags.skip(1),
         ],
         sceneBreakdowns: payload.sceneBreakdowns,
@@ -3898,9 +3894,7 @@ void main() {
         sceneElements: payload.sceneElements,
         roleElements: payload.roleElements,
         budgetPostes: [
-          payload.budgetPostes.first.copyWith(
-            estimateToCompleteCents: const drift.Value(90000),
-          ),
+          payload.budgetPostes.first.copyWith(estimateToCompleteCents: const drift.Value(90000)),
           payload.budgetPostes.last,
         ],
         budgetLines: payload.budgetLines,
@@ -4311,139 +4305,121 @@ void main() {
     });
 
     test('a payload written in the current format decodes with no upgrade step', () {
-      final result = codec.decode(
-        encodedWithFormat(OcptProjectVersionCodec.currentPayloadFormat),
-      );
+      final result = codec.decode(encodedWithFormat(OcptProjectVersionCodec.currentPayloadFormat));
 
       expect(result.status, OcptProjectVersionPayloadStatus.ok);
       expect(result.value, buildRichPayload());
     });
 
-    test(
-      'a retired payload-format-1 budgetLines row, written before inKindResourceId existed, '
-      'decodes with a null inKindResourceId',
-      () {
-        // Format 1 is the shape 0.1.0 froze: `budget_lines.inKindResourceId` did not exist yet, so
-        // a real format-1 payload's `budgetLines` rows carry no such key at all, rather than the
-        // key present with a null value. This is the fixture the codec's own doc comment asks to be
-        // kept once a stable release has frozen a format the next one moves past.
-        final encoded = jsonDecode(codec.encode(buildRichPayload())) as Map<String, dynamic>;
-        encoded["payloadFormat"] = 1;
-        encoded["budgetLines"] = [
-          for (final row in encoded["budgetLines"] as List)
-            (Map<String, dynamic>.from(row as Map<String, dynamic>)
-              ..remove("inKindResourceId")),
-        ];
+    test('a retired payload-format-1 budgetLines row, written before inKindResourceId existed, '
+        'decodes with a null inKindResourceId', () {
+      // Format 1 is the shape 0.1.0 froze: `budget_lines.inKindResourceId` did not exist yet, so
+      // a real format-1 payload's `budgetLines` rows carry no such key at all, rather than the
+      // key present with a null value. This is the fixture the codec's own doc comment asks to be
+      // kept once a stable release has frozen a format the next one moves past.
+      final encoded = jsonDecode(codec.encode(buildRichPayload())) as Map<String, dynamic>;
+      encoded["payloadFormat"] = 1;
+      encoded["budgetLines"] = [
+        for (final row in encoded["budgetLines"] as List)
+          (Map<String, dynamic>.from(row as Map<String, dynamic>)..remove("inKindResourceId")),
+      ];
 
-        final result = codec.decode(jsonEncode(encoded));
+      final result = codec.decode(jsonEncode(encoded));
 
-        expect(result.status, OcptProjectVersionPayloadStatus.ok);
-        expect(
-          result.value!.budgetLines.map((row) => row.inKindResourceId),
-          everyElement(isNull),
-        );
-      },
-    );
+      expect(result.status, OcptProjectVersionPayloadStatus.ok);
+      expect(result.value!.budgetLines.map((row) => row.inKindResourceId), everyElement(isNull));
+    });
 
-    test(
-      'a retired payload-format-2 payload decodes with its shot_characters dropped, not '
-      'remapped to roles',
-      () {
-        // Format 2 is the shape 0.2.0 froze: `shot_characters` was still keyed by the retired
-        // `characterName` column, not `roleId`
-        // (`docs/adr/0030-a-shots-characters-are-the-productions-roles.md`) — a reshape, not an
-        // addition, so a pre-3 payload's rows cannot be read as format 3's shape at all. Remapping
-        // names to roles on restore was considered and turned down (this class's own doc comment,
-        // and the ADR's "Consequences" section): a version captured before the reshape restores
-        // with every plan except its shot list's cast, everything else untouched.
-        final rich = buildRichPayload();
-        final encoded = jsonDecode(codec.encode(rich)) as Map<String, dynamic>;
-        encoded["payloadFormat"] = 2;
-        encoded["shotCharacters"] = [
-          for (final row in rich.shotCharacters)
-            {
-              "shotId": row.shotId,
-              "characterName": "SOMEONE",
-              "position": row.position,
-              "sortKey": row.sortKey,
-              "isDeleted": row.isDeleted,
-            },
-        ];
+    test('a retired payload-format-2 payload decodes with its shot_characters dropped, not '
+        'remapped to roles', () {
+      // Format 2 is the shape 0.2.0 froze: `shot_characters` was still keyed by the retired
+      // `characterName` column, not `roleId`
+      // (`docs/adr/0030-a-shots-characters-are-the-productions-roles.md`) — a reshape, not an
+      // addition, so a pre-3 payload's rows cannot be read as format 3's shape at all. Remapping
+      // names to roles on restore was considered and turned down (this class's own doc comment,
+      // and the ADR's "Consequences" section): a version captured before the reshape restores
+      // with every plan except its shot list's cast, everything else untouched.
+      final rich = buildRichPayload();
+      final encoded = jsonDecode(codec.encode(rich)) as Map<String, dynamic>;
+      encoded["payloadFormat"] = 2;
+      encoded["shotCharacters"] = [
+        for (final row in rich.shotCharacters)
+          {
+            "shotId": row.shotId,
+            "characterName": "SOMEONE",
+            "position": row.position,
+            "sortKey": row.sortKey,
+            "isDeleted": row.isDeleted,
+          },
+      ];
 
-        final result = codec.decode(jsonEncode(encoded));
+      final result = codec.decode(jsonEncode(encoded));
 
-        expect(result.status, OcptProjectVersionPayloadStatus.ok);
-        expect(result.value!.shotCharacters, isEmpty);
-        expect(result.value!.shots, rich.shots);
-      },
-    );
+      expect(result.status, OcptProjectVersionPayloadStatus.ok);
+      expect(result.value!.shotCharacters, isEmpty);
+      expect(result.value!.shots, rich.shots);
+    });
 
-    test(
-      'a retired payload-format-3 payload decodes with the five storyboard and floor plan lists '
-      'empty',
-      () {
-        // Format 3 is the shape 0.2.1 froze: none of the five storyboard/floor plan keys existed
-        // yet, so a real format-3 payload's JSON carries none of them at all, rather than the keys
-        // present with an empty list. This is the fixture the codec's own doc comment asks to be
-        // kept once a stable release has frozen a format the next one moves past.
-        final rich = buildRichPayload();
-        final encoded = jsonDecode(codec.encode(rich)) as Map<String, dynamic>;
-        encoded["payloadFormat"] = 3;
-        encoded
-          ..remove("storyboardPanels")
-          ..remove("storyboardAnnotations")
-          ..remove("floorPlanSets")
-          ..remove("floorPlanSymbols")
-          ..remove("floorPlanArrows");
+    test('a retired payload-format-3 payload decodes with the five storyboard and floor plan lists '
+        'empty', () {
+      // Format 3 is the shape 0.2.1 froze: none of the five storyboard/floor plan keys existed
+      // yet, so a real format-3 payload's JSON carries none of them at all, rather than the keys
+      // present with an empty list. This is the fixture the codec's own doc comment asks to be
+      // kept once a stable release has frozen a format the next one moves past.
+      final rich = buildRichPayload();
+      final encoded = jsonDecode(codec.encode(rich)) as Map<String, dynamic>;
+      encoded["payloadFormat"] = 3;
+      encoded
+        ..remove("storyboardPanels")
+        ..remove("storyboardAnnotations")
+        ..remove("floorPlanSets")
+        ..remove("floorPlanSymbols")
+        ..remove("floorPlanArrows");
 
-        final result = codec.decode(jsonEncode(encoded));
+      final result = codec.decode(jsonEncode(encoded));
 
-        expect(result.status, OcptProjectVersionPayloadStatus.ok);
-        expect(result.value!.storyboardPanels, isEmpty);
-        expect(result.value!.storyboardAnnotations, isEmpty);
-        expect(result.value!.floorPlanSets, isEmpty);
-        expect(result.value!.floorPlanSymbols, isEmpty);
-        expect(result.value!.floorPlanArrows, isEmpty);
-        // Nothing else about the payload is disturbed by the missing keys.
-        expect(result.value!.shots, rich.shots);
-      },
-    );
+      expect(result.status, OcptProjectVersionPayloadStatus.ok);
+      expect(result.value!.storyboardPanels, isEmpty);
+      expect(result.value!.storyboardAnnotations, isEmpty);
+      expect(result.value!.floorPlanSets, isEmpty);
+      expect(result.value!.floorPlanSymbols, isEmpty);
+      expect(result.value!.floorPlanArrows, isEmpty);
+      // Nothing else about the payload is disturbed by the missing keys.
+      expect(result.value!.shots, rich.shots);
+    });
 
-    test(
-      'a format-4 payload written before setElementShape/ctrlXM/ctrlYM existed decodes with '
-      'those columns null',
-      () {
-        // Schema version 4 was still an open development cycle: `setElementShape`, `ctrlXM` and
-        // `ctrlYM` were added straight onto the v4 tables rather than through a v5 migration
-        // (`OcptFloorPlanSymbolsTable`/`OcptFloorPlanArrowsTable`'s own doc comments), so an
-        // already-written format-4 payload's row JSON carries none of the three keys at all,
-        // unlike the whole-table-missing case format 3 exercises above.
-        final rich = buildRichPayload();
-        final encoded = jsonDecode(codec.encode(rich)) as Map<String, dynamic>;
-        encoded["floorPlanSymbols"] = [
-          for (final row in encoded["floorPlanSymbols"] as List)
-            (row as Map<String, dynamic>)..remove("setElementShape"),
-        ];
-        encoded["floorPlanArrows"] = [
-          for (final row in encoded["floorPlanArrows"] as List)
-            (row as Map<String, dynamic>)
-              ..remove("ctrlXM")
-              ..remove("ctrlYM"),
-        ];
+    test('a format-4 payload written before setElementShape/ctrlXM/ctrlYM existed decodes with '
+        'those columns null', () {
+      // Schema version 4 was still an open development cycle: `setElementShape`, `ctrlXM` and
+      // `ctrlYM` were added straight onto the v4 tables rather than through a v5 migration
+      // (`OcptFloorPlanSymbolsTable`/`OcptFloorPlanArrowsTable`'s own doc comments), so an
+      // already-written format-4 payload's row JSON carries none of the three keys at all,
+      // unlike the whole-table-missing case format 3 exercises above.
+      final rich = buildRichPayload();
+      final encoded = jsonDecode(codec.encode(rich)) as Map<String, dynamic>;
+      encoded["floorPlanSymbols"] = [
+        for (final row in encoded["floorPlanSymbols"] as List)
+          (row as Map<String, dynamic>)..remove("setElementShape"),
+      ];
+      encoded["floorPlanArrows"] = [
+        for (final row in encoded["floorPlanArrows"] as List)
+          (row as Map<String, dynamic>)
+            ..remove("ctrlXM")
+            ..remove("ctrlYM"),
+      ];
 
-        final result = codec.decode(jsonEncode(encoded));
+      final result = codec.decode(jsonEncode(encoded));
 
-        expect(result.status, OcptProjectVersionPayloadStatus.ok);
-        expect(
-          result.value!.floorPlanSymbols.map((row) => row.setElementShape),
-          everyElement(isNull),
-        );
-        expect(result.value!.floorPlanArrows.map((row) => row.ctrlXM), everyElement(isNull));
-        expect(result.value!.floorPlanArrows.map((row) => row.ctrlYM), everyElement(isNull));
-        // Nothing else about the payload is disturbed by the missing keys.
-        expect(result.value!.shots, rich.shots);
-      },
-    );
+      expect(result.status, OcptProjectVersionPayloadStatus.ok);
+      expect(
+        result.value!.floorPlanSymbols.map((row) => row.setElementShape),
+        everyElement(isNull),
+      );
+      expect(result.value!.floorPlanArrows.map((row) => row.ctrlXM), everyElement(isNull));
+      expect(result.value!.floorPlanArrows.map((row) => row.ctrlYM), everyElement(isNull));
+      // Nothing else about the payload is disturbed by the missing keys.
+      expect(result.value!.shots, rich.shots);
+    });
   });
 
   group('OcptProjectVersionCodec malformed payloads', () {

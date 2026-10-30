@@ -51,7 +51,11 @@ class _OcptPresenceGridDayColumn {
   final String dateLabel;
 
   /// Class constructor
-  const _OcptPresenceGridDayColumn({required this.day, required this.dayTag, required this.dateLabel});
+  const _OcptPresenceGridDayColumn({
+    required this.day,
+    required this.dayTag,
+    required this.dateLabel,
+  });
 }
 
 /// The schedule mode's presence view: who is working or unavailable, day by day, across the whole
@@ -208,7 +212,9 @@ class OcptSchedulePresenceGrid extends StatelessWidget {
             ),
             child: Text(
               tr.schedulePresenceGridPersonColumnHeader.toUpperCase(),
-              style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
             ),
           ),
           for (final person in people) _buildLabelRow(context, tr, person),
@@ -400,9 +406,7 @@ class OcptSchedulePresenceGrid extends StatelessWidget {
       final label = ocptPresenceCodeLabel(tr, code);
 
       content = Tooltip(
-        message: hasConflict
-            ? "$label — ${tr.schedulePresenceGridConflictTooltip}"
-            : label,
+        message: hasConflict ? "$label — ${tr.schedulePresenceGridConflictTooltip}" : label,
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
           decoration: BoxDecoration(

@@ -124,8 +124,7 @@ class OcptScriptSidesLayout extends Equatable {
     required OcptSidesPresentation presentation,
   }) {
     final lines = _printedLinesOf(script);
-    final sortedSpans = sceneSpans.toList()
-      ..sort((a, b) => a.charStart.compareTo(b.charStart));
+    final sortedSpans = sceneSpans.toList()..sort((a, b) => a.charStart.compareTo(b.charStart));
 
     final selected = List<bool>.filled(lines.length, false);
     for (final span in sortedSpans) {
@@ -140,8 +139,16 @@ class OcptScriptSidesLayout extends Equatable {
 
     return OcptScriptSidesLayout(
       pages: switch (presentation) {
-        OcptSidesPresentation.scriptPages => _scriptPagesOf(script: script, lines: lines, selected: selected),
-        OcptSidesPresentation.packed => _packedOf(lines: lines, selected: selected, metrics: metrics),
+        OcptSidesPresentation.scriptPages => _scriptPagesOf(
+          script: script,
+          lines: lines,
+          selected: selected,
+        ),
+        OcptSidesPresentation.packed => _packedOf(
+          lines: lines,
+          selected: selected,
+          metrics: metrics,
+        ),
       },
     );
   }
@@ -163,7 +170,10 @@ class OcptScriptSidesLayout extends Equatable {
   /// The first and last index, into [lines], whose own `FountainScriptLine.sourceRange` overlaps
   /// [span] — the same overlap test `OcptScenarioCoverageLayout._segmentsOf` uses for a coverage
   /// range — or null when no line overlaps it at all.
-  static (int, int)? _rowRangeOf(({int charStart, int charEnd}) span, List<FountainScriptLine> lines) {
+  static (int, int)? _rowRangeOf(
+    ({int charStart, int charEnd}) span,
+    List<FountainScriptLine> lines,
+  ) {
     int? first;
     var last = 0;
     for (var index = 0; index < lines.length; index++) {

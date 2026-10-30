@@ -49,7 +49,12 @@ const Map<int, pw.TableColumnWidth> _columnWidths = {
 /// chose to leave off a document that circulates to a whole crew.
 class _ContactRow {
   /// Class constructor
-  const _ContactRow({required this.name, required this.position, required this.phone, required this.email});
+  const _ContactRow({
+    required this.name,
+    required this.position,
+    required this.phone,
+    required this.email,
+  });
 
   /// The person's own name, or the actor's while this is a cast row — empty for an uncast role,
   /// which `_textCell` then prints as an em dash.
@@ -184,7 +189,11 @@ class OcptContactListPdfService {
           if (crewGroups.isNotEmpty) ...[
             _sectionTitle(painter: painter, title: labels.crewSectionTitle),
             pw.SizedBox(height: 4),
-            _peopleTable(painter: painter, labels: labels, rows: _crewTableRows(painter, crewGroups)),
+            _peopleTable(
+              painter: painter,
+              labels: labels,
+              rows: _crewTableRows(painter, crewGroups),
+            ),
           ],
           if (crewGroups.isNotEmpty && castRows.isNotEmpty) pw.SizedBox(height: 14),
           if (castRows.isNotEmpty) ...[
@@ -193,7 +202,9 @@ class OcptContactListPdfService {
             _peopleTable(
               painter: painter,
               labels: labels,
-              rows: [for (final contact in castRows) _contactRow(painter: painter, contact: contact)],
+              rows: [
+                for (final contact in castRows) _contactRow(painter: painter, contact: contact),
+              ],
             ),
           ],
         ],
@@ -219,7 +230,9 @@ class OcptContactListPdfService {
 
     for (final person in snapshot.people) {
       for (final assignment in person.positions) {
-        final catalogued = assignment.positionId.isEmpty ? null : positionById[assignment.positionId];
+        final catalogued = assignment.positionId.isEmpty
+            ? null
+            : positionById[assignment.positionId];
         final positionLabel = catalogued != null
             ? labels.crewPositionLabelOf(catalogued.id)
             : assignment.customLabel;
@@ -242,13 +255,16 @@ class OcptContactListPdfService {
     final groups = <_ContactGroup>[];
 
     for (final department in OcptCrewDepartment.values) {
-      final departmentRows = [for (final row in rows) if (row.department == department) row]
-        ..sort((a, b) {
-          final byPosition = a.positionIndex.compareTo(b.positionIndex);
-          return byPosition != 0
-              ? byPosition
-              : a.contact.name.toLowerCase().compareTo(b.contact.name.toLowerCase());
-        });
+      final departmentRows =
+          [
+            for (final row in rows)
+              if (row.department == department) row,
+          ]..sort((a, b) {
+            final byPosition = a.positionIndex.compareTo(b.positionIndex);
+            return byPosition != 0
+                ? byPosition
+                : a.contact.name.toLowerCase().compareTo(b.contact.name.toLowerCase());
+          });
       if (departmentRows.isNotEmpty) {
         groups.add((
           labels.crewDepartmentLabelOf(department),
@@ -257,15 +273,23 @@ class OcptContactListPdfService {
       }
     }
 
-    final unassignedRows = [for (final row in rows) if (row.department == null) row]
-      ..sort((a, b) {
-        final byPosition = a.contact.position.toLowerCase().compareTo(b.contact.position.toLowerCase());
-        return byPosition != 0
-            ? byPosition
-            : a.contact.name.toLowerCase().compareTo(b.contact.name.toLowerCase());
-      });
+    final unassignedRows =
+        [
+          for (final row in rows)
+            if (row.department == null) row,
+        ]..sort((a, b) {
+          final byPosition = a.contact.position.toLowerCase().compareTo(
+            b.contact.position.toLowerCase(),
+          );
+          return byPosition != 0
+              ? byPosition
+              : a.contact.name.toLowerCase().compareTo(b.contact.name.toLowerCase());
+        });
     if (unassignedRows.isNotEmpty) {
-      groups.add((labels.unassignedDepartmentLabel, [for (final row in unassignedRows) row.contact]));
+      groups.add((
+        labels.unassignedDepartmentLabel,
+        [for (final row in unassignedRows) row.contact],
+      ));
     }
 
     return groups;
@@ -329,15 +353,16 @@ class OcptContactListPdfService {
 
   /// One full-width band row naming a crew group, [text] alone in the name column, the other three
   /// left blank.
-  pw.TableRow _bandRow({required OcptScriptPagePainter painter, required String text}) => pw.TableRow(
-    decoration: const pw.BoxDecoration(color: _bandColor),
-    children: [
-      _textCell(painter: painter, text: text.toUpperCase(), isBold: true),
-      _textCell(painter: painter, text: ""),
-      _textCell(painter: painter, text: ""),
-      _textCell(painter: painter, text: ""),
-    ],
-  );
+  pw.TableRow _bandRow({required OcptScriptPagePainter painter, required String text}) =>
+      pw.TableRow(
+        decoration: const pw.BoxDecoration(color: _bandColor),
+        children: [
+          _textCell(painter: painter, text: text.toUpperCase(), isBold: true),
+          _textCell(painter: painter, text: ""),
+          _textCell(painter: painter, text: ""),
+          _textCell(painter: painter, text: ""),
+        ],
+      );
 
   /// One ordinary row of either table.
   pw.TableRow _contactRow({required OcptScriptPagePainter painter, required _ContactRow contact}) =>
@@ -398,11 +423,19 @@ class OcptContactListPdfService {
         children: [
           pw.Text(
             "$projectName — $documentTitle",
-            style: pw.TextStyle(font: painter.fonts.regular, fontSize: _smallFontSizePt, color: _mutedColor),
+            style: pw.TextStyle(
+              font: painter.fonts.regular,
+              fontSize: _smallFontSizePt,
+              color: _mutedColor,
+            ),
           ),
           pw.Text(
             versionLine,
-            style: pw.TextStyle(font: painter.fonts.regular, fontSize: _smallFontSizePt, color: _mutedColor),
+            style: pw.TextStyle(
+              font: painter.fonts.regular,
+              fontSize: _smallFontSizePt,
+              color: _mutedColor,
+            ),
           ),
         ],
       ),
@@ -413,23 +446,36 @@ class OcptContactListPdfService {
   );
 
   /// One section's own small, muted heading.
-  pw.Widget _sectionTitle({required OcptScriptPagePainter painter, required String title}) => pw.Text(
-    title.toUpperCase(),
-    style: pw.TextStyle(font: painter.fonts.bold, fontSize: _smallFontSizePt, color: _mutedColor),
-  );
+  pw.Widget _sectionTitle({required OcptScriptPagePainter painter, required String title}) =>
+      pw.Text(
+        title.toUpperCase(),
+        style: pw.TextStyle(
+          font: painter.fonts.bold,
+          fontSize: _smallFontSizePt,
+          color: _mutedColor,
+        ),
+      );
 
   /// A block of free text — the note standing in for the whole document on an empty catalogue.
-  pw.Widget _noteWidget({required OcptScriptPagePainter painter, required String text}) =>
-      pw.Text(text, style: pw.TextStyle(font: painter.fonts.regular, fontSize: _bodyFontSizePt));
+  pw.Widget _noteWidget({required OcptScriptPagePainter painter, required String text}) => pw.Text(
+    text,
+    style: pw.TextStyle(font: painter.fonts.regular, fontSize: _bodyFontSizePt),
+  );
 
   /// One table cell holding [text], substituting [ocptScheduleEmptyValue] when it is blank — a
   /// person's own missing phone or e-mail, or the three blank fields an uncast role's row carries.
-  pw.Widget _textCell({required OcptScriptPagePainter painter, required String text, bool isBold = false}) =>
-      pw.Padding(
-        padding: const pw.EdgeInsets.all(_cellPaddingPt),
-        child: pw.Text(
-          text.isEmpty ? ocptScheduleEmptyValue : text,
-          style: pw.TextStyle(font: painter.fonts.variant(bold: isBold, italic: false), fontSize: _bodyFontSizePt),
-        ),
-      );
+  pw.Widget _textCell({
+    required OcptScriptPagePainter painter,
+    required String text,
+    bool isBold = false,
+  }) => pw.Padding(
+    padding: const pw.EdgeInsets.all(_cellPaddingPt),
+    child: pw.Text(
+      text.isEmpty ? ocptScheduleEmptyValue : text,
+      style: pw.TextStyle(
+        font: painter.fonts.variant(bold: isBold, italic: false),
+        fontSize: _bodyFontSizePt,
+      ),
+    ),
+  );
 }

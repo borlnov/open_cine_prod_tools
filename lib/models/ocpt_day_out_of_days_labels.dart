@@ -106,7 +106,8 @@ class OcptDayOutOfDaysLabels extends Equatable {
 
   /// Object string representation, useful for debugging and logging.
   @override
-  String toString() => "OcptDayOutOfDaysLabels(documentTitle: $documentTitle, dayCount: ${dayDateLabels.length})";
+  String toString() =>
+      "OcptDayOutOfDaysLabels(documentTitle: $documentTitle, dayCount: ${dayDateLabels.length})";
 
   /// Object properties
   @override

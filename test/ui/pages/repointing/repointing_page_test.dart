@@ -70,7 +70,8 @@ void _mockSecureStorage(Map<String, String> store) {
 /// `_FakeRemoteStorage`.
 class _FakeRemoteStorage implements OcptRemoteStorage {
   @override
-  Future<OcptSequenceNumber> append(OcptChangesetEnvelope envelope) async => OcptSequenceNumber.zero;
+  Future<OcptSequenceNumber> append(OcptChangesetEnvelope envelope) async =>
+      OcptSequenceNumber.zero;
 
   @override
   Future<List<OcptStoredChangeset>> readSince(OcptSequenceNumber cursor) async => const [];
@@ -267,10 +268,7 @@ void main() {
 
       await pumpView(tester, manager);
 
-      await tester.enterText(
-        find.byType(TextField).first,
-        "https://relay-onset.example.org/",
-      );
+      await tester.enterText(find.byType(TextField).first, "https://relay-onset.example.org/");
       await tester.enterText(find.byType(TextField).last, "onset-enrolment-secret");
 
       final tr = Tr.of(tester.element(find.byType(OcptRepointingView)));

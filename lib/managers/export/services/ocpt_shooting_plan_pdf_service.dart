@@ -198,13 +198,22 @@ class OcptShootingPlanPdfService {
   }) async {
     final painter = await _painterFor(pageSetup);
     final pdfDocument = pw.Document();
-    final versionLine = "${labels.versionLabel} ${ocptScheduleGeneratedAtStamp(exportDate ?? DateTime.now())}";
+    final versionLine =
+        "${labels.versionLabel} ${ocptScheduleGeneratedAtStamp(exportDate ?? DateTime.now())}";
 
-    final resolvedDayIds = [for (final id in dayIds) if (plan.schedule.daysById.containsKey(id)) id];
+    final resolvedDayIds = [
+      for (final id in dayIds)
+        if (plan.schedule.daysById.containsKey(id)) id,
+    ];
 
     if (includeTitlePage) {
       pdfDocument.addPage(
-        _titlePage(painter: painter, labels: labels, projectName: projectName, versionLine: versionLine),
+        _titlePage(
+          painter: painter,
+          labels: labels,
+          projectName: projectName,
+          versionLine: versionLine,
+        ),
       );
     }
 
@@ -352,7 +361,11 @@ class OcptShootingPlanPdfService {
           pw.SizedBox(height: 32),
           pw.Text(
             versionLine,
-            style: pw.TextStyle(font: painter.fonts.regular, fontSize: _smallFontSizePt, color: _mutedColor),
+            style: pw.TextStyle(
+              font: painter.fonts.regular,
+              fontSize: _smallFontSizePt,
+              color: _mutedColor,
+            ),
           ),
         ],
       ),
@@ -375,10 +388,7 @@ class OcptShootingPlanPdfService {
       documentTitle: labels.documentTitle,
       versionLine: versionLine,
     ),
-    build: (context) => [
-      pw.SizedBox(height: 6),
-      _noteWidget(painter: painter, text: text),
-    ],
+    build: (context) => [pw.SizedBox(height: 6), _noteWidget(painter: painter, text: text)],
   );
 
   // ---------------------------------------------------------------------------------------------
@@ -446,7 +456,10 @@ class OcptShootingPlanPdfService {
     ),
     build: (context) => [
       pw.SizedBox(height: 6),
-      pw.Text(title, style: pw.TextStyle(font: painter.fonts.bold, fontSize: _titleFontSizePt)),
+      pw.Text(
+        title,
+        style: pw.TextStyle(font: painter.fonts.bold, fontSize: _titleFontSizePt),
+      ),
       pw.SizedBox(height: 8),
       _noteWidget(painter: painter, text: labels.emptyPlanNote),
     ],
@@ -481,7 +494,10 @@ class OcptShootingPlanPdfService {
       ),
       build: (context) => [
         pw.SizedBox(height: 6),
-        pw.Text(pageTitle, style: pw.TextStyle(font: painter.fonts.bold, fontSize: _titleFontSizePt)),
+        pw.Text(
+          pageTitle,
+          style: pw.TextStyle(font: painter.fonts.bold, fontSize: _titleFontSizePt),
+        ),
         pw.SizedBox(height: 8),
         pw.Table(
           border: pw.TableBorder.all(color: _ruleColor, width: 0.5),
@@ -509,7 +525,9 @@ class OcptShootingPlanPdfService {
                 for (final column in columns)
                   _gridHeaderCell(
                     painter: painter,
-                    text: column.slotLabel.trim().isEmpty ? ocptScheduleEmptyValue : column.slotLabel.trim(),
+                    text: column.slotLabel.trim().isEmpty
+                        ? ocptScheduleEmptyValue
+                        : column.slotLabel.trim(),
                   ),
               ],
             ),
@@ -542,14 +560,15 @@ class OcptShootingPlanPdfService {
       pw.Padding(padding: const pw.EdgeInsets.all(_cellPaddingPt), child: pw.SizedBox());
 
   /// A grid's own header cell (a day tag, a slot's own label).
-  pw.Widget _gridHeaderCell({required OcptScriptPagePainter painter, required String text}) => pw.Padding(
-    padding: const pw.EdgeInsets.all(_cellPaddingPt),
-    child: pw.Text(
-      text,
-      textAlign: pw.TextAlign.center,
-      style: pw.TextStyle(font: painter.fonts.bold, fontSize: _smallFontSizePt),
-    ),
-  );
+  pw.Widget _gridHeaderCell({required OcptScriptPagePainter painter, required String text}) =>
+      pw.Padding(
+        padding: const pw.EdgeInsets.all(_cellPaddingPt),
+        child: pw.Text(
+          text,
+          textAlign: pw.TextAlign.center,
+          style: pw.TextStyle(font: painter.fonts.bold, fontSize: _smallFontSizePt),
+        ),
+      );
 
   /// A grid row's own leading label cell — indented and muted for a locations grid's own nested
   /// `Perso.` row.
@@ -579,19 +598,22 @@ class OcptShootingPlanPdfService {
   /// to this column" (a location's row against a slot shot somewhere else, an element's row against
   /// a day it is not needed on), not a missing value, so it prints truly empty rather than
   /// substituting [ocptScheduleEmptyValue].
-  pw.Widget _gridDataCell({required OcptScriptPagePainter painter, required String text, bool isMuted = false}) =>
-      pw.Padding(
-        padding: const pw.EdgeInsets.all(_cellPaddingPt),
-        child: pw.Text(
-          text,
-          textAlign: pw.TextAlign.center,
-          style: pw.TextStyle(
-            font: painter.fonts.regular,
-            fontSize: _smallFontSizePt,
-            color: isMuted ? _mutedColor : null,
-          ),
-        ),
-      );
+  pw.Widget _gridDataCell({
+    required OcptScriptPagePainter painter,
+    required String text,
+    bool isMuted = false,
+  }) => pw.Padding(
+    padding: const pw.EdgeInsets.all(_cellPaddingPt),
+    child: pw.Text(
+      text,
+      textAlign: pw.TextAlign.center,
+      style: pw.TextStyle(
+        font: painter.fonts.regular,
+        fontSize: _smallFontSizePt,
+        color: isMuted ? _mutedColor : null,
+      ),
+    ),
+  );
 
   /// Adds one landscape page per chunk of [chunks] to [pdfDocument], each carrying every one of
   /// [rows] over that chunk's own day columns — or a single note page when [chunks] or [rows] is
@@ -680,7 +702,10 @@ class OcptShootingPlanPdfService {
       ),
       build: (context) => [
         pw.SizedBox(height: 6),
-        pw.Text(pageTitle, style: pw.TextStyle(font: painter.fonts.bold, fontSize: _titleFontSizePt)),
+        pw.Text(
+          pageTitle,
+          style: pw.TextStyle(font: painter.fonts.bold, fontSize: _titleFontSizePt),
+        ),
         pw.SizedBox(height: 8),
         pw.Table(
           border: pw.TableBorder.all(color: _ruleColor, width: 0.5),
@@ -690,7 +715,11 @@ class OcptShootingPlanPdfService {
               repeat: true,
               decoration: const pw.BoxDecoration(color: _bandColor),
               children: [
-                _gridRowLabelCell(painter: painter, text: labels.elementsGridRowHeader, isBold: true),
+                _gridRowLabelCell(
+                  painter: painter,
+                  text: labels.elementsGridRowHeader,
+                  isBold: true,
+                ),
                 for (final day in columns)
                   _gridHeaderCell(painter: painter, text: "${labels.dayTagPrefix}${day.dayNumber}"),
               ],
@@ -797,14 +826,22 @@ class OcptShootingPlanPdfService {
   }
 
   /// A section's own small, muted heading.
-  pw.Widget _daySectionTitle({required OcptScriptPagePainter painter, required String text}) => pw.Text(
-    text.toUpperCase(),
-    style: pw.TextStyle(font: painter.fonts.bold, fontSize: _smallFontSizePt, color: _mutedColor),
-  );
+  pw.Widget _daySectionTitle({required OcptScriptPagePainter painter, required String text}) =>
+      pw.Text(
+        text.toUpperCase(),
+        style: pw.TextStyle(
+          font: painter.fonts.bold,
+          fontSize: _smallFontSizePt,
+          color: _mutedColor,
+        ),
+      );
 
   /// [locations]' own name and address, one line each, or a single [ocptScheduleEmptyValue] line
   /// when there is none.
-  List<pw.Widget> _locationLines({required OcptScriptPagePainter painter, required List<OcptLocation> locations}) {
+  List<pw.Widget> _locationLines({
+    required OcptScriptPagePainter painter,
+    required List<OcptLocation> locations,
+  }) {
     if (locations.isEmpty) {
       return [_noteWidget(painter: painter, text: ocptScheduleEmptyValue)];
     }
@@ -834,7 +871,9 @@ class OcptShootingPlanPdfService {
       }
       final label = slot.label.trim().isEmpty ? ocptScheduleEmptyValue : slot.label.trim();
       final start = ocptFormatDayMinute(timeline.startMinute);
-      final end = timeline.endMinute == null ? ocptScheduleEmptyValue : ocptFormatDayMinute(timeline.endMinute!);
+      final end = timeline.endMinute == null
+          ? ocptScheduleEmptyValue
+          : ocptFormatDayMinute(timeline.endMinute!);
       lines.add("$label : ${labels.callTimeLabel} $start … ${labels.estimatedEndLabel} $end");
     }
 
@@ -912,14 +951,18 @@ class OcptShootingPlanPdfService {
       for (final event in events) ...[
         pw.Text(
           "${ocptFormatDayMinute(event.minute)} — "
-              "${event.label.trim().isEmpty ? ocptScheduleEmptyValue : event.label.trim()}",
+          "${event.label.trim().isEmpty ? ocptScheduleEmptyValue : event.label.trim()}",
           style: pw.TextStyle(font: painter.fonts.bold, fontSize: _bodyFontSizePt),
         ),
         if (event.notes.trim().isNotEmpty) ...[
           pw.SizedBox(height: 1),
           pw.Text(
             event.notes.trim(),
-            style: pw.TextStyle(font: painter.fonts.regular, fontSize: _smallFontSizePt, color: _mutedColor),
+            style: pw.TextStyle(
+              font: painter.fonts.regular,
+              fontSize: _smallFontSizePt,
+              color: _mutedColor,
+            ),
           ),
         ],
         pw.SizedBox(height: 4),
@@ -949,7 +992,11 @@ class OcptShootingPlanPdfService {
             repeat: true,
             decoration: const pw.BoxDecoration(color: _bandColor),
             children: [
-              for (final header in [labels.nameHeader, labels.guestReasonHeader, labels.hoursLinePrefix])
+              for (final header in [
+                labels.nameHeader,
+                labels.guestReasonHeader,
+                labels.hoursLinePrefix,
+              ])
                 _textCell(painter: painter, text: header, isBold: true),
             ],
           ),
@@ -985,7 +1032,11 @@ class OcptShootingPlanPdfService {
           pw.SizedBox(height: 1),
           pw.Text(
             row.notes,
-            style: pw.TextStyle(font: painter.fonts.regular, fontSize: _smallFontSizePt, color: _mutedColor),
+            style: pw.TextStyle(
+              font: painter.fonts.regular,
+              fontSize: _smallFontSizePt,
+              color: _mutedColor,
+            ),
           ),
         ],
       ],
@@ -997,13 +1048,18 @@ class OcptShootingPlanPdfService {
   /// deserves. Mirrors `OcptCallSheetPdfService._crewNoteBandWidget`, minus its own list of several
   /// notes: here it is always exactly the one block's own, [_dayTimetableWidgets] calling this the
   /// instant it sees one rather than accumulating several across a run.
-  pw.Widget _crewNoteBandWidget({required OcptScriptPagePainter painter, required String crewNote}) =>
-      pw.Container(
-        constraints: const pw.BoxConstraints(minWidth: double.infinity),
-        decoration: pw.BoxDecoration(border: pw.Border.all(color: _ruleColor, width: 0.5)),
-        padding: const pw.EdgeInsets.all(_cellPaddingPt),
-        child: pw.Text(crewNote, style: pw.TextStyle(font: painter.fonts.regular, fontSize: _bodyFontSizePt)),
-      );
+  pw.Widget _crewNoteBandWidget({
+    required OcptScriptPagePainter painter,
+    required String crewNote,
+  }) => pw.Container(
+    constraints: const pw.BoxConstraints(minWidth: double.infinity),
+    decoration: pw.BoxDecoration(border: pw.Border.all(color: _ruleColor, width: 0.5)),
+    padding: const pw.EdgeInsets.all(_cellPaddingPt),
+    child: pw.Text(
+      crewNote,
+      style: pw.TextStyle(font: painter.fonts.regular, fontSize: _bodyFontSizePt),
+    ),
+  );
 
   /// The day's own interleaved timetable: a run of consecutive [OcptShootingBlockKind.shot] blocks
   /// becomes one shot table, every other block becomes its own prose milestone line — or
@@ -1082,7 +1138,12 @@ class OcptShootingPlanPdfService {
     if (widgets.isEmpty) {
       return [_noteWidget(painter: painter, text: labels.emptyDayScheduleNote)];
     }
-    return [for (final (index, widget) in widgets.indexed) ...[if (index > 0) pw.SizedBox(height: 4), widget]];
+    return [
+      for (final (index, widget) in widgets.indexed) ...[
+        if (index > 0) pw.SizedBox(height: 4),
+        widget,
+      ],
+    ];
   }
 
   /// A non-shot block's own prose line (`De 16h45 à 17h15 : …`), or `<from> <start> : <caption>`
@@ -1112,11 +1173,20 @@ class OcptShootingPlanPdfService {
       child: pw.Column(
         crossAxisAlignment: pw.CrossAxisAlignment.start,
         children: [
-          pw.Text(text, style: pw.TextStyle(font: painter.fonts.italic, fontSize: _bodyFontSizePt)),
+          pw.Text(
+            text,
+            style: pw.TextStyle(font: painter.fonts.italic, fontSize: _bodyFontSizePt),
+          ),
           if (rolesLine != null)
-            pw.Text(rolesLine, style: pw.TextStyle(font: painter.fonts.italic, fontSize: _bodyFontSizePt)),
+            pw.Text(
+              rolesLine,
+              style: pw.TextStyle(font: painter.fonts.italic, fontSize: _bodyFontSizePt),
+            ),
           if (crewNote.isNotEmpty)
-            pw.Text(crewNote, style: pw.TextStyle(font: painter.fonts.regular, fontSize: _bodyFontSizePt)),
+            pw.Text(
+              crewNote,
+              style: pw.TextStyle(font: painter.fonts.regular, fontSize: _bodyFontSizePt),
+            ),
         ],
       ),
     );
@@ -1157,7 +1227,8 @@ class OcptShootingPlanPdfService {
           children: [
             _textCell(
               painter: painter,
-              text: "${ocptFormatDayMinute(ordered.entry.startMinute)} – "
+              text:
+                  "${ocptFormatDayMinute(ordered.entry.startMinute)} – "
                   "${ocptFormatDayMinute(ordered.entry.endMinute)}",
             ),
             _textCell(painter: painter, text: shot.code),
@@ -1227,7 +1298,8 @@ class OcptShootingPlanPdfService {
       final captions = <String, String>{
         for (final block in blocksBySlotId[slot.id] ?? const <OcptShootingDayBlock>[])
           block.id: block.kind == OcptShootingBlockKind.shot
-              ? (block.shotId == null ? null : plan.shotById(block.shotId!))?.code ?? ocptScheduleEmptyValue
+              ? (block.shotId == null ? null : plan.shotById(block.shotId!))?.code ??
+                    ocptScheduleEmptyValue
               : ocptScheduleBlockCaptionOf(
                   block: block,
                   headingBySceneId: headingBySceneId,
@@ -1292,7 +1364,12 @@ class OcptShootingPlanPdfService {
   }) {
     final day = plan.schedule.daysById[dayId]!;
     final title = labels.titleOfDay(dayId);
-    final grid = _tenMinuteGridOf(labels: labels, plan: plan, dayId: dayId, headingBySceneId: headingBySceneId);
+    final grid = _tenMinuteGridOf(
+      labels: labels,
+      plan: plan,
+      dayId: dayId,
+      headingBySceneId: headingBySceneId,
+    );
 
     return pw.MultiPage(
       pageFormat: _portraitPageFormat(painter),
@@ -1306,7 +1383,7 @@ class OcptShootingPlanPdfService {
         pw.SizedBox(height: 6),
         pw.Text(
           "${title.isEmpty ? "${labels.dayTagPrefix}${day.dayNumber}" : title} — "
-              "${labels.tenMinuteGridSectionTitle}",
+          "${labels.tenMinuteGridSectionTitle}",
           style: pw.TextStyle(font: painter.fonts.bold, fontSize: _titleFontSizePt),
         ),
         pw.SizedBox(height: 10),
@@ -1330,14 +1407,19 @@ class OcptShootingPlanPdfService {
     }
 
     final tileAtRowByColumn = <String, List<OcptShootingDayAgendaTile?>>{
-      for (final column in grid.columns) column.slotId: List<OcptShootingDayAgendaTile?>.filled(grid.rowCount, null),
+      for (final column in grid.columns)
+        column.slotId: List<OcptShootingDayAgendaTile?>.filled(grid.rowCount, null),
     };
     for (final tile in grid.tiles) {
       final rows = tileAtRowByColumn[tile.slotId];
       if (rows == null) {
         continue;
       }
-      for (var row = tile.startRow; row < tile.startRow + tile.rowSpan && row < grid.rowCount; row++) {
+      for (
+        var row = tile.startRow;
+        row < tile.startRow + tile.rowSpan && row < grid.rowCount;
+        row++
+      ) {
         rows[row] = tile;
       }
     }
@@ -1362,7 +1444,8 @@ class OcptShootingPlanPdfService {
     }
 
     final widgets = <pw.Widget>[
-      for (final marker in leadingMarkers) _tenMinuteGridEventWidget(painter: painter, marker: marker),
+      for (final marker in leadingMarkers)
+        _tenMinuteGridEventWidget(painter: painter, marker: marker),
     ];
     var pendingRows = <pw.TableRow>[];
 
@@ -1382,7 +1465,9 @@ class OcptShootingPlanPdfService {
                 for (final column in grid.columns)
                   _gridHeaderCell(
                     painter: painter,
-                    text: column.label.trim().isEmpty ? ocptScheduleEmptyValue : column.label.trim(),
+                    text: column.label.trim().isEmpty
+                        ? ocptScheduleEmptyValue
+                        : column.label.trim(),
                   ),
               ],
             ),
@@ -1400,9 +1485,16 @@ class OcptShootingPlanPdfService {
             border: pw.Border(top: pw.BorderSide(color: _gridRowRuleColor, width: 0.3)),
           ),
           children: [
-            _tenMinuteGridHourCell(painter: painter, minute: grid.startMinute + row * OcptShootingDayAgendaGrid.stepMinutes),
+            _tenMinuteGridHourCell(
+              painter: painter,
+              minute: grid.startMinute + row * OcptShootingDayAgendaGrid.stepMinutes,
+            ),
             for (final column in grid.columns)
-              _tenMinuteGridTileCell(painter: painter, tile: tileAtRowByColumn[column.slotId]![row], row: row),
+              _tenMinuteGridTileCell(
+                painter: painter,
+                tile: tileAtRowByColumn[column.slotId]![row],
+                row: row,
+              ),
           ],
         ),
       );
@@ -1428,13 +1520,18 @@ class OcptShootingPlanPdfService {
   /// The grid's own leading column cell: [minute] formatted through `ocptFormatDayMinute`, printed
   /// on every row — the same figure the tile cells inside that row's own band read their exact
   /// clock from, but rounded to this row's own ten-minute mark rather than a block's own exact one.
-  pw.Widget _tenMinuteGridHourCell({required OcptScriptPagePainter painter, required int minute}) => pw.Padding(
-    padding: const pw.EdgeInsets.all(_cellPaddingPt),
-    child: pw.Text(
-      ocptFormatDayMinute(minute),
-      style: pw.TextStyle(font: painter.fonts.regular, fontSize: _smallFontSizePt, color: _mutedColor),
-    ),
-  );
+  pw.Widget _tenMinuteGridHourCell({required OcptScriptPagePainter painter, required int minute}) =>
+      pw.Padding(
+        padding: const pw.EdgeInsets.all(_cellPaddingPt),
+        child: pw.Text(
+          ocptFormatDayMinute(minute),
+          style: pw.TextStyle(
+            font: painter.fonts.regular,
+            fontSize: _smallFontSizePt,
+            color: _mutedColor,
+          ),
+        ),
+      );
 
   /// One slot column's own cell for [row]: a blank, borderless space while [tile] is null (that
   /// slot has nothing placed on this row — a gap between two blocks, or a row before the slot's own
@@ -1459,7 +1556,9 @@ class OcptShootingPlanPdfService {
           left: const pw.BorderSide(color: _ruleColor, width: 0.5),
           right: const pw.BorderSide(color: _ruleColor, width: 0.5),
           top: isFirstRow ? const pw.BorderSide(color: _ruleColor, width: 0.5) : pw.BorderSide.none,
-          bottom: isLastRow ? const pw.BorderSide(color: _ruleColor, width: 0.5) : pw.BorderSide.none,
+          bottom: isLastRow
+              ? const pw.BorderSide(color: _ruleColor, width: 0.5)
+              : pw.BorderSide.none,
         ),
       ),
       padding: const pw.EdgeInsets.all(_cellPaddingPt),
@@ -1482,7 +1581,10 @@ class OcptShootingPlanPdfService {
     constraints: const pw.BoxConstraints(minWidth: double.infinity),
     margin: const pw.EdgeInsets.symmetric(vertical: 2),
     padding: const pw.EdgeInsets.all(_cellPaddingPt),
-    decoration: pw.BoxDecoration(border: pw.Border.all(color: _ruleColor, width: 0.5), color: _bandColor),
+    decoration: pw.BoxDecoration(
+      border: pw.Border.all(color: _ruleColor, width: 0.5),
+      color: _bandColor,
+    ),
     child: pw.Text(
       "${ocptFormatDayMinute(marker.minute)} — ${marker.label.trim().isEmpty ? ocptScheduleEmptyValue : marker.label.trim()}",
       style: pw.TextStyle(font: painter.fonts.bold, fontSize: _bodyFontSizePt),
@@ -1518,11 +1620,19 @@ class OcptShootingPlanPdfService {
         children: [
           pw.Text(
             "$projectName — $documentTitle",
-            style: pw.TextStyle(font: painter.fonts.regular, fontSize: _smallFontSizePt, color: _mutedColor),
+            style: pw.TextStyle(
+              font: painter.fonts.regular,
+              fontSize: _smallFontSizePt,
+              color: _mutedColor,
+            ),
           ),
           pw.Text(
             versionLine,
-            style: pw.TextStyle(font: painter.fonts.regular, fontSize: _smallFontSizePt, color: _mutedColor),
+            style: pw.TextStyle(
+              font: painter.fonts.regular,
+              fontSize: _smallFontSizePt,
+              color: _mutedColor,
+            ),
           ),
         ],
       ),
@@ -1533,20 +1643,28 @@ class OcptShootingPlanPdfService {
   );
 
   /// A block of free text.
-  pw.Widget _noteWidget({required OcptScriptPagePainter painter, required String text}) =>
-      pw.Text(text, style: pw.TextStyle(font: painter.fonts.regular, fontSize: _bodyFontSizePt));
+  pw.Widget _noteWidget({required OcptScriptPagePainter painter, required String text}) => pw.Text(
+    text,
+    style: pw.TextStyle(font: painter.fonts.regular, fontSize: _bodyFontSizePt),
+  );
 
   /// One table cell holding [text], substituting [ocptScheduleEmptyValue] when it is blank — unlike
   /// [_gridDataCell], a shot table cell always names a specific field of a specific shot, so a blank
   /// one *is* a missing value.
-  pw.Widget _textCell({required OcptScriptPagePainter painter, required String text, bool isBold = false}) =>
-      pw.Padding(
-        padding: const pw.EdgeInsets.all(_cellPaddingPt),
-        child: pw.Text(
-          text.isEmpty ? ocptScheduleEmptyValue : text,
-          style: pw.TextStyle(font: painter.fonts.variant(bold: isBold, italic: false), fontSize: _bodyFontSizePt),
-        ),
-      );
+  pw.Widget _textCell({
+    required OcptScriptPagePainter painter,
+    required String text,
+    bool isBold = false,
+  }) => pw.Padding(
+    padding: const pw.EdgeInsets.all(_cellPaddingPt),
+    child: pw.Text(
+      text.isEmpty ? ocptScheduleEmptyValue : text,
+      style: pw.TextStyle(
+        font: painter.fonts.variant(bold: isBold, italic: false),
+        fontSize: _bodyFontSizePt,
+      ),
+    ),
+  );
 
   /// The portrait `pdf` page format every title page, note page and day agenda is drawn on — the
   /// same margin convention `OcptCallSheetPdfService._page` uses (`marginRightPt` standing in for

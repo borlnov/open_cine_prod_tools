@@ -90,10 +90,12 @@ class OcptScheduleHeader extends StatelessWidget {
                 labelOf: (view) => switch (view) {
                   OcptScheduleCentreView.day => Tr.of(context).scheduleHeaderDaySegmentLabel,
                   OcptScheduleCentreView.agenda => Tr.of(context).scheduleHeaderAgendaSegmentLabel,
-                  OcptScheduleCentreView.positions =>
-                    Tr.of(context).scheduleHeaderPositionsSegmentLabel,
-                  OcptScheduleCentreView.presence =>
-                    Tr.of(context).scheduleHeaderPresenceSegmentLabel,
+                  OcptScheduleCentreView.positions => Tr.of(
+                    context,
+                  ).scheduleHeaderPositionsSegmentLabel,
+                  OcptScheduleCentreView.presence => Tr.of(
+                    context,
+                  ).scheduleHeaderPresenceSegmentLabel,
                 },
                 onChanged: onCentreViewSelected,
               ),
@@ -135,7 +137,8 @@ class OcptScheduleHeader extends StatelessWidget {
           labelOf: (mode) => ocptScheduleAgendaColorModeLabel(tr, mode),
           onChanged: onAgendaColorModeSelected,
         ),
-        if (agendaColorMode == OcptScheduleAgendaColorMode.effect) const _OcptScheduleEffectLegend(),
+        if (agendaColorMode == OcptScheduleAgendaColorMode.effect)
+          const _OcptScheduleEffectLegend(),
       ],
     );
   }

@@ -24,7 +24,12 @@ Widget _wrapInApp(Widget child) => MaterialApp(
   ],
   supportedLocales: Tr.delegate.supportedLocales,
   home: Scaffold(
-    body: Stack(children: [const SizedBox.expand(), Align(alignment: Alignment.topLeft, child: child)]),
+    body: Stack(
+      children: [
+        const SizedBox.expand(),
+        Align(alignment: Alignment.topLeft, child: child),
+      ],
+    ),
   ),
 );
 
@@ -126,11 +131,7 @@ void main() {
   });
 
   testWidgets("the popover is capped to the room the window leaves it", (tester) async {
-    final (word, popover) = await pumpAnchoredPopover(
-      tester,
-      topInset: 300,
-      windowHeight: 400,
-    );
+    final (word, popover) = await pumpAnchoredPopover(tester, topInset: 300, windowHeight: 400);
 
     // Neither side is tall enough for the whole panel, so it is squeezed into the better one and
     // scrolls the rest rather than hanging off the window.

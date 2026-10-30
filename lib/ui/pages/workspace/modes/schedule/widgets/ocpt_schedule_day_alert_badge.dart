@@ -84,7 +84,10 @@ class OcptScheduleDayAlertBadge extends StatelessWidget {
             const SizedBox(width: 3),
             Text(
               "${alerts.length}",
-              style: theme.textTheme.labelSmall?.copyWith(color: color, fontWeight: FontWeight.bold),
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: color,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ],
         ],

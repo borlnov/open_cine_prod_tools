@@ -51,17 +51,15 @@ class OcptProjectVersion extends Equatable {
 
   /// Builds the version described by [row], flagged [isBase] by the caller, which is the one
   /// that knows the project header's pointer.
-  factory OcptProjectVersion.fromRow({
-    required OcptProjectVersionRow row,
-    required bool isBase,
-  }) => OcptProjectVersion(
-    id: row.id,
-    name: row.name,
-    note: row.note,
-    createdAt: row.createdAt,
-    summary: OcptProjectVersionSummary.parse(row.summaryJson),
-    isBase: isBase,
-  );
+  factory OcptProjectVersion.fromRow({required OcptProjectVersionRow row, required bool isBase}) =>
+      OcptProjectVersion(
+        id: row.id,
+        name: row.name,
+        note: row.note,
+        createdAt: row.createdAt,
+        summary: OcptProjectVersionSummary.parse(row.summaryJson),
+        isBase: isBase,
+      );
 
   /// Object string representation, useful for debugging and logging.
   @override

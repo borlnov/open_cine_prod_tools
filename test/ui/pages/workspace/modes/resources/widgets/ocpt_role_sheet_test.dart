@@ -217,7 +217,8 @@ Widget _buildSheet({
     onPersonSheetOpenRequested: onPersonSheetOpenRequested ?? (personId) {},
     onCandidateAdded: onCandidateAdded ?? (personId) {},
     onCandidateStatusChanged: onCandidateStatusChanged ?? (candidateId, status) {},
-    onCandidateAuditionDateChanged: onCandidateAuditionDateChanged ?? (candidateId, auditionedOn) {},
+    onCandidateAuditionDateChanged:
+        onCandidateAuditionDateChanged ?? (candidateId, auditionedOn) {},
     onCandidateNotesChanged: onCandidateNotesChanged ?? (candidateId, rawValue) {},
     onCandidateRemoveRequested: onCandidateRemoveRequested ?? (candidateId) {},
     onElementLinked: onElementLinked ?? (elementId) {},
@@ -338,9 +339,7 @@ void main() {
   testWidgets("the header picks the role's kind", (tester) async {
     final kinds = <OcptRoleKind>[];
 
-    await tester.pumpWidget(
-      _buildSheet(role: _role(), onKindChanged: kinds.add),
-    );
+    await tester.pumpWidget(_buildSheet(role: _role(), onKindChanged: kinds.add));
     await tester.pumpAndSettle();
 
     final tr = Tr.of(tester.element(find.byType(OcptRoleSheet)));
@@ -449,17 +448,14 @@ void main() {
     expect(deleted, 1);
   });
 
-  testWidgets("an orphaned role's merge chips report (sourceRoleId, targetRoleId)", (
-    tester,
-  ) async {
+  testWidgets("an orphaned role's merge chips report (sourceRoleId, targetRoleId)", (tester) async {
     final merges = <(String, String)>[];
 
     await tester.pumpWidget(
       _buildSheet(
         role: _role(orphanedName: "LE CLIENT"),
         mergeTargets: [_role(id: "r-target", name: "La Voisine", number: 2)],
-        onMergeRequested: (sourceRoleId, targetRoleId) =>
-            merges.add((sourceRoleId, targetRoleId)),
+        onMergeRequested: (sourceRoleId, targetRoleId) => merges.add((sourceRoleId, targetRoleId)),
       ),
     );
     await tester.pumpAndSettle();
@@ -483,8 +479,7 @@ void main() {
           screenplayRoleId: "r1",
           handAddedRoleId: "r-hand",
         ),
-        onMergeRequested: (sourceRoleId, targetRoleId) =>
-            merges.add((sourceRoleId, targetRoleId)),
+        onMergeRequested: (sourceRoleId, targetRoleId) => merges.add((sourceRoleId, targetRoleId)),
       ),
     );
     await tester.pumpAndSettle();
@@ -571,9 +566,7 @@ void main() {
             name: "Manteau rouge",
             code: "COS-1",
             category: OcptElementCategory.costume,
-            roleLinks: const [
-              OcptRoleElementLink(id: "l1", roleId: "r1", notes: "Taché"),
-            ],
+            roleLinks: const [OcptRoleElementLink(id: "l1", roleId: "r1", notes: "Taché")],
           ),
           _element(
             id: "e2",
@@ -719,7 +712,10 @@ void main() {
 
   testWidgets("a from-screenplay role's chips are present and not tappable", (tester) async {
     await tester.pumpWidget(
-      _buildSheet(role: _role(episodeIds: const ["ep-1"]), episodes: _episodes),
+      _buildSheet(
+        role: _role(episodeIds: const ["ep-1"]),
+        episodes: _episodes,
+      ),
     );
     await tester.pumpAndSettle();
 
@@ -794,7 +790,11 @@ void main() {
       _buildSheet(
         role: _role(episodeIds: const ["ep-1"]),
         candidates: [
-          _candidate(id: "c1", roleId: "r1", person: _person(id: "p1", firstName: "Léa")),
+          _candidate(
+            id: "c1",
+            roleId: "r1",
+            person: _person(id: "p1", firstName: "Léa"),
+          ),
         ],
         episodes: _episodes,
         elements: [

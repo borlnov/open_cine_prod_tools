@@ -50,13 +50,7 @@ const _defaultLineLength = 80;
 
 /// The path prefixes the `markdown_lint` workflow's globs exclude, kept in the same order as the
 /// `!` entries of its `globs` block so the two lists can be compared at a glance.
-const _excludedPrefixes = [
-  "actlibs/",
-  "build/",
-  ".dart_tool/",
-  "test/",
-  "node_modules/",
-];
+const _excludedPrefixes = ["actlibs/", "build/", ".dart_tool/", "test/", "node_modules/"];
 
 /// Checks every markdown file of the repository and reports what the CI linter would reject.
 Future<void> main() async {
@@ -105,14 +99,15 @@ Future<List<String>> _markdownFiles() async {
     return const [];
   }
 
-  final paths = (result.stdout as String)
-      .split("\n")
-      .map((path) => path.trim())
-      .where((path) => path.isNotEmpty)
-      .where((path) => !_excludedPrefixes.any(path.startsWith))
-      .toSet()
-      .toList()
-    ..sort();
+  final paths =
+      (result.stdout as String)
+          .split("\n")
+          .map((path) => path.trim())
+          .where((path) => path.isNotEmpty)
+          .where((path) => !_excludedPrefixes.any(path.startsWith))
+          .toSet()
+          .toList()
+        ..sort();
 
   return paths;
 }
@@ -194,8 +189,10 @@ List<String> _checkFile(String path, {required int lineLength}) {
   // `split("\n")` leaves one trailing empty entry for a file ending on a single newline, and two
   // for one ending on a blank line.
   if (lines.length < 2 || lines.last.isNotEmpty || lines[lines.length - 2].isEmpty) {
-    violations.add("$path:${lines.length} MD047/single-trailing-newline "
-        "Files should end with a single newline character");
+    violations.add(
+      "$path:${lines.length} MD047/single-trailing-newline "
+      "Files should end with a single newline character",
+    );
   }
 
   return violations;

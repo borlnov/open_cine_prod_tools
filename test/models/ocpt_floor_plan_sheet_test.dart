@@ -141,36 +141,41 @@ void main() {
   });
 
   group("OcptFloorPlanSheet.of — the override rule", () {
-    test("a live scene-scope override replaces the set-scope symbol it names, in its own scene", () {
-      final original = _symbol(id: "orig-1", layer: OcptFloorPlanLayer.set, label: "Original");
-      final override = _symbol(
-        id: "override-1",
-        sceneId: "scene-1",
-        layer: OcptFloorPlanLayer.set,
-        label: "Re-dressed",
-        overridesSymbolId: "orig-1",
-      );
-      final floorPlanSet = _caseOf(symbols: [original, override]);
+    test(
+      "a live scene-scope override replaces the set-scope symbol it names, in its own scene",
+      () {
+        final original = _symbol(id: "orig-1", layer: OcptFloorPlanLayer.set, label: "Original");
+        final override = _symbol(
+          id: "override-1",
+          sceneId: "scene-1",
+          layer: OcptFloorPlanLayer.set,
+          label: "Re-dressed",
+          overridesSymbolId: "orig-1",
+        );
+        final floorPlanSet = _caseOf(symbols: [original, override]);
 
-      final sheet = OcptFloorPlanSheet.of(
-        floorPlanSet: floorPlanSet,
-        focusSceneId: "scene-1",
-        focusShotId: null,
-        shotRankByShotId: const {},
-      );
+        final sheet = OcptFloorPlanSheet.of(
+          floorPlanSet: floorPlanSet,
+          focusSceneId: "scene-1",
+          focusShotId: null,
+          shotRankByShotId: const {},
+        );
 
-      // The visible override draws in place of the original, plus the original's own faint,
-      // non-interactive ghost.
-      expect(sheet.symbols, hasLength(2));
-      final overrideShape = sheet.symbols.singleWhere((symbol) => symbol.symbolId == "override-1");
-      expect(overrideShape.label, "Re-dressed");
-      expect(overrideShape.isOverride, isTrue);
-      expect(overrideShape.isOverriddenOriginalGhost, isFalse);
-      final ghostShape = sheet.symbols.singleWhere((symbol) => symbol.symbolId == "orig-1");
-      expect(ghostShape.label, "Original");
-      expect(ghostShape.isOverriddenOriginalGhost, isTrue);
-      expect(ghostShape.isOverride, isFalse);
-    });
+        // The visible override draws in place of the original, plus the original's own faint,
+        // non-interactive ghost.
+        expect(sheet.symbols, hasLength(2));
+        final overrideShape = sheet.symbols.singleWhere(
+          (symbol) => symbol.symbolId == "override-1",
+        );
+        expect(overrideShape.label, "Re-dressed");
+        expect(overrideShape.isOverride, isTrue);
+        expect(overrideShape.isOverriddenOriginalGhost, isFalse);
+        final ghostShape = sheet.symbols.singleWhere((symbol) => symbol.symbolId == "orig-1");
+        expect(ghostShape.label, "Original");
+        expect(ghostShape.isOverriddenOriginalGhost, isTrue);
+        expect(ghostShape.isOverride, isFalse);
+      },
+    );
 
     test("the original still shows in every other scene", () {
       final original = _symbol(id: "orig-1", layer: OcptFloorPlanLayer.set, label: "Original");
@@ -199,12 +204,7 @@ void main() {
       // Editing the original writes the very same row `_symbol` here stands in for — this sheet
       // only ever reads what the store hands it, so a moved original is simply a different
       // `xM`/`yM` on the same row, still excluded from scene-1's own sheet by the override.
-      final movedOriginal = _symbol(
-        id: "orig-1",
-        layer: OcptFloorPlanLayer.set,
-        xM: 9,
-        yM: 9,
-      );
+      final movedOriginal = _symbol(id: "orig-1", layer: OcptFloorPlanLayer.set, xM: 9, yM: 9);
       final override = _symbol(
         id: "override-1",
         sceneId: "scene-1",
@@ -253,38 +253,35 @@ void main() {
       expect(sheet.symbols.single.symbolId, "orig-1");
     });
 
-    test(
-      "a hidden override draws no override shape of its own, only the original's own faint, "
-      "selectable ghost, naming the override",
-      () {
-        final original = _symbol(id: "orig-1", layer: OcptFloorPlanLayer.set, label: "Original");
-        final hiddenOverride = _symbol(
-          id: "override-1",
-          sceneId: "scene-1",
-          layer: OcptFloorPlanLayer.set,
-          overridesSymbolId: "orig-1",
-          isHidden: true,
-        );
-        final floorPlanSet = _caseOf(symbols: [original, hiddenOverride]);
+    test("a hidden override draws no override shape of its own, only the original's own faint, "
+        "selectable ghost, naming the override", () {
+      final original = _symbol(id: "orig-1", layer: OcptFloorPlanLayer.set, label: "Original");
+      final hiddenOverride = _symbol(
+        id: "override-1",
+        sceneId: "scene-1",
+        layer: OcptFloorPlanLayer.set,
+        overridesSymbolId: "orig-1",
+        isHidden: true,
+      );
+      final floorPlanSet = _caseOf(symbols: [original, hiddenOverride]);
 
-        final sheet = OcptFloorPlanSheet.of(
-          floorPlanSet: floorPlanSet,
-          focusSceneId: "scene-1",
-          focusShotId: null,
-          shotRankByShotId: const {},
-        );
+      final sheet = OcptFloorPlanSheet.of(
+        floorPlanSet: floorPlanSet,
+        focusSceneId: "scene-1",
+        focusShotId: null,
+        shotRankByShotId: const {},
+      );
 
-        expect(sheet.symbols, hasLength(1));
-        final ghost = sheet.symbols.single;
-        // Drawn at the original's own geometry/label, but naming the override — selecting it is
-        // how the inspector reaches `Restore`.
-        expect(ghost.symbolId, "override-1");
-        expect(ghost.label, "Original");
-        expect(ghost.isHiddenOverrideGhost, isTrue);
-        expect(ghost.isOverride, isFalse);
-        expect(ghost.isOverriddenOriginalGhost, isFalse);
-      },
-    );
+      expect(sheet.symbols, hasLength(1));
+      final ghost = sheet.symbols.single;
+      // Drawn at the original's own geometry/label, but naming the override — selecting it is
+      // how the inspector reaches `Restore`.
+      expect(ghost.symbolId, "override-1");
+      expect(ghost.label, "Original");
+      expect(ghost.isHiddenOverrideGhost, isTrue);
+      expect(ghost.isOverride, isFalse);
+      expect(ghost.isOverriddenOriginalGhost, isFalse);
+    });
 
     test("the original still shows, unhidden, in every other scene", () {
       final original = _symbol(id: "orig-1", layer: OcptFloorPlanLayer.set, label: "Original");
@@ -311,45 +308,40 @@ void main() {
   });
 
   group("OcptFloorPlanSheet.of — the shot override rule", () {
-    test(
-      "a live shot-scope override replaces the scene-effective symbol it names, under that "
-      "shot's focus",
-      () {
-        final prop = _symbol(
-          id: "prop-1",
-          sceneId: "scene-1",
-          layer: OcptFloorPlanLayer.props,
-          label: "Candle",
-        );
-        final override = _symbol(
-          id: "override-1",
-          shotId: "shot-1",
-          layer: OcptFloorPlanLayer.props,
-          label: "Broken candle",
-          overridesSymbolId: "prop-1",
-        );
-        final floorPlanSet = _caseOf(symbols: [prop, override]);
+    test("a live shot-scope override replaces the scene-effective symbol it names, under that "
+        "shot's focus", () {
+      final prop = _symbol(
+        id: "prop-1",
+        sceneId: "scene-1",
+        layer: OcptFloorPlanLayer.props,
+        label: "Candle",
+      );
+      final override = _symbol(
+        id: "override-1",
+        shotId: "shot-1",
+        layer: OcptFloorPlanLayer.props,
+        label: "Broken candle",
+        overridesSymbolId: "prop-1",
+      );
+      final floorPlanSet = _caseOf(symbols: [prop, override]);
 
-        final sheet = OcptFloorPlanSheet.of(
-          floorPlanSet: floorPlanSet,
-          focusSceneId: "scene-1",
-          focusShotId: "shot-1",
-          shotRankByShotId: const {},
-        );
+      final sheet = OcptFloorPlanSheet.of(
+        floorPlanSet: floorPlanSet,
+        focusSceneId: "scene-1",
+        focusShotId: "shot-1",
+        shotRankByShotId: const {},
+      );
 
-        expect(sheet.symbols, hasLength(2));
-        final overrideShape = sheet.symbols.singleWhere(
-          (symbol) => symbol.symbolId == "override-1",
-        );
-        expect(overrideShape.label, "Broken candle");
-        expect(overrideShape.isOverride, isTrue);
-        expect(overrideShape.overrideLevel, OcptFloorPlanOverrideLevel.shot);
-        final ghostShape = sheet.symbols.singleWhere((symbol) => symbol.symbolId == "prop-1");
-        expect(ghostShape.label, "Candle");
-        expect(ghostShape.isOverriddenOriginalGhost, isTrue);
-        expect(ghostShape.overrideLevel, OcptFloorPlanOverrideLevel.shot);
-      },
-    );
+      expect(sheet.symbols, hasLength(2));
+      final overrideShape = sheet.symbols.singleWhere((symbol) => symbol.symbolId == "override-1");
+      expect(overrideShape.label, "Broken candle");
+      expect(overrideShape.isOverride, isTrue);
+      expect(overrideShape.overrideLevel, OcptFloorPlanOverrideLevel.shot);
+      final ghostShape = sheet.symbols.singleWhere((symbol) => symbol.symbolId == "prop-1");
+      expect(ghostShape.label, "Candle");
+      expect(ghostShape.isOverriddenOriginalGhost, isTrue);
+      expect(ghostShape.overrideLevel, OcptFloorPlanOverrideLevel.shot);
+    });
 
     test("the scene-effective symbol still shows, unreplaced, under another shot's own focus", () {
       final prop = _symbol(
@@ -380,9 +372,92 @@ void main() {
       expect(sheet.symbols.single.isOverride, isFalse);
     });
 
+    test("a hidden shot override draws no shape of its own, only the scene symbol's own faint, "
+        "selectable ghost, naming the override", () {
+      final prop = _symbol(
+        id: "prop-1",
+        sceneId: "scene-1",
+        layer: OcptFloorPlanLayer.props,
+        label: "Candle",
+      );
+      final hiddenOverride = _symbol(
+        id: "override-1",
+        shotId: "shot-1",
+        layer: OcptFloorPlanLayer.props,
+        overridesSymbolId: "prop-1",
+        isHidden: true,
+      );
+      final floorPlanSet = _caseOf(symbols: [prop, hiddenOverride]);
+
+      final sheet = OcptFloorPlanSheet.of(
+        floorPlanSet: floorPlanSet,
+        focusSceneId: "scene-1",
+        focusShotId: "shot-1",
+        shotRankByShotId: const {},
+      );
+
+      expect(sheet.symbols, hasLength(1));
+      final ghost = sheet.symbols.single;
+      expect(ghost.symbolId, "override-1");
+      expect(ghost.label, "Candle");
+      expect(ghost.isHiddenOverrideGhost, isTrue);
+      expect(ghost.overrideLevel, OcptFloorPlanOverrideLevel.shot);
+      expect(ghost.isOverride, isFalse);
+    });
+
+    test("a shot override may replace a symbol that is itself a sequence-level override, "
+        "ghosting the sequence override's own geometry, not the set-scope original's", () {
+      final setOriginal = _symbol(id: "orig-1", layer: OcptFloorPlanLayer.set, label: "Original");
+      final sequenceOverride = _symbol(
+        id: "seq-override-1",
+        sceneId: "scene-1",
+        layer: OcptFloorPlanLayer.set,
+        xM: 5,
+        yM: 5,
+        label: "Re-dressed",
+        overridesSymbolId: "orig-1",
+      );
+      final shotOverride = _symbol(
+        id: "shot-override-1",
+        shotId: "shot-1",
+        layer: OcptFloorPlanLayer.set,
+        xM: 9,
+        yM: 9,
+        label: "Moved for this shot",
+        overridesSymbolId: "seq-override-1",
+      );
+      final floorPlanSet = _caseOf(symbols: [setOriginal, sequenceOverride, shotOverride]);
+
+      final sheet = OcptFloorPlanSheet.of(
+        floorPlanSet: floorPlanSet,
+        focusSceneId: "scene-1",
+        focusShotId: "shot-1",
+        shotRankByShotId: const {},
+      );
+
+      // The set-scope original's own ghost (sequence-level) plus the shot-level override and
+      // its own ghost (at the sequence override's geometry) — the sequence override itself is
+      // no longer drawn live, replaced one level further down.
+      expect(sheet.symbols, hasLength(3));
+      final shotOverrideShape = sheet.symbols.singleWhere(
+        (symbol) => symbol.symbolId == "shot-override-1",
+      );
+      expect(shotOverrideShape.isOverride, isTrue);
+      expect(shotOverrideShape.overrideLevel, OcptFloorPlanOverrideLevel.shot);
+      final sequenceGhost = sheet.symbols.singleWhere(
+        (symbol) => symbol.symbolId == "seq-override-1",
+      );
+      expect(sequenceGhost.isOverriddenOriginalGhost, isTrue);
+      expect(sequenceGhost.overrideLevel, OcptFloorPlanOverrideLevel.shot);
+      expect(sequenceGhost.xM, 5);
+      expect(sequenceGhost.yM, 5);
+      final setGhost = sheet.symbols.singleWhere((symbol) => symbol.symbolId == "orig-1");
+      expect(setGhost.isOverriddenOriginalGhost, isTrue);
+      expect(setGhost.overrideLevel, OcptFloorPlanOverrideLevel.sequence);
+    });
+
     test(
-      "a hidden shot override draws no shape of its own, only the scene symbol's own faint, "
-      "selectable ghost, naming the override",
+      "a ghosted neighbour's own shot-scope override draws as its own placement, unresolved",
       () {
         final prop = _symbol(
           id: "prop-1",
@@ -390,120 +465,34 @@ void main() {
           layer: OcptFloorPlanLayer.props,
           label: "Candle",
         );
-        final hiddenOverride = _symbol(
+        final neighbourOverride = _symbol(
           id: "override-1",
-          shotId: "shot-1",
+          shotId: "shot-0",
           layer: OcptFloorPlanLayer.props,
+          label: "Broken candle",
           overridesSymbolId: "prop-1",
-          isHidden: true,
         );
-        final floorPlanSet = _caseOf(symbols: [prop, hiddenOverride]);
+        final floorPlanSet = _caseOf(symbols: [prop, neighbourOverride]);
 
         final sheet = OcptFloorPlanSheet.of(
           floorPlanSet: floorPlanSet,
           focusSceneId: "scene-1",
           focusShotId: "shot-1",
+          previousShotId: "shot-0",
           shotRankByShotId: const {},
         );
 
-        expect(sheet.symbols, hasLength(1));
-        final ghost = sheet.symbols.single;
-        expect(ghost.symbolId, "override-1");
-        expect(ghost.label, "Candle");
-        expect(ghost.isHiddenOverrideGhost, isTrue);
-        expect(ghost.overrideLevel, OcptFloorPlanOverrideLevel.shot);
-        expect(ghost.isOverride, isFalse);
+        expect(sheet.symbols, hasLength(2));
+        final ghostedOverride = sheet.symbols.singleWhere(
+          (symbol) => symbol.symbolId == "override-1",
+        );
+        expect(ghostedOverride.isGhost, isTrue);
+        expect(ghostedOverride.isOverride, isFalse);
+        final scenePropShape = sheet.symbols.singleWhere((symbol) => symbol.symbolId == "prop-1");
+        expect(scenePropShape.isGhost, isFalse);
+        expect(scenePropShape.isOverride, isFalse);
       },
     );
-
-    test(
-      "a shot override may replace a symbol that is itself a sequence-level override, "
-      "ghosting the sequence override's own geometry, not the set-scope original's",
-      () {
-        final setOriginal = _symbol(id: "orig-1", layer: OcptFloorPlanLayer.set, label: "Original");
-        final sequenceOverride = _symbol(
-          id: "seq-override-1",
-          sceneId: "scene-1",
-          layer: OcptFloorPlanLayer.set,
-          xM: 5,
-          yM: 5,
-          label: "Re-dressed",
-          overridesSymbolId: "orig-1",
-        );
-        final shotOverride = _symbol(
-          id: "shot-override-1",
-          shotId: "shot-1",
-          layer: OcptFloorPlanLayer.set,
-          xM: 9,
-          yM: 9,
-          label: "Moved for this shot",
-          overridesSymbolId: "seq-override-1",
-        );
-        final floorPlanSet = _caseOf(symbols: [setOriginal, sequenceOverride, shotOverride]);
-
-        final sheet = OcptFloorPlanSheet.of(
-          floorPlanSet: floorPlanSet,
-          focusSceneId: "scene-1",
-          focusShotId: "shot-1",
-          shotRankByShotId: const {},
-        );
-
-        // The set-scope original's own ghost (sequence-level) plus the shot-level override and
-        // its own ghost (at the sequence override's geometry) — the sequence override itself is
-        // no longer drawn live, replaced one level further down.
-        expect(sheet.symbols, hasLength(3));
-        final shotOverrideShape = sheet.symbols.singleWhere(
-          (symbol) => symbol.symbolId == "shot-override-1",
-        );
-        expect(shotOverrideShape.isOverride, isTrue);
-        expect(shotOverrideShape.overrideLevel, OcptFloorPlanOverrideLevel.shot);
-        final sequenceGhost = sheet.symbols.singleWhere(
-          (symbol) => symbol.symbolId == "seq-override-1",
-        );
-        expect(sequenceGhost.isOverriddenOriginalGhost, isTrue);
-        expect(sequenceGhost.overrideLevel, OcptFloorPlanOverrideLevel.shot);
-        expect(sequenceGhost.xM, 5);
-        expect(sequenceGhost.yM, 5);
-        final setGhost = sheet.symbols.singleWhere((symbol) => symbol.symbolId == "orig-1");
-        expect(setGhost.isOverriddenOriginalGhost, isTrue);
-        expect(setGhost.overrideLevel, OcptFloorPlanOverrideLevel.sequence);
-      },
-    );
-
-    test("a ghosted neighbour's own shot-scope override draws as its own placement, unresolved", () {
-      final prop = _symbol(
-        id: "prop-1",
-        sceneId: "scene-1",
-        layer: OcptFloorPlanLayer.props,
-        label: "Candle",
-      );
-      final neighbourOverride = _symbol(
-        id: "override-1",
-        shotId: "shot-0",
-        layer: OcptFloorPlanLayer.props,
-        label: "Broken candle",
-        overridesSymbolId: "prop-1",
-      );
-      final floorPlanSet = _caseOf(symbols: [prop, neighbourOverride]);
-
-      final sheet = OcptFloorPlanSheet.of(
-        floorPlanSet: floorPlanSet,
-        focusSceneId: "scene-1",
-        focusShotId: "shot-1",
-        previousShotId: "shot-0",
-        shotRankByShotId: const {},
-      );
-
-      expect(sheet.symbols, hasLength(2));
-      final ghostedOverride = sheet.symbols.singleWhere(
-        (symbol) => symbol.symbolId == "override-1",
-      );
-      expect(ghostedOverride.isGhost, isTrue);
-      expect(ghostedOverride.isOverride, isFalse);
-      final scenePropShape = sheet.symbols.singleWhere((symbol) => symbol.symbolId == "prop-1");
-      expect(scenePropShape.isGhost, isFalse);
-      expect(scenePropShape.isOverride, isFalse);
-    });
   });
 
   group("OcptFloorPlanSheet.of — sequence focus (focusShotId null)", () {
@@ -614,11 +603,13 @@ void main() {
         shotId: "shot-1",
         layer: OcptFloorPlanLayer.cameras,
       );
-      final nextCamera = _symbol(id: "cam-next", shotId: "shot-3", layer: OcptFloorPlanLayer.cameras);
-      final farCamera = _symbol(id: "cam-far", shotId: "shot-9", layer: OcptFloorPlanLayer.cameras);
-      final floorPlanSet = _caseOf(
-        symbols: [focusCamera, previousCamera, nextCamera, farCamera],
+      final nextCamera = _symbol(
+        id: "cam-next",
+        shotId: "shot-3",
+        layer: OcptFloorPlanLayer.cameras,
       );
+      final farCamera = _symbol(id: "cam-far", shotId: "shot-9", layer: OcptFloorPlanLayer.cameras);
+      final floorPlanSet = _caseOf(symbols: [focusCamera, previousCamera, nextCamera, farCamera]);
 
       final sheet = OcptFloorPlanSheet.of(
         floorPlanSet: floorPlanSet,
@@ -629,9 +620,7 @@ void main() {
         nextShotId: "shot-3",
       );
 
-      final ghostBySymbolId = {
-        for (final shape in sheet.symbols) shape.symbolId: shape.isGhost,
-      };
+      final ghostBySymbolId = {for (final shape in sheet.symbols) shape.symbolId: shape.isGhost};
       expect(ghostBySymbolId, {"cam-focus": false, "cam-prev": true, "cam-next": true});
     });
 
@@ -884,7 +873,11 @@ void main() {
 
   group("OcptFloorPlanSheet.of — glyph kind", () {
     test("derives each layer's own glyph kind", () {
-      final character = _symbol(id: "char-1", shotId: "shot-1", layer: OcptFloorPlanLayer.characters);
+      final character = _symbol(
+        id: "char-1",
+        shotId: "shot-1",
+        layer: OcptFloorPlanLayer.characters,
+      );
       final camera = _symbol(id: "cam-1", shotId: "shot-1", layer: OcptFloorPlanLayer.cameras);
       final light = _symbol(id: "light-1", shotId: "shot-1", layer: OcptFloorPlanLayer.lights);
       final decor = _symbol(id: "decor-1", layer: OcptFloorPlanLayer.set);
@@ -897,9 +890,7 @@ void main() {
         shotRankByShotId: const {"shot-1": 1},
       );
 
-      final kindBySymbolId = {
-        for (final shape in sheet.symbols) shape.symbolId: shape.glyphKind,
-      };
+      final kindBySymbolId = {for (final shape in sheet.symbols) shape.symbolId: shape.glyphKind};
       expect(kindBySymbolId["char-1"], OcptFloorPlanSymbolGlyphKind.character);
       expect(kindBySymbolId["cam-1"], OcptFloorPlanSymbolGlyphKind.camera);
       expect(kindBySymbolId["light-1"], OcptFloorPlanSymbolGlyphKind.light);
@@ -928,7 +919,12 @@ void main() {
     });
 
     test("two character shapes of different names draw with the very colour the rule derives", () {
-      final sam = _symbol(id: "char-sam", shotId: "shot-1", layer: OcptFloorPlanLayer.characters, label: "Sam");
+      final sam = _symbol(
+        id: "char-sam",
+        shotId: "shot-1",
+        layer: OcptFloorPlanLayer.characters,
+        label: "Sam",
+      );
       final alex = _symbol(
         id: "char-alex",
         shotId: "shot-1",
@@ -944,9 +940,7 @@ void main() {
         shotRankByShotId: const {"shot-1": 1},
       );
 
-      final colorBySymbolId = {
-        for (final shape in sheet.symbols) shape.symbolId: shape.colorArgb,
-      };
+      final colorBySymbolId = {for (final shape in sheet.symbols) shape.symbolId: shape.colorArgb};
       expect(colorBySymbolId["char-sam"], ocptFloorPlanCharacterColourOf("Sam"));
       expect(colorBySymbolId["char-alex"], ocptFloorPlanCharacterColourOf("Alex"));
     });
@@ -1140,7 +1134,11 @@ void main() {
   group("OcptFloorPlanSheet.of — arrow control point", () {
     test("an arrow with a control point carries it into its own shape", () {
       final camera = _symbol(id: "cam-1", shotId: "shot-1", layer: OcptFloorPlanLayer.cameras);
-      final character = _symbol(id: "char-1", shotId: "shot-1", layer: OcptFloorPlanLayer.characters);
+      final character = _symbol(
+        id: "char-1",
+        shotId: "shot-1",
+        layer: OcptFloorPlanLayer.characters,
+      );
       final arrow = _arrow(
         id: "arrow-1",
         shotId: "shot-1",
@@ -1165,7 +1163,11 @@ void main() {
 
     test("an arrow with no control point draws straight", () {
       final camera = _symbol(id: "cam-1", shotId: "shot-1", layer: OcptFloorPlanLayer.cameras);
-      final character = _symbol(id: "char-1", shotId: "shot-1", layer: OcptFloorPlanLayer.characters);
+      final character = _symbol(
+        id: "char-1",
+        shotId: "shot-1",
+        layer: OcptFloorPlanLayer.characters,
+      );
       final arrow = _arrow(
         id: "arrow-1",
         shotId: "shot-1",

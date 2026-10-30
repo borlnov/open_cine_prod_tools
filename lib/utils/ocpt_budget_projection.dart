@@ -86,7 +86,10 @@ OcptBudgetCoveredTotal _ocptBudgetCommitmentPaidTotalOf(
   var coveredEntryCount = 0;
 
   for (final entry in entries) {
-    final debit = ocptBudgetEntryDebitCentsOf(entry, projectVatRateBasisPoints: projectVatRateBasisPoints);
+    final debit = ocptBudgetEntryDebitCentsOf(
+      entry,
+      projectVatRateBasisPoints: projectVatRateBasisPoints,
+    );
     if (debit == null) {
       continue;
     }
@@ -111,10 +114,10 @@ OcptBudgetCoveredTotal ocptBudgetCommitmentPaidCentsOf(
   OcptBudgetCommitment commitment,
   List<OcptBudgetEntry> entries, {
   required int? projectVatRateBasisPoints,
-}) => _ocptBudgetCommitmentPaidTotalOf(
-  [for (final entry in entries) if (entry.commitmentId == commitment.id) entry],
-  projectVatRateBasisPoints: projectVatRateBasisPoints,
-);
+}) => _ocptBudgetCommitmentPaidTotalOf([
+  for (final entry in entries)
+    if (entry.commitmentId == commitment.id) entry,
+], projectVatRateBasisPoints: projectVatRateBasisPoints);
 
 /// [commitment]'s own outstanding amount, read off the already-grouped [paidByCommitmentId] —
 /// [ocptBudgetPaidByCommitmentId]'s own map — rather than a raw entries list: the one place this
@@ -152,17 +155,13 @@ int? ocptBudgetCommitmentOutstandingCentsOf(
   OcptBudgetCommitment commitment,
   List<OcptBudgetEntry> entries, {
   required int? projectVatRateBasisPoints,
-}) => _ocptBudgetOutstandingCentsOf(
-  commitment,
-  {
-    commitment.id: ocptBudgetCommitmentPaidCentsOf(
-      commitment,
-      entries,
-      projectVatRateBasisPoints: projectVatRateBasisPoints,
-    ),
-  },
-  projectVatRateBasisPoints: projectVatRateBasisPoints,
-);
+}) => _ocptBudgetOutstandingCentsOf(commitment, {
+  commitment.id: ocptBudgetCommitmentPaidCentsOf(
+    commitment,
+    entries,
+    projectVatRateBasisPoints: projectVatRateBasisPoints,
+  ),
+}, projectVatRateBasisPoints: projectVatRateBasisPoints);
 
 /// Whether [commitment] has been paid in full: its own [ocptBudgetCommitmentOutstandingCentsOf]
 /// reading zero or under, read off [entries].

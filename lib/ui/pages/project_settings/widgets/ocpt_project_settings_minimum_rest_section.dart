@@ -45,10 +45,7 @@ class OcptProjectSettingsMinimumRestSection extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              tr.projectSettingsMinimumRestSectionTitle,
-              style: theme.textTheme.titleMedium,
-            ),
+            Text(tr.projectSettingsMinimumRestSectionTitle, style: theme.textTheme.titleMedium),
             const SizedBox(height: 12),
             Row(
               children: [

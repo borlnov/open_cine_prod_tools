@@ -9,10 +9,8 @@ import 'package:script_import_kit/src/emitter/script_title_page.dart';
 import 'package:test/test.dart';
 
 /// Renders [lines] with a fresh [ScriptFountainEmitter].
-String _write(
-  List<ScriptLine> lines, {
-  ScriptTitlePage titlePage = const ScriptTitlePage(),
-}) => const ScriptFountainEmitter().write(lines: lines, titlePage: titlePage);
+String _write(List<ScriptLine> lines, {ScriptTitlePage titlePage = const ScriptTitlePage()}) =>
+    const ScriptFountainEmitter().write(lines: lines, titlePage: titlePage);
 
 /// A plain line of [type] holding [text].
 ScriptLine _line(
@@ -56,11 +54,7 @@ void main() {
       expect(
         _write([
           _line(FountainLineType.action, 'She opens the door.'),
-          _line(
-            FountainLineType.action,
-            'She closes it again.',
-            continuesBlock: true,
-          ),
+          _line(FountainLineType.action, 'She closes it again.', continuesBlock: true),
         ]),
         'She opens the door.\nShe closes it again.\n',
       );
@@ -101,12 +95,7 @@ void main() {
       expect(blocks, hasLength(1));
       expect((blocks.single as FountainDialogueGroup).children, [
         const FountainDialogueLine(
-          sourceRange: FountainSourceRange(
-            startLine: 0,
-            endLine: 0,
-            startOffset: 0,
-            endOffset: 0,
-          ),
+          sourceRange: FountainSourceRange(startLine: 0, endLine: 0, startOffset: 0, endOffset: 0),
           text: 'GET OUT.',
         ),
       ]);
@@ -123,43 +112,25 @@ void main() {
     });
 
     test('a transition that does not end in "TO:" is forced with a ">"', () {
-      expect(
-        _write([_line(FountainLineType.transition, 'FADE OUT.')]),
-        '>FADE OUT.\n',
-      );
+      expect(_write([_line(FountainLineType.transition, 'FADE OUT.')]), '>FADE OUT.\n');
     });
 
     test('centered text is wrapped in its own markers', () {
-      expect(
-        _write([_line(FountainLineType.centeredText, 'ACT ONE')]),
-        '> ACT ONE <\n',
-      );
+      expect(_write([_line(FountainLineType.centeredText, 'ACT ONE')]), '> ACT ONE <\n');
     });
   });
 
   group('tags the line writer knows nothing about', () {
     test('a scene number is appended to the heading text', () {
       expect(
-        _write([
-          _line(
-            FountainLineType.sceneHeading,
-            'INT. KITCHEN - DAY',
-            sceneNumber: '4A',
-          ),
-        ]),
+        _write([_line(FountainLineType.sceneHeading, 'INT. KITCHEN - DAY', sceneNumber: '4A')]),
         'INT. KITCHEN - DAY #4A#\n',
       );
     });
 
     test('a blank scene number appends nothing', () {
       expect(
-        _write([
-          _line(
-            FountainLineType.sceneHeading,
-            'INT. KITCHEN - DAY',
-            sceneNumber: '  ',
-          ),
-        ]),
+        _write([_line(FountainLineType.sceneHeading, 'INT. KITCHEN - DAY', sceneNumber: '  ')]),
         'INT. KITCHEN - DAY\n',
       );
     });
@@ -195,11 +166,13 @@ void main() {
     });
 
     test('a marker pair the text itself carried is escaped', () {
-      final text = _write([
-        _line(FountainLineType.action, 'She types *this* on the machine.'),
-      ]);
+      final text = _write([_line(FountainLineType.action, 'She types *this* on the machine.')]);
 
-      expect(text, r'She types \*this\* on the machine.' '\n');
+      expect(
+        text,
+        r'She types \*this\* on the machine.'
+        '\n',
+      );
       final blocks = const FountainParser().parse(text).blocks;
       expect(
         (blocks.single as FountainActionBlock).lines.single,
@@ -211,16 +184,17 @@ void main() {
   group('title page', () {
     test('the six fields are written in the canonical order', () {
       expect(
-        _write([
-          _line(FountainLineType.action, 'She waits.'),
-        ], titlePage: const ScriptTitlePage(
-          title: 'THE LAST KETTLE',
-          credit: 'Written by',
-          author: 'Jane Doe',
-          draftDate: 'Second Draft',
-          contact: ['jane@example.com', '+33 1 23 45 67 89'],
-          source: 'Based on the novel by John Roe',
-        )),
+        _write(
+          [_line(FountainLineType.action, 'She waits.')],
+          titlePage: const ScriptTitlePage(
+            title: 'THE LAST KETTLE',
+            credit: 'Written by',
+            author: 'Jane Doe',
+            draftDate: 'Second Draft',
+            contact: ['jane@example.com', '+33 1 23 45 67 89'],
+            source: 'Based on the novel by John Roe',
+          ),
+        ),
         'Title: THE LAST KETTLE\n'
         'Credit: Written by\n'
         'Author: Jane Doe\n'
@@ -265,20 +239,14 @@ void main() {
       expect(text, '!FADE IN:\n\nShe waits.\n');
       final document = const FountainParser().parse(text);
       expect(document.titlePage, isNull);
-      expect(
-        (document.blocks.first as FountainActionBlock).lines.single,
-        'FADE IN:',
-      );
+      expect((document.blocks.first as FountainActionBlock).lines.single, 'FADE IN:');
     });
 
     test('a transition opening the screenplay is forced too', () {
       final text = _write([_line(FountainLineType.transition, 'CUT TO:')]);
 
       expect(text, '>CUT TO:\n');
-      expect(
-        const FountainParser().parse(text).blocks.single,
-        isA<FountainTransition>(),
-      );
+      expect(const FountainParser().parse(text).blocks.single, isA<FountainTransition>());
     });
 
     test('a title page pushes the first line down, so nothing is forced', () {

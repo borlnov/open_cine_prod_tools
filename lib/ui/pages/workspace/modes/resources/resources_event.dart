@@ -912,10 +912,7 @@ class OcptResourcesLocationPermitDateChangedEvent extends OcptResourcesEvent {
   final DateTime? date;
 
   /// Class constructor
-  const OcptResourcesLocationPermitDateChangedEvent({
-    required this.locationId,
-    required this.date,
-  });
+  const OcptResourcesLocationPermitDateChangedEvent({required this.locationId, required this.date});
 
   /// Object properties
   @override
@@ -1509,10 +1506,7 @@ class OcptResourcesElementCategoryChangedEvent extends OcptResourcesEvent {
   final OcptElementCategory category;
 
   /// Class constructor
-  const OcptResourcesElementCategoryChangedEvent({
-    required this.elementId,
-    required this.category,
-  });
+  const OcptResourcesElementCategoryChangedEvent({required this.elementId, required this.category});
 
   /// Object properties
   @override
@@ -1607,10 +1601,7 @@ class OcptResourcesSceneAssignedToElementEvent extends OcptResourcesEvent {
   final String elementId;
 
   /// Class constructor
-  const OcptResourcesSceneAssignedToElementEvent({
-    required this.sceneId,
-    required this.elementId,
-  });
+  const OcptResourcesSceneAssignedToElementEvent({required this.sceneId, required this.elementId});
 
   /// Object properties
   @override

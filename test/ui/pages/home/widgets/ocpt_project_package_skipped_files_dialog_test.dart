@@ -36,10 +36,8 @@ Widget _buildHost(List<OcptSkippedAsset> skippedAssets) => MaterialApp(
   supportedLocales: Tr.delegate.supportedLocales,
   home: Builder(
     builder: (context) => ElevatedButton(
-      onPressed: () => OcptProjectPackageSkippedFilesDialog.show(
-        context,
-        skippedAssets: skippedAssets,
-      ),
+      onPressed: () =>
+          OcptProjectPackageSkippedFilesDialog.show(context, skippedAssets: skippedAssets),
       child: const Text('show'),
     ),
   ),

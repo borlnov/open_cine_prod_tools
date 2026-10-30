@@ -53,17 +53,11 @@ void main() {
 
   group("ocptBudgetLineTotalCents", () {
     test("multiplies the quantity by the unit price", () {
-      expect(
-        ocptBudgetLineTotalCents(buildLine(quantityMilli: 3000, amountCents: 1500)),
-        4500,
-      );
+      expect(ocptBudgetLineTotalCents(buildLine(quantityMilli: 3000, amountCents: 1500)), 4500);
     });
 
     test("reads a fractional quantity, 1.5 day at 100 €", () {
-      expect(
-        ocptBudgetLineTotalCents(buildLine(quantityMilli: 1500, amountCents: 10000)),
-        15000,
-      );
+      expect(ocptBudgetLineTotalCents(buildLine(quantityMilli: 1500, amountCents: 10000)), 15000);
     });
 
     test("rounds to the nearest cent", () {
@@ -296,7 +290,10 @@ void main() {
 
     test("a poste with no counterpart line has no key at all", () {
       final postes = [
-        buildPoste(id: "p1", lines: [buildLine(id: "l1", amountCents: 3000)]),
+        buildPoste(
+          id: "p1",
+          lines: [buildLine(id: "l1", amountCents: 3000)],
+        ),
       ];
 
       expect(ocptBudgetInKindCoveredCentsByPosteId(postes), isEmpty);
@@ -409,147 +406,144 @@ void main() {
     });
   });
 
-  group(
-    "ocptBudgetEstimateToCompleteCents / ocptBudgetFinalCostCents / "
-    "ocptBudgetFinalCostVarianceCents",
-    () {
-      test("a typed estimate wins over the derived one", () {
-        expect(
-          ocptBudgetEstimateToCompleteCents(
-            quotedAmountCents: 10000,
-            paidCents: 3000,
-            committedCents: 0,
-            inKindCoveredCents: 0,
-            typedEstimateToCompleteCents: 9000,
-          ),
-          9000,
-        );
-      });
+  group("ocptBudgetEstimateToCompleteCents / ocptBudgetFinalCostCents / "
+      "ocptBudgetFinalCostVarianceCents", () {
+    test("a typed estimate wins over the derived one", () {
+      expect(
+        ocptBudgetEstimateToCompleteCents(
+          quotedAmountCents: 10000,
+          paidCents: 3000,
+          committedCents: 0,
+          inKindCoveredCents: 0,
+          typedEstimateToCompleteCents: 9000,
+        ),
+        9000,
+      );
+    });
 
-      test("a typed zero is a value, not an absence — a poste declared finished", () {
-        expect(
-          ocptBudgetEstimateToCompleteCents(
-            quotedAmountCents: 10000,
-            paidCents: 3000,
-            committedCents: 0,
-            inKindCoveredCents: 0,
-            typedEstimateToCompleteCents: 0,
-          ),
-          0,
-        );
-      });
+    test("a typed zero is a value, not an absence — a poste declared finished", () {
+      expect(
+        ocptBudgetEstimateToCompleteCents(
+          quotedAmountCents: 10000,
+          paidCents: 3000,
+          committedCents: 0,
+          inKindCoveredCents: 0,
+          typedEstimateToCompleteCents: 0,
+        ),
+        0,
+      );
+    });
 
-      test("the derived estimate under quote is exactly what is left", () {
-        expect(
-          ocptBudgetEstimateToCompleteCents(
-            quotedAmountCents: 10000,
-            paidCents: 3000,
-            committedCents: 2000,
-            inKindCoveredCents: 0,
-            typedEstimateToCompleteCents: null,
-          ),
-          5000,
-        );
-      });
-
-      test("the derived estimate exactly on quote is zero", () {
-        expect(
-          ocptBudgetEstimateToCompleteCents(
-            quotedAmountCents: 10000,
-            paidCents: 6000,
-            committedCents: 4000,
-            inKindCoveredCents: 0,
-            typedEstimateToCompleteCents: null,
-          ),
-          0,
-        );
-      });
-
-      test("the derived estimate over quote clamps to zero rather than going negative", () {
-        expect(
-          ocptBudgetEstimateToCompleteCents(
-            quotedAmountCents: 10000,
-            paidCents: 9000,
-            committedCents: 3000,
-            inKindCoveredCents: 0,
-            typedEstimateToCompleteCents: null,
-          ),
-          0,
-        );
-      });
-
-      test("a poste with no quote at all and nothing moved derives to zero", () {
-        expect(
-          ocptBudgetEstimateToCompleteCents(
-            quotedAmountCents: 0,
-            paidCents: 0,
-            committedCents: 0,
-            inKindCoveredCents: 0,
-            typedEstimateToCompleteCents: null,
-          ),
-          0,
-        );
-      });
-
-      test("the final cost equals the quote when the estimate is derived and not over", () {
-        const quotedAmountCents = 10000;
-        const paidCents = 3000;
-        const committedCents = 2000;
-        final estimateToCompleteCents = ocptBudgetEstimateToCompleteCents(
-          quotedAmountCents: quotedAmountCents,
-          paidCents: paidCents,
-          committedCents: committedCents,
+    test("the derived estimate under quote is exactly what is left", () {
+      expect(
+        ocptBudgetEstimateToCompleteCents(
+          quotedAmountCents: 10000,
+          paidCents: 3000,
+          committedCents: 2000,
           inKindCoveredCents: 0,
           typedEstimateToCompleteCents: null,
-        );
+        ),
+        5000,
+      );
+    });
 
-        final finalCostCents = ocptBudgetFinalCostCents(
-          paidCents: paidCents,
-          committedCents: committedCents,
-          estimateToCompleteCents: estimateToCompleteCents,
-        );
+    test("the derived estimate exactly on quote is zero", () {
+      expect(
+        ocptBudgetEstimateToCompleteCents(
+          quotedAmountCents: 10000,
+          paidCents: 6000,
+          committedCents: 4000,
+          inKindCoveredCents: 0,
+          typedEstimateToCompleteCents: null,
+        ),
+        0,
+      );
+    });
 
-        expect(finalCostCents, quotedAmountCents);
-        expect(
-          ocptBudgetFinalCostVarianceCents(
-            quotedAmountCents: quotedAmountCents,
-            finalCostCents: finalCostCents,
-          ),
-          0,
-        );
-      });
+    test("the derived estimate over quote clamps to zero rather than going negative", () {
+      expect(
+        ocptBudgetEstimateToCompleteCents(
+          quotedAmountCents: 10000,
+          paidCents: 9000,
+          committedCents: 3000,
+          inKindCoveredCents: 0,
+          typedEstimateToCompleteCents: null,
+        ),
+        0,
+      );
+    });
 
-      test("the final-cost variance disagrees with ocptBudgetVarianceCents once typed", () {
-        const quotedAmountCents = 10000;
-        const paidCents = 3000;
-        const committedCents = 2000;
+    test("a poste with no quote at all and nothing moved derives to zero", () {
+      expect(
+        ocptBudgetEstimateToCompleteCents(
+          quotedAmountCents: 0,
+          paidCents: 0,
+          committedCents: 0,
+          inKindCoveredCents: 0,
+          typedEstimateToCompleteCents: null,
+        ),
+        0,
+      );
+    });
 
-        // A human types a much larger estimate to complete than the derived 5000 would be.
-        final finalCostCents = ocptBudgetFinalCostCents(
-          paidCents: paidCents,
-          committedCents: committedCents,
-          estimateToCompleteCents: 9000,
-        );
+    test("the final cost equals the quote when the estimate is derived and not over", () {
+      const quotedAmountCents = 10000;
+      const paidCents = 3000;
+      const committedCents = 2000;
+      final estimateToCompleteCents = ocptBudgetEstimateToCompleteCents(
+        quotedAmountCents: quotedAmountCents,
+        paidCents: paidCents,
+        committedCents: committedCents,
+        inKindCoveredCents: 0,
+        typedEstimateToCompleteCents: null,
+      );
 
-        final finalCostVarianceCents = ocptBudgetFinalCostVarianceCents(
+      final finalCostCents = ocptBudgetFinalCostCents(
+        paidCents: paidCents,
+        committedCents: committedCents,
+        estimateToCompleteCents: estimateToCompleteCents,
+      );
+
+      expect(finalCostCents, quotedAmountCents);
+      expect(
+        ocptBudgetFinalCostVarianceCents(
           quotedAmountCents: quotedAmountCents,
           finalCostCents: finalCostCents,
-        );
-        final varianceCents = ocptBudgetVarianceCents(
-          quotedAmountCents: quotedAmountCents,
-          paidCents: paidCents,
-          committedCents: committedCents,
-          inKindCoveredCents: 0,
-        );
+        ),
+        0,
+      );
+    });
 
-        // The plain variance still reads the poste as under quote by 5000; the final-cost variance,
-        // fed by the typed estimate, reads it as heading 4000 over.
-        expect(varianceCents, -5000);
-        expect(finalCostVarianceCents, 4000);
-        expect(finalCostVarianceCents, isNot(varianceCents));
-      });
-    },
-  );
+    test("the final-cost variance disagrees with ocptBudgetVarianceCents once typed", () {
+      const quotedAmountCents = 10000;
+      const paidCents = 3000;
+      const committedCents = 2000;
+
+      // A human types a much larger estimate to complete than the derived 5000 would be.
+      final finalCostCents = ocptBudgetFinalCostCents(
+        paidCents: paidCents,
+        committedCents: committedCents,
+        estimateToCompleteCents: 9000,
+      );
+
+      final finalCostVarianceCents = ocptBudgetFinalCostVarianceCents(
+        quotedAmountCents: quotedAmountCents,
+        finalCostCents: finalCostCents,
+      );
+      final varianceCents = ocptBudgetVarianceCents(
+        quotedAmountCents: quotedAmountCents,
+        paidCents: paidCents,
+        committedCents: committedCents,
+        inKindCoveredCents: 0,
+      );
+
+      // The plain variance still reads the poste as under quote by 5000; the final-cost variance,
+      // fed by the typed estimate, reads it as heading 4000 over.
+      expect(varianceCents, -5000);
+      expect(finalCostVarianceCents, 4000);
+      expect(finalCostVarianceCents, isNot(varianceCents));
+    });
+  });
 
   group("ocptBudgetTotalOf", () {
     test("reads a tax-inclusive line under either basis, given a rate", () {

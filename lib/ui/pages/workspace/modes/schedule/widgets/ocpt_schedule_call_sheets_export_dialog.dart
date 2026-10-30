@@ -145,7 +145,10 @@ class _OcptScheduleCallSheetsExportDialogState extends State<OcptScheduleCallShe
     final options = OcptCallSheetExportOptions(
       format: _selectedFormat,
       margins: widget.current.margins,
-      dayIds: [for (final day in widget.days) if (_selectedDayIds.contains(day.id)) day.id],
+      dayIds: [
+        for (final day in widget.days)
+          if (_selectedDayIds.contains(day.id)) day.id,
+      ],
     );
     globalGetIt().get<OcptRouterManager>().pop<OcptCallSheetExportOptions>(options);
   }

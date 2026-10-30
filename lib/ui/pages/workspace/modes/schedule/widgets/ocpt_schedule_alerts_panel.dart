@@ -110,7 +110,9 @@ class OcptScheduleAlertsPanel extends StatelessWidget {
       );
     }
 
-    final hardCount = alerts.where((alert) => alert.severity == OcptScheduleAlertSeverity.hard).length;
+    final hardCount = alerts
+        .where((alert) => alert.severity == OcptScheduleAlertSeverity.hard)
+        .length;
 
     return ListView.builder(
       padding: const EdgeInsets.all(16),
@@ -121,7 +123,9 @@ class OcptScheduleAlertsPanel extends StatelessWidget {
             padding: const EdgeInsets.only(bottom: 8),
             child: Text(
               tr.scheduleAlertsSummary(alerts.length, hardCount),
-              style: theme.textTheme.labelMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+              style: theme.textTheme.labelMedium?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
             ),
           );
         }
@@ -225,7 +229,11 @@ class _OcptScheduleAlertDayControl extends StatelessWidget {
   final Tr tr;
 
   /// Class constructor
-  const _OcptScheduleAlertDayControl({required this.day, required this.onPressed, required this.tr});
+  const _OcptScheduleAlertDayControl({
+    required this.day,
+    required this.onPressed,
+    required this.tr,
+  });
 
   @override
   Widget build(BuildContext context) {

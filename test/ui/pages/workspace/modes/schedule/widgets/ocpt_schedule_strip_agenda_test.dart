@@ -29,16 +29,15 @@ Widget _wrapInApp(Widget child) => MaterialApp(
 );
 
 /// Builds a shooting day with the few fields these tests read, everything else neutral.
-OcptShootingDay _buildDay({required String id, required int dayNumber}) =>
-    OcptShootingDay(
-      id: id,
-      date: DateTime(2026, 8, 4),
-      dayNumber: dayNumber,
-      status: OcptShootingDayStatus.planned,
-      crewNote: "",
-      weatherNote: "",
-      notes: "",
-    );
+OcptShootingDay _buildDay({required String id, required int dayNumber}) => OcptShootingDay(
+  id: id,
+  date: DateTime(2026, 8, 4),
+  dayNumber: dayNumber,
+  status: OcptShootingDayStatus.planned,
+  crewNote: "",
+  weatherNote: "",
+  notes: "",
+);
 
 /// Builds a shot with the few fields these tests read, everything else neutral.
 OcptShot _buildShot({required String id, required String code}) => OcptShot(
@@ -73,30 +72,26 @@ OcptShot _buildShot({required String id, required String code}) => OcptShot(
 );
 
 /// Builds a shot block placing [shotId] in slot "slot-1".
-OcptShootingDayBlock _buildShotBlock({
-  required String id,
-  required String shotId,
-}) => OcptShootingDayBlock(
-  id: id,
-  shootingDayId: "day-1",
-  slotId: "slot-1",
-  kind: OcptShootingBlockKind.shot,
-  shotId: shotId,
-  sceneId: null,
-  candidates: const [],
-  label: "",
-  durationMinutes: null,
-  anchorMinute: null,
-  notes: "",
-  crewNote: "",
-);
+OcptShootingDayBlock _buildShotBlock({required String id, required String shotId}) =>
+    OcptShootingDayBlock(
+      id: id,
+      shootingDayId: "day-1",
+      slotId: "slot-1",
+      kind: OcptShootingBlockKind.shot,
+      shotId: shotId,
+      sceneId: null,
+      candidates: const [],
+      label: "",
+      durationMinutes: null,
+      anchorMinute: null,
+      notes: "",
+      crewNote: "",
+    );
 
 void main() {
   final dayOne = _buildDay(id: "day-1", dayNumber: 1);
 
-  testWidgets("shows the empty hint while no shooting day exists yet", (
-    tester,
-  ) async {
+  testWidgets("shows the empty hint while no shooting day exists yet", (tester) async {
     await tester.pumpWidget(
       _wrapInApp(
         OcptScheduleStripAgenda(
@@ -120,41 +115,38 @@ void main() {
     expect(find.text(tr.scheduleAgendaEmptyHint), findsOneWidget);
   });
 
-  testWidgets(
-    "draws no 'Place here' prompt at all — the strip is purely informative",
-    (tester) async {
-      await tester.pumpWidget(
-        _wrapInApp(
-          OcptScheduleStripAgenda(
-            days: [dayOne],
-            selectedDayId: null,
-            firstLocationByDayId: const {},
-            dayTintOf: (_) => Colors.transparent,
-            blocksByDayId: const {},
-            shotOf: (_) => null,
-            timelineOf: (_) => null,
-            arrivalMinuteOf: (_) => null,
-            alertsOfDay: (dayId) => const [],
-            onDayOpenRequested: (_) {},
-            onBlockSelected: (_, _) {},
-          ),
-        ),
-      );
-      await tester.pumpAndSettle();
-
-      // No trace of the retired prompt anywhere, whatever the day's own state.
-      expect(find.textContaining("Place here"), findsNothing);
-
-      final tr = Tr.of(tester.element(find.byType(OcptScheduleStripAgenda)));
-      // The "no shot placed" hint shows unconditionally now — it used to be withheld while a
-      // *placing* was in progress, a state that no longer exists.
-      expect(find.text(tr.scheduleDayNoShotsPlacedHint), findsOneWidget);
-    },
-  );
-
-  testWidgets("a chip click reports the block's own id and its day's", (
+  testWidgets("draws no 'Place here' prompt at all — the strip is purely informative", (
     tester,
   ) async {
+    await tester.pumpWidget(
+      _wrapInApp(
+        OcptScheduleStripAgenda(
+          days: [dayOne],
+          selectedDayId: null,
+          firstLocationByDayId: const {},
+          dayTintOf: (_) => Colors.transparent,
+          blocksByDayId: const {},
+          shotOf: (_) => null,
+          timelineOf: (_) => null,
+          arrivalMinuteOf: (_) => null,
+          alertsOfDay: (dayId) => const [],
+          onDayOpenRequested: (_) {},
+          onBlockSelected: (_, _) {},
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // No trace of the retired prompt anywhere, whatever the day's own state.
+    expect(find.textContaining("Place here"), findsNothing);
+
+    final tr = Tr.of(tester.element(find.byType(OcptScheduleStripAgenda)));
+    // The "no shot placed" hint shows unconditionally now — it used to be withheld while a
+    // *placing* was in progress, a state that no longer exists.
+    expect(find.text(tr.scheduleDayNoShotsPlacedHint), findsOneWidget);
+  });
+
+  testWidgets("a chip click reports the block's own id and its day's", (tester) async {
     final selections = <(String, String)>[];
     final shot = _buildShot(id: "shot-1", code: "4/1");
     final block = _buildShotBlock(id: "block-1", shotId: "shot-1");
@@ -187,7 +179,9 @@ void main() {
     expect(selections, [("block-1", "day-1")]);
   });
 
-  testWidgets("the card's own right column reads the day's own arrival-to-end range", (tester) async {
+  testWidgets("the card's own right column reads the day's own arrival-to-end range", (
+    tester,
+  ) async {
     const timeline = OcptShootingDayTimelines(
       bySlotId: {},
       entries: [],

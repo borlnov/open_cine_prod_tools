@@ -45,8 +45,15 @@ Widget _wrapWithLocalization(Widget child) => MaterialApp(
 );
 
 /// A minimal poste, everything but [id]/[label] neutral.
-OcptBudgetPoste _poste({required String id, required String label}) =>
-    OcptBudgetPoste(id: id, code: "1", label: label, simpleLabel: null, estimateToCompleteCents: null, sortKey: "a0", lines: const []);
+OcptBudgetPoste _poste({required String id, required String label}) => OcptBudgetPoste(
+  id: id,
+  code: "1",
+  label: label,
+  simpleLabel: null,
+  estimateToCompleteCents: null,
+  sortKey: "a0",
+  lines: const [],
+);
 
 /// A minimal existing commitment, everything but what each test actually varies neutral.
 OcptBudgetCommitment _existingCommitment({
@@ -126,7 +133,9 @@ void main() {
     final tr = await pumpDialog(tester, postes: [poste]);
 
     expect(find.text(tr.budgetCommitmentDialogMissingLabelAndPosteHint), findsOneWidget);
-    var saveButton = tester.widget<FilledButton>(find.widgetWithText(FilledButton, tr.budgetEntryDialogConfirmAction));
+    var saveButton = tester.widget<FilledButton>(
+      find.widgetWithText(FilledButton, tr.budgetEntryDialogConfirmAction),
+    );
     expect(saveButton.onPressed, isNull);
 
     await tester.enterText(
@@ -135,7 +144,9 @@ void main() {
     );
     await tester.pump();
     expect(find.text(tr.budgetCommitmentDialogMissingPosteHint), findsOneWidget);
-    saveButton = tester.widget<FilledButton>(find.widgetWithText(FilledButton, tr.budgetEntryDialogConfirmAction));
+    saveButton = tester.widget<FilledButton>(
+      find.widgetWithText(FilledButton, tr.budgetEntryDialogConfirmAction),
+    );
     expect(saveButton.onPressed, isNull);
 
     await tester.tap(find.byType(DropdownButtonFormField<String>));
@@ -145,7 +156,9 @@ void main() {
 
     expect(find.text(tr.budgetCommitmentDialogMissingLabelAndPosteHint), findsNothing);
     expect(find.text(tr.budgetCommitmentDialogMissingPosteHint), findsNothing);
-    saveButton = tester.widget<FilledButton>(find.widgetWithText(FilledButton, tr.budgetEntryDialogConfirmAction));
+    saveButton = tester.widget<FilledButton>(
+      find.widgetWithText(FilledButton, tr.budgetEntryDialogConfirmAction),
+    );
     expect(saveButton.onPressed, isNotNull);
 
     await tester.enterText(
@@ -162,7 +175,10 @@ void main() {
   });
 
   testWidgets("editing pre-fills every field, the poste picker included", (tester) async {
-    final existing = _existingCommitment(vatRateBasisPoints: 550, status: OcptBudgetCommitmentStatus.declared);
+    final existing = _existingCommitment(
+      vatRateBasisPoints: 550,
+      status: OcptBudgetCommitmentStatus.declared,
+    );
     final poste = _poste(id: "poste-1", label: "Camera");
     final tr = await pumpDialog(tester, existing: existing, postes: [poste]);
 
@@ -187,7 +203,10 @@ void main() {
     final tr = await pumpDialog(
       tester,
       existing: existing,
-      postes: [_poste(id: "poste-1", label: "Camera"), _poste(id: "poste-2", label: "Sound")],
+      postes: [
+        _poste(id: "poste-1", label: "Camera"),
+        _poste(id: "poste-2", label: "Sound"),
+      ],
     );
 
     await tester.tap(find.byType(DropdownButtonFormField<String>));

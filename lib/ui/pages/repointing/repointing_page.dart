@@ -72,9 +72,8 @@ class OcptRepointingView extends StatelessWidget {
         body: switch (state.enrolment) {
           null => OcptRepointingConfigureView(
             isRepointing: state.isRepointing,
-            onRepointRequested: (relayBaseUri, enrolmentSecret) => context
-                .read<OcptRepointingBloc>()
-                .add(
+            onRepointRequested: (relayBaseUri, enrolmentSecret) =>
+                context.read<OcptRepointingBloc>().add(
                   OcptRepointingRequestedEvent(
                     relayBaseUri: relayBaseUri,
                     enrolmentSecret: enrolmentSecret,

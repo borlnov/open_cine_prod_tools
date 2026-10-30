@@ -30,9 +30,20 @@ class OcptEditorTitlePageDialog extends StatefulWidget {
   static Future<
     ({String title, String credit, String author, String draftDate, String contact, String source})?
   >
-  show(BuildContext context, {required FountainTitlePage? current}) => showDialog<
-    ({String title, String credit, String author, String draftDate, String contact, String source})
-  >(context: context, builder: (context) => OcptEditorTitlePageDialog(current: current));
+  show(BuildContext context, {required FountainTitlePage? current}) =>
+      showDialog<
+        ({
+          String title,
+          String credit,
+          String author,
+          String draftDate,
+          String contact,
+          String source,
+        })
+      >(
+        context: context,
+        builder: (context) => OcptEditorTitlePageDialog(current: current),
+      );
 
   @override
   State<OcptEditorTitlePageDialog> createState() => _OcptEditorTitlePageDialogState();
@@ -64,7 +75,8 @@ class _OcptEditorTitlePageDialogState extends State<OcptEditorTitlePageDialog> {
     final current = widget.current;
     _titleController.text = current?.entry('Title')?.joinedValue ?? '';
     _creditController.text = current?.entry('Credit')?.joinedValue ?? '';
-    _authorController.text = (current?.entry('Author') ?? current?.entry('Authors'))?.joinedValue ?? '';
+    _authorController.text =
+        (current?.entry('Author') ?? current?.entry('Authors'))?.joinedValue ?? '';
     _draftDateController.text = current?.entry('Draft date')?.joinedValue ?? '';
     _contactController.text = current?.entry('Contact')?.joinedValue ?? '';
     _sourceController.text = current?.entry('Source')?.joinedValue ?? '';

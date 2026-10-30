@@ -56,18 +56,11 @@ class OcptBudgetShare extends Equatable {
 
   /// Object string representation, useful for debugging and logging.
   @override
-  String toString() => "OcptBudgetShare(id: $id, personId: $personId, label: $label, "
+  String toString() =>
+      "OcptBudgetShare(id: $id, personId: $personId, label: $label, "
       "sharePermille: $sharePermille, reinvestPermille: $reinvestPermille)";
 
   /// Object properties
   @override
-  List<Object?> get props => [
-    id,
-    personId,
-    label,
-    sharePermille,
-    reinvestPermille,
-    notes,
-    sortKey,
-  ];
+  List<Object?> get props => [id, personId, label, sharePermille, reinvestPermille, notes, sortKey];
 }

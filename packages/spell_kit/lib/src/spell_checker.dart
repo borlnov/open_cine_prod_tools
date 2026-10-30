@@ -213,8 +213,7 @@ class SpellChecker {
   /// line, and asking whether `MARIE` itself carries an interior capital
   /// would refuse exactly that.
   bool _isExtraWordKnown(String word) =>
-      _extraWordsExact.contains(word) ||
-      _extraWordsCaseInsensitive.contains(word.toLowerCase());
+      _extraWordsExact.contains(word) || _extraWordsCaseInsensitive.contains(word.toLowerCase());
 
   /// Classifies [word]'s case shape.
   _WordCase _classifyCase(String word) {
@@ -227,14 +226,12 @@ class SpellChecker {
       return _WordCase.allCaps;
     }
     final rest = word.substring(1);
-    final isTitleCase =
-        word[0] == word[0].toUpperCase() && rest == rest.toLowerCase();
+    final isTitleCase = word[0] == word[0].toUpperCase() && rest == rest.toLowerCase();
     return isTitleCase ? _WordCase.titleCase : _WordCase.mixed;
   }
 
   /// Capitalizes [word]'s first letter and lowercases the rest.
-  String _titleCase(String word) =>
-      word[0].toUpperCase() + word.substring(1).toLowerCase();
+  String _titleCase(String word) => word[0].toUpperCase() + word.substring(1).toLowerCase();
 
   /// The case-folded forms of [word] worth trying against the dictionary,
   /// in order: the word exactly as typed always comes first, followed by
@@ -245,16 +242,10 @@ class SpellChecker {
     final candidates = [_CaseCandidate(form: word, isExactTyped: true)];
     switch (_classifyCase(word)) {
       case _WordCase.allCaps:
-        candidates.add(
-          _CaseCandidate(form: word.toLowerCase(), isExactTyped: false),
-        );
-        candidates.add(
-          _CaseCandidate(form: _titleCase(word), isExactTyped: false),
-        );
+        candidates.add(_CaseCandidate(form: word.toLowerCase(), isExactTyped: false));
+        candidates.add(_CaseCandidate(form: _titleCase(word), isExactTyped: false));
       case _WordCase.titleCase:
-        candidates.add(
-          _CaseCandidate(form: word.toLowerCase(), isExactTyped: false),
-        );
+        candidates.add(_CaseCandidate(form: word.toLowerCase(), isExactTyped: false));
       case _WordCase.allLower:
       case _WordCase.mixed:
       // No case beyond the word exactly as typed is worth trying: a
@@ -286,22 +277,16 @@ class SpellChecker {
   }
 
   /// Whether [flags] carries [dictionary]'s `FORBIDDENWORD` flag.
-  bool _isForbidden(String flags) => dictionary.affixFile.containsFlag(
-    flags,
-    dictionary.affixFile.forbiddenWordFlag,
-  );
+  bool _isForbidden(String flags) =>
+      dictionary.affixFile.containsFlag(flags, dictionary.affixFile.forbiddenWordFlag);
 
   /// Whether [flags] carries [dictionary]'s `NEEDAFFIX` flag.
-  bool _isNeedAffix(String flags) => dictionary.affixFile.containsFlag(
-    flags,
-    dictionary.affixFile.needAffixFlag,
-  );
+  bool _isNeedAffix(String flags) =>
+      dictionary.affixFile.containsFlag(flags, dictionary.affixFile.needAffixFlag);
 
   /// Whether [flags] carries [dictionary]'s `ONLYINCOMPOUND` flag.
-  bool _isOnlyInCompound(String flags) => dictionary.affixFile.containsFlag(
-    flags,
-    dictionary.affixFile.onlyInCompoundFlag,
-  );
+  bool _isOnlyInCompound(String flags) =>
+      dictionary.affixFile.containsFlag(flags, dictionary.affixFile.onlyInCompoundFlag);
 
   /// Whether an entry carrying [flags] may be known as a bare word (no
   /// affix, no compound).
@@ -312,14 +297,13 @@ class SpellChecker {
   /// affix. `NEEDAFFIX` is allowed here — it is the whole point of the
   /// flag — but `ONLYINCOMPOUND` is not: that flag restricts an entry to
   /// `COMPOUNDRULE` pieces alone.
-  bool _isUsableAffixStem(String flags) =>
-      !_isForbidden(flags) && !_isOnlyInCompound(flags);
+  bool _isUsableAffixStem(String flags) => !_isForbidden(flags) && !_isOnlyInCompound(flags);
 
   /// Whether [rule] carries the circumfix flag as one of its continuation
   /// flags, meaning it may only be used paired with its circumfix partner
   /// in a cross product, never alone.
-  bool _needsCircumfix(HunspellAffixRule rule) => dictionary.affixFile
-      .containsFlag(rule.continuationFlags, dictionary.affixFile.circumfixFlag);
+  bool _needsCircumfix(HunspellAffixRule rule) =>
+      dictionary.affixFile.containsFlag(rule.continuationFlags, dictionary.affixFile.circumfixFlag);
 
   /// Reconstructs the stem a `SFX` [rule] would have been applied to in
   /// order to produce surface form [form], or `null` if [rule] does not
@@ -410,12 +394,8 @@ class SpellChecker {
         if (middleStart > middleEnd) {
           continue;
         }
-        final stem =
-            prefixRule.strip +
-            form.substring(middleStart, middleEnd) +
-            suffixRule.strip;
-        if (!prefixRule.condition.matchesStart(stem) ||
-            !suffixRule.condition.matchesEnd(stem)) {
+        final stem = prefixRule.strip + form.substring(middleStart, middleEnd) + suffixRule.strip;
+        if (!prefixRule.condition.matchesStart(stem) || !suffixRule.condition.matchesEnd(stem)) {
           continue;
         }
         final stemFlags = dictionary.entries[stem];
@@ -424,16 +404,10 @@ class SpellChecker {
         }
         final prefixSatisfied =
             dictionary.affixFile.containsFlag(stemFlags, prefixRule.flag) ||
-            dictionary.affixFile.containsFlag(
-              suffixRule.continuationFlags,
-              prefixRule.flag,
-            );
+            dictionary.affixFile.containsFlag(suffixRule.continuationFlags, prefixRule.flag);
         final suffixSatisfied =
             dictionary.affixFile.containsFlag(stemFlags, suffixRule.flag) ||
-            dictionary.affixFile.containsFlag(
-              prefixRule.continuationFlags,
-              suffixRule.flag,
-            );
+            dictionary.affixFile.containsFlag(prefixRule.continuationFlags, suffixRule.flag);
         if (prefixSatisfied && suffixSatisfied) {
           return _LookupResult(stemFlags);
         }
@@ -464,10 +438,7 @@ class SpellChecker {
         if (!word.endsWith(pattern.text)) {
           continue;
         }
-        final remainder = word.substring(
-          0,
-          word.length - pattern.text.length,
-        );
+        final remainder = word.substring(0, word.length - pattern.text.length);
         if (remainder.isNotEmpty && _isKnownAtDepth(remainder, depth + 1)) {
           return true;
         }
@@ -483,9 +454,7 @@ class SpellChecker {
         if (nonEmptyParts.isEmpty) {
           continue;
         }
-        if (nonEmptyParts.every(
-          (part) => _isKnownAtDepth(part, depth + 1),
-        )) {
+        if (nonEmptyParts.every((part) => _isKnownAtDepth(part, depth + 1))) {
           return true;
         }
       }
@@ -495,8 +464,9 @@ class SpellChecker {
 
   /// Whether [word] can be split into consecutive dictionary pieces
   /// matching one of the `COMPOUNDRULE` patterns.
-  bool _matchesCompoundRules(String word) => dictionary.affixFile.compoundRules
-      .any((rule) => _matchesCompoundRule(word, 0, rule.elements, 0));
+  bool _matchesCompoundRules(String word) => dictionary.affixFile.compoundRules.any(
+    (rule) => _matchesCompoundRule(word, 0, rule.elements, 0),
+  );
 
   /// Whether [word], starting at [pos], matches [elements] from
   /// [elementIndex] onward.
@@ -516,8 +486,7 @@ class SpellChecker {
           word,
           pos,
           element.flag,
-          (next) =>
-              _matchesCompoundRule(word, next, elements, elementIndex + 1),
+          (next) => _matchesCompoundRule(word, next, elements, elementIndex + 1),
         );
       case HunspellCompoundRuleQuantifier.zeroOrOne:
         if (_matchesCompoundRule(word, pos, elements, elementIndex + 1)) {
@@ -527,8 +496,7 @@ class SpellChecker {
           word,
           pos,
           element.flag,
-          (next) =>
-              _matchesCompoundRule(word, next, elements, elementIndex + 1),
+          (next) => _matchesCompoundRule(word, next, elements, elementIndex + 1),
         );
       case HunspellCompoundRuleQuantifier.zeroOrMore:
         if (_matchesCompoundRule(word, pos, elements, elementIndex + 1)) {

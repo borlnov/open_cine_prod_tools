@@ -17,15 +17,16 @@ MutableDocument _documentFrom(String source) => OcptWysiwygCodec.decode(source).
 /// Finds the single node of [document] classified as [type].
 DocumentNode _nodeOfType(MutableDocument document, FountainLineType type) => document.firstWhere(
   (node) =>
-      OcptFountainLineAttributions.typeOfAttributionValue(node.getMetadataValue("blockType")) == type,
+      OcptFountainLineAttributions.typeOfAttributionValue(node.getMetadataValue("blockType")) ==
+      type,
 );
 
 /// Resolves the style map [document]'s [node] gets from [stylesheet]: the first rule whose
 /// selector matches it, exactly as super_editor's own styling pipeline picks one.
-Map<String, dynamic> _styleOf(Stylesheet stylesheet, Document document, DocumentNode node) => stylesheet
-    .rules
-    .firstWhere((rule) => rule.selector.matches(document, node))
-    .styler(document, node);
+Map<String, dynamic> _styleOf(Stylesheet stylesheet, Document document, DocumentNode node) =>
+    stylesheet.rules
+        .firstWhere((rule) => rule.selector.matches(document, node))
+        .styler(document, node);
 
 void main() {
   final metrics = FountainLayoutMetrics.usLetter();
@@ -60,7 +61,10 @@ void main() {
       final compactPadding = compactStyle[Styles.padding] as CascadingPadding;
 
       expect(compactPadding.left, lessThan(desktopPadding.left!));
-      expect(compactStyle[Styles.maxWidth] as double, lessThan(desktopStyle[Styles.maxWidth] as double));
+      expect(
+        compactStyle[Styles.maxWidth] as double,
+        lessThan(desktopStyle[Styles.maxWidth] as double),
+      );
     });
 
     test("shrinks the character element's indent and box width, keeping its bold accent style", () {
@@ -83,7 +87,10 @@ void main() {
       final compactPadding = compactStyle[Styles.padding] as CascadingPadding;
 
       expect(compactPadding.left, lessThan(desktopPadding.left!));
-      expect(compactStyle[Styles.maxWidth] as double, lessThan(desktopStyle[Styles.maxWidth] as double));
+      expect(
+        compactStyle[Styles.maxWidth] as double,
+        lessThan(desktopStyle[Styles.maxWidth] as double),
+      );
 
       final desktopTextStyle = desktopStyle[Styles.textStyle] as TextStyle;
       final compactTextStyle = compactStyle[Styles.textStyle] as TextStyle;
@@ -190,8 +197,10 @@ void main() {
         usePaperColors: true,
       );
 
-      final themedDialogue = (_styleOf(themed, document, dialogueNode)[Styles.textStyle] as TextStyle);
-      final paperDialogue = (_styleOf(paper, document, dialogueNode)[Styles.textStyle] as TextStyle);
+      final themedDialogue =
+          (_styleOf(themed, document, dialogueNode)[Styles.textStyle] as TextStyle);
+      final paperDialogue =
+          (_styleOf(paper, document, dialogueNode)[Styles.textStyle] as TextStyle);
 
       expect(themedDialogue.color, colorScheme.onSurface);
       expect(paperDialogue.color, Colors.black);

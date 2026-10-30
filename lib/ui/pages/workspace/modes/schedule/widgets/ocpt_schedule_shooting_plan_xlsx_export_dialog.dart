@@ -89,7 +89,10 @@ class _OcptScheduleShootingPlanXlsxExportDialogState
   /// `OcptShootingPlanXlsxExportService` already handles.
   void _submit() {
     final options = OcptShootingPlanXlsxExportOptions(
-      dayIds: [for (final day in widget.days) if (_selectedDayIds.contains(day.id)) day.id],
+      dayIds: [
+        for (final day in widget.days)
+          if (_selectedDayIds.contains(day.id)) day.id,
+      ],
     );
     globalGetIt().get<OcptRouterManager>().pop<OcptShootingPlanXlsxExportOptions>(options);
   }

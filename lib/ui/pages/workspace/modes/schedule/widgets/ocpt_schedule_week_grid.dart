@@ -201,7 +201,9 @@ class OcptScheduleWeekGrid extends StatelessWidget {
                         date: date,
                         day: dayByDate[date],
                         isSelected: dayByDate[date] != null && dayByDate[date]!.id == selectedDayId,
-                        alerts: dayByDate[date] == null ? const [] : alertsOfDay(dayByDate[date]!.id),
+                        alerts: dayByDate[date] == null
+                            ? const []
+                            : alertsOfDay(dayByDate[date]!.id),
                         onOpenRequested: dayByDate[date] == null
                             ? null
                             : () => onDayOpenRequested(dayByDate[date]!.id),
@@ -225,9 +227,15 @@ class OcptScheduleWeekGrid extends StatelessWidget {
                         tint: dayByDate[date] == null
                             ? theme.colorScheme.outlineVariant
                             : dayTintOf(dayByDate[date]!.id),
-                        slots: dayByDate[date] == null ? const [] : slotsByDayId[dayByDate[date]!.id] ?? const [],
-                        blocks: dayByDate[date] == null ? const [] : blocksByDayId[dayByDate[date]!.id] ?? const [],
-                        events: dayByDate[date] == null ? const [] : eventsByDayId[dayByDate[date]!.id] ?? const [],
+                        slots: dayByDate[date] == null
+                            ? const []
+                            : slotsByDayId[dayByDate[date]!.id] ?? const [],
+                        blocks: dayByDate[date] == null
+                            ? const []
+                            : blocksByDayId[dayByDate[date]!.id] ?? const [],
+                        events: dayByDate[date] == null
+                            ? const []
+                            : eventsByDayId[dayByDate[date]!.id] ?? const [],
                         shotOf: shotOf,
                         timeline: dayByDate[date] == null ? null : timelineOf(dayByDate[date]!.id),
                         sunTimes: dayByDate[date] == null ? null : sunTimesOf(dayByDate[date]!.id),
@@ -558,7 +566,13 @@ class _OcptScheduleWeekColumnBody extends StatelessWidget {
       return const SizedBox.shrink();
     }
 
-    return Positioned(top: topPx, left: 0, right: 0, height: height, child: ColoredBox(color: color));
+    return Positioned(
+      top: topPx,
+      left: 0,
+      right: 0,
+      height: height,
+      child: ColoredBox(color: color),
+    );
   }
 
   /// This column's own placed blocks, positioned by their computed start/duration, and by their
@@ -575,7 +589,8 @@ class _OcptScheduleWeekColumnBody extends StatelessWidget {
     final theme = Theme.of(context);
     final tr = Tr.of(context);
     final entryByBlockId = {
-      for (final entry in timeline?.entries ?? const <OcptShootingTimelineEntry>[]) entry.blockId: entry,
+      for (final entry in timeline?.entries ?? const <OcptShootingTimelineEntry>[])
+        entry.blockId: entry,
     };
     final overrunBlockIds = {
       for (final overrun in timeline?.overruns ?? const <OcptTimelineOverrun>[]) overrun.blockId,
@@ -603,7 +618,9 @@ class _OcptScheduleWeekColumnBody extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 3),
         decoration: BoxDecoration(
           color: color.withValues(alpha: 0.18),
-          border: Border(left: BorderSide(color: isOverrun ? theme.colorScheme.error : color, width: 2)),
+          border: Border(
+            left: BorderSide(color: isOverrun ? theme.colorScheme.error : color, width: 2),
+          ),
           borderRadius: BorderRadius.circular(3),
         ),
         child: Text(
@@ -617,7 +634,9 @@ class _OcptScheduleWeekColumnBody extends StatelessWidget {
       widgets.add(
         Positioned(
           top: (entry.startMinute - startMinute) * _ocptWeekGridPixelsPerMinute,
-          height: (entry.durationMinutes * _ocptWeekGridPixelsPerMinute).clamp(12, double.infinity).toDouble(),
+          height: (entry.durationMinutes * _ocptWeekGridPixelsPerMinute)
+              .clamp(12, double.infinity)
+              .toDouble(),
           left: lane * laneWidth + _ocptWeekGridBlockHorizontalMargin,
           width: laneWidth - 2 * _ocptWeekGridBlockHorizontalMargin,
           child: slots.length <= 1

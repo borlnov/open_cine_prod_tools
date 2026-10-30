@@ -54,10 +54,7 @@ class OcptSceneEffect {
   const OcptSceneEffect({this.printedEffect, this.place, this.timeOfDay});
 
   /// Private constructor behind [none], so every "nothing to report" instance is the same constant.
-  const OcptSceneEffect._()
-    : printedEffect = null,
-      place = null,
-      timeOfDay = null;
+  const OcptSceneEffect._() : printedEffect = null, place = null, timeOfDay = null;
 }
 
 /// [heading]'s own interior/exterior half and time-of-day half, joined as the reference call sheet's
@@ -94,9 +91,7 @@ OcptSceneEffect ocptSceneEffectOf(String? heading) {
 
   final String intExtLabel;
   OcptScenePlace? place;
-  if (prefix.startsWith("INT./EXT") ||
-      prefix.startsWith("INT/EXT") ||
-      prefix.startsWith("I/E")) {
+  if (prefix.startsWith("INT./EXT") || prefix.startsWith("INT/EXT") || prefix.startsWith("I/E")) {
     intExtLabel = "INT/EXT";
     place = null;
   } else if (prefix.startsWith("EXT") || prefix.startsWith("EST")) {
@@ -152,14 +147,10 @@ OcptSceneEffectCategory? ocptSceneEffectCategoryOf(Iterable<String?> headings) {
       continue;
     }
     categories.add(switch ((place, timeOfDay)) {
-      (OcptScenePlace.interior, OcptSceneTimeOfDay.day) =>
-        OcptSceneEffectCategory.interiorDay,
-      (OcptScenePlace.interior, OcptSceneTimeOfDay.night) =>
-        OcptSceneEffectCategory.interiorNight,
-      (OcptScenePlace.exterior, OcptSceneTimeOfDay.day) =>
-        OcptSceneEffectCategory.exteriorDay,
-      (OcptScenePlace.exterior, OcptSceneTimeOfDay.night) =>
-        OcptSceneEffectCategory.exteriorNight,
+      (OcptScenePlace.interior, OcptSceneTimeOfDay.day) => OcptSceneEffectCategory.interiorDay,
+      (OcptScenePlace.interior, OcptSceneTimeOfDay.night) => OcptSceneEffectCategory.interiorNight,
+      (OcptScenePlace.exterior, OcptSceneTimeOfDay.day) => OcptSceneEffectCategory.exteriorDay,
+      (OcptScenePlace.exterior, OcptSceneTimeOfDay.night) => OcptSceneEffectCategory.exteriorNight,
     });
   }
 

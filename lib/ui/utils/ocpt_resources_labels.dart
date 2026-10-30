@@ -472,8 +472,7 @@ OcptResourcesXlsxLabels ocptResourcesXlsxLabelsOf(
         column: ocptPeopleXlsxColumnLabel(tr, column),
     },
     rolesColumnHeaders: {
-      for (final column in OcptRolesXlsxColumn.values)
-        column: ocptRolesXlsxColumnLabel(tr, column),
+      for (final column in OcptRolesXlsxColumn.values) column: ocptRolesXlsxColumnLabel(tr, column),
     },
     locationsColumnHeaders: {
       for (final column in OcptLocationsXlsxColumn.values)
@@ -484,8 +483,7 @@ OcptResourcesXlsxLabels ocptResourcesXlsxLabelsOf(
         column: ocptElementsXlsxColumnLabel(tr, column, currencyCode: currencyCode),
     },
     crewPositionLabels: {
-      for (final position in ocptCrewPositions)
-        position.id: ocptCrewPositionLabel(tr, position.id),
+      for (final position in ocptCrewPositions) position.id: ocptCrewPositionLabel(tr, position.id),
     },
     roleKindLabels: {for (final kind in OcptRoleKind.values) kind: ocptRoleKindLabel(tr, kind)},
     imageRightsStatusLabels: {

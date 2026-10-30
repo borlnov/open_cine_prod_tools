@@ -63,7 +63,10 @@ class OcptRelayReconciler {
   ///   upstream again. Skipping this step is harmless in principle
   ///   ([OcptRelayUpstreamClient.appendChangeset] is itself idempotent on `changesetId`) but would
   ///   otherwise report a nonzero `pushed` forever on an otherwise fully reconciled project.
-  Future<({int pushed, int pulled})> reconcileProject({required String projectId, String? enrolmentSecret}) async {
+  Future<({int pushed, int pulled})> reconcileProject({
+    required String projectId,
+    String? enrolmentSecret,
+  }) async {
     final upstreamKey = upstream.baseUri.toString();
     final cursors = store.reconcileCursors(upstream: upstreamKey, projectId: projectId);
 
@@ -78,7 +81,11 @@ class OcptRelayReconciler {
     var pushCursor = cursors.push;
     final toPush = store.readSince(projectId, pushCursor);
     for (final changeset in toPush) {
-      await upstream.appendChangeset(projectId, changeset.envelope, enrolmentSecret: enrolmentSecret);
+      await upstream.appendChangeset(
+        projectId,
+        changeset.envelope,
+        enrolmentSecret: enrolmentSecret,
+      );
       if (changeset.sequenceNumber > pushCursor) {
         pushCursor = changeset.sequenceNumber;
       }
@@ -100,7 +107,12 @@ class OcptRelayReconciler {
       }
     }
 
-    store.saveReconcileCursors(upstream: upstreamKey, projectId: projectId, push: pushCursor, pull: pullCursor);
+    store.saveReconcileCursors(
+      upstream: upstreamKey,
+      projectId: projectId,
+      push: pushCursor,
+      pull: pullCursor,
+    );
 
     return (pushed: toPush.length, pulled: pulled);
   }

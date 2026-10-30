@@ -25,7 +25,5 @@ import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
 ///
 /// Read by both `OcptRoleIndexService` (over an `OcptRoleRow`'s columns) and the resources mode
 /// (over an `OcptRole`'s), which is why this pure rule lives here rather than in either layer.
-bool ocptRoleIsActionDetected({
-  required bool isFromScreenplay,
-  required OcptRoleKind kind,
-}) => isFromScreenplay && kind != OcptRoleKind.speaking;
+bool ocptRoleIsActionDetected({required bool isFromScreenplay, required OcptRoleKind kind}) =>
+    isFromScreenplay && kind != OcptRoleKind.speaking;

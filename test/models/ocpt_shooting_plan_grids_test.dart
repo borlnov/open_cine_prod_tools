@@ -102,21 +102,25 @@ OcptShootingSlotCrewMember _buildCrewMember({
 );
 
 /// Builds a cast member with the few fields these tests read, everything else neutral.
-OcptShootingSlotCastMember _buildCastMember({required String id, required String slotId, required String roleId}) =>
-    OcptShootingSlotCastMember(id: id, slotId: slotId, roleId: roleId, notes: "");
+OcptShootingSlotCastMember _buildCastMember({
+  required String id,
+  required String slotId,
+  required String roleId,
+}) => OcptShootingSlotCastMember(id: id, slotId: slotId, roleId: roleId, notes: "");
 
 /// Builds a role with the few fields these tests read, everything else neutral.
-OcptRole _buildRole({required String id, required String name, String? personId, int number = 1}) => OcptRole(
-  id: id,
-  name: name,
-  personId: personId,
-  kind: OcptRoleKind.speaking,
-  isFromScreenplay: true,
-  orphanedName: null,
-  castingNotes: "",
-  number: number,
-  episodeIds: const [],
-);
+OcptRole _buildRole({required String id, required String name, String? personId, int number = 1}) =>
+    OcptRole(
+      id: id,
+      name: name,
+      personId: personId,
+      kind: OcptRoleKind.speaking,
+      isFromScreenplay: true,
+      orphanedName: null,
+      castingNotes: "",
+      number: number,
+      episodeIds: const [],
+    );
 
 /// Builds a location with the few fields these tests read, everything else neutral.
 OcptLocation _buildLocation({required String id, String name = ""}) => OcptLocation(
@@ -349,7 +353,12 @@ void main() {
       final dayOne = _buildDay(id: "day-1", dayNumber: 1);
       final dayTwo = _buildDay(id: "day-2", dayNumber: 2);
       final person = _buildCrewMember(id: "crew-1", slotId: "slot-1", personId: "person-1");
-      final slotOne = _buildSlot(id: "slot-1", shootingDayId: "day-1", locationId: "loc-a", crew: [person]);
+      final slotOne = _buildSlot(
+        id: "slot-1",
+        shootingDayId: "day-1",
+        locationId: "loc-a",
+        crew: [person],
+      );
       final slotTwo = _buildSlot(id: "slot-2", shootingDayId: "day-2", locationId: "loc-a");
 
       final grids = buildGrids(
@@ -427,8 +436,18 @@ void main() {
       final slotB = _buildSlot(id: "slot-b", shootingDayId: "day-1");
       final shot1 = _buildShot(id: "shot-1", sceneId: "scene-1", code: "1/1");
       final shot2 = _buildShot(id: "shot-2", sceneId: "scene-1", code: "1/2");
-      final blockA = _buildBlock(id: "block-a", shootingDayId: "day-1", slotId: "slot-a", shotId: "shot-1");
-      final blockB = _buildBlock(id: "block-b", shootingDayId: "day-1", slotId: "slot-b", shotId: "shot-2");
+      final blockA = _buildBlock(
+        id: "block-a",
+        shootingDayId: "day-1",
+        slotId: "slot-a",
+        shotId: "shot-1",
+      );
+      final blockB = _buildBlock(
+        id: "block-b",
+        shootingDayId: "day-1",
+        slotId: "slot-b",
+        shotId: "shot-2",
+      );
 
       final grids = buildGrids(
         plan: _buildSnapshot(
@@ -439,7 +458,9 @@ void main() {
           blocksByDayId: {
             "day-1": [blockA, blockB],
           },
-          shotLists: [_buildShotList(shots: [shot1, shot2])],
+          shotLists: [
+            _buildShotList(shots: [shot1, shot2]),
+          ],
         ),
         dayIds: const ["day-1"],
       );
@@ -461,7 +482,9 @@ void main() {
           slotsByDayId: {
             "day-1": [slot],
           },
-          shotLists: [_buildShotList(shots: [shot])],
+          shotLists: [
+            _buildShotList(shots: [shot]),
+          ],
         ),
         dayIds: const ["day-1"],
       );
@@ -541,7 +564,12 @@ void main() {
       final dayTwo = _buildDay(id: "day-2", dayNumber: 2);
       final slot = _buildSlot(id: "slot-1", shootingDayId: "day-1");
       final shot = _buildShot(id: "shot-1", sceneId: "scene-1", code: "1/1");
-      final block = _buildBlock(id: "block-1", shootingDayId: "day-1", slotId: "slot-1", shotId: "shot-1");
+      final block = _buildBlock(
+        id: "block-1",
+        shootingDayId: "day-1",
+        slotId: "slot-1",
+        shotId: "shot-1",
+      );
       final element = _buildElement(
         id: "el-1",
         name: "Coat",
@@ -558,7 +586,9 @@ void main() {
           blocksByDayId: {
             "day-1": [block],
           },
-          shotLists: [_buildShotList(shots: [shot])],
+          shotLists: [
+            _buildShotList(shots: [shot]),
+          ],
           elements: [element],
         ),
         dayIds: const ["day-1", "day-2"],
@@ -605,8 +635,18 @@ void main() {
       final slotOne = _buildSlot(id: "slot-1", shootingDayId: "day-1");
       final shotOne = _buildShot(id: "shot-e1", sceneId: "scene-e1", code: "1.3/1");
       final shotTwo = _buildShot(id: "shot-e2", sceneId: "scene-e2", code: "2.4/1");
-      final blockOne = _buildBlock(id: "block-1", shootingDayId: "day-1", slotId: "slot-1", shotId: "shot-e1");
-      final blockTwo = _buildBlock(id: "block-2", shootingDayId: "day-1", slotId: "slot-1", shotId: "shot-e2");
+      final blockOne = _buildBlock(
+        id: "block-1",
+        shootingDayId: "day-1",
+        slotId: "slot-1",
+        shotId: "shot-e1",
+      );
+      final blockTwo = _buildBlock(
+        id: "block-2",
+        shootingDayId: "day-1",
+        slotId: "slot-1",
+        shotId: "shot-e2",
+      );
 
       final grids = buildGrids(
         plan: _buildSnapshot(

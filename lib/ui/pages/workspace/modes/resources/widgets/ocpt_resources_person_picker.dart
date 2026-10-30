@@ -88,10 +88,7 @@ class OcptResourcesPersonPicker extends StatelessWidget {
                     PopupMenuItem<String>(value: _nobodyOption, child: Text(emptyLabel)),
                     const PopupMenuDivider(),
                     for (final person in people)
-                      PopupMenuItem<String>(
-                        value: person.id,
-                        child: Text(_nameOf(tr, person)),
-                      ),
+                      PopupMenuItem<String>(value: person.id, child: Text(_nameOf(tr, person))),
                   ],
                   child: badge,
                 ),

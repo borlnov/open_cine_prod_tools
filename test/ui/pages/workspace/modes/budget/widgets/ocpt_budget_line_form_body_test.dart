@@ -79,7 +79,10 @@ Widget _wrapWithLocalization(Widget child) => MaterialApp(
 
 void main() {
   /// Pumps [OcptBudgetLineFormBody] inside [_TestHost], [onSaved] recording every reported save.
-  Future<Tr> pumpBody(WidgetTester tester, {required ValueChanged<OcptBudgetLineFormFields> onSaved}) async {
+  Future<Tr> pumpBody(
+    WidgetTester tester, {
+    required ValueChanged<OcptBudgetLineFormFields> onSaved,
+  }) async {
     tester.view.physicalSize = const Size(900, 1000);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.resetPhysicalSize);
@@ -91,7 +94,9 @@ void main() {
     return Tr.of(tester.element(find.byType(OcptBudgetLineFormBody)));
   }
 
-  testWidgets("Save is refused until the label, quantity and unit price are filled", (tester) async {
+  testWidgets("Save is refused until the label, quantity and unit price are filled", (
+    tester,
+  ) async {
     OcptBudgetLineFormFields? saved;
     final tr = await pumpBody(tester, onSaved: (fields) => saved = fields);
 
@@ -111,7 +116,10 @@ void main() {
       find.widgetWithText(TextFormField, tr.budgetLineLabelFieldLabel),
       "Camera hire",
     );
-    await tester.enterText(find.widgetWithText(TextFormField, tr.budgetLineQuantityFieldLabel), "5");
+    await tester.enterText(
+      find.widgetWithText(TextFormField, tr.budgetLineQuantityFieldLabel),
+      "5",
+    );
     await tester.enterText(find.widgetWithText(TextFormField, tr.budgetLineUnitFieldLabel), "day");
     await tester.enterText(
       find.widgetWithText(TextFormField, tr.budgetLineUnitPriceFieldLabel),
@@ -160,7 +168,10 @@ void main() {
       find.widgetWithText(TextFormField, tr.budgetLineLabelFieldLabel),
       "Camera hire",
     );
-    await tester.enterText(find.widgetWithText(TextFormField, tr.budgetLineQuantityFieldLabel), "1");
+    await tester.enterText(
+      find.widgetWithText(TextFormField, tr.budgetLineQuantityFieldLabel),
+      "1",
+    );
     await tester.enterText(
       find.widgetWithText(TextFormField, tr.budgetLineUnitPriceFieldLabel),
       "120",

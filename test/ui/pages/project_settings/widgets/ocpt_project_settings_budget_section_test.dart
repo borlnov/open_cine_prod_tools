@@ -143,11 +143,7 @@ void main() {
   });
 
   testWidgets("a money field submitted empty reports null", (tester) async {
-    final mealCalls = await pumpSection(
-      tester,
-      mealPriceCents: 500,
-      onVatRateChanged: (_) {},
-    );
+    final mealCalls = await pumpSection(tester, mealPriceCents: 500, onVatRateChanged: (_) {});
 
     await tester.enterText(mealPriceField(), "");
     await tester.testTextInput.receiveAction(TextInputAction.done);

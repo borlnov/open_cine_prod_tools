@@ -259,7 +259,9 @@ void main() {
   group("generate", () {
     test("produces bytes starting with the %PDF magic string", () async {
       final bytes = await generate(
-        snapshot: buildSnapshot(elements: [_buildElement(id: "element-1", name: "Desk lamp")]),
+        snapshot: buildSnapshot(
+          elements: [_buildElement(id: "element-1", name: "Desk lamp")],
+        ),
       );
 
       expect(bytes, isNotEmpty);
@@ -268,7 +270,9 @@ void main() {
 
     test("prints one sheet per scene, tagged or not", () async {
       final bytes = await generate(
-        snapshot: buildSnapshot(elements: [_buildElement(id: "element-1", name: "Desk lamp")]),
+        snapshot: buildSnapshot(
+          elements: [_buildElement(id: "element-1", name: "Desk lamp")],
+        ),
       );
 
       expect(_pageCount(bytes), 2);
@@ -297,10 +301,14 @@ void main() {
       // project must be comparable page by page — which is the whole point of a printed copy a
       // department head annotates.
       final first = await generate(
-        snapshot: buildSnapshot(elements: [_buildElement(id: "element-1", name: "Desk lamp")]),
+        snapshot: buildSnapshot(
+          elements: [_buildElement(id: "element-1", name: "Desk lamp")],
+        ),
       );
       final second = await generate(
-        snapshot: buildSnapshot(elements: [_buildElement(id: "element-1", name: "Desk lamp")]),
+        snapshot: buildSnapshot(
+          elements: [_buildElement(id: "element-1", name: "Desk lamp")],
+        ),
       );
 
       expect(_contentStreams(first), _contentStreams(second));
@@ -315,7 +323,9 @@ void main() {
     // streams and two documents printing different things do not — a genuine, parser-free oracle.
     test("a tagged scene prints something the same scene untagged does not", () async {
       final tagged = await generate(
-        snapshot: buildSnapshot(elements: [_buildElement(id: "element-1", name: "Desk lamp")]),
+        snapshot: buildSnapshot(
+          elements: [_buildElement(id: "element-1", name: "Desk lamp")],
+        ),
       );
       final untagged = await generate(snapshot: buildSnapshot());
 
@@ -326,9 +336,7 @@ void main() {
       final person = _buildPerson(id: "person-1", firstName: "Léa", lastName: "Martin");
       final withOwner = await generate(
         snapshot: buildSnapshot(
-          elements: [
-            _buildElement(id: "element-1", name: "Desk lamp", ownerPersonId: person.id),
-          ],
+          elements: [_buildElement(id: "element-1", name: "Desk lamp", ownerPersonId: person.id)],
           people: [person],
         ),
       );
@@ -350,7 +358,9 @@ void main() {
         ),
       );
       final withoutRole = await generate(
-        snapshot: buildSnapshot(elements: [_buildElement(id: "element-1", name: "Desk lamp")]),
+        snapshot: buildSnapshot(
+          elements: [_buildElement(id: "element-1", name: "Desk lamp")],
+        ),
       );
 
       expect(_contentStreams(withRole), isNot(_contentStreams(withoutRole)));

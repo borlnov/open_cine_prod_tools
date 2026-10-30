@@ -164,9 +164,7 @@ class OcptEditorSearchTextController extends TextEditingController {
         );
       }
 
-      children.add(
-        TextSpan(text: source.substring(segmentStart, segmentEnd), style: segmentStyle),
-      );
+      children.add(TextSpan(text: source.substring(segmentStart, segmentEnd), style: segmentStyle));
     }
 
     return TextSpan(style: style, children: children);

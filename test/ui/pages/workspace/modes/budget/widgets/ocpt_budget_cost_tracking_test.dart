@@ -27,19 +27,18 @@ import 'package:open_cine_prod_tools/utils/ocpt_budget_totals.dart';
 /// `flutter_test`'s own default 800×600 window before every test in this file, so this
 /// [SizedBox] is never silently clamped back down to it the way it would be under a plain
 /// [testWidgets].
-Widget _wrap(Widget child, {double width = 1400, double height = 600}) =>
-    MaterialApp(
-      localizationsDelegates: const [
-        Tr.delegate,
-        GlobalMaterialLocalizations.delegate,
-        GlobalWidgetsLocalizations.delegate,
-        GlobalCupertinoLocalizations.delegate,
-      ],
-      supportedLocales: Tr.delegate.supportedLocales,
-      home: Scaffold(
-        body: SizedBox(width: width, height: height, child: child),
-      ),
-    );
+Widget _wrap(Widget child, {double width = 1400, double height = 600}) => MaterialApp(
+  localizationsDelegates: const [
+    Tr.delegate,
+    GlobalMaterialLocalizations.delegate,
+    GlobalWidgetsLocalizations.delegate,
+    GlobalCupertinoLocalizations.delegate,
+  ],
+  supportedLocales: Tr.delegate.supportedLocales,
+  home: Scaffold(
+    body: SizedBox(width: width, height: height, child: child),
+  ),
+);
 
 /// A [testWidgets] that first widens the real test surface to a size comfortably past every
 /// [_wrap] call in this file's own widest use (1400×600) — `flutter_test`'s own default 800×600
@@ -60,9 +59,7 @@ void _testWidgets(String description, WidgetTesterCallback callback) {
 /// whole two-pane [Row], is the only other [SingleChildScrollView] in the tree, so filtering on
 /// [Axis.horizontal] picks this one out uniquely.
 final Finder _amountsPaneScrollFinder = find.byWidgetPredicate(
-  (widget) =>
-      widget is SingleChildScrollView &&
-      widget.scrollDirection == Axis.horizontal,
+  (widget) => widget is SingleChildScrollView && widget.scrollDirection == Axis.horizontal,
 );
 
 /// A quote line priced at [amountCents] (10.00 € by default), tax-inclusive, whose rate is known
@@ -225,31 +222,28 @@ void main() {
     onCateringFeedRequested: onCateringFeedRequested ?? () {},
   );
 
-  _testWidgets(
-    "the detailed header shows the poste code; the simplified one hides it and uses the "
-    "simple label",
-    (tester) async {
-      final poste = OcptBudgetPoste(
-        id: "poste-1",
-        code: "7",
-        label: "Technical equipment",
-        simpleLabel: "Camera and lighting gear",
-        estimateToCompleteCents: null,
-        sortKey: "a0",
-        lines: [_line(id: "line-1", posteId: "poste-1", vatRateBasisPoints: 2000)],
-      );
+  _testWidgets("the detailed header shows the poste code; the simplified one hides it and uses the "
+      "simple label", (tester) async {
+    final poste = OcptBudgetPoste(
+      id: "poste-1",
+      code: "7",
+      label: "Technical equipment",
+      simpleLabel: "Camera and lighting gear",
+      estimateToCompleteCents: null,
+      sortKey: "a0",
+      lines: [_line(id: "line-1", posteId: "poste-1", vatRateBasisPoints: 2000)],
+    );
 
-      await tester.pumpWidget(_wrap(buildTable(postes: [poste])));
+    await tester.pumpWidget(_wrap(buildTable(postes: [poste])));
 
-      expect(find.text("7"), findsOneWidget);
-      expect(find.text("Technical equipment"), findsOneWidget);
+    expect(find.text("7"), findsOneWidget);
+    expect(find.text("Technical equipment"), findsOneWidget);
 
-      await tester.pumpWidget(_wrap(buildTable(postes: [poste], isSimplified: true)));
+    await tester.pumpWidget(_wrap(buildTable(postes: [poste], isSimplified: true)));
 
-      expect(find.text("7"), findsNothing);
-      expect(find.text("Camera and lighting gear"), findsOneWidget);
-    },
-  );
+    expect(find.text("7"), findsNothing);
+    expect(find.text("Camera and lighting gear"), findsOneWidget);
+  });
 
   _testWidgets(
     "the header shows the six columns in the Devis, Engagé, Payé, Reste, Coût final, Écart order",
@@ -314,41 +308,31 @@ void main() {
       // Poste 1's own 10.00 € tax-inclusive line, at 20 %, reads 8.33 € excluding tax
       // (1000 × 10000 / 12000, rounded) — the only poste this basis actually covers.
       final coveredAmount = ocptBudgetAmountLabel(833, "EUR");
-      expect(
-        find.text(tr.budgetCostTrackingCoverageReadOut(coveredAmount, 1, 2)),
-        findsOneWidget,
-      );
+      expect(find.text(tr.budgetCostTrackingCoverageReadOut(coveredAmount, 1, 2)), findsOneWidget);
     },
   );
 
-  _testWidgets(
-    "withholds the creation footer and every poste row's own ⋮ menu while isReadOnly",
-    (tester) async {
-      const poste = OcptBudgetPoste(
-        id: "poste-1",
-        code: "1",
-        label: "Poste one",
-        simpleLabel: null,
-        estimateToCompleteCents: null,
-        sortKey: "a0",
-        lines: [],
-      );
+  _testWidgets("withholds the creation footer and every poste row's own ⋮ menu while isReadOnly", (
+    tester,
+  ) async {
+    const poste = OcptBudgetPoste(
+      id: "poste-1",
+      code: "1",
+      label: "Poste one",
+      simpleLabel: null,
+      estimateToCompleteCents: null,
+      sortKey: "a0",
+      lines: [],
+    );
 
-      await tester.pumpWidget(
-        _wrap(
-          buildTable(
-            postes: [poste],
-            isReadOnly: true,
-            onPosteCreationRequested: () {},
-          ),
-        ),
-      );
+    await tester.pumpWidget(
+      _wrap(buildTable(postes: [poste], isReadOnly: true, onPosteCreationRequested: () {})),
+    );
 
-      final tr = Tr.of(tester.element(find.byType(OcptBudgetCostTracking)));
-      expect(find.text(tr.budgetPosteCreationAction), findsNothing);
-      expect(find.byType(PopupMenuButton<String>), findsNothing);
-    },
-  );
+    final tr = Tr.of(tester.element(find.byType(OcptBudgetCostTracking)));
+    expect(find.text(tr.budgetPosteCreationAction), findsNothing);
+    expect(find.byType(PopupMenuButton<String>), findsNothing);
+  });
 
   _testWidgets(
     "the poste label stays visible after the amounts pane is scrolled to its own far right",
@@ -378,44 +362,43 @@ void main() {
     },
   );
 
-  _testWidgets(
-    "selecting a poste highlights it in both the pinned pane and the scrolling pane",
-    (tester) async {
-      const postes = [
-        OcptBudgetPoste(
-          id: "poste-1",
-          code: "1",
-          label: "Poste one",
-          simpleLabel: null,
-          estimateToCompleteCents: null,
-          sortKey: "a0",
-          lines: [],
-        ),
-        OcptBudgetPoste(
-          id: "poste-2",
-          code: "2",
-          label: "Poste two",
-          simpleLabel: null,
-          estimateToCompleteCents: null,
-          sortKey: "a1",
-          lines: [],
-        ),
-      ];
+  _testWidgets("selecting a poste highlights it in both the pinned pane and the scrolling pane", (
+    tester,
+  ) async {
+    const postes = [
+      OcptBudgetPoste(
+        id: "poste-1",
+        code: "1",
+        label: "Poste one",
+        simpleLabel: null,
+        estimateToCompleteCents: null,
+        sortKey: "a0",
+        lines: [],
+      ),
+      OcptBudgetPoste(
+        id: "poste-2",
+        code: "2",
+        label: "Poste two",
+        simpleLabel: null,
+        estimateToCompleteCents: null,
+        sortKey: "a1",
+        lines: [],
+      ),
+    ];
 
-      await tester.pumpWidget(
-        _wrap(buildTable(postes: postes, selection: const OcptBudgetPosteSelection("poste-1"))),
-      );
+    await tester.pumpWidget(
+      _wrap(buildTable(postes: postes, selection: const OcptBudgetPosteSelection("poste-1"))),
+    );
 
-      // One `ColoredBox` per pane per row (identity, amounts) — exactly two of the four painted
-      // here (two postes, two panes) leave the selected poste's own transparent default.
-      final highlightedCount = tester
-          .widgetList<ColoredBox>(find.byType(ColoredBox))
-          .where((box) => box.color != Colors.transparent)
-          .length;
+    // One `ColoredBox` per pane per row (identity, amounts) — exactly two of the four painted
+    // here (two postes, two panes) leave the selected poste's own transparent default.
+    final highlightedCount = tester
+        .widgetList<ColoredBox>(find.byType(ColoredBox))
+        .where((box) => box.color != Colors.transparent)
+        .length;
 
-      expect(highlightedCount, 2);
-    },
-  );
+    expect(highlightedCount, 2);
+  });
 
   _testWidgets(
     "simplified mode drops the N° column and narrows the pinned pane by that column's own width",
@@ -434,19 +417,11 @@ void main() {
       // column sits at its own floor in both modes, so the pinned pane's own width changes by
       // exactly the `N°` column's width rather than the `Poste` column silently absorbing the
       // difference (which it does the moment there is room to spare).
-      await tester.pumpWidget(
-        _wrap(buildTable(postes: [poste]), width: 900),
-      );
-      final detailedAmountsPaneLeftEdge = tester
-          .getTopLeft(_amountsPaneScrollFinder)
-          .dx;
+      await tester.pumpWidget(_wrap(buildTable(postes: [poste]), width: 900));
+      final detailedAmountsPaneLeftEdge = tester.getTopLeft(_amountsPaneScrollFinder).dx;
 
-      await tester.pumpWidget(
-        _wrap(buildTable(postes: [poste], isSimplified: true), width: 900),
-      );
-      final simplifiedAmountsPaneLeftEdge = tester
-          .getTopLeft(_amountsPaneScrollFinder)
-          .dx;
+      await tester.pumpWidget(_wrap(buildTable(postes: [poste], isSimplified: true), width: 900));
+      final simplifiedAmountsPaneLeftEdge = tester.getTopLeft(_amountsPaneScrollFinder).dx;
 
       expect(find.text("1"), findsNothing);
       expect(find.text("Simple"), findsOneWidget);
@@ -589,11 +564,7 @@ void main() {
     (tester) async {
       await tester.pumpWidget(
         _wrap(
-          buildTable(
-            postes: [quotedPoste()],
-            isReadOnly: true,
-            onPosteFilterRequested: (_) {},
-          ),
+          buildTable(postes: [quotedPoste()], isReadOnly: true, onPosteFilterRequested: (_) {}),
         ),
       );
 
@@ -611,21 +582,26 @@ void main() {
 
   group("the off-quote row", () {
     /// 25.00 € worth of debits naming no poste at all, fully covered.
-    const offQuoteTotal = OcptBudgetCoveredTotal(amountCents: 2500, coveredLineCount: 1, lineCount: 1);
+    const offQuoteTotal = OcptBudgetCoveredTotal(
+      amountCents: 2500,
+      coveredLineCount: 1,
+      lineCount: 1,
+    );
 
-    _testWidgets("is drawn between the last poste and the Total row while there is off-quote spending", (
-      tester,
-    ) async {
-      await tester.pumpWidget(
-        _wrap(buildTable(postes: [quotedPoste()], offQuoteTotal: offQuoteTotal)),
-      );
+    _testWidgets(
+      "is drawn between the last poste and the Total row while there is off-quote spending",
+      (tester) async {
+        await tester.pumpWidget(
+          _wrap(buildTable(postes: [quotedPoste()], offQuoteTotal: offQuoteTotal)),
+        );
 
-      final tr = Tr.of(tester.element(find.byType(OcptBudgetCostTracking)));
-      expect(find.text(tr.budgetCostTrackingOffQuoteLabel), findsOneWidget);
-      // Its own Payé cell reads the off-quote total, and, since no poste itself was paid, the
-      // total row's own grand Payé figure reads the very same amount — drawn twice.
-      expect(find.text(ocptBudgetAmountLabel(2500, "EUR")), findsNWidgets(2));
-    });
+        final tr = Tr.of(tester.element(find.byType(OcptBudgetCostTracking)));
+        expect(find.text(tr.budgetCostTrackingOffQuoteLabel), findsOneWidget);
+        // Its own Payé cell reads the off-quote total, and, since no poste itself was paid, the
+        // total row's own grand Payé figure reads the very same amount — drawn twice.
+        expect(find.text(ocptBudgetAmountLabel(2500, "EUR")), findsNWidgets(2));
+      },
+    );
 
     _testWidgets("is absent while there is no off-quote spending at all", (tester) async {
       await tester.pumpWidget(_wrap(buildTable(postes: [quotedPoste()])));
@@ -835,19 +811,20 @@ void main() {
     });
   });
 
-  _testWidgets(
-    "the off-quote row prints the empty value for Coût final",
-    (tester) async {
-      const offQuoteTotal = OcptBudgetCoveredTotal(amountCents: 2500, coveredLineCount: 1, lineCount: 1);
+  _testWidgets("the off-quote row prints the empty value for Coût final", (tester) async {
+    const offQuoteTotal = OcptBudgetCoveredTotal(
+      amountCents: 2500,
+      coveredLineCount: 1,
+      lineCount: 1,
+    );
 
-      await tester.pumpWidget(
-        _wrap(buildTable(postes: [quotedPoste()], offQuoteTotal: offQuoteTotal)),
-      );
+    await tester.pumpWidget(
+      _wrap(buildTable(postes: [quotedPoste()], offQuoteTotal: offQuoteTotal)),
+    );
 
-      // See the off-quote group's own comment for the full count.
-      expect(find.text(ocptBudgetEmptyValue), findsNWidgets(8));
-    },
-  );
+    // See the off-quote group's own comment for the full count.
+    expect(find.text(ocptBudgetEmptyValue), findsNWidgets(8));
+  });
 
   _testWidgets(
     "the total row sums Coût final poste by poste, never re-derived from the grand Devis, Payé "
@@ -944,57 +921,53 @@ void main() {
       expect(size.height, 48);
     });
 
-    _testWidgets(
-      "a row's own name sits level with its own figures, below an expanded poste",
-      (tester) async {
-        // The two panes are laid out independently and share only a vertical scroll, so a row
-        // whose halves disagree on their height silently slides every row under it out of step:
-        // a poste ends up named beside the poste above's money. Each amount below is unique to
-        // one row, so the match cannot be an accident of two rows reading alike.
-        final postes = [
-          OcptBudgetPoste(
-            id: "poste-1",
-            code: "1",
-            label: "Poste one",
-            simpleLabel: null,
-            estimateToCompleteCents: null,
-            sortKey: "a0",
-            lines: [
-              _line(id: "line-1", posteId: "poste-1", amountCents: 2000, label: "Line one"),
-              _line(id: "line-2", posteId: "poste-1", amountCents: 500, label: "Line two"),
-            ],
-          ),
-          OcptBudgetPoste(
-            id: "poste-2",
-            code: "2",
-            label: "Poste two",
-            simpleLabel: null,
-            estimateToCompleteCents: null,
-            sortKey: "a1",
-            lines: [_line(id: "line-3", posteId: "poste-2", amountCents: 7300, label: "Line three")],
-          ),
-        ];
+    _testWidgets("a row's own name sits level with its own figures, below an expanded poste", (
+      tester,
+    ) async {
+      // The two panes are laid out independently and share only a vertical scroll, so a row
+      // whose halves disagree on their height silently slides every row under it out of step:
+      // a poste ends up named beside the poste above's money. Each amount below is unique to
+      // one row, so the match cannot be an accident of two rows reading alike.
+      final postes = [
+        OcptBudgetPoste(
+          id: "poste-1",
+          code: "1",
+          label: "Poste one",
+          simpleLabel: null,
+          estimateToCompleteCents: null,
+          sortKey: "a0",
+          lines: [
+            _line(id: "line-1", posteId: "poste-1", amountCents: 2000, label: "Line one"),
+            _line(id: "line-2", posteId: "poste-1", amountCents: 500, label: "Line two"),
+          ],
+        ),
+        OcptBudgetPoste(
+          id: "poste-2",
+          code: "2",
+          label: "Poste two",
+          simpleLabel: null,
+          estimateToCompleteCents: null,
+          sortKey: "a1",
+          lines: [_line(id: "line-3", posteId: "poste-2", amountCents: 7300, label: "Line three")],
+        ),
+      ];
 
-        await tester.pumpWidget(
-          _wrap(
-            buildTable(postes: postes, expandedNodeIds: const {"poste-1"}),
-            height: 800,
-          ),
-        );
+      await tester.pumpWidget(
+        _wrap(buildTable(postes: postes, expandedNodeIds: const {"poste-1"}), height: 800),
+      );
 
-        // The expanded poste's own first line: its name on the left, its quote on the right.
-        expect(
-          tester.getCenter(find.text("Line one")).dy,
-          tester.getCenter(find.text("€20.00").first).dy,
-        );
+      // The expanded poste's own first line: its name on the left, its quote on the right.
+      expect(
+        tester.getCenter(find.text("Line one")).dy,
+        tester.getCenter(find.text("€20.00").first).dy,
+      );
 
-        // And the poste below the expansion, which is where any drift has accumulated.
-        expect(
-          tester.getCenter(find.text("Poste two")).dy,
-          tester.getCenter(find.text("€73.00").first).dy,
-        );
-      },
-    );
+      // And the poste below the expansion, which is where any drift has accumulated.
+      expect(
+        tester.getCenter(find.text("Poste two")).dy,
+        tester.getCenter(find.text("€73.00").first).dy,
+      );
+    });
 
     _testWidgets("a poste with nothing at all to expand onto draws no twisty", (tester) async {
       const poste = OcptBudgetPoste(
@@ -1036,7 +1009,12 @@ void main() {
         estimateToCompleteCents: null,
         sortKey: "a0",
         lines: [
-          _line(id: "line-1", posteId: "poste-1", label: "Line one", inKindResourceId: "resource-1"),
+          _line(
+            id: "line-1",
+            posteId: "poste-1",
+            label: "Line one",
+            inKindResourceId: "resource-1",
+          ),
           _line(id: "line-2", posteId: "poste-1", label: "Line two"),
         ],
       );
@@ -1049,38 +1027,35 @@ void main() {
       expect(find.text(tr.budgetCostTrackingInKindLineBadge), findsOneWidget);
     });
 
-    _testWidgets(
-      "a counterpart line's own Payé and Engagé cells read the em dash — a valuation is "
-      "neither paid nor committed",
-      (tester) async {
-        final poste = OcptBudgetPoste(
-          id: "poste-1",
-          code: "1",
-          label: "Poste one",
-          simpleLabel: null,
-          estimateToCompleteCents: null,
-          sortKey: "a0",
-          lines: [
-            _line(
-              id: "line-1",
-              posteId: "poste-1",
-              amountCents: 5000,
-              label: "Line one",
-              inKindResourceId: "resource-1",
-            ),
-          ],
-        );
+    _testWidgets("a counterpart line's own Payé and Engagé cells read the em dash — a valuation is "
+        "neither paid nor committed", (tester) async {
+      final poste = OcptBudgetPoste(
+        id: "poste-1",
+        code: "1",
+        label: "Poste one",
+        simpleLabel: null,
+        estimateToCompleteCents: null,
+        sortKey: "a0",
+        lines: [
+          _line(
+            id: "line-1",
+            posteId: "poste-1",
+            amountCents: 5000,
+            label: "Line one",
+            inKindResourceId: "resource-1",
+          ),
+        ],
+      );
 
-        await tester.pumpWidget(
-          _wrap(buildTable(postes: [poste], expandedNodeIds: const {"poste-1"})),
-        );
+      await tester.pumpWidget(
+        _wrap(buildTable(postes: [poste], expandedNodeIds: const {"poste-1"})),
+      );
 
-        // The total row's own Engagé, Reste and Écart cells always print the em dash (3 — see
-        // "a poste with no entry or commitment against it..." above); the counterpart line's own
-        // Payé and Engagé cells now do too, two more, five in all.
-        expect(find.text(ocptBudgetEmptyValue), findsNWidgets(5));
-      },
-    );
+      // The total row's own Engagé, Reste and Écart cells always print the em dash (3 — see
+      // "a poste with no entry or commitment against it..." above); the counterpart line's own
+      // Payé and Engagé cells now do too, two more, five in all.
+      expect(find.text(ocptBudgetEmptyValue), findsNWidgets(5));
+    });
 
     _testWidgets("clicking a poste's own twisty toggles expansion without selecting it", (
       tester,
@@ -1233,9 +1208,7 @@ void main() {
     _testWidgets("a commitment only part-paid draws its own instalment, not the no-entry hint", (
       tester,
     ) async {
-      final commitments = [
-        _commitment(id: "commitment-1", posteId: "poste-1", lineId: "line-1"),
-      ];
+      final commitments = [_commitment(id: "commitment-1", posteId: "poste-1", lineId: "line-1")];
       final entries = [
         _entry(
           id: "entry-1",
@@ -1494,9 +1467,7 @@ void main() {
     _testWidgets("keeps the creation footer below the feed card, exactly as it is drawn today", (
       tester,
     ) async {
-      await tester.pumpWidget(
-        _wrap(buildTable(onPosteCreationRequested: () {})),
-      );
+      await tester.pumpWidget(_wrap(buildTable(onPosteCreationRequested: () {})));
 
       final tr = Tr.of(tester.element(find.byType(OcptBudgetCostTracking)));
       expect(find.text(tr.budgetPosteCreationAction), findsOneWidget);
@@ -1504,17 +1475,15 @@ void main() {
 
     _testWidgets("withholds the creation footer while isReadOnly, exactly as the populated table "
         "does", (tester) async {
-      await tester.pumpWidget(
-        _wrap(
-          buildTable(isReadOnly: true, onPosteCreationRequested: () {}),
-        ),
-      );
+      await tester.pumpWidget(_wrap(buildTable(isReadOnly: true, onPosteCreationRequested: () {})));
 
       final tr = Tr.of(tester.element(find.byType(OcptBudgetCostTracking)));
       expect(find.text(tr.budgetPosteCreationAction), findsNothing);
     });
 
-    _testWidgets("every one of the feed card's own three rows reports its own click", (tester) async {
+    _testWidgets("every one of the feed card's own three rows reports its own click", (
+      tester,
+    ) async {
       var breakdownRequested = false;
       var scheduleRequested = false;
       var cateringRequested = false;
@@ -1626,10 +1595,7 @@ void main() {
 
       await tester.pumpWidget(
         _wrap(
-          buildTable(
-            postes: [posteOne],
-            onPosteSelected: (id) => selectedPosteId = id,
-          ),
+          buildTable(postes: [posteOne], onPosteSelected: (id) => selectedPosteId = id),
           width: 500,
           height: 900,
         ),

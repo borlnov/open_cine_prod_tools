@@ -125,7 +125,10 @@ class OcptBudgetDashboard extends StatelessWidget {
     // almost unreachable. Every reading below stands on nothing: a quote with no poste totals zero
     // over zero lines, and the tiles say so rather than guessing.
     if (postes.isEmpty && resources.isEmpty && cashTotals.entryCount == 0) {
-      return OcptWorkspaceEmptyMode(icon: Icons.payments_outlined, message: tr.budgetDashboardEmptyHint);
+      return OcptWorkspaceEmptyMode(
+        icon: Icons.payments_outlined,
+        message: tr.budgetDashboardEmptyHint,
+      );
     }
 
     final allLines = [for (final poste in postes) ...poste.lines];
@@ -162,7 +165,10 @@ class OcptBudgetDashboard extends StatelessWidget {
     // the off-quote row keeps for a poste it cannot measure against a quote nobody has begun.
     final String? spentHint;
     if (!paidTotal.isComplete) {
-      spentHint = tr.budgetDashboardCoverageCaption(paidTotal.coveredLineCount, paidTotal.lineCount);
+      spentHint = tr.budgetDashboardCoverageCaption(
+        paidTotal.coveredLineCount,
+        paidTotal.lineCount,
+      );
     } else if (quotedTotal.amountCents <= 0) {
       spentHint = null;
     } else {
@@ -264,14 +270,18 @@ class _OcptDashboardTile extends StatelessWidget {
           children: [
             Text(
               label.toUpperCase(),
-              style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
             ),
             const SizedBox(height: 4),
             Text(value, style: theme.textTheme.headlineSmall),
             if (hint != null)
               Text(
                 hint,
-                style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
               ),
           ],
         ),
@@ -332,7 +342,11 @@ class _OcptDashboardBalanceBar extends StatelessWidget {
     final needsAmount = ocptBudgetAmountLabel(needs.amountCents, currencyCode);
     final needsText = needs.isComplete
         ? needsAmount
-        : tr.budgetDashboardBalanceCoverageReadOut(needsAmount, needs.coveredLineCount, needs.lineCount);
+        : tr.budgetDashboardBalanceCoverageReadOut(
+            needsAmount,
+            needs.coveredLineCount,
+            needs.lineCount,
+          );
     final resourcesText = ocptBudgetAmountLabel(balance.resourcesCents, currencyCode);
     final shareOfNeeds = needs.amountCents <= 0
         ? (balance.resourcesCents > 0 ? 1.0 : 0.0)
@@ -412,11 +426,15 @@ class _OcptDashboardBalanceBar extends StatelessWidget {
               children: [
                 Text(
                   "${tr.budgetDashboardBalanceResourcesLabel} $resourcesText",
-                  style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
                 ),
                 Text(
                   "${tr.budgetDashboardBalanceNeedsLabel} $needsText",
-                  style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
                 ),
               ],
             ),
@@ -470,7 +488,9 @@ class _OcptDashboardAlertsCard extends StatelessWidget {
           children: [
             Text(
               tr.budgetDashboardAlertsSectionTitle,
-              style: theme.textTheme.titleSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+              style: theme.textTheme.titleSmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
             ),
             const SizedBox(height: 8),
             for (final alert in alerts) _buildRow(context, tr, alert),
@@ -563,10 +583,7 @@ class _OcptDashboardAlertRow extends StatelessWidget {
       mouseCursor: ocptClickableCursor,
       borderRadius: BorderRadius.circular(ocptRadiusSmall),
       child: Padding(
-        padding: const EdgeInsets.symmetric(
-          vertical: 8,
-          horizontal: ocptTableRowHorizontalPadding,
-        ),
+        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: ocptTableRowHorizontalPadding),
         child: Row(
           // **The message wraps rather than truncating**, and the badge and the amount align to its
           // first line. Every other row in this mode clips a cell to one line because the reader can

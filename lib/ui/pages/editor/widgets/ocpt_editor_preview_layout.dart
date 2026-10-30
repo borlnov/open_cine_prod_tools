@@ -182,9 +182,8 @@ class OcptEditorPreviewLayout {
   };
 
   /// The full character cue line: the name, followed by its parenthetical extension if any.
-  static String _characterCueText(FountainCharacter character) => character.extension == null
-      ? character.name
-      : "${character.name} (${character.extension})";
+  static String _characterCueText(FountainCharacter character) =>
+      character.extension == null ? character.name : "${character.name} (${character.extension})";
 
   /// Sums [wrappedLineCount] over [lines] at [maxColumns].
   static int _sumOfWrappedLines(List<String> lines, int maxColumns) =>
@@ -202,7 +201,9 @@ class OcptEditorPreviewLayout {
     var currentLineLength = 0;
     for (final word in text.split(" ")) {
       // +1 for the space that precedes the word on a non-empty line.
-      final neededLength = currentLineLength == 0 ? word.length : currentLineLength + 1 + word.length;
+      final neededLength = currentLineLength == 0
+          ? word.length
+          : currentLineLength + 1 + word.length;
       if (neededLength <= maxColumns) {
         currentLineLength = neededLength;
       } else {

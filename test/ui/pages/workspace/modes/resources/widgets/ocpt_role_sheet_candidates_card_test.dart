@@ -329,7 +329,10 @@ void main() {
             notes: "Très bon jeu",
           ),
         ],
-        people: [person, _person(id: "p2", firstName: "Paul", lastName: "Ilyes")],
+        people: [
+          person,
+          _person(id: "p2", firstName: "Paul", lastName: "Ilyes"),
+        ],
         notesValueOf: (candidateId) => "Très bon jeu",
       ),
     );

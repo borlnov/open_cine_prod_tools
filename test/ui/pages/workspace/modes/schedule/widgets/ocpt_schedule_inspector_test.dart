@@ -86,21 +86,24 @@ OcptShot _buildShot({
 );
 
 /// Builds a `hold` block, distinguishable from the shot read-out by carrying a label and no shot.
-OcptShootingDayBlock _buildHoldBlock({String id = "block-1", String label = "Prep", String crewNote = ""}) =>
-    OcptShootingDayBlock(
-      id: id,
-      shootingDayId: "day-1",
-      slotId: "slot-1",
-      kind: OcptShootingBlockKind.hold,
-      shotId: null,
-      sceneId: null,
-      candidates: const [],
-      label: label,
-      durationMinutes: null,
-      anchorMinute: null,
-      notes: "",
-      crewNote: crewNote,
-    );
+OcptShootingDayBlock _buildHoldBlock({
+  String id = "block-1",
+  String label = "Prep",
+  String crewNote = "",
+}) => OcptShootingDayBlock(
+  id: id,
+  shootingDayId: "day-1",
+  slotId: "slot-1",
+  kind: OcptShootingBlockKind.hold,
+  shotId: null,
+  sceneId: null,
+  candidates: const [],
+  label: label,
+  durationMinutes: null,
+  anchorMinute: null,
+  notes: "",
+  crewNote: crewNote,
+);
 
 /// Pumps [OcptScheduleInspector] with [day]/[shot]/[block] selected as given — mirrors the widget's
 /// own block-then-shot-then-day precedence, so a test only fills in whichever of the three it
@@ -340,7 +343,12 @@ void main() {
     testWidgets("shows the characters line when the shot has any", (tester) async {
       final shot = _buildShot(characters: const ["LÉA", "MARC"]);
 
-      await _pumpInspector(tester, shot: shot, shotSequenceLabel: "SEQ 1", onShotStatusChanged: (_) {});
+      await _pumpInspector(
+        tester,
+        shot: shot,
+        shotSequenceLabel: "SEQ 1",
+        onShotStatusChanged: (_) {},
+      );
 
       final tr = Tr.of(tester.element(find.byType(OcptScheduleInspector)));
       expect(find.text(tr.scheduleInspectorCharactersLabel.toUpperCase()), findsOneWidget);
@@ -452,7 +460,11 @@ void main() {
     });
 
     testWidgets("reads as plain text with no field when the callback is withheld", (tester) async {
-      await _pumpInspector(tester, block: _buildHoldBlock(), blockCrewNoteValue: "Silence before 9am");
+      await _pumpInspector(
+        tester,
+        block: _buildHoldBlock(),
+        blockCrewNoteValue: "Silence before 9am",
+      );
 
       expect(find.byType(TextField), findsNothing);
       expect(find.text("Silence before 9am"), findsOneWidget);

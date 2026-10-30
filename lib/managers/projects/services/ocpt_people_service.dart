@@ -123,9 +123,9 @@ class OcptPeopleService {
 
     final assetRows = personIds.isEmpty
         ? const <OcptAssetRow>[]
-        : await (database.select(database.ocptAssetsTable)
-                ..where((table) => table.personId.isIn(personIds) & table.isDeleted.not()))
-              .get();
+        : await (database.select(
+            database.ocptAssetsTable,
+          )..where((table) => table.personId.isIn(personIds) & table.isDeleted.not())).get();
 
     final assetsById = {for (final row in assetRows) row.id: OcptAssetRef.fromRow(row)};
 
@@ -201,7 +201,9 @@ class OcptPeopleService {
         current: null,
         next: OcptPersonRow(
           id: id,
-          sortKey: ocptFractionalKeyBetween(before: existing.isEmpty ? null : existing.last.sortKey),
+          sortKey: ocptFractionalKeyBetween(
+            before: existing.isEmpty ? null : existing.last.sortKey,
+          ),
           isDeleted: false,
           firstName: '',
           lastName: '',
@@ -408,11 +410,9 @@ class OcptPeopleService {
         stamps: stamps,
       );
 
-      final positionRows =
-          await (database.select(
-                database.ocptPersonPositionsTable,
-              )..where((table) => table.personId.equals(personId) & table.isDeleted.not()))
-              .get();
+      final positionRows = await (database.select(
+        database.ocptPersonPositionsTable,
+      )..where((table) => table.personId.equals(personId) & table.isDeleted.not())).get();
       for (final positionRow in positionRows) {
         await OcptRowStampService.writeAndStamp(
           database: database,
@@ -424,11 +424,9 @@ class OcptPeopleService {
         );
       }
 
-      final skillRows =
-          await (database.select(
-                database.ocptPersonSkillsTable,
-              )..where((table) => table.personId.equals(personId) & table.isDeleted.not()))
-              .get();
+      final skillRows = await (database.select(
+        database.ocptPersonSkillsTable,
+      )..where((table) => table.personId.equals(personId) & table.isDeleted.not())).get();
       for (final skillRow in skillRows) {
         await OcptRowStampService.writeAndStamp(
           database: database,
@@ -440,11 +438,9 @@ class OcptPeopleService {
         );
       }
 
-      final unavailabilityRows =
-          await (database.select(
-                database.ocptPersonUnavailabilitiesTable,
-              )..where((table) => table.personId.equals(personId) & table.isDeleted.not()))
-              .get();
+      final unavailabilityRows = await (database.select(
+        database.ocptPersonUnavailabilitiesTable,
+      )..where((table) => table.personId.equals(personId) & table.isDeleted.not())).get();
       for (final unavailabilityRow in unavailabilityRows) {
         await OcptRowStampService.writeAndStamp(
           database: database,
@@ -757,7 +753,9 @@ class OcptPeopleService {
           personId: personId,
           positionId: positionId,
           customLabel: customLabel,
-          sortKey: ocptFractionalKeyBetween(before: existing.isEmpty ? null : existing.last.sortKey),
+          sortKey: ocptFractionalKeyBetween(
+            before: existing.isEmpty ? null : existing.last.sortKey,
+          ),
           isDeleted: false,
         ),
         stamps: stamps,
@@ -907,7 +905,9 @@ class OcptPeopleService {
           id: id,
           personId: personId,
           label: label,
-          sortKey: ocptFractionalKeyBetween(before: existing.isEmpty ? null : existing.last.sortKey),
+          sortKey: ocptFractionalKeyBetween(
+            before: existing.isEmpty ? null : existing.last.sortKey,
+          ),
           isDeleted: false,
         ),
         stamps: stamps,
@@ -1166,17 +1166,19 @@ class OcptPeopleService {
   Future<List<OcptPersonPositionRow>> _positionRowsOfPerson({
     required OcptProjectDatabase database,
     required String personId,
-  }) => (database.select(database.ocptPersonPositionsTable)
-        ..where((table) => table.personId.equals(personId) & table.isDeleted.not())
-        ..orderBy([(table) => OrderingTerm.asc(table.sortKey)]))
-      .get();
+  }) =>
+      (database.select(database.ocptPersonPositionsTable)
+            ..where((table) => table.personId.equals(personId) & table.isDeleted.not())
+            ..orderBy([(table) => OrderingTerm.asc(table.sortKey)]))
+          .get();
 
   /// Every live skill row of person [personId], ordered by `sortKey`.
   Future<List<OcptPersonSkillRow>> _skillRowsOfPerson({
     required OcptProjectDatabase database,
     required String personId,
-  }) => (database.select(database.ocptPersonSkillsTable)
-        ..where((table) => table.personId.equals(personId) & table.isDeleted.not())
-        ..orderBy([(table) => OrderingTerm.asc(table.sortKey)]))
-      .get();
+  }) =>
+      (database.select(database.ocptPersonSkillsTable)
+            ..where((table) => table.personId.equals(personId) & table.isDeleted.not())
+            ..orderBy([(table) => OrderingTerm.asc(table.sortKey)]))
+          .get();
 }

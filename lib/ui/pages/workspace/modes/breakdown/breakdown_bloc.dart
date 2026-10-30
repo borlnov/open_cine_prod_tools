@@ -338,11 +338,9 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
 
   /// Reads the selected episode's current Fountain source text, kept in
   /// `OcptBreakdownState.screenplayText` for the script view to slice scene by scene.
-  Future<String> _loadScreenplayText(OcptOpenProjectModel project) =>
-      _projectsManager.screenplayService.loadScreenplayText(
-        database: project.database,
-        screenplayId: _screenplayIdOf(project),
-      );
+  Future<String> _loadScreenplayText(OcptOpenProjectModel project) => _projectsManager
+      .screenplayService
+      .loadScreenplayText(database: project.database, screenplayId: _screenplayIdOf(project));
 
   /// Reads the page setup the script view is typeset with: the open project's own page format,
   /// paired with the app-wide margins preference, exactly as `OcptShotListBloc`'s own scenario
@@ -354,7 +352,8 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
       project.previewedPageSetup ??
       OcptPageSetup(
         format: await _projectsManager.loadCurrentProjectPageFormat() ?? OcptPageFormat.usLetter,
-        margins: await _propertiesManager.pageMargins.load() ?? const FountainPageMargins.standard(),
+        margins:
+            await _propertiesManager.pageMargins.load() ?? const FountainPageMargins.standard(),
       );
 
   /// Reads the whole breakdown of the selected episode's screenplay, joining
@@ -476,13 +475,13 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
         ),
       );
     } catch (error) {
-      appLogger().e("A problem occurred when tried to export the breakdown sheets of the project "
-          "at ${_projectsManager.currentProject?.path}: $error");
+      appLogger().e(
+        "A problem occurred when tried to export the breakdown sheets of the project "
+        "at ${_projectsManager.currentProject?.path}: $error",
+      );
       emitter(
         state.copyWith(
-          ioNotice: const OcptBreakdownIoNotice(
-            kind: OcptBreakdownIoNoticeKind.sheetsExportFailed,
-          ),
+          ioNotice: const OcptBreakdownIoNotice(kind: OcptBreakdownIoNoticeKind.sheetsExportFailed),
         ),
       );
     }
@@ -530,8 +529,10 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
         ),
       );
     } catch (error) {
-      appLogger().e("A problem occurred when tried to export the breakdown workbook of the project "
-          "at ${_projectsManager.currentProject?.path}: $error");
+      appLogger().e(
+        "A problem occurred when tried to export the breakdown workbook of the project "
+        "at ${_projectsManager.currentProject?.path}: $error",
+      );
       emitter(
         state.copyWith(
           ioNotice: const OcptBreakdownIoNotice(kind: OcptBreakdownIoNoticeKind.xlsxExportFailed),
@@ -947,7 +948,11 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
     Emitter<OcptBreakdownState> emitter,
   ) async {
     emitter(
-      state.copyWith(clearPendingTagAnchor: true, clearPendingTagRange: true, hasTagWriteError: false),
+      state.copyWith(
+        clearPendingTagAnchor: true,
+        clearPendingTagRange: true,
+        hasTagWriteError: false,
+      ),
     );
   }
 
@@ -1415,8 +1420,10 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
         add(const OcptProjectWorkingCopyRefreshRequestedEvent());
       }
     } catch (error) {
-      appLogger().e("A problem occurred when tried to flush a pending breakdown field edit of the "
-          "project at ${project.path}: $error");
+      appLogger().e(
+        "A problem occurred when tried to flush a pending breakdown field edit of the "
+        "project at ${project.path}: $error",
+      );
       emitter(
         state.copyWith(
           pendingElementFieldEdits: const {},
@@ -1464,8 +1471,10 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
         setNames: pendingSetNames,
       );
     } catch (error) {
-      appLogger().e("A problem occurred when tried to flush a pending breakdown field edit of the "
-          "project at ${project.path}: $error");
+      appLogger().e(
+        "A problem occurred when tried to flush a pending breakdown field edit of the "
+        "project at ${project.path}: $error",
+      );
     }
   }
 

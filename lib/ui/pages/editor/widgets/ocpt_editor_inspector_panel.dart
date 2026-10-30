@@ -64,14 +64,19 @@ class OcptEditorInspectorPanel extends StatelessWidget {
       children: [
         Padding(
           padding: const EdgeInsets.only(bottom: 12),
-          child: Text(tr.editorInspectorSceneTitle(sceneOrdinal), style: theme.textTheme.titleSmall),
+          child: Text(
+            tr.editorInspectorSceneTitle(sceneOrdinal),
+            style: theme.textTheme.titleSmall,
+          ),
         ),
         if (sceneNumber != null)
           OcptEditorDockField(label: tr.editorInspectorNumberLabel, value: sceneNumber),
         OcptEditorDockField(label: tr.editorInspectorHeadingLabel, value: scene.headingText),
         OcptEditorDockField(
           label: tr.editorInspectorCharactersLabel,
-          value: statistics.speakingCharacters.isEmpty ? _dash : statistics.speakingCharacters.join(', '),
+          value: statistics.speakingCharacters.isEmpty
+              ? _dash
+              : statistics.speakingCharacters.join(', '),
         ),
         OcptEditorDockField(
           label: tr.editorInspectorDurationLabel,

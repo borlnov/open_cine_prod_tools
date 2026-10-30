@@ -88,14 +88,14 @@ class OcptBreakdownService {
       return const [];
     }
 
-    final rows =
-        await (database.select(database.ocptBreakdownTagsTable)..where(
-              (table) => table.sceneId.isIn(positionBySceneId.keys) & table.isDeleted.not(),
-            ))
-            .get();
+    final rows = await (database.select(
+      database.ocptBreakdownTagsTable,
+    )..where((table) => table.sceneId.isIn(positionBySceneId.keys) & table.isDeleted.not())).get();
 
     rows.sort((a, b) {
-      final positionCompare = positionBySceneId[a.sceneId]!.compareTo(positionBySceneId[b.sceneId]!);
+      final positionCompare = positionBySceneId[a.sceneId]!.compareTo(
+        positionBySceneId[b.sceneId]!,
+      );
       return positionCompare != 0 ? positionCompare : a.startOffset.compareTo(b.startOffset);
     });
 
@@ -121,11 +121,9 @@ class OcptBreakdownService {
       return const [];
     }
 
-    final rows =
-        await (database.select(database.ocptSceneBreakdownsTable)..where(
-              (table) => table.sceneId.isIn(positionBySceneId.keys) & table.isDeleted.not(),
-            ))
-            .get();
+    final rows = await (database.select(
+      database.ocptSceneBreakdownsTable,
+    )..where((table) => table.sceneId.isIn(positionBySceneId.keys) & table.isDeleted.not())).get();
 
     rows.sort((a, b) => positionBySceneId[a.sceneId]!.compareTo(positionBySceneId[b.sceneId]!));
 
@@ -477,10 +475,9 @@ class OcptBreakdownService {
     }
 
     await database.transaction(() async {
-      final existingRows =
-          await (database.select(
-            database.ocptSceneBreakdownsTable,
-          )..where((table) => table.sceneId.equals(sceneId))).get();
+      final existingRows = await (database.select(
+        database.ocptSceneBreakdownsTable,
+      )..where((table) => table.sceneId.equals(sceneId))).get();
 
       OcptSceneBreakdownRow? liveRow;
       OcptSceneBreakdownRow? droppedRow;
@@ -512,7 +509,9 @@ class OcptBreakdownService {
           table: database.ocptSceneBreakdownsTable,
           rowId: liveRow.id,
           current: liveRow,
-          next: liveRow.copyWithCompanion(OcptSceneBreakdownsTableCompanion(status: status, notes: notes)),
+          next: liveRow.copyWithCompanion(
+            OcptSceneBreakdownsTableCompanion(status: status, notes: notes),
+          ),
           stamps: stamps,
         );
         await stamps.flush(database);
@@ -526,7 +525,11 @@ class OcptBreakdownService {
           rowId: droppedRow.id,
           current: droppedRow,
           next: droppedRow.copyWithCompanion(
-            OcptSceneBreakdownsTableCompanion(isDeleted: const Value(false), status: status, notes: notes),
+            OcptSceneBreakdownsTableCompanion(
+              isDeleted: const Value(false),
+              status: status,
+              notes: notes,
+            ),
           ),
           stamps: stamps,
         );
@@ -592,20 +595,17 @@ class OcptBreakdownService {
       return;
     }
 
-    final sceneRows =
-        await (database.select(
-          database.ocptScenesTable,
-        )..where((table) => table.screenplayId.equals(screenplayId))).get();
+    final sceneRows = await (database.select(
+      database.ocptScenesTable,
+    )..where((table) => table.screenplayId.equals(screenplayId))).get();
     if (sceneRows.isEmpty) {
       return;
     }
     final sceneById = {for (final scene in sceneRows) scene.id: scene};
 
-    final tagRows =
-        await (database.select(database.ocptBreakdownTagsTable)..where(
-              (table) => table.sceneId.isIn(sceneById.keys) & table.isDeleted.not(),
-            ))
-            .get();
+    final tagRows = await (database.select(
+      database.ocptBreakdownTagsTable,
+    )..where((table) => table.sceneId.isIn(sceneById.keys) & table.isDeleted.not())).get();
     if (tagRows.isEmpty) {
       return;
     }
@@ -703,11 +703,9 @@ class OcptBreakdownService {
       return;
     }
 
-    final tagRows =
-        await (database.select(database.ocptBreakdownTagsTable)..where(
-              (table) => table.sceneId.isIn(sceneIds) & table.isDeleted.not(),
-            ))
-            .get();
+    final tagRows = await (database.select(
+      database.ocptBreakdownTagsTable,
+    )..where((table) => table.sceneId.isIn(sceneIds) & table.isDeleted.not())).get();
     for (final row in tagRows) {
       await OcptRowStampService.writeAndStamp(
         database: database,
@@ -719,11 +717,9 @@ class OcptBreakdownService {
       );
     }
 
-    final sceneBreakdownRows =
-        await (database.select(database.ocptSceneBreakdownsTable)..where(
-              (table) => table.sceneId.isIn(sceneIds) & table.isDeleted.not(),
-            ))
-            .get();
+    final sceneBreakdownRows = await (database.select(
+      database.ocptSceneBreakdownsTable,
+    )..where((table) => table.sceneId.isIn(sceneIds) & table.isDeleted.not())).get();
     for (final row in sceneBreakdownRows) {
       await OcptRowStampService.writeAndStamp(
         database: database,
@@ -792,7 +788,11 @@ class OcptBreakdownService {
           elementId: targetId,
         );
       case OcptBreakdownTargetKind.set:
-        await _locationsService.assignSceneToSet(database: database, sceneId: sceneId, setId: targetId);
+        await _locationsService.assignSceneToSet(
+          database: database,
+          sceneId: sceneId,
+          setId: targetId,
+        );
       case OcptBreakdownTargetKind.role:
       // There is no `scene_roles` table: the tag itself is the link.
     }
@@ -809,11 +809,9 @@ class OcptBreakdownService {
     required int startOffset,
     required int endOffset,
   }) async {
-    final liveTags =
-        await (database.select(database.ocptBreakdownTagsTable)..where(
-              (table) => table.sceneId.equals(sceneId) & table.isDeleted.not(),
-            ))
-            .get();
+    final liveTags = await (database.select(
+      database.ocptBreakdownTagsTable,
+    )..where((table) => table.sceneId.equals(sceneId) & table.isDeleted.not())).get();
 
     return liveTags.any((tag) => startOffset < tag.endOffset && tag.startOffset < endOffset);
   }
@@ -826,10 +824,9 @@ class OcptBreakdownService {
   }) async {
     final query = database.select(database.ocptScenesTable)
       ..where(
-        (table) =>
-            screenplayId == null
-                ? table.isDeleted.not()
-                : table.screenplayId.equals(screenplayId) & table.isDeleted.not(),
+        (table) => screenplayId == null
+            ? table.isDeleted.not()
+            : table.screenplayId.equals(screenplayId) & table.isDeleted.not(),
       );
     final rows = await query.get();
 

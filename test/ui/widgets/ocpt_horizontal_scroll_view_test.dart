@@ -44,9 +44,10 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      final position = tester.widget<SingleChildScrollView>(
-        find.byType(SingleChildScrollView),
-      ).controller!.position;
+      final position = tester
+          .widget<SingleChildScrollView>(find.byType(SingleChildScrollView))
+          .controller!
+          .position;
       expect(position.maxScrollExtent, greaterThan(0));
 
       await tester.drag(find.byType(SingleChildScrollView), const Offset(-120, 0));

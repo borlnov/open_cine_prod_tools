@@ -91,9 +91,7 @@ OcptShotListXlsxLabels _buildLabels({
   String dayTagPrefix = "D",
 }) => OcptShotListXlsxLabels(
   sheetName: sheetName,
-  columnHeaders: {
-    for (final column in OcptShotListXlsxColumn.values) column: column.name,
-  },
+  columnHeaders: {for (final column in OcptShotListXlsxColumn.values) column: column.name},
   statusLabels: const {
     OcptShotStatus.toShoot: "To shoot",
     OcptShotStatus.shot: "Shot",
@@ -181,10 +179,7 @@ void main() {
       );
 
       expect(rows, hasLength(6));
-      expect(
-        rows.first,
-        [for (final column in OcptShotListXlsxColumn.values) column.name],
-      );
+      expect(rows.first, [for (final column in OcptShotListXlsxColumn.values) column.name]);
       expect(rows[1].first, "Sequence 1");
       expect(_cellOf(rows[2], OcptShotListXlsxColumn.shot), "1/1");
       expect(_cellOf(rows[3], OcptShotListXlsxColumn.shot), "1/2");
@@ -283,7 +278,10 @@ void main() {
       );
 
       final rows = _rowsOf(
-        service.generate(snapshot: snapshot, labels: _buildLabels(dayTagPrefix: "J")),
+        service.generate(
+          snapshot: snapshot,
+          labels: _buildLabels(dayTagPrefix: "J"),
+        ),
       );
       final shotRow = rows[2];
 
@@ -329,9 +327,7 @@ void main() {
             shots: [_buildShot(id: "shot-1", code: "1/1")],
           ),
           OcptOrphanShotSequence(
-            shots: [
-              _buildShot(id: "shot-2", code: "—/1", orphanedHeading: "INT. CELLAR - DAY"),
-            ],
+            shots: [_buildShot(id: "shot-2", code: "—/1", orphanedHeading: "INT. CELLAR - DAY")],
           ),
         ],
       );
@@ -398,7 +394,10 @@ void main() {
       final snapshot = OcptShotListSnapshot.build(screenplayId: "screenplay", sequences: const []);
 
       final excel = Excel.decodeBytes(
-        service.generate(snapshot: snapshot, labels: _buildLabels(sheetName: "   ")),
+        service.generate(
+          snapshot: snapshot,
+          labels: _buildLabels(sheetName: "   "),
+        ),
       );
 
       expect(excel.tables.keys, [OcptShotListXlsxExportService.fallbackSheetName]);

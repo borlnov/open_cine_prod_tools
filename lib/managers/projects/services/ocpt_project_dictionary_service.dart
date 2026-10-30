@@ -30,13 +30,14 @@ class OcptProjectDictionaryService {
   Future<List<String>> loadWords({required OcptProjectDatabase database}) async {
     final rows = await database.select(database.ocptProjectDictionaryWordsTable).get();
 
-    final words = [
-      for (final row in rows)
-        if (!row.isDeleted) row.word,
-    ]..sort((a, b) {
-      final byLowerCase = a.toLowerCase().compareTo(b.toLowerCase());
-      return byLowerCase != 0 ? byLowerCase : a.compareTo(b);
-    });
+    final words =
+        [
+          for (final row in rows)
+            if (!row.isDeleted) row.word,
+        ]..sort((a, b) {
+          final byLowerCase = a.toLowerCase().compareTo(b.toLowerCase());
+          return byLowerCase != 0 ? byLowerCase : a.compareTo(b);
+        });
 
     return words;
   }
@@ -85,7 +86,10 @@ class OcptProjectDictionaryService {
       );
 
       await database.transaction(() async {
-        final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
+        final stamps = await OcptRowStampService.seed(
+          database: database,
+          deviceId: await deviceId(),
+        );
         await OcptRowStampService.writeAndStamp(
           database: database,
           table: database.ocptProjectDictionaryWordsTable,

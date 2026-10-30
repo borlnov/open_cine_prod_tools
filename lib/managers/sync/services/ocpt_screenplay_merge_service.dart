@@ -66,7 +66,10 @@ class OcptScreenplayMergeService {
       return null;
     }
 
-    final baseText = await _nearestCommonBaseText(database: fileDatabase, screenplayId: screenplayId);
+    final baseText = await _nearestCommonBaseText(
+      database: fileDatabase,
+      screenplayId: screenplayId,
+    );
     if (baseText == null) {
       appLogger().w(
         "No screenplay_snapshots row found at all for screenplay '$screenplayId': an incoming "
@@ -85,7 +88,11 @@ class OcptScreenplayMergeService {
 
     switch (result) {
       case OcptCleanThreeWayMerge(:final mergedText):
-        await _writeMergedText(fileDatabase: fileDatabase, screenplayId: screenplayId, mergedText: mergedText);
+        await _writeMergedText(
+          fileDatabase: fileDatabase,
+          screenplayId: screenplayId,
+          mergedText: mergedText,
+        );
         return null;
       case OcptThreeWayMergeConflict():
         return OcptScreenplayMergeConflict(
@@ -107,7 +114,10 @@ class OcptScreenplayMergeService {
     required String screenplayId,
     required String mergedText,
   }) => fileDatabase.transaction(() async {
-    final stamps = await OcptRowStampService.seed(database: fileDatabase, deviceId: await deviceId());
+    final stamps = await OcptRowStampService.seed(
+      database: fileDatabase,
+      deviceId: await deviceId(),
+    );
 
     await screenplayService.reconcileScreenplayText(
       database: fileDatabase,

@@ -35,10 +35,7 @@ class OcptProjectVersionSummary extends Equatable {
   final int brokenDownSequenceCount;
 
   /// Class constructor
-  const OcptProjectVersionSummary({
-    required this.pageCount,
-    required this.brokenDownSequenceCount,
-  });
+  const OcptProjectVersionSummary({required this.pageCount, required this.brokenDownSequenceCount});
 
   /// Measures [payload], at the page setup that payload carries.
   ///
@@ -97,8 +94,10 @@ class OcptProjectVersionSummary extends Equatable {
     );
 
     if (!pageCountResult.isOk || !brokenDownSequenceCountResult.isOk) {
-      appLogger().w("A problem occurred when tried to get the project version summary from the "
-          "given JSON");
+      appLogger().w(
+        "A problem occurred when tried to get the project version summary from the "
+        "given JSON",
+      );
       return null;
     }
 

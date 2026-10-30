@@ -57,11 +57,17 @@ void main() {
     await database
         .into(database.ocptScreenplaysTable)
         .insert(
-          OcptScreenplaysTableCompanion.insert(id: 'screenplay-1', title: 'Title', updatedAt: DateTime.utc(2026)),
+          OcptScreenplaysTableCompanion.insert(
+            id: 'screenplay-1',
+            title: 'Title',
+            updatedAt: DateTime.utc(2026),
+          ),
         );
     await database
         .into(database.ocptShotsTable)
-        .insert(OcptShotsTableCompanion.insert(id: shotId, screenplayId: 'screenplay-1', position: 0));
+        .insert(
+          OcptShotsTableCompanion.insert(id: shotId, screenplayId: 'screenplay-1', position: 0),
+        );
   }
 
   /// Stamps and writes [next] over [current] on [database], as [deviceId]'s own edit, then flushes
@@ -87,8 +93,9 @@ void main() {
     await stamps.flush(database);
   }
 
-  Future<OcptShotRow> readShot(OcptProjectDatabase database, String shotId) =>
-      (database.select(database.ocptShotsTable)..where((table) => table.id.equals(shotId))).getSingle();
+  Future<OcptShotRow> readShot(OcptProjectDatabase database, String shotId) => (database.select(
+    database.ocptShotsTable,
+  )..where((table) => table.id.equals(shotId))).getSingle();
 
   test('two replicas editing different columns of the same shot row both survive on both', () async {
     final replicaA = OcptProjectDatabase.memory();
@@ -121,9 +128,24 @@ void main() {
     // A round-robin of syncOnce, exactly what a test drives to converge two replicas: A pushes and
     // pulls first (nothing to pull yet but its own edit), B pushes and pulls next (picks up A's
     // edit alongside its own), and a second round for A picks up what B pushed after A's own pull.
-    await service.syncOnce(database: replicaA, storage: storage, relayId: relayId, deviceId: 'device-a');
-    await service.syncOnce(database: replicaB, storage: storage, relayId: relayId, deviceId: 'device-b');
-    await service.syncOnce(database: replicaA, storage: storage, relayId: relayId, deviceId: 'device-a');
+    await service.syncOnce(
+      database: replicaA,
+      storage: storage,
+      relayId: relayId,
+      deviceId: 'device-a',
+    );
+    await service.syncOnce(
+      database: replicaB,
+      storage: storage,
+      relayId: relayId,
+      deviceId: 'device-b',
+    );
+    await service.syncOnce(
+      database: replicaA,
+      storage: storage,
+      relayId: relayId,
+      deviceId: 'device-a',
+    );
 
     final onA = await readShot(replicaA, shotId);
     final onB = await readShot(replicaB, shotId);
@@ -161,8 +183,18 @@ void main() {
         next: baseline.copyWith(status: OcptShotStatus.retake),
       );
 
-      await service.syncOnce(database: replicaA, storage: storage, relayId: relayId, deviceId: 'device-a');
-      await service.syncOnce(database: replicaB, storage: storage, relayId: relayId, deviceId: 'device-b');
+      await service.syncOnce(
+        database: replicaA,
+        storage: storage,
+        relayId: relayId,
+        deviceId: 'device-a',
+      );
+      await service.syncOnce(
+        database: replicaB,
+        storage: storage,
+        relayId: relayId,
+        deviceId: 'device-b',
+      );
 
       final onA = await readShot(replicaA, shotId);
       final onB = await readShot(replicaB, shotId);
@@ -182,10 +214,9 @@ void main() {
     await seedScreenplayAndShot(replicaA, shotId: shotId);
     await seedScreenplayAndShot(replicaB, shotId: shotId);
 
-    Future<OcptScreenplayRow> readScreenplay(OcptProjectDatabase database) =>
-        (database.select(
-          database.ocptScreenplaysTable,
-        )..where((table) => table.id.equals('screenplay-1'))).getSingle();
+    Future<OcptScreenplayRow> readScreenplay(OcptProjectDatabase database) => (database.select(
+      database.ocptScreenplaysTable,
+    )..where((table) => table.id.equals('screenplay-1'))).getSingle();
 
     final baseline = await readScreenplay(replicaA);
     // Stored as ISO-8601 text (`storeDateTimeAsText`), not a Unix timestamp — a good check that the
@@ -201,8 +232,18 @@ void main() {
       next: baseline.copyWith(updatedAt: editedAt),
     );
 
-    await service.syncOnce(database: replicaA, storage: storage, relayId: relayId, deviceId: 'device-a');
-    await service.syncOnce(database: replicaB, storage: storage, relayId: relayId, deviceId: 'device-b');
+    await service.syncOnce(
+      database: replicaA,
+      storage: storage,
+      relayId: relayId,
+      deviceId: 'device-a',
+    );
+    await service.syncOnce(
+      database: replicaB,
+      storage: storage,
+      relayId: relayId,
+      deviceId: 'device-b',
+    );
 
     final onA = await readScreenplay(replicaA);
     final onB = await readScreenplay(replicaB);
@@ -241,9 +282,24 @@ void main() {
       next: baseline.copyWith(isDeleted: true),
     );
 
-    await service.syncOnce(database: replicaA, storage: storage, relayId: relayId, deviceId: 'device-a');
-    await service.syncOnce(database: replicaB, storage: storage, relayId: relayId, deviceId: 'device-b');
-    await service.syncOnce(database: replicaA, storage: storage, relayId: relayId, deviceId: 'device-a');
+    await service.syncOnce(
+      database: replicaA,
+      storage: storage,
+      relayId: relayId,
+      deviceId: 'device-a',
+    );
+    await service.syncOnce(
+      database: replicaB,
+      storage: storage,
+      relayId: relayId,
+      deviceId: 'device-b',
+    );
+    await service.syncOnce(
+      database: replicaA,
+      storage: storage,
+      relayId: relayId,
+      deviceId: 'device-a',
+    );
 
     final onA = await readShot(replicaA, shotId);
     final onB = await readShot(replicaB, shotId);
@@ -267,8 +323,9 @@ void main() {
     await seedLocation(online);
     await seedLocation(offline);
 
-    Future<OcptLocationRow> readLocation(OcptProjectDatabase database) =>
-        (database.select(database.ocptLocationsTable)..where((table) => table.id.equals(locationId))).getSingle();
+    Future<OcptLocationRow> readLocation(OcptProjectDatabase database) => (database.select(
+      database.ocptLocationsTable,
+    )..where((table) => table.id.equals(locationId))).getSingle();
 
     // Three separate edits, three separate changesets, all appended to the relay while `offline`
     // never once reads it.
@@ -282,7 +339,12 @@ void main() {
         current: current,
         next: current.copyWith(name: name),
       );
-      await service.pushLocalEdits(database: online, storage: storage, relayId: relayId, deviceId: 'device-online');
+      await service.pushLocalEdits(
+        database: online,
+        storage: storage,
+        relayId: relayId,
+        deviceId: 'device-online',
+      );
     }
 
     expect(await storage.readSince(OcptSequenceNumber.zero), hasLength(3));
@@ -350,12 +412,37 @@ void main() {
 
     // Both replicas insert a new character at the head of the same (empty) list, concurrently,
     // each with its own fractional key.
-    await insertCharacter(database: replicaA, deviceId: 'device-a', characterName: 'JOHN', sortKey: 'a0');
-    await insertCharacter(database: replicaB, deviceId: 'device-b', characterName: 'JANE', sortKey: 'a1');
+    await insertCharacter(
+      database: replicaA,
+      deviceId: 'device-a',
+      characterName: 'JOHN',
+      sortKey: 'a0',
+    );
+    await insertCharacter(
+      database: replicaB,
+      deviceId: 'device-b',
+      characterName: 'JANE',
+      sortKey: 'a1',
+    );
 
-    await service.syncOnce(database: replicaA, storage: storage, relayId: relayId, deviceId: 'device-a');
-    await service.syncOnce(database: replicaB, storage: storage, relayId: relayId, deviceId: 'device-b');
-    await service.syncOnce(database: replicaA, storage: storage, relayId: relayId, deviceId: 'device-a');
+    await service.syncOnce(
+      database: replicaA,
+      storage: storage,
+      relayId: relayId,
+      deviceId: 'device-a',
+    );
+    await service.syncOnce(
+      database: replicaB,
+      storage: storage,
+      relayId: relayId,
+      deviceId: 'device-b',
+    );
+    await service.syncOnce(
+      database: replicaA,
+      storage: storage,
+      relayId: relayId,
+      deviceId: 'device-a',
+    );
 
     Future<List<String>> characterNamesOn(OcptProjectDatabase database) async {
       final rows = await (database.select(
@@ -375,61 +462,74 @@ void main() {
     expect(sortKeysOnA.map((row) => row.sortKey).toSet(), {'a0', 'a1'});
   });
 
-  test('an incoming changeset applies to fileDatabase normally even while a version preview is up', () async {
-    final fileDatabase = OcptProjectDatabase.memory();
-    addTearDown(fileDatabase.close);
+  test(
+    'an incoming changeset applies to fileDatabase normally even while a version preview is up',
+    () async {
+      final fileDatabase = OcptProjectDatabase.memory();
+      addTearDown(fileDatabase.close);
 
-    const locationId = 'location-1';
-    await fileDatabase
-        .into(fileDatabase.ocptLocationsTable)
-        .insert(OcptLocationsTableCompanion.insert(id: locationId, name: 'Untitled'));
+      const locationId = 'location-1';
+      await fileDatabase
+          .into(fileDatabase.ocptLocationsTable)
+          .insert(OcptLocationsTableCompanion.insert(id: locationId, name: 'Untitled'));
 
-    final previewDatabase = OcptProjectDatabase.memory(isPreview: true);
-    addTearDown(previewDatabase.close);
-    await previewDatabase
-        .into(previewDatabase.ocptLocationsTable)
-        .insert(OcptLocationsTableCompanion.insert(id: locationId, name: 'Untitled (as of the preview)'));
+      final previewDatabase = OcptProjectDatabase.memory(isPreview: true);
+      addTearDown(previewDatabase.close);
+      await previewDatabase
+          .into(previewDatabase.ocptLocationsTable)
+          .insert(
+            OcptLocationsTableCompanion.insert(
+              id: locationId,
+              name: 'Untitled (as of the preview)',
+            ),
+          );
 
-    final model = OcptOpenProjectModel(
-      path: '/tmp/project.ocpt',
-      name: 'Project',
-      primaryScreenplayId: 'screenplay-1',
-      database: fileDatabase,
-    ).previewing(
-      previewDatabase: previewDatabase,
-      version: OcptProjectVersion(
-        id: 'version-1',
-        name: 'Version 1',
-        note: '',
-        createdAt: DateTime.utc(2026),
-        summary: OcptProjectVersionSummary.empty,
-        isBase: false,
-      ),
-      pageSetup: const OcptPageSetup.standard(),
-    );
+      final model =
+          OcptOpenProjectModel(
+            path: '/tmp/project.ocpt',
+            name: 'Project',
+            primaryScreenplayId: 'screenplay-1',
+            database: fileDatabase,
+          ).previewing(
+            previewDatabase: previewDatabase,
+            version: OcptProjectVersion(
+              id: 'version-1',
+              name: 'Version 1',
+              note: '',
+              createdAt: DateTime.utc(2026),
+              summary: OcptProjectVersionSummary.empty,
+              isBase: false,
+            ),
+            pageSetup: const OcptPageSetup.standard(),
+          );
 
-    expect(model.isReadOnly, isTrue);
-    expect(model.database.refusesUserWrite('probe'), isTrue);
+      expect(model.isReadOnly, isTrue);
+      expect(model.database.refusesUserWrite('probe'), isTrue);
 
-    final changeset = const OcptChangeset(
-      fieldStamps: [
-        OcptFieldStamp(
-          tableName: 'locations',
-          rowId: locationId,
-          columnName: 'name',
-          value: 'Updated via merge',
-          version: 1,
-          deviceId: 'device-remote',
-        ),
-      ],
-    );
+      final changeset = const OcptChangeset(
+        fieldStamps: [
+          OcptFieldStamp(
+            tableName: 'locations',
+            rowId: locationId,
+            columnName: 'name',
+            value: 'Updated via merge',
+            version: 1,
+            deviceId: 'device-remote',
+          ),
+        ],
+      );
 
-    await const OcptMergeService().applyChangeset(fileDatabase: model.fileDatabase, changeset: changeset);
+      await const OcptMergeService().applyChangeset(
+        fileDatabase: model.fileDatabase,
+        changeset: changeset,
+      );
 
-    Future<String> nameOn(OcptProjectDatabase database) async =>
-        (await (database.select(database.ocptLocationsTable)..where((table) => table.id.equals(locationId))).getSingle()).name;
+      Future<String> nameOn(OcptProjectDatabase database) async => (await (database.select(
+        database.ocptLocationsTable,
+      )..where((table) => table.id.equals(locationId))).getSingle()).name;
 
-    expect(await nameOn(model.fileDatabase), 'Updated via merge');
-    expect(await nameOn(model.database), 'Untitled (as of the preview)');
-  });
+      expect(await nameOn(model.fileDatabase), 'Updated via merge');
+      expect(await nameOn(model.database), 'Untitled (as of the preview)');
+    },
+  );
 }

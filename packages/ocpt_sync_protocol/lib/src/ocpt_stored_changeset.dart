@@ -50,6 +50,5 @@ class OcptStoredChangeset extends Equatable {
   List<Object?> get props => [sequenceNumber, envelope];
 
   @override
-  String toString() =>
-      'OcptStoredChangeset(sequenceNumber: $sequenceNumber, envelope: $envelope)';
+  String toString() => 'OcptStoredChangeset(sequenceNumber: $sequenceNumber, envelope: $envelope)';
 }

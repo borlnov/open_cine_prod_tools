@@ -80,48 +80,49 @@ OcptBudgetPoste _poste({required String id, String label = "Décors"}) => OcptBu
 
 /// A minimal person, the few fields these tests read, everything else neutral — mirrors
 /// `ocpt_budget_share_dialog_test.dart`'s own instance of this pattern.
-OcptPerson _person({required String id, String firstName = "Alice", String lastName = "Martin"}) => OcptPerson(
-  id: id,
-  firstName: firstName,
-  lastName: lastName,
-  email: "",
-  phone: "",
-  addressLine1: "",
-  addressLine2: "",
-  postalCode: "",
-  city: "",
-  region: "",
-  country: "",
-  colorIndex: 0,
-  birthDate: null,
-  minorNotes: "",
-  maxDailyPresenceMinutes: null,
-  isTransportAutonomous: null,
-  accommodationNotes: "",
-  travelNotes: "",
-  dietaryNotes: "",
-  allergies: "",
-  measurementHeight: "",
-  measurementChest: "",
-  measurementWaist: "",
-  measurementHips: "",
-  sizeTop: "",
-  sizeBottom: "",
-  sizeShoes: "",
-  hmcNotes: "",
-  imageRightsStatus: OcptImageRightsStatus.notApplicable,
-  imageRightsDate: null,
-  imageRightsAssetId: null,
-  imageRightsDocument: null,
-  photoAssetId: null,
-  photo: null,
-  notes: "",
-  commuteKmMilli: null,
-  mileageRateId: null,
-  positions: const [],
-  skills: const [],
-  unavailabilities: const [],
-);
+OcptPerson _person({required String id, String firstName = "Alice", String lastName = "Martin"}) =>
+    OcptPerson(
+      id: id,
+      firstName: firstName,
+      lastName: lastName,
+      email: "",
+      phone: "",
+      addressLine1: "",
+      addressLine2: "",
+      postalCode: "",
+      city: "",
+      region: "",
+      country: "",
+      colorIndex: 0,
+      birthDate: null,
+      minorNotes: "",
+      maxDailyPresenceMinutes: null,
+      isTransportAutonomous: null,
+      accommodationNotes: "",
+      travelNotes: "",
+      dietaryNotes: "",
+      allergies: "",
+      measurementHeight: "",
+      measurementChest: "",
+      measurementWaist: "",
+      measurementHips: "",
+      sizeTop: "",
+      sizeBottom: "",
+      sizeShoes: "",
+      hmcNotes: "",
+      imageRightsStatus: OcptImageRightsStatus.notApplicable,
+      imageRightsDate: null,
+      imageRightsAssetId: null,
+      imageRightsDocument: null,
+      photoAssetId: null,
+      photo: null,
+      notes: "",
+      commuteKmMilli: null,
+      mileageRateId: null,
+      positions: const [],
+      skills: const [],
+      unavailabilities: const [],
+    );
 
 void main() {
   late _RecordingRouterManager routerManager;
@@ -178,7 +179,9 @@ void main() {
   testWidgets("Save is withheld until the label is filled", (tester) async {
     final tr = await pumpDialog(tester);
 
-    var saveButton = tester.widget<FilledButton>(find.widgetWithText(FilledButton, tr.budgetEntryDialogConfirmAction));
+    var saveButton = tester.widget<FilledButton>(
+      find.widgetWithText(FilledButton, tr.budgetEntryDialogConfirmAction),
+    );
     expect(saveButton.onPressed, isNotNull);
 
     await tester.enterText(
@@ -195,7 +198,9 @@ void main() {
       find.widgetWithText(TextFormField, tr.budgetEntryDialogLabelFieldLabel),
       "Regional grant",
     );
-    saveButton = tester.widget<FilledButton>(find.widgetWithText(FilledButton, tr.budgetEntryDialogConfirmAction));
+    saveButton = tester.widget<FilledButton>(
+      find.widgetWithText(FilledButton, tr.budgetEntryDialogConfirmAction),
+    );
     expect(saveButton.onPressed, isNotNull);
 
     await tester.tap(find.text(tr.budgetEntryDialogConfirmAction));
@@ -207,7 +212,9 @@ void main() {
     expect(fields.amountCents, 1000);
   });
 
-  testWidgets("creating fixes the group to the one picked, applied and not reimbursable", (tester) async {
+  testWidgets("creating fixes the group to the one picked, applied and not reimbursable", (
+    tester,
+  ) async {
     final tr = await pumpDialog(tester);
 
     // The `Group` picker is hidden while creating — the kind is already decided by which of the
@@ -429,7 +436,9 @@ void main() {
     expect(find.text(tr.budgetResourceDialogPosteFieldLabel), findsOneWidget);
   });
 
-  testWidgets("the poste picker is hidden for a fresh subsidy or cash contribution", (tester) async {
+  testWidgets("the poste picker is hidden for a fresh subsidy or cash contribution", (
+    tester,
+  ) async {
     final poste = _poste(id: "poste-1");
 
     var tr = await pumpDialog(tester, postes: [poste]);

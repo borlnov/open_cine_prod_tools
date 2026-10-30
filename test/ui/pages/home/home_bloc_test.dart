@@ -305,7 +305,8 @@ void main() {
     expect(
       state.recentProjects.single.project.path,
       filePath,
-      reason: "the card the user comes back to must carry the count the project ended with, not "
+      reason:
+          "the card the user comes back to must carry the count the project ended with, not "
           "the one it was created with",
     );
 
@@ -340,20 +341,18 @@ void main() {
     await bloc.close();
   });
 
-  test(
-    'imports a picked fountain file into a new project and navigates to the editor',
-    () async {
-      const importedText = "Title: My Movie\n\nINT. HOUSE - DAY\n\nAction.\n";
-      final exportManager = _FakeExportManager(
-        importResult: const OcptImportedFountainModel(
-          fountainText: importedText,
-          sourceFileName: "draft.fountain",
-        ),
-      );
-      final savedPath = p.join(tempDir.path, "My Movie.ocpt");
-      final routerManager = _RecordingRouterManager();
+  test('imports a picked fountain file into a new project and navigates to the editor', () async {
+    const importedText = "Title: My Movie\n\nINT. HOUSE - DAY\n\nAction.\n";
+    final exportManager = _FakeExportManager(
+      importResult: const OcptImportedFountainModel(
+        fountainText: importedText,
+        sourceFileName: "draft.fountain",
+      ),
+    );
+    final savedPath = p.join(tempDir.path, "My Movie.ocpt");
+    final routerManager = _RecordingRouterManager();
 
-      final bloc = buildBloc(exportManager: exportManager, routerManager: routerManager);
+    final bloc = buildBloc(exportManager: exportManager, routerManager: routerManager);
 
     bloc.add(
       const OcptHomeImportScreenplayRequestedEvent(
@@ -364,31 +363,29 @@ void main() {
     await waitForState(bloc, (state) => state.isBusy);
     final state = await waitForState(bloc, (state) => !state.isBusy);
 
-      expect(state.error, isNull);
-      expect(exportManager.lastFileTypeLabel, "Screenplay");
-      expect(routerManager.pushedRoute, OcptRoute.workspace);
+    expect(state.error, isNull);
+    expect(exportManager.lastFileTypeLabel, "Screenplay");
+    expect(routerManager.pushedRoute, OcptRoute.workspace);
 
-      final project = projectsManager.currentProject!;
-      // The project's name — and, through freeNewProjectFilePath, its file's own name — comes
-      // from the imported file's title page.
-      expect(project.name, "My Movie");
-      expect(project.path, savedPath);
+    final project = projectsManager.currentProject!;
+    // The project's name — and, through freeNewProjectFilePath, its file's own name — comes
+    // from the imported file's title page.
+    expect(project.name, "My Movie");
+    expect(project.path, savedPath);
 
-      final storedText = await projectsManager.screenplayService.loadScreenplayText(
-        database: project.database,
-        screenplayId: project.primaryScreenplayId,
-      );
-      expect(storedText, importedText);
+    final storedText = await projectsManager.screenplayService.loadScreenplayText(
+      database: project.database,
+      screenplayId: project.primaryScreenplayId,
+    );
+    expect(storedText, importedText);
 
-      final snapshots =
-          await (project.database.select(
-            project.database.ocptScreenplaySnapshotsTable,
-          )..orderBy([(row) => OrderingTerm.asc(row.createdAt)])).get();
-      expect(snapshots.last.reason, OcptSnapshotReason.import);
+    final snapshots = await (project.database.select(
+      project.database.ocptScreenplaySnapshotsTable,
+    )..orderBy([(row) => OrderingTerm.asc(row.createdAt)])).get();
+    expect(snapshots.last.reason, OcptSnapshotReason.import);
 
-      await bloc.close();
-    },
-  );
+    await bloc.close();
+  });
 
   test('a cancelled screenplay file picker leaves the bloc idle and creates no project', () async {
     final exportManager = _FakeExportManager();
@@ -441,21 +438,20 @@ void main() {
     final existingPath = p.join(tempDir.path, "Movie.ocpt");
     await File(existingPath).writeAsString("not a project");
 
-      final bloc = buildBloc();
+    final bloc = buildBloc();
 
     bloc.add(const OcptHomeCreateProjectRequestedEvent(name: "Movie", fileTypeLabel: "Project"));
     await waitForState(bloc, (state) => state.isBusy);
     final state = await waitForState(bloc, (state) => !state.isBusy);
 
-      expect(state.error, isNull);
-      expect(await File(existingPath).readAsString(), "not a project");
+    expect(state.error, isNull);
+    expect(await File(existingPath).readAsString(), "not a project");
 
-      final project = projectsManager.currentProject!;
-      expect(project.path, p.join(tempDir.path, "Movie (2).ocpt"));
+    final project = projectsManager.currentProject!;
+    expect(project.path, p.join(tempDir.path, "Movie (2).ocpt"));
 
-      await bloc.close();
-    },
-  );
+    await bloc.close();
+  });
 
   group("on desktop", () {
     test(
@@ -638,9 +634,7 @@ void main() {
       await createProjectAtPreviousFormat(filePath);
       final bloc = buildBloc();
 
-      bloc.add(
-        OcptHomeOpenProjectRequestedEvent(filePath: filePath, fileTypeLabel: "Project"),
-      );
+      bloc.add(OcptHomeOpenProjectRequestedEvent(filePath: filePath, fileTypeLabel: "Project"));
       final state = await waitForState(bloc, (state) => state.pendingFileCompatibility != null);
 
       final compatibility = state.pendingFileCompatibility!;
@@ -654,35 +648,37 @@ void main() {
       await bloc.close();
     }, skip: olderFileFlowSkip);
 
-    test("answering the question opens it, and the copy is where it was promised", () async {
-      final filePath = p.join(tempDir.path, "movie.ocpt");
-      await createProjectAtPreviousFormat(filePath);
-      final routerManager = _RecordingRouterManager();
-      final bloc = buildBloc(routerManager: routerManager);
+    test(
+      "answering the question opens it, and the copy is where it was promised",
+      () async {
+        final filePath = p.join(tempDir.path, "movie.ocpt");
+        await createProjectAtPreviousFormat(filePath);
+        final routerManager = _RecordingRouterManager();
+        final bloc = buildBloc(routerManager: routerManager);
 
-      bloc.add(
-        OcptHomeOpenProjectRequestedEvent(filePath: filePath, fileTypeLabel: "Project"),
-      );
-      final asked = await waitForState(bloc, (state) => state.pendingFileCompatibility != null);
-      final backupPath = asked.pendingFileCompatibility!.suggestedBackupPath!;
+        bloc.add(OcptHomeOpenProjectRequestedEvent(filePath: filePath, fileTypeLabel: "Project"));
+        final asked = await waitForState(bloc, (state) => state.pendingFileCompatibility != null);
+        final backupPath = asked.pendingFileCompatibility!.suggestedBackupPath!;
 
-      // What the page dispatches once the user has confirmed the dialog.
-      bloc.add(
-        OcptHomeOpenProjectRequestedEvent(
-          filePath: filePath,
-          fileTypeLabel: "Project",
-          allowMigration: true,
-        ),
-      );
-      await waitForState(bloc, (state) => state.isBusy);
-      await waitForState(bloc, (state) => !state.isBusy);
+        // What the page dispatches once the user has confirmed the dialog.
+        bloc.add(
+          OcptHomeOpenProjectRequestedEvent(
+            filePath: filePath,
+            fileTypeLabel: "Project",
+            allowMigration: true,
+          ),
+        );
+        await waitForState(bloc, (state) => state.isBusy);
+        await waitForState(bloc, (state) => !state.isBusy);
 
-      expect(projectsManager.currentProject?.path, filePath);
-      expect(routerManager.pushedRoute, OcptRoute.workspace);
-      expect(File(backupPath).existsSync(), isTrue);
+        expect(projectsManager.currentProject?.path, filePath);
+        expect(routerManager.pushedRoute, OcptRoute.workspace);
+        expect(File(backupPath).existsSync(), isTrue);
 
-      await bloc.close();
-    }, skip: olderFileFlowSkip);
+        await bloc.close();
+      },
+      skip: olderFileFlowSkip,
+    );
 
     test("a newer one is raised as a refusal, and nothing is opened", () async {
       final filePath = p.join(tempDir.path, "movie.ocpt");
@@ -691,9 +687,7 @@ void main() {
       final routerManager = _RecordingRouterManager();
       final bloc = buildBloc(routerManager: routerManager);
 
-      bloc.add(
-        OcptHomeOpenProjectRequestedEvent(filePath: filePath, fileTypeLabel: "Project"),
-      );
+      bloc.add(OcptHomeOpenProjectRequestedEvent(filePath: filePath, fileTypeLabel: "Project"));
       final state = await waitForState(bloc, (state) => state.pendingFileCompatibility != null);
 
       expect(state.pendingFileCompatibility!.verdict, OcptProjectFileVerdict.newer);
@@ -725,9 +719,7 @@ void main() {
       final routerManager = _RecordingRouterManager();
       final bloc = buildBloc(routerManager: routerManager);
 
-      bloc.add(
-        OcptHomeOpenProjectRequestedEvent(filePath: filePath, fileTypeLabel: "Project"),
-      );
+      bloc.add(OcptHomeOpenProjectRequestedEvent(filePath: filePath, fileTypeLabel: "Project"));
       final state = await waitForState(bloc, (state) => state.pendingFileCompatibility != null);
 
       final compatibility = state.pendingFileCompatibility!;
@@ -774,9 +766,7 @@ void main() {
       await createProjectFromTheFuture(filePath);
       final bloc = buildBloc();
 
-      bloc.add(
-        OcptHomeOpenProjectRequestedEvent(filePath: filePath, fileTypeLabel: "Project"),
-      );
+      bloc.add(OcptHomeOpenProjectRequestedEvent(filePath: filePath, fileTypeLabel: "Project"));
       await waitForState(bloc, (state) => state.pendingFileCompatibility != null);
 
       bloc.add(const OcptHomeFileCompatibilityStatedEvent());
@@ -816,10 +806,7 @@ void main() {
 
         expect(entryFor(currentPath).verdict, OcptProjectFileVerdict.current);
         expect(entryFor(newerPath).verdict, OcptProjectFileVerdict.newer);
-        expect(
-          entryFor(foreignDevBuildPath).verdict,
-          OcptProjectFileVerdict.foreignDevBuild,
-        );
+        expect(entryFor(foreignDevBuildPath).verdict, OcptProjectFileVerdict.foreignDevBuild);
         expect(entryFor(missingPath).exists, isFalse);
         expect(entryFor(missingPath).verdict, isNull);
 
@@ -1052,48 +1039,45 @@ void main() {
       return targetPath;
     }
 
-    test(
-      "imports a picked package into the picked parent folder and raises the report, without "
-      "opening anything itself",
-      () async {
-        final packagePath = await exportedPackage(p.join(tempDir.path, "movie.ocptz"));
-        final fileSelectorManager = _FakeFileSelectorManager(result: XFile(packagePath));
-        final saveLocationService = _RecordingSaveLocationService(
-          directoryAnswer: importsParent.path,
-        );
-        final bloc = buildBloc(
-          fileSelectorManager: fileSelectorManager,
-          exportManager: OcptExportManager(
-            fileSelectorManager: const FileSelectorManager(),
-            saveLocationService: saveLocationService,
-          ),
-        );
+    test("imports a picked package into the picked parent folder and raises the report, without "
+        "opening anything itself", () async {
+      final packagePath = await exportedPackage(p.join(tempDir.path, "movie.ocptz"));
+      final fileSelectorManager = _FakeFileSelectorManager(result: XFile(packagePath));
+      final saveLocationService = _RecordingSaveLocationService(
+        directoryAnswer: importsParent.path,
+      );
+      final bloc = buildBloc(
+        fileSelectorManager: fileSelectorManager,
+        exportManager: OcptExportManager(
+          fileSelectorManager: const FileSelectorManager(),
+          saveLocationService: saveLocationService,
+        ),
+      );
 
-        bloc.add(
-          const OcptHomeImportProjectPackageRequestedEvent(
-            packageFileTypeLabel: "Project package",
-            destinationConfirmButtonText: "Import here",
-          ),
-        );
+      bloc.add(
+        const OcptHomeImportProjectPackageRequestedEvent(
+          packageFileTypeLabel: "Project package",
+          destinationConfirmButtonText: "Import here",
+        ),
+      );
 
-        final state = await waitForState(bloc, (state) => state.projectPackageImportReport != null);
+      final state = await waitForState(bloc, (state) => state.projectPackageImportReport != null);
 
-        final report = state.projectPackageImportReport!;
-        expect(report.projectName, "Les Vagues");
-        expect(report.skippedAssets, isEmpty);
-        expect(File(report.projectFilePath).existsSync(), isTrue);
-        expect(fileSelectorManager.lastAllowedExtensions, ["ocptz"]);
-        expect(saveLocationService.lastDirectoryConfirmButtonText, "Import here");
-        expect(
-          projectsManager.currentProject,
-          isNull,
-          reason: "the bloc unpacks the package but never opens it itself",
-        );
-        expect(state.projectPackageImportError, isNull);
+      final report = state.projectPackageImportReport!;
+      expect(report.projectName, "Les Vagues");
+      expect(report.skippedAssets, isEmpty);
+      expect(File(report.projectFilePath).existsSync(), isTrue);
+      expect(fileSelectorManager.lastAllowedExtensions, ["ocptz"]);
+      expect(saveLocationService.lastDirectoryConfirmButtonText, "Import here");
+      expect(
+        projectsManager.currentProject,
+        isNull,
+        reason: "the bloc unpacks the package but never opens it itself",
+      );
+      expect(state.projectPackageImportError, isNull);
 
-        await bloc.close();
-      },
-    );
+      await bloc.close();
+    });
 
     test(
       "an existing folder of that name comes back as destinationExists, raised through the state",
@@ -1105,9 +1089,7 @@ void main() {
           fileSelectorManager: _FakeFileSelectorManager(result: XFile(packagePath)),
           exportManager: OcptExportManager(
             fileSelectorManager: const FileSelectorManager(),
-            saveLocationService: _RecordingSaveLocationService(
-              directoryAnswer: importsParent.path,
-            ),
+            saveLocationService: _RecordingSaveLocationService(directoryAnswer: importsParent.path),
           ),
         );
 
@@ -1127,45 +1109,42 @@ void main() {
       },
     );
 
-    test(
-      "a packageFormat newer than this build's is refused with its own status rather than an "
-      "exception",
-      () async {
-        final packagePath = await exportedPackage(p.join(tempDir.path, "movie.ocptz"));
-        final futurePackagePath = await repackagedWithManifest(
-          packagePath,
-          (manifest) => {...manifest, "packageFormat": 999},
-        );
+    test("a packageFormat newer than this build's is refused with its own status rather than an "
+        "exception", () async {
+      final packagePath = await exportedPackage(p.join(tempDir.path, "movie.ocptz"));
+      final futurePackagePath = await repackagedWithManifest(
+        packagePath,
+        (manifest) => {...manifest, "packageFormat": 999},
+      );
 
-        final bloc = buildBloc(
-          fileSelectorManager: _FakeFileSelectorManager(result: XFile(futurePackagePath)),
-          exportManager: OcptExportManager(
-            fileSelectorManager: const FileSelectorManager(),
-            saveLocationService: _RecordingSaveLocationService(
-              directoryAnswer: importsParent.path,
-            ),
-          ),
-        );
+      final bloc = buildBloc(
+        fileSelectorManager: _FakeFileSelectorManager(result: XFile(futurePackagePath)),
+        exportManager: OcptExportManager(
+          fileSelectorManager: const FileSelectorManager(),
+          saveLocationService: _RecordingSaveLocationService(directoryAnswer: importsParent.path),
+        ),
+      );
 
-        bloc.add(
-          const OcptHomeImportProjectPackageRequestedEvent(
-            packageFileTypeLabel: "Project package",
-            destinationConfirmButtonText: "Import here",
-          ),
-        );
+      bloc.add(
+        const OcptHomeImportProjectPackageRequestedEvent(
+          packageFileTypeLabel: "Project package",
+          destinationConfirmButtonText: "Import here",
+        ),
+      );
 
-        final state = await waitForState(bloc, (state) => state.projectPackageImportError != null);
+      final state = await waitForState(bloc, (state) => state.projectPackageImportError != null);
 
-        expect(state.projectPackageImportError, OcptProjectPackageStatus.unsupportedPackageFormat);
-        expect(state.projectPackageImportReport, isNull);
-        expect(importsParent.listSync(), isEmpty);
+      expect(state.projectPackageImportError, OcptProjectPackageStatus.unsupportedPackageFormat);
+      expect(state.projectPackageImportReport, isNull);
+      expect(importsParent.listSync(), isEmpty);
 
-        await bloc.close();
-      },
-    );
+      await bloc.close();
+    });
 
     test("a cancelled open dialog does nothing at all", () async {
-      final saveLocationService = _RecordingSaveLocationService(directoryAnswer: importsParent.path);
+      final saveLocationService = _RecordingSaveLocationService(
+        directoryAnswer: importsParent.path,
+      );
       final bloc = buildBloc(
         fileSelectorManager: _FakeFileSelectorManager(),
         exportManager: OcptExportManager(

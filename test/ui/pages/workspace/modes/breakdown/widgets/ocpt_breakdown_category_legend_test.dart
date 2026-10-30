@@ -123,7 +123,10 @@ void main() {
       hiddenKeys: {(OcptBreakdownTargetKind.element, OcptElementCategory.prop)},
     );
 
-    final opacities = tester.widgetList<Opacity>(find.byType(Opacity)).map((o) => o.opacity).toList();
+    final opacities = tester
+        .widgetList<Opacity>(find.byType(Opacity))
+        .map((o) => o.opacity)
+        .toList();
     expect(opacities, contains(lessThan(1)));
     expect(opacities, contains(1));
   });

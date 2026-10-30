@@ -213,8 +213,7 @@ OcptLocation _buildLocation({
 );
 
 /// The weekday mask covering exactly [weekdays].
-int _maskOf(List<int> weekdays) =>
-    weekdays.fold(0, (mask, weekday) => mask | (1 << (weekday - 1)));
+int _maskOf(List<int> weekdays) => weekdays.fold(0, (mask, weekday) => mask | (1 << (weekday - 1)));
 
 /// Builds an availability window of [locationId], covering [weekdays] of the days from
 /// [startDate] to [endDate].
@@ -253,7 +252,7 @@ OcptElement _buildElement({
   String? broughtByPersonId,
   List<OcptSceneElementLink> sceneLinks = const [],
 }) => OcptElement(
-      status: OcptElementStatus.toFind,
+  status: OcptElementStatus.toFind,
   id: id,
   category: category,
   subCategory: "",

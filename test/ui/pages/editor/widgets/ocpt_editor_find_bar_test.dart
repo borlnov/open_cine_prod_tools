@@ -65,9 +65,7 @@ void main() {
     await tester.pumpWidget(_wrapWithLocalization(_buildBar(calls: calls)));
     expect(find.text("Replace"), findsNothing);
 
-    await tester.pumpWidget(
-      _wrapWithLocalization(_buildBar(calls: calls, isReplaceRowOpen: true)),
-    );
+    await tester.pumpWidget(_wrapWithLocalization(_buildBar(calls: calls, isReplaceRowOpen: true)));
     expect(find.text("Replace"), findsOneWidget);
     expect(find.text("Replace all"), findsOneWidget);
   });
@@ -91,9 +89,7 @@ void main() {
 
   testWidgets("typing in the replace field reports onReplacementChanged", (tester) async {
     final calls = <String>[];
-    await tester.pumpWidget(
-      _wrapWithLocalization(_buildBar(calls: calls, isReplaceRowOpen: true)),
-    );
+    await tester.pumpWidget(_wrapWithLocalization(_buildBar(calls: calls, isReplaceRowOpen: true)));
 
     await tester.enterText(find.byType(TextField).last, "JEANNE");
 
@@ -122,17 +118,12 @@ void main() {
     await tester.tap(find.byTooltip("Next match"));
     await tester.tap(find.byTooltip("Close find and replace"));
 
-    expect(
-      calls,
-      containsAll(["onPreviousRequested", "onNextRequested", "onCloseRequested"]),
-    );
+    expect(calls, containsAll(["onPreviousRequested", "onNextRequested", "onCloseRequested"]));
   });
 
   testWidgets("previous/next are disabled while there is no match", (tester) async {
     final calls = <String>[];
-    await tester.pumpWidget(
-      _wrapWithLocalization(_buildBar(calls: calls, query: "MARIE")),
-    );
+    await tester.pumpWidget(_wrapWithLocalization(_buildBar(calls: calls, query: "MARIE")));
 
     final previousButton = tester.widget<IconButton>(
       find.ancestor(of: find.byTooltip("Previous match"), matching: find.byType(IconButton)),
@@ -198,9 +189,7 @@ void main() {
     );
     expect(find.text("2/3"), findsOneWidget);
 
-    await tester.pumpWidget(
-      _wrapWithLocalization(_buildBar(calls: [], query: "ZZZ")),
-    );
+    await tester.pumpWidget(_wrapWithLocalization(_buildBar(calls: [], query: "ZZZ")));
     expect(find.text("No matches"), findsOneWidget);
 
     await tester.pumpWidget(_wrapWithLocalization(_buildBar(calls: [])));

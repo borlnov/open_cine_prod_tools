@@ -168,116 +168,133 @@ void main() {
     expect(row.checkReason, isNull);
   });
 
-  test('shots: a null sceneId with a non-null orphanedHeading round-trips (an orphaned shot)', () async {
-    await database
-        .into(database.ocptScreenplaysTable)
-        .insert(
-          OcptScreenplaysTableCompanion.insert(id: "s1", title: "Draft", updatedAt: DateTime.now()),
-        );
+  test(
+    'shots: a null sceneId with a non-null orphanedHeading round-trips (an orphaned shot)',
+    () async {
+      await database
+          .into(database.ocptScreenplaysTable)
+          .insert(
+            OcptScreenplaysTableCompanion.insert(
+              id: "s1",
+              title: "Draft",
+              updatedAt: DateTime.now(),
+            ),
+          );
 
-    await database
-        .into(database.ocptShotsTable)
-        .insert(
-          OcptShotsTableCompanion.insert(
-            id: "shot1",
-            screenplayId: "s1",
-            orphanedHeading: const Value("INT. DELETED SCENE - DAY"),
-            position: 0,
-            needsCheck: const Value(true),
-            checkReason: const Value(OcptShotCheckReason.sceneDeleted),
-          ),
-        );
+      await database
+          .into(database.ocptShotsTable)
+          .insert(
+            OcptShotsTableCompanion.insert(
+              id: "shot1",
+              screenplayId: "s1",
+              orphanedHeading: const Value("INT. DELETED SCENE - DAY"),
+              position: 0,
+              needsCheck: const Value(true),
+              checkReason: const Value(OcptShotCheckReason.sceneDeleted),
+            ),
+          );
 
-    final row = await database.select(database.ocptShotsTable).getSingle();
+      final row = await database.select(database.ocptShotsTable).getSingle();
 
-    expect(row.sceneId, isNull);
-    expect(row.orphanedHeading, "INT. DELETED SCENE - DAY");
-    expect(row.needsCheck, isTrue);
-    expect(row.checkReason, OcptShotCheckReason.sceneDeleted);
-  });
+      expect(row.sceneId, isNull);
+      expect(row.orphanedHeading, "INT. DELETED SCENE - DAY");
+      expect(row.needsCheck, isTrue);
+      expect(row.checkReason, OcptShotCheckReason.sceneDeleted);
+    },
+  );
 
-  test('shot_characters: a row can be inserted and read back, referencing a role and a position', () async {
-    await database
-        .into(database.ocptScreenplaysTable)
-        .insert(
-          OcptScreenplaysTableCompanion.insert(id: "s1", title: "Draft", updatedAt: DateTime.now()),
-        );
-    await database
-        .into(database.ocptShotsTable)
-        .insert(OcptShotsTableCompanion.insert(id: "shot1", screenplayId: "s1", position: 0));
-    await database
-        .into(database.ocptRolesTable)
-        .insert(
-          OcptRolesTableCompanion.insert(id: "role1", name: "CLARA", kind: OcptRoleKind.speaking),
-        );
+  test(
+    'shot_characters: a row can be inserted and read back, referencing a role and a position',
+    () async {
+      await database
+          .into(database.ocptScreenplaysTable)
+          .insert(
+            OcptScreenplaysTableCompanion.insert(
+              id: "s1",
+              title: "Draft",
+              updatedAt: DateTime.now(),
+            ),
+          );
+      await database
+          .into(database.ocptShotsTable)
+          .insert(OcptShotsTableCompanion.insert(id: "shot1", screenplayId: "s1", position: 0));
+      await database
+          .into(database.ocptRolesTable)
+          .insert(
+            OcptRolesTableCompanion.insert(id: "role1", name: "CLARA", kind: OcptRoleKind.speaking),
+          );
 
-    await database
-        .into(database.ocptShotCharactersTable)
-        .insert(
-          OcptShotCharactersTableCompanion.insert(
-            shotId: "shot1",
-            roleId: "role1",
-            position: 0,
-          ),
-        );
+      await database
+          .into(database.ocptShotCharactersTable)
+          .insert(
+            OcptShotCharactersTableCompanion.insert(shotId: "shot1", roleId: "role1", position: 0),
+          );
 
-    final row = await database.select(database.ocptShotCharactersTable).getSingle();
+      final row = await database.select(database.ocptShotCharactersTable).getSingle();
 
-    expect(row.shotId, "shot1");
-    expect(row.roleId, "role1");
-    expect(row.position, 0);
-  });
+      expect(row.shotId, "shot1");
+      expect(row.roleId, "role1");
+      expect(row.position, 0);
+    },
+  );
 
-  test('shot_coverages: a row can be inserted and read back, offsets relative to the scene', () async {
-    await database
-        .into(database.ocptScreenplaysTable)
-        .insert(
-          OcptScreenplaysTableCompanion.insert(id: "s1", title: "Draft", updatedAt: DateTime.now()),
-        );
-    await database
-        .into(database.ocptScenesTable)
-        .insert(
-          OcptScenesTableCompanion.insert(
-            id: "scene1",
-            screenplayId: "s1",
-            position: 0,
-            heading: "INT. HOUSE - DAY",
-            charStart: 100,
-            charEnd: 200,
-          ),
-        );
-    await database
-        .into(database.ocptShotsTable)
-        .insert(
-          OcptShotsTableCompanion.insert(
-            id: "shot1",
-            screenplayId: "s1",
-            sceneId: const Value("scene1"),
-            position: 0,
-          ),
-        );
+  test(
+    'shot_coverages: a row can be inserted and read back, offsets relative to the scene',
+    () async {
+      await database
+          .into(database.ocptScreenplaysTable)
+          .insert(
+            OcptScreenplaysTableCompanion.insert(
+              id: "s1",
+              title: "Draft",
+              updatedAt: DateTime.now(),
+            ),
+          );
+      await database
+          .into(database.ocptScenesTable)
+          .insert(
+            OcptScenesTableCompanion.insert(
+              id: "scene1",
+              screenplayId: "s1",
+              position: 0,
+              heading: "INT. HOUSE - DAY",
+              charStart: 100,
+              charEnd: 200,
+            ),
+          );
+      await database
+          .into(database.ocptShotsTable)
+          .insert(
+            OcptShotsTableCompanion.insert(
+              id: "shot1",
+              screenplayId: "s1",
+              sceneId: const Value("scene1"),
+              position: 0,
+            ),
+          );
 
-    await database
-        .into(database.ocptShotCoveragesTable)
-        .insert(
-          OcptShotCoveragesTableCompanion.insert(
-            id: "cov1",
-            shotId: "shot1",
-            sceneId: "scene1",
-            startOffset: 5,
-            endOffset: 25,
-            coveredTextDigest: "abc123",
-          ),
-        );
+      await database
+          .into(database.ocptShotCoveragesTable)
+          .insert(
+            OcptShotCoveragesTableCompanion.insert(
+              id: "cov1",
+              shotId: "shot1",
+              sceneId: "scene1",
+              startOffset: 5,
+              endOffset: 25,
+              coveredTextDigest: "abc123",
+            ),
+          );
 
-    final row = await database.select(database.ocptShotCoveragesTable).getSingle();
+      final row = await database.select(database.ocptShotCoveragesTable).getSingle();
 
-    expect(row.shotId, "shot1");
-    expect(row.sceneId, "scene1");
-    expect(row.startOffset, 5);
-    expect(row.endOffset, 25);
-    expect(row.coveredTextDigest, "abc123");
-  });
+      expect(row.shotId, "shot1");
+      expect(row.sceneId, "scene1");
+      expect(row.startOffset, 5);
+      expect(row.endOffset, 25);
+      expect(row.coveredTextDigest, "abc123");
+    },
+  );
 
   test('foreign keys are enforced: a shot referencing an unknown screenplay is rejected', () async {
     // `NativeDatabase` leaves SQLite's `foreign_keys` pragma at its own default, which is off, so

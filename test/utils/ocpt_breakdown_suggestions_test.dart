@@ -119,10 +119,7 @@ void main() {
         ],
       );
 
-      final suggestions = ocptBreakdownSuggestionsOf(
-        scenes: [scene],
-        screenplayText: sceneText,
-      );
+      final suggestions = ocptBreakdownSuggestionsOf(scenes: [scene], screenplayText: sceneText);
 
       expect(suggestions, isEmpty);
     });
@@ -186,10 +183,7 @@ void main() {
         ],
       );
 
-      final suggestions = ocptBreakdownSuggestionsOf(
-        scenes: [scene],
-        screenplayText: sceneText,
-      );
+      final suggestions = ocptBreakdownSuggestionsOf(scenes: [scene], screenplayText: sceneText);
 
       final expectedStart = sceneText.indexOf("chair", taggedStart + 1);
       expect(suggestions, hasLength(1));
@@ -498,10 +492,7 @@ void main() {
 
       expect(suggestions, hasLength(3));
       expect(suggestions.map((s) => s.sceneId), ["scene-b", "scene-b", "scene-c"]);
-      expect(
-        suggestions[0].startOffset,
-        lessThan(suggestions[1].startOffset),
-      );
+      expect(suggestions[0].startOffset, lessThan(suggestions[1].startOffset));
     });
   });
 
@@ -563,10 +554,7 @@ void main() {
     });
 
     test("no scene at all yields no suggestion", () {
-      expect(
-        ocptBreakdownSuggestionsOf(scenes: const [], screenplayText: ""),
-        isEmpty,
-      );
+      expect(ocptBreakdownSuggestionsOf(scenes: const [], screenplayText: ""), isEmpty);
     });
   });
 

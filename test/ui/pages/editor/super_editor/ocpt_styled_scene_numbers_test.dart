@@ -74,9 +74,7 @@ void main() {
     test("corrects a lettered number that does not follow the scene right before it", () {
       // "3A" only makes sense right after scene 3; here it comes first, so it must be corrected
       // to a plain sequential number instead.
-      final decoded = OcptWysiwygCodec.decode(
-        "INT. HOUSE - DAY #3A#\n\nEXT. GARDEN - NIGHT",
-      );
+      final decoded = OcptWysiwygCodec.decode("INT. HOUSE - DAY #3A#\n\nEXT. GARDEN - NIGHT");
       final document = decoded.document;
 
       _apply(document, sceneNumberNormalizationRequests(document));
@@ -92,9 +90,7 @@ void main() {
     });
 
     test("is idempotent: running it again on an already-normalized document changes nothing", () {
-      final decoded = OcptWysiwygCodec.decode(
-        "INT. HOUSE - DAY #9#\n\nEXT. GARDEN - NIGHT #2#",
-      );
+      final decoded = OcptWysiwygCodec.decode("INT. HOUSE - DAY #9#\n\nEXT. GARDEN - NIGHT #2#");
       final document = decoded.document;
 
       _apply(document, sceneNumberNormalizationRequests(document));

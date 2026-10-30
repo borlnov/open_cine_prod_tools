@@ -96,11 +96,8 @@ class OcptSceneIndexService {
       }
 
       for (final row in matches.rowsToDelete) {
-        await (database.update(
-          database.ocptScenesTable,
-        )..where((table) => table.id.equals(row.id))).write(
-          const OcptScenesTableCompanion(isDeleted: Value(true)),
-        );
+        await (database.update(database.ocptScenesTable)..where((table) => table.id.equals(row.id)))
+            .write(const OcptScenesTableCompanion(isDeleted: Value(true)));
       }
 
       for (var position = 0; position < parsedScenes.length; position++) {
@@ -156,20 +153,16 @@ class OcptSceneIndexService {
     required OcptProjectDatabase database,
     required String screenplayId,
   }) async {
-    final rows =
-        await (database.select(database.ocptScenesTable)..where(
-              (table) => table.screenplayId.equals(screenplayId) & table.isDeleted.not(),
-            ))
-            .get();
+    final rows = await (database.select(
+      database.ocptScenesTable,
+    )..where((table) => table.screenplayId.equals(screenplayId) & table.isDeleted.not())).get();
     if (rows.isEmpty) {
       return const [];
     }
 
     final ids = rows.map((row) => row.id).toList(growable: false);
 
-    await (database.update(
-      database.ocptScenesTable,
-    )..where((table) => table.id.isIn(ids))).write(
+    await (database.update(database.ocptScenesTable)..where((table) => table.id.isIn(ids))).write(
       const OcptScenesTableCompanion(isDeleted: Value(true)),
     );
 

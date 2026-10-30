@@ -14,6 +14,10 @@
 # packages, and plugins designed to encourage good coding practices.
 include: package:flutter_lints/flutter.yaml
 
+# Line length of `dart format`, and so of the IDE formatters, aligned on the ACT convention
+formatter:
+  page_width: 100
+
 analyzer:
   exclude:
     - build/**

@@ -19,7 +19,9 @@ Widget _wrapInApp(Widget child) => MaterialApp(
     GlobalCupertinoLocalizations.delegate,
   ],
   supportedLocales: Tr.delegate.supportedLocales,
-  home: Scaffold(body: Align(alignment: Alignment.topLeft, child: child)),
+  home: Scaffold(
+    body: Align(alignment: Alignment.topLeft, child: child),
+  ),
 );
 
 /// A minimal live role of [id] and [name], for a test that only cares about the chips.
@@ -164,9 +166,7 @@ void main() {
     expect(find.byType(TextField), findsNothing);
   });
 
-  testWidgets("submitting an empty name reports nothing and simply collapses back", (
-    tester,
-  ) async {
+  testWidgets("submitting an empty name reports nothing and simply collapses back", (tester) async {
     final added = <String>[];
 
     await tester.pumpWidget(

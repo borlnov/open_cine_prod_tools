@@ -41,11 +41,7 @@ const _labels = OcptContactListLabels(
     OcptCrewDepartment.hairAndMakeUp: "Hair & make-up",
     OcptCrewDepartment.production: "Production",
   },
-  crewPositionLabels: {
-    "director": "Director",
-    "firstAssistantDirector": "1st AD",
-    "grip": "Grip",
-  },
+  crewPositionLabels: {"director": "Director", "firstAssistantDirector": "1st AD", "grip": "Grip"},
   unassignedDepartmentLabel: "Unassigned",
   emptyDocumentNote: "Nothing to print.",
 );
@@ -109,27 +105,45 @@ OcptPersonPosition _buildPosition({
   required String personId,
   String positionId = "",
   String customLabel = "",
-}) => OcptPersonPosition(id: id, personId: personId, positionId: positionId, customLabel: customLabel);
+}) => OcptPersonPosition(
+  id: id,
+  personId: personId,
+  positionId: positionId,
+  customLabel: customLabel,
+);
 
 /// Builds a role, every field left at a neutral value unless the test overrides it. Mirrors
 /// `ocpt_resources_xlsx_export_service_test.dart`'s own `_buildRole`.
-OcptRole _buildRole({required String id, required int number, String name = "", String? personId}) =>
-    OcptRole(
-      id: id,
-      name: name,
-      personId: personId,
-      kind: OcptRoleKind.speaking,
-      isFromScreenplay: true,
-      orphanedName: null,
-      castingNotes: "",
-      number: number,
-      episodeIds: const [],
-    );
+OcptRole _buildRole({
+  required String id,
+  required int number,
+  String name = "",
+  String? personId,
+}) => OcptRole(
+  id: id,
+  name: name,
+  personId: personId,
+  kind: OcptRoleKind.speaking,
+  isFromScreenplay: true,
+  orphanedName: null,
+  castingNotes: "",
+  number: number,
+  episodeIds: const [],
+);
 
 /// Builds a snapshot of [people] and [roles] alone: neither locations nor elements are read by this
 /// document.
-OcptResourcesSnapshot _buildSnapshot({List<OcptPerson> people = const [], List<OcptRole> roles = const []}) =>
-    OcptResourcesSnapshot.build(people: people, roles: roles, locations: const [], elements: const [], candidatesByRoleId: const {}, scenes: const []);
+OcptResourcesSnapshot _buildSnapshot({
+  List<OcptPerson> people = const [],
+  List<OcptRole> roles = const [],
+}) => OcptResourcesSnapshot.build(
+  people: people,
+  roles: roles,
+  locations: const [],
+  elements: const [],
+  candidatesByRoleId: const {},
+  scenes: const [],
+);
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -156,7 +170,9 @@ void main() {
           _buildPerson(
             id: "person-1",
             firstName: "Léa",
-            positions: [_buildPosition(id: "position-1", personId: "person-1", positionId: "director")],
+            positions: [
+              _buildPosition(id: "position-1", personId: "person-1", positionId: "director"),
+            ],
           ),
         ],
       );
@@ -177,7 +193,9 @@ void main() {
         people: [
           _buildPerson(
             id: "person-1",
-            positions: [_buildPosition(id: "position-1", personId: "person-1", positionId: "director")],
+            positions: [
+              _buildPosition(id: "position-1", personId: "person-1", positionId: "director"),
+            ],
           ),
         ],
       );
@@ -187,7 +205,9 @@ void main() {
     });
 
     test("a role with no cast crew still prints the cast alone", () async {
-      final withRole = await generate(roles: [_buildRole(id: "role-1", number: 1, name: "LÉA")]);
+      final withRole = await generate(
+        roles: [_buildRole(id: "role-1", number: 1, name: "LÉA")],
+      );
       final empty = await generate();
 
       expect(_contentStreams(withRole), isNot(_contentStreams(empty)));
@@ -213,7 +233,9 @@ void main() {
           _buildPerson(
             id: "person-1",
             firstName: "Léa",
-            positions: [_buildPosition(id: "position-1", personId: "person-1", positionId: "director")],
+            positions: [
+              _buildPosition(id: "position-1", personId: "person-1", positionId: "director"),
+            ],
           ),
         ],
       );
@@ -230,7 +252,9 @@ void main() {
         people: [
           _buildPerson(
             id: "person-1",
-            positions: [_buildPosition(id: "position-1", personId: "person-1", positionId: "director")],
+            positions: [
+              _buildPosition(id: "position-1", personId: "person-1", positionId: "director"),
+            ],
           ),
         ],
       );
@@ -255,7 +279,9 @@ void main() {
         _buildPerson(
           id: "person-1",
           firstName: "Léa",
-          positions: [_buildPosition(id: "position-1", personId: "person-1", positionId: "director")],
+          positions: [
+            _buildPosition(id: "position-1", personId: "person-1", positionId: "director"),
+          ],
         ),
       ];
 
@@ -268,7 +294,9 @@ void main() {
 
   group("the cast", () {
     test("an uncast role still gets its row, distinct from no role at all", () async {
-      final uncast = await generate(roles: [_buildRole(id: "role-1", number: 1, name: "LÉA")]);
+      final uncast = await generate(
+        roles: [_buildRole(id: "role-1", number: 1, name: "LÉA")],
+      );
       final empty = await generate();
 
       expect(_contentStreams(uncast), isNot(_contentStreams(empty)));
@@ -292,7 +320,10 @@ void main() {
   group("a person who holds no position and plays no role", () {
     test("appears nowhere: the document reads the same with or without them", () async {
       final withBystander = await generate(
-        people: [_buildPerson(id: "person-1", firstName: "Nobody"), _buildPerson(id: "person-2")],
+        people: [
+          _buildPerson(id: "person-1", firstName: "Nobody"),
+          _buildPerson(id: "person-2"),
+        ],
         roles: [_buildRole(id: "role-1", number: 1, name: "LÉA", personId: "person-2")],
       );
       final withoutBystander = await generate(
@@ -310,7 +341,9 @@ void main() {
         people: [
           _buildPerson(
             id: "person-1",
-            positions: [_buildPosition(id: "position-1", personId: "person-1", positionId: "director")],
+            positions: [
+              _buildPosition(id: "position-1", personId: "person-1", positionId: "director"),
+            ],
           ),
         ],
         exportDate: DateTime(2026, 8, 8, 14, 32),
@@ -319,7 +352,9 @@ void main() {
         people: [
           _buildPerson(
             id: "person-1",
-            positions: [_buildPosition(id: "position-1", personId: "person-1", positionId: "director")],
+            positions: [
+              _buildPosition(id: "position-1", personId: "person-1", positionId: "director"),
+            ],
           ),
         ],
         exportDate: DateTime(2026, 8, 8, 14, 32),
@@ -328,7 +363,9 @@ void main() {
         people: [
           _buildPerson(
             id: "person-1",
-            positions: [_buildPosition(id: "position-1", personId: "person-1", positionId: "director")],
+            positions: [
+              _buildPosition(id: "position-1", personId: "person-1", positionId: "director"),
+            ],
           ),
         ],
         exportDate: DateTime(2026, 8, 9, 9),

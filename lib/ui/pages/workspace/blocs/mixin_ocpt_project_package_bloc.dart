@@ -142,8 +142,10 @@ mixin MixinOcptProjectPackageBloc<S extends MixinOcptProjectPackageState<S>> on 
     }
 
     if (event.target == null && openProject!.isReadOnly) {
-      appLogger().w("A project package can't be written while a version is being previewed: it "
-          "would carry the working copy rather than what is on screen");
+      appLogger().w(
+        "A project package can't be written while a version is being previewed: it "
+        "would carry the working copy rather than what is on screen",
+      );
       return;
     }
 
@@ -151,8 +153,10 @@ mixin MixinOcptProjectPackageBloc<S extends MixinOcptProjectPackageState<S>> on 
 
     final preflight = projectsManager.scanProjectPackageAssets(projectFilePath: target.filePath);
     if (preflight == null) {
-      appLogger().e("The files referenced by the project at ${target.filePath} can't be scanned, "
-          "so no package can be written");
+      appLogger().e(
+        "The files referenced by the project at ${target.filePath} can't be scanned, "
+        "so no package can be written",
+      );
       _emitNotice(
         emitter,
         const OcptProjectPackageNotice(kind: OcptProjectPackageNoticeKind.exportFailed),
@@ -171,9 +175,8 @@ mixin MixinOcptProjectPackageBloc<S extends MixinOcptProjectPackageState<S>> on 
 
   /// The target an export defaults to when the request names none: the project currently open, or
   /// null while none is.
-  OcptProjectPackageTarget? _openProjectTarget(OcptOpenProjectModel? project) => project == null
-      ? null
-      : OcptProjectPackageTarget(filePath: project.path, name: project.name);
+  OcptProjectPackageTarget? _openProjectTarget(OcptOpenProjectModel? project) =>
+      project == null ? null : OcptProjectPackageTarget(filePath: project.path, name: project.name);
 
   /// Clears the missing-files question from the state, the mode having opened it.
   Future<void> _onMissingFilesAskDismissed(
@@ -235,8 +238,10 @@ mixin MixinOcptProjectPackageBloc<S extends MixinOcptProjectPackageState<S>> on 
         await _writeAndSavePackage(emitter, fileTypeLabel: fileTypeLabel, target: target);
       }
     } catch (error) {
-      appLogger().e("A problem occurred when tried to package the project at ${target.filePath}: "
-          "$error");
+      appLogger().e(
+        "A problem occurred when tried to package the project at ${target.filePath}: "
+        "$error",
+      );
       _emitNotice(
         emitter,
         const OcptProjectPackageNotice(kind: OcptProjectPackageNoticeKind.exportFailed),
@@ -338,8 +343,10 @@ mixin MixinOcptProjectPackageBloc<S extends MixinOcptProjectPackageState<S>> on 
 
     final report = result.value;
     if (!result.status.isSuccess || report == null) {
-      appLogger().e("The project at ${target.filePath} can't be packaged into $packagePath: "
-          "${result.status}");
+      appLogger().e(
+        "The project at ${target.filePath} can't be packaged into $packagePath: "
+        "${result.status}",
+      );
       _emitNotice(
         emitter,
         const OcptProjectPackageNotice(kind: OcptProjectPackageNoticeKind.exportFailed),

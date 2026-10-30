@@ -250,13 +250,16 @@ class _OcptBudgetRevenueFormBodyState extends State<OcptBudgetRevenueFormBody> {
                 labelText: tr.budgetEntryDialogAmountFieldLabel,
                 suffixText: currencySymbol,
               ),
-              validator: (value) =>
-                  ocptCostCentsOf(value ?? "") == null ? tr.budgetEntryDialogAmountInvalidError : null,
+              validator: (value) => ocptCostCentsOf(value ?? "") == null
+                  ? tr.budgetEntryDialogAmountInvalidError
+                  : null,
             ),
             const SizedBox(height: 12),
             Text(
               tr.budgetCommitmentDialogStatusFieldLabel.toUpperCase(),
-              style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
             ),
             const SizedBox(height: 4),
             _OcptRevenueStatusPicker(

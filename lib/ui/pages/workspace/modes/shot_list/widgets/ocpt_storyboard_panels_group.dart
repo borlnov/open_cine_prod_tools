@@ -336,7 +336,11 @@ class _AnnotationRow extends StatelessWidget {
           children: [
             Padding(
               padding: const EdgeInsets.only(top: 4, right: 8),
-              child: Icon(_iconOf(annotation.kind), size: 16, color: _colorOf(theme, annotation.kind)),
+              child: Icon(
+                _iconOf(annotation.kind),
+                size: 16,
+                color: _colorOf(theme, annotation.kind),
+              ),
             ),
             Expanded(
               child: Column(

@@ -47,16 +47,20 @@ void main() {
   /// Three postes, standing in for the ten the real CNC nomenclature ships — enough to prove the
   /// seeding, ordering and merge-safety rules without repeating all ten in every test.
   const seed = [
-    OcptBudgetPosteSeed(id: "poste-artistic", code: "1", label: "Artistic rights", simpleLabel: "Rights"),
+    OcptBudgetPosteSeed(
+      id: "poste-artistic",
+      code: "1",
+      label: "Artistic rights",
+      simpleLabel: "Rights",
+    ),
     OcptBudgetPosteSeed(id: "poste-crew", code: "2", label: "Personnel", simpleLabel: "Crew"),
     OcptBudgetPosteSeed(id: "poste-cast", code: "3", label: "Cast", simpleLabel: null),
   ];
 
   /// Every `budget_postes` row, tombstoned or not, in `sortKey` order.
-  Future<List<OcptBudgetPosteRow>> readAllPostes() =>
-      (database.select(database.ocptBudgetPostesTable)
-            ..orderBy([(table) => OrderingTerm.asc(table.sortKey)]))
-          .get();
+  Future<List<OcptBudgetPosteRow>> readAllPostes() => (database.select(
+    database.ocptBudgetPostesTable,
+  )..orderBy([(table) => OrderingTerm.asc(table.sortKey)])).get();
 
   group("seeding", () {
     test("loadPostes seeds the ten (here, three) CNC postes on an empty table", () async {
@@ -84,7 +88,12 @@ void main() {
       await service.loadPostes(
         database: database,
         seed: const [
-          OcptBudgetPosteSeed(id: "poste-other", code: "9", label: "Should never appear", simpleLabel: null),
+          OcptBudgetPosteSeed(
+            id: "poste-other",
+            code: "9",
+            label: "Should never appear",
+            simpleLabel: null,
+          ),
         ],
       );
 
@@ -202,21 +211,24 @@ void main() {
       posteId = (await service.createPoste(database: database, label: "Personnel"))!;
     });
 
-    test("createLine appends at the end of its own poste, defaulting the quantity to one", () async {
-      final firstId = await service.createLine(database: database, posteId: posteId, label: "DP");
-      final secondId = await service.createLine(
-        database: database,
-        posteId: posteId,
-        label: "1er assistant caméra",
-      );
+    test(
+      "createLine appends at the end of its own poste, defaulting the quantity to one",
+      () async {
+        final firstId = await service.createLine(database: database, posteId: posteId, label: "DP");
+        final secondId = await service.createLine(
+          database: database,
+          posteId: posteId,
+          label: "1er assistant caméra",
+        );
 
-      final poste = (await service.loadPostes(database: database, seed: const [])).single;
-      expect(poste.lines.map((line) => line.id), [firstId, secondId]);
-      expect(poste.lines.first.quantityMilli, 1000);
-      expect(poste.lines.first.unitPrice.amountCents, 0);
-      expect(poste.lines.first.unitPrice.isTaxInclusive, isTrue);
-      expect(poste.lines.first.unitPrice.vatRateBasisPoints, isNull);
-    });
+        final poste = (await service.loadPostes(database: database, seed: const [])).single;
+        expect(poste.lines.map((line) => line.id), [firstId, secondId]);
+        expect(poste.lines.first.quantityMilli, 1000);
+        expect(poste.lines.first.unitPrice.amountCents, 0);
+        expect(poste.lines.first.unitPrice.isTaxInclusive, isTrue);
+        expect(poste.lines.first.unitPrice.vatRateBasisPoints, isNull);
+      },
+    );
 
     test(
       "createLine can be minted from an element, carrying its own elementId and unit price",
@@ -279,11 +291,7 @@ void main() {
       final otherPosteId = (await service.createPoste(database: database, label: "Cast"))!;
 
       final lineA = await service.createLine(database: database, posteId: posteId, label: "A");
-      final lineB = await service.createLine(
-        database: database,
-        posteId: otherPosteId,
-        label: "B",
-      );
+      final lineB = await service.createLine(database: database, posteId: otherPosteId, label: "B");
 
       final postes = await service.loadPostes(database: database, seed: const []);
       final personnel = postes.firstWhere((poste) => poste.id == posteId);
@@ -294,7 +302,10 @@ void main() {
     });
 
     test("createLine can be minted linked to an in-kind contribution", () async {
-      final resourceId = await financingService.createResource(database: database, label: "Camera loan");
+      final resourceId = await financingService.createResource(
+        database: database,
+        label: "Camera loan",
+      );
       expect(resourceId, isNotNull);
 
       final lineId = await service.createLine(
@@ -315,11 +326,7 @@ void main() {
     });
 
     test("updateLine writes the money triple and the quantity", () async {
-      final lineId = (await service.createLine(
-        database: database,
-        posteId: posteId,
-        label: "DP",
-      ))!;
+      final lineId = (await service.createLine(database: database, posteId: posteId, label: "DP"))!;
 
       await service.updateLine(
         database: database,
@@ -341,7 +348,10 @@ void main() {
     });
 
     test("updateLine writes inKindResourceId", () async {
-      final resourceId = await financingService.createResource(database: database, label: "Camera loan");
+      final resourceId = await financingService.createResource(
+        database: database,
+        label: "Camera loan",
+      );
       expect(resourceId, isNotNull);
 
       final lineId = (await service.createLine(
@@ -350,7 +360,11 @@ void main() {
         label: "Camera loan",
       ))!;
 
-      await service.updateLine(database: database, lineId: lineId, inKindResourceId: Value(resourceId));
+      await service.updateLine(
+        database: database,
+        lineId: lineId,
+        inKindResourceId: Value(resourceId),
+      );
 
       final poste = (await service.loadPostes(database: database, seed: const [])).single;
       final line = poste.lines.single;
@@ -382,11 +396,7 @@ void main() {
     });
 
     test("deleteLine tombstones the line, filtered back out of a read", () async {
-      final lineId = (await service.createLine(
-        database: database,
-        posteId: posteId,
-        label: "DP",
-      ))!;
+      final lineId = (await service.createLine(database: database, posteId: posteId, label: "DP"))!;
 
       await service.deleteLine(database: database, lineId: lineId);
 
@@ -401,10 +411,7 @@ void main() {
 
     test("createLine is refused on the database of a version being previewed", () async {
       final preview = OcptProjectDatabase.memory(isPreview: true);
-      final previewPosteId = (await service.createPoste(
-        database: preview,
-        label: "Personnel",
-      ));
+      final previewPosteId = (await service.createPoste(database: preview, label: "Personnel"));
 
       // createPoste is itself refused, so there is no poste id to hand createLine — proving the
       // guard already stopped the write one level up.
@@ -440,7 +447,9 @@ void main() {
 
       final stamps = await readStamps();
       for (final posteSeed in seed) {
-        final ownKeys = stamps.keys.where((key) => key.startsWith("budget_postes/${posteSeed.id}/"));
+        final ownKeys = stamps.keys.where(
+          (key) => key.startsWith("budget_postes/${posteSeed.id}/"),
+        );
         expect(ownKeys, isNotEmpty);
       }
     });
@@ -481,11 +490,7 @@ void main() {
       final posteId = (await service.createPoste(database: database, label: "Personnel"))!;
       await database.delete(database.ocptRowFieldVersionsTable).go();
 
-      final lineId = (await service.createLine(
-        database: database,
-        posteId: posteId,
-        label: "DP",
-      ))!;
+      final lineId = (await service.createLine(database: database, posteId: posteId, label: "DP"))!;
 
       final stamps = await readStamps();
       final row = await (database.select(

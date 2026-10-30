@@ -165,7 +165,9 @@ class OcptBreakdownXlsxExportService {
     for (var columnIndex = 0; columnIndex < columns.length; columnIndex++) {
       sheet
           .cell(CellIndex.indexByColumnRow(columnIndex: columnIndex, rowIndex: headerRowIndex))
-          .cellStyle = CellStyle(bold: true);
+          .cellStyle = CellStyle(
+        bold: true,
+      );
     }
   }
 
@@ -305,11 +307,13 @@ class OcptBreakdownXlsxExportService {
   /// `OcptResourcesXlsxExportService._sceneLinksTextOf` already uses for a composite cell. A target
   /// tagged more than once in the scene therefore reads as more than one passage in this one cell,
   /// which is the whole point of writing one row per distinct target rather than one per tag.
-  String _passagesTextOf({required OcptBreakdownScene scene, required OcptBreakdownTarget target}) =>
-      scene.tags
-          .where((tag) => tag.targetKind == target.kind && tag.targetId == target.id)
-          .map((tag) => tag.taggedText)
-          .join("; ");
+  String _passagesTextOf({
+    required OcptBreakdownScene scene,
+    required OcptBreakdownTarget target,
+  }) => scene.tags
+      .where((tag) => tag.targetKind == target.kind && tag.targetId == target.id)
+      .map((tag) => tag.taggedText)
+      .join("; ");
 
   /// The `scene_elements` link of [element] onto [sceneId], or null while [element] is null (a role
   /// or a set, neither carrying one) or holds no link for that scene.
@@ -330,7 +334,10 @@ class OcptBreakdownXlsxExportService {
   /// The name of [element]'s owner, or null while it has none — a role or a set never has one
   /// ([element] itself is then null), and an element's own `ownerPersonId` may be unset or may name
   /// somebody the address book no longer holds (an erased person, whose row the erasure tombstoned).
-  String? _ownerNameOf({required OcptElement? element, required Map<String, OcptPerson> personById}) {
+  String? _ownerNameOf({
+    required OcptElement? element,
+    required Map<String, OcptPerson> personById,
+  }) {
     final ownerPersonId = element?.ownerPersonId;
     if (ownerPersonId == null) {
       return null;

@@ -41,7 +41,13 @@ class OcptStoryboardAnnotationOverlay extends StatefulWidget {
 
   /// Called with the new mark's kind and its normalised tail/head once a drag finishes drawing an
   /// arrow, or null while withheld.
-  final void Function(OcptStoryboardAnnotationKind kind, double x1, double y1, double x2, double y2)?
+  final void Function(
+    OcptStoryboardAnnotationKind kind,
+    double x1,
+    double y1,
+    double x2,
+    double y2,
+  )?
   onArrowDrawn;
 
   /// Called with the normalised point a label was just clicked into place at, or null while

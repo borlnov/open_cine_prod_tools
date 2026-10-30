@@ -48,8 +48,7 @@ class OcptFountainLineAttributions {
   /// Falls back to [FountainLineType.action] when [value] isn't one of ours (e.g. a brand new
   /// node that hasn't been classified yet), which is also the classifier's own fallback for
   /// unrecognized lines.
-  static FountainLineType typeOfAttributionValue(Object? value) =>
-      value is NamedAttribution
-          ? (_typesByAttributionName[value.name] ?? FountainLineType.action)
-          : FountainLineType.action;
+  static FountainLineType typeOfAttributionValue(Object? value) => value is NamedAttribution
+      ? (_typesByAttributionName[value.name] ?? FountainLineType.action)
+      : FountainLineType.action;
 }

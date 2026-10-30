@@ -196,8 +196,7 @@ void main() {
     });
 
     test('a doubling r scaler doubles the card corner radius', () {
-      final identityShape =
-          ocptTheme.lightThemeData!.cardTheme.shape as RoundedRectangleBorder?;
+      final identityShape = ocptTheme.lightThemeData!.cardTheme.shape as RoundedRectangleBorder?;
       final identityRadius = (identityShape?.borderRadius as BorderRadius?)?.topLeft.x;
 
       final model = buildOcptThemeModel(r: (v) => v * 2);

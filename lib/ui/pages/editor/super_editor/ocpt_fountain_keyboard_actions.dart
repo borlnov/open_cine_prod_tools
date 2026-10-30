@@ -100,7 +100,10 @@ final Set<SuperEditorKeyboardAction> _ocptExcludedDefaultActions = {
 /// by `OcptFountainTabInterceptor` (`ocpt_fountain_ime_overrides.dart`), which calls
 /// [ocptCycleBlockTypeAtSelection] directly (always forward, since Shift+Tab never travels through
 /// the IME delta channel).
-ExecutionInstruction ocptTabToCycleBlockType({required SuperEditorContext editContext, required KeyEvent keyEvent}) {
+ExecutionInstruction ocptTabToCycleBlockType({
+  required SuperEditorContext editContext,
+  required KeyEvent keyEvent,
+}) {
   if (keyEvent is! KeyDownEvent && keyEvent is! KeyRepeatEvent) {
     return ExecutionInstruction.continueExecution;
   }
@@ -147,12 +150,18 @@ bool ocptCycleBlockTypeAtSelection({
     return false;
   }
 
-  final currentType = OcptFountainLineAttributions.typeOfAttributionValue(node.getMetadataValue("blockType"));
+  final currentType = OcptFountainLineAttributions.typeOfAttributionValue(
+    node.getMetadataValue("blockType"),
+  );
   final nextType = _ocptCycleType(currentType, reversed: reversed);
 
   editor.execute([
     ...ocptManualBlockTypeRequests(nodeId: node.id, type: nextType),
-    ...ocptParentheticalTemplateRequests(nodeId: node.id, type: nextType, isNodeEmpty: node.text.isEmpty),
+    ...ocptParentheticalTemplateRequests(
+      nodeId: node.id,
+      type: nextType,
+      isNodeEmpty: node.text.isEmpty,
+    ),
   ]);
   return true;
 }
@@ -165,8 +174,14 @@ bool ocptCycleBlockTypeAtSelection({
 /// Shared by [ocptTabToCycleBlockType] and the toolbar's block-type dropdown
 /// (`OcptStyledEditorControllerDelegate.applyBlockType`): both are the same "manual override"
 /// gesture, so both must produce the exact same requests.
-List<EditRequest> ocptManualBlockTypeRequests({required String nodeId, required FountainLineType type}) => [
-  ChangeParagraphBlockTypeRequest(nodeId: nodeId, blockType: OcptFountainLineAttributions.attributionOf(type)),
+List<EditRequest> ocptManualBlockTypeRequests({
+  required String nodeId,
+  required FountainLineType type,
+}) => [
+  ChangeParagraphBlockTypeRequest(
+    nodeId: nodeId,
+    blockType: OcptFountainLineAttributions.attributionOf(type),
+  ),
   OcptChangeNodeMetadataRequest(
     nodeId: nodeId,
     metadata: {ocptTypeLockedMetadataKey: true, ocptHadForcingMarkerMetadataKey: false},
@@ -257,11 +272,15 @@ FountainLineType _ocptCycleType(FountainLineType current, {required bool reverse
 ///
 /// Both cases clear any forcing-marker flag on the new node: it was never decoded from source
 /// text, so it never "had" one.
-ExecutionInstruction ocptEnterToSmartSplit({required SuperEditorContext editContext, required KeyEvent keyEvent}) {
+ExecutionInstruction ocptEnterToSmartSplit({
+  required SuperEditorContext editContext,
+  required KeyEvent keyEvent,
+}) {
   if (keyEvent is! KeyDownEvent && keyEvent is! KeyRepeatEvent) {
     return ExecutionInstruction.continueExecution;
   }
-  if (keyEvent.logicalKey != LogicalKeyboardKey.enter && keyEvent.logicalKey != LogicalKeyboardKey.numpadEnter) {
+  if (keyEvent.logicalKey != LogicalKeyboardKey.enter &&
+      keyEvent.logicalKey != LogicalKeyboardKey.numpadEnter) {
     return ExecutionInstruction.continueExecution;
   }
 
@@ -280,7 +299,9 @@ ExecutionInstruction ocptEnterToSmartSplit({required SuperEditorContext editCont
     return _splitTitlePageField(editContext: editContext, node: node, splitPosition: splitPosition);
   }
 
-  final currentType = OcptFountainLineAttributions.typeOfAttributionValue(node.getMetadataValue("blockType"));
+  final currentType = OcptFountainLineAttributions.typeOfAttributionValue(
+    node.getMetadataValue("blockType"),
+  );
   final isShiftEnter = HardwareKeyboard.instance.isShiftPressed;
   final splitsAtEnd = splitPosition.offset == node.text.toPlainText().length;
   final newType = isShiftEnter || !splitsAtEnd ? currentType : _ocptSmartEnterNextType(currentType);
@@ -296,12 +317,18 @@ ExecutionInstruction ocptEnterToSmartSplit({required SuperEditorContext editCont
     ),
     ChangeSelectionRequest(
       DocumentSelection.collapsed(
-        position: DocumentPosition(nodeId: newNodeId, nodePosition: const TextNodePosition(offset: 0)),
+        position: DocumentPosition(
+          nodeId: newNodeId,
+          nodePosition: const TextNodePosition(offset: 0),
+        ),
       ),
       SelectionChangeType.insertContent,
       SelectionReason.userInteraction,
     ),
-    ChangeParagraphBlockTypeRequest(nodeId: newNodeId, blockType: OcptFountainLineAttributions.attributionOf(newType)),
+    ChangeParagraphBlockTypeRequest(
+      nodeId: newNodeId,
+      blockType: OcptFountainLineAttributions.attributionOf(newType),
+    ),
     OcptChangeNodeMetadataRequest(
       nodeId: newNodeId,
       metadata: {
@@ -316,7 +343,11 @@ ExecutionInstruction ocptEnterToSmartSplit({required SuperEditorContext editCont
     // the new node and must never be prefixed with `()`) so the three gestures that can set a
     // block's type can never drift apart if that map ever changes to add such a mapping later. Do
     // not "simplify" this away, and do not change `_ocptSmartEnterNextType` to fill that gap here.
-    ...ocptParentheticalTemplateRequests(nodeId: newNodeId, type: newType, isNodeEmpty: splitsAtEnd),
+    ...ocptParentheticalTemplateRequests(
+      nodeId: newNodeId,
+      type: newType,
+      isNodeEmpty: splitsAtEnd,
+    ),
   ]);
 
   return ExecutionInstruction.haltExecution;
@@ -345,7 +376,10 @@ ExecutionInstruction _splitTitlePageField({
     ),
     ChangeSelectionRequest(
       DocumentSelection.collapsed(
-        position: DocumentPosition(nodeId: newNodeId, nodePosition: const TextNodePosition(offset: 0)),
+        position: DocumentPosition(
+          nodeId: newNodeId,
+          nodePosition: const TextNodePosition(offset: 0),
+        ),
       ),
       SelectionChangeType.insertContent,
       SelectionReason.userInteraction,
@@ -373,13 +407,18 @@ FountainLineType _ocptSmartEnterNextType(FountainLineType current) => switch (cu
 /// private rule: a smart-Enter continuation into one of these types needs no blank line to
 /// auto-detect (dialogue/parenthetical are purely contextual).
 bool _ocptIsDialogueGroupMember(FountainLineType type) =>
-    type == FountainLineType.character || type == FountainLineType.parenthetical || type == FountainLineType.dialogue;
+    type == FountainLineType.character ||
+    type == FountainLineType.parenthetical ||
+    type == FountainLineType.dialogue;
 
 /// Ctrl+U / Cmd+U: toggles [underlineAttribution] on the current selection (or, when collapsed, on
 /// the composer's pending style preferences for the next typed character), mirroring the
 /// inherited `cmdBToToggleBold`/`cmdIToToggleItalics` defaults exactly, just for underline (which
 /// super_editor has no built-in shortcut for).
-ExecutionInstruction ocptCmdUToToggleUnderline({required SuperEditorContext editContext, required KeyEvent keyEvent}) {
+ExecutionInstruction ocptCmdUToToggleUnderline({
+  required SuperEditorContext editContext,
+  required KeyEvent keyEvent,
+}) {
   if (keyEvent is! KeyDownEvent && keyEvent is! KeyRepeatEvent) {
     return ExecutionInstruction.continueExecution;
   }
@@ -438,22 +477,25 @@ SuperEditorKeyboardAction ocptUndoAction({required VoidCallback onUndo}) =>
 /// The state [onRedo] belongs to is what refuses that (see its `canRedo`), and this action halts
 /// whether it was honoured or refused: the shortcut was handled either way, and letting it
 /// continue would only hand it to a default binding this file already excludes.
-SuperEditorKeyboardAction ocptRedoAction({required VoidCallback onRedo}) =>
-    ({required SuperEditorContext editContext, required KeyEvent keyEvent}) {
-      if (keyEvent is! KeyDownEvent && keyEvent is! KeyRepeatEvent) {
-        return ExecutionInstruction.continueExecution;
-      }
-      if (!keyEvent.isPrimaryShortcutKeyPressed) {
-        return ExecutionInstruction.continueExecution;
-      }
+SuperEditorKeyboardAction ocptRedoAction({
+  required VoidCallback onRedo,
+}) => ({required SuperEditorContext editContext, required KeyEvent keyEvent}) {
+  if (keyEvent is! KeyDownEvent && keyEvent is! KeyRepeatEvent) {
+    return ExecutionInstruction.continueExecution;
+  }
+  if (!keyEvent.isPrimaryShortcutKeyPressed) {
+    return ExecutionInstruction.continueExecution;
+  }
 
-      final isShiftZ = keyEvent.logicalKey == LogicalKeyboardKey.keyZ && HardwareKeyboard.instance.isShiftPressed;
-      final isPlainY = keyEvent.logicalKey == LogicalKeyboardKey.keyY && !HardwareKeyboard.instance.isShiftPressed;
-      if (!isShiftZ && !isPlainY) {
-        return ExecutionInstruction.continueExecution;
-      }
+  final isShiftZ =
+      keyEvent.logicalKey == LogicalKeyboardKey.keyZ && HardwareKeyboard.instance.isShiftPressed;
+  final isPlainY =
+      keyEvent.logicalKey == LogicalKeyboardKey.keyY && !HardwareKeyboard.instance.isShiftPressed;
+  if (!isShiftZ && !isPlainY) {
+    return ExecutionInstruction.continueExecution;
+  }
 
-      onRedo();
+  onRedo();
 
-      return ExecutionInstruction.haltExecution;
-    };
+  return ExecutionInstruction.haltExecution;
+};

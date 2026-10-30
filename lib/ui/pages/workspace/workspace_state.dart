@@ -75,9 +75,7 @@ class OcptWorkspaceState extends BlocStateForMixin<OcptWorkspaceState> {
     mode: mode ?? this.mode,
     revealRequest: clearRevealRequest ? null : revealRequest ?? this.revealRequest,
     episodes: episodes ?? this.episodes,
-    selectedEpisodeId: clearSelectedEpisodeId
-        ? null
-        : selectedEpisodeId ?? this.selectedEpisodeId,
+    selectedEpisodeId: clearSelectedEpisodeId ? null : selectedEpisodeId ?? this.selectedEpisodeId,
   );
 
   /// Object properties

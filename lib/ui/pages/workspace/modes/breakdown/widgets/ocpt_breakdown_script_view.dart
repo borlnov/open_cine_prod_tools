@@ -809,7 +809,9 @@ class _OcptBreakdownScriptBlock extends StatelessWidget {
     final startOffset = anchor.wordStartOffset <= word.startOffset
         ? anchor.wordStartOffset
         : word.startOffset;
-    final endOffset = anchor.wordEndOffset >= word.endOffset ? anchor.wordEndOffset : word.endOffset;
+    final endOffset = anchor.wordEndOffset >= word.endOffset
+        ? anchor.wordEndOffset
+        : word.endOffset;
 
     return scene.tags.any((tag) => startOffset < tag.endOffset && tag.startOffset < endOffset);
   }
@@ -974,7 +976,10 @@ TextAlign _textAlignOf(FountainElementLayout element) => switch (element.alignme
 List<InlineSpan> _spansOf(OcptScriptWordBlock block, bool isUppercase, TextStyle base) => [
   for (final wordRuns in ocptFountainWordDisplayRuns(block))
     for (final run in wordRuns)
-      TextSpan(text: isUppercase ? run.text.toUpperCase() : run.text, style: _runStyleOf(run.style, base)),
+      TextSpan(
+        text: isUppercase ? run.text.toUpperCase() : run.text,
+        style: _runStyleOf(run.style, base),
+      ),
 ];
 
 /// Applies a run's own inline emphasis on top of [base], mirroring `OcptShotCoverageDialog`'s own
@@ -1175,11 +1180,7 @@ class _OcptBreakdownWord extends StatelessWidget {
 
     final content = MouseRegion(
       cursor: onTap == null ? SystemMouseCursors.basic : SystemMouseCursors.click,
-      child: GestureDetector(
-        onTap: onTap,
-        behavior: HitTestBehavior.opaque,
-        child: wordBody,
-      ),
+      child: GestureDetector(onTap: onTap, behavior: HitTestBehavior.opaque, child: wordBody),
     );
 
     if (tooltip == null) {

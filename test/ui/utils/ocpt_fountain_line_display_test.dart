@@ -14,9 +14,8 @@ OcptScriptWordBlock _blockOf(String sceneText, {int index = 0}) =>
 
 /// The whole printed text of [block]'s words, runs and words concatenated back together: what the
 /// coverage sheet ends up showing for that line.
-String _printedTextOf(OcptScriptWordBlock block) => ocptFountainWordDisplayRuns(
-  block,
-).expand((runs) => runs).map((run) => run.text).join();
+String _printedTextOf(OcptScriptWordBlock block) =>
+    ocptFountainWordDisplayRuns(block).expand((runs) => runs).map((run) => run.text).join();
 
 void main() {
   group("ocptFountainWordDisplayRuns", () {

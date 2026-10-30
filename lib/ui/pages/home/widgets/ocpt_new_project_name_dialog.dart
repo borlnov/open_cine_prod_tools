@@ -19,14 +19,11 @@ class OcptNewProjectNameDialog extends StatefulWidget {
   const OcptNewProjectNameDialog({super.key});
 
   /// Shows the dialog and returns the name entered by the user, or null if they cancelled it.
-  static Future<String?> show(BuildContext context) => showDialog<String>(
-    context: context,
-    builder: (context) => const OcptNewProjectNameDialog(),
-  );
+  static Future<String?> show(BuildContext context) =>
+      showDialog<String>(context: context, builder: (context) => const OcptNewProjectNameDialog());
 
   @override
-  State<OcptNewProjectNameDialog> createState() =>
-      _OcptNewProjectNameDialogState();
+  State<OcptNewProjectNameDialog> createState() => _OcptNewProjectNameDialogState();
 }
 
 /// The state of [OcptNewProjectNameDialog].
@@ -51,9 +48,8 @@ class _OcptNewProjectNameDialogState extends State<OcptNewProjectNameDialog> {
       controller: _nameController,
       autofocus: true,
       decoration: InputDecoration(labelText: tr.homeNewProjectDialogNameLabel),
-      validator: (value) => (value == null || value.trim().isEmpty)
-          ? tr.homeNewProjectDialogNameEmptyError
-          : null,
+      validator: (value) =>
+          (value == null || value.trim().isEmpty) ? tr.homeNewProjectDialogNameEmptyError : null,
       onFieldSubmitted: (_) => _submit(),
     );
 
@@ -68,10 +64,7 @@ class _OcptNewProjectNameDialogState extends State<OcptNewProjectNameDialog> {
             ),
             title: Text(tr.homeNewProjectDialogTitle),
             actions: [
-              TextButton(
-                onPressed: _submit,
-                child: Text(tr.homeNewProjectDialogCreateAction),
-              ),
+              TextButton(onPressed: _submit, child: Text(tr.homeNewProjectDialogCreateAction)),
             ],
           ),
           body: Padding(
@@ -90,10 +83,7 @@ class _OcptNewProjectNameDialogState extends State<OcptNewProjectNameDialog> {
           onPressed: () => globalGetIt().get<OcptRouterManager>().pop(),
           child: Text(tr.homeNewProjectDialogCancelAction),
         ),
-        FilledButton(
-          onPressed: _submit,
-          child: Text(tr.homeNewProjectDialogCreateAction),
-        ),
+        FilledButton(onPressed: _submit, child: Text(tr.homeNewProjectDialogCreateAction)),
       ],
     );
   }

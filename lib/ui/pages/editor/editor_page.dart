@@ -194,7 +194,8 @@ class _EditorViewState extends State<_EditorView> {
   /// being previewed, or the bar is closed), so the next time it applies again always recomputes
   /// and re-reports rather than trusting a coincidental match against stale state from before the
   /// gap — see [_syncRawSearch]'s own doc comment.
-  ({String query, bool isCaseSensitive, bool isWholeWord, String text})? _lastReportedRawSearchInputs;
+  ({String query, bool isCaseSensitive, bool isWholeWord, String text})?
+  _lastReportedRawSearchInputs;
 
   /// The `(query, isCaseSensitive, isWholeWord, currentMatchIndex)` combination the raw
   /// controller's selection/scroll were last navigated to.
@@ -292,14 +293,16 @@ class _EditorViewState extends State<_EditorView> {
   /// [OcptEditorState.mode], unless [_isPhoneWidth] forces the styled editor regardless. The
   /// user's own raw/styled toggle (the toolbar icon, Ctrl+Shift+M) is left untouched by this —
   /// it keeps persisting whatever the user picks, and widening the window back out returns to it.
-  OcptEditorMode _liveMode(OcptEditorState state) => _isPhoneWidth ? OcptEditorMode.styled : state.mode;
+  OcptEditorMode _liveMode(OcptEditorState state) =>
+      _isPhoneWidth ? OcptEditorMode.styled : state.mode;
 
   /// Whether page simulation is actually applied to the live editing surface:
   /// [OcptEditorState.isPageSimulationEnabled], forced off at [_isPhoneWidth] for the same reason
   /// [_liveMode] forces the mode — a real-size simulated page has no room to be legible on a
   /// phone. The user's own toggle is left untouched the same way [_liveMode] leaves the mode
   /// toggle untouched.
-  bool _isPageSimulationLive(OcptEditorState state) => state.isPageSimulationEnabled && !_isPhoneWidth;
+  bool _isPageSimulationLive(OcptEditorState state) =>
+      state.isPageSimulationEnabled && !_isPhoneWidth;
 
   @override
   Widget build(BuildContext context) => Shortcuts(
@@ -324,7 +327,9 @@ class _EditorViewState extends State<_EditorView> {
         _ReplaceIntent: CallbackAction<_ReplaceIntent>(
           onInvoke: (intent) => _requestOpenSearch(withReplaceRow: true),
         ),
-        _CloseFindIntent: CallbackAction<_CloseFindIntent>(onInvoke: (intent) => _requestCloseSearch()),
+        _CloseFindIntent: CallbackAction<_CloseFindIntent>(
+          onInvoke: (intent) => _requestCloseSearch(),
+        ),
       },
       child: Scaffold(
         body: BlocConsumer<OcptEditorBloc, OcptEditorState>(
@@ -342,9 +347,8 @@ class _EditorViewState extends State<_EditorView> {
               title: state.title,
               isDirty: state.isDirty,
               isReadOnly: isReadOnly,
-              onBack: () => context.read<OcptEditorBloc>().add(
-                const OcptEditorBackRequestedEvent(),
-              ),
+              onBack: () =>
+                  context.read<OcptEditorBloc>().add(const OcptEditorBackRequestedEvent()),
               episodes: workspaceState.episodes,
               selectedEpisodeId: workspaceState.selectedEpisodeId,
               onEpisodeSelected: (episodeId) => context.read<OcptWorkspaceBloc>().add(
@@ -363,13 +367,11 @@ class _EditorViewState extends State<_EditorView> {
               onExportRequested: (anchor) => unawaited(_requestExport(context, anchor)),
               overflowEntries: _buildOverflowEntries(context, state),
               isLeftDockOpen: state.isScenePanelVisible,
-              onToggleLeftDock: () => context.read<OcptEditorBloc>().add(
-                const OcptEditorScenePanelToggledEvent(),
-              ),
+              onToggleLeftDock: () =>
+                  context.read<OcptEditorBloc>().add(const OcptEditorScenePanelToggledEvent()),
               isRightDockOpen: state.rightDockTab != null,
-              onToggleRightDock: () => context.read<OcptEditorBloc>().add(
-                const OcptEditorRightDockToggledEvent(),
-              ),
+              onToggleRightDock: () =>
+                  context.read<OcptEditorBloc>().add(const OcptEditorRightDockToggledEvent()),
               // A previewed version has nothing to save: the whole point of the preview is that
               // nothing the user does reaches the project.
               onSave: isReadOnly ? null : _requestManualSave,
@@ -419,9 +421,8 @@ class _EditorViewState extends State<_EditorView> {
           safetyVersionName: tr.projectVersionRestoreSafetyName(previewedVersion.name),
         ),
       ),
-      onExitPreview: () => context.read<OcptEditorBloc>().add(
-        const OcptProjectVersionPreviewExitRequestedEvent(),
-      ),
+      onExitPreview: () =>
+          context.read<OcptEditorBloc>().add(const OcptProjectVersionPreviewExitRequestedEvent()),
     );
   }
 
@@ -576,23 +577,19 @@ class _EditorViewState extends State<_EditorView> {
       // a phone width or not.
       CheckedPopupMenuItem<void>(
         checked: state.isPageSimulationEnabled,
-        onTap: () => context.read<OcptEditorBloc>().add(
-          const OcptEditorPageSimulationToggledEvent(),
-        ),
+        onTap: () =>
+            context.read<OcptEditorBloc>().add(const OcptEditorPageSimulationToggledEvent()),
         child: Text(tr.editorTogglePageSimulationAction),
       ),
       CheckedPopupMenuItem<void>(
         checked: state.areStyledSceneNumbersVisible,
-        onTap: () => context.read<OcptEditorBloc>().add(
-          const OcptEditorStyledSceneNumbersToggledEvent(),
-        ),
+        onTap: () =>
+            context.read<OcptEditorBloc>().add(const OcptEditorStyledSceneNumbersToggledEvent()),
         child: Text(tr.editorToggleSceneNumbersAction),
       ),
       CheckedPopupMenuItem<void>(
         checked: state.isSpellCheckVisible,
-        onTap: () => context.read<OcptEditorBloc>().add(
-          const OcptEditorSpellCheckToggledEvent(),
-        ),
+        onTap: () => context.read<OcptEditorBloc>().add(const OcptEditorSpellCheckToggledEvent()),
         child: Text(tr.editorToggleSpellCheckAction),
       ),
       if (!isReadOnly) ...[
@@ -606,9 +603,7 @@ class _EditorViewState extends State<_EditorView> {
         ),
       ],
       PopupMenuItem<void>(
-        onTap: () => context.read<OcptEditorBloc>().add(
-          const OcptEditorDockLayoutResetEvent(),
-        ),
+        onTap: () => context.read<OcptEditorBloc>().add(const OcptEditorDockLayoutResetEvent()),
         child: Text(tr.editorResetPanelLayoutAction),
       ),
     ];
@@ -666,22 +661,18 @@ class _EditorViewState extends State<_EditorView> {
             usesPaperColorsWhileFluid: _isPhoneWidth,
             areSceneNumbersVisible: state.areStyledSceneNumbersVisible,
             isSpellCheckVisible: state.isSpellCheckVisible,
-            onTextChanged: (text) => context.read<OcptEditorBloc>().add(
-              OcptEditorTextChangedEvent(text: text),
-            ),
-            onCaretLineChanged: (line) => context.read<OcptEditorBloc>().add(
-              OcptEditorCaretMovedEvent(line: line),
-            ),
+            onTextChanged: (text) =>
+                context.read<OcptEditorBloc>().add(OcptEditorTextChangedEvent(text: text)),
+            onCaretLineChanged: (line) =>
+                context.read<OcptEditorBloc>().add(OcptEditorCaretMovedEvent(line: line)),
             jumpRequest: state.jumpRequest,
             styledController: _styledEditorController,
             onSpellingSuggestionsRequested: (word) =>
                 context.read<OcptEditorBloc>().spellingSuggestionsFor(word),
-            onWordIgnored: (word) => context.read<OcptEditorBloc>().add(
-              OcptEditorWordIgnoredEvent(word: word),
-            ),
-            onWordLearned: (word) => context.read<OcptEditorBloc>().add(
-              OcptEditorWordLearnedEvent(word: word),
-            ),
+            onWordIgnored: (word) =>
+                context.read<OcptEditorBloc>().add(OcptEditorWordIgnoredEvent(word: word)),
+            onWordLearned: (word) =>
+                context.read<OcptEditorBloc>().add(OcptEditorWordLearnedEvent(word: word)),
           );
 
     // The find/replace bar is a *slot* that is always there — an empty box while it is closed —
@@ -735,11 +726,15 @@ class _EditorViewState extends State<_EditorView> {
       // `OcptStyledEditorController`, the styled editor's own bridge — either way the button
       // stays enabled the moment there's at least one match (`OcptEditorFindBar` itself gates
       // that on `matchCount`), which the repository rule admits no second, mode-specific path.
-      onReplaceRequested: () => isRawMode ? _requestRawReplace(state) : _requestStyledReplace(state),
+      onReplaceRequested: () =>
+          isRawMode ? _requestRawReplace(state) : _requestStyledReplace(state),
       onReplaceAllRequested: () => unawaited(
-        isRawMode ? _requestRawReplaceAll(context, state) : _requestStyledReplaceAll(context, state),
+        isRawMode
+            ? _requestRawReplaceAll(context, state)
+            : _requestStyledReplaceAll(context, state),
       ),
-      onCloseRequested: () => context.read<OcptEditorBloc>().add(const OcptEditorSearchClosedEvent()),
+      onCloseRequested: () =>
+          context.read<OcptEditorBloc>().add(const OcptEditorSearchClosedEvent()),
     );
   }
 
@@ -787,9 +782,8 @@ class _EditorViewState extends State<_EditorView> {
         onEditTitlePage: state.isPreviewingVersion ? null : () => _requestTitlePage(context),
       ),
       versionsChild: _buildVersionsPanel(context, state),
-      onTabSelected: (tab) => context.read<OcptEditorBloc>().add(
-        OcptEditorRightDockTabSelectedEvent(tab: tab),
-      ),
+      onTabSelected: (tab) =>
+          context.read<OcptEditorBloc>().add(OcptEditorRightDockTabSelectedEvent(tab: tab)),
       onClose: () => context.read<OcptEditorBloc>().add(const OcptEditorRightDockClosedEvent()),
     );
   }
@@ -809,15 +803,13 @@ class _EditorViewState extends State<_EditorView> {
         onPreviewRequested: (versionId) => context.read<OcptEditorBloc>().add(
           OcptProjectVersionPreviewRequestedEvent(versionId: versionId),
         ),
-        onPreviewExitRequested: () => context.read<OcptEditorBloc>().add(
-          const OcptProjectVersionPreviewExitRequestedEvent(),
-        ),
+        onPreviewExitRequested: () =>
+            context.read<OcptEditorBloc>().add(const OcptProjectVersionPreviewExitRequestedEvent()),
         onRestoreRequested: (versionId) => context.read<OcptEditorBloc>().add(
           OcptProjectVersionRestoreRequestedEvent(versionId: versionId),
         ),
-        onRestoreCancelled: () => context.read<OcptEditorBloc>().add(
-          const OcptProjectVersionRestoreCancelledEvent(),
-        ),
+        onRestoreCancelled: () =>
+            context.read<OcptEditorBloc>().add(const OcptProjectVersionRestoreCancelledEvent()),
         onRestoreConfirmed: (version) => context.read<OcptEditorBloc>().add(
           OcptProjectVersionRestoreConfirmedEvent(
             versionId: version.id,
@@ -827,18 +819,16 @@ class _EditorViewState extends State<_EditorView> {
         onDeleteRequested: (versionId) => context.read<OcptEditorBloc>().add(
           OcptProjectVersionDeletionRequestedEvent(versionId: versionId),
         ),
-        onDeleteCancelled: () => context.read<OcptEditorBloc>().add(
-          const OcptProjectVersionDeletionCancelledEvent(),
-        ),
+        onDeleteCancelled: () =>
+            context.read<OcptEditorBloc>().add(const OcptProjectVersionDeletionCancelledEvent()),
         onDeleteConfirmed: (versionId) => context.read<OcptEditorBloc>().add(
           OcptProjectVersionDeletionConfirmedEvent(versionId: versionId),
         ),
         onRenameRequested: (versionId) => context.read<OcptEditorBloc>().add(
           OcptProjectVersionRenameRequestedEvent(versionId: versionId),
         ),
-        onRenameCancelled: () => context.read<OcptEditorBloc>().add(
-          const OcptProjectVersionRenameCancelledEvent(),
-        ),
+        onRenameCancelled: () =>
+            context.read<OcptEditorBloc>().add(const OcptProjectVersionRenameCancelledEvent()),
         onRenameConfirmed: (versionId, name, note) => context.read<OcptEditorBloc>().add(
           OcptProjectVersionRenameConfirmedEvent(versionId: versionId, name: name, note: note),
         ),
@@ -852,9 +842,7 @@ class _EditorViewState extends State<_EditorView> {
       return;
     }
 
-    bloc.add(
-      OcptProjectVersionCreationRequestedEvent(name: fields.name, note: fields.note),
-    );
+    bloc.add(OcptProjectVersionCreationRequestedEvent(name: fields.name, note: fields.note));
   }
 
   /// Builds the shell's `statusBar`: the screenplay's own ordered counters (pages, scenes,
@@ -1244,7 +1232,8 @@ class _EditorViewState extends State<_EditorView> {
 
     final bloc = context.read<OcptEditorBloc>();
     final state = bloc.state;
-    final isStyledSurfaceLive = _liveMode(state) == OcptEditorMode.styled && !state.isPreviewingVersion;
+    final isStyledSurfaceLive =
+        _liveMode(state) == OcptEditorMode.styled && !state.isPreviewingVersion;
 
     if (isStyledSurfaceLive) {
       final spellCheckTexts = _styledEditorController.spellCheckTextsByNodeId;
@@ -1439,7 +1428,10 @@ class _EditorViewState extends State<_EditorView> {
   /// it.
   Future<void> _requestExportPdf(BuildContext context, Rect? shareAnchor) async {
     final bloc = context.read<OcptEditorBloc>();
-    final options = await OcptEditorExportPdfOptionsDialog.show(context, current: bloc.state.pageSetup);
+    final options = await OcptEditorExportPdfOptionsDialog.show(
+      context,
+      current: bloc.state.pageSetup,
+    );
     if (options == null) {
       return;
     }
@@ -1548,7 +1540,8 @@ class _EditorViewState extends State<_EditorView> {
       try {
         final previousSelection = _textController.selection;
         _textController.text = state.text;
-        _textController.selection = previousSelection.isValid && previousSelection.end <= state.text.length
+        _textController.selection =
+            previousSelection.isValid && previousSelection.end <= state.text.length
             ? previousSelection
             : const TextSelection.collapsed(offset: 0);
         _lastReportedText = state.text;
@@ -1600,9 +1593,7 @@ class _EditorViewState extends State<_EditorView> {
 
     final packagePendingExport = state.projectPackagePendingExport;
     if (packagePendingExport != null) {
-      context.read<OcptEditorBloc>().add(
-        const OcptProjectPackageMissingFilesAskDismissedEvent(),
-      );
+      context.read<OcptEditorBloc>().add(const OcptProjectPackageMissingFilesAskDismissedEvent());
       unawaited(_askAboutMissingPackagedFiles(context, packagePendingExport));
     }
 
@@ -1666,16 +1657,18 @@ class _EditorViewState extends State<_EditorView> {
     final tr = Tr.of(context);
 
     return switch (notice.kind) {
-      OcptEditorIoNoticeKind.exportSucceeded => notice.wasShared
-          ? tr.exportSharedMessage
-          : tr.editorExportSuccessMessage(notice.path ?? ""),
+      OcptEditorIoNoticeKind.exportSucceeded =>
+        notice.wasShared
+            ? tr.exportSharedMessage
+            : tr.editorExportSuccessMessage(notice.path ?? ""),
       OcptEditorIoNoticeKind.exportFailed => tr.editorExportError,
       OcptEditorIoNoticeKind.importSucceeded => tr.editorImportSuccessMessage,
       OcptEditorIoNoticeKind.importFailed => tr.editorImportError,
       OcptEditorIoNoticeKind.importUnreadable => tr.editorImportUnreadableError,
-      OcptEditorIoNoticeKind.pdfExportSucceeded => notice.wasShared
-          ? tr.exportSharedMessage
-          : tr.editorExportPdfSuccessMessage(notice.path ?? ""),
+      OcptEditorIoNoticeKind.pdfExportSucceeded =>
+        notice.wasShared
+            ? tr.exportSharedMessage
+            : tr.editorExportPdfSuccessMessage(notice.path ?? ""),
       OcptEditorIoNoticeKind.pdfExportFailed => tr.editorExportPdfError,
     };
   }

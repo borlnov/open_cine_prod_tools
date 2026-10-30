@@ -69,7 +69,8 @@ void _mockSecureStorage(Map<String, String> store) {
 /// An in-memory [OcptRemoteStorage] carrying no network at all.
 class _FakeRemoteStorage implements OcptRemoteStorage {
   @override
-  Future<OcptSequenceNumber> append(OcptChangesetEnvelope envelope) async => OcptSequenceNumber.zero;
+  Future<OcptSequenceNumber> append(OcptChangesetEnvelope envelope) async =>
+      OcptSequenceNumber.zero;
 
   @override
   Future<List<OcptStoredChangeset>> readSince(OcptSequenceNumber cursor) async => const [];
@@ -260,23 +261,20 @@ void main() {
     await bloc.close();
   });
 
-  test(
-    'a fresh workspace bloc starts on the screenplay mode even after an earlier one switched '
-    'away from it — switching project resets the mode, nothing restores it',
-    () async {
-      final firstBloc = buildBloc();
-      await waitForState(firstBloc, (state) => !state.isLoading);
-      firstBloc.add(const OcptWorkspaceModeSelectedEvent(mode: OcptWorkspaceMode.budget));
-      await waitForState(firstBloc, (state) => state.mode == OcptWorkspaceMode.budget);
-      await firstBloc.close();
+  test('a fresh workspace bloc starts on the screenplay mode even after an earlier one switched '
+      'away from it — switching project resets the mode, nothing restores it', () async {
+    final firstBloc = buildBloc();
+    await waitForState(firstBloc, (state) => !state.isLoading);
+    firstBloc.add(const OcptWorkspaceModeSelectedEvent(mode: OcptWorkspaceMode.budget));
+    await waitForState(firstBloc, (state) => state.mode == OcptWorkspaceMode.budget);
+    await firstBloc.close();
 
-      final secondBloc = buildBloc();
-      final state = await waitForState(secondBloc, (state) => !state.isLoading);
+    final secondBloc = buildBloc();
+    final state = await waitForState(secondBloc, (state) => !state.isLoading);
 
-      expect(state.mode, OcptWorkspaceMode.screenplay);
-      await secondBloc.close();
-    },
-  );
+    expect(state.mode, OcptWorkspaceMode.screenplay);
+    await secondBloc.close();
+  });
 
   test('selecting a mode updates the state without persisting it anywhere', () async {
     final bloc = buildBloc();
@@ -370,10 +368,7 @@ void main() {
     final bloc = buildBloc();
     final state = await waitForState(bloc, (state) => !state.isLoading);
 
-    expect(state.episodes.map((episode) => episode.id).toList(), [
-      firstEpisodeId,
-      secondEpisodeId,
-    ]);
+    expect(state.episodes.map((episode) => episode.id).toList(), [firstEpisodeId, secondEpisodeId]);
     expect(state.selectedEpisodeId, firstEpisodeId);
     await bloc.close();
   });
@@ -391,10 +386,7 @@ void main() {
     expect(loaded.mode, OcptWorkspaceMode.screenplay);
 
     bloc.add(OcptWorkspaceEpisodeSelectedEvent(episodeId: secondEpisodeId!));
-    final state = await waitForState(
-      bloc,
-      (state) => state.selectedEpisodeId == secondEpisodeId,
-    );
+    final state = await waitForState(bloc, (state) => state.selectedEpisodeId == secondEpisodeId);
 
     expect(state.selectedEpisodeId, secondEpisodeId);
     expect(state.mode, OcptWorkspaceMode.screenplay);
@@ -434,10 +426,7 @@ void main() {
       );
       expect(secondEpisodeId, isNotNull);
 
-      final version = await projectsManager.createProjectVersion(
-        name: "Both episodes",
-        note: "",
-      );
+      final version = await projectsManager.createProjectVersion(name: "Both episodes", note: "");
       expect(version, isNotNull);
 
       final bloc = buildBloc();
@@ -461,81 +450,69 @@ void main() {
     },
   );
 
-  test(
-    'a currentProjectStream reload falls back to the first episode when the selection no longer '
-    'names one',
-    () async {
-      final project = projectsManager.currentProject!;
-      final firstEpisodeId = project.primaryScreenplayId;
+  test('a currentProjectStream reload falls back to the first episode when the selection no longer '
+      'names one', () async {
+    final project = projectsManager.currentProject!;
+    final firstEpisodeId = project.primaryScreenplayId;
 
-      final version = await projectsManager.createProjectVersion(
-        name: "One episode only",
-        note: "",
-      );
-      expect(version, isNotNull);
+    final version = await projectsManager.createProjectVersion(name: "One episode only", note: "");
+    expect(version, isNotNull);
 
-      final secondEpisodeId = await projectsManager.screenplayService.createEpisode(
-        database: project.database,
-        title: "Episode two",
-      );
-      expect(secondEpisodeId, isNotNull);
+    final secondEpisodeId = await projectsManager.screenplayService.createEpisode(
+      database: project.database,
+      title: "Episode two",
+    );
+    expect(secondEpisodeId, isNotNull);
 
-      final bloc = buildBloc();
-      await waitForState(bloc, (state) => !state.isLoading);
+    final bloc = buildBloc();
+    await waitForState(bloc, (state) => !state.isLoading);
 
-      bloc.add(OcptWorkspaceEpisodeSelectedEvent(episodeId: secondEpisodeId!));
-      await waitForState(bloc, (state) => state.selectedEpisodeId == secondEpisodeId);
+    bloc.add(OcptWorkspaceEpisodeSelectedEvent(episodeId: secondEpisodeId!));
+    await waitForState(bloc, (state) => state.selectedEpisodeId == secondEpisodeId);
 
-      final previewResult = await projectsManager.previewVersion(version!.id);
-      expect(previewResult.status.isSuccess, isTrue);
+    final previewResult = await projectsManager.previewVersion(version!.id);
+    expect(previewResult.status.isSuccess, isTrue);
 
-      final state = await waitForState(
-        bloc,
-        (state) => state.episodes.length == 1 && state.selectedEpisodeId == firstEpisodeId,
-      );
+    final state = await waitForState(
+      bloc,
+      (state) => state.episodes.length == 1 && state.selectedEpisodeId == firstEpisodeId,
+    );
 
-      expect(state.selectedEpisodeId, firstEpisodeId);
-      expect(state.episodes.map((episode) => episode.id).toList(), [firstEpisodeId]);
-      await bloc.close();
-    },
-  );
+    expect(state.selectedEpisodeId, firstEpisodeId);
+    expect(state.episodes.map((episode) => episode.id).toList(), [firstEpisodeId]);
+    await bloc.close();
+  });
 
-  test(
-    'a paired project starts its sync session once the workspace opens',
-    () async {
-      final project = projectsManager.currentProject!;
-      await pairingService.savePairing(
-        database: project.fileDatabase,
-        projectId: "project-abc",
-        relayBaseUri: Uri.parse("https://relay.example.org/"),
-        token: "token-1",
-      );
+  test('a paired project starts its sync session once the workspace opens', () async {
+    final project = projectsManager.currentProject!;
+    await pairingService.savePairing(
+      database: project.fileDatabase,
+      projectId: "project-abc",
+      relayBaseUri: Uri.parse("https://relay.example.org/"),
+      token: "token-1",
+    );
 
-      final syncManager = _RecordingSyncManager(pairingService: pairingService);
-      final bloc = buildBloc(syncManager: syncManager);
+    final syncManager = _RecordingSyncManager(pairingService: pairingService);
+    final bloc = buildBloc(syncManager: syncManager);
 
-      await waitForState(bloc, (state) => !state.isLoading);
-      await pumpEventQueue();
+    await waitForState(bloc, (state) => !state.isLoading);
+    await pumpEventQueue();
 
-      expect(syncManager.startSyncSessionCalled, isTrue);
-      expect(syncManager.startedProjectId, "project-abc");
-      await bloc.close();
-    },
-  );
+    expect(syncManager.startSyncSessionCalled, isTrue);
+    expect(syncManager.startedProjectId, "project-abc");
+    await bloc.close();
+  });
 
-  test(
-    'an unpaired project starts no sync session at all',
-    () async {
-      final syncManager = _RecordingSyncManager(pairingService: pairingService);
-      final bloc = buildBloc(syncManager: syncManager);
+  test('an unpaired project starts no sync session at all', () async {
+    final syncManager = _RecordingSyncManager(pairingService: pairingService);
+    final bloc = buildBloc(syncManager: syncManager);
 
-      await waitForState(bloc, (state) => !state.isLoading);
-      await pumpEventQueue();
+    await waitForState(bloc, (state) => !state.isLoading);
+    await pumpEventQueue();
 
-      expect(syncManager.startSyncSessionCalled, isFalse);
-      await bloc.close();
-    },
-  );
+    expect(syncManager.startSyncSessionCalled, isFalse);
+    await bloc.close();
+  });
 
   test(
     'a project re-hosted on launch comes up hosting and skips the ordinary session start',
@@ -601,29 +578,26 @@ void main() {
     },
   );
 
-  test(
-    'a project that does not re-host still starts its ordinary paired session',
-    () async {
-      final project = projectsManager.currentProject!;
-      await pairingService.savePairing(
-        database: project.fileDatabase,
-        projectId: "project-abc",
-        relayBaseUri: Uri.parse("https://relay.example.org/"),
-        token: "token-1",
-      );
+  test('a project that does not re-host still starts its ordinary paired session', () async {
+    final project = projectsManager.currentProject!;
+    await pairingService.savePairing(
+      database: project.fileDatabase,
+      projectId: "project-abc",
+      relayBaseUri: Uri.parse("https://relay.example.org/"),
+      token: "token-1",
+    );
 
-      final syncManager = _RecordingSyncManager(pairingService: pairingService);
-      final hostManager = _RecordingHostManager(stateToReport: const OcptRelayHostStopped());
-      final bloc = buildBloc(syncManager: syncManager, hostManager: hostManager);
+    final syncManager = _RecordingSyncManager(pairingService: pairingService);
+    final hostManager = _RecordingHostManager(stateToReport: const OcptRelayHostStopped());
+    final bloc = buildBloc(syncManager: syncManager, hostManager: hostManager);
 
-      await waitForState(bloc, (state) => !state.isLoading);
-      await pumpEventQueue();
+    await waitForState(bloc, (state) => !state.isLoading);
+    await pumpEventQueue();
 
-      expect(hostManager.maybeAutoStartCalled, isTrue);
-      expect(syncManager.startSyncSessionCalled, isTrue);
-      await bloc.close();
-    },
-  );
+    expect(hostManager.maybeAutoStartCalled, isTrue);
+    expect(syncManager.startSyncSessionCalled, isTrue);
+    await bloc.close();
+  });
 
   test(
     'closing the workspace does not stop hosting (a navigation must not rebind the relay)',

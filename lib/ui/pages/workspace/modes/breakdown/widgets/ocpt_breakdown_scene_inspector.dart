@@ -490,7 +490,9 @@ class OcptBreakdownSceneInspector extends StatelessWidget {
   ) {
     final theme = Theme.of(context);
     final groupTargets =
-        allTargets.where((target) => target.kind == bucket.kind && target.category == bucket.category).toList()
+        allTargets
+            .where((target) => target.kind == bucket.kind && target.category == bucket.category)
+            .toList()
           ..sort((a, b) => a.name.compareTo(b.name));
 
     return Padding(
@@ -520,7 +522,9 @@ class OcptBreakdownSceneInspector extends StatelessWidget {
               ),
               Text(
                 "${groupTargets.length}",
-                style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
               ),
             ],
           ),
@@ -600,10 +604,7 @@ class _StatTile extends StatelessWidget {
             value,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              fontWeight: FontWeight.w700,
-              color: color,
-            ),
+            style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700, color: color),
           ),
         ],
       ),

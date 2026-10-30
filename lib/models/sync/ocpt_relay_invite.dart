@@ -20,11 +20,7 @@ import 'package:equatable/equatable.dart';
 /// aimed at some unrelated app must fail cleanly rather than half-parse.
 class OcptRelayInvite extends Equatable {
   /// Class constructor
-  const OcptRelayInvite({
-    required this.relayBaseUri,
-    required this.projectId,
-    required this.token,
-  });
+  const OcptRelayInvite({required this.relayBaseUri, required this.projectId, required this.token});
 
   /// Parses [inviteString] back into an [OcptRelayInvite], throwing a [FormatException] when it is
   /// not an `ocpt://join` URI carrying all three of `r`, `p` and `t` non-empty.

@@ -370,7 +370,8 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
       project.previewedPageSetup ??
       OcptPageSetup(
         format: await _projectsManager.loadCurrentProjectPageFormat() ?? OcptPageFormat.usLetter,
-        margins: await _propertiesManager.pageMargins.load() ?? const FountainPageMargins.standard(),
+        margins:
+            await _propertiesManager.pageMargins.load() ?? const FountainPageMargins.standard(),
       );
 
   /// The day a load lands on: the one dated today, failing that the next one still to come, and
@@ -931,7 +932,10 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
       return;
     }
 
-    await _scheduleService.removeSlotCastRole(database: project.database, castRoleId: event.castRoleId);
+    await _scheduleService.removeSlotCastRole(
+      database: project.database,
+      castRoleId: event.castRoleId,
+    );
     await _applyScheduleSnapshot(emitter, project);
   }
 
@@ -1071,9 +1075,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     );
 
     final shotLists = await _loadShotLists(project);
-    emitter(
-      state.copyWith(shotListSnapshots: shotLists.shotLists, episodes: shotLists.episodes),
-    );
+    emitter(state.copyWith(shotListSnapshots: shotLists.shotLists, episodes: shotLists.episodes));
     _requestWorkingCopyRefreshIfVersionsOpen();
   }
 
@@ -1089,7 +1091,11 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
       return;
     }
 
-    await _scheduleService.createBlock(database: project.database, slotId: event.slotId, kind: event.kind);
+    await _scheduleService.createBlock(
+      database: project.database,
+      slotId: event.slotId,
+      kind: event.kind,
+    );
     await _applyScheduleSnapshot(emitter, project);
   }
 
@@ -1198,7 +1204,8 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     }
 
     final targetBlocks = [
-      for (final blocks in state.snapshot?.blocksByDayId.values ?? const <List<OcptShootingDayBlock>>[])
+      for (final blocks
+          in state.snapshot?.blocksByDayId.values ?? const <List<OcptShootingDayBlock>>[])
         for (final block in blocks)
           if (block.slotId == event.targetSlotId) block,
     ];
@@ -1302,8 +1309,10 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     try {
       await _writeAllPendingFieldEdits(project, edits);
     } catch (error) {
-      appLogger().e("A problem occurred when tried to flush a pending schedule field edit of the "
-          "project at ${project.path}: $error");
+      appLogger().e(
+        "A problem occurred when tried to flush a pending schedule field edit of the "
+        "project at ${project.path}: $error",
+      );
     }
   }
 
@@ -1427,7 +1436,8 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
   ) async {
     final snapshot = await _loadScheduleSnapshot(project);
 
-    final dayStillExists = state.selectedDayId == null || snapshot.daysById.containsKey(state.selectedDayId);
+    final dayStillExists =
+        state.selectedDayId == null || snapshot.daysById.containsKey(state.selectedDayId);
     final blockStillExists =
         dayStillExists &&
         state.selectedBlockId != null &&
@@ -1529,7 +1539,11 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
         "A problem occurred when tried to export the call sheets of the project at "
         "${_projectsManager.currentProject?.path}: $error",
       );
-      emitter(state.copyWith(ioNotice: const OcptScheduleIoNotice(kind: OcptScheduleIoNoticeKind.exportFailed)));
+      emitter(
+        state.copyWith(
+          ioNotice: const OcptScheduleIoNotice(kind: OcptScheduleIoNoticeKind.exportFailed),
+        ),
+      );
     }
   }
 
@@ -1581,7 +1595,11 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
         "A problem occurred when tried to export the named call sheets of the project at "
         "${_projectsManager.currentProject?.path}: $error",
       );
-      emitter(state.copyWith(ioNotice: const OcptScheduleIoNotice(kind: OcptScheduleIoNoticeKind.exportFailed)));
+      emitter(
+        state.copyWith(
+          ioNotice: const OcptScheduleIoNotice(kind: OcptScheduleIoNoticeKind.exportFailed),
+        ),
+      );
     }
   }
 
@@ -1638,7 +1656,11 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
         "A problem occurred when tried to export the shooting plan of the project at "
         "${_projectsManager.currentProject?.path}: $error",
       );
-      emitter(state.copyWith(ioNotice: const OcptScheduleIoNotice(kind: OcptScheduleIoNoticeKind.exportFailed)));
+      emitter(
+        state.copyWith(
+          ioNotice: const OcptScheduleIoNotice(kind: OcptScheduleIoNoticeKind.exportFailed),
+        ),
+      );
     }
   }
 
@@ -1685,7 +1707,11 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
         "A problem occurred when tried to export the shooting plan workbook of the project at "
         "${_projectsManager.currentProject?.path}: $error",
       );
-      emitter(state.copyWith(ioNotice: const OcptScheduleIoNotice(kind: OcptScheduleIoNoticeKind.exportFailed)));
+      emitter(
+        state.copyWith(
+          ioNotice: const OcptScheduleIoNotice(kind: OcptScheduleIoNoticeKind.exportFailed),
+        ),
+      );
     }
   }
 
@@ -1734,7 +1760,11 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
         "A problem occurred when tried to export the day out of days of the project at "
         "${_projectsManager.currentProject?.path}: $error",
       );
-      emitter(state.copyWith(ioNotice: const OcptScheduleIoNotice(kind: OcptScheduleIoNoticeKind.exportFailed)));
+      emitter(
+        state.copyWith(
+          ioNotice: const OcptScheduleIoNotice(kind: OcptScheduleIoNoticeKind.exportFailed),
+        ),
+      );
     }
   }
 
@@ -1783,7 +1813,11 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
         "A problem occurred when tried to export the one-line schedule of the project at "
         "${_projectsManager.currentProject?.path}: $error",
       );
-      emitter(state.copyWith(ioNotice: const OcptScheduleIoNotice(kind: OcptScheduleIoNoticeKind.exportFailed)));
+      emitter(
+        state.copyWith(
+          ioNotice: const OcptScheduleIoNotice(kind: OcptScheduleIoNoticeKind.exportFailed),
+        ),
+      );
     }
   }
 
@@ -1850,7 +1884,11 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
         "A problem occurred when tried to export the sides of the project at "
         "${_projectsManager.currentProject?.path}: $error",
       );
-      emitter(state.copyWith(ioNotice: const OcptScheduleIoNotice(kind: OcptScheduleIoNoticeKind.exportFailed)));
+      emitter(
+        state.copyWith(
+          ioNotice: const OcptScheduleIoNotice(kind: OcptScheduleIoNoticeKind.exportFailed),
+        ),
+      );
     }
   }
 

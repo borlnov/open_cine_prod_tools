@@ -69,7 +69,9 @@ class OcptBudgetAllowancesService {
         current: null,
         next: OcptBudgetAllowanceRow(
           id: id,
-          sortKey: ocptFractionalKeyBetween(before: existing.isEmpty ? null : existing.last.sortKey),
+          sortKey: ocptFractionalKeyBetween(
+            before: existing.isEmpty ? null : existing.last.sortKey,
+          ),
           isDeleted: false,
           personId: personId,
           kind: kind,
@@ -232,7 +234,7 @@ class OcptBudgetAllowancesService {
   Future<OcptBudgetAllowanceRow?> _liveAllowanceRowOrNull({
     required OcptProjectDatabase database,
     required String allowanceId,
-  }) => (database.select(database.ocptBudgetAllowancesTable)
-        ..where((table) => table.id.equals(allowanceId) & table.isDeleted.not()))
-      .getSingleOrNull();
+  }) => (database.select(
+    database.ocptBudgetAllowancesTable,
+  )..where((table) => table.id.equals(allowanceId) & table.isDeleted.not())).getSingleOrNull();
 }

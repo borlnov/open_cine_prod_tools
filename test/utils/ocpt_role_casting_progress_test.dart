@@ -176,18 +176,22 @@ void main() {
     test("an exhausted role is not `notStarted`: the two say opposite things", () {
       final exhausted = OcptRoleCastingProgress.of(
         role: _role(id: "r1"),
-        candidates: [
-          _candidate(id: "c1", roleId: "r1", status: OcptRoleCandidateStatus.declined),
-        ],
+        candidates: [_candidate(id: "c1", roleId: "r1", status: OcptRoleCandidateStatus.declined)],
       );
-      final notStarted = OcptRoleCastingProgress.of(role: _role(id: "r2"), candidates: const []);
+      final notStarted = OcptRoleCastingProgress.of(
+        role: _role(id: "r2"),
+        candidates: const [],
+      );
 
       expect(exhausted.candidateCount, notStarted.candidateCount);
       expect(exhausted.stage, isNot(notStarted.stage));
     });
 
     test("an uncast role with no candidate is `notStarted`", () {
-      final progress = OcptRoleCastingProgress.of(role: _role(id: "r1"), candidates: const []);
+      final progress = OcptRoleCastingProgress.of(
+        role: _role(id: "r1"),
+        candidates: const [],
+      );
 
       expect(progress.stage, OcptRoleCastingStage.notStarted);
       expect(progress.candidateCount, 0);

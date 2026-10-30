@@ -70,7 +70,6 @@ class OcptScheduleNamedCallSheetsExportDialog extends StatefulWidget {
   /// candidate is coming to be seen for.
   final Map<String, OcptRole> roleById;
 
-
   /// Class constructor
   const OcptScheduleNamedCallSheetsExportDialog({
     required this.current,
@@ -168,7 +167,10 @@ class _OcptScheduleNamedCallSheetsExportDialogState
               onChanged: _onDaysChanged,
             ),
             const SizedBox(height: 8),
-            Text(tr.scheduleExportRecipientsSectionTitle, style: Theme.of(context).textTheme.labelLarge),
+            Text(
+              tr.scheduleExportRecipientsSectionTitle,
+              style: Theme.of(context).textTheme.labelLarge,
+            ),
             Row(
               children: [
                 TextButton(
@@ -305,7 +307,10 @@ class _OcptScheduleNamedCallSheetsExportDialogState
     final options = OcptCallSheetExportOptions(
       format: _selectedFormat,
       margins: widget.current.margins,
-      dayIds: [for (final day in widget.days) if (_selectedDayIds.contains(day.id)) day.id],
+      dayIds: [
+        for (final day in widget.days)
+          if (_selectedDayIds.contains(day.id)) day.id,
+      ],
       selectedConvocationKeys: _selectedKeys,
     );
     globalGetIt().get<OcptRouterManager>().pop<OcptCallSheetExportOptions>(options);

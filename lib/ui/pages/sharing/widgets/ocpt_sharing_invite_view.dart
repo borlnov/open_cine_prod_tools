@@ -109,8 +109,7 @@ class _OcptSharingInviteViewState extends State<OcptSharingInviteView> {
                                   child: Text(tr.sharingSaveQrAction),
                                 ),
                                 OutlinedButton(
-                                  onPressed: () =>
-                                      _copyToClipboard(widget.invite.toInviteString()),
+                                  onPressed: () => _copyToClipboard(widget.invite.toInviteString()),
                                   child: Text(tr.sharingCopyInviteLinkAction),
                                 ),
                               ],
@@ -134,7 +133,8 @@ class _OcptSharingInviteViewState extends State<OcptSharingInviteView> {
                       _OcptSharingConnectionRow(
                         label: tr.sharingRelayAddressLabel,
                         value: widget.invite.relayBaseUri.toString(),
-                        onCopyPressed: () => _copyToClipboard(widget.invite.relayBaseUri.toString()),
+                        onCopyPressed: () =>
+                            _copyToClipboard(widget.invite.relayBaseUri.toString()),
                       ),
                       const SizedBox(height: 12),
                       _OcptSharingConnectionRow(

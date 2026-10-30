@@ -82,8 +82,7 @@ class OcptEditorFormatOverflowMenu extends StatelessWidget {
           // and no longer collides with the mode overflow's own `⋮`.
           icon: const Icon(Icons.text_format, size: 22),
           tooltip: tr.editorFormatMenuTooltip,
-          onPressed: () =>
-              menuController.isOpen ? menuController.close() : menuController.open(),
+          onPressed: () => menuController.isOpen ? menuController.close() : menuController.open(),
         ),
       );
     },

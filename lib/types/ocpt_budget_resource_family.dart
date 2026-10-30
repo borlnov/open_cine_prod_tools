@@ -33,7 +33,7 @@ enum OcptBudgetResourceFamily {
   /// stays apart while cash and in-kind fold into one.
   static OcptBudgetResourceFamily of(OcptBudgetResourceGroupKind groupKind) => switch (groupKind) {
     OcptBudgetResourceGroupKind.subsidy => OcptBudgetResourceFamily.subsidies,
-    OcptBudgetResourceGroupKind.cash || OcptBudgetResourceGroupKind.inKind =>
-      OcptBudgetResourceFamily.contributions,
+    OcptBudgetResourceGroupKind.cash ||
+    OcptBudgetResourceGroupKind.inKind => OcptBudgetResourceFamily.contributions,
   };
 }

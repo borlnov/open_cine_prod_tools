@@ -220,23 +220,18 @@ class FountainLayoutMetrics extends Equatable {
 
   /// The printable width of the page: `pageWidthInches - marginLeftInches -
   /// marginRightInches`.
-  double get printableWidthInches =>
-      pageWidthInches - marginLeftInches - marginRightInches;
+  double get printableWidthInches => pageWidthInches - marginLeftInches - marginRightInches;
 
   /// The printable height of the page: `pageHeightInches -
   /// marginTopInches - marginBottomInches`.
-  double get printableHeightInches =>
-      pageHeightInches - marginTopInches - marginBottomInches;
+  double get printableHeightInches => pageHeightInches - marginTopInches - marginBottomInches;
 
   /// Builds the standard US Letter (8.5 by 11 inch) preset, with [margins]
   /// defaulting to [FountainPageMargins.standard].
   factory FountainLayoutMetrics.usLetter({
     FountainPageMargins margins = const FountainPageMargins.standard(),
-  }) => FountainLayoutMetrics._standard(
-    pageWidthInches: 8.5,
-    pageHeightInches: 11,
-    margins: margins,
-  );
+  }) =>
+      FountainLayoutMetrics._standard(pageWidthInches: 8.5, pageHeightInches: 11, margins: margins);
 
   /// Builds the standard ISO A4 (210 by 297 mm) preset, with [margins]
   /// defaulting to [FountainPageMargins.standard].
@@ -278,12 +273,11 @@ class FountainLayoutMetrics extends Equatable {
       '${pageWidthInches}in by ${pageHeightInches}in page with $margins.',
     );
 
-    FountainElementLayout fullWidthLeftAligned(double leftIndent) =>
-        _elementLayout(
-          leftIndentInches: leftIndent,
-          maxWidthInches: rightEdge - leftIndent,
-          alignment: FountainLayoutAlignment.left,
-        );
+    FountainElementLayout fullWidthLeftAligned(double leftIndent) => _elementLayout(
+      leftIndentInches: leftIndent,
+      maxWidthInches: rightEdge - leftIndent,
+      alignment: FountainLayoutAlignment.left,
+    );
 
     return FountainLayoutMetrics(
       pageWidthInches: pageWidthInches,
@@ -337,9 +331,7 @@ class FountainLayoutMetrics extends Equatable {
     leftIndentInches: leftIndentInches,
     leftIndentColumns: (leftIndentInches * _courierCharsPerInch).round(),
     maxWidthInches: maxWidthInches,
-    maxWidthColumns:
-        (maxWidthInches * _courierCharsPerInch + _columnRoundingEpsilon)
-            .floor(),
+    maxWidthColumns: (maxWidthInches * _courierCharsPerInch + _columnRoundingEpsilon).floor(),
     alignment: alignment,
   );
 

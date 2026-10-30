@@ -200,13 +200,11 @@ class _ShotListViewState extends State<_ShotListView> {
             onExportRequested: (anchor) => unawaited(_requestExport(context, state, anchor)),
             overflowEntries: _buildOverflowEntries(context),
             isLeftDockOpen: state.isSequencePanelVisible,
-            onToggleLeftDock: () => context.read<OcptShotListBloc>().add(
-              const OcptShotListSequencePanelToggledEvent(),
-            ),
+            onToggleLeftDock: () =>
+                context.read<OcptShotListBloc>().add(const OcptShotListSequencePanelToggledEvent()),
             isRightDockOpen: state.rightDockTab != null,
-            onToggleRightDock: () => context.read<OcptShotListBloc>().add(
-              const OcptShotListRightDockToggledEvent(),
-            ),
+            onToggleRightDock: () =>
+                context.read<OcptShotListBloc>().add(const OcptShotListRightDockToggledEvent()),
             onProjectSettingsRequested: state.isPreviewingVersion
                 ? null
                 : () => _requestProjectSettings(context),
@@ -357,10 +355,7 @@ class _ShotListViewState extends State<_ShotListView> {
     Rect? shareAnchor,
   ) async {
     final bloc = context.read<OcptShotListBloc>();
-    final options = await OcptScenarioCoverageExportDialog.show(
-      context,
-      current: state.pageSetup,
-    );
+    final options = await OcptScenarioCoverageExportDialog.show(context, current: state.pageSetup);
     if (options == null) {
       return;
     }
@@ -478,13 +473,11 @@ class _ShotListViewState extends State<_ShotListView> {
       onSequenceSelected: (sequenceId) => context.read<OcptShotListBloc>().add(
         OcptShotListSequenceSelectedEvent(sequenceId: sequenceId),
       ),
-      onShotSelected: (shotId) => context.read<OcptShotListBloc>().add(
-        OcptShotListShotSelectedEvent(shotId: shotId),
-      ),
+      onShotSelected: (shotId) =>
+          context.read<OcptShotListBloc>().add(OcptShotListShotSelectedEvent(shotId: shotId)),
       onShotCreated: state.selectedSequence is OcptSceneShotSequence && !state.isPreviewingVersion
-          ? () => context.read<OcptShotListBloc>().add(
-              const OcptShotListShotCreationRequestedEvent(),
-            )
+          ? () =>
+                context.read<OcptShotListBloc>().add(const OcptShotListShotCreationRequestedEvent())
           : null,
       onOrphanedShotDeleted: state.isPreviewingVersion
           ? null
@@ -701,9 +694,10 @@ class _ShotListViewState extends State<_ShotListView> {
             padding: const EdgeInsets.fromLTRB(24, 14, 24, 20),
             child: switch ((isBoardShown, isFloorPlansShown)) {
               (true, _) => _buildBoard(context, state, sequence),
-              (_, true) => hasNoLinkedSet
-                  ? _buildFloorPlanGallery(context, state, sequence)
-                  : _buildFloorPlanView(context, state, sequence),
+              (_, true) =>
+                hasNoLinkedSet
+                    ? _buildFloorPlanGallery(context, state, sequence)
+                    : _buildFloorPlanView(context, state, sequence),
               _ => OcptShotListTable(
                 shots: sequence.shots,
                 sequenceHeading: switch (sequence) {
@@ -734,9 +728,8 @@ class _ShotListViewState extends State<_ShotListView> {
       children: [
         OcptShotListColumnsMenu(
           visibleColumns: state.visibleColumns,
-          onColumnToggled: (column) => context.read<OcptShotListBloc>().add(
-            OcptShotListColumnToggledEvent(column: column),
-          ),
+          onColumnToggled: (column) =>
+              context.read<OcptShotListBloc>().add(OcptShotListColumnToggledEvent(column: column)),
         ),
         const SizedBox(width: 8),
         // Exports the whole shot list, not the sequence this header names: the button sits here
@@ -746,8 +739,7 @@ class _ShotListViewState extends State<_ShotListView> {
         Builder(
           builder: (buttonContext) => OutlinedButton.icon(
             onPressed: state.totalShotCount > 0
-                ? () =>
-                      _requestXlsxExport(context, state, ocptExportShareAnchorOf(buttonContext))
+                ? () => _requestXlsxExport(context, state, ocptExportShareAnchorOf(buttonContext))
                 : null,
             icon: const Icon(Icons.file_download_outlined, size: 16),
             label: Text(tr.shotListExportXlsxAction),
@@ -851,8 +843,7 @@ class _ShotListViewState extends State<_ShotListView> {
           ? (setId) => bloc.add(OcptShotListSetLinkRequestedEvent(setId: setId))
           : null,
       onSetCreationRequested: canCreateSet
-          ? (locationId) =>
-                bloc.add(OcptShotListSetCreationRequestedEvent(locationId: locationId))
+          ? (locationId) => bloc.add(OcptShotListSetCreationRequestedEvent(locationId: locationId))
           : null,
       onSetDuplicateRequested: isReadOnly
           ? null
@@ -883,7 +874,11 @@ class _ShotListViewState extends State<_ShotListView> {
   int _placedShotCountOf(OcptShotListState state, String setId) {
     for (final floorPlanSet in state.setsOfSelectedSequence) {
       if (floorPlanSet.id == setId) {
-        return floorPlanSet.symbols.map((symbol) => symbol.shotId).whereType<String>().toSet().length;
+        return floorPlanSet.symbols
+            .map((symbol) => symbol.shotId)
+            .whereType<String>()
+            .toSet()
+            .length;
       }
     }
     return 0;
@@ -911,8 +906,7 @@ class _ShotListViewState extends State<_ShotListView> {
           : (setId) => bloc.add(OcptShotListSetLinkRequestedEvent(setId: setId)),
       onSetCreationRequested: isReadOnly
           ? null
-          : (locationId) =>
-                bloc.add(OcptShotListSetCreationRequestedEvent(locationId: locationId)),
+          : (locationId) => bloc.add(OcptShotListSetCreationRequestedEvent(locationId: locationId)),
     );
   }
 
@@ -921,7 +915,10 @@ class _ShotListViewState extends State<_ShotListView> {
   /// — the gallery's own starred card and the `＋ Set` menu's own top entry both read this, never
   /// offering to link what is already linked.
   String? _suggestedSetIdOf(OcptShotListState state, OcptSceneShotSequence sequence) {
-    final suggested = ocptSceneSetSuggestionOf(heading: sequence.heading, locations: state.locations);
+    final suggested = ocptSceneSetSuggestionOf(
+      heading: sequence.heading,
+      locations: state.locations,
+    );
     if (suggested == null) {
       return null;
     }
@@ -1157,7 +1154,11 @@ class _ShotListViewState extends State<_ShotListView> {
       activeLabel: state.floorPlanActiveLabel,
       propsChips: [
         for (final prop in state.propsOfSelectedSequence)
-          OcptFloorPlanPropChip(elementId: prop.elementId, name: prop.name, quantity: prop.quantity),
+          OcptFloorPlanPropChip(
+            elementId: prop.elementId,
+            name: prop.name,
+            quantity: prop.quantity,
+          ),
       ],
       isReadOnly: isReadOnly,
       symbolLabelValueOf: (symbolId) => _symbolLabelValueOf(state, symbolId),
@@ -1166,12 +1167,10 @@ class _ShotListViewState extends State<_ShotListView> {
           bloc.add(OcptShotListFloorPlanLayerVisibilityToggledEvent(layer: layer)),
       onActiveLayerChanged: (layer) =>
           bloc.add(OcptShotListFloorPlanActiveLayerChangedEvent(layer: layer)),
-      onSetElementShapeSelected: (shape) => bloc.add(
-        OcptShotListFloorPlanActiveSetElementShapeChangedEvent(shape: shape),
-      ),
-      onSetElementScopeSelected: (scope) => bloc.add(
-        OcptShotListFloorPlanActiveSetElementScopeChangedEvent(scope: scope),
-      ),
+      onSetElementShapeSelected: (shape) =>
+          bloc.add(OcptShotListFloorPlanActiveSetElementShapeChangedEvent(shape: shape)),
+      onSetElementScopeSelected: (scope) =>
+          bloc.add(OcptShotListFloorPlanActiveSetElementScopeChangedEvent(scope: scope)),
       onPropChipSelected: (label) =>
           bloc.add(OcptShotListFloorPlanActiveLabelChangedEvent(label: label)),
       onCameraVisibilityToggled: (symbolId) =>
@@ -1217,11 +1216,10 @@ class _ShotListViewState extends State<_ShotListView> {
       onSymbolResized: isReadOnly
           ? null
           : (symbolId, widthM, heightM) =>
-              _handleSymbolResized(context, state, symbolId, widthM, heightM),
+                _handleSymbolResized(context, state, symbolId, widthM, heightM),
       onSymbolRotated: isReadOnly
           ? null
-          : (symbolId, rotationDeg) =>
-              _handleSymbolRotated(context, state, symbolId, rotationDeg),
+          : (symbolId, rotationDeg) => _handleSymbolRotated(context, state, symbolId, rotationDeg),
       onSymbolFovChanged: isReadOnly
           ? null
           : (symbolId, fovDeg) => bloc.add(
@@ -1240,10 +1238,9 @@ class _ShotListViewState extends State<_ShotListView> {
           : (symbolId) => unawaited(_handleSymbolDeleteRequested(context, state, symbolId)),
       onSymbolRestoreRequested: isReadOnly
           ? null
-          : (symbolId) =>
-                context.read<OcptShotListBloc>().add(
-                  OcptShotListFloorPlanSymbolRestoreRequestedEvent(symbolId: symbolId),
-                ),
+          : (symbolId) => context.read<OcptShotListBloc>().add(
+              OcptShotListFloorPlanSymbolRestoreRequestedEvent(symbolId: symbolId),
+            ),
       onArrowSymbolTapped: isReadOnly || selectedSetId == null || focusShotId == null
           ? null
           : (symbolId) => bloc.add(OcptShotListFloorPlanArrowSymbolTappedEvent(symbolId: symbolId)),
@@ -1263,8 +1260,7 @@ class _ShotListViewState extends State<_ShotListView> {
             ),
       onSymbolDuplicateRequested: isReadOnly
           ? null
-          : (symbolId) =>
-                bloc.add(OcptShotListFloorPlanSymbolDuplicatedEvent(symbolId: symbolId)),
+          : (symbolId) => bloc.add(OcptShotListFloorPlanSymbolDuplicatedEvent(symbolId: symbolId)),
       onSymbolDuplicateDragged: isReadOnly
           ? null
           : (symbolId, xM, yM) => bloc.add(
@@ -1383,10 +1379,7 @@ class _ShotListViewState extends State<_ShotListView> {
 
   /// Whether each of [sequence]'s own shots has a live camera symbol on [selectedSet], keyed by
   /// shot id — the focus strip's own filled/hollow dots.
-  Map<String, bool> _hasCameraOnSetOf(
-    OcptShotSequence sequence,
-    OcptFloorPlanSet? selectedSet,
-  ) {
+  Map<String, bool> _hasCameraOnSetOf(OcptShotSequence sequence, OcptFloorPlanSet? selectedSet) {
     if (selectedSet == null) {
       return const {};
     }
@@ -1591,7 +1584,11 @@ class _ShotListViewState extends State<_ShotListView> {
     if (symbol.sceneId == null) {
       final sequenceCount = state.floorPlanSnapshot?.sequenceCountOfSet(selectedSet.id) ?? 0;
       return sequenceCount >= 2
-          ? (setId: selectedSet.id, count: sequenceCount, level: OcptFloorPlanOverrideLevel.sequence)
+          ? (
+              setId: selectedSet.id,
+              count: sequenceCount,
+              level: OcptFloorPlanOverrideLevel.sequence,
+            )
           : null;
     }
 
@@ -1890,9 +1887,7 @@ class _ShotListViewState extends State<_ShotListView> {
           .where((symbol) => symbol.layer == OcptFloorPlanLayer.characters)
           .toList(),
       lights: ownSymbols.where((symbol) => symbol.layer == OcptFloorPlanLayer.lights).toList(),
-      handProps: ownSymbols
-          .where((symbol) => symbol.layer == OcptFloorPlanLayer.props)
-          .toList(),
+      handProps: ownSymbols.where((symbol) => symbol.layer == OcptFloorPlanLayer.props).toList(),
       arrows: ownArrows,
       otherSets: otherSets,
       isReadOnly: isReadOnly,
@@ -1963,7 +1958,8 @@ class _ShotListViewState extends State<_ShotListView> {
       return pending;
     }
 
-    for (final annotation in state.selectedPanel?.annotations ?? const <OcptStoryboardAnnotation>[]) {
+    for (final annotation
+        in state.selectedPanel?.annotations ?? const <OcptStoryboardAnnotation>[]) {
       if (annotation.id == annotationId) {
         return annotation.text;
       }
@@ -2030,8 +2026,9 @@ class _ShotListViewState extends State<_ShotListView> {
       isReadOnly: isReadOnly,
       onCommentChanged: isReadOnly
           ? null
-          : (panelId, rawValue) =>
-                bloc.add(OcptShotListPanelCommentChangedEvent(panelId: panelId, rawValue: rawValue)),
+          : (panelId, rawValue) => bloc.add(
+              OcptShotListPanelCommentChangedEvent(panelId: panelId, rawValue: rawValue),
+            ),
       onReordered: isReadOnly || selectedShot == null
           ? null
           : (panelId, newPosition) => bloc.add(
@@ -2089,8 +2086,7 @@ class _ShotListViewState extends State<_ShotListView> {
           .length;
       final shotIdsWithCamera = {
         for (final symbol in selectedSet.symbols)
-          if (symbol.layer == OcptFloorPlanLayer.cameras && symbol.shotId != null)
-            symbol.shotId!,
+          if (symbol.layer == OcptFloorPlanLayer.cameras && symbol.shotId != null) symbol.shotId!,
       };
       final shotCountWithCamera = sequence.shots
           .where((shot) => shotIdsWithCamera.contains(shot.id))
@@ -2099,11 +2095,9 @@ class _ShotListViewState extends State<_ShotListView> {
         (shot) => !shotIdsWithCamera.contains(shot.id),
       );
 
-      final base = Tr.of(context).shotListFloorPlanCameraStatusHint(
-        selectedSet.name,
-        cameraCount,
-        shotCountWithCamera,
-      );
+      final base = Tr.of(
+        context,
+      ).shotListFloorPlanCameraStatusHint(selectedSet.name, cameraCount, shotCountWithCamera);
       return unplacedShot == null
           ? base
           : "$base · ${Tr.of(context).shotListFloorPlanCameraStatusUnplacedHint(unplacedShot.code)}";
@@ -2208,11 +2202,9 @@ class _ShotListViewState extends State<_ShotListView> {
             : state.snapshot?.placementsByShotId[selectedShot.id] ?? const [],
       ),
       versionsChild: _buildVersionsPanel(context, state),
-      onTabSelected: (tab) => context.read<OcptShotListBloc>().add(
-        OcptShotListRightDockTabSelectedEvent(tab: tab),
-      ),
-      onClose: () =>
-          context.read<OcptShotListBloc>().add(const OcptShotListRightDockClosedEvent()),
+      onTabSelected: (tab) =>
+          context.read<OcptShotListBloc>().add(OcptShotListRightDockTabSelectedEvent(tab: tab)),
+      onClose: () => context.read<OcptShotListBloc>().add(const OcptShotListRightDockClosedEvent()),
     );
   }
 
@@ -2242,9 +2234,8 @@ class _ShotListViewState extends State<_ShotListView> {
           safetyVersionName: tr.projectVersionRestoreSafetyName(previewedVersion.name),
         ),
       ),
-      onExitPreview: () => context.read<OcptShotListBloc>().add(
-        const OcptProjectVersionPreviewExitRequestedEvent(),
-      ),
+      onExitPreview: () =>
+          context.read<OcptShotListBloc>().add(const OcptProjectVersionPreviewExitRequestedEvent()),
     );
   }
 
@@ -2269,9 +2260,8 @@ class _ShotListViewState extends State<_ShotListView> {
         onRestoreRequested: (versionId) => context.read<OcptShotListBloc>().add(
           OcptProjectVersionRestoreRequestedEvent(versionId: versionId),
         ),
-        onRestoreCancelled: () => context.read<OcptShotListBloc>().add(
-          const OcptProjectVersionRestoreCancelledEvent(),
-        ),
+        onRestoreCancelled: () =>
+            context.read<OcptShotListBloc>().add(const OcptProjectVersionRestoreCancelledEvent()),
         onRestoreConfirmed: (version) => context.read<OcptShotListBloc>().add(
           OcptProjectVersionRestoreConfirmedEvent(
             versionId: version.id,
@@ -2281,18 +2271,16 @@ class _ShotListViewState extends State<_ShotListView> {
         onDeleteRequested: (versionId) => context.read<OcptShotListBloc>().add(
           OcptProjectVersionDeletionRequestedEvent(versionId: versionId),
         ),
-        onDeleteCancelled: () => context.read<OcptShotListBloc>().add(
-          const OcptProjectVersionDeletionCancelledEvent(),
-        ),
+        onDeleteCancelled: () =>
+            context.read<OcptShotListBloc>().add(const OcptProjectVersionDeletionCancelledEvent()),
         onDeleteConfirmed: (versionId) => context.read<OcptShotListBloc>().add(
           OcptProjectVersionDeletionConfirmedEvent(versionId: versionId),
         ),
         onRenameRequested: (versionId) => context.read<OcptShotListBloc>().add(
           OcptProjectVersionRenameRequestedEvent(versionId: versionId),
         ),
-        onRenameCancelled: () => context.read<OcptShotListBloc>().add(
-          const OcptProjectVersionRenameCancelledEvent(),
-        ),
+        onRenameCancelled: () =>
+            context.read<OcptShotListBloc>().add(const OcptProjectVersionRenameCancelledEvent()),
         onRenameConfirmed: (versionId, name, note) => context.read<OcptShotListBloc>().add(
           OcptProjectVersionRenameConfirmedEvent(versionId: versionId, name: name, note: note),
         ),
@@ -2334,8 +2322,8 @@ class _ShotListViewState extends State<_ShotListView> {
       return "";
     }
 
-    final pending = state.pendingFieldEdits[
-        OcptShotListShotFieldEditKey(shotId: shot.id, field: field)];
+    final pending =
+        state.pendingFieldEdits[OcptShotListShotFieldEditKey(shotId: shot.id, field: field)];
     if (pending != null) {
       return pending;
     }
@@ -2347,9 +2335,8 @@ class _ShotListViewState extends State<_ShotListView> {
       OcptShotListEditableField.cameraMove => shot.cameraMove,
       OcptShotListEditableField.lens => shot.lens,
       OcptShotListEditableField.recordingFormat => shot.recordingFormat,
-      OcptShotListEditableField.estimatedDuration => shot.estimatedDurationMs == null
-          ? ""
-          : ocptFormatShotDuration(shot.estimatedDurationMs),
+      OcptShotListEditableField.estimatedDuration =>
+        shot.estimatedDurationMs == null ? "" : ocptFormatShotDuration(shot.estimatedDurationMs),
       OcptShotListEditableField.sound => shot.sound,
       OcptShotListEditableField.notes => shot.notes,
       OcptShotListEditableField.locationNotes => shot.locationNotes,
@@ -2487,9 +2474,7 @@ class _ShotListViewState extends State<_ShotListView> {
 
     final packagePendingExport = state.projectPackagePendingExport;
     if (packagePendingExport != null) {
-      context.read<OcptShotListBloc>().add(
-        const OcptProjectPackageMissingFilesAskDismissedEvent(),
-      );
+      context.read<OcptShotListBloc>().add(const OcptProjectPackageMissingFilesAskDismissedEvent());
       unawaited(_askAboutMissingPackagedFiles(context, packagePendingExport));
     }
 
@@ -2553,21 +2538,25 @@ class _ShotListViewState extends State<_ShotListView> {
     final tr = Tr.of(context);
 
     return switch (notice.kind) {
-      OcptShotListIoNoticeKind.xlsxExportSucceeded => notice.wasShared
-          ? tr.exportSharedMessage
-          : tr.shotListExportXlsxSuccessMessage(notice.path ?? ""),
+      OcptShotListIoNoticeKind.xlsxExportSucceeded =>
+        notice.wasShared
+            ? tr.exportSharedMessage
+            : tr.shotListExportXlsxSuccessMessage(notice.path ?? ""),
       OcptShotListIoNoticeKind.xlsxExportFailed => tr.shotListExportXlsxError,
-      OcptShotListIoNoticeKind.scenarioCoverageExportSucceeded => notice.wasShared
-          ? tr.exportSharedMessage
-          : tr.shotListExportCoverageSuccessMessage(notice.path ?? ""),
+      OcptShotListIoNoticeKind.scenarioCoverageExportSucceeded =>
+        notice.wasShared
+            ? tr.exportSharedMessage
+            : tr.shotListExportCoverageSuccessMessage(notice.path ?? ""),
       OcptShotListIoNoticeKind.scenarioCoverageExportFailed => tr.shotListExportCoverageError,
-      OcptShotListIoNoticeKind.storyboardExportSucceeded => notice.wasShared
-          ? tr.exportSharedMessage
-          : tr.shotListExportStoryboardSuccessMessage(notice.path ?? ""),
+      OcptShotListIoNoticeKind.storyboardExportSucceeded =>
+        notice.wasShared
+            ? tr.exportSharedMessage
+            : tr.shotListExportStoryboardSuccessMessage(notice.path ?? ""),
       OcptShotListIoNoticeKind.storyboardExportFailed => tr.shotListExportStoryboardError,
-      OcptShotListIoNoticeKind.floorPlansExportSucceeded => notice.wasShared
-          ? tr.exportSharedMessage
-          : tr.shotListExportFloorPlansSuccessMessage(notice.path ?? ""),
+      OcptShotListIoNoticeKind.floorPlansExportSucceeded =>
+        notice.wasShared
+            ? tr.exportSharedMessage
+            : tr.shotListExportFloorPlansSuccessMessage(notice.path ?? ""),
       OcptShotListIoNoticeKind.floorPlansExportFailed => tr.shotListExportFloorPlansError,
     };
   }

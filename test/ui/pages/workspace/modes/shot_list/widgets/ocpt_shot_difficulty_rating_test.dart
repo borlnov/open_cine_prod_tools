@@ -8,8 +8,11 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/
 
 /// Wraps [child] in a minimal app, no localization needed: the widget takes its label as plain
 /// text.
-Widget _wrapInApp(Widget child) =>
-    MaterialApp(home: Scaffold(body: Align(alignment: Alignment.topLeft, child: child)));
+Widget _wrapInApp(Widget child) => MaterialApp(
+  home: Scaffold(
+    body: Align(alignment: Alignment.topLeft, child: child),
+  ),
+);
 
 void main() {
   testWidgets("shows the numeric value and fills dots up to it", (tester) async {
@@ -45,8 +48,9 @@ void main() {
     expect(reported, 3);
   });
 
-  testWidgets("the whole square around a dot is clickable, not just the dot itself",
-      (tester) async {
+  testWidgets("the whole square around a dot is clickable, not just the dot itself", (
+    tester,
+  ) async {
     int? reported;
 
     await tester.pumpWidget(

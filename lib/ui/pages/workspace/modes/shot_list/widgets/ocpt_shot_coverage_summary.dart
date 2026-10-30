@@ -107,7 +107,10 @@ class OcptShotCoverageSummary extends StatelessWidget {
         if (ranges.isNotEmpty && onClearAll != null)
           Align(
             alignment: Alignment.centerLeft,
-            child: TextButton(onPressed: onClearAll, child: Text(tr.shotListCoverageClearAllAction)),
+            child: TextButton(
+              onPressed: onClearAll,
+              child: Text(tr.shotListCoverageClearAllAction),
+            ),
           ),
       ],
     );
@@ -169,10 +172,7 @@ class _OcptShotCoverageExtract extends StatelessWidget {
                   ),
                 ),
               ),
-              if (isModified) ...[
-                const SizedBox(width: 6),
-                const _OcptShotCoverageModifiedBadge(),
-              ],
+              if (isModified) ...[const SizedBox(width: 6), const _OcptShotCoverageModifiedBadge()],
             ],
           ),
           const SizedBox(height: 2),

@@ -6,7 +6,8 @@ import 'dart:ui';
 
 import 'package:act_flutter_utility/act_flutter_utility.dart';
 import 'package:open_cine_prod_tools/models/ocpt_floor_plan_labels.dart';
-import 'package:open_cine_prod_tools/models/ocpt_floor_plan_sheet.dart' show OcptFloorPlanOverrideLevel;
+import 'package:open_cine_prod_tools/models/ocpt_floor_plan_sheet.dart'
+    show OcptFloorPlanOverrideLevel;
 import 'package:open_cine_prod_tools/models/ocpt_scenario_coverage_export_options.dart';
 import 'package:open_cine_prod_tools/models/ocpt_scenario_coverage_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_list_xlsx_labels.dart';
@@ -244,7 +245,14 @@ class OcptShotListScenarioCoverageExportRequestedEvent extends OcptShotListEvent
 
   /// Object properties
   @override
-  List<Object?> get props => [...super.props, options, labels, fileTypeLabel, episodeTag, shareAnchor];
+  List<Object?> get props => [
+    ...super.props,
+    options,
+    labels,
+    fileTypeLabel,
+    episodeTag,
+    shareAnchor,
+  ];
 }
 
 /// Requests exporting the storyboard — every shot's imported frames, annotated, with its key
@@ -487,6 +495,7 @@ class OcptShotListShotDeletionRequestedEvent extends OcptShotListEvent {
   @override
   List<Object?> get props => [...super.props, shotId];
 }
+
 /// Records a click on a word of the selected shot's scenario coverage.
 ///
 /// One event backs the whole three-state interaction, the bloc rather than the widget deciding
@@ -872,7 +881,10 @@ class OcptShotListAnnotationTextChangedEvent extends OcptShotListEvent {
   final String rawValue;
 
   /// Class constructor
-  const OcptShotListAnnotationTextChangedEvent({required this.annotationId, required this.rawValue});
+  const OcptShotListAnnotationTextChangedEvent({
+    required this.annotationId,
+    required this.rawValue,
+  });
 
   /// Object properties
   @override

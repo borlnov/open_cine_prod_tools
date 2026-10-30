@@ -10,8 +10,7 @@ import 'package:test/test.dart';
 /// A [FountainInlineSpan]'s (text, style) pair, ignoring its source range,
 /// which keeps the tests below focused on parsing outcome rather than on
 /// offset bookkeeping (covered separately by the range-specific tests).
-(String, FountainInlineStyle) _summarize(FountainInlineSpan span) =>
-    (span.text, span.style);
+(String, FountainInlineStyle) _summarize(FountainInlineSpan span) => (span.text, span.style);
 
 /// Parses [text] with a fresh [FountainInlineParser] and summarizes every
 /// resulting span as a (text, style) pair.
@@ -103,15 +102,11 @@ void main() {
     });
 
     test(r'"\_" is a literal underscore, not the start of underline', () {
-      expect(_parse(r'a snake\_case name'), [
-        ('a snake_case name', FountainInlineStyle.plain),
-      ]);
+      expect(_parse(r'a snake\_case name'), [('a snake_case name', FountainInlineStyle.plain)]);
     });
 
     test('escaping suppresses emphasis on both sides of a run', () {
-      expect(_parse(r'\*not italic\*'), [
-        ('*not italic*', FountainInlineStyle.plain),
-      ]);
+      expect(_parse(r'\*not italic\*'), [('*not italic*', FountainInlineStyle.plain)]);
     });
 
     test(r'"\[" and "\]" are literal brackets, not the start of a note', () {
@@ -122,20 +117,15 @@ void main() {
   });
 
   group('non-spanning behavior', () {
-    test(
-      'emphasis is parsed independently on each line of a multi-line call',
-      () {
-        // Fountain emphasis never spans a line break; a caller that wants
-        // per-line spans simply calls parse() once per line, as this parser's
-        // API (a single line in, its spans out) implies.
-        final firstLine = _parse('*starts here');
-        final secondLine = _parse('but does not continue*');
-        expect(firstLine, [('*starts here', FountainInlineStyle.plain)]);
-        expect(secondLine, [
-          ('but does not continue*', FountainInlineStyle.plain),
-        ]);
-      },
-    );
+    test('emphasis is parsed independently on each line of a multi-line call', () {
+      // Fountain emphasis never spans a line break; a caller that wants
+      // per-line spans simply calls parse() once per line, as this parser's
+      // API (a single line in, its spans out) implies.
+      final firstLine = _parse('*starts here');
+      final secondLine = _parse('but does not continue*');
+      expect(firstLine, [('*starts here', FountainInlineStyle.plain)]);
+      expect(secondLine, [('but does not continue*', FountainInlineStyle.plain)]);
+    });
   });
 
   group('source ranges', () {
@@ -149,9 +139,7 @@ void main() {
 
     test('an emphasis span ranges over its markers as well as its text', () {
       final spans = const FountainInlineParser().parse('a *b* c');
-      final italic = spans.firstWhere(
-        (span) => span.style == FountainInlineStyle.italic,
-      );
+      final italic = spans.firstWhere((span) => span.style == FountainInlineStyle.italic);
       expect(italic.text, 'b');
       // "a *b* c": the "*b*" run starts at offset 2 and ends at offset 5
       // (one past the closing marker).
@@ -160,9 +148,7 @@ void main() {
     });
 
     test('line and startOffset parameters shift every span', () {
-      final span = const FountainInlineParser()
-          .parse('hi', line: 4, startOffset: 10)
-          .single;
+      final span = const FountainInlineParser().parse('hi', line: 4, startOffset: 10).single;
       expect(span.sourceRange.startLine, 4);
       expect(span.sourceRange.endLine, 4);
       expect(span.sourceRange.startOffset, 10);
@@ -171,8 +157,7 @@ void main() {
   });
 
   group('parseRuns', () {
-    List<FountainStyledRun> parseRuns(String text) =>
-        const FountainInlineParser().parseRuns(text);
+    List<FountainStyledRun> parseRuns(String text) => const FountainInlineParser().parseRuns(text);
 
     test('plain text is a single unstyled run', () {
       expect(parseRuns('Nothing special here.'), [
@@ -207,11 +192,7 @@ void main() {
     test('triple asterisks produce a bold+italic run', () {
       expect(parseRuns('a ***bold italic*** word'), [
         const FountainStyledRun(text: 'a '),
-        const FountainStyledRun(
-          text: 'bold italic',
-          isBold: true,
-          isItalic: true,
-        ),
+        const FountainStyledRun(text: 'bold italic', isBold: true, isItalic: true),
         const FountainStyledRun(text: ' word'),
       ]);
     });
@@ -224,11 +205,7 @@ void main() {
 
     test('"_*x*_" nests to italic+underline', () {
       expect(parseRuns('_*both*_'), [
-        const FountainStyledRun(
-          text: 'both',
-          isItalic: true,
-          isUnderline: true,
-        ),
+        const FountainStyledRun(text: 'both', isItalic: true, isUnderline: true),
       ]);
     });
 
@@ -240,31 +217,20 @@ void main() {
 
     test('"*_x_*" nests to italic+underline (underline inside italic)', () {
       expect(parseRuns('*_both_*'), [
-        const FountainStyledRun(
-          text: 'both',
-          isItalic: true,
-          isUnderline: true,
-        ),
+        const FountainStyledRun(text: 'both', isItalic: true, isUnderline: true),
       ]);
     });
 
     test('"_***x***_" nests to bold+italic+underline', () {
       expect(parseRuns('_***all***_'), [
-        const FountainStyledRun(
-          text: 'all',
-          isBold: true,
-          isItalic: true,
-          isUnderline: true,
-        ),
+        const FountainStyledRun(text: 'all', isBold: true, isItalic: true, isUnderline: true),
       ]);
     });
 
     test('a non-wrapping inner marker leaves only the outer style', () {
       // "_a*b" is not a full wrap of "*" inside the underline span's text,
       // so the run stays plain underline with the literal asterisk kept.
-      expect(parseRuns('_a*b_'), [
-        const FountainStyledRun(text: 'a*b', isUnderline: true),
-      ]);
+      expect(parseRuns('_a*b_'), [const FountainStyledRun(text: 'a*b', isUnderline: true)]);
     });
 
     test('"[[note]]" becomes a note run with brackets kept in its text', () {
@@ -295,22 +261,13 @@ void main() {
   group('parseRuns source ranges', () {
     /// Parses [text] anchored at [startOffset] on [line], defaulting to an
     /// anchor at the very start of a one-line document.
-    List<FountainStyledRun> anchored(
-      String text, {
-      int line = 0,
-      int startOffset = 0,
-    }) => const FountainInlineParser().parseRuns(
-      text,
-      line: line,
-      startOffset: startOffset,
-    );
+    List<FountainStyledRun> anchored(String text, {int line = 0, int startOffset = 0}) =>
+        const FountainInlineParser().parseRuns(text, line: line, startOffset: startOffset);
 
     /// The source [text] a run of [source] covers, so a range can be
     /// asserted by quoting what it points at rather than by arithmetic.
-    String covered(String source, FountainStyledRun run) => source.substring(
-      run.sourceRange!.startOffset,
-      run.sourceRange!.endOffset,
-    );
+    String covered(String source, FountainStyledRun run) =>
+        source.substring(run.sourceRange!.startOffset, run.sourceRange!.endOffset);
 
     test('an unanchored call leaves every run without a range', () {
       final runs = const FountainInlineParser().parseRuns('a **b** c');
@@ -340,10 +297,7 @@ void main() {
     test('a nested emphasis run drops both markers from its range', () {
       const source = '_**both**_';
       final run = anchored(source).single;
-      expect(
-        run,
-        const FountainStyledRun(text: 'both', isBold: true, isUnderline: true),
-      );
+      expect(run, const FountainStyledRun(text: 'both', isBold: true, isUnderline: true));
       expect(covered(source, run), 'both');
     });
 

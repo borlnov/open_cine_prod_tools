@@ -9,11 +9,7 @@ import 'package:fountain_kit/src/models/fountain_title_page.dart';
 /// A fully parsed Fountain screenplay.
 class FountainDocument extends Equatable {
   /// Creates a [FountainDocument].
-  const FountainDocument({
-    required this.titlePage,
-    required this.blocks,
-    required this.sourceText,
-  });
+  const FountainDocument({required this.titlePage, required this.blocks, required this.sourceText});
 
   /// The document's title page, or `null` if the source had none.
   final FountainTitlePage? titlePage;

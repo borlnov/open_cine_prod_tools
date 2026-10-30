@@ -65,7 +65,8 @@ class OcptBreakdownRightDock extends StatelessWidget {
                         label: switch (tab) {
                           OcptBreakdownRightDockTab.inspector =>
                             tr.breakdownRightDockInspectorTabLabel,
-                          OcptBreakdownRightDockTab.versions => tr.breakdownRightDockVersionsTabLabel,
+                          OcptBreakdownRightDockTab.versions =>
+                            tr.breakdownRightDockVersionsTabLabel,
                         },
                         isActive: activeTab == tab,
                         onTap: () => onTabSelected(tab),

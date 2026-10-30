@@ -82,7 +82,10 @@ class OcptBudgetFeedCard extends StatelessWidget {
             if (onBreakdownFeedRequested != null)
               _OcptFeedCardRow(
                 title: tr.budgetDashboardFeedBreakdownTitle,
-                readOut: tr.budgetDashboardFeedBreakdownReadOut(breakdownPricedElementCount, elementCount),
+                readOut: tr.budgetDashboardFeedBreakdownReadOut(
+                  breakdownPricedElementCount,
+                  elementCount,
+                ),
                 onTap: onBreakdownFeedRequested!,
               ),
             if (onScheduleFeedRequested != null)
@@ -128,10 +131,7 @@ class _OcptFeedCardRow extends StatelessWidget {
       mouseCursor: ocptClickableCursor,
       borderRadius: BorderRadius.circular(ocptRadiusSmall),
       child: Padding(
-        padding: const EdgeInsets.symmetric(
-          vertical: 8,
-          horizontal: ocptTableRowHorizontalPadding,
-        ),
+        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: ocptTableRowHorizontalPadding),
         child: Row(
           children: [
             SizedBox(
@@ -148,7 +148,9 @@ class _OcptFeedCardRow extends StatelessWidget {
                 readOut,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
               ),
             ),
             Icon(Icons.chevron_right, size: 18, color: theme.colorScheme.onSurfaceVariant),

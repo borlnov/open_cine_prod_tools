@@ -121,7 +121,8 @@ class OcptDayOutOfDaysPdfService {
   }) async {
     final painter = await _painterFor(pageSetup);
     final pdfDocument = pw.Document();
-    final versionLine = "${labels.versionLabel} ${ocptScheduleGeneratedAtStamp(exportDate ?? DateTime.now())}";
+    final versionLine =
+        "${labels.versionLabel} ${ocptScheduleGeneratedAtStamp(exportDate ?? DateTime.now())}";
 
     final days = [
       for (final dayId in dayIds)
@@ -160,9 +161,7 @@ class OcptDayOutOfDaysPdfService {
         _tablePage(
           painter: painter,
           labels: labels,
-          roleLabelById: {
-            for (final role in orderedRoles) role.id: _roleLabelOf(role, labels),
-          },
+          roleLabelById: {for (final role in orderedRoles) role.id: _roleLabelOf(role, labels)},
           projectName: projectName,
           versionLine: versionLine,
           pageTitle: chunks.length > 1
@@ -228,7 +227,11 @@ class OcptDayOutOfDaysPdfService {
           pw.SizedBox(height: 32),
           pw.Text(
             versionLine,
-            style: pw.TextStyle(font: painter.fonts.regular, fontSize: _smallFontSizePt, color: _mutedColor),
+            style: pw.TextStyle(
+              font: painter.fonts.regular,
+              fontSize: _smallFontSizePt,
+              color: _mutedColor,
+            ),
           ),
         ],
       ),
@@ -253,9 +256,15 @@ class OcptDayOutOfDaysPdfService {
     ),
     build: (context) => [
       pw.SizedBox(height: 6),
-      pw.Text(labels.documentTitle, style: pw.TextStyle(font: painter.fonts.bold, fontSize: _titleFontSizePt)),
+      pw.Text(
+        labels.documentTitle,
+        style: pw.TextStyle(font: painter.fonts.bold, fontSize: _titleFontSizePt),
+      ),
       pw.SizedBox(height: 8),
-      pw.Text(text, style: pw.TextStyle(font: painter.fonts.regular, fontSize: _bodyFontSizePt)),
+      pw.Text(
+        text,
+        style: pw.TextStyle(font: painter.fonts.regular, fontSize: _bodyFontSizePt),
+      ),
     ],
   );
 
@@ -294,7 +303,10 @@ class OcptDayOutOfDaysPdfService {
       ),
       build: (context) => [
         pw.SizedBox(height: 6),
-        pw.Text(pageTitle, style: pw.TextStyle(font: painter.fonts.bold, fontSize: _titleFontSizePt)),
+        pw.Text(
+          pageTitle,
+          style: pw.TextStyle(font: painter.fonts.bold, fontSize: _titleFontSizePt),
+        ),
         pw.SizedBox(height: 8),
         pw.Table(
           border: pw.TableBorder.all(color: _ruleColor, width: 0.5),
@@ -308,8 +320,7 @@ class OcptDayOutOfDaysPdfService {
               decoration: const pw.BoxDecoration(color: _bandColor),
               children: [
                 _rowLabelCell(painter: painter, text: labels.roleHeader, isBold: true),
-                for (final day in days)
-                  _dayHeaderCell(painter: painter, labels: labels, day: day),
+                for (final day in days) _dayHeaderCell(painter: painter, labels: labels, day: day),
                 _headerCell(painter: painter, text: labels.workedDaysHeader),
                 _headerCell(painter: painter, text: labels.heldDaysHeader),
               ],
@@ -319,7 +330,10 @@ class OcptDayOutOfDaysPdfService {
                 children: [
                   // Every row of [table] was built from a [roleLabelById] entry's own role, so the
                   // fallback here is a formality rather than a case this document can reach.
-                  _rowLabelCell(painter: painter, text: roleLabelById[row.roleId] ?? labels.unnamedRoleLabel),
+                  _rowLabelCell(
+                    painter: painter,
+                    text: roleLabelById[row.roleId] ?? labels.unnamedRoleLabel,
+                  ),
                   for (final day in days)
                     _codeCell(painter: painter, labels: labels, code: row.codeOf(day.id)),
                   _countCell(painter: painter, value: row.workedDayCount),
@@ -328,10 +342,7 @@ class OcptDayOutOfDaysPdfService {
               ),
           ],
         ),
-        if (isLastChunk) ...[
-          pw.SizedBox(height: 12),
-          _legend(painter: painter, labels: labels),
-        ],
+        if (isLastChunk) ...[pw.SizedBox(height: 12), _legend(painter: painter, labels: labels)],
       ],
     );
   }
@@ -339,12 +350,19 @@ class OcptDayOutOfDaysPdfService {
   /// The legend printed under the last chunk of the table: one line per code, its own letter then
   /// what it means — the document is read by people who never asked for its conventions, and a grid
   /// of two-letter codes with nothing to read them by is a grid of two-letter codes.
-  pw.Widget _legend({required OcptScriptPagePainter painter, required OcptDayOutOfDaysLabels labels}) => pw.Column(
+  pw.Widget _legend({
+    required OcptScriptPagePainter painter,
+    required OcptDayOutOfDaysLabels labels,
+  }) => pw.Column(
     crossAxisAlignment: pw.CrossAxisAlignment.start,
     children: [
       pw.Text(
         labels.legendSectionTitle.toUpperCase(),
-        style: pw.TextStyle(font: painter.fonts.bold, fontSize: _smallFontSizePt, color: _mutedColor),
+        style: pw.TextStyle(
+          font: painter.fonts.bold,
+          fontSize: _smallFontSizePt,
+          color: _mutedColor,
+        ),
       ),
       pw.SizedBox(height: 2),
       for (final code in OcptDayOutOfDaysCode.values)
@@ -380,7 +398,11 @@ class OcptDayOutOfDaysPdfService {
             pw.Text(
               date,
               textAlign: pw.TextAlign.center,
-              style: pw.TextStyle(font: painter.fonts.regular, fontSize: _smallFontSizePt, color: _mutedColor),
+              style: pw.TextStyle(
+                font: painter.fonts.regular,
+                fontSize: _smallFontSizePt,
+                color: _mutedColor,
+              ),
             ),
         ],
       ),
@@ -388,14 +410,15 @@ class OcptDayOutOfDaysPdfService {
   }
 
   /// One of the two trailing count columns' own header.
-  pw.Widget _headerCell({required OcptScriptPagePainter painter, required String text}) => pw.Padding(
-    padding: const pw.EdgeInsets.all(_cellPaddingPt),
-    child: pw.Text(
-      text,
-      textAlign: pw.TextAlign.center,
-      style: pw.TextStyle(font: painter.fonts.bold, fontSize: _smallFontSizePt),
-    ),
-  );
+  pw.Widget _headerCell({required OcptScriptPagePainter painter, required String text}) =>
+      pw.Padding(
+        padding: const pw.EdgeInsets.all(_cellPaddingPt),
+        child: pw.Text(
+          text,
+          textAlign: pw.TextAlign.center,
+          style: pw.TextStyle(font: painter.fonts.bold, fontSize: _smallFontSizePt),
+        ),
+      );
 
   /// A row's own leading label cell (a role, or the table's own corner header).
   pw.Widget _rowLabelCell({
@@ -406,7 +429,10 @@ class OcptDayOutOfDaysPdfService {
     padding: const pw.EdgeInsets.all(_cellPaddingPt),
     child: pw.Text(
       text,
-      style: pw.TextStyle(font: painter.fonts.variant(bold: isBold, italic: false), fontSize: _bodyFontSizePt),
+      style: pw.TextStyle(
+        font: painter.fonts.variant(bold: isBold, italic: false),
+        fontSize: _bodyFontSizePt,
+      ),
     ),
   );
 
@@ -459,11 +485,19 @@ class OcptDayOutOfDaysPdfService {
         children: [
           pw.Text(
             "$projectName — $documentTitle",
-            style: pw.TextStyle(font: painter.fonts.regular, fontSize: _smallFontSizePt, color: _mutedColor),
+            style: pw.TextStyle(
+              font: painter.fonts.regular,
+              fontSize: _smallFontSizePt,
+              color: _mutedColor,
+            ),
           ),
           pw.Text(
             versionLine,
-            style: pw.TextStyle(font: painter.fonts.regular, fontSize: _smallFontSizePt, color: _mutedColor),
+            style: pw.TextStyle(
+              font: painter.fonts.regular,
+              fontSize: _smallFontSizePt,
+              color: _mutedColor,
+            ),
           ),
         ],
       ),

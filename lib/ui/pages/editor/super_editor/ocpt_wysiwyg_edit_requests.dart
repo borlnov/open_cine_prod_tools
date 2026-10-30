@@ -17,7 +17,11 @@ import 'package:super_editor/super_editor.dart';
 @immutable
 class OcptChangeNodeMetadataRequest implements EditRequest {
   /// Creates an [OcptChangeNodeMetadataRequest].
-  const OcptChangeNodeMetadataRequest({required this.nodeId, required this.metadata, this.isHistorical = true});
+  const OcptChangeNodeMetadataRequest({
+    required this.nodeId,
+    required this.metadata,
+    this.isHistorical = true,
+  });
 
   /// The id of the `ParagraphNode` whose metadata is being updated.
   final String nodeId;
@@ -76,7 +80,11 @@ class OcptChangeNodeMetadataRequest implements EditRequest {
 /// `ChangeParagraphBlockTypeCommand` uses for `blockType` changes).
 class OcptChangeNodeMetadataCommand extends EditCommand {
   /// Creates an [OcptChangeNodeMetadataCommand].
-  const OcptChangeNodeMetadataCommand({required this.nodeId, required this.metadata, this.isHistorical = true});
+  const OcptChangeNodeMetadataCommand({
+    required this.nodeId,
+    required this.metadata,
+    this.isHistorical = true,
+  });
 
   /// The id of the `ParagraphNode` whose metadata is being updated.
   final String nodeId;
@@ -91,7 +99,8 @@ class OcptChangeNodeMetadataCommand extends EditCommand {
   /// `ChangeParagraphBlockTypeCommand`, unless [isHistorical] says this change happened before
   /// the writer could have anything to undo.
   @override
-  HistoryBehavior get historyBehavior => isHistorical ? HistoryBehavior.undoable : HistoryBehavior.nonHistorical;
+  HistoryBehavior get historyBehavior =>
+      isHistorical ? HistoryBehavior.undoable : HistoryBehavior.nonHistorical;
 
   /// Applies the metadata merge to the document.
   @override
@@ -109,12 +118,12 @@ class OcptChangeNodeMetadataCommand extends EditCommand {
 /// `_OcptStyledScreenplayEditorState._rebuildEditorFrom`).
 EditCommand? ocptChangeNodeMetadataRequestHandler(Editor editor, EditRequest request) =>
     request is OcptChangeNodeMetadataRequest
-        ? OcptChangeNodeMetadataCommand(
-            nodeId: request.nodeId,
-            metadata: request.metadata,
-            isHistorical: request.isHistorical,
-          )
-        : null;
+    ? OcptChangeNodeMetadataCommand(
+        nodeId: request.nodeId,
+        metadata: request.metadata,
+        isHistorical: request.isHistorical,
+      )
+    : null;
 
 /// [EditRequest] to replace the entire text of the `ParagraphNode` identified by [nodeId] with
 /// [text], leaving its metadata untouched — used by `OcptWysiwygCodec.uppercaseRequests` to rewrite
@@ -135,7 +144,10 @@ class OcptReplaceNodeTextRequest implements EditRequest {
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      other is OcptReplaceNodeTextRequest && runtimeType == other.runtimeType && nodeId == other.nodeId && text == other.text;
+      other is OcptReplaceNodeTextRequest &&
+          runtimeType == other.runtimeType &&
+          nodeId == other.nodeId &&
+          text == other.text;
 
   /// Object hash code
   @override
@@ -176,5 +188,5 @@ class OcptReplaceNodeTextCommand extends EditCommand {
 /// `_OcptStyledScreenplayEditorState._rebuildEditorFrom`).
 EditCommand? ocptReplaceNodeTextRequestHandler(Editor editor, EditRequest request) =>
     request is OcptReplaceNodeTextRequest
-        ? OcptReplaceNodeTextCommand(nodeId: request.nodeId, text: request.text)
-        : null;
+    ? OcptReplaceNodeTextCommand(nodeId: request.nodeId, text: request.text)
+    : null;

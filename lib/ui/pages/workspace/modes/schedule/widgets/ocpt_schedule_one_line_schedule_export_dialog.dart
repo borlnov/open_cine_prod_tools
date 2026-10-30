@@ -32,7 +32,11 @@ class OcptScheduleOneLineScheduleExportDialog extends StatefulWidget {
   final List<OcptShootingDay> days;
 
   /// Class constructor
-  const OcptScheduleOneLineScheduleExportDialog({required this.current, required this.days, super.key});
+  const OcptScheduleOneLineScheduleExportDialog({
+    required this.current,
+    required this.days,
+    super.key,
+  });
 
   /// Shows the dialog and returns the [OcptOneLineScheduleExportOptions] the user applied, or null
   /// if they cancelled it.
@@ -139,7 +143,10 @@ class _OcptScheduleOneLineScheduleExportDialogState
     final options = OcptOneLineScheduleExportOptions(
       format: _selectedFormat,
       margins: widget.current.margins,
-      dayIds: [for (final day in widget.days) if (_selectedDayIds.contains(day.id)) day.id],
+      dayIds: [
+        for (final day in widget.days)
+          if (_selectedDayIds.contains(day.id)) day.id,
+      ],
       includeTitlePage: _includeTitlePage,
     );
     globalGetIt().get<OcptRouterManager>().pop<OcptOneLineScheduleExportOptions>(options);

@@ -128,7 +128,9 @@ class OcptEditorSearchState extends Equatable {
     isCaseSensitive: isCaseSensitive ?? this.isCaseSensitive,
     isWholeWord: isWholeWord ?? this.isWholeWord,
     matchCount: matchCount ?? this.matchCount,
-    currentMatchIndex: clearCurrentMatchIndex ? null : (currentMatchIndex ?? this.currentMatchIndex),
+    currentMatchIndex: clearCurrentMatchIndex
+        ? null
+        : (currentMatchIndex ?? this.currentMatchIndex),
     focusRequestId: focusRequestId ?? this.focusRequestId,
   );
 
@@ -420,10 +422,8 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState>
 
   /// The prospective form of [isPreviewTabAvailable]: whether the preview tab would exist in
   /// [mode], with [isReadOnly] telling whether a project version is being previewed.
-  static bool isPreviewTabAvailableFor({
-    required OcptEditorMode mode,
-    required bool isReadOnly,
-  }) => mode == OcptEditorMode.raw && !isReadOnly;
+  static bool isPreviewTabAvailableFor({required OcptEditorMode mode, required bool isReadOnly}) =>
+      mode == OcptEditorMode.raw && !isReadOnly;
 
   /// The scene headings of [document], in source order (empty while nothing is parsed).
   List<FountainSceneHeading> get scenes => document?.scenes ?? const [];
@@ -607,7 +607,9 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState>
     isPageSimulationEnabled: isPageSimulationEnabled ?? this.isPageSimulationEnabled,
     areStyledSceneNumbersVisible: areStyledSceneNumbersVisible ?? this.areStyledSceneNumbersVisible,
     isSpellCheckVisible: isSpellCheckVisible ?? this.isSpellCheckVisible,
-    screenplayLanguage: clearScreenplayLanguage ? null : (screenplayLanguage ?? this.screenplayLanguage),
+    screenplayLanguage: clearScreenplayLanguage
+        ? null
+        : (screenplayLanguage ?? this.screenplayLanguage),
     rawSpellCheckRanges: rawSpellCheckRanges ?? this.rawSpellCheckRanges,
     styledSpellCheckRanges: styledSpellCheckRanges ?? this.styledSpellCheckRanges,
     jumpRequest: jumpRequest ?? this.jumpRequest,

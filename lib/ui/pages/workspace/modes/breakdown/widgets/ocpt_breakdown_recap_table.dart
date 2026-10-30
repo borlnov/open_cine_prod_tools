@@ -395,12 +395,17 @@ class _RecapGroupSection extends StatelessWidget {
               const SizedBox(width: 8),
               Text(
                 ocptBreakdownLegendKeyLabel(tr, entry.key).toUpperCase(),
-                style: theme.textTheme.labelSmall?.copyWith(color: color, fontWeight: FontWeight.w700),
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: color,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
               const SizedBox(width: 8),
               Text(
                 "${targets.length}",
-                style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
               ),
             ],
           ),

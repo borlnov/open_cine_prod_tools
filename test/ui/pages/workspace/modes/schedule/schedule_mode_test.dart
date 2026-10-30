@@ -106,39 +106,38 @@ void main() {
   Finder inPanel(Finder matching) =>
       find.descendant(of: find.byType(AlertDialog), matching: matching);
 
-  testWidgets(
-    "with no day planned, every card of the export panel is unavailable and says why",
-    (tester) async {
-      tester.view.physicalSize = const Size(1400, 900);
-      tester.view.devicePixelRatio = 1.0;
-      addTearDown(tester.view.resetPhysicalSize);
-      addTearDown(tester.view.resetDevicePixelRatio);
+  testWidgets("with no day planned, every card of the export panel is unavailable and says why", (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1400, 900);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
 
-      await tester.pumpWidget(_wrapWithLocalization(const OcptScheduleMode()));
-      await tester.pumpAndSettle();
+    await tester.pumpWidget(_wrapWithLocalization(const OcptScheduleMode()));
+    await tester.pumpAndSettle();
 
-      final tr = Tr.of(tester.element(find.byType(OcptScheduleMode)));
+    final tr = Tr.of(tester.element(find.byType(OcptScheduleMode)));
 
-      await tester.tap(find.byTooltip(tr.workspaceExportTooltip));
-      await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip(tr.workspaceExportTooltip));
+    await tester.pumpAndSettle();
 
-      expect(find.text(tr.scheduleExportPanelTitle), findsOneWidget);
-      expect(inPanel(find.text(tr.scheduleExportPanelCallSheetsTitle)), findsOneWidget);
-      expect(inPanel(find.text(tr.scheduleExportPanelNamedCallSheetsTitle)), findsOneWidget);
-      expect(inPanel(find.text(tr.scheduleExportPanelShootingPlanTitle)), findsOneWidget);
-      expect(inPanel(find.text(tr.scheduleExportPanelShootingPlanXlsxTitle)), findsOneWidget);
-      expect(inPanel(find.text(tr.scheduleExportPanelDayOutOfDaysTitle)), findsOneWidget);
-      expect(inPanel(find.text(tr.scheduleExportPanelOneLineScheduleTitle)), findsOneWidget);
-      expect(inPanel(find.text(tr.scheduleExportPanelSidesTitle)), findsOneWidget);
-      expect(inPanel(find.text(tr.scheduleExportUnavailableReason)), findsNWidgets(7));
-      expect(inPanel(find.text(tr.scheduleExportPanelShootingPlanDescription)), findsNothing);
+    expect(find.text(tr.scheduleExportPanelTitle), findsOneWidget);
+    expect(inPanel(find.text(tr.scheduleExportPanelCallSheetsTitle)), findsOneWidget);
+    expect(inPanel(find.text(tr.scheduleExportPanelNamedCallSheetsTitle)), findsOneWidget);
+    expect(inPanel(find.text(tr.scheduleExportPanelShootingPlanTitle)), findsOneWidget);
+    expect(inPanel(find.text(tr.scheduleExportPanelShootingPlanXlsxTitle)), findsOneWidget);
+    expect(inPanel(find.text(tr.scheduleExportPanelDayOutOfDaysTitle)), findsOneWidget);
+    expect(inPanel(find.text(tr.scheduleExportPanelOneLineScheduleTitle)), findsOneWidget);
+    expect(inPanel(find.text(tr.scheduleExportPanelSidesTitle)), findsOneWidget);
+    expect(inPanel(find.text(tr.scheduleExportUnavailableReason)), findsNWidgets(7));
+    expect(inPanel(find.text(tr.scheduleExportPanelShootingPlanDescription)), findsNothing);
 
-      // Unavailable: tapping it pops nothing, so the panel stays open.
-      await tester.tap(inPanel(find.text(tr.scheduleExportPanelShootingPlanTitle)));
-      await tester.pumpAndSettle();
-      expect(find.text(tr.scheduleExportPanelTitle), findsOneWidget);
-    },
-  );
+    // Unavailable: tapping it pops nothing, so the panel stays open.
+    await tester.tap(inPanel(find.text(tr.scheduleExportPanelShootingPlanTitle)));
+    await tester.pumpAndSettle();
+    expect(find.text(tr.scheduleExportPanelTitle), findsOneWidget);
+  });
 
   testWidgets(
     "once a day is planned, picking the shooting plan card opens its own export options dialog",

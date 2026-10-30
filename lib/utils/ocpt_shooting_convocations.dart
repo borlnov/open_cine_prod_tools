@@ -398,8 +398,9 @@ List<OcptDayConvocation> ocptComputeDayConvocations({
       if (!ownAuditions.contains(audition)) {
         ownAuditions.add(audition);
       }
-      (roleCandidateIdsByPersonId[candidacy.personId] ??= <String>{})
-          .add(candidacy.roleCandidateId);
+      (roleCandidateIdsByPersonId[candidacy.personId] ??= <String>{}).add(
+        candidacy.roleCandidateId,
+      );
     }
   }
 
@@ -415,7 +416,8 @@ List<OcptDayConvocation> ocptComputeDayConvocations({
         ownAuditions: auditionsByPersonId[personId] ?? const [],
         roleCandidateIds: roleCandidateIdsByPersonId[personId] ?? const {},
       ),
-    for (final entry in slotsByRoleId.entries) _convocationOf(roleId: entry.key, ownSlots: entry.value),
+    for (final entry in slotsByRoleId.entries)
+      _convocationOf(roleId: entry.key, ownSlots: entry.value),
     for (final entry in slotsByGuestPersonId.entries)
       _convocationOf(guestPersonId: entry.key, ownSlots: entry.value),
     for (final entry in slotsByGuestFreeName.entries)
@@ -427,9 +429,10 @@ List<OcptDayConvocation> ocptComputeDayConvocations({
     if (byArrival != 0) {
       return byArrival;
     }
-    return (left.personId ?? left.roleId ?? left.guestPersonId ?? left.guestFreeName ?? "").compareTo(
-      right.personId ?? right.roleId ?? right.guestPersonId ?? right.guestFreeName ?? "",
-    );
+    return (left.personId ?? left.roleId ?? left.guestPersonId ?? left.guestFreeName ?? "")
+        .compareTo(
+          right.personId ?? right.roleId ?? right.guestPersonId ?? right.guestFreeName ?? "",
+        );
   });
 
   return convocations;

@@ -27,11 +27,7 @@ class OcptScriptWord extends Equatable {
   final int endOffset;
 
   /// Class constructor
-  const OcptScriptWord({
-    required this.text,
-    required this.startOffset,
-    required this.endOffset,
-  });
+  const OcptScriptWord({required this.text, required this.startOffset, required this.endOffset});
 
   /// Object string representation, useful for debugging and logging.
   @override
@@ -191,10 +187,7 @@ class OcptScriptWordLayout extends Equatable {
   /// The scene-relative range to store for a click on [first] followed by a click on [second],
   /// order-insensitive: closing a range by clicking backwards (the second click lands on a word
   /// before the first) yields the same range as clicking the same two words forwards.
-  ({int startOffset, int endOffset}) rangeBetween(
-    OcptScriptWord first,
-    OcptScriptWord second,
-  ) {
+  ({int startOffset, int endOffset}) rangeBetween(OcptScriptWord first, OcptScriptWord second) {
     final startOffset = first.startOffset <= second.startOffset
         ? first.startOffset
         : second.startOffset;
@@ -347,8 +340,7 @@ class OcptScriptWordLayout extends Equatable {
   /// text: the order the inspector lists a shot's covered extracts in, which is the order they
   /// read in rather than the order they happened to be recorded in.
   List<OcptShotCoverageRange> rangesInReadingOrder(Iterable<OcptShotCoverageRange> ranges) =>
-      _rangesOfThisScene(ranges).toList()
-        ..sort((a, b) => a.startOffset.compareTo(b.startOffset));
+      _rangesOfThisScene(ranges).toList()..sort((a, b) => a.startOffset.compareTo(b.startOffset));
 
   /// Filters [ranges] down to the ones belonging to this layout's own [sceneId], dropping ranges
   /// of any other scene a shot's whole range list may also carry.

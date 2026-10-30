@@ -111,37 +111,28 @@ void main() {
     });
 
     test('a leading ".." does not force a scene heading', () {
-      expect(_classify(['..an ellipsis opens this line']), [
-        FountainLineType.action,
-      ]);
+      expect(_classify(['..an ellipsis opens this line']), [FountainLineType.action]);
     });
   });
 
   group('action', () {
     test('is the default classification', () {
-      expect(_classify(['Just a regular sentence.']), [
-        FountainLineType.action,
-      ]);
+      expect(_classify(['Just a regular sentence.']), [FountainLineType.action]);
     });
 
     test('a leading "!" forces action', () {
-      expect(_classify(['!INT. THIS LOOKS LIKE A HEADING']), [
-        FountainLineType.action,
-      ]);
+      expect(_classify(['!INT. THIS LOOKS LIKE A HEADING']), [FountainLineType.action]);
     });
   });
 
   group('character cues', () {
-    test(
-      'all-caps text preceded by blank and followed by dialogue is a character cue',
-      () {
-        expect(_classify(['', 'SARAH', 'Hello.']), [
-          FountainLineType.blank,
-          FountainLineType.character,
-          FountainLineType.dialogue,
-        ]);
-      },
-    );
+    test('all-caps text preceded by blank and followed by dialogue is a character cue', () {
+      expect(_classify(['', 'SARAH', 'Hello.']), [
+        FountainLineType.blank,
+        FountainLineType.character,
+        FountainLineType.dialogue,
+      ]);
+    });
 
     test('needs a blank line before it', () {
       expect(_classify(['Some action.', 'SARAH', 'Hello.']), [
@@ -195,9 +186,7 @@ void main() {
     });
 
     test('a parenthesized line outside a dialogue block is action', () {
-      expect(_classify(['(A lone bird crosses the sky.)']), [
-        FountainLineType.action,
-      ]);
+      expect(_classify(['(A lone bird crosses the sky.)']), [FountainLineType.action]);
     });
 
     test('a blank line ends the dialogue block', () {
@@ -212,16 +201,13 @@ void main() {
   });
 
   group('transitions', () {
-    test(
-      'all-caps text ending in "TO:" surrounded by blanks is a transition',
-      () {
-        expect(_classify(['', 'CUT TO:', '']), [
-          FountainLineType.blank,
-          FountainLineType.transition,
-          FountainLineType.blank,
-        ]);
-      },
-    );
+    test('all-caps text ending in "TO:" surrounded by blanks is a transition', () {
+      expect(_classify(['', 'CUT TO:', '']), [
+        FountainLineType.blank,
+        FountainLineType.transition,
+        FountainLineType.blank,
+      ]);
+    });
 
     test('needs blank lines on both sides, or it is action', () {
       expect(_classify(['Some action.', 'CUT TO:', '']), [
@@ -244,22 +230,17 @@ void main() {
 
   group('lyrics', () {
     test('a leading "~" marks a lyrics line', () {
-      expect(
-        _classify([
-          '~Half a mile from the county fair',
-          '~Not one soul around',
-        ]),
-        [FountainLineType.lyrics, FountainLineType.lyrics],
-      );
+      expect(_classify(['~Half a mile from the county fair', '~Not one soul around']), [
+        FountainLineType.lyrics,
+        FountainLineType.lyrics,
+      ]);
     });
   });
 
   group('sections', () {
     test('one to six leading "#" characters mark section levels', () {
       for (var level = 1; level <= 6; level++) {
-        expect(_classify(['${'#' * level} Heading']), [
-          FountainLineType.section,
-        ]);
+        expect(_classify(['${'#' * level} Heading']), [FountainLineType.section]);
       }
     });
   });
@@ -286,11 +267,7 @@ void main() {
 
     test('agrees with classify() given the equivalent explicit context', () {
       expect(
-        classifier.classifyLine(
-          'INT. KITCHEN - DAY',
-          previousType: null,
-          nextRawLine: null,
-        ),
+        classifier.classifyLine('INT. KITCHEN - DAY', previousType: null, nextRawLine: null),
         FountainLineType.sceneHeading,
       );
       expect(
@@ -314,22 +291,14 @@ void main() {
     test('a whitespace-only line inside a dialogue block is a preserved '
         'dialogue line, not blank, given just the previous type', () {
       expect(
-        classifier.classifyLine(
-          '  ',
-          previousType: FountainLineType.dialogue,
-          nextRawLine: null,
-        ),
+        classifier.classifyLine('  ', previousType: FountainLineType.dialogue, nextRawLine: null),
         FountainLineType.dialogue,
       );
     });
 
     test('a missing next line counts as followed-by-blank', () {
       expect(
-        classifier.classifyLine(
-          'CUT TO:',
-          previousType: null,
-          nextRawLine: null,
-        ),
+        classifier.classifyLine('CUT TO:', previousType: null, nextRawLine: null),
         FountainLineType.transition,
       );
     });

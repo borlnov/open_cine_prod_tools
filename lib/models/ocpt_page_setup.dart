@@ -29,10 +29,8 @@ class OcptPageSetup extends Equatable {
       margins = const FountainPageMargins.standard();
 
   /// Copy the current page setup and update the given elements
-  OcptPageSetup copyWith({OcptPageFormat? format, FountainPageMargins? margins}) => OcptPageSetup(
-    format: format ?? this.format,
-    margins: margins ?? this.margins,
-  );
+  OcptPageSetup copyWith({OcptPageFormat? format, FountainPageMargins? margins}) =>
+      OcptPageSetup(format: format ?? this.format, margins: margins ?? this.margins);
 
   /// Builds the [FountainLayoutMetrics] matching this page setup.
   ///

@@ -56,42 +56,41 @@ void main() {
     expect(find.byIcon(Icons.more_vert), findsNothing);
   });
 
-  testWidgets(
-    "below the breakpoint, the header collapses every action into an overflow menu",
-    (tester) async {
-      // Narrower than the compact-width breakpoint (816): the title stays on one line, "New
-      // project" is dropped entirely (it lives in the page's own FAB at this width) and only the
-      // overflow trigger remains visible directly.
-      tester.view.physicalSize = const Size(500, 600);
-      tester.view.devicePixelRatio = 1.0;
-      addTearDown(tester.view.resetPhysicalSize);
-      addTearDown(tester.view.resetDevicePixelRatio);
+  testWidgets("below the breakpoint, the header collapses every action into an overflow menu", (
+    tester,
+  ) async {
+    // Narrower than the compact-width breakpoint (816): the title stays on one line, "New
+    // project" is dropped entirely (it lives in the page's own FAB at this width) and only the
+    // overflow trigger remains visible directly.
+    tester.view.physicalSize = const Size(500, 600);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
 
-      await tester.pumpWidget(_buildHeader());
-      await tester.pumpAndSettle();
+    await tester.pumpWidget(_buildHeader());
+    await tester.pumpAndSettle();
 
-      final tr = Tr.of(tester.element(find.byType(OcptHomeHeader)));
+    final tr = Tr.of(tester.element(find.byType(OcptHomeHeader)));
 
-      // The title never stacks its letters: it stays a single line and may only ellipsize.
-      final titleText = tester.widget<Text>(find.text(tr.appTitle));
-      expect(titleText.maxLines, 1);
-      expect(titleText.overflow, TextOverflow.ellipsis);
+    // The title never stacks its letters: it stays a single line and may only ellipsize.
+    final titleText = tester.widget<Text>(find.text(tr.appTitle));
+    expect(titleText.maxLines, 1);
+    expect(titleText.overflow, TextOverflow.ellipsis);
 
-      // "New project" is gone from the compact header; only the overflow trigger remains, and
-      // every other action is behind it.
-      expect(find.text(tr.homeNewProjectAction), findsNothing);
-      expect(find.byIcon(Icons.more_vert), findsOneWidget);
-      expect(find.text(tr.homeOpenProjectAction), findsNothing);
-      expect(find.text(tr.homeImportAction), findsNothing);
-      expect(find.text(tr.homeJoinSharedProjectAction), findsNothing);
+    // "New project" is gone from the compact header; only the overflow trigger remains, and
+    // every other action is behind it.
+    expect(find.text(tr.homeNewProjectAction), findsNothing);
+    expect(find.byIcon(Icons.more_vert), findsOneWidget);
+    expect(find.text(tr.homeOpenProjectAction), findsNothing);
+    expect(find.text(tr.homeImportAction), findsNothing);
+    expect(find.text(tr.homeJoinSharedProjectAction), findsNothing);
 
-      await tester.tap(find.byIcon(Icons.more_vert));
-      await tester.pumpAndSettle();
+    await tester.tap(find.byIcon(Icons.more_vert));
+    await tester.pumpAndSettle();
 
-      expect(find.widgetWithText(MenuItemButton, tr.homeOpenProjectAction), findsOneWidget);
-      expect(find.widgetWithText(MenuItemButton, tr.homeImportAction), findsOneWidget);
-      expect(find.widgetWithText(MenuItemButton, tr.homeJoinSharedProjectAction), findsOneWidget);
-      expect(find.widgetWithText(MenuItemButton, tr.homeSettingsTooltip), findsOneWidget);
-    },
-  );
+    expect(find.widgetWithText(MenuItemButton, tr.homeOpenProjectAction), findsOneWidget);
+    expect(find.widgetWithText(MenuItemButton, tr.homeImportAction), findsOneWidget);
+    expect(find.widgetWithText(MenuItemButton, tr.homeJoinSharedProjectAction), findsOneWidget);
+    expect(find.widgetWithText(MenuItemButton, tr.homeSettingsTooltip), findsOneWidget);
+  });
 }

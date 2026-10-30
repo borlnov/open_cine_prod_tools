@@ -113,8 +113,12 @@ class OcptRelayHostManagerBuilder extends AbsLifeCycleFactory<OcptRelayHostManag
 
   /// {@macro act_life_cycle.AbsLifeCycleFactory.dependsOn}
   @override
-  Iterable<Type> dependsOn() =>
-      [LoggerManager, OcptSyncManager, OcptSecretsManager, OcptPropertiesManager];
+  Iterable<Type> dependsOn() => [
+    LoggerManager,
+    OcptSyncManager,
+    OcptSecretsManager,
+    OcptPropertiesManager,
+  ];
 }
 
 /// Owns the lifecycle of **one** in-process relay — one `OcptRelayServer` over one
@@ -226,7 +230,8 @@ class OcptRelayHostManager extends AbsWithLifeCycle {
   final OcptRelayStoreFactory _storeFactory;
 
   OcptRelayHostState _state = const OcptRelayHostStopped();
-  final StreamController<OcptRelayHostState> _controller = StreamController<OcptRelayHostState>.broadcast();
+  final StreamController<OcptRelayHostState> _controller =
+      StreamController<OcptRelayHostState>.broadcast();
 
   OcptRelayStore? _store;
   HttpServer? _httpServer;
@@ -463,7 +468,9 @@ class OcptRelayHostManager extends AbsWithLifeCycle {
       return const OcptReconcileFailed('Cannot reconcile: no project is being hosted right now.');
     }
     if (invite.projectId != projectId) {
-      return const OcptReconcileFailed('The upstream invite is for a different project than the one being hosted.');
+      return const OcptReconcileFailed(
+        'The upstream invite is for a different project than the one being hosted.',
+      );
     }
 
     final upstream = OcptRelayUpstreamClient(baseUri: invite.relayBaseUri, token: invite.token);

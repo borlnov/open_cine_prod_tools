@@ -291,15 +291,18 @@ class OcptBudgetFiche extends StatelessWidget {
 
   /// The plain hint shown while nothing is selected, or the selected object has disappeared from a
   /// freshly loaded snapshot.
-  Widget _emptyState(BuildContext context) =>
-      OcptWorkspaceEmptyMode(icon: Icons.receipt_long_outlined, message: Tr.of(context).budgetFicheEmptyHint);
+  Widget _emptyState(BuildContext context) => OcptWorkspaceEmptyMode(
+    icon: Icons.receipt_long_outlined,
+    message: Tr.of(context).budgetFicheEmptyHint,
+  );
 
   // ---------------------------------------------------------------------------------------------
   // Ancestor lookups — every variant resolves its own subject and, when it has one, its own poste.
   // ---------------------------------------------------------------------------------------------
 
   /// [postes]' own entry naming [posteId], or null while no live poste carries that id.
-  OcptBudgetPoste? _posteById(String posteId) => postes.firstWhereOrNull((poste) => poste.id == posteId);
+  OcptBudgetPoste? _posteById(String posteId) =>
+      postes.firstWhereOrNull((poste) => poste.id == posteId);
 
   /// The poste [lineId]'s own quote line belongs to, or null while no live poste carries it.
   OcptBudgetPoste? _posteOfLine(String lineId) =>
@@ -470,7 +473,11 @@ class OcptBudgetFiche extends StatelessWidget {
                 suffixText: currencySymbol,
                 onChanged: onFieldChanged == null
                     ? null
-                    : (value) => onFieldChanged?.call(poste.id, OcptBudgetField.posteEstimateToComplete, value),
+                    : (value) => onFieldChanged?.call(
+                        poste.id,
+                        OcptBudgetField.posteEstimateToComplete,
+                        value,
+                      ),
               ),
             ),
             if (!isReadOnly && onPosteEstimateToCompleteDerivedRequested != null) ...[
@@ -510,17 +517,27 @@ class OcptBudgetFiche extends StatelessWidget {
     final isPromoted = commitment != null;
     final isSettled =
         commitment != null &&
-        ocptBudgetCommitmentIsSettledOf(commitment, entries, projectVatRateBasisPoints: defaultVatRateBasisPoints);
+        ocptBudgetCommitmentIsSettledOf(
+          commitment,
+          entries,
+          projectVatRateBasisPoints: defaultVatRateBasisPoints,
+        );
     final committedCents = commitment == null
         ? null
-        : ocptBudgetCommitmentCashCentsOf(commitment, projectVatRateBasisPoints: defaultVatRateBasisPoints);
+        : ocptBudgetCommitmentCashCentsOf(
+            commitment,
+            projectVatRateBasisPoints: defaultVatRateBasisPoints,
+          );
     // `Payé` only ever reads once this line's own commitment is settled — matching what a single,
     // exact-amount payment already read before commitments could be paid in instalments: a
     // commitment still owed something, even partly paid, states nothing here yet.
     final paidCents = commitment == null || !isSettled
         ? null
-        : ocptBudgetCommitmentPaidCentsOf(commitment, entries, projectVatRateBasisPoints: defaultVatRateBasisPoints)
-              .amountCents;
+        : ocptBudgetCommitmentPaidCentsOf(
+            commitment,
+            entries,
+            projectVatRateBasisPoints: defaultVatRateBasisPoints,
+          ).amountCents;
     // What this commitment still owes — the `Pay` action and the outstanding block below both read
     // this, never [committedCents]' own full figure, so a partly-paid commitment offers back only
     // what is actually left to pay (`docs/architecture/budget.md`).
@@ -738,7 +755,11 @@ class OcptBudgetFiche extends StatelessWidget {
         const SizedBox(height: 8),
         _OcptBudgetInlineField(
           label: tr.budgetLineUnitPriceFieldLabel,
-          value: fieldValueOf(line.id, OcptBudgetField.lineUnitAmount, ocptCostTextOf(line.unitPrice.amountCents)),
+          value: fieldValueOf(
+            line.id,
+            OcptBudgetField.lineUnitAmount,
+            ocptCostTextOf(line.unitPrice.amountCents),
+          ),
           suffixText: currencySymbol,
           onChanged: onFieldChanged == null
               ? null
@@ -767,11 +788,14 @@ class OcptBudgetFiche extends StatelessWidget {
                 ),
                 hintText: effectiveRate.basisPoints == null
                     ? null
-                    : tr.budgetLineVatRateInheritedHint(ocptVatRatePercentTextOf(effectiveRate.basisPoints)),
+                    : tr.budgetLineVatRateInheritedHint(
+                        ocptVatRatePercentTextOf(effectiveRate.basisPoints),
+                      ),
                 suffixText: tr.budgetLineVatRateSuffix,
                 onChanged: onFieldChanged == null
                     ? null
-                    : (value) => onFieldChanged.call(line.id, OcptBudgetField.lineVatRateOverride, value),
+                    : (value) =>
+                          onFieldChanged.call(line.id, OcptBudgetField.lineVatRateOverride, value),
               ),
             ),
             if (!isReadOnly && onLineVatRateInheritedRequested != null) ...[
@@ -827,8 +851,11 @@ class OcptBudgetFiche extends StatelessWidget {
     // settled, matching what a single, exact-amount payment already read before a commitment could
     // be paid in instalments.
     final paidCents = isSettled
-        ? ocptBudgetCommitmentPaidCentsOf(commitment, entries, projectVatRateBasisPoints: defaultVatRateBasisPoints)
-              .amountCents
+        ? ocptBudgetCommitmentPaidCentsOf(
+            commitment,
+            entries,
+            projectVatRateBasisPoints: defaultVatRateBasisPoints,
+          ).amountCents
         : null;
     final quotedLineCents = line == null ? null : ocptBudgetLineTotalCents(line);
     // What this commitment still owes — the `Pay` action and the outstanding block both read this,
@@ -870,7 +897,9 @@ class OcptBudgetFiche extends StatelessWidget {
             committedCents: posteCommittedCents,
             inKindCoveredCents: posteInKindCoveredCents,
           );
-          bannerMessage = tr.budgetFicheCommitmentOffLineBannerOverQuoteText(_amount(varianceCents));
+          bannerMessage = tr.budgetFicheCommitmentOffLineBannerOverQuoteText(
+            _amount(varianceCents),
+          );
         }
       }
       // A commitment always names a poste, so it offers only `Add to the quote` — no `Move
@@ -886,13 +915,17 @@ class OcptBudgetFiche extends StatelessWidget {
 
     return _OcptBudgetFicheScaffold(
       breadcrumb: [
-        if (poste != null) "${poste.code} ${ocptBudgetPosteDisplayLabel(poste, isSimplified: isSimplified)}",
+        if (poste != null)
+          "${poste.code} ${ocptBudgetPosteDisplayLabel(poste, isSimplified: isSimplified)}",
         if (line != null) (line.label.isEmpty ? tr.budgetLineUnnamed : line.label),
         tr.budgetFicheKindCommitmentLabel,
       ],
       title: title,
       amountText: _amount(cashCents),
-      hint: tr.budgetFicheCommitmentHint(ocptBudgetCommitmentStatusLabel(tr, commitment.status), dueDateText),
+      hint: tr.budgetFicheCommitmentHint(
+        ocptBudgetCommitmentStatusLabel(tr, commitment.status),
+        dueDateText,
+      ),
       stepLabels: [
         tr.budgetFicheStepEstimatedLabel,
         tr.budgetInspectorFigureCommitted,
@@ -1029,13 +1062,20 @@ class OcptBudgetFiche extends StatelessWidget {
       breadcrumb:
           breadcrumbOverride ??
           [
-            if (poste != null) "${poste.code} ${ocptBudgetPosteDisplayLabel(poste, isSimplified: isSimplified)}",
+            if (poste != null)
+              "${poste.code} ${ocptBudgetPosteDisplayLabel(poste, isSimplified: isSimplified)}",
             tr.budgetFicheKindEntryLabel,
           ],
       title: title,
       amountText: _amount(amountCents),
       hint: hintLines.join("\n"),
-      stepLabels: stepLabelsOverride ?? [tr.budgetFicheStepEstimatedLabel, tr.budgetInspectorFigureCommitted, tr.budgetInspectorFigurePaid],
+      stepLabels:
+          stepLabelsOverride ??
+          [
+            tr.budgetFicheStepEstimatedLabel,
+            tr.budgetInspectorFigureCommitted,
+            tr.budgetInspectorFigurePaid,
+          ],
       reachedCount: reachedCountOverride ?? 3,
       figures: [
         (
@@ -1127,7 +1167,10 @@ class OcptBudgetFiche extends StatelessWidget {
       amountText: _amount(resource.amountCents),
       hint: resource.notes.isEmpty ? null : resource.notes,
       badge: ocptBudgetResourceStatusLabel(tr, resource.groupKind, resource.status),
-      badgeColor: ocptBudgetResourceStatusAccentColor(Theme.of(context).colorScheme, resource.status),
+      badgeColor: ocptBudgetResourceStatusAccentColor(
+        Theme.of(context).colorScheme,
+        resource.status,
+      ),
       stepLabels: readsAsUncollected
           ? const []
           : [tr.budgetFicheStepPromisedLabel, tr.budgetFinancingColumnReceived],
@@ -1143,7 +1186,9 @@ class OcptBudgetFiche extends StatelessWidget {
       banner: offsetsPosteBanner,
       primary: canReceive
           ? _OcptBudgetFicheAction(
-              label: tr.budgetFicheReceiveAction(_amount(outstandingCents < 0 ? 0 : outstandingCents)),
+              label: tr.budgetFicheReceiveAction(
+                _amount(outstandingCents < 0 ? 0 : outstandingCents),
+              ),
               onTap: () => onResourceReceiptRequested?.call(resource),
             )
           : null,
@@ -1203,7 +1248,9 @@ class OcptBudgetFiche extends StatelessWidget {
       outstandingValue: _amount(outstandingCents),
       primary: canReceive
           ? _OcptBudgetFicheAction(
-              label: tr.budgetFicheReceiveAction(_amount(outstandingCents < 0 ? 0 : outstandingCents)),
+              label: tr.budgetFicheReceiveAction(
+                _amount(outstandingCents < 0 ? 0 : outstandingCents),
+              ),
               onTap: () => onRevenueReceiptRequested?.call(revenue),
             )
           : null,
@@ -1262,17 +1309,21 @@ class OcptBudgetFiche extends StatelessWidget {
   /// `posteId`'s own paid total, in cents, tax-inclusive — 0 while nothing is entered against it,
   /// read off [entries] directly since the fiche resolves its own poste rather than being handed
   /// one pre-resolved.
-  int _paidCentsOf(String posteId) => ocptBudgetPaidCentsByPosteId(
-    entries,
-    projectVatRateBasisPoints: defaultVatRateBasisPoints,
-  )[posteId]?.amountCents ?? 0;
+  int _paidCentsOf(String posteId) =>
+      ocptBudgetPaidCentsByPosteId(
+        entries,
+        projectVatRateBasisPoints: defaultVatRateBasisPoints,
+      )[posteId]?.amountCents ??
+      0;
 
   /// `posteId`'s own committed total, in cents, tax-inclusive — mirrors [_paidCentsOf].
-  int _committedCentsOf(String posteId) => ocptBudgetCommittedCentsByPosteId(
-    commitments,
-    entries: entries,
-    projectVatRateBasisPoints: defaultVatRateBasisPoints,
-  )[posteId]?.amountCents ?? 0;
+  int _committedCentsOf(String posteId) =>
+      ocptBudgetCommittedCentsByPosteId(
+        commitments,
+        entries: entries,
+        projectVatRateBasisPoints: defaultVatRateBasisPoints,
+      )[posteId]?.amountCents ??
+      0;
 
   /// `posteId`'s own in-kind covered total, in cents — mirrors [_paidCentsOf], read off [postes]
   /// directly since the fiche resolves its own poste rather than being handed one pre-resolved.
@@ -1427,20 +1478,22 @@ class _OcptBudgetFicheScaffold extends StatelessWidget {
                   Expanded(
                     child: Text(
                       hint,
-                      style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
                     ),
                   ),
                 if (badge != null) ...[
                   if (hint != null) const SizedBox(width: 8),
-                  _OcptBudgetFicheBadge(text: badge, color: badgeColor ?? theme.colorScheme.primary),
+                  _OcptBudgetFicheBadge(
+                    text: badge,
+                    color: badgeColor ?? theme.colorScheme.primary,
+                  ),
                 ],
               ],
             ),
           ],
-          if (details != null) ...[
-            const SizedBox(height: 16),
-            details,
-          ],
+          if (details != null) ...[const SizedBox(height: 16), details],
           if (stepLabels.isNotEmpty || proportionBar != null) ...[
             const SizedBox(height: 16),
             Card(
@@ -1461,10 +1514,7 @@ class _OcptBudgetFicheScaffold extends StatelessWidget {
             const SizedBox(height: 16),
             _OcptBudgetFicheFiguresRow(figures: figures),
           ],
-          if (paymentsSection != null) ...[
-            const SizedBox(height: 16),
-            paymentsSection!,
-          ],
+          if (paymentsSection != null) ...[const SizedBox(height: 16), paymentsSection!],
           if (outstandingLabel != null) ...[
             const SizedBox(height: 16),
             _OcptBudgetFicheOutstanding(
@@ -1472,10 +1522,7 @@ class _OcptBudgetFicheScaffold extends StatelessWidget {
               value: outstandingValue ?? ocptBudgetEmptyValue,
             ),
           ],
-          if (banner != null) ...[
-            const SizedBox(height: 16),
-            banner!,
-          ],
+          if (banner != null) ...[const SizedBox(height: 16), banner!],
           if (primary != null || secondaries.isNotEmpty) ...[
             const SizedBox(height: 16),
             if (primary != null)
@@ -1869,7 +1916,9 @@ class _OcptBudgetFicheFiguresRow extends StatelessWidget {
             children: [
               Text(
                 figure.$1.toUpperCase(),
-                style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
               ),
               Text(figure.$2 ?? ocptBudgetEmptyValue, style: theme.textTheme.bodyMedium),
             ],
@@ -1905,7 +1954,9 @@ class _OcptBudgetCommitmentPayments extends StatelessWidget {
     final theme = Theme.of(context);
     final tr = Tr.of(context);
     final locale = Localizations.localeOf(context).toString();
-    final labelStyle = theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant);
+    final labelStyle = theme.textTheme.labelSmall?.copyWith(
+      color: theme.colorScheme.onSurfaceVariant,
+    );
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1918,7 +1969,10 @@ class _OcptBudgetCommitmentPayments extends StatelessWidget {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(DateFormat.yMMMd(locale).format(payment.date), style: theme.textTheme.bodySmall),
+                Text(
+                  DateFormat.yMMMd(locale).format(payment.date),
+                  style: theme.textTheme.bodySmall,
+                ),
                 Text(_amountText(payment), style: theme.textTheme.bodySmall),
               ],
             ),
@@ -1934,7 +1988,9 @@ class _OcptBudgetCommitmentPayments extends StatelessWidget {
       payment,
       projectVatRateBasisPoints: defaultVatRateBasisPoints,
     );
-    return debitCents == null ? ocptBudgetEmptyValue : ocptBudgetAmountLabel(debitCents, currencyCode);
+    return debitCents == null
+        ? ocptBudgetEmptyValue
+        : ocptBudgetAmountLabel(debitCents, currencyCode);
   }
 }
 

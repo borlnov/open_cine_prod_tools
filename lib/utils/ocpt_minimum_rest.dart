@@ -74,7 +74,5 @@ String ocptMinimumRestHoursTextOf(int? minutes) {
     return "${minutes ~/ _minutesPerHour}";
   }
 
-  return (minutes / _minutesPerHour)
-      .toStringAsFixed(_hourDigits)
-      .replaceFirst(_trailingZeroes, "");
+  return (minutes / _minutesPerHour).toStringAsFixed(_hourDigits).replaceFirst(_trailingZeroes, "");
 }

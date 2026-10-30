@@ -119,9 +119,7 @@ void main() {
         expect(find.text(label), findsOneWidget);
       }
 
-      final positions = [
-        for (final label in labels) tester.getCenter(find.text(label)).dx,
-      ];
+      final positions = [for (final label in labels) tester.getCenter(find.text(label)).dx];
       expect(positions, orderedEquals(List<double>.from(positions)..sort()));
     });
 
@@ -330,16 +328,13 @@ void main() {
       expect(wasCalled, isTrue);
     });
 
-    testWidgets(
-      "stands on every route, whether or not it is honoured there",
-      (tester) async {
-        useWideWindow(tester);
-        for (final view in OcptBudgetView.values) {
-          await pumpHeader(tester, postes: [poste], filterPosteId: "poste-1", view: view);
-          expect(find.text("Interpretation"), findsOneWidget, reason: "$view");
-        }
-      },
-    );
+    testWidgets("stands on every route, whether or not it is honoured there", (tester) async {
+      useWideWindow(tester);
+      for (final view in OcptBudgetView.values) {
+        await pumpHeader(tester, postes: [poste], filterPosteId: "poste-1", view: view);
+        expect(find.text("Interpretation"), findsOneWidget, reason: "$view");
+      }
+    });
 
     testWidgets("draws nothing while filterPosteId names no live poste", (tester) async {
       useWideWindow(tester);

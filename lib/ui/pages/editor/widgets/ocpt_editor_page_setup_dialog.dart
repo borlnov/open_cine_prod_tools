@@ -106,7 +106,10 @@ class _OcptEditorPageSetupDialogState extends State<OcptEditorPageSetupDialog> {
                 },
               ),
               const SizedBox(height: 16),
-              Text(tr.editorPageSetupMarginsSectionLabel, style: Theme.of(context).textTheme.labelLarge),
+              Text(
+                tr.editorPageSetupMarginsSectionLabel,
+                style: Theme.of(context).textTheme.labelLarge,
+              ),
               const SizedBox(height: 8),
               Row(
                 children: [

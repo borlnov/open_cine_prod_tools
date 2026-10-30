@@ -74,7 +74,15 @@ OcptBudgetPoste _buildPoste({
   String code = "1",
   String label = "Rights",
   List<OcptBudgetLine> lines = const [],
-}) => OcptBudgetPoste(id: id, code: code, label: label, simpleLabel: null, estimateToCompleteCents: null, sortKey: "a", lines: lines);
+}) => OcptBudgetPoste(
+  id: id,
+  code: code,
+  label: label,
+  simpleLabel: null,
+  estimateToCompleteCents: null,
+  sortKey: "a",
+  lines: lines,
+);
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -82,20 +90,25 @@ void main() {
   final service = OcptBudgetQuotePdfService();
   const pageSetup = OcptPageSetup.standard();
 
-  OcptBudgetSnapshot buildSnapshot({List<OcptBudgetPoste> postes = const [], int? defaultVatRateBasisPoints}) =>
-      OcptBudgetSnapshot.build(
-        postes: postes,
-        entries: const [],
-        commitments: const [],
-        defaultVatRateBasisPoints: defaultVatRateBasisPoints,
-        currencyCode: "EUR",
-      );
+  OcptBudgetSnapshot buildSnapshot({
+    List<OcptBudgetPoste> postes = const [],
+    int? defaultVatRateBasisPoints,
+  }) => OcptBudgetSnapshot.build(
+    postes: postes,
+    entries: const [],
+    commitments: const [],
+    defaultVatRateBasisPoints: defaultVatRateBasisPoints,
+    currencyCode: "EUR",
+  );
 
   group("generate", () {
     test("produces bytes starting with the %PDF magic string", () async {
       final snapshot = buildSnapshot(
         postes: [
-          _buildPoste(id: "poste-1", lines: [_buildLine(id: "line-1", posteId: "poste-1")]),
+          _buildPoste(
+            id: "poste-1",
+            lines: [_buildLine(id: "line-1", posteId: "poste-1")],
+          ),
         ],
       );
 
@@ -116,7 +129,10 @@ void main() {
     test("the title page is one page of its own, and toggling it off drops it", () async {
       final snapshot = buildSnapshot(
         postes: [
-          _buildPoste(id: "poste-1", lines: [_buildLine(id: "line-1", posteId: "poste-1")]),
+          _buildPoste(
+            id: "poste-1",
+            lines: [_buildLine(id: "line-1", posteId: "poste-1")],
+          ),
         ],
       );
 
@@ -154,9 +170,7 @@ void main() {
         postes: [
           _buildPoste(
             id: "poste-1",
-            lines: [
-              _buildLine(id: "line-1", posteId: "poste-1", vatRateBasisPoints: 2000),
-            ],
+            lines: [_buildLine(id: "line-1", posteId: "poste-1", vatRateBasisPoints: 2000)],
           ),
         ],
       );
@@ -190,7 +204,10 @@ void main() {
         );
         final withoutElement = buildSnapshot(
           postes: [
-            _buildPoste(id: "poste-1", lines: [_buildLine(id: "line-1", posteId: "poste-1")]),
+            _buildPoste(
+              id: "poste-1",
+              lines: [_buildLine(id: "line-1", posteId: "poste-1")],
+            ),
           ],
         );
 
@@ -211,44 +228,44 @@ void main() {
       },
     );
 
-    test(
-      "a counterpart line prints differently from an otherwise identical plain line, flagged "
-      "in kind",
-      () async {
-        // Same figures throughout — only `inKindResourceId` differs — so the very fact the two
-        // documents diverge at all is the marker doing its work: nothing here asserts on the
-        // printed text itself (see this file's own top-level doc comment on `_labels`), a
-        // counterpart line is never meant to change any amount it prints.
-        final withCounterpart = buildSnapshot(
-          postes: [
-            _buildPoste(
-              id: "poste-1",
-              lines: [_buildLine(id: "line-1", posteId: "poste-1", inKindResourceId: "resource-1")],
-            ),
-          ],
-        );
-        final plain = buildSnapshot(
-          postes: [
-            _buildPoste(id: "poste-1", lines: [_buildLine(id: "line-1", posteId: "poste-1")]),
-          ],
-        );
+    test("a counterpart line prints differently from an otherwise identical plain line, flagged "
+        "in kind", () async {
+      // Same figures throughout — only `inKindResourceId` differs — so the very fact the two
+      // documents diverge at all is the marker doing its work: nothing here asserts on the
+      // printed text itself (see this file's own top-level doc comment on `_labels`), a
+      // counterpart line is never meant to change any amount it prints.
+      final withCounterpart = buildSnapshot(
+        postes: [
+          _buildPoste(
+            id: "poste-1",
+            lines: [_buildLine(id: "line-1", posteId: "poste-1", inKindResourceId: "resource-1")],
+          ),
+        ],
+      );
+      final plain = buildSnapshot(
+        postes: [
+          _buildPoste(
+            id: "poste-1",
+            lines: [_buildLine(id: "line-1", posteId: "poste-1")],
+          ),
+        ],
+      );
 
-        Future<Uint8List> generateFor(OcptBudgetSnapshot snapshot) => service.generate(
-          snapshot: snapshot,
-          elementNameById: const {},
-          pageSetup: pageSetup,
-          taxBasis: OcptBudgetTaxBasis.includingTax,
-          labels: _labels,
-          projectName: "My Movie",
-          includeTitlePage: false,
-        );
+      Future<Uint8List> generateFor(OcptBudgetSnapshot snapshot) => service.generate(
+        snapshot: snapshot,
+        elementNameById: const {},
+        pageSetup: pageSetup,
+        taxBasis: OcptBudgetTaxBasis.includingTax,
+        labels: _labels,
+        projectName: "My Movie",
+        includeTitlePage: false,
+      );
 
-        expect(
-          _contentStreams(await generateFor(withCounterpart)),
-          isNot(_contentStreams(await generateFor(plain))),
-        );
-      },
-    );
+      expect(
+        _contentStreams(await generateFor(withCounterpart)),
+        isNot(_contentStreams(await generateFor(plain))),
+      );
+    });
 
     test("a poste holding no line at all still prints, with its own subtotal of zero", () async {
       final bytes = await service.generate(
@@ -268,7 +285,10 @@ void main() {
 
   group("quoteFileName", () {
     test("joins the project name and the localized suffix", () {
-      expect(service.quoteFileName(projectName: "My Movie", suffix: "quote"), "My Movie - quote.pdf");
+      expect(
+        service.quoteFileName(projectName: "My Movie", suffix: "quote"),
+        "My Movie - quote.pdf",
+      );
     });
 
     test("a blank suffix falls back to the project name alone", () {

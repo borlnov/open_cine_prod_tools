@@ -77,8 +77,7 @@ class FountainLineClassifier {
   /// (`charactersIntroducedInActionLine` is the one this exists for) can tell
   /// such a line apart from a line of action prose, instead of reading a
   /// location and a time of day as if they were the cast.
-  static bool holdsSceneHeadingPrefix(String line) =>
-      _sceneHeadingPrefix.hasMatch(line.trim());
+  static bool holdsSceneHeadingPrefix(String line) => _sceneHeadingPrefix.hasMatch(line.trim());
 
   /// Matches a forced page break: a line made up of three or more `=`
   /// characters and nothing else.
@@ -91,10 +90,7 @@ class FountainLineClassifier {
   /// Classifies every line of [lines] and returns one [FountainLineType]
   /// per line, in the same order.
   List<FountainLineType> classify(List<String> lines) {
-    final types = List<FountainLineType>.filled(
-      lines.length,
-      FountainLineType.blank,
-    );
+    final types = List<FountainLineType>.filled(lines.length, FountainLineType.blank);
     for (var index = 0; index < lines.length; index++) {
       final previousType = index == 0 ? null : types[index - 1];
       final nextRawLine = index + 1 < lines.length ? lines[index + 1] : null;
@@ -158,22 +154,17 @@ class FountainLineClassifier {
     }
 
     if (trimmed.startsWith('>')) {
-      return trimmed.endsWith('<')
-          ? FountainLineType.centeredText
-          : FountainLineType.transition;
+      return trimmed.endsWith('<') ? FountainLineType.centeredText : FountainLineType.transition;
     }
 
     if (rawLine.startsWith('~')) {
       return FountainLineType.lyrics;
     }
 
-    final precededByBlank =
-        previousType == null || previousType == FountainLineType.blank;
+    final precededByBlank = previousType == null || previousType == FountainLineType.blank;
     final followedByBlank = nextRawLine == null || nextRawLine.trim().isEmpty;
 
-    if (_sceneHeadingPrefix.hasMatch(trimmed) &&
-        precededByBlank &&
-        followedByBlank) {
+    if (_sceneHeadingPrefix.hasMatch(trimmed) && precededByBlank && followedByBlank) {
       return FountainLineType.sceneHeading;
     }
 
@@ -188,9 +179,7 @@ class FountainLineClassifier {
       return FountainLineType.character;
     }
 
-    if (trimmed.startsWith('(') &&
-        trimmed.endsWith(')') &&
-        _continuesDialogue(previousType)) {
+    if (trimmed.startsWith('(') && trimmed.endsWith(')') && _continuesDialogue(previousType)) {
       return FountainLineType.parenthetical;
     }
 
@@ -221,12 +210,10 @@ class FountainLineClassifier {
 
   /// Whether [trimmed] looks like an (unforced) transition: all-caps text
   /// ending with `TO:`.
-  bool _isTransitionCandidate(String trimmed) =>
-      trimmed.endsWith('TO:') && _isAllCaps(trimmed);
+  bool _isTransitionCandidate(String trimmed) => trimmed.endsWith('TO:') && _isAllCaps(trimmed);
 
   /// Whether [text] contains no lowercase letters and at least one cased
   /// letter (so that, for example, a line of only digits and punctuation
   /// does not count as "all caps").
-  bool _isAllCaps(String text) =>
-      text == text.toUpperCase() && text != text.toLowerCase();
+  bool _isAllCaps(String text) => text == text.toUpperCase() && text != text.toLowerCase();
 }

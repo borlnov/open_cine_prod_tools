@@ -27,10 +27,7 @@ class FountainSourceRange extends Equatable {
   }) : assert(startLine >= 0, 'startLine must not be negative'),
        assert(endLine >= startLine, 'endLine must not precede startLine'),
        assert(startOffset >= 0, 'startOffset must not be negative'),
-       assert(
-         endOffset >= startOffset,
-         'endOffset must not precede startOffset',
-       );
+       assert(endOffset >= startOffset, 'endOffset must not precede startOffset');
 
   /// The 0-based line number of the first line covered by this range.
   final int startLine;
@@ -48,9 +45,7 @@ class FountainSourceRange extends Equatable {
   FountainSourceRange merge(FountainSourceRange other) => FountainSourceRange(
     startLine: startLine < other.startLine ? startLine : other.startLine,
     endLine: endLine > other.endLine ? endLine : other.endLine,
-    startOffset: startOffset < other.startOffset
-        ? startOffset
-        : other.startOffset,
+    startOffset: startOffset < other.startOffset ? startOffset : other.startOffset,
     endOffset: endOffset > other.endOffset ? endOffset : other.endOffset,
   );
 

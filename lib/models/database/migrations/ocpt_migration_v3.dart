@@ -168,7 +168,10 @@ Future<void> ocptMigrateToSchemaV3({
               table.columnName.equals('characterName'),
         ))
         .write(
-          OcptRowFieldVersionsTableCompanion(rowId: Value(newRowId), columnName: const Value('roleId')),
+          OcptRowFieldVersionsTableCompanion(
+            rowId: Value(newRowId),
+            columnName: const Value('roleId'),
+          ),
         );
 
     await (database.update(database.ocptRowFieldVersionsTable)..where(

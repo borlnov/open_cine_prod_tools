@@ -314,7 +314,9 @@ String ocptScheduleConvocationTitle(
   final guestPersonId = convocation.guestPersonId;
   if (guestPersonId != null) {
     final guest = personById[guestPersonId];
-    return guest == null || guest.displayName.isEmpty ? tr.resourcesUnnamedPerson : guest.displayName;
+    return guest == null || guest.displayName.isEmpty
+        ? tr.resourcesUnnamedPerson
+        : guest.displayName;
   }
 
   final guestFreeName = convocation.guestFreeName;
@@ -431,7 +433,8 @@ OcptCallSheetLabels ocptCallSheetLabelsOf(
     civilDuskLabel: tr.scheduleExportCivilDuskLabel,
     contactsSectionTitle: tr.scheduleExportContactsSectionTitle,
     crewDepartmentLabels: {
-      for (final department in OcptCrewDepartment.values) department: ocptCrewDepartmentLabel(tr, department),
+      for (final department in OcptCrewDepartment.values)
+        department: ocptCrewDepartmentLabel(tr, department),
     },
     crewPositionLabels: {
       for (final position in ocptCrewPositions) position.id: ocptCrewPositionLabel(tr, position.id),
@@ -490,7 +493,9 @@ OcptShootingPlanLabels ocptShootingPlanLabelsOf(
     documentTitle: tr.scheduleExportShootingPlanDocumentTitle,
     dayTitles: {
       for (final day in days)
-        day.id: tr.scheduleExportShootingPlanDayTitle(DateFormat.MMMMEEEEd(locale).format(day.date)),
+        day.id: tr.scheduleExportShootingPlanDayTitle(
+          DateFormat.MMMMEEEEd(locale).format(day.date),
+        ),
     },
     tenMinuteGridSectionTitle: tr.scheduleExportTenMinuteGridSectionTitle,
     directorLine: ocptScheduleDirectorLineOf(tr, people),
@@ -505,7 +510,8 @@ OcptShootingPlanLabels ocptShootingPlanLabelsOf(
     peopleGridRowHeader: tr.scheduleExportPeopleGridRowHeader,
     elementsGridRowHeader: tr.scheduleExportElementsGridRowHeader,
     elementCategoryLabels: {
-      for (final category in OcptElementCategory.values) category: ocptElementCategoryLabel(tr, category),
+      for (final category in OcptElementCategory.values)
+        category: ocptElementCategoryLabel(tr, category),
     },
     persoLabel: tr.scheduleExportPersoLabel,
     sequenceRowPrefix: tr.scheduleExportSequenceRowPrefix,
@@ -582,7 +588,8 @@ OcptShootingPlanXlsxLabels ocptShootingPlanXlsxLabelsOf(BuildContext context) {
       OcptShootingPlanXlsxColumn.sequence: tr.scheduleExportSeqHeader,
       OcptShootingPlanXlsxColumn.set: tr.scheduleExportDecorsHeader,
       OcptShootingPlanXlsxColumn.roles: tr.scheduleExportRolesHeader,
-      OcptShootingPlanXlsxColumn.durationMinutes: tr.scheduleExportShootingPlanXlsxDurationColumnHeader,
+      OcptShootingPlanXlsxColumn.durationMinutes:
+          tr.scheduleExportShootingPlanXlsxDurationColumnHeader,
       OcptShootingPlanXlsxColumn.crewNote: tr.scheduleInspectorBlockCrewNoteLabel,
     },
     dayTagPrefix: tr.scheduleDayTagPrefix,
@@ -593,7 +600,8 @@ OcptShootingPlanXlsxLabels ocptShootingPlanXlsxLabelsOf(BuildContext context) {
       for (final position in ocptCrewPositions) position.id: ocptCrewPositionLabel(tr, position.id),
     },
     elementCategoryLabels: {
-      for (final category in OcptElementCategory.values) category: ocptElementCategoryLabel(tr, category),
+      for (final category in OcptElementCategory.values)
+        category: ocptElementCategoryLabel(tr, category),
     },
     blockKindLabels: {
       for (final kind in OcptShootingBlockKind.values) kind: ocptShootingBlockKindLabel(tr, kind),
@@ -635,7 +643,8 @@ OcptDayOutOfDaysLabels ocptDayOutOfDaysLabelsOf(
       for (final code in OcptDayOutOfDaysCode.values) code: ocptDayOutOfDaysCodeLabel(tr, code),
     },
     codeDescriptions: {
-      for (final code in OcptDayOutOfDaysCode.values) code: ocptDayOutOfDaysCodeDescription(tr, code),
+      for (final code in OcptDayOutOfDaysCode.values)
+        code: ocptDayOutOfDaysCodeDescription(tr, code),
     },
     legendSectionTitle: tr.scheduleExportDayOutOfDaysLegendTitle,
     unnamedRoleLabel: tr.resourcesRoleUnnamed,
@@ -735,10 +744,11 @@ OcptSidesLabels ocptSidesLabelsOf(
 
 /// The sides export dialog's own label for [presentation] — what each of the two shapes a booklet
 /// can take is called where the user picks between them.
-String ocptSidesPresentationLabel(Tr tr, OcptSidesPresentation presentation) => switch (presentation) {
-  OcptSidesPresentation.scriptPages => tr.scheduleExportSidesScriptPagesOption,
-  OcptSidesPresentation.packed => tr.scheduleExportSidesPackedOption,
-};
+String ocptSidesPresentationLabel(Tr tr, OcptSidesPresentation presentation) =>
+    switch (presentation) {
+      OcptSidesPresentation.scriptPages => tr.scheduleExportSidesScriptPagesOption,
+      OcptSidesPresentation.packed => tr.scheduleExportSidesPackedOption,
+    };
 
 /// The alerts panel's own title for an [OcptScheduleAlertKind] card — see that enum's own doc
 /// comment for exactly what each of the eleven rules claims.
@@ -798,8 +808,9 @@ String ocptScheduleAlertSentence(
       _ocptScheduleAlertRoleNameOf(tr, roleById, roleId),
       shotOf(shotId)?.code ?? "",
     ),
-  OcptScheduleRoleUncastAlert(:final roleId) =>
-    tr.scheduleAlertRoleUncastSentence(_ocptScheduleAlertRoleNameOf(tr, roleById, roleId)),
+  OcptScheduleRoleUncastAlert(:final roleId) => tr.scheduleAlertRoleUncastSentence(
+    _ocptScheduleAlertRoleNameOf(tr, roleById, roleId),
+  ),
   OcptScheduleTimelineOverrunAlert(:final blockId, :final reachedMinute, :final anchorMinute) =>
     tr.scheduleAlertTimelineOverrunSentence(
       _ocptScheduleAlertBlockLabelOf(tr, blockById[blockId], shotOf),

@@ -336,7 +336,9 @@ class _OcptBudgetAllowanceFormBodyState extends State<OcptBudgetAllowanceFormBod
             const SizedBox(height: 12),
             Text(
               tr.budgetAllowanceDialogKindFieldLabel.toUpperCase(),
-              style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
             ),
             const SizedBox(height: 6),
             _OcptAllowanceKindPicker(
@@ -385,7 +387,9 @@ class _OcptBudgetAllowanceFormBodyState extends State<OcptBudgetAllowanceFormBod
                 // already changed. Keying on the value itself rebuilds the field instead.
                 key: ValueKey(_mileageRateId),
                 initialValue: _mileageRateId,
-                decoration: InputDecoration(labelText: tr.budgetAllowanceDialogMileageRateFieldLabel),
+                decoration: InputDecoration(
+                  labelText: tr.budgetAllowanceDialogMileageRateFieldLabel,
+                ),
                 // A scale's own name is free text and its rate is joined to it, so the entry
                 // outgrows this 420 px dialog on any ordinary name. `isExpanded` lets the
                 // closed field take the width it has, and the ellipsis keeps the row one line
@@ -406,7 +410,7 @@ class _OcptBudgetAllowanceFormBodyState extends State<OcptBudgetAllowanceFormBod
                         tr.budgetAllowanceDialogMileageRateOption(
                           rate.label,
                           "${ocptMileageRateTextOf(rate.ratePerKmMilliCents)} "
-                              "${widget.currencyCode}",
+                          "${widget.currencyCode}",
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,

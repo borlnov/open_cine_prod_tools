@@ -96,9 +96,8 @@ void main() {
     await database.close();
   });
 
-  Future<OcptShotRow> readShot(String shotId) => (database.select(
-    database.ocptShotsTable,
-  )..where((row) => row.id.equals(shotId))).getSingle();
+  Future<OcptShotRow> readShot(String shotId) =>
+      (database.select(database.ocptShotsTable)..where((row) => row.id.equals(shotId))).getSingle();
 
   /// Every live coverage range: a range this service "removes" is tombstoned rather than deleted,
   /// and every reader filters tombstones out.
@@ -476,14 +475,12 @@ Action one.
     });
   });
 
-  test(
-    "a coverage range survives a scene that moves because a scene above it grew: "
-    "no digest change, no needsCheck",
-    () async {
-      await screenplayService.saveScreenplayText(
-        database: database,
-        screenplayId: screenplayId,
-        fountainText: '''
+  test("a coverage range survives a scene that moves because a scene above it grew: "
+      "no digest change, no needsCheck", () async {
+    await screenplayService.saveScreenplayText(
+      database: database,
+      screenplayId: screenplayId,
+      fountainText: '''
 INT. HOUSE - DAY
 
 Action one.
@@ -492,35 +489,35 @@ EXT. STREET - NIGHT
 
 Action two three.
 ''',
-        snapshotReason: OcptSnapshotReason.manual,
-      );
+      snapshotReason: OcptSnapshotReason.manual,
+    );
 
-      final streetScene = (await readScenes()).firstWhere(
-        (row) => row.heading == "EXT. STREET - NIGHT",
-      );
-      final shotId = (await shotListService.createShot(
-        database: database,
-        screenplayId: screenplayId,
-        sceneId: streetScene.id,
-      ))!;
+    final streetScene = (await readScenes()).firstWhere(
+      (row) => row.heading == "EXT. STREET - NIGHT",
+    );
+    final shotId = (await shotListService.createShot(
+      database: database,
+      screenplayId: screenplayId,
+      sceneId: streetScene.id,
+    ))!;
 
-      final sceneTextBefore = (await database.select(database.ocptScreenplaysTable).getSingle())
-          .fountainText
-          .substring(streetScene.charStart, streetScene.charEnd);
-      final wordOffset = sceneTextBefore.indexOf("two");
+    final sceneTextBefore = (await database.select(database.ocptScreenplaysTable).getSingle())
+        .fountainText
+        .substring(streetScene.charStart, streetScene.charEnd);
+    final wordOffset = sceneTextBefore.indexOf("two");
 
-      await coverageService.addRange(
-        database: database,
-        shotId: shotId,
-        sceneId: streetScene.id,
-        startOffset: wordOffset,
-        endOffset: wordOffset + "two".length,
-        sceneText: sceneTextBefore,
-      );
-      final rangeBefore = await readSingleRange();
+    await coverageService.addRange(
+      database: database,
+      shotId: shotId,
+      sceneId: streetScene.id,
+      startOffset: wordOffset,
+      endOffset: wordOffset + "two".length,
+      sceneText: sceneTextBefore,
+    );
+    final rangeBefore = await readSingleRange();
 
-      // Scene 1 grows; scene 2's own text is untouched.
-      const newText = '''
+    // Scene 1 grows; scene 2's own text is untouched.
+    const newText = '''
 INT. HOUSE - DAY
 
 Action one, with a lot more happening in this scene now.
@@ -529,30 +526,29 @@ EXT. STREET - NIGHT
 
 Action two three.
 ''';
-      await screenplayService.saveScreenplayText(
-        database: database,
-        screenplayId: screenplayId,
-        fountainText: newText,
-        snapshotReason: OcptSnapshotReason.manual,
-      );
+    await screenplayService.saveScreenplayText(
+      database: database,
+      screenplayId: screenplayId,
+      fountainText: newText,
+      snapshotReason: OcptSnapshotReason.manual,
+    );
 
-      await coverageService.refreshStaleness(
-        database: database,
-        screenplayId: screenplayId,
-        currentFountainText: newText,
-        stamps: null,
-      );
+    await coverageService.refreshStaleness(
+      database: database,
+      screenplayId: screenplayId,
+      currentFountainText: newText,
+      stamps: null,
+    );
 
-      final rangeAfter = await readSingleRange();
-      expect(rangeAfter.startOffset, rangeBefore.startOffset);
-      expect(rangeAfter.endOffset, rangeBefore.endOffset);
-      expect(rangeAfter.coveredTextDigest, rangeBefore.coveredTextDigest);
+    final rangeAfter = await readSingleRange();
+    expect(rangeAfter.startOffset, rangeBefore.startOffset);
+    expect(rangeAfter.endOffset, rangeBefore.endOffset);
+    expect(rangeAfter.coveredTextDigest, rangeBefore.coveredTextDigest);
 
-      final shot = await readShot(shotId);
-      expect(shot.needsCheck, isFalse);
-      expect(shot.checkReason, isNull);
-    },
-  );
+    final shot = await readShot(shotId);
+    expect(shot.needsCheck, isFalse);
+    expect(shot.checkReason, isNull);
+  });
 
   test("an edit inside the covered range flags the owning shot", () async {
     await screenplayService.saveScreenplayText(
@@ -579,7 +575,8 @@ Action two three.
       sceneId: streetScene.id,
     ))!;
 
-    final sceneText = (await database.select(database.ocptScreenplaysTable).getSingle()).fountainText
+    final sceneText = (await database.select(database.ocptScreenplaysTable).getSingle())
+        .fountainText
         .substring(streetScene.charStart, streetScene.charEnd);
     final wordOffset = sceneText.indexOf("two");
 
@@ -642,7 +639,8 @@ Action one two.
       sceneId: scene.id,
     ))!;
 
-    final sceneText = (await database.select(database.ocptScreenplaysTable).getSingle()).fountainText
+    final sceneText = (await database.select(database.ocptScreenplaysTable).getSingle())
+        .fountainText
         .substring(scene.charStart, scene.charEnd);
     final wordOffset = sceneText.indexOf("one");
 
@@ -698,7 +696,8 @@ Action two three.
       sceneId: streetScene.id,
     ))!;
 
-    final sceneText = (await database.select(database.ocptScreenplaysTable).getSingle()).fountainText
+    final sceneText = (await database.select(database.ocptScreenplaysTable).getSingle())
+        .fountainText
         .substring(streetScene.charStart, streetScene.charEnd);
     // Cover the *first* word of the action line, so an edit further along the same line/scene
     // doesn't shift this range's offsets at all.
@@ -842,7 +841,8 @@ Action two three.
       sceneId: streetScene.id,
     ))!;
 
-    final sceneText = (await database.select(database.ocptScreenplaysTable).getSingle()).fountainText
+    final sceneText = (await database.select(database.ocptScreenplaysTable).getSingle())
+        .fountainText
         .substring(streetScene.charStart, streetScene.charEnd);
     final wordOffset = sceneText.indexOf("two");
 
@@ -926,7 +926,8 @@ Action one two three.
       sceneId: scene.id,
     ))!;
 
-    final sceneText = (await database.select(database.ocptScreenplaysTable).getSingle()).fountainText
+    final sceneText = (await database.select(database.ocptScreenplaysTable).getSingle())
+        .fountainText
         .substring(scene.charStart, scene.charEnd);
     final oneOffset = sceneText.indexOf("one");
     final twoOffset = sceneText.indexOf("two");
@@ -997,7 +998,8 @@ Action one two three.
       screenplayId: screenplayId,
       sceneId: scene.id,
     ))!;
-    final sceneText = (await database.select(database.ocptScreenplaysTable).getSingle()).fountainText
+    final sceneText = (await database.select(database.ocptScreenplaysTable).getSingle())
+        .fountainText
         .substring(scene.charStart, scene.charEnd);
 
     await coverageService.addRange(
@@ -1229,38 +1231,41 @@ Action one two three.
       expect(stamps.keys, hasLength(range.toJson().length));
     });
 
-    test("a merge stamps the absorbed range's tombstone and the surviving range's columns", () async {
-      final (shotId, scene, sceneText) = await insertShotWithScene();
-      final oneOffset = sceneText.indexOf("one");
-      final twoOffset = sceneText.indexOf("two");
-      final threeEnd = sceneText.indexOf("three.") + "three.".length;
+    test(
+      "a merge stamps the absorbed range's tombstone and the surviving range's columns",
+      () async {
+        final (shotId, scene, sceneText) = await insertShotWithScene();
+        final oneOffset = sceneText.indexOf("one");
+        final twoOffset = sceneText.indexOf("two");
+        final threeEnd = sceneText.indexOf("three.") + "three.".length;
 
-      final firstId = (await coverageService.addRange(
-        database: database,
-        shotId: shotId,
-        sceneId: scene.id,
-        startOffset: oneOffset,
-        endOffset: twoOffset + "two".length,
-        sceneText: sceneText,
-      ))!;
-      await database.delete(database.ocptRowFieldVersionsTable).go();
+        final firstId = (await coverageService.addRange(
+          database: database,
+          shotId: shotId,
+          sceneId: scene.id,
+          startOffset: oneOffset,
+          endOffset: twoOffset + "two".length,
+          sceneText: sceneText,
+        ))!;
+        await database.delete(database.ocptRowFieldVersionsTable).go();
 
-      final mergedId = (await coverageService.addRange(
-        database: database,
-        shotId: shotId,
-        sceneId: scene.id,
-        startOffset: twoOffset,
-        endOffset: threeEnd,
-        sceneText: sceneText,
-      ))!;
+        final mergedId = (await coverageService.addRange(
+          database: database,
+          shotId: shotId,
+          sceneId: scene.id,
+          startOffset: twoOffset,
+          endOffset: threeEnd,
+          sceneText: sceneText,
+        ))!;
 
-      final stamps = await readStamps();
-      expect(stamps["shot_coverages/$firstId/isDeleted"]!.version, 1);
-      final mergedRange = await readSingleRange();
-      for (final column in mergedRange.toJson().keys) {
-        expect(stamps["shot_coverages/$mergedId/$column"], isNotNull, reason: column);
-      }
-    });
+        final stamps = await readStamps();
+        expect(stamps["shot_coverages/$firstId/isDeleted"]!.version, 1);
+        final mergedRange = await readSingleRange();
+        for (final column in mergedRange.toJson().keys) {
+          expect(stamps["shot_coverages/$mergedId/$column"], isNotNull, reason: column);
+        }
+      },
+    );
 
     test("removeRange stamps isDeleted, like any other column", () async {
       final (shotId, scene, sceneText) = await insertShotWithScene();

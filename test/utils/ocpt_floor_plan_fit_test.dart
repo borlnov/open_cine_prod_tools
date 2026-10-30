@@ -67,9 +67,7 @@ void main() {
 
     test("widens to a rotated symbol's own screen-aligned extent", () {
       // A 2×1 rectangle turned 90° reaches as far on X as it did on Y before the turn.
-      final sheet = _sheetOf(
-        symbols: [_symbolShape(xM: 0, yM: 0, widthM: 2, rotationDeg: 90)],
-      );
+      final sheet = _sheetOf(symbols: [_symbolShape(xM: 0, yM: 0, widthM: 2, rotationDeg: 90)]);
 
       final bounds = ocptFloorPlanContentBoundsOf(sheet)!;
 
@@ -142,10 +140,7 @@ void main() {
       // no margin. Width is the binding axis either way (4 m across 100 px vs. 1 m across 100 px),
       // so the fitted zoom must make exactly 4 m span 100 px.
       final sheet = _sheetOf(
-        symbols: [
-          _symbolShape(xM: -1.5, yM: 0),
-          _symbolShape(xM: 1.5, yM: 0),
-        ],
+        symbols: [_symbolShape(xM: -1.5, yM: 0), _symbolShape(xM: 1.5, yM: 0)],
       );
 
       final fit = ocptFloorPlanFitOf(
@@ -156,10 +151,7 @@ void main() {
       );
 
       final expectedPixelsPerMetre = 100 / 4;
-      expect(
-        ocptFloorPlanPixelsPerMetreAt(fit.zoom),
-        closeTo(expectedPixelsPerMetre, 1e-6),
-      );
+      expect(ocptFloorPlanPixelsPerMetreAt(fit.zoom), closeTo(expectedPixelsPerMetre, 1e-6));
       // The content is centred on the origin already, so no pan is needed to keep it centred.
       expect(fit.panXPx, closeTo(0, 1e-6));
       expect(fit.panYPx, closeTo(0, 1e-6));
@@ -183,11 +175,7 @@ void main() {
     test("never zooms in past maxZoom for a tiny room", () {
       final sheet = _sheetOf(symbols: [_symbolShape(xM: 0, yM: 0, widthM: 0.01, heightM: 0.01)]);
 
-      final fit = ocptFloorPlanFitOf(
-        sheet: sheet,
-        viewportWidthPx: 500,
-        viewportHeightPx: 500,
-      );
+      final fit = ocptFloorPlanFitOf(sheet: sheet, viewportWidthPx: 500, viewportHeightPx: 500);
 
       expect(fit.zoom, 3.0);
     });

@@ -18,7 +18,9 @@ Widget _wrapInApp(Widget child, {double width = 700}) => MaterialApp(
     GlobalCupertinoLocalizations.delegate,
   ],
   supportedLocales: Tr.delegate.supportedLocales,
-  home: Scaffold(body: SizedBox(width: width, child: child)),
+  home: Scaffold(
+    body: SizedBox(width: width, child: child),
+  ),
 );
 
 void main() {

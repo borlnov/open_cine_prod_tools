@@ -314,13 +314,18 @@ void main() {
     token: "token-1",
   ).toInviteString();
 
-  test("a valid manual entry emits the join steps in order then succeeds, without navigating", () async {
-    final manager = _FakeSyncManager(pairingService: pairingService, joinResultPath: joinedProjectPath);
-    final routerManager = _RecordingRouterManager();
-    final bloc = buildBloc(manager: manager, routerManager: routerManager);
+  test(
+    "a valid manual entry emits the join steps in order then succeeds, without navigating",
+    () async {
+      final manager = _FakeSyncManager(
+        pairingService: pairingService,
+        joinResultPath: joinedProjectPath,
+      );
+      final routerManager = _RecordingRouterManager();
+      final bloc = buildBloc(manager: manager, routerManager: routerManager);
 
-    final steps = <OcptJoinStep?>[];
-    final subscription = bloc.stream.listen((state) => steps.add(state.joinStep));
+      final steps = <OcptJoinStep?>[];
+      final subscription = bloc.stream.listen((state) => steps.add(state.joinStep));
 
       bloc.add(
         OcptJoiningManualSubmittedEvent(
@@ -350,7 +355,10 @@ void main() {
   );
 
   test("a valid scanned invite joins the project just like a manual submission", () async {
-    final manager = _FakeSyncManager(pairingService: pairingService, joinResultPath: joinedProjectPath);
+    final manager = _FakeSyncManager(
+      pairingService: pairingService,
+      joinResultPath: joinedProjectPath,
+    );
     final routerManager = _RecordingRouterManager();
     final bloc = buildBloc(manager: manager, routerManager: routerManager);
 
@@ -375,7 +383,10 @@ void main() {
   });
 
   test("OcptJoiningOpenRequestedEvent replaces the Rejoindre screen with the workspace", () async {
-    final manager = _FakeSyncManager(pairingService: pairingService, joinResultPath: joinedProjectPath);
+    final manager = _FakeSyncManager(
+      pairingService: pairingService,
+      joinResultPath: joinedProjectPath,
+    );
     final routerManager = _RecordingRouterManager();
     final bloc = buildBloc(manager: manager, routerManager: routerManager);
 
@@ -438,7 +449,10 @@ void main() {
   });
 
   test("a malformed manual entry surfaces an error without ever calling the relay", () async {
-    final manager = _FakeSyncManager(pairingService: pairingService, joinResultPath: joinedProjectPath);
+    final manager = _FakeSyncManager(
+      pairingService: pairingService,
+      joinResultPath: joinedProjectPath,
+    );
     final routerManager = _RecordingRouterManager();
     final bloc = buildBloc(manager: manager, routerManager: routerManager);
 
@@ -458,7 +472,10 @@ void main() {
   });
 
   test("an empty manual field surfaces an error without ever calling the relay", () async {
-    final manager = _FakeSyncManager(pairingService: pairingService, joinResultPath: joinedProjectPath);
+    final manager = _FakeSyncManager(
+      pairingService: pairingService,
+      joinResultPath: joinedProjectPath,
+    );
     final routerManager = _RecordingRouterManager();
     final bloc = buildBloc(manager: manager, routerManager: routerManager);
 
@@ -475,7 +492,10 @@ void main() {
   });
 
   test("a bad scanned string surfaces an error without ever calling the relay", () async {
-    final manager = _FakeSyncManager(pairingService: pairingService, joinResultPath: joinedProjectPath);
+    final manager = _FakeSyncManager(
+      pairingService: pairingService,
+      joinResultPath: joinedProjectPath,
+    );
     final routerManager = _RecordingRouterManager();
     final bloc = buildBloc(manager: manager, routerManager: routerManager);
 
@@ -494,7 +514,10 @@ void main() {
   });
 
   test("dismissing the error clears the flag", () async {
-    final manager = _FakeSyncManager(pairingService: pairingService, joinResultPath: joinedProjectPath);
+    final manager = _FakeSyncManager(
+      pairingService: pairingService,
+      joinResultPath: joinedProjectPath,
+    );
     final routerManager = _RecordingRouterManager();
     final bloc = buildBloc(manager: manager, routerManager: routerManager);
 

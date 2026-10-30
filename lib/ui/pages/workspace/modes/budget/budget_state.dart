@@ -89,7 +89,9 @@ class OcptBudgetIoNotice extends Equatable {
 /// persisted**: the schedule mode's own agenda mode is the precedent, only [rightDockFraction] and
 /// [lastRightDockTab] surviving a relaunch.
 class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
-    with MixinOcptProjectVersionsState<OcptBudgetState>, MixinOcptProjectPackageState<OcptBudgetState> {
+    with
+        MixinOcptProjectVersionsState<OcptBudgetState>,
+        MixinOcptProjectPackageState<OcptBudgetState> {
   /// Whether the quote read is still being loaded from the project database.
   final bool isLoading;
 
@@ -316,13 +318,19 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
   /// — empty while nothing is loaded. `OcptBudgetFinancing` reads this map itself, raw, for the one
   /// reading `receivedCentsOf` cannot answer — see [OcptBudgetSnapshot.receivedCentsOf]'s own doc
   /// comment.
-  Map<String, OcptBudgetCoveredTotal> get receivedByResourceId => snapshot?.receivedByResourceId ?? const {};
+  Map<String, OcptBudgetCoveredTotal> get receivedByResourceId =>
+      snapshot?.receivedByResourceId ?? const {};
 
   /// The cash journal's own debit, credit and balance — a zero-everything total while nothing is
   /// loaded, mirroring [postes]' own empty default.
   OcptBudgetCashTotals get cashTotals =>
       snapshot?.cashTotals ??
-      const OcptBudgetCashTotals(debitCents: 0, creditCents: 0, coveredEntryCount: 0, entryCount: 0);
+      const OcptBudgetCashTotals(
+        debitCents: 0,
+        creditCents: 0,
+        coveredEntryCount: 0,
+        entryCount: 0,
+      );
 
   /// `posteId`'s own paid total, in cents, tax-inclusive — 0 while [snapshot] is null or carries no
   /// entry against it. See `OcptBudgetSnapshot.paidCentsOf`'s own doc comment for why this is now
@@ -358,7 +366,8 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
   /// What has actually come in against each taking of [snapshot], keyed by its own id — empty
   /// while nothing is loaded. `OcptBudgetSharing` reads this map itself, raw, for the one reading
   /// [receivedRevenueCentsOf] cannot answer — mirrors [receivedByResourceId].
-  Map<String, OcptBudgetCoveredTotal> get receivedByRevenueId => snapshot?.receivedByRevenueId ?? const {};
+  Map<String, OcptBudgetCoveredTotal> get receivedByRevenueId =>
+      snapshot?.receivedByRevenueId ?? const {};
 
   /// What has actually been paid against each share of [snapshot], keyed by its own id — mirrors
   /// [receivedByRevenueId].
@@ -687,7 +696,9 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
     provisionPosteId: provisionPosteId ?? this.provisionPosteId,
     regieDecorNameByDayId: regieDecorNameByDayId ?? this.regieDecorNameByDayId,
     projectVersions: projectVersions ?? this.projectVersions,
-    previewedVersionId: clearPreviewedVersionId ? null : (previewedVersionId ?? this.previewedVersionId),
+    previewedVersionId: clearPreviewedVersionId
+        ? null
+        : (previewedVersionId ?? this.previewedVersionId),
     workingCopy: clearWorkingCopy ? null : (workingCopy ?? this.workingCopy),
     versionPendingDeletionId: clearVersionPendingDeletionId
         ? null

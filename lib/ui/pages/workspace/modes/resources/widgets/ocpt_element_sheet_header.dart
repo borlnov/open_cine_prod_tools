@@ -112,64 +112,64 @@ class OcptElementSheetHeader extends StatelessWidget {
 
   /// The header's own two rows, to the right of the photo slot.
   Widget _buildFields(BuildContext context, ThemeData theme, Tr tr) => Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Aligned by the bottom rather than by the top: the code carries a label and the name does
-        // not, and the name is a title-sized field, so the two have neither the same height nor the
-        // same first line. What has to line up is the bottom of them — the badge follows them
-        // instead of the top of the row it used to hang from.
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            SizedBox(
-              width: _codeFieldWidth,
-              child: OcptResourcesCodeReadOut(
-                label: tr.resourcesElementCodeLabel,
-                code: element.code,
-              ),
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      // Aligned by the bottom rather than by the top: the code carries a label and the name does
+      // not, and the name is a title-sized field, so the two have neither the same height nor the
+      // same first line. What has to line up is the bottom of them — the badge follows them
+      // instead of the top of the row it used to hang from.
+      Row(
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          SizedBox(
+            width: _codeFieldWidth,
+            child: OcptResourcesCodeReadOut(
+              label: tr.resourcesElementCodeLabel,
+              code: element.code,
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: OcptResourcesSheetField(
-                ownerId: element.id,
-                label: "",
-                value: fieldValueOf(OcptElementField.name),
-                hintText: tr.resourcesElementNameHint,
-                textStyle: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700),
-                onChanged: _onChangedOf(OcptElementField.name),
-              ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: OcptResourcesSheetField(
+              ownerId: element.id,
+              label: "",
+              value: fieldValueOf(OcptElementField.name),
+              hintText: tr.resourcesElementNameHint,
+              textStyle: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700),
+              onChanged: _onChangedOf(OcptElementField.name),
             ),
-            const SizedBox(width: 12),
-            Padding(
-              padding: const EdgeInsets.only(bottom: _trackingBadgeBottomInset),
-              child: _buildTrackingBadge(context, tr),
+          ),
+          const SizedBox(width: 12),
+          Padding(
+            padding: const EdgeInsets.only(bottom: _trackingBadgeBottomInset),
+            child: _buildTrackingBadge(context, tr),
+          ),
+        ],
+      ),
+      const SizedBox(height: 10),
+      Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(child: _buildCategoryPicker(context, tr)),
+          const SizedBox(width: 12),
+          Expanded(
+            child: _field(OcptElementField.subCategory, tr.resourcesElementSubCategoryLabel),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: OcptResourcesSheetField(
+              ownerId: element.id,
+              label: tr.resourcesElementQuantityLabel,
+              value: fieldValueOf(OcptElementField.quantity),
+              inputFormatters: ocptDecimalInputFormatters,
+              keyboardType: ocptDecimalKeyboardType,
+              onChanged: _onChangedOf(OcptElementField.quantity),
             ),
-          ],
-        ),
-        const SizedBox(height: 10),
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(child: _buildCategoryPicker(context, tr)),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _field(OcptElementField.subCategory, tr.resourcesElementSubCategoryLabel),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: OcptResourcesSheetField(
-                ownerId: element.id,
-                label: tr.resourcesElementQuantityLabel,
-                value: fieldValueOf(OcptElementField.quantity),
-                inputFormatters: ocptDecimalInputFormatters,
-                keyboardType: ocptDecimalKeyboardType,
-                onChanged: _onChangedOf(OcptElementField.quantity),
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
+          ),
+        ],
+      ),
+    ],
+  );
 
   /// The badge reading how far along the element is, read-only: the three checkboxes of the
   /// tracking card are what change it.

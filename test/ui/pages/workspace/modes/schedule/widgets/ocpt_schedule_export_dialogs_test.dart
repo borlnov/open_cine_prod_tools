@@ -67,49 +67,52 @@ OcptShootingDay _buildDay({required String id, required int dayNumber, required 
     );
 
 /// Builds a person with the few fields these dialogs read, everything else neutral.
-OcptPerson _buildPerson({required String id, required String firstName, required String lastName}) =>
-    OcptPerson(
-      id: id,
-      firstName: firstName,
-      lastName: lastName,
-      email: "",
-      phone: "",
-      addressLine1: "",
-      addressLine2: "",
-      postalCode: "",
-      city: "",
-      region: "",
-      country: "",
-      colorIndex: 0,
-      birthDate: null,
-      minorNotes: "",
-      maxDailyPresenceMinutes: null,
-      isTransportAutonomous: null,
-      accommodationNotes: "",
-      travelNotes: "",
-      dietaryNotes: "",
-      allergies: "",
-      measurementHeight: "",
-      measurementChest: "",
-      measurementWaist: "",
-      measurementHips: "",
-      sizeTop: "",
-      sizeBottom: "",
-      sizeShoes: "",
-      hmcNotes: "",
-      imageRightsStatus: OcptImageRightsStatus.notApplicable,
-      imageRightsDate: null,
-      imageRightsAssetId: null,
-      photoAssetId: null,
-      photo: null,
-      imageRightsDocument: null,
-      notes: "",
-      commuteKmMilli: null,
-      mileageRateId: null,
-      positions: const [],
-      skills: const [],
-      unavailabilities: const [],
-    );
+OcptPerson _buildPerson({
+  required String id,
+  required String firstName,
+  required String lastName,
+}) => OcptPerson(
+  id: id,
+  firstName: firstName,
+  lastName: lastName,
+  email: "",
+  phone: "",
+  addressLine1: "",
+  addressLine2: "",
+  postalCode: "",
+  city: "",
+  region: "",
+  country: "",
+  colorIndex: 0,
+  birthDate: null,
+  minorNotes: "",
+  maxDailyPresenceMinutes: null,
+  isTransportAutonomous: null,
+  accommodationNotes: "",
+  travelNotes: "",
+  dietaryNotes: "",
+  allergies: "",
+  measurementHeight: "",
+  measurementChest: "",
+  measurementWaist: "",
+  measurementHips: "",
+  sizeTop: "",
+  sizeBottom: "",
+  sizeShoes: "",
+  hmcNotes: "",
+  imageRightsStatus: OcptImageRightsStatus.notApplicable,
+  imageRightsDate: null,
+  imageRightsAssetId: null,
+  photoAssetId: null,
+  photo: null,
+  imageRightsDocument: null,
+  notes: "",
+  commuteKmMilli: null,
+  mileageRateId: null,
+  positions: const [],
+  skills: const [],
+  unavailabilities: const [],
+);
 
 /// Builds a role with the few fields these dialogs read, everything else neutral.
 OcptRole _buildRole({required String id, required String name, String? personId}) => OcptRole(
@@ -221,10 +224,11 @@ void main() {
       await tester.tap(find.text(Tr.current.editorExportPdfExportAction));
       await tester.pumpAndSettle();
 
-      expect(
-        (routerManager.poppedValue as OcptCallSheetExportOptions?)?.dayIds,
-        ["day-1", "day-2", "day-3"],
-      );
+      expect((routerManager.poppedValue as OcptCallSheetExportOptions?)?.dayIds, [
+        "day-1",
+        "day-2",
+        "day-3",
+      ]);
 
       await tester.tap(find.text(Tr.current.scheduleExportSelectNoneAction));
       await tester.pumpAndSettle();
@@ -301,7 +305,9 @@ void main() {
       expect(options?.selectedConvocationKeys, {"person-1", "person-2"});
     });
 
-    testWidgets("an uncast role is listed by its role and says it has no recipient", (tester) async {
+    testWidgets("an uncast role is listed by its role and says it has no recipient", (
+      tester,
+    ) async {
       await pumpDialog(
         tester,
         days: [dayOne],
@@ -318,10 +324,9 @@ void main() {
       await tester.tap(find.text(Tr.current.editorExportPdfExportAction));
       await tester.pumpAndSettle();
 
-      expect(
-        (routerManager.poppedValue as OcptCallSheetExportOptions?)?.selectedConvocationKeys,
-        {"role-1"},
-      );
+      expect((routerManager.poppedValue as OcptCallSheetExportOptions?)?.selectedConvocationKeys, {
+        "role-1",
+      });
     });
 
     testWidgets("a candidate is listed by their own name, a recipient like anybody else", (
@@ -358,10 +363,9 @@ void main() {
 
       // Ticked by their **person** id: a sheet is addressed to somebody, so somebody seen for two
       // parts is one line here and one PDF out of it.
-      expect(
-        (routerManager.poppedValue as OcptCallSheetExportOptions?)?.selectedConvocationKeys,
-        {"person-camille"},
-      );
+      expect((routerManager.poppedValue as OcptCallSheetExportOptions?)?.selectedConvocationKeys, {
+        "person-camille",
+      });
     });
 
     testWidgets("unticking everybody withholds the export button", (tester) async {
@@ -407,10 +411,9 @@ void main() {
       await tester.tap(find.text(Tr.current.editorExportPdfExportAction));
       await tester.pumpAndSettle();
 
-      expect(
-        (routerManager.poppedValue as OcptCallSheetExportOptions?)?.selectedConvocationKeys,
-        {"person-1"},
-      );
+      expect((routerManager.poppedValue as OcptCallSheetExportOptions?)?.selectedConvocationKeys, {
+        "person-1",
+      });
     });
 
     testWidgets("unticking every day also withholds the export button", (tester) async {
@@ -534,9 +537,7 @@ void main() {
     /// Pumps the dialog directly over [days].
     Future<void> pumpDialog(WidgetTester tester, {required List<OcptShootingDay> days}) async {
       await tester.pumpWidget(
-        _wrapWithLocalization(
-          OcptScheduleShootingPlanExportDialog(current: pageSetup, days: days),
-        ),
+        _wrapWithLocalization(OcptScheduleShootingPlanExportDialog(current: pageSetup, days: days)),
       );
       await tester.pumpAndSettle();
     }
@@ -619,9 +620,7 @@ void main() {
     /// Pumps the dialog directly over [days].
     Future<void> pumpDialog(WidgetTester tester, {required List<OcptShootingDay> days}) async {
       await tester.pumpWidget(
-        _wrapWithLocalization(
-          OcptScheduleDayOutOfDaysExportDialog(current: pageSetup, days: days),
-        ),
+        _wrapWithLocalization(OcptScheduleDayOutOfDaysExportDialog(current: pageSetup, days: days)),
       );
       await tester.pumpAndSettle();
     }

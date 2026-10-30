@@ -146,7 +146,8 @@ class OcptShootingPlanElementsGridElementRow extends OcptShootingPlanElementsGri
 
   /// Object string representation, useful for debugging and logging.
   @override
-  String toString() => "OcptShootingPlanElementsGridElementRow(label: $label, cells: ${cells.length})";
+  String toString() =>
+      "OcptShootingPlanElementsGridElementRow(label: $label, cells: ${cells.length})";
 
   /// Object properties
   @override
@@ -322,7 +323,9 @@ class OcptShootingPlanGrids extends Equatable {
     final rows = <OcptShootingPlanGridRow>[];
     for (final locationId in locationIds) {
       final location = plan.locationById[locationId];
-      final name = location == null || location.name.trim().isEmpty ? emptyValue : location.name.trim();
+      final name = location == null || location.name.trim().isEmpty
+          ? emptyValue
+          : location.name.trim();
 
       rows.add(
         OcptShootingPlanGridRow(
@@ -384,7 +387,8 @@ class OcptShootingPlanGrids extends Equatable {
         if (shot == null || shot.sceneId == null) {
           continue;
         }
-        ((shotsBySceneIdBySlotId[shot.sceneId!] ??= <String, List<OcptShot>>{})[block.slotId] ??= <OcptShot>[])
+        ((shotsBySceneIdBySlotId[shot.sceneId!] ??= <String, List<OcptShot>>{})[block.slotId] ??=
+                <OcptShot>[])
             .add(shot);
       }
     }
@@ -451,8 +455,10 @@ class OcptShootingPlanGrids extends Equatable {
       );
     }
 
-    final orderedRoles = [for (final role in plan.roles) if (castRoleIds.contains(role.id)) role]
-      ..sort((a, b) => a.number.compareTo(b.number));
+    final orderedRoles = [
+      for (final role in plan.roles)
+        if (castRoleIds.contains(role.id)) role,
+    ]..sort((a, b) => a.number.compareTo(b.number));
     for (final role in orderedRoles) {
       rows.add(
         OcptShootingPlanGridRow(
@@ -498,7 +504,9 @@ class OcptShootingPlanGrids extends Equatable {
     if (!slot.cast.any((member) => member.roleId == role.id)) {
       return "";
     }
-    final actorFirstName = role.personId == null ? null : plan.personById[role.personId]?.firstName.trim();
+    final actorFirstName = role.personId == null
+        ? null
+        : plan.personById[role.personId]?.firstName.trim();
     return (actorFirstName != null && actorFirstName.isNotEmpty) ? actorFirstName : presenceMark;
   }
 
@@ -549,7 +557,9 @@ class OcptShootingPlanGrids extends Equatable {
         continue;
       }
       elements.sort((a, b) => a.name.compareTo(b.name));
-      rows.add(OcptShootingPlanElementsGridCategoryBand(label: elementCategoryLabels[category] ?? ""));
+      rows.add(
+        OcptShootingPlanElementsGridCategoryBand(label: elementCategoryLabels[category] ?? ""),
+      );
       for (final element in elements) {
         rows.add(
           OcptShootingPlanElementsGridElementRow(
@@ -577,5 +587,12 @@ class OcptShootingPlanGrids extends Equatable {
 
   /// Object properties
   @override
-  List<Object?> get props => [slotColumns, dayColumns, locationsRows, sequencesRows, peopleRows, elementsRows];
+  List<Object?> get props => [
+    slotColumns,
+    dayColumns,
+    locationsRows,
+    sequencesRows,
+    peopleRows,
+    elementsRows,
+  ];
 }

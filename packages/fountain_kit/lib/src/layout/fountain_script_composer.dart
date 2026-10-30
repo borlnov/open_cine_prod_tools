@@ -214,8 +214,7 @@ class FountainScriptComposer {
           builder.forcePageBreak();
         case FountainSceneHeading():
           final hasFollowingContent =
-              index + 1 < blocks.length &&
-              blocks[index + 1] is! FountainPageBreak;
+              index + 1 < blocks.length && blocks[index + 1] is! FountainPageBreak;
           builder.placeSceneHeading(
             _sceneHeadingLines(block, metrics, anchors),
             hasFollowingContent: hasFollowingContent,
@@ -239,18 +238,17 @@ class FountainScriptComposer {
   /// comments are editor-only constructs, never printed. Mirrors
   /// `OcptEditorPreviewLayout.printableBlocks`'s filter without depending on
   /// it, since this package must stay Flutter-free.
-  static List<FountainBlock> _printableBlocks(FountainDocument document) =>
-      document.blocks
-          .where(
-            (block) => switch (block) {
-              FountainSection() ||
-              FountainSynopsis() ||
-              FountainNoteBlock() ||
-              FountainBoneyard() => false,
-              _ => true,
-            },
-          )
-          .toList(growable: false);
+  static List<FountainBlock> _printableBlocks(FountainDocument document) => document.blocks
+      .where(
+        (block) => switch (block) {
+          FountainSection() ||
+          FountainSynopsis() ||
+          FountainNoteBlock() ||
+          FountainBoneyard() => false,
+          _ => true,
+        },
+      )
+      .toList(growable: false);
 
   /// Wraps [heading]'s text into the wrapped lines of a
   /// [FountainLineType.sceneHeading] element.
@@ -443,11 +441,7 @@ class FountainScriptComposer {
     int maxColumns,
     _SourceAnchor? anchor,
   ) {
-    final runs = _inlineParser.parseRuns(
-      text,
-      line: anchor?.line,
-      startOffset: anchor?.offset,
-    );
+    final runs = _inlineParser.parseRuns(text, line: anchor?.line, startOffset: anchor?.offset);
 
     final runRanges = <_LineRange>[];
     var cursor = 0;
@@ -458,8 +452,7 @@ class FountainScriptComposer {
     final plain = runs.map((run) => run.text).join();
 
     return [
-      for (final boundary in _wrapRanges(plain, maxColumns))
-        _sliceRuns(runs, runRanges, boundary),
+      for (final boundary in _wrapRanges(plain, maxColumns)) _sliceRuns(runs, runRanges, boundary),
     ];
   }
 
@@ -480,12 +473,8 @@ class FountainScriptComposer {
     final result = <FountainStyledRun>[];
     for (var index = 0; index < runs.length; index++) {
       final runRange = runRanges[index];
-      final overlapStart = boundary.start > runRange.start
-          ? boundary.start
-          : runRange.start;
-      final overlapEnd = boundary.end < runRange.end
-          ? boundary.end
-          : runRange.end;
+      final overlapStart = boundary.start > runRange.start ? boundary.start : runRange.start;
+      final overlapEnd = boundary.end < runRange.end ? boundary.end : runRange.end;
       if (overlapStart >= overlapEnd) {
         continue;
       }
@@ -499,12 +488,7 @@ class FountainScriptComposer {
           isItalic: run.isItalic,
           isUnderline: run.isUnderline,
           isNote: run.isNote,
-          sourceRange: _sliceSourceRange(
-            run.sourceRange,
-            run.text.length,
-            localStart,
-            localEnd,
-          ),
+          sourceRange: _sliceSourceRange(run.sourceRange, run.text.length, localStart, localEnd),
         ),
       );
     }
@@ -661,12 +645,8 @@ class _SourceAnchors {
       return null;
     }
     final found = _sourceText.indexOf(printedText, range.startOffset);
-    final isWithinBlock =
-        found >= 0 && found + printedText.length <= range.endOffset;
-    return _SourceAnchor(
-      line: range.startLine,
-      offset: isWithinBlock ? found : range.startOffset,
-    );
+    final isWithinBlock = found >= 0 && found + printedText.length <= range.endOffset;
+    return _SourceAnchor(line: range.startLine, offset: isWithinBlock ? found : range.startOffset);
   }
 
   /// The anchors of a multi-line block [block]'s [lines], one entry per line
@@ -704,8 +684,7 @@ class _SourceAnchors {
   /// hand (as a test's fixtures are) carries no source text, and its blocks'
   /// ranges must not be read as if it did.
   bool _addressesSource(FountainSourceRange range) =>
-      range.endOffset > range.startOffset &&
-      range.endOffset <= _sourceText.length;
+      range.endOffset > range.startOffset && range.endOffset <= _sourceText.length;
 
   /// The offset of the end of the source line starting at [lineStart],
   /// clamped to [limit] so the search for one line's text never wanders past
@@ -797,10 +776,7 @@ class _PageBuilder {
   /// still follows it in the document (so the push is actually meaningful
   /// rather than moving an already-empty page's content to another
   /// equally-empty page).
-  void placeSceneHeading(
-    List<FountainScriptLine> lines, {
-    required bool hasFollowingContent,
-  }) {
+  void placeSceneHeading(List<FountainScriptLine> lines, {required bool hasFollowingContent}) {
     if (_current.isNotEmpty && _capacity == 0) {
       _closePage();
     }
@@ -841,9 +817,7 @@ class _PageBuilder {
     var isFirst = true;
 
     while (true) {
-      final currentCue = isFirst
-          ? cueLines
-          : [_contdCueLine(character, _metrics)];
+      final currentCue = isFirst ? cueLines : [_contdCueLine(character, _metrics)];
       final needsSpacer = isFirst && _current.isNotEmpty;
       final spacerCost = needsSpacer ? 1 : 0;
       final capacity = _capacity;
@@ -875,9 +849,7 @@ class _PageBuilder {
 
       final placeCount = childCapacity <= 0
           ? 0
-          : (childCapacity < remaining.length
-                ? childCapacity
-                : remaining.length);
+          : (childCapacity < remaining.length ? childCapacity : remaining.length);
 
       if (needsSpacer) {
         _current.add(_spacerLine());
@@ -913,15 +885,14 @@ class _PageBuilder {
   /// The `(MORE)` line appended at the bottom of a page when a dialogue
   /// group is split across a page boundary, set at the parenthetical's
   /// indent and alignment.
-  static FountainScriptLine _moreLine(FountainLayoutMetrics metrics) =>
-      FountainScriptLine(
-        runs: const [FountainStyledRun(text: _moreToken)],
-        lineType: FountainLineType.parenthetical,
-        leftIndentInches: metrics.parenthetical.leftIndentInches,
-        alignment: metrics.parenthetical.alignment,
-        isSceneHeading: false,
-        isSynthetic: true,
-      );
+  static FountainScriptLine _moreLine(FountainLayoutMetrics metrics) => FountainScriptLine(
+    runs: const [FountainStyledRun(text: _moreToken)],
+    lineType: FountainLineType.parenthetical,
+    leftIndentInches: metrics.parenthetical.leftIndentInches,
+    alignment: metrics.parenthetical.alignment,
+    isSceneHeading: false,
+    isSynthetic: true,
+  );
 
   /// The repeated `NAME (CONT'D)` cue placed at the top of the page a
   /// split dialogue group continues onto, set at the character's indent

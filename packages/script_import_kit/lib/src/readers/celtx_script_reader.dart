@@ -24,11 +24,7 @@ import 'package:xml/xml.dart';
 /// carried down the walk of a paragraph's nodes.
 class _InlineStyle {
   /// Creates an [_InlineStyle].
-  const _InlineStyle({
-    this.isBold = false,
-    this.isItalic = false,
-    this.isUnderline = false,
-  });
+  const _InlineStyle({this.isBold = false, this.isItalic = false, this.isUnderline = false});
 
   /// Whether the text is bold.
   final bool isBold;
@@ -52,23 +48,16 @@ class _InlineStyle {
   };
 
   /// This style with the flags given here turned on.
-  _InlineStyle _copyWith({
-    bool isBold = false,
-    bool isItalic = false,
-    bool isUnderline = false,
-  }) => _InlineStyle(
-    isBold: this.isBold || isBold,
-    isItalic: this.isItalic || isItalic,
-    isUnderline: this.isUnderline || isUnderline,
-  );
+  _InlineStyle _copyWith({bool isBold = false, bool isItalic = false, bool isUnderline = false}) =>
+      _InlineStyle(
+        isBold: this.isBold || isBold,
+        isItalic: this.isItalic || isItalic,
+        isUnderline: this.isUnderline || isUnderline,
+      );
 
   /// A run of [text] carrying this style.
-  FountainStyledRun run(String text) => FountainStyledRun(
-    text: text,
-    isBold: isBold,
-    isItalic: isItalic,
-    isUnderline: isUnderline,
-  );
+  FountainStyledRun run(String text) =>
+      FountainStyledRun(text: text, isBold: isBold, isItalic: isItalic, isUnderline: isUnderline);
 }
 
 /// What a Celtx project's manifest says about the screenplay it holds.
@@ -171,9 +160,7 @@ class CeltxScriptReader {
       );
     }
 
-    final lines = _readBody(
-      decodeScriptText(script.readBytes() ?? Uint8List(0)),
-    );
+    final lines = _readBody(decodeScriptText(script.readBytes() ?? Uint8List(0)));
     if (lines.isEmpty) {
       throw const ScriptImportException(ScriptImportFailure.emptyScript);
     }
@@ -228,9 +215,7 @@ class CeltxScriptReader {
 
     final XmlDocument manifest;
     try {
-      manifest = XmlDocument.parse(
-        decodeScriptText(entry.readBytes() ?? Uint8List(0)),
-      );
+      manifest = XmlDocument.parse(decodeScriptText(entry.readBytes() ?? Uint8List(0)));
     } on XmlException catch (exception) {
       throw ScriptImportException(
         ScriptImportFailure.noScriptDocument,
@@ -241,8 +226,7 @@ class CeltxScriptReader {
     final elements = manifest.descendantElements.toList();
 
     final script = elements.firstWhereOrNull(
-      (element) =>
-          _isScriptDocument(element) && _valueOf(element, 'localfile') != null,
+      (element) => _isScriptDocument(element) && _valueOf(element, 'localfile') != null,
     );
     if (script == null) {
       throw const ScriptImportException(
@@ -265,8 +249,7 @@ class CeltxScriptReader {
 
   /// Whether [element] describes the project itself, whose metadata makes
   /// the title page.
-  bool _isProject(XmlElement element) =>
-      _localNamesOf(element).contains('project');
+  bool _isProject(XmlElement element) => _localNamesOf(element).contains('project');
 
   /// Whether [element] describes a document this reader can read as a
   /// screenplay.
@@ -284,8 +267,7 @@ class CeltxScriptReader {
   /// The names [element] goes by, lower-cased: its own element name, and
   /// whatever its type says it is.
   Set<String> _localNamesOf(XmlElement element) {
-    final declaredType =
-        _valueOf(element, 'type') ?? _valueOf(element, 'documenttype');
+    final declaredType = _valueOf(element, 'type') ?? _valueOf(element, 'documenttype');
     return {
       element.name.local.toLowerCase(),
       if (declaredType != null) _localPartOf(declaredType).toLowerCase(),
@@ -296,10 +278,7 @@ class CeltxScriptReader {
   /// type is written as a full URI (`http://celtx.com/NS/v1/Script`).
   String _localPartOf(String value) {
     final segments = value.split(_uriSeparator);
-    return segments.lastWhere(
-      (segment) => segment.isNotEmpty,
-      orElse: () => '',
-    );
+    return segments.lastWhere((segment) => segment.isNotEmpty, orElse: () => '');
   }
 
   /// What [element] says [localName] is, read from an attribute of that
@@ -327,8 +306,7 @@ class CeltxScriptReader {
   }
 
   /// Whether two XML local names name the same property.
-  bool _sameName(String name, String other) =>
-      name.toLowerCase() == other.toLowerCase();
+  bool _sameName(String name, String other) => name.toLowerCase() == other.toLowerCase();
 
   /// The container entry named [fileName], or `null` when it holds none.
   ///
@@ -344,9 +322,7 @@ class CeltxScriptReader {
           (entry) => entry.isFile && _entryPathOf(entry.name) == wanted,
         ) ??
         archive.firstWhereOrNull(
-          (entry) =>
-              entry.isFile &&
-              _entryPathOf(entry.name).split('/').last == baseName,
+          (entry) => entry.isFile && _entryPathOf(entry.name).split('/').last == baseName,
         );
   }
 

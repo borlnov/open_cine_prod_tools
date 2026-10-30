@@ -56,7 +56,9 @@ Widget _wrap(Widget child) => MaterialApp(
     GlobalCupertinoLocalizations.delegate,
   ],
   supportedLocales: Tr.delegate.supportedLocales,
-  home: Scaffold(body: Align(alignment: Alignment.topLeft, child: child)),
+  home: Scaffold(
+    body: Align(alignment: Alignment.topLeft, child: child),
+  ),
 );
 
 void main() {
@@ -144,10 +146,7 @@ void main() {
     final peerB = _frame(deviceId: "peer-b", platform: "linux");
     final peerC = _frame(deviceId: "peer-c", platform: "android");
     final syncManager = _FakePresenceSyncManager(
-      OcptPresenceRoster(
-        participants: [self, peerA, peerB, peerC],
-        selfDeviceId: self.deviceId,
-      ),
+      OcptPresenceRoster(participants: [self, peerA, peerB, peerC], selfDeviceId: self.deviceId),
     );
     addTearDown(syncManager.disposeStream);
 
@@ -251,9 +250,7 @@ void main() {
     expect(find.text("M"), findsNothing);
 
     final peer = _frame(deviceId: "peer-a", platform: "macos");
-    syncManager.emit(
-      OcptPresenceRoster(participants: [self, peer], selfDeviceId: self.deviceId),
-    );
+    syncManager.emit(OcptPresenceRoster(participants: [self, peer], selfDeviceId: self.deviceId));
     await tester.pump(const Duration(milliseconds: 50));
 
     expect(find.text("W"), findsOneWidget);

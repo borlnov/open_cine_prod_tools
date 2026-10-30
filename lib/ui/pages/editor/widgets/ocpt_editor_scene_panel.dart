@@ -134,7 +134,9 @@ class _SceneEntry extends StatelessWidget {
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: theme.textTheme.bodySmall?.copyWith(
-                    color: isCurrent ? theme.colorScheme.onSurface : theme.colorScheme.onSurfaceVariant,
+                    color: isCurrent
+                        ? theme.colorScheme.onSurface
+                        : theme.colorScheme.onSurfaceVariant,
                     fontWeight: isCurrent ? FontWeight.w600 : FontWeight.normal,
                   ),
                 ),

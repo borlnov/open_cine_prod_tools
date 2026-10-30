@@ -38,9 +38,7 @@ const int ocptScheduleEffectMixedColor = 0xFF8C7FB8;
 /// A `switch` with no `default`: a new [OcptSceneEffectCategory] value must be given its own colour
 /// here rather than silently falling back to one already in use, exactly as `_elementColorOf`
 /// (`ocpt_breakdown_palette.dart`) already does for `OcptElementCategory`.
-int ocptScheduleEffectColorOf(
-  OcptSceneEffectCategory category,
-) => switch (category) {
+int ocptScheduleEffectColorOf(OcptSceneEffectCategory category) => switch (category) {
   OcptSceneEffectCategory.interiorDay => ocptScheduleEffectInteriorDayColor,
   OcptSceneEffectCategory.interiorNight => ocptScheduleEffectInteriorNightColor,
   OcptSceneEffectCategory.exteriorDay => ocptScheduleEffectExteriorDayColor,

@@ -62,7 +62,10 @@ void main() {
   );
   final scheduleService = OcptScheduleService(deviceId: testDeviceId);
   final elementsService = OcptElementsService(assetsService: assetsService, deviceId: testDeviceId);
-  final floorPlanService = OcptFloorPlanService(assetsService: assetsService, deviceId: testDeviceId);
+  final floorPlanService = OcptFloorPlanService(
+    assetsService: assetsService,
+    deviceId: testDeviceId,
+  );
   final locationsService = OcptLocationsService(
     assetsService: assetsService,
     floorPlanService: floorPlanService,
@@ -72,7 +75,10 @@ void main() {
   // image asset, its annotation, the case, its symbols and its arrow are all written the same
   // way the board and the floor plans view themselves would, rather
   // than by hand-inserted rows.
-  final storyboardService = OcptStoryboardService(assetsService: assetsService, deviceId: testDeviceId);
+  final storyboardService = OcptStoryboardService(
+    assetsService: assetsService,
+    deviceId: testDeviceId,
+  );
   final roleIndexService = OcptRoleIndexService(
     elementsService: elementsService,
     roleCandidatesService: roleCandidatesService,
@@ -90,7 +96,10 @@ void main() {
     sceneIndexService: const OcptSceneIndexService(),
     shotListService: OcptShotListService(
       roleIndexService: roleIndexService,
-      storyboardService: OcptStoryboardService(assetsService: assetsService, deviceId: testDeviceId),
+      storyboardService: OcptStoryboardService(
+        assetsService: assetsService,
+        deviceId: testDeviceId,
+      ),
       floorPlanService: OcptFloorPlanService(assetsService: assetsService, deviceId: testDeviceId),
       deviceId: testDeviceId,
     ),
@@ -159,24 +168,21 @@ void main() {
       );
 
   /// Inserts the shot [id] of scene [sceneId], tombstoned when [isDeleted].
-  Future<void> insertShot({
-    required String id,
-    required String sceneId,
-    bool isDeleted = false,
-  }) => database
-      .into(database.ocptShotsTable)
-      .insert(
-        OcptShotsTableCompanion.insert(
-          id: id,
-          screenplayId: screenplayId,
-          sceneId: Value(sceneId),
-          position: 0,
-          sortKey: const Value("V"),
-          framing: const Value("Low angle"),
-          status: const Value(OcptShotStatus.shot),
-          isDeleted: Value(isDeleted),
-        ),
-      );
+  Future<void> insertShot({required String id, required String sceneId, bool isDeleted = false}) =>
+      database
+          .into(database.ocptShotsTable)
+          .insert(
+            OcptShotsTableCompanion.insert(
+              id: id,
+              screenplayId: screenplayId,
+              sceneId: Value(sceneId),
+              position: 0,
+              sortKey: const Value("V"),
+              framing: const Value("Low angle"),
+              status: const Value(OcptShotStatus.shot),
+              isDeleted: Value(isDeleted),
+            ),
+          );
 
   /// Inserts the shooting day [id], belonging to no episode, tombstoned when [isDeleted].
   Future<void> insertShootingDay({
@@ -315,10 +321,7 @@ void main() {
       // resurrect, on restore, everything the user had deleted since.
       expect(payload.scenes.map((row) => row.id), containsAll(["scene-1", "scene-gone"]));
       expect(payload.shots.map((row) => row.id), containsAll(["shot-1", "shot-gone"]));
-      expect(
-        payload.scenes.firstWhere((row) => row.id == "scene-gone").isDeleted,
-        isTrue,
-      );
+      expect(payload.scenes.firstWhere((row) => row.id == "scene-gone").isDeleted, isTrue);
       expect(payload.shots.firstWhere((row) => row.id == "shot-gone").isDeleted, isTrue);
 
       // And they are the rows themselves, not a re-derivation of them.
@@ -375,9 +378,7 @@ void main() {
     test("captures the project's learned words, tombstones included", () async {
       await database
           .into(database.ocptProjectDictionaryWordsTable)
-          .insert(
-            OcptProjectDictionaryWordsTableCompanion.insert(id: "word-1", word: "Séquence"),
-          );
+          .insert(OcptProjectDictionaryWordsTableCompanion.insert(id: "word-1", word: "Séquence"));
       await database
           .into(database.ocptProjectDictionaryWordsTable)
           .insert(
@@ -390,7 +391,10 @@ void main() {
 
       final payload = await readPayload((await createVersion()).id);
 
-      expect(payload.projectDictionaryWords.map((row) => row.id), containsAll(["word-1", "word-2"]));
+      expect(
+        payload.projectDictionaryWords.map((row) => row.id),
+        containsAll(["word-1", "word-2"]),
+      );
       expect(
         payload.projectDictionaryWords.firstWhere((row) => row.id == "word-1").isDeleted,
         isFalse,
@@ -612,207 +616,200 @@ void main() {
       expect(await preview.select(preview.ocptShotCharactersTable).get(), payload.shotCharacters);
       expect(await preview.select(preview.ocptShotCoveragesTable).get(), payload.shotCoverages);
       expect(await preview.select(preview.ocptBreakdownTagsTable).get(), payload.breakdownTags);
-      expect(
-        await preview.select(preview.ocptSceneBreakdownsTable).get(),
-        payload.sceneBreakdowns,
-      );
+      expect(await preview.select(preview.ocptSceneBreakdownsTable).get(), payload.sceneBreakdowns);
       expect(
         await preview.select(preview.ocptRowFieldVersionsTable).get(),
         payload.rowFieldVersions,
       );
     });
 
-    test(
-      "the storyboard and floor plan tables — a panel with an image asset, its annotation, a "
-      "linked set's plan, a shot-scoped symbol, a scene-scope override and an arrow — all come "
-      "back",
-      () async {
-        // Regression test for a past preview bug: `hydratePreview` held its own hand-written
-        // insert list, separate from `_applyPayload`'s, and was never updated when
-        // these five tables were added — so a version captured with a storyboard panel previewed
-        // as an empty board. Every row here is written through the real services, exactly as the
-        // board and the floor plans view themselves would.
-        await insertScene(id: "scene-1");
-        await insertShot(id: "shot-1", sceneId: "scene-1");
+    test("the storyboard and floor plan tables — a panel with an image asset, its annotation, a "
+        "linked set's plan, a shot-scoped symbol, a scene-scope override and an arrow — all come "
+        "back", () async {
+      // Regression test for a past preview bug: `hydratePreview` held its own hand-written
+      // insert list, separate from `_applyPayload`'s, and was never updated when
+      // these five tables were added — so a version captured with a storyboard panel previewed
+      // as an empty board. Every row here is written through the real services, exactly as the
+      // board and the floor plans view themselves would.
+      await insertScene(id: "scene-1");
+      await insertShot(id: "shot-1", sceneId: "scene-1");
 
-        final panelId = (await storyboardService.addPanel(
-          database: database,
-          shotId: "shot-1",
-        ))!;
-        await storyboardService.replacePanelImage(
-          database: database,
-          panelId: panelId,
-          path: "/frames/shot-1.png",
-        );
-        await storyboardService.updatePanelComment(
-          database: database,
-          panelId: panelId,
-          comment: "Push in on the door",
-        );
-        final annotationId = (await storyboardService.addAnnotation(
-          database: database,
-          panelId: panelId,
-          kind: OcptStoryboardAnnotationKind.movementArrow,
-          x1: 0.1,
-          y1: 0.2,
-          x2: 0.8,
-          y2: 0.6,
-          text: "walks to the door",
-        ))!;
+      final panelId = (await storyboardService.addPanel(database: database, shotId: "shot-1"))!;
+      await storyboardService.replacePanelImage(
+        database: database,
+        panelId: panelId,
+        path: "/frames/shot-1.png",
+      );
+      await storyboardService.updatePanelComment(
+        database: database,
+        panelId: panelId,
+        comment: "Push in on the door",
+      );
+      final annotationId = (await storyboardService.addAnnotation(
+        database: database,
+        panelId: panelId,
+        kind: OcptStoryboardAnnotationKind.movementArrow,
+        x1: 0.1,
+        y1: 0.2,
+        x2: 0.8,
+        y2: 0.6,
+        text: "walks to the door",
+      ))!;
 
-        final setId = (await locationsService.createSetLinkedToScene(
-          database: database,
-          sceneId: "scene-1",
-          name: "Kitchen",
-        ))!;
-        final cameraId = (await floorPlanService.placeSymbol(
-          database: database,
-          setId: setId,
-          sceneId: null,
-          shotId: "shot-1",
-          layer: OcptFloorPlanLayer.cameras,
-          xM: 1.2,
-          yM: 3.4,
-          fovReachM: 5.5,
-          label: "A",
-        ))!;
-        final characterId = (await floorPlanService.placeSymbol(
-          database: database,
-          setId: setId,
-          sceneId: null,
-          shotId: "shot-1",
-          layer: OcptFloorPlanLayer.characters,
-          xM: 2.5,
-          yM: 1.1,
-          label: "CLARA",
-        ))!;
-        final arrowId = (await floorPlanService.addArrow(
-          database: database,
-          setId: setId,
-          shotId: "shot-1",
-          kind: OcptFloorPlanArrowKind.movement,
-          fromSymbolId: characterId,
-          toSymbolId: cameraId,
-          label: "crosses to the camera",
-        ))!;
-        // A set-scope décor symbol, and a scene-scope override replacing it in scene-1 — the
-        // override rule must survive a preview too.
-        final originalWallId = (await floorPlanService.placeSymbol(
-          database: database,
-          setId: setId,
-          sceneId: null,
-          shotId: null,
-          layer: OcptFloorPlanLayer.set,
-          xM: 0,
-          yM: 0,
-          label: "North wall",
-        ))!;
-        final overrideWallId = (await floorPlanService.placeSymbol(
-          database: database,
-          setId: setId,
-          sceneId: "scene-1",
-          shotId: null,
-          layer: OcptFloorPlanLayer.set,
-          xM: 0.5,
-          yM: 0.5,
-          label: "North wall, re-dressed",
-          overridesSymbolId: originalWallId,
-          isHidden: true,
-        ))!;
+      final setId = (await locationsService.createSetLinkedToScene(
+        database: database,
+        sceneId: "scene-1",
+        name: "Kitchen",
+      ))!;
+      final cameraId = (await floorPlanService.placeSymbol(
+        database: database,
+        setId: setId,
+        sceneId: null,
+        shotId: "shot-1",
+        layer: OcptFloorPlanLayer.cameras,
+        xM: 1.2,
+        yM: 3.4,
+        fovReachM: 5.5,
+        label: "A",
+      ))!;
+      final characterId = (await floorPlanService.placeSymbol(
+        database: database,
+        setId: setId,
+        sceneId: null,
+        shotId: "shot-1",
+        layer: OcptFloorPlanLayer.characters,
+        xM: 2.5,
+        yM: 1.1,
+        label: "CLARA",
+      ))!;
+      final arrowId = (await floorPlanService.addArrow(
+        database: database,
+        setId: setId,
+        shotId: "shot-1",
+        kind: OcptFloorPlanArrowKind.movement,
+        fromSymbolId: characterId,
+        toSymbolId: cameraId,
+        label: "crosses to the camera",
+      ))!;
+      // A set-scope décor symbol, and a scene-scope override replacing it in scene-1 — the
+      // override rule must survive a preview too.
+      final originalWallId = (await floorPlanService.placeSymbol(
+        database: database,
+        setId: setId,
+        sceneId: null,
+        shotId: null,
+        layer: OcptFloorPlanLayer.set,
+        xM: 0,
+        yM: 0,
+        label: "North wall",
+      ))!;
+      final overrideWallId = (await floorPlanService.placeSymbol(
+        database: database,
+        setId: setId,
+        sceneId: "scene-1",
+        shotId: null,
+        layer: OcptFloorPlanLayer.set,
+        xM: 0.5,
+        yM: 0.5,
+        label: "North wall, re-dressed",
+        overridesSymbolId: originalWallId,
+        isHidden: true,
+      ))!;
 
-        final payload = await readPayload((await createVersion()).id);
+      final payload = await readPayload((await createVersion()).id);
 
-        // The payload itself must already carry every one of the rows just written — a gap here
-        // would mean `_capturePayload` dropped them, not `hydratePreview`.
-        expect(payload.storyboardPanels.map((row) => row.id), [panelId]);
-        expect(payload.storyboardAnnotations.map((row) => row.id), [annotationId]);
-        expect(payload.floorPlanSets.map((row) => row.id), [setId]);
-        expect(
-          payload.floorPlanSymbols.map((row) => row.id).toSet(),
-          {cameraId, characterId, originalWallId, overrideWallId},
-        );
-        expect(payload.floorPlanArrows.map((row) => row.id), [arrowId]);
+      // The payload itself must already carry every one of the rows just written — a gap here
+      // would mean `_capturePayload` dropped them, not `hydratePreview`.
+      expect(payload.storyboardPanels.map((row) => row.id), [panelId]);
+      expect(payload.storyboardAnnotations.map((row) => row.id), [annotationId]);
+      expect(payload.floorPlanSets.map((row) => row.id), [setId]);
+      expect(payload.floorPlanSymbols.map((row) => row.id).toSet(), {
+        cameraId,
+        characterId,
+        originalWallId,
+        overrideWallId,
+      });
+      expect(payload.floorPlanArrows.map((row) => row.id), [arrowId]);
 
-        final preview = OcptProjectDatabase.memory(isPreview: true);
-        addTearDown(preview.close);
+      final preview = OcptProjectDatabase.memory(isPreview: true);
+      addTearDown(preview.close);
 
-        await service.hydratePreview(
-          database: preview,
-          projectInfo: await database.select(database.ocptProjectInfoTable).getSingle(),
-          payload: payload,
-        );
+      await service.hydratePreview(
+        database: preview,
+        projectInfo: await database.select(database.ocptProjectInfoTable).getSingle(),
+        payload: payload,
+      );
 
-        final restoredPanel = await (preview.select(
-          preview.ocptStoryboardPanelsTable,
-        )..where((table) => table.id.equals(panelId))).getSingle();
-        expect(restoredPanel.shotId, "shot-1");
-        expect(restoredPanel.comment, "Push in on the door");
-        expect(restoredPanel.imageAssetId, isNotNull);
+      final restoredPanel = await (preview.select(
+        preview.ocptStoryboardPanelsTable,
+      )..where((table) => table.id.equals(panelId))).getSingle();
+      expect(restoredPanel.shotId, "shot-1");
+      expect(restoredPanel.comment, "Push in on the door");
+      expect(restoredPanel.imageAssetId, isNotNull);
 
-        final restoredAsset = await (preview.select(
-          preview.ocptAssetsTable,
-        )..where((table) => table.id.equals(restoredPanel.imageAssetId!))).getSingle();
-        expect(restoredAsset.path, "/frames/shot-1.png");
+      final restoredAsset = await (preview.select(
+        preview.ocptAssetsTable,
+      )..where((table) => table.id.equals(restoredPanel.imageAssetId!))).getSingle();
+      expect(restoredAsset.path, "/frames/shot-1.png");
 
-        final restoredAnnotation = await (preview.select(
-          preview.ocptStoryboardAnnotationsTable,
-        )..where((table) => table.id.equals(annotationId))).getSingle();
-        expect(restoredAnnotation.panelId, panelId);
-        expect(restoredAnnotation.kind, OcptStoryboardAnnotationKind.movementArrow);
-        expect(restoredAnnotation.x1, 0.1);
-        expect(restoredAnnotation.y2, 0.6);
-        expect(restoredAnnotation.labelText, "walks to the door");
+      final restoredAnnotation = await (preview.select(
+        preview.ocptStoryboardAnnotationsTable,
+      )..where((table) => table.id.equals(annotationId))).getSingle();
+      expect(restoredAnnotation.panelId, panelId);
+      expect(restoredAnnotation.kind, OcptStoryboardAnnotationKind.movementArrow);
+      expect(restoredAnnotation.x1, 0.1);
+      expect(restoredAnnotation.y2, 0.6);
+      expect(restoredAnnotation.labelText, "walks to the door");
 
-        final restoredPlan = await (preview.select(
-          preview.ocptFloorPlanSetsTable,
-        )..where((table) => table.id.equals(setId))).getSingle();
-        expect(restoredPlan.id, setId);
+      final restoredPlan = await (preview.select(
+        preview.ocptFloorPlanSetsTable,
+      )..where((table) => table.id.equals(setId))).getSingle();
+      expect(restoredPlan.id, setId);
 
-        // The Resources set and its `scene_sets` link survived the preview too — `floor_plan_sets
-        // .id` being `sets.id` means the plan is meaningless without them.
-        final restoredSet = await (preview.select(
-          preview.ocptSetsTable,
-        )..where((table) => table.id.equals(setId))).getSingle();
-        expect(restoredSet.name, "Kitchen");
-        final restoredLink = (await (preview.select(
-          preview.ocptSceneSetsTable,
-        )..where((table) => table.setId.equals(setId))).getSingle());
-        expect(restoredLink.sceneId, "scene-1");
-        expect(restoredLink.isDeleted, isFalse);
+      // The Resources set and its `scene_sets` link survived the preview too — `floor_plan_sets
+      // .id` being `sets.id` means the plan is meaningless without them.
+      final restoredSet = await (preview.select(
+        preview.ocptSetsTable,
+      )..where((table) => table.id.equals(setId))).getSingle();
+      expect(restoredSet.name, "Kitchen");
+      final restoredLink = (await (preview.select(
+        preview.ocptSceneSetsTable,
+      )..where((table) => table.setId.equals(setId))).getSingle());
+      expect(restoredLink.sceneId, "scene-1");
+      expect(restoredLink.isDeleted, isFalse);
 
-        // The scene-scope override survived, still naming its set-scope original.
-        final restoredOverride = await (preview.select(
-          preview.ocptFloorPlanSymbolsTable,
-        )..where((table) => table.id.equals(overrideWallId))).getSingle();
-        expect(restoredOverride.sceneId, "scene-1");
-        expect(restoredOverride.overridesSymbolId, originalWallId);
-        expect(restoredOverride.label, "North wall, re-dressed");
-        // isHidden must survive the preview too — a fresh column, and a second hand-written insert
-        // list (`hydratePreview`'s own) that a new synchronised field can just as easily be added to
-        // one of the two write paths and not the other (see `_applyPayload`'s own sibling check
-        // below).
-        expect(restoredOverride.isHidden, isTrue);
+      // The scene-scope override survived, still naming its set-scope original.
+      final restoredOverride = await (preview.select(
+        preview.ocptFloorPlanSymbolsTable,
+      )..where((table) => table.id.equals(overrideWallId))).getSingle();
+      expect(restoredOverride.sceneId, "scene-1");
+      expect(restoredOverride.overridesSymbolId, originalWallId);
+      expect(restoredOverride.label, "North wall, re-dressed");
+      // isHidden must survive the preview too — a fresh column, and a second hand-written insert
+      // list (`hydratePreview`'s own) that a new synchronised field can just as easily be added to
+      // one of the two write paths and not the other (see `_applyPayload`'s own sibling check
+      // below).
+      expect(restoredOverride.isHidden, isTrue);
 
-        final restoredCamera = await (preview.select(
-          preview.ocptFloorPlanSymbolsTable,
-        )..where((table) => table.id.equals(cameraId))).getSingle();
-        expect(restoredCamera.setId, setId);
-        expect(restoredCamera.shotId, "shot-1");
-        expect(restoredCamera.layer, OcptFloorPlanLayer.cameras);
-        expect(restoredCamera.xM, 1.2);
-        expect(restoredCamera.yM, 3.4);
-        expect(restoredCamera.fovReachM, 5.5);
+      final restoredCamera = await (preview.select(
+        preview.ocptFloorPlanSymbolsTable,
+      )..where((table) => table.id.equals(cameraId))).getSingle();
+      expect(restoredCamera.setId, setId);
+      expect(restoredCamera.shotId, "shot-1");
+      expect(restoredCamera.layer, OcptFloorPlanLayer.cameras);
+      expect(restoredCamera.xM, 1.2);
+      expect(restoredCamera.yM, 3.4);
+      expect(restoredCamera.fovReachM, 5.5);
 
-        final restoredArrow = await (preview.select(
-          preview.ocptFloorPlanArrowsTable,
-        )..where((table) => table.id.equals(arrowId))).getSingle();
-        expect(restoredArrow.setId, setId);
-        expect(restoredArrow.shotId, "shot-1");
-        expect(restoredArrow.kind, OcptFloorPlanArrowKind.movement);
-        expect(restoredArrow.fromSymbolId, characterId);
-        expect(restoredArrow.toSymbolId, cameraId);
-      },
-    );
+      final restoredArrow = await (preview.select(
+        preview.ocptFloorPlanArrowsTable,
+      )..where((table) => table.id.equals(arrowId))).getSingle();
+      expect(restoredArrow.setId, setId);
+      expect(restoredArrow.shotId, "shot-1");
+      expect(restoredArrow.kind, OcptFloorPlanArrowKind.movement);
+      expect(restoredArrow.fromSymbolId, characterId);
+      expect(restoredArrow.toSymbolId, cameraId);
+    });
 
     test("gives the preview a header of the project's own, pointing at no version", () async {
       final payload = await readPayload((await createVersion()).id);
@@ -880,11 +877,8 @@ void main() {
       await database
           .update(database.ocptScreenplaysTable)
           .write(const OcptScreenplaysTableCompanion(fountainText: Value(rewrittenText)));
-      await (database.update(
-        database.ocptShotsTable,
-      )..where((table) => table.id.equals("shot-1"))).write(
-        const OcptShotsTableCompanion(framing: Value("High angle")),
-      );
+      await (database.update(database.ocptShotsTable)..where((table) => table.id.equals("shot-1")))
+          .write(const OcptShotsTableCompanion(framing: Value("High angle")));
       await insertShot(id: "shot-2", sceneId: "scene-1");
 
       return version;
@@ -970,42 +964,45 @@ void main() {
       expect(liveShots.map((shot) => shot.id), ["shot-1"]);
     });
 
-    test("stamps every column it changed with one version, above what any of them already held", () async {
-      final version = await createDivergedProject();
+    test(
+      "stamps every column it changed with one version, above what any of them already held",
+      () async {
+        final version = await createDivergedProject();
 
-      // As if the edit that rewrote the framing had been stamped by the changeset engine.
-      await database
-          .into(database.ocptRowFieldVersionsTable)
-          .insert(
-            OcptRowFieldVersionsTableCompanion.insert(
-              targetTableName: "shots",
-              rowId: "shot-1",
-              columnName: "framing",
-              version: 7,
-              deviceId: "device-0",
-            ),
-          );
+        // As if the edit that rewrote the framing had been stamped by the changeset engine.
+        await database
+            .into(database.ocptRowFieldVersionsTable)
+            .insert(
+              OcptRowFieldVersionsTableCompanion.insert(
+                targetTableName: "shots",
+                rowId: "shot-1",
+                columnName: "framing",
+                version: 7,
+                deviceId: "device-0",
+              ),
+            );
 
-      await restore(version.id);
+        await restore(version.id);
 
-      final stamps = await readStamps();
+        final stamps = await readStamps();
 
-      // A column the restore rewrote reads, to every other replica, as the most recent edit there
-      // is — which is exactly what it is.
-      expect(stamps["shots/shot-1/framing"]?.version, 8);
-      expect(stamps["shots/shot-1/framing"]?.deviceId, deviceId);
+        // A column the restore rewrote reads, to every other replica, as the most recent edit there
+        // is — which is exactly what it is.
+        expect(stamps["shots/shot-1/framing"]?.version, 8);
+        expect(stamps["shots/shot-1/framing"]?.deviceId, deviceId);
 
-      // A row the version didn't hold is tombstoned, and the tombstone is stamped like any other
-      // write — sharing the very same version, since the whole restore is one transaction and this
-      // device's clock hands out exactly one tick for it.
-      expect(stamps["shots/shot-2/isDeleted"]?.version, 8);
-      expect(stamps["shots/shot-2/isDeleted"]?.deviceId, deviceId);
+        // A row the version didn't hold is tombstoned, and the tombstone is stamped like any other
+        // write — sharing the very same version, since the whole restore is one transaction and this
+        // device's clock hands out exactly one tick for it.
+        expect(stamps["shots/shot-2/isDeleted"]?.version, 8);
+        expect(stamps["shots/shot-2/isDeleted"]?.deviceId, deviceId);
 
-      // A column whose value already matched the version is left alone: a restore must not stomp
-      // an unrelated concurrent edit that happened to agree with it.
-      expect(stamps.containsKey("shots/shot-1/lens"), isFalse);
-      expect(stamps.containsKey("shots/shot-1/sortKey"), isFalse);
-    });
+        // A column whose value already matched the version is left alone: a restore must not stomp
+        // an unrelated concurrent edit that happened to agree with it.
+        expect(stamps.containsKey("shots/shot-1/lens"), isFalse);
+        expect(stamps.containsKey("shots/shot-1/sortKey"), isFalse);
+      },
+    );
 
     test("snapshots the screenplay before writing the version's text over it", () async {
       final version = await createDivergedProject();
@@ -1022,34 +1019,37 @@ void main() {
       expect(snapshots.single.fountainText, rewrittenText);
     });
 
-    test("brings the scenes back with their own ids, leaving no shot pointing at nothing", () async {
-      final version = await createDivergedProject();
+    test(
+      "brings the scenes back with their own ids, leaving no shot pointing at nothing",
+      () async {
+        final version = await createDivergedProject();
 
-      // A scene the version never held, with a shot of its own hanging off it.
-      await insertScene(id: "scene-later");
-      await insertShot(id: "shot-later", sceneId: "scene-later");
+        // A scene the version never held, with a shot of its own hanging off it.
+        await insertScene(id: "scene-later");
+        await insertShot(id: "shot-later", sceneId: "scene-later");
 
-      await restore(version.id);
+        await restore(version.id);
 
-      final scenes = await database.select(database.ocptScenesTable).get();
-      expect(scenes.map((scene) => scene.id), containsAll(["scene-1", "scene-later"]));
-      expect(scenes.firstWhere((scene) => scene.id == "scene-1").isDeleted, isFalse);
-      expect(scenes.firstWhere((scene) => scene.id == "scene-later").isDeleted, isTrue);
+        final scenes = await database.select(database.ocptScenesTable).get();
+        expect(scenes.map((scene) => scene.id), containsAll(["scene-1", "scene-later"]));
+        expect(scenes.firstWhere((scene) => scene.id == "scene-1").isDeleted, isFalse);
+        expect(scenes.firstWhere((scene) => scene.id == "scene-later").isDeleted, isTrue);
 
-      // Every shot the user is left with points at a scene the version carried: the ids are the
-      // payload's own, never re-derived, which is what keeps the references it holds valid.
-      final liveSceneIds = {
-        for (final scene in scenes.where((scene) => !scene.isDeleted)) scene.id,
-      };
-      final liveShots = await (database.select(
-        database.ocptShotsTable,
-      )..where((table) => table.isDeleted.equals(false))).get();
+        // Every shot the user is left with points at a scene the version carried: the ids are the
+        // payload's own, never re-derived, which is what keeps the references it holds valid.
+        final liveSceneIds = {
+          for (final scene in scenes.where((scene) => !scene.isDeleted)) scene.id,
+        };
+        final liveShots = await (database.select(
+          database.ocptShotsTable,
+        )..where((table) => table.isDeleted.equals(false))).get();
 
-      expect(liveShots, isNotEmpty);
-      for (final shot in liveShots) {
-        expect(liveSceneIds, contains(shot.sceneId));
-      }
-    });
+        expect(liveShots, isNotEmpty);
+        for (final shot in liveShots) {
+          expect(liveSceneIds, contains(shot.sceneId));
+        }
+      },
+    );
 
     test("keeps the state it replaces as a version, restorable in its turn", () async {
       final version = await createDivergedProject();
@@ -1106,11 +1106,9 @@ void main() {
 
       // A version written before schema v5 carries no digest: unknown reads as "modified" so a
       // restore doesn't wrongly assume it matches the untouched working copy.
-      await (database.update(
-        database.ocptProjectVersionsTable,
-      )..where((table) => table.id.equals(version.id))).write(
-        const OcptProjectVersionsTableCompanion(contentDigest: Value(null)),
-      );
+      await (database.update(database.ocptProjectVersionsTable)
+            ..where((table) => table.id.equals(version.id)))
+          .write(const OcptProjectVersionsTableCompanion(contentDigest: Value(null)));
 
       await restore(version.id);
 
@@ -1126,9 +1124,7 @@ void main() {
 
       // A payload no project could ever hold: its shot belongs to a screenplay that doesn't exist,
       // so the transaction can only fail — at the commit, since the foreign keys are deferred.
-      final payload = await readPayload(
-        (await createVersion(name: "v2 — Sound")).id,
-      );
+      final payload = await readPayload((await createVersion(name: "v2 — Sound")).id);
       await database
           .into(database.ocptProjectVersionsTable)
           .insert(
@@ -1222,10 +1218,7 @@ void main() {
     test("refuses a version the project doesn't have, and one from a later build", () async {
       await createDivergedProject();
 
-      expect(
-        (await restore("no-such-version")).status,
-        OcptProjectRestoreStatus.versionNotFound,
-      );
+      expect((await restore("no-such-version")).status, OcptProjectRestoreStatus.versionNotFound);
 
       await database
           .into(database.ocptProjectVersionsTable)
@@ -1252,23 +1245,17 @@ void main() {
     test("inserts, updates and tombstones resources rows, like any other table", () async {
       await database
           .into(database.ocptPeopleTable)
-          .insert(
-            OcptPeopleTableCompanion.insert(id: "person-1", firstName: const Value("Clara")),
-          );
+          .insert(OcptPeopleTableCompanion.insert(id: "person-1", firstName: const Value("Clara")));
 
       final version = await createVersion();
 
       // Diverge: the captured person is edited, and a second one is added since.
-      await (database.update(
-        database.ocptPeopleTable,
-      )..where((table) => table.id.equals("person-1"))).write(
-        const OcptPeopleTableCompanion(firstName: Value("Edited")),
-      );
+      await (database.update(database.ocptPeopleTable)
+            ..where((table) => table.id.equals("person-1")))
+          .write(const OcptPeopleTableCompanion(firstName: Value("Edited")));
       await database
           .into(database.ocptPeopleTable)
-          .insert(
-            OcptPeopleTableCompanion.insert(id: "person-2", firstName: const Value("Later")),
-          );
+          .insert(OcptPeopleTableCompanion.insert(id: "person-2", firstName: const Value("Later")));
 
       final result = await restore(version.id);
 
@@ -1316,11 +1303,9 @@ void main() {
       final version = await createVersion();
 
       // Diverge: the captured entry is edited, and a second one is recorded since.
-      await (database.update(
-        database.ocptBudgetEntriesTable,
-      )..where((table) => table.id.equals("entry-1"))).write(
-        const OcptBudgetEntriesTableCompanion(debitCents: Value(9999)),
-      );
+      await (database.update(database.ocptBudgetEntriesTable)
+            ..where((table) => table.id.equals("entry-1")))
+          .write(const OcptBudgetEntriesTableCompanion(debitCents: Value(9999)));
       await database
           .into(database.ocptBudgetEntriesTable)
           .insert(
@@ -1331,11 +1316,9 @@ void main() {
               voucherNumber: const Value("J-002"),
             ),
           );
-      await (database.update(
-        database.ocptBudgetCommitmentsTable,
-      )..where((table) => table.id.equals("commitment-1"))).write(
-        const OcptBudgetCommitmentsTableCompanion(amountCents: Value(1)),
-      );
+      await (database.update(database.ocptBudgetCommitmentsTable)
+            ..where((table) => table.id.equals("commitment-1")))
+          .write(const OcptBudgetCommitmentsTableCompanion(amountCents: Value(1)));
 
       final result = await restore(version.id);
 
@@ -1360,109 +1343,100 @@ void main() {
       expect(laterEntry.isDeleted, isTrue);
     });
 
-    test(
-      "a financing resource, a mileage rate and a person's commute come back too",
-      () async {
-        await database
-            .into(database.ocptBudgetMileageRatesTable)
-            .insert(
-              OcptBudgetMileageRatesTableCompanion.insert(
-                id: "rate-1",
-                label: "Voiture personnelle",
-                ratePerKmMilliCents: const Value(52900),
-              ),
-            );
-        await database
-            .into(database.ocptBudgetResourcesTable)
-            .insert(
-              OcptBudgetResourcesTableCompanion.insert(
-                id: "resource-1",
-                label: "Région Île-de-France",
-                amountCents: const Value(500000),
-              ),
-            );
-        await database
-            .into(database.ocptBudgetEntriesTable)
-            .insert(
-              OcptBudgetEntriesTableCompanion.insert(
-                id: "entry-3",
-                date: DateTime.utc(2026, 5, 4),
-                label: "Acompte région",
-                creditCents: const Value(200000),
-                voucherNumber: const Value("J-003"),
-                resourceId: const Value("resource-1"),
-              ),
-            );
-        await database
-            .into(database.ocptPeopleTable)
-            .insert(
-              OcptPeopleTableCompanion.insert(
-                id: "person-3",
-                firstName: const Value("Théo"),
-                commuteKmMilli: const Value(1484000),
-                mileageRateId: const Value("rate-1"),
-              ),
-            );
+    test("a financing resource, a mileage rate and a person's commute come back too", () async {
+      await database
+          .into(database.ocptBudgetMileageRatesTable)
+          .insert(
+            OcptBudgetMileageRatesTableCompanion.insert(
+              id: "rate-1",
+              label: "Voiture personnelle",
+              ratePerKmMilliCents: const Value(52900),
+            ),
+          );
+      await database
+          .into(database.ocptBudgetResourcesTable)
+          .insert(
+            OcptBudgetResourcesTableCompanion.insert(
+              id: "resource-1",
+              label: "Région Île-de-France",
+              amountCents: const Value(500000),
+            ),
+          );
+      await database
+          .into(database.ocptBudgetEntriesTable)
+          .insert(
+            OcptBudgetEntriesTableCompanion.insert(
+              id: "entry-3",
+              date: DateTime.utc(2026, 5, 4),
+              label: "Acompte région",
+              creditCents: const Value(200000),
+              voucherNumber: const Value("J-003"),
+              resourceId: const Value("resource-1"),
+            ),
+          );
+      await database
+          .into(database.ocptPeopleTable)
+          .insert(
+            OcptPeopleTableCompanion.insert(
+              id: "person-3",
+              firstName: const Value("Théo"),
+              commuteKmMilli: const Value(1484000),
+              mileageRateId: const Value("rate-1"),
+            ),
+          );
 
-        final version = await createVersion();
+      final version = await createVersion();
 
-        // Diverge: everything just captured is edited, and a fresh resource is recorded since.
-        await (database.update(
-          database.ocptBudgetMileageRatesTable,
-        )..where((table) => table.id.equals("rate-1"))).write(
-          const OcptBudgetMileageRatesTableCompanion(ratePerKmMilliCents: Value(1)),
-        );
-        await (database.update(
-          database.ocptBudgetResourcesTable,
-        )..where((table) => table.id.equals("resource-1"))).write(
-          const OcptBudgetResourcesTableCompanion(amountCents: Value(1)),
-        );
-        await (database.update(
-          database.ocptBudgetEntriesTable,
-        )..where((table) => table.id.equals("entry-3"))).write(
-          const OcptBudgetEntriesTableCompanion(resourceId: Value(null)),
-        );
-        await (database.update(
-          database.ocptPeopleTable,
-        )..where((table) => table.id.equals("person-3"))).write(
-          const OcptPeopleTableCompanion(commuteKmMilli: Value(1), mileageRateId: Value(null)),
-        );
-        await database
-            .into(database.ocptBudgetResourcesTable)
-            .insert(
-              OcptBudgetResourcesTableCompanion.insert(id: "resource-2", label: "Recorded later"),
-            );
+      // Diverge: everything just captured is edited, and a fresh resource is recorded since.
+      await (database.update(database.ocptBudgetMileageRatesTable)
+            ..where((table) => table.id.equals("rate-1")))
+          .write(const OcptBudgetMileageRatesTableCompanion(ratePerKmMilliCents: Value(1)));
+      await (database.update(database.ocptBudgetResourcesTable)
+            ..where((table) => table.id.equals("resource-1")))
+          .write(const OcptBudgetResourcesTableCompanion(amountCents: Value(1)));
+      await (database.update(database.ocptBudgetEntriesTable)
+            ..where((table) => table.id.equals("entry-3")))
+          .write(const OcptBudgetEntriesTableCompanion(resourceId: Value(null)));
+      await (database.update(
+        database.ocptPeopleTable,
+      )..where((table) => table.id.equals("person-3"))).write(
+        const OcptPeopleTableCompanion(commuteKmMilli: Value(1), mileageRateId: Value(null)),
+      );
+      await database
+          .into(database.ocptBudgetResourcesTable)
+          .insert(
+            OcptBudgetResourcesTableCompanion.insert(id: "resource-2", label: "Recorded later"),
+          );
 
-        final result = await restore(version.id);
+      final result = await restore(version.id);
 
-        expect(result.status, OcptProjectRestoreStatus.ok);
+      expect(result.status, OcptProjectRestoreStatus.ok);
 
-        final restoredRate = await database.select(database.ocptBudgetMileageRatesTable).getSingle();
-        expect(restoredRate.ratePerKmMilliCents, 52900);
+      final restoredRate = await database.select(database.ocptBudgetMileageRatesTable).getSingle();
+      expect(restoredRate.ratePerKmMilliCents, 52900);
 
-        final restoredResource = await (database.select(
-          database.ocptBudgetResourcesTable,
-        )..where((table) => table.id.equals("resource-1"))).getSingle();
-        expect(restoredResource.amountCents, 500000);
+      final restoredResource = await (database.select(
+        database.ocptBudgetResourcesTable,
+      )..where((table) => table.id.equals("resource-1"))).getSingle();
+      expect(restoredResource.amountCents, 500000);
 
-        final restoredEntry = await (database.select(
-          database.ocptBudgetEntriesTable,
-        )..where((table) => table.id.equals("entry-3"))).getSingle();
-        expect(restoredEntry.resourceId, "resource-1");
+      final restoredEntry = await (database.select(
+        database.ocptBudgetEntriesTable,
+      )..where((table) => table.id.equals("entry-3"))).getSingle();
+      expect(restoredEntry.resourceId, "resource-1");
 
-        final restoredPerson = await (database.select(
-          database.ocptPeopleTable,
-        )..where((table) => table.id.equals("person-3"))).getSingle();
-        expect(restoredPerson.commuteKmMilli, 1484000);
-        expect(restoredPerson.mileageRateId, "rate-1");
+      final restoredPerson = await (database.select(
+        database.ocptPeopleTable,
+      )..where((table) => table.id.equals("person-3"))).getSingle();
+      expect(restoredPerson.commuteKmMilli, 1484000);
+      expect(restoredPerson.mileageRateId, "rate-1");
 
-        // The resource the version never held is tombstoned, not deleted.
-        final laterResource = await (database.select(
-          database.ocptBudgetResourcesTable,
-        )..where((table) => table.id.equals("resource-2"))).getSingle();
-        expect(laterResource.isDeleted, isTrue);
-      },
-    );
+      // The resource the version never held is tombstoned, not deleted.
+      final laterResource = await (database.select(
+        database.ocptBudgetResourcesTable,
+      )..where((table) => table.id.equals("resource-2"))).getSingle();
+      expect(laterResource.isDeleted, isTrue);
+    });
 
     test("the sharing comes back, and a taking recorded since is tombstoned", () async {
       await database
@@ -1502,16 +1476,12 @@ void main() {
 
       // Diverge: the captured taking is edited, its share is renamed, and a second taking is
       // recorded since.
-      await (database.update(
-        database.ocptBudgetRevenuesTable,
-      )..where((table) => table.id.equals("revenue-1"))).write(
-        const OcptBudgetRevenuesTableCompanion(amountCents: Value(1)),
-      );
-      await (database.update(
-        database.ocptBudgetSharesTable,
-      )..where((table) => table.id.equals("share-1"))).write(
-        const OcptBudgetSharesTableCompanion(sharePermille: Value(999)),
-      );
+      await (database.update(database.ocptBudgetRevenuesTable)
+            ..where((table) => table.id.equals("revenue-1")))
+          .write(const OcptBudgetRevenuesTableCompanion(amountCents: Value(1)));
+      await (database.update(database.ocptBudgetSharesTable)
+            ..where((table) => table.id.equals("share-1")))
+          .write(const OcptBudgetSharesTableCompanion(sharePermille: Value(999)));
       await database
           .into(database.ocptBudgetRevenuesTable)
           .insert(
@@ -1586,11 +1556,9 @@ void main() {
       final version = await createVersion();
 
       // Diverge: the captured link's note is edited, and a second link is made since.
-      await (database.update(
-        database.ocptRoleElementsTable,
-      )..where((table) => table.id.equals("link-1"))).write(
-        const OcptRoleElementsTableCompanion(notes: Value("Edited")),
-      );
+      await (database.update(database.ocptRoleElementsTable)
+            ..where((table) => table.id.equals("link-1")))
+          .write(const OcptRoleElementsTableCompanion(notes: Value("Edited")));
       await database
           .into(database.ocptRoleElementsTable)
           .insert(
@@ -1630,9 +1598,7 @@ void main() {
           );
       await database
           .into(database.ocptPeopleTable)
-          .insert(
-            OcptPeopleTableCompanion.insert(id: "person-1", firstName: const Value("Clara")),
-          );
+          .insert(OcptPeopleTableCompanion.insert(id: "person-1", firstName: const Value("Clara")));
       await database
           .into(database.ocptPeopleTable)
           .insert(OcptPeopleTableCompanion.insert(id: "person-2", firstName: const Value("Sam")));
@@ -1650,11 +1616,9 @@ void main() {
       final version = await createVersion();
 
       // Diverge: the captured candidacy's note is edited, and somebody else is seen since.
-      await (database.update(
-        database.ocptRoleCandidatesTable,
-      )..where((table) => table.id.equals("candidate-1"))).write(
-        const OcptRoleCandidatesTableCompanion(notes: Value("Edited")),
-      );
+      await (database.update(database.ocptRoleCandidatesTable)
+            ..where((table) => table.id.equals("candidate-1")))
+          .write(const OcptRoleCandidatesTableCompanion(notes: Value("Edited")));
       await database
           .into(database.ocptRoleCandidatesTable)
           .insert(
@@ -1753,63 +1717,50 @@ void main() {
       },
     );
 
-    test(
-      "tombstones a word learned since the capture, and revives one removed since",
-      () async {
-        await database
-            .into(database.ocptProjectDictionaryWordsTable)
-            .insert(
-              OcptProjectDictionaryWordsTableCompanion.insert(id: "word-1", word: "Clara"),
-            );
+    test("tombstones a word learned since the capture, and revives one removed since", () async {
+      await database
+          .into(database.ocptProjectDictionaryWordsTable)
+          .insert(OcptProjectDictionaryWordsTableCompanion.insert(id: "word-1", word: "Clara"));
 
-        final version = await createVersion();
+      final version = await createVersion();
 
-        // Diverge: the word is un-learned since — as if the writer had removed it after the
-        // capture — and a fresh one is learned.
-        await (database.update(
-          database.ocptProjectDictionaryWordsTable,
-        )..where((table) => table.id.equals("word-1"))).write(
-          const OcptProjectDictionaryWordsTableCompanion(isDeleted: Value(true)),
-        );
-        await database
-            .into(database.ocptProjectDictionaryWordsTable)
-            .insert(
-              OcptProjectDictionaryWordsTableCompanion.insert(id: "word-2", word: "Julien"),
-            );
+      // Diverge: the word is un-learned since — as if the writer had removed it after the
+      // capture — and a fresh one is learned.
+      await (database.update(database.ocptProjectDictionaryWordsTable)
+            ..where((table) => table.id.equals("word-1")))
+          .write(const OcptProjectDictionaryWordsTableCompanion(isDeleted: Value(true)));
+      await database
+          .into(database.ocptProjectDictionaryWordsTable)
+          .insert(OcptProjectDictionaryWordsTableCompanion.insert(id: "word-2", word: "Julien"));
 
-        final result = await restore(version.id);
+      final result = await restore(version.id);
 
-        expect(result.status, OcptProjectRestoreStatus.ok);
+      expect(result.status, OcptProjectRestoreStatus.ok);
 
-        // "word-1" was live in the captured version: restoring revives it.
-        final revived = await (database.select(
-          database.ocptProjectDictionaryWordsTable,
-        )..where((table) => table.id.equals("word-1"))).getSingle();
-        expect(revived.word, "Clara");
-        expect(revived.isDeleted, isFalse);
+      // "word-1" was live in the captured version: restoring revives it.
+      final revived = await (database.select(
+        database.ocptProjectDictionaryWordsTable,
+      )..where((table) => table.id.equals("word-1"))).getSingle();
+      expect(revived.word, "Clara");
+      expect(revived.isDeleted, isFalse);
 
-        // "word-2" was learned after the capture: the version never held it, so it is
-        // tombstoned, not deleted, exactly like every other row a payload doesn't carry.
-        final tombstoned = await (database.select(
-          database.ocptProjectDictionaryWordsTable,
-        )..where((table) => table.id.equals("word-2"))).getSingle();
-        expect(tombstoned.isDeleted, isTrue);
-      },
-    );
+      // "word-2" was learned after the capture: the version never held it, so it is
+      // tombstoned, not deleted, exactly like every other row a payload doesn't carry.
+      final tombstoned = await (database.select(
+        database.ocptProjectDictionaryWordsTable,
+      )..where((table) => table.id.equals("word-2"))).getSingle();
+      expect(tombstoned.isDeleted, isTrue);
+    });
 
     test("stamps a resources column it changed, above what it already held", () async {
       await database
           .into(database.ocptPeopleTable)
-          .insert(
-            OcptPeopleTableCompanion.insert(id: "person-1", firstName: const Value("Clara")),
-          );
+          .insert(OcptPeopleTableCompanion.insert(id: "person-1", firstName: const Value("Clara")));
       final version = await createVersion();
 
-      await (database.update(
-        database.ocptPeopleTable,
-      )..where((table) => table.id.equals("person-1"))).write(
-        const OcptPeopleTableCompanion(firstName: Value("Edited")),
-      );
+      await (database.update(database.ocptPeopleTable)
+            ..where((table) => table.id.equals("person-1")))
+          .write(const OcptPeopleTableCompanion(firstName: Value("Edited")));
 
       // As if the edit had already been stamped by the changeset engine.
       await database
@@ -1831,150 +1782,136 @@ void main() {
       expect(stamps["people/person-1/firstName"]?.deviceId, deviceId);
     });
 
-    test(
-      "restores a captured schedule exactly, tombstones and sort keys included",
-      () async {
-        await insertShootingDay(id: "day-1", date: DateTime.utc(2026, 3, 10));
-        await insertShootingSlot(id: "slot-1", shootingDayId: "day-1");
-        await database
-            .into(database.ocptPeopleTable)
-            .insert(OcptPeopleTableCompanion.insert(id: "person-1", firstName: const Value("Clara")));
-        await database
-            .into(database.ocptShootingSlotCrewTable)
-            .insert(
-              OcptShootingSlotCrewTableCompanion.insert(
-                id: "crew-1",
-                slotId: "slot-1",
-                personId: "person-1",
-              ),
-            );
+    test("restores a captured schedule exactly, tombstones and sort keys included", () async {
+      await insertShootingDay(id: "day-1", date: DateTime.utc(2026, 3, 10));
+      await insertShootingSlot(id: "slot-1", shootingDayId: "day-1");
+      await database
+          .into(database.ocptPeopleTable)
+          .insert(OcptPeopleTableCompanion.insert(id: "person-1", firstName: const Value("Clara")));
+      await database
+          .into(database.ocptShootingSlotCrewTable)
+          .insert(
+            OcptShootingSlotCrewTableCompanion.insert(
+              id: "crew-1",
+              slotId: "slot-1",
+              personId: "person-1",
+            ),
+          );
 
-        final version = await createVersion(name: "v1 — Day planned");
+      final version = await createVersion(name: "v1 — Day planned");
 
-        // Diverge: the slot's anchored hour is edited, its position renamed by the shooting day it
-        // belongs to, a second day is added, and the crew row is tombstoned.
-        await (database.update(
-          database.ocptShootingSlotsTable,
-        )..where((table) => table.id.equals("slot-1"))).write(
-          const OcptShootingSlotsTableCompanion(anchorMinute: Value(360)),
-        );
-        await insertShootingDay(id: "day-2", date: DateTime.utc(2026, 3, 11), sortKey: "k");
-        await scheduleService.removeSlotCrewMember(database: database, crewMemberId: "crew-1");
+      // Diverge: the slot's anchored hour is edited, its position renamed by the shooting day it
+      // belongs to, a second day is added, and the crew row is tombstoned.
+      await (database.update(database.ocptShootingSlotsTable)
+            ..where((table) => table.id.equals("slot-1")))
+          .write(const OcptShootingSlotsTableCompanion(anchorMinute: Value(360)));
+      await insertShootingDay(id: "day-2", date: DateTime.utc(2026, 3, 11), sortKey: "k");
+      await scheduleService.removeSlotCrewMember(database: database, crewMemberId: "crew-1");
 
-        final result = await restore(version.id);
+      final result = await restore(version.id);
 
-        expect(result.status, OcptProjectRestoreStatus.ok);
+      expect(result.status, OcptProjectRestoreStatus.ok);
 
-        final restoredSlot = await (database.select(
-          database.ocptShootingSlotsTable,
-        )..where((table) => table.id.equals("slot-1"))).getSingle();
-        expect(restoredSlot.anchorMinute, 420);
-        expect(restoredSlot.sortKey, "V");
+      final restoredSlot = await (database.select(
+        database.ocptShootingSlotsTable,
+      )..where((table) => table.id.equals("slot-1"))).getSingle();
+      expect(restoredSlot.anchorMinute, 420);
+      expect(restoredSlot.sortKey, "V");
 
-        final restoredDay = await (database.select(
-          database.ocptShootingDaysTable,
-        )..where((table) => table.id.equals("day-1"))).getSingle();
-        expect(restoredDay.isDeleted, isFalse);
-        expect(restoredDay.sortKey, "V");
+      final restoredDay = await (database.select(
+        database.ocptShootingDaysTable,
+      )..where((table) => table.id.equals("day-1"))).getSingle();
+      expect(restoredDay.isDeleted, isFalse);
+      expect(restoredDay.sortKey, "V");
 
-        // The day the version never held is tombstoned, not deleted, exactly like a shot.
-        final droppedDay = await (database.select(
-          database.ocptShootingDaysTable,
-        )..where((table) => table.id.equals("day-2"))).getSingle();
-        expect(droppedDay.isDeleted, isTrue);
+      // The day the version never held is tombstoned, not deleted, exactly like a shot.
+      final droppedDay = await (database.select(
+        database.ocptShootingDaysTable,
+      )..where((table) => table.id.equals("day-2"))).getSingle();
+      expect(droppedDay.isDeleted, isTrue);
 
-        // The crew row is restored live again.
-        final restoredCrew = await (database.select(
-          database.ocptShootingSlotCrewTable,
-        )..where((table) => table.id.equals("crew-1"))).getSingle();
-        expect(restoredCrew.isDeleted, isFalse);
-        expect(restoredCrew.personId, "person-1");
-      },
-    );
+      // The crew row is restored live again.
+      final restoredCrew = await (database.select(
+        database.ocptShootingSlotCrewTable,
+      )..where((table) => table.id.equals("crew-1"))).getSingle();
+      expect(restoredCrew.isDeleted, isFalse);
+      expect(restoredCrew.personId, "person-1");
+    });
 
-    test(
-      "a guest and an event survive a capture and a restore, tombstones included",
-      () async {
-        await insertShootingDay(id: "day-1", date: DateTime.utc(2026, 3, 10));
-        await insertShootingSlot(id: "slot-1", shootingDayId: "day-1");
-        final guestId = await scheduleService.addSlotGuest(
-          database: database,
-          slotId: "slot-1",
-          freeName: "Le maire",
-          reason: "Prête la place",
-        );
-        final eventId = await scheduleService.createDayEvent(
-          database: database,
-          dayId: "day-1",
-          minute: 1020,
-          label: "Feu d'artifice du village",
-        );
+    test("a guest and an event survive a capture and a restore, tombstones included", () async {
+      await insertShootingDay(id: "day-1", date: DateTime.utc(2026, 3, 10));
+      await insertShootingSlot(id: "slot-1", shootingDayId: "day-1");
+      final guestId = await scheduleService.addSlotGuest(
+        database: database,
+        slotId: "slot-1",
+        freeName: "Le maire",
+        reason: "Prête la place",
+      );
+      final eventId = await scheduleService.createDayEvent(
+        database: database,
+        dayId: "day-1",
+        minute: 1020,
+        label: "Feu d'artifice du village",
+      );
 
-        final version = await createVersion(name: "v1 — Guest and event planned");
+      final version = await createVersion(name: "v1 — Guest and event planned");
 
-        // Diverge: the guest and the event are both removed in the working copy, and a second
-        // guest is added on a new slot.
-        await scheduleService.deleteSlotGuest(database: database, guestId: guestId!);
-        await scheduleService.deleteDayEvent(database: database, eventId: eventId!);
-        final secondSlotId = await scheduleService.createSlot(
-          database: database,
-          shootingDayId: "day-1",
-          anchorMinute: 600,
-        );
-        await scheduleService.addSlotGuest(
-          database: database,
-          slotId: secondSlotId!,
-          freeName: "Une journaliste",
-        );
+      // Diverge: the guest and the event are both removed in the working copy, and a second
+      // guest is added on a new slot.
+      await scheduleService.deleteSlotGuest(database: database, guestId: guestId!);
+      await scheduleService.deleteDayEvent(database: database, eventId: eventId!);
+      final secondSlotId = await scheduleService.createSlot(
+        database: database,
+        shootingDayId: "day-1",
+        anchorMinute: 600,
+      );
+      await scheduleService.addSlotGuest(
+        database: database,
+        slotId: secondSlotId!,
+        freeName: "Une journaliste",
+      );
 
-        final result = await restore(version.id);
+      final result = await restore(version.id);
 
-        expect(result.status, OcptProjectRestoreStatus.ok);
+      expect(result.status, OcptProjectRestoreStatus.ok);
 
-        // The guest and the event the version held are revived — live again.
-        final restoredGuest = await (database.select(
-          database.ocptShootingSlotGuestsTable,
-        )..where((table) => table.id.equals(guestId))).getSingle();
-        expect(restoredGuest.isDeleted, isFalse);
-        expect(restoredGuest.freeName, "Le maire");
-        expect(restoredGuest.reason, "Prête la place");
+      // The guest and the event the version held are revived — live again.
+      final restoredGuest = await (database.select(
+        database.ocptShootingSlotGuestsTable,
+      )..where((table) => table.id.equals(guestId))).getSingle();
+      expect(restoredGuest.isDeleted, isFalse);
+      expect(restoredGuest.freeName, "Le maire");
+      expect(restoredGuest.reason, "Prête la place");
 
-        final restoredEvent = await (database.select(
-          database.ocptShootingDayEventsTable,
-        )..where((table) => table.id.equals(eventId))).getSingle();
-        expect(restoredEvent.isDeleted, isFalse);
-        expect(restoredEvent.minute, 1020);
-        expect(restoredEvent.label, "Feu d'artifice du village");
+      final restoredEvent = await (database.select(
+        database.ocptShootingDayEventsTable,
+      )..where((table) => table.id.equals(eventId))).getSingle();
+      expect(restoredEvent.isDeleted, isFalse);
+      expect(restoredEvent.minute, 1020);
+      expect(restoredEvent.label, "Feu d'artifice du village");
 
-        // The guest the version never held is tombstoned, not deleted, exactly like a shot.
-        final droppedGuests = await database.select(database.ocptShootingSlotGuestsTable).get();
-        expect(
-          droppedGuests.where((row) => row.freeName == "Une journaliste").single.isDeleted,
-          isTrue,
-        );
+      // The guest the version never held is tombstoned, not deleted, exactly like a shot.
+      final droppedGuests = await database.select(database.ocptShootingSlotGuestsTable).get();
+      expect(
+        droppedGuests.where((row) => row.freeName == "Une journaliste").single.isDeleted,
+        isTrue,
+      );
 
-        // And the schedule mode reads the guest and the event back exactly the way they were
-        // written.
-        final restoredSnapshot = await scheduleService.loadSchedule(database: database);
-        expect(
-          restoredSnapshot.slotsByDayId["day-1"]!.first.guests.single.freeName,
-          "Le maire",
-        );
-        expect(restoredSnapshot.eventsByDayId["day-1"]!.single.label, "Feu d'artifice du village");
-      },
-    );
-
+      // And the schedule mode reads the guest and the event back exactly the way they were
+      // written.
+      final restoredSnapshot = await scheduleService.loadSchedule(database: database);
+      expect(restoredSnapshot.slotsByDayId["day-1"]!.first.guests.single.freeName, "Le maire");
+      expect(restoredSnapshot.eventsByDayId["day-1"]!.single.label, "Feu d'artifice du village");
+    });
 
     test("stamps a schedule column it changed, above what it already held", () async {
       await insertShootingDay(id: "day-1");
       await insertShootingSlot(id: "slot-1", shootingDayId: "day-1");
       final version = await createVersion();
 
-      await (database.update(
-        database.ocptShootingSlotsTable,
-      )..where((table) => table.id.equals("slot-1"))).write(
-        const OcptShootingSlotsTableCompanion(anchorMinute: Value(360)),
-      );
+      await (database.update(database.ocptShootingSlotsTable)
+            ..where((table) => table.id.equals("slot-1")))
+          .write(const OcptShootingSlotsTableCompanion(anchorMinute: Value(360)));
 
       // As if the edit had already been stamped by the changeset engine.
       await database
@@ -2010,32 +1947,33 @@ void main() {
       expect(info.currencyCode, "EUR");
     });
 
-    test("restoring a payload with no currency leaves the project's own currency untouched", () async {
-      // A live capture always states a real `currencyCode` ("restores the currency the version
-      // was captured with" above): a null one is reachable only by hand-editing the stored payload,
-      // which is exactly what this does — everything else about the capture stays genuine.
-      final version = await createVersion();
-      final storedRow = await (database.select(
-        database.ocptProjectVersionsTable,
-      )..where((table) => table.id.equals(version.id))).getSingle();
-      final withNoCurrency = jsonDecode(storedRow.payload) as Map<String, dynamic>;
-      (withNoCurrency["projectSettings"] as Map<String, dynamic>)["currencyCode"] = null;
-      await (database.update(
-        database.ocptProjectVersionsTable,
-      )..where((table) => table.id.equals(version.id))).write(
-        OcptProjectVersionsTableCompanion(payload: Value(jsonEncode(withNoCurrency))),
-      );
+    test(
+      "restoring a payload with no currency leaves the project's own currency untouched",
+      () async {
+        // A live capture always states a real `currencyCode` ("restores the currency the version
+        // was captured with" above): a null one is reachable only by hand-editing the stored payload,
+        // which is exactly what this does — everything else about the capture stays genuine.
+        final version = await createVersion();
+        final storedRow = await (database.select(
+          database.ocptProjectVersionsTable,
+        )..where((table) => table.id.equals(version.id))).getSingle();
+        final withNoCurrency = jsonDecode(storedRow.payload) as Map<String, dynamic>;
+        (withNoCurrency["projectSettings"] as Map<String, dynamic>)["currencyCode"] = null;
+        await (database.update(database.ocptProjectVersionsTable)
+              ..where((table) => table.id.equals(version.id)))
+            .write(OcptProjectVersionsTableCompanion(payload: Value(jsonEncode(withNoCurrency))));
 
-      await database
-          .update(database.ocptProjectInfoTable)
-          .write(const OcptProjectInfoTableCompanion(currencyCode: Value("GBP")));
+        await database
+            .update(database.ocptProjectInfoTable)
+            .write(const OcptProjectInfoTableCompanion(currencyCode: Value("GBP")));
 
-      final result = await restore(version.id);
+        final result = await restore(version.id);
 
-      expect(result.status, OcptProjectRestoreStatus.ok);
-      final info = await database.select(database.ocptProjectInfoTable).getSingle();
-      expect(info.currencyCode, "GBP");
-    });
+        expect(result.status, OcptProjectRestoreStatus.ok);
+        final info = await database.select(database.ocptProjectInfoTable).getSingle();
+        expect(info.currencyCode, "GBP");
+      },
+    );
 
     test("restores the minimum rest the version was captured with", () async {
       await database
@@ -2099,30 +2037,27 @@ void main() {
       expect(info.screenplayLanguage, OcptScreenplayLanguage.fr);
     });
 
-    test(
-      "restoring a payload with no screenplay language clears one recorded since — unlike the "
-      "currency",
-      () async {
-        // Unlike currencyCode, which is never null on a live capture, screenplayLanguage is null
-        // right here because nobody has recorded one yet — a truthful value of its own, exactly
-        // the reading minimumRestMinutes' own null carries.
-        final version = await createVersion();
+    test("restoring a payload with no screenplay language clears one recorded since — unlike the "
+        "currency", () async {
+      // Unlike currencyCode, which is never null on a live capture, screenplayLanguage is null
+      // right here because nobody has recorded one yet — a truthful value of its own, exactly
+      // the reading minimumRestMinutes' own null carries.
+      final version = await createVersion();
 
-        await database
-            .update(database.ocptProjectInfoTable)
-            .write(
-              const OcptProjectInfoTableCompanion(
-                screenplayLanguage: Value(OcptScreenplayLanguage.enGb),
-              ),
-            );
+      await database
+          .update(database.ocptProjectInfoTable)
+          .write(
+            const OcptProjectInfoTableCompanion(
+              screenplayLanguage: Value(OcptScreenplayLanguage.enGb),
+            ),
+          );
 
-        final result = await restore(version.id);
+      final result = await restore(version.id);
 
-        expect(result.status, OcptProjectRestoreStatus.ok);
-        final info = await database.select(database.ocptProjectInfoTable).getSingle();
-        expect(info.screenplayLanguage, isNull);
-      },
-    );
+      expect(result.status, OcptProjectRestoreStatus.ok);
+      final info = await database.select(database.ocptProjectInfoTable).getSingle();
+      expect(info.screenplayLanguage, isNull);
+    });
 
     test(
       "restoring a version captured before an erasure does not resurrect the erased person",
@@ -2247,9 +2182,7 @@ void main() {
           .insert(OcptPeopleTableCompanion.insert(id: "person-1"));
       await database
           .into(database.ocptLocationsTable)
-          .insert(
-            OcptLocationsTableCompanion.insert(id: "location-1", name: "Le hangar"),
-          );
+          .insert(OcptLocationsTableCompanion.insert(id: "location-1", name: "Le hangar"));
       final photoId = (await locationsService.addLocationPhoto(
         database: database,
         locationId: "location-1",
@@ -2326,198 +2259,185 @@ void main() {
       expect(skill.label, isEmpty);
     });
 
-    test(
-      "restores a breakdown captured before it, then one captured after, tags tombstoned rather "
-      "than deleted and every reference still resolving",
-      () async {
-        // A real screenplay, reconciled into two real scenes — the breakdown restore's own
-        // subtlety (§ the payload's doc comment) is about references staying valid, which only
-        // means something against ids the reconciliation itself minted.
-        final scenes = await saveScreenplayScenes(
-          "INT. HOUSE - DAY\n\nA desk lamp glows. LÉA enters quietly.\n\n"
-          "EXT. STREET - NIGHT\n\nRain falls on the porch.\n",
-        );
-        final scene1 = scenes[0];
-        final scene2 = scenes[1];
+    test("restores a breakdown captured before it, then one captured after, tags tombstoned rather "
+        "than deleted and every reference still resolving", () async {
+      // A real screenplay, reconciled into two real scenes — the breakdown restore's own
+      // subtlety (§ the payload's doc comment) is about references staying valid, which only
+      // means something against ids the reconciliation itself minted.
+      final scenes = await saveScreenplayScenes(
+        "INT. HOUSE - DAY\n\nA desk lamp glows. LÉA enters quietly.\n\n"
+        "EXT. STREET - NIGHT\n\nRain falls on the porch.\n",
+      );
+      final scene1 = scenes[0];
+      final scene2 = scenes[1];
 
-        final elementId = (await elementsService.createElement(
-          database: database,
-          name: "Desk lamp",
-          category: OcptElementCategory.prop,
-          sourceKind: OcptElementSourceKind.owned,
-        ))!;
-        final roleId = (await roleIndexService.addRole(
-          database: database,
-          screenplayId: screenplayId,
-          name: "LÉA",
-          kind: OcptRoleKind.silent,
-        ))!;
-        final locationId = (await locationsService.createLocation(
-          database: database,
-          name: "House",
-        ))!;
-        final setId = (await locationsService.createSet(
-          database: database,
-          locationId: locationId,
-          name: "Kitchen",
-        ))!;
+      final elementId = (await elementsService.createElement(
+        database: database,
+        name: "Desk lamp",
+        category: OcptElementCategory.prop,
+        sourceKind: OcptElementSourceKind.owned,
+      ))!;
+      final roleId = (await roleIndexService.addRole(
+        database: database,
+        screenplayId: screenplayId,
+        name: "LÉA",
+        kind: OcptRoleKind.silent,
+      ))!;
+      final locationId = (await locationsService.createLocation(
+        database: database,
+        name: "House",
+      ))!;
+      final setId = (await locationsService.createSet(
+        database: database,
+        locationId: locationId,
+        name: "Kitchen",
+      ))!;
 
-        final elementTagId = (await breakdownService.createTag(
-          database: database,
-          sceneId: scene1.id,
-          startOffset: 0,
-          endOffset: 4,
-          taggedText: "desk",
-          targetKind: OcptBreakdownTargetKind.element,
-          targetId: elementId,
-        ))!;
-        final roleTagId = (await breakdownService.createTag(
-          database: database,
-          sceneId: scene1.id,
-          startOffset: 20,
-          endOffset: 23,
-          taggedText: "LÉA",
-          targetKind: OcptBreakdownTargetKind.role,
-          targetId: roleId,
-        ))!;
-        await breakdownService.updateSceneBreakdown(
-          database: database,
-          sceneId: scene1.id,
-          status: const Value(OcptBreakdownSceneStatus.inProgress),
-          notes: const Value("Check the lamp cable colour"),
-        );
-        final sceneBreakdownId = (await readSceneBreakdown(scene1.id))!.id;
+      final elementTagId = (await breakdownService.createTag(
+        database: database,
+        sceneId: scene1.id,
+        startOffset: 0,
+        endOffset: 4,
+        taggedText: "desk",
+        targetKind: OcptBreakdownTargetKind.element,
+        targetId: elementId,
+      ))!;
+      final roleTagId = (await breakdownService.createTag(
+        database: database,
+        sceneId: scene1.id,
+        startOffset: 20,
+        endOffset: 23,
+        taggedText: "LÉA",
+        targetKind: OcptBreakdownTargetKind.role,
+        targetId: roleId,
+      ))!;
+      await breakdownService.updateSceneBreakdown(
+        database: database,
+        sceneId: scene1.id,
+        status: const Value(OcptBreakdownSceneStatus.inProgress),
+        notes: const Value("Check the lamp cable colour"),
+      );
+      final sceneBreakdownId = (await readSceneBreakdown(scene1.id))!.id;
 
-        final versionA = await createVersion(name: "v1 — First pass");
+      final versionA = await createVersion(name: "v1 — First pass");
 
-        // Diverge from A: a tag is added, another is removed, the scene is marked done, and the
-        // element is secured.
-        final addedTagId = (await breakdownService.createTag(
-          database: database,
-          sceneId: scene2.id,
-          startOffset: 0,
-          endOffset: 4,
-          taggedText: "Rain",
-          targetKind: OcptBreakdownTargetKind.set,
-          targetId: setId,
-        ))!;
-        await breakdownService.deleteTag(database: database, tagId: roleTagId);
-        await breakdownService.updateSceneBreakdown(
-          database: database,
-          sceneId: scene1.id,
-          status: const Value(OcptBreakdownSceneStatus.done),
-          notes: const Value("All set"),
-        );
-        await (database.update(
+      // Diverge from A: a tag is added, another is removed, the scene is marked done, and the
+      // element is secured.
+      final addedTagId = (await breakdownService.createTag(
+        database: database,
+        sceneId: scene2.id,
+        startOffset: 0,
+        endOffset: 4,
+        taggedText: "Rain",
+        targetKind: OcptBreakdownTargetKind.set,
+        targetId: setId,
+      ))!;
+      await breakdownService.deleteTag(database: database, tagId: roleTagId);
+      await breakdownService.updateSceneBreakdown(
+        database: database,
+        sceneId: scene1.id,
+        status: const Value(OcptBreakdownSceneStatus.done),
+        notes: const Value("All set"),
+      );
+      await (database.update(database.ocptElementsTable)
+            ..where((table) => table.id.equals(elementId)))
+          .write(const OcptElementsTableCompanion(status: Value(OcptElementStatus.confirmed)));
+
+      final versionB = await createVersion(name: "v2 — Locked");
+
+      // Cleared so the stamps read below are the restore's own: OcptBreakdownService's writes
+      // above (createTag, updateSceneBreakdown) now stamp on their own account too, and that is
+      // not what this assertion is about.
+      await database.delete(database.ocptRowFieldVersionsTable).go();
+
+      // Restore A: the breakdown must read exactly as it did at that moment.
+      final resultA = await restore(versionA.id);
+      expect(resultA.status, OcptProjectRestoreStatus.ok);
+
+      expect(
+        (await readTag(roleTagId))?.isDeleted,
+        isFalse,
+        reason: "a tag deleted after A must be live again",
+      );
+      final tagAddedAfterA = await readTag(addedTagId);
+      expect(tagAddedAfterA, isNotNull, reason: "the row must still be there, as a tombstone");
+      expect(
+        tagAddedAfterA?.isDeleted,
+        isTrue,
+        reason: "a tag added after A must be tombstoned, never deleted",
+      );
+
+      final scene1AfterRestoringA = await readSceneBreakdown(scene1.id);
+      expect(scene1AfterRestoringA?.status, OcptBreakdownSceneStatus.inProgress);
+      expect(scene1AfterRestoringA?.notes, "Check the lamp cable colour");
+      expect((await readElement(elementId)).status, OcptElementStatus.toFind);
+
+      // A restore must never leave a dangling reference: every live tag's target still resolves
+      // to a live row, whichever of the three catalogues it names.
+      final liveTags = await (database.select(
+        database.ocptBreakdownTagsTable,
+      )..where((table) => table.isDeleted.equals(false))).get();
+      final liveSceneIds = {
+        for (final row in await (database.select(
+          database.ocptScenesTable,
+        )..where((table) => table.isDeleted.equals(false))).get())
+          row.id,
+      };
+      final liveElementIds = {
+        for (final row in await (database.select(
           database.ocptElementsTable,
-        )..where((table) => table.id.equals(elementId))).write(
-          const OcptElementsTableCompanion(status: Value(OcptElementStatus.confirmed)),
-        );
-
-        final versionB = await createVersion(name: "v2 — Locked");
-
-        // Cleared so the stamps read below are the restore's own: OcptBreakdownService's writes
-        // above (createTag, updateSceneBreakdown) now stamp on their own account too, and that is
-        // not what this assertion is about.
-        await database.delete(database.ocptRowFieldVersionsTable).go();
-
-        // Restore A: the breakdown must read exactly as it did at that moment.
-        final resultA = await restore(versionA.id);
-        expect(resultA.status, OcptProjectRestoreStatus.ok);
-
-        expect(
-          (await readTag(roleTagId))?.isDeleted,
-          isFalse,
-          reason: "a tag deleted after A must be live again",
-        );
-        final tagAddedAfterA = await readTag(addedTagId);
-        expect(
-          tagAddedAfterA,
-          isNotNull,
-          reason: "the row must still be there, as a tombstone",
-        );
-        expect(
-          tagAddedAfterA?.isDeleted,
-          isTrue,
-          reason: "a tag added after A must be tombstoned, never deleted",
-        );
-
-        final scene1AfterRestoringA = await readSceneBreakdown(scene1.id);
-        expect(scene1AfterRestoringA?.status, OcptBreakdownSceneStatus.inProgress);
-        expect(scene1AfterRestoringA?.notes, "Check the lamp cable colour");
-        expect((await readElement(elementId)).status, OcptElementStatus.toFind);
-
-        // A restore must never leave a dangling reference: every live tag's target still resolves
-        // to a live row, whichever of the three catalogues it names.
-        final liveTags = await (database.select(
-          database.ocptBreakdownTagsTable,
-        )..where((table) => table.isDeleted.equals(false))).get();
-        final liveSceneIds = {
-          for (final row
-              in await (database.select(
-                database.ocptScenesTable,
-              )..where((table) => table.isDeleted.equals(false))).get())
-            row.id,
-        };
-        final liveElementIds = {
-          for (final row
-              in await (database.select(
-                database.ocptElementsTable,
-              )..where((table) => table.isDeleted.equals(false))).get())
-            row.id,
-        };
-        final liveRoleIds = {
-          for (final row
-              in await (database.select(
-                database.ocptRolesTable,
-              )..where((table) => table.isDeleted.equals(false))).get())
-            row.id,
-        };
-        final liveSetIds = {
-          for (final row
-              in await (database.select(
-                database.ocptSetsTable,
-              )..where((table) => table.isDeleted.equals(false))).get())
-            row.id,
-        };
-        expect(liveTags, isNotEmpty);
-        for (final tag in liveTags) {
-          expect(liveSceneIds, contains(tag.sceneId));
-          switch (tag.targetKind) {
-            case OcptBreakdownTargetKind.element:
-              expect(liveElementIds, contains(tag.elementId));
-            case OcptBreakdownTargetKind.role:
-              expect(liveRoleIds, contains(tag.roleId));
-            case OcptBreakdownTargetKind.set:
-              expect(liveSetIds, contains(tag.setId));
-          }
+        )..where((table) => table.isDeleted.equals(false))).get())
+          row.id,
+      };
+      final liveRoleIds = {
+        for (final row in await (database.select(
+          database.ocptRolesTable,
+        )..where((table) => table.isDeleted.equals(false))).get())
+          row.id,
+      };
+      final liveSetIds = {
+        for (final row in await (database.select(
+          database.ocptSetsTable,
+        )..where((table) => table.isDeleted.equals(false))).get())
+          row.id,
+      };
+      expect(liveTags, isNotEmpty);
+      for (final tag in liveTags) {
+        expect(liveSceneIds, contains(tag.sceneId));
+        switch (tag.targetKind) {
+          case OcptBreakdownTargetKind.element:
+            expect(liveElementIds, contains(tag.elementId));
+          case OcptBreakdownTargetKind.role:
+            expect(liveRoleIds, contains(tag.roleId));
+          case OcptBreakdownTargetKind.set:
+            expect(liveSetIds, contains(tag.setId));
         }
+      }
 
-        // Only the columns the restore actually changed carry a fresh stamp.
-        final stampsAfterA = await readStamps();
-        expect(stampsAfterA["breakdown_tags/$addedTagId/isDeleted"]?.deviceId, deviceId);
-        expect(stampsAfterA["breakdown_tags/$roleTagId/isDeleted"]?.deviceId, deviceId);
-        expect(
-          stampsAfterA.containsKey("breakdown_tags/$elementTagId/taggedText"),
-          isFalse,
-          reason: "a tag the restore left untouched gains no stamp at all",
-        );
-        expect(stampsAfterA["scene_breakdowns/$sceneBreakdownId/status"]?.deviceId, deviceId);
-        expect(stampsAfterA["scene_breakdowns/$sceneBreakdownId/notes"]?.deviceId, deviceId);
-        expect(stampsAfterA.containsKey("scene_breakdowns/$sceneBreakdownId/sceneId"), isFalse);
+      // Only the columns the restore actually changed carry a fresh stamp.
+      final stampsAfterA = await readStamps();
+      expect(stampsAfterA["breakdown_tags/$addedTagId/isDeleted"]?.deviceId, deviceId);
+      expect(stampsAfterA["breakdown_tags/$roleTagId/isDeleted"]?.deviceId, deviceId);
+      expect(
+        stampsAfterA.containsKey("breakdown_tags/$elementTagId/taggedText"),
+        isFalse,
+        reason: "a tag the restore left untouched gains no stamp at all",
+      );
+      expect(stampsAfterA["scene_breakdowns/$sceneBreakdownId/status"]?.deviceId, deviceId);
+      expect(stampsAfterA["scene_breakdowns/$sceneBreakdownId/notes"]?.deviceId, deviceId);
+      expect(stampsAfterA.containsKey("scene_breakdowns/$sceneBreakdownId/sceneId"), isFalse);
 
-        // Restore B afterwards: the round trip works in the other direction too.
-        final resultB = await restore(versionB.id);
-        expect(resultB.status, OcptProjectRestoreStatus.ok);
+      // Restore B afterwards: the round trip works in the other direction too.
+      final resultB = await restore(versionB.id);
+      expect(resultB.status, OcptProjectRestoreStatus.ok);
 
-        expect((await readTag(addedTagId))?.isDeleted, isFalse);
-        expect((await readTag(roleTagId))?.isDeleted, isTrue);
-        final scene1AfterRestoringB = await readSceneBreakdown(scene1.id);
-        expect(scene1AfterRestoringB?.status, OcptBreakdownSceneStatus.done);
-        expect(scene1AfterRestoringB?.notes, "All set");
-        expect((await readElement(elementId)).status, OcptElementStatus.confirmed);
-      },
-    );
+      expect((await readTag(addedTagId))?.isDeleted, isFalse);
+      expect((await readTag(roleTagId))?.isDeleted, isTrue);
+      final scene1AfterRestoringB = await readSceneBreakdown(scene1.id);
+      expect(scene1AfterRestoringB?.status, OcptBreakdownSceneStatus.done);
+      expect(scene1AfterRestoringB?.notes, "All set");
+      expect((await readElement(elementId)).status, OcptElementStatus.confirmed);
+    });
   });
 
   group("renameVersion", () {

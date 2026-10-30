@@ -92,9 +92,9 @@ class OcptLocationSheetAvailabilitiesCard extends StatelessWidget {
 
     return OcptResourcesSheetCard(
       title: tr.resourcesLocationAvailabilityCardTitle,
-      hint: availabilities.isEmpty ? null : tr.resourcesLocationAvailabilityCount(
-        availabilities.length,
-      ),
+      hint: availabilities.isEmpty
+          ? null
+          : tr.resourcesLocationAvailabilityCount(availabilities.length),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -489,10 +489,7 @@ class _OcptAvailabilityRowState extends State<_OcptAvailabilityRow> {
             ],
           ),
           const SizedBox(height: 6),
-          _OcptWeekdaySelector(
-            value: _weekdays,
-            onToggled: isReadOnly ? null : _toggleWeekday,
-          ),
+          _OcptWeekdaySelector(value: _weekdays, onToggled: isReadOnly ? null : _toggleWeekday),
           const SizedBox(height: 6),
           OcptDayPartSlotSelector(value: _slot, onChanged: isReadOnly ? null : _setSlot),
           if (_slot == OcptDayPartSlot.custom) ...[

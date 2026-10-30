@@ -114,7 +114,10 @@ class _SpySyncManager extends OcptSyncManager {
     await database
         .into(database.ocptSyncPairingsTable)
         .insertOnConflictUpdate(
-          OcptSyncPairingsTableCompanion.insert(projectId: projectId, relayBaseUrl: relayBaseUri.toString()),
+          OcptSyncPairingsTableCompanion.insert(
+            projectId: projectId,
+            relayBaseUrl: relayBaseUri.toString(),
+          ),
         );
 
     return OcptRelayInvite(relayBaseUri: relayBaseUri, projectId: projectId, token: 'spy-token');
@@ -139,7 +142,10 @@ class _SpySyncManager extends OcptSyncManager {
     await database
         .into(database.ocptSyncPairingsTable)
         .insertOnConflictUpdate(
-          OcptSyncPairingsTableCompanion.insert(projectId: projectId, relayBaseUrl: relayBaseUri.toString()),
+          OcptSyncPairingsTableCompanion.insert(
+            projectId: projectId,
+            relayBaseUrl: relayBaseUri.toString(),
+          ),
         );
   }
 
@@ -231,31 +237,37 @@ void main() {
     expect(spy.seededProjectId, manager.hostedProjectId);
   });
 
-  test('an already-paired project re-points itself to its own hosted relay, reusing its id', () async {
-    await database
-        .into(database.ocptSyncPairingsTable)
-        .insert(
-          OcptSyncPairingsTableCompanion.insert(
-            projectId: 'existing-project',
-            relayBaseUrl: 'https://prep.example.org/',
-          ),
-        );
+  test(
+    'an already-paired project re-points itself to its own hosted relay, reusing its id',
+    () async {
+      await database
+          .into(database.ocptSyncPairingsTable)
+          .insert(
+            OcptSyncPairingsTableCompanion.insert(
+              projectId: 'existing-project',
+              relayBaseUrl: 'https://prep.example.org/',
+            ),
+          );
 
-    await startHosting();
+      await startHosting();
 
-    expect(spy.didRepoint, isTrue);
-    expect(spy.didPair, isFalse);
-    expect(spy.seededProjectId, 'existing-project');
-    expect(spy.seededRelayBaseUri!.host, 'localhost');
-  });
+      expect(spy.didRepoint, isTrue);
+      expect(spy.didPair, isFalse);
+      expect(spy.seededProjectId, 'existing-project');
+      expect(spy.seededRelayBaseUri!.host, 'localhost');
+    },
+  );
 
-  test('the presence roster is reachable while hosting, once the self-seed has started a session', () async {
-    await startHosting();
+  test(
+    'the presence roster is reachable while hosting, once the self-seed has started a session',
+    () async {
+      await startHosting();
 
-    // The hosting panel reads OcptSyncManager.presenceRoster directly — this only proves the
-    // self-seed actually started a session, which is what makes presence live at all.
-    expect(spy.presenceRoster, isNotNull);
-  });
+      // The hosting panel reads OcptSyncManager.presenceRoster directly — this only proves the
+      // self-seed actually started a session, which is what makes presence live at all.
+      expect(spy.presenceRoster, isNotNull);
+    },
+  );
 
   test('stopHosting ends the self-seeded sync session', () async {
     await startHosting();
@@ -421,7 +433,10 @@ void main() {
       await database
           .into(database.ocptSyncPairingsTable)
           .insert(
-            OcptSyncPairingsTableCompanion.insert(projectId: 'project-1', relayBaseUrl: 'https://prep.example.org/'),
+            OcptSyncPairingsTableCompanion.insert(
+              projectId: 'project-1',
+              relayBaseUrl: 'https://prep.example.org/',
+            ),
           );
 
       upstreamStore = OcptRelayStore(':memory:');
@@ -429,7 +444,11 @@ void main() {
       upstreamHttp = await shelf_io.serve(upstreamServer.handler, 'localhost', 0);
       upstreamBaseUri = Uri.parse('http://localhost:${upstreamHttp.port}');
 
-      invite = OcptRelayInvite(relayBaseUri: upstreamBaseUri, projectId: 'project-1', token: 'token-1');
+      invite = OcptRelayInvite(
+        relayBaseUri: upstreamBaseUri,
+        projectId: 'project-1',
+        token: 'token-1',
+      );
     });
 
     tearDown(() async {
@@ -528,21 +547,28 @@ void main() {
       expect(outcome, isA<OcptReconcileFailed>());
     });
 
-    test('reports a failed outcome when the invite names a different project than the hosted one', () async {
-      await reconcileManager.startHosting(
-        database: database,
-        projectFilePath: projectPath,
-        projectName: 'Les Vagues',
-        appVersion: '0.1.0',
-        deviceId: 'device-1',
-      );
+    test(
+      'reports a failed outcome when the invite names a different project than the hosted one',
+      () async {
+        await reconcileManager.startHosting(
+          database: database,
+          projectFilePath: projectPath,
+          projectName: 'Les Vagues',
+          appVersion: '0.1.0',
+          deviceId: 'device-1',
+        );
 
-      final outcome = await reconcileManager.reconcileWithUpstream(
-        OcptRelayInvite(relayBaseUri: upstreamBaseUri, projectId: 'other-project', token: 'token-1'),
-      );
+        final outcome = await reconcileManager.reconcileWithUpstream(
+          OcptRelayInvite(
+            relayBaseUri: upstreamBaseUri,
+            projectId: 'other-project',
+            token: 'token-1',
+          ),
+        );
 
-      expect(outcome, isA<OcptReconcileFailed>());
-    });
+        expect(outcome, isA<OcptReconcileFailed>());
+      },
+    );
   });
 
   group('rankLanAddresses', () {

@@ -101,7 +101,9 @@ void main() {
       expect(find.text(tr.budgetDashboardFeedCateringTitle), findsNothing);
     });
 
-    testWidgets("every row can be withheld at once, leaving only the section title", (tester) async {
+    testWidgets("every row can be withheld at once, leaving only the section title", (
+      tester,
+    ) async {
       final tr = await _pumpFeedCard(
         tester,
         onBreakdownFeedRequested: null,

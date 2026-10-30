@@ -102,10 +102,7 @@ void main() {
     (tester) async {
       final character = _symbol(symbolId: "sym-1");
 
-      await _pump(
-        tester,
-        _buildGroup(selectedSymbolId: "sym-1", characters: [character]),
-      );
+      await _pump(tester, _buildGroup(selectedSymbolId: "sym-1", characters: [character]));
       final tr = Tr.of(tester.element(find.byType(OcptFloorPlanPlacementsGroup)));
 
       expect(find.text(tr.shotListFloorPlanSelectionNoneHint), findsNothing);
@@ -115,59 +112,53 @@ void main() {
     },
   );
 
-  testWidgets(
-    "the Set section and its own header only show once the sequence holds another set",
-    (tester) async {
-      await _pump(tester, _buildGroup());
-      final tr = Tr.of(tester.element(find.byType(OcptFloorPlanPlacementsGroup)));
+  testWidgets("the Set section and its own header only show once the sequence holds another set", (
+    tester,
+  ) async {
+    await _pump(tester, _buildGroup());
+    final tr = Tr.of(tester.element(find.byType(OcptFloorPlanPlacementsGroup)));
 
-      expect(find.text(tr.shotListFloorPlanSetGroupTitle), findsNothing);
+    expect(find.text(tr.shotListFloorPlanSetGroupTitle), findsNothing);
 
-      await _pump(
-        tester,
-        OcptFloorPlanPlacementsGroup(
-          setName: "Kitchen",
-          selectedSymbolId: null,
-          selectedArrowId: null,
-          cameras: const [],
-          characters: const [],
-          lights: const [],
-          handProps: const [],
-          arrows: const [],
-          otherSets: const [
-            OcptFloorPlanPlacementsOtherSet(setName: "Hallway", cameraCount: 0),
-          ],
-          isReadOnly: false,
-          onSymbolDeleteRequested: (_) {},
-          onArrowDeleteRequested: (_) {},
-          onCameraFovChanged: (_, __) {},
-        ),
-      );
+    await _pump(
+      tester,
+      OcptFloorPlanPlacementsGroup(
+        setName: "Kitchen",
+        selectedSymbolId: null,
+        selectedArrowId: null,
+        cameras: const [],
+        characters: const [],
+        lights: const [],
+        handProps: const [],
+        arrows: const [],
+        otherSets: const [OcptFloorPlanPlacementsOtherSet(setName: "Hallway", cameraCount: 0)],
+        isReadOnly: false,
+        onSymbolDeleteRequested: (_) {},
+        onArrowDeleteRequested: (_) {},
+        onCameraFovChanged: (_, __) {},
+      ),
+    );
 
-      expect(find.text(tr.shotListFloorPlanSetGroupTitle), findsOneWidget);
-    },
-  );
+    expect(find.text(tr.shotListFloorPlanSetGroupTitle), findsOneWidget);
+  });
 
   group("a selected override", () {
-    testWidgets(
-      "shows 'Changed for this sequence' and a Restore action instead of the shot's own "
-      "placement read-out",
-      (tester) async {
-        await _pump(
-          tester,
-          _buildGroup(
-            selectedSymbolId: "override-1",
-            selectedOverrideLevel: OcptFloorPlanOverrideLevel.sequence,
-            onRestoreOverrideRequested: () {},
-          ),
-        );
-        final tr = Tr.of(tester.element(find.byType(OcptFloorPlanPlacementsGroup)));
+    testWidgets("shows 'Changed for this sequence' and a Restore action instead of the shot's own "
+        "placement read-out", (tester) async {
+      await _pump(
+        tester,
+        _buildGroup(
+          selectedSymbolId: "override-1",
+          selectedOverrideLevel: OcptFloorPlanOverrideLevel.sequence,
+          onRestoreOverrideRequested: () {},
+        ),
+      );
+      final tr = Tr.of(tester.element(find.byType(OcptFloorPlanPlacementsGroup)));
 
-        expect(find.text(tr.shotListFloorPlanOverrideChangedForSequenceLabel), findsOneWidget);
-        expect(find.text(tr.shotListFloorPlanRestoreOverrideAction), findsOneWidget);
-        expect(find.text(tr.shotListFloorPlanSelectionNoneHint), findsNothing);
-      },
-    );
+      expect(find.text(tr.shotListFloorPlanOverrideChangedForSequenceLabel), findsOneWidget);
+      expect(find.text(tr.shotListFloorPlanRestoreOverrideAction), findsOneWidget);
+      expect(find.text(tr.shotListFloorPlanSelectionNoneHint), findsNothing);
+    });
 
     testWidgets("the Restore action calls onRestoreOverrideRequested", (tester) async {
       var restoreRequested = false;
@@ -215,24 +206,23 @@ void main() {
   });
 
   group("a selected shot-scope override", () {
-    testWidgets(
-      "shows 'Changed for this shot' and a 'Restore as in the sequence' action",
-      (tester) async {
-        await _pump(
-          tester,
-          _buildGroup(
-            selectedSymbolId: "shot-override-1",
-            selectedOverrideLevel: OcptFloorPlanOverrideLevel.shot,
-            onRestoreOverrideRequested: () {},
-          ),
-        );
-        final tr = Tr.of(tester.element(find.byType(OcptFloorPlanPlacementsGroup)));
+    testWidgets("shows 'Changed for this shot' and a 'Restore as in the sequence' action", (
+      tester,
+    ) async {
+      await _pump(
+        tester,
+        _buildGroup(
+          selectedSymbolId: "shot-override-1",
+          selectedOverrideLevel: OcptFloorPlanOverrideLevel.shot,
+          onRestoreOverrideRequested: () {},
+        ),
+      );
+      final tr = Tr.of(tester.element(find.byType(OcptFloorPlanPlacementsGroup)));
 
-        expect(find.text(tr.shotListFloorPlanOverrideChangedForShotLabel), findsOneWidget);
-        expect(find.text(tr.shotListFloorPlanRestoreShotOverrideAction), findsOneWidget);
-        expect(find.text(tr.shotListFloorPlanOverrideChangedForSequenceLabel), findsNothing);
-        expect(find.text(tr.shotListFloorPlanRestoreOverrideAction), findsNothing);
-      },
-    );
+      expect(find.text(tr.shotListFloorPlanOverrideChangedForShotLabel), findsOneWidget);
+      expect(find.text(tr.shotListFloorPlanRestoreShotOverrideAction), findsOneWidget);
+      expect(find.text(tr.shotListFloorPlanOverrideChangedForSequenceLabel), findsNothing);
+      expect(find.text(tr.shotListFloorPlanRestoreOverrideAction), findsNothing);
+    });
   });
 }

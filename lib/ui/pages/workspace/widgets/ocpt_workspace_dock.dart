@@ -53,10 +53,7 @@ class OcptWorkspaceDock extends StatelessWidget {
   @override
   Widget build(BuildContext context) => SizedBox(
     width: width,
-    child: ColoredBox(
-      color: Theme.of(context).colorScheme.surfaceContainerLow,
-      child: child,
-    ),
+    child: ColoredBox(color: Theme.of(context).colorScheme.surfaceContainerLow, child: child),
   );
 
   /// Clamps [fraction] to the left dock's valid range for a row of [rowWidth]: at least
@@ -110,9 +107,7 @@ class OcptWorkspaceDock extends StatelessWidget {
     final dividerCount = (isLeftDockVisible ? 1 : 0) + (isRightDockVisible ? 1 : 0);
     final availableWidth = (rowWidth - dividerCount * dividerHitWidth).clamp(0.0, double.infinity);
 
-    var leftWidth = isLeftDockVisible
-        ? clampLeftFraction(leftFraction, rowWidth) * rowWidth
-        : 0.0;
+    var leftWidth = isLeftDockVisible ? clampLeftFraction(leftFraction, rowWidth) * rowWidth : 0.0;
     var rightWidth = isRightDockVisible
         ? clampRightFraction(rightFraction, rowWidth) * rowWidth
         : 0.0;

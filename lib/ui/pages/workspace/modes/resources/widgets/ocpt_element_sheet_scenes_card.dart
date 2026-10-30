@@ -223,10 +223,7 @@ class _OcptSceneLinkRowState extends State<_OcptSceneLinkRow> {
       return;
     }
     _isDirty = false;
-    widget.onUpdated?.call(
-      quantity: _quantityController.text,
-      notes: _notesController.text,
-    );
+    widget.onUpdated?.call(quantity: _quantityController.text, notes: _notesController.text);
   }
 
   @override

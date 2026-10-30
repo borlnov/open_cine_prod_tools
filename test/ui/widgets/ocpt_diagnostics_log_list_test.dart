@@ -158,10 +158,16 @@ void main() {
 
       final tr = Tr.of(tester.element(find.byType(OcptDiagnosticsLogList)));
       final copyButton = tester.widget<IconButton>(
-        find.ancestor(of: find.byTooltip(tr.diagnosticsCopyTooltip), matching: find.byType(IconButton)),
+        find.ancestor(
+          of: find.byTooltip(tr.diagnosticsCopyTooltip),
+          matching: find.byType(IconButton),
+        ),
       );
       final clearButton = tester.widget<IconButton>(
-        find.ancestor(of: find.byTooltip(tr.diagnosticsClearTooltip), matching: find.byType(IconButton)),
+        find.ancestor(
+          of: find.byTooltip(tr.diagnosticsClearTooltip),
+          matching: find.byType(IconButton),
+        ),
       );
 
       expect(copyButton.onPressed, isNull);

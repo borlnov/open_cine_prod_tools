@@ -179,8 +179,9 @@ class _OcptBudgetShareFormBodyState extends State<OcptBudgetShareFormBody> {
     _personId = existing?.personId;
 
     _labelController = TextEditingController(text: existing?.label ?? "")..addListener(_report);
-    _shareController = TextEditingController(text: ocptPermillePercentTextOf(existing?.sharePermille ?? 0))
-      ..addListener(_report);
+    _shareController = TextEditingController(
+      text: ocptPermillePercentTextOf(existing?.sharePermille ?? 0),
+    )..addListener(_report);
     _reinvestController = TextEditingController(
       text: ocptPermillePercentTextOf(existing?.reinvestPermille ?? 0),
     )..addListener(_report);

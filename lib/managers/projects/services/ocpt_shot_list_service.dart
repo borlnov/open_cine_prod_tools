@@ -119,10 +119,9 @@ class OcptShotListService {
 
     final coverageRows = shotIds.isEmpty
         ? const <OcptShotCoverageRow>[]
-        : await (database.select(database.ocptShotCoveragesTable)..where(
-                (table) => table.shotId.isIn(shotIds) & table.isDeleted.not(),
-              ))
-              .get();
+        : await (database.select(
+            database.ocptShotCoveragesTable,
+          )..where((table) => table.shotId.isIn(shotIds) & table.isDeleted.not())).get();
 
     final roleIds = {for (final row in characterRows) row.roleId};
     // A tombstoned role's rows don't surface here at all (ADR 0030, decision 6): the query is
@@ -130,9 +129,9 @@ class OcptShotListService {
     // it — the same way every other read in this app lets a tombstone filter drop it.
     final liveRoleRows = roleIds.isEmpty
         ? const <OcptRoleRow>[]
-        : await (database.select(database.ocptRolesTable)
-                ..where((table) => table.id.isIn(roleIds.toList()) & table.isDeleted.not()))
-              .get();
+        : await (database.select(
+            database.ocptRolesTable,
+          )..where((table) => table.id.isIn(roleIds.toList()) & table.isDeleted.not())).get();
     final nameByRoleId = {for (final row in liveRoleRows) row.id: row.name};
 
     final charactersByShotId = <String, List<String>>{};
@@ -233,9 +232,7 @@ class OcptShotListService {
       displaySceneNumber: displayNumber,
       charStart: sceneRow.charStart,
       charEnd: sceneRow.charEnd,
-      shots: [
-        for (var i = 0; i < shotRows.length; i++) buildShot(shotRows[i], displayNumber, i),
-      ],
+      shots: [for (var i = 0; i < shotRows.length; i++) buildShot(shotRows[i], displayNumber, i)],
     );
   }
 
@@ -398,11 +395,9 @@ class OcptShotListService {
     await database.transaction(() async {
       final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
 
-      final coverageRows =
-          await (database.select(
-                database.ocptShotCoveragesTable,
-              )..where((table) => table.shotId.equals(shotId) & table.isDeleted.not()))
-              .get();
+      final coverageRows = await (database.select(
+        database.ocptShotCoveragesTable,
+      )..where((table) => table.shotId.equals(shotId) & table.isDeleted.not())).get();
       for (final row in coverageRows) {
         await OcptRowStampService.writeAndStamp(
           database: database,
@@ -472,12 +467,11 @@ class OcptShotListService {
 
     await database.transaction(() async {
       final shot = await _getShotRow(database: database, shotId: shotId);
-      final others =
-          (await _shotRowsOfGroup(
-            database: database,
-            screenplayId: shot.screenplayId,
-            sceneId: shot.sceneId,
-          ))..removeWhere((row) => row.id == shotId);
+      final others = (await _shotRowsOfGroup(
+        database: database,
+        screenplayId: shot.screenplayId,
+        sceneId: shot.sceneId,
+      ))..removeWhere((row) => row.id == shotId);
 
       final clampedPosition = newPosition < 0
           ? 0
@@ -659,11 +653,9 @@ class OcptShotListService {
       );
 
       for (final shot in shotsOfScene) {
-        final coverageRows =
-            await (database.select(
-                  database.ocptShotCoveragesTable,
-                )..where((table) => table.shotId.equals(shot.id) & table.isDeleted.not()))
-                .get();
+        final coverageRows = await (database.select(
+          database.ocptShotCoveragesTable,
+        )..where((table) => table.shotId.equals(shot.id) & table.isDeleted.not())).get();
         for (final coverageRow in coverageRows) {
           await OcptRowStampService.writeAndStamp(
             database: database,
@@ -719,11 +711,9 @@ class OcptShotListService {
       return const [];
     }
 
-    final coverageRows =
-        await (database.select(
-              database.ocptShotCoveragesTable,
-            )..where((table) => table.shotId.isIn(shotIds) & table.isDeleted.not()))
-            .get();
+    final coverageRows = await (database.select(
+      database.ocptShotCoveragesTable,
+    )..where((table) => table.shotId.isIn(shotIds) & table.isDeleted.not())).get();
     for (final row in coverageRows) {
       await OcptRowStampService.writeAndStamp(
         database: database,
@@ -735,11 +725,9 @@ class OcptShotListService {
       );
     }
 
-    final characterRows =
-        await (database.select(
-              database.ocptShotCharactersTable,
-            )..where((table) => table.shotId.isIn(shotIds) & table.isDeleted.not()))
-            .get();
+    final characterRows = await (database.select(
+      database.ocptShotCharactersTable,
+    )..where((table) => table.shotId.isIn(shotIds) & table.isDeleted.not())).get();
     for (final row in characterRows) {
       await OcptRowStampService.writeAndStamp(
         database: database,
@@ -764,11 +752,9 @@ class OcptShotListService {
       );
     }
 
-    final shotRows =
-        await (database.select(
-              database.ocptShotsTable,
-            )..where((table) => table.id.isIn(shotIds) & table.isDeleted.not()))
-            .get();
+    final shotRows = await (database.select(
+      database.ocptShotsTable,
+    )..where((table) => table.id.isIn(shotIds) & table.isDeleted.not())).get();
     for (final row in shotRows) {
       await OcptRowStampService.writeAndStamp(
         database: database,
@@ -821,7 +807,11 @@ class OcptShotListService {
   Future<List<String>> distinctLenses({
     required OcptProjectDatabase database,
     required String screenplayId,
-  }) => _distinctValuesOf(database: database, screenplayId: screenplayId, column: (table) => table.lens);
+  }) => _distinctValuesOf(
+    database: database,
+    screenplayId: screenplayId,
+    column: (table) => table.lens,
+  );
 
   /// Every distinct, non-empty value of `shots.recordingFormat` across screenplay [screenplayId],
   /// for the field's project-wide suggestion list.
@@ -839,8 +829,11 @@ class OcptShotListService {
   Future<List<String>> distinctSounds({
     required OcptProjectDatabase database,
     required String screenplayId,
-  }) =>
-      _distinctValuesOf(database: database, screenplayId: screenplayId, column: (table) => table.sound);
+  }) => _distinctValuesOf(
+    database: database,
+    screenplayId: screenplayId,
+    column: (table) => table.sound,
+  );
 
   /// Collects the distinct, non-empty values of a single free-text column of `shots` across
   /// screenplay [screenplayId], sorted alphabetically.
@@ -866,9 +859,9 @@ class OcptShotListService {
   Future<OcptShotRow> _getShotRow({
     required OcptProjectDatabase database,
     required String shotId,
-  }) => (database.select(database.ocptShotsTable)
-        ..where((table) => table.id.equals(shotId) & table.isDeleted.not()))
-      .getSingle();
+  }) => (database.select(
+    database.ocptShotsTable,
+  )..where((table) => table.id.equals(shotId) & table.isDeleted.not())).getSingle();
 
   /// Reads back the shot row [shotId], or null if it doesn't exist or has been tombstoned: the
   /// non-throwing sibling of [_getShotRow], for a write that is a silent no-op on a stale id
@@ -876,9 +869,9 @@ class OcptShotListService {
   Future<OcptShotRow?> _liveShotRowOrNull({
     required OcptProjectDatabase database,
     required String shotId,
-  }) => (database.select(database.ocptShotsTable)
-        ..where((table) => table.id.equals(shotId) & table.isDeleted.not()))
-      .getSingleOrNull();
+  }) => (database.select(
+    database.ocptShotsTable,
+  )..where((table) => table.id.equals(shotId) & table.isDeleted.not())).getSingleOrNull();
 
   /// Every live shot row of screenplay [screenplayId] belonging to the group [sceneId] identifies
   /// (a real scene, or the orphan group when [sceneId] is null), ordered by `sortKey`.
@@ -906,11 +899,9 @@ class OcptShotListService {
     required OcptProjectDatabase database,
     required String screenplayId,
   }) async {
-    final rows =
-        await (database.select(database.ocptShotsTable)..where(
-              (table) => table.screenplayId.equals(screenplayId) & table.isDeleted.not(),
-            ))
-            .get();
+    final rows = await (database.select(
+      database.ocptShotsTable,
+    )..where((table) => table.screenplayId.equals(screenplayId) & table.isDeleted.not())).get();
     return rows.map((row) => row.id).toList(growable: false);
   }
 
@@ -918,10 +909,11 @@ class OcptShotListService {
   Future<List<OcptShotCharacterRow>> _characterRowsOfShot({
     required OcptProjectDatabase database,
     required String shotId,
-  }) => (database.select(database.ocptShotCharactersTable)
-        ..where((table) => table.shotId.equals(shotId) & table.isDeleted.not())
-        ..orderBy([(table) => OrderingTerm.asc(table.sortKey)]))
-      .get();
+  }) =>
+      (database.select(database.ocptShotCharactersTable)
+            ..where((table) => table.shotId.equals(shotId) & table.isDeleted.not())
+            ..orderBy([(table) => OrderingTerm.asc(table.sortKey)]))
+          .get();
 
   /// The `{shotId, roleId}` row, **tombstoned or not**, or null if that pair was never attached at
   /// all: the one read that has to see through tombstones, since the primary key it looks up is
@@ -930,10 +922,9 @@ class OcptShotListService {
     required OcptProjectDatabase database,
     required String shotId,
     required String roleId,
-  }) => (database.select(database.ocptShotCharactersTable)..where(
-        (table) => table.shotId.equals(shotId) & table.roleId.equals(roleId),
-      ))
-      .getSingleOrNull();
+  }) => (database.select(
+    database.ocptShotCharactersTable,
+  )..where((table) => table.shotId.equals(shotId) & table.roleId.equals(roleId))).getSingleOrNull();
 
   /// Whether role [roleId] names a live row of [database] — the guard [attachCharacter] takes
   /// against being handed a role id that doesn't (or no longer) exist, since a roleId-native caller

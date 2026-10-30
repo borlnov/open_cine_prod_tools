@@ -94,18 +94,14 @@ void main() {
   });
 
   testWidgets('a project holding several episodes draws the badge with its count', (tester) async {
-    await tester.pumpWidget(
-      _buildCard('/home/user/projects/glass-paths.ocpt', episodeCount: 3),
-    );
+    await tester.pumpWidget(_buildCard('/home/user/projects/glass-paths.ocpt', episodeCount: 3));
 
     final tr = Tr.of(tester.element(find.byType(OcptProjectCard)));
     expect(find.text(tr.homeProjectEpisodeCount(3)), findsOneWidget);
   });
 
   testWidgets('a single-episode project draws no badge', (tester) async {
-    await tester.pumpWidget(
-      _buildCard('/home/user/projects/glass-paths.ocpt', episodeCount: 1),
-    );
+    await tester.pumpWidget(_buildCard('/home/user/projects/glass-paths.ocpt', episodeCount: 1));
 
     final tr = Tr.of(tester.element(find.byType(OcptProjectCard)));
     expect(find.text(tr.homeProjectEpisodeCount(1)), findsNothing);
@@ -121,39 +117,38 @@ void main() {
     expect(find.text(tr.homeProjectEpisodeCount(2)), findsNothing);
   });
 
-  testWidgets(
-    "the overflow menu offers Export… and Partager…, above Remove from list",
-    (tester) async {
-      await tester.pumpWidget(_buildCard('/home/user/projects/glass-paths.ocpt'));
+  testWidgets("the overflow menu offers Export… and Partager…, above Remove from list", (
+    tester,
+  ) async {
+    await tester.pumpWidget(_buildCard('/home/user/projects/glass-paths.ocpt'));
 
-      await tester.tap(find.byType(PopupMenuButton<void>));
-      await tester.pumpAndSettle();
+    await tester.tap(find.byType(PopupMenuButton<void>));
+    await tester.pumpAndSettle();
 
-      final tr = Tr.of(tester.element(find.byType(OcptProjectCard)));
-      expect(find.text(tr.homeExportProjectAction), findsOneWidget);
-      expect(find.text(tr.homeShareProjectAction), findsOneWidget);
-      expect(find.text(tr.homeRemoveFromListAction), findsOneWidget);
+    final tr = Tr.of(tester.element(find.byType(OcptProjectCard)));
+    expect(find.text(tr.homeExportProjectAction), findsOneWidget);
+    expect(find.text(tr.homeShareProjectAction), findsOneWidget);
+    expect(find.text(tr.homeRemoveFromListAction), findsOneWidget);
 
-      final exportItem = tester.widget<PopupMenuItem<void>>(
-        find.ancestor(
-          of: find.text(tr.homeExportProjectAction),
-          matching: find.byType(PopupMenuItem<void>),
-        ),
-      );
-      expect(exportItem.enabled, isTrue);
+    final exportItem = tester.widget<PopupMenuItem<void>>(
+      find.ancestor(
+        of: find.text(tr.homeExportProjectAction),
+        matching: find.byType(PopupMenuItem<void>),
+      ),
+    );
+    expect(exportItem.enabled, isTrue);
 
-      final shareItem = tester.widget<PopupMenuItem<void>>(
-        find.ancestor(
-          of: find.text(tr.homeShareProjectAction),
-          matching: find.byType(PopupMenuItem<void>),
-        ),
-      );
-      expect(shareItem.enabled, isTrue);
+    final shareItem = tester.widget<PopupMenuItem<void>>(
+      find.ancestor(
+        of: find.text(tr.homeShareProjectAction),
+        matching: find.byType(PopupMenuItem<void>),
+      ),
+    );
+    expect(shareItem.enabled, isTrue);
 
-      await tester.tap(find.text(tr.homeExportProjectAction));
-      await tester.pumpAndSettle();
-    },
-  );
+    await tester.tap(find.text(tr.homeExportProjectAction));
+    await tester.pumpAndSettle();
+  });
 
   testWidgets("tapping Partager / Synchroniser… calls back for a project whose file exists", (
     tester,
@@ -175,9 +170,7 @@ void main() {
     expect(shared, isTrue);
   });
 
-  testWidgets("Partager / Synchroniser… is inert for a project whose file is gone", (
-    tester,
-  ) async {
+  testWidgets("Partager / Synchroniser… is inert for a project whose file is gone", (tester) async {
     var shared = false;
     await tester.pumpWidget(
       _buildCard(
@@ -252,10 +245,7 @@ void main() {
   });
 
   group("the incompatible-format warning badge", () {
-    for (final verdict in [
-      OcptProjectFileVerdict.newer,
-      OcptProjectFileVerdict.foreignDevBuild,
-    ]) {
+    for (final verdict in [OcptProjectFileVerdict.newer, OcptProjectFileVerdict.foreignDevBuild]) {
       testWidgets("is drawn for a $verdict entry", (tester) async {
         await tester.pumpWidget(
           _buildCard('/home/user/projects/glass-paths.ocpt', verdict: verdict),

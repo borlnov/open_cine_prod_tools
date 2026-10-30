@@ -42,7 +42,10 @@ void main() {
     });
 
     test('a differing sequence number makes two stored changesets unequal', () {
-      final other = OcptStoredChangeset(sequenceNumber: const OcptSequenceNumber(10), envelope: stored.envelope);
+      final other = OcptStoredChangeset(
+        sequenceNumber: const OcptSequenceNumber(10),
+        envelope: stored.envelope,
+      );
 
       expect(stored, isNot(other));
     });
@@ -51,10 +54,7 @@ void main() {
       final json = stored.toJson();
       (json['envelope'] as Map<String, dynamic>).remove('originDeviceId');
 
-      expect(
-        () => OcptStoredChangeset.fromJson(json),
-        throwsA(isA<OcptSyncMalformedDataError>()),
-      );
+      expect(() => OcptStoredChangeset.fromJson(json), throwsA(isA<OcptSyncMalformedDataError>()));
     });
   });
 }

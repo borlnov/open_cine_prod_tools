@@ -85,24 +85,27 @@ OcptBudgetResource _buildResource({
 );
 
 /// Builds an entry crediting [resourceId], everything else neutral.
-OcptBudgetEntry _buildCreditEntry({required String id, required String resourceId, required int creditCents}) =>
-    OcptBudgetEntry(
-      id: id,
-      date: DateTime(2026),
-      label: "",
-      posteId: null,
-      debitCents: 0,
-      creditCents: creditCents,
-      isTaxInclusive: true,
-      vatRateBasisPoints: null,
-      voucherNumber: "J-001",
-      sortKey: "a",
-      resourceId: resourceId,
-      revenueId: null,
-      shareId: null,
-      commitmentId: null,
-      personId: null,
-    );
+OcptBudgetEntry _buildCreditEntry({
+  required String id,
+  required String resourceId,
+  required int creditCents,
+}) => OcptBudgetEntry(
+  id: id,
+  date: DateTime(2026),
+  label: "",
+  posteId: null,
+  debitCents: 0,
+  creditCents: creditCents,
+  isTaxInclusive: true,
+  vatRateBasisPoints: null,
+  voucherNumber: "J-001",
+  sortKey: "a",
+  resourceId: resourceId,
+  revenueId: null,
+  shareId: null,
+  commitmentId: null,
+  personId: null,
+);
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -169,25 +172,31 @@ void main() {
       expect(_pageCount(bytes), 1);
     });
 
-    test("an in-kind resource with an entry naming it prints differently from one with none", () async {
-      final uncollected = buildSnapshot(
-        resources: [_buildResource(id: "res-1", groupKind: OcptBudgetResourceGroupKind.inKind)],
-      );
-      final collected = buildSnapshot(
-        resources: [_buildResource(id: "res-1", groupKind: OcptBudgetResourceGroupKind.inKind)],
-        entries: [_buildCreditEntry(id: "entry-1", resourceId: "res-1", creditCents: 50000)],
-      );
+    test(
+      "an in-kind resource with an entry naming it prints differently from one with none",
+      () async {
+        final uncollected = buildSnapshot(
+          resources: [_buildResource(id: "res-1", groupKind: OcptBudgetResourceGroupKind.inKind)],
+        );
+        final collected = buildSnapshot(
+          resources: [_buildResource(id: "res-1", groupKind: OcptBudgetResourceGroupKind.inKind)],
+          entries: [_buildCreditEntry(id: "entry-1", resourceId: "res-1", creditCents: 50000)],
+        );
 
-      Future<Uint8List> generateFor(OcptBudgetSnapshot snapshot) => service.generate(
-        snapshot: snapshot,
-        pageSetup: pageSetup,
-        labels: _labels,
-        projectName: "My Movie",
-        includeTitlePage: false,
-      );
+        Future<Uint8List> generateFor(OcptBudgetSnapshot snapshot) => service.generate(
+          snapshot: snapshot,
+          pageSetup: pageSetup,
+          labels: _labels,
+          projectName: "My Movie",
+          includeTitlePage: false,
+        );
 
-      expect(_contentStreams(await generateFor(uncollected)), isNot(_contentStreams(await generateFor(collected))));
-    });
+        expect(
+          _contentStreams(await generateFor(uncollected)),
+          isNot(_contentStreams(await generateFor(collected))),
+        );
+      },
+    );
 
     test("a quote with no line at all prints a different verdict from a covered one", () async {
       final noQuote = buildSnapshot(
@@ -209,7 +218,11 @@ void main() {
                 label: "Line",
                 quantityMilli: 1000,
                 unit: "day",
-                unitPrice: OcptMoney(amountCents: 10000, isTaxInclusive: true, vatRateBasisPoints: null),
+                unitPrice: OcptMoney(
+                  amountCents: 10000,
+                  isTaxInclusive: true,
+                  vatRateBasisPoints: null,
+                ),
                 elementId: null,
                 inKindResourceId: null,
                 provisionKey: null,
@@ -231,7 +244,10 @@ void main() {
         includeTitlePage: false,
       );
 
-      expect(_contentStreams(await generateFor(noQuote)), isNot(_contentStreams(await generateFor(covered))));
+      expect(
+        _contentStreams(await generateFor(noQuote)),
+        isNot(_contentStreams(await generateFor(covered))),
+      );
     });
   });
 

@@ -89,7 +89,9 @@ class _OcptBreakdownSetPickerPopoverState extends State<OcptBreakdownSetPickerPo
   final LayerLink _link = LayerLink();
 
   /// The field's own text, both the existing-sets filter and the name a creation would use.
-  late final TextEditingController _textController = TextEditingController(text: widget.defaultName);
+  late final TextEditingController _textController = TextEditingController(
+    text: widget.defaultName,
+  );
 
   /// The field's own focus, requested as soon as the popover appears.
   final FocusNode _fieldFocusNode = FocusNode();
@@ -136,10 +138,7 @@ class _OcptBreakdownSetPickerPopoverState extends State<OcptBreakdownSetPickerPo
   Widget _buildOverlayChild(BuildContext overlayContext) => Stack(
     children: [
       Positioned.fill(
-        child: GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTap: _controller.hide,
-        ),
+        child: GestureDetector(behavior: HitTestBehavior.opaque, onTap: _controller.hide),
       ),
       CompositedTransformFollower(
         link: _link,
@@ -261,15 +260,10 @@ class _OcptBreakdownSetPickerPopoverState extends State<OcptBreakdownSetPickerPo
             },
           ),
         for (final set in others)
-          _buildRow(
-            context,
-            theme,
-            ocptBreakdownSetLabel(set, widget.locationNameById),
-            () {
-              widget.onSetLinked(set.id);
-              _controller.hide();
-            },
-          ),
+          _buildRow(context, theme, ocptBreakdownSetLabel(set, widget.locationNameById), () {
+            widget.onSetLinked(set.id);
+            _controller.hide();
+          }),
       ],
     );
   }
@@ -307,17 +301,18 @@ class _OcptBreakdownSetPickerPopoverState extends State<OcptBreakdownSetPickerPo
   }
 
   /// One tappable row, shared by the existing-sets list and the create-in section.
-  Widget _buildRow(BuildContext context, ThemeData theme, String label, VoidCallback onTap) => InkWell(
-    onTap: onTap,
-    mouseCursor: ocptClickableCursor,
-    child: Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-      child: Text(
-        label,
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-        style: theme.textTheme.bodySmall,
-      ),
-    ),
-  );
+  Widget _buildRow(BuildContext context, ThemeData theme, String label, VoidCallback onTap) =>
+      InkWell(
+        onTap: onTap,
+        mouseCursor: ocptClickableCursor,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+          child: Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: theme.textTheme.bodySmall,
+          ),
+        ),
+      );
 }

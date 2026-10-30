@@ -64,10 +64,7 @@ void main() {
     test("a tax-inclusive commitment reads back to the cent with no rate anywhere", () {
       final commitment = buildCommitment(amountCents: 1250);
 
-      expect(
-        ocptBudgetCommitmentCashCentsOf(commitment, projectVatRateBasisPoints: null),
-        1250,
-      );
+      expect(ocptBudgetCommitmentCashCentsOf(commitment, projectVatRateBasisPoints: null), 1250);
     });
 
     test("a commitment typed excluding tax at 20 % converts exactly", () {
@@ -77,19 +74,13 @@ void main() {
         vatRateBasisPoints: 2000,
       );
 
-      expect(
-        ocptBudgetCommitmentCashCentsOf(commitment, projectVatRateBasisPoints: null),
-        1200,
-      );
+      expect(ocptBudgetCommitmentCashCentsOf(commitment, projectVatRateBasisPoints: null), 1200);
     });
 
     test("a commitment typed excluding tax with no rate anywhere reads null", () {
       final commitment = buildCommitment(amountCents: 1000, isTaxInclusive: false);
 
-      expect(
-        ocptBudgetCommitmentCashCentsOf(commitment, projectVatRateBasisPoints: null),
-        isNull,
-      );
+      expect(ocptBudgetCommitmentCashCentsOf(commitment, projectVatRateBasisPoints: null), isNull);
     });
   });
 
@@ -103,7 +94,11 @@ void main() {
         buildEntry(id: "e4"),
       ];
 
-      final paid = ocptBudgetCommitmentPaidCentsOf(commitment, entries, projectVatRateBasisPoints: null);
+      final paid = ocptBudgetCommitmentPaidCentsOf(
+        commitment,
+        entries,
+        projectVatRateBasisPoints: null,
+      );
 
       expect(paid.amountCents, 700);
       expect(paid.coveredLineCount, 2);
@@ -124,7 +119,11 @@ void main() {
       final commitment = buildCommitment(id: "c1", amountCents: 1000);
 
       expect(
-        ocptBudgetCommitmentOutstandingCentsOf(commitment, const [], projectVatRateBasisPoints: null),
+        ocptBudgetCommitmentOutstandingCentsOf(
+          commitment,
+          const [],
+          projectVatRateBasisPoints: null,
+        ),
         1000,
       );
       expect(
@@ -141,7 +140,11 @@ void main() {
       ];
 
       expect(
-        ocptBudgetCommitmentOutstandingCentsOf(commitment, entries, projectVatRateBasisPoints: null),
+        ocptBudgetCommitmentOutstandingCentsOf(
+          commitment,
+          entries,
+          projectVatRateBasisPoints: null,
+        ),
         0,
       );
       expect(
@@ -155,7 +158,11 @@ void main() {
       final entries = [buildEntry(id: "e1", commitmentId: "c1", debitCents: 400)];
 
       expect(
-        ocptBudgetCommitmentOutstandingCentsOf(commitment, entries, projectVatRateBasisPoints: null),
+        ocptBudgetCommitmentOutstandingCentsOf(
+          commitment,
+          entries,
+          projectVatRateBasisPoints: null,
+        ),
         600,
       );
       expect(
@@ -164,26 +171,37 @@ void main() {
       );
     });
 
-    test("an overpayment reads settled, its own outstanding figure negative rather than clamped", () {
-      final commitment = buildCommitment(id: "c1", amountCents: 1000);
-      final entries = [buildEntry(id: "e1", commitmentId: "c1", debitCents: 1200)];
+    test(
+      "an overpayment reads settled, its own outstanding figure negative rather than clamped",
+      () {
+        final commitment = buildCommitment(id: "c1", amountCents: 1000);
+        final entries = [buildEntry(id: "e1", commitmentId: "c1", debitCents: 1200)];
 
-      expect(
-        ocptBudgetCommitmentOutstandingCentsOf(commitment, entries, projectVatRateBasisPoints: null),
-        -200,
-      );
-      expect(
-        ocptBudgetCommitmentIsSettledOf(commitment, entries, projectVatRateBasisPoints: null),
-        isTrue,
-      );
-    });
+        expect(
+          ocptBudgetCommitmentOutstandingCentsOf(
+            commitment,
+            entries,
+            projectVatRateBasisPoints: null,
+          ),
+          -200,
+        );
+        expect(
+          ocptBudgetCommitmentIsSettledOf(commitment, entries, projectVatRateBasisPoints: null),
+          isTrue,
+        );
+      },
+    );
 
     test("an unreadable cash figure reads as unsettled, never as settled", () {
       final commitment = buildCommitment(id: "c1", amountCents: 1000, isTaxInclusive: false);
       final entries = [buildEntry(id: "e1", commitmentId: "c1", debitCents: 5000)];
 
       expect(
-        ocptBudgetCommitmentOutstandingCentsOf(commitment, entries, projectVatRateBasisPoints: null),
+        ocptBudgetCommitmentOutstandingCentsOf(
+          commitment,
+          entries,
+          projectVatRateBasisPoints: null,
+        ),
         isNull,
       );
       expect(
@@ -243,27 +261,30 @@ void main() {
       expect(byPoste["poste-1"]!.isComplete, isFalse);
     });
 
-    test("a part-paid commitment contributes only what it still owes, never its own full amount", () {
-      // The exact reproduction: a 4 000,00 € commitment, 1 200,00 € of it already paid by one
-      // entry naming both the poste and the commitment. Committed must read the outstanding
-      // 2 800,00 €, and committed + paid must equal the ordered 4 000,00 € exactly — never more,
-      // which is what summing the full cash figure used to get wrong.
-      final commitments = [buildCommitment(id: "c1", amountCents: 400000)];
-      final entries = [
-        buildEntry(id: "e1", posteId: "poste-1", commitmentId: "c1", debitCents: 120000),
-      ];
+    test(
+      "a part-paid commitment contributes only what it still owes, never its own full amount",
+      () {
+        // The exact reproduction: a 4 000,00 € commitment, 1 200,00 € of it already paid by one
+        // entry naming both the poste and the commitment. Committed must read the outstanding
+        // 2 800,00 €, and committed + paid must equal the ordered 4 000,00 € exactly — never more,
+        // which is what summing the full cash figure used to get wrong.
+        final commitments = [buildCommitment(id: "c1", amountCents: 400000)];
+        final entries = [
+          buildEntry(id: "e1", posteId: "poste-1", commitmentId: "c1", debitCents: 120000),
+        ];
 
-      final committedByPoste = ocptBudgetCommittedCentsByPosteId(
-        commitments,
-        entries: entries,
-        projectVatRateBasisPoints: null,
-      );
-      final paidByPoste = ocptBudgetPaidCentsByPosteId(entries, projectVatRateBasisPoints: null);
+        final committedByPoste = ocptBudgetCommittedCentsByPosteId(
+          commitments,
+          entries: entries,
+          projectVatRateBasisPoints: null,
+        );
+        final paidByPoste = ocptBudgetPaidCentsByPosteId(entries, projectVatRateBasisPoints: null);
 
-      expect(committedByPoste["poste-1"]!.amountCents, 280000);
-      final paidCents = paidByPoste["poste-1"]?.amountCents ?? 0;
-      expect(committedByPoste["poste-1"]!.amountCents + paidCents, 400000);
-    });
+        expect(committedByPoste["poste-1"]!.amountCents, 280000);
+        final paidCents = paidByPoste["poste-1"]?.amountCents ?? 0;
+        expect(committedByPoste["poste-1"]!.amountCents + paidCents, 400000);
+      },
+    );
   });
 
   group("ocptBudgetProjectionOf", () {

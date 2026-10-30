@@ -216,10 +216,7 @@ class OcptFloorPlanPlacementsGroup extends StatelessWidget {
     final theme = Theme.of(context);
     return Padding(
       padding: const EdgeInsets.only(bottom: 4),
-      child: Text(
-        title,
-        style: theme.textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w700),
-      ),
+      child: Text(title, style: theme.textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w700)),
     );
   }
 
@@ -301,7 +298,9 @@ class OcptFloorPlanPlacementsGroup extends StatelessWidget {
             padding: const EdgeInsets.only(bottom: 8),
             child: _buildRow(
               context,
-              label: arrow.label.isEmpty ? tr.shotListFloorPlanPlacementsArrowRowLabel : arrow.label,
+              label: arrow.label.isEmpty
+                  ? tr.shotListFloorPlanPlacementsArrowRowLabel
+                  : arrow.label,
               onDeleteRequested: onArrowDeleteRequested == null
                   ? null
                   : () => onArrowDeleteRequested!(arrow.arrowId),

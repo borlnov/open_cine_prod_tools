@@ -106,13 +106,17 @@ void main() {
           OcptShotListSnapshot.build(
             screenplayId: "screenplay-1",
             sequences: [
-              OcptOrphanShotSequence(shots: [_buildShot(id: "shot-1", code: "?/1")]),
+              OcptOrphanShotSequence(
+                shots: [_buildShot(id: "shot-1", code: "?/1")],
+              ),
             ],
           ),
           OcptShotListSnapshot.build(
             screenplayId: "screenplay-2",
             sequences: [
-              OcptOrphanShotSequence(shots: [_buildShot(id: "shot-2", code: "?/1")]),
+              OcptOrphanShotSequence(
+                shots: [_buildShot(id: "shot-2", code: "?/1")],
+              ),
             ],
           ),
         ],
@@ -157,76 +161,68 @@ void main() {
   });
 
   group("convocationsOfDay", () {
-    test(
-      "a hold's own block counts as shooting time, giving the role it names a band tracking it "
-      "rather than the whole slot",
-      () {
-        const slot = OcptShootingSlot(
-          id: "slot-1",
-          shootingDayId: "day-1",
-          label: "",
-          locationId: null,
-          setId: null,
-          anchorEdge: OcptShootingSlotAnchorEdge.start,
-          anchorMinute: 480,
-          anchorSlotId: null,
-          notes: "",
-          crew: [],
-          cast: [
-            OcptShootingSlotCastMember(
-              id: "cast-1",
-              slotId: "slot-1",
-              roleId: "role-1",
-              notes: "",
-            ),
-          ],
-          guests: [],
-        );
-        final hold = _buildBlock(
-          id: "block-hold",
-          slotId: "slot-1",
-          kind: OcptShootingBlockKind.hold,
-          sceneId: "scene-1",
-          durationMinutes: 60,
-        );
-        final meal = _buildBlock(
-          id: "block-meal",
-          slotId: "slot-1",
-          kind: OcptShootingBlockKind.meal,
-          durationMinutes: 60,
-        );
-        final day = OcptShootingDay(
-          id: "day-1",
-          date: DateTime(2026),
-          dayNumber: 1,
-          status: OcptShootingDayStatus.planned,
-          crewNote: "",
-          weatherNote: "",
-          notes: "",
-        );
-        final snapshot = OcptScheduleSnapshot.build(
-          days: [day],
-          slotsByDayId: {
-            "day-1": [slot],
-          },
-          blocksByDayId: {
-            "day-1": [hold, meal],
-          },
-          eventsByDayId: const {},
-        );
+    test("a hold's own block counts as shooting time, giving the role it names a band tracking it "
+        "rather than the whole slot", () {
+      const slot = OcptShootingSlot(
+        id: "slot-1",
+        shootingDayId: "day-1",
+        label: "",
+        locationId: null,
+        setId: null,
+        anchorEdge: OcptShootingSlotAnchorEdge.start,
+        anchorMinute: 480,
+        anchorSlotId: null,
+        notes: "",
+        crew: [],
+        cast: [
+          OcptShootingSlotCastMember(id: "cast-1", slotId: "slot-1", roleId: "role-1", notes: ""),
+        ],
+        guests: [],
+      );
+      final hold = _buildBlock(
+        id: "block-hold",
+        slotId: "slot-1",
+        kind: OcptShootingBlockKind.hold,
+        sceneId: "scene-1",
+        durationMinutes: 60,
+      );
+      final meal = _buildBlock(
+        id: "block-meal",
+        slotId: "slot-1",
+        kind: OcptShootingBlockKind.meal,
+        durationMinutes: 60,
+      );
+      final day = OcptShootingDay(
+        id: "day-1",
+        date: DateTime(2026),
+        dayNumber: 1,
+        status: OcptShootingDayStatus.planned,
+        crewNote: "",
+        weatherNote: "",
+        notes: "",
+      );
+      final snapshot = OcptScheduleSnapshot.build(
+        days: [day],
+        slotsByDayId: {
+          "day-1": [slot],
+        },
+        blocksByDayId: {
+          "day-1": [hold, meal],
+        },
+        eventsByDayId: const {},
+      );
 
-        final state = OcptScheduleState.init().copyWith(snapshot: snapshot);
+      final state = OcptScheduleState.init().copyWith(snapshot: snapshot);
 
-        final convocation = state.convocationsOfDay("day-1").single;
+      final convocation = state.convocationsOfDay("day-1").single;
 
-        // The slot's own band (both blocks) runs 08:00 → 10:00; the hold's own block, which is a
-        // shooting block under ADR 0018, only runs 08:00 → 09:00 — the meal that follows it never
-        // opens or closes a band.
-        expect(convocation.roleId, "role-1");
-        expect(convocation.patStartMinute, 480);
-        expect(convocation.patEndMinute, 540);
-      },
-    );
+      // The slot's own band (both blocks) runs 08:00 → 10:00; the hold's own block, which is a
+      // shooting block under ADR 0018, only runs 08:00 → 09:00 — the meal that follows it never
+      // opens or closes a band.
+      expect(convocation.roleId, "role-1");
+      expect(convocation.patStartMinute, 480);
+      expect(convocation.patEndMinute, 540);
+    });
 
     test("a slot carrying only preparation gives its role no PAT band at all", () {
       const slot = OcptShootingSlot(
@@ -241,12 +237,7 @@ void main() {
         notes: "",
         crew: [],
         cast: [
-          OcptShootingSlotCastMember(
-            id: "cast-1",
-            slotId: "slot-1",
-            roleId: "role-1",
-            notes: "",
-          ),
+          OcptShootingSlotCastMember(id: "cast-1", slotId: "slot-1", roleId: "role-1", notes: ""),
         ],
         guests: [],
       );
@@ -432,7 +423,9 @@ void main() {
 
       final state = OcptScheduleState.init().copyWith(snapshot: snapshot);
 
-      expect(state.placedDayNumbersByShotId, {"shot-1": [3]});
+      expect(state.placedDayNumbersByShotId, {
+        "shot-1": [3],
+      });
     });
 
     test("a shot placed on two different days reports both, ascending", () {
@@ -450,7 +443,9 @@ void main() {
 
       final state = OcptScheduleState.init().copyWith(snapshot: snapshot);
 
-      expect(state.placedDayNumbersByShotId, {"shot-1": [3, 5]});
+      expect(state.placedDayNumbersByShotId, {
+        "shot-1": [3, 5],
+      });
     });
 
     test("a shot with no live block placing it has no entry at all", () {

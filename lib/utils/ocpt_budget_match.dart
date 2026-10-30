@@ -423,14 +423,19 @@ List<OcptBudgetMatchSuggestion> ocptBudgetMatchSuggestionsOf({
   final worthOffering = candidates.where((candidate) => candidate.isWorthOffering).toList()
     ..sort(_ocptBudgetMatchRank);
 
-  return worthOffering.take(_ocptBudgetMatchSuggestionCap).map((candidate) => candidate.suggestion).toList();
+  return worthOffering
+      .take(_ocptBudgetMatchSuggestionCap)
+      .map((candidate) => candidate.suggestion)
+      .toList();
 }
 
 /// [ocptBudgetMatchSuggestionsOf]'s own comparator — see that function's own doc comment for the
 /// three keys this reads, in order, and for why a missing date sorts after every present one rather
 /// than comparing as infinitely distant.
 int _ocptBudgetMatchRank(_OcptBudgetMatchCandidate a, _OcptBudgetMatchCandidate b) {
-  final amountRank = (a.suggestion.matchesAmount ? 0 : 1).compareTo(b.suggestion.matchesAmount ? 0 : 1);
+  final amountRank = (a.suggestion.matchesAmount ? 0 : 1).compareTo(
+    b.suggestion.matchesAmount ? 0 : 1,
+  );
   if (amountRank != 0) {
     return amountRank;
   }

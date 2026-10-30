@@ -120,10 +120,7 @@ class OcptLocationSheetSetsCard extends StatelessWidget {
                 fontStyle: FontStyle.italic,
               ),
             ),
-          for (final set in sets) ...[
-            _buildSetRow(context, tr, set),
-            const SizedBox(height: 10),
-          ],
+          for (final set in sets) ...[_buildSetRow(context, tr, set), const SizedBox(height: 10)],
           if (onSetAdded != null)
             OutlinedButton(onPressed: onSetAdded, child: Text(tr.resourcesAddSetAction)),
         ],
@@ -151,19 +148,13 @@ class OcptLocationSheetSetsCard extends StatelessWidget {
             children: [
               SizedBox(
                 width: _codeFieldWidth,
-                child: OcptResourcesCodeReadOut(
-                  label: tr.resourcesSetCodeLabel,
-                  code: set.code,
-                ),
+                child: OcptResourcesCodeReadOut(label: tr.resourcesSetCodeLabel, code: set.code),
               ),
               const SizedBox(width: 10),
               Expanded(child: _buildSetField(set, OcptSetField.name, tr.resourcesSetNameLabel)),
               if (onSetLocationChanged != null && otherLocations.isNotEmpty) ...[
                 const SizedBox(width: 6),
-                Padding(
-                  padding: const EdgeInsets.only(top: 14),
-                  child: _buildMoveButton(tr, set),
-                ),
+                Padding(padding: const EdgeInsets.only(top: 14), child: _buildMoveButton(tr, set)),
               ],
               if (onSetRemoved != null) ...[
                 const SizedBox(width: 6),
@@ -343,5 +334,4 @@ class OcptLocationSheetSetsCard extends StatelessWidget {
       ),
     );
   }
-
 }

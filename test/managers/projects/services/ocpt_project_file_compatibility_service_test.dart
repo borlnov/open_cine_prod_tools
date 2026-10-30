@@ -56,10 +56,10 @@ void main() {
           ["Les Vagues", appVersionAtCreation, migratedByAppVersion],
         );
       } else {
-        database.execute(
-          "INSERT INTO project_info (name, app_version_at_creation) VALUES (?, ?)",
-          ["Les Vagues", appVersionAtCreation],
-        );
+        database.execute("INSERT INTO project_info (name, app_version_at_creation) VALUES (?, ?)", [
+          "Les Vagues",
+          appVersionAtCreation,
+        ]);
       }
     } else {
       database.execute("CREATE TABLE notes (line TEXT)");
@@ -176,27 +176,24 @@ void main() {
       );
     });
 
-    test(
-      "refuses a file at this build's own format written by a pre-release when this build is "
-      "stable",
-      () {
-        final path = writeDatabase(
-          "movie.ocpt",
-          userVersion: appSchemaVersion,
-          migratedByAppVersion: "0.2.0-alpha.1",
-        );
+    test("refuses a file at this build's own format written by a pre-release when this build is "
+        "stable", () {
+      final path = writeDatabase(
+        "movie.ocpt",
+        userVersion: appSchemaVersion,
+        migratedByAppVersion: "0.2.0-alpha.1",
+      );
 
-        final compatibility = service.probe(
-          filePath: path,
-          appSchemaVersion: appSchemaVersion,
-          appVersion: appVersion,
-        );
+      final compatibility = service.probe(
+        filePath: path,
+        appSchemaVersion: appSchemaVersion,
+        appVersion: appVersion,
+      );
 
-        expect(compatibility.verdict, OcptProjectFileVerdict.foreignDevBuild);
-        expect(compatibility.migratedByAppVersion, "0.2.0-alpha.1");
-        expect(compatibility.isRunningBuildPreRelease, isFalse);
-      },
-    );
+      expect(compatibility.verdict, OcptProjectFileVerdict.foreignDevBuild);
+      expect(compatibility.migratedByAppVersion, "0.2.0-alpha.1");
+      expect(compatibility.isRunningBuildPreRelease, isFalse);
+    });
 
     test("asks for a migration on an older file, and says where the copy goes", () {
       final path = writeDatabase("movie.ocpt", userVersion: 18, appVersionAtCreation: "0.1.0");
@@ -361,7 +358,8 @@ void main() {
       expect(
         File(path).readAsBytesSync(),
         originalBytes,
-        reason: "the copy is taken because the original is about to change, and taking it must "
+        reason:
+            "the copy is taken because the original is about to change, and taking it must "
             "not be what changes it",
       );
 

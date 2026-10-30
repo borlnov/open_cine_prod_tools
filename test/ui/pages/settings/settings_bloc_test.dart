@@ -183,13 +183,16 @@ void main() {
     return bloc.stream.firstWhere(predicate).timeout(const Duration(seconds: 5));
   }
 
-  test("carries the injected app version instead of resolving PackageInfo.fromPlatform()", () async {
-    final bloc = OcptSettingsBloc(appVersion: "9.9.9");
+  test(
+    "carries the injected app version instead of resolving PackageInfo.fromPlatform()",
+    () async {
+      final bloc = OcptSettingsBloc(appVersion: "9.9.9");
 
-    expect(bloc.state.appVersion, "9.9.9");
+      expect(bloc.state.appVersion, "9.9.9");
 
-    await bloc.close();
-  });
+      await bloc.close();
+    },
+  );
 
   test("dispatching AskToUpdateBrightnessEvent updates state.brightness", () async {
     final bloc = OcptSettingsBloc(appVersion: "1.0.0");
@@ -252,9 +255,7 @@ void main() {
   test("picking a first weekday stores it and shows it", () async {
     final bloc = OcptSettingsBloc(appVersion: "1.0.0");
 
-    bloc.add(
-      const OcptSettingsFirstWeekdayChangedEvent(firstWeekday: OcptFirstWeekday.sunday),
-    );
+    bloc.add(const OcptSettingsFirstWeekdayChangedEvent(firstWeekday: OcptFirstWeekday.sunday));
     final state = await waitForState(
       bloc,
       (state) => state.firstWeekday == OcptFirstWeekday.sunday,

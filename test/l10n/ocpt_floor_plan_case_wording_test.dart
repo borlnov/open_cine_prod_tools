@@ -28,30 +28,28 @@ final RegExp _caseWord = RegExp(r'\bcases?\b', caseSensitive: false);
 final RegExp _porteWord = RegExp(r'\bportés?\b', caseSensitive: false);
 
 void main() {
-  test(
-    'no floor-plan key name or English string says "case" — the model is a Set',
-    () {
-      // The floor plan's own room used to be called a "case", renamed to "Set" in the store; this
-      // pins the same rename in the ARB, which a later chrome pass missed for a handful of
-      // strings.
-      final arb = jsonDecode(File(_englishArbPath).readAsStringSync()) as Map<String, dynamic>;
+  test('no floor-plan key name or English string says "case" — the model is a Set', () {
+    // The floor plan's own room used to be called a "case", renamed to "Set" in the store; this
+    // pins the same rename in the ARB, which a later chrome pass missed for a handful of
+    // strings.
+    final arb = jsonDecode(File(_englishArbPath).readAsStringSync()) as Map<String, dynamic>;
 
-      final offenders = [
-        for (final entry in arb.entries)
-          if (_isFloorPlanEntry(entry.key))
-            if (_caseWord.hasMatch(entry.key) ||
-                (entry.value is String && _caseWord.hasMatch(entry.value as String)))
-              '${entry.key}: ${entry.value}',
-      ];
+    final offenders = [
+      for (final entry in arb.entries)
+        if (_isFloorPlanEntry(entry.key))
+          if (_caseWord.hasMatch(entry.key) ||
+              (entry.value is String && _caseWord.hasMatch(entry.value as String)))
+            '${entry.key}: ${entry.value}',
+    ];
 
-      expect(
-        offenders,
-        isEmpty,
-        reason: 'these floor-plan ARB entries still say "case" (or "cases") — the floor plan '
-            'model is a Set, never a case',
-      );
-    },
-  );
+    expect(
+      offenders,
+      isEmpty,
+      reason:
+          'these floor-plan ARB entries still say "case" (or "cases") — the floor plan '
+          'model is a Set, never a case',
+    );
+  });
 
   test('no French floor-plan string says « case » or « portés »', () {
     final arb = jsonDecode(File(_frenchArbPath).readAsStringSync()) as Map<String, dynamic>;

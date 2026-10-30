@@ -1046,7 +1046,6 @@ class OcptProjectVersionCodec {
   /// from a JSON object, from payload format 4. See [_underlayXMKey].
   static const _underlayRotationDegKey = "underlayRotationDeg";
 
-
   /// This is the key used to stringify or parse a `floor_plan_symbols.layer` column from a JSON
   /// object, from payload format 4 — its own key rather than a reuse of [_kindKey], for the same
   /// reason [_targetKindKey] has its own: a symbol's `layer` describes which of the floor plan's two
@@ -1203,22 +1202,14 @@ class OcptProjectVersionCodec {
     ],
     _budgetRevenuesKey: [for (final row in payload.budgetRevenues) _budgetRevenueToJson(row)],
     _budgetSharesKey: [for (final row in payload.budgetShares) _budgetShareToJson(row)],
-    _budgetAllowancesKey: [
-      for (final row in payload.budgetAllowances) _budgetAllowanceToJson(row),
-    ],
-    _storyboardPanelsKey: [
-      for (final row in payload.storyboardPanels) _storyboardPanelToJson(row),
-    ],
+    _budgetAllowancesKey: [for (final row in payload.budgetAllowances) _budgetAllowanceToJson(row)],
+    _storyboardPanelsKey: [for (final row in payload.storyboardPanels) _storyboardPanelToJson(row)],
     _storyboardAnnotationsKey: [
       for (final row in payload.storyboardAnnotations) _storyboardAnnotationToJson(row),
     ],
     _floorPlanSetsKey: [for (final row in payload.floorPlanSets) _floorPlanSetToJson(row)],
-    _floorPlanSymbolsKey: [
-      for (final row in payload.floorPlanSymbols) _floorPlanSymbolToJson(row),
-    ],
-    _floorPlanArrowsKey: [
-      for (final row in payload.floorPlanArrows) _floorPlanArrowToJson(row),
-    ],
+    _floorPlanSymbolsKey: [for (final row in payload.floorPlanSymbols) _floorPlanSymbolToJson(row)],
+    _floorPlanArrowsKey: [for (final row in payload.floorPlanArrows) _floorPlanArrowToJson(row)],
     _projectDictionaryWordsKey: [
       for (final row in payload.projectDictionaryWords) _projectDictionaryWordToJson(row),
     ],
@@ -1671,9 +1662,7 @@ class OcptProjectVersionCodec {
           _personUnavailabilityFromJson(row),
       ],
       roles: [for (final row in _rows(json, _rolesKey)) _roleFromJson(row)],
-      roleEpisodes: [
-        for (final row in _rows(json, _roleEpisodesKey)) _roleEpisodeFromJson(row),
-      ],
+      roleEpisodes: [for (final row in _rows(json, _roleEpisodesKey)) _roleEpisodeFromJson(row)],
       locations: [for (final row in _rows(json, _locationsKey)) _locationFromJson(row)],
       locationAvailabilities: [
         for (final row in _rows(json, _locationAvailabilitiesKey))
@@ -1719,9 +1708,7 @@ class OcptProjectVersionCodec {
       ],
       budgetPostes: [for (final row in _rows(json, _budgetPostesKey)) _budgetPosteFromJson(row)],
       budgetLines: [for (final row in _rows(json, _budgetLinesKey)) _budgetLineFromJson(row)],
-      budgetEntries: [
-        for (final row in _rows(json, _budgetEntriesKey)) _budgetEntryFromJson(row),
-      ],
+      budgetEntries: [for (final row in _rows(json, _budgetEntriesKey)) _budgetEntryFromJson(row)],
       budgetCommitments: [
         for (final row in _rows(json, _budgetCommitmentsKey)) _budgetCommitmentFromJson(row),
       ],
@@ -3024,16 +3011,15 @@ class OcptProjectVersionCodec {
   };
 
   /// Parses one `shooting_block_candidates` row.
-  static OcptShootingBlockCandidateRow _shootingBlockCandidateFromJson(
-    Map<String, dynamic> json,
-  ) => OcptShootingBlockCandidateRow(
-    id: _string(json, _idKey),
-    blockId: _string(json, _blockIdKey),
-    roleCandidateId: _string(json, _roleCandidateIdKey),
-    sortKey: _string(json, _sortKeyKey),
-    notes: _string(json, _notesKey),
-    isDeleted: _bool(json, _isDeletedKey),
-  );
+  static OcptShootingBlockCandidateRow _shootingBlockCandidateFromJson(Map<String, dynamic> json) =>
+      OcptShootingBlockCandidateRow(
+        id: _string(json, _idKey),
+        blockId: _string(json, _blockIdKey),
+        roleCandidateId: _string(json, _roleCandidateIdKey),
+        sortKey: _string(json, _sortKeyKey),
+        notes: _string(json, _notesKey),
+        isDeleted: _bool(json, _isDeletedKey),
+      );
 
   /// Serializes one `shooting_slot_guests` row.
   static Map<String, dynamic> _shootingSlotGuestToJson(OcptShootingSlotGuestRow row) => {

@@ -92,7 +92,8 @@ class _StubPlatformManager extends PlatformManager {
 /// as a silent no-op, exactly as a cancelled save dialog is on desktop.
 class _RecordingShareService extends OcptShareService {
   /// Class constructor
-  _RecordingShareService({required Directory directory, required this.answer}) : _directory = directory;
+  _RecordingShareService({required Directory directory, required this.answer})
+    : _directory = directory;
 
   /// The directory [temporaryDirectory] resolves to.
   final Directory _directory;
@@ -280,78 +281,75 @@ void main() {
     expect(File(packagePath).existsSync(), isFalse);
   });
 
-  test("answering that question writes the package, and the notice counts what stayed behind", () async {
-    await addAsset(path: writeReferencedFile("headshot.jpg"), label: "Headshot");
-    await addAsset(path: p.join(tempDir.path, "gone.jpg"), label: "Town hall permit");
-
-    final saveLocationService = _RecordingSaveLocationService(answer: packagePath);
-    final bloc = await buildLoadedBloc(saveLocationService);
-
-    bloc.add(const OcptProjectPackageExportRequestedEvent(fileTypeLabel: "Project package"));
-    await waitForState(bloc, (state) => state.projectPackagePendingExport != null);
-
-    bloc.add(const OcptProjectPackageMissingFilesAskDismissedEvent());
-    bloc.add(const OcptProjectPackageExportConfirmedEvent(fileTypeLabel: "Project package"));
-
-    final state = await waitForState(bloc, (state) => state.projectPackageNotice != null);
-
-    expect(state.projectPackagePendingExport, isNull);
-    expect(state.projectPackageNotice?.kind, OcptProjectPackageNoticeKind.exportSucceeded);
-    expect(state.projectPackageNotice?.skippedAssetCount, 1);
-    expect(File(packagePath).existsSync(), isTrue);
-  });
-
   test(
-    "a named target is packaged even while no project is open at all",
+    "answering that question writes the package, and the notice counts what stayed behind",
     () async {
-      final movieFilePath = p.join(tempDir.path, "movie.ocpt");
       await addAsset(path: writeReferencedFile("headshot.jpg"), label: "Headshot");
-      await projectsManager.closeCurrentProject();
+      await addAsset(path: p.join(tempDir.path, "gone.jpg"), label: "Town hall permit");
 
       final saveLocationService = _RecordingSaveLocationService(answer: packagePath);
       final bloc = await buildLoadedBloc(saveLocationService);
 
-      bloc.add(
-        OcptProjectPackageExportRequestedEvent(
-          fileTypeLabel: "Project package",
-          target: OcptProjectPackageTarget(filePath: movieFilePath, name: "My Movie"),
-        ),
-      );
+      bloc.add(const OcptProjectPackageExportRequestedEvent(fileTypeLabel: "Project package"));
+      await waitForState(bloc, (state) => state.projectPackagePendingExport != null);
+
+      bloc.add(const OcptProjectPackageMissingFilesAskDismissedEvent());
+      bloc.add(const OcptProjectPackageExportConfirmedEvent(fileTypeLabel: "Project package"));
 
       final state = await waitForState(bloc, (state) => state.projectPackageNotice != null);
 
       expect(state.projectPackagePendingExport, isNull);
       expect(state.projectPackageNotice?.kind, OcptProjectPackageNoticeKind.exportSucceeded);
-      expect(File(packagePath).existsSync(), isTrue);
-      expect(saveLocationService.lastSuggestedFileName, "My Movie.ocptz");
-    },
-  );
-
-  test(
-    "the read-only preview refusal does not apply to a named target",
-    () async {
-      final movieFilePath = p.join(tempDir.path, "movie.ocpt");
-      await addAsset(path: writeReferencedFile("headshot.jpg"), label: "Headshot");
-      final version = await projectsManager.createProjectVersion(name: "v1", note: "");
-      await projectsManager.previewVersion(version!.id);
-      expect(projectsManager.currentProject!.isReadOnly, isTrue);
-
-      final saveLocationService = _RecordingSaveLocationService(answer: packagePath);
-      final bloc = await buildLoadedBloc(saveLocationService);
-
-      bloc.add(
-        OcptProjectPackageExportRequestedEvent(
-          fileTypeLabel: "Project package",
-          target: OcptProjectPackageTarget(filePath: movieFilePath, name: "My Movie"),
-        ),
-      );
-
-      final state = await waitForState(bloc, (state) => state.projectPackageNotice != null);
-
-      expect(state.projectPackageNotice?.kind, OcptProjectPackageNoticeKind.exportSucceeded);
+      expect(state.projectPackageNotice?.skippedAssetCount, 1);
       expect(File(packagePath).existsSync(), isTrue);
     },
   );
+
+  test("a named target is packaged even while no project is open at all", () async {
+    final movieFilePath = p.join(tempDir.path, "movie.ocpt");
+    await addAsset(path: writeReferencedFile("headshot.jpg"), label: "Headshot");
+    await projectsManager.closeCurrentProject();
+
+    final saveLocationService = _RecordingSaveLocationService(answer: packagePath);
+    final bloc = await buildLoadedBloc(saveLocationService);
+
+    bloc.add(
+      OcptProjectPackageExportRequestedEvent(
+        fileTypeLabel: "Project package",
+        target: OcptProjectPackageTarget(filePath: movieFilePath, name: "My Movie"),
+      ),
+    );
+
+    final state = await waitForState(bloc, (state) => state.projectPackageNotice != null);
+
+    expect(state.projectPackagePendingExport, isNull);
+    expect(state.projectPackageNotice?.kind, OcptProjectPackageNoticeKind.exportSucceeded);
+    expect(File(packagePath).existsSync(), isTrue);
+    expect(saveLocationService.lastSuggestedFileName, "My Movie.ocptz");
+  });
+
+  test("the read-only preview refusal does not apply to a named target", () async {
+    final movieFilePath = p.join(tempDir.path, "movie.ocpt");
+    await addAsset(path: writeReferencedFile("headshot.jpg"), label: "Headshot");
+    final version = await projectsManager.createProjectVersion(name: "v1", note: "");
+    await projectsManager.previewVersion(version!.id);
+    expect(projectsManager.currentProject!.isReadOnly, isTrue);
+
+    final saveLocationService = _RecordingSaveLocationService(answer: packagePath);
+    final bloc = await buildLoadedBloc(saveLocationService);
+
+    bloc.add(
+      OcptProjectPackageExportRequestedEvent(
+        fileTypeLabel: "Project package",
+        target: OcptProjectPackageTarget(filePath: movieFilePath, name: "My Movie"),
+      ),
+    );
+
+    final state = await waitForState(bloc, (state) => state.projectPackageNotice != null);
+
+    expect(state.projectPackageNotice?.kind, OcptProjectPackageNoticeKind.exportSucceeded);
+    expect(File(packagePath).existsSync(), isTrue);
+  });
 
   test("a cancelled save dialog writes nothing and says nothing", () async {
     await addAsset(path: writeReferencedFile("headshot.jpg"), label: "Headshot");
@@ -372,34 +370,31 @@ void main() {
   });
 
   group("on mobile", () {
-    test(
-      "a successful export writes into the temporary directory and shares it",
-      () async {
-        await addAsset(path: writeReferencedFile("headshot.jpg"), label: "Headshot");
+    test("a successful export writes into the temporary directory and shares it", () async {
+      await addAsset(path: writeReferencedFile("headshot.jpg"), label: "Headshot");
 
-        final saveLocationService = _RecordingSaveLocationService(answer: packagePath);
-        final shareService = _RecordingShareService(directory: tempDir, answer: true);
-        final bloc = await buildLoadedBloc(
-          saveLocationService,
-          platformManager: _StubPlatformManager(isMobile: true),
-          shareService: shareService,
-        );
+      final saveLocationService = _RecordingSaveLocationService(answer: packagePath);
+      final shareService = _RecordingShareService(directory: tempDir, answer: true);
+      final bloc = await buildLoadedBloc(
+        saveLocationService,
+        platformManager: _StubPlatformManager(isMobile: true),
+        shareService: shareService,
+      );
 
-        bloc.add(const OcptProjectPackageExportRequestedEvent(fileTypeLabel: "Project package"));
+      bloc.add(const OcptProjectPackageExportRequestedEvent(fileTypeLabel: "Project package"));
 
-        final state = await waitForState(bloc, (state) => state.projectPackageNotice != null);
+      final state = await waitForState(bloc, (state) => state.projectPackageNotice != null);
 
-        // The native save dialog is never shown on mobile.
-        expect(saveLocationService.askCount, 0);
-        expect(shareService.shareCount, 1);
-        expect(shareService.lastPaths, hasLength(1));
-        expect(p.basename(shareService.lastPaths.single), "My Movie.ocptz");
-        expect(File(shareService.lastPaths.single).existsSync(), isTrue);
-        expect(state.projectPackagePendingExport, isNull);
-        expect(state.projectPackageNotice?.kind, OcptProjectPackageNoticeKind.exportShared);
-        expect(state.projectPackageNotice?.path, isNull);
-      },
-    );
+      // The native save dialog is never shown on mobile.
+      expect(saveLocationService.askCount, 0);
+      expect(shareService.shareCount, 1);
+      expect(shareService.lastPaths, hasLength(1));
+      expect(p.basename(shareService.lastPaths.single), "My Movie.ocptz");
+      expect(File(shareService.lastPaths.single).existsSync(), isTrue);
+      expect(state.projectPackagePendingExport, isNull);
+      expect(state.projectPackageNotice?.kind, OcptProjectPackageNoticeKind.exportShared);
+      expect(state.projectPackageNotice?.path, isNull);
+    });
 
     test("a dismissed share sheet writes nothing to report and raises no notice", () async {
       await addAsset(path: writeReferencedFile("headshot.jpg"), label: "Headshot");

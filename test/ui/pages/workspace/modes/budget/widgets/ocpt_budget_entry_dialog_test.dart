@@ -371,19 +371,16 @@ void main() {
       expect(find.text(tr.budgetEntryDialogShareFieldLabel), findsOneWidget);
     });
 
-    testWidgets(
-      "a person alone draws Personne",
-      (tester) async {
-        final tr = await pumpDialog(
-          tester,
-          existing: _existingEntry(personId: "p1", debitCents: 5000),
-          people: [_person(id: "p1", firstName: "Alex")],
-        );
+    testWidgets("a person alone draws Personne", (tester) async {
+      final tr = await pumpDialog(
+        tester,
+        existing: _existingEntry(personId: "p1", debitCents: 5000),
+        people: [_person(id: "p1", firstName: "Alex")],
+      );
 
-        expect(find.text(tr.budgetEntryDialogPersonFieldLabel), findsOneWidget);
-        expect(find.text("Alex"), findsOneWidget);
-      },
-    );
+      expect(find.text(tr.budgetEntryDialogPersonFieldLabel), findsOneWidget);
+      expect(find.text("Alex"), findsOneWidget);
+    });
 
     testWidgets("naming nothing at all reads as other, and draws the direction choice", (
       tester,
@@ -397,19 +394,14 @@ void main() {
   });
 
   group("saving", () {
-    testWidgets("pops with the fields typed, including the retyped voucher number", (
-      tester,
-    ) async {
+    testWidgets("pops with the fields typed, including the retyped voucher number", (tester) async {
       await pumpDialog(
         tester,
         existing: _existingEntry(posteId: "poste-1", debitCents: 5000, voucherNumber: "J-001"),
         postes: [_poste(id: "poste-1", label: "Camera")],
       );
 
-      await tester.enterText(
-        find.widgetWithText(TextFormField, "J-001"),
-        "J-002",
-      );
+      await tester.enterText(find.widgetWithText(TextFormField, "J-001"), "J-002");
       await tester.tap(find.byKey(const Key("ocptBudgetEntryWizardSaveButton")));
       await tester.pumpAndSettle();
 
@@ -459,10 +451,7 @@ void main() {
 
   group("the receipt", () {
     testWidgets("shows the existing voucher and offers Replace", (tester) async {
-      final tr = await pumpDialog(
-        tester,
-        existingReceipt: _receipt(path: "/tmp/invoice.pdf"),
-      );
+      final tr = await pumpDialog(tester, existingReceipt: _receipt(path: "/tmp/invoice.pdf"));
 
       expect(find.text(tr.budgetEntryDialogReceiptReplaceAction), findsOneWidget);
       expect(find.text(tr.budgetEntryDialogReceiptEmptyHint), findsNothing);
@@ -477,7 +466,10 @@ void main() {
 
     testWidgets("attaching a fresh file carries its path through Enregistrer", (tester) async {
       await _registerFileSelector("/tmp/fresh-receipt.pdf");
-      await pumpDialog(tester, postes: [_poste(id: "poste-1", label: "Camera")]);
+      await pumpDialog(
+        tester,
+        postes: [_poste(id: "poste-1", label: "Camera")],
+      );
 
       await tester.tap(find.byType(OutlinedButton));
       await tester.pumpAndSettle();

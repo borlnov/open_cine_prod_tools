@@ -190,18 +190,13 @@ class FountainDialogueGroup extends FountainBlock {
   List<Object?> get props => [character, children, isDualDialogue];
 
   @override
-  String toString() =>
-      'FountainDialogueGroup(${character.name}, ${children.length} lines)';
+  String toString() => 'FountainDialogueGroup(${character.name}, ${children.length} lines)';
 }
 
 /// A transition, for example `CUT TO:`.
 class FountainTransition extends FountainBlock {
   /// Creates a [FountainTransition].
-  const FountainTransition({
-    required super.sourceRange,
-    required this.text,
-    required this.forced,
-  });
+  const FountainTransition({required super.sourceRange, required this.text, required this.forced});
 
   /// The transition text, without its forcing `>` marker.
   final String text;
@@ -253,11 +248,7 @@ class FountainCenteredText extends FountainBlock {
 /// they are not part of the printed screenplay.
 class FountainSection extends FountainBlock {
   /// Creates a [FountainSection].
-  const FountainSection({
-    required super.sourceRange,
-    required this.level,
-    required this.text,
-  });
+  const FountainSection({required super.sourceRange, required this.level, required this.text});
 
   /// The section's nesting level, from 1 (`#`) to 6 (`######`).
   final int level;

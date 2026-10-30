@@ -154,8 +154,10 @@ mixin MixinOcptProjectVersionsBloc<S extends MixinOcptProjectVersionsState<S>> o
     Emitter<S> emitter,
   ) => _serialized(() async {
     if (state.isPreviewingVersion) {
-      appLogger().w("A project version can't be created while another one is being previewed: the "
-          "capture would record the working copy rather than what is on screen");
+      appLogger().w(
+        "A project version can't be created while another one is being previewed: the "
+        "capture would record the working copy rather than what is on screen",
+      );
       return;
     }
 
@@ -164,8 +166,10 @@ mixin MixinOcptProjectVersionsBloc<S extends MixinOcptProjectVersionsState<S>> o
     try {
       await projectsManager.createProjectVersion(name: event.name, note: event.note);
     } catch (error) {
-      appLogger().e("A problem occurred when tried to create the project version "
-          "'${event.name}': $error");
+      appLogger().e(
+        "A problem occurred when tried to create the project version "
+        "'${event.name}': $error",
+      );
       await _emitVersions(emitter, notice: OcptProjectVersionNoticeKind.creationFailed);
       return;
     }
@@ -207,8 +211,10 @@ mixin MixinOcptProjectVersionsBloc<S extends MixinOcptProjectVersionsState<S>> o
     try {
       await projectsManager.deleteProjectVersion(event.versionId);
     } catch (error) {
-      appLogger().e("A problem occurred when tried to delete the project version "
-          "${event.versionId}: $error");
+      appLogger().e(
+        "A problem occurred when tried to delete the project version "
+        "${event.versionId}: $error",
+      );
       await _emitVersions(emitter, notice: OcptProjectVersionNoticeKind.deletionFailed);
       return;
     }
@@ -314,8 +320,10 @@ mixin MixinOcptProjectVersionsBloc<S extends MixinOcptProjectVersionsState<S>> o
         note: event.note,
       );
     } catch (error) {
-      appLogger().e("A problem occurred when tried to rename the project version "
-          "${event.versionId}: $error");
+      appLogger().e(
+        "A problem occurred when tried to rename the project version "
+        "${event.versionId}: $error",
+      );
       await _emitVersions(emitter, notice: OcptProjectVersionNoticeKind.renameFailed);
       return;
     }
@@ -441,8 +449,10 @@ mixin MixinOcptProjectVersionsBloc<S extends MixinOcptProjectVersionsState<S>> o
         ),
       );
     } catch (error) {
-      appLogger().w("A problem occurred when tried to read the project's versions, most likely "
-          "because the project already closed: $error");
+      appLogger().w(
+        "A problem occurred when tried to read the project's versions, most likely "
+        "because the project already closed: $error",
+      );
     }
   }
 
@@ -499,8 +509,10 @@ mixin MixinOcptProjectVersionsBloc<S extends MixinOcptProjectVersionsState<S>> o
         ),
       );
     } catch (error) {
-      appLogger().w("A problem occurred when tried to refresh the working copy, most likely "
-          "because the project already closed: $error");
+      appLogger().w(
+        "A problem occurred when tried to refresh the working copy, most likely "
+        "because the project already closed: $error",
+      );
     }
   });
 

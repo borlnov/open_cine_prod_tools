@@ -147,7 +147,8 @@ class _OcptProjectSettingsViewState extends State<OcptProjectSettingsView> {
                         onDefaultVatRateBasisPointsChanged: (basisPoints) =>
                             _onDefaultVatRateBasisPointsChanged(context, basisPoints),
                         mealPriceCents: state.mealPriceCents,
-                        onMealPriceCentsChanged: (cents) => _onMealPriceCentsChanged(context, cents),
+                        onMealPriceCentsChanged: (cents) =>
+                            _onMealPriceCentsChanged(context, cents),
                         buffetPriceCents: state.buffetPriceCents,
                         onBuffetPriceCentsChanged: (cents) =>
                             _onBuffetPriceCentsChanged(context, cents),

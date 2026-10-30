@@ -64,10 +64,7 @@ class OcptLocationSheetHeader extends StatelessWidget {
 
     return Row(
       children: [
-        _OcptLocationColorBar(
-          colorIndex: location.colorIndex,
-          onColorChanged: onColorChanged,
-        ),
+        _OcptLocationColorBar(colorIndex: location.colorIndex, onColorChanged: onColorChanged),
         const SizedBox(width: 12),
         Expanded(
           child: OcptResourcesSheetField(
@@ -139,7 +136,10 @@ class _OcptLocationColorBar extends StatelessWidget {
           mouseCursor: ocptClickableCursor,
           borderRadius: BorderRadius.circular(ocptRadiusSmall),
           // The bar alone is 4 px wide: the padding is what makes it a target one can actually hit.
-          child: Padding(padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4), child: bar),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+            child: bar,
+          ),
         ),
       ),
     );

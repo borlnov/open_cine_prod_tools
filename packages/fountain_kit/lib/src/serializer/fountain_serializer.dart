@@ -38,9 +38,7 @@ class FountainSerializer {
     if (entry.values.length == 1) {
       return '${entry.key}: ${entry.values.single}';
     }
-    final continuationLines = entry.values
-        .map((value) => '    $value')
-        .join('\n');
+    final continuationLines = entry.values.map((value) => '    $value').join('\n');
     return '${entry.key}:\n$continuationLines';
   }
 
@@ -102,10 +100,7 @@ class FountainSerializer {
   /// Renders a [FountainDialogueGroup]: its character cue followed by its
   /// parentheticals and dialogue lines, one per source line.
   String _writeDialogueGroup(FountainDialogueGroup group) {
-    final lines = [
-      _writeCharacter(group.character),
-      ...group.children.map(_writeBlock),
-    ];
+    final lines = [_writeCharacter(group.character), ...group.children.map(_writeBlock)];
     return lines.join('\n');
   }
 }

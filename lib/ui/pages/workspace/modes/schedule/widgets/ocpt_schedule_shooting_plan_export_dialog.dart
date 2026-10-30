@@ -33,7 +33,11 @@ class OcptScheduleShootingPlanExportDialog extends StatefulWidget {
   final List<OcptShootingDay> days;
 
   /// Class constructor
-  const OcptScheduleShootingPlanExportDialog({required this.current, required this.days, super.key});
+  const OcptScheduleShootingPlanExportDialog({
+    required this.current,
+    required this.days,
+    super.key,
+  });
 
   /// Shows the dialog and returns the [OcptShootingPlanExportOptions] the user applied, or null if
   /// they cancelled it.
@@ -185,7 +189,10 @@ class _OcptScheduleShootingPlanExportDialogState
     final options = OcptShootingPlanExportOptions(
       format: _selectedFormat,
       margins: widget.current.margins,
-      dayIds: [for (final day in widget.days) if (_selectedDayIds.contains(day.id)) day.id],
+      dayIds: [
+        for (final day in widget.days)
+          if (_selectedDayIds.contains(day.id)) day.id,
+      ],
       includeTitlePage: _includeTitlePage,
       includeLocationsGrid: _includeLocationsGrid,
       includeSequencesGrid: _includeSequencesGrid,

@@ -134,7 +134,8 @@ class OcptBudgetHelp extends StatelessWidget {
   /// already empty and nothing is printed at all.
   String? _chainSentenceOf(Tr tr) => switch ((view, toolsView)) {
     (OcptBudgetView.tools, OcptBudgetToolsView.regie) => null,
-    (OcptBudgetView.dashboard, _) || (OcptBudgetView.expenses, _) => tr.budgetHelpChainExpensesSentence,
+    (OcptBudgetView.dashboard, _) ||
+    (OcptBudgetView.expenses, _) => tr.budgetHelpChainExpensesSentence,
     (OcptBudgetView.tools, OcptBudgetToolsView.cashFlow) => tr.budgetHelpChainExpensesSentence,
     (OcptBudgetView.resources, _) => tr.budgetHelpChainResourcesSentence,
     (OcptBudgetView.tools, OcptBudgetToolsView.sharing) => tr.budgetHelpChainSharingSentence,
@@ -226,9 +227,15 @@ class OcptBudgetHelp extends StatelessWidget {
     ],
     (OcptBudgetView.expenses, _) => [
       tr.budgetHelpExpensesBody1(tr.budgetCostTrackingColumnQuote),
-      tr.budgetHelpExpensesBody2(tr.budgetCostTrackingColumnPaid, tr.budgetCostTrackingColumnCommitted),
+      tr.budgetHelpExpensesBody2(
+        tr.budgetCostTrackingColumnPaid,
+        tr.budgetCostTrackingColumnCommitted,
+      ),
       tr.budgetHelpExpensesBody3(tr.budgetHeaderNewAction),
-      tr.budgetHelpExpensesBody4(tr.budgetCostTrackingOffQuoteLabel, tr.budgetCostTrackingColumnPaid),
+      tr.budgetHelpExpensesBody4(
+        tr.budgetCostTrackingOffQuoteLabel,
+        tr.budgetCostTrackingColumnPaid,
+      ),
       tr.budgetHelpExpensesBody5,
       tr.budgetHelpExpensesBody6(
         tr.budgetCostTrackingColumnFinalCost,
@@ -248,7 +255,10 @@ class OcptBudgetHelp extends StatelessWidget {
     ],
     (OcptBudgetView.resources, _) => [
       tr.budgetHelpResourcesBody1,
-      tr.budgetHelpResourcesBody2(tr.budgetFinancingColumnDossier, tr.budgetFinancingRecordReceiptAction),
+      tr.budgetHelpResourcesBody2(
+        tr.budgetFinancingColumnDossier,
+        tr.budgetFinancingRecordReceiptAction,
+      ),
       tr.budgetHelpResourcesBody3(tr.budgetHeaderNewAction),
       tr.budgetHelpResourcesBody4,
       tr.budgetHelpResourcesBody5(
@@ -373,7 +383,9 @@ class _OcptBudgetHelpChainCell extends StatelessWidget {
             Text(
               caption,
               textAlign: TextAlign.center,
-              style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
             ),
           ],
         ),

@@ -70,11 +70,7 @@ class FountainInlineParser {
   /// snippet in isolation (as most tests do); a caller assembling a full
   /// document should pass the real values so the resulting spans'
   /// [FountainInlineSpan.sourceRange]s point back into the original source.
-  List<FountainInlineSpan> parse(
-    String text, {
-    int line = 0,
-    int startOffset = 0,
-  }) {
+  List<FountainInlineSpan> parse(String text, {int line = 0, int startOffset = 0}) {
     final spans = <FountainInlineSpan>[];
     final plainBuffer = StringBuffer();
     var plainStart = 0;
@@ -97,9 +93,7 @@ class FountainInlineParser {
     while (index < text.length) {
       final char = text[index];
 
-      if (char == r'\' &&
-          index + 1 < text.length &&
-          _escapable.contains(text[index + 1])) {
+      if (char == r'\' && index + 1 < text.length && _escapable.contains(text[index + 1])) {
         if (plainBuffer.isEmpty) {
           plainStart = index;
         }
@@ -135,12 +129,7 @@ class FountainInlineParser {
             FountainInlineSpan(
               text: text.substring(index + marker.length, closeIndex),
               style: matchedMarker.style,
-              sourceRange: _range(
-                line,
-                startOffset,
-                index,
-                closeIndex + marker.length,
-              ),
+              sourceRange: _range(line, startOffset, index, closeIndex + marker.length),
             ),
           );
           index = closeIndex + marker.length;
@@ -189,11 +178,7 @@ class FountainInlineParser {
   /// that would be a fiction. Unlike [parse]'s spans, a run's range covers
   /// only what the run actually renders: the outer emphasis markers, and the
   /// nested ones this method resolves, are excluded from it.
-  List<FountainStyledRun> parseRuns(
-    String text, {
-    int? line,
-    int? startOffset,
-  }) {
+  List<FountainStyledRun> parseRuns(String text, {int? line, int? startOffset}) {
     final isAnchored = line != null && startOffset != null;
     return parse(
       text,
@@ -207,10 +192,7 @@ class FountainInlineParser {
   ///
   /// [isAnchored] tells whether [span]'s own range points into a real source
   /// document; when it does not, the resulting run carries no range at all.
-  FountainStyledRun _toStyledRun(
-    FountainInlineSpan span, {
-    required bool isAnchored,
-  }) {
+  FountainStyledRun _toStyledRun(FountainInlineSpan span, {required bool isAnchored}) {
     final range = isAnchored ? span.sourceRange : null;
     switch (span.style) {
       case FountainInlineStyle.plain:
@@ -218,11 +200,7 @@ class FountainInlineParser {
       case FountainInlineStyle.note:
         // A note's `[[`/`]]` delimiters stay in the run's text, so its range
         // is the span's own, unnarrowed.
-        return FountainStyledRun(
-          text: '[[${span.text}]]',
-          isNote: true,
-          sourceRange: range,
-        );
+        return FountainStyledRun(text: '[[${span.text}]]', isNote: true, sourceRange: range);
       case FountainInlineStyle.boldItalic:
         return FountainStyledRun(
           text: span.text,
@@ -259,10 +237,8 @@ class FountainInlineParser {
   /// [FountainStyledRun] actually renders. Returns `null` for a `null`
   /// [range]; the parse rules guarantee the range is always long enough for
   /// the markers it is asked to drop.
-  FountainSourceRange? _withoutMarkers(
-    FountainSourceRange? range,
-    int markerLength,
-  ) => range == null
+  FountainSourceRange? _withoutMarkers(FountainSourceRange? range, int markerLength) =>
+      range == null
       ? null
       : FountainSourceRange(
           startLine: range.startLine,
@@ -330,11 +306,7 @@ class FountainInlineParser {
       }
       final closeIndex = text.indexOf(token, token.length);
       if (closeIndex == text.length - token.length) {
-        return (
-          marker.style,
-          text.substring(token.length, closeIndex),
-          token.length,
-        );
+        return (marker.style, text.substring(token.length, closeIndex), token.length);
       }
     }
     return null;
@@ -354,15 +326,11 @@ class FountainInlineParser {
   /// Builds the [FountainSourceRange] for a span covering
   /// `[localStart, localEnd)` of a line, given that line's own [line]
   /// number and [lineStartOffset] within the larger source document.
-  FountainSourceRange _range(
-    int line,
-    int lineStartOffset,
-    int localStart,
-    int localEnd,
-  ) => FountainSourceRange(
-    startLine: line,
-    endLine: line,
-    startOffset: lineStartOffset + localStart,
-    endOffset: lineStartOffset + localEnd,
-  );
+  FountainSourceRange _range(int line, int lineStartOffset, int localStart, int localEnd) =>
+      FountainSourceRange(
+        startLine: line,
+        endLine: line,
+        startOffset: lineStartOffset + localStart,
+        endOffset: lineStartOffset + localEnd,
+      );
 }

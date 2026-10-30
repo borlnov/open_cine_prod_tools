@@ -102,7 +102,8 @@ bool ocptCrewPositionSearchMatches({required String query, required String label
     return true;
   }
 
-  return [label, ...ocptInclusiveReadingsOf(label)].any(
-    (reading) => ocptCrewPositionSearchNormalized(reading).contains(normalizedQuery),
-  );
+  return [
+    label,
+    ...ocptInclusiveReadingsOf(label),
+  ].any((reading) => ocptCrewPositionSearchNormalized(reading).contains(normalizedQuery));
 }

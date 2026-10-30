@@ -98,7 +98,8 @@ class OcptSyncSession {
   final Duration pushInterval;
 
   OcptSyncStatus _status = const OcptSyncStatusInSync();
-  final StreamController<OcptSyncStatus> _statusController = StreamController<OcptSyncStatus>.broadcast();
+  final StreamController<OcptSyncStatus> _statusController =
+      StreamController<OcptSyncStatus>.broadcast();
   final List<OcptScreenplayMergeConflict> _conflicts = [];
 
   StreamSubscription<void>? _newWorkSubscription;
@@ -209,7 +210,9 @@ class OcptSyncSession {
         deviceId: deviceId,
       );
     } catch (error, stackTrace) {
-      _logWarning('Could not compute the pending edit count for project $projectId: $error\n$stackTrace');
+      _logWarning(
+        'Could not compute the pending edit count for project $projectId: $error\n$stackTrace',
+      );
 
       return null;
     }

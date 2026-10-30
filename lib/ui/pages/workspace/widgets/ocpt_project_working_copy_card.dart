@@ -82,14 +82,14 @@ class OcptProjectWorkingCopyCard extends StatelessWidget {
             const SizedBox(height: 6),
             Text(
               ocptProjectVersionSummaryLine(context, summary: workingCopy.summary),
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
+              style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
             ),
             const SizedBox(height: 6),
             Text(
               _stateLine(tr),
-              style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
             ),
             const SizedBox(height: 8),
             Align(

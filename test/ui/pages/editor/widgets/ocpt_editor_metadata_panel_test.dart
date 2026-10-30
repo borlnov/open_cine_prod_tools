@@ -22,7 +22,9 @@ Widget _wrap(Widget child, {double width = 220}) => MaterialApp(
     GlobalCupertinoLocalizations.delegate,
   ],
   supportedLocales: Tr.delegate.supportedLocales,
-  home: Scaffold(body: SizedBox(width: width, child: child)),
+  home: Scaffold(
+    body: SizedBox(width: width, child: child),
+  ),
 );
 
 FountainTitlePageEntry _entry(String key, String value) =>
@@ -61,7 +63,11 @@ void main() {
 
     await tester.pumpWidget(
       _wrap(
-        OcptEditorMetadataPanel(titlePage: fullTitlePage, statistics: statistics, onEditTitlePage: () {}),
+        OcptEditorMetadataPanel(
+          titlePage: fullTitlePage,
+          statistics: statistics,
+          onEditTitlePage: () {},
+        ),
         width: 400,
       ),
     );
@@ -144,9 +150,7 @@ void main() {
 
   testWidgets('does not overflow at the dock practical minimum width', (tester) async {
     final titlePage = FountainTitlePage(
-      entries: [
-        _entry('Title', 'A Very Long Title That Might Not Fit On One Line Easily'),
-      ],
+      entries: [_entry('Title', 'A Very Long Title That Might Not Fit On One Line Easily')],
       sourceRange: _range,
     );
 

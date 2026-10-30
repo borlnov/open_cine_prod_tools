@@ -460,11 +460,13 @@ class _OcptUnavailabilityRowState extends State<_OcptUnavailabilityRow> {
             minLines: _reasonMinLines,
             maxLines: null,
             style: theme.textTheme.bodySmall,
-            decoration: InputDecoration(isDense: true, hintText: tr.resourcesUnavailabilityReasonHint),
+            decoration: InputDecoration(
+              isDense: true,
+              hintText: tr.resourcesUnavailabilityReasonHint,
+            ),
           ),
         ],
       ),
     );
   }
-
 }

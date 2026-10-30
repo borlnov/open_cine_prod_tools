@@ -81,7 +81,10 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(routerManager.popped, isTrue);
-    expect(routerManager.poppedValue, (name: "v4 — Shot list seq. 1 to 3", note: "Before the rewrite"));
+    expect(routerManager.poppedValue, (
+      name: "v4 — Shot list seq. 1 to 3",
+      note: "Before the rewrite",
+    ));
   });
 
   testWidgets('a version with no name is refused, and nothing is popped', (tester) async {

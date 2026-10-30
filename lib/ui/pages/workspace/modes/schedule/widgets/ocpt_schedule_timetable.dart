@@ -202,7 +202,8 @@ class OcptScheduleTimetable extends StatelessWidget {
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
     final entryByBlockId = {
-      for (final entry in timeline?.entries ?? const <OcptShootingTimelineEntry>[]) entry.blockId: entry,
+      for (final entry in timeline?.entries ?? const <OcptShootingTimelineEntry>[])
+        entry.blockId: entry,
     };
     final overrunBlockIds = {
       for (final overrun in timeline?.overruns ?? const <OcptTimelineOverrun>[]) overrun.blockId,
@@ -283,23 +284,29 @@ class OcptScheduleTimetable extends StatelessWidget {
             padding: const EdgeInsets.symmetric(vertical: 8),
             child: Text(
               tr.scheduleTimetableEmptyHint,
-              style: Theme.of(
-                context,
-              ).textTheme.bodySmall?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
             ),
           )
         : (onReordered == null
               ? Column(
                   children: [
                     for (final block in blocks)
-                      _buildRow(context, block, entryByBlockId[block.id], overrunBlockIds.contains(block.id)),
+                      _buildRow(
+                        context,
+                        block,
+                        entryByBlockId[block.id],
+                        overrunBlockIds.contains(block.id),
+                      ),
                   ],
                 )
               : ReorderableListView(
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
                   buildDefaultDragHandles: false,
-                  onReorderItem: (oldIndex, newIndex) => onReordered!(blocks[oldIndex].id, newIndex),
+                  onReorderItem: (oldIndex, newIndex) =>
+                      onReordered!(blocks[oldIndex].id, newIndex),
                   children: [
                     for (var index = 0; index < blocks.length; index++)
                       _buildRow(
@@ -332,8 +339,13 @@ class OcptScheduleTimetable extends StatelessWidget {
           padding: const EdgeInsets.all(4),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(ocptRadiusMedium),
-            border: Border.all(color: isHovering ? theme.colorScheme.primary : Colors.transparent, width: 2),
-            color: isHovering ? theme.colorScheme.primary.withValues(alpha: ocptSelectedStateAlpha) : null,
+            border: Border.all(
+              color: isHovering ? theme.colorScheme.primary : Colors.transparent,
+              width: 2,
+            ),
+            color: isHovering
+                ? theme.colorScheme.primary.withValues(alpha: ocptSelectedStateAlpha)
+                : null,
           ),
           child: content,
         );
@@ -354,7 +366,9 @@ class OcptScheduleTimetable extends StatelessWidget {
     block: block,
     entry: entry,
     isOverrun: isOverrun,
-    shot: block.kind == OcptShootingBlockKind.shot && block.shotId != null ? shotOf(block.shotId!) : null,
+    shot: block.kind == OcptShootingBlockKind.shot && block.shotId != null
+        ? shotOf(block.shotId!)
+        : null,
     roles: roles,
     roleCandidateById: roleCandidateById,
     isSelected: block.id == selectedBlockId,
@@ -507,10 +521,17 @@ class _OcptScheduleTimetableRow extends StatelessWidget {
             entry == null
                 ? "—"
                 : "${ocptFormatDayMinute(entry.startMinute)} → ${ocptFormatDayMinute(entry.endMinute)}",
-            style: theme.textTheme.labelSmall?.copyWith(color: timeColor, fontWeight: FontWeight.w600),
+            style: theme.textTheme.labelSmall?.copyWith(
+              color: timeColor,
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ),
-        Icon(ocptShootingBlockKindIcon(block.kind), size: 14, color: theme.colorScheme.onSurfaceVariant),
+        Icon(
+          ocptShootingBlockKindIcon(block.kind),
+          size: 14,
+          color: theme.colorScheme.onSurfaceVariant,
+        ),
         const SizedBox(width: 8),
         if (_namesASequence)
           Padding(
@@ -548,7 +569,8 @@ class _OcptScheduleTimetableRow extends StatelessWidget {
             tooltip: tr.scheduleAnchorPinTooltip,
             visualDensity: VisualDensity.compact,
             color: block.anchorMinute != null ? theme.colorScheme.primary : null,
-            onPressed: () => onAnchorChanged!(block.anchorMinute != null ? null : entry?.startMinute),
+            onPressed: () =>
+                onAnchorChanged!(block.anchorMinute != null ? null : entry?.startMinute),
           ),
         if (isShot && shot != null && onShotStatusChanged != null)
           PopupMenuButton<OcptShotStatus>(
@@ -556,7 +578,10 @@ class _OcptScheduleTimetableRow extends StatelessWidget {
             onSelected: onShotStatusChanged,
             itemBuilder: (context) => [
               for (final status in OcptShotStatus.values)
-                PopupMenuItem<OcptShotStatus>(value: status, child: Text(ocptShotStatusLabel(tr, status))),
+                PopupMenuItem<OcptShotStatus>(
+                  value: status,
+                  child: Text(ocptShotStatusLabel(tr, status)),
+                ),
             ],
             child: Row(
               mainAxisSize: MainAxisSize.min,
@@ -586,10 +611,7 @@ class _OcptScheduleTimetableRow extends StatelessWidget {
           ),
         ] else if (entry != null) ...[
           const SizedBox(width: 4),
-          Text(
-            ocptFormatMinuteDuration(entry.durationMinutes),
-            style: theme.textTheme.labelSmall,
-          ),
+          Text(ocptFormatMinuteDuration(entry.durationMinutes), style: theme.textTheme.labelSmall),
         ],
         if (canMove) _buildMoveToMenu(context, tr),
         if (onDeletionRequested != null)
@@ -644,7 +666,11 @@ class _OcptScheduleTimetableRow extends StatelessWidget {
                   index: reorderIndex!,
                   child: Padding(
                     padding: const EdgeInsets.only(right: 6),
-                    child: Icon(Icons.drag_indicator, size: 16, color: theme.colorScheme.onSurfaceVariant),
+                    child: Icon(
+                      Icons.drag_indicator,
+                      size: 16,
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
                   ),
                 ),
               Expanded(
@@ -671,7 +697,12 @@ class _OcptScheduleTimetableRow extends StatelessWidget {
     child: Container(
       constraints: const BoxConstraints(maxWidth: 220),
       padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 8),
-      child: Text(title, maxLines: 1, overflow: TextOverflow.ellipsis, style: theme.textTheme.bodySmall),
+      child: Text(
+        title,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: theme.textTheme.bodySmall,
+      ),
     ),
   );
 
@@ -912,7 +943,10 @@ class _OcptScheduleTimetableRow extends StatelessWidget {
     itemBuilder: (context) => [
       PopupMenuItem<String>(enabled: false, child: Text(tr.scheduleMoveBlockMenuTitle)),
       for (final (id, label) in otherSlots)
-        PopupMenuItem<String>(value: id, child: Text(label.isEmpty ? tr.scheduleInspectorUnnamedSlot : label)),
+        PopupMenuItem<String>(
+          value: id,
+          child: Text(label.isEmpty ? tr.scheduleInspectorUnnamedSlot : label),
+        ),
     ],
   );
 }
@@ -934,7 +968,11 @@ class _OcptScheduleAuditionCandidateChip extends StatelessWidget {
   final VoidCallback? onRemoved;
 
   /// Class constructor
-  const _OcptScheduleAuditionCandidateChip({super.key, required this.label, required this.onRemoved});
+  const _OcptScheduleAuditionCandidateChip({
+    super.key,
+    required this.label,
+    required this.onRemoved,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -1020,6 +1058,7 @@ int _ocptStepDurationUp(int durationMinutes) =>
 /// snap-to-grid rule (12 → 10, 15 → 10, and a duration under the grid's own first step → 0 rather
 /// than a negative one).
 int _ocptStepDurationDown(int durationMinutes) {
-  final steppedDown = ((durationMinutes - 1) ~/ _ocptDurationStepGridMinutes) * _ocptDurationStepGridMinutes;
+  final steppedDown =
+      ((durationMinutes - 1) ~/ _ocptDurationStepGridMinutes) * _ocptDurationStepGridMinutes;
   return steppedDown < 0 ? 0 : steppedDown;
 }

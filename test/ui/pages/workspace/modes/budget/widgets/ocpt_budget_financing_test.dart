@@ -115,7 +115,11 @@ OcptBudgetPoste _poste({required String id, int amountCents = 100000}) => OcptBu
       label: "",
       quantityMilli: 1000,
       unit: "u",
-      unitPrice: OcptMoney(amountCents: amountCents, isTaxInclusive: true, vatRateBasisPoints: null),
+      unitPrice: OcptMoney(
+        amountCents: amountCents,
+        isTaxInclusive: true,
+        vatRateBasisPoints: null,
+      ),
       elementId: null,
       inKindResourceId: null,
       provisionKey: null,
@@ -205,13 +209,18 @@ void main() {
   testWidgets("the three families draw in order, an empty family drawn not at all", (tester) async {
     await pumpView(
       tester,
-      resources: [_resource(id: "r1"), _resource(id: "r2", groupKind: OcptBudgetResourceGroupKind.cash)],
+      resources: [
+        _resource(id: "r1"),
+        _resource(id: "r2", groupKind: OcptBudgetResourceGroupKind.cash),
+      ],
       revenues: [_revenue(id: "v1")],
     );
 
     final tr = Tr.of(tester.element(find.byType(OcptBudgetFinancing)));
     final subsidiesY = tester.getTopLeft(find.text(tr.budgetFinancingFamilySubsidiesLabel)).dy;
-    final contributionsY = tester.getTopLeft(find.text(tr.budgetFinancingFamilyContributionsLabel)).dy;
+    final contributionsY = tester
+        .getTopLeft(find.text(tr.budgetFinancingFamilyContributionsLabel))
+        .dy;
     final takingsY = tester.getTopLeft(find.text(tr.budgetFinancingFamilyTakingsLabel)).dy;
 
     expect(subsidiesY, lessThan(contributionsY));
@@ -287,7 +296,12 @@ void main() {
     tester,
   ) async {
     final resource = _resource(id: "r1", label: "Regional grant");
-    final receipt = _entry(id: "e1", resourceId: "r1", creditCents: 4000, label: "First instalment");
+    final receipt = _entry(
+      id: "e1",
+      resourceId: "r1",
+      creditCents: 4000,
+      label: "First instalment",
+    );
 
     await pumpView(
       tester,
@@ -329,29 +343,33 @@ void main() {
     },
   );
 
-  testWidgets("the same in-kind resource reads real figures once an entry names it, zero included", (
+  testWidgets(
+    "the same in-kind resource reads real figures once an entry names it, zero included",
+    (tester) async {
+      final resource = _resource(
+        id: "r1",
+        groupKind: OcptBudgetResourceGroupKind.inKind,
+        amountCents: 5000,
+      );
+
+      await pumpView(
+        tester,
+        resources: [resource],
+        receivedByResourceId: {
+          "r1": const OcptBudgetCoveredTotal(amountCents: 0, coveredLineCount: 1, lineCount: 1),
+        },
+        expandedNodeIds: const {"contributions"},
+      );
+
+      expect(find.text(ocptBudgetAmountLabel(0, "EUR")), findsWidgets);
+      expect(find.text(ocptBudgetAmountLabel(5000, "EUR")), findsWidgets);
+    },
+  );
+
+  testWidgets("the Dossier badge reads the shipped word for a resource's own group", (
     tester,
   ) async {
-    final resource = _resource(id: "r1", groupKind: OcptBudgetResourceGroupKind.inKind, amountCents: 5000);
-
-    await pumpView(
-      tester,
-      resources: [resource],
-      receivedByResourceId: {
-        "r1": const OcptBudgetCoveredTotal(amountCents: 0, coveredLineCount: 1, lineCount: 1),
-      },
-      expandedNodeIds: const {"contributions"},
-    );
-
-    expect(find.text(ocptBudgetAmountLabel(0, "EUR")), findsWidgets);
-    expect(find.text(ocptBudgetAmountLabel(5000, "EUR")), findsWidgets);
-  });
-
-  testWidgets("the Dossier badge reads the shipped word for a resource's own group", (tester) async {
-    final resource = _resource(
-      id: "r1",
-      status: OcptBudgetResourceStatus.agreed,
-    );
+    final resource = _resource(id: "r1", status: OcptBudgetResourceStatus.agreed);
 
     await pumpView(tester, resources: [resource], expandedNodeIds: const {"subsidies"});
 
@@ -371,7 +389,10 @@ void main() {
   testWidgets("the total row states the family count and the three totals", (tester) async {
     await pumpView(
       tester,
-      resources: [_resource(id: "r1"), _resource(id: "r2", groupKind: OcptBudgetResourceGroupKind.cash, amountCents: 5000)],
+      resources: [
+        _resource(id: "r1"),
+        _resource(id: "r2", groupKind: OcptBudgetResourceGroupKind.cash, amountCents: 5000),
+      ],
       revenues: [_revenue(id: "v1", amountCents: 2000)],
     );
 
@@ -381,19 +402,27 @@ void main() {
     expect(find.text(ocptBudgetAmountLabel(17000, "EUR")), findsOneWidget);
   });
 
-  testWidgets("the total row's own valued caption shows while the project holds an in-kind resource", (
+  testWidgets(
+    "the total row's own valued caption shows while the project holds an in-kind resource",
+    (tester) async {
+      await pumpView(
+        tester,
+        resources: [
+          _resource(id: "r1", groupKind: OcptBudgetResourceGroupKind.inKind, amountCents: 3000),
+        ],
+      );
+
+      final tr = Tr.of(tester.element(find.byType(OcptBudgetFinancing)));
+      expect(
+        find.text(tr.budgetFinancingValuedCaption(ocptBudgetAmountLabel(3000, "EUR"))),
+        findsOneWidget,
+      );
+    },
+  );
+
+  testWidgets("the valued caption is absent while the project holds no in-kind resource", (
     tester,
   ) async {
-    await pumpView(
-      tester,
-      resources: [_resource(id: "r1", groupKind: OcptBudgetResourceGroupKind.inKind, amountCents: 3000)],
-    );
-
-    final tr = Tr.of(tester.element(find.byType(OcptBudgetFinancing)));
-    expect(find.text(tr.budgetFinancingValuedCaption(ocptBudgetAmountLabel(3000, "EUR"))), findsOneWidget);
-  });
-
-  testWidgets("the valued caption is absent while the project holds no in-kind resource", (tester) async {
     await pumpView(tester, resources: [_resource(id: "r1")]);
 
     // "valued" (lower case) appears in no other financing string — `Valued` (the in-kind status
@@ -427,7 +456,9 @@ void main() {
     );
     // Promised (40000) plus received already counted once — missing is 100000 - 40000 = 60000.
     expect(
-      find.textContaining(tr.budgetFinancingCoverageMissingReadOut(ocptBudgetAmountLabel(60000, "EUR"))),
+      find.textContaining(
+        tr.budgetFinancingCoverageMissingReadOut(ocptBudgetAmountLabel(60000, "EUR")),
+      ),
       findsOneWidget,
     );
   });
@@ -518,7 +549,9 @@ void main() {
     );
 
     final coloredBox = tester.widget<ColoredBox>(
-      find.ancestor(of: find.textContaining("Wire transfer"), matching: find.byType(ColoredBox)).first,
+      find
+          .ancestor(of: find.textContaining("Wire transfer"), matching: find.byType(ColoredBox))
+          .first,
     );
     expect(coloredBox.color, isNot(Colors.transparent));
   });

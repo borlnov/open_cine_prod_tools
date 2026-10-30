@@ -40,10 +40,7 @@ class ScriptImporter {
   /// [fileName] is only ever read for its extension: nothing here touches
   /// the file system, so a caller that already holds the bytes can pass
   /// whatever name they came under.
-  ScriptImportResult read({
-    required Uint8List bytes,
-    required String fileName,
-  }) {
+  ScriptImportResult read({required Uint8List bytes, required String fileName}) {
     final extension = _extensionOf(fileName);
     return switch (extension) {
       'fdx' => ScriptImportResult(

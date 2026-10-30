@@ -112,8 +112,7 @@ const ({double widthM, double heightM}) ocptFloorPlanDoorDefaultFootprintM = (
 ) => switch (shape) {
   OcptFloorPlanSetElementShape.wall => ocptFloorPlanWallDefaultFootprintM,
   OcptFloorPlanSetElementShape.door => ocptFloorPlanDoorDefaultFootprintM,
-  OcptFloorPlanSetElementShape.furniture ||
-  OcptFloorPlanSetElementShape.freeform => (
+  OcptFloorPlanSetElementShape.furniture || OcptFloorPlanSetElementShape.freeform => (
     widthM: ocptFloorPlanDefaultElementFootprintM,
     heightM: ocptFloorPlanDefaultElementFootprintM,
   ),

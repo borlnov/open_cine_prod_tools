@@ -62,7 +62,8 @@ void _mockSecureStorage(Map<String, String> store) {
 /// `_FakeRemoteStorage`.
 class _FakeRemoteStorage implements OcptRemoteStorage {
   @override
-  Future<OcptSequenceNumber> append(OcptChangesetEnvelope envelope) async => OcptSequenceNumber.zero;
+  Future<OcptSequenceNumber> append(OcptChangesetEnvelope envelope) async =>
+      OcptSequenceNumber.zero;
 
   @override
   Future<List<OcptStoredChangeset>> readSince(OcptSequenceNumber cursor) async => const [];
@@ -265,49 +266,46 @@ void main() {
     expect(bloc.state.projectName, "My Movie");
   });
 
-  test(
-    "a successful repoint moves the project's own pairing and shows ② QR code",
-    () async {
-      final manager = _FakeTransportSyncManager(pairingService: pairingService);
-      await manager.pairProjectToRelay(
-        database: projectsManager.currentProject!.fileDatabase,
-        projectId: "project-abc",
-        projectFilePath: projectsManager.currentProject!.path,
-        projectName: "My Movie",
-        appVersion: "0.1.0",
-        relayBaseUri: initialRelayBaseUri,
-        enrolmentSecret: "prep-enrolment-secret",
-        deviceId: "device-1",
-      );
+  test("a successful repoint moves the project's own pairing and shows ② QR code", () async {
+    final manager = _FakeTransportSyncManager(pairingService: pairingService);
+    await manager.pairProjectToRelay(
+      database: projectsManager.currentProject!.fileDatabase,
+      projectId: "project-abc",
+      projectFilePath: projectsManager.currentProject!.path,
+      projectName: "My Movie",
+      appVersion: "0.1.0",
+      relayBaseUri: initialRelayBaseUri,
+      enrolmentSecret: "prep-enrolment-secret",
+      deviceId: "device-1",
+    );
 
-      final bloc = buildBloc(manager);
-      await pumpEventQueue();
+    final bloc = buildBloc(manager);
+    await pumpEventQueue();
 
-      bloc.add(
-        OcptRepointingRequestedEvent(
-          relayBaseUri: newRelayBaseUri,
-          enrolmentSecret: "onset-enrolment-secret",
-        ),
-      );
-      await pumpEventQueue();
+    bloc.add(
+      OcptRepointingRequestedEvent(
+        relayBaseUri: newRelayBaseUri,
+        enrolmentSecret: "onset-enrolment-secret",
+      ),
+    );
+    await pumpEventQueue();
 
-      expect(bloc.state.isRepointing, isFalse);
-      expect(bloc.state.repointFailed, isFalse);
-      final enrolment = bloc.state.enrolment;
-      expect(enrolment, isNotNull);
-      expect(enrolment!.relayBaseUri, newRelayBaseUri);
-      expect(enrolment.enrolmentSecret, "onset-enrolment-secret");
+    expect(bloc.state.isRepointing, isFalse);
+    expect(bloc.state.repointFailed, isFalse);
+    final enrolment = bloc.state.enrolment;
+    expect(enrolment, isNotNull);
+    expect(enrolment!.relayBaseUri, newRelayBaseUri);
+    expect(enrolment.enrolmentSecret, "onset-enrolment-secret");
 
-      // The pairing actually moved in the database and secure storage, keeping its own token.
-      final pairing = await pairingService.loadPairing(
-        database: projectsManager.currentProject!.fileDatabase,
-        projectId: "project-abc",
-      );
-      expect(pairing, isNotNull);
-      expect(pairing!.relayBaseUri, newRelayBaseUri);
-      expect(pairing.token, "fake-project-token");
-    },
-  );
+    // The pairing actually moved in the database and secure storage, keeping its own token.
+    final pairing = await pairingService.loadPairing(
+      database: projectsManager.currentProject!.fileDatabase,
+      projectId: "project-abc",
+    );
+    expect(pairing, isNotNull);
+    expect(pairing!.relayBaseUri, newRelayBaseUri);
+    expect(pairing.token, "fake-project-token");
+  });
 
   test("re-pointing an unpaired project surfaces repointFailed", () async {
     final bloc = buildBloc(_FakeTransportSyncManager(pairingService: pairingService));

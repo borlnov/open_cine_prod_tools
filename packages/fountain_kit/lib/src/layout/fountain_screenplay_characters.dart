@@ -59,8 +59,7 @@ final RegExp _tokenEdges = RegExp(r'^[^\p{L}]+|[^\p{L}]+$', unicode: true);
 /// written in capitals (`OK`, `STOP`) is named here just like a character
 /// would be. The caller decides what to do with a name it does not recognise.
 List<String> charactersIntroducedInActionLine(String line) {
-  if (_holdsNoLowerCaseLetter(line) ||
-      FountainLineClassifier.holdsSceneHeadingPrefix(line)) {
+  if (_holdsNoLowerCaseLetter(line) || FountainLineClassifier.holdsSceneHeadingPrefix(line)) {
     return const [];
   }
 

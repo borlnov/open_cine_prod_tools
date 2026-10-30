@@ -194,20 +194,15 @@ class OcptShotCoverageService {
   /// {@macro open_cine_prod_tools.tombstones}
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<void> removeRange({
-    required OcptProjectDatabase database,
-    required String rangeId,
-  }) async {
+  Future<void> removeRange({required OcptProjectDatabase database, required String rangeId}) async {
     if (database.refusesUserWrite("removeRange")) {
       return;
     }
 
     await database.transaction(() async {
-      final current =
-          await (database.select(
-                database.ocptShotCoveragesTable,
-              )..where((table) => table.id.equals(rangeId) & table.isDeleted.not()))
-              .getSingleOrNull();
+      final current = await (database.select(
+        database.ocptShotCoveragesTable,
+      )..where((table) => table.id.equals(rangeId) & table.isDeleted.not())).getSingleOrNull();
       if (current == null) {
         return;
       }
@@ -239,11 +234,9 @@ class OcptShotCoverageService {
     }
 
     await database.transaction(() async {
-      final rows =
-          await (database.select(
-                database.ocptShotCoveragesTable,
-              )..where((table) => table.shotId.equals(shotId) & table.isDeleted.not()))
-              .get();
+      final rows = await (database.select(
+        database.ocptShotCoveragesTable,
+      )..where((table) => table.shotId.equals(shotId) & table.isDeleted.not())).get();
       if (rows.isEmpty) {
         return;
       }
@@ -295,28 +288,22 @@ class OcptShotCoverageService {
       return;
     }
 
-    final shotRows =
-        await (database.select(database.ocptShotsTable)..where(
-              (table) => table.screenplayId.equals(screenplayId) & table.isDeleted.not(),
-            ))
-            .get();
+    final shotRows = await (database.select(
+      database.ocptShotsTable,
+    )..where((table) => table.screenplayId.equals(screenplayId) & table.isDeleted.not())).get();
     final shotIds = shotRows.map((row) => row.id).toList(growable: false);
     if (shotIds.isEmpty) {
       return;
     }
 
-    final sceneRows =
-        await (database.select(database.ocptScenesTable)..where(
-              (table) => table.screenplayId.equals(screenplayId) & table.isDeleted.not(),
-            ))
-            .get();
+    final sceneRows = await (database.select(
+      database.ocptScenesTable,
+    )..where((table) => table.screenplayId.equals(screenplayId) & table.isDeleted.not())).get();
     final sceneById = {for (final scene in sceneRows) scene.id: scene};
 
-    final coverageRows =
-        await (database.select(database.ocptShotCoveragesTable)..where(
-              (table) => table.shotId.isIn(shotIds) & table.isDeleted.not(),
-            ))
-            .get();
+    final coverageRows = await (database.select(
+      database.ocptShotCoveragesTable,
+    )..where((table) => table.shotId.isIn(shotIds) & table.isDeleted.not())).get();
 
     // Seeded with what each shot is already flagged for, so this pass can only ever strengthen a
     // pending reason, never weaken one the user has not addressed yet.
@@ -407,18 +394,15 @@ class OcptShotCoverageService {
     await database.transaction(() async {
       final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
 
-      final ranges =
-          await (database.select(database.ocptShotCoveragesTable)..where(
-                (table) => table.shotId.equals(shotId) & table.isDeleted.not(),
-              ))
-              .get();
+      final ranges = await (database.select(
+        database.ocptShotCoveragesTable,
+      )..where((table) => table.shotId.equals(shotId) & table.isDeleted.not())).get();
 
       final sceneCache = <String, OcptSceneRow>{};
       for (final range in ranges) {
-        final scene = sceneCache[range.sceneId] ??=
-            await (database.select(database.ocptScenesTable)
-                  ..where((table) => table.id.equals(range.sceneId) & table.isDeleted.not()))
-                .getSingle();
+        final scene = sceneCache[range.sceneId] ??= await (database.select(
+          database.ocptScenesTable,
+        )..where((table) => table.id.equals(range.sceneId) & table.isDeleted.not())).getSingle();
 
         final absoluteStart = scene.charStart + range.startOffset;
         final absoluteEnd = scene.charStart + range.endOffset;
@@ -434,11 +418,9 @@ class OcptShotCoverageService {
         );
       }
 
-      final shot =
-          await (database.select(
-                database.ocptShotsTable,
-              )..where((table) => table.id.equals(shotId)))
-              .getSingleOrNull();
+      final shot = await (database.select(
+        database.ocptShotsTable,
+      )..where((table) => table.id.equals(shotId))).getSingleOrNull();
       if (shot != null) {
         await OcptRowStampService.writeAndStamp(
           database: database,
@@ -464,11 +446,9 @@ class OcptShotCoverageService {
     required int endOffset,
     String? excludingShotId,
   }) async {
-    final rows =
-        await (database.select(database.ocptShotCoveragesTable)..where(
-              (table) => table.sceneId.equals(sceneId) & table.isDeleted.not(),
-            ))
-            .get();
+    final rows = await (database.select(
+      database.ocptShotCoveragesTable,
+    )..where((table) => table.sceneId.equals(sceneId) & table.isDeleted.not())).get();
 
     final overlappingShotIds = <String>{};
     for (final row in rows) {

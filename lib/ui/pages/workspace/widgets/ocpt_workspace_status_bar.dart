@@ -65,12 +65,7 @@ class OcptWorkspaceStatusBar extends StatelessWidget {
             return Row(
               children: [
                 Expanded(
-                  child: Text(
-                    summary,
-                    style: style,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
+                  child: Text(summary, style: style, maxLines: 1, overflow: TextOverflow.ellipsis),
                 ),
                 Text(" · ", style: style),
                 trailing,
@@ -99,8 +94,10 @@ class OcptWorkspaceStatusBar extends StatelessWidget {
   /// with [style] in [direction] — used to decide how many counters still fit.
   double _joinedWidth(List<String> visibleCounters, TextStyle? style, TextDirection direction) {
     final text = "${visibleCounters.join(" · ")} · $trailingText";
-    final painter = TextPainter(text: TextSpan(text: text, style: style), textDirection: direction)
-      ..layout();
+    final painter = TextPainter(
+      text: TextSpan(text: text, style: style),
+      textDirection: direction,
+    )..layout();
     return painter.width;
   }
 }

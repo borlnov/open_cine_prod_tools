@@ -122,11 +122,13 @@ Action.
     expect(after[2].id, streetId);
   });
 
-  test('renaming a scene heading that carries an explicit number: the id follows the number', () async {
-    await service.reconcile(
-      database: database,
-      screenplayId: screenplayId,
-      document: _parse('''
+  test(
+    'renaming a scene heading that carries an explicit number: the id follows the number',
+    () async {
+      await service.reconcile(
+        database: database,
+        screenplayId: screenplayId,
+        document: _parse('''
 INT. HOUSE - DAY #1#
 
 Action.
@@ -135,15 +137,15 @@ EXT. STREET - NIGHT #2#
 
 Action.
 '''),
-    );
+      );
 
-    final before = await readScenes();
-    final houseId = before.firstWhere((row) => row.sceneNumber == "1").id;
+      final before = await readScenes();
+      final houseId = before.firstWhere((row) => row.sceneNumber == "1").id;
 
-    await service.reconcile(
-      database: database,
-      screenplayId: screenplayId,
-      document: _parse('''
+      await service.reconcile(
+        database: database,
+        screenplayId: screenplayId,
+        document: _parse('''
 INT. HOUSE - MORNING #1#
 
 Action.
@@ -152,20 +154,23 @@ EXT. STREET - NIGHT #2#
 
 Action.
 '''),
-    );
+      );
 
-    final after = await readScenes();
-    final renamed = after.firstWhere((row) => row.sceneNumber == "1");
+      final after = await readScenes();
+      final renamed = after.firstWhere((row) => row.sceneNumber == "1");
 
-    expect(renamed.id, houseId);
-    expect(renamed.heading, "INT. HOUSE - MORNING");
-  });
+      expect(renamed.id, houseId);
+      expect(renamed.heading, "INT. HOUSE - MORNING");
+    },
+  );
 
-  test('renumbering a scene whose heading text is unchanged: the id follows the heading text', () async {
-    await service.reconcile(
-      database: database,
-      screenplayId: screenplayId,
-      document: _parse('''
+  test(
+    'renumbering a scene whose heading text is unchanged: the id follows the heading text',
+    () async {
+      await service.reconcile(
+        database: database,
+        screenplayId: screenplayId,
+        document: _parse('''
 INT. HOUSE - DAY #1#
 
 Action.
@@ -174,15 +179,15 @@ EXT. STREET - NIGHT #2#
 
 Action.
 '''),
-    );
+      );
 
-    final before = await readScenes();
-    final houseId = before.firstWhere((row) => row.heading == "INT. HOUSE - DAY").id;
+      final before = await readScenes();
+      final houseId = before.firstWhere((row) => row.heading == "INT. HOUSE - DAY").id;
 
-    await service.reconcile(
-      database: database,
-      screenplayId: screenplayId,
-      document: _parse('''
+      await service.reconcile(
+        database: database,
+        screenplayId: screenplayId,
+        document: _parse('''
 INT. HOUSE - DAY #1A#
 
 Action.
@@ -191,14 +196,15 @@ EXT. STREET - NIGHT #2#
 
 Action.
 '''),
-    );
+      );
 
-    final after = await readScenes();
-    final renumbered = after.firstWhere((row) => row.heading == "INT. HOUSE - DAY");
+      final after = await readScenes();
+      final renumbered = after.firstWhere((row) => row.heading == "INT. HOUSE - DAY");
 
-    expect(renumbered.id, houseId);
-    expect(renumbered.sceneNumber, "1A");
-  });
+      expect(renumbered.id, houseId);
+      expect(renumbered.sceneNumber, "1A");
+    },
+  );
 
   test("reordering scenes keeps every scene's id, only their position changes", () async {
     await service.reconcile(
@@ -280,17 +286,18 @@ Action.
     // replica that never saw the deletion can still learn about it.
     final everyRow = await readScenesIncludingTombstones();
     expect(everyRow, hasLength(2));
-    expect(
-      everyRow.where((row) => row.isDeleted).map((row) => row.heading),
-      ["EXT. STREET - NIGHT"],
-    );
+    expect(everyRow.where((row) => row.isDeleted).map((row) => row.heading), [
+      "EXT. STREET - NIGHT",
+    ]);
   });
 
-  test('a plain rename (no scene number) at the same position keeps the id, by relative order', () async {
-    await service.reconcile(
-      database: database,
-      screenplayId: screenplayId,
-      document: _parse('''
+  test(
+    'a plain rename (no scene number) at the same position keeps the id, by relative order',
+    () async {
+      await service.reconcile(
+        database: database,
+        screenplayId: screenplayId,
+        document: _parse('''
 INT. HOUSE - DAY
 
 Action.
@@ -299,16 +306,16 @@ EXT. STREET - NIGHT
 
 Action.
 '''),
-    );
+      );
 
-    final before = await readScenes();
-    final houseId = before.firstWhere((row) => row.heading == "INT. HOUSE - DAY").id;
-    final streetId = before.firstWhere((row) => row.heading == "EXT. STREET - NIGHT").id;
+      final before = await readScenes();
+      final houseId = before.firstWhere((row) => row.heading == "INT. HOUSE - DAY").id;
+      final streetId = before.firstWhere((row) => row.heading == "EXT. STREET - NIGHT").id;
 
-    await service.reconcile(
-      database: database,
-      screenplayId: screenplayId,
-      document: _parse('''
+      await service.reconcile(
+        database: database,
+        screenplayId: screenplayId,
+        document: _parse('''
 INT. CABIN - DAY
 
 Action.
@@ -317,19 +324,22 @@ EXT. STREET - NIGHT
 
 Action.
 '''),
-    );
+      );
 
-    final after = await readScenes();
+      final after = await readScenes();
 
-    expect(after, hasLength(2));
-    expect(after[0].heading, "INT. CABIN - DAY");
-    expect(after[0].id, houseId);
-    expect(after[1].heading, "EXT. STREET - NIGHT");
-    expect(after[1].id, streetId);
-  });
+      expect(after, hasLength(2));
+      expect(after[0].heading, "INT. CABIN - DAY");
+      expect(after[0].id, houseId);
+      expect(after[1].heading, "EXT. STREET - NIGHT");
+      expect(after[1].id, streetId);
+    },
+  );
 
-  test('charStart/charEnd span from a scene heading to the next one, or the document end', () async {
-    const source = '''
+  test(
+    'charStart/charEnd span from a scene heading to the next one, or the document end',
+    () async {
+      const source = '''
 INT. HOUSE - DAY
 
 Action.
@@ -338,16 +348,17 @@ EXT. STREET - NIGHT
 
 Action.
 ''';
-    final document = _parse(source);
+      final document = _parse(source);
 
-    await service.reconcile(database: database, screenplayId: screenplayId, document: document);
+      await service.reconcile(database: database, screenplayId: screenplayId, document: document);
 
-    final scenes = await readScenes();
-    final headings = document.scenes;
+      final scenes = await readScenes();
+      final headings = document.scenes;
 
-    expect(scenes[0].charStart, headings[0].sourceRange.startOffset);
-    expect(scenes[0].charEnd, headings[1].sourceRange.startOffset);
-    expect(scenes[1].charStart, headings[1].sourceRange.startOffset);
-    expect(scenes[1].charEnd, document.sourceText.length);
-  });
+      expect(scenes[0].charStart, headings[0].sourceRange.startOffset);
+      expect(scenes[0].charEnd, headings[1].sourceRange.startOffset);
+      expect(scenes[1].charStart, headings[1].sourceRange.startOffset);
+      expect(scenes[1].charEnd, document.sourceText.length);
+    },
+  );
 }

@@ -109,11 +109,7 @@ void main() {
     int reimbursableCents = 0,
     int repaidCents = 0,
   }) => ocptBudgetSharingPotOf(
-    received: OcptBudgetCoveredTotal(
-      amountCents: receivedCents,
-      coveredLineCount: 1,
-      lineCount: 1,
-    ),
+    received: OcptBudgetCoveredTotal(amountCents: receivedCents, coveredLineCount: 1, lineCount: 1),
     reimbursableCents: reimbursableCents,
     repaid: OcptBudgetCoveredTotal(amountCents: repaidCents, coveredLineCount: 1, lineCount: 1),
   );
@@ -206,7 +202,10 @@ void main() {
 
     test("a taking with no entry claims no uncovered line either", () {
       final total = ocptBudgetRevenuesReceivedTotalOf(
-        revenues: [buildRevenue(id: "r1"), buildRevenue(id: "r2")],
+        revenues: [
+          buildRevenue(id: "r1"),
+          buildRevenue(id: "r2"),
+        ],
         receivedByRevenueId: const {},
       );
 
@@ -286,7 +285,11 @@ void main() {
         buildResource(id: "c2", personId: "p1", amountCents: 20000, isReimbursable: true),
       ];
 
-      final lines = ocptBudgetRepaymentLinesOf(resources, const [], projectVatRateBasisPoints: null);
+      final lines = ocptBudgetRepaymentLinesOf(
+        resources,
+        const [],
+        projectVatRateBasisPoints: null,
+      );
 
       expect(lines, hasLength(1));
       expect(lines.single.personId, "p1");
@@ -295,11 +298,20 @@ void main() {
 
     test("a resource naming nobody stands alone", () {
       final resources = [
-        buildResource(id: "c1", label: "Région Île-de-France", amountCents: 10000, isReimbursable: true),
+        buildResource(
+          id: "c1",
+          label: "Région Île-de-France",
+          amountCents: 10000,
+          isReimbursable: true,
+        ),
         buildResource(id: "c2", personId: "p1", amountCents: 20000, isReimbursable: true),
       ];
 
-      final lines = ocptBudgetRepaymentLinesOf(resources, const [], projectVatRateBasisPoints: null);
+      final lines = ocptBudgetRepaymentLinesOf(
+        resources,
+        const [],
+        projectVatRateBasisPoints: null,
+      );
 
       expect(lines, hasLength(2));
       final unnamed = lines.firstWhere((line) => line.personId == null);
@@ -313,7 +325,11 @@ void main() {
         buildResource(id: "c2", label: "Espèces", amountCents: 7000, isReimbursable: true),
       ];
 
-      final lines = ocptBudgetRepaymentLinesOf(resources, const [], projectVatRateBasisPoints: null);
+      final lines = ocptBudgetRepaymentLinesOf(
+        resources,
+        const [],
+        projectVatRateBasisPoints: null,
+      );
 
       expect(lines, hasLength(1));
       expect(lines.single.label, "Espèces");
@@ -344,11 +360,13 @@ void main() {
       // This used to answer an empty list, so a production that had marked nothing reimbursable —
       // the ordinary state of a project the day it is created — could not tell from this card
       // that anybody had contributed at all.
-      final resources = [
-        buildResource(id: "c1", personId: "p1", amountCents: 30000),
-      ];
+      final resources = [buildResource(id: "c1", personId: "p1", amountCents: 30000)];
 
-      final lines = ocptBudgetRepaymentLinesOf(resources, const [], projectVatRateBasisPoints: null);
+      final lines = ocptBudgetRepaymentLinesOf(
+        resources,
+        const [],
+        projectVatRateBasisPoints: null,
+      );
 
       expect(lines, hasLength(1));
       expect(lines.single.contributedCents, 30000);
@@ -363,7 +381,11 @@ void main() {
         buildResource(id: "c2", personId: "p1", amountCents: 20000),
       ];
 
-      final lines = ocptBudgetRepaymentLinesOf(resources, const [], projectVatRateBasisPoints: null);
+      final lines = ocptBudgetRepaymentLinesOf(
+        resources,
+        const [],
+        projectVatRateBasisPoints: null,
+      );
 
       expect(lines.single.contributedCents, 50000);
       expect(lines.single.reimbursableCents, 30000);
@@ -403,26 +425,29 @@ void main() {
   });
 
   group("ocptBudgetShareSplitsOf", () {
-    test("each participant is due their per mille of the pot, and reinvests out of their own due", () {
-      final splits = ocptBudgetShareSplitsOf(
-        shares: [
-          buildShare(id: "s1", label: "Director", sharePermille: 400, reinvestPermille: 1000),
-          buildShare(id: "s2", label: "Production", sharePermille: 250),
-          buildShare(id: "s3", label: "Editor", sharePermille: 100, reinvestPermille: 500),
-        ],
-        pot: potOf(receivedCents: 620000, reimbursableCents: 350000),
-        paidByShareId: const {},
-      );
+    test(
+      "each participant is due their per mille of the pot, and reinvests out of their own due",
+      () {
+        final splits = ocptBudgetShareSplitsOf(
+          shares: [
+            buildShare(id: "s1", label: "Director", sharePermille: 400, reinvestPermille: 1000),
+            buildShare(id: "s2", label: "Production", sharePermille: 250),
+            buildShare(id: "s3", label: "Editor", sharePermille: 100, reinvestPermille: 500),
+          ],
+          pot: potOf(receivedCents: 620000, reimbursableCents: 350000),
+          paidByShareId: const {},
+        );
 
-      // 6,200 € of takings less 3,500 € of reimbursable contributions leaves 2,700 € to share.
-      expect(splits[0].dueCents, 108000);
-      expect(splits[0].reinvestedCents, 108000);
-      expect(splits[0].takeHomeCents, 0);
-      expect(splits[1].dueCents, 67500);
-      expect(splits[1].reinvestedCents, 0);
-      expect(splits[2].dueCents, 27000);
-      expect(splits[2].reinvestedCents, 13500);
-    });
+        // 6,200 € of takings less 3,500 € of reimbursable contributions leaves 2,700 € to share.
+        expect(splits[0].dueCents, 108000);
+        expect(splits[0].reinvestedCents, 108000);
+        expect(splits[0].takeHomeCents, 0);
+        expect(splits[1].dueCents, 67500);
+        expect(splits[1].reinvestedCents, 0);
+        expect(splits[2].dueCents, 27000);
+        expect(splits[2].reinvestedCents, 13500);
+      },
+    );
 
     test("keeps the order it was handed, and never reorders by share", () {
       final splits = ocptBudgetShareSplitsOf(
@@ -465,11 +490,14 @@ void main() {
 
       // The shares themselves sum to 999 ‰, and the app says so rather than rounding it away.
       expect(ocptBudgetDueTotalCents(splits), 999);
-      expect(ocptBudgetSharesPermilleTotal([
-        buildShare(id: "s1", sharePermille: 333),
-        buildShare(id: "s2", sharePermille: 333),
-        buildShare(id: "s3", sharePermille: 333),
-      ]), 999);
+      expect(
+        ocptBudgetSharesPermilleTotal([
+          buildShare(id: "s1", sharePermille: 333),
+          buildShare(id: "s2", sharePermille: 333),
+          buildShare(id: "s3", sharePermille: 333),
+        ]),
+        999,
+      );
     });
 
     test("a participant nobody has paid carries a zero total covering nothing", () {

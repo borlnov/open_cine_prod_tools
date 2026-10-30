@@ -58,7 +58,10 @@ class OcptSecretsManager extends AbstractSecretsManager {
 
   /// Stores [secret] as the hosting enrolment secret for [projectId], replacing whatever was
   /// stored before.
-  Future<void> saveHostingEnrolmentSecret({required String projectId, required String secret}) async {
+  Future<void> saveHostingEnrolmentSecret({
+    required String projectId,
+    required String secret,
+  }) async {
     await SecretItem<String>(_hostingEnrolmentSecretKey(projectId)).store(secret);
   }
 
@@ -66,5 +69,6 @@ class OcptSecretsManager extends AbstractSecretsManager {
   static String _projectTokenKey(String projectId) => 'PROJECT_TOKEN_$projectId';
 
   /// The secure-storage key [projectId]'s own hosting enrolment secret is stored under.
-  static String _hostingEnrolmentSecretKey(String projectId) => 'HOSTING_ENROLMENT_SECRET_$projectId';
+  static String _hostingEnrolmentSecretKey(String projectId) =>
+      'HOSTING_ENROLMENT_SECRET_$projectId';
 }

@@ -68,7 +68,8 @@ class OcptBudgetPoste extends Equatable {
 
   /// Object string representation, useful for debugging and logging.
   @override
-  String toString() => "OcptBudgetPoste(id: $id, code: $code, label: $label, "
+  String toString() =>
+      "OcptBudgetPoste(id: $id, code: $code, label: $label, "
       "lines: ${lines.length})";
 
   /// Object properties

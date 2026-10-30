@@ -26,12 +26,13 @@ OcptChangesetEnvelope _envelope(String changesetId) => OcptChangesetEnvelope(
   payload: Uint8List.fromList([1, 2, 3]),
 );
 
-OcptSnapshotDescriptor _descriptor({required String snapshotId, required Uint8List bytes}) => OcptSnapshotDescriptor(
-  snapshotId: snapshotId,
-  sequenceUpTo: OcptSequenceNumber.zero,
-  byteLength: bytes.length,
-  contentDigest: sha256.convert(bytes).toString(),
-);
+OcptSnapshotDescriptor _descriptor({required String snapshotId, required Uint8List bytes}) =>
+    OcptSnapshotDescriptor(
+      snapshotId: snapshotId,
+      sequenceUpTo: OcptSequenceNumber.zero,
+      byteLength: bytes.length,
+      contentDigest: sha256.convert(bytes).toString(),
+    );
 
 String _tokenHash(String token) => sha256.convert(utf8.encode(token)).toString();
 
@@ -87,29 +88,10 @@ void main() {
         final channel = connect('project-1', token: 'token-1');
         await channel.ready;
 
-        await post('/projects/project-1/changesets', token: 'token-1', jsonBody: _envelope('changeset-1').toJson());
-
-        final ping = await channel.stream.first.timeout(const Duration(seconds: 3));
-        expect(ping, isNotNull);
-      },
-      timeout: _timeout,
-    );
-
-    test(
-      'a subscribed socket receives a ping after a snapshot upload',
-      () async {
-        store.createProject(projectId: 'project-1', tokenHash: _tokenHash('token-1'));
-        final channel = connect('project-1', token: 'token-1');
-        await channel.ready;
-
-        final bytes = Uint8List.fromList(utf8.encode('a snapshot payload'));
         await post(
-          '/projects/project-1/snapshot',
+          '/projects/project-1/changesets',
           token: 'token-1',
-          jsonBody: {
-            'descriptor': _descriptor(snapshotId: 'snapshot-1', bytes: bytes).toJson(),
-            'bytes': base64Encode(bytes),
-          },
+          jsonBody: _envelope('changeset-1').toJson(),
         );
 
         final ping = await channel.stream.first.timeout(const Duration(seconds: 3));
@@ -118,47 +100,58 @@ void main() {
       timeout: _timeout,
     );
 
-    test(
-      'a ping does not arrive for a write to a different project',
-      () async {
-        store.createProject(projectId: 'project-1', tokenHash: _tokenHash('token-1'));
-        store.createProject(projectId: 'project-2', tokenHash: _tokenHash('token-2'));
-        final channel = connect('project-1', token: 'token-1');
-        await channel.ready;
+    test('a subscribed socket receives a ping after a snapshot upload', () async {
+      store.createProject(projectId: 'project-1', tokenHash: _tokenHash('token-1'));
+      final channel = connect('project-1', token: 'token-1');
+      await channel.ready;
 
-        await post('/projects/project-2/changesets', token: 'token-2', jsonBody: _envelope('changeset-1').toJson());
+      final bytes = Uint8List.fromList(utf8.encode('a snapshot payload'));
+      await post(
+        '/projects/project-1/snapshot',
+        token: 'token-1',
+        jsonBody: {
+          'descriptor': _descriptor(snapshotId: 'snapshot-1', bytes: bytes).toJson(),
+          'bytes': base64Encode(bytes),
+        },
+      );
 
-        var pinged = false;
-        final subscription = channel.stream.listen((_) => pinged = true);
-        await Future<void>.delayed(const Duration(milliseconds: 300));
-        await subscription.cancel();
+      final ping = await channel.stream.first.timeout(const Duration(seconds: 3));
+      expect(ping, isNotNull);
+    }, timeout: _timeout);
 
-        expect(pinged, isFalse);
-      },
-      timeout: _timeout,
-    );
+    test('a ping does not arrive for a write to a different project', () async {
+      store.createProject(projectId: 'project-1', tokenHash: _tokenHash('token-1'));
+      store.createProject(projectId: 'project-2', tokenHash: _tokenHash('token-2'));
+      final channel = connect('project-1', token: 'token-1');
+      await channel.ready;
 
-    test(
-      'connecting with a missing bearer token is rejected, no upgrade',
-      () async {
-        store.createProject(projectId: 'project-1', tokenHash: _tokenHash('token-1'));
-        final channel = connect('project-1');
+      await post(
+        '/projects/project-2/changesets',
+        token: 'token-2',
+        jsonBody: _envelope('changeset-1').toJson(),
+      );
 
-        await expectLater(channel.ready, throwsA(anything));
-      },
-      timeout: _timeout,
-    );
+      var pinged = false;
+      final subscription = channel.stream.listen((_) => pinged = true);
+      await Future<void>.delayed(const Duration(milliseconds: 300));
+      await subscription.cancel();
 
-    test(
-      'connecting with a bad bearer token is rejected, no upgrade',
-      () async {
-        store.createProject(projectId: 'project-1', tokenHash: _tokenHash('token-1'));
-        final channel = connect('project-1', token: 'wrong-token');
+      expect(pinged, isFalse);
+    }, timeout: _timeout);
 
-        await expectLater(channel.ready, throwsA(anything));
-      },
-      timeout: _timeout,
-    );
+    test('connecting with a missing bearer token is rejected, no upgrade', () async {
+      store.createProject(projectId: 'project-1', tokenHash: _tokenHash('token-1'));
+      final channel = connect('project-1');
+
+      await expectLater(channel.ready, throwsA(anything));
+    }, timeout: _timeout);
+
+    test('connecting with a bad bearer token is rejected, no upgrade', () async {
+      store.createProject(projectId: 'project-1', tokenHash: _tokenHash('token-1'));
+      final channel = connect('project-1', token: 'wrong-token');
+
+      await expectLater(channel.ready, throwsA(anything));
+    }, timeout: _timeout);
 
     test(
       'a frame one subscriber sends reaches the other subscriber verbatim, not the sender',
@@ -185,31 +178,29 @@ void main() {
       timeout: _timeout,
     );
 
-    test(
-      'a peer frame for one project never reaches another project\'s subscribers',
-      () async {
-        store.createProject(projectId: 'project-1', tokenHash: _tokenHash('token-1'));
-        store.createProject(projectId: 'project-2', tokenHash: _tokenHash('token-2'));
-        final projectOneSender = connect('project-1', token: 'token-1');
-        final projectOnePeer = connect('project-1', token: 'token-1');
-        final projectTwoSocket = connect('project-2', token: 'token-2');
-        await projectOneSender.ready;
-        await projectOnePeer.ready;
-        await projectTwoSocket.ready;
+    test('a peer frame for one project never reaches another project\'s subscribers', () async {
+      store.createProject(projectId: 'project-1', tokenHash: _tokenHash('token-1'));
+      store.createProject(projectId: 'project-2', tokenHash: _tokenHash('token-2'));
+      final projectOneSender = connect('project-1', token: 'token-1');
+      final projectOnePeer = connect('project-1', token: 'token-1');
+      final projectTwoSocket = connect('project-2', token: 'token-2');
+      await projectOneSender.ready;
+      await projectOnePeer.ready;
+      await projectTwoSocket.ready;
 
-        var projectTwoReceived = false;
-        final projectTwoSubscription = projectTwoSocket.stream.listen((_) => projectTwoReceived = true);
-        final peerFrame = projectOnePeer.stream.first.timeout(const Duration(seconds: 3));
+      var projectTwoReceived = false;
+      final projectTwoSubscription = projectTwoSocket.stream.listen(
+        (_) => projectTwoReceived = true,
+      );
+      final peerFrame = projectOnePeer.stream.first.timeout(const Duration(seconds: 3));
 
-        projectOneSender.sink.add('presence-frame-for-project-1');
+      projectOneSender.sink.add('presence-frame-for-project-1');
 
-        expect(await peerFrame, 'presence-frame-for-project-1');
-        await Future<void>.delayed(const Duration(milliseconds: 200));
-        await projectTwoSubscription.cancel();
-        expect(projectTwoReceived, isFalse);
-      },
-      timeout: _timeout,
-    );
+      expect(await peerFrame, 'presence-frame-for-project-1');
+      await Future<void>.delayed(const Duration(milliseconds: 200));
+      await projectTwoSubscription.cancel();
+      expect(projectTwoReceived, isFalse);
+    }, timeout: _timeout);
 
     test(
       'a new-work ping still reaches every subscriber alongside peer frame rebroadcast',
@@ -223,7 +214,11 @@ void main() {
         final firstPing = first.stream.first.timeout(const Duration(seconds: 3));
         final secondPing = second.stream.first.timeout(const Duration(seconds: 3));
 
-        await post('/projects/project-1/changesets', token: 'token-1', jsonBody: _envelope('changeset-1').toJson());
+        await post(
+          '/projects/project-1/changesets',
+          token: 'token-1',
+          jsonBody: _envelope('changeset-1').toJson(),
+        );
 
         expect(await firstPing, isNotNull);
         expect(await secondPing, isNotNull);
@@ -238,13 +233,20 @@ void main() {
         final onEventStore = OcptRelayStore(':memory:');
         addTearDown(onEventStore.close);
         onEventStore.createProject(projectId: 'project-1', tokenHash: _tokenHash('token-1'));
-        final onEventServer = OcptRelayServer(store: onEventStore, enrolmentSecret: _enrolmentSecret, onEvent: events.add);
+        final onEventServer = OcptRelayServer(
+          store: onEventStore,
+          enrolmentSecret: _enrolmentSecret,
+          onEvent: events.add,
+        );
         final onEventHttpServer = await shelf_io.serve(onEventServer.handler, 'localhost', 0);
         addTearDown(() => onEventHttpServer.close(force: true));
         final onEventBaseUri = Uri.parse('http://localhost:${onEventHttpServer.port}');
 
         final uri = onEventBaseUri.replace(scheme: 'ws', path: '/projects/project-1/events');
-        final channel = IOWebSocketChannel.connect(uri, headers: {'authorization': 'Bearer token-1'});
+        final channel = IOWebSocketChannel.connect(
+          uri,
+          headers: {'authorization': 'Bearer token-1'},
+        );
         await channel.ready;
         expect(events, ['events subscriber connected: project=project-1']);
 
@@ -269,7 +271,11 @@ void main() {
         // Give the server a moment to observe the close and run its own cleanup.
         await Future<void>.delayed(const Duration(milliseconds: 300));
 
-        await post('/projects/project-1/changesets', token: 'token-1', jsonBody: _envelope('changeset-1').toJson());
+        await post(
+          '/projects/project-1/changesets',
+          token: 'token-1',
+          jsonBody: _envelope('changeset-1').toJson(),
+        );
         // No exception above is the assertion: a leaked, closed sink in the subscriber set would
         // throw when the server tries to send it a ping.
       },

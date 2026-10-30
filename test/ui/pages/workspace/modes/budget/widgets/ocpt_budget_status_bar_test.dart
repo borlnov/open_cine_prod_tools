@@ -26,7 +26,12 @@ void main() {
   testWidgets("names the trailing figure as the quote, whatever it is", (tester) async {
     await tester.pumpWidget(
       _wrap(
-        const OcptBudgetStatusBar(posteCount: 10, lineCount: 24, quotedTotalCents: 1996000, currencyCode: "EUR"),
+        const OcptBudgetStatusBar(
+          posteCount: 10,
+          lineCount: 24,
+          quotedTotalCents: 1996000,
+          currencyCode: "EUR",
+        ),
       ),
     );
 
@@ -41,7 +46,14 @@ void main() {
 
   testWidgets("still names the figure on a project whose quote is empty", (tester) async {
     await tester.pumpWidget(
-      _wrap(const OcptBudgetStatusBar(posteCount: 0, lineCount: 0, quotedTotalCents: 0, currencyCode: "EUR")),
+      _wrap(
+        const OcptBudgetStatusBar(
+          posteCount: 0,
+          lineCount: 0,
+          quotedTotalCents: 0,
+          currencyCode: "EUR",
+        ),
+      ),
     );
 
     final tr = Tr.of(tester.element(find.byType(OcptBudgetStatusBar)));

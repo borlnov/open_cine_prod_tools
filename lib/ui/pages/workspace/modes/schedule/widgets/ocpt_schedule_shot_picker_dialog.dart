@@ -186,7 +186,8 @@ class _OcptScheduleShotPickerDialogState extends State<OcptScheduleShotPickerDia
       for (final sequence in shotListSnapshot.sequences) {
         final matchingShots = [
           for (final shot in sequence.shots)
-            if (ocptResourcesSearchMatches(query: query, fields: _searchFieldsOf(sequence, shot))) shot,
+            if (ocptResourcesSearchMatches(query: query, fields: _searchFieldsOf(sequence, shot)))
+              shot,
         ];
         if (matchingShots.isEmpty) {
           continue;
@@ -200,7 +201,10 @@ class _OcptScheduleShotPickerDialogState extends State<OcptScheduleShotPickerDia
       }
 
       sections.add(
-        _OcptScheduleShotPickerSection(screenplayId: shotListSnapshot.screenplayId, sequences: filtered),
+        _OcptScheduleShotPickerSection(
+          screenplayId: shotListSnapshot.screenplayId,
+          sequences: filtered,
+        ),
       );
     }
 
@@ -220,25 +224,30 @@ class _OcptScheduleShotPickerDialogState extends State<OcptScheduleShotPickerDia
   /// [sequence] with its own shots replaced by [shots] — narrows a sequence down to its matching
   /// shots without losing which subclass (a real scene or the orphan group) it is, which is what
   /// [_buildSequenceSection] reads its own heading off.
-  OcptShotSequence _narrowedTo(OcptShotSequence sequence, List<OcptShot> shots) => switch (sequence) {
-    OcptSceneShotSequence() => OcptSceneShotSequence(
-      sceneId: sequence.sceneId,
-      heading: sequence.heading,
-      sceneNumber: sequence.sceneNumber,
-      displaySceneNumber: sequence.displaySceneNumber,
-      charStart: sequence.charStart,
-      charEnd: sequence.charEnd,
-      shots: shots,
-    ),
-    OcptOrphanShotSequence() => OcptOrphanShotSequence(shots: shots),
-  };
+  OcptShotSequence _narrowedTo(OcptShotSequence sequence, List<OcptShot> shots) =>
+      switch (sequence) {
+        OcptSceneShotSequence() => OcptSceneShotSequence(
+          sceneId: sequence.sceneId,
+          heading: sequence.heading,
+          sceneNumber: sequence.sceneNumber,
+          displaySceneNumber: sequence.displaySceneNumber,
+          charStart: sequence.charStart,
+          charEnd: sequence.charEnd,
+          shots: shots,
+        ),
+        OcptOrphanShotSequence() => OcptOrphanShotSequence(shots: shots),
+      };
 
   /// One episode's own run of sections: an [OcptScheduleEpisodeBand] naming it — the same reading
   /// the left dock's own list gives it — over each of its own sequences still matching the search,
   /// or no band at all while [OcptScheduleShotPickerDialog.episodes] holds one episode or none
   /// (ADR 0019) or [section]'s own [_OcptScheduleShotPickerSection.screenplayId] names none of
   /// them (a stale id mid-reload, read the same defensive way `ocptEpisodePrefixNumberOf` does).
-  List<Widget> _buildEpisodeSection(BuildContext context, Tr tr, _OcptScheduleShotPickerSection section) {
+  List<Widget> _buildEpisodeSection(
+    BuildContext context,
+    Tr tr,
+    _OcptScheduleShotPickerSection section,
+  ) {
     final widgets = <Widget>[];
 
     if (widget.episodes.length > 1) {
@@ -261,7 +270,9 @@ class _OcptScheduleShotPickerDialogState extends State<OcptScheduleShotPickerDia
   /// list gives a sequence — over its shots, each a clickable row.
   Widget _buildSequenceSection(BuildContext context, Tr tr, OcptShotSequence sequence) {
     final theme = Theme.of(context);
-    final displaySceneNumber = sequence is OcptSceneShotSequence ? sequence.displaySceneNumber : null;
+    final displaySceneNumber = sequence is OcptSceneShotSequence
+        ? sequence.displaySceneNumber
+        : null;
     final heading = sequence is OcptSceneShotSequence ? sequence.heading : null;
     final tag = displaySceneNumber == null
         ? tr.scheduleUnplacedOrphanGroupLabel
@@ -309,7 +320,9 @@ class _OcptScheduleShotPickerDialogState extends State<OcptScheduleShotPickerDia
   Widget _buildShotRow(BuildContext context, Tr tr, ThemeData theme, OcptShot shot) {
     final dayNumbers = widget.placedDayNumbersByShotId[shot.id];
     final isPlaced = dayNumbers != null && dayNumbers.isNotEmpty;
-    final mutedStyle = theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant);
+    final mutedStyle = theme.textTheme.labelSmall?.copyWith(
+      color: theme.colorScheme.onSurfaceVariant,
+    );
 
     return InkWell(
       onTap: () => globalGetIt().get<OcptRouterManager>().pop<String>(shot.id),
@@ -321,7 +334,10 @@ class _OcptScheduleShotPickerDialogState extends State<OcptScheduleShotPickerDia
           children: [
             Padding(
               padding: const EdgeInsets.only(right: 8),
-              child: Text(shot.code, style: theme.textTheme.labelSmall?.copyWith(fontWeight: FontWeight.bold)),
+              child: Text(
+                shot.code,
+                style: theme.textTheme.labelSmall?.copyWith(fontWeight: FontWeight.bold),
+              ),
             ),
             Expanded(
               child: Text(

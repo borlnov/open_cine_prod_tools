@@ -265,10 +265,7 @@ class OcptStoryboardService {
   /// {@macro open_cine_prod_tools.tombstones}
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<void> deletePanel({
-    required OcptProjectDatabase database,
-    required String panelId,
-  }) async {
+  Future<void> deletePanel({required OcptProjectDatabase database, required String panelId}) async {
     if (database.refusesUserWrite("deletePanel")) {
       return;
     }
@@ -483,11 +480,9 @@ class OcptStoryboardService {
     required OcptProjectDatabase database,
     required String screenplayId,
   }) async {
-    final rows =
-        await (database.select(database.ocptShotsTable)..where(
-              (table) => table.screenplayId.equals(screenplayId) & table.isDeleted.not(),
-            ))
-            .get();
+    final rows = await (database.select(
+      database.ocptShotsTable,
+    )..where((table) => table.screenplayId.equals(screenplayId) & table.isDeleted.not())).get();
     return rows.map((row) => row.id).toList(growable: false);
   }
 
@@ -503,11 +498,9 @@ class OcptStoryboardService {
       return const {};
     }
 
-    final rows =
-        await (database.select(
-              database.ocptAssetsTable,
-            )..where((table) => table.id.isIn(assetIds) & table.isDeleted.not()))
-            .get();
+    final rows = await (database.select(
+      database.ocptAssetsTable,
+    )..where((table) => table.id.isIn(assetIds) & table.isDeleted.not())).get();
     return {for (final row in rows) row.id: row.path};
   }
 
@@ -515,25 +508,27 @@ class OcptStoryboardService {
   Future<List<OcptStoryboardPanelRow>> _panelRowsOfShot({
     required OcptProjectDatabase database,
     required String shotId,
-  }) => (database.select(database.ocptStoryboardPanelsTable)
-        ..where((table) => table.shotId.equals(shotId) & table.isDeleted.not())
-        ..orderBy([(table) => OrderingTerm.asc(table.sortKey)]))
-      .get();
+  }) =>
+      (database.select(database.ocptStoryboardPanelsTable)
+            ..where((table) => table.shotId.equals(shotId) & table.isDeleted.not())
+            ..orderBy([(table) => OrderingTerm.asc(table.sortKey)]))
+          .get();
 
   /// Reads back the live panel row [panelId], or null if it doesn't exist or has been tombstoned.
   Future<OcptStoryboardPanelRow?> _livePanelRowOrNull({
     required OcptProjectDatabase database,
     required String panelId,
-  }) => (database.select(database.ocptStoryboardPanelsTable)
-        ..where((table) => table.id.equals(panelId) & table.isDeleted.not()))
-      .getSingleOrNull();
+  }) => (database.select(
+    database.ocptStoryboardPanelsTable,
+  )..where((table) => table.id.equals(panelId) & table.isDeleted.not())).getSingleOrNull();
 
   /// Every live annotation row of panel [panelId], ordered by `sortKey`.
   Future<List<OcptStoryboardAnnotationRow>> _annotationRowsOfPanel({
     required OcptProjectDatabase database,
     required String panelId,
-  }) => (database.select(database.ocptStoryboardAnnotationsTable)
-        ..where((table) => table.panelId.equals(panelId) & table.isDeleted.not())
-        ..orderBy([(table) => OrderingTerm.asc(table.sortKey)]))
-      .get();
+  }) =>
+      (database.select(database.ocptStoryboardAnnotationsTable)
+            ..where((table) => table.panelId.equals(panelId) & table.isDeleted.not())
+            ..orderBy([(table) => OrderingTerm.asc(table.sortKey)]))
+          .get();
 }

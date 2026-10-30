@@ -113,7 +113,14 @@ class OcptChangesetEnvelope extends Equatable {
   };
 
   @override
-  List<Object?> get props => [changesetId, originDeviceId, lamport, createdAt, payload, protocolFormat];
+  List<Object?> get props => [
+    changesetId,
+    originDeviceId,
+    lamport,
+    createdAt,
+    payload,
+    protocolFormat,
+  ];
 
   @override
   String toString() =>

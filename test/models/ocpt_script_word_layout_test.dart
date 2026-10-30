@@ -119,10 +119,7 @@ void main() {
         sceneId: sceneId,
         sceneText: withoutTrailingNewline,
       );
-      final layoutWith = OcptScriptWordLayout.of(
-        sceneId: sceneId,
-        sceneText: withTrailingNewline,
-      );
+      final layoutWith = OcptScriptWordLayout.of(sceneId: sceneId, sceneText: withTrailingNewline);
 
       // Both still see exactly the two non-blank blocks; a trailing newline only adds a blank
       // line, which never carries a block of its own.
@@ -369,7 +366,8 @@ void main() {
     // Two speakers, the second one cued twice, so first-appearance order and deduplication are
     // both observable; JOHN's cue carries an extension and a forcing marker, neither of which may
     // reach the name the shot list stores.
-    const dialogueSceneText = 'INT. HOUSE - DAY\n\nJohn walks in.\n\n@JOHN (V.O.)\n'
+    const dialogueSceneText =
+        'INT. HOUSE - DAY\n\nJohn walks in.\n\n@JOHN (V.O.)\n'
         '(whispering)\nHello there.\n\nSARAH\nHello back.\n\nThey wait.\n\nJOHN\nStill here.';
 
     /// The layout of [dialogueSceneText], and the span of the block whose text is [blockText].
@@ -382,10 +380,7 @@ void main() {
       final (layout, block) = layoutAndBlock("@JOHN (V.O.)");
 
       expect(
-        layout.charactersCoveredBy(
-          startOffset: block.startOffset,
-          endOffset: block.endOffset,
-        ),
+        layout.charactersCoveredBy(startOffset: block.startOffset, endOffset: block.endOffset),
         ["JOHN"],
       );
     });
@@ -425,7 +420,8 @@ void main() {
     });
 
     test("names the character a covered action line introduces in capitals", () {
-      const sceneWithSilentRole = 'INT. HOUSE - DAY\n\nELISA entre dans la pièce.\n\nJOHN\n'
+      const sceneWithSilentRole =
+          'INT. HOUSE - DAY\n\nELISA entre dans la pièce.\n\nJOHN\n'
           'Hello there.';
       final layout = OcptScriptWordLayout.of(sceneId: sceneId, sceneText: sceneWithSilentRole);
       final action = layout.blocks.firstWhere((block) => block.text.startsWith("ELISA"));
@@ -448,19 +444,18 @@ void main() {
         layout.charactersCoveredBy(startOffset: heading.startOffset, endOffset: heading.endOffset),
         isEmpty,
       );
-      expect(
-        layout.charactersCoveredBy(startOffset: 0, endOffset: sceneWithTightHeading.length),
-        ["MARIE"],
-      );
+      expect(layout.charactersCoveredBy(startOffset: 0, endOffset: sceneWithTightHeading.length), [
+        "MARIE",
+      ]);
     });
 
     test("names every speaker of a wider span once, in first-appearance order", () {
       final (layout, _) = layoutAndBlock("INT. HOUSE - DAY");
 
-      expect(
-        layout.charactersCoveredBy(startOffset: 0, endOffset: dialogueSceneText.length),
-        ["JOHN", "SARAH"],
-      );
+      expect(layout.charactersCoveredBy(startOffset: 0, endOffset: dialogueSceneText.length), [
+        "JOHN",
+        "SARAH",
+      ]);
     });
 
     test("stops naming a speaker once the dialogue group is over", () {
@@ -501,7 +496,10 @@ void main() {
     );
     final shotListService = OcptShotListService(
       roleIndexService: roleIndexService,
-      storyboardService: OcptStoryboardService(assetsService: assetsService, deviceId: testDeviceId),
+      storyboardService: OcptStoryboardService(
+        assetsService: assetsService,
+        deviceId: testDeviceId,
+      ),
       floorPlanService: OcptFloorPlanService(assetsService: assetsService, deviceId: testDeviceId),
       deviceId: testDeviceId,
     );

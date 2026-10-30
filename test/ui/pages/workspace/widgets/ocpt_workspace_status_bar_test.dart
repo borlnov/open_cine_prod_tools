@@ -8,13 +8,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_s
 
 /// Five synthetic counters, ordered from most to least essential, mirroring the screenplay
 /// status bar's own pages/scenes/characters/words/signs order and 3-entry non-droppable floor.
-const _counters = [
-  "42 pages",
-  "10 scenes",
-  "6 characters",
-  "8640 words",
-  "51200 signs",
-];
+const _counters = ["42 pages", "10 scenes", "6 characters", "8640 words", "51200 signs"];
 
 const _trailingText = "Saved 2 min ago";
 
@@ -48,10 +42,7 @@ Future<void> _pumpStatusBar(
               counters: _counters,
               nonDroppableCount: nonDroppableCount,
               trailingText: _trailingText,
-              trailing: Text(
-                _trailingText,
-                style: Theme.of(context).textTheme.labelSmall,
-              ),
+              trailing: Text(_trailingText, style: Theme.of(context).textTheme.labelSmall),
             ),
           ),
         ),
@@ -71,19 +62,18 @@ void main() {
     expect(find.text(_trailingText), findsOneWidget);
   });
 
-  testWidgets(
-    "narrowing the status bar drops the last droppable counter first, keeping the rest",
-    (tester) async {
-      await _pumpStatusBar(tester, width: 850);
+  testWidgets("narrowing the status bar drops the last droppable counter first, keeping the rest", (
+    tester,
+  ) async {
+    await _pumpStatusBar(tester, width: 850);
 
-      expect(find.textContaining("42 pages"), findsOneWidget);
-      expect(find.textContaining("10 scenes"), findsOneWidget);
-      expect(find.textContaining("6 characters"), findsOneWidget);
-      expect(find.textContaining("8640 words"), findsOneWidget);
-      expect(find.textContaining("51200 signs"), findsNothing);
-      expect(find.text(_trailingText), findsOneWidget);
-    },
-  );
+    expect(find.textContaining("42 pages"), findsOneWidget);
+    expect(find.textContaining("10 scenes"), findsOneWidget);
+    expect(find.textContaining("6 characters"), findsOneWidget);
+    expect(find.textContaining("8640 words"), findsOneWidget);
+    expect(find.textContaining("51200 signs"), findsNothing);
+    expect(find.text(_trailingText), findsOneWidget);
+  });
 
   testWidgets(
     "narrowing the status bar further drops down to the non-droppable floor and never below it",

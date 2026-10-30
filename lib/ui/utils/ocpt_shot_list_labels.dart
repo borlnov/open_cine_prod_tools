@@ -16,7 +16,8 @@ import 'package:open_cine_prod_tools/models/ocpt_storyboard_labels.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_column.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_xlsx_column.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_status.dart';
-import 'package:open_cine_prod_tools/ui/utils/ocpt_schedule_labels.dart' show ocptScheduleDayTagLabel;
+import 'package:open_cine_prod_tools/ui/utils/ocpt_schedule_labels.dart'
+    show ocptScheduleDayTagLabel;
 
 /// The placeholder shown in place of a shot field that has no value yet.
 ///
@@ -290,7 +291,9 @@ String ocptShotPlacementLabel(BuildContext context, List<OcptShotPlacement> plac
     return "${ocptScheduleDayTagLabel(tr, placement.dayNumber)} · $dateLabel";
   }
 
-  return orderedDays.map((placement) => ocptScheduleDayTagLabel(tr, placement.dayNumber)).join(", ");
+  return orderedDays
+      .map((placement) => ocptScheduleDayTagLabel(tr, placement.dayNumber))
+      .join(", ");
 }
 
 /// Parses a shot's estimated duration from [input], the inverse of [ocptFormatShotDuration].

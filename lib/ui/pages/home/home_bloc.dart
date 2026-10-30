@@ -467,8 +467,10 @@ class OcptHomeBloc extends BlocForMixin<OcptHomeState>
         snapshotReason: OcptSnapshotReason.import,
       );
     } catch (error) {
-      appLogger().e("A problem occurred when tried to import a fountain file into the project at "
-          "$filePath: $error");
+      appLogger().e(
+        "A problem occurred when tried to import a fountain file into the project at "
+        "$filePath: $error",
+      );
       emitter(state.copyWith(isBusy: false, error: OcptProjectStatus.ioError));
       return;
     }

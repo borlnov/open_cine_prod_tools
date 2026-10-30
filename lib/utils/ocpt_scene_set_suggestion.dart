@@ -52,10 +52,7 @@ const _minimumContainmentLength = 3;
 /// Ties go to the first set in display order. Accents are **not** folded: both sides are the user's
 /// own text about one production, and `CUISINE` matching `CUISINÉ` would be a coincidence rather
 /// than a match.
-String? ocptSceneSetSuggestionOf({
-  required String heading,
-  required List<OcptLocation> locations,
-}) {
+String? ocptSceneSetSuggestionOf({required String heading, required List<OcptLocation> locations}) {
   final place = ocptSceneHeadingPlaceOf(heading);
   if (place.isEmpty) {
     return null;

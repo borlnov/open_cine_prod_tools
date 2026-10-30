@@ -47,16 +47,10 @@ class FdxScriptReader {
 
   /// Matches the line of a title page naming the work the screenplay was
   /// adapted from.
-  static final RegExp _sourceLine = RegExp(
-    r"^(based\s+on|d['’]après)",
-    caseSensitive: false,
-  );
+  static final RegExp _sourceLine = RegExp(r"^(based\s+on|d['’]après)", caseSensitive: false);
 
   /// Matches the line of a title page naming which draft this is.
-  static final RegExp _draftLine = RegExp(
-    r'\b(draft|version)\b',
-    caseSensitive: false,
-  );
+  static final RegExp _draftLine = RegExp(r'\b(draft|version)\b', caseSensitive: false);
 
   /// Renders the lines this reader makes out of a document.
   final ScriptFountainEmitter emitter;
@@ -74,9 +68,7 @@ class FdxScriptReader {
     final root = _parseRoot(decodeScriptText(bytes));
 
     final documentType = root.getAttribute('DocumentType')?.trim();
-    if (documentType != null &&
-        documentType.isNotEmpty &&
-        documentType != 'Script') {
+    if (documentType != null && documentType.isNotEmpty && documentType != 'Script') {
       throw ScriptImportException(
         ScriptImportFailure.unsupportedFormat,
         details: 'Final Draft DocumentType "$documentType" is not a script',
@@ -162,16 +154,11 @@ class FdxScriptReader {
     final lines = <ScriptLine>[];
     var cueCount = 0;
     for (final paragraph in group.findAllElements('Paragraph')) {
-      final isCue =
-          _lineTypeOf(paragraph.getAttribute('Type')) ==
-          FountainLineType.character;
+      final isCue = _lineTypeOf(paragraph.getAttribute('Type')) == FountainLineType.character;
       if (isCue) {
         cueCount++;
       }
-      final line = _readParagraph(
-        paragraph,
-        isDualDialogue: isCue && cueCount == 2,
-      );
+      final line = _readParagraph(paragraph, isDualDialogue: isCue && cueCount == 2);
       if (line != null) {
         lines.add(line);
       }
@@ -181,10 +168,7 @@ class FdxScriptReader {
 
   /// Reads one `<Paragraph>` as a line of screenplay, or `null` when it
   /// carries no text at all (Final Draft's own way of writing a spacer).
-  ScriptLine? _readParagraph(
-    XmlElement paragraph, {
-    bool isDualDialogue = false,
-  }) {
+  ScriptLine? _readParagraph(XmlElement paragraph, {bool isDualDialogue = false}) {
     final runs = _runsOf(paragraph);
     if (runs.isEmpty) {
       return null;
@@ -199,22 +183,21 @@ class FdxScriptReader {
   }
 
   /// The [FountainLineType] a `<Paragraph>`'s `Type` attribute maps to.
-  FountainLineType _lineTypeOf(String? paragraphType) =>
-      switch (paragraphType?.trim()) {
-        'Scene Heading' => FountainLineType.sceneHeading,
-        'Character' => FountainLineType.character,
-        'Parenthetical' => FountainLineType.parenthetical,
-        'Dialogue' => FountainLineType.dialogue,
-        'Transition' => FountainLineType.transition,
-        // An act break prints centered on its own line, which is the one
-        // thing Fountain has to say about it.
-        'New Act' || 'End of Act' => FountainLineType.centeredText,
-        // `Action`, `General`, `Shot`, `Cast List`, and every type a later
-        // Final Draft version invents, all print as ordinary prose. Falling
-        // back to action rather than refusing the file is deliberate: an
-        // unknown element costs its own styling, never its text.
-        _ => FountainLineType.action,
-      };
+  FountainLineType _lineTypeOf(String? paragraphType) => switch (paragraphType?.trim()) {
+    'Scene Heading' => FountainLineType.sceneHeading,
+    'Character' => FountainLineType.character,
+    'Parenthetical' => FountainLineType.parenthetical,
+    'Dialogue' => FountainLineType.dialogue,
+    'Transition' => FountainLineType.transition,
+    // An act break prints centered on its own line, which is the one
+    // thing Fountain has to say about it.
+    'New Act' || 'End of Act' => FountainLineType.centeredText,
+    // `Action`, `General`, `Shot`, `Cast List`, and every type a later
+    // Final Draft version invents, all print as ordinary prose. Falling
+    // back to action rather than refusing the file is deliberate: an
+    // unknown element costs its own styling, never its text.
+    _ => FountainLineType.action,
+  };
 
   /// The styled runs of a `<Paragraph>`, one per direct `<Text>` child.
   ///

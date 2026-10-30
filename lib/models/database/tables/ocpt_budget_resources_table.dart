@@ -9,7 +9,8 @@ import 'package:open_cine_prod_tools/types/ocpt_budget_resource_status.dart';
 
 /// Converts a [OcptBudgetResourceGroupKind] to and from the text stored in the
 /// `budget_resources.groupKind` column.
-class OcptBudgetResourceGroupKindConverter extends TypeConverter<OcptBudgetResourceGroupKind, String> {
+class OcptBudgetResourceGroupKindConverter
+    extends TypeConverter<OcptBudgetResourceGroupKind, String> {
   /// Class constructor
   const OcptBudgetResourceGroupKindConverter();
 

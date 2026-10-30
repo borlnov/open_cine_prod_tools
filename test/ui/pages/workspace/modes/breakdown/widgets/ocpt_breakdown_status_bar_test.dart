@@ -19,7 +19,9 @@ Widget _wrapInApp(Widget child, {double width = 700}) => MaterialApp(
     GlobalCupertinoLocalizations.delegate,
   ],
   supportedLocales: Tr.delegate.supportedLocales,
-  home: Scaffold(body: SizedBox(width: width, child: child)),
+  home: Scaffold(
+    body: SizedBox(width: width, child: child),
+  ),
 );
 
 void main() {
@@ -87,8 +89,9 @@ void main() {
     expect(toCheckText.style?.color, isNot(warningColor));
   });
 
-  testWidgets("the to-check counter wears the warning colour once something needs checking",
-      (tester) async {
+  testWidgets("the to-check counter wears the warning colour once something needs checking", (
+    tester,
+  ) async {
     await pumpStatusBar(tester, needsCheckTagCount: 3);
 
     final warningColor = ocptWarningColor(tester.element(find.byType(OcptBreakdownStatusBar)));

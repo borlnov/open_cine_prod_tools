@@ -89,5 +89,4 @@ class OcptRoleCastingProgress extends Equatable {
 
 /// How many of [roles] are cast (`OcptRole.personId != null`) — the `M` half of the roles tab
 /// header's `N roles · M cast`.
-int ocptCastRoleCount(List<OcptRole> roles) =>
-    roles.where((role) => role.personId != null).length;
+int ocptCastRoleCount(List<OcptRole> roles) => roles.where((role) => role.personId != null).length;

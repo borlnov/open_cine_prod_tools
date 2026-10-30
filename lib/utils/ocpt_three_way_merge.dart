@@ -75,13 +75,18 @@ class OcptThreeWayMergeHunk extends Equatable {
   final List<String> rightLines;
 
   /// Creates a merge hunk.
-  const OcptThreeWayMergeHunk({required this.baseLines, required this.leftLines, required this.rightLines});
+  const OcptThreeWayMergeHunk({
+    required this.baseLines,
+    required this.leftLines,
+    required this.rightLines,
+  });
 
   @override
   List<Object?> get props => [baseLines, leftLines, rightLines];
 
   @override
-  String toString() => 'OcptThreeWayMergeHunk(baseLines: $baseLines, leftLines: $leftLines, rightLines: $rightLines)';
+  String toString() =>
+      'OcptThreeWayMergeHunk(baseLines: $baseLines, leftLines: $leftLines, rightLines: $rightLines)';
 }
 
 /// Merges [left] and [right], two texts that independently diverged from their common ancestor
@@ -124,7 +129,11 @@ class OcptThreeWayMergeHunk extends Equatable {
 /// than per keystroke, but **not** something this function is asked to run on every parse debounce.
 /// A screenplay of a few thousand lines costs a few tens of megabytes of transient `Uint32List`
 /// scratch space, released as soon as this function returns.
-OcptThreeWayMergeResult ocptThreeWayMerge({required String base, required String left, required String right}) {
+OcptThreeWayMergeResult ocptThreeWayMerge({
+  required String base,
+  required String left,
+  required String right,
+}) {
   final baseLines = base.split('\n');
   final leftLines = left.split('\n');
   final rightLines = right.split('\n');
@@ -156,7 +165,9 @@ OcptThreeWayMergeResult ocptThreeWayMerge({required String base, required String
       // Both sides made the very same change independently: not a conflict.
       mergedLines.addAll(leftChunk);
     } else {
-      hunks.add(OcptThreeWayMergeHunk(baseLines: baseChunk, leftLines: leftChunk, rightLines: rightChunk));
+      hunks.add(
+        OcptThreeWayMergeHunk(baseLines: baseChunk, leftLines: leftChunk, rightLines: rightChunk),
+      );
     }
   }
 
@@ -233,7 +244,9 @@ List<_MatchingBlock> _matchingBlocks(List<String> base, List<String> other) {
     final rowBelow = dp[i + 1];
     final row = dp[i];
     for (var j = m - 1; j >= 0; j--) {
-      row[j] = base[i] == other[j] ? rowBelow[j + 1] + 1 : (rowBelow[j] >= row[j + 1] ? rowBelow[j] : row[j + 1]);
+      row[j] = base[i] == other[j]
+          ? rowBelow[j + 1] + 1
+          : (rowBelow[j] >= row[j + 1] ? rowBelow[j] : row[j + 1]);
     }
   }
 
@@ -248,7 +261,13 @@ List<_MatchingBlock> _matchingBlocks(List<String> base, List<String> other) {
         i++;
         j++;
       }
-      blocks.add(_MatchingBlock(baseStart: blockBaseStart, otherStart: blockOtherStart, length: i - blockBaseStart));
+      blocks.add(
+        _MatchingBlock(
+          baseStart: blockBaseStart,
+          otherStart: blockOtherStart,
+          length: i - blockBaseStart,
+        ),
+      );
     } else if (dp[i + 1][j] >= dp[i][j + 1]) {
       i++;
     } else {

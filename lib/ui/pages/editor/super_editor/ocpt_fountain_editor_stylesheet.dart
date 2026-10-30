@@ -123,7 +123,9 @@ class OcptFountainEditorStylesheet {
         left: horizontalDocumentPaddingInset,
         right: horizontalDocumentPaddingInset,
         top: isPageSimulationEnabled ? layout.marginTop : _fluidVerticalDocumentPaddingInset,
-        bottom: isPageSimulationEnabled ? trailingBottomPadding : _fluidVerticalDocumentPaddingInset,
+        bottom: isPageSimulationEnabled
+            ? trailingBottomPadding
+            : _fluidVerticalDocumentPaddingInset,
       ),
       inlineTextStyler: (attributions, existingStyle) =>
           _inlineTextStyler(attributions, existingStyle, onSurfaceVariant),
@@ -166,8 +168,10 @@ class OcptFountainEditorStylesheet {
           // (which gives a character cue no base weight of its own — only its upper-casing, a
           // print-time transform this editor never applies to the source text it displays);
           // absent from both the raw preview and the PDF.
-          textStyle: _baseTextStyle(FountainLineType.character, baseStyle)
-              .copyWith(color: accent, fontWeight: FontWeight.bold),
+          textStyle: _baseTextStyle(
+            FountainLineType.character,
+            baseStyle,
+          ).copyWith(color: accent, fontWeight: FontWeight.bold),
           isCompact: isCompactFluid,
         ),
         _rule(
@@ -178,10 +182,10 @@ class OcptFountainEditorStylesheet {
           // marking a parenthetical as visually secondary to the dialogue it annotates, layered on
           // top of the shared table's base style (plain, for this type); absent from both the raw
           // preview and the PDF (which print it in plain roman, at full opacity).
-          textStyle: _baseTextStyle(FountainLineType.parenthetical, baseStyle).copyWith(
-            color: onSurfaceVariant,
-            fontStyle: FontStyle.italic,
-          ),
+          textStyle: _baseTextStyle(
+            FountainLineType.parenthetical,
+            baseStyle,
+          ).copyWith(color: onSurfaceVariant, fontStyle: FontStyle.italic),
           opacity: _parentheticalOpacity,
           isCompact: isCompactFluid,
         ),
@@ -231,10 +235,7 @@ class OcptFountainEditorStylesheet {
           FountainLineType.synopsis,
           metrics.action,
           layout,
-          textStyle: baseStyle.copyWith(
-            color: onSurfaceVariant,
-            fontStyle: FontStyle.italic,
-          ),
+          textStyle: baseStyle.copyWith(color: onSurfaceVariant, fontStyle: FontStyle.italic),
           opacity: _nonPrintingOpacity,
           isCompact: isCompactFluid,
         ),
@@ -320,25 +321,25 @@ class OcptFountainEditorStylesheet {
     TextAlign textAlign = TextAlign.left,
     double opacity = 1,
     bool isCompact = false,
-  }) => StyleRule(
-    BlockSelector(OcptFountainLineAttributions.attributionOf(type).name),
-    (document, node) {
-      final scale = isCompact ? OcptEditorPreviewLayout.compactLayoutScale : 1.0;
-      final indent = layout.indentOf(element) * scale;
-      final width = layout.widthOf(element) * scale;
+  }) => StyleRule(BlockSelector(OcptFountainLineAttributions.attributionOf(type).name), (
+    document,
+    node,
+  ) {
+    final scale = isCompact ? OcptEditorPreviewLayout.compactLayoutScale : 1.0;
+    final indent = layout.indentOf(element) * scale;
+    final width = layout.widthOf(element) * scale;
 
-      return {
-        Styles.padding: CascadingPadding.only(
-          left: indent,
-          top: _blankLinesBeforeTopPadding(node, layout) + _pageBoundaryTopPadding(node),
-        ),
-        Styles.maxWidth: indent + width,
-        Styles.textAlign: textAlign,
-        Styles.textStyle: textStyle,
-        Styles.opacity: opacity,
-      };
-    },
-  );
+    return {
+      Styles.padding: CascadingPadding.only(
+        left: indent,
+        top: _blankLinesBeforeTopPadding(node, layout) + _pageBoundaryTopPadding(node),
+      ),
+      Styles.maxWidth: indent + width,
+      Styles.textAlign: textAlign,
+      Styles.textStyle: textStyle,
+      Styles.opacity: opacity,
+    };
+  });
 
   /// The extra top padding standing in for [node]'s [ocptBlankLinesBeforeMetadataKey] blank source
   /// lines, one [OcptEditorPreviewLayout.lineHeight] each, capped at

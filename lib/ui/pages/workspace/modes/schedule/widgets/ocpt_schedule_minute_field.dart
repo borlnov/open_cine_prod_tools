@@ -76,8 +76,7 @@ class _OcptScheduleMinuteFieldState extends State<OcptScheduleMinuteField> {
   late int? _lastReportedMinute = widget.minute;
 
   /// [OcptScheduleMinuteField.minute] formatted as `HH:mm`, or the empty string while it is null.
-  String get _formattedMinute =>
-      widget.minute == null ? "" : ocptFormatDayMinute(widget.minute!);
+  String get _formattedMinute => widget.minute == null ? "" : ocptFormatDayMinute(widget.minute!);
 
   @override
   void initState() {

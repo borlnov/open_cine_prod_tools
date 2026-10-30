@@ -35,15 +35,16 @@ OcptBudgetLine _buildLine({
 
 /// Builds a poste quoted at [quotedAmountCents] (a single line carrying that whole amount),
 /// everything else neutral.
-OcptBudgetPoste _buildPoste({required String id, required int quotedAmountCents}) => OcptBudgetPoste(
-  id: id,
-  code: "1",
-  label: "Poste $id",
-  simpleLabel: null,
-  estimateToCompleteCents: null,
-  sortKey: "a0",
-  lines: [_buildLine(id: "$id-line", posteId: id, amountCents: quotedAmountCents)],
-);
+OcptBudgetPoste _buildPoste({required String id, required int quotedAmountCents}) =>
+    OcptBudgetPoste(
+      id: id,
+      code: "1",
+      label: "Poste $id",
+      simpleLabel: null,
+      estimateToCompleteCents: null,
+      sortKey: "a0",
+      lines: [_buildLine(id: "$id-line", posteId: id, amountCents: quotedAmountCents)],
+    );
 
 /// Builds a commitment against [posteId], everything else neutral — settlement is read off
 /// whichever entries a test hands alongside it, never a field of the commitment itself any more.
@@ -64,27 +65,24 @@ OcptBudgetCommitment _buildCommitment({
 );
 
 /// Builds a debit entry naming [commitmentId], everything else neutral.
-OcptBudgetEntry _buildEntry({
-  required String id,
-  String? commitmentId,
-  int debitCents = 0,
-}) => OcptBudgetEntry(
-  id: id,
-  date: DateTime(2026),
-  label: "Entry $id",
-  posteId: null,
-  debitCents: debitCents,
-  creditCents: 0,
-  isTaxInclusive: true,
-  vatRateBasisPoints: null,
-  voucherNumber: "J-001",
-  sortKey: "a0",
-  resourceId: null,
-  revenueId: null,
-  shareId: null,
-  commitmentId: commitmentId,
-  personId: null,
-);
+OcptBudgetEntry _buildEntry({required String id, String? commitmentId, int debitCents = 0}) =>
+    OcptBudgetEntry(
+      id: id,
+      date: DateTime(2026),
+      label: "Entry $id",
+      posteId: null,
+      debitCents: debitCents,
+      creditCents: 0,
+      isTaxInclusive: true,
+      vatRateBasisPoints: null,
+      voucherNumber: "J-001",
+      sortKey: "a0",
+      resourceId: null,
+      revenueId: null,
+      shareId: null,
+      commitmentId: commitmentId,
+      personId: null,
+    );
 
 /// The zero-everything cash totals every test not concerned with the balance itself starts from.
 const _zeroCashTotals = OcptBudgetCashTotals(
@@ -209,17 +207,22 @@ void main() {
       );
 
       expect(alerts, hasLength(2));
-      expect(
-        alerts.map((alert) => (alert as OcptBudgetPosteOverQuoteAlert).posteId),
-        ["poste-1", "poste-3"],
-      );
+      expect(alerts.map((alert) => (alert as OcptBudgetPosteOverQuoteAlert).posteId), [
+        "poste-1",
+        "poste-3",
+      ]);
     });
   });
 
   group("the cash projection going negative", () {
     test("raises nothing while it never goes under", () {
       final commitments = [
-        _buildCommitment(id: "c1", posteId: "poste-1", dueDate: DateTime(2026, 2), amountCents: 3000),
+        _buildCommitment(
+          id: "c1",
+          posteId: "poste-1",
+          dueDate: DateTime(2026, 2),
+          amountCents: 3000,
+        ),
       ];
 
       final alerts = _computeAlerts(
@@ -238,7 +241,12 @@ void main() {
 
     test("raises one alert naming the balance today, the falling-due amount and the date", () {
       final commitments = [
-        _buildCommitment(id: "c1", posteId: "poste-1", dueDate: DateTime(2026, 3, 15), amountCents: 8000),
+        _buildCommitment(
+          id: "c1",
+          posteId: "poste-1",
+          dueDate: DateTime(2026, 3, 15),
+          amountCents: 8000,
+        ),
       ];
 
       final alerts = _computeAlerts(
@@ -285,7 +293,12 @@ void main() {
 
     test("a settled commitment is never counted against the balance", () {
       final commitments = [
-        _buildCommitment(id: "c1", posteId: "poste-1", dueDate: DateTime(2026, 3), amountCents: 9000),
+        _buildCommitment(
+          id: "c1",
+          posteId: "poste-1",
+          dueDate: DateTime(2026, 3),
+          amountCents: 9000,
+        ),
       ];
       final entries = [_buildEntry(id: "entry-already-paid", commitmentId: "c1", debitCents: 9000)];
 
@@ -307,7 +320,12 @@ void main() {
     test("at most one cash alert, the first instalment that tips the balance under", () {
       final commitments = [
         _buildCommitment(id: "c1", posteId: "poste-1", dueDate: DateTime(2026), amountCents: 2000),
-        _buildCommitment(id: "c2", posteId: "poste-1", dueDate: DateTime(2026, 2), amountCents: 5000),
+        _buildCommitment(
+          id: "c2",
+          posteId: "poste-1",
+          dueDate: DateTime(2026, 2),
+          amountCents: 5000,
+        ),
       ];
 
       final alerts = _computeAlerts(
@@ -334,7 +352,12 @@ void main() {
     test("a poste over its quote and the cash going negative both raise, independently", () {
       final poste = _buildPoste(id: "poste-1", quotedAmountCents: 1000);
       final commitments = [
-        _buildCommitment(id: "c1", posteId: "poste-1", dueDate: DateTime(2026, 5), amountCents: 4000),
+        _buildCommitment(
+          id: "c1",
+          posteId: "poste-1",
+          dueDate: DateTime(2026, 5),
+          amountCents: 4000,
+        ),
       ];
 
       final alerts = _computeAlerts(

@@ -139,9 +139,8 @@ String _fieldValueOf(OcptPerson person, OcptPersonField field) => switch (field)
   OcptPersonField.maxDailyPresenceMinutes => ocptMaxDailyPresenceTextOf(
     person.maxDailyPresenceMinutes,
   ),
-  OcptPersonField.commuteKmMilli => person.commuteKmMilli == null
-      ? ""
-      : ocptBudgetQuantityLabel(person.commuteKmMilli!),
+  OcptPersonField.commuteKmMilli =>
+    person.commuteKmMilli == null ? "" : ocptBudgetQuantityLabel(person.commuteKmMilli!),
   OcptPersonField.accommodationNotes => person.accommodationNotes,
   OcptPersonField.travelNotes => person.travelNotes,
   OcptPersonField.dietaryNotes => person.dietaryNotes,
@@ -316,12 +315,7 @@ void main() {
           dietaryNotes: "Végétarienne",
           notes: "Ponctuelle",
           positions: const [
-            OcptPersonPosition(
-              id: "pos1",
-              personId: "p1",
-              positionId: "director",
-              customLabel: "",
-            ),
+            OcptPersonPosition(id: "pos1", personId: "p1", positionId: "director", customLabel: ""),
           ],
         ),
       ),
@@ -445,9 +439,7 @@ void main() {
     final now = DateTime.now();
 
     await tester.pumpWidget(
-      _buildSheet(
-        person: _person(birthDate: DateTime(now.year - 15, now.month, now.day)),
-      ),
+      _buildSheet(person: _person(birthDate: DateTime(now.year - 15, now.month, now.day))),
     );
     await tester.pumpAndSettle();
 
@@ -456,9 +448,7 @@ void main() {
     expect(find.text(tr.resourcesMaxDailyPresenceTitle), findsOneWidget);
   });
 
-  testWidgets("typing into the maximum daily presence field dispatches the change", (
-    tester,
-  ) async {
+  testWidgets("typing into the maximum daily presence field dispatches the change", (tester) async {
     await _useTallSurface(tester);
     final changes = <(OcptPersonField, String)>[];
 
@@ -614,7 +604,10 @@ void main() {
     var cleared = false;
 
     await tester.pumpWidget(
-      _buildSheet(person: _person(photo: _asset()), onPhotoCleared: () => cleared = true),
+      _buildSheet(
+        person: _person(photo: _asset()),
+        onPhotoCleared: () => cleared = true,
+      ),
     );
     await tester.pumpAndSettle();
 
@@ -635,7 +628,9 @@ void main() {
     await _useTallSurface(tester);
 
     await tester.pumpWidget(
-      _buildSheet(person: _person(firstName: "Léa", lastName: "Roy", photo: _asset())),
+      _buildSheet(
+        person: _person(firstName: "Léa", lastName: "Roy", photo: _asset()),
+      ),
     );
     await tester.pumpAndSettle();
 
@@ -644,8 +639,10 @@ void main() {
     // photo, which is one item of a list and says so.
     expect(tester.takeException(), isNull);
     expect(find.text("LR"), findsWidgets);
-    expect(find.text(Tr.of(tester.element(find.byType(OcptPersonSheet))).resourcesAssetFileMissing),
-        findsNothing);
+    expect(
+      find.text(Tr.of(tester.element(find.byType(OcptPersonSheet))).resourcesAssetFileMissing),
+      findsNothing,
+    );
   });
 
   testWidgets("the image rights card references a document and drops it", (tester) async {
@@ -674,10 +671,7 @@ void main() {
     await tester.pumpWidget(
       _buildSheet(
         person: _person(
-          imageRightsDocument: _asset(
-            kind: OcptAssetKind.document,
-            path: "/nowhere/cession.pdf",
-          ),
+          imageRightsDocument: _asset(kind: OcptAssetKind.document, path: "/nowhere/cession.pdf"),
         ),
         onImageRightsDocumentCleared: () => cleared = true,
       ),
@@ -712,10 +706,9 @@ void main() {
     expect(tester.takeException(), isNull);
 
     await tester.tap(
-      find.descendant(
-        of: find.byType(OcptResourcesColorSwatches),
-        matching: find.byType(InkWell),
-      ).at(4),
+      find
+          .descendant(of: find.byType(OcptResourcesColorSwatches), matching: find.byType(InkWell))
+          .at(4),
     );
     await tester.pumpAndSettle();
 
@@ -760,12 +753,7 @@ void main() {
       _buildSheet(
         person: _person(
           positions: const [
-            OcptPersonPosition(
-              id: "pos1",
-              personId: "p1",
-              positionId: "director",
-              customLabel: "",
-            ),
+            OcptPersonPosition(id: "pos1", personId: "p1", positionId: "director", customLabel: ""),
           ],
         ),
         onPositionRemoved: (id) => removedId = id,
@@ -837,7 +825,12 @@ void main() {
         _buildSheet(
           person: _person(
             positions: const [
-              OcptPersonPosition(id: "pos1", personId: "p1", positionId: "director", customLabel: ""),
+              OcptPersonPosition(
+                id: "pos1",
+                personId: "p1",
+                positionId: "director",
+                customLabel: "",
+              ),
             ],
           ),
           onPositionUpdated: (id, {required positionId, required customLabel}) {
@@ -850,7 +843,8 @@ void main() {
 
       final tr = Tr.of(tester.element(find.byType(OcptPersonSheet)));
       final positionLabelField = find.byWidgetPredicate(
-        (widget) => widget is TextField && widget.decoration?.hintText == tr.resourcesPositionLabelHint,
+        (widget) =>
+            widget is TextField && widget.decoration?.hintText == tr.resourcesPositionLabelHint,
       );
       await tester.enterText(positionLabelField, "Runner");
       await tester.tap(
@@ -877,7 +871,9 @@ void main() {
     await _useTallSurface(tester);
     String? addedLabel;
 
-    await tester.pumpWidget(_buildSheet(person: _person(), onSkillAdded: (label) => addedLabel = label));
+    await tester.pumpWidget(
+      _buildSheet(person: _person(), onSkillAdded: (label) => addedLabel = label),
+    );
     await tester.pumpAndSettle();
 
     await tester.tap(find.text("+"));
@@ -900,7 +896,9 @@ void main() {
 
     await tester.pumpWidget(
       _buildSheet(
-        person: _person(skills: const [OcptPersonSkill(id: "skill1", personId: "p1", label: "Piano")]),
+        person: _person(
+          skills: const [OcptPersonSkill(id: "skill1", personId: "p1", label: "Piano")],
+        ),
         onSkillRemoved: (id) => removedId = id,
       ),
     );
@@ -928,7 +926,7 @@ void main() {
                 personId: "p1",
                 positionId: "director",
                 customLabel: "",
-                ),
+              ),
             ],
             unavailabilities: [
               OcptPersonUnavailability(
@@ -970,13 +968,13 @@ void main() {
       expect(find.byType(Chip), findsOneWidget);
 
       // Every text field reads out its value rather than accepting a new one.
-      final firstNameField = tester.widget<TextField>(
-        find.widgetWithText(TextField, "Léa"),
-      );
+      final firstNameField = tester.widget<TextField>(find.widgetWithText(TextField, "Léa"));
       expect(firstNameField.readOnly, isTrue);
 
       // The commute distance field reads out its value rather than accepting a new one.
-      final commuteField = tester.widget<TextField>(_fieldOf(tr.resourcesCommuteDistanceLabel.toUpperCase()));
+      final commuteField = tester.widget<TextField>(
+        _fieldOf(tr.resourcesCommuteDistanceLabel.toUpperCase()),
+      );
       expect(commuteField.readOnly, isTrue);
 
       // The mileage rate picker is withheld rather than merely disabled: no `DropdownButton` at

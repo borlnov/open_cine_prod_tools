@@ -82,12 +82,6 @@ class ScriptTitlePage {
     if (kept.isEmpty) {
       return const [];
     }
-    return [
-      FountainTitlePageEntry(
-        key: key,
-        values: kept,
-        sourceRange: _placeholderRange,
-      ),
-    ];
+    return [FountainTitlePageEntry(key: key, values: kept, sourceRange: _placeholderRange)];
   }
 }

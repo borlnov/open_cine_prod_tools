@@ -13,7 +13,11 @@ void main() {
     });
 
     test('spells the modifier out on every platform but macOS', () {
-      for (final platform in [TargetPlatform.linux, TargetPlatform.windows, TargetPlatform.android]) {
+      for (final platform in [
+        TargetPlatform.linux,
+        TargetPlatform.windows,
+        TargetPlatform.android,
+      ]) {
         debugDefaultTargetPlatformOverride = platform;
         expect(ocptPrimaryShortcutLabel('F'), 'Ctrl+F');
       }

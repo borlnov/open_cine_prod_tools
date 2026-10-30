@@ -75,11 +75,12 @@ class OcptFountainIoService {
   /// The `.fountain` file name to suggest when exporting the project named [projectName].
   /// [episodeTag] is the selected episode's own tag, present only while the open project holds more
   /// than one episode — see `ocptExportFileNameOf`'s own doc comment.
-  String fountainFileName({required String projectName, String? episodeTag}) => ocptExportFileNameOf(
-    projectName: projectName,
-    episodeTag: episodeTag,
-    extension: fountainFileExtension,
-  );
+  String fountainFileName({required String projectName, String? episodeTag}) =>
+      ocptExportFileNameOf(
+        projectName: projectName,
+        episodeTag: episodeTag,
+        extension: fountainFileExtension,
+      );
 
   /// Trims [value], collapses internal whitespace, and drops characters illegal in file names.
   ///

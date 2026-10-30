@@ -35,15 +35,20 @@ void main() {
   };
 
   /// Every `budget_allowances` row, tombstoned or not, in `sortKey` order.
-  Future<List<OcptBudgetAllowanceRow>> readAll() =>
-      (database.select(database.ocptBudgetAllowancesTable)
-            ..orderBy([(table) => OrderingTerm.asc(table.sortKey)]))
-          .get();
+  Future<List<OcptBudgetAllowanceRow>> readAll() => (database.select(
+    database.ocptBudgetAllowancesTable,
+  )..orderBy([(table) => OrderingTerm.asc(table.sortKey)])).get();
 
   /// Seeds one person, so a defrayal naming them satisfies the foreign key the table declares.
   Future<void> seedPerson(String id) => database
       .into(database.ocptPeopleTable)
-      .insert(OcptPeopleTableCompanion.insert(id: id, firstName: const Value("Léa"), lastName: const Value("Petit")));
+      .insert(
+        OcptPeopleTableCompanion.insert(
+          id: id,
+          firstName: const Value("Léa"),
+          lastName: const Value("Petit"),
+        ),
+      );
 
   /// Creates one defrayal with everything but what a test varies neutral.
   Future<String?> create({
@@ -175,10 +180,10 @@ void main() {
 
     await service.reorderAllowance(database: database, allowanceId: thirdId!, newPosition: 0);
 
-    expect(
-      (await service.loadAllowances(database: database)).map((row) => row.id),
-      [thirdId, firstId],
-    );
+    expect((await service.loadAllowances(database: database)).map((row) => row.id), [
+      thirdId,
+      firstId,
+    ]);
   });
 
   test("every write is refused on a previewed version", () async {
@@ -186,17 +191,20 @@ void main() {
     await database.close();
 
     database = OcptProjectDatabase.memory(isPreview: true);
-    expect(await service.createAllowance(
-      database: database,
-      personId: null,
-      kind: OcptBudgetAllowanceKind.travel,
-      label: "Aller",
-      date: null,
-      endDate: null,
-      quantityMilli: 1000,
-      unitAmountMilliCents: 1000,
-      notes: "",
-    ), isNull);
+    expect(
+      await service.createAllowance(
+        database: database,
+        personId: null,
+        kind: OcptBudgetAllowanceKind.travel,
+        label: "Aller",
+        date: null,
+        endDate: null,
+        quantityMilli: 1000,
+        unitAmountMilliCents: 1000,
+        notes: "",
+      ),
+      isNull,
+    );
     await service.updateAllowance(
       database: database,
       allowanceId: id!,

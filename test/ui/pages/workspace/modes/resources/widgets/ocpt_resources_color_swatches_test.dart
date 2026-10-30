@@ -43,10 +43,8 @@ void main() {
   }
 
   /// The [Finder] of the grid's swatches, in palette order.
-  Finder swatches() => find.descendant(
-    of: find.byType(OcptResourcesColorSwatches),
-    matching: find.byType(InkWell),
-  );
+  Finder swatches() =>
+      find.descendant(of: find.byType(OcptResourcesColorSwatches), matching: find.byType(InkWell));
 
   testWidgets("the whole palette lays out inside a popover", (tester) async {
     // The regression this pins: a swatch used to be a `MenuItemButton`, whose label is an
@@ -81,9 +79,6 @@ void main() {
         .where((container) => (container.decoration! as BoxDecoration).border != null);
 
     expect(ringed, hasLength(1));
-    expect(
-      (ringed.single.decoration! as BoxDecoration).color,
-      Color(ocptCoveragePalette[5]),
-    );
+    expect((ringed.single.decoration! as BoxDecoration).color, Color(ocptCoveragePalette[5]));
   });
 }

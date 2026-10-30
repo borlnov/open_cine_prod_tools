@@ -49,9 +49,7 @@ class OcptRoutesHelper extends AbstractRoutesHelper<OcptRoute> {
     final reveal = state.extra;
 
     return RoutePageDetails(
-      widget: OcptProjectSettingsPage(
-        reveal: reveal is OcptProjectSettingsReveal ? reveal : null,
-      ),
+      widget: OcptProjectSettingsPage(reveal: reveal is OcptProjectSettingsReveal ? reveal : null),
     );
   }
 

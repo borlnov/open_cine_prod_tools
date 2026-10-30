@@ -166,7 +166,8 @@ class _BreakdownViewState extends State<_BreakdownView> {
         title: state.title,
         isDirty: false,
         isReadOnly: state.isPreviewingVersion,
-        onBack: () => context.read<OcptBreakdownBloc>().add(const OcptBreakdownBackRequestedEvent()),
+        onBack: () =>
+            context.read<OcptBreakdownBloc>().add(const OcptBreakdownBackRequestedEvent()),
         episodes: workspaceState.episodes,
         selectedEpisodeId: workspaceState.selectedEpisodeId,
         onEpisodeSelected: (episodeId) => context.read<OcptWorkspaceBloc>().add(
@@ -209,8 +210,7 @@ class _BreakdownViewState extends State<_BreakdownView> {
   /// doesn't answer.
   List<PopupMenuEntry<void>> _buildOverflowEntries(BuildContext context) => [
     PopupMenuItem<void>(
-      onTap: () =>
-          context.read<OcptBreakdownBloc>().add(const OcptBreakdownDockLayoutResetEvent()),
+      onTap: () => context.read<OcptBreakdownBloc>().add(const OcptBreakdownDockLayoutResetEvent()),
       child: Text(Tr.of(context).breakdownResetPanelLayoutAction),
     ),
   ];
@@ -401,12 +401,10 @@ class _BreakdownViewState extends State<_BreakdownView> {
       ),
       legendEntries: ocptBreakdownLegendEntriesOf(state.targets),
       hiddenLegendKeys: state.hiddenLegendKeys,
-      onLegendEntryToggled: (key) => context.read<OcptBreakdownBloc>().add(
-        OcptBreakdownLegendEntryToggledEvent(key: key),
-      ),
-      onShowAllLegendKeysRequested: () => context.read<OcptBreakdownBloc>().add(
-        const OcptBreakdownLegendShowAllRequestedEvent(),
-      ),
+      onLegendEntryToggled: (key) =>
+          context.read<OcptBreakdownBloc>().add(OcptBreakdownLegendEntryToggledEvent(key: key)),
+      onShowAllLegendKeysRequested: () =>
+          context.read<OcptBreakdownBloc>().add(const OcptBreakdownLegendShowAllRequestedEvent()),
     );
   }
 
@@ -483,7 +481,11 @@ class _BreakdownViewState extends State<_BreakdownView> {
       searchQuery: state.searchQuery,
       selectedTargetRef: state.selectedTargetRef,
       onTargetSelected: (targetKind, targetId, sceneId) => bloc.add(
-        OcptBreakdownTargetSelectedEvent(targetKind: targetKind, targetId: targetId, sceneId: sceneId),
+        OcptBreakdownTargetSelectedEvent(
+          targetKind: targetKind,
+          targetId: targetId,
+          sceneId: sceneId,
+        ),
       ),
     );
   }
@@ -512,7 +514,11 @@ class _BreakdownViewState extends State<_BreakdownView> {
         OcptBreakdownPopoverSetCreationRequestedEvent(locationId: locationId, name: name),
       ),
       onTargetSelected: (targetKind, targetId, sceneId) => bloc.add(
-        OcptBreakdownTargetSelectedEvent(targetKind: targetKind, targetId: targetId, sceneId: sceneId),
+        OcptBreakdownTargetSelectedEvent(
+          targetKind: targetKind,
+          targetId: targetId,
+          sceneId: sceneId,
+        ),
       ),
       onWordClicked: isReadOnly
           ? null
@@ -623,8 +629,7 @@ class _BreakdownViewState extends State<_BreakdownView> {
               ),
         onTagNeedsCheckCleared: (tagId) =>
             bloc.add(OcptBreakdownTagNeedsCheckClearedEvent(tagId: tagId)),
-        onFlaggedTagRemoved: (tagId) =>
-            bloc.add(OcptBreakdownFlaggedTagRemovedEvent(tagId: tagId)),
+        onFlaggedTagRemoved: (tagId) => bloc.add(OcptBreakdownFlaggedTagRemovedEvent(tagId: tagId)),
         isReadOnly: isReadOnly,
       );
     }
@@ -643,12 +648,12 @@ class _BreakdownViewState extends State<_BreakdownView> {
       fieldValueOf: (field) => element == null
           ? ""
           : state.elementFieldValueOf(element.id, field, _storedElementFieldValue(element, field)),
-      onBackToSceneRequested: () =>
-          bloc.add(const OcptBreakdownTargetSelectionClearedEvent()),
+      onBackToSceneRequested: () => bloc.add(const OcptBreakdownTargetSelectionClearedEvent()),
       nameValue: switch (target.kind) {
-        OcptBreakdownTargetKind.element => element == null
-            ? target.name
-            : state.elementFieldValueOf(element.id, OcptElementField.name, element.name),
+        OcptBreakdownTargetKind.element =>
+          element == null
+              ? target.name
+              : state.elementFieldValueOf(element.id, OcptElementField.name, element.name),
         OcptBreakdownTargetKind.set => state.setNameValueOf(target.id, target.name),
         OcptBreakdownTargetKind.role => target.name,
       },
@@ -658,15 +663,16 @@ class _BreakdownViewState extends State<_BreakdownView> {
               // A role's name is the screenplay's: `OcptRoleIndexService` reconciles it from the
               // cue, so a rename here would be undone by the next save.
               OcptBreakdownTargetKind.role => null,
-              OcptBreakdownTargetKind.element => element == null
-                  ? null
-                  : (rawValue) => bloc.add(
-                      OcptBreakdownElementFieldChangedEvent(
-                        elementId: element.id,
-                        field: OcptElementField.name,
-                        rawValue: rawValue,
+              OcptBreakdownTargetKind.element =>
+                element == null
+                    ? null
+                    : (rawValue) => bloc.add(
+                        OcptBreakdownElementFieldChangedEvent(
+                          elementId: element.id,
+                          field: OcptElementField.name,
+                          rawValue: rawValue,
+                        ),
                       ),
-                    ),
               OcptBreakdownTargetKind.set => (rawValue) => bloc.add(
                 OcptBreakdownSetNameChangedEvent(setId: target.id, rawValue: rawValue),
               ),
@@ -692,8 +698,9 @@ class _BreakdownViewState extends State<_BreakdownView> {
             ),
       onOwnerChanged: isReadOnly || element == null
           ? null
-          : (personId) =>
-              bloc.add(OcptBreakdownElementOwnerChangedEvent(elementId: element.id, personId: personId)),
+          : (personId) => bloc.add(
+              OcptBreakdownElementOwnerChangedEvent(elementId: element.id, personId: personId),
+            ),
       onBringerChanged: isReadOnly || element == null
           ? null
           : (personId) => bloc.add(
@@ -837,9 +844,8 @@ class _BreakdownViewState extends State<_BreakdownView> {
         onRestoreRequested: (versionId) => context.read<OcptBreakdownBloc>().add(
           OcptProjectVersionRestoreRequestedEvent(versionId: versionId),
         ),
-        onRestoreCancelled: () => context.read<OcptBreakdownBloc>().add(
-          const OcptProjectVersionRestoreCancelledEvent(),
-        ),
+        onRestoreCancelled: () =>
+            context.read<OcptBreakdownBloc>().add(const OcptProjectVersionRestoreCancelledEvent()),
         onRestoreConfirmed: (version) => context.read<OcptBreakdownBloc>().add(
           OcptProjectVersionRestoreConfirmedEvent(
             versionId: version.id,
@@ -849,18 +855,16 @@ class _BreakdownViewState extends State<_BreakdownView> {
         onDeleteRequested: (versionId) => context.read<OcptBreakdownBloc>().add(
           OcptProjectVersionDeletionRequestedEvent(versionId: versionId),
         ),
-        onDeleteCancelled: () => context.read<OcptBreakdownBloc>().add(
-          const OcptProjectVersionDeletionCancelledEvent(),
-        ),
+        onDeleteCancelled: () =>
+            context.read<OcptBreakdownBloc>().add(const OcptProjectVersionDeletionCancelledEvent()),
         onDeleteConfirmed: (versionId) => context.read<OcptBreakdownBloc>().add(
           OcptProjectVersionDeletionConfirmedEvent(versionId: versionId),
         ),
         onRenameRequested: (versionId) => context.read<OcptBreakdownBloc>().add(
           OcptProjectVersionRenameRequestedEvent(versionId: versionId),
         ),
-        onRenameCancelled: () => context.read<OcptBreakdownBloc>().add(
-          const OcptProjectVersionRenameCancelledEvent(),
-        ),
+        onRenameCancelled: () =>
+            context.read<OcptBreakdownBloc>().add(const OcptProjectVersionRenameCancelledEvent()),
         onRenameConfirmed: (versionId, name, note) => context.read<OcptBreakdownBloc>().add(
           OcptProjectVersionRenameConfirmedEvent(versionId: versionId, name: name, note: note),
         ),
@@ -978,13 +982,15 @@ class _BreakdownViewState extends State<_BreakdownView> {
     final tr = Tr.of(context);
 
     return switch (notice.kind) {
-      OcptBreakdownIoNoticeKind.sheetsExportSucceeded => notice.wasShared
-          ? tr.exportSharedMessage
-          : tr.breakdownExportSheetsSuccessMessage(notice.path ?? ""),
+      OcptBreakdownIoNoticeKind.sheetsExportSucceeded =>
+        notice.wasShared
+            ? tr.exportSharedMessage
+            : tr.breakdownExportSheetsSuccessMessage(notice.path ?? ""),
       OcptBreakdownIoNoticeKind.sheetsExportFailed => tr.breakdownExportSheetsError,
-      OcptBreakdownIoNoticeKind.xlsxExportSucceeded => notice.wasShared
-          ? tr.exportSharedMessage
-          : tr.breakdownExportXlsxSuccessMessage(notice.path ?? ""),
+      OcptBreakdownIoNoticeKind.xlsxExportSucceeded =>
+        notice.wasShared
+            ? tr.exportSharedMessage
+            : tr.breakdownExportXlsxSuccessMessage(notice.path ?? ""),
       OcptBreakdownIoNoticeKind.xlsxExportFailed => tr.breakdownExportXlsxError,
     };
   }

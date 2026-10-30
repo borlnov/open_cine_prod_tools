@@ -77,7 +77,10 @@ void main() {
       }
     }
 
-    final departmentOrder = ocptCrewPositions.map((position) => position.department).toSet().toList();
+    final departmentOrder = ocptCrewPositions
+        .map((position) => position.department)
+        .toSet()
+        .toList();
     final expectedOrder = [
       for (final department in OcptCrewDepartment.values)
         if (departmentOrder.contains(department)) department,
@@ -85,13 +88,19 @@ void main() {
     expect(departmentOrder, expectedOrder);
   });
 
-  testWidgets("every id resolves through ocptCrewPositionLabel to something other than itself", (tester) async {
+  testWidgets("every id resolves through ocptCrewPositionLabel to something other than itself", (
+    tester,
+  ) async {
     await tester.pumpWidget(
       _wrapInApp((context) {
         final tr = Tr.of(context);
         for (final position in ocptCrewPositions) {
           final label = ocptCrewPositionLabel(tr, position.id);
-          expect(label, isNot(position.id), reason: "${position.id} falls through the switch unresolved");
+          expect(
+            label,
+            isNot(position.id),
+            reason: "${position.id} falls through the switch unresolved",
+          );
           expect(label, isNotEmpty);
         }
         return const SizedBox();
@@ -99,7 +108,9 @@ void main() {
     );
   });
 
-  testWidgets("every OcptCrewDepartment value resolves through ocptCrewDepartmentLabel", (tester) async {
+  testWidgets("every OcptCrewDepartment value resolves through ocptCrewDepartmentLabel", (
+    tester,
+  ) async {
     await tester.pumpWidget(
       _wrapInApp((context) {
         final tr = Tr.of(context);

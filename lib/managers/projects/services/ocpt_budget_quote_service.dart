@@ -131,7 +131,9 @@ class OcptBudgetQuoteService {
         current: null,
         next: OcptBudgetPosteRow(
           id: id,
-          sortKey: ocptFractionalKeyBetween(before: existing.isEmpty ? null : existing.last.sortKey),
+          sortKey: ocptFractionalKeyBetween(
+            before: existing.isEmpty ? null : existing.last.sortKey,
+          ),
           isDeleted: false,
           code: '',
           label: label,
@@ -237,10 +239,7 @@ class OcptBudgetQuoteService {
   /// {@macro open_cine_prod_tools.tombstones}
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<void> deletePoste({
-    required OcptProjectDatabase database,
-    required String posteId,
-  }) async {
+  Future<void> deletePoste({required OcptProjectDatabase database, required String posteId}) async {
     if (database.refusesUserWrite("deletePoste")) {
       return;
     }
@@ -340,7 +339,9 @@ class OcptBudgetQuoteService {
         current: null,
         next: OcptBudgetLineRow(
           id: id,
-          sortKey: ocptFractionalKeyBetween(before: existing.isEmpty ? null : existing.last.sortKey),
+          sortKey: ocptFractionalKeyBetween(
+            before: existing.isEmpty ? null : existing.last.sortKey,
+          ),
           isDeleted: false,
           posteId: posteId,
           label: label,
@@ -444,9 +445,8 @@ class OcptBudgetQuoteService {
         database.ocptBudgetLinesTable,
       )..where((table) => table.id.equals(lineId))).getSingle();
 
-      final others =
-          (await _liveLineRowsOfPoste(database, posteId: line.posteId))
-            ..removeWhere((row) => row.id == lineId);
+      final others = (await _liveLineRowsOfPoste(database, posteId: line.posteId))
+        ..removeWhere((row) => row.id == lineId);
 
       final clampedPosition = newPosition < 0
           ? 0
@@ -569,9 +569,9 @@ class OcptBudgetQuoteService {
   Future<OcptBudgetPosteRow?> _livePosteRowOrNull({
     required OcptProjectDatabase database,
     required String posteId,
-  }) => (database.select(database.ocptBudgetPostesTable)
-        ..where((table) => table.id.equals(posteId) & table.isDeleted.not()))
-      .getSingleOrNull();
+  }) => (database.select(
+    database.ocptBudgetPostesTable,
+  )..where((table) => table.id.equals(posteId) & table.isDeleted.not())).getSingleOrNull();
 
   /// Every live line row of [database], ordered by `sortKey`.
   Future<List<OcptBudgetLineRow>> _liveLineRows(OcptProjectDatabase database) =>
@@ -594,7 +594,7 @@ class OcptBudgetQuoteService {
   Future<OcptBudgetLineRow?> _liveLineRowOrNull({
     required OcptProjectDatabase database,
     required String lineId,
-  }) => (database.select(database.ocptBudgetLinesTable)
-        ..where((table) => table.id.equals(lineId) & table.isDeleted.not()))
-      .getSingleOrNull();
+  }) => (database.select(
+    database.ocptBudgetLinesTable,
+  )..where((table) => table.id.equals(lineId) & table.isDeleted.not())).getSingleOrNull();
 }

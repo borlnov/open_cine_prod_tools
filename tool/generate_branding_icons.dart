@@ -120,7 +120,10 @@ void _write(
   final file = File("${directory.path}/$fileName");
   file.writeAsBytesSync(_encodePng(pixels: pixels, width: sidePixels));
 
-  stdout.writeln("Wrote ${file.path} ($sidePixels" "x$sidePixels)");
+  stdout.writeln(
+    "Wrote ${file.path} ($sidePixels"
+    "x$sidePixels)",
+  );
 }
 
 /// Inserts the `_qualif` marker into [fileName] right after its `ocpt_icon` stem, so

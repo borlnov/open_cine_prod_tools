@@ -54,9 +54,8 @@ class _WorkspaceView extends StatelessWidget {
             Expanded(child: _buildActiveMode(state)),
             OcptWorkspaceModeSwitcher(
               activeMode: state.mode,
-              onModeSelected: (mode) => context.read<OcptWorkspaceBloc>().add(
-                OcptWorkspaceModeSelectedEvent(mode: mode),
-              ),
+              onModeSelected: (mode) =>
+                  context.read<OcptWorkspaceBloc>().add(OcptWorkspaceModeSelectedEvent(mode: mode)),
             ),
           ],
         );

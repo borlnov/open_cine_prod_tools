@@ -37,7 +37,8 @@ class OcptNoOpCommand extends EditCommand {
 /// nodes, guarded against a non-[ParagraphNode] since [OcptWysiwygCodec.isTitlePageNode] only
 /// accepts one (every node in this app's document is one by construction, but a request guard must
 /// never assume that about an arbitrary [DocumentNode]).
-bool _isTitlePageNode(DocumentNode? node) => node is ParagraphNode && OcptWysiwygCodec.isTitlePageNode(node);
+bool _isTitlePageNode(DocumentNode? node) =>
+    node is ParagraphNode && OcptWysiwygCodec.isTitlePageNode(node);
 
 /// The title-page field key [node] carries ([ocptTitlePageKeyMetadataKey]), or `null` for a node
 /// that isn't one (an ordinary body line, or no node at all).
@@ -114,7 +115,10 @@ EditCommand? _guardCombineParagraphs(Editor editor, CombineParagraphsRequest req
 /// (or a different field) above it, *and* an ordinary body node with a title-page node above it
 /// (the "first body line merged into `Source`" case) — and lets two lines of the same field through
 /// untouched, exactly like the hardware path.
-EditCommand? _guardDeleteUpstreamAtBeginningOfNode(Editor editor, DeleteUpstreamAtBeginningOfNodeRequest request) {
+EditCommand? _guardDeleteUpstreamAtBeginningOfNode(
+  Editor editor,
+  DeleteUpstreamAtBeginningOfNodeRequest request,
+) {
   final node = request.node;
   if (node is! ParagraphNode) {
     return null;
@@ -142,12 +146,20 @@ EditCommand? _guardDeleteSelection(Editor editor) {
     return null;
   }
 
-  return _guardRangeDeletion(editor.document, selection.normalize(editor.document), updateSelection: true);
+  return _guardRangeDeletion(
+    editor.document,
+    selection.normalize(editor.document),
+    updateSelection: true,
+  );
 }
 
 /// `DeleteContentRequest` carries its own [DeleteContentRequest.documentRange] explicitly.
 EditCommand? _guardDeleteContent(Editor editor, DeleteContentRequest request) =>
-    _guardRangeDeletion(editor.document, request.documentRange.normalize(editor.document), updateSelection: false);
+    _guardRangeDeletion(
+      editor.document,
+      request.documentRange.normalize(editor.document),
+      updateSelection: false,
+    );
 
 /// The shared rule behind [_guardDeleteSelection] and [_guardDeleteContent]: a deletion contained
 /// within a single node — title-page or not — is ordinary editing (typing, Backspace, Delete,
@@ -162,7 +174,11 @@ EditCommand? _guardDeleteContent(Editor editor, DeleteContentRequest request) =>
 /// the screenplay body while leaving the six fields standing; a range with no body part left at all
 /// (every node it spans is a title-page field, for example a selection dragged across only the
 /// sheet) is dropped entirely instead ([OcptNoOpCommand]).
-EditCommand? _guardRangeDeletion(Document document, DocumentRange normalizedRange, {required bool updateSelection}) {
+EditCommand? _guardRangeDeletion(
+  Document document,
+  DocumentRange normalizedRange, {
+  required bool updateSelection,
+}) {
   if (normalizedRange.start.nodeId == normalizedRange.end.nodeId) {
     return null;
   }
@@ -180,7 +196,10 @@ EditCommand? _guardRangeDeletion(Document document, DocumentRange normalizedRang
   }
 
   final firstBodyNode = bodyNodesInRange.first;
-  final clampedStart = DocumentPosition(nodeId: firstBodyNode.id, nodePosition: firstBodyNode.beginningPosition);
+  final clampedStart = DocumentPosition(
+    nodeId: firstBodyNode.id,
+    nodePosition: firstBodyNode.beginningPosition,
+  );
 
   return DeleteContentCommand(
     documentRange: DocumentRange(start: clampedStart, end: normalizedRange.end),

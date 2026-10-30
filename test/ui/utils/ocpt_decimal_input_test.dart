@@ -13,8 +13,14 @@ String _formatted({
   required String newText,
 }) => formatter
     .formatEditUpdate(
-      TextEditingValue(text: oldText, selection: TextSelection.collapsed(offset: oldText.length)),
-      TextEditingValue(text: newText, selection: TextSelection.collapsed(offset: newText.length)),
+      TextEditingValue(
+        text: oldText,
+        selection: TextSelection.collapsed(offset: oldText.length),
+      ),
+      TextEditingValue(
+        text: newText,
+        selection: TextSelection.collapsed(offset: newText.length),
+      ),
     )
     .text;
 
