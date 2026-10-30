@@ -25,6 +25,10 @@ final class OcptReconcileSucceeded extends OcptReconcileOutcome {
   /// How many changesets this run received from the upstream relay.
   final int pulled;
 
+  /// Object string representation, useful for debugging and logging.
+  @override
+  String toString() => "OcptReconcileSucceeded(pushed: $pushed, pulled: $pulled)";
+
   /// Object properties
   @override
   List<Object?> get props => [pushed, pulled];
@@ -38,6 +42,10 @@ final class OcptReconcileFailed extends OcptReconcileOutcome {
 
   /// A human-readable detail of what went wrong, meant for a log or a panel — never parsed.
   final String message;
+
+  /// Object string representation, useful for debugging and logging.
+  @override
+  String toString() => "OcptReconcileFailed(message: $message)";
 
   /// Object properties
   @override

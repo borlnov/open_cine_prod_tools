@@ -27,6 +27,12 @@ class OcptProjectPackagePreflight extends Equatable {
   /// Whether every referenced file is where it should be, and so nothing has to be asked.
   bool get isComplete => missingAssets.isEmpty;
 
+  /// Object string representation, useful for debugging and logging.
+  @override
+  String toString() =>
+      "OcptProjectPackagePreflight(referencedAssetCount: $referencedAssetCount, "
+      "missingAssetCount: ${missingAssets.length})";
+
   /// Object properties
   @override
   List<Object?> get props => [referencedAssetCount, missingAssets];
@@ -53,6 +59,12 @@ class OcptProjectPackageExportReport extends Equatable {
     required this.packagedAssetCount,
     required this.skippedAssets,
   });
+
+  /// Object string representation, useful for debugging and logging.
+  @override
+  String toString() =>
+      "OcptProjectPackageExportReport(packagePath: $packagePath, "
+      "packagedAssetCount: $packagedAssetCount, skippedAssetCount: ${skippedAssets.length})";
 
   /// Object properties
   @override
@@ -93,6 +105,13 @@ class OcptProjectPackageImportReport extends Equatable {
     required this.importedAssetCount,
     required this.skippedAssets,
   });
+
+  /// Object string representation, useful for debugging and logging.
+  @override
+  String toString() =>
+      "OcptProjectPackageImportReport(projectFilePath: $projectFilePath, "
+      "projectName: $projectName, importedAssetCount: $importedAssetCount, "
+      "skippedAssetCount: ${skippedAssets.length})";
 
   /// Object properties
   @override

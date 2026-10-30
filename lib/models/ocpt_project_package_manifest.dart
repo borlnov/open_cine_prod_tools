@@ -61,6 +61,11 @@ class OcptPackagedAsset extends Equatable {
     "originalPath": originalPath,
   };
 
+  /// Object string representation, useful for debugging and logging.
+  @override
+  String toString() =>
+      "OcptPackagedAsset(assetId: $assetId, entry: $entry, originalPath: $originalPath)";
+
   /// Object properties
   @override
   List<Object?> get props => [assetId, entry, originalPath];
@@ -98,6 +103,11 @@ class OcptSkippedAsset extends Equatable {
     "label": label,
     "originalPath": originalPath,
   };
+
+  /// Object string representation, useful for debugging and logging.
+  @override
+  String toString() =>
+      "OcptSkippedAsset(assetId: $assetId, label: $label, originalPath: $originalPath)";
 
   /// Object properties
   @override
@@ -179,6 +189,13 @@ class OcptProjectPackageManifest extends Equatable {
     "assets": [for (final asset in assets) asset.toJson()],
     "skippedAssets": [for (final asset in skippedAssets) asset.toJson()],
   };
+
+  /// Object string representation, useful for debugging and logging.
+  @override
+  String toString() =>
+      "OcptProjectPackageManifest(packageFormat: $packageFormat, appVersion: $appVersion, "
+      "schemaVersion: $schemaVersion, projectName: $projectName, exportedAt: $exportedAt, "
+      "assetCount: ${assets.length}, skippedAssetCount: ${skippedAssets.length})";
 
   /// Object properties
   @override

@@ -21,6 +21,10 @@ class OcptProjectPackageTarget extends Equatable {
   /// Class constructor
   const OcptProjectPackageTarget({required this.filePath, required this.name});
 
+  /// Object string representation, useful for debugging and logging.
+  @override
+  String toString() => "OcptProjectPackageTarget(filePath: $filePath, name: $name)";
+
   /// Object properties
   @override
   List<Object?> get props => [filePath, name];

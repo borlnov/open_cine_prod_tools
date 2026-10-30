@@ -52,6 +52,10 @@ final class OcptResourcesRevealRequest extends OcptWorkspaceRevealRequest {
   /// Class constructor
   const OcptResourcesRevealRequest({required this.tab, this.recordId});
 
+  /// Object string representation, useful for debugging and logging.
+  @override
+  String toString() => "OcptResourcesRevealRequest(tab: $tab, recordId: $recordId)";
+
   /// Object properties
   @override
   List<Object?> get props => [...super.props, tab, recordId];
@@ -77,6 +81,10 @@ final class OcptShotListRevealRequest extends OcptWorkspaceRevealRequest {
 
   /// Class constructor
   const OcptShotListRevealRequest({required this.sceneId, required this.setId});
+
+  /// Object string representation, useful for debugging and logging.
+  @override
+  String toString() => "OcptShotListRevealRequest(sceneId: $sceneId, setId: $setId)";
 
   /// Object properties
   @override

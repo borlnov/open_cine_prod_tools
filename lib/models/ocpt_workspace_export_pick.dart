@@ -25,6 +25,10 @@ class OcptWorkspaceExportDocumentPick<T> extends OcptWorkspaceExportPick<T> {
   /// Class constructor
   const OcptWorkspaceExportDocumentPick(this.document);
 
+  /// Object string representation, useful for debugging and logging.
+  @override
+  String toString() => "OcptWorkspaceExportDocumentPick(document: $document)";
+
   /// Object properties
   @override
   List<Object?> get props => [document];
@@ -37,6 +41,10 @@ class OcptWorkspaceExportDocumentPick<T> extends OcptWorkspaceExportPick<T> {
 class OcptWorkspaceExportProjectPackagePick<T> extends OcptWorkspaceExportPick<T> {
   /// Class constructor
   const OcptWorkspaceExportProjectPackagePick();
+
+  /// Object string representation, useful for debugging and logging.
+  @override
+  String toString() => "OcptWorkspaceExportProjectPackagePick()";
 
   /// Object properties
   @override

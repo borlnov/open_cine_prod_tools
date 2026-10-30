@@ -22,6 +22,10 @@ final class OcptRelayHostStopped extends OcptRelayHostState {
   /// Class constructor
   const OcptRelayHostStopped();
 
+  /// Object string representation, useful for debugging and logging.
+  @override
+  String toString() => "OcptRelayHostStopped()";
+
   /// Object properties
   @override
   List<Object?> get props => const [];
@@ -32,6 +36,10 @@ final class OcptRelayHostStopped extends OcptRelayHostState {
 final class OcptRelayHostStarting extends OcptRelayHostState {
   /// Class constructor
   const OcptRelayHostStarting();
+
+  /// Object string representation, useful for debugging and logging.
+  @override
+  String toString() => "OcptRelayHostStarting()";
 
   /// Object properties
   @override
@@ -52,6 +60,10 @@ final class OcptRelayHostOnline extends OcptRelayHostState {
   /// The stable per-project secret that grants project creation on this hosted relay.
   final String enrolmentSecret;
 
+  /// Object string representation, useful for debugging and logging.
+  @override
+  String toString() => "OcptRelayHostOnline(lanBaseUri: $lanBaseUri)";
+
   /// Object properties
   @override
   List<Object?> get props => [lanBaseUri, enrolmentSecret];
@@ -65,6 +77,10 @@ final class OcptRelayHostFailed extends OcptRelayHostState {
 
   /// A human-readable detail of what went wrong, meant for a log or a panel — never parsed.
   final String message;
+
+  /// Object string representation, useful for debugging and logging.
+  @override
+  String toString() => "OcptRelayHostFailed(message: $message)";
 
   /// Object properties
   @override

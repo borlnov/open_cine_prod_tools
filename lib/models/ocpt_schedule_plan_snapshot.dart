@@ -872,6 +872,15 @@ class OcptSchedulePlanSnapshot extends Equatable {
     return calledRoles;
   }
 
+  /// Object string representation, useful for debugging and logging.
+  @override
+  String toString() =>
+      "OcptSchedulePlanSnapshot(shotListCount: ${shotLists.length}, "
+      "episodeCount: ${episodes.length}, locationCount: ${locations.length}, "
+      "roleCount: ${roles.length}, personCount: ${people.length}, "
+      "elementCount: ${elements.length}, roleCandidateCount: ${roleCandidates.length}, "
+      "minimumRestMinutes: $minimumRestMinutes)";
+
   /// Object properties
   @override
   List<Object?> get props => [

@@ -13,7 +13,7 @@ import 'package:open_cine_prod_tools/utils/ocpt_shooting_day_timeline.dart';
 /// is handed in **already localized** (through `ocptScheduleBlockCaptionOf`, or a shot's own code)
 /// because it may need a `Tr` this pure-Dart file must never import, exactly the trade
 /// `OcptScenarioCoverageLayout` makes for a bar's own label.
-class OcptShootingDayAgendaColumnInput {
+class OcptShootingDayAgendaColumnInput extends Equatable {
   /// Class constructor
   const OcptShootingDayAgendaColumnInput({
     required this.slotId,
@@ -36,12 +36,22 @@ class OcptShootingDayAgendaColumnInput {
   /// .blockId]. A block whose id has no entry here is skipped rather than drawn blank: a caller
   /// that forgot one is a bug to surface as a missing tile, not as an empty one.
   final Map<String, String> captionByBlockId;
+
+  /// Object string representation, useful for debugging and logging.
+  @override
+  String toString() =>
+      "OcptShootingDayAgendaColumnInput(slotId: $slotId, label: $label, "
+      "captionCount: ${captionByBlockId.length})";
+
+  /// Object properties
+  @override
+  List<Object?> get props => [slotId, label, timeline, captionByBlockId];
 }
 
 /// One event, as fed to [OcptShootingDayAgendaGrid.of]: its id, its absolute minute and its
 /// already-localized label — the same trade [OcptShootingDayAgendaColumnInput.captionByBlockId]
 /// makes, for the same reason.
-class OcptShootingDayAgendaEventInput {
+class OcptShootingDayAgendaEventInput extends Equatable {
   /// Class constructor
   const OcptShootingDayAgendaEventInput({
     required this.id,
@@ -58,6 +68,14 @@ class OcptShootingDayAgendaEventInput {
 
   /// The event's own printable label.
   final String label;
+
+  /// Object string representation, useful for debugging and logging.
+  @override
+  String toString() => "OcptShootingDayAgendaEventInput(id: $id, minute: $minute, label: $label)";
+
+  /// Object properties
+  @override
+  List<Object?> get props => [id, minute, label];
 }
 
 /// One slot column of the grid: its id and its own label, carried through from

@@ -83,6 +83,16 @@ class OcptProjectFileCompatibility extends Equatable {
     required this.runningAppVersion,
   });
 
+  /// Object string representation, useful for debugging and logging.
+  @override
+  String toString() =>
+      "OcptProjectFileCompatibility(filePath: $filePath, "
+      "fileSchemaVersion: $fileSchemaVersion, appSchemaVersion: $appSchemaVersion, "
+      "appVersionAtCreation: $appVersionAtCreation, suggestedBackupPath: $suggestedBackupPath, "
+      "migratedByAppVersion: $migratedByAppVersion, "
+      "isRunningBuildPreRelease: $isRunningBuildPreRelease, "
+      "runningAppVersion: $runningAppVersion, verdict: $verdict)";
+
   /// Object properties
   @override
   List<Object?> get props => [

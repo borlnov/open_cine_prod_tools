@@ -55,6 +55,14 @@ class OcptShotFieldSuggestions extends Equatable {
       recordingFormats = const [],
       sounds = const [];
 
+  /// Object string representation, useful for debugging and logging.
+  @override
+  String toString() =>
+      "OcptShotFieldSuggestions(shotSizeCount: ${shotSizes.length}, "
+      "framingCount: ${framings.length}, cameraMoveCount: ${cameraMoves.length}, "
+      "lensCount: ${lenses.length}, recordingFormatCount: ${recordingFormats.length}, "
+      "soundCount: ${sounds.length})";
+
   /// Object properties
   @override
   List<Object?> get props => [shotSizes, framings, cameraMoves, lenses, recordingFormats, sounds];

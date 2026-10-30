@@ -23,6 +23,10 @@ final class OcptSyncStatusInSync extends OcptSyncStatus {
   /// Class constructor
   const OcptSyncStatusInSync();
 
+  /// Object string representation, useful for debugging and logging.
+  @override
+  String toString() => "OcptSyncStatusInSync()";
+
   /// Object properties
   @override
   List<Object?> get props => const [];
@@ -34,6 +38,10 @@ final class OcptSyncStatusInSync extends OcptSyncStatus {
 final class OcptSyncStatusSyncing extends OcptSyncStatus {
   /// Class constructor
   const OcptSyncStatusSyncing();
+
+  /// Object string representation, useful for debugging and logging.
+  @override
+  String toString() => "OcptSyncStatusSyncing()";
 
   /// Object properties
   @override
@@ -55,6 +63,10 @@ final class OcptSyncStatusOffline extends OcptSyncStatus {
   /// was not available.
   final int? pendingEditCount;
 
+  /// Object string representation, useful for debugging and logging.
+  @override
+  String toString() => "OcptSyncStatusOffline(pendingEditCount: $pendingEditCount)";
+
   /// Object properties
   @override
   List<Object?> get props => [pendingEditCount];
@@ -70,6 +82,10 @@ final class OcptSyncStatusError extends OcptSyncStatus {
   /// A human-readable detail of what the relay rejected, meant for a log or the status
   /// indicator's panel — never parsed.
   final String message;
+
+  /// Object string representation, useful for debugging and logging.
+  @override
+  String toString() => "OcptSyncStatusError(message: $message)";
 
   /// Object properties
   @override
