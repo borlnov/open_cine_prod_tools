@@ -6,6 +6,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
+import 'package:act_test_utility/act_test_utility.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_storyboard_pdf_service.dart';
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
@@ -82,7 +83,7 @@ OcptShot _buildShot({required String id, required String code, String recordingF
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  final service = OcptStoryboardPdfService();
+  final service = OcptStoryboardPdfService(logger: const SilentLogger());
   const pageSetup = OcptPageSetup.standard();
 
   late Directory tempDir;

@@ -5,6 +5,7 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
+import 'package:act_test_utility/act_test_utility.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_contact_list_pdf_service.dart';
 import 'package:open_cine_prod_tools/models/ocpt_contact_list_labels.dart';
@@ -148,7 +149,7 @@ OcptResourcesSnapshot _buildSnapshot({
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  final service = OcptContactListPdfService();
+  final service = OcptContactListPdfService(logger: const SilentLogger());
   const pageSetup = OcptPageSetup.standard();
 
   Future<Uint8List> generate({

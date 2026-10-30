@@ -119,7 +119,7 @@ class OcptScenarioCoveragePdfService extends AbsOcptService {
   ///
   /// Pass the manager's own [fontsLoader] so every export of the app session shares one font cache;
   /// a service built without one gets a loader of its own.
-  OcptScenarioCoveragePdfService({OcptCourierPrimeFontsLoader? fontsLoader})
+  OcptScenarioCoveragePdfService({required super.logger, OcptCourierPrimeFontsLoader? fontsLoader})
     : fontsLoader = fontsLoader ?? OcptCourierPrimeFontsLoader();
 
   /// The Fountain-to-page-layout engine, stateless so one instance is shared across every

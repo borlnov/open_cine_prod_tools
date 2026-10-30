@@ -33,7 +33,7 @@ class OcptBudgetFinancingService extends AbsOcptService {
   final OcptDeviceIdGetter deviceId;
 
   /// Class constructor
-  const OcptBudgetFinancingService({required this.deviceId});
+  const OcptBudgetFinancingService({required super.logger, required this.deviceId});
 
   /// Loads every live resource of [database], in `sortKey` order.
   Future<List<OcptBudgetResource>> loadResources({required OcptProjectDatabase database}) async {

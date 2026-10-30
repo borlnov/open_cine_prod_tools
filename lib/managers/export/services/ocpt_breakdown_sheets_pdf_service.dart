@@ -86,7 +86,7 @@ class OcptBreakdownSheetsPdfService extends AbsOcptService {
   ///
   /// Pass the manager's own [fontsLoader] so every export of the app session shares one font cache;
   /// a service built without one gets a loader of its own.
-  OcptBreakdownSheetsPdfService({OcptCourierPrimeFontsLoader? fontsLoader})
+  OcptBreakdownSheetsPdfService({required super.logger, OcptCourierPrimeFontsLoader? fontsLoader})
     : fontsLoader = fontsLoader ?? OcptCourierPrimeFontsLoader();
 
   /// The loader the embedded Courier Prime font set is read through.

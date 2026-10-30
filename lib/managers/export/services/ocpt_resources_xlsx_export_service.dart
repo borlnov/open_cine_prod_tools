@@ -51,7 +51,7 @@ class OcptResourcesXlsxExportService extends AbsOcptService {
   static const fallbackElementsSheetName = "Elements";
 
   /// Class constructor
-  const OcptResourcesXlsxExportService();
+  const OcptResourcesXlsxExportService({required super.logger});
 
   /// The `.xlsx` file name to suggest when exporting the resources catalogue of the project named
   /// [projectName], with [suffix] appended so it can never collide with the shot list workbook's

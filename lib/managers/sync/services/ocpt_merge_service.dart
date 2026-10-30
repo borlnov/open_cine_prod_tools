@@ -2,7 +2,6 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-import 'package:act_global_manager/act_global_manager.dart';
 import 'package:drift/drift.dart';
 import 'package:open_cine_prod_tools/managers/abs_ocpt_service.dart';
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_screenplay_merge_service.dart';
@@ -58,7 +57,7 @@ class OcptMergeService extends AbsOcptService {
   final OcptScreenplayMergeService? screenplayMergeService;
 
   /// Class constructor
-  const OcptMergeService({this.screenplayMergeService});
+  const OcptMergeService({required super.logger, this.screenplayMergeService});
 
   /// {@macro act_life_cycle.MixinWithLifeCycle.initLifeCycle}
   ///
@@ -114,7 +113,7 @@ class OcptMergeService extends AbsOcptService {
           // (`OcptChangesetService.pushLocalEdits`), so this means the sender and this replica
           // disagree about which tables are synchronised — a protocol-level bug worth failing
           // loudly on rather than silently dropping the edit.
-          appLogger().e("An incoming changeset names table '$tableName', unknown to this replica");
+          logger.e("An incoming changeset names table '$tableName', unknown to this replica");
           throw StateError("Table '$tableName' is not part of the synchronised table set");
         }
 

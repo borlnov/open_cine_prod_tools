@@ -7,6 +7,7 @@ import 'dart:io';
 import 'package:act_file_transfer_manager/act_file_transfer_manager.dart';
 import 'package:act_global_manager/act_global_manager.dart';
 import 'package:act_platform_manager/act_platform_manager.dart';
+import 'package:act_test_utility/act_test_utility.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -95,7 +96,7 @@ class _RecordingSaveLocationService extends OcptSaveLocationService {
   String? lastInitialDirectory;
 
   /// Class constructor
-  _RecordingSaveLocationService({this.saveLocationAnswer});
+  _RecordingSaveLocationService({this.saveLocationAnswer}) : super(logger: const SilentLogger());
 
   @override
   Future<String?> pickSaveLocation({

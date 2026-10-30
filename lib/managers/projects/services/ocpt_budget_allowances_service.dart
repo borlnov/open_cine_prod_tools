@@ -28,7 +28,7 @@ class OcptBudgetAllowancesService extends AbsOcptService {
   final OcptDeviceIdGetter deviceId;
 
   /// Class constructor
-  const OcptBudgetAllowancesService({required this.deviceId});
+  const OcptBudgetAllowancesService({required super.logger, required this.deviceId});
 
   /// Loads every live defrayal of [database], in `sortKey` order.
   Future<List<OcptBudgetAllowance>> loadAllowances({required OcptProjectDatabase database}) async {

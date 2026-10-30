@@ -24,7 +24,7 @@ class OcptProjectDictionaryService extends AbsOcptService {
   final OcptDeviceIdGetter deviceId;
 
   /// Class constructor
-  const OcptProjectDictionaryService({required this.deviceId});
+  const OcptProjectDictionaryService({required super.logger, required this.deviceId});
 
   /// The live words of this project's dictionary, sorted case-insensitively (ties broken by the
   /// exact text, so the ordering is deterministic), tombstones filtered out.

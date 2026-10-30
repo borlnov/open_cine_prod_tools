@@ -2,7 +2,6 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-import 'package:act_global_manager/act_global_manager.dart';
 import 'package:drift/drift.dart';
 import 'package:ocpt_sync_protocol/ocpt_sync_protocol.dart';
 import 'package:open_cine_prod_tools/managers/abs_ocpt_service.dart';
@@ -28,7 +27,7 @@ import 'package:uuid/uuid.dart';
 /// device can be paired with more than one relay over its lifetime.
 class OcptChangesetService extends AbsOcptService {
   /// Class constructor
-  const OcptChangesetService({this.mergeService = const OcptMergeService()});
+  const OcptChangesetService({required super.logger, required this.mergeService});
 
   /// {@macro act_life_cycle.MixinWithLifeCycle.initLifeCycle}
   ///
@@ -353,7 +352,7 @@ class OcptChangesetService extends AbsOcptService {
       // No service ever deletes a synchronised row (CLAUDE.md): a tombstone is still a row, so a
       // stamped rowId with no matching row at all means the stamp and the table have drifted
       // apart — a bug worth surfacing rather than silently dropping the edit.
-      appLogger().e(
+      logger.e(
         "row_field_versions stamps a row '$rowId' of '${table.actualTableName}' that no longer "
         "exists",
       );

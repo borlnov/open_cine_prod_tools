@@ -2,6 +2,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+import 'package:act_test_utility/act_test_utility.dart';
 import 'package:excel_community/excel_community.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_shot_list_xlsx_export_service.dart';
@@ -133,7 +134,7 @@ Object? _cellOf(List<Object?> row, OcptShotListXlsxColumn column) =>
     column.index < row.length ? row[column.index] : null;
 
 void main() {
-  const service = OcptShotListXlsxExportService();
+  const service = OcptShotListXlsxExportService(logger: SilentLogger());
 
   group('xlsxFileName', () {
     test('appends the .xlsx extension to the project name', () {

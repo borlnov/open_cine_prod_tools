@@ -4,6 +4,7 @@
 
 import 'dart:async';
 
+import 'package:act_test_utility/act_test_utility.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -11,6 +12,7 @@ import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/managers/sync/ocpt_sync_manager.dart';
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_changeset_service.dart';
+import 'package:open_cine_prod_tools/managers/sync/services/ocpt_merge_service.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_sync_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_route.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_sync_status_indicator.dart';
@@ -21,7 +23,13 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_sync_status
 /// frames through [emit], mirroring `syncStatusChanges` (the lifecycle-spanning stream the
 /// indicator listens to).
 class _FakeSyncManager extends OcptSyncManager {
-  _FakeSyncManager(this.status) : super(changesetService: const OcptChangesetService());
+  _FakeSyncManager(this.status)
+    : super(
+        changesetService: const OcptChangesetService(
+          logger: SilentLogger(),
+          mergeService: OcptMergeService(logger: SilentLogger()),
+        ),
+      );
 
   /// What [syncStatus] returns — the seed a fresh listener reads before the stream ever emits.
   OcptSyncStatus? status;

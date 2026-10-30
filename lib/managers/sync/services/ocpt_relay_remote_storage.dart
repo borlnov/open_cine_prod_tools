@@ -6,6 +6,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
 
+import 'package:act_foundation/act_foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:ocpt_sync_protocol/ocpt_sync_protocol.dart';
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_remote_storage.dart';
@@ -63,6 +64,7 @@ class OcptRelayRemoteStorage implements OcptRemoteStorage {
   /// its default is a sensible value for a real relay, and a test passes a short one so a
   /// regression in the reconnect path fails fast instead of timing out.
   OcptRelayRemoteStorage({
+    required MixinActLogger logger,
     required this.relayBaseUri,
     required this.projectId,
     required this.token,
@@ -70,7 +72,8 @@ class OcptRelayRemoteStorage implements OcptRemoteStorage {
     http.Client? httpClient,
     OcptWebSocketConnector? webSocketConnector,
     this.reconnectDelay = const Duration(seconds: 2),
-  }) : _httpClient = httpClient ?? http.Client(),
+  }) : _logger = logger,
+       _httpClient = httpClient ?? http.Client(),
        _ownsHttpClient = httpClient == null,
        // A bearer header on a WebSocket handshake is only possible because the default connector
        // below is `IOWebSocketChannel` (`dart:io`), which forwards arbitrary headers to
@@ -81,6 +84,9 @@ class OcptRelayRemoteStorage implements OcptRemoteStorage {
            webSocketConnector ??
            ((uri) =>
                IOWebSocketChannel.connect(uri, headers: {_authorizationHeader: 'Bearer $token'}));
+
+  /// The logger this transport writes to: a sub-logger built by `OcptSyncManager`.
+  final MixinActLogger _logger;
 
   static const _authorizationHeader = 'Authorization';
   static const _enrolmentSecretHeader = 'X-Ocpt-Enrolment-Secret';
@@ -286,7 +292,13 @@ class OcptRelayRemoteStorage implements OcptRemoteStorage {
     final WebSocketChannel socket;
     try {
       socket = _webSocketConnector(_eventsUri());
-    } on Object {
+    } on Object catch (error, stackTrace) {
+      // The error of a failed connection names the relay's address, which is not logged.
+      _logger.w(
+        'The relay events socket could not be opened, retrying: ${error.runtimeType}',
+        null,
+        stackTrace,
+      );
       _scheduleReconnect();
 
       return;
@@ -326,6 +338,7 @@ class OcptRelayRemoteStorage implements OcptRemoteStorage {
     }
     _activeSocket = null;
     _activeSocketSubscription = null;
+    _logger.d('The relay events socket went down, reconnecting');
     _scheduleReconnect();
   }
 

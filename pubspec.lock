@@ -142,6 +142,13 @@ packages:
       relative: true
     source: path
     version: "0.0.0"
+  act_test_utility:
+    dependency: "direct dev"
+    description:
+      path: "actlibs/act_test_utility"
+      relative: true
+    source: path
+    version: "0.0.0"
   act_themes_manager:
     dependency: "direct main"
     description:

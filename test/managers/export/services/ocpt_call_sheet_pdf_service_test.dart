@@ -4,6 +4,7 @@
 
 import 'dart:convert';
 import 'dart:typed_data';
+import 'package:act_test_utility/act_test_utility.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_call_sheet_pdf_service.dart';
 import 'package:open_cine_prod_tools/models/ocpt_call_sheet_labels.dart';
@@ -499,7 +500,7 @@ void main() {
 
   // A single shared instance, reused across every test below: this also exercises the font-loading
   // cache (repeated `generate…` calls must not re-read the asset bundle).
-  final service = OcptCallSheetPdfService();
+  final service = OcptCallSheetPdfService(logger: const SilentLogger());
   const pageSetup = OcptPageSetup.standard();
 
   /// A day with two slots, two crews and two shots — the fixture "a day with two slots and two

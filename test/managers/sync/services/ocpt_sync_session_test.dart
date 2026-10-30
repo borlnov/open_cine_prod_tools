@@ -5,9 +5,11 @@
 import 'dart:async';
 import 'dart:typed_data';
 
+import 'package:act_test_utility/act_test_utility.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ocpt_sync_protocol/ocpt_sync_protocol.dart';
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_changeset_service.dart';
+import 'package:open_cine_prod_tools/managers/sync/services/ocpt_merge_service.dart';
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_remote_storage.dart';
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_sync_session.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
@@ -55,7 +57,11 @@ class _FakeRemoteStorage implements OcptRemoteStorage {
 /// its queue runs dry. This is what lets this file test [OcptSyncSession]'s own scheduling and
 /// status logic without a real merge to drive.
 class _FakeChangesetService extends OcptChangesetService {
-  _FakeChangesetService();
+  _FakeChangesetService()
+    : super(
+        logger: const SilentLogger(),
+        mergeService: const OcptMergeService(logger: SilentLogger()),
+      );
 
   int syncOnceCalls = 0;
   int pullAndApplyCalls = 0;
@@ -147,6 +153,7 @@ void main() {
     storage = _FakeRemoteStorage();
     changesetService = _FakeChangesetService();
     session = OcptSyncSession(
+      logger: const SilentLogger(),
       projectId: projectId,
       database: database,
       deviceId: deviceId,
@@ -190,6 +197,7 @@ void main() {
     'the periodic timer runs a syncOnce on its own, with no ping and no manual call',
     () async {
       session = OcptSyncSession(
+        logger: const SilentLogger(),
         projectId: projectId,
         database: database,
         deviceId: deviceId,
@@ -285,6 +293,7 @@ void main() {
     'stopSyncSession cancels the timer and the subscription, with no leak afterwards',
     () async {
       session = OcptSyncSession(
+        logger: const SilentLogger(),
         projectId: projectId,
         database: database,
         deviceId: deviceId,

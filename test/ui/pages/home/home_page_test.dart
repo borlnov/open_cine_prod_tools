@@ -6,6 +6,7 @@ import 'dart:io';
 
 import 'package:act_dart_result/act_dart_result.dart';
 import 'package:act_file_transfer_manager/act_file_transfer_manager.dart';
+import 'package:act_test_utility/act_test_utility.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -140,7 +141,7 @@ class _FakeSaveLocationService extends OcptSaveLocationService {
   final String? directoryAnswer;
 
   /// Class constructor
-  const _FakeSaveLocationService({this.directoryAnswer});
+  const _FakeSaveLocationService({this.directoryAnswer}) : super(logger: const SilentLogger());
 
   @override
   Future<String?> pickDirectory({
@@ -556,7 +557,7 @@ void main() {
 
       final packagePath = p.join(tempDir.path, "sent", "My Movie.ocptz");
       await tester.runAsync(() async {
-        final exported = await const OcptProjectPackageService().writePackage(
+        final exported = await const OcptProjectPackageService(logger: SilentLogger()).writePackage(
           projectFilePath: projectPath,
           packageFilePath: packagePath,
           projectName: "My Movie",

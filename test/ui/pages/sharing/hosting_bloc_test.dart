@@ -5,6 +5,7 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:act_test_utility/act_test_utility.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
@@ -13,6 +14,7 @@ import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dar
 import 'package:open_cine_prod_tools/managers/sync/ocpt_relay_host_manager.dart';
 import 'package:open_cine_prod_tools/managers/sync/ocpt_sync_manager.dart';
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_changeset_service.dart';
+import 'package:open_cine_prod_tools/managers/sync/services/ocpt_merge_service.dart';
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_pairing_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_presence_roster.dart';
@@ -115,6 +117,7 @@ class _FakeHostManager extends OcptRelayHostManager {
 class _FakePairingService extends OcptPairingService {
   _FakePairingService({this.pairing})
     : super(
+        logger: const SilentLogger(),
         secretsManager: OcptSecretsManager(
           propertiesGetter: () => throw UnimplementedError(),
           confGetter: () => throw UnimplementedError(),
@@ -137,7 +140,12 @@ class _FakePairingService extends OcptPairingService {
 class _FakeSyncManager extends OcptSyncManager {
   _FakeSyncManager({this.pairedProjectId, _FakePairingService? pairingService})
     : _fakePairingService = pairingService ?? _FakePairingService(),
-      super(changesetService: const OcptChangesetService());
+      super(
+        changesetService: const OcptChangesetService(
+          logger: SilentLogger(),
+          mergeService: OcptMergeService(logger: SilentLogger()),
+        ),
+      );
 
   /// What [loadPairedProjectId] returns.
   String? pairedProjectId;

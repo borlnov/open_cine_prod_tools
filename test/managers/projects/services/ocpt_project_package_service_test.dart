@@ -6,6 +6,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:act_dart_result/act_dart_result.dart';
+import 'package:act_test_utility/act_test_utility.dart';
 import 'package:archive/archive_io.dart';
 import 'package:drift/drift.dart' show Value;
 import 'package:flutter_test/flutter_test.dart';
@@ -29,8 +30,8 @@ void main() {
   // instance to be set; merely accessing it creates the (otherwise unused) singleton.
   setUpAll(() => OcptGlobalManager.instance);
 
-  const service = OcptProjectPackageService();
-  const codec = OcptProjectVersionCodec();
+  const service = OcptProjectPackageService(logger: SilentLogger());
+  const codec = OcptProjectVersionCodec(logger: SilentLogger());
 
   late Directory workspace;
   late String projectPath;

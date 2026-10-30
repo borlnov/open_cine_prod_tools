@@ -34,7 +34,7 @@ class OcptBudgetQuoteService extends AbsOcptService {
   final OcptDeviceIdGetter deviceId;
 
   /// Class constructor
-  const OcptBudgetQuoteService({required this.deviceId});
+  const OcptBudgetQuoteService({required super.logger, required this.deviceId});
 
   /// Loads every live poste of [database], in `sortKey` order, each joined with its own live
   /// `budget_lines` rows (themselves in their own `sortKey` order) — seeding [seed] first if the

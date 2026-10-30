@@ -2,6 +2,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+import 'package:act_test_utility/act_test_utility.dart';
 import 'package:drift/drift.dart' show OrderingTerm, Value;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
@@ -22,12 +23,14 @@ void main() {
   setUpAll(() => OcptGlobalManager.instance);
 
   Future<String> testDeviceId() async => "test-device";
-  final assetsService = OcptAssetsService(deviceId: testDeviceId);
+  final assetsService = OcptAssetsService(logger: const SilentLogger(), deviceId: testDeviceId);
   final floorPlanService = OcptFloorPlanService(
+    logger: const SilentLogger(),
     assetsService: assetsService,
     deviceId: testDeviceId,
   );
   final locationsService = OcptLocationsService(
+    logger: const SilentLogger(),
     assetsService: assetsService,
     floorPlanService: floorPlanService,
     deviceId: testDeviceId,

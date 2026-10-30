@@ -4,6 +4,7 @@
 
 import 'dart:typed_data';
 
+import 'package:act_test_utility/act_test_utility.dart';
 import 'package:excel_community/excel_community.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fountain_kit/fountain_kit.dart';
@@ -270,7 +271,7 @@ Object? _valueOf(Data? cell) {
 Object? _cellAt(List<Object?> row, int index) => index < row.length ? row[index] : null;
 
 void main() {
-  const service = OcptBreakdownXlsxExportService();
+  const service = OcptBreakdownXlsxExportService(logger: SilentLogger());
   const parser = FountainParser();
   const pageSetup = OcptPageSetup.standard();
   final document = parser.parse(_screenplay);

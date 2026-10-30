@@ -2,8 +2,8 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+import 'package:act_life_cycle/act_life_cycle.dart';
 import 'package:drift/drift.dart';
-import 'package:open_cine_prod_tools/managers/abs_ocpt_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_row_stamp_diff.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_row_stamp_version.dart';
@@ -46,7 +46,7 @@ typedef OcptDeviceIdGetter = Future<String> Function();
 /// and never synchronised) simply never receives a stamp: every stamping call in this class takes
 /// the accumulator itself as an optional parameter or method, and the caller passes `null` to skip
 /// it, exactly as [OcptRowFieldVersionRow]'s own class doc names `scenes` as the one exception.
-class OcptRowStampService extends AbsOcptService {
+class OcptRowStampService extends AbsWithLifeCycle {
   /// The device id every stamp this instance writes carries: this replica's own.
   final String deviceId;
 

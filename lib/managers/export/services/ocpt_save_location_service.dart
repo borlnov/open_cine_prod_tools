@@ -2,7 +2,6 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-import 'package:act_global_manager/act_global_manager.dart';
 import 'package:file_selector/file_selector.dart';
 import 'package:open_cine_prod_tools/managers/abs_ocpt_service.dart';
 import 'package:path/path.dart' as p;
@@ -14,7 +13,7 @@ import 'package:path/path.dart' as p;
 /// through `globalGetIt()`, so it can be replaced by a test double.
 class OcptSaveLocationService extends AbsOcptService {
   /// Class constructor
-  const OcptSaveLocationService();
+  const OcptSaveLocationService({required super.logger});
 
   /// Shows the native save dialog, pre-filled with [suggestedFileName] and restricted to
   /// [extensions] (labelled [fileTypeLabel] in the dialog's type filter), opening in
@@ -42,10 +41,12 @@ class OcptSaveLocationService extends AbsOcptService {
       }
 
       return p.extension(path).isEmpty ? "$path.${extensions.first}" : path;
-    } catch (error) {
-      appLogger().e(
-        "A problem occurred when tried to pick a save location for: $suggestedFileName, "
-        "error: $error",
+    } catch (error, stackTrace) {
+      logger.e(
+        "A problem occurred when tried to pick a save location for: $suggestedFileName, error: "
+        "${error.runtimeType}",
+        null,
+        stackTrace,
       );
       return null;
     }
@@ -71,8 +72,12 @@ class OcptSaveLocationService extends AbsOcptService {
         confirmButtonText: confirmButtonText,
         initialDirectory: initialDirectory,
       );
-    } catch (error) {
-      appLogger().e("A problem occurred when tried to pick a directory, error: $error");
+    } catch (error, stackTrace) {
+      logger.e(
+        "A problem occurred when tried to pick a directory, error: ${error.runtimeType}",
+        null,
+        stackTrace,
+      );
       return null;
     }
   }

@@ -2,7 +2,6 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-import 'package:act_global_manager/act_global_manager.dart';
 import 'package:drift/drift.dart';
 import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/managers/abs_ocpt_service.dart';
@@ -94,6 +93,7 @@ class OcptScreenplayService extends AbsOcptService {
 
   /// Class constructor
   const OcptScreenplayService({
+    required super.logger,
     required OcptSceneIndexService sceneIndexService,
     required OcptShotListService shotListService,
     required OcptShotCoverageService shotCoverageService,
@@ -542,9 +542,9 @@ class OcptScreenplayService extends AbsOcptService {
       }
 
       if (liveEpisodes.length <= 1) {
-        appLogger().w(
-          "The episode $screenplayId can't be deleted: it's the project's last live "
-          "one, and a project always holds at least one screenplay",
+        logger.w(
+          "The episode $screenplayId can't be deleted: it's the project's last live one, and a "
+          "project always holds at least one screenplay",
         );
         return false;
       }

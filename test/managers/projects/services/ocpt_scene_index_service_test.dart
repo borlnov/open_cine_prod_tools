@@ -2,6 +2,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+import 'package:act_test_utility/act_test_utility.dart';
 import 'package:drift/drift.dart' show OrderingTerm;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fountain_kit/fountain_kit.dart';
@@ -13,7 +14,7 @@ import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart'
 FountainDocument _parse(String source) => const FountainParser().parse(source);
 
 void main() {
-  const service = OcptSceneIndexService();
+  const service = OcptSceneIndexService(logger: SilentLogger());
   const screenplayId = "screenplay-1";
 
   late OcptProjectDatabase database;

@@ -10,6 +10,7 @@ import 'package:act_life_cycle/act_life_cycle.dart';
 import 'package:act_logger_manager/act_logger_manager.dart';
 import 'package:act_platform_manager/act_platform_manager.dart';
 import 'package:ocpt_sync_relay/ocpt_sync_relay.dart';
+import 'package:open_cine_prod_tools/managers/logging/ocpt_logs_helper_builder.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_diagnostics_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_secrets_manager.dart';
@@ -138,6 +139,12 @@ class OcptRelayHostManagerBuilder extends AbsLifeCycleFactory<OcptRelayHostManag
 /// (`CLAUDE.md`'s own pitfalls list): [stateStream] never replays its current value to a new
 /// listener, so a caller reads [state] first to seed a fresh subscriber.
 class OcptRelayHostManager extends AbsWithLifeCycle {
+  /// The logger category linked to this manager.
+  static const _loggerCategory = "relay_host";
+
+  /// The logger this manager writes to.
+  final LogsHelper _logger = buildOcptLogsHelper(_loggerCategory);
+
   /// Class constructor
   ///
   /// [platformManager] is resolved directly (`platformManager ?? PlatformManager()`) rather than
@@ -300,8 +307,7 @@ class OcptRelayHostManager extends AbsWithLifeCycle {
   ///
   /// A failure at any step tears down whatever was already opened — ending the self-seeded sync
   /// session first, so it never talks to a socket that is already gone (see [_teardown]) —
-  /// reports [OcptRelayHostFailed] with the error's own message, logs a warning when a global
-  /// manager instance exists (mirroring `OcptSyncSession._logWarning`), and returns rather than
+  /// reports [OcptRelayHostFailed] with the error's own message, logs the failure, and returns rather than
   /// rethrowing — a bring-up failure is a state to render, exactly like `OcptSyncStatus`, not an
   /// exception to propagate.
   ///
@@ -331,6 +337,8 @@ class OcptRelayHostManager extends AbsWithLifeCycle {
     OcptDiagnosticsManager.log(
       category: OcptDiagnosticsCategory.hosting,
       message: 'starting hosting: project="$projectName"',
+      // The project's name is the user's own wording and does not belong in a log.
+      logMessage: 'starting hosting',
     );
 
     try {
@@ -393,7 +401,7 @@ class OcptRelayHostManager extends AbsWithLifeCycle {
           ? lanAddresses.first.address
           : InternetAddress.loopbackIPv4.address;
       if (lanAddresses.isEmpty) {
-        _logWarning(
+        _logger.w(
           'No non-loopback network interface was found while starting to host project '
           '$projectId: advertising the loopback address, which only this machine can reach.',
         );
@@ -405,14 +413,17 @@ class OcptRelayHostManager extends AbsWithLifeCycle {
       OcptDiagnosticsManager.log(
         category: OcptDiagnosticsCategory.hosting,
         message: 'online: project=$projectId base=$lanBaseUri',
+        // The base URI is this machine's address on its network.
+        logMessage: 'online: project=$projectId',
       );
     } catch (error, stackTrace) {
       await _teardown();
-      _logWarning('Could not start hosting project: $error\n$stackTrace');
+      _logger.e('Could not start hosting project: ${error.runtimeType}', null, stackTrace);
       OcptDiagnosticsManager.log(
         category: OcptDiagnosticsCategory.hosting,
         level: OcptDiagnosticsLevel.error,
         message: 'could not start hosting: $error',
+        logMessage: 'could not start hosting: ${error.runtimeType}',
       );
       _setState(OcptRelayHostFailed('Could not start hosting: $error'));
     }
@@ -460,7 +471,7 @@ class OcptRelayHostManager extends AbsWithLifeCycle {
   /// pointed at, so a mismatch here means the invite was scanned for the wrong project. Any other
   /// failure — the upstream unreachable, or answering anything but `200`, which
   /// [OcptRelayUpstreamClient] surfaces as a thrown [StateError] — is caught here and reported as
-  /// [OcptReconcileFailed] instead, and also logged as a warning through [_logWarning].
+  /// [OcptReconcileFailed] instead, and also logged as a warning.
   Future<OcptReconcileOutcome> reconcileWithUpstream(OcptRelayInvite invite) async {
     final store = _store;
     final projectId = _hostedProjectId;
@@ -480,7 +491,7 @@ class OcptRelayHostManager extends AbsWithLifeCycle {
 
       return OcptReconcileSucceeded(pushed: result.pushed, pulled: result.pulled);
     } catch (error, stackTrace) {
-      _logWarning('Reconcile with ${invite.relayBaseUri} failed: $error\n$stackTrace');
+      _logger.w('Reconcile with the upstream relay failed: ${error.runtimeType}', null, stackTrace);
 
       return OcptReconcileFailed('Reconcile failed: $error');
     } finally {
@@ -558,15 +569,6 @@ class OcptRelayHostManager extends AbsWithLifeCycle {
     _state = state;
     if (!_controller.isClosed) {
       _controller.add(state);
-    }
-  }
-
-  /// Logs [message] through `appLogger()` when a global manager instance actually exists, and does
-  /// nothing otherwise — mirrors `OcptSyncSession._logWarning`'s own doc comment: a unit test
-  /// builds this manager directly, with no app-wide `AbsGlobalManager` behind it at all.
-  void _logWarning(String message) {
-    if (AbsGlobalManager.instance != null) {
-      appLogger().w(message);
     }
   }
 

@@ -37,6 +37,7 @@ import 'package:open_cine_prod_tools/managers/export/services/ocpt_shooting_plan
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_shot_list_xlsx_export_service.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_sides_pdf_service.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_storyboard_pdf_service.dart';
+import 'package:open_cine_prod_tools/managers/logging/ocpt_logs_helper_builder.dart';
 import 'package:open_cine_prod_tools/models/ocpt_breakdown_sheets_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_breakdown_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_breakdown_xlsx_labels.dart';
@@ -67,6 +68,7 @@ import 'package:open_cine_prod_tools/models/ocpt_shot_list_xlsx_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_sides_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_storyboard_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_storyboard_snapshot.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_log_subject.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_shooting_convocations.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_tax_basis.dart';
 import 'package:open_cine_prod_tools/types/ocpt_export_outcome.dart';
@@ -118,6 +120,12 @@ class OcptExportManagerBuilder extends AbsLifeCycleFactory<OcptExportManager> {
 /// (`sharePositionOrigin` on an iPad/Mac popover; this manager sees no `BuildContext` to resolve
 /// one itself).
 class OcptExportManager extends AbsWithLifeCycle {
+  /// The logger category linked to this manager.
+  static const _loggerCategory = "export";
+
+  /// The logger this manager writes to, and the parent of every service's own.
+  final LogsHelper _logger;
+
   /// The manager used to show the native "open" dialog when importing.
   final FileSelectorManager _fileSelectorManager;
 
@@ -212,6 +220,7 @@ class OcptExportManager extends AbsWithLifeCycle {
     OcptSaveLocationService? saveLocationService,
     OcptShareService? shareService,
   }) : this._(
+         logger: buildOcptLogsHelper(_loggerCategory),
          fontsLoader: OcptCourierPrimeFontsLoader(),
          fileSelectorManager: fileSelectorManager,
          platformManager: platformManager,
@@ -224,46 +233,108 @@ class OcptExportManager extends AbsWithLifeCycle {
   /// Handing them all the same [OcptCourierPrimeFontsLoader] is what keeps the app from decoding
   /// the 4 embedded Courier Prime TTFs once per renderer, however many exports of any kind it runs.
   OcptExportManager._({
+    required LogsHelper logger,
     required OcptCourierPrimeFontsLoader fontsLoader,
     required FileSelectorManager? fileSelectorManager,
     required PlatformManager? platformManager,
     required OcptSaveLocationService? saveLocationService,
     required OcptShareService? shareService,
-  }) : _fileSelectorManager = fileSelectorManager ?? globalGetIt().get<FileSelectorManager>(),
+  }) : _logger = logger,
+       _fileSelectorManager = fileSelectorManager ?? globalGetIt().get<FileSelectorManager>(),
        // Not resolved through globalGetIt() like the manager above: PlatformManager's own
        // constructor is a synchronous, side-effect-free read of the real platform (isMobile does
        // not depend on initLifeCycle()'s async SDK-version lookup), so building one directly here
        // is exactly as correct as the registered singleton would be, and it keeps every other
        // export test — none of which registers PlatformManager in GetIt — from having to.
        _platformManager = platformManager ?? PlatformManager(),
-       saveLocationService = saveLocationService ?? const OcptSaveLocationService(),
-       shareService = shareService ?? const OcptShareService(),
-       fountainIoService = const OcptFountainIoService(),
-       scriptImportService = const OcptScriptImportService(),
-       pdfExportService = OcptPdfExportService(fontsLoader: fontsLoader),
-       scenarioCoveragePdfService = OcptScenarioCoveragePdfService(fontsLoader: fontsLoader),
-       breakdownSheetsPdfService = OcptBreakdownSheetsPdfService(fontsLoader: fontsLoader),
-       breakdownXlsxExportService = const OcptBreakdownXlsxExportService(),
-       callSheetPdfService = OcptCallSheetPdfService(fontsLoader: fontsLoader),
-       shootingPlanPdfService = OcptShootingPlanPdfService(fontsLoader: fontsLoader),
-       shootingPlanXlsxExportService = const OcptShootingPlanXlsxExportService(),
-       dayOutOfDaysPdfService = OcptDayOutOfDaysPdfService(fontsLoader: fontsLoader),
-       oneLineSchedulePdfService = OcptOneLineSchedulePdfService(fontsLoader: fontsLoader),
-       sidesPdfService = OcptSidesPdfService(fontsLoader: fontsLoader),
-       contactListPdfService = OcptContactListPdfService(fontsLoader: fontsLoader),
-       budgetQuotePdfService = OcptBudgetQuotePdfService(fontsLoader: fontsLoader),
-       budgetFinancingPlanPdfService = OcptBudgetFinancingPlanPdfService(fontsLoader: fontsLoader),
+       saveLocationService =
+           saveLocationService ?? OcptSaveLocationService(logger: _sub(logger, 'save_location')),
+       shareService = shareService ?? OcptShareService(logger: _sub(logger, 'share')),
+       fountainIoService = OcptFountainIoService(logger: _sub(logger, 'fountain_io')),
+       scriptImportService = OcptScriptImportService(
+         logger: _sub(logger, 'script_import'),
+         fountainIoService: OcptFountainIoService(logger: _sub(logger, 'fountain_io')),
+       ),
+       pdfExportService = OcptPdfExportService(
+         logger: _sub(logger, 'pdf_export'),
+         fontsLoader: fontsLoader,
+       ),
+       scenarioCoveragePdfService = OcptScenarioCoveragePdfService(
+         logger: _sub(logger, 'scenario_coverage_pdf'),
+         fontsLoader: fontsLoader,
+       ),
+       breakdownSheetsPdfService = OcptBreakdownSheetsPdfService(
+         logger: _sub(logger, 'breakdown_sheets_pdf'),
+         fontsLoader: fontsLoader,
+       ),
+       breakdownXlsxExportService = OcptBreakdownXlsxExportService(
+         logger: _sub(logger, 'breakdown_xlsx_export'),
+       ),
+       callSheetPdfService = OcptCallSheetPdfService(
+         logger: _sub(logger, 'call_sheet_pdf'),
+         fontsLoader: fontsLoader,
+       ),
+       shootingPlanPdfService = OcptShootingPlanPdfService(
+         logger: _sub(logger, 'shooting_plan_pdf'),
+         fontsLoader: fontsLoader,
+       ),
+       shootingPlanXlsxExportService = OcptShootingPlanXlsxExportService(
+         logger: _sub(logger, 'shooting_plan_xlsx_export'),
+       ),
+       dayOutOfDaysPdfService = OcptDayOutOfDaysPdfService(
+         logger: _sub(logger, 'day_out_of_days_pdf'),
+         fontsLoader: fontsLoader,
+       ),
+       oneLineSchedulePdfService = OcptOneLineSchedulePdfService(
+         logger: _sub(logger, 'one_line_schedule_pdf'),
+         fontsLoader: fontsLoader,
+       ),
+       sidesPdfService = OcptSidesPdfService(
+         logger: _sub(logger, 'sides_pdf'),
+         fontsLoader: fontsLoader,
+       ),
+       contactListPdfService = OcptContactListPdfService(
+         logger: _sub(logger, 'contact_list_pdf'),
+         fontsLoader: fontsLoader,
+       ),
+       budgetQuotePdfService = OcptBudgetQuotePdfService(
+         logger: _sub(logger, 'budget_quote_pdf'),
+         fontsLoader: fontsLoader,
+       ),
+       budgetFinancingPlanPdfService = OcptBudgetFinancingPlanPdfService(
+         logger: _sub(logger, 'budget_financing_plan_pdf'),
+         fontsLoader: fontsLoader,
+       ),
        budgetFinancialReportPdfService = OcptBudgetFinancialReportPdfService(
+         logger: _sub(logger, 'budget_financial_report_pdf'),
          fontsLoader: fontsLoader,
        ),
-       floorPlanPdfService = OcptFloorPlanPdfService(fontsLoader: fontsLoader),
+       floorPlanPdfService = OcptFloorPlanPdfService(
+         logger: _sub(logger, 'floor_plan_pdf'),
+         fontsLoader: fontsLoader,
+       ),
        storyboardPdfService = OcptStoryboardPdfService(
+         logger: _sub(logger, 'storyboard_pdf'),
          fontsLoader: fontsLoader,
-         floorPlanPdfService: OcptFloorPlanPdfService(fontsLoader: fontsLoader),
+         floorPlanPdfService: OcptFloorPlanPdfService(
+           logger: _sub(logger, 'floor_plan_pdf'),
+           fontsLoader: fontsLoader,
+         ),
        ),
-       budgetCashJournalXlsxExportService = const OcptBudgetCashJournalXlsxExportService(),
-       shotListXlsxExportService = const OcptShotListXlsxExportService(),
-       resourcesXlsxExportService = const OcptResourcesXlsxExportService();
+       budgetCashJournalXlsxExportService = OcptBudgetCashJournalXlsxExportService(
+         logger: _sub(logger, 'budget_cash_journal_xlsx_export'),
+       ),
+       shotListXlsxExportService = OcptShotListXlsxExportService(
+         logger: _sub(logger, 'shot_list_xlsx_export'),
+       ),
+       resourcesXlsxExportService = OcptResourcesXlsxExportService(
+         logger: _sub(logger, 'resources_xlsx_export'),
+       );
+
+  /// The sub-logger named [category] of [logger]: the one logger each service this manager builds
+  /// is handed.
+  static LogsHelper _sub(LogsHelper logger, String category) =>
+      logger.createSubLogger(subCategory: category);
 
   /// {@macro act_life_cycle.MixinWithLifeCycle.initLifeCycle}
   ///
@@ -1329,8 +1400,13 @@ class OcptExportManager extends AbsWithLifeCycle {
     try {
       await File(path).writeAsBytes(bytes, flush: true);
       return true;
-    } catch (error) {
-      appLogger().e("A problem occurred when tried to write the file at: $path, error: $error");
+    } catch (error, stackTrace) {
+      _logger.e(
+        "A problem occurred when tried to write the file at: ${ocptLogFileName(path)}, error: "
+        "${error.runtimeType}",
+        null,
+        stackTrace,
+      );
       return false;
     }
   }
@@ -1365,8 +1441,13 @@ class OcptExportManager extends AbsWithLifeCycle {
     try {
       await File(path).writeAsBytes(bytes, flush: true);
       return OcptExportSaved(path);
-    } catch (error) {
-      appLogger().e("A problem occurred when tried to write the file at: $path, error: $error");
+    } catch (error, stackTrace) {
+      _logger.e(
+        "A problem occurred when tried to write the file at: ${ocptLogFileName(path)}, error: "
+        "${error.runtimeType}",
+        null,
+        stackTrace,
+      );
       return null;
     }
   }
@@ -1390,8 +1471,12 @@ class OcptExportManager extends AbsWithLifeCycle {
 
       final shared = await shareService.shareFiles(paths: [path], sharePositionOrigin: shareAnchor);
       return shared ? const OcptExportShared() : null;
-    } catch (error) {
-      appLogger().e("A problem occurred when tried to share the file: $fileName, error: $error");
+    } catch (error, stackTrace) {
+      _logger.e(
+        "A problem occurred when tried to share the file: $fileName, error: ${error.runtimeType}",
+        null,
+        stackTrace,
+      );
       return null;
     }
   }
@@ -1423,16 +1508,16 @@ class OcptExportManager extends AbsWithLifeCycle {
 
     final bytes = await XFileUtilities.getBinaryFileContent(xFile: selectedFile);
     if (bytes == null) {
-      appLogger().e("A problem occurred when tried to read the picked file: ${selectedFile.name}");
+      _logger.e("A problem occurred when tried to read the picked file: ${selectedFile.name}");
       return const ResultWithStatus(status: OcptScreenplayImportStatus.ioError);
     }
 
     final read = scriptImportService.readScreenplay(bytes: bytes, fileName: selectedFile.name);
     final fountainText = read.value;
     if (!read.status.isSuccess || fountainText == null) {
-      appLogger().w(
+      _logger.w(
         "The picked file ${selectedFile.name} could not be read as a screenplay: "
-        "${read.extraInfo}",
+        "${read.status}",
       );
       return ResultWithStatus(status: read.status);
     }

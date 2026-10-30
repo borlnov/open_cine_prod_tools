@@ -46,7 +46,7 @@ class _ParsedScene {
 /// {@macro open_cine_prod_tools.tombstones}
 class OcptSceneIndexService extends AbsOcptService {
   /// Class constructor
-  const OcptSceneIndexService();
+  const OcptSceneIndexService({required super.logger});
 
   /// Reconciles the `scenes` table of [screenplayId] in [database] against the scene headings of
   /// [document].

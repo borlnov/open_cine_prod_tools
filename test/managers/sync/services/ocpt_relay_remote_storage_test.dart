@@ -6,6 +6,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
 
+import 'package:act_test_utility/act_test_utility.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
@@ -88,6 +89,7 @@ void main() {
       final envelope = _envelope('a');
       late http.Request captured;
       final storage = OcptRelayRemoteStorage(
+        logger: const SilentLogger(),
         relayBaseUri: relayBaseUri,
         projectId: projectId,
         token: token,
@@ -111,6 +113,7 @@ void main() {
     test('includes the enrolment header when the transport has a secret', () async {
       late http.Request captured;
       final storage = OcptRelayRemoteStorage(
+        logger: const SilentLogger(),
         relayBaseUri: relayBaseUri,
         projectId: projectId,
         token: token,
@@ -130,6 +133,7 @@ void main() {
     test('omits the enrolment header when the transport has none', () async {
       late http.Request captured;
       final storage = OcptRelayRemoteStorage(
+        logger: const SilentLogger(),
         relayBaseUri: relayBaseUri,
         projectId: projectId,
         token: token,
@@ -158,6 +162,7 @@ void main() {
       );
       late http.Request captured;
       final storage = OcptRelayRemoteStorage(
+        logger: const SilentLogger(),
         relayBaseUri: relayBaseUri,
         projectId: projectId,
         token: token,
@@ -189,6 +194,7 @@ void main() {
       final bytes = Uint8List.fromList([1, 2, 3, 4]);
       late http.Request captured;
       final storage = OcptRelayRemoteStorage(
+        logger: const SilentLogger(),
         relayBaseUri: relayBaseUri,
         projectId: projectId,
         token: token,
@@ -219,6 +225,7 @@ void main() {
       );
       final bytes = Uint8List.fromList([1, 2, 3, 4]);
       final storage = OcptRelayRemoteStorage(
+        logger: const SilentLogger(),
         relayBaseUri: relayBaseUri,
         projectId: projectId,
         token: token,
@@ -242,6 +249,7 @@ void main() {
 
     test('maps a 404 to null', () async {
       final storage = OcptRelayRemoteStorage(
+        logger: const SilentLogger(),
         relayBaseUri: relayBaseUri,
         projectId: projectId,
         token: token,
@@ -265,6 +273,7 @@ void main() {
   group('error surfacing', () {
     test('a non-2xx response throws the decoded OcptSyncError', () async {
       final storage = OcptRelayRemoteStorage(
+        logger: const SilentLogger(),
         relayBaseUri: relayBaseUri,
         projectId: projectId,
         token: token,
@@ -293,6 +302,7 @@ void main() {
     test('emits once per incoming socket message', () async {
       final incoming = StreamController<dynamic>.broadcast();
       final storage = OcptRelayRemoteStorage(
+        logger: const SilentLogger(),
         relayBaseUri: relayBaseUri,
         projectId: projectId,
         token: token,
@@ -320,6 +330,7 @@ void main() {
         final secondIncoming = StreamController<dynamic>.broadcast();
         var connectCount = 0;
         final storage = OcptRelayRemoteStorage(
+          logger: const SilentLogger(),
           relayBaseUri: relayBaseUri,
           projectId: projectId,
           token: token,
@@ -367,6 +378,7 @@ void main() {
     test('a literal new-work frame goes to newWorkStream, not presenceStream', () async {
       final incoming = StreamController<dynamic>.broadcast();
       final storage = OcptRelayRemoteStorage(
+        logger: const SilentLogger(),
         relayBaseUri: relayBaseUri,
         projectId: projectId,
         token: token,
@@ -393,6 +405,7 @@ void main() {
     test('any other frame goes to presenceStream, not newWorkStream', () async {
       final incoming = StreamController<dynamic>.broadcast();
       final storage = OcptRelayRemoteStorage(
+        logger: const SilentLogger(),
         relayBaseUri: relayBaseUri,
         projectId: projectId,
         token: token,
@@ -422,6 +435,7 @@ void main() {
         final incoming = StreamController<dynamic>.broadcast();
         var connectCount = 0;
         final storage = OcptRelayRemoteStorage(
+          logger: const SilentLogger(),
           relayBaseUri: relayBaseUri,
           projectId: projectId,
           token: token,
@@ -450,6 +464,7 @@ void main() {
       final incoming = StreamController<dynamic>.broadcast();
       late _FakeWebSocketChannel channel;
       final storage = OcptRelayRemoteStorage(
+        logger: const SilentLogger(),
         relayBaseUri: relayBaseUri,
         projectId: projectId,
         token: token,
@@ -469,6 +484,7 @@ void main() {
 
     test('is a silent no-op while the socket is not connected', () async {
       final storage = OcptRelayRemoteStorage(
+        logger: const SilentLogger(),
         relayBaseUri: relayBaseUri,
         projectId: projectId,
         token: token,

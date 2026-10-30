@@ -44,7 +44,7 @@ class OcptShotCoverageService extends AbsOcptService {
   final OcptDeviceIdGetter deviceId;
 
   /// Class constructor
-  const OcptShotCoverageService({required this.deviceId});
+  const OcptShotCoverageService({required super.logger, required this.deviceId});
 
   /// Adds a coverage range covering the scene-relative `[startOffset, endOffset)` of scene
   /// [sceneId] to shot [shotId], **merged with every range of that shot it joins**, and returns

@@ -4,6 +4,7 @@
 
 import 'dart:typed_data';
 
+import 'package:act_test_utility/act_test_utility.dart';
 import 'package:excel_community/excel_community.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_shooting_plan_xlsx_export_service.dart';
@@ -243,7 +244,7 @@ Object? _valueOf(Data? cell) {
 Object? _cellAt(List<Object?> row, int index) => index < row.length ? row[index] : null;
 
 void main() {
-  const service = OcptShootingPlanXlsxExportService();
+  const service = OcptShootingPlanXlsxExportService(logger: SilentLogger());
 
   Uint8List generate({required OcptSchedulePlanSnapshot plan, required List<String> dayIds}) =>
       service.generate(plan: plan, dayIds: dayIds, labels: _buildLabels());

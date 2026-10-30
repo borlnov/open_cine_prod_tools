@@ -31,7 +31,7 @@ class OcptBudgetSharingService extends AbsOcptService {
   final OcptDeviceIdGetter deviceId;
 
   /// Class constructor
-  const OcptBudgetSharingService({required this.deviceId});
+  const OcptBudgetSharingService({required super.logger, required this.deviceId});
 
   /// Loads every live revenue of [database], in `sortKey` order.
   Future<List<OcptBudgetRevenue>> loadRevenues({required OcptProjectDatabase database}) async {

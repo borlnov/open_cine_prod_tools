@@ -6,7 +6,6 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:act_global_manager/act_global_manager.dart';
 import 'package:open_cine_prod_tools/managers/abs_ocpt_service.dart';
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_remote_storage.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_presence_frame.dart';
@@ -60,6 +59,7 @@ class OcptPresenceService extends AbsOcptService {
   /// ([_systemClock]); a test hands in its own so a peer's ageing past [peerTimeout] can be driven
   /// deterministically instead of waiting on real time.
   OcptPresenceService({
+    required super.logger,
     required this.storage,
     required this.deviceId,
     String? platform,
@@ -177,7 +177,7 @@ class OcptPresenceService extends AbsOcptService {
     try {
       frame = OcptPresenceFrame.fromJson(jsonDecode(raw) as Map<String, dynamic>);
     } catch (error, stackTrace) {
-      _logWarning('Dropping a malformed presence frame: $error\n$stackTrace');
+      logger.w('Dropping a malformed presence frame: ${error.runtimeType}', null, stackTrace);
       return;
     }
     if (frame.deviceId == deviceId) {
@@ -223,15 +223,6 @@ class OcptPresenceService extends AbsOcptService {
   void _emitRoster() {
     if (!_rosterController.isClosed) {
       _rosterController.add(_buildRoster());
-    }
-  }
-
-  /// Logs [message] through `appLogger()` when a global manager instance actually exists, and does
-  /// nothing otherwise — see `OcptSyncSession._logWarning`'s own doc comment for why a unit test
-  /// with no app-wide `AbsGlobalManager` behind it must not crash over this.
-  void _logWarning(String message) {
-    if (AbsGlobalManager.instance != null) {
-      appLogger().w(message);
     }
   }
 }

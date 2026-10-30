@@ -6,6 +6,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
+import 'package:act_test_utility/act_test_utility.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/constants/ocpt_coverage_palette.dart';
@@ -116,7 +117,7 @@ void main() {
 
   // A single shared instance, reused across every test below: this also exercises the font-loading
   // cache (repeated `generate` calls must not re-read the asset bundle).
-  final service = OcptScenarioCoveragePdfService();
+  final service = OcptScenarioCoveragePdfService(logger: const SilentLogger());
   const parser = FountainParser();
   const composer = FountainScriptComposer();
   const pageSetup = OcptPageSetup.standard();

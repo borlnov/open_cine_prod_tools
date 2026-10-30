@@ -2,6 +2,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+import 'package:act_test_utility/act_test_utility.dart';
 import 'package:drift/drift.dart' show OrderingTerm, Value;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
@@ -34,42 +35,60 @@ void main() {
   // manager instance to be set; merely accessing it creates the (otherwise unused) singleton.
   setUpAll(() => OcptGlobalManager.instance);
 
-  const assetsService = OcptAssetsService(deviceId: _testDeviceId);
+  const assetsService = OcptAssetsService(logger: SilentLogger(), deviceId: _testDeviceId);
   const storyboardService = OcptStoryboardService(
+    logger: SilentLogger(),
     assetsService: assetsService,
     deviceId: _testDeviceId,
   );
   const elementsService = OcptElementsService(
+    logger: SilentLogger(),
     assetsService: assetsService,
     deviceId: _testDeviceId,
   );
   const locationsService = OcptLocationsService(
+    logger: SilentLogger(),
     assetsService: assetsService,
-    floorPlanService: OcptFloorPlanService(assetsService: assetsService, deviceId: _testDeviceId),
+    floorPlanService: OcptFloorPlanService(
+      logger: SilentLogger(),
+      assetsService: assetsService,
+      deviceId: _testDeviceId,
+    ),
     deviceId: _testDeviceId,
   );
   const roleIndexService = OcptRoleIndexService(
+    logger: SilentLogger(),
     elementsService: elementsService,
-    roleCandidatesService: OcptRoleCandidatesService(deviceId: _testDeviceId),
+    roleCandidatesService: OcptRoleCandidatesService(
+      logger: SilentLogger(),
+      deviceId: _testDeviceId,
+    ),
     deviceId: _testDeviceId,
   );
   const shotListService = OcptShotListService(
+    logger: SilentLogger(),
     roleIndexService: roleIndexService,
     storyboardService: storyboardService,
-    floorPlanService: OcptFloorPlanService(assetsService: assetsService, deviceId: _testDeviceId),
+    floorPlanService: OcptFloorPlanService(
+      logger: SilentLogger(),
+      assetsService: assetsService,
+      deviceId: _testDeviceId,
+    ),
     deviceId: _testDeviceId,
   );
   const screenplayService = OcptScreenplayService(
-    sceneIndexService: OcptSceneIndexService(),
+    logger: SilentLogger(),
+    sceneIndexService: OcptSceneIndexService(logger: SilentLogger()),
     shotListService: shotListService,
-    shotCoverageService: OcptShotCoverageService(deviceId: _testDeviceId),
+    shotCoverageService: OcptShotCoverageService(logger: SilentLogger(), deviceId: _testDeviceId),
     roleIndexService: roleIndexService,
     breakdownService: OcptBreakdownService(
+      logger: SilentLogger(),
       elementsService: elementsService,
       locationsService: locationsService,
       deviceId: _testDeviceId,
     ),
-    scheduleService: OcptScheduleService(deviceId: _testDeviceId),
+    scheduleService: OcptScheduleService(logger: SilentLogger(), deviceId: _testDeviceId),
     deviceId: _testDeviceId,
   );
   const screenplayId = "screenplay-1";

@@ -5,6 +5,7 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
+import 'package:act_test_utility/act_test_utility.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_shooting_plan_pdf_service.dart';
 import 'package:open_cine_prod_tools/models/ocpt_element.dart';
@@ -439,7 +440,7 @@ void main() {
 
   // A single shared instance, reused across every test below: this also exercises the font-loading
   // cache (repeated `generate` calls must not re-read the asset bundle).
-  final service = OcptShootingPlanPdfService();
+  final service = OcptShootingPlanPdfService(logger: const SilentLogger());
   const pageSetup = OcptPageSetup.standard();
   final pinnedExportDate = DateTime(2026, 1, 15);
 

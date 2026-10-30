@@ -45,7 +45,7 @@ class OcptBudgetCashJournalXlsxExportService extends AbsOcptService {
   static const fallbackSheetName = "Cash journal";
 
   /// Class constructor
-  const OcptBudgetCashJournalXlsxExportService();
+  const OcptBudgetCashJournalXlsxExportService({required super.logger});
 
   /// The `.xlsx` file name to suggest when exporting the cash journal of the project named
   /// [projectName]. [episodeTag] is the selected episode's own tag, present only while the open

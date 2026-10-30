@@ -5,10 +5,10 @@
 import 'dart:async';
 import 'dart:isolate';
 
-import 'package:act_global_manager/act_global_manager.dart';
 import 'package:act_life_cycle/act_life_cycle.dart';
 import 'package:act_logger_manager/act_logger_manager.dart';
 import 'package:flutter/services.dart' show rootBundle;
+import 'package:open_cine_prod_tools/managers/logging/ocpt_logs_helper_builder.dart';
 import 'package:open_cine_prod_tools/types/ocpt_screenplay_language.dart';
 import 'package:spell_kit/spell_kit.dart';
 
@@ -62,6 +62,12 @@ class OcptSpellCheckManagerBuilder extends AbsLifeCycleFactory<OcptSpellCheckMan
 /// This manager sees no `Tr` and no project row: the bloc that calls it resolves both a
 /// language's provenance and any word it wants learned or ignored before handing them in here.
 class OcptSpellCheckManager extends AbsWithLifeCycle {
+  /// The logger category linked to this manager.
+  static const _loggerCategory = "spell_check";
+
+  /// The logger this manager writes to.
+  final LogsHelper _logger = buildOcptLogsHelper(_loggerCategory);
+
   /// Creates an [OcptSpellCheckManager].
   ///
   /// [loadAsset] is the injectable seam over reading a dictionary's `.aff`/`.dic` text out of the
@@ -352,10 +358,12 @@ class OcptSpellCheckManager extends AbsWithLifeCycle {
         onExit: exitPort.sendPort,
         onError: errorPort.sendPort,
       );
-    } catch (error) {
-      appLogger().e(
+    } catch (error, stackTrace) {
+      _logger.e(
         "A problem occurred when tried to spawn the spell-check worker isolate: "
-        "$error",
+        "${error.runtimeType}",
+        null,
+        stackTrace,
       );
       receivePort.close();
       exitPort.close();
@@ -372,11 +380,12 @@ class OcptSpellCheckManager extends AbsWithLifeCycle {
     });
 
     errorPort.listen((message) {
-      appLogger().e("The spell-check worker isolate reported an error: $message");
+      // The reported error can quote the text being checked, so its content is not logged.
+      _logger.e("The spell-check worker isolate reported an error");
     });
 
     exitPort.listen((_) {
-      appLogger().w("The spell-check worker isolate exited");
+      _logger.w("The spell-check worker isolate exited");
       unawaited(_handleWorkerDeath());
     });
 

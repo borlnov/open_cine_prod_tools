@@ -2,6 +2,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+import 'package:act_test_utility/act_test_utility.dart';
 import 'package:drift/drift.dart' show BooleanExpressionOperators, Value;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fountain_kit/fountain_kit.dart';
@@ -139,11 +140,19 @@ void main() {
   setUpAll(() => OcptGlobalManager.instance);
 
   Future<String> testDeviceId() async => "test-device";
-  final assetsService = OcptAssetsService(deviceId: testDeviceId);
-  final elementsService = OcptElementsService(assetsService: assetsService, deviceId: testDeviceId);
+  final assetsService = OcptAssetsService(logger: const SilentLogger(), deviceId: testDeviceId);
+  final elementsService = OcptElementsService(
+    logger: const SilentLogger(),
+    assetsService: assetsService,
+    deviceId: testDeviceId,
+  );
   final roleIndexService = OcptRoleIndexService(
+    logger: const SilentLogger(),
     elementsService: elementsService,
-    roleCandidatesService: OcptRoleCandidatesService(deviceId: testDeviceId),
+    roleCandidatesService: OcptRoleCandidatesService(
+      logger: const SilentLogger(),
+      deviceId: testDeviceId,
+    ),
     deviceId: testDeviceId,
   );
   const screenplayId = "screenplay-1";
@@ -1283,12 +1292,15 @@ Hello.
             .insert(OcptPeopleTableCompanion.insert(id: id));
       }
       await OcptRoleCandidatesService(
+        logger: const SilentLogger(),
         deviceId: testDeviceId,
       ).addCandidate(database: database, roleId: targetRoleId, personId: personA);
       await OcptRoleCandidatesService(
+        logger: const SilentLogger(),
         deviceId: testDeviceId,
       ).addCandidate(database: database, roleId: sourceRoleId, personId: personA);
       await OcptRoleCandidatesService(
+        logger: const SilentLogger(),
         deviceId: testDeviceId,
       ).addCandidate(database: database, roleId: sourceRoleId, personId: personB);
 

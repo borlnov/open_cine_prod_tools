@@ -141,7 +141,7 @@ class OcptFloorPlanPdfService extends AbsOcptService {
   ///
   /// Pass the manager's own [fontsLoader] so every export of the app session shares one font cache;
   /// a service built without one gets a loader of its own.
-  OcptFloorPlanPdfService({OcptCourierPrimeFontsLoader? fontsLoader})
+  OcptFloorPlanPdfService({required super.logger, OcptCourierPrimeFontsLoader? fontsLoader})
     : fontsLoader = fontsLoader ?? OcptCourierPrimeFontsLoader();
 
   /// The loader the embedded Courier Prime font set is read through.
@@ -307,7 +307,13 @@ class OcptFloorPlanPdfService extends AbsOcptService {
     try {
       final bytes = await File(path).readAsBytes();
       return pw.MemoryImage(bytes);
-    } catch (_) {
+    } catch (error, stackTrace) {
+      // A missing file is a normal state (ADR 0013): the picture is left out of the page.
+      logger.d(
+        'An image could not be read, leaving it out: ${error.runtimeType}',
+        null,
+        stackTrace,
+      );
       return null;
     }
   }

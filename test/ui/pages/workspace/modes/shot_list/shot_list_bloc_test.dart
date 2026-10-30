@@ -8,6 +8,7 @@ import 'dart:ui';
 
 import 'package:act_dart_result/act_dart_result.dart';
 import 'package:act_file_transfer_manager/act_file_transfer_manager.dart';
+import 'package:act_test_utility/act_test_utility.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/managers/export/ocpt_export_manager.dart';
@@ -111,20 +112,28 @@ class _FailingShotListService extends OcptShotListService {
   /// Class constructor
   const _FailingShotListService()
     : super(
+        logger: const SilentLogger(),
         roleIndexService: const OcptRoleIndexService(
+          logger: SilentLogger(),
           elementsService: OcptElementsService(
-            assetsService: OcptAssetsService(deviceId: _testDeviceId),
+            logger: SilentLogger(),
+            assetsService: OcptAssetsService(logger: SilentLogger(), deviceId: _testDeviceId),
             deviceId: _testDeviceId,
           ),
-          roleCandidatesService: OcptRoleCandidatesService(deviceId: _testDeviceId),
+          roleCandidatesService: OcptRoleCandidatesService(
+            logger: SilentLogger(),
+            deviceId: _testDeviceId,
+          ),
           deviceId: _testDeviceId,
         ),
         storyboardService: const OcptStoryboardService(
-          assetsService: OcptAssetsService(deviceId: _testDeviceId),
+          logger: SilentLogger(),
+          assetsService: OcptAssetsService(logger: SilentLogger(), deviceId: _testDeviceId),
           deviceId: _testDeviceId,
         ),
         floorPlanService: const OcptFloorPlanService(
-          assetsService: OcptAssetsService(deviceId: _testDeviceId),
+          logger: SilentLogger(),
+          assetsService: OcptAssetsService(logger: SilentLogger(), deviceId: _testDeviceId),
           deviceId: _testDeviceId,
         ),
         deviceId: _testDeviceId,
@@ -142,7 +151,8 @@ class _FailingShotListService extends OcptShotListService {
 /// error path.
 class _FailingShotCoverageService extends OcptShotCoverageService {
   /// Class constructor
-  const _FailingShotCoverageService() : super(deviceId: _testDeviceId);
+  const _FailingShotCoverageService()
+    : super(logger: const SilentLogger(), deviceId: _testDeviceId);
 
   @override
   Future<String> addRange({

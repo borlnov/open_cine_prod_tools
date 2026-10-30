@@ -5,6 +5,7 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
+import 'package:act_test_utility/act_test_utility.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_budget_quote_pdf_service.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_line.dart';
@@ -87,7 +88,7 @@ OcptBudgetPoste _buildPoste({
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  final service = OcptBudgetQuotePdfService();
+  final service = OcptBudgetQuotePdfService(logger: const SilentLogger());
   const pageSetup = OcptPageSetup.standard();
 
   OcptBudgetSnapshot buildSnapshot({

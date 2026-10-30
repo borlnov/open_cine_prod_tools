@@ -52,7 +52,7 @@ class OcptBreakdownXlsxExportService extends AbsOcptService {
   static const fallbackEntriesSheetName = "Breakdown";
 
   /// Class constructor
-  const OcptBreakdownXlsxExportService();
+  const OcptBreakdownXlsxExportService({required super.logger});
 
   /// The `.xlsx` file name to suggest when exporting the breakdown of the project named
   /// [projectName], with [suffix] appended, mirroring

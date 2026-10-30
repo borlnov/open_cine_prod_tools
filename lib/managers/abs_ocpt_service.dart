@@ -2,7 +2,9 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+import 'package:act_foundation/act_foundation.dart';
 import 'package:act_life_cycle/act_life_cycle.dart';
+import 'package:flutter/foundation.dart' show protected;
 
 /// The base of every `Ocpt…Service`.
 ///
@@ -17,7 +19,16 @@ import 'package:act_life_cycle/act_life_cycle.dart';
 /// A service that builds services of its own owns them and drives theirs the same way. Both are
 /// no-ops here and the constructor is `const`, so a service holding nothing to set up or release
 /// stays `const` and needs neither call.
+///
+/// A service logs through the [logger] its owner hands it: a sub-logger of the owner's own, so the
+/// category of a line reads `owner / service`. The owner builds it; a service never builds a
+/// top-level logger of its own. It is typed by the interface rather than by the concrete helper so
+/// a test can hand in a silent or a recording double.
 abstract class AbsOcptService extends AbsWithLifeCycle {
   /// Class constructor
-  const AbsOcptService();
+  const AbsOcptService({required this.logger});
+
+  /// The logger this service writes to: a sub-logger built by its owner.
+  @protected
+  final MixinActLogger logger;
 }

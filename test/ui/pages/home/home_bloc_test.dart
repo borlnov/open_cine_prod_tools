@@ -9,6 +9,7 @@ import 'dart:typed_data';
 import 'package:act_dart_result/act_dart_result.dart';
 import 'package:act_file_transfer_manager/act_file_transfer_manager.dart';
 import 'package:act_platform_manager/act_platform_manager.dart';
+import 'package:act_test_utility/act_test_utility.dart';
 import 'package:archive/archive_io.dart';
 import 'package:drift/drift.dart' show OrderingTerm, Value;
 import 'package:flutter_test/flutter_test.dart';
@@ -144,7 +145,8 @@ class _RecordingSaveLocationService extends OcptSaveLocationService {
   String? lastInitialDirectory;
 
   /// Class constructor
-  _RecordingSaveLocationService({this.saveLocationAnswer, this.directoryAnswer});
+  _RecordingSaveLocationService({this.saveLocationAnswer, this.directoryAnswer})
+    : super(logger: const SilentLogger());
 
   @override
   Future<String?> pickSaveLocation({

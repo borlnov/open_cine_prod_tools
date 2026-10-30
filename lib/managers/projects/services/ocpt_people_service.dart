@@ -48,6 +48,7 @@ class OcptPeopleService extends AbsOcptService {
 
   /// Class constructor
   const OcptPeopleService({
+    required super.logger,
     required this.deviceId,
     required this.assetsService,
     required this.roleCandidatesService,

@@ -6,9 +6,9 @@ import 'dart:collection';
 import 'dart:convert';
 
 import 'package:act_dart_result/act_dart_result.dart';
-import 'package:act_global_manager/act_global_manager.dart';
 import 'package:crypto/crypto.dart';
 import 'package:fountain_kit/fountain_kit.dart';
+import 'package:open_cine_prod_tools/managers/abs_ocpt_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_version_payload.dart';
@@ -78,7 +78,7 @@ import 'package:open_cine_prod_tools/types/ocpt_storyboard_annotation_kind.dart'
 /// day comes, once a stable release has frozen [lastStablePayloadFormat], add a named upgrade step
 /// and keep a fixture of the retired format in the tests — the point of the format field is lost if
 /// nothing ever exercises the old branch.
-class OcptProjectVersionCodec {
+class OcptProjectVersionCodec extends AbsOcptService {
   /// The payload format this build writes, and the highest one it can read.
   ///
   /// Deliberately **independent of the database's schema version**: the two evolve for different
@@ -1139,7 +1139,7 @@ class OcptProjectVersionCodec {
   static const _marginBottomKey = "bottomInches";
 
   /// Class constructor
-  const OcptProjectVersionCodec();
+  const OcptProjectVersionCodec({required super.logger});
 
   /// Serializes [payload] into the JSON text stored in `project_versions.payload`, stamped with
   /// [currentPayloadFormat].
@@ -1259,10 +1259,10 @@ class OcptProjectVersionCodec {
 
       final payloadFormat = _int(decoded, _payloadFormatKey);
       if (payloadFormat > currentPayloadFormat) {
-        appLogger().w(
-          "The project version payload is written in the format $payloadFormat, while "
-          "this build of the app only knows up to $currentPayloadFormat: it was created by a "
-          "later version of Open Cine Prod Tools",
+        logger.w(
+          "The project version payload is written in the format $payloadFormat, while this "
+          "build of the app only knows up to $currentPayloadFormat: it was created by a later "
+          "version of Open Cine Prod Tools",
         );
         return const ResultWithStatus(
           status: OcptProjectVersionPayloadStatus.unsupportedFutureFormat,
@@ -1273,11 +1273,16 @@ class OcptProjectVersionCodec {
         status: OcptProjectVersionPayloadStatus.ok,
         value: _payloadFromJson(decoded, payloadFormat: payloadFormat),
       );
-    } on _OcptPayloadFormatError catch (error) {
-      appLogger().e("The project version payload can't be read: ${error.reason}");
+    } on _OcptPayloadFormatError catch (error, stackTrace) {
+      logger.e("The project version payload can't be read: ${error.reason}", null, stackTrace);
       return const ResultWithStatus(status: OcptProjectVersionPayloadStatus.malformedPayload);
-    } on FormatException catch (error) {
-      appLogger().e("The project version payload isn't valid JSON: $error");
+    } on FormatException catch (error, stackTrace) {
+      // A JSON error quotes the text around the fault, which is the user's own content.
+      logger.e(
+        "The project version payload isn't valid JSON: ${error.runtimeType}",
+        null,
+        stackTrace,
+      );
       return const ResultWithStatus(status: OcptProjectVersionPayloadStatus.malformedPayload);
     }
   }

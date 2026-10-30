@@ -5,11 +5,11 @@
 import 'dart:io';
 import 'dart:typed_data';
 
-import 'package:act_global_manager/act_global_manager.dart';
 import 'package:crypto/crypto.dart';
 import 'package:ocpt_sync_protocol/ocpt_sync_protocol.dart';
 import 'package:open_cine_prod_tools/managers/abs_ocpt_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_project_package_service.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_log_subject.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_package_status.dart';
 import 'package:path/path.dart' as p;
 import 'package:uuid/uuid.dart';
@@ -35,10 +35,16 @@ class OcptSnapshotService extends AbsOcptService {
   /// [temporaryDirectory] is injectable so a test can point the scratch files this service writes
   /// at a directory of its own choosing rather than the system's; it defaults to
   /// [Directory.systemTemp], which is what every caller outside a test wants.
-  const OcptSnapshotService({
-    this.packageService = const OcptProjectPackageService(),
+  OcptSnapshotService({
+    required super.logger,
+    OcptProjectPackageService? packageService,
     Directory Function()? temporaryDirectory,
-  }) : _temporaryDirectory = temporaryDirectory ?? _systemTempDirectory;
+  }) : packageService =
+           packageService ??
+           OcptProjectPackageService(
+             logger: logger.createAbsSubLogger(subCategory: 'project_package'),
+           ),
+       _temporaryDirectory = temporaryDirectory ?? _systemTempDirectory;
 
   static Directory _systemTempDirectory() => Directory.systemTemp;
 
@@ -169,8 +175,13 @@ class OcptSnapshotService extends AbsOcptService {
 
     try {
       await directory.delete(recursive: true);
-    } catch (error) {
-      appLogger().w("The temporary snapshot folder ${directory.path} can't be deleted: $error");
+    } catch (error, stackTrace) {
+      logger.w(
+        "The temporary snapshot folder ${ocptLogFileName(directory.path)} can't be deleted: "
+        "${error.runtimeType}",
+        null,
+        stackTrace,
+      );
     }
   }
 }

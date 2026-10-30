@@ -7,6 +7,7 @@ import 'dart:io';
 
 import 'package:act_file_transfer_manager/act_file_transfer_manager.dart';
 import 'package:act_platform_manager/act_platform_manager.dart';
+import 'package:act_test_utility/act_test_utility.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/managers/export/ocpt_export_manager.dart';
@@ -19,6 +20,7 @@ import 'package:open_cine_prod_tools/managers/ocpt_secrets_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
 import 'package:open_cine_prod_tools/managers/sync/ocpt_sync_manager.dart';
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_changeset_service.dart';
+import 'package:open_cine_prod_tools/managers/sync/services/ocpt_merge_service.dart';
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_pairing_service.dart';
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_remote_storage.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_relay_invite.dart';
@@ -105,7 +107,13 @@ class _FakeSyncManager extends OcptSyncManager {
     required OcptPairingService pairingService,
     required this.joinResultPath,
     this.whileJoining,
-  }) : super(pairingService: pairingService, changesetService: const OcptChangesetService());
+  }) : super(
+         pairingService: pairingService,
+         changesetService: const OcptChangesetService(
+           logger: SilentLogger(),
+           mergeService: OcptMergeService(logger: SilentLogger()),
+         ),
+       );
 
   /// The path [joinFromRelay] always returns.
   final String joinResultPath;
@@ -162,7 +170,7 @@ class _RecordingSaveLocationService extends OcptSaveLocationService {
   String? lastInitialDirectory;
 
   /// Class constructor
-  _RecordingSaveLocationService({this.directoryAnswer});
+  _RecordingSaveLocationService({this.directoryAnswer}) : super(logger: const SilentLogger());
 
   @override
   Future<String?> pickDirectory({
@@ -256,7 +264,10 @@ void main() {
     );
     await secretsManager.initLifeCycle();
 
-    pairingService = OcptPairingService(secretsManager: secretsManager);
+    pairingService = OcptPairingService(
+      logger: const SilentLogger(),
+      secretsManager: secretsManager,
+    );
   });
 
   setUp(() async {

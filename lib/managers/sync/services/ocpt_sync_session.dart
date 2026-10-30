@@ -4,7 +4,7 @@
 
 import 'dart:async';
 
-import 'package:act_global_manager/act_global_manager.dart';
+import 'package:act_foundation/act_foundation.dart';
 import 'package:ocpt_sync_protocol/ocpt_sync_protocol.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_diagnostics_manager.dart';
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_changeset_service.dart';
@@ -61,6 +61,7 @@ class OcptSyncSession {
   /// [pushInterval] defaults to [ocptDefaultSyncPushInterval]; a test hands in a much shorter one
   /// so its own timer-driven assertions do not have to wait out the real default.
   OcptSyncSession({
+    required MixinActLogger logger,
     required this.projectId,
     required this.database,
     required this.deviceId,
@@ -68,7 +69,10 @@ class OcptSyncSession {
     required this.storage,
     required this.changesetService,
     this.pushInterval = ocptDefaultSyncPushInterval,
-  });
+  }) : _logger = logger;
+
+  /// The logger this session writes to: a sub-logger built by the sync manager.
+  final MixinActLogger _logger;
 
   /// The project this session keeps in sync.
   final String projectId;
@@ -173,7 +177,7 @@ class OcptSyncSession {
     } on OcptSyncError catch (error) {
       _setStatus(OcptSyncStatusError(error.message));
     } catch (error, stackTrace) {
-      _logWarning('Sync pull failed for project $projectId: $error\n$stackTrace');
+      _logger.w('Sync pull failed for project $projectId: ${error.runtimeType}', null, stackTrace);
       _logOfflineCause(error);
       _setStatus(OcptSyncStatusOffline(pendingEditCount: await _pendingEditCountOrNull()));
     }
@@ -193,7 +197,7 @@ class OcptSyncSession {
     } on OcptSyncError catch (error) {
       _setStatus(OcptSyncStatusError(error.message));
     } catch (error, stackTrace) {
-      _logWarning('Sync failed for project $projectId: $error\n$stackTrace');
+      _logger.w('Sync failed for project $projectId: ${error.runtimeType}', null, stackTrace);
       _logOfflineCause(error);
       _setStatus(OcptSyncStatusOffline(pendingEditCount: await _pendingEditCountOrNull()));
     }
@@ -210,8 +214,10 @@ class OcptSyncSession {
         deviceId: deviceId,
       );
     } catch (error, stackTrace) {
-      _logWarning(
-        'Could not compute the pending edit count for project $projectId: $error\n$stackTrace',
+      _logger.w(
+        'Could not compute the pending edit count for project $projectId: ${error.runtimeType}',
+        null,
+        stackTrace,
       );
 
       return null;
@@ -228,7 +234,7 @@ class OcptSyncSession {
 
   /// Records the [error] that has just knocked this session offline into the device-local
   /// diagnostics buffer — the message alone, since the stack trace stays in the file log
-  /// ([_logWarning]) — but **only on the way into** offline, not while it stays there. The offline
+  /// ([_logger]) — but **only on the way into** offline, not while it stays there. The offline
   /// status itself logs every push interval it fails on; its cause is logged once, so the
   /// diagnostics view names *why* syncing stopped (an unreachable relay, a closed database, …)
   /// without the reason scrolling past on every retry.
@@ -241,6 +247,8 @@ class OcptSyncSession {
       category: OcptDiagnosticsCategory.sync,
       level: OcptDiagnosticsLevel.error,
       message: 'offline cause: project=$projectId $error',
+      // An error's text can name a host or a path.
+      logMessage: 'offline cause: project=$projectId ${error.runtimeType}',
     );
   }
 
@@ -270,22 +278,9 @@ class OcptSyncSession {
           category: OcptDiagnosticsCategory.sync,
           level: OcptDiagnosticsLevel.error,
           message: 'error: project=$projectId $message',
+          // The message comes from the relay's answer and is not known to be free of detail.
+          logMessage: 'error: project=$projectId',
         );
-    }
-  }
-
-  /// Logs [message] through `appLogger()` when a global manager instance actually exists, and
-  /// does nothing otherwise.
-  ///
-  /// A unit test builds an [OcptSyncSession] directly, with no app-wide `AbsGlobalManager` behind
-  /// it at all (see this file's own tests) — this class is instantiated straight from
-  /// `OcptSyncManager`, never resolved through `globalGetIt()` itself, so nothing else already
-  /// guarantees one is there. A failed sync is expected, ordinary behaviour this class already
-  /// reports through [status]; the warning is a bonus for a real app's log file, never something
-  /// worth crashing a test — or a session — over its own absence.
-  void _logWarning(String message) {
-    if (AbsGlobalManager.instance != null) {
-      appLogger().w(message);
     }
   }
 }

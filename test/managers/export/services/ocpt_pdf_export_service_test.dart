@@ -6,6 +6,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
+import 'package:act_test_utility/act_test_utility.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_pdf_export_service.dart';
@@ -18,7 +19,7 @@ void main() {
   // A single shared instance, reused across every test below: this also
   // exercises the font-loading cache (repeated `generate` calls within the
   // same instance must not re-read the asset bundle).
-  final service = OcptPdfExportService();
+  final service = OcptPdfExportService(logger: const SilentLogger());
   const parser = FountainParser();
   const composer = FountainScriptComposer();
   const pageSetup = OcptPageSetup.standard();

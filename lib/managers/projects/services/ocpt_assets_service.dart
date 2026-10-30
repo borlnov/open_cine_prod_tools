@@ -33,7 +33,7 @@ class OcptAssetsService extends AbsOcptService {
   final OcptDeviceIdGetter deviceId;
 
   /// Class constructor
-  const OcptAssetsService({required this.deviceId});
+  const OcptAssetsService({required super.logger, required this.deviceId});
 
   /// Inserts one `assets` row of [kind] pointing at [path] and returns its freshly generated id.
   ///

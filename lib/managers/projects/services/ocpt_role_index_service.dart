@@ -77,6 +77,7 @@ class OcptRoleIndexService extends AbsOcptService {
 
   /// Class constructor
   const OcptRoleIndexService({
+    required super.logger,
     required this.elementsService,
     required this.roleCandidatesService,
     required this.deviceId,

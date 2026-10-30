@@ -4,11 +4,13 @@
 
 import 'dart:io';
 
+import 'package:act_test_utility/act_test_utility.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ocpt_sync_protocol/ocpt_sync_protocol.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_row_stamp_service.dart';
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_changeset_service.dart';
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_folder_remote_storage.dart';
+import 'package:open_cine_prod_tools/managers/sync/services/ocpt_merge_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_row_stamp_key.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_changeset.dart';
@@ -18,7 +20,10 @@ import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
 void main() {
   const deviceId = 'device-1';
   const relayId = 'relay-1';
-  const service = OcptChangesetService();
+  const service = OcptChangesetService(
+    logger: SilentLogger(),
+    mergeService: OcptMergeService(logger: SilentLogger()),
+  );
 
   late Directory tempDir;
   late OcptFolderRemoteStorage storage;

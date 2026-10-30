@@ -2,6 +2,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+import 'package:act_test_utility/act_test_utility.dart';
 import 'package:drift/drift.dart' show OrderingTerm, Value;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
@@ -15,7 +16,7 @@ void main() {
   setUpAll(() => OcptGlobalManager.instance);
 
   Future<String> testDeviceId() async => "test-device";
-  final service = OcptBudgetAllowancesService(deviceId: testDeviceId);
+  final service = OcptBudgetAllowancesService(logger: const SilentLogger(), deviceId: testDeviceId);
 
   late OcptProjectDatabase database;
 

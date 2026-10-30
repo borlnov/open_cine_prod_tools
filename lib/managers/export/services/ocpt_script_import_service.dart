@@ -46,7 +46,7 @@ class OcptScriptImportService extends AbsOcptService {
   final OcptFountainIoService fountainIoService;
 
   /// Class constructor
-  const OcptScriptImportService({this.fountainIoService = const OcptFountainIoService()});
+  const OcptScriptImportService({required super.logger, required this.fountainIoService});
 
   /// {@macro act_life_cycle.MixinWithLifeCycle.initLifeCycle}
   ///
@@ -89,7 +89,14 @@ class OcptScriptImportService extends AbsOcptService {
     try {
       final result = _importer.read(bytes: bytes, fileName: fileName);
       return ResultWithStatus(status: OcptScreenplayImportStatus.ok, value: result.fountainText);
-    } on ScriptImportException catch (error) {
+    } on ScriptImportException catch (error, stackTrace) {
+      // Only the kind of failure is logged: the exception's details come from the XML parser and
+      // can quote the file's own text.
+      logger.w(
+        "A foreign screenplay file could not be read: ${error.failure.name}",
+        null,
+        stackTrace,
+      );
       return ResultWithStatus(status: OcptScreenplayImportStatus.unreadableFile, extraInfo: error);
     }
   }

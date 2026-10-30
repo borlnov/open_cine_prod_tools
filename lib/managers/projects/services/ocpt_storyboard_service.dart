@@ -37,7 +37,11 @@ class OcptStoryboardService extends AbsOcptService {
   final OcptDeviceIdGetter deviceId;
 
   /// Class constructor
-  const OcptStoryboardService({required this.assetsService, required this.deviceId});
+  const OcptStoryboardService({
+    required super.logger,
+    required this.assetsService,
+    required this.deviceId,
+  });
 
   /// {@macro act_life_cycle.MixinWithLifeCycle.initLifeCycle}
   ///

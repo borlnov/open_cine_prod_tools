@@ -5,7 +5,6 @@
 import 'dart:io';
 import 'dart:ui';
 
-import 'package:act_global_manager/act_global_manager.dart';
 import 'package:open_cine_prod_tools/managers/abs_ocpt_service.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
@@ -19,7 +18,7 @@ import 'package:share_plus/share_plus.dart';
 /// save dialog.
 class OcptShareService extends AbsOcptService {
   /// Class constructor
-  const OcptShareService();
+  const OcptShareService({required super.logger});
 
   /// Resolves a writable, per-run temporary directory the share sheet's own files are staged into.
   Future<Directory> temporaryDirectory() => getTemporaryDirectory();
@@ -42,8 +41,13 @@ class OcptShareService extends AbsOcptService {
         ),
       );
       return true;
-    } catch (error) {
-      appLogger().e("A problem occurred when tried to share the files at: $paths, error: $error");
+    } catch (error, stackTrace) {
+      logger.e(
+        "A problem occurred when tried to share ${paths.length} file(s), error: "
+        "${error.runtimeType}",
+        null,
+        stackTrace,
+      );
       return false;
     }
   }

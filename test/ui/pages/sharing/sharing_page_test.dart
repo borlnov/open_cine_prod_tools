@@ -5,6 +5,7 @@
 import 'dart:io';
 
 import 'package:act_global_manager/act_global_manager.dart';
+import 'package:act_test_utility/act_test_utility.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -21,6 +22,7 @@ import 'package:open_cine_prod_tools/managers/ocpt_secrets_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
 import 'package:open_cine_prod_tools/managers/sync/ocpt_sync_manager.dart';
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_changeset_service.dart';
+import 'package:open_cine_prod_tools/managers/sync/services/ocpt_merge_service.dart';
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_pairing_service.dart';
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_remote_storage.dart';
 import 'package:open_cine_prod_tools/ui/pages/sharing/sharing_bloc.dart';
@@ -97,7 +99,12 @@ class _FakeRemoteStorage implements OcptRemoteStorage {
 /// `_FakeTransportSyncManager`.
 class _FakeTransportSyncManager extends OcptSyncManager {
   _FakeTransportSyncManager({required OcptPairingService super.pairingService})
-    : super(changesetService: const OcptChangesetService());
+    : super(
+        changesetService: const OcptChangesetService(
+          logger: SilentLogger(),
+          mergeService: OcptMergeService(logger: SilentLogger()),
+        ),
+      );
 
   @override
   OcptRemoteStorage openRelayRemoteStorage(
@@ -152,7 +159,10 @@ void main() {
     );
     await secretsManager.initLifeCycle();
 
-    pairingService = OcptPairingService(secretsManager: secretsManager);
+    pairingService = OcptPairingService(
+      logger: const SilentLogger(),
+      secretsManager: secretsManager,
+    );
   });
 
   setUp(() async {

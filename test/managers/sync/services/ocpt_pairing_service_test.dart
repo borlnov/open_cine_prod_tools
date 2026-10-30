@@ -2,6 +2,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+import 'package:act_test_utility/act_test_utility.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_config_manager.dart';
@@ -84,7 +85,7 @@ void main() {
     );
     await secretsManager.initLifeCycle();
 
-    service = OcptPairingService(secretsManager: secretsManager);
+    service = OcptPairingService(logger: const SilentLogger(), secretsManager: secretsManager);
   });
 
   setUp(() {

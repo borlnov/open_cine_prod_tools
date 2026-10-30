@@ -5,6 +5,7 @@
 import 'dart:convert';
 
 import 'package:act_dart_result/act_dart_result.dart';
+import 'package:act_test_utility/act_test_utility.dart';
 import 'package:drift/drift.dart' show OrderingTerm, Value;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fountain_kit/fountain_kit.dart';
@@ -50,23 +51,33 @@ void main() {
   // instance to be set; merely accessing it creates the (otherwise unused) singleton.
   setUpAll(() => OcptGlobalManager.instance);
 
-  const codec = OcptProjectVersionCodec();
+  const codec = OcptProjectVersionCodec(logger: SilentLogger());
   const deviceId = "device-1";
   Future<String> testDeviceId() async => deviceId;
-  final assetsService = OcptAssetsService(deviceId: testDeviceId);
-  final roleCandidatesService = OcptRoleCandidatesService(deviceId: testDeviceId);
+  final assetsService = OcptAssetsService(logger: const SilentLogger(), deviceId: testDeviceId);
+  final roleCandidatesService = OcptRoleCandidatesService(
+    logger: const SilentLogger(),
+    deviceId: testDeviceId,
+  );
   final peopleService = OcptPeopleService(
+    logger: const SilentLogger(),
     deviceId: testDeviceId,
     assetsService: assetsService,
     roleCandidatesService: roleCandidatesService,
   );
-  final scheduleService = OcptScheduleService(deviceId: testDeviceId);
-  final elementsService = OcptElementsService(assetsService: assetsService, deviceId: testDeviceId);
+  final scheduleService = OcptScheduleService(logger: const SilentLogger(), deviceId: testDeviceId);
+  final elementsService = OcptElementsService(
+    logger: const SilentLogger(),
+    assetsService: assetsService,
+    deviceId: testDeviceId,
+  );
   final floorPlanService = OcptFloorPlanService(
+    logger: const SilentLogger(),
     assetsService: assetsService,
     deviceId: testDeviceId,
   );
   final locationsService = OcptLocationsService(
+    logger: const SilentLogger(),
     assetsService: assetsService,
     floorPlanService: floorPlanService,
     deviceId: testDeviceId,
@@ -76,15 +87,18 @@ void main() {
   // way the board and the floor plans view themselves would, rather
   // than by hand-inserted rows.
   final storyboardService = OcptStoryboardService(
+    logger: const SilentLogger(),
     assetsService: assetsService,
     deviceId: testDeviceId,
   );
   final roleIndexService = OcptRoleIndexService(
+    logger: const SilentLogger(),
     elementsService: elementsService,
     roleCandidatesService: roleCandidatesService,
     deviceId: testDeviceId,
   );
   final breakdownService = OcptBreakdownService(
+    logger: const SilentLogger(),
     elementsService: elementsService,
     locationsService: locationsService,
     deviceId: testDeviceId,
@@ -93,23 +107,37 @@ void main() {
   // reconciled role — separate from the one `service` builds for its own screenplay-snapshotting
   // needs, but a stateless collaborator over the same database, so the two never disagree.
   final screenplayService = OcptScreenplayService(
-    sceneIndexService: const OcptSceneIndexService(),
+    logger: const SilentLogger(),
+    sceneIndexService: const OcptSceneIndexService(logger: SilentLogger()),
     shotListService: OcptShotListService(
+      logger: const SilentLogger(),
       roleIndexService: roleIndexService,
       storyboardService: OcptStoryboardService(
+        logger: const SilentLogger(),
         assetsService: assetsService,
         deviceId: testDeviceId,
       ),
-      floorPlanService: OcptFloorPlanService(assetsService: assetsService, deviceId: testDeviceId),
+      floorPlanService: OcptFloorPlanService(
+        logger: const SilentLogger(),
+        assetsService: assetsService,
+        deviceId: testDeviceId,
+      ),
       deviceId: testDeviceId,
     ),
-    shotCoverageService: OcptShotCoverageService(deviceId: testDeviceId),
+    shotCoverageService: OcptShotCoverageService(
+      logger: const SilentLogger(),
+      deviceId: testDeviceId,
+    ),
     roleIndexService: roleIndexService,
     breakdownService: breakdownService,
     scheduleService: scheduleService,
     deviceId: testDeviceId,
   );
-  final service = OcptProjectVersionsService(codec: codec, screenplayService: screenplayService);
+  final service = OcptProjectVersionsService(
+    logger: const SilentLogger(),
+    codec: codec,
+    screenplayService: screenplayService,
+  );
   const screenplayId = "screenplay-1";
   const appVersion = "0.1.0";
   const margins = FountainPageMargins(

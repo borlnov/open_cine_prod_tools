@@ -18,6 +18,7 @@
 import 'dart:io';
 import 'dart:typed_data';
 
+import 'package:act_test_utility/act_test_utility.dart';
 import 'package:drift/drift.dart' show OrderingTerm, Value;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/constants/ocpt_budget_cnc_postes.dart';
@@ -244,49 +245,80 @@ void main() {
   setUpAll(() => OcptGlobalManager.instance);
 
   Future<String> deviceId() async => "seed-device";
-  final assetsService = OcptAssetsService(deviceId: deviceId);
-  final roleCandidatesService = OcptRoleCandidatesService(deviceId: deviceId);
-  final elementsService = OcptElementsService(assetsService: assetsService, deviceId: deviceId);
-  final floorPlanService = OcptFloorPlanService(assetsService: assetsService, deviceId: deviceId);
+  final assetsService = OcptAssetsService(logger: const SilentLogger(), deviceId: deviceId);
+  final roleCandidatesService = OcptRoleCandidatesService(
+    logger: const SilentLogger(),
+    deviceId: deviceId,
+  );
+  final elementsService = OcptElementsService(
+    logger: const SilentLogger(),
+    assetsService: assetsService,
+    deviceId: deviceId,
+  );
+  final floorPlanService = OcptFloorPlanService(
+    logger: const SilentLogger(),
+    assetsService: assetsService,
+    deviceId: deviceId,
+  );
   final locationsService = OcptLocationsService(
+    logger: const SilentLogger(),
     assetsService: assetsService,
     floorPlanService: floorPlanService,
     deviceId: deviceId,
   );
   final roleIndexService = OcptRoleIndexService(
+    logger: const SilentLogger(),
     elementsService: elementsService,
     roleCandidatesService: roleCandidatesService,
     deviceId: deviceId,
   );
   final breakdownService = OcptBreakdownService(
+    logger: const SilentLogger(),
     elementsService: elementsService,
     locationsService: locationsService,
     deviceId: deviceId,
   );
-  final storyboardService = OcptStoryboardService(assetsService: assetsService, deviceId: deviceId);
+  final storyboardService = OcptStoryboardService(
+    logger: const SilentLogger(),
+    assetsService: assetsService,
+    deviceId: deviceId,
+  );
   final shotListService = OcptShotListService(
+    logger: const SilentLogger(),
     roleIndexService: roleIndexService,
     storyboardService: storyboardService,
     floorPlanService: floorPlanService,
     deviceId: deviceId,
   );
   final peopleService = OcptPeopleService(
+    logger: const SilentLogger(),
     deviceId: deviceId,
     assetsService: assetsService,
     roleCandidatesService: roleCandidatesService,
   );
-  final scheduleService = OcptScheduleService(deviceId: deviceId);
-  final budgetQuoteService = OcptBudgetQuoteService(deviceId: deviceId);
+  final scheduleService = OcptScheduleService(logger: const SilentLogger(), deviceId: deviceId);
+  final budgetQuoteService = OcptBudgetQuoteService(
+    logger: const SilentLogger(),
+    deviceId: deviceId,
+  );
   final budgetJournalService = OcptBudgetJournalService(
+    logger: const SilentLogger(),
     assetsService: assetsService,
     deviceId: deviceId,
   );
-  final budgetFinancingService = OcptBudgetFinancingService(deviceId: deviceId);
-  final budgetSharingService = OcptBudgetSharingService(deviceId: deviceId);
+  final budgetFinancingService = OcptBudgetFinancingService(
+    logger: const SilentLogger(),
+    deviceId: deviceId,
+  );
+  final budgetSharingService = OcptBudgetSharingService(
+    logger: const SilentLogger(),
+    deviceId: deviceId,
+  );
   final screenplayService = OcptScreenplayService(
-    sceneIndexService: const OcptSceneIndexService(),
+    logger: const SilentLogger(),
+    sceneIndexService: const OcptSceneIndexService(logger: SilentLogger()),
     shotListService: shotListService,
-    shotCoverageService: OcptShotCoverageService(deviceId: deviceId),
+    shotCoverageService: OcptShotCoverageService(logger: const SilentLogger(), deviceId: deviceId),
     roleIndexService: roleIndexService,
     breakdownService: breakdownService,
     scheduleService: scheduleService,

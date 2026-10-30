@@ -61,6 +61,7 @@ class OcptLocationsService extends AbsOcptService {
 
   /// Class constructor
   const OcptLocationsService({
+    required super.logger,
     required this.assetsService,
     required this.floorPlanService,
     required this.deviceId,

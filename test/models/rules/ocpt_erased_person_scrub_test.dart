@@ -4,6 +4,7 @@
 
 import 'dart:convert';
 
+import 'package:act_test_utility/act_test_utility.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_project_version_codec.dart';
@@ -18,7 +19,7 @@ import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_candidate_status.dart';
 
 void main() {
-  const codec = OcptProjectVersionCodec();
+  const codec = OcptProjectVersionCodec(logger: SilentLogger());
 
   /// A person row with every column carrying something, so a scrub that forgot one shows.
   const richPerson = OcptPersonRow(

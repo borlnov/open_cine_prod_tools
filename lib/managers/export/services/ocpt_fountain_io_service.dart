@@ -30,7 +30,7 @@ class OcptFountainIoService extends AbsOcptService {
   static const _fountainParser = FountainParser();
 
   /// Class constructor
-  const OcptFountainIoService();
+  const OcptFountainIoService({required super.logger});
 
   /// Decodes the bytes of a `.fountain` file into its source text.
   ///

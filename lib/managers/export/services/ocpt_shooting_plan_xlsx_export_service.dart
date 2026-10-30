@@ -66,7 +66,7 @@ class OcptShootingPlanXlsxExportService extends AbsOcptService {
   static const fallbackChronologySheetName = "Chronology";
 
   /// Class constructor
-  const OcptShootingPlanXlsxExportService();
+  const OcptShootingPlanXlsxExportService({required super.logger});
 
   /// The `.xlsx` file name to suggest when exporting the shooting plan of the project named
   /// [projectName], with [suffix] appended, mirroring

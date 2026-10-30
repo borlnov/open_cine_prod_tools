@@ -132,7 +132,7 @@ class OcptScheduleService extends AbsOcptService {
   final OcptDeviceIdGetter deviceId;
 
   /// Class constructor
-  const OcptScheduleService({required this.deviceId});
+  const OcptScheduleService({required super.logger, required this.deviceId});
 
   /// Loads the whole shooting schedule of the project in [database]: every live day, in `sortKey`
   /// order, joined with its live slots (each carrying its own live crew, cast and guests), its live

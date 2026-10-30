@@ -58,8 +58,11 @@ class OcptBudgetJournalService extends AbsOcptService {
   final OcptDeviceIdGetter deviceId;
 
   /// Class constructor
-  const OcptBudgetJournalService({required OcptAssetsService assetsService, required this.deviceId})
-    : _assetsService = assetsService;
+  const OcptBudgetJournalService({
+    required super.logger,
+    required OcptAssetsService assetsService,
+    required this.deviceId,
+  }) : _assetsService = assetsService;
 
   /// {@macro act_life_cycle.MixinWithLifeCycle.initLifeCycle}
   ///

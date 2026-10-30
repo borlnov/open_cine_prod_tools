@@ -5,11 +5,12 @@
 import 'dart:convert';
 
 import 'package:act_dart_utility/act_dart_utility.dart';
-import 'package:act_global_manager/act_global_manager.dart';
 import 'package:act_intl/act_intl.dart';
 import 'package:act_local_storage_manager/act_local_storage_manager.dart';
+import 'package:act_logger_manager/act_logger_manager.dart';
 import 'package:act_themes_manager/act_themes_manager.dart';
 import 'package:fountain_kit/fountain_kit.dart';
+import 'package:open_cine_prod_tools/managers/logging/ocpt_logs_helper_builder.dart';
 import 'package:open_cine_prod_tools/models/ocpt_recent_project_model.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_right_dock_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_right_dock_tab.dart';
@@ -43,6 +44,13 @@ class OcptPropertiesManagerBuilder extends AbstractPropertiesBuilder<OcptPropert
 /// ([loadOrCreateDeviceId]), and each project's own "host on launch" flag ([loadHostOnLaunch]).
 class OcptPropertiesManager extends AbstractPropertiesManager
     with MixinLocaleProperties, MixinThemesProperties {
+  /// The logger category linked to this manager.
+  static const _loggerCategory = "properties";
+
+  /// The logger the stored-value parsers write to. Static: the parsers are handed to the items
+  /// below before this manager exists.
+  static final LogsHelper _logger = buildOcptLogsHelper(_loggerCategory);
+
   /// This is the key used to store the recently opened projects in the local storage.
   ///
   /// Loading it returns null if nothing has been stored yet, which is equivalent to an empty
@@ -377,9 +385,9 @@ class OcptPropertiesManager extends AbstractPropertiesManager
   ///
   /// Returns null if the [value] isn't a valid JSON array of recent projects.
   static List<OcptRecentProjectModel>? _parseRecentProjects(String value) {
-    final jsonList = JsonUtility.parseJsonArrayBodyToArray(value, logger: appLogger());
+    final jsonList = JsonUtility.parseJsonArrayBodyToArray(value, logger: _logger);
     if (jsonList == null) {
-      appLogger().w(
+      _logger.w(
         "The recent projects stored in the local storage isn't a JSON array, we "
         "can't convert it",
       );
@@ -411,7 +419,7 @@ class OcptPropertiesManager extends AbstractPropertiesManager
       }
     }
 
-    appLogger().w(
+    _logger.w(
       "The editor mode stored in the local storage: $value, isn't a known editor "
       "mode, we can't convert it",
     );
@@ -428,7 +436,7 @@ class OcptPropertiesManager extends AbstractPropertiesManager
       }
     }
 
-    appLogger().w(
+    _logger.w(
       "The first weekday stored in the local storage: $value, isn't a known first "
       "weekday, we can't convert it",
     );
@@ -470,7 +478,7 @@ class OcptPropertiesManager extends AbstractPropertiesManager
       }
     }
 
-    appLogger().w(
+    _logger.w(
       "The shot list right dock tab stored in the local storage: $value, isn't a "
       "known tab, we can't convert it",
     );
@@ -487,7 +495,7 @@ class OcptPropertiesManager extends AbstractPropertiesManager
       }
     }
 
-    appLogger().w(
+    _logger.w(
       "The shot list centre view stored in the local storage: $value, isn't a "
       "known view, we can't convert it",
     );
@@ -504,7 +512,7 @@ class OcptPropertiesManager extends AbstractPropertiesManager
       }
     }
 
-    appLogger().w(
+    _logger.w(
       "The breakdown right dock tab stored in the local storage: $value, isn't a "
       "known tab, we can't convert it",
     );
@@ -521,7 +529,7 @@ class OcptPropertiesManager extends AbstractPropertiesManager
       }
     }
 
-    appLogger().w(
+    _logger.w(
       "The schedule right dock tab stored in the local storage: $value, isn't a "
       "known tab, we can't convert it",
     );
@@ -538,7 +546,7 @@ class OcptPropertiesManager extends AbstractPropertiesManager
       }
     }
 
-    appLogger().w(
+    _logger.w(
       "The budget right dock tab stored in the local storage: $value, isn't a "
       "known tab, we can't convert it",
     );
@@ -549,9 +557,9 @@ class OcptPropertiesManager extends AbstractPropertiesManager
   ///
   /// Returns null if the [value] isn't a valid JSON object holding the four margins.
   static FountainPageMargins? _parsePageMargins(String value) {
-    final json = JsonUtility.parseJsonBodyToObj(value, logger: appLogger());
+    final json = JsonUtility.parseJsonBodyToObj(value, logger: _logger);
     if (json == null) {
-      appLogger().w(
+      _logger.w(
         "The page margins stored in the local storage isn't a JSON object, we can't "
         "convert it",
       );
@@ -561,26 +569,26 @@ class OcptPropertiesManager extends AbstractPropertiesManager
     final leftResult = JsonUtility.getOnePrimaryElement<double>(
       json: json,
       key: _marginLeftKey,
-      logger: appLogger(),
+      logger: _logger,
     );
     final rightResult = JsonUtility.getOnePrimaryElement<double>(
       json: json,
       key: _marginRightKey,
-      logger: appLogger(),
+      logger: _logger,
     );
     final topResult = JsonUtility.getOnePrimaryElement<double>(
       json: json,
       key: _marginTopKey,
-      logger: appLogger(),
+      logger: _logger,
     );
     final bottomResult = JsonUtility.getOnePrimaryElement<double>(
       json: json,
       key: _marginBottomKey,
-      logger: appLogger(),
+      logger: _logger,
     );
 
     if (!leftResult.isOk || !rightResult.isOk || !topResult.isOk || !bottomResult.isOk) {
-      appLogger().w("A problem occurred when tried to get the page margins from the given JSON");
+      _logger.w("A problem occurred when tried to get the page margins from the given JSON");
       return null;
     }
 

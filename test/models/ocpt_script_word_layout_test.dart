@@ -2,6 +2,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+import 'package:act_test_utility/act_test_utility.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_assets_service.dart';
@@ -477,43 +478,64 @@ void main() {
   test("a range built from two words of one block passes OcptShotCoverageService.addRange's "
       "own single-block rule", () async {
     Future<String> testDeviceId() async => "test-device";
-    final coverageService = OcptShotCoverageService(deviceId: testDeviceId);
-    const sceneIndexService = OcptSceneIndexService();
-    final assetsService = OcptAssetsService(deviceId: testDeviceId);
+    final coverageService = OcptShotCoverageService(
+      logger: const SilentLogger(),
+      deviceId: testDeviceId,
+    );
+    const sceneIndexService = OcptSceneIndexService(logger: SilentLogger());
+    final assetsService = OcptAssetsService(logger: const SilentLogger(), deviceId: testDeviceId);
     final elementsService = OcptElementsService(
+      logger: const SilentLogger(),
       assetsService: assetsService,
       deviceId: testDeviceId,
     );
     final locationsService = OcptLocationsService(
+      logger: const SilentLogger(),
       assetsService: assetsService,
-      floorPlanService: OcptFloorPlanService(assetsService: assetsService, deviceId: testDeviceId),
-      deviceId: testDeviceId,
-    );
-    final roleIndexService = OcptRoleIndexService(
-      elementsService: elementsService,
-      roleCandidatesService: OcptRoleCandidatesService(deviceId: testDeviceId),
-      deviceId: testDeviceId,
-    );
-    final shotListService = OcptShotListService(
-      roleIndexService: roleIndexService,
-      storyboardService: OcptStoryboardService(
+      floorPlanService: OcptFloorPlanService(
+        logger: const SilentLogger(),
         assetsService: assetsService,
         deviceId: testDeviceId,
       ),
-      floorPlanService: OcptFloorPlanService(assetsService: assetsService, deviceId: testDeviceId),
+      deviceId: testDeviceId,
+    );
+    final roleIndexService = OcptRoleIndexService(
+      logger: const SilentLogger(),
+      elementsService: elementsService,
+      roleCandidatesService: OcptRoleCandidatesService(
+        logger: const SilentLogger(),
+        deviceId: testDeviceId,
+      ),
+      deviceId: testDeviceId,
+    );
+    final shotListService = OcptShotListService(
+      logger: const SilentLogger(),
+      roleIndexService: roleIndexService,
+      storyboardService: OcptStoryboardService(
+        logger: const SilentLogger(),
+        assetsService: assetsService,
+        deviceId: testDeviceId,
+      ),
+      floorPlanService: OcptFloorPlanService(
+        logger: const SilentLogger(),
+        assetsService: assetsService,
+        deviceId: testDeviceId,
+      ),
       deviceId: testDeviceId,
     );
     final screenplayService = OcptScreenplayService(
+      logger: const SilentLogger(),
       sceneIndexService: sceneIndexService,
       shotListService: shotListService,
       shotCoverageService: coverageService,
       roleIndexService: roleIndexService,
       breakdownService: OcptBreakdownService(
+        logger: const SilentLogger(),
         elementsService: elementsService,
         locationsService: locationsService,
         deviceId: testDeviceId,
       ),
-      scheduleService: OcptScheduleService(deviceId: testDeviceId),
+      scheduleService: OcptScheduleService(logger: const SilentLogger(), deviceId: testDeviceId),
       deviceId: testDeviceId,
     );
     const screenplayId = "screenplay-1";

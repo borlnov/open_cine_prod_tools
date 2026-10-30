@@ -5,8 +5,10 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
+import 'package:act_test_utility/act_test_utility.dart';
 import 'package:archive/archive.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:open_cine_prod_tools/managers/export/services/ocpt_fountain_io_service.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_script_import_service.dart';
 import 'package:open_cine_prod_tools/types/ocpt_screenplay_import_status.dart';
 
@@ -52,7 +54,10 @@ Uint8List _zip(Map<String, String> entries) {
 Uint8List _bytesOf(String text) => Uint8List.fromList(utf8.encode(text));
 
 void main() {
-  const service = OcptScriptImportService();
+  const service = OcptScriptImportService(
+    logger: SilentLogger(),
+    fountainIoService: OcptFountainIoService(logger: SilentLogger()),
+  );
 
   group('importableExtensions', () {
     test('lists the three formats the two import gestures accept, Fountain first', () {

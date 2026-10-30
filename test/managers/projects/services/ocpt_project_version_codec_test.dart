@@ -4,6 +4,7 @@
 
 import 'dart:convert';
 
+import 'package:act_test_utility/act_test_utility.dart';
 import 'package:drift/drift.dart' as drift;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fountain_kit/fountain_kit.dart';
@@ -48,7 +49,7 @@ void main() {
   // accessing it creates the (otherwise unused) singleton.
   setUpAll(() => OcptGlobalManager.instance);
 
-  const codec = OcptProjectVersionCodec();
+  const codec = OcptProjectVersionCodec(logger: SilentLogger());
 
   /// A payload covering everything the format has to survive: a live row and a tombstoned one in
   /// every table, both nullable and non-null columns, both enum columns, the fractional sort keys,

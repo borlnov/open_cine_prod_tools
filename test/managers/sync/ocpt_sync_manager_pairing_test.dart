@@ -5,6 +5,7 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:act_test_utility/act_test_utility.dart';
 import 'package:drift/drift.dart' show Value;
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -16,6 +17,7 @@ import 'package:open_cine_prod_tools/managers/ocpt_secrets_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_row_stamp_service.dart';
 import 'package:open_cine_prod_tools/managers/sync/ocpt_sync_manager.dart';
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_changeset_service.dart';
+import 'package:open_cine_prod_tools/managers/sync/services/ocpt_merge_service.dart';
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_pairing_service.dart';
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_remote_storage.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
@@ -107,7 +109,12 @@ class _FakeTransportSyncManager extends OcptSyncManager {
   _FakeTransportSyncManager({
     required this.storage,
     required OcptPairingService super.pairingService,
-  }) : super(changesetService: const OcptChangesetService());
+  }) : super(
+         changesetService: const OcptChangesetService(
+           logger: SilentLogger(),
+           mergeService: OcptMergeService(logger: SilentLogger()),
+         ),
+       );
 
   final OcptRemoteStorage storage;
   String? capturedEnrolmentSecret;
@@ -161,7 +168,10 @@ void main() {
     );
     await secretsManager.initLifeCycle();
 
-    pairingService = OcptPairingService(secretsManager: secretsManager);
+    pairingService = OcptPairingService(
+      logger: const SilentLogger(),
+      secretsManager: secretsManager,
+    );
   });
 
   late Directory workspace;
@@ -295,10 +305,10 @@ void main() {
       final relayId = OcptSyncManager.relayIdFor(
         OcptProjectPairing(relayBaseUri: relayBaseUri, token: 't'),
       );
-      final sequenceUpTo = await const OcptChangesetService().highestAppendedSequence(
-        database: database,
-        relayId: relayId,
-      );
+      final sequenceUpTo = await const OcptChangesetService(
+        logger: SilentLogger(),
+        mergeService: OcptMergeService(logger: SilentLogger()),
+      ).highestAppendedSequence(database: database, relayId: relayId);
       expect(storage.uploaded!.$1.sequenceUpTo, sequenceUpTo);
       expect(sequenceUpTo, isNot(OcptSequenceNumber.zero));
     });
@@ -429,10 +439,10 @@ void main() {
       final relayId = OcptSyncManager.relayIdFor(
         OcptProjectPairing(relayBaseUri: newRelayBaseUri, token: 't'),
       );
-      final sequenceUpTo = await const OcptChangesetService().highestAppendedSequence(
-        database: database,
-        relayId: relayId,
-      );
+      final sequenceUpTo = await const OcptChangesetService(
+        logger: SilentLogger(),
+        mergeService: OcptMergeService(logger: SilentLogger()),
+      ).highestAppendedSequence(database: database, relayId: relayId);
       expect(newStorage.uploaded!.$1.sequenceUpTo, sequenceUpTo);
 
       await newStorage.dispose();

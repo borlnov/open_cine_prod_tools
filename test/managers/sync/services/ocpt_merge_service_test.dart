@@ -4,6 +4,7 @@
 
 import 'dart:io';
 
+import 'package:act_test_utility/act_test_utility.dart';
 import 'package:drift/drift.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ocpt_sync_protocol/ocpt_sync_protocol.dart';
@@ -32,7 +33,10 @@ void main() {
   // unused) singleton — the same idiom `ocpt_elements_service_test.dart` uses.
   setUpAll(() => OcptGlobalManager.instance);
 
-  const service = OcptChangesetService();
+  const service = OcptChangesetService(
+    logger: SilentLogger(),
+    mergeService: OcptMergeService(logger: SilentLogger()),
+  );
   const relayId = 'relay-1';
 
   late Directory tempDir;
@@ -521,10 +525,9 @@ void main() {
         ],
       );
 
-      await const OcptMergeService().applyChangeset(
-        fileDatabase: model.fileDatabase,
-        changeset: changeset,
-      );
+      await const OcptMergeService(
+        logger: SilentLogger(),
+      ).applyChangeset(fileDatabase: model.fileDatabase, changeset: changeset);
 
       Future<String> nameOn(OcptProjectDatabase database) async => (await (database.select(
         database.ocptLocationsTable,

@@ -4,6 +4,7 @@
 
 import 'dart:io';
 
+import 'package:act_test_utility/act_test_utility.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ocpt_sync_protocol/ocpt_sync_protocol.dart';
@@ -14,6 +15,7 @@ import 'package:open_cine_prod_tools/managers/ocpt_secrets_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
 import 'package:open_cine_prod_tools/managers/sync/ocpt_sync_manager.dart';
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_changeset_service.dart';
+import 'package:open_cine_prod_tools/managers/sync/services/ocpt_merge_service.dart';
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_pairing_service.dart';
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_remote_storage.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
@@ -94,7 +96,13 @@ class _FakeTransportSyncManager extends OcptSyncManager {
     required OcptPairingService pairingService,
     this.shouldFailToOpenTransport = false,
   }) : _pairing = pairingService,
-       super(pairingService: pairingService, changesetService: const OcptChangesetService());
+       super(
+         pairingService: pairingService,
+         changesetService: const OcptChangesetService(
+           logger: SilentLogger(),
+           mergeService: OcptMergeService(logger: SilentLogger()),
+         ),
+       );
 
   final OcptPairingService _pairing;
 
@@ -188,7 +196,10 @@ void main() {
     );
     await secretsManager.initLifeCycle();
 
-    pairingService = OcptPairingService(secretsManager: secretsManager);
+    pairingService = OcptPairingService(
+      logger: const SilentLogger(),
+      secretsManager: secretsManager,
+    );
   });
 
   setUp(() async {

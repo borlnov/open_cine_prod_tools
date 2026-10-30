@@ -48,7 +48,7 @@ class OcptRoleCandidatesService extends AbsOcptService {
   final OcptDeviceIdGetter deviceId;
 
   /// Class constructor
-  const OcptRoleCandidatesService({required this.deviceId});
+  const OcptRoleCandidatesService({required super.logger, required this.deviceId});
 
   /// Loads every live candidacy of the project, grouped by `roleId`, each group in its own
   /// `sortKey` order — the casting director's own ranking of the people they have seen.

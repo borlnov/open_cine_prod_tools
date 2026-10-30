@@ -7,6 +7,7 @@ import 'dart:math' as math;
 import 'dart:typed_data';
 import 'dart:ui' show Offset;
 
+import 'package:act_foundation/act_foundation.dart';
 import 'package:open_cine_prod_tools/managers/abs_ocpt_service.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_courier_prime_fonts.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_export_file_name.dart';
@@ -123,9 +124,11 @@ class OcptStoryboardPdfService extends AbsOcptService {
   /// page-building code are truly the same instance; a service built without either gets one of
   /// its own.
   OcptStoryboardPdfService({
+    required MixinActLogger logger,
     OcptCourierPrimeFontsLoader? fontsLoader,
     OcptFloorPlanPdfService? floorPlanPdfService,
   }) : this._(
+         logger: logger,
          fontsLoader: fontsLoader ?? OcptCourierPrimeFontsLoader(),
          floorPlanPdfService: floorPlanPdfService,
        );
@@ -152,11 +155,16 @@ class OcptStoryboardPdfService extends AbsOcptService {
   /// Class constructor, taking the resolved [fontsLoader] so [floorPlanPdfService]'s own default
   /// can share it.
   OcptStoryboardPdfService._({
+    required super.logger,
     required OcptCourierPrimeFontsLoader fontsLoader,
     required OcptFloorPlanPdfService? floorPlanPdfService,
   }) : fontsLoader = fontsLoader,
        floorPlanPdfService =
-           floorPlanPdfService ?? OcptFloorPlanPdfService(fontsLoader: fontsLoader);
+           floorPlanPdfService ??
+           OcptFloorPlanPdfService(
+             logger: logger.createAbsSubLogger(subCategory: 'floor_plan_pdf'),
+             fontsLoader: fontsLoader,
+           );
 
   /// The loader the embedded Courier Prime font set is read through.
   final OcptCourierPrimeFontsLoader fontsLoader;
@@ -270,9 +278,14 @@ class OcptStoryboardPdfService extends AbsOcptService {
     try {
       final bytes = await File(path).readAsBytes();
       return pw.MemoryImage(bytes);
-    } catch (_) {
+    } catch (error, stackTrace) {
       // A missing file (ADR 0013), a path that no longer names a file at all, or bytes the `pdf`
       // package cannot decode: all the same printed state, the placeholder frame.
+      logger.d(
+        'An image could not be read, using the placeholder: ${error.runtimeType}',
+        null,
+        stackTrace,
+      );
       return null;
     }
   }

@@ -51,7 +51,11 @@ class OcptElementsService extends AbsOcptService {
   final OcptDeviceIdGetter deviceId;
 
   /// Class constructor
-  const OcptElementsService({required this.assetsService, required this.deviceId});
+  const OcptElementsService({
+    required super.logger,
+    required this.assetsService,
+    required this.deviceId,
+  });
 
   /// {@macro act_life_cycle.MixinWithLifeCycle.initLifeCycle}
   ///

@@ -5,6 +5,7 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
+import 'package:act_test_utility/act_test_utility.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_budget_financing_plan_pdf_service.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_entry.dart';
@@ -110,7 +111,7 @@ OcptBudgetEntry _buildCreditEntry({
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  final service = OcptBudgetFinancingPlanPdfService();
+  final service = OcptBudgetFinancingPlanPdfService(logger: const SilentLogger());
   const pageSetup = OcptPageSetup.standard();
 
   OcptBudgetSnapshot buildSnapshot({

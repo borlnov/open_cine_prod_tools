@@ -6,6 +6,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
 
+import 'package:act_test_utility/act_test_utility.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ocpt_sync_protocol/ocpt_sync_protocol.dart';
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_presence_service.dart';
@@ -81,6 +82,7 @@ void main() {
   setUp(() {
     storage = _FakeRemoteStorage();
     service = OcptPresenceService(
+      logger: const SilentLogger(),
       storage: storage,
       deviceId: deviceId,
       platform: 'windows',
@@ -230,6 +232,7 @@ void main() {
   test('a peer goes stale and is swept after peerTimeout, driven by an injected clock', () async {
     var currentTime = DateTime(2026);
     service = OcptPresenceService(
+      logger: const SilentLogger(),
       storage: storage,
       deviceId: deviceId,
       // Short enough that a sweep tick happens quickly in real time...

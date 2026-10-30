@@ -4,6 +4,7 @@
 
 import 'dart:io';
 
+import 'package:act_test_utility/act_test_utility.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_project_file_compatibility_service.dart';
@@ -16,7 +17,7 @@ void main() {
   // instance to be set; merely accessing it creates the (otherwise unused) singleton.
   setUpAll(() => OcptGlobalManager.instance);
 
-  const service = OcptProjectFileCompatibilityService();
+  const service = OcptProjectFileCompatibilityService(logger: SilentLogger());
 
   // The schema version the build under test is pretending to write. A literal rather than
   // `OcptProjectDatabase.currentSchemaVersion`: what this service does with a number is the whole

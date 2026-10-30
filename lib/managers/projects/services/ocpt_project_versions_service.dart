@@ -5,7 +5,6 @@
 import 'dart:convert';
 
 import 'package:act_dart_result/act_dart_result.dart';
-import 'package:act_global_manager/act_global_manager.dart';
 import 'package:drift/drift.dart';
 import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/managers/abs_ocpt_service.dart';
@@ -99,6 +98,7 @@ class OcptProjectVersionsService extends AbsOcptService {
 
   /// Class constructor
   const OcptProjectVersionsService({
+    required super.logger,
     required OcptProjectVersionCodec codec,
     required OcptScreenplayService screenplayService,
   }) : _codec = codec,
@@ -314,7 +314,7 @@ class OcptProjectVersionsService extends AbsOcptService {
     )..where((table) => table.id.equals(id))).getSingleOrNull();
 
     if (row == null) {
-      appLogger().w("The project version $id can't be loaded: no such version in this project");
+      logger.w("The project version $id can't be loaded: no such version in this project");
       return const ResultWithStatus(status: OcptProjectVersionPayloadStatus.malformedPayload);
     }
 
@@ -566,7 +566,7 @@ class OcptProjectVersionsService extends AbsOcptService {
     }
 
     if (await loadVersion(database: database, id: id) == null) {
-      appLogger().w("The project version $id can't be restored: no such version in this project");
+      logger.w("The project version $id can't be restored: no such version in this project");
       return const ResultWithStatus(status: OcptProjectRestoreStatus.versionNotFound);
     }
 
@@ -629,8 +629,12 @@ class OcptProjectVersionsService extends AbsOcptService {
               ),
             );
       });
-    } catch (error) {
-      appLogger().e("A problem occurred when tried to restore the project version $id: $error");
+    } catch (error, stackTrace) {
+      logger.e(
+        "A problem occurred when tried to restore the project version $id: ${error.runtimeType}",
+        null,
+        stackTrace,
+      );
       return const ResultWithStatus(status: OcptProjectRestoreStatus.writeFailed);
     }
 

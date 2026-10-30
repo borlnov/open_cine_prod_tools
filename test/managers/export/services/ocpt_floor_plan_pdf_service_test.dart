@@ -6,6 +6,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
+import 'package:act_test_utility/act_test_utility.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_floor_plan_pdf_service.dart';
 import 'package:open_cine_prod_tools/models/ocpt_floor_plan_arrow.dart';
@@ -211,7 +212,7 @@ OcptFloorPlanArrow _movementArrowOf({
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  final service = OcptFloorPlanPdfService();
+  final service = OcptFloorPlanPdfService(logger: const SilentLogger());
   const pageSetup = OcptPageSetup.standard();
 
   late Directory tempDir;

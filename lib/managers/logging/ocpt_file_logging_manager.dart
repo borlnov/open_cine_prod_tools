@@ -8,6 +8,7 @@ import 'package:act_global_manager/act_global_manager.dart';
 import 'package:act_life_cycle/act_life_cycle.dart';
 import 'package:act_logger_manager/act_logger_manager.dart';
 import 'package:open_cine_prod_tools/managers/logging/ocpt_file_external_logger.dart';
+import 'package:open_cine_prod_tools/managers/logging/ocpt_logs_helper_builder.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_config_manager.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
@@ -52,9 +53,15 @@ bool _defaultIsDesktopPlatform() => !(Platform.isAndroid || Platform.isIOS);
 /// so a rotating log file there earns nothing, and production deliberately turns the config flag on
 /// for the desktop diagnostics it does buy (`assets/config/production.yaml`). Any I/O failure while
 /// resolving the log directory or setting up the file itself (a read-only file system, a sandboxed
-/// environment) is caught and logged as a warning through `appLogger()` — file logging is a
+/// environment) is caught and logged as a warning through the manager's own logger — file logging is a
 /// diagnostic nicety, never something app start may fail over.
 class OcptFileLoggingManager extends AbsWithLifeCycle {
+  /// The logger category linked to this manager.
+  static const _loggerCategory = "file_logging";
+
+  /// The logger this manager writes to.
+  final LogsHelper _logger = buildOcptLogsHelper(_loggerCategory);
+
   /// Creates the manager.
   ///
   /// [configManager] and [loggerManager] are stored nullable and resolved lazily through
@@ -133,9 +140,10 @@ class OcptFileLoggingManager extends AbsWithLifeCycle {
       await _logging.addExternalLogger(OcptExternalLoggerKey.file, fileLogger);
       _fileLogger = fileLogger;
     } on Object catch (error, stackTrace) {
-      appLogger().w(
-        'File logging setup failed, continuing without a log file: $error',
-        error,
+      // The error of an I/O failure names the folder, which holds the user's name.
+      _logger.w(
+        'File logging setup failed, continuing without a log file: ${error.runtimeType}',
+        null,
         stackTrace,
       );
     }

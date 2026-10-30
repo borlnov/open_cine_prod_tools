@@ -7,6 +7,7 @@ import 'dart:ui';
 
 import 'package:act_file_transfer_manager/act_file_transfer_manager.dart';
 import 'package:act_platform_manager/act_platform_manager.dart';
+import 'package:act_test_utility/act_test_utility.dart';
 import 'package:drift/drift.dart' show Value;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/managers/export/ocpt_export_manager.dart';
@@ -57,7 +58,7 @@ class _RecordingSaveLocationService extends OcptSaveLocationService {
   String lastSuggestedFileName = "";
 
   /// Class constructor
-  _RecordingSaveLocationService({required this.answer});
+  _RecordingSaveLocationService({required this.answer}) : super(logger: const SilentLogger());
 
   @override
   Future<String?> pickSaveLocation({
@@ -93,7 +94,8 @@ class _StubPlatformManager extends PlatformManager {
 class _RecordingShareService extends OcptShareService {
   /// Class constructor
   _RecordingShareService({required Directory directory, required this.answer})
-    : _directory = directory;
+    : _directory = directory,
+      super(logger: const SilentLogger());
 
   /// The directory [temporaryDirectory] resolves to.
   final Directory _directory;

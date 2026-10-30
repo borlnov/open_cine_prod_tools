@@ -9,6 +9,7 @@ import 'package:act_global_manager/act_global_manager.dart';
 import 'package:act_life_cycle/act_life_cycle.dart';
 import 'package:act_logger_manager/act_logger_manager.dart';
 import 'package:ocpt_sync_protocol/ocpt_sync_protocol.dart';
+import 'package:open_cine_prod_tools/managers/logging/ocpt_logs_helper_builder.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_secrets_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
@@ -65,6 +66,12 @@ class OcptSyncManagerBuilder extends AbsLifeCycleFactory<OcptSyncManager> {
 /// step with whichever project is actually open) for exactly that reason, ahead of the code that
 /// reads either one.
 class OcptSyncManager extends AbsWithLifeCycle {
+  /// The logger category linked to this manager.
+  static const _loggerCategory = "sync";
+
+  /// The logger this manager writes to, and the parent of every service's and session's own.
+  final LogsHelper _logger;
+
   /// The service turning a replica's own un-pushed local edits into a changeset, appending it to a
   /// relay, and applying every changeset a relay holds that this replica hasn't seen yet.
   final OcptChangesetService changesetService;
@@ -92,7 +99,10 @@ class OcptSyncManager extends AbsWithLifeCycle {
   /// The getter cannot wait, so the initialisation is not awaited: the service's own
   /// `initLifeCycle()` does nothing today, and one that ever does must be built eagerly instead.
   OcptPairingService _buildPairingService() {
-    final service = OcptPairingService(secretsManager: globalGetIt().get<OcptSecretsManager>());
+    final service = OcptPairingService(
+      logger: _logger.createSubLogger(subCategory: 'pairing'),
+      secretsManager: globalGetIt().get<OcptSecretsManager>(),
+    );
     unawaited(service.initLifeCycle());
     return service;
   }
@@ -115,11 +125,35 @@ class OcptSyncManager extends AbsWithLifeCycle {
     OcptChangesetService? changesetService,
     OcptSnapshotService? snapshotService,
     OcptPairingService? pairingService,
-  }) : changesetService =
+  }) : this._(
+         logger: buildOcptLogsHelper(_loggerCategory),
+         projectsManager: projectsManager,
+         propertiesManager: propertiesManager,
+         changesetService: changesetService,
+         snapshotService: snapshotService,
+         pairingService: pairingService,
+       );
+
+  /// Class constructor, taking the one logger the services built here are given sub-loggers of.
+  ///
+  /// A constructor initializer list cannot see `this`, so the logger is built once by the public
+  /// constructor and handed down as a parameter.
+  OcptSyncManager._({
+    required LogsHelper logger,
+    required OcptProjectsManager? projectsManager,
+    required OcptPropertiesManager? propertiesManager,
+    required OcptChangesetService? changesetService,
+    required OcptSnapshotService? snapshotService,
+    required OcptPairingService? pairingService,
+  }) : _logger = logger,
+       changesetService =
            changesetService ??
            OcptChangesetService(
+             logger: logger.createSubLogger(subCategory: 'changeset'),
              mergeService: OcptMergeService(
+               logger: logger.createSubLogger(subCategory: 'merge'),
                screenplayMergeService: OcptScreenplayMergeService(
+                 logger: logger.createSubLogger(subCategory: 'screenplay_merge'),
                  screenplayService: (projectsManager ?? globalGetIt().get<OcptProjectsManager>())
                      .screenplayService,
                  deviceId: (propertiesManager ?? globalGetIt().get<OcptPropertiesManager>())
@@ -127,7 +161,9 @@ class OcptSyncManager extends AbsWithLifeCycle {
                ),
              ),
            ),
-       snapshotService = snapshotService ?? const OcptSnapshotService(),
+       snapshotService =
+           snapshotService ??
+           OcptSnapshotService(logger: logger.createSubLogger(subCategory: 'snapshot')),
        _pairingService = pairingService;
 
   /// {@macro act_life_cycle.MixinWithLifeCycle.initLifeCycle}
@@ -184,6 +220,7 @@ class OcptSyncManager extends AbsWithLifeCycle {
     String projectId, {
     String? enrolmentSecret,
   }) => OcptRelayRemoteStorage(
+    logger: _logger.createSubLogger(subCategory: 'relay_storage'),
     relayBaseUri: pairing.relayBaseUri,
     projectId: projectId,
     token: pairing.token,
@@ -526,6 +563,7 @@ class OcptSyncManager extends AbsWithLifeCycle {
     await stopSyncSession();
 
     final session = OcptSyncSession(
+      logger: _logger.createSubLogger(subCategory: 'session'),
       projectId: projectId,
       database: database,
       deviceId: deviceId,
@@ -544,6 +582,7 @@ class OcptSyncManager extends AbsWithLifeCycle {
     _syncStatusController.add(session.status);
 
     final presenceService = OcptPresenceService(
+      logger: _logger.createSubLogger(subCategory: 'presence'),
       storage: storage,
       deviceId: deviceId,
       heartbeatInterval: presenceHeartbeatInterval,

@@ -27,7 +27,7 @@ class OcptPdfExportService extends AbsOcptService {
   /// fonts through [fontsLoader], whose cache is mutable state. Pass the manager's own loader so
   /// every export of the app session shares one; a service built without one gets a loader of its
   /// own.
-  OcptPdfExportService({OcptCourierPrimeFontsLoader? fontsLoader})
+  OcptPdfExportService({required super.logger, OcptCourierPrimeFontsLoader? fontsLoader})
     : fontsLoader = fontsLoader ?? OcptCourierPrimeFontsLoader();
 
   /// The Fountain-to-page-layout engine, stateless so one instance is shared across every

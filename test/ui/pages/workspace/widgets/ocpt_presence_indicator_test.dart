@@ -4,12 +4,14 @@
 
 import 'dart:async';
 
+import 'package:act_test_utility/act_test_utility.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/managers/sync/ocpt_sync_manager.dart';
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_changeset_service.dart';
+import 'package:open_cine_prod_tools/managers/sync/services/ocpt_merge_service.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_presence_frame.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_presence_roster.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_presence_indicator.dart';
@@ -20,7 +22,13 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_presence_in
 /// frames through [emit], mirroring `presenceRosterChanges` (the lifecycle-spanning stream the
 /// indicator listens to).
 class _FakePresenceSyncManager extends OcptSyncManager {
-  _FakePresenceSyncManager(this.roster) : super(changesetService: const OcptChangesetService());
+  _FakePresenceSyncManager(this.roster)
+    : super(
+        changesetService: const OcptChangesetService(
+          logger: SilentLogger(),
+          mergeService: OcptMergeService(logger: SilentLogger()),
+        ),
+      );
 
   /// What [presenceRoster] returns — the seed a fresh listener reads before the stream ever emits.
   OcptPresenceRoster? roster;

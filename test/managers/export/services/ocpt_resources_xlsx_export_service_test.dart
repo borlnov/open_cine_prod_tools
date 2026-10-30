@@ -2,6 +2,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+import 'package:act_test_utility/act_test_utility.dart';
 import 'package:excel_community/excel_community.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_resources_xlsx_export_service.dart';
@@ -308,7 +309,7 @@ Object? _valueOf(Data? cell) {
 Object? _cellAt(List<Object?> row, int index) => index < row.length ? row[index] : null;
 
 void main() {
-  const service = OcptResourcesXlsxExportService();
+  const service = OcptResourcesXlsxExportService(logger: SilentLogger());
 
   group('xlsxFileName', () {
     test('appends the .xlsx extension and the suffix to the project name', () {

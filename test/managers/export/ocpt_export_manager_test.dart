@@ -8,6 +8,7 @@ import 'dart:ui';
 
 import 'package:act_file_transfer_manager/act_file_transfer_manager.dart';
 import 'package:act_platform_manager/act_platform_manager.dart';
+import 'package:act_test_utility/act_test_utility.dart';
 import 'package:excel_community/excel_community.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fountain_kit/fountain_kit.dart';
@@ -62,7 +63,7 @@ const Map<int, String> _weekdayLabels = {
 /// the manager's export methods can be exercised without any real native dialog.
 class _FakeSaveLocationService extends OcptSaveLocationService {
   /// Class constructor
-  _FakeSaveLocationService({this.result});
+  _FakeSaveLocationService({this.result}) : super(logger: const SilentLogger());
 
   /// The path [pickSaveLocation] returns, or null to simulate a cancelled dialog.
   final String? result;
@@ -120,7 +121,9 @@ class _StubPlatformManager extends PlatformManager {
 /// recorded, so the manager's mobile write funnel can be exercised without any real OS share sheet.
 class _FakeShareService extends OcptShareService {
   /// Class constructor
-  _FakeShareService({required Directory directory, this.result = true}) : _directory = directory;
+  _FakeShareService({required Directory directory, this.result = true})
+    : _directory = directory,
+      super(logger: const SilentLogger());
 
   /// The directory [temporaryDirectory] resolves to.
   final Directory _directory;

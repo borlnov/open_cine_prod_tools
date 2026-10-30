@@ -2,7 +2,6 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-import 'package:act_global_manager/act_global_manager.dart';
 import 'package:drift/drift.dart';
 import 'package:open_cine_prod_tools/managers/abs_ocpt_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_elements_service.dart';
@@ -64,6 +63,7 @@ class OcptBreakdownService extends AbsOcptService {
 
   /// Class constructor
   const OcptBreakdownService({
+    required super.logger,
     required OcptElementsService elementsService,
     required OcptLocationsService locationsService,
     required this.deviceId,
@@ -237,7 +237,7 @@ class OcptBreakdownService extends AbsOcptService {
         startOffset: startOffset,
         endOffset: endOffset,
       )) {
-        appLogger().w(
+        logger.w(
           "createTag refused: range [$startOffset, $endOffset) of scene $sceneId overlaps a "
           "live tag already there",
         );
@@ -517,7 +517,7 @@ class OcptBreakdownService extends AbsOcptService {
       }
 
       if (extraLiveRowCount > 0) {
-        appLogger().w(
+        logger.w(
           "Scene $sceneId has ${extraLiveRowCount + 1} live scene_breakdowns rows; writing only "
           "the first and leaving the rest alone",
         );

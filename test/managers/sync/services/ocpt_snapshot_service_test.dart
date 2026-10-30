@@ -5,6 +5,7 @@
 import 'dart:io';
 import 'dart:typed_data';
 
+import 'package:act_test_utility/act_test_utility.dart';
 import 'package:crypto/crypto.dart';
 import 'package:drift/drift.dart' show Value;
 import 'package:flutter_test/flutter_test.dart';
@@ -21,7 +22,7 @@ void main() {
   // singleton, exactly as the package service's own test does.
   setUpAll(() => OcptGlobalManager.instance);
 
-  const service = OcptSnapshotService();
+  final service = OcptSnapshotService(logger: const SilentLogger());
 
   late Directory workspace;
   late String projectPath;

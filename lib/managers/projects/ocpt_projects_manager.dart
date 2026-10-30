@@ -16,6 +16,7 @@ import 'package:drift/drift.dart' show Value;
 import 'package:fountain_kit/fountain_kit.dart';
 import 'package:intl/intl.dart' show NumberFormat;
 import 'package:open_cine_prod_tools/constants/ocpt_project_file.dart';
+import 'package:open_cine_prod_tools/managers/logging/ocpt_logs_helper_builder.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_assets_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_breakdown_service.dart';
@@ -52,6 +53,7 @@ import 'package:open_cine_prod_tools/models/ocpt_project_working_copy_state.dart
 import 'package:open_cine_prod_tools/models/ocpt_recent_project_model.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_fractional_key.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_free_file_path.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_log_subject.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_file_verdict.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_move_status.dart';
@@ -116,6 +118,12 @@ class OcptProjectsManagerBuilder extends AbsLifeCycleFactory<OcptProjectsManager
 /// [projectVersionsService]: previewing swaps the database the modes read through for an in-memory
 /// one hydrated from the version's payload, and re-emits the project on [currentProjectStream].
 class OcptProjectsManager extends AbsWithLifeCycle {
+  /// The logger category linked to this manager.
+  static const _loggerCategory = "projects";
+
+  /// The logger this manager writes to, and the parent of every service's own.
+  final LogsHelper _logger;
+
   /// The name of the folder created inside the platform's documents directory to hold projects
   /// created/saved without the user picking a different location.
   static const _defaultProjectsDirectoryName = "OpenCineProdTools";
@@ -295,183 +303,313 @@ class OcptProjectsManager extends AbsWithLifeCycle {
     OcptPropertiesManager? propertiesManager,
     OcptAppLanguageCodeGetter? appLanguageCode,
     PlatformManager? platformManager,
-  }) : _propertiesManager = propertiesManager ?? globalGetIt().get<OcptPropertiesManager>(),
+  }) : this._(
+         logger: buildOcptLogsHelper(_loggerCategory),
+         propertiesManager: propertiesManager,
+         appLanguageCode: appLanguageCode,
+         platformManager: platformManager,
+       );
+
+  /// Class constructor, taking the one logger the services built here are given sub-loggers of.
+  ///
+  /// A constructor initializer list cannot see `this`, so the logger is built once by the public
+  /// constructor and handed down as a parameter.
+  OcptProjectsManager._({
+    required LogsHelper logger,
+    required OcptPropertiesManager? propertiesManager,
+    required OcptAppLanguageCodeGetter? appLanguageCode,
+    required PlatformManager? platformManager,
+  }) : _logger = logger,
+       _propertiesManager = propertiesManager ?? globalGetIt().get<OcptPropertiesManager>(),
        _appLanguageCode = appLanguageCode ?? _localesManagerLanguageCode,
        _platformManager = platformManager ?? PlatformManager(),
-       sceneIndexService = const OcptSceneIndexService(),
+       sceneIndexService = OcptSceneIndexService(logger: _sub(logger, 'scene_index')),
        shotListService = OcptShotListService(
+         logger: _sub(logger, 'shot_list'),
          roleIndexService: OcptRoleIndexService(
+           logger: _sub(logger, 'role_index'),
            elementsService: OcptElementsService(
-             assetsService: OcptAssetsService(deviceId: _resolveDeviceId(propertiesManager)),
+             logger: _sub(logger, 'elements'),
+             assetsService: OcptAssetsService(
+               logger: _sub(logger, 'assets'),
+               deviceId: _resolveDeviceId(propertiesManager),
+             ),
              deviceId: _resolveDeviceId(propertiesManager),
            ),
            roleCandidatesService: OcptRoleCandidatesService(
+             logger: _sub(logger, 'role_candidates'),
              deviceId: _resolveDeviceId(propertiesManager),
            ),
            deviceId: _resolveDeviceId(propertiesManager),
          ),
-         storyboardService: _buildStoryboardService(propertiesManager),
-         floorPlanService: _buildFloorPlanService(propertiesManager),
+         storyboardService: _buildStoryboardService(propertiesManager, logger),
+         floorPlanService: _buildFloorPlanService(propertiesManager, logger),
          deviceId: _resolveDeviceId(propertiesManager),
        ),
-       shotCoverageService = OcptShotCoverageService(deviceId: _resolveDeviceId(propertiesManager)),
+       shotCoverageService = OcptShotCoverageService(
+         logger: _sub(logger, 'shot_coverage'),
+         deviceId: _resolveDeviceId(propertiesManager),
+       ),
        projectVersionsService = OcptProjectVersionsService(
-         codec: const OcptProjectVersionCodec(),
+         logger: _sub(logger, 'project_versions'),
+         codec: OcptProjectVersionCodec(logger: _sub(logger, 'project_version_codec')),
          screenplayService: OcptScreenplayService(
-           sceneIndexService: const OcptSceneIndexService(),
+           logger: _sub(logger, 'screenplay'),
+           sceneIndexService: OcptSceneIndexService(logger: _sub(logger, 'scene_index')),
            shotListService: OcptShotListService(
+             logger: _sub(logger, 'shot_list'),
              roleIndexService: OcptRoleIndexService(
+               logger: _sub(logger, 'role_index'),
                elementsService: OcptElementsService(
-                 assetsService: OcptAssetsService(deviceId: _resolveDeviceId(propertiesManager)),
+                 logger: _sub(logger, 'elements'),
+                 assetsService: OcptAssetsService(
+                   logger: _sub(logger, 'assets'),
+                   deviceId: _resolveDeviceId(propertiesManager),
+                 ),
                  deviceId: _resolveDeviceId(propertiesManager),
                ),
                roleCandidatesService: OcptRoleCandidatesService(
+                 logger: _sub(logger, 'role_candidates'),
                  deviceId: _resolveDeviceId(propertiesManager),
                ),
                deviceId: _resolveDeviceId(propertiesManager),
              ),
-             storyboardService: _buildStoryboardService(propertiesManager),
-             floorPlanService: _buildFloorPlanService(propertiesManager),
+             storyboardService: _buildStoryboardService(propertiesManager, logger),
+             floorPlanService: _buildFloorPlanService(propertiesManager, logger),
              deviceId: _resolveDeviceId(propertiesManager),
            ),
            shotCoverageService: OcptShotCoverageService(
+             logger: _sub(logger, 'shot_coverage'),
              deviceId: _resolveDeviceId(propertiesManager),
            ),
            roleIndexService: OcptRoleIndexService(
+             logger: _sub(logger, 'role_index'),
              elementsService: OcptElementsService(
-               assetsService: OcptAssetsService(deviceId: _resolveDeviceId(propertiesManager)),
+               logger: _sub(logger, 'elements'),
+               assetsService: OcptAssetsService(
+                 logger: _sub(logger, 'assets'),
+                 deviceId: _resolveDeviceId(propertiesManager),
+               ),
                deviceId: _resolveDeviceId(propertiesManager),
              ),
              roleCandidatesService: OcptRoleCandidatesService(
+               logger: _sub(logger, 'role_candidates'),
                deviceId: _resolveDeviceId(propertiesManager),
              ),
              deviceId: _resolveDeviceId(propertiesManager),
            ),
            breakdownService: OcptBreakdownService(
+             logger: _sub(logger, 'breakdown'),
              elementsService: OcptElementsService(
-               assetsService: OcptAssetsService(deviceId: _resolveDeviceId(propertiesManager)),
+               logger: _sub(logger, 'elements'),
+               assetsService: OcptAssetsService(
+                 logger: _sub(logger, 'assets'),
+                 deviceId: _resolveDeviceId(propertiesManager),
+               ),
                deviceId: _resolveDeviceId(propertiesManager),
              ),
              locationsService: OcptLocationsService(
-               floorPlanService: _buildFloorPlanService(propertiesManager),
-               assetsService: OcptAssetsService(deviceId: _resolveDeviceId(propertiesManager)),
+               logger: _sub(logger, 'locations'),
+               floorPlanService: _buildFloorPlanService(propertiesManager, logger),
+               assetsService: OcptAssetsService(
+                 logger: _sub(logger, 'assets'),
+                 deviceId: _resolveDeviceId(propertiesManager),
+               ),
                deviceId: _resolveDeviceId(propertiesManager),
              ),
              deviceId: _resolveDeviceId(propertiesManager),
            ),
-           scheduleService: OcptScheduleService(deviceId: _resolveDeviceId(propertiesManager)),
+           scheduleService: OcptScheduleService(
+             logger: _sub(logger, 'schedule'),
+             deviceId: _resolveDeviceId(propertiesManager),
+           ),
            deviceId: _resolveDeviceId(propertiesManager),
          ),
        ),
        screenplayService = OcptScreenplayService(
-         sceneIndexService: const OcptSceneIndexService(),
+         logger: _sub(logger, 'screenplay'),
+         sceneIndexService: OcptSceneIndexService(logger: _sub(logger, 'scene_index')),
          shotListService: OcptShotListService(
+           logger: _sub(logger, 'shot_list'),
            roleIndexService: OcptRoleIndexService(
+             logger: _sub(logger, 'role_index'),
              elementsService: OcptElementsService(
-               assetsService: OcptAssetsService(deviceId: _resolveDeviceId(propertiesManager)),
+               logger: _sub(logger, 'elements'),
+               assetsService: OcptAssetsService(
+                 logger: _sub(logger, 'assets'),
+                 deviceId: _resolveDeviceId(propertiesManager),
+               ),
                deviceId: _resolveDeviceId(propertiesManager),
              ),
              roleCandidatesService: OcptRoleCandidatesService(
+               logger: _sub(logger, 'role_candidates'),
                deviceId: _resolveDeviceId(propertiesManager),
              ),
              deviceId: _resolveDeviceId(propertiesManager),
            ),
-           storyboardService: _buildStoryboardService(propertiesManager),
-           floorPlanService: _buildFloorPlanService(propertiesManager),
+           storyboardService: _buildStoryboardService(propertiesManager, logger),
+           floorPlanService: _buildFloorPlanService(propertiesManager, logger),
            deviceId: _resolveDeviceId(propertiesManager),
          ),
          shotCoverageService: OcptShotCoverageService(
+           logger: _sub(logger, 'shot_coverage'),
            deviceId: _resolveDeviceId(propertiesManager),
          ),
          roleIndexService: OcptRoleIndexService(
+           logger: _sub(logger, 'role_index'),
            elementsService: OcptElementsService(
-             assetsService: OcptAssetsService(deviceId: _resolveDeviceId(propertiesManager)),
+             logger: _sub(logger, 'elements'),
+             assetsService: OcptAssetsService(
+               logger: _sub(logger, 'assets'),
+               deviceId: _resolveDeviceId(propertiesManager),
+             ),
              deviceId: _resolveDeviceId(propertiesManager),
            ),
            roleCandidatesService: OcptRoleCandidatesService(
+             logger: _sub(logger, 'role_candidates'),
              deviceId: _resolveDeviceId(propertiesManager),
            ),
            deviceId: _resolveDeviceId(propertiesManager),
          ),
          breakdownService: OcptBreakdownService(
+           logger: _sub(logger, 'breakdown'),
            elementsService: OcptElementsService(
-             assetsService: OcptAssetsService(deviceId: _resolveDeviceId(propertiesManager)),
+             logger: _sub(logger, 'elements'),
+             assetsService: OcptAssetsService(
+               logger: _sub(logger, 'assets'),
+               deviceId: _resolveDeviceId(propertiesManager),
+             ),
              deviceId: _resolveDeviceId(propertiesManager),
            ),
            locationsService: OcptLocationsService(
-             floorPlanService: _buildFloorPlanService(propertiesManager),
-             assetsService: OcptAssetsService(deviceId: _resolveDeviceId(propertiesManager)),
+             logger: _sub(logger, 'locations'),
+             floorPlanService: _buildFloorPlanService(propertiesManager, logger),
+             assetsService: OcptAssetsService(
+               logger: _sub(logger, 'assets'),
+               deviceId: _resolveDeviceId(propertiesManager),
+             ),
              deviceId: _resolveDeviceId(propertiesManager),
            ),
            deviceId: _resolveDeviceId(propertiesManager),
          ),
-         scheduleService: OcptScheduleService(deviceId: _resolveDeviceId(propertiesManager)),
+         scheduleService: OcptScheduleService(
+           logger: _sub(logger, 'schedule'),
+           deviceId: _resolveDeviceId(propertiesManager),
+         ),
          deviceId: _resolveDeviceId(propertiesManager),
        ),
        peopleService = OcptPeopleService(
+         logger: _sub(logger, 'people'),
          deviceId: _resolveDeviceId(propertiesManager),
-         assetsService: OcptAssetsService(deviceId: _resolveDeviceId(propertiesManager)),
+         assetsService: OcptAssetsService(
+           logger: _sub(logger, 'assets'),
+           deviceId: _resolveDeviceId(propertiesManager),
+         ),
          roleCandidatesService: OcptRoleCandidatesService(
+           logger: _sub(logger, 'role_candidates'),
            deviceId: _resolveDeviceId(propertiesManager),
          ),
        ),
        roleIndexService = OcptRoleIndexService(
+         logger: _sub(logger, 'role_index'),
          elementsService: OcptElementsService(
-           assetsService: OcptAssetsService(deviceId: _resolveDeviceId(propertiesManager)),
+           logger: _sub(logger, 'elements'),
+           assetsService: OcptAssetsService(
+             logger: _sub(logger, 'assets'),
+             deviceId: _resolveDeviceId(propertiesManager),
+           ),
            deviceId: _resolveDeviceId(propertiesManager),
          ),
          roleCandidatesService: OcptRoleCandidatesService(
+           logger: _sub(logger, 'role_candidates'),
            deviceId: _resolveDeviceId(propertiesManager),
          ),
          deviceId: _resolveDeviceId(propertiesManager),
        ),
        roleCandidatesService = OcptRoleCandidatesService(
+         logger: _sub(logger, 'role_candidates'),
          deviceId: _resolveDeviceId(propertiesManager),
        ),
        locationsService = OcptLocationsService(
-         floorPlanService: _buildFloorPlanService(propertiesManager),
-         assetsService: OcptAssetsService(deviceId: _resolveDeviceId(propertiesManager)),
+         logger: _sub(logger, 'locations'),
+         floorPlanService: _buildFloorPlanService(propertiesManager, logger),
+         assetsService: OcptAssetsService(
+           logger: _sub(logger, 'assets'),
+           deviceId: _resolveDeviceId(propertiesManager),
+         ),
          deviceId: _resolveDeviceId(propertiesManager),
        ),
        elementsService = OcptElementsService(
-         assetsService: OcptAssetsService(deviceId: _resolveDeviceId(propertiesManager)),
+         logger: _sub(logger, 'elements'),
+         assetsService: OcptAssetsService(
+           logger: _sub(logger, 'assets'),
+           deviceId: _resolveDeviceId(propertiesManager),
+         ),
          deviceId: _resolveDeviceId(propertiesManager),
        ),
-       budgetQuoteService = OcptBudgetQuoteService(deviceId: _resolveDeviceId(propertiesManager)),
+       budgetQuoteService = OcptBudgetQuoteService(
+         logger: _sub(logger, 'budget_quote'),
+         deviceId: _resolveDeviceId(propertiesManager),
+       ),
        budgetJournalService = OcptBudgetJournalService(
-         assetsService: OcptAssetsService(deviceId: _resolveDeviceId(propertiesManager)),
+         logger: _sub(logger, 'budget_journal'),
+         assetsService: OcptAssetsService(
+           logger: _sub(logger, 'assets'),
+           deviceId: _resolveDeviceId(propertiesManager),
+         ),
          deviceId: _resolveDeviceId(propertiesManager),
        ),
        budgetFinancingService = OcptBudgetFinancingService(
+         logger: _sub(logger, 'budget_financing'),
          deviceId: _resolveDeviceId(propertiesManager),
        ),
        budgetAllowancesService = OcptBudgetAllowancesService(
+         logger: _sub(logger, 'budget_allowances'),
          deviceId: _resolveDeviceId(propertiesManager),
        ),
        budgetSharingService = OcptBudgetSharingService(
+         logger: _sub(logger, 'budget_sharing'),
          deviceId: _resolveDeviceId(propertiesManager),
        ),
-       assetsService = OcptAssetsService(deviceId: _resolveDeviceId(propertiesManager)),
-       storyboardService = _buildStoryboardService(propertiesManager),
-       floorPlanService = _buildFloorPlanService(propertiesManager),
+       assetsService = OcptAssetsService(
+         logger: _sub(logger, 'assets'),
+         deviceId: _resolveDeviceId(propertiesManager),
+       ),
+       storyboardService = _buildStoryboardService(propertiesManager, logger),
+       floorPlanService = _buildFloorPlanService(propertiesManager, logger),
        projectDictionaryService = OcptProjectDictionaryService(
+         logger: _sub(logger, 'project_dictionary'),
          deviceId: _resolveDeviceId(propertiesManager),
        ),
-       projectPackageService = const OcptProjectPackageService(),
-       projectFileCompatibilityService = const OcptProjectFileCompatibilityService(),
+       projectPackageService = OcptProjectPackageService(logger: _sub(logger, 'project_package')),
+       projectFileCompatibilityService = OcptProjectFileCompatibilityService(
+         logger: _sub(logger, 'project_file_compatibility'),
+       ),
        breakdownService = OcptBreakdownService(
+         logger: _sub(logger, 'breakdown'),
          elementsService: OcptElementsService(
-           assetsService: OcptAssetsService(deviceId: _resolveDeviceId(propertiesManager)),
+           logger: _sub(logger, 'elements'),
+           assetsService: OcptAssetsService(
+             logger: _sub(logger, 'assets'),
+             deviceId: _resolveDeviceId(propertiesManager),
+           ),
            deviceId: _resolveDeviceId(propertiesManager),
          ),
          locationsService: OcptLocationsService(
-           floorPlanService: _buildFloorPlanService(propertiesManager),
-           assetsService: OcptAssetsService(deviceId: _resolveDeviceId(propertiesManager)),
+           logger: _sub(logger, 'locations'),
+           floorPlanService: _buildFloorPlanService(propertiesManager, logger),
+           assetsService: OcptAssetsService(
+             logger: _sub(logger, 'assets'),
+             deviceId: _resolveDeviceId(propertiesManager),
+           ),
            deviceId: _resolveDeviceId(propertiesManager),
          ),
          deviceId: _resolveDeviceId(propertiesManager),
        ),
-       scheduleService = OcptScheduleService(deviceId: _resolveDeviceId(propertiesManager));
+       scheduleService = OcptScheduleService(
+         logger: _sub(logger, 'schedule'),
+         deviceId: _resolveDeviceId(propertiesManager),
+       );
 
   /// The project currently open, or null if none is.
   OcptOpenProjectModel? get currentProject => _currentProject.value;
@@ -657,10 +795,12 @@ class OcptProjectsManager extends AbsWithLifeCycle {
       await rememberProjectsDirectory(p.dirname(filePath));
 
       return ResultWithStatus(status: OcptProjectStatus.ok, value: project);
-    } catch (error) {
-      appLogger().e(
-        "A problem occurred when tried to create the project '$name' at $filePath: "
-        "$error",
+    } catch (error, stackTrace) {
+      _logger.e(
+        "A problem occurred when tried to create the project "
+        "${ocptLogFileName(filePath)}: ${error.runtimeType}",
+        null,
+        stackTrace,
       );
       await database?.close();
       return const ResultWithStatus(status: OcptProjectStatus.ioError);
@@ -737,8 +877,8 @@ class OcptProjectsManager extends AbsWithLifeCycle {
       )..limit(1)).getSingleOrNull();
 
       if (info == null || screenplay == null) {
-        appLogger().w(
-          "The project file at $filePath is missing its project info or its "
+        _logger.w(
+          "The project file at ${ocptLogFileName(filePath)} is missing its project info or its "
           "screenplay, it's considered corrupted",
         );
         await database.close();
@@ -782,12 +922,22 @@ class OcptProjectsManager extends AbsWithLifeCycle {
       );
 
       return ResultWithStatus(status: OcptProjectStatus.ok, value: project);
-    } on SqliteException catch (error) {
-      appLogger().e("The project file at $filePath appears corrupted: $error");
+    } on SqliteException catch (error, stackTrace) {
+      _logger.e(
+        "The project file at ${ocptLogFileName(filePath)} appears corrupted: "
+        "${error.runtimeType}",
+        null,
+        stackTrace,
+      );
       await database?.close();
       return const ResultWithStatus(status: OcptProjectStatus.corruptedFile);
-    } catch (error) {
-      appLogger().e("A problem occurred when tried to open the project at $filePath: $error");
+    } catch (error, stackTrace) {
+      _logger.e(
+        "A problem occurred when tried to open project ${ocptLogFileName(filePath)}: "
+        "${error.runtimeType}",
+        null,
+        stackTrace,
+      );
       await database?.close();
       return const ResultWithStatus(status: OcptProjectStatus.ioError);
     } finally {
@@ -811,15 +961,15 @@ class OcptProjectsManager extends AbsWithLifeCycle {
 
     switch (compatibility.verdict) {
       case OcptProjectFileVerdict.newer:
-        appLogger().w(
-          "The project file at $filePath is in format ${compatibility.fileSchemaVersion}, which "
-          "this build (format ${compatibility.appSchemaVersion}) can't read: it's refused, not "
-          "opened",
+        _logger.w(
+          "The project file at ${ocptLogFileName(filePath)} is in format "
+          "${compatibility.fileSchemaVersion}, which this build (format "
+          "${compatibility.appSchemaVersion}) can't read: it's refused, not opened",
         );
         return (status: OcptProjectStatus.newerFormat, isMigrating: false);
       case OcptProjectFileVerdict.foreignDevBuild:
-        appLogger().w(
-          "The project file at $filePath is at this build's own format "
+        _logger.w(
+          "The project file at ${ocptLogFileName(filePath)} is at this build's own format "
           "(${compatibility.fileSchemaVersion}), but was last written by "
           "${compatibility.migratedByAppVersion}, a pre-release build that isn't this one: it's "
           "refused, not opened",
@@ -840,10 +990,10 @@ class OcptProjectsManager extends AbsWithLifeCycle {
           return (status: OcptProjectStatus.ioError, isMigrating: false);
         }
 
-        appLogger().i(
-          "The project file at $filePath is being migrated from format "
-          "${compatibility.fileSchemaVersion} to ${compatibility.appSchemaVersion}; a copy of it "
-          "was kept at $backupPath",
+        _logger.i(
+          "The project file at ${ocptLogFileName(filePath)} is being migrated from format "
+          "${compatibility.fileSchemaVersion} to ${compatibility.appSchemaVersion}; a copy of "
+          "it was kept at ${ocptLogFileName(backupPath)}",
         );
         return (status: null, isMigrating: true);
       case OcptProjectFileVerdict.current:
@@ -1215,9 +1365,9 @@ class OcptProjectsManager extends AbsWithLifeCycle {
     }
 
     if (project.previewedVersion?.id == versionId) {
-      appLogger().w(
-        "The project version $versionId can't be deleted while it's the one being "
-        "previewed: leave the preview first",
+      _logger.w(
+        "The project version $versionId can't be deleted while it's the one being previewed: "
+        "leave the preview first",
       );
       return;
     }
@@ -1327,9 +1477,9 @@ class OcptProjectsManager extends AbsWithLifeCycle {
     }
 
     if (hasUnsavedChanges) {
-      appLogger().w(
-        "The project version $versionId can't be previewed while a mode still holds "
-        "unsaved changes: they must be saved first, or they would be written into the preview",
+      _logger.w(
+        "The project version $versionId can't be previewed while a mode still holds unsaved "
+        "changes: they must be saved first, or they would be written into the preview",
       );
       return const ResultWithStatus(status: OcptProjectPreviewStatus.unsavedChanges);
     }
@@ -1340,9 +1490,8 @@ class OcptProjectsManager extends AbsWithLifeCycle {
     );
 
     if (version == null) {
-      appLogger().w(
-        "The project version $versionId can't be previewed: no such version in this "
-        "project",
+      _logger.w(
+        "The project version $versionId can't be previewed: no such version in this project",
       );
       return const ResultWithStatus(status: OcptProjectPreviewStatus.versionNotFound);
     }
@@ -1372,10 +1521,12 @@ class OcptProjectsManager extends AbsWithLifeCycle {
             .getSingle(),
         payload: payload,
       );
-    } catch (error) {
-      appLogger().e(
+    } catch (error, stackTrace) {
+      _logger.e(
         "A problem occurred when tried to hydrate the preview of the project version "
-        "$versionId: $error",
+        "$versionId: ${error.runtimeType}",
+        null,
+        stackTrace,
       );
       await previewDatabase.close();
       return const ResultWithStatus(status: OcptProjectPreviewStatus.hydrationFailed);
@@ -1614,10 +1765,12 @@ class OcptProjectsManager extends AbsWithLifeCycle {
       if (info == null) {
         throw StateError("the copy at $newFilePath has no project_info row");
       }
-    } catch (error) {
-      appLogger().e(
-        "A problem occurred when tried to move the project at ${project.path} to $newFilePath: "
-        "$error",
+    } catch (error, stackTrace) {
+      _logger.e(
+        "A problem occurred when tried to move project ${ocptLogFileName(project.path)} to "
+        "${ocptLogFileName(newFilePath)}: ${error.runtimeType}",
+        null,
+        stackTrace,
       );
       await newDatabase?.close();
       await _deleteFileIfExists(newFilePath);
@@ -1673,13 +1826,23 @@ class OcptProjectsManager extends AbsWithLifeCycle {
       final destinationPath = "$newSidecarPath$suffix";
       try {
         await source.rename(destinationPath);
-      } catch (_) {
+      } catch (error, stackTrace) {
+        // A rename cannot cross file systems, so a failing one is the expected case for a move
+        // onto another drive and the copy below is the way through.
+        _logger.d(
+          "Could not rename the relay sidecar file, copying it instead: ${error.runtimeType}",
+          null,
+          stackTrace,
+        );
         try {
           await source.copy(destinationPath);
           await source.delete();
-        } catch (error) {
-          appLogger().w(
-            "Could not move the relay sidecar file ${source.path} to $destinationPath: $error",
+        } catch (error, stackTrace) {
+          _logger.w(
+            "Could not move the relay sidecar file ${ocptLogFileName(source.path)} to "
+            "${ocptLogFileName(destinationPath)}: ${error.runtimeType}",
+            null,
+            stackTrace,
           );
         }
       }
@@ -1703,8 +1866,12 @@ class OcptProjectsManager extends AbsWithLifeCycle {
       if (file.existsSync()) {
         await file.delete();
       }
-    } catch (error) {
-      appLogger().w("Could not delete $path: $error");
+    } catch (error, stackTrace) {
+      _logger.w(
+        "Could not delete ${ocptLogFileName(path)}: ${error.runtimeType}",
+        null,
+        stackTrace,
+      );
     }
   }
 
@@ -1770,20 +1937,37 @@ class OcptProjectsManager extends AbsWithLifeCycle {
   /// The [OcptStoryboardService] every place this manager builds one needs, built fresh each time
   /// for the same reason [_resolveDeviceId] is repeated rather than read off a field: a constructor
   /// initializer list cannot see `this`, so nothing already being initialized can be shared.
-  static OcptStoryboardService _buildStoryboardService(OcptPropertiesManager? propertiesManager) =>
-      OcptStoryboardService(
-        assetsService: OcptAssetsService(deviceId: _resolveDeviceId(propertiesManager)),
-        deviceId: _resolveDeviceId(propertiesManager),
-      );
+  static OcptStoryboardService _buildStoryboardService(
+    OcptPropertiesManager? propertiesManager,
+    LogsHelper logger,
+  ) => OcptStoryboardService(
+    logger: _sub(logger, 'storyboard'),
+    assetsService: OcptAssetsService(
+      logger: _sub(logger, 'assets'),
+      deviceId: _resolveDeviceId(propertiesManager),
+    ),
+    deviceId: _resolveDeviceId(propertiesManager),
+  );
 
   /// The [OcptFloorPlanService] every place this manager builds one needs. See
   /// [_buildStoryboardService]'s own doc comment for why this is a static factory rather than a
   /// shared field.
-  static OcptFloorPlanService _buildFloorPlanService(OcptPropertiesManager? propertiesManager) =>
-      OcptFloorPlanService(
-        assetsService: OcptAssetsService(deviceId: _resolveDeviceId(propertiesManager)),
-        deviceId: _resolveDeviceId(propertiesManager),
-      );
+  static OcptFloorPlanService _buildFloorPlanService(
+    OcptPropertiesManager? propertiesManager,
+    LogsHelper logger,
+  ) => OcptFloorPlanService(
+    logger: _sub(logger, 'floor_plan'),
+    assetsService: OcptAssetsService(
+      logger: _sub(logger, 'assets'),
+      deviceId: _resolveDeviceId(propertiesManager),
+    ),
+    deviceId: _resolveDeviceId(propertiesManager),
+  );
+
+  /// The sub-logger named [category] of [logger]: the one logger each service this manager builds
+  /// is handed.
+  static LogsHelper _sub(LogsHelper logger, String category) =>
+      logger.createSubLogger(subCategory: category);
 
   /// {@macro act_life_cycle.MixinWithLifeCycleDispose.disposeLifeCycle}
   @override

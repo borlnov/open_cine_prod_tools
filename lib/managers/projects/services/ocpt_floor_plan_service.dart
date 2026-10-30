@@ -56,7 +56,11 @@ class OcptFloorPlanService extends AbsOcptService {
   final OcptDeviceIdGetter deviceId;
 
   /// Class constructor
-  const OcptFloorPlanService({required this.assetsService, required this.deviceId});
+  const OcptFloorPlanService({
+    required super.logger,
+    required this.assetsService,
+    required this.deviceId,
+  });
 
   /// {@macro act_life_cycle.MixinWithLifeCycle.initLifeCycle}
   ///

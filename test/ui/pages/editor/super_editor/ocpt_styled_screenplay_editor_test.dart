@@ -5,6 +5,7 @@
 import 'dart:io';
 
 import 'package:act_file_transfer_manager/act_file_transfer_manager.dart';
+import 'package:act_test_utility/act_test_utility.dart';
 import 'package:clock/clock.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
@@ -111,51 +112,72 @@ class _RecordingScreenplayService extends OcptScreenplayService {
   /// Class constructor
   const _RecordingScreenplayService({required this.savedTexts})
     : super(
-        sceneIndexService: const OcptSceneIndexService(),
+        logger: const SilentLogger(),
+        sceneIndexService: const OcptSceneIndexService(logger: SilentLogger()),
         shotListService: const OcptShotListService(
+          logger: SilentLogger(),
           roleIndexService: OcptRoleIndexService(
+            logger: SilentLogger(),
             elementsService: OcptElementsService(
-              assetsService: OcptAssetsService(deviceId: _testDeviceId),
+              logger: SilentLogger(),
+              assetsService: OcptAssetsService(logger: SilentLogger(), deviceId: _testDeviceId),
               deviceId: _testDeviceId,
             ),
-            roleCandidatesService: OcptRoleCandidatesService(deviceId: _testDeviceId),
+            roleCandidatesService: OcptRoleCandidatesService(
+              logger: SilentLogger(),
+              deviceId: _testDeviceId,
+            ),
             deviceId: _testDeviceId,
           ),
           storyboardService: OcptStoryboardService(
-            assetsService: OcptAssetsService(deviceId: _testDeviceId),
+            logger: SilentLogger(),
+            assetsService: OcptAssetsService(logger: SilentLogger(), deviceId: _testDeviceId),
             deviceId: _testDeviceId,
           ),
           floorPlanService: OcptFloorPlanService(
-            assetsService: OcptAssetsService(deviceId: _testDeviceId),
+            logger: SilentLogger(),
+            assetsService: OcptAssetsService(logger: SilentLogger(), deviceId: _testDeviceId),
             deviceId: _testDeviceId,
           ),
           deviceId: _testDeviceId,
         ),
-        shotCoverageService: const OcptShotCoverageService(deviceId: _testDeviceId),
+        shotCoverageService: const OcptShotCoverageService(
+          logger: SilentLogger(),
+          deviceId: _testDeviceId,
+        ),
         roleIndexService: const OcptRoleIndexService(
+          logger: SilentLogger(),
           elementsService: OcptElementsService(
-            assetsService: OcptAssetsService(deviceId: _testDeviceId),
+            logger: SilentLogger(),
+            assetsService: OcptAssetsService(logger: SilentLogger(), deviceId: _testDeviceId),
             deviceId: _testDeviceId,
           ),
-          roleCandidatesService: OcptRoleCandidatesService(deviceId: _testDeviceId),
+          roleCandidatesService: OcptRoleCandidatesService(
+            logger: SilentLogger(),
+            deviceId: _testDeviceId,
+          ),
           deviceId: _testDeviceId,
         ),
         breakdownService: const OcptBreakdownService(
+          logger: SilentLogger(),
           elementsService: OcptElementsService(
-            assetsService: OcptAssetsService(deviceId: _testDeviceId),
+            logger: SilentLogger(),
+            assetsService: OcptAssetsService(logger: SilentLogger(), deviceId: _testDeviceId),
             deviceId: _testDeviceId,
           ),
           locationsService: OcptLocationsService(
-            assetsService: OcptAssetsService(deviceId: _testDeviceId),
+            logger: SilentLogger(),
+            assetsService: OcptAssetsService(logger: SilentLogger(), deviceId: _testDeviceId),
             floorPlanService: OcptFloorPlanService(
-              assetsService: OcptAssetsService(deviceId: _testDeviceId),
+              logger: SilentLogger(),
+              assetsService: OcptAssetsService(logger: SilentLogger(), deviceId: _testDeviceId),
               deviceId: _testDeviceId,
             ),
             deviceId: _testDeviceId,
           ),
           deviceId: _testDeviceId,
         ),
-        scheduleService: const OcptScheduleService(deviceId: _testDeviceId),
+        scheduleService: const OcptScheduleService(logger: SilentLogger(), deviceId: _testDeviceId),
         deviceId: _testDeviceId,
       );
 

@@ -6,6 +6,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:act_platform_manager/act_platform_manager.dart';
+import 'package:act_test_utility/act_test_utility.dart';
 import 'package:crypto/crypto.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -18,6 +19,7 @@ import 'package:open_cine_prod_tools/managers/ocpt_secrets_manager.dart';
 import 'package:open_cine_prod_tools/managers/sync/ocpt_relay_host_manager.dart';
 import 'package:open_cine_prod_tools/managers/sync/ocpt_sync_manager.dart';
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_changeset_service.dart';
+import 'package:open_cine_prod_tools/managers/sync/services/ocpt_merge_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_presence_roster.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_reconcile_outcome.dart';
@@ -81,7 +83,13 @@ class _StubPlatformManager extends PlatformManager {
 /// [OcptRelayHostManager] calls the right one, with the right localhost URI, and tears the session
 /// down again on `OcptRelayHostManager.stopHosting`.
 class _SpySyncManager extends OcptSyncManager {
-  _SpySyncManager() : super(changesetService: const OcptChangesetService());
+  _SpySyncManager()
+    : super(
+        changesetService: const OcptChangesetService(
+          logger: SilentLogger(),
+          mergeService: OcptMergeService(logger: SilentLogger()),
+        ),
+      );
 
   Uri? seededRelayBaseUri;
   String? seededEnrolmentSecret;

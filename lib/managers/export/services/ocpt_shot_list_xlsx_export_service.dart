@@ -38,7 +38,7 @@ class OcptShotListXlsxExportService extends AbsOcptService {
   static const fallbackSheetName = "Shot list";
 
   /// Class constructor
-  const OcptShotListXlsxExportService();
+  const OcptShotListXlsxExportService({required super.logger});
 
   /// The `.xlsx` file name to suggest when exporting the shot list of the project named
   /// [projectName]. [episodeTag] is the selected episode's own tag, present only while the open

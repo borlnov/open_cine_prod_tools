@@ -229,6 +229,9 @@ dev_dependencies:
   act_launcher_icon:
     path: actlibs/act_launcher_icon
 
+  # Provides SilentLogger, the logger a test hands to a service whose logs it does not assert on
+  act_test_utility:
+    path: actlibs/act_test_utility
 
 flutter:
   uses-material-design: true

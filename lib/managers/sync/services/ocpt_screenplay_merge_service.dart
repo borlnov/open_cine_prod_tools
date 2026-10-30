@@ -2,7 +2,6 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-import 'package:act_global_manager/act_global_manager.dart';
 import 'package:drift/drift.dart';
 import 'package:open_cine_prod_tools/managers/abs_ocpt_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_row_stamp_service.dart';
@@ -48,7 +47,11 @@ class OcptScreenplayMergeService extends AbsOcptService {
   final OcptDeviceIdGetter deviceId;
 
   /// Class constructor
-  const OcptScreenplayMergeService({required this.screenplayService, required this.deviceId});
+  const OcptScreenplayMergeService({
+    required super.logger,
+    required this.screenplayService,
+    required this.deviceId,
+  });
 
   /// Merges [incomingText] into the screenplay [screenplayId]'s current text on [fileDatabase],
   /// writing a clean result back and returning `null`, or leaving the text untouched and returning
@@ -75,7 +78,7 @@ class OcptScreenplayMergeService extends AbsOcptService {
       screenplayId: screenplayId,
     );
     if (baseText == null) {
-      appLogger().w(
+      logger.w(
         "No screenplay_snapshots row found at all for screenplay '$screenplayId': an incoming "
         "text edit can't be diffed against a common base, so it is surfaced as a full-text "
         "conflict rather than guessed at",

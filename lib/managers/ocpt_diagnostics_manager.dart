@@ -6,6 +6,8 @@ import 'dart:async';
 
 import 'package:act_global_manager/act_global_manager.dart';
 import 'package:act_life_cycle/act_life_cycle.dart';
+import 'package:act_logger_manager/act_logger_manager.dart';
+import 'package:open_cine_prod_tools/managers/logging/ocpt_logs_helper_builder.dart';
 import 'package:open_cine_prod_tools/models/ocpt_diagnostics_entry.dart';
 
 /// The maximum number of entries [OcptDiagnosticsManager] keeps: appending past this cap drops
@@ -19,7 +21,7 @@ class OcptDiagnosticsManagerBuilder extends AbsLifeCycleFactory<OcptDiagnosticsM
 
   /// {@macro act_life_cycle.AbsLifeCycleFactory.dependsOn}
   @override
-  Iterable<Type> dependsOn() => [];
+  Iterable<Type> dependsOn() => [LoggerManager];
 }
 
 /// A device-local diagnostics buffer — the last [ocptDiagnosticsBufferCap]
@@ -41,6 +43,12 @@ class OcptDiagnosticsManagerBuilder extends AbsLifeCycleFactory<OcptDiagnosticsM
 /// (`CLAUDE.md`'s own pitfalls list) — so a caller seeds its own first render from [entries]
 /// before it ever listens, exactly as `OcptDiagnosticsLogList` does.
 class OcptDiagnosticsManager extends AbsWithLifeCycle {
+  /// The logger category linked to this manager.
+  static const _loggerCategory = "diagnostics";
+
+  /// The logger every recorded entry is forwarded to.
+  final LogsHelper _logger = buildOcptLogsHelper(_loggerCategory);
+
   final List<OcptDiagnosticsEntry> _entries = [];
   final StreamController<List<OcptDiagnosticsEntry>> _controller =
       StreamController<List<OcptDiagnosticsEntry>>.broadcast();
@@ -56,15 +64,20 @@ class OcptDiagnosticsManager extends AbsWithLifeCycle {
   /// Appends one entry to the buffer, dropping the oldest one once [ocptDiagnosticsBufferCap] is
   /// exceeded, and broadcasts the updated list on [entriesStream].
   ///
-  /// Also forwards the entry to `appLogger()`, at the level [category]/[level] map to, prefixed
-  /// with [category]'s own name — so the console and, when `logs.file.enabled` is true, the
+  /// Also forwards the entry to this manager's logger, at the level [category]/[level] map to,
+  /// prefixed with [category]'s own name — so the console and, when `logs.file.enabled` is true, the
   /// crash-survivable file external logger capture these hosting/sync/join/relay/presence events
-  /// too, on top of this manager's own in-memory buffer. Guarded exactly like the static [log]
-  /// convenience below, so a test with no global manager environment stays unaffected.
+  /// too, on top of this manager's own in-memory buffer.
+  ///
+  /// The buffer is device-local and shown to its own user, a log file is something a user may send
+  /// away: a [message] carrying a detail that must not reach a log (a project's name, a network
+  /// address, an error's text) passes a [logMessage] without it, which is what the logger gets
+  /// instead. Left out, the logger gets [message] itself.
   void record({
     required OcptDiagnosticsCategory category,
     OcptDiagnosticsLevel level = OcptDiagnosticsLevel.info,
     required String message,
+    String? logMessage,
   }) {
     _entries.add(
       OcptDiagnosticsEntry(
@@ -79,14 +92,11 @@ class OcptDiagnosticsManager extends AbsWithLifeCycle {
     }
     _emit();
 
-    if (AbsGlobalManager.instance != null) {
-      _forwardToAppLogger(category: category, level: level, message: message);
-    }
+    _forwardToLogger(category: category, level: level, message: logMessage ?? message);
   }
 
-  /// Forwards one entry to `appLogger()`, called only once [AbsGlobalManager.instance] is known
-  /// non-null by [record].
-  void _forwardToAppLogger({
+  /// Forwards one entry to [_logger].
+  void _forwardToLogger({
     required OcptDiagnosticsCategory category,
     required OcptDiagnosticsLevel level,
     required String message,
@@ -94,11 +104,11 @@ class OcptDiagnosticsManager extends AbsWithLifeCycle {
     final prefixedMessage = '[${category.name}] $message';
     switch (level) {
       case OcptDiagnosticsLevel.info:
-        appLogger().i(prefixedMessage);
+        _logger.i(prefixedMessage);
       case OcptDiagnosticsLevel.warning:
-        appLogger().w(prefixedMessage);
+        _logger.w(prefixedMessage);
       case OcptDiagnosticsLevel.error:
-        appLogger().e(prefixedMessage);
+        _logger.e(prefixedMessage);
     }
   }
 
@@ -125,6 +135,7 @@ class OcptDiagnosticsManager extends AbsWithLifeCycle {
     required OcptDiagnosticsCategory category,
     OcptDiagnosticsLevel level = OcptDiagnosticsLevel.info,
     required String message,
+    String? logMessage,
   }) {
     if (AbsGlobalManager.instance == null) {
       return;
@@ -139,6 +150,7 @@ class OcptDiagnosticsManager extends AbsWithLifeCycle {
       category: category,
       level: level,
       message: message,
+      logMessage: logMessage,
     );
   }
 

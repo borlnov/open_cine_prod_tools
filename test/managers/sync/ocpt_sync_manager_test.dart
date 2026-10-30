@@ -5,10 +5,12 @@
 import 'dart:async';
 import 'dart:typed_data';
 
+import 'package:act_test_utility/act_test_utility.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ocpt_sync_protocol/ocpt_sync_protocol.dart';
 import 'package:open_cine_prod_tools/managers/sync/ocpt_sync_manager.dart';
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_changeset_service.dart';
+import 'package:open_cine_prod_tools/managers/sync/services/ocpt_merge_service.dart';
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_pairing_service.dart';
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_relay_remote_storage.dart';
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_remote_storage.dart';
@@ -50,7 +52,11 @@ class _FakeRemoteStorage implements OcptRemoteStorage {
 /// session's own test file for the fuller version this mirrors; this one only needs to prove
 /// [OcptSyncManager] wires a session up and tears it down correctly, so it stays minimal.
 class _FakeChangesetService extends OcptChangesetService {
-  _FakeChangesetService();
+  _FakeChangesetService()
+    : super(
+        logger: const SilentLogger(),
+        mergeService: const OcptMergeService(logger: SilentLogger()),
+      );
 
   int syncOnceCalls = 0;
 
@@ -77,7 +83,12 @@ class _FakeChangesetService extends OcptChangesetService {
 void main() {
   group('openRelayRemoteStorage', () {
     test('builds a relay transport from the pairing and the given project id', () {
-      final manager = OcptSyncManager(changesetService: const OcptChangesetService());
+      final manager = OcptSyncManager(
+        changesetService: const OcptChangesetService(
+          logger: SilentLogger(),
+          mergeService: OcptMergeService(logger: SilentLogger()),
+        ),
+      );
       final pairing = OcptProjectPairing(
         relayBaseUri: Uri.https('relay.example.org'),
         token: 'token-1',

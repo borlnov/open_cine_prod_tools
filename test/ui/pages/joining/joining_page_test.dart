@@ -7,6 +7,7 @@ import 'dart:io';
 import 'package:act_file_transfer_manager/act_file_transfer_manager.dart';
 import 'package:act_global_manager/act_global_manager.dart';
 import 'package:act_platform_manager/act_platform_manager.dart';
+import 'package:act_test_utility/act_test_utility.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -20,6 +21,7 @@ import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
 import 'package:open_cine_prod_tools/managers/sync/ocpt_sync_manager.dart';
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_changeset_service.dart';
+import 'package:open_cine_prod_tools/managers/sync/services/ocpt_merge_service.dart';
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_pairing_service.dart';
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_remote_storage.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_relay_invite.dart';
@@ -52,7 +54,13 @@ Widget _wrapWithLocalization(Widget child) => MaterialApp(
 /// tree, exactly what `joining_bloc_test.dart`'s own `_FakeSyncManager` exists to cover more
 /// thoroughly (its stub instead returns a real path, which none of these tests need).
 class _FailFastSyncManager extends OcptSyncManager {
-  _FailFastSyncManager() : super(changesetService: const OcptChangesetService());
+  _FailFastSyncManager()
+    : super(
+        changesetService: const OcptChangesetService(
+          logger: SilentLogger(),
+          mergeService: OcptMergeService(logger: SilentLogger()),
+        ),
+      );
 
   @override
   Future<String> joinFromRelay({
@@ -256,7 +264,12 @@ void main() {
     addTearDown(() => tester.binding.setSurfaceSize(null));
 
     final bloc = _TestableJoiningBloc(
-      syncManager: OcptSyncManager(changesetService: const OcptChangesetService()),
+      syncManager: OcptSyncManager(
+        changesetService: const OcptChangesetService(
+          logger: SilentLogger(),
+          mergeService: OcptMergeService(logger: SilentLogger()),
+        ),
+      ),
       projectsManager: _TestProjectsManager(propertiesManager: propertiesManager),
       routerManager: OcptRouterManager(),
     );
@@ -303,7 +316,12 @@ void main() {
 
     final routerManager = _RecordingRouterManager();
     final bloc = _TestableJoiningBloc(
-      syncManager: OcptSyncManager(changesetService: const OcptChangesetService()),
+      syncManager: OcptSyncManager(
+        changesetService: const OcptChangesetService(
+          logger: SilentLogger(),
+          mergeService: OcptMergeService(logger: SilentLogger()),
+        ),
+      ),
       projectsManager: _TestProjectsManager(propertiesManager: propertiesManager),
       routerManager: routerManager,
     );

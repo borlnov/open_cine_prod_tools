@@ -41,7 +41,7 @@ class OcptProjectPairing extends Equatable {
 /// rather than as a pairing with an empty token, which is never a valid state to hand a transport.
 class OcptPairingService extends AbsOcptService {
   /// Class constructor
-  const OcptPairingService({required this.secretsManager});
+  const OcptPairingService({required super.logger, required this.secretsManager});
 
   /// Where the project token half of a pairing is read from and written to.
   final OcptSecretsManager secretsManager;

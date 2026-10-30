@@ -4,10 +4,10 @@
 
 import 'dart:io';
 
-import 'package:act_global_manager/act_global_manager.dart';
 import 'package:open_cine_prod_tools/managers/abs_ocpt_service.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_file_compatibility.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_app_version.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_log_subject.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_file_verdict.dart';
 import 'package:path/path.dart' as p;
 import 'package:sqlite3/sqlite3.dart';
@@ -37,7 +37,7 @@ class OcptProjectFileCompatibilityService extends AbsOcptService {
   static const _backupInfix = "backup-v";
 
   /// Class constructor
-  const OcptProjectFileCompatibilityService();
+  const OcptProjectFileCompatibilityService({required super.logger});
 
   /// Reads the format of the project file at [filePath] without opening it as a project, and says
   /// what that means for a build writing [appSchemaVersion] as [appVersion].
@@ -110,8 +110,13 @@ class OcptProjectFileCompatibilityService extends AbsOcptService {
       } finally {
         database.dispose();
       }
-    } catch (error) {
-      appLogger().w("The format of the project file at $filePath can't be read: $error");
+    } catch (error, stackTrace) {
+      logger.w(
+        "The format of the project file at ${ocptLogFileName(filePath)} can't be read: "
+        "${error.runtimeType}",
+        null,
+        stackTrace,
+      );
       return OcptProjectFileCompatibility(
         filePath: filePath,
         fileSchemaVersion: 0,
@@ -203,10 +208,12 @@ class OcptProjectFileCompatibilityService extends AbsOcptService {
       }
 
       return true;
-    } catch (error) {
-      appLogger().e(
-        "The project file at $filePath can't be copied to $backupPath before being "
-        "migrated: $error",
+    } catch (error, stackTrace) {
+      logger.e(
+        "The project file at ${ocptLogFileName(filePath)} can't be copied to "
+        "${ocptLogFileName(backupPath)} before being migrated: ${error.runtimeType}",
+        null,
+        stackTrace,
       );
       return false;
     }

@@ -65,6 +65,7 @@ class OcptShotListService extends AbsOcptService {
 
   /// Class constructor
   const OcptShotListService({
+    required super.logger,
     required this.roleIndexService,
     required this.storyboardService,
     required this.floorPlanService,
