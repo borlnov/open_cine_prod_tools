@@ -253,6 +253,8 @@ A project rule overrides these. The overrides this project has made:
 - **RD25:** a Flutter `State` and a test double may initialize their fields at declaration.
 - **RFL2:** a test's mounting helper (`Widget _wrap(...)`) may stay a function, since it is never
   rebuilt.
+- **RFL3:** a page's view may be public (`OcptXxxView`) when its widget tests pump it directly
+  with a stubbed bloc.
 - **RFL5:** `ScreenUtilInit` stays at the app root, but only the theme uses its extensions, and only
   on a phone (`OcptMainAppUi`). Widgets do not use them and may state logical pixel sizes: the
   density of this desktop-first UI lives in the component themes of `lib/constants/ocpt_theme.dart`.
