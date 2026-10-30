@@ -645,6 +645,8 @@ class OcptProjectsManager extends AbsWithLifeCycle {
     await projectFileCompatibilityService.initLifeCycle();
     await breakdownService.initLifeCycle();
     await scheduleService.initLifeCycle();
+
+    _logger.i("The projects manager started");
   }
 
   /// The app's own projects folder, Documents/OpenCineProdTools, creating it if it doesn't already
@@ -794,6 +796,8 @@ class OcptProjectsManager extends AbsWithLifeCycle {
       );
       await rememberProjectsDirectory(p.dirname(filePath));
 
+      _logger.i("A project was created: ${ocptLogFileName(filePath)}");
+
       return ResultWithStatus(status: OcptProjectStatus.ok, value: project);
     } catch (error, stackTrace) {
       _logger.e(
@@ -920,6 +924,8 @@ class OcptProjectsManager extends AbsWithLifeCycle {
           episodeCount: episodeCount,
         ),
       );
+
+      _logger.i("A project was opened: ${ocptLogFileName(filePath)}, $episodeCount episode(s)");
 
       return ResultWithStatus(status: OcptProjectStatus.ok, value: project);
     } on SqliteException catch (error, stackTrace) {
@@ -1545,6 +1551,8 @@ class OcptProjectsManager extends AbsWithLifeCycle {
 
     await previousPreviewDatabase?.close();
 
+    _logger.i("Previewing the project version $versionId");
+
     return ResultWithStatus(status: OcptProjectPreviewStatus.ok, value: previewedProject);
   }
 
@@ -1563,6 +1571,8 @@ class OcptProjectsManager extends AbsWithLifeCycle {
     _currentProject.value = project.workingCopy;
 
     await previewDatabase.close();
+
+    _logger.i("Left the preview of a project version");
   }
 
   /// Stats every file the project stored at [projectFilePath] references, without writing
@@ -1648,6 +1658,8 @@ class OcptProjectsManager extends AbsWithLifeCycle {
     await project.fileDatabase.close();
 
     await _recordEpisodeCount(path: project.path, episodeCount: episodeCount);
+
+    _logger.i("A project was closed: ${ocptLogFileName(project.path)}");
   }
 
   /// Updates the recent-projects entry for the [currentProject] so it carries the episode count
@@ -1794,6 +1806,10 @@ class OcptProjectsManager extends AbsWithLifeCycle {
 
     await _propertiesManager.updateRecentProjectPath(oldPath: oldPath, newPath: newFilePath);
     await rememberProjectsDirectory(p.dirname(newFilePath));
+
+    _logger.i(
+      "A project was moved: ${ocptLogFileName(oldPath)} to ${ocptLogFileName(newFilePath)}",
+    );
 
     return ResultWithStatus(status: OcptProjectMoveStatus.ok, value: movedProject);
   }
@@ -1972,6 +1988,7 @@ class OcptProjectsManager extends AbsWithLifeCycle {
   /// {@macro act_life_cycle.MixinWithLifeCycleDispose.disposeLifeCycle}
   @override
   Future<void> disposeLifeCycle() async {
+    _logger.i("The projects manager is being disposed");
     await closeCurrentProject();
     await _currentProject.disposeLifeCycle();
     await scheduleService.disposeLifeCycle();

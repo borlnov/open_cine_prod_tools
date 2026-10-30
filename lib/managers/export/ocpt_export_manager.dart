@@ -365,6 +365,8 @@ class OcptExportManager extends AbsWithLifeCycle {
     await budgetCashJournalXlsxExportService.initLifeCycle();
     await shotListXlsxExportService.initLifeCycle();
     await resourcesXlsxExportService.initLifeCycle();
+
+    _logger.i("The export manager started");
   }
 
   /// {@macro act_life_cycle.MixinWithLifeCycleDispose.disposeLifeCycle}
@@ -372,6 +374,7 @@ class OcptExportManager extends AbsWithLifeCycle {
   /// Disposes the services this manager builds, in the reverse order they were initialised.
   @override
   Future<void> disposeLifeCycle() async {
+    _logger.i("The export manager is being disposed");
     await resourcesXlsxExportService.disposeLifeCycle();
     await shotListXlsxExportService.disposeLifeCycle();
     await budgetCashJournalXlsxExportService.disposeLifeCycle();
@@ -1399,6 +1402,7 @@ class OcptExportManager extends AbsWithLifeCycle {
     final path = p.join(folderPath, fileName);
     try {
       await File(path).writeAsBytes(bytes, flush: true);
+      _logger.i("An export was saved: ${ocptLogFileName(path)}");
       return true;
     } catch (error, stackTrace) {
       _logger.e(
@@ -1440,6 +1444,7 @@ class OcptExportManager extends AbsWithLifeCycle {
 
     try {
       await File(path).writeAsBytes(bytes, flush: true);
+      _logger.i("An export was saved: ${ocptLogFileName(path)}");
       return OcptExportSaved(path);
     } catch (error, stackTrace) {
       _logger.e(
@@ -1470,6 +1475,9 @@ class OcptExportManager extends AbsWithLifeCycle {
       await File(path).writeAsBytes(bytes, flush: true);
 
       final shared = await shareService.shareFiles(paths: [path], sharePositionOrigin: shareAnchor);
+      if (shared) {
+        _logger.i("An export was handed to the share sheet: ${ocptLogFileName(path)}");
+      }
       return shared ? const OcptExportShared() : null;
     } catch (error, stackTrace) {
       _logger.e(

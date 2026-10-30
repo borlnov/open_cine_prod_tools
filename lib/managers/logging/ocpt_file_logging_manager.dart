@@ -139,6 +139,7 @@ class OcptFileLoggingManager extends AbsWithLifeCycle {
       // own initLifeCycle() since the logger manager is already initialized at this point.
       await _logging.addExternalLogger(OcptExternalLoggerKey.file, fileLogger);
       _fileLogger = fileLogger;
+      _logger.i('Logging to a file started');
     } on Object catch (error, stackTrace) {
       // The error of an I/O failure names the folder, which holds the user's name.
       _logger.w(

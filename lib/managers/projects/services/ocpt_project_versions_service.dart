@@ -210,6 +210,8 @@ class OcptProjectVersionsService extends AbsOcptService {
         .update(database.ocptProjectInfoTable)
         .write(OcptProjectInfoTableCompanion(currentVersionId: Value(id)));
 
+    logger.i("A project version was captured: $id");
+
     return OcptProjectVersion(
       id: id,
       name: name,
@@ -638,6 +640,8 @@ class OcptProjectVersionsService extends AbsOcptService {
       return const ResultWithStatus(status: OcptProjectRestoreStatus.writeFailed);
     }
 
+    logger.i("The project version $id was restored");
+
     return ResultWithStatus(status: OcptProjectRestoreStatus.ok, value: payload.pageSetup);
   }
 
@@ -667,6 +671,8 @@ class OcptProjectVersionsService extends AbsOcptService {
         database.ocptProjectVersionsTable,
       )..where((table) => table.id.equals(id))).go();
     });
+
+    logger.i("The project version $id was deleted");
   }
 
   /// Reads the whole state of the project in [database] into a payload, at [pageMargins].

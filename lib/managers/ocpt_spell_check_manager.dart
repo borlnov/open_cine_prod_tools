@@ -398,6 +398,7 @@ class OcptSpellCheckManager extends AbsWithLifeCycle {
       errorPort: errorPort,
     );
     _worker = worker;
+    _logger.i("The spell-check worker isolate started");
     return worker;
   }
 

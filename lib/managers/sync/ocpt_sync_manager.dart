@@ -24,6 +24,7 @@ import 'package:open_cine_prod_tools/managers/sync/services/ocpt_screenplay_merg
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_snapshot_service.dart';
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_sync_session.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_log_subject.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_presence_roster.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_relay_invite.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_screenplay_merge_conflict.dart';
@@ -177,6 +178,8 @@ class OcptSyncManager extends AbsWithLifeCycle {
     await changesetService.initLifeCycle();
     await snapshotService.initLifeCycle();
     await _pairingService?.initLifeCycle();
+
+    _logger.i("The sync manager started");
   }
 
   /// This project's current sync session, or null when none is running — see [startSyncSession].
@@ -317,6 +320,8 @@ class OcptSyncManager extends AbsWithLifeCycle {
       storage: storage,
     );
 
+    _logger.i("A project was paired with a relay: $projectId");
+
     return OcptRelayInvite(relayBaseUri: relayBaseUri, projectId: projectId, token: token);
   }
 
@@ -423,6 +428,8 @@ class OcptSyncManager extends AbsWithLifeCycle {
       relayId: relayId,
       storage: storage,
     );
+
+    _logger.i("A project was re-pointed at another relay: $projectId");
   }
 
   /// Packages the project at [projectFilePath] as a snapshot and uploads it to [storage].
@@ -450,6 +457,8 @@ class OcptSyncManager extends AbsWithLifeCycle {
     );
 
     await storage.uploadSnapshot(descriptor, bytes);
+
+    _logger.i("A snapshot was published to the relay");
   }
 
   /// Fetches [storage]'s latest snapshot and materialises it as a new project under
@@ -507,6 +516,8 @@ class OcptSyncManager extends AbsWithLifeCycle {
     } finally {
       await database.close();
     }
+
+    _logger.i("A project was joined from a relay: ${ocptLogFileName(projectFilePath)}");
 
     return projectFilePath;
   }
@@ -594,6 +605,8 @@ class OcptSyncManager extends AbsWithLifeCycle {
     await presenceService.start();
     _presenceRosterForwarder = presenceService.rosterStream.listen(_presenceRosterController.add);
     _presenceRosterController.add(presenceService.roster);
+
+    _logger.i("A sync session started for project $projectId");
   }
 
   /// Unpairs [projectId] from whatever relay it was synced through — the Partager screen's own
@@ -653,6 +666,7 @@ class OcptSyncManager extends AbsWithLifeCycle {
     if (hadSession) {
       _syncStatusController.add(null);
       _presenceRosterController.add(null);
+      _logger.i("The sync session stopped");
     }
   }
 
@@ -708,6 +722,7 @@ class OcptSyncManager extends AbsWithLifeCycle {
   /// {@macro act_life_cycle.MixinWithLifeCycleDispose.disposeLifeCycle}
   @override
   Future<void> disposeLifeCycle() async {
+    _logger.i("The sync manager is being disposed");
     await stopSyncSession();
     await _syncStatusController.close();
     await _presenceRosterController.close();

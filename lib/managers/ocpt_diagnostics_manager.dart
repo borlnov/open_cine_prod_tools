@@ -73,11 +73,16 @@ class OcptDiagnosticsManager extends AbsWithLifeCycle {
   /// away: a [message] carrying a detail that must not reach a log (a project's name, a network
   /// address, an error's text) passes a [logMessage] without it, which is what the logger gets
   /// instead. Left out, the logger gets [message] itself.
+  ///
+  /// An entry that repeats on a timer ([isRoutine], a sync session's every-minute "syncing" and "in
+  /// sync") reaches the logger at debug level instead of info, so a log read for what happened is
+  /// not drowned in it.
   void record({
     required OcptDiagnosticsCategory category,
     OcptDiagnosticsLevel level = OcptDiagnosticsLevel.info,
     required String message,
     String? logMessage,
+    bool isRoutine = false,
   }) {
     _entries.add(
       OcptDiagnosticsEntry(
@@ -92,7 +97,12 @@ class OcptDiagnosticsManager extends AbsWithLifeCycle {
     }
     _emit();
 
-    _forwardToLogger(category: category, level: level, message: logMessage ?? message);
+    _forwardToLogger(
+      category: category,
+      level: level,
+      message: logMessage ?? message,
+      isRoutine: isRoutine,
+    );
   }
 
   /// Forwards one entry to [_logger].
@@ -100,11 +110,16 @@ class OcptDiagnosticsManager extends AbsWithLifeCycle {
     required OcptDiagnosticsCategory category,
     required OcptDiagnosticsLevel level,
     required String message,
+    required bool isRoutine,
   }) {
     final prefixedMessage = '[${category.name}] $message';
     switch (level) {
       case OcptDiagnosticsLevel.info:
-        _logger.i(prefixedMessage);
+        if (isRoutine) {
+          _logger.d(prefixedMessage);
+        } else {
+          _logger.i(prefixedMessage);
+        }
       case OcptDiagnosticsLevel.warning:
         _logger.w(prefixedMessage);
       case OcptDiagnosticsLevel.error:
@@ -136,6 +151,7 @@ class OcptDiagnosticsManager extends AbsWithLifeCycle {
     OcptDiagnosticsLevel level = OcptDiagnosticsLevel.info,
     required String message,
     String? logMessage,
+    bool isRoutine = false,
   }) {
     if (AbsGlobalManager.instance == null) {
       return;
@@ -151,6 +167,7 @@ class OcptDiagnosticsManager extends AbsWithLifeCycle {
       level: level,
       message: message,
       logMessage: logMessage,
+      isRoutine: isRoutine,
     );
   }
 

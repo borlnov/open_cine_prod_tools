@@ -261,11 +261,13 @@ class OcptSyncSession {
         OcptDiagnosticsManager.log(
           category: OcptDiagnosticsCategory.sync,
           message: 'syncing: project=$projectId',
+          isRoutine: true,
         );
       case OcptSyncStatusInSync():
         OcptDiagnosticsManager.log(
           category: OcptDiagnosticsCategory.sync,
           message: 'in sync: project=$projectId',
+          isRoutine: true,
         );
       case OcptSyncStatusOffline(pendingEditCount: final pendingEditCount):
         OcptDiagnosticsManager.log(
