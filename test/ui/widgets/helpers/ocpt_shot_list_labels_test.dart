@@ -9,6 +9,7 @@ import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_list_xlsx_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_placement.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
+import 'package:open_cine_prod_tools/types/ocpt_shot_duration_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_xlsx_column.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_status.dart';
 import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_shot_list_labels.dart';
@@ -16,15 +17,17 @@ import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_shot_list_labels.da
 void main() {
   group("ocptParseShotDuration / ocptFormatShotDuration round trip", () {
     test("a blank input parses to null, matching the null formatting", () {
-      expect(ocptParseShotDuration(""), isNull);
-      expect(ocptParseShotDuration("   "), isNull);
-      expect(ocptParseShotDuration(ocptFormatShotDuration(null)), isNull);
+      for (final input in ["", "   ", ocptFormatShotDuration(null)]) {
+        final result = ocptParseShotDuration(input);
+        expect(result.status, OcptShotDurationStatus.ok, reason: "for '$input'");
+        expect(result.value, isNull);
+      }
     });
 
     test("mm:ss round-trips through both directions", () {
       for (final milliseconds in [0, 5000, 65000, 600000, 3599000]) {
         final formatted = ocptFormatShotDuration(milliseconds);
-        expect(ocptParseShotDuration(formatted), milliseconds, reason: "for $formatted");
+        expect(ocptParseShotDuration(formatted).value, milliseconds, reason: "for $formatted");
       }
     });
 
@@ -36,29 +39,30 @@ void main() {
     });
 
     test("leading zeroes are optional on the way in", () {
-      expect(ocptParseShotDuration("1:30"), 90000);
-      expect(ocptParseShotDuration("01:30"), 90000);
-      expect(ocptParseShotDuration("00:05"), 5000);
+      expect(ocptParseShotDuration("1:30").value, 90000);
+      expect(ocptParseShotDuration("01:30").value, 90000);
+      expect(ocptParseShotDuration("00:05").value, 5000);
     });
 
     test("a bare non-negative integer is read as a number of minutes", () {
       // The unit the field prints first is the unit it reads: `12` is `12:00`, not twelve seconds.
-      expect(ocptParseShotDuration("12"), 720000);
-      expect(ocptFormatShotDuration(ocptParseShotDuration("12")), "12:00");
-      expect(ocptParseShotDuration("90"), 5400000);
-      expect(ocptParseShotDuration("0"), 0);
+      expect(ocptParseShotDuration("12").value, 720000);
+      expect(ocptFormatShotDuration(ocptParseShotDuration("12").value), "12:00");
+      expect(ocptParseShotDuration("90").value, 5400000);
+      expect(ocptParseShotDuration("0").value, 0);
     });
 
-    test("an unparseable value throws FormatException, leaving the caller to reject it", () {
-      expect(() => ocptParseShotDuration("banana"), throwsFormatException);
-      expect(() => ocptParseShotDuration("-5"), throwsFormatException);
-      expect(() => ocptParseShotDuration("1:75"), throwsFormatException);
-      expect(() => ocptParseShotDuration("1:2:3"), throwsFormatException);
+    test("an unparseable value answers the malformed status, leaving the caller to reject it", () {
+      for (final input in ["banana", "-5", "1:75", "1:2:3"]) {
+        final result = ocptParseShotDuration(input);
+        expect(result.status, OcptShotDurationStatus.malformed, reason: "for $input");
+        expect(result.value, isNull);
+      }
     });
   });
 
   group("ocptIsShotDurationValid", () {
-    test("answers what ocptParseShotDuration accepts, without throwing", () {
+    test("answers what ocptParseShotDuration accepts", () {
       expect(ocptIsShotDurationValid(""), isTrue);
       expect(ocptIsShotDurationValid("45"), isTrue);
       expect(ocptIsShotDurationValid("01:30"), isTrue);

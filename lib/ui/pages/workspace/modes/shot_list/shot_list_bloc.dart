@@ -1637,8 +1637,11 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
           locationNotes: Value(rawValue),
         );
       case OcptShotListEditableField.estimatedDuration:
-        final parsed = _tryParseDuration(rawValue);
-        if (!parsed.isValid) {
+        // A mistyped duration is the field's own error state, not a failure: the edit is skipped
+        // so it doesn't stop the flush of every other pending edit alongside it, and nothing is
+        // logged, since the text it would quote is the user's.
+        final parsed = ocptParseShotDuration(rawValue);
+        if (!parsed.status.isSuccess) {
           return;
         }
         await _shotListService.updateShot(
@@ -1646,19 +1649,6 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
           shotId: shotId,
           estimatedDurationMs: Value(parsed.value),
         );
-    }
-  }
-
-  /// Attempts to parse [raw] as a shot's estimated duration through [ocptParseShotDuration],
-  /// reporting whether it succeeded rather than throwing: a rejected edit is meant to be silently
-  /// skipped, not to crash the flush of every other pending edit alongside it.
-  ({bool isValid, int? value}) _tryParseDuration(String raw) {
-    try {
-      return (isValid: true, value: ocptParseShotDuration(raw));
-    } on FormatException {
-      // A mistyped duration is the field's own error state, not a failure: not logged, and the
-      // text it would quote is the user's.
-      return (isValid: false, value: null);
     }
   }
 

@@ -2,6 +2,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+import 'package:act_dart_result/act_dart_result.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
@@ -13,6 +14,7 @@ import 'package:open_cine_prod_tools/models/ocpt_shot_placement.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
 import 'package:open_cine_prod_tools/models/ocpt_specific_colors.dart';
 import 'package:open_cine_prod_tools/models/ocpt_storyboard_labels.dart';
+import 'package:open_cine_prod_tools/types/ocpt_shot_duration_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_column.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_xlsx_column.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_status.dart';
@@ -303,22 +305,26 @@ String ocptShotPlacementLabel(BuildContext context, List<OcptShotPlacement> plac
 /// to null. `mm:ss` parses to milliseconds, leading zeroes optional on either half (`1:30` and
 /// `01:30` are the same duration). A bare non-negative integer is read as a number of **minutes**,
 /// so `12` is `12:00` — the field's own unit is the one it prints first, and a shot is estimated in
-/// minutes far more often than in seconds. Anything else throws a
-/// [FormatException]: the shot inspector's own choice, on catching it, is to leave the shot's
-/// stored duration untouched rather than write anything, and to mark the field in error.
-int? ocptParseShotDuration(String input) {
+/// minutes far more often than in seconds. Anything else answers
+/// [OcptShotDurationStatus.malformed]: the shot inspector's own choice, on seeing it, is to leave
+/// the shot's stored duration untouched rather than write anything, and to mark the field in
+/// error. A successful answer with no value is the "no estimate" one.
+ResultWithStatus<OcptShotDurationStatus, int> ocptParseShotDuration(String input) {
   final trimmed = input.trim();
   if (trimmed.isEmpty || trimmed == ocptShotListEmptyValue) {
-    return null;
+    return const ResultWithStatus(status: OcptShotDurationStatus.ok);
   }
 
   final colonIndex = trimmed.indexOf(":");
   if (colonIndex == -1) {
     final minutes = int.tryParse(trimmed);
     if (minutes == null || minutes < 0) {
-      throw FormatException("Not a valid shot duration", input);
+      return const ResultWithStatus(status: OcptShotDurationStatus.malformed);
     }
-    return minutes * Duration.secondsPerMinute * Duration.millisecondsPerSecond;
+    return ResultWithStatus(
+      status: OcptShotDurationStatus.ok,
+      value: minutes * Duration.secondsPerMinute * Duration.millisecondsPerSecond,
+    );
   }
 
   final minutes = int.tryParse(trimmed.substring(0, colonIndex));
@@ -328,10 +334,13 @@ int? ocptParseShotDuration(String input) {
       minutes < 0 ||
       seconds < 0 ||
       seconds >= Duration.secondsPerMinute) {
-    throw FormatException("Not a valid shot duration", input);
+    return const ResultWithStatus(status: OcptShotDurationStatus.malformed);
   }
 
-  return (minutes * Duration.secondsPerMinute + seconds) * Duration.millisecondsPerSecond;
+  return ResultWithStatus(
+    status: OcptShotDurationStatus.ok,
+    value: (minutes * Duration.secondsPerMinute + seconds) * Duration.millisecondsPerSecond,
+  );
 }
 
 /// Deduces the short abbreviation of the shot size [shotSize]: the initials of its words, upper
@@ -370,16 +379,7 @@ final List<TextInputFormatter> ocptShotDurationInputFormatters = [
   FilteringTextInputFormatter.allow(RegExp("[0-9:]")),
 ];
 
-/// Whether [input] is something [ocptParseShotDuration] accepts, answered without throwing: what
-/// the shot inspector's duration field asks itself on every keystroke to decide whether to show
-/// its `mm:ss` error, while the bloc goes on parsing the very same text for the value itself.
-bool ocptIsShotDurationValid(String input) {
-  try {
-    ocptParseShotDuration(input);
-    return true;
-  } on FormatException {
-    // The answer to a duration the user has not finished typing, asked on every keystroke: not
-    // logged.
-    return false;
-  }
-}
+/// Whether [input] is something [ocptParseShotDuration] accepts: what the shot inspector's
+/// duration field asks itself on every keystroke to decide whether to show its `mm:ss` error, while
+/// the bloc goes on parsing the very same text for the value itself.
+bool ocptIsShotDurationValid(String input) => ocptParseShotDuration(input).status.isSuccess;
