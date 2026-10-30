@@ -116,13 +116,18 @@ class OcptProjectVersionSummary extends Equatable {
     try {
       final decoded = jsonDecode(summaryJson);
       if (decoded is! Map<String, dynamic>) {
-        appLogger().w("The stored project version summary isn't a JSON object: $summaryJson");
+        appLogger().w("The stored project version summary isn't a JSON object");
         return empty;
       }
 
       return fromJson(decoded) ?? empty;
-    } on FormatException catch (error) {
-      appLogger().w("The stored project version summary isn't valid JSON: $error");
+    } on FormatException catch (error, stackTrace) {
+      // A JSON error quotes the text around the fault, so only its type is logged.
+      appLogger().w(
+        "The stored project version summary isn't valid JSON: ${error.runtimeType}",
+        null,
+        stackTrace,
+      );
       return empty;
     }
   }
