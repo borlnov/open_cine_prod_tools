@@ -16,9 +16,10 @@ the persistence, the project versions, the sync-ready data model and the read-on
   resolved via `globalGetIt()`.
 - Services: every `Ocpt…Service` (`lib/managers/{projects,export,sync}/services/`) extends
   `AbsOcptService` (`lib/managers/abs_ocpt_service.dart`), an `AbsWithLifeCycle` with a `const`
-  constructor whose `initLifeCycle()` and `disposeLifeCycle()` do nothing, so a service holding
-  nothing to set up or release stays `const` and a test building one directly never has to call
-  either. A service is built by its owner, never by the UI and never registered in `globalGetIt()`,
+  constructor taking the service's logger (see Logging, below) whose `initLifeCycle()` and
+  `disposeLifeCycle()` do nothing, so a service holding nothing to set up or release stays `const`
+  and a test building one directly never has to call either. A service is built by its owner,
+  never by the UI and never registered in `globalGetIt()`,
   and its life cycle is its owner's, not a project's: `OcptProjectsManager` initialises its 23
   services in `initLifeCycle()` and disposes them in reverse after closing the open project, and
   `OcptExportManager` and `OcptSyncManager` do the same for theirs. A service that builds services
@@ -27,7 +28,35 @@ the persistence, the project versions, the sync-ready data model and the read-on
   `OcptScreenplayMergeService` borrows from the projects manager) is left to its real owner. A
   service created per session (`OcptPresenceService`) is initialised and disposed by whoever starts
   and stops that session, and `OcptRowStampService`, created by the dozen inside one transaction
-  through `seed`, holds only an in-memory list `flush` writes out, so its life cycle is not driven.
+  through `seed`, holds only an in-memory list `flush` writes out, so its life cycle is not driven
+  and it is not an `AbsOcptService`: it extends `AbsWithLifeCycle` directly, with no logger, having
+  nothing to log.
+
+- Logging (`act_logger_manager`). **Who owns a logger**: a manager, a BLoC, a project mixin or any
+  other class with a `catch` owns exactly one `LogsHelper`, built by `buildOcptLogsHelper`
+  (`lib/managers/logging/ocpt_logs_helper_builder.dart`) from its own `static const
+  _loggerCategory`; a manager's builder lists `LoggerManager` in `dependsOn()`. A service never
+  builds one: its owner hands it a sub-logger (`createSubLogger`) through the constructor
+  `AbsOcptService` requires, so a line reads `projects / assets`. `OcptConfigManager` (which the
+  logger manager itself depends on) and `OcptSecretsManager` (nothing to log) own none, and
+  `lib/models/` may not import the manager layer, so a model that must log uses `appLogger()`.
+  **Which level**: `e` for a failure a `catch` handles, `w` for a recoverable or unexpected
+  situation (another `catch`, or a silent fall-back), `i` for a life-cycle event at a human
+  frequency (a manager started or disposed, a project opened or closed, a version captured or
+  restored, an export saved, a sync session started or stopped), `d` for detail that helps a
+  developer. Every `catch` logs unless it is a deliberate control-flow exit (a parse that answers
+  `null`, a field edit the user mistyped), which says so in a comment. A log call never changes
+  what its `catch` returns and never throws. **What never gets logged**: a secret, a token, an
+  enrolment secret or the contents of an invite; screenplay text; a person's data (name, email,
+  phone, address, notes); a project's, a version's or a character's name; a network address; a
+  path, which holds the user's name, so a file is named by `ocptLogFileName` (its base name) and
+  never by its folder. An exception's `toString` can quote any of these (a file error the path, a
+  JSON error the text around the fault, a network error the host), so a `catch` logs the error's
+  `runtimeType` and passes the stack trace, never `$error`. Nothing is logged per keystroke, frame,
+  row, drag step or sync ping, and nothing in `build()`. `OcptDiagnosticsManager` keeps the
+  in-app buffer, which its own user reads, intact and forwards each entry to its logger: an entry
+  whose text carries one of the above passes a `logMessage` without it, and an entry repeating on a
+  timer is `isRoutine`, forwarded at debug.
 
 - Routes: `enum OcptRoute with MixinRoute { home, workspace, settings, licenses }` +
   `OcptRouterManager extends AbstractRouterManager<OcptRoute>` (go_router underneath).

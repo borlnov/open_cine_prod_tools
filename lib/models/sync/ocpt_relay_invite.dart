@@ -68,6 +68,8 @@ class OcptRelayInvite extends Equatable {
     try {
       return OcptRelayInvite.parse(inviteString);
     } on FormatException {
+      // The answer to a string that is not an invite, which is how a wrong paste or scan is told
+      // apart. Not logged: the string is, or holds, a token.
       return null;
     }
   }

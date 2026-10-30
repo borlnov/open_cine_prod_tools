@@ -1646,6 +1646,8 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     try {
       return (isValid: true, value: ocptParseShotDuration(raw));
     } on FormatException {
+      // A mistyped duration is the field's own error state, not a failure: not logged, and the
+      // text it would quote is the user's.
       return (isValid: false, value: null);
     }
   }

@@ -378,6 +378,8 @@ bool ocptIsShotDurationValid(String input) {
     ocptParseShotDuration(input);
     return true;
   } on FormatException {
+    // The answer to a duration the user has not finished typing, asked on every keystroke: not
+    // logged.
     return false;
   }
 }

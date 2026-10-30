@@ -72,6 +72,8 @@ class OcptRelayEnrolment extends Equatable {
     try {
       return OcptRelayEnrolment.parse(enrolmentString);
     } on FormatException {
+      // The answer to a string that is not an enrolment, which is how a wrong paste or scan is
+      // told apart. Not logged: the string is, or holds, a secret.
       return null;
     }
   }
