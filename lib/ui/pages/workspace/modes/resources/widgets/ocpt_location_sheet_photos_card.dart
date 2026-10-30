@@ -91,7 +91,7 @@ class OcptLocationSheetPhotosCard extends StatelessWidget {
 /// One referenced photo: its thumbnail, or the "file not found" state when the path resolves to
 /// nothing, with the control dropping the reference on top of it.
 ///
-/// A [StatefulWidget] (the documented RFL1 exception) for the reason `OcptAssetFileLine` is one:
+/// A [StatefulWidget] (the documented exception) for the reason `OcptAssetFileLine` is one:
 /// whether the file is there is asked once, with a single `stat`, when the tile is built or given
 /// another path — never from `build`. The tile could have left the question to [Image.file]'s own
 /// `errorBuilder`, but that answer only arrives once the image pipeline has tried and failed, which

@@ -46,7 +46,7 @@ class OcptJoiningPage extends StatelessWidget {
 }
 
 /// The content of [OcptJoiningPage], separated from it so [OcptJoiningPage] only wires the
-/// [OcptJoiningBloc] up (RFL3).
+/// [OcptJoiningBloc] up.
 ///
 /// Public, like `OcptSharingView`, for the same reason: a widget test pumps it directly with a
 /// `BlocProvider.value` wrapping an [OcptJoiningBloc] built over injected managers.

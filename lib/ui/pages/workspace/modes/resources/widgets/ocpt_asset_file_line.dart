@@ -17,7 +17,7 @@ import 'package:path/path.dart' as p;
 /// scouting photo (`OcptLocationSheetPhotosCard`), which *is* its thumbnail, this one asks the
 /// file system whether the file is still there rather than trying to draw it.
 ///
-/// A [StatefulWidget] (the documented RFL1 exception) because that answer belongs to nobody else
+/// A [StatefulWidget] (the documented exception) because that answer belongs to nobody else
 /// and is worth asking once: the bloc has no business holding a flag about a file it never reads,
 /// and a missing file is a normal state (see
 /// `docs/adr/0013-binary-assets-referenced-by-path.md`) rather than an error to report. The check

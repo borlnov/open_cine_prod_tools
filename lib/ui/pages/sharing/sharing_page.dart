@@ -58,7 +58,7 @@ class OcptSharingPage extends StatelessWidget {
 }
 
 /// The content of [OcptSharingPage], separated from it so [OcptSharingPage] only wires the
-/// [OcptSharingBloc] up (RFL3).
+/// [OcptSharingBloc] up.
 ///
 /// Public, like `OcptProjectSettingsView`, for the same reason: a widget test pumps it directly
 /// with a `BlocProvider.value` wrapping an [OcptSharingBloc] built over injected managers.

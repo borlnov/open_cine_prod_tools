@@ -24,7 +24,7 @@ class OcptConfigManagerBuilder extends AbstractConfigBuilder<OcptConfigManager> 
 /// `act_logger_manager` reads `logs.level`/`logs.console.*` itself (through
 /// [AbsUsualConfigManager]'s own `MixinLoggerConfig`/`MixinCslLoggerConfig`) but knows nothing of a
 /// file sink, so the app reads its settings here, for `OcptFileLoggingManager` to act on. Add
-/// [ConfigVar] fields here as the app grows, following RFL24: no configuration value must be
+/// [ConfigVar] fields here as the app grows, since no configuration value must be
 /// hardcoded outside of this manager and its bundled YAML files.
 class OcptConfigManager extends AbsUsualConfigManager
     with MixinLocaleConfig, MixinThemesConfig, MixinLicensesConfig, MixinStoresConf {

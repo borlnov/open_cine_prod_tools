@@ -102,9 +102,9 @@ class OcptResourcesMode extends StatelessWidget {
 }
 
 /// The content of [OcptResourcesMode], separated from it so [OcptResourcesMode] only wires the
-/// [OcptResourcesBloc] up (RFL3).
+/// [OcptResourcesBloc] up.
 ///
-/// This is a StatefulWidget (the documented RFL1 exception) because it owns the dock layout
+/// This is a StatefulWidget (the documented exception) because it owns the dock layout
 /// controller: the live dock fractions must survive a rebuild and be mutated imperatively while a
 /// divider is being dragged, without emitting a bloc state per frame.
 class _ResourcesView extends StatefulWidget {

@@ -98,7 +98,7 @@ class OcptProjectsManagerBuilder extends AbsLifeCycleFactory<OcptProjectsManager
 /// [projectDictionaryService], [projectPackageService], [projectFileCompatibilityService],
 /// [budgetQuoteService], [budgetJournalService], [budgetFinancingService],
 /// [budgetAllowancesService] and [budgetSharingService], the twenty-three services this manager
-/// owns and wires together (RFL19):
+/// owns and wires together:
 /// this manager itself is only
 /// responsible for the lifecycle of the project file (create/open/move/close), for keeping the
 /// properties manager's recent-projects list in sync, and for handing those services the facts
@@ -187,7 +187,7 @@ class OcptProjectsManager extends AbsWithLifeCycle {
   /// The service used for CRUD over a screenplay's storyboard: its shots' panels and their
   /// annotation layer.
   ///
-  /// Held here as well as inside [shotListService] (RFL19, the same reasoning [assetsService]'s own
+  /// Held here as well as inside [shotListService] (the same reasoning [assetsService]'s own
   /// doc comment gives): the board view reads and writes it directly, and [shotListService] only
   /// needs it for its own `deleteShot`/`tombstoneShotsOfScreenplay` cascade.
   final OcptStoryboardService storyboardService;

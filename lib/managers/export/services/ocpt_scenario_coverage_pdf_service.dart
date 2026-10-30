@@ -103,7 +103,7 @@ const Map<int, pw.TableColumnWidth> _legendColumnWidths = {
 ///
 /// This is pure rendering logic with no dialog or file-system access of its own: it's owned by
 /// `OcptExportManager` and exposed as a public final field, reached through the manager rather than
-/// through `globalGetIt()` (RFL18), exactly like its three siblings.
+/// through `globalGetIt()`, exactly like its three siblings.
 ///
 /// It draws nothing it decides itself. [OcptScenarioCoverageLayout] says which bar goes in which
 /// lane of which page and which text is uncovered, [OcptScriptPagePainter] draws the screenplay

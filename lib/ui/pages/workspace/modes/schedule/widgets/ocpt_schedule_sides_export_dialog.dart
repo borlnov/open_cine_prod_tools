@@ -187,7 +187,7 @@ class _OcptScheduleSidesExportDialogState extends State<OcptScheduleSidesExportD
 
   /// Pops the dialog returning the resulting [OcptSidesExportOptions].
   ///
-  /// The dialog is dismissed through the router manager (RFL31: navigation only via the router
+  /// The dialog is dismissed through the router manager (navigation only via the router
   /// manager), whose pop delivers the new options back to the
   /// [OcptScheduleSidesExportDialog.show] caller.
   void _submit() {

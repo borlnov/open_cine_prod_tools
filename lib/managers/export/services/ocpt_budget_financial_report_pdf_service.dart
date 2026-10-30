@@ -56,7 +56,7 @@ const Map<int, pw.TableColumnWidth> _columnWidths = {
 ///
 /// This is pure rendering logic with no dialog or file-system access of its own: it's owned by
 /// `OcptExportManager` and exposed as a public final field, reached through the manager rather than
-/// through `globalGetIt()` (RFL18), exactly like its siblings. It prints no screenplay, so — like
+/// through `globalGetIt()`, exactly like its siblings. It prints no screenplay, so — like
 /// `OcptBudgetQuotePdfService` and `OcptBudgetFinancingPlanPdfService` — it flows its content in a
 /// [pw.MultiPage] rather than drawing through [OcptScriptPagePainter]'s absolutely positioned page
 /// builders; it still takes one painter, for the page geometry and the Courier Prime variants every

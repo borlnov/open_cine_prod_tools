@@ -83,7 +83,7 @@ class _OcptScheduleShootingPlanXlsxExportDialogState
   /// in [OcptScheduleShootingPlanXlsxExportDialog.days]' own order rather than selection order —
   /// mirrors `OcptScheduleShootingPlanExportDialog._submit`.
   ///
-  /// The dialog is dismissed through the router manager (RFL31: navigation only via the router
+  /// The dialog is dismissed through the router manager (navigation only via the router
   /// manager). Never disables its own export button while no day is ticked: an empty selection
   /// still produces a readable workbook (every sheet left with its own header rows alone), which
   /// `OcptShootingPlanXlsxExportService` already handles.

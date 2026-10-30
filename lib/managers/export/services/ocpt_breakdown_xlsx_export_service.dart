@@ -33,7 +33,7 @@ import 'package:open_cine_prod_tools/utils/ocpt_breakdown_scene_bars.dart';
 ///
 /// This is pure in-memory workbook building with no I/O of its own (no dialog, no file system
 /// access): it's owned by `OcptExportManager` and exposed as a public final field, reached through
-/// the manager rather than through `globalGetIt()` (RFL18), exactly like
+/// the manager rather than through `globalGetIt()`, exactly like
 /// `OcptResourcesXlsxExportService` and `OcptShotListXlsxExportService`. Unlike the breakdown
 /// sheets PDF, it takes no options: the export panel's card goes straight to the native save
 /// dialog.

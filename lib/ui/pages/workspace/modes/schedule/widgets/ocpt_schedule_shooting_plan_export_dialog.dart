@@ -179,7 +179,7 @@ class _OcptScheduleShootingPlanExportDialogState
   /// Pops the dialog returning the resulting [OcptShootingPlanExportOptions], the selected days in
   /// [OcptScheduleShootingPlanExportDialog.days]' own order rather than selection order.
   ///
-  /// The dialog is dismissed through the router manager (RFL31: navigation only via the router
+  /// The dialog is dismissed through the router manager (navigation only via the router
   /// manager), whose pop delivers the new options back to the
   /// [OcptScheduleShootingPlanExportDialog.show] caller. Unlike its two siblings, this dialog never
   /// disables its own export button while no day is ticked: an empty selection still produces a

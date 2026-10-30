@@ -48,7 +48,7 @@ class OcptHomePage extends StatelessWidget {
 }
 
 /// The content of [OcptHomePage], separated from it so [OcptHomePage] only wires the [OcptHomeBloc]
-/// up (RFL3).
+/// up.
 class _HomeView extends StatelessWidget {
   /// Class constructor
   const _HomeView();

@@ -39,7 +39,7 @@ import 'package:open_cine_prod_tools/utils/ocpt_day_minute.dart';
 ///
 /// This is pure in-memory workbook building with no I/O of its own (no dialog, no file system
 /// access): it's owned by `OcptExportManager` and exposed as a public final field, reached through
-/// the manager rather than through `globalGetIt()` (RFL18), exactly like
+/// the manager rather than through `globalGetIt()`, exactly like
 /// `OcptBreakdownXlsxExportService` and its own siblings. It takes no options: the export panel's
 /// card goes straight to the day picker, that dialog's own days being this service's whole
 /// `dayIds`.

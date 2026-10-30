@@ -90,7 +90,7 @@ class _OcptNewProjectNameDialogState extends State<OcptNewProjectNameDialog> {
 
   /// Validates the entered name and, if it's valid, pops the dialog returning it.
   ///
-  /// The dialog is dismissed through the router manager (RFL31: navigation only via the router
+  /// The dialog is dismissed through the router manager (navigation only via the router
   /// manager), whose pop delivers the trimmed name back to the [OcptNewProjectNameDialog.show]
   /// caller.
   void _submit() {

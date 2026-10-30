@@ -171,7 +171,7 @@ final RegExp _unsafeFileNameChars = RegExp(r'[\\/:*?"<>|\x00-\x1F]');
 ///
 /// This is pure rendering logic with no dialog or file-system access of its own: it's owned by
 /// `OcptExportManager` and exposed as a public final field, reached through the manager rather than
-/// through `globalGetIt()` (RFL18), exactly like its siblings. It prints no screenplay, so — like
+/// through `globalGetIt()`, exactly like its siblings. It prints no screenplay, so — like
 /// `OcptBreakdownSheetsPdfService` — it draws nothing through [OcptScriptPagePainter]'s absolutely
 /// positioned page builders and flows its content in a [pw.MultiPage] instead; it still takes one
 /// painter, for the page geometry every export of this app measures a sheet with and the Courier

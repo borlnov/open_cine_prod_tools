@@ -116,7 +116,7 @@ class _OcptEditorExportPdfOptionsDialogState extends State<OcptEditorExportPdfOp
 
   /// Pops the dialog returning the resulting [OcptPdfExportOptions].
   ///
-  /// The dialog is dismissed through the router manager (RFL31: navigation only via the router
+  /// The dialog is dismissed through the router manager (navigation only via the router
   /// manager), whose pop delivers the new options back to the
   /// [OcptEditorExportPdfOptionsDialog.show] caller.
   void _submit() {

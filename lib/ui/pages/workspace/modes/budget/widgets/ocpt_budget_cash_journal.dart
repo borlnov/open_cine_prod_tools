@@ -1079,7 +1079,7 @@ class _OcptCashUpcomingFooterRow extends StatelessWidget {
 /// second column of text, just an icon whose tooltip says whether the referenced file still
 /// resolves, mirroring `OcptAssetFileLine`'s own "file not found" reading (ADR 0013).
 ///
-/// A [StatefulWidget] (the documented RFL1 exception) for the very reason `OcptAssetFileLine` is
+/// A [StatefulWidget] (the documented exception) for the very reason `OcptAssetFileLine` is
 /// one: the answer belongs to nobody else and is worth asking once, not from `build`, which would
 /// run it on every frame the journal is rebuilt for an unrelated reason.
 class _OcptCashJournalVoucherMarker extends StatefulWidget {

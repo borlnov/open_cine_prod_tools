@@ -122,9 +122,9 @@ class _CloseFindIntent extends Intent {
 }
 
 /// The content of [OcptEditorPage], separated from it so [OcptEditorPage] only wires the
-/// [OcptEditorBloc] up (RFL3).
+/// [OcptEditorBloc] up.
 ///
-/// This is a StatefulWidget (the documented RFL1 exception) because it owns the text editing
+/// This is a StatefulWidget (the documented exception) because it owns the text editing
 /// controller: the source text lives in the controller (the bloc only receives change events),
 /// and applying bloc-driven effects (initial text, scene jumps) requires imperative access to it.
 class _EditorView extends StatefulWidget {

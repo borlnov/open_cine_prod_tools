@@ -138,7 +138,7 @@ class _OcptScheduleCallSheetsExportDialogState extends State<OcptScheduleCallShe
   /// Pops the dialog returning the resulting [OcptCallSheetExportOptions], the selected days in
   /// [OcptScheduleCallSheetsExportDialog.days]' own order rather than selection order.
   ///
-  /// The dialog is dismissed through the router manager (RFL31: navigation only via the router
+  /// The dialog is dismissed through the router manager (navigation only via the router
   /// manager), whose pop delivers the new options back to the
   /// [OcptScheduleCallSheetsExportDialog.show] caller.
   void _submit() {

@@ -122,9 +122,9 @@ class OcptBudgetMode extends StatelessWidget {
 }
 
 /// The content of [OcptBudgetMode], separated from it so [OcptBudgetMode] only wires the
-/// [OcptBudgetBloc] up (RFL3).
+/// [OcptBudgetBloc] up.
 ///
-/// A StatefulWidget (the documented RFL1 exception) because it owns the dock layout controller,
+/// A StatefulWidget (the documented exception) because it owns the dock layout controller,
 /// mirroring `_ScheduleView`.
 class _BudgetView extends StatefulWidget {
   /// Class constructor

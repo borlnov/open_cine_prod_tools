@@ -109,7 +109,7 @@ const double _silhouetteMarginPt = 10;
 ///
 /// This is pure rendering logic with no dialog or file-system access of its own: it's owned by
 /// `OcptExportManager` and exposed as a public final field, reached through the manager rather than
-/// through `globalGetIt()` (RFL18), exactly like its siblings.
+/// through `globalGetIt()`, exactly like its siblings.
 ///
 /// **It draws the very same [OcptFloorPlanSheet] the on-screen canvas draws**
 /// (`OcptFloorPlanCanvasPainter`, `lib/ui/pages/workspace/modes/shot_list/widgets/

@@ -133,7 +133,7 @@ class _OcptScheduleOneLineScheduleExportDialogState
   /// Pops the dialog returning the resulting [OcptOneLineScheduleExportOptions], the selected days
   /// in [OcptScheduleOneLineScheduleExportDialog.days]' own order rather than selection order.
   ///
-  /// The dialog is dismissed through the router manager (RFL31: navigation only via the router
+  /// The dialog is dismissed through the router manager (navigation only via the router
   /// manager), whose pop delivers the new options back to the
   /// [OcptScheduleOneLineScheduleExportDialog.show] caller. Like the *Day Out of Days*' own dialog,
   /// it never disables its own export button while no day is ticked: an empty selection still

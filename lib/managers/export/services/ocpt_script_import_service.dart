@@ -21,7 +21,7 @@ import 'package:script_import_kit/script_import_kit.dart';
 /// This is pure bytes/text logic with no I/O of its own — no dialog, no file system access, not
 /// even a logger: the developer-facing detail of a refusal travels back as the result's own
 /// `extraInfo`, for the manager to log. It's owned by `OcptExportManager` and exposed as a public
-/// final field, reached through the manager rather than through `globalGetIt()` (RFL18).
+/// final field, reached through the manager rather than through `globalGetIt()`.
 class OcptScriptImportService {
   /// The extension of a Final Draft screenplay file, without its leading dot.
   static const finalDraftFileExtension = "fdx";

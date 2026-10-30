@@ -36,7 +36,7 @@ class OcptRepointingPage extends StatelessWidget {
 }
 
 /// The content of [OcptRepointingPage], separated from it so [OcptRepointingPage] only wires the
-/// [OcptRepointingBloc] up (RFL3).
+/// [OcptRepointingBloc] up.
 ///
 /// Public, like `OcptSharingView`, for the same reason: a widget test pumps it directly with a
 /// `BlocProvider.value` wrapping an [OcptRepointingBloc] built over injected managers.

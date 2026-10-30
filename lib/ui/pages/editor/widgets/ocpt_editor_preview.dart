@@ -28,7 +28,7 @@ import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_preview
 /// narrow for the full page, the whole page is scaled down to fit instead of being cropped by a
 /// horizontal scroll (which would otherwise leave the right margin permanently out of view): the
 /// left AND right margins always stay visible, at the wide panel's own scale or smaller. The block
-/// list is lazy (RFL38) and the whole preview sits behind a [RepaintBoundary] (RFL37) so typing in
+/// list is lazy and the whole preview sits behind a [RepaintBoundary] so typing in
 /// the source editor doesn't repaint it needlessly.
 ///
 /// When the editor caret changes line, the preview scrolls so the block containing that line is

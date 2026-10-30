@@ -301,7 +301,7 @@ class _OcptScheduleNamedCallSheetsExportDialogState
   /// [OcptScheduleNamedCallSheetsExportDialog.days]' own order rather than selection order —
   /// mirrors `OcptScheduleCallSheetsExportDialog._submit`.
   ///
-  /// The dialog is dismissed through the router manager (RFL31: navigation only via the router
+  /// The dialog is dismissed through the router manager (navigation only via the router
   /// manager), whose pop delivers the new options back to the
   /// [OcptScheduleNamedCallSheetsExportDialog.show] caller.
   void _submit() {

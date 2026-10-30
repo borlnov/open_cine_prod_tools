@@ -70,7 +70,7 @@ class OcptProjectSettingsPage extends StatelessWidget {
 }
 
 /// The content of [OcptProjectSettingsPage], separated from it so [OcptProjectSettingsPage] only
-/// wires the [OcptProjectSettingsBloc] up (RFL3).
+/// wires the [OcptProjectSettingsBloc] up.
 ///
 /// Unlike sibling pages' private `_XxxView`, this one is public: it lets widget tests pump it
 /// directly with a `BlocProvider.value` wrapping an [OcptProjectSettingsBloc] built with an

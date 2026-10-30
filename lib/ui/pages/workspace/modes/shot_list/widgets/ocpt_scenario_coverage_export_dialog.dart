@@ -141,7 +141,7 @@ class _OcptScenarioCoverageExportDialogState extends State<OcptScenarioCoverageE
 
   /// Pops the dialog returning the resulting [OcptScenarioCoverageExportOptions].
   ///
-  /// The dialog is dismissed through the router manager (RFL31: navigation only via the router
+  /// The dialog is dismissed through the router manager (navigation only via the router
   /// manager), whose pop delivers the new options back to the
   /// [OcptScenarioCoverageExportDialog.show] caller.
   void _submit() {

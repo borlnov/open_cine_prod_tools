@@ -135,7 +135,7 @@ sit.
   same reason.
 
 - `OcptExportManager` (`lib/managers/export/`) owns getting a project's documents in and out of the
-  app: the native open dialog, and twenty-three services it owns (RFL18) — `OcptFountainIoService`
+  app: the native open dialog, and twenty-three services it owns — `OcptFountainIoService`
   (bytes ↔ text, suggested file names), `OcptScriptImportService` (the three importable formats in
   and Fountain text out, above), `OcptPdfExportService` (the screenplay PDF),
   `OcptShotListXlsxExportService`, `OcptScenarioCoveragePdfService`,

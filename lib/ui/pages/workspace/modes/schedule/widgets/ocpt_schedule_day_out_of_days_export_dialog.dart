@@ -135,7 +135,7 @@ class _OcptScheduleDayOutOfDaysExportDialogState
   /// [OcptScheduleDayOutOfDaysExportDialog.days]' own order rather than selection order — that
   /// order is what the table's own first and last convoked days are read against.
   ///
-  /// The dialog is dismissed through the router manager (RFL31: navigation only via the router
+  /// The dialog is dismissed through the router manager (navigation only via the router
   /// manager), whose pop delivers the new options back to the
   /// [OcptScheduleDayOutOfDaysExportDialog.show] caller. Like the shooting plan's own dialog and
   /// unlike the two call sheet ones, it never disables its own export button while no day is

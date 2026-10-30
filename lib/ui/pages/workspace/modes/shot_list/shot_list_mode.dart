@@ -110,9 +110,9 @@ class OcptShotListMode extends StatelessWidget {
 }
 
 /// The content of [OcptShotListMode], separated from it so [OcptShotListMode] only wires the
-/// [OcptShotListBloc] up (RFL3).
+/// [OcptShotListBloc] up.
 ///
-/// This is a StatefulWidget (the documented RFL1 exception) because it owns the dock layout
+/// This is a StatefulWidget (the documented exception) because it owns the dock layout
 /// controller: the live dock fractions must survive a rebuild and be mutated imperatively while a
 /// divider is being dragged, without emitting a bloc state per frame.
 class _ShotListView extends StatefulWidget {

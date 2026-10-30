@@ -56,7 +56,7 @@ const int _maxDayColumnsPerPage = 12;
 ///
 /// This is pure rendering logic with no dialog or file-system access of its own: it's owned by
 /// `OcptExportManager` and exposed as a public final field, reached through the manager rather than
-/// through `globalGetIt()` (RFL18), exactly like its siblings — `OcptShootingPlanPdfService` chief
+/// through `globalGetIt()`, exactly like its siblings — `OcptShootingPlanPdfService` chief
 /// among them, whose own doc comment this one mirrors. It prints no screenplay, so it draws nothing
 /// through [OcptScriptPagePainter]'s absolutely positioned page builders and flows its content in
 /// [pw.MultiPage]s instead; it still takes one painter, for the page geometry every export of this

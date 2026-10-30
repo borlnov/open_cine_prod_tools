@@ -107,7 +107,7 @@ class OcptExportManagerBuilder extends AbsLifeCycleFactory<OcptExportManager> {
 /// [budgetCashJournalXlsxExportService] and [budgetFinancialReportPdfService], the "save
 /// as"/"choose a folder" location picking to [saveLocationService], and — on mobile, where
 /// `file_selector`'s `getSaveLocation`/`getDirectoryPath` have no Android or iOS implementation —
-/// the OS share sheet to [shareService] — the twenty-three services this manager owns (RFL18).
+/// the OS share sheet to [shareService] — the twenty-three services this manager owns.
 ///
 /// Every write funnels through [_writeToPickedLocation] (a single file) or [_writeBytesInFolder]
 /// and its two callers (several files at once): on [PlatformManager.isMobile] each writes into a

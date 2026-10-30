@@ -35,8 +35,8 @@ import 'package:path/path.dart' as p;
 /// ([OcptProjectsManager.freeNewProjectFilePath] — `file_selector`'s `getSaveLocation` has no
 /// Android/iOS implementation); "Open…" shows the native open-file dialog through
 /// [FileSelectorManager], and every one of them delegates the actual create/open work to
-/// [OcptProjectsManager] and navigates to the workspace through [OcptRouterManager] (RFL31:
-/// navigation only via the router manager) once it succeeds.
+/// [OcptProjectsManager] and navigates to the workspace through [OcptRouterManager]
+/// (navigation only via the router manager) once it succeeds.
 ///
 /// It is also where the app's **compatibility gate** stands: every path that opens a project file
 /// runs through here, so every one of them is probed before it is opened, and a file from another

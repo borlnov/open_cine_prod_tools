@@ -13,7 +13,7 @@ import 'package:share_plus/share_plus.dart';
 /// `file_selector`'s `getSaveLocation`/`getDirectoryPath` having no Android or iOS implementation.
 ///
 /// Pure `package:path_provider`/`package:share_plus` wrapper, owned by `OcptExportManager` as a
-/// public final field (RFL18), reached through the manager rather than through `globalGetIt()`, so
+/// public final field, reached through the manager rather than through `globalGetIt()`, so
 /// it can be replaced by a test double — exactly as `OcptSaveLocationService` is for the native
 /// save dialog.
 class OcptShareService {

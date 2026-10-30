@@ -27,7 +27,7 @@ import 'package:open_cine_prod_tools/utils/ocpt_floor_plan_fit.dart';
 /// is shown: the tool bar across the top, the layer tray down
 /// the left of the canvas, the canvas itself, and the focus strip along the bottom.
 ///
-/// **A `StatefulWidget` (the documented RFL1 exception)**, the very reason `_ShotListViewState`
+/// **A `StatefulWidget` (the documented exception)**, the very reason `_ShotListViewState`
 /// (`shot_list_mode.dart`) is one: this view owns an `OcptFloorPlanViewportController`, whose zoom
 /// and pan are mutated per frame during a gesture with no bloc emission — see that controller's own
 /// doc comment. It is created once, seeded from [initialZoom] (`OcptShotListState.floorPlanZoom`,

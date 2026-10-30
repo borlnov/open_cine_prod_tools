@@ -14,7 +14,7 @@ import 'package:path/path.dart' as p;
 ///
 /// This is pure text/bytes logic with no I/O of its own (no dialog, no file system access): it's
 /// owned by `OcptExportManager` and exposed as a public final field, reached through the manager
-/// rather than through `globalGetIt()` (RFL18).
+/// rather than through `globalGetIt()`.
 class OcptFountainIoService {
   /// The extension of a Fountain screenplay file, without its leading dot.
   static const fountainFileExtension = "fountain";

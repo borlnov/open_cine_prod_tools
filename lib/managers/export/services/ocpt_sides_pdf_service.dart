@@ -53,7 +53,7 @@ const PdfColor _mutedColor = PdfColor.fromInt(0xFF6E6E6E);
 ///
 /// This is pure rendering logic with no dialog or file-system access of its own: it's owned by
 /// `OcptExportManager` and exposed as a public final field, reached through the manager rather than
-/// through `globalGetIt()` (RFL18), exactly like its siblings. It draws nothing it decides itself:
+/// through `globalGetIt()`, exactly like its siblings. It draws nothing it decides itself:
 /// [OcptScriptSidesLayout] says which rows land on which page, [OcptScriptPagePainter] draws the
 /// screenplay itself (the same drawing `OcptPdfExportService` and `OcptScenarioCoveragePdfService`
 /// produce, from the same composer call and the same metrics, so a side can never disagree with the

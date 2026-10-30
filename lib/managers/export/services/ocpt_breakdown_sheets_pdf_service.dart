@@ -69,7 +69,7 @@ const Map<int, pw.TableColumnWidth> _targetColumnWidths = {
 ///
 /// This is pure rendering logic with no dialog or file-system access of its own: it's owned by
 /// `OcptExportManager` and exposed as a public final field, reached through the manager rather than
-/// through `globalGetIt()` (RFL18), exactly like its six siblings.
+/// through `globalGetIt()`, exactly like its six siblings.
 ///
 /// **Per scene rather than per element**, on purpose: this is the document that goes to the
 /// department heads, who each read the day's scenes and prepare what those scenes call for. The

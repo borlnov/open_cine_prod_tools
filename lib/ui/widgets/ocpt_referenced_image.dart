@@ -22,7 +22,7 @@ import 'package:flutter/material.dart';
 /// and a list silently one item short is a bug the user cannot see. A person has **one** photo, and
 /// their initials are a perfectly good thing to see in its place.
 ///
-/// A [StatefulWidget] (the documented RFL1 exception) for the reason `OcptAssetFileLine` is one:
+/// A [StatefulWidget] (the documented exception) for the reason `OcptAssetFileLine` is one:
 /// whether the file is there is asked once, with a single `stat`, when the widget is built or given
 /// another path — never from `build`, which would run it on every frame an unrelated rebuild
 /// produces. [Image.file]'s own `errorBuilder` is the second guard, for the file that *is* there

@@ -15,7 +15,7 @@ import 'package:pdf/widgets.dart' as pw;
 ///
 /// This is pure rendering logic with no dialog or file-system access of its own: it's owned by
 /// `OcptExportManager` and exposed as a public final field, reached through the manager rather than
-/// through `globalGetIt()` (RFL18). It consumes [FountainScriptComposer] (from `fountain_kit`,
+/// through `globalGetIt()`. It consumes [FountainScriptComposer] (from `fountain_kit`,
 /// which must stay Flutter-free) for the body's line-level pagination and [OcptScriptPagePainter]
 /// for the drawing itself, so the screenplay it prints is the very same drawing the scenario
 /// coverage export prints under its bars.

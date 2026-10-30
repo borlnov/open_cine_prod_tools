@@ -36,7 +36,7 @@ class OcptWorkspacePage extends StatelessWidget {
 }
 
 /// The content of [OcptWorkspacePage], separated from it so [OcptWorkspacePage] only wires the
-/// [OcptWorkspaceBloc] up (RFL3).
+/// [OcptWorkspaceBloc] up.
 class _WorkspaceView extends StatelessWidget {
   /// Class constructor
   const _WorkspaceView();

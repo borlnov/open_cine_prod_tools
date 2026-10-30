@@ -289,7 +289,7 @@ class _OcptEditorPageSetupDialogState extends State<OcptEditorPageSetupDialog> {
   /// Validates the entered margins and, if they're valid, pops the dialog returning the resulting
   /// [OcptPageSetup].
   ///
-  /// The dialog is dismissed through the router manager (RFL31: navigation only via the router
+  /// The dialog is dismissed through the router manager (navigation only via the router
   /// manager), whose pop delivers the new page setup back to the [OcptEditorPageSetupDialog.show]
   /// caller.
   void _submit() {

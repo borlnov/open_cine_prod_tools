@@ -146,7 +146,7 @@ class _OcptEditorTitlePageDialogState extends State<OcptEditorTitlePageDialog> {
     );
   }
 
-  /// Pops the dialog through the router manager (RFL31), returning the six fields' current text,
+  /// Pops the dialog through the router manager, returning the six fields' current text,
   /// each trimmed.
   void _submit() {
     globalGetIt().get<OcptRouterManager>().pop((

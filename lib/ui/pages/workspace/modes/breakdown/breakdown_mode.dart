@@ -109,9 +109,9 @@ class OcptBreakdownMode extends StatelessWidget {
 }
 
 /// The content of [OcptBreakdownMode], separated from it so [OcptBreakdownMode] only wires the
-/// [OcptBreakdownBloc] up (RFL3).
+/// [OcptBreakdownBloc] up.
 ///
-/// This is a StatefulWidget (the documented RFL1 exception) because it owns the dock layout
+/// This is a StatefulWidget (the documented exception) because it owns the dock layout
 /// controller: the live dock fractions must survive a rebuild and be mutated imperatively while a
 /// divider is being dragged, without emitting a bloc state per frame. Mirrors
 /// `_ResourcesView`/`_ShotListView`.

@@ -91,7 +91,7 @@ const double _annotationHeadAnglePt = 0.45;
 /// This is pure rendering logic with no dialog or file-system access of its own beyond reading a
 /// panel's own image file at render time (see below); it's owned by `OcptExportManager` and
 /// exposed as a public final field, reached through the manager rather than through
-/// `globalGetIt()` (RFL18), exactly like its siblings.
+/// `globalGetIt()`, exactly like its siblings.
 ///
 /// **Image bytes are read at render time, off the asset's own resolved path**
 /// (`OcptStoryboardPanel.imagePath`, ADR 0013), as `pw.MemoryImage` — the `pdf` package decodes

@@ -9,7 +9,7 @@ import 'package:path/path.dart' as p;
 /// Shows the native "save as" dialog and resolves the path the user picked.
 ///
 /// Pure Flutter-plugin wrapper around `package:file_selector`'s [getSaveLocation]: it's owned by
-/// `OcptExportManager` as a public final field (RFL18), reached through the manager rather than
+/// `OcptExportManager` as a public final field, reached through the manager rather than
 /// through `globalGetIt()`, so it can be replaced by a test double.
 class OcptSaveLocationService {
   /// Class constructor

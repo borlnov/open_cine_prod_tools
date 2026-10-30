@@ -96,9 +96,9 @@ class OcptScheduleMode extends StatelessWidget {
 }
 
 /// The content of [OcptScheduleMode], separated from it so [OcptScheduleMode] only wires the
-/// [OcptScheduleBloc] up (RFL3).
+/// [OcptScheduleBloc] up.
 ///
-/// A StatefulWidget (the documented RFL1 exception) because it owns the dock layout controller,
+/// A StatefulWidget (the documented exception) because it owns the dock layout controller,
 /// mirroring `_BreakdownView`/`_ShotListView`/`_ResourcesView`.
 class _ScheduleView extends StatefulWidget {
   /// Class constructor
