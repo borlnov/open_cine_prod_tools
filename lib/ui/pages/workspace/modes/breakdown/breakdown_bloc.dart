@@ -29,7 +29,6 @@ import 'package:open_cine_prod_tools/models/ocpt_open_project_model.dart';
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_breakdown_legend.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_breakdown_tag_span.dart';
-import 'package:open_cine_prod_tools/models/rules/ocpt_log_subject.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_scene_display_number.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_centre_view.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_right_dock_tab.dart';
@@ -487,7 +486,7 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to export the breakdown sheets of project "
-        "${ocptLogFileName(_projectsManager.currentProject?.path)}: ${error.runtimeType}",
+        "${_projectsManager.currentProject?.primaryScreenplayId}: ${error.runtimeType}",
         null,
         stackTrace,
       );
@@ -543,7 +542,7 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to export the breakdown workbook of project "
-        "${ocptLogFileName(_projectsManager.currentProject?.path)}: ${error.runtimeType}",
+        "${_projectsManager.currentProject?.primaryScreenplayId}: ${error.runtimeType}",
         null,
         stackTrace,
       );
@@ -1439,7 +1438,7 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to flush a pending breakdown field edit of project "
-        "${ocptLogFileName(project.path)}: ${error.runtimeType}",
+        "${project.primaryScreenplayId}: ${error.runtimeType}",
         null,
         stackTrace,
       );
@@ -1492,7 +1491,7 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to flush a pending breakdown field edit of project "
-        "${ocptLogFileName(project.path)}: ${error.runtimeType}",
+        "${project.primaryScreenplayId}: ${error.runtimeType}",
         null,
         stackTrace,
       );

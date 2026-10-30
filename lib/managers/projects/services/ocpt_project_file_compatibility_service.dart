@@ -7,7 +7,6 @@ import 'dart:io';
 import 'package:open_cine_prod_tools/managers/abs_ocpt_service.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_file_compatibility.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_app_version.dart';
-import 'package:open_cine_prod_tools/models/rules/ocpt_log_subject.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_file_verdict.dart';
 import 'package:path/path.dart' as p;
 import 'package:sqlite3/sqlite3.dart';
@@ -112,7 +111,7 @@ class OcptProjectFileCompatibilityService extends AbsOcptService {
       }
     } catch (error, stackTrace) {
       logger.w(
-        "The format of the project file at ${ocptLogFileName(filePath)} can't be read: "
+        "The format of a project file can't be read: "
         "${error.runtimeType}",
         null,
         stackTrace,
@@ -210,8 +209,7 @@ class OcptProjectFileCompatibilityService extends AbsOcptService {
       return true;
     } catch (error, stackTrace) {
       logger.e(
-        "The project file at ${ocptLogFileName(filePath)} can't be copied to "
-        "${ocptLogFileName(backupPath)} before being migrated: ${error.runtimeType}",
+        "A project file can't be copied before being migrated: ${error.runtimeType}",
         null,
         stackTrace,
       );

@@ -31,7 +31,6 @@ import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/models/ocpt_resources_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_workspace_reveal_request.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_cost_amount.dart';
-import 'package:open_cine_prod_tools/models/rules/ocpt_log_subject.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_max_daily_presence.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_scene_display_number.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_editable_field.dart';
@@ -676,7 +675,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to create a person in project "
-        "${ocptLogFileName(project.path)}: ${error.runtimeType}",
+        "${project.primaryScreenplayId}: ${error.runtimeType}",
         null,
         stackTrace,
       );
@@ -722,7 +721,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to erase person ${event.personId} of project "
-        "${ocptLogFileName(project.path)}: ${error.runtimeType}",
+        "${project.primaryScreenplayId}: ${error.runtimeType}",
         null,
         stackTrace,
       );
@@ -882,7 +881,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to flush a pending resources field edit of project "
-        "${ocptLogFileName(project.path)}: ${error.runtimeType}",
+        "${project.primaryScreenplayId}: ${error.runtimeType}",
         null,
         stackTrace,
       );
@@ -953,7 +952,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to flush a pending resources field edit of project "
-        "${ocptLogFileName(project.path)}: ${error.runtimeType}",
+        "${project.primaryScreenplayId}: ${error.runtimeType}",
         null,
         stackTrace,
       );
@@ -1745,7 +1744,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to create a role in project "
-        "${ocptLogFileName(project.path)}: ${error.runtimeType}",
+        "${project.primaryScreenplayId}: ${error.runtimeType}",
         null,
         stackTrace,
       );
@@ -1836,7 +1835,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to delete role ${event.roleId} of project "
-        "${ocptLogFileName(project.path)}: ${error.runtimeType}",
+        "${project.primaryScreenplayId}: ${error.runtimeType}",
         null,
         stackTrace,
       );
@@ -1975,7 +1974,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to remove candidacy ${event.candidateId} of project "
-        "${ocptLogFileName(project.path)}: ${error.runtimeType}",
+        "${project.primaryScreenplayId}: ${error.runtimeType}",
         null,
         stackTrace,
       );
@@ -2066,7 +2065,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to create a location in project "
-        "${ocptLogFileName(project.path)}: ${error.runtimeType}",
+        "${project.primaryScreenplayId}: ${error.runtimeType}",
         null,
         stackTrace,
       );
@@ -2125,7 +2124,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to delete location ${event.locationId} of project "
-        "${ocptLogFileName(project.path)}: ${error.runtimeType}",
+        "${project.primaryScreenplayId}: ${error.runtimeType}",
         null,
         stackTrace,
       );
@@ -2337,7 +2336,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to resolve set ${event.setId}'s own first linked "
-        "sequence of project ${ocptLogFileName(project.path)}: ${error.runtimeType}",
+        "sequence of project ${project.primaryScreenplayId}: ${error.runtimeType}",
         null,
         stackTrace,
       );
@@ -2683,7 +2682,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to $logContext of project "
-        "${ocptLogFileName(project.path)}: ${error.runtimeType}",
+        "${project.primaryScreenplayId}: ${error.runtimeType}",
         null,
         stackTrace,
       );
@@ -2745,7 +2744,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to create an element in project "
-        "${ocptLogFileName(project.path)}: ${error.runtimeType}",
+        "${project.primaryScreenplayId}: ${error.runtimeType}",
         null,
         stackTrace,
       );
@@ -2791,7 +2790,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to delete element ${event.elementId} of project "
-        "${ocptLogFileName(project.path)}: ${error.runtimeType}",
+        "${project.primaryScreenplayId}: ${error.runtimeType}",
         null,
         stackTrace,
       );
@@ -3182,7 +3181,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to export the resources catalogue of project "
-        "${ocptLogFileName(project.path)}: ${error.runtimeType}",
+        "${project.primaryScreenplayId}: ${error.runtimeType}",
         null,
         stackTrace,
       );
@@ -3239,7 +3238,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to export the contact list of project "
-        "${ocptLogFileName(project.path)}: ${error.runtimeType}",
+        "${project.primaryScreenplayId}: ${error.runtimeType}",
         null,
         stackTrace,
       );

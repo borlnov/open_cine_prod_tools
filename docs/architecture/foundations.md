@@ -49,14 +49,15 @@ the persistence, the project versions, the sync-ready data model and the read-on
   what its `catch` returns and never throws. **What never gets logged**: a secret, a token, an
   enrolment secret or the contents of an invite; screenplay text; a person's data (name, email,
   phone, address, notes); a project's, a version's or a character's name; a network address; a
-  path, which holds the user's name, so a file is named by `ocptLogFileName` (its base name) and
-  never by its folder. An exception's `toString` can quote any of these (a file error the path, a
-  JSON error the text around the fault, a network error the host), so a `catch` logs the error's
-  `runtimeType` and passes the stack trace, never `$error`. Nothing is logged per keystroke, frame,
-  row, drag step or sync ping, and nothing in `build()`. `OcptDiagnosticsManager` keeps the
-  in-app buffer, which its own user reads, intact and forwards each entry to its logger: an entry
-  whose text carries one of the above passes a `logMessage` without it, and an entry repeating on a
-  timer is `isRoutine`, forwarded at debug.
+  path or a file name, which holds the user's name or a project's title, so a project is named by
+  its screenplay's id (or by a generic word where none is known) and a file by nothing. An
+  exception's `toString` can quote any of these (a file error the path, a JSON error the text
+  around the fault, a network error the host), so a `catch` logs the error's `runtimeType` and
+  passes the stack trace, never `$error`. Nothing is logged per keystroke, frame, row, drag step or
+  sync ping, and nothing in `build()`. `OcptDiagnosticsManager` keeps the in-app buffer, which its
+  own user reads, intact and forwards each entry to its logger: an entry whose text carries one of
+  the above passes a `logMessage` without it, and an entry repeating on a timer is `isRoutine`,
+  forwarded at debug.
 
 - Routes: `enum OcptRoute with MixinRoute { home, workspace, settings, licenses }` +
   `OcptRouterManager extends AbstractRouterManager<OcptRoute>` (go_router underneath).

@@ -68,7 +68,6 @@ import 'package:open_cine_prod_tools/models/ocpt_shot_list_xlsx_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_sides_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_storyboard_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_storyboard_snapshot.dart';
-import 'package:open_cine_prod_tools/models/rules/ocpt_log_subject.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_shooting_convocations.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_tax_basis.dart';
 import 'package:open_cine_prod_tools/types/ocpt_export_outcome.dart';
@@ -1402,11 +1401,11 @@ class OcptExportManager extends AbsWithLifeCycle {
     final path = p.join(folderPath, fileName);
     try {
       await File(path).writeAsBytes(bytes, flush: true);
-      _logger.i("An export was saved: ${ocptLogFileName(path)}");
+      _logger.i("An export was saved");
       return true;
     } catch (error, stackTrace) {
       _logger.e(
-        "A problem occurred when tried to write the file at: ${ocptLogFileName(path)}, error: "
+        "A problem occurred when tried to write an export file, error: "
         "${error.runtimeType}",
         null,
         stackTrace,
@@ -1444,11 +1443,11 @@ class OcptExportManager extends AbsWithLifeCycle {
 
     try {
       await File(path).writeAsBytes(bytes, flush: true);
-      _logger.i("An export was saved: ${ocptLogFileName(path)}");
+      _logger.i("An export was saved");
       return OcptExportSaved(path);
     } catch (error, stackTrace) {
       _logger.e(
-        "A problem occurred when tried to write the file at: ${ocptLogFileName(path)}, error: "
+        "A problem occurred when tried to write an export file, error: "
         "${error.runtimeType}",
         null,
         stackTrace,
@@ -1476,7 +1475,7 @@ class OcptExportManager extends AbsWithLifeCycle {
 
       final shared = await shareService.shareFiles(paths: [path], sharePositionOrigin: shareAnchor);
       if (shared) {
-        _logger.i("An export was handed to the share sheet: ${ocptLogFileName(path)}");
+        _logger.i("An export was handed to the share sheet");
       }
       return shared ? const OcptExportShared() : null;
     } catch (error, stackTrace) {

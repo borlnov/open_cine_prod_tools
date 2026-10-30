@@ -34,7 +34,6 @@ import 'package:open_cine_prod_tools/models/ocpt_schedule_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day_block.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_list_snapshot.dart';
-import 'package:open_cine_prod_tools/models/rules/ocpt_log_subject.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_scene_display_number.dart';
 import 'package:open_cine_prod_tools/types/ocpt_first_weekday.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
@@ -1320,7 +1319,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to flush a pending schedule field edit of project "
-        "${ocptLogFileName(project.path)}: ${error.runtimeType}",
+        "${project.primaryScreenplayId}: ${error.runtimeType}",
         null,
         stackTrace,
       );
@@ -1548,7 +1547,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to export the call sheets of project "
-        "${ocptLogFileName(_projectsManager.currentProject?.path)}: ${error.runtimeType}",
+        "${_projectsManager.currentProject?.primaryScreenplayId}: ${error.runtimeType}",
         null,
         stackTrace,
       );
@@ -1606,7 +1605,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to export the named call sheets of project "
-        "${ocptLogFileName(_projectsManager.currentProject?.path)}: ${error.runtimeType}",
+        "${_projectsManager.currentProject?.primaryScreenplayId}: ${error.runtimeType}",
         null,
         stackTrace,
       );
@@ -1669,7 +1668,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to export the shooting plan of project "
-        "${ocptLogFileName(_projectsManager.currentProject?.path)}: ${error.runtimeType}",
+        "${_projectsManager.currentProject?.primaryScreenplayId}: ${error.runtimeType}",
         null,
         stackTrace,
       );
@@ -1722,7 +1721,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to export the shooting plan workbook of project "
-        "${ocptLogFileName(_projectsManager.currentProject?.path)}: ${error.runtimeType}",
+        "${_projectsManager.currentProject?.primaryScreenplayId}: ${error.runtimeType}",
         null,
         stackTrace,
       );
@@ -1777,7 +1776,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to export the day out of days of project "
-        "${ocptLogFileName(_projectsManager.currentProject?.path)}: ${error.runtimeType}",
+        "${_projectsManager.currentProject?.primaryScreenplayId}: ${error.runtimeType}",
         null,
         stackTrace,
       );
@@ -1832,7 +1831,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to export the one-line schedule of project "
-        "${ocptLogFileName(_projectsManager.currentProject?.path)}: ${error.runtimeType}",
+        "${_projectsManager.currentProject?.primaryScreenplayId}: ${error.runtimeType}",
         null,
         stackTrace,
       );
@@ -1905,7 +1904,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to export the sides of project "
-        "${ocptLogFileName(_projectsManager.currentProject?.path)}: ${error.runtimeType}",
+        "${_projectsManager.currentProject?.primaryScreenplayId}: ${error.runtimeType}",
         null,
         stackTrace,
       );

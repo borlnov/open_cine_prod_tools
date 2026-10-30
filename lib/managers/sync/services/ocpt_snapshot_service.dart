@@ -9,7 +9,6 @@ import 'package:crypto/crypto.dart';
 import 'package:ocpt_sync_protocol/ocpt_sync_protocol.dart';
 import 'package:open_cine_prod_tools/managers/abs_ocpt_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_project_package_service.dart';
-import 'package:open_cine_prod_tools/models/rules/ocpt_log_subject.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_package_status.dart';
 import 'package:path/path.dart' as p;
 import 'package:uuid/uuid.dart';
@@ -177,7 +176,7 @@ class OcptSnapshotService extends AbsOcptService {
       await directory.delete(recursive: true);
     } catch (error, stackTrace) {
       logger.w(
-        "The temporary snapshot folder ${ocptLogFileName(directory.path)} can't be deleted: "
+        "A temporary snapshot folder can't be deleted: "
         "${error.runtimeType}",
         null,
         stackTrace,

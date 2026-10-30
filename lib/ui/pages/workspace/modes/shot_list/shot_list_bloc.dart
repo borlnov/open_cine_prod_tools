@@ -46,7 +46,6 @@ import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
 import 'package:open_cine_prod_tools/models/ocpt_storyboard_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_workspace_reveal_request.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_floor_plan_geometry.dart';
-import 'package:open_cine_prod_tools/models/rules/ocpt_log_subject.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_scene_display_number.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_scene_set_suggestion.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_arrow_kind.dart';
@@ -906,7 +905,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to create a shot in the scene ${sequence.sceneId} of "
-        "project ${ocptLogFileName(project.path)}: ${error.runtimeType}",
+        "project ${project.primaryScreenplayId}: ${error.runtimeType}",
         null,
         stackTrace,
       );
@@ -1082,7 +1081,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to export the shot list of project "
-        "${ocptLogFileName(_projectsManager.currentProject?.path)}: ${error.runtimeType}",
+        "${_projectsManager.currentProject?.primaryScreenplayId}: ${error.runtimeType}",
         null,
         stackTrace,
       );
@@ -1150,7 +1149,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to export the scenario coverage of project "
-        "${ocptLogFileName(_projectsManager.currentProject?.path)}: ${error.runtimeType}",
+        "${_projectsManager.currentProject?.primaryScreenplayId}: ${error.runtimeType}",
         null,
         stackTrace,
       );
@@ -1218,7 +1217,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to export the storyboard of project "
-        "${ocptLogFileName(_projectsManager.currentProject?.path)}: ${error.runtimeType}",
+        "${_projectsManager.currentProject?.primaryScreenplayId}: ${error.runtimeType}",
         null,
         stackTrace,
       );
@@ -1279,7 +1278,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to export the floor plans of project "
-        "${ocptLogFileName(_projectsManager.currentProject?.path)}: ${error.runtimeType}",
+        "${_projectsManager.currentProject?.primaryScreenplayId}: ${error.runtimeType}",
         null,
         stackTrace,
       );
@@ -1417,7 +1416,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to flush a pending shot list field edit of project "
-        "${ocptLogFileName(project.path)}: ${error.runtimeType}",
+        "${project.primaryScreenplayId}: ${error.runtimeType}",
         null,
         stackTrace,
       );
@@ -1459,7 +1458,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to flush a pending shot list field edit of project "
-        "${ocptLogFileName(project.path)}: ${error.runtimeType}",
+        "${project.primaryScreenplayId}: ${error.runtimeType}",
         null,
         stackTrace,
       );
@@ -1694,7 +1693,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to change the difficulty of shot ${event.shotId} of "
-        "project ${ocptLogFileName(project.path)}: ${error.runtimeType}",
+        "project ${project.primaryScreenplayId}: ${error.runtimeType}",
         null,
         stackTrace,
       );
@@ -1734,7 +1733,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to toggle role ${event.roleId} on shot ${event.shotId} "
-        "of project ${ocptLogFileName(project.path)}: ${error.runtimeType}",
+        "of project ${project.primaryScreenplayId}: ${error.runtimeType}",
         null,
         stackTrace,
       );
@@ -1776,7 +1775,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to add a character to shot "
-        "${event.shotId} of project ${ocptLogFileName(project.path)}: ${error.runtimeType}",
+        "${event.shotId} of project ${project.primaryScreenplayId}: ${error.runtimeType}",
         null,
         stackTrace,
       );
@@ -1864,7 +1863,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to delete shot ${event.shotId} of project "
-        "${ocptLogFileName(project.path)}: ${error.runtimeType}",
+        "${project.primaryScreenplayId}: ${error.runtimeType}",
         null,
         stackTrace,
       );
@@ -1939,7 +1938,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to $logContext of project "
-        "${ocptLogFileName(project.path)}: ${error.runtimeType}",
+        "${project.primaryScreenplayId}: ${error.runtimeType}",
         null,
         stackTrace,
       );
@@ -2152,7 +2151,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to change the scenario coverage of shot $shotId of "
-        "project ${ocptLogFileName(project.path)}: ${error.runtimeType}",
+        "project ${project.primaryScreenplayId}: ${error.runtimeType}",
         null,
         stackTrace,
       );
@@ -2241,7 +2240,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to import a storyboard frame onto shot ${event.shotId} "
-        "of project ${ocptLogFileName(project.path)}: ${error.runtimeType}",
+        "of project ${project.primaryScreenplayId}: ${error.runtimeType}",
         null,
         stackTrace,
       );
@@ -2276,7 +2275,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to replace the image of panel ${event.panelId} of "
-        "project ${ocptLogFileName(project.path)}: ${error.runtimeType}",
+        "project ${project.primaryScreenplayId}: ${error.runtimeType}",
         null,
         stackTrace,
       );
@@ -2350,7 +2349,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to reorder panel ${event.panelId} of project "
-        "${ocptLogFileName(project.path)}: ${error.runtimeType}",
+        "${project.primaryScreenplayId}: ${error.runtimeType}",
         null,
         stackTrace,
       );
@@ -2422,7 +2421,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to delete panel ${event.panelId} of project "
-        "${ocptLogFileName(project.path)}: ${error.runtimeType}",
+        "${project.primaryScreenplayId}: ${error.runtimeType}",
         null,
         stackTrace,
       );
@@ -2478,7 +2477,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to draw a ${event.kind} mark onto panel ${event.panelId} "
-        "of project ${ocptLogFileName(project.path)}: ${error.runtimeType}",
+        "of project ${project.primaryScreenplayId}: ${error.runtimeType}",
         null,
         stackTrace,
       );
@@ -2519,7 +2518,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to place a label onto panel ${event.panelId} of project "
-        "${ocptLogFileName(project.path)}: ${error.runtimeType}",
+        "${project.primaryScreenplayId}: ${error.runtimeType}",
         null,
         stackTrace,
       );
@@ -2584,7 +2583,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to delete mark ${event.annotationId} of project "
-        "${ocptLogFileName(project.path)}: ${error.runtimeType}",
+        "${project.primaryScreenplayId}: ${error.runtimeType}",
         null,
         stackTrace,
       );
@@ -2649,7 +2648,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to create a floor plan set on scene ${sequence.sceneId} "
-        "of project ${ocptLogFileName(project.path)}: ${error.runtimeType}",
+        "of project ${project.primaryScreenplayId}: ${error.runtimeType}",
         null,
         stackTrace,
       );
@@ -2695,7 +2694,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to link set ${event.setId} to scene ${sequence.sceneId} "
-        "of project ${ocptLogFileName(project.path)}: ${error.runtimeType}",
+        "of project ${project.primaryScreenplayId}: ${error.runtimeType}",
         null,
         stackTrace,
       );
@@ -2765,7 +2764,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to unlink set ${event.setId} of project "
-        "${ocptLogFileName(project.path)}: ${error.runtimeType}",
+        "${project.primaryScreenplayId}: ${error.runtimeType}",
         null,
         stackTrace,
       );
@@ -2815,7 +2814,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to duplicate set ${event.setId} of project "
-        "${ocptLogFileName(project.path)}: ${error.runtimeType}",
+        "${project.primaryScreenplayId}: ${error.runtimeType}",
         null,
         stackTrace,
       );
@@ -2851,7 +2850,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
       _logger.e(
         "A problem occurred when tried to copy shot ${event.sourceShotId}'s own blocking onto "
         "shot $destinationShotId of set ${event.setId} of project "
-        "${ocptLogFileName(project.path)}: ${error.runtimeType}",
+        "${project.primaryScreenplayId}: ${error.runtimeType}",
         null,
         stackTrace,
       );
@@ -2996,7 +2995,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to place a ${event.layer} symbol on set ${event.setId} "
-        "of project ${ocptLogFileName(project.path)}: ${error.runtimeType}",
+        "of project ${project.primaryScreenplayId}: ${error.runtimeType}",
         null,
         stackTrace,
       );
@@ -3070,7 +3069,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to move symbol ${event.symbolId} of project "
-        "${ocptLogFileName(project.path)}: ${error.runtimeType}",
+        "${project.primaryScreenplayId}: ${error.runtimeType}",
         null,
         stackTrace,
       );
@@ -3100,7 +3099,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to resize symbol ${event.symbolId} of project "
-        "${ocptLogFileName(project.path)}: ${error.runtimeType}",
+        "${project.primaryScreenplayId}: ${error.runtimeType}",
         null,
         stackTrace,
       );
@@ -3129,7 +3128,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to rotate symbol ${event.symbolId} of project "
-        "${ocptLogFileName(project.path)}: ${error.runtimeType}",
+        "${project.primaryScreenplayId}: ${error.runtimeType}",
         null,
         stackTrace,
       );
@@ -3165,7 +3164,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to delete symbol ${event.symbolId} of project "
-        "${ocptLogFileName(project.path)}: ${error.runtimeType}",
+        "${project.primaryScreenplayId}: ${error.runtimeType}",
         null,
         stackTrace,
       );
@@ -3204,7 +3203,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to delete symbol ${event.symbolId} everywhere, of "
-        "project ${ocptLogFileName(project.path)}: ${error.runtimeType}",
+        "project ${project.primaryScreenplayId}: ${error.runtimeType}",
         null,
         stackTrace,
       );
@@ -3279,7 +3278,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to hide symbol ${event.symbolId} for sequence "
-        "${event.targetSceneId} of project ${ocptLogFileName(project.path)}: "
+        "${event.targetSceneId} of project ${project.primaryScreenplayId}: "
         "${error.runtimeType}",
         null,
         stackTrace,
@@ -3359,7 +3358,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to hide symbol ${event.symbolId} for shot "
-        "${event.targetShotId} of project ${ocptLogFileName(project.path)}: ${error.runtimeType}",
+        "${event.targetShotId} of project ${project.primaryScreenplayId}: ${error.runtimeType}",
         null,
         stackTrace,
       );
@@ -3392,7 +3391,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to restore override ${event.symbolId} of project "
-        "${ocptLogFileName(project.path)}: ${error.runtimeType}",
+        "${project.primaryScreenplayId}: ${error.runtimeType}",
         null,
         stackTrace,
       );
@@ -3549,7 +3548,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to resolve the scope decision on symbol "
-        "${decision.symbolId} of project ${ocptLogFileName(project.path)}: ${error.runtimeType}",
+        "${decision.symbolId} of project ${project.primaryScreenplayId}: ${error.runtimeType}",
         null,
         stackTrace,
       );
@@ -3590,7 +3589,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to import the underlay of set ${event.setId} of project "
-        "${ocptLogFileName(project.path)}: ${error.runtimeType}",
+        "${project.primaryScreenplayId}: ${error.runtimeType}",
         null,
         stackTrace,
       );
@@ -3631,7 +3630,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to move/resize the underlay of set ${event.setId} of "
-        "project ${ocptLogFileName(project.path)}: ${error.runtimeType}",
+        "project ${project.primaryScreenplayId}: ${error.runtimeType}",
         null,
         stackTrace,
       );
@@ -3656,7 +3655,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to clear the underlay of set ${event.setId} of project "
-        "${ocptLogFileName(project.path)}: ${error.runtimeType}",
+        "${project.primaryScreenplayId}: ${error.runtimeType}",
         null,
         stackTrace,
       );
@@ -3786,7 +3785,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to add an arrow from symbol $anchor to ${event.symbolId} "
-        "of project ${ocptLogFileName(project.path)}: ${error.runtimeType}",
+        "of project ${project.primaryScreenplayId}: ${error.runtimeType}",
         null,
         stackTrace,
       );
@@ -3829,7 +3828,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to delete arrow ${event.arrowId} of project "
-        "${ocptLogFileName(project.path)}: ${error.runtimeType}",
+        "${project.primaryScreenplayId}: ${error.runtimeType}",
         null,
         stackTrace,
       );
@@ -3873,7 +3872,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to change the field of view of symbol ${event.symbolId} "
-        "of project ${ocptLogFileName(project.path)}: ${error.runtimeType}",
+        "of project ${project.primaryScreenplayId}: ${error.runtimeType}",
         null,
         stackTrace,
       );
@@ -3903,7 +3902,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to change the field-of-view reach of symbol "
-        "${event.symbolId} of project ${ocptLogFileName(project.path)}: ${error.runtimeType}",
+        "${event.symbolId} of project ${project.primaryScreenplayId}: ${error.runtimeType}",
         null,
         stackTrace,
       );
@@ -3950,7 +3949,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to bend arrow ${event.arrowId} of project "
-        "${ocptLogFileName(project.path)}: ${error.runtimeType}",
+        "${project.primaryScreenplayId}: ${error.runtimeType}",
         null,
         stackTrace,
       );
@@ -4008,7 +4007,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to duplicate symbol ${event.symbolId} of project "
-        "${ocptLogFileName(project.path)}: ${error.runtimeType}",
+        "${project.primaryScreenplayId}: ${error.runtimeType}",
         null,
         stackTrace,
       );

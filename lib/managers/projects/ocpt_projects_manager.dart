@@ -53,7 +53,6 @@ import 'package:open_cine_prod_tools/models/ocpt_project_working_copy_state.dart
 import 'package:open_cine_prod_tools/models/ocpt_recent_project_model.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_fractional_key.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_free_file_path.dart';
-import 'package:open_cine_prod_tools/models/rules/ocpt_log_subject.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_file_verdict.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_move_status.dart';
@@ -796,13 +795,12 @@ class OcptProjectsManager extends AbsWithLifeCycle {
       );
       await rememberProjectsDirectory(p.dirname(filePath));
 
-      _logger.i("A project was created: ${ocptLogFileName(filePath)}");
+      _logger.i("A project was created: $screenplayId");
 
       return ResultWithStatus(status: OcptProjectStatus.ok, value: project);
     } catch (error, stackTrace) {
       _logger.e(
-        "A problem occurred when tried to create the project "
-        "${ocptLogFileName(filePath)}: ${error.runtimeType}",
+        "A problem occurred when tried to create a project: ${error.runtimeType}",
         null,
         stackTrace,
       );
@@ -882,7 +880,7 @@ class OcptProjectsManager extends AbsWithLifeCycle {
 
       if (info == null || screenplay == null) {
         _logger.w(
-          "The project file at ${ocptLogFileName(filePath)} is missing its project info or its "
+          "A project file is missing its project info or its "
           "screenplay, it's considered corrupted",
         );
         await database.close();
@@ -925,22 +923,16 @@ class OcptProjectsManager extends AbsWithLifeCycle {
         ),
       );
 
-      _logger.i("A project was opened: ${ocptLogFileName(filePath)}, $episodeCount episode(s)");
+      _logger.i("A project was opened: ${screenplay.id}, $episodeCount episode(s)");
 
       return ResultWithStatus(status: OcptProjectStatus.ok, value: project);
     } on SqliteException catch (error, stackTrace) {
-      _logger.e(
-        "The project file at ${ocptLogFileName(filePath)} appears corrupted: "
-        "${error.runtimeType}",
-        null,
-        stackTrace,
-      );
+      _logger.e("A project file appears corrupted: ${error.runtimeType}", null, stackTrace);
       await database?.close();
       return const ResultWithStatus(status: OcptProjectStatus.corruptedFile);
     } catch (error, stackTrace) {
       _logger.e(
-        "A problem occurred when tried to open project ${ocptLogFileName(filePath)}: "
-        "${error.runtimeType}",
+        "A problem occurred when tried to open a project: ${error.runtimeType}",
         null,
         stackTrace,
       );
@@ -968,14 +960,14 @@ class OcptProjectsManager extends AbsWithLifeCycle {
     switch (compatibility.verdict) {
       case OcptProjectFileVerdict.newer:
         _logger.w(
-          "The project file at ${ocptLogFileName(filePath)} is in format "
+          "A project file is in format "
           "${compatibility.fileSchemaVersion}, which this build (format "
           "${compatibility.appSchemaVersion}) can't read: it's refused, not opened",
         );
         return (status: OcptProjectStatus.newerFormat, isMigrating: false);
       case OcptProjectFileVerdict.foreignDevBuild:
         _logger.w(
-          "The project file at ${ocptLogFileName(filePath)} is at this build's own format "
+          "A project file is at this build's own format "
           "(${compatibility.fileSchemaVersion}), but was last written by "
           "${compatibility.migratedByAppVersion}, a pre-release build that isn't this one: it's "
           "refused, not opened",
@@ -997,9 +989,9 @@ class OcptProjectsManager extends AbsWithLifeCycle {
         }
 
         _logger.i(
-          "The project file at ${ocptLogFileName(filePath)} is being migrated from format "
+          "A project file is being migrated from format "
           "${compatibility.fileSchemaVersion} to ${compatibility.appSchemaVersion}; a copy of "
-          "it was kept at ${ocptLogFileName(backupPath)}",
+          "it was kept",
         );
         return (status: null, isMigrating: true);
       case OcptProjectFileVerdict.current:
@@ -1659,7 +1651,7 @@ class OcptProjectsManager extends AbsWithLifeCycle {
 
     await _recordEpisodeCount(path: project.path, episodeCount: episodeCount);
 
-    _logger.i("A project was closed: ${ocptLogFileName(project.path)}");
+    _logger.i("A project was closed: ${project.primaryScreenplayId}");
   }
 
   /// Updates the recent-projects entry for the [currentProject] so it carries the episode count
@@ -1779,8 +1771,8 @@ class OcptProjectsManager extends AbsWithLifeCycle {
       }
     } catch (error, stackTrace) {
       _logger.e(
-        "A problem occurred when tried to move project ${ocptLogFileName(project.path)} to "
-        "${ocptLogFileName(newFilePath)}: ${error.runtimeType}",
+        "A problem occurred when tried to move project ${project.primaryScreenplayId} to "
+        "a new location: ${error.runtimeType}",
         null,
         stackTrace,
       );
@@ -1807,9 +1799,7 @@ class OcptProjectsManager extends AbsWithLifeCycle {
     await _propertiesManager.updateRecentProjectPath(oldPath: oldPath, newPath: newFilePath);
     await rememberProjectsDirectory(p.dirname(newFilePath));
 
-    _logger.i(
-      "A project was moved: ${ocptLogFileName(oldPath)} to ${ocptLogFileName(newFilePath)}",
-    );
+    _logger.i("A project was moved: ${project.primaryScreenplayId}");
 
     return ResultWithStatus(status: OcptProjectMoveStatus.ok, value: movedProject);
   }
@@ -1854,12 +1844,7 @@ class OcptProjectsManager extends AbsWithLifeCycle {
           await source.copy(destinationPath);
           await source.delete();
         } catch (error, stackTrace) {
-          _logger.w(
-            "Could not move the relay sidecar file ${ocptLogFileName(source.path)} to "
-            "${ocptLogFileName(destinationPath)}: ${error.runtimeType}",
-            null,
-            stackTrace,
-          );
+          _logger.w("Could not move a relay sidecar file: ${error.runtimeType}", null, stackTrace);
         }
       }
     }
@@ -1883,11 +1868,7 @@ class OcptProjectsManager extends AbsWithLifeCycle {
         await file.delete();
       }
     } catch (error, stackTrace) {
-      _logger.w(
-        "Could not delete ${ocptLogFileName(path)}: ${error.runtimeType}",
-        null,
-        stackTrace,
-      );
+      _logger.w("Could not delete a file: ${error.runtimeType}", null, stackTrace);
     }
   }
 

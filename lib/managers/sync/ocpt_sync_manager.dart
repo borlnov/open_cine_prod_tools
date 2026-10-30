@@ -24,7 +24,6 @@ import 'package:open_cine_prod_tools/managers/sync/services/ocpt_screenplay_merg
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_snapshot_service.dart';
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_sync_session.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
-import 'package:open_cine_prod_tools/models/rules/ocpt_log_subject.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_presence_roster.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_relay_invite.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_screenplay_merge_conflict.dart';
@@ -505,8 +504,9 @@ class OcptSyncManager extends AbsWithLifeCycle {
     );
 
     final database = OcptProjectDatabase(File(projectFilePath));
+    final String projectId;
     try {
-      final projectId = await _readSnapshottedProjectId(database);
+      projectId = await _readSnapshottedProjectId(database);
       await pairingService.savePairing(
         database: database,
         projectId: projectId,
@@ -517,7 +517,7 @@ class OcptSyncManager extends AbsWithLifeCycle {
       await database.close();
     }
 
-    _logger.i("A project was joined from a relay: ${ocptLogFileName(projectFilePath)}");
+    _logger.i("A project was joined from a relay: $projectId");
 
     return projectFilePath;
   }

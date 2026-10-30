@@ -49,7 +49,6 @@ import 'package:open_cine_prod_tools/models/rules/ocpt_budget_projection.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_budget_totals.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_budget_vat.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_cost_amount.dart';
-import 'package:open_cine_prod_tools/models/rules/ocpt_log_subject.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_resource_group_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_right_dock_tab.dart';
@@ -1115,7 +1114,7 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to flush a pending budget field edit of project "
-        "${ocptLogFileName(project.path)}: ${error.runtimeType}",
+        "${project.primaryScreenplayId}: ${error.runtimeType}",
         null,
         stackTrace,
       );
@@ -2475,7 +2474,7 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to export the quote of project "
-        "${ocptLogFileName(_projectsManager.currentProject?.path)}: ${error.runtimeType}",
+        "${_projectsManager.currentProject?.primaryScreenplayId}: ${error.runtimeType}",
         null,
         stackTrace,
       );
@@ -2529,7 +2528,7 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to export the financing plan of project "
-        "${ocptLogFileName(_projectsManager.currentProject?.path)}: ${error.runtimeType}",
+        "${_projectsManager.currentProject?.primaryScreenplayId}: ${error.runtimeType}",
         null,
         stackTrace,
       );
@@ -2583,7 +2582,7 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to export the cash journal of project "
-        "${ocptLogFileName(_projectsManager.currentProject?.path)}: ${error.runtimeType}",
+        "${_projectsManager.currentProject?.primaryScreenplayId}: ${error.runtimeType}",
         null,
         stackTrace,
       );
@@ -2637,7 +2636,7 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to export the financial report of project "
-        "${ocptLogFileName(_projectsManager.currentProject?.path)}: ${error.runtimeType}",
+        "${_projectsManager.currentProject?.primaryScreenplayId}: ${error.runtimeType}",
         null,
         stackTrace,
       );

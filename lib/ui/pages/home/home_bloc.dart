@@ -17,7 +17,6 @@ import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_package_manifest.dart';
-import 'package:open_cine_prod_tools/models/rules/ocpt_log_subject.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_file_verdict.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_route.dart';
@@ -477,8 +476,8 @@ class OcptHomeBloc extends BlocForMixin<OcptHomeState>
       );
     } catch (error, stackTrace) {
       _logger.e(
-        "A problem occurred when tried to import a fountain file into project "
-        "${ocptLogFileName(filePath)}: ${error.runtimeType}",
+        "A problem occurred when tried to import a fountain file into a project: "
+        "${error.runtimeType}",
         null,
         stackTrace,
       );

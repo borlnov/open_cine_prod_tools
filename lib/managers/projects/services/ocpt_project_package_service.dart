@@ -12,7 +12,6 @@ import 'package:open_cine_prod_tools/managers/abs_ocpt_service.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_package_manifest.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_package_report.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_erased_person_scrub.dart';
-import 'package:open_cine_prod_tools/models/rules/ocpt_log_subject.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_safe_file_name.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_package_status.dart';
 import 'package:path/path.dart' as p;
@@ -118,7 +117,7 @@ class OcptProjectPackageService extends AbsOcptService {
       });
     } catch (error, stackTrace) {
       logger.e(
-        "The assets of project ${ocptLogFileName(projectFilePath)} can't be scanned: "
+        "The assets of a project can't be scanned: "
         "${error.runtimeType}",
         null,
         stackTrace,
@@ -145,7 +144,7 @@ class OcptProjectPackageService extends AbsOcptService {
     required DateTime exportedAt,
   }) async {
     if (!File(projectFilePath).existsSync()) {
-      logger.e("The project ${ocptLogFileName(projectFilePath)} can't be packaged: no such file");
+      logger.e("A project can't be packaged: no such file");
       return const ResultWithStatus(status: OcptProjectPackageStatus.sourceNotFound);
     }
 
@@ -199,12 +198,7 @@ class OcptProjectPackageService extends AbsOcptService {
         ),
       );
     } catch (error, stackTrace) {
-      logger.e(
-        "The project ${ocptLogFileName(projectFilePath)} can't be packaged into "
-        "${ocptLogFileName(packageFilePath)}: ${error.runtimeType}",
-        null,
-        stackTrace,
-      );
+      logger.e("A project can't be packaged: ${error.runtimeType}", null, stackTrace);
       return const ResultWithStatus(status: OcptProjectPackageStatus.ioError);
     } finally {
       await _deleteQuietly(workingDirectory);
@@ -265,7 +259,7 @@ class OcptProjectPackageService extends AbsOcptService {
       archive = ZipDecoder().decodeStream(InputFileStream(packageFilePath));
     } catch (error, stackTrace) {
       logger.e(
-        "The package at ${ocptLogFileName(packageFilePath)} can't be read as a zip archive: "
+        "A package can't be read as a zip archive: "
         "${error.runtimeType}",
         null,
         stackTrace,
@@ -306,22 +300,20 @@ class OcptProjectPackageService extends AbsOcptService {
 
     final manifest = _readManifest(entriesByName[ocptPackageManifestEntry]);
     if (manifest == null) {
-      logger.e("The package at ${ocptLogFileName(packageFilePath)} carries no readable manifest");
+      logger.e("A package carries no readable manifest");
       return const ResultWithStatus(status: OcptProjectPackageStatus.unreadableArchive);
     }
 
     // An archive without the project database is not a package, whatever else it holds — the
     // manifest alone describes one without being one.
     if (!entriesByName.containsKey(ocptPackageDatabaseEntry)) {
-      logger.e(
-        "The package at ${ocptLogFileName(packageFilePath)} carries no $ocptPackageDatabaseEntry",
-      );
+      logger.e("A package carries no $ocptPackageDatabaseEntry");
       return const ResultWithStatus(status: OcptProjectPackageStatus.unreadableArchive);
     }
 
     if (manifest.packageFormat <= 0) {
       logger.e(
-        "The package at ${ocptLogFileName(packageFilePath)} states no readable packageFormat: "
+        "A package states no readable packageFormat: "
         "refused rather than guessed",
       );
       return const ResultWithStatus(status: OcptProjectPackageStatus.unreadableArchive);
@@ -329,7 +321,7 @@ class OcptProjectPackageService extends AbsOcptService {
 
     if (manifest.packageFormat > ocptCurrentPackageFormat) {
       logger.w(
-        "The package at ${ocptLogFileName(packageFilePath)} is in format "
+        "A package is in format "
         "${manifest.packageFormat}, which this build (format $ocptCurrentPackageFormat) doesn't "
         "know how to read: refused, nothing written",
       );
@@ -342,10 +334,7 @@ class OcptProjectPackageService extends AbsOcptService {
     );
     final destinationDirectory = Directory(p.join(parentDirectoryPath, folderName));
     if (destinationDirectory.existsSync()) {
-      logger.w(
-        "The import of ${ocptLogFileName(packageFilePath)} is refused: "
-        "${ocptLogFileName(destinationDirectory.path)} already exists",
-      );
+      logger.w("The import of a package is refused: its destination folder already exists");
       return const ResultWithStatus(status: OcptProjectPackageStatus.destinationExists);
     }
 
@@ -378,7 +367,7 @@ class OcptProjectPackageService extends AbsOcptService {
       );
     } on _OcptZipSlipException catch (error, stackTrace) {
       logger.e(
-        "The package at ${ocptLogFileName(packageFilePath)} can't be trusted: "
+        "A package can't be trusted: "
         "${error.runtimeType}",
         null,
         stackTrace,
@@ -387,7 +376,7 @@ class OcptProjectPackageService extends AbsOcptService {
       return const ResultWithStatus(status: OcptProjectPackageStatus.unreadableArchive);
     } catch (error, stackTrace) {
       logger.e(
-        "The package at ${ocptLogFileName(packageFilePath)} can't be unpacked: "
+        "A package can't be unpacked: "
         "${error.runtimeType}",
         null,
         stackTrace,
@@ -683,7 +672,7 @@ class OcptProjectPackageService extends AbsOcptService {
       await directory.delete(recursive: true);
     } catch (error, stackTrace) {
       logger.w(
-        "The temporary packaging folder ${ocptLogFileName(directory.path)} can't be deleted: "
+        "A temporary packaging folder can't be deleted: "
         "${error.runtimeType}",
         null,
         stackTrace,

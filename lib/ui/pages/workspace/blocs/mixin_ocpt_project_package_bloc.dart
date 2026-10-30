@@ -16,7 +16,6 @@ import 'package:open_cine_prod_tools/models/ocpt_project_package_manifest.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_package_notice.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_package_report.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_package_target.dart';
-import 'package:open_cine_prod_tools/models/rules/ocpt_log_subject.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_package_notice_kind.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project_package_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_project_package_events.dart';
@@ -163,7 +162,7 @@ mixin MixinOcptProjectPackageBloc<S extends MixinOcptProjectPackageState<S>> on 
     final preflight = projectsManager.scanProjectPackageAssets(projectFilePath: target.filePath);
     if (preflight == null) {
       _logger.e(
-        "The files referenced by project ${ocptLogFileName(target.filePath)} can't be scanned, "
+        "The files referenced by a project can't be scanned, "
         "so no package can be written",
       );
       _emitNotice(
@@ -248,7 +247,7 @@ mixin MixinOcptProjectPackageBloc<S extends MixinOcptProjectPackageState<S>> on 
       }
     } catch (error, stackTrace) {
       _logger.e(
-        "A problem occurred when tried to package project ${ocptLogFileName(target.filePath)}: "
+        "A problem occurred when tried to package a project: "
         "${error.runtimeType}",
         null,
         stackTrace,
@@ -354,10 +353,7 @@ mixin MixinOcptProjectPackageBloc<S extends MixinOcptProjectPackageState<S>> on 
 
     final report = result.value;
     if (!result.status.isSuccess || report == null) {
-      _logger.e(
-        "The project ${ocptLogFileName(target.filePath)} can't be packaged into "
-        "${ocptLogFileName(packagePath)}: ${result.status}",
-      );
+      _logger.e("A project can't be packaged: ${result.status}");
       _emitNotice(
         emitter,
         const OcptProjectPackageNotice(kind: OcptProjectPackageNoticeKind.exportFailed),

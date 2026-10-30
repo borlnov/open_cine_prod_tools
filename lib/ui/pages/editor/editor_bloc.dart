@@ -20,7 +20,6 @@ import 'package:open_cine_prod_tools/managers/projects/services/ocpt_project_dic
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_screenplay_service.dart';
 import 'package:open_cine_prod_tools/models/ocpt_open_project_model.dart';
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
-import 'package:open_cine_prod_tools/models/rules/ocpt_log_subject.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_spell_checked_lines.dart';
 import 'package:open_cine_prod_tools/types/ocpt_editor_mode.dart';
 import 'package:open_cine_prod_tools/types/ocpt_editor_right_dock_tab.dart';
@@ -721,7 +720,7 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to save the screenplay of project "
-        "${ocptLogFileName(project.path)}: ${error.runtimeType}",
+        "${project.primaryScreenplayId}: ${error.runtimeType}",
         null,
         stackTrace,
       );
@@ -1493,7 +1492,7 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to export the screenplay of project "
-        "${ocptLogFileName(_projectsManager.currentProject?.path)}: ${error.runtimeType}",
+        "${_projectsManager.currentProject?.primaryScreenplayId}: ${error.runtimeType}",
         null,
         stackTrace,
       );
@@ -1554,7 +1553,7 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to export the screenplay of project "
-        "${ocptLogFileName(_projectsManager.currentProject?.path)} to PDF: ${error.runtimeType}",
+        "${_projectsManager.currentProject?.primaryScreenplayId} to PDF: ${error.runtimeType}",
         null,
         stackTrace,
       );
@@ -1635,7 +1634,7 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to import a fountain file into project "
-        "${ocptLogFileName(project.path)}: ${error.runtimeType}",
+        "${project.primaryScreenplayId}: ${error.runtimeType}",
         null,
         stackTrace,
       );
@@ -1905,7 +1904,7 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
       } catch (error, stackTrace) {
         _logger.e(
           "A problem occurred when tried to flush the screenplay of project "
-          "${ocptLogFileName(project.path)} while leaving the editor: ${error.runtimeType}",
+          "${project.primaryScreenplayId} while leaving the editor: ${error.runtimeType}",
           null,
           stackTrace,
         );
