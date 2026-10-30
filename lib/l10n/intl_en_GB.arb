@@ -744,6 +744,20 @@
     "type": "text",
     "placeholders": {}
   },
+  "editorFindMatchCaseLabel": "Aa",
+  "@editorFindMatchCaseLabel": {
+    "description": "Glyph label of the find field's case-sensitivity toggle",
+    "context": "Drawn inside the toggle button itself, next to the find field's text",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorFindWholeWordLabel": "ab",
+  "@editorFindWholeWordLabel": {
+    "description": "Glyph label of the find field's whole-word toggle",
+    "context": "Drawn inside the toggle button itself, next to the find field's text",
+    "type": "text",
+    "placeholders": {}
+  },
   "editorFindMatchCaseTooltip": "Match case",
   "@editorFindMatchCaseTooltip": {
     "description": "Tooltip of the find field's case-sensitivity toggle",

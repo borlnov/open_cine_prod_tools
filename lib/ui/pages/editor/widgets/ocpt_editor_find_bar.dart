@@ -223,13 +223,13 @@ class _OcptEditorFindBarState extends State<OcptEditorFindBar> {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           _OcptSearchOptionToggle(
-                            label: "Aa",
+                            label: tr.editorFindMatchCaseLabel,
                             tooltip: tr.editorFindMatchCaseTooltip,
                             isSelected: widget.isCaseSensitive,
                             onPressed: widget.onCaseSensitivityToggled,
                           ),
                           _OcptSearchOptionToggle(
-                            label: "ab",
+                            label: tr.editorFindWholeWordLabel,
                             tooltip: tr.editorFindWholeWordTooltip,
                             isSelected: widget.isWholeWord,
                             onPressed: widget.onWholeWordToggled,

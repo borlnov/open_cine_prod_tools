@@ -102,6 +102,8 @@
   "editorReplaceHint": "Remplacer…",
   "editorFindMatchCounter": "{current}/{total}",
   "editorFindNoMatches": "Aucun résultat",
+  "editorFindMatchCaseLabel": "Aa",
+  "editorFindWholeWordLabel": "ab",
   "editorFindMatchCaseTooltip": "Respecter la casse",
   "editorFindWholeWordTooltip": "Mot entier",
   "editorFindPreviousTooltip": "Occurrence précédente",
