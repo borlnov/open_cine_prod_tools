@@ -365,17 +365,6 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
   List<OcptRoleCandidate> candidatesOfRole(String roleId) =>
       snapshot?.candidatesByRoleId[roleId] ?? const [];
 
-  /// [candidatesOfRole] of [selectedRoleId], or the empty list while no role is selected — what
-  /// the candidates card of the selected role's sheet draws.
-  List<OcptRoleCandidate> get selectedRoleCandidates {
-    final selectedRoleId = this.selectedRoleId;
-    if (selectedRoleId == null) {
-      return const [];
-    }
-
-    return candidatesOfRole(selectedRoleId);
-  }
-
   /// Every location of [snapshot], in display order (empty while nothing is loaded).
   List<OcptLocation> get locations => snapshot?.locations ?? const [];
 

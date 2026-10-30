@@ -72,25 +72,6 @@ OcptFloorPlanLayer? ocptFloorPlanFixedLayerOf(OcptFloorPlanTool tool) => switch 
   OcptFloorPlanTool.label => null,
 };
 
-/// Whether a [OcptFloorPlanTool] only ever places or acts on the **focused shot**'s own shot
-/// layers — [OcptFloorPlanTool.camera], [OcptFloorPlanTool.character], [OcptFloorPlanTool.light]
-/// and [OcptFloorPlanTool.arrow] — the tool bar's own dimming rule under the `Sequence` focus.
-extension OcptFloorPlanToolScope on OcptFloorPlanTool {
-  /// True for the three shot-scoped tools plus [OcptFloorPlanTool.arrow]; false for
-  /// [OcptFloorPlanTool.select], [OcptFloorPlanTool.setElement]/[OcptFloorPlanTool.prop]
-  /// (sequence-scoped) and [OcptFloorPlanTool.label] (scope-free).
-  bool get requiresShotFocus => switch (this) {
-    OcptFloorPlanTool.select => false,
-    OcptFloorPlanTool.setElement => false,
-    OcptFloorPlanTool.prop => false,
-    OcptFloorPlanTool.camera => true,
-    OcptFloorPlanTool.character => true,
-    OcptFloorPlanTool.light => true,
-    OcptFloorPlanTool.arrow => true,
-    OcptFloorPlanTool.label => false,
-  };
-}
-
 /// One palette entry's own drag-and-drop payload (the typed set tools): which [tool] a drop
 /// places, and — for one of the typed [OcptFloorPlanTool.setElement] entries
 /// (wall/door/furniture/freeform) — which [setElementShape] it places, which [sceneScope] it

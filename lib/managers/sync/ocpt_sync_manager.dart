@@ -153,14 +153,6 @@ class OcptSyncManager extends AbsWithLifeCycle {
   /// [_presenceRosterController], cancelled when the service stops.
   StreamSubscription<OcptPresenceRoster>? _presenceRosterForwarder;
 
-  /// Opens the directory transport rooted at [directory].
-  ///
-  /// This is the one [OcptRemoteStorage] implementation the changeset engine has to exercise
-  /// against today; [openRelayRemoteStorage] is the second, once a project is actually paired
-  /// with a relay.
-  OcptRemoteStorage openFolderRemoteStorage(Directory directory) =>
-      OcptFolderRemoteStorage(directory);
-
   /// Opens the relay transport [pairing] describes, for [projectId].
   ///
   /// [enrolmentSecret] is only ever needed the first time [projectId] is pushed to a relay that
@@ -492,8 +484,8 @@ class OcptSyncManager extends AbsWithLifeCycle {
   /// (`OcptOpenProjectModel.fileDatabase`), never a read-only preview — see
   /// `OcptSyncSession`'s own doc comment. [relayId] is normally [relayIdFor] against the pairing
   /// [storage] itself came from ([openRelayRemoteStorage]'s own caller already has that pairing in
-  /// hand); a caller syncing over [openFolderRemoteStorage] instead picks its own stable id, since
-  /// a directory has no URL to derive one from.
+  /// hand); a caller syncing over an [OcptFolderRemoteStorage] instead picks its own stable id,
+  /// since a directory has no URL to derive one from.
   ///
   /// Also starts an [OcptPresenceService] over the very same [storage] and [deviceId] — see
   /// [presenceRoster]/[presenceRosterStream]/[updatePresenceMode]. [presenceHeartbeatInterval] and
@@ -630,6 +622,8 @@ class OcptSyncManager extends AbsWithLifeCycle {
   /// the workspace has already been built.
   Stream<OcptSyncStatus?> get syncStatusChanges => _syncStatusController.stream;
 
+  // TODO(borlnov): Read by the screen that resolves a screenplay conflict,
+  // https://github.com/borlnov/open_cine_prod_tools/issues/116
   /// Every screenplay merge conflict the running session has raised so far, oldest first, or an
   /// empty list when no session is running.
   List<OcptScreenplayMergeConflict> get syncConflicts => _syncSession?.conflicts ?? const [];

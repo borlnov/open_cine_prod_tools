@@ -21,13 +21,5 @@ enum OcptShotDifficultyAxis {
   acting,
 
   /// The difficulty of the sound recording.
-  sound;
-
-  /// This axis's current value on [shot], on the 0-5 scale.
-  int valueOf(OcptShot shot) => switch (this) {
-    OcptShotDifficultyAxis.set => shot.difficultySet,
-    OcptShotDifficultyAxis.camera => shot.difficultyCamera,
-    OcptShotDifficultyAxis.acting => shot.difficultyActing,
-    OcptShotDifficultyAxis.sound => shot.difficultySound,
-  };
+  sound,
 }

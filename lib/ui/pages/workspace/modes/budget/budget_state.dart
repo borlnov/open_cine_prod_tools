@@ -504,40 +504,6 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
     return null;
   }
 
-  /// The selected taking, or null while none is selected (or the selected one disappeared from a
-  /// freshly loaded [snapshot]) — mirrors [selectedResource].
-  OcptBudgetRevenue? get selectedRevenue {
-    final selectedRevenueId = this.selectedRevenueId;
-    if (selectedRevenueId == null) {
-      return null;
-    }
-
-    for (final revenue in revenues) {
-      if (revenue.id == selectedRevenueId) {
-        return revenue;
-      }
-    }
-
-    return null;
-  }
-
-  /// The selected share, or null while none is selected (or the selected one disappeared from a
-  /// freshly loaded [snapshot]) — mirrors [selectedResource].
-  OcptBudgetShare? get selectedShare {
-    final selectedShareId = this.selectedShareId;
-    if (selectedShareId == null) {
-      return null;
-    }
-
-    for (final share in shares) {
-      if (share.id == selectedShareId) {
-        return share;
-      }
-    }
-
-    return null;
-  }
-
   /// [targetId]'s current value for [field] — a pending edit still sitting in [pendingFieldEdits],
   /// or [storedValue] (the record's own value, read off the call site) otherwise, exactly as
   /// `OcptScheduleState.fieldValueOf` resolves a day's, a slot's or a block's own fields.

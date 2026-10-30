@@ -4,7 +4,6 @@
 
 import 'package:equatable/equatable.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
-import 'package:open_cine_prod_tools/models/ocpt_money.dart';
 
 /// One movement of the cash journal: money that actually left or entered the account. See
 /// `OcptBudgetEntriesTable`'s own doc comment for the money and nullability representation this
@@ -65,19 +64,6 @@ class OcptBudgetEntry extends Equatable {
   /// The person this debit actually reimburses, or null — see `OcptBudgetEntriesTable.personId`'s
   /// own doc comment: null is the normal case, a movement that reimburses nobody.
   final String? personId;
-
-  /// This entry's tax triple ([debitCents], [creditCents], [isTaxInclusive],
-  /// [vatRateBasisPoints]), read as a single signed cash figure: [OcptMoney.amountCents] is
-  /// [creditCents] minus [debitCents], negative when this entry is, on balance, a cost.
-  ///
-  /// A helper reading over [debitCents] and [creditCents] rather than a stored field of its own —
-  /// both plain fields stay on this model too, since `lib/utils/ocpt_budget_projection.dart` (the
-  /// journal's running balance) needs to tell a debit from a credit apart, not only their sum.
-  OcptMoney get signedAmount => OcptMoney(
-    amountCents: creditCents - debitCents,
-    isTaxInclusive: isTaxInclusive,
-    vatRateBasisPoints: vatRateBasisPoints,
-  );
 
   /// Class constructor
   const OcptBudgetEntry({

@@ -553,23 +553,6 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
     return null;
   }
 
-  /// The symbol [selectedFloorPlanSymbolId] identifies among [selectedSet]'s own symbols, or null
-  /// if none is selected (or the selected one disappeared from a freshly loaded
-  /// [floorPlanSnapshot]).
-  OcptFloorPlanSymbol? get selectedFloorPlanSymbol {
-    final selectedFloorPlanSymbolId = this.selectedFloorPlanSymbolId;
-    final selectedSet = this.selectedSet;
-    if (selectedFloorPlanSymbolId == null || selectedSet == null) {
-      return null;
-    }
-    for (final symbol in selectedSet.symbols) {
-      if (symbol.id == selectedFloorPlanSymbolId) {
-        return symbol;
-      }
-    }
-    return null;
-  }
-
   /// The floor plans view's own focus — **derived, never a second field**: `true` while a shot is
   /// selected (the shot focus), `false`
   /// while none is (the `Sequence` focus). Every floor plans widget that needs to know which of the

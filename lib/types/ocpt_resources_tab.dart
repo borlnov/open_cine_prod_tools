@@ -15,12 +15,5 @@ enum OcptResourcesTab {
   locations,
 
   /// The physical elements catalogue (props, costumes, vehicles, equipment…).
-  elements;
-
-  /// Whether this tab shows real content today, rather than the shared "coming in a future
-  /// version" placeholder line.
-  ///
-  /// True for [people] and [roles] only; nothing reads it now that [locations] and [elements] show
-  /// their own lists as well.
-  bool get hasContent => this == OcptResourcesTab.people || this == OcptResourcesTab.roles;
+  elements,
 }

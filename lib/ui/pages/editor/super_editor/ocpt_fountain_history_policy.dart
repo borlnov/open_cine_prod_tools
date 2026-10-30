@@ -29,7 +29,7 @@ const Duration ocptTypingMergeWindow = Duration(milliseconds: 700);
 /// the document would change, the debounce would restart, and the pass would re-derive exactly
 /// what was just undone and push it back as a *new* transaction, forever. A
 /// [HistoryGroupingPolicy] is the only merge hook `Editor` offers, so this class is how a derived
-/// pass joins the transaction that caused it: [runDerivedPass] raises [isSettling] around the
+/// pass joins the transaction that caused it: [runDerivedPass] raises a flag around the
 /// `execute` calls themselves (never around the debounce — `Editor.endTransaction` is what
 /// consults the policy, and it runs synchronously inside `execute`), and every transaction closed
 /// while it is up merges onto the one before it.
@@ -58,11 +58,10 @@ class OcptSettleMergePolicy implements HistoryGroupingPolicy {
   /// Whether a derived pass is currently executing, i.e. whether the transaction being closed
   /// belongs to the editor's own settle/renumber/repaginate work rather than to a gesture of the
   /// writer's. Raised only by [runDerivedPass].
-  bool get isSettling => _isSettling;
   bool _isSettling = false;
 
-  /// Runs [derivedPass] with [isSettling] raised, so every transaction it closes merges onto the
-  /// transaction that caused it instead of becoming an undo step of its own.
+  /// Runs [derivedPass] with the settling flag raised, so every transaction it closes merges onto
+  /// the transaction that caused it instead of becoming an undo step of its own.
   ///
   /// Re-entrant on purpose (the flag is restored, not cleared): a settle pass can trigger a
   /// document change whose own listener schedules another one, and the outer pass must not lose

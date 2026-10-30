@@ -69,9 +69,6 @@ class OcptConvocationSlot {
   /// [filmingStartMinute].
   final int? filmingEndMinute;
 
-  /// Whether this slot carries any filming block at all ([filmingStartMinute] is set).
-  bool get hasFilmingBlock => filmingStartMinute != null;
-
   /// Every person linked to this slot as a human: its crew rows' own people, plus the actors of its
   /// cast roles that are cast — resolving a role's actor is the caller's job, this file knowing
   /// nothing of `roles.personId`.
@@ -277,9 +274,9 @@ class OcptDayConvocation {
   final int? patEndMinute;
 
   /// Whether the band above is a **PAT** (*prêt à tourner*) band, or merely a presence one: true
-  /// when any slot this convocation is linked to films ([OcptConvocationSlot.hasFilmingBlock]), in
-  /// which case the band covers the filming blocks **alone**; false when the work it covers is
-  /// auditions and rehearsals alone.
+  /// when any slot this convocation is linked to films ([OcptConvocationSlot.filmingStartMinute] is
+  /// set), in which case the band covers the filming blocks **alone**; false when the work it
+  /// covers is auditions and rehearsals alone.
   ///
   /// A PAT band never stretches over an audition or a rehearsal: a slot that auditions at 09:00 and
   /// shoots from 13:00 gives its unit `PAT 13:00`, and the morning is carried by the arrival. A PAT
@@ -317,8 +314,8 @@ class OcptDayConvocation {
 ///
 /// - [OcptDayConvocation.arrivalMinute] is the minimum `startMinute` over `S`.
 /// - [OcptDayConvocation.isPatBand] is true when any slot of `S` carries a filming block
-///   (`OcptConvocationSlot.hasFilmingBlock`), which is what says whether the band may be called
-///   *prêt à tourner* at all.
+///   (`OcptConvocationSlot.filmingStartMinute` is set), which is what says whether the band may be
+///   called *prêt à tourner* at all.
 /// - [OcptDayConvocation.patStartMinute]/[OcptDayConvocation.patEndMinute] are then the minimum
 ///   non-null `filmingStartMinute` and the maximum non-null `filmingEndMinute` over `S`: the
 ///   filming blocks alone, so neither an audition nor a rehearsal ever stretches a PAT band. When

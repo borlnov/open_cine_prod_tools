@@ -57,16 +57,9 @@ Offset ocptFloorPlanMetrePointOf({
   );
 }
 
-/// A screen-space vector, converted from plan metres at [zoom] — a pure scale with no translation,
-/// what a drag's own per-frame delta is converted through (never through
-/// [ocptFloorPlanMetrePointOf], which would also subtract the canvas centre and the pan offset).
-Offset ocptFloorPlanMetresToScreenVector({required Offset metres, required double zoom}) {
-  final pixelsPerMetre = ocptFloorPlanPixelsPerMetreAt(zoom);
-  return metres * pixelsPerMetre;
-}
-
-/// The inverse of [ocptFloorPlanMetresToScreenVector]: a screen-space delta converted to plan
-/// metres at [zoom].
+/// A screen-space delta converted to plan metres at [zoom] — a pure scale with no translation, what
+/// a drag's own per-frame delta is converted through (never through [ocptFloorPlanMetrePointOf],
+/// which would also subtract the canvas centre and the pan offset).
 Offset ocptFloorPlanScreenVectorToMetres({required Offset screenDelta, required double zoom}) {
   final pixelsPerMetre = ocptFloorPlanPixelsPerMetreAt(zoom);
   return Offset(screenDelta.dx / pixelsPerMetre, screenDelta.dy / pixelsPerMetre);
