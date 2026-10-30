@@ -1473,9 +1473,9 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
   /// this mode is the one that reads every one of them at once: deleting an episode there
   /// tombstones its scenes, its shots and the blocks placing them, none of which the shell's own
   /// episode reload can tell this mode about — the mode is keyed on the *selected* episode
-  /// (`WorkspacePage._buildActiveMode`) and a mode showing no selector never sees that key change.
-  /// A partial re-read would leave a deleted episode's shots on the board, so the whole read is
-  /// redone, exactly as [reloadFromProjectDatabase] redoes it.
+  /// (`OcptWorkspacePage._buildActiveMode`) and a mode showing no selector never sees that key
+  /// change. A partial re-read would leave a deleted episode's shots on the board, so the whole
+  /// read is redone, exactly as [reloadFromProjectDatabase] redoes it.
   ///
   /// The cost is the one [_onLoadRequested] always carries and states: the selected day is chosen
   /// afresh, and the selected block and shot are dropped. Coming back from a page reached through

@@ -50,9 +50,9 @@ const double _ocptMobileUiScale = 1.2;
 /// the bloc state's own theme model (the global [ocptTheme]) unchanged and `.sp`/`.w`/`.r` are
 /// never called. Phones and tablets are told apart by the rotation-invariant shortest side, the
 /// same 600dp line the orientation policy and Android's `sw600dp` qualifier draw.
-class MainAppUi extends StatelessWidget {
+class OcptMainAppUi extends StatelessWidget {
   /// Creates the main app widget.
-  const MainAppUi({super.key});
+  const OcptMainAppUi({super.key});
 
   @override
   Widget build(BuildContext context) {

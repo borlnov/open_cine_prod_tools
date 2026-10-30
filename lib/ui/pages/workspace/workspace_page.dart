@@ -26,16 +26,16 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/workspace_state.dart';
 /// know about it, let alone thread its active value and selection callback through.
 ///
 /// The `OcptRouterManager` workspace guard guarantees a project is open when this page is reached.
-class WorkspacePage extends StatelessWidget {
+class OcptWorkspacePage extends StatelessWidget {
   /// Creates the workspace page.
-  const WorkspacePage({super.key});
+  const OcptWorkspacePage({super.key});
 
   @override
   Widget build(BuildContext context) =>
       BlocProvider(create: (context) => OcptWorkspaceBloc(), child: const _WorkspaceView());
 }
 
-/// The content of [WorkspacePage], separated from it so [WorkspacePage] only wires the
+/// The content of [OcptWorkspacePage], separated from it so [OcptWorkspacePage] only wires the
 /// [OcptWorkspaceBloc] up (RFL3).
 class _WorkspaceView extends StatelessWidget {
   /// Class constructor
@@ -88,7 +88,7 @@ class _WorkspaceView extends StatelessWidget {
     final key = ValueKey(state.selectedEpisodeId);
 
     return switch (state.mode) {
-      OcptWorkspaceMode.screenplay => EditorPage(key: key),
+      OcptWorkspaceMode.screenplay => OcptEditorPage(key: key),
       OcptWorkspaceMode.breakdown => OcptBreakdownMode(key: key),
       OcptWorkspaceMode.budget => OcptBudgetMode(key: key),
       OcptWorkspaceMode.schedule => OcptScheduleMode(key: key),

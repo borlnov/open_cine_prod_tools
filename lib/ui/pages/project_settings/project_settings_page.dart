@@ -39,7 +39,7 @@ const _maxContentWidth = 720.0;
 ///
 /// Reached from every production mode's own toolbar
 /// (`OcptWorkspaceShell.onProjectSettingsRequested`) rather than a dialog: each field writes to the
-/// project the moment it changes, exactly like the app-wide `SettingsPage`'s appearance and
+/// project the moment it changes, exactly like the app-wide `OcptSettingsPage`'s appearance and
 /// language sections, so there is no separate save step and nothing to cancel.
 /// `OcptRouterManager.pop<bool>` hands the caller whether anything actually changed, so a mode with
 /// something to repaginate (the screenplay, on a page-format change) knows whether it is worth

@@ -67,7 +67,7 @@ void main() {
   // a selection, but the raw source field's own `TextField` shares the same concern.
   BlinkController.indeterminateAnimationsEnabled = false;
 
-  // WorkspacePage builds its OcptWorkspaceBloc (and, in screenplay mode, EditorPage's own
+  // OcptWorkspacePage builds its OcptWorkspaceBloc (and, in screenplay mode, OcptEditorPage's own
   // OcptEditorBloc) internally, both resolving their managers from globalGetIt() by default; real
   // (but test-controlled) instances are registered in the app's actual GetIt instance once, like
   // the editor page test does.
@@ -132,10 +132,10 @@ void main() {
   testWidgets('defaults to the screenplay mode, with the mode switcher always shown', (
     tester,
   ) async {
-    await tester.pumpWidget(_wrapWithLocalization(const WorkspacePage()));
+    await tester.pumpWidget(_wrapWithLocalization(const OcptWorkspacePage()));
     await tester.pumpAndSettle();
 
-    expect(find.byType(EditorPage), findsOneWidget);
+    expect(find.byType(OcptEditorPage), findsOneWidget);
     expect(find.byType(OcptWorkspaceModeSwitcher), findsOneWidget);
   });
 
@@ -150,22 +150,22 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
 
-    await tester.pumpWidget(_wrapWithLocalization(const WorkspacePage()));
+    await tester.pumpWidget(_wrapWithLocalization(const OcptWorkspacePage()));
     await tester.pumpAndSettle();
 
-    final tr = Tr.of(tester.element(find.byType(WorkspacePage)));
+    final tr = Tr.of(tester.element(find.byType(OcptWorkspacePage)));
 
     await tester.tap(find.text(tr.workspaceModeBudget));
     await tester.pumpAndSettle();
 
-    expect(find.byType(EditorPage), findsNothing);
+    expect(find.byType(OcptEditorPage), findsNothing);
     expect(find.byType(OcptBudgetMode), findsOneWidget);
     expect(find.byType(OcptEditorSourceField), findsNothing);
 
     await tester.tap(find.text(tr.workspaceModeScreenplay));
     await tester.pumpAndSettle();
 
-    expect(find.byType(EditorPage), findsOneWidget);
+    expect(find.byType(OcptEditorPage), findsOneWidget);
     expect(find.byType(OcptBudgetMode), findsNothing);
   });
 
@@ -179,10 +179,10 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
 
-    await tester.pumpWidget(_wrapWithLocalization(const WorkspacePage()));
+    await tester.pumpWidget(_wrapWithLocalization(const OcptWorkspacePage()));
     await tester.pumpAndSettle();
 
-    final tr = Tr.of(tester.element(find.byType(WorkspacePage)));
+    final tr = Tr.of(tester.element(find.byType(OcptWorkspacePage)));
 
     final textFieldFinder = find.descendant(
       of: find.byType(OcptEditorSourceField),
@@ -219,18 +219,19 @@ void main() {
     );
     expect(secondEpisodeId, isNotNull);
 
-    await tester.pumpWidget(_wrapWithLocalization(const WorkspacePage()));
+    await tester.pumpWidget(_wrapWithLocalization(const OcptWorkspacePage()));
     await tester.pumpAndSettle();
 
-    // The keyed remount (`WorkspacePage._buildActiveMode`) is what this test is actually about: a
-    // fresh key means a fresh `EditorPage` element, and therefore a fresh `OcptEditorBloc` loading
-    // from scratch, rather than the very same widget instance simply being rebuilt in place.
+    // The keyed remount (`OcptWorkspacePage._buildActiveMode`) is what this test is actually about:
+    // a fresh key means a fresh `OcptEditorPage` element, and therefore a fresh `OcptEditorBloc`
+    // loading from scratch, rather than the very same widget instance simply being rebuilt in
+    // place.
     expect(
-      tester.widget<EditorPage>(find.byType(EditorPage)).key,
+      tester.widget<OcptEditorPage>(find.byType(OcptEditorPage)).key,
       ValueKey<String?>(firstEpisodeId),
     );
 
-    final tr = Tr.of(tester.element(find.byType(WorkspacePage)));
+    final tr = Tr.of(tester.element(find.byType(OcptWorkspacePage)));
     await tester.tap(find.byTooltip(tr.workspaceEpisodeSelectorTooltip));
     await tester.pumpAndSettle();
 
@@ -238,7 +239,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(
-      tester.widget<EditorPage>(find.byType(EditorPage)).key,
+      tester.widget<OcptEditorPage>(find.byType(OcptEditorPage)).key,
       ValueKey<String?>(secondEpisodeId),
     );
   });

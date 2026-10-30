@@ -45,7 +45,7 @@ class OcptGlobalManager extends AbsUiGlobalManager {
     registerManagerAsync<PlatformManager>(const PlatformBuilder());
     registerManagerAsync<LoggerManager>(ExtDefaultLoggerBuilder<OcptConfigManager>());
     registerManagerAsync<UiFatalErrorManager>(
-      UiFatalErrorBuilder((error) => FatalErrorPage(error: error)),
+      UiFatalErrorBuilder((error) => OcptFatalErrorPage(error: error)),
     );
     registerManagerAsync<OcptFileLoggingManager>(const OcptFileLoggingManagerBuilder());
     registerManagerAsync<OcptDiagnosticsManager>(const OcptDiagnosticsManagerBuilder());

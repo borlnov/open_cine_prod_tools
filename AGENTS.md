@@ -254,8 +254,8 @@ A project rule overrides these. The overrides this project has made:
 - **RFL2:** a test's mounting helper (`Widget _wrap(...)`) may stay a function, since it is never
   rebuilt.
 - **RFL5:** `ScreenUtilInit` stays at the app root, but only the theme uses its extensions, and only
-  on a phone (`MainAppUi`). Widgets do not use them and may state logical pixel sizes: the density of
-  this desktop-first UI lives in the component themes of `lib/constants/ocpt_theme.dart`.
+  on a phone (`OcptMainAppUi`). Widgets do not use them and may state logical pixel sizes: the
+  density of this desktop-first UI lives in the component themes of `lib/constants/ocpt_theme.dart`.
 - **RFL23:** a production mode is `Ocpt<X>Mode` in `<x>_mode.dart`, and a widget is named after its
   role (`Card`, `Panel`, `Dialog`, `Sheet`) rather than ending in `Widget`.
 - **RSHELL1:** a Bash script may start with `#!/usr/bin/env bash`.

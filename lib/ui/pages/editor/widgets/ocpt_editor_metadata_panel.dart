@@ -16,7 +16,7 @@ const String _dash = '—';
 /// in the editor's status bar. A missing title-page field shows a dash rather than an empty row.
 ///
 /// Editing stays the existing title-page dialog's job: [onEditTitlePage] opens it, through
-/// `EditorPage`'s own router-manager call, exactly like the toolbar's "Title page…" overflow
+/// `OcptEditorPage`'s own router-manager call, exactly like the toolbar's "Title page…" overflow
 /// entry does. A null [onEditTitlePage] renders no "Edit…" button at all: what this panel reads out
 /// is worth showing whether or not it may be changed, which is what makes it usable as-is while a
 /// project version is being previewed read-only.

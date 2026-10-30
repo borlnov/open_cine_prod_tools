@@ -17,8 +17,8 @@ const String _dash = '—';
 /// page-eighths (the unit assistant directors use). Shows an empty state instead when the caret
 /// precedes every scene (or nothing is parsed yet).
 ///
-/// Purely presentational: `EditorPage` is the only caller, and it already recomputes [statistics]
-/// on `OcptEditorBloc`'s parse debounce, never on every keystroke (see
+/// Purely presentational: `OcptEditorPage` is the only caller, and it already recomputes
+/// [statistics] on `OcptEditorBloc`'s parse debounce, never on every keystroke (see
 /// `OcptEditorState.sceneStatistics`).
 class OcptEditorInspectorPanel extends StatelessWidget {
   /// The scene under the caret, or null while there is none (the empty state).

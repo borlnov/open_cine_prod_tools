@@ -397,7 +397,7 @@ class OcptEditorExportRequestedEvent extends OcptEditorEvent {
   /// The label of the file type shown in the native save dialog, localized by the caller.
   final String fileTypeLabel;
 
-  /// The selected episode's own tag (`ep. 2`), resolved by `EditorPage` from
+  /// The selected episode's own tag (`ep. 2`), resolved by `OcptEditorPage` from
   /// `OcptWorkspaceBloc.state.episodes`/`.selectedEpisodeId` and null while the open project holds
   /// one episode or none — see `ocptWorkspaceEpisodeExportTagOf`.
   final String? episodeTag;

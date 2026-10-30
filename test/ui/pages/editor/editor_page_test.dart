@@ -111,13 +111,13 @@ Widget _wrapWithLocalization(Widget child) => MaterialApp(
     GlobalCupertinoLocalizations.delegate,
   ],
   supportedLocales: Tr.delegate.supportedLocales,
-  // The real WorkspacePage always provides this ancestor: EditorPage now reads it for the
+  // The real OcptWorkspacePage always provides this ancestor: OcptEditorPage now reads it for the
   // episode selector's episodes/selection, exactly as it already reads OcptEditorBloc.
   home: BlocProvider<OcptWorkspaceBloc>(create: (context) => OcptWorkspaceBloc(), child: child),
 );
 
 /// An export manager whose [exportFountain] is stubbed and records the episode tag it was handed,
-/// so a test can tell what `EditorPage` itself computed and dispatched — the page's own
+/// so a test can tell what `OcptEditorPage` itself computed and dispatched — the page's own
 /// `_episodeExportTag`, not the bloc's own scoped episode, is under test here.
 class _RecordingExportManager extends OcptExportManager {
   /// Class constructor
@@ -142,10 +142,10 @@ class _RecordingExportManager extends OcptExportManager {
 /// The miniature hunspell pair every test in this file spell-checks against, standing in for the
 /// two ~1 MB dictionaries the real app bundles.
 ///
-/// `EditorPage` builds its own `OcptEditorBloc` with no test seam, so that bloc resolves the real
-/// `OcptSpellCheckManager` from `globalGetIt()` and asks it to load whichever language the project
-/// fixture was created with — which, against the real assets, would mean parsing a megabyte of
-/// dictionary in an isolate before any of these tests could get on with what they are actually
+/// `OcptEditorPage` builds its own `OcptEditorBloc` with no test seam, so that bloc resolves the
+/// real `OcptSpellCheckManager` from `globalGetIt()` and asks it to load whichever language the
+/// project fixture was created with — which, against the real assets, would mean parsing a megabyte
+/// of dictionary in an isolate before any of these tests could get on with what they are actually
 /// about. The manager's own `loadAsset` seam takes this instead: the file names it asks for are
 /// ignored, the words below are all it ever knows, and nothing in this file asserts on a
 /// misspelling anyway.
@@ -158,7 +158,7 @@ void main() {
   // at the end of a test; this file's styled-mode tests give the styled editor a selection.
   BlinkController.indeterminateAnimationsEnabled = false;
 
-  // EditorPage builds its OcptEditorBloc internally via `OcptEditorBloc()`, which resolves the
+  // OcptEditorPage builds its OcptEditorBloc internally via `OcptEditorBloc()`, which resolves the
   // projects manager from globalGetIt() by default; a real (but test-controlled) instance is
   // registered in the app's actual GetIt instance once, like the home page test does.
   late OcptPropertiesManager propertiesManager;
@@ -230,7 +230,7 @@ void main() {
     await tempDir.delete(recursive: true);
   });
 
-  /// Pumps [EditorPage] on a desktop-sized surface.
+  /// Pumps [OcptEditorPage] on a desktop-sized surface.
   ///
   /// The size is not incidental: the screenplay mode carries the fullest toolbar of any mode — the
   /// `Add an episode…` button included, this fixture's project holding a single episode — and the
@@ -242,13 +242,13 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
 
-    await tester.pumpWidget(_wrapWithLocalization(const EditorPage()));
+    await tester.pumpWidget(_wrapWithLocalization(const OcptEditorPage()));
   }
 
   /// Swaps the registered `OcptExportManager` for [manager] for the rest of the current test,
   /// restoring the shared real one afterward — `OcptEditorBloc` resolves its export manager from
-  /// `globalGetIt()` (it's built by `EditorPage` itself, with no test seam of its own), so this is
-  /// what lets a test observe what a real export call was handed.
+  /// `globalGetIt()` (it's built by `OcptEditorPage` itself, with no test seam of its own), so this
+  /// is what lets a test observe what a real export call was handed.
   void useExportManager(OcptExportManager manager) {
     final managers = OcptGlobalManager.instance.managers;
     final previous = managers.get<OcptExportManager>();
@@ -290,7 +290,7 @@ void main() {
 
     // The status bar reflects the sample's two scenes and one speaking character (SARAH), once
     // the parse and statistics debounces have both cleared.
-    final tr = Tr.of(tester.element(find.byType(EditorPage)));
+    final tr = Tr.of(tester.element(find.byType(OcptEditorPage)));
     // The toolbar names the active mode, and carries the shell's own chrome: both dock toggles
     // and the save action.
     expect(find.text(tr.workspaceModeLabelScreenplay), findsOneWidget);
@@ -413,7 +413,7 @@ void main() {
     await pumpEditorPage(tester);
     await tester.pumpAndSettle();
 
-    final context = tester.element(find.byType(EditorPage));
+    final context = tester.element(find.byType(OcptEditorPage));
     final tr = Tr.of(context);
 
     await tester.tap(find.byTooltip(tr.editorTogglePreviewTooltip));
@@ -439,7 +439,7 @@ void main() {
       await pumpEditorPage(tester);
       await tester.pumpAndSettle();
 
-      final context = tester.element(find.byType(EditorPage));
+      final context = tester.element(find.byType(OcptEditorPage));
       final tr = Tr.of(context);
 
       IconButton previewButton() => tester.widget<IconButton>(
@@ -476,7 +476,7 @@ void main() {
       await pumpEditorPage(tester);
       await tester.pumpAndSettle();
 
-      final context = tester.element(find.byType(EditorPage));
+      final context = tester.element(find.byType(OcptEditorPage));
       final tr = Tr.of(context);
 
       expect(find.byType(OcptEditorRightDock), findsOneWidget);
@@ -501,7 +501,7 @@ void main() {
     await pumpEditorPage(tester);
     await tester.pumpAndSettle();
 
-    final context = tester.element(find.byType(EditorPage));
+    final context = tester.element(find.byType(OcptEditorPage));
     final tr = Tr.of(context);
 
     await tester.tap(find.byTooltip(tr.editorToggleSyntaxGuideTooltip));
@@ -530,7 +530,7 @@ void main() {
       await pumpEditorPage(tester);
       await tester.pumpAndSettle();
 
-      final context = tester.element(find.byType(EditorPage));
+      final context = tester.element(find.byType(OcptEditorPage));
       final tr = Tr.of(context);
 
       await tester.tap(find.byTooltip(tr.editorToggleSyntaxGuideTooltip));
@@ -553,7 +553,7 @@ void main() {
     await pumpEditorPage(tester);
     await tester.pumpAndSettle();
 
-    final context = tester.element(find.byType(EditorPage));
+    final context = tester.element(find.byType(OcptEditorPage));
     final tr = Tr.of(context);
 
     IconButton toggleOf(String tooltip) => tester.widget<IconButton>(
@@ -578,7 +578,7 @@ void main() {
     await pumpEditorPage(tester);
     await tester.pumpAndSettle();
 
-    final context = tester.element(find.byType(EditorPage));
+    final context = tester.element(find.byType(OcptEditorPage));
     final tr = Tr.of(context);
 
     expect(find.byType(OcptEditorPreview), findsOneWidget);
@@ -678,7 +678,7 @@ void main() {
     await pumpEditorPage(tester);
     await tester.pumpAndSettle();
 
-    final context = tester.element(find.byType(EditorPage));
+    final context = tester.element(find.byType(OcptEditorPage));
     final tr = Tr.of(context);
 
     await tester.tap(find.byTooltip(MaterialLocalizations.of(context).showMenuTooltip));
@@ -709,7 +709,7 @@ void main() {
       expect(find.byType(OcptEditorPreview), findsOneWidget);
       expect(find.byType(OcptStyledScreenplayEditor), findsNothing);
 
-      final context = tester.element(find.byType(EditorPage));
+      final context = tester.element(find.byType(OcptEditorPage));
       final tr = Tr.of(context);
 
       await tester.tap(find.byTooltip(tr.editorSwitchToStyledModeTooltip));
@@ -771,7 +771,7 @@ void main() {
         addTearDown(tester.view.resetPhysicalSize);
         addTearDown(tester.view.resetDevicePixelRatio);
 
-        await tester.pumpWidget(_wrapWithLocalization(const EditorPage()));
+        await tester.pumpWidget(_wrapWithLocalization(const OcptEditorPage()));
         await tester.pumpAndSettle();
         // One more settle past the styled editor's own 120ms reclassify debounce: mounting it
         // over this fixture's headingless scene heading assigns it a number on load
@@ -797,7 +797,7 @@ void main() {
         // The toolbar's own toggle still states the persisted preference (raw, so "switch to
         // styled" is what it offers) rather than the compact-width override: widening the window
         // back out is what would actually apply it.
-        final context = tester.element(find.byType(EditorPage));
+        final context = tester.element(find.byType(OcptEditorPage));
         final tr = Tr.of(context);
         expect(find.byTooltip(tr.editorSwitchToStyledModeTooltip), findsOneWidget);
         expect(await propertiesManager.editorMode.load(), OcptEditorMode.raw);
@@ -819,7 +819,7 @@ void main() {
     await tester.enterText(textFieldFinder, "$_sampleText\nA fresh action line.");
     await tester.pumpAndSettle();
 
-    final context = tester.element(find.byType(EditorPage));
+    final context = tester.element(find.byType(OcptEditorPage));
     final tr = Tr.of(context);
     await tester.tap(find.byTooltip(tr.editorSwitchToStyledModeTooltip));
     await tester.pumpAndSettle();
@@ -844,7 +844,7 @@ void main() {
     // switch, not about the flush-on-removal path itself (see the dedicated test below for that).
     await tester.pumpAndSettle();
 
-    final context = tester.element(find.byType(EditorPage));
+    final context = tester.element(find.byType(OcptEditorPage));
     final tr = Tr.of(context);
     await tester.tap(find.byTooltip(tr.editorSwitchToRawModeTooltip));
     await tester.pumpAndSettle();
@@ -876,7 +876,7 @@ void main() {
       // `pumpAndSettle` here — it would let the timer fire naturally and hide a missing flush.
       await tester.pump(const Duration(milliseconds: 20));
 
-      final context = tester.element(find.byType(EditorPage));
+      final context = tester.element(find.byType(OcptEditorPage));
       final tr = Tr.of(context);
       // Removing the styled editor from the tree is what runs
       // `_OcptStyledScreenplayEditorState.deactivate()`; in this page test (no live GoRouter
@@ -975,7 +975,7 @@ void main() {
     await tester.typeImeText("X");
     await tester.pumpAndSettle();
 
-    final context = tester.element(find.byType(EditorPage));
+    final context = tester.element(find.byType(OcptEditorPage));
     final tr = Tr.of(context);
     expect(find.byTooltip(tr.editorUnsavedChangesTooltip), findsOneWidget);
 
@@ -1020,7 +1020,7 @@ void main() {
       await pumpEditorPage(tester);
       await tester.pumpAndSettle();
 
-      final context = tester.element(find.byType(EditorPage));
+      final context = tester.element(find.byType(OcptEditorPage));
       final tr = Tr.of(context);
 
       // Starts in raw mode (forced by this file's setUp): no format controls at all.
@@ -1052,7 +1052,7 @@ void main() {
       await tester.placeCaretInParagraph(firstNodeId, 0);
       await tester.pumpAndSettle();
 
-      final context = tester.element(find.byType(EditorPage));
+      final context = tester.element(find.byType(OcptEditorPage));
       final tr = Tr.of(context);
 
       await tester.tap(find.byType(DropdownButton<FountainLineType>));
@@ -1070,8 +1070,8 @@ void main() {
   );
 
   group('the compact-width toolbar (below ocptCompactWidthBreakpoint, above the phone width)', () {
-    /// Pumps [EditorPage] at a width inside the compact range but above the phone one — the exact
-    /// window the owner reported the format controls overflowing the toolbar's right side at
+    /// Pumps [OcptEditorPage] at a width inside the compact range but above the phone one — the
+    /// exact window the owner reported the format controls overflowing the toolbar's right side at
     /// (601-652 px).
     Future<void> pumpAtCompactWidth(WidgetTester tester) async {
       tester.view.physicalSize = const Size(620, 1000);
@@ -1079,7 +1079,7 @@ void main() {
       addTearDown(tester.view.resetPhysicalSize);
       addTearDown(tester.view.resetDevicePixelRatio);
 
-      await tester.pumpWidget(_wrapWithLocalization(const EditorPage()));
+      await tester.pumpWidget(_wrapWithLocalization(const OcptEditorPage()));
     }
 
     testWidgets(
@@ -1104,7 +1104,7 @@ void main() {
           expect(find.byType(OcptEditorFormatOverflowMenu), findsOneWidget);
           expect(find.byType(OcptEditorBlockTypeDropdown), findsNothing);
 
-          final tr = Tr.of(tester.element(find.byType(EditorPage)));
+          final tr = Tr.of(tester.element(find.byType(OcptEditorPage)));
           expect(find.byTooltip(tr.editorFormatMenuTooltip), findsOneWidget);
 
           // The styled/raw mode toggle stays reachable beside the folded format menu.
@@ -1135,7 +1135,7 @@ void main() {
           await tester.placeCaretInParagraph(firstNodeId, 0);
           await tester.pumpAndSettle();
 
-          final tr = Tr.of(tester.element(find.byType(EditorPage)));
+          final tr = Tr.of(tester.element(find.byType(OcptEditorPage)));
 
           // The block-type submenu changes the caret's block type exactly like the inline dropdown
           // does ("using the toolbar's dropdown changes the caret's block type…" above).
@@ -1184,7 +1184,7 @@ void main() {
         await pumpAtCompactWidth(tester);
         await tester.pumpAndSettle();
 
-        final tr = Tr.of(tester.element(find.byType(EditorPage)));
+        final tr = Tr.of(tester.element(find.byType(OcptEditorPage)));
         expect(find.byTooltip(tr.editorTogglePreviewTooltip), findsOneWidget);
         expect(find.byTooltip(tr.editorToggleSyntaxGuideTooltip), findsOneWidget);
         expect(find.byTooltip(tr.editorSwitchToStyledModeTooltip), findsOneWidget);
@@ -1198,7 +1198,7 @@ void main() {
     await pumpEditorPage(tester);
     await tester.pumpAndSettle();
 
-    final context = tester.element(find.byType(EditorPage));
+    final context = tester.element(find.byType(OcptEditorPage));
     final tr = Tr.of(context);
 
     final backButton = find.byTooltip(tr.editorBackToProjectsTooltip);
@@ -1215,7 +1215,7 @@ void main() {
     await pumpEditorPage(tester);
     await tester.pumpAndSettle();
 
-    final context = tester.element(find.byType(EditorPage));
+    final context = tester.element(find.byType(OcptEditorPage));
     final tr = Tr.of(context);
 
     await tester.tap(find.byTooltip(MaterialLocalizations.of(context).showMenuTooltip));
@@ -1232,7 +1232,7 @@ void main() {
     await pumpEditorPage(tester);
     await tester.pumpAndSettle();
 
-    final tr = Tr.of(tester.element(find.byType(EditorPage)));
+    final tr = Tr.of(tester.element(find.byType(OcptEditorPage)));
 
     await tester.tap(find.byTooltip(tr.workspaceExportTooltip));
     await tester.pumpAndSettle();
@@ -1250,7 +1250,7 @@ void main() {
     await pumpEditorPage(tester);
     await tester.pumpAndSettle();
 
-    final tr = Tr.of(tester.element(find.byType(EditorPage)));
+    final tr = Tr.of(tester.element(find.byType(OcptEditorPage)));
 
     await tester.tap(find.byTooltip(tr.workspaceExportTooltip));
     await tester.pumpAndSettle();
@@ -1271,7 +1271,7 @@ void main() {
       await pumpEditorPage(tester);
       await tester.pumpAndSettle();
 
-      final tr = Tr.of(tester.element(find.byType(EditorPage)));
+      final tr = Tr.of(tester.element(find.byType(OcptEditorPage)));
 
       await tester.tap(find.byTooltip(tr.workspaceExportTooltip));
       await tester.pumpAndSettle();
@@ -1284,7 +1284,7 @@ void main() {
       // through instead.
       expect(find.text(tr.editorExportPanelTitle), findsNothing);
       expect(find.byType(OcptEditorExportPdfOptionsDialog), findsNothing);
-      expect(find.byType(EditorPage), findsOneWidget);
+      expect(find.byType(OcptEditorPage), findsOneWidget);
     },
   );
 
@@ -1297,7 +1297,7 @@ void main() {
       await pumpEditorPage(tester);
       await tester.pumpAndSettle();
 
-      final tr = Tr.of(tester.element(find.byType(EditorPage)));
+      final tr = Tr.of(tester.element(find.byType(OcptEditorPage)));
 
       await tester.tap(find.byTooltip(tr.workspaceExportTooltip));
       await tester.pumpAndSettle();
@@ -1323,7 +1323,7 @@ void main() {
       await pumpEditorPage(tester);
       await tester.pumpAndSettle();
 
-      final context = tester.element(find.byType(EditorPage));
+      final context = tester.element(find.byType(OcptEditorPage));
       final tr = Tr.of(context);
 
       // The workspace bloc lands on the first episode by default; select the second one so the
@@ -1350,7 +1350,7 @@ void main() {
     await pumpEditorPage(tester);
     await tester.pumpAndSettle();
 
-    final context = tester.element(find.byType(EditorPage));
+    final context = tester.element(find.byType(OcptEditorPage));
     final tr = Tr.of(context);
 
     await tester.tap(find.byTooltip(MaterialLocalizations.of(context).showMenuTooltip));
@@ -1373,7 +1373,7 @@ void main() {
     await pumpEditorPage(tester);
     await tester.pumpAndSettle();
 
-    final context = tester.element(find.byType(EditorPage));
+    final context = tester.element(find.byType(OcptEditorPage));
     final tr = Tr.of(context);
 
     await tester.tap(find.byTooltip(MaterialLocalizations.of(context).showMenuTooltip));
@@ -1475,7 +1475,7 @@ void main() {
       await pumpEditorPage(tester);
       await tester.pumpAndSettle();
 
-      final tr = Tr.of(tester.element(find.byType(EditorPage)));
+      final tr = Tr.of(tester.element(find.byType(OcptEditorPage)));
 
       // The working copy is what the editor edits, until a version is previewed.
       expect(find.byType(OcptEditorSourceField), findsOneWidget);
@@ -1575,7 +1575,7 @@ void main() {
       await pumpEditorPage(tester);
       await tester.pumpAndSettle();
 
-      final context = tester.element(find.byType(EditorPage));
+      final context = tester.element(find.byType(OcptEditorPage));
       final tr = Tr.of(context);
 
       await tester.tap(find.byTooltip(MaterialLocalizations.of(context).showMenuTooltip));
@@ -1597,7 +1597,7 @@ void main() {
       await pumpEditorPage(tester);
       await tester.pumpAndSettle();
 
-      final context = tester.element(find.byType(EditorPage));
+      final context = tester.element(find.byType(OcptEditorPage));
       final tr = Tr.of(context);
 
       await tester.tap(find.byTooltip(MaterialLocalizations.of(context).showMenuTooltip));
@@ -1679,7 +1679,7 @@ void main() {
       await tester.enterText(barTextFields.last, "Scene");
       await tester.pumpAndSettle();
 
-      final context = tester.element(find.byType(EditorPage));
+      final context = tester.element(find.byType(OcptEditorPage));
       final tr = Tr.of(context);
       await tester.tap(find.text(tr.editorReplaceAction));
       await tester.pumpAndSettle();
@@ -1730,7 +1730,7 @@ void main() {
         await tester.enterText(barTextFields.last, "MARIE-JEANNE");
         await tester.pumpAndSettle();
 
-        final context = tester.element(find.byType(EditorPage));
+        final context = tester.element(find.byType(OcptEditorPage));
         final tr = Tr.of(context);
 
         String rawText() => tester
@@ -1785,7 +1785,7 @@ void main() {
       await tester.enterText(barTextFields.last, "Scene");
       await tester.pumpAndSettle();
 
-      final context = tester.element(find.byType(EditorPage));
+      final context = tester.element(find.byType(OcptEditorPage));
       final tr = Tr.of(context);
       await tester.tap(find.text(tr.editorReplaceAllAction));
       await tester.pumpAndSettle();
@@ -1836,7 +1836,7 @@ void main() {
       bloc.add(OcptProjectVersionPreviewRequestedEvent(versionId: version!.id));
       await tester.pumpAndSettle();
 
-      final context = tester.element(find.byType(EditorPage));
+      final context = tester.element(find.byType(OcptEditorPage));
       final tr = Tr.of(context);
 
       // Ctrl+F does nothing under a preview: there is no editing surface to search.
@@ -1893,7 +1893,7 @@ void main() {
       await tester.enterText(barTextFields.last, "Monday");
       await tester.pumpAndSettle();
 
-      final context = tester.element(find.byType(EditorPage));
+      final context = tester.element(find.byType(OcptEditorPage));
       final tr = Tr.of(context);
       await tester.tap(find.text(tr.editorReplaceAction));
       await tester.pumpAndSettle();
@@ -1928,7 +1928,7 @@ void main() {
       await tester.enterText(barTextFields.last, "a");
       await tester.pumpAndSettle();
 
-      final context = tester.element(find.byType(EditorPage));
+      final context = tester.element(find.byType(OcptEditorPage));
       final tr = Tr.of(context);
       await tester.tap(find.text(tr.editorReplaceAllAction));
       await tester.pumpAndSettle();
@@ -1975,7 +1975,7 @@ void main() {
       await pumpEditorPage(tester);
       await tester.pumpAndSettle();
 
-      final tr = Tr.of(tester.element(find.byType(EditorPage)));
+      final tr = Tr.of(tester.element(find.byType(OcptEditorPage)));
 
       // Placing the caret is what makes the loaded text the field's own first history entry;
       // nothing has been *edited* yet, so neither entry is offered — withheld, not disabled.
@@ -2052,7 +2052,7 @@ void main() {
       await pumpEditorPage(tester);
       await tester.pumpAndSettle();
 
-      final tr = Tr.of(tester.element(find.byType(EditorPage)));
+      final tr = Tr.of(tester.element(find.byType(OcptEditorPage)));
 
       // Mounting the styled editor numbers the scene headings on its own; that normalization is
       // not a gesture of the writer's, so the menu has nothing to offer yet.
@@ -2110,7 +2110,7 @@ void main() {
       );
       await settleUndoThrottle(tester);
 
-      final tr = Tr.of(tester.element(find.byType(EditorPage)));
+      final tr = Tr.of(tester.element(find.byType(OcptEditorPage)));
       await openOverflowMenu(tester);
       expect(find.text(tr.editorUndoAction), findsOneWidget);
       await tester.tapAt(const Offset(700, 500));

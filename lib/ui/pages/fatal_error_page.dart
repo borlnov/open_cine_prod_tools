@@ -11,12 +11,12 @@ import 'package:open_cine_prod_tools/generated/l10n.dart';
 ///
 /// Since the normal manager infrastructure (config, logger, router, ...) may not be available at
 /// this point, this widget is self-contained: it builds its own minimal [MaterialApp].
-class FatalErrorPage extends StatelessWidget {
+class OcptFatalErrorPage extends StatelessWidget {
   /// The error that caused the initialization to fail.
   final Object error;
 
   /// Creates a fatal error page reporting the given [error].
-  const FatalErrorPage({super.key, required this.error});
+  const OcptFatalErrorPage({super.key, required this.error});
 
   @override
   Widget build(BuildContext context) => MaterialApp(

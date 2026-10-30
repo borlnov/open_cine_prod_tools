@@ -168,7 +168,7 @@ class OcptSharingView extends StatelessWidget {
   };
 
   /// Shows [OcptSharingState.pairingFailed]'s own snack bar, then dispatches the event that clears
-  /// it, so a later rebuild doesn't show it again — `EditorPage`'s own `hasSaveError` handling.
+  /// it, so a later rebuild doesn't show it again — `OcptEditorPage`'s own `hasSaveError` handling.
   void _onPairingFailed(BuildContext context, OcptSharingState state) {
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()

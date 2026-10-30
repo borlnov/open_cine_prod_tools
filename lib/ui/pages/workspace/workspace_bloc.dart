@@ -277,10 +277,10 @@ class OcptWorkspaceBloc extends BlocForMixin<OcptWorkspaceState> {
   /// (entering or leaving a project version preview swaps the database every mode reads through).
   ///
   /// The current selection is kept when it still names one of the freshly read episodes, and falls
-  /// back to the first one otherwise — the keyed remount (`WorkspacePage._buildActiveMode`) then
-  /// takes care of the mode itself, which is exactly right for a database that just changed under
-  /// it. A read failing here is swallowed rather than left to escape as an unhandled error, most
-  /// likely because the project closed while this was still queued.
+  /// back to the first one otherwise — the keyed remount (`OcptWorkspacePage._buildActiveMode`)
+  /// then takes care of the mode itself, which is exactly right for a database that just changed
+  /// under it. A read failing here is swallowed rather than left to escape as an unhandled error,
+  /// most likely because the project closed while this was still queued.
   Future<void> _onEpisodesReloadRequested(
     OcptWorkspaceEpisodesReloadRequestedEvent event,
     Emitter<OcptWorkspaceState> emitter,

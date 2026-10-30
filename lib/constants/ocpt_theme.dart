@@ -11,7 +11,7 @@ import 'package:open_cine_prod_tools/models/ocpt_specific_colors.dart';
 /// A pure scaling function applied to one size literal (a font size, a dimension or a radius) when
 /// [buildOcptThemeModel] builds the theme.
 ///
-/// `MainAppUi` passes `flutter_screenutil`'s `.sp`/`.w`/`.r` extensions here on mobile, under
+/// `OcptMainAppUi` passes `flutter_screenutil`'s `.sp`/`.w`/`.r` extensions here on mobile, under
 /// `ScreenUtilInit`; every other call site — including the module-level [ocptTheme] below — leaves
 /// the parameter at its default, [_identityScaler], so desktop output stays byte-identical to a
 /// theme with no scaling at all.
@@ -425,7 +425,7 @@ ThemeData _buildThemeData({
 /// out of the box, so leaving it unset would make Windows fall back to a different system font.
 ///
 /// [sp], [w] and [r] are forwarded to [_buildTextTheme] and [_buildThemeData]; on mobile,
-/// `MainAppUi` passes `flutter_screenutil`'s `.sp`/`.w`/`.r` extensions here, under
+/// `OcptMainAppUi` passes `flutter_screenutil`'s `.sp`/`.w`/`.r` extensions here, under
 /// `ScreenUtilInit`. All three default to [_identityScaler], so [ocptTheme] below — built with no
 /// argument — stays byte-identical to a theme with no scaling concept at all.
 ActThemeModel<OcptSpecificColors> buildOcptThemeModel({

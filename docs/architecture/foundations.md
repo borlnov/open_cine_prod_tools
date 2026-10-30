@@ -24,7 +24,7 @@ the persistence, the project versions, the sync-ready data model and the read-on
 - BLoC: ACT pattern (`BlocForMixin`, `BlocStateForMixin`, sealed events registered with
   `registerMixinEvents()` / `on<>`), one bloc per page, pages split UI/bloc/state/event files.
 
-- Workspace shell (`lib/ui/pages/workspace/`): `WorkspacePage` mounts `OcptWorkspaceBloc`, whose
+- Workspace shell (`lib/ui/pages/workspace/`): `OcptWorkspacePage` mounts `OcptWorkspaceBloc`, whose
   state is `{ OcptWorkspaceMode mode, bool isLoading, OcptWorkspaceRevealRequest? revealRequest,
   List<OcptEpisode> episodes, String? selectedEpisodeId }` — it owns *which* production mode is
   active and *which episode* it shows, nothing about that mode's own content.
@@ -33,7 +33,7 @@ the persistence, the project versions, the sync-ready data model and the read-on
   last since it is the one mode that reads every other mode's own figures rather than one anybody
   starts from, and is persisted through `OcptPropertiesManager.workspaceMode` by **name** rather
   than by index (modelled on `editorMode`), so opening a project restores the last mode used and
-  reordering the enum is safe. The modes are `EditorPage` (screenplay, under `lib/ui/pages/editor/`),
+  reordering the enum is safe. The modes are `OcptEditorPage` (screenplay, under `lib/ui/pages/editor/`),
   `OcptBreakdownMode`, `OcptShotListMode`, `OcptResourcesMode`, `OcptScheduleMode` and
   `OcptBudgetMode` (each under `lib/ui/pages/workspace/modes/<mode>/`, each owning its own bloc) —
   `OcptWorkspaceMode.isImplemented` is true of all six today, kept as an explicit list rather than a
@@ -105,7 +105,7 @@ the persistence, the project versions, the sync-ready data model and the read-on
   per-project key would have to live either in `OcptPropertiesManager` (keyed by a path that moves)
   or in `project_info` (which versions capture and hash).
   **Switching episode remounts the mode**: the selection lives in `OcptWorkspaceBloc` and
-  `WorkspacePage` keys the mode widget on it, so a fresh mode bloc loads from scratch. This is
+  `OcptWorkspacePage` keys the mode widget on it, so a fresh mode bloc loads from scratch. This is
   deliberate — a mode's state is full of things scoped to what it was showing (a selected shot, an
   open tag anchor, a scroll position, a debounced field edit), and it reuses unchanged the
   flush-on-leaving-the-tree path each mode already has for the version preview, so a pending write
@@ -152,8 +152,8 @@ the persistence, the project versions, the sync-ready data model and the read-on
   `Open in Resources`, meaning "this very element, over there") attaches an
   `OcptWorkspaceRevealRequest` (`lib/models/`, sealed, today `OcptResourcesRevealRequest { tab,
   recordId? }`) to `OcptWorkspaceModeSelectedEvent`; the workspace bloc transports it and **never
-  reads inside it**, `WorkspacePage` hands it to the mode that recognizes its own subtype and to no
-  other, and the opened mode reports back with `OcptWorkspaceRevealRequestConsumedEvent`. It is
+  reads inside it**, `OcptWorkspacePage` hands it to the mode that recognizes its own subtype and to
+  no other, and the opened mode reports back with `OcptWorkspaceRevealRequestConsumedEvent`. It is
   **one-shot** by construction: the destination bloc takes it as a *constructor* argument (an event
   would race the load, which clears every selection) and nulls it in that first load, so entering or
   leaving a version preview — which reloads through the same handler — doesn't yank the user back; a
@@ -248,7 +248,7 @@ the persistence, the project versions, the sync-ready data model and the read-on
   `ocpt_theme.dart` therefore parametrises `_buildTextTheme`/`_buildThemeData` with three
   `OcptSizeScaler` functions (`sp`/`w`/`r`, each defaulting to the identity function) behind a
   single `buildOcptThemeModel({sp, w, r})`, and keeps `ocptTheme = buildOcptThemeModel()` for every
-  desktop call site — byte-identical to a theme with no scaling concept at all. `MainAppUi` wraps
+  desktop call site — byte-identical to a theme with no scaling concept at all. `OcptMainAppUi` wraps
   the whole app in `ScreenUtilInit` (design size 375×812, `minTextAdapt`) and, only on
   `PlatformManager.isMobile`, rebuilds the theme in the tree with the `.sp`/`.w`/`.r` scalers
   (`buildOcptThemeModel(sp: (v) => v.sp, w: (v) => v.w, r: (v) => v.r)`); desktop keeps the bloc

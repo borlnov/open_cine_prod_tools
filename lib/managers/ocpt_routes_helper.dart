@@ -33,13 +33,13 @@ class OcptRoutesHelper extends AbstractRoutesHelper<OcptRoute> {
     onPage(OcptRoute.diagnostics, _createDiagnosticsPage);
   }
 
-  /// Callback to create the [HomePage]
+  /// Callback to create the [OcptHomePage]
   RoutePageDetails _createHomePage(BuildContext context, GoRouterState state) =>
-      const RoutePageDetails(widget: HomePage());
+      const RoutePageDetails(widget: OcptHomePage());
 
-  /// Callback to create the [WorkspacePage]
+  /// Callback to create the [OcptWorkspacePage]
   RoutePageDetails _createWorkspacePage(BuildContext context, GoRouterState state) =>
-      const RoutePageDetails(widget: WorkspacePage());
+      const RoutePageDetails(widget: OcptWorkspacePage());
 
   /// Callback to create the [OcptProjectSettingsPage]
   ///
@@ -65,9 +65,9 @@ class OcptRoutesHelper extends AbstractRoutesHelper<OcptRoute> {
   RoutePageDetails _createRepointingPage(BuildContext context, GoRouterState state) =>
       const RoutePageDetails(widget: OcptRepointingPage());
 
-  /// Callback to create the [SettingsPage]
+  /// Callback to create the [OcptSettingsPage]
   RoutePageDetails _createSettingsPage(BuildContext context, GoRouterState state) =>
-      const RoutePageDetails(widget: SettingsPage());
+      const RoutePageDetails(widget: OcptSettingsPage());
 
   /// Callback to create the third-party licenses page, listing everything
   /// [OcptGlobalManager]'s `ActLicensesManager` has fed into Flutter's `LicenseRegistry` by then.

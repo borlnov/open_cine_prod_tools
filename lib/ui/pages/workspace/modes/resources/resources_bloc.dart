@@ -169,9 +169,9 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
   OcptResourcesRevealRequest? _pendingRevealRequest;
 
   /// The episode this bloc reads and writes, handed down by `OcptResourcesMode` from
-  /// `OcptWorkspaceBloc.state.selectedEpisodeId` at construction time — safe to capture once
-  /// rather than watch, since `WorkspacePage` remounts this whole bloc on every episode switch (see
-  /// `WorkspacePage._buildActiveMode`'s own doc comment), so the field can never go stale.
+  /// `OcptWorkspaceBloc.state.selectedEpisodeId` at construction time — safe to capture once rather
+  /// than watch, since `OcptWorkspacePage` remounts this whole bloc on every episode switch (see
+  /// `OcptWorkspacePage._buildActiveMode`'s own doc comment), so the field can never go stale.
   ///
   /// Null only for a project holding no episode at all: `OcptWorkspaceBloc` lands on the first one
   /// before it clears `isLoading`, and a mode is never built before that, so [_screenplayIdOf]'s

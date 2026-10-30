@@ -24,21 +24,21 @@ const _maxContentWidth = 720.0;
 
 /// Displays the application settings: appearance (brightness), language, calendar, and an about
 /// section.
-class SettingsPage extends StatelessWidget {
+class OcptSettingsPage extends StatelessWidget {
   /// Creates the settings page.
-  const SettingsPage({super.key});
+  const OcptSettingsPage({super.key});
 
   @override
   Widget build(BuildContext context) =>
       BlocProvider(create: (context) => OcptSettingsBloc(), child: const OcptSettingsView());
 }
 
-/// The content of [SettingsPage], separated from it so [SettingsPage] only wires the
+/// The content of [OcptSettingsPage], separated from it so [OcptSettingsPage] only wires the
 /// [OcptSettingsBloc] up (RFL3).
 ///
 /// Unlike sibling pages' private `_XxxView`, this one is public: it lets widget tests pump it
 /// directly with a `BlocProvider.value` wrapping an [OcptSettingsBloc] built with an injected
-/// version, instead of going through [SettingsPage] (whose default `OcptSettingsBloc()` would
+/// version, instead of going through [OcptSettingsPage] (whose default `OcptSettingsBloc()` would
 /// otherwise resolve the real, unmocked `PackageInfo.fromPlatform()`).
 class OcptSettingsView extends StatelessWidget {
   /// Class constructor

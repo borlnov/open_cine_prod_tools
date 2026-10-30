@@ -150,7 +150,7 @@ class _FakeSaveLocationService extends OcptSaveLocationService {
 }
 
 void main() {
-  // HomePage builds its OcptHomeBloc internally via `OcptHomeBloc()`, which resolves every
+  // OcptHomePage builds its OcptHomeBloc internally via `OcptHomeBloc()`, which resolves every
   // manager it needs from globalGetIt() by default. We register real (but test-controlled)
   // instances of those managers in the app's actual GetIt instance once, matching how
   // OcptPropertiesManager's own test backs it with an in-memory store instead of mocking it.
@@ -192,20 +192,20 @@ void main() {
   });
 
   testWidgets('shows the empty state when there are no recent projects', (tester) async {
-    await _pumpHome(tester, const HomePage());
+    await _pumpHome(tester, const OcptHomePage());
     await tester.pumpAndSettle();
 
     expect(find.byType(OcptHomeEmptyState), findsOneWidget);
     expect(find.byType(OcptProjectCard), findsNothing);
 
-    final context = tester.element(find.byType(HomePage));
+    final context = tester.element(find.byType(OcptHomePage));
     expect(find.text(Tr.of(context).homeEmptyStateTitle), findsOneWidget);
   });
 
   testWidgets('shows the New project FAB at compact width', (tester) async {
     await _pumpHome(
       tester,
-      const HomePage(),
+      const OcptHomePage(),
       size: const Size(ocptCompactWidthBreakpoint - 100, 900),
     );
     await tester.pumpAndSettle();
@@ -214,7 +214,7 @@ void main() {
   });
 
   testWidgets('shows no New project FAB at wide width', (tester) async {
-    await _pumpHome(tester, const HomePage());
+    await _pumpHome(tester, const OcptHomePage());
     await tester.pumpAndSettle();
 
     expect(find.byType(FloatingActionButton), findsNothing);
@@ -225,12 +225,12 @@ void main() {
   ) async {
     await _pumpHome(
       tester,
-      const HomePage(),
+      const OcptHomePage(),
       size: const Size(ocptCompactWidthBreakpoint - 100, 900),
     );
     await tester.pumpAndSettle();
 
-    final context = tester.element(find.byType(HomePage));
+    final context = tester.element(find.byType(OcptHomePage));
     final tr = Tr.of(context);
 
     expect(find.text(tr.homeEmptyStateCompactHint), findsOneWidget);
@@ -249,7 +249,7 @@ void main() {
       ),
     );
 
-    await _pumpHome(tester, const HomePage());
+    await _pumpHome(tester, const OcptHomePage());
     await tester.pumpAndSettle();
 
     expect(find.byType(OcptHomeEmptyState), findsNothing);
@@ -269,7 +269,7 @@ void main() {
       ),
     );
 
-    await _pumpHome(tester, const HomePage());
+    await _pumpHome(tester, const OcptHomePage());
     await tester.pumpAndSettle();
 
     expect(find.byType(OcptProjectCard), findsOneWidget);
@@ -278,17 +278,17 @@ void main() {
     expect(cardWidget.entry.exists, isFalse);
 
     // The card is wrapped in a Tooltip explaining why it's disabled, instead of being tappable.
-    final context = tester.element(find.byType(HomePage));
+    final context = tester.element(find.byType(OcptHomePage));
     expect(find.byTooltip(Tr.of(context).homeMissingFileTooltip), findsOneWidget);
     final inkWell = tester.widget<InkWell>(find.byKey(ValueKey(missingPath)));
     expect(inkWell.onTap, isNull);
   });
 
   testWidgets('the import action is shown in the header and the empty state', (tester) async {
-    await _pumpHome(tester, const HomePage());
+    await _pumpHome(tester, const OcptHomePage());
     await tester.pumpAndSettle();
 
-    final context = tester.element(find.byType(HomePage));
+    final context = tester.element(find.byType(OcptHomePage));
     expect(find.text(Tr.of(context).homeImportAction), findsNWidgets(2));
   });
 
@@ -333,10 +333,10 @@ void main() {
   });
 
   testWidgets('Import… opens a modal offering a project and a screenplay', (tester) async {
-    await _pumpHome(tester, const HomePage());
+    await _pumpHome(tester, const OcptHomePage());
     await tester.pumpAndSettle();
 
-    final context = tester.element(find.byType(HomePage));
+    final context = tester.element(find.byType(OcptHomePage));
     await tester.tap(find.text(Tr.of(context).homeImportAction).first);
     await tester.pumpAndSettle();
 
@@ -383,13 +383,13 @@ void main() {
       final filePath = p.join(tempDir.path, "movie.ocpt");
       await addRecentProjectStatingFormat(filePath, OcptProjectDatabase.currentSchemaVersion - 1);
 
-      await _pumpHome(tester, const HomePage());
+      await _pumpHome(tester, const OcptHomePage());
       await tester.pumpAndSettle();
 
       await tester.tap(find.byKey(ValueKey(filePath)));
       await tester.pumpAndSettle();
 
-      final context = tester.element(find.byType(HomePage));
+      final context = tester.element(find.byType(OcptHomePage));
       expect(find.byType(OcptConfirmDialog), findsOneWidget);
       expect(find.text(Tr.of(context).homeMigrateProjectTitle), findsOneWidget);
       expect(
@@ -406,13 +406,13 @@ void main() {
       final filePath = p.join(tempDir.path, "movie.ocpt");
       await addRecentProjectStatingFormat(filePath, OcptProjectDatabase.currentSchemaVersion + 1);
 
-      await _pumpHome(tester, const HomePage());
+      await _pumpHome(tester, const OcptHomePage());
       await tester.pumpAndSettle();
 
       await tester.tap(find.byKey(ValueKey(filePath)));
       await tester.pumpAndSettle();
 
-      final context = tester.element(find.byType(HomePage));
+      final context = tester.element(find.byType(OcptHomePage));
       expect(find.byType(OcptProjectFileNewerDialog), findsOneWidget);
       expect(find.text(Tr.of(context).homeProjectFileNewerTitle), findsOneWidget);
       expect(
@@ -444,13 +444,13 @@ void main() {
           OcptRecentProjectModel(path: filePath, name: "My Movie", lastOpenedAt: DateTime.now()),
         );
 
-        await _pumpHome(tester, const HomePage());
+        await _pumpHome(tester, const OcptHomePage());
         await tester.pumpAndSettle();
 
         await tester.tap(find.byKey(ValueKey(filePath)));
         await tester.pumpAndSettle();
 
-        final context = tester.element(find.byType(HomePage));
+        final context = tester.element(find.byType(OcptHomePage));
         expect(find.byType(OcptProjectFileNewerDialog), findsOneWidget);
         expect(find.text(Tr.of(context).homeProjectFileForeignDevBuildTitle), findsOneWidget);
         expect(
@@ -577,10 +577,10 @@ void main() {
     /// progresses while [WidgetTester.runAsync] hands the real event loop back. The settle that
     /// follows is what draws whatever the bloc emitted once it had.
     Future<void> importTheProject(WidgetTester tester) async {
-      await _pumpHome(tester, const HomePage(), navigatorKey: navigatorKey);
+      await _pumpHome(tester, const OcptHomePage(), navigatorKey: navigatorKey);
       await tester.pumpAndSettle();
 
-      final context = tester.element(find.byType(HomePage));
+      final context = tester.element(find.byType(OcptHomePage));
       await tester.tap(find.text(Tr.of(context).homeImportAction).first);
       await tester.pumpAndSettle();
 
@@ -601,7 +601,7 @@ void main() {
 
       await importTheProject(tester);
 
-      final context = tester.element(find.byType(HomePage));
+      final context = tester.element(find.byType(OcptHomePage));
       expect(find.byType(OcptProjectPackageSkippedFilesDialog), findsOneWidget);
       expect(find.textContaining("Autorisation mairie"), findsOneWidget);
       expect(

@@ -78,9 +78,9 @@ import 'package:open_cine_prod_tools/utils/ocpt_text_search.dart';
 /// none of them touches the project.
 ///
 /// The `OcptRouterManager` editor guard guarantees a project is open when this page is reached.
-class EditorPage extends StatelessWidget {
+class OcptEditorPage extends StatelessWidget {
   /// Creates the editor page.
-  const EditorPage({super.key});
+  const OcptEditorPage({super.key});
 
   @override
   Widget build(BuildContext context) => BlocProvider(
@@ -121,8 +121,8 @@ class _CloseFindIntent extends Intent {
   const _CloseFindIntent();
 }
 
-/// The content of [EditorPage], separated from it so [EditorPage] only wires the [OcptEditorBloc]
-/// up (RFL3).
+/// The content of [OcptEditorPage], separated from it so [OcptEditorPage] only wires the
+/// [OcptEditorBloc] up (RFL3).
 ///
 /// This is a StatefulWidget (the documented RFL1 exception) because it owns the text editing
 /// controller: the source text lives in the controller (the bloc only receives change events),

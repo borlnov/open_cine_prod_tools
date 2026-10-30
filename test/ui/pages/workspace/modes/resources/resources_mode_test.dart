@@ -47,9 +47,9 @@ class _RecordingRouterManager extends OcptRouterManager {
 
 /// Wraps [child] with the localization delegates so [Tr.of] lookups resolve in tests,
 /// [_navigatorKey] so [_RecordingRouterManager.pop] can close a dialog opened through
-/// `showDialog`, a bare [Scaffold]: unlike `EditorPage`, a production mode expects the real
-/// `WorkspacePage` to provide one, and an `OcptWorkspaceBloc` ancestor — `WorkspacePage` always
-/// provides one too, and this mode now reads it for the toolbar episode selector's
+/// `showDialog`, a bare [Scaffold]: unlike `OcptEditorPage`, a production mode expects the real
+/// `OcptWorkspacePage` to provide one, and an `OcptWorkspaceBloc` ancestor — `OcptWorkspacePage`
+/// always provides one too, and this mode now reads it for the toolbar episode selector's
 /// episodes/selection.
 Widget _wrapWithLocalization(Widget child) => MaterialApp(
   navigatorKey: _navigatorKey,

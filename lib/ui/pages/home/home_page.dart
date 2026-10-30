@@ -38,17 +38,17 @@ import 'package:open_cine_prod_tools/utils/ocpt_responsive.dart';
 ///
 /// Lets the user create a new project, open an existing one, or pick up a recently opened one
 /// from the grid.
-class HomePage extends StatelessWidget {
+class OcptHomePage extends StatelessWidget {
   /// Creates the home page.
-  const HomePage({super.key});
+  const OcptHomePage({super.key});
 
   @override
   Widget build(BuildContext context) =>
       BlocProvider(create: (context) => OcptHomeBloc(), child: const _HomeView());
 }
 
-/// The content of [HomePage], separated from it so [HomePage] only wires the [OcptHomeBloc] up
-/// (RFL3).
+/// The content of [OcptHomePage], separated from it so [OcptHomePage] only wires the [OcptHomeBloc]
+/// up (RFL3).
 class _HomeView extends StatelessWidget {
   /// Class constructor
   const _HomeView();

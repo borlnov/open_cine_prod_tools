@@ -23,9 +23,9 @@ import 'package:shared_preferences_platform_interface/shared_preferences_async_p
 
 /// Wraps [child] with the localization delegates so [Tr.of] lookups resolve in tests,
 /// [ocptTheme]'s light theme so widgets reading its `OcptSpecificColors` extension (the raw-mode
-/// preview's backdrop) resolve one, just like the real app always does, and an
-/// `OcptWorkspaceBloc` ancestor: the real `WorkspacePage` always provides one, and `EditorPage`
-/// now reads it for the episode selector's episodes/selection.
+/// preview's backdrop) resolve one, just like the real app always does, and an `OcptWorkspaceBloc`
+/// ancestor: the real `OcptWorkspacePage` always provides one, and `OcptEditorPage` now reads it
+/// for the episode selector's episodes/selection.
 Widget _wrapWithLocalization(Widget child) => MaterialApp(
   theme: ocptTheme.lightThemeData,
   localizationsDelegates: const [
@@ -46,7 +46,7 @@ Future<String> _loadMiniatureDictionaryAsset(String assetKey) async =>
     assetKey.endsWith(".aff") ? "SET UTF-8\n" : "2\nthe\nscene\n";
 
 void main() {
-  // EditorPage reads the current project's name from OcptProjectsManager, and its preferred
+  // OcptEditorPage reads the current project's name from OcptProjectsManager, and its preferred
   // editing mode from OcptPropertiesManager, both through globalGetIt(); both need a global
   // manager instance to exist and be registered in it. We register manually constructed ones
   // (bypassing the app's normal manager wiring).
@@ -85,7 +85,7 @@ void main() {
     () => OcptGlobalManager.instance.managers.get<OcptSpellCheckManager>().disposeLifeCycle(),
   );
 
-  testWidgets('EditorPage builds an empty editor when no project is open', (
+  testWidgets('OcptEditorPage builds an empty editor when no project is open', (
     WidgetTester tester,
   ) async {
     // Pump at an expanded width: below the compact breakpoint the preview is a drawer that starts
@@ -96,7 +96,7 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
 
-    await tester.pumpWidget(_wrapWithLocalization(const EditorPage()));
+    await tester.pumpWidget(_wrapWithLocalization(const OcptEditorPage()));
     await tester.pumpAndSettle();
 
     // The router guard normally prevents reaching the editor without an open project; when it's
@@ -104,12 +104,12 @@ void main() {
     // the preview shows its empty hint.
     expect(find.byType(TextField), findsOneWidget);
 
-    final context = tester.element(find.byType(EditorPage));
+    final context = tester.element(find.byType(OcptEditorPage));
     expect(find.text(Tr.of(context).editorPreviewEmptyHint), findsOneWidget);
   });
 
-  // SettingsPage's own coverage lives in test/ui/pages/settings/settings_page_test.dart: unlike
-  // EditorPage above, its BlocProvider defaults to `OcptSettingsBloc()`, which resolves
+  // OcptSettingsPage's own coverage lives in test/ui/pages/settings/settings_page_test.dart: unlike
+  // OcptEditorPage above, its BlocProvider defaults to `OcptSettingsBloc()`, which resolves
   // OcptGlobalManager.instance.packageInfo - a late field only ever set by the real app boot's
   // PackageInfo.fromPlatform(), which isn't available in this suite's manager setup.
 }
