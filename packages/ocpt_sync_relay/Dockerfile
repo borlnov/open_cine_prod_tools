@@ -13,7 +13,7 @@
 #
 # ../../docker-compose.yml (this package's own) already points its `context`/`dockerfile` there.
 
-FROM dart:3.12.2 AS build
+FROM dart:3.12.2@sha256:5ac89dbcae4327278b257920e2786df0f22c87adc630017266b67cfcceef8348 AS build
 
 WORKDIR /build
 
@@ -25,7 +25,7 @@ WORKDIR /build/packages/ocpt_sync_relay
 RUN dart pub get
 RUN dart compile exe bin/ocpt_sync_relay.dart -o bin/server
 
-FROM debian:trixie-slim AS runtime
+FROM debian:trixie-slim@sha256:f6b08b09a05725f9431502d3b5714f5c4576e82c1a84fa1debe0c24a7e0c3ec4 AS runtime
 
 # libsqlite3-0 is the only thing the compiled exe needs at runtime: `package:sqlite3` dlopens it
 # rather than linking it statically. No compiler, no Dart SDK, no -dev headers.

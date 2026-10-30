@@ -8,3 +8,11 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
+  - package-ecosystem: "docker"
+    directory: "/.devcontainer"
+    schedule:
+      interval: "weekly"
+  - package-ecosystem: "docker"
+    directory: "/packages/ocpt_sync_relay"
+    schedule:
+      interval: "weekly"
