@@ -988,11 +988,13 @@ void main() {
 
         expect(find.byType(OcptConfirmDialog), findsOneWidget);
         expect(find.text(tr.shotListFloorPlanDeleteSetConfirmTitle), findsOneWidget);
+        final unlinkParts =
+            "${tr.shotListFloorPlanUnlinkCountCamerasPart(1)} "
+            "${tr.shotListFloorPlanUnlinkCountConjunction} "
+            "${tr.shotListFloorPlanUnlinkCountCharactersPart(1)}";
         final expectedMessage =
             "${tr.shotListFloorPlanDeleteSetConfirmMessage} "
-            "${tr.shotListFloorPlanUnlinkCountMessage(2, "${tr.shotListFloorPlanUnlinkCountCamerasPart(1)} "
-            "${tr.shotListFloorPlanUnlinkCountConjunction} "
-            "${tr.shotListFloorPlanUnlinkCountCharactersPart(1)}")}";
+            "${tr.shotListFloorPlanUnlinkCountMessage(2, unlinkParts)}";
         expect(find.text(expectedMessage), findsOneWidget);
 
         await tester.tap(find.text(tr.shotListFloorPlanUnlinkSetConfirmAction));

@@ -70,6 +70,10 @@ class OcptShotCoverageSummary extends StatelessWidget {
     }
 
     final ranges = layout.rangesInReadingOrder(ownRanges);
+    final wordsCovered = tr.shotListCoverageWordsCovered(
+      layout.countCoveredWords(ownRanges),
+      _totalWordCount(layout),
+    );
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -100,8 +104,7 @@ class OcptShotCoverageSummary extends StatelessWidget {
             ),
         const SizedBox(height: 4),
         Text(
-          "${tr.shotListCoverageWordsCovered(layout.countCoveredWords(ownRanges), _totalWordCount(layout))}"
-          " · ${tr.shotListCoverageRangesCount(ranges.length)}",
+          "$wordsCovered · ${tr.shotListCoverageRangesCount(ranges.length)}",
           style: theme.textTheme.bodySmall,
         ),
         if (ranges.isNotEmpty && onClearAll != null)

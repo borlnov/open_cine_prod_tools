@@ -113,6 +113,13 @@ class OcptShotCoverageDialog extends StatelessWidget {
     final tr = Tr.of(context);
     final previewLayout = OcptEditorPreviewLayout(metrics: pageSetup.toMetrics());
     final media = MediaQuery.sizeOf(context);
+    final wordsCovered = tr.shotListCoverageWordsCovered(
+      layout.countCoveredWords(ownRanges),
+      _totalWordCount,
+    );
+    final rangesCount = tr.shotListCoverageRangesCount(
+      layout.rangesInReadingOrder(ownRanges).length,
+    );
 
     return Focus(
       // Nothing in the dialog otherwise requests focus (there is no text field to autofocus, as
@@ -216,9 +223,7 @@ class OcptShotCoverageDialog extends StatelessWidget {
                       children: [
                         Expanded(
                           child: Text(
-                            "${tr.shotListCoverageWordsCovered(layout.countCoveredWords(ownRanges), _totalWordCount)}"
-                            " · "
-                            "${tr.shotListCoverageRangesCount(layout.rangesInReadingOrder(ownRanges).length)}",
+                            "$wordsCovered · $rangesCount",
                             style: theme.textTheme.bodySmall,
                           ),
                         ),

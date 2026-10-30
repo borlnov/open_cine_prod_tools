@@ -107,9 +107,10 @@ class OcptRelayEnrolment extends Equatable {
   /// A human-readable summary that never leaks [enrolmentSecret] in full.
   @override
   String toString() {
-    final maskedSecret = enrolmentSecret.length <= 4
+    final secretLength = enrolmentSecret.length;
+    final maskedSecret = secretLength <= 4
         ? '***'
-        : '${enrolmentSecret.substring(0, 2)}***${enrolmentSecret.substring(enrolmentSecret.length - 2)}';
+        : '${enrolmentSecret.substring(0, 2)}***${enrolmentSecret.substring(secretLength - 2)}';
     return 'OcptRelayEnrolment(relayBaseUri: $relayBaseUri, enrolmentSecret: $maskedSecret)';
   }
 }

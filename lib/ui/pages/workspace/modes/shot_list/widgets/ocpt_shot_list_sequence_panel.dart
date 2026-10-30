@@ -162,6 +162,9 @@ class _SequenceEntry extends StatelessWidget {
     final theme = Theme.of(context);
     final tr = Tr.of(context);
     final sequence = this.sequence;
+    final averageDifficulty = tr.shotListAverageDifficulty(
+      ocptFormatShotDifficulty(context, sequence.averageDifficulty),
+    );
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -211,8 +214,7 @@ class _SequenceEntry extends StatelessWidget {
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          "${tr.shotListShotsCount(sequence.shotCount)} · "
-                          "${tr.shotListAverageDifficulty(ocptFormatShotDifficulty(context, sequence.averageDifficulty))}",
+                          "${tr.shotListShotsCount(sequence.shotCount)} · $averageDifficulty",
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: theme.textTheme.labelMedium?.copyWith(
