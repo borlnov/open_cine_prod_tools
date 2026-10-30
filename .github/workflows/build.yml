@@ -125,7 +125,9 @@ jobs:
 
   build-linux:
     name: Linux build
-    runs-on: ubuntu-latest
+    # Not ubuntu-latest: the compiler of 26.04 rejects a header of flutter_secure_storage_linux, and a
+    # .deb built on an older image also keeps installing on the older releases.
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     needs: get-version
 
