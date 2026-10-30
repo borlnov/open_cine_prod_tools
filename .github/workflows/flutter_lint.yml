@@ -78,6 +78,14 @@ jobs:
         if: matrix.package.path != '.'
         working-directory: ${{ matrix.package.path }}
         run: dart pub get
+      - name: Check formatting (app)
+        if: matrix.package.path == '.'
+        working-directory: ${{ matrix.package.path }}
+        run: dart format --output=none --set-exit-if-changed $(git ls-files '*.dart' ':!packages')
+      - name: Check formatting (package)
+        if: matrix.package.path != '.'
+        working-directory: ${{ matrix.package.path }}
+        run: dart format --output=none --set-exit-if-changed .
       - name: Analyze (app)
         if: matrix.package.path == '.'
         working-directory: ${{ matrix.package.path }}

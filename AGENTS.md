@@ -314,16 +314,17 @@ minimum before each commit):
 1. `flutter pub get`
 2. `dart run intl_utils:generate`
 3. `dart run build_runner build`
-4. `flutter analyze` → 0 issues
-5. `flutter test` → all green
-6. `flutter build linux --debug`
-7. `reuse lint` → compliant
-8. `git grep -l 'allcircuits.com' -- ':!actlibs' ':!AGENTS.md'` → empty
+4. `dart format --output=none --set-exit-if-changed $(git ls-files '*.dart')` → 0 changed
+5. `flutter analyze` → 0 issues
+6. `flutter test` → all green
+7. `flutter build linux --debug`
+8. `reuse lint` → compliant
+9. `git grep -l 'allcircuits.com' -- ':!actlibs' ':!AGENTS.md'` → empty
    (the extra exclusion is the file that *describes* this gate, which would otherwise always
    match its own search string)
-9. `dart run tool/check_markdown.dart` → no violation, whenever a `.md` file was touched. This
+10. `dart run tool/check_markdown.dart` → no violation, whenever a `.md` file was touched. This
    gate is about the documentation rather than the code, so it is the one to run before pushing
-   a docs-only change, which the other eight would say nothing about. The `markdown_lint`
+   a docs-only change, which the other nine would say nothing about. The `markdown_lint`
    workflow runs the real `markdownlint-cli2`, which needs a Node runtime the devcontainer does
    not carry; the script re-implements the rules that need no markdown parsing (line length,
    trailing spaces, hard tabs, final newline), so an over-long paragraph is caught here instead
