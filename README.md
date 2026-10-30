@@ -155,8 +155,8 @@ Then either:
 
   Skipping `intl_utils:generate` / `build_runner build` is the most common cause of a fresh build
   failing with a missing `part '*.g.dart'` (or `l10n.dart`) file: both are git-ignored generated
-  code (see `docs/adr/`) that only get produced automatically through VS Code's "Reopen in
-  Container" flow, not by a plain `docker compose up`.
+  code under `lib/generated/` (see `docs/adr/`) that only get produced automatically through
+  VS Code's "Reopen in Container" flow, not by a plain `docker compose up`.
 
 Run the test suites with `flutter test` and, inside `packages/fountain_kit`, `dart test`.
 

@@ -379,7 +379,8 @@ the persistence, the project versions, the sync-ready data model and the read-on
   is the harness pinning each frozen stable's upgrade path (a verbatim DDL fixture for the schema
   each prior stable shipped, proving `onCreate` == every stable upgrade path), so a table declared
   and forgotten fails there rather than on a user's file; it holds the v1, v2 and v3 fixtures.
-  `**/*.g.dart` is git-ignored (documented deviation); CI regenerates with build_runner.
+  Generated code, drift's `.g.dart` included, sits under `lib/generated/`, which is git-ignored
+  (ADR 0033); CI regenerates it with build_runner.
 
 - Project versions (`project_versions` + `project_info.currentVersionId`, schema v1): the user's
   named, permanent checkpoints of the **whole** project, not to be confused with

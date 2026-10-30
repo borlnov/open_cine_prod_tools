@@ -110,7 +110,7 @@ import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
 import 'package:open_cine_prod_tools/types/ocpt_storyboard_annotation_kind.dart';
 import 'package:open_cine_prod_tools/utils/ocpt_weekday_mask.dart';
 
-part 'ocpt_project_database.g.dart';
+part '../../generated/models/database/ocpt_project_database.g.dart';
 
 /// The per-project SQLite database backing a single `.ocpt` project file.
 ///

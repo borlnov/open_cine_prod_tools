@@ -208,8 +208,13 @@ dev_dependencies:
   # typing-run test measures the grouping rule rather than the test VM's own real-time gaps
   clock: ^1.1.2
 
-  # Generates the drift/*.g.dart companion code (tables, DAOs) from the annotated database classes
+  # Generates the drift companion code (tables, DAOs) under lib/generated/ from the annotated
+  # database classes
   drift_dev: ^2.24.0
+
+  # Owns the combining builder whose output location build.yaml redirects to lib/generated/; a
+  # package that sets another package's builder options depends on it directly
+  source_gen: ^4.2.3
 
   # Brings in the icons_launcher tooling used to turn the branding masters into every platform's
   # launcher icon (`dart run icons_launcher:create`, configured by the icons_launcher block below)
