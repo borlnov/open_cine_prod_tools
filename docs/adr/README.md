@@ -60,7 +60,7 @@ number is a stable identifier other documents and commits can reference.
 | [0001](0001-per-project-sqlite-file-with-drift.md) | Per-project SQLite file with drift | Accepted |
 | [0002](0002-fountain-kit-as-a-standalone-dart-package.md) | fountain_kit as a standalone Dart package | Accepted |
 | [0003](0003-super-editor-for-the-styled-editor.md) | super_editor for the styled editor | Accepted |
-| [0004](0004-generated-code-is-not-committed.md) | Generated code is not committed | Accepted |
+| [0004](0004-generated-code-is-not-committed.md) | Generated code is not committed | Superseded by ADR-0033 |
 | [0005](0005-resizable-editor-docks.md) | Resizable editor docks | Accepted |
 | [0006](0006-workspace-shell-as-a-slot-widget.md) | Workspace shell as a slot widget | Accepted |
 | [0007](0007-schema-migration-policy.md) | Schema migration policy | Accepted |
@@ -89,6 +89,7 @@ number is a stable identifier other documents and commits can reference.
 | [0030](0030-a-shots-characters-are-the-productions-roles.md) | A shot's characters are the production's roles | Proposed |
 | [0031](0031-storyboard-panels-and-floor-plans-in-metres.md) | Storyboard panels and floor plans in metres | Accepted |
 | [0032](0032-floor-plans-belong-to-the-resources-set.md) | Floor plans belong to the Resources set | Accepted |
+| [0033](0033-generated-code-under-the-generated-folder.md) | Generated code lives under `lib/generated/`, outside version control | Accepted |
 
 ## Candidates
 
