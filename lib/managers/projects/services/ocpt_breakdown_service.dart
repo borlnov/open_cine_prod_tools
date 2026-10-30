@@ -15,9 +15,13 @@ import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_source_kind.dart';
 import 'package:uuid/uuid.dart';
 
-/// Thrown inside [OcptBreakdownService.createElementAndTag]'s transaction to unwind the element
-/// it just minted when the tag half of that call is refused, and caught right outside the
-/// transaction so the method still returns null rather than letting the exception escape.
+/// Thrown inside [OcptBreakdownService.createElementAndTag]'s and `createSetAndTag`'s transaction
+/// to unwind what it just minted when the tag half of that call is refused, and caught right
+/// outside the transaction so the method still returns null rather than letting the exception
+/// escape.
+///
+/// It stays an exception on purpose: an exception leaving the transaction body is the only way
+/// drift rolls the writes back, and returning a value there would commit the half-done call.
 class _OcptBreakdownTagRefused implements Exception {
   /// Class constructor
   const _OcptBreakdownTagRefused();

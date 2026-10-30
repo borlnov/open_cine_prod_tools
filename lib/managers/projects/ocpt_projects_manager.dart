@@ -1767,7 +1767,13 @@ class OcptProjectsManager extends AbsWithLifeCycle {
       newDatabase = OcptProjectDatabase.alongsideAnother(File(newFilePath));
       final info = await newDatabase.select(newDatabase.ocptProjectInfoTable).getSingleOrNull();
       if (info == null) {
-        throw StateError("the copy at $newFilePath has no project_info row");
+        _logger.e(
+          "A problem occurred when tried to move project ${project.primaryScreenplayId}: the "
+          "copy has no project_info row",
+        );
+        await newDatabase.close();
+        await _deleteFileIfExists(newFilePath);
+        return const ResultWithStatus(status: OcptProjectMoveStatus.ioError);
       }
     } catch (error, stackTrace) {
       _logger.e(
