@@ -36,6 +36,8 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_lis
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_event.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_export_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_export_state.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_floor_plan_canvas_bloc.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_floor_plan_canvas_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_floor_plan_sets_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_floor_plan_sets_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_inspector_bloc.dart';
@@ -134,6 +136,11 @@ class OcptShotListMode extends StatelessWidget {
         create: (context) =>
             OcptShotListFloorPlanSetsBloc(modeBloc: context.read<OcptShotListBloc>()),
       ),
+      BlocProvider(
+        lazy: false,
+        create: (context) =>
+            OcptShotListFloorPlanCanvasBloc(modeBloc: context.read<OcptShotListBloc>()),
+      ),
     ],
     child: _ShotListView(hasRevealRequest: revealRequest != null),
   );
@@ -215,6 +222,9 @@ class _ShotListViewState extends State<_ShotListView> {
       ),
       BlocListener<OcptShotListFloorPlanSetsBloc, OcptShotListFloorPlanSetsState>(
         listener: _onFloorPlanSetsStateChanged,
+      ),
+      BlocListener<OcptShotListFloorPlanCanvasBloc, OcptShotListFloorPlanCanvasState>(
+        listener: _onFloorPlanCanvasStateChanged,
       ),
     ],
     child: _buildMode(context),
@@ -1113,6 +1123,8 @@ class _ShotListViewState extends State<_ShotListView> {
     final bloc = context.read<OcptShotListBloc>();
     final setsBloc = context.read<OcptShotListFloorPlanSetsBloc>();
     final setsState = context.watch<OcptShotListFloorPlanSetsBloc>().state;
+    final canvasBloc = context.read<OcptShotListFloorPlanCanvasBloc>();
+    final canvasState = context.watch<OcptShotListFloorPlanCanvasBloc>().state;
     final tr = Tr.of(context);
     final isReadOnly = state.isPreviewingVersion;
     final selectedSet = state.selectedSet;
@@ -1142,10 +1154,10 @@ class _ShotListViewState extends State<_ShotListView> {
       isOnionSkinNextShown: setsState.isFloorPlanOnionSkinNextShown,
       onionSkinOpacity: setsState.floorPlanOnionSkinOpacity,
       isMetricsShown: setsState.isFloorPlanMetricsShown,
-      selectedSymbolId: state.selectedFloorPlanSymbolId,
-      selectedArrowId: state.selectedFloorPlanArrowId,
-      pendingArrowAnchorSymbolId: state.pendingFloorPlanArrowAnchorSymbolId,
-      activeTool: state.floorPlanActiveTool,
+      selectedSymbolId: canvasState.selectedFloorPlanSymbolId,
+      selectedArrowId: canvasState.selectedFloorPlanArrowId,
+      pendingArrowAnchorSymbolId: canvasState.pendingFloorPlanArrowAnchorSymbolId,
+      activeTool: canvasState.floorPlanActiveTool,
       activeLayer: setsState.floorPlanActiveLayer,
       activeSetElementShape: setsState.floorPlanActiveSetElementShape,
       activeSetElementScope: setsState.floorPlanActiveSetElementScope,
@@ -1160,7 +1172,7 @@ class _ShotListViewState extends State<_ShotListView> {
       ],
       isReadOnly: isReadOnly,
       symbolLabelValueOf: (symbolId) => _symbolLabelValueOf(state, symbolId),
-      onToolSelected: (tool) => bloc.add(OcptShotListFloorPlanToolSelectedEvent(tool: tool)),
+      onToolSelected: (tool) => canvasBloc.add(OcptShotListFloorPlanToolSelectedEvent(tool: tool)),
       onLayerVisibilityToggled: (layer) =>
           setsBloc.add(OcptShotListFloorPlanLayerVisibilityToggledEvent(layer: layer)),
       onActiveLayerChanged: (layer) =>
@@ -1193,10 +1205,10 @@ class _ShotListViewState extends State<_ShotListView> {
           ? null
           : () => unawaited(_handleUnderlayClearRequested(context, selectedSetId)),
       onSymbolSelected: (symbolId) =>
-          bloc.add(OcptShotListFloorPlanSymbolSelectedEvent(symbolId: symbolId)),
+          canvasBloc.add(OcptShotListFloorPlanSymbolSelectedEvent(symbolId: symbolId)),
       onSymbolPlaced: isReadOnly || selectedSetId == null
           ? null
-          : (layer, shotId, sceneId, xM, yM, {setElementShape, label = ""}) => bloc.add(
+          : (layer, shotId, sceneId, xM, yM, {setElementShape, label = ""}) => canvasBloc.add(
               OcptShotListFloorPlanSymbolPlacedEvent(
                 setId: selectedSetId,
                 layer: layer,
@@ -1241,15 +1253,16 @@ class _ShotListViewState extends State<_ShotListView> {
             ),
       onArrowSymbolTapped: isReadOnly || selectedSetId == null || focusShotId == null
           ? null
-          : (symbolId) => bloc.add(OcptShotListFloorPlanArrowSymbolTappedEvent(symbolId: symbolId)),
+          : (symbolId) =>
+                canvasBloc.add(OcptShotListFloorPlanArrowSymbolTappedEvent(symbolId: symbolId)),
       onArrowAnchorCancelled: isReadOnly
           ? null
-          : () => bloc.add(const OcptShotListFloorPlanArrowAnchorCancelledEvent()),
+          : () => canvasBloc.add(const OcptShotListFloorPlanArrowAnchorCancelledEvent()),
       onArrowSelected: (arrowId) =>
-          bloc.add(OcptShotListFloorPlanArrowSelectedEvent(arrowId: arrowId)),
+          canvasBloc.add(OcptShotListFloorPlanArrowSelectedEvent(arrowId: arrowId)),
       onArrowCurveChanged: isReadOnly
           ? null
-          : (arrowId, ctrlXM, ctrlYM) => bloc.add(
+          : (arrowId, ctrlXM, ctrlYM) => canvasBloc.add(
               OcptShotListFloorPlanArrowCurveChangedEvent(
                 arrowId: arrowId,
                 ctrlXM: ctrlXM,
@@ -1258,10 +1271,11 @@ class _ShotListViewState extends State<_ShotListView> {
             ),
       onSymbolDuplicateRequested: isReadOnly
           ? null
-          : (symbolId) => bloc.add(OcptShotListFloorPlanSymbolDuplicatedEvent(symbolId: symbolId)),
+          : (symbolId) =>
+                canvasBloc.add(OcptShotListFloorPlanSymbolDuplicatedEvent(symbolId: symbolId)),
       onSymbolDuplicateDragged: isReadOnly
           ? null
-          : (symbolId, xM, yM) => bloc.add(
+          : (symbolId, xM, yM) => canvasBloc.add(
               OcptShotListFloorPlanSymbolDuplicatedEvent(symbolId: symbolId, xM: xM, yM: yM),
             ),
       onGhostShotFocusRequested: (shotId) =>
@@ -1286,29 +1300,29 @@ class _ShotListViewState extends State<_ShotListView> {
       onShotChipSelected: (shotId) => bloc.add(OcptShotListShotSelectedEvent(shotId: shotId)),
       onShotWalkRequested: (delta) =>
           setsBloc.add(OcptShotListFloorPlanShotWalkRequestedEvent(delta: delta)),
-      pendingScopeLiveOverride: _pendingScopeLiveOverrideOf(state),
-      scopeBubbleEveryLabel: _scopeBubbleEveryLabelOf(state, tr),
-      scopeBubbleOnlyLabel: _scopeBubbleOnlyLabelOf(state, tr, sequence),
-      scopeBubbleCancelLabel: state.pendingFloorPlanScopeDecision == null
+      pendingScopeLiveOverride: _pendingScopeLiveOverrideOf(state, canvasState),
+      scopeBubbleEveryLabel: _scopeBubbleEveryLabelOf(canvasState, tr),
+      scopeBubbleOnlyLabel: _scopeBubbleOnlyLabelOf(state, canvasState, tr, sequence),
+      scopeBubbleCancelLabel: canvasState.pendingFloorPlanScopeDecision == null
           ? null
           : tr.shotListFloorPlanScopeBubbleCancelAction,
-      onScopeBubbleEveryRequested: state.pendingFloorPlanScopeDecision == null
+      onScopeBubbleEveryRequested: canvasState.pendingFloorPlanScopeDecision == null
           ? null
-          : () => bloc.add(
+          : () => canvasBloc.add(
               const OcptShotListFloorPlanScopeDecisionResolvedEvent(
                 choice: OcptFloorPlanScopeChoice.every,
               ),
             ),
-      onScopeBubbleOnlyRequested: state.pendingFloorPlanScopeDecision == null
+      onScopeBubbleOnlyRequested: canvasState.pendingFloorPlanScopeDecision == null
           ? null
-          : () => bloc.add(
+          : () => canvasBloc.add(
               const OcptShotListFloorPlanScopeDecisionResolvedEvent(
                 choice: OcptFloorPlanScopeChoice.only,
               ),
             ),
-      onScopeBubbleCancelRequested: state.pendingFloorPlanScopeDecision == null
+      onScopeBubbleCancelRequested: canvasState.pendingFloorPlanScopeDecision == null
           ? null
-          : () => bloc.add(
+          : () => canvasBloc.add(
               const OcptShotListFloorPlanScopeDecisionResolvedEvent(
                 choice: OcptFloorPlanScopeChoice.cancel,
               ),
@@ -1316,13 +1330,16 @@ class _ShotListViewState extends State<_ShotListView> {
     );
   }
 
-  /// [state]'s own pending scope decision, resolved into the live override the canvas draws (and
+  /// [canvasState]'s own pending scope decision, resolved into the live override the canvas draws (and
   /// hit-tests) instead of the symbol's own stored geometry while the scope bubble is showing — or
   /// null while nothing is pending. Falls back to the original symbol's own currently stored
   /// footprint (resolved exactly like `OcptFloorPlanSheet._shapeOf` would) for whichever field the
   /// triggering gesture didn't itself change.
-  OcptFloorPlanSymbolLiveOverride? _pendingScopeLiveOverrideOf(OcptShotListState state) {
-    final decision = state.pendingFloorPlanScopeDecision;
+  OcptFloorPlanSymbolLiveOverride? _pendingScopeLiveOverrideOf(
+    OcptShotListState state,
+    OcptShotListFloorPlanCanvasState canvasState,
+  ) {
+    final decision = canvasState.pendingFloorPlanScopeDecision;
     if (decision == null) {
       return null;
     }
@@ -1351,8 +1368,8 @@ class _ShotListViewState extends State<_ShotListView> {
   /// The scope bubble's own broader-scope label — `Every sequence (n)` at
   /// [OcptFloorPlanOverrideLevel.sequence], `The whole sequence` at
   /// [OcptFloorPlanOverrideLevel.shot] — or null while nothing is pending.
-  String? _scopeBubbleEveryLabelOf(OcptShotListState state, Tr tr) {
-    final decision = state.pendingFloorPlanScopeDecision;
+  String? _scopeBubbleEveryLabelOf(OcptShotListFloorPlanCanvasState canvasState, Tr tr) {
+    final decision = canvasState.pendingFloorPlanScopeDecision;
     if (decision == null) {
       return null;
     }
@@ -1364,8 +1381,13 @@ class _ShotListViewState extends State<_ShotListView> {
   /// The scope bubble's own narrower-scope label — `Only sequence n` at
   /// [OcptFloorPlanOverrideLevel.sequence], `Only shot n` at [OcptFloorPlanOverrideLevel.shot]
   /// — or null while nothing is pending.
-  String? _scopeBubbleOnlyLabelOf(OcptShotListState state, Tr tr, OcptShotSequence? sequence) {
-    final decision = state.pendingFloorPlanScopeDecision;
+  String? _scopeBubbleOnlyLabelOf(
+    OcptShotListState state,
+    OcptShotListFloorPlanCanvasState canvasState,
+    Tr tr,
+    OcptShotSequence? sequence,
+  ) {
+    final decision = canvasState.pendingFloorPlanScopeDecision;
     if (decision == null) {
       return null;
     }
@@ -1479,13 +1501,13 @@ class _ShotListViewState extends State<_ShotListView> {
     double xM,
     double yM,
   ) {
-    final bloc = context.read<OcptShotListBloc>();
+    final canvasBloc = context.read<OcptShotListFloorPlanCanvasBloc>();
     final decision = _scopeDecisionTargetOf(state, symbolId);
     if (decision == null) {
-      bloc.add(OcptShotListFloorPlanSymbolMovedEvent(symbolId: symbolId, xM: xM, yM: yM));
+      canvasBloc.add(OcptShotListFloorPlanSymbolMovedEvent(symbolId: symbolId, xM: xM, yM: yM));
       return;
     }
-    bloc.add(
+    canvasBloc.add(
       OcptShotListFloorPlanScopeDecisionRequestedEvent(
         symbolId: symbolId,
         setId: decision.setId,
@@ -1505,10 +1527,10 @@ class _ShotListViewState extends State<_ShotListView> {
     double widthM,
     double heightM,
   ) {
-    final bloc = context.read<OcptShotListBloc>();
+    final canvasBloc = context.read<OcptShotListFloorPlanCanvasBloc>();
     final decision = _scopeDecisionTargetOf(state, symbolId);
     if (decision == null) {
-      bloc.add(
+      canvasBloc.add(
         OcptShotListFloorPlanSymbolResizedEvent(
           symbolId: symbolId,
           widthM: widthM,
@@ -1517,7 +1539,7 @@ class _ShotListViewState extends State<_ShotListView> {
       );
       return;
     }
-    bloc.add(
+    canvasBloc.add(
       OcptShotListFloorPlanScopeDecisionRequestedEvent(
         symbolId: symbolId,
         setId: decision.setId,
@@ -1536,15 +1558,15 @@ class _ShotListViewState extends State<_ShotListView> {
     String symbolId,
     double rotationDeg,
   ) {
-    final bloc = context.read<OcptShotListBloc>();
+    final canvasBloc = context.read<OcptShotListFloorPlanCanvasBloc>();
     final decision = _scopeDecisionTargetOf(state, symbolId);
     if (decision == null) {
-      bloc.add(
+      canvasBloc.add(
         OcptShotListFloorPlanSymbolRotatedEvent(symbolId: symbolId, rotationDeg: rotationDeg),
       );
       return;
     }
-    bloc.add(
+    canvasBloc.add(
       OcptShotListFloorPlanScopeDecisionRequestedEvent(
         symbolId: symbolId,
         setId: decision.setId,
@@ -1867,7 +1889,8 @@ class _ShotListViewState extends State<_ShotListView> {
 
     // A selected override (visible or a hidden one's own ghost) may be a sequence- or a shot-scope
     // shape — checked against the whole sheet, not just this shot's own placements.
-    final selectedSymbolId = state.selectedFloorPlanSymbolId;
+    final canvasState = context.watch<OcptShotListFloorPlanCanvasBloc>().state;
+    final selectedSymbolId = canvasState.selectedFloorPlanSymbolId;
     final selectedShape = selectedSymbolId == null
         ? null
         : sheet.symbols.firstWhereOrNull((symbol) => symbol.symbolId == selectedSymbolId);
@@ -1878,8 +1901,8 @@ class _ShotListViewState extends State<_ShotListView> {
 
     return OcptFloorPlanPlacementsGroup(
       setName: selectedSet.name,
-      selectedSymbolId: state.selectedFloorPlanSymbolId,
-      selectedArrowId: state.selectedFloorPlanArrowId,
+      selectedSymbolId: canvasState.selectedFloorPlanSymbolId,
+      selectedArrowId: canvasState.selectedFloorPlanArrowId,
       cameras: ownSymbols.where((symbol) => symbol.layer == OcptFloorPlanLayer.cameras).toList(),
       characters: ownSymbols
           .where((symbol) => symbol.layer == OcptFloorPlanLayer.characters)
@@ -2211,14 +2234,6 @@ class _ShotListViewState extends State<_ShotListView> {
       context.read<OcptShotListBloc>().add(const OcptShotListWriteErrorDismissedEvent());
     }
 
-    final pendingCharacterNamePromptSymbolId = state.pendingCharacterNamePromptSymbolId;
-    if (pendingCharacterNamePromptSymbolId != null) {
-      context.read<OcptShotListBloc>().add(
-        const OcptShotListFloorPlanCharacterNamePromptDismissedEvent(),
-      );
-      unawaited(_askCharacterName(context, state, pendingCharacterNamePromptSymbolId));
-    }
-
     final versionNotice = state.projectVersionNotice;
     if (versionNotice != null) {
       ScaffoldMessenger.of(context)
@@ -2287,6 +2302,36 @@ class _ShotListViewState extends State<_ShotListView> {
     context.read<OcptShotListFloorPlanSetsBloc>().add(
       const OcptShotListFloorPlanSetsWriteErrorDismissedEvent(),
     );
+  }
+
+  /// Shows the transient write error the floor plan canvas raised as a SnackBar, then dismisses
+  /// it, and opens the character name prompt a freshly placed character symbol asks for.
+  void _onFloorPlanCanvasStateChanged(
+    BuildContext context,
+    OcptShotListFloorPlanCanvasState state,
+  ) {
+    if (state.hasWriteError) {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(SnackBar(content: Text(Tr.of(context).shotListWriteError)));
+      context.read<OcptShotListFloorPlanCanvasBloc>().add(
+        const OcptShotListFloorPlanCanvasWriteErrorDismissedEvent(),
+      );
+    }
+
+    final pendingCharacterNamePromptSymbolId = state.pendingCharacterNamePromptSymbolId;
+    if (pendingCharacterNamePromptSymbolId != null) {
+      context.read<OcptShotListFloorPlanCanvasBloc>().add(
+        const OcptShotListFloorPlanCharacterNamePromptDismissedEvent(),
+      );
+      unawaited(
+        _askCharacterName(
+          context,
+          context.read<OcptShotListBloc>().state,
+          pendingCharacterNamePromptSymbolId,
+        ),
+      );
+    }
   }
 
   /// Shows the outcome of an export as a SnackBar, then dismisses it.

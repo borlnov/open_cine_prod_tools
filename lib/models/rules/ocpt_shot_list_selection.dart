@@ -108,6 +108,51 @@ OcptFloorPlanSymbol? ocptFloorPlanSymbolById({
   return null;
 }
 
+/// Whether symbol [symbolId] is masked where the floor plans canvas looks, at [sceneId] and
+/// [shotId] (null while no sequence or no shot is focused): a live hidden override of it exists
+/// for that sequence (a sequence-level one, with no shot of its own) or for that shot — what
+/// hiding a symbol "for this sequence" or "for this shot" writes, and what makes the canvas stop
+/// drawing it as itself.
+///
+/// A hidden override is not itself masked by this: the canvas draws it as a ghost, and a ghost can
+/// be selected to be restored. False while [floorPlanSnapshot] holds no such symbol at all.
+bool ocptIsFloorPlanSymbolMaskedAt({
+  required OcptFloorPlanSnapshot? floorPlanSnapshot,
+  required String symbolId,
+  required String? sceneId,
+  required String? shotId,
+}) {
+  for (final floorPlanSet in floorPlanSnapshot?.setsById.values ?? const <OcptFloorPlanSet>[]) {
+    for (final candidate in floorPlanSet.symbols) {
+      if (!candidate.isHidden || candidate.overridesSymbolId != symbolId) {
+        continue;
+      }
+      final masksShot = candidate.shotId != null && candidate.shotId == shotId;
+      final masksSequence =
+          candidate.shotId == null && candidate.sceneId != null && candidate.sceneId == sceneId;
+      if (masksShot || masksSequence) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+/// Whether [floorPlanSnapshot] holds a live arrow [arrowId], in any of its sets.
+bool ocptFloorPlanArrowExists({
+  required OcptFloorPlanSnapshot? floorPlanSnapshot,
+  required String arrowId,
+}) {
+  for (final floorPlanSet in floorPlanSnapshot?.setsById.values ?? const <OcptFloorPlanSet>[]) {
+    for (final arrow in floorPlanSet.arrows) {
+      if (arrow.id == arrowId) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
 /// The first of [shot]'s own `OcptShot.characters` not already carried by one of its live
 /// character symbols on [floorPlanSet], or `""` while it has none left (or none at all) — the
 /// convenience pre-fill a freshly placed character symbol's own label gets.

@@ -3,7 +3,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:act_flutter_utility/act_flutter_utility.dart';
-import 'package:open_cine_prod_tools/models/ocpt_floor_plan_scope_decision.dart';
 import 'package:open_cine_prod_tools/models/ocpt_floor_plan_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_floor_plan_symbol.dart';
 import 'package:open_cine_prod_tools/models/ocpt_location.dart';
@@ -17,7 +16,6 @@ import 'package:open_cine_prod_tools/models/ocpt_shot_field_suggestions.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_list_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
 import 'package:open_cine_prod_tools/models/ocpt_storyboard_snapshot.dart';
-import 'package:open_cine_prod_tools/types/ocpt_floor_plan_tool.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_version_notice_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_centre_view.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_column.dart';
@@ -119,48 +117,6 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
   /// own thumbnail content: a thumbnail draws a set's own
   /// décor alone, never what a sequence or a shot placed on it.
   final Map<String, List<OcptFloorPlanSymbol>> setScopeSymbolsBySetId;
-
-  /// The id of the symbol currently selected on the floor plans canvas, or null while none is.
-  ///
-  /// Cleared whenever [selectedSetId] or [selectedSequenceId] changes: a symbol only ever belongs
-  /// to the set currently shown. Mutually exclusive with [selectedFloorPlanArrowId]: selecting one
-  /// clears the other.
-  final String? selectedFloorPlanSymbolId;
-
-  /// The id of the arrow currently selected on the floor plans canvas, or null while none is —
-  /// what draws its own bendable midpoint handle. Mutually exclusive with
-  /// [selectedFloorPlanSymbolId] and cleared on every occasion that field is: a different set or
-  /// sequence shown, the shot deleted, the arrow itself deleted.
-  final String? selectedFloorPlanArrowId;
-
-  /// The id of a character symbol just placed by [OcptFloorPlanTool.character], asking
-  /// `OcptFloorPlanCharacterNamePickerDialog` to open for it, or null while none is pending — a
-  /// one-shot trigger read by the mode's own `BlocConsumer` listener exactly like
-  /// [projectPackagePendingExport] is, and cleared the moment that listener opens the dialog so a
-  /// later emission never stacks a second one behind it.
-  final String? pendingCharacterNamePromptSymbolId;
-
-  /// The floor plans canvas's own currently active tool, picked from the tool bar.
-  ///
-  /// A **view/session state** value: never written to the project.
-  final OcptFloorPlanTool floorPlanActiveTool;
-
-  /// A set-scope move, rotate or resize awaiting the scope bubble's own answer — set the
-  /// instant such a gesture ends on a symbol whose own set is linked to two or more sequences, and
-  /// cleared the moment the bubble is answered (`Every sequence`/`Only sequence n`/`Cancel`) or a
-  /// click elsewhere dismisses it as `Cancel`. Null the rest of the time — every set-scope gesture
-  /// on a set linked to one sequence alone is written straight away, exactly as before.
-  ///
-  /// A **view/session state** value: never written to the project (only what
-  /// it resolves into is).
-  final OcptFloorPlanScopeDecision? pendingFloorPlanScopeDecision;
-
-  /// The id of the symbol picked as the arrow tool's own first end, or null while none is pending
-  /// (no click yet, or the anchor was just completed into an arrow or cancelled) — the floor plans
-  /// canvas's own pending anchor, mirroring the coverage dialog's own. Cleared whenever
-  /// [selectedShotId], [selectedSequenceId] or [selectedSetId] changes, and whenever
-  /// [floorPlanActiveTool] is picked away from [OcptFloorPlanTool.arrow].
-  final String? pendingFloorPlanArrowAnchorSymbolId;
 
   /// Whether the left (sequences) dock is shown.
   final bool isSequencePanelVisible;
@@ -291,12 +247,6 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
     required this.selectedSetId,
     required this.locations,
     required this.setScopeSymbolsBySetId,
-    required this.selectedFloorPlanSymbolId,
-    required this.selectedFloorPlanArrowId,
-    required this.pendingCharacterNamePromptSymbolId,
-    required this.floorPlanActiveTool,
-    required this.pendingFloorPlanScopeDecision,
-    required this.pendingFloorPlanArrowAnchorSymbolId,
     required this.isSequencePanelVisible,
     required this.rightDockTab,
     required this.lastRightDockTab,
@@ -337,12 +287,6 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
       selectedSetId = null,
       locations = const [],
       setScopeSymbolsBySetId = const {},
-      selectedFloorPlanSymbolId = null,
-      selectedFloorPlanArrowId = null,
-      pendingCharacterNamePromptSymbolId = null,
-      floorPlanActiveTool = OcptFloorPlanTool.select,
-      pendingFloorPlanScopeDecision = null,
-      pendingFloorPlanArrowAnchorSymbolId = null,
       isSequencePanelVisible = true,
       rightDockTab = null,
       lastRightDockTab = OcptShotListRightDockTab.inspector,
@@ -399,17 +343,6 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
     bool forceSelectedSetIdValue = false,
     List<OcptLocation>? locations,
     Map<String, List<OcptFloorPlanSymbol>>? setScopeSymbolsBySetId,
-    String? selectedFloorPlanSymbolId,
-    bool forceSelectedFloorPlanSymbolIdValue = false,
-    String? selectedFloorPlanArrowId,
-    bool forceSelectedFloorPlanArrowIdValue = false,
-    String? pendingCharacterNamePromptSymbolId,
-    bool forcePendingCharacterNamePromptSymbolIdValue = false,
-    OcptFloorPlanTool? floorPlanActiveTool,
-    OcptFloorPlanScopeDecision? pendingFloorPlanScopeDecision,
-    bool forcePendingFloorPlanScopeDecisionValue = false,
-    String? pendingFloorPlanArrowAnchorSymbolId,
-    bool forcePendingFloorPlanArrowAnchorSymbolIdValue = false,
     bool? isSequencePanelVisible,
     OcptShotListRightDockTab? rightDockTab,
     bool forceRightDockTabValue = false,
@@ -459,26 +392,6 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
     selectedSetId: selectedSetId ?? (forceSelectedSetIdValue ? null : this.selectedSetId),
     locations: locations ?? this.locations,
     setScopeSymbolsBySetId: setScopeSymbolsBySetId ?? this.setScopeSymbolsBySetId,
-    selectedFloorPlanSymbolId:
-        selectedFloorPlanSymbolId ??
-        (forceSelectedFloorPlanSymbolIdValue ? null : this.selectedFloorPlanSymbolId),
-    selectedFloorPlanArrowId:
-        selectedFloorPlanArrowId ??
-        (forceSelectedFloorPlanArrowIdValue ? null : this.selectedFloorPlanArrowId),
-    pendingCharacterNamePromptSymbolId:
-        pendingCharacterNamePromptSymbolId ??
-        (forcePendingCharacterNamePromptSymbolIdValue
-            ? null
-            : this.pendingCharacterNamePromptSymbolId),
-    floorPlanActiveTool: floorPlanActiveTool ?? this.floorPlanActiveTool,
-    pendingFloorPlanScopeDecision:
-        pendingFloorPlanScopeDecision ??
-        (forcePendingFloorPlanScopeDecisionValue ? null : this.pendingFloorPlanScopeDecision),
-    pendingFloorPlanArrowAnchorSymbolId:
-        pendingFloorPlanArrowAnchorSymbolId ??
-        (forcePendingFloorPlanArrowAnchorSymbolIdValue
-            ? null
-            : this.pendingFloorPlanArrowAnchorSymbolId),
     isSequencePanelVisible: isSequencePanelVisible ?? this.isSequencePanelVisible,
     rightDockTab: rightDockTab ?? (forceRightDockTabValue ? null : this.rightDockTab),
     lastRightDockTab: lastRightDockTab ?? this.lastRightDockTab,
@@ -612,12 +525,6 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
     selectedSetId,
     locations,
     setScopeSymbolsBySetId,
-    selectedFloorPlanSymbolId,
-    selectedFloorPlanArrowId,
-    pendingCharacterNamePromptSymbolId,
-    floorPlanActiveTool,
-    pendingFloorPlanScopeDecision,
-    pendingFloorPlanArrowAnchorSymbolId,
     isSequencePanelVisible,
     rightDockTab,
     lastRightDockTab,

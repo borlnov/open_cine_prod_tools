@@ -33,6 +33,7 @@ import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_project_versions_events.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_event.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_floor_plan_canvas_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_floor_plan_sets_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock.dart';
@@ -585,10 +586,14 @@ void main() {
     await writeScreenplay(twoSceneText);
     final bloc = buildBloc();
     final sets = buildSets(bloc);
+    final canvas = OcptShotListFloorPlanCanvasBloc(
+      modeBloc: bloc,
+      projectsManager: projectsManager,
+    );
     await waitForState(bloc, (state) => !state.isLoading);
     final setId = await createCase(bloc, sets);
 
-    bloc.add(
+    canvas.add(
       OcptShotListFloorPlanSymbolPlacedEvent(
         setId: setId,
         layer: OcptFloorPlanLayer.set,
@@ -615,11 +620,12 @@ void main() {
     expect(copiedSymbolId, isNot(sourceSymbolId));
 
     // Independent: moving the copy leaves the source set's own symbol untouched.
-    bloc.add(OcptShotListFloorPlanSymbolMovedEvent(symbolId: copiedSymbolId, xM: 9, yM: 9));
+    canvas.add(OcptShotListFloorPlanSymbolMovedEvent(symbolId: copiedSymbolId, xM: 9, yM: 9));
     await waitForState(bloc, (state) => state.selectedSet!.symbols.single.xM == 9);
     final sourceSet = bloc.state.setsOfSelectedSequence.firstWhere((s) => s.id == setId);
     expect(sourceSet.symbols.single.xM, 1);
 
+    await canvas.close();
     await closeAll(sets, bloc);
   });
 
@@ -629,11 +635,15 @@ void main() {
       await writeScreenplay(twoSceneText);
       final bloc = buildBloc();
       final sets = buildSets(bloc);
+      final canvas = OcptShotListFloorPlanCanvasBloc(
+        modeBloc: bloc,
+        projectsManager: projectsManager,
+      );
       await waitForState(bloc, (state) => !state.isLoading);
       final setId = await createCase(bloc, sets);
       final sourceShotId = await createShot(bloc);
 
-      bloc.add(
+      canvas.add(
         OcptShotListFloorPlanSymbolPlacedEvent(
           setId: setId,
           layer: OcptFloorPlanLayer.cameras,
@@ -669,7 +679,7 @@ void main() {
       expect(copiedSymbol.layer, OcptFloorPlanLayer.cameras);
 
       // Independent: moving the copy leaves the source shot's own symbol untouched.
-      bloc.add(OcptShotListFloorPlanSymbolMovedEvent(symbolId: copiedSymbol.id, xM: 5, yM: 5));
+      canvas.add(OcptShotListFloorPlanSymbolMovedEvent(symbolId: copiedSymbol.id, xM: 5, yM: 5));
       await waitForState(
         bloc,
         (state) =>
@@ -680,6 +690,7 @@ void main() {
       );
       expect(sourceSymbol.xM, 1);
 
+      await canvas.close();
       await closeAll(sets, bloc);
     },
   );

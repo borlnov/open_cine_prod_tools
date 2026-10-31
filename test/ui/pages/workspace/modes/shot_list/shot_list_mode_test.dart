@@ -30,6 +30,7 @@ import 'package:open_cine_prod_tools/types/ocpt_storyboard_annotation_kind.dart'
 import 'package:open_cine_prod_tools/types/ocpt_storyboard_annotation_tool.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_event.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_floor_plan_canvas_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_floor_plan_sets_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_mode.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_state.dart';
@@ -253,10 +254,10 @@ void main() {
 
     // No export has been asked for, so nothing has read the export bloc: it only exists because
     // the mode asked for it to be built, and a bloc that does not exist cannot be asked to write
-    // what it holds. The storyboard, inspector and floor plan sets blocs count too, the mode's own
+    // what it holds. The storyboard, inspector and floor plan blocs count too, the mode's own
     // listeners reading them.
     final modeBloc = tester.element(find.byType(OcptShotListStatusBar)).read<OcptShotListBloc>();
-    expect(modeBloc.pendingWritesFlusherCount, 4);
+    expect(modeBloc.pendingWritesFlusherCount, 5);
   });
 
   testWidgets(
@@ -832,6 +833,11 @@ void main() {
     /// Sets the test surface past the 800 px compact breakpoint, mounts the mode, and switches to
     /// the floor plans view — the starting point every floor plans test but the compact-width one
     /// shares.
+    /// The floor plan canvas bloc of the mounted mode, the one holding the tool and the selected
+    /// symbol.
+    OcptShotListFloorPlanCanvasBloc canvasBlocOf(WidgetTester tester) =>
+        tester.element(find.byType(OcptShotListStatusBar)).read<OcptShotListFloorPlanCanvasBloc>();
+
     Future<OcptShotListBloc> mountOnFloorPlans(WidgetTester tester) async {
       tester.view.physicalSize = const Size(1400, 900);
       tester.view.devicePixelRatio = 1.0;
@@ -955,7 +961,7 @@ void main() {
       // Set-scoped: the scope invariant this whole feature stands on.
       expect(symbols.single.shotId, isNull);
       expect(symbols.single.sceneId, isNull);
-      expect(bloc.state.selectedFloorPlanSymbolId, symbols.single.id);
+      expect(canvasBlocOf(tester).state.selectedFloorPlanSymbolId, symbols.single.id);
     });
 
     testWidgets("deleting the selected symbol asks through the confirm dialog", (tester) async {
@@ -1074,7 +1080,7 @@ void main() {
         await tester.pumpAndSettle();
 
         // Placed at once — never armed the `prop` tool the way a chip click normally does.
-        expect(bloc.state.floorPlanActiveTool, isNot(OcptFloorPlanTool.prop));
+        expect(canvasBlocOf(tester).state.floorPlanActiveTool, isNot(OcptFloorPlanTool.prop));
 
         final symbols = bloc.state.selectedSet!.symbols;
         expect(symbols, hasLength(1));
@@ -1087,7 +1093,7 @@ void main() {
         expect(placed.xM, closeTo(0, 1e-6));
         expect(placed.yM, closeTo(0, 1e-6));
 
-        expect(bloc.state.selectedFloorPlanSymbolId, placed.id);
+        expect(canvasBlocOf(tester).state.selectedFloorPlanSymbolId, placed.id);
       },
     );
 
@@ -1127,7 +1133,7 @@ void main() {
         await tester.tap(find.byType(OcptFloorPlanCanvas));
         await tester.pumpAndSettle();
         expect(bloc.state.selectedSet!.symbols, hasLength(1));
-        final originalId = bloc.state.selectedFloorPlanSymbolId!;
+        final originalId = canvasBlocOf(tester).state.selectedFloorPlanSymbolId!;
 
         await tester.tap(find.byTooltip(tr.shotListFloorPlanDeleteSymbolAction));
         await tester.pumpAndSettle();
@@ -1171,7 +1177,7 @@ void main() {
         await tester.pumpAndSettle();
 
         // A plain scene-scope furniture item — never a sequence-level override of anything.
-        bloc.add(
+        canvasBlocOf(tester).add(
           OcptShotListFloorPlanSymbolPlacedEvent(
             setId: setId,
             layer: OcptFloorPlanLayer.set,
@@ -1182,11 +1188,11 @@ void main() {
           ),
         );
         await tester.pumpAndSettle();
-        final sceneSymbolId = bloc.state.selectedFloorPlanSymbolId!;
+        final sceneSymbolId = canvasBlocOf(tester).state.selectedFloorPlanSymbolId!;
 
         bloc.add(OcptShotListShotSelectedEvent(shotId: firstShotId));
         await tester.pumpAndSettle();
-        bloc.add(OcptShotListFloorPlanSymbolSelectedEvent(symbolId: sceneSymbolId));
+        canvasBlocOf(tester).add(OcptShotListFloorPlanSymbolSelectedEvent(symbolId: sceneSymbolId));
         await tester.pumpAndSettle();
 
         await tester.tap(find.byTooltip(tr.shotListFloorPlanDeleteSymbolAction));
@@ -1226,7 +1232,7 @@ void main() {
         bloc.add(const OcptShotListShotCreationRequestedEvent());
         await tester.pumpAndSettle();
 
-        bloc.add(
+        canvasBlocOf(tester).add(
           OcptShotListFloorPlanSymbolPlacedEvent(
             setId: setId,
             layer: OcptFloorPlanLayer.set,
@@ -1237,11 +1243,11 @@ void main() {
           ),
         );
         await tester.pumpAndSettle();
-        final sceneSymbolId = bloc.state.selectedFloorPlanSymbolId!;
+        final sceneSymbolId = canvasBlocOf(tester).state.selectedFloorPlanSymbolId!;
 
         bloc.add(OcptShotListShotSelectedEvent(shotId: firstShotId));
         await tester.pumpAndSettle();
-        bloc.add(
+        canvasBlocOf(tester).add(
           OcptShotListFloorPlanScopeDecisionRequestedEvent(
             symbolId: sceneSymbolId,
             setId: setId,
@@ -1251,7 +1257,7 @@ void main() {
           ),
         );
         await tester.pumpAndSettle();
-        bloc.add(
+        canvasBlocOf(tester).add(
           const OcptShotListFloorPlanScopeDecisionResolvedEvent(
             choice: OcptFloorPlanScopeChoice.only,
           ),
@@ -1262,7 +1268,7 @@ void main() {
             .firstWhere((symbol) => symbol.id != sceneSymbolId)
             .id;
 
-        bloc.add(OcptShotListFloorPlanSymbolSelectedEvent(symbolId: overrideId));
+        canvasBlocOf(tester).add(OcptShotListFloorPlanSymbolSelectedEvent(symbolId: overrideId));
         await tester.pumpAndSettle();
 
         await tester.tap(find.byTooltip(tr.shotListFloorPlanDeleteSymbolAction));
@@ -1435,7 +1441,7 @@ void main() {
         // The placed symbol is selected at once, and the name popover opens for it immediately —
         // no further click needed.
         final symbolId = bloc.state.selectedSet!.symbols.single.id;
-        expect(bloc.state.selectedFloorPlanSymbolId, symbolId);
+        expect(canvasBlocOf(tester).state.selectedFloorPlanSymbolId, symbolId);
         expect(find.byType(OcptFloorPlanCharacterNamePickerDialog), findsOneWidget);
         expect(find.text(tr.shotListFloorPlanCharacterNamePickerTitle), findsOneWidget);
 

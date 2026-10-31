@@ -32,7 +32,7 @@ Resources set carries across its three scopes, and the mode's two newest documen
 - The mode's BLoC files are split along the seams the code already had. The events are one sealed
   hierarchy per domain (`events/shot_list_workspace_event.dart`, `…_shot_event.dart`,
   `…_export_event.dart`, `…_inspector_event.dart`, `…_storyboard_event.dart`,
-  `…_floor_plan_sets_event.dart`, `…_floor_plan_view_event.dart`,
+  `…_floor_plan_sets_event.dart`, `…_floor_plan_canvas_event.dart`,
   `…_floor_plan_symbol_event.dart`), all extending the abstract `OcptShotListEvent` of
   `events/shot_list_base_event.dart` (a sealed class's subclasses must share its library, so the
   common base cannot be sealed); `shot_list_event.dart` only exports them. The state keeps its
@@ -80,7 +80,18 @@ Resources set carries across its three scopes, and the mode's two newest documen
   its selection, with `OcptShotListSetAddedEvent` or `OcptShotListSetRemovedEvent`, waiting for it.
   The props are emptied and read again when the mode loads or selects another sequence, and
   nothing else the bloc holds depends on the selection or on a reload. What is typed into a
-  symbol's label is still held by the mode bloc.
+  symbol's label is still held by the mode bloc. The fifth is `OcptShotListFloorPlanCanvasBloc`,
+  for the gestures made on the plan: it owns the tool in hand, the selected symbol or arrow, the
+  first end of the arrow being drawn, the scope question a shared symbol's move, resize or
+  rotation asks, and the character name prompt a placement arms, and it places, moves, resizes,
+  rotates and duplicates symbols and draws and bends arrows, each write followed by
+  `OcptShotListBloc.reload` of the floor plans before it selects what it wrote. It clears by what
+  moved the mode's selection: a different sequence clears the symbol, the arrow, the anchor and
+  the scope question; a shot selected or deleted, a set selected, added or removed and a fresh
+  load clear the symbol, the arrow and the anchor; the sequence already shown, selected again,
+  clears the anchor alone; creating a shot clears nothing. A reload drops a selected symbol or
+  arrow the floor plans no longer hold, and a selected symbol a hidden override now masks where the
+  canvas looks (`ocptIsFloorPlanSymbolMaskedAt`), but never the scope question or the prompt.
 
 ## The three centre views and their shared chrome
 

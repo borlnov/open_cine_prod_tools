@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:open_cine_prod_tools/models/ocpt_floor_plan_arrow.dart';
 import 'package:open_cine_prod_tools/models/ocpt_floor_plan_set.dart';
 import 'package:open_cine_prod_tools/models/ocpt_floor_plan_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_floor_plan_symbol.dart';
@@ -11,6 +12,7 @@ import 'package:open_cine_prod_tools/models/ocpt_shot_list_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
 import 'package:open_cine_prod_tools/models/ocpt_workspace_reveal_request.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_shot_list_selection.dart';
+import 'package:open_cine_prod_tools/types/ocpt_floor_plan_arrow_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_layer.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_status.dart';
 
@@ -68,6 +70,32 @@ OcptFloorPlanSymbol _symbol({
   setElementShape: null,
   overridesSymbolId: null,
   isHidden: false,
+);
+
+OcptFloorPlanSymbol _scopedSymbol({
+  required String id,
+  String? sceneId,
+  String? shotId,
+  String? overridesSymbolId,
+  bool isHidden = false,
+}) => OcptFloorPlanSymbol(
+  id: id,
+  setId: "set-1",
+  sceneId: sceneId,
+  shotId: shotId,
+  layer: OcptFloorPlanLayer.set,
+  sortKey: "a$id",
+  xM: 0,
+  yM: 0,
+  rotationDeg: 0,
+  widthM: null,
+  heightM: null,
+  fovDeg: null,
+  fovReachM: null,
+  label: "",
+  setElementShape: null,
+  overridesSymbolId: overridesSymbolId,
+  isHidden: isHidden,
 );
 
 OcptFloorPlanSet _set({String id = "set-1", List<OcptFloorPlanSymbol> symbols = const []}) =>
@@ -207,6 +235,127 @@ void main() {
       );
       expect(ocptFloorPlanSymbolById(floorPlanSnapshot: withSymbol, symbolId: "x"), isNull);
       expect(ocptFloorPlanSymbolById(floorPlanSnapshot: null, symbolId: "symbol-1"), isNull);
+    });
+  });
+
+  group("ocptIsFloorPlanSymbolMaskedAt", () {
+    OcptFloorPlanSnapshot snapshotOf(List<OcptFloorPlanSymbol> symbols) =>
+        OcptFloorPlanSnapshot.build(
+          screenplayId: "screenplay-1",
+          setsBySceneId: {
+            "scene-1": [_set(symbols: symbols)],
+          },
+        );
+
+    bool isMasked(OcptFloorPlanSnapshot snapshot, {String? sceneId, String? shotId}) =>
+        ocptIsFloorPlanSymbolMaskedAt(
+          floorPlanSnapshot: snapshot,
+          symbolId: "wall",
+          sceneId: sceneId,
+          shotId: shotId,
+        );
+
+    test("a symbol with no hidden override of it, or none at all, is not masked", () {
+      final plain = snapshotOf([_scopedSymbol(id: "wall")]);
+
+      expect(isMasked(plain, sceneId: "scene-1"), isFalse);
+      expect(
+        ocptIsFloorPlanSymbolMaskedAt(
+          floorPlanSnapshot: plain,
+          symbolId: "gone",
+          sceneId: "scene-1",
+          shotId: null,
+        ),
+        isFalse,
+      );
+      expect(
+        ocptIsFloorPlanSymbolMaskedAt(
+          floorPlanSnapshot: null,
+          symbolId: "wall",
+          sceneId: "scene-1",
+          shotId: null,
+        ),
+        isFalse,
+      );
+    });
+
+    test("a hidden override is a ghost to restore, not itself masked", () {
+      final ghost = snapshotOf([_scopedSymbol(id: "wall", isHidden: true)]);
+
+      expect(isMasked(ghost, sceneId: "scene-1"), isFalse);
+    });
+
+    test("a hidden override for the sequence masks the symbol there and nowhere else", () {
+      final masked = snapshotOf([
+        _scopedSymbol(id: "wall"),
+        _scopedSymbol(id: "mask", sceneId: "scene-1", overridesSymbolId: "wall", isHidden: true),
+      ]);
+
+      expect(isMasked(masked, sceneId: "scene-1"), isTrue);
+      expect(isMasked(masked, sceneId: "scene-2"), isFalse);
+      expect(isMasked(masked), isFalse);
+    });
+
+    test("a hidden override for the shot masks the symbol under that shot alone", () {
+      final masked = snapshotOf([
+        _scopedSymbol(id: "wall", sceneId: "scene-1"),
+        _scopedSymbol(id: "mask", shotId: "shot-1", overridesSymbolId: "wall", isHidden: true),
+      ]);
+
+      expect(isMasked(masked, sceneId: "scene-1", shotId: "shot-1"), isTrue);
+      expect(isMasked(masked, sceneId: "scene-1", shotId: "shot-2"), isFalse);
+      expect(isMasked(masked, sceneId: "scene-1"), isFalse);
+    });
+
+    test("a visible override of the symbol masks nothing", () {
+      final moved = snapshotOf([
+        _scopedSymbol(id: "wall"),
+        _scopedSymbol(id: "moved", sceneId: "scene-1", overridesSymbolId: "wall"),
+      ]);
+
+      expect(isMasked(moved, sceneId: "scene-1"), isFalse);
+    });
+  });
+
+  group("ocptFloorPlanArrowExists", () {
+    test("searches every set of the snapshot", () {
+      final withArrow = OcptFloorPlanSnapshot.build(
+        screenplayId: "screenplay-1",
+        setsBySceneId: {
+          "scene-1": [
+            _set(),
+            const OcptFloorPlanSet(
+              id: "set-2",
+              name: "Salon",
+              underlayAssetId: null,
+              underlayPath: null,
+              underlayXM: null,
+              underlayYM: null,
+              underlayWidthM: null,
+              underlayHeightM: null,
+              underlayRotationDeg: null,
+              symbols: [],
+              arrows: [
+                OcptFloorPlanArrow(
+                  id: "arrow-1",
+                  setId: "set-2",
+                  shotId: "shot-1",
+                  kind: OcptFloorPlanArrowKind.movement,
+                  fromSymbolId: "a",
+                  toSymbolId: "b",
+                  label: "",
+                  ctrlXM: null,
+                  ctrlYM: null,
+                ),
+              ],
+            ),
+          ],
+        },
+      );
+
+      expect(ocptFloorPlanArrowExists(floorPlanSnapshot: withArrow, arrowId: "arrow-1"), isTrue);
+      expect(ocptFloorPlanArrowExists(floorPlanSnapshot: withArrow, arrowId: "x"), isFalse);
+      expect(ocptFloorPlanArrowExists(floorPlanSnapshot: null, arrowId: "arrow-1"), isFalse);
     });
   });
 
