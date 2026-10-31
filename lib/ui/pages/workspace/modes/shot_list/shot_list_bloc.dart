@@ -58,8 +58,11 @@ import 'package:open_cine_prod_tools/types/ocpt_shot_list_centre_view.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_column.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_pending_edit_key.dart';
+import 'package:open_cine_prod_tools/types/ocpt_shot_list_reload_scope.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_right_dock_tab.dart';
+import 'package:open_cine_prod_tools/types/ocpt_shot_list_selection_cause.dart';
 import 'package:open_cine_prod_tools/types/ocpt_storyboard_annotation_kind.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_mode_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project_package_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project_versions_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_project_versions_events.dart';
@@ -113,7 +116,7 @@ import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_shot_list_labels.da
 /// its state are shared with the screenplay mode rather than reimplemented here. The two hooks the
 /// mixin needs are answered by [flushPendingProjectWrites] (a field edit still sitting in the
 /// debounce must reach the working copy before a preview swaps the database out) and
-/// [reloadFromProjectDatabase]. `_onRightDockTabSelected` and `_flushPendingFieldEdits` each
+/// [reloadFromProjectDatabase]. `_onRightDockTabSelected` and `_flushAllPendingWrites` each
 /// dispatch [OcptProjectWorkingCopyRefreshRequestedEvent] — opening the `Versions` tab, and a
 /// field edit landing while it is already open — the two moments the mixin's working-copy card is
 /// worth a fresh, throttled read.
@@ -133,7 +136,8 @@ import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_shot_list_labels.da
 class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     with
         MixinOcptProjectVersionsBloc<OcptShotListState>,
-        MixinOcptProjectPackageBloc<OcptShotListState> {
+        MixinOcptProjectPackageBloc<OcptShotListState>,
+        MixinOcptModeBloc<OcptShotListState> {
   /// The logger category linked to this BLoC.
   static const _loggerCategory = "shot_list_bloc";
 
@@ -417,7 +421,65 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
   @protected
   @override
   Future<void> flushPendingProjectWrites(Emitter<OcptShotListState> emitter) =>
-      _flushPendingFieldEdits(emitter);
+      _flushAllPendingWrites(emitter);
+
+  /// {@macro open_cine_prod_tools.MixinOcptModeBloc.flushAllPendingWritesIn}
+  @protected
+  @override
+  Future<void> flushAllPendingWritesIn(Emitter<OcptShotListState> emitter) =>
+      _flushAllPendingWrites(emitter);
+
+  /// {@macro open_cine_prod_tools.MixinOcptModeBloc.reloadScopesIn}
+  ///
+  /// A failed read raises the transient write error, like a failed write: the view that asked has
+  /// already written its row, and what is on screen no longer says what the database holds.
+  @protected
+  @override
+  Future<void> reloadScopesIn(Set<Enum> scopes, Emitter<OcptShotListState> emitter) async {
+    final project = _projectsManager.currentProject;
+    if (project == null) {
+      return;
+    }
+
+    final requested = scopes.whereType<OcptShotListReloadScope>().toSet();
+
+    try {
+      final snapshot = requested.contains(OcptShotListReloadScope.snapshot)
+          ? await _loadSnapshot(project)
+          : null;
+      final suggestions = requested.contains(OcptShotListReloadScope.suggestions)
+          ? await _loadSuggestions(project)
+          : null;
+      final storyboardSnapshot = requested.contains(OcptShotListReloadScope.storyboard)
+          ? await _loadStoryboard(project)
+          : null;
+      final floorPlanSnapshot = requested.contains(OcptShotListReloadScope.floorPlans)
+          ? await _loadFloorPlans(project)
+          : null;
+      final locations = requested.contains(OcptShotListReloadScope.locations)
+          ? await _loadLocations(project)
+          : null;
+
+      emitter(
+        state.copyWith(
+          snapshot: snapshot,
+          suggestions: suggestions,
+          storyboardSnapshot: storyboardSnapshot,
+          floorPlanSnapshot: floorPlanSnapshot,
+          locations: locations,
+          reloadEpoch: state.reloadEpoch + 1,
+        ),
+      );
+    } catch (error, stackTrace) {
+      _logger.e(
+        "A problem occurred when tried to read again the $requested of project "
+        "${project.primaryScreenplayId}: ${error.runtimeType}",
+        null,
+        stackTrace,
+      );
+      emitter(state.copyWith(hasWriteError: true));
+    }
+  }
 
   /// {@macro open_cine_prod_tools.MixinOcptProjectVersionsBloc.reloadFromProjectDatabase}
   @protected
@@ -547,6 +609,9 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
         screenplayCharacters: screenplayCharacters,
         suggestions: suggestions,
         propsOfSelectedSequence: propsOfSelectedSequence,
+        reloadEpoch: state.reloadEpoch + 1,
+        selectionEpoch: state.selectionEpoch + 1,
+        selectionCause: OcptShotListSelectionCause.load,
       ),
     );
   }
@@ -713,7 +778,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     OcptShotListSequenceSelectedEvent event,
     Emitter<OcptShotListState> emitter,
   ) async {
-    await _flushPendingFieldEdits(emitter);
+    await _flushAllPendingWrites(emitter);
 
     final isSameSequence = state.selectedSequenceId == event.sequenceId;
     final firstSetId = isSameSequence
@@ -750,6 +815,10 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
         forcePendingCoverageAnchorValue: true,
         forcePendingFloorPlanScopeDecisionValue: !isSameSequence,
         propsOfSelectedSequence: propsOfSelectedSequence,
+        selectionEpoch: state.selectionEpoch + 1,
+        selectionCause: isSameSequence
+            ? OcptShotListSelectionCause.sequenceReselected
+            : OcptShotListSelectionCause.sequence,
       ),
     );
   }
@@ -764,7 +833,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     OcptShotListShotSelectedEvent event,
     Emitter<OcptShotListState> emitter,
   ) async {
-    await _flushPendingFieldEdits(emitter);
+    await _flushAllPendingWrites(emitter);
 
     final sequence = ocptSequenceHolding(sequences: state.sequences, shotId: event.shotId);
     if (sequence == null) {
@@ -786,6 +855,8 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
         forceSelectedFloorPlanSymbolIdValue: true,
         forceSelectedFloorPlanArrowIdValue: true,
         forcePendingFloorPlanArrowAnchorSymbolIdValue: true,
+        selectionEpoch: state.selectionEpoch + 1,
+        selectionCause: OcptShotListSelectionCause.shot,
       ),
     );
   }
@@ -799,7 +870,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     OcptShotListShotCreationRequestedEvent event,
     Emitter<OcptShotListState> emitter,
   ) async {
-    await _flushPendingFieldEdits(emitter);
+    await _flushAllPendingWrites(emitter);
 
     final project = _projectsManager.currentProject;
     final sequence = state.selectedSequence;
@@ -851,7 +922,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
   ///
   /// Opening the `Versions` tab is one of the two moments `MixinOcptProjectVersionsBloc`'s
   /// working-copy card needs a fresh read for: the other is a field edit flushing while it is
-  /// already the one showing (see `_flushPendingFieldEdits`).
+  /// already the one showing (see `_flushAllPendingWrites`).
   Future<void> _onRightDockTabSelected(
     OcptShotListRightDockTabSelectedEvent event,
     Emitter<OcptShotListState> emitter,
@@ -973,7 +1044,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     OcptShotListXlsxExportRequestedEvent event,
     Emitter<OcptShotListState> emitter,
   ) async {
-    await _flushPendingFieldEdits(emitter);
+    await _flushAllPendingWrites(emitter);
 
     final snapshot = state.snapshot;
     if (snapshot == null) {
@@ -1043,7 +1114,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     OcptShotListScenarioCoverageExportRequestedEvent event,
     Emitter<OcptShotListState> emitter,
   ) async {
-    await _flushPendingFieldEdits(emitter);
+    await _flushAllPendingWrites(emitter);
 
     final snapshot = state.snapshot;
     if (snapshot == null) {
@@ -1089,7 +1160,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     OcptShotListStoryboardExportRequestedEvent event,
     Emitter<OcptShotListState> emitter,
   ) async {
-    await _flushPendingFieldEdits(emitter);
+    await _flushAllPendingWrites(emitter);
 
     final snapshot = state.snapshot;
     final storyboardSnapshot = state.storyboardSnapshot;
@@ -1133,7 +1204,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     OcptShotListFloorPlansExportRequestedEvent event,
     Emitter<OcptShotListState> emitter,
   ) async {
-    await _flushPendingFieldEdits(emitter);
+    await _flushAllPendingWrites(emitter);
 
     final snapshot = state.snapshot;
     final floorPlanSnapshot = state.floorPlanSnapshot;
@@ -1211,7 +1282,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     OcptShotListBackRequestedEvent event,
     Emitter<OcptShotListState> emitter,
   ) async {
-    await _flushPendingFieldEdits(emitter);
+    await _flushAllPendingWrites(emitter);
     await _projectsManager.closeCurrentProject();
     _routerManager.pop();
   }
@@ -1267,32 +1338,54 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
   Future<void> _onFieldEditFlushRequested(
     OcptShotListFieldEditFlushRequestedEvent event,
     Emitter<OcptShotListState> emitter,
-  ) => _flushPendingFieldEdits(emitter);
+  ) => _flushOwnPendingFieldEdits(emitter);
 
-  /// Writes every pending field edit immediately: cancels the debounce timer (a no-op if it
-  /// already fired or there was none), writes each one through
+  /// Writes every pending write of the mode and of its views immediately — the views' through the
+  /// flushers they registered, then the mode's own typed edits.
+  ///
+  /// Up front of every handler that changes what shot or sequence is selected, that leaves the
+  /// workspace, or that is about to read the database (an export, a preview): a pending edit is
+  /// never silently dropped by one of them. A view that wrote something leaves the working copy
+  /// changed, so the `Versions` tab's working-copy card is refreshed if it is the one showing,
+  /// exactly as when the mode wrote something itself.
+  Future<void> _flushAllPendingWrites(Emitter<OcptShotListState> emitter) async {
+    final haveViewsWritten = await runPendingWritesFlushers();
+    final hasOwnWritten = await _flushOwnPendingFieldEdits(emitter);
+
+    if (haveViewsWritten && !hasOwnWritten) {
+      _requestWorkingCopyRefreshIfVersionsOpen();
+    }
+  }
+
+  /// Asks for a fresh read of the working-copy card if the `Versions` tab is the one showing.
+  void _requestWorkingCopyRefreshIfVersionsOpen() {
+    if (state.rightDockTab == OcptShotListRightDockTab.versions) {
+      add(const OcptProjectWorkingCopyRefreshRequestedEvent());
+    }
+  }
+
+  /// Writes every pending field edit the mode itself holds immediately: cancels the debounce
+  /// timer (a no-op if it already fired or there was none), writes each one through
   /// `OcptShotListService.updateShot`, then reloads the snapshot and the suggestion lists so every
   /// derived aggregate and every field's suggestions reflect what the database now says. A no-op
-  /// while nothing is pending.
+  /// while nothing is pending. Answers whether there was anything pending.
   ///
   /// Used from inside an event handler, with that handler's own [emitter]: called by
-  /// [_onFieldEditFlushRequested] (the debounce firing), and up front by every handler that
-  /// changes what shot or sequence is selected, or that leaves the workspace, so a pending edit
-  /// is never silently dropped by a selection change. [flushPendingFieldEdits] is the sibling of
-  /// this method used outside of an event handler.
-  Future<void> _flushPendingFieldEdits(Emitter<OcptShotListState> emitter) async {
+  /// [_onFieldEditFlushRequested] (the debounce firing) and by [_flushAllPendingWrites].
+  /// [flushPendingFieldEdits] is the sibling of this method used outside of an event handler.
+  Future<bool> _flushOwnPendingFieldEdits(Emitter<OcptShotListState> emitter) async {
     _fieldEditTimer?.cancel();
     _fieldEditTimer = null;
 
     final pending = state.pendingFieldEdits;
     if (pending.isEmpty) {
-      return;
+      return false;
     }
 
     final project = _projectsManager.currentProject;
     if (project == null) {
       emitter(state.copyWith(pendingFieldEdits: const {}));
-      return;
+      return true;
     }
 
     try {
@@ -1310,14 +1403,13 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
           floorPlanSnapshot: floorPlanSnapshot,
           locations: locations,
           pendingFieldEdits: const {},
+          reloadEpoch: state.reloadEpoch + 1,
         ),
       );
 
       // The other of the two moments the working-copy card needs a fresh read for (see
       // `_onRightDockTabSelected`): a field edit landing while the tab showing it is already open.
-      if (state.rightDockTab == OcptShotListRightDockTab.versions) {
-        add(const OcptProjectWorkingCopyRefreshRequestedEvent());
-      }
+      _requestWorkingCopyRefreshIfVersionsOpen();
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to flush a pending shot list field edit of project "
@@ -1327,6 +1419,8 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
       );
       emitter(state.copyWith(hasWriteError: true, pendingFieldEdits: const {}));
     }
+
+    return true;
   }
 
   /// Writes every pending field edit directly to the database, bypassing both the debounce timer
@@ -1339,12 +1433,19 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
   /// event, which would only be processed on a later microtask this widget might not survive to
   /// see — is what guarantees the last [defaultFieldEditDebounce] worth of typing isn't lost.
   ///
-  /// Unlike [_flushPendingFieldEdits], this never touches [state]: `emit` may only be called from
+  /// Unlike [_flushOwnPendingFieldEdits], this never touches [state]: `emit` may only be called from
   /// inside a registered `on<Event>` handler (the package's own rule, enforced by the analyzer's
   /// `visible_for_testing` lint on `Bloc.emit`), and by the time this runs the widget tree that
   /// would show a fresh state is already gone anyway. Like `OcptEditorBloc.disposeLifeCycle`'s own
   /// flush, a failure here is only logged.
-  Future<void> flushPendingFieldEdits() async {
+  Future<void> flushPendingFieldEdits() => Future.wait([
+    _flushOwnPendingFieldEditsWithoutState(),
+    runPendingWritesFlushersWithoutState(),
+  ]);
+
+  /// Writes every pending field edit the mode itself holds, without touching [state]: the mode's
+  /// half of [flushPendingFieldEdits].
+  Future<void> _flushOwnPendingFieldEditsWithoutState() async {
     _fieldEditTimer?.cancel();
     _fieldEditTimer = null;
 
@@ -1685,6 +1786,9 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
           forceSelectedFloorPlanSymbolIdValue: wasSelected || wasFloorPlanSymbolSelected,
           forceSelectedFloorPlanArrowIdValue: wasSelected || wasFloorPlanSymbolSelected,
           forcePendingFloorPlanArrowAnchorSymbolIdValue: wasSelected,
+          reloadEpoch: state.reloadEpoch + 1,
+          selectionEpoch: wasSelected ? state.selectionEpoch + 1 : null,
+          selectionCause: wasSelected ? OcptShotListSelectionCause.shot : null,
         ),
       );
     } catch (error, stackTrace) {
@@ -2435,6 +2539,8 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
         forceSelectedFloorPlanSymbolIdValue: true,
         forceSelectedFloorPlanArrowIdValue: true,
         forcePendingFloorPlanArrowAnchorSymbolIdValue: true,
+        selectionEpoch: state.selectionEpoch + 1,
+        selectionCause: OcptShotListSelectionCause.set,
       ),
     );
   }

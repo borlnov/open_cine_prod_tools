@@ -54,7 +54,9 @@ import 'package:open_cine_prod_tools/types/ocpt_shot_list_centre_view.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_column.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_pending_edit_key.dart';
+import 'package:open_cine_prod_tools/types/ocpt_shot_list_reload_scope.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_right_dock_tab.dart';
+import 'package:open_cine_prod_tools/types/ocpt_shot_list_selection_cause.dart';
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
 import 'package:open_cine_prod_tools/types/ocpt_storyboard_annotation_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_storyboard_annotation_tool.dart';
@@ -614,6 +616,170 @@ void main() {
       (state) => state.snapshot!.shotsById[shotId]!.coverageRanges.isNotEmpty,
     );
   }
+
+  group("the shared epochs the view blocs react to", () {
+    test("the first load moves both epochs and records itself as the cause", () async {
+      await writeScreenplay(twoSceneText);
+      final bloc = buildBloc();
+
+      expect(bloc.state.reloadEpoch, 0);
+      expect(bloc.state.selectionEpoch, 0);
+      expect(bloc.state.selectionCause, OcptShotListSelectionCause.none);
+
+      final state = await waitForState(bloc, (state) => !state.isLoading);
+
+      expect(state.reloadEpoch, 1);
+      expect(state.selectionEpoch, 1);
+      expect(state.selectionCause, OcptShotListSelectionCause.load);
+
+      await bloc.close();
+    });
+
+    test("selecting a sequence moves the selection, again even when it is the same one", () async {
+      await writeScreenplay(twoSceneText);
+      final bloc = buildBloc();
+      var state = await waitForState(bloc, (state) => !state.isLoading);
+      final firstEpoch = state.selectionEpoch;
+
+      bloc.add(OcptShotListSequenceSelectedEvent(sequenceId: state.sequences.last.id));
+      state = await waitForState(bloc, (state) => state.selectionEpoch == firstEpoch + 1);
+      expect(state.selectionCause, OcptShotListSelectionCause.sequence);
+
+      bloc.add(OcptShotListSequenceSelectedEvent(sequenceId: state.sequences.last.id));
+      state = await waitForState(bloc, (state) => state.selectionEpoch == firstEpoch + 2);
+      expect(state.selectionCause, OcptShotListSelectionCause.sequenceReselected);
+      expect(state.reloadEpoch, 1, reason: 'selecting reads nothing again');
+
+      await bloc.close();
+    });
+
+    test(
+      "selecting a shot moves the selection even when it is the selected one, a stale id not",
+      () async {
+        await writeScreenplay(twoSceneText);
+        final bloc = buildBloc();
+        await waitForState(bloc, (state) => !state.isLoading);
+        bloc.add(const OcptShotListShotCreationRequestedEvent());
+        var state = await waitForState(bloc, (state) => state.totalShotCount == 1);
+        final shotId = state.selectedShotId!;
+        final epoch = state.selectionEpoch;
+        expect(epoch, 1, reason: 'creating a shot selects it without telling the views');
+
+        bloc.add(OcptShotListShotSelectedEvent(shotId: shotId));
+        state = await waitForState(bloc, (state) => state.selectionEpoch == epoch + 1);
+        expect(state.selectionCause, OcptShotListSelectionCause.shot);
+
+        bloc.add(const OcptShotListShotSelectedEvent(shotId: "gone"));
+        bloc.add(OcptShotListShotSelectedEvent(shotId: shotId));
+        state = await waitForState(bloc, (state) => state.selectionEpoch == epoch + 2);
+        expect(state.selectionEpoch, epoch + 2, reason: 'the stale id changed nothing');
+
+        await bloc.close();
+      },
+    );
+
+    test("selecting a set moves the selection with its own cause", () async {
+      await writeScreenplay(twoSceneText);
+      final bloc = buildBloc();
+      await waitForState(bloc, (state) => !state.isLoading);
+      bloc.add(const OcptShotListSetCreationRequestedEvent());
+      var state = await waitForState(bloc, (state) => state.setsOfSelectedSequence.isNotEmpty);
+      final epoch = state.selectionEpoch;
+
+      bloc.add(OcptShotListSetSelectedEvent(setId: state.selectedSetId!));
+      state = await waitForState(bloc, (state) => state.selectionEpoch == epoch + 1);
+
+      expect(state.selectionCause, OcptShotListSelectionCause.set);
+
+      await bloc.close();
+    });
+
+    test(
+      "flushing a pending edit reads again and moves the reload epoch, flushing none does not",
+      () async {
+        await writeScreenplay(twoSceneText);
+        final bloc = buildBloc(fieldEditDebounce: const Duration(days: 1));
+        await waitForState(bloc, (state) => !state.isLoading);
+        bloc.add(const OcptShotListShotCreationRequestedEvent());
+        var state = await waitForState(bloc, (state) => state.totalShotCount == 1);
+        final epoch = state.reloadEpoch;
+
+        await bloc.flushAllPendingWrites();
+        expect(bloc.state.reloadEpoch, epoch, reason: 'nothing was pending');
+
+        bloc.add(
+          OcptShotListShotFieldChangedEvent(
+            shotId: state.selectedShotId!,
+            field: OcptShotListEditableField.shotSize,
+            rawValue: "Close-up",
+          ),
+        );
+        await waitForState(bloc, (state) => state.pendingFieldEdits.isNotEmpty);
+        await bloc.flushAllPendingWrites();
+
+        state = bloc.state;
+        expect(state.pendingFieldEdits, isEmpty);
+        expect(state.reloadEpoch, epoch + 1);
+
+        await bloc.close();
+      },
+    );
+
+    test("reload reads only the scopes it is given, then moves the reload epoch", () async {
+      await writeScreenplay(twoSceneText);
+      final bloc = buildBloc();
+      var state = await waitForState(bloc, (state) => !state.isLoading);
+      final storyboardBefore = state.storyboardSnapshot;
+
+      final project = projectsManager.currentProject!;
+      await projectsManager.shotListService.createShot(
+        database: project.database,
+        screenplayId: project.primaryScreenplayId,
+        sceneId: (state.sequences.first as OcptSceneShotSequence).sceneId,
+      );
+      expect(bloc.state.totalShotCount, 0, reason: 'the bloc was not told');
+
+      await bloc.reload({OcptShotListReloadScope.snapshot});
+
+      state = bloc.state;
+      expect(state.totalShotCount, 1);
+      expect(state.storyboardSnapshot, same(storyboardBefore));
+      expect(state.reloadEpoch, 2);
+      expect(state.selectionEpoch, 1, reason: 'reading again does not move the selection');
+
+      await bloc.close();
+    });
+
+    test(
+      "deleting the selected shot moves both epochs, deleting another one the reload alone",
+      () async {
+        await writeScreenplay(twoSceneText);
+        final bloc = buildBloc();
+        await waitForState(bloc, (state) => !state.isLoading);
+        bloc.add(const OcptShotListShotCreationRequestedEvent());
+        await waitForState(bloc, (state) => state.totalShotCount == 1);
+        final firstShotId = bloc.state.selectedShotId!;
+        bloc.add(const OcptShotListShotCreationRequestedEvent());
+        var state = await waitForState(bloc, (state) => state.totalShotCount == 2);
+        final secondShotId = state.selectedShotId!;
+        final reloadEpoch = state.reloadEpoch;
+        final selectionEpoch = state.selectionEpoch;
+
+        bloc.add(OcptShotListShotDeletionRequestedEvent(shotId: firstShotId));
+        state = await waitForState(bloc, (state) => state.totalShotCount == 1);
+        expect(state.reloadEpoch, reloadEpoch + 1);
+        expect(state.selectionEpoch, selectionEpoch, reason: 'the selected shot is still there');
+
+        bloc.add(OcptShotListShotDeletionRequestedEvent(shotId: secondShotId));
+        state = await waitForState(bloc, (state) => state.totalShotCount == 0);
+        expect(state.reloadEpoch, reloadEpoch + 2);
+        expect(state.selectionEpoch, selectionEpoch + 1);
+        expect(state.selectionCause, OcptShotListSelectionCause.shot);
+
+        await bloc.close();
+      },
+    );
+  });
 
   test('loads the screenplay scenes as sequences and selects the first one', () async {
     await writeScreenplay(twoSceneText);

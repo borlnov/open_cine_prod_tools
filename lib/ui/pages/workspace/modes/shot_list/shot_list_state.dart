@@ -27,8 +27,10 @@ import 'package:open_cine_prod_tools/types/ocpt_shot_list_centre_view.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_column.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_pending_edit_key.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_right_dock_tab.dart';
+import 'package:open_cine_prod_tools/types/ocpt_shot_list_selection_cause.dart';
 import 'package:open_cine_prod_tools/types/ocpt_storyboard_annotation_tool.dart';
 import 'package:open_cine_prod_tools/types/ocpt_storyboard_panel_size.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_mode_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project_package_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project_versions_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_io_notice.dart';
@@ -47,7 +49,8 @@ export 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_lis
 class OcptShotListState extends BlocStateForMixin<OcptShotListState>
     with
         MixinOcptProjectVersionsState<OcptShotListState>,
-        MixinOcptProjectPackageState<OcptShotListState> {
+        MixinOcptProjectPackageState<OcptShotListState>,
+        MixinOcptModeState<OcptShotListState> {
   /// Whether the shot list is still being loaded from the project database.
   final bool isLoading;
 
@@ -360,6 +363,18 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
   /// word-click handler for the full three-state interaction this backs).
   final ({int wordStartOffset, int wordEndOffset})? pendingCoverageAnchor;
 
+  /// {@macro open_cine_prod_tools.MixinOcptModeState.reloadEpoch}
+  @override
+  final int reloadEpoch;
+
+  /// {@macro open_cine_prod_tools.MixinOcptModeState.selectionEpoch}
+  @override
+  final int selectionEpoch;
+
+  /// What moved the selection the last time [selectionEpoch] advanced: the views clear different
+  /// things for different gestures (see [OcptShotListSelectionCause]).
+  final OcptShotListSelectionCause selectionCause;
+
   /// {@macro open_cine_prod_tools.MixinOcptProjectVersionsState.projectVersions}
   @override
   final List<OcptProjectVersion> projectVersions;
@@ -447,6 +462,9 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
     required this.suggestions,
     required this.pendingFieldEdits,
     required this.pendingCoverageAnchor,
+    required this.reloadEpoch,
+    required this.selectionEpoch,
+    required this.selectionCause,
     required this.projectVersions,
     required this.previewedVersionId,
     required this.workingCopy,
@@ -509,6 +527,9 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
       suggestions = const OcptShotFieldSuggestions.empty(),
       pendingFieldEdits = const {},
       pendingCoverageAnchor = null,
+      reloadEpoch = 0,
+      selectionEpoch = 0,
+      selectionCause = OcptShotListSelectionCause.none,
       projectVersions = const [],
       previewedVersionId = null,
       workingCopy = null,
@@ -594,6 +615,9 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
     Map<OcptShotListPendingEditKey, String>? pendingFieldEdits,
     ({int wordStartOffset, int wordEndOffset})? pendingCoverageAnchor,
     bool forcePendingCoverageAnchorValue = false,
+    int? reloadEpoch,
+    int? selectionEpoch,
+    OcptShotListSelectionCause? selectionCause,
     List<OcptProjectVersion>? projectVersions,
     String? previewedVersionId,
     bool forcePreviewedVersionIdValue = false,
@@ -687,6 +711,9 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
     pendingCoverageAnchor:
         pendingCoverageAnchor ??
         (forcePendingCoverageAnchorValue ? null : this.pendingCoverageAnchor),
+    reloadEpoch: reloadEpoch ?? this.reloadEpoch,
+    selectionEpoch: selectionEpoch ?? this.selectionEpoch,
+    selectionCause: selectionCause ?? this.selectionCause,
     projectVersions: projectVersions ?? this.projectVersions,
     previewedVersionId:
         previewedVersionId ?? (forcePreviewedVersionIdValue ? null : this.previewedVersionId),
@@ -808,5 +835,8 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
     suggestions,
     pendingFieldEdits,
     pendingCoverageAnchor,
+    reloadEpoch,
+    selectionEpoch,
+    selectionCause,
   ];
 }
