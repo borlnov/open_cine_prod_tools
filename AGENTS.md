@@ -174,7 +174,7 @@ file in `docs/architecture/` says what the code does because of it.
 
 | Read this | Before touching |
 | --- | --- |
-| [`foundations.md`](docs/architecture/foundations.md) | the managers, the routing, the workspace shell, the theme, the packaging, the drift schema, the project versions, the sync-ready data model, the binary assets, the spell-check manager, the project dictionary, the read-only preview, the portable project package, opening a project file from another build |
+| [`foundations.md`](docs/architecture/foundations.md) | the managers, the routing, the BLoC pattern and the mode and view blocs (`lib/ui/pages/workspace/blocs/`), the workspace shell, the theme, the packaging, the drift schema, the project versions, the sync-ready data model, the binary assets, the spell-check manager, the project dictionary, the read-only preview, the portable project package, opening a project file from another build |
 | [`screenplay.md`](docs/architecture/screenplay.md) | `packages/fountain_kit/`, `packages/spell_kit/`, `lib/ui/pages/editor/` |
 | [`exports.md`](docs/architecture/exports.md) | `lib/managers/export/`, the export panel |
 | [`resources.md`](docs/architecture/resources.md) | `lib/ui/pages/workspace/modes/resources/` |
@@ -192,9 +192,18 @@ What follows is the short list of rules that hold **everywhere**, and that a fil
 - Managers are `AbsWithLifeCycle` classes owned by `OcptGlobalManager extends AbsUiGlobalManager`,
   registered with builder factories (`dependsOn` ordering) and resolved via `globalGetIt()`.
 - BLoC: the ACT pattern (`BlocForMixin`, `BlocStateForMixin`, sealed events registered with
-  `registerMixinEvents()` / `on<>`), one bloc per page, pages split UI/bloc/state/event files. A
-  production mode owns its own bloc; the workspace shell is a stateless slot widget and knows
-  nothing about a mode's content.
+  `registerMixinEvents()` / `on<>`), pages split UI/bloc/state/event files. A page owns one bloc; a
+  **production mode owns a mode bloc and one bloc per view** (ADR 0034; the shot list is
+  split, the other modes follow). A *view* is a surface with
+  its own selection or its own writes: a central view, a dock tab, a group of the inspector, the
+  export panel, a function that cuts across views; a rendering of the same data with neither has no
+  bloc. The mode bloc holds the mode's data, its shared selection, its chrome and the two project
+  mixins (`MixinOcptModeBloc`); a view bloc (`AbsOcptViewBloc`) takes it as a constructor
+  dependency, reads its state, reacts to its `reloadEpoch`/`selectionEpoch`, writes through a
+  service then `await modeBloc.reload(…)`, and registers a flusher for what it holds in a debounce.
+  A view bloc never references a sibling and the mode bloc never references a view bloc. The
+  workspace shell is a stateless slot widget and knows nothing about a mode's content. The recipe
+  and the rules are in `docs/architecture/foundations.md`.
 - **No service ever deletes a synchronised row** (ADR 0010): every synchronised table carries
   `isDeleted`, a "delete" is an update to it, and every read filters tombstones back out. The two
   local tables — `project_versions` and `local_erasures` — are the only exceptions.

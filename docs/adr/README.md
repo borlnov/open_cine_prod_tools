@@ -90,6 +90,7 @@ number is a stable identifier other documents and commits can reference.
 | [0031](0031-storyboard-panels-and-floor-plans-in-metres.md) | Storyboard panels and floor plans in metres | Accepted |
 | [0032](0032-floor-plans-belong-to-the-resources-set.md) | Floor plans belong to the Resources set | Accepted |
 | [0033](0033-generated-code-under-the-generated-folder.md) | Generated code lives under `lib/generated/`, outside version control | Accepted |
+| [0034](0034-one-bloc-per-view-inside-a-production-mode.md) | One bloc per view inside a production mode | Accepted |
 
 ## Candidates
 

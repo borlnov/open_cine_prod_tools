@@ -29,82 +29,117 @@ Resources set carries across its three scopes, and the mode's two newest documen
   coverage PDF are described in `exports.md`; nothing about either changes here. What follows is
   what the table never showed: the two other centre views this file exists to record.
 
-- The mode's BLoC files are split along the seams the code already had. The events are one sealed
-  hierarchy per domain (`events/shot_list_workspace_event.dart`, `…_shot_event.dart`,
-  `…_export_event.dart`, `…_inspector_event.dart`, `…_storyboard_event.dart`,
-  `…_floor_plan_sets_event.dart`, `…_floor_plan_canvas_event.dart`,
-  `…_floor_plan_placements_event.dart`), all extending the abstract `OcptShotListEvent` of
-  `events/shot_list_base_event.dart` (a sealed class's subclasses must share its library, so the
-  common base cannot be sealed); `shot_list_event.dart` only exports them. The state keeps its
-  fields, constructor and `copyWith` in `shot_list_state.dart`; the reads derived on demand
-  (`OcptShotListStateDerivedExtension`: the selections, the counters, the role alerts, the coverage
-  views) live in their own file, which `shot_list_state.dart` re-exports. What
-  the bloc decides without touching the state — which sequence, set or shot a reveal or a selection
-  lands on, the symbol lookup, a character symbol's default label — is
-  `lib/models/rules/ocpt_shot_list_selection.dart`; the writes that need only domain values are
-  service methods (`OcptShotListService.updateTextField`/`updateDifficulty`,
-  `OcptFloorPlanService.hideSymbolForScope`/`applyScopeDecision`). Everything else stays in
-  `OcptShotListBloc`: a handler reads the state, calls a service, re-reads a snapshot and emits.
-  The four exports are the exception: they belong to `OcptShotListExportBloc`, a bloc of its own
-  that lives as long as the mode. It owns the export notice (`OcptShotListIoNotice`, in
-  `shot_list_export_state.dart`), asks `OcptShotListBloc` to write every pending edit
-  (`flushAllPendingWrites`, which also reads the snapshots again), then reads those snapshots from
-  the mode bloc's state and hands them to `OcptExportManager`. The storyboard is the other one:
-  `OcptShotListStoryboardBloc` owns the selected panel and mark, the annotation tool, the panel
-  size and the comments and mark texts being typed (its own 2 s debounce), and does the board's
-  writes — each followed by `OcptShotListBloc.reload`, so the mode's state holds a row before the
-  board selects it. The panels themselves stay the mode's data. It clears its selection when the
-  mode bloc says its own moved (`selectionEpoch` and `selectionCause`) and drops what the mode's
-  fresh data no longer holds (`reloadEpoch`); the view blocs are built with the mode, and the mode
-  bloc asks each of them to write what it still holds before anything that needs the database up
-  to date (`MixinOcptModeBloc`, `lib/ui/pages/workspace/blocs/`, whose doc comments and those of
-  `AbsOcptViewBloc` are the rules for writing the next view bloc). `OcptStoryboardView` and
-  `OcptStoryboardPanelsView` are the two widgets that read both blocs. The inspector is the
-  third: `OcptShotListInspectorBloc` owns the shot fields being typed (its own 2 s debounce, and
-  the abbreviation deduced from a committed shot size), the difficulty dots, the character chips,
-  the scenario coverage ranges with the anchor of the one being drawn, the `Mark as checked`
-  action and the cast-wide role changes of the role alert banner; each is written through the
-  services and followed by `OcptShotListBloc.reload` of the scopes it changed. It clears the
-  coverage anchor on the selection moves that have always cleared it (a sequence, selected again
-  or not, a shot selected, created or deleted, a fresh load — not a set) and drops a typed field
-  whose shot is gone from the shot list. `OcptShotInspectorView` is the widget wiring
-  `OcptShotInspectorPanel` and the coverage dialog to both blocs; the delete confirmations stay
-  the mode's. The fourth is `OcptShotListFloorPlanSetsBloc`: it creates, links, renames, unlinks
-  and duplicates the selected sequence's sets, copies a shot's blocking, imports, frames and
-  clears an underlay, walks the focus with `←`/`→`, and holds the set names being typed (its own 2 s
-  debounce), the session's view preferences (zoom, hidden layers, hidden cameras and underlay,
-  onion skin, metrics), the palette's armed placement and the props the palette offers for the
-  selected sequence. Which set is selected stays the mode's (`selectedSetId`): a write that makes
-  one the selected set — created, linked or duplicated into the sequence, or the selected one
-  unlinked — has the mode read the floor plans (and the catalogue) again and then asks it to move
-  its selection, with `OcptShotListSetAddedEvent` or `OcptShotListSetRemovedEvent`, waiting for it.
-  The props are emptied and read again when the mode loads or selects another sequence, and
-  nothing else the bloc holds depends on the selection or on a reload. The fifth is `OcptShotListFloorPlanCanvasBloc`,
-  for the gestures made on the plan: it owns the tool in hand, the selected symbol or arrow, the
-  first end of the arrow being drawn, the scope question a shared symbol's move, resize or
-  rotation asks, and the character name prompt a placement arms, and it places, moves, resizes,
-  rotates and duplicates symbols and draws and bends arrows, each write followed by
-  `OcptShotListBloc.reload` of the floor plans before it selects what it wrote. It clears by what
-  moved the mode's selection: a different sequence clears the symbol, the arrow, the anchor and
-  the scope question; a shot selected or deleted, a set selected, added or removed and a fresh
-  load clear the symbol, the arrow and the anchor; the sequence already shown, selected again,
-  clears the anchor alone; creating a shot clears nothing. A reload drops a selected symbol or
-  arrow the floor plans no longer hold, and a selected symbol a hidden override now masks where the
-  canvas looks (`ocptIsFloorPlanSymbolMaskedAt`), but never the scope question or the prompt.
-  The sixth is `OcptShotListFloorPlanPlacementsBloc`, for the inspector's Placements group: it
-  deletes a symbol or an arrow, deletes a symbol everywhere, masks it for one sequence or one
-  shot, restores an override, writes a camera's field of view and reach, and holds the symbol
-  labels being typed (its own 2 s debounce), dropping the ones whose symbol the fresh floor plans
-  no longer hold. It does not know the canvas bloc, which holds the selection those writes can
-  clear: a write that removes or masks a placement asks the mode, with
-  `OcptShotListFloorPlanPlacementChangedEvent` (awaited), to read the floor plans again **and**
-  move its selection with a cause that names the row (`symbolRemoved`, `symbolHidden`,
-  `arrowRemoved`, and `OcptShotListState.selectionTargetId`). The canvas then clears what these
-  gestures have always cleared: a deleted or restored symbol drops the selected symbol if it was
-  that one, and always the selected arrow (deleting a symbol cascades to the arrows touching it);
-  a masked symbol drops the selection, arrow included, only if it was that one; a deleted arrow
-  drops the selection only if it was that one. A field of view clears nothing. The mode no longer
-  holds any typed edit of its own: it only asks each view bloc to write what it still holds.
+- **The mode is one mode bloc and six view blocs** (ADR 0034; `foundations.md` states the idiom and
+  how to split another mode). `OcptShotListMode` builds `OcptShotListBloc` first and every view
+  bloc after it with `lazy: false`, and the files sit beside it in
+  `lib/ui/pages/workspace/modes/shot_list/`.
+  - **The files.** The events are one sealed hierarchy per domain (`events/shot_list_workspace_event.dart`,
+    `…_shot_event.dart`, `…_export_event.dart`, `…_inspector_event.dart`, `…_storyboard_event.dart`,
+    `…_floor_plan_sets_event.dart`, `…_floor_plan_canvas_event.dart`,
+    `…_floor_plan_placements_event.dart`), all extending the abstract `OcptShotListEvent` of
+    `events/shot_list_base_event.dart` (a sealed class's subclasses must share its library, so the
+    common base cannot be sealed); `shot_list_event.dart` only exports them. Each bloc has its own
+    state file; `shot_list_state.dart` keeps the mode's fields, constructor and `copyWith`, and the
+    reads derived on demand (`OcptShotListStateDerivedExtension`: the selections, the counters, the
+    role alerts, the coverage views, the set a heading suggests) live in their own file, which it
+    re-exports; `shot_list_state_delete_targets.dart` holds the reads that decide how far deleting a
+    symbol reaches. What a bloc decides without touching the state — which sequence, set or shot a
+    reveal or a selection lands on, the symbol lookup, a character symbol's default label — is
+    `lib/models/rules/ocpt_shot_list_selection.dart`; the writes that need only domain values are
+    service methods (`OcptShotListService.updateTextField`/`updateDifficulty`,
+    `OcptFloorPlanService.hideSymbolForScope`/`applyScopeDecision`).
+  - **`OcptShotListBloc`, the mode bloc.** It loads and owns every snapshot (the shot list, the
+    storyboard, the floor plans, the locations, the set-scope symbols, the roles, the suggestions),
+    the selection (sequence, shot, set), the docks, the right tab, the columns and the centre view,
+    mixes in `MixinOcptModeBloc<OcptShotListState, OcptShotListReloadScope>` and the two project
+    mixins, and creates and deletes a shot (which change the selection). `reload` takes a set of
+    `OcptShotListReloadScope { snapshot, suggestions, storyboard, floorPlans, locations,
+    setScopeSymbols, roles }`; the state carries `reloadEpoch`, `selectionEpoch`,
+    `selectionCause` (`OcptShotListSelectionCause`) and `selectionTargetId`. The events a view must
+    be able to wait for — selecting a sequence, a shot or a set, `OcptShotListSetAddedEvent`,
+    `OcptShotListSetRemovedEvent` and `OcptShotListFloorPlanPlacementChangedEvent` — are registered
+    with `onAwaited`. It holds no typed edit of its own: `flushPendingFieldEdits()` (called by the
+    mode's own `deactivate()`) and `_flushAllPendingWrites` only ask each view bloc to write what
+    it still holds, and the latter then reads the snapshots again.
+  - **`OcptShotListExportBloc`.** The four exports. It owns the export notice
+    (`OcptShotListIoNotice`, in `shot_list_export_state.dart`), asks the mode to write every pending
+    edit (`flushAllPendingWrites`, which also reads the snapshots again), then reads those snapshots
+    from the mode bloc's state and hands them to `OcptExportManager`.
+  - **`OcptShotListStoryboardBloc`.** The selected panel and mark, the annotation tool, the panel
+    size and the comments and mark texts being typed (its own 2 s debounce), and the board's writes
+    — each followed by `OcptShotListBloc.reload` of the storyboard, so the mode's state holds a row
+    before the board selects it. The panels themselves stay the mode's data. It clears its
+    selection when the mode says its own moved and drops what the mode's fresh data no longer holds.
+    `OcptStoryboardView` and `OcptStoryboardPanelsView` are the two widgets that read both blocs.
+  - **`OcptShotListInspectorBloc`.** The shot fields being typed (its own 2 s debounce, and the
+    abbreviation deduced from a committed shot size), the difficulty dots, the character chips, the
+    scenario coverage ranges with the anchor of the one being drawn, the `Mark as checked` action
+    and the cast-wide role changes of the role alert banner; each is written through the services
+    and followed by a reload of the scopes it changed. It clears the coverage anchor on the
+    selection moves that have always cleared it (a sequence, selected again or not, a shot
+    selected, created or deleted, a fresh load — not a set) and drops a typed field whose shot is
+    gone from the shot list. `OcptShotInspectorView` wires `OcptShotInspectorPanel` and the
+    coverage dialog to both blocs.
+  - **`OcptShotListFloorPlanSetsBloc`.** Creates, links, renames, unlinks and duplicates the
+    selected sequence's sets, copies a shot's blocking, imports, frames and clears an underlay,
+    walks the focus with `←`/`→`, and holds the set names being typed (its own 2 s debounce), the
+    session's view preferences (zoom, hidden layers, hidden cameras and underlay, onion skin,
+    metrics), the palette's armed placement and the props the palette offers for the selected
+    sequence. Which set is selected stays the mode's (`selectedSetId`): a write that makes one the
+    selected set — created, linked or duplicated into the sequence, or the selected one unlinked —
+    has the mode read the floor plans (and the catalogue) again and then asks it to move its
+    selection, with `OcptShotListSetAddedEvent` or `OcptShotListSetRemovedEvent`, waiting for it.
+    The props are emptied and read again when the mode loads or selects another sequence, and
+    nothing else the bloc holds depends on the selection or on a reload.
+  - **`OcptShotListFloorPlanCanvasBloc`.** The gestures made on the plan: the tool in hand, the
+    selected symbol or arrow, the first end of the arrow being drawn, the scope question a shared
+    symbol's move, resize or rotation asks, and the character name prompt a placement arms. It
+    places, moves, resizes, rotates and duplicates symbols and draws and bends arrows, each write
+    followed by a reload of the floor plans before it selects what it wrote. It clears by what
+    moved the mode's selection: a different sequence clears the symbol, the arrow, the anchor and
+    the scope question; a shot selected or deleted, a set selected, added or removed and a fresh
+    load clear the symbol, the arrow and the anchor; the sequence already shown, selected again,
+    clears the anchor alone; creating a shot clears nothing. A reload drops a selected symbol or
+    arrow the floor plans no longer hold, and a selected symbol a hidden override now masks where
+    the canvas looks (`ocptIsFloorPlanSymbolMaskedAt`), but never the scope question or the prompt.
+  - **`OcptShotListFloorPlanPlacementsBloc`.** The inspector's Placements group: it deletes a
+    symbol or an arrow, deletes a symbol everywhere, masks it for one sequence or one shot,
+    restores an override, writes a camera's field of view and reach, and holds the symbol labels
+    being typed (its own 2 s debounce), dropping the ones whose symbol the fresh floor plans no
+    longer hold. It does not know the canvas bloc, which holds the selection those writes can
+    clear: a write that removes or masks a placement asks the mode, with
+    `OcptShotListFloorPlanPlacementChangedEvent` (awaited), to read the floor plans again **and**
+    move its selection with a cause that names the row (`symbolRemoved`, `symbolHidden`,
+    `arrowRemoved`, and `OcptShotListState.selectionTargetId`). The canvas then clears what these
+    gestures have always cleared: a deleted or restored symbol drops the selected symbol if it was
+    that one, and always the selected arrow (deleting a symbol cascades to the arrows touching it);
+    a masked symbol drops the selection, arrow included, only if it was that one; a deleted arrow
+    drops the selection only if it was that one. A field of view clears nothing.
+  - **The widgets** are one per view, in `widgets/`, and the mode file keeps the shell, the docks'
+    wiring, the dock layout controller and **every dialog it asks the user**. `OcptShotListMode`
+    builds the blocs, the `OcptWorkspaceShell` and the confirmation dialogs (`OcptConfirmDialog`:
+    deleting a shot, an orphaned shot, a role, a panel, a mark, a symbol in its three variants, an
+    arrow, an underlay, unlinking a set) and the export options dialogs; a view widget never opens a
+    confirmation, it receives a callback (`onSymbolDeleteRequested`, `onPanelDeleteRequested`…) and
+    withholds the affordance under a version preview. The views: `OcptShotListSequenceDock`
+    (the sequence tree), `OcptShotListCentre` (the role alert banners and the compact `+ Shot`
+    button around the body), `OcptShotListSequenceBody` (the header and the table, the board or the
+    floor plans), `OcptShotListFloorPlanSetTabsView` (the set tabs in the header),
+    `OcptShotListFloorPlanCentre` (the plan, or the gallery while the sequence has no set),
+    `OcptShotListInspectorDock` (the right dock), `OcptShotListPlacementsView` (the Placements
+    group), `OcptShotListVersionsPanel`, `OcptShotListReadOnlyBanner`, `OcptShotListStatusBarView`,
+    and `OcptShotListViewEffects`, which shows each bloc's write error and the export notice as a
+    SnackBar and opens the character name prompt. Each watches only the blocs it draws, so a
+    keystroke in the inspector rebuilds the inspector and not the plan.
+  - **The canvas.** `OcptFloorPlanCanvas` keeps the placement and tap logic and owns an
+    `OcptFloorPlanCanvasDragController` (a `ChangeNotifier`, like the viewport controller) holding
+    the live geometry of the drag in progress: the dragged symbol, the underlay's frame, the
+    arrow's control point. The drag math is pure functions in
+    `ocpt_floor_plan_canvas_gestures.dart`; each handle (the underlay's two, a symbol's resize, aim,
+    two field-of-view edges, tip and delete, the restore handle, an arrow's midpoint and
+    straighten) and the label editor and the scope bubble is a widget of its own, composed by
+    `OcptFloorPlanSymbolHandles` and `OcptFloorPlanArrowHandles`; they only *report* a drag, and the
+    canvas settles it into one write when it ends.
 
 ## The three centre views and their shared chrome
 

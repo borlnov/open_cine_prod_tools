@@ -69,7 +69,97 @@ the persistence, the project versions, the sync-ready data model and the read-on
   route is guarded: it redirects to home when no project is open.
 
 - BLoC: ACT pattern (`BlocForMixin`, `BlocStateForMixin`, sealed events registered with
-  `registerMixinEvents()` / `on<>`), one bloc per page, pages split UI/bloc/state/event files.
+  `registerMixinEvents()` / `on<>`), pages split UI/bloc/state/event files. A page owns one bloc; a
+  production mode owns a **mode bloc and one bloc per view** (below, ADR 0034).
+
+- **A production mode is one mode bloc and one bloc per view** (ADR 0034;
+  `lib/ui/pages/workspace/blocs/` holds the shared machinery, and its doc comments are the rules for
+  writing the next bloc). A *view* is a surface with its own selection or its own writes: a central
+  view, a dock tab, a group of the inspector, the export panel, a function that cuts across views.
+  A rendering of the same data with neither (a recap, a read-only table) has no bloc, and a mode
+  whose surfaces are cut by function rather than by central view follows the same definition. The
+  shot list is the reference (`shot-list.md`); the other modes still own a single bloc until they
+  are split the same way.
+  - **The mode bloc** (`OcptShotListBloc`, mixing in `MixinOcptModeBloc<State, Scope>` beside the
+    two project mixins) owns **all the data** — every snapshot, the title, the page setup, the
+    catalogues — and loads it; the **shared selection** (the chain a sequence, a shot and a set
+    form); the **chrome** (docks, tabs, columns, the centre view); and the pending-writes contract.
+    It answers `MixinOcptProjectVersionsBloc`'s and `MixinOcptProjectPackageBloc`'s hooks, which
+    are therefore hosted by the mode bloc alone: `flushPendingProjectWrites` is
+    `flushAllPendingWrites`, and `reloadFromProjectDatabase` is the full load.
+  - **A view bloc** (`AbsOcptViewBloc<State, ModeState, ModeBloc>`) takes the mode bloc as a
+    constructor dependency and holds only its view's own state: its selection, tool, preferences,
+    the question it is waiting for an answer to, the edits typed into it and its `hasWriteError`.
+    It reads the shared data from `modeBloc.state` at the moment it needs it and never copies it.
+    **It never references a sibling, and the mode bloc never references a view bloc** except as the
+    `OcptPendingWritesFlusher` the view registered. If two views need to coordinate, the mode's
+    state carries it (a selection cause, an epoch), never one view reading the other.
+  - **The epochs.** `MixinOcptModeState` makes the mode's state carry `reloadEpoch`, moved by every
+    emit that replaces data a view can read, and `selectionEpoch`, moved by every emit that
+    changes the selection **even to the same row** (selecting the shown sequence again must still
+    clear what is scoped to it), with a cause (`OcptShotListSelectionCause`: `sequence`,
+    `sequenceReselected`, `shot`, `shotCreated`, `shotDeleted`, `set`, `setAdded`, `setRemoved`,
+    `load`, and the three that name a row, `symbolRemoved`, `symbolHidden`, `arrowRemoved`, with
+    `selectionTargetId`). The base view bloc subscribes to the mode's stream in its constructor,
+    **seeded with the mode's current epochs** (a state stream does not replay), and dispatches
+    `OcptViewModeStateChangedEvent` to itself when one of them *rises*; `onModeStateChanged` is
+    where a view clears what was scoped to the previous selection (read the cause in
+    `event.modeState`) and prunes the typed edits whose row is gone from the new data
+    (`modeBloc.state`). That handler **waits for nothing before it emits**, so the mode's change
+    and the view's reaction land in the same turn of the event loop and no frame is drawn between
+    them. Each view decides its reaction from what the code did before the split: read what the old
+    selection handler cleared or kept, do not invent it.
+  - **Writes.** The service, then `await modeBloc.reload({OcptShotListReloadScope…})`, then the
+    view's own emit, in that order, so the mode's state already holds the row the view is about to
+    select. The scope is a value of the mode's own enum, named by the view and read by an
+    exhaustive `switch` in the mode's `reloadScopesIn` hook — a scope nobody reads, or a part of
+    the data nobody can ask for, does not compile. `reload` completes once the mode's state holds
+    what was read (`MixinOcptAwaitedEvent`, a completer carried by the event and excluded from its
+    `props`). A write that moves the shared selection asks the mode through `addToModeAndWait`
+    for an event the mode registered with `onAwaited`, and emits its own selection **after**: a
+    plain `add` would land the view's emit before the mode started, and the view's reaction to the
+    move would then clear it. Everything else the view asks of the mode goes through `addToMode`,
+    which is safe on a mode that is closing.
+  - **The serial queue.** Every read of the shared data that ends in an emit — a view's reload,
+    the read half of a flush, the full load — goes through `runSerially`, one at a time: two writers
+    finishing together each read, and a slower read finishing after a newer one would put older
+    data in the state. Queue only the read-and-emit half of a flush, never the flush as a whole,
+    which waits on the views' own reloads.
+  - **Flush.** A view holding typed edits keeps them as a pending map, starts its debounce with
+    `restartDebounce` (never a `Timer` of its own: the base class owns and cancels it) and
+    overrides `onFlushRequested` (write, empty the map, emit) and `flushPendingWritesWithoutState`
+    (the same write with nothing to emit, for a widget leaving the tree or a bloc closing; a failure
+    is only logged). After a write it forgets only the keys whose value still equals what was
+    written (`ocptPendingEditsAfterWrite`): emitting an empty map loses the keystroke typed during
+    the write. The mode asks every registered flusher, in order, before anything that needs the
+    database up to date — a selection, a creation, the way back, an export, a version preview — and
+    reads the data again if any of them wrote. **Each view has its own debounce**: two edits typed
+    in two views a second apart are written two seconds after each one.
+  - **Never `state.copyWith(x: await …)`**: Dart evaluates the receiver before the `await`, so a
+    reload landing meanwhile is overwritten with the old state, epochs included. Await into a
+    local first. A view never reads `modeBloc.state` across an `await` and trusts it afterwards.
+  - **The widgets.** The mode builds the mode bloc, then every view bloc with `lazy: false`
+    (`create: (context) => OcptShotListStoryboardBloc(modeBloc: context.read<OcptShotListBloc>())`):
+    a view bloc registers its flusher when it is built, so one that no widget has read yet would
+    lose a typed edit. The children are closed before the parent, so the subscription is gone
+    before the mode's stream ends. A `MultiBlocListener` shows each bloc's `hasWriteError` and
+    notices as a SnackBar. A widget of a view reads the mode and its view (`context.watch` on both,
+    in the widget that draws that view, never wider) and its confirmation dialogs stay the mode's:
+    the widget only *asks*, through a nullable `on…Requested` callback. Typing in a field must
+    never rebuild a wider tree than it did, or the field loses its focus and its caret.
+  - **How to split a mode.** (1) Write a suite of scenarios that drives the mode widget from the
+    outside, over the real blocs and the real services on a temporary project, and keep it green
+    and untouched through every step — it is the contract. (2) Give the mode bloc the epochs, the
+    cause, the reload scopes and their hook, and the flush contract, and nothing else moves. (3)
+    Extract the views one at a time, the least coupled first (the exports, then the simplest
+    central view, then the inspector, then the rest), one commit each: the events of its
+    hierarchy, its state with `.init`, its bloc with a handler for every event, its tests moved with
+    it. (4) For each, list what the old selection and load handlers cleared and kept, and write the
+    reaction from that list. (5) Give every new bloc a test dispatching every event of its
+    hierarchy (a dispatched event no handler registered is ignored silently) and two hand-made
+    mutations proving its tests can fail. (6) Last, split the mode's widget file by view, a public
+    widget per view in its own file under `widgets/`, a private widget for what is used once; a
+    `_buildX` method returning a widget becomes a widget.
 
 - Workspace shell (`lib/ui/pages/workspace/`): `OcptWorkspacePage` mounts `OcptWorkspaceBloc`, whose
   state is `{ OcptWorkspaceMode mode, bool isLoading, OcptWorkspaceRevealRequest? revealRequest,
@@ -82,7 +172,8 @@ the persistence, the project versions, the sync-ready data model and the read-on
   than by index (modelled on `editorMode`), so opening a project restores the last mode used and
   reordering the enum is safe. The modes are `OcptEditorPage` (screenplay, under `lib/ui/pages/editor/`),
   `OcptBreakdownMode`, `OcptShotListMode`, `OcptResourcesMode`, `OcptScheduleMode` and
-  `OcptBudgetMode` (each under `lib/ui/pages/workspace/modes/<mode>/`, each owning its own bloc) —
+  `OcptBudgetMode` (each under `lib/ui/pages/workspace/modes/<mode>/`, each owning its own bloc, which
+  is a mode bloc and its view blocs once the mode is split, ADR 0034; the shot list is) —
   `OcptWorkspaceMode.isImplemented` is true of all six today, kept as an explicit list rather than a
   bare `true` so a mode shipped ahead of its own content (the way `budget` itself once sat here,
   rendering the shared "coming in a future version" empty state) has a single, obvious place to be
@@ -201,7 +292,8 @@ the persistence, the project versions, the sync-ready data model and the read-on
   recordId? }`) to `OcptWorkspaceModeSelectedEvent`; the workspace bloc transports it and **never
   reads inside it**, `OcptWorkspacePage` hands it to the mode that recognizes its own subtype and to
   no other, and the opened mode reports back with `OcptWorkspaceRevealRequestConsumedEvent`. It is
-  **one-shot** by construction: the destination bloc takes it as a *constructor* argument (an event
+  **one-shot** by construction: the destination **mode** bloc takes it as a *constructor* argument
+  (an event
   would race the load, which clears every selection) and nulls it in that first load, so entering or
   leaving a version preview — which reloads through the same handler — doesn't yank the user back; a
   plain switch from the mode switcher carries none and clears whatever an earlier one left. A
@@ -678,8 +770,9 @@ the persistence, the project versions, the sync-ready data model and the read-on
   `MixinOcptProjectVersionsState` alone. That state, the events and the handlers all live in
   `lib/ui/pages/workspace/blocs/` as `MixinOcptProjectVersionsBloc` +
   `MixinOcptProjectVersionsState` (the `MixinActThemesBloc` idiom): a new production mode gets the
-  tab by mixing both in and answering the two hooks the mixin can't know —
-  `flushPendingProjectWrites` (a pending autosave/field edit must reach the working copy *before* a
+  tab by mixing both into its **mode bloc** and answering the two hooks the mixin can't know —
+  `flushPendingProjectWrites` (which runs the flushers its view blocs registered: a pending
+  autosave/field edit must reach the working copy *before* a
   preview swaps the database out, or it would land in the previewed version's in-memory one) and
   `reloadFromProjectDatabase` (entering or leaving a preview replaces
   `OcptOpenProjectModel.database`, so whatever the mode shows is read again from it — and that

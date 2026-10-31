@@ -202,9 +202,10 @@ sit.
   of the shot size's words the first time a shot size is committed while it is still empty, never
   overwritten afterwards. Its card in the export panel opens
   `OcptScenarioCoverageExportDialog` (page format, title page, scene numbers, legend page, summary
-  page) through `OcptRouterManager`, and `OcptShotListScenarioCoverageExportRequestedEvent` flushes
-  pending edits before handing the snapshot and the parsed document to the manager. Every heading
-  the two extra pages print comes in as an `OcptScenarioCoverageLabels`, exactly as
+  page) through `OcptRouterManager`, and `OcptShotListScenarioCoverageExportRequestedEvent`,
+  handled by `OcptShotListExportBloc`, flushes pending edits before handing the snapshot and the
+  parsed document to the manager. Every heading the two extra pages print comes in as an
+  `OcptScenarioCoverageLabels`, exactly as
   `OcptShotListXlsxLabels` does for the workbook — the manager and its services never see a `Tr`.
 
 - Storyboard export: `OcptStoryboardPdfService` prints, per sequence, a header band then one row per
