@@ -84,7 +84,7 @@ class _ModeBloc extends BlocForMixin<_ModeState> with MixinOcptModeBloc<_ModeSta
       (event, emitter) =>
           emitter(_ModeState(reloadEpoch: event.reloadEpoch, selectionEpoch: event.selectionEpoch)),
     );
-    on<_ModeEvent>((event, emitter) async {
+    onAwaited<_ModeEvent>((event, emitter) async {
       await event.gate?.future;
       emitter(
         event.isSelection
@@ -114,21 +114,35 @@ class _ViewState extends BlocStateForMixin<_ViewState> {
   /// How many times the debounce fired.
   final int debounceCount;
 
+  /// What the view selected, cleared whenever the mode's selection moves.
+  final String selected;
+
   /// The text typed and not written yet, or empty.
   final String pending;
 
   /// Class constructor
-  const _ViewState({this.reactions = const [], this.pending = "", this.debounceCount = 0});
+  const _ViewState({
+    this.reactions = const [],
+    this.pending = "",
+    this.debounceCount = 0,
+    this.selected = "",
+  });
 
   @override
-  _ViewState copyWith({List<String>? reactions, String? pending, int? debounceCount}) => _ViewState(
+  _ViewState copyWith({
+    List<String>? reactions,
+    String? pending,
+    int? debounceCount,
+    String? selected,
+  }) => _ViewState(
     reactions: reactions ?? this.reactions,
     pending: pending ?? this.pending,
     debounceCount: debounceCount ?? this.debounceCount,
+    selected: selected ?? this.selected,
   );
 
   @override
-  List<Object?> get props => [...super.props, reactions, pending, debounceCount];
+  List<Object?> get props => [...super.props, reactions, pending, debounceCount, selected];
 }
 
 /// Types text into the double view and starts its debounce.
@@ -147,6 +161,22 @@ class _TypeAndDebounceEvent extends BlocEventForMixin {
 class _DebounceFiredEvent extends BlocEventForMixin {
   /// Class constructor
   const _DebounceFiredEvent();
+}
+
+/// Has the double view select [name] in the same gesture as it moves the mode's selection, either
+/// waiting for the mode ([isAwaited]) or not.
+class _SelectEvent extends BlocEventForMixin {
+  /// What to select.
+  final String name;
+
+  /// Whether to wait for the mode before selecting.
+  final bool isAwaited;
+
+  /// Class constructor
+  const _SelectEvent(this.name, {required this.isAwaited});
+
+  @override
+  List<Object?> get props => [...super.props, name, isAwaited];
 }
 
 /// Asks the double view to ask its mode for an event.
@@ -186,6 +216,14 @@ class _ViewBloc extends AbsOcptViewBloc<_ViewState, _ModeState, _ModeBloc> {
     on<_DebounceFiredEvent>(
       (event, emitter) => emitter(state.copyWith(debounceCount: state.debounceCount + 1)),
     );
+    on<_SelectEvent>((event, emitter) async {
+      if (event.isAwaited) {
+        await addToModeAndWait(const _ModeEvent(isSelection: true));
+      } else {
+        addToMode(const _ModeEvent(isSelection: true));
+      }
+      emitter(state.copyWith(selected: event.name));
+    });
     on<_AskModeEvent>((event, emitter) => addToMode(const _ModeEvent(isSelection: false)));
   }
 
@@ -196,6 +234,7 @@ class _ViewBloc extends AbsOcptViewBloc<_ViewState, _ModeState, _ModeBloc> {
   ) async {
     emitter(
       state.copyWith(
+        selected: event.hasSelectionMoved ? "" : null,
         reactions: [
           ...state.reactions,
           switch ((event.hasReloaded, event.hasSelectionMoved)) {
@@ -451,6 +490,54 @@ void main() {
 
     gate.complete();
     await closing;
+    await view.close();
+  });
+
+  test('a view that moves the mode selection and waits keeps what it selects afterwards', () async {
+    final mode = _ModeBloc();
+    final view = _ViewBloc(modeBloc: mode, sink: []);
+
+    view.add(const _SelectEvent("kept", isAwaited: true));
+    await pumpEventQueue();
+
+    expect(mode.state.selectionEpoch, 1);
+    expect(view.state.reactions, ['selection'], reason: 'the view reacted before it selected');
+    expect(view.state.selected, 'kept');
+
+    await view.close();
+    await mode.close();
+  });
+
+  test('a view that does not wait has what it selects cleared by its own reaction', () async {
+    final mode = _ModeBloc();
+    final view = _ViewBloc(modeBloc: mode, sink: []);
+
+    view.add(const _SelectEvent("lost", isAwaited: false));
+    await pumpEventQueue();
+
+    expect(view.state.selected, isEmpty, reason: 'this is what waiting is for');
+
+    await view.close();
+    await mode.close();
+  });
+
+  test('waiting on a mode that closes, or is closing, neither hangs nor throws', () async {
+    final mode = _ModeBloc();
+    final view = _ViewBloc(modeBloc: mode, sink: []);
+
+    final gate = Completer<void>();
+    view.add(const _SelectEvent("never", isAwaited: true));
+    mode.add(_ModeEvent.waiting(gate));
+    await pumpEventQueue();
+    final closing = mode.close();
+    gate.complete();
+    await closing;
+    await pumpEventQueue();
+    view.add(const _SelectEvent("after", isAwaited: true));
+    await pumpEventQueue();
+
+    expect(view.state.selected, 'after');
+
     await view.close();
   });
 }

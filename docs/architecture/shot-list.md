@@ -56,7 +56,8 @@ Resources set carries across its three scopes, and the mode's two newest documen
   mode bloc says its own moved (`selectionEpoch` and `selectionCause`) and drops what the mode's
   fresh data no longer holds (`reloadEpoch`); both blocs are built with the mode, and the mode
   bloc asks the board to write what it still holds before anything that needs the database up to
-  date (`MixinOcptModeBloc`, `lib/ui/pages/workspace/blocs/`). `OcptStoryboardView` and
+  date (`MixinOcptModeBloc`, `lib/ui/pages/workspace/blocs/`, whose doc comments and those of
+  `AbsOcptViewBloc` are the rules for writing the next view bloc). `OcptStoryboardView` and
   `OcptStoryboardPanelsView` are the two widgets that read both blocs.
 
 ## The three centre views and their shared chrome

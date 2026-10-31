@@ -381,6 +381,29 @@ void main() {
       },
     );
 
+    test("a selection event can be waited for until the mode holds its result", () async {
+      await writeScreenplay(twoSceneText);
+      final bloc = buildBloc();
+      var state = await waitForState(bloc, (state) => !state.isLoading);
+      final secondSequenceId = state.sequences.last.id;
+
+      await bloc.addAndWait(OcptShotListSequenceSelectedEvent(sequenceId: secondSequenceId));
+      expect(bloc.state.selectedSequenceId, secondSequenceId);
+
+      bloc.add(const OcptShotListShotCreationRequestedEvent());
+      state = await waitForState(bloc, (state) => state.totalShotCount == 1);
+      final shotId = state.selectedShotId!;
+      await bloc.addAndWait(
+        OcptShotListSequenceSelectedEvent(sequenceId: state.sequences.first.id),
+      );
+      expect(bloc.state.selectedShotId, isNot(shotId));
+
+      await bloc.addAndWait(OcptShotListShotSelectedEvent(shotId: shotId));
+      expect(bloc.state.selectedShotId, shotId);
+
+      await bloc.close();
+    });
+
     test("selecting a set moves the selection with its own cause", () async {
       await writeScreenplay(twoSceneText);
       final bloc = buildBloc();

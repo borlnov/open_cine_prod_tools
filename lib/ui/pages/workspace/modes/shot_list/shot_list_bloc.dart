@@ -294,8 +294,10 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
   void registerMixinEvents() {
     super.registerMixinEvents();
     on<OcptShotListLoadRequestedEvent>(_onLoadRequested);
-    on<OcptShotListSequenceSelectedEvent>(_onSequenceSelected);
-    on<OcptShotListShotSelectedEvent>(_onShotSelected);
+    // The three selection events are awaitable: a view bloc moves the shared selection through
+    // `addAndWait` and then emits its own state (see `MixinOcptModeBloc.addAndWait`).
+    onAwaited<OcptShotListSequenceSelectedEvent>(_onSequenceSelected);
+    onAwaited<OcptShotListShotSelectedEvent>(_onShotSelected);
     on<OcptShotListShotCreationRequestedEvent>(_onShotCreationRequested);
     on<OcptShotListSequencePanelToggledEvent>(_onSequencePanelToggled);
     on<OcptShotListRightDockTabSelectedEvent>(_onRightDockTabSelected);
@@ -321,7 +323,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     on<OcptShotListCoverageAnchorCancelledEvent>(_onCoverageAnchorCancelled);
     on<OcptShotListShotMarkedAsCheckedEvent>(_onShotMarkedAsChecked);
     on<OcptShotListCentreViewSelectedEvent>(_onCentreViewSelected);
-    on<OcptShotListSetSelectedEvent>(_onSetSelected);
+    onAwaited<OcptShotListSetSelectedEvent>(_onSetSelected);
     on<OcptShotListSetCreationRequestedEvent>(_onSetCreationRequested);
     on<OcptShotListSetLinkRequestedEvent>(_onSetLinkRequested);
     on<OcptShotListSetNameChangedEvent>(_onSetNameChanged);

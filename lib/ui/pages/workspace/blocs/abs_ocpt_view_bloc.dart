@@ -37,6 +37,27 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_view_events.d
 /// [flushPendingWrites] and [flushPendingWritesWithoutState]. The base registers it with the mode
 /// when built, unregisters it first thing when it closes, and flushes without state while closing,
 /// so a pending edit reaches the database whichever of the view and the mode closes first.
+///
+/// **Rules for whoever writes the next view bloc.**
+///
+/// - Never write `state.copyWith(x: await …)`. Dart evaluates the `state` receiver before the
+///   `await`, so a reload that lands meanwhile is overwritten with the old state, epochs
+///   included. Await into a local, then `state.copyWith(x: local)`.
+/// - Write through the service, then `await modeBloc.reload(…)` for exactly the scopes the write
+///   changed, then emit the view's own selection. Never copy the mode's data into the view.
+/// - Keep typed edits as a pending map, start the debounce with [restartDebounce] (never a `Timer`
+///   of your own), and after a write forget only what was written, read at emit time:
+///   `ocptPendingEditsAfterWrite`. Emitting an empty map loses the keystroke typed during the
+///   write.
+/// - Ask the mode for anything through [addToMode], never `modeBloc.add`, and check [isClosing],
+///   never `isClosed`, before an `add` made from a timer or after an `await`: both are safe on a
+///   bloc that is closing.
+/// - To move the mode's selection and emit your own in the same gesture, use
+///   [addToModeAndWait] and emit afterwards; the event must be registered by the mode with
+///   `onAwaited`.
+/// - [onModeStateChanged] waits for nothing before it emits, and reads the cause of a selection
+///   move from `event.modeState`, the data from `modeBloc.state`.
+/// - Epochs only grow: a view reacts to a rise, never to a difference.
 abstract class AbsOcptViewBloc<
   S extends BlocStateForMixin<S>,
   MS extends MixinOcptModeState<MS>,
@@ -62,6 +83,15 @@ abstract class AbsOcptViewBloc<
   /// Whether [close] was called.
   bool _isClosing = false;
 
+  /// How many [OcptViewModeStateChangedEvent]s this view dispatched to itself so far.
+  int _dispatchedReactions = 0;
+
+  /// How many of them [onModeStateChanged] has returned from.
+  int _handledReactions = 0;
+
+  /// Completed, and replaced, whenever something [addToModeAndWait] waits on may have happened.
+  Completer<void> _reactionSignal = Completer<void>();
+
   /// The running debounce timer, if any, see [restartDebounce].
   Timer? _debounceTimer;
 
@@ -73,7 +103,7 @@ abstract class AbsOcptViewBloc<
   AbsOcptViewBloc(super.initialState, {required this.modeBloc})
     : _lastReloadEpoch = modeBloc.state.reloadEpoch,
       _lastSelectionEpoch = modeBloc.state.selectionEpoch {
-    _modeSubscription = modeBloc.stream.listen(_onModeState);
+    _modeSubscription = modeBloc.stream.listen(_onModeState, onDone: _signalReaction);
     _unregisterFlusher = modeBloc.registerPendingWritesFlusher(this);
   }
 
@@ -82,7 +112,7 @@ abstract class AbsOcptViewBloc<
   void registerMixinEvents() {
     super.registerMixinEvents();
 
-    on<OcptViewModeStateChangedEvent<MS>>(onModeStateChanged);
+    on<OcptViewModeStateChangedEvent<MS>>(_onModeStateChangedEvent);
     on<OcptViewFlushRequestedEvent>(_onFlushRequested);
   }
 
@@ -103,6 +133,7 @@ abstract class AbsOcptViewBloc<
       return;
     }
 
+    _dispatchedReactions++;
     add(
       OcptViewModeStateChangedEvent<MS>(
         modeState: modeState,
@@ -110,6 +141,44 @@ abstract class AbsOcptViewBloc<
         hasSelectionMoved: hasSelectionMoved,
       ),
     );
+    _signalReaction();
+  }
+
+  /// Runs [onModeStateChanged], then counts the reaction as handled.
+  Future<void> _onModeStateChangedEvent(
+    OcptViewModeStateChangedEvent<MS> event,
+    Emitter<S> emitter,
+  ) async {
+    try {
+      await onModeStateChanged(event, emitter);
+    } finally {
+      _handledReactions++;
+      _signalReaction();
+    }
+  }
+
+  /// Wakes whoever waits in [_untilReactedToMode].
+  void _signalReaction() {
+    final signal = _reactionSignal;
+    _reactionSignal = Completer<void>();
+    signal.complete();
+  }
+
+  /// Completes once this view has reacted to every state the mode emitted so far, or once either
+  /// of them is going away.
+  Future<void> _untilReactedToMode() async {
+    while (!isClosing && !modeBloc.isClosed) {
+      final modeState = modeBloc.state;
+      final isUpToDate =
+          _lastReloadEpoch >= modeState.reloadEpoch &&
+          _lastSelectionEpoch >= modeState.selectionEpoch &&
+          _handledReactions >= _dispatchedReactions;
+      if (isUpToDate) {
+        return;
+      }
+
+      await _reactionSignal.future;
+    }
   }
 
   /// Whether this view is closing or closed, from which point `add` throws: `isClosed` stays false
@@ -123,6 +192,19 @@ abstract class AbsOcptViewBloc<
   /// still waiting on it, and a plain `modeBloc.add` would throw then.
   @protected
   void addToMode(BlocEventForMixin event) => modeBloc.addUnlessClosing(event);
+
+  /// Asks the mode for [event], one the mode registered as awaitable (`MixinOcptModeBloc.onAwaited`),
+  /// and completes once the mode has handled it **and** this view has reacted to the state it
+  /// emitted. Does nothing if the mode is closing.
+  ///
+  /// This is how a view moves the mode's shared selection and then emits its own selection in the
+  /// same gesture: with `addToMode` the view's emit would land first and the reaction to the move
+  /// would then clear it. Emit the view's own state only after this completes.
+  @protected
+  Future<void> addToModeAndWait(BlocEventForMixin event) async {
+    await modeBloc.addAndWait(event);
+    await _untilReactedToMode();
+  }
 
   /// (Re)starts the view's debounce: after [delay] without another call, [event] is added to this
   /// view, unless the view started to close meanwhile. A view that holds typed edits calls this on
@@ -202,6 +284,7 @@ abstract class AbsOcptViewBloc<
   Future<void> close() {
     _isClosing = true;
     cancelDebounce();
+    _signalReaction();
     return super.close();
   }
 

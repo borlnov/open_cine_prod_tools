@@ -2,6 +2,8 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+import 'dart:async';
+
 import 'package:act_flutter_utility/act_flutter_utility.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -17,8 +19,8 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_pending_write
 /// chrome, and one **view bloc** per view (`AbsOcptViewBloc`). A view bloc depends on the mode
 /// bloc, never the other way round, which is why the mode reaches its views only through the
 /// [OcptPendingWritesFlusher]s they register here, and why a view reaches the mode only through
-/// [flushAllPendingWrites] and [reload], both of which are plain events the mode handles in its own
-/// queue and which a caller can wait on.
+/// [flushAllPendingWrites], [reload], [addUnlessClosing] and [addAndWait], which are plain events
+/// the mode handles in its own queue and which a caller can wait on or safely drop.
 ///
 /// [Scope] is the mode's own enum of the parts of its shared data that can be read again: a view
 /// can only name a scope the mode declares, and the mode's hook switches over the enum, so a part
@@ -31,16 +33,28 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_pending_write
 /// - [reloadScopesIn] — read again the parts of the shared data a view named, and move the state's
 ///   `reloadEpoch`.
 ///
-/// Every read of the shared data that ends in an emit runs through [runSerially], one at a time —
-/// [reloadSerially] for a view's reload, and the mode's own flush for its read-and-emit half: two
-/// writers finishing at about the same time each read the data, and a slower read finishing after
-/// a faster, newer one would put older data in the state. The flush as a whole is **not** queued,
-/// only its read-and-emit half: a view's flush waits on a reload, so queueing the whole flush
-/// behind that reload would wait on itself. Whoever writes a mode bloc's own reads must therefore
-/// queue them: a read that is not in the queue can finish last and overwrite a newer one.
+/// **Rules for a mode bloc.**
+///
+/// - Every read of the shared data that ends in an emit runs through [runSerially], one at a time:
+///   [reloadSerially] for a view's reload, and the read-and-emit half of the mode's own flush. Two
+///   writers finishing at about the same time each read the data, and a slower read finishing after
+///   a faster, newer one would put older data in the state. A read that is not queued can finish
+///   last and overwrite a newer one.
+/// - Queue only the read-and-emit half of a flush, never the flush as a whole: a view's flush waits
+///   on a reload, so queueing the whole flush behind it would wait on itself.
+/// - Never write `state.copyWith(x: await …)`: the `state` receiver is evaluated before the
+///   `await`, and a reload landing meanwhile is rolled back. Await into a local first.
+/// - Move `reloadEpoch` with every emit that replaces data a view can read, and `selectionEpoch`
+///   with every emit that changes the selection, saying why through the mode's cause. A reload
+///   scope is a value of the mode's enum, read by a `switch` that names every value.
+/// - Events a view must be able to wait for are registered with [onAwaited].
+/// - Delay nothing with a plain `Timer` that calls `add`: use [isClosing] and [addUnlessClosing].
 mixin MixinOcptModeBloc<S extends MixinOcptModeState<S>, Scope extends Enum> on BlocForMixin<S> {
   /// The flushers the view blocs registered, in registration order.
   final List<OcptPendingWritesFlusher> _flushers = [];
+
+  /// The dispatchers waiting in [addAndWait], per event instance.
+  final Map<BlocEventForMixin, List<Completer<void>>> _awaited = Map.identity();
 
   /// The tail of every read queued through [runSerially] so far.
   Future<void> _serialReads = Future.value();
@@ -75,6 +89,68 @@ mixin MixinOcptModeBloc<S extends MixinOcptModeState<S>, Scope extends Enum> on 
     }
 
     add(event);
+  }
+
+  /// Registers [handler] for the mode's own event type [E], like `on<E>`, but so that
+  /// [addAndWait] can wait for it: whoever dispatched the event is told when the handler is done.
+  ///
+  /// Register through this the events a view bloc has to move the mode's selection with, see
+  /// [addAndWait]. The event itself needs nothing more, it stays the plain (even `const`) event it
+  /// was.
+  @protected
+  void onAwaited<E extends BlocEventForMixin>(EventHandler<E, S> handler) {
+    on<E>((event, emitter) async {
+      try {
+        await handler(event, emitter);
+      } finally {
+        _completeAwaited(event);
+      }
+    });
+  }
+
+  /// Adds [event], one registered through [onAwaited], and completes once its handler is done, i.e.
+  /// once the mode's state holds what the handler emitted. Completes at once on a bloc that is
+  /// closing, and as soon as the bloc closes without having run the handler.
+  ///
+  /// This is how a view moves the mode's shared selection **and then** emits its own: with a plain
+  /// `add`, the view's next emit lands before the mode has even started on the event, and the view's
+  /// reaction to the move (which clears what was scoped to the previous selection) then clears what
+  /// the view just emitted. A view bloc uses `AbsOcptViewBloc.addToModeAndWait`, which also waits
+  /// for its own reaction.
+  Future<void> addAndWait(BlocEventForMixin event) async {
+    if (isClosing) {
+      return;
+    }
+
+    final completer = Completer<void>();
+    final closed = Completer<void>();
+    final subscription = stream.listen(null, onDone: closed.complete);
+    _awaited.putIfAbsent(event, () => []).add(completer);
+
+    try {
+      add(event);
+      await Future.any([completer.future, closed.future]);
+    } finally {
+      unawaited(subscription.cancel());
+      final waiting = _awaited[event];
+      waiting?.remove(completer);
+      if (waiting != null && waiting.isEmpty) {
+        _awaited.remove(event);
+      }
+    }
+  }
+
+  /// Tells the oldest dispatcher waiting on [event] that its handler is done. Events are told
+  /// apart by identity; two equal events (a `const` one dispatched twice) are interchangeable, so
+  /// the oldest waiter is the one released.
+  void _completeAwaited(BlocEventForMixin event) {
+    final waiting = _awaited[event];
+    if (waiting != null && waiting.isNotEmpty) {
+      final completer = waiting.removeAt(0);
+      if (!completer.isCompleted) {
+        completer.complete();
+      }
+    }
   }
 
   /// How many flushers are registered, so a test can tell that every view bloc of a mode was built
