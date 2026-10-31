@@ -64,13 +64,6 @@ class OcptResourcesPersonSelectedEvent extends OcptResourcesWorkspaceEvent {
   List<Object?> get props => [...super.props, personId];
 }
 
-/// Fired by the field-edit debounce timer `OcptResourcesPersonFieldChangedEvent` (re)starts, once
-/// it elapses with no further edit. Not meant to be dispatched by a widget directly.
-class OcptResourcesFieldEditFlushRequestedEvent extends OcptResourcesWorkspaceEvent {
-  /// Class constructor
-  const OcptResourcesFieldEditFlushRequestedEvent();
-}
-
 /// Selects role [roleId], dispatched by a row of `OcptRolesList`: the centre then shows that
 /// role's `OcptRoleSheet`.
 ///

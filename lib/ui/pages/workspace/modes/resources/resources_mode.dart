@@ -38,6 +38,8 @@ import 'package:open_cine_prod_tools/types/ocpt_workspace_mode.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_project_package_events.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_project_versions_events.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/resources_bloc.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/resources_elements_bloc.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/resources_elements_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/resources_event.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/resources_export_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/resources_locations_bloc.dart';
@@ -127,6 +129,10 @@ class OcptResourcesMode extends StatelessWidget {
         lazy: false,
         create: (context) =>
             OcptResourcesLocationsBloc(modeBloc: context.read<OcptResourcesBloc>()),
+      ),
+      BlocProvider(
+        lazy: false,
+        create: (context) => OcptResourcesElementsBloc(modeBloc: context.read<OcptResourcesBloc>()),
       ),
     ],
     child: OcptResourcesViewEffects(child: _ResourcesView(hasRevealRequest: revealRequest != null)),
@@ -463,7 +469,7 @@ class _ResourcesViewState extends State<_ResourcesView> {
             ),
       onAddElementRequested: state.isPreviewingVersion
           ? null
-          : (category) => context.read<OcptResourcesBloc>().add(
+          : (category) => context.read<OcptResourcesElementsBloc>().add(
               OcptResourcesElementCreationRequestedEvent(category: category),
             ),
     );
@@ -808,6 +814,7 @@ class _ResourcesViewState extends State<_ResourcesView> {
 
     final bloc = context.read<OcptResourcesBloc>();
     final rolesBloc = context.read<OcptResourcesRolesBloc>();
+    final elementsBloc = context.read<OcptResourcesElementsBloc>();
     final castMember = _personOf(state, selectedRole.personId);
 
     return BlocBuilder<OcptResourcesRolesBloc, OcptResourcesRolesState>(
@@ -889,12 +896,13 @@ class _ResourcesViewState extends State<_ResourcesView> {
           message: tr.resourcesRemoveCandidateConfirmMessage,
           event: OcptResourcesRoleCandidateRemovedEvent(candidateId: candidateId),
         ),
-        onElementLinked: (elementId) => bloc.add(
+        onElementLinked: (elementId) => elementsBloc.add(
           OcptResourcesElementLinkedToRoleEvent(roleId: selectedRole.id, elementId: elementId),
         ),
         onRoleElementUpdated: (id, notes) =>
-            bloc.add(OcptResourcesRoleElementUpdatedEvent(id: id, notes: notes)),
-        onRoleElementRemoved: (id) => bloc.add(OcptResourcesRoleElementRemovedEvent(id: id)),
+            elementsBloc.add(OcptResourcesRoleElementUpdatedEvent(id: id, notes: notes)),
+        onRoleElementRemoved: (id) =>
+            elementsBloc.add(OcptResourcesRoleElementRemovedEvent(id: id)),
       ),
     );
   }
@@ -1081,72 +1089,82 @@ class _ResourcesViewState extends State<_ResourcesView> {
     }
 
     final bloc = context.read<OcptResourcesBloc>();
+    final elementsBloc = context.read<OcptResourcesElementsBloc>();
 
-    return OcptElementSheet(
-      key: ValueKey(selectedElement.id),
-      element: selectedElement,
-      owner: _personOf(state, selectedElement.ownerPersonId),
-      bringer: _personOf(state, selectedElement.broughtByPersonId),
-      people: state.people,
-      roles: state.roles,
-      scenes: state.scenes,
-      currencyCode: state.currencyCode,
-      isReadOnly: state.isPreviewingVersion,
-      fieldValueOf: (field) => _elementFieldValueOf(state, selectedElement, field),
-      onPhotoPickRequested: () => bloc.add(
-        OcptResourcesElementPhotoPickRequestedEvent(
-          elementId: selectedElement.id,
-          fileTypeLabel: tr.resourcesImageFileTypeLabel,
+    return BlocBuilder<OcptResourcesElementsBloc, OcptResourcesElementsState>(
+      builder: (context, elementsState) => OcptElementSheet(
+        key: ValueKey(selectedElement.id),
+        element: selectedElement,
+        owner: _personOf(state, selectedElement.ownerPersonId),
+        bringer: _personOf(state, selectedElement.broughtByPersonId),
+        people: state.people,
+        roles: state.roles,
+        scenes: state.scenes,
+        currencyCode: state.currencyCode,
+        isReadOnly: state.isPreviewingVersion,
+        fieldValueOf: (field) => _elementFieldValueOf(elementsState, selectedElement, field),
+        onPhotoPickRequested: () => elementsBloc.add(
+          OcptResourcesElementPhotoPickRequestedEvent(
+            elementId: selectedElement.id,
+            fileTypeLabel: tr.resourcesImageFileTypeLabel,
+          ),
         ),
-      ),
-      onPhotoCleared: () =>
-          bloc.add(OcptResourcesElementPhotoClearedEvent(elementId: selectedElement.id)),
-      onFieldChanged: (field, rawValue) => bloc.add(
-        OcptResourcesElementFieldChangedEvent(
-          elementId: selectedElement.id,
-          field: field,
-          rawValue: rawValue,
+        onPhotoCleared: () =>
+            elementsBloc.add(OcptResourcesElementPhotoClearedEvent(elementId: selectedElement.id)),
+        onFieldChanged: (field, rawValue) => elementsBloc.add(
+          OcptResourcesElementFieldChangedEvent(
+            elementId: selectedElement.id,
+            field: field,
+            rawValue: rawValue,
+          ),
         ),
-      ),
-      onCategoryChanged: (category) => bloc.add(
-        OcptResourcesElementCategoryChangedEvent(elementId: selectedElement.id, category: category),
-      ),
-      onSourceKindChanged: (sourceKind) => bloc.add(
-        OcptResourcesElementSourceKindChangedEvent(
-          elementId: selectedElement.id,
-          sourceKind: sourceKind,
+        onCategoryChanged: (category) => elementsBloc.add(
+          OcptResourcesElementCategoryChangedEvent(
+            elementId: selectedElement.id,
+            category: category,
+          ),
         ),
-      ),
-      onOwnerChanged: (personId) => bloc.add(
-        OcptResourcesElementOwnerChangedEvent(elementId: selectedElement.id, personId: personId),
-      ),
-      onBringerChanged: (personId) => bloc.add(
-        OcptResourcesElementBringerChangedEvent(elementId: selectedElement.id, personId: personId),
-      ),
-      onTrackingFlagChanged: (flag, {required value}) => bloc.add(
-        OcptResourcesElementTrackingFlagChangedEvent(
-          elementId: selectedElement.id,
-          flag: flag,
-          value: value,
+        onSourceKindChanged: (sourceKind) => elementsBloc.add(
+          OcptResourcesElementSourceKindChangedEvent(
+            elementId: selectedElement.id,
+            sourceKind: sourceKind,
+          ),
         ),
+        onOwnerChanged: (personId) => elementsBloc.add(
+          OcptResourcesElementOwnerChangedEvent(elementId: selectedElement.id, personId: personId),
+        ),
+        onBringerChanged: (personId) => elementsBloc.add(
+          OcptResourcesElementBringerChangedEvent(
+            elementId: selectedElement.id,
+            personId: personId,
+          ),
+        ),
+        onTrackingFlagChanged: (flag, {required value}) => elementsBloc.add(
+          OcptResourcesElementTrackingFlagChangedEvent(
+            elementId: selectedElement.id,
+            flag: flag,
+            value: value,
+          ),
+        ),
+        onSceneAssigned: (sceneId) => elementsBloc.add(
+          OcptResourcesSceneAssignedToElementEvent(sceneId: sceneId, elementId: selectedElement.id),
+        ),
+        onLinkUpdated: (id, {required quantity, required notes}) => elementsBloc.add(
+          OcptResourcesSceneElementUpdatedEvent(id: id, quantity: quantity, notes: notes),
+        ),
+        onLinkRemoved: (id) => elementsBloc.add(OcptResourcesSceneElementRemovedEvent(id: id)),
+        onDeleteRequested: () => _handleDeleteRequested(
+          context,
+          bloc: elementsBloc,
+          title: tr.resourcesElementDeleteConfirmTitle,
+          message: tr.resourcesDeleteElementConfirm,
+          event: OcptResourcesElementDeletionRequestedEvent(elementId: selectedElement.id),
+        ),
+        onPersonSheetOpenRequested: (personId) =>
+            bloc.add(OcptResourcesPersonSheetOpenRequestedEvent(personId: personId)),
+        onRoleSheetOpenRequested: (roleId) =>
+            bloc.add(OcptResourcesRoleSheetOpenRequestedEvent(roleId: roleId)),
       ),
-      onSceneAssigned: (sceneId) => bloc.add(
-        OcptResourcesSceneAssignedToElementEvent(sceneId: sceneId, elementId: selectedElement.id),
-      ),
-      onLinkUpdated: (id, {required quantity, required notes}) =>
-          bloc.add(OcptResourcesSceneElementUpdatedEvent(id: id, quantity: quantity, notes: notes)),
-      onLinkRemoved: (id) => bloc.add(OcptResourcesSceneElementRemovedEvent(id: id)),
-      onDeleteRequested: () => _handleDeleteRequested(
-        context,
-        bloc: bloc,
-        title: tr.resourcesElementDeleteConfirmTitle,
-        message: tr.resourcesDeleteElementConfirm,
-        event: OcptResourcesElementDeletionRequestedEvent(elementId: selectedElement.id),
-      ),
-      onPersonSheetOpenRequested: (personId) =>
-          bloc.add(OcptResourcesPersonSheetOpenRequestedEvent(personId: personId)),
-      onRoleSheetOpenRequested: (roleId) =>
-          bloc.add(OcptResourcesRoleSheetOpenRequestedEvent(roleId: roleId)),
     );
   }
 
@@ -1157,7 +1175,7 @@ class _ResourcesViewState extends State<_ResourcesView> {
   /// The cost is the field whose stored value is not a string: it is written back as the plain
   /// amount `ocptCostCentsOf` reads, so a field showing `12.50` holds 1250 cents.
   String _elementFieldValueOf(
-    OcptResourcesState state,
+    OcptResourcesElementsState state,
     OcptElement element,
     OcptElementField field,
   ) {

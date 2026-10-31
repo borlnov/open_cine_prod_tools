@@ -4,15 +4,12 @@
 
 import 'dart:async';
 
-import 'package:act_file_transfer_manager/act_file_transfer_manager.dart';
 import 'package:act_flutter_utility/act_flutter_utility.dart';
 import 'package:act_global_manager/act_global_manager.dart';
 import 'package:act_logger_manager/act_logger_manager.dart';
-import 'package:drift/drift.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:fountain_kit/fountain_kit.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_asset_file_types.dart';
 import 'package:open_cine_prod_tools/managers/export/ocpt_export_manager.dart';
 import 'package:open_cine_prod_tools/managers/logging/ocpt_logs_helper_builder.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
@@ -23,27 +20,17 @@ import 'package:open_cine_prod_tools/managers/projects/services/ocpt_locations_s
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_people_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_role_candidates_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_role_index_service.dart';
-import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_project_info_table.dart';
 import 'package:open_cine_prod_tools/models/ocpt_open_project_model.dart';
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/models/ocpt_resources_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_workspace_reveal_request.dart';
-import 'package:open_cine_prod_tools/models/rules/ocpt_cost_amount.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_scene_display_number.dart';
-import 'package:open_cine_prod_tools/types/ocpt_element_editable_field.dart';
-import 'package:open_cine_prod_tools/types/ocpt_element_source_kind.dart';
-import 'package:open_cine_prod_tools/types/ocpt_element_tracking_flag.dart';
-import 'package:open_cine_prod_tools/types/ocpt_location_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
-import 'package:open_cine_prod_tools/types/ocpt_person_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_resources_reload_scope.dart';
 import 'package:open_cine_prod_tools/types/ocpt_resources_right_dock_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_resources_selection_cause.dart';
 import 'package:open_cine_prod_tools/types/ocpt_resources_tab.dart';
-import 'package:open_cine_prod_tools/types/ocpt_role_candidate_editable_field.dart';
-import 'package:open_cine_prod_tools/types/ocpt_role_editable_field.dart';
-import 'package:open_cine_prod_tools/types/ocpt_set_editable_field.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_mode_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project_package_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project_versions_bloc.dart';
@@ -53,48 +40,37 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/resource
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock.dart';
 
 /// This is the bloc class for the resources production mode (the address book, the cast, locations
-/// and the physical elements catalogue).
+/// and the physical elements catalogue): its **mode bloc**.
 ///
 /// It loads the current project's whole catalogue from [_peopleService], [_roleIndexService],
 /// [_roleCandidatesService], [_locationsService] and [_elementsService] on entry, combining the
-/// five reads into one [OcptResourcesSnapshot] — the same "one read of everything, joined in
-/// memory" shape `OcptShotListBloc` builds its own snapshot with — and holds the active tab, the
-/// selected person, the dock geometry and the pending field edits on top of it.
+/// reads into one [OcptResourcesSnapshot] — the same "one read of everything, joined in memory"
+/// shape `OcptShotListBloc` builds its own snapshot with — and owns that data, the active tab, the
+/// selected person, role, location and element, the search, the dock geometry and the transient
+/// write error. [OcptResourcesState.mileageRates] and [OcptResourcesState.setIdsWithPlan] are read
+/// once on every load alongside it: the mileage rates belong to the project settings page's own
+/// catalogue, and this mode only ever reads them.
 ///
-/// Every one of the four [OcptResourcesTab]s now has real content: the address book, the cast
-/// reconciled against the screenplay, the locations with their sets, and the elements catalogue
-/// with the dépouillement links onto the scenes needing each item.
+/// Everything a tab's sheet writes belongs to that tab's view bloc — `OcptResourcesPeopleBloc`,
+/// `OcptResourcesRolesBloc`, `OcptResourcesLocationsBloc` and `OcptResourcesElementsBloc` — which
+/// writes through the services, asks this bloc to read the snapshot again ([reload]) and keeps the
+/// typed edits of its sheets in a debounce of its own; `OcptResourcesExportBloc` owns the two
+/// exports. A view moves the selection through [OcptResourcesRecordCreatedEvent] and
+/// [OcptResourcesRecordDroppedEvent], and shows a failed write through
+/// [OcptResourcesWriteFailedEvent]: the one write error is this bloc's, so it is shown once
+/// whichever view it came from.
 ///
-/// Alongside that catalogue, [OcptResourcesState.mileageRates] is read once from
-/// `OcptProjectsManager.budgetFinancingService` on every load: the person sheet's own rate picker
-/// reads this project-wide list, exactly as `currencyCode` is read once rather than folded into
-/// [OcptResourcesSnapshot] — the mileage rates belong to the project settings page's own catalogue,
-/// and this mode only ever reads it.
-///
-/// Most of a person's discrete fields (colour, birth date, transport autonomy, image rights status
-/// and date), every sub-list (positions, skills, unavailabilities), a role's cast member and kind,
-/// a location's colour, permit status and date, contact, sets, scene links and referenced files,
-/// and an element's category, provenance, owner, bringer, tracking flags and scene links are
-/// written to the project database the moment they change, exactly like a shot's difficulty axis or
-/// its character chips are. A role's name is never written here for an `isFromScreenplay` role —
-/// [_roleIndexService]'s own reconciliation owns it, and would overwrite a hand-typed name right
-/// back on the next save; withholding that field is the widgets' job, not a special case here. The
-/// sheets' typed free-text fields ([OcptPersonField], [OcptRoleField], [OcptLocationField],
-/// [OcptSetField], [OcptElementField], [OcptRoleCandidateField]) are the exception: an edit is held
-/// in the matching `OcptResourcesState.pending…FieldEdits` map and written
-/// [defaultFieldEditDebounce] after the last keystroke, mirroring `OcptShotListBloc`'s own autosave
-/// convention — the six maps ride the very same debounce timer, so pending edits are always flushed
-/// together, never one kind without the others. The debounce is flushed immediately whenever the
-/// selected record, or the active tab, changes, when the workspace is left, and (through
-/// [flushPendingFieldEdits], called by the mode's own `deactivate()`) whenever the mode leaves the
-/// widget tree for any other reason, so a pending edit is never silently dropped.
+/// Every pending edit the views hold is flushed immediately whenever the selected record, or the
+/// active tab, changes, when the workspace is left, ahead of a version preview or a package export,
+/// and (through [flushPendingFieldEdits], called by the mode's own `deactivate()`) whenever the mode
+/// leaves the widget tree for any other reason, so a pending edit is never silently dropped. A
+/// flush that fails drops the edits of every view, shows the one write error and lets the action go
+/// ahead on the value the database still holds ([OcptResourcesPendingEditsLostEvent]).
 ///
 /// It also mixes in [MixinOcptProjectVersionsBloc], which owns everything the right dock's
 /// `Versions` tab does. The two hooks the mixin needs are answered by [flushPendingProjectWrites]
-/// (a field edit still sitting in the debounce must reach the working copy before a preview swaps
-/// the database out) and [reloadFromProjectDatabase]. `_onRightDockTabSelected` and
-/// `_flushPendingFieldEdits` each dispatch [OcptProjectWorkingCopyRefreshRequestedEvent] — opening
-/// the `Versions` tab, and a field edit landing while it is already open — the two moments the
+/// and [reloadFromProjectDatabase]. Opening the `Versions` tab and a field edit landing while it is
+/// already open dispatch [OcptProjectWorkingCopyRefreshRequestedEvent] — the two moments the
 /// mixin's working-copy card is worth a fresh, throttled read.
 ///
 /// It mixes in [MixinOcptProjectPackageBloc] too, which writes the whole project out as a portable
@@ -113,7 +89,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
   /// The logger this BLoC writes to.
   final LogsHelper _logger = buildOcptLogsHelper(_loggerCategory);
 
-  /// The default delay between the last field edit and its autosave write.
+  /// The default delay between the last field edit and its autosave write, for the view blocs.
   static const defaultFieldEditDebounce = Duration(seconds: 2);
 
   /// The manager used to access the project currently open.
@@ -144,22 +120,6 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
   /// The service used to read the physical elements catalogue.
   final OcptElementsService _elementsService;
 
-  /// The manager used to show the native "open" dialog when a photo or a document is referenced,
-  /// or null to resolve it through [globalGetIt] the first time one actually is.
-  ///
-  /// The one manager of this bloc that isn't one of the app's own: referencing a file is a native
-  /// dialog and a path, with no bytes to convert and no project document to write, so it needs
-  /// nothing of what `OcptExportManager` owns around its own dialogs. It is also the one resolved
-  /// lazily rather than in the constructor — a mode that never references a file never asks for it
-  /// at all, which is every use of this bloc but two.
-  final FileSelectorManager? _fileSelectorManager;
-
-  /// The delay between the last field edit and its autosave write.
-  final Duration _fieldEditDebounce;
-
-  /// The running field-edit debounce timer, if any.
-  Timer? _fieldEditTimer;
-
   /// What the first load should open on, handed over by the mode that sent the user here, or null
   /// to open on the mode's own default.
   ///
@@ -187,8 +147,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
   /// Class constructor
   ///
   /// Every dependency can be overridden, which is what the tests do; in the app they all resolve
-  /// through [globalGetIt]. [fieldEditDebounce] is only meant to be overridden by tests, to keep
-  /// it fast and deterministic.
+  /// through [globalGetIt].
   OcptResourcesBloc({
     OcptProjectsManager? projectsManager,
     OcptPropertiesManager? propertiesManager,
@@ -199,8 +158,6 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     OcptRoleCandidatesService? roleCandidatesService,
     OcptLocationsService? locationsService,
     OcptElementsService? elementsService,
-    FileSelectorManager? fileSelectorManager,
-    Duration fieldEditDebounce = defaultFieldEditDebounce,
     OcptResourcesRevealRequest? revealRequest,
     String? selectedEpisodeId,
   }) : _pendingRevealRequest = revealRequest,
@@ -224,8 +181,6 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
        _elementsService =
            elementsService ??
            (projectsManager ?? globalGetIt().get<OcptProjectsManager>()).elementsService,
-       _fileSelectorManager = fileSelectorManager,
-       _fieldEditDebounce = fieldEditDebounce,
        super(OcptResourcesState.init()) {
     add(const OcptResourcesLoadRequestedEvent());
   }
@@ -243,29 +198,12 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     onAwaited<OcptResourcesPendingEditsLostEvent>(_onPendingEditsLost);
     onAwaited<OcptResourcesRecordCreatedEvent>(_onRecordCreated);
     onAwaited<OcptResourcesRecordDroppedEvent>(_onRecordDropped);
-    on<OcptResourcesFieldEditFlushRequestedEvent>(_onFieldEditFlushRequested);
     on<OcptResourcesRoleSelectedEvent>(_onRoleSelected);
     on<OcptResourcesPersonSheetOpenRequestedEvent>(_onPersonSheetOpenRequested);
     on<OcptResourcesLocationSelectedEvent>(_onLocationSelected);
     on<OcptResourcesOpenSetInShotListRequestedEvent>(_onOpenSetInShotListRequested);
     on<OcptResourcesShotListRevealDismissedEvent>(_onShotListRevealDismissed);
-    on<OcptResourcesElementPhotoPickRequestedEvent>(_onElementPhotoPickRequested);
-    on<OcptResourcesElementPhotoClearedEvent>(_onElementPhotoCleared);
     on<OcptResourcesElementSelectedEvent>(_onElementSelected);
-    on<OcptResourcesElementCreationRequestedEvent>(_onElementCreationRequested);
-    on<OcptResourcesElementDeletionRequestedEvent>(_onElementDeletionRequested);
-    on<OcptResourcesElementFieldChangedEvent>(_onElementFieldChanged);
-    on<OcptResourcesElementCategoryChangedEvent>(_onElementCategoryChanged);
-    on<OcptResourcesElementSourceKindChangedEvent>(_onElementSourceKindChanged);
-    on<OcptResourcesElementOwnerChangedEvent>(_onElementOwnerChanged);
-    on<OcptResourcesElementBringerChangedEvent>(_onElementBringerChanged);
-    on<OcptResourcesElementTrackingFlagChangedEvent>(_onElementTrackingFlagChanged);
-    on<OcptResourcesSceneAssignedToElementEvent>(_onSceneAssignedToElement);
-    on<OcptResourcesSceneElementUpdatedEvent>(_onSceneElementUpdated);
-    on<OcptResourcesSceneElementRemovedEvent>(_onSceneElementRemoved);
-    on<OcptResourcesElementLinkedToRoleEvent>(_onElementLinkedToRole);
-    on<OcptResourcesRoleElementUpdatedEvent>(_onRoleElementUpdated);
-    on<OcptResourcesRoleElementRemovedEvent>(_onRoleElementRemoved);
     on<OcptResourcesRoleSheetOpenRequestedEvent>(_onRoleSheetOpenRequested);
     on<OcptResourcesLeftPanelToggledEvent>(_onLeftPanelToggled);
     on<OcptResourcesSearchToggledEvent>(_onSearchToggled);
@@ -299,7 +237,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
   @protected
   @override
   Future<bool> flushPendingProjectWrites(Emitter<OcptResourcesState> emitter) async {
-    await _flushAllPendingWrites(emitter);
+    await runPendingWritesFlushers();
     return true;
   }
 
@@ -311,7 +249,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
   @protected
   @override
   Future<bool> flushAllPendingWritesIn(Emitter<OcptResourcesState> emitter) async {
-    await _flushAllPendingWrites(emitter);
+    await runPendingWritesFlushers();
     return true;
   }
 
@@ -551,7 +489,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     OcptResourcesBackRequestedEvent event,
     Emitter<OcptResourcesState> emitter,
   ) async {
-    await _flushAllPendingWrites(emitter);
+    await runPendingWritesFlushers();
     await _projectsManager.closeCurrentProject();
     _routerManager.pop();
   }
@@ -592,12 +530,12 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
   /// carrying it across a tab change would filter the new list against words that describe the
   /// old one.
   ///
-  /// Flushes any pending field edit first, so switching tabs right after typing never loses it.
+  /// Writes every pending edit first, so switching tabs right after typing never loses it.
   Future<void> _onTabSelected(
     OcptResourcesTabSelectedEvent event,
     Emitter<OcptResourcesState> emitter,
   ) async {
-    await _flushAllPendingWrites(emitter);
+    await runPendingWritesFlushers();
 
     final isSameTab = state.activeTab == event.tab;
 
@@ -617,14 +555,14 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
 
   /// Selects person `event.personId`.
   ///
-  /// Flushes any pending field edit first, so switching people right after typing never loses it.
+  /// Writes every pending edit first, so switching people right after typing never loses it.
   /// A person id that no longer exists in the current snapshot (a stale click on a list rebuilt
   /// underneath) is ignored rather than selecting nothing.
   Future<void> _onPersonSelected(
     OcptResourcesPersonSelectedEvent event,
     Emitter<OcptResourcesState> emitter,
   ) async {
-    await _flushAllPendingWrites(emitter);
+    await runPendingWritesFlushers();
 
     final exists = state.people.any((person) => person.id == event.personId);
     if (!exists) {
@@ -640,112 +578,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     );
   }
 
-  /// (Re)starts the one field-edit debounce timer every typed field of the mode rides — a person's,
-  /// a role's, a location's and a set's alike — so they are always written together, never one
-  /// without the other.
-  void _restartFieldEditTimer() {
-    _fieldEditTimer?.cancel();
-    _fieldEditTimer = Timer(_fieldEditDebounce, () {
-      if (!isClosed) {
-        add(const OcptResourcesFieldEditFlushRequestedEvent());
-      }
-    });
-  }
-
-  /// Cancels the field-edit debounce timer if, and only if, nothing of any kind is pending any
-  /// more.
-  ///
-  /// Every handler that drops a record also drops the pending edits that targeted it, and the
-  /// timer is shared by all six maps: cancelling it on the strength of one map having emptied
-  /// would strand whatever the other five still hold until the next keystroke.
-  void _cancelFieldEditTimerIfIdle({
-    required Map<(String, OcptElementField), String> pendingElementEdits,
-  }) {
-    if (pendingElementEdits.isEmpty) {
-      _fieldEditTimer?.cancel();
-      _fieldEditTimer = null;
-    }
-  }
-
-  /// Writes every pending field edit once the field-edit debounce elapses with no further typing.
-  Future<void> _onFieldEditFlushRequested(
-    OcptResourcesFieldEditFlushRequestedEvent event,
-    Emitter<OcptResourcesState> emitter,
-  ) => _flushPendingFieldEdits(emitter);
-
-  /// Writes every pending write of the mode's views immediately, through the flushers they
-  /// registered, then the edits the mode still holds itself.
-  ///
-  /// Up front of every handler that changes what is selected, that leaves the workspace, or that is
-  /// about to read the database (an export, a preview): a pending edit is never silently dropped by
-  /// one of them. A view that fails to write drops every edit of the mode (see
-  /// `OcptResourcesPendingEditsLostEvent`) before the flush goes on, so the ones after it find
-  /// nothing to write.
-  Future<void> _flushAllPendingWrites(Emitter<OcptResourcesState> emitter) async {
-    await runPendingWritesFlushers();
-    await _flushPendingFieldEdits(emitter);
-  }
-
-  /// Writes every pending field edit immediately: cancels the debounce timer (a no-op if it
-  /// already fired or there was none), writes every person field edit through each sheet's own
-  /// service — `OcptPeopleService.updatePerson`, `OcptRoleIndexService.updateRole`,
-  /// `OcptLocationsService.updateLocation`/`.updateSet`, `OcptElementsService.updateElement` and
-  /// `OcptRoleCandidatesService.updateCandidate` — then reloads the snapshot so every derived
-  /// aggregate reflects what the database now says. A
-  /// no-op while nothing of any kind is pending.
-  ///
-  /// Used from inside an event handler, with that handler's own [emitter]: called by
-  /// [_onFieldEditFlushRequested] (the debounce firing), and up front by every handler that changes
-  /// which record, or which tab, is selected, or that leaves the workspace, so a pending edit is
-  /// never silently dropped by a selection change. [flushPendingFieldEdits] is the sibling of this
-  /// method used outside of an event handler.
-  Future<void> _flushPendingFieldEdits(Emitter<OcptResourcesState> emitter) async {
-    _fieldEditTimer?.cancel();
-    _fieldEditTimer = null;
-
-    final pendingElementEdits = state.pendingElementFieldEdits;
-    if (pendingElementEdits.isEmpty) {
-      return;
-    }
-
-    final project = _projectsManager.currentProject;
-    if (project == null) {
-      emitter(state.copyWith(pendingElementFieldEdits: const {}));
-      return;
-    }
-
-    try {
-      await _writeAllPendingElementFields(database: project.database, pending: pendingElementEdits);
-      await runSerially(() async {
-        final snapshot = await _loadSnapshot(project);
-        emitter(state.copyWith(snapshot: snapshot, pendingElementFieldEdits: const {}));
-      });
-
-      // The other of the two moments the working-copy card needs a fresh read for (see
-      // `_onRightDockTabSelected`): a field edit landing while the tab showing it is already open.
-      if (state.rightDockTab == OcptResourcesRightDockTab.versions) {
-        add(const OcptProjectWorkingCopyRefreshRequestedEvent());
-      }
-    } catch (error, stackTrace) {
-      _logger.e(
-        "A problem occurred when tried to flush a pending resources field edit of project "
-        "${project.primaryScreenplayId}: ${error.runtimeType}",
-        null,
-        stackTrace,
-      );
-      emitter(
-        state.copyWith(
-          hasWriteError: true,
-          lostEditsEpoch: state.lostEditsEpoch + 1,
-          reloadEpoch: state.reloadEpoch + 1,
-          pendingElementFieldEdits: const {},
-        ),
-      );
-    }
-  }
-
-  /// Writes every pending field edit directly to the database, bypassing both the debounce timer
-  /// and the bloc's own event queue.
+  /// Writes every pending edit of the views directly to the database, without touching [state].
   ///
   /// Called by the mode's own `deactivate()`, mirroring `OcptShotListBloc.flushPendingFieldEdits`:
   /// `deactivate()` runs before `dispose()` for every removal from the tree (a mode switch swaps
@@ -753,135 +586,20 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
   /// write here — rather than dispatching an event, which would only be processed on a later
   /// microtask this widget might not survive to see — is what guarantees the last
   /// [defaultFieldEditDebounce] worth of typing isn't lost.
+  Future<void> flushPendingFieldEdits() => runPendingWritesFlushersWithoutState();
+
+  /// Selects role `event.roleId`, and switches to the roles tab.
   ///
-  /// Unlike [_flushPendingFieldEdits], this never touches [state]: `emit` may only be called from
-  /// inside a registered `on<Event>` handler, and by the time this runs the widget tree that would
-  /// show a fresh state is already gone anyway. A failure here is only logged.
-  Future<void> flushPendingFieldEdits() async {
-    await runPendingWritesFlushersWithoutState();
-
-    _fieldEditTimer?.cancel();
-    _fieldEditTimer = null;
-
-    final pendingElementEdits = state.pendingElementFieldEdits;
-    if (pendingElementEdits.isEmpty) {
-      return;
-    }
-
-    final project = _projectsManager.currentProject;
-    if (project == null) {
-      return;
-    }
-
-    try {
-      await _writeAllPendingElementFields(database: project.database, pending: pendingElementEdits);
-    } catch (error, stackTrace) {
-      _logger.e(
-        "A problem occurred when tried to flush a pending resources field edit of project "
-        "${project.primaryScreenplayId}: ${error.runtimeType}",
-        null,
-        stackTrace,
-      );
-    }
-  }
-
-  /// Writes every entry of [pending] through [_writeElementField].
-  Future<void> _writeAllPendingElementFields({
-    required OcptProjectDatabase database,
-    required Map<(String, OcptElementField), String> pending,
-  }) async {
-    for (final entry in pending.entries) {
-      final (elementId, field) = entry.key;
-      await _writeElementField(
-        database: database,
-        elementId: elementId,
-        field: field,
-        rawValue: entry.value,
-      );
-    }
-  }
-
-  /// Writes a single element field edit through `OcptElementsService.updateElement`, translating
-  /// [field] into the matching named argument (see `OcptElementField`'s own doc comment for the
-  /// mapping).
-  ///
-  /// The cost is the only one not written as typed: what cannot be read as an amount of money is
-  /// written as null rather than refused, so a `gratuit` costs nothing and a cleared field clears
-  /// the price. Saying so is the sheet's job, not this one's — the same trade the two coordinate
-  /// fields of a location make.
-  Future<void> _writeElementField({
-    required OcptProjectDatabase database,
-    required String elementId,
-    required OcptElementField field,
-    required String rawValue,
-  }) async {
-    switch (field) {
-      case OcptElementField.name:
-        await _elementsService.updateElement(
-          database: database,
-          elementId: elementId,
-          name: Value(rawValue),
-        );
-      case OcptElementField.subCategory:
-        await _elementsService.updateElement(
-          database: database,
-          elementId: elementId,
-          subCategory: Value(rawValue),
-        );
-      case OcptElementField.quantity:
-        await _elementsService.updateElement(
-          database: database,
-          elementId: elementId,
-          quantity: Value(rawValue),
-        );
-      case OcptElementField.ownerNotes:
-        await _elementsService.updateElement(
-          database: database,
-          elementId: elementId,
-          ownerNotes: Value(rawValue),
-        );
-      case OcptElementField.storageNotes:
-        await _elementsService.updateElement(
-          database: database,
-          elementId: elementId,
-          storageNotes: Value(rawValue),
-        );
-      case OcptElementField.cost:
-        await _elementsService.updateElement(
-          database: database,
-          elementId: elementId,
-          cost: Value(ocptCostCentsOf(rawValue)),
-        );
-      case OcptElementField.purposeNotes:
-        await _elementsService.updateElement(
-          database: database,
-          elementId: elementId,
-          purposeNotes: Value(rawValue),
-        );
-      case OcptElementField.notes:
-        await _elementsService.updateElement(
-          database: database,
-          elementId: elementId,
-          notes: Value(rawValue),
-        );
-    }
-  }
-
-  /// Selects role `event.roleId`, expanding its row in place; selecting the already-selected role
-  /// clears the selection instead, collapsing it back.
-  ///
-  /// Flushes any pending field edit first, so switching roles right after typing never loses it. A
-  /// role id that no longer exists in the current snapshot (a stale click on a list rebuilt
-  /// underneath) is ignored rather than selecting nothing.
-  ///
-  /// Selecting the already-selected role is a no-op rather than a way of clearing the selection,
-  /// mirroring [_onPersonSelected]: the centre shows the role's sheet, and a click on a list row
-  /// blanking it would be a surprising affordance.
+  /// Writes every pending edit first, so switching roles right after typing never loses it. A role
+  /// id that no longer exists in the current snapshot (a stale click on a list rebuilt underneath)
+  /// is ignored rather than selecting nothing. Selecting the already-selected role is not a way of
+  /// clearing the selection: the centre shows the role's sheet, and a click on a list row blanking
+  /// it would be a surprising affordance.
   Future<void> _onRoleSelected(
     OcptResourcesRoleSelectedEvent event,
     Emitter<OcptResourcesState> emitter,
   ) async {
-    await _flushAllPendingWrites(emitter);
+    await runPendingWritesFlushers();
 
     final exists = state.roles.any((role) => role.id == event.roleId);
     if (!exists) {
@@ -917,7 +635,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     OcptResourcesPersonSheetOpenRequestedEvent event,
     Emitter<OcptResourcesState> emitter,
   ) async {
-    await _flushAllPendingWrites(emitter);
+    await runPendingWritesFlushers();
 
     emitter(
       state.copyWith(
@@ -941,7 +659,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     OcptResourcesLocationSelectedEvent event,
     Emitter<OcptResourcesState> emitter,
   ) async {
-    await _flushAllPendingWrites(emitter);
+    await runPendingWritesFlushers();
 
     final exists = state.locations.any((location) => location.id == event.locationId);
     if (!exists) {
@@ -1008,103 +726,6 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     emitter(state.copyWith(forcePendingShotListRevealValue: true));
   }
 
-  /// Asks for element `event.elementId`'s photo through the native picker and references the file
-  /// picked, written immediately. A cancelled dialog leaves the photo already referenced alone.
-  Future<void> _onElementPhotoPickRequested(
-    OcptResourcesElementPhotoPickRequestedEvent event,
-    Emitter<OcptResourcesState> emitter,
-  ) async {
-    final path = await _pickFilePath(
-      allowedExtensions: ocptImageFileExtensions,
-      fileTypeLabel: event.fileTypeLabel,
-    );
-    if (path == null) {
-      return;
-    }
-
-    await _writeCatalogueChange(
-      emitter: emitter,
-      logContext: "reference the photo of element ${event.elementId}",
-      action: (project) async {
-        await _elementsService.setElementPhoto(
-          database: project.database,
-          elementId: event.elementId,
-          path: path,
-        );
-      },
-    );
-  }
-
-  /// Drops element `event.elementId`'s reference to its photo, written immediately.
-  Future<void> _onElementPhotoCleared(
-    OcptResourcesElementPhotoClearedEvent event,
-    Emitter<OcptResourcesState> emitter,
-  ) => _writeCatalogueChange(
-    emitter: emitter,
-    logContext: "drop the photo of element ${event.elementId}",
-    action: (project) =>
-        _elementsService.clearElementPhoto(database: project.database, elementId: event.elementId),
-  );
-
-  /// Shows the native "open" dialog and returns the path of the file picked, or null when the user
-  /// cancelled it, when it failed, or when the platform gave a file with no path at all.
-  ///
-  /// **The file itself is never read here** (see
-  /// `docs/adr/0013-binary-assets-referenced-by-path.md`) — unlike an import, which is exactly why
-  /// this goes to [FileSelectorManager] directly rather than through `OcptExportManager`: there is
-  /// nothing to decode, only a path to keep.
-  Future<String?> _pickFilePath({
-    required List<String> allowedExtensions,
-    required String fileTypeLabel,
-  }) async {
-    final fileSelectorManager = _fileSelectorManager ?? globalGetIt().get<FileSelectorManager>();
-
-    final selection = await fileSelectorManager.openSelector(
-      allowedExtensions: allowedExtensions,
-      label: fileTypeLabel,
-    );
-
-    final file = selection.value;
-    if (!selection.status.isSuccess || file == null) {
-      // The user cancelled the dialog, or the selection failed; the latter is a soft failure
-      // deliberately not surfaced as an error, since the OS dialog itself already reported it.
-      return null;
-    }
-
-    return file.path.isEmpty ? null : file.path;
-  }
-
-  /// Writes a discrete change to the catalogue — a person's field, position, skill or
-  /// unavailability, a role's cast member or kind, a location's own picks, an element's category,
-  /// provenance, owner, bringer, tracking flags or scene links — through [action] and reloads the
-  /// snapshot, so every derived aggregate (a person's positions summary, the status bar's counts)
-  /// reflects what the database now says. Mirrors `OcptShotListBloc`'s own `_writeCoverageChange`
-  /// shape, shared by every discrete field, position, skill, unavailability and role write of this
-  /// bloc. A no-op while no project is open.
-  Future<void> _writeCatalogueChange({
-    required Emitter<OcptResourcesState> emitter,
-    required String logContext,
-    required Future<void> Function(OcptOpenProjectModel project) action,
-  }) async {
-    final project = _projectsManager.currentProject;
-    if (project == null) {
-      return;
-    }
-
-    try {
-      await action(project);
-      emitter(state.copyWith(snapshot: await _loadSnapshot(project)));
-    } catch (error, stackTrace) {
-      _logger.e(
-        "A problem occurred when tried to $logContext of project "
-        "${project.primaryScreenplayId}: ${error.runtimeType}",
-        null,
-        stackTrace,
-      );
-      emitter(state.copyWith(hasWriteError: true));
-    }
-  }
-
   /// Selects element `event.elementId`.
   ///
   /// Flushes any pending field edit first, so switching elements right after typing never loses it.
@@ -1114,7 +735,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     OcptResourcesElementSelectedEvent event,
     Emitter<OcptResourcesState> emitter,
   ) async {
-    await _flushAllPendingWrites(emitter);
+    await runPendingWritesFlushers();
 
     final exists = state.elements.any((element) => element.id == event.elementId);
     if (!exists) {
@@ -1130,279 +751,6 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     );
   }
 
-  /// Creates a new, blank element of `event.category` at the end of the catalogue, reloads it and
-  /// selects the new element so it can be named straight away.
-  ///
-  /// Unlike a person or a location, it is given no colour of its own: an element is told apart in a
-  /// list by the category heading it sits under and by its code, and the palette is what a person,
-  /// a location and a shot already share.
-  Future<void> _onElementCreationRequested(
-    OcptResourcesElementCreationRequestedEvent event,
-    Emitter<OcptResourcesState> emitter,
-  ) async {
-    await _flushAllPendingWrites(emitter);
-
-    final project = _projectsManager.currentProject;
-    if (project == null) {
-      return;
-    }
-
-    try {
-      final elementId = await _elementsService.createElement(
-        database: project.database,
-        name: "",
-        category: event.category,
-        sourceKind: OcptElementSourceKind.owned,
-      );
-      if (elementId == null) {
-        // The write was refused (a version is being previewed read-only); the shell already
-        // withholds the button that dispatches this event, so this is only ever a race.
-        return;
-      }
-
-      final snapshot = await _loadSnapshot(project);
-      emitter(
-        state.copyWith(
-          snapshot: snapshot,
-          selectedElementId: elementId,
-          selectionEpoch: state.selectionEpoch + 1,
-          selectionCause: OcptResourcesSelectionCause.created,
-        ),
-      );
-    } catch (error, stackTrace) {
-      _logger.e(
-        "A problem occurred when tried to create an element in project "
-        "${project.primaryScreenplayId}: ${error.runtimeType}",
-        null,
-        stackTrace,
-      );
-      emitter(state.copyWith(hasWriteError: true));
-    }
-  }
-
-  /// Deletes element `event.elementId`, clearing the selection when it was the selected one, and
-  /// dropping any pending field edit that still targeted it.
-  Future<void> _onElementDeletionRequested(
-    OcptResourcesElementDeletionRequestedEvent event,
-    Emitter<OcptResourcesState> emitter,
-  ) async {
-    final project = _projectsManager.currentProject;
-    if (project == null) {
-      return;
-    }
-
-    final pendingWithoutElement = Map<(String, OcptElementField), String>.of(
-      state.pendingElementFieldEdits,
-    )..removeWhere((key, _) => key.$1 == event.elementId);
-    _cancelFieldEditTimerIfIdle(pendingElementEdits: pendingWithoutElement);
-
-    final wasSelected = state.selectedElementId == event.elementId;
-
-    try {
-      await _elementsService.deleteElement(database: project.database, elementId: event.elementId);
-      final snapshot = await _loadSnapshot(project);
-      emitter(
-        state.copyWith(
-          snapshot: snapshot,
-          pendingElementFieldEdits: pendingWithoutElement,
-          forceSelectedElementIdValue: wasSelected,
-          selectionEpoch: wasSelected ? state.selectionEpoch + 1 : null,
-          selectionCause: wasSelected ? OcptResourcesSelectionCause.dropped : null,
-        ),
-      );
-    } catch (error, stackTrace) {
-      _logger.e(
-        "A problem occurred when tried to delete element ${event.elementId} of project "
-        "${project.primaryScreenplayId}: ${error.runtimeType}",
-        null,
-        stackTrace,
-      );
-      emitter(state.copyWith(hasWriteError: true));
-    }
-  }
-
-  /// Records the raw text just typed into `event.field` of element `event.elementId` as a pending
-  /// edit, visible immediately, and (re)starts the same field-edit debounce every other typed field
-  /// of the mode rides.
-  Future<void> _onElementFieldChanged(
-    OcptResourcesElementFieldChangedEvent event,
-    Emitter<OcptResourcesState> emitter,
-  ) async {
-    final pending = Map<(String, OcptElementField), String>.of(state.pendingElementFieldEdits)
-      ..[(event.elementId, event.field)] = event.rawValue;
-    emitter(state.copyWith(pendingElementFieldEdits: pending));
-
-    _restartFieldEditTimer();
-  }
-
-  /// Sets element `event.elementId`'s category, written immediately.
-  Future<void> _onElementCategoryChanged(
-    OcptResourcesElementCategoryChangedEvent event,
-    Emitter<OcptResourcesState> emitter,
-  ) async {
-    await _writeCatalogueChange(
-      emitter: emitter,
-      logContext: "change the category of element ${event.elementId}",
-      action: (project) => _elementsService.updateElement(
-        database: project.database,
-        elementId: event.elementId,
-        category: Value(event.category),
-      ),
-    );
-  }
-
-  /// Sets where element `event.elementId` comes from, written immediately.
-  Future<void> _onElementSourceKindChanged(
-    OcptResourcesElementSourceKindChangedEvent event,
-    Emitter<OcptResourcesState> emitter,
-  ) => _writeCatalogueChange(
-    emitter: emitter,
-    logContext: "change the provenance of element ${event.elementId}",
-    action: (project) => _elementsService.updateElement(
-      database: project.database,
-      elementId: event.elementId,
-      sourceKind: Value(event.sourceKind),
-    ),
-  );
-
-  /// Sets who owns element `event.elementId`, written immediately.
-  Future<void> _onElementOwnerChanged(
-    OcptResourcesElementOwnerChangedEvent event,
-    Emitter<OcptResourcesState> emitter,
-  ) => _writeCatalogueChange(
-    emitter: emitter,
-    logContext: "change the owner of element ${event.elementId}",
-    action: (project) => _elementsService.updateElement(
-      database: project.database,
-      elementId: event.elementId,
-      ownerPersonId: Value(event.personId),
-    ),
-  );
-
-  /// Sets who brings element `event.elementId` to set, written immediately.
-  Future<void> _onElementBringerChanged(
-    OcptResourcesElementBringerChangedEvent event,
-    Emitter<OcptResourcesState> emitter,
-  ) => _writeCatalogueChange(
-    emitter: emitter,
-    logContext: "change who brings element ${event.elementId}",
-    action: (project) => _elementsService.updateElement(
-      database: project.database,
-      elementId: event.elementId,
-      broughtByPersonId: Value(event.personId),
-    ),
-  );
-
-  /// Ticks or unticks one of element `event.elementId`'s three tracking flags, written immediately.
-  Future<void> _onElementTrackingFlagChanged(
-    OcptResourcesElementTrackingFlagChangedEvent event,
-    Emitter<OcptResourcesState> emitter,
-  ) => _writeCatalogueChange(
-    emitter: emitter,
-    logContext: "change the ${event.flag.name} flag of element ${event.elementId}",
-    action: (project) => switch (event.flag) {
-      OcptElementTrackingFlag.secured => _elementsService.updateElement(
-        database: project.database,
-        elementId: event.elementId,
-        isSecured: Value(event.value),
-      ),
-      OcptElementTrackingFlag.readyForShoot => _elementsService.updateElement(
-        database: project.database,
-        elementId: event.elementId,
-        isReadyForShoot: Value(event.value),
-      ),
-      OcptElementTrackingFlag.returned => _elementsService.updateElement(
-        database: project.database,
-        elementId: event.elementId,
-        isReturned: Value(event.value),
-      ),
-    },
-  );
-
-  /// Says element `event.elementId` is needed in scene `event.sceneId`, written immediately.
-  Future<void> _onSceneAssignedToElement(
-    OcptResourcesSceneAssignedToElementEvent event,
-    Emitter<OcptResourcesState> emitter,
-  ) => _writeCatalogueChange(
-    emitter: emitter,
-    logContext: "assign scene ${event.sceneId} to element ${event.elementId}",
-    action: (project) async {
-      await _elementsService.addSceneElement(
-        database: project.database,
-        sceneId: event.sceneId,
-        elementId: event.elementId,
-      );
-    },
-  );
-
-  /// Updates the quantity and the notes of the scene ↔ element link `event.id`, written
-  /// immediately.
-  Future<void> _onSceneElementUpdated(
-    OcptResourcesSceneElementUpdatedEvent event,
-    Emitter<OcptResourcesState> emitter,
-  ) => _writeCatalogueChange(
-    emitter: emitter,
-    logContext: "update the scene ↔ element link ${event.id}",
-    action: (project) => _elementsService.updateSceneElement(
-      database: project.database,
-      id: event.id,
-      quantity: Value(event.quantity),
-      notes: Value(event.notes),
-    ),
-  );
-
-  /// Removes the scene ↔ element link `event.id`, written immediately.
-  Future<void> _onSceneElementRemoved(
-    OcptResourcesSceneElementRemovedEvent event,
-    Emitter<OcptResourcesState> emitter,
-  ) => _writeCatalogueChange(
-    emitter: emitter,
-    logContext: "remove the scene ↔ element link ${event.id}",
-    action: (project) =>
-        _elementsService.removeSceneElement(database: project.database, id: event.id),
-  );
-
-  /// Links role `event.roleId` to element `event.elementId`, written immediately.
-  Future<void> _onElementLinkedToRole(
-    OcptResourcesElementLinkedToRoleEvent event,
-    Emitter<OcptResourcesState> emitter,
-  ) => _writeCatalogueChange(
-    emitter: emitter,
-    logContext: "link element ${event.elementId} to role ${event.roleId}",
-    action: (project) async {
-      await _elementsService.addRoleElement(
-        database: project.database,
-        roleId: event.roleId,
-        elementId: event.elementId,
-      );
-    },
-  );
-
-  /// Updates the notes of the role ↔ element link `event.id`, written immediately.
-  Future<void> _onRoleElementUpdated(
-    OcptResourcesRoleElementUpdatedEvent event,
-    Emitter<OcptResourcesState> emitter,
-  ) => _writeCatalogueChange(
-    emitter: emitter,
-    logContext: "update the role ↔ element link ${event.id}",
-    action: (project) => _elementsService.updateRoleElement(
-      database: project.database,
-      id: event.id,
-      notes: event.notes,
-    ),
-  );
-
-  /// Removes the role ↔ element link `event.id`, written immediately.
-  Future<void> _onRoleElementRemoved(
-    OcptResourcesRoleElementRemovedEvent event,
-    Emitter<OcptResourcesState> emitter,
-  ) => _writeCatalogueChange(
-    emitter: emitter,
-    logContext: "remove the role ↔ element link ${event.id}",
-    action: (project) =>
-        _elementsService.removeRoleElement(database: project.database, id: event.id),
-  );
-
   /// Switches to the roles tab and selects role `event.roleId`, the element sheet's
   /// `Roles concerned` chips being the one way in.
   ///
@@ -1413,7 +761,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     OcptResourcesRoleSheetOpenRequestedEvent event,
     Emitter<OcptResourcesState> emitter,
   ) async {
-    await _flushAllPendingWrites(emitter);
+    await runPendingWritesFlushers();
 
     emitter(
       state.copyWith(
@@ -1475,7 +823,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
   ///
   /// Opening the `Versions` tab is one of the two moments `MixinOcptProjectVersionsBloc`'s
   /// working-copy card needs a fresh read for: the other is a field edit flushing while it is
-  /// already the one showing (see `_flushPendingFieldEdits`).
+  /// already the one showing (see the views' flushes).
   Future<void> _onRightDockTabSelected(
     OcptResourcesRightDockTabSelectedEvent event,
     Emitter<OcptResourcesState> emitter,
@@ -1563,10 +911,8 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
   }
 
   /// Raises the transient write error and tells every view bloc to drop the edits it holds, since
-  /// writing them failed.
-  ///
-  /// The reload epoch moves with the lost edits epoch because it is what makes a view bloc look at
-  /// the mode's state: nothing is read again, and the views prune nothing else on it.
+  /// writing them failed. The reload epoch moves with the lost edits epoch because it is what makes
+  /// a view bloc look at the mode's state: nothing is read again.
   Future<void> _onPendingEditsLost(
     OcptResourcesPendingEditsLostEvent event,
     Emitter<OcptResourcesState> emitter,
@@ -1580,10 +926,8 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     );
   }
 
-  /// Selects the record a view bloc has just created, in the list of `event.tab`.
-  ///
-  /// Neither switches tab nor writes what is pending: the view did so before creating, and has read
-  /// the catalogue again, so the record is in the snapshot the selection names.
+  /// Selects the record a view bloc has just created, in the list of `event.tab`, without switching
+  /// tab nor writing what is pending: the view did so, and has read the catalogue again.
   Future<void> _onRecordCreated(
     OcptResourcesRecordCreatedEvent event,
     Emitter<OcptResourcesState> emitter,
@@ -1601,8 +945,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     );
   }
 
-  /// Clears the selection of `event.tab`'s list when it is the record a view bloc has just
-  /// deleted. A selection that moved elsewhere meanwhile is left alone.
+  /// Clears the selection of `event.tab`'s list when it is the record a view bloc has just deleted.
   Future<void> _onRecordDropped(
     OcptResourcesRecordDroppedEvent event,
     Emitter<OcptResourcesState> emitter,

@@ -230,16 +230,13 @@ void main() {
     await tempDir.delete(recursive: true);
   });
 
-  /// Builds the mode bloc wired to the test project. [fieldEditDebounce] defaults to a duration no
-  /// test waits out, so a typed edit stays pending until an export flushes it.
-  OcptResourcesBloc buildBloc({Duration fieldEditDebounce = const Duration(days: 1)}) =>
-      OcptResourcesBloc(
-        projectsManager: projectsManager,
-        propertiesManager: propertiesManager,
-        routerManager: _RecordingRouterManager(),
-        exportManager: OcptExportManager(fileSelectorManager: const FileSelectorManager()),
-        fieldEditDebounce: fieldEditDebounce,
-      );
+  /// Builds the mode bloc wired to the test project.
+  OcptResourcesBloc buildBloc() => OcptResourcesBloc(
+    projectsManager: projectsManager,
+    propertiesManager: propertiesManager,
+    routerManager: _RecordingRouterManager(),
+    exportManager: OcptExportManager(fileSelectorManager: const FileSelectorManager()),
+  );
 
   /// Builds the export bloc of [modeBloc], exporting through [exportManager] (a cancelled save
   /// dialog by default, so no test ever reaches a native one).

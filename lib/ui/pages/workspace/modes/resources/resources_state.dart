@@ -19,7 +19,6 @@ import 'package:open_cine_prod_tools/models/ocpt_role.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role_candidate.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role_collision_alert.dart';
 import 'package:open_cine_prod_tools/models/ocpt_scene_ref.dart';
-import 'package:open_cine_prod_tools/types/ocpt_element_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_version_notice_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_resources_right_dock_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_resources_selection_cause.dart';
@@ -29,16 +28,15 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project_versions_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock.dart';
 
-/// The state of `OcptResourcesBloc`.
+/// The state of `OcptResourcesBloc`, the mode bloc: the catalogue, the selection, the chrome and
+/// the project versions and package mixins.
 ///
-/// Unlike the screenplay editor's own state, this one carries no single dirty/saving pair: a
-/// person's discrete fields (colour, birth date, transport autonomy, image rights status/date)
-/// and every sub-list (positions, skills, unavailabilities) write straight to the project database
-/// the moment they change, and so do a role's cast member and kind, a location's colour, permit
-/// status and date, a candidacy's status and audition date, and every scene ↔ set link. The six
-/// `pending…FieldEdits` maps are the exception — the typed free-text fields of the person, role,
-/// location, set, element and candidates card sheets all go through the same 2 s autosave
-/// debounce, mirroring `OcptShotListState.pendingFieldEdits`.
+/// It carries no pending edit. A person's, role's, location's, set's, element's and candidacy's
+/// typed free-text fields go through a 2 s autosave debounce, and each lives in its view bloc's own
+/// state (`OcptResourcesPeopleState`, `OcptResourcesRolesState`, `OcptResourcesLocationsState` and
+/// `OcptResourcesElementsState`), which also write every discrete change — a colour, a status, a
+/// date, a sub-list — straight to the project database and then ask the mode to read the catalogue
+/// again.
 class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
     with
         MixinOcptProjectVersionsState<OcptResourcesState>,
@@ -144,13 +142,6 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
   /// `sceneId`/`setId`'s own first linked sequence belongs to, since a project holding several
   /// episodes must land the shot list mode on the right one.
   final ({String episodeId, String sceneId, String setId})? pendingShotListReveal;
-
-  /// Every element field edit currently sitting in the field-edit autosave debounce, keyed by the
-  /// element id and the field, holding the raw text last typed for it.
-  ///
-  /// Rides the same debounce timer as the other typed fields the mode still holds (see
-  /// `OcptResourcesBloc`'s own doc comment).
-  final Map<(String, OcptElementField), String> pendingElementFieldEdits;
 
   /// {@macro open_cine_prod_tools.MixinOcptModeState.reloadEpoch}
   @override
@@ -377,7 +368,6 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
     required this.rightDockFraction,
     required this.hasWriteError,
     required this.pendingShotListReveal,
-    required this.pendingElementFieldEdits,
     required this.reloadEpoch,
     required this.selectionEpoch,
     required this.selectionCause,
@@ -415,7 +405,6 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
       rightDockFraction = OcptWorkspaceDock.rightDefaultFraction,
       hasWriteError = false,
       pendingShotListReveal = null,
-      pendingElementFieldEdits = const {},
       reloadEpoch = 0,
       selectionEpoch = 0,
       selectionCause = OcptResourcesSelectionCause.none,
@@ -470,7 +459,6 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
     bool? hasWriteError,
     ({String episodeId, String sceneId, String setId})? pendingShotListReveal,
     bool forcePendingShotListRevealValue = false,
-    Map<(String, OcptElementField), String>? pendingElementFieldEdits,
     int? reloadEpoch,
     int? selectionEpoch,
     OcptResourcesSelectionCause? selectionCause,
@@ -518,7 +506,6 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
     pendingShotListReveal:
         pendingShotListReveal ??
         (forcePendingShotListRevealValue ? null : this.pendingShotListReveal),
-    pendingElementFieldEdits: pendingElementFieldEdits ?? this.pendingElementFieldEdits,
     reloadEpoch:
         reloadEpoch ??
         (snapshot != null ||
@@ -623,7 +610,6 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
     rightDockFraction,
     hasWriteError,
     pendingShotListReveal,
-    pendingElementFieldEdits,
     reloadEpoch,
     selectionEpoch,
     selectionCause,
