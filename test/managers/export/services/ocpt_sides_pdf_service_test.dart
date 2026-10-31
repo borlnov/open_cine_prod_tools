@@ -24,6 +24,7 @@ import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_day_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_slot_anchor_edge.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_status.dart';
+import 'package:open_cine_prod_tools/types/ocpt_sides_presentation.dart';
 
 /// Episode A's own screenplay: a two-scene document short enough to fit each scene on a single
 /// composed page — the same shape `ocpt_scenario_coverage_pdf_service_test.dart` parses, since

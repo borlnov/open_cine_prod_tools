@@ -2,10 +2,11 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-import 'package:equatable/equatable.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_entry.dart';
 import 'package:open_cine_prod_tools/models/ocpt_money.dart';
-import 'package:open_cine_prod_tools/models/rules/ocpt_budget_totals.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_budget_cash_totals.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_budget_covered_total.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_budget_journal_row.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_budget_vat.dart';
 
 /// Whether [entry] is a debit that names a poste but no commitment — an off-line spend against a
@@ -63,49 +64,6 @@ int? ocptBudgetEntryCreditCentsOf(
   projectVatRateBasisPoints: projectVatRateBasisPoints,
 );
 
-/// The cash journal's own totals: [debitCents] and [creditCents] summed **row by row, then summed**
-/// (`docs/architecture/budget.md`'s own law), each already read tax-inclusive, paired with how many
-/// of [entryCount] entries actually contributed to them.
-class OcptBudgetCashTotals extends Equatable {
-  /// The sum of every covered entry's own tax-inclusive [OcptBudgetEntry.debitCents].
-  final int debitCents;
-
-  /// The sum of every covered entry's own tax-inclusive [OcptBudgetEntry.creditCents].
-  final int creditCents;
-
-  /// How many of [entryCount] entries actually carried a known rate and were summed into
-  /// [debitCents] and [creditCents].
-  final int coveredEntryCount;
-
-  /// How many entries this total was asked to sum, covered or not.
-  final int entryCount;
-
-  /// The journal's own balance: [creditCents] minus [debitCents], negative once the journal is, on
-  /// balance, a cost.
-  int get balanceCents => creditCents - debitCents;
-
-  /// Whether every entry carried a known rate — [coveredEntryCount] equals [entryCount].
-  bool get isComplete => coveredEntryCount == entryCount;
-
-  /// Class constructor
-  const OcptBudgetCashTotals({
-    required this.debitCents,
-    required this.creditCents,
-    required this.coveredEntryCount,
-    required this.entryCount,
-  });
-
-  /// Object string representation, useful for debugging and logging.
-  @override
-  String toString() =>
-      "OcptBudgetCashTotals(debitCents: $debitCents, creditCents: $creditCents, "
-      "coveredEntryCount: $coveredEntryCount, entryCount: $entryCount)";
-
-  /// Object properties
-  @override
-  List<Object?> get props => [debitCents, creditCents, coveredEntryCount, entryCount];
-}
-
 /// [entries]' own debit, credit and balance, given the project's own [projectVatRateBasisPoints].
 ///
 /// **Row by row, then summed** — [ocptBudgetEntryDebitCentsOf] and [ocptBudgetEntryCreditCentsOf]
@@ -148,42 +106,6 @@ OcptBudgetCashTotals ocptBudgetCashTotalsOf(
     coveredEntryCount: coveredEntryCount,
     entryCount: entries.length,
   );
-}
-
-/// One row of the cash journal view: [entry] itself, its debit and credit read tax-inclusive, and
-/// the running balance once it has fallen — each null together when [entry] cannot be read.
-class OcptBudgetJournalRow extends Equatable {
-  /// The entry this row prints.
-  final OcptBudgetEntry entry;
-
-  /// [entry]'s own [OcptBudgetEntry.debitCents], read tax-inclusive, or null when unreadable.
-  final int? debitCents;
-
-  /// [entry]'s own [OcptBudgetEntry.creditCents], read tax-inclusive, or null when unreadable.
-  final int? creditCents;
-
-  /// The running balance once [entry] has been taken into account, or null when [entry] is
-  /// unreadable — see [ocptBudgetJournalRowsOf]'s own doc comment for why a hole in this one
-  /// column, rather than a guess, is what an unreadable movement earns.
-  final int? balanceAfterCents;
-
-  /// Class constructor
-  const OcptBudgetJournalRow({
-    required this.entry,
-    required this.debitCents,
-    required this.creditCents,
-    required this.balanceAfterCents,
-  });
-
-  /// Object string representation, useful for debugging and logging.
-  @override
-  String toString() =>
-      "OcptBudgetJournalRow(entry: ${entry.id}, debitCents: $debitCents, "
-      "creditCents: $creditCents, balanceAfterCents: $balanceAfterCents)";
-
-  /// Object properties
-  @override
-  List<Object?> get props => [entry, debitCents, creditCents, balanceAfterCents];
 }
 
 /// [entries], each paired with its own debit, credit and the running balance once it has fallen,

@@ -3,6 +3,9 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_convocation_audition.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_convocation_candidacy.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_convocation_slot.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_shooting_convocations.dart';
 
 void main() {

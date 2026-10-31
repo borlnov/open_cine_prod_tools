@@ -4,6 +4,7 @@
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_gesture.dart';
+import 'package:open_cine_prod_tools/types/ocpt_budget_gesture_flow.dart';
 
 void main() {
   group("ocptBudgetGestureFlowsOf classifies gestures by the direction money moves", () {

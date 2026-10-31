@@ -4,10 +4,11 @@
 
 import 'dart:math' as math;
 
-import 'package:equatable/equatable.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_line.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_poste.dart';
 import 'package:open_cine_prod_tools/models/ocpt_money.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_budget_covered_total.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_budget_poste_strain.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_budget_vat.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_tax_basis.dart';
 
@@ -125,57 +126,6 @@ OcptBudgetLine? ocptBudgetInKindCounterpartLineOf(List<OcptBudgetPoste> postes, 
   return null;
 }
 
-/// A total, paired with how many of the rows it was asked to sum actually carried a known rate —
-/// `lib/models/rules/ocpt_budget_vat.dart`'s "null, never zero" rule applied to a whole table: a
-/// row whose rate nobody has recorded contributes to neither [amountCents] nor [coveredLineCount],
-/// so the coverage the UI reports (`10,349 € · over 2 of the 5 postes`) is a plain fact about the
-/// data, not a string this class formats.
-///
-/// **A "line" here is any row a total was asked to sum** — a quote line
-/// (`ocptBudgetExcludingTaxTotalOf`/`ocptBudgetTotalOf`), a journal entry
-/// (`lib/models/rules/ocpt_budget_journal.dart`), a commitment
-/// (`lib/models/rules/ocpt_budget_projection.dart`) or a catering-and-travel figure
-/// (`lib/models/rules/ocpt_budget_regie.dart`) — a day's own meals and buffet, or a traveller's own
-/// mileage reimbursement: this class is shared across every one of them rather than reimplemented
-/// per table, since the coverage arithmetic and the honesty it argues for are exactly the same
-/// regardless of what is being priced.
-///
-/// **No `Tr` and no formatted string here** — `lib/models/rules/` is pure; the mode's own view
-/// resolves the words.
-class OcptBudgetCoveredTotal extends Equatable {
-  /// The sum of every covered line's own total, in cents.
-  final int amountCents;
-
-  /// How many of [lineCount] lines — a quote line, a journal entry or a commitment — actually
-  /// carried a known rate and were summed into [amountCents].
-  final int coveredLineCount;
-
-  /// How many lines — quote lines, journal entries or commitments, whichever this total sums —
-  /// were asked for, covered or not.
-  final int lineCount;
-
-  /// Whether every line carried a known rate — [coveredLineCount] equals [lineCount]. Once true,
-  /// the UI stops saying how many lines the figure covers: it has become the complete answer.
-  bool get isComplete => coveredLineCount == lineCount;
-
-  /// Class constructor
-  const OcptBudgetCoveredTotal({
-    required this.amountCents,
-    required this.coveredLineCount,
-    required this.lineCount,
-  });
-
-  /// Object string representation, useful for debugging and logging.
-  @override
-  String toString() =>
-      "OcptBudgetCoveredTotal(amountCents: $amountCents, coveredLineCount: $coveredLineCount, "
-      "lineCount: $lineCount)";
-
-  /// Object properties
-  @override
-  List<Object?> get props => [amountCents, coveredLineCount, lineCount];
-}
-
 /// [totals]' own combined figure — the sum of every [OcptBudgetCoveredTotal.amountCents], paired
 /// with how many of the underlying rows actually carried a known rate: a plain reduction over
 /// already-computed pure structures, not a rule of its own.
@@ -235,20 +185,6 @@ OcptBudgetCoveredTotal ocptBudgetExcludingTaxTotalOf(
     coveredLineCount: coveredLineCount,
     lineCount: lines.length,
   );
-}
-
-/// How stretched a poste is against its own quote — the colour the cost-tracking view paints it in
-/// is the widget's own business, not this pure util's: it switches over this enum rather than
-/// re-deriving the comparison.
-enum OcptBudgetPosteStrain {
-  /// Paid plus committed is at or below [_ocptBudgetNearStrainRatio] of the quote.
-  within,
-
-  /// Paid plus committed is above [_ocptBudgetNearStrainRatio] of the quote, but not over it yet.
-  near,
-
-  /// Paid plus committed exceeds the quote.
-  over,
 }
 
 /// What is left of a poste quoted at [quotedAmountCents], having paid [paidCents], committed

@@ -14,6 +14,9 @@ import 'package:open_cine_prod_tools/models/ocpt_role.dart';
 import 'package:open_cine_prod_tools/models/ocpt_schedule_plan_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_day_out_of_days.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_day_out_of_days_day.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_day_out_of_days_table.dart';
+import 'package:open_cine_prod_tools/types/ocpt_day_out_of_days_code.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 

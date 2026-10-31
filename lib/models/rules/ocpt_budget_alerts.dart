@@ -6,8 +6,10 @@ import 'package:equatable/equatable.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_commitment.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_entry.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_poste.dart';
-import 'package:open_cine_prod_tools/models/rules/ocpt_budget_journal.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_budget_cash_totals.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_budget_poste_strain.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_budget_projection.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_budget_projection_step.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_budget_totals.dart';
 
 /// One thing [ocptComputeBudgetAlerts] found worth a look, mirroring

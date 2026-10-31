@@ -8,7 +8,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
-import 'package:open_cine_prod_tools/models/ocpt_project_package_manifest.dart';
+import 'package:open_cine_prod_tools/models/ocpt_skipped_asset.dart';
 import 'package:open_cine_prod_tools/ui/pages/home/widgets/ocpt_project_package_skipped_files_dialog.dart';
 
 /// The navigator [_buildHost] wires its `MaterialApp` to, so [_RecordingRouterManager.pop] has a

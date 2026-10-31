@@ -4,8 +4,8 @@
 
 import 'package:open_cine_prod_tools/models/ocpt_budget_commitment.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_entry.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_budget_covered_total.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_budget_projection.dart';
-import 'package:open_cine_prod_tools/models/rules/ocpt_budget_totals.dart';
 
 /// A quote line's own `Engagé` figure, the expenses tree's own sub-row reading — kept apart from
 /// `ocpt_budget_totals.dart` because it reads a **line's own commitments**, a grouping

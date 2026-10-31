@@ -2,31 +2,9 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+import 'package:open_cine_prod_tools/models/rules/ocpt_scene_place.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_scene_time_of_day.dart';
 import 'package:open_cine_prod_tools/types/ocpt_scene_effect_category.dart';
-
-/// A scene heading's own interior/exterior half, as `ocptSceneEffectOf` reads it. Null (rather than
-/// a third value) when the heading's own prefix names neither unambiguously — an `INT/EXT` (or
-/// `I/E`) heading, or one starting with neither word at all — since guessing which of the two a
-/// scene mixing both actually is would be inventing a fact the heading itself refuses to commit to.
-enum OcptScenePlace {
-  /// The heading's own prefix reads as interior alone (`INT`).
-  interior,
-
-  /// The heading's own prefix reads as exterior alone (`EXT`, or the `EST` variant some scripts
-  /// use).
-  exterior,
-}
-
-/// A scene heading's own time-of-day half, as `ocptSceneEffectOf` reads it. Null when the words
-/// found are not one of the small set this app recognises — see `ocptSceneEffectOf`'s own doc
-/// comment for why that set stays deliberately small.
-enum OcptSceneTimeOfDay {
-  /// The heading's own suffix reads as one of the day words `ocptSceneEffectOf` recognises.
-  day,
-
-  /// The heading's own suffix reads as one of the night words `ocptSceneEffectOf` recognises.
-  night,
-}
 
 /// What `ocptSceneEffectOf` read out of one scene heading: [printedEffect] is the heading's own
 /// words, verbatim, exactly what `OcptCallSheetPdfService`'s own `EFFET` column has always printed

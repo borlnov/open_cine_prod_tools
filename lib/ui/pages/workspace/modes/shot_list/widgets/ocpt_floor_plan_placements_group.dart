@@ -4,8 +4,10 @@
 
 import 'package:flutter/material.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
-import 'package:open_cine_prod_tools/models/ocpt_floor_plan_sheet.dart';
+import 'package:open_cine_prod_tools/models/ocpt_floor_plan_arrow_shape.dart';
+import 'package:open_cine_prod_tools/models/ocpt_floor_plan_symbol_shape.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_floor_plan_geometry.dart';
+import 'package:open_cine_prod_tools/types/ocpt_floor_plan_override_level.dart';
 
 /// The step, in degrees, one click of the cameras section's own `−`/`+` field-of-view stepper
 /// changes a camera's angle by.

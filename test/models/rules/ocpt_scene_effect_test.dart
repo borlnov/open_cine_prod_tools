@@ -4,6 +4,8 @@
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_scene_effect.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_scene_place.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_scene_time_of_day.dart';
 import 'package:open_cine_prod_tools/types/ocpt_scene_effect_category.dart';
 
 void main() {

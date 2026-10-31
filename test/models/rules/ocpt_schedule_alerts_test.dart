@@ -3,8 +3,18 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_schedule_alert_called_role.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_schedule_alert_day.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_schedule_alert_location_window.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_schedule_alert_person.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_schedule_alert_role.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_schedule_alert_severity.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_schedule_alert_slot.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_schedule_alert_unavailability.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_schedule_alerts.dart';
-import 'package:open_cine_prod_tools/models/rules/ocpt_shooting_day_timeline.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_schedule_permit_window.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_timeline_fixed_end_miss.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_timeline_overrun.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_weekday_mask.dart';
 import 'package:open_cine_prod_tools/types/ocpt_day_part_slot.dart';
 

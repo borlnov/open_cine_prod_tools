@@ -4,84 +4,9 @@
 
 import 'package:equatable/equatable.dart';
 import 'package:fountain_kit/fountain_kit.dart';
+import 'package:open_cine_prod_tools/models/ocpt_script_word.dart';
+import 'package:open_cine_prod_tools/models/ocpt_script_word_block.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_coverage_range.dart';
-
-/// A single clickable word of a [OcptScriptWordBlock], as a scene's text is laid out for the
-/// word-level click gesture the app uses to designate a passage.
-///
-/// [startOffset] and [endOffset] are, like every offset in this file, scene-relative (relative to
-/// the owning [OcptScriptWordLayout.sceneText], itself already sliced out of the screenplay's
-/// whole text): [endOffset] is exclusive, so `sceneText.substring(startOffset, endOffset)` always
-/// yields back [text].
-class OcptScriptWord extends Equatable {
-  /// This word's exact source text, punctuation included (a word is a whitespace-delimited run of
-  /// non-whitespace characters, so trailing punctuation stays attached to it).
-  final String text;
-
-  /// The scene-relative character offset, in the owning [OcptScriptWordLayout.sceneText], at
-  /// which this word starts.
-  final int startOffset;
-
-  /// The scene-relative character offset, in the owning [OcptScriptWordLayout.sceneText], one
-  /// past this word's last character.
-  final int endOffset;
-
-  /// Class constructor
-  const OcptScriptWord({required this.text, required this.startOffset, required this.endOffset});
-
-  /// Object string representation, useful for debugging and logging.
-  @override
-  String toString() =>
-      "OcptScriptWord(text: $text, startOffset: $startOffset, endOffset: $endOffset)";
-
-  /// Object properties
-  @override
-  List<Object?> get props => [text, startOffset, endOffset];
-}
-
-/// One non-blank source line of a scene, laid out into its clickable [words].
-///
-/// A block never spans more than one Fountain source line, but a designated *range* may well span
-/// several blocks: the click interaction closes a range wherever the second click lands, so a
-/// block is a unit of rendering and labelling, never a boundary the model enforces.
-class OcptScriptWordBlock extends Equatable {
-  /// This block's line's [FountainLineType], as classified by [OcptScriptWordLayout.of], shown
-  /// as the block's label in the inspector.
-  final FountainLineType type;
-
-  /// This block's exact source line text.
-  final String text;
-
-  /// The scene-relative character offset, in the owning [OcptScriptWordLayout.sceneText], at
-  /// which this block's line starts.
-  final int startOffset;
-
-  /// The scene-relative character offset, in the owning [OcptScriptWordLayout.sceneText], one
-  /// past this block's line's last character (i.e. excluding the newline that follows it).
-  final int endOffset;
-
-  /// This block's words, in source order.
-  final List<OcptScriptWord> words;
-
-  /// Class constructor
-  const OcptScriptWordBlock({
-    required this.type,
-    required this.text,
-    required this.startOffset,
-    required this.endOffset,
-    required this.words,
-  });
-
-  /// Object string representation, useful for debugging and logging.
-  @override
-  String toString() =>
-      "OcptScriptWordBlock(type: $type, startOffset: $startOffset, endOffset: $endOffset, "
-      "wordCount: ${words.length})";
-
-  /// Object properties
-  @override
-  List<Object?> get props => [type, text, startOffset, endOffset, words];
-}
 
 /// A scene's text, laid out into the blocks and words every screen that lets the user click a
 /// passage of the script renders and reasons with — the scenario coverage editor first, and the

@@ -4,6 +4,8 @@
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_day_out_of_days.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_day_out_of_days_day.dart';
+import 'package:open_cine_prod_tools/types/ocpt_day_out_of_days_code.dart';
 
 /// Builds the day `day-<number>`, convoking [roleIds].
 OcptDayOutOfDaysDay _day(int number, Set<String> roleIds) =>

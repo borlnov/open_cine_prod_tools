@@ -5,6 +5,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/models/ocpt_script_sides_layout.dart';
+import 'package:open_cine_prod_tools/types/ocpt_sides_presentation.dart';
 
 /// A neutral element layout box: only [FountainLayoutMetrics.linesPerPage] matters to this layout,
 /// so every element box below is the same harmless placeholder.

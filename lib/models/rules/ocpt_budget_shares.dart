@@ -2,13 +2,15 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-import 'package:equatable/equatable.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_entry.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_resource.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_revenue.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_share.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_budget_covered_total.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_budget_journal.dart';
-import 'package:open_cine_prod_tools/models/rules/ocpt_budget_totals.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_budget_repayment_line.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_budget_share_split.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_budget_sharing_pot.dart';
 
 /// The revenue sharing's own readings: what the takings have actually brought in, what the
 /// reimbursable contributions take back out of that before anything is split, and what each
@@ -237,69 +239,6 @@ OcptBudgetCoveredTotal ocptBudgetRepaidContributionsTotalOf(
   return _ocptBudgetDebitTotalOf(repayments, projectVatRateBasisPoints: projectVatRateBasisPoints);
 }
 
-/// What there is to share, and what stands between the takings and it.
-///
-/// The order this states things in **is** the rule the view exists to make legible: the takings
-/// come in, the reimbursable contributions are taken off the top in full, and only what is left is
-/// anybody's to split.
-class OcptBudgetSharingPot extends Equatable {
-  /// What the takings have actually brought in — [ocptBudgetRevenuesReceivedTotalOf]'s own figure,
-  /// carried whole so the view can say how much of it the app could read.
-  final OcptBudgetCoveredTotal received;
-
-  /// What the reimbursable contributions come to in total, in cents —
-  /// [ocptBudgetReimbursableTotalCents].
-  final int reimbursableCents;
-
-  /// What has already been paid back against them —
-  /// [ocptBudgetRepaidContributionsTotalOf]'s own figure.
-  final OcptBudgetCoveredTotal repaid;
-
-  /// What is still owed to the contributors: [reimbursableCents] less what [repaid] says has gone
-  /// back, floored at zero — a production that has paid back more than it owed has finished
-  /// repaying, not started being owed.
-  int get outstandingRepaymentCents {
-    final outstanding = reimbursableCents - repaid.amountCents;
-    return outstanding < 0 ? 0 : outstanding;
-  }
-
-  /// What is left to share, in cents: the takings less the **whole** of [reimbursableCents],
-  /// floored at zero.
-  ///
-  /// **The whole of it, not merely what is still outstanding.** Whether a contribution has been
-  /// physically repaid yet is a question about the production's cash, not about what belongs to the
-  /// participants: a film that has earned 4,000 € against 3,500 € of reimbursable contributions has
-  /// 500 € to share, and it has 500 € to share whether the 3,500 € went back last week or has not
-  /// gone back at all. Reading the outstanding figure here instead would let a production enlarge
-  /// the pot simply by delaying a repayment.
-  int get shareableCents {
-    final shareable = received.amountCents - reimbursableCents;
-    return shareable < 0 ? 0 : shareable;
-  }
-
-  /// Whether there is anything at all to share yet. False while the takings have not yet cleared
-  /// the contributions, which is the ordinary state of a film for a long time — and the state in
-  /// which every participant's own due is honestly zero rather than unknown.
-  bool get hasSomethingToShare => shareableCents > 0;
-
-  /// Class constructor
-  const OcptBudgetSharingPot({
-    required this.received,
-    required this.reimbursableCents,
-    required this.repaid,
-  });
-
-  /// Object string representation, useful for debugging and logging.
-  @override
-  String toString() =>
-      "OcptBudgetSharingPot(received: $received, reimbursableCents: $reimbursableCents, "
-      "repaid: $repaid)";
-
-  /// Object properties
-  @override
-  List<Object?> get props => [received, reimbursableCents, repaid];
-}
-
 /// Builds the pot from its three readings — see [OcptBudgetSharingPot]'s own doc comment.
 OcptBudgetSharingPot ocptBudgetSharingPotOf({
   required OcptBudgetCoveredTotal received,
@@ -307,49 +246,6 @@ OcptBudgetSharingPot ocptBudgetSharingPotOf({
   required OcptBudgetCoveredTotal repaid,
 }) =>
     OcptBudgetSharingPot(received: received, reimbursableCents: reimbursableCents, repaid: repaid);
-
-/// One participant's line in the split: what they are due out of the pot, what they have actually
-/// been paid, and what of their due they reinvest.
-///
-/// Named `…Split` rather than `…Row` because `OcptBudgetShareRow` is already drift's own data class
-/// for `budget_shares`, and a computed reading and a stored row must not wear one name.
-class OcptBudgetShareSplit extends Equatable {
-  /// The share this line reads.
-  final OcptBudgetShare share;
-
-  /// What this participant is due out of the pot, in cents —
-  /// `shareableCents × sharePermille ÷ 1000`, rounded to the nearest cent.
-  final int dueCents;
-
-  /// What has actually been paid to them — [ocptBudgetPaidByShareId]'s own figure for this share,
-  /// or a zero-amount total covering nothing when no entry names them.
-  final OcptBudgetCoveredTotal paid;
-
-  /// What of [dueCents] this participant reinvests in the next production, in cents —
-  /// `dueCents × reinvestPermille ÷ 1000`, rounded to the nearest cent.
-  final int reinvestedCents;
-
-  /// [dueCents] less [reinvestedCents]: what is theirs to actually take.
-  int get takeHomeCents => dueCents - reinvestedCents;
-
-  /// Class constructor
-  const OcptBudgetShareSplit({
-    required this.share,
-    required this.dueCents,
-    required this.paid,
-    required this.reinvestedCents,
-  });
-
-  /// Object string representation, useful for debugging and logging.
-  @override
-  String toString() =>
-      "OcptBudgetShareSplit(share: ${share.id}, dueCents: $dueCents, paid: $paid, "
-      "reinvestedCents: $reinvestedCents)";
-
-  /// Object properties
-  @override
-  List<Object?> get props => [share, dueCents, paid, reinvestedCents];
-}
 
 /// The split of [pot] across [shares], in the order they are handed in — never reordered, the
 /// sharing view's own `sortKey` order being the order the participants agreed to read them in.
@@ -424,81 +320,6 @@ int ocptBudgetReinvestedTotalCents(List<OcptBudgetShareSplit> splits) =>
 /// way a reader can see that the plan does not add up.
 int ocptBudgetDueTotalCents(List<OcptBudgetShareSplit> splits) =>
     splits.fold(0, (sum, split) => sum + split.dueCents);
-
-/// One lender's own line in the `Repaying the contributions` card: what they have contributed in
-/// total across every reimbursable resource grouped under them, what has already gone back and
-/// what is still owed — [ocptBudgetRepaymentLinesOf]'s own reading.
-///
-/// A synthetic grouping, never a stored row: several `budget_resources` rows may collapse into one
-/// line here, which is the whole point (the product owner's own words motivate this: three loans of
-/// 100 € from the same person are one debt of 300 €, not three separate figures a reader has to add
-/// up by hand).
-class OcptBudgetRepaymentLine extends Equatable {
-  /// The person this line groups by, or null when it groups by [label] instead — see
-  /// [ocptBudgetRepaymentLinesOf]'s own doc comment for the grouping rule.
-  final String? personId;
-
-  /// The label this line prints when [personId] is null — every resource grouped into this line
-  /// then shares this exact label, which is the grouping key itself. When [personId] is not null
-  /// this is simply the **first** grouped resource's own label, carried through as a fallback the
-  /// view may print if it cannot resolve [personId] into a person any more.
-  final String label;
-
-  /// What this contributor has put in **in total**, in cents — the plain sum of every resource
-  /// grouped under this line, reimbursable or not, in cash or in kind.
-  ///
-  /// **Not the same figure as [reimbursableCents], and deliberately.** This card used to read only
-  /// the reimbursable ones, which meant a production that had marked nothing reimbursable — the
-  /// ordinary state of a project the day it is created — saw an empty card and no way to tell that
-  /// anybody had contributed anything. What a person put in is worth stating whether or not it
-  /// comes back: it is how a production knows who it owes its film to, which is a different debt
-  /// from the one it owes their bank account.
-  final int contributedCents;
-
-  /// How much of [contributedCents] has to come back out of the takings before anything is shared
-  /// — the sum of the **reimbursable** resources alone, read exactly as
-  /// [ocptBudgetReimbursableTotalCents] reads it for the whole plan.
-  ///
-  /// Zero for a contributor whose whole contribution is a gift or an unrecouped valuation, which
-  /// is a perfectly ordinary line rather than a missing one.
-  final int reimbursableCents;
-
-  /// What has already gone back to this lender — the tax-inclusive sum of every `budget_entries`
-  /// debit naming one of this line's own resources through `budget_entries.resourceId`, read
-  /// exactly as [ocptBudgetRepaidContributionsTotalOf] reads it for the whole plan.
-  final OcptBudgetCoveredTotal repaid;
-
-  /// What is still owed to this contributor: [reimbursableCents] less [repaid]'s own amount,
-  /// floored at zero — [OcptBudgetSharingPot.outstandingRepaymentCents]'s own reading, read per
-  /// contributor rather than for the whole plan.
-  ///
-  /// **Reads [reimbursableCents], never [contributedCents]**: nothing is owed against a gift, so a
-  /// contributor who gave without expecting it back is owed zero however much they gave.
-  int get outstandingCents {
-    final outstanding = reimbursableCents - repaid.amountCents;
-    return outstanding < 0 ? 0 : outstanding;
-  }
-
-  /// Class constructor
-  const OcptBudgetRepaymentLine({
-    required this.personId,
-    required this.label,
-    required this.contributedCents,
-    required this.reimbursableCents,
-    required this.repaid,
-  });
-
-  /// Object string representation, useful for debugging and logging.
-  @override
-  String toString() =>
-      "OcptBudgetRepaymentLine(personId: $personId, label: $label, "
-      "contributedCents: $contributedCents, reimbursableCents: $reimbursableCents, "
-      "repaid: $repaid)";
-
-  /// Object properties
-  @override
-  List<Object?> get props => [personId, label, contributedCents, reimbursableCents, repaid];
-}
 
 /// Groups [resources] by contributor, for the sharing view's own `What each person put in` card:
 /// the product owner could not tell, from the plan's own three aggregate figures, that one person

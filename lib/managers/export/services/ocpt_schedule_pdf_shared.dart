@@ -9,9 +9,9 @@ import 'package:open_cine_prod_tools/models/ocpt_schedule_plan_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day_block.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot_guest.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_day_convocation.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_day_minute.dart';
-import 'package:open_cine_prod_tools/models/rules/ocpt_shooting_convocations.dart';
-import 'package:open_cine_prod_tools/models/rules/ocpt_shooting_day_timeline.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_shooting_timeline_entry.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
 
 /// What every PDF built off a shooting schedule prints in place of a value the project has not

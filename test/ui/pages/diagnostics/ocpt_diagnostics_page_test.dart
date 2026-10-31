@@ -13,7 +13,7 @@ import 'package:open_cine_prod_tools/managers/logging/ocpt_file_logging_manager.
 import 'package:open_cine_prod_tools/managers/ocpt_diagnostics_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
-import 'package:open_cine_prod_tools/models/ocpt_diagnostics_entry.dart';
+import 'package:open_cine_prod_tools/types/ocpt_diagnostics_category.dart';
 import 'package:open_cine_prod_tools/ui/pages/diagnostics/ocpt_diagnostics_page.dart';
 
 /// A router manager whose [pop] only records the call — this page test pumps

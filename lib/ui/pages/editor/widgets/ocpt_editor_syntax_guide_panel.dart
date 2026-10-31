@@ -5,6 +5,7 @@
 import 'package:flutter/material.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_fountain_syntax_entry.dart';
+import 'package:open_cine_prod_tools/types/ocpt_fountain_syntax_section.dart';
 import 'package:open_cine_prod_tools/types/ocpt_fountain_syntax_topic.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_preview_layout.dart';
 

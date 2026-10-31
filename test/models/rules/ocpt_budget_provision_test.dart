@@ -7,6 +7,8 @@ import 'package:open_cine_prod_tools/models/ocpt_budget_allowance.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_line.dart';
 import 'package:open_cine_prod_tools/models/ocpt_money.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_budget_provision.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_budget_provision_item.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_budget_provision_outcome.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_allowance_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_provision_kind.dart';
 

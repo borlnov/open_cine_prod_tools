@@ -9,94 +9,13 @@ import 'package:open_cine_prod_tools/models/ocpt_role.dart';
 import 'package:open_cine_prod_tools/models/ocpt_schedule_plan_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day_block.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shooting_plan_grid_column.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shooting_plan_grid_row.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_shot_code.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
-
-/// One column of the locations, sequences and crew-and-cast summary grids: a slot, and the day it
-/// belongs to — [dayId]/[dayNumber] let a caller print or write a day tag once above the first
-/// column of its own group, [OcptShootingPlanGrids.slotColumns] itself carrying no grouping of its
-/// own (a caller compares one column's [dayId] against the one before it, exactly as
-/// `OcptShootingPlanPdfService._gridPage` already does).
-class OcptShootingPlanGridColumn extends Equatable {
-  /// Class constructor
-  const OcptShootingPlanGridColumn({
-    required this.dayId,
-    required this.dayNumber,
-    required this.slotId,
-    required this.slotLabel,
-  });
-
-  /// The id of the day [slotId] belongs to.
-  final String dayId;
-
-  /// That day's own printed rank (`OcptShootingDay.dayNumber`).
-  final int dayNumber;
-
-  /// The slot this column is about.
-  final String slotId;
-
-  /// The slot's own free-text label, verbatim — never substituted with a placeholder here, which is
-  /// a drawing-time decision each caller makes for itself.
-  final String slotLabel;
-
-  /// Object string representation, useful for debugging and logging.
-  @override
-  String toString() => "OcptShootingPlanGridColumn(dayId: $dayId, slotId: $slotId)";
-
-  /// Object properties
-  @override
-  List<Object?> get props => [dayId, dayNumber, slotId, slotLabel];
-}
-
-/// One row of the locations, sequences or crew-and-cast summary grid: its own leading label and its
-/// already-resolved cells, one per [OcptShootingPlanGrids.slotColumns] entry, in the same order.
-///
-/// A cell is the empty string when the row's own subject does not apply to that column at all (a
-/// location's row against a slot shot somewhere else, a role's row against a slot that doesn't
-/// convoke it) — never a placeholder standing in for a missing value, the distinction
-/// `OcptShootingPlanPdfService._gridDataCell`'s own doc comment already draws between a blank grid
-/// cell and a blank shot-table one. A caller substitutes its own "nothing here" mark for a
-/// genuinely missing value elsewhere; this model never does.
-class OcptShootingPlanGridRow extends Equatable {
-  /// Class constructor
-  const OcptShootingPlanGridRow({
-    required this.label,
-    required this.cells,
-    this.isBold = false,
-    this.isMuted = false,
-    this.isIndented = false,
-  });
-
-  /// This row's own leading label (a location's name, a sequence's own tag, a crew position's or a
-  /// role's own label).
-  final String label;
-
-  /// This row's own resolved value at every one of [OcptShootingPlanGrids.slotColumns], in order.
-  final List<String> cells;
-
-  /// Whether [label] is meant to be printed bold — a location's or a sequence's own name, a crew
-  /// position.
-  final bool isBold;
-
-  /// Whether this row's own cells are meant to be printed muted — the locations grid's own nested
-  /// `Perso.` row.
-  final bool isMuted;
-
-  /// Whether [label] is meant to be printed indented — the locations grid's own nested `Perso.`
-  /// row.
-  final bool isIndented;
-
-  /// Object string representation, useful for debugging and logging.
-  @override
-  String toString() => "OcptShootingPlanGridRow(label: $label, cells: ${cells.length})";
-
-  /// Object properties
-  @override
-  List<Object?> get props => [label, cells, isBold, isMuted, isIndented];
-}
 
 /// One row of the elements summary grid — either an [OcptElementCategory] band or one element's own
 /// data row. A sealed alternative to reusing [OcptShootingPlanGridRow] itself: that class's own

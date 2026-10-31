@@ -18,14 +18,31 @@ import 'package:open_cine_prod_tools/models/ocpt_shooting_slot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_list_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_convocation_audition.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_convocation_candidacy.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_convocation_slot.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_day_convocation.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_scene_effect.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_schedule_alert_called_role.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_schedule_alert_day.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_schedule_alert_location_window.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_schedule_alert_person.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_schedule_alert_role.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_schedule_alert_slot.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_schedule_alert_unavailability.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_schedule_alerts.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_schedule_permit_window.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_shooting_convocations.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_shooting_day_timeline.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_shooting_day_timelines.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_shooting_slot_timeline.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_shooting_timeline_block.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_shooting_timeline_slot.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_sun_times.dart';
 import 'package:open_cine_prod_tools/types/ocpt_presence_code.dart';
 import 'package:open_cine_prod_tools/types/ocpt_scene_effect_category.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
+import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind_shooting_time.dart';
 
 /// The whole schedule read, joined into the day-level facts every reader of the schedule mode is
 /// understood through — a slot's own resolved hours, a day's whole call, its sun times, its first

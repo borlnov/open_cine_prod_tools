@@ -7,8 +7,10 @@ import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role_candidate.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_role_casting_progress.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_role_casting_stage.dart';
 import 'package:open_cine_prod_tools/types/ocpt_image_rights_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_candidate_status.dart';
+import 'package:open_cine_prod_tools/types/ocpt_role_candidate_status_lead.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
 
 /// Builds a minimal [OcptRole], cast in [personId] or not.

@@ -4,6 +4,9 @@
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_shooting_day_timeline.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_shooting_slot_timeline.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_shooting_timeline_block.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_shooting_timeline_slot.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_slot_anchor_edge.dart';
 
 /// The mode's own default duration used across these tests, standing in for whatever value a

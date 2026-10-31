@@ -3,8 +3,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:intl/intl.dart';
-import 'package:open_cine_prod_tools/models/rules/ocpt_budget_financing.dart';
-import 'package:open_cine_prod_tools/models/rules/ocpt_budget_totals.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_budget_covered_total.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_budget_needs_resources_balance.dart';
 
 /// What every document built off the budget mode's own figures prints in place of a value that
 /// cannot be read at all — an in-kind resource's own received/outstanding while no journal entry

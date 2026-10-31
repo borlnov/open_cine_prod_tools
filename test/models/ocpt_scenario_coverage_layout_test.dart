@@ -4,6 +4,8 @@
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fountain_kit/fountain_kit.dart';
+import 'package:open_cine_prod_tools/models/ocpt_coverage_bar_side.dart';
+import 'package:open_cine_prod_tools/models/ocpt_coverage_tick.dart';
 import 'package:open_cine_prod_tools/models/ocpt_scenario_coverage_layout.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_coverage_range.dart';

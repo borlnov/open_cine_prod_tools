@@ -9,7 +9,7 @@ import 'package:open_cine_prod_tools/models/ocpt_budget_line.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_poste.dart';
 import 'package:open_cine_prod_tools/models/ocpt_money.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_budget_alerts.dart';
-import 'package:open_cine_prod_tools/models/rules/ocpt_budget_journal.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_budget_cash_totals.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_commitment_status.dart';
 
 /// Builds a quote line quoted at [amountCents] (a single unit at that price), everything else

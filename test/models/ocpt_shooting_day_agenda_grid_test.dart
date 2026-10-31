@@ -3,8 +3,12 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shooting_day_agenda_column_input.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shooting_day_agenda_event_input.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shooting_day_agenda_event_placement.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day_agenda_grid.dart';
-import 'package:open_cine_prod_tools/models/rules/ocpt_shooting_day_timeline.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_shooting_slot_timeline.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_shooting_timeline_entry.dart';
 
 /// Builds an [OcptShootingSlotTimeline] test double directly, without going through
 /// [ocptComputeSlotTimeline]: these tests are about [OcptShootingDayAgendaGrid.of]'s own reading of

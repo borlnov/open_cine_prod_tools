@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:equatable/equatable.dart';
-import 'package:open_cine_prod_tools/models/ocpt_floor_plan_sheet.dart';
+import 'package:open_cine_prod_tools/types/ocpt_floor_plan_override_level.dart';
 
 /// A move, rotate or resize awaiting the scope bubble's own answer, held by
 /// `OcptShotListState.pendingFloorPlanScopeDecision` — which of two levels [level] says:

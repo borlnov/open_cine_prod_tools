@@ -5,31 +5,8 @@
 import 'package:equatable/equatable.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role_candidate.dart';
-import 'package:open_cine_prod_tools/types/ocpt_role_candidate_status.dart';
-
-/// Where a role's casting stands, read off [OcptRole.personId] and its live candidacies.
-enum OcptRoleCastingStage {
-  /// The role is cast — `personId` is set, whether by hand through the sheet's own picker or by a
-  /// candidacy retained through `OcptRoleCandidatesService`. The roles tab and any later reader
-  /// draw no distinction between the two: both are, simply, "cast".
-  cast,
-
-  /// The role is not cast, and at least one candidacy is still a lead
-  /// (`OcptRoleCandidateStatus.isStillALead`): somebody could yet be cast in it.
-  inProgress,
-
-  /// The role is not cast, candidacies were recorded, and **not one of them is still a lead**:
-  /// every person seen for it has been turned down, has declined, or is unavailable.
-  ///
-  /// Its own stage rather than [inProgress] with a count of zero, and rather than [notStarted]: "we
-  /// saw four people and none of them can do it" is the state a production most needs to see
-  /// coming, and neither of the other two says it. It is also the one stage a role can **leave**
-  /// without anybody being cast — one more name entered puts it back to [inProgress].
-  exhausted,
-
-  /// The role is not cast and nobody has been recorded for it at all.
-  notStarted,
-}
+import 'package:open_cine_prod_tools/models/rules/ocpt_role_casting_stage.dart';
+import 'package:open_cine_prod_tools/types/ocpt_role_candidate_status_lead.dart';
 
 /// Where one role's casting stands: [stage], and how many candidates back it up.
 ///

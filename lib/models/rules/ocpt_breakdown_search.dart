@@ -2,77 +2,11 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-import 'package:equatable/equatable.dart';
 import 'package:open_cine_prod_tools/models/ocpt_breakdown_snapshot.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_breakdown_search_candidate.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_breakdown_search_results.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_resources_search.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_target_kind.dart';
-import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
-
-/// One catalogue row the tag popover can offer, flattened out of whichever of `elements`, `roles`
-/// or `sets` [kind] names — the popover shows the three catalogues side by side and needs one shape
-/// to rank and cap, not three.
-class OcptBreakdownSearchCandidate extends Equatable {
-  /// Which of the three catalogues this candidate comes from.
-  final OcptBreakdownTargetKind kind;
-
-  /// The stable, unique id of the underlying element, role or set.
-  final String id;
-
-  /// This candidate's display name — the only field a query is matched against, see
-  /// [ocptBreakdownSearchCatalogues].
-  final String name;
-
-  /// The element's category, non-null only when [kind] is [OcptBreakdownTargetKind.element],
-  /// exactly as `OcptBreakdownTarget.category` is.
-  final OcptElementCategory? category;
-
-  /// How many live scenes this row is already tagged in; 0 for a row the breakdown never touched.
-  ///
-  /// Used only to break ties in [ocptBreakdownSearchCatalogues]'s ranking: a thing already found
-  /// once in the script is the more likely match for the thing being read now.
-  final int taggedSceneCount;
-
-  /// Class constructor
-  const OcptBreakdownSearchCandidate({
-    required this.kind,
-    required this.id,
-    required this.name,
-    required this.category,
-    required this.taggedSceneCount,
-  });
-
-  /// Object properties
-  @override
-  List<Object?> get props => [kind, id, name, category, taggedSceneCount];
-}
-
-/// The matches of one query, grouped by kind the way the popover groups them — one section for
-/// `Roles`, one for `Sets`, one for `Elements`, each already ranked and capped on its own.
-class OcptBreakdownSearchResults extends Equatable {
-  /// The matching roles, best match first.
-  final List<OcptBreakdownSearchCandidate> roles;
-
-  /// The matching sets, best match first.
-  final List<OcptBreakdownSearchCandidate> sets;
-
-  /// The matching elements, best match first.
-  final List<OcptBreakdownSearchCandidate> elements;
-
-  /// Class constructor
-  const OcptBreakdownSearchResults({
-    required this.roles,
-    required this.sets,
-    required this.elements,
-  });
-
-  /// Whether every section came back with nothing — the popover's cue to fall back on
-  /// `Open in Resources` rather than an empty list.
-  bool get isEmpty => roles.isEmpty && sets.isEmpty && elements.isEmpty;
-
-  /// Object properties
-  @override
-  List<Object?> get props => [roles, sets, elements];
-}
 
 /// The default number of matches kept per kind, so the popover keeps its height whatever the
 /// catalogue has grown to — a hundred and fifty elements must still fit under the search field.

@@ -5,8 +5,8 @@
 import 'package:open_cine_prod_tools/models/ocpt_budget_allowance.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_entry.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_budget_allowances.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_budget_covered_total.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_budget_journal.dart';
-import 'package:open_cine_prod_tools/models/rules/ocpt_budget_totals.dart';
 
 /// What a defrayed person has actually advanced, been reimbursed, and is still owed — the régie's
 /// own running account, read the very same way every other document in this mode already reads

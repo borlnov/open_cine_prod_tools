@@ -4,45 +4,8 @@
 
 import 'package:equatable/equatable.dart';
 import 'package:fountain_kit/fountain_kit.dart';
-
-/// Which shape a sides booklet is printed in — see [OcptScriptSidesLayout] for what each one keeps
-/// and what it gives up.
-enum OcptSidesPresentation {
-  /// One output page per composed script page holding at least one selected row, laid out exactly
-  /// as the screenplay itself prints it — a reader recognises the page they already know.
-  scriptPages,
-
-  /// The selected rows alone, reflowed onto fresh pages with nothing of the screenplay's own
-  /// pagination between them — a shorter booklet, at the cost of no longer looking like a
-  /// particular page of the script.
-  packed,
-}
-
-/// One printed page of a sides booklet.
-///
-/// [lines] is already the exact row order a renderer draws: build a `FountainScriptPage` straight
-/// from it and every line lands where this layout put it, whichever presentation produced it.
-class OcptScriptSidesPage extends Equatable {
-  /// The 0-based index, into the composed script's own `FountainScriptLayout.pages`, of the
-  /// screenplay page this one reproduces — null for a [OcptSidesPresentation.packed] page, which
-  /// reproduces no single one.
-  final int? scriptPageIndex;
-
-  /// The lines drawn on this page, its first row first.
-  final List<FountainScriptLine> lines;
-
-  /// Class constructor
-  const OcptScriptSidesPage({required this.scriptPageIndex, required this.lines});
-
-  /// Object string representation, useful for debugging and logging.
-  @override
-  String toString() =>
-      "OcptScriptSidesPage(scriptPageIndex: $scriptPageIndex, lines: ${lines.length})";
-
-  /// Object properties
-  @override
-  List<Object?> get props => [scriptPageIndex, lines];
-}
+import 'package:open_cine_prod_tools/models/ocpt_script_sides_page.dart';
+import 'package:open_cine_prod_tools/types/ocpt_sides_presentation.dart';
 
 /// A day's scenes, extracted from an already-composed screenplay and laid out as a printable
 /// booklet — a side is only useful if it looks like the script, so it is a slice of the real

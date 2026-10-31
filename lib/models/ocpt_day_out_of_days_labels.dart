@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:equatable/equatable.dart';
-import 'package:open_cine_prod_tools/models/rules/ocpt_day_out_of_days.dart';
+import 'package:open_cine_prod_tools/types/ocpt_day_out_of_days_code.dart';
 
 /// Every localized string the exported *Day Out of Days* carries, resolved by the caller.
 ///

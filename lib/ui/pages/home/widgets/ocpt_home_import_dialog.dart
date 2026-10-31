@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_script_import_service.dart';
 import 'package:open_cine_prod_tools/models/ocpt_card_choice_entry.dart';
+import 'package:open_cine_prod_tools/models/ocpt_card_choice_section.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_package_manifest.dart';
 import 'package:open_cine_prod_tools/types/ocpt_home_import_kind.dart';
 import 'package:open_cine_prod_tools/ui/widgets/ocpt_card_choice_dialog.dart';

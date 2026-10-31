@@ -4,8 +4,8 @@
 
 import 'package:equatable/equatable.dart';
 import 'package:fountain_kit/fountain_kit.dart';
-import 'package:open_cine_prod_tools/models/ocpt_script_sides_layout.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
+import 'package:open_cine_prod_tools/types/ocpt_sides_presentation.dart';
 
 /// The options a one-off sides export runs with: the physical page [format], its [margins], the one
 /// day printed, whether scene numbers are printed, and which [presentation] the booklet is laid out

@@ -12,7 +12,9 @@ import 'package:open_cine_prod_tools/managers/export/services/ocpt_script_page_p
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/models/ocpt_schedule_plan_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_script_sides_layout.dart';
+import 'package:open_cine_prod_tools/models/ocpt_script_sides_page.dart';
 import 'package:open_cine_prod_tools/models/ocpt_sides_labels.dart';
+import 'package:open_cine_prod_tools/types/ocpt_sides_presentation.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 

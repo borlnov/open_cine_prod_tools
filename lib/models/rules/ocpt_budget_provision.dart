@@ -4,10 +4,12 @@
 
 import 'dart:convert';
 
-import 'package:equatable/equatable.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_allowance.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_line.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_budget_allowances.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_budget_provision_entry.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_budget_provision_item.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_budget_provision_outcome.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_allowance_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_provision_kind.dart';
 
@@ -22,41 +24,6 @@ String ocptBudgetProvisionDigestOf({
   required int quantityMilli,
   required int unitAmountCents,
 }) => jsonEncode([label, quantityMilli, unitAmountCents]);
-
-/// One figure the régie view has to provision: a nature, how many of it, and at what unit price.
-///
-/// The **catering** natures carry a real quantity and a real unit price — 28 meals at 12,00 € — so
-/// the quote line reads the way a reader would have typed it. The **defrayal** natures carry a
-/// quantity of one and the summed total as their unit price: they aggregate across people, dates
-/// and mileage scales, and no single unit price exists for a line mixing 168 km at 0,529 €/km with
-/// three meals at 15,00 €.
-class OcptBudgetProvisionItem extends Equatable {
-  /// What this figure is for.
-  final OcptBudgetProvisionKind kind;
-
-  /// How many units this figure covers, in thousandths.
-  final int quantityMilli;
-
-  /// What one unit costs, in whole cents.
-  final int unitAmountCents;
-
-  /// Class constructor
-  const OcptBudgetProvisionItem({
-    required this.kind,
-    required this.quantityMilli,
-    required this.unitAmountCents,
-  });
-
-  /// Object string representation, useful for debugging and logging.
-  @override
-  String toString() =>
-      "OcptBudgetProvisionItem(kind: $kind, quantityMilli: $quantityMilli, "
-      "unitAmountCents: $unitAmountCents)";
-
-  /// Object properties
-  @override
-  List<Object?> get props => [kind, quantityMilli, unitAmountCents];
-}
 
 /// Every figure the régie view currently has to provision, in [OcptBudgetProvisionKind] order.
 ///
@@ -104,71 +71,6 @@ List<OcptBudgetProvisionItem> ocptBudgetProvisionItemsOf({
           unitAmountCents: byKind[entry.key]!,
         ),
   ];
-}
-
-/// What provisioning would do to one quote line.
-enum OcptBudgetProvisionOutcome {
-  /// No line carries this nature's key on the target poste: one is created.
-  created,
-
-  /// A line carries it, still holds exactly what the provisioning last wrote, and that no longer
-  /// matches the current figure: it is updated.
-  updated,
-
-  /// A line carries it and already holds the current figure: nothing is written.
-  unchanged,
-
-  /// A line carries it but no longer holds what the provisioning last wrote — somebody edited it by
-  /// hand. **It is reported and left exactly as it is**, never overwritten.
-  skippedEdited,
-}
-
-/// One line the provisioning would create, update, leave alone or report.
-class OcptBudgetProvisionEntry extends Equatable {
-  /// What this entry is for.
-  final OcptBudgetProvisionKind kind;
-
-  /// The quote line this entry acts on, or null while it would be created.
-  final String? lineId;
-
-  /// The wording the line carries — resolved by the mode and handed in, never built here.
-  final String label;
-
-  /// The quantity the line would carry, in thousandths.
-  final int quantityMilli;
-
-  /// The unit price the line would carry, in whole cents.
-  final int unitAmountCents;
-
-  /// What the provisioning would do to it.
-  final OcptBudgetProvisionOutcome outcome;
-
-  /// Class constructor
-  const OcptBudgetProvisionEntry({
-    required this.kind,
-    required this.lineId,
-    required this.label,
-    required this.quantityMilli,
-    required this.unitAmountCents,
-    required this.outcome,
-  });
-
-  /// What the provisioning would stamp onto the line it writes.
-  String get digest => ocptBudgetProvisionDigestOf(
-    label: label,
-    quantityMilli: quantityMilli,
-    unitAmountCents: unitAmountCents,
-  );
-
-  /// Object string representation, useful for debugging and logging.
-  @override
-  String toString() =>
-      "OcptBudgetProvisionEntry(kind: $kind, lineId: $lineId, outcome: $outcome, "
-      "quantityMilli: $quantityMilli, unitAmountCents: $unitAmountCents)";
-
-  /// Object properties
-  @override
-  List<Object?> get props => [kind, lineId, label, quantityMilli, unitAmountCents, outcome];
 }
 
 /// Everything the provisioning would do to [posteLines], one entry per nature it touches.

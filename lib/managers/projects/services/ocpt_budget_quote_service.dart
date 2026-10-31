@@ -9,7 +9,8 @@ import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart'
 import 'package:open_cine_prod_tools/models/ocpt_budget_line.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_poste.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_poste_seed.dart';
-import 'package:open_cine_prod_tools/models/rules/ocpt_budget_provision.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_budget_provision_entry.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_budget_provision_outcome.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_fractional_key.dart';
 import 'package:uuid/uuid.dart';
 

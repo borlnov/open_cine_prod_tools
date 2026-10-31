@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:fountain_kit/fountain_kit.dart';
-import 'package:open_cine_prod_tools/models/ocpt_script_word_layout.dart';
+import 'package:open_cine_prod_tools/models/ocpt_script_word_block.dart';
 
 /// One run of a word's printed text: the characters themselves and the inline emphasis they carry.
 ///
