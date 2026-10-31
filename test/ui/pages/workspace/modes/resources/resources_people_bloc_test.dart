@@ -13,6 +13,7 @@ import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
+import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 import 'package:open_cine_prod_tools/types/ocpt_day_part_slot.dart';
 import 'package:open_cine_prod_tools/types/ocpt_image_rights_status.dart';
@@ -116,6 +117,12 @@ void main() {
     fileSelectorManager: fileSelectorManager,
     fieldEditDebounce: fieldEditDebounce,
   );
+
+  /// The value the people table holds in the column the test types into, whichever row.
+  Future<String> readStoredValue(OcptProjectDatabase database) async {
+    final row = await database.customSelect("SELECT city AS value FROM people").getSingle();
+    return row.read<String>("value");
+  }
 
   /// Waits for the first state of [bloc] matching [predicate] (the current one included).
   Future<S> waitForState<S>(BlocBase<S> bloc, bool Function(S state) predicate) async {
@@ -324,9 +331,15 @@ void main() {
       await waitForState(peopleBloc, (state) => state.pendingFieldEdits.isNotEmpty);
 
       await bloc.flushPendingFieldEdits();
+
+      // The value is put back to blank behind the bloc's back: a second write of the same edit, which
+      // the bloc closing would make without the memory of the first, would bring it back.
+      final database = projectsManager.currentProject!.database;
+      expect(await readStoredValue(database), "Lyon");
+      await database.customStatement("UPDATE people SET city = ''");
       await closeAll(peopleBloc, bloc);
 
-      expect((await readPeople()).single.city, "Lyon");
+      expect(await readStoredValue(database), isEmpty);
     });
 
     test("are all dropped when the mode says writing the typed edits failed", () async {

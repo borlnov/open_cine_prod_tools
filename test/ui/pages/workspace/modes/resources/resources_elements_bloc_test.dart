@@ -121,6 +121,12 @@ void main() {
     fieldEditDebounce: fieldEditDebounce,
   );
 
+  /// The value the elements table holds in the column the test types into, whichever row.
+  Future<String> readStoredValue(OcptProjectDatabase database) async {
+    final row = await database.customSelect("SELECT notes AS value FROM elements").getSingle();
+    return row.read<String>("value");
+  }
+
   /// Waits for the first state of [bloc] matching [predicate] (the current one included).
   Future<S> waitForState<S>(BlocBase<S> bloc, bool Function(S state) predicate) async {
     if (predicate(bloc.state)) {
@@ -278,9 +284,15 @@ void main() {
       await waitForState(elementsBloc, (state) => state.pendingElementFieldEdits.isNotEmpty);
 
       await bloc.flushPendingFieldEdits();
+
+      // The value is put back to blank behind the bloc's back: a second write of the same edit, which
+      // the bloc closing would make without the memory of the first, would bring it back.
+      final database = projectsManager.currentProject!.database;
+      expect(await readStoredValue(database), "Fragile");
+      await database.customStatement("UPDATE elements SET notes = ''");
       await closeAll(elementsBloc, bloc);
 
-      expect((await readElements()).single.notes, "Fragile");
+      expect(await readStoredValue(database), isEmpty);
     });
 
     test(
