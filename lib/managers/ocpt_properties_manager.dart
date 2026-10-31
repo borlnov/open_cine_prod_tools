@@ -385,11 +385,15 @@ class OcptPropertiesManager extends AbstractPropertiesManager
   ///
   /// Returns null if the [value] isn't a valid JSON array of recent projects.
   static List<OcptRecentProjectModel>? _parseRecentProjects(String value) {
-    final jsonList = JsonUtility.parseJsonArrayBodyToArray(value, logger: _logger);
-    if (jsonList == null) {
+    // Decoded here rather than through the shared helper: on a failure that one logs the whole
+    // body, which holds every project's path and name.
+    final List<Map<String, dynamic>> jsonList;
+    try {
+      jsonList = List<Map<String, dynamic>>.from(jsonDecode(value) as List<dynamic>);
+    } catch (error) {
       _logger.w(
         "The recent projects stored in the local storage isn't a JSON array, we "
-        "can't convert it",
+        "can't convert it (${error.runtimeType})",
       );
       return null;
     }
