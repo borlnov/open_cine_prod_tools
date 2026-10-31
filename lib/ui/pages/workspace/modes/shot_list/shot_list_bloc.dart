@@ -44,6 +44,7 @@ import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
 import 'package:open_cine_prod_tools/models/ocpt_storyboard_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_workspace_reveal_request.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_floor_plan_geometry.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_pending_edits.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_scene_display_number.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_scene_set_suggestion.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_shot_list_selection.dart';
@@ -1131,7 +1132,10 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
             storyboardSnapshot: storyboardSnapshot,
             floorPlanSnapshot: floorPlanSnapshot,
             locations: locations,
-            pendingFieldEdits: const {},
+            pendingFieldEdits: ocptPendingEditsAfterWrite(
+              current: state.pendingFieldEdits,
+              written: pending,
+            ),
             reloadEpoch: state.reloadEpoch + 1,
           ),
         );
@@ -1147,7 +1151,15 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
         null,
         stackTrace,
       );
-      emitter(state.copyWith(hasWriteError: true, pendingFieldEdits: const {}));
+      emitter(
+        state.copyWith(
+          hasWriteError: true,
+          pendingFieldEdits: ocptPendingEditsAfterWrite(
+            current: state.pendingFieldEdits,
+            written: pending,
+          ),
+        ),
+      );
     }
 
     return true;
@@ -1457,17 +1469,14 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
           for (final symbol in floorPlanSet.symbols)
             if (symbol.shotId == event.shotId) symbol.id,
     };
-    final pendingWithoutShot = Map<OcptShotListPendingEditKey, String>.of(state.pendingFieldEdits)
-      ..removeWhere(
-        (key, _) => switch (key) {
-          OcptShotListShotFieldEditKey(:final shotId) => shotId == event.shotId,
-          OcptShotListPanelCommentEditKey() => false,
-          OcptShotListAnnotationTextEditKey() => false,
-          OcptShotListSetNameEditKey() => false,
-          OcptShotListSymbolLabelEditKey(:final symbolId) => floorPlanSymbolIds.contains(symbolId),
-        },
-      );
-    if (pendingWithoutShot.isEmpty) {
+    bool isOfShot(OcptShotListPendingEditKey key) => switch (key) {
+      OcptShotListShotFieldEditKey(:final shotId) => shotId == event.shotId,
+      OcptShotListPanelCommentEditKey() => false,
+      OcptShotListAnnotationTextEditKey() => false,
+      OcptShotListSetNameEditKey() => false,
+      OcptShotListSymbolLabelEditKey(:final symbolId) => floorPlanSymbolIds.contains(symbolId),
+    };
+    if (state.pendingFieldEdits.keys.every(isOfShot)) {
       _fieldEditTimer?.cancel();
       _fieldEditTimer = null;
     }
@@ -1494,7 +1503,9 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
           // symbols and arrows alongside it (`OcptFloorPlanService.tombstoneFloorPlanRowsOfShot`),
           // so the floor plans view must re-read too, exactly as the board does above.
           floorPlanSnapshot: floorPlanSnapshot,
-          pendingFieldEdits: pendingWithoutShot,
+          // Taken now, not before the delete: a keystroke typed meanwhile is not the shot's.
+          pendingFieldEdits: Map.of(state.pendingFieldEdits)
+            ..removeWhere((key, _) => isOfShot(key)),
           selectedShotId: reselectedShotId,
           forceSelectedShotIdValue: reselectedShotId == null,
           forcePendingCoverageAnchorValue: wasSelected,
@@ -1984,8 +1995,8 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     }
 
     final wasSelected = state.selectedSetId == event.setId;
-    final pendingWithoutSet = Map<OcptShotListPendingEditKey, String>.of(state.pendingFieldEdits)
-      ..removeWhere((key, _) => key is OcptShotListSetNameEditKey && key.setId == event.setId);
+    bool isOfSet(OcptShotListPendingEditKey key) =>
+        key is OcptShotListSetNameEditKey && key.setId == event.setId;
 
     try {
       await _locationsService.removeSceneFromSet(
@@ -2004,7 +2015,8 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
       emitter(
         state.copyWith(
           floorPlanSnapshot: floorPlanSnapshot,
-          pendingFieldEdits: pendingWithoutSet,
+          // Taken now, not before the unlink: a keystroke typed meanwhile is not the set's.
+          pendingFieldEdits: Map.of(state.pendingFieldEdits)..removeWhere((key, _) => isOfSet(key)),
           selectedSetId: nextSetId,
           forceSelectedSetIdValue: nextSetId == null,
           forceSelectedFloorPlanSymbolIdValue: wasSelected,

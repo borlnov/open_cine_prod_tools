@@ -15,6 +15,7 @@ import 'package:open_cine_prod_tools/managers/logging/ocpt_logs_helper_builder.d
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_storyboard_service.dart';
 import 'package:open_cine_prod_tools/models/ocpt_open_project_model.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_pending_edits.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_pending_edit_key.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_reload_scope.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_right_dock_tab.dart';
@@ -381,25 +382,24 @@ class OcptShotListStoryboardBloc
                 const [])
             .map((annotation) => annotation.id)
             .toSet();
-    final pendingWithoutPanel = Map<OcptShotListPendingEditKey, String>.of(state.pendingFieldEdits)
-      ..removeWhere(
-        (key, _) => switch (key) {
-          OcptShotListPanelCommentEditKey(:final panelId) => panelId == event.panelId,
-          OcptShotListAnnotationTextEditKey(:final annotationId) => annotationIds.contains(
-            annotationId,
-          ),
-          OcptShotListShotFieldEditKey() => false,
-          OcptShotListSetNameEditKey() => false,
-          OcptShotListSymbolLabelEditKey() => false,
-        },
-      );
+    bool isOfPanel(OcptShotListPendingEditKey key) => switch (key) {
+      OcptShotListPanelCommentEditKey(:final panelId) => panelId == event.panelId,
+      OcptShotListAnnotationTextEditKey(:final annotationId) => annotationIds.contains(
+        annotationId,
+      ),
+      OcptShotListShotFieldEditKey() => false,
+      OcptShotListSetNameEditKey() => false,
+      OcptShotListSymbolLabelEditKey() => false,
+    };
 
     try {
       await _storyboardService.deletePanel(database: project.database, panelId: event.panelId);
       await modeBloc.reload({OcptShotListReloadScope.storyboard});
       emitter(
         state.copyWith(
-          pendingFieldEdits: pendingWithoutPanel,
+          // Taken now, not before the delete: a keystroke typed meanwhile is not the panel's.
+          pendingFieldEdits: Map.of(state.pendingFieldEdits)
+            ..removeWhere((key, _) => isOfPanel(key)),
           forceSelectedPanelIdValue: wasSelected,
           forceActiveAnnotationToolValue: wasSelected,
           forceSelectedAnnotationIdValue: wasSelected,
@@ -542,11 +542,8 @@ class OcptShotListStoryboardBloc
     }
 
     final wasSelected = state.selectedAnnotationId == event.annotationId;
-    final pendingWithoutAnnotation =
-        Map<OcptShotListPendingEditKey, String>.of(state.pendingFieldEdits)..removeWhere(
-          (key, _) =>
-              key is OcptShotListAnnotationTextEditKey && key.annotationId == event.annotationId,
-        );
+    bool isOfAnnotation(OcptShotListPendingEditKey key) =>
+        key is OcptShotListAnnotationTextEditKey && key.annotationId == event.annotationId;
 
     try {
       await _storyboardService.deleteAnnotation(
@@ -556,7 +553,9 @@ class OcptShotListStoryboardBloc
       await modeBloc.reload({OcptShotListReloadScope.storyboard});
       emitter(
         state.copyWith(
-          pendingFieldEdits: pendingWithoutAnnotation,
+          // Taken now, not before the delete: a keystroke typed meanwhile is not the mark's.
+          pendingFieldEdits: Map.of(state.pendingFieldEdits)
+            ..removeWhere((key, _) => isOfAnnotation(key)),
           forceSelectedAnnotationIdValue: wasSelected,
         ),
       );
@@ -640,7 +639,14 @@ class OcptShotListStoryboardBloc
     try {
       await _writeAllPendingEdits(project: project, pending: pending);
       await modeBloc.reload({OcptShotListReloadScope.storyboard});
-      emitter(state.copyWith(pendingFieldEdits: const {}));
+      emitter(
+        state.copyWith(
+          pendingFieldEdits: ocptPendingEditsAfterWrite(
+            current: state.pendingFieldEdits,
+            written: pending,
+          ),
+        ),
+      );
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to flush a pending storyboard edit of project "
@@ -648,7 +654,15 @@ class OcptShotListStoryboardBloc
         null,
         stackTrace,
       );
-      emitter(state.copyWith(hasWriteError: true, pendingFieldEdits: const {}));
+      emitter(
+        state.copyWith(
+          hasWriteError: true,
+          pendingFieldEdits: ocptPendingEditsAfterWrite(
+            current: state.pendingFieldEdits,
+            written: pending,
+          ),
+        ),
+      );
     }
 
     return true;

@@ -1216,6 +1216,75 @@ void main() {
       await closeAll(mounted.board, mode);
     });
 
+    test("a comment typed while the board's flush is in flight is kept and written", () async {
+      final service = _HoldingStoryboardService(projectsManager.storyboardService);
+      final mounted = await mountWithAPanel(
+        fieldEditDebounce: const Duration(days: 1),
+        storyboardService: service,
+      );
+      final mode = mounted.mode;
+      final board = mounted.board;
+
+      board.add(OcptShotListPanelCommentChangedEvent(panelId: mounted.panelId, rawValue: "a"));
+      await waitUntil(() => board.state.pendingFieldEdits.isNotEmpty);
+
+      // The flush writes "a" and is held while the mode reads it back.
+      service.heldReads = 1;
+      final flush = board.flushPendingWrites();
+      await waitUntil(() => service.holdCount == 1);
+
+      board.add(OcptShotListPanelCommentChangedEvent(panelId: mounted.panelId, rawValue: "ab"));
+      await waitUntil(() => board.state.pendingFieldEdits.values.contains("ab"));
+      service.release();
+      await flush;
+
+      expect(board.state.pendingFieldEdits.values, ["ab"], reason: 'the keystroke is not lost');
+      await board.flushPendingWrites();
+      expect(mode.state.panelsOfShot(mounted.shotId).single.comment, "ab");
+
+      await closeAll(board, mode);
+    });
+
+    test("a field typed while the mode's flush is in flight is kept and written", () async {
+      final service = _HoldingShotListService(projectsManager.shotListService);
+      final mounted = await mountWithAPanel(
+        fieldEditDebounce: const Duration(days: 1),
+        shotListService: service,
+      );
+      final mode = mounted.mode;
+
+      OcptShotListShotFieldChangedEvent typed(String text) => OcptShotListShotFieldChangedEvent(
+        shotId: mounted.shotId,
+        field: OcptShotListEditableField.lens,
+        rawValue: text,
+      );
+
+      mode.add(typed("5"));
+      await waitUntil(() => mode.state.pendingFieldEdits.isNotEmpty);
+
+      service.heldReads = 1;
+      final flush = mode.flushAllPendingWrites();
+      await waitUntil(() => service.holdCount == 1);
+
+      mode.add(typed("50"));
+      await waitUntil(() => mode.state.pendingFieldEdits.values.contains("50"));
+      service.release();
+      await flush;
+
+      expect(mode.state.pendingFieldEdits.values, ["50"], reason: 'the keystroke is not lost');
+      await mode.flushAllPendingWrites();
+      expect(mode.state.pendingFieldEdits, isEmpty);
+      expect(
+        mode.state.snapshot!.sequences
+            .expand((sequence) => sequence.shots)
+            .firstWhere((shot) => shot.id == mounted.shotId)
+            .lens,
+        "50",
+      );
+
+      await closeAll(mounted.board, mode);
+    });
+
     test("a failing comment write raises the write error and forgets the comment", () async {
       await writeScreenplay(twoSceneText);
       final mounted = await mountWithAPanel(fieldEditDebounce: const Duration(days: 1));
