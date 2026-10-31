@@ -489,6 +489,42 @@ void main() {
     });
 
     test(
+      "are written and forgotten, with the one write error, when the read after the write fails",
+      () async {
+        final bloc = buildBloc();
+        final rolesBloc = buildRoles(bloc, fieldEditDebounce: _neverDebounce);
+        await waitForState(bloc, (state) => !state.isLoading);
+        final roleId = await createRole(bloc, rolesBloc);
+        rolesBloc.add(
+          OcptResourcesRoleFieldChangedEvent(
+            roleId: roleId,
+            field: OcptRoleField.castingNotes,
+            rawValue: "Zoe",
+          ),
+        );
+        await waitForState(rolesBloc, (state) => state.pendingRoleFieldEdits.isNotEmpty);
+
+        final database = projectsManager.currentProject!.database;
+        // The write of an edit never touches the episodes, whereas the read of the catalogue after it
+        // does: the write lands and the read fails.
+        await database.customStatement("ALTER TABLE screenplays RENAME TO screenplays_gone");
+        try {
+          final mayProceed = await bloc.flushAllPendingWrites();
+
+          expect(mayProceed, isTrue);
+          expect(bloc.state.hasWriteError, isTrue);
+          expect(rolesBloc.state.pendingRoleFieldEdits, isEmpty);
+        } finally {
+          await database.customStatement("ALTER TABLE screenplays_gone RENAME TO screenplays");
+        }
+
+        expect(await readStoredValue(database), "Zoe");
+
+        await closeAll(rolesBloc, bloc);
+      },
+    );
+
+    test(
       "are dropped, the role and the candidate notes alike, when the mode says writing failed",
       () async {
         final bloc = buildBloc();

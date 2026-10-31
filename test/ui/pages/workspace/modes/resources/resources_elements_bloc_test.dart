@@ -296,6 +296,42 @@ void main() {
     });
 
     test(
+      "are written and forgotten, with the one write error, when the read after the write fails",
+      () async {
+        final bloc = buildBloc();
+        final elementsBloc = buildElements(bloc, fieldEditDebounce: _neverDebounce);
+        await waitForState(bloc, (state) => !state.isLoading);
+        final elementId = await createElement(bloc, elementsBloc);
+        elementsBloc.add(
+          OcptResourcesElementFieldChangedEvent(
+            elementId: elementId,
+            field: OcptElementField.notes,
+            rawValue: "Fragile",
+          ),
+        );
+        await waitForState(elementsBloc, (state) => state.pendingElementFieldEdits.isNotEmpty);
+
+        final database = projectsManager.currentProject!.database;
+        // The write of an edit never touches the episodes, whereas the read of the catalogue after it
+        // does: the write lands and the read fails.
+        await database.customStatement("ALTER TABLE screenplays RENAME TO screenplays_gone");
+        try {
+          final mayProceed = await bloc.flushAllPendingWrites();
+
+          expect(mayProceed, isTrue);
+          expect(bloc.state.hasWriteError, isTrue);
+          expect(elementsBloc.state.pendingElementFieldEdits, isEmpty);
+        } finally {
+          await database.customStatement("ALTER TABLE screenplays_gone RENAME TO screenplays");
+        }
+
+        expect(await readStoredValue(database), "Fragile");
+
+        await closeAll(elementsBloc, bloc);
+      },
+    );
+
+    test(
       "are written at once, and show on the mode, when the mode asks every view to write",
       () async {
         final bloc = buildBloc();

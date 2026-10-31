@@ -342,6 +342,42 @@ void main() {
       expect(await readStoredValue(database), isEmpty);
     });
 
+    test(
+      "are written and forgotten, with the one write error, when the read after the write fails",
+      () async {
+        final bloc = buildBloc();
+        final peopleBloc = buildPeople(bloc, fieldEditDebounce: _neverDebounce);
+        await waitForState(bloc, (state) => !state.isLoading);
+        final personId = await createPerson(bloc, peopleBloc);
+        peopleBloc.add(
+          OcptResourcesPersonFieldChangedEvent(
+            personId: personId,
+            field: OcptPersonField.city,
+            rawValue: "Lyon",
+          ),
+        );
+        await waitForState(peopleBloc, (state) => state.pendingFieldEdits.isNotEmpty);
+
+        final database = projectsManager.currentProject!.database;
+        // The write of an edit never touches the episodes, whereas the read of the catalogue after it
+        // does: the write lands and the read fails.
+        await database.customStatement("ALTER TABLE screenplays RENAME TO screenplays_gone");
+        try {
+          final mayProceed = await bloc.flushAllPendingWrites();
+
+          expect(mayProceed, isTrue);
+          expect(bloc.state.hasWriteError, isTrue);
+          expect(peopleBloc.state.pendingFieldEdits, isEmpty);
+        } finally {
+          await database.customStatement("ALTER TABLE screenplays_gone RENAME TO screenplays");
+        }
+
+        expect(await readStoredValue(database), "Lyon");
+
+        await closeAll(peopleBloc, bloc);
+      },
+    );
+
     test("are all dropped when the mode says writing the typed edits failed", () async {
       final bloc = buildBloc();
       final peopleBloc = buildPeople(bloc, fieldEditDebounce: _neverDebounce);
