@@ -380,8 +380,10 @@ class OcptSpellCheckManager extends AbsWithLifeCycle {
     });
 
     errorPort.listen((message) {
-      // The reported error can quote the text being checked, so its content is not logged.
-      _logger.e("The spell-check worker isolate reported an error");
+      // The reported error can quote the text being checked, so its text is not logged: only the
+      // stack trace is, which the isolate sends as the second element of the message.
+      final stack = message is List && message.length > 1 ? message[1] : null;
+      _logger.e("The spell-check worker isolate reported an error\n$stack");
     });
 
     exitPort.listen((_) {
