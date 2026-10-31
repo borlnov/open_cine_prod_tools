@@ -89,8 +89,9 @@ Resources set carries across its three scopes, and the mode's two newest documen
     selected set — created, linked or duplicated into the sequence, or the selected one unlinked —
     has the mode read the floor plans (and the catalogue) again and then asks it to move its
     selection, with `OcptShotListSetAddedEvent` or `OcptShotListSetRemovedEvent`, waiting for it.
-    The props are emptied and read again when the mode loads or selects another sequence, and
-    nothing else the bloc holds depends on the selection or on a reload.
+    The props are read again when the mode loads or selects another sequence, the previous ones
+    staying on screen until the new ones replace them, and nothing else the bloc holds depends
+    on the selection or on a reload.
   - **`OcptShotListFloorPlanCanvasBloc`.** The gestures made on the plan: the tool in hand, the
     selected symbol or arrow, the first end of the arrow being drawn, the scope question a shared
     symbol's move, resize or rotation asks, and the character name prompt a placement arms. It

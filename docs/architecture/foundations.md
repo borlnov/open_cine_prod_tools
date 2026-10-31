@@ -114,12 +114,13 @@ the persistence, the project versions, the sync-ready data model and the read-on
     select. The scope is a value of the mode's own enum, named by the view and read by an
     exhaustive `switch` in the mode's `reloadScopesIn` hook — a scope nobody reads, or a part of
     the data nobody can ask for, does not compile. `reload` completes once the mode's state holds
-    what was read (`MixinOcptAwaitedEvent`, a completer carried by the event and excluded from its
-    `props`). A write that moves the shared selection asks the mode through `addToModeAndWait`
-    for an event the mode registered with `onAwaited`, and emits its own selection **after**: a
-    plain `add` would land the view's emit before the mode started, and the view's reaction to the
-    move would then clear it. Everything else the view asks of the mode goes through `addToMode`,
-    which is safe on a mode that is closing.
+    what was read, and answers whether it did: a view stops on false, before it selects or
+    forgets anything (`MixinOcptAwaitedEvent`, a completer carried by the event and excluded from
+    its `props`). A write that moves the shared selection asks the mode through
+    `addToModeAndWait` for an event the mode registered with `onAwaited`, and emits its own
+    selection **after**: a plain `add` would land the view's emit before the mode started, and the
+    view's reaction to the move would then clear it. Everything else the view asks of the mode
+    goes through `addToMode`, which is safe on a mode that is closing.
   - **The serial queue.** Every read of the shared data that ends in an emit — a view's reload,
     the read half of a flush, the full load — goes through `runSerially`, one at a time: two writers
     finishing together each read, and a slower read finishing after a newer one would put older
