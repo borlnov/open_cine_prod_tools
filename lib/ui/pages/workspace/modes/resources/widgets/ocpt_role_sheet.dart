@@ -266,7 +266,7 @@ class OcptRoleSheet extends StatelessWidget {
             ),
           ],
           const SizedBox(height: 16),
-          _buildCastingCard(context, tr),
+          _CastingCard(sheet: this),
           const SizedBox(height: 12),
           OcptRoleSheetCandidatesCard(
             candidates: candidates,
@@ -319,11 +319,46 @@ class OcptRoleSheet extends StatelessWidget {
       ),
     );
   }
+}
 
-  /// Builds the casting card: the cast member picker, and the muted line naming the other roles
-  /// that same person holds — a read-only remark, the way to reach one of them being the cast list
-  /// of the left dock.
-  Widget _buildCastingCard(BuildContext context, Tr tr) {
+/// Builds the cast member picker: the shared [OcptResourcesPersonPicker] over the whole address
+/// book, withheld (a plain badge, no menu) while the sheet may not be written to.
+///
+/// It offers no `↗` of its own: the header's cast member line already is the jump to their sheet,
+/// and a second arrow next to the drop-down would compete with it (see `OcptRoleSheetHeader`).
+class _CastPicker extends StatelessWidget {
+  /// The widget this one belongs to.
+  final OcptRoleSheet sheet;
+
+  /// Class constructor
+  const _CastPicker({required this.sheet});
+
+  @override
+  Widget build(BuildContext context) {
+    final tr = Tr.of(context);
+    return OcptResourcesPersonPicker(
+      people: sheet.people,
+      selectedPerson: sheet.castMember,
+      label: tr.resourcesRoleCastMemberLabel,
+      emptyLabel: tr.resourcesRoleNotCast,
+      onChanged: sheet.isReadOnly ? null : sheet.onCastChanged,
+    );
+  }
+}
+
+/// Builds the casting card: the cast member picker, and the muted line naming the other roles
+/// that same person holds — a read-only remark, the way to reach one of them being the cast list
+/// of the left dock.
+class _CastingCard extends StatelessWidget {
+  /// The widget this one belongs to.
+  final OcptRoleSheet sheet;
+
+  /// Class constructor
+  const _CastingCard({required this.sheet});
+
+  @override
+  Widget build(BuildContext context) {
+    final tr = Tr.of(context);
     final theme = Theme.of(context);
 
     return OcptResourcesSheetCard(
@@ -331,12 +366,12 @@ class OcptRoleSheet extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildCastPicker(tr),
-          if (otherRoles.isNotEmpty) ...[
+          _CastPicker(sheet: sheet),
+          if (sheet.otherRoles.isNotEmpty) ...[
             const SizedBox(height: 8),
             Text(
               tr.resourcesRolesListOtherRolesLabel(
-                otherRoles
+                sheet.otherRoles
                     .map((other) => other.name.isEmpty ? tr.resourcesRoleUnnamed : other.name)
                     .join(_otherRolesSeparator),
               ),
@@ -349,17 +384,4 @@ class OcptRoleSheet extends StatelessWidget {
       ),
     );
   }
-
-  /// Builds the cast member picker: the shared [OcptResourcesPersonPicker] over the whole address
-  /// book, withheld (a plain badge, no menu) while the sheet may not be written to.
-  ///
-  /// It offers no `↗` of its own: the header's cast member line already is the jump to their sheet,
-  /// and a second arrow next to the drop-down would compete with it (see `OcptRoleSheetHeader`).
-  Widget _buildCastPicker(Tr tr) => OcptResourcesPersonPicker(
-    people: people,
-    selectedPerson: castMember,
-    label: tr.resourcesRoleCastMemberLabel,
-    emptyLabel: tr.resourcesRoleNotCast,
-    onChanged: isReadOnly ? null : onCastChanged,
-  );
 }

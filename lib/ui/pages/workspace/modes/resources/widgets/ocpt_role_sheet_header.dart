@@ -68,69 +68,89 @@ class OcptRoleSheetHeader extends StatelessWidget {
   });
 
   @override
+  Widget build(BuildContext context) => Row(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      OcptRoleAvatar(castMember: castMember, radius: _avatarRadius),
+      const SizedBox(width: 16),
+      Expanded(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(child: _Name(header: this)),
+                const SizedBox(width: 12),
+                _NumberBadge(header: this),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Expanded(child: _CastMemberLine(header: this)),
+                const SizedBox(width: 12),
+                _KindPicker(header: this),
+              ],
+            ),
+          ],
+        ),
+      ),
+    ],
+  );
+
+  /// The `onChanged` the name field is given: the one reporting to [onFieldChanged], or null while
+  /// the sheet may not be written to, which is what makes the field read its value out instead of
+  /// accepting a new one.
+  ValueChanged<String>? _onNameChangedOrNull() {
+    final onFieldChanged = this.onFieldChanged;
+    if (onFieldChanged == null) {
+      return null;
+    }
+    return (value) => onFieldChanged(OcptRoleField.name, value);
+  }
+}
+
+/// Builds the role's name: an editable title for a hand-added role, the name as plain text
+/// followed by its explanatory note for a role owned by the screenplay — the note itself telling
+/// a cued role from an action-detected one apart, since only the note names the reason the
+/// field is withheld.
+class _Name extends StatelessWidget {
+  /// The widget this one belongs to.
+  final OcptRoleSheetHeader header;
+
+  /// Class constructor
+  const _Name({required this.header});
+
+  @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
-
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        OcptRoleAvatar(castMember: castMember, radius: _avatarRadius),
-        const SizedBox(width: 16),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(child: _buildName(context, tr)),
-                  const SizedBox(width: 12),
-                  _buildNumberBadge(context, tr),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  Expanded(child: _buildCastMemberLine(context, tr)),
-                  const SizedBox(width: 12),
-                  _buildKindPicker(context, tr),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  /// Builds the role's name: an editable title for a hand-added role, the name as plain text
-  /// followed by its explanatory note for a role owned by the screenplay — the note itself telling
-  /// a cued role from an action-detected one apart, since only the note names the reason the
-  /// field is withheld.
-  Widget _buildName(BuildContext context, Tr tr) {
     final theme = Theme.of(context);
     final titleStyle = theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700);
 
-    if (!role.isFromScreenplay) {
+    if (!header.role.isFromScreenplay) {
       return OcptResourcesSheetField(
-        ownerId: role.id,
+        ownerId: header.role.id,
         label: "",
-        value: fieldValueOf(OcptRoleField.name),
+        value: header.fieldValueOf(OcptRoleField.name),
         hintText: tr.resourcesRoleNameHint,
         textStyle: titleStyle,
-        onChanged: _onNameChangedOrNull(),
+        onChanged: header._onNameChangedOrNull(),
       );
     }
 
     final isActionDetected = ocptRoleIsActionDetected(
-      isFromScreenplay: role.isFromScreenplay,
-      kind: role.kind,
+      isFromScreenplay: header.role.isFromScreenplay,
+      kind: header.role.kind,
     );
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(role.name.isEmpty ? tr.resourcesRoleUnnamed : role.name, style: titleStyle),
+        Text(
+          header.role.name.isEmpty ? tr.resourcesRoleUnnamed : header.role.name,
+          style: titleStyle,
+        ),
         const SizedBox(height: 4),
         Text(
           isActionDetected
@@ -144,10 +164,20 @@ class OcptRoleSheetHeader extends StatelessWidget {
       ],
     );
   }
+}
 
-  /// Builds the `N° {number}` badge: the role's rank in the cast, read-only — it is derived from
-  /// the `sortKey` order, never stored (see `OcptRole.number`).
-  Widget _buildNumberBadge(BuildContext context, Tr tr) {
+/// Builds the `N° {number}` badge: the role's rank in the cast, read-only — it is derived from
+/// the `sortKey` order, never stored (see `OcptRole.number`).
+class _NumberBadge extends StatelessWidget {
+  /// The widget this one belongs to.
+  final OcptRoleSheetHeader header;
+
+  /// Class constructor
+  const _NumberBadge({required this.header});
+
+  @override
+  Widget build(BuildContext context) {
+    final tr = Tr.of(context);
     final theme = Theme.of(context);
 
     return Padding(
@@ -159,22 +189,32 @@ class OcptRoleSheetHeader extends StatelessWidget {
           borderRadius: BorderRadius.circular(ocptRadiusSmall),
         ),
         child: Text(
-          tr.resourcesRoleNumberBadge(role.number),
+          tr.resourcesRoleNumberBadge(header.role.number),
           style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
         ),
       ),
     );
   }
+}
 
-  /// Builds the cast member line: their name and the `↗`, the whole line being what opens their own
-  /// sheet, or a muted italic "Not cast" — plain text, since there is no sheet to open then.
-  ///
-  /// The name and the arrow are one target rather than a label beside a 14 px icon button: the name
-  /// *is* the person, so it is what one aims at, and the arrow only says that clicking leads
-  /// somewhere.
-  Widget _buildCastMemberLine(BuildContext context, Tr tr) {
+/// Builds the cast member line: their name and the `↗`, the whole line being what opens their own
+/// sheet, or a muted italic "Not cast" — plain text, since there is no sheet to open then.
+///
+/// The name and the arrow are one target rather than a label beside a 14 px icon button: the name
+/// *is* the person, so it is what one aims at, and the arrow only says that clicking leads
+/// somewhere.
+class _CastMemberLine extends StatelessWidget {
+  /// The widget this one belongs to.
+  final OcptRoleSheetHeader header;
+
+  /// Class constructor
+  const _CastMemberLine({required this.header});
+
+  @override
+  Widget build(BuildContext context) {
+    final tr = Tr.of(context);
     final theme = Theme.of(context);
-    final castMember = this.castMember;
+    final castMember = header.castMember;
 
     if (castMember == null) {
       return Text(
@@ -193,7 +233,7 @@ class OcptRoleSheetHeader extends StatelessWidget {
       child: Tooltip(
         message: tr.resourcesOpenPersonSheetTooltip,
         child: InkWell(
-          onTap: () => onPersonSheetOpenRequested(castMember.id),
+          onTap: () => header.onPersonSheetOpenRequested(castMember.id),
           mouseCursor: ocptClickableCursor,
           borderRadius: BorderRadius.circular(ocptRadiusSmall),
           child: Padding(
@@ -220,12 +260,22 @@ class OcptRoleSheetHeader extends StatelessWidget {
       ),
     );
   }
+}
 
-  /// Builds the kind picker: a badge doubling as a [PopupMenuButton] over every [OcptRoleKind],
-  /// withheld (a plain badge, no menu) while the sheet may not be written to.
-  Widget _buildKindPicker(BuildContext context, Tr tr) {
+/// Builds the kind picker: a badge doubling as a [PopupMenuButton] over every [OcptRoleKind],
+/// withheld (a plain badge, no menu) while the sheet may not be written to.
+class _KindPicker extends StatelessWidget {
+  /// The widget this one belongs to.
+  final OcptRoleSheetHeader header;
+
+  /// Class constructor
+  const _KindPicker({required this.header});
+
+  @override
+  Widget build(BuildContext context) {
+    final tr = Tr.of(context);
     final theme = Theme.of(context);
-    final onKindChanged = this.onKindChanged;
+    final onKindChanged = header.onKindChanged;
 
     final badge = Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
@@ -236,7 +286,7 @@ class OcptRoleSheetHeader extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(ocptRoleKindLabel(tr, role.kind), style: theme.textTheme.labelMedium),
+          Text(ocptRoleKindLabel(tr, header.role.kind), style: theme.textTheme.labelMedium),
           if (onKindChanged != null) ...[
             const SizedBox(width: 4),
             Icon(Icons.arrow_drop_down, size: 16, color: theme.colorScheme.onSurfaceVariant),
@@ -258,16 +308,5 @@ class OcptRoleSheetHeader extends StatelessWidget {
       ],
       child: badge,
     );
-  }
-
-  /// The `onChanged` the name field is given: the one reporting to [onFieldChanged], or null while
-  /// the sheet may not be written to, which is what makes the field read its value out instead of
-  /// accepting a new one.
-  ValueChanged<String>? _onNameChangedOrNull() {
-    final onFieldChanged = this.onFieldChanged;
-    if (onFieldChanged == null) {
-      return null;
-    }
-    return (value) => onFieldChanged(OcptRoleField.name, value);
   }
 }

@@ -57,23 +57,23 @@ class OcptElementSheetTrackingCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _buildFlag(
-            context,
+          _Flag(
             label: tr.resourcesElementSecuredLabel,
             flag: OcptElementTrackingFlag.secured,
             value: element.isSecured,
+            onTrackingFlagChanged: onTrackingFlagChanged,
           ),
-          _buildFlag(
-            context,
+          _Flag(
             label: tr.resourcesElementReadyLabel,
             flag: OcptElementTrackingFlag.readyForShoot,
             value: element.isReadyForShoot,
+            onTrackingFlagChanged: onTrackingFlagChanged,
           ),
-          _buildFlag(
-            context,
+          _Flag(
             label: tr.resourcesElementReturnedLabel,
             flag: OcptElementTrackingFlag.returned,
             value: element.isReturned,
+            onTrackingFlagChanged: onTrackingFlagChanged,
           ),
           const SizedBox(height: 8),
           OcptResourcesSheetField(
@@ -88,14 +88,32 @@ class OcptElementSheetTrackingCard extends StatelessWidget {
       ),
     );
   }
+}
 
-  /// One tick of the card: the box and its label, the whole row being what toggles it.
-  Widget _buildFlag(
-    BuildContext context, {
-    required String label,
-    required OcptElementTrackingFlag flag,
-    required bool value,
-  }) {
+/// One tick of the card: the box and its label, the whole row being what toggles it.
+class _Flag extends StatelessWidget {
+  /// The tick's label.
+  final String label;
+
+  /// The flag this tick toggles.
+  final OcptElementTrackingFlag flag;
+
+  /// What the flag currently holds.
+  final bool value;
+
+  /// Called with the flag and what it now holds, or null while it may not be changed.
+  final void Function(OcptElementTrackingFlag flag, {required bool value})? onTrackingFlagChanged;
+
+  /// Class constructor
+  const _Flag({
+    required this.label,
+    required this.flag,
+    required this.value,
+    required this.onTrackingFlagChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final onTrackingFlagChanged = this.onTrackingFlagChanged;
     final onToggled = onTrackingFlagChanged == null

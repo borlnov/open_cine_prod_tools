@@ -214,7 +214,7 @@ class OcptResourcesListPanel extends StatelessWidget {
             ],
           ),
         ),
-        Expanded(child: _buildBody(tr)),
+        Expanded(child: _Body(panel: this)),
         if (isPeopleTab && onAddPersonRequested != null) ...[
           Divider(height: 1, thickness: 1, color: theme.colorScheme.outlineVariant),
           Padding(
@@ -264,47 +264,6 @@ class OcptResourcesListPanel extends StatelessWidget {
     return tr.resourcesStatsRoles(filteredRoles.length) +
         _rolesHeaderStatsSeparator +
         tr.resourcesStatsRolesCast(ocptCastRoleCount(filteredRoles));
-  }
-
-  /// The list area: [OcptPeopleList] on the people tab, [OcptRolesList] on the roles tab,
-  /// [OcptLocationsList] on the locations tab and [OcptElementsList] on the elements tab.
-  Widget _buildBody(Tr tr) {
-    if (activeTab == OcptResourcesTab.people) {
-      return OcptPeopleList(
-        people: people,
-        selectedPersonId: selectedPersonId,
-        searchQuery: searchQuery,
-        onPersonSelected: onPersonSelected,
-      );
-    }
-
-    if (activeTab == OcptResourcesTab.roles) {
-      return OcptRolesList(
-        roles: roles,
-        people: people,
-        candidatesByRoleId: candidatesByRoleId,
-        episodes: episodes,
-        selectedRoleId: selectedRoleId,
-        searchQuery: searchQuery,
-        onRoleSelected: onRoleSelected,
-      );
-    }
-
-    if (activeTab == OcptResourcesTab.locations) {
-      return OcptLocationsList(
-        locations: locations,
-        selectedLocationId: selectedLocationId,
-        searchQuery: searchQuery,
-        onLocationSelected: onLocationSelected,
-      );
-    }
-
-    return OcptElementsList(
-      elements: elements,
-      selectedElementId: selectedElementId,
-      searchQuery: searchQuery,
-      onElementSelected: onElementSelected,
-    );
   }
 }
 
@@ -382,6 +341,56 @@ class _OcptAddElementButton extends StatelessWidget {
           child: Text(tr.resourcesAddElementAction),
         ),
       ),
+    );
+  }
+}
+
+/// The list area: [OcptPeopleList] on the people tab, [OcptRolesList] on the roles tab,
+/// [OcptLocationsList] on the locations tab and [OcptElementsList] on the elements tab.
+class _Body extends StatelessWidget {
+  /// The widget this one belongs to.
+  final OcptResourcesListPanel panel;
+
+  /// Class constructor
+  const _Body({required this.panel});
+
+  @override
+  Widget build(BuildContext context) {
+    if (panel.activeTab == OcptResourcesTab.people) {
+      return OcptPeopleList(
+        people: panel.people,
+        selectedPersonId: panel.selectedPersonId,
+        searchQuery: panel.searchQuery,
+        onPersonSelected: panel.onPersonSelected,
+      );
+    }
+
+    if (panel.activeTab == OcptResourcesTab.roles) {
+      return OcptRolesList(
+        roles: panel.roles,
+        people: panel.people,
+        candidatesByRoleId: panel.candidatesByRoleId,
+        episodes: panel.episodes,
+        selectedRoleId: panel.selectedRoleId,
+        searchQuery: panel.searchQuery,
+        onRoleSelected: panel.onRoleSelected,
+      );
+    }
+
+    if (panel.activeTab == OcptResourcesTab.locations) {
+      return OcptLocationsList(
+        locations: panel.locations,
+        selectedLocationId: panel.selectedLocationId,
+        searchQuery: panel.searchQuery,
+        onLocationSelected: panel.onLocationSelected,
+      );
+    }
+
+    return OcptElementsList(
+      elements: panel.elements,
+      selectedElementId: panel.selectedElementId,
+      searchQuery: panel.searchQuery,
+      onElementSelected: panel.onElementSelected,
     );
   }
 }

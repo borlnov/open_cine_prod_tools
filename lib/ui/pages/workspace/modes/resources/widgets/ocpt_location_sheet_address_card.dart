@@ -118,7 +118,14 @@ class OcptLocationSheetAddressCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 12),
-          _buildContactPicker(tr),
+          OcptResourcesPersonPicker(
+            people: people,
+            selectedPerson: contact,
+            label: tr.resourcesLocationContactLabel,
+            emptyLabel: tr.resourcesLocationNoContact,
+            onChanged: onContactChanged,
+            onPersonSheetOpenRequested: onPersonSheetOpenRequested,
+          ),
           const SizedBox(height: 8),
           _field(context, OcptLocationField.contactNotes, tr.resourcesLocationContactNotesLabel),
         ],
@@ -158,15 +165,4 @@ class OcptLocationSheetAddressCard extends StatelessWidget {
 
     return tr.resourcesCoordinateFormatError;
   }
-
-  /// Builds the contact line: the shared [OcptResourcesPersonPicker] over the whole address book,
-  /// carrying the `↗` that opens the contact's own sheet.
-  Widget _buildContactPicker(Tr tr) => OcptResourcesPersonPicker(
-    people: people,
-    selectedPerson: contact,
-    label: tr.resourcesLocationContactLabel,
-    emptyLabel: tr.resourcesLocationNoContact,
-    onChanged: onContactChanged,
-    onPersonSheetOpenRequested: onPersonSheetOpenRequested,
-  );
 }

@@ -15,7 +15,7 @@ import 'package:open_cine_prod_tools/models/rules/ocpt_day_minute.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_shooting_day_timelines.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_shooting_slot_timeline.dart';
 import 'package:open_cine_prod_tools/types/ocpt_crew_department.dart';
-import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_person_avatar.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_person_initials_avatar.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_empty_mode.dart';
 import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_resources_labels.dart';
 import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_schedule_labels.dart';

@@ -106,17 +106,53 @@ class OcptLocationSheetPermitCard extends StatelessWidget {
             onChanged: onPermitDateChanged,
           ),
           const SizedBox(height: 10),
-          _buildDocument(context, tr),
+          _Document(
+            permitDocument: permitDocument,
+            onPermitDocumentPickRequested: onPermitDocumentPickRequested,
+            onPermitDocumentCleared: onPermitDocumentCleared,
+            onPermitDocumentValidFromChanged: onPermitDocumentValidFromChanged,
+            onPermitDocumentValidUntilChanged: onPermitDocumentValidUntilChanged,
+          ),
         ],
       ),
     );
   }
+}
 
-  /// The permit document: its own line once one is referenced, its validity window right under it,
-  /// and the action referencing (or replacing) it. A read-only sheet with no document at all shows
-  /// neither — there is nothing to say and nothing to do.
-  Widget _buildDocument(BuildContext context, Tr tr) {
+/// The permit document: its own line once one is referenced, its validity window right under it,
+/// and the action referencing (or replacing) it. A read-only sheet with no document at all shows
+/// neither — there is nothing to say and nothing to do.
+class _Document extends StatelessWidget {
+  /// The referenced permit document, or null while there is none.
+  final OcptAssetRef? permitDocument;
+
+  /// Called when the action referencing (or replacing) the document is clicked, or null while it
+  /// may not be used.
+  final VoidCallback? onPermitDocumentPickRequested;
+
+  /// Called when the document's remove control is clicked, or null while it may not be used.
+  final VoidCallback? onPermitDocumentCleared;
+
+  /// Called with the document's newly picked "valid from" date, or null while it may not be changed.
+  final ValueChanged<DateTime?>? onPermitDocumentValidFromChanged;
+
+  /// Called with the document's newly picked "valid until" date, or null while it may not be
+  /// changed.
+  final ValueChanged<DateTime?>? onPermitDocumentValidUntilChanged;
+
+  /// Class constructor
+  const _Document({
+    required this.permitDocument,
+    required this.onPermitDocumentPickRequested,
+    required this.onPermitDocumentCleared,
+    required this.onPermitDocumentValidFromChanged,
+    required this.onPermitDocumentValidUntilChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final tr = Tr.of(context);
     final permitDocument = this.permitDocument;
     final onPermitDocumentPickRequested = this.onPermitDocumentPickRequested;
 

@@ -183,46 +183,11 @@ class _OcptTransportAutonomyControl extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          _buildOption(context, null, tr.resourcesTransportAutonomyUnknown),
-          _buildOption(context, false, tr.resourcesTransportAutonomyNo),
-          _buildOption(context, true, tr.resourcesTransportAutonomyYes),
+          _Option(control: this, optionValue: null, label: tr.resourcesTransportAutonomyUnknown),
+          _Option(control: this, optionValue: false, label: tr.resourcesTransportAutonomyNo),
+          _Option(control: this, optionValue: true, label: tr.resourcesTransportAutonomyYes),
         ],
       ),
-    );
-  }
-
-  /// Builds one option of the control.
-  Widget _buildOption(BuildContext context, bool? optionValue, String label) {
-    final theme = Theme.of(context);
-    final isSelected = optionValue == value;
-    final onChanged = this.onChanged;
-
-    final pill = Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-      decoration: BoxDecoration(
-        color: isSelected
-            ? theme.colorScheme.primary.withValues(alpha: ocptSelectedStateAlpha)
-            : null,
-        borderRadius: BorderRadius.circular(ocptRadiusSmall),
-      ),
-      child: Text(
-        label,
-        style: theme.textTheme.labelMedium?.copyWith(
-          color: isSelected ? theme.colorScheme.primary : theme.colorScheme.onSurfaceVariant,
-          fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-        ),
-      ),
-    );
-
-    if (onChanged == null) {
-      return pill;
-    }
-
-    return InkWell(
-      onTap: () => onChanged(optionValue),
-      mouseCursor: ocptClickableCursor,
-      borderRadius: BorderRadius.circular(ocptRadiusSmall),
-      child: pill,
     );
   }
 }
@@ -288,6 +253,56 @@ class _OcptMileageRatePicker extends StatelessWidget {
         DropdownMenuItem(child: Text(tr.resourcesMileageRateNoRateOption)),
         for (final rate in mileageRates) DropdownMenuItem(value: rate.id, child: Text(rate.label)),
       ],
+    );
+  }
+}
+
+/// Builds one option of the control.
+class _Option extends StatelessWidget {
+  /// The widget this one belongs to.
+  final _OcptTransportAutonomyControl control;
+
+  /// The value this option picks: true, false, or null for "not asked yet".
+  final bool? optionValue;
+
+  /// The option's label.
+  final String label;
+
+  /// Class constructor
+  const _Option({required this.control, required this.optionValue, required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isSelected = optionValue == control.value;
+    final onChanged = control.onChanged;
+
+    final pill = Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: isSelected
+            ? theme.colorScheme.primary.withValues(alpha: ocptSelectedStateAlpha)
+            : null,
+        borderRadius: BorderRadius.circular(ocptRadiusSmall),
+      ),
+      child: Text(
+        label,
+        style: theme.textTheme.labelMedium?.copyWith(
+          color: isSelected ? theme.colorScheme.primary : theme.colorScheme.onSurfaceVariant,
+          fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+        ),
+      ),
+    );
+
+    if (onChanged == null) {
+      return pill;
+    }
+
+    return InkWell(
+      onTap: () => onChanged(optionValue),
+      mouseCursor: ocptClickableCursor,
+      borderRadius: BorderRadius.circular(ocptRadiusSmall),
+      child: pill,
     );
   }
 }

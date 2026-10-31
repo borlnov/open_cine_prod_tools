@@ -145,9 +145,9 @@ class _OcptPhotoTileState extends State<_OcptPhotoTile> {
                   ? Image.file(
                       File(photo.path),
                       fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) => _buildMissingFile(context),
+                      errorBuilder: (context, error, stackTrace) => const _MissingFile(),
                     )
-                  : _buildMissingFile(context),
+                  : const _MissingFile(),
             ),
             if (onRemoved != null)
               Align(
@@ -168,11 +168,16 @@ class _OcptPhotoTileState extends State<_OcptPhotoTile> {
       ),
     );
   }
+}
 
-  /// What a tile shows in place of a thumbnail when its path resolves to nothing.
-  Widget _buildMissingFile(BuildContext context) {
+/// What a tile shows in place of a thumbnail when its path resolves to nothing.
+class _MissingFile extends StatelessWidget {
+  /// Class constructor
+  const _MissingFile();
+
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
-
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,

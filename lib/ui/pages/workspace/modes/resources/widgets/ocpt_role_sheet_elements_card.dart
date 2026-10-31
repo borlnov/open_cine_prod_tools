@@ -97,7 +97,7 @@ class OcptRoleSheetElementsCard extends StatelessWidget {
             ),
           for (final category in OcptElementCategory.values)
             if (_ofCategory(linked, category) case final rows when rows.isNotEmpty) ...[
-              _buildCategoryHeading(context, tr, category),
+              _CategoryHeading(category: category),
               for (final (element, linkId) in rows) ...[
                 _OcptRoleElementRow(
                   key: ValueKey(linkId),
@@ -111,7 +111,7 @@ class OcptRoleSheetElementsCard extends StatelessWidget {
                 const SizedBox(height: 8),
               ],
             ],
-          if (onElementLinked != null) _buildElementPicker(context, tr, linked),
+          if (onElementLinked != null) _ElementPicker(card: this, linked: linked),
         ],
       ),
     );
@@ -129,82 +129,6 @@ class OcptRoleSheetElementsCard extends StatelessWidget {
   /// The note link [linkId] carries on [element].
   String _notesOf(OcptElement element, String linkId) =>
       element.roleLinks.firstWhere((link) => link.id == linkId).notes;
-
-  /// A category's heading: its own colour, then its localized name — the same colour the breakdown
-  /// mode gives that category, since a category must read the same in every view.
-  Widget _buildCategoryHeading(BuildContext context, Tr tr, OcptElementCategory category) {
-    final theme = Theme.of(context);
-
-    return Padding(
-      padding: const EdgeInsets.only(top: 4, bottom: 6),
-      child: Row(
-        children: [
-          Container(
-            width: _categoryDotSide,
-            height: _categoryDotSide,
-            decoration: BoxDecoration(
-              color: Color(
-                ocptBreakdownColorOf(kind: OcptBreakdownTargetKind.element, category: category),
-              ),
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ),
-          const SizedBox(width: 6),
-          Text(
-            ocptElementCategoryLabel(tr, category).toUpperCase(),
-            style: theme.textTheme.labelSmall?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// The `Element` picker: every element this role is not already linked to, grouped by category
-  /// the way the left dock's own list heads it. Renders nothing at all once there is none left to
-  /// offer.
-  Widget _buildElementPicker(BuildContext context, Tr tr, List<(OcptElement, String)> linked) {
-    final onElementLinked = this.onElementLinked!;
-    final linkedIds = {for (final (element, _) in linked) element.id};
-    final offered = [
-      for (final element in elements)
-        if (!linkedIds.contains(element.id)) element,
-    ];
-
-    if (offered.isEmpty) {
-      return const SizedBox.shrink();
-    }
-
-    return Align(
-      alignment: Alignment.centerLeft,
-      child: PopupMenuButton<String>(
-        tooltip: "",
-        onSelected: onElementLinked,
-        itemBuilder: (context) => [
-          for (final category in OcptElementCategory.values)
-            if (offered.where((element) => element.category == category).toList()
-                case final categoryElements when categoryElements.isNotEmpty) ...[
-              PopupMenuItem<String>(
-                enabled: false,
-                height: 28,
-                child: Text(
-                  ocptElementCategoryLabel(tr, category).toUpperCase(),
-                  style: Theme.of(context).textTheme.labelSmall,
-                ),
-              ),
-              for (final element in categoryElements)
-                PopupMenuItem<String>(value: element.id, child: Text(_elementLabel(element))),
-            ],
-        ],
-        child: Chip(
-          avatar: const Icon(Icons.add, size: 14),
-          label: Text(tr.resourcesAddElementToRoleAction),
-        ),
-      ),
-    );
-  }
 
   /// How an element reads in this card and its picker: its name, prefixed by the code the app
   /// minted for it when it has one.
@@ -357,6 +281,108 @@ class _OcptRoleElementRowState extends State<_OcptRoleElementRow> {
               decoration: const InputDecoration(isDense: true),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// A category's heading: its own colour, then its localized name — the same colour the breakdown
+/// mode gives that category, since a category must read the same in every view.
+class _CategoryHeading extends StatelessWidget {
+  /// The category the heading names.
+  final OcptElementCategory category;
+
+  /// Class constructor
+  const _CategoryHeading({required this.category});
+
+  @override
+  Widget build(BuildContext context) {
+    final tr = Tr.of(context);
+    final theme = Theme.of(context);
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 4, bottom: 6),
+      child: Row(
+        children: [
+          Container(
+            width: _categoryDotSide,
+            height: _categoryDotSide,
+            decoration: BoxDecoration(
+              color: Color(
+                ocptBreakdownColorOf(kind: OcptBreakdownTargetKind.element, category: category),
+              ),
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          const SizedBox(width: 6),
+          Text(
+            ocptElementCategoryLabel(tr, category).toUpperCase(),
+            style: theme.textTheme.labelSmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// The `Element` picker: every element this role is not already linked to, grouped by category
+/// the way the left dock's own list heads it. Renders nothing at all once there is none left to
+/// offer.
+class _ElementPicker extends StatelessWidget {
+  /// The widget this one belongs to.
+  final OcptRoleSheetElementsCard card;
+
+  /// The elements already linked to the role, each with its link id.
+  final List<(OcptElement, String)> linked;
+
+  /// Class constructor
+  const _ElementPicker({required this.card, required this.linked});
+
+  @override
+  Widget build(BuildContext context) {
+    final tr = Tr.of(context);
+    final onElementLinked = card.onElementLinked!;
+    final linkedIds = {for (final (element, _) in linked) element.id};
+    final offered = [
+      for (final element in card.elements)
+        if (!linkedIds.contains(element.id)) element,
+    ];
+
+    if (offered.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: PopupMenuButton<String>(
+        tooltip: "",
+        onSelected: onElementLinked,
+        itemBuilder: (context) => [
+          for (final category in OcptElementCategory.values)
+            if (offered.where((element) => element.category == category).toList()
+                case final categoryElements when categoryElements.isNotEmpty) ...[
+              PopupMenuItem<String>(
+                enabled: false,
+                height: 28,
+                child: Text(
+                  ocptElementCategoryLabel(tr, category).toUpperCase(),
+                  style: Theme.of(context).textTheme.labelSmall,
+                ),
+              ),
+              for (final element in categoryElements)
+                PopupMenuItem<String>(
+                  value: element.id,
+                  child: Text(OcptRoleSheetElementsCard._elementLabel(element)),
+                ),
+            ],
+        ],
+        child: Chip(
+          avatar: const Icon(Icons.add, size: 14),
+          label: Text(tr.resourcesAddElementToRoleAction),
         ),
       ),
     );

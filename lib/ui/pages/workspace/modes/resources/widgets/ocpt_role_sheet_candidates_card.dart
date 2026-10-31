@@ -124,40 +124,8 @@ class OcptRoleSheetCandidatesCard extends StatelessWidget {
             ),
             const SizedBox(height: 8),
           ],
-          if (onCandidateAdded != null) _buildCandidatePicker(context, tr, ordered),
+          if (onCandidateAdded != null) _CandidatePicker(card: this, ordered: ordered),
         ],
-      ),
-    );
-  }
-
-  /// The `Candidate` picker: every address-book entry not already a candidate for this role,
-  /// following `OcptRoleSheetElementsCard._buildElementPicker`'s own shape — including rendering
-  /// nothing at all once there is nobody left to offer.
-  Widget _buildCandidatePicker(BuildContext context, Tr tr, List<OcptRoleCandidate> ordered) {
-    final onCandidateAdded = this.onCandidateAdded!;
-    final candidatePersonIds = {for (final candidate in ordered) candidate.person.id};
-    final offered = [
-      for (final person in people)
-        if (!candidatePersonIds.contains(person.id)) person,
-    ];
-
-    if (offered.isEmpty) {
-      return const SizedBox.shrink();
-    }
-
-    return Align(
-      alignment: Alignment.centerLeft,
-      child: PopupMenuButton<String>(
-        tooltip: "",
-        onSelected: onCandidateAdded,
-        itemBuilder: (context) => [
-          for (final person in offered)
-            PopupMenuItem<String>(value: person.id, child: Text(_personLabel(tr, person))),
-        ],
-        child: Chip(
-          avatar: const Icon(Icons.add, size: 14),
-          label: Text(tr.resourcesAddCandidateToRoleAction),
-        ),
       ),
     );
   }
@@ -278,7 +246,11 @@ class _OcptRoleCandidateRowState extends State<_OcptRoleCandidateRow> {
               _OcptCandidateStatusPill(status: candidate.status),
               if (showsMenu) ...[
                 const SizedBox(width: 2),
-                _buildActionsMenu(context, tr, onStatusChanged, onCandidateRemoveRequested),
+                _ActionsMenu(
+                  candidateId: candidate.id,
+                  onStatusChanged: onStatusChanged,
+                  onCandidateRemoveRequested: onCandidateRemoveRequested,
+                ),
               ],
             ],
           ),
@@ -291,7 +263,10 @@ class _OcptRoleCandidateRowState extends State<_OcptRoleCandidateRow> {
                 : (auditionedOn) => widget.onAuditionDateChanged!(candidate.id, auditionedOn),
           ),
           const SizedBox(height: 8),
-          _buildNoteToggle(context, tr),
+          _NoteToggle(
+            isExpanded: _isNoteExpanded,
+            onToggled: () => setState(() => _isNoteExpanded = !_isNoteExpanded),
+          ),
           if (_isNoteExpanded) ...[
             const SizedBox(height: 4),
             OcptResourcesSheetField(
@@ -304,83 +279,6 @@ class _OcptRoleCandidateRowState extends State<_OcptRoleCandidateRow> {
                   : (value) => widget.onNotesChanged!(candidate.id, value),
             ),
           ],
-        ],
-      ),
-    );
-  }
-
-  /// The row's own `⋮`: the statuses under a heading entry, a divider, then `Remove this
-  /// candidate` — each group withheld on its own when the callback behind it is null.
-  ///
-  /// **Retaining is picking the `Retained` status, and nothing else.** A `Retain`/`Drop` pair sat
-  /// here beside the list and did exactly what its two entries already did — same callback, same
-  /// argument, same transaction — so the menu offered one action twice under two names. The
-  /// consequence retaining carries (the role's previous retained candidacy demoted,
-  /// `roles.personId` written) is the service's, not a second gesture's: it holds however the
-  /// status was picked.
-  Widget _buildActionsMenu(
-    BuildContext context,
-    Tr tr,
-    void Function(String candidateId, OcptRoleCandidateStatus status)? onStatusChanged,
-    ValueChanged<String>? onCandidateRemoveRequested,
-  ) {
-    final candidateId = widget.candidate.id;
-
-    return PopupMenuButton<VoidCallback>(
-      icon: const Icon(Icons.more_vert, size: 16),
-      tooltip: tr.resourcesRoleCandidateActionsTooltip,
-      padding: EdgeInsets.zero,
-      onSelected: (action) => action(),
-      itemBuilder: (context) => [
-        if (onStatusChanged != null) ...[
-          PopupMenuItem<VoidCallback>(
-            enabled: false,
-            height: 28,
-            child: Text(
-              tr.resourcesRoleCandidateStatusMenuLabel,
-              style: Theme.of(context).textTheme.labelSmall,
-            ),
-          ),
-          for (final status in OcptRoleCandidateStatus.values)
-            PopupMenuItem<VoidCallback>(
-              value: () => onStatusChanged(candidateId, status),
-              child: Text(ocptRoleCandidateStatusLabel(tr, status)),
-            ),
-        ],
-        if (onStatusChanged != null && onCandidateRemoveRequested != null) const PopupMenuDivider(),
-        if (onCandidateRemoveRequested != null)
-          PopupMenuItem<VoidCallback>(
-            value: () => onCandidateRemoveRequested(candidateId),
-            child: Text(
-              tr.resourcesRemoveCandidateAction,
-              style: TextStyle(color: Theme.of(context).colorScheme.error),
-            ),
-          ),
-      ],
-    );
-  }
-
-  /// The small toggle row revealing the note field — `▸`/`▾` and the note's own label.
-  Widget _buildNoteToggle(BuildContext context, Tr tr) {
-    final theme = Theme.of(context);
-
-    return InkWell(
-      onTap: () => setState(() => _isNoteExpanded = !_isNoteExpanded),
-      mouseCursor: ocptClickableCursor,
-      borderRadius: BorderRadius.circular(ocptRadiusSmall),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            _isNoteExpanded ? Icons.expand_more : Icons.chevron_right,
-            size: 16,
-            color: theme.colorScheme.onSurfaceVariant,
-          ),
-          const SizedBox(width: 2),
-          Text(
-            tr.resourcesRoleCandidateNotesLabel.toUpperCase(),
-            style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
-          ),
         ],
       ),
     );
@@ -415,6 +313,160 @@ class _OcptCandidateStatusPill extends StatelessWidget {
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
         style: theme.textTheme.labelSmall?.copyWith(color: color, fontWeight: FontWeight.w600),
+      ),
+    );
+  }
+}
+
+/// The `Candidate` picker: every address-book entry not already a candidate for this role,
+/// following `OcptRoleSheetElementsCard._buildElementPicker`'s own shape — including rendering
+/// nothing at all once there is nobody left to offer.
+class _CandidatePicker extends StatelessWidget {
+  /// The widget this one belongs to.
+  final OcptRoleSheetCandidatesCard card;
+
+  /// The role's candidacies, in display order.
+  final List<OcptRoleCandidate> ordered;
+
+  /// Class constructor
+  const _CandidatePicker({required this.card, required this.ordered});
+
+  @override
+  Widget build(BuildContext context) {
+    final tr = Tr.of(context);
+    final onCandidateAdded = card.onCandidateAdded!;
+    final candidatePersonIds = {for (final candidate in ordered) candidate.person.id};
+    final offered = [
+      for (final person in card.people)
+        if (!candidatePersonIds.contains(person.id)) person,
+    ];
+
+    if (offered.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: PopupMenuButton<String>(
+        tooltip: "",
+        onSelected: onCandidateAdded,
+        itemBuilder: (context) => [
+          for (final person in offered)
+            PopupMenuItem<String>(
+              value: person.id,
+              child: Text(OcptRoleSheetCandidatesCard._personLabel(tr, person)),
+            ),
+        ],
+        child: Chip(
+          avatar: const Icon(Icons.add, size: 14),
+          label: Text(tr.resourcesAddCandidateToRoleAction),
+        ),
+      ),
+    );
+  }
+}
+
+/// The row's own `⋮`: the statuses under a heading entry, a divider, then `Remove this
+/// candidate` — each group withheld on its own when the callback behind it is null.
+///
+/// **Retaining is picking the `Retained` status, and nothing else.** A `Retain`/`Drop` pair sat
+/// here beside the list and did exactly what its two entries already did — same callback, same
+/// argument, same transaction — so the menu offered one action twice under two names. The
+/// consequence retaining carries (the role's previous retained candidacy demoted,
+/// `roles.personId` written) is the service's, not a second gesture's: it holds however the
+/// status was picked.
+class _ActionsMenu extends StatelessWidget {
+  /// The id of the candidacy the menu acts on.
+  final String candidateId;
+
+  /// Called with the candidacy and the status picked, or null while it may not be changed.
+  final void Function(String candidateId, OcptRoleCandidateStatus status)? onStatusChanged;
+
+  /// Called with the candidacy to remove, or null while it may not be removed.
+  final ValueChanged<String>? onCandidateRemoveRequested;
+
+  /// Class constructor
+  const _ActionsMenu({
+    required this.candidateId,
+    required this.onStatusChanged,
+    required this.onCandidateRemoveRequested,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final tr = Tr.of(context);
+    final onStatusChanged = this.onStatusChanged;
+    final onCandidateRemoveRequested = this.onCandidateRemoveRequested;
+
+    return PopupMenuButton<VoidCallback>(
+      icon: const Icon(Icons.more_vert, size: 16),
+      tooltip: tr.resourcesRoleCandidateActionsTooltip,
+      padding: EdgeInsets.zero,
+      onSelected: (action) => action(),
+      itemBuilder: (context) => [
+        if (onStatusChanged != null) ...[
+          PopupMenuItem<VoidCallback>(
+            enabled: false,
+            height: 28,
+            child: Text(
+              tr.resourcesRoleCandidateStatusMenuLabel,
+              style: Theme.of(context).textTheme.labelSmall,
+            ),
+          ),
+          for (final status in OcptRoleCandidateStatus.values)
+            PopupMenuItem<VoidCallback>(
+              value: () => onStatusChanged(candidateId, status),
+              child: Text(ocptRoleCandidateStatusLabel(tr, status)),
+            ),
+        ],
+        if (onStatusChanged != null && onCandidateRemoveRequested != null) const PopupMenuDivider(),
+        if (onCandidateRemoveRequested != null)
+          PopupMenuItem<VoidCallback>(
+            value: () => onCandidateRemoveRequested(candidateId),
+            child: Text(
+              tr.resourcesRemoveCandidateAction,
+              style: TextStyle(color: Theme.of(context).colorScheme.error),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+/// The small toggle row revealing the note field — `▸`/`▾` and the note's own label.
+class _NoteToggle extends StatelessWidget {
+  /// Whether the note field is currently shown.
+  final bool isExpanded;
+
+  /// Called when the toggle is clicked.
+  final VoidCallback onToggled;
+
+  /// Class constructor
+  const _NoteToggle({required this.isExpanded, required this.onToggled});
+
+  @override
+  Widget build(BuildContext context) {
+    final tr = Tr.of(context);
+    final theme = Theme.of(context);
+
+    return InkWell(
+      onTap: onToggled,
+      mouseCursor: ocptClickableCursor,
+      borderRadius: BorderRadius.circular(ocptRadiusSmall),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            isExpanded ? Icons.expand_more : Icons.chevron_right,
+            size: 16,
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+          const SizedBox(width: 2),
+          Text(
+            tr.resourcesRoleCandidateNotesLabel.toUpperCase(),
+            style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+          ),
+        ],
       ),
     );
   }

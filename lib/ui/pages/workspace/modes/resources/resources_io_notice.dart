@@ -3,21 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:equatable/equatable.dart';
-
-/// The kind of transient notice [OcptResourcesIoNotice] carries, one per resources export outcome.
-enum OcptResourcesIoNoticeKind {
-  /// The resources catalogue was successfully exported to a four-sheet XLSX workbook.
-  xlsxExportSucceeded,
-
-  /// Exporting the resources catalogue to a four-sheet XLSX workbook failed.
-  xlsxExportFailed,
-
-  /// The contact list was successfully exported to a PDF.
-  contactListExportSucceeded,
-
-  /// Exporting the contact list to a PDF failed.
-  contactListExportFailed,
-}
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/resources_io_notice_kind.dart';
 
 /// A transient notice, produced by `OcptResourcesExportBloc`, reporting the outcome of an export, shown
 /// as a SnackBar then dismissed. Modelled on `OcptShotListIoNotice`.

@@ -297,7 +297,11 @@ class OcptLocationSheet extends StatelessWidget {
             onOpenInShotListRequested: onOpenSetInShotListRequested,
           ),
           const SizedBox(height: 12),
-          _buildLogisticsRow(context, tr),
+          _LogisticsRow(
+            location: location,
+            fieldValueOf: fieldValueOf,
+            onFieldChanged: isReadOnly ? null : onFieldChanged,
+          ),
           const SizedBox(height: 12),
           OcptLocationSheetAvailabilitiesCard(
             availabilities: location.availabilities,
@@ -306,7 +310,11 @@ class OcptLocationSheet extends StatelessWidget {
             onAdded: isReadOnly ? null : onAvailabilityAdded,
           ),
           const SizedBox(height: 12),
-          _buildConstraintsCallout(context, tr),
+          _ConstraintsCallout(
+            location: location,
+            fieldValueOf: fieldValueOf,
+            onFieldChanged: isReadOnly ? null : onFieldChanged,
+          ),
           const SizedBox(height: 12),
           OcptLocationSheetPhotosCard(
             photos: location.photos,
@@ -316,7 +324,12 @@ class OcptLocationSheet extends StatelessWidget {
           const SizedBox(height: 12),
           OcptResourcesSheetCard(
             title: tr.resourcesNotesTitle,
-            child: _buildNotesField(OcptLocationField.notes, null),
+            child: _NotesField(
+              location: location,
+              field: OcptLocationField.notes,
+              fieldValueOf: fieldValueOf,
+              onFieldChanged: isReadOnly ? null : onFieldChanged,
+            ),
           ),
           if (!isReadOnly) ...[
             const SizedBox(height: 20),
@@ -329,41 +342,101 @@ class OcptLocationSheet extends StatelessWidget {
       ),
     );
   }
+}
 
-  /// The row of the three logistics cards: parking, power, facilities.
-  Widget _buildLogisticsRow(BuildContext context, Tr tr) => Row(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      Expanded(
-        child: OcptResourcesSheetCard(
-          title: tr.resourcesLocationParkingTitle,
-          child: _buildNotesField(OcptLocationField.parkingNotes, tr.resourcesLocationParkingHint),
-        ),
-      ),
-      const SizedBox(width: 12),
-      Expanded(
-        child: OcptResourcesSheetCard(
-          title: tr.resourcesLocationPowerTitle,
-          child: _buildNotesField(OcptLocationField.powerNotes, tr.resourcesLocationPowerHint),
-        ),
-      ),
-      const SizedBox(width: 12),
-      Expanded(
-        child: OcptResourcesSheetCard(
-          title: tr.resourcesLocationFacilitiesTitle,
-          child: _buildNotesField(
-            OcptLocationField.facilitiesNotes,
-            tr.resourcesLocationFacilitiesHint,
+/// The row of the three logistics cards: parking, power, facilities.
+class _LogisticsRow extends StatelessWidget {
+  /// The location the cards belong to.
+  final OcptLocation location;
+
+  /// [location]'s current value for `field`.
+  final String Function(OcptLocationField field) fieldValueOf;
+
+  /// Called with a field's raw text on every keystroke, or null while the sheet may not be written
+  /// to.
+  final void Function(OcptLocationField field, String rawValue)? onFieldChanged;
+
+  /// Class constructor
+  const _LogisticsRow({
+    required this.location,
+    required this.fieldValueOf,
+    required this.onFieldChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final tr = Tr.of(context);
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: OcptResourcesSheetCard(
+            title: tr.resourcesLocationParkingTitle,
+            child: _NotesField(
+              location: location,
+              field: OcptLocationField.parkingNotes,
+              hintText: tr.resourcesLocationParkingHint,
+              fieldValueOf: fieldValueOf,
+              onFieldChanged: onFieldChanged,
+            ),
           ),
         ),
-      ),
-    ],
-  );
+        const SizedBox(width: 12),
+        Expanded(
+          child: OcptResourcesSheetCard(
+            title: tr.resourcesLocationPowerTitle,
+            child: _NotesField(
+              location: location,
+              field: OcptLocationField.powerNotes,
+              hintText: tr.resourcesLocationPowerHint,
+              fieldValueOf: fieldValueOf,
+              onFieldChanged: onFieldChanged,
+            ),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: OcptResourcesSheetCard(
+            title: tr.resourcesLocationFacilitiesTitle,
+            child: _NotesField(
+              location: location,
+              field: OcptLocationField.facilitiesNotes,
+              hintText: tr.resourcesLocationFacilitiesHint,
+              fieldValueOf: fieldValueOf,
+              onFieldChanged: onFieldChanged,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
 
-  /// The warning-tinted callout holding what the neighbours and the town hall will tolerate, built
-  /// exactly as the person sheet's own legal-hours callout is.
-  Widget _buildConstraintsCallout(BuildContext context, Tr tr) {
+/// The warning-tinted callout holding what the neighbours and the town hall will tolerate, built
+/// exactly as the person sheet's own legal-hours callout is.
+class _ConstraintsCallout extends StatelessWidget {
+  /// The location the callout belongs to.
+  final OcptLocation location;
+
+  /// [location]'s current value for `field`.
+  final String Function(OcptLocationField field) fieldValueOf;
+
+  /// Called with a field's raw text on every keystroke, or null while the sheet may not be written
+  /// to.
+  final void Function(OcptLocationField field, String rawValue)? onFieldChanged;
+
+  /// Class constructor
+  const _ConstraintsCallout({
+    required this.location,
+    required this.fieldValueOf,
+    required this.onFieldChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final tr = Tr.of(context);
     final color = ocptWarningColor(context);
 
     return Container(
@@ -382,19 +455,57 @@ class OcptLocationSheet extends StatelessWidget {
             style: theme.textTheme.labelLarge?.copyWith(color: color, fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: 6),
-          _buildNotesField(OcptLocationField.constraintsNotes, tr.resourcesLocationConstraintsHint),
+          _NotesField(
+            location: location,
+            field: OcptLocationField.constraintsNotes,
+            hintText: tr.resourcesLocationConstraintsHint,
+            fieldValueOf: fieldValueOf,
+            onFieldChanged: onFieldChanged,
+          ),
         ],
       ),
     );
   }
+}
 
-  /// One multi-line field of the sheet, writing [field] and hinted with [hintText].
-  Widget _buildNotesField(OcptLocationField field, String? hintText) => OcptResourcesSheetField(
-    ownerId: location.id,
-    label: "",
-    value: fieldValueOf(field),
-    multiline: true,
-    hintText: hintText,
-    onChanged: isReadOnly ? null : (value) => onFieldChanged(field, value),
-  );
+/// One multi-line field of the sheet, writing [field] and hinted with [hintText].
+class _NotesField extends StatelessWidget {
+  /// The location the field belongs to.
+  final OcptLocation location;
+
+  /// The field this one writes.
+  final OcptLocationField field;
+
+  /// The hint shown while the field is empty, or null for none.
+  final String? hintText;
+
+  /// [location]'s current value for [field].
+  final String Function(OcptLocationField field) fieldValueOf;
+
+  /// Called with a field's raw text on every keystroke, or null while the sheet may not be written
+  /// to.
+  final void Function(OcptLocationField field, String rawValue)? onFieldChanged;
+
+  /// Class constructor
+  const _NotesField({
+    required this.location,
+    required this.field,
+    required this.fieldValueOf,
+    required this.onFieldChanged,
+    this.hintText,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final onFieldChanged = this.onFieldChanged;
+
+    return OcptResourcesSheetField(
+      ownerId: location.id,
+      label: "",
+      value: fieldValueOf(field),
+      multiline: true,
+      hintText: hintText,
+      onChanged: onFieldChanged == null ? null : (value) => onFieldChanged(field, value),
+    );
+  }
 }
