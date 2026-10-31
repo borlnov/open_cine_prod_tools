@@ -695,7 +695,10 @@ class OcptShotListStoryboardBloc
     }
 
     try {
-      await _writeAllPendingEdits(project: project, pending: pending);
+      await flushEditsWithoutState(
+        pending,
+        (edits) => _writeAllPendingEdits(project: project, pending: edits),
+      );
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to flush a pending storyboard edit of project "

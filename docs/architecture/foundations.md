@@ -151,6 +151,13 @@ the persistence, the project versions, the sync-ready data model and the read-on
     the database still holds. A new mode copies whichever of the two its old handlers did, and a
     view that wants the action to go on catches its failure itself. The other modes' hooks answer
     true, unchanged.
+  - **A stateless flush is written once.** The flush without state leaves the pending map full, as
+    it cannot emit, so the close that follows it would write the same edits again: two
+    transactions and two row stamps, which sync sees as two changes. A view writes through
+    `flushEditsWithoutState`, which hands its callback only the entries not already written with
+    the same value; an edit changed in between, a write that failed, and every edit once the mode
+    read its data again or flushed the view with state, are written again. The old shot list wrote
+    twice here too; the old schedule did not flush at close at all.
   - **What flushes is each mode's own.** The shot list flushes on every selection move; the
     schedule flushes on none (a day or block selection, a centre view switch, going back) and only
     ahead of a dock tab change, a version preview, a package export and an export. The flush sites

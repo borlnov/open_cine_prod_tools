@@ -315,7 +315,10 @@ class OcptShotListInspectorBloc
     }
 
     try {
-      await _writeAllPendingFields(project: project, pending: pending);
+      await flushEditsWithoutState(
+        pending,
+        (edits) => _writeAllPendingFields(project: project, pending: edits),
+      );
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to flush a pending shot list field edit of project "

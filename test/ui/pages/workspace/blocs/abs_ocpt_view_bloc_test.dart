@@ -209,6 +209,9 @@ class _ViewBloc extends AbsOcptViewBloc<_ViewState, _ModeState, _ModeBloc> {
   /// Whether writing the typed text fails, as a full disk would.
   bool failsToWrite = false;
 
+  /// Whether writing the typed text without state fails.
+  bool failsToWriteWithoutState = false;
+
   /// Class constructor
   _ViewBloc({required super.modeBloc, required this.sink}) : super(const _ViewState());
 
@@ -272,7 +275,12 @@ class _ViewBloc extends AbsOcptViewBloc<_ViewState, _ModeState, _ModeBloc> {
   @override
   Future<void> flushPendingWritesWithoutState() async {
     if (state.pending.isNotEmpty) {
-      sink.add("${state.pending} (without state)");
+      await flushEditsWithoutState({"text": state.pending}, (edits) async {
+        if (failsToWriteWithoutState) {
+          throw StateError("write failed");
+        }
+        sink.add("${edits["text"]} (without state)");
+      });
     }
   }
 }
@@ -455,6 +463,75 @@ void main() {
     await closing;
 
     await mode.close();
+  });
+
+  group('an edit written without state', () {
+    test('is not written again when the view closes', () async {
+      final sink = <String>[];
+      final mode = _ModeBloc();
+      final view = _ViewBloc(modeBloc: mode, sink: sink);
+      view.add(const _TypeEvent("hello"));
+      await pumpEventQueue();
+
+      await mode.flushViewsWithoutState();
+      expect(sink, ['hello (without state)']);
+
+      await view.close();
+      expect(sink, ['hello (without state)'], reason: 'one edit, one write');
+
+      await mode.close();
+    });
+
+    test('is written again when the text changed since', () async {
+      final sink = <String>[];
+      final mode = _ModeBloc();
+      final view = _ViewBloc(modeBloc: mode, sink: sink);
+      view.add(const _TypeEvent("hello"));
+      await pumpEventQueue();
+      await mode.flushViewsWithoutState();
+
+      view.add(const _TypeEvent("world"));
+      await pumpEventQueue();
+      await view.close();
+
+      expect(sink, ['hello (without state)', 'world (without state)']);
+
+      await mode.close();
+    });
+
+    test('is written again once the mode read its data again', () async {
+      final sink = <String>[];
+      final mode = _ModeBloc();
+      final view = _ViewBloc(modeBloc: mode, sink: sink);
+      view.add(const _TypeEvent("hello"));
+      await pumpEventQueue();
+      await mode.flushViewsWithoutState();
+
+      await mode.reload({_Scope.data});
+      await pumpEventQueue();
+      await view.close();
+
+      expect(sink, ['hello (without state)', 'hello (without state)']);
+
+      await mode.close();
+    });
+
+    test('is written again when the first write failed', () async {
+      final sink = <String>[];
+      final mode = _ModeBloc();
+      final view = _ViewBloc(modeBloc: mode, sink: sink);
+      view.add(const _TypeEvent("hello"));
+      await pumpEventQueue();
+      view.failsToWriteWithoutState = true;
+      await expectLater(mode.flushViewsWithoutState(), throwsStateError);
+
+      view.failsToWriteWithoutState = false;
+      await view.close();
+
+      expect(sink, ['hello (without state)']);
+
+      await mode.close();
+    });
   });
 
   test('a view stops reacting once closed, and the mode keeps working', () async {

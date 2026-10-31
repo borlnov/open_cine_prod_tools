@@ -6,6 +6,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:act_file_transfer_manager/act_file_transfer_manager.dart';
+import 'package:act_test_utility/act_test_utility.dart';
 import 'package:drift/drift.dart' show Value;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/managers/export/ocpt_export_manager.dart';
@@ -13,6 +14,8 @@ import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_schedule_service.dart';
+import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/ocpt_schedule_snapshot.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_schedule_centre_view.dart';
@@ -46,6 +49,38 @@ class _RecordingRouterManager extends OcptRouterManager {
     if (!_popCompleter.isCompleted) {
       _popCompleter.complete();
     }
+  }
+}
+
+/// The fixed device id [_CountingScheduleService] stamps its writes with.
+Future<String> _testDeviceId() async => "test-device";
+
+/// A schedule service that records every slot write it is asked for, then makes it.
+class _CountingScheduleService extends OcptScheduleService {
+  /// The label of each slot write, in the order they were made.
+  final List<String?> slotLabelWrites = [];
+
+  /// Class constructor
+  _CountingScheduleService() : super(logger: const SilentLogger(), deviceId: _testDeviceId);
+
+  @override
+  Future<void> updateSlot({
+    required OcptProjectDatabase database,
+    required String slotId,
+    Value<String> label = const Value.absent(),
+    Value<String?> locationId = const Value.absent(),
+    Value<String?> setId = const Value.absent(),
+    Value<String> notes = const Value.absent(),
+  }) {
+    slotLabelWrites.add(label.present ? label.value : null);
+    return super.updateSlot(
+      database: database,
+      slotId: slotId,
+      label: label,
+      locationId: locationId,
+      setId: setId,
+      notes: notes,
+    );
   }
 }
 
@@ -422,6 +457,57 @@ void main() {
 
       await dayBloc.close();
       await bloc.close();
+    });
+
+    test(
+      "an edit written when the widget leaves is not written again when the bloc closes",
+      () async {
+        final fixture = await writePlacedShot();
+        final bloc = buildBloc();
+        final service = _CountingScheduleService();
+        final dayBloc = OcptScheduleDayBloc(
+          modeBloc: bloc,
+          projectsManager: projectsManager,
+          scheduleService: service,
+          fieldEditDebounce: _neverDebounce,
+        );
+        await waitForState(bloc, (state) => !state.isLoading);
+        typeSlotLabel(dayBloc, fixture.slotId, "Cave");
+        await waitForDayState(dayBloc, (state) => state.pendingFieldEdits.isNotEmpty);
+
+        await bloc.flushPendingFieldEdits();
+        expect(service.slotLabelWrites, ["Cave"]);
+        expect(dayBloc.state.pendingFieldEdits, isNotEmpty, reason: "nothing could be emitted");
+
+        await dayBloc.close();
+        await bloc.close();
+
+        expect(service.slotLabelWrites, ["Cave"], reason: "one edit, one write, one row stamp");
+      },
+    );
+
+    test("an edit changed after the widget left is written again when the bloc closes", () async {
+      final fixture = await writePlacedShot();
+      final bloc = buildBloc();
+      final service = _CountingScheduleService();
+      final dayBloc = OcptScheduleDayBloc(
+        modeBloc: bloc,
+        projectsManager: projectsManager,
+        scheduleService: service,
+        fieldEditDebounce: _neverDebounce,
+      );
+      await waitForState(bloc, (state) => !state.isLoading);
+      typeSlotLabel(dayBloc, fixture.slotId, "Cave");
+      await waitForDayState(dayBloc, (state) => state.pendingFieldEdits.isNotEmpty);
+      await bloc.flushPendingFieldEdits();
+
+      typeSlotLabel(dayBloc, fixture.slotId, "Forest");
+      await waitForDayState(dayBloc, (state) => state.pendingFieldEdits.values.contains("Forest"));
+      await dayBloc.close();
+      await bloc.close();
+
+      expect(service.slotLabelWrites, ["Cave", "Forest"]);
+      expect((await readSchedule()).slotsByDayId[fixture.dayId]!.single.label, "Forest");
     });
 
     test("flushing with nothing pending reads nothing", () async {

@@ -745,7 +745,10 @@ class OcptScheduleDayBloc
     }
 
     try {
-      await _writeAllPendingFieldEdits(project, edits);
+      await flushEditsWithoutState(
+        edits,
+        (unwritten) => _writeAllPendingFieldEdits(project, unwritten),
+      );
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to flush a pending schedule field edit of project "

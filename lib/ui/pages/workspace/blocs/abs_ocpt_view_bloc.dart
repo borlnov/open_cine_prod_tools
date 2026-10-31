@@ -53,6 +53,9 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_view_events.d
 ///   of your own), and after a write forget only what was written, read at emit time:
 ///   `ocptPendingEditsAfterWrite`. Emitting an empty map loses the keystroke typed during the
 ///   write.
+/// - Write [flushPendingWritesWithoutState] through [flushEditsWithoutState], never straight from
+///   the pending map: the widget leaving the tree and the bloc closing both run it, and the same
+///   edit would reach the database, and sync, twice.
 /// - Ask the mode for anything through [addToMode], never `modeBloc.add`, and check [isClosing],
 ///   never `isClosed`, before an `add` made from a timer or after an `await`: both are safe on a
 ///   bloc that is closing.
@@ -99,6 +102,10 @@ abstract class AbsOcptViewBloc<
   /// The running debounce timer, if any, see [restartDebounce].
   Timer? _debounceTimer;
 
+  /// The edits [flushEditsWithoutState] wrote, by key, until the data they were written into may
+  /// have changed under them.
+  final Map<Object?, Object?> _editsWrittenWithoutState = {};
+
   /// Class constructor
   ///
   /// The mode's epochs are read from its current state rather than waited for: a state stream does
@@ -132,6 +139,7 @@ abstract class AbsOcptViewBloc<
 
     _lastReloadEpoch = modeState.reloadEpoch;
     _lastSelectionEpoch = modeState.selectionEpoch;
+    _editsWrittenWithoutState.clear();
 
     if (isClosing) {
       return;
@@ -270,14 +278,44 @@ abstract class AbsOcptViewBloc<
     return await OcptViewFlushRequestedEvent().addToAndWait(this) ?? false;
   }
 
-  /// Nothing by default: a view with no typed edits holds nothing.
+  /// Nothing by default: a view with no typed edits holds nothing. A view that does writes through
+  /// [flushEditsWithoutState].
   @override
   Future<void> flushPendingWritesWithoutState() async {}
+
+  /// Writes, through [write], the entries of [pending] that an earlier call did not already write
+  /// with the same value, and remembers them. For a view's [flushPendingWritesWithoutState].
+  ///
+  /// That flush leaves the pending map as it is, since it cannot emit: the widget leaving the tree
+  /// runs it, then the bloc closing runs it again, and without this the same edit is written twice,
+  /// two transactions and two row stamps that sync sees as two changes. A value typed since is a
+  /// different value and is written again. So is every edit once the mode has read its data again
+  /// or flushed this view with state, since the database may have changed under what was
+  /// remembered. [write] throwing remembers nothing, so the next call retries.
+  @protected
+  Future<void> flushEditsWithoutState<K, V>(
+    Map<K, V> pending,
+    Future<void> Function(Map<K, V> edits) write,
+  ) async {
+    final unwritten = {
+      for (final entry in pending.entries)
+        if (!_editsWrittenWithoutState.containsKey(entry.key) ||
+            _editsWrittenWithoutState[entry.key] != entry.value)
+          entry.key: entry.value,
+    };
+    if (unwritten.isEmpty) {
+      return;
+    }
+
+    await write(unwritten);
+    _editsWrittenWithoutState.addAll(unwritten);
+  }
 
   /// Writes what the view holds, then tells the dispatcher what it found, or that it failed: the
   /// error goes to the dispatcher, which must not take a failed write for an empty one, and to
   /// this bloc's own error report.
   Future<void> _onFlushRequested(OcptViewFlushRequestedEvent event, Emitter<S> emitter) async {
+    _editsWrittenWithoutState.clear();
     try {
       event.complete(await onFlushRequested(emitter));
     } catch (error, stackTrace) {
