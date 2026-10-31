@@ -3,54 +3,11 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:drift/drift.dart';
+import 'package:open_cine_prod_tools/models/database/converters/ocpt_element_category_converter.dart';
+import 'package:open_cine_prod_tools/models/database/converters/ocpt_element_source_kind_converter.dart';
+import 'package:open_cine_prod_tools/models/database/converters/ocpt_element_status_converter.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_assets_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_people_table.dart';
-import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
-import 'package:open_cine_prod_tools/types/ocpt_element_source_kind.dart';
-import 'package:open_cine_prod_tools/types/ocpt_element_status.dart';
-
-/// Converts a [OcptElementCategory] to and from the text stored in the `elements.category` column.
-class OcptElementCategoryConverter extends TypeConverter<OcptElementCategory, String> {
-  /// Class constructor
-  const OcptElementCategoryConverter();
-
-  /// {@macro drift.TypeConverter.fromSql}
-  @override
-  OcptElementCategory fromSql(String fromDb) => OcptElementCategory.values.byName(fromDb);
-
-  /// {@macro drift.TypeConverter.toSql}
-  @override
-  String toSql(OcptElementCategory value) => value.name;
-}
-
-/// Converts a [OcptElementSourceKind] to and from the text stored in the `elements.sourceKind`
-/// column.
-class OcptElementSourceKindConverter extends TypeConverter<OcptElementSourceKind, String> {
-  /// Class constructor
-  const OcptElementSourceKindConverter();
-
-  /// {@macro drift.TypeConverter.fromSql}
-  @override
-  OcptElementSourceKind fromSql(String fromDb) => OcptElementSourceKind.values.byName(fromDb);
-
-  /// {@macro drift.TypeConverter.toSql}
-  @override
-  String toSql(OcptElementSourceKind value) => value.name;
-}
-
-/// Converts a [OcptElementStatus] to and from the text stored in the `elements.status` column.
-class OcptElementStatusConverter extends TypeConverter<OcptElementStatus, String> {
-  /// Class constructor
-  const OcptElementStatusConverter();
-
-  /// {@macro drift.TypeConverter.fromSql}
-  @override
-  OcptElementStatus fromSql(String fromDb) => OcptElementStatus.values.byName(fromDb);
-
-  /// {@macro drift.TypeConverter.toSql}
-  @override
-  String toSql(OcptElementStatus value) => value.name;
-}
 
 /// Anything that must be present on a given shooting day and is not a person: props, set dressing,
 /// costumes, vehicles, animals, special equipment, generators, even a block of extras.

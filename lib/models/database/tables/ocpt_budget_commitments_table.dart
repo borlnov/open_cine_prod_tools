@@ -3,26 +3,10 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:drift/drift.dart';
+import 'package:open_cine_prod_tools/models/database/converters/ocpt_budget_commitment_status_converter.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_budget_lines_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_budget_postes_table.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_commitment_status.dart';
-
-/// Converts a [OcptBudgetCommitmentStatus] to and from the text stored in the
-/// `budget_commitments.status` column.
-class OcptBudgetCommitmentStatusConverter
-    extends TypeConverter<OcptBudgetCommitmentStatus, String> {
-  /// Class constructor
-  const OcptBudgetCommitmentStatusConverter();
-
-  /// {@macro drift.TypeConverter.fromSql}
-  @override
-  OcptBudgetCommitmentStatus fromSql(String fromDb) =>
-      OcptBudgetCommitmentStatus.values.byName(fromDb);
-
-  /// {@macro drift.TypeConverter.toSql}
-  @override
-  String toSql(OcptBudgetCommitmentStatus value) => value.name;
-}
 
 /// Money committed to a poste but not yet paid: a quote accepted, a contract signed, an invoice
 /// received or a spend declared — [OcptBudgetCommitmentStatus] — that has not yet become a

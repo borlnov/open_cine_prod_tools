@@ -4,27 +4,10 @@
 
 import 'package:drift/drift.dart';
 import 'package:open_cine_prod_tools/models/database/converters/ocpt_day_part_slot_converter.dart';
+import 'package:open_cine_prod_tools/models/database/converters/ocpt_location_availability_kind_converter.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_locations_table.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_weekday_mask.dart';
 import 'package:open_cine_prod_tools/types/ocpt_day_part_slot.dart';
-import 'package:open_cine_prod_tools/types/ocpt_location_availability_kind.dart';
-
-/// Converts an [OcptLocationAvailabilityKind] to and from the text stored in the
-/// `location_availabilities.kind` column.
-class OcptLocationAvailabilityKindConverter
-    extends TypeConverter<OcptLocationAvailabilityKind, String> {
-  /// Class constructor
-  const OcptLocationAvailabilityKindConverter();
-
-  /// {@macro drift.TypeConverter.fromSql}
-  @override
-  OcptLocationAvailabilityKind fromSql(String fromDb) =>
-      OcptLocationAvailabilityKind.values.byName(fromDb);
-
-  /// {@macro drift.TypeConverter.toSql}
-  @override
-  String toSql(OcptLocationAvailabilityKind value) => value.name;
-}
 
 /// A window during which a location may be shot in, with what qualifies it.
 ///

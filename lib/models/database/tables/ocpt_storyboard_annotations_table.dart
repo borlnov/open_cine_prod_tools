@@ -3,25 +3,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:drift/drift.dart';
+import 'package:open_cine_prod_tools/models/database/converters/ocpt_storyboard_annotation_kind_converter.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_storyboard_panels_table.dart';
-import 'package:open_cine_prod_tools/types/ocpt_storyboard_annotation_kind.dart';
-
-/// Converts a [OcptStoryboardAnnotationKind] to and from the text stored in the
-/// `storyboard_annotations.kind` column.
-class OcptStoryboardAnnotationKindConverter
-    extends TypeConverter<OcptStoryboardAnnotationKind, String> {
-  /// Class constructor
-  const OcptStoryboardAnnotationKindConverter();
-
-  /// {@macro drift.TypeConverter.fromSql}
-  @override
-  OcptStoryboardAnnotationKind fromSql(String fromDb) =>
-      OcptStoryboardAnnotationKind.values.byName(fromDb);
-
-  /// {@macro drift.TypeConverter.toSql}
-  @override
-  String toSql(OcptStoryboardAnnotationKind value) => value.name;
-}
 
 /// One mark drawn over a storyboard panel's frame: a movement arrow, a camera-move arrow or a
 /// short text label — the fixed vocabulary the storyboard's light annotation layer is limited to,

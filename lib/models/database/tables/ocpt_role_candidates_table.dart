@@ -3,24 +3,10 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:drift/drift.dart';
+import 'package:open_cine_prod_tools/models/database/converters/ocpt_role_candidate_status_converter.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_people_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_roles_table.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_candidate_status.dart';
-
-/// Converts a [OcptRoleCandidateStatus] to and from the text stored in the
-/// `role_candidates.status` column.
-class OcptRoleCandidateStatusConverter extends TypeConverter<OcptRoleCandidateStatus, String> {
-  /// Class constructor
-  const OcptRoleCandidateStatusConverter();
-
-  /// {@macro drift.TypeConverter.fromSql}
-  @override
-  OcptRoleCandidateStatus fromSql(String fromDb) => OcptRoleCandidateStatus.values.byName(fromDb);
-
-  /// {@macro drift.TypeConverter.toSql}
-  @override
-  String toSql(OcptRoleCandidateStatus value) => value.name;
-}
 
 /// One person seen for one part, and what the casting decision is being made on.
 ///

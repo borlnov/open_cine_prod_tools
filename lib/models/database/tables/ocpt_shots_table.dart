@@ -3,39 +3,11 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:drift/drift.dart';
+import 'package:open_cine_prod_tools/models/database/converters/ocpt_shot_check_reason_converter.dart';
+import 'package:open_cine_prod_tools/models/database/converters/ocpt_shot_status_converter.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_scenes_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_screenplays_table.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_check_reason.dart';
-import 'package:open_cine_prod_tools/types/ocpt_shot_status.dart';
-
-/// Converts a [OcptShotStatus] to and from the text stored in the `shots.status` column.
-class OcptShotStatusConverter extends TypeConverter<OcptShotStatus, String> {
-  /// Class constructor
-  const OcptShotStatusConverter();
-
-  /// {@macro drift.TypeConverter.fromSql}
-  @override
-  OcptShotStatus fromSql(String fromDb) => OcptShotStatus.values.byName(fromDb);
-
-  /// {@macro drift.TypeConverter.toSql}
-  @override
-  String toSql(OcptShotStatus value) => value.name;
-}
-
-/// Converts a [OcptShotCheckReason] to and from the text stored in the `shots.checkReason`
-/// column.
-class OcptShotCheckReasonConverter extends TypeConverter<OcptShotCheckReason, String> {
-  /// Class constructor
-  const OcptShotCheckReasonConverter();
-
-  /// {@macro drift.TypeConverter.fromSql}
-  @override
-  OcptShotCheckReason fromSql(String fromDb) => OcptShotCheckReason.values.byName(fromDb);
-
-  /// {@macro drift.TypeConverter.toSql}
-  @override
-  String toSql(OcptShotCheckReason value) => value.name;
-}
 
 /// A single shot of a screenplay's shot list (découpage technique).
 ///

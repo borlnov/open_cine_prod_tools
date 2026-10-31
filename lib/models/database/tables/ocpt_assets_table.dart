@@ -3,25 +3,11 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:drift/drift.dart';
+import 'package:open_cine_prod_tools/models/database/converters/ocpt_asset_kind_converter.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_budget_entries_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_elements_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_locations_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_people_table.dart';
-import 'package:open_cine_prod_tools/types/ocpt_asset_kind.dart';
-
-/// Converts a [OcptAssetKind] to and from the text stored in the `assets.kind` column.
-class OcptAssetKindConverter extends TypeConverter<OcptAssetKind, String> {
-  /// Class constructor
-  const OcptAssetKindConverter();
-
-  /// {@macro drift.TypeConverter.fromSql}
-  @override
-  OcptAssetKind fromSql(String fromDb) => OcptAssetKind.values.byName(fromDb);
-
-  /// {@macro drift.TypeConverter.toSql}
-  @override
-  String toSql(OcptAssetKind value) => value.name;
-}
 
 /// A binary file the resources mode refers to — a headshot, a scouting photo, a signed release —
 /// **by path, never by embedding it**: see `docs/adr/0013-binary-assets-referenced-by-path.md` for

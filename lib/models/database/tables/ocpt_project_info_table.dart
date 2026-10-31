@@ -3,8 +3,9 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:drift/drift.dart';
+import 'package:open_cine_prod_tools/models/database/converters/ocpt_page_format_converter.dart';
+import 'package:open_cine_prod_tools/models/database/converters/ocpt_screenplay_language_converter.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_project_versions_table.dart';
-import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 import 'package:open_cine_prod_tools/types/ocpt_screenplay_language.dart';
 
 /// The currency a project counts in until somebody says otherwise: the column's own SQL default,
@@ -15,36 +16,6 @@ import 'package:open_cine_prod_tools/types/ocpt_screenplay_language.dart';
 /// `defaultValue` verbatim into the generated table class, and a static inherited from the table it
 /// generates against cannot be named unqualified there.
 const String ocptDefaultCurrencyCode = 'EUR';
-
-/// Converts a [OcptPageFormat] to and from the text stored in the `project_info.pageFormat`
-/// column.
-class OcptPageFormatConverter extends TypeConverter<OcptPageFormat, String> {
-  /// Class constructor
-  const OcptPageFormatConverter();
-
-  /// {@macro drift.TypeConverter.fromSql}
-  @override
-  OcptPageFormat fromSql(String fromDb) => OcptPageFormat.values.byName(fromDb);
-
-  /// {@macro drift.TypeConverter.toSql}
-  @override
-  String toSql(OcptPageFormat value) => value.name;
-}
-
-/// Converts a [OcptScreenplayLanguage] to and from the text stored in the
-/// `project_info.screenplayLanguage` column.
-class OcptScreenplayLanguageConverter extends TypeConverter<OcptScreenplayLanguage, String> {
-  /// Class constructor
-  const OcptScreenplayLanguageConverter();
-
-  /// {@macro drift.TypeConverter.fromSql}
-  @override
-  OcptScreenplayLanguage fromSql(String fromDb) => OcptScreenplayLanguage.values.byName(fromDb);
-
-  /// {@macro drift.TypeConverter.toSql}
-  @override
-  String toSql(OcptScreenplayLanguage value) => value.name;
-}
 
 /// The single-row table holding the project-wide metadata of an Open Cine Prod Tools project.
 ///

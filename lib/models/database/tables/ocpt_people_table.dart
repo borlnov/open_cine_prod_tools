@@ -3,24 +3,9 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:drift/drift.dart';
+import 'package:open_cine_prod_tools/models/database/converters/ocpt_image_rights_status_converter.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_assets_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_budget_mileage_rates_table.dart';
-import 'package:open_cine_prod_tools/types/ocpt_image_rights_status.dart';
-
-/// Converts a [OcptImageRightsStatus] to and from the text stored in the
-/// `people.imageRightsStatus` column.
-class OcptImageRightsStatusConverter extends TypeConverter<OcptImageRightsStatus, String> {
-  /// Class constructor
-  const OcptImageRightsStatusConverter();
-
-  /// {@macro drift.TypeConverter.fromSql}
-  @override
-  OcptImageRightsStatus fromSql(String fromDb) => OcptImageRightsStatus.values.byName(fromDb);
-
-  /// {@macro drift.TypeConverter.toSql}
-  @override
-  String toSql(OcptImageRightsStatus value) => value.name;
-}
 
 /// The address book: one row per human involved in the production, whatever they do on it.
 ///

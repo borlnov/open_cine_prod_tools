@@ -3,25 +3,10 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:drift/drift.dart';
+import 'package:open_cine_prod_tools/models/database/converters/ocpt_floor_plan_arrow_kind_converter.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_floor_plan_sets_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_floor_plan_symbols_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_shots_table.dart';
-import 'package:open_cine_prod_tools/types/ocpt_floor_plan_arrow_kind.dart';
-
-/// Converts a [OcptFloorPlanArrowKind] to and from the text stored in the
-/// `floor_plan_arrows.kind` column.
-class OcptFloorPlanArrowKindConverter extends TypeConverter<OcptFloorPlanArrowKind, String> {
-  /// Class constructor
-  const OcptFloorPlanArrowKindConverter();
-
-  /// {@macro drift.TypeConverter.fromSql}
-  @override
-  OcptFloorPlanArrowKind fromSql(String fromDb) => OcptFloorPlanArrowKind.values.byName(fromDb);
-
-  /// {@macro drift.TypeConverter.toSql}
-  @override
-  String toSql(OcptFloorPlanArrowKind value) => value.name;
-}
 
 /// A movement or camera-move arrow drawn between two symbols of the same floor plan set.
 ///
