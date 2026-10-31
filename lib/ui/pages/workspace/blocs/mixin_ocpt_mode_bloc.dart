@@ -58,6 +58,25 @@ mixin MixinOcptModeBloc<S extends MixinOcptModeState<S>, Scope extends Enum> on 
     return () => _flushers.remove(flusher);
   }
 
+  /// Whether this bloc is closing or closed, from which point `add` throws.
+  ///
+  /// `isClosed` is not enough: it stays false until every handler still running has finished, a
+  /// window in which the event queue is already shut and `add` already throws.
+  bool get isClosing => _isClosing || isClosed;
+
+  /// Adds [event] to this bloc, or does nothing if it is closing ([isClosing]).
+  ///
+  /// What a view bloc, a timer or a continuation after an `await` uses to ask the mode for
+  /// something: by the time it runs, the mode may have started to close, and a plain `add` would
+  /// throw there.
+  void addUnlessClosing(BlocEventForMixin event) {
+    if (isClosing) {
+      return;
+    }
+
+    add(event);
+  }
+
   /// How many flushers are registered, so a test can tell that every view bloc of a mode was built
   /// without any widget having read it.
   @visibleForTesting

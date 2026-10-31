@@ -2,6 +2,8 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+import 'dart:async';
+
 import 'package:act_flutter_utility/act_flutter_utility.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -42,8 +44,14 @@ class _ModeEvent extends BlocEventForMixin {
   /// Whether the event moves the selection epoch.
   final bool isSelection;
 
+  /// A gate the handler waits on before it moves anything, or null.
+  final Completer<void>? gate;
+
   /// Class constructor
-  const _ModeEvent({required this.isSelection});
+  const _ModeEvent({required this.isSelection}) : gate = null;
+
+  /// An event whose handler waits for [gate], keeping the mode busy.
+  const _ModeEvent.waiting(Completer<void> this.gate) : isSelection = false;
 
   @override
   List<Object?> get props => [...super.props, isSelection];
@@ -76,13 +84,14 @@ class _ModeBloc extends BlocForMixin<_ModeState> with MixinOcptModeBloc<_ModeSta
       (event, emitter) =>
           emitter(_ModeState(reloadEpoch: event.reloadEpoch, selectionEpoch: event.selectionEpoch)),
     );
-    on<_ModeEvent>(
-      (event, emitter) => emitter(
+    on<_ModeEvent>((event, emitter) async {
+      await event.gate?.future;
+      emitter(
         event.isSelection
             ? state.copyWith(selectionEpoch: state.selectionEpoch + 1)
             : state.copyWith(reloadEpoch: state.reloadEpoch + 1),
-      ),
-    );
+      );
+    });
   }
 
   @override
@@ -102,18 +111,48 @@ class _ViewState extends BlocStateForMixin<_ViewState> {
   /// The reactions to the mode so far, as "reload", "selection" or "both".
   final List<String> reactions;
 
+  /// How many times the debounce fired.
+  final int debounceCount;
+
   /// The text typed and not written yet, or empty.
   final String pending;
 
   /// Class constructor
-  const _ViewState({this.reactions = const [], this.pending = ""});
+  const _ViewState({this.reactions = const [], this.pending = "", this.debounceCount = 0});
 
   @override
-  _ViewState copyWith({List<String>? reactions, String? pending}) =>
-      _ViewState(reactions: reactions ?? this.reactions, pending: pending ?? this.pending);
+  _ViewState copyWith({List<String>? reactions, String? pending, int? debounceCount}) => _ViewState(
+    reactions: reactions ?? this.reactions,
+    pending: pending ?? this.pending,
+    debounceCount: debounceCount ?? this.debounceCount,
+  );
 
   @override
-  List<Object?> get props => [...super.props, reactions, pending];
+  List<Object?> get props => [...super.props, reactions, pending, debounceCount];
+}
+
+/// Types text into the double view and starts its debounce.
+class _TypeAndDebounceEvent extends BlocEventForMixin {
+  /// The text typed.
+  final String text;
+
+  /// Class constructor
+  const _TypeAndDebounceEvent(this.text);
+
+  @override
+  List<Object?> get props => [...super.props, text];
+}
+
+/// Fired by the double view's debounce.
+class _DebounceFiredEvent extends BlocEventForMixin {
+  /// Class constructor
+  const _DebounceFiredEvent();
+}
+
+/// Asks the double view to ask its mode for an event.
+class _AskModeEvent extends BlocEventForMixin {
+  /// Class constructor
+  const _AskModeEvent();
 }
 
 /// Types text into the double view.
@@ -140,6 +179,14 @@ class _ViewBloc extends AbsOcptViewBloc<_ViewState, _ModeState, _ModeBloc> {
   void registerMixinEvents() {
     super.registerMixinEvents();
     on<_TypeEvent>((event, emitter) => emitter(state.copyWith(pending: event.text)));
+    on<_TypeAndDebounceEvent>((event, emitter) {
+      emitter(state.copyWith(pending: event.text));
+      restartDebounce(const Duration(milliseconds: 20), const _DebounceFiredEvent());
+    });
+    on<_DebounceFiredEvent>(
+      (event, emitter) => emitter(state.copyWith(debounceCount: state.debounceCount + 1)),
+    );
+    on<_AskModeEvent>((event, emitter) => addToMode(const _ModeEvent(isSelection: false)));
   }
 
   @override
@@ -358,5 +405,52 @@ void main() {
 
     await view.close();
     await mode.close();
+  });
+
+  test(
+    'the view debounce fires once after the last call, and not at all once the view closes',
+    () async {
+      final mode = _ModeBloc();
+      final view = _ViewBloc(modeBloc: mode, sink: []);
+
+      view.add(const _TypeAndDebounceEvent("a"));
+      view.add(const _TypeAndDebounceEvent("ab"));
+      await Future<void>.delayed(const Duration(milliseconds: 80));
+      expect(view.state.debounceCount, 1);
+
+      view.add(const _TypeAndDebounceEvent("abc"));
+      await pumpEventQueue();
+      final closing = view.close();
+      await Future<void>.delayed(const Duration(milliseconds: 80));
+      await closing;
+      expect(view.state.debounceCount, 1, reason: 'a closing view does not hear its own timer');
+
+      await mode.close();
+    },
+  );
+
+  test('asking a mode that is closing for something does nothing instead of throwing', () async {
+    final mode = _ModeBloc();
+    final view = _ViewBloc(modeBloc: mode, sink: []);
+
+    view.add(const _AskModeEvent());
+    await pumpEventQueue();
+    expect(mode.state.reloadEpoch, 1, reason: 'an open mode is asked');
+
+    // The mode's event queue is shut while a handler of it is still running.
+    final gate = Completer<void>();
+    mode.add(_ModeEvent.waiting(gate));
+    await pumpEventQueue();
+    final closing = mode.close();
+    await pumpEventQueue();
+    expect(mode.isClosing, isTrue);
+    expect(() => mode.add(const _ModeEvent(isSelection: false)), throwsStateError);
+
+    view.add(const _AskModeEvent());
+    await pumpEventQueue();
+
+    gate.complete();
+    await closing;
+    await view.close();
   });
 }

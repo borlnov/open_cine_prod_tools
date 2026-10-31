@@ -62,6 +62,9 @@ abstract class AbsOcptViewBloc<
   /// Whether [close] was called.
   bool _isClosing = false;
 
+  /// The running debounce timer, if any, see [restartDebounce].
+  Timer? _debounceTimer;
+
   /// Class constructor
   ///
   /// The mode's epochs are read from its current state rather than waited for: a state stream does
@@ -96,7 +99,7 @@ abstract class AbsOcptViewBloc<
     _lastReloadEpoch = modeState.reloadEpoch;
     _lastSelectionEpoch = modeState.selectionEpoch;
 
-    if (isClosed) {
+    if (isClosing) {
       return;
     }
 
@@ -107,6 +110,48 @@ abstract class AbsOcptViewBloc<
         hasSelectionMoved: hasSelectionMoved,
       ),
     );
+  }
+
+  /// Whether this view is closing or closed, from which point `add` throws: `isClosed` stays false
+  /// until every handler still running has finished, a window in which the event queue is already
+  /// shut. Check this, not `isClosed`, before an `add` made from a timer or after an `await`.
+  @protected
+  bool get isClosing => _isClosing || isClosed;
+
+  /// Asks the mode bloc for [event], or does nothing if the mode is closing. The only way a view
+  /// should add an event to its mode: the mode may start to close while this view's handler is
+  /// still waiting on it, and a plain `modeBloc.add` would throw then.
+  @protected
+  void addToMode(BlocEventForMixin event) => modeBloc.addUnlessClosing(event);
+
+  /// (Re)starts the view's debounce: after [delay] without another call, [event] is added to this
+  /// view, unless the view started to close meanwhile. A view that holds typed edits calls this on
+  /// every keystroke, and its handler for [event] writes them.
+  ///
+  /// The timer belongs to the base class: it is cancelled when the view closes, and never adds to a
+  /// closing view, so a subclass has no timer of its own to get wrong.
+  @protected
+  void restartDebounce(Duration delay, BlocEventForMixin event) {
+    _debounceTimer?.cancel();
+    _debounceTimer = null;
+    if (isClosing) {
+      return;
+    }
+
+    _debounceTimer = Timer(delay, () {
+      _debounceTimer = null;
+      if (!isClosing) {
+        add(event);
+      }
+    });
+  }
+
+  /// Cancels the debounce started by [restartDebounce], if it is running. A flush calls this first:
+  /// what it writes is what the timer was waiting to write.
+  @protected
+  void cancelDebounce() {
+    _debounceTimer?.cancel();
+    _debounceTimer = null;
   }
 
   /// Reacts to the mode's shared state having moved: clears what was scoped to the previous
@@ -156,6 +201,7 @@ abstract class AbsOcptViewBloc<
   @override
   Future<void> close() {
     _isClosing = true;
+    cancelDebounce();
     return super.close();
   }
 

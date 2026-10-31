@@ -1072,7 +1072,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
 
     _fieldEditTimer?.cancel();
     _fieldEditTimer = Timer(_fieldEditDebounce, () {
-      if (!isClosed) {
+      if (!isClosing) {
         add(const OcptShotListFieldEditFlushRequestedEvent());
       }
     });
@@ -1104,7 +1104,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
   /// Asks for a fresh read of the working-copy card if the `Versions` tab is the one showing.
   void _requestWorkingCopyRefreshIfVersionsOpen() {
     if (state.rightDockTab == OcptShotListRightDockTab.versions) {
-      add(const OcptProjectWorkingCopyRefreshRequestedEvent());
+      addUnlessClosing(const OcptProjectWorkingCopyRefreshRequestedEvent());
     }
   }
 

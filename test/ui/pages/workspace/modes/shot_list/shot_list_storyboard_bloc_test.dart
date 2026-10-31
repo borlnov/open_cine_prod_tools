@@ -1303,6 +1303,30 @@ void main() {
       await closeAll(mounted.board, mode);
     });
 
+    test("a flush finishing after the mode started closing asks it for nothing", () async {
+      final service = _HoldingStoryboardService(projectsManager.storyboardService);
+      final mounted = await mountWithAPanel(storyboardService: service);
+      final mode = mounted.mode;
+      final board = mounted.board;
+
+      // With the Versions tab open, a landed flush asks the mode to refresh its working copy.
+      mode.add(const OcptShotListRightDockTabSelectedEvent(tab: OcptShotListRightDockTab.versions));
+      await waitUntil(() => mode.state.rightDockTab == OcptShotListRightDockTab.versions);
+
+      // The debounce fires, the comment is written, and the read that follows is held.
+      service.heldReads = 1;
+      board.add(OcptShotListPanelCommentChangedEvent(panelId: mounted.panelId, rawValue: "Late"));
+      await waitUntil(() => service.holdCount == 1);
+
+      // The mode starts closing while the board still waits for that read.
+      final closing = mode.close();
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+      service.release();
+      await closing.timeout(const Duration(seconds: 5));
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+      await board.close();
+    });
+
     test("a failing comment write raises the write error and forgets the comment", () async {
       await writeScreenplay(twoSceneText);
       final mounted = await mountWithAPanel(fieldEditDebounce: const Duration(days: 1));

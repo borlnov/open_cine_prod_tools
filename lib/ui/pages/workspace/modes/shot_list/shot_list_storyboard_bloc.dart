@@ -72,9 +72,6 @@ class OcptShotListStoryboardBloc
   /// The delay between the last comment edit and its autosave write.
   final Duration _fieldEditDebounce;
 
-  /// The running field-edit debounce timer, if any.
-  Timer? _fieldEditTimer;
-
   /// Class constructor
   ///
   /// Every dependency but [modeBloc] can be overridden, which is what the tests do; in the app they
@@ -170,8 +167,7 @@ class OcptShotListStoryboardBloc
           },
         );
       if (pending.isEmpty) {
-        _fieldEditTimer?.cancel();
-        _fieldEditTimer = null;
+        cancelDebounce();
       }
     }
 
@@ -596,12 +592,7 @@ class OcptShotListStoryboardBloc
       ..[key] = rawValue;
     emitter(state.copyWith(pendingFieldEdits: pending));
 
-    _fieldEditTimer?.cancel();
-    _fieldEditTimer = Timer(_fieldEditDebounce, () {
-      if (!isClosed) {
-        add(const OcptShotListStoryboardFieldEditFlushRequestedEvent());
-      }
-    });
+    restartDebounce(_fieldEditDebounce, const OcptShotListStoryboardFieldEditFlushRequestedEvent());
   }
 
   /// Writes every pending edit once the debounce elapses with no further typing.
@@ -615,7 +606,7 @@ class OcptShotListStoryboardBloc
     final hasWritten = await onFlushRequested(emitter);
 
     if (hasWritten && modeBloc.state.rightDockTab == OcptShotListRightDockTab.versions) {
-      modeBloc.add(const OcptProjectWorkingCopyRefreshRequestedEvent());
+      addToMode(const OcptProjectWorkingCopyRefreshRequestedEvent());
     }
   }
 
@@ -628,8 +619,7 @@ class OcptShotListStoryboardBloc
   /// to be up to date.
   @override
   Future<bool> onFlushRequested(Emitter<OcptShotListStoryboardState> emitter) async {
-    _fieldEditTimer?.cancel();
-    _fieldEditTimer = null;
+    cancelDebounce();
 
     final pending = state.pendingFieldEdits;
     if (pending.isEmpty) {
@@ -679,8 +669,7 @@ class OcptShotListStoryboardBloc
   /// tree, this bloc closing). A failure is only logged.
   @override
   Future<void> flushPendingWritesWithoutState() async {
-    _fieldEditTimer?.cancel();
-    _fieldEditTimer = null;
+    cancelDebounce();
 
     final pending = state.pendingFieldEdits;
     if (pending.isEmpty) {
