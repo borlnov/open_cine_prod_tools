@@ -865,6 +865,8 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
           rightDockTab: OcptShotListRightDockTab.inspector,
           lastRightDockTab: OcptShotListRightDockTab.inspector,
           forcePendingCoverageAnchorValue: true,
+          selectionEpoch: state.selectionEpoch + 1,
+          selectionCause: OcptShotListSelectionCause.shotCreated,
         ),
       );
     } catch (error, stackTrace) {
@@ -1514,7 +1516,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
           forcePendingFloorPlanArrowAnchorSymbolIdValue: wasSelected,
           reloadEpoch: state.reloadEpoch + 1,
           selectionEpoch: wasSelected ? state.selectionEpoch + 1 : null,
-          selectionCause: wasSelected ? OcptShotListSelectionCause.shot : null,
+          selectionCause: wasSelected ? OcptShotListSelectionCause.shotDeleted : null,
         ),
       );
     } catch (error, stackTrace) {
@@ -1905,6 +1907,8 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
           forceSelectedFloorPlanSymbolIdValue: true,
           forceSelectedFloorPlanArrowIdValue: true,
           forcePendingFloorPlanArrowAnchorSymbolIdValue: true,
+          selectionEpoch: state.selectionEpoch + 1,
+          selectionCause: OcptShotListSelectionCause.setAdded,
         ),
       );
     } catch (error, stackTrace) {
@@ -1952,6 +1956,8 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
           forceSelectedFloorPlanSymbolIdValue: true,
           forceSelectedFloorPlanArrowIdValue: true,
           forcePendingFloorPlanArrowAnchorSymbolIdValue: true,
+          selectionEpoch: state.selectionEpoch + 1,
+          selectionCause: OcptShotListSelectionCause.setAdded,
         ),
       );
     } catch (error, stackTrace) {
@@ -2022,6 +2028,8 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
           forceSelectedFloorPlanSymbolIdValue: wasSelected,
           forceSelectedFloorPlanArrowIdValue: wasSelected,
           forcePendingFloorPlanArrowAnchorSymbolIdValue: wasSelected,
+          selectionEpoch: wasSelected ? state.selectionEpoch + 1 : null,
+          selectionCause: wasSelected ? OcptShotListSelectionCause.setRemoved : null,
         ),
       );
     } catch (error, stackTrace) {
@@ -2075,6 +2083,8 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
           forceSelectedFloorPlanSymbolIdValue: true,
           forceSelectedFloorPlanArrowIdValue: true,
           forcePendingFloorPlanArrowAnchorSymbolIdValue: true,
+          selectionEpoch: state.selectionEpoch + 1,
+          selectionCause: OcptShotListSelectionCause.setAdded,
         ),
       );
     } catch (error, stackTrace) {

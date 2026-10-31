@@ -960,6 +960,24 @@ void main() {
       await closeAll(board, mode);
     });
 
+    test("creating a shot, which selects it, leaves the board's panel selection alone", () async {
+      final mounted = await mountWithAPanel();
+      final mode = mounted.mode;
+      final board = mounted.board;
+      expect(board.state.selectedPanelId, mounted.panelId);
+      final epoch = mode.state.selectionEpoch;
+
+      mode.add(const OcptShotListShotCreationRequestedEvent());
+      await waitUntil(() => mode.state.totalShotCount == 2);
+      await pumpEventQueue();
+
+      expect(mode.state.selectionEpoch, epoch + 1);
+      expect(mode.state.selectionCause, OcptShotListSelectionCause.shotCreated);
+      expect(board.state.selectedPanelId, mounted.panelId);
+
+      await closeAll(board, mode);
+    });
+
     test("a write waits for the mode to hold the row before the board selects it", () async {
       await writeScreenplay(twoSceneText);
       final mode = buildBloc();

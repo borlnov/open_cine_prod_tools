@@ -133,9 +133,15 @@ class OcptShotListStoryboardBloc
         switch (event.modeState.selectionCause) {
           OcptShotListSelectionCause.sequence ||
           OcptShotListSelectionCause.shot ||
+          OcptShotListSelectionCause.shotDeleted ||
           OcptShotListSelectionCause.load => true,
+          // Creating a shot selects it without clearing the panel selection: the board has always
+          // behaved so, and it is kept as it is.
+          OcptShotListSelectionCause.shotCreated ||
           OcptShotListSelectionCause.sequenceReselected ||
           OcptShotListSelectionCause.set ||
+          OcptShotListSelectionCause.setAdded ||
+          OcptShotListSelectionCause.setRemoved ||
           OcptShotListSelectionCause.none => false,
         };
 

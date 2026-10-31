@@ -500,6 +500,12 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
   /// so it needs no force flag. [selectedSequenceId], [selectedShotId], [rightDockTab] and [pendingCoverageAnchor] all legitimately go back to null while the mode is
   /// alive (nothing selected any more, the dock closed, no range being drawn), so each has its own
   /// force flag instead.
+  ///
+  /// **[reloadEpoch] moves by itself** whenever a copy replaces any of the data read from the
+  /// project database ([snapshot], [storyboardSnapshot], [floorPlanSnapshot], [locations],
+  /// [setScopeSymbolsBySetId], [suggestions], [roles], [pageSetup]), so no handler can read the
+  /// data again and forget to tell the views. An explicit [reloadEpoch] wins, for an emit that
+  /// moves it without replacing anything.
   @override
   OcptShotListState copyWith({
     bool? isLoading,
@@ -648,7 +654,20 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
     pendingCoverageAnchor:
         pendingCoverageAnchor ??
         (forcePendingCoverageAnchorValue ? null : this.pendingCoverageAnchor),
-    reloadEpoch: reloadEpoch ?? this.reloadEpoch,
+    reloadEpoch:
+        reloadEpoch ??
+        (_isDataReplacedBy(
+              snapshot: snapshot,
+              storyboardSnapshot: storyboardSnapshot,
+              floorPlanSnapshot: floorPlanSnapshot,
+              locations: locations,
+              setScopeSymbolsBySetId: setScopeSymbolsBySetId,
+              suggestions: suggestions,
+              roles: roles,
+              pageSetup: pageSetup,
+            )
+            ? this.reloadEpoch + 1
+            : this.reloadEpoch),
     selectionEpoch: selectionEpoch ?? this.selectionEpoch,
     selectionCause: selectionCause ?? this.selectionCause,
     projectVersions: projectVersions ?? this.projectVersions,
@@ -672,6 +691,27 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
     projectPackageNotice:
         projectPackageNotice ?? (forceProjectPackageNoticeValue ? null : this.projectPackageNotice),
   );
+
+  /// Whether any of the given pieces of data read from the project database is a new value, i.e.
+  /// whether a copy made with them re-reads the data (see [copyWith]).
+  static bool _isDataReplacedBy({
+    required Object? snapshot,
+    required Object? storyboardSnapshot,
+    required Object? floorPlanSnapshot,
+    required Object? locations,
+    required Object? setScopeSymbolsBySetId,
+    required Object? suggestions,
+    required Object? roles,
+    required Object? pageSetup,
+  }) =>
+      snapshot != null ||
+      storyboardSnapshot != null ||
+      floorPlanSnapshot != null ||
+      locations != null ||
+      setScopeSymbolsBySetId != null ||
+      suggestions != null ||
+      roles != null ||
+      pageSetup != null;
 
   /// {@macro open_cine_prod_tools.MixinOcptProjectVersionsState.copyProjectVersionsState}
   @override

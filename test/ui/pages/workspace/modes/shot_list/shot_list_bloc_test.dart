@@ -366,7 +366,7 @@ void main() {
         var state = await waitForState(bloc, (state) => state.totalShotCount == 1);
         final shotId = state.selectedShotId!;
         final epoch = state.selectionEpoch;
-        expect(epoch, 1, reason: 'creating a shot selects it without telling the views');
+        expect(epoch, 2, reason: 'the load, then the creation selecting the new shot');
 
         bloc.add(OcptShotListShotSelectedEvent(shotId: shotId));
         state = await waitForState(bloc, (state) => state.selectionEpoch == epoch + 1);
@@ -393,6 +393,102 @@ void main() {
       state = await waitForState(bloc, (state) => state.selectionEpoch == epoch + 1);
 
       expect(state.selectionCause, OcptShotListSelectionCause.set);
+
+      await bloc.close();
+    });
+
+    test("creating a shot moves both epochs, the selection with its own cause", () async {
+      await writeScreenplay(twoSceneText);
+      final bloc = buildBloc();
+      var state = await waitForState(bloc, (state) => !state.isLoading);
+      final selectionEpoch = state.selectionEpoch;
+      final reloadEpoch = state.reloadEpoch;
+
+      bloc.add(const OcptShotListShotCreationRequestedEvent());
+      state = await waitForState(bloc, (state) => state.totalShotCount == 1);
+
+      expect(state.selectionEpoch, selectionEpoch + 1);
+      expect(state.selectionCause, OcptShotListSelectionCause.shotCreated);
+      expect(state.reloadEpoch, reloadEpoch + 1);
+
+      await bloc.close();
+    });
+
+    test("a write that reads the shot list again moves the reload epoch alone", () async {
+      await writeScreenplay(twoSceneText);
+      final bloc = buildBloc();
+      await waitForState(bloc, (state) => !state.isLoading);
+      bloc.add(const OcptShotListShotCreationRequestedEvent());
+      var state = await waitForState(bloc, (state) => state.totalShotCount == 1);
+      final shotId = state.selectedShotId!;
+      final selectionEpoch = state.selectionEpoch;
+      final reloadEpoch = state.reloadEpoch;
+
+      bloc.add(
+        OcptShotListShotDifficultyChangedEvent(
+          shotId: shotId,
+          axis: OcptShotDifficultyAxis.sound,
+          value: 4,
+        ),
+      );
+      state = await waitForState(
+        bloc,
+        (state) => state.snapshot!.shotsById[shotId]!.difficultySound == 4,
+      );
+
+      expect(state.reloadEpoch, reloadEpoch + 1);
+      expect(state.selectionEpoch, selectionEpoch);
+
+      await bloc.close();
+    });
+
+    test("every way a set becomes the selected one moves the selection epoch", () async {
+      await writeScreenplay(twoSceneText);
+      final bloc = buildBloc();
+      var state = await waitForState(bloc, (state) => !state.isLoading);
+
+      // Created.
+      var epoch = state.selectionEpoch;
+      var reloadEpoch = state.reloadEpoch;
+      bloc.add(const OcptShotListSetCreationRequestedEvent());
+      state = await waitForState(bloc, (state) => state.setsOfSelectedSequence.length == 1);
+      final firstSetId = state.selectedSetId!;
+      expect(state.selectionEpoch, epoch + 1, reason: 'created');
+      expect(state.reloadEpoch, reloadEpoch + 1, reason: 'created');
+      expect(state.selectionCause, OcptShotListSelectionCause.setAdded, reason: 'created');
+
+      // Linked, from the second sequence.
+      bloc.add(OcptShotListSequenceSelectedEvent(sequenceId: state.sequences[1].id));
+      state = await waitForState(
+        bloc,
+        (state) => state.selectedSequenceId == state.sequences[1].id,
+      );
+      epoch = state.selectionEpoch;
+      reloadEpoch = state.reloadEpoch;
+      bloc.add(OcptShotListSetLinkRequestedEvent(setId: firstSetId));
+      state = await waitForState(bloc, (state) => state.setsOfSelectedSequence.isNotEmpty);
+      expect(state.selectionEpoch, epoch + 1, reason: 'linked');
+      expect(state.reloadEpoch, reloadEpoch + 1, reason: 'linked');
+      expect(state.selectionCause, OcptShotListSelectionCause.setAdded, reason: 'linked');
+
+      // Duplicated.
+      epoch = state.selectionEpoch;
+      reloadEpoch = state.reloadEpoch;
+      bloc.add(OcptShotListSetDuplicationRequestedEvent(setId: firstSetId, newSetName: "Copy"));
+      state = await waitForState(bloc, (state) => state.setsOfSelectedSequence.length == 2);
+      final copyId = state.selectedSetId!;
+      expect(state.selectionEpoch, epoch + 1, reason: 'duplicated');
+      expect(state.reloadEpoch, reloadEpoch + 1, reason: 'duplicated');
+      expect(state.selectionCause, OcptShotListSelectionCause.setAdded, reason: 'duplicated');
+
+      // Unlinked while selected: the sequence's next set is selected.
+      epoch = state.selectionEpoch;
+      reloadEpoch = state.reloadEpoch;
+      bloc.add(OcptShotListSetDeletionRequestedEvent(setId: copyId));
+      state = await waitForState(bloc, (state) => state.setsOfSelectedSequence.length == 1);
+      expect(state.selectionEpoch, epoch + 1, reason: 'unlinked');
+      expect(state.reloadEpoch, reloadEpoch + 1, reason: 'unlinked');
+      expect(state.selectionCause, OcptShotListSelectionCause.setRemoved, reason: 'unlinked');
 
       await bloc.close();
     });
@@ -477,7 +573,7 @@ void main() {
         state = await waitForState(bloc, (state) => state.totalShotCount == 0);
         expect(state.reloadEpoch, reloadEpoch + 2);
         expect(state.selectionEpoch, selectionEpoch + 1);
-        expect(state.selectionCause, OcptShotListSelectionCause.shot);
+        expect(state.selectionCause, OcptShotListSelectionCause.shotDeleted);
 
         await bloc.close();
       },

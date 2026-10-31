@@ -6,7 +6,8 @@
 ///
 /// The epoch alone says the selection was touched; the views need to know how, because they clear
 /// different things for different gestures — selecting the sequence already selected keeps the
-/// selected panel, selecting the shot already selected does not.
+/// selected panel, selecting the shot already selected does not. Every emit that changes the
+/// selection carries one of these, so a new way to move it needs a value of its own.
 enum OcptShotListSelectionCause {
   /// Nothing has moved the selection yet.
   none,
@@ -20,8 +21,22 @@ enum OcptShotListSelectionCause {
   /// A shot was selected, whether or not it already was the selected one.
   shot,
 
+  /// A shot was created at the end of the selected sequence and selected.
+  shotCreated,
+
+  /// The selected shot was deleted, and the selection fell back to the sequence's first shot (or
+  /// to none).
+  shotDeleted,
+
   /// A set was selected.
   set,
+
+  /// A set was created, linked or duplicated into the selected sequence, and selected.
+  setAdded,
+
+  /// The selected set was unlinked from the selected sequence, and the selection fell back to the
+  /// sequence's first set (or to none).
+  setRemoved,
 
   /// The mode read everything again and picked its selection afresh: on entry, or when a version
   /// preview was entered or left.
