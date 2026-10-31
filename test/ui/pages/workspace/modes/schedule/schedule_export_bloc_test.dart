@@ -31,9 +31,11 @@ import 'package:open_cine_prod_tools/models/ocpt_sides_export_options.dart';
 import 'package:open_cine_prod_tools/models/ocpt_sides_labels.dart';
 import 'package:open_cine_prod_tools/types/ocpt_export_outcome.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
+import 'package:open_cine_prod_tools/types/ocpt_schedule_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_sides_presentation.dart';
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/schedule_bloc.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/schedule_day_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/schedule_event.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/schedule_export_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/schedule_export_state.dart';
@@ -544,7 +546,7 @@ void main() {
 
   /// Writes a one-scene screenplay, creates a shot in it, a shooting day with its default slot,
   /// and places the shot on that slot — the fixture every selection test below shares.
-  Future<({String shotId, String dayId, String blockId})> writePlacedShot() async {
+  Future<({String shotId, String dayId, String slotId, String blockId})> writePlacedShot() async {
     await writeScreenplay("INT. HOUSE - DAY\n\nAction one.\n");
     final project = projectsManager.currentProject!;
     final sceneId = (await (project.database.select(
@@ -574,7 +576,7 @@ void main() {
     );
     expect(blockId, isNotNull);
 
-    return (shotId: shotId, dayId: dayId!, blockId: blockId!);
+    return (shotId: shotId, dayId: dayId!, slotId: slotId, blockId: blockId!);
   }
 
   /// Builds a bloc wired to the test project, defaulting [exportManager] to a
@@ -1436,6 +1438,55 @@ void main() {
       }
 
       await exportBloc.close();
+      await bloc.close();
+    });
+
+    test("an export writes what is pending first, so the plan it prints holds it", () async {
+      final fixture = await writePlacedShot();
+      final exportManager = _FakeScheduleExportManager(
+        generalCallSheetsResult: const OcptCallSheetExportResult(
+          folderPath: "/tmp/sheets",
+          writtenFileNames: ["a.pdf"],
+          failedFileNames: [],
+        ),
+      );
+      final bloc = buildBloc();
+      final dayBloc = OcptScheduleDayBloc(
+        modeBloc: bloc,
+        projectsManager: projectsManager,
+        fieldEditDebounce: const Duration(days: 1),
+      );
+      await waitForState(bloc, (state) => !state.isLoading);
+      final exportBloc = buildExportBloc(bloc, exportManager: exportManager);
+      dayBloc.add(
+        OcptScheduleFieldChangedEvent(
+          targetId: fixture.slotId,
+          field: OcptScheduleField.slotLabel,
+          rawValue: "Cave",
+        ),
+      );
+      await dayBloc.stream.first;
+
+      exportBloc.add(
+        OcptScheduleCallSheetsExportRequestedEvent(
+          options: OcptCallSheetExportOptions(
+            format: OcptPageFormat.a4,
+            margins: const FountainPageMargins.standard(),
+            dayIds: [fixture.dayId],
+          ),
+          labels: _callSheetLabels,
+          confirmButtonText: "Choose",
+        ),
+      );
+      await waitForExportState(exportBloc, (state) => state.ioNotice != null);
+
+      expect(
+        exportManager.lastGeneralPlan?.schedule.slotsByDayId[fixture.dayId]?.single.label,
+        "Cave",
+      );
+
+      await exportBloc.close();
+      await dayBloc.close();
       await bloc.close();
     });
 

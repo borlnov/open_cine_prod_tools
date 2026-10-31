@@ -33,7 +33,6 @@ import 'package:open_cine_prod_tools/types/ocpt_project_version_notice_kind.dart
 import 'package:open_cine_prod_tools/types/ocpt_schedule_agenda_color_mode.dart';
 import 'package:open_cine_prod_tools/types/ocpt_schedule_agenda_mode.dart';
 import 'package:open_cine_prod_tools/types/ocpt_schedule_centre_view.dart';
-import 'package:open_cine_prod_tools/types/ocpt_schedule_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_schedule_right_dock_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_schedule_selection_cause.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
@@ -45,17 +44,11 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_d
 
 export 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/schedule_unplaced_group.dart';
 
-/// The key [OcptScheduleState.pendingFieldEdits] is stored under: which entity, and which of its
-/// own [OcptScheduleField]s.
-typedef OcptSchedulePendingFieldKey = (String targetId, OcptScheduleField field);
-
 /// The state of `OcptScheduleBloc`.
 ///
-/// [pendingFieldEdits] is the schedule mode's own single pending-edit map, over every free-text
-/// field of every entity the mode edits text on — see `OcptScheduleField`'s own doc comment for
-/// why one flat map rather than one per entity. [selectedShotId] writes nothing to the project
-/// database on its own: it is a selection, exactly like [selectedBlockId] beside it, only ever
-/// naming which shot's own read-out the inspector currently shows.
+/// [selectedShotId] writes nothing to the project database on its own: it is a selection, exactly
+/// like [selectedBlockId] beside it, only ever naming which shot's own read-out the inspector
+/// currently shows. The free-text edits typed and not yet written belong to `OcptScheduleDayBloc`.
 class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
     with
         MixinOcptProjectVersionsState<OcptScheduleState>,
@@ -151,11 +144,6 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
   /// with [selectedBlockId] (see `OcptScheduleBlockSelectedEvent`/`OcptScheduleShotSelectedEvent`'s
   /// own doc comments).
   final String? selectedShotId;
-
-  /// Every free-text field still sitting in the field-edit debounce, keyed by which entity and
-  /// which of its own fields. [fieldValueOf] is what a field reads instead of its own stored value
-  /// while an edit is pending here.
-  final Map<OcptSchedulePendingFieldKey, String> pendingFieldEdits;
 
   /// The left (days) dock's width, as a fraction of the mode's content row width. Persisted
   /// through `OcptPropertiesManager.scheduleLeftDockFraction`.
@@ -459,11 +447,6 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
   /// Delegates to [planSnapshot].
   OcptLocation? firstLocationOfDay(String dayId) => planSnapshot?.firstLocationOfDay(dayId);
 
-  /// [targetId]'s current value for `field` — a pending edit still sitting in [pendingFieldEdits],
-  /// or [storedValue] (the entity's own value, read off the call site) otherwise.
-  String fieldValueOf(String targetId, OcptScheduleField field, String storedValue) =>
-      pendingFieldEdits[(targetId, field)] ?? storedValue;
-
   /// Class constructor
   ///
   /// Not `const`, unlike the other modes' own states: [planSnapshot] is a `late final` field, which
@@ -491,7 +474,6 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
     required this.rightDockTab,
     required this.lastRightDockTab,
     required this.selectedShotId,
-    required this.pendingFieldEdits,
     required this.leftDockFraction,
     required this.rightDockFraction,
     required this.pageSetup,
@@ -533,7 +515,6 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
       rightDockTab = null,
       lastRightDockTab = OcptScheduleRightDockTab.inspector,
       selectedShotId = null,
-      pendingFieldEdits = const {},
       leftDockFraction = OcptWorkspaceDock.leftDefaultFraction,
       rightDockFraction = OcptWorkspaceDock.rightDefaultFraction,
       pageSetup = const OcptPageSetup.standard(),
@@ -555,8 +536,7 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
   /// [snapshot], [shotListSnapshots] and [episodes] are only replaced when a new one is given,
   /// exactly as `OcptBreakdownState.snapshot`. [selectedDayId], [selectedBlockId], [rightDockTab],
   /// [selectedShotId] and [minimumRestMinutes] all legitimately go back to null while the mode is
-  /// alive, so each has its own force flag. [pendingFieldEdits] is always replaced wholesale — the
-  /// caller (the bloc's own field-edit handler) always computes the full next map.
+  /// alive, so each has its own force flag.
   ///
   /// **[reloadEpoch] moves by itself** whenever a copy replaces any of the data read from the
   /// project database ([snapshot], [shotListSnapshots], [episodes], [locations], [roles], [people],
@@ -593,7 +573,6 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
     OcptScheduleRightDockTab? lastRightDockTab,
     String? selectedShotId,
     bool forceSelectedShotIdValue = false,
-    Map<OcptSchedulePendingFieldKey, String>? pendingFieldEdits,
     double? leftDockFraction,
     double? rightDockFraction,
     OcptPageSetup? pageSetup,
@@ -641,7 +620,6 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
     rightDockTab: rightDockTab ?? (forceRightDockTabValue ? null : this.rightDockTab),
     lastRightDockTab: lastRightDockTab ?? this.lastRightDockTab,
     selectedShotId: selectedShotId ?? (forceSelectedShotIdValue ? null : this.selectedShotId),
-    pendingFieldEdits: pendingFieldEdits ?? this.pendingFieldEdits,
     leftDockFraction: leftDockFraction ?? this.leftDockFraction,
     rightDockFraction: rightDockFraction ?? this.rightDockFraction,
     pageSetup: pageSetup ?? this.pageSetup,
@@ -785,7 +763,6 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
     rightDockTab,
     lastRightDockTab,
     selectedShotId,
-    pendingFieldEdits,
     leftDockFraction,
     rightDockFraction,
     pageSetup,

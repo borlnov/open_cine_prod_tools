@@ -17,7 +17,6 @@ import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_source_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_schedule_selection_cause.dart';
-import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/schedule_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/schedule_event.dart';
@@ -277,47 +276,6 @@ void main() {
 
       await bloc.close();
     });
-
-    test(
-      "an audition block is created in place, and its candidacies named onto it after",
-      () async {
-        final (slotId, roleCandidateId) = await seedCastingDay();
-
-        final bloc = buildBloc();
-        await waitForState(bloc, (state) => !state.isLoading);
-
-        // Created like every other block that names no row of another table: nothing is asked at
-        // creation, and an audition naming nobody yet is an ordinary state.
-        bloc.add(
-          OcptScheduleBlockCreatedEvent(slotId: slotId, kind: OcptShootingBlockKind.audition),
-        );
-        final created = await waitForState(bloc, (state) => state.selectedDayBlocks.isNotEmpty);
-        final block = created.selectedDayBlocks.single;
-        expect(block.kind, OcptShootingBlockKind.audition);
-        expect(block.candidates, isEmpty);
-
-        // Then the row's own picker says who is seen at that hour, and for which part.
-        bloc.add(
-          OcptScheduleBlockCandidateAddedEvent(blockId: block.id, roleCandidateId: roleCandidateId),
-        );
-        final named = await waitForState(
-          bloc,
-          (state) => state.selectedDayBlocks.single.candidates.isNotEmpty,
-        );
-        final link = named.selectedDayBlocks.single.candidates.single;
-        expect(link.roleCandidateId, roleCandidateId);
-
-        // And taking them back off leaves the audition exactly where it is.
-        bloc.add(OcptScheduleBlockCandidateRemovedEvent(blockCandidateId: link.id));
-        final emptied = await waitForState(
-          bloc,
-          (state) => state.selectedDayBlocks.single.candidates.isEmpty,
-        );
-        expect(emptied.selectedDayBlocks.single.kind, OcptShootingBlockKind.audition);
-
-        await bloc.close();
-      },
-    );
   });
 
   group("coming back from the project settings page", () {

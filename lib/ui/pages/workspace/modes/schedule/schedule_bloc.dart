@@ -6,13 +6,11 @@ import 'dart:async';
 
 import 'package:act_flutter_utility/act_flutter_utility.dart';
 import 'package:act_global_manager/act_global_manager.dart';
-import 'package:act_logger_manager/act_logger_manager.dart';
 import 'package:drift/drift.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/managers/export/ocpt_export_manager.dart';
-import 'package:open_cine_prod_tools/managers/logging/ocpt_logs_helper_builder.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
@@ -30,16 +28,13 @@ import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role_candidate.dart';
 import 'package:open_cine_prod_tools/models/ocpt_schedule_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day.dart';
-import 'package:open_cine_prod_tools/models/ocpt_shooting_day_block.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_list_snapshot.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_scene_display_number.dart';
 import 'package:open_cine_prod_tools/types/ocpt_first_weekday.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
-import 'package:open_cine_prod_tools/types/ocpt_schedule_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_schedule_reload_scope.dart';
 import 'package:open_cine_prod_tools/types/ocpt_schedule_right_dock_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_schedule_selection_cause.dart';
-import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_mode_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project_package_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project_versions_bloc.dart';
@@ -59,40 +54,46 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_d
 /// [_roleCandidatesService] — the elements read for a named call sheet's own "to bring" section
 /// alone, nothing here shows an element on screen, and the candidacies read for the days that do
 /// not shoot: an audition block and a candidate's convocation are both resolved to a name and a
-/// part through them).
+/// part through them). It holds the selected day, block and shot, the dock geometry, the centre
+/// view and the agenda's presentation on top, and writes the shooting days themselves (creating,
+/// re-dating, re-statusing, duplicating and deleting one), a day being the selection's root and the
+/// left dock's list.
+///
+/// What the day view does with a day — its slots, the crew, cast, guests and candidacies they
+/// convoke, their blocks, the day's own events, a shot's status and every free-text field typed
+/// into them — belongs to `OcptScheduleDayBloc`, which writes through the services and then asks
+/// this bloc to read the data again ([reload]). The seven exports belong to
+/// `OcptScheduleExportBloc`, which asks this bloc to write every pending edit
+/// ([flushAllPendingWrites]) and then reads the plan this bloc holds.
+///
+/// Every pending edit the day bloc holds is flushed immediately whenever the right dock changes
+/// tab, a version is previewed, an export is asked for, and (through [flushPendingFieldEdits],
+/// called by the mode's own `deactivate()`) whenever the mode leaves the widget tree, so a pending
+/// edit is never silently dropped. [defaultFieldEditDebounce] is the delay it writes after.
+///
+/// Reading the schedule again ([reloadScopesIn]) also reconciles
+/// [OcptScheduleState.selectedDayId]/[OcptScheduleState.selectedBlockId] against the freshly
+/// loaded snapshot (a selection whose row disappeared is dropped rather than trusted to still mean
+/// something) and, while the `Versions` tab is open, asks [MixinOcptProjectVersionsBloc] for a
+/// fresh working-copy capture — the mode's own stand-in for "a save landing while it is open",
+/// since nothing here is a single save.
+///
 /// It mixes in [MixinOcptProjectVersionsBloc], answering its two hooks through
-/// [_flushPendingFieldEdits] and [_onLoadRequested].
+/// [flushPendingProjectWrites] and [reloadFromProjectDatabase] (the entry read, [_onLoadRequested]),
+/// and [MixinOcptProjectPackageBloc] too, which writes the whole project out as a portable package
+/// from the `Export` panel's own standing card. That mixin reuses [flushPendingProjectWrites] —
+/// what a colleague receives is the project *file*, so a debounced edit has to reach it first — and
+/// asks [exportManager] where to write.
 ///
 /// The two dock fractions and the last right dock tab are persisted through
 /// [_propertiesManager]'s `scheduleLeftDockFraction`/`scheduleRightDockFraction`/
 /// `scheduleLastRightDockTab`, mirroring `OcptBreakdownBloc` exactly.
-///
-/// Every write but the free-text fields (which ride [_fieldEditDebounce], flushed by
-/// [_flushPendingFieldEdits] on a version preview and by the mode's own `deactivate()`) lands the
-/// moment it is dispatched, then reloads the schedule snapshot through [_applyScheduleSnapshot] —
-/// which also reconciles [OcptScheduleState.selectedDayId]/[OcptScheduleState.selectedBlockId]
-/// against the freshly loaded snapshot (a selection whose row disappeared is dropped rather than
-/// trusted to still mean something) and, while the `Versions` tab is open, asks
-/// [MixinOcptProjectVersionsBloc] for a fresh working-copy capture — the mode's own stand-in for
-/// "a save landing while it is open", since nothing here is a single save.
-///
-/// It mixes in [MixinOcptProjectPackageBloc] too, which writes the whole project out as a portable
-/// package from the `Export` panel's own standing card. That mixin reuses
-/// [flushPendingProjectWrites] — what a colleague receives is the project *file*, so a debounced
-/// edit has to reach it first — and asks [exportManager] where to write, exactly as this mode's
-/// own exports do.
 class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     with
         MixinOcptProjectVersionsBloc<OcptScheduleState>,
         MixinOcptProjectPackageBloc<OcptScheduleState>,
         MixinOcptModeBloc<OcptScheduleState, OcptScheduleReloadScope> {
-  /// The logger category linked to this BLoC.
-  static const _loggerCategory = "schedule_bloc";
-
-  /// The logger this BLoC writes to.
-  final LogsHelper _logger = buildOcptLogsHelper(_loggerCategory);
-
-  /// The default delay between the last field edit and its autosave write.
+  /// The default delay between the last field edit and its autosave write, for the view blocs.
   static const defaultFieldEditDebounce = Duration(seconds: 2);
 
   /// The manager used to access the project currently open.
@@ -131,22 +132,10 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
   /// candidate's own convocation are resolved through on a day that does not shoot.
   final OcptRoleCandidatesService _roleCandidatesService;
 
-  /// The delay between the last field edit and its autosave write.
-  final Duration _fieldEditDebounce;
-
-  /// The start minute a slot created by [_onSlotCreated] is given: 08:00, mirroring
-  /// `OcptScheduleService`'s own private `_defaultStartMinute` (not exported, so this is its own
-  /// copy of the same figure).
-  static const int _defaultSlotStartMinute = 480;
-
-  /// The running field-edit debounce timer, if any.
-  Timer? _fieldEditTimer;
-
   /// Class constructor
   ///
   /// Every dependency can be overridden, which is what the tests do; in the app they all resolve
-  /// through [globalGetIt]. [fieldEditDebounce] is only meant to be overridden by tests, to keep it
-  /// fast and deterministic.
+  /// through [globalGetIt].
   OcptScheduleBloc({
     OcptProjectsManager? projectsManager,
     OcptPropertiesManager? propertiesManager,
@@ -159,7 +148,6 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     OcptPeopleService? peopleService,
     OcptElementsService? elementsService,
     OcptRoleCandidatesService? roleCandidatesService,
-    Duration fieldEditDebounce = defaultFieldEditDebounce,
   }) : _projectsManager = projectsManager ?? globalGetIt().get<OcptProjectsManager>(),
        _propertiesManager = propertiesManager ?? globalGetIt().get<OcptPropertiesManager>(),
        _routerManager = routerManager ?? globalGetIt().get<OcptRouterManager>(),
@@ -185,7 +173,6 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
        _roleCandidatesService =
            roleCandidatesService ??
            (projectsManager ?? globalGetIt().get<OcptProjectsManager>()).roleCandidatesService,
-       _fieldEditDebounce = fieldEditDebounce,
        super(OcptScheduleState.init()) {
     add(const OcptScheduleLoadRequestedEvent());
   }
@@ -213,35 +200,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     on<OcptScheduleDayStatusChangedEvent>(_onDayStatusChanged);
     on<OcptScheduleDayDuplicationRequestedEvent>(_onDayDuplicationRequested);
     on<OcptScheduleDayDeletionConfirmedEvent>(_onDayDeletionConfirmed);
-    on<OcptScheduleSlotCreatedEvent>(_onSlotCreated);
-    on<OcptScheduleSlotPlaceChangedEvent>(_onSlotPlaceChanged);
-    on<OcptScheduleSlotAnchorChangedEvent>(_onSlotAnchorChanged);
-    on<OcptScheduleSlotReorderedEvent>(_onSlotReordered);
-    on<OcptScheduleSlotDeletionConfirmedEvent>(_onSlotDeletionConfirmed);
-    on<OcptScheduleSlotCrewMemberAddedEvent>(_onSlotCrewMemberAdded);
-    on<OcptScheduleSlotCrewMemberPositionChangedEvent>(_onSlotCrewMemberPositionChanged);
-    on<OcptScheduleSlotCrewMemberRemovedEvent>(_onSlotCrewMemberRemoved);
-    on<OcptScheduleSlotCastRoleAddedEvent>(_onSlotCastRoleAdded);
-    on<OcptScheduleSlotCastRoleRemovedEvent>(_onSlotCastRoleRemoved);
-    on<OcptScheduleBlockCandidateAddedEvent>(_onBlockCandidateAdded);
-    on<OcptScheduleBlockCandidateRemovedEvent>(_onBlockCandidateRemoved);
-    on<OcptScheduleSlotGuestAddedEvent>(_onSlotGuestAdded);
-    on<OcptScheduleSlotGuestRemovedEvent>(_onSlotGuestRemoved);
-    on<OcptScheduleDayEventCreatedEvent>(_onDayEventCreated);
-    on<OcptScheduleDayEventMinuteChangedEvent>(_onDayEventMinuteChanged);
-    on<OcptScheduleDayEventDeletionConfirmedEvent>(_onDayEventDeletionConfirmed);
     on<OcptScheduleShotSelectedEvent>(_onShotSelected);
-    on<OcptScheduleShotStatusChangedEvent>(_onShotStatusChanged);
-    on<OcptScheduleBlockCreatedEvent>(_onBlockCreated);
-    on<OcptScheduleShotBlockCreatedEvent>(_onShotBlockCreated);
-    on<OcptScheduleBlockDurationChangedEvent>(_onBlockDurationChanged);
-    on<OcptScheduleBlockAnchorChangedEvent>(_onBlockAnchorChanged);
-    on<OcptScheduleBlockSequenceChangedEvent>(_onBlockSequenceChanged);
-    on<OcptScheduleBlockReorderedEvent>(_onBlockReordered);
-    on<OcptScheduleBlockMovedToSlotEvent>(_onBlockMovedToSlot);
-    on<OcptScheduleBlockDeletionConfirmedEvent>(_onBlockDeletionConfirmed);
-    on<OcptScheduleFieldChangedEvent>(_onFieldChanged);
-    on<OcptScheduleFieldEditFlushRequestedEvent>(_onFieldEditFlushRequested);
     on<OcptScheduleProjectSettingsChangedEvent>(_onProjectSettingsChanged);
   }
 
@@ -262,7 +221,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
   @protected
   @override
   Future<void> flushPendingProjectWrites(Emitter<OcptScheduleState> emitter) async {
-    await _flushPendingFieldEdits(emitter);
+    await _flushAllPendingWrites(emitter);
     emitter(
       state.copyWith(
         forceSelectedShotIdValue: true,
@@ -276,7 +235,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
   @protected
   @override
   Future<void> flushAllPendingWritesIn(Emitter<OcptScheduleState> emitter) =>
-      _flushPendingFieldEdits(emitter);
+      _flushAllPendingWrites(emitter);
 
   /// {@macro open_cine_prod_tools.MixinOcptModeBloc.reloadScopesIn}
   ///
@@ -384,7 +343,6 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
           forceSelectedDayIdValue: true,
           forceSelectedBlockIdValue: true,
           forceSelectedShotIdValue: true,
-          pendingFieldEdits: const {},
           selectionEpoch: state.selectionEpoch + 1,
           selectionCause: OcptScheduleSelectionCause.load,
         ),
@@ -432,7 +390,6 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
           forceSelectedDayIdValue: defaultDay == null,
           forceSelectedBlockIdValue: true,
           forceSelectedShotIdValue: true,
-          pendingFieldEdits: const {},
           leftDockFraction: leftDockFraction,
           rightDockFraction: rightDockFraction,
           lastRightDockTab: lastRightDockTab,
@@ -524,7 +481,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
   /// `OcptShotListBloc`'s own single-episode read prefixes its one.
   ///
   /// Returns the episodes alongside their shot lists rather than the shot lists alone: every caller
-  /// (the initial load and [_onShotStatusChanged]) puts both into
+  /// (the initial load and [reloadScopesIn]) puts both into
   /// [OcptScheduleState.episodes]/[OcptScheduleState.shotListSnapshots] in one write, and a second
   /// read of [_projectsManager]'s own `screenplayService` right after this one returned would risk
   /// disagreeing with it if an episode was renamed or reordered in between.
@@ -571,7 +528,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     OcptScheduleRightDockTabSelectedEvent event,
     Emitter<OcptScheduleState> emitter,
   ) async {
-    await _flushPendingFieldEdits(emitter);
+    await _flushAllPendingWrites(emitter);
 
     final isAlreadyActive = state.rightDockTab == event.tab;
     await _persistLastRightDockTab(event.tab);
@@ -865,667 +822,6 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     await _applyScheduleSnapshot(emitter);
   }
 
-  /// Creates a new slot inside a day.
-  Future<void> _onSlotCreated(
-    OcptScheduleSlotCreatedEvent event,
-    Emitter<OcptScheduleState> emitter,
-  ) async {
-    final project = _projectsManager.currentProject;
-    if (project == null) {
-      return;
-    }
-
-    await _scheduleService.createSlot(
-      database: project.database,
-      shootingDayId: event.dayId,
-      anchorMinute: _defaultSlotStartMinute,
-    );
-    await _applyScheduleSnapshot(emitter);
-  }
-
-  /// Writes a new location/set onto a slot.
-  Future<void> _onSlotPlaceChanged(
-    OcptScheduleSlotPlaceChangedEvent event,
-    Emitter<OcptScheduleState> emitter,
-  ) async {
-    final project = _projectsManager.currentProject;
-    if (project == null) {
-      return;
-    }
-
-    await _scheduleService.updateSlot(
-      database: project.database,
-      slotId: event.slotId,
-      locationId: Value(event.locationId),
-      setId: Value(event.setId),
-    );
-    await _applyScheduleSnapshot(emitter);
-  }
-
-  /// Pins a slot's own anchored edge to a typed hour or to another slot's opposite edge.
-  Future<void> _onSlotAnchorChanged(
-    OcptScheduleSlotAnchorChangedEvent event,
-    Emitter<OcptScheduleState> emitter,
-  ) async {
-    final project = _projectsManager.currentProject;
-    if (project == null) {
-      return;
-    }
-
-    await _scheduleService.setSlotAnchor(
-      database: project.database,
-      slotId: event.slotId,
-      edge: event.edge,
-      minute: event.minute,
-      sourceSlotId: event.sourceSlotId,
-    );
-    await _applyScheduleSnapshot(emitter);
-  }
-
-  /// Moves a slot to a new position within its own day.
-  Future<void> _onSlotReordered(
-    OcptScheduleSlotReorderedEvent event,
-    Emitter<OcptScheduleState> emitter,
-  ) async {
-    final project = _projectsManager.currentProject;
-    if (project == null) {
-      return;
-    }
-
-    await _scheduleService.reorderSlot(
-      database: project.database,
-      slotId: event.slotId,
-      newPosition: event.newPosition,
-    );
-    await _applyScheduleSnapshot(emitter);
-  }
-
-  /// Deletes a slot for good, confirmed by the mode's own `OcptConfirmDialog`.
-  Future<void> _onSlotDeletionConfirmed(
-    OcptScheduleSlotDeletionConfirmedEvent event,
-    Emitter<OcptScheduleState> emitter,
-  ) async {
-    final project = _projectsManager.currentProject;
-    if (project == null) {
-      return;
-    }
-
-    await _scheduleService.deleteSlot(database: project.database, slotId: event.slotId);
-    await _applyScheduleSnapshot(emitter);
-  }
-
-  /// Adds a crew member to a slot.
-  Future<void> _onSlotCrewMemberAdded(
-    OcptScheduleSlotCrewMemberAddedEvent event,
-    Emitter<OcptScheduleState> emitter,
-  ) async {
-    final project = _projectsManager.currentProject;
-    if (project == null) {
-      return;
-    }
-
-    await _scheduleService.addSlotCrewMember(
-      database: project.database,
-      slotId: event.slotId,
-      personId: event.personId,
-    );
-    await _applyScheduleSnapshot(emitter);
-  }
-
-  /// Writes a new position onto a crew assignment.
-  Future<void> _onSlotCrewMemberPositionChanged(
-    OcptScheduleSlotCrewMemberPositionChangedEvent event,
-    Emitter<OcptScheduleState> emitter,
-  ) async {
-    final project = _projectsManager.currentProject;
-    if (project == null) {
-      return;
-    }
-
-    await _scheduleService.updateSlotCrewMember(
-      database: project.database,
-      crewMemberId: event.crewMemberId,
-      positionId: Value(event.positionId),
-      customLabel: Value(event.customLabel),
-    );
-    await _applyScheduleSnapshot(emitter);
-  }
-
-  /// Removes a crew assignment for good.
-  Future<void> _onSlotCrewMemberRemoved(
-    OcptScheduleSlotCrewMemberRemovedEvent event,
-    Emitter<OcptScheduleState> emitter,
-  ) async {
-    final project = _projectsManager.currentProject;
-    if (project == null) {
-      return;
-    }
-
-    await _scheduleService.removeSlotCrewMember(
-      database: project.database,
-      crewMemberId: event.crewMemberId,
-    );
-    await _applyScheduleSnapshot(emitter);
-  }
-
-  /// Convokes a role during a slot.
-  Future<void> _onSlotCastRoleAdded(
-    OcptScheduleSlotCastRoleAddedEvent event,
-    Emitter<OcptScheduleState> emitter,
-  ) async {
-    final project = _projectsManager.currentProject;
-    if (project == null) {
-      return;
-    }
-
-    await _scheduleService.addSlotCastRole(
-      database: project.database,
-      slotId: event.slotId,
-      roleId: event.roleId,
-    );
-    await _applyScheduleSnapshot(emitter);
-  }
-
-  /// Removes a cast convocation for good.
-  Future<void> _onSlotCastRoleRemoved(
-    OcptScheduleSlotCastRoleRemovedEvent event,
-    Emitter<OcptScheduleState> emitter,
-  ) async {
-    final project = _projectsManager.currentProject;
-    if (project == null) {
-      return;
-    }
-
-    await _scheduleService.removeSlotCastRole(
-      database: project.database,
-      castRoleId: event.castRoleId,
-    );
-    await _applyScheduleSnapshot(emitter);
-  }
-
-  /// Names a candidacy on an **audition** block — the hour that candidate is expected at.
-  Future<void> _onBlockCandidateAdded(
-    OcptScheduleBlockCandidateAddedEvent event,
-    Emitter<OcptScheduleState> emitter,
-  ) async {
-    final project = _projectsManager.currentProject;
-    if (project == null) {
-      return;
-    }
-
-    await _scheduleService.addBlockCandidate(
-      database: project.database,
-      blockId: event.blockId,
-      roleCandidateId: event.roleCandidateId,
-    );
-    await _applyScheduleSnapshot(emitter);
-  }
-
-  /// Takes a candidacy off an audition block, leaving the block and the candidacy alone.
-  Future<void> _onBlockCandidateRemoved(
-    OcptScheduleBlockCandidateRemovedEvent event,
-    Emitter<OcptScheduleState> emitter,
-  ) async {
-    final project = _projectsManager.currentProject;
-    if (project == null) {
-      return;
-    }
-
-    await _scheduleService.removeBlockCandidate(
-      database: project.database,
-      blockCandidateId: event.blockCandidateId,
-    );
-    await _applyScheduleSnapshot(emitter);
-  }
-
-  /// Adds a guest to a slot, from the address book alone.
-  Future<void> _onSlotGuestAdded(
-    OcptScheduleSlotGuestAddedEvent event,
-    Emitter<OcptScheduleState> emitter,
-  ) async {
-    final project = _projectsManager.currentProject;
-    if (project == null) {
-      return;
-    }
-
-    await _scheduleService.addSlotGuest(
-      database: project.database,
-      slotId: event.slotId,
-      personId: event.personId,
-    );
-    await _applyScheduleSnapshot(emitter);
-  }
-
-  /// Removes a guest attendance for good.
-  Future<void> _onSlotGuestRemoved(
-    OcptScheduleSlotGuestRemovedEvent event,
-    Emitter<OcptScheduleState> emitter,
-  ) async {
-    final project = _projectsManager.currentProject;
-    if (project == null) {
-      return;
-    }
-
-    await _scheduleService.deleteSlotGuest(database: project.database, guestId: event.guestId);
-    await _applyScheduleSnapshot(emitter);
-  }
-
-  /// Creates a new event on a day, at the hour the mode's own default-hour helper computed.
-  Future<void> _onDayEventCreated(
-    OcptScheduleDayEventCreatedEvent event,
-    Emitter<OcptScheduleState> emitter,
-  ) async {
-    final project = _projectsManager.currentProject;
-    if (project == null) {
-      return;
-    }
-
-    await _scheduleService.createDayEvent(
-      database: project.database,
-      dayId: event.dayId,
-      minute: event.minute,
-    );
-    await _applyScheduleSnapshot(emitter);
-  }
-
-  /// Writes a new hour onto an event, the moment its own minute field commits.
-  Future<void> _onDayEventMinuteChanged(
-    OcptScheduleDayEventMinuteChangedEvent event,
-    Emitter<OcptScheduleState> emitter,
-  ) async {
-    final project = _projectsManager.currentProject;
-    if (project == null) {
-      return;
-    }
-
-    await _scheduleService.updateDayEvent(
-      database: project.database,
-      eventId: event.eventId,
-      minute: Value(event.minute),
-    );
-    await _applyScheduleSnapshot(emitter);
-  }
-
-  /// Removes an event for good.
-  Future<void> _onDayEventDeletionConfirmed(
-    OcptScheduleDayEventDeletionConfirmedEvent event,
-    Emitter<OcptScheduleState> emitter,
-  ) async {
-    final project = _projectsManager.currentProject;
-    if (project == null) {
-      return;
-    }
-
-    await _scheduleService.deleteDayEvent(database: project.database, eventId: event.eventId);
-    await _applyScheduleSnapshot(emitter);
-  }
-
-  /// Writes a new shooting status onto a shot — the very column the shot list mode's own inspector
-  /// edits — then reloads every episode's own shot list so every shot code, block chip and
-  /// inspector line that shows it follows.
-  Future<void> _onShotStatusChanged(
-    OcptScheduleShotStatusChangedEvent event,
-    Emitter<OcptScheduleState> emitter,
-  ) async {
-    final project = _projectsManager.currentProject;
-    if (project == null) {
-      return;
-    }
-
-    await _shotListService.updateShot(
-      database: project.database,
-      shotId: event.shotId,
-      status: Value(event.status),
-    );
-
-    await reloadSerially({OcptScheduleReloadScope.shotLists}, emitter);
-  }
-
-  /// Creates a new non-shot block (a milestone or a `hold`) at the end of the timetable named by
-  /// the event's own [OcptScheduleBlockCreatedEvent.slotId] — the slot card whose own `+ Block`
-  /// menu dispatched it.
-  Future<void> _onBlockCreated(
-    OcptScheduleBlockCreatedEvent event,
-    Emitter<OcptScheduleState> emitter,
-  ) async {
-    final project = _projectsManager.currentProject;
-    if (project == null || event.kind == OcptShootingBlockKind.shot) {
-      return;
-    }
-
-    await _scheduleService.createBlock(
-      database: project.database,
-      slotId: event.slotId,
-      kind: event.kind,
-    );
-    await _applyScheduleSnapshot(emitter);
-  }
-
-  /// Creates a new **shot** block at the end of the timetable named by the event's own
-  /// [OcptScheduleShotBlockCreatedEvent.slotId], placing the shot it names — the slot card's own
-  /// `+ Block` menu's `Shot` entry, once the mode's own picker dialog resolved to a pick.
-  Future<void> _onShotBlockCreated(
-    OcptScheduleShotBlockCreatedEvent event,
-    Emitter<OcptScheduleState> emitter,
-  ) async {
-    final project = _projectsManager.currentProject;
-    if (project == null) {
-      return;
-    }
-
-    await _scheduleService.placeShot(
-      database: project.database,
-      slotId: event.slotId,
-      shotId: event.shotId,
-    );
-    await _applyScheduleSnapshot(emitter);
-  }
-
-  /// Writes a new duration onto a block.
-  Future<void> _onBlockDurationChanged(
-    OcptScheduleBlockDurationChangedEvent event,
-    Emitter<OcptScheduleState> emitter,
-  ) async {
-    final project = _projectsManager.currentProject;
-    if (project == null) {
-      return;
-    }
-
-    await _scheduleService.updateBlock(
-      database: project.database,
-      blockId: event.blockId,
-      durationMinutes: Value(event.durationMinutes),
-    );
-    await _applyScheduleSnapshot(emitter);
-  }
-
-  /// Writes a new anchor onto a block.
-  Future<void> _onBlockAnchorChanged(
-    OcptScheduleBlockAnchorChangedEvent event,
-    Emitter<OcptScheduleState> emitter,
-  ) async {
-    final project = _projectsManager.currentProject;
-    if (project == null) {
-      return;
-    }
-
-    await _scheduleService.updateBlock(
-      database: project.database,
-      blockId: event.blockId,
-      anchorMinute: Value(event.anchorMinute),
-    );
-    await _applyScheduleSnapshot(emitter);
-  }
-
-  /// Writes a new sequence onto a hold block — `OcptScheduleService.updateBlock` itself refuses the
-  /// column on any other kind, so this handler passes it through unconditionally rather than
-  /// checking the block's own kind a second time.
-  Future<void> _onBlockSequenceChanged(
-    OcptScheduleBlockSequenceChangedEvent event,
-    Emitter<OcptScheduleState> emitter,
-  ) async {
-    final project = _projectsManager.currentProject;
-    if (project == null) {
-      return;
-    }
-
-    await _scheduleService.updateBlock(
-      database: project.database,
-      blockId: event.blockId,
-      sceneId: Value(event.sceneId),
-    );
-    await _applyScheduleSnapshot(emitter);
-  }
-
-  /// Moves a block to a new position within its own slot's timetable.
-  Future<void> _onBlockReordered(
-    OcptScheduleBlockReorderedEvent event,
-    Emitter<OcptScheduleState> emitter,
-  ) async {
-    final project = _projectsManager.currentProject;
-    if (project == null) {
-      return;
-    }
-
-    await _scheduleService.reorderBlock(
-      database: project.database,
-      blockId: event.blockId,
-      newPosition: event.newPosition,
-    );
-    await _applyScheduleSnapshot(emitter);
-  }
-
-  /// Moves a block to another slot, appended at the end of its own timetable.
-  Future<void> _onBlockMovedToSlot(
-    OcptScheduleBlockMovedToSlotEvent event,
-    Emitter<OcptScheduleState> emitter,
-  ) async {
-    final project = _projectsManager.currentProject;
-    if (project == null) {
-      return;
-    }
-
-    final targetBlocks = [
-      for (final blocks
-          in state.snapshot?.blocksByDayId.values ?? const <List<OcptShootingDayBlock>>[])
-        for (final block in blocks)
-          if (block.slotId == event.targetSlotId) block,
-    ];
-    await _scheduleService.moveBlockToSlot(
-      database: project.database,
-      blockId: event.blockId,
-      targetSlotId: event.targetSlotId,
-      newPosition: targetBlocks.length,
-    );
-    await _applyScheduleSnapshot(emitter);
-  }
-
-  /// Deletes a block for good, confirmed by the mode's own `OcptConfirmDialog`.
-  Future<void> _onBlockDeletionConfirmed(
-    OcptScheduleBlockDeletionConfirmedEvent event,
-    Emitter<OcptScheduleState> emitter,
-  ) async {
-    final project = _projectsManager.currentProject;
-    if (project == null) {
-      return;
-    }
-
-    await _scheduleService.deleteBlock(database: project.database, blockId: event.blockId);
-    await _applyScheduleSnapshot(emitter);
-  }
-
-  /// Records the raw text just typed into a field as a pending edit, visible immediately, and
-  /// (re)starts the field-edit debounce.
-  Future<void> _onFieldChanged(
-    OcptScheduleFieldChangedEvent event,
-    Emitter<OcptScheduleState> emitter,
-  ) async {
-    final pending = Map<OcptSchedulePendingFieldKey, String>.of(state.pendingFieldEdits)
-      ..[(event.targetId, event.field)] = event.rawValue;
-    emitter(state.copyWith(pendingFieldEdits: pending));
-
-    _fieldEditTimer?.cancel();
-    _fieldEditTimer = Timer(_fieldEditDebounce, () {
-      if (!isClosed) {
-        add(const OcptScheduleFieldEditFlushRequestedEvent());
-      }
-    });
-  }
-
-  /// Fired by the field-edit debounce timer: writes every pending field edit.
-  Future<void> _onFieldEditFlushRequested(
-    OcptScheduleFieldEditFlushRequestedEvent event,
-    Emitter<OcptScheduleState> emitter,
-  ) => _flushPendingFieldEdits(emitter);
-
-  /// Writes every field edit still sitting in the debounce, cancelling the running timer first.
-  ///
-  /// A no-op when nothing is pending: called on every selection-changing path and on every
-  /// version-preview transition, most of which have nothing waiting.
-  Future<void> _flushPendingFieldEdits(Emitter<OcptScheduleState> emitter) async {
-    _fieldEditTimer?.cancel();
-    _fieldEditTimer = null;
-
-    final edits = state.pendingFieldEdits;
-    if (edits.isEmpty) {
-      return;
-    }
-
-    final project = _projectsManager.currentProject;
-    if (project == null) {
-      emitter(state.copyWith(pendingFieldEdits: const {}));
-      return;
-    }
-
-    await _writeAllPendingFieldEdits(project, edits);
-
-    emitter(state.copyWith(pendingFieldEdits: const {}));
-    await _applyScheduleSnapshot(emitter);
-  }
-
-  /// Writes every pending field edit directly to the database, bypassing both the debounce timer
-  /// and the bloc's own event queue.
-  ///
-  /// Called by the mode's own `deactivate()`, mirroring `OcptBreakdownBloc.flushPendingFieldEdits`:
-  /// `deactivate()` runs before `dispose()` for every removal from the tree, so triggering the
-  /// write here — rather than dispatching an event, which would only be processed on a later
-  /// microtask this widget might not survive to see — is what guarantees the last
-  /// [_fieldEditDebounce] worth of typing isn't lost. Unlike [_flushPendingFieldEdits], this never
-  /// touches [state]: `emit` may only be called from inside a registered `on<Event>` handler, and
-  /// by the time this runs the widget tree that would show a fresh state is already gone anyway. A
-  /// failure here is only logged.
-  Future<void> flushPendingFieldEdits() async {
-    _fieldEditTimer?.cancel();
-    _fieldEditTimer = null;
-
-    final edits = state.pendingFieldEdits;
-    if (edits.isEmpty) {
-      return;
-    }
-
-    final project = _projectsManager.currentProject;
-    if (project == null) {
-      return;
-    }
-
-    try {
-      await _writeAllPendingFieldEdits(project, edits);
-    } catch (error, stackTrace) {
-      _logger.e(
-        "A problem occurred when tried to flush a pending schedule field edit of project "
-        "${project.primaryScreenplayId}: ${error.runtimeType}",
-        null,
-        stackTrace,
-      );
-    }
-  }
-
-  /// Writes every one of [edits] to [project]'s database, one write per entry — the shared write
-  /// loop [_flushPendingFieldEdits] and [flushPendingFieldEdits] both run, so the switch over
-  /// [OcptScheduleField] is written once.
-  Future<void> _writeAllPendingFieldEdits(
-    OcptOpenProjectModel project,
-    Map<OcptSchedulePendingFieldKey, String> edits,
-  ) async {
-    for (final entry in edits.entries) {
-      final (targetId, field) = entry.key;
-      final value = entry.value;
-
-      switch (field) {
-        case OcptScheduleField.dayCrewNote:
-          await _scheduleService.updateDay(
-            database: project.database,
-            dayId: targetId,
-            crewNote: Value(value),
-          );
-        case OcptScheduleField.dayWeatherNote:
-          await _scheduleService.updateDay(
-            database: project.database,
-            dayId: targetId,
-            weatherNote: Value(value),
-          );
-        case OcptScheduleField.dayNotes:
-          await _scheduleService.updateDay(
-            database: project.database,
-            dayId: targetId,
-            notes: Value(value),
-          );
-        case OcptScheduleField.slotLabel:
-          await _scheduleService.updateSlot(
-            database: project.database,
-            slotId: targetId,
-            label: Value(value),
-          );
-        case OcptScheduleField.slotNotes:
-          await _scheduleService.updateSlot(
-            database: project.database,
-            slotId: targetId,
-            notes: Value(value),
-          );
-        case OcptScheduleField.blockLabel:
-          await _scheduleService.updateBlock(
-            database: project.database,
-            blockId: targetId,
-            label: Value(value),
-          );
-        case OcptScheduleField.blockNotes:
-          await _scheduleService.updateBlock(
-            database: project.database,
-            blockId: targetId,
-            notes: Value(value),
-          );
-        case OcptScheduleField.blockCrewNote:
-          await _scheduleService.updateBlock(
-            database: project.database,
-            blockId: targetId,
-            crewNote: Value(value),
-          );
-        case OcptScheduleField.crewMemberCustomLabel:
-          await _scheduleService.updateSlotCrewMember(
-            database: project.database,
-            crewMemberId: targetId,
-            customLabel: Value(value),
-          );
-        case OcptScheduleField.crewMemberNotes:
-          await _scheduleService.updateSlotCrewMember(
-            database: project.database,
-            crewMemberId: targetId,
-            notes: Value(value),
-          );
-        case OcptScheduleField.castMemberNotes:
-          await _scheduleService.updateSlotCastRole(
-            database: project.database,
-            castRoleId: targetId,
-            notes: Value(value),
-          );
-        case OcptScheduleField.guestReason:
-          await _scheduleService.updateSlotGuest(
-            database: project.database,
-            guestId: targetId,
-            reason: Value(value),
-          );
-        case OcptScheduleField.guestNotes:
-          await _scheduleService.updateSlotGuest(
-            database: project.database,
-            guestId: targetId,
-            notes: Value(value),
-          );
-        case OcptScheduleField.dayEventLabel:
-          await _scheduleService.updateDayEvent(
-            database: project.database,
-            eventId: targetId,
-            label: Value(value),
-          );
-        case OcptScheduleField.dayEventNotes:
-          await _scheduleService.updateDayEvent(
-            database: project.database,
-            eventId: targetId,
-            notes: Value(value),
-          );
-      }
-    }
-  }
-
   /// Re-reads the schedule and applies it, reconciling the selected day and block against what the
   /// fresh snapshot still holds (see [reloadScopesIn]).
   ///
@@ -1533,6 +829,28 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
   Future<void> _applyScheduleSnapshot(Emitter<OcptScheduleState> emitter) async {
     await reloadSerially({OcptScheduleReloadScope.schedule}, emitter);
   }
+
+  /// Writes every pending write of the mode's views immediately, through the flushers they
+  /// registered. A view that wrote reads the schedule again itself, which also refreshes the
+  /// `Versions` tab's working-copy card if it is the one showing.
+  ///
+  /// Up front of every handler that is about to read the database (an export, a preview) or that
+  /// changes the right dock's tab: a pending edit is never silently dropped by one of them. Moving
+  /// the selected day, block or shot, switching the centre view and going back do **not** flush: an
+  /// edit typed before them is written by its own debounce, whichever day is showing by then.
+  Future<void> _flushAllPendingWrites(Emitter<OcptScheduleState> emitter) async {
+    await runPendingWritesFlushers();
+  }
+
+  /// Writes every pending edit of the views directly to the database, without touching [state].
+  ///
+  /// Called by the mode's own `deactivate()`, mirroring `OcptBreakdownBloc.flushPendingFieldEdits`:
+  /// `deactivate()` runs before `dispose()` for every removal from the tree (a mode switch swaps
+  /// this whole subtree out, and so does the workspace's own back navigation), so triggering the
+  /// write here — rather than dispatching an event, which would only be processed on a later
+  /// microtask this widget might not survive to see — is what guarantees the last
+  /// [defaultFieldEditDebounce] worth of typing isn't lost.
+  Future<void> flushPendingFieldEdits() => runPendingWritesFlushersWithoutState();
 
   /// Dispatches [OcptProjectWorkingCopyRefreshRequestedEvent] while the `Versions` tab is the one
   /// currently open — see the class doc comment for why every write here counts as "a save landing

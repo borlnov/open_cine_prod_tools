@@ -31,6 +31,8 @@ import 'package:open_cine_prod_tools/types/ocpt_schedule_right_dock_tab.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_project_package_events.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_project_versions_events.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/schedule_bloc.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/schedule_day_bloc.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/schedule_day_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/schedule_event.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/schedule_export_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/schedule_state.dart';
@@ -102,6 +104,10 @@ class OcptScheduleMode extends StatelessWidget {
         lazy: false,
         create: (context) => OcptScheduleExportBloc(modeBloc: context.read<OcptScheduleBloc>()),
       ),
+      BlocProvider(
+        lazy: false,
+        create: (context) => OcptScheduleDayBloc(modeBloc: context.read<OcptScheduleBloc>()),
+      ),
     ],
     child: const OcptScheduleViewEffects(child: _ScheduleView()),
   );
@@ -156,6 +162,10 @@ class _ScheduleViewState extends State<_ScheduleView> {
         return const Center(child: CircularProgressIndicator());
       }
 
+      // Watched here, in the very builder the mode state rebuilds, so a keystroke rebuilds the
+      // same widgets it did when the pending edits lived in the mode's own state.
+      final dayState = context.watch<OcptScheduleDayBloc>().state;
+
       return OcptWorkspaceShell(
         title: state.title,
         isDirty: false,
@@ -178,8 +188,8 @@ class _ScheduleViewState extends State<_ScheduleView> {
             : () => unawaited(_requestProjectSettings(context)),
         banner: _buildReadOnlyBanner(context, state),
         leftPanel: state.isListPanelVisible ? _buildLeftDock(context, state) : null,
-        rightPanel: _buildRightDock(context, state),
-        centre: _buildCentre(context, state),
+        rightPanel: _buildRightDock(context, state, dayState),
+        centre: _buildCentre(context, state, dayState),
         statusBar: OcptScheduleStatusBar(
           alertCount: state.planSnapshot?.alerts.length ?? 0,
           // Null on a single-episode project, which draws no counter for it at all — see
@@ -652,7 +662,11 @@ class _ScheduleViewState extends State<_ScheduleView> {
 
   /// Builds the shell's `centre`: the header band, then whichever of the agenda or the day view
   /// [OcptScheduleState.centreView] currently names.
-  Widget _buildCentre(BuildContext context, OcptScheduleState state) {
+  Widget _buildCentre(
+    BuildContext context,
+    OcptScheduleState state,
+    OcptScheduleDayState dayState,
+  ) {
     final bloc = context.read<OcptScheduleBloc>();
 
     return Column(
@@ -676,7 +690,7 @@ class _ScheduleViewState extends State<_ScheduleView> {
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 24),
             child: switch (state.centreView) {
-              OcptScheduleCentreView.day => _buildDayView(context, state),
+              OcptScheduleCentreView.day => _buildDayView(context, state, dayState),
               OcptScheduleCentreView.agenda => _buildAgenda(context, state),
               OcptScheduleCentreView.positions => _buildPositionsMatrix(context, state),
               OcptScheduleCentreView.presence => _buildPresenceGrid(context, state),
@@ -809,7 +823,11 @@ class _ScheduleViewState extends State<_ScheduleView> {
 
   /// Builds the day view: the selected day's own summary band and its slot cards, each with its own
   /// timetable — or a plain hint while no day is selected yet.
-  Widget _buildDayView(BuildContext context, OcptScheduleState state) {
+  Widget _buildDayView(
+    BuildContext context,
+    OcptScheduleState state,
+    OcptScheduleDayState dayState,
+  ) {
     final day = state.selectedDay;
     if (day == null) {
       return Center(
@@ -823,6 +841,7 @@ class _ScheduleViewState extends State<_ScheduleView> {
     }
 
     final bloc = context.read<OcptScheduleBloc>();
+    final dayBloc = context.read<OcptScheduleDayBloc>();
     final isReadOnly = state.isPreviewingVersion;
 
     return OcptScheduleDayView(
@@ -846,16 +865,18 @@ class _ScheduleViewState extends State<_ScheduleView> {
       sequences: state.sceneSequences,
       slotLabelValueOf: (slotId) {
         final slot = state.selectedDaySlots.firstWhere((candidate) => candidate.id == slotId);
-        return state.fieldValueOf(slotId, OcptScheduleField.slotLabel, slot.label);
+        return dayState.fieldValueOf(slotId, OcptScheduleField.slotLabel, slot.label);
       },
       slotNotesValueOf: (slotId) {
         final slot = state.selectedDaySlots.firstWhere((candidate) => candidate.id == slotId);
-        return state.fieldValueOf(slotId, OcptScheduleField.slotNotes, slot.notes);
+        return dayState.fieldValueOf(slotId, OcptScheduleField.slotNotes, slot.notes);
       },
-      onSlotAdded: isReadOnly ? null : () => bloc.add(OcptScheduleSlotCreatedEvent(dayId: day.id)),
+      onSlotAdded: isReadOnly
+          ? null
+          : () => dayBloc.add(OcptScheduleSlotCreatedEvent(dayId: day.id)),
       onSlotLabelChanged: isReadOnly
           ? null
-          : (slotId, rawValue) => bloc.add(
+          : (slotId, rawValue) => dayBloc.add(
               OcptScheduleFieldChangedEvent(
                 targetId: slotId,
                 field: OcptScheduleField.slotLabel,
@@ -864,7 +885,7 @@ class _ScheduleViewState extends State<_ScheduleView> {
             ),
       onSlotNotesChanged: isReadOnly
           ? null
-          : (slotId, rawValue) => bloc.add(
+          : (slotId, rawValue) => dayBloc.add(
               OcptScheduleFieldChangedEvent(
                 targetId: slotId,
                 field: OcptScheduleField.slotNotes,
@@ -873,7 +894,7 @@ class _ScheduleViewState extends State<_ScheduleView> {
             ),
       onSlotPlaceChanged: isReadOnly
           ? null
-          : (slotId, locationId, setId) => bloc.add(
+          : (slotId, locationId, setId) => dayBloc.add(
               OcptScheduleSlotPlaceChangedEvent(
                 slotId: slotId,
                 locationId: locationId,
@@ -882,7 +903,7 @@ class _ScheduleViewState extends State<_ScheduleView> {
             ),
       onSlotAnchorChanged: isReadOnly
           ? null
-          : (slotId, edge, minute, sourceSlotId) => bloc.add(
+          : (slotId, edge, minute, sourceSlotId) => dayBloc.add(
               OcptScheduleSlotAnchorChangedEvent(
                 slotId: slotId,
                 edge: edge,
@@ -892,7 +913,7 @@ class _ScheduleViewState extends State<_ScheduleView> {
             ),
       onSlotMoved: isReadOnly
           ? null
-          : (slotId, newPosition) => bloc.add(
+          : (slotId, newPosition) => dayBloc.add(
               OcptScheduleSlotReorderedEvent(
                 dayId: day.id,
                 slotId: slotId,
@@ -904,11 +925,12 @@ class _ScheduleViewState extends State<_ScheduleView> {
           : (slotId) => unawaited(_handleSlotDeletionRequested(context, slotId)),
       onSlotCrewMemberAdded: isReadOnly
           ? null
-          : (slotId, personId) =>
-                bloc.add(OcptScheduleSlotCrewMemberAddedEvent(slotId: slotId, personId: personId)),
+          : (slotId, personId) => dayBloc.add(
+              OcptScheduleSlotCrewMemberAddedEvent(slotId: slotId, personId: personId),
+            ),
       onSlotCrewMemberPositionChanged: isReadOnly
           ? null
-          : (crewMemberId, position) => bloc.add(
+          : (crewMemberId, position) => dayBloc.add(
               OcptScheduleSlotCrewMemberPositionChangedEvent(
                 crewMemberId: crewMemberId,
                 positionId: position.positionId,
@@ -918,43 +940,44 @@ class _ScheduleViewState extends State<_ScheduleView> {
       onSlotCrewMemberRemoved: isReadOnly
           ? null
           : (crewMemberId) =>
-                bloc.add(OcptScheduleSlotCrewMemberRemovedEvent(crewMemberId: crewMemberId)),
+                dayBloc.add(OcptScheduleSlotCrewMemberRemovedEvent(crewMemberId: crewMemberId)),
       onSlotCastRoleAdded: isReadOnly
           ? null
           : (slotId, roleId) =>
-                bloc.add(OcptScheduleSlotCastRoleAddedEvent(slotId: slotId, roleId: roleId)),
+                dayBloc.add(OcptScheduleSlotCastRoleAddedEvent(slotId: slotId, roleId: roleId)),
       onSlotCastRoleRemoved: isReadOnly
           ? null
-          : (castRoleId) => bloc.add(OcptScheduleSlotCastRoleRemovedEvent(castRoleId: castRoleId)),
+          : (castRoleId) =>
+                dayBloc.add(OcptScheduleSlotCastRoleRemovedEvent(castRoleId: castRoleId)),
       onSlotGuestAdded: isReadOnly
           ? null
           : (slotId, personId) =>
-                bloc.add(OcptScheduleSlotGuestAddedEvent(slotId: slotId, personId: personId)),
+                dayBloc.add(OcptScheduleSlotGuestAddedEvent(slotId: slotId, personId: personId)),
       onSlotGuestRemoved: isReadOnly
           ? null
-          : (guestId) => bloc.add(OcptScheduleSlotGuestRemovedEvent(guestId: guestId)),
-      slotGuestReasonValueOf: (guestId) => state.fieldValueOf(
+          : (guestId) => dayBloc.add(OcptScheduleSlotGuestRemovedEvent(guestId: guestId)),
+      slotGuestReasonValueOf: (guestId) => dayState.fieldValueOf(
         guestId,
         OcptScheduleField.guestReason,
         _selectedDayGuestOf(state, guestId)?.reason ?? "",
       ),
       onSlotGuestReasonChanged: isReadOnly
           ? null
-          : (guestId, rawValue) => bloc.add(
+          : (guestId, rawValue) => dayBloc.add(
               OcptScheduleFieldChangedEvent(
                 targetId: guestId,
                 field: OcptScheduleField.guestReason,
                 rawValue: rawValue,
               ),
             ),
-      slotGuestNotesValueOf: (guestId) => state.fieldValueOf(
+      slotGuestNotesValueOf: (guestId) => dayState.fieldValueOf(
         guestId,
         OcptScheduleField.guestNotes,
         _selectedDayGuestOf(state, guestId)?.notes ?? "",
       ),
       onSlotGuestNotesChanged: isReadOnly
           ? null
-          : (guestId, rawValue) => bloc.add(
+          : (guestId, rawValue) => dayBloc.add(
               OcptScheduleFieldChangedEvent(
                 targetId: guestId,
                 field: OcptScheduleField.guestNotes,
@@ -962,19 +985,19 @@ class _ScheduleViewState extends State<_ScheduleView> {
               ),
             ),
       events: state.selectedDayEvents,
-      eventLabelValueOf: (eventId) => state.fieldValueOf(
+      eventLabelValueOf: (eventId) => dayState.fieldValueOf(
         eventId,
         OcptScheduleField.dayEventLabel,
         _selectedDayEventOf(state, eventId)?.label ?? "",
       ),
-      eventNotesValueOf: (eventId) => state.fieldValueOf(
+      eventNotesValueOf: (eventId) => dayState.fieldValueOf(
         eventId,
         OcptScheduleField.dayEventNotes,
         _selectedDayEventOf(state, eventId)?.notes ?? "",
       ),
       onEventAdded: isReadOnly
           ? null
-          : () => bloc.add(
+          : () => dayBloc.add(
               OcptScheduleDayEventCreatedEvent(
                 dayId: day.id,
                 minute: _defaultEventMinuteOf(state, day.id),
@@ -982,11 +1005,12 @@ class _ScheduleViewState extends State<_ScheduleView> {
             ),
       onEventMinuteChanged: isReadOnly
           ? null
-          : (eventId, minute) =>
-                bloc.add(OcptScheduleDayEventMinuteChangedEvent(eventId: eventId, minute: minute)),
+          : (eventId, minute) => dayBloc.add(
+              OcptScheduleDayEventMinuteChangedEvent(eventId: eventId, minute: minute),
+            ),
       onEventLabelChanged: isReadOnly
           ? null
-          : (eventId, rawValue) => bloc.add(
+          : (eventId, rawValue) => dayBloc.add(
               OcptScheduleFieldChangedEvent(
                 targetId: eventId,
                 field: OcptScheduleField.dayEventLabel,
@@ -995,7 +1019,7 @@ class _ScheduleViewState extends State<_ScheduleView> {
             ),
       onEventNotesChanged: isReadOnly
           ? null
-          : (eventId, rawValue) => bloc.add(
+          : (eventId, rawValue) => dayBloc.add(
               OcptScheduleFieldChangedEvent(
                 targetId: eventId,
                 field: OcptScheduleField.dayEventNotes,
@@ -1009,12 +1033,12 @@ class _ScheduleViewState extends State<_ScheduleView> {
           bloc.add(OcptScheduleBlockSelectedEvent(blockId: blockId, dayId: day.id)),
       onBlockReordered: isReadOnly
           ? null
-          : (blockId, newPosition) => bloc.add(
+          : (blockId, newPosition) => dayBloc.add(
               OcptScheduleBlockReorderedEvent(blockId: blockId, newPosition: newPosition),
             ),
       onBlockDurationChanged: isReadOnly
           ? null
-          : (blockId, durationMinutes) => bloc.add(
+          : (blockId, durationMinutes) => dayBloc.add(
               OcptScheduleBlockDurationChangedEvent(
                 blockId: blockId,
                 durationMinutes: durationMinutes,
@@ -1022,20 +1046,21 @@ class _ScheduleViewState extends State<_ScheduleView> {
             ),
       onBlockAnchorChanged: isReadOnly
           ? null
-          : (blockId, anchorMinute) => bloc.add(
+          : (blockId, anchorMinute) => dayBloc.add(
               OcptScheduleBlockAnchorChangedEvent(blockId: blockId, anchorMinute: anchorMinute),
             ),
       onShotStatusChanged: isReadOnly
           ? null
           : (shotId, status) =>
-                bloc.add(OcptScheduleShotStatusChangedEvent(shotId: shotId, status: status)),
+                dayBloc.add(OcptScheduleShotStatusChangedEvent(shotId: shotId, status: status)),
       onBlockSequenceChanged: isReadOnly
           ? null
-          : (blockId, sceneId) =>
-                bloc.add(OcptScheduleBlockSequenceChangedEvent(blockId: blockId, sceneId: sceneId)),
+          : (blockId, sceneId) => dayBloc.add(
+              OcptScheduleBlockSequenceChangedEvent(blockId: blockId, sceneId: sceneId),
+            ),
       onBlockCandidateAdded: isReadOnly
           ? null
-          : (blockId, roleCandidateId) => bloc.add(
+          : (blockId, roleCandidateId) => dayBloc.add(
               OcptScheduleBlockCandidateAddedEvent(
                 blockId: blockId,
                 roleCandidateId: roleCandidateId,
@@ -1043,7 +1068,7 @@ class _ScheduleViewState extends State<_ScheduleView> {
             ),
       onBlockCandidateRemoved: isReadOnly
           ? null
-          : (blockCandidateId) => bloc.add(
+          : (blockCandidateId) => dayBloc.add(
               OcptScheduleBlockCandidateRemovedEvent(blockCandidateId: blockCandidateId),
             ),
       onBlockDeletionRequested: isReadOnly
@@ -1051,13 +1076,14 @@ class _ScheduleViewState extends State<_ScheduleView> {
           : (blockId) => unawaited(_handleBlockDeletionRequested(context, blockId)),
       onBlockAdded: isReadOnly
           ? null
-          : (slotId, kind) => bloc.add(OcptScheduleBlockCreatedEvent(slotId: slotId, kind: kind)),
+          : (slotId, kind) =>
+                dayBloc.add(OcptScheduleBlockCreatedEvent(slotId: slotId, kind: kind)),
       onShotBlockRequested: isReadOnly
           ? null
           : (slotId) => unawaited(_handleShotBlockRequested(context, slotId)),
       onBlockMovedToSlot: isReadOnly
           ? null
-          : (blockId, targetSlotId) => bloc.add(
+          : (blockId, targetSlotId) => dayBloc.add(
               OcptScheduleBlockMovedToSlotEvent(blockId: blockId, targetSlotId: targetSlotId),
             ),
       // Never withheld under a version preview: selecting a dock tab writes nothing, and an alert
@@ -1108,6 +1134,7 @@ class _ScheduleViewState extends State<_ScheduleView> {
   /// shot. Does nothing while the dialog is dismissed with no pick.
   Future<void> _handleShotBlockRequested(BuildContext context, String slotId) async {
     final bloc = context.read<OcptScheduleBloc>();
+    final dayBloc = context.read<OcptScheduleDayBloc>();
     final state = bloc.state;
 
     final shotId = await OcptScheduleShotPickerDialog.show(
@@ -1123,13 +1150,13 @@ class _ScheduleViewState extends State<_ScheduleView> {
       return;
     }
 
-    bloc.add(OcptScheduleShotBlockCreatedEvent(slotId: slotId, shotId: shotId));
+    dayBloc.add(OcptScheduleShotBlockCreatedEvent(slotId: slotId, shotId: shotId));
   }
 
   /// Asks `OcptConfirmDialog` whether slot [slotId] really is to be deleted, then dispatches the
   /// deletion if the user answered `Delete`.
   Future<void> _handleSlotDeletionRequested(BuildContext context, String slotId) async {
-    final bloc = context.read<OcptScheduleBloc>();
+    final dayBloc = context.read<OcptScheduleDayBloc>();
     final tr = Tr.of(context);
 
     final confirmed = await OcptConfirmDialog.show(
@@ -1146,13 +1173,13 @@ class _ScheduleViewState extends State<_ScheduleView> {
       return;
     }
 
-    bloc.add(OcptScheduleSlotDeletionConfirmedEvent(slotId: slotId));
+    dayBloc.add(OcptScheduleSlotDeletionConfirmedEvent(slotId: slotId));
   }
 
   /// Asks `OcptConfirmDialog` whether block [blockId] really is to be deleted, then dispatches the
   /// deletion if the user answered `Delete`.
   Future<void> _handleBlockDeletionRequested(BuildContext context, String blockId) async {
-    final bloc = context.read<OcptScheduleBloc>();
+    final dayBloc = context.read<OcptScheduleDayBloc>();
     final tr = Tr.of(context);
 
     final confirmed = await OcptConfirmDialog.show(
@@ -1169,13 +1196,13 @@ class _ScheduleViewState extends State<_ScheduleView> {
       return;
     }
 
-    bloc.add(OcptScheduleBlockDeletionConfirmedEvent(blockId: blockId));
+    dayBloc.add(OcptScheduleBlockDeletionConfirmedEvent(blockId: blockId));
   }
 
   /// Asks `OcptConfirmDialog` whether event [eventId] really is to be deleted, then dispatches the
   /// deletion if the user answered `Delete`.
   Future<void> _handleDayEventDeletionRequested(BuildContext context, String eventId) async {
-    final bloc = context.read<OcptScheduleBloc>();
+    final dayBloc = context.read<OcptScheduleDayBloc>();
     final tr = Tr.of(context);
 
     final confirmed = await OcptConfirmDialog.show(
@@ -1192,11 +1219,15 @@ class _ScheduleViewState extends State<_ScheduleView> {
       return;
     }
 
-    bloc.add(OcptScheduleDayEventDeletionConfirmedEvent(eventId: eventId));
+    dayBloc.add(OcptScheduleDayEventDeletionConfirmedEvent(eventId: eventId));
   }
 
   /// Builds the right dock, or null while it's closed.
-  Widget? _buildRightDock(BuildContext context, OcptScheduleState state) {
+  Widget? _buildRightDock(
+    BuildContext context,
+    OcptScheduleState state,
+    OcptScheduleDayState dayState,
+  ) {
     final rightDockTab = state.rightDockTab;
     if (rightDockTab == null) {
       return null;
@@ -1204,7 +1235,7 @@ class _ScheduleViewState extends State<_ScheduleView> {
 
     return OcptScheduleRightDock(
       activeTab: rightDockTab,
-      inspectorChild: _buildInspector(context, state),
+      inspectorChild: _buildInspector(context, state, dayState),
       convocationsChild: _buildConvocationsPanel(context, state),
       alertsChild: _buildAlertsPanel(context, state),
       versionsChild: _buildVersionsPanel(context, state),
@@ -1261,8 +1292,13 @@ class _ScheduleViewState extends State<_ScheduleView> {
   /// Builds the `Inspector` tab's own content: the selected block's read-out, else the selected
   /// shot's own, else the selected day's — see `OcptScheduleInspector`'s own doc comment for why
   /// that order.
-  Widget _buildInspector(BuildContext context, OcptScheduleState state) {
+  Widget _buildInspector(
+    BuildContext context,
+    OcptScheduleState state,
+    OcptScheduleDayState dayState,
+  ) {
     final bloc = context.read<OcptScheduleBloc>();
+    final dayBloc = context.read<OcptScheduleDayBloc>();
     final isReadOnly = state.isPreviewingVersion;
     final block = state.selectedBlock;
     final blockShot = block?.shotId == null ? null : state.shotById(block!.shotId!);
@@ -1313,24 +1349,24 @@ class _ScheduleViewState extends State<_ScheduleView> {
       sunTimes: state.selectedDayId == null ? null : state.sunTimesOfDay(state.selectedDayId!),
       crewNoteValue: day == null
           ? ""
-          : state.fieldValueOf(day.id, OcptScheduleField.dayCrewNote, day.crewNote),
+          : dayState.fieldValueOf(day.id, OcptScheduleField.dayCrewNote, day.crewNote),
       weatherNoteValue: day == null
           ? ""
-          : state.fieldValueOf(day.id, OcptScheduleField.dayWeatherNote, day.weatherNote),
+          : dayState.fieldValueOf(day.id, OcptScheduleField.dayWeatherNote, day.weatherNote),
       events: state.selectedDayEvents,
-      eventLabelValueOf: (eventId) => state.fieldValueOf(
+      eventLabelValueOf: (eventId) => dayState.fieldValueOf(
         eventId,
         OcptScheduleField.dayEventLabel,
         _selectedDayEventOf(state, eventId)?.label ?? "",
       ),
-      eventNotesValueOf: (eventId) => state.fieldValueOf(
+      eventNotesValueOf: (eventId) => dayState.fieldValueOf(
         eventId,
         OcptScheduleField.dayEventNotes,
         _selectedDayEventOf(state, eventId)?.notes ?? "",
       ),
       onEventAdded: isReadOnly || day == null
           ? null
-          : () => bloc.add(
+          : () => dayBloc.add(
               OcptScheduleDayEventCreatedEvent(
                 dayId: day.id,
                 minute: _defaultEventMinuteOf(state, day.id),
@@ -1338,11 +1374,12 @@ class _ScheduleViewState extends State<_ScheduleView> {
             ),
       onEventMinuteChanged: isReadOnly
           ? null
-          : (eventId, minute) =>
-                bloc.add(OcptScheduleDayEventMinuteChangedEvent(eventId: eventId, minute: minute)),
+          : (eventId, minute) => dayBloc.add(
+              OcptScheduleDayEventMinuteChangedEvent(eventId: eventId, minute: minute),
+            ),
       onEventLabelChanged: isReadOnly
           ? null
-          : (eventId, rawValue) => bloc.add(
+          : (eventId, rawValue) => dayBloc.add(
               OcptScheduleFieldChangedEvent(
                 targetId: eventId,
                 field: OcptScheduleField.dayEventLabel,
@@ -1351,7 +1388,7 @@ class _ScheduleViewState extends State<_ScheduleView> {
             ),
       onEventNotesChanged: isReadOnly
           ? null
-          : (eventId, rawValue) => bloc.add(
+          : (eventId, rawValue) => dayBloc.add(
               OcptScheduleFieldChangedEvent(
                 targetId: eventId,
                 field: OcptScheduleField.dayEventNotes,
@@ -1366,7 +1403,7 @@ class _ScheduleViewState extends State<_ScheduleView> {
           : (status) => bloc.add(OcptScheduleDayStatusChangedEvent(dayId: day.id, status: status)),
       onCrewNoteChanged: isReadOnly || day == null
           ? null
-          : (rawValue) => bloc.add(
+          : (rawValue) => dayBloc.add(
               OcptScheduleFieldChangedEvent(
                 targetId: day.id,
                 field: OcptScheduleField.dayCrewNote,
@@ -1375,7 +1412,7 @@ class _ScheduleViewState extends State<_ScheduleView> {
             ),
       onWeatherNoteChanged: isReadOnly || day == null
           ? null
-          : (rawValue) => bloc.add(
+          : (rawValue) => dayBloc.add(
               OcptScheduleFieldChangedEvent(
                 targetId: day.id,
                 field: OcptScheduleField.dayWeatherNote,
@@ -1391,12 +1428,12 @@ class _ScheduleViewState extends State<_ScheduleView> {
       blockEntry: blockEntry,
       onShotStatusChanged: isReadOnly || effectiveShot == null
           ? null
-          : (status) => bloc.add(
+          : (status) => dayBloc.add(
               OcptScheduleShotStatusChangedEvent(shotId: effectiveShot.id, status: status),
             ),
       onBlockDurationChanged: isReadOnly || block == null
           ? null
-          : (durationMinutes) => bloc.add(
+          : (durationMinutes) => dayBloc.add(
               OcptScheduleBlockDurationChangedEvent(
                 blockId: block.id,
                 durationMinutes: durationMinutes,
@@ -1404,10 +1441,10 @@ class _ScheduleViewState extends State<_ScheduleView> {
             ),
       blockCrewNoteValue: block == null
           ? ""
-          : state.fieldValueOf(block.id, OcptScheduleField.blockCrewNote, block.crewNote),
+          : dayState.fieldValueOf(block.id, OcptScheduleField.blockCrewNote, block.crewNote),
       onBlockCrewNoteChanged: isReadOnly || block == null
           ? null
-          : (rawValue) => bloc.add(
+          : (rawValue) => dayBloc.add(
               OcptScheduleFieldChangedEvent(
                 targetId: block.id,
                 field: OcptScheduleField.blockCrewNote,
@@ -1416,10 +1453,10 @@ class _ScheduleViewState extends State<_ScheduleView> {
             ),
       blockNotesValue: block == null
           ? ""
-          : state.fieldValueOf(block.id, OcptScheduleField.blockNotes, block.notes),
+          : dayState.fieldValueOf(block.id, OcptScheduleField.blockNotes, block.notes),
       onBlockNotesChanged: isReadOnly || block == null
           ? null
-          : (rawValue) => bloc.add(
+          : (rawValue) => dayBloc.add(
               OcptScheduleFieldChangedEvent(
                 targetId: block.id,
                 field: OcptScheduleField.blockNotes,
