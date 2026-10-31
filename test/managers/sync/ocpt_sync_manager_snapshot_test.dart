@@ -276,6 +276,82 @@ void main() {
       expect(parentDirectory.listSync(), isEmpty);
     });
 
+    test('answers the snapshot failure when the snapshot carries no pairing row', () async {
+      final manager = OcptSyncManager(
+        changesetService: const OcptChangesetService(
+          logger: SilentLogger(),
+          mergeService: OcptMergeService(logger: SilentLogger()),
+        ),
+      );
+      final storage = _FakeRemoteStorage();
+      addTearDown(storage.dispose);
+
+      final database = OcptProjectDatabase(File(projectPath));
+      await database.delete(database.ocptSyncPairingsTable).go();
+      await database.close();
+
+      await manager.publishSnapshot(
+        storage: storage,
+        projectFilePath: projectPath,
+        projectName: 'Les Vagues',
+        appVersion: '0.1.0',
+        sequenceUpTo: const OcptSequenceNumber(1),
+      );
+
+      final parentDirectory = Directory(p.join(workspace.path, 'joined'))..createSync();
+      final result = await manager.joinFromRelay(
+        storage: storage,
+        parentDirectoryPath: parentDirectory.path,
+        pairingService: pairingService,
+        relayBaseUri: Uri.parse('https://relay.example.org/'),
+        token: 'token-1',
+      );
+
+      expect(result.status, OcptSyncFlowStatus.snapshotFailed);
+      expect(result.value, isNull);
+    });
+
+    test('answers the snapshot failure when the snapshot does not match its digest', () async {
+      final manager = OcptSyncManager(
+        changesetService: const OcptChangesetService(
+          logger: SilentLogger(),
+          mergeService: OcptMergeService(logger: SilentLogger()),
+        ),
+      );
+      final storage = _FakeRemoteStorage();
+      addTearDown(storage.dispose);
+
+      await manager.publishSnapshot(
+        storage: storage,
+        projectFilePath: projectPath,
+        projectName: 'Les Vagues',
+        appVersion: '0.1.0',
+        sequenceUpTo: const OcptSequenceNumber(1),
+      );
+      final (descriptor, bytes) = storage.uploaded!;
+      storage.uploaded = (
+        OcptSnapshotDescriptor(
+          snapshotId: descriptor.snapshotId,
+          sequenceUpTo: descriptor.sequenceUpTo,
+          byteLength: descriptor.byteLength,
+          contentDigest: 'not-the-real-digest',
+        ),
+        bytes,
+      );
+
+      final parentDirectory = Directory(p.join(workspace.path, 'joined'))..createSync();
+      final result = await manager.joinFromRelay(
+        storage: storage,
+        parentDirectoryPath: parentDirectory.path,
+        pairingService: pairingService,
+        relayBaseUri: Uri.parse('https://relay.example.org/'),
+        token: 'token-1',
+      );
+
+      expect(result.status, OcptSyncFlowStatus.snapshotFailed);
+      expect(parentDirectory.listSync(), isEmpty);
+    });
+
     test('materialises the shared project and saves its pairing, with no network', () async {
       final manager = OcptSyncManager(
         changesetService: const OcptChangesetService(

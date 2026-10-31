@@ -8,8 +8,8 @@ import 'package:act_dart_result/act_dart_result.dart';
 /// publishing a snapshot, joining from one.
 ///
 /// A failure the flow can name rides in the result's `extraInfo` (the relay's `OcptSyncError`, or
-/// an `OcptSyncTransportFailure`); anything unforeseen (a database error, a packaging failure)
-/// still propagates as an exception for the caller's own catch.
+/// an `OcptSyncTransportFailure`); anything unforeseen (a database error, say) still propagates as
+/// an exception for the caller's own catch.
 enum OcptSyncFlowStatus with MixinResultStatus {
   /// The flow completed.
   ok(isSuccess: true, canBeRetried: false),
@@ -24,7 +24,11 @@ enum OcptSyncFlowStatus with MixinResultStatus {
   rejected(isSuccess: false, canBeRetried: false),
 
   /// The transport failed before the relay could answer.
-  unreachable(isSuccess: false, canBeRetried: false);
+  unreachable(isSuccess: false, canBeRetried: false),
+
+  /// A snapshot could not be built, or the one fetched could not be trusted or materialised: its
+  /// digest does not match, its package is unreadable or it carries no relay pairing.
+  snapshotFailed(isSuccess: false, canBeRetried: false);
 
   /// {@macro act_dart_result.MixinResultStatus.isSuccess}
   @override

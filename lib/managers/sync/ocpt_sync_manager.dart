@@ -463,7 +463,8 @@ class OcptSyncManager extends AbsWithLifeCycle {
   /// [OcptSnapshotDescriptor.sequenceUpTo]'s own doc comment describes.
   ///
   /// Answers [OcptSyncFlowStatus.rejected] or [OcptSyncFlowStatus.unreachable] when [storage]
-  /// cannot take the upload.
+  /// cannot take the upload, and [OcptSyncFlowStatus.snapshotFailed] when the project cannot be
+  /// packaged.
   Future<StatusWithExtraInfo<OcptSyncFlowStatus>> publishSnapshot({
     required OcptRemoteStorage storage,
     required String projectFilePath,
@@ -471,12 +472,17 @@ class OcptSyncManager extends AbsWithLifeCycle {
     required String appVersion,
     required OcptSequenceNumber sequenceUpTo,
   }) async {
-    final (descriptor, bytes) = await snapshotService.buildSnapshot(
+    final built = await snapshotService.buildSnapshot(
       projectFilePath: projectFilePath,
       projectName: projectName,
       appVersion: appVersion,
       sequenceUpTo: sequenceUpTo,
     );
+    final snapshot = built.value;
+    if (!built.status.isSuccess || snapshot == null) {
+      return const StatusWithExtraInfo(status: OcptSyncFlowStatus.snapshotFailed);
+    }
+    final (descriptor, bytes) = snapshot;
 
     final uploaded = await storage.uploadSnapshot(descriptor, bytes);
     if (!uploaded.status.isSuccess) {
@@ -505,7 +511,9 @@ class OcptSyncManager extends AbsWithLifeCycle {
   /// Answers [OcptSyncFlowStatus.emptyRelay] when [storage] holds no snapshot yet — an empty relay
   /// is not something to join, only to create (the Partager flow does that, by publishing the
   /// first one through [publishSnapshot]) — and [OcptSyncFlowStatus.rejected] or
-  /// [OcptSyncFlowStatus.unreachable] when it cannot be asked at all.
+  /// [OcptSyncFlowStatus.unreachable] when it cannot be asked at all. A snapshot that does not match
+  /// its digest, cannot be unpacked or carries no pairing row of its own answers
+  /// [OcptSyncFlowStatus.snapshotFailed].
   ///
   /// **How the project id, the relay address and the token are obtained**, since the newly
   /// materialised project has never been opened and so cannot be asked: the relay address and the
@@ -538,16 +546,25 @@ class OcptSyncManager extends AbsWithLifeCycle {
     }
     final (descriptor, bytes) = fetched;
 
-    final projectFilePath = await snapshotService.applySnapshot(
+    final applied = await snapshotService.applySnapshot(
       bytes: bytes,
       parentDirectoryPath: parentDirectoryPath,
       descriptor: descriptor,
     );
+    final projectFilePath = applied.value;
+    if (!applied.status.isSuccess || projectFilePath == null) {
+      return const ResultWithStatus(status: OcptSyncFlowStatus.snapshotFailed);
+    }
 
     final database = OcptProjectDatabase(File(projectFilePath));
     final String projectId;
     try {
-      projectId = await _readSnapshottedProjectId(database);
+      final snapshottedProjectId = await _readSnapshottedProjectId(database);
+      if (snapshottedProjectId == null) {
+        _logger.e("A joined snapshot carries no relay pairing of its own");
+        return const ResultWithStatus(status: OcptSyncFlowStatus.snapshotFailed);
+      }
+      projectId = snapshottedProjectId;
       await pairingService.savePairing(
         database: database,
         projectId: projectId,
@@ -570,16 +587,12 @@ class OcptSyncManager extends AbsWithLifeCycle {
   /// also requires the project's token to already sit in secure storage, which a joiner's fresh
   /// install never has yet — the whole reason [joinFromRelay] is the one saving that pairing, not
   /// reading an existing one.
-  Future<String> _readSnapshottedProjectId(OcptProjectDatabase database) async {
+  ///
+  /// Returns null when the snapshot carries no such row: it cannot be identified on the relay it
+  /// was fetched from, and a snapshot from the network is not trusted to have one.
+  Future<String?> _readSnapshottedProjectId(OcptProjectDatabase database) async {
     final row = await database.select(database.ocptSyncPairingsTable).getSingleOrNull();
-    if (row == null) {
-      throw StateError(
-        'The joined snapshot carries no relay pairing of its own: it cannot be identified on '
-        'the relay it was fetched from.',
-      );
-    }
-
-    return row.projectId;
+    return row?.projectId;
   }
 
   /// Starts keeping [projectId] in sync against [storage], replacing whatever session was running

@@ -5,11 +5,13 @@
 import 'dart:io';
 import 'dart:typed_data';
 
+import 'package:act_dart_result/act_dart_result.dart';
 import 'package:crypto/crypto.dart';
 import 'package:ocpt_sync_protocol/ocpt_sync_protocol.dart';
 import 'package:open_cine_prod_tools/managers/abs_ocpt_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_project_package_service.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_package_status.dart';
+import 'package:open_cine_prod_tools/types/ocpt_snapshot_status.dart';
 import 'package:path/path.dart' as p;
 import 'package:uuid/uuid.dart';
 
@@ -67,11 +69,11 @@ class OcptSnapshotService extends AbsOcptService {
   /// [OcptSnapshotDescriptor.contentDigest] is their SHA-256 hex digest — the same digest
   /// [applySnapshot] verifies a downloaded snapshot against when handed a descriptor to check.
   ///
-  /// Throws [StateError] when the underlying package write fails (see
+  /// Answers [OcptSnapshotStatus.packageFailed] when the underlying package write fails (see
   /// [OcptProjectPackageService.writePackage]'s own possible statuses) — there is no partial
-  /// snapshot to hand back in that case, only a reason it could not be built. Every scratch file
+  /// snapshot to hand back in that case, so the result then carries no value. Every scratch file
   /// this writes along the way is deleted before returning, success or failure alike.
-  Future<(OcptSnapshotDescriptor, Uint8List)> buildSnapshot({
+  Future<ResultWithStatus<OcptSnapshotStatus, (OcptSnapshotDescriptor, Uint8List)>> buildSnapshot({
     required String projectFilePath,
     required String projectName,
     required String appVersion,
@@ -90,10 +92,8 @@ class OcptSnapshotService extends AbsOcptService {
         exportedAt: exportedAt ?? DateTime.now(),
       );
       if (written.status != OcptProjectPackageStatus.ok) {
-        throw StateError(
-          'The project at $projectFilePath could not be packaged into a snapshot: '
-          '${written.status}',
-        );
+        logger.e("A project could not be packaged into a snapshot: ${written.status.name}");
+        return const ResultWithStatus(status: OcptSnapshotStatus.packageFailed);
       }
 
       final bytes = await File(packageFilePath).readAsBytes();
@@ -104,7 +104,7 @@ class OcptSnapshotService extends AbsOcptService {
         contentDigest: sha256.convert(bytes).toString(),
       );
 
-      return (descriptor, bytes);
+      return ResultWithStatus(status: OcptSnapshotStatus.ok, value: (descriptor, bytes));
     } finally {
       await _deleteQuietly(workingDirectory);
     }
@@ -119,14 +119,15 @@ class OcptSnapshotService extends AbsOcptService {
   /// existing one.
   ///
   /// When [descriptor] is given, [bytes] is verified against its [OcptSnapshotDescriptor.
-  /// contentDigest] before anything is unpacked — a mismatch throws [StateError] rather than
-  /// materialising a project nobody can trust was actually what the relay described. Passing no
+  /// contentDigest] before anything is unpacked — a mismatch answers
+  /// [OcptSnapshotStatus.digestMismatch] rather than materialising a project nobody can trust was
+  /// actually what the relay described. Passing no
   /// descriptor skips that check, for a caller that never had one to compare against.
   ///
-  /// Throws [StateError] when the underlying package read fails (see
+  /// Answers [OcptSnapshotStatus.packageFailed] when the underlying package read fails (see
   /// [OcptProjectPackageService.readPackage]'s own possible statuses). Every scratch file this
   /// writes along the way is deleted before returning, success or failure alike.
-  Future<String> applySnapshot({
+  Future<ResultWithStatus<OcptSnapshotStatus, String>> applySnapshot({
     required Uint8List bytes,
     required String parentDirectoryPath,
     OcptSnapshotDescriptor? descriptor,
@@ -134,10 +135,8 @@ class OcptSnapshotService extends AbsOcptService {
     if (descriptor != null) {
       final actualDigest = sha256.convert(bytes).toString();
       if (actualDigest != descriptor.contentDigest) {
-        throw StateError(
-          'The snapshot ${descriptor.snapshotId} does not match its own content digest: '
-          'expected ${descriptor.contentDigest}, got $actualDigest',
-        );
+        logger.e("A snapshot does not match its own content digest");
+        return const ResultWithStatus(status: OcptSnapshotStatus.digestMismatch);
       }
     }
 
@@ -151,12 +150,11 @@ class OcptSnapshotService extends AbsOcptService {
         parentDirectoryPath: parentDirectoryPath,
       );
       if (read.status != OcptProjectPackageStatus.ok) {
-        throw StateError(
-          'The snapshot could not be materialised into $parentDirectoryPath: ${read.status}',
-        );
+        logger.e("A snapshot could not be materialised: ${read.status.name}");
+        return const ResultWithStatus(status: OcptSnapshotStatus.packageFailed);
       }
 
-      return read.value!.projectFilePath;
+      return ResultWithStatus(status: OcptSnapshotStatus.ok, value: read.value!.projectFilePath);
     } finally {
       await _deleteQuietly(workingDirectory);
     }

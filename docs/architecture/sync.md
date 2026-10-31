@@ -340,9 +340,12 @@ Sync is invisible when it works; the visible surface is deliberately small.
   both resolve to one `OcptRelayInvite`
   (`ocpt://join?r=…&p=…&t=…`); `joinFromRelay` fetches the snapshot into a fresh `.ocpt` (a native
   save location on desktop, the app documents directory on mobile), saves the pairing and opens the
-  project; an empty relay (`OcptSyncFlowStatus.emptyRelay`), a refusal or an unreachable relay each
-  end in the screen's one join error. `OcptRelayInvite.parse` and `OcptRelayEnrolment.parse` read a
-  pasted or scanned string the same way, answering a status and a value rather than throwing.
+  project; an empty relay (`OcptSyncFlowStatus.emptyRelay`), a refusal, an unreachable relay or a
+  snapshot that cannot be trusted (`OcptSyncFlowStatus.snapshotFailed`: a digest mismatch, an
+  unreadable package, no pairing row) each end in the screen's one join error.
+  `OcptRelayInvite.parse` and `OcptRelayEnrolment.parse` read a pasted or scanned string the same
+  way, answering a status and a value rather than
+  throwing.
 - **The status indicator** (`lib/ui/pages/workspace/widgets/ocpt_sync_status_indicator.dart`) sits in
   the shared workspace status bar, so every mode gets it at once. It seeds from
   `OcptSyncManager.syncStatus` and rebuilds on `OcptSyncManager.syncStatusChanges` — **not** the
