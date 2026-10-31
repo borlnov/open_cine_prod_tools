@@ -57,21 +57,6 @@ extension OcptShotListStateDerivedExtension on OcptShotListState {
     return selectedShotId == null ? const [] : panelsOfShot(selectedShotId);
   }
 
-  /// The panel [selectedPanelId] identifies, or null if none is selected (or the selected one
-  /// disappeared from a freshly loaded [storyboardSnapshot]).
-  OcptStoryboardPanel? get selectedPanel {
-    final selectedPanelId = this.selectedPanelId;
-    if (selectedPanelId == null) {
-      return null;
-    }
-    for (final panel in panelsOfSelectedShot) {
-      if (panel.id == selectedPanelId) {
-        return panel;
-      }
-    }
-    return null;
-  }
-
   /// Whether any live shot of the screenplay holds at least one storyboard panel — what the
   /// export panel's storyboard card checks to decide whether it has anything to print: a shot
   /// list can hold shots without holding a single panel,

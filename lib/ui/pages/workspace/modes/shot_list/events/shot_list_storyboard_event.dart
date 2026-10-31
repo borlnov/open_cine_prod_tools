@@ -7,7 +7,7 @@ import 'package:open_cine_prod_tools/types/ocpt_storyboard_annotation_tool.dart'
 import 'package:open_cine_prod_tools/types/ocpt_storyboard_panel_size.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/events/shot_list_base_event.dart';
 
-/// The events of `OcptShotListBloc` about storyboard board and annotations.
+/// The events of `OcptShotListStoryboardBloc`, about the storyboard board and its annotations.
 sealed class OcptShotListStoryboardEvent extends OcptShotListEvent {
   /// Class constructor
   const OcptShotListStoryboardEvent();
@@ -275,4 +275,17 @@ class OcptShotListAnnotationDeletionRequestedEvent extends OcptShotListStoryboar
   /// Object properties
   @override
   List<Object?> get props => [...super.props, annotationId];
+}
+
+/// Requests writing every panel comment and mark text still sitting in the board's autosave
+/// debounce, dispatched by the bloc itself once the delay since the last keystroke has elapsed.
+class OcptShotListStoryboardFieldEditFlushRequestedEvent extends OcptShotListStoryboardEvent {
+  /// Class constructor
+  const OcptShotListStoryboardFieldEditFlushRequestedEvent();
+}
+
+/// Dismisses the transient write error the board currently shows, if any.
+class OcptShotListStoryboardWriteErrorDismissedEvent extends OcptShotListStoryboardEvent {
+  /// Class constructor
+  const OcptShotListStoryboardWriteErrorDismissedEvent();
 }

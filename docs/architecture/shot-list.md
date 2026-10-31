@@ -48,7 +48,16 @@ Resources set carries across its three scopes, and the mode's two newest documen
   that lives as long as the mode. It owns the export notice (`OcptShotListIoNotice`, in
   `shot_list_export_state.dart`), asks `OcptShotListBloc` to write every pending edit
   (`flushAllPendingWrites`, which also reads the snapshots again), then reads those snapshots from
-  the mode bloc's state and hands them to `OcptExportManager`.
+  the mode bloc's state and hands them to `OcptExportManager`. The storyboard is the other one:
+  `OcptShotListStoryboardBloc` owns the selected panel and mark, the annotation tool, the panel
+  size and the comments and mark texts being typed (its own 2 s debounce), and does the board's
+  writes — each followed by `OcptShotListBloc.reload`, so the mode's state holds a row before the
+  board selects it. The panels themselves stay the mode's data. It clears its selection when the
+  mode bloc says its own moved (`selectionEpoch` and `selectionCause`) and drops what the mode's
+  fresh data no longer holds (`reloadEpoch`); both blocs are built with the mode, and the mode
+  bloc asks the board to write what it still holds before anything that needs the database up to
+  date (`MixinOcptModeBloc`, `lib/ui/pages/workspace/blocs/`). `OcptStoryboardView` and
+  `OcptStoryboardPanelsView` are the two widgets that read both blocs.
 
 ## The three centre views and their shared chrome
 

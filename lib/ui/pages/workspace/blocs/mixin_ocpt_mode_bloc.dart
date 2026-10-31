@@ -50,6 +50,11 @@ mixin MixinOcptModeBloc<S extends MixinOcptModeState<S>> on BlocForMixin<S> {
     return () => _flushers.remove(flusher);
   }
 
+  /// How many flushers are registered, so a test can tell that every view bloc of a mode was built
+  /// without any widget having read it.
+  @visibleForTesting
+  int get pendingWritesFlusherCount => _flushers.length;
+
   /// Asks every registered flusher to write what it holds, one after the other, and answers
   /// whether any of them had something to write.
   @protected

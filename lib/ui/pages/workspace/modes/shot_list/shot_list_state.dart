@@ -28,8 +28,6 @@ import 'package:open_cine_prod_tools/types/ocpt_shot_list_column.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_pending_edit_key.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_right_dock_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_selection_cause.dart';
-import 'package:open_cine_prod_tools/types/ocpt_storyboard_annotation_tool.dart';
-import 'package:open_cine_prod_tools/types/ocpt_storyboard_panel_size.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_mode_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project_package_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project_versions_state.dart';
@@ -98,35 +96,6 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
   /// after every write a board affordance makes (importing, replacing, reordering or deleting a
   /// panel, flushing a pending comment edit).
   final OcptStoryboardSnapshot? storyboardSnapshot;
-
-  /// The id of the panel currently selected on the board, or null while none is.
-  ///
-  /// Cleared whenever [selectedShotId] or [selectedSequenceId] changes: a panel only ever belongs
-  /// to the shot currently shown, exactly as [selectedFloorPlanSymbolId] is
-  /// cleared the same way.
-  final String? selectedPanelId;
-
-  /// The common height every panel frame of the board's strips is drawn at, picked from the
-  /// header's own `Panel size ▾` menu.
-  ///
-  /// A **view preference** held here for the session alone, never persisted to the project or to
-  /// `OcptPropertiesManager` — see [OcptStoryboardPanelSize]'s own doc comment.
-  final OcptStoryboardPanelSize boardPanelSize;
-
-  /// The board's active annotation editing tool, or null while none is on.
-  ///
-  /// A **view/session state** value, like [boardPanelSize]: never written to the project. Scoped
-  /// to the currently selected panel, so it is cleared — together with [selectedAnnotationId] —
-  /// whenever [selectedPanelId], [selectedShotId] or [selectedSequenceId] changes: a tool left on
-  /// while looking at a different panel would draw onto a frame the user can no longer see is the
-  /// target.
-  final OcptStoryboardAnnotationTool? activeAnnotationTool;
-
-  /// The id of the currently selected mark, or null while none is.
-  ///
-  /// Cleared alongside [activeAnnotationTool] — see its own doc comment — and whenever the mark
-  /// itself is deleted.
-  final String? selectedAnnotationId;
 
   /// The whole floor plans of the selected episode's screenplay, as last read by
   /// `OcptFloorPlanService.loadFloorPlans`, or null while nothing has been loaded yet. Reloaded
@@ -336,9 +305,10 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
   /// read from, reloaded after every field-edit flush.
   final OcptShotFieldSuggestions suggestions;
 
-  /// Every field edit currently sitting in the field-edit autosave debounce, keyed by
-  /// [OcptShotListPendingEditKey] (a shot's own field, or a board panel's comment), holding the raw
-  /// text last typed for it.
+  /// Every field edit this bloc holds in the field-edit autosave debounce, keyed by
+  /// [OcptShotListPendingEditKey] (a shot's own field, a set's name or a symbol's label), holding
+  /// the raw text last typed for it. The board's panel comments and mark texts wait in the
+  /// storyboard bloc's own map.
   ///
   /// What a field or a panel comment shows takes this map's entry over its own stored value
   /// whenever one is present, so typing is never overwritten by a reload triggered by an unrelated
@@ -416,10 +386,6 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
     required this.selectedShotId,
     required this.centreView,
     required this.storyboardSnapshot,
-    required this.selectedPanelId,
-    required this.boardPanelSize,
-    required this.activeAnnotationTool,
-    required this.selectedAnnotationId,
     required this.floorPlanSnapshot,
     required this.selectedSetId,
     required this.locations,
@@ -480,10 +446,6 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
       selectedShotId = null,
       centreView = OcptShotListCentreView.table,
       storyboardSnapshot = null,
-      selectedPanelId = null,
-      boardPanelSize = OcptStoryboardPanelSize.medium,
-      activeAnnotationTool = null,
-      selectedAnnotationId = null,
       floorPlanSnapshot = null,
       selectedSetId = null,
       locations = const [],
@@ -535,8 +497,7 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
   /// {@macro act_flutter_utility.BlocStateForMixin.copyWith}
   ///
   /// [snapshot] is only replaced when a new one is given: it never goes back to null once loaded,
-  /// so it needs no force flag. [selectedSequenceId], [selectedShotId], [selectedPanelId],
-  /// [rightDockTab] and [pendingCoverageAnchor] all legitimately go back to null while the mode is
+  /// so it needs no force flag. [selectedSequenceId], [selectedShotId], [rightDockTab] and [pendingCoverageAnchor] all legitimately go back to null while the mode is
   /// alive (nothing selected any more, the dock closed, no range being drawn), so each has its own
   /// force flag instead.
   @override
@@ -554,13 +515,6 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
     OcptShotListCentreView? centreView,
     OcptStoryboardSnapshot? storyboardSnapshot,
     bool forceStoryboardSnapshotValue = false,
-    String? selectedPanelId,
-    bool forceSelectedPanelIdValue = false,
-    OcptStoryboardPanelSize? boardPanelSize,
-    OcptStoryboardAnnotationTool? activeAnnotationTool,
-    bool forceActiveAnnotationToolValue = false,
-    String? selectedAnnotationId,
-    bool forceSelectedAnnotationIdValue = false,
     OcptFloorPlanSnapshot? floorPlanSnapshot,
     bool forceFloorPlanSnapshotValue = false,
     String? selectedSetId,
@@ -637,12 +591,6 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
     centreView: centreView ?? this.centreView,
     storyboardSnapshot:
         storyboardSnapshot ?? (forceStoryboardSnapshotValue ? null : this.storyboardSnapshot),
-    selectedPanelId: selectedPanelId ?? (forceSelectedPanelIdValue ? null : this.selectedPanelId),
-    boardPanelSize: boardPanelSize ?? this.boardPanelSize,
-    activeAnnotationTool:
-        activeAnnotationTool ?? (forceActiveAnnotationToolValue ? null : this.activeAnnotationTool),
-    selectedAnnotationId:
-        selectedAnnotationId ?? (forceSelectedAnnotationIdValue ? null : this.selectedAnnotationId),
     floorPlanSnapshot:
         floorPlanSnapshot ?? (forceFloorPlanSnapshotValue ? null : this.floorPlanSnapshot),
     selectedSetId: selectedSetId ?? (forceSelectedSetIdValue ? null : this.selectedSetId),
@@ -784,10 +732,6 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
     selectedShotId,
     centreView,
     storyboardSnapshot,
-    selectedPanelId,
-    boardPanelSize,
-    activeAnnotationTool,
-    selectedAnnotationId,
     floorPlanSnapshot,
     selectedSetId,
     locations,
