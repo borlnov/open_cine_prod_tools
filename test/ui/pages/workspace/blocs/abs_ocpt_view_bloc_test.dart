@@ -10,6 +10,12 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_mode_bl
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_mode_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_view_events.dart';
 
+/// The parts of the double mode's data that can be read again.
+enum _Scope {
+  /// The only part.
+  data,
+}
+
 /// The state of the double mode: its two epochs.
 class _ModeState extends BlocStateForMixin<_ModeState> with MixinOcptModeState<_ModeState> {
   @override
@@ -59,7 +65,7 @@ class _ModeSetEpochsEvent extends BlocEventForMixin {
 }
 
 /// A mode bloc moving its epochs on demand, flushing its views and doing no other work.
-class _ModeBloc extends BlocForMixin<_ModeState> with MixinOcptModeBloc<_ModeState> {
+class _ModeBloc extends BlocForMixin<_ModeState> with MixinOcptModeBloc<_ModeState, _Scope> {
   /// Class constructor
   _ModeBloc() : super(const _ModeState());
 
@@ -83,7 +89,7 @@ class _ModeBloc extends BlocForMixin<_ModeState> with MixinOcptModeBloc<_ModeSta
   Future<void> flushAllPendingWritesIn(Emitter<_ModeState> emitter) => runPendingWritesFlushers();
 
   @override
-  Future<void> reloadScopesIn(Set<Enum> scopes, Emitter<_ModeState> emitter) async {
+  Future<void> reloadScopesIn(Set<_Scope> scopes, Emitter<_ModeState> emitter) async {
     emitter(state.copyWith(reloadEpoch: state.reloadEpoch + 1));
   }
 
@@ -252,7 +258,7 @@ void main() {
     final mode = _ModeBloc();
     final view = _ViewBloc(modeBloc: mode, sink: []);
 
-    await mode.reload({});
+    await mode.reload({_Scope.data});
     await pumpEventQueue();
 
     expect(view.state.reactions, [

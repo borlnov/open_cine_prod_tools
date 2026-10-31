@@ -24,10 +24,11 @@ class OcptModeFlushRequestedEvent extends OcptModeEvent with MixinOcptAwaitedEve
 /// Requests reading again the parts of the mode's shared data that [scopes] names, so a view that
 /// just wrote a row finds it in the mode's state.
 ///
-/// The scopes are the mode's own enum, which only the mode knows how to read.
-class OcptModeReloadRequestedEvent extends OcptModeEvent with MixinOcptAwaitedEvent<void> {
+/// The scopes are the mode's own enum ([Scope]), which only the mode knows how to read.
+class OcptModeReloadRequestedEvent<Scope extends Enum> extends OcptModeEvent
+    with MixinOcptAwaitedEvent<void> {
   /// The parts of the shared data to read again.
-  final Set<Enum> scopes;
+  final Set<Scope> scopes;
 
   /// Class constructor
   OcptModeReloadRequestedEvent({required this.scopes});

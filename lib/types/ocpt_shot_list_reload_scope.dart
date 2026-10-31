@@ -19,4 +19,11 @@ enum OcptShotListReloadScope {
 
   /// The project's Resources locations and their sets.
   locations,
+
+  /// The set-scope symbols of every set of the project, keyed by set: what the empty-state
+  /// gallery's thumbnails draw.
+  setScopeSymbols,
+
+  /// The production's whole cast: every live role.
+  roles,
 }

@@ -40,7 +40,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_view_events.d
 abstract class AbsOcptViewBloc<
   S extends BlocStateForMixin<S>,
   MS extends MixinOcptModeState<MS>,
-  M extends MixinOcptModeBloc<MS>
+  M extends MixinOcptModeBloc<MS, Enum>
 >
     extends BlocForMixin<S>
     implements OcptPendingWritesFlusher {

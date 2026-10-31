@@ -133,7 +133,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     with
         MixinOcptProjectVersionsBloc<OcptShotListState>,
         MixinOcptProjectPackageBloc<OcptShotListState>,
-        MixinOcptModeBloc<OcptShotListState> {
+        MixinOcptModeBloc<OcptShotListState, OcptShotListReloadScope> {
   /// The logger category linked to this BLoC.
   static const _loggerCategory = "shot_list_bloc";
 
@@ -413,30 +413,44 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
   /// already written its row, and what is on screen no longer says what the database holds.
   @protected
   @override
-  Future<void> reloadScopesIn(Set<Enum> scopes, Emitter<OcptShotListState> emitter) async {
+  Future<void> reloadScopesIn(
+    Set<OcptShotListReloadScope> scopes,
+    Emitter<OcptShotListState> emitter,
+  ) async {
     final project = _projectsManager.currentProject;
     if (project == null) {
       return;
     }
 
-    final requested = scopes.whereType<OcptShotListReloadScope>().toSet();
-
     try {
-      final snapshot = requested.contains(OcptShotListReloadScope.snapshot)
-          ? await _loadSnapshot(project)
-          : null;
-      final suggestions = requested.contains(OcptShotListReloadScope.suggestions)
-          ? await _loadSuggestions(project)
-          : null;
-      final storyboardSnapshot = requested.contains(OcptShotListReloadScope.storyboard)
-          ? await _loadStoryboard(project)
-          : null;
-      final floorPlanSnapshot = requested.contains(OcptShotListReloadScope.floorPlans)
-          ? await _loadFloorPlans(project)
-          : null;
-      final locations = requested.contains(OcptShotListReloadScope.locations)
-          ? await _loadLocations(project)
-          : null;
+      OcptShotListSnapshot? snapshot;
+      OcptShotFieldSuggestions? suggestions;
+      OcptStoryboardSnapshot? storyboardSnapshot;
+      OcptFloorPlanSnapshot? floorPlanSnapshot;
+      List<OcptLocation>? locations;
+      Map<String, List<OcptFloorPlanSymbol>>? setScopeSymbolsBySetId;
+      List<OcptRole>? roles;
+
+      // A switch statement over an enum must name every value: a scope added to the enum does not
+      // compile until it is read here.
+      for (final scope in scopes) {
+        switch (scope) {
+          case OcptShotListReloadScope.snapshot:
+            snapshot = await _loadSnapshot(project);
+          case OcptShotListReloadScope.suggestions:
+            suggestions = await _loadSuggestions(project);
+          case OcptShotListReloadScope.storyboard:
+            storyboardSnapshot = await _loadStoryboard(project);
+          case OcptShotListReloadScope.floorPlans:
+            floorPlanSnapshot = await _loadFloorPlans(project);
+          case OcptShotListReloadScope.locations:
+            locations = await _loadLocations(project);
+          case OcptShotListReloadScope.setScopeSymbols:
+            setScopeSymbolsBySetId = await _loadSetScopeSymbolsBySetId(project);
+          case OcptShotListReloadScope.roles:
+            roles = await _loadRoles(project);
+        }
+      }
 
       emitter(
         state.copyWith(
@@ -445,12 +459,14 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
           storyboardSnapshot: storyboardSnapshot,
           floorPlanSnapshot: floorPlanSnapshot,
           locations: locations,
+          setScopeSymbolsBySetId: setScopeSymbolsBySetId,
+          roles: roles,
           reloadEpoch: state.reloadEpoch + 1,
         ),
       );
     } catch (error, stackTrace) {
       _logger.e(
-        "A problem occurred when tried to read again the $requested of project "
+        "A problem occurred when tried to read again the $scopes of project "
         "${project.primaryScreenplayId}: ${error.runtimeType}",
         null,
         stackTrace,

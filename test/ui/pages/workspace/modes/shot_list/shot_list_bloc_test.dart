@@ -549,6 +549,44 @@ void main() {
       await bloc.close();
     });
 
+    test("reload reads the cast and the set-scope symbols when it is asked to", () async {
+      await writeScreenplay(twoSceneText);
+      final bloc = buildBloc();
+      var state = await waitForState(bloc, (state) => !state.isLoading);
+      bloc.add(const OcptShotListSetCreationRequestedEvent());
+      state = await waitForState(bloc, (state) => state.setsOfSelectedSequence.isNotEmpty);
+      final setId = state.selectedSetId!;
+      final project = projectsManager.currentProject!;
+
+      await projectsManager.roleIndexService.addRole(
+        database: project.database,
+        screenplayId: project.primaryScreenplayId,
+        name: "NEWCOMER",
+        kind: OcptRoleKind.silent,
+      );
+      await projectsManager.floorPlanService.placeSymbol(
+        database: project.database,
+        setId: setId,
+        sceneId: null,
+        shotId: null,
+        layer: OcptFloorPlanLayer.set,
+        xM: 1,
+        yM: 1,
+        setElementShape: OcptFloorPlanSetElementShape.wall,
+      );
+      final rolesBefore = bloc.state.roles.length;
+      expect(bloc.state.setScopeSymbolsBySetId[setId] ?? const [], isEmpty);
+
+      await bloc.reload({OcptShotListReloadScope.roles});
+      expect(bloc.state.roles, hasLength(rolesBefore + 1));
+      expect(bloc.state.setScopeSymbolsBySetId[setId] ?? const [], isEmpty);
+
+      await bloc.reload({OcptShotListReloadScope.setScopeSymbols});
+      expect(bloc.state.setScopeSymbolsBySetId[setId], hasLength(1));
+
+      await bloc.close();
+    });
+
     test(
       "deleting the selected shot moves both epochs, deleting another one the reload alone",
       () async {

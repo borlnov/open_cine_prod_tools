@@ -20,6 +20,10 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_pending_write
 /// [flushAllPendingWrites] and [reload], both of which are plain events the mode handles in its own
 /// queue and which a caller can wait on.
 ///
+/// [Scope] is the mode's own enum of the parts of its shared data that can be read again: a view
+/// can only name a scope the mode declares, and the mode's hook switches over the enum, so a part
+/// of the data nobody can ask for, or that nobody reads, does not compile.
+///
 /// The mode answers two hooks:
 ///
 /// - [flushAllPendingWritesIn] — write what the mode itself holds as well as, through
@@ -34,7 +38,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_pending_write
 /// only its read-and-emit half: a view's flush waits on a reload, so queueing the whole flush
 /// behind that reload would wait on itself. Whoever writes a mode bloc's own reads must therefore
 /// queue them: a read that is not in the queue can finish last and overwrite a newer one.
-mixin MixinOcptModeBloc<S extends MixinOcptModeState<S>> on BlocForMixin<S> {
+mixin MixinOcptModeBloc<S extends MixinOcptModeState<S>, Scope extends Enum> on BlocForMixin<S> {
   /// The flushers the view blocs registered, in registration order.
   final List<OcptPendingWritesFlusher> _flushers = [];
 
@@ -95,12 +99,12 @@ mixin MixinOcptModeBloc<S extends MixinOcptModeState<S>> on BlocForMixin<S> {
   /// state holds what was read — so the caller can select a row it has just written.
   ///
   /// Completes at once on a bloc that is closing: there is no state left to wait for.
-  Future<void> reload(Set<Enum> scopes) async {
+  Future<void> reload(Set<Scope> scopes) async {
     if (_isClosing) {
       return;
     }
 
-    await OcptModeReloadRequestedEvent(scopes: scopes).addToAndWait(this);
+    await OcptModeReloadRequestedEvent<Scope>(scopes: scopes).addToAndWait(this);
   }
 
   /// {@template open_cine_prod_tools.MixinOcptModeBloc.flushAllPendingWritesIn}
@@ -116,7 +120,7 @@ mixin MixinOcptModeBloc<S extends MixinOcptModeState<S>> on BlocForMixin<S> {
   /// `reloadEpoch` moved on. Called one at a time by [reloadSerially].
   /// {@endtemplate}
   @protected
-  Future<void> reloadScopesIn(Set<Enum> scopes, Emitter<S> emitter);
+  Future<void> reloadScopesIn(Set<Scope> scopes, Emitter<S> emitter);
 
   /// Runs [action], a read of the shared data that ends in an emit, only once every action already
   /// queued through this has settled, and queues it in turn.
@@ -133,7 +137,7 @@ mixin MixinOcptModeBloc<S extends MixinOcptModeState<S>> on BlocForMixin<S> {
 
   /// Runs [reloadScopesIn] through [runSerially].
   @protected
-  Future<void> reloadSerially(Set<Enum> scopes, Emitter<S> emitter) =>
+  Future<void> reloadSerially(Set<Scope> scopes, Emitter<S> emitter) =>
       runSerially(() => reloadScopesIn(scopes, emitter));
 
   /// {@macro act_flutter_utility.BlocForMixin.registerMixinEvents}
@@ -142,7 +146,7 @@ mixin MixinOcptModeBloc<S extends MixinOcptModeState<S>> on BlocForMixin<S> {
     super.registerMixinEvents();
 
     on<OcptModeFlushRequestedEvent>(_onFlushRequested);
-    on<OcptModeReloadRequestedEvent>(_onReloadRequested);
+    on<OcptModeReloadRequestedEvent<Scope>>(_onReloadRequested);
   }
 
   /// Writes every pending edit, then tells the dispatcher.
@@ -155,7 +159,10 @@ mixin MixinOcptModeBloc<S extends MixinOcptModeState<S>> on BlocForMixin<S> {
   }
 
   /// Reads the requested parts of the shared data again, then tells the dispatcher.
-  Future<void> _onReloadRequested(OcptModeReloadRequestedEvent event, Emitter<S> emitter) async {
+  Future<void> _onReloadRequested(
+    OcptModeReloadRequestedEvent<Scope> event,
+    Emitter<S> emitter,
+  ) async {
     try {
       await reloadSerially(event.scopes, emitter);
     } finally {

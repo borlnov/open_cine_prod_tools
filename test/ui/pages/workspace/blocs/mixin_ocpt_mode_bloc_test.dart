@@ -29,13 +29,13 @@ class _State extends BlocStateForMixin<_State> with MixinOcptModeState<_State> {
   final int selectionEpoch;
 
   /// The scopes each reload that ran so far read, in order.
-  final List<Set<Enum>> reads;
+  final List<Set<_Scope>> reads;
 
   /// Class constructor
   const _State({this.reloadEpoch = 0, this.selectionEpoch = 0, this.reads = const []});
 
   @override
-  _State copyWith({int? reloadEpoch, int? selectionEpoch, List<Set<Enum>>? reads}) => _State(
+  _State copyWith({int? reloadEpoch, int? selectionEpoch, List<Set<_Scope>>? reads}) => _State(
     reloadEpoch: reloadEpoch ?? this.reloadEpoch,
     selectionEpoch: selectionEpoch ?? this.selectionEpoch,
     reads: reads ?? this.reads,
@@ -72,7 +72,7 @@ class _Flusher implements OcptPendingWritesFlusher {
 }
 
 /// A mode bloc whose reads wait on [readGates] in order, so a test decides when each one ends.
-class _ModeBloc extends BlocForMixin<_State> with MixinOcptModeBloc<_State> {
+class _ModeBloc extends BlocForMixin<_State> with MixinOcptModeBloc<_State, _Scope> {
   /// One gate per read, in the order the reads start; a read with no gate left runs at once.
   final List<Completer<void>> readGates = [];
 
@@ -104,7 +104,7 @@ class _ModeBloc extends BlocForMixin<_State> with MixinOcptModeBloc<_State> {
   }
 
   @override
-  Future<void> reloadScopesIn(Set<Enum> scopes, Emitter<_State> emitter) async {
+  Future<void> reloadScopesIn(Set<_Scope> scopes, Emitter<_State> emitter) async {
     final index = _readCount++;
     trace.add("start $index");
     if (index < readGates.length) {
