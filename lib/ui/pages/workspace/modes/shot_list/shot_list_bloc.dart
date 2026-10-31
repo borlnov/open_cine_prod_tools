@@ -1050,52 +1050,30 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
       return;
     }
 
-    try {
-      final options = event.options;
-      final outcome = await _exportManager.exportScenarioCoverage(
-        document: const FountainParser().parse(state.screenplayText),
-        screenplayText: state.screenplayText,
-        snapshot: snapshot,
-        pageSetup: OcptPageSetup(format: options.format, margins: options.margins),
-        labels: event.labels,
-        projectName: state.title,
-        includeSceneNumbers: options.includeSceneNumbers,
-        includeTitlePage: options.includeTitlePage,
-        includeLegendPage: options.includeLegendPage,
-        includeSummaryPage: options.includeSummaryPage,
-        fileTypeLabel: event.fileTypeLabel,
-        episodeTag: event.episodeTag,
-        shareAnchor: event.shareAnchor,
-      );
-      if (outcome == null) {
-        // The user cancelled the save dialog.
-        return;
-      }
-
-      emitter(
-        state.copyWith(
-          ioNotice: OcptShotListIoNotice(
-            kind: OcptShotListIoNoticeKind.scenarioCoverageExportSucceeded,
-            path: outcome.savedPath,
-            wasShared: outcome.wasShared,
-          ),
-        ),
-      );
-    } catch (error, stackTrace) {
-      _logger.e(
-        "A problem occurred when tried to export the scenario coverage of project "
-        "${_projectsManager.currentProject?.primaryScreenplayId}: ${error.runtimeType}",
-        null,
-        stackTrace,
-      );
-      emitter(
-        state.copyWith(
-          ioNotice: const OcptShotListIoNotice(
-            kind: OcptShotListIoNoticeKind.scenarioCoverageExportFailed,
-          ),
-        ),
-      );
-    }
+    await _runExport(
+      emitter: emitter,
+      what: "scenario coverage",
+      succeededKind: OcptShotListIoNoticeKind.scenarioCoverageExportSucceeded,
+      failedKind: OcptShotListIoNoticeKind.scenarioCoverageExportFailed,
+      export: () async {
+        final options = event.options;
+        return _exportManager.exportScenarioCoverage(
+          document: const FountainParser().parse(state.screenplayText),
+          screenplayText: state.screenplayText,
+          snapshot: snapshot,
+          pageSetup: OcptPageSetup(format: options.format, margins: options.margins),
+          labels: event.labels,
+          projectName: state.title,
+          includeSceneNumbers: options.includeSceneNumbers,
+          includeTitlePage: options.includeTitlePage,
+          includeLegendPage: options.includeLegendPage,
+          includeSummaryPage: options.includeSummaryPage,
+          fileTypeLabel: event.fileTypeLabel,
+          episodeTag: event.episodeTag,
+          shareAnchor: event.shareAnchor,
+        );
+      },
+    );
   }
 
   /// Exports the storyboard — every shot's imported frames, annotated, with its key information —
@@ -1119,51 +1097,29 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
       return;
     }
 
-    try {
-      final options = event.options;
-      final outcome = await _exportManager.exportStoryboard(
-        snapshot: snapshot,
-        storyboardSnapshot: storyboardSnapshot,
-        pageSetup: OcptPageSetup(format: options.format, margins: options.margins),
-        labels: event.labels,
-        projectName: state.title,
-        shotsPerPage: options.shotsPerPage,
-        includeFloorPlansAfterEachSequence: options.includeFloorPlansAfterEachSequence,
-        floorPlanSnapshot: state.floorPlanSnapshot,
-        floorPlanLabels: event.floorPlanLabels,
-        fileTypeLabel: event.fileTypeLabel,
-        episodeTag: event.episodeTag,
-        shareAnchor: event.shareAnchor,
-      );
-      if (outcome == null) {
-        // The user cancelled the save dialog.
-        return;
-      }
-
-      emitter(
-        state.copyWith(
-          ioNotice: OcptShotListIoNotice(
-            kind: OcptShotListIoNoticeKind.storyboardExportSucceeded,
-            path: outcome.savedPath,
-            wasShared: outcome.wasShared,
-          ),
-        ),
-      );
-    } catch (error, stackTrace) {
-      _logger.e(
-        "A problem occurred when tried to export the storyboard of project "
-        "${_projectsManager.currentProject?.primaryScreenplayId}: ${error.runtimeType}",
-        null,
-        stackTrace,
-      );
-      emitter(
-        state.copyWith(
-          ioNotice: const OcptShotListIoNotice(
-            kind: OcptShotListIoNoticeKind.storyboardExportFailed,
-          ),
-        ),
-      );
-    }
+    await _runExport(
+      emitter: emitter,
+      what: "storyboard",
+      succeededKind: OcptShotListIoNoticeKind.storyboardExportSucceeded,
+      failedKind: OcptShotListIoNoticeKind.storyboardExportFailed,
+      export: () async {
+        final options = event.options;
+        return _exportManager.exportStoryboard(
+          snapshot: snapshot,
+          storyboardSnapshot: storyboardSnapshot,
+          pageSetup: OcptPageSetup(format: options.format, margins: options.margins),
+          labels: event.labels,
+          projectName: state.title,
+          shotsPerPage: options.shotsPerPage,
+          includeFloorPlansAfterEachSequence: options.includeFloorPlansAfterEachSequence,
+          floorPlanSnapshot: state.floorPlanSnapshot,
+          floorPlanLabels: event.floorPlanLabels,
+          fileTypeLabel: event.fileTypeLabel,
+          episodeTag: event.episodeTag,
+          shareAnchor: event.shareAnchor,
+        );
+      },
+    );
   }
 
   /// Exports the floor plans — one plan per shot that has a camera placed on it — as a PDF.
@@ -1185,8 +1141,12 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
       return;
     }
 
-    try {
-      final outcome = await _exportManager.exportFloorPlans(
+    await _runExport(
+      emitter: emitter,
+      what: "floor plans",
+      succeededKind: OcptShotListIoNoticeKind.floorPlansExportSucceeded,
+      failedKind: OcptShotListIoNoticeKind.floorPlansExportFailed,
+      export: () => _exportManager.exportFloorPlans(
         snapshot: snapshot,
         floorPlanSnapshot: floorPlanSnapshot,
         pageSetup: state.pageSetup,
@@ -1195,7 +1155,23 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
         fileTypeLabel: event.fileTypeLabel,
         episodeTag: event.episodeTag,
         shareAnchor: event.shareAnchor,
-      );
+      ),
+    );
+  }
+
+  /// Runs one of the read-only exports through [export], then raises the transient notice of its
+  /// outcome: [succeededKind] with the saved path, nothing at all when [export] answers null (the
+  /// user cancelled the save dialog), or [failedKind] when it throws (logged as a problem exporting
+  /// [what]).
+  Future<void> _runExport({
+    required Emitter<OcptShotListState> emitter,
+    required String what,
+    required OcptShotListIoNoticeKind succeededKind,
+    required OcptShotListIoNoticeKind failedKind,
+    required Future<OcptExportOutcome?> Function() export,
+  }) async {
+    try {
+      final outcome = await export();
       if (outcome == null) {
         // The user cancelled the save dialog.
         return;
@@ -1204,7 +1180,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
       emitter(
         state.copyWith(
           ioNotice: OcptShotListIoNotice(
-            kind: OcptShotListIoNoticeKind.floorPlansExportSucceeded,
+            kind: succeededKind,
             path: outcome.savedPath,
             wasShared: outcome.wasShared,
           ),
@@ -1212,18 +1188,12 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
       );
     } catch (error, stackTrace) {
       _logger.e(
-        "A problem occurred when tried to export the floor plans of project "
+        "A problem occurred when tried to export the $what of project "
         "${_projectsManager.currentProject?.primaryScreenplayId}: ${error.runtimeType}",
         null,
         stackTrace,
       );
-      emitter(
-        state.copyWith(
-          ioNotice: const OcptShotListIoNotice(
-            kind: OcptShotListIoNoticeKind.floorPlansExportFailed,
-          ),
-        ),
-      );
+      emitter(state.copyWith(ioNotice: OcptShotListIoNotice(kind: failedKind)));
     }
   }
 
