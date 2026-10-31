@@ -198,6 +198,48 @@ seven documents a production runs on.
   disagree about what hour a slot starts at. The state builds one **per state instance**, not per
   read: a state is immutable, so the join cannot go stale inside one.
 
+## The blocs
+
+- **The mode is one mode bloc and two view blocs** (ADR 0034; `foundations.md` states the idiom).
+  `OcptScheduleMode` builds `OcptScheduleBloc` first, then `OcptScheduleExportBloc` and
+  `OcptScheduleDayBloc` with `lazy: false`, so each has registered its flusher before a widget reads
+  it. The files sit in `lib/ui/pages/workspace/modes/schedule/`; the events are one sealed hierarchy
+  per domain in `events/` (`workspace`, `selection`, `days` for the mode; `slots`, `blocks`,
+  `day_events`, `fields` for the day bloc; `export`), all extending the abstract `OcptScheduleEvent`,
+  and `schedule_event.dart` only exports them.
+  - **The mode bloc** holds the data (the schedule snapshot, every episode's shot list and the
+    catalogues), the selected day, block and shot, the docks, the centre view and the agenda's
+    presentation, and writes the shooting days themselves: a day is the root of the selection and
+    the left dock's list. `OcptScheduleReloadScope` has two values, `schedule` and `shotLists`;
+    nothing else is read again on its own, the catalogues being read by a whole load (entry, a
+    version preview or restore, the project settings page).
+  - **Reading the schedule again reconciles the selection**: a selected day or block that the new
+    snapshot no longer holds is dropped, and `selectionEpoch` moves with the cause `dropped`.
+    Deleting the selected day therefore leaves nothing selected, and nothing is selected in its
+    place. The same read refreshes the `Versions` tab's working-copy card when it is the one open,
+    which is what makes the card flip to `Modified` after a write from any bloc; the capture is
+    throttled on the real clock.
+  - **`OcptScheduleDayBloc`** writes everything the day view and the inspector do to a day's slots,
+    crew, cast, guests, candidacies, blocks and events, a shot's status, and holds the typed
+    free-text fields (`pendingFieldEdits`) with their own debounce. A write is the service, then
+    `await modeBloc.reload({schedule})`. It holds no selection, so a selection move clears nothing
+    in it: **selecting a day or a block does not flush a pending edit, and neither does a switch of
+    the centre view**; the debounce writes the edit later, even after the user has moved to another
+    day. It is flushed ahead of a dock tab change, a version preview, a project package export and
+    every export, and by the mode's `deactivate()` without state. Going back to the projects does
+    **not** flush: the project is closed before the keystrokes could be written, and they are lost
+    (a known defect, pinned by a scenario). When the mode reads everything again
+    (`OcptScheduleSelectionCause.load`) every pending edit is dropped; when it only reads the
+    schedule, an edit typed into a row that no longer exists is.
+  - **`OcptScheduleExportBloc`** runs the seven exports and owns the transient notice. Each one
+    first has the mode write what is pending (`flushAllPendingWrites`), then reads the mode's
+    `planSnapshot`. The general call sheets dialog ticks only the selected day.
+  - **The widgets.** The shell and the dialogs stay in `schedule_mode.dart` (the export option
+    dialogs, every confirmation, the shot picker, the project package question); each view is a
+    public widget of its own under `widgets/`, taking the mode state as a parameter and watching
+    the day bloc only where it shows a typed edit (`OcptScheduleDayCentreView`,
+    `OcptScheduleInspectorView`), so a keystroke redraws those two and not the shell.
+
 ## The views
 
 - The centre is one of **four** (`OcptScheduleCentreView`, whose declaration order is the header

@@ -136,6 +136,11 @@ the persistence, the project versions, the sync-ready data model and the read-on
     database up to date — a selection, a creation, the way back, an export, a version preview — and
     reads the data again if any of them wrote. **Each view has its own debounce**: two edits typed
     in two views a second apart are written two seconds after each one.
+  - **What flushes is each mode's own.** The shot list flushes on every selection move; the
+    schedule flushes on none (a day or block selection, a centre view switch, going back) and only
+    ahead of a dock tab change, a version preview, a package export and an export. The flush sites
+    are read off the old handlers, never assumed from the idiom. A mode whose every write must
+    refresh the `Versions` card does it once, in its reload hook, rather than in every view.
   - **Never `state.copyWith(x: await …)`**: Dart evaluates the receiver before the `await`, so a
     reload landing meanwhile is overwritten with the old state, epochs included. Await into a
     local first. A view never reads `modeBloc.state` across an `await` and trusts it afterwards.
@@ -174,7 +179,8 @@ the persistence, the project versions, the sync-ready data model and the read-on
   reordering the enum is safe. The modes are `OcptEditorPage` (screenplay, under `lib/ui/pages/editor/`),
   `OcptBreakdownMode`, `OcptShotListMode`, `OcptResourcesMode`, `OcptScheduleMode` and
   `OcptBudgetMode` (each under `lib/ui/pages/workspace/modes/<mode>/`, each owning its own bloc, which
-  is a mode bloc and its view blocs once the mode is split, ADR 0034; the shot list is) —
+  is a mode bloc and its view blocs once the mode is split, ADR 0034; the shot list and the
+  schedule are) —
   `OcptWorkspaceMode.isImplemented` is true of all six today, kept as an explicit list rather than a
   bare `true` so a mode shipped ahead of its own content (the way `budget` itself once sat here,
   rendering the shared "coming in a future version" empty state) has a single, obvious place to be
