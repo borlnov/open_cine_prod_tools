@@ -1334,6 +1334,38 @@ void main() {
       await board.close();
     });
 
+    test("a full reload does not put an older storyboard over a newer one", () async {
+      final service = _HoldingStoryboardService(projectsManager.storyboardService);
+      final mounted = await mountWithAPanel(
+        fieldEditDebounce: const Duration(days: 1),
+        storyboardService: service,
+      );
+      final mode = mounted.mode;
+      final board = mounted.board;
+
+      // The mode loads everything again (what a version preview does), and its read of the
+      // storyboard, made while the comment is still empty, is held.
+      final selectionEpochBefore = mode.state.selectionEpoch;
+      service.heldReads = 1;
+      mode.add(const OcptShotListLoadRequestedEvent());
+      await waitUntil(() => service.holdCount == 1);
+
+      // Meanwhile the board writes a comment and has the mode read it.
+      board.add(OcptShotListPanelCommentChangedEvent(panelId: mounted.panelId, rawValue: "Newer"));
+      await waitUntil(() => board.state.pendingFieldEdits.isNotEmpty);
+      final boardFlush = board.flushPendingWrites();
+      await Future<void>.delayed(const Duration(milliseconds: 100));
+
+      service.release();
+      await boardFlush.timeout(const Duration(seconds: 5));
+      // The load is the only thing that moves the selection epoch here.
+      await waitUntil(() => mode.state.selectionEpoch > selectionEpochBefore);
+
+      expect(mode.state.panelsOfShot(mounted.shotId).single.comment, "Newer");
+
+      await closeAll(board, mode);
+    });
+
     test("a failing comment write raises the write error and forgets the comment", () async {
       await writeScreenplay(twoSceneText);
       final mounted = await mountWithAPanel(fieldEditDebounce: const Duration(days: 1));

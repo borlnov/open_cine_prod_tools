@@ -529,84 +529,88 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
       return;
     }
 
-    final previewedVersion = project.previewedVersion;
-    final screenplayText = await _loadScreenplayText(project);
-    final pageSetup = await _loadPageSetup(project);
-    final snapshot = await _loadSnapshot(project);
-    final storyboardSnapshot = await _loadStoryboard(project);
-    final floorPlanSnapshot = await _loadFloorPlans(project);
-    final locations = await _loadLocations(project);
-    final setScopeSymbolsBySetId = await _loadSetScopeSymbolsBySetId(project);
-    final screenplayCharacters = _screenplayCharactersOf(screenplayText);
-    final roles = await _loadRoles(project);
-    final suggestions = await _loadSuggestions(project);
+    // Queued with the views' reloads: a read made here but emitted after a newer one would put
+    // older data over it.
+    await runSerially(() async {
+      final previewedVersion = project.previewedVersion;
+      final screenplayText = await _loadScreenplayText(project);
+      final pageSetup = await _loadPageSetup(project);
+      final snapshot = await _loadSnapshot(project);
+      final storyboardSnapshot = await _loadStoryboard(project);
+      final floorPlanSnapshot = await _loadFloorPlans(project);
+      final locations = await _loadLocations(project);
+      final setScopeSymbolsBySetId = await _loadSetScopeSymbolsBySetId(project);
+      final screenplayCharacters = _screenplayCharactersOf(screenplayText);
+      final roles = await _loadRoles(project);
+      final suggestions = await _loadSuggestions(project);
 
-    final revealRequest = _pendingRevealRequest;
-    _pendingRevealRequest = null;
-    final revealedSequenceId = ocptRevealedSequenceIdOf(
-      revealRequest: revealRequest,
-      snapshot: snapshot,
-    );
-
-    final selectedSequenceId =
-        revealedSequenceId ?? (snapshot.sequences.isEmpty ? null : snapshot.sequences.first.id);
-    final firstSetId = ocptFirstSetIdOf(
-      floorPlanSnapshot: floorPlanSnapshot,
-      sequenceId: selectedSequenceId,
-    );
-    final revealedSetId = ocptRevealedSetIdOf(
-      revealRequest: revealRequest,
-      floorPlanSnapshot: floorPlanSnapshot,
-      sequenceId: selectedSequenceId,
-    );
-    final selectedSetId = revealedSetId ?? firstSetId;
-    final firstShotId = ocptFirstShotIdOf(snapshot: snapshot, sequenceId: selectedSequenceId);
-    final effectiveCentreView = revealedSequenceId != null
-        ? OcptShotListCentreView.floorPlans
-        : centreView;
-    final propsOfSelectedSequence = await _loadPropsOfSequence(
-      project: project,
-      sequences: snapshot.sequences,
-      sequenceId: selectedSequenceId,
-    );
-
-    emitter(
-      state.copyWith(
-        isLoading: false,
-        title: project.name,
-        previewedVersionId: previewedVersion?.id,
-        forcePreviewedVersionIdValue: previewedVersion == null,
+      final revealRequest = _pendingRevealRequest;
+      _pendingRevealRequest = null;
+      final revealedSequenceId = ocptRevealedSequenceIdOf(
+        revealRequest: revealRequest,
         snapshot: snapshot,
-        storyboardSnapshot: storyboardSnapshot,
+      );
+
+      final selectedSequenceId =
+          revealedSequenceId ?? (snapshot.sequences.isEmpty ? null : snapshot.sequences.first.id);
+      final firstSetId = ocptFirstSetIdOf(
         floorPlanSnapshot: floorPlanSnapshot,
-        locations: locations,
-        setScopeSymbolsBySetId: setScopeSymbolsBySetId,
-        pageSetup: pageSetup,
-        screenplayText: screenplayText,
-        roles: roles,
-        selectedSequenceId: selectedSequenceId,
-        forceSelectedSequenceIdValue: snapshot.sequences.isEmpty,
-        selectedShotId: firstShotId,
-        forceSelectedShotIdValue: firstShotId == null,
-        selectedSetId: selectedSetId,
-        forceSelectedSetIdValue: selectedSetId == null,
-        forceSelectedFloorPlanSymbolIdValue: true,
-        forceSelectedFloorPlanArrowIdValue: true,
-        forcePendingFloorPlanArrowAnchorSymbolIdValue: true,
-        forcePendingCoverageAnchorValue: true,
-        leftDockFraction: leftDockFraction,
-        rightDockFraction: rightDockFraction,
-        visibleColumns: visibleColumns,
-        lastRightDockTab: lastRightDockTab,
-        centreView: effectiveCentreView,
-        screenplayCharacters: screenplayCharacters,
-        suggestions: suggestions,
-        propsOfSelectedSequence: propsOfSelectedSequence,
-        reloadEpoch: state.reloadEpoch + 1,
-        selectionEpoch: state.selectionEpoch + 1,
-        selectionCause: OcptShotListSelectionCause.load,
-      ),
-    );
+        sequenceId: selectedSequenceId,
+      );
+      final revealedSetId = ocptRevealedSetIdOf(
+        revealRequest: revealRequest,
+        floorPlanSnapshot: floorPlanSnapshot,
+        sequenceId: selectedSequenceId,
+      );
+      final selectedSetId = revealedSetId ?? firstSetId;
+      final firstShotId = ocptFirstShotIdOf(snapshot: snapshot, sequenceId: selectedSequenceId);
+      final effectiveCentreView = revealedSequenceId != null
+          ? OcptShotListCentreView.floorPlans
+          : centreView;
+      final propsOfSelectedSequence = await _loadPropsOfSequence(
+        project: project,
+        sequences: snapshot.sequences,
+        sequenceId: selectedSequenceId,
+      );
+
+      emitter(
+        state.copyWith(
+          isLoading: false,
+          title: project.name,
+          previewedVersionId: previewedVersion?.id,
+          forcePreviewedVersionIdValue: previewedVersion == null,
+          snapshot: snapshot,
+          storyboardSnapshot: storyboardSnapshot,
+          floorPlanSnapshot: floorPlanSnapshot,
+          locations: locations,
+          setScopeSymbolsBySetId: setScopeSymbolsBySetId,
+          pageSetup: pageSetup,
+          screenplayText: screenplayText,
+          roles: roles,
+          selectedSequenceId: selectedSequenceId,
+          forceSelectedSequenceIdValue: snapshot.sequences.isEmpty,
+          selectedShotId: firstShotId,
+          forceSelectedShotIdValue: firstShotId == null,
+          selectedSetId: selectedSetId,
+          forceSelectedSetIdValue: selectedSetId == null,
+          forceSelectedFloorPlanSymbolIdValue: true,
+          forceSelectedFloorPlanArrowIdValue: true,
+          forcePendingFloorPlanArrowAnchorSymbolIdValue: true,
+          forcePendingCoverageAnchorValue: true,
+          leftDockFraction: leftDockFraction,
+          rightDockFraction: rightDockFraction,
+          visibleColumns: visibleColumns,
+          lastRightDockTab: lastRightDockTab,
+          centreView: effectiveCentreView,
+          screenplayCharacters: screenplayCharacters,
+          suggestions: suggestions,
+          propsOfSelectedSequence: propsOfSelectedSequence,
+          reloadEpoch: state.reloadEpoch + 1,
+          selectionEpoch: state.selectionEpoch + 1,
+          selectionCause: OcptShotListSelectionCause.load,
+        ),
+      );
+    });
   }
 
   /// [sequenceId]'s own breakdown props (`OcptElementsService.propsOfScene`), or an empty list
