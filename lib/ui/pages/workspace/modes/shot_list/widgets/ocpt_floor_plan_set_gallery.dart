@@ -108,31 +108,9 @@ class OcptFloorPlanSetGallery extends StatelessWidget {
           ),
           if (onSetCreationRequested != null) ...[
             const SizedBox(height: 16),
-            _buildCreateSetButton(context, tr),
+            _CreateSetButton(locations: locations, onSetCreationRequested: onSetCreationRequested!),
           ],
         ],
-      ),
-    );
-  }
-
-  /// The `Create a set…` action: an outlined button opening the same location/`New location…`
-  /// menu the set tabs' own `＋ Set` button does.
-  Widget _buildCreateSetButton(BuildContext context, Tr tr) {
-    final locationEntries = [for (final location in locations) (location.id, location.name)];
-
-    return MenuAnchor(
-      menuChildren: [
-        for (final (id, name) in locationEntries)
-          MenuItemButton(onPressed: () => onSetCreationRequested!(id), child: Text(name)),
-        if (locationEntries.isNotEmpty) const Divider(height: 1),
-        MenuItemButton(
-          onPressed: () => onSetCreationRequested!(null),
-          child: Text(tr.shotListFloorPlanNewLocationMenuAction),
-        ),
-      ],
-      builder: (context, controller, child) => OutlinedButton(
-        onPressed: () => controller.isOpen ? controller.close() : controller.open(),
-        child: Text(tr.shotListFloorPlanGalleryCreateSetAction),
       ),
     );
   }
@@ -194,7 +172,7 @@ class _OcptFloorPlanSetGalleryCard extends StatelessWidget {
                 height: _thumbnailHeight,
                 child: ColoredBox(
                   color: theme.colorScheme.surfaceContainerHighest,
-                  child: _buildThumbnail(context, theme),
+                  child: _Thumbnail(set: set, symbols: symbols),
                 ),
               ),
             ),
@@ -227,16 +205,29 @@ class _OcptFloorPlanSetGalleryCard extends StatelessWidget {
       ),
     );
   }
+}
 
-  /// The thumbnail itself: [symbols] drawn through `OcptFloorPlanSheet.of` and the very same
-  /// `OcptFloorPlanCanvasPainter` the real canvas paints from, fitted to the thumbnail's own size
-  /// (`ocptFloorPlanFitOf`) — or the "empty" placeholder while the set carries no set-scope symbol
-  /// at all.
-  ///
-  /// **The underlay is deliberately left out**: resolving and decoding a referenced image for
-  /// every card of a project-wide gallery is not "cheap" — a card's thumbnail draws the room's own
-  /// shapes alone, exactly as an empty plan draws nothing.
-  Widget _buildThumbnail(BuildContext context, ThemeData theme) {
+/// The thumbnail itself: [symbols] drawn through `OcptFloorPlanSheet.of` and the very same
+/// `OcptFloorPlanCanvasPainter` the real canvas paints from, fitted to the thumbnail's own size
+/// (`ocptFloorPlanFitOf`) — or the "empty" placeholder while the set carries no set-scope symbol
+/// at all.
+///
+/// **The underlay is deliberately left out**: resolving and decoding a referenced image for
+/// every card of a project-wide gallery is not "cheap" — a card's thumbnail draws the room's own
+/// shapes alone, exactly as an empty plan draws nothing.
+class _Thumbnail extends StatelessWidget {
+  /// The set whose plan is drawn.
+  final OcptSet set;
+
+  /// [set]'s own live set-scope symbols.
+  final List<OcptFloorPlanSymbol> symbols;
+
+  /// Class constructor
+  const _Thumbnail({required this.set, required this.symbols});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final floorPlanSet = OcptFloorPlanSet(
       id: set.id,
       name: set.name,
@@ -294,6 +285,41 @@ class _OcptFloorPlanSetGalleryCard extends StatelessWidget {
         onionSkinOpacity: 1,
         metricLines: const [],
         metricLineColor: theme.colorScheme.tertiary,
+      ),
+    );
+  }
+}
+
+/// The `Create a set…` action: an outlined button opening the same location/`New location…` menu
+/// the set tabs' own `＋ Set` button does.
+class _CreateSetButton extends StatelessWidget {
+  /// Every location of the project, which the menu lists.
+  final List<OcptLocation> locations;
+
+  /// Called with the location a menu entry names, or null for its `New location…` entry.
+  final void Function(String? locationId) onSetCreationRequested;
+
+  /// Class constructor
+  const _CreateSetButton({required this.locations, required this.onSetCreationRequested});
+
+  @override
+  Widget build(BuildContext context) {
+    final tr = Tr.of(context);
+    final locationEntries = [for (final location in locations) (location.id, location.name)];
+
+    return MenuAnchor(
+      menuChildren: [
+        for (final (id, name) in locationEntries)
+          MenuItemButton(onPressed: () => onSetCreationRequested(id), child: Text(name)),
+        if (locationEntries.isNotEmpty) const Divider(height: 1),
+        MenuItemButton(
+          onPressed: () => onSetCreationRequested(null),
+          child: Text(tr.shotListFloorPlanNewLocationMenuAction),
+        ),
+      ],
+      builder: (context, controller, child) => OutlinedButton(
+        onPressed: () => controller.isOpen ? controller.close() : controller.open(),
+        child: Text(tr.shotListFloorPlanGalleryCreateSetAction),
       ),
     );
   }

@@ -154,38 +154,93 @@ class _OcptShotInspectorFieldState extends State<OcptShotInspectorField> {
             ),
             const SizedBox(height: 4),
           ],
-          _buildSizedField(context),
+          _OcptShotInspectorFieldInput(
+            field: widget,
+            controller: _controller,
+            focusNode: _focusNode,
+          ),
         ],
       ),
     );
   }
+}
 
-  /// [_buildField], kept to [OcptShotInspectorField.fieldWidth] and aligned to the left of the
-  /// panel when the caller asked for a narrow box, left to fill the dock's width otherwise.
-  Widget _buildSizedField(BuildContext context) {
-    final fieldWidth = widget.fieldWidth;
+/// The input of an [OcptShotInspectorField], kept to its [OcptShotInspectorField.fieldWidth] and
+/// aligned to the left of the panel when the caller asked for a narrow box, left to fill the dock's
+/// width otherwise.
+///
+/// It is given the controller and the focus node by the field's state, which owns them: this
+/// widget rebuilding never touches either.
+class _OcptShotInspectorFieldInput extends StatelessWidget {
+  /// The field whose input this draws.
+  final OcptShotInspectorField field;
+
+  /// The field's own text editing controller.
+  final TextEditingController controller;
+
+  /// The field's own focus node.
+  final FocusNode focusNode;
+
+  /// Class constructor
+  const _OcptShotInspectorFieldInput({
+    required this.field,
+    required this.controller,
+    required this.focusNode,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final fieldWidth = field.fieldWidth;
+    final input = _OcptShotInspectorFieldSuggesting(
+      field: field,
+      controller: controller,
+      focusNode: focusNode,
+    );
     if (fieldWidth == null) {
-      return _buildField(context);
+      return input;
     }
 
     return Align(
       alignment: Alignment.centerLeft,
-      child: SizedBox(width: fieldWidth, child: _buildField(context)),
+      child: SizedBox(width: fieldWidth, child: input),
     );
   }
+}
 
-  /// Builds the field itself: a plain [TextField] when there is nothing to suggest (or nothing to
-  /// type at all), or one bound through [RawAutocomplete] otherwise.
-  Widget _buildField(BuildContext context) {
-    final suggestions = widget.suggestions;
-    final onChanged = widget.onChanged;
+/// The field itself: a plain [TextField] when there is nothing to suggest (or nothing to type at
+/// all), or one bound through [RawAutocomplete] otherwise.
+class _OcptShotInspectorFieldSuggesting extends StatelessWidget {
+  /// The field whose input this draws.
+  final OcptShotInspectorField field;
+
+  /// The field's own text editing controller.
+  final TextEditingController controller;
+
+  /// The field's own focus node.
+  final FocusNode focusNode;
+
+  /// Class constructor
+  const _OcptShotInspectorFieldSuggesting({
+    required this.field,
+    required this.controller,
+    required this.focusNode,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final suggestions = field.suggestions;
+    final onChanged = field.onChanged;
     if (onChanged == null || suggestions == null || suggestions.isEmpty) {
-      return _textField(_controller, _focusNode);
+      return _OcptShotInspectorFieldText(
+        field: field,
+        controller: controller,
+        focusNode: focusNode,
+      );
     }
 
     return RawAutocomplete<String>(
-      textEditingController: _controller,
-      focusNode: _focusNode,
+      textEditingController: controller,
+      focusNode: focusNode,
       optionsBuilder: (textEditingValue) {
         final query = textEditingValue.text.trim().toLowerCase();
         if (query.isEmpty) {
@@ -195,32 +250,51 @@ class _OcptShotInspectorFieldState extends State<OcptShotInspectorField> {
       },
       onSelected: onChanged,
       fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) =>
-          _textField(controller, focusNode),
+          _OcptShotInspectorFieldText(field: field, controller: controller, focusNode: focusNode),
       optionsViewBuilder: (context, onSelected, options) =>
           _OcptShotInspectorFieldOptions(options: options, onSelected: onSelected),
     );
   }
+}
 
-  /// The text field itself, given the controller and focus node to bind it to: this widget's own
-  /// ones when there is nothing to suggest, the very same ones handed back by [RawAutocomplete]
-  /// otherwise (it is given them, see the class doc comment).
-  ///
-  /// A [OcptShotInspectorField.multiline] field grows from [_multilineMinLines] lines upwards
-  /// instead of scrolling a single line sideways, which is what makes the fields written as a
-  /// sentence readable in a dock this narrow.
-  Widget _textField(TextEditingController controller, FocusNode focusNode) => TextField(
+/// The text field itself, given the controller and focus node to bind it to: the field's own ones
+/// when there is nothing to suggest, the very same ones handed back by [RawAutocomplete] otherwise
+/// (it is given them, see [OcptShotInspectorField]'s class doc comment).
+///
+/// A [OcptShotInspectorField.multiline] field grows from [_multilineMinLines] lines upwards
+/// instead of scrolling a single line sideways, which is what makes the fields written as a
+/// sentence readable in a dock this narrow.
+class _OcptShotInspectorFieldText extends StatelessWidget {
+  /// The field whose text field this draws.
+  final OcptShotInspectorField field;
+
+  /// The controller to bind the text field to.
+  final TextEditingController controller;
+
+  /// The focus node to bind the text field to.
+  final FocusNode focusNode;
+
+  /// Class constructor
+  const _OcptShotInspectorFieldText({
+    required this.field,
+    required this.controller,
+    required this.focusNode,
+  });
+
+  @override
+  Widget build(BuildContext context) => TextField(
     controller: controller,
     focusNode: focusNode,
-    readOnly: widget.onChanged == null,
-    onChanged: widget.onChanged,
-    maxLines: widget.multiline ? null : 1,
-    minLines: widget.multiline ? _multilineMinLines : 1,
+    readOnly: field.onChanged == null,
+    onChanged: field.onChanged,
+    maxLines: field.multiline ? null : 1,
+    minLines: field.multiline ? _multilineMinLines : 1,
     style: Theme.of(context).textTheme.bodySmall,
-    inputFormatters: widget.inputFormatters,
+    inputFormatters: field.inputFormatters,
     decoration: InputDecoration(
       isDense: true,
-      hintText: widget.hintText,
-      errorText: widget.errorText,
+      hintText: field.hintText,
+      errorText: field.errorText,
     ),
   );
 }

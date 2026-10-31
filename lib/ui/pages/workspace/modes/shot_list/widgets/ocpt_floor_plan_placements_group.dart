@@ -134,27 +134,27 @@ class OcptFloorPlanPlacementsGroup extends StatelessWidget {
           style: theme.textTheme.titleSmall?.copyWith(color: theme.colorScheme.primary),
         ),
         const SizedBox(height: 8),
-        _buildGroupHeader(context, tr.shotListFloorPlanSelectionGroupTitle),
-        _buildSelectionSection(context, tr),
+        _GroupHeader(title: tr.shotListFloorPlanSelectionGroupTitle),
+        _SelectionSection(group: this),
         const SizedBox(height: 8),
-        _buildGroupHeader(context, tr.shotListFloorPlanOnThisShotGroupTitle),
-        _buildCamerasSection(context, tr),
-        _buildSection(
-          context,
+        _GroupHeader(title: tr.shotListFloorPlanOnThisShotGroupTitle),
+        _CamerasSection(group: this),
+        _Section(
+          group: this,
           title: tr.shotListFloorPlanPlacementsCharactersSectionTitle,
           symbols: characters,
           emptyHint: tr.shotListFloorPlanPlacementsNoneHint,
           labelOf: (symbol) => symbol.label,
         ),
-        _buildSection(
-          context,
+        _Section(
+          group: this,
           title: tr.shotListFloorPlanPlacementsLightsSectionTitle,
           symbols: lights,
           emptyHint: tr.shotListFloorPlanPlacementsNoneHint,
           labelOf: (symbol) => symbol.label,
         ),
-        _buildSection(
-          context,
+        _Section(
+          group: this,
           title: tr.shotListFloorPlanPlacementsPropsSectionTitle,
           symbols: handProps,
           emptyHint: tr.shotListFloorPlanPlacementsNoneHint,
@@ -177,8 +177,7 @@ class OcptFloorPlanPlacementsGroup extends StatelessWidget {
           )
         else
           for (final arrow in arrows)
-            _buildRow(
-              context,
+            _Row(
               label: arrow.label.isEmpty
                   ? tr.shotListFloorPlanPlacementsArrowRowLabel
                   : arrow.label,
@@ -190,7 +189,7 @@ class OcptFloorPlanPlacementsGroup extends StatelessWidget {
         if (otherSets.isNotEmpty) ...[
           Divider(color: theme.colorScheme.outlineVariant),
           const SizedBox(height: 4),
-          _buildGroupHeader(context, tr.shotListFloorPlanSetGroupTitle),
+          _GroupHeader(title: tr.shotListFloorPlanSetGroupTitle),
           for (final otherSet in otherSets)
             Padding(
               padding: const EdgeInsets.only(bottom: 2),
@@ -210,30 +209,52 @@ class OcptFloorPlanPlacementsGroup extends StatelessWidget {
       ],
     );
   }
+}
 
-  /// One of the group's three headed sections — **Selection**, **On this shot**, **Set** — a
-  /// step up from the smaller subsection titles ([_buildSection]/[_buildCamerasSection]'s own
-  /// `labelSmall`) so the three read as the group's own top-level structure.
-  Widget _buildGroupHeader(BuildContext context, String title) {
+/// One of the group's three headed sections — **Selection**, **On this shot**, **Set** — a step up
+/// from the smaller subsection titles ([_Section]/[_CamerasSection]'s own `labelSmall`) so the
+/// three read as the group's own top-level structure.
+class _GroupHeader extends StatelessWidget {
+  /// The section's title.
+  final String title;
+
+  /// Class constructor
+  const _GroupHeader({required this.title});
+
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Padding(
       padding: const EdgeInsets.only(bottom: 4),
       child: Text(title, style: theme.textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w700)),
     );
   }
+}
 
-  /// The **Selection** section's own body: [selectedSymbolId]'s or [selectedArrowId]'s own read-out
-  /// among [cameras]/[characters]/[lights]/[handProps]/[arrows] — every one of them already this
-  /// shot's own live placements, so the match is a plain lookup, no new data. A camera match reuses
-  /// [_buildCameraRow] (its own field-of-view stepper included); every other match is a plain row.
-  /// The nothing-selected hint shows while neither id names a placement this shot actually carries
-  /// (nothing selected at all, or the selection belongs to another shot or a ghost).
-  Widget _buildSelectionSection(BuildContext context, Tr tr) {
+/// The **Selection** section's own body: the selected symbol's or arrow's own read-out among the
+/// group's cameras/characters/lights/props/arrows — every one of them already this shot's own live
+/// placements, so the match is a plain lookup, no new data. A camera match reuses [_CameraRow] (its
+/// own field-of-view stepper included); every other match is a plain row. The nothing-selected
+/// hint shows while neither id names a placement this shot actually carries (nothing selected at
+/// all, or the selection belongs to another shot or a ghost).
+class _SelectionSection extends StatelessWidget {
+  /// The group whose selection this section reads out.
+  final OcptFloorPlanPlacementsGroup group;
+
+  /// Class constructor
+  const _SelectionSection({required this.group});
+
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final selectedSymbolId = this.selectedSymbolId;
-    final selectedArrowId = this.selectedArrowId;
+    final tr = Tr.of(context);
+    final selectedSymbolId = group.selectedSymbolId;
+    final selectedArrowId = group.selectedArrowId;
+    final onSymbolDeleteRequested = group.onSymbolDeleteRequested;
+    final onArrowDeleteRequested = group.onArrowDeleteRequested;
+    final onRestoreOverrideRequested = group.onRestoreOverrideRequested;
 
-    final selectedOverrideLevel = this.selectedOverrideLevel;
+    final selectedOverrideLevel = group.selectedOverrideLevel;
     if (selectedSymbolId != null && selectedOverrideLevel != null) {
       final isShotLevel = selectedOverrideLevel == OcptFloorPlanOverrideLevel.shot;
       return Padding(
@@ -268,25 +289,24 @@ class OcptFloorPlanPlacementsGroup extends StatelessWidget {
     }
 
     if (selectedSymbolId != null) {
-      for (final camera in cameras) {
+      for (final camera in group.cameras) {
         if (camera.symbolId == selectedSymbolId) {
           return Padding(
             padding: const EdgeInsets.only(bottom: 8),
-            child: _buildCameraRow(context, tr, camera),
+            child: _CameraRow(group: group, camera: camera),
           );
         }
       }
-      for (final symbol in [...characters, ...lights, ...handProps]) {
+      for (final symbol in [...group.characters, ...group.lights, ...group.handProps]) {
         if (symbol.symbolId == selectedSymbolId) {
           return Padding(
             padding: const EdgeInsets.only(bottom: 8),
-            child: _buildRow(
-              context,
+            child: _Row(
               label: symbol.label,
               color: Color(symbol.colorArgb),
               onDeleteRequested: onSymbolDeleteRequested == null
                   ? null
-                  : () => onSymbolDeleteRequested!(symbol.symbolId),
+                  : () => onSymbolDeleteRequested(symbol.symbolId),
             ),
           );
         }
@@ -294,18 +314,17 @@ class OcptFloorPlanPlacementsGroup extends StatelessWidget {
     }
 
     if (selectedArrowId != null) {
-      for (final arrow in arrows) {
+      for (final arrow in group.arrows) {
         if (arrow.arrowId == selectedArrowId) {
           return Padding(
             padding: const EdgeInsets.only(bottom: 8),
-            child: _buildRow(
-              context,
+            child: _Row(
               label: arrow.label.isEmpty
                   ? tr.shotListFloorPlanPlacementsArrowRowLabel
                   : arrow.label,
               onDeleteRequested: onArrowDeleteRequested == null
                   ? null
-                  : () => onArrowDeleteRequested!(arrow.arrowId),
+                  : () => onArrowDeleteRequested(arrow.arrowId),
             ),
           );
         }
@@ -320,12 +339,22 @@ class OcptFloorPlanPlacementsGroup extends StatelessWidget {
       ),
     );
   }
+}
 
-  /// The cameras section: its title, then one row per camera carrying its own field-of-view stepper
-  /// next to its label and its remove action — the control the field-of-view feature adds
-  /// alongside the generic [_buildSection] every other placement kind still uses.
-  Widget _buildCamerasSection(BuildContext context, Tr tr) {
+/// The cameras section: its title, then one row per camera carrying its own field-of-view stepper
+/// next to its label and its remove action — the control the field-of-view feature adds alongside
+/// the generic [_Section] every other placement kind still uses.
+class _CamerasSection extends StatelessWidget {
+  /// The group whose cameras this section lists.
+  final OcptFloorPlanPlacementsGroup group;
+
+  /// Class constructor
+  const _CamerasSection({required this.group});
+
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final tr = Tr.of(context);
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
@@ -339,23 +368,38 @@ class OcptFloorPlanPlacementsGroup extends StatelessWidget {
               fontWeight: FontWeight.w600,
             ),
           ),
-          if (cameras.isEmpty)
+          if (group.cameras.isEmpty)
             Text(
               tr.shotListFloorPlanPlacementsNoCameraHint,
               style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
             )
           else
-            for (final camera in cameras) _buildCameraRow(context, tr, camera),
+            for (final camera in group.cameras) _CameraRow(group: group, camera: camera),
         ],
       ),
     );
   }
+}
 
-  /// One camera's own row: its colour swatch and derived label, the `−`/`+` field-of-view stepper
-  /// (withheld under [isReadOnly] or while [onCameraFovChanged] is null), and its remove action.
-  Widget _buildCameraRow(BuildContext context, Tr tr, OcptFloorPlanSymbolShape camera) {
+/// One camera's own row: its colour swatch and derived label, the `−`/`+` field-of-view stepper
+/// (withheld under the group's read-only flag or while its field-of-view callback is null), and its
+/// remove action.
+class _CameraRow extends StatelessWidget {
+  /// The group the camera belongs to, which supplies the callbacks.
+  final OcptFloorPlanPlacementsGroup group;
+
+  /// The camera this row shows.
+  final OcptFloorPlanSymbolShape camera;
+
+  /// Class constructor
+  const _CameraRow({required this.group, required this.camera});
+
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final onCameraFovChanged = this.onCameraFovChanged;
+    final tr = Tr.of(context);
+    final onCameraFovChanged = group.onCameraFovChanged;
+    final onSymbolDeleteRequested = group.onSymbolDeleteRequested;
     final fovDeg = camera.fovDeg ?? ocptFloorPlanDefaultCameraFovDeg;
 
     return Padding(
@@ -418,24 +462,46 @@ class OcptFloorPlanPlacementsGroup extends StatelessWidget {
               iconSize: 14,
               padding: EdgeInsets.zero,
               constraints: const BoxConstraints(minWidth: 24, minHeight: 24),
-              onPressed: () => onSymbolDeleteRequested!(camera.symbolId),
+              onPressed: () => onSymbolDeleteRequested(camera.symbolId),
               icon: const Icon(Icons.close),
             ),
         ],
       ),
     );
   }
+}
 
-  /// One section of placed symbols (cameras, characters, lights or props): its title, then one row
-  /// per symbol, or [emptyHint] while it holds none.
-  Widget _buildSection(
-    BuildContext context, {
-    required String title,
-    required List<OcptFloorPlanSymbolShape> symbols,
-    required String emptyHint,
-    required String Function(OcptFloorPlanSymbolShape symbol) labelOf,
-  }) {
+/// One section of placed symbols (characters, lights or props): its title, then one row per
+/// symbol, or [emptyHint] while it holds none.
+class _Section extends StatelessWidget {
+  /// The group the symbols belong to, which supplies the delete callback.
+  final OcptFloorPlanPlacementsGroup group;
+
+  /// The section's title.
+  final String title;
+
+  /// The symbols this section lists.
+  final List<OcptFloorPlanSymbolShape> symbols;
+
+  /// What the section shows while it holds none.
+  final String emptyHint;
+
+  /// How a symbol's row is labelled.
+  final String Function(OcptFloorPlanSymbolShape symbol) labelOf;
+
+  /// Class constructor
+  const _Section({
+    required this.group,
+    required this.title,
+    required this.symbols,
+    required this.emptyHint,
+    required this.labelOf,
+  });
+
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final onSymbolDeleteRequested = group.onSymbolDeleteRequested;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
@@ -456,28 +522,38 @@ class OcptFloorPlanPlacementsGroup extends StatelessWidget {
             )
           else
             for (final symbol in symbols)
-              _buildRow(
-                context,
+              _Row(
                 label: labelOf(symbol),
                 color: Color(symbol.colorArgb),
                 onDeleteRequested: onSymbolDeleteRequested == null
                     ? null
-                    : () => onSymbolDeleteRequested!(symbol.symbolId),
+                    : () => onSymbolDeleteRequested(symbol.symbolId),
               ),
         ],
       ),
     );
   }
+}
 
-  /// One placement's own row: a colour swatch (when given), its label, and a trailing remove
-  /// action while [onDeleteRequested] isn't withheld.
-  Widget _buildRow(
-    BuildContext context, {
-    required String label,
-    Color? color,
-    required VoidCallback? onDeleteRequested,
-  }) {
+/// One placement's own row: a colour swatch (when given), its label, and a trailing remove action
+/// while [onDeleteRequested] isn't withheld.
+class _Row extends StatelessWidget {
+  /// The placement's label.
+  final String label;
+
+  /// The colour of the swatch, or null for a row with none.
+  final Color? color;
+
+  /// Called when the remove action is clicked, or null while withheld.
+  final VoidCallback? onDeleteRequested;
+
+  /// Class constructor
+  const _Row({required this.label, this.color, required this.onDeleteRequested});
+
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final color = this.color;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 2),

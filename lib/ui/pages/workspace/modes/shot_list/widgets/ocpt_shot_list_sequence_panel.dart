@@ -162,6 +162,7 @@ class _SequenceEntry extends StatelessWidget {
     final theme = Theme.of(context);
     final tr = Tr.of(context);
     final sequence = this.sequence;
+    final onOrphanedShotDeleted = this.onOrphanedShotDeleted;
     final averageDifficulty = tr.shotListAverageDifficulty(
       ocptFormatShotDifficulty(context, sequence.averageDifficulty),
     );
@@ -229,43 +230,31 @@ class _SequenceEntry extends StatelessWidget {
             ),
           ),
         ),
-        if (isSelected) ..._buildShotEntries(),
+        // The expanded sequence's shot rows: plainly one per shot for a real scene, and — for the
+        // orphan group — a heading row before each run of shots that came from the same deleted
+        // scene, each row then carrying its own delete button.
+        //
+        // The runs need no grouping pass of their own: `detachShotsFromDeletedScenes` appends each
+        // newly orphaned scene's shots as a block, so shots of the same
+        // `OcptShot.orphanedHeading` are already contiguous in position order and a heading row is
+        // simply emitted wherever the heading changes.
+        if (isSelected)
+          for (final (index, shot) in sequence.shots.indexed) ...[
+            if (sequence is OcptOrphanShotSequence &&
+                shot.orphanedHeading !=
+                    (index == 0 ? null : sequence.shots[index - 1].orphanedHeading))
+              _OrphanedHeadingEntry(heading: shot.orphanedHeading),
+            _ShotEntry(
+              shot: shot,
+              isSelected: shot.id == selectedShotId,
+              onTap: () => onShotSelected(shot.id),
+              onDelete: sequence is OcptOrphanShotSequence && onOrphanedShotDeleted != null
+                  ? () => onOrphanedShotDeleted(shot.id)
+                  : null,
+            ),
+          ],
       ],
     );
-  }
-
-  /// Builds the expanded sequence's shot rows: plainly one per shot for a real scene, and — for the
-  /// orphan group — a heading row before each run of shots that came from the same deleted scene,
-  /// each row then carrying its own delete button.
-  ///
-  /// The runs need no grouping pass of their own: `detachShotsFromDeletedScenes` appends each newly
-  /// orphaned scene's shots as a block, so shots of the same [OcptShot.orphanedHeading] are already
-  /// contiguous in position order and a heading row is simply emitted wherever the heading changes.
-  List<Widget> _buildShotEntries() {
-    final isOrphanGroup = sequence is OcptOrphanShotSequence;
-    final onOrphanedShotDeleted = this.onOrphanedShotDeleted;
-    final entries = <Widget>[];
-    String? previousHeading;
-
-    for (final shot in sequence.shots) {
-      if (isOrphanGroup && shot.orphanedHeading != previousHeading) {
-        entries.add(_OrphanedHeadingEntry(heading: shot.orphanedHeading));
-        previousHeading = shot.orphanedHeading;
-      }
-
-      entries.add(
-        _ShotEntry(
-          shot: shot,
-          isSelected: shot.id == selectedShotId,
-          onTap: () => onShotSelected(shot.id),
-          onDelete: isOrphanGroup && onOrphanedShotDeleted != null
-              ? () => onOrphanedShotDeleted(shot.id)
-              : null,
-        ),
-      );
-    }
-
-    return entries;
   }
 }
 

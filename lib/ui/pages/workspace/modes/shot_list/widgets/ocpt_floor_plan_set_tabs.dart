@@ -116,7 +116,7 @@ class OcptFloorPlanSetTabs extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final addButton = _buildAddSetButton(context);
+    final addButton = _AddSetButton(tabs: this);
 
     if (sets.isEmpty) {
       return addButton;
@@ -131,7 +131,9 @@ class OcptFloorPlanSetTabs extends StatelessWidget {
             scrollDirection: Axis.horizontal,
             child: Row(
               mainAxisSize: MainAxisSize.min,
-              children: [for (final floorPlanSet in sets) _buildTab(context, floorPlanSet)],
+              children: [
+                for (final floorPlanSet in sets) _SetTab(tabs: this, floorPlanSet: floorPlanSet),
+              ],
             ),
           ),
         ),
@@ -139,21 +141,35 @@ class OcptFloorPlanSetTabs extends StatelessWidget {
       ],
     );
   }
+}
 
-  /// One set's own tab: its name (editable in place while selected), and a small close action.
-  ///
-  /// Reordering is a plain `Draggable`/`DragTarget` pair, not `ReorderableListView`: this row sits
-  /// inside the centre header's own `Wrap` (unbounded cross-axis space), which
-  /// `ReorderableListView`'s heavier scrolling/semantics machinery does not tolerate reliably —
-  /// this simpler pair needs nothing from its ancestor beyond ordinary hit testing.
-  Widget _buildTab(BuildContext context, OcptFloorPlanSet floorPlanSet) {
+/// One set's own tab: its name (editable in place while selected), and a small close action.
+///
+/// Reordering is a plain `Draggable`/`DragTarget` pair, not `ReorderableListView`: this row sits
+/// inside the centre header's own `Wrap` (unbounded cross-axis space), which
+/// `ReorderableListView`'s heavier scrolling/semantics machinery does not tolerate reliably —
+/// this simpler pair needs nothing from its ancestor beyond ordinary hit testing.
+class _SetTab extends StatelessWidget {
+  /// The tab row this tab belongs to, which supplies the selection and the callbacks.
+  final OcptFloorPlanSetTabs tabs;
+
+  /// The set this tab names.
+  final OcptFloorPlanSet floorPlanSet;
+
+  /// Class constructor
+  const _SetTab({required this.tabs, required this.floorPlanSet});
+
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isSelected = floorPlanSet.id == selectedSetId;
+    final isSelected = floorPlanSet.id == tabs.selectedSetId;
+    final onSetNameChanged = tabs.onSetNameChanged;
+    final onSetDeleteRequested = tabs.onSetDeleteRequested;
 
     final tab = Padding(
       padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 4),
       child: InkWell(
-        onTap: () => onSetSelected(floorPlanSet.id),
+        onTap: () => tabs.onSetSelected(floorPlanSet.id),
         mouseCursor: ocptClickableCursor,
         borderRadius: BorderRadius.circular(ocptRadiusSmall),
         child: Container(
@@ -173,13 +189,13 @@ class OcptFloorPlanSetTabs extends StatelessWidget {
               if (isSelected && onSetNameChanged != null)
                 _EditableTabName(
                   key: ValueKey("${floorPlanSet.id}-editable"),
-                  value: nameValueOf(floorPlanSet.id),
+                  value: tabs.nameValueOf(floorPlanSet.id),
                   color: theme.colorScheme.primary,
-                  onChanged: (value) => onSetNameChanged!(floorPlanSet.id, value),
+                  onChanged: (value) => onSetNameChanged(floorPlanSet.id, value),
                 )
               else
                 Text(
-                  nameValueOf(floorPlanSet.id),
+                  tabs.nameValueOf(floorPlanSet.id),
                   style: theme.textTheme.labelMedium?.copyWith(
                     color: isSelected
                         ? theme.colorScheme.primary
@@ -187,11 +203,14 @@ class OcptFloorPlanSetTabs extends StatelessWidget {
                     fontWeight: isSelected ? FontWeight.w700 : FontWeight.normal,
                   ),
                 ),
-              _buildPlacedShotCountBadge(context, floorPlanSet, isSelected),
+              _PlacedShotCountBadge(
+                count: tabs.placedShotCountOf(floorPlanSet.id),
+                isSelected: isSelected,
+              ),
               if (onSetDeleteRequested != null) ...[
                 const SizedBox(width: 4),
                 InkWell(
-                  onTap: () => onSetDeleteRequested!(floorPlanSet.id),
+                  onTap: () => onSetDeleteRequested(floorPlanSet.id),
                   mouseCursor: ocptClickableCursor,
                   child: Icon(Icons.close, size: 14, color: theme.colorScheme.onSurfaceVariant),
                 ),
@@ -202,7 +221,7 @@ class OcptFloorPlanSetTabs extends StatelessWidget {
       ),
     );
 
-    final onSetReordered = this.onSetReordered;
+    final onSetReordered = tabs.onSetReordered;
     if (onSetReordered == null) {
       return tab;
     }
@@ -210,7 +229,7 @@ class OcptFloorPlanSetTabs extends StatelessWidget {
     return DragTarget<String>(
       onWillAcceptWithDetails: (details) => details.data != floorPlanSet.id,
       onAcceptWithDetails: (details) {
-        final targetIndex = sets.indexOf(floorPlanSet);
+        final targetIndex = tabs.sets.indexOf(floorPlanSet);
         if (targetIndex >= 0) {
           onSetReordered(details.data, targetIndex);
         }
@@ -223,15 +242,22 @@ class OcptFloorPlanSetTabs extends StatelessWidget {
       ),
     );
   }
+}
 
-  /// [floorPlanSet]'s own placed-shot count, as a small badge next to its tab's own name — hidden
-  /// while the count is zero, so an empty set's tab stays exactly as before.
-  Widget _buildPlacedShotCountBadge(
-    BuildContext context,
-    OcptFloorPlanSet floorPlanSet,
-    bool isSelected,
-  ) {
-    final count = placedShotCountOf(floorPlanSet.id);
+/// A set's own placed-shot count, as a small badge next to its tab's own name — hidden while the
+/// count is zero, so an empty set's tab stays exactly as before.
+class _PlacedShotCountBadge extends StatelessWidget {
+  /// How many of the sequence's shots carry a live symbol on the set.
+  final int count;
+
+  /// Whether the set's tab is the selected one.
+  final bool isSelected;
+
+  /// Class constructor
+  const _PlacedShotCountBadge({required this.count, required this.isSelected});
+
+  @override
+  Widget build(BuildContext context) {
     if (count <= 0) {
       return const SizedBox.shrink();
     }
@@ -259,35 +285,47 @@ class OcptFloorPlanSetTabs extends StatelessWidget {
       ),
     );
   }
+}
 
-  /// The filled `＋ Set` button, whose own visible text is the word alone (the `＋` is the icon —
-  /// see this class's own doc comment), opening the breakdown's own kind of menu: the suggestion
-  /// first (starred), `Link an existing set ▸`, `Create a set ▸`, a divider, `Duplicate this set`
-  /// and `Copy blocking from a shot…`. A tap with nothing to offer at all (every callback withheld)
-  /// still shows the button, disabled, rather than disappearing — the same posture every other
-  /// withheld write in this mode takes.
-  ///
-  /// **A `MenuItemButton` may not go inside a `Wrap`** (a known pitfall of this mode): every entry
-  /// here, including a submenu's own `menuChildren`, stays a single column — `SubmenuButton` never
-  /// wraps its own children either — so the failure that pitfall names never applies.
-  Widget _buildAddSetButton(BuildContext context) {
+/// The filled `＋ Set` button, whose own visible text is the word alone (the `＋` is the icon — see
+/// [OcptFloorPlanSetTabs]'s own doc comment), opening the breakdown's own kind of menu: the
+/// suggestion first (starred), `Link an existing set ▸`, `Create a set ▸`, a divider,
+/// `Duplicate this set` and `Copy blocking from a shot…`. A tap with nothing to offer at all
+/// (every callback withheld) still shows the button, disabled, rather than disappearing — the same
+/// posture every other withheld write in this mode takes.
+///
+/// **A `MenuItemButton` may not go inside a `Wrap`** (a known pitfall of this mode): every entry
+/// here, including a submenu's own `menuChildren`, stays a single column — `SubmenuButton` never
+/// wraps its own children either — so the failure that pitfall names never applies.
+class _AddSetButton extends StatelessWidget {
+  /// The tab row this button belongs to, which supplies the selection, the menu's data and the
+  /// callbacks.
+  final OcptFloorPlanSetTabs tabs;
+
+  /// Class constructor
+  const _AddSetButton({required this.tabs});
+
+  @override
+  Widget build(BuildContext context) {
     final tr = Tr.of(context);
-    final selectedSetId = this.selectedSetId;
-    final suggestedSetId = this.suggestedSetId;
+    final selectedSetId = tabs.selectedSetId;
+    final suggestedSetId = tabs.suggestedSetId;
+    final onSetLinkRequested = tabs.onSetLinkRequested;
+    final onSetCreationRequested = tabs.onSetCreationRequested;
+    final onSetDuplicateRequested = tabs.onSetDuplicateRequested;
+    final onCopyBlockingRequested = tabs.onCopyBlockingRequested;
     final canSuggestLink = suggestedSetId != null && onSetLinkRequested != null;
-    final canLinkExisting = onSetLinkRequested != null && linkableSetsByLocation.isNotEmpty;
+    final canLinkExisting = onSetLinkRequested != null && tabs.linkableSetsByLocation.isNotEmpty;
     final canCreate = onSetCreationRequested != null;
     final canDuplicate = selectedSetId != null && onSetDuplicateRequested != null;
     final canCopyBlocking = selectedSetId != null && onCopyBlockingRequested != null;
 
-    Widget buildDisabledButton() => FilledButton.icon(
-      onPressed: null,
-      icon: const Icon(Icons.add, size: 18),
-      label: Text(tr.shotListFloorPlanAddSetButtonLabel),
-    );
-
     if (!canSuggestLink && !canLinkExisting && !canCreate && !canDuplicate && !canCopyBlocking) {
-      return buildDisabledButton();
+      return FilledButton.icon(
+        onPressed: null,
+        icon: const Icon(Icons.add, size: 18),
+        label: Text(tr.shotListFloorPlanAddSetButtonLabel),
+      );
     }
 
     return MenuAnchor(
@@ -295,28 +333,49 @@ class OcptFloorPlanSetTabs extends StatelessWidget {
         if (canSuggestLink)
           MenuItemButton(
             leadingIcon: const Icon(Icons.star, size: 16),
-            onPressed: () => onSetLinkRequested!(suggestedSetId),
-            child: Text(tr.shotListFloorPlanSuggestedSetMenuAction(suggestedSetName ?? "")),
+            onPressed: () => onSetLinkRequested(suggestedSetId),
+            child: Text(tr.shotListFloorPlanSuggestedSetMenuAction(tabs.suggestedSetName ?? "")),
           ),
         if (canLinkExisting)
+          // The `Link an existing set ▸` submenu's own entries: a disabled row naming each
+          // location, then one entry per set it holds that isn't already linked to the selected
+          // sequence.
           SubmenuButton(
-            menuChildren: _buildLinkExistingSetMenuItems(),
+            menuChildren: [
+              for (final (locationName, groupSets) in tabs.linkableSetsByLocation) ...[
+                MenuItemButton(child: Text(locationName)),
+                for (final (id, name) in groupSets)
+                  MenuItemButton(onPressed: () => onSetLinkRequested(id), child: Text(name)),
+              ],
+            ],
             child: Text(tr.shotListFloorPlanLinkExistingSetMenuAction),
           ),
         if (canCreate)
+          // The `Create a set ▸` submenu's own entries: one per existing location, then
+          // `New location…` — the callback itself decides what a null `locationId` means
+          // (`OcptLocationsService.createSetLinkedToScene`'s own reading: mint a location of its
+          // own).
           SubmenuButton(
-            menuChildren: _buildCreateSetMenuItems(tr),
+            menuChildren: [
+              for (final (id, name) in tabs.locationsForCreation)
+                MenuItemButton(onPressed: () => onSetCreationRequested(id), child: Text(name)),
+              if (tabs.locationsForCreation.isNotEmpty) const Divider(height: 1),
+              MenuItemButton(
+                onPressed: () => onSetCreationRequested(null),
+                child: Text(tr.shotListFloorPlanNewLocationMenuAction),
+              ),
+            ],
             child: Text(tr.shotListFloorPlanCreateSetMenuAction),
           ),
         if (canDuplicate || canCopyBlocking) const Divider(height: 1),
         if (canDuplicate)
           MenuItemButton(
-            onPressed: () => onSetDuplicateRequested!(selectedSetId),
+            onPressed: () => onSetDuplicateRequested(selectedSetId),
             child: Text(tr.shotListFloorPlanDuplicateSetMenuAction),
           ),
         if (canCopyBlocking)
           MenuItemButton(
-            onPressed: () => onCopyBlockingRequested!(selectedSetId),
+            onPressed: () => onCopyBlockingRequested(selectedSetId),
             child: Text(tr.shotListFloorPlanCopyBlockingMenuAction),
           ),
       ],
@@ -327,29 +386,6 @@ class OcptFloorPlanSetTabs extends StatelessWidget {
       ),
     );
   }
-
-  /// The `Link an existing set ▸` submenu's own entries: a disabled row naming each location,
-  /// then one entry per set it holds that isn't already linked to the selected sequence.
-  List<Widget> _buildLinkExistingSetMenuItems() => [
-    for (final (locationName, groupSets) in linkableSetsByLocation) ...[
-      MenuItemButton(child: Text(locationName)),
-      for (final (id, name) in groupSets)
-        MenuItemButton(onPressed: () => onSetLinkRequested!(id), child: Text(name)),
-    ],
-  ];
-
-  /// The `Create a set ▸` submenu's own entries: one per existing location, then `New location…` —
-  /// [OcptFloorPlanSetTabs.onSetCreationRequested] itself decides what a null `locationId` means
-  /// (`OcptLocationsService.createSetLinkedToScene`'s own reading: mint a location of its own).
-  List<Widget> _buildCreateSetMenuItems(Tr tr) => [
-    for (final (id, name) in locationsForCreation)
-      MenuItemButton(onPressed: () => onSetCreationRequested!(id), child: Text(name)),
-    if (locationsForCreation.isNotEmpty) const Divider(height: 1),
-    MenuItemButton(
-      onPressed: () => onSetCreationRequested!(null),
-      child: Text(tr.shotListFloorPlanNewLocationMenuAction),
-    ),
-  ];
 }
 
 /// The selected tab's own editable name field, kept as a small stateful widget so it holds its own

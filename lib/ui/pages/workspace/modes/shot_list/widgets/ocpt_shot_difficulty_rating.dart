@@ -67,7 +67,8 @@ class OcptShotDifficultyRating extends StatelessWidget {
               style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
             ),
           ),
-          for (var dot = 0; dot < _dotCount; dot++) _buildDot(theme: theme, color: color, dot: dot),
+          for (var dot = 0; dot < _dotCount; dot++)
+            _Dot(color: color, dot: dot, value: value, onChanged: onChanged),
           const SizedBox(width: 4),
           Text(
             "$value",
@@ -78,9 +79,46 @@ class OcptShotDifficultyRating extends StatelessWidget {
     );
   }
 
-  /// Builds the [dot]-th dot of the row: filled with [color] when the axis is at least that high,
-  /// and clickable only while the row has an [onChanged] to report to.
-  Widget _buildDot({required ThemeData theme, required Color color, required int dot}) {
+  /// The colour of this row's filled dots and its numeric value: the accent below 3, the warning
+  /// colour at 3, the error colour at 4 and above.
+  Color _colorFor(BuildContext context) {
+    final theme = Theme.of(context);
+    if (value >= 4) {
+      return theme.colorScheme.error;
+    }
+    if (value >= 3) {
+      return ocptWarningColor(context);
+    }
+    return theme.colorScheme.primary;
+  }
+}
+
+/// The [dot]-th dot of a difficulty row: filled with [color] when the axis is at least that high,
+/// and clickable only while the row has an [onChanged] to report to.
+class _Dot extends StatelessWidget {
+  /// The colour of a filled dot.
+  final Color color;
+
+  /// This dot's own index.
+  final int dot;
+
+  /// The axis' current value.
+  final int value;
+
+  /// Called with this dot's index when it is clicked, or null while the row only reads.
+  final ValueChanged<int>? onChanged;
+
+  /// Class constructor
+  const _Dot({
+    required this.color,
+    required this.dot,
+    required this.value,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final onChanged = this.onChanged;
 
     final circle = SizedBox(
@@ -108,18 +146,5 @@ class OcptShotDifficultyRating extends StatelessWidget {
       onTap: () => onChanged(dot),
       child: circle,
     );
-  }
-
-  /// The colour of this row's filled dots and its numeric value: the accent below 3, the warning
-  /// colour at 3, the error colour at 4 and above.
-  Color _colorFor(BuildContext context) {
-    final theme = Theme.of(context);
-    if (value >= 4) {
-      return theme.colorScheme.error;
-    }
-    if (value >= 3) {
-      return ocptWarningColor(context);
-    }
-    return theme.colorScheme.primary;
   }
 }

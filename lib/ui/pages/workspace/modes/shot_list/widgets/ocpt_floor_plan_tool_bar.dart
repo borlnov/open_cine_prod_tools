@@ -82,15 +82,19 @@ class OcptFloorPlanToolBar extends StatelessWidget {
               scrollDirection: Axis.horizontal,
               child: Row(
                 children: [
-                  _buildToolButton(
-                    context,
+                  _ToolButton(
+                    activeTool: activeTool,
+                    isReadOnly: isReadOnly,
+                    onToolSelected: onToolSelected,
                     tool: OcptFloorPlanTool.select,
                     icon: Icons.near_me_outlined,
                     tooltip: tr.shotListFloorPlanToolSelectAction,
                   ),
                   const SizedBox(width: 4),
-                  _buildToolButton(
-                    context,
+                  _ToolButton(
+                    activeTool: activeTool,
+                    isReadOnly: isReadOnly,
+                    onToolSelected: onToolSelected,
                     tool: OcptFloorPlanTool.setElement,
                     icon: Icons.chair_outlined,
                     tooltip: tr.shotListFloorPlanToolSetElementAction,
@@ -98,29 +102,37 @@ class OcptFloorPlanToolBar extends StatelessWidget {
                   const SizedBox(width: 12),
                   VerticalDivider(width: 1, color: theme.colorScheme.outlineVariant),
                   const SizedBox(width: 12),
-                  _buildToolButton(
-                    context,
+                  _ToolButton(
+                    activeTool: activeTool,
+                    isReadOnly: isReadOnly,
+                    onToolSelected: onToolSelected,
                     tool: OcptFloorPlanTool.camera,
                     icon: Icons.videocam_outlined,
                     tooltip: tr.shotListFloorPlanToolCameraAction,
                   ),
                   const SizedBox(width: 4),
-                  _buildToolButton(
-                    context,
+                  _ToolButton(
+                    activeTool: activeTool,
+                    isReadOnly: isReadOnly,
+                    onToolSelected: onToolSelected,
                     tool: OcptFloorPlanTool.character,
                     icon: Icons.person_outline,
                     tooltip: tr.shotListFloorPlanToolCharacterAction,
                   ),
                   const SizedBox(width: 4),
-                  _buildToolButton(
-                    context,
+                  _ToolButton(
+                    activeTool: activeTool,
+                    isReadOnly: isReadOnly,
+                    onToolSelected: onToolSelected,
                     tool: OcptFloorPlanTool.light,
                     icon: Icons.wb_incandescent_outlined,
                     tooltip: tr.shotListFloorPlanToolLightAction,
                   ),
                   const SizedBox(width: 4),
-                  _buildToolButton(
-                    context,
+                  _ToolButton(
+                    activeTool: activeTool,
+                    isReadOnly: isReadOnly,
+                    onToolSelected: onToolSelected,
                     tool: OcptFloorPlanTool.arrow,
                     icon: Icons.north_east_outlined,
                     tooltip: tr.shotListFloorPlanToolArrowAction,
@@ -128,8 +140,10 @@ class OcptFloorPlanToolBar extends StatelessWidget {
                   const SizedBox(width: 12),
                   VerticalDivider(width: 1, color: theme.colorScheme.outlineVariant),
                   const SizedBox(width: 12),
-                  _buildToolButton(
-                    context,
+                  _ToolButton(
+                    activeTool: activeTool,
+                    isReadOnly: isReadOnly,
+                    onToolSelected: onToolSelected,
                     tool: OcptFloorPlanTool.label,
                     icon: Icons.label_outline,
                     tooltip: tr.shotListFloorPlanToolLabelAction,
@@ -149,20 +163,50 @@ class OcptFloorPlanToolBar extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 12),
-          _buildZoomCluster(context),
+          _ZoomCluster(
+            viewportController: viewportController,
+            onZoomSettled: onZoomSettled,
+            onRecenterRequested: onRecenterRequested,
+          ),
         ],
       ),
     );
   }
+}
 
-  /// One tool bar toggle button. Never dimmed: the only way it is withheld is
-  /// [isReadOnly] on every tool but `select`, which only ever reads.
-  Widget _buildToolButton(
-    BuildContext context, {
-    required OcptFloorPlanTool tool,
-    required IconData icon,
-    required String tooltip,
-  }) {
+/// One tool bar toggle button. Never dimmed: the only way it is withheld is [isReadOnly] on every
+/// tool but `select`, which only ever reads.
+class _ToolButton extends StatelessWidget {
+  /// The tool this button arms.
+  final OcptFloorPlanTool tool;
+
+  /// The tool currently armed.
+  final OcptFloorPlanTool activeTool;
+
+  /// The button's icon.
+  final IconData icon;
+
+  /// The button's tooltip.
+  final String tooltip;
+
+  /// Whether a read-only preview withholds every tool but `select`.
+  final bool isReadOnly;
+
+  /// Called with [tool] when the button is clicked.
+  final ValueChanged<OcptFloorPlanTool> onToolSelected;
+
+  /// Class constructor
+  const _ToolButton({
+    required this.tool,
+    required this.activeTool,
+    required this.icon,
+    required this.tooltip,
+    required this.isReadOnly,
+    required this.onToolSelected,
+  });
+
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isActive = tool == activeTool;
     // `select` only ever reads (it picks/moves nothing by itself); every other tool writes the
@@ -187,9 +231,28 @@ class OcptFloorPlanToolBar extends StatelessWidget {
       ),
     );
   }
+}
 
-  /// The trailing zoom out / percentage / zoom in cluster, always available (a read).
-  Widget _buildZoomCluster(BuildContext context) => ListenableBuilder(
+/// The trailing zoom out / percentage / zoom in cluster, always available (a read).
+class _ZoomCluster extends StatelessWidget {
+  /// The viewport whose zoom the cluster reads and sets.
+  final OcptFloorPlanViewportController viewportController;
+
+  /// Called with the settled zoom once a button changed it.
+  final ValueChanged<double> onZoomSettled;
+
+  /// Called when the recenter button is clicked.
+  final VoidCallback onRecenterRequested;
+
+  /// Class constructor
+  const _ZoomCluster({
+    required this.viewportController,
+    required this.onZoomSettled,
+    required this.onRecenterRequested,
+  });
+
+  @override
+  Widget build(BuildContext context) => ListenableBuilder(
     listenable: viewportController,
     builder: (context, _) {
       final zoom = viewportController.zoom;

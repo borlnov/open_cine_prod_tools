@@ -260,33 +260,33 @@ class OcptFloorPlanPalette extends StatelessWidget {
       child: ListView(
         padding: const EdgeInsets.symmetric(vertical: 8),
         children: [
-          _buildGroupTitle(context, tr.shotListFloorPlanPaletteSetGroupTitle(setName)),
-          _buildEntry(
-            context,
+          _GroupTitle(title: tr.shotListFloorPlanPaletteSetGroupTitle(setName)),
+          _Entry(
+            palette: this,
             tool: OcptFloorPlanTool.setElement,
             icon: Icons.horizontal_rule,
             label: tr.shotListFloorPlanToolWallAction,
             setElementShape: OcptFloorPlanSetElementShape.wall,
             sceneScope: OcptFloorPlanScope.set,
           ),
-          _buildEntry(
-            context,
+          _Entry(
+            palette: this,
             tool: OcptFloorPlanTool.setElement,
             icon: Icons.door_front_door_outlined,
             label: tr.shotListFloorPlanToolDoorAction,
             setElementShape: OcptFloorPlanSetElementShape.door,
             sceneScope: OcptFloorPlanScope.set,
           ),
-          _buildEntry(
-            context,
+          _Entry(
+            palette: this,
             tool: OcptFloorPlanTool.setElement,
             icon: Icons.chair_outlined,
             label: tr.shotListFloorPlanToolFurnitureAction,
             setElementShape: OcptFloorPlanSetElementShape.furniture,
             sceneScope: OcptFloorPlanScope.set,
           ),
-          _buildEntry(
-            context,
+          _Entry(
+            palette: this,
             tool: OcptFloorPlanTool.setElement,
             icon: Icons.gesture,
             label: tr.shotListFloorPlanToolFreeformAction,
@@ -294,71 +294,95 @@ class OcptFloorPlanPalette extends StatelessWidget {
             sceneScope: OcptFloorPlanScope.set,
           ),
           const Divider(height: 16),
-          _buildGroupTitle(context, tr.shotListFloorPlanPaletteSequenceGroupTitle(sequenceCode)),
-          _buildEntry(
-            context,
+          _GroupTitle(title: tr.shotListFloorPlanPaletteSequenceGroupTitle(sequenceCode)),
+          _Entry(
+            palette: this,
             tool: OcptFloorPlanTool.setElement,
             icon: Icons.chair_outlined,
             label: tr.shotListFloorPlanToolFurnitureAction,
             setElementShape: OcptFloorPlanSetElementShape.furniture,
             sceneScope: OcptFloorPlanScope.scene,
           ),
-          _buildEntry(
-            context,
+          _Entry(
+            palette: this,
             tool: OcptFloorPlanTool.setElement,
             icon: Icons.gesture,
             label: tr.shotListFloorPlanToolFreeformAction,
             setElementShape: OcptFloorPlanSetElementShape.freeform,
             sceneScope: OcptFloorPlanScope.scene,
           ),
-          _buildPropsChips(context, tr),
+          _PropsChips(palette: this),
           if (shotCode != null) ...[
             const Divider(height: 16),
-            _buildGroupTitle(context, tr.shotListFloorPlanPaletteShotGroupTitle(shotCode)),
-            _buildEntry(
-              context,
+            _GroupTitle(title: tr.shotListFloorPlanPaletteShotGroupTitle(shotCode)),
+            _Entry(
+              palette: this,
               tool: OcptFloorPlanTool.camera,
               icon: Icons.videocam_outlined,
               label: tr.shotListFloorPlanToolCameraAction,
             ),
-            _buildEntry(
-              context,
+            _Entry(
+              palette: this,
               tool: OcptFloorPlanTool.character,
               icon: Icons.person_outline,
               label: tr.shotListFloorPlanToolCharacterAction,
             ),
-            _buildEntry(
-              context,
+            _Entry(
+              palette: this,
               tool: OcptFloorPlanTool.light,
               icon: Icons.wb_incandescent_outlined,
               label: tr.shotListFloorPlanToolLightAction,
             ),
           ],
           const Divider(height: 16),
-          _buildGroupTitle(context, tr.shotListFloorPlanPaletteViewGroupTitle),
-          _buildLayerRow(context, OcptFloorPlanLayer.set, tr.shotListFloorPlanLayerDecorLabel),
-          _buildCamerasRow(context),
-          _buildLayerRow(
-            context,
-            OcptFloorPlanLayer.characters,
-            tr.shotListFloorPlanLayerCharactersLabel,
+          _GroupTitle(title: tr.shotListFloorPlanPaletteViewGroupTitle),
+          _LayerRow(
+            palette: this,
+            layer: OcptFloorPlanLayer.set,
+            label: tr.shotListFloorPlanLayerDecorLabel,
           ),
-          _buildLayerRow(context, OcptFloorPlanLayer.lights, tr.shotListFloorPlanLayerLightsLabel),
-          _buildLayerRow(context, OcptFloorPlanLayer.props, tr.shotListFloorPlanLayerPropsLabel),
+          _CamerasRow(palette: this),
+          _LayerRow(
+            palette: this,
+            layer: OcptFloorPlanLayer.characters,
+            label: tr.shotListFloorPlanLayerCharactersLabel,
+          ),
+          _LayerRow(
+            palette: this,
+            layer: OcptFloorPlanLayer.lights,
+            label: tr.shotListFloorPlanLayerLightsLabel,
+          ),
+          _LayerRow(
+            palette: this,
+            layer: OcptFloorPlanLayer.props,
+            label: tr.shotListFloorPlanLayerPropsLabel,
+          ),
           const Divider(height: 16),
-          _buildOnionSkinBlock(context),
+          _OnionSkinBlock(palette: this),
           const Divider(height: 16),
-          _buildMetricsToggle(context),
-          _buildShowFieldOfViewToggle(context),
+          _OcptFloorPlanMetricsToggleRow(
+            isMetricsShown: isMetricsShown,
+            onMetricsToggled: onMetricsToggled,
+          ),
+          _ShowFieldOfViewToggle(palette: this),
           const Divider(height: 16),
-          _buildUnderlayRow(context),
+          _UnderlayRow(palette: this),
         ],
       ),
     );
   }
+}
 
-  /// One group's own header text.
-  Widget _buildGroupTitle(BuildContext context, String title) {
+/// One group's own header text.
+class _GroupTitle extends StatelessWidget {
+  /// The title this part draws.
+  final String title;
+
+  /// Class constructor
+  const _GroupTitle({required this.title});
+
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
@@ -371,30 +395,56 @@ class OcptFloorPlanPalette extends StatelessWidget {
       ),
     );
   }
+}
 
-  /// One placeable tool's own entry: an icon and its label, armed by a click ([onToolSelected],
-  /// and, for a typed set-element entry, [onSetElementShapeSelected]/[onSetElementScopeSelected]
-  /// too) and offered as a drag source (`Draggable<OcptFloorPlanPaletteDragPayload>`, anchored at
-  /// the pointer so `OcptFloorPlanCanvas`'s own `DragTarget` drops it exactly where released,
-  /// carrying [setElementShape]/[sceneScope] on the drag itself).
-  ///
-  /// [setElementShape]/[sceneScope] are set for one of the palette's own typed set-element entries
-  /// (wall, door, furniture, freeform — each of the last two appearing twice, once per scope) and
-  /// null for every other entry (camera, character, light): together they tell every typed entry
-  /// apart from the others, since they all share [OcptFloorPlanTool.setElement].
-  Widget _buildEntry(
-    BuildContext context, {
-    required OcptFloorPlanTool tool,
-    required IconData icon,
-    required String label,
-    OcptFloorPlanSetElementShape? setElementShape,
-    OcptFloorPlanScope? sceneScope,
-  }) {
+/// One placeable tool's own entry: an icon and its label, armed by a click
+/// ([OcptFloorPlanPalette.onToolSelected], and, for a typed set-element entry,
+/// [OcptFloorPlanPalette.onSetElementShapeSelected]/
+/// [OcptFloorPlanPalette.onSetElementScopeSelected] too) and offered as a drag source (`Draggable<OcptFloorPlanPaletteDragPayload>`, anchored at
+/// the pointer so `OcptFloorPlanCanvas`'s own `DragTarget` drops it exactly where released,
+/// carrying [setElementShape]/[sceneScope] on the drag itself).
+///
+/// [setElementShape]/[sceneScope] are set for one of the palette's own typed set-element entries
+/// (wall, door, furniture, freeform — each of the last two appearing twice, once per scope) and
+/// null for every other entry (camera, character, light): together they tell every typed entry
+/// apart from the others, since they all share [OcptFloorPlanTool.setElement].
+class _Entry extends StatelessWidget {
+  /// The palette this part belongs to, which supplies the armed tool, the visibility state and
+  /// the callbacks.
+  final OcptFloorPlanPalette palette;
+
+  /// The tool this part draws.
+  final OcptFloorPlanTool tool;
+
+  /// The icon this part draws.
+  final IconData icon;
+
+  /// The label this part draws.
+  final String label;
+
+  /// The setElementShape this part draws.
+  final OcptFloorPlanSetElementShape? setElementShape;
+
+  /// The sceneScope this part draws.
+  final OcptFloorPlanScope? sceneScope;
+
+  /// Class constructor
+  const _Entry({
+    required this.palette,
+    required this.tool,
+    required this.icon,
+    required this.label,
+    this.setElementShape,
+    this.sceneScope,
+  });
+
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isActive =
-        tool == activeTool &&
-        (setElementShape == null || setElementShape == activeSetElementShape) &&
-        (sceneScope == null || sceneScope == activeSetElementScope);
+        tool == palette.activeTool &&
+        (setElementShape == null || setElementShape == palette.activeSetElementShape) &&
+        (sceneScope == null || sceneScope == palette.activeSetElementScope);
 
     final row = Container(
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
@@ -428,12 +478,14 @@ class OcptFloorPlanPalette extends StatelessWidget {
 
     final entry = InkWell(
       onTap: () {
-        onToolSelected(tool);
+        palette.onToolSelected(tool);
+        final setElementShape = this.setElementShape;
         if (setElementShape != null) {
-          onSetElementShapeSelected(setElementShape);
+          palette.onSetElementShapeSelected(setElementShape);
         }
+        final sceneScope = this.sceneScope;
         if (sceneScope != null) {
-          onSetElementScopeSelected(sceneScope);
+          palette.onSetElementScopeSelected(sceneScope);
         }
       },
       mouseCursor: ocptClickableCursor,
@@ -441,7 +493,7 @@ class OcptFloorPlanPalette extends StatelessWidget {
       child: row,
     );
 
-    if (isReadOnly) {
+    if (palette.isReadOnly) {
       return entry;
     }
 
@@ -460,28 +512,53 @@ class OcptFloorPlanPalette extends StatelessWidget {
       child: entry,
     );
   }
+}
 
-  /// The `Sequence` group's own breakdown-props chips: one chip per [propsChips] entry, plus the
-  /// fixed add-prop button for a free-typed label.
-  Widget _buildPropsChips(BuildContext context, Tr tr) => Padding(
+/// The `Sequence` group's own breakdown-props chips: one chip per [OcptFloorPlanPalette.propsChips] entry, plus the
+/// fixed add-prop button for a free-typed label.
+class _PropsChips extends StatelessWidget {
+  /// The palette this part belongs to, which supplies the armed tool, the visibility state and
+  /// the callbacks.
+  final OcptFloorPlanPalette palette;
+
+  /// Class constructor
+  const _PropsChips({required this.palette});
+
+  @override
+  Widget build(BuildContext context) => Padding(
     padding: const EdgeInsets.fromLTRB(12, 2, 12, 6),
     child: Wrap(
       spacing: 6,
       runSpacing: 6,
       children: [
-        for (final chip in propsChips) _buildPropChip(context, tr, chip),
-        _buildAddPropButton(context, tr),
+        for (final chip in palette.propsChips) _PropChip(palette: palette, chip: chip),
+        _AddPropButton(palette: palette),
       ],
     ),
   );
+}
 
-  /// One breakdown prop's own chip: click-to-arms [OcptFloorPlanTool.prop] with [chip]'s own name
-  /// ([onToolSelected] then [onPropChipSelected]), and stays usable after a placement — two
-  /// candles, two drops — since arming never consumes it. Offered as a drag source too, carrying
-  /// [chip]'s own name on the drag itself. Shows `<name> ×<quantity>` while [chip] carries one.
-  Widget _buildPropChip(BuildContext context, Tr tr, OcptFloorPlanPropChip chip) {
+/// One breakdown prop's own chip: click-to-arms [OcptFloorPlanTool.prop] with [chip]'s own name
+/// ([OcptFloorPlanPalette.onToolSelected] then [OcptFloorPlanPalette.onPropChipSelected]), and stays usable after a placement — two
+/// candles, two drops — since arming never consumes it. Offered as a drag source too, carrying
+/// [chip]'s own name on the drag itself. Shows `<name> ×<quantity>` while [chip] carries one.
+class _PropChip extends StatelessWidget {
+  /// The palette this part belongs to, which supplies the armed tool, the visibility state and
+  /// the callbacks.
+  final OcptFloorPlanPalette palette;
+
+  /// The chip this part draws.
+  final OcptFloorPlanPropChip chip;
+
+  /// Class constructor
+  const _PropChip({required this.palette, required this.chip});
+
+  @override
+  Widget build(BuildContext context) {
+    final tr = Tr.of(context);
     final theme = Theme.of(context);
-    final isActive = activeTool == OcptFloorPlanTool.prop && activeLabel == chip.name;
+    final isActive =
+        palette.activeTool == OcptFloorPlanTool.prop && palette.activeLabel == chip.name;
     final label = chip.quantity.isEmpty
         ? chip.name
         : tr.shotListFloorPlanPropChipWithQuantityLabel(chip.name, chip.quantity);
@@ -506,15 +583,15 @@ class OcptFloorPlanPalette extends StatelessWidget {
 
     final entry = InkWell(
       onTap: () {
-        onToolSelected(OcptFloorPlanTool.prop);
-        onPropChipSelected(chip.name);
+        palette.onToolSelected(OcptFloorPlanTool.prop);
+        palette.onPropChipSelected(chip.name);
       },
       mouseCursor: ocptClickableCursor,
       borderRadius: BorderRadius.circular(ocptRadiusSmall),
       child: chipWidget,
     );
 
-    if (isReadOnly) {
+    if (palette.isReadOnly) {
       return entry;
     }
 
@@ -526,18 +603,29 @@ class OcptFloorPlanPalette extends StatelessWidget {
       child: entry,
     );
   }
+}
 
-  /// The fixed add-prop button: asks for a free-typed label ([onOtherPropRequested]) before arming
-  /// [OcptFloorPlanTool.prop] with it and placing it at once — the mode reuses the character
-  /// name-picker's own dialog pattern for the typing itself. Reads as "add a prop to this
-  /// sequence" rather than one more prop chip: a leading [Icons.add] plus the word alone
-  /// ([Tr.shotListFloorPlanAddPropAction]) — the icon already carries the plus, so the label text
-  /// never repeats it.
-  Widget _buildAddPropButton(BuildContext context, Tr tr) {
+/// The fixed add-prop button: asks for a free-typed label ([OcptFloorPlanPalette.onOtherPropRequested]) before arming
+/// [OcptFloorPlanTool.prop] with it and placing it at once — the mode reuses the character
+/// name-picker's own dialog pattern for the typing itself. Reads as "add a prop to this
+/// sequence" rather than one more prop chip: a leading [Icons.add] plus the word alone
+/// ([Tr.shotListFloorPlanAddPropAction]) — the icon already carries the plus, so the label text
+/// never repeats it.
+class _AddPropButton extends StatelessWidget {
+  /// The palette this part belongs to, which supplies the armed tool, the visibility state and
+  /// the callbacks.
+  final OcptFloorPlanPalette palette;
+
+  /// Class constructor
+  const _AddPropButton({required this.palette});
+
+  @override
+  Widget build(BuildContext context) {
+    final tr = Tr.of(context);
     final theme = Theme.of(context);
 
     return InkWell(
-      onTap: onOtherPropRequested,
+      onTap: palette.onOtherPropRequested,
       mouseCursor: ocptClickableCursor,
       borderRadius: BorderRadius.circular(ocptRadiusSmall),
       child: Container(
@@ -557,11 +645,21 @@ class OcptFloorPlanPalette extends StatelessWidget {
       ),
     );
   }
+}
 
-  /// The cameras row, expanded into one sub-row per [sequenceCameras] entry with its own eye — its
-  /// own title carries [sequenceCameras]'s own count, exactly like a plain layer row (each entry
-  /// already carries its own individual eye, so the title itself has none to withhold).
-  Widget _buildCamerasRow(BuildContext context) {
+/// The cameras row, expanded into one sub-row per [OcptFloorPlanPalette.sequenceCameras] entry with its own eye — its
+/// own title carries that list's own count, exactly like a plain layer row (each entry
+/// already carries its own individual eye, so the title itself has none to withhold).
+class _CamerasRow extends StatelessWidget {
+  /// The palette this part belongs to, which supplies the armed tool, the visibility state and
+  /// the callbacks.
+  final OcptFloorPlanPalette palette;
+
+  /// Class constructor
+  const _CamerasRow({required this.palette});
+
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final tr = Tr.of(context);
 
@@ -584,14 +682,14 @@ class OcptFloorPlanPalette extends StatelessWidget {
             child: Text(
               tr.shotListFloorPlanLayerRowWithCountLabel(
                 tr.shotListFloorPlanLayerCamerasLabel,
-                sequenceCameras.length,
+                palette.sequenceCameras.length,
               ),
               style: theme.textTheme.bodySmall,
             ),
           ),
         ],
       ),
-      children: sequenceCameras.isEmpty
+      children: palette.sequenceCameras.isEmpty
           ? [
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
@@ -603,15 +701,31 @@ class OcptFloorPlanPalette extends StatelessWidget {
                 ),
               ),
             ]
-          : [for (final camera in sequenceCameras) _buildCameraRow(context, camera)],
+          : [
+              for (final camera in palette.sequenceCameras)
+                _CameraRow(palette: palette, camera: camera),
+            ],
     );
   }
+}
 
-  /// One camera's own sub-row of [_buildCamerasRow]: its derived label and a trailing eye.
-  Widget _buildCameraRow(BuildContext context, OcptFloorPlanTraySequenceCamera camera) {
+/// One camera's own sub-row of [_CamerasRow]: its derived label and a trailing eye.
+class _CameraRow extends StatelessWidget {
+  /// The palette this part belongs to, which supplies the armed tool, the visibility state and
+  /// the callbacks.
+  final OcptFloorPlanPalette palette;
+
+  /// The camera this part draws.
+  final OcptFloorPlanTraySequenceCamera camera;
+
+  /// Class constructor
+  const _CameraRow({required this.palette, required this.camera});
+
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final tr = Tr.of(context);
-    final isHidden = hiddenCameraSymbolIds.contains(camera.symbolId);
+    final isHidden = palette.hiddenCameraSymbolIds.contains(camera.symbolId);
 
     return Padding(
       padding: const EdgeInsets.only(left: 30, right: 12, top: 2, bottom: 2),
@@ -625,16 +739,26 @@ class OcptFloorPlanPalette extends StatelessWidget {
             tooltip: isHidden
                 ? tr.shotListFloorPlanShowLayerAction
                 : tr.shotListFloorPlanHideLayerAction,
-            onPressed: () => onCameraVisibilityToggled(camera.symbolId),
+            onPressed: () => palette.onCameraVisibilityToggled(camera.symbolId),
             icon: Icon(isHidden ? Icons.visibility_off_outlined : Icons.visibility_outlined),
           ),
         ],
       ),
     );
   }
+}
 
-  /// The `Onion skin` block: the previous/next toggles and the opacity slider.
-  Widget _buildOnionSkinBlock(BuildContext context) {
+/// The `Onion skin` block: the previous/next toggles and the opacity slider.
+class _OnionSkinBlock extends StatelessWidget {
+  /// The palette this part belongs to, which supplies the armed tool, the visibility state and
+  /// the callbacks.
+  final OcptFloorPlanPalette palette;
+
+  /// Class constructor
+  const _OnionSkinBlock({required this.palette});
+
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final tr = Tr.of(context);
 
@@ -655,16 +779,16 @@ class OcptFloorPlanPalette extends StatelessWidget {
           dense: true,
           contentPadding: const EdgeInsets.symmetric(horizontal: 12),
           controlAffinity: ListTileControlAffinity.leading,
-          value: isOnionSkinPreviousShown,
-          onChanged: (_) => onOnionSkinToggled(true),
+          value: palette.isOnionSkinPreviousShown,
+          onChanged: (_) => palette.onOnionSkinToggled(true),
           title: Text(tr.shotListFloorPlanOnionSkinPreviousLabel, style: theme.textTheme.bodySmall),
         ),
         CheckboxListTile(
           dense: true,
           contentPadding: const EdgeInsets.symmetric(horizontal: 12),
           controlAffinity: ListTileControlAffinity.leading,
-          value: isOnionSkinNextShown,
-          onChanged: (_) => onOnionSkinToggled(false),
+          value: palette.isOnionSkinNextShown,
+          onChanged: (_) => palette.onOnionSkinToggled(false),
           title: Text(tr.shotListFloorPlanOnionSkinNextLabel, style: theme.textTheme.bodySmall),
         ),
         Padding(
@@ -674,9 +798,9 @@ class OcptFloorPlanPalette extends StatelessWidget {
               Text(tr.shotListFloorPlanOnionSkinOpacityLabel, style: theme.textTheme.bodySmall),
               Expanded(
                 child: Slider(
-                  value: onionSkinOpacity,
+                  value: palette.onionSkinOpacity,
                   min: 0.05,
-                  onChanged: onOnionSkinOpacityChanged,
+                  onChanged: palette.onOnionSkinOpacityChanged,
                 ),
               ),
             ],
@@ -685,42 +809,60 @@ class OcptFloorPlanPalette extends StatelessWidget {
       ],
     );
   }
+}
 
-  /// The metrics overlay's own toggle row, plus its own inline help paragraph — see
-  /// [_OcptFloorPlanMetricsToggleRow], whose own open/closed state this stateless palette cannot
-  /// hold itself.
-  Widget _buildMetricsToggle(BuildContext context) => _OcptFloorPlanMetricsToggleRow(
-    isMetricsShown: isMetricsShown,
-    onMetricsToggled: onMetricsToggled,
-  );
+/// The field-of-view overlay's own toggle row: every camera's own wedge, on by default.
+class _ShowFieldOfViewToggle extends StatelessWidget {
+  /// The palette this part belongs to, which supplies the armed tool, the visibility state and
+  /// the callbacks.
+  final OcptFloorPlanPalette palette;
 
-  /// The field-of-view overlay's own toggle row: every camera's own wedge, on by default.
-  Widget _buildShowFieldOfViewToggle(BuildContext context) => CheckboxListTile(
+  /// Class constructor
+  const _ShowFieldOfViewToggle({required this.palette});
+
+  @override
+  Widget build(BuildContext context) => CheckboxListTile(
     dense: true,
     contentPadding: const EdgeInsets.symmetric(horizontal: 12),
     controlAffinity: ListTileControlAffinity.leading,
-    value: isShowFieldOfViewShown,
-    onChanged: (_) => onShowFieldOfViewToggled(),
+    value: palette.isShowFieldOfViewShown,
+    onChanged: (_) => palette.onShowFieldOfViewToggled(),
     title: Text(
       Tr.of(context).shotListFloorPlanFieldOfViewToggleLabel,
       style: Theme.of(context).textTheme.bodySmall,
     ),
   );
+}
 
-  /// One `View` group layer row: a leading colour swatch, the label with its own
-  /// [layerElementCounts] count, and a trailing eye toggling its visibility. No radio dot: every
-  /// remaining layer places through its own palette entry or tool, not through an "active layer"
-  /// pick — the set layer having merged into one (`OcptFloorPlanLayer.set`) is the only sequence
-  /// layer left, and every shot layer already has its own dedicated entry above.
-  ///
-  /// The eye is withheld (disabled, not hidden) while the layer's own count is `0` and it isn't
-  /// already hidden — nothing to hide — but stays enabled while hidden regardless of the count, so
-  /// a layer hidden before its last element was removed can still be shown again.
-  Widget _buildLayerRow(BuildContext context, OcptFloorPlanLayer layer, String label) {
+/// One `View` group layer row: a leading colour swatch, the label with its own
+/// [OcptFloorPlanPalette.layerElementCounts] count, and a trailing eye toggling its visibility. No radio dot: every
+/// remaining layer places through its own palette entry or tool, not through an "active layer"
+/// pick — the set layer having merged into one (`OcptFloorPlanLayer.set`) is the only sequence
+/// layer left, and every shot layer already has its own dedicated entry above.
+///
+/// The eye is withheld (disabled, not hidden) while the layer's own count is `0` and it isn't
+/// already hidden — nothing to hide — but stays enabled while hidden regardless of the count, so
+/// a layer hidden before its last element was removed can still be shown again.
+class _LayerRow extends StatelessWidget {
+  /// The palette this part belongs to, which supplies the armed tool, the visibility state and
+  /// the callbacks.
+  final OcptFloorPlanPalette palette;
+
+  /// The layer this part draws.
+  final OcptFloorPlanLayer layer;
+
+  /// The label this part draws.
+  final String label;
+
+  /// Class constructor
+  const _LayerRow({required this.palette, required this.layer, required this.label});
+
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final tr = Tr.of(context);
-    final isHidden = hiddenLayers.contains(layer);
-    final count = layerElementCounts[layer] ?? 0;
+    final isHidden = palette.hiddenLayers.contains(layer);
+    final count = palette.layerElementCounts[layer] ?? 0;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -748,16 +890,28 @@ class OcptFloorPlanPalette extends StatelessWidget {
             tooltip: isHidden
                 ? tr.shotListFloorPlanShowLayerAction
                 : tr.shotListFloorPlanHideLayerAction,
-            onPressed: (isHidden || count > 0) ? () => onLayerVisibilityToggled(layer) : null,
+            onPressed: (isHidden || count > 0)
+                ? () => palette.onLayerVisibilityToggled(layer)
+                : null,
             icon: Icon(isHidden ? Icons.visibility_off_outlined : Icons.visibility_outlined),
           ),
         ],
       ),
     );
   }
+}
 
-  /// The underlay's own row: its label and a trailing eye toggling its visibility.
-  Widget _buildUnderlayRow(BuildContext context) {
+/// The underlay's own row: its label and a trailing eye toggling its visibility.
+class _UnderlayRow extends StatelessWidget {
+  /// The palette this part belongs to, which supplies the armed tool, the visibility state and
+  /// the callbacks.
+  final OcptFloorPlanPalette palette;
+
+  /// Class constructor
+  const _UnderlayRow({required this.palette});
+
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final tr = Tr.of(context);
 
@@ -769,29 +923,29 @@ class OcptFloorPlanPalette extends StatelessWidget {
             child: Text(
               tr.shotListFloorPlanUnderlayRowLabel,
               style: theme.textTheme.bodySmall?.copyWith(
-                color: hasUnderlay ? null : theme.colorScheme.onSurfaceVariant,
+                color: palette.hasUnderlay ? null : theme.colorScheme.onSurfaceVariant,
               ),
             ),
           ),
-          if (onUnderlayClearRequested != null)
+          if (palette.onUnderlayClearRequested != null)
             IconButton(
               iconSize: 16,
               padding: EdgeInsets.zero,
               constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
               tooltip: tr.shotListFloorPlanClearUnderlayAction,
-              onPressed: onUnderlayClearRequested,
+              onPressed: palette.onUnderlayClearRequested,
               icon: const Icon(Icons.delete_outline),
             ),
           IconButton(
             iconSize: 16,
             padding: EdgeInsets.zero,
             constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
-            tooltip: isUnderlayHidden
+            tooltip: palette.isUnderlayHidden
                 ? tr.shotListFloorPlanShowLayerAction
                 : tr.shotListFloorPlanHideLayerAction,
-            onPressed: hasUnderlay ? onUnderlayVisibilityToggled : null,
+            onPressed: palette.hasUnderlay ? palette.onUnderlayVisibilityToggled : null,
             icon: Icon(
-              isUnderlayHidden ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+              palette.isUnderlayHidden ? Icons.visibility_off_outlined : Icons.visibility_outlined,
             ),
           ),
         ],
