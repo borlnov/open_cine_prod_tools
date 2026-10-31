@@ -242,7 +242,9 @@ class OcptShotListStoryboardBloc
         panelId: panelId,
         path: path,
       );
-      await modeBloc.reload({OcptShotListReloadScope.storyboard});
+      if (!await modeBloc.reload({OcptShotListReloadScope.storyboard})) {
+        return;
+      }
       emitter(
         state.copyWith(
           selectedPanelId: panelId,
@@ -399,7 +401,9 @@ class OcptShotListStoryboardBloc
 
     try {
       await _storyboardService.deletePanel(database: project.database, panelId: event.panelId);
-      await modeBloc.reload({OcptShotListReloadScope.storyboard});
+      if (!await modeBloc.reload({OcptShotListReloadScope.storyboard})) {
+        return;
+      }
       emitter(
         state.copyWith(
           // Taken now, not before the delete: a keystroke typed meanwhile is not the panel's.
@@ -462,7 +466,9 @@ class OcptShotListStoryboardBloc
         return;
       }
 
-      await modeBloc.reload({OcptShotListReloadScope.storyboard});
+      if (!await modeBloc.reload({OcptShotListReloadScope.storyboard})) {
+        return;
+      }
       emitter(state.copyWith(selectedAnnotationId: annotationId));
     } catch (error, stackTrace) {
       _logger.e(
@@ -499,7 +505,9 @@ class OcptShotListStoryboardBloc
         return;
       }
 
-      await modeBloc.reload({OcptShotListReloadScope.storyboard});
+      if (!await modeBloc.reload({OcptShotListReloadScope.storyboard})) {
+        return;
+      }
       emitter(state.copyWith(selectedAnnotationId: annotationId));
     } catch (error, stackTrace) {
       _logger.e(
@@ -555,7 +563,9 @@ class OcptShotListStoryboardBloc
         database: project.database,
         annotationId: event.annotationId,
       );
-      await modeBloc.reload({OcptShotListReloadScope.storyboard});
+      if (!await modeBloc.reload({OcptShotListReloadScope.storyboard})) {
+        return;
+      }
       emitter(
         state.copyWith(
           // Taken now, not before the delete: a keystroke typed meanwhile is not the mark's.

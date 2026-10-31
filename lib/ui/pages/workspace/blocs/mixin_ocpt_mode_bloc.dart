@@ -193,13 +193,15 @@ mixin MixinOcptModeBloc<S extends MixinOcptModeState<S>, Scope extends Enum> on 
   /// Reads again the parts of the shared data that [scopes] names, and completes once the mode's
   /// state holds what was read — so the caller can select a row it has just written.
   ///
-  /// Completes at once on a bloc that is closing: there is no state left to wait for.
-  Future<void> reload(Set<Scope> scopes) async {
+  /// Answers whether the data was read. A caller that gets false stops there: the read failed (the
+  /// mode shows its own error), or the bloc is closing and there is no state left to wait for,
+  /// which completes at once. Carrying on would select a row the state may not hold.
+  Future<bool> reload(Set<Scope> scopes) async {
     if (_isClosing) {
-      return;
+      return false;
     }
 
-    await OcptModeReloadRequestedEvent<Scope>(scopes: scopes).addToAndWait(this);
+    return await OcptModeReloadRequestedEvent<Scope>(scopes: scopes).addToAndWait(this) ?? false;
   }
 
   /// {@template open_cine_prod_tools.MixinOcptModeBloc.flushAllPendingWritesIn}
@@ -212,10 +214,11 @@ mixin MixinOcptModeBloc<S extends MixinOcptModeState<S>, Scope extends Enum> on 
 
   /// {@template open_cine_prod_tools.MixinOcptModeBloc.reloadScopesIn}
   /// Reads again the parts of the shared data that [scopes] names, emits them with the state's
-  /// `reloadEpoch` moved on. Called one at a time by [reloadSerially].
+  /// `reloadEpoch` moved on, and answers whether it did: false when the read failed or nothing
+  /// could be read. Called one at a time by [reloadSerially].
   /// {@endtemplate}
   @protected
-  Future<void> reloadScopesIn(Set<Scope> scopes, Emitter<S> emitter);
+  Future<bool> reloadScopesIn(Set<Scope> scopes, Emitter<S> emitter);
 
   /// Runs [action], a read of the shared data that ends in an emit, only once every action already
   /// queued through this has settled, and queues it in turn.
@@ -232,7 +235,7 @@ mixin MixinOcptModeBloc<S extends MixinOcptModeState<S>, Scope extends Enum> on 
 
   /// Runs [reloadScopesIn] through [runSerially].
   @protected
-  Future<void> reloadSerially(Set<Scope> scopes, Emitter<S> emitter) =>
+  Future<bool> reloadSerially(Set<Scope> scopes, Emitter<S> emitter) =>
       runSerially(() => reloadScopesIn(scopes, emitter));
 
   /// {@macro act_flutter_utility.BlocForMixin.registerMixinEvents}
@@ -259,9 +262,9 @@ mixin MixinOcptModeBloc<S extends MixinOcptModeState<S>, Scope extends Enum> on 
     Emitter<S> emitter,
   ) async {
     try {
-      await reloadSerially(event.scopes, emitter);
+      event.complete(await reloadSerially(event.scopes, emitter));
     } finally {
-      event.complete();
+      event.complete(false);
     }
   }
 

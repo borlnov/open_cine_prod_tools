@@ -273,11 +273,13 @@ class OcptShotListFloorPlanSetsBloc
         return;
       }
 
-      await modeBloc.reload({
+      if (!await modeBloc.reload({
         OcptShotListReloadScope.floorPlans,
         OcptShotListReloadScope.locations,
         OcptShotListReloadScope.setScopeSymbols,
-      });
+      })) {
+        return;
+      }
       await addToModeAndWait(OcptShotListSetAddedEvent(setId: setId));
     } catch (error, stackTrace) {
       _logger.e(
@@ -315,7 +317,9 @@ class OcptShotListFloorPlanSetsBloc
         return;
       }
 
-      await modeBloc.reload({OcptShotListReloadScope.floorPlans});
+      if (!await modeBloc.reload({OcptShotListReloadScope.floorPlans})) {
+        return;
+      }
       await addToModeAndWait(OcptShotListSetAddedEvent(setId: event.setId));
     } catch (error, stackTrace) {
       _logger.e(
@@ -374,7 +378,9 @@ class OcptShotListFloorPlanSetsBloc
         sceneId: sceneId,
         setId: event.setId,
       );
-      await modeBloc.reload({OcptShotListReloadScope.floorPlans});
+      if (!await modeBloc.reload({OcptShotListReloadScope.floorPlans})) {
+        return;
+      }
       if (wasSelected) {
         await addToModeAndWait(const OcptShotListSetRemovedEvent());
       }
@@ -422,11 +428,13 @@ class OcptShotListFloorPlanSetsBloc
         return;
       }
 
-      await modeBloc.reload({
+      if (!await modeBloc.reload({
         OcptShotListReloadScope.floorPlans,
         OcptShotListReloadScope.locations,
         OcptShotListReloadScope.setScopeSymbols,
-      });
+      })) {
+        return;
+      }
       await addToModeAndWait(OcptShotListSetAddedEvent(setId: newSetId));
     } catch (error, stackTrace) {
       _logger.e(

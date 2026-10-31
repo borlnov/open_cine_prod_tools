@@ -82,6 +82,10 @@ class _ModeBloc extends BlocForMixin<_State> with MixinOcptModeBloc<_State, _Sco
   /// Whether the first read fails instead of emitting.
   bool failsFirstRead = false;
 
+  /// Whether a read that emitted answers that it did not read, like a mode that handled its own
+  /// failure.
+  bool returnsFalse = false;
+
   /// How many reads started so far.
   int _readCount = 0;
 
@@ -104,7 +108,7 @@ class _ModeBloc extends BlocForMixin<_State> with MixinOcptModeBloc<_State, _Sco
   }
 
   @override
-  Future<void> reloadScopesIn(Set<_Scope> scopes, Emitter<_State> emitter) async {
+  Future<bool> reloadScopesIn(Set<_Scope> scopes, Emitter<_State> emitter) async {
     final index = _readCount++;
     trace.add("start $index");
     if (index < readGates.length) {
@@ -115,6 +119,7 @@ class _ModeBloc extends BlocForMixin<_State> with MixinOcptModeBloc<_State, _Sco
     }
     emitter(state.copyWith(reloadEpoch: state.reloadEpoch + 1, reads: [...state.reads, scopes]));
     trace.add("end $index");
+    return !returnsFalse;
   }
 }
 
@@ -248,6 +253,27 @@ void main() {
       ]);
 
       await mode.close();
+    }, (error, _) => errors.add(error));
+
+    expect(errors, hasLength(1));
+  });
+
+  test('reload answers whether the data was read', () async {
+    final errors = <Object>[];
+
+    await runZonedGuarded(() async {
+      final mode = _ModeBloc();
+      expect(await mode.reload({_Scope.first}), isTrue);
+
+      mode.returnsFalse = true;
+      expect(await mode.reload({_Scope.second}), isFalse);
+
+      // A read that throws is not a read either.
+      final failing = _ModeBloc()..failsFirstRead = true;
+      expect(await failing.reload({_Scope.first}), isFalse);
+
+      await mode.close();
+      await failing.close();
     }, (error, _) => errors.add(error));
 
     expect(errors, hasLength(1));

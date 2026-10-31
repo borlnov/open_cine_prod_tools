@@ -17,6 +17,7 @@ import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dar
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_floor_plan_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/ocpt_floor_plan_sheet.dart';
+import 'package:open_cine_prod_tools/models/ocpt_floor_plan_snapshot.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_layer.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_override_level.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_scope_choice.dart';
@@ -99,6 +100,32 @@ class _FailingFloorPlanService extends OcptFloorPlanService {
   }) async => throw StateError("symbol update intentionally failed for the test");
 }
 
+/// A floor plan service whose reads fail once [failsReads] is set, so the mode cannot read again
+/// what the canvas has just written.
+class _ReadFailingFloorPlanService extends OcptFloorPlanService {
+  /// Whether the reads fail.
+  bool failsReads = false;
+
+  /// Class constructor
+  _ReadFailingFloorPlanService(OcptFloorPlanService source)
+    : super(
+        logger: const SilentLogger(),
+        assetsService: source.assetsService,
+        deviceId: source.deviceId,
+      );
+
+  @override
+  Future<OcptFloorPlanSnapshot> loadFloorPlans({
+    required OcptProjectDatabase database,
+    required String screenplayId,
+  }) async {
+    if (failsReads) {
+      throw StateError("floor plans read intentionally failed for the test");
+    }
+    return super.loadFloorPlans(database: database, screenplayId: screenplayId);
+  }
+}
+
 void main() {
   const twoSceneText = "INT. HOUSE - DAY\n\nAction one.\n\nEXT. GARDEN - NIGHT\n\nAction two.\n";
 
@@ -179,11 +206,12 @@ void main() {
   }
 
   /// Builds the mode bloc wired to the test project.
-  OcptShotListBloc buildBloc() => OcptShotListBloc(
+  OcptShotListBloc buildBloc({OcptFloorPlanService? floorPlanService}) => OcptShotListBloc(
     projectsManager: projectsManager,
     propertiesManager: propertiesManager,
     routerManager: _RecordingRouterManager(),
     exportManager: OcptExportManager(fileSelectorManager: const FileSelectorManager()),
+    floorPlanService: floorPlanService,
   );
 
   /// The floor plan sets bloc of [modeBloc], built on first use: the tests that need a set to work
@@ -1330,9 +1358,9 @@ void main() {
     /// Mounts the mode on [twoSceneText] with a set and a shot, and places one character symbol
     /// on the shot, which the canvas selects. Answers the mode and the ids.
     Future<({OcptShotListBloc mode, String setId, String shotId, String symbolId})>
-    mountWithASymbol() async {
+    mountWithASymbol({OcptFloorPlanService? floorPlanService}) async {
       await writeScreenplay(twoSceneText);
-      final mode = buildBloc();
+      final mode = buildBloc(floorPlanService: floorPlanService);
       await waitForState(mode, (state) => !state.isLoading);
       final setId = await createCase(mode);
       final shotId = await createShot(mode);
@@ -1351,6 +1379,42 @@ void main() {
 
       return (mode: mode, setId: setId, shotId: shotId, symbolId: symbolId);
     }
+
+    test("a floor plans read that fails leaves the canvas's selection alone", () async {
+      final service = _ReadFailingFloorPlanService(projectsManager.floorPlanService);
+      final mounted = await mountWithASymbol(floorPlanService: service);
+      final mode = mounted.mode;
+      final canvas = canvasOf(mode);
+
+      service.failsReads = true;
+
+      /// Sends [event], waits for the mode's error and for the canvas to have had its say.
+      Future<void> failWith(OcptShotListFloorPlanCanvasEvent event) async {
+        canvas.add(event);
+        await waitUntil(() => mode.state.hasWriteError);
+        await pumpEventQueue();
+        mode.add(const OcptShotListWriteErrorDismissedEvent());
+        await waitUntil(() => !mode.state.hasWriteError);
+      }
+
+      await failWith(
+        OcptShotListFloorPlanSymbolPlacedEvent(
+          setId: mounted.setId,
+          layer: OcptFloorPlanLayer.characters,
+          shotId: mounted.shotId,
+          sceneId: null,
+          xM: 6,
+          yM: 6,
+        ),
+      );
+      expect(canvas.state.selectedFloorPlanSymbolId, mounted.symbolId);
+
+      await failWith(OcptShotListFloorPlanSymbolDuplicatedEvent(symbolId: mounted.symbolId));
+      expect(canvas.state.selectedFloorPlanSymbolId, mounted.symbolId);
+
+      await canvas.close();
+      await mode.close();
+    });
 
     test("the mode moving its selection clears the canvas's, by what moved it", () async {
       final mounted = await mountWithASymbol();

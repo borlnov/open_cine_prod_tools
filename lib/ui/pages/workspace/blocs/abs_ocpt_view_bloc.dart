@@ -24,7 +24,8 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_view_events.d
 /// **How it writes.** Call the service, then `await modeBloc.reload(…)` for the data the write
 /// changed, and only then emit the view's own selection: the mode's state already holds the row
 /// the view is about to select, so no widget ever sees a selection naming a row the data does not
-/// have.
+/// have. `reload` answers whether it read: on false the view stops, the mode already shows the
+/// error.
 ///
 /// **How it reacts.** The base class watches the mode's state and, whenever its `reloadEpoch` or
 /// `selectionEpoch` moves, dispatches [OcptViewModeStateChangedEvent] to the view itself;
@@ -44,7 +45,8 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_view_events.d
 ///   `await`, so a reload that lands meanwhile is overwritten with the old state, epochs
 ///   included. Await into a local, then `state.copyWith(x: local)`.
 /// - Write through the service, then `await modeBloc.reload(…)` for exactly the scopes the write
-///   changed, then emit the view's own selection. Never copy the mode's data into the view.
+///   changed, then emit the view's own selection. Never copy the mode's data into the view. Stop
+///   when `reload` answers false, before moving any selection or forgetting any pending edit.
 /// - Keep typed edits as a pending map, start the debounce with [restartDebounce] (never a `Timer`
 ///   of your own), and after a write forget only what was written, read at emit time:
 ///   `ocptPendingEditsAfterWrite`. Emitting an empty map loses the keystroke typed during the

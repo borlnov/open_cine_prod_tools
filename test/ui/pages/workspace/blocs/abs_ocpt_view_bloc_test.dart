@@ -98,8 +98,9 @@ class _ModeBloc extends BlocForMixin<_ModeState> with MixinOcptModeBloc<_ModeSta
   Future<void> flushAllPendingWritesIn(Emitter<_ModeState> emitter) => runPendingWritesFlushers();
 
   @override
-  Future<void> reloadScopesIn(Set<_Scope> scopes, Emitter<_ModeState> emitter) async {
+  Future<bool> reloadScopesIn(Set<_Scope> scopes, Emitter<_ModeState> emitter) async {
     emitter(state.copyWith(reloadEpoch: state.reloadEpoch + 1));
+    return true;
   }
 
   /// Exposes the protected runner of the flushers that write without state.

@@ -157,6 +157,32 @@ class _HoldingStoryboardService extends OcptStoryboardService {
   }
 }
 
+/// A storyboard service whose reads fail once [failsReads] is set, so the mode cannot read again
+/// what the board has just written.
+class _ReadFailingStoryboardService extends OcptStoryboardService {
+  /// Whether the reads fail.
+  bool failsReads = false;
+
+  /// Class constructor
+  _ReadFailingStoryboardService(OcptStoryboardService source)
+    : super(
+        logger: const SilentLogger(),
+        assetsService: source.assetsService,
+        deviceId: source.deviceId,
+      );
+
+  @override
+  Future<OcptStoryboardSnapshot> loadStoryboard({
+    required OcptProjectDatabase database,
+    required String screenplayId,
+  }) async {
+    if (failsReads) {
+      throw StateError("storyboard read intentionally failed for the test");
+    }
+    return super.loadStoryboard(database: database, screenplayId: screenplayId);
+  }
+}
+
 /// A shot list service whose snapshot reads can be held back, like [_HoldingStoryboardService]'s.
 class _HoldingShotListService extends OcptShotListService {
   /// How many of the next reads are held back.
@@ -1008,6 +1034,59 @@ void main() {
 
       await closeAll(board, mode);
     });
+
+    test(
+      "a storyboard read that fails leaves the board's selection and edits as they were",
+      () async {
+        final service = _ReadFailingStoryboardService(projectsManager.storyboardService);
+        final mounted = await mountWithAPanel(
+          fieldEditDebounce: const Duration(days: 1),
+          storyboardService: service,
+        );
+        final mode = mounted.mode;
+        final board = mounted.board;
+        board.add(OcptShotListPanelCommentChangedEvent(panelId: mounted.panelId, rawValue: "Kept"));
+        await waitUntil(() => board.state.pendingFieldEdits.isNotEmpty);
+        service.failsReads = true;
+
+        /// Sends [event], waits for the mode's error and for the board to have had its say.
+        Future<void> failWith(OcptShotListStoryboardEvent event) async {
+          board.add(event);
+          await waitUntil(() => mode.state.hasWriteError);
+          await pumpEventQueue();
+          mode.add(const OcptShotListWriteErrorDismissedEvent());
+          await waitUntil(() => !mode.state.hasWriteError);
+        }
+
+        await failWith(
+          OcptShotListPanelImportRequestedEvent(shotId: mounted.shotId, fileTypeLabel: "Images"),
+        );
+        expect(board.state.selectedPanelId, mounted.panelId);
+
+        await failWith(
+          OcptShotListAnnotationDrawnEvent(
+            panelId: mounted.panelId,
+            kind: OcptStoryboardAnnotationKind.movementArrow,
+            x1: 0.2,
+            y1: 0.3,
+            x2: 0.8,
+            y2: 0.3,
+          ),
+        );
+        expect(board.state.selectedAnnotationId, isNull);
+
+        await failWith(
+          OcptShotListAnnotationPlacedEvent(panelId: mounted.panelId, x1: 0.5, y1: 0.5),
+        );
+        expect(board.state.selectedAnnotationId, isNull);
+
+        await failWith(OcptShotListPanelDeletionRequestedEvent(panelId: mounted.panelId));
+        expect(board.state.selectedPanelId, mounted.panelId);
+        expect(board.state.pendingFieldEdits.values, ["Kept"]);
+
+        await closeAll(board, mode);
+      },
+    );
 
     test("a reload the board did not ask for drops a pending edit whose panel is gone", () async {
       final mounted = await mountWithAPanel(fieldEditDebounce: const Duration(days: 1));

@@ -16,8 +16,10 @@ import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_elements_service.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_floor_plan_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_locations_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
+import 'package:open_cine_prod_tools/models/ocpt_floor_plan_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_scene_prop_summary.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
@@ -155,6 +157,32 @@ class _HoldingElementsService extends OcptElementsService {
   }
 }
 
+/// A floor plan service whose reads fail once [failsReads] is set, so the mode cannot read again
+/// what a view has just written.
+class _ReadFailingFloorPlanService extends OcptFloorPlanService {
+  /// Whether the reads fail.
+  bool failsReads = false;
+
+  /// Class constructor
+  _ReadFailingFloorPlanService(OcptFloorPlanService source)
+    : super(
+        logger: const SilentLogger(),
+        assetsService: source.assetsService,
+        deviceId: source.deviceId,
+      );
+
+  @override
+  Future<OcptFloorPlanSnapshot> loadFloorPlans({
+    required OcptProjectDatabase database,
+    required String screenplayId,
+  }) async {
+    if (failsReads) {
+      throw StateError("floor plans read intentionally failed for the test");
+    }
+    return super.loadFloorPlans(database: database, screenplayId: screenplayId);
+  }
+}
+
 void main() {
   const twoSceneText = "INT. HOUSE - DAY\n\nAction one.\n\nEXT. GARDEN - NIGHT\n\nAction two.\n";
 
@@ -213,11 +241,12 @@ void main() {
   }
 
   /// Builds the mode bloc wired to the test project.
-  OcptShotListBloc buildBloc() => OcptShotListBloc(
+  OcptShotListBloc buildBloc({OcptFloorPlanService? floorPlanService}) => OcptShotListBloc(
     projectsManager: projectsManager,
     propertiesManager: propertiesManager,
     routerManager: _RecordingRouterManager(),
     exportManager: OcptExportManager(fileSelectorManager: const FileSelectorManager()),
+    floorPlanService: floorPlanService,
   );
 
   /// Builds the floor plan sets bloc of [modeBloc], picking underlays through
@@ -388,6 +417,51 @@ void main() {
 
     await closeAll(sets, bloc);
   });
+
+  test(
+    "a floor plans read that fails leaves the selection where it was, whatever was written",
+    () async {
+      await writeScreenplay(twoSceneText);
+      final service = _ReadFailingFloorPlanService(projectsManager.floorPlanService);
+      final bloc = buildBloc(floorPlanService: service);
+      final sets = buildSets(bloc);
+      await waitForState(bloc, (state) => !state.isLoading);
+      final firstSetId = await createCase(bloc, sets);
+      final epoch = bloc.state.selectionEpoch;
+      service.failsReads = true;
+
+      /// Sends [event], waits for the mode's error and for the view to have had its say.
+      Future<void> failWith(OcptShotListFloorPlanSetsEvent event) async {
+        sets.add(event);
+        await waitUntil(() => bloc.state.hasWriteError);
+        await pumpEventQueue();
+        expect(bloc.state.selectionEpoch, epoch);
+        expect(bloc.state.selectedSetId, firstSetId);
+        bloc.add(const OcptShotListWriteErrorDismissedEvent());
+        await waitUntil(() => !bloc.state.hasWriteError);
+      }
+
+      await failWith(const OcptShotListSetCreationRequestedEvent());
+      await failWith(
+        OcptShotListSetDuplicationRequestedEvent(setId: firstSetId, newSetName: "Copy"),
+      );
+      await failWith(OcptShotListSetDeletionRequestedEvent(setId: firstSetId));
+
+      // Linking: the second sequence holds no set, and still does not select the one just linked.
+      service.failsReads = false;
+      bloc.add(OcptShotListSequenceSelectedEvent(sequenceId: bloc.state.sequences[1].id));
+      await waitForState(bloc, (state) => state.selectedSequenceId == bloc.state.sequences[1].id);
+      final linkEpoch = bloc.state.selectionEpoch;
+      service.failsReads = true;
+      sets.add(OcptShotListSetLinkRequestedEvent(setId: firstSetId));
+      await waitUntil(() => bloc.state.hasWriteError);
+      await pumpEventQueue();
+      expect(bloc.state.selectionEpoch, linkEpoch);
+      expect(bloc.state.selectedSetId, isNull);
+
+      await closeAll(sets, bloc);
+    },
+  );
 
   test("importing an underlay frames it at the default rectangle", () async {
     await writeScreenplay(twoSceneText);

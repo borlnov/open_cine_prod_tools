@@ -271,13 +271,13 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
   /// already written its row, and what is on screen no longer says what the database holds.
   @protected
   @override
-  Future<void> reloadScopesIn(
+  Future<bool> reloadScopesIn(
     Set<OcptShotListReloadScope> scopes,
     Emitter<OcptShotListState> emitter,
   ) async {
     final project = _projectsManager.currentProject;
     if (project == null) {
-      return;
+      return false;
     }
 
     try {
@@ -322,6 +322,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
           reloadEpoch: state.reloadEpoch + 1,
         ),
       );
+      return true;
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to read again the $scopes of project "
@@ -330,6 +331,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
         stackTrace,
       );
       emitter(state.copyWith(hasWriteError: true));
+      return false;
     }
   }
 

@@ -267,7 +267,9 @@ class OcptShotListFloorPlanCanvasBloc
       }
 
       final isCharacter = event.layer == OcptFloorPlanLayer.characters && shotId != null;
-      await modeBloc.reload({OcptShotListReloadScope.floorPlans});
+      if (!await modeBloc.reload({OcptShotListReloadScope.floorPlans})) {
+        return;
+      }
       emitter(
         state.copyWith(
           selectedFloorPlanSymbolId: symbolId,
@@ -657,7 +659,9 @@ class OcptShotListFloorPlanCanvasBloc
         return;
       }
 
-      await modeBloc.reload({OcptShotListReloadScope.floorPlans});
+      if (!await modeBloc.reload({OcptShotListReloadScope.floorPlans})) {
+        return;
+      }
       emitter(
         state.copyWith(
           selectedFloorPlanSymbolId: symbolId,
