@@ -5,6 +5,7 @@
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_centre_view.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_column.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_right_dock_tab.dart';
+import 'package:open_cine_prod_tools/types/ocpt_shot_list_selection_cause.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/events/shot_list_base_event.dart';
 
 /// The events of `OcptShotListBloc` about workspace shell, selection and dock.
@@ -211,4 +212,26 @@ class OcptShotListSetAddedEvent extends OcptShotListWorkspaceEvent {
 class OcptShotListSetRemovedEvent extends OcptShotListWorkspaceEvent {
   /// Class constructor
   const OcptShotListSetRemovedEvent();
+}
+
+/// Reads the floor plans again after a placement was removed or hidden, then moves the selection
+/// saying why ([cause]) and which row ([targetId]): dispatched by
+/// `OcptShotListFloorPlanPlacementsBloc` once it wrote, and awaited, so the canvas has cleared what
+/// the gesture always cleared by the time the placements bloc goes on.
+///
+/// [cause] is one of [OcptShotListSelectionCause.symbolRemoved],
+/// [OcptShotListSelectionCause.symbolHidden] and [OcptShotListSelectionCause.arrowRemoved].
+class OcptShotListFloorPlanPlacementChangedEvent extends OcptShotListWorkspaceEvent {
+  /// What happened to the placement.
+  final OcptShotListSelectionCause cause;
+
+  /// The id of the symbol or arrow it happened to.
+  final String targetId;
+
+  /// Class constructor
+  const OcptShotListFloorPlanPlacementChangedEvent({required this.cause, required this.targetId});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, cause, targetId];
 }

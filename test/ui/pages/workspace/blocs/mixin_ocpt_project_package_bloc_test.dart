@@ -206,7 +206,6 @@ void main() {
       platformManager: platformManager,
       shareService: shareService,
     ),
-    fieldEditDebounce: const Duration(milliseconds: 20),
   );
 
   /// Builds a bloc through [buildBloc] and waits for its own initial read of the project to land,

@@ -399,16 +399,13 @@ void main() {
     );
   }
 
-  /// Builds the mode bloc wired to the test project. [fieldEditDebounce] defaults to a short
-  /// duration so tests exercising the field-edit debounce don't have to wait out the real 2 s one.
-  OcptShotListBloc buildBloc({Duration fieldEditDebounce = const Duration(milliseconds: 30)}) =>
-      OcptShotListBloc(
-        projectsManager: projectsManager,
-        propertiesManager: propertiesManager,
-        routerManager: _RecordingRouterManager(),
-        exportManager: OcptExportManager(fileSelectorManager: const FileSelectorManager()),
-        fieldEditDebounce: fieldEditDebounce,
-      );
+  /// Builds the mode bloc wired to the test project.
+  OcptShotListBloc buildBloc() => OcptShotListBloc(
+    projectsManager: projectsManager,
+    propertiesManager: propertiesManager,
+    routerManager: _RecordingRouterManager(),
+    exportManager: OcptExportManager(fileSelectorManager: const FileSelectorManager()),
+  );
 
   /// Builds the inspector bloc of [modeBloc], where a shot field is typed. [fieldEditDebounce]
   /// defaults to a short duration so tests exercising the field-edit debounce don't have to wait
@@ -1074,7 +1071,7 @@ void main() {
 
     test("closing the export bloc while an export waits for the mode does not hang", () async {
       await writeScreenplay(twoSceneText);
-      final bloc = buildBloc(fieldEditDebounce: const Duration(days: 1));
+      final bloc = buildBloc();
       await waitForState(bloc, (state) => !state.isLoading);
       final exportBloc = buildExportBloc(
         bloc,

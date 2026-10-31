@@ -33,7 +33,7 @@ Resources set carries across its three scopes, and the mode's two newest documen
   hierarchy per domain (`events/shot_list_workspace_event.dart`, `…_shot_event.dart`,
   `…_export_event.dart`, `…_inspector_event.dart`, `…_storyboard_event.dart`,
   `…_floor_plan_sets_event.dart`, `…_floor_plan_canvas_event.dart`,
-  `…_floor_plan_symbol_event.dart`), all extending the abstract `OcptShotListEvent` of
+  `…_floor_plan_placements_event.dart`), all extending the abstract `OcptShotListEvent` of
   `events/shot_list_base_event.dart` (a sealed class's subclasses must share its library, so the
   common base cannot be sealed); `shot_list_event.dart` only exports them. The state keeps its
   fields, constructor and `copyWith` in `shot_list_state.dart`; the reads derived on demand
@@ -79,8 +79,7 @@ Resources set carries across its three scopes, and the mode's two newest documen
   unlinked — has the mode read the floor plans (and the catalogue) again and then asks it to move
   its selection, with `OcptShotListSetAddedEvent` or `OcptShotListSetRemovedEvent`, waiting for it.
   The props are emptied and read again when the mode loads or selects another sequence, and
-  nothing else the bloc holds depends on the selection or on a reload. What is typed into a
-  symbol's label is still held by the mode bloc. The fifth is `OcptShotListFloorPlanCanvasBloc`,
+  nothing else the bloc holds depends on the selection or on a reload. The fifth is `OcptShotListFloorPlanCanvasBloc`,
   for the gestures made on the plan: it owns the tool in hand, the selected symbol or arrow, the
   first end of the arrow being drawn, the scope question a shared symbol's move, resize or
   rotation asks, and the character name prompt a placement arms, and it places, moves, resizes,
@@ -92,6 +91,20 @@ Resources set carries across its three scopes, and the mode's two newest documen
   clears the anchor alone; creating a shot clears nothing. A reload drops a selected symbol or
   arrow the floor plans no longer hold, and a selected symbol a hidden override now masks where the
   canvas looks (`ocptIsFloorPlanSymbolMaskedAt`), but never the scope question or the prompt.
+  The sixth is `OcptShotListFloorPlanPlacementsBloc`, for the inspector's Placements group: it
+  deletes a symbol or an arrow, deletes a symbol everywhere, masks it for one sequence or one
+  shot, restores an override, writes a camera's field of view and reach, and holds the symbol
+  labels being typed (its own 2 s debounce), dropping the ones whose symbol the fresh floor plans
+  no longer hold. It does not know the canvas bloc, which holds the selection those writes can
+  clear: a write that removes or masks a placement asks the mode, with
+  `OcptShotListFloorPlanPlacementChangedEvent` (awaited), to read the floor plans again **and**
+  move its selection with a cause that names the row (`symbolRemoved`, `symbolHidden`,
+  `arrowRemoved`, and `OcptShotListState.selectionTargetId`). The canvas then clears what these
+  gestures have always cleared: a deleted or restored symbol drops the selected symbol if it was
+  that one, and always the selected arrow (deleting a symbol cascades to the arrows touching it);
+  a masked symbol drops the selection, arrow included, only if it was that one; a deleted arrow
+  drops the selection only if it was that one. A field of view clears nothing. The mode no longer
+  holds any typed edit of its own: it only asks each view bloc to write what it still holds.
 
 ## The three centre views and their shared chrome
 

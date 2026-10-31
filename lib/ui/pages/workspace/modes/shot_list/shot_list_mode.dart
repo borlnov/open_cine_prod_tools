@@ -38,6 +38,8 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_lis
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_export_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_floor_plan_canvas_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_floor_plan_canvas_state.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_floor_plan_placements_bloc.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_floor_plan_placements_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_floor_plan_sets_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_floor_plan_sets_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_inspector_bloc.dart';
@@ -141,6 +143,11 @@ class OcptShotListMode extends StatelessWidget {
         create: (context) =>
             OcptShotListFloorPlanCanvasBloc(modeBloc: context.read<OcptShotListBloc>()),
       ),
+      BlocProvider(
+        lazy: false,
+        create: (context) =>
+            OcptShotListFloorPlanPlacementsBloc(modeBloc: context.read<OcptShotListBloc>()),
+      ),
     ],
     child: _ShotListView(hasRevealRequest: revealRequest != null),
   );
@@ -225,6 +232,9 @@ class _ShotListViewState extends State<_ShotListView> {
       ),
       BlocListener<OcptShotListFloorPlanCanvasBloc, OcptShotListFloorPlanCanvasState>(
         listener: _onFloorPlanCanvasStateChanged,
+      ),
+      BlocListener<OcptShotListFloorPlanPlacementsBloc, OcptShotListFloorPlanPlacementsState>(
+        listener: _onFloorPlanPlacementsStateChanged,
       ),
     ],
     child: _buildMode(context),
@@ -1125,6 +1135,8 @@ class _ShotListViewState extends State<_ShotListView> {
     final setsState = context.watch<OcptShotListFloorPlanSetsBloc>().state;
     final canvasBloc = context.read<OcptShotListFloorPlanCanvasBloc>();
     final canvasState = context.watch<OcptShotListFloorPlanCanvasBloc>().state;
+    final placementsBloc = context.read<OcptShotListFloorPlanPlacementsBloc>();
+    final placementsState = context.watch<OcptShotListFloorPlanPlacementsBloc>().state;
     final tr = Tr.of(context);
     final isReadOnly = state.isPreviewingVersion;
     final selectedSet = state.selectedSet;
@@ -1171,7 +1183,7 @@ class _ShotListViewState extends State<_ShotListView> {
           ),
       ],
       isReadOnly: isReadOnly,
-      symbolLabelValueOf: (symbolId) => _symbolLabelValueOf(state, symbolId),
+      symbolLabelValueOf: (symbolId) => _symbolLabelValueOf(state, placementsState, symbolId),
       onToolSelected: (tool) => canvasBloc.add(OcptShotListFloorPlanToolSelectedEvent(tool: tool)),
       onLayerVisibilityToggled: (layer) =>
           setsBloc.add(OcptShotListFloorPlanLayerVisibilityToggledEvent(layer: layer)),
@@ -1232,12 +1244,12 @@ class _ShotListViewState extends State<_ShotListView> {
           : (symbolId, rotationDeg) => _handleSymbolRotated(context, state, symbolId, rotationDeg),
       onSymbolFovChanged: isReadOnly
           ? null
-          : (symbolId, fovDeg) => bloc.add(
+          : (symbolId, fovDeg) => placementsBloc.add(
               OcptShotListFloorPlanSymbolFovChangedEvent(symbolId: symbolId, fovDeg: fovDeg),
             ),
       onSymbolFovReachChanged: isReadOnly
           ? null
-          : (symbolId, fovReachM) => bloc.add(
+          : (symbolId, fovReachM) => placementsBloc.add(
               OcptShotListFloorPlanSymbolFovReachChangedEvent(
                 symbolId: symbolId,
                 fovReachM: fovReachM,
@@ -1248,7 +1260,7 @@ class _ShotListViewState extends State<_ShotListView> {
           : (symbolId) => unawaited(_handleSymbolDeleteRequested(context, state, symbolId)),
       onSymbolRestoreRequested: isReadOnly
           ? null
-          : (symbolId) => context.read<OcptShotListBloc>().add(
+          : (symbolId) => placementsBloc.add(
               OcptShotListFloorPlanSymbolRestoreRequestedEvent(symbolId: symbolId),
             ),
       onArrowSymbolTapped: isReadOnly || selectedSetId == null || focusShotId == null
@@ -1282,7 +1294,7 @@ class _ShotListViewState extends State<_ShotListView> {
           bloc.add(OcptShotListShotSelectedEvent(shotId: shotId)),
       onSymbolLabelChanged: isReadOnly
           ? null
-          : (symbolId, rawValue) => bloc.add(
+          : (symbolId, rawValue) => placementsBloc.add(
               OcptShotListFloorPlanSymbolLabelChangedEvent(symbolId: symbolId, rawValue: rawValue),
             ),
       onUnderlayTransformChanged: isReadOnly || selectedSetId == null
@@ -1439,8 +1451,13 @@ class _ShotListViewState extends State<_ShotListView> {
 
   /// [symbolId]'s current label value: a pending edit still in the bloc's debounce, or the
   /// symbol's own stored label.
-  String _symbolLabelValueOf(OcptShotListState state, String symbolId) {
-    final pending = state.pendingFieldEdits[OcptShotListSymbolLabelEditKey(symbolId: symbolId)];
+  String _symbolLabelValueOf(
+    OcptShotListState state,
+    OcptShotListFloorPlanPlacementsState placementsState,
+    String symbolId,
+  ) {
+    final pending =
+        placementsState.pendingFieldEdits[OcptShotListSymbolLabelEditKey(symbolId: symbolId)];
     if (pending != null) {
       return pending;
     }
@@ -1458,7 +1475,7 @@ class _ShotListViewState extends State<_ShotListView> {
   /// just placed, pre-filled with its own already-assigned
   /// default label ([_symbolLabelValueOf]) and offering the selected shot's own characters as
   /// one-click picks. Writes the name picked through the very same pending-edit path the inline
-  /// label editor rides — but flushed immediately (`OcptShotListFieldEditFlushRequestedEvent`)
+  /// label editor rides — but flushed immediately (`OcptShotListFloorPlanPlacementsFieldEditFlushRequestedEvent`)
   /// rather than left to the 2 s debounce, since picking a name from a dialog is already a
   /// deliberate, discrete action. Dismissing the dialog leaves the placement's own default label
   /// untouched.
@@ -1467,7 +1484,11 @@ class _ShotListViewState extends State<_ShotListView> {
     OcptShotListState state,
     String symbolId,
   ) async {
-    final currentLabel = _symbolLabelValueOf(state, symbolId);
+    final currentLabel = _symbolLabelValueOf(
+      state,
+      context.read<OcptShotListFloorPlanPlacementsBloc>().state,
+      symbolId,
+    );
     final suggestedNames = [
       for (final name in state.selectedShot?.characters ?? const <String>[])
         if (name.isNotEmpty) name,
@@ -1485,9 +1506,11 @@ class _ShotListViewState extends State<_ShotListView> {
       return;
     }
 
-    final bloc = context.read<OcptShotListBloc>();
-    bloc.add(OcptShotListFloorPlanSymbolLabelChangedEvent(symbolId: symbolId, rawValue: picked));
-    bloc.add(const OcptShotListFieldEditFlushRequestedEvent());
+    final placementsBloc = context.read<OcptShotListFloorPlanPlacementsBloc>();
+    placementsBloc.add(
+      OcptShotListFloorPlanSymbolLabelChangedEvent(symbolId: symbolId, rawValue: picked),
+    );
+    placementsBloc.add(const OcptShotListFloorPlanPlacementsFieldEditFlushRequestedEvent());
   }
 
   /// A move's own canvas callback: dispatches the plain move straight away, unless [symbolId]
@@ -1646,7 +1669,7 @@ class _ShotListViewState extends State<_ShotListView> {
     OcptShotListState state,
     String symbolId,
   ) async {
-    final bloc = context.read<OcptShotListBloc>();
+    final placementsBloc = context.read<OcptShotListFloorPlanPlacementsBloc>();
     final tr = Tr.of(context);
     final multiSequence = _multiSequenceDeleteTargetOf(state, symbolId);
 
@@ -1671,9 +1694,11 @@ class _ShotListViewState extends State<_ShotListView> {
         case OcptConfirmDialogResult.cancelled:
           return;
         case OcptConfirmDialogResult.confirmed:
-          bloc.add(OcptShotListFloorPlanSymbolDeleteEverywhereRequestedEvent(symbolId: symbolId));
+          placementsBloc.add(
+            OcptShotListFloorPlanSymbolDeleteEverywhereRequestedEvent(symbolId: symbolId),
+          );
         case OcptConfirmDialogResult.alternative:
-          bloc.add(
+          placementsBloc.add(
             OcptShotListFloorPlanSymbolHideRequestedEvent(
               symbolId: symbolId,
               targetSceneId: multiSequence.targetSceneId,
@@ -1710,9 +1735,11 @@ class _ShotListViewState extends State<_ShotListView> {
           final resolvedId = selected != null && selected.shotId != null
               ? (selected.overridesSymbolId ?? symbolId)
               : symbolId;
-          bloc.add(OcptShotListFloorPlanSymbolDeletionRequestedEvent(symbolId: resolvedId));
+          placementsBloc.add(
+            OcptShotListFloorPlanSymbolDeletionRequestedEvent(symbolId: resolvedId),
+          );
         case OcptConfirmDialogResult.alternative:
-          bloc.add(
+          placementsBloc.add(
             OcptShotListFloorPlanSymbolHideForShotRequestedEvent(
               symbolId: symbolId,
               targetShotId: multiShot.targetShotId,
@@ -1732,7 +1759,7 @@ class _ShotListViewState extends State<_ShotListView> {
     if (confirmed != true || !context.mounted) {
       return;
     }
-    bloc.add(OcptShotListFloorPlanSymbolDeletionRequestedEvent(symbolId: symbolId));
+    placementsBloc.add(OcptShotListFloorPlanSymbolDeletionRequestedEvent(symbolId: symbolId));
   }
 
   /// Whether [symbolId] names a **set-scope** symbol (or a scene-scope override of one) whose own
@@ -1821,7 +1848,7 @@ class _ShotListViewState extends State<_ShotListView> {
   /// Shows the delete confirmation dialog, then dispatches the arrow's deletion if the user
   /// confirmed it — the Placements group's own remove action, which only asks.
   Future<void> _handleArrowDeleteRequested(BuildContext context, String arrowId) async {
-    final bloc = context.read<OcptShotListBloc>();
+    final placementsBloc = context.read<OcptShotListFloorPlanPlacementsBloc>();
     final tr = Tr.of(context);
     final confirmed = await OcptConfirmDialog.show(
       context,
@@ -1837,7 +1864,7 @@ class _ShotListViewState extends State<_ShotListView> {
       return;
     }
 
-    bloc.add(OcptShotListFloorPlanArrowDeletionRequestedEvent(arrowId: arrowId));
+    placementsBloc.add(OcptShotListFloorPlanArrowDeletionRequestedEvent(arrowId: arrowId));
   }
 
   /// Builds the inspector's floor-plans-only `leadingGroup`: the selected shot's own placements on
@@ -1920,13 +1947,13 @@ class _ShotListViewState extends State<_ShotListView> {
           : (arrowId) => unawaited(_handleArrowDeleteRequested(context, arrowId)),
       onCameraFovChanged: isReadOnly
           ? null
-          : (symbolId, fovDeg) => context.read<OcptShotListBloc>().add(
+          : (symbolId, fovDeg) => context.read<OcptShotListFloorPlanPlacementsBloc>().add(
               OcptShotListFloorPlanSymbolFovChangedEvent(symbolId: symbolId, fovDeg: fovDeg),
             ),
       selectedOverrideLevel: selectedOverrideLevel,
       onRestoreOverrideRequested: isReadOnly || selectedSymbolId == null
           ? null
-          : () => context.read<OcptShotListBloc>().add(
+          : () => context.read<OcptShotListFloorPlanPlacementsBloc>().add(
               OcptShotListFloorPlanSymbolRestoreRequestedEvent(symbolId: selectedSymbolId),
             ),
     );
@@ -2301,6 +2328,23 @@ class _ShotListViewState extends State<_ShotListView> {
       ..showSnackBar(SnackBar(content: Text(Tr.of(context).shotListWriteError)));
     context.read<OcptShotListFloorPlanSetsBloc>().add(
       const OcptShotListFloorPlanSetsWriteErrorDismissedEvent(),
+    );
+  }
+
+  /// Shows the transient write error the placements bloc raised as a SnackBar, then dismisses it.
+  void _onFloorPlanPlacementsStateChanged(
+    BuildContext context,
+    OcptShotListFloorPlanPlacementsState state,
+  ) {
+    if (!state.hasWriteError) {
+      return;
+    }
+
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(Tr.of(context).shotListWriteError)));
+    context.read<OcptShotListFloorPlanPlacementsBloc>().add(
+      const OcptShotListFloorPlanPlacementsWriteErrorDismissedEvent(),
     );
   }
 

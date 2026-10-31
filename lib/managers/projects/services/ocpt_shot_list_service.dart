@@ -13,6 +13,7 @@ import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart'
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_shots_table.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_coverage_range.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shot_field_suggestions.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_list_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_fractional_key.dart';
@@ -914,6 +915,23 @@ class OcptShotListService extends AbsOcptService {
     database: database,
     screenplayId: screenplayId,
     column: (table) => table.sound,
+  );
+
+  /// Every free-text field's suggestion list, scoped to screenplay [screenplayId]: what has already
+  /// been entered elsewhere in *this* screenplay, not the whole project's.
+  Future<OcptShotFieldSuggestions> loadFieldSuggestions({
+    required OcptProjectDatabase database,
+    required String screenplayId,
+  }) async => OcptShotFieldSuggestions(
+    shotSizes: await distinctShotSizes(database: database, screenplayId: screenplayId),
+    framings: await distinctFramings(database: database, screenplayId: screenplayId),
+    cameraMoves: await distinctCameraMoves(database: database, screenplayId: screenplayId),
+    lenses: await distinctLenses(database: database, screenplayId: screenplayId),
+    recordingFormats: await distinctRecordingFormats(
+      database: database,
+      screenplayId: screenplayId,
+    ),
+    sounds: await distinctSounds(database: database, screenplayId: screenplayId),
   );
 
   /// Collects the distinct, non-empty values of a single free-text column of `shots` across

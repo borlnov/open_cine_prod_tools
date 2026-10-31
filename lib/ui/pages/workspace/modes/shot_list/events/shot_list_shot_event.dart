@@ -4,8 +4,7 @@
 
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/events/shot_list_base_event.dart';
 
-/// The events of `OcptShotListBloc` about creating and deleting shots, and about writing the typed
-/// edits the mode itself still holds.
+/// The events of `OcptShotListBloc` about creating and deleting shots.
 sealed class OcptShotListShotEvent extends OcptShotListEvent {
   /// Class constructor
   const OcptShotListShotEvent();
@@ -19,13 +18,6 @@ sealed class OcptShotListShotEvent extends OcptShotListEvent {
 class OcptShotListShotCreationRequestedEvent extends OcptShotListShotEvent {
   /// Class constructor
   const OcptShotListShotCreationRequestedEvent();
-}
-
-/// Fired by the field-edit debounce timer the mode (re)starts when a set name or a symbol label is
-/// typed, once it elapses with no further edit. Not meant to be dispatched by a widget directly.
-class OcptShotListFieldEditFlushRequestedEvent extends OcptShotListShotEvent {
-  /// Class constructor
-  const OcptShotListFieldEditFlushRequestedEvent();
 }
 
 /// Requests deleting shot [shotId], dispatched once the inspector's own confirmation dialog has

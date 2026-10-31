@@ -31,6 +31,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_project_versi
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_event.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_floor_plan_canvas_bloc.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_floor_plan_placements_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_floor_plan_sets_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock.dart';
@@ -112,6 +113,9 @@ void main() {
   /// [tearDown].
   final canvasBlocs = Map<OcptShotListBloc, OcptShotListFloorPlanCanvasBloc>.identity();
 
+  /// The placements bloc [placementsOf] built for each mode bloc of a test, closed in [tearDown].
+  final placementsBlocs = Map<OcptShotListBloc, OcptShotListFloorPlanPlacementsBloc>.identity();
+
   setUpAll(() async {
     // Creating the global manager makes appLogger() (used by the bloc's write error path)
     // resolvable; the bloc's dependencies themselves are passed to it explicitly below.
@@ -145,6 +149,10 @@ void main() {
   });
 
   tearDown(() async {
+    for (final placements in placementsBlocs.values) {
+      await placements.close();
+    }
+    placementsBlocs.clear();
     for (final canvas in canvasBlocs.values) {
       await canvas.close();
     }
@@ -170,16 +178,13 @@ void main() {
     );
   }
 
-  /// Builds the mode bloc wired to the test project. [fieldEditDebounce] defaults to a short
-  /// duration so tests exercising the field-edit debounce don't have to wait out the real 2 s one.
-  OcptShotListBloc buildBloc({Duration fieldEditDebounce = const Duration(milliseconds: 30)}) =>
-      OcptShotListBloc(
-        projectsManager: projectsManager,
-        propertiesManager: propertiesManager,
-        routerManager: _RecordingRouterManager(),
-        exportManager: OcptExportManager(fileSelectorManager: const FileSelectorManager()),
-        fieldEditDebounce: fieldEditDebounce,
-      );
+  /// Builds the mode bloc wired to the test project.
+  OcptShotListBloc buildBloc() => OcptShotListBloc(
+    projectsManager: projectsManager,
+    propertiesManager: propertiesManager,
+    routerManager: _RecordingRouterManager(),
+    exportManager: OcptExportManager(fileSelectorManager: const FileSelectorManager()),
+  );
 
   /// The floor plan sets bloc of [modeBloc], built on first use: the tests that need a set to work
   /// on ask it to create one, since the sets are its own to write.
@@ -197,6 +202,17 @@ void main() {
     modeBloc,
     () => OcptShotListFloorPlanCanvasBloc(modeBloc: modeBloc, projectsManager: projectsManager),
   );
+
+  /// The placements bloc of [modeBloc], built on first use: the Placements group's actions are its
+  /// own, and the canvas reacts to the selection move they ask the mode for.
+  OcptShotListFloorPlanPlacementsBloc placementsOf(OcptShotListBloc modeBloc) =>
+      placementsBlocs.putIfAbsent(
+        modeBloc,
+        () => OcptShotListFloorPlanPlacementsBloc(
+          modeBloc: modeBloc,
+          projectsManager: projectsManager,
+        ),
+      );
 
   /// Waits for the first state of [bloc] matching [predicate] (the current one included).
   Future<OcptShotListState> waitForState(
@@ -555,7 +571,7 @@ void main() {
     expect(completed.selectedSet!.arrows.single.toSymbolId, secondSymbolId);
     expect(completed.selectedSet!.arrows.single.shotId, shotId);
 
-    bloc.add(
+    placementsOf(bloc).add(
       OcptShotListFloorPlanArrowDeletionRequestedEvent(
         arrowId: completed.selectedSet!.arrows.single.id,
       ),
@@ -680,7 +696,7 @@ void main() {
     );
     expect(straightened.selectedSet!.arrows.single.ctrlYM, isNull);
 
-    bloc.add(OcptShotListFloorPlanArrowDeletionRequestedEvent(arrowId: arrowId));
+    placementsOf(bloc).add(OcptShotListFloorPlanArrowDeletionRequestedEvent(arrowId: arrowId));
     await waitForState(bloc, (state) => state.selectedSet!.arrows.isEmpty);
     await waitUntil(() => canvasOf(bloc).state.selectedFloorPlanArrowId == null);
     expect(canvasOf(bloc).state.selectedFloorPlanArrowId, isNull);
@@ -763,7 +779,9 @@ void main() {
     final placed = await waitForState(bloc, (state) => state.selectedSet!.symbols.isNotEmpty);
     final sourceId = placed.selectedSet!.symbols.single.id;
 
-    bloc.add(OcptShotListFloorPlanSymbolFovReachChangedEvent(symbolId: sourceId, fovReachM: 4.5));
+    placementsOf(
+      bloc,
+    ).add(OcptShotListFloorPlanSymbolFovReachChangedEvent(symbolId: sourceId, fovReachM: 4.5));
     await waitForState(bloc, (state) => state.selectedSet!.symbols.single.fovReachM == 4.5);
 
     canvasOf(bloc).add(OcptShotListFloorPlanSymbolDuplicatedEvent(symbolId: sourceId));
@@ -1726,7 +1744,7 @@ void main() {
             final mode = mounted.mode;
             final canvas = canvasOf(mode);
 
-            mode.add(eventOf(mounted.cameraId));
+            placementsOf(mode).add(eventOf(mounted.cameraId));
             await waitUntil(
               () => !mode.state.selectedSet!.symbols.any((symbol) => symbol.id == mounted.cameraId),
             );
@@ -1751,12 +1769,16 @@ void main() {
         canvas.add(OcptShotListFloorPlanSymbolSelectedEvent(symbolId: mounted.symbolId));
         await waitUntil(() => canvas.state.selectedFloorPlanSymbolId == mounted.symbolId);
 
-        mode.add(OcptShotListFloorPlanSymbolDeletionRequestedEvent(symbolId: otherId));
+        placementsOf(
+          mode,
+        ).add(OcptShotListFloorPlanSymbolDeletionRequestedEvent(symbolId: otherId));
         await waitUntil(() => mode.state.selectedSet!.symbols.length == 1);
         await pumpEventQueue();
         expect(canvas.state.selectedFloorPlanSymbolId, mounted.symbolId);
 
-        mode.add(OcptShotListFloorPlanSymbolDeletionRequestedEvent(symbolId: mounted.symbolId));
+        placementsOf(
+          mode,
+        ).add(OcptShotListFloorPlanSymbolDeletionRequestedEvent(symbolId: mounted.symbolId));
         await waitUntil(() => mode.state.selectedSet!.symbols.isEmpty);
         await waitUntil(() => canvas.state.selectedFloorPlanSymbolId == null);
 
@@ -1770,14 +1792,49 @@ void main() {
         final otherArrowId = await drawArrow(mode, mounted.firstId, mounted.cameraId);
         await selectArrow(mode, mounted.arrowId);
 
-        mode.add(OcptShotListFloorPlanArrowDeletionRequestedEvent(arrowId: otherArrowId));
+        placementsOf(
+          mode,
+        ).add(OcptShotListFloorPlanArrowDeletionRequestedEvent(arrowId: otherArrowId));
         await waitUntil(() => mode.state.selectedSet!.arrows.length == 1);
         await pumpEventQueue();
         expect(canvas.state.selectedFloorPlanArrowId, mounted.arrowId);
 
-        mode.add(OcptShotListFloorPlanArrowDeletionRequestedEvent(arrowId: mounted.arrowId));
+        placementsOf(
+          mode,
+        ).add(OcptShotListFloorPlanArrowDeletionRequestedEvent(arrowId: mounted.arrowId));
         await waitUntil(() => mode.state.selectedSet!.arrows.isEmpty);
         await waitUntil(() => canvas.state.selectedFloorPlanArrowId == null);
+
+        await mode.close();
+      });
+
+      test("hiding a symbol the arrow does not touch keeps the selected arrow", () async {
+        final mounted = await mountWithAnArrowSelected();
+        final mode = mounted.mode;
+        final canvas = canvasOf(mode);
+        final project = projectsManager.currentProject!;
+        final wallId = (await projectsManager.floorPlanService.placeSymbol(
+          database: project.database,
+          setId: mode.state.selectedSetId!,
+          sceneId: null,
+          shotId: null,
+          layer: OcptFloorPlanLayer.set,
+          xM: 6,
+          yM: 6,
+          setElementShape: OcptFloorPlanSetElementShape.wall,
+        ))!;
+        await mode.reload({OcptShotListReloadScope.floorPlans});
+
+        placementsOf(mode).add(
+          OcptShotListFloorPlanSymbolHideRequestedEvent(
+            symbolId: wallId,
+            targetSceneId: mode.state.selectedSequenceId!,
+          ),
+        );
+        await waitUntil(() => mode.state.selectionCause == OcptShotListSelectionCause.symbolHidden);
+        await pumpEventQueue();
+
+        expect(canvas.state.selectedFloorPlanArrowId, mounted.arrowId);
 
         await mode.close();
       });
@@ -1787,15 +1844,15 @@ void main() {
         final mode = mounted.mode;
         final canvas = canvasOf(mode);
 
-        mode.add(
-          OcptShotListFloorPlanSymbolFovChangedEvent(symbolId: mounted.cameraId, fovDeg: 35),
-        );
+        placementsOf(
+          mode,
+        ).add(OcptShotListFloorPlanSymbolFovChangedEvent(symbolId: mounted.cameraId, fovDeg: 35));
         await waitUntil(
           () => mode.state.selectedSet!.symbols.any(
             (symbol) => symbol.id == mounted.cameraId && symbol.fovDeg == 35,
           ),
         );
-        mode.add(
+        placementsOf(mode).add(
           OcptShotListFloorPlanSymbolFovReachChangedEvent(symbolId: mounted.cameraId, fovReachM: 6),
         );
         await waitUntil(
@@ -1878,7 +1935,7 @@ void main() {
           final mode = mounted.mode;
           final canvas = canvasOf(mode);
 
-          mode.add(
+          placementsOf(mode).add(
             OcptShotListFloorPlanSymbolHideRequestedEvent(
               symbolId: mounted.overrideId,
               targetSceneId: mounted.sequenceId,
@@ -1913,7 +1970,7 @@ void main() {
         ))!;
         await mode.reload({OcptShotListReloadScope.floorPlans});
 
-        mode.add(
+        placementsOf(mode).add(
           OcptShotListFloorPlanSymbolHideRequestedEvent(
             symbolId: otherId,
             targetSceneId: mounted.sequenceId,
@@ -1972,7 +2029,7 @@ void main() {
         canvas.add(OcptShotListFloorPlanSymbolSelectedEvent(symbolId: overrideId));
         await waitUntil(() => canvas.state.selectedFloorPlanSymbolId == overrideId);
 
-        mode.add(
+        placementsOf(mode).add(
           OcptShotListFloorPlanSymbolHideForShotRequestedEvent(
             symbolId: overrideId,
             targetShotId: firstShotId,

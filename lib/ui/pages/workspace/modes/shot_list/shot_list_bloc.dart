@@ -7,8 +7,6 @@ import 'dart:async';
 import 'package:act_flutter_utility/act_flutter_utility.dart';
 import 'package:act_global_manager/act_global_manager.dart';
 import 'package:act_logger_manager/act_logger_manager.dart';
-import 'package:collection/collection.dart';
-import 'package:drift/drift.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:fountain_kit/fountain_kit.dart';
@@ -34,13 +32,11 @@ import 'package:open_cine_prod_tools/models/ocpt_shot_list_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
 import 'package:open_cine_prod_tools/models/ocpt_storyboard_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_workspace_reveal_request.dart';
-import 'package:open_cine_prod_tools/models/rules/ocpt_pending_edits.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_scene_display_number.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_shot_list_selection.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_centre_view.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_column.dart';
-import 'package:open_cine_prod_tools/types/ocpt_shot_list_pending_edit_key.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_reload_scope.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_right_dock_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_selection_cause.dart';
@@ -56,12 +52,10 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_d
 ///
 /// It loads the selected episode's whole shot list from [OcptShotListService] on entry —
 /// sequences are built in memory by joining the scene index with the shots referencing it, so the
-/// mode always shows the screenplay as it stands rather than a duplicated copy of it — together
-/// with the screenplay's speaking characters (for the inspector's character chips), every
-/// free-text field's own suggestion list, and where each shot sits in the schedule
-/// (`OcptScheduleService.loadShotPlacements`, joined onto the snapshot by [_loadSnapshot]: the
-/// schedule mode is the only writer of a shot's placement, this mode only ever reads it), and holds
-/// the selection, the dock geometry and the visible table columns on top of it.
+/// mode always shows the screenplay as it stands — together with the screenplay's speaking
+/// characters, every free-text field's suggestion list, and where each shot sits in the schedule
+/// (joined onto the snapshot by [_loadSnapshot]: the schedule mode is the only writer of a shot's
+/// placement), and holds the selection, the dock geometry and the visible table columns on top.
 ///
 /// What the inspector does with a shot — its typed fields and their autosave, its difficulty, its
 /// characters, its scenario coverage ranges and the cast-wide role changes — belongs to
@@ -70,38 +64,38 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_d
 /// floor plans' sets, underlays and tray to `OcptShotListFloorPlanSetsBloc`, and the gestures made
 /// on the plan — the tool, the selected symbol or arrow, placing, moving, resizing, rotating and
 /// duplicating a symbol, drawing and bending an arrow, the scope question — to
-/// `OcptShotListFloorPlanCanvasBloc`. What is typed into a floor plan symbol's label is still held
-/// here, in [OcptShotListState.pendingFieldEdits], and
-/// written [defaultFieldEditDebounce] after the last keystroke, mirroring `OcptEditorBloc`'s own
-/// autosave convention. That debounce is flushed
-/// immediately, together with the view blocs', whenever the selected shot or sequence changes,
-/// when the workspace is left, and (through [flushPendingFieldEdits], called by the mode's own
-/// `deactivate()`) whenever the mode leaves the widget tree for any other reason, so a pending edit
-/// is never silently dropped.
+/// `OcptShotListFloorPlanCanvasBloc`. What the inspector's Placements group does with a symbol or an
+/// arrow — deleting, hiding, restoring, a camera's field of view and the label typed in place, with
+/// its autosave debounce — belongs to `OcptShotListFloorPlanPlacementsBloc`, which asks this bloc to
+/// read the floor plans again and, when it removed or hid a placement, to move the selection with
+/// the cause that says so (`OcptShotListFloorPlanPlacementChangedEvent`).
 ///
-/// The screenplay's Fountain text, [OcptShotListState.screenplayText], is loaded once here, and the
-/// speaking characters are derived from it by [_screenplayCharactersOf] rather than by parsing the
-/// text a second time.
+/// Every pending edit the view blocs hold is flushed immediately whenever the selected shot or
+/// sequence changes, when the workspace is left, and (through [flushPendingFieldEdits], called by
+/// the mode's own `deactivate()`) whenever the mode leaves the widget tree for any other reason, so
+/// a pending edit is never silently dropped. [defaultFieldEditDebounce] is the delay they write
+/// after, mirroring `OcptEditorBloc`'s own autosave convention.
+///
+/// The screenplay's Fountain text is loaded once here, and the speaking characters are derived from
+/// it by [_screenplayCharactersOf] rather than by parsing the text a second time.
 ///
 /// It also mixes in [MixinOcptProjectVersionsBloc], which owns everything the right dock's
 /// `Versions` tab does: the project's versions are a property of the *project*, so that tab and
 /// its state are shared with the screenplay mode rather than reimplemented here. The two hooks the
-/// mixin needs are answered by [flushPendingProjectWrites] (a field edit still sitting in the
+/// mixin needs are answered by [flushPendingProjectWrites] (a field edit still sitting in a view's
 /// debounce must reach the working copy before a preview swaps the database out) and
 /// [reloadFromProjectDatabase]. `_onRightDockTabSelected` and `_flushAllPendingWrites` each
 /// dispatch [OcptProjectWorkingCopyRefreshRequestedEvent] — opening the `Versions` tab, and a
 /// field edit landing while it is already open — the two moments the mixin's working-copy card is
 /// worth a fresh, throttled read (a view bloc asks for it the same way when its own flush lands).
 ///
-/// The actions that read the shot list rather than writing to it — its four exports — belong to
-/// `OcptShotListExportBloc`, which asks this bloc to write every pending edit
-/// ([flushAllPendingWrites]) and then reads the snapshots this bloc holds.
+/// The four exports belong to `OcptShotListExportBloc`, which asks this bloc to write every pending
+/// edit ([flushAllPendingWrites]) and then reads the snapshots this bloc holds.
 ///
 /// It mixes in [MixinOcptProjectPackageBloc] too, which writes the whole project out as a portable
 /// package from the `Export` panel's own standing card. That mixin reuses
 /// [flushPendingProjectWrites] — what a colleague receives is the project *file*, so a debounced
-/// edit has to reach it first — and asks [exportManager] where to write, exactly as this mode's
-/// own exports do.
+/// edit has to reach it first — and asks [exportManager] where to write.
 class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     with
         MixinOcptProjectVersionsBloc<OcptShotListState>,
@@ -113,14 +107,13 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
   /// The logger this BLoC writes to.
   final LogsHelper _logger = buildOcptLogsHelper(_loggerCategory);
 
-  /// The default delay between the last field edit and its autosave write.
+  /// The default delay between the last field edit and its autosave write, for the view blocs.
   static const defaultFieldEditDebounce = Duration(seconds: 2);
 
   /// The manager used to access the project currently open.
   final OcptProjectsManager _projectsManager;
 
-  /// The manager used to load and persist the mode's dock fractions, visible columns and last
-  /// right dock tab.
+  /// The manager used to load and persist the dock fractions, columns and last right dock tab.
   final OcptPropertiesManager _propertiesManager;
 
   /// The router manager used to navigate back to the home page when leaving the workspace.
@@ -151,12 +144,6 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
   /// The service used to read the project's Resources locations and their sets.
   final OcptLocationsService _locationsService;
 
-  /// The delay between the last field edit and its autosave write.
-  final Duration _fieldEditDebounce;
-
-  /// The running field-edit debounce timer, if any.
-  Timer? _fieldEditTimer;
-
   /// The episode this bloc reads and writes, handed down by `OcptShotListMode` from
   /// `OcptWorkspaceBloc.state.selectedEpisodeId` at construction time — safe to capture once rather
   /// than watch, since `OcptWorkspacePage` remounts this whole bloc on every episode switch (see
@@ -178,8 +165,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
   /// Class constructor
   ///
   /// Every dependency can be overridden, which is what the tests do; in the app they all resolve
-  /// through [globalGetIt]. [fieldEditDebounce] is only meant to be overridden by tests, to keep
-  /// it fast and deterministic.
+  /// through [globalGetIt].
   OcptShotListBloc({
     OcptProjectsManager? projectsManager,
     OcptPropertiesManager? propertiesManager,
@@ -191,7 +177,6 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     OcptStoryboardService? storyboardService,
     OcptFloorPlanService? floorPlanService,
     OcptLocationsService? locationsService,
-    Duration fieldEditDebounce = defaultFieldEditDebounce,
     String? selectedEpisodeId,
     OcptShotListRevealRequest? revealRequest,
   }) : _selectedEpisodeId = selectedEpisodeId,
@@ -218,7 +203,6 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
        _locationsService =
            locationsService ??
            (projectsManager ?? globalGetIt().get<OcptProjectsManager>()).locationsService,
-       _fieldEditDebounce = fieldEditDebounce,
        super(OcptShotListState.init()) {
     add(const OcptShotListLoadRequestedEvent());
   }
@@ -243,25 +227,12 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     on<OcptShotListWriteErrorDismissedEvent>(_onWriteErrorDismissed);
     on<OcptShotListBackRequestedEvent>(_onBackRequested);
     on<OcptShotListProjectSettingsChangedEvent>(_onProjectSettingsChanged);
-    on<OcptShotListFieldEditFlushRequestedEvent>(_onFieldEditFlushRequested);
     on<OcptShotListShotDeletionRequestedEvent>(_onShotDeletionRequested);
     on<OcptShotListCentreViewSelectedEvent>(_onCentreViewSelected);
     onAwaited<OcptShotListSetSelectedEvent>(_onSetSelected);
     onAwaited<OcptShotListSetAddedEvent>(_onSetAdded);
     onAwaited<OcptShotListSetRemovedEvent>(_onSetRemoved);
-    on<OcptShotListFloorPlanSymbolDeletionRequestedEvent>(_onFloorPlanSymbolDeletionRequested);
-    on<OcptShotListFloorPlanSymbolDeleteEverywhereRequestedEvent>(
-      _onFloorPlanSymbolDeleteEverywhereRequested,
-    );
-    on<OcptShotListFloorPlanSymbolHideRequestedEvent>(_onFloorPlanSymbolHideRequested);
-    on<OcptShotListFloorPlanSymbolHideForShotRequestedEvent>(
-      _onFloorPlanSymbolHideForShotRequested,
-    );
-    on<OcptShotListFloorPlanSymbolRestoreRequestedEvent>(_onFloorPlanSymbolRestoreRequested);
-    on<OcptShotListFloorPlanArrowDeletionRequestedEvent>(_onFloorPlanArrowDeletionRequested);
-    on<OcptShotListFloorPlanSymbolLabelChangedEvent>(_onFloorPlanSymbolLabelChanged);
-    on<OcptShotListFloorPlanSymbolFovChangedEvent>(_onFloorPlanSymbolFovChanged);
-    on<OcptShotListFloorPlanSymbolFovReachChangedEvent>(_onFloorPlanSymbolFovReachChanged);
+    onAwaited<OcptShotListFloorPlanPlacementChangedEvent>(_onFloorPlanPlacementChanged);
   }
 
   /// {@macro open_cine_prod_tools.MixinOcptProjectVersionsBloc.projectsManager}
@@ -280,8 +251,8 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
   String screenplayIdOf(OcptOpenProjectModel project) =>
       _selectedEpisodeId ?? project.primaryScreenplayId;
 
-  /// Writes whatever field edit is still sitting in the field-edit debounce, so a preview about to
-  /// swap the database can't send it into the previewed version instead.
+  /// Writes whatever field edit is still sitting in a view's field-edit debounce, so a preview
+  /// about to swap the database can't send it into the previewed version instead.
   @protected
   @override
   Future<void> flushPendingProjectWrites(Emitter<OcptShotListState> emitter) =>
@@ -375,9 +346,8 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
   /// with no snapshot at all.
   ///
   /// This is also [MixinOcptProjectVersionsBloc]'s [reloadFromProjectDatabase] hook, so it emits
-  /// which version is being previewed alongside the shot list it just read: what it read comes from
-  /// that very version's in-memory database, and the two must reach the mode together (see the
-  /// hook's own doc comment).
+  /// which version is being previewed alongside the shot list it just read, the two reaching the
+  /// mode together (see the hook's own doc comment).
   Future<void> _onLoadRequested(
     OcptShotListLoadRequestedEvent event,
     Emitter<OcptShotListState> emitter,
@@ -488,18 +458,12 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
   }
 
   /// Reads the whole shot list of the selected episode's screenplay, joined with where each of its
-  /// shots sits in the schedule (`OcptScheduleService.loadShotPlacements`), keyed by shot id —
-  /// what the table's and the metadata panel's own `Jour de tournage` read-out is built from. A
-  /// project with no schedule at all simply joins an empty map, so every shot reads as unplaced.
+  /// shots sits in the schedule (`OcptScheduleService.loadShotPlacements`), keyed by shot id — what
+  /// the `Jour de tournage` read-out is built from. A project with no schedule joins an empty map.
   ///
-  /// Read again on every call, alongside every other write this bloc performs: the schedule is
-  /// edited from its own mode, never from here, but this mode's own snapshot must still show
-  /// whatever it currently says.
-  ///
-  /// The scenes are numbered with their episode's own prefix: this bloc reads the project's live
-  /// episodes through [_projectsManager]'s own `screenplayService` (never through
-  /// [_shotListService], which `OcptScreenplayService` already depends on) and resolves the
-  /// selected episode's number with `ocptEpisodePrefixNumberOf`, null on a single-episode project.
+  /// The scenes are numbered with their episode's own prefix: the live episodes are read through
+  /// [_projectsManager]'s `screenplayService` (never through [_shotListService], which
+  /// `OcptScreenplayService` already depends on), null prefix on a single-episode project.
   Future<OcptShotListSnapshot> _loadSnapshot(OcptOpenProjectModel project) async {
     final database = project.database;
     final screenplayId = screenplayIdOf(project);
@@ -517,48 +481,36 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
 
   /// Reads the whole storyboard of the selected episode's screenplay — every live shot's panels,
   /// keyed by shot id — what the board reads through `OcptShotListState.panelsOfShot`.
-  ///
-  /// Read again after every board write, exactly as [_loadSnapshot] is after every shot list write:
-  /// the snapshot in state is only ever a reflection of what the database says.
   Future<OcptStoryboardSnapshot> _loadStoryboard(OcptOpenProjectModel project) => _storyboardService
       .loadStoryboard(database: project.database, screenplayId: screenplayIdOf(project));
 
   /// Reads the whole floor plans of the selected episode's screenplay — every live set of every
   /// sequence, keyed by scene id — what the floor plans view reads through
   /// `OcptShotListState.setsOfSelectedSequence`.
-  ///
-  /// Read again after every floor plans write, exactly as [_loadStoryboard] is after every board
-  /// write: the snapshot in state is only ever a reflection of what the database says.
   Future<OcptFloorPlanSnapshot> _loadFloorPlans(OcptOpenProjectModel project) => _floorPlanService
       .loadFloorPlans(database: project.database, screenplayId: screenplayIdOf(project));
 
   /// Reads the project's whole Resources catalogue — every location and its own sets, each
-  /// carrying the scenes it is linked to — what the set tabs' own `＋ Set` menu groups `Link an
-  /// existing set ▸`/`Create a set ▸` by, and what `ocptSceneSetSuggestionOf` reads to suggest one
-  /// for the selected sequence's own heading. Project-wide,
-  /// unlike [_loadFloorPlans]'s own per-screenplay read: a set the empty-state gallery offers to
-  /// link may already be linked to another episode's own sequence.
+  /// carrying the scenes it is linked to — what the set tabs' `＋ Set` menu groups by, and what
+  /// `ocptSceneSetSuggestionOf` reads. Project-wide, unlike [_loadFloorPlans]: a set the gallery
+  /// offers to link may already be linked to another episode's sequence.
   Future<List<OcptLocation>> _loadLocations(OcptOpenProjectModel project) =>
       _locationsService.loadLocations(database: project.database);
 
   /// Reads the set-scope symbols of every live Resources set of the project, keyed by set id — the
-  /// empty-state gallery's own thumbnail content: a thumbnail
-  /// draws a set's own décor alone, never what a sequence or a shot placed on it, so this is all it
-  /// ever needs. Project-wide, exactly like [_loadLocations] and unlike [_loadFloorPlans].
+  /// gallery thumbnails' content, which draw a set's own décor alone. Project-wide, like
+  /// [_loadLocations].
   Future<Map<String, List<OcptFloorPlanSymbol>>> _loadSetScopeSymbolsBySetId(
     OcptOpenProjectModel project,
   ) => _floorPlanService.loadSetScopeSymbolsByProjectSetId(database: project.database);
 
-  /// Reads the production's whole cast — every live role, in `sortKey` order — what the
-  /// inspector's character chips are built from, and what the shared role alert banner's
-  /// orphaned/collision alerts are derived from (`OcptShotListState.orphanedRoleAlerts`/
-  /// `.roleCollisionAlerts`).
+  /// Reads the production's whole cast — every live role, in `sortKey` order — what the character
+  /// chips and the shared role alert banner are derived from.
   Future<List<OcptRole>> _loadRoles(OcptOpenProjectModel project) =>
       _roleIndexService.loadRoles(database: project.database);
 
   /// Reads the selected episode's current Fountain source text, kept in
-  /// `OcptShotListState.screenplayText` for [_screenplayCharactersOf] and every scenario coverage
-  /// read/write that needs the whole screenplay text rather than a single scene's own slice of it.
+  /// `OcptShotListState.screenplayText` for [_screenplayCharactersOf] and the scenario coverage.
   Future<String> _loadScreenplayText(OcptOpenProjectModel project) => _projectsManager
       .screenplayService
       .loadScreenplayText(database: project.database, screenplayId: screenplayIdOf(project));
@@ -593,33 +545,12 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     return screenplayCharactersOf(document.blocks);
   }
 
-  /// Reads every free-text field's suggestion list, scoped to the selected episode: what has
-  /// already been entered elsewhere in *this* screenplay, not the whole project's.
-  Future<OcptShotFieldSuggestions> _loadSuggestions(OcptOpenProjectModel project) async {
-    final database = project.database;
-    final screenplayId = screenplayIdOf(project);
-
-    return OcptShotFieldSuggestions(
-      shotSizes: await _shotListService.distinctShotSizes(
-        database: database,
-        screenplayId: screenplayId,
-      ),
-      framings: await _shotListService.distinctFramings(
-        database: database,
-        screenplayId: screenplayId,
-      ),
-      cameraMoves: await _shotListService.distinctCameraMoves(
-        database: database,
-        screenplayId: screenplayId,
-      ),
-      lenses: await _shotListService.distinctLenses(database: database, screenplayId: screenplayId),
-      recordingFormats: await _shotListService.distinctRecordingFormats(
-        database: database,
-        screenplayId: screenplayId,
-      ),
-      sounds: await _shotListService.distinctSounds(database: database, screenplayId: screenplayId),
-    );
-  }
+  /// Reads every free-text field's suggestion list, scoped to the selected episode.
+  Future<OcptShotFieldSuggestions> _loadSuggestions(OcptOpenProjectModel project) =>
+      _shotListService.loadFieldSuggestions(
+        database: project.database,
+        screenplayId: screenplayIdOf(project),
+      );
 
   /// Selects a sequence, clearing the selected shot when it actually changes sequence (the centre
   /// table then lists shots the previous selection isn't among).
@@ -886,131 +817,22 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     emitter(state.copyWith(pageSetup: pageSetup));
   }
 
-  /// Records [rawValue] as the pending edit of [key], visible immediately, and (re)starts the
-  /// field-edit debounce that eventually writes it — the body [_onFloorPlanSymbolLabelChanged] runs.
-  void _recordPendingEdit({
-    required Emitter<OcptShotListState> emitter,
-    required OcptShotListPendingEditKey key,
-    required String rawValue,
-  }) {
-    final pending = Map<OcptShotListPendingEditKey, String>.of(state.pendingFieldEdits)
-      ..[key] = rawValue;
-    emitter(state.copyWith(pendingFieldEdits: pending));
-
-    _fieldEditTimer?.cancel();
-    _fieldEditTimer = Timer(_fieldEditDebounce, () {
-      if (!isClosing) {
-        add(const OcptShotListFieldEditFlushRequestedEvent());
-      }
-    });
-  }
-
-  /// Writes every pending field edit once the field-edit debounce elapses with no further typing.
-  Future<void> _onFieldEditFlushRequested(
-    OcptShotListFieldEditFlushRequestedEvent event,
-    Emitter<OcptShotListState> emitter,
-  ) => _flushOwnPendingFieldEdits(emitter);
-
-  /// Writes every pending write of the mode and of its views immediately — the views' through the
-  /// flushers they registered, then the mode's own typed edits.
+  /// Writes every pending write of the mode's views immediately, through the flushers they
+  /// registered.
   ///
   /// Up front of every handler that changes what shot or sequence is selected, that leaves the
   /// workspace, or that is about to read the database (an export, a preview): a pending edit is
   /// never silently dropped by one of them. A view that wrote something leaves the working copy
-  /// changed, so the `Versions` tab's working-copy card is refreshed if it is the one showing,
-  /// exactly as when the mode wrote something itself.
+  /// changed, so the `Versions` tab's working-copy card is refreshed if it is the one showing.
   Future<void> _flushAllPendingWrites(Emitter<OcptShotListState> emitter) async {
     final haveViewsWritten = await runPendingWritesFlushers();
-    final hasOwnWritten = await _flushOwnPendingFieldEdits(emitter);
 
-    if (haveViewsWritten && !hasOwnWritten) {
-      _requestWorkingCopyRefreshIfVersionsOpen();
-    }
-  }
-
-  /// Asks for a fresh read of the working-copy card if the `Versions` tab is the one showing.
-  void _requestWorkingCopyRefreshIfVersionsOpen() {
-    if (state.rightDockTab == OcptShotListRightDockTab.versions) {
+    if (haveViewsWritten && state.rightDockTab == OcptShotListRightDockTab.versions) {
       addUnlessClosing(const OcptProjectWorkingCopyRefreshRequestedEvent());
     }
   }
 
-  /// Writes every pending field edit the mode itself holds immediately: cancels the debounce
-  /// timer (a no-op if it already fired or there was none), writes each one (a symbol's label),
-  /// then reads the shared data again so every view reflects what the database
-  /// now says. A no-op while nothing is pending. Answers whether there was anything pending.
-  ///
-  /// Used from inside an event handler, with that handler's own [emitter]: called by
-  /// [_onFieldEditFlushRequested] (the debounce firing) and by [_flushAllPendingWrites].
-  /// [flushPendingFieldEdits] is the sibling of this method used outside of an event handler.
-  Future<bool> _flushOwnPendingFieldEdits(Emitter<OcptShotListState> emitter) async {
-    _fieldEditTimer?.cancel();
-    _fieldEditTimer = null;
-
-    final pending = state.pendingFieldEdits;
-    if (pending.isEmpty) {
-      return false;
-    }
-
-    final project = _projectsManager.currentProject;
-    if (project == null) {
-      emitter(state.copyWith(pendingFieldEdits: const {}));
-      return true;
-    }
-
-    try {
-      await _writeAllPendingFields(project: project, pending: pending);
-
-      // Queued with the views' reloads: a read made here but emitted after a newer one would put
-      // older data over it.
-      await runSerially(() async {
-        final snapshot = await _loadSnapshot(project);
-        final suggestions = await _loadSuggestions(project);
-        final storyboardSnapshot = await _loadStoryboard(project);
-        final floorPlanSnapshot = await _loadFloorPlans(project);
-        final locations = await _loadLocations(project);
-        emitter(
-          state.copyWith(
-            snapshot: snapshot,
-            suggestions: suggestions,
-            storyboardSnapshot: storyboardSnapshot,
-            floorPlanSnapshot: floorPlanSnapshot,
-            locations: locations,
-            pendingFieldEdits: ocptPendingEditsAfterWrite(
-              current: state.pendingFieldEdits,
-              written: pending,
-            ),
-            reloadEpoch: state.reloadEpoch + 1,
-          ),
-        );
-      });
-
-      // The other of the two moments the working-copy card needs a fresh read for (see
-      // `_onRightDockTabSelected`): a field edit landing while the tab showing it is already open.
-      _requestWorkingCopyRefreshIfVersionsOpen();
-    } catch (error, stackTrace) {
-      _logger.e(
-        "A problem occurred when tried to flush a pending shot list field edit of project "
-        "${project.primaryScreenplayId}: ${error.runtimeType}",
-        null,
-        stackTrace,
-      );
-      emitter(
-        state.copyWith(
-          hasWriteError: true,
-          pendingFieldEdits: ocptPendingEditsAfterWrite(
-            current: state.pendingFieldEdits,
-            written: pending,
-          ),
-        ),
-      );
-    }
-
-    return true;
-  }
-
-  /// Writes every pending field edit directly to the database, bypassing both the debounce timer
-  /// and the bloc's own event queue.
+  /// Writes every pending edit of the views directly to the database, without touching [state].
   ///
   /// Called by the mode's own `deactivate()`, mirroring
   /// `OcptStyledScreenplayEditor.deactivate()`: `deactivate()` runs before `dispose()` for every
@@ -1018,76 +840,13 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
   /// workspace's own back navigation), so triggering the write here — rather than dispatching an
   /// event, which would only be processed on a later microtask this widget might not survive to
   /// see — is what guarantees the last [defaultFieldEditDebounce] worth of typing isn't lost.
-  ///
-  /// Unlike [_flushOwnPendingFieldEdits], this never touches [state]: `emit` may only be called from
-  /// inside a registered `on<Event>` handler (the package's own rule, enforced by the analyzer's
-  /// `visible_for_testing` lint on `Bloc.emit`), and by the time this runs the widget tree that
-  /// would show a fresh state is already gone anyway. Like `OcptEditorBloc.disposeLifeCycle`'s own
-  /// flush, a failure here is only logged.
-  Future<void> flushPendingFieldEdits() => Future.wait([
-    _flushOwnPendingFieldEditsWithoutState(),
-    runPendingWritesFlushersWithoutState(),
-  ]);
-
-  /// Writes every pending field edit the mode itself holds, without touching [state]: the mode's
-  /// half of [flushPendingFieldEdits].
-  Future<void> _flushOwnPendingFieldEditsWithoutState() async {
-    _fieldEditTimer?.cancel();
-    _fieldEditTimer = null;
-
-    final pending = state.pendingFieldEdits;
-    if (pending.isEmpty) {
-      return;
-    }
-
-    final project = _projectsManager.currentProject;
-    if (project == null) {
-      return;
-    }
-
-    try {
-      await _writeAllPendingFields(project: project, pending: pending);
-    } catch (error, stackTrace) {
-      _logger.e(
-        "A problem occurred when tried to flush a pending shot list field edit of project "
-        "${project.primaryScreenplayId}: ${error.runtimeType}",
-        null,
-        stackTrace,
-      );
-    }
-  }
-
-  /// Writes every entry of [pending], switching on its key's own kind: a symbol's label through
-  /// `OcptFloorPlanService.updateSymbol`.
-  Future<void> _writeAllPendingFields({
-    required OcptOpenProjectModel project,
-    required Map<OcptShotListPendingEditKey, String> pending,
-  }) async {
-    for (final entry in pending.entries) {
-      switch (entry.key) {
-        case OcptShotListShotFieldEditKey() ||
-            OcptShotListPanelCommentEditKey() ||
-            OcptShotListAnnotationTextEditKey() ||
-            OcptShotListSetNameEditKey():
-          // A shot field, a panel comment, a mark's text and a set's name are the inspector,
-          // storyboard and floor plan sets blocs' own, and never recorded here.
-          break;
-        case OcptShotListSymbolLabelEditKey(:final symbolId):
-          await _floorPlanService.updateSymbol(
-            database: project.database,
-            symbolId: symbolId,
-            label: Value(entry.value),
-          );
-      }
-    }
-  }
+  Future<void> flushPendingFieldEdits() => runPendingWritesFlushersWithoutState();
 
   /// Deletes shot `event.shotId`, reselecting the sequence's own next first shot when it was the
   /// selected one (the sequence stays selected; null only while the sequence now holds none at all
-  /// — the "always a current shot" invariant), and dropping any pending floor plan label that
-  /// still targeted one of its symbols — `OcptShotListService.deleteShot`'s own cascade tombstones
-  /// the shot's panels alongside it, and the inspector and storyboard blocs drop the fields and
-  /// comments typed into the shot and its panels once they see the mode read the data again.
+  /// — the "always a current shot" invariant). `OcptShotListService.deleteShot`'s own cascade
+  /// tombstones the shot's panels and floor plan symbols alongside it, and the view blocs drop the
+  /// fields, comments and labels typed into them once they see the mode read the data again.
   Future<void> _onShotDeletionRequested(
     OcptShotListShotDeletionRequestedEvent event,
     Emitter<OcptShotListState> emitter,
@@ -1095,25 +854,6 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     final project = _projectsManager.currentProject;
     if (project == null) {
       return;
-    }
-
-    final floorPlanSets = state.floorPlanSnapshot?.setsById.values;
-    final floorPlanSymbolIds = <String>{
-      if (floorPlanSets != null)
-        for (final floorPlanSet in floorPlanSets)
-          for (final symbol in floorPlanSet.symbols)
-            if (symbol.shotId == event.shotId) symbol.id,
-    };
-    bool isOfShot(OcptShotListPendingEditKey key) => switch (key) {
-      OcptShotListShotFieldEditKey() => false,
-      OcptShotListPanelCommentEditKey() => false,
-      OcptShotListAnnotationTextEditKey() => false,
-      OcptShotListSetNameEditKey() => false,
-      OcptShotListSymbolLabelEditKey(:final symbolId) => floorPlanSymbolIds.contains(symbolId),
-    };
-    if (state.pendingFieldEdits.keys.every(isOfShot)) {
-      _fieldEditTimer?.cancel();
-      _fieldEditTimer = null;
     }
 
     final wasSelected = state.selectedShotId == event.shotId;
@@ -1137,9 +877,6 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
           // symbols and arrows alongside it (`OcptFloorPlanService.tombstoneFloorPlanRowsOfShot`),
           // so the floor plans view must re-read too, exactly as the board does above.
           floorPlanSnapshot: floorPlanSnapshot,
-          // Taken now, not before the delete: a keystroke typed meanwhile is not the shot's.
-          pendingFieldEdits: Map.of(state.pendingFieldEdits)
-            ..removeWhere((key, _) => isOfShot(key)),
           selectedShotId: reselectedShotId,
           forceSelectedShotIdValue: reselectedShotId == null,
           reloadEpoch: state.reloadEpoch + 1,
@@ -1225,15 +962,15 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
   }
 
   /// Reads the floor plans again after a placement was removed or hidden, then moves the selection
-  /// saying why and which row ([targetId]): the canvas clears what the gesture always cleared.
+  /// saying why and which row (`event.cause`, `event.targetId`): the canvas clears what the gesture
+  /// always cleared. Dispatched by the placements bloc once it wrote, and awaited.
   ///
   /// The selection is not moved when the read failed, which raised the transient write error
   /// instead.
-  Future<void> _reloadFloorPlansAndMoveSelection({
-    required OcptShotListSelectionCause cause,
-    required String targetId,
-    required Emitter<OcptShotListState> emitter,
-  }) async {
+  Future<void> _onFloorPlanPlacementChanged(
+    OcptShotListFloorPlanPlacementChangedEvent event,
+    Emitter<OcptShotListState> emitter,
+  ) async {
     final reloadEpoch = state.reloadEpoch;
     await reloadSerially({OcptShotListReloadScope.floorPlans}, emitter);
     if (state.reloadEpoch == reloadEpoch) {
@@ -1243,333 +980,10 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     emitter(
       state.copyWith(
         selectionEpoch: state.selectionEpoch + 1,
-        selectionCause: cause,
-        selectionTargetId: targetId,
+        selectionCause: event.cause,
+        selectionTargetId: event.targetId,
       ),
     );
-  }
-
-  /// Deletes symbol `event.symbolId` for good, dispatched once the canvas's own delete action has
-  /// already been confirmed through `OcptConfirmDialog`, by the mode. The canvas bloc drops
-  /// its selection of the symbol once it sees the floor plans read again without it.
-  Future<void> _onFloorPlanSymbolDeletionRequested(
-    OcptShotListFloorPlanSymbolDeletionRequestedEvent event,
-    Emitter<OcptShotListState> emitter,
-  ) async {
-    final project = _projectsManager.currentProject;
-    if (project == null) {
-      return;
-    }
-
-    try {
-      await _floorPlanService.deleteSymbol(database: project.database, symbolId: event.symbolId);
-      await _reloadFloorPlansAndMoveSelection(
-        cause: OcptShotListSelectionCause.symbolRemoved,
-        targetId: event.symbolId,
-        emitter: emitter,
-      );
-    } catch (error, stackTrace) {
-      _logger.e(
-        "A problem occurred when tried to delete symbol ${event.symbolId} of project "
-        "${project.primaryScreenplayId}: ${error.runtimeType}",
-        null,
-        stackTrace,
-      );
-      emitter(state.copyWith(hasWriteError: true));
-    }
-  }
-
-  /// Deletes set-scope symbol `event.symbolId` **everywhere** — itself (or, when it names a
-  /// scene-scope override, the set-scope original it overrides) and every live override of it, in
-  /// every sequence (`OcptFloorPlanService.deleteSymbolEverywhere`) — the destructive branch of the
-  /// extended delete confirmation, dispatched once it has already been confirmed through
-  /// `OcptConfirmDialog.showWithAlternative`, by the mode.
-  Future<void> _onFloorPlanSymbolDeleteEverywhereRequested(
-    OcptShotListFloorPlanSymbolDeleteEverywhereRequestedEvent event,
-    Emitter<OcptShotListState> emitter,
-  ) async {
-    final project = _projectsManager.currentProject;
-    if (project == null) {
-      return;
-    }
-
-    try {
-      await _floorPlanService.deleteSymbolEverywhere(
-        database: project.database,
-        symbolId: event.symbolId,
-      );
-      await _reloadFloorPlansAndMoveSelection(
-        cause: OcptShotListSelectionCause.symbolRemoved,
-        targetId: event.symbolId,
-        emitter: emitter,
-      );
-    } catch (error, stackTrace) {
-      _logger.e(
-        "A problem occurred when tried to delete symbol ${event.symbolId} everywhere, of "
-        "project ${project.primaryScreenplayId}: ${error.runtimeType}",
-        null,
-        stackTrace,
-      );
-      emitter(state.copyWith(hasWriteError: true));
-    }
-  }
-
-  /// Masks set-scope symbol `event.symbolId` for sequence `event.targetSceneId` alone — a hidden
-  /// override, setting `isHidden` on one that already exists or creating one copied from the
-  /// original's own geometry — the alternative branch ("Remove from sequence n") of the extended
-  /// delete confirmation, dispatched once it has already been confirmed through
-  /// `OcptConfirmDialog.showWithAlternative`, by the mode.
-  Future<void> _onFloorPlanSymbolHideRequested(
-    OcptShotListFloorPlanSymbolHideRequestedEvent event,
-    Emitter<OcptShotListState> emitter,
-  ) async {
-    final project = _projectsManager.currentProject;
-    if (project == null) {
-      return;
-    }
-
-    final selected = ocptFloorPlanSymbolById(
-      floorPlanSnapshot: state.floorPlanSnapshot,
-      symbolId: event.symbolId,
-    );
-    if (selected == null) {
-      return;
-    }
-    final originalId = selected.overridesSymbolId ?? selected.id;
-    final original = ocptFloorPlanSymbolById(
-      floorPlanSnapshot: state.floorPlanSnapshot,
-      symbolId: originalId,
-    );
-    if (original == null) {
-      return;
-    }
-
-    final existingOverride = state.floorPlanSnapshot?.setsById[selected.setId]?.symbols
-        .firstWhereOrNull(
-          (symbol) =>
-              symbol.overridesSymbolId == originalId && symbol.sceneId == event.targetSceneId,
-        );
-
-    try {
-      await _floorPlanService.hideSymbolForScope(
-        database: project.database,
-        original: original,
-        existingOverride: existingOverride,
-        sceneId: event.targetSceneId,
-        shotId: null,
-      );
-      await _reloadFloorPlansAndMoveSelection(
-        cause: OcptShotListSelectionCause.symbolHidden,
-        targetId: event.symbolId,
-        emitter: emitter,
-      );
-    } catch (error, stackTrace) {
-      _logger.e(
-        "A problem occurred when tried to hide symbol ${event.symbolId} for sequence "
-        "${event.targetSceneId} of project ${project.primaryScreenplayId}: "
-        "${error.runtimeType}",
-        null,
-        stackTrace,
-      );
-      emitter(state.copyWith(hasWriteError: true));
-    }
-  }
-
-  /// Masks scene-scope symbol `event.symbolId` for shot `event.targetShotId` alone — a hidden
-  /// shot-scope override, mirroring [_onFloorPlanSymbolHideRequested] one level down: setting
-  /// `isHidden` on one that already exists or creating
-  /// one copied from the scene symbol's own geometry — the alternative branch ("Remove from shot
-  /// n") of the shot-level extended delete confirmation.
-  Future<void> _onFloorPlanSymbolHideForShotRequested(
-    OcptShotListFloorPlanSymbolHideForShotRequestedEvent event,
-    Emitter<OcptShotListState> emitter,
-  ) async {
-    final project = _projectsManager.currentProject;
-    if (project == null) {
-      return;
-    }
-
-    final selected = ocptFloorPlanSymbolById(
-      floorPlanSnapshot: state.floorPlanSnapshot,
-      symbolId: event.symbolId,
-    );
-    if (selected == null) {
-      return;
-    }
-    // Only resolve "up" through `overridesSymbolId` when `selected` is itself a shot-scope
-    // override — a scene-scope symbol's own `overridesSymbolId` (if any) names a *different*
-    // level's original (a set-scope one) and is never followed here.
-    final originalId = selected.shotId != null
-        ? (selected.overridesSymbolId ?? selected.id)
-        : selected.id;
-    final original = ocptFloorPlanSymbolById(
-      floorPlanSnapshot: state.floorPlanSnapshot,
-      symbolId: originalId,
-    );
-    if (original == null) {
-      return;
-    }
-
-    final existingOverride = state.floorPlanSnapshot?.setsById[selected.setId]?.symbols
-        .firstWhereOrNull(
-          (symbol) => symbol.overridesSymbolId == originalId && symbol.shotId == event.targetShotId,
-        );
-
-    try {
-      await _floorPlanService.hideSymbolForScope(
-        database: project.database,
-        original: original,
-        existingOverride: existingOverride,
-        sceneId: null,
-        shotId: event.targetShotId,
-      );
-      await _reloadFloorPlansAndMoveSelection(
-        cause: OcptShotListSelectionCause.symbolHidden,
-        targetId: event.symbolId,
-        emitter: emitter,
-      );
-    } catch (error, stackTrace) {
-      _logger.e(
-        "A problem occurred when tried to hide symbol ${event.symbolId} for shot "
-        "${event.targetShotId} of project ${project.primaryScreenplayId}: ${error.runtimeType}",
-        null,
-        stackTrace,
-      );
-      emitter(state.copyWith(hasWriteError: true));
-    }
-  }
-
-  /// Restores scene-scope override `event.symbolId` as in the set — tombstones it, so its own
-  /// set-scope original reappears for that sequence. Reversible: never asks.
-  Future<void> _onFloorPlanSymbolRestoreRequested(
-    OcptShotListFloorPlanSymbolRestoreRequestedEvent event,
-    Emitter<OcptShotListState> emitter,
-  ) async {
-    final project = _projectsManager.currentProject;
-    if (project == null) {
-      return;
-    }
-
-    try {
-      await _floorPlanService.deleteSymbol(database: project.database, symbolId: event.symbolId);
-      await _reloadFloorPlansAndMoveSelection(
-        cause: OcptShotListSelectionCause.symbolRemoved,
-        targetId: event.symbolId,
-        emitter: emitter,
-      );
-    } catch (error, stackTrace) {
-      _logger.e(
-        "A problem occurred when tried to restore override ${event.symbolId} of project "
-        "${project.primaryScreenplayId}: ${error.runtimeType}",
-        null,
-        stackTrace,
-      );
-      emitter(state.copyWith(hasWriteError: true));
-    }
-  }
-
-  /// Deletes arrow `event.arrowId` for good, dispatched once the Placements group's own remove
-  /// action has already been confirmed through `OcptConfirmDialog`, by the mode. The canvas bloc drops
-  /// its selection of the arrow once it sees the floor plans read again without it.
-  Future<void> _onFloorPlanArrowDeletionRequested(
-    OcptShotListFloorPlanArrowDeletionRequestedEvent event,
-    Emitter<OcptShotListState> emitter,
-  ) async {
-    final project = _projectsManager.currentProject;
-    if (project == null) {
-      return;
-    }
-
-    try {
-      await _floorPlanService.deleteArrow(database: project.database, arrowId: event.arrowId);
-      await _reloadFloorPlansAndMoveSelection(
-        cause: OcptShotListSelectionCause.arrowRemoved,
-        targetId: event.arrowId,
-        emitter: emitter,
-      );
-    } catch (error, stackTrace) {
-      _logger.e(
-        "A problem occurred when tried to delete arrow ${event.arrowId} of project "
-        "${project.primaryScreenplayId}: ${error.runtimeType}",
-        null,
-        stackTrace,
-      );
-      emitter(state.copyWith(hasWriteError: true));
-    }
-  }
-
-  /// Records the raw text just typed into symbol `event.symbolId`'s own label as a pending edit,
-  /// visible immediately, and (re)starts the field-edit debounce shared with every other typed
-  /// field of the mode.
-  Future<void> _onFloorPlanSymbolLabelChanged(
-    OcptShotListFloorPlanSymbolLabelChangedEvent event,
-    Emitter<OcptShotListState> emitter,
-  ) async {
-    _recordPendingEdit(
-      emitter: emitter,
-      key: OcptShotListSymbolLabelEditKey(symbolId: event.symbolId),
-      rawValue: event.rawValue,
-    );
-  }
-
-  /// Sets camera symbol `event.symbolId`'s own field-of-view wedge to `event.fovDeg`, dispatched by
-  /// a drag on one of its own edge handles ending, or by the inspector's own Placements group
-  /// `−`/`+` stepper. Written immediately, one row (`OcptFloorPlanService.updateSymbol(fovDeg:)`).
-  Future<void> _onFloorPlanSymbolFovChanged(
-    OcptShotListFloorPlanSymbolFovChangedEvent event,
-    Emitter<OcptShotListState> emitter,
-  ) async {
-    final project = _projectsManager.currentProject;
-    if (project == null) {
-      return;
-    }
-
-    try {
-      await _floorPlanService.updateSymbol(
-        database: project.database,
-        symbolId: event.symbolId,
-        fovDeg: Value(event.fovDeg),
-      );
-      await reloadSerially({OcptShotListReloadScope.floorPlans}, emitter);
-    } catch (error, stackTrace) {
-      _logger.e(
-        "A problem occurred when tried to change the field of view of symbol ${event.symbolId} "
-        "of project ${project.primaryScreenplayId}: ${error.runtimeType}",
-        null,
-        stackTrace,
-      );
-      emitter(state.copyWith(hasWriteError: true));
-    }
-  }
-
-  /// Sets camera symbol `event.symbolId`'s own field-of-view wedge reach to `event.fovReachM`,
-  /// dispatched by a drag on its own tip handle ending. Written immediately
-  /// (`OcptFloorPlanService.updateSymbol(fovReachM:)`), one row.
-  Future<void> _onFloorPlanSymbolFovReachChanged(
-    OcptShotListFloorPlanSymbolFovReachChangedEvent event,
-    Emitter<OcptShotListState> emitter,
-  ) async {
-    final project = _projectsManager.currentProject;
-    if (project == null) {
-      return;
-    }
-
-    try {
-      await _floorPlanService.updateSymbol(
-        database: project.database,
-        symbolId: event.symbolId,
-        fovReachM: Value(event.fovReachM),
-      );
-      await reloadSerially({OcptShotListReloadScope.floorPlans}, emitter);
-    } catch (error, stackTrace) {
-      _logger.e(
-        "A problem occurred when tried to change the field-of-view reach of symbol "
-        "${event.symbolId} of project ${project.primaryScreenplayId}: ${error.runtimeType}",
-        null,
-        stackTrace,
-      );
-      emitter(state.copyWith(hasWriteError: true));
-    }
   }
 
   /// {@macro act_life_cycle.MixinWithLifeCycleDispose.disposeLifeCycle}

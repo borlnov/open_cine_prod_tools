@@ -4,15 +4,18 @@
 
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/events/shot_list_base_event.dart';
 
-/// The events of `OcptShotListBloc` about floor plan symbols, arrows, scope and underlay.
-sealed class OcptShotListFloorPlanSymbolEvent extends OcptShotListEvent {
+/// The events of `OcptShotListFloorPlanPlacementsBloc`, about the placements of the selected shot
+/// on the floor plans: deleting, hiding, restoring, the symbol label typed in place, and the field
+/// of view of a camera.
+sealed class OcptShotListFloorPlanPlacementsEvent extends OcptShotListEvent {
   /// Class constructor
-  const OcptShotListFloorPlanSymbolEvent();
+  const OcptShotListFloorPlanPlacementsEvent();
 }
 
 /// Requests deleting symbol `event.symbolId` for good, dispatched once the canvas's own delete
 /// action has already been confirmed through `OcptConfirmDialog`, by the mode.
-class OcptShotListFloorPlanSymbolDeletionRequestedEvent extends OcptShotListFloorPlanSymbolEvent {
+class OcptShotListFloorPlanSymbolDeletionRequestedEvent
+    extends OcptShotListFloorPlanPlacementsEvent {
   /// The id of the symbol to delete.
   final String symbolId;
 
@@ -31,7 +34,7 @@ class OcptShotListFloorPlanSymbolDeletionRequestedEvent extends OcptShotListFloo
 /// dispatched once it has already been confirmed through
 /// `OcptConfirmDialog.showWithAlternative`, by the mode.
 class OcptShotListFloorPlanSymbolDeleteEverywhereRequestedEvent
-    extends OcptShotListFloorPlanSymbolEvent {
+    extends OcptShotListFloorPlanPlacementsEvent {
   /// The id of the symbol (the original, or one of its overrides) to delete everywhere.
   final String symbolId;
 
@@ -49,7 +52,7 @@ class OcptShotListFloorPlanSymbolDeleteEverywhereRequestedEvent
 /// delete confirmation, dispatched once it has already been confirmed through
 /// `OcptConfirmDialog.showWithAlternative`, by the mode. Reversible: the inspector's own `Restore`
 /// undoes it.
-class OcptShotListFloorPlanSymbolHideRequestedEvent extends OcptShotListFloorPlanSymbolEvent {
+class OcptShotListFloorPlanSymbolHideRequestedEvent extends OcptShotListFloorPlanPlacementsEvent {
   /// The id of the symbol (the original, or one of its overrides) to mask.
   final String symbolId;
 
@@ -78,7 +81,7 @@ class OcptShotListFloorPlanSymbolHideRequestedEvent extends OcptShotListFloorPla
 /// [OcptShotListFloorPlanSymbolHideRequestedEvent]'s own doc comment for the sequence-level
 /// equivalent this mirrors one level down.
 class OcptShotListFloorPlanSymbolHideForShotRequestedEvent
-    extends OcptShotListFloorPlanSymbolEvent {
+    extends OcptShotListFloorPlanPlacementsEvent {
   /// The id of the symbol (the scene-scope symbol, or one of its own shot overrides) to mask.
   final String symbolId;
 
@@ -104,7 +107,8 @@ class OcptShotListFloorPlanSymbolHideForShotRequestedEvent
 /// canvas's own `Restore` handle and the inspector's own `Restore as in the set`/`Restore as in
 /// the sequence` action. Reversible (the user can redo the change), so this never asks —
 /// dispatched straight away.
-class OcptShotListFloorPlanSymbolRestoreRequestedEvent extends OcptShotListFloorPlanSymbolEvent {
+class OcptShotListFloorPlanSymbolRestoreRequestedEvent
+    extends OcptShotListFloorPlanPlacementsEvent {
   /// The id of the override to restore.
   final String symbolId;
 
@@ -118,7 +122,8 @@ class OcptShotListFloorPlanSymbolRestoreRequestedEvent extends OcptShotListFloor
 
 /// Requests deleting arrow `event.arrowId` for good, dispatched once the Placements group's own
 /// remove action has already been confirmed through `OcptConfirmDialog`, by the mode.
-class OcptShotListFloorPlanArrowDeletionRequestedEvent extends OcptShotListFloorPlanSymbolEvent {
+class OcptShotListFloorPlanArrowDeletionRequestedEvent
+    extends OcptShotListFloorPlanPlacementsEvent {
   /// The id of the arrow to delete.
   final String arrowId;
 
@@ -131,9 +136,9 @@ class OcptShotListFloorPlanArrowDeletionRequestedEvent extends OcptShotListFloor
 }
 
 /// Records the raw text just typed into symbol `event.symbolId`'s own label, dispatched by the
-/// canvas's own `label` tool inline text field on every keystroke. Rides the mode's field-edit
-/// autosave debounce, keyed by `OcptShotListSymbolLabelEditKey`.
-class OcptShotListFloorPlanSymbolLabelChangedEvent extends OcptShotListFloorPlanSymbolEvent {
+/// canvas's own `label` tool inline text field on every keystroke. Rides the placements bloc's
+/// field-edit autosave debounce, keyed by `OcptShotListSymbolLabelEditKey`.
+class OcptShotListFloorPlanSymbolLabelChangedEvent extends OcptShotListFloorPlanPlacementsEvent {
   /// The id of the symbol whose label was edited.
   final String symbolId;
 
@@ -156,7 +161,7 @@ class OcptShotListFloorPlanSymbolLabelChangedEvent extends OcptShotListFloorPlan
 /// group `−`/`+` stepper. Written immediately (`OcptFloorPlanService.updateSymbol(fovDeg:)`); a
 /// drag reports once on end, never per frame — the live wedge shown while dragging is a purely
 /// local canvas concern, exactly as a symbol's own move/resize/rotate is.
-class OcptShotListFloorPlanSymbolFovChangedEvent extends OcptShotListFloorPlanSymbolEvent {
+class OcptShotListFloorPlanSymbolFovChangedEvent extends OcptShotListFloorPlanPlacementsEvent {
   /// The id of the camera symbol whose field of view is changed.
   final String symbolId;
 
@@ -176,7 +181,7 @@ class OcptShotListFloorPlanSymbolFovChangedEvent extends OcptShotListFloorPlanSy
 /// (`OcptFloorPlanService.updateSymbol(fovReachM:)`); a drag reports once on end, never per frame
 /// — the live wedge shown while dragging is a purely local canvas concern, exactly as
 /// [OcptShotListFloorPlanSymbolFovChangedEvent] is for the angle.
-class OcptShotListFloorPlanSymbolFovReachChangedEvent extends OcptShotListFloorPlanSymbolEvent {
+class OcptShotListFloorPlanSymbolFovReachChangedEvent extends OcptShotListFloorPlanPlacementsEvent {
   /// The id of the camera symbol whose field-of-view reach is changed.
   final String symbolId;
 
@@ -192,4 +197,20 @@ class OcptShotListFloorPlanSymbolFovReachChangedEvent extends OcptShotListFloorP
   /// Object properties
   @override
   List<Object?> get props => [...super.props, symbolId, fovReachM];
+}
+
+/// Fired by the field-edit debounce timer the placements bloc (re)starts when a symbol label is
+/// typed, once it elapses with no further edit, and by the mode after the character name prompt.
+/// Not meant to be dispatched by a widget otherwise.
+class OcptShotListFloorPlanPlacementsFieldEditFlushRequestedEvent
+    extends OcptShotListFloorPlanPlacementsEvent {
+  /// Class constructor
+  const OcptShotListFloorPlanPlacementsFieldEditFlushRequestedEvent();
+}
+
+/// Dismisses the transient write error the placements bloc raised.
+class OcptShotListFloorPlanPlacementsWriteErrorDismissedEvent
+    extends OcptShotListFloorPlanPlacementsEvent {
+  /// Class constructor
+  const OcptShotListFloorPlanPlacementsWriteErrorDismissedEvent();
 }

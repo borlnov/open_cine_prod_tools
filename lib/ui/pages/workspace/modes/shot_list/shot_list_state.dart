@@ -19,7 +19,6 @@ import 'package:open_cine_prod_tools/models/ocpt_storyboard_snapshot.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_version_notice_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_centre_view.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_column.dart';
-import 'package:open_cine_prod_tools/types/ocpt_shot_list_pending_edit_key.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_right_dock_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_selection_cause.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_mode_state.dart';
@@ -34,7 +33,7 @@ export 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_lis
 /// Unlike the screenplay editor's own state, this one carries no single dirty/saving pair: most
 /// of a shot's fields (status, a difficulty axis, a character chip) write straight to the project
 /// database the moment they change. The typed free-text fields are the exception, and each view bloc
-/// holds its own in a 2 s autosave debounce; the ones still held here are [pendingFieldEdits].
+/// holds its own in a 2 s autosave debounce.
 class OcptShotListState extends BlocStateForMixin<OcptShotListState>
     with
         MixinOcptProjectVersionsState<OcptShotListState>,
@@ -173,17 +172,6 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
   /// read from, reloaded after every field-edit flush.
   final OcptShotFieldSuggestions suggestions;
 
-  /// Every field edit this bloc holds in the field-edit autosave debounce, keyed by
-  /// [OcptShotListPendingEditKey] (a symbol's label), holding the raw text last typed for it. A
-  /// shot's own fields wait in the inspector bloc's map, the board's panel comments and mark texts
-  /// in the storyboard bloc's, a set's name in the floor plan sets bloc's.
-  ///
-  /// What a symbol label shows takes this map's entry over its own stored value
-  /// whenever one is present, so typing is never overwritten by a reload triggered by an unrelated
-  /// write. An entry is removed the moment its write lands, whether through the debounce elapsing
-  /// or an explicit flush.
-  final Map<OcptShotListPendingEditKey, String> pendingFieldEdits;
-
   /// {@macro open_cine_prod_tools.MixinOcptModeState.reloadEpoch}
   @override
   final int reloadEpoch;
@@ -262,7 +250,6 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
     required this.screenplayCharacters,
     required this.roles,
     required this.suggestions,
-    required this.pendingFieldEdits,
     required this.reloadEpoch,
     required this.selectionEpoch,
     required this.selectionCause,
@@ -303,7 +290,6 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
       screenplayCharacters = const [],
       roles = const [],
       suggestions = const OcptShotFieldSuggestions.empty(),
-      pendingFieldEdits = const {},
       reloadEpoch = 0,
       selectionEpoch = 0,
       selectionCause = OcptShotListSelectionCause.none,
@@ -361,7 +347,6 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
     List<String>? screenplayCharacters,
     List<OcptRole>? roles,
     OcptShotFieldSuggestions? suggestions,
-    Map<OcptShotListPendingEditKey, String>? pendingFieldEdits,
     int? reloadEpoch,
     int? selectionEpoch,
     OcptShotListSelectionCause? selectionCause,
@@ -410,7 +395,6 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
     screenplayCharacters: screenplayCharacters ?? this.screenplayCharacters,
     roles: roles ?? this.roles,
     suggestions: suggestions ?? this.suggestions,
-    pendingFieldEdits: pendingFieldEdits ?? this.pendingFieldEdits,
     reloadEpoch:
         reloadEpoch ??
         (_isDataReplacedBy(
@@ -544,7 +528,6 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
     screenplayCharacters,
     roles,
     suggestions,
-    pendingFieldEdits,
     reloadEpoch,
     selectionEpoch,
     selectionCause,

@@ -212,16 +212,13 @@ void main() {
     );
   }
 
-  /// Builds the mode bloc wired to the test project. [fieldEditDebounce] defaults to a short
-  /// duration so tests exercising the field-edit debounce don't have to wait out the real 2 s one.
-  OcptShotListBloc buildBloc({Duration fieldEditDebounce = const Duration(milliseconds: 30)}) =>
-      OcptShotListBloc(
-        projectsManager: projectsManager,
-        propertiesManager: propertiesManager,
-        routerManager: _RecordingRouterManager(),
-        exportManager: OcptExportManager(fileSelectorManager: const FileSelectorManager()),
-        fieldEditDebounce: fieldEditDebounce,
-      );
+  /// Builds the mode bloc wired to the test project.
+  OcptShotListBloc buildBloc() => OcptShotListBloc(
+    projectsManager: projectsManager,
+    propertiesManager: propertiesManager,
+    routerManager: _RecordingRouterManager(),
+    exportManager: OcptExportManager(fileSelectorManager: const FileSelectorManager()),
+  );
 
   /// Builds the floor plan sets bloc of [modeBloc], picking underlays through
   /// [fileSelectorManager] — a cancelled dialog unless the test says otherwise, so no test ever

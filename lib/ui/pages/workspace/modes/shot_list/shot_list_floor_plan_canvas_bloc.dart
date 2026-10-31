@@ -51,7 +51,9 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_lis
 /// sequence clears the symbol, the arrow, the anchor and the scope question; a shot selected or
 /// deleted, a set selected, added or removed, and a fresh load clear the symbol, the arrow and the
 /// anchor; selecting the sequence already shown clears the anchor alone; creating a shot clears
-/// nothing. When the mode reads its data again, a selected symbol or arrow that is gone, or a
+/// nothing. A placement removed or masked from the Placements group clears the arrow with a deleted
+/// symbol, and the selected symbol or arrow only when it is the row concerned (the mode's
+/// `selectionTargetId`). When the mode reads its data again, a selected symbol or arrow that is gone, or a
 /// selected symbol that a hidden override now masks where the canvas looks, is dropped. The scope question and
 /// the character prompt are never touched by a reload.
 class OcptShotListFloorPlanCanvasBloc

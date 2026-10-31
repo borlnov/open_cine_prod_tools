@@ -257,7 +257,7 @@ void main() {
     // what it holds. The storyboard, inspector and floor plan blocs count too, the mode's own
     // listeners reading them.
     final modeBloc = tester.element(find.byType(OcptShotListStatusBar)).read<OcptShotListBloc>();
-    expect(modeBloc.pendingWritesFlusherCount, 5);
+    expect(modeBloc.pendingWritesFlusherCount, 6);
   });
 
   testWidgets(

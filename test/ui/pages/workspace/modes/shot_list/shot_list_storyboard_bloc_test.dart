@@ -24,8 +24,6 @@ import 'package:open_cine_prod_tools/managers/projects/services/ocpt_storyboard_
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_list_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_storyboard_snapshot.dart';
-import 'package:open_cine_prod_tools/types/ocpt_floor_plan_layer.dart';
-import 'package:open_cine_prod_tools/types/ocpt_floor_plan_set_element_shape.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_centre_view.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_column.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_pending_edit_key.dart';
@@ -259,10 +257,8 @@ void main() {
     );
   }
 
-  /// Builds the mode bloc wired to the test project. [fieldEditDebounce] defaults to a short
-  /// duration so tests exercising the field-edit debounce don't have to wait out the real 2 s one.
+  /// Builds the mode bloc wired to the test project.
   OcptShotListBloc buildBloc({
-    Duration fieldEditDebounce = const Duration(milliseconds: 30),
     OcptStoryboardService? storyboardService,
     OcptShotListService? shotListService,
   }) => OcptShotListBloc(
@@ -272,7 +268,6 @@ void main() {
     propertiesManager: propertiesManager,
     routerManager: _RecordingRouterManager(),
     exportManager: OcptExportManager(fileSelectorManager: const FileSelectorManager()),
-    fieldEditDebounce: fieldEditDebounce,
   );
 
   /// Builds the storyboard bloc of [modeBloc], picking frames through [fileSelectorManager] — a
@@ -334,24 +329,6 @@ void main() {
     return mode.state.selectedSetId!;
   }
 
-  /// Places a symbol on [setId] and has [mode] read the floor plans again, answering the symbol's
-  /// id: a floor plan symbol's label is the one typed edit the mode itself still holds.
-  Future<String> placeSymbol(OcptShotListBloc mode, String setId) async {
-    final project = projectsManager.currentProject!;
-    final symbolId = await projectsManager.floorPlanService.placeSymbol(
-      database: project.database,
-      setId: setId,
-      sceneId: null,
-      shotId: null,
-      layer: OcptFloorPlanLayer.set,
-      xM: 0,
-      yM: 0,
-      setElementShape: OcptFloorPlanSetElementShape.wall,
-    );
-    await mode.reload({OcptShotListReloadScope.floorPlans});
-    return symbolId!;
-  }
-
   /// Mounts both blocs on [twoSceneText] with one shot, and imports one panel onto it (selecting it,
   /// per the import handler), answering the blocs and the ids.
   Future<({OcptShotListBloc mode, OcptShotListStoryboardBloc board, String shotId, String panelId})>
@@ -361,11 +338,7 @@ void main() {
     OcptShotListService? shotListService,
   }) async {
     await writeScreenplay(twoSceneText);
-    final mode = buildBloc(
-      fieldEditDebounce: fieldEditDebounce,
-      storyboardService: storyboardService,
-      shotListService: shotListService,
-    );
+    final mode = buildBloc(storyboardService: storyboardService, shotListService: shotListService);
     final board = buildBoard(
       mode,
       storyboardService: storyboardService,
@@ -1196,40 +1169,6 @@ void main() {
       await closeAll(board, mode);
     });
 
-    test("the mode's own flush does not put an older storyboard over a newer one", () async {
-      final service = _HoldingStoryboardService(projectsManager.storyboardService);
-      final mounted = await mountWithAPanel(
-        fieldEditDebounce: const Duration(days: 1),
-        storyboardService: service,
-      );
-      final mode = mounted.mode;
-      final board = mounted.board;
-
-      // The mode holds a typed edit of its own (a symbol's label), so its flush reads everything
-      // again.
-      final symbolId = await placeSymbol(mode, await createSet(mode));
-      mode.add(OcptShotListFloorPlanSymbolLabelChangedEvent(symbolId: symbolId, rawValue: "SAM"));
-      await waitUntil(() => mode.state.pendingFieldEdits.isNotEmpty);
-
-      // The mode's flush reads the storyboard while the comment is still empty, and is held there.
-      service.heldReads = 1;
-      final modeFlush = mode.flushAllPendingWrites();
-      await waitUntil(() => service.holdCount == 1);
-
-      // Meanwhile the board writes a comment and has the mode read it.
-      board.add(OcptShotListPanelCommentChangedEvent(panelId: mounted.panelId, rawValue: "Newer"));
-      await waitUntil(() => board.state.pendingFieldEdits.isNotEmpty);
-      final boardFlush = board.flushPendingWrites();
-      await Future<void>.delayed(const Duration(milliseconds: 100));
-
-      service.release();
-      await Future.wait([modeFlush, boardFlush]).timeout(const Duration(seconds: 5));
-
-      expect(mode.state.panelsOfShot(mounted.shotId).single.comment, "Newer");
-
-      await closeAll(board, mode);
-    });
-
     test("a write that reads while another read lands does not roll the epochs back", () async {
       final service = _HoldingShotListService(projectsManager.shotListService);
       final mounted = await mountWithAPanel(shotListService: service);
@@ -1287,38 +1226,6 @@ void main() {
       expect(mode.state.panelsOfShot(mounted.shotId).single.comment, "ab");
 
       await closeAll(board, mode);
-    });
-
-    test("a field typed while the mode's flush is in flight is kept and written", () async {
-      final service = _HoldingShotListService(projectsManager.shotListService);
-      final mounted = await mountWithAPanel(
-        fieldEditDebounce: const Duration(days: 1),
-        shotListService: service,
-      );
-      final mode = mounted.mode;
-
-      final symbolId = await placeSymbol(mode, await createSet(mode));
-      OcptShotListFloorPlanSymbolLabelChangedEvent typed(String text) =>
-          OcptShotListFloorPlanSymbolLabelChangedEvent(symbolId: symbolId, rawValue: text);
-
-      mode.add(typed("5"));
-      await waitUntil(() => mode.state.pendingFieldEdits.isNotEmpty);
-
-      service.heldReads = 1;
-      final flush = mode.flushAllPendingWrites();
-      await waitUntil(() => service.holdCount == 1);
-
-      mode.add(typed("50"));
-      await waitUntil(() => mode.state.pendingFieldEdits.values.contains("50"));
-      service.release();
-      await flush;
-
-      expect(mode.state.pendingFieldEdits.values, ["50"], reason: 'the keystroke is not lost');
-      await mode.flushAllPendingWrites();
-      expect(mode.state.pendingFieldEdits, isEmpty);
-      expect(mode.state.selectedSet!.symbols.single.label, "50");
-
-      await closeAll(mounted.board, mode);
     });
 
     test("a flush finishing after the mode started closing asks it for nothing", () async {
