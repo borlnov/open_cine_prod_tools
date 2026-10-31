@@ -40,11 +40,9 @@ import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_mode_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project_package_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project_versions_state.dart';
-import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/schedule_io_notice.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/schedule_unplaced_group.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock.dart';
 
-export 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/schedule_io_notice.dart';
 export 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/schedule_unplaced_group.dart';
 
 /// The key [OcptScheduleState.pendingFieldEdits] is stored under: which entity, and which of its
@@ -172,10 +170,6 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
   /// them for the scenario coverage export. Reloaded by `OcptScheduleProjectSettingsChangedEvent`,
   /// since page format is the one thing the project settings page can change under this mode.
   final OcptPageSetup pageSetup;
-
-  /// The transient notice reporting the outcome of the last PDF export requested, or null once
-  /// dismissed — see [OcptScheduleIoNotice]'s own doc comment.
-  final OcptScheduleIoNotice? ioNotice;
 
   /// {@macro open_cine_prod_tools.MixinOcptModeState.reloadEpoch}
   @override
@@ -501,7 +495,6 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
     required this.leftDockFraction,
     required this.rightDockFraction,
     required this.pageSetup,
-    required this.ioNotice,
     required this.reloadEpoch,
     required this.selectionEpoch,
     required this.selectionCause,
@@ -544,7 +537,6 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
       leftDockFraction = OcptWorkspaceDock.leftDefaultFraction,
       rightDockFraction = OcptWorkspaceDock.rightDefaultFraction,
       pageSetup = const OcptPageSetup.standard(),
-      ioNotice = null,
       reloadEpoch = 0,
       selectionEpoch = 0,
       selectionCause = OcptScheduleSelectionCause.none,
@@ -605,8 +597,6 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
     double? leftDockFraction,
     double? rightDockFraction,
     OcptPageSetup? pageSetup,
-    OcptScheduleIoNotice? ioNotice,
-    bool forceIoNoticeValue = false,
     int? reloadEpoch,
     int? selectionEpoch,
     OcptScheduleSelectionCause? selectionCause,
@@ -655,7 +645,6 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
     leftDockFraction: leftDockFraction ?? this.leftDockFraction,
     rightDockFraction: rightDockFraction ?? this.rightDockFraction,
     pageSetup: pageSetup ?? this.pageSetup,
-    ioNotice: ioNotice ?? (forceIoNoticeValue ? null : this.ioNotice),
     reloadEpoch:
         reloadEpoch ??
         (_isDataReplacedBy(
@@ -800,7 +789,6 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
     leftDockFraction,
     rightDockFraction,
     pageSetup,
-    ioNotice,
     reloadEpoch,
     selectionEpoch,
     selectionCause,

@@ -28,8 +28,8 @@ enum OcptScheduleIoNoticeKind {
   exportFailed,
 }
 
-/// A transient notice, produced by `OcptScheduleBloc`, reporting the outcome of one of the three
-/// PDF exports, shown as a SnackBar then dismissed. Modelled on `OcptBreakdownIoNotice`.
+/// A transient notice, produced by `OcptScheduleExportBloc`, reporting the outcome of an export,
+/// shown as a SnackBar then dismissed. Modelled on `OcptBreakdownIoNotice`.
 ///
 /// Only the fields [kind] actually needs are ever set: [path] for [OcptScheduleIoNoticeKind
 /// .fileExportSucceeded], [folderPath]/[writtenCount] for [OcptScheduleIoNoticeKind

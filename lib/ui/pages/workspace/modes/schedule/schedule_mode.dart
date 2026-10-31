@@ -32,6 +32,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_project_packa
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_project_versions_events.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/schedule_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/schedule_event.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/schedule_export_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/schedule_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_alerts_panel.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_call_sheets_export_dialog.dart';
@@ -53,6 +54,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/o
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_sides_export_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_status_bar.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_strip_agenda.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_view_effects.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_week_grid.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_project_version_create_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_project_versions_panel.dart';
@@ -91,8 +93,18 @@ class OcptScheduleMode extends StatelessWidget {
   const OcptScheduleMode({super.key});
 
   @override
-  Widget build(BuildContext context) =>
-      BlocProvider(create: (context) => OcptScheduleBloc(), child: const _ScheduleView());
+  Widget build(BuildContext context) => MultiBlocProvider(
+    providers: [
+      BlocProvider(create: (context) => OcptScheduleBloc()),
+      // Built with the mode rather than on first read: a view bloc registers itself with the mode
+      // bloc when it is built, and one that is not there yet cannot be asked to write what it holds.
+      BlocProvider(
+        lazy: false,
+        create: (context) => OcptScheduleExportBloc(modeBloc: context.read<OcptScheduleBloc>()),
+      ),
+    ],
+    child: const OcptScheduleViewEffects(child: _ScheduleView()),
+  );
 }
 
 /// The content of [OcptScheduleMode], separated from it so [OcptScheduleMode] only wires the
@@ -337,7 +349,7 @@ class _ScheduleViewState extends State<_ScheduleView> {
     OcptScheduleState state,
     Rect? shareAnchor,
   ) async {
-    final bloc = context.read<OcptScheduleBloc>();
+    final bloc = context.read<OcptScheduleExportBloc>();
     final options = await OcptScheduleCallSheetsExportDialog.show(
       context,
       current: state.pageSetup,
@@ -371,7 +383,7 @@ class _ScheduleViewState extends State<_ScheduleView> {
     OcptScheduleState state,
     Rect? shareAnchor,
   ) async {
-    final bloc = context.read<OcptScheduleBloc>();
+    final bloc = context.read<OcptScheduleExportBloc>();
     final options = await OcptScheduleNamedCallSheetsExportDialog.show(
       context,
       current: state.pageSetup,
@@ -406,7 +418,7 @@ class _ScheduleViewState extends State<_ScheduleView> {
     OcptScheduleState state,
     Rect? shareAnchor,
   ) async {
-    final bloc = context.read<OcptScheduleBloc>();
+    final bloc = context.read<OcptScheduleExportBloc>();
     final options = await OcptScheduleShootingPlanExportDialog.show(
       context,
       current: state.pageSetup,
@@ -438,7 +450,7 @@ class _ScheduleViewState extends State<_ScheduleView> {
     OcptScheduleState state,
     Rect? shareAnchor,
   ) async {
-    final bloc = context.read<OcptScheduleBloc>();
+    final bloc = context.read<OcptScheduleExportBloc>();
     final options = await OcptScheduleShootingPlanXlsxExportDialog.show(context, days: state.days);
     if (options == null) {
       return;
@@ -465,7 +477,7 @@ class _ScheduleViewState extends State<_ScheduleView> {
     OcptScheduleState state,
     Rect? shareAnchor,
   ) async {
-    final bloc = context.read<OcptScheduleBloc>();
+    final bloc = context.read<OcptScheduleExportBloc>();
     final options = await OcptScheduleDayOutOfDaysExportDialog.show(
       context,
       current: state.pageSetup,
@@ -496,7 +508,7 @@ class _ScheduleViewState extends State<_ScheduleView> {
     OcptScheduleState state,
     Rect? shareAnchor,
   ) async {
-    final bloc = context.read<OcptScheduleBloc>();
+    final bloc = context.read<OcptScheduleExportBloc>();
     final options = await OcptScheduleOneLineScheduleExportDialog.show(
       context,
       current: state.pageSetup,
@@ -528,7 +540,7 @@ class _ScheduleViewState extends State<_ScheduleView> {
     OcptScheduleState state,
     Rect? shareAnchor,
   ) async {
-    final bloc = context.read<OcptScheduleBloc>();
+    final bloc = context.read<OcptScheduleExportBloc>();
     final options = await OcptScheduleSidesExportDialog.show(
       context,
       current: state.pageSetup,
@@ -1523,21 +1535,13 @@ class _ScheduleViewState extends State<_ScheduleView> {
     bloc.add(OcptProjectVersionCreationRequestedEvent(name: fields.name, note: fields.note));
   }
 
-  /// Applies bloc-driven effects onto the page: the live dock fractions, the transient export
-  /// notice SnackBar and the transient version notice SnackBar.
+  /// Applies bloc-driven effects onto the page: the live dock fractions, the transient version
+  /// notice SnackBar and the project package questions and notices.
   void _onStateChanged(BuildContext context, OcptScheduleState state) {
     _dockLayoutController.syncFromPersisted(
       leftFraction: state.leftDockFraction,
       rightFraction: state.rightDockFraction,
     );
-
-    final ioNotice = state.ioNotice;
-    if (ioNotice != null) {
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(SnackBar(content: Text(_ioNoticeMessage(context, ioNotice))));
-      context.read<OcptScheduleBloc>().add(const OcptScheduleIoNoticeDismissedEvent());
-    }
 
     final versionNotice = state.projectVersionNotice;
     if (versionNotice != null) {
@@ -1604,40 +1608,5 @@ class _ScheduleViewState extends State<_ScheduleView> {
         fileTypeLabel: Tr.of(context).projectPackageFileTypeLabel,
       ),
     );
-  }
-
-  /// Maps [notice] to its localized, user-facing message, mirroring
-  /// `OcptBreakdownMode._ioNoticeMessage`.
-  ///
-  /// The two full-success kinds degrade to the generic "shared" message on mobile
-  /// ([OcptScheduleIoNotice.wasShared]): there is no path or folder to name, the run having been
-  /// handed to the OS share sheet rather than written to a location the user picked. A **partial**
-  /// folder failure keeps naming [OcptScheduleIoNotice.folderPath] even then — a temporary
-  /// directory rather than one the user picked — since which files failed still matters more than
-  /// where they sat, and that case is rare enough on mobile (a share sheet's own temp storage
-  /// failing to write) not to warrant its own wording.
-  String _ioNoticeMessage(BuildContext context, OcptScheduleIoNotice notice) {
-    final tr = Tr.of(context);
-
-    return switch (notice.kind) {
-      OcptScheduleIoNoticeKind.fileExportSucceeded =>
-        notice.wasShared
-            ? tr.exportSharedMessage
-            : tr.scheduleExportFileSuccessMessage(notice.path ?? ""),
-      OcptScheduleIoNoticeKind.folderExportSucceeded =>
-        notice.wasShared
-            ? tr.exportSharedMessage
-            : tr.scheduleExportFolderSuccessMessage(
-                notice.writtenCount ?? 0,
-                notice.folderPath ?? "",
-              ),
-      OcptScheduleIoNoticeKind.folderExportPartiallySucceeded =>
-        tr.scheduleExportFolderPartialMessage(
-          notice.writtenCount ?? 0,
-          notice.folderPath ?? "",
-          notice.failedCount ?? 0,
-        ),
-      OcptScheduleIoNoticeKind.exportFailed => tr.scheduleExportError,
-    };
   }
 }
