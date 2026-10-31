@@ -4,21 +4,10 @@
 
 import 'package:flutter/material.dart';
 import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/ui/widgets/ocpt_view_switch_segment.dart';
 
 /// The horizontal padding of [OcptViewSwitch]'s own segments, in logical pixels.
 const double _ocptViewSwitchSegmentPadding = 14;
-
-/// One segment of [OcptViewSwitch]: the value it selects and its own label.
-class OcptViewSwitchSegment<T> {
-  /// The value this segment selects when clicked.
-  final T value;
-
-  /// The segment's own label.
-  final String label;
-
-  /// Class constructor
-  const OcptViewSwitchSegment({required this.value, required this.label});
-}
 
 /// A small bordered, rounded segmented control switching a centre view — the active segment filled
 /// `primary` and bolder, the others `onSurfaceVariant`.

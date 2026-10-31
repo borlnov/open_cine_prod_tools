@@ -7,6 +7,7 @@ import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_centre_view.dart';
 import 'package:open_cine_prod_tools/ui/widgets/ocpt_view_switch.dart';
+import 'package:open_cine_prod_tools/ui/widgets/ocpt_view_switch_segment.dart';
 
 /// The fixed width of the header's own search field, in logical pixels.
 const double _ocptBreakdownSearchFieldWidth = 260;

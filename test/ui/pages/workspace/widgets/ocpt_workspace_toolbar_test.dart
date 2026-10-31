@@ -7,7 +7,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_toolbar.dart';
-import 'package:open_cine_prod_tools/ui/widgets/ocpt_logo.dart';
+import 'package:open_cine_prod_tools/ui/widgets/ocpt_logo_glyph.dart';
 
 /// Wraps [child] with the localization delegates so the toolbar's [Tr.of] tooltip lookups resolve.
 Widget _wrapInApp(Widget child) => MaterialApp(

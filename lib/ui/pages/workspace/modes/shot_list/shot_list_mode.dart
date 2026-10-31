@@ -78,6 +78,7 @@ import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_project_version_not
 import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_shot_list_labels.dart';
 import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_workspace_episode_export_tag.dart';
 import 'package:open_cine_prod_tools/ui/widgets/ocpt_confirm_dialog.dart';
+import 'package:open_cine_prod_tools/ui/widgets/ocpt_confirm_dialog_result.dart';
 
 /// The shot list (découpage technique) production mode: the sequence tree on the left, the
 /// selected sequence's shot table in the centre, and the tabbed shot inspector on the right.

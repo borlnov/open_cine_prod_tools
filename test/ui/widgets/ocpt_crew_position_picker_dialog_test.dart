@@ -12,6 +12,7 @@ import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/models/ocpt_crew_position_ref.dart';
 import 'package:open_cine_prod_tools/types/ocpt_crew_department.dart';
 import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_resources_labels.dart';
+import 'package:open_cine_prod_tools/ui/widgets/ocpt_crew_position_pick_result.dart';
 import 'package:open_cine_prod_tools/ui/widgets/ocpt_crew_position_picker_dialog.dart';
 
 /// A router manager whose [pop] only records the last call and its value: the dialog is pumped

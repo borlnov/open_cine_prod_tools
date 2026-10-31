@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/ui/widgets/ocpt_logo.dart';
+import 'package:open_cine_prod_tools/ui/widgets/ocpt_logo_glyph.dart';
 
 /// Wraps [child] in an app themed with [brightness], the only thing [OcptLogo] reads from its
 /// context.
