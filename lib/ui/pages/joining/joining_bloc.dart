@@ -159,7 +159,13 @@ class OcptJoiningBloc extends BlocForMixin<OcptJoiningState> {
     if (uri == null) {
       return 'not a URI (${rawText.trim().length} chars)';
     }
-    final query = uri.queryParameters;
+    final Map<String, String> query;
+    try {
+      query = uri.queryParameters;
+    } on FormatException {
+      // A percent-escape that is not valid UTF-8 parses as a URI but throws on this read.
+      return 'scheme=${uri.scheme} host=${uri.host} params=[unreadable]';
+    }
     final present = [
       if ((query['r'] ?? '').isNotEmpty) 'r',
       if ((query['p'] ?? '').isNotEmpty) 'p',

@@ -562,6 +562,25 @@ void main() {
     expect(routerManager.pushedRoute, isNull);
   });
 
+  test("a scanned invite whose query is not valid UTF-8 fails without throwing", () async {
+    final manager = _FakeSyncManager(
+      pairingService: pairingService,
+      joinResultPath: joinedProjectPath,
+    );
+    final bloc = buildBloc(manager: manager, routerManager: _RecordingRouterManager());
+
+    bloc.add(
+      const OcptJoiningInviteScannedEvent(
+        "ocpt://join?r=%FF&p=x&t=y",
+        destinationConfirmButtonText: "Join here",
+      ),
+    );
+    await pumpEventQueue();
+
+    expect(manager.joinCallCount, 0);
+    expect(bloc.state.joinFailed, isTrue);
+  });
+
   test("dismissing the error clears the flag", () async {
     final manager = _FakeSyncManager(
       pairingService: pairingService,

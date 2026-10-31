@@ -43,9 +43,18 @@ class OcptRelayInvite extends Equatable {
       return const ResultWithStatus(status: OcptRelayInviteStatus.wrongHost);
     }
 
-    final relay = uri.queryParameters[_relayParam];
-    final projectId = uri.queryParameters[_projectIdParam];
-    final token = uri.queryParameters[_tokenParam];
+    // A percent-escape that is not valid UTF-8 parses as a URI but throws on this read.
+    final String? relay;
+    final String? projectId;
+    final String? token;
+    try {
+      final query = uri.queryParameters;
+      relay = query[_relayParam];
+      projectId = query[_projectIdParam];
+      token = query[_tokenParam];
+    } on FormatException {
+      return const ResultWithStatus(status: OcptRelayInviteStatus.malformedUri);
+    }
     if (relay == null || relay.isEmpty) {
       return const ResultWithStatus(status: OcptRelayInviteStatus.missingRelay);
     }

@@ -60,6 +60,13 @@ void main() {
       expect(result.value, invite);
     });
 
+    test('reports a query that is not valid UTF-8 as a malformed URI', () {
+      final result = OcptRelayInvite.parse('ocpt://join?r=%FF&p=x&t=y');
+      expect(result.isSuccess, isFalse);
+      expect(result.status, OcptRelayInviteStatus.malformedUri);
+      expect(result.value, isNull);
+    });
+
     test('rejects a plain string', () {
       final result = OcptRelayInvite.parse('not a uri at all');
       expect(result.isSuccess, isFalse);

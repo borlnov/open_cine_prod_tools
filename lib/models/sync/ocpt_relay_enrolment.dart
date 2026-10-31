@@ -53,8 +53,16 @@ class OcptRelayEnrolment extends Equatable {
       return const ResultWithStatus(status: OcptRelayEnrolmentStatus.wrongHost);
     }
 
-    final relay = uri.queryParameters[_relayParam];
-    final secret = uri.queryParameters[_secretParam];
+    // A percent-escape that is not valid UTF-8 parses as a URI but throws on this read.
+    final String? relay;
+    final String? secret;
+    try {
+      final query = uri.queryParameters;
+      relay = query[_relayParam];
+      secret = query[_secretParam];
+    } on FormatException {
+      return const ResultWithStatus(status: OcptRelayEnrolmentStatus.malformedUri);
+    }
     if (relay == null || relay.isEmpty) {
       return const ResultWithStatus(status: OcptRelayEnrolmentStatus.missingRelay);
     }
