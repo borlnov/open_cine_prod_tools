@@ -344,7 +344,15 @@ class OcptScheduleDayView extends StatelessWidget {
 
     return ListView(
       children: [
-        _buildSummaryBand(context),
+        _OcptScheduleDaySummaryBand(
+          day: day,
+          blocks: blocks,
+          timeline: timeline,
+          dayArrivalMinute: dayArrivalMinute,
+          sunTimes: sunTimes,
+          alerts: alerts,
+          onAlertsOpenRequested: onAlertsOpenRequested,
+        ),
         const SizedBox(height: 16),
         for (final (index, slot) in slots.indexed)
           Padding(
@@ -436,7 +444,16 @@ class OcptScheduleDayView extends StatelessWidget {
             ),
           ),
         if (events.isNotEmpty || onEventAdded != null) ...[
-          _buildEventsBand(context),
+          _OcptScheduleDayEventsBand(
+            events: events,
+            eventLabelValueOf: eventLabelValueOf,
+            eventNotesValueOf: eventNotesValueOf,
+            onEventAdded: onEventAdded,
+            onEventMinuteChanged: onEventMinuteChanged,
+            onEventLabelChanged: onEventLabelChanged,
+            onEventNotesChanged: onEventNotesChanged,
+            onEventDeletionRequested: onEventDeletionRequested,
+          ),
           const SizedBox(height: 16),
         ],
         if (day.crewNote.isNotEmpty) ...[
@@ -447,10 +464,45 @@ class OcptScheduleDayView extends StatelessWidget {
       ],
     );
   }
+}
 
-  /// The day's own summary band: arrival → estimated end, sun times, weather and the total (shot
-  /// count and duration of presence).
-  Widget _buildSummaryBand(BuildContext context) {
+/// The day's own summary band: arrival → estimated end, sun times, weather and the total (shot
+/// count and duration of presence).
+class _OcptScheduleDaySummaryBand extends StatelessWidget {
+  /// The day the band sums up.
+  final OcptShootingDay day;
+
+  /// The day's live blocks, across every slot, counted for the shot total.
+  final List<OcptShootingDayBlock> blocks;
+
+  /// The day's computed timelines, read for its end minute, or null while it has no live slot.
+  final OcptShootingDayTimelines? timeline;
+
+  /// The day's earliest arrival, or null while it has no live slot.
+  final int? dayArrivalMinute;
+
+  /// The day's computed sun times, or null while unknown.
+  final OcptSunTimes? sunTimes;
+
+  /// The alerts the plan raises about the day.
+  final List<OcptScheduleAlert> alerts;
+
+  /// Called when the alert badge is clicked.
+  final VoidCallback? onAlertsOpenRequested;
+
+  /// Class constructor
+  const _OcptScheduleDaySummaryBand({
+    required this.day,
+    required this.blocks,
+    required this.timeline,
+    required this.dayArrivalMinute,
+    required this.sunTimes,
+    required this.alerts,
+    required this.onAlertsOpenRequested,
+  });
+
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final tr = Tr.of(context);
     final shotBlocks = blocks.where((block) => block.kind == OcptShootingBlockKind.shot).length;
@@ -479,34 +531,67 @@ class OcptScheduleDayView extends StatelessWidget {
           // other surface it sits on, the badge takes the user to where it is read in full.
           if (alerts.isNotEmpty)
             OcptScheduleDayAlertBadge(alerts: alerts, onTap: onAlertsOpenRequested),
-          _buildSummaryField(
-            context,
-            tr.scheduleInspectorArrivalToEndLabel,
-            ocptScheduleDayMinuteRangeLabel(dayArrivalMinute, dayEndMinute),
+          _OcptScheduleSummaryField(
+            label: tr.scheduleInspectorArrivalToEndLabel,
+            value: ocptScheduleDayMinuteRangeLabel(dayArrivalMinute, dayEndMinute),
           ),
-          _buildSummaryField(
-            context,
-            tr.scheduleInspectorSunLabel,
-            ocptScheduleSunTimesLine(tr, sunTimes),
+          _OcptScheduleSummaryField(
+            label: tr.scheduleInspectorSunLabel,
+            value: ocptScheduleSunTimesLine(tr, sunTimes),
           ),
-          _buildSummaryField(
-            context,
-            tr.scheduleInspectorWeatherLabel,
-            day.weatherNote.isEmpty ? "—" : day.weatherNote,
+          _OcptScheduleSummaryField(
+            label: tr.scheduleInspectorWeatherLabel,
+            value: day.weatherNote.isEmpty ? "—" : day.weatherNote,
           ),
-          _buildSummaryField(context, tr.scheduleDaySummaryTotalLabel, totalLabel),
+          _OcptScheduleSummaryField(label: tr.scheduleDaySummaryTotalLabel, value: totalLabel),
         ],
       ),
     );
   }
+}
 
-  /// The day's own events band, under the slot cards and their `+ Slot` footer, above the day's
-  /// own crew note — built exactly like the summary band's own container, and drawn only while
-  /// [day] has at least one event or this view may be written to (see `build`'s own guard): a
-  /// previewed day with none draws nothing at all. `OcptScheduleDayEventsList`'s own doc comment
-  /// explains why this band is the day view's only representation of an event, with no marker of
-  /// its own.
-  Widget _buildEventsBand(BuildContext context) {
+/// The day's own events band, under the slot cards and their `+ Slot` footer, above the day's
+/// own crew note — built exactly like the summary band's own container. `OcptScheduleDayEventsList`'s
+/// own doc comment explains why this band is the day view's only representation of an event.
+class _OcptScheduleDayEventsBand extends StatelessWidget {
+  /// The day's live events, ordered by hour.
+  final List<OcptShootingDayEvent> events;
+
+  /// Resolves an event's id to its label as currently held.
+  final String Function(String eventId) eventLabelValueOf;
+
+  /// Resolves an event's id to its notes as currently held.
+  final String Function(String eventId) eventNotesValueOf;
+
+  /// Called when the `+ Event` footer is clicked, or null while withheld.
+  final VoidCallback? onEventAdded;
+
+  /// Called with an event's id and its new minute, or null while withheld.
+  final void Function(String eventId, int minute)? onEventMinuteChanged;
+
+  /// Called with an event's id and its raw label text, or null while withheld.
+  final void Function(String eventId, String rawValue)? onEventLabelChanged;
+
+  /// Called with an event's id and its raw note text, or null while withheld.
+  final void Function(String eventId, String rawValue)? onEventNotesChanged;
+
+  /// Called with an event's id when its remove control is clicked, or null while withheld.
+  final ValueChanged<String>? onEventDeletionRequested;
+
+  /// Class constructor
+  const _OcptScheduleDayEventsBand({
+    required this.events,
+    required this.eventLabelValueOf,
+    required this.eventNotesValueOf,
+    required this.onEventAdded,
+    required this.onEventMinuteChanged,
+    required this.onEventLabelChanged,
+    required this.onEventNotesChanged,
+    required this.onEventDeletionRequested,
+  });
+
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final tr = Tr.of(context);
 
@@ -539,9 +624,21 @@ class OcptScheduleDayView extends StatelessWidget {
       ),
     );
   }
+}
 
-  /// One labelled field of the summary band.
-  Widget _buildSummaryField(BuildContext context, String label, String value) {
+/// One labelled field of the summary band.
+class _OcptScheduleSummaryField extends StatelessWidget {
+  /// The field's caption, drawn in capitals.
+  final String label;
+
+  /// The field's value.
+  final String value;
+
+  /// Class constructor
+  const _OcptScheduleSummaryField({required this.label, required this.value});
+
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
     return Column(

@@ -21,7 +21,7 @@ import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_workspace_episode_l
 /// place, grouped by sequence — mirroring
 /// the mock's `bandeDays`/`unplacedGroups` (`design.html` lines 192-243) — and, on a project
 /// holding more than one episode, further banded by episode above its own sequence sections (see
-/// [_buildUnplacedSections]).
+/// `build`'s own unplaced-shots list).
 ///
 /// Every writing affordance is a nullable callback, withheld while a project version is being
 /// previewed: [onDayCreated] (the `+ New day` control above the list), [onDayDateChangeRequested],
@@ -190,7 +190,39 @@ class OcptScheduleLeftDock extends StatelessWidget {
                     ],
                   ),
                 ),
-                ..._buildUnplacedSections(tr),
+                // One [_OcptScheduleUnplacedGroupSection] per group of [unplacedGroups], banded by
+                // episode ([OcptScheduleEpisodeBand]) while [episodes] holds more than one. A
+                // single-episode project names no episode anywhere (ADR 0019), so with one episode
+                // or none this reads flat, and an episode left with nothing to place draws no band
+                // at all — a band over nothing would read as a heading that lies, the same argument
+                // the elements grid's own category band makes (`docs/architecture/schedule.md`).
+                if (episodes.length <= 1)
+                  for (final group in unplacedGroups)
+                    _OcptScheduleUnplacedGroupSection(
+                      group: group,
+                      selectedShotId: selectedShotId,
+                      onShotSelected: onShotSelected,
+                    )
+                else
+                  for (final episode in episodes)
+                    if (_groupsOf(episode.id) case final episodeGroups
+                        when episodeGroups.isNotEmpty) ...[
+                      // The band insets itself horizontally by nothing, so this list frames it in
+                      // the very padding its own sequence sections carry — see
+                      // [OcptScheduleEpisodeBand]'s doc comment.
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: OcptScheduleEpisodeBand(
+                          label: ocptWorkspaceEpisodeLabelOf(tr, episode),
+                        ),
+                      ),
+                      for (final group in episodeGroups)
+                        _OcptScheduleUnplacedGroupSection(
+                          group: group,
+                          selectedShotId: selectedShotId,
+                          onShotSelected: onShotSelected,
+                        ),
+                    ],
                 const SizedBox(height: 12),
               ],
             ),
@@ -202,43 +234,6 @@ class OcptScheduleLeftDock extends StatelessWidget {
 
   /// The total number of shots across every [unplacedGroups] entry.
   int get _totalUnplacedCount => unplacedGroups.fold(0, (sum, group) => sum + group.shots.length);
-
-  /// The unplaced-shots section's own body: one [_OcptScheduleUnplacedGroupSection] per group of
-  /// [unplacedGroups], banded by episode ([OcptScheduleEpisodeBand]) while [episodes] holds more
-  /// than one. A single-episode project names no episode anywhere (ADR 0019), so with one episode
-  /// or none this reads exactly as it always has, flat, and an episode left with nothing to place
-  /// draws no band at all — a band over nothing would read as a heading that lies, the same
-  /// argument the elements grid's own category band makes (`docs/architecture/schedule.md`).
-  List<Widget> _buildUnplacedSections(Tr tr) {
-    if (episodes.length <= 1) {
-      return [
-        for (final group in unplacedGroups)
-          _OcptScheduleUnplacedGroupSection(
-            group: group,
-            selectedShotId: selectedShotId,
-            onShotSelected: onShotSelected,
-          ),
-      ];
-    }
-
-    return [
-      for (final episode in episodes)
-        if (_groupsOf(episode.id) case final episodeGroups when episodeGroups.isNotEmpty) ...[
-          // The band insets itself horizontally by nothing, so this list frames it in the very
-          // padding its own sequence sections carry — see [OcptScheduleEpisodeBand]'s doc comment.
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: OcptScheduleEpisodeBand(label: ocptWorkspaceEpisodeLabelOf(tr, episode)),
-          ),
-          for (final group in episodeGroups)
-            _OcptScheduleUnplacedGroupSection(
-              group: group,
-              selectedShotId: selectedShotId,
-              onShotSelected: onShotSelected,
-            ),
-        ],
-    ];
-  }
 
   /// [unplacedGroups] narrowed to the ones belonging to episode [screenplayId], in their own
   /// order.

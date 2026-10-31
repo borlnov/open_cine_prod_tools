@@ -106,19 +106,136 @@ class OcptScheduleHeader extends StatelessWidget {
                   labelOf: (mode) => ocptScheduleAgendaModeLabel(Tr.of(context), mode),
                   onChanged: onAgendaModeSelected,
                 ),
-              if (showNav) _buildNav(context),
+              if (showNav)
+                _OcptScheduleNav(
+                  agendaMode: agendaMode,
+                  agendaAnchorDate: agendaAnchorDate,
+                  firstWeekday: firstWeekday,
+                  onAgendaAnchorDateChanged: onAgendaAnchorDateChanged,
+                ),
             ],
           ),
-          if (showColorBy) ...[const SizedBox(height: 8), _buildColorBy(context)],
+          if (showColorBy) ...[
+            const SizedBox(height: 8),
+            _OcptScheduleColorBy(
+              agendaColorMode: agendaColorMode,
+              onAgendaColorModeSelected: onAgendaColorModeSelected,
+            ),
+          ],
         ],
       ),
     );
   }
+}
 
-  /// The "Colour by" row: its own label, the `Location`/`Effect` segmented control, and — only
-  /// while [agendaColorMode] is [OcptScheduleAgendaColorMode.effect] — the legend teaching a reader
-  /// what each of the five washes means.
-  Widget _buildColorBy(BuildContext context) {
+/// A small bordered rounded segmented control over an arbitrary enum [T], the active segment
+/// filled `primary` and bolder — the shared shape of `OcptScheduleHeader`'s own two switches,
+/// mirroring `OcptBreakdownHeader`'s own private `_OcptBreakdownViewSwitch`.
+class _OcptScheduleSegmentedSwitch<T> extends StatelessWidget {
+  /// The switch's own current value.
+  final T value;
+
+  /// Every value the switch offers, in display order.
+  final List<T> values;
+
+  /// The display label of a value.
+  final String Function(T value) labelOf;
+
+  /// Called with the segment just clicked, when it differs from [value].
+  final ValueChanged<T> onChanged;
+
+  /// Class constructor
+  const _OcptScheduleSegmentedSwitch({
+    required this.value,
+    required this.values,
+    required this.labelOf,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Container(
+      padding: const EdgeInsets.all(2),
+      decoration: BoxDecoration(
+        border: Border.all(color: theme.colorScheme.outlineVariant),
+        borderRadius: BorderRadius.circular(ocptRadiusMedium),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          for (final segment in values)
+            _OcptScheduleSegment(
+              label: labelOf(segment),
+              isActive: value == segment,
+              onTap: value == segment ? null : () => onChanged(segment),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+/// The compact legend `OcptScheduleHeader` shows beside its own "Colour by" control while
+/// [OcptScheduleAgendaColorMode.effect] is active: one swatch and label per
+/// [OcptSceneEffectCategory], in declaration order — the four categories, then
+/// [OcptSceneEffectCategory.mixed] last, so a reader meets the wash that means "these disagree"
+/// only after meeting the four it disagrees among. Read-only, like every other row of this
+/// control: there is nothing here to click.
+class _OcptScheduleEffectLegend extends StatelessWidget {
+  /// Class constructor
+  const _OcptScheduleEffectLegend();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final tr = Tr.of(context);
+
+    return Wrap(
+      crossAxisAlignment: WrapCrossAlignment.center,
+      spacing: 10,
+      runSpacing: 4,
+      children: [
+        for (final category in OcptSceneEffectCategory.values)
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 8,
+                height: 8,
+                decoration: BoxDecoration(
+                  color: ocptScheduleDayEffectTint(context, category),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(width: 4),
+              Text(ocptSceneEffectCategoryLabel(tr, category), style: theme.textTheme.labelSmall),
+            ],
+          ),
+      ],
+    );
+  }
+}
+
+/// The "Colour by" row: its own label, the `Location`/`Effect` segmented control, and — only
+/// while [agendaColorMode] is [OcptScheduleAgendaColorMode.effect] — the legend teaching a reader
+/// what each of the five washes means.
+class _OcptScheduleColorBy extends StatelessWidget {
+  /// What fact the agenda currently tints a day with.
+  final OcptScheduleAgendaColorMode agendaColorMode;
+
+  /// Called with the colour mode just picked.
+  final ValueChanged<OcptScheduleAgendaColorMode> onAgendaColorModeSelected;
+
+  /// Class constructor
+  const _OcptScheduleColorBy({
+    required this.agendaColorMode,
+    required this.onAgendaColorModeSelected,
+  });
+
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final tr = Tr.of(context);
 
@@ -142,9 +259,32 @@ class OcptScheduleHeader extends StatelessWidget {
       ],
     );
   }
+}
 
-  /// The previous/next/today paging row, shown only for the week and month presentations.
-  Widget _buildNav(BuildContext context) {
+/// The previous/next/today paging row, shown only for the week and month presentations.
+class _OcptScheduleNav extends StatelessWidget {
+  /// Which of the three agenda presentations is currently active.
+  final OcptScheduleAgendaMode agendaMode;
+
+  /// The date the week/month agenda currently pages through.
+  final DateTime agendaAnchorDate;
+
+  /// Which day a week starts on.
+  final OcptFirstWeekday firstWeekday;
+
+  /// Called with the new anchor date once previous/next/today is clicked.
+  final ValueChanged<DateTime> onAgendaAnchorDateChanged;
+
+  /// Class constructor
+  const _OcptScheduleNav({
+    required this.agendaMode,
+    required this.agendaAnchorDate,
+    required this.firstWeekday,
+    required this.onAgendaAnchorDateChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final tr = Tr.of(context);
     final isWeek = agendaMode == OcptScheduleAgendaMode.week;
@@ -202,54 +342,26 @@ class OcptScheduleHeader extends StatelessWidget {
   }
 }
 
-/// A small bordered rounded segmented control over an arbitrary enum [T], the active segment
-/// filled `primary` and bolder — the shared shape of `OcptScheduleHeader`'s own two switches,
-/// mirroring `OcptBreakdownHeader`'s own private `_OcptBreakdownViewSwitch`.
-class _OcptScheduleSegmentedSwitch<T> extends StatelessWidget {
-  /// The switch's own current value.
-  final T value;
+/// One of [_OcptScheduleSegmentedSwitch]'s own segments.
+class _OcptScheduleSegment extends StatelessWidget {
+  /// The segment's own display label.
+  final String label;
 
-  /// Every value the switch offers, in display order.
-  final List<T> values;
+  /// Whether the segment is the switch's current value: it is then filled and not clickable.
+  final bool isActive;
 
-  /// The display label of a value.
-  final String Function(T value) labelOf;
-
-  /// Called with the segment just clicked, when it differs from [value].
-  final ValueChanged<T> onChanged;
+  /// Called once the segment is clicked; null while [isActive].
+  final VoidCallback? onTap;
 
   /// Class constructor
-  const _OcptScheduleSegmentedSwitch({
-    required this.value,
-    required this.values,
-    required this.labelOf,
-    required this.onChanged,
-  });
+  const _OcptScheduleSegment({required this.label, required this.isActive, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return Container(
-      padding: const EdgeInsets.all(2),
-      decoration: BoxDecoration(
-        border: Border.all(color: theme.colorScheme.outlineVariant),
-        borderRadius: BorderRadius.circular(ocptRadiusMedium),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [for (final segment in values) _buildSegment(context, segment)],
-      ),
-    );
-  }
-
-  /// One of the switch's own segments.
-  Widget _buildSegment(BuildContext context, T segment) {
-    final theme = Theme.of(context);
-    final isActive = value == segment;
-
     return InkWell(
-      onTap: isActive ? null : () => onChanged(segment),
+      onTap: onTap,
       mouseCursor: ocptClickableCursor,
       borderRadius: BorderRadius.circular(ocptRadiusSmall),
       child: Container(
@@ -261,54 +373,13 @@ class _OcptScheduleSegmentedSwitch<T> extends StatelessWidget {
           borderRadius: BorderRadius.circular(ocptRadiusSmall),
         ),
         child: Text(
-          labelOf(segment),
+          label,
           style: theme.textTheme.labelMedium?.copyWith(
             color: isActive ? theme.colorScheme.primary : theme.colorScheme.onSurfaceVariant,
             fontWeight: isActive ? FontWeight.w700 : FontWeight.normal,
           ),
         ),
       ),
-    );
-  }
-}
-
-/// The compact legend `OcptScheduleHeader` shows beside its own "Colour by" control while
-/// [OcptScheduleAgendaColorMode.effect] is active: one swatch and label per
-/// [OcptSceneEffectCategory], in declaration order — the four categories, then
-/// [OcptSceneEffectCategory.mixed] last, so a reader meets the wash that means "these disagree"
-/// only after meeting the four it disagrees among. Read-only, like every other row of this
-/// control: there is nothing here to click.
-class _OcptScheduleEffectLegend extends StatelessWidget {
-  /// Class constructor
-  const _OcptScheduleEffectLegend();
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final tr = Tr.of(context);
-
-    return Wrap(
-      crossAxisAlignment: WrapCrossAlignment.center,
-      spacing: 10,
-      runSpacing: 4,
-      children: [
-        for (final category in OcptSceneEffectCategory.values)
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 8,
-                height: 8,
-                decoration: BoxDecoration(
-                  color: ocptScheduleDayEffectTint(context, category),
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-              const SizedBox(width: 4),
-              Text(ocptSceneEffectCategoryLabel(tr, category), style: theme.textTheme.labelSmall),
-            ],
-          ),
-      ],
     );
   }
 }

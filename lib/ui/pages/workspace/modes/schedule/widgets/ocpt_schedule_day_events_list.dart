@@ -88,7 +88,16 @@ class OcptScheduleDayEventsList extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        for (final event in events) _buildEventRow(context, event),
+        for (final event in events)
+          _OcptScheduleDayEventRow(
+            event: event,
+            eventLabelValueOf: eventLabelValueOf,
+            eventNotesValueOf: eventNotesValueOf,
+            onEventMinuteChanged: onEventMinuteChanged,
+            onEventLabelChanged: onEventLabelChanged,
+            onEventNotesChanged: onEventNotesChanged,
+            onEventDeletionRequested: onEventDeletionRequested,
+          ),
         if (onEventAdded != null)
           OutlinedButton.icon(
             onPressed: onEventAdded,
@@ -98,10 +107,45 @@ class OcptScheduleDayEventsList extends StatelessWidget {
       ],
     );
   }
+}
 
-  /// One event's own row: its hour and label on one line, its note (when it has one, or is
-  /// editable) indented under the label on the next.
-  Widget _buildEventRow(BuildContext context, OcptShootingDayEvent event) {
+/// One event's own row: its hour and label on one line, its note (when it has one, or is
+/// editable) indented under the label on the next.
+class _OcptScheduleDayEventRow extends StatelessWidget {
+  /// The event this row shows.
+  final OcptShootingDayEvent event;
+
+  /// Resolves an event's id to its label as currently held.
+  final String Function(String eventId) eventLabelValueOf;
+
+  /// Resolves an event's id to its notes as currently held.
+  final String Function(String eventId) eventNotesValueOf;
+
+  /// Called with an event's id and its new minute, or null while withheld.
+  final void Function(String eventId, int minute)? onEventMinuteChanged;
+
+  /// Called with an event's id and its raw label text, or null while withheld.
+  final void Function(String eventId, String rawValue)? onEventLabelChanged;
+
+  /// Called with an event's id and its raw note text, or null while withheld.
+  final void Function(String eventId, String rawValue)? onEventNotesChanged;
+
+  /// Called with an event's id when its remove control is clicked, or null while withheld.
+  final ValueChanged<String>? onEventDeletionRequested;
+
+  /// Class constructor
+  const _OcptScheduleDayEventRow({
+    required this.event,
+    required this.eventLabelValueOf,
+    required this.eventNotesValueOf,
+    required this.onEventMinuteChanged,
+    required this.onEventLabelChanged,
+    required this.onEventNotesChanged,
+    required this.onEventDeletionRequested,
+  });
+
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final tr = Tr.of(context);
     final labelValue = eventLabelValueOf(event.id);

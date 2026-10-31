@@ -20,6 +20,7 @@ import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_day_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_status.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_day_events_list.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_shot_status_control.dart';
 import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_schedule_labels.dart';
 import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_shot_list_labels.dart';
 
@@ -201,12 +202,28 @@ class OcptScheduleInspector extends StatelessWidget {
   Widget build(BuildContext context) {
     final block = this.block;
     if (block != null) {
-      return _buildBlockInspector(context, block);
+      return _OcptScheduleBlockInspector(
+        block: block,
+        blockShot: blockShot,
+        blockSlotLabel: blockSlotLabel,
+        blockEntry: blockEntry,
+        onShotStatusChanged: onShotStatusChanged,
+        onBlockDurationChanged: onBlockDurationChanged,
+        blockCrewNoteValue: blockCrewNoteValue,
+        onBlockCrewNoteChanged: onBlockCrewNoteChanged,
+        blockNotesValue: blockNotesValue,
+        onBlockNotesChanged: onBlockNotesChanged,
+      );
     }
 
     final shot = this.shot;
     if (shot != null) {
-      return _buildShotInspector(context, shot);
+      return _OcptScheduleShotInspector(
+        shot: shot,
+        shotSequenceLabel: shotSequenceLabel,
+        shotPlacedDayNumbers: shotPlacedDayNumbers,
+        onShotStatusChanged: onShotStatusChanged,
+      );
     }
 
     final day = this.day;
@@ -225,13 +242,121 @@ class OcptScheduleInspector extends StatelessWidget {
       );
     }
 
-    return _buildDayInspector(context, day);
+    return _OcptScheduleDayInspector(
+      day: day,
+      slots: slots,
+      locationById: locationById,
+      setById: setById,
+      timeline: timeline,
+      dayArrivalMinute: dayArrivalMinute,
+      sunTimes: sunTimes,
+      crewNoteValue: crewNoteValue,
+      weatherNoteValue: weatherNoteValue,
+      events: events,
+      eventLabelValueOf: eventLabelValueOf,
+      eventNotesValueOf: eventNotesValueOf,
+      onEventAdded: onEventAdded,
+      onEventMinuteChanged: onEventMinuteChanged,
+      onEventLabelChanged: onEventLabelChanged,
+      onEventNotesChanged: onEventNotesChanged,
+      onEventDeletionRequested: onEventDeletionRequested,
+      onDayStatusChanged: onDayStatusChanged,
+      onCrewNoteChanged: onCrewNoteChanged,
+      onWeatherNoteChanged: onWeatherNoteChanged,
+    );
   }
+}
 
-  /// The day inspector: date, status, locations, sets, slots, the arrival → the estimated end,
-  /// the sun times and the UTC offset they were computed with, its own events, weather note, crew
-  /// note.
-  Widget _buildDayInspector(BuildContext context, OcptShootingDay day) {
+/// The day inspector: date, status, locations, sets, slots, the arrival → the estimated end,
+/// the sun times and the UTC offset they were computed with, its own events, weather note, crew
+/// note.
+class _OcptScheduleDayInspector extends StatelessWidget {
+  /// The selected day.
+  final OcptShootingDay day;
+
+  /// The day's live slots, in `sortKey` order.
+  final List<OcptShootingSlot> slots;
+
+  /// The whole location catalogue, keyed by id.
+  final Map<String, OcptLocation> locationById;
+
+  /// The whole set catalogue, keyed by id.
+  final Map<String, OcptSet> setById;
+
+  /// The day's computed timetable, or null while nothing is placed.
+  final OcptShootingDayTimelines? timeline;
+
+  /// The day's earliest arrival, or null while it has no live slot.
+  final int? dayArrivalMinute;
+
+  /// The day's computed sun times, or null while unknown.
+  final OcptSunTimes? sunTimes;
+
+  /// The day's crew note, as currently held.
+  final String crewNoteValue;
+
+  /// The day's weather note, as currently held.
+  final String weatherNoteValue;
+
+  /// The day's live events, ordered by hour.
+  final List<OcptShootingDayEvent> events;
+
+  /// Resolves an event's id to its label as currently held.
+  final String Function(String eventId) eventLabelValueOf;
+
+  /// Resolves an event's id to its notes as currently held.
+  final String Function(String eventId) eventNotesValueOf;
+
+  /// Called when the `+ Event` footer is clicked, or null while withheld.
+  final VoidCallback? onEventAdded;
+
+  /// Called with an event's id and its new minute, or null while withheld.
+  final void Function(String eventId, int minute)? onEventMinuteChanged;
+
+  /// Called with an event's id and its raw label text, or null while withheld.
+  final void Function(String eventId, String rawValue)? onEventLabelChanged;
+
+  /// Called with an event's id and its raw note text, or null while withheld.
+  final void Function(String eventId, String rawValue)? onEventNotesChanged;
+
+  /// Called with an event's id when its remove control is clicked, or null while withheld.
+  final ValueChanged<String>? onEventDeletionRequested;
+
+  /// Called with the status just picked, or null while withheld.
+  final ValueChanged<OcptShootingDayStatus>? onDayStatusChanged;
+
+  /// Called with the crew note's raw text, or null while withheld.
+  final ValueChanged<String>? onCrewNoteChanged;
+
+  /// Called with the weather note's raw text, or null while withheld.
+  final ValueChanged<String>? onWeatherNoteChanged;
+
+  /// Class constructor
+  const _OcptScheduleDayInspector({
+    required this.day,
+    required this.slots,
+    required this.locationById,
+    required this.setById,
+    required this.timeline,
+    required this.dayArrivalMinute,
+    required this.sunTimes,
+    required this.crewNoteValue,
+    required this.weatherNoteValue,
+    required this.events,
+    required this.eventLabelValueOf,
+    required this.eventNotesValueOf,
+    required this.onEventAdded,
+    required this.onEventMinuteChanged,
+    required this.onEventLabelChanged,
+    required this.onEventNotesChanged,
+    required this.onEventDeletionRequested,
+    required this.onDayStatusChanged,
+    required this.onCrewNoteChanged,
+    required this.onWeatherNoteChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final tr = Tr.of(context);
     final dateLabel = DateFormat.yMMMEd(
@@ -369,11 +494,58 @@ class OcptScheduleInspector extends StatelessWidget {
       ],
     );
   }
+}
 
-  /// The block inspector: kind, (for a shot) its own code/size/characters and status control, the
-  /// computed start/end/duration, its own slot, its crew note (the one that prints) and its
-  /// private notes (the one that never does).
-  Widget _buildBlockInspector(BuildContext context, OcptShootingDayBlock block) {
+/// The block inspector: kind, (for a shot) its own code/size/characters and status control, the
+/// computed start/end/duration, its own slot, its crew note (the one that prints) and its
+/// private notes (the one that never does).
+class _OcptScheduleBlockInspector extends StatelessWidget {
+  /// The selected block.
+  final OcptShootingDayBlock block;
+
+  /// The shot [block] names, when it is a shot block.
+  final OcptShot? blockShot;
+
+  /// The label of the slot [block] sits in, or null while it sits in none.
+  final String? blockSlotLabel;
+
+  /// [block]'s computed timeline entry, or null while the day has no timeline yet.
+  final OcptShootingTimelineEntry? blockEntry;
+
+  /// Called with the status just picked for [blockShot], or null while withheld.
+  final ValueChanged<OcptShotStatus>? onShotStatusChanged;
+
+  /// Called with the new duration in minutes, or null while withheld.
+  final ValueChanged<int>? onBlockDurationChanged;
+
+  /// The block's crew note, as currently held.
+  final String blockCrewNoteValue;
+
+  /// Called with the crew note's raw text, or null while withheld.
+  final ValueChanged<String>? onBlockCrewNoteChanged;
+
+  /// The block's private notes, as currently held.
+  final String blockNotesValue;
+
+  /// Called with the notes' raw text, or null while withheld.
+  final ValueChanged<String>? onBlockNotesChanged;
+
+  /// Class constructor
+  const _OcptScheduleBlockInspector({
+    required this.block,
+    required this.blockShot,
+    required this.blockSlotLabel,
+    required this.blockEntry,
+    required this.onShotStatusChanged,
+    required this.onBlockDurationChanged,
+    required this.blockCrewNoteValue,
+    required this.onBlockCrewNoteChanged,
+    required this.blockNotesValue,
+    required this.onBlockNotesChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final tr = Tr.of(context);
     final blockShot = this.blockShot;
@@ -399,7 +571,10 @@ class OcptScheduleInspector extends StatelessWidget {
             ),
           _OcptScheduleInspectorSection(
             label: tr.scheduleInspectorShotStatusLabel,
-            child: _buildShotStatusControl(context, blockShot.status),
+            child: OcptScheduleShotStatusControl(
+              status: blockShot.status,
+              onChanged: onShotStatusChanged,
+            ),
           ),
         ] else if (block.label.isNotEmpty)
           _OcptScheduleInspectorSection(
@@ -450,12 +625,35 @@ class OcptScheduleInspector extends StatelessWidget {
       ],
     );
   }
+}
 
-  /// The shot inspector: the top title is the very label a shot block itself wears
-  /// ([ocptShootingBlockKindLabel] of [OcptShootingBlockKind.shot]), then its own code/size, its
-  /// sequence, its characters (when it has any), its estimated duration, where it is placed, and
-  /// its status control — the same one [_buildBlockInspector] uses.
-  Widget _buildShotInspector(BuildContext context, OcptShot shot) {
+/// The shot inspector: the top title is the very label a shot block itself wears
+/// ([ocptShootingBlockKindLabel] of [OcptShootingBlockKind.shot]), then its own code/size, its
+/// sequence, its characters (when it has any), its estimated duration, where it is placed, and
+/// its status control — the same one [_OcptScheduleBlockInspector] uses.
+class _OcptScheduleShotInspector extends StatelessWidget {
+  /// The selected shot.
+  final OcptShot shot;
+
+  /// [shot]'s sequence, as the left dock heads it.
+  final String? shotSequenceLabel;
+
+  /// The day numbers [shot] is placed on, in ascending order.
+  final List<int> shotPlacedDayNumbers;
+
+  /// Called with the status just picked, or null while withheld.
+  final ValueChanged<OcptShotStatus>? onShotStatusChanged;
+
+  /// Class constructor
+  const _OcptScheduleShotInspector({
+    required this.shot,
+    required this.shotSequenceLabel,
+    required this.shotPlacedDayNumbers,
+    required this.onShotStatusChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final tr = Tr.of(context);
 
@@ -498,46 +696,9 @@ class OcptScheduleInspector extends StatelessWidget {
         ),
         _OcptScheduleInspectorSection(
           label: tr.scheduleInspectorShotStatusLabel,
-          child: _buildShotStatusControl(context, shot.status),
+          child: OcptScheduleShotStatusControl(status: shot.status, onChanged: onShotStatusChanged),
         ),
       ],
-    );
-  }
-
-  /// The shot status control: plain text while [onShotStatusChanged] is withheld, a picker
-  /// otherwise — shared by [_buildBlockInspector] (for the block's own shot) and
-  /// [_buildShotInspector] (for the selected shot itself), the very same column either way
-  /// (`shots.status`).
-  Widget _buildShotStatusControl(BuildContext context, OcptShotStatus status) {
-    final theme = Theme.of(context);
-    final tr = Tr.of(context);
-    final onShotStatusChanged = this.onShotStatusChanged;
-
-    if (onShotStatusChanged == null) {
-      return Text(ocptShotStatusLabel(tr, status), style: theme.textTheme.bodySmall);
-    }
-
-    return PopupMenuButton<OcptShotStatus>(
-      tooltip: "",
-      onSelected: onShotStatusChanged,
-      itemBuilder: (context) => [
-        for (final candidate in OcptShotStatus.values)
-          PopupMenuItem<OcptShotStatus>(
-            value: candidate,
-            child: Text(ocptShotStatusLabel(tr, candidate)),
-          ),
-      ],
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            ocptShotStatusLabel(tr, status),
-            style: theme.textTheme.bodySmall?.copyWith(color: ocptShotStatusColor(context, status)),
-          ),
-          const SizedBox(width: 4),
-          const Icon(Icons.arrow_drop_down, size: 16),
-        ],
-      ),
     );
   }
 }

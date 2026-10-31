@@ -146,15 +146,24 @@ class _OcptScheduleShotPickerDialogState extends State<OcptScheduleShotPickerDia
             ConstrainedBox(
               constraints: const BoxConstraints(maxHeight: _ocptScheduleShotPickerMaxListHeight),
               child: !hasAnyShot
-                  ? _buildHint(context, tr.scheduleShotPickerEmptyHint)
+                  ? _OcptScheduleShotPickerHint(message: tr.scheduleShotPickerEmptyHint)
                   : (filteredSections.isEmpty
-                        ? _buildHint(context, tr.scheduleShotPickerNoResultsHint)
+                        ? _OcptScheduleShotPickerHint(message: tr.scheduleShotPickerNoResultsHint)
                         : SingleChildScrollView(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                for (final section in filteredSections)
-                                  ..._buildEpisodeSection(context, tr, section),
+                                for (final section in filteredSections) ...[
+                                  // No band at all while the project holds one episode or none,
+                                  // or while the section names none of them.
+                                  if (_episodeBandLabelOf(tr, section) case final label?)
+                                    OcptScheduleEpisodeBand(label: label),
+                                  for (final sequence in section.sequences)
+                                    _OcptScheduleShotPickerSequenceSection(
+                                      sequence: sequence,
+                                      placedDayNumbersByShotId: widget.placedDayNumbersByShotId,
+                                    ),
+                                ],
                               ],
                             ),
                           )),
@@ -223,7 +232,7 @@ class _OcptScheduleShotPickerDialogState extends State<OcptScheduleShotPickerDia
 
   /// [sequence] with its own shots replaced by [shots] — narrows a sequence down to its matching
   /// shots without losing which subclass (a real scene or the orphan group) it is, which is what
-  /// [_buildSequenceSection] reads its own heading off.
+  /// [_OcptScheduleShotPickerSequenceSection] reads its own heading off.
   OcptShotSequence _narrowedTo(OcptShotSequence sequence, List<OcptShot> shots) =>
       switch (sequence) {
         OcptSceneShotSequence() => OcptSceneShotSequence(
@@ -238,38 +247,44 @@ class _OcptScheduleShotPickerDialogState extends State<OcptScheduleShotPickerDia
         OcptOrphanShotSequence() => OcptOrphanShotSequence(shots: shots),
       };
 
-  /// One episode's own run of sections: an [OcptScheduleEpisodeBand] naming it — the same reading
-  /// the left dock's own list gives it — over each of its own sequences still matching the search,
-  /// or no band at all while [OcptScheduleShotPickerDialog.episodes] holds one episode or none
-  /// (ADR 0019) or [section]'s own [_OcptScheduleShotPickerSection.screenplayId] names none of
-  /// them (a stale id mid-reload, read the same defensive way `ocptEpisodePrefixNumberOf` does).
-  List<Widget> _buildEpisodeSection(
-    BuildContext context,
-    Tr tr,
-    _OcptScheduleShotPickerSection section,
-  ) {
-    final widgets = <Widget>[];
-
+  /// The label of the [OcptScheduleEpisodeBand] naming [section]'s episode — the same reading the
+  /// left dock's own list gives it — or null for no band at all while
+  /// [OcptScheduleShotPickerDialog.episodes] holds one episode or none (ADR 0019) or [section]'s
+  /// own [_OcptScheduleShotPickerSection.screenplayId] names none of them (a stale id mid-reload,
+  /// read the same defensive way `ocptEpisodePrefixNumberOf` does).
+  String? _episodeBandLabelOf(Tr tr, _OcptScheduleShotPickerSection section) {
     if (widget.episodes.length > 1) {
       for (final episode in widget.episodes) {
         if (episode.id == section.screenplayId) {
-          widgets.add(OcptScheduleEpisodeBand(label: ocptWorkspaceEpisodeLabelOf(tr, episode)));
-          break;
+          return ocptWorkspaceEpisodeLabelOf(tr, episode);
         }
       }
     }
 
-    for (final sequence in section.sequences) {
-      widgets.add(_buildSequenceSection(context, tr, sequence));
-    }
-
-    return widgets;
+    return null;
   }
+}
 
-  /// One sequence's own section: its heading — the same reading the left dock's own unplaced-shots
-  /// list gives a sequence — over its shots, each a clickable row.
-  Widget _buildSequenceSection(BuildContext context, Tr tr, OcptShotSequence sequence) {
+/// One sequence's own section: its heading — the same reading the left dock's own unplaced-shots
+/// list gives a sequence — over its shots, each a clickable row.
+class _OcptScheduleShotPickerSequenceSection extends StatelessWidget {
+  /// The sequence drawn, already narrowed to its matching shots.
+  final OcptShotSequence sequence;
+
+  /// The day numbers each shot is already placed on, keyed by shot id.
+  final Map<String, List<int>> placedDayNumbersByShotId;
+
+  /// Class constructor
+  const _OcptScheduleShotPickerSequenceSection({
+    required this.sequence,
+    required this.placedDayNumbersByShotId,
+  });
+
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final tr = Tr.of(context);
+    final sequence = this.sequence;
     final displaySceneNumber = sequence is OcptSceneShotSequence
         ? sequence.displaySceneNumber
         : null;
@@ -308,17 +323,35 @@ class _OcptScheduleShotPickerDialogState extends State<OcptScheduleShotPickerDia
             ],
           ),
           const SizedBox(height: 4),
-          for (final shot in sequence.shots) _buildShotRow(context, tr, theme, shot),
+          for (final shot in sequence.shots)
+            _OcptScheduleShotPickerShotRow(
+              shot: shot,
+              dayNumbers: placedDayNumbersByShotId[shot.id],
+            ),
         ],
       ),
     );
   }
+}
 
-  /// One shot's own row: its code, its shot size, its duration and — while already placed — its
-  /// day tags, muted, with a tooltip saying so. The mark is information, never a bar: the row stays
-  /// clickable either way.
-  Widget _buildShotRow(BuildContext context, Tr tr, ThemeData theme, OcptShot shot) {
-    final dayNumbers = widget.placedDayNumbersByShotId[shot.id];
+/// One shot's own row: its code, its shot size, its duration and — while already placed — its
+/// day tags, muted, with a tooltip saying so. The mark is information, never a bar: the row stays
+/// clickable either way.
+class _OcptScheduleShotPickerShotRow extends StatelessWidget {
+  /// The shot the row picks.
+  final OcptShot shot;
+
+  /// The day numbers [shot] is already placed on, or null while it is placed nowhere.
+  final List<int>? dayNumbers;
+
+  /// Class constructor
+  const _OcptScheduleShotPickerShotRow({required this.shot, required this.dayNumbers});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final tr = Tr.of(context);
+    final dayNumbers = this.dayNumbers;
     final isPlaced = dayNumbers != null && dayNumbers.isNotEmpty;
     final mutedStyle = theme.textTheme.labelSmall?.copyWith(
       color: theme.colorScheme.onSurfaceVariant,
@@ -363,10 +396,19 @@ class _OcptScheduleShotPickerDialogState extends State<OcptScheduleShotPickerDia
       ),
     );
   }
+}
 
-  /// A hint filling the list's own area, for either empty state (no shot at all, or a search
-  /// matching nothing).
-  Widget _buildHint(BuildContext context, String message) => Padding(
+/// A hint filling the list's own area, for either empty state (no shot at all, or a search
+/// matching nothing).
+class _OcptScheduleShotPickerHint extends StatelessWidget {
+  /// The hint's text.
+  final String message;
+
+  /// Class constructor
+  const _OcptScheduleShotPickerHint({required this.message});
+
+  @override
+  Widget build(BuildContext context) => Padding(
     padding: const EdgeInsets.symmetric(vertical: 16),
     child: Text(
       message,
