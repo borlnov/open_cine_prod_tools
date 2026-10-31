@@ -43,6 +43,21 @@ class _ModeEvent extends BlocEventForMixin {
   List<Object?> get props => [...super.props, isSelection];
 }
 
+/// Puts the double mode's epochs at given values, whichever way that moves them.
+class _ModeSetEpochsEvent extends BlocEventForMixin {
+  /// The `reloadEpoch` to emit.
+  final int reloadEpoch;
+
+  /// The `selectionEpoch` to emit.
+  final int selectionEpoch;
+
+  /// Class constructor
+  const _ModeSetEpochsEvent({required this.reloadEpoch, required this.selectionEpoch});
+
+  @override
+  List<Object?> get props => [...super.props, reloadEpoch, selectionEpoch];
+}
+
 /// A mode bloc moving its epochs on demand, flushing its views and doing no other work.
 class _ModeBloc extends BlocForMixin<_ModeState> with MixinOcptModeBloc<_ModeState> {
   /// Class constructor
@@ -51,6 +66,10 @@ class _ModeBloc extends BlocForMixin<_ModeState> with MixinOcptModeBloc<_ModeSta
   @override
   void registerMixinEvents() {
     super.registerMixinEvents();
+    on<_ModeSetEpochsEvent>(
+      (event, emitter) =>
+          emitter(_ModeState(reloadEpoch: event.reloadEpoch, selectionEpoch: event.selectionEpoch)),
+    );
     on<_ModeEvent>(
       (event, emitter) => emitter(
         event.isSelection
@@ -190,6 +209,26 @@ void main() {
     await view.close();
     await mode.close();
   });
+
+  test(
+    'an epoch that goes down is not a move, and the next rise is measured from the top',
+    () async {
+      final mode = _ModeBloc();
+      final view = _ViewBloc(modeBloc: mode, sink: []);
+
+      mode.add(const _ModeSetEpochsEvent(reloadEpoch: 3, selectionEpoch: 3));
+      await pumpEventQueue();
+      mode.add(const _ModeSetEpochsEvent(reloadEpoch: 2, selectionEpoch: 2));
+      await pumpEventQueue();
+      mode.add(const _ModeSetEpochsEvent(reloadEpoch: 3, selectionEpoch: 4));
+      await pumpEventQueue();
+
+      expect(view.state.reactions, ['both', 'selection']);
+
+      await view.close();
+      await mode.close();
+    },
+  );
 
   test('a view built after the mode changed takes its epochs as the baseline', () async {
     final mode = _ModeBloc();

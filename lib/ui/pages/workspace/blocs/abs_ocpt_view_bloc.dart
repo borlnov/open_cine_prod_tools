@@ -85,8 +85,10 @@ abstract class AbsOcptViewBloc<
 
   /// Turns an epoch moving in the mode's state into [OcptViewModeStateChangedEvent].
   void _onModeState(MS modeState) {
-    final hasReloaded = modeState.reloadEpoch != _lastReloadEpoch;
-    final hasSelectionMoved = modeState.selectionEpoch != _lastSelectionEpoch;
+    // Only an epoch that grew is a move: a state older than one already seen (a handler that
+    // emitted from a copy taken before it waited) carries a lower epoch, and is not news.
+    final hasReloaded = modeState.reloadEpoch > _lastReloadEpoch;
+    final hasSelectionMoved = modeState.selectionEpoch > _lastSelectionEpoch;
     if (!hasReloaded && !hasSelectionMoved) {
       return;
     }

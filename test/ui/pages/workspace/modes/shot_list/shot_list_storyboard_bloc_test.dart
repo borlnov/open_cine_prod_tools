@@ -19,9 +19,12 @@ import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_assets_service.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_list_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_storyboard_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shot_list_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_storyboard_snapshot.dart';
+import 'package:open_cine_prod_tools/types/ocpt_shot_difficulty_axis.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_centre_view.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_column.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_editable_field.dart';
@@ -155,6 +158,49 @@ class _HoldingStoryboardService extends OcptStoryboardService {
   }
 }
 
+/// A shot list service whose snapshot reads can be held back, like [_HoldingStoryboardService]'s.
+class _HoldingShotListService extends OcptShotListService {
+  /// How many of the next reads are held back.
+  int heldReads = 0;
+
+  /// How many reads were held back so far.
+  int holdCount = 0;
+
+  final Completer<void> _release = Completer<void>();
+
+  /// Class constructor
+  _HoldingShotListService(OcptShotListService source)
+    : super(
+        logger: const SilentLogger(),
+        roleIndexService: source.roleIndexService,
+        storyboardService: source.storyboardService,
+        floorPlanService: source.floorPlanService,
+        deviceId: source.deviceId,
+      );
+
+  /// Lets every held read answer.
+  void release() => _release.complete();
+
+  @override
+  Future<OcptShotListSnapshot> loadShotList({
+    required OcptProjectDatabase database,
+    required String screenplayId,
+    required int? episodeNumber,
+  }) async {
+    final snapshot = await super.loadShotList(
+      database: database,
+      screenplayId: screenplayId,
+      episodeNumber: episodeNumber,
+    );
+    if (heldReads > 0) {
+      heldReads--;
+      holdCount++;
+      await _release.future;
+    }
+    return snapshot;
+  }
+}
+
 void main() {
   const twoSceneText = "INT. HOUSE - DAY\n\nAction one.\n\nEXT. GARDEN - NIGHT\n\nAction two.\n";
 
@@ -217,9 +263,11 @@ void main() {
   OcptShotListBloc buildBloc({
     Duration fieldEditDebounce = const Duration(milliseconds: 30),
     OcptStoryboardService? storyboardService,
+    OcptShotListService? shotListService,
   }) => OcptShotListBloc(
     projectsManager: projectsManager,
     storyboardService: storyboardService,
+    shotListService: shotListService,
     propertiesManager: propertiesManager,
     routerManager: _RecordingRouterManager(),
     exportManager: OcptExportManager(fileSelectorManager: const FileSelectorManager()),
@@ -280,11 +328,13 @@ void main() {
   mountWithAPanel({
     Duration fieldEditDebounce = const Duration(milliseconds: 30),
     OcptStoryboardService? storyboardService,
+    OcptShotListService? shotListService,
   }) async {
     await writeScreenplay(twoSceneText);
     final mode = buildBloc(
       fieldEditDebounce: fieldEditDebounce,
       storyboardService: storyboardService,
+      shotListService: shotListService,
     );
     final board = buildBoard(
       mode,
@@ -1128,6 +1178,42 @@ void main() {
       expect(mode.state.panelsOfShot(mounted.shotId).single.comment, "Newer");
 
       await closeAll(board, mode);
+    });
+
+    test("a write that reads while another read lands does not roll the epochs back", () async {
+      final service = _HoldingShotListService(projectsManager.shotListService);
+      final mounted = await mountWithAPanel(shotListService: service);
+      final mode = mounted.mode;
+      final epoch = mode.state.reloadEpoch;
+
+      // A difficulty write reads the snapshot and is held there, holding the state it started from.
+      service.heldReads = 1;
+      mode.add(
+        OcptShotListShotDifficultyChangedEvent(
+          shotId: mounted.shotId,
+          axis: OcptShotDifficultyAxis.sound,
+          value: 4,
+        ),
+      );
+      await waitUntil(() => service.holdCount == 1);
+
+      // Meanwhile the storyboard changes and the mode reads it.
+      final project = projectsManager.currentProject!;
+      await projectsManager.storyboardService.updatePanelComment(
+        database: project.database,
+        panelId: mounted.panelId,
+        comment: "Meanwhile",
+      );
+      await mode.reload({OcptShotListReloadScope.storyboard});
+      expect(mode.state.reloadEpoch, epoch + 1);
+
+      service.release();
+      await Future<void>.delayed(const Duration(milliseconds: 100));
+
+      expect(mode.state.reloadEpoch, greaterThan(epoch));
+      expect(mode.state.panelsOfShot(mounted.shotId).single.comment, "Meanwhile");
+
+      await closeAll(mounted.board, mode);
     });
 
     test("a failing comment write raises the write error and forgets the comment", () async {

@@ -1021,7 +1021,8 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
       return;
     }
 
-    emitter(state.copyWith(pageSetup: await _loadPageSetup(project)));
+    final pageSetup = await _loadPageSetup(project);
+    emitter(state.copyWith(pageSetup: pageSetup));
   }
 
   /// Records the raw text just typed into `event.field` of shot `event.shotId` as a pending edit,
@@ -1338,7 +1339,8 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
         axis: event.axis,
         value: event.value,
       );
-      emitter(state.copyWith(snapshot: await _loadSnapshot(project)));
+      final snapshot = await _loadSnapshot(project);
+      emitter(state.copyWith(snapshot: snapshot));
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to change the difficulty of shot ${event.shotId} of "
@@ -1378,7 +1380,8 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
           roleId: event.roleId,
         );
       }
-      emitter(state.copyWith(snapshot: await _loadSnapshot(project)));
+      final snapshot = await _loadSnapshot(project);
+      emitter(state.copyWith(snapshot: snapshot));
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to toggle role ${event.roleId} on shot ${event.shotId} "
@@ -1418,9 +1421,9 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
         shotId: event.shotId,
         roleId: roleId,
       );
-      emitter(
-        state.copyWith(snapshot: await _loadSnapshot(project), roles: await _loadRoles(project)),
-      );
+      final snapshot = await _loadSnapshot(project);
+      final roles = await _loadRoles(project);
+      emitter(state.copyWith(snapshot: snapshot, roles: roles));
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to add a character to shot "
@@ -1479,15 +1482,18 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
           ? ocptFirstShotIdOf(snapshot: snapshot, sequenceId: state.selectedSequenceId)
           : state.selectedShotId;
 
+      final suggestions = await _loadSuggestions(project);
+      final storyboardSnapshot = await _loadStoryboard(project);
+      final floorPlanSnapshot = await _loadFloorPlans(project);
       emitter(
         state.copyWith(
           snapshot: snapshot,
-          suggestions: await _loadSuggestions(project),
-          storyboardSnapshot: await _loadStoryboard(project),
+          suggestions: suggestions,
+          storyboardSnapshot: storyboardSnapshot,
           // `OcptShotListService.deleteShot`'s own cascade tombstones the shot's floor plan
           // symbols and arrows alongside it (`OcptFloorPlanService.tombstoneFloorPlanRowsOfShot`),
           // so the floor plans view must re-read too, exactly as the board does above.
-          floorPlanSnapshot: await _loadFloorPlans(project),
+          floorPlanSnapshot: floorPlanSnapshot,
           pendingFieldEdits: pendingWithoutShot,
           selectedShotId: reselectedShotId,
           forceSelectedShotIdValue: reselectedShotId == null,
@@ -1572,9 +1578,9 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
 
     try {
       await action(project);
-      emitter(
-        state.copyWith(snapshot: await _loadSnapshot(project), roles: await _loadRoles(project)),
-      );
+      final snapshot = await _loadSnapshot(project);
+      final roles = await _loadRoles(project);
+      emitter(state.copyWith(snapshot: snapshot, roles: roles));
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to $logContext of project "
@@ -1785,12 +1791,8 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
   }) async {
     try {
       await action();
-      emitter(
-        state.copyWith(
-          snapshot: await _loadSnapshot(project),
-          forcePendingCoverageAnchorValue: true,
-        ),
-      );
+      final snapshot = await _loadSnapshot(project);
+      emitter(state.copyWith(snapshot: snapshot, forcePendingCoverageAnchorValue: true));
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to change the scenario coverage of shot $shotId of "
@@ -1880,11 +1882,14 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
         return;
       }
 
+      final floorPlanSnapshot = await _loadFloorPlans(project);
+      final locations = await _loadLocations(project);
+      final setScopeSymbolsBySetId = await _loadSetScopeSymbolsBySetId(project);
       emitter(
         state.copyWith(
-          floorPlanSnapshot: await _loadFloorPlans(project),
-          locations: await _loadLocations(project),
-          setScopeSymbolsBySetId: await _loadSetScopeSymbolsBySetId(project),
+          floorPlanSnapshot: floorPlanSnapshot,
+          locations: locations,
+          setScopeSymbolsBySetId: setScopeSymbolsBySetId,
           selectedSetId: setId,
           forceSelectedFloorPlanSymbolIdValue: true,
           forceSelectedFloorPlanArrowIdValue: true,
@@ -1928,9 +1933,10 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
         return;
       }
 
+      final floorPlanSnapshot = await _loadFloorPlans(project);
       emitter(
         state.copyWith(
-          floorPlanSnapshot: await _loadFloorPlans(project),
+          floorPlanSnapshot: floorPlanSnapshot,
           selectedSetId: event.setId,
           forceSelectedFloorPlanSymbolIdValue: true,
           forceSelectedFloorPlanArrowIdValue: true,
@@ -2045,11 +2051,14 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
         return;
       }
 
+      final floorPlanSnapshot = await _loadFloorPlans(project);
+      final locations = await _loadLocations(project);
+      final setScopeSymbolsBySetId = await _loadSetScopeSymbolsBySetId(project);
       emitter(
         state.copyWith(
-          floorPlanSnapshot: await _loadFloorPlans(project),
-          locations: await _loadLocations(project),
-          setScopeSymbolsBySetId: await _loadSetScopeSymbolsBySetId(project),
+          floorPlanSnapshot: floorPlanSnapshot,
+          locations: locations,
+          setScopeSymbolsBySetId: setScopeSymbolsBySetId,
           selectedSetId: newSetId,
           forceSelectedFloorPlanSymbolIdValue: true,
           forceSelectedFloorPlanArrowIdValue: true,
@@ -2090,7 +2099,8 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
         destinationSetId: event.setId,
         destinationShotId: destinationShotId,
       );
-      emitter(state.copyWith(floorPlanSnapshot: await _loadFloorPlans(project)));
+      final floorPlanSnapshot = await _loadFloorPlans(project);
+      emitter(state.copyWith(floorPlanSnapshot: floorPlanSnapshot));
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to copy shot ${event.sourceShotId}'s own blocking onto "
@@ -2231,9 +2241,10 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
       }
 
       final isCharacter = event.layer == OcptFloorPlanLayer.characters && shotId != null;
+      final floorPlanSnapshot = await _loadFloorPlans(project);
       emitter(
         state.copyWith(
-          floorPlanSnapshot: await _loadFloorPlans(project),
+          floorPlanSnapshot: floorPlanSnapshot,
           selectedFloorPlanSymbolId: symbolId,
           forceSelectedFloorPlanArrowIdValue: true,
           pendingCharacterNamePromptSymbolId: isCharacter ? symbolId : null,
@@ -2286,7 +2297,8 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
         xM: Value(event.xM),
         yM: Value(event.yM),
       );
-      emitter(state.copyWith(floorPlanSnapshot: await _loadFloorPlans(project)));
+      final floorPlanSnapshot = await _loadFloorPlans(project);
+      emitter(state.copyWith(floorPlanSnapshot: floorPlanSnapshot));
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to move symbol ${event.symbolId} of project "
@@ -2316,7 +2328,8 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
         widthM: Value(event.widthM),
         heightM: Value(event.heightM),
       );
-      emitter(state.copyWith(floorPlanSnapshot: await _loadFloorPlans(project)));
+      final floorPlanSnapshot = await _loadFloorPlans(project);
+      emitter(state.copyWith(floorPlanSnapshot: floorPlanSnapshot));
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to resize symbol ${event.symbolId} of project "
@@ -2345,7 +2358,8 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
         symbolId: event.symbolId,
         rotationDeg: Value(event.rotationDeg),
       );
-      emitter(state.copyWith(floorPlanSnapshot: await _loadFloorPlans(project)));
+      final floorPlanSnapshot = await _loadFloorPlans(project);
+      emitter(state.copyWith(floorPlanSnapshot: floorPlanSnapshot));
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to rotate symbol ${event.symbolId} of project "
@@ -2373,9 +2387,10 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
 
     try {
       await _floorPlanService.deleteSymbol(database: project.database, symbolId: event.symbolId);
+      final floorPlanSnapshot = await _loadFloorPlans(project);
       emitter(
         state.copyWith(
-          floorPlanSnapshot: await _loadFloorPlans(project),
+          floorPlanSnapshot: floorPlanSnapshot,
           forceSelectedFloorPlanSymbolIdValue: wasSelected,
           // `OcptFloorPlanService.deleteSymbol`'s own cascade tombstones every arrow touching this
           // symbol, so the selected arrow (if any) may no longer exist.
@@ -2414,9 +2429,10 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
         database: project.database,
         symbolId: event.symbolId,
       );
+      final floorPlanSnapshot = await _loadFloorPlans(project);
       emitter(
         state.copyWith(
-          floorPlanSnapshot: await _loadFloorPlans(project),
+          floorPlanSnapshot: floorPlanSnapshot,
           forceSelectedFloorPlanSymbolIdValue: wasSelected,
           forceSelectedFloorPlanArrowIdValue: true,
         ),
@@ -2478,9 +2494,10 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
         sceneId: event.targetSceneId,
         shotId: null,
       );
+      final floorPlanSnapshot = await _loadFloorPlans(project);
       emitter(
         state.copyWith(
-          floorPlanSnapshot: await _loadFloorPlans(project),
+          floorPlanSnapshot: floorPlanSnapshot,
           forceSelectedFloorPlanSymbolIdValue: wasSelected,
           forceSelectedFloorPlanArrowIdValue: wasSelected,
         ),
@@ -2547,9 +2564,10 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
         sceneId: null,
         shotId: event.targetShotId,
       );
+      final floorPlanSnapshot = await _loadFloorPlans(project);
       emitter(
         state.copyWith(
-          floorPlanSnapshot: await _loadFloorPlans(project),
+          floorPlanSnapshot: floorPlanSnapshot,
           forceSelectedFloorPlanSymbolIdValue: wasSelected,
           forceSelectedFloorPlanArrowIdValue: wasSelected,
         ),
@@ -2580,9 +2598,10 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
 
     try {
       await _floorPlanService.deleteSymbol(database: project.database, symbolId: event.symbolId);
+      final floorPlanSnapshot = await _loadFloorPlans(project);
       emitter(
         state.copyWith(
-          floorPlanSnapshot: await _loadFloorPlans(project),
+          floorPlanSnapshot: floorPlanSnapshot,
           forceSelectedFloorPlanSymbolIdValue: wasSelected,
           forceSelectedFloorPlanArrowIdValue: true,
         ),
@@ -2696,9 +2715,10 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
         return;
       }
 
+      final floorPlanSnapshot = await _loadFloorPlans(project);
       emitter(
         state.copyWith(
-          floorPlanSnapshot: await _loadFloorPlans(project),
+          floorPlanSnapshot: floorPlanSnapshot,
           forcePendingFloorPlanScopeDecisionValue: true,
         ),
       );
@@ -2742,7 +2762,8 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
         widthM: _defaultUnderlayWidthM,
         heightM: _defaultUnderlayHeightM,
       );
-      emitter(state.copyWith(floorPlanSnapshot: await _loadFloorPlans(project)));
+      final floorPlanSnapshot = await _loadFloorPlans(project);
+      emitter(state.copyWith(floorPlanSnapshot: floorPlanSnapshot));
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to import the underlay of set ${event.setId} of project "
@@ -2783,7 +2804,8 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
         widthM: Value(event.widthM),
         heightM: Value(event.heightM),
       );
-      emitter(state.copyWith(floorPlanSnapshot: await _loadFloorPlans(project)));
+      final floorPlanSnapshot = await _loadFloorPlans(project);
+      emitter(state.copyWith(floorPlanSnapshot: floorPlanSnapshot));
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to move/resize the underlay of set ${event.setId} of "
@@ -2808,7 +2830,8 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
 
     try {
       await _floorPlanService.clearSetUnderlay(database: project.database, setId: event.setId);
-      emitter(state.copyWith(floorPlanSnapshot: await _loadFloorPlans(project)));
+      final floorPlanSnapshot = await _loadFloorPlans(project);
+      emitter(state.copyWith(floorPlanSnapshot: floorPlanSnapshot));
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to clear the underlay of set ${event.setId} of project "
@@ -2933,9 +2956,10 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
         fromSymbolId: anchor,
         toSymbolId: event.symbolId,
       );
+      final floorPlanSnapshot = await _loadFloorPlans(project);
       emitter(
         state.copyWith(
-          floorPlanSnapshot: await _loadFloorPlans(project),
+          floorPlanSnapshot: floorPlanSnapshot,
           forcePendingFloorPlanArrowAnchorSymbolIdValue: true,
         ),
       );
@@ -2978,9 +3002,10 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
 
     try {
       await _floorPlanService.deleteArrow(database: project.database, arrowId: event.arrowId);
+      final floorPlanSnapshot = await _loadFloorPlans(project);
       emitter(
         state.copyWith(
-          floorPlanSnapshot: await _loadFloorPlans(project),
+          floorPlanSnapshot: floorPlanSnapshot,
           forceSelectedFloorPlanArrowIdValue: wasSelected,
         ),
       );
@@ -3027,7 +3052,8 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
         symbolId: event.symbolId,
         fovDeg: Value(event.fovDeg),
       );
-      emitter(state.copyWith(floorPlanSnapshot: await _loadFloorPlans(project)));
+      final floorPlanSnapshot = await _loadFloorPlans(project);
+      emitter(state.copyWith(floorPlanSnapshot: floorPlanSnapshot));
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to change the field of view of symbol ${event.symbolId} "
@@ -3057,7 +3083,8 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
         symbolId: event.symbolId,
         fovReachM: Value(event.fovReachM),
       );
-      emitter(state.copyWith(floorPlanSnapshot: await _loadFloorPlans(project)));
+      final floorPlanSnapshot = await _loadFloorPlans(project);
+      emitter(state.copyWith(floorPlanSnapshot: floorPlanSnapshot));
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to change the field-of-view reach of symbol "
@@ -3104,7 +3131,8 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
         ctrlXM: event.ctrlXM == null ? const Value(null) : Value(event.ctrlXM),
         ctrlYM: event.ctrlYM == null ? const Value(null) : Value(event.ctrlYM),
       );
-      emitter(state.copyWith(floorPlanSnapshot: await _loadFloorPlans(project)));
+      final floorPlanSnapshot = await _loadFloorPlans(project);
+      emitter(state.copyWith(floorPlanSnapshot: floorPlanSnapshot));
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to bend arrow ${event.arrowId} of project "
@@ -3159,9 +3187,10 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
         return;
       }
 
+      final floorPlanSnapshot = await _loadFloorPlans(project);
       emitter(
         state.copyWith(
-          floorPlanSnapshot: await _loadFloorPlans(project),
+          floorPlanSnapshot: floorPlanSnapshot,
           selectedFloorPlanSymbolId: symbolId,
           forceSelectedFloorPlanArrowIdValue: true,
         ),
