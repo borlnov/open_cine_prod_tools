@@ -10,7 +10,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
-import 'package:open_cine_prod_tools/models/ocpt_floor_plan_set.dart';
 import 'package:open_cine_prod_tools/models/ocpt_floor_plan_sheet.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_package_report.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
@@ -18,14 +17,9 @@ import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
 import 'package:open_cine_prod_tools/models/ocpt_workspace_export_entry.dart';
 import 'package:open_cine_prod_tools/models/ocpt_workspace_export_pick.dart';
 import 'package:open_cine_prod_tools/models/ocpt_workspace_reveal_request.dart';
-import 'package:open_cine_prod_tools/models/rules/ocpt_floor_plan_geometry.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_floor_plan_unlink_counts.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_responsive.dart';
-import 'package:open_cine_prod_tools/models/rules/ocpt_scene_set_suggestion.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_layer.dart';
-import 'package:open_cine_prod_tools/types/ocpt_floor_plan_override_level.dart';
-import 'package:open_cine_prod_tools/types/ocpt_floor_plan_scope_choice.dart';
-import 'package:open_cine_prod_tools/types/ocpt_floor_plan_set_element_shape.dart';
 import 'package:open_cine_prod_tools/types/ocpt_route.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_centre_view.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_export_document.dart';
@@ -47,18 +41,15 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_lis
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_storyboard_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_storyboard_state.dart';
-import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_floor_plan_canvas_painter.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_floor_plan_character_name_picker_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_floor_plan_copy_blocking_dialog.dart';
-import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_floor_plan_palette.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_floor_plan_placements_group.dart';
-import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_floor_plan_set_gallery.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_floor_plan_set_tabs.dart';
-import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_floor_plan_view.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_scenario_coverage_export_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_shot_inspector_view.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_shot_list_centre_header.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_shot_list_columns_menu.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_shot_list_floor_plan_centre.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_shot_list_right_dock.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_shot_list_sequence_panel.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_shot_list_status_bar.dart';
@@ -730,8 +721,6 @@ class _ShotListViewState extends State<_ShotListView> {
 
     final isBoardShown = !isCompact && state.centreView == OcptShotListCentreView.board;
     final isFloorPlansShown = !isCompact && state.centreView == OcptShotListCentreView.floorPlans;
-    final hasNoLinkedSet =
-        sequence is OcptSceneShotSequence && state.setsOfSelectedSequence.isEmpty;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -770,10 +759,14 @@ class _ShotListViewState extends State<_ShotListView> {
                 onPanelDeleteRequested: (panelId) =>
                     unawaited(_handlePanelDeleteRequested(context, panelId)),
               ),
-              (_, true) =>
-                hasNoLinkedSet
-                    ? _buildFloorPlanGallery(context, state, sequence)
-                    : _buildFloorPlanView(context, state, sequence),
+              (_, true) => OcptShotListFloorPlanCentre(
+                state: state,
+                sequence: sequence,
+                onSymbolDeleteRequested: (symbolId) =>
+                    unawaited(_handleSymbolDeleteRequested(context, state, symbolId)),
+                onUnderlayClearRequested: (setId) =>
+                    unawaited(_handleUnderlayClearRequested(context, setId)),
+              ),
               _ => OcptShotListTable(
                 shots: sequence.shots,
                 sequenceHeading: switch (sequence) {
@@ -837,7 +830,7 @@ class _ShotListViewState extends State<_ShotListView> {
     final tr = Tr.of(context);
     final isReadOnly = state.isPreviewingVersion;
     final canCreateSet = sequence is OcptSceneShotSequence && !isReadOnly;
-    final suggestedSetId = canCreateSet ? _suggestedSetIdOf(state, sequence) : null;
+    final suggestedSetId = canCreateSet ? state.suggestedSetIdOf(sequence) : null;
 
     return OcptFloorPlanSetTabs(
       sets: state.setsOfSelectedSequence,
@@ -893,51 +886,6 @@ class _ShotListViewState extends State<_ShotListView> {
       }
     }
     return 0;
-  }
-
-  /// The empty-state gallery filling the centre while [sequence] has no linked Resources set yet:
-  /// one card per live set of the project, the heading's own
-  /// suggestion first and starred, a click linking it and selecting its tab, a `Create a set…`
-  /// action opening the very same menu the `＋ Set` button does. Every write is withheld under a
-  /// read-only preview.
-  Widget _buildFloorPlanGallery(
-    BuildContext context,
-    OcptShotListState state,
-    OcptSceneShotSequence sequence,
-  ) {
-    final setsBloc = context.read<OcptShotListFloorPlanSetsBloc>();
-    final isReadOnly = state.isPreviewingVersion;
-
-    return OcptFloorPlanSetGallery(
-      locations: state.locations,
-      symbolsBySetId: state.setScopeSymbolsBySetId,
-      suggestedSetId: _suggestedSetIdOf(state, sequence),
-      onSetLinkRequested: isReadOnly
-          ? null
-          : (setId) => setsBloc.add(OcptShotListSetLinkRequestedEvent(setId: setId)),
-      onSetCreationRequested: isReadOnly
-          ? null
-          : (locationId) =>
-                setsBloc.add(OcptShotListSetCreationRequestedEvent(locationId: locationId)),
-    );
-  }
-
-  /// The id of the Resources set `ocptSceneSetSuggestionOf` suggests for [sequence]'s own heading,
-  /// or null while it suggests none, or while it already names one of [sequence]'s own linked sets
-  /// — the gallery's own starred card and the `＋ Set` menu's own top entry both read this, never
-  /// offering to link what is already linked.
-  String? _suggestedSetIdOf(OcptShotListState state, OcptSceneShotSequence sequence) {
-    final suggested = ocptSceneSetSuggestionOf(
-      heading: sequence.heading,
-      locations: state.locations,
-    );
-    if (suggested == null) {
-      return null;
-    }
-    final alreadyLinked = state.setsOfSelectedSequence.any(
-      (floorPlanSet) => floorPlanSet.id == suggested,
-    );
-    return alreadyLinked ? null : suggested;
   }
 
   /// [suggestedSetId]'s own display name, read off the project's whole Resources catalogue, or
@@ -1117,363 +1065,9 @@ class _ShotListViewState extends State<_ShotListView> {
     return "$allButLast $conjunction ${parts.last}";
   }
 
-  /// Builds the floor plans view: the tray, the tool bar, the canvas and the focus strip, every
-  /// write withheld (a null callback) under a version preview, reads (zoom, pan, layer visibility,
-  /// symbol selection, focusing a shot) staying available throughout.
-  ///
-  /// **Always a current shot**: the bloc guarantees `state.selectedShotId` is never null while
-  /// the selected sequence holds at least one shot, so `focusShotId` handed to the view below —
-  /// simply `state.selectedShotId`, the very field the table's rows and the board already share —
-  /// is only ever null for a sequence with none to focus on yet.
-  Widget _buildFloorPlanView(
-    BuildContext context,
-    OcptShotListState state,
-    OcptShotSequence sequence,
-  ) {
-    final bloc = context.read<OcptShotListBloc>();
-    final setsBloc = context.read<OcptShotListFloorPlanSetsBloc>();
-    final setsState = context.watch<OcptShotListFloorPlanSetsBloc>().state;
-    final canvasBloc = context.read<OcptShotListFloorPlanCanvasBloc>();
-    final canvasState = context.watch<OcptShotListFloorPlanCanvasBloc>().state;
-    final placementsBloc = context.read<OcptShotListFloorPlanPlacementsBloc>();
-    final placementsState = context.watch<OcptShotListFloorPlanPlacementsBloc>().state;
-    final tr = Tr.of(context);
-    final isReadOnly = state.isPreviewingVersion;
-    final selectedSet = state.selectedSet;
-    final selectedSetId = state.selectedSetId;
-    final focusShotId = state.selectedShotId;
-
-    final shotRankByShotId = <String, int>{
-      for (var i = 0; i < sequence.shots.length; i++) sequence.shots[i].id: i + 1,
-    };
-
-    return OcptFloorPlanView(
-      floorPlanSet: selectedSet,
-      shots: sequence.shots,
-      shotRankByShotId: shotRankByShotId,
-      focusSceneId: state.selectedSequenceId ?? '',
-      sequenceCode: ocptShotSequenceDisplayNumberOf(sequence),
-      focusShotId: focusShotId,
-      previousShotId: state.previousShotOfSelectedShot?.id,
-      nextShotId: state.nextShotOfSelectedShot?.id,
-      hasCameraOnSetOf: _hasCameraOnSetOf(sequence, selectedSet),
-      sequenceCameras: _sequenceCamerasOf(selectedSet, state.selectedSequenceId, shotRankByShotId),
-      initialZoom: setsState.floorPlanZoom,
-      hiddenLayers: setsState.floorPlanHiddenLayers,
-      hiddenCameraSymbolIds: setsState.floorPlanHiddenCameraSymbolIds,
-      isUnderlayHidden: setsState.isFloorPlanUnderlayHidden,
-      isOnionSkinPreviousShown: setsState.isFloorPlanOnionSkinPreviousShown,
-      isOnionSkinNextShown: setsState.isFloorPlanOnionSkinNextShown,
-      onionSkinOpacity: setsState.floorPlanOnionSkinOpacity,
-      isMetricsShown: setsState.isFloorPlanMetricsShown,
-      selectedSymbolId: canvasState.selectedFloorPlanSymbolId,
-      selectedArrowId: canvasState.selectedFloorPlanArrowId,
-      pendingArrowAnchorSymbolId: canvasState.pendingFloorPlanArrowAnchorSymbolId,
-      activeTool: canvasState.floorPlanActiveTool,
-      activeLayer: setsState.floorPlanActiveLayer,
-      activeSetElementShape: setsState.floorPlanActiveSetElementShape,
-      activeSetElementScope: setsState.floorPlanActiveSetElementScope,
-      activeLabel: setsState.floorPlanActiveLabel,
-      propsChips: [
-        for (final prop in setsState.propsOfSelectedSequence)
-          OcptFloorPlanPropChip(
-            elementId: prop.elementId,
-            name: prop.name,
-            quantity: prop.quantity,
-          ),
-      ],
-      isReadOnly: isReadOnly,
-      symbolLabelValueOf: (symbolId) => _symbolLabelValueOf(state, placementsState, symbolId),
-      onToolSelected: (tool) => canvasBloc.add(OcptShotListFloorPlanToolSelectedEvent(tool: tool)),
-      onLayerVisibilityToggled: (layer) =>
-          setsBloc.add(OcptShotListFloorPlanLayerVisibilityToggledEvent(layer: layer)),
-      onActiveLayerChanged: (layer) =>
-          setsBloc.add(OcptShotListFloorPlanActiveLayerChangedEvent(layer: layer)),
-      onSetElementShapeSelected: (shape) =>
-          setsBloc.add(OcptShotListFloorPlanActiveSetElementShapeChangedEvent(shape: shape)),
-      onSetElementScopeSelected: (scope) =>
-          setsBloc.add(OcptShotListFloorPlanActiveSetElementScopeChangedEvent(scope: scope)),
-      onPropChipSelected: (label) =>
-          setsBloc.add(OcptShotListFloorPlanActiveLabelChangedEvent(label: label)),
-      onCameraVisibilityToggled: (symbolId) =>
-          setsBloc.add(OcptShotListFloorPlanCameraVisibilityToggledEvent(symbolId: symbolId)),
-      onOnionSkinToggled: (isPrevious) =>
-          setsBloc.add(OcptShotListFloorPlanOnionSkinToggledEvent(isPrevious: isPrevious)),
-      onOnionSkinOpacityChanged: (opacity) =>
-          setsBloc.add(OcptShotListFloorPlanOnionSkinOpacityChangedEvent(opacity: opacity)),
-      onMetricsToggled: () => setsBloc.add(const OcptShotListFloorPlanMetricsToggledEvent()),
-      onUnderlayVisibilityToggled: () =>
-          setsBloc.add(const OcptShotListFloorPlanUnderlayVisibilityToggledEvent()),
-      onUnderlayImportRequested: isReadOnly || selectedSetId == null
-          ? null
-          : () => setsBloc.add(
-              OcptShotListFloorPlanUnderlayImportRequestedEvent(
-                setId: selectedSetId,
-                fileTypeLabel: tr.shotListFloorPlanUnderlayFileTypeLabel,
-              ),
-            ),
-      onUnderlayClearRequested:
-          isReadOnly || selectedSetId == null || selectedSet?.underlayAssetId == null
-          ? null
-          : () => unawaited(_handleUnderlayClearRequested(context, selectedSetId)),
-      onSymbolSelected: (symbolId) =>
-          canvasBloc.add(OcptShotListFloorPlanSymbolSelectedEvent(symbolId: symbolId)),
-      onSymbolPlaced: isReadOnly || selectedSetId == null
-          ? null
-          : (layer, shotId, sceneId, xM, yM, {setElementShape, label = ""}) => canvasBloc.add(
-              OcptShotListFloorPlanSymbolPlacedEvent(
-                setId: selectedSetId,
-                layer: layer,
-                shotId: shotId,
-                sceneId: sceneId,
-                xM: xM,
-                yM: yM,
-                setElementShape: setElementShape,
-                label: label,
-              ),
-            ),
-      onSymbolMoved: isReadOnly
-          ? null
-          : (symbolId, xM, yM) => _handleSymbolMoved(context, state, symbolId, xM, yM),
-      onSymbolResized: isReadOnly
-          ? null
-          : (symbolId, widthM, heightM) =>
-                _handleSymbolResized(context, state, symbolId, widthM, heightM),
-      onSymbolRotated: isReadOnly
-          ? null
-          : (symbolId, rotationDeg) => _handleSymbolRotated(context, state, symbolId, rotationDeg),
-      onSymbolFovChanged: isReadOnly
-          ? null
-          : (symbolId, fovDeg) => placementsBloc.add(
-              OcptShotListFloorPlanSymbolFovChangedEvent(symbolId: symbolId, fovDeg: fovDeg),
-            ),
-      onSymbolFovReachChanged: isReadOnly
-          ? null
-          : (symbolId, fovReachM) => placementsBloc.add(
-              OcptShotListFloorPlanSymbolFovReachChangedEvent(
-                symbolId: symbolId,
-                fovReachM: fovReachM,
-              ),
-            ),
-      onSymbolDeleteRequested: isReadOnly
-          ? null
-          : (symbolId) => unawaited(_handleSymbolDeleteRequested(context, state, symbolId)),
-      onSymbolRestoreRequested: isReadOnly
-          ? null
-          : (symbolId) => placementsBloc.add(
-              OcptShotListFloorPlanSymbolRestoreRequestedEvent(symbolId: symbolId),
-            ),
-      onArrowSymbolTapped: isReadOnly || selectedSetId == null || focusShotId == null
-          ? null
-          : (symbolId) =>
-                canvasBloc.add(OcptShotListFloorPlanArrowSymbolTappedEvent(symbolId: symbolId)),
-      onArrowAnchorCancelled: isReadOnly
-          ? null
-          : () => canvasBloc.add(const OcptShotListFloorPlanArrowAnchorCancelledEvent()),
-      onArrowSelected: (arrowId) =>
-          canvasBloc.add(OcptShotListFloorPlanArrowSelectedEvent(arrowId: arrowId)),
-      onArrowCurveChanged: isReadOnly
-          ? null
-          : (arrowId, ctrlXM, ctrlYM) => canvasBloc.add(
-              OcptShotListFloorPlanArrowCurveChangedEvent(
-                arrowId: arrowId,
-                ctrlXM: ctrlXM,
-                ctrlYM: ctrlYM,
-              ),
-            ),
-      onSymbolDuplicateRequested: isReadOnly
-          ? null
-          : (symbolId) =>
-                canvasBloc.add(OcptShotListFloorPlanSymbolDuplicatedEvent(symbolId: symbolId)),
-      onSymbolDuplicateDragged: isReadOnly
-          ? null
-          : (symbolId, xM, yM) => canvasBloc.add(
-              OcptShotListFloorPlanSymbolDuplicatedEvent(symbolId: symbolId, xM: xM, yM: yM),
-            ),
-      onGhostShotFocusRequested: (shotId) =>
-          bloc.add(OcptShotListShotSelectedEvent(shotId: shotId)),
-      onSymbolLabelChanged: isReadOnly
-          ? null
-          : (symbolId, rawValue) => placementsBloc.add(
-              OcptShotListFloorPlanSymbolLabelChangedEvent(symbolId: symbolId, rawValue: rawValue),
-            ),
-      onUnderlayTransformChanged: isReadOnly || selectedSetId == null
-          ? null
-          : (xM, yM, widthM, heightM) => setsBloc.add(
-              OcptShotListFloorPlanUnderlayTransformChangedEvent(
-                setId: selectedSetId,
-                xM: xM,
-                yM: yM,
-                widthM: widthM,
-                heightM: heightM,
-              ),
-            ),
-      onZoomSettled: (zoom) => setsBloc.add(OcptShotListFloorPlanZoomChangedEvent(zoom: zoom)),
-      onShotChipSelected: (shotId) => bloc.add(OcptShotListShotSelectedEvent(shotId: shotId)),
-      onShotWalkRequested: (delta) =>
-          setsBloc.add(OcptShotListFloorPlanShotWalkRequestedEvent(delta: delta)),
-      pendingScopeLiveOverride: _pendingScopeLiveOverrideOf(state, canvasState),
-      scopeBubbleEveryLabel: _scopeBubbleEveryLabelOf(canvasState, tr),
-      scopeBubbleOnlyLabel: _scopeBubbleOnlyLabelOf(state, canvasState, tr, sequence),
-      scopeBubbleCancelLabel: canvasState.pendingFloorPlanScopeDecision == null
-          ? null
-          : tr.shotListFloorPlanScopeBubbleCancelAction,
-      onScopeBubbleEveryRequested: canvasState.pendingFloorPlanScopeDecision == null
-          ? null
-          : () => canvasBloc.add(
-              const OcptShotListFloorPlanScopeDecisionResolvedEvent(
-                choice: OcptFloorPlanScopeChoice.every,
-              ),
-            ),
-      onScopeBubbleOnlyRequested: canvasState.pendingFloorPlanScopeDecision == null
-          ? null
-          : () => canvasBloc.add(
-              const OcptShotListFloorPlanScopeDecisionResolvedEvent(
-                choice: OcptFloorPlanScopeChoice.only,
-              ),
-            ),
-      onScopeBubbleCancelRequested: canvasState.pendingFloorPlanScopeDecision == null
-          ? null
-          : () => canvasBloc.add(
-              const OcptShotListFloorPlanScopeDecisionResolvedEvent(
-                choice: OcptFloorPlanScopeChoice.cancel,
-              ),
-            ),
-    );
-  }
-
-  /// [canvasState]'s own pending scope decision, resolved into the live override the canvas draws (and
-  /// hit-tests) instead of the symbol's own stored geometry while the scope bubble is showing — or
-  /// null while nothing is pending. Falls back to the original symbol's own currently stored
-  /// footprint (resolved exactly like `OcptFloorPlanSheet._shapeOf` would) for whichever field the
-  /// triggering gesture didn't itself change.
-  OcptFloorPlanSymbolLiveOverride? _pendingScopeLiveOverrideOf(
-    OcptShotListState state,
-    OcptShotListFloorPlanCanvasState canvasState,
-  ) {
-    final decision = canvasState.pendingFloorPlanScopeDecision;
-    if (decision == null) {
-      return null;
-    }
-
-    final original = state.floorPlanSnapshot?.setsById[decision.setId]?.symbols.firstWhereOrNull(
-      (symbol) => symbol.id == decision.symbolId,
-    );
-    if (original == null) {
-      return null;
-    }
-
-    final setElementDefault = ocptFloorPlanSetElementDefaultFootprintM(
-      original.setElementShape ?? OcptFloorPlanSetElementShape.freeform,
-    );
-
-    return OcptFloorPlanSymbolLiveOverride(
-      symbolId: decision.symbolId,
-      xM: decision.xM ?? original.xM,
-      yM: decision.yM ?? original.yM,
-      widthM: decision.widthM ?? original.widthM ?? setElementDefault.widthM,
-      heightM: decision.heightM ?? original.heightM ?? setElementDefault.heightM,
-      rotationDeg: decision.rotationDeg ?? original.rotationDeg,
-    );
-  }
-
-  /// The scope bubble's own broader-scope label — `Every sequence (n)` at
-  /// [OcptFloorPlanOverrideLevel.sequence], `The whole sequence` at
-  /// [OcptFloorPlanOverrideLevel.shot] — or null while nothing is pending.
-  String? _scopeBubbleEveryLabelOf(OcptShotListFloorPlanCanvasState canvasState, Tr tr) {
-    final decision = canvasState.pendingFloorPlanScopeDecision;
-    if (decision == null) {
-      return null;
-    }
-    return decision.level == OcptFloorPlanOverrideLevel.shot
-        ? tr.shotListFloorPlanScopeBubbleWholeSequenceAction
-        : tr.shotListFloorPlanScopeBubbleEveryAction(decision.sequenceCount);
-  }
-
-  /// The scope bubble's own narrower-scope label — `Only sequence n` at
-  /// [OcptFloorPlanOverrideLevel.sequence], `Only shot n` at [OcptFloorPlanOverrideLevel.shot]
-  /// — or null while nothing is pending.
-  String? _scopeBubbleOnlyLabelOf(
-    OcptShotListState state,
-    OcptShotListFloorPlanCanvasState canvasState,
-    Tr tr,
-    OcptShotSequence? sequence,
-  ) {
-    final decision = canvasState.pendingFloorPlanScopeDecision;
-    if (decision == null) {
-      return null;
-    }
-    if (decision.level == OcptFloorPlanOverrideLevel.shot) {
-      return tr.shotListFloorPlanScopeBubbleOnlyShotAction(state.selectedShot?.code ?? "");
-    }
-    return tr.shotListFloorPlanScopeBubbleOnlyAction(ocptShotSequenceDisplayNumberOf(sequence));
-  }
-
-  /// Whether each of [sequence]'s own shots has a live camera symbol on [selectedSet], keyed by
-  /// shot id — the focus strip's own filled/hollow dots.
-  Map<String, bool> _hasCameraOnSetOf(OcptShotSequence sequence, OcptFloorPlanSet? selectedSet) {
-    if (selectedSet == null) {
-      return const {};
-    }
-    final shotIdsWithCamera = {
-      for (final symbol in selectedSet.symbols)
-        if (symbol.layer == OcptFloorPlanLayer.cameras && symbol.shotId != null) symbol.shotId!,
-    };
-    return {for (final shot in sequence.shots) shot.id: shotIdsWithCamera.contains(shot.id)};
-  }
-
-  /// Every live camera symbol of [selectedSet], numbered, for the tray's own expandable cameras
-  /// row under the `Sequence` focus — built from the very same `OcptFloorPlanSheet.of` the canvas
-  /// itself draws that focus from, so the tray's own labels can never disagree with the canvas.
-  List<OcptFloorPlanTraySequenceCamera> _sequenceCamerasOf(
-    OcptFloorPlanSet? selectedSet,
-    String? focusSceneId,
-    Map<String, int> shotRankByShotId,
-  ) {
-    if (selectedSet == null || focusSceneId == null) {
-      return const [];
-    }
-    final sheet = OcptFloorPlanSheet.of(
-      floorPlanSet: selectedSet,
-      focusSceneId: focusSceneId,
-      focusShotId: null,
-      shotRankByShotId: shotRankByShotId,
-    );
-    return [
-      for (final symbol in sheet.symbols)
-        if (symbol.layer == OcptFloorPlanLayer.cameras)
-          OcptFloorPlanTraySequenceCamera(
-            symbolId: symbol.symbolId,
-            label: symbol.cameraLabel ?? "?",
-          ),
-    ];
-  }
-
-  /// [symbolId]'s current label value: a pending edit still in the bloc's debounce, or the
-  /// symbol's own stored label.
-  String _symbolLabelValueOf(
-    OcptShotListState state,
-    OcptShotListFloorPlanPlacementsState placementsState,
-    String symbolId,
-  ) {
-    final pending =
-        placementsState.pendingFieldEdits[OcptShotListSymbolLabelEditKey(symbolId: symbolId)];
-    if (pending != null) {
-      return pending;
-    }
-    for (final floorPlanSet in state.setsOfSelectedSequence) {
-      for (final symbol in floorPlanSet.symbols) {
-        if (symbol.id == symbolId) {
-          return symbol.label;
-        }
-      }
-    }
-    return "";
-  }
-
   /// Opens `OcptFloorPlanCharacterNamePickerDialog` for the character symbol [symbolId] the bloc
   /// just placed, pre-filled with its own already-assigned
-  /// default label ([_symbolLabelValueOf]) and offering the selected shot's own characters as
+  /// default label ([OcptShotListFloorPlanCentre.symbolLabelValueOf]) and offering the selected shot's own characters as
   /// one-click picks. Writes the name picked through the very same pending-edit path the inline
   /// label editor rides — but flushed immediately (`OcptShotListFloorPlanPlacementsFieldEditFlushRequestedEvent`)
   /// rather than left to the 2 s debounce, since picking a name from a dialog is already a
@@ -1484,7 +1078,7 @@ class _ShotListViewState extends State<_ShotListView> {
     OcptShotListState state,
     String symbolId,
   ) async {
-    final currentLabel = _symbolLabelValueOf(
+    final currentLabel = OcptShotListFloorPlanCentre.symbolLabelValueOf(
       state,
       context.read<OcptShotListFloorPlanPlacementsBloc>().state,
       symbolId,
@@ -1511,135 +1105,6 @@ class _ShotListViewState extends State<_ShotListView> {
       OcptShotListFloorPlanSymbolLabelChangedEvent(symbolId: symbolId, rawValue: picked),
     );
     placementsBloc.add(const OcptShotListFloorPlanPlacementsFieldEditFlushRequestedEvent());
-  }
-
-  /// A move's own canvas callback: dispatches the plain move straight away, unless [symbolId]
-  /// names a **set-scope** symbol whose own set is linked to two or more sequences, or a
-  /// **scene-scope** one whose own sequence holds two or more shots, in which case it
-  /// dispatches the scope decision instead — the scope bubble asks before anything is written.
-  void _handleSymbolMoved(
-    BuildContext context,
-    OcptShotListState state,
-    String symbolId,
-    double xM,
-    double yM,
-  ) {
-    final canvasBloc = context.read<OcptShotListFloorPlanCanvasBloc>();
-    final decision = _scopeDecisionTargetOf(state, symbolId);
-    if (decision == null) {
-      canvasBloc.add(OcptShotListFloorPlanSymbolMovedEvent(symbolId: symbolId, xM: xM, yM: yM));
-      return;
-    }
-    canvasBloc.add(
-      OcptShotListFloorPlanScopeDecisionRequestedEvent(
-        symbolId: symbolId,
-        setId: decision.setId,
-        level: decision.level,
-        sequenceCount: decision.count,
-        xM: xM,
-        yM: yM,
-      ),
-    );
-  }
-
-  /// A resize's own canvas callback. See [_handleSymbolMoved]'s own doc comment.
-  void _handleSymbolResized(
-    BuildContext context,
-    OcptShotListState state,
-    String symbolId,
-    double widthM,
-    double heightM,
-  ) {
-    final canvasBloc = context.read<OcptShotListFloorPlanCanvasBloc>();
-    final decision = _scopeDecisionTargetOf(state, symbolId);
-    if (decision == null) {
-      canvasBloc.add(
-        OcptShotListFloorPlanSymbolResizedEvent(
-          symbolId: symbolId,
-          widthM: widthM,
-          heightM: heightM,
-        ),
-      );
-      return;
-    }
-    canvasBloc.add(
-      OcptShotListFloorPlanScopeDecisionRequestedEvent(
-        symbolId: symbolId,
-        setId: decision.setId,
-        level: decision.level,
-        sequenceCount: decision.count,
-        widthM: widthM,
-        heightM: heightM,
-      ),
-    );
-  }
-
-  /// A rotate's own canvas callback. See [_handleSymbolMoved]'s own doc comment.
-  void _handleSymbolRotated(
-    BuildContext context,
-    OcptShotListState state,
-    String symbolId,
-    double rotationDeg,
-  ) {
-    final canvasBloc = context.read<OcptShotListFloorPlanCanvasBloc>();
-    final decision = _scopeDecisionTargetOf(state, symbolId);
-    if (decision == null) {
-      canvasBloc.add(
-        OcptShotListFloorPlanSymbolRotatedEvent(symbolId: symbolId, rotationDeg: rotationDeg),
-      );
-      return;
-    }
-    canvasBloc.add(
-      OcptShotListFloorPlanScopeDecisionRequestedEvent(
-        symbolId: symbolId,
-        setId: decision.setId,
-        level: decision.level,
-        sequenceCount: decision.count,
-        rotationDeg: rotationDeg,
-      ),
-    );
-  }
-
-  /// Whether [symbolId] names a symbol whose move/rotate/resize should ask the scope bubble
-  /// instead of writing straight away, and at which level:
-  /// - A **live, set-scope** symbol (never an override) whose own set is linked to two or more
-  ///   sequences — [OcptFloorPlanOverrideLevel.sequence].
-  /// - A **live, scene-scope** symbol (a prop, the sequence's own furniture, or itself already a
-  ///   sequence-scope override — never a shot-scope one) of a sequence holding two or more shots —
-  ///   [OcptFloorPlanOverrideLevel.shot].
-  ///
-  /// Null otherwise: a single-sequence set's own set-scope symbol, a single-shot sequence's own
-  /// scene-scope symbol, or any shot-scope symbol (already an override, or a camera/character/
-  /// light) — all of which write straight away, exactly as before.
-  ({String setId, int count, OcptFloorPlanOverrideLevel level})? _scopeDecisionTargetOf(
-    OcptShotListState state,
-    String symbolId,
-  ) {
-    final selectedSet = state.selectedSet;
-    if (selectedSet == null) {
-      return null;
-    }
-    final symbol = selectedSet.symbols.firstWhereOrNull((candidate) => candidate.id == symbolId);
-    if (symbol == null || symbol.shotId != null) {
-      return null;
-    }
-
-    if (symbol.sceneId == null) {
-      final sequenceCount = state.floorPlanSnapshot?.sequenceCountOfSet(selectedSet.id) ?? 0;
-      return sequenceCount >= 2
-          ? (
-              setId: selectedSet.id,
-              count: sequenceCount,
-              level: OcptFloorPlanOverrideLevel.sequence,
-            )
-          : null;
-    }
-
-    final sequence = state.selectedSequence;
-    final shotCount = sequence is OcptSceneShotSequence ? sequence.shots.length : 0;
-    return shotCount >= 2
-        ? (setId: selectedSet.id, count: 0, level: OcptFloorPlanOverrideLevel.shot)
-        : null;
   }
 
   /// Shows the delete confirmation dialog, then dispatches the symbol's deletion if the user

@@ -12,6 +12,7 @@ import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_coverage_range.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
 import 'package:open_cine_prod_tools/models/ocpt_storyboard_panel.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_scene_set_suggestion.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_layer.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_status.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_state.dart';
@@ -84,6 +85,21 @@ extension OcptShotListStateDerivedExtension on OcptShotListState {
             floorPlanSet.symbols.any((symbol) => symbol.layer == OcptFloorPlanLayer.cameras),
       ) ??
       false;
+
+  /// The id of the Resources set `ocptSceneSetSuggestionOf` suggests for [sequence]'s own heading,
+  /// or null while it suggests none, or while it already names one of [sequence]'s own linked sets
+  /// — the gallery's own starred card and the `＋ Set` menu's own top entry both read this, never
+  /// offering to link what is already linked.
+  String? suggestedSetIdOf(OcptSceneShotSequence sequence) {
+    final suggested = ocptSceneSetSuggestionOf(heading: sequence.heading, locations: locations);
+    if (suggested == null) {
+      return null;
+    }
+    final alreadyLinked = setsOfSelectedSequence.any(
+      (floorPlanSet) => floorPlanSet.id == suggested,
+    );
+    return alreadyLinked ? null : suggested;
+  }
 
   /// The set [selectedSetId] identifies, or null if none is selected (or the selected one
   /// disappeared from a freshly loaded [floorPlanSnapshot]).
