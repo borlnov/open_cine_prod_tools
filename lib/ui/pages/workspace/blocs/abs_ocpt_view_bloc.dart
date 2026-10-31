@@ -165,7 +165,7 @@ abstract class AbsOcptViewBloc<
   @override
   Future<void> disposeLifeCycle() async {
     _unregisterFlusher();
-    await _modeSubscription.cancel();
+    unawaited(_modeSubscription.cancel());
     await flushPendingWritesWithoutState();
     return super.disposeLifeCycle();
   }

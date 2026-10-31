@@ -138,12 +138,6 @@ class OcptShotListWriteErrorDismissedEvent extends OcptShotListWorkspaceEvent {
   const OcptShotListWriteErrorDismissedEvent();
 }
 
-/// Dismisses the transient export notice currently shown, if any.
-class OcptShotListIoNoticeDismissedEvent extends OcptShotListWorkspaceEvent {
-  /// Class constructor
-  const OcptShotListIoNoticeDismissedEvent();
-}
-
 /// Requests leaving the workspace and going back to the projects list.
 ///
 /// Flushes any pending field edit before closing the current project, so navigating back right

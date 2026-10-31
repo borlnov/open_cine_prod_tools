@@ -12,7 +12,7 @@ import 'package:open_cine_prod_tools/models/ocpt_storyboard_export_options.dart'
 import 'package:open_cine_prod_tools/models/ocpt_storyboard_labels.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/events/shot_list_base_event.dart';
 
-/// The events of `OcptShotListBloc` about exports.
+/// The events of `OcptShotListExportBloc`, about exports.
 sealed class OcptShotListExportEvent extends OcptShotListEvent {
   /// Class constructor
   const OcptShotListExportEvent();
@@ -198,4 +198,10 @@ class OcptShotListFloorPlansExportRequestedEvent extends OcptShotListExportEvent
   /// Object properties
   @override
   List<Object?> get props => [...super.props, labels, fileTypeLabel, episodeTag, shareAnchor];
+}
+
+/// Dismisses the transient export notice currently shown, if any.
+class OcptShotListIoNoticeDismissedEvent extends OcptShotListExportEvent {
+  /// Class constructor
+  const OcptShotListIoNoticeDismissedEvent();
 }

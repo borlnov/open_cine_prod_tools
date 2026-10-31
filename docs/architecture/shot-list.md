@@ -35,15 +35,20 @@ Resources set carries across its three scopes, and the mode's two newest documen
   `…_floor_plan_symbol_event.dart`), all extending the abstract `OcptShotListEvent` of
   `events/shot_list_base_event.dart` (a sealed class's subclasses must share its library, so the
   common base cannot be sealed); `shot_list_event.dart` only exports them. The state keeps its
-  fields, constructor and `copyWith` in `shot_list_state.dart`; `OcptShotListIoNotice` and the reads
-  derived on demand (`OcptShotListStateDerivedExtension`: the selections, the counters, the role
-  alerts, the coverage views) live in their own files, which `shot_list_state.dart` re-exports. What
+  fields, constructor and `copyWith` in `shot_list_state.dart`; the reads derived on demand
+  (`OcptShotListStateDerivedExtension`: the selections, the counters, the role alerts, the coverage
+  views) live in their own file, which `shot_list_state.dart` re-exports. What
   the bloc decides without touching the state — which sequence, set or shot a reveal or a selection
   lands on, the symbol lookup, a character symbol's default label — is
   `lib/models/rules/ocpt_shot_list_selection.dart`; the writes that need only domain values are
   service methods (`OcptShotListService.updateTextField`/`updateDifficulty`,
   `OcptFloorPlanService.hideSymbolForScope`/`applyScopeDecision`). Everything else stays in
   `OcptShotListBloc`: a handler reads the state, calls a service, re-reads a snapshot and emits.
+  The four exports are the exception: they belong to `OcptShotListExportBloc`, a bloc of its own
+  that lives as long as the mode. It owns the export notice (`OcptShotListIoNotice`, in
+  `shot_list_export_state.dart`), asks `OcptShotListBloc` to write every pending edit
+  (`flushAllPendingWrites`, which also reads the snapshots again), then reads those snapshots from
+  the mode bloc's state and hands them to `OcptExportManager`.
 
 ## The three centre views and their shared chrome
 

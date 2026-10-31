@@ -50,7 +50,9 @@ mixin MixinOcptAwaitedEvent<T> on BlocEventForMixin {
       bloc.add(this);
       return await Future.any([_completer.future, closed.future]);
     } finally {
-      await subscription.cancel();
+      // Not awaited: cancelling a state stream detaches the listener at once, and the future it
+      // hands back is one a widget test's fake clock never gets to finish.
+      unawaited(subscription.cancel());
     }
   }
 }

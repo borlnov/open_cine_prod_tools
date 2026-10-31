@@ -33,10 +33,8 @@ import 'package:open_cine_prod_tools/types/ocpt_storyboard_panel_size.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_mode_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project_package_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project_versions_state.dart';
-import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_io_notice.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock.dart';
 
-export 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_io_notice.dart';
 export 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_state_derived.dart';
 
 /// The state of `OcptShotListBloc`.
@@ -318,10 +316,6 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
   /// dismissed.
   final bool hasWriteError;
 
-  /// The outcome of the last shot list export, or null while there is nothing to report; shown as
-  /// a transient SnackBar then dismissed.
-  final OcptShotListIoNotice? ioNotice;
-
   /// The screenplay's whole cast — the speaking roles and the characters introduced in capitals in
   /// an action line alike, see `fountain_kit`'s `screenplayCharactersOf` — normalised through
   /// `normalizeCharacterName` and in first-appearance order, as parsed once on entry.
@@ -456,7 +450,6 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
     required this.rightDockFraction,
     required this.visibleColumns,
     required this.hasWriteError,
-    required this.ioNotice,
     required this.screenplayCharacters,
     required this.roles,
     required this.suggestions,
@@ -521,7 +514,6 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
       rightDockFraction = OcptWorkspaceDock.rightDefaultFraction,
       visibleColumns = OcptShotListColumn.defaultVisibleColumns,
       hasWriteError = false,
-      ioNotice = null,
       screenplayCharacters = const [],
       roles = const [],
       suggestions = const OcptShotFieldSuggestions.empty(),
@@ -544,9 +536,9 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
   ///
   /// [snapshot] is only replaced when a new one is given: it never goes back to null once loaded,
   /// so it needs no force flag. [selectedSequenceId], [selectedShotId], [selectedPanelId],
-  /// [rightDockTab], [pendingCoverageAnchor] and [ioNotice] all legitimately go back to null while
-  /// the mode is alive (nothing selected any more, the dock closed, no range being drawn, the
-  /// export notice dismissed), so each has its own force flag instead.
+  /// [rightDockTab] and [pendingCoverageAnchor] all legitimately go back to null while the mode is
+  /// alive (nothing selected any more, the dock closed, no range being drawn), so each has its own
+  /// force flag instead.
   @override
   OcptShotListState copyWith({
     bool? isLoading,
@@ -607,8 +599,6 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
     double? rightDockFraction,
     Set<OcptShotListColumn>? visibleColumns,
     bool? hasWriteError,
-    OcptShotListIoNotice? ioNotice,
-    bool forceIoNoticeValue = false,
     List<String>? screenplayCharacters,
     List<OcptRole>? roles,
     OcptShotFieldSuggestions? suggestions,
@@ -703,7 +693,6 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
     rightDockFraction: rightDockFraction ?? this.rightDockFraction,
     visibleColumns: visibleColumns ?? this.visibleColumns,
     hasWriteError: hasWriteError ?? this.hasWriteError,
-    ioNotice: ioNotice ?? (forceIoNoticeValue ? null : this.ioNotice),
     screenplayCharacters: screenplayCharacters ?? this.screenplayCharacters,
     roles: roles ?? this.roles,
     suggestions: suggestions ?? this.suggestions,
@@ -829,7 +818,6 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
     rightDockFraction,
     visibleColumns,
     hasWriteError,
-    ioNotice,
     screenplayCharacters,
     roles,
     suggestions,

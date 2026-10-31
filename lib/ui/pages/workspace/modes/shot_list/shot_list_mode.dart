@@ -36,6 +36,8 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_project_packa
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_project_versions_events.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_event.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_export_bloc.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_export_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_floor_plan_canvas_painter.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_floor_plan_character_name_picker_dialog.dart';
@@ -102,17 +104,27 @@ class OcptShotListMode extends StatelessWidget {
   const OcptShotListMode({super.key, this.revealRequest});
 
   @override
-  Widget build(BuildContext context) => BlocProvider(
-    create: (context) => OcptShotListBloc(
-      selectedEpisodeId: context.read<OcptWorkspaceBloc>().state.selectedEpisodeId,
-      revealRequest: revealRequest,
-    ),
+  Widget build(BuildContext context) => MultiBlocProvider(
+    providers: [
+      BlocProvider(
+        create: (context) => OcptShotListBloc(
+          selectedEpisodeId: context.read<OcptWorkspaceBloc>().state.selectedEpisodeId,
+          revealRequest: revealRequest,
+        ),
+      ),
+      // Built with the mode rather than on first read: a view bloc registers itself with the mode
+      // bloc when it is built, and one that is not there yet cannot be asked to write what it holds.
+      BlocProvider(
+        lazy: false,
+        create: (context) => OcptShotListExportBloc(modeBloc: context.read<OcptShotListBloc>()),
+      ),
+    ],
     child: _ShotListView(hasRevealRequest: revealRequest != null),
   );
 }
 
 /// The content of [OcptShotListMode], separated from it so [OcptShotListMode] only wires the
-/// [OcptShotListBloc] up.
+/// [OcptShotListBloc] and its view blocs up.
 ///
 /// This is a StatefulWidget (the documented exception) because it owns the dock layout
 /// controller: the live dock fractions must survive a rebuild and be mutated imperatively while a
@@ -174,7 +186,17 @@ class _ShotListViewState extends State<_ShotListView> {
   }
 
   @override
-  Widget build(BuildContext context) => BlocConsumer<OcptShotListBloc, OcptShotListState>(
+  Widget build(BuildContext context) => MultiBlocListener(
+    listeners: [
+      BlocListener<OcptShotListExportBloc, OcptShotListExportState>(
+        listener: _onExportStateChanged,
+      ),
+    ],
+    child: _buildMode(context),
+  );
+
+  /// Builds the mode itself, listening to the mode bloc.
+  Widget _buildMode(BuildContext context) => BlocConsumer<OcptShotListBloc, OcptShotListState>(
     listener: _onStateChanged,
     builder: (context, state) {
       if (state.isLoading) {
@@ -338,7 +360,7 @@ class _ShotListViewState extends State<_ShotListView> {
   void _requestXlsxExport(BuildContext context, OcptShotListState state, Rect? shareAnchor) {
     final tr = Tr.of(context);
 
-    context.read<OcptShotListBloc>().add(
+    context.read<OcptShotListExportBloc>().add(
       OcptShotListXlsxExportRequestedEvent(
         labels: ocptShotListXlsxLabelsOf(tr, state.sequences),
         fileTypeLabel: tr.shotListExportXlsxFileTypeLabel,
@@ -356,7 +378,7 @@ class _ShotListViewState extends State<_ShotListView> {
     OcptShotListState state,
     Rect? shareAnchor,
   ) async {
-    final bloc = context.read<OcptShotListBloc>();
+    final bloc = context.read<OcptShotListExportBloc>();
     final options = await OcptScenarioCoverageExportDialog.show(context, current: state.pageSetup);
     if (options == null) {
       return;
@@ -386,7 +408,7 @@ class _ShotListViewState extends State<_ShotListView> {
     OcptShotListState state,
     Rect? shareAnchor,
   ) async {
-    final bloc = context.read<OcptShotListBloc>();
+    final bloc = context.read<OcptShotListExportBloc>();
     final options = await OcptStoryboardExportDialog.show(context, current: state.pageSetup);
     if (options == null) {
       return;
@@ -414,7 +436,7 @@ class _ShotListViewState extends State<_ShotListView> {
   void _requestFloorPlansExport(BuildContext context, OcptShotListState state, Rect? shareAnchor) {
     final tr = Tr.of(context);
 
-    context.read<OcptShotListBloc>().add(
+    context.read<OcptShotListExportBloc>().add(
       OcptShotListFloorPlansExportRequestedEvent(
         labels: ocptFloorPlanLabelsOf(tr, state.sequences),
         fileTypeLabel: tr.shotListExportFloorPlansFileTypeLabel,
@@ -2457,14 +2479,6 @@ class _ShotListViewState extends State<_ShotListView> {
       unawaited(_askCharacterName(context, state, pendingCharacterNamePromptSymbolId));
     }
 
-    final ioNotice = state.ioNotice;
-    if (ioNotice != null) {
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(SnackBar(content: Text(_ioNoticeMessage(context, ioNotice))));
-      context.read<OcptShotListBloc>().add(const OcptShotListIoNoticeDismissedEvent());
-    }
-
     final versionNotice = state.projectVersionNotice;
     if (versionNotice != null) {
       ScaffoldMessenger.of(context)
@@ -2490,6 +2504,19 @@ class _ShotListViewState extends State<_ShotListView> {
         );
       context.read<OcptShotListBloc>().add(const OcptProjectPackageNoticeDismissedEvent());
     }
+  }
+
+  /// Shows the outcome of an export as a SnackBar, then dismisses it.
+  void _onExportStateChanged(BuildContext context, OcptShotListExportState state) {
+    final ioNotice = state.ioNotice;
+    if (ioNotice == null) {
+      return;
+    }
+
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(_ioNoticeMessage(context, ioNotice))));
+    context.read<OcptShotListExportBloc>().add(const OcptShotListIoNoticeDismissedEvent());
   }
 
   /// Dispatches the project package export, resolving here — the last place with a
