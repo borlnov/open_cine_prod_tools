@@ -19,6 +19,7 @@ import 'package:open_cine_prod_tools/managers/sync/services/ocpt_folder_remote_s
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_merge_service.dart';
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_pairing_service.dart';
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_presence_service.dart';
+import 'package:open_cine_prod_tools/managers/sync/services/ocpt_project_pairing.dart';
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_relay_remote_storage.dart';
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_remote_storage.dart';
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_screenplay_merge_service.dart';

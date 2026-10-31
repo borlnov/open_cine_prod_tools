@@ -7,6 +7,7 @@ import 'dart:io';
 import 'package:act_foundation/act_foundation.dart';
 import 'package:act_logger_manager/act_logger_manager.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:open_cine_prod_tools/managers/logging/ocpt_external_logger_key.dart';
 import 'package:open_cine_prod_tools/managers/logging/ocpt_file_external_logger.dart';
 import 'package:open_cine_prod_tools/managers/logging/ocpt_file_logging_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_config_manager.dart';

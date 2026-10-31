@@ -2,32 +2,10 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-import 'package:equatable/equatable.dart';
 import 'package:open_cine_prod_tools/managers/abs_ocpt_service.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_secrets_manager.dart';
+import 'package:open_cine_prod_tools/managers/sync/services/ocpt_project_pairing.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
-
-/// A project's relay pairing, the two halves [OcptPairingService] keeps in step: the relay it is
-/// paired with and the token authenticating every request to it.
-///
-/// This never carries the enrolment secret: that is a create-time-only value used once by the
-/// transport to let it create the project on the relay the first time it is pushed there, and is
-/// never persisted by anything — see `OcptRelayRemoteStorage`'s own doc comment.
-class OcptProjectPairing extends Equatable {
-  /// Class constructor
-  const OcptProjectPairing({required this.relayBaseUri, required this.token});
-
-  /// The relay this project is paired with, e.g. `https://relay.example.org/`.
-  final Uri relayBaseUri;
-
-  /// The bearer token authenticating every request this pairing's replica makes to
-  /// [relayBaseUri] for this project.
-  final String token;
-
-  /// Class properties
-  @override
-  List<Object?> get props => [relayBaseUri, token];
-}
 
 /// Reads and writes a project's relay pairing, the one place both halves of it —
 /// `sync_pairings.relayBaseUrl` and the project token held by [OcptSecretsManager] — are ever

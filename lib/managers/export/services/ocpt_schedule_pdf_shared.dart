@@ -2,6 +2,8 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+import 'package:open_cine_prod_tools/managers/export/services/ocpt_ordered_schedule_entry.dart';
+import 'package:open_cine_prod_tools/managers/export/services/ocpt_schedule_guest_row.dart';
 import 'package:open_cine_prod_tools/models/ocpt_location.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role_candidate.dart';
@@ -39,22 +41,6 @@ String ocptScheduleGeneratedAtStamp(DateTime exportDate) =>
     "${exportDate.year.toString().padLeft(4, '0')}-${exportDate.month.toString().padLeft(2, '0')}-"
     "${exportDate.day.toString().padLeft(2, '0')} ${exportDate.hour.toString().padLeft(2, '0')}:"
     "${exportDate.minute.toString().padLeft(2, '0')}";
-
-/// One slot's own block, already placed on the day's clock — the raw material every reader of a
-/// day's timetable is built from, whichever of the two schedule PDF exports is reading it.
-class OcptOrderedScheduleEntry {
-  /// Class constructor
-  const OcptOrderedScheduleEntry({required this.slot, required this.block, required this.entry});
-
-  /// The slot [block] belongs to.
-  final OcptShootingSlot slot;
-
-  /// The block itself.
-  final OcptShootingDayBlock block;
-
-  /// Where [block] is placed — the *resolved* clock, never a stored anchor.
-  final OcptShootingTimelineEntry entry;
-}
 
 /// Every block of [dayId], across every live slot (or only [onlySlotIds]' own, for a call sheet
 /// addressed to one person), placed on the day's clock and sorted **in resolved clock order across
@@ -300,44 +286,6 @@ String ocptScheduleArrivalDepartureLabel(OcptDayConvocation? convocation) {
   }
   return "${ocptFormatDayMinute(convocation.arrivalMinute)} – "
       "${ocptFormatDayMinute(convocation.departureMinute)}";
-}
-
-/// One row of a day's own trailing guest table: a guest convocation's own display name, the
-/// reason(s) their own `shooting_slot_guests` rows carry, and their own arrival – departure band.
-/// **Never a PAT band** — a guest is not there to shoot (ADR 0018), so there is no field here to
-/// carry one at all, unlike a crew or cast row's own.
-///
-/// Shared by `OcptCallSheetPdfService` and `OcptShootingPlanPdfService`, which both print this
-/// exact table (`NOM / MOTIF / HORAIRES`) trailing their own timetable: the join belongs here for
-/// the same reason [ocptScheduleBlockCaptionOf] does — two documents reading a guest's name, reason
-/// and hours two different ways is exactly what this file exists to rule out. Each service keeps
-/// only its own widget that draws the table, the section title and the labels object differing
-/// between them.
-class OcptScheduleGuestRow {
-  /// Class constructor
-  const OcptScheduleGuestRow({
-    required this.name,
-    required this.reason,
-    required this.notes,
-    required this.hours,
-  });
-
-  /// The guest's own display name — the address-book person's, the free name, or the
-  /// `unnamedPersonLabel` [ocptScheduleGuestRowsOfDay] was given while neither names anybody
-  /// printable.
-  final String name;
-
-  /// The distinct, non-empty reasons every `shooting_slot_guests` row naming this guest on one of
-  /// their own slots carries, comma-joined — never picked down to one, since somebody attending two
-  /// slots for two different reasons is telling the truth about both.
-  final String reason;
-
-  /// The same join over those rows' own free-form notes, printed under [reason] on a muted second
-  /// line — empty when none of them carries any.
-  final String notes;
-
-  /// This guest's own arrival – departure band ([ocptScheduleArrivalDepartureLabel]).
-  final String hours;
 }
 
 /// Whether [guest]'s own discriminator half — [OcptShootingSlotGuest.personId] or

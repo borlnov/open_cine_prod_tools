@@ -6,7 +6,7 @@ import 'dart:typed_data';
 
 import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/managers/abs_ocpt_service.dart';
-import 'package:open_cine_prod_tools/managers/export/services/ocpt_courier_prime_fonts.dart';
+import 'package:open_cine_prod_tools/managers/export/services/ocpt_courier_prime_fonts_loader.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_schedule_pdf_shared.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_script_page_painter.dart';
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';

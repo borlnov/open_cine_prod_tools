@@ -9,7 +9,7 @@ import 'dart:ui' show Offset;
 
 import 'package:act_foundation/act_foundation.dart';
 import 'package:open_cine_prod_tools/managers/abs_ocpt_service.dart';
-import 'package:open_cine_prod_tools/managers/export/services/ocpt_courier_prime_fonts.dart';
+import 'package:open_cine_prod_tools/managers/export/services/ocpt_courier_prime_fonts_loader.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_export_file_name.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_floor_plan_pdf_service.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_script_page_painter.dart';

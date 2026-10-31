@@ -12,7 +12,7 @@ import 'package:ocpt_sync_protocol/ocpt_sync_protocol.dart';
 import 'package:open_cine_prod_tools/managers/sync/ocpt_sync_manager.dart';
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_changeset_service.dart';
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_merge_service.dart';
-import 'package:open_cine_prod_tools/managers/sync/services/ocpt_pairing_service.dart';
+import 'package:open_cine_prod_tools/managers/sync/services/ocpt_project_pairing.dart';
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_relay_remote_storage.dart';
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_remote_storage.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';

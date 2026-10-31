@@ -21,7 +21,7 @@ import 'package:open_cine_prod_tools/managers/export/services/ocpt_budget_financ
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_budget_quote_pdf_service.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_call_sheet_pdf_service.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_contact_list_pdf_service.dart';
-import 'package:open_cine_prod_tools/managers/export/services/ocpt_courier_prime_fonts.dart';
+import 'package:open_cine_prod_tools/managers/export/services/ocpt_courier_prime_fonts_loader.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_day_out_of_days_pdf_service.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_floor_plan_pdf_service.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_fountain_io_service.dart';
