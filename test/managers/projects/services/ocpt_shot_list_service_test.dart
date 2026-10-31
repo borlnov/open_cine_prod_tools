@@ -28,6 +28,8 @@ import 'package:open_cine_prod_tools/types/ocpt_floor_plan_arrow_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_layer.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_check_reason.dart';
+import 'package:open_cine_prod_tools/types/ocpt_shot_difficulty_axis.dart';
+import 'package:open_cine_prod_tools/types/ocpt_shot_list_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
 import 'package:open_cine_prod_tools/types/ocpt_storyboard_annotation_kind.dart';
 
@@ -441,6 +443,70 @@ Action.
       expect(shot.abbreviation, "GP");
       expect(shot.notes, "Watch the eyeline.");
       expect(shot.framing, ""); // untouched, still its column default
+    });
+
+    test("updateTextField writes the column its field names and nothing else", () async {
+      final scenes = await reconcile('''
+INT. HOUSE - DAY
+
+Action.
+''');
+      final shotId = (await shotListService.createShot(
+        database: database,
+        screenplayId: screenplayId,
+        sceneId: scenes.single.id,
+      ))!;
+
+      await shotListService.updateTextField(
+        database: database,
+        shotId: shotId,
+        field: OcptShotListEditableField.lens,
+        rawValue: "35mm",
+      );
+      await shotListService.updateTextField(
+        database: database,
+        shotId: shotId,
+        field: OcptShotListEditableField.locationNotes,
+        rawValue: "Second floor",
+      );
+      await shotListService.updateTextField(
+        database: database,
+        shotId: shotId,
+        field: OcptShotListEditableField.estimatedDuration,
+        rawValue: "12",
+      );
+
+      final shot = (await readShots()).single;
+      expect(shot.lens, "35mm");
+      expect(shot.locationNotes, "Second floor");
+      expect(shot.estimatedDurationMs, isNull);
+      expect(shot.notes, "");
+    });
+
+    test("updateDifficulty writes the one axis it is given", () async {
+      final scenes = await reconcile('''
+INT. HOUSE - DAY
+
+Action.
+''');
+      final shotId = (await shotListService.createShot(
+        database: database,
+        screenplayId: screenplayId,
+        sceneId: scenes.single.id,
+      ))!;
+
+      await shotListService.updateDifficulty(
+        database: database,
+        shotId: shotId,
+        axis: OcptShotDifficultyAxis.acting,
+        value: 4,
+      );
+
+      final shot = (await readShots()).single;
+      expect(shot.difficultyActing, 4);
+      expect(shot.difficultySet, 1);
+      expect(shot.difficultyCamera, 1);
+      expect(shot.difficultySound, 1);
     });
   });
 

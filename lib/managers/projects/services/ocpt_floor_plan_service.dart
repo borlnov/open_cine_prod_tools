@@ -8,6 +8,7 @@ import 'package:open_cine_prod_tools/managers/projects/services/ocpt_assets_serv
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_row_stamp_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/ocpt_floor_plan_arrow.dart';
+import 'package:open_cine_prod_tools/models/ocpt_floor_plan_scope_decision.dart';
 import 'package:open_cine_prod_tools/models/ocpt_floor_plan_set.dart';
 import 'package:open_cine_prod_tools/models/ocpt_floor_plan_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_floor_plan_symbol.dart';
@@ -1366,4 +1367,99 @@ class OcptFloorPlanService extends AbsOcptService {
   }) => (database.select(
     database.ocptFloorPlanArrowsTable,
   )..where((table) => table.id.equals(arrowId) & table.isDeleted.not())).getSingleOrNull();
+
+  /// Masks [original] for one sequence ([sceneId]) or one shot ([shotId]) alone — exactly one of
+  /// the two is non-null — a hidden override: sets `isHidden` on [existingOverride] when one
+  /// already exists, or places one copied from [original]'s own geometry otherwise. What the
+  /// extended delete confirmation's alternative branch ("Remove from sequence n"/"Remove from
+  /// shot n") writes.
+  ///
+  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
+  Future<void> hideSymbolForScope({
+    required OcptProjectDatabase database,
+    required OcptFloorPlanSymbol original,
+    required OcptFloorPlanSymbol? existingOverride,
+    required String? sceneId,
+    required String? shotId,
+  }) async {
+    if (existingOverride != null) {
+      await updateSymbol(
+        database: database,
+        symbolId: existingOverride.id,
+        isHidden: const Value(true),
+      );
+      return;
+    }
+
+    await placeSymbol(
+      database: database,
+      setId: original.setId,
+      sceneId: sceneId,
+      shotId: shotId,
+      layer: original.layer,
+      xM: original.xM,
+      yM: original.yM,
+      rotationDeg: original.rotationDeg,
+      widthM: original.widthM,
+      heightM: original.heightM,
+      label: original.label,
+      setElementShape: original.setElementShape,
+      overridesSymbolId: original.id,
+      isHidden: true,
+    );
+  }
+
+  /// Writes [decision]'s geometry (every field it carries, the others left as they are) onto the
+  /// original symbol it names when [onEveryScope] is true, or onto an override of it for
+  /// [targetSceneId] / [targetShotId] otherwise: [existingOverride] updated when there is one, a
+  /// new override copied from [original] and moved by the decision when not.
+  ///
+  /// Returns false, having written nothing, when an override has to be created but [original] is
+  /// null (the original is no longer in the snapshot the caller read), true otherwise.
+  ///
+  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
+  Future<bool> applyScopeDecision({
+    required OcptProjectDatabase database,
+    required OcptFloorPlanScopeDecision decision,
+    required bool onEveryScope,
+    required OcptFloorPlanSymbol? original,
+    required OcptFloorPlanSymbol? existingOverride,
+    required String? targetSceneId,
+    required String? targetShotId,
+  }) async {
+    if (onEveryScope || existingOverride != null) {
+      await updateSymbol(
+        database: database,
+        symbolId: onEveryScope ? decision.symbolId : existingOverride!.id,
+        xM: decision.xM == null ? const Value.absent() : Value(decision.xM!),
+        yM: decision.yM == null ? const Value.absent() : Value(decision.yM!),
+        rotationDeg: decision.rotationDeg == null
+            ? const Value.absent()
+            : Value(decision.rotationDeg!),
+        widthM: decision.widthM == null ? const Value.absent() : Value(decision.widthM),
+        heightM: decision.heightM == null ? const Value.absent() : Value(decision.heightM),
+      );
+      return true;
+    }
+
+    if (original == null) {
+      return false;
+    }
+    await placeSymbol(
+      database: database,
+      setId: decision.setId,
+      sceneId: targetSceneId,
+      shotId: targetShotId,
+      layer: original.layer,
+      xM: decision.xM ?? original.xM,
+      yM: decision.yM ?? original.yM,
+      rotationDeg: decision.rotationDeg ?? original.rotationDeg,
+      widthM: decision.widthM ?? original.widthM,
+      heightM: decision.heightM ?? original.heightM,
+      label: original.label,
+      setElementShape: original.setElementShape,
+      overridesSymbolId: decision.symbolId,
+    );
+    return true;
+  }
 }

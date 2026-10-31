@@ -20,6 +20,8 @@ import 'package:open_cine_prod_tools/models/rules/ocpt_row_stamp_key.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_scene_display_number.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_check_reason.dart';
+import 'package:open_cine_prod_tools/types/ocpt_shot_difficulty_axis.dart';
+import 'package:open_cine_prod_tools/types/ocpt_shot_list_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_status.dart';
 import 'package:uuid/uuid.dart';
 
@@ -398,6 +400,60 @@ class OcptShotListService extends AbsOcptService {
       );
       await stamps.flush(database);
     });
+  }
+
+  /// Writes [rawValue] onto the free-text column of shot [shotId] that [field] names, through
+  /// [updateShot]. [OcptShotListEditableField.estimatedDuration] is not a text column: its typed
+  /// text has to be parsed first, so the caller writes it through [updateShot] itself and this
+  /// writes nothing for it.
+  Future<void> updateTextField({
+    required OcptProjectDatabase database,
+    required String shotId,
+    required OcptShotListEditableField field,
+    required String rawValue,
+  }) async {
+    final value = Value(rawValue);
+    switch (field) {
+      case OcptShotListEditableField.shotSize:
+        await updateShot(database: database, shotId: shotId, shotSize: value);
+      case OcptShotListEditableField.abbreviation:
+        await updateShot(database: database, shotId: shotId, abbreviation: value);
+      case OcptShotListEditableField.framing:
+        await updateShot(database: database, shotId: shotId, framing: value);
+      case OcptShotListEditableField.cameraMove:
+        await updateShot(database: database, shotId: shotId, cameraMove: value);
+      case OcptShotListEditableField.lens:
+        await updateShot(database: database, shotId: shotId, lens: value);
+      case OcptShotListEditableField.recordingFormat:
+        await updateShot(database: database, shotId: shotId, recordingFormat: value);
+      case OcptShotListEditableField.sound:
+        await updateShot(database: database, shotId: shotId, sound: value);
+      case OcptShotListEditableField.notes:
+        await updateShot(database: database, shotId: shotId, notes: value);
+      case OcptShotListEditableField.locationNotes:
+        await updateShot(database: database, shotId: shotId, locationNotes: value);
+      case OcptShotListEditableField.estimatedDuration:
+        return;
+    }
+  }
+
+  /// Sets difficulty [axis] of shot [shotId] to [value], through [updateShot].
+  Future<void> updateDifficulty({
+    required OcptProjectDatabase database,
+    required String shotId,
+    required OcptShotDifficultyAxis axis,
+    required int value,
+  }) async {
+    switch (axis) {
+      case OcptShotDifficultyAxis.set:
+        await updateShot(database: database, shotId: shotId, difficultySet: Value(value));
+      case OcptShotDifficultyAxis.camera:
+        await updateShot(database: database, shotId: shotId, difficultyCamera: Value(value));
+      case OcptShotDifficultyAxis.acting:
+        await updateShot(database: database, shotId: shotId, difficultyActing: Value(value));
+      case OcptShotDifficultyAxis.sound:
+        await updateShot(database: database, shotId: shotId, difficultySound: Value(value));
+    }
   }
 
   /// Tombstones the shot [shotId] in [database], its attached characters and coverage ranges along

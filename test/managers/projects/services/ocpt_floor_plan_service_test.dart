@@ -21,6 +21,10 @@ import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_covera
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_list_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_storyboard_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
+import 'package:open_cine_prod_tools/models/ocpt_floor_plan_scope_decision.dart';
+import 'package:open_cine_prod_tools/models/ocpt_floor_plan_sheet.dart'
+    show OcptFloorPlanOverrideLevel;
+import 'package:open_cine_prod_tools/models/ocpt_floor_plan_symbol.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_arrow_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_layer.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_set_element_shape.dart';
@@ -1820,6 +1824,189 @@ void main() {
         setIds: const [],
       );
       expect(withPlan, isEmpty);
+    });
+  });
+
+  group("hideSymbolForScope", () {
+    /// Places a set-scope wall on a fresh set and returns the scene id, the set id and the loaded
+    /// original.
+    Future<(String, String, OcptFloorPlanSymbol)> seedWall() async {
+      final (sceneId, setId) = await seedLinkedSet();
+      await floorPlanService.placeSymbol(
+        database: database,
+        setId: setId,
+        sceneId: null,
+        shotId: null,
+        layer: OcptFloorPlanLayer.set,
+        xM: 1,
+        yM: 2,
+        widthM: 3,
+        heightM: 0.2,
+        label: "Wall",
+        setElementShape: OcptFloorPlanSetElementShape.wall,
+      );
+      final snapshot = await floorPlanService.loadFloorPlans(
+        database: database,
+        screenplayId: screenplayId,
+      );
+      return (sceneId, setId, snapshot.setsById[setId]!.symbols.single);
+    }
+
+    test("creates a hidden scene-scope override copied from the original", () async {
+      final (sceneId, setId, original) = await seedWall();
+
+      await floorPlanService.hideSymbolForScope(
+        database: database,
+        original: original,
+        existingOverride: null,
+        sceneId: sceneId,
+        shotId: null,
+      );
+
+      final symbols = (await readSymbols()).where((row) => row.id != original.id).toList();
+      expect(symbols, hasLength(1));
+      expect(symbols.single.setId, setId);
+      expect(symbols.single.sceneId, sceneId);
+      expect(symbols.single.overridesSymbolId, original.id);
+      expect(symbols.single.isHidden, isTrue);
+      expect(symbols.single.xM, 1);
+      expect(symbols.single.label, "Wall");
+    });
+
+    test("hides the existing override instead of creating another", () async {
+      final (sceneId, _, original) = await seedWall();
+      await floorPlanService.hideSymbolForScope(
+        database: database,
+        original: original,
+        existingOverride: null,
+        sceneId: sceneId,
+        shotId: null,
+      );
+      final override = (await readSymbols()).firstWhere((row) => row.id != original.id);
+      await floorPlanService.updateSymbol(
+        database: database,
+        symbolId: override.id,
+        isHidden: const Value(false),
+      );
+      final snapshot = await floorPlanService.loadFloorPlans(
+        database: database,
+        screenplayId: screenplayId,
+      );
+      final existing = snapshot.setsById.values.single.symbols.firstWhere(
+        (symbol) => symbol.id == override.id,
+      );
+
+      await floorPlanService.hideSymbolForScope(
+        database: database,
+        original: original,
+        existingOverride: existing,
+        sceneId: sceneId,
+        shotId: null,
+      );
+
+      final symbols = await readSymbols();
+      expect(symbols, hasLength(2));
+      expect(symbols.firstWhere((row) => row.id == override.id).isHidden, isTrue);
+    });
+  });
+
+  group("applyScopeDecision", () {
+    test("moves the original itself on every scope", () async {
+      final (_, setId) = await seedLinkedSet();
+      final symbolId = (await floorPlanService.placeSymbol(
+        database: database,
+        setId: setId,
+        sceneId: null,
+        shotId: null,
+        layer: OcptFloorPlanLayer.set,
+        xM: 1,
+        yM: 2,
+      ))!;
+
+      final isWritten = await floorPlanService.applyScopeDecision(
+        database: database,
+        decision: OcptFloorPlanScopeDecision(
+          symbolId: symbolId,
+          setId: setId,
+          level: OcptFloorPlanOverrideLevel.sequence,
+          sequenceCount: 2,
+          xM: 5,
+        ),
+        onEveryScope: true,
+        original: null,
+        existingOverride: null,
+        targetSceneId: null,
+        targetShotId: null,
+      );
+
+      final row = (await readSymbols()).single;
+      expect(isWritten, isTrue);
+      expect(row.xM, 5);
+      expect(row.yM, 2);
+    });
+
+    test("creates an override moved by the decision, leaving the original alone", () async {
+      final (sceneId, setId) = await seedLinkedSet();
+      final symbolId = (await floorPlanService.placeSymbol(
+        database: database,
+        setId: setId,
+        sceneId: null,
+        shotId: null,
+        layer: OcptFloorPlanLayer.set,
+        xM: 1,
+        yM: 2,
+      ))!;
+      final snapshot = await floorPlanService.loadFloorPlans(
+        database: database,
+        screenplayId: screenplayId,
+      );
+
+      final isWritten = await floorPlanService.applyScopeDecision(
+        database: database,
+        decision: OcptFloorPlanScopeDecision(
+          symbolId: symbolId,
+          setId: setId,
+          level: OcptFloorPlanOverrideLevel.sequence,
+          sequenceCount: 2,
+          yM: 7,
+        ),
+        onEveryScope: false,
+        original: snapshot.setsById[setId]!.symbols.single,
+        existingOverride: null,
+        targetSceneId: sceneId,
+        targetShotId: null,
+      );
+
+      final rows = await readSymbols();
+      final override = rows.firstWhere((row) => row.id != symbolId);
+      expect(isWritten, isTrue);
+      expect(rows.firstWhere((row) => row.id == symbolId).yM, 2);
+      expect(override.overridesSymbolId, symbolId);
+      expect(override.sceneId, sceneId);
+      expect(override.xM, 1);
+      expect(override.yM, 7);
+    });
+
+    test("writes nothing and answers false when there is no original to copy", () async {
+      final (sceneId, _) = await seedLinkedSet();
+
+      final isWritten = await floorPlanService.applyScopeDecision(
+        database: database,
+        decision: const OcptFloorPlanScopeDecision(
+          symbolId: "gone",
+          setId: "set-1",
+          level: OcptFloorPlanOverrideLevel.sequence,
+          sequenceCount: 2,
+        ),
+        onEveryScope: false,
+        original: null,
+        existingOverride: null,
+        targetSceneId: sceneId,
+        targetShotId: null,
+      );
+
+      expect(isWritten, isFalse);
+      expect(await readSymbols(), isEmpty);
     });
   });
 }

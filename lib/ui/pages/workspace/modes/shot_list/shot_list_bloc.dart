@@ -29,7 +29,6 @@ import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_list_s
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_storyboard_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/ocpt_floor_plan_scope_decision.dart';
-import 'package:open_cine_prod_tools/models/ocpt_floor_plan_set.dart';
 import 'package:open_cine_prod_tools/models/ocpt_floor_plan_sheet.dart'
     show OcptFloorPlanOverrideLevel;
 import 'package:open_cine_prod_tools/models/ocpt_floor_plan_snapshot.dart';
@@ -48,13 +47,13 @@ import 'package:open_cine_prod_tools/models/ocpt_workspace_reveal_request.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_floor_plan_geometry.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_scene_display_number.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_scene_set_suggestion.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_shot_list_selection.dart';
 import 'package:open_cine_prod_tools/types/ocpt_export_outcome.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_arrow_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_layer.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_scope_choice.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_tool.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
-import 'package:open_cine_prod_tools/types/ocpt_shot_difficulty_axis.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_centre_view.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_column.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_editable_field.dart';
@@ -486,24 +485,24 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
 
     final revealRequest = _pendingRevealRequest;
     _pendingRevealRequest = null;
-    final revealedSequenceId = _revealedSequenceIdOf(
+    final revealedSequenceId = ocptRevealedSequenceIdOf(
       revealRequest: revealRequest,
       snapshot: snapshot,
     );
 
     final selectedSequenceId =
         revealedSequenceId ?? (snapshot.sequences.isEmpty ? null : snapshot.sequences.first.id);
-    final firstSetId = _firstSetIdOf(
+    final firstSetId = ocptFirstSetIdOf(
       floorPlanSnapshot: floorPlanSnapshot,
       sequenceId: selectedSequenceId,
     );
-    final revealedSetId = _revealedSetIdOf(
+    final revealedSetId = ocptRevealedSetIdOf(
       revealRequest: revealRequest,
       floorPlanSnapshot: floorPlanSnapshot,
       sequenceId: selectedSequenceId,
     );
     final selectedSetId = revealedSetId ?? firstSetId;
-    final firstShotId = _firstShotIdOf(snapshot: snapshot, sequenceId: selectedSequenceId);
+    final firstShotId = ocptFirstShotIdOf(snapshot: snapshot, sequenceId: selectedSequenceId);
     final effectiveCentreView = revealedSequenceId != null
         ? OcptShotListCentreView.floorPlans
         : centreView;
@@ -571,37 +570,6 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     return const [];
   }
 
-  /// [revealRequest]'s own sequence id, when it names one still live in [snapshot], or null
-  /// otherwise (no reveal pending, or it names a sequence no longer live — a dangling reveal reads
-  /// the same as none, `OcptShotListRevealRequest`'s own doc comment) — the default sequence
-  /// selection applies instead.
-  String? _revealedSequenceIdOf({
-    required OcptShotListRevealRequest? revealRequest,
-    required OcptShotListSnapshot snapshot,
-  }) {
-    final sceneId = revealRequest?.sceneId;
-    if (sceneId == null) {
-      return null;
-    }
-    return snapshot.sequences.any((sequence) => sequence.id == sceneId) ? sceneId : null;
-  }
-
-  /// [revealRequest]'s own set id, when it still names one of [sequenceId]'s own live linked sets
-  /// in [floorPlanSnapshot], or null otherwise.
-  String? _revealedSetIdOf({
-    required OcptShotListRevealRequest? revealRequest,
-    required OcptFloorPlanSnapshot floorPlanSnapshot,
-    required String? sequenceId,
-  }) {
-    final setId = revealRequest?.setId;
-    if (setId == null || sequenceId == null) {
-      return null;
-    }
-    return floorPlanSnapshot.setsOfScene(sequenceId).any((floorPlanSet) => floorPlanSet.id == setId)
-        ? setId
-        : null;
-  }
-
   /// Reads the whole shot list of the selected episode's screenplay, joined with where each of its
   /// shots sits in the schedule (`OcptScheduleService.loadShotPlacements`), keyed by shot id —
   /// what the table's and the metadata panel's own `Jour de tournage` read-out is built from. A
@@ -663,40 +631,6 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
   Future<Map<String, List<OcptFloorPlanSymbol>>> _loadSetScopeSymbolsBySetId(
     OcptOpenProjectModel project,
   ) => _floorPlanService.loadSetScopeSymbolsByProjectSetId(database: project.database);
-
-  /// The id of [sequenceId]'s own first floor plan set (its first tab), or null while
-  /// [floorPlanSnapshot] holds none for it, [sequenceId] is null, or it isn't a real scene (the
-  /// orphan group can never hold a set) — what a freshly selected sequence's floor plans view
-  /// defaults to.
-  String? _firstSetIdOf({
-    required OcptFloorPlanSnapshot? floorPlanSnapshot,
-    required String? sequenceId,
-  }) {
-    if (sequenceId == null || floorPlanSnapshot == null) {
-      return null;
-    }
-    final sets = floorPlanSnapshot.setsOfScene(sequenceId);
-    return sets.isEmpty ? null : sets.first.id;
-  }
-
-  /// The id of [sequenceId]'s own first shot, or null while [sequenceId] is null, doesn't name a
-  /// real scene (the orphan group holds no floor plan set, but it does hold shots — this still
-  /// returns null for it, since a floor plan focus only ever makes sense on a real scene) or holds
-  /// none in [snapshot] — what a freshly loaded snapshot, or a freshly selected sequence, defaults
-  /// [OcptShotListState.selectedShotId] to, guaranteeing it is never null while the sequence holds
-  /// at least one shot: every camera, character, light, prop and arrow
-  /// placed on the floor plans view lands on this very shot.
-  String? _firstShotIdOf({required OcptShotListSnapshot? snapshot, required String? sequenceId}) {
-    if (snapshot == null || sequenceId == null) {
-      return null;
-    }
-    for (final sequence in snapshot.sequences) {
-      if (sequence.id == sequenceId && sequence is OcptSceneShotSequence) {
-        return sequence.shots.isEmpty ? null : sequence.shots.first.id;
-      }
-    }
-    return null;
-  }
 
   /// Reads the production's whole cast — every live role, in `sortKey` order — what the
   /// inspector's character chips are built from, and what the shared role alert banner's
@@ -784,10 +718,13 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     final isSameSequence = state.selectedSequenceId == event.sequenceId;
     final firstSetId = isSameSequence
         ? state.selectedSetId
-        : _firstSetIdOf(floorPlanSnapshot: state.floorPlanSnapshot, sequenceId: event.sequenceId);
+        : ocptFirstSetIdOf(
+            floorPlanSnapshot: state.floorPlanSnapshot,
+            sequenceId: event.sequenceId,
+          );
     final selectedShotId = isSameSequence
         ? state.selectedShotId
-        : _firstShotIdOf(snapshot: state.snapshot, sequenceId: event.sequenceId);
+        : ocptFirstShotIdOf(snapshot: state.snapshot, sequenceId: event.sequenceId);
     final project = _projectsManager.currentProject;
     final propsOfSelectedSequence = isSameSequence || project == null
         ? state.propsOfSelectedSequence
@@ -829,7 +766,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
   ) async {
     await _flushPendingFieldEdits(emitter);
 
-    final sequence = _sequenceHolding(event.shotId);
+    final sequence = ocptSequenceHolding(sequences: state.sequences, shotId: event.shotId);
     if (sequence == null) {
       return;
     }
@@ -851,19 +788,6 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
         forcePendingFloorPlanArrowAnchorSymbolIdValue: true,
       ),
     );
-  }
-
-  /// The sequence of the current snapshot holding the shot [shotId], or null if no sequence does.
-  OcptShotSequence? _sequenceHolding(String shotId) {
-    for (final sequence in state.sequences) {
-      for (final shot in sequence.shots) {
-        if (shot.id == shotId) {
-          return sequence;
-        }
-      }
-    }
-
-    return null;
   }
 
   /// Creates a shot at the end of the selected scene sequence, reloads the shot list and selects
@@ -1581,75 +1505,28 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     required OcptShotListEditableField field,
     required String rawValue,
   }) async {
-    switch (field) {
-      case OcptShotListEditableField.shotSize:
-        await _shotListService.updateShot(
-          database: database,
-          shotId: shotId,
-          shotSize: Value(rawValue),
-        );
-      case OcptShotListEditableField.abbreviation:
-        await _shotListService.updateShot(
-          database: database,
-          shotId: shotId,
-          abbreviation: Value(rawValue),
-        );
-      case OcptShotListEditableField.framing:
-        await _shotListService.updateShot(
-          database: database,
-          shotId: shotId,
-          framing: Value(rawValue),
-        );
-      case OcptShotListEditableField.cameraMove:
-        await _shotListService.updateShot(
-          database: database,
-          shotId: shotId,
-          cameraMove: Value(rawValue),
-        );
-      case OcptShotListEditableField.lens:
-        await _shotListService.updateShot(
-          database: database,
-          shotId: shotId,
-          lens: Value(rawValue),
-        );
-      case OcptShotListEditableField.recordingFormat:
-        await _shotListService.updateShot(
-          database: database,
-          shotId: shotId,
-          recordingFormat: Value(rawValue),
-        );
-      case OcptShotListEditableField.sound:
-        await _shotListService.updateShot(
-          database: database,
-          shotId: shotId,
-          sound: Value(rawValue),
-        );
-      case OcptShotListEditableField.notes:
-        await _shotListService.updateShot(
-          database: database,
-          shotId: shotId,
-          notes: Value(rawValue),
-        );
-      case OcptShotListEditableField.locationNotes:
-        await _shotListService.updateShot(
-          database: database,
-          shotId: shotId,
-          locationNotes: Value(rawValue),
-        );
-      case OcptShotListEditableField.estimatedDuration:
-        // A mistyped duration is the field's own error state, not a failure: the edit is skipped
-        // so it doesn't stop the flush of every other pending edit alongside it, and nothing is
-        // logged, since the text it would quote is the user's.
-        final parsed = ocptParseShotDuration(rawValue);
-        if (!parsed.status.isSuccess) {
-          return;
-        }
-        await _shotListService.updateShot(
-          database: database,
-          shotId: shotId,
-          estimatedDurationMs: Value(parsed.value),
-        );
+    if (field != OcptShotListEditableField.estimatedDuration) {
+      await _shotListService.updateTextField(
+        database: database,
+        shotId: shotId,
+        field: field,
+        rawValue: rawValue,
+      );
+      return;
     }
+
+    // A mistyped duration is the field's own error state, not a failure: the edit is skipped
+    // so it doesn't stop the flush of every other pending edit alongside it, and nothing is
+    // logged, since the text it would quote is the user's.
+    final parsed = ocptParseShotDuration(rawValue);
+    if (!parsed.status.isSuccess) {
+      return;
+    }
+    await _shotListService.updateShot(
+      database: database,
+      shotId: shotId,
+      estimatedDurationMs: Value(parsed.value),
+    );
   }
 
   /// Sets one difficulty axis of shot `event.shotId` to `event.value`, written immediately.
@@ -1663,33 +1540,12 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     }
 
     try {
-      final database = project.database;
-      switch (event.axis) {
-        case OcptShotDifficultyAxis.set:
-          await _shotListService.updateShot(
-            database: database,
-            shotId: event.shotId,
-            difficultySet: Value(event.value),
-          );
-        case OcptShotDifficultyAxis.camera:
-          await _shotListService.updateShot(
-            database: database,
-            shotId: event.shotId,
-            difficultyCamera: Value(event.value),
-          );
-        case OcptShotDifficultyAxis.acting:
-          await _shotListService.updateShot(
-            database: database,
-            shotId: event.shotId,
-            difficultyActing: Value(event.value),
-          );
-        case OcptShotDifficultyAxis.sound:
-          await _shotListService.updateShot(
-            database: database,
-            shotId: event.shotId,
-            difficultySound: Value(event.value),
-          );
-      }
+      await _shotListService.updateDifficulty(
+        database: project.database,
+        shotId: event.shotId,
+        axis: event.axis,
+        value: event.value,
+      );
       emitter(state.copyWith(snapshot: await _loadSnapshot(project)));
     } catch (error, stackTrace) {
       _logger.e(
@@ -1837,7 +1693,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
       await _shotListService.deleteShot(database: project.database, shotId: event.shotId);
       final snapshot = await _loadSnapshot(project);
       final reselectedShotId = wasSelected
-          ? _firstShotIdOf(snapshot: snapshot, sequenceId: state.selectedSequenceId)
+          ? ocptFirstShotIdOf(snapshot: snapshot, sequenceId: state.selectedSequenceId)
           : state.selectedShotId;
 
       emitter(
@@ -2750,7 +2606,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
       );
       final floorPlanSnapshot = await _loadFloorPlans(project);
       final nextSetId = wasSelected
-          ? _firstSetIdOf(
+          ? ocptFirstSetIdOf(
               floorPlanSnapshot: floorPlanSnapshot,
               sequenceId: state.selectedSequenceId,
             )
@@ -2951,7 +2807,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
   /// `event.shotId` is null on a sequence layer (the `setElement` tool) and the focused shot's id
   /// on a shot layer (the `camera`/`character`/`light` tools), exactly what the canvas resolves
   /// from its own active tool before dispatching this — see `OcptFloorPlanCanvas`'s own doc
-  /// comment. A freshly placed character symbol's own [_defaultCharacterLabelFor] pre-fills its
+  /// comment. A freshly placed character symbol's own `ocptDefaultCharacterLabelOf` pre-fills its
   /// label from the shot's own characters field, the mock-up's "offered first as a convenience"
   /// — never a link, the placed symbol still carries no `roleId`
   /// — and also arms [OcptShotListState.pendingCharacterNamePromptSymbolId], so the mode opens
@@ -2969,7 +2825,10 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
 
     final shotId = event.shotId;
     final label = event.layer == OcptFloorPlanLayer.characters && shotId != null
-        ? _defaultCharacterLabelFor(setId: event.setId, shotId: shotId)
+        ? ocptDefaultCharacterLabelOf(
+            shot: state.snapshot?.shotsById[shotId],
+            floorPlanSet: state.floorPlanSnapshot?.setsById[event.setId],
+          )
         : event.label;
 
     try {
@@ -3007,33 +2866,6 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
       );
       emitter(state.copyWith(hasWriteError: true));
     }
-  }
-
-  /// The first of shot [shotId]'s own `OcptShot.characters` not already carried by one of its live
-  /// character symbols on set [setId], or `""` while it has none left (or none at all) — the
-  /// convenience pre-fill [_onFloorPlanSymbolPlaced] gives a freshly placed character symbol's own
-  /// label.
-  String _defaultCharacterLabelFor({required String setId, required String shotId}) {
-    final shot = state.snapshot?.shotsById[shotId];
-    if (shot == null || shot.characters.isEmpty) {
-      return "";
-    }
-
-    final floorPlanSet = state.floorPlanSnapshot?.setsById[setId];
-    final alreadyLabelled = {
-      for (final symbol in floorPlanSet?.symbols ?? const <OcptFloorPlanSymbol>[])
-        if (symbol.shotId == shotId &&
-            symbol.layer == OcptFloorPlanLayer.characters &&
-            symbol.label.isNotEmpty)
-          symbol.label,
-    };
-
-    for (final characterName in shot.characters) {
-      if (!alreadyLabelled.contains(characterName)) {
-        return characterName;
-      }
-    }
-    return "";
   }
 
   /// Selects symbol `event.symbolId`, or clears the selection when it is null. Also clears the
@@ -3231,12 +3063,18 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
       return;
     }
 
-    final selected = _floorPlanSymbolById(event.symbolId);
+    final selected = ocptFloorPlanSymbolById(
+      floorPlanSnapshot: state.floorPlanSnapshot,
+      symbolId: event.symbolId,
+    );
     if (selected == null) {
       return;
     }
     final originalId = selected.overridesSymbolId ?? selected.id;
-    final original = _floorPlanSymbolById(originalId);
+    final original = ocptFloorPlanSymbolById(
+      floorPlanSnapshot: state.floorPlanSnapshot,
+      symbolId: originalId,
+    );
     if (original == null) {
       return;
     }
@@ -3250,30 +3088,13 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     final wasSelected = state.selectedFloorPlanSymbolId == event.symbolId;
 
     try {
-      if (existingOverride != null) {
-        await _floorPlanService.updateSymbol(
-          database: project.database,
-          symbolId: existingOverride.id,
-          isHidden: const Value(true),
-        );
-      } else {
-        await _floorPlanService.placeSymbol(
-          database: project.database,
-          setId: original.setId,
-          sceneId: event.targetSceneId,
-          shotId: null,
-          layer: original.layer,
-          xM: original.xM,
-          yM: original.yM,
-          rotationDeg: original.rotationDeg,
-          widthM: original.widthM,
-          heightM: original.heightM,
-          label: original.label,
-          setElementShape: original.setElementShape,
-          overridesSymbolId: originalId,
-          isHidden: true,
-        );
-      }
+      await _floorPlanService.hideSymbolForScope(
+        database: project.database,
+        original: original,
+        existingOverride: existingOverride,
+        sceneId: event.targetSceneId,
+        shotId: null,
+      );
       emitter(
         state.copyWith(
           floorPlanSnapshot: await _loadFloorPlans(project),
@@ -3307,7 +3128,10 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
       return;
     }
 
-    final selected = _floorPlanSymbolById(event.symbolId);
+    final selected = ocptFloorPlanSymbolById(
+      floorPlanSnapshot: state.floorPlanSnapshot,
+      symbolId: event.symbolId,
+    );
     if (selected == null) {
       return;
     }
@@ -3317,7 +3141,10 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     final originalId = selected.shotId != null
         ? (selected.overridesSymbolId ?? selected.id)
         : selected.id;
-    final original = _floorPlanSymbolById(originalId);
+    final original = ocptFloorPlanSymbolById(
+      floorPlanSnapshot: state.floorPlanSnapshot,
+      symbolId: originalId,
+    );
     if (original == null) {
       return;
     }
@@ -3330,30 +3157,13 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     final wasSelected = state.selectedFloorPlanSymbolId == event.symbolId;
 
     try {
-      if (existingOverride != null) {
-        await _floorPlanService.updateSymbol(
-          database: project.database,
-          symbolId: existingOverride.id,
-          isHidden: const Value(true),
-        );
-      } else {
-        await _floorPlanService.placeSymbol(
-          database: project.database,
-          setId: original.setId,
-          sceneId: null,
-          shotId: event.targetShotId,
-          layer: original.layer,
-          xM: original.xM,
-          yM: original.yM,
-          rotationDeg: original.rotationDeg,
-          widthM: original.widthM,
-          heightM: original.heightM,
-          label: original.label,
-          setElementShape: original.setElementShape,
-          overridesSymbolId: originalId,
-          isHidden: true,
-        );
-      }
+      await _floorPlanService.hideSymbolForScope(
+        database: project.database,
+        original: original,
+        existingOverride: existingOverride,
+        sceneId: null,
+        shotId: event.targetShotId,
+      );
       emitter(
         state.copyWith(
           floorPlanSnapshot: await _loadFloorPlans(project),
@@ -3403,19 +3213,6 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
       );
       emitter(state.copyWith(hasWriteError: true));
     }
-  }
-
-  /// Every live symbol of the currently loaded floor plans snapshot, keyed by id.
-  OcptFloorPlanSymbol? _floorPlanSymbolById(String symbolId) {
-    for (final floorPlanSet
-        in state.floorPlanSnapshot?.setsById.values ?? const <OcptFloorPlanSet>[]) {
-      for (final symbol in floorPlanSet.symbols) {
-        if (symbol.id == symbolId) {
-          return symbol;
-        }
-      }
-    }
-    return null;
   }
 
   /// Stores the pending scope decision, dispatched by the mode the instant a set-scope move (or a
@@ -3470,21 +3267,10 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     }
 
     try {
-      if (event.choice == OcptFloorPlanScopeChoice.every) {
-        await _floorPlanService.updateSymbol(
-          database: project.database,
-          symbolId: decision.symbolId,
-          xM: decision.xM == null ? const Value.absent() : Value(decision.xM!),
-          yM: decision.yM == null ? const Value.absent() : Value(decision.yM!),
-          rotationDeg: decision.rotationDeg == null
-              ? const Value.absent()
-              : Value(decision.rotationDeg!),
-          widthM: decision.widthM == null ? const Value.absent() : Value(decision.widthM),
-          heightM: decision.heightM == null ? const Value.absent() : Value(decision.heightM),
-        );
-      } else {
-        String? targetSceneId;
-        String? targetShotId;
+      final onEveryScope = event.choice == OcptFloorPlanScopeChoice.every;
+      String? targetSceneId;
+      String? targetShotId;
+      if (!onEveryScope) {
         if (decision.level == OcptFloorPlanOverrideLevel.sequence) {
           final sequence = state.selectedSequence;
           if (sequence is! OcptSceneShotSequence) {
@@ -3500,49 +3286,31 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
           }
           targetShotId = shotId;
         }
+      }
 
-        final existingOverride = state.floorPlanSnapshot?.setsById[decision.setId]?.symbols
-            .firstWhereOrNull(
+      final existingOverride = onEveryScope
+          ? null
+          : state.floorPlanSnapshot?.setsById[decision.setId]?.symbols.firstWhereOrNull(
               (symbol) =>
                   symbol.overridesSymbolId == decision.symbolId &&
                   symbol.sceneId == targetSceneId &&
                   symbol.shotId == targetShotId,
             );
-
-        if (existingOverride != null) {
-          await _floorPlanService.updateSymbol(
-            database: project.database,
-            symbolId: existingOverride.id,
-            xM: decision.xM == null ? const Value.absent() : Value(decision.xM!),
-            yM: decision.yM == null ? const Value.absent() : Value(decision.yM!),
-            rotationDeg: decision.rotationDeg == null
-                ? const Value.absent()
-                : Value(decision.rotationDeg!),
-            widthM: decision.widthM == null ? const Value.absent() : Value(decision.widthM),
-            heightM: decision.heightM == null ? const Value.absent() : Value(decision.heightM),
-          );
-        } else {
-          final original = _floorPlanSymbolById(decision.symbolId);
-          if (original == null) {
-            emitter(state.copyWith(forcePendingFloorPlanScopeDecisionValue: true));
-            return;
-          }
-          await _floorPlanService.placeSymbol(
-            database: project.database,
-            setId: decision.setId,
-            sceneId: targetSceneId,
-            shotId: targetShotId,
-            layer: original.layer,
-            xM: decision.xM ?? original.xM,
-            yM: decision.yM ?? original.yM,
-            rotationDeg: decision.rotationDeg ?? original.rotationDeg,
-            widthM: decision.widthM ?? original.widthM,
-            heightM: decision.heightM ?? original.heightM,
-            label: original.label,
-            setElementShape: original.setElementShape,
-            overridesSymbolId: decision.symbolId,
-          );
-        }
+      final isWritten = await _floorPlanService.applyScopeDecision(
+        database: project.database,
+        decision: decision,
+        onEveryScope: onEveryScope,
+        original: ocptFloorPlanSymbolById(
+          floorPlanSnapshot: state.floorPlanSnapshot,
+          symbolId: decision.symbolId,
+        ),
+        existingOverride: existingOverride,
+        targetSceneId: targetSceneId,
+        targetShotId: targetShotId,
+      );
+      if (!isWritten) {
+        emitter(state.copyWith(forcePendingFloorPlanScopeDecisionValue: true));
+        return;
       }
 
       emitter(
@@ -3979,7 +3747,10 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
       return;
     }
 
-    final source = _findFloorPlanSymbol(event.symbolId);
+    final source = ocptFloorPlanSymbolById(
+      floorPlanSnapshot: state.floorPlanSnapshot,
+      symbolId: event.symbolId,
+    );
     if (source == null) {
       return;
     }
@@ -4021,21 +3792,6 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
       );
       emitter(state.copyWith(hasWriteError: true));
     }
-  }
-
-  /// The live `floor_plan_symbols` row [symbolId] names, searched across every set of
-  /// [OcptShotListState.floorPlanSnapshot] — [_onFloorPlanSymbolDuplicated]'s own source lookup,
-  /// the duplicate's every field but its position copied from here.
-  OcptFloorPlanSymbol? _findFloorPlanSymbol(String symbolId) {
-    for (final floorPlanSet
-        in state.floorPlanSnapshot?.setsById.values ?? const <OcptFloorPlanSet>[]) {
-      for (final symbol in floorPlanSet.symbols) {
-        if (symbol.id == symbolId) {
-          return symbol;
-        }
-      }
-    }
-    return null;
   }
 
   /// Clears [OcptShotListState.pendingCharacterNamePromptSymbolId], dispatched by the mode's own
