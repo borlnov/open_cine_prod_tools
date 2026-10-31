@@ -466,7 +466,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
           visibleColumns: visibleColumns,
           lastRightDockTab: lastRightDockTab,
           centreView: centreView,
-          clearPreviewedVersionId: true,
+          forcePreviewedVersionIdValue: true,
         ),
       );
       return;
@@ -518,7 +518,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
         isLoading: false,
         title: project.name,
         previewedVersionId: previewedVersion?.id,
-        clearPreviewedVersionId: previewedVersion == null,
+        forcePreviewedVersionIdValue: previewedVersion == null,
         snapshot: snapshot,
         storyboardSnapshot: storyboardSnapshot,
         floorPlanSnapshot: floorPlanSnapshot,
@@ -528,18 +528,18 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
         screenplayText: screenplayText,
         roles: roles,
         selectedSequenceId: selectedSequenceId,
-        clearSelectedSequenceId: snapshot.sequences.isEmpty,
+        forceSelectedSequenceIdValue: snapshot.sequences.isEmpty,
         selectedShotId: firstShotId,
-        clearSelectedShotId: firstShotId == null,
-        clearSelectedPanelId: true,
-        clearActiveAnnotationTool: true,
-        clearSelectedAnnotationId: true,
+        forceSelectedShotIdValue: firstShotId == null,
+        forceSelectedPanelIdValue: true,
+        forceActiveAnnotationToolValue: true,
+        forceSelectedAnnotationIdValue: true,
         selectedSetId: selectedSetId,
-        clearSelectedSetId: selectedSetId == null,
-        clearSelectedFloorPlanSymbolId: true,
-        clearSelectedFloorPlanArrowId: true,
-        clearPendingFloorPlanArrowAnchorSymbolId: true,
-        clearPendingCoverageAnchor: true,
+        forceSelectedSetIdValue: selectedSetId == null,
+        forceSelectedFloorPlanSymbolIdValue: true,
+        forceSelectedFloorPlanArrowIdValue: true,
+        forcePendingFloorPlanArrowAnchorSymbolIdValue: true,
+        forcePendingCoverageAnchorValue: true,
         leftDockFraction: leftDockFraction,
         rightDockFraction: rightDockFraction,
         visibleColumns: visibleColumns,
@@ -801,17 +801,17 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
       state.copyWith(
         selectedSequenceId: event.sequenceId,
         selectedShotId: selectedShotId,
-        clearSelectedShotId: selectedShotId == null,
-        clearSelectedPanelId: !isSameSequence,
-        clearActiveAnnotationTool: !isSameSequence,
-        clearSelectedAnnotationId: !isSameSequence,
+        forceSelectedShotIdValue: selectedShotId == null,
+        forceSelectedPanelIdValue: !isSameSequence,
+        forceActiveAnnotationToolValue: !isSameSequence,
+        forceSelectedAnnotationIdValue: !isSameSequence,
         selectedSetId: firstSetId,
-        clearSelectedSetId: firstSetId == null,
-        clearSelectedFloorPlanSymbolId: !isSameSequence,
-        clearSelectedFloorPlanArrowId: !isSameSequence,
-        clearPendingFloorPlanArrowAnchorSymbolId: true,
-        clearPendingCoverageAnchor: true,
-        clearPendingFloorPlanScopeDecision: !isSameSequence,
+        forceSelectedSetIdValue: firstSetId == null,
+        forceSelectedFloorPlanSymbolIdValue: !isSameSequence,
+        forceSelectedFloorPlanArrowIdValue: !isSameSequence,
+        forcePendingFloorPlanArrowAnchorSymbolIdValue: true,
+        forcePendingCoverageAnchorValue: true,
+        forcePendingFloorPlanScopeDecisionValue: !isSameSequence,
         propsOfSelectedSequence: propsOfSelectedSequence,
       ),
     );
@@ -840,15 +840,15 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
       state.copyWith(
         selectedSequenceId: sequence.id,
         selectedShotId: event.shotId,
-        clearSelectedPanelId: true,
-        clearActiveAnnotationTool: true,
-        clearSelectedAnnotationId: true,
+        forceSelectedPanelIdValue: true,
+        forceActiveAnnotationToolValue: true,
+        forceSelectedAnnotationIdValue: true,
         rightDockTab: OcptShotListRightDockTab.inspector,
         lastRightDockTab: OcptShotListRightDockTab.inspector,
-        clearPendingCoverageAnchor: true,
-        clearSelectedFloorPlanSymbolId: true,
-        clearSelectedFloorPlanArrowId: true,
-        clearPendingFloorPlanArrowAnchorSymbolId: true,
+        forcePendingCoverageAnchorValue: true,
+        forceSelectedFloorPlanSymbolIdValue: true,
+        forceSelectedFloorPlanArrowIdValue: true,
+        forcePendingFloorPlanArrowAnchorSymbolIdValue: true,
       ),
     );
   }
@@ -900,7 +900,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
           selectedShotId: shotId,
           rightDockTab: OcptShotListRightDockTab.inspector,
           lastRightDockTab: OcptShotListRightDockTab.inspector,
-          clearPendingCoverageAnchor: true,
+          forcePendingCoverageAnchorValue: true,
         ),
       );
     } catch (error, stackTrace) {
@@ -938,7 +938,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     emitter(
       state.copyWith(
         rightDockTab: isAlreadyActive ? null : event.tab,
-        clearRightDockTab: isAlreadyActive,
+        forceRightDockTabValue: isAlreadyActive,
         lastRightDockTab: event.tab,
       ),
     );
@@ -956,7 +956,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
   ) async {
     emitter(
       state.rightDockTab != null
-          ? state.copyWith(clearRightDockTab: true)
+          ? state.copyWith(forceRightDockTabValue: true)
           : state.copyWith(rightDockTab: state.lastRightDockTab),
     );
   }
@@ -966,7 +966,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     OcptShotListRightDockClosedEvent event,
     Emitter<OcptShotListState> emitter,
   ) async {
-    emitter(state.copyWith(clearRightDockTab: true));
+    emitter(state.copyWith(forceRightDockTabValue: true));
   }
 
   /// Persists [tab] as the mode's last right dock tab, unless it already is.
@@ -1308,7 +1308,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     OcptShotListIoNoticeDismissedEvent event,
     Emitter<OcptShotListState> emitter,
   ) async {
-    emitter(state.copyWith(clearIoNotice: true));
+    emitter(state.copyWith(forceIoNoticeValue: true));
   }
 
   /// Leaves the workspace: flushes any pending field edit, closes the current project, and
@@ -1851,14 +1851,14 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
           floorPlanSnapshot: await _loadFloorPlans(project),
           pendingFieldEdits: pendingWithoutShot,
           selectedShotId: reselectedShotId,
-          clearSelectedShotId: reselectedShotId == null,
-          clearSelectedPanelId: wasSelected || wasPanelSelected,
-          clearActiveAnnotationTool: wasSelected || wasPanelSelected,
-          clearSelectedAnnotationId: wasSelected || wasPanelSelected,
-          clearPendingCoverageAnchor: wasSelected,
-          clearSelectedFloorPlanSymbolId: wasSelected || wasFloorPlanSymbolSelected,
-          clearSelectedFloorPlanArrowId: wasSelected || wasFloorPlanSymbolSelected,
-          clearPendingFloorPlanArrowAnchorSymbolId: wasSelected,
+          forceSelectedShotIdValue: reselectedShotId == null,
+          forceSelectedPanelIdValue: wasSelected || wasPanelSelected,
+          forceActiveAnnotationToolValue: wasSelected || wasPanelSelected,
+          forceSelectedAnnotationIdValue: wasSelected || wasPanelSelected,
+          forcePendingCoverageAnchorValue: wasSelected,
+          forceSelectedFloorPlanSymbolIdValue: wasSelected || wasFloorPlanSymbolSelected,
+          forceSelectedFloorPlanArrowIdValue: wasSelected || wasFloorPlanSymbolSelected,
+          forcePendingFloorPlanArrowAnchorSymbolIdValue: wasSelected,
         ),
       );
     } catch (error, stackTrace) {
@@ -2100,7 +2100,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     OcptShotListCoverageAnchorCancelledEvent event,
     Emitter<OcptShotListState> emitter,
   ) async {
-    emitter(state.copyWith(clearPendingCoverageAnchor: true));
+    emitter(state.copyWith(forcePendingCoverageAnchorValue: true));
   }
 
   /// Clears shot `event.shotId`'s `needsCheck` flag and re-stamps every one of its scenario
@@ -2147,7 +2147,10 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     try {
       await action();
       emitter(
-        state.copyWith(snapshot: await _loadSnapshot(project), clearPendingCoverageAnchor: true),
+        state.copyWith(
+          snapshot: await _loadSnapshot(project),
+          forcePendingCoverageAnchorValue: true,
+        ),
       );
     } catch (error, stackTrace) {
       _logger.e(
@@ -2156,7 +2159,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
         null,
         stackTrace,
       );
-      emitter(state.copyWith(hasWriteError: true, clearPendingCoverageAnchor: true));
+      emitter(state.copyWith(hasWriteError: true, forcePendingCoverageAnchorValue: true));
     }
   }
 
@@ -2184,8 +2187,8 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     emitter(
       state.copyWith(
         selectedPanelId: event.panelId,
-        clearActiveAnnotationTool: true,
-        clearSelectedAnnotationId: true,
+        forceActiveAnnotationToolValue: true,
+        forceSelectedAnnotationIdValue: true,
       ),
     );
   }
@@ -2234,8 +2237,8 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
         state.copyWith(
           storyboardSnapshot: await _loadStoryboard(project),
           selectedPanelId: panelId,
-          clearActiveAnnotationTool: true,
-          clearSelectedAnnotationId: true,
+          forceActiveAnnotationToolValue: true,
+          forceSelectedAnnotationIdValue: true,
         ),
       );
     } catch (error, stackTrace) {
@@ -2414,9 +2417,9 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
         state.copyWith(
           storyboardSnapshot: await _loadStoryboard(project),
           pendingFieldEdits: pendingWithoutPanel,
-          clearSelectedPanelId: wasSelected,
-          clearActiveAnnotationTool: wasSelected,
-          clearSelectedAnnotationId: wasSelected,
+          forceSelectedPanelIdValue: wasSelected,
+          forceActiveAnnotationToolValue: wasSelected,
+          forceSelectedAnnotationIdValue: wasSelected,
         ),
       );
     } catch (error, stackTrace) {
@@ -2433,14 +2436,16 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
   /// Sets the board's active annotation tool, dispatched by the inspector's own `Annotate`
   /// control — `event.tool` is null both for "turn it off" and for the control's own toggle-off
   /// gesture (picking the tool already on again), so this always writes through
-  /// `clearActiveAnnotationTool` rather than leaning on `copyWith`'s `??` fallback, which could
-  /// never move a nullable field back to null.
+  /// `forceActiveAnnotationToolValue` rather than leaning on `copyWith`'s `??` fallback, which
+  /// could never move a nullable field back to null.
   Future<void> _onAnnotationToolSelected(
     OcptShotListAnnotationToolSelectedEvent event,
     Emitter<OcptShotListState> emitter,
   ) async {
     final tool = event.tool;
-    emitter(state.copyWith(activeAnnotationTool: tool, clearActiveAnnotationTool: tool == null));
+    emitter(
+      state.copyWith(activeAnnotationTool: tool, forceActiveAnnotationToolValue: tool == null),
+    );
   }
 
   /// Adds a mark of `event.kind` to panel `event.panelId` at the normalised tail/head just dragged
@@ -2578,7 +2583,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
         state.copyWith(
           storyboardSnapshot: await _loadStoryboard(project),
           pendingFieldEdits: pendingWithoutAnnotation,
-          clearSelectedAnnotationId: wasSelected,
+          forceSelectedAnnotationIdValue: wasSelected,
         ),
       );
     } catch (error, stackTrace) {
@@ -2601,9 +2606,9 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     emitter(
       state.copyWith(
         selectedSetId: event.setId,
-        clearSelectedFloorPlanSymbolId: true,
-        clearSelectedFloorPlanArrowId: true,
-        clearPendingFloorPlanArrowAnchorSymbolId: true,
+        forceSelectedFloorPlanSymbolIdValue: true,
+        forceSelectedFloorPlanArrowIdValue: true,
+        forcePendingFloorPlanArrowAnchorSymbolIdValue: true,
       ),
     );
   }
@@ -2641,9 +2646,9 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
           locations: await _loadLocations(project),
           setScopeSymbolsBySetId: await _loadSetScopeSymbolsBySetId(project),
           selectedSetId: setId,
-          clearSelectedFloorPlanSymbolId: true,
-          clearSelectedFloorPlanArrowId: true,
-          clearPendingFloorPlanArrowAnchorSymbolId: true,
+          forceSelectedFloorPlanSymbolIdValue: true,
+          forceSelectedFloorPlanArrowIdValue: true,
+          forcePendingFloorPlanArrowAnchorSymbolIdValue: true,
         ),
       );
     } catch (error, stackTrace) {
@@ -2687,9 +2692,9 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
         state.copyWith(
           floorPlanSnapshot: await _loadFloorPlans(project),
           selectedSetId: event.setId,
-          clearSelectedFloorPlanSymbolId: true,
-          clearSelectedFloorPlanArrowId: true,
-          clearPendingFloorPlanArrowAnchorSymbolId: true,
+          forceSelectedFloorPlanSymbolIdValue: true,
+          forceSelectedFloorPlanArrowIdValue: true,
+          forcePendingFloorPlanArrowAnchorSymbolIdValue: true,
         ),
       );
     } catch (error, stackTrace) {
@@ -2756,10 +2761,10 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
           floorPlanSnapshot: floorPlanSnapshot,
           pendingFieldEdits: pendingWithoutSet,
           selectedSetId: nextSetId,
-          clearSelectedSetId: nextSetId == null,
-          clearSelectedFloorPlanSymbolId: wasSelected,
-          clearSelectedFloorPlanArrowId: wasSelected,
-          clearPendingFloorPlanArrowAnchorSymbolId: wasSelected,
+          forceSelectedSetIdValue: nextSetId == null,
+          forceSelectedFloorPlanSymbolIdValue: wasSelected,
+          forceSelectedFloorPlanArrowIdValue: wasSelected,
+          forcePendingFloorPlanArrowAnchorSymbolIdValue: wasSelected,
         ),
       );
     } catch (error, stackTrace) {
@@ -2807,9 +2812,9 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
           locations: await _loadLocations(project),
           setScopeSymbolsBySetId: await _loadSetScopeSymbolsBySetId(project),
           selectedSetId: newSetId,
-          clearSelectedFloorPlanSymbolId: true,
-          clearSelectedFloorPlanArrowId: true,
-          clearPendingFloorPlanArrowAnchorSymbolId: true,
+          forceSelectedFloorPlanSymbolIdValue: true,
+          forceSelectedFloorPlanArrowIdValue: true,
+          forcePendingFloorPlanArrowAnchorSymbolIdValue: true,
         ),
       );
     } catch (error, stackTrace) {
@@ -2880,7 +2885,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     emitter(
       state.copyWith(
         floorPlanActiveTool: event.tool,
-        clearPendingFloorPlanArrowAnchorSymbolId: event.tool != OcptFloorPlanTool.arrow,
+        forcePendingFloorPlanArrowAnchorSymbolIdValue: event.tool != OcptFloorPlanTool.arrow,
       ),
     );
   }
@@ -2988,9 +2993,9 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
         state.copyWith(
           floorPlanSnapshot: await _loadFloorPlans(project),
           selectedFloorPlanSymbolId: symbolId,
-          clearSelectedFloorPlanArrowId: true,
+          forceSelectedFloorPlanArrowIdValue: true,
           pendingCharacterNamePromptSymbolId: isCharacter ? symbolId : null,
-          clearPendingCharacterNamePromptSymbolId: !isCharacter,
+          forcePendingCharacterNamePromptSymbolIdValue: !isCharacter,
         ),
       );
     } catch (error, stackTrace) {
@@ -3042,8 +3047,8 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     emitter(
       state.copyWith(
         selectedFloorPlanSymbolId: symbolId,
-        clearSelectedFloorPlanSymbolId: symbolId == null,
-        clearSelectedFloorPlanArrowId: symbolId != null,
+        forceSelectedFloorPlanSymbolIdValue: symbolId == null,
+        forceSelectedFloorPlanArrowIdValue: symbolId != null,
       ),
     );
   }
@@ -3156,10 +3161,10 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
       emitter(
         state.copyWith(
           floorPlanSnapshot: await _loadFloorPlans(project),
-          clearSelectedFloorPlanSymbolId: wasSelected,
+          forceSelectedFloorPlanSymbolIdValue: wasSelected,
           // `OcptFloorPlanService.deleteSymbol`'s own cascade tombstones every arrow touching this
           // symbol, so the selected arrow (if any) may no longer exist.
-          clearSelectedFloorPlanArrowId: true,
+          forceSelectedFloorPlanArrowIdValue: true,
         ),
       );
     } catch (error, stackTrace) {
@@ -3197,8 +3202,8 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
       emitter(
         state.copyWith(
           floorPlanSnapshot: await _loadFloorPlans(project),
-          clearSelectedFloorPlanSymbolId: wasSelected,
-          clearSelectedFloorPlanArrowId: true,
+          forceSelectedFloorPlanSymbolIdValue: wasSelected,
+          forceSelectedFloorPlanArrowIdValue: true,
         ),
       );
     } catch (error, stackTrace) {
@@ -3272,8 +3277,8 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
       emitter(
         state.copyWith(
           floorPlanSnapshot: await _loadFloorPlans(project),
-          clearSelectedFloorPlanSymbolId: wasSelected,
-          clearSelectedFloorPlanArrowId: wasSelected,
+          forceSelectedFloorPlanSymbolIdValue: wasSelected,
+          forceSelectedFloorPlanArrowIdValue: wasSelected,
         ),
       );
     } catch (error, stackTrace) {
@@ -3352,8 +3357,8 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
       emitter(
         state.copyWith(
           floorPlanSnapshot: await _loadFloorPlans(project),
-          clearSelectedFloorPlanSymbolId: wasSelected,
-          clearSelectedFloorPlanArrowId: wasSelected,
+          forceSelectedFloorPlanSymbolIdValue: wasSelected,
+          forceSelectedFloorPlanArrowIdValue: wasSelected,
         ),
       );
     } catch (error, stackTrace) {
@@ -3385,8 +3390,8 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
       emitter(
         state.copyWith(
           floorPlanSnapshot: await _loadFloorPlans(project),
-          clearSelectedFloorPlanSymbolId: wasSelected,
-          clearSelectedFloorPlanArrowId: true,
+          forceSelectedFloorPlanSymbolIdValue: wasSelected,
+          forceSelectedFloorPlanArrowIdValue: true,
         ),
       );
     } catch (error, stackTrace) {
@@ -3454,13 +3459,13 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     }
 
     if (event.choice == OcptFloorPlanScopeChoice.cancel) {
-      emitter(state.copyWith(clearPendingFloorPlanScopeDecision: true));
+      emitter(state.copyWith(forcePendingFloorPlanScopeDecisionValue: true));
       return;
     }
 
     final project = _projectsManager.currentProject;
     if (project == null) {
-      emitter(state.copyWith(clearPendingFloorPlanScopeDecision: true));
+      emitter(state.copyWith(forcePendingFloorPlanScopeDecisionValue: true));
       return;
     }
 
@@ -3483,14 +3488,14 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
         if (decision.level == OcptFloorPlanOverrideLevel.sequence) {
           final sequence = state.selectedSequence;
           if (sequence is! OcptSceneShotSequence) {
-            emitter(state.copyWith(clearPendingFloorPlanScopeDecision: true));
+            emitter(state.copyWith(forcePendingFloorPlanScopeDecisionValue: true));
             return;
           }
           targetSceneId = sequence.sceneId;
         } else {
           final shotId = state.selectedShotId;
           if (shotId == null) {
-            emitter(state.copyWith(clearPendingFloorPlanScopeDecision: true));
+            emitter(state.copyWith(forcePendingFloorPlanScopeDecisionValue: true));
             return;
           }
           targetShotId = shotId;
@@ -3519,7 +3524,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
         } else {
           final original = _floorPlanSymbolById(decision.symbolId);
           if (original == null) {
-            emitter(state.copyWith(clearPendingFloorPlanScopeDecision: true));
+            emitter(state.copyWith(forcePendingFloorPlanScopeDecisionValue: true));
             return;
           }
           await _floorPlanService.placeSymbol(
@@ -3543,7 +3548,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
       emitter(
         state.copyWith(
           floorPlanSnapshot: await _loadFloorPlans(project),
-          clearPendingFloorPlanScopeDecision: true,
+          forcePendingFloorPlanScopeDecisionValue: true,
         ),
       );
     } catch (error, stackTrace) {
@@ -3553,7 +3558,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
         null,
         stackTrace,
       );
-      emitter(state.copyWith(hasWriteError: true, clearPendingFloorPlanScopeDecision: true));
+      emitter(state.copyWith(hasWriteError: true, forcePendingFloorPlanScopeDecisionValue: true));
     }
   }
 
@@ -3780,7 +3785,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
       emitter(
         state.copyWith(
           floorPlanSnapshot: await _loadFloorPlans(project),
-          clearPendingFloorPlanArrowAnchorSymbolId: true,
+          forcePendingFloorPlanArrowAnchorSymbolIdValue: true,
         ),
       );
     } catch (error, stackTrace) {
@@ -3790,7 +3795,9 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
         null,
         stackTrace,
       );
-      emitter(state.copyWith(hasWriteError: true, clearPendingFloorPlanArrowAnchorSymbolId: true));
+      emitter(
+        state.copyWith(hasWriteError: true, forcePendingFloorPlanArrowAnchorSymbolIdValue: true),
+      );
     }
   }
 
@@ -3801,7 +3808,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     OcptShotListFloorPlanArrowAnchorCancelledEvent event,
     Emitter<OcptShotListState> emitter,
   ) async {
-    emitter(state.copyWith(clearPendingFloorPlanArrowAnchorSymbolId: true));
+    emitter(state.copyWith(forcePendingFloorPlanArrowAnchorSymbolIdValue: true));
   }
 
   /// Deletes arrow `event.arrowId` for good, dispatched once the Placements group's own remove
@@ -3823,7 +3830,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
       emitter(
         state.copyWith(
           floorPlanSnapshot: await _loadFloorPlans(project),
-          clearSelectedFloorPlanArrowId: wasSelected,
+          forceSelectedFloorPlanArrowIdValue: wasSelected,
         ),
       );
     } catch (error, stackTrace) {
@@ -3921,8 +3928,8 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     emitter(
       state.copyWith(
         selectedFloorPlanArrowId: arrowId,
-        clearSelectedFloorPlanArrowId: arrowId == null,
-        clearSelectedFloorPlanSymbolId: arrowId != null,
+        forceSelectedFloorPlanArrowIdValue: arrowId == null,
+        forceSelectedFloorPlanSymbolIdValue: arrowId != null,
       ),
     );
   }
@@ -4002,7 +4009,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
         state.copyWith(
           floorPlanSnapshot: await _loadFloorPlans(project),
           selectedFloorPlanSymbolId: symbolId,
-          clearSelectedFloorPlanArrowId: true,
+          forceSelectedFloorPlanArrowIdValue: true,
         ),
       );
     } catch (error, stackTrace) {
@@ -4037,7 +4044,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     OcptShotListFloorPlanCharacterNamePromptDismissedEvent event,
     Emitter<OcptShotListState> emitter,
   ) async {
-    emitter(state.copyWith(clearPendingCharacterNamePromptSymbolId: true));
+    emitter(state.copyWith(forcePendingCharacterNamePromptSymbolIdValue: true));
   }
 
   /// {@macro act_life_cycle.MixinWithLifeCycleDispose.disposeLifeCycle}

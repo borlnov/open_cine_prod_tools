@@ -338,7 +338,7 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
   @override
   Future<void> flushPendingProjectWrites(Emitter<OcptBudgetState> emitter) async {
     await _flushPendingFieldEdits(emitter);
-    emitter(state.copyWith(clearSelection: true, clearSelectedShareId: true));
+    emitter(state.copyWith(forceSelectionValue: true, forceSelectedShareIdValue: true));
   }
 
   /// {@macro open_cine_prod_tools.MixinOcptProjectVersionsBloc.reloadFromProjectDatabase}
@@ -372,9 +372,9 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
           isLoading: false,
           rightDockFraction: rightDockFraction,
           lastRightDockTab: lastRightDockTab,
-          clearPreviewedVersionId: true,
-          clearSelection: true,
-          clearSelectedShareId: true,
+          forcePreviewedVersionIdValue: true,
+          forceSelectionValue: true,
+          forceSelectedShareIdValue: true,
           pendingFieldEdits: const {},
           roles: const [],
           people: const [],
@@ -394,11 +394,11 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
         isLoading: false,
         title: project.name,
         previewedVersionId: previewedVersion?.id,
-        clearPreviewedVersionId: previewedVersion == null,
+        forcePreviewedVersionIdValue: previewedVersion == null,
         snapshot: loaded.snapshot,
         currencyCode: loaded.snapshot.currencyCode,
-        clearSelection: true,
-        clearSelectedShareId: true,
+        forceSelectionValue: true,
+        forceSelectedShareIdValue: true,
         pendingFieldEdits: const {},
         roles: loaded.roles,
         people: loaded.people,
@@ -586,7 +586,7 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     emitter(
       state.copyWith(
         rightDockTab: isAlreadyActive ? null : event.tab,
-        clearRightDockTab: isAlreadyActive,
+        forceRightDockTabValue: isAlreadyActive,
         lastRightDockTab: event.tab,
       ),
     );
@@ -603,7 +603,7 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     Emitter<OcptBudgetState> emitter,
   ) async {
     if (state.rightDockTab != null) {
-      emitter(state.copyWith(clearRightDockTab: true));
+      emitter(state.copyWith(forceRightDockTabValue: true));
       return;
     }
 
@@ -619,7 +619,7 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     OcptBudgetRightDockClosedEvent event,
     Emitter<OcptBudgetState> emitter,
   ) async {
-    emitter(state.copyWith(clearRightDockTab: true));
+    emitter(state.copyWith(forceRightDockTabValue: true));
   }
 
   /// Applies and persists the right dock's new width fraction.
@@ -654,7 +654,7 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     // reads exactly like an app that ignores what it is told.
     await _flushPendingFieldEdits(emitter);
 
-    emitter(state.copyWith(view: event.view, clearSelection: event.clearSelection));
+    emitter(state.copyWith(view: event.view, forceSelectionValue: event.clearSelection));
   }
 
   /// Switches which of the tools drawer's own three pages is shown — dispatched by the header's
@@ -667,7 +667,7 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
   ) async {
     await _flushPendingFieldEdits(emitter);
 
-    emitter(state.copyWith(toolsView: event.toolsView, clearSelection: event.clearSelection));
+    emitter(state.copyWith(toolsView: event.toolsView, forceSelectionValue: event.clearSelection));
   }
 
   /// Toggles the header's simplified/detailed switch.
@@ -1499,7 +1499,7 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
 
     final posteId = event.posteId;
     if (posteId == null) {
-      emitter(state.copyWith(clearFilterPosteId: true));
+      emitter(state.copyWith(forceFilterPosteIdValue: true));
       return;
     }
 
@@ -1917,9 +1917,9 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
             ? state.provisionPosteId
             : _defaultProvisionPosteIdOf(loaded.snapshot.postes),
         regieDecorNameByDayId: loaded.regieDecorNameByDayId,
-        clearSelection: !selectionStillExists,
-        clearFilterPosteId: !filterStillExists,
-        clearSelectedShareId: !shareStillExists,
+        forceSelectionValue: !selectionStillExists,
+        forceFilterPosteIdValue: !filterStillExists,
+        forceSelectedShareIdValue: !shareStillExists,
       ),
     );
 
@@ -2664,6 +2664,6 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     OcptBudgetIoNoticeDismissedEvent event,
     Emitter<OcptBudgetState> emitter,
   ) async {
-    emitter(state.copyWith(clearIoNotice: true));
+    emitter(state.copyWith(forceIoNoticeValue: true));
   }
 }

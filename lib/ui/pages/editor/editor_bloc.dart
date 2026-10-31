@@ -388,12 +388,12 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
           isLoading: false,
           document: document,
           mode: mode,
-          clearPreviewedVersionId: true,
+          forcePreviewedVersionIdValue: true,
           isPageSimulationEnabled: isPageSimulationEnabled,
           areStyledSceneNumbersVisible: areStyledSceneNumbersVisible,
           isSpellCheckVisible: isSpellCheckVisible,
           screenplayLanguage: screenplayLanguage,
-          clearScreenplayLanguage: screenplayLanguage == null,
+          forceScreenplayLanguageValue: screenplayLanguage == null,
           // A fresh load's document is never the one the previous rawSpellCheckRanges/
           // styledSpellCheckRanges were computed against (a different project, episode, or preview
           // state entirely) — cleared here so a stale underline never survives the swap, exactly as
@@ -406,11 +406,11 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
           leftDockFraction: leftDockFraction,
           rightDockFraction: rightDockFraction,
           rightDockTab: dockTabTransition.rightDockTab,
-          clearRightDockTab: dockTabTransition.clearRightDockTab,
+          forceRightDockTabValue: dockTabTransition.forceRightDockTabValue,
           autoClosedRightDockTab: dockTabTransition.autoClosedRightDockTab,
-          clearAutoClosedRightDockTab: dockTabTransition.clearAutoClosedRightDockTab,
+          forceAutoClosedRightDockTabValue: dockTabTransition.forceAutoClosedRightDockTabValue,
           statistics: _statisticsFor(document, state.pageSetup),
-          clearSceneStatistics: true,
+          forceSceneStatisticsValue: true,
         ),
       );
       unawaited(_reconcileSpellCheckLanguage());
@@ -435,7 +435,7 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
         title: project.name,
         mode: mode,
         previewedVersionId: previewedVersion?.id,
-        clearPreviewedVersionId: previewedVersion == null,
+        forcePreviewedVersionIdValue: previewedVersion == null,
         text: text,
         document: document,
         pageSetup: pageSetup,
@@ -443,7 +443,7 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
         areStyledSceneNumbersVisible: areStyledSceneNumbersVisible,
         isSpellCheckVisible: isSpellCheckVisible,
         screenplayLanguage: screenplayLanguage,
-        clearScreenplayLanguage: screenplayLanguage == null,
+        forceScreenplayLanguageValue: screenplayLanguage == null,
         // See the same fields in the project == null branch above for why a fresh load always
         // clears these rather than carrying over a previous document's ranges.
         rawSpellCheckRanges: const [],
@@ -451,12 +451,12 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
         leftDockFraction: leftDockFraction,
         rightDockFraction: rightDockFraction,
         rightDockTab: dockTabTransition.rightDockTab,
-        clearRightDockTab: dockTabTransition.clearRightDockTab,
+        forceRightDockTabValue: dockTabTransition.forceRightDockTabValue,
         autoClosedRightDockTab: dockTabTransition.autoClosedRightDockTab,
-        clearAutoClosedRightDockTab: dockTabTransition.clearAutoClosedRightDockTab,
+        forceAutoClosedRightDockTabValue: dockTabTransition.forceAutoClosedRightDockTabValue,
         statistics: _statisticsFor(document, pageSetup),
         sceneStatistics: sceneStats,
-        clearSceneStatistics: sceneStats == null,
+        forceSceneStatisticsValue: sceneStats == null,
       ),
     );
 
@@ -518,9 +518,9 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
   ///   [autoClosedRightDockTab] to restore, since every explicit close/tab-selection clears it).
   ({
     OcptEditorRightDockTab? rightDockTab,
-    bool clearRightDockTab,
+    bool forceRightDockTabValue,
     OcptEditorRightDockTab? autoClosedRightDockTab,
-    bool clearAutoClosedRightDockTab,
+    bool forceAutoClosedRightDockTabValue,
   })
   _rightDockTransitionFor({
     required OcptEditorMode newMode,
@@ -536,24 +536,24 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
     if (!isPreviewTabAvailable && rightDockTab == OcptEditorRightDockTab.preview) {
       return (
         rightDockTab: null,
-        clearRightDockTab: true,
+        forceRightDockTabValue: true,
         autoClosedRightDockTab: OcptEditorRightDockTab.preview,
-        clearAutoClosedRightDockTab: false,
+        forceAutoClosedRightDockTabValue: false,
       );
     }
     if (isPreviewTabAvailable && rightDockTab == null && autoClosedRightDockTab != null) {
       return (
         rightDockTab: autoClosedRightDockTab,
-        clearRightDockTab: false,
+        forceRightDockTabValue: false,
         autoClosedRightDockTab: null,
-        clearAutoClosedRightDockTab: true,
+        forceAutoClosedRightDockTabValue: true,
       );
     }
     return (
       rightDockTab: rightDockTab,
-      clearRightDockTab: false,
+      forceRightDockTabValue: false,
       autoClosedRightDockTab: autoClosedRightDockTab,
-      clearAutoClosedRightDockTab: false,
+      forceAutoClosedRightDockTabValue: false,
     );
   }
 
@@ -603,7 +603,7 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
       state.copyWith(
         document: document,
         sceneStatistics: sceneStats,
-        clearSceneStatistics: sceneStats == null,
+        forceSceneStatisticsValue: sceneStats == null,
       ),
     );
     _scheduleStatisticsRecompute();
@@ -654,7 +654,7 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
       state.copyWith(
         statistics: _statisticsFor(document, pageSetup),
         sceneStatistics: sceneStats,
-        clearSceneStatistics: sceneStats == null,
+        forceSceneStatisticsValue: sceneStats == null,
       ),
     );
   }
@@ -744,7 +744,7 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
     if (document != null && newSceneIndex != previousSceneIndex) {
       final sceneStats = _sceneStatisticsFor(document, state.pageSetup, newSceneIndex);
       emitter(
-        state.copyWith(sceneStatistics: sceneStats, clearSceneStatistics: sceneStats == null),
+        state.copyWith(sceneStatistics: sceneStats, forceSceneStatisticsValue: sceneStats == null),
       );
     }
   }
@@ -782,9 +782,9 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
     emitter(
       state.copyWith(
         rightDockTab: isAlreadyActive ? null : event.tab,
-        clearRightDockTab: isAlreadyActive,
+        forceRightDockTabValue: isAlreadyActive,
         lastRightDockTab: event.tab,
-        clearAutoClosedRightDockTab: true,
+        forceAutoClosedRightDockTabValue: true,
       ),
     );
 
@@ -810,7 +810,7 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
     Emitter<OcptEditorState> emitter,
   ) async {
     if (state.rightDockTab != null) {
-      emitter(state.copyWith(clearRightDockTab: true, clearAutoClosedRightDockTab: true));
+      emitter(state.copyWith(forceRightDockTabValue: true, forceAutoClosedRightDockTabValue: true));
       return;
     }
 
@@ -820,7 +820,7 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
     emitter(
       state.copyWith(
         rightDockTab: isPreviewForbidden ? OcptEditorRightDockTab.syntax : state.lastRightDockTab,
-        clearAutoClosedRightDockTab: true,
+        forceAutoClosedRightDockTabValue: true,
       ),
     );
   }
@@ -831,7 +831,7 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
     OcptEditorRightDockClosedEvent event,
     Emitter<OcptEditorState> emitter,
   ) async {
-    emitter(state.copyWith(clearRightDockTab: true, clearAutoClosedRightDockTab: true));
+    emitter(state.copyWith(forceRightDockTabValue: true, forceAutoClosedRightDockTabValue: true));
   }
 
   /// Applies and persists whichever of [OcptEditorDockFractionsChangedEvent.left]/[.right] is
@@ -897,9 +897,9 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
       state.copyWith(
         mode: newMode,
         rightDockTab: dockTabTransition.rightDockTab,
-        clearRightDockTab: dockTabTransition.clearRightDockTab,
+        forceRightDockTabValue: dockTabTransition.forceRightDockTabValue,
         autoClosedRightDockTab: dockTabTransition.autoClosedRightDockTab,
-        clearAutoClosedRightDockTab: dockTabTransition.clearAutoClosedRightDockTab,
+        forceAutoClosedRightDockTabValue: dockTabTransition.forceAutoClosedRightDockTabValue,
       ),
     );
     await _propertiesManager.editorMode.store(newMode);
@@ -1423,7 +1423,7 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
       emitter(
         state.copyWith(
           screenplayLanguage: screenplayLanguage,
-          clearScreenplayLanguage: screenplayLanguage == null,
+          forceScreenplayLanguageValue: screenplayLanguage == null,
         ),
       );
       unawaited(_reconcileSpellCheckLanguage());
@@ -1651,7 +1651,7 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
     OcptEditorIoNoticeDismissedEvent event,
     Emitter<OcptEditorState> emitter,
   ) async {
-    emitter(state.copyWith(clearIoNotice: true));
+    emitter(state.copyWith(forceIoNoticeValue: true));
   }
 
   /// A placeholder source range for the title-page entries built from a title-page change event's
@@ -1741,7 +1741,11 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
   ) async {
     emitter(
       state.copyWith(
-        search: state.search.copyWith(isOpen: false, matchCount: 0, clearCurrentMatchIndex: true),
+        search: state.search.copyWith(
+          isOpen: false,
+          matchCount: 0,
+          forceCurrentMatchIndexValue: true,
+        ),
       ),
     );
   }
@@ -1804,7 +1808,9 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
     final matchCount = event.matchCount;
     if (matchCount == 0) {
       emitter(
-        state.copyWith(search: state.search.copyWith(matchCount: 0, clearCurrentMatchIndex: true)),
+        state.copyWith(
+          search: state.search.copyWith(matchCount: 0, forceCurrentMatchIndexValue: true),
+        ),
       );
       return;
     }

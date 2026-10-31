@@ -159,7 +159,7 @@ void main() {
     test("is recomputed when the selected target changes", () {
       final state = _loadedState();
 
-      final next = state.copyWith(clearSelectedTargetRef: true);
+      final next = state.copyWith(forceSelectedTargetRefValue: true);
 
       expect(next.selectedTargetSuggestions, isEmpty);
     });

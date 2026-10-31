@@ -216,7 +216,7 @@ class OcptJoiningBloc extends BlocForMixin<OcptJoiningState> {
       }
       if (parentDirectoryPath == null) {
         // The user cancelled the desktop folder picker.
-        emitter(state.copyWith(isJoining: false, clearJoinStep: true));
+        emitter(state.copyWith(isJoining: false, forceJoinStepValue: true));
         return;
       }
 
@@ -254,7 +254,7 @@ class OcptJoiningBloc extends BlocForMixin<OcptJoiningState> {
           message: 'failed: project=${invite.projectId} ${joined.extraInfo ?? joined.status}',
           logMessage: 'failed: project=${invite.projectId} ${joined.status.name}',
         );
-        emitter(state.copyWith(isJoining: false, joinFailed: true, clearJoinStep: true));
+        emitter(state.copyWith(isJoining: false, joinFailed: true, forceJoinStepValue: true));
         return;
       }
 
@@ -273,7 +273,7 @@ class OcptJoiningBloc extends BlocForMixin<OcptJoiningState> {
           level: OcptDiagnosticsLevel.error,
           message: 'failed to open joined project: project=${invite.projectId}',
         );
-        emitter(state.copyWith(isJoining: false, joinFailed: true, clearJoinStep: true));
+        emitter(state.copyWith(isJoining: false, joinFailed: true, forceJoinStepValue: true));
         return;
       }
 
@@ -285,7 +285,7 @@ class OcptJoiningBloc extends BlocForMixin<OcptJoiningState> {
         category: OcptDiagnosticsCategory.join,
         message: 'succeeded: project=${invite.projectId}',
       );
-      emitter(state.copyWith(isJoining: false, joinSucceeded: true, clearJoinStep: true));
+      emitter(state.copyWith(isJoining: false, joinSucceeded: true, forceJoinStepValue: true));
     } catch (error, stackTrace) {
       if (_cancelled) {
         return;
@@ -298,7 +298,7 @@ class OcptJoiningBloc extends BlocForMixin<OcptJoiningState> {
         message: 'failed: project=${invite.projectId} $error',
         logMessage: 'failed: project=${invite.projectId} ${error.runtimeType}',
       );
-      emitter(state.copyWith(isJoining: false, joinFailed: true, clearJoinStep: true));
+      emitter(state.copyWith(isJoining: false, joinFailed: true, forceJoinStepValue: true));
     }
   }
 
@@ -353,6 +353,6 @@ class OcptJoiningBloc extends BlocForMixin<OcptJoiningState> {
   ) async {
     OcptDiagnosticsManager.log(category: OcptDiagnosticsCategory.join, message: 'cancelled');
     _cancelled = true;
-    emitter(state.copyWith(isJoining: false, clearJoinStep: true));
+    emitter(state.copyWith(isJoining: false, forceJoinStepValue: true));
   }
 }

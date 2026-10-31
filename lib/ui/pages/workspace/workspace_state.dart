@@ -57,25 +57,26 @@ class OcptWorkspaceState extends BlocStateForMixin<OcptWorkspaceState> {
 
   /// {@macro act_flutter_utility.BlocStateForMixin.copyWith}
   ///
-  /// [clearRevealRequest] is how [revealRequest] goes back to null, a null [revealRequest] meaning
-  /// "leave it alone" like every other nullable field of a state in this app. [selectedEpisodeId]
-  /// follows the same idiom through [clearSelectedEpisodeId], for the case (an episode-less
+  /// [forceRevealRequestValue] is how [revealRequest] goes back to null, a null [revealRequest]
+  /// meaning "leave it alone" like every other nullable field of a state in this app. [selectedEpisodeId]
+  /// follows the same idiom through [forceSelectedEpisodeIdValue], for the case (an episode-less
   /// project, in principle unreachable today) where it has to go back to null too.
   @override
   OcptWorkspaceState copyWith({
     bool? isLoading,
     OcptWorkspaceMode? mode,
     OcptWorkspaceRevealRequest? revealRequest,
-    bool clearRevealRequest = false,
+    bool forceRevealRequestValue = false,
     List<OcptEpisode>? episodes,
     String? selectedEpisodeId,
-    bool clearSelectedEpisodeId = false,
+    bool forceSelectedEpisodeIdValue = false,
   }) => OcptWorkspaceState(
     isLoading: isLoading ?? this.isLoading,
     mode: mode ?? this.mode,
-    revealRequest: clearRevealRequest ? null : revealRequest ?? this.revealRequest,
+    revealRequest: revealRequest ?? (forceRevealRequestValue ? null : this.revealRequest),
     episodes: episodes ?? this.episodes,
-    selectedEpisodeId: clearSelectedEpisodeId ? null : selectedEpisodeId ?? this.selectedEpisodeId,
+    selectedEpisodeId:
+        selectedEpisodeId ?? (forceSelectedEpisodeIdValue ? null : this.selectedEpisodeId),
   );
 
   /// Object properties

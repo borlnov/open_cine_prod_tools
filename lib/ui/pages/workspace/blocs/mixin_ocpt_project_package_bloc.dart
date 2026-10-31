@@ -191,7 +191,7 @@ mixin MixinOcptProjectPackageBloc<S extends MixinOcptProjectPackageState<S>> on 
     OcptProjectPackageMissingFilesAskDismissedEvent event,
     Emitter<S> emitter,
   ) async {
-    emitter(state.copyProjectPackageState(clearProjectPackagePendingExport: true));
+    emitter(state.copyProjectPackageState(forceProjectPackagePendingExportValue: true));
   }
 
   /// Writes the package the user asked for despite the missing files.
@@ -222,7 +222,7 @@ mixin MixinOcptProjectPackageBloc<S extends MixinOcptProjectPackageState<S>> on 
     OcptProjectPackageNoticeDismissedEvent event,
     Emitter<S> emitter,
   ) async {
-    emitter(state.copyProjectPackageState(clearProjectPackageNotice: true));
+    emitter(state.copyProjectPackageState(forceProjectPackageNoticeValue: true));
   }
 
   /// Writes the package and reports what travelled — on desktop through the native save dialog
@@ -376,7 +376,7 @@ mixin MixinOcptProjectPackageBloc<S extends MixinOcptProjectPackageState<S>> on 
     emitter(
       state.copyProjectPackageState(
         projectPackageNotice: notice,
-        clearProjectPackagePendingExport: true,
+        forceProjectPackagePendingExportValue: true,
       ),
     );
   }

@@ -79,7 +79,7 @@ class OcptSharingBloc extends BlocForMixin<OcptSharingState> {
         isLoading: false,
         projectName: _projectsManager.currentProject!.name,
         invite: invite,
-        clearInvite: invite == null,
+        forceInviteValue: invite == null,
       ),
     );
   }
@@ -163,7 +163,7 @@ class OcptSharingBloc extends BlocForMixin<OcptSharingState> {
     }
 
     await _syncManager.unpairProject(database: _database, projectId: invite.projectId);
-    emitter(state.copyWith(clearInvite: true));
+    emitter(state.copyWith(forceInviteValue: true));
   }
 
   /// Clears [OcptSharingState.pairingFailed] once the page has shown its own snack bar for it.

@@ -52,21 +52,21 @@ class OcptSharingState extends BlocStateForMixin<OcptSharingState> {
   /// {@macro act_flutter_utility.BlocStateForMixin.copyWith}
   ///
   /// [invite] legitimately goes back to null once the project is unpaired, so it has its own
-  /// [clearInvite] flag rather than a bare nullable parameter, which could never tell "leave it
-  /// alone" apart from "clear it" — exactly the reasoning `OcptProjectSettingsState`'s own
-  /// `clearScreenplayLanguage` already follows.
+  /// [forceInviteValue] flag rather than a bare nullable parameter, which could never tell "leave
+  /// it alone" apart from "clear it" — exactly the reasoning `OcptProjectSettingsState`'s own
+  /// `forceScreenplayLanguageValue` already follows.
   @override
   OcptSharingState copyWith({
     bool? isLoading,
     String? projectName,
     OcptRelayInvite? invite,
-    bool clearInvite = false,
+    bool forceInviteValue = false,
     bool? isPairing,
     bool? pairingFailed,
   }) => OcptSharingState(
     isLoading: isLoading ?? this.isLoading,
     projectName: projectName ?? this.projectName,
-    invite: clearInvite ? null : (invite ?? this.invite),
+    invite: invite ?? (forceInviteValue ? null : this.invite),
     isPairing: isPairing ?? this.isPairing,
     pairingFailed: pairingFailed ?? this.pairingFailed,
   );

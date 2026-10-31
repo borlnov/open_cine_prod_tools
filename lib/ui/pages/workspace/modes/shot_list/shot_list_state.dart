@@ -832,41 +832,44 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
   /// {@macro act_flutter_utility.BlocStateForMixin.copyWith}
   ///
   /// [snapshot] is only replaced when a new one is given: it never goes back to null once loaded,
-  /// so it needs no clear flag. [selectedSequenceId], [selectedShotId], [selectedPanelId],
+  /// so it needs no force flag. [selectedSequenceId], [selectedShotId], [selectedPanelId],
   /// [rightDockTab], [pendingCoverageAnchor] and [ioNotice] all legitimately go back to null while
   /// the mode is alive (nothing selected any more, the dock closed, no range being drawn, the
-  /// export notice dismissed), so each has its own clear flag instead.
+  /// export notice dismissed), so each has its own force flag instead.
   @override
   OcptShotListState copyWith({
     bool? isLoading,
     String? title,
     OcptShotListSnapshot? snapshot,
+    bool forceSnapshotValue = false,
     OcptPageSetup? pageSetup,
     String? screenplayText,
     String? selectedSequenceId,
-    bool clearSelectedSequenceId = false,
+    bool forceSelectedSequenceIdValue = false,
     String? selectedShotId,
-    bool clearSelectedShotId = false,
+    bool forceSelectedShotIdValue = false,
     OcptShotListCentreView? centreView,
     OcptStoryboardSnapshot? storyboardSnapshot,
+    bool forceStoryboardSnapshotValue = false,
     String? selectedPanelId,
-    bool clearSelectedPanelId = false,
+    bool forceSelectedPanelIdValue = false,
     OcptStoryboardPanelSize? boardPanelSize,
     OcptStoryboardAnnotationTool? activeAnnotationTool,
-    bool clearActiveAnnotationTool = false,
+    bool forceActiveAnnotationToolValue = false,
     String? selectedAnnotationId,
-    bool clearSelectedAnnotationId = false,
+    bool forceSelectedAnnotationIdValue = false,
     OcptFloorPlanSnapshot? floorPlanSnapshot,
+    bool forceFloorPlanSnapshotValue = false,
     String? selectedSetId,
-    bool clearSelectedSetId = false,
+    bool forceSelectedSetIdValue = false,
     List<OcptLocation>? locations,
     Map<String, List<OcptFloorPlanSymbol>>? setScopeSymbolsBySetId,
     String? selectedFloorPlanSymbolId,
-    bool clearSelectedFloorPlanSymbolId = false,
+    bool forceSelectedFloorPlanSymbolIdValue = false,
     String? selectedFloorPlanArrowId,
-    bool clearSelectedFloorPlanArrowId = false,
+    bool forceSelectedFloorPlanArrowIdValue = false,
     String? pendingCharacterNamePromptSymbolId,
-    bool clearPendingCharacterNamePromptSymbolId = false,
+    bool forcePendingCharacterNamePromptSymbolIdValue = false,
     double? floorPlanZoom,
     OcptFloorPlanTool? floorPlanActiveTool,
     OcptFloorPlanLayer? floorPlanActiveLayer,
@@ -875,7 +878,7 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
     String? floorPlanActiveLabel,
     List<OcptScenePropSummary>? propsOfSelectedSequence,
     OcptFloorPlanScopeDecision? pendingFloorPlanScopeDecision,
-    bool clearPendingFloorPlanScopeDecision = false,
+    bool forcePendingFloorPlanScopeDecisionValue = false,
     Set<OcptFloorPlanLayer>? floorPlanHiddenLayers,
     bool? isFloorPlanUnderlayHidden,
     Set<String>? floorPlanHiddenCameraSymbolIds,
@@ -884,73 +887,74 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
     double? floorPlanOnionSkinOpacity,
     bool? isFloorPlanMetricsShown,
     String? pendingFloorPlanArrowAnchorSymbolId,
-    bool clearPendingFloorPlanArrowAnchorSymbolId = false,
+    bool forcePendingFloorPlanArrowAnchorSymbolIdValue = false,
     bool? isSequencePanelVisible,
     OcptShotListRightDockTab? rightDockTab,
-    bool clearRightDockTab = false,
+    bool forceRightDockTabValue = false,
     OcptShotListRightDockTab? lastRightDockTab,
     double? leftDockFraction,
     double? rightDockFraction,
     Set<OcptShotListColumn>? visibleColumns,
     bool? hasWriteError,
     OcptShotListIoNotice? ioNotice,
-    bool clearIoNotice = false,
+    bool forceIoNoticeValue = false,
     List<String>? screenplayCharacters,
     List<OcptRole>? roles,
     OcptShotFieldSuggestions? suggestions,
     Map<OcptShotListPendingEditKey, String>? pendingFieldEdits,
     ({int wordStartOffset, int wordEndOffset})? pendingCoverageAnchor,
-    bool clearPendingCoverageAnchor = false,
+    bool forcePendingCoverageAnchorValue = false,
     List<OcptProjectVersion>? projectVersions,
     String? previewedVersionId,
-    bool clearPreviewedVersionId = false,
+    bool forcePreviewedVersionIdValue = false,
     OcptProjectWorkingCopyState? workingCopy,
-    bool clearWorkingCopy = false,
+    bool forceWorkingCopyValue = false,
     String? versionPendingDeletionId,
-    bool clearVersionPendingDeletionId = false,
+    bool forceVersionPendingDeletionIdValue = false,
     String? versionPendingRestoreId,
-    bool clearVersionPendingRestoreId = false,
+    bool forceVersionPendingRestoreIdValue = false,
     String? versionPendingRenameId,
-    bool clearVersionPendingRenameId = false,
+    bool forceVersionPendingRenameIdValue = false,
     OcptProjectVersionNoticeKind? projectVersionNotice,
-    bool clearProjectVersionNotice = false,
+    bool forceProjectVersionNoticeValue = false,
     OcptProjectPackagePreflight? projectPackagePendingExport,
-    bool clearProjectPackagePendingExport = false,
+    bool forceProjectPackagePendingExportValue = false,
     OcptProjectPackageNotice? projectPackageNotice,
-    bool clearProjectPackageNotice = false,
+    bool forceProjectPackageNoticeValue = false,
   }) => OcptShotListState(
     isLoading: isLoading ?? this.isLoading,
     title: title ?? this.title,
-    snapshot: snapshot ?? this.snapshot,
+    snapshot: snapshot ?? (forceSnapshotValue ? null : this.snapshot),
     pageSetup: pageSetup ?? this.pageSetup,
     screenplayText: screenplayText ?? this.screenplayText,
-    selectedSequenceId: clearSelectedSequenceId
-        ? null
-        : (selectedSequenceId ?? this.selectedSequenceId),
-    selectedShotId: clearSelectedShotId ? null : (selectedShotId ?? this.selectedShotId),
+    selectedSequenceId:
+        selectedSequenceId ?? (forceSelectedSequenceIdValue ? null : this.selectedSequenceId),
+    selectedShotId: selectedShotId ?? (forceSelectedShotIdValue ? null : this.selectedShotId),
     centreView: centreView ?? this.centreView,
-    storyboardSnapshot: storyboardSnapshot ?? this.storyboardSnapshot,
-    selectedPanelId: clearSelectedPanelId ? null : (selectedPanelId ?? this.selectedPanelId),
+    storyboardSnapshot:
+        storyboardSnapshot ?? (forceStoryboardSnapshotValue ? null : this.storyboardSnapshot),
+    selectedPanelId: selectedPanelId ?? (forceSelectedPanelIdValue ? null : this.selectedPanelId),
     boardPanelSize: boardPanelSize ?? this.boardPanelSize,
-    activeAnnotationTool: clearActiveAnnotationTool
-        ? null
-        : (activeAnnotationTool ?? this.activeAnnotationTool),
-    selectedAnnotationId: clearSelectedAnnotationId
-        ? null
-        : (selectedAnnotationId ?? this.selectedAnnotationId),
-    floorPlanSnapshot: floorPlanSnapshot ?? this.floorPlanSnapshot,
-    selectedSetId: clearSelectedSetId ? null : (selectedSetId ?? this.selectedSetId),
+    activeAnnotationTool:
+        activeAnnotationTool ?? (forceActiveAnnotationToolValue ? null : this.activeAnnotationTool),
+    selectedAnnotationId:
+        selectedAnnotationId ?? (forceSelectedAnnotationIdValue ? null : this.selectedAnnotationId),
+    floorPlanSnapshot:
+        floorPlanSnapshot ?? (forceFloorPlanSnapshotValue ? null : this.floorPlanSnapshot),
+    selectedSetId: selectedSetId ?? (forceSelectedSetIdValue ? null : this.selectedSetId),
     locations: locations ?? this.locations,
     setScopeSymbolsBySetId: setScopeSymbolsBySetId ?? this.setScopeSymbolsBySetId,
-    selectedFloorPlanSymbolId: clearSelectedFloorPlanSymbolId
-        ? null
-        : (selectedFloorPlanSymbolId ?? this.selectedFloorPlanSymbolId),
-    selectedFloorPlanArrowId: clearSelectedFloorPlanArrowId
-        ? null
-        : (selectedFloorPlanArrowId ?? this.selectedFloorPlanArrowId),
-    pendingCharacterNamePromptSymbolId: clearPendingCharacterNamePromptSymbolId
-        ? null
-        : (pendingCharacterNamePromptSymbolId ?? this.pendingCharacterNamePromptSymbolId),
+    selectedFloorPlanSymbolId:
+        selectedFloorPlanSymbolId ??
+        (forceSelectedFloorPlanSymbolIdValue ? null : this.selectedFloorPlanSymbolId),
+    selectedFloorPlanArrowId:
+        selectedFloorPlanArrowId ??
+        (forceSelectedFloorPlanArrowIdValue ? null : this.selectedFloorPlanArrowId),
+    pendingCharacterNamePromptSymbolId:
+        pendingCharacterNamePromptSymbolId ??
+        (forcePendingCharacterNamePromptSymbolIdValue
+            ? null
+            : this.pendingCharacterNamePromptSymbolId),
     floorPlanZoom: floorPlanZoom ?? this.floorPlanZoom,
     floorPlanActiveTool: floorPlanActiveTool ?? this.floorPlanActiveTool,
     floorPlanActiveLayer: floorPlanActiveLayer ?? this.floorPlanActiveLayer,
@@ -960,9 +964,9 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
         floorPlanActiveSetElementScope ?? this.floorPlanActiveSetElementScope,
     floorPlanActiveLabel: floorPlanActiveLabel ?? this.floorPlanActiveLabel,
     propsOfSelectedSequence: propsOfSelectedSequence ?? this.propsOfSelectedSequence,
-    pendingFloorPlanScopeDecision: clearPendingFloorPlanScopeDecision
-        ? null
-        : (pendingFloorPlanScopeDecision ?? this.pendingFloorPlanScopeDecision),
+    pendingFloorPlanScopeDecision:
+        pendingFloorPlanScopeDecision ??
+        (forcePendingFloorPlanScopeDecisionValue ? null : this.pendingFloorPlanScopeDecision),
     floorPlanHiddenLayers: floorPlanHiddenLayers ?? this.floorPlanHiddenLayers,
     isFloorPlanUnderlayHidden: isFloorPlanUnderlayHidden ?? this.isFloorPlanUnderlayHidden,
     floorPlanHiddenCameraSymbolIds:
@@ -973,47 +977,46 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
         isFloorPlanOnionSkinNextShown ?? this.isFloorPlanOnionSkinNextShown,
     floorPlanOnionSkinOpacity: floorPlanOnionSkinOpacity ?? this.floorPlanOnionSkinOpacity,
     isFloorPlanMetricsShown: isFloorPlanMetricsShown ?? this.isFloorPlanMetricsShown,
-    pendingFloorPlanArrowAnchorSymbolId: clearPendingFloorPlanArrowAnchorSymbolId
-        ? null
-        : (pendingFloorPlanArrowAnchorSymbolId ?? this.pendingFloorPlanArrowAnchorSymbolId),
+    pendingFloorPlanArrowAnchorSymbolId:
+        pendingFloorPlanArrowAnchorSymbolId ??
+        (forcePendingFloorPlanArrowAnchorSymbolIdValue
+            ? null
+            : this.pendingFloorPlanArrowAnchorSymbolId),
     isSequencePanelVisible: isSequencePanelVisible ?? this.isSequencePanelVisible,
-    rightDockTab: clearRightDockTab ? null : (rightDockTab ?? this.rightDockTab),
+    rightDockTab: rightDockTab ?? (forceRightDockTabValue ? null : this.rightDockTab),
     lastRightDockTab: lastRightDockTab ?? this.lastRightDockTab,
     leftDockFraction: leftDockFraction ?? this.leftDockFraction,
     rightDockFraction: rightDockFraction ?? this.rightDockFraction,
     visibleColumns: visibleColumns ?? this.visibleColumns,
     hasWriteError: hasWriteError ?? this.hasWriteError,
-    ioNotice: clearIoNotice ? null : (ioNotice ?? this.ioNotice),
+    ioNotice: ioNotice ?? (forceIoNoticeValue ? null : this.ioNotice),
     screenplayCharacters: screenplayCharacters ?? this.screenplayCharacters,
     roles: roles ?? this.roles,
     suggestions: suggestions ?? this.suggestions,
     pendingFieldEdits: pendingFieldEdits ?? this.pendingFieldEdits,
-    pendingCoverageAnchor: clearPendingCoverageAnchor
-        ? null
-        : (pendingCoverageAnchor ?? this.pendingCoverageAnchor),
+    pendingCoverageAnchor:
+        pendingCoverageAnchor ??
+        (forcePendingCoverageAnchorValue ? null : this.pendingCoverageAnchor),
     projectVersions: projectVersions ?? this.projectVersions,
-    previewedVersionId: clearPreviewedVersionId
-        ? null
-        : (previewedVersionId ?? this.previewedVersionId),
-    workingCopy: clearWorkingCopy ? null : (workingCopy ?? this.workingCopy),
-    versionPendingDeletionId: clearVersionPendingDeletionId
-        ? null
-        : (versionPendingDeletionId ?? this.versionPendingDeletionId),
-    versionPendingRestoreId: clearVersionPendingRestoreId
-        ? null
-        : (versionPendingRestoreId ?? this.versionPendingRestoreId),
-    versionPendingRenameId: clearVersionPendingRenameId
-        ? null
-        : (versionPendingRenameId ?? this.versionPendingRenameId),
-    projectVersionNotice: clearProjectVersionNotice
-        ? null
-        : (projectVersionNotice ?? this.projectVersionNotice),
-    projectPackagePendingExport: clearProjectPackagePendingExport
-        ? null
-        : (projectPackagePendingExport ?? this.projectPackagePendingExport),
-    projectPackageNotice: clearProjectPackageNotice
-        ? null
-        : (projectPackageNotice ?? this.projectPackageNotice),
+    previewedVersionId:
+        previewedVersionId ?? (forcePreviewedVersionIdValue ? null : this.previewedVersionId),
+    workingCopy: workingCopy ?? (forceWorkingCopyValue ? null : this.workingCopy),
+    versionPendingDeletionId:
+        versionPendingDeletionId ??
+        (forceVersionPendingDeletionIdValue ? null : this.versionPendingDeletionId),
+    versionPendingRestoreId:
+        versionPendingRestoreId ??
+        (forceVersionPendingRestoreIdValue ? null : this.versionPendingRestoreId),
+    versionPendingRenameId:
+        versionPendingRenameId ??
+        (forceVersionPendingRenameIdValue ? null : this.versionPendingRenameId),
+    projectVersionNotice:
+        projectVersionNotice ?? (forceProjectVersionNoticeValue ? null : this.projectVersionNotice),
+    projectPackagePendingExport:
+        projectPackagePendingExport ??
+        (forceProjectPackagePendingExportValue ? null : this.projectPackagePendingExport),
+    projectPackageNotice:
+        projectPackageNotice ?? (forceProjectPackageNoticeValue ? null : this.projectPackageNotice),
   );
 
   /// {@macro open_cine_prod_tools.MixinOcptProjectVersionsState.copyProjectVersionsState}
@@ -1021,45 +1024,45 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
   OcptShotListState copyProjectVersionsState({
     List<OcptProjectVersion>? projectVersions,
     String? previewedVersionId,
-    bool clearPreviewedVersionId = false,
+    bool forcePreviewedVersionIdValue = false,
     OcptProjectWorkingCopyState? workingCopy,
-    bool clearWorkingCopy = false,
+    bool forceWorkingCopyValue = false,
     String? versionPendingDeletionId,
-    bool clearVersionPendingDeletionId = false,
+    bool forceVersionPendingDeletionIdValue = false,
     String? versionPendingRestoreId,
-    bool clearVersionPendingRestoreId = false,
+    bool forceVersionPendingRestoreIdValue = false,
     String? versionPendingRenameId,
-    bool clearVersionPendingRenameId = false,
+    bool forceVersionPendingRenameIdValue = false,
     OcptProjectVersionNoticeKind? projectVersionNotice,
-    bool clearProjectVersionNotice = false,
+    bool forceProjectVersionNoticeValue = false,
   }) => copyWith(
     projectVersions: projectVersions,
     previewedVersionId: previewedVersionId,
-    clearPreviewedVersionId: clearPreviewedVersionId,
+    forcePreviewedVersionIdValue: forcePreviewedVersionIdValue,
     workingCopy: workingCopy,
-    clearWorkingCopy: clearWorkingCopy,
+    forceWorkingCopyValue: forceWorkingCopyValue,
     versionPendingDeletionId: versionPendingDeletionId,
-    clearVersionPendingDeletionId: clearVersionPendingDeletionId,
+    forceVersionPendingDeletionIdValue: forceVersionPendingDeletionIdValue,
     versionPendingRestoreId: versionPendingRestoreId,
-    clearVersionPendingRestoreId: clearVersionPendingRestoreId,
+    forceVersionPendingRestoreIdValue: forceVersionPendingRestoreIdValue,
     versionPendingRenameId: versionPendingRenameId,
-    clearVersionPendingRenameId: clearVersionPendingRenameId,
+    forceVersionPendingRenameIdValue: forceVersionPendingRenameIdValue,
     projectVersionNotice: projectVersionNotice,
-    clearProjectVersionNotice: clearProjectVersionNotice,
+    forceProjectVersionNoticeValue: forceProjectVersionNoticeValue,
   );
 
   /// {@macro open_cine_prod_tools.MixinOcptProjectPackageState.copyProjectPackageState}
   @override
   OcptShotListState copyProjectPackageState({
     OcptProjectPackagePreflight? projectPackagePendingExport,
-    bool clearProjectPackagePendingExport = false,
+    bool forceProjectPackagePendingExportValue = false,
     OcptProjectPackageNotice? projectPackageNotice,
-    bool clearProjectPackageNotice = false,
+    bool forceProjectPackageNoticeValue = false,
   }) => copyWith(
     projectPackagePendingExport: projectPackagePendingExport,
-    clearProjectPackagePendingExport: clearProjectPackagePendingExport,
+    forceProjectPackagePendingExportValue: forceProjectPackagePendingExportValue,
     projectPackageNotice: projectPackageNotice,
-    clearProjectPackageNotice: clearProjectPackageNotice,
+    forceProjectPackageNoticeValue: forceProjectPackageNoticeValue,
   );
 
   /// Object properties

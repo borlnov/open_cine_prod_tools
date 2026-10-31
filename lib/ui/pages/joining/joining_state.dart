@@ -63,20 +63,20 @@ class OcptJoiningState extends BlocStateForMixin<OcptJoiningState> {
 
   /// {@macro act_flutter_utility.BlocStateForMixin.copyWith}
   ///
-  /// [joinStep] legitimately goes back to null once a join ends, so it has its own `clearJoinStep`
-  /// flag rather than a bare nullable parameter, which could never tell "leave it alone" apart from
-  /// "clear it" — exactly `OcptHostingState.clearPresenceRoster`'s own reasoning.
+  /// [joinStep] legitimately goes back to null once a join ends, so it has its own
+  /// `forceJoinStepValue` flag rather than a bare nullable parameter, which could never tell "leave
+  /// it alone" apart from "clear it" — exactly `OcptHostingState.forcePresenceRosterValue`'s own reasoning.
   @override
   OcptJoiningState copyWith({
     bool? isJoining,
     bool? joinFailed,
     OcptJoinStep? joinStep,
-    bool clearJoinStep = false,
+    bool forceJoinStepValue = false,
     bool? joinSucceeded,
   }) => OcptJoiningState(
     isJoining: isJoining ?? this.isJoining,
     joinFailed: joinFailed ?? this.joinFailed,
-    joinStep: clearJoinStep ? null : (joinStep ?? this.joinStep),
+    joinStep: joinStep ?? (forceJoinStepValue ? null : this.joinStep),
     joinSucceeded: joinSucceeded ?? this.joinSucceeded,
   );
 

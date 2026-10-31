@@ -100,23 +100,23 @@ mixin MixinOcptProjectVersionsState<S extends MixinOcptProjectVersionsState<S>>
   ///
   /// The nullable fields legitimately go back to null while the mode is alive (a preview left, a
   /// confirmation cancelled or answered, a notice dismissed, a working-copy capture withheld
-  /// because a preview is up), so each carries its own clear flag rather than relying on "a null
+  /// because a preview is up), so each carries its own force flag rather than relying on "a null
   /// argument means unchanged".
   /// {@endtemplate}
   S copyProjectVersionsState({
     List<OcptProjectVersion>? projectVersions,
     String? previewedVersionId,
-    bool clearPreviewedVersionId = false,
+    bool forcePreviewedVersionIdValue = false,
     OcptProjectWorkingCopyState? workingCopy,
-    bool clearWorkingCopy = false,
+    bool forceWorkingCopyValue = false,
     String? versionPendingDeletionId,
-    bool clearVersionPendingDeletionId = false,
+    bool forceVersionPendingDeletionIdValue = false,
     String? versionPendingRestoreId,
-    bool clearVersionPendingRestoreId = false,
+    bool forceVersionPendingRestoreIdValue = false,
     String? versionPendingRenameId,
-    bool clearVersionPendingRenameId = false,
+    bool forceVersionPendingRenameIdValue = false,
     OcptProjectVersionNoticeKind? projectVersionNotice,
-    bool clearProjectVersionNotice = false,
+    bool forceProjectVersionNoticeValue = false,
   });
 
   /// {@macro act_flutter_utility.BlocStateForMixin.props}

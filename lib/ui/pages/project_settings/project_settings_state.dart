@@ -145,12 +145,12 @@ class OcptProjectSettingsState extends BlocStateForMixin<OcptProjectSettingsStat
   /// {@macro act_flutter_utility.BlocStateForMixin.copyWith}
   ///
   /// [minimumRestMinutes] legitimately goes back to null while the page is open (the field is
-  /// cleared), so it has its own [clearMinimumRestMinutes] flag rather than a bare nullable
+  /// cleared), so it has its own [forceMinimumRestMinutesValue] flag rather than a bare nullable
   /// parameter, which could never tell "leave it alone" apart from "clear it". [screenplayLanguage]
   /// carries exactly the same problem — picking "None" in the dropdown is as real a gesture as
-  /// clearing the rest field is — so it gets the same treatment, [clearScreenplayLanguage].
+  /// clearing the rest field is — so it gets the same treatment, [forceScreenplayLanguageValue].
   /// [defaultVatRateBasisPoints], [mealPriceCents] and [buffetPriceCents] all get the identical
-  /// treatment for the identical reason, one clearing flag each.
+  /// treatment for the identical reason, one force flag each.
   @override
   OcptProjectSettingsState copyWith({
     bool? isLoading,
@@ -160,19 +160,19 @@ class OcptProjectSettingsState extends BlocStateForMixin<OcptProjectSettingsStat
     bool? isMoveWithheldByHosting,
     bool? isShowInFolderFailed,
     OcptProjectMoveStatus? moveError,
-    bool clearMoveError = false,
+    bool forceMoveErrorValue = false,
     String? currencyCode,
     OcptPageFormat? pageFormat,
     int? minimumRestMinutes,
-    bool clearMinimumRestMinutes = false,
+    bool forceMinimumRestMinutesValue = false,
     int? defaultVatRateBasisPoints,
-    bool clearDefaultVatRateBasisPoints = false,
+    bool forceDefaultVatRateBasisPointsValue = false,
     int? mealPriceCents,
-    bool clearMealPriceCents = false,
+    bool forceMealPriceCentsValue = false,
     int? buffetPriceCents,
-    bool clearBuffetPriceCents = false,
+    bool forceBuffetPriceCentsValue = false,
     OcptScreenplayLanguage? screenplayLanguage,
-    bool clearScreenplayLanguage = false,
+    bool forceScreenplayLanguageValue = false,
     List<OcptEpisode>? episodes,
     List<OcptBudgetMileageRate>? mileageRates,
     List<String>? dictionaryWords,
@@ -184,20 +184,19 @@ class OcptProjectSettingsState extends BlocStateForMixin<OcptProjectSettingsStat
     isMoveAvailable: isMoveAvailable ?? this.isMoveAvailable,
     isMoveWithheldByHosting: isMoveWithheldByHosting ?? this.isMoveWithheldByHosting,
     isShowInFolderFailed: isShowInFolderFailed ?? this.isShowInFolderFailed,
-    moveError: clearMoveError ? null : (moveError ?? this.moveError),
+    moveError: moveError ?? (forceMoveErrorValue ? null : this.moveError),
     currencyCode: currencyCode ?? this.currencyCode,
     pageFormat: pageFormat ?? this.pageFormat,
-    minimumRestMinutes: clearMinimumRestMinutes
-        ? null
-        : (minimumRestMinutes ?? this.minimumRestMinutes),
-    defaultVatRateBasisPoints: clearDefaultVatRateBasisPoints
-        ? null
-        : (defaultVatRateBasisPoints ?? this.defaultVatRateBasisPoints),
-    mealPriceCents: clearMealPriceCents ? null : (mealPriceCents ?? this.mealPriceCents),
-    buffetPriceCents: clearBuffetPriceCents ? null : (buffetPriceCents ?? this.buffetPriceCents),
-    screenplayLanguage: clearScreenplayLanguage
-        ? null
-        : (screenplayLanguage ?? this.screenplayLanguage),
+    minimumRestMinutes:
+        minimumRestMinutes ?? (forceMinimumRestMinutesValue ? null : this.minimumRestMinutes),
+    defaultVatRateBasisPoints:
+        defaultVatRateBasisPoints ??
+        (forceDefaultVatRateBasisPointsValue ? null : this.defaultVatRateBasisPoints),
+    mealPriceCents: mealPriceCents ?? (forceMealPriceCentsValue ? null : this.mealPriceCents),
+    buffetPriceCents:
+        buffetPriceCents ?? (forceBuffetPriceCentsValue ? null : this.buffetPriceCents),
+    screenplayLanguage:
+        screenplayLanguage ?? (forceScreenplayLanguageValue ? null : this.screenplayLanguage),
     episodes: episodes ?? this.episodes,
     mileageRates: mileageRates ?? this.mileageRates,
     dictionaryWords: dictionaryWords ?? this.dictionaryWords,

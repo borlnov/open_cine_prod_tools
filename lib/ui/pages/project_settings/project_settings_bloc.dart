@@ -256,15 +256,15 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState> {
         currencyCode: currencyCode ?? ocptDefaultCurrencyCode,
         pageFormat: pageFormat ?? OcptPageFormat.usLetter,
         minimumRestMinutes: minimumRestMinutes,
-        clearMinimumRestMinutes: minimumRestMinutes == null,
+        forceMinimumRestMinutesValue: minimumRestMinutes == null,
         defaultVatRateBasisPoints: defaultVatRateBasisPoints,
-        clearDefaultVatRateBasisPoints: defaultVatRateBasisPoints == null,
+        forceDefaultVatRateBasisPointsValue: defaultVatRateBasisPoints == null,
         mealPriceCents: mealPriceCents,
-        clearMealPriceCents: mealPriceCents == null,
+        forceMealPriceCentsValue: mealPriceCents == null,
         buffetPriceCents: buffetPriceCents,
-        clearBuffetPriceCents: buffetPriceCents == null,
+        forceBuffetPriceCentsValue: buffetPriceCents == null,
         screenplayLanguage: screenplayLanguage,
-        clearScreenplayLanguage: screenplayLanguage == null,
+        forceScreenplayLanguageValue: screenplayLanguage == null,
         episodes: episodes,
         mileageRates: mileageRates,
         dictionaryWords: dictionaryWords,
@@ -383,7 +383,7 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState> {
       return;
     }
 
-    emitter(state.copyWith(projectFilePath: result.value!.path, clearMoveError: true));
+    emitter(state.copyWith(projectFilePath: result.value!.path, forceMoveErrorValue: true));
   }
 
   /// Restarts the sync session [_onMoveRequested] stopped before the move, now against the moved
@@ -441,7 +441,7 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState> {
     OcptProjectSettingsMoveErrorDismissedEvent event,
     Emitter<OcptProjectSettingsState> emitter,
   ) async {
-    emitter(state.copyWith(clearMoveError: true));
+    emitter(state.copyWith(forceMoveErrorValue: true));
   }
 
   /// Writes the newly picked currency to the project, then reflects it in the state.
@@ -475,7 +475,7 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState> {
     emitter(
       state.copyWith(
         minimumRestMinutes: event.minutes,
-        clearMinimumRestMinutes: event.minutes == null,
+        forceMinimumRestMinutesValue: event.minutes == null,
         hasChanged: true,
       ),
     );
@@ -494,7 +494,7 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState> {
     emitter(
       state.copyWith(
         defaultVatRateBasisPoints: event.basisPoints,
-        clearDefaultVatRateBasisPoints: event.basisPoints == null,
+        forceDefaultVatRateBasisPointsValue: event.basisPoints == null,
         hasChanged: true,
       ),
     );
@@ -509,7 +509,7 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState> {
     emitter(
       state.copyWith(
         mealPriceCents: event.cents,
-        clearMealPriceCents: event.cents == null,
+        forceMealPriceCentsValue: event.cents == null,
         hasChanged: true,
       ),
     );
@@ -526,7 +526,7 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState> {
     emitter(
       state.copyWith(
         buffetPriceCents: event.cents,
-        clearBuffetPriceCents: event.cents == null,
+        forceBuffetPriceCentsValue: event.cents == null,
         hasChanged: true,
       ),
     );
@@ -545,7 +545,7 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState> {
     emitter(
       state.copyWith(
         screenplayLanguage: event.screenplayLanguage,
-        clearScreenplayLanguage: event.screenplayLanguage == null,
+        forceScreenplayLanguageValue: event.screenplayLanguage == null,
         hasChanged: true,
       ),
     );

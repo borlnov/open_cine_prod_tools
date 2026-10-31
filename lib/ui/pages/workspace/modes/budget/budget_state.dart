@@ -588,27 +588,28 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
   ///
   /// [snapshot] is only replaced when a new one is given, exactly as `OcptScheduleState.snapshot`.
   /// [selection], [filterPosteId] and [rightDockTab] all legitimately go back to null while the
-  /// mode is alive, so each has its own clear flag. [pendingFieldEdits] is always replaced
+  /// mode is alive, so each has its own force flag. [pendingFieldEdits] is always replaced
   /// wholesale — the caller (the bloc's own field-edit handler) always computes the full next map.
   @override
   OcptBudgetState copyWith({
     bool? isLoading,
     String? title,
     OcptBudgetSnapshot? snapshot,
+    bool forceSnapshotValue = false,
     String? currencyCode,
     OcptBudgetView? view,
     OcptBudgetToolsView? toolsView,
     bool? isSimplified,
     OcptBudgetTaxBasis? taxBasis,
     OcptBudgetSelection? selection,
-    bool clearSelection = false,
+    bool forceSelectionValue = false,
     String? filterPosteId,
-    bool clearFilterPosteId = false,
+    bool forceFilterPosteIdValue = false,
     String? selectedShareId,
-    bool clearSelectedShareId = false,
+    bool forceSelectedShareIdValue = false,
     Set<String>? expandedNodeIds,
     OcptBudgetRightDockTab? rightDockTab,
-    bool clearRightDockTab = false,
+    bool forceRightDockTabValue = false,
     OcptBudgetRightDockTab? lastRightDockTab,
     double? rightDockFraction,
     Map<OcptBudgetPendingFieldKey, String>? pendingFieldEdits,
@@ -617,41 +618,42 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
     List<OcptElement>? elements,
     List<OcptBudgetMileageRate>? mileageRates,
     String? provisionPosteId,
+    bool forceProvisionPosteIdValue = false,
     Map<String, String>? regieDecorNameByDayId,
     List<OcptProjectVersion>? projectVersions,
     String? previewedVersionId,
-    bool clearPreviewedVersionId = false,
+    bool forcePreviewedVersionIdValue = false,
     OcptProjectWorkingCopyState? workingCopy,
-    bool clearWorkingCopy = false,
+    bool forceWorkingCopyValue = false,
     String? versionPendingDeletionId,
-    bool clearVersionPendingDeletionId = false,
+    bool forceVersionPendingDeletionIdValue = false,
     String? versionPendingRestoreId,
-    bool clearVersionPendingRestoreId = false,
+    bool forceVersionPendingRestoreIdValue = false,
     String? versionPendingRenameId,
-    bool clearVersionPendingRenameId = false,
+    bool forceVersionPendingRenameIdValue = false,
     OcptProjectVersionNoticeKind? projectVersionNotice,
-    bool clearProjectVersionNotice = false,
+    bool forceProjectVersionNoticeValue = false,
     OcptProjectPackagePreflight? projectPackagePendingExport,
-    bool clearProjectPackagePendingExport = false,
+    bool forceProjectPackagePendingExportValue = false,
     OcptProjectPackageNotice? projectPackageNotice,
-    bool clearProjectPackageNotice = false,
+    bool forceProjectPackageNoticeValue = false,
     OcptPageSetup? pageSetup,
     OcptBudgetIoNotice? ioNotice,
-    bool clearIoNotice = false,
+    bool forceIoNoticeValue = false,
   }) => OcptBudgetState(
     isLoading: isLoading ?? this.isLoading,
     title: title ?? this.title,
-    snapshot: snapshot ?? this.snapshot,
+    snapshot: snapshot ?? (forceSnapshotValue ? null : this.snapshot),
     currencyCode: currencyCode ?? this.currencyCode,
     view: view ?? this.view,
     toolsView: toolsView ?? this.toolsView,
     isSimplified: isSimplified ?? this.isSimplified,
     taxBasis: taxBasis ?? this.taxBasis,
-    selection: clearSelection ? null : (selection ?? this.selection),
-    filterPosteId: clearFilterPosteId ? null : (filterPosteId ?? this.filterPosteId),
-    selectedShareId: clearSelectedShareId ? null : (selectedShareId ?? this.selectedShareId),
+    selection: selection ?? (forceSelectionValue ? null : this.selection),
+    filterPosteId: filterPosteId ?? (forceFilterPosteIdValue ? null : this.filterPosteId),
+    selectedShareId: selectedShareId ?? (forceSelectedShareIdValue ? null : this.selectedShareId),
     expandedNodeIds: expandedNodeIds ?? this.expandedNodeIds,
-    rightDockTab: clearRightDockTab ? null : (rightDockTab ?? this.rightDockTab),
+    rightDockTab: rightDockTab ?? (forceRightDockTabValue ? null : this.rightDockTab),
     lastRightDockTab: lastRightDockTab ?? this.lastRightDockTab,
     rightDockFraction: rightDockFraction ?? this.rightDockFraction,
     pendingFieldEdits: pendingFieldEdits ?? this.pendingFieldEdits,
@@ -659,33 +661,31 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
     people: people ?? this.people,
     elements: elements ?? this.elements,
     mileageRates: mileageRates ?? this.mileageRates,
-    provisionPosteId: provisionPosteId ?? this.provisionPosteId,
+    provisionPosteId:
+        provisionPosteId ?? (forceProvisionPosteIdValue ? null : this.provisionPosteId),
     regieDecorNameByDayId: regieDecorNameByDayId ?? this.regieDecorNameByDayId,
     projectVersions: projectVersions ?? this.projectVersions,
-    previewedVersionId: clearPreviewedVersionId
-        ? null
-        : (previewedVersionId ?? this.previewedVersionId),
-    workingCopy: clearWorkingCopy ? null : (workingCopy ?? this.workingCopy),
-    versionPendingDeletionId: clearVersionPendingDeletionId
-        ? null
-        : (versionPendingDeletionId ?? this.versionPendingDeletionId),
-    versionPendingRestoreId: clearVersionPendingRestoreId
-        ? null
-        : (versionPendingRestoreId ?? this.versionPendingRestoreId),
-    versionPendingRenameId: clearVersionPendingRenameId
-        ? null
-        : (versionPendingRenameId ?? this.versionPendingRenameId),
-    projectVersionNotice: clearProjectVersionNotice
-        ? null
-        : (projectVersionNotice ?? this.projectVersionNotice),
-    projectPackagePendingExport: clearProjectPackagePendingExport
-        ? null
-        : (projectPackagePendingExport ?? this.projectPackagePendingExport),
-    projectPackageNotice: clearProjectPackageNotice
-        ? null
-        : (projectPackageNotice ?? this.projectPackageNotice),
+    previewedVersionId:
+        previewedVersionId ?? (forcePreviewedVersionIdValue ? null : this.previewedVersionId),
+    workingCopy: workingCopy ?? (forceWorkingCopyValue ? null : this.workingCopy),
+    versionPendingDeletionId:
+        versionPendingDeletionId ??
+        (forceVersionPendingDeletionIdValue ? null : this.versionPendingDeletionId),
+    versionPendingRestoreId:
+        versionPendingRestoreId ??
+        (forceVersionPendingRestoreIdValue ? null : this.versionPendingRestoreId),
+    versionPendingRenameId:
+        versionPendingRenameId ??
+        (forceVersionPendingRenameIdValue ? null : this.versionPendingRenameId),
+    projectVersionNotice:
+        projectVersionNotice ?? (forceProjectVersionNoticeValue ? null : this.projectVersionNotice),
+    projectPackagePendingExport:
+        projectPackagePendingExport ??
+        (forceProjectPackagePendingExportValue ? null : this.projectPackagePendingExport),
+    projectPackageNotice:
+        projectPackageNotice ?? (forceProjectPackageNoticeValue ? null : this.projectPackageNotice),
     pageSetup: pageSetup ?? this.pageSetup,
-    ioNotice: clearIoNotice ? null : (ioNotice ?? this.ioNotice),
+    ioNotice: ioNotice ?? (forceIoNoticeValue ? null : this.ioNotice),
   );
 
   /// {@macro open_cine_prod_tools.MixinOcptProjectVersionsState.copyProjectVersionsState}
@@ -693,45 +693,45 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
   OcptBudgetState copyProjectVersionsState({
     List<OcptProjectVersion>? projectVersions,
     String? previewedVersionId,
-    bool clearPreviewedVersionId = false,
+    bool forcePreviewedVersionIdValue = false,
     OcptProjectWorkingCopyState? workingCopy,
-    bool clearWorkingCopy = false,
+    bool forceWorkingCopyValue = false,
     String? versionPendingDeletionId,
-    bool clearVersionPendingDeletionId = false,
+    bool forceVersionPendingDeletionIdValue = false,
     String? versionPendingRestoreId,
-    bool clearVersionPendingRestoreId = false,
+    bool forceVersionPendingRestoreIdValue = false,
     String? versionPendingRenameId,
-    bool clearVersionPendingRenameId = false,
+    bool forceVersionPendingRenameIdValue = false,
     OcptProjectVersionNoticeKind? projectVersionNotice,
-    bool clearProjectVersionNotice = false,
+    bool forceProjectVersionNoticeValue = false,
   }) => copyWith(
     projectVersions: projectVersions,
     previewedVersionId: previewedVersionId,
-    clearPreviewedVersionId: clearPreviewedVersionId,
+    forcePreviewedVersionIdValue: forcePreviewedVersionIdValue,
     workingCopy: workingCopy,
-    clearWorkingCopy: clearWorkingCopy,
+    forceWorkingCopyValue: forceWorkingCopyValue,
     versionPendingDeletionId: versionPendingDeletionId,
-    clearVersionPendingDeletionId: clearVersionPendingDeletionId,
+    forceVersionPendingDeletionIdValue: forceVersionPendingDeletionIdValue,
     versionPendingRestoreId: versionPendingRestoreId,
-    clearVersionPendingRestoreId: clearVersionPendingRestoreId,
+    forceVersionPendingRestoreIdValue: forceVersionPendingRestoreIdValue,
     versionPendingRenameId: versionPendingRenameId,
-    clearVersionPendingRenameId: clearVersionPendingRenameId,
+    forceVersionPendingRenameIdValue: forceVersionPendingRenameIdValue,
     projectVersionNotice: projectVersionNotice,
-    clearProjectVersionNotice: clearProjectVersionNotice,
+    forceProjectVersionNoticeValue: forceProjectVersionNoticeValue,
   );
 
   /// {@macro open_cine_prod_tools.MixinOcptProjectPackageState.copyProjectPackageState}
   @override
   OcptBudgetState copyProjectPackageState({
     OcptProjectPackagePreflight? projectPackagePendingExport,
-    bool clearProjectPackagePendingExport = false,
+    bool forceProjectPackagePendingExportValue = false,
     OcptProjectPackageNotice? projectPackageNotice,
-    bool clearProjectPackageNotice = false,
+    bool forceProjectPackageNoticeValue = false,
   }) => copyWith(
     projectPackagePendingExport: projectPackagePendingExport,
-    clearProjectPackagePendingExport: clearProjectPackagePendingExport,
+    forceProjectPackagePendingExportValue: forceProjectPackagePendingExportValue,
     projectPackageNotice: projectPackageNotice,
-    clearProjectPackageNotice: clearProjectPackageNotice,
+    forceProjectPackageNoticeValue: forceProjectPackageNoticeValue,
   );
 
   /// Object properties

@@ -483,13 +483,13 @@ class OcptBreakdownState extends BlocStateForMixin<OcptBreakdownState>
   /// {@macro act_flutter_utility.BlocStateForMixin.copyWith}
   ///
   /// [snapshot] is only replaced when a new one is given: it never goes back to null once loaded,
-  /// so it needs no clear flag. [selectedSceneId], [selectedTargetRef], [rightDockTab],
+  /// so it needs no force flag. [selectedSceneId], [selectedTargetRef], [rightDockTab],
   /// [pendingTagAnchor] and [pendingTagRange] all legitimately go back to null while the mode is
   /// alive (a fresh load, a selection dropped, the dock closed, an anchor replaced or a range
-  /// resolved), so each has its own clear flag instead. [hiddenLegendKeys],
+  /// resolved), so each has its own force flag instead. [hiddenLegendKeys],
   /// [pendingElementFieldEdits], [pendingSceneNotesEdits] and [pendingSetNameEdits] are each
   /// replaced wholesale rather than merged — the caller (the bloc's own legend and field-edit
-  /// handlers) always computes the full next map or set. [searchQuery] needs no clear flag either:
+  /// handlers) always computes the full next map or set. [searchQuery] needs no force flag either:
   /// an empty string is already a perfectly valid value for it (the field cleared), so
   /// `searchQuery: ""` is passed like any other value rather than through a `clear…` flag.
   ///
@@ -505,52 +505,52 @@ class OcptBreakdownState extends BlocStateForMixin<OcptBreakdownState>
     String? screenplayText,
     OcptPageSetup? pageSetup,
     OcptBreakdownSnapshot? snapshot,
+    bool forceSnapshotValue = false,
     OcptBreakdownCentreView? centreView,
     String? searchQuery,
     String? selectedSceneId,
-    bool clearSelectedSceneId = false,
+    bool forceSelectedSceneIdValue = false,
     Set<OcptBreakdownLegendKey>? hiddenLegendKeys,
     (OcptBreakdownTargetKind, String)? selectedTargetRef,
-    bool clearSelectedTargetRef = false,
+    bool forceSelectedTargetRefValue = false,
     bool? isListPanelVisible,
     OcptBreakdownRightDockTab? rightDockTab,
-    bool clearRightDockTab = false,
+    bool forceRightDockTabValue = false,
     OcptBreakdownRightDockTab? lastRightDockTab,
     Map<(String, OcptElementField), String>? pendingElementFieldEdits,
     Map<String, String>? pendingSceneNotesEdits,
     Map<String, String>? pendingSetNameEdits,
     OcptBreakdownPendingTagAnchor? pendingTagAnchor,
-    bool clearPendingTagAnchor = false,
+    bool forcePendingTagAnchorValue = false,
     OcptBreakdownPendingTagRange? pendingTagRange,
-    bool clearPendingTagRange = false,
+    bool forcePendingTagRangeValue = false,
     bool? hasTagWriteError,
     OcptBreakdownIoNotice? ioNotice,
-    bool clearIoNotice = false,
+    bool forceIoNoticeValue = false,
     double? leftDockFraction,
     double? rightDockFraction,
     List<OcptProjectVersion>? projectVersions,
     String? previewedVersionId,
-    bool clearPreviewedVersionId = false,
+    bool forcePreviewedVersionIdValue = false,
     OcptProjectWorkingCopyState? workingCopy,
-    bool clearWorkingCopy = false,
+    bool forceWorkingCopyValue = false,
     String? versionPendingDeletionId,
-    bool clearVersionPendingDeletionId = false,
+    bool forceVersionPendingDeletionIdValue = false,
     String? versionPendingRestoreId,
-    bool clearVersionPendingRestoreId = false,
+    bool forceVersionPendingRestoreIdValue = false,
     String? versionPendingRenameId,
-    bool clearVersionPendingRenameId = false,
+    bool forceVersionPendingRenameIdValue = false,
     OcptProjectVersionNoticeKind? projectVersionNotice,
-    bool clearProjectVersionNotice = false,
+    bool forceProjectVersionNoticeValue = false,
     OcptProjectPackagePreflight? projectPackagePendingExport,
-    bool clearProjectPackagePendingExport = false,
+    bool forceProjectPackagePendingExportValue = false,
     OcptProjectPackageNotice? projectPackageNotice,
-    bool clearProjectPackageNotice = false,
+    bool forceProjectPackageNoticeValue = false,
   }) {
-    final nextSnapshot = snapshot ?? this.snapshot;
+    final nextSnapshot = snapshot ?? (forceSnapshotValue ? null : this.snapshot);
     final nextScreenplayText = screenplayText ?? this.screenplayText;
-    final nextSelectedTargetRef = clearSelectedTargetRef
-        ? null
-        : (selectedTargetRef ?? this.selectedTargetRef);
+    final nextSelectedTargetRef =
+        selectedTargetRef ?? (forceSelectedTargetRefValue ? null : this.selectedTargetRef);
     final keepsSuggestions =
         identical(nextSnapshot, this.snapshot) &&
         identical(nextScreenplayText, this.screenplayText) &&
@@ -564,7 +564,7 @@ class OcptBreakdownState extends BlocStateForMixin<OcptBreakdownState>
       snapshot: nextSnapshot,
       centreView: centreView ?? this.centreView,
       searchQuery: searchQuery ?? this.searchQuery,
-      selectedSceneId: clearSelectedSceneId ? null : (selectedSceneId ?? this.selectedSceneId),
+      selectedSceneId: selectedSceneId ?? (forceSelectedSceneIdValue ? null : this.selectedSceneId),
       hiddenLegendKeys: hiddenLegendKeys ?? this.hiddenLegendKeys,
       selectedTargetRef: nextSelectedTargetRef,
       selectedTargetSuggestions: keepsSuggestions
@@ -575,40 +575,40 @@ class OcptBreakdownState extends BlocStateForMixin<OcptBreakdownState>
               selectedTargetRef: nextSelectedTargetRef,
             ),
       isListPanelVisible: isListPanelVisible ?? this.isListPanelVisible,
-      rightDockTab: clearRightDockTab ? null : (rightDockTab ?? this.rightDockTab),
+      rightDockTab: rightDockTab ?? (forceRightDockTabValue ? null : this.rightDockTab),
       lastRightDockTab: lastRightDockTab ?? this.lastRightDockTab,
       pendingElementFieldEdits: pendingElementFieldEdits ?? this.pendingElementFieldEdits,
       pendingSceneNotesEdits: pendingSceneNotesEdits ?? this.pendingSceneNotesEdits,
       pendingSetNameEdits: pendingSetNameEdits ?? this.pendingSetNameEdits,
-      pendingTagAnchor: clearPendingTagAnchor ? null : (pendingTagAnchor ?? this.pendingTagAnchor),
-      pendingTagRange: clearPendingTagRange ? null : (pendingTagRange ?? this.pendingTagRange),
+      pendingTagAnchor:
+          pendingTagAnchor ?? (forcePendingTagAnchorValue ? null : this.pendingTagAnchor),
+      pendingTagRange: pendingTagRange ?? (forcePendingTagRangeValue ? null : this.pendingTagRange),
       hasTagWriteError: hasTagWriteError ?? this.hasTagWriteError,
-      ioNotice: clearIoNotice ? null : (ioNotice ?? this.ioNotice),
+      ioNotice: ioNotice ?? (forceIoNoticeValue ? null : this.ioNotice),
       leftDockFraction: leftDockFraction ?? this.leftDockFraction,
       rightDockFraction: rightDockFraction ?? this.rightDockFraction,
       projectVersions: projectVersions ?? this.projectVersions,
-      previewedVersionId: clearPreviewedVersionId
-          ? null
-          : (previewedVersionId ?? this.previewedVersionId),
-      workingCopy: clearWorkingCopy ? null : (workingCopy ?? this.workingCopy),
-      versionPendingDeletionId: clearVersionPendingDeletionId
-          ? null
-          : (versionPendingDeletionId ?? this.versionPendingDeletionId),
-      versionPendingRestoreId: clearVersionPendingRestoreId
-          ? null
-          : (versionPendingRestoreId ?? this.versionPendingRestoreId),
-      versionPendingRenameId: clearVersionPendingRenameId
-          ? null
-          : (versionPendingRenameId ?? this.versionPendingRenameId),
-      projectVersionNotice: clearProjectVersionNotice
-          ? null
-          : (projectVersionNotice ?? this.projectVersionNotice),
-      projectPackagePendingExport: clearProjectPackagePendingExport
-          ? null
-          : (projectPackagePendingExport ?? this.projectPackagePendingExport),
-      projectPackageNotice: clearProjectPackageNotice
-          ? null
-          : (projectPackageNotice ?? this.projectPackageNotice),
+      previewedVersionId:
+          previewedVersionId ?? (forcePreviewedVersionIdValue ? null : this.previewedVersionId),
+      workingCopy: workingCopy ?? (forceWorkingCopyValue ? null : this.workingCopy),
+      versionPendingDeletionId:
+          versionPendingDeletionId ??
+          (forceVersionPendingDeletionIdValue ? null : this.versionPendingDeletionId),
+      versionPendingRestoreId:
+          versionPendingRestoreId ??
+          (forceVersionPendingRestoreIdValue ? null : this.versionPendingRestoreId),
+      versionPendingRenameId:
+          versionPendingRenameId ??
+          (forceVersionPendingRenameIdValue ? null : this.versionPendingRenameId),
+      projectVersionNotice:
+          projectVersionNotice ??
+          (forceProjectVersionNoticeValue ? null : this.projectVersionNotice),
+      projectPackagePendingExport:
+          projectPackagePendingExport ??
+          (forceProjectPackagePendingExportValue ? null : this.projectPackagePendingExport),
+      projectPackageNotice:
+          projectPackageNotice ??
+          (forceProjectPackageNoticeValue ? null : this.projectPackageNotice),
     );
   }
 
@@ -617,45 +617,45 @@ class OcptBreakdownState extends BlocStateForMixin<OcptBreakdownState>
   OcptBreakdownState copyProjectVersionsState({
     List<OcptProjectVersion>? projectVersions,
     String? previewedVersionId,
-    bool clearPreviewedVersionId = false,
+    bool forcePreviewedVersionIdValue = false,
     OcptProjectWorkingCopyState? workingCopy,
-    bool clearWorkingCopy = false,
+    bool forceWorkingCopyValue = false,
     String? versionPendingDeletionId,
-    bool clearVersionPendingDeletionId = false,
+    bool forceVersionPendingDeletionIdValue = false,
     String? versionPendingRestoreId,
-    bool clearVersionPendingRestoreId = false,
+    bool forceVersionPendingRestoreIdValue = false,
     String? versionPendingRenameId,
-    bool clearVersionPendingRenameId = false,
+    bool forceVersionPendingRenameIdValue = false,
     OcptProjectVersionNoticeKind? projectVersionNotice,
-    bool clearProjectVersionNotice = false,
+    bool forceProjectVersionNoticeValue = false,
   }) => copyWith(
     projectVersions: projectVersions,
     previewedVersionId: previewedVersionId,
-    clearPreviewedVersionId: clearPreviewedVersionId,
+    forcePreviewedVersionIdValue: forcePreviewedVersionIdValue,
     workingCopy: workingCopy,
-    clearWorkingCopy: clearWorkingCopy,
+    forceWorkingCopyValue: forceWorkingCopyValue,
     versionPendingDeletionId: versionPendingDeletionId,
-    clearVersionPendingDeletionId: clearVersionPendingDeletionId,
+    forceVersionPendingDeletionIdValue: forceVersionPendingDeletionIdValue,
     versionPendingRestoreId: versionPendingRestoreId,
-    clearVersionPendingRestoreId: clearVersionPendingRestoreId,
+    forceVersionPendingRestoreIdValue: forceVersionPendingRestoreIdValue,
     versionPendingRenameId: versionPendingRenameId,
-    clearVersionPendingRenameId: clearVersionPendingRenameId,
+    forceVersionPendingRenameIdValue: forceVersionPendingRenameIdValue,
     projectVersionNotice: projectVersionNotice,
-    clearProjectVersionNotice: clearProjectVersionNotice,
+    forceProjectVersionNoticeValue: forceProjectVersionNoticeValue,
   );
 
   /// {@macro open_cine_prod_tools.MixinOcptProjectPackageState.copyProjectPackageState}
   @override
   OcptBreakdownState copyProjectPackageState({
     OcptProjectPackagePreflight? projectPackagePendingExport,
-    bool clearProjectPackagePendingExport = false,
+    bool forceProjectPackagePendingExportValue = false,
     OcptProjectPackageNotice? projectPackageNotice,
-    bool clearProjectPackageNotice = false,
+    bool forceProjectPackageNoticeValue = false,
   }) => copyWith(
     projectPackagePendingExport: projectPackagePendingExport,
-    clearProjectPackagePendingExport: clearProjectPackagePendingExport,
+    forceProjectPackagePendingExportValue: forceProjectPackagePendingExportValue,
     projectPackageNotice: projectPackageNotice,
-    clearProjectPackageNotice: clearProjectPackageNotice,
+    forceProjectPackageNoticeValue: forceProjectPackageNoticeValue,
   );
 
   /// Object properties

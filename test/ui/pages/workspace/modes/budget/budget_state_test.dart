@@ -329,7 +329,7 @@ void main() {
       final stillSelected = withSelection.copyWith(view: withSelection.view);
       expect(stillSelected.selectedPosteId, "poste-1");
 
-      final cleared = withSelection.copyWith(clearSelection: true);
+      final cleared = withSelection.copyWith(forceSelectionValue: true);
       expect(cleared.selectedPosteId, isNull);
     });
 
@@ -339,7 +339,7 @@ void main() {
       );
       expect(withTab.rightDockTab, OcptBudgetRightDockTab.inspector);
 
-      final cleared = withTab.copyWith(clearRightDockTab: true);
+      final cleared = withTab.copyWith(forceRightDockTabValue: true);
       expect(cleared.rightDockTab, isNull);
     });
   });
@@ -655,7 +655,7 @@ void main() {
       final stillSelected = withSelection.copyWith(view: withSelection.view);
       expect(stillSelected.selectedResourceId, "resource-1");
 
-      final cleared = withSelection.copyWith(clearSelection: true);
+      final cleared = withSelection.copyWith(forceSelectionValue: true);
       expect(cleared.selectedResourceId, isNull);
     });
   });

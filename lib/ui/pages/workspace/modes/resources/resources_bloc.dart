@@ -406,7 +406,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
           isLoading: false,
           leftDockFraction: leftDockFraction,
           rightDockFraction: rightDockFraction,
-          clearPreviewedVersionId: true,
+          forcePreviewedVersionIdValue: true,
         ),
       );
       return;
@@ -437,15 +437,15 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
           title: project.name,
           currencyCode: currencyCode ?? ocptDefaultCurrencyCode,
           previewedVersionId: previewedVersion?.id,
-          clearPreviewedVersionId: previewedVersion == null,
+          forcePreviewedVersionIdValue: previewedVersion == null,
           snapshot: snapshot,
           pageSetup: pageSetup,
           mileageRates: mileageRates,
           setIdsWithPlan: setIdsWithPlan,
-          clearSelectedPersonId: true,
-          clearSelectedRoleId: true,
-          clearSelectedLocationId: true,
-          clearSelectedElementId: true,
+          forceSelectedPersonIdValue: true,
+          forceSelectedRoleIdValue: true,
+          forceSelectedLocationIdValue: true,
+          forceSelectedElementIdValue: true,
           leftDockFraction: leftDockFraction,
           rightDockFraction: rightDockFraction,
         ),
@@ -607,10 +607,10 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     emitter(
       state.copyWith(
         activeTab: event.tab,
-        clearSelectedPersonId: !isSameTab,
-        clearSelectedRoleId: !isSameTab,
-        clearSelectedLocationId: !isSameTab,
-        clearSelectedElementId: !isSameTab,
+        forceSelectedPersonIdValue: !isSameTab,
+        forceSelectedRoleIdValue: !isSameTab,
+        forceSelectedLocationIdValue: !isSameTab,
+        forceSelectedElementIdValue: !isSameTab,
         searchQuery: isSameTab ? null : "",
       ),
     );
@@ -716,7 +716,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
         state.copyWith(
           snapshot: snapshot,
           pendingFieldEdits: pendingWithoutPerson,
-          clearSelectedPersonId: wasSelected,
+          forceSelectedPersonIdValue: wasSelected,
         ),
       );
     } catch (error, stackTrace) {
@@ -1830,7 +1830,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
         state.copyWith(
           snapshot: snapshot,
           pendingRoleFieldEdits: pendingWithoutRole,
-          clearSelectedRoleId: wasSelected,
+          forceSelectedRoleIdValue: wasSelected,
         ),
       );
     } catch (error, stackTrace) {
@@ -2000,9 +2000,9 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
       state.copyWith(
         activeTab: OcptResourcesTab.people,
         selectedPersonId: event.personId,
-        clearSelectedRoleId: true,
-        clearSelectedLocationId: true,
-        clearSelectedElementId: true,
+        forceSelectedRoleIdValue: true,
+        forceSelectedLocationIdValue: true,
+        forceSelectedElementIdValue: true,
       ),
     );
   }
@@ -2119,7 +2119,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
           snapshot: snapshot,
           pendingLocationFieldEdits: pendingWithoutLocation,
           pendingSetFieldEdits: pendingWithoutSets,
-          clearSelectedLocationId: wasSelected,
+          forceSelectedLocationIdValue: wasSelected,
         ),
       );
     } catch (error, stackTrace) {
@@ -2350,7 +2350,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     OcptResourcesShotListRevealDismissedEvent event,
     Emitter<OcptResourcesState> emitter,
   ) async {
-    emitter(state.copyWith(clearPendingShotListReveal: true));
+    emitter(state.copyWith(forcePendingShotListRevealValue: true));
   }
 
   /// Asks for a scouting photo through the native picker and references the file picked, written
@@ -2785,7 +2785,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
         state.copyWith(
           snapshot: snapshot,
           pendingElementFieldEdits: pendingWithoutElement,
-          clearSelectedElementId: wasSelected,
+          forceSelectedElementIdValue: wasSelected,
         ),
       );
     } catch (error, stackTrace) {
@@ -2997,9 +2997,9 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
       state.copyWith(
         activeTab: OcptResourcesTab.roles,
         selectedRoleId: event.roleId,
-        clearSelectedPersonId: true,
-        clearSelectedLocationId: true,
-        clearSelectedElementId: true,
+        forceSelectedPersonIdValue: true,
+        forceSelectedLocationIdValue: true,
+        forceSelectedElementIdValue: true,
       ),
     );
   }
@@ -3061,7 +3061,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     emitter(
       state.copyWith(
         rightDockTab: isAlreadyActive ? null : event.tab,
-        clearRightDockTab: isAlreadyActive,
+        forceRightDockTabValue: isAlreadyActive,
       ),
     );
 
@@ -3078,7 +3078,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     Emitter<OcptResourcesState> emitter,
   ) async {
     if (state.rightDockTab != null) {
-      emitter(state.copyWith(clearRightDockTab: true));
+      emitter(state.copyWith(forceRightDockTabValue: true));
       return;
     }
 
@@ -3091,7 +3091,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     OcptResourcesRightDockClosedEvent event,
     Emitter<OcptResourcesState> emitter,
   ) async {
-    emitter(state.copyWith(clearRightDockTab: true));
+    emitter(state.copyWith(forceRightDockTabValue: true));
   }
 
   /// Applies and persists whichever dock fraction the ended drag gesture reports.
@@ -3268,7 +3268,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     OcptResourcesIoNoticeDismissedEvent event,
     Emitter<OcptResourcesState> emitter,
   ) async {
-    emitter(state.copyWith(clearIoNotice: true));
+    emitter(state.copyWith(forceIoNoticeValue: true));
   }
 
   /// {@macro act_life_cycle.MixinWithLifeCycleDispose.disposeLifeCycle}

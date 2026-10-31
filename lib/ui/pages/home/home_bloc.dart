@@ -212,7 +212,7 @@ class OcptHomeBloc extends BlocForMixin<OcptHomeState>
     OcptHomeCreateProjectRequestedEvent event,
     Emitter<OcptHomeState> emitter,
   ) async {
-    emitter(state.copyWith(isBusy: true, clearError: true));
+    emitter(state.copyWith(isBusy: true, forceErrorValue: true));
 
     final filePath = await _resolveNewProjectFilePath(
       name: event.name,
@@ -269,7 +269,7 @@ class OcptHomeBloc extends BlocForMixin<OcptHomeState>
     OcptHomeOpenProjectRequestedEvent event,
     Emitter<OcptHomeState> emitter,
   ) async {
-    emitter(state.copyWith(isBusy: true, clearError: true));
+    emitter(state.copyWith(isBusy: true, forceErrorValue: true));
 
     var filePath = event.filePath;
     if (filePath == null) {
@@ -319,7 +319,7 @@ class OcptHomeBloc extends BlocForMixin<OcptHomeState>
     OcptHomeShareProjectRequestedEvent event,
     Emitter<OcptHomeState> emitter,
   ) async {
-    emitter(state.copyWith(isBusy: true, clearError: true));
+    emitter(state.copyWith(isBusy: true, forceErrorValue: true));
 
     final result = await _projectsManager.openProject(filePath: event.filePath);
     if (!result.status.isSuccess) {
@@ -371,7 +371,7 @@ class OcptHomeBloc extends BlocForMixin<OcptHomeState>
     OcptHomeFileCompatibilityStatedEvent event,
     Emitter<OcptHomeState> emitter,
   ) async {
-    emitter(state.copyWith(clearPendingFileCompatibility: true));
+    emitter(state.copyWith(forcePendingFileCompatibilityValue: true));
   }
 
   /// Removes a recent project from the list and refreshes it.
@@ -388,7 +388,7 @@ class OcptHomeBloc extends BlocForMixin<OcptHomeState>
     OcptHomeErrorDismissedEvent event,
     Emitter<OcptHomeState> emitter,
   ) async {
-    emitter(state.copyWith(clearError: true));
+    emitter(state.copyWith(forceErrorValue: true));
   }
 
   /// Picks a screenplay file, creates a new project for it, imports its text, then navigates to
@@ -412,7 +412,9 @@ class OcptHomeBloc extends BlocForMixin<OcptHomeState>
     OcptHomeImportScreenplayRequestedEvent event,
     Emitter<OcptHomeState> emitter,
   ) async {
-    emitter(state.copyWith(isBusy: true, clearError: true, clearScreenplayImportError: true));
+    emitter(
+      state.copyWith(isBusy: true, forceErrorValue: true, forceScreenplayImportErrorValue: true),
+    );
 
     final read = await _exportManager.pickAndReadScreenplay(
       fileTypeLabel: event.screenplayFileTypeLabel,
@@ -502,7 +504,13 @@ class OcptHomeBloc extends BlocForMixin<OcptHomeState>
     OcptHomeImportProjectPackageRequestedEvent event,
     Emitter<OcptHomeState> emitter,
   ) async {
-    emitter(state.copyWith(isBusy: true, clearError: true, clearProjectPackageImportError: true));
+    emitter(
+      state.copyWith(
+        isBusy: true,
+        forceErrorValue: true,
+        forceProjectPackageImportErrorValue: true,
+      ),
+    );
 
     final selection = await _fileSelectorManager.openSelector(
       allowedExtensions: [ocptPackageFileExtension],
@@ -545,7 +553,7 @@ class OcptHomeBloc extends BlocForMixin<OcptHomeState>
     OcptHomeProjectPackageImportErrorDismissedEvent event,
     Emitter<OcptHomeState> emitter,
   ) async {
-    emitter(state.copyWith(clearProjectPackageImportError: true));
+    emitter(state.copyWith(forceProjectPackageImportErrorValue: true));
   }
 
   /// Clears the project package import report the page has just read, if any.
@@ -553,7 +561,7 @@ class OcptHomeBloc extends BlocForMixin<OcptHomeState>
     OcptHomeProjectPackageImportReportDismissedEvent event,
     Emitter<OcptHomeState> emitter,
   ) async {
-    emitter(state.copyWith(clearProjectPackageImportReport: true));
+    emitter(state.copyWith(forceProjectPackageImportReportValue: true));
   }
 
   /// Clears the transient screenplay import error currently shown, if any.
@@ -561,6 +569,6 @@ class OcptHomeBloc extends BlocForMixin<OcptHomeState>
     OcptHomeScreenplayImportErrorDismissedEvent event,
     Emitter<OcptHomeState> emitter,
   ) async {
-    emitter(state.copyWith(clearScreenplayImportError: true));
+    emitter(state.copyWith(forceScreenplayImportErrorValue: true));
   }
 }

@@ -270,7 +270,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
   @override
   Future<void> flushPendingProjectWrites(Emitter<OcptScheduleState> emitter) async {
     await _flushPendingFieldEdits(emitter);
-    emitter(state.copyWith(clearSelectedShotId: true));
+    emitter(state.copyWith(forceSelectedShotIdValue: true));
   }
 
   /// {@macro open_cine_prod_tools.MixinOcptProjectVersionsBloc.reloadFromProjectDatabase}
@@ -313,10 +313,10 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
           rightDockFraction: rightDockFraction,
           lastRightDockTab: lastRightDockTab,
           firstWeekday: firstWeekday,
-          clearPreviewedVersionId: true,
-          clearSelectedDayId: true,
-          clearSelectedBlockId: true,
-          clearSelectedShotId: true,
+          forcePreviewedVersionIdValue: true,
+          forceSelectedDayIdValue: true,
+          forceSelectedBlockIdValue: true,
+          forceSelectedShotIdValue: true,
           pendingFieldEdits: const {},
         ),
       );
@@ -343,7 +343,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
         isLoading: false,
         title: project.name,
         previewedVersionId: previewedVersion?.id,
-        clearPreviewedVersionId: previewedVersion == null,
+        forcePreviewedVersionIdValue: previewedVersion == null,
         snapshot: snapshot,
         shotListSnapshots: shotLists.shotLists,
         episodes: shotLists.episodes,
@@ -354,12 +354,12 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
         roleCandidates: roleCandidates,
         pageSetup: pageSetup,
         minimumRestMinutes: minimumRestMinutes,
-        clearMinimumRestMinutes: minimumRestMinutes == null,
+        forceMinimumRestMinutesValue: minimumRestMinutes == null,
         agendaAnchorDate: defaultDay?.date ?? DateTime.now(),
         selectedDayId: defaultDay?.id,
-        clearSelectedDayId: defaultDay == null,
-        clearSelectedBlockId: true,
-        clearSelectedShotId: true,
+        forceSelectedDayIdValue: defaultDay == null,
+        forceSelectedBlockIdValue: true,
+        forceSelectedShotIdValue: true,
         pendingFieldEdits: const {},
         leftDockFraction: leftDockFraction,
         rightDockFraction: rightDockFraction,
@@ -503,7 +503,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     emitter(
       state.copyWith(
         rightDockTab: isAlreadyActive ? null : event.tab,
-        clearRightDockTab: isAlreadyActive,
+        forceRightDockTabValue: isAlreadyActive,
         lastRightDockTab: event.tab,
       ),
     );
@@ -520,7 +520,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     Emitter<OcptScheduleState> emitter,
   ) async {
     if (state.rightDockTab != null) {
-      emitter(state.copyWith(clearRightDockTab: true));
+      emitter(state.copyWith(forceRightDockTabValue: true));
       return;
     }
 
@@ -536,7 +536,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     OcptScheduleRightDockClosedEvent event,
     Emitter<OcptScheduleState> emitter,
   ) async {
-    emitter(state.copyWith(clearRightDockTab: true));
+    emitter(state.copyWith(forceRightDockTabValue: true));
   }
 
   /// Applies and persists whichever dock fraction the ended drag gesture reports.
@@ -599,8 +599,8 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     emitter(
       state.copyWith(
         selectedDayId: event.dayId,
-        clearSelectedBlockId: true,
-        clearSelectedShotId: true,
+        forceSelectedBlockIdValue: true,
+        forceSelectedShotIdValue: true,
       ),
     );
   }
@@ -620,7 +620,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
       state.copyWith(
         selectedDayId: event.dayId,
         selectedBlockId: event.blockId,
-        clearSelectedShotId: true,
+        forceSelectedShotIdValue: true,
         rightDockTab: OcptScheduleRightDockTab.inspector,
         lastRightDockTab: OcptScheduleRightDockTab.inspector,
       ),
@@ -641,7 +641,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     emitter(
       state.copyWith(
         selectedShotId: event.shotId,
-        clearSelectedBlockId: true,
+        forceSelectedBlockIdValue: true,
         rightDockTab: OcptScheduleRightDockTab.inspector,
         lastRightDockTab: OcptScheduleRightDockTab.inspector,
       ),
@@ -694,7 +694,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
 
     await _applyScheduleSnapshot(emitter, project);
     if (dayId != null) {
-      emitter(state.copyWith(selectedDayId: dayId, clearSelectedBlockId: true));
+      emitter(state.copyWith(selectedDayId: dayId, forceSelectedBlockIdValue: true));
     }
   }
 
@@ -752,7 +752,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
 
     await _applyScheduleSnapshot(emitter, project);
     if (newDayId != null) {
-      emitter(state.copyWith(selectedDayId: newDayId, clearSelectedBlockId: true));
+      emitter(state.copyWith(selectedDayId: newDayId, forceSelectedBlockIdValue: true));
     }
   }
 
@@ -1459,8 +1459,8 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     emitter(
       state.copyWith(
         snapshot: snapshot,
-        clearSelectedDayId: !dayStillExists,
-        clearSelectedBlockId: !blockStillExists,
+        forceSelectedDayIdValue: !dayStillExists,
+        forceSelectedBlockIdValue: !blockStillExists,
       ),
     );
 
@@ -1968,6 +1968,6 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     OcptScheduleIoNoticeDismissedEvent event,
     Emitter<OcptScheduleState> emitter,
   ) async {
-    emitter(state.copyWith(clearIoNotice: true));
+    emitter(state.copyWith(forceIoNoticeValue: true));
   }
 }

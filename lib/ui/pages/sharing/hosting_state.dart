@@ -134,7 +134,7 @@ class OcptHostingState extends BlocStateForMixin<OcptHostingState> {
   /// [presenceRoster] and [reconcileOutcome] legitimately go back to null (hosting stopped, or the
   /// panel dismissed the last reconcile result), so each has its own `clear…` flag rather than a
   /// bare nullable parameter, which could never tell "leave it alone" apart from "clear it" —
-  /// exactly `OcptSharingState.clearInvite`'s own reasoning. [selectedAddress], [boundPort],
+  /// exactly `OcptSharingState.forceInviteValue`'s own reasoning. [selectedAddress], [boundPort],
   /// [enrolment] and [joinInvite] follow the very same shape, going back to null once hosting
   /// stops.
   @override
@@ -144,35 +144,36 @@ class OcptHostingState extends BlocStateForMixin<OcptHostingState> {
     bool? hostOnLaunch,
     bool? canSetAutoRestart,
     OcptPresenceRoster? presenceRoster,
-    bool clearPresenceRoster = false,
+    bool forcePresenceRosterValue = false,
     bool? isReconciling,
     OcptReconcileOutcome? reconcileOutcome,
-    bool clearReconcileOutcome = false,
+    bool forceReconcileOutcomeValue = false,
     bool? reconcileInviteInvalid,
     List<String>? availableAddresses,
     String? selectedAddress,
-    bool clearSelectedAddress = false,
+    bool forceSelectedAddressValue = false,
     int? boundPort,
-    bool clearBoundPort = false,
+    bool forceBoundPortValue = false,
     OcptRelayEnrolment? enrolment,
-    bool clearEnrolment = false,
+    bool forceEnrolmentValue = false,
     OcptRelayInvite? joinInvite,
-    bool clearJoinInvite = false,
+    bool forceJoinInviteValue = false,
     OcptHostingQrKind? qrKind,
   }) => OcptHostingState(
     isLoading: isLoading ?? this.isLoading,
     hostState: hostState ?? this.hostState,
     hostOnLaunch: hostOnLaunch ?? this.hostOnLaunch,
     canSetAutoRestart: canSetAutoRestart ?? this.canSetAutoRestart,
-    presenceRoster: clearPresenceRoster ? null : (presenceRoster ?? this.presenceRoster),
+    presenceRoster: presenceRoster ?? (forcePresenceRosterValue ? null : this.presenceRoster),
     isReconciling: isReconciling ?? this.isReconciling,
-    reconcileOutcome: clearReconcileOutcome ? null : (reconcileOutcome ?? this.reconcileOutcome),
+    reconcileOutcome:
+        reconcileOutcome ?? (forceReconcileOutcomeValue ? null : this.reconcileOutcome),
     reconcileInviteInvalid: reconcileInviteInvalid ?? this.reconcileInviteInvalid,
     availableAddresses: availableAddresses ?? this.availableAddresses,
-    selectedAddress: clearSelectedAddress ? null : (selectedAddress ?? this.selectedAddress),
-    boundPort: clearBoundPort ? null : (boundPort ?? this.boundPort),
-    enrolment: clearEnrolment ? null : (enrolment ?? this.enrolment),
-    joinInvite: clearJoinInvite ? null : (joinInvite ?? this.joinInvite),
+    selectedAddress: selectedAddress ?? (forceSelectedAddressValue ? null : this.selectedAddress),
+    boundPort: boundPort ?? (forceBoundPortValue ? null : this.boundPort),
+    enrolment: enrolment ?? (forceEnrolmentValue ? null : this.enrolment),
+    joinInvite: joinInvite ?? (forceJoinInviteValue ? null : this.joinInvite),
     qrKind: qrKind ?? this.qrKind,
   );
 

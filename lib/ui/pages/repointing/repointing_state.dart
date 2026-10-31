@@ -53,8 +53,9 @@ class OcptRepointingState extends BlocStateForMixin<OcptRepointingState> {
   /// {@macro act_flutter_utility.BlocStateForMixin.copyWith}
   ///
   /// [enrolment] legitimately goes back to null every time the page is re-entered, so it has its
-  /// own [clearEnrolment] flag rather than a bare nullable parameter, which could never tell "leave
-  /// it alone" apart from "clear it" — exactly `OcptSharingState.clearInvite`'s own reasoning.
+  /// own [forceEnrolmentValue] flag rather than a bare nullable parameter, which could never tell
+  /// "leave it alone" apart from "clear it" — exactly `OcptSharingState.forceInviteValue`'s own
+  /// reasoning.
   @override
   OcptRepointingState copyWith({
     bool? isLoading,
@@ -62,13 +63,13 @@ class OcptRepointingState extends BlocStateForMixin<OcptRepointingState> {
     bool? isRepointing,
     bool? repointFailed,
     OcptRelayEnrolment? enrolment,
-    bool clearEnrolment = false,
+    bool forceEnrolmentValue = false,
   }) => OcptRepointingState(
     isLoading: isLoading ?? this.isLoading,
     projectName: projectName ?? this.projectName,
     isRepointing: isRepointing ?? this.isRepointing,
     repointFailed: repointFailed ?? this.repointFailed,
-    enrolment: clearEnrolment ? null : (enrolment ?? this.enrolment),
+    enrolment: enrolment ?? (forceEnrolmentValue ? null : this.enrolment),
   );
 
   /// {@macro act_flutter_utility.BlocStateForMixin.props}

@@ -647,13 +647,14 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
   /// [snapshot], [shotListSnapshots] and [episodes] are only replaced when a new one is given,
   /// exactly as `OcptBreakdownState.snapshot`. [selectedDayId], [selectedBlockId], [rightDockTab],
   /// [selectedShotId] and [minimumRestMinutes] all legitimately go back to null while the mode is
-  /// alive, so each has its own clear flag. [pendingFieldEdits] is always replaced wholesale — the
+  /// alive, so each has its own force flag. [pendingFieldEdits] is always replaced wholesale — the
   /// caller (the bloc's own field-edit handler) always computes the full next map.
   @override
   OcptScheduleState copyWith({
     bool? isLoading,
     String? title,
     OcptScheduleSnapshot? snapshot,
+    bool forceSnapshotValue = false,
     List<OcptShotListSnapshot>? shotListSnapshots,
     List<OcptEpisode>? episodes,
     List<OcptLocation>? locations,
@@ -662,11 +663,11 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
     List<OcptElement>? elements,
     List<OcptRoleCandidate>? roleCandidates,
     int? minimumRestMinutes,
-    bool clearMinimumRestMinutes = false,
+    bool forceMinimumRestMinutesValue = false,
     String? selectedDayId,
-    bool clearSelectedDayId = false,
+    bool forceSelectedDayIdValue = false,
     String? selectedBlockId,
-    bool clearSelectedBlockId = false,
+    bool forceSelectedBlockIdValue = false,
     OcptScheduleCentreView? centreView,
     OcptScheduleAgendaMode? agendaMode,
     OcptScheduleAgendaColorMode? agendaColorMode,
@@ -674,37 +675,37 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
     DateTime? agendaAnchorDate,
     bool? isListPanelVisible,
     OcptScheduleRightDockTab? rightDockTab,
-    bool clearRightDockTab = false,
+    bool forceRightDockTabValue = false,
     OcptScheduleRightDockTab? lastRightDockTab,
     String? selectedShotId,
-    bool clearSelectedShotId = false,
+    bool forceSelectedShotIdValue = false,
     Map<OcptSchedulePendingFieldKey, String>? pendingFieldEdits,
     double? leftDockFraction,
     double? rightDockFraction,
     OcptPageSetup? pageSetup,
     OcptScheduleIoNotice? ioNotice,
-    bool clearIoNotice = false,
+    bool forceIoNoticeValue = false,
     List<OcptProjectVersion>? projectVersions,
     String? previewedVersionId,
-    bool clearPreviewedVersionId = false,
+    bool forcePreviewedVersionIdValue = false,
     OcptProjectWorkingCopyState? workingCopy,
-    bool clearWorkingCopy = false,
+    bool forceWorkingCopyValue = false,
     String? versionPendingDeletionId,
-    bool clearVersionPendingDeletionId = false,
+    bool forceVersionPendingDeletionIdValue = false,
     String? versionPendingRestoreId,
-    bool clearVersionPendingRestoreId = false,
+    bool forceVersionPendingRestoreIdValue = false,
     String? versionPendingRenameId,
-    bool clearVersionPendingRenameId = false,
+    bool forceVersionPendingRenameIdValue = false,
     OcptProjectVersionNoticeKind? projectVersionNotice,
-    bool clearProjectVersionNotice = false,
+    bool forceProjectVersionNoticeValue = false,
     OcptProjectPackagePreflight? projectPackagePendingExport,
-    bool clearProjectPackagePendingExport = false,
+    bool forceProjectPackagePendingExportValue = false,
     OcptProjectPackageNotice? projectPackageNotice,
-    bool clearProjectPackageNotice = false,
+    bool forceProjectPackageNoticeValue = false,
   }) => OcptScheduleState(
     isLoading: isLoading ?? this.isLoading,
     title: title ?? this.title,
-    snapshot: snapshot ?? this.snapshot,
+    snapshot: snapshot ?? (forceSnapshotValue ? null : this.snapshot),
     shotListSnapshots: shotListSnapshots ?? this.shotListSnapshots,
     episodes: episodes ?? this.episodes,
     locations: locations ?? this.locations,
@@ -712,48 +713,44 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
     people: people ?? this.people,
     elements: elements ?? this.elements,
     roleCandidates: roleCandidates ?? this.roleCandidates,
-    minimumRestMinutes: clearMinimumRestMinutes
-        ? null
-        : (minimumRestMinutes ?? this.minimumRestMinutes),
-    selectedDayId: clearSelectedDayId ? null : (selectedDayId ?? this.selectedDayId),
-    selectedBlockId: clearSelectedBlockId ? null : (selectedBlockId ?? this.selectedBlockId),
+    minimumRestMinutes:
+        minimumRestMinutes ?? (forceMinimumRestMinutesValue ? null : this.minimumRestMinutes),
+    selectedDayId: selectedDayId ?? (forceSelectedDayIdValue ? null : this.selectedDayId),
+    selectedBlockId: selectedBlockId ?? (forceSelectedBlockIdValue ? null : this.selectedBlockId),
     centreView: centreView ?? this.centreView,
     agendaMode: agendaMode ?? this.agendaMode,
     agendaColorMode: agendaColorMode ?? this.agendaColorMode,
     firstWeekday: firstWeekday ?? this.firstWeekday,
     agendaAnchorDate: agendaAnchorDate ?? this.agendaAnchorDate,
     isListPanelVisible: isListPanelVisible ?? this.isListPanelVisible,
-    rightDockTab: clearRightDockTab ? null : (rightDockTab ?? this.rightDockTab),
+    rightDockTab: rightDockTab ?? (forceRightDockTabValue ? null : this.rightDockTab),
     lastRightDockTab: lastRightDockTab ?? this.lastRightDockTab,
-    selectedShotId: clearSelectedShotId ? null : (selectedShotId ?? this.selectedShotId),
+    selectedShotId: selectedShotId ?? (forceSelectedShotIdValue ? null : this.selectedShotId),
     pendingFieldEdits: pendingFieldEdits ?? this.pendingFieldEdits,
     leftDockFraction: leftDockFraction ?? this.leftDockFraction,
     rightDockFraction: rightDockFraction ?? this.rightDockFraction,
     pageSetup: pageSetup ?? this.pageSetup,
-    ioNotice: clearIoNotice ? null : (ioNotice ?? this.ioNotice),
+    ioNotice: ioNotice ?? (forceIoNoticeValue ? null : this.ioNotice),
     projectVersions: projectVersions ?? this.projectVersions,
-    previewedVersionId: clearPreviewedVersionId
-        ? null
-        : (previewedVersionId ?? this.previewedVersionId),
-    workingCopy: clearWorkingCopy ? null : (workingCopy ?? this.workingCopy),
-    versionPendingDeletionId: clearVersionPendingDeletionId
-        ? null
-        : (versionPendingDeletionId ?? this.versionPendingDeletionId),
-    versionPendingRestoreId: clearVersionPendingRestoreId
-        ? null
-        : (versionPendingRestoreId ?? this.versionPendingRestoreId),
-    versionPendingRenameId: clearVersionPendingRenameId
-        ? null
-        : (versionPendingRenameId ?? this.versionPendingRenameId),
-    projectVersionNotice: clearProjectVersionNotice
-        ? null
-        : (projectVersionNotice ?? this.projectVersionNotice),
-    projectPackagePendingExport: clearProjectPackagePendingExport
-        ? null
-        : (projectPackagePendingExport ?? this.projectPackagePendingExport),
-    projectPackageNotice: clearProjectPackageNotice
-        ? null
-        : (projectPackageNotice ?? this.projectPackageNotice),
+    previewedVersionId:
+        previewedVersionId ?? (forcePreviewedVersionIdValue ? null : this.previewedVersionId),
+    workingCopy: workingCopy ?? (forceWorkingCopyValue ? null : this.workingCopy),
+    versionPendingDeletionId:
+        versionPendingDeletionId ??
+        (forceVersionPendingDeletionIdValue ? null : this.versionPendingDeletionId),
+    versionPendingRestoreId:
+        versionPendingRestoreId ??
+        (forceVersionPendingRestoreIdValue ? null : this.versionPendingRestoreId),
+    versionPendingRenameId:
+        versionPendingRenameId ??
+        (forceVersionPendingRenameIdValue ? null : this.versionPendingRenameId),
+    projectVersionNotice:
+        projectVersionNotice ?? (forceProjectVersionNoticeValue ? null : this.projectVersionNotice),
+    projectPackagePendingExport:
+        projectPackagePendingExport ??
+        (forceProjectPackagePendingExportValue ? null : this.projectPackagePendingExport),
+    projectPackageNotice:
+        projectPackageNotice ?? (forceProjectPackageNoticeValue ? null : this.projectPackageNotice),
   );
 
   /// {@macro open_cine_prod_tools.MixinOcptProjectVersionsState.copyProjectVersionsState}
@@ -761,45 +758,45 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
   OcptScheduleState copyProjectVersionsState({
     List<OcptProjectVersion>? projectVersions,
     String? previewedVersionId,
-    bool clearPreviewedVersionId = false,
+    bool forcePreviewedVersionIdValue = false,
     OcptProjectWorkingCopyState? workingCopy,
-    bool clearWorkingCopy = false,
+    bool forceWorkingCopyValue = false,
     String? versionPendingDeletionId,
-    bool clearVersionPendingDeletionId = false,
+    bool forceVersionPendingDeletionIdValue = false,
     String? versionPendingRestoreId,
-    bool clearVersionPendingRestoreId = false,
+    bool forceVersionPendingRestoreIdValue = false,
     String? versionPendingRenameId,
-    bool clearVersionPendingRenameId = false,
+    bool forceVersionPendingRenameIdValue = false,
     OcptProjectVersionNoticeKind? projectVersionNotice,
-    bool clearProjectVersionNotice = false,
+    bool forceProjectVersionNoticeValue = false,
   }) => copyWith(
     projectVersions: projectVersions,
     previewedVersionId: previewedVersionId,
-    clearPreviewedVersionId: clearPreviewedVersionId,
+    forcePreviewedVersionIdValue: forcePreviewedVersionIdValue,
     workingCopy: workingCopy,
-    clearWorkingCopy: clearWorkingCopy,
+    forceWorkingCopyValue: forceWorkingCopyValue,
     versionPendingDeletionId: versionPendingDeletionId,
-    clearVersionPendingDeletionId: clearVersionPendingDeletionId,
+    forceVersionPendingDeletionIdValue: forceVersionPendingDeletionIdValue,
     versionPendingRestoreId: versionPendingRestoreId,
-    clearVersionPendingRestoreId: clearVersionPendingRestoreId,
+    forceVersionPendingRestoreIdValue: forceVersionPendingRestoreIdValue,
     versionPendingRenameId: versionPendingRenameId,
-    clearVersionPendingRenameId: clearVersionPendingRenameId,
+    forceVersionPendingRenameIdValue: forceVersionPendingRenameIdValue,
     projectVersionNotice: projectVersionNotice,
-    clearProjectVersionNotice: clearProjectVersionNotice,
+    forceProjectVersionNoticeValue: forceProjectVersionNoticeValue,
   );
 
   /// {@macro open_cine_prod_tools.MixinOcptProjectPackageState.copyProjectPackageState}
   @override
   OcptScheduleState copyProjectPackageState({
     OcptProjectPackagePreflight? projectPackagePendingExport,
-    bool clearProjectPackagePendingExport = false,
+    bool forceProjectPackagePendingExportValue = false,
     OcptProjectPackageNotice? projectPackageNotice,
-    bool clearProjectPackageNotice = false,
+    bool forceProjectPackageNoticeValue = false,
   }) => copyWith(
     projectPackagePendingExport: projectPackagePendingExport,
-    clearProjectPackagePendingExport: clearProjectPackagePendingExport,
+    forceProjectPackagePendingExportValue: forceProjectPackagePendingExportValue,
     projectPackageNotice: projectPackageNotice,
-    clearProjectPackageNotice: clearProjectPackageNotice,
+    forceProjectPackageNoticeValue: forceProjectPackageNoticeValue,
   );
 
   /// Object properties

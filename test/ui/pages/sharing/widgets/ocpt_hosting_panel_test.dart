@@ -215,7 +215,7 @@ void main() {
   });
 
   testWidgets("an empty peer list shows the no-peers line instead of the wrap", (tester) async {
-    await pumpPanel(tester, onlineState.copyWith(clearPresenceRoster: true));
+    await pumpPanel(tester, onlineState.copyWith(forcePresenceRosterValue: true));
 
     final tr = Tr.of(tester.element(find.byType(OcptHostingPanel)));
     expect(find.text(tr.hostingNoPeers), findsOneWidget);

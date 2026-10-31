@@ -37,14 +37,14 @@ mixin MixinOcptProjectPackageState<S extends MixinOcptProjectPackageState<S>>
   /// This is the copyWith method for the mixin.
   ///
   /// Both fields legitimately go back to null while the mode is alive (a question answered, a
-  /// notice dismissed), so each carries its own clear flag rather than relying on "a null argument
+  /// notice dismissed), so each carries its own force flag rather than relying on "a null argument
   /// means unchanged".
   /// {@endtemplate}
   S copyProjectPackageState({
     OcptProjectPackagePreflight? projectPackagePendingExport,
-    bool clearProjectPackagePendingExport = false,
+    bool forceProjectPackagePendingExportValue = false,
     OcptProjectPackageNotice? projectPackageNotice,
-    bool clearProjectPackageNotice = false,
+    bool forceProjectPackageNoticeValue = false,
   });
 
   /// {@macro act_flutter_utility.BlocStateForMixin.props}

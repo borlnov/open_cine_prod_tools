@@ -308,9 +308,9 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
           leftDockFraction: leftDockFraction,
           rightDockFraction: rightDockFraction,
           lastRightDockTab: lastRightDockTab,
-          clearPreviewedVersionId: true,
-          clearPendingTagAnchor: true,
-          clearPendingTagRange: true,
+          forcePreviewedVersionIdValue: true,
+          forcePendingTagAnchorValue: true,
+          forcePendingTagRangeValue: true,
           hasTagWriteError: false,
         ),
       );
@@ -327,20 +327,20 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
         isLoading: false,
         title: project.name,
         previewedVersionId: previewedVersion?.id,
-        clearPreviewedVersionId: previewedVersion == null,
+        forcePreviewedVersionIdValue: previewedVersion == null,
         screenplayText: screenplayText,
         pageSetup: pageSetup,
         snapshot: snapshot,
-        clearSelectedSceneId: true,
-        clearSelectedTargetRef: true,
+        forceSelectedSceneIdValue: true,
+        forceSelectedTargetRefValue: true,
         leftDockFraction: leftDockFraction,
         rightDockFraction: rightDockFraction,
         lastRightDockTab: lastRightDockTab,
         pendingElementFieldEdits: const {},
         pendingSceneNotesEdits: const {},
         pendingSetNameEdits: const {},
-        clearPendingTagAnchor: true,
-        clearPendingTagRange: true,
+        forcePendingTagAnchorValue: true,
+        forcePendingTagRangeValue: true,
         hasTagWriteError: false,
       ),
     );
@@ -570,7 +570,7 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
     OcptBreakdownIoNoticeDismissedEvent event,
     Emitter<OcptBreakdownState> emitter,
   ) async {
-    emitter(state.copyWith(clearIoNotice: true));
+    emitter(state.copyWith(forceIoNoticeValue: true));
   }
 
   /// Selects scene `event.sceneId`, touching neither the selected target nor the right dock — the
@@ -621,7 +621,7 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
     emitter(
       state.copyWith(
         selectedSceneId: event.sceneId,
-        clearSelectedTargetRef: true,
+        forceSelectedTargetRefValue: true,
         rightDockTab: OcptBreakdownRightDockTab.inspector,
         lastRightDockTab: OcptBreakdownRightDockTab.inspector,
       ),
@@ -668,7 +668,7 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
     emitter(
       state.copyWith(
         rightDockTab: isAlreadyActive ? null : event.tab,
-        clearRightDockTab: isAlreadyActive,
+        forceRightDockTabValue: isAlreadyActive,
         lastRightDockTab: event.tab,
       ),
     );
@@ -686,7 +686,7 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
     Emitter<OcptBreakdownState> emitter,
   ) async {
     if (state.rightDockTab != null) {
-      emitter(state.copyWith(clearRightDockTab: true));
+      emitter(state.copyWith(forceRightDockTabValue: true));
       return;
     }
 
@@ -702,7 +702,7 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
     OcptBreakdownRightDockClosedEvent event,
     Emitter<OcptBreakdownState> emitter,
   ) async {
-    emitter(state.copyWith(clearRightDockTab: true));
+    emitter(state.copyWith(forceRightDockTabValue: true));
   }
 
   /// Persists [tab] as the mode's last right dock tab, unless it already is.
@@ -784,8 +784,8 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
     emitter(
       state.copyWith(
         centreView: event.view,
-        clearPendingTagAnchor: true,
-        clearPendingTagRange: true,
+        forcePendingTagAnchorValue: true,
+        forcePendingTagRangeValue: true,
       ),
     );
   }
@@ -808,8 +808,8 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
       state.copyWith(
         searchQuery: event.query,
         centreView: switchesToRecap ? OcptBreakdownCentreView.recap : state.centreView,
-        clearPendingTagAnchor: switchesToRecap,
-        clearPendingTagRange: switchesToRecap,
+        forcePendingTagAnchorValue: switchesToRecap,
+        forcePendingTagRangeValue: switchesToRecap,
       ),
     );
   }
@@ -837,7 +837,7 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
       state.copyWith(
         selectedTargetRef: (event.targetKind, event.targetId),
         selectedSceneId: sceneExists ? event.sceneId : null,
-        clearSelectedSceneId: !sceneExists,
+        forceSelectedSceneIdValue: !sceneExists,
         rightDockTab: OcptBreakdownRightDockTab.inspector,
         lastRightDockTab: OcptBreakdownRightDockTab.inspector,
       ),
@@ -851,7 +851,7 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
     Emitter<OcptBreakdownState> emitter,
   ) async {
     await _flushPendingFieldEdits(emitter);
-    emitter(state.copyWith(clearSelectedTargetRef: true));
+    emitter(state.copyWith(forceSelectedTargetRefValue: true));
   }
 
   /// Records a click on a plain word of the script view — one that overlaps no live tag, or one
@@ -905,7 +905,7 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
             wordEndOffset: event.wordEndOffset,
           ),
           selectedSceneId: sceneExists ? event.sceneId : null,
-          clearSelectedSceneId: !sceneExists,
+          forceSelectedSceneIdValue: !sceneExists,
         ),
       );
       return;
@@ -920,7 +920,7 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
     }
     if (scene == null) {
       // Stale click: the anchor's own scene disappeared from a snapshot rebuilt underneath.
-      emitter(state.copyWith(clearPendingTagAnchor: true));
+      emitter(state.copyWith(forcePendingTagAnchorValue: true));
       return;
     }
 
@@ -950,7 +950,7 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
     await _flushPendingFieldEdits(emitter);
     emitter(
       state.copyWith(
-        clearPendingTagAnchor: true,
+        forcePendingTagAnchorValue: true,
         pendingTagRange: (
           sceneId: event.sceneId,
           startOffset: tagged.startOffset,
@@ -973,8 +973,8 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
   ) async {
     emitter(
       state.copyWith(
-        clearPendingTagAnchor: true,
-        clearPendingTagRange: true,
+        forcePendingTagAnchorValue: true,
+        forcePendingTagRangeValue: true,
         hasTagWriteError: false,
       ),
     );
@@ -1020,8 +1020,8 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
     await _persistLastRightDockTab(OcptBreakdownRightDockTab.inspector);
     emitter(
       state.copyWith(
-        clearPendingTagAnchor: true,
-        clearPendingTagRange: true,
+        forcePendingTagAnchorValue: true,
+        forcePendingTagRangeValue: true,
         snapshot: await _loadSnapshot(project),
         selectedTargetRef: (event.targetKind, event.targetId),
         selectedSceneId: range.sceneId,
@@ -1074,8 +1074,8 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
     await _persistLastRightDockTab(OcptBreakdownRightDockTab.inspector);
     emitter(
       state.copyWith(
-        clearPendingTagAnchor: true,
-        clearPendingTagRange: true,
+        forcePendingTagAnchorValue: true,
+        forcePendingTagRangeValue: true,
         snapshot: await _loadSnapshot(project),
         selectedTargetRef: (OcptBreakdownTargetKind.element, result.elementId),
         selectedSceneId: range.sceneId,
@@ -1124,8 +1124,8 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
     await _persistLastRightDockTab(OcptBreakdownRightDockTab.inspector);
     emitter(
       state.copyWith(
-        clearPendingTagAnchor: true,
-        clearPendingTagRange: true,
+        forcePendingTagAnchorValue: true,
+        forcePendingTagRangeValue: true,
         snapshot: await _loadSnapshot(project),
         selectedTargetRef: (OcptBreakdownTargetKind.set, result.setId),
         selectedSceneId: range.sceneId,

@@ -180,7 +180,7 @@ class OcptWorkspaceBloc extends BlocForMixin<OcptWorkspaceState> {
         mode: mode,
         episodes: episodes,
         selectedEpisodeId: episodes.isEmpty ? null : episodes.first.id,
-        clearSelectedEpisodeId: episodes.isEmpty,
+        forceSelectedEpisodeIdValue: episodes.isEmpty,
       ),
     );
 
@@ -313,7 +313,7 @@ class OcptWorkspaceBloc extends BlocForMixin<OcptWorkspaceState> {
         state.copyWith(
           episodes: episodes,
           selectedEpisodeId: selectedEpisodeId,
-          clearSelectedEpisodeId: selectedEpisodeId == null,
+          forceSelectedEpisodeIdValue: selectedEpisodeId == null,
         ),
       );
     } catch (error, stackTrace) {
@@ -368,7 +368,7 @@ class OcptWorkspaceBloc extends BlocForMixin<OcptWorkspaceState> {
       state.copyWith(
         mode: event.mode,
         revealRequest: event.revealRequest,
-        clearRevealRequest: event.revealRequest == null,
+        forceRevealRequestValue: event.revealRequest == null,
         selectedEpisodeId: event.episodeId,
       ),
     );
@@ -382,7 +382,7 @@ class OcptWorkspaceBloc extends BlocForMixin<OcptWorkspaceState> {
   Future<void> _onRevealRequestConsumed(
     OcptWorkspaceRevealRequestConsumedEvent event,
     Emitter<OcptWorkspaceState> emitter,
-  ) async => emitter(state.copyWith(clearRevealRequest: true));
+  ) async => emitter(state.copyWith(forceRevealRequestValue: true));
 
   /// {@macro act_foundation.MixinWithLifeCycleDispose.disposeLifeCycle}
   @override

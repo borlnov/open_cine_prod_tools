@@ -122,18 +122,18 @@ class OcptHostingBloc extends BlocForMixin<OcptHostingState> {
         isLoading: false,
         hostState: hostState,
         presenceRoster: presenceRoster,
-        clearPresenceRoster: presenceRoster == null,
+        forcePresenceRosterValue: presenceRoster == null,
         canSetAutoRestart: projectId != null,
         hostOnLaunch: hostOnLaunch,
         availableAddresses: extras?.availableAddresses ?? const [],
         selectedAddress: extras?.selectedAddress,
-        clearSelectedAddress: extras == null,
+        forceSelectedAddressValue: extras == null,
         boundPort: extras?.boundPort,
-        clearBoundPort: extras == null,
+        forceBoundPortValue: extras == null,
         enrolment: extras?.enrolment,
-        clearEnrolment: extras == null,
+        forceEnrolmentValue: extras == null,
         joinInvite: extras?.joinInvite,
-        clearJoinInvite: extras?.joinInvite == null,
+        forceJoinInviteValue: extras?.joinInvite == null,
       ),
     );
   }
@@ -167,13 +167,13 @@ class OcptHostingBloc extends BlocForMixin<OcptHostingState> {
           canSetAutoRestart: true,
           hostOnLaunch: hostOnLaunch,
           presenceRoster: presenceRoster,
-          clearPresenceRoster: presenceRoster == null,
+          forcePresenceRosterValue: presenceRoster == null,
           availableAddresses: extras.availableAddresses,
           selectedAddress: extras.selectedAddress,
           boundPort: extras.boundPort,
           enrolment: extras.enrolment,
           joinInvite: extras.joinInvite,
-          clearJoinInvite: extras.joinInvite == null,
+          forceJoinInviteValue: extras.joinInvite == null,
         ),
       );
     } else {
@@ -181,11 +181,11 @@ class OcptHostingBloc extends BlocForMixin<OcptHostingState> {
       emitter(
         state.copyWith(
           hostState: hostState,
-          clearPresenceRoster: true,
-          clearSelectedAddress: true,
-          clearBoundPort: true,
-          clearEnrolment: true,
-          clearJoinInvite: true,
+          forcePresenceRosterValue: true,
+          forceSelectedAddressValue: true,
+          forceBoundPortValue: true,
+          forceEnrolmentValue: true,
+          forceJoinInviteValue: true,
         ),
       );
     }
@@ -205,7 +205,7 @@ class OcptHostingBloc extends BlocForMixin<OcptHostingState> {
         message: 'peers: $previousCount -> $newCount',
       );
     }
-    emitter(state.copyWith(presenceRoster: roster, clearPresenceRoster: roster == null));
+    emitter(state.copyWith(presenceRoster: roster, forcePresenceRosterValue: roster == null));
   }
 
   /// Starts or stops hosting the current project — [OcptHostingHostStateChangedEvent] is what
@@ -264,7 +264,7 @@ class OcptHostingBloc extends BlocForMixin<OcptHostingState> {
         state.copyWith(
           reconcileInviteInvalid: true,
           isReconciling: false,
-          clearReconcileOutcome: true,
+          forceReconcileOutcomeValue: true,
         ),
       );
       return;
@@ -274,7 +274,7 @@ class OcptHostingBloc extends BlocForMixin<OcptHostingState> {
       state.copyWith(
         isReconciling: true,
         reconcileInviteInvalid: false,
-        clearReconcileOutcome: true,
+        forceReconcileOutcomeValue: true,
       ),
     );
     final outcome = await _hostManager.reconcileWithUpstream(invite);
@@ -288,7 +288,7 @@ class OcptHostingBloc extends BlocForMixin<OcptHostingState> {
     OcptHostingReconcileDismissedEvent event,
     Emitter<OcptHostingState> emitter,
   ) {
-    emitter(state.copyWith(clearReconcileOutcome: true, reconcileInviteInvalid: false));
+    emitter(state.copyWith(forceReconcileOutcomeValue: true, reconcileInviteInvalid: false));
   }
 
   /// Applies [event]'s own address to [OcptHostingState.selectedAddress] and rebuilds
@@ -326,7 +326,7 @@ class OcptHostingBloc extends BlocForMixin<OcptHostingState> {
         selectedAddress: event.address,
         enrolment: enrolment,
         joinInvite: joinInvite,
-        clearJoinInvite: joinInvite == null,
+        forceJoinInviteValue: joinInvite == null,
       ),
     );
   }
@@ -376,7 +376,7 @@ class OcptHostingBloc extends BlocForMixin<OcptHostingState> {
       state.copyWith(
         availableAddresses: availableAddresses,
         selectedAddress: selectedAddress,
-        clearSelectedAddress: selectedAddress == null,
+        forceSelectedAddressValue: selectedAddress == null,
       ),
     );
   }
