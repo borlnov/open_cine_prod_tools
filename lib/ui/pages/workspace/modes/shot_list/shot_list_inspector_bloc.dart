@@ -165,6 +165,9 @@ class OcptShotListInspectorBloc
           OcptShotListSelectionCause.set ||
           OcptShotListSelectionCause.setAdded ||
           OcptShotListSelectionCause.setRemoved ||
+          OcptShotListSelectionCause.symbolRemoved ||
+          OcptShotListSelectionCause.symbolHidden ||
+          OcptShotListSelectionCause.arrowRemoved ||
           OcptShotListSelectionCause.none => false,
         };
 

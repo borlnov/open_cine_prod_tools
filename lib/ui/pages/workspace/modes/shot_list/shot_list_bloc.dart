@@ -1224,6 +1224,31 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     );
   }
 
+  /// Reads the floor plans again after a placement was removed or hidden, then moves the selection
+  /// saying why and which row ([targetId]): the canvas clears what the gesture always cleared.
+  ///
+  /// The selection is not moved when the read failed, which raised the transient write error
+  /// instead.
+  Future<void> _reloadFloorPlansAndMoveSelection({
+    required OcptShotListSelectionCause cause,
+    required String targetId,
+    required Emitter<OcptShotListState> emitter,
+  }) async {
+    final reloadEpoch = state.reloadEpoch;
+    await reloadSerially({OcptShotListReloadScope.floorPlans}, emitter);
+    if (state.reloadEpoch == reloadEpoch) {
+      return;
+    }
+
+    emitter(
+      state.copyWith(
+        selectionEpoch: state.selectionEpoch + 1,
+        selectionCause: cause,
+        selectionTargetId: targetId,
+      ),
+    );
+  }
+
   /// Deletes symbol `event.symbolId` for good, dispatched once the canvas's own delete action has
   /// already been confirmed through `OcptConfirmDialog`, by the mode. The canvas bloc drops
   /// its selection of the symbol once it sees the floor plans read again without it.
@@ -1238,9 +1263,11 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
 
     try {
       await _floorPlanService.deleteSymbol(database: project.database, symbolId: event.symbolId);
-      // `OcptFloorPlanService.deleteSymbol`'s own cascade tombstones every arrow touching this
-      // symbol: the canvas drops a selection the floor plans no longer hold.
-      await reloadSerially({OcptShotListReloadScope.floorPlans}, emitter);
+      await _reloadFloorPlansAndMoveSelection(
+        cause: OcptShotListSelectionCause.symbolRemoved,
+        targetId: event.symbolId,
+        emitter: emitter,
+      );
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to delete symbol ${event.symbolId} of project "
@@ -1271,7 +1298,11 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
         database: project.database,
         symbolId: event.symbolId,
       );
-      await reloadSerially({OcptShotListReloadScope.floorPlans}, emitter);
+      await _reloadFloorPlansAndMoveSelection(
+        cause: OcptShotListSelectionCause.symbolRemoved,
+        targetId: event.symbolId,
+        emitter: emitter,
+      );
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to delete symbol ${event.symbolId} everywhere, of "
@@ -1327,7 +1358,11 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
         sceneId: event.targetSceneId,
         shotId: null,
       );
-      await reloadSerially({OcptShotListReloadScope.floorPlans}, emitter);
+      await _reloadFloorPlansAndMoveSelection(
+        cause: OcptShotListSelectionCause.symbolHidden,
+        targetId: event.symbolId,
+        emitter: emitter,
+      );
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to hide symbol ${event.symbolId} for sequence "
@@ -1388,7 +1423,11 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
         sceneId: null,
         shotId: event.targetShotId,
       );
-      await reloadSerially({OcptShotListReloadScope.floorPlans}, emitter);
+      await _reloadFloorPlansAndMoveSelection(
+        cause: OcptShotListSelectionCause.symbolHidden,
+        targetId: event.symbolId,
+        emitter: emitter,
+      );
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to hide symbol ${event.symbolId} for shot "
@@ -1413,7 +1452,11 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
 
     try {
       await _floorPlanService.deleteSymbol(database: project.database, symbolId: event.symbolId);
-      await reloadSerially({OcptShotListReloadScope.floorPlans}, emitter);
+      await _reloadFloorPlansAndMoveSelection(
+        cause: OcptShotListSelectionCause.symbolRemoved,
+        targetId: event.symbolId,
+        emitter: emitter,
+      );
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to restore override ${event.symbolId} of project "
@@ -1439,7 +1482,11 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
 
     try {
       await _floorPlanService.deleteArrow(database: project.database, arrowId: event.arrowId);
-      await reloadSerially({OcptShotListReloadScope.floorPlans}, emitter);
+      await _reloadFloorPlansAndMoveSelection(
+        cause: OcptShotListSelectionCause.arrowRemoved,
+        targetId: event.arrowId,
+        emitter: emitter,
+      );
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to delete arrow ${event.arrowId} of project "

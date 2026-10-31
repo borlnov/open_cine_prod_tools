@@ -116,29 +116,57 @@ class OcptShotListFloorPlanCanvasBloc
     OcptViewModeStateChangedEvent<OcptShotListState> event,
     Emitter<OcptShotListFloorPlanCanvasState> emitter,
   ) async {
-    final (isSelectionCleared, isAnchorCleared, isDecisionCleared) = !event.hasSelectionMoved
-        ? (false, false, false)
+    final targetId = event.modeState.selectionTargetId;
+    final selectedSymbolId = state.selectedFloorPlanSymbolId;
+    final selectedArrowId = state.selectedFloorPlanArrowId;
+    final (
+      isSymbolCleared,
+      isArrowCleared,
+      isAnchorCleared,
+      isDecisionCleared,
+    ) = !event.hasSelectionMoved
+        ? (false, false, false, false)
         : switch (event.modeState.selectionCause) {
             // A different sequence takes everything scoped to the previous one with it.
-            OcptShotListSelectionCause.sequence => (true, true, true),
+            OcptShotListSelectionCause.sequence => (true, true, true, true),
             // The sequence already shown, selected again: only the half-drawn arrow is dropped.
-            OcptShotListSelectionCause.sequenceReselected => (false, true, false),
+            OcptShotListSelectionCause.sequenceReselected => (false, false, true, false),
             OcptShotListSelectionCause.shot ||
             OcptShotListSelectionCause.shotDeleted ||
             OcptShotListSelectionCause.set ||
             OcptShotListSelectionCause.setAdded ||
             OcptShotListSelectionCause.setRemoved ||
-            OcptShotListSelectionCause.load => (true, true, false),
+            OcptShotListSelectionCause.load => (true, true, true, false),
+            // A symbol deleted or restored drops the selection if it was the symbol, and always the
+            // arrow: deleting a symbol cascades to every arrow touching it.
+            OcptShotListSelectionCause.symbolRemoved => (
+              selectedSymbolId == targetId,
+              true,
+              false,
+              false,
+            ),
+            // A symbol masked drops the selection, arrow included, only if it was the symbol.
+            OcptShotListSelectionCause.symbolHidden => (
+              selectedSymbolId == targetId,
+              selectedSymbolId == targetId,
+              false,
+              false,
+            ),
+            // An arrow deleted drops the selection only if it was the arrow.
+            OcptShotListSelectionCause.arrowRemoved => (
+              false,
+              selectedArrowId == targetId,
+              false,
+              false,
+            ),
             // Creating a shot selects it without clearing the canvas: it has always behaved so,
             // and it is kept as it is.
             OcptShotListSelectionCause.shotCreated ||
-            OcptShotListSelectionCause.none => (false, false, false),
+            OcptShotListSelectionCause.none => (false, false, false, false),
           };
 
     final modeState = modeBloc.state;
     final floorPlanSnapshot = modeState.floorPlanSnapshot;
-    final selectedSymbolId = state.selectedFloorPlanSymbolId;
-    final selectedArrowId = state.selectedFloorPlanArrowId;
     var isSymbolGone = false;
     var isArrowGone = false;
     if (event.hasReloaded && floorPlanSnapshot != null) {
@@ -162,9 +190,10 @@ class OcptShotListFloorPlanCanvasBloc
 
     emitter(
       state.copyWith(
-        forceSelectedFloorPlanSymbolIdValue: isSelectionCleared || isSymbolGone,
+        forceSelectedFloorPlanSymbolIdValue: isSymbolCleared || isSymbolGone,
         // The arrow goes with the symbol: the two are never selected together.
-        forceSelectedFloorPlanArrowIdValue: isSelectionCleared || isSymbolGone || isArrowGone,
+        forceSelectedFloorPlanArrowIdValue:
+            isArrowCleared || isSymbolCleared || isSymbolGone || isArrowGone,
         forcePendingFloorPlanArrowAnchorSymbolIdValue: isAnchorCleared,
         forcePendingFloorPlanScopeDecisionValue: isDecisionCleared,
       ),

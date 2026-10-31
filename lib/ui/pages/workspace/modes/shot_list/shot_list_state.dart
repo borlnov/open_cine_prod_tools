@@ -196,6 +196,11 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
   /// things for different gestures (see [OcptShotListSelectionCause]).
   final OcptShotListSelectionCause selectionCause;
 
+  /// The id of the row [selectionCause] is about, for the causes that name one (the symbol that was
+  /// removed or hidden, the arrow that was removed), and whatever it last was otherwise: a view
+  /// reads it only for those causes.
+  final String? selectionTargetId;
+
   /// {@macro open_cine_prod_tools.MixinOcptProjectVersionsState.projectVersions}
   @override
   final List<OcptProjectVersion> projectVersions;
@@ -261,6 +266,7 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
     required this.reloadEpoch,
     required this.selectionEpoch,
     required this.selectionCause,
+    required this.selectionTargetId,
     required this.projectVersions,
     required this.previewedVersionId,
     required this.workingCopy,
@@ -301,6 +307,7 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
       reloadEpoch = 0,
       selectionEpoch = 0,
       selectionCause = OcptShotListSelectionCause.none,
+      selectionTargetId = null,
       projectVersions = const [],
       previewedVersionId = null,
       workingCopy = null,
@@ -358,6 +365,7 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
     int? reloadEpoch,
     int? selectionEpoch,
     OcptShotListSelectionCause? selectionCause,
+    String? selectionTargetId,
     List<OcptProjectVersion>? projectVersions,
     String? previewedVersionId,
     bool forcePreviewedVersionIdValue = false,
@@ -419,6 +427,7 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
             : this.reloadEpoch),
     selectionEpoch: selectionEpoch ?? this.selectionEpoch,
     selectionCause: selectionCause ?? this.selectionCause,
+    selectionTargetId: selectionTargetId ?? this.selectionTargetId,
     projectVersions: projectVersions ?? this.projectVersions,
     previewedVersionId:
         previewedVersionId ?? (forcePreviewedVersionIdValue ? null : this.previewedVersionId),
@@ -539,5 +548,6 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
     reloadEpoch,
     selectionEpoch,
     selectionCause,
+    selectionTargetId,
   ];
 }

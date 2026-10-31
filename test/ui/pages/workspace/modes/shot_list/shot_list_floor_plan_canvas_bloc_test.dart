@@ -1652,6 +1652,343 @@ void main() {
       await mode.close();
     });
 
+    group("a Placements gesture clears what it has always cleared", () {
+      /// Places a symbol of [layer] on the shot of [mounted] and answers its id, once the canvas
+      /// holds it as its selection.
+      Future<String> placeOn(
+        OcptShotListBloc mode,
+        ({OcptShotListBloc mode, String setId, String shotId, String symbolId}) mounted,
+        OcptFloorPlanLayer layer,
+        double xM,
+      ) async {
+        final knownIds = {for (final symbol in mode.state.selectedSet!.symbols) symbol.id};
+        canvasOf(mode).add(
+          OcptShotListFloorPlanSymbolPlacedEvent(
+            setId: mounted.setId,
+            layer: layer,
+            shotId: mounted.shotId,
+            sceneId: null,
+            xM: xM,
+            yM: 0,
+          ),
+        );
+        await waitUntil(() => mode.state.selectedSet!.symbols.length == knownIds.length + 1);
+        final placedId = mode.state.selectedSet!.symbols
+            .firstWhere((symbol) => !knownIds.contains(symbol.id))
+            .id;
+        await waitUntil(() => canvasOf(mode).state.selectedFloorPlanSymbolId == placedId);
+        return placedId;
+      }
+
+      /// Draws an arrow between two symbols and answers its id.
+      Future<String> drawArrow(OcptShotListBloc mode, String fromId, String toId) async {
+        final canvas = canvasOf(mode);
+        final knownCount = mode.state.selectedSet!.arrows.length;
+        canvas.add(OcptShotListFloorPlanArrowSymbolTappedEvent(symbolId: fromId));
+        await waitUntil(() => canvas.state.pendingFloorPlanArrowAnchorSymbolId == fromId);
+        canvas.add(OcptShotListFloorPlanArrowSymbolTappedEvent(symbolId: toId));
+        await waitUntil(() => mode.state.selectedSet!.arrows.length == knownCount + 1);
+        return mode.state.selectedSet!.arrows.last.id;
+      }
+
+      /// Selects the arrow [arrowId] on the canvas and waits for it.
+      Future<void> selectArrow(OcptShotListBloc mode, String arrowId) async {
+        canvasOf(mode).add(OcptShotListFloorPlanArrowSelectedEvent(arrowId: arrowId));
+        await waitUntil(() => canvasOf(mode).state.selectedFloorPlanArrowId == arrowId);
+      }
+
+      /// A mode with an arrow between two character symbols, selected, and a camera that touches no
+      /// arrow. Answers the mode and the ids.
+      Future<({OcptShotListBloc mode, String arrowId, String cameraId, String firstId})>
+      mountWithAnArrowSelected() async {
+        final mounted = await mountWithASymbol();
+        final mode = mounted.mode;
+        final secondId = await placeOn(mode, mounted, OcptFloorPlanLayer.characters, 2);
+        final cameraId = await placeOn(mode, mounted, OcptFloorPlanLayer.cameras, 4);
+        final arrowId = await drawArrow(mode, mounted.symbolId, secondId);
+        await selectArrow(mode, arrowId);
+        return (mode: mode, arrowId: arrowId, cameraId: cameraId, firstId: mounted.symbolId);
+      }
+
+      final removals = <String, OcptShotListEvent Function(String symbolId)>{
+        "deleting": (symbolId) =>
+            OcptShotListFloorPlanSymbolDeletionRequestedEvent(symbolId: symbolId),
+        "deleting everywhere": (symbolId) =>
+            OcptShotListFloorPlanSymbolDeleteEverywhereRequestedEvent(symbolId: symbolId),
+        "restoring": (symbolId) =>
+            OcptShotListFloorPlanSymbolRestoreRequestedEvent(symbolId: symbolId),
+      };
+      for (final MapEntry(key: name, value: eventOf) in removals.entries) {
+        test(
+          "$name a symbol drops the selected arrow, even one the symbol does not touch",
+          () async {
+            final mounted = await mountWithAnArrowSelected();
+            final mode = mounted.mode;
+            final canvas = canvasOf(mode);
+
+            mode.add(eventOf(mounted.cameraId));
+            await waitUntil(
+              () => !mode.state.selectedSet!.symbols.any((symbol) => symbol.id == mounted.cameraId),
+            );
+            await waitUntil(() => canvas.state.selectedFloorPlanArrowId == null);
+
+            expect(
+              mode.state.selectedSet!.arrows.map((arrow) => arrow.id),
+              [mounted.arrowId],
+              reason: 'the arrow itself is still there',
+            );
+
+            await mode.close();
+          },
+        );
+      }
+
+      test("deleting the selected symbol drops it, and deleting another keeps it", () async {
+        final mounted = await mountWithASymbol();
+        final mode = mounted.mode;
+        final canvas = canvasOf(mode);
+        final otherId = await placeOn(mode, mounted, OcptFloorPlanLayer.characters, 2);
+        canvas.add(OcptShotListFloorPlanSymbolSelectedEvent(symbolId: mounted.symbolId));
+        await waitUntil(() => canvas.state.selectedFloorPlanSymbolId == mounted.symbolId);
+
+        mode.add(OcptShotListFloorPlanSymbolDeletionRequestedEvent(symbolId: otherId));
+        await waitUntil(() => mode.state.selectedSet!.symbols.length == 1);
+        await pumpEventQueue();
+        expect(canvas.state.selectedFloorPlanSymbolId, mounted.symbolId);
+
+        mode.add(OcptShotListFloorPlanSymbolDeletionRequestedEvent(symbolId: mounted.symbolId));
+        await waitUntil(() => mode.state.selectedSet!.symbols.isEmpty);
+        await waitUntil(() => canvas.state.selectedFloorPlanSymbolId == null);
+
+        await mode.close();
+      });
+
+      test("deleting the selected arrow drops it, and deleting another keeps it", () async {
+        final mounted = await mountWithAnArrowSelected();
+        final mode = mounted.mode;
+        final canvas = canvasOf(mode);
+        final otherArrowId = await drawArrow(mode, mounted.firstId, mounted.cameraId);
+        await selectArrow(mode, mounted.arrowId);
+
+        mode.add(OcptShotListFloorPlanArrowDeletionRequestedEvent(arrowId: otherArrowId));
+        await waitUntil(() => mode.state.selectedSet!.arrows.length == 1);
+        await pumpEventQueue();
+        expect(canvas.state.selectedFloorPlanArrowId, mounted.arrowId);
+
+        mode.add(OcptShotListFloorPlanArrowDeletionRequestedEvent(arrowId: mounted.arrowId));
+        await waitUntil(() => mode.state.selectedSet!.arrows.isEmpty);
+        await waitUntil(() => canvas.state.selectedFloorPlanArrowId == null);
+
+        await mode.close();
+      });
+
+      test("changing a field of view or its reach clears nothing", () async {
+        final mounted = await mountWithAnArrowSelected();
+        final mode = mounted.mode;
+        final canvas = canvasOf(mode);
+
+        mode.add(
+          OcptShotListFloorPlanSymbolFovChangedEvent(symbolId: mounted.cameraId, fovDeg: 35),
+        );
+        await waitUntil(
+          () => mode.state.selectedSet!.symbols.any(
+            (symbol) => symbol.id == mounted.cameraId && symbol.fovDeg == 35,
+          ),
+        );
+        mode.add(
+          OcptShotListFloorPlanSymbolFovReachChangedEvent(symbolId: mounted.cameraId, fovReachM: 6),
+        );
+        await waitUntil(
+          () => mode.state.selectedSet!.symbols.any(
+            (symbol) => symbol.id == mounted.cameraId && symbol.fovReachM == 6,
+          ),
+        );
+        await pumpEventQueue();
+
+        expect(canvas.state.selectedFloorPlanArrowId, mounted.arrowId);
+
+        await mode.close();
+      });
+
+      /// A wall and a visible override of it for the first of two sequences, the override selected
+      /// on the canvas. Answers the mode and the ids.
+      Future<({OcptShotListBloc mode, String wallId, String overrideId, String sequenceId})>
+      mountWithASelectedSequenceOverride() async {
+        await writeScreenplay(twoSceneText);
+        final mode = buildBloc();
+        final canvas = canvasOf(mode);
+        await waitForState(mode, (state) => !state.isLoading);
+        final setId = await createCase(mode);
+        final firstSequenceId = mode.state.selectedSequenceId!;
+
+        canvas.add(
+          OcptShotListFloorPlanSymbolPlacedEvent(
+            setId: setId,
+            layer: OcptFloorPlanLayer.set,
+            shotId: null,
+            sceneId: null,
+            xM: 0,
+            yM: 0,
+          ),
+        );
+        final wallId = await selectedSymbolIdOf(mode);
+
+        final secondSequenceId = mode.state.sequences[1].id;
+        mode.add(OcptShotListSequenceSelectedEvent(sequenceId: secondSequenceId));
+        await waitForState(mode, (state) => state.selectedSequenceId == secondSequenceId);
+        final epoch = mode.state.selectionEpoch;
+        setsOf(mode).add(OcptShotListSetLinkRequestedEvent(setId: setId));
+        await waitForState(
+          mode,
+          (state) => state.setsOfSelectedSequence.isNotEmpty && state.selectionEpoch > epoch,
+        );
+        mode.add(OcptShotListSequenceSelectedEvent(sequenceId: firstSequenceId));
+        await waitForState(mode, (state) => state.selectedSequenceId == firstSequenceId);
+
+        canvas.add(
+          OcptShotListFloorPlanScopeDecisionRequestedEvent(
+            symbolId: wallId,
+            setId: setId,
+            level: OcptFloorPlanOverrideLevel.sequence,
+            sequenceCount: 2,
+            xM: 9,
+            yM: 9,
+          ),
+        );
+        await waitUntil(() => canvas.state.pendingFloorPlanScopeDecision != null);
+        canvas.add(
+          const OcptShotListFloorPlanScopeDecisionResolvedEvent(
+            choice: OcptFloorPlanScopeChoice.only,
+          ),
+        );
+        await waitUntil(() => mode.state.selectedSet!.symbols.length == 2);
+        final overrideId = mode.state.selectedSet!.symbols
+            .firstWhere((symbol) => symbol.id != wallId)
+            .id;
+
+        canvas.add(OcptShotListFloorPlanSymbolSelectedEvent(symbolId: overrideId));
+        await waitUntil(() => canvas.state.selectedFloorPlanSymbolId == overrideId);
+        return (mode: mode, wallId: wallId, overrideId: overrideId, sequenceId: firstSequenceId);
+      }
+
+      test(
+        "hiding the selected override for its sequence drops the selection, not a ghost",
+        () async {
+          final mounted = await mountWithASelectedSequenceOverride();
+          final mode = mounted.mode;
+          final canvas = canvasOf(mode);
+
+          mode.add(
+            OcptShotListFloorPlanSymbolHideRequestedEvent(
+              symbolId: mounted.overrideId,
+              targetSceneId: mounted.sequenceId,
+            ),
+          );
+          await waitUntil(
+            () => mode.state.selectedSet!.symbols.any(
+              (symbol) => symbol.id == mounted.overrideId && symbol.isHidden,
+            ),
+          );
+          await waitUntil(() => canvas.state.selectedFloorPlanSymbolId == null);
+
+          await mode.close();
+        },
+      );
+
+      test("hiding another symbol for a sequence keeps the selection", () async {
+        final mounted = await mountWithASelectedSequenceOverride();
+        final mode = mounted.mode;
+        final canvas = canvasOf(mode);
+        final project = projectsManager.currentProject!;
+        final setId = mode.state.selectedSetId!;
+        final otherId = (await projectsManager.floorPlanService.placeSymbol(
+          database: project.database,
+          setId: setId,
+          sceneId: null,
+          shotId: null,
+          layer: OcptFloorPlanLayer.set,
+          xM: 3,
+          yM: 3,
+          setElementShape: OcptFloorPlanSetElementShape.wall,
+        ))!;
+        await mode.reload({OcptShotListReloadScope.floorPlans});
+
+        mode.add(
+          OcptShotListFloorPlanSymbolHideRequestedEvent(
+            symbolId: otherId,
+            targetSceneId: mounted.sequenceId,
+          ),
+        );
+        await waitUntil(() => mode.state.selectedSet!.symbols.length == 4);
+        await pumpEventQueue();
+
+        expect(canvas.state.selectedFloorPlanSymbolId, mounted.overrideId);
+
+        await mode.close();
+      });
+
+      test("hiding the selected override for its shot drops the selection, not a ghost", () async {
+        await writeScreenplay(twoSceneText);
+        final mode = buildBloc();
+        final canvas = canvasOf(mode);
+        await waitForState(mode, (state) => !state.isLoading);
+        final setId = await createCase(mode);
+
+        canvas.add(
+          OcptShotListFloorPlanSymbolPlacedEvent(
+            setId: setId,
+            layer: OcptFloorPlanLayer.set,
+            shotId: null,
+            sceneId: mode.state.selectedSequenceId,
+            xM: 0,
+            yM: 0,
+          ),
+        );
+        final furnitureId = await selectedSymbolIdOf(mode);
+        final firstShotId = await createShot(mode);
+        await createShot(mode);
+        mode.add(OcptShotListShotSelectedEvent(shotId: firstShotId));
+        await waitForState(mode, (state) => state.selectedShotId == firstShotId);
+
+        canvas.add(
+          OcptShotListFloorPlanScopeDecisionRequestedEvent(
+            symbolId: furnitureId,
+            setId: setId,
+            level: OcptFloorPlanOverrideLevel.shot,
+            xM: 5,
+            yM: 5,
+          ),
+        );
+        await waitUntil(() => canvas.state.pendingFloorPlanScopeDecision != null);
+        canvas.add(
+          const OcptShotListFloorPlanScopeDecisionResolvedEvent(
+            choice: OcptFloorPlanScopeChoice.only,
+          ),
+        );
+        await waitUntil(() => mode.state.selectedSet!.symbols.length == 2);
+        final overrideId = mode.state.selectedSet!.symbols
+            .firstWhere((symbol) => symbol.id != furnitureId)
+            .id;
+        canvas.add(OcptShotListFloorPlanSymbolSelectedEvent(symbolId: overrideId));
+        await waitUntil(() => canvas.state.selectedFloorPlanSymbolId == overrideId);
+
+        mode.add(
+          OcptShotListFloorPlanSymbolHideForShotRequestedEvent(
+            symbolId: overrideId,
+            targetShotId: firstShotId,
+          ),
+        );
+        await waitUntil(
+          () => mode.state.selectedSet!.symbols.any(
+            (symbol) => symbol.id == overrideId && symbol.isHidden,
+          ),
+        );
+        await waitUntil(() => canvas.state.selectedFloorPlanSymbolId == null);
+
+        await mode.close();
+      });
+    });
+
     test("closing the mode while a placement waits for it neither hangs nor throws", () async {
       await writeScreenplay(twoSceneText);
       final mode = buildBloc();

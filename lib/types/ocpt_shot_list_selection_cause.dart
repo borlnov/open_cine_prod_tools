@@ -41,4 +41,14 @@ enum OcptShotListSelectionCause {
   /// The mode read everything again and picked its selection afresh: on entry, or when a version
   /// preview was entered or left.
   load,
+
+  /// A symbol was deleted, deleted everywhere or restored as in the level above it: the placement
+  /// the selection named is gone, and the selected arrow may have gone with it.
+  symbolRemoved,
+
+  /// A symbol was masked for one sequence or one shot (a hidden override of it was written).
+  symbolHidden,
+
+  /// An arrow was deleted.
+  arrowRemoved,
 }
