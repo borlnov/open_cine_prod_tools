@@ -297,7 +297,17 @@ their sets, the elements catalogue, and the two documents the mode prints.
   - **`OcptResourcesExportBloc`** runs the workbook and the contact list and owns the transient
     notice. Each one first has the mode write what is pending (`flushAllPendingWrites`), then reads
     the snapshot the mode holds.
-  - **The widgets.** The shell, the dialogs and the sheets stay in `resources_mode.dart`, which
-    reads the mode and, in the sheet of a tab, that tab's view bloc (a `BlocBuilder` around the
-    sheet, so a keystroke redraws the sheet and not the shell). The one `MultiBlocListener`-style
-    effect of the view blocs is the export notice (`OcptResourcesViewEffects`).
+  - **The widgets.** `resources_mode.dart` wires the shell and owns the dialogs: every confirmation
+    (deleting a record, removing a candidacy, merging two roles), the export panel and its options,
+    the version creation and the project settings. Each slot of the shell is one view widget in
+    `widgets/`: `OcptResourcesListPanelView` (left dock), `OcptResourcesCentre` (the role alert
+    banner over the active tab), `OcptResourcesRightDockView`, `OcptResourcesReadOnlyBanner` and
+    `OcptResourcesSearchToggle`. The centre picks one sheet view per tab (`OcptResourcesPersonSheetView`,
+    `OcptResourcesRoleSheetView`, `OcptResourcesLocationSheetView`,
+    `OcptResourcesElementSheetView`); each reads the mode state it is handed and wraps its sheet in
+    a `BlocBuilder` on that tab's view bloc alone, so a keystroke redraws the sheet and not the
+    shell. A sheet view only *asks* for an irreversible action, through a callback the mode answers
+    with `OcptConfirmDialog`. The one `MultiBlocListener`-style effect of the view blocs is the
+    export notice (`OcptResourcesViewEffects`). The folder holds one public type per file, and no
+    widget builds a piece of itself with a `_build…` method: a part used once is a private widget
+    of its file, a part shared is a widget of its own.

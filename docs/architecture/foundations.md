@@ -78,8 +78,8 @@ the persistence, the project versions, the sync-ready data model and the read-on
   view, a dock tab, a group of the inspector, the export panel, a function that cuts across views.
   A rendering of the same data with neither (a recap, a read-only table) has no bloc, and a mode
   whose surfaces are cut by function rather than by central view follows the same definition. The
-  shot list is the reference (`shot-list.md`); the other modes still own a single bloc until they
-  are split the same way.
+  shot list is the reference (`shot-list.md`); the schedule and the resources are split the same way
+  (`schedule.md`, `resources.md`), and the other modes still own a single bloc until they are.
   - **The mode bloc** (`OcptShotListBloc`, mixing in `MixinOcptModeBloc<State, Scope>` beside the
     two project mixins) owns **all the data** — every snapshot, the title, the page setup, the
     catalogues — and loads it; the **shared selection** (the chain a sequence, a shot and a set
