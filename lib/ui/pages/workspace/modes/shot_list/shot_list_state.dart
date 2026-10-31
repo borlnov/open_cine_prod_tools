@@ -39,9 +39,8 @@ export 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_lis
 ///
 /// Unlike the screenplay editor's own state, this one carries no single dirty/saving pair: most
 /// of a shot's fields (status, a difficulty axis, a character chip) write straight to the project
-/// database the moment they change. [pendingFieldEdits] is the exception — the inspector's typed
-/// free-text fields go through a 2 s autosave debounce of their own, so a field can be "dirty" in
-/// that narrow sense while nothing else in this state is.
+/// database the moment they change. The typed free-text fields are the exception, and each view bloc
+/// holds its own in a 2 s autosave debounce; the ones still held here are [pendingFieldEdits].
 class OcptShotListState extends BlocStateForMixin<OcptShotListState>
     with
         MixinOcptProjectVersionsState<OcptShotListState>,
@@ -245,7 +244,7 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
 
   /// The id of the symbol picked as the arrow tool's own first end, or null while none is pending
   /// (no click yet, or the anchor was just completed into an arrow or cancelled) — the floor plans
-  /// canvas's own pending anchor, mirroring [pendingCoverageAnchor]'s own shape. Cleared whenever
+  /// canvas's own pending anchor, mirroring the coverage dialog's own. Cleared whenever
   /// [selectedShotId], [selectedSequenceId] or [selectedSetId] changes, and whenever
   /// [floorPlanActiveTool] is picked away from [OcptFloorPlanTool.arrow].
   final String? pendingFloorPlanArrowAnchorSymbolId;
@@ -306,26 +305,15 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
   final OcptShotFieldSuggestions suggestions;
 
   /// Every field edit this bloc holds in the field-edit autosave debounce, keyed by
-  /// [OcptShotListPendingEditKey] (a shot's own field, a set's name or a symbol's label), holding
-  /// the raw text last typed for it. The board's panel comments and mark texts wait in the
-  /// storyboard bloc's own map.
+  /// [OcptShotListPendingEditKey] (a set's name or a symbol's label), holding the raw text last
+  /// typed for it. A shot's own fields wait in the inspector bloc's map, the board's panel
+  /// comments and mark texts in the storyboard bloc's.
   ///
-  /// What a field or a panel comment shows takes this map's entry over its own stored value
+  /// What a set tab or a symbol label shows takes this map's entry over its own stored value
   /// whenever one is present, so typing is never overwritten by a reload triggered by an unrelated
-  /// write (another field's own flush, a status change on a different shot). An entry is removed
-  /// the moment its write lands, whether through the debounce elapsing or an explicit flush.
+  /// write. An entry is removed the moment its write lands, whether through the debounce elapsing
+  /// or an explicit flush.
   final Map<OcptShotListPendingEditKey, String> pendingFieldEdits;
-
-  /// The first word clicked of a scenario coverage range currently being drawn in the coverage
-  /// dialog, or null while none is being drawn (no click yet, or the range was just closed or
-  /// removed).
-  ///
-  /// Its two fields are the anchor word's own scene-relative `OcptScriptWord` offsets, which
-  /// identify it on their own — a range may span several blocks, so the block a click lands in
-  /// never takes part in the decision. Cleared whenever the selected shot or sequence changes, and
-  /// after every coverage write (see `OcptShotListBloc`'s own doc comment on its coverage
-  /// word-click handler for the full three-state interaction this backs).
-  final ({int wordStartOffset, int wordEndOffset})? pendingCoverageAnchor;
 
   /// {@macro open_cine_prod_tools.MixinOcptModeState.reloadEpoch}
   @override
@@ -420,7 +408,6 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
     required this.roles,
     required this.suggestions,
     required this.pendingFieldEdits,
-    required this.pendingCoverageAnchor,
     required this.reloadEpoch,
     required this.selectionEpoch,
     required this.selectionCause,
@@ -480,7 +467,6 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
       roles = const [],
       suggestions = const OcptShotFieldSuggestions.empty(),
       pendingFieldEdits = const {},
-      pendingCoverageAnchor = null,
       reloadEpoch = 0,
       selectionEpoch = 0,
       selectionCause = OcptShotListSelectionCause.none,
@@ -497,9 +483,8 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
   /// {@macro act_flutter_utility.BlocStateForMixin.copyWith}
   ///
   /// [snapshot] is only replaced when a new one is given: it never goes back to null once loaded,
-  /// so it needs no force flag. [selectedSequenceId], [selectedShotId], [rightDockTab] and [pendingCoverageAnchor] all legitimately go back to null while the mode is
-  /// alive (nothing selected any more, the dock closed, no range being drawn), so each has its own
-  /// force flag instead.
+  /// so it needs no force flag. [selectedSequenceId], [selectedShotId], [rightDockTab] all legitimately go back to null while the mode is alive (nothing selected any
+  /// more, the dock closed), so each has its own force flag instead.
   ///
   /// **[reloadEpoch] moves by itself** whenever a copy replaces any of the data read from the
   /// project database ([snapshot], [storyboardSnapshot], [floorPlanSnapshot], [locations],
@@ -563,8 +548,6 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
     List<OcptRole>? roles,
     OcptShotFieldSuggestions? suggestions,
     Map<OcptShotListPendingEditKey, String>? pendingFieldEdits,
-    ({int wordStartOffset, int wordEndOffset})? pendingCoverageAnchor,
-    bool forcePendingCoverageAnchorValue = false,
     int? reloadEpoch,
     int? selectionEpoch,
     OcptShotListSelectionCause? selectionCause,
@@ -651,9 +634,6 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
     roles: roles ?? this.roles,
     suggestions: suggestions ?? this.suggestions,
     pendingFieldEdits: pendingFieldEdits ?? this.pendingFieldEdits,
-    pendingCoverageAnchor:
-        pendingCoverageAnchor ??
-        (forcePendingCoverageAnchorValue ? null : this.pendingCoverageAnchor),
     reloadEpoch:
         reloadEpoch ??
         (_isDataReplacedBy(
@@ -806,7 +786,6 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
     roles,
     suggestions,
     pendingFieldEdits,
-    pendingCoverageAnchor,
     reloadEpoch,
     selectionEpoch,
     selectionCause,

@@ -31,7 +31,8 @@ Resources set carries across its three scopes, and the mode's two newest documen
 
 - The mode's BLoC files are split along the seams the code already had. The events are one sealed
   hierarchy per domain (`events/shot_list_workspace_event.dart`, `…_shot_event.dart`,
-  `…_export_event.dart`, `…_storyboard_event.dart`, `…_floor_plan_view_event.dart`,
+  `…_export_event.dart`, `…_inspector_event.dart`, `…_storyboard_event.dart`,
+  `…_floor_plan_view_event.dart`,
   `…_floor_plan_symbol_event.dart`), all extending the abstract `OcptShotListEvent` of
   `events/shot_list_base_event.dart` (a sealed class's subclasses must share its library, so the
   common base cannot be sealed); `shot_list_event.dart` only exports them. The state keeps its
@@ -54,11 +55,21 @@ Resources set carries across its three scopes, and the mode's two newest documen
   writes — each followed by `OcptShotListBloc.reload`, so the mode's state holds a row before the
   board selects it. The panels themselves stay the mode's data. It clears its selection when the
   mode bloc says its own moved (`selectionEpoch` and `selectionCause`) and drops what the mode's
-  fresh data no longer holds (`reloadEpoch`); both blocs are built with the mode, and the mode
-  bloc asks the board to write what it still holds before anything that needs the database up to
-  date (`MixinOcptModeBloc`, `lib/ui/pages/workspace/blocs/`, whose doc comments and those of
+  fresh data no longer holds (`reloadEpoch`); the view blocs are built with the mode, and the mode
+  bloc asks each of them to write what it still holds before anything that needs the database up
+  to date (`MixinOcptModeBloc`, `lib/ui/pages/workspace/blocs/`, whose doc comments and those of
   `AbsOcptViewBloc` are the rules for writing the next view bloc). `OcptStoryboardView` and
-  `OcptStoryboardPanelsView` are the two widgets that read both blocs.
+  `OcptStoryboardPanelsView` are the two widgets that read both blocs. The inspector is the
+  third: `OcptShotListInspectorBloc` owns the shot fields being typed (its own 2 s debounce, and
+  the abbreviation deduced from a committed shot size), the difficulty dots, the character chips,
+  the scenario coverage ranges with the anchor of the one being drawn, the `Mark as checked`
+  action and the cast-wide role changes of the role alert banner; each is written through the
+  services and followed by `OcptShotListBloc.reload` of the scopes it changed. It clears the
+  coverage anchor on the selection moves that have always cleared it (a sequence, selected again
+  or not, a shot selected, created or deleted, a fresh load — not a set) and drops a typed field
+  whose shot is gone from the shot list. `OcptShotInspectorView` is the widget wiring
+  `OcptShotInspectorPanel` and the coverage dialog to both blocs; the delete confirmations stay
+  the mode's. What is typed into a set's tab or a symbol's label is still held by the mode bloc.
 
 ## The three centre views and their shared chrome
 

@@ -28,7 +28,6 @@ import 'package:open_cine_prod_tools/types/ocpt_floor_plan_scope_choice.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_set_element_shape.dart';
 import 'package:open_cine_prod_tools/types/ocpt_route.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_centre_view.dart';
-import 'package:open_cine_prod_tools/types/ocpt_shot_list_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_export_document.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_pending_edit_key.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_project_package_events.dart';
@@ -37,6 +36,8 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_lis
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_event.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_export_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_export_state.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_inspector_bloc.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_inspector_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_storyboard_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_storyboard_state.dart';
@@ -49,8 +50,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_floor_plan_set_tabs.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_floor_plan_view.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_scenario_coverage_export_dialog.dart';
-import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_shot_coverage_dialog.dart';
-import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_shot_inspector_panel.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_shot_inspector_view.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_shot_list_centre_header.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_shot_list_columns_menu.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_shot_list_right_dock.dart';
@@ -122,6 +122,10 @@ class OcptShotListMode extends StatelessWidget {
       BlocProvider(
         lazy: false,
         create: (context) => OcptShotListStoryboardBloc(modeBloc: context.read<OcptShotListBloc>()),
+      ),
+      BlocProvider(
+        lazy: false,
+        create: (context) => OcptShotListInspectorBloc(modeBloc: context.read<OcptShotListBloc>()),
       ),
     ],
     child: _ShotListView(hasRevealRequest: revealRequest != null),
@@ -198,6 +202,9 @@ class _ShotListViewState extends State<_ShotListView> {
       ),
       BlocListener<OcptShotListStoryboardBloc, OcptShotListStoryboardState>(
         listener: _onStoryboardStateChanged,
+      ),
+      BlocListener<OcptShotListInspectorBloc, OcptShotListInspectorState>(
+        listener: _onInspectorStateChanged,
       ),
     ],
     child: _buildMode(context),
@@ -578,7 +585,7 @@ class _ShotListViewState extends State<_ShotListView> {
   /// Builds one [OcptRoleAlertBanner] per orphaned role and per name collision the state derives
   /// (ADR 0030, decision 4), or an empty list when the whole cast is in order.
   List<Widget> _buildRoleAlertBanners(BuildContext context, OcptShotListState state) {
-    final bloc = context.read<OcptShotListBloc>();
+    final inspectorBloc = context.read<OcptShotListInspectorBloc>();
 
     return [
       for (final alert in state.orphanedRoleAlerts)
@@ -590,7 +597,7 @@ class _ShotListViewState extends State<_ShotListView> {
             isReadOnly: state.isPreviewingVersion,
             onDeleteRequested: (roleId) => _handleRoleDeleteRequested(context, state, roleId),
             onKeepRequested: (roleId) =>
-                bloc.add(OcptShotListOrphanedRoleKeptEvent(roleId: roleId)),
+                inspectorBloc.add(OcptShotListOrphanedRoleKeptEvent(roleId: roleId)),
             onMergeRequested: (sourceRoleId, targetRoleId) =>
                 _handleRoleMergeRequested(context, state, sourceRoleId, targetRoleId),
           ),
@@ -621,7 +628,7 @@ class _ShotListViewState extends State<_ShotListView> {
     OcptShotListState state,
     String roleId,
   ) async {
-    final bloc = context.read<OcptShotListBloc>();
+    final inspectorBloc = context.read<OcptShotListInspectorBloc>();
     final tr = Tr.of(context);
     final confirmed = await OcptConfirmDialog.show(
       context,
@@ -637,7 +644,7 @@ class _ShotListViewState extends State<_ShotListView> {
       return;
     }
 
-    bloc.add(OcptShotListOrphanedRoleDeleteRequestedEvent(roleId: roleId));
+    inspectorBloc.add(OcptShotListOrphanedRoleDeleteRequestedEvent(roleId: roleId));
   }
 
   /// Shows the merge confirmation dialog, naming both roles, then dispatches the merge if the user
@@ -648,7 +655,7 @@ class _ShotListViewState extends State<_ShotListView> {
     String sourceRoleId,
     String targetRoleId,
   ) async {
-    final bloc = context.read<OcptShotListBloc>();
+    final inspectorBloc = context.read<OcptShotListInspectorBloc>();
     final tr = Tr.of(context);
     final confirmed = await OcptConfirmDialog.show(
       context,
@@ -667,7 +674,7 @@ class _ShotListViewState extends State<_ShotListView> {
       return;
     }
 
-    bloc.add(
+    inspectorBloc.add(
       OcptShotListRoleMergeRequestedEvent(sourceRoleId: sourceRoleId, targetRoleId: targetRoleId),
     );
   }
@@ -980,7 +987,7 @@ class _ShotListViewState extends State<_ShotListView> {
   }
 
   /// [setId]'s current name: a pending edit still in the bloc's debounce, or the set's own
-  /// stored value — the set tabs' equivalent of [_fieldValueOf].
+  /// stored value.
   String _setNameValueOf(OcptShotListState state, String setId) {
     final pending = state.pendingFieldEdits[OcptShotListSetNameEditKey(setId: setId)];
     if (pending != null) {
@@ -1101,7 +1108,7 @@ class _ShotListViewState extends State<_ShotListView> {
       shots: sequence.shots,
       shotRankByShotId: shotRankByShotId,
       focusSceneId: state.selectedSequenceId ?? '',
-      sequenceCode: _sequenceDisplayNumberFor(sequence),
+      sequenceCode: ocptShotSequenceDisplayNumberOf(sequence),
       focusShotId: focusShotId,
       previousShotId: state.previousShotOfSelectedShot?.id,
       nextShotId: state.nextShotOfSelectedShot?.id,
@@ -1345,7 +1352,7 @@ class _ShotListViewState extends State<_ShotListView> {
     if (decision.level == OcptFloorPlanOverrideLevel.shot) {
       return tr.shotListFloorPlanScopeBubbleOnlyShotAction(state.selectedShot?.code ?? "");
     }
-    return tr.shotListFloorPlanScopeBubbleOnlyAction(_sequenceDisplayNumberFor(sequence));
+    return tr.shotListFloorPlanScopeBubbleOnlyAction(ocptShotSequenceDisplayNumberOf(sequence));
   }
 
   /// Whether each of [sequence]'s own shots has a live camera symbol on [selectedSet], keyed by
@@ -1389,7 +1396,7 @@ class _ShotListViewState extends State<_ShotListView> {
   }
 
   /// [symbolId]'s current label value: a pending edit still in the bloc's debounce, or the
-  /// symbol's own stored label — the inline label editor's equivalent of [_fieldValueOf].
+  /// symbol's own stored label.
   String _symbolLabelValueOf(OcptShotListState state, String symbolId) {
     final pending = state.pendingFieldEdits[OcptShotListSymbolLabelEditKey(symbolId: symbolId)];
     if (pending != null) {
@@ -1725,7 +1732,7 @@ class _ShotListViewState extends State<_ShotListView> {
 
     return (
       otherSequenceCount: sequenceCount - 1,
-      focusedSequenceCode: _sequenceDisplayNumberFor(targetSequence),
+      focusedSequenceCode: ocptShotSequenceDisplayNumberOf(targetSequence),
       targetSceneId: targetSceneId,
     );
   }
@@ -2020,20 +2027,14 @@ class _ShotListViewState extends State<_ShotListView> {
 
     final selectedShot = state.selectedShot;
     final selectedSequence = state.selectedSequence;
-    final sequenceDisplayNumber = _sequenceDisplayNumberFor(selectedSequence);
-    final sequenceHeading = _sequenceHeadingFor(selectedSequence, selectedShot);
-    final coverageLayout = state.buildSelectedCoverageLayout();
-    final staleCoverageRangeIds = coverageLayout == null
-        ? const <String>{}
-        : state.staleCoverageRangeIdsOfSelectedShot(coverageLayout);
+    final sequenceDisplayNumber = ocptShotSequenceDisplayNumberOf(selectedSequence);
+    final sequenceHeading = ocptShotSequenceHeadingOf(selectedSequence, selectedShot);
     final isBoardShown = !isCompact && state.centreView == OcptShotListCentreView.board;
     final isFloorPlansShown = !isCompact && state.centreView == OcptShotListCentreView.floorPlans;
 
     return OcptShotListRightDock(
       activeTab: rightDockTab,
-      inspectorChild: OcptShotInspectorPanel(
-        shot: selectedShot,
-        sequenceHeading: sequenceHeading,
+      inspectorChild: OcptShotInspectorView(
         leadingGroup: isBoardShown
             ? OcptStoryboardPanelsView(
                 onPanelDeleteRequested: (panelId) =>
@@ -2044,48 +2045,7 @@ class _ShotListViewState extends State<_ShotListView> {
             : isFloorPlansShown
             ? _buildPlacementsGroup(context, state)
             : null,
-        sequenceDisplayNumber: sequenceDisplayNumber,
-        roles: state.roles,
-        suggestions: state.suggestions,
-        coverageLayout: coverageLayout,
-        otherShotsCoverageRanges: state.otherShotsCoverageOfSelectedScene(),
-        staleCoverageRangeIds: staleCoverageRangeIds,
-        fieldValueOf: (field) => _fieldValueOf(state, selectedShot, field),
-        onDifficultyChanged: (axis, value) => _dispatchIfShotSelected(
-          context,
-          selectedShot,
-          (id) => OcptShotListShotDifficultyChangedEvent(shotId: id, axis: axis, value: value),
-        ),
-        onCharacterToggled: (roleId) => _dispatchIfShotSelected(
-          context,
-          selectedShot,
-          (id) => OcptShotListShotCharacterToggledEvent(shotId: id, roleId: roleId),
-        ),
-        onCharacterAdded: (name) => _dispatchIfShotSelected(
-          context,
-          selectedShot,
-          (id) => OcptShotListCharacterAddRequestedEvent(shotId: id, characterName: name),
-        ),
-        onFieldChanged: (field, value) => _dispatchIfShotSelected(
-          context,
-          selectedShot,
-          (id) => OcptShotListShotFieldChangedEvent(shotId: id, field: field, rawValue: value),
-        ),
-        onSelectCoverageRequested: () => _handleCoverageSelectionRequested(context),
-        onCoverageClearAll: () => _dispatchIfShotSelected(
-          context,
-          selectedShot,
-          (id) => OcptShotListCoverageClearRequestedEvent(shotId: id),
-        ),
-        onMarkAsChecked: () => _dispatchIfShotSelected(
-          context,
-          selectedShot,
-          (id) => OcptShotListShotMarkedAsCheckedEvent(shotId: id),
-        ),
-        onDeleteRequested: selectedShot == null
-            ? null
-            : () => _handleDeleteRequested(context, selectedShot),
-        isReadOnly: state.isPreviewingVersion,
+        onDeleteRequested: (shot) => unawaited(_handleDeleteRequested(context, shot)),
       ),
       metadataChild: OcptShotMetadataPanel(
         shot: selectedShot,
@@ -2191,115 +2151,6 @@ class _ShotListViewState extends State<_ShotListView> {
     bloc.add(OcptProjectVersionCreationRequestedEvent(name: fields.name, note: fields.note));
   }
 
-  /// The display number of [sequence]: a real scene's own `displaySceneNumber`, or the orphan
-  /// placeholder for the orphan group or for no sequence at all.
-  String _sequenceDisplayNumberFor(OcptShotSequence? sequence) => switch (sequence) {
-    OcptSceneShotSequence() => sequence.displaySceneNumber,
-    OcptOrphanShotSequence() || null => ocptShotListEmptyValue,
-  };
-
-  /// The heading shown for [sequence]: a real scene's own heading, or [shot]'s
-  /// `OcptShot.orphanedHeading` while [sequence] is the orphan group.
-  String _sequenceHeadingFor(OcptShotSequence? sequence, OcptShot? shot) => switch (sequence) {
-    OcptSceneShotSequence() => sequence.heading,
-    OcptOrphanShotSequence() => shot?.orphanedHeading ?? ocptShotListEmptyValue,
-    null => ocptShotListEmptyValue,
-  };
-
-  /// [shot]'s current value for [field], for the inspector's editable fields: a pending edit
-  /// still sitting in the bloc's debounce takes priority over the shot's own stored value, so
-  /// typing is never overwritten by an unrelated reload. Formatted for an editable field (an
-  /// empty string for a missing value, never [ocptShotListEmptyValue], which is the table and
-  /// read-only fields' own placeholder).
-  String _fieldValueOf(OcptShotListState state, OcptShot? shot, OcptShotListEditableField field) {
-    if (shot == null) {
-      return "";
-    }
-
-    final pending =
-        state.pendingFieldEdits[OcptShotListShotFieldEditKey(shotId: shot.id, field: field)];
-    if (pending != null) {
-      return pending;
-    }
-
-    return switch (field) {
-      OcptShotListEditableField.shotSize => shot.shotSize,
-      OcptShotListEditableField.abbreviation => shot.abbreviation,
-      OcptShotListEditableField.framing => shot.framing,
-      OcptShotListEditableField.cameraMove => shot.cameraMove,
-      OcptShotListEditableField.lens => shot.lens,
-      OcptShotListEditableField.recordingFormat => shot.recordingFormat,
-      OcptShotListEditableField.estimatedDuration =>
-        shot.estimatedDurationMs == null ? "" : ocptFormatShotDuration(shot.estimatedDurationMs),
-      OcptShotListEditableField.sound => shot.sound,
-      OcptShotListEditableField.notes => shot.notes,
-      OcptShotListEditableField.locationNotes => shot.locationNotes,
-    };
-  }
-
-  /// Dispatches the event [buildEvent] builds from [shot]'s id, or does nothing while [shot] is
-  /// null: every inspector callback that acts on "the selected shot" goes through this, so none
-  /// of them has to force-unwrap it.
-  void _dispatchIfShotSelected(
-    BuildContext context,
-    OcptShot? shot,
-    OcptShotListEvent Function(String shotId) buildEvent,
-  ) {
-    if (shot == null) {
-      return;
-    }
-    context.read<OcptShotListBloc>().add(buildEvent(shot.id));
-  }
-
-  /// Opens the dialog a shot's scenario coverage is selected in, keeping it in step with the bloc
-  /// for as long as it is open.
-  ///
-  /// The dialog is built inside a `BlocBuilder` of its own, on the bloc explicitly handed down
-  /// rather than read from the dialog's context: a dialog is mounted in the navigator's own
-  /// subtree, above this mode, so it inherits nothing from it. That builder is what makes a range
-  /// appear the moment it is recorded, since every click writes through the same bloc events the
-  /// inspector uses. It renders nothing at all in the two states where there is nothing to select
-  /// in — no shot selected any more, or a shot whose sequence disappeared from the screenplay —
-  /// which can only happen if the selection changes underneath an open dialog.
-  Future<void> _handleCoverageSelectionRequested(BuildContext context) {
-    final bloc = context.read<OcptShotListBloc>();
-
-    return showDialog<void>(
-      context: context,
-      builder: (dialogContext) => BlocProvider.value(
-        value: bloc,
-        child: BlocBuilder<OcptShotListBloc, OcptShotListState>(
-          builder: (context, state) {
-            final shot = state.selectedShot;
-            final layout = state.buildSelectedCoverageLayout();
-            if (shot == null || layout == null) {
-              return const SizedBox.shrink();
-            }
-
-            return OcptShotCoverageDialog(
-              shotCode: shot.code,
-              sequenceHeading: _sequenceHeadingFor(state.selectedSequence, shot),
-              layout: layout,
-              pageSetup: state.pageSetup,
-              ownRanges: shot.coverageRanges,
-              otherShotsRanges: state.otherShotsCoverageOfSelectedScene(),
-              pendingAnchor: state.pendingCoverageAnchor,
-              onWordTapped: (wordStartOffset, wordEndOffset) => bloc.add(
-                OcptShotListCoverageWordClickedEvent(
-                  shotId: shot.id,
-                  wordStartOffset: wordStartOffset,
-                  wordEndOffset: wordEndOffset,
-                ),
-              ),
-              onClearAll: () => bloc.add(OcptShotListCoverageClearRequestedEvent(shotId: shot.id)),
-              onAnchorCancelled: () => bloc.add(const OcptShotListCoverageAnchorCancelledEvent()),
-            );
-          },
-        ),
-      ),
-    );
-  }
-
   /// Shows the delete confirmation dialog, then dispatches the deletion request if the user
   /// confirmed it.
   Future<void> _handleDeleteRequested(BuildContext context, OcptShot shot) async {
@@ -2386,6 +2237,20 @@ class _ShotListViewState extends State<_ShotListView> {
       ..showSnackBar(SnackBar(content: Text(Tr.of(context).shotListWriteError)));
     context.read<OcptShotListStoryboardBloc>().add(
       const OcptShotListStoryboardWriteErrorDismissedEvent(),
+    );
+  }
+
+  /// Shows the transient write error the inspector raised as a SnackBar, then dismisses it.
+  void _onInspectorStateChanged(BuildContext context, OcptShotListInspectorState state) {
+    if (!state.hasWriteError) {
+      return;
+    }
+
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(Tr.of(context).shotListWriteError)));
+    context.read<OcptShotListInspectorBloc>().add(
+      const OcptShotListInspectorWriteErrorDismissedEvent(),
     );
   }
 

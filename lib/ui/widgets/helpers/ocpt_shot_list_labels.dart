@@ -9,6 +9,7 @@ import 'package:intl/intl.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_floor_plan_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_scenario_coverage_labels.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_list_xlsx_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_placement.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
@@ -26,6 +27,21 @@ import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_schedule_labels.dar
 /// An empty cell would read as a rendering bug in a dense table; an em dash reads as "nothing
 /// here yet", which is what it means.
 const ocptShotListEmptyValue = "—";
+
+/// The display number of [sequence]: a real scene's own `displaySceneNumber`, or the orphan
+/// placeholder for the orphan group or for no sequence at all.
+String ocptShotSequenceDisplayNumberOf(OcptShotSequence? sequence) => switch (sequence) {
+  OcptSceneShotSequence() => sequence.displaySceneNumber,
+  OcptOrphanShotSequence() || null => ocptShotListEmptyValue,
+};
+
+/// The heading shown for [sequence]: a real scene's own heading, or [shot]'s
+/// `OcptShot.orphanedHeading` while [sequence] is the orphan group.
+String ocptShotSequenceHeadingOf(OcptShotSequence? sequence, OcptShot? shot) => switch (sequence) {
+  OcptSceneShotSequence() => sequence.heading,
+  OcptOrphanShotSequence() => shot?.orphanedHeading ?? ocptShotListEmptyValue,
+  null => ocptShotListEmptyValue,
+};
 
 /// The difficulty at or above which a shot's average difficulty is emphasised as a warning, on
 /// the 0-5 scale the four difficulty axes are rated on.

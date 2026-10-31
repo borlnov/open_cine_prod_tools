@@ -33,8 +33,8 @@ const double _ocptOtherCoverageAlpha = 0.10;
 /// their two bands.
 const double _ocptWordVerticalPadding = 2;
 
-/// A pending coverage range anchor, exactly as `OcptShotListState.pendingCoverageAnchor` holds it:
-/// the first word clicked of a range currently being drawn.
+/// A pending coverage range anchor, exactly as `OcptShotListInspectorState.pendingCoverageAnchor`
+/// holds it: the first word clicked of a range currently being drawn.
 typedef OcptShotCoverageAnchor = ({int wordStartOffset, int wordEndOffset});
 
 /// The dialog a shot's scenario coverage is selected in: the sequence typeset on a simulated paper

@@ -2,8 +2,8 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-/// One of the shot inspector's typed fields, whose edits go through the shot list bloc's 2 s
-/// autosave debounce (`OcptShotListState.pendingFieldEdits`) rather than being written
+/// One of the shot inspector's typed fields, whose edits go through the inspector bloc's 2 s
+/// autosave debounce (`OcptShotListInspectorState.pendingFieldEdits`) rather than being written
 /// immediately like a difficulty dot or a character chip, which are each a single discrete action
 /// rather than typing.
 ///

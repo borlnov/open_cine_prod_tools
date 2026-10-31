@@ -252,9 +252,10 @@ void main() {
 
     // No export has been asked for, so nothing has read the export bloc: it only exists because
     // the mode asked for it to be built, and a bloc that does not exist cannot be asked to write
-    // what it holds. The storyboard bloc counts too, the mode's own build reading it.
+    // what it holds. The storyboard and inspector blocs count too, the mode's own listeners
+    // reading them.
     final modeBloc = tester.element(find.byType(OcptShotListStatusBar)).read<OcptShotListBloc>();
-    expect(modeBloc.pendingWritesFlusherCount, 2);
+    expect(modeBloc.pendingWritesFlusherCount, 3);
   });
 
   testWidgets(

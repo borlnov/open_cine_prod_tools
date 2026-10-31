@@ -5,8 +5,9 @@
 import 'package:equatable/equatable.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_editable_field.dart';
 
-/// The key of one entry of `OcptShotListState.pendingFieldEdits`: what a typed value still sitting
-/// in the mode's 2 s autosave debounce is destined to write onto once it flushes.
+/// The key of one entry of a view bloc's pending edits (`OcptShotListInspectorState`'s, the
+/// storyboard bloc's, `OcptShotListState`'s own): what a typed value still sitting in a 2 s
+/// autosave debounce is destined to write onto once it flushes.
 ///
 /// A sealed class rather than the `(String, OcptShotListEditableField)` record the shot list mode
 /// used before the board existed: the debounce is shared by every free-text field the mode owns,

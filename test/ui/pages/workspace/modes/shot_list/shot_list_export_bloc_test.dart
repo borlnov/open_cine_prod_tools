@@ -34,6 +34,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_lis
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_event.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_export_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_export_state.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_inspector_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock.dart';
 import 'package:path/path.dart' as p;
@@ -409,6 +410,31 @@ void main() {
         fieldEditDebounce: fieldEditDebounce,
       );
 
+  /// Builds the inspector bloc of [modeBloc], where a shot field is typed. [fieldEditDebounce]
+  /// defaults to a short duration so tests exercising the field-edit debounce don't have to wait
+  /// out the real 2 s one.
+  OcptShotListInspectorBloc buildInspector(
+    OcptShotListBloc modeBloc, {
+    Duration fieldEditDebounce = const Duration(milliseconds: 30),
+  }) => OcptShotListInspectorBloc(
+    modeBloc: modeBloc,
+    projectsManager: projectsManager,
+    fieldEditDebounce: fieldEditDebounce,
+  );
+
+  /// Waits until [isDone] holds, looking again every few milliseconds: for a condition that spans
+  /// the mode bloc and the inspector bloc, whose states change in an order a test must not depend
+  /// on.
+  Future<void> waitUntil(bool Function() isDone) async {
+    final deadline = DateTime.now().add(const Duration(seconds: 5));
+    while (!isDone()) {
+      if (DateTime.now().isAfter(deadline)) {
+        throw TimeoutException("The awaited condition never held");
+      }
+      await Future<void>.delayed(const Duration(milliseconds: 2));
+    }
+  }
+
   /// Builds the export bloc of [modeBloc], exporting through [exportManager] — a
   /// [_FakeExportManager] whose export cancels unless the test says otherwise, so no test ever
   /// reaches a native save dialog.
@@ -487,7 +513,8 @@ void main() {
     await writeScreenplay(twoSceneText);
 
     final exportManager = _FakeExportManager(exportResult: "/tmp/My Movie.xlsx");
-    final bloc = buildBloc(fieldEditDebounce: const Duration(days: 1));
+    final bloc = buildBloc();
+    final inspector = buildInspector(bloc, fieldEditDebounce: const Duration(days: 1));
     await waitForState(bloc, (state) => !state.isLoading);
     final exportBloc = buildExportBloc(bloc, exportManager: exportManager);
 
@@ -495,14 +522,14 @@ void main() {
     final state = await waitForState(bloc, (state) => state.totalShotCount == 1);
     final shotId = state.selectedShotId!;
 
-    bloc.add(
+    inspector.add(
       OcptShotListShotFieldChangedEvent(
         shotId: shotId,
         field: OcptShotListEditableField.shotSize,
         rawValue: "Close-up",
       ),
     );
-    await waitForState(bloc, (state) => state.pendingFieldEdits.isNotEmpty);
+    await waitUntil(() => inspector.state.pendingFieldEdits.isNotEmpty);
 
     exportBloc.add(
       const OcptShotListXlsxExportRequestedEvent(
@@ -512,10 +539,11 @@ void main() {
     );
     await waitForExportState(exportBloc, (state) => state.ioNotice != null);
 
-    expect(bloc.state.pendingFieldEdits, isEmpty);
+    expect(inspector.state.pendingFieldEdits, isEmpty);
     expect(exportManager.lastExportedSnapshot!.shotsById[shotId]!.shotSize, "Close-up");
 
     await exportBloc.close();
+    await inspector.close();
     await bloc.close();
   });
 
@@ -639,7 +667,8 @@ void main() {
     await writeScreenplay(twoSceneText);
 
     final exportManager = _FakeExportManager(exportResult: "/tmp/My Movie - coverage.pdf");
-    final bloc = buildBloc(fieldEditDebounce: const Duration(days: 1));
+    final bloc = buildBloc();
+    final inspector = buildInspector(bloc, fieldEditDebounce: const Duration(days: 1));
     await waitForState(bloc, (state) => !state.isLoading);
     final exportBloc = buildExportBloc(bloc, exportManager: exportManager);
 
@@ -647,14 +676,14 @@ void main() {
     final state = await waitForState(bloc, (state) => state.totalShotCount == 1);
     final shotId = state.selectedShotId!;
 
-    bloc.add(
+    inspector.add(
       OcptShotListShotFieldChangedEvent(
         shotId: shotId,
         field: OcptShotListEditableField.shotSize,
         rawValue: "Gros plan",
       ),
     );
-    await waitForState(bloc, (state) => state.pendingFieldEdits.isNotEmpty);
+    await waitUntil(() => inspector.state.pendingFieldEdits.isNotEmpty);
 
     exportBloc.add(
       const OcptShotListScenarioCoverageExportRequestedEvent(
@@ -665,13 +694,14 @@ void main() {
     );
     await waitForExportState(exportBloc, (state) => state.ioNotice != null);
 
-    expect(bloc.state.pendingFieldEdits, isEmpty);
+    expect(inspector.state.pendingFieldEdits, isEmpty);
     // The legend prints the shot size the user typed seconds ago, and the abbreviation deduced
     // from it alongside.
     expect(exportManager.lastExportedSnapshot!.shotsById[shotId]!.shotSize, "Gros plan");
     expect(exportManager.lastExportedSnapshot!.shotsById[shotId]!.abbreviation, "GP");
 
     await exportBloc.close();
+    await inspector.close();
     await bloc.close();
   });
 
@@ -770,7 +800,8 @@ void main() {
       await writeScreenplay(twoSceneText);
 
       final exportManager = _FakeExportManager(exportResult: "/tmp/My Movie - storyboard.pdf");
-      final bloc = buildBloc(fieldEditDebounce: const Duration(days: 1));
+      final bloc = buildBloc();
+      final inspector = buildInspector(bloc, fieldEditDebounce: const Duration(days: 1));
       await waitForState(bloc, (state) => !state.isLoading);
       final exportBloc = buildExportBloc(bloc, exportManager: exportManager);
 
@@ -778,14 +809,14 @@ void main() {
       final state = await waitForState(bloc, (state) => state.totalShotCount == 1);
       final shotId = state.selectedShotId!;
 
-      bloc.add(
+      inspector.add(
         OcptShotListShotFieldChangedEvent(
           shotId: shotId,
           field: OcptShotListEditableField.shotSize,
           rawValue: "Close-up",
         ),
       );
-      await waitForState(bloc, (state) => state.pendingFieldEdits.isNotEmpty);
+      await waitUntil(() => inspector.state.pendingFieldEdits.isNotEmpty);
 
       exportBloc.add(
         const OcptShotListStoryboardExportRequestedEvent(
@@ -797,10 +828,11 @@ void main() {
       );
       await waitForExportState(exportBloc, (state) => state.ioNotice != null);
 
-      expect(bloc.state.pendingFieldEdits, isEmpty);
+      expect(inspector.state.pendingFieldEdits, isEmpty);
       expect(exportManager.lastExportedSnapshot!.shotsById[shotId]!.shotSize, "Close-up");
 
       await exportBloc.close();
+      await inspector.close();
       await bloc.close();
     },
   );
@@ -889,7 +921,8 @@ void main() {
     await writeScreenplay(twoSceneText);
 
     final exportManager = _FakeExportManager(exportResult: "/tmp/My Movie - floor plans.pdf");
-    final bloc = buildBloc(fieldEditDebounce: const Duration(days: 1));
+    final bloc = buildBloc();
+    final inspector = buildInspector(bloc, fieldEditDebounce: const Duration(days: 1));
     await waitForState(bloc, (state) => !state.isLoading);
     final exportBloc = buildExportBloc(bloc, exportManager: exportManager);
 
@@ -897,14 +930,14 @@ void main() {
     final state = await waitForState(bloc, (state) => state.totalShotCount == 1);
     final shotId = state.selectedShotId!;
 
-    bloc.add(
+    inspector.add(
       OcptShotListShotFieldChangedEvent(
         shotId: shotId,
         field: OcptShotListEditableField.shotSize,
         rawValue: "Wide shot",
       ),
     );
-    await waitForState(bloc, (state) => state.pendingFieldEdits.isNotEmpty);
+    await waitUntil(() => inspector.state.pendingFieldEdits.isNotEmpty);
 
     exportBloc.add(
       const OcptShotListFloorPlansExportRequestedEvent(
@@ -914,10 +947,11 @@ void main() {
     );
     await waitForExportState(exportBloc, (state) => state.ioNotice != null);
 
-    expect(bloc.state.pendingFieldEdits, isEmpty);
+    expect(inspector.state.pendingFieldEdits, isEmpty);
     expect(exportManager.lastExportedSnapshot!.shotsById[shotId]!.shotSize, "Wide shot");
 
     await exportBloc.close();
+    await inspector.close();
     await bloc.close();
   });
 
@@ -1011,7 +1045,8 @@ void main() {
 
     test("an export asked just as the mode closes neither hangs nor throws", () async {
       await writeScreenplay(twoSceneText);
-      final bloc = buildBloc(fieldEditDebounce: const Duration(days: 1));
+      final bloc = buildBloc();
+      final inspector = buildInspector(bloc, fieldEditDebounce: const Duration(days: 1));
       await waitForState(bloc, (state) => !state.isLoading);
       final exportBloc = buildExportBloc(
         bloc,
@@ -1019,14 +1054,14 @@ void main() {
       );
       bloc.add(const OcptShotListShotCreationRequestedEvent());
       final state = await waitForState(bloc, (state) => state.totalShotCount == 1);
-      bloc.add(
+      inspector.add(
         OcptShotListShotFieldChangedEvent(
           shotId: state.selectedShotId!,
           field: OcptShotListEditableField.shotSize,
           rawValue: "Close-up",
         ),
       );
-      await waitForState(bloc, (state) => state.pendingFieldEdits.isNotEmpty);
+      await waitUntil(() => inspector.state.pendingFieldEdits.isNotEmpty);
 
       exportBloc.add(
         const OcptShotListXlsxExportRequestedEvent(labels: _exportLabels, fileTypeLabel: "Excel"),
@@ -1034,6 +1069,7 @@ void main() {
       // The mode closes while the export is still waiting for it to write what is pending.
       await bloc.close().timeout(const Duration(seconds: 5));
       await exportBloc.close().timeout(const Duration(seconds: 5));
+      await inspector.close().timeout(const Duration(seconds: 5));
     });
 
     test("closing the export bloc while an export waits for the mode does not hang", () async {

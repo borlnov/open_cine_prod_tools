@@ -24,10 +24,8 @@ import 'package:open_cine_prod_tools/managers/projects/services/ocpt_floor_plan_
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_locations_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_role_index_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_schedule_service.dart';
-import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_coverage_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_list_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_storyboard_service.dart';
-import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/ocpt_floor_plan_scope_decision.dart';
 import 'package:open_cine_prod_tools/models/ocpt_floor_plan_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_floor_plan_symbol.dart';
@@ -36,8 +34,6 @@ import 'package:open_cine_prod_tools/models/ocpt_open_project_model.dart';
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role.dart';
 import 'package:open_cine_prod_tools/models/ocpt_scene_prop_summary.dart';
-import 'package:open_cine_prod_tools/models/ocpt_script_word.dart';
-import 'package:open_cine_prod_tools/models/ocpt_script_word_layout.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_field_suggestions.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_list_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
@@ -56,7 +52,6 @@ import 'package:open_cine_prod_tools/types/ocpt_floor_plan_tool.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_centre_view.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_column.dart';
-import 'package:open_cine_prod_tools/types/ocpt_shot_list_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_pending_edit_key.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_reload_scope.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_right_dock_tab.dart';
@@ -68,7 +63,6 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_project_versi
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_event.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock.dart';
-import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_shot_list_labels.dart';
 
 /// This is the bloc class for the shot list (découpage technique) production mode.
 ///
@@ -81,34 +75,21 @@ import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_shot_list_labels.da
 /// schedule mode is the only writer of a shot's placement, this mode only ever reads it), and holds
 /// the selection, the dock geometry and the visible table columns on top of it.
 ///
-/// Most of a shot's fields are authored one discrete action at a time (picking a status, clicking
-/// a difficulty dot, toggling a character chip) and each of those is written to the project
-/// database immediately, then the snapshot is re-read so every derived aggregate the UI shows (a
-/// sequence's shot count, its average difficulty, a shot's code) stays exactly what the database
-/// says. The inspector's typed free-text fields are the exception: an edit is held in
-/// [OcptShotListState.pendingFieldEdits] and written [defaultFieldEditDebounce] after the last
-/// keystroke, mirroring `OcptEditorBloc`'s own autosave convention. The debounce is flushed
-/// immediately whenever the selected shot or sequence changes, when the workspace is left, and
-/// (through [flushPendingFieldEdits], called by the mode's own `deactivate()`) whenever the mode
-/// leaves the widget tree for any other reason, so a pending edit is never silently dropped.
-/// Committing a shot size additionally deduces the shot's abbreviation from it while the shot has
-/// none of its own ([_deduceAbbreviationIfEmpty]), which is the only write this bloc performs that
-/// the user didn't type themselves.
+/// What the inspector does with a shot — its typed fields and their autosave, its difficulty, its
+/// characters, its scenario coverage ranges and the cast-wide role changes — belongs to
+/// `OcptShotListInspectorBloc`, which writes through the services and then asks this bloc to read
+/// the data again ([reload]). The board belongs to `OcptShotListStoryboardBloc` the same way. What
+/// is typed into a set's tab or a floor plan symbol's label is still held here, in
+/// [OcptShotListState.pendingFieldEdits], and written [defaultFieldEditDebounce] after the last
+/// keystroke, mirroring `OcptEditorBloc`'s own autosave convention. That debounce is flushed
+/// immediately, together with the view blocs', whenever the selected shot or sequence changes,
+/// when the workspace is left, and (through [flushPendingFieldEdits], called by the mode's own
+/// `deactivate()`) whenever the mode leaves the widget tree for any other reason, so a pending edit
+/// is never silently dropped.
 ///
-/// A shot's scenario coverage ranges are a further set of discrete, immediately-written actions:
-/// [_onCoverageWordClicked] resolves a word click against
-/// [OcptShotListState.pendingCoverageAnchor] into adding, removing, or simply moving where the
-/// next click would close a range (see that handler's own doc comment for the three-state
-/// interaction) — a range being added also attaches the characters it covers to the shot, see
-/// [_attachCharactersCoveredBy] —, [_onCoverageClearRequested] drops every range of a shot, and
-/// [_onShotMarkedAsChecked] clears a shot's `needsCheck` flag and re-stamps its ranges' digests.
-/// [_onCoverageAnchorCancelled] is the odd one out: it never touches a range at all, only the
-/// pending anchor a first click opened, so the coverage dialog can be backed out of without
-/// recording anything. All three of the former go through [OcptShotListState.screenplayText] — the
-/// screenplay's Fountain text as last loaded, which `OcptShotListState.buildSelectedCoverageLayout`
-/// slices a scene's own text
-/// out of — loaded once here rather than by [_screenplayCharactersOf] on its own, which used to
-/// parse the screenplay text a second time to derive the same list of speaking characters.
+/// The screenplay's Fountain text, [OcptShotListState.screenplayText], is loaded once here, and the
+/// speaking characters are derived from it by [_screenplayCharactersOf] rather than by parsing the
+/// text a second time.
 ///
 /// It also mixes in [MixinOcptProjectVersionsBloc], which owns everything the right dock's
 /// `Versions` tab does: the project's versions are a property of the *project*, so that tab and
@@ -118,7 +99,7 @@ import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_shot_list_labels.da
 /// [reloadFromProjectDatabase]. `_onRightDockTabSelected` and `_flushAllPendingWrites` each
 /// dispatch [OcptProjectWorkingCopyRefreshRequestedEvent] — opening the `Versions` tab, and a
 /// field edit landing while it is already open — the two moments the mixin's working-copy card is
-/// worth a fresh, throttled read.
+/// worth a fresh, throttled read (a view bloc asks for it the same way when its own flush lands).
 ///
 /// The actions that read the shot list rather than writing to it — its four exports — belong to
 /// `OcptShotListExportBloc`, which asks this bloc to write every pending edit
@@ -174,11 +155,8 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
   final OcptShotListService _shotListService;
 
   /// The service used to read the production's whole cast (for the character chips and the shared
-  /// role alert banner) and to merge/delete/keep an orphaned or collided role.
+  /// role alert banner).
   final OcptRoleIndexService _roleIndexService;
-
-  /// The service used to read and write a shot's scenario coverage ranges.
-  final OcptShotCoverageService _shotCoverageService;
 
   /// The service used to read a shot's placement in the schedule — its `Jour de tournage` read-out,
   /// see [_loadSnapshot].
@@ -219,7 +197,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
   /// `OcptWorkspacePage._buildActiveMode`'s own doc comment), so the field can never go stale.
   ///
   /// Null only for a project holding no episode at all: `OcptWorkspaceBloc` lands on the first one
-  /// before it clears `isLoading`, and a mode is never built before that, so [_screenplayIdOf]'s
+  /// before it clears `isLoading`, and a mode is never built before that, so [screenplayIdOf]'s
   /// fallback to [OcptOpenProjectModel.primaryScreenplayId] is the honest last resort rather than a
   /// routine path.
   final String? _selectedEpisodeId;
@@ -243,7 +221,6 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     OcptExportManager? exportManager,
     OcptShotListService? shotListService,
     OcptRoleIndexService? roleIndexService,
-    OcptShotCoverageService? shotCoverageService,
     OcptScheduleService? scheduleService,
     OcptStoryboardService? storyboardService,
     OcptFloorPlanService? floorPlanService,
@@ -265,9 +242,6 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
        _roleIndexService =
            roleIndexService ??
            (projectsManager ?? globalGetIt().get<OcptProjectsManager>()).roleIndexService,
-       _shotCoverageService =
-           shotCoverageService ??
-           (projectsManager ?? globalGetIt().get<OcptProjectsManager>()).shotCoverageService,
        _scheduleService =
            scheduleService ??
            (projectsManager ?? globalGetIt().get<OcptProjectsManager>()).scheduleService,
@@ -309,19 +283,8 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     on<OcptShotListWriteErrorDismissedEvent>(_onWriteErrorDismissed);
     on<OcptShotListBackRequestedEvent>(_onBackRequested);
     on<OcptShotListProjectSettingsChangedEvent>(_onProjectSettingsChanged);
-    on<OcptShotListShotFieldChangedEvent>(_onShotFieldChanged);
     on<OcptShotListFieldEditFlushRequestedEvent>(_onFieldEditFlushRequested);
-    on<OcptShotListShotDifficultyChangedEvent>(_onShotDifficultyChanged);
-    on<OcptShotListShotCharacterToggledEvent>(_onShotCharacterToggled);
-    on<OcptShotListCharacterAddRequestedEvent>(_onCharacterAddRequested);
     on<OcptShotListShotDeletionRequestedEvent>(_onShotDeletionRequested);
-    on<OcptShotListOrphanedRoleDeleteRequestedEvent>(_onOrphanedRoleDeleteRequested);
-    on<OcptShotListOrphanedRoleKeptEvent>(_onOrphanedRoleKept);
-    on<OcptShotListRoleMergeRequestedEvent>(_onRoleMergeRequested);
-    on<OcptShotListCoverageWordClickedEvent>(_onCoverageWordClicked);
-    on<OcptShotListCoverageClearRequestedEvent>(_onCoverageClearRequested);
-    on<OcptShotListCoverageAnchorCancelledEvent>(_onCoverageAnchorCancelled);
-    on<OcptShotListShotMarkedAsCheckedEvent>(_onShotMarkedAsChecked);
     on<OcptShotListCentreViewSelectedEvent>(_onCentreViewSelected);
     onAwaited<OcptShotListSetSelectedEvent>(_onSetSelected);
     on<OcptShotListSetCreationRequestedEvent>(_onSetCreationRequested);
@@ -393,7 +356,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
   /// The screenplay this bloc reads and writes: [_selectedEpisodeId], or [project]'s own
   /// [OcptOpenProjectModel.primaryScreenplayId] on the one path that can reach here with none
   /// selected (see [_selectedEpisodeId]'s own doc comment).
-  String _screenplayIdOf(OcptOpenProjectModel project) =>
+  String screenplayIdOf(OcptOpenProjectModel project) =>
       _selectedEpisodeId ?? project.primaryScreenplayId;
 
   /// Writes whatever field edit is still sitting in the field-edit debounce, so a preview about to
@@ -596,7 +559,6 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
           forceSelectedFloorPlanSymbolIdValue: true,
           forceSelectedFloorPlanArrowIdValue: true,
           forcePendingFloorPlanArrowAnchorSymbolIdValue: true,
-          forcePendingCoverageAnchorValue: true,
           leftDockFraction: leftDockFraction,
           rightDockFraction: rightDockFraction,
           visibleColumns: visibleColumns,
@@ -647,7 +609,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
   /// selected episode's number with `ocptEpisodePrefixNumberOf`, null on a single-episode project.
   Future<OcptShotListSnapshot> _loadSnapshot(OcptOpenProjectModel project) async {
     final database = project.database;
-    final screenplayId = _screenplayIdOf(project);
+    final screenplayId = screenplayIdOf(project);
 
     final episodes = await _projectsManager.screenplayService.loadEpisodes(database: database);
     final snapshot = await _shotListService.loadShotList(
@@ -666,7 +628,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
   /// Read again after every board write, exactly as [_loadSnapshot] is after every shot list write:
   /// the snapshot in state is only ever a reflection of what the database says.
   Future<OcptStoryboardSnapshot> _loadStoryboard(OcptOpenProjectModel project) => _storyboardService
-      .loadStoryboard(database: project.database, screenplayId: _screenplayIdOf(project));
+      .loadStoryboard(database: project.database, screenplayId: screenplayIdOf(project));
 
   /// Reads the whole floor plans of the selected episode's screenplay — every live set of every
   /// sequence, keyed by scene id — what the floor plans view reads through
@@ -675,7 +637,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
   /// Read again after every floor plans write, exactly as [_loadStoryboard] is after every board
   /// write: the snapshot in state is only ever a reflection of what the database says.
   Future<OcptFloorPlanSnapshot> _loadFloorPlans(OcptOpenProjectModel project) => _floorPlanService
-      .loadFloorPlans(database: project.database, screenplayId: _screenplayIdOf(project));
+      .loadFloorPlans(database: project.database, screenplayId: screenplayIdOf(project));
 
   /// Reads the project's whole Resources catalogue — every location and its own sets, each
   /// carrying the scenes it is linked to — what the set tabs' own `＋ Set` menu groups `Link an
@@ -706,7 +668,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
   /// read/write that needs the whole screenplay text rather than a single scene's own slice of it.
   Future<String> _loadScreenplayText(OcptOpenProjectModel project) => _projectsManager
       .screenplayService
-      .loadScreenplayText(database: project.database, screenplayId: _screenplayIdOf(project));
+      .loadScreenplayText(database: project.database, screenplayId: screenplayIdOf(project));
 
   /// Reads the page setup the screenplay is typeset with: the open project's own page format,
   /// paired with the app-wide margins preference, exactly as the screenplay editor's own bloc
@@ -742,7 +704,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
   /// already been entered elsewhere in *this* screenplay, not the whole project's.
   Future<OcptShotFieldSuggestions> _loadSuggestions(OcptOpenProjectModel project) async {
     final database = project.database;
-    final screenplayId = _screenplayIdOf(project);
+    final screenplayId = screenplayIdOf(project);
 
     return OcptShotFieldSuggestions(
       shotSizes: await _shotListService.distinctShotSizes(
@@ -806,7 +768,6 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
         forceSelectedFloorPlanSymbolIdValue: !isSameSequence,
         forceSelectedFloorPlanArrowIdValue: !isSameSequence,
         forcePendingFloorPlanArrowAnchorSymbolIdValue: true,
-        forcePendingCoverageAnchorValue: true,
         forcePendingFloorPlanScopeDecisionValue: !isSameSequence,
         propsOfSelectedSequence: propsOfSelectedSequence,
         selectionEpoch: state.selectionEpoch + 1,
@@ -842,7 +803,6 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
         selectedShotId: event.shotId,
         rightDockTab: OcptShotListRightDockTab.inspector,
         lastRightDockTab: OcptShotListRightDockTab.inspector,
-        forcePendingCoverageAnchorValue: true,
         forceSelectedFloorPlanSymbolIdValue: true,
         forceSelectedFloorPlanArrowIdValue: true,
         forcePendingFloorPlanArrowAnchorSymbolIdValue: true,
@@ -872,7 +832,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     try {
       final shotId = await _shotListService.createShot(
         database: project.database,
-        screenplayId: _screenplayIdOf(project),
+        screenplayId: screenplayIdOf(project),
         sceneId: sequence.sceneId,
       );
       final snapshot = await _loadSnapshot(project);
@@ -886,7 +846,6 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
           selectedShotId: shotId,
           rightDockTab: OcptShotListRightDockTab.inspector,
           lastRightDockTab: OcptShotListRightDockTab.inspector,
-          forcePendingCoverageAnchorValue: true,
           selectionEpoch: state.selectionEpoch + 1,
           selectionCause: OcptShotListSelectionCause.shotCreated,
         ),
@@ -1050,23 +1009,9 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     emitter(state.copyWith(pageSetup: pageSetup));
   }
 
-  /// Records the raw text just typed into `event.field` of shot `event.shotId` as a pending edit,
-  /// visible immediately, and (re)starts the field-edit debounce that eventually writes it.
-  Future<void> _onShotFieldChanged(
-    OcptShotListShotFieldChangedEvent event,
-    Emitter<OcptShotListState> emitter,
-  ) async {
-    _recordPendingEdit(
-      emitter: emitter,
-      key: OcptShotListShotFieldEditKey(shotId: event.shotId, field: event.field),
-      rawValue: event.rawValue,
-    );
-  }
-
   /// Records [rawValue] as the pending edit of [key], visible immediately, and (re)starts the
-  /// field-edit debounce that eventually writes it — the body [_onShotFieldChanged],
-  /// [_onSetNameChanged] and [_onFloorPlanSymbolLabelChanged] share, since all ride the very same
-  /// debounce.
+  /// field-edit debounce that eventually writes it — the body [_onSetNameChanged] and
+  /// [_onFloorPlanSymbolLabelChanged] share, since both ride the very same debounce.
   void _recordPendingEdit({
     required Emitter<OcptShotListState> emitter,
     required OcptShotListPendingEditKey key,
@@ -1115,10 +1060,9 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
   }
 
   /// Writes every pending field edit the mode itself holds immediately: cancels the debounce
-  /// timer (a no-op if it already fired or there was none), writes each one through
-  /// `OcptShotListService.updateShot`, then reloads the snapshot and the suggestion lists so every
-  /// derived aggregate and every field's suggestions reflect what the database now says. A no-op
-  /// while nothing is pending. Answers whether there was anything pending.
+  /// timer (a no-op if it already fired or there was none), writes each one (a set's name, a
+  /// symbol's label), then reads the shared data again so every view reflects what the database
+  /// now says. A no-op while nothing is pending. Answers whether there was anything pending.
   ///
   /// Used from inside an event handler, with that handler's own [emitter]: called by
   /// [_onFieldEditFlushRequested] (the debounce firing) and by [_flushAllPendingWrites].
@@ -1237,52 +1181,26 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     }
   }
 
-  /// Writes every entry of [pending], switching on its key's own kind: a shot field through
-  /// `OcptShotListService.updateShot` (translating it into the matching named argument, see
-  /// `OcptShotListEditableField`'s own doc comment for the mapping, and deducing an abbreviation
-  /// alongside every shot size committed here, see [_deduceAbbreviationIfEmpty]), a panel comment
-  /// through `OcptStoryboardService.updatePanelComment`, or a mark's own text through
-  /// `OcptStoryboardService.updateAnnotation`.
-  ///
-  /// A shot whose abbreviation is being typed in the very same flush is left out of the deduction:
-  /// what the user is writing wins over what the shot size would have suggested, whichever of the
-  /// two entries this loop happens to reach first.
+  /// Writes every entry of [pending], switching on its key's own kind: a set's name through
+  /// `OcptLocationsService.updateSet`, or a symbol's label through
+  /// `OcptFloorPlanService.updateSymbol`.
   Future<void> _writeAllPendingFields({
     required OcptOpenProjectModel project,
     required Map<OcptShotListPendingEditKey, String> pending,
   }) async {
     for (final entry in pending.entries) {
       switch (entry.key) {
-        case OcptShotListShotFieldEditKey(:final shotId, :final field):
-          await _writeField(
-            database: project.database,
-            shotId: shotId,
-            field: field,
-            rawValue: entry.value,
-          );
-
-          if (field == OcptShotListEditableField.shotSize &&
-              !pending.containsKey(
-                OcptShotListShotFieldEditKey(
-                  shotId: shotId,
-                  field: OcptShotListEditableField.abbreviation,
-                ),
-              )) {
-            await _deduceAbbreviationIfEmpty(
-              database: project.database,
-              shotId: shotId,
-              shotSize: entry.value,
-            );
-          }
         case OcptShotListSetNameEditKey(:final setId):
           await _locationsService.updateSet(
             database: project.database,
             setId: setId,
             name: Value(entry.value),
           );
-        case OcptShotListPanelCommentEditKey() || OcptShotListAnnotationTextEditKey():
-          // A panel comment and a mark's text are the storyboard bloc's own, and never recorded
-          // here.
+        case OcptShotListShotFieldEditKey() ||
+            OcptShotListPanelCommentEditKey() ||
+            OcptShotListAnnotationTextEditKey():
+          // A shot field, a panel comment and a mark's text are the inspector bloc's and the
+          // storyboard bloc's own, and never recorded here.
           break;
         case OcptShotListSymbolLabelEditKey(:final symbolId):
           await _floorPlanService.updateSymbol(
@@ -1294,189 +1212,12 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     }
   }
 
-  /// Writes onto shot [shotId] the abbreviation [ocptDeduceShotAbbreviation] reads out of the
-  /// [shotSize] just committed, unless the shot already carries one.
-  ///
-  /// Deduced once, at that moment only: an abbreviation the user has typed — or one deduced from
-  /// an earlier shot size — is never overwritten by a later edit of the shot size, and clearing
-  /// the field leaves it empty until the shot size is committed again. A shot size with no
-  /// initials to read at all (blank, or punctuation alone) deduces nothing rather than emptying
-  /// what the shot holds.
-  Future<void> _deduceAbbreviationIfEmpty({
-    required OcptProjectDatabase database,
-    required String shotId,
-    required String shotSize,
-  }) async {
-    final stored = state.snapshot?.shotsById[shotId]?.abbreviation ?? "";
-    if (stored.trim().isNotEmpty) {
-      return;
-    }
-
-    final deduced = ocptDeduceShotAbbreviation(shotSize);
-    if (deduced.isEmpty) {
-      return;
-    }
-
-    await _shotListService.updateShot(
-      database: database,
-      shotId: shotId,
-      abbreviation: Value(deduced),
-    );
-  }
-
-  /// Writes a single field edit through `OcptShotListService.updateShot`.
-  /// [OcptShotListEditableField.estimatedDuration] is parsed first; an entry whose raw text
-  /// doesn't parse is silently skipped, leaving whatever the database already holds untouched,
-  /// rather than failing the whole flush.
-  Future<void> _writeField({
-    required OcptProjectDatabase database,
-    required String shotId,
-    required OcptShotListEditableField field,
-    required String rawValue,
-  }) async {
-    if (field != OcptShotListEditableField.estimatedDuration) {
-      await _shotListService.updateTextField(
-        database: database,
-        shotId: shotId,
-        field: field,
-        rawValue: rawValue,
-      );
-      return;
-    }
-
-    // A mistyped duration is the field's own error state, not a failure: the edit is skipped
-    // so it doesn't stop the flush of every other pending edit alongside it, and nothing is
-    // logged, since the text it would quote is the user's.
-    final parsed = ocptParseShotDuration(rawValue);
-    if (!parsed.status.isSuccess) {
-      return;
-    }
-    await _shotListService.updateShot(
-      database: database,
-      shotId: shotId,
-      estimatedDurationMs: Value(parsed.value),
-    );
-  }
-
-  /// Sets one difficulty axis of shot `event.shotId` to `event.value`, written immediately.
-  Future<void> _onShotDifficultyChanged(
-    OcptShotListShotDifficultyChangedEvent event,
-    Emitter<OcptShotListState> emitter,
-  ) async {
-    final project = _projectsManager.currentProject;
-    if (project == null) {
-      return;
-    }
-
-    try {
-      await _shotListService.updateDifficulty(
-        database: project.database,
-        shotId: event.shotId,
-        axis: event.axis,
-        value: event.value,
-      );
-      final snapshot = await _loadSnapshot(project);
-      emitter(state.copyWith(snapshot: snapshot));
-    } catch (error, stackTrace) {
-      _logger.e(
-        "A problem occurred when tried to change the difficulty of shot ${event.shotId} of "
-        "project ${project.primaryScreenplayId}: ${error.runtimeType}",
-        null,
-        stackTrace,
-      );
-      emitter(state.copyWith(hasWriteError: true));
-    }
-  }
-
-  /// Attaches role `event.roleId` to shot `event.shotId` if it isn't already, detaches it
-  /// otherwise, written immediately.
-  Future<void> _onShotCharacterToggled(
-    OcptShotListShotCharacterToggledEvent event,
-    Emitter<OcptShotListState> emitter,
-  ) async {
-    final project = _projectsManager.currentProject;
-    final shot = state.snapshot?.shotsById[event.shotId];
-    if (project == null || shot == null) {
-      return;
-    }
-
-    final isAttached = shot.characterRoleIds.contains(event.roleId);
-
-    try {
-      if (isAttached) {
-        await _shotListService.detachCharacter(
-          database: project.database,
-          shotId: event.shotId,
-          roleId: event.roleId,
-        );
-      } else {
-        await _shotListService.attachCharacter(
-          database: project.database,
-          shotId: event.shotId,
-          roleId: event.roleId,
-        );
-      }
-      final snapshot = await _loadSnapshot(project);
-      emitter(state.copyWith(snapshot: snapshot));
-    } catch (error, stackTrace) {
-      _logger.e(
-        "A problem occurred when tried to toggle role ${event.roleId} on shot ${event.shotId} "
-        "of project ${project.primaryScreenplayId}: ${error.runtimeType}",
-        null,
-        stackTrace,
-      );
-      emitter(state.copyWith(hasWriteError: true));
-    }
-  }
-
-  /// Resolves `event.characterName` to a live role, or **creates** a hand-added silent one linked
-  /// to the selected episode (decision 1), then attaches it to shot `event.shotId`: the inspector's
-  /// `＋ Add` field, dispatched once submitted. Written immediately, and reloads both the snapshot
-  /// and the whole cast, since this is the one shot list action that can mint a fresh role.
-  Future<void> _onCharacterAddRequested(
-    OcptShotListCharacterAddRequestedEvent event,
-    Emitter<OcptShotListState> emitter,
-  ) async {
-    final project = _projectsManager.currentProject;
-    if (project == null) {
-      return;
-    }
-
-    try {
-      final roleId = await _shotListService.resolveOrCreateRoleId(
-        database: project.database,
-        screenplayId: _screenplayIdOf(project),
-        name: event.characterName,
-      );
-      if (roleId == null) {
-        return;
-      }
-
-      await _shotListService.attachCharacter(
-        database: project.database,
-        shotId: event.shotId,
-        roleId: roleId,
-      );
-      final snapshot = await _loadSnapshot(project);
-      final roles = await _loadRoles(project);
-      emitter(state.copyWith(snapshot: snapshot, roles: roles));
-    } catch (error, stackTrace) {
-      _logger.e(
-        "A problem occurred when tried to add a character to shot "
-        "${event.shotId} of project ${project.primaryScreenplayId}: ${error.runtimeType}",
-        null,
-        stackTrace,
-      );
-      emitter(state.copyWith(hasWriteError: true));
-    }
-  }
-
   /// Deletes shot `event.shotId`, reselecting the sequence's own next first shot when it was the
   /// selected one (the sequence stays selected; null only while the sequence now holds none at all
-  /// — the "always a current shot" invariant), and dropping any pending field edit that
-  /// still targeted it — `OcptShotListService.deleteShot`'s own cascade tombstones the shot's
-  /// panels alongside it, and the storyboard bloc drops the comments typed into them once it sees
-  /// the mode read the storyboard again.
+  /// — the "always a current shot" invariant), and dropping any pending floor plan label that
+  /// still targeted one of its symbols — `OcptShotListService.deleteShot`'s own cascade tombstones
+  /// the shot's panels alongside it, and the inspector and storyboard blocs drop the fields and
+  /// comments typed into the shot and its panels once they see the mode read the data again.
   Future<void> _onShotDeletionRequested(
     OcptShotListShotDeletionRequestedEvent event,
     Emitter<OcptShotListState> emitter,
@@ -1494,7 +1235,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
             if (symbol.shotId == event.shotId) symbol.id,
     };
     bool isOfShot(OcptShotListPendingEditKey key) => switch (key) {
-      OcptShotListShotFieldEditKey(:final shotId) => shotId == event.shotId,
+      OcptShotListShotFieldEditKey() => false,
       OcptShotListPanelCommentEditKey() => false,
       OcptShotListAnnotationTextEditKey() => false,
       OcptShotListSetNameEditKey() => false,
@@ -1532,7 +1273,6 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
             ..removeWhere((key, _) => isOfShot(key)),
           selectedShotId: reselectedShotId,
           forceSelectedShotIdValue: reselectedShotId == null,
-          forcePendingCoverageAnchorValue: wasSelected,
           forceSelectedFloorPlanSymbolIdValue: wasSelected || wasFloorPlanSymbolSelected,
           forceSelectedFloorPlanArrowIdValue: wasSelected || wasFloorPlanSymbolSelected,
           forcePendingFloorPlanArrowAnchorSymbolIdValue: wasSelected,
@@ -1549,293 +1289,6 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
         stackTrace,
       );
       emitter(state.copyWith(hasWriteError: true));
-    }
-  }
-
-  /// Deletes orphaned role `event.roleId` for good, written immediately: the shared role alert
-  /// banner's orphaned variant's `Delete the role` action, dispatched once the mode's own
-  /// `OcptConfirmDialog` has already confirmed it.
-  Future<void> _onOrphanedRoleDeleteRequested(
-    OcptShotListOrphanedRoleDeleteRequestedEvent event,
-    Emitter<OcptShotListState> emitter,
-  ) => _writeRoleChange(
-    emitter: emitter,
-    logContext: "delete role ${event.roleId}",
-    action: (project) =>
-        _roleIndexService.deleteRole(database: project.database, roleId: event.roleId),
-  );
-
-  /// Keeps orphaned role `event.roleId` as a hand-added silent role, written immediately: the
-  /// shared role alert banner's orphaned variant's `Keep as silent` action — not destructive, so
-  /// reached with no confirmation dialog.
-  Future<void> _onOrphanedRoleKept(
-    OcptShotListOrphanedRoleKeptEvent event,
-    Emitter<OcptShotListState> emitter,
-  ) => _writeRoleChange(
-    emitter: emitter,
-    logContext: "keep orphaned role ${event.roleId} as silent",
-    action: (project) => _roleIndexService.keepOrphanedRoleAsSilent(
-      database: project.database,
-      roleId: event.roleId,
-    ),
-  );
-
-  /// Merges role `event.sourceRoleId` into role `event.targetRoleId`, written immediately: the
-  /// shared role alert banner's merge affordance — either variant — dispatched once the mode's own
-  /// `OcptConfirmDialog` has already confirmed it.
-  Future<void> _onRoleMergeRequested(
-    OcptShotListRoleMergeRequestedEvent event,
-    Emitter<OcptShotListState> emitter,
-  ) => _writeRoleChange(
-    emitter: emitter,
-    logContext: "merge role ${event.sourceRoleId} into ${event.targetRoleId}",
-    action: (project) => _roleIndexService.mergeRole(
-      database: project.database,
-      sourceRoleId: event.sourceRoleId,
-      targetRoleId: event.targetRoleId,
-    ),
-  );
-
-  /// Writes a cast-wide role change through [action] and reloads both the snapshot and the whole
-  /// cast, so every view derived from either (the shared role alert banner, a shot's own chips, the
-  /// table's characters column) reflects what the database now says. Mirrors
-  /// [_writeCoverageChange]'s own try/catch shape, for the three actions the shared role alert
-  /// banner offers.
-  Future<void> _writeRoleChange({
-    required Emitter<OcptShotListState> emitter,
-    required String logContext,
-    required Future<void> Function(OcptOpenProjectModel project) action,
-  }) async {
-    final project = _projectsManager.currentProject;
-    if (project == null) {
-      return;
-    }
-
-    try {
-      await action(project);
-      final snapshot = await _loadSnapshot(project);
-      final roles = await _loadRoles(project);
-      emitter(state.copyWith(snapshot: snapshot, roles: roles));
-    } catch (error, stackTrace) {
-      _logger.e(
-        "A problem occurred when tried to $logContext of project "
-        "${project.primaryScreenplayId}: ${error.runtimeType}",
-        null,
-        stackTrace,
-      );
-      emitter(state.copyWith(hasWriteError: true));
-    }
-  }
-
-  /// Resolves a click on a scenario coverage word, exactly as
-  /// `OcptShotListCoverageWordClickedEvent` documents: with no range open, a click on one of the
-  /// selected shot's own already-covered words removes the range covering it and any other click
-  /// opens a range on that word; with a range open, the click closes it wherever it lands. Written
-  /// immediately, like every other coverage change; a stale click — a shot no longer selected, or
-  /// nothing left to lay out — is silently ignored, since the layout the click was resolved against
-  /// might no longer describe what is on screen.
-  ///
-  /// A closing click is never rejected for landing in another block than the one the range was
-  /// opened in: a range legitimately runs from an action paragraph into the dialogue below it, and
-  /// `OcptShotCoverageService.addRange` stopped enforcing anything about blocks along with it.
-  ///
-  /// The click that closes a range writes the characters that range covers alongside it, in the
-  /// same [_writeCoverageChange] action so both land before the snapshot is re-read: see
-  /// [_attachCharactersCoveredBy].
-  Future<void> _onCoverageWordClicked(
-    OcptShotListCoverageWordClickedEvent event,
-    Emitter<OcptShotListState> emitter,
-  ) async {
-    final project = _projectsManager.currentProject;
-    final layout = state.buildSelectedCoverageLayout();
-    if (project == null || layout == null || state.selectedShotId != event.shotId) {
-      return;
-    }
-
-    final anchor = state.pendingCoverageAnchor;
-
-    if (anchor == null) {
-      final coveringRange = layout.rangeAt(
-        event.wordStartOffset,
-        state.selectedShot?.coverageRanges ?? const [],
-      );
-      if (coveringRange == null) {
-        emitter(
-          state.copyWith(
-            pendingCoverageAnchor: (
-              wordStartOffset: event.wordStartOffset,
-              wordEndOffset: event.wordEndOffset,
-            ),
-          ),
-        );
-        return;
-      }
-
-      await _writeCoverageChange(
-        emitter: emitter,
-        project: project,
-        shotId: event.shotId,
-        action: () =>
-            _shotCoverageService.removeRange(database: project.database, rangeId: coveringRange.id),
-      );
-      return;
-    }
-
-    final range = layout.rangeBetween(
-      OcptScriptWord(
-        text: layout.sceneText.substring(anchor.wordStartOffset, anchor.wordEndOffset),
-        startOffset: anchor.wordStartOffset,
-        endOffset: anchor.wordEndOffset,
-      ),
-      OcptScriptWord(
-        text: layout.sceneText.substring(event.wordStartOffset, event.wordEndOffset),
-        startOffset: event.wordStartOffset,
-        endOffset: event.wordEndOffset,
-      ),
-    );
-
-    await _writeCoverageChange(
-      emitter: emitter,
-      project: project,
-      shotId: event.shotId,
-      action: () async {
-        await _shotCoverageService.addRange(
-          database: project.database,
-          shotId: event.shotId,
-          sceneId: layout.sceneId,
-          startOffset: range.startOffset,
-          endOffset: range.endOffset,
-          sceneText: layout.sceneText,
-        );
-        await _attachCharactersCoveredBy(
-          project: project,
-          shotId: event.shotId,
-          layout: layout,
-          range: range,
-        );
-      },
-    );
-  }
-
-  /// Attaches to shot [shotId] every character the range just recorded covers, so selecting a
-  /// shot's scenario coverage ticks its character chips on its own instead of leaving the same
-  /// names to be clicked twice.
-  ///
-  /// Deliberately additive: a range that stops covering a character (removed, or narrowed) never
-  /// detaches anybody, since a shot's characters are the director's own list — a silent role, an
-  /// extra, a character kept in frame through a reply they don't speak — and only the user knows
-  /// which of them the coverage happens to explain. A role already attached is skipped, and so is a
-  /// covered name matching no live role of [OcptShotListState.roles] — one not reconciled yet,
-  /// which the next save resolves.
-  Future<void> _attachCharactersCoveredBy({
-    required OcptOpenProjectModel project,
-    required String shotId,
-    required OcptScriptWordLayout layout,
-    required ({int startOffset, int endOffset}) range,
-  }) async {
-    final attachedRoleIds = state.snapshot?.shotsById[shotId]?.characterRoleIds ?? const <String>[];
-    final covered = layout.charactersCoveredBy(
-      startOffset: range.startOffset,
-      endOffset: range.endOffset,
-    );
-
-    for (final characterName in covered) {
-      final role = state.roles.firstWhereOrNull((role) => role.name == characterName);
-      if (role == null || attachedRoleIds.contains(role.id)) {
-        continue;
-      }
-
-      await _shotListService.attachCharacter(
-        database: project.database,
-        shotId: shotId,
-        roleId: role.id,
-      );
-    }
-  }
-
-  /// Removes every scenario coverage range of shot `event.shotId`, written immediately: the
-  /// inspector's `Clear all` action.
-  Future<void> _onCoverageClearRequested(
-    OcptShotListCoverageClearRequestedEvent event,
-    Emitter<OcptShotListState> emitter,
-  ) async {
-    final project = _projectsManager.currentProject;
-    if (project == null) {
-      return;
-    }
-
-    await _writeCoverageChange(
-      emitter: emitter,
-      project: project,
-      shotId: event.shotId,
-      action: () =>
-          _shotCoverageService.clearRangesOfShot(database: project.database, shotId: event.shotId),
-    );
-  }
-
-  /// Clears the pending coverage anchor, exactly as `OcptShotListCoverageAnchorCancelledEvent`
-  /// documents: dispatched by the coverage dialog's `Escape`, a click on empty space in its script
-  /// area, or the dialog closing. Leaves the selected shot's own coverage ranges untouched.
-  Future<void> _onCoverageAnchorCancelled(
-    OcptShotListCoverageAnchorCancelledEvent event,
-    Emitter<OcptShotListState> emitter,
-  ) async {
-    emitter(state.copyWith(forcePendingCoverageAnchorValue: true));
-  }
-
-  /// Clears shot `event.shotId`'s `needsCheck` flag and re-stamps every one of its scenario
-  /// coverage ranges' digests to the screenplay's current text, written immediately: the
-  /// inspector's `Needs checking` callout's `Mark as checked` button.
-  ///
-  /// Passes the whole [OcptShotListState.screenplayText], not a single scene's slice of it: the
-  /// offsets `OcptShotCoverageService.markAsChecked` re-stamps are scene-relative to each range's
-  /// own scene's `charStart`, and a shot's ranges may span more than one scene. This also clears a
-  /// `needsCheck` the shot carries for `OcptShotCheckReason.sceneDeleted` (an orphaned shot, which
-  /// has no range to re-stamp at all) exactly as it clears any other reason.
-  Future<void> _onShotMarkedAsChecked(
-    OcptShotListShotMarkedAsCheckedEvent event,
-    Emitter<OcptShotListState> emitter,
-  ) async {
-    final project = _projectsManager.currentProject;
-    if (project == null) {
-      return;
-    }
-
-    await _writeCoverageChange(
-      emitter: emitter,
-      project: project,
-      shotId: event.shotId,
-      action: () => _shotCoverageService.markAsChecked(
-        database: project.database,
-        shotId: event.shotId,
-        currentFountainText: state.screenplayText,
-      ),
-    );
-  }
-
-  /// Writes a scenario coverage change through [action], reloads the snapshot so every dependent
-  /// aggregate (the `modified` badge, the "also covered by" wash, a shot's `needsCheck`) reflects
-  /// what the database now says, and clears the pending coverage anchor — a coverage write always
-  /// leaves the interaction back at its initial, no-anchor state. Mirrors
-  /// `_onShotDifficultyChanged`/`_onShotCharacterToggled`'s own try/catch shape.
-  Future<void> _writeCoverageChange({
-    required Emitter<OcptShotListState> emitter,
-    required OcptOpenProjectModel project,
-    required String shotId,
-    required Future<void> Function() action,
-  }) async {
-    try {
-      await action();
-      final snapshot = await _loadSnapshot(project);
-      emitter(state.copyWith(snapshot: snapshot, forcePendingCoverageAnchorValue: true));
-    } catch (error, stackTrace) {
-      _logger.e(
-        "A problem occurred when tried to change the scenario coverage of shot $shotId of "
-        "project ${project.primaryScreenplayId}: ${error.runtimeType}",
-        null,
-        stackTrace,
-      );
-      emitter(state.copyWith(hasWriteError: true, forcePendingCoverageAnchorValue: true));
     }
   }
 
@@ -1994,7 +1447,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
   }
 
   /// Records the raw text just typed into set `event.setId`'s own tab as a pending edit, and
-  /// (re)starts the field-edit debounce shared with [_onShotFieldChanged].
+  /// (re)starts the field-edit debounce shared with [_onFloorPlanSymbolLabelChanged].
   Future<void> _onSetNameChanged(
     OcptShotListSetNameChangedEvent event,
     Emitter<OcptShotListState> emitter,
@@ -2969,7 +2422,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
   /// the arrow's first end; with one already pending and a different symbol tapped, completes a
   /// movement arrow from the anchor to it, on the focused shot; a tap on the anchor itself is a
   /// no-op. Written immediately; a stale tap (no set or no shot focused any more) is silently
-  /// ignored, mirroring [_onCoverageWordClicked]'s own guard.
+  /// ignored, mirroring `OcptShotListInspectorBloc`'s coverage word click guard.
   Future<void> _onFloorPlanArrowSymbolTapped(
     OcptShotListFloorPlanArrowSymbolTappedEvent event,
     Emitter<OcptShotListState> emitter,
@@ -3022,7 +2475,8 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
 
   /// Cancels the arrow tool's own pending anchor, dispatched by `Escape` or a click on empty
   /// canvas while it is on. Leaves every arrow untouched, exactly as
-  /// [_onCoverageAnchorCancelled] leaves every coverage range untouched.
+  /// `OcptShotListInspectorBloc`'s coverage anchor cancellation leaves every coverage range
+  /// untouched.
   Future<void> _onFloorPlanArrowAnchorCancelled(
     OcptShotListFloorPlanArrowAnchorCancelledEvent event,
     Emitter<OcptShotListState> emitter,

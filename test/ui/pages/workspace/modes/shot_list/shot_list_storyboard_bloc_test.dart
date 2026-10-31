@@ -24,10 +24,8 @@ import 'package:open_cine_prod_tools/managers/projects/services/ocpt_storyboard_
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_list_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_storyboard_snapshot.dart';
-import 'package:open_cine_prod_tools/types/ocpt_shot_difficulty_axis.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_centre_view.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_column.dart';
-import 'package:open_cine_prod_tools/types/ocpt_shot_list_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_pending_edit_key.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_reload_scope.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_right_dock_tab.dart';
@@ -1176,13 +1174,11 @@ void main() {
       final mode = mounted.mode;
       final board = mounted.board;
 
-      // The mode holds a typed edit of its own, so its flush reads everything again.
+      // The mode holds a typed edit of its own (a set's name), so its flush reads everything again.
+      mode.add(const OcptShotListSetCreationRequestedEvent());
+      await waitUntil(() => mode.state.selectedSetId != null);
       mode.add(
-        OcptShotListShotFieldChangedEvent(
-          shotId: mounted.shotId,
-          field: OcptShotListEditableField.shotSize,
-          rawValue: "Wide",
-        ),
+        OcptShotListSetNameChangedEvent(setId: mode.state.selectedSetId!, rawValue: "Living room"),
       );
       await waitUntil(() => mode.state.pendingFieldEdits.isNotEmpty);
 
@@ -1211,15 +1207,9 @@ void main() {
       final mode = mounted.mode;
       final epoch = mode.state.reloadEpoch;
 
-      // A difficulty write reads the snapshot and is held there, holding the state it started from.
+      // Creating a shot reads the snapshot and is held there, holding the state it started from.
       service.heldReads = 1;
-      mode.add(
-        OcptShotListShotDifficultyChangedEvent(
-          shotId: mounted.shotId,
-          axis: OcptShotDifficultyAxis.sound,
-          value: 4,
-        ),
-      );
+      mode.add(const OcptShotListShotCreationRequestedEvent());
       await waitUntil(() => service.holdCount == 1);
 
       // Meanwhile the storyboard changes and the mode reads it.
@@ -1278,11 +1268,11 @@ void main() {
       );
       final mode = mounted.mode;
 
-      OcptShotListShotFieldChangedEvent typed(String text) => OcptShotListShotFieldChangedEvent(
-        shotId: mounted.shotId,
-        field: OcptShotListEditableField.lens,
-        rawValue: text,
-      );
+      mode.add(const OcptShotListSetCreationRequestedEvent());
+      await waitUntil(() => mode.state.selectedSetId != null);
+      final setId = mode.state.selectedSetId!;
+      OcptShotListSetNameChangedEvent typed(String text) =>
+          OcptShotListSetNameChangedEvent(setId: setId, rawValue: text);
 
       mode.add(typed("5"));
       await waitUntil(() => mode.state.pendingFieldEdits.isNotEmpty);
@@ -1299,13 +1289,7 @@ void main() {
       expect(mode.state.pendingFieldEdits.values, ["50"], reason: 'the keystroke is not lost');
       await mode.flushAllPendingWrites();
       expect(mode.state.pendingFieldEdits, isEmpty);
-      expect(
-        mode.state.snapshot!.sequences
-            .expand((sequence) => sequence.shots)
-            .firstWhere((shot) => shot.id == mounted.shotId)
-            .lens,
-        "50",
-      );
+      expect(mode.state.selectedSet!.name, "50");
 
       await closeAll(mounted.board, mode);
     });

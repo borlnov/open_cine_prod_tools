@@ -19,14 +19,11 @@ import 'package:open_cine_prod_tools/managers/projects/services/ocpt_elements_se
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_floor_plan_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_role_candidates_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_role_index_service.dart';
-import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_coverage_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_list_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_storyboard_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/ocpt_floor_plan_sheet.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_working_copy_state.dart';
-import 'package:open_cine_prod_tools/models/ocpt_script_word.dart';
-import 'package:open_cine_prod_tools/models/ocpt_script_word_block.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_layer.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_override_level.dart';
@@ -35,7 +32,6 @@ import 'package:open_cine_prod_tools/types/ocpt_floor_plan_set_element_shape.dar
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_tool.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
-import 'package:open_cine_prod_tools/types/ocpt_shot_check_reason.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_difficulty_axis.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_centre_view.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_column.dart';
@@ -47,6 +43,7 @@ import 'package:open_cine_prod_tools/types/ocpt_shot_list_selection_cause.dart';
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_event.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_inspector_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock.dart';
 import 'package:path/path.dart' as p;
@@ -135,24 +132,6 @@ class _FailingShotListService extends OcptShotListService {
   }) async => throw StateError("shot creation intentionally failed for the test");
 }
 
-/// A shot coverage service whose [addRange] always fails, to exercise the bloc's coverage write
-/// error path.
-class _FailingShotCoverageService extends OcptShotCoverageService {
-  /// Class constructor
-  const _FailingShotCoverageService()
-    : super(logger: const SilentLogger(), deviceId: _testDeviceId);
-
-  @override
-  Future<String> addRange({
-    required OcptProjectDatabase database,
-    required String shotId,
-    required String sceneId,
-    required int startOffset,
-    required int endOffset,
-    required String sceneText,
-  }) async => throw StateError("coverage write intentionally failed for the test");
-}
-
 /// A file selector manager answering the picker with a file of its own, so a test never opens a
 /// native dialog: [pickedPath] is what the user is pretending to pick, and null is a
 /// cancellation. Mirrors `OcptResourcesBloc`'s own test double,
@@ -185,10 +164,6 @@ void main() {
   const dialogueText =
       "INT. HOUSE - DAY\n\nAction one.\n\nLÉA\nHello there.\n\n"
       "EXT. GARDEN - NIGHT\n\nAction two.\n";
-  const twoCharactersText =
-      "INT. HOUSE - DAY\n\nAction one.\n\nLÉA\nHello there.\n\n"
-      "MARC\nHello back.\n";
-  const oneCharacterLeftText = "INT. HOUSE - DAY\n\nAction one.\n\nMARC\nHello back.\n";
   // ELISA is introduced in capitals in an action line and never speaks: the screenwriting
   // convention for a character's first appearance, and the only way a silent role is ever named.
   const silentCharacterText =
@@ -257,7 +232,6 @@ void main() {
   OcptShotListBloc buildBloc({
     OcptRouterManager? routerManager,
     OcptShotListService? shotListService,
-    OcptShotCoverageService? shotCoverageService,
     OcptStoryboardService? storyboardService,
     OcptFloorPlanService? floorPlanService,
     FileSelectorManager? fileSelectorManager,
@@ -270,13 +244,37 @@ void main() {
     routerManager: routerManager ?? _RecordingRouterManager(),
     exportManager: OcptExportManager(fileSelectorManager: const FileSelectorManager()),
     shotListService: shotListService,
-    shotCoverageService: shotCoverageService,
     storyboardService: storyboardService,
     floorPlanService: floorPlanService,
     fileSelectorManager: fileSelectorManager,
     fieldEditDebounce: fieldEditDebounce,
     selectedEpisodeId: selectedEpisodeId,
   );
+
+  /// Builds the inspector bloc of [modeBloc], for the tests that write through it. [fieldEditDebounce]
+  /// defaults to a short duration so tests exercising the field-edit debounce don't have to wait out
+  /// the real 2 s one.
+  OcptShotListInspectorBloc buildInspector(
+    OcptShotListBloc modeBloc, {
+    Duration fieldEditDebounce = const Duration(milliseconds: 30),
+  }) => OcptShotListInspectorBloc(
+    modeBloc: modeBloc,
+    projectsManager: projectsManager,
+    fieldEditDebounce: fieldEditDebounce,
+  );
+
+  /// Waits until [isDone] holds, looking again every few milliseconds: for a condition that spans
+  /// the mode bloc and the inspector bloc, whose states change in an order a test must not depend
+  /// on.
+  Future<void> waitUntil(bool Function() isDone) async {
+    final deadline = DateTime.now().add(const Duration(seconds: 5));
+    while (!isDone()) {
+      if (DateTime.now().isAfter(deadline)) {
+        throw TimeoutException("The awaited condition never held");
+      }
+      await Future<void>.delayed(const Duration(milliseconds: 2));
+    }
+  }
 
   /// Waits for the first state of [bloc] matching [predicate] (the current one included).
   Future<OcptShotListState> waitForState(
@@ -288,36 +286,6 @@ void main() {
     }
 
     return bloc.stream.firstWhere(predicate).timeout(const Duration(seconds: 5));
-  }
-
-  /// Dispatches the two word clicks that draw a scenario coverage range across every word of
-  /// [block] on shot [shotId] (first word opens the anchor, last word closes it), waiting for the
-  /// anchor to land after the first click and for the range to land after the second.
-  Future<void> drawCoverageRange(
-    OcptShotListBloc bloc, {
-    required String shotId,
-    required OcptScriptWordBlock block,
-  }) async {
-    bloc.add(
-      OcptShotListCoverageWordClickedEvent(
-        shotId: shotId,
-        wordStartOffset: block.words.first.startOffset,
-        wordEndOffset: block.words.first.endOffset,
-      ),
-    );
-    await waitForState(bloc, (state) => state.pendingCoverageAnchor != null);
-
-    bloc.add(
-      OcptShotListCoverageWordClickedEvent(
-        shotId: shotId,
-        wordStartOffset: block.words.last.startOffset,
-        wordEndOffset: block.words.last.endOffset,
-      ),
-    );
-    await waitForState(
-      bloc,
-      (state) => state.snapshot!.shotsById[shotId]!.coverageRanges.isNotEmpty,
-    );
   }
 
   group("the shared epochs the view blocs react to", () {
@@ -440,6 +408,7 @@ void main() {
     test("a write that reads the shot list again moves the reload epoch alone", () async {
       await writeScreenplay(twoSceneText);
       final bloc = buildBloc();
+      final inspector = buildInspector(bloc);
       await waitForState(bloc, (state) => !state.isLoading);
       bloc.add(const OcptShotListShotCreationRequestedEvent());
       var state = await waitForState(bloc, (state) => state.totalShotCount == 1);
@@ -447,7 +416,7 @@ void main() {
       final selectionEpoch = state.selectionEpoch;
       final reloadEpoch = state.reloadEpoch;
 
-      bloc.add(
+      inspector.add(
         OcptShotListShotDifficultyChangedEvent(
           shotId: shotId,
           axis: OcptShotDifficultyAxis.sound,
@@ -462,6 +431,7 @@ void main() {
       expect(state.reloadEpoch, reloadEpoch + 1);
       expect(state.selectionEpoch, selectionEpoch);
 
+      await inspector.close();
       await bloc.close();
     });
 
@@ -520,7 +490,8 @@ void main() {
       "flushing a pending edit reads again and moves the reload epoch, flushing none does not",
       () async {
         await writeScreenplay(twoSceneText);
-        final bloc = buildBloc(fieldEditDebounce: const Duration(days: 1));
+        final bloc = buildBloc();
+        final inspector = buildInspector(bloc, fieldEditDebounce: const Duration(days: 1));
         await waitForState(bloc, (state) => !state.isLoading);
         bloc.add(const OcptShotListShotCreationRequestedEvent());
         var state = await waitForState(bloc, (state) => state.totalShotCount == 1);
@@ -529,20 +500,21 @@ void main() {
         await bloc.flushAllPendingWrites();
         expect(bloc.state.reloadEpoch, epoch, reason: 'nothing was pending');
 
-        bloc.add(
+        inspector.add(
           OcptShotListShotFieldChangedEvent(
             shotId: state.selectedShotId!,
             field: OcptShotListEditableField.shotSize,
             rawValue: "Close-up",
           ),
         );
-        await waitForState(bloc, (state) => state.pendingFieldEdits.isNotEmpty);
+        await waitUntil(() => inspector.state.pendingFieldEdits.isNotEmpty);
         await bloc.flushAllPendingWrites();
 
         state = bloc.state;
-        expect(state.pendingFieldEdits, isEmpty);
+        expect(inspector.state.pendingFieldEdits, isEmpty);
         expect(state.reloadEpoch, epoch + 1);
 
+        await inspector.close();
         await bloc.close();
       },
     );
@@ -853,6 +825,11 @@ void main() {
     );
 
     final bloc = buildBloc(overrideProjectsManager: countingManager);
+    final inspector = OcptShotListInspectorBloc(
+      modeBloc: bloc,
+      projectsManager: countingManager,
+      fieldEditDebounce: const Duration(milliseconds: 30),
+    );
     await waitForState(bloc, (state) => !state.isLoading);
     bloc.add(const OcptShotListShotCreationRequestedEvent());
     final created2 = await waitForState(bloc, (state) => state.totalShotCount == 1);
@@ -872,7 +849,7 @@ void main() {
     // Clear the throttle again, then flush a field edit while the tab opened above is still the
     // active one.
     await Future<void>.delayed(const Duration(seconds: 2, milliseconds: 100));
-    bloc.add(
+    inspector.add(
       OcptShotListShotFieldChangedEvent(
         shotId: shotId,
         field: OcptShotListEditableField.shotSize,
@@ -883,6 +860,7 @@ void main() {
     await Future<void>.delayed(const Duration(milliseconds: 100));
     expect(countingManager.captureCount, beforeTabSelected + 2);
 
+    await inspector.close();
     await bloc.close();
     await countingManager.disposeLifeCycle();
   });
@@ -1033,13 +1011,14 @@ void main() {
     await writeScreenplay(silentCharacterText);
 
     final bloc = buildBloc();
+    final inspector = buildInspector(bloc);
     var state = await waitForState(bloc, (state) => !state.isLoading);
 
     bloc.add(const OcptShotListShotCreationRequestedEvent());
     state = await waitForState(bloc, (state) => state.totalShotCount == 1);
 
     final elisaRoleId = state.roles.firstWhere((role) => role.name == "ELISA").id;
-    bloc.add(
+    inspector.add(
       OcptShotListShotCharacterToggledEvent(shotId: state.selectedShotId!, roleId: elisaRoleId),
     );
     state = await waitForState(bloc, (state) => state.selectedShot!.characters.isNotEmpty);
@@ -1047,337 +1026,7 @@ void main() {
     expect(state.selectedShot!.characters, ["ELISA"]);
     expect(state.orphanedRoleAlerts, isEmpty);
 
-    await bloc.close();
-  });
-
-  test(
-    'a typed field edit is visible as a pending value and writes once after the debounce',
-    () async {
-      await writeScreenplay(twoSceneText);
-
-      final bloc = buildBloc();
-      await waitForState(bloc, (state) => !state.isLoading);
-      bloc.add(const OcptShotListShotCreationRequestedEvent());
-      final created = await waitForState(bloc, (state) => state.totalShotCount == 1);
-      final shotId = created.selectedShotId!;
-
-      bloc.add(
-        OcptShotListShotFieldChangedEvent(
-          shotId: shotId,
-          field: OcptShotListEditableField.shotSize,
-          rawValue: "W",
-        ),
-      );
-      var state = await waitForState(
-        bloc,
-        (state) =>
-            state.pendingFieldEdits[OcptShotListShotFieldEditKey(
-              shotId: shotId,
-              field: OcptShotListEditableField.shotSize,
-            )] ==
-            "W",
-      );
-      // Not written yet: still the field's default empty value.
-      expect(state.selectedShot!.shotSize, isEmpty);
-
-      // A second keystroke before the debounce elapses restarts it rather than firing twice: only
-      // the last value typed is ever written.
-      bloc.add(
-        OcptShotListShotFieldChangedEvent(
-          shotId: shotId,
-          field: OcptShotListEditableField.shotSize,
-          rawValue: "Wide",
-        ),
-      );
-      state = await waitForState(
-        bloc,
-        (state) =>
-            state.pendingFieldEdits[OcptShotListShotFieldEditKey(
-              shotId: shotId,
-              field: OcptShotListEditableField.shotSize,
-            )] ==
-            "Wide",
-      );
-      expect(state.selectedShot!.shotSize, isEmpty);
-
-      state = await waitForState(bloc, (state) => state.selectedShot!.shotSize == "Wide");
-      expect(state.pendingFieldEdits, isEmpty);
-
-      await bloc.close();
-    },
-  );
-
-  test('committing a shot size deduces the abbreviation once, then never again', () async {
-    await writeScreenplay(twoSceneText);
-
-    final bloc = buildBloc();
-    await waitForState(bloc, (state) => !state.isLoading);
-    bloc.add(const OcptShotListShotCreationRequestedEvent());
-    final created = await waitForState(bloc, (state) => state.totalShotCount == 1);
-    final shotId = created.selectedShotId!;
-
-    bloc.add(
-      OcptShotListShotFieldChangedEvent(
-        shotId: shotId,
-        field: OcptShotListEditableField.shotSize,
-        rawValue: "Plan moyen",
-      ),
-    );
-    var state = await waitForState(bloc, (state) => state.selectedShot!.shotSize == "Plan moyen");
-    expect(state.selectedShot!.abbreviation, "PM");
-
-    // A later shot size never overwrites the abbreviation the shot already carries.
-    bloc.add(
-      OcptShotListShotFieldChangedEvent(
-        shotId: shotId,
-        field: OcptShotListEditableField.shotSize,
-        rawValue: "Gros plan",
-      ),
-    );
-    state = await waitForState(bloc, (state) => state.selectedShot!.shotSize == "Gros plan");
-    expect(state.selectedShot!.abbreviation, "PM");
-
-    await bloc.close();
-  });
-
-  test('an abbreviation typed in the same flush wins over the deduced one', () async {
-    await writeScreenplay(twoSceneText);
-
-    final bloc = buildBloc();
-    await waitForState(bloc, (state) => !state.isLoading);
-    bloc.add(const OcptShotListShotCreationRequestedEvent());
-    final created = await waitForState(bloc, (state) => state.totalShotCount == 1);
-    final shotId = created.selectedShotId!;
-
-    bloc.add(
-      OcptShotListShotFieldChangedEvent(
-        shotId: shotId,
-        field: OcptShotListEditableField.shotSize,
-        rawValue: "Plan moyen",
-      ),
-    );
-    bloc.add(
-      OcptShotListShotFieldChangedEvent(
-        shotId: shotId,
-        field: OcptShotListEditableField.abbreviation,
-        rawValue: "PMS",
-      ),
-    );
-
-    final state = await waitForState(bloc, (state) => state.selectedShot!.shotSize == "Plan moyen");
-    expect(state.selectedShot!.abbreviation, "PMS");
-
-    await bloc.close();
-  });
-
-  test('selecting another shot flushes a pending field edit immediately', () async {
-    await writeScreenplay(twoSceneText);
-
-    // A debounce long enough that the assertions below could only pass through the flush the
-    // selection change performs, never through the debounce elapsing on its own.
-    final bloc = buildBloc(fieldEditDebounce: const Duration(seconds: 5));
-    await waitForState(bloc, (state) => !state.isLoading);
-
-    bloc.add(const OcptShotListShotCreationRequestedEvent());
-    var state = await waitForState(bloc, (state) => state.totalShotCount == 1);
-    final firstShotId = state.selectedShotId!;
-
-    bloc.add(
-      OcptShotListShotFieldChangedEvent(
-        shotId: firstShotId,
-        field: OcptShotListEditableField.notes,
-        rawValue: "Handheld",
-      ),
-    );
-    await waitForState(
-      bloc,
-      (state) =>
-          state.pendingFieldEdits[OcptShotListShotFieldEditKey(
-            shotId: firstShotId,
-            field: OcptShotListEditableField.notes,
-          )] ==
-          "Handheld",
-    );
-
-    bloc.add(const OcptShotListShotCreationRequestedEvent());
-    state = await waitForState(bloc, (state) => state.totalShotCount == 2);
-
-    expect(state.pendingFieldEdits, isEmpty);
-    expect(state.snapshot!.shotsById[firstShotId]!.notes, "Handheld");
-
-    await bloc.close();
-  });
-
-  test('flushPendingFieldEdits writes a pending edit directly, without touching state', () async {
-    await writeScreenplay(twoSceneText);
-
-    final bloc = buildBloc(fieldEditDebounce: const Duration(seconds: 5));
-    await waitForState(bloc, (state) => !state.isLoading);
-
-    bloc.add(const OcptShotListShotCreationRequestedEvent());
-    final created = await waitForState(bloc, (state) => state.totalShotCount == 1);
-    final shotId = created.selectedShotId!;
-
-    bloc.add(
-      OcptShotListShotFieldChangedEvent(
-        shotId: shotId,
-        field: OcptShotListEditableField.sound,
-        rawValue: "Wind noise",
-      ),
-    );
-    await waitForState(
-      bloc,
-      (state) =>
-          state.pendingFieldEdits[OcptShotListShotFieldEditKey(
-            shotId: shotId,
-            field: OcptShotListEditableField.sound,
-          )] ==
-          "Wind noise",
-    );
-
-    await bloc.flushPendingFieldEdits();
-
-    // This flush never touches the bloc's own state...
-    expect(bloc.state.pendingFieldEdits, isNotEmpty);
-    // ...but the database already has the write.
-    final reloaded = await projectsManager.shotListService.loadShotList(
-      database: projectsManager.currentProject!.database,
-      screenplayId: projectsManager.currentProject!.primaryScreenplayId,
-      episodeNumber: null,
-    );
-    expect(reloaded.shotsById[shotId]!.sound, "Wind noise");
-
-    await bloc.close();
-  });
-
-  test('a difficulty axis and a character toggle each write immediately', () async {
-    await writeScreenplay(dialogueText);
-
-    final bloc = buildBloc();
-    await waitForState(bloc, (state) => !state.isLoading);
-
-    bloc.add(const OcptShotListShotCreationRequestedEvent());
-    var state = await waitForState(bloc, (state) => state.totalShotCount == 1);
-    final shotId = state.selectedShotId!;
-
-    bloc.add(
-      OcptShotListShotDifficultyChangedEvent(
-        shotId: shotId,
-        axis: OcptShotDifficultyAxis.sound,
-        value: 4,
-      ),
-    );
-    state = await waitForState(bloc, (state) => state.selectedShot!.difficultySound == 4);
-
-    final leaRoleId = state.roles.firstWhere((role) => role.name == "LÉA").id;
-    bloc.add(OcptShotListShotCharacterToggledEvent(shotId: shotId, roleId: leaRoleId));
-    state = await waitForState(bloc, (state) => state.selectedShot!.characters.contains("LÉA"));
-
-    bloc.add(OcptShotListShotCharacterToggledEvent(shotId: shotId, roleId: leaRoleId));
-    state = await waitForState(bloc, (state) => state.selectedShot!.characters.isEmpty);
-
-    await bloc.close();
-  });
-
-  /// Attaches [characterNames] to a freshly created shot of the first sequence, then closes the
-  /// bloc that did it, and returns the new shot's derived code.
-  ///
-  /// The deleted-character tests all need the same starting point: a shot carrying characters the
-  /// screenplay is then edited to no longer speak. The bloc reads the screenplay's speaking
-  /// characters once, on entry, so a fresh bloc is what sees the edited screenplay — which is also
-  /// what happens in the app, where the shot list mode is mounted anew every time it is switched
-  /// to.
-  Future<String> createShotWithCharacters(List<String> characterNames) async {
-    final bloc = buildBloc();
-    await waitForState(bloc, (state) => !state.isLoading);
-
-    bloc.add(const OcptShotListShotCreationRequestedEvent());
-    var state = await waitForState(bloc, (state) => state.totalShotCount == 1);
-    final shotId = state.selectedShotId!;
-
-    for (final characterName in characterNames) {
-      final roleId = state.roles.firstWhere((role) => role.name == characterName).id;
-      bloc.add(OcptShotListShotCharacterToggledEvent(shotId: shotId, roleId: roleId));
-      state = await waitForState(
-        bloc,
-        (state) => state.selectedShot!.characters.contains(characterName),
-      );
-    }
-
-    final code = state.selectedShot!.code;
-    await bloc.close();
-
-    return code;
-  }
-
-  test('an orphaned role is reported, then deletable everywhere', () async {
-    await writeScreenplay(twoCharactersText);
-    await createShotWithCharacters(["LÉA", "MARC"]);
-
-    await writeScreenplay(oneCharacterLeftText);
-
-    final bloc = buildBloc();
-    var state = await waitForState(bloc, (state) => !state.isLoading);
-
-    expect(state.orphanedRoleAlerts, hasLength(1));
-    expect(state.orphanedRoleAlerts.single.characterName, "LÉA");
-    final leaRoleId = state.orphanedRoleAlerts.single.roleId;
-
-    bloc.add(OcptShotListOrphanedRoleDeleteRequestedEvent(roleId: leaRoleId));
-    state = await waitForState(bloc, (state) => state.orphanedRoleAlerts.isEmpty);
-
-    // The character still spoken is left untouched by the deletion, and the role's own cascade
-    // drops it from the shot rather than leaving a dangling attachment.
-    expect(state.snapshot!.shotsById.values.single.characters, ["MARC"]);
-
-    await bloc.close();
-  });
-
-  test(
-    'an orphaned role can be merged into a still-speaking one, carrying its shots along',
-    () async {
-      await writeScreenplay(twoCharactersText);
-      await createShotWithCharacters(["LÉA"]);
-
-      await writeScreenplay(oneCharacterLeftText);
-
-      final bloc = buildBloc();
-      var state = await waitForState(bloc, (state) => !state.isLoading);
-      expect(state.orphanedRoleAlerts, hasLength(1));
-      final leaRoleId = state.orphanedRoleAlerts.single.roleId;
-      final marcRoleId = state.roles.firstWhere((role) => role.name == "MARC").id;
-
-      bloc.add(
-        OcptShotListRoleMergeRequestedEvent(sourceRoleId: leaRoleId, targetRoleId: marcRoleId),
-      );
-      state = await waitForState(bloc, (state) => state.orphanedRoleAlerts.isEmpty);
-
-      expect(state.snapshot!.shotsById.values.single.characters, ["MARC"]);
-
-      await bloc.close();
-    },
-  );
-
-  test('an orphaned role can be kept as silent, its casting untouched and its shot kept', () async {
-    await writeScreenplay(twoCharactersText);
-    await createShotWithCharacters(["LÉA", "MARC"]);
-
-    await writeScreenplay(oneCharacterLeftText);
-
-    final bloc = buildBloc();
-    var state = await waitForState(bloc, (state) => !state.isLoading);
-    expect(state.orphanedRoleAlerts, hasLength(1));
-    final leaRoleId = state.orphanedRoleAlerts.single.roleId;
-
-    bloc.add(OcptShotListOrphanedRoleKeptEvent(roleId: leaRoleId));
-    state = await waitForState(bloc, (state) => state.orphanedRoleAlerts.isEmpty);
-
-    final leaRole = state.roles.firstWhere((role) => role.id == leaRoleId);
-    expect(leaRole.isFromScreenplay, isFalse);
-    expect(leaRole.kind, OcptRoleKind.silent);
-    // Kept, not dropped: the shot still carries both characters.
-    expect(state.snapshot!.shotsById.values.single.characters, ["LÉA", "MARC"]);
-
+    await inspector.close();
     await bloc.close();
   });
 
@@ -1433,410 +1082,6 @@ void main() {
       await bloc.close();
     },
   );
-
-  test('a first coverage click sets the pending anchor and writes nothing', () async {
-    await writeScreenplay(twoSceneText);
-
-    final bloc = buildBloc();
-    await waitForState(bloc, (state) => !state.isLoading);
-    bloc.add(const OcptShotListShotCreationRequestedEvent());
-    var state = await waitForState(bloc, (state) => state.totalShotCount == 1);
-    final shotId = state.selectedShotId!;
-
-    final layout = state.buildSelectedCoverageLayout()!;
-    final actionBlock = layout.blocks.firstWhere((block) => block.text == "Action one.");
-    final firstWord = actionBlock.words.first;
-
-    bloc.add(
-      OcptShotListCoverageWordClickedEvent(
-        shotId: shotId,
-        wordStartOffset: firstWord.startOffset,
-        wordEndOffset: firstWord.endOffset,
-      ),
-    );
-    state = await waitForState(bloc, (state) => state.pendingCoverageAnchor != null);
-
-    expect(state.pendingCoverageAnchor!.wordStartOffset, actionBlock.startOffset);
-    expect(state.pendingCoverageAnchor!.wordStartOffset, firstWord.startOffset);
-    expect(state.selectedShot!.coverageRanges, isEmpty);
-
-    await bloc.close();
-  });
-
-  test('cancelling the pending anchor clears it without recording a range', () async {
-    await writeScreenplay(twoSceneText);
-
-    final bloc = buildBloc();
-    await waitForState(bloc, (state) => !state.isLoading);
-    bloc.add(const OcptShotListShotCreationRequestedEvent());
-    var state = await waitForState(bloc, (state) => state.totalShotCount == 1);
-    final shotId = state.selectedShotId!;
-
-    final layout = state.buildSelectedCoverageLayout()!;
-    final actionBlock = layout.blocks.firstWhere((block) => block.text == "Action one.");
-    final firstWord = actionBlock.words.first;
-
-    bloc.add(
-      OcptShotListCoverageWordClickedEvent(
-        shotId: shotId,
-        wordStartOffset: firstWord.startOffset,
-        wordEndOffset: firstWord.endOffset,
-      ),
-    );
-    await waitForState(bloc, (state) => state.pendingCoverageAnchor != null);
-
-    bloc.add(const OcptShotListCoverageAnchorCancelledEvent());
-    state = await waitForState(bloc, (state) => state.pendingCoverageAnchor == null);
-
-    expect(state.pendingCoverageAnchor, isNull);
-    expect(state.selectedShot!.coverageRanges, isEmpty);
-
-    await bloc.close();
-  });
-
-  test('a second click in the same block writes a range covering both words', () async {
-    await writeScreenplay(twoSceneText);
-
-    final bloc = buildBloc();
-    await waitForState(bloc, (state) => !state.isLoading);
-    bloc.add(const OcptShotListShotCreationRequestedEvent());
-    var state = await waitForState(bloc, (state) => state.totalShotCount == 1);
-    final shotId = state.selectedShotId!;
-
-    final layout = state.buildSelectedCoverageLayout()!;
-    final actionBlock = layout.blocks.firstWhere((block) => block.text == "Action one.");
-
-    await drawCoverageRange(bloc, shotId: shotId, block: actionBlock);
-    state = bloc.state;
-
-    expect(state.pendingCoverageAnchor, isNull);
-    final range = state.selectedShot!.coverageRanges.single;
-    expect(range.sceneId, layout.sceneId);
-    expect(range.startOffset, actionBlock.words.first.startOffset);
-    expect(range.endOffset, actionBlock.words.last.endOffset);
-
-    await bloc.close();
-  });
-
-  test('closing a range over dialogue attaches the characters it covers', () async {
-    await writeScreenplay(dialogueText);
-
-    final bloc = buildBloc();
-    await waitForState(bloc, (state) => !state.isLoading);
-    bloc.add(const OcptShotListShotCreationRequestedEvent());
-    var state = await waitForState(bloc, (state) => state.totalShotCount == 1);
-    final shotId = state.selectedShotId!;
-    expect(state.selectedShot!.characters, isEmpty);
-
-    final layout = state.buildSelectedCoverageLayout()!;
-    final dialogueBlock = layout.blocks.firstWhere((block) => block.text == "Hello there.");
-
-    await drawCoverageRange(bloc, shotId: shotId, block: dialogueBlock);
-    state = await waitForState(bloc, (state) => state.selectedShot!.characters.isNotEmpty);
-
-    // The cue itself is outside the range: the speaker is named by their dialogue alone.
-    expect(state.selectedShot!.characters, ["LÉA"]);
-
-    await bloc.close();
-  });
-
-  test('a range covering no dialogue attaches nobody', () async {
-    await writeScreenplay(dialogueText);
-
-    final bloc = buildBloc();
-    await waitForState(bloc, (state) => !state.isLoading);
-    bloc.add(const OcptShotListShotCreationRequestedEvent());
-    var state = await waitForState(bloc, (state) => state.totalShotCount == 1);
-    final shotId = state.selectedShotId!;
-
-    final layout = state.buildSelectedCoverageLayout()!;
-    final actionBlock = layout.blocks.firstWhere((block) => block.text == "Action one.");
-
-    await drawCoverageRange(bloc, shotId: shotId, block: actionBlock);
-    state = bloc.state;
-
-    expect(state.selectedShot!.coverageRanges, hasLength(1));
-    expect(state.selectedShot!.characters, isEmpty);
-
-    await bloc.close();
-  });
-
-  test('removing a range keeps the characters it had attached', () async {
-    await writeScreenplay(dialogueText);
-
-    final bloc = buildBloc();
-    await waitForState(bloc, (state) => !state.isLoading);
-    bloc.add(const OcptShotListShotCreationRequestedEvent());
-    var state = await waitForState(bloc, (state) => state.totalShotCount == 1);
-    final shotId = state.selectedShotId!;
-
-    final layout = state.buildSelectedCoverageLayout()!;
-    final dialogueBlock = layout.blocks.firstWhere((block) => block.text == "Hello there.");
-
-    await drawCoverageRange(bloc, shotId: shotId, block: dialogueBlock);
-    await waitForState(bloc, (state) => state.selectedShot!.characters.isNotEmpty);
-
-    bloc.add(OcptShotListCoverageClearRequestedEvent(shotId: shotId));
-    state = await waitForState(bloc, (state) => state.selectedShot!.coverageRanges.isEmpty);
-
-    // Attaching is one-way: only the user takes a character off a shot.
-    expect(state.selectedShot!.characters, ["LÉA"]);
-
-    await bloc.close();
-  });
-
-  test('a click on a covered word with no anchor removes that range', () async {
-    await writeScreenplay(twoSceneText);
-
-    final bloc = buildBloc();
-    await waitForState(bloc, (state) => !state.isLoading);
-    bloc.add(const OcptShotListShotCreationRequestedEvent());
-    var state = await waitForState(bloc, (state) => state.totalShotCount == 1);
-    final shotId = state.selectedShotId!;
-
-    final layout = state.buildSelectedCoverageLayout()!;
-    final actionBlock = layout.blocks.firstWhere((block) => block.text == "Action one.");
-
-    await drawCoverageRange(bloc, shotId: shotId, block: actionBlock);
-
-    final firstWord = actionBlock.words.first;
-    bloc.add(
-      OcptShotListCoverageWordClickedEvent(
-        shotId: shotId,
-        wordStartOffset: firstWord.startOffset,
-        wordEndOffset: firstWord.endOffset,
-      ),
-    );
-    state = await waitForState(bloc, (state) => state.selectedShot!.coverageRanges.isEmpty);
-    expect(state.pendingCoverageAnchor, isNull);
-
-    await bloc.close();
-  });
-
-  test("a second click in another block closes a range spanning both", () async {
-    await writeScreenplay(twoSceneText);
-
-    final bloc = buildBloc();
-    await waitForState(bloc, (state) => !state.isLoading);
-    bloc.add(const OcptShotListShotCreationRequestedEvent());
-    var state = await waitForState(bloc, (state) => state.totalShotCount == 1);
-    final shotId = state.selectedShotId!;
-
-    final layout = state.buildSelectedCoverageLayout()!;
-    final headingBlock = layout.blocks.firstWhere((block) => block.text == "INT. HOUSE - DAY");
-    final actionBlock = layout.blocks.firstWhere((block) => block.text == "Action one.");
-
-    bloc.add(
-      OcptShotListCoverageWordClickedEvent(
-        shotId: shotId,
-        wordStartOffset: headingBlock.words.first.startOffset,
-        wordEndOffset: headingBlock.words.first.endOffset,
-      ),
-    );
-    await waitForState(bloc, (state) => state.pendingCoverageAnchor != null);
-
-    bloc.add(
-      OcptShotListCoverageWordClickedEvent(
-        shotId: shotId,
-        wordStartOffset: actionBlock.words.last.startOffset,
-        wordEndOffset: actionBlock.words.last.endOffset,
-      ),
-    );
-    state = await waitForState(bloc, (state) => state.selectedShot!.coverageRanges.isNotEmpty);
-
-    final range = state.selectedShot!.coverageRanges.single;
-    expect(range.startOffset, headingBlock.words.first.startOffset);
-    expect(range.endOffset, actionBlock.words.last.endOffset);
-    // The range genuinely runs through both blocks, blank line included.
-    expect(layout.blocksSpannedBy(range), [headingBlock, actionBlock]);
-    expect(state.pendingCoverageAnchor, isNull);
-
-    await bloc.close();
-  });
-
-  test("a range drawn next to an existing one merges with it", () async {
-    await writeScreenplay(twoSceneText);
-
-    final bloc = buildBloc();
-    await waitForState(bloc, (state) => !state.isLoading);
-    bloc.add(const OcptShotListShotCreationRequestedEvent());
-    var state = await waitForState(bloc, (state) => state.totalShotCount == 1);
-    final shotId = state.selectedShotId!;
-
-    final layout = state.buildSelectedCoverageLayout()!;
-    final heading = layout.blocks.firstWhere((block) => block.text == "INT. HOUSE - DAY");
-
-    Future<void> drawWord(OcptScriptWord word) async {
-      final rangeCountBefore = state.selectedShot!.coverageRanges.length;
-      for (var click = 0; click < 2; click++) {
-        bloc.add(
-          OcptShotListCoverageWordClickedEvent(
-            shotId: shotId,
-            wordStartOffset: word.startOffset,
-            wordEndOffset: word.endOffset,
-          ),
-        );
-      }
-      state = await waitForState(
-        bloc,
-        (state) =>
-            state.pendingCoverageAnchor == null &&
-            state.selectedShot!.coverageRanges.length != rangeCountBefore - 1,
-      );
-    }
-
-    // Two one-word ranges, drawn separately on two words a single space apart.
-    await drawWord(heading.words[0]);
-    await drawWord(heading.words[1]);
-
-    final range = state.selectedShot!.coverageRanges.single;
-    expect(layout.sceneText.substring(range.startOffset, range.endOffset), "INT. HOUSE");
-
-    await bloc.close();
-  });
-
-  test("clearing coverage drops only the cleared shot's ranges", () async {
-    await writeScreenplay(twoSceneText);
-
-    final bloc = buildBloc();
-    await waitForState(bloc, (state) => !state.isLoading);
-
-    bloc.add(const OcptShotListShotCreationRequestedEvent());
-    var state = await waitForState(bloc, (state) => state.totalShotCount == 1);
-    final shotAId = state.selectedShotId!;
-    var layout = state.buildSelectedCoverageLayout()!;
-    var actionBlock = layout.blocks.firstWhere((block) => block.text == "Action one.");
-    await drawCoverageRange(bloc, shotId: shotAId, block: actionBlock);
-
-    bloc.add(const OcptShotListShotCreationRequestedEvent());
-    state = await waitForState(bloc, (state) => state.totalShotCount == 2);
-    final shotBId = state.selectedShotId!;
-    layout = state.buildSelectedCoverageLayout()!;
-    actionBlock = layout.blocks.firstWhere((block) => block.text == "Action one.");
-    await drawCoverageRange(bloc, shotId: shotBId, block: actionBlock);
-
-    bloc.add(OcptShotListCoverageClearRequestedEvent(shotId: shotAId));
-    state = await waitForState(
-      bloc,
-      (state) => state.snapshot!.shotsById[shotAId]!.coverageRanges.isEmpty,
-    );
-
-    expect(state.snapshot!.shotsById[shotBId]!.coverageRanges, isNotEmpty);
-
-    await bloc.close();
-  });
-
-  test('marking a shot as checked clears needsCheck and re-stamps digests so a following '
-      'staleness pass stays quiet', () async {
-    await writeScreenplay(twoSceneText);
-
-    final bloc = buildBloc();
-    await waitForState(bloc, (state) => !state.isLoading);
-    bloc.add(const OcptShotListShotCreationRequestedEvent());
-    final created = await waitForState(bloc, (state) => state.totalShotCount == 1);
-    final shotId = created.selectedShotId!;
-
-    final layout = created.buildSelectedCoverageLayout()!;
-    final actionBlock = layout.blocks.firstWhere((block) => block.text == "Action one.");
-    await drawCoverageRange(bloc, shotId: shotId, block: actionBlock);
-    await bloc.close();
-
-    // Changing the scene's body (its heading is untouched, so the scene keeps its own id) makes
-    // the recorded range's digest disagree with the text under it, raising needsCheck on save.
-    const modifiedText =
-        "INT. HOUSE - DAY\n\nAction one revised.\n\nEXT. GARDEN - NIGHT\n\nAction two.\n";
-    await writeScreenplay(modifiedText);
-
-    final reopenedBloc = buildBloc();
-    var state = await waitForState(reopenedBloc, (state) => !state.isLoading);
-    var shot = state.snapshot!.shotsById[shotId]!;
-    expect(shot.needsCheck, isTrue);
-    expect(shot.checkReason, OcptShotCheckReason.coveredTextChanged);
-
-    reopenedBloc.add(OcptShotListShotMarkedAsCheckedEvent(shotId: shotId));
-    state = await waitForState(
-      reopenedBloc,
-      (state) => !state.snapshot!.shotsById[shotId]!.needsCheck,
-    );
-    expect(state.pendingCoverageAnchor, isNull);
-
-    await reopenedBloc.close();
-
-    // Saving the very same (already stale-inducing) text again re-runs the staleness pass; the
-    // digests were just re-stamped to it, so it stays quiet this time.
-    await writeScreenplay(modifiedText);
-    final finalBloc = buildBloc();
-    final finalState = await waitForState(finalBloc, (state) => !state.isLoading);
-    shot = finalState.snapshot!.shotsById[shotId]!;
-    expect(shot.needsCheck, isFalse);
-    expect(shot.checkReason, isNull);
-
-    await finalBloc.close();
-  });
-
-  test('the pending coverage anchor is cleared when another shot is selected', () async {
-    await writeScreenplay(twoSceneText);
-
-    final bloc = buildBloc();
-    await waitForState(bloc, (state) => !state.isLoading);
-    bloc.add(const OcptShotListShotCreationRequestedEvent());
-    var state = await waitForState(bloc, (state) => state.totalShotCount == 1);
-    final firstShotId = state.selectedShotId!;
-
-    final layout = state.buildSelectedCoverageLayout()!;
-    final actionBlock = layout.blocks.firstWhere((block) => block.text == "Action one.");
-    bloc.add(
-      OcptShotListCoverageWordClickedEvent(
-        shotId: firstShotId,
-        wordStartOffset: actionBlock.words.first.startOffset,
-        wordEndOffset: actionBlock.words.first.endOffset,
-      ),
-    );
-    await waitForState(bloc, (state) => state.pendingCoverageAnchor != null);
-
-    bloc.add(const OcptShotListShotCreationRequestedEvent());
-    state = await waitForState(bloc, (state) => state.totalShotCount == 2);
-
-    expect(state.pendingCoverageAnchor, isNull);
-    expect(state.selectedShotId, isNot(firstShotId));
-
-    await bloc.close();
-  });
-
-  test('a coverage write failure surfaces as the transient write error', () async {
-    await writeScreenplay(twoSceneText);
-
-    final bloc = buildBloc(shotCoverageService: const _FailingShotCoverageService());
-    await waitForState(bloc, (state) => !state.isLoading);
-    bloc.add(const OcptShotListShotCreationRequestedEvent());
-    var state = await waitForState(bloc, (state) => state.totalShotCount == 1);
-    final shotId = state.selectedShotId!;
-
-    final layout = state.buildSelectedCoverageLayout()!;
-    final actionBlock = layout.blocks.firstWhere((block) => block.text == "Action one.");
-
-    bloc.add(
-      OcptShotListCoverageWordClickedEvent(
-        shotId: shotId,
-        wordStartOffset: actionBlock.words.first.startOffset,
-        wordEndOffset: actionBlock.words.first.endOffset,
-      ),
-    );
-    await waitForState(bloc, (state) => state.pendingCoverageAnchor != null);
-
-    bloc.add(
-      OcptShotListCoverageWordClickedEvent(
-        shotId: shotId,
-        wordStartOffset: actionBlock.words.last.startOffset,
-        wordEndOffset: actionBlock.words.last.endOffset,
-      ),
-    );
-    state = await waitForState(bloc, (state) => state.hasWriteError);
-    expect(state.pendingCoverageAnchor, isNull);
-    expect(state.selectedShot!.coverageRanges, isEmpty);
-
-    await bloc.close();
-  });
 
   group("the board", () {
     /// Creates a shot in the first scene of [twoSceneText] and returns its id, waiting for the
