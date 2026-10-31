@@ -33,6 +33,7 @@ import 'package:open_cine_prod_tools/types/ocpt_element_source_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_export_outcome.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
+import 'package:open_cine_prod_tools/types/ocpt_schedule_selection_cause.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_sides_presentation.dart';
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
@@ -1459,6 +1460,98 @@ void main() {
       final state = await waitForState(bloc, (state) => state.ioNotice != null);
 
       expect(state.ioNotice?.kind, OcptScheduleIoNoticeKind.exportFailed);
+
+      await bloc.close();
+    });
+  });
+  group("the epochs views react to", () {
+    test("loading moves both, the selection with the load cause", () async {
+      final bloc = buildBloc();
+      final state = await waitForState(bloc, (state) => !state.isLoading);
+
+      expect(state.reloadEpoch, 1);
+      expect(state.selectionEpoch, 1);
+      expect(state.selectionCause, OcptScheduleSelectionCause.load);
+
+      await bloc.close();
+    });
+
+    test("selecting a day, a block and a shot moves the selection epoch alone", () async {
+      final fixture = await writePlacedShot();
+      final bloc = buildBloc();
+      var state = await waitForState(bloc, (state) => !state.isLoading);
+      final reloadEpoch = state.reloadEpoch;
+      var selectionEpoch = state.selectionEpoch;
+
+      bloc.add(OcptScheduleDaySelectedEvent(dayId: fixture.dayId));
+      state = await waitForState(bloc, (state) => state.selectionEpoch == selectionEpoch + 1);
+      expect(state.selectionCause, OcptScheduleSelectionCause.day);
+      selectionEpoch = state.selectionEpoch;
+
+      bloc.add(OcptScheduleBlockSelectedEvent(blockId: fixture.blockId, dayId: fixture.dayId));
+      state = await waitForState(bloc, (state) => state.selectionEpoch == selectionEpoch + 1);
+      expect(state.selectionCause, OcptScheduleSelectionCause.block);
+      selectionEpoch = state.selectionEpoch;
+
+      bloc.add(OcptScheduleShotSelectedEvent(shotId: fixture.shotId));
+      state = await waitForState(bloc, (state) => state.selectionEpoch == selectionEpoch + 1);
+      expect(state.selectionCause, OcptScheduleSelectionCause.shot);
+      selectionEpoch = state.selectionEpoch;
+
+      bloc.add(OcptScheduleDaySelectedEvent(dayId: fixture.dayId));
+      state = await waitForState(bloc, (state) => state.selectionEpoch == selectionEpoch + 1);
+      expect(state.selectedDayId, fixture.dayId, reason: 'the same day again still moves it');
+      expect(state.reloadEpoch, reloadEpoch, reason: 'selecting reads nothing again');
+
+      await bloc.close();
+    });
+
+    test("a write that reads the schedule again moves the reload epoch alone", () async {
+      final fixture = await writePlacedShot();
+      final bloc = buildBloc();
+      var state = await waitForState(bloc, (state) => !state.isLoading);
+      final reloadEpoch = state.reloadEpoch;
+      final selectionEpoch = state.selectionEpoch;
+
+      bloc.add(OcptScheduleDayDateChangedEvent(dayId: fixture.dayId, date: DateTime(2026, 8, 12)));
+      state = await waitForState(bloc, (state) => state.reloadEpoch == reloadEpoch + 1);
+
+      expect(state.selectionEpoch, selectionEpoch);
+
+      await bloc.close();
+    });
+
+    test("deleting the selected day drops the selection and says so", () async {
+      final fixture = await writePlacedShot();
+      final bloc = buildBloc();
+      var state = await waitForState(bloc, (state) => !state.isLoading);
+      expect(state.selectedDayId, fixture.dayId);
+      final selectionEpoch = state.selectionEpoch;
+
+      bloc.add(OcptScheduleDayDeletionConfirmedEvent(dayId: fixture.dayId));
+      state = await waitForState(bloc, (state) => state.selectionEpoch == selectionEpoch + 1);
+
+      expect(state.selectedDayId, isNull, reason: 'nothing is selected in its place');
+      expect(state.selectionCause, OcptScheduleSelectionCause.dropped);
+
+      await bloc.close();
+    });
+
+    test("creating a day selects it, with its own cause", () async {
+      await writePlacedShot();
+      final bloc = buildBloc();
+      var state = await waitForState(bloc, (state) => !state.isLoading);
+      final selectionEpoch = state.selectionEpoch;
+
+      bloc.add(OcptScheduleDayCreatedEvent(date: DateTime(2026, 9)));
+      state = await waitForState(
+        bloc,
+        (state) =>
+            state.selectionCause == OcptScheduleSelectionCause.dayAdded &&
+            state.selectionEpoch > selectionEpoch,
+      );
+
+      expect(state.selectedDay?.date, DateTime(2026, 9));
 
       await bloc.close();
     });

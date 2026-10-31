@@ -39,8 +39,11 @@ import 'package:open_cine_prod_tools/types/ocpt_export_outcome.dart';
 import 'package:open_cine_prod_tools/types/ocpt_first_weekday.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 import 'package:open_cine_prod_tools/types/ocpt_schedule_field.dart';
+import 'package:open_cine_prod_tools/types/ocpt_schedule_reload_scope.dart';
 import 'package:open_cine_prod_tools/types/ocpt_schedule_right_dock_tab.dart';
+import 'package:open_cine_prod_tools/types/ocpt_schedule_selection_cause.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_mode_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project_package_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project_versions_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_project_versions_events.dart';
@@ -84,7 +87,8 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_d
 class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     with
         MixinOcptProjectVersionsBloc<OcptScheduleState>,
-        MixinOcptProjectPackageBloc<OcptScheduleState> {
+        MixinOcptProjectPackageBloc<OcptScheduleState>,
+        MixinOcptModeBloc<OcptScheduleState, OcptScheduleReloadScope> {
   /// The logger category linked to this BLoC.
   static const _loggerCategory = "schedule_bloc";
 
@@ -270,7 +274,81 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
   @override
   Future<void> flushPendingProjectWrites(Emitter<OcptScheduleState> emitter) async {
     await _flushPendingFieldEdits(emitter);
-    emitter(state.copyWith(forceSelectedShotIdValue: true));
+    emitter(
+      state.copyWith(
+        forceSelectedShotIdValue: true,
+        selectionEpoch: state.selectionEpoch + 1,
+        selectionCause: OcptScheduleSelectionCause.shotCleared,
+      ),
+    );
+  }
+
+  /// {@macro open_cine_prod_tools.MixinOcptModeBloc.flushAllPendingWritesIn}
+  @protected
+  @override
+  Future<void> flushAllPendingWritesIn(Emitter<OcptScheduleState> emitter) =>
+      _flushPendingFieldEdits(emitter);
+
+  /// {@macro open_cine_prod_tools.MixinOcptModeBloc.reloadScopesIn}
+  ///
+  /// Reading the schedule also reconciles the selection against what was read: a selected day or
+  /// block that disappeared (deleted, or a block whose slot was) is dropped rather than trusted to
+  /// still mean something. While the `Versions` tab is the one open, the working-copy card is
+  /// refreshed once the data has landed: every write a view makes ends in a reload, which makes it
+  /// the mode's stand-in for "a save landing while the tab is open", since nothing here is a
+  /// single save.
+  @protected
+  @override
+  Future<bool> reloadScopesIn(
+    Set<OcptScheduleReloadScope> scopes,
+    Emitter<OcptScheduleState> emitter,
+  ) async {
+    final project = _projectsManager.currentProject;
+    if (project == null) {
+      return false;
+    }
+
+    OcptScheduleSnapshot? snapshot;
+    ({List<OcptEpisode> episodes, List<OcptShotListSnapshot> shotLists})? shotLists;
+
+    // A switch statement over an enum must name every value: a scope added to the enum does not
+    // compile until it is read here.
+    for (final scope in scopes) {
+      switch (scope) {
+        case OcptScheduleReloadScope.schedule:
+          snapshot = await _loadScheduleSnapshot(project);
+        case OcptScheduleReloadScope.shotLists:
+          shotLists = await _loadShotLists(project);
+      }
+    }
+
+    final selectedDayId = state.selectedDayId;
+    final selectedBlockId = state.selectedBlockId;
+    final isDayDropped =
+        snapshot != null && selectedDayId != null && !snapshot.daysById.containsKey(selectedDayId);
+    final isBlockDropped =
+        snapshot != null &&
+        selectedBlockId != null &&
+        (isDayDropped ||
+            !(snapshot.blocksByDayId[selectedDayId] ?? const []).any(
+              (block) => block.id == selectedBlockId,
+            ));
+    final isSelectionDropped = isDayDropped || isBlockDropped;
+
+    emitter(
+      state.copyWith(
+        snapshot: snapshot,
+        shotListSnapshots: shotLists?.shotLists,
+        episodes: shotLists?.episodes,
+        forceSelectedDayIdValue: isDayDropped,
+        forceSelectedBlockIdValue: isBlockDropped,
+        selectionEpoch: isSelectionDropped ? state.selectionEpoch + 1 : null,
+        selectionCause: isSelectionDropped ? OcptScheduleSelectionCause.dropped : null,
+      ),
+    );
+
+    _requestWorkingCopyRefreshIfVersionsOpen();
+    return true;
   }
 
   /// {@macro open_cine_prod_tools.MixinOcptProjectVersionsBloc.reloadFromProjectDatabase}
@@ -318,55 +396,63 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
           forceSelectedBlockIdValue: true,
           forceSelectedShotIdValue: true,
           pendingFieldEdits: const {},
+          selectionEpoch: state.selectionEpoch + 1,
+          selectionCause: OcptScheduleSelectionCause.load,
         ),
       );
       return;
     }
 
-    final previewedVersion = project.previewedVersion;
-    final snapshot = await _loadScheduleSnapshot(project);
-    final shotLists = await _loadShotLists(project);
-    final locations = await _locationsService.loadLocations(database: project.database);
-    final roles = await _roleIndexService.loadRoles(database: project.database);
-    final people = await _peopleService.loadPeople(database: project.database);
-    final elements = await _elementsService.loadElements(database: project.database);
-    // Read after the address book, and out of it: a candidacy travels with the person it names, and
-    // resolving one twice is how two readings of the same casting come to disagree.
-    final roleCandidates = await _loadRoleCandidates(project, people: people);
-    final pageSetup = await _loadPageSetup(project);
-    final minimumRestMinutes = await _projectsManager.loadCurrentProjectMinimumRestMinutes();
+    // Queued with the views' reloads: a read made here but emitted after a newer one would put
+    // older data over it.
+    await runSerially(() async {
+      final previewedVersion = project.previewedVersion;
+      final snapshot = await _loadScheduleSnapshot(project);
+      final shotLists = await _loadShotLists(project);
+      final locations = await _locationsService.loadLocations(database: project.database);
+      final roles = await _roleIndexService.loadRoles(database: project.database);
+      final people = await _peopleService.loadPeople(database: project.database);
+      final elements = await _elementsService.loadElements(database: project.database);
+      // Read after the address book, and out of it: a candidacy travels with the person it names,
+      // and resolving one twice is how two readings of the same casting come to disagree.
+      final roleCandidates = await _loadRoleCandidates(project, people: people);
+      final pageSetup = await _loadPageSetup(project);
+      final minimumRestMinutes = await _projectsManager.loadCurrentProjectMinimumRestMinutes();
 
-    final defaultDay = _defaultSelectedDayOf(snapshot.days);
+      final defaultDay = _defaultSelectedDayOf(snapshot.days);
 
-    emitter(
-      state.copyWith(
-        isLoading: false,
-        title: project.name,
-        previewedVersionId: previewedVersion?.id,
-        forcePreviewedVersionIdValue: previewedVersion == null,
-        snapshot: snapshot,
-        shotListSnapshots: shotLists.shotLists,
-        episodes: shotLists.episodes,
-        locations: locations,
-        roles: roles,
-        people: people,
-        elements: elements,
-        roleCandidates: roleCandidates,
-        pageSetup: pageSetup,
-        minimumRestMinutes: minimumRestMinutes,
-        forceMinimumRestMinutesValue: minimumRestMinutes == null,
-        agendaAnchorDate: defaultDay?.date ?? DateTime.now(),
-        selectedDayId: defaultDay?.id,
-        forceSelectedDayIdValue: defaultDay == null,
-        forceSelectedBlockIdValue: true,
-        forceSelectedShotIdValue: true,
-        pendingFieldEdits: const {},
-        leftDockFraction: leftDockFraction,
-        rightDockFraction: rightDockFraction,
-        lastRightDockTab: lastRightDockTab,
-        firstWeekday: firstWeekday,
-      ),
-    );
+      emitter(
+        state.copyWith(
+          isLoading: false,
+          title: project.name,
+          previewedVersionId: previewedVersion?.id,
+          forcePreviewedVersionIdValue: previewedVersion == null,
+          snapshot: snapshot,
+          shotListSnapshots: shotLists.shotLists,
+          episodes: shotLists.episodes,
+          locations: locations,
+          roles: roles,
+          people: people,
+          elements: elements,
+          roleCandidates: roleCandidates,
+          pageSetup: pageSetup,
+          minimumRestMinutes: minimumRestMinutes,
+          forceMinimumRestMinutesValue: minimumRestMinutes == null,
+          agendaAnchorDate: defaultDay?.date ?? DateTime.now(),
+          selectedDayId: defaultDay?.id,
+          forceSelectedDayIdValue: defaultDay == null,
+          forceSelectedBlockIdValue: true,
+          forceSelectedShotIdValue: true,
+          pendingFieldEdits: const {},
+          leftDockFraction: leftDockFraction,
+          rightDockFraction: rightDockFraction,
+          lastRightDockTab: lastRightDockTab,
+          firstWeekday: firstWeekday,
+          selectionEpoch: state.selectionEpoch + 1,
+          selectionCause: OcptScheduleSelectionCause.load,
+        ),
+      );
+    });
   }
 
   /// Reads the page setup the three PDF exports are typeset with: the open project's own page
@@ -601,6 +687,8 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
         selectedDayId: event.dayId,
         forceSelectedBlockIdValue: true,
         forceSelectedShotIdValue: true,
+        selectionEpoch: state.selectionEpoch + 1,
+        selectionCause: OcptScheduleSelectionCause.day,
       ),
     );
   }
@@ -623,6 +711,8 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
         forceSelectedShotIdValue: true,
         rightDockTab: OcptScheduleRightDockTab.inspector,
         lastRightDockTab: OcptScheduleRightDockTab.inspector,
+        selectionEpoch: state.selectionEpoch + 1,
+        selectionCause: OcptScheduleSelectionCause.block,
       ),
     );
   }
@@ -644,6 +734,8 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
         forceSelectedBlockIdValue: true,
         rightDockTab: OcptScheduleRightDockTab.inspector,
         lastRightDockTab: OcptScheduleRightDockTab.inspector,
+        selectionEpoch: state.selectionEpoch + 1,
+        selectionCause: OcptScheduleSelectionCause.shot,
       ),
     );
   }
@@ -692,9 +784,16 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
 
     final dayId = await _scheduleService.createDay(database: project.database, date: event.date);
 
-    await _applyScheduleSnapshot(emitter, project);
+    await _applyScheduleSnapshot(emitter);
     if (dayId != null) {
-      emitter(state.copyWith(selectedDayId: dayId, forceSelectedBlockIdValue: true));
+      emitter(
+        state.copyWith(
+          selectedDayId: dayId,
+          forceSelectedBlockIdValue: true,
+          selectionEpoch: state.selectionEpoch + 1,
+          selectionCause: OcptScheduleSelectionCause.dayAdded,
+        ),
+      );
     }
   }
 
@@ -713,7 +812,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
       dayId: event.dayId,
       date: Value(event.date),
     );
-    await _applyScheduleSnapshot(emitter, project);
+    await _applyScheduleSnapshot(emitter);
   }
 
   /// Writes a new status onto the selected day.
@@ -731,7 +830,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
       dayId: event.dayId,
       status: Value(event.status),
     );
-    await _applyScheduleSnapshot(emitter, project);
+    await _applyScheduleSnapshot(emitter);
   }
 
   /// Duplicates a day and selects the new one.
@@ -750,9 +849,16 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
       date: event.date,
     );
 
-    await _applyScheduleSnapshot(emitter, project);
+    await _applyScheduleSnapshot(emitter);
     if (newDayId != null) {
-      emitter(state.copyWith(selectedDayId: newDayId, forceSelectedBlockIdValue: true));
+      emitter(
+        state.copyWith(
+          selectedDayId: newDayId,
+          forceSelectedBlockIdValue: true,
+          selectionEpoch: state.selectionEpoch + 1,
+          selectionCause: OcptScheduleSelectionCause.dayAdded,
+        ),
+      );
     }
   }
 
@@ -767,7 +873,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     }
 
     await _scheduleService.deleteDay(database: project.database, dayId: event.dayId);
-    await _applyScheduleSnapshot(emitter, project);
+    await _applyScheduleSnapshot(emitter);
   }
 
   /// Creates a new slot inside a day.
@@ -785,7 +891,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
       shootingDayId: event.dayId,
       anchorMinute: _defaultSlotStartMinute,
     );
-    await _applyScheduleSnapshot(emitter, project);
+    await _applyScheduleSnapshot(emitter);
   }
 
   /// Writes a new location/set onto a slot.
@@ -804,7 +910,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
       locationId: Value(event.locationId),
       setId: Value(event.setId),
     );
-    await _applyScheduleSnapshot(emitter, project);
+    await _applyScheduleSnapshot(emitter);
   }
 
   /// Pins a slot's own anchored edge to a typed hour or to another slot's opposite edge.
@@ -824,7 +930,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
       minute: event.minute,
       sourceSlotId: event.sourceSlotId,
     );
-    await _applyScheduleSnapshot(emitter, project);
+    await _applyScheduleSnapshot(emitter);
   }
 
   /// Moves a slot to a new position within its own day.
@@ -842,7 +948,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
       slotId: event.slotId,
       newPosition: event.newPosition,
     );
-    await _applyScheduleSnapshot(emitter, project);
+    await _applyScheduleSnapshot(emitter);
   }
 
   /// Deletes a slot for good, confirmed by the mode's own `OcptConfirmDialog`.
@@ -856,7 +962,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     }
 
     await _scheduleService.deleteSlot(database: project.database, slotId: event.slotId);
-    await _applyScheduleSnapshot(emitter, project);
+    await _applyScheduleSnapshot(emitter);
   }
 
   /// Adds a crew member to a slot.
@@ -874,7 +980,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
       slotId: event.slotId,
       personId: event.personId,
     );
-    await _applyScheduleSnapshot(emitter, project);
+    await _applyScheduleSnapshot(emitter);
   }
 
   /// Writes a new position onto a crew assignment.
@@ -893,7 +999,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
       positionId: Value(event.positionId),
       customLabel: Value(event.customLabel),
     );
-    await _applyScheduleSnapshot(emitter, project);
+    await _applyScheduleSnapshot(emitter);
   }
 
   /// Removes a crew assignment for good.
@@ -910,7 +1016,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
       database: project.database,
       crewMemberId: event.crewMemberId,
     );
-    await _applyScheduleSnapshot(emitter, project);
+    await _applyScheduleSnapshot(emitter);
   }
 
   /// Convokes a role during a slot.
@@ -928,7 +1034,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
       slotId: event.slotId,
       roleId: event.roleId,
     );
-    await _applyScheduleSnapshot(emitter, project);
+    await _applyScheduleSnapshot(emitter);
   }
 
   /// Removes a cast convocation for good.
@@ -945,7 +1051,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
       database: project.database,
       castRoleId: event.castRoleId,
     );
-    await _applyScheduleSnapshot(emitter, project);
+    await _applyScheduleSnapshot(emitter);
   }
 
   /// Names a candidacy on an **audition** block — the hour that candidate is expected at.
@@ -963,7 +1069,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
       blockId: event.blockId,
       roleCandidateId: event.roleCandidateId,
     );
-    await _applyScheduleSnapshot(emitter, project);
+    await _applyScheduleSnapshot(emitter);
   }
 
   /// Takes a candidacy off an audition block, leaving the block and the candidacy alone.
@@ -980,7 +1086,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
       database: project.database,
       blockCandidateId: event.blockCandidateId,
     );
-    await _applyScheduleSnapshot(emitter, project);
+    await _applyScheduleSnapshot(emitter);
   }
 
   /// Adds a guest to a slot, from the address book alone.
@@ -998,7 +1104,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
       slotId: event.slotId,
       personId: event.personId,
     );
-    await _applyScheduleSnapshot(emitter, project);
+    await _applyScheduleSnapshot(emitter);
   }
 
   /// Removes a guest attendance for good.
@@ -1012,7 +1118,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     }
 
     await _scheduleService.deleteSlotGuest(database: project.database, guestId: event.guestId);
-    await _applyScheduleSnapshot(emitter, project);
+    await _applyScheduleSnapshot(emitter);
   }
 
   /// Creates a new event on a day, at the hour the mode's own default-hour helper computed.
@@ -1030,7 +1136,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
       dayId: event.dayId,
       minute: event.minute,
     );
-    await _applyScheduleSnapshot(emitter, project);
+    await _applyScheduleSnapshot(emitter);
   }
 
   /// Writes a new hour onto an event, the moment its own minute field commits.
@@ -1048,7 +1154,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
       eventId: event.eventId,
       minute: Value(event.minute),
     );
-    await _applyScheduleSnapshot(emitter, project);
+    await _applyScheduleSnapshot(emitter);
   }
 
   /// Removes an event for good.
@@ -1062,7 +1168,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     }
 
     await _scheduleService.deleteDayEvent(database: project.database, eventId: event.eventId);
-    await _applyScheduleSnapshot(emitter, project);
+    await _applyScheduleSnapshot(emitter);
   }
 
   /// Writes a new shooting status onto a shot — the very column the shot list mode's own inspector
@@ -1083,9 +1189,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
       status: Value(event.status),
     );
 
-    final shotLists = await _loadShotLists(project);
-    emitter(state.copyWith(shotListSnapshots: shotLists.shotLists, episodes: shotLists.episodes));
-    _requestWorkingCopyRefreshIfVersionsOpen();
+    await reloadSerially({OcptScheduleReloadScope.shotLists}, emitter);
   }
 
   /// Creates a new non-shot block (a milestone or a `hold`) at the end of the timetable named by
@@ -1105,7 +1209,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
       slotId: event.slotId,
       kind: event.kind,
     );
-    await _applyScheduleSnapshot(emitter, project);
+    await _applyScheduleSnapshot(emitter);
   }
 
   /// Creates a new **shot** block at the end of the timetable named by the event's own
@@ -1125,7 +1229,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
       slotId: event.slotId,
       shotId: event.shotId,
     );
-    await _applyScheduleSnapshot(emitter, project);
+    await _applyScheduleSnapshot(emitter);
   }
 
   /// Writes a new duration onto a block.
@@ -1143,7 +1247,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
       blockId: event.blockId,
       durationMinutes: Value(event.durationMinutes),
     );
-    await _applyScheduleSnapshot(emitter, project);
+    await _applyScheduleSnapshot(emitter);
   }
 
   /// Writes a new anchor onto a block.
@@ -1161,7 +1265,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
       blockId: event.blockId,
       anchorMinute: Value(event.anchorMinute),
     );
-    await _applyScheduleSnapshot(emitter, project);
+    await _applyScheduleSnapshot(emitter);
   }
 
   /// Writes a new sequence onto a hold block — `OcptScheduleService.updateBlock` itself refuses the
@@ -1181,7 +1285,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
       blockId: event.blockId,
       sceneId: Value(event.sceneId),
     );
-    await _applyScheduleSnapshot(emitter, project);
+    await _applyScheduleSnapshot(emitter);
   }
 
   /// Moves a block to a new position within its own slot's timetable.
@@ -1199,7 +1303,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
       blockId: event.blockId,
       newPosition: event.newPosition,
     );
-    await _applyScheduleSnapshot(emitter, project);
+    await _applyScheduleSnapshot(emitter);
   }
 
   /// Moves a block to another slot, appended at the end of its own timetable.
@@ -1224,7 +1328,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
       targetSlotId: event.targetSlotId,
       newPosition: targetBlocks.length,
     );
-    await _applyScheduleSnapshot(emitter, project);
+    await _applyScheduleSnapshot(emitter);
   }
 
   /// Deletes a block for good, confirmed by the mode's own `OcptConfirmDialog`.
@@ -1238,7 +1342,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     }
 
     await _scheduleService.deleteBlock(database: project.database, blockId: event.blockId);
-    await _applyScheduleSnapshot(emitter, project);
+    await _applyScheduleSnapshot(emitter);
   }
 
   /// Records the raw text just typed into a field as a pending edit, visible immediately, and
@@ -1287,7 +1391,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     await _writeAllPendingFieldEdits(project, edits);
 
     emitter(state.copyWith(pendingFieldEdits: const {}));
-    await _applyScheduleSnapshot(emitter, project);
+    await _applyScheduleSnapshot(emitter);
   }
 
   /// Writes every pending field edit directly to the database, bypassing both the debounce timer
@@ -1433,38 +1537,12 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     }
   }
 
-  /// Re-reads the schedule of [project] and applies it, reconciling
-  /// [OcptScheduleState.selectedDayId]/[OcptScheduleState.selectedBlockId] against what the fresh
-  /// snapshot still holds — a selected row that disappeared (deleted, or a slot that dropped its
-  /// block's own anchor) is dropped rather than trusted to still mean something.
+  /// Re-reads the schedule and applies it, reconciling the selected day and block against what the
+  /// fresh snapshot still holds (see [reloadScopesIn]).
   ///
-  /// Every handler that writes to the schedule tables ends here, which is also the mode's own
-  /// stand-in for "a save landing while the `Versions` tab is open" (see the class doc comment):
-  /// [_requestWorkingCopyRefreshIfVersionsOpen] is called once the fresh snapshot has landed.
-  Future<void> _applyScheduleSnapshot(
-    Emitter<OcptScheduleState> emitter,
-    OcptOpenProjectModel project,
-  ) async {
-    final snapshot = await _loadScheduleSnapshot(project);
-
-    final dayStillExists =
-        state.selectedDayId == null || snapshot.daysById.containsKey(state.selectedDayId);
-    final blockStillExists =
-        dayStillExists &&
-        state.selectedBlockId != null &&
-        (snapshot.blocksByDayId[state.selectedDayId] ?? const []).any(
-          (block) => block.id == state.selectedBlockId,
-        );
-
-    emitter(
-      state.copyWith(
-        snapshot: snapshot,
-        forceSelectedDayIdValue: !dayStillExists,
-        forceSelectedBlockIdValue: !blockStillExists,
-      ),
-    );
-
-    _requestWorkingCopyRefreshIfVersionsOpen();
+  /// Every handler that writes to the schedule tables ends here.
+  Future<void> _applyScheduleSnapshot(Emitter<OcptScheduleState> emitter) async {
+    await reloadSerially({OcptScheduleReloadScope.schedule}, emitter);
   }
 
   /// Dispatches [OcptProjectWorkingCopyRefreshRequestedEvent] while the `Versions` tab is the one

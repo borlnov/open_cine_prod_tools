@@ -3,7 +3,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:act_flutter_utility/act_flutter_utility.dart';
-import 'package:equatable/equatable.dart';
 import 'package:open_cine_prod_tools/models/ocpt_element.dart';
 import 'package:open_cine_prod_tools/models/ocpt_episode.dart';
 import 'package:open_cine_prod_tools/models/ocpt_location.dart';
@@ -36,123 +35,21 @@ import 'package:open_cine_prod_tools/types/ocpt_schedule_agenda_mode.dart';
 import 'package:open_cine_prod_tools/types/ocpt_schedule_centre_view.dart';
 import 'package:open_cine_prod_tools/types/ocpt_schedule_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_schedule_right_dock_tab.dart';
+import 'package:open_cine_prod_tools/types/ocpt_schedule_selection_cause.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_mode_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project_package_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project_versions_state.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/schedule_io_notice.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/schedule_unplaced_group.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock.dart';
+
+export 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/schedule_io_notice.dart';
+export 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/schedule_unplaced_group.dart';
 
 /// The key [OcptScheduleState.pendingFieldEdits] is stored under: which entity, and which of its
 /// own [OcptScheduleField]s.
 typedef OcptSchedulePendingFieldKey = (String targetId, OcptScheduleField field);
-
-/// One group of the left dock's own "shots still to place" list: every live shot of one sequence
-/// (a real scene, or the orphan group) that has no live block placing it yet, in the sequence's own
-/// shot order.
-///
-/// [screenplayId] names the episode this group's sequence belongs to. It is not cosmetic:
-/// `OcptOrphanShotSequence.sequenceId` is the constant `"orphans"`, so a project holding several
-/// episodes walks several groups sharing that one [sequenceId] — the pair ([screenplayId],
-/// [sequenceId]) is what actually identifies one group once there is more than one episode to mix
-/// them up.
-class OcptScheduleUnplacedGroup extends Equatable {
-  /// The id of the episode (screenplay) this group's sequence belongs to.
-  final String screenplayId;
-
-  /// The sequence's own id (a scene id, or `OcptOrphanShotSequence.sequenceId`).
-  final String sequenceId;
-
-  /// The sequence's own display number (`4A`), or null for the orphan group.
-  final String? displaySceneNumber;
-
-  /// The sequence's own heading, or null for the orphan group.
-  final String? heading;
-
-  /// The unplaced shots of this sequence, in shot order.
-  final List<OcptShot> shots;
-
-  /// Class constructor
-  const OcptScheduleUnplacedGroup({
-    required this.screenplayId,
-    required this.sequenceId,
-    required this.displaySceneNumber,
-    required this.heading,
-    required this.shots,
-  });
-
-  /// Object properties
-  @override
-  List<Object?> get props => [screenplayId, sequenceId, displaySceneNumber, heading, shots];
-}
-
-/// The kind of transient notice [OcptScheduleIoNotice] carries, one per schedule export outcome.
-///
-/// A folder export (the two call sheet kinds) is the one path with a middle ground between success
-/// and failure — some files can be written while others aren't — which is why there are three kinds
-/// rather than the two a single-file export would need: [folderExportPartiallySucceeded] must never
-/// read as a plain success, `OcptCallSheetExportResult.failedFileNames` being non-empty meaning
-/// exactly that someone's call sheet did not make it into the folder.
-enum OcptScheduleIoNoticeKind {
-  /// A single-file export (the shooting plan) was written successfully.
-  fileExportSucceeded,
-
-  /// A folder export (a call sheets run) wrote every file it set out to.
-  folderExportSucceeded,
-
-  /// A folder export wrote some files but not every one — `OcptCallSheetExportResult
-  /// .failedFileNames` is non-empty.
-  folderExportPartiallySucceeded,
-
-  /// An export failed outright (an exception was thrown while rendering or writing it). A cancelled
-  /// save/folder dialog is a silent no-op instead, exactly as the breakdown sheets export treats
-  /// it.
-  exportFailed,
-}
-
-/// A transient notice, produced by `OcptScheduleBloc`, reporting the outcome of one of the three
-/// PDF exports, shown as a SnackBar then dismissed. Modelled on `OcptBreakdownIoNotice`.
-///
-/// Only the fields [kind] actually needs are ever set: [path] for [OcptScheduleIoNoticeKind
-/// .fileExportSucceeded], [folderPath]/[writtenCount] for [OcptScheduleIoNoticeKind
-/// .folderExportSucceeded], and all four but [path] for [OcptScheduleIoNoticeKind
-/// .folderExportPartiallySucceeded]. [wasShared] can be set alongside any succeeded kind.
-class OcptScheduleIoNotice extends Equatable {
-  /// The outcome this notice reports.
-  final OcptScheduleIoNoticeKind kind;
-
-  /// The path a single-file export was written to, only set when [kind] is
-  /// [OcptScheduleIoNoticeKind .fileExportSucceeded] and [wasShared] is false.
-  final String? path;
-
-  /// The folder a folder export wrote into, only set for the two folder-export kinds — a temporary
-  /// one rather than one the user picked when [wasShared] is true.
-  final String? folderPath;
-
-  /// How many files a folder export wrote successfully, only set for the two folder-export kinds.
-  final int? writtenCount;
-
-  /// How many files a folder export failed to write, only set for [OcptScheduleIoNoticeKind
-  /// .folderExportPartiallySucceeded].
-  final int? failedCount;
-
-  /// Whether the export was handed to the OS share sheet rather than written to [path]/[folderPath]
-  /// for the user to find — mobile's own outcome, `file_selector`'s `getSaveLocation`/
-  /// `getDirectoryPath` having no Android or iOS implementation.
-  final bool wasShared;
-
-  /// Class constructor
-  const OcptScheduleIoNotice({
-    required this.kind,
-    this.path,
-    this.folderPath,
-    this.writtenCount,
-    this.failedCount,
-    this.wasShared = false,
-  });
-
-  /// Object properties
-  @override
-  List<Object?> get props => [kind, path, folderPath, writtenCount, failedCount, wasShared];
-}
 
 /// The state of `OcptScheduleBloc`.
 ///
@@ -164,7 +61,8 @@ class OcptScheduleIoNotice extends Equatable {
 class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
     with
         MixinOcptProjectVersionsState<OcptScheduleState>,
-        MixinOcptProjectPackageState<OcptScheduleState> {
+        MixinOcptProjectPackageState<OcptScheduleState>,
+        MixinOcptModeState<OcptScheduleState> {
   /// Whether the schedule read is still being loaded from the project database.
   final bool isLoading;
 
@@ -278,6 +176,18 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
   /// The transient notice reporting the outcome of the last PDF export requested, or null once
   /// dismissed — see [OcptScheduleIoNotice]'s own doc comment.
   final OcptScheduleIoNotice? ioNotice;
+
+  /// {@macro open_cine_prod_tools.MixinOcptModeState.reloadEpoch}
+  @override
+  final int reloadEpoch;
+
+  /// {@macro open_cine_prod_tools.MixinOcptModeState.selectionEpoch}
+  @override
+  final int selectionEpoch;
+
+  /// What moved the selection the last time [selectionEpoch] advanced: a view clears different
+  /// things for different gestures (see [OcptScheduleSelectionCause]).
+  final OcptScheduleSelectionCause selectionCause;
 
   /// {@macro open_cine_prod_tools.MixinOcptProjectVersionsState.projectVersions}
   @override
@@ -592,6 +502,9 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
     required this.rightDockFraction,
     required this.pageSetup,
     required this.ioNotice,
+    required this.reloadEpoch,
+    required this.selectionEpoch,
+    required this.selectionCause,
     required this.projectVersions,
     required this.previewedVersionId,
     required this.workingCopy,
@@ -632,6 +545,9 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
       rightDockFraction = OcptWorkspaceDock.rightDefaultFraction,
       pageSetup = const OcptPageSetup.standard(),
       ioNotice = null,
+      reloadEpoch = 0,
+      selectionEpoch = 0,
+      selectionCause = OcptScheduleSelectionCause.none,
       projectVersions = const [],
       previewedVersionId = null,
       workingCopy = null,
@@ -649,6 +565,12 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
   /// [selectedShotId] and [minimumRestMinutes] all legitimately go back to null while the mode is
   /// alive, so each has its own force flag. [pendingFieldEdits] is always replaced wholesale — the
   /// caller (the bloc's own field-edit handler) always computes the full next map.
+  ///
+  /// **[reloadEpoch] moves by itself** whenever a copy replaces any of the data read from the
+  /// project database ([snapshot], [shotListSnapshots], [episodes], [locations], [roles], [people],
+  /// [elements], [roleCandidates], [minimumRestMinutes], [pageSetup]), so no handler can read the
+  /// data again and forget to tell the views. An explicit [reloadEpoch] wins, for an emit that
+  /// moves it without replacing anything.
   @override
   OcptScheduleState copyWith({
     bool? isLoading,
@@ -685,6 +607,9 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
     OcptPageSetup? pageSetup,
     OcptScheduleIoNotice? ioNotice,
     bool forceIoNoticeValue = false,
+    int? reloadEpoch,
+    int? selectionEpoch,
+    OcptScheduleSelectionCause? selectionCause,
     List<OcptProjectVersion>? projectVersions,
     String? previewedVersionId,
     bool forcePreviewedVersionIdValue = false,
@@ -731,6 +656,25 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
     rightDockFraction: rightDockFraction ?? this.rightDockFraction,
     pageSetup: pageSetup ?? this.pageSetup,
     ioNotice: ioNotice ?? (forceIoNoticeValue ? null : this.ioNotice),
+    reloadEpoch:
+        reloadEpoch ??
+        (_isDataReplacedBy(
+              snapshot: snapshot,
+              shotListSnapshots: shotListSnapshots,
+              episodes: episodes,
+              locations: locations,
+              roles: roles,
+              people: people,
+              elements: elements,
+              roleCandidates: roleCandidates,
+              minimumRestMinutes: minimumRestMinutes,
+              forceMinimumRestMinutesValue: forceMinimumRestMinutesValue,
+              pageSetup: pageSetup,
+            )
+            ? this.reloadEpoch + 1
+            : this.reloadEpoch),
+    selectionEpoch: selectionEpoch ?? this.selectionEpoch,
+    selectionCause: selectionCause ?? this.selectionCause,
     projectVersions: projectVersions ?? this.projectVersions,
     previewedVersionId:
         previewedVersionId ?? (forcePreviewedVersionIdValue ? null : this.previewedVersionId),
@@ -754,6 +698,33 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
   );
 
   /// {@macro open_cine_prod_tools.MixinOcptProjectVersionsState.copyProjectVersionsState}
+  /// Whether any of the given pieces of data read from the project database is a new value, i.e.
+  /// whether a copy made with them re-reads the data (see [copyWith]).
+  static bool _isDataReplacedBy({
+    required Object? snapshot,
+    required Object? shotListSnapshots,
+    required Object? episodes,
+    required Object? locations,
+    required Object? roles,
+    required Object? people,
+    required Object? elements,
+    required Object? roleCandidates,
+    required Object? minimumRestMinutes,
+    required bool forceMinimumRestMinutesValue,
+    required Object? pageSetup,
+  }) =>
+      snapshot != null ||
+      shotListSnapshots != null ||
+      episodes != null ||
+      locations != null ||
+      roles != null ||
+      people != null ||
+      elements != null ||
+      roleCandidates != null ||
+      minimumRestMinutes != null ||
+      forceMinimumRestMinutesValue ||
+      pageSetup != null;
+
   @override
   OcptScheduleState copyProjectVersionsState({
     List<OcptProjectVersion>? projectVersions,
@@ -830,5 +801,8 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
     rightDockFraction,
     pageSetup,
     ioNotice,
+    reloadEpoch,
+    selectionEpoch,
+    selectionCause,
   ];
 }
