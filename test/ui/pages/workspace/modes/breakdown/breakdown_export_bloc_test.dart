@@ -30,6 +30,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/breakdown/breakdow
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/breakdown/breakdown_event.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/breakdown/breakdown_export_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/breakdown/breakdown_export_state.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/breakdown/breakdown_inspector_bloc.dart';
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
@@ -272,15 +273,20 @@ void main() {
     );
   }
 
-  /// Builds the mode bloc wired to the test project. [fieldEditDebounce] defaults to a short
-  /// duration so a test exercising a typed edit does not have to wait out the real 2 s one.
-  OcptBreakdownBloc buildBloc({Duration fieldEditDebounce = const Duration(milliseconds: 30)}) =>
-      OcptBreakdownBloc(
+  /// Builds the mode bloc wired to the test project.
+  OcptBreakdownBloc buildBloc() => OcptBreakdownBloc(
+    projectsManager: projectsManager,
+    propertiesManager: propertiesManager,
+    routerManager: _RecordingRouterManager(),
+    exportManager: OcptExportManager(fileSelectorManager: const FileSelectorManager()),
+  );
+
+  /// Builds the inspector bloc of [modeBloc], which never writes what is typed on its own.
+  OcptBreakdownInspectorBloc buildInspector(OcptBreakdownBloc modeBloc) =>
+      OcptBreakdownInspectorBloc(
+        modeBloc: modeBloc,
         projectsManager: projectsManager,
-        propertiesManager: propertiesManager,
-        routerManager: _RecordingRouterManager(),
-        exportManager: OcptExportManager(fileSelectorManager: const FileSelectorManager()),
-        fieldEditDebounce: fieldEditDebounce,
+        fieldEditDebounce: const Duration(days: 1),
       );
 
   /// Builds the export bloc of [modeBloc], exporting through [exportManager] (a cancelled save
@@ -344,15 +350,16 @@ void main() {
   test("a pending scene notes edit is flushed into the snapshot the export is handed", () async {
     await writeScreenplay("INT. HOUSE - DAY\n\nAction one.\n");
     final exportManager = _FakeExportManager(exportResult: "/tmp/sheets.pdf");
-    final modeBloc = buildBloc(fieldEditDebounce: const Duration(days: 1));
+    final modeBloc = buildBloc();
+    final inspectorBloc = buildInspector(modeBloc);
     final exportBloc = buildExportBloc(modeBloc, exportManager: exportManager);
     final loaded = await waitForState(modeBloc, (state) => state.scenes.isNotEmpty);
     final sceneId = loaded.scenes.single.id;
 
-    modeBloc.add(
+    inspectorBloc.add(
       OcptBreakdownSceneNotesChangedEvent(sceneId: sceneId, rawValue: "handle with care"),
     );
-    await waitForState(modeBloc, (state) => state.pendingSceneNotesEdits.isNotEmpty);
+    await waitForState(inspectorBloc, (state) => state.pendingSceneNotesEdits.isNotEmpty);
 
     exportBloc.add(
       const OcptBreakdownSheetsExportRequestedEvent(
@@ -365,6 +372,7 @@ void main() {
 
     expect(exportManager.lastExportedSnapshot?.scenes.single.notes, "handle with care");
 
+    await inspectorBloc.close();
     await exportBloc.close();
     await modeBloc.close();
   });
@@ -452,15 +460,16 @@ void main() {
     () async {
       await writeScreenplay("INT. HOUSE - DAY\n\nAction one.\n");
       final exportManager = _FakeExportManager(exportResult: "/tmp/breakdown.xlsx");
-      final modeBloc = buildBloc(fieldEditDebounce: const Duration(days: 1));
+      final modeBloc = buildBloc();
+      final inspectorBloc = buildInspector(modeBloc);
       final exportBloc = buildExportBloc(modeBloc, exportManager: exportManager);
       final loaded = await waitForState(modeBloc, (state) => state.scenes.isNotEmpty);
       final sceneId = loaded.scenes.single.id;
 
-      modeBloc.add(
+      inspectorBloc.add(
         OcptBreakdownSceneNotesChangedEvent(sceneId: sceneId, rawValue: "handle with care"),
       );
-      await waitForState(modeBloc, (state) => state.pendingSceneNotesEdits.isNotEmpty);
+      await waitForState(inspectorBloc, (state) => state.pendingSceneNotesEdits.isNotEmpty);
 
       exportBloc.add(
         const OcptBreakdownXlsxExportRequestedEvent(
@@ -472,6 +481,7 @@ void main() {
 
       expect(exportManager.lastExportedXlsxSnapshot?.scenes.single.notes, "handle with care");
 
+      await inspectorBloc.close();
       await exportBloc.close();
       await modeBloc.close();
     },

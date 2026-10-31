@@ -31,6 +31,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_project_versi
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/breakdown/breakdown_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/breakdown/breakdown_event.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/breakdown/breakdown_export_bloc.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/breakdown/breakdown_inspector_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/breakdown/breakdown_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/breakdown/widgets/ocpt_breakdown_header.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/breakdown/widgets/ocpt_breakdown_recap_table.dart';
@@ -114,6 +115,11 @@ class OcptBreakdownMode extends StatelessWidget {
       BlocProvider(
         lazy: false,
         create: (context) => OcptBreakdownExportBloc(modeBloc: context.read<OcptBreakdownBloc>()),
+      ),
+      BlocProvider(
+        lazy: false,
+        create: (context) =>
+            OcptBreakdownInspectorBloc(modeBloc: context.read<OcptBreakdownBloc>()),
       ),
     ],
     child: const OcptBreakdownViewEffects(child: _BreakdownView()),
@@ -356,7 +362,7 @@ class _BreakdownViewState extends State<_BreakdownView> {
   /// `OcptResourcesMode._handleDeleteRequested` already ask their own question: removing a tag
   /// cannot be undone, and an irreversible action is answered the same way everywhere in the app.
   Future<void> _handleTagRemovalRequested(BuildContext context) async {
-    final bloc = context.read<OcptBreakdownBloc>();
+    final inspectorBloc = context.read<OcptBreakdownInspectorBloc>();
     final tr = Tr.of(context);
 
     final confirmed = await OcptConfirmDialog.show(
@@ -373,7 +379,7 @@ class _BreakdownViewState extends State<_BreakdownView> {
       return;
     }
 
-    bloc.add(const OcptBreakdownTagRemovalConfirmedEvent());
+    inspectorBloc.add(const OcptBreakdownTagRemovalConfirmedEvent());
   }
 
   /// Opens the project settings page, then reloads the mode's own read if the user changed
@@ -589,10 +595,12 @@ class _BreakdownViewState extends State<_BreakdownView> {
   /// Builds the `Inspector` tab's own content: the selected target's sheet, or — while nothing is
   /// selected — the selected scene's own breakdown sheet.
   Widget _buildInspector(BuildContext context, OcptBreakdownState state) {
+    final inspectorState = context.watch<OcptBreakdownInspectorBloc>().state;
     final target = state.selectedTarget;
     if (target == null) {
       final scene = state.selectedScene;
       final bloc = context.read<OcptBreakdownBloc>();
+      final inspectorBloc = context.read<OcptBreakdownInspectorBloc>();
       final isReadOnly = state.isPreviewingVersion;
 
       return OcptBreakdownSceneInspector(
@@ -605,24 +613,26 @@ class _BreakdownViewState extends State<_BreakdownView> {
             : ocptSceneSetSuggestionOf(heading: scene.heading, locations: state.locations),
         onSetLinked: isReadOnly || scene == null
             ? null
-            : (setId) =>
-                  bloc.add(OcptBreakdownSceneSetLinkedEvent(sceneId: scene.id, setId: setId)),
+            : (setId) => inspectorBloc.add(
+                OcptBreakdownSceneSetLinkedEvent(sceneId: scene.id, setId: setId),
+              ),
         onSetUnlinked: isReadOnly || scene == null
             ? null
-            : (setId) =>
-                  bloc.add(OcptBreakdownSceneSetUnlinkedEvent(sceneId: scene.id, setId: setId)),
+            : (setId) => inspectorBloc.add(
+                OcptBreakdownSceneSetUnlinkedEvent(sceneId: scene.id, setId: setId),
+              ),
         locations: [for (final location in state.locations) (location.id, location.name)],
         newSetName: scene == null ? "" : _newSetNameOf(scene.heading),
         onSetCreationRequested: isReadOnly || scene == null
             ? null
-            : (name, locationId) => bloc.add(
+            : (name, locationId) => inspectorBloc.add(
                 OcptBreakdownSceneSetCreationRequestedEvent(
                   sceneId: scene.id,
                   locationId: locationId,
                   name: name,
                 ),
               ),
-        notesValue: scene == null ? "" : state.sceneNotesValueOf(scene.id, scene.notes),
+        notesValue: scene == null ? "" : inspectorState.sceneNotesValueOf(scene.id, scene.notes),
         onTargetSelected: (targetKind, targetId, sceneId) => bloc.add(
           OcptBreakdownTargetSelectedEvent(
             targetKind: targetKind,
@@ -632,21 +642,24 @@ class _BreakdownViewState extends State<_BreakdownView> {
         ),
         onStatusChanged: scene == null
             ? null
-            : (status) =>
-                  bloc.add(OcptBreakdownSceneStatusChangedEvent(sceneId: scene.id, status: status)),
+            : (status) => inspectorBloc.add(
+                OcptBreakdownSceneStatusChangedEvent(sceneId: scene.id, status: status),
+              ),
         onNotesChanged: scene == null
             ? null
-            : (rawValue) => bloc.add(
+            : (rawValue) => inspectorBloc.add(
                 OcptBreakdownSceneNotesChangedEvent(sceneId: scene.id, rawValue: rawValue),
               ),
         onTagNeedsCheckCleared: (tagId) =>
-            bloc.add(OcptBreakdownTagNeedsCheckClearedEvent(tagId: tagId)),
-        onFlaggedTagRemoved: (tagId) => bloc.add(OcptBreakdownFlaggedTagRemovedEvent(tagId: tagId)),
+            inspectorBloc.add(OcptBreakdownTagNeedsCheckClearedEvent(tagId: tagId)),
+        onFlaggedTagRemoved: (tagId) =>
+            inspectorBloc.add(OcptBreakdownFlaggedTagRemovedEvent(tagId: tagId)),
         isReadOnly: isReadOnly,
       );
     }
 
     final bloc = context.read<OcptBreakdownBloc>();
+    final inspectorBloc = context.read<OcptBreakdownInspectorBloc>();
     final element = state.selectedElement;
     final isReadOnly = state.isPreviewingVersion;
 
@@ -659,14 +672,18 @@ class _BreakdownViewState extends State<_BreakdownView> {
       scenes: state.scenes,
       fieldValueOf: (field) => element == null
           ? ""
-          : state.elementFieldValueOf(element.id, field, _storedElementFieldValue(element, field)),
+          : inspectorState.elementFieldValueOf(
+              element.id,
+              field,
+              _storedElementFieldValue(element, field),
+            ),
       onBackToSceneRequested: () => bloc.add(const OcptBreakdownTargetSelectionClearedEvent()),
       nameValue: switch (target.kind) {
         OcptBreakdownTargetKind.element =>
           element == null
               ? target.name
-              : state.elementFieldValueOf(element.id, OcptElementField.name, element.name),
-        OcptBreakdownTargetKind.set => state.setNameValueOf(target.id, target.name),
+              : inspectorState.elementFieldValueOf(element.id, OcptElementField.name, element.name),
+        OcptBreakdownTargetKind.set => inspectorState.setNameValueOf(target.id, target.name),
         OcptBreakdownTargetKind.role => target.name,
       },
       onNameChanged: isReadOnly
@@ -678,30 +695,30 @@ class _BreakdownViewState extends State<_BreakdownView> {
               OcptBreakdownTargetKind.element =>
                 element == null
                     ? null
-                    : (rawValue) => bloc.add(
+                    : (rawValue) => inspectorBloc.add(
                         OcptBreakdownElementFieldChangedEvent(
                           elementId: element.id,
                           field: OcptElementField.name,
                           rawValue: rawValue,
                         ),
                       ),
-              OcptBreakdownTargetKind.set => (rawValue) => bloc.add(
+              OcptBreakdownTargetKind.set => (rawValue) => inspectorBloc.add(
                 OcptBreakdownSetNameChangedEvent(setId: target.id, rawValue: rawValue),
               ),
             },
       onStatusChanged: isReadOnly || element == null
           ? null
-          : (status) => bloc.add(
+          : (status) => inspectorBloc.add(
               OcptBreakdownElementStatusChangedEvent(elementId: element.id, status: status),
             ),
       onCategoryChanged: isReadOnly || element == null
           ? null
-          : (category) => bloc.add(
+          : (category) => inspectorBloc.add(
               OcptBreakdownElementCategoryChangedEvent(elementId: element.id, category: category),
             ),
       onFieldChanged: isReadOnly || element == null
           ? null
-          : (field, rawValue) => bloc.add(
+          : (field, rawValue) => inspectorBloc.add(
               OcptBreakdownElementFieldChangedEvent(
                 elementId: element.id,
                 field: field,
@@ -710,12 +727,12 @@ class _BreakdownViewState extends State<_BreakdownView> {
             ),
       onOwnerChanged: isReadOnly || element == null
           ? null
-          : (personId) => bloc.add(
+          : (personId) => inspectorBloc.add(
               OcptBreakdownElementOwnerChangedEvent(elementId: element.id, personId: personId),
             ),
       onBringerChanged: isReadOnly || element == null
           ? null
-          : (personId) => bloc.add(
+          : (personId) => inspectorBloc.add(
               OcptBreakdownElementBringerChangedEvent(elementId: element.id, personId: personId),
             ),
       onOccurrenceSelected: (sceneId) =>
